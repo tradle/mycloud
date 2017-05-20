@@ -1,0 +1,31 @@
+{
+   "AttributeDefinitions": [
+      {
+         "AttributeName": "author",
+         "AttributeType": "S"
+      },
+      {
+         "AttributeName": "seq",
+         "AttributeType": "N"
+      }
+   ],
+   "KeySchema": [
+      {
+         "AttributeName": "author",
+         "KeyType": "HASH"
+      },
+      {
+         "AttributeName": "seq",
+         "KeyType": "N"
+      }
+   ],
+   "ProvisionedThroughput": {
+      "ReadCapacityUnits": 1,
+      "WriteCapacityUnits": 1
+   },
+   "StreamSpecification": {
+      "StreamEnabled": true,
+      "StreamViewType": "NEW_AND_OLD_IMAGES"
+   },
+   "TableName": "InboxTable"
+}

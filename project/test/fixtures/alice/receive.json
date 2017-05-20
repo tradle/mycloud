@@ -1,0 +1,51 @@
+{
+  "recipientPubKey": {
+    "curve": "p256",
+    "pub": {
+      "type": "Buffer",
+      "data": [
+        2,
+        209,
+        186,
+        130,
+        61,
+        195,
+        131,
+        228,
+        241,
+        198,
+        236,
+        63,
+        62,
+        61,
+        73,
+        49,
+        48,
+        230,
+        94,
+        7,
+        81,
+        27,
+        25,
+        118,
+        83,
+        226,
+        95,
+        7,
+        91,
+        109,
+        248,
+        204,
+        226
+      ]
+    }
+  },
+  "object": {
+    "_s": "CikKBHAyNTYSIQN6RjGscGY49msMcgkOdwQFf6kswk2Afg+WiYmAX4wlvBJHMEUCIFRwQCVQ0JLPzg8HwhOjQe5nomi5hoMZMfg0D1D3nJwlAiEA6s3f3aEnDK5SKNhApPCOrUXN029P+Ymia0TymGr2enY=",
+    "_t": "tradle.SimpleMessage",
+    "message": "hey alice!"
+  },
+  "_s": "CikKBHAyNTYSIQN6RjGscGY49msMcgkOdwQFf6kswk2Afg+WiYmAX4wlvBJIMEYCIQCeso0662c2p6oTOxXaRuTD4+FY9teJj60ejwqicO6HlgIhALTcvNCjhFL2/oGSKjUnMDo7nggpnmi/KXqvSsd2SLjw",
+  "_n": 0,
+  "_t": "tradle.Message"
+}

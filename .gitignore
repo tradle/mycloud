@@ -1,0 +1,6 @@
+node_modules
+DynamoDBLocal/
+.env
+*.log
+*.zip
+.serverless

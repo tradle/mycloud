@@ -1,0 +1,11 @@
+{
+  "PAYLOAD_PROP_PREFIX": "p:",
+  "METADATA_PREFIX": "m:",
+  "IDENTITY_KEYS_KEY": "IdentityKeys",
+  "SIG": "_s",
+  "TYPE": "_t",
+  "TYPES": {
+    "MESSAGE": "tradle.Message",
+    "IDENTITY": "tradle.Identity"
+  }
+}

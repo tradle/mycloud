@@ -1,0 +1,54 @@
+[
+  {
+    "networkName": "testnet",
+    "purpose": "payment",
+    "type": "bitcoin",
+    "fingerprint": "mxmSAM4xK1bSsJjWcPoys3uKbigZ3AVjpi",
+    "pub": "029d61a4c1b09331d600b841854e93c5fdd206bac9093db95a008b6c5893bf4d7f",
+    "priv": "cNTLdTijPMPwt9HxMXZRia55m8xcVAUabAfY4j1vGMPkZTSUkgye"
+  },
+  {
+    "networkName": "testnet",
+    "purpose": "messaging",
+    "type": "bitcoin",
+    "fingerprint": "mtz1BGVavaEMYLnc7WU2xcEwVNP7Sab45g",
+    "pub": "03eea707af8d1e2284798f2f39e8ee1a71f6fe8003144dda918e84710d89490754",
+    "priv": "cNgNEm9FEVpgaRGkw4EcP44ZE3WwC1f8oF64Z6TLLGBfpyyw7LL6"
+  },
+  {
+    "curve": "p256",
+    "purpose": "sign",
+    "type": "ec",
+    "pub": "02d1ba823dc383e4f1c6ec3f3e3d493130e65e07511b197653e25f075b6df8cce2",
+    "fingerprint": "0e5db44c33aad529acbe946dc22cba70d15199a6f5f1ec9cae5b739c4e7c69ab",
+    "priv": "26f10693df5cafd7a3bba38cb84f5031b7b29bc1c3783a428ce29b98028a0dec",
+    "encoded": {
+      "pem": {
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMIGXAgEBBEAyNmYxMDY5M2RmNWNhZmQ3YTNiYmEzOGNiODRmNTAzMWI3YjI5YmMx\nYzM3ODNhNDI4Y2UyOWI5ODAyOGEwZGVjoAoGCCqGSM49AwEHoUQDQgAEQ93+DmSx\n2DId9ElDU0c5y3UsSJuJ3ff/rI2Dnd4OQykSlTyLKXzENm/K6pZpGdle6SC0JVUM\nnxYK1xHenn9M2w==\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFowEwYHKoZIzj0CAQYIKoZIzj0DAQcDQwAwMmQxYmE4MjNkYzM4M2U0ZjFjNmVj\nM2YzZTNkNDkzMTMwZTY1ZTA3NTExYjE5NzY1M2UyNWYwNzViNmRmOGNjZTI=\n-----END PUBLIC KEY-----"
+      }
+    }
+  },
+  {
+    "curve": "p256",
+    "purpose": "update",
+    "type": "ec",
+    "pub": "021304a9f18148a21a7518d555656ac23756b47bb0340b75be70c1504c374d4a8e",
+    "fingerprint": "0a73de0dd9a06eec1cc8153d1c71e7dbdc5bc92432710769e9b1a4b727f55d33",
+    "priv": "e657c41060974d9eeb15ff559418c6941531992f57206e6ff95a4d7e93adafbe",
+    "encoded": {
+      "pem": {
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMIGXAgEBBEBlNjU3YzQxMDYwOTc0ZDllZWIxNWZmNTU5NDE4YzY5NDE1MzE5OTJm\nNTcyMDZlNmZmOTVhNGQ3ZTkzYWRhZmJloAoGCCqGSM49AwEHoUQDQgAEarcvqgy0\nGYej1NCc04Ea4atmsh1yrwMBkjCa14uW4SjfNtp1lZF8CQu827sn+yZTjUgkj6Sx\n/rjoIxf8wJlS0A==\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFowEwYHKoZIzj0CAQYIKoZIzj0DAQcDQwAwMjEzMDRhOWYxODE0OGEyMWE3NTE4\nZDU1NTY1NmFjMjM3NTZiNDdiYjAzNDBiNzViZTcwYzE1MDRjMzc0ZDRhOGU=\n-----END PUBLIC KEY-----"
+      }
+    }
+  },
+  {
+    "purpose": "tls",
+    "curve": "curve25519",
+    "type": "ec",
+    "pub": "1c845e50412231261d4097459e69e9a195b0494480cda4690c088dd831502967",
+    "fingerprint": "594ddaf7b458a415aded741501b9111e812bf02c54a082d3b93eee15f9c653b2",
+    "priv": "a96624b065ebee754e40e7a1967e06fd8582bf9ef5a56d071a31ffb3662ef23c"
+  }
+]

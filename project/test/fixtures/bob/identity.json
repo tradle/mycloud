@@ -1,0 +1,41 @@
+{
+  "_s": "CikKBHAyNTYSIQKtKMfeQol6YoQcLNR6jfKzmRXFx2blwmHkh/jjJBC3shJHMEUCIQDVm+JYNh7+78JzfGeMLcwtOc6L4IS+KaqhiJk4v1yc0AIgIIbPWdPPxaIaNpR4whvqA6QVeE2khEl+r1sR0MXgoq8=",
+  "_t": "tradle.Identity",
+  "pubkeys": [
+    {
+      "networkName": "testnet",
+      "purpose": "payment",
+      "type": "bitcoin",
+      "fingerprint": "n15oiKHmcfMSpbjtK1VhGSCqULLw3cKjUE",
+      "pub": "03d3188458ae15510d2a37d1f43237d51b1d58e5ee0d02537fcc33395a10c25f44"
+    },
+    {
+      "networkName": "testnet",
+      "purpose": "messaging",
+      "type": "bitcoin",
+      "fingerprint": "mpbgADWnkGXaQyvgFhjihbG3t2gQ7a2A5B",
+      "pub": "02e7dafdb4ea60ead1d21cbd8ee59083f0518a8626cccfab8465ba55432599ad5b"
+    },
+    {
+      "curve": "p256",
+      "purpose": "sign",
+      "type": "ec",
+      "pub": "037a4631ac706638f66b0c72090e7704057fa92cc24d807e0f968989805f8c25bc",
+      "fingerprint": "0c98e83d6b6af01b5240e2d05e44141305df513a81f841d16d611434ea1c9a36"
+    },
+    {
+      "curve": "p256",
+      "purpose": "update",
+      "type": "ec",
+      "pub": "02ad28c7de42897a62841c2cd47a8df2b39915c5c766e5c261e487f8e32410b7b2",
+      "fingerprint": "e3a14312857892879a1fe9d59469012349a54e4c8156126e5f9d4c024bf00136"
+    },
+    {
+      "purpose": "tls",
+      "type": "ec",
+      "curve": "curve25519",
+      "pub": "900de866f6cb73c363a309931aae14619a229596c2a52c07dc49d2c529f81d51",
+      "fingerprint": "ffbf5d0ec0ae22d22df312341f1ce68bef6b392f85f74142c74b73eab7ce1aa6"
+    }
+  ]
+}

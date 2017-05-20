@@ -1,0 +1,41 @@
+{
+  "name": "@tradle/serverless-wrapper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": "true",
+  "repository": "https://github.com/tradle/aws",
+  "author": "Mark Vayngrib <mark@tradle.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@tradle/engine": "^4.9.0",
+    "aws-sdk": "^2.7",
+    "co": "^4.6.0",
+    "debug": "^2.6.8",
+    "dynamodb-marshaler": "^2.0.0",
+    "error-ex": "^1.3.1",
+    "json-stable-stringify": "^1.0.1",
+    "key-encoder": "mvayngrib/key-encoder-js",
+    "microtime": "^2.1.3",
+    "nkey-bitcoin": "^1.2.0",
+    "nkey-curve25519": "^1.0.1",
+    "nkey-ecdsa": "^1.1.0",
+    "object.omit": "^2.0.1",
+    "object.pick": "^1.2.0",
+    "pify": "^2.3.0",
+    "typeforce": "^1.11.1",
+    "xtend": "^4.0.1"
+  },
+  "scripts": {
+    "test": "node test",
+    "deploy:local": "SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
+    "deploy:aws": "npm run rebuild:deploy && SLS_DEBUG=* serverless deploy",
+    "invoke": "SLS_DEBUG=* serverless invoke",
+    "init:local": "./simulate/resources.sh && ./simulate/init.sh && ./simulate/addContact.sh",
+    "init": "./scripts/create-buckets.sh",
+    "rebuild:deploy": "docker run -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10",
+    "rebuild:local": "npm rebuild"
+  },
+  "devDependencies": {
+    "serverless-resources-env": "^0.3.0"
+  }
+}

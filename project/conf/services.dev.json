@@ -1,0 +1,21 @@
+{
+  "AWS": {
+    "region": "us-east-1"
+  },
+  "S3": {
+    "endpoint": "http://localhost:4572",
+    "s3ForcePathStyle": true
+  },
+  "DynamoDB": {
+    "endpoint": "http://localhost:4569"
+  },
+  "DynamoDBStreams": {
+    "endpoint": "http://localhost:4570"
+  },
+  "Lambda": {
+    "endpoint": "http://localhost:4574"
+  },
+  "CloudFormation": {
+    "endpoint": "http://localhost:4581"
+  }
+}

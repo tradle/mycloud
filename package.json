@@ -1,0 +1,26 @@
+{
+  "name": "@tradle/serverless-wrapper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": "true",
+  "repository": "https://github.com/tradle/aws",
+  "author": "Mark Vayngrib <mark@tradle.io>",
+  "license": "MIT",
+  "devDependencies": {
+    "@tradle/engine": "^4.9.0",
+    "@tradle/test-helpers": "tradle/test-helpers",
+    "eslint": "^3.19.0",
+    "memdown": "^1.2.4",
+    "mkdirp": "^0.5.1",
+    "nkey-bitcoin": "^1.2.0",
+    "nkey-curve25519": "^1.0.1",
+    "nkey-ecdsa": "^1.1.0",
+    "random-name": "^0.1.2",
+    "react-native-debugger-open": "^0.3.11",
+    "serverless": "^1.14.0",
+    "tape": "^4.6.3"
+  },
+  "scripts": {
+    "lint": "eslint --quiet --ignore-path .gitignore ."
+  }
+}

@@ -1,0 +1,500 @@
+service: tradle-messaging
+frameworkVersion: ">=1.5.0 <2.0.0"
+
+plugins:
+  - serverless-resources-env
+  # - serverless-plugin-write-env-vars
+  # - serverless-plugin-include-dependencies
+  # - serverless-dynamodb-local
+  # - serverless-offline
+
+package:
+  exclude:
+    - .git/**
+    - scripts/DynamoDBLocal/**
+    - node_modules/aws-sdk/**
+    - garbage/**
+
+custom:
+  prefix: ${{self:service}}-${{self:provider.stage}}-
+  defaultStage: dev
+  stage: ${{opt:stage, self:custom.defaultStage}}
+  NETWORK_NAME: testnet
+  METADATA_PREFIX: ${{file(./lib/constants.json):METADATA_PREFIX}}
+  IDENTITY_KEYS_KEY: ${{file(./lib/constants.json):IDENTITY_KEYS_KEY}}
+  SECRETS_BUCKET: ${{self:custom.prefix}}secrets1
+  OBJECTS_BUCKET: ${{self:custom.prefix}}objects1
+  props:
+    author: ${{self:custom.METADATA_PREFIX}}author
+    recipient: ${{self:custom.METADATA_PREFIX}}recipient
+    seq: ${{self:custom.METADATA_PREFIX}}seq
+  # writeEnvVars:
+  #   SERVERLESS_STAGE: ${{self:custom.stage}}
+  #   SERVERLESS_SERVICE_NAME: ${{self:service}}
+  #   SERVERLESS_PREFIX: ${{self:service}}-${{self:provider.stage}}
+
+#   secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
+  # deployBucket: io.tradle.aws.code
+  # dynamodb:
+  #   start:
+  #     port: 8000
+  #     inMemory: true
+  #     migration: true
+  #   migration:
+  #     dir: offline/migrations
+
+provider:
+  variableSyntax: '\${{([\s\S]+?)}}'
+  # variableSyntax: "\${{([\s\S]+?)}}"
+  name: aws
+  runtime: nodejs6.10
+  profile: serverless
+  stage: ${{self:custom.stage}}
+  region: us-east-1
+  memorySize: 128
+  # deploymentBucket: io.tradle.${{self:provider.region}.deploys # Overwrite the default deployment bucket
+  environment:
+    NETWORK_NAME: testnet
+    DEBUG: tradle:*
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:DescribeStream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:ListStreams
+      Resource:
+        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/EventsTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/InboxTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/OutboxTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/PubKeysTable"
+
+    # allow access to bucket
+    # TODO: give access only to the lambdas that need it
+    - Effect: Allow
+      Action:
+        - s3:ListBucket
+        - s3:PutObject
+        - s3:GetObject
+      Resource:
+        - "arn:aws:s3:::${{self:custom.OBJECTS_BUCKET}}/*"
+        - "arn:aws:s3:::${{self:custom.SECRETS_BUCKET}}/*"
+
+    # REMOVE in prod
+    # allow access to buckets from the console
+    - Effect: Allow
+      Action:
+        - s3:GetBucketLocation
+        - s3:ListAllMyBuckets
+      Resource: "arn:aws:s3:::*"
+
+    # allow lambdas to call each other
+    # TODO: make this more fine grained
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+        - lambda:InvokeAsync
+      Resource: "*"
+
+      # Resource: "*"
+   # - Effect: "Allow"
+   #   Action:
+   #     - "s3:GetObject"
+   #   Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+   # - Effect: "Allow"
+   #   Action:
+   #     - "s3:PutObject"
+   #   Resource:
+   #     Fn::Join:
+   #       - ""
+   #       - - "arn:aws:s3:::"
+   #         - "Ref" : "ServerlessDeploymentBucket"
+   #         - "/*"
+
+functions:
+  createevent:
+    handler: lib/lambda/createevent.handler
+    memorySize: 512
+  log:
+    handler: lib/lambda/log.handler
+    # package:
+    #   exclude:
+    #     - node_modules/
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - EventsTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 20
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - EventsTable
+              - StreamArn
+
+  fanout:
+    handler: lib/lambda/fan-out.handler
+    memorySize: 512
+    environment:
+      DEBUG: tradle:*
+      SERVERLESS_PREFIX: ${{self:custom.prefix}}
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - EventsTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 20
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - EventsTable
+              - StreamArn
+  # onconnect:
+  #   handler: lib/lambda/handshake.shake
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * FROM '$aws/events/presence/connected'"
+  # ondisconnect:
+  #   handler: lib/lambda/handshake.break
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * FROM '$aws/events/presence/disconnected'"
+
+  queuereceive:
+    handler: lib/lambda/queuereceive.handler
+    memorySize: 512
+    environment:
+      DEBUG: tradle:*
+    events:
+      - iot:
+          sql: "SELECT * FROM 'send'"
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - EventsTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+  addcontact:
+    handler: lib/lambda/addContact.handler
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - PubKeysTable
+  identity:
+    handler: lib/lambda/identity.handler
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - PubKeysTable
+  init:
+    handler: lib/lambda/init.handler
+    memorySize: 512
+    environment:
+      NETWORK_NAME: testnet
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - PubKeysTable
+  queuesend:
+    handler: lib/lambda/queuesend.handler
+    memorySize: 512
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - EventsTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+  send:
+    handler: lib/lambda/send.handler
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - EventsTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+
+  # sign:
+  #   handler: lib/lambda/sign.handler
+  #   events:
+  #     - http:
+  #         path: /sign
+  #         method: post
+  #         cors: true
+
+  # info:
+  #   handler: lib/lambda/info.handler
+  #   events:
+  #     - http:
+  #         path: info
+  #         method: get
+  #         cors: true
+
+
+    # environment:
+    #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
+    #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
+
+
+resources:
+  Resources:
+    ObjectsBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: ${{self:custom.OBJECTS_BUCKET}}
+
+    SecretsBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: ${{self:custom.SECRETS_BUCKET}}
+
+    EventsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: EventsTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+
+    PubKeysTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: PubKeysTable
+        AttributeDefinitions:
+          - AttributeName: pub
+            AttributeType: S
+          - AttributeName: permalink
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pub
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: permalink
+            KeySchema:
+              - AttributeName: permalink
+                KeyType: HASH
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - link
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+    # stores metadata about incoming messages
+    # bodies rot in s3
+    InboxTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: InboxTable
+        AttributeDefinitions:
+          - AttributeName: ${{self:custom.props.author}}
+            AttributeType: S
+          - AttributeName: ${{self:custom.props.seq}}
+            AttributeType: N
+        KeySchema:
+          - AttributeName: ${{self:custom.props.author}}
+            KeyType: HASH
+          - AttributeName: ${{self:custom.props.seq}}
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    OutboxTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: OutboxTable
+        AttributeDefinitions:
+          - AttributeName: ${{self:custom.props.recipient}}
+            AttributeType: S
+          - AttributeName: ${{self:custom.props.seq}}
+            AttributeType: N
+        KeySchema:
+          - AttributeName: ${{self:custom.props.recipient}}
+            KeyType: HASH
+          - AttributeName: ${{self:custom.props.seq}}
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    # stores mappings between identity permalink and ephemeral clientIds
+    # mappings are created after initial handshake and destroyed on disconnect
+    # Clients:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: Clients
+    #     AttributeDefinitions:
+    #       - AttributeName: permalink
+    #         AttributeType: S
+    #       - AttributeName: clientId
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: permalink
+    #         KeyType: HASH
+
+
+
+    # EventsStreamEventSourceMapping:
+    #   Type: AWS::Lambda::EventSourceMapping
+    #   DependsOn: IamPolicyLambdaExecution
+    #   Properties:
+    #     BatchSize: 10
+    #     EventSourceArn:
+    #       Fn::GetAtt:
+    #         - EventsTable
+    #         - StreamArn
+    #     FunctionName:
+    #       Fn::GetAtt:
+    #         - fanout
+    #         - Arn
+    #     StartingPosition: TRIM_HORIZON
+    #     Enabled: True
+
+
+
+    # IoT
+
+    # set policies for IoT client actions
+    # IoTClientPolicy:
+    #   Type: AWS::IoT::Policy
+    #   Properties:
+    #     PolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         # restrict client connect by client id
+    #         - Effect: Allow
+    #           Action: ["iot:Connect"]
+    #           Resource: ["aws:iot:::client/${iot:ClientId}"]
+    #         # allow all clients to publish to the send topic
+    #         - Effect: "Allow"
+    #           Action: ["iot:Publish"]
+    #           Resource: ["aws:iot:::topic/message"]
+    #         # restrict client topic subscriptions by their client id
+    #         - Effect: "Allow"
+    #           Action: ["iot:Subscribe"]
+    #           Resource: ["aws:iot:::topicfilter/${iot:ClientId}"]
+    #         # restrict messages clients receive by their client id
+    #         # this has the same function as the Subscribe rule above
+    #         # provided the Subscribe policy is upheld, this policy should always give a pass
+    #         - Effect: "Allow"
+    #           Action: ["iot:Receive"]
+    #           Resource: ["aws:iot:::topic/${iot:ClientId}"]
+
+    # call `preprocess` lambda on all messages (send to topic 'send')
+    # IoTHandshakeRule:
+    #   Type: AWS::IoT::TopicRule
+    #   Properties:
+    #     TopicRulePayload:
+    #       RuleDisabled: false
+    #       Sql: "SELECT * FROM 'handshake'"
+    #       Actions:
+    #         - Lambda:
+    #             FunctionArn: { Fn::GetAtt: [ handshake, Arn ] }
+
+    # # allow iot to invoke the `preprocess` lambda
+    # IoTHandshakeInvokePermission:
+    #   Type: AWS::Lambda::Permission
+    #   Properties:
+    #     FunctionName: { Fn::GetAtt: [ handshake, Arn ] }
+    #     Action: lambda:InvokeFunction
+    #     Principal: iot.amazonaws.com
+
+    # IoTPreprocessRule:
+    #   Type: AWS::IoT::TopicRule
+    #   Properties:
+    #     TopicRulePayload:
+    #       RuleDisabled: false
+    #       Sql: "SELECT * FROM 'send'"
+    #       Actions:
+    #         - Lambda:
+    #             FunctionArn: { Fn::GetAtt: [ preprocess, Arn ] }
+
+    # # allow iot to invoke the `preprocess` lambda
+    # IoTPreprocessInvokePermission:
+    #   Type: AWS::Lambda::Permission
+    #   Properties:
+    #     FunctionName: { Fn::GetAtt: [ preprocess, Arn ] }
+    #     Action: lambda:InvokeFunction
+    #     Principal: iot.amazonaws.com
+
+    # # define IoT role
+    # IoTRole:
+    #  Type: AWS::IAM::Role
+    #  Properties:
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             Service:
+    #               - iot.amazonaws.com
+    #           Action:
+    #             - sts:AssumeRole
+
+    # # attach policy to IoT role to allow it to use lambda
+    # IoTRolePolicies:
+    #   Type: AWS::IAM::Policy
+    #   Properties:
+    #     Roles: [{ Ref: IoTRole }]
+    #     PolicyName: IoTRole_Policy
+    #     PolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow
+    #           Action:
+    #             - lambda:InvokeFunction
+    #           # Resource: "*"
+    #           Resource:
+    #             - { Fn::GetAtt: [ preprocess, Arn ] }
+    #             - { Fn::GetAtt: [ handshake, Arn ] }
