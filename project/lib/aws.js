@@ -1,4 +1,5 @@
 
+const extend = require('xtend/mutable')
 const AWS = require('aws-sdk')
 const services = process.env.IS_LOCAL ? require('../conf/services.dev') : require('../conf/services.prod')
 AWS.config.update(services.AWS)
@@ -35,8 +36,11 @@ module.exports = {
 
     return docClient
   },
-  get iotData() {
-    if (!iotData) iotData = new AWS.IotData(services.Iot)
+  iotData(endpoint) {
+    if (!iotData) {
+      const opts = extend({ endpoint }, services.Iot || {})
+      iotData = new AWS.IotData(opts)
+    }
 
     return iotData
   },

@@ -12,7 +12,7 @@ package:
   exclude:
     - .git/**
     - .serverless/**
-    - scripts/DynamoDBLocal/**
+    - scripts/**
     - node_modules/**
     - simulate/**
     - garbage/**

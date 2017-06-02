@@ -31,6 +31,6 @@
     "invoke:local": "SLS_DEBUG=* IS_LOCAL=1 serverless invoke",
     "init:local": "./simulate/resources.sh && ./simulate/init.sh && ./simulate/addContact.sh",
     "init": "./scripts/create-buckets.sh",
-    "rebuild": "docker run -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10"
+    "rebuild": "cd project && docker run -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd .."
   }
 }

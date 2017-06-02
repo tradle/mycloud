@@ -1,12 +1,19 @@
 const crypto = require('crypto')
-const { iotData } = require('./aws')
+const aws = require('./aws')
+const { iot } = aws
+// const { iotData } = require('./aws')
 const { get, put, del } = require('./db-utils')
 const { PresenceTable } = require('./env')
-const { co, randomString } = require('./utils')
+const { co, randomString, cachifyPromiser } = require('./utils')
 const { HandshakeFailed } = require('./errors')
 const { HANDSHAKE_TIMEOUT } = require('./constants')
 const Objects = require('./objects')
 const Messages = require('./messages')
+
+const getIotData = cachifyPromiser(function () {
+  return iot.describeEndpoint().promise()
+    .then(({ endpointAddress }) => aws.iotData(endpointAddress))
+})
 
 const onExit = co(function* ({ clientId }) {
   try {
@@ -44,7 +51,7 @@ function onAuthenticated ({ clientId, permalink }) {
   })
 }
 
-const createChallenge = co(function* ({ clientId }) {
+const createChallenge = co(function* ({ clientId, endpointAddress }) {
   const permalink = getPermalinkFromClientId(clientId)
   const challenge = newNonce()
   yield put({
@@ -104,7 +111,8 @@ function newNonce () {
 }
 
 function publish (params) {
-  return iotData.publish(params).promise()
+  return getIotData()
+    .then(iotData => iotData.publish(params).promise())
 }
 
 function getPermalinkFromClientId (clientId) {

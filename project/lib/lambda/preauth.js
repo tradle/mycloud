@@ -5,15 +5,17 @@ const { createChallenge } = require('../presence')
 const { LambdaInvalidInvocation } = require('../errors')
 
 exports.handler = wrap.generator(function* (event, context) {
+  console.log(event, JSON.stringify(event, null, 2))
   const { clientId } = event
   if (!clientId) {
     throw new LambdaInvalidInvocation('expected "clientId"')
   }
 
-  const promiseChallenge = createChallenge({ clientId })
-
   // get the endpoint address
   const promiseEndpoint = iot.describeEndpoint().promise()
+  const promiseChallenge = promiseEndpoint.then(({ endpointAddress }) => {
+    return createChallenge({ clientId, endpointAddress })
+  })
 
   // get the account id which will be used to assume a role
   const promiseCaller = sts.getCallerIdentity().promise()
