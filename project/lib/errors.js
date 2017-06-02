@@ -1,14 +1,13 @@
 const ex = require('error-ex')
-const NotFound = ex('NotFound')
-const InvalidSignatureError = ex('InvalidSignatureError')
-const InvalidMessageFormat = ex('InvalidMessageFormat')
-const PutFailed = ex('PutFailed')
-const MessageNotForMe = ex('MessageNotForMe')
+const errors = {}
+;[
+  'NotFound',
+  'InvalidSignatureError',
+  'InvalidMessageFormat',
+  'PutFailed',
+  'MessageNotForMe',
+  'HandshakeFailed',
+  'LambdaInvalidInvocation'
+].forEach(name => errors[name] = ex(name))
 
-module.exports = {
-  NotFound,
-  InvalidMessageFormat,
-  InvalidSignatureError,
-  PutFailed,
-  MessageNotForMe
-}
+module.exports = errors

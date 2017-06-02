@@ -9,7 +9,7 @@ const Objects = require('./objects')
 const Identities = require('./identities')
 const { put, findOne } = require('./db-utils')
 const { NotFound } = require('./errors')
-const { pick } = require('./utils')
+const { pick, omit } = require('./utils')
 const {
   METADATA_PREFIX,
   PAYLOAD_PROP_PREFIX
@@ -21,10 +21,10 @@ const {
 } = require('./env')
 
 const MESSAGE_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author', 'recipient', 'inbound']
-const PAYLOAD_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author']
+const PAYLOAD_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author', 'type']
+const PREFIXED_PAYLOAD_PROPS = PAYLOAD_WRAPPER_PROPS.map(key => PAYLOAD_PROP_PREFIX + key)
 const PROP_NAMES = (function () {
   const prefixed = {}
-  const PREFIXED_PAYLOAD_PROPS = PAYLOAD_WRAPPER_PROPS.map(key => PAYLOAD_PROP_PREFIX + key)
   MESSAGE_WRAPPER_PROPS.concat(PREFIXED_PAYLOAD_PROPS).forEach(key => {
     prefixed[key] = METADATA_PREFIX + prefixed[key]
   })
@@ -45,7 +45,8 @@ const putMessage = co(function* (event) {
   })
 })
 
-function messageToEventPayload (wrapper) {
+function messageToEventPayload (wrappers) {
+  const wrapper = mergeWrappers(wrappers)
   const formatted = {}
 
   for (let p in wrapper) {
@@ -94,7 +95,7 @@ function messageFromEventPayload (formatted) {
     }
   }
 
-  return wrapper
+  return parseMergedWrapper(wrapper)
 }
 
 function serializePubKey (key) {
@@ -149,6 +150,19 @@ function mergeWrappers ({ message, payload }) {
 
   wrapper.object = message.object
   return wrapper
+}
+
+function parseMergedWrapper (wrapper) {
+  const message = omit(wrapper, PREFIXED_PAYLOAD_PROPS)
+  const payload = {}
+  PAYLOAD_WRAPPER_PROPS.forEach(prop => {
+    payload[prop] = wrapper[PAYLOAD_PROP_PREFIX + prop]
+  })
+
+  return {
+    message,
+    payload
+  }
 }
 
 function normalizeInbound (event) {

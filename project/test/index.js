@@ -53,17 +53,12 @@ test('extract pub key', function (t) {
 })
 
 test('format message', function (t) {
-  const wrapper = {
+  const message = {
     link: 'a',
     permalink: 'b',
     author: 'c',
     recipient: 'd',
     sigPubKey: 'd1',
-    [PAYLOAD_PROP_PREFIX + 'link']: 'e',
-    [PAYLOAD_PROP_PREFIX + 'permalink']: 'f',
-    [PAYLOAD_PROP_PREFIX + 'type']: 'g',
-    [PAYLOAD_PROP_PREFIX + 'author']: 'h',
-    [PAYLOAD_PROP_PREFIX + 'sigPubKey']: 'i',
     object: {
       [SIG]: 'asdjklasdjklsa',
       [TYPE]: MESSAGE,
@@ -80,7 +75,16 @@ test('format message', function (t) {
     }
   }
 
-  const formatted = Messages.messageToEventPayload(wrapper)
+  const payload = {
+    link: 'e',
+    permalink: 'f',
+    type: 'g',
+    author: 'h',
+    sigPubKey: 'i',
+    object: message.object.object
+  }
+
+  const formatted = Messages.messageToEventPayload({ message, payload })
   t.same(formatted, {
     [METADATA_PREFIX + 'link']: 'a',
     [METADATA_PREFIX + 'permalink']: 'b',
@@ -99,8 +103,10 @@ test('format message', function (t) {
   })
 
   const recovered = Messages.messageFromEventPayload(formatted)
-  recovered.object.object = wrapper.object.object
-  t.same(recovered, wrapper)
+  recovered.message.object.object = message.object.object
+  recovered.payload.object = message.object.object
+  t.same(recovered.message, message)
+  t.same(recovered.payload, payload)
   t.end()
 })
 

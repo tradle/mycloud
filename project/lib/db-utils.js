@@ -1,3 +1,4 @@
+const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
 const { NotFound } = require('./errors')
 const { db, docClient, s3 } = require('./aws')
 const { pick } = require('./utils')
@@ -5,9 +6,12 @@ const { pick } = require('./utils')
 module.exports = {
   get,
   put,
+  del,
   update,
   findOne,
-  getUpdateExpressions
+  getUpdateExpressions,
+  marshalItem,
+  unmarshalItem
 }
 
 function get (params) {
@@ -22,6 +26,10 @@ function get (params) {
 
 function put (params) {
   return docClient.put(params).promise()
+}
+
+function del (params) {
+  return docClient.delete(params).promise()
 }
 
 function findOne (params) {

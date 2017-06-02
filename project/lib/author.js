@@ -117,10 +117,10 @@ const _createSendMessageEvent = co(function* (opts) {
 
   return Events.putEvent({
     topic: 'send',
-    data: Messages.messageToEventPayload(Messages.mergeWrappers({
+    data: Messages.messageToEventPayload({
       message: signedMessage,
       payload: payloadWrapper
-    }))
+    })
   })
 })
 
@@ -155,7 +155,7 @@ const createReceiveMessageEvent = co(function* ({ message }) {
 
   return Events.putEvent({
     topic: 'receive',
-    data: Messages.messageToEventPayload(Messages.mergeWrappers(parsed))
+    data: Messages.messageToEventPayload(parsed)
   })
 })
 
@@ -172,10 +172,18 @@ const ensureMessageIsForMe = co(function* ({ message }) {
   }
 })
 
+const loadMessage = co(function* (data) {
+  const { message, payload } = Messages.messageFromEventPayload(data)
+  message.object.object = yield getObjectByLink(message[PAYLOAD_PROP_PREFIX + 'link'])
+  payload.object = message.object.object
+  return { message, payload }
+})
+
 module.exports = {
   getMyIdentity,
   sign,
   signObject,
   createSendMessageEvent,
-  createReceiveMessageEvent
+  createReceiveMessageEvent,
+  loadMessage
 }

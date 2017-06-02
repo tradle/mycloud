@@ -11,8 +11,10 @@ plugins:
 package:
   exclude:
     - .git/**
+    - .serverless/**
     - scripts/DynamoDBLocal/**
-    - node_modules/aws-sdk/**
+    - node_modules/**
+    - simulate/**
     - garbage/**
 
 custom:
@@ -20,8 +22,8 @@ custom:
   defaultStage: dev
   stage: ${{opt:stage, self:custom.defaultStage}}
   NETWORK_NAME: testnet
-  METADATA_PREFIX: ${{file(./lib/constants.json):METADATA_PREFIX}}
-  IDENTITY_KEYS_KEY: ${{file(./lib/constants.json):IDENTITY_KEYS_KEY}}
+  METADATA_PREFIX: ${{file(./project/lib/constants.json):METADATA_PREFIX}}
+  IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
   SECRETS_BUCKET: ${{self:custom.prefix}}secrets1
   OBJECTS_BUCKET: ${{self:custom.prefix}}objects1
   props:
@@ -118,11 +120,26 @@ provider:
    #         - "/*"
 
 functions:
+  preauth:
+    handler: project/lib/lambda/preauth.handler
+    # role: IotRole
+    memorySize: 512
+    events:
+      - http:
+          path: tradle/preauth
+          method: post
+          cors: true
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - PresenceTable
+
   createevent:
-    handler: lib/lambda/createevent.handler
+    handler: project/lib/lambda/createevent.handler
     memorySize: 512
   log:
-    handler: lib/lambda/log.handler
+    handler: project/lib/lambda/log.handler
     # package:
     #   exclude:
     #     - node_modules/
@@ -147,7 +164,7 @@ functions:
               - StreamArn
 
   fanout:
-    handler: lib/lambda/fan-out.handler
+    handler: project/lib/lambda/fan-out.handler
     memorySize: 512
     environment:
       DEBUG: tradle:*
@@ -169,19 +186,19 @@ functions:
             Fn::GetAtt:
               - EventsTable
               - StreamArn
-  # onconnect:
-  #   handler: lib/lambda/handshake.shake
-  #   events:
-  #     - iot:
-  #         sql: "SELECT * FROM '$aws/events/presence/connected'"
+  onconnect:
+    handler: project/lib/lambda/handshake.shake
+    events:
+      - iot:
+          sql: "SELECT * FROM '$aws/events/presence/connected'"
   # ondisconnect:
-  #   handler: lib/lambda/handshake.break
+  #   handler: project/lib/lambda/handshake.break
   #   events:
   #     - iot:
   #         sql: "SELECT * FROM '$aws/events/presence/disconnected'"
 
   queuereceive:
-    handler: lib/lambda/queuereceive.handler
+    handler: project/lib/lambda/queuereceive.handler
     memorySize: 512
     environment:
       DEBUG: tradle:*
@@ -196,7 +213,7 @@ functions:
         - InboxTable
         - OutboxTable
   addcontact:
-    handler: lib/lambda/addContact.handler
+    handler: project/lib/lambda/addContact.handler
     environment:
       DEBUG: tradle:*
     custom:
@@ -204,7 +221,7 @@ functions:
         - ObjectsBucket
         - PubKeysTable
   identity:
-    handler: lib/lambda/identity.handler
+    handler: project/lib/lambda/identity.handler
     environment:
       DEBUG: tradle:*
     custom:
@@ -213,7 +230,7 @@ functions:
         - ObjectsBucket
         - PubKeysTable
   init:
-    handler: lib/lambda/init.handler
+    handler: project/lib/lambda/init.handler
     memorySize: 512
     environment:
       NETWORK_NAME: testnet
@@ -224,7 +241,7 @@ functions:
         - ObjectsBucket
         - PubKeysTable
   queuesend:
-    handler: lib/lambda/queuesend.handler
+    handler: project/lib/lambda/queuesend.handler
     memorySize: 512
     environment:
       DEBUG: tradle:*
@@ -237,7 +254,7 @@ functions:
         - InboxTable
         - OutboxTable
   send:
-    handler: lib/lambda/send.handler
+    handler: project/lib/lambda/send.handler
     environment:
       DEBUG: tradle:*
     custom:
@@ -250,7 +267,7 @@ functions:
         - OutboxTable
 
   # sign:
-  #   handler: lib/lambda/sign.handler
+  #   handler: project/lib/lambda/sign.handler
   #   events:
   #     - http:
   #         path: /sign
@@ -258,7 +275,7 @@ functions:
   #         cors: true
 
   # info:
-  #   handler: lib/lambda/info.handler
+  #   handler: project/lib/lambda/info.handler
   #   events:
   #     - http:
   #         path: info
@@ -370,20 +387,19 @@ resources:
 
     # stores mappings between identity permalink and ephemeral clientIds
     # mappings are created after initial handshake and destroyed on disconnect
-    # Clients:
-    #   Type: AWS::DynamoDB::Table
-    #   Properties:
-    #     TableName: Clients
-    #     AttributeDefinitions:
-    #       - AttributeName: permalink
-    #         AttributeType: S
-    #       - AttributeName: clientId
-    #         AttributeType: S
-    #     KeySchema:
-    #       - AttributeName: permalink
-    #         KeyType: HASH
-
-
+    PresenceTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: PresenceTable
+        AttributeDefinitions:
+          - AttributeName: clientId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: clientId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
 
     # EventsStreamEventSourceMapping:
     #   Type: AWS::Lambda::EventSourceMapping
@@ -404,32 +420,53 @@ resources:
 
 
     # IoT
+    # define IoT role
+    IoTRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - iot.amazonaws.com
+              Action:
+                - sts:AssumeRole
 
     # set policies for IoT client actions
-    # IoTClientPolicy:
-    #   Type: AWS::IoT::Policy
-    #   Properties:
-    #     PolicyDocument:
-    #       Version: "2012-10-17"
-    #       Statement:
-    #         # restrict client connect by client id
-    #         - Effect: Allow
-    #           Action: ["iot:Connect"]
-    #           Resource: ["aws:iot:::client/${iot:ClientId}"]
-    #         # allow all clients to publish to the send topic
-    #         - Effect: "Allow"
-    #           Action: ["iot:Publish"]
-    #           Resource: ["aws:iot:::topic/message"]
-    #         # restrict client topic subscriptions by their client id
-    #         - Effect: "Allow"
-    #           Action: ["iot:Subscribe"]
-    #           Resource: ["aws:iot:::topicfilter/${iot:ClientId}"]
-    #         # restrict messages clients receive by their client id
-    #         # this has the same function as the Subscribe rule above
-    #         # provided the Subscribe policy is upheld, this policy should always give a pass
-    #         - Effect: "Allow"
-    #           Action: ["iot:Receive"]
-    #           Resource: ["aws:iot:::topic/${iot:ClientId}"]
+    IoTClientPolicy:
+      Type: AWS::IoT::Policy
+      Properties:
+        # Roles: [{ Ref: IoTRole }]
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            # restrict client connect by client id
+            - Effect: Allow
+              Action: ["iot:Connect"]
+              Resource: ["*"]
+              # Resource: ["aws:iot:::client/${iot:ClientId}/*"]
+            # allow all clients to publish to the send topic
+            - Effect: "Allow"
+              Action: ["iot:Publish"]
+              Resource: ["*"]
+              # Resource: [
+              #   "aws:iot:::topic/message",
+              #   "aws:iot:::topic/catchup",
+              # ]
+            # restrict client topic subscriptions by their client id
+            - Effect: "Allow"
+              Action: ["iot:Subscribe"]
+              Resource: ["*"]
+              # Resource: ["aws:iot:::topicfilter/${iot:ClientId}/*"]
+            # restrict messages clients receive by their client id
+            # this has the same function as the Subscribe rule above
+            # provided the Subscribe policy is upheld, this policy should always give a pass
+            - Effect: "Allow"
+              Action: ["iot:Receive"]
+              Resource: ["*"]
+              # Resource: ["aws:iot:::topic/${iot:ClientId}/*"]
 
     # call `preprocess` lambda on all messages (send to topic 'send')
     # IoTHandshakeRule:
@@ -467,20 +504,6 @@ resources:
     #     FunctionName: { Fn::GetAtt: [ preprocess, Arn ] }
     #     Action: lambda:InvokeFunction
     #     Principal: iot.amazonaws.com
-
-    # # define IoT role
-    # IoTRole:
-    #  Type: AWS::IAM::Role
-    #  Properties:
-    #     AssumeRolePolicyDocument:
-    #       Version: "2012-10-17"
-    #       Statement:
-    #         - Effect: Allow
-    #           Principal:
-    #             Service:
-    #               - iot.amazonaws.com
-    #           Action:
-    #             - sts:AssumeRole
 
     # # attach policy to IoT role to allow it to use lambda
     # IoTRolePolicies:

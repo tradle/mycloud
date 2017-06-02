@@ -7,5 +7,6 @@
   "TYPES": {
     "MESSAGE": "tradle.Message",
     "IDENTITY": "tradle.Identity"
-  }
+  },
+  "HANDSHAKE_TIMEOUT": 30000
 }

@@ -1,4 +1,4 @@
-const { unmarshalItem } = require('dynamodb-marshaler')
+const { unmarshalItem } = require('../db-utils')
 const { prettify } = require('../utils')
 
 exports.handler = function (event, context, cb) {

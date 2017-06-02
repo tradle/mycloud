@@ -1,5 +1,5 @@
 const microtime = require('microtime')
-const { unmarshalItem } = require('dynamodb-marshaler')
+// const { unmarshalItem } = require('../db-utils')
 
 exports.handler = function (items, context, cb) {
   const now = microtime.nowStruct().join('')

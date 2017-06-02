@@ -8,7 +8,6 @@
   "license": "MIT",
   "dependencies": {
     "@tradle/engine": "^4.9.0",
-    "aws-sdk": "^2.7",
     "co": "^4.6.0",
     "debug": "^2.6.8",
     "dynamodb-marshaler": "^2.0.0",
@@ -25,17 +24,5 @@
     "typeforce": "^1.11.1",
     "xtend": "^4.0.1"
   },
-  "scripts": {
-    "test": "node test",
-    "deploy:local": "SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
-    "deploy:aws": "npm run rebuild:deploy && SLS_DEBUG=* serverless deploy",
-    "invoke": "SLS_DEBUG=* serverless invoke",
-    "init:local": "./simulate/resources.sh && ./simulate/init.sh && ./simulate/addContact.sh",
-    "init": "./scripts/create-buckets.sh",
-    "rebuild:deploy": "docker run -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10",
-    "rebuild:local": "npm rebuild"
-  },
-  "devDependencies": {
-    "serverless-resources-env": "^0.3.0"
-  }
+  "devDependencies": {}
 }

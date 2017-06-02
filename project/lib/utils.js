@@ -1,3 +1,4 @@
+const crypto = require('crypto')
 const debug = require('debug')('tradle:sls:utils')
 const omit = require('object.omit')
 const pick = require('object.pick')
@@ -152,6 +153,10 @@ exports.logifyFunctions = function logifyFunctions (obj) {
 
 exports.prettify = function prettify (obj) {
   return JSON.stringify(obj, null, 2)
+}
+
+exports.randomString = function randomString (bytes) {
+  return crypto.randomBytes(bytes).toString('hex')
 }
 
 function noop () {}

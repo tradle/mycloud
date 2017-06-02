@@ -8,8 +8,10 @@ let dynamodb
 let dynamodbStreams
 let docClient
 let iot
+let iotData
 let kms
 let lambda
+let sts
 
 module.exports = {
   AWS,
@@ -33,10 +35,20 @@ module.exports = {
 
     return docClient
   },
+  get iotData() {
+    if (!iotData) iotData = new AWS.IotData(services.Iot)
+
+    return iotData
+  },
   get iot() {
     if (!iot) iot = new AWS.Iot(services.Iot)
 
     return iot
+  },
+  get sts() {
+    if (!sts) sts = new AWS.STS(services.STS)
+
+    return sts
   },
   get kms() {
     if (!kms) kms = new AWS.KMS(services.KMS)

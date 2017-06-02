@@ -9,6 +9,7 @@
   "devDependencies": {
     "@tradle/engine": "^4.9.0",
     "@tradle/test-helpers": "tradle/test-helpers",
+    "aws-sdk": "^2.60.0",
     "eslint": "^3.19.0",
     "memdown": "^1.2.4",
     "mkdirp": "^0.5.1",
@@ -17,10 +18,19 @@
     "nkey-ecdsa": "^1.1.0",
     "random-name": "^0.1.2",
     "react-native-debugger-open": "^0.3.11",
-    "serverless": "^1.14.0",
+    "serverless": "https://github.com/mvayngrib/serverless#localstack",
+    "serverless-resources-env": "^0.3.0",
     "tape": "^4.6.3"
   },
   "scripts": {
-    "lint": "eslint --quiet --ignore-path .gitignore ."
+    "lint": "eslint --quiet --ignore-path .gitignore .",
+    "test": "node project/test",
+    "deploy:local": "SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
+    "deploy:aws": "SLS_DEBUG=* IS_LOCAL= serverless deploy",
+    "invoke": "SLS_DEBUG=* serverless invoke",
+    "invoke:local": "SLS_DEBUG=* IS_LOCAL=1 serverless invoke",
+    "init:local": "./simulate/resources.sh && ./simulate/init.sh && ./simulate/addContact.sh",
+    "init": "./scripts/create-buckets.sh",
+    "rebuild": "docker run -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10"
   }
 }

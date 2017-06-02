@@ -1,6 +1,6 @@
 
 const debug = require('debug')('tradle:sls:λ:fan-out')
-const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
+const { marshalItem, unmarshalItem } = require('../db-utils')
 const wrap = require('../wrap')
 const { groupBy, invokeForTopic } = require('../utils')
 
