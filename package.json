@@ -9,13 +9,17 @@
   "devDependencies": {
     "@tradle/engine": "^4.9.0",
     "@tradle/test-helpers": "tradle/test-helpers",
+    "aws-iot-device-sdk": "^1.0.14",
     "aws-sdk": "^2.60.0",
+    "aws-sdk-mock": "^1.7.0",
+    "bindall": "^2.0.1",
     "eslint": "^3.19.0",
     "memdown": "^1.2.4",
     "mkdirp": "^0.5.1",
     "nkey-bitcoin": "^1.2.0",
     "nkey-curve25519": "^1.0.1",
     "nkey-ecdsa": "^1.1.0",
+    "node-fetch": "^1.7.1",
     "random-name": "^0.1.2",
     "react-native-debugger-open": "^0.3.11",
     "serverless": "https://github.com/mvayngrib/serverless#localstack",
@@ -32,6 +36,7 @@
     "invoke:local": "SLS_DEBUG=* IS_LOCAL=1 serverless invoke",
     "init:local": "./simulate/resources.sh && ./simulate/init.sh && ./simulate/addContact.sh",
     "init": "./scripts/create-buckets.sh",
-    "rebuild": "cd project && docker run -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd .."
+    "rebuild": "cd project && docker run -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd ..",
+    "rebuild:local": "cd project && npm rebuild && cd .."
   }
 }

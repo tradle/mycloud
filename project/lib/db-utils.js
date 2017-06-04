@@ -1,21 +1,36 @@
 const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
 const { NotFound } = require('./errors')
-const { db, docClient, s3 } = require('./aws')
+const aws = require('./aws')
 const { pick } = require('./utils')
 
 module.exports = {
   get,
   put,
-  del,
   update,
+  del,
+  find,
   findOne,
   getUpdateExpressions,
   marshalItem,
-  unmarshalItem
+  unmarshalItem,
+  getTable
+}
+
+function getTable (TableName) {
+  const tableAPI = {}
+  const api = { get, put, update, del, findOne, find }
+  Object.keys(api).forEach(method => {
+    tableAPI[method] = params => {
+      params.TableName = TableName
+      return api[method](params)
+    }
+  })
+
+  return tableAPI
 }
 
 function get (params) {
-  return docClient.get(params)
+  return aws.docClient.get(params)
     .promise()
     .then(data => {
       const result = data && data.Item
@@ -25,25 +40,29 @@ function get (params) {
 }
 
 function put (params) {
-  return docClient.put(params).promise()
+  return aws.docClient.put(params).promise()
 }
 
 function del (params) {
-  return docClient.delete(params).promise()
+  return aws.docClient.delete(params).promise()
+}
+
+function find (params) {
+  return aws.docClient.query(params).promise()
+    .then(data => data.Items)
 }
 
 function findOne (params) {
-  return docClient.query(params)
-    .promise()
-    .then(data => {
-      const result = data && data.Items && data.Items[0]
-      if (!result) throw new NotFound(`"${params.TableName}" query returned 0 items`)
-      return result
+  params.Limit = 1
+  return find(params)
+    .then(results => {
+      if (!results.length) throw new NotFound(`"${params.TableName}" query returned 0 items`)
+      return results[0]
     })
 }
 
 function update (params) {
-  return docClient
+  return aws.docClient
     .update(params)
     .promise()
 }

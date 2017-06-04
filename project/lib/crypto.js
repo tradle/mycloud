@@ -1,16 +1,19 @@
 const crypto = require('crypto')
 const stringify = require('json-stable-stringify')
 const KeyEncoder = require('key-encoder')
-const { utils, constants } = require('@tradle/engine')
+const pify = require('pify')
+const { protocol, utils, constants } = require('@tradle/engine')
+const doSign = pify(protocol.sign.bind(protocol))
 const { SIG, TYPE, TYPES } = constants
 const { IDENTITY } = TYPES
-const { toBuffer } = require('./utils')
-const { s3, kms } = require('./aws')
+const { toBuffer, loudCo } = require('./utils')
+const aws = require('./aws')
+const wrap = require('./wrap')
 const { InvalidSignatureError } = require('./errors')
 const { IDENTITY_KEYS_KEY } = require('./constants')
 const { SecretsBucket } = require('./env')
 const SIGN_WITH_HASH = 'sha256'
-const ALGORITHM = 'aes-256-gcm'
+const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12
 const KEY_BYTES = 32
 const SALT_BYTES = 32
@@ -24,7 +27,7 @@ const encoders = {}
 // }
 
 function decryptKey (encryptedKey) {
-  return kms.decrypt({
+  return aws.kms.decrypt({
     CiphertextBlob: encryptedKey
   })
   .promise()
@@ -45,7 +48,7 @@ function getEncryptedJSON ({ decryptionKey, bucket, key }) {
 }
 
 function getEncryptedObject ({ decryptionKey, bucket, key }) {
-  const encryptedKeys = s3.getObject({
+  const encryptedKeys = aws.s3.getObject({
     Bucket: bucket,
     Key: key,
     ResponseContentType: 'application/octet-stream'
@@ -60,7 +63,7 @@ function putEncryptedJSON ({ object, encryptionKey }) {
     key: encryptionKey
   })
 
-  return s3.putObject({
+  return aws.s3.putObject({
     Body: JSON.stringify(encrypted)
   })
 }
@@ -75,7 +78,7 @@ function encrypt ({ data, key, salt }) {
   if (!salt) salt = crypto.randomBytes(SALT_BYTES)
 
   const iv = crypto.randomBytes(IV_BYTES)
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
+  const cipher = crypto.createCipheriv(ENC_ALGORITHM, key, iv)
   const ciphertext = Buffer.concat([cipher.update(data), cipher.final()])
   const tag = cipher.getAuthTag()
   return serialize(ciphertext, salt, tag, iv)
@@ -122,7 +125,7 @@ function unserialize (buf) {
 
 function decrypt ({ key, data }) {
   const [ciphertext, salt, tag, iv] = unserialize(data)
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
+  const decipher = crypto.createDecipheriv(ENC_ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
   return Buffer.concat([
     decipher.update(ciphertext),
@@ -130,12 +133,38 @@ function decrypt ({ key, data }) {
   ])
 }
 
-function sign (key, data) {
+function rawSign (key, data) {
   return crypto
     .createSign(SIGN_WITH_HASH)
     .update(toBuffer(data))
     .sign(key, 'hex')
 }
+
+function keyToSigner ({ curve, pub, encoded }) {
+  const { priv } = encoded.pem
+  return {
+    sigPubKey: {
+      curve,
+      pub: new Buffer(pub, 'hex')
+    },
+    sign: wrap.sync(data => rawSign(priv, data))
+  }
+}
+
+function getSigningKey (keys) {
+  return keys.find(key => key.type === 'ec' && key.purpose === 'sign')
+}
+
+const sign = loudCo(function* ({ key, object }) {
+  const { pub, priv } = key
+  const author = keyToSigner(key)
+  /* { object, merkleRoot } */
+  const result = yield doSign({ object, author })
+  return {
+    sigPubKey: author.sigPubKey.pub.toString('hex'),
+    object: result.object
+  }
+})
 
 function extractSigPubKey (object) {
   const pubKey = utils.extractSigPubKey(object)
@@ -174,8 +203,8 @@ function exportKey (key) {
   // pre-encode to avoid wasting time importing in lambda
   key.encoded = {
     pem: {
-      priv: encoder.encodePrivate(new Buffer(key.priv), 'raw', 'pem'),
-      pub: encoder.encodePublic(new Buffer(key.pub), 'raw', 'pem')
+      priv: encoder.encodePrivate(new Buffer(key.priv, 'hex'), 'raw', 'pem'),
+      pub: encoder.encodePublic(new Buffer(key.pub, 'hex'), 'raw', 'pem')
     }
   }
 
@@ -194,6 +223,7 @@ module.exports = {
   checkAuthentic,
   extractSigPubKey,
   sign,
+  getSigningKey,
   encrypt,
   decrypt,
   putEncryptedJSON,

@@ -1,6 +1,6 @@
 const clone = require('xtend')
 const debug = require('debug')('tradle:sls:lambda-utils')
-const { lambda } = require('./aws')
+const aws = require('./aws')
 const { serverlessPrefix } = require('./env')
 const topicToLamba = require('./lambda-by-topic')
 const invokeDefaults = {
@@ -31,6 +31,6 @@ exports.invokeForTopic = function invokeForTopic (topic, items) {
   )
 
   debug(`invoking lambda "${params.FunctionName}" for "${topic}" event`)
-  return lambda.invoke(params).promise()
+  return aws.lambda.invoke(params).promise()
 }
 

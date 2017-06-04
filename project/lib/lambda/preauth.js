@@ -1,21 +1,11 @@
 const debug = require('debug')('tradle:sls:λ:preauth')
-const { sts, getIotEndpoint } = require('../aws')
 const wrap = require('../wrap')
-const { IotClientRole } = require('../env')
-const { getTemporaryIdentity } = require('../auth')
-const { LambdaInvalidInvocation } = require('../errors')
-const { randomString } = require('../utils')
+const { onRequestTemporaryIdentity } = require('../user')
 
-exports.handler = wrap.generator(function* (event, context) {
-  const { queryStringParameters, requestContext } = event
-  const { clientId, tip } = queryStringParameters
+exports.handler = wrap.httpGenerator(function* (event, context) {
+  const { body, requestContext } = event
+  const { clientId, permalink } = JSON.parse(body)
   const { accountId } = requestContext
-  const identity = yield getTemporaryIdentity({ accountId, clientId, tip })
-  return {
-    statusCode: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify(identity)
-  }
+  const identity = yield onRequestTemporaryIdentity({ accountId, clientId, permalink })
+  return identity
 })

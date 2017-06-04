@@ -11,7 +11,7 @@ const services = {
 for (let name in localstack) {
   if (!services[name]) services[name] = {}
 
-  services[name].endpoint = localstack.endpoint
+  services[name].endpoint = localstack[name]
 }
 
 module.exports = services

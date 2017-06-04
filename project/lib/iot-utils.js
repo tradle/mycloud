@@ -1,11 +1,11 @@
 
-const { getIotData } = require('./aws')
+const aws = require('./aws')
 const DEFAULT_QOS = 1
 
 function publish (params) {
   if (!('qos' in params)) params.qos = DEFAULT_QOS
 
-  return getIotData().then(iotData => iotData.publish(params).promise())
+  return aws.getIotData().then(iotData => iotData.publish(params).promise())
 }
 
 function sendMessage ({ clientId, message }) {

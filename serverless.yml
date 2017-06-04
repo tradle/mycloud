@@ -30,7 +30,7 @@ custom:
   props:
     author: ${{self:custom.METADATA_PREFIX}}author
     recipient: ${{self:custom.METADATA_PREFIX}}recipient
-    seq: ${{self:custom.METADATA_PREFIX}}seq
+    seq: seq
   # writeEnvVars:
   #   SERVERLESS_STAGE: ${{self:custom.stage}}
   #   SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -140,7 +140,7 @@ functions:
     events:
       - http:
           path: tradle/preauth
-          method: get
+          method: post
           cors: true
     environment:
       DEBUG: tradle:*
@@ -148,7 +148,19 @@ functions:
       env-resources:
         - PresenceTable
         - IotClientRole
-
+  auth:
+    handler: project/lib/lambda/auth.handler
+    memorySize: 512
+    events:
+      - http:
+          path: tradle/auth
+          method: post
+          cors: true
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - PresenceTable
   createevent:
     handler: project/lib/lambda/createevent.handler
     memorySize: 512

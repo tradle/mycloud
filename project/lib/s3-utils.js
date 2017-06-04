@@ -1,8 +1,8 @@
 
-const { s3 } = require('./aws')
+const aws = require('./aws')
 
 function put ({ key, value, bucket }) {
-  return s3.putObject({
+  return aws.s3.putObject({
     Bucket: bucket,
     Key: key,
     Body: value
@@ -10,7 +10,7 @@ function put ({ key, value, bucket }) {
 }
 
 function get ({ key, bucket }) {
-  return s3.getObject({
+  return aws.s3.getObject({
     Bucket: bucket,
     Key: key
   }).promise()
@@ -28,7 +28,7 @@ function getJSON ({ key, bucket }) {
 
 
 function head ({ key, bucket }) {
-  return s3.headObject({
+  return aws.s3.headObject({
     Bucket: bucket,
     Key: key
   }).promise()

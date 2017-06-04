@@ -5,22 +5,20 @@ const { utils, constants } = require('@tradle/engine')
 const { PREVLINK, PERMALINK } = constants
 const Objects = require('./objects')
 const { get, put, findOne } = require('./db-utils')
-const { db, docClient, s3 } = require('./aws')
 const { NotFound } = require('./errors')
 const { firstSuccess, logifyFunctions } = require('./utils')
 const Events = require('./events')
-const { PubKeysTable } = require('./env')
+const { PubKeysTable } = require('./tables')
 
-function getIdentityMetadataByPub ({ pub }) {
+function getIdentityMetadataByPub (pub) {
   debug('get identity metadata by pub')
-  return get({
-    TableName: PubKeysTable,
+  return PubKeysTable.get({
     Key: { pub }
   })
 }
 
-function getIdentityByPub ({ pub }) {
-  return getIdentityMetadataByPub({ pub })
+function getIdentityByPub (pub) {
+  return getIdentityMetadataByPub(pub)
   .then(({ link }) => Objects.getObjectByLink(link))
   .catch(err => {
     debug('unknown identity', pub, err)
@@ -65,7 +63,7 @@ function getIdentityByPermalink (permalink) {
 
 function getExistingIdentityMapping ({ object }) {
   debug('checking existing mappings for pub keys')
-  const lookups = object.pubkeys.map(getIdentityMetadataByPub)
+  const lookups = object.pubkeys.map(obj => getIdentityMetadataByPub(obj.pub))
   return firstSuccess(lookups)
 }
 
@@ -147,8 +145,7 @@ const addContact = co(function* ({ link, permalink, object }) {
 
 function putPubKey ({ link, permalink, pub }) {
   debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
-  return put({
-    TableName: PubKeysTable,
+  return PubKeysTable.put({
     Key: { pub },
     Item: {
       link,

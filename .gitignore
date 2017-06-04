@@ -4,3 +4,4 @@ DynamoDBLocal/
 *.log
 *.zip
 .serverless*
+env.json

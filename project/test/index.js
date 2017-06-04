@@ -2,13 +2,31 @@
 
 // require('dotenv').config({ path: path.join(__dirname, '.env') })
 
-process.env.NODE_ENV = 'test'
+process.env.IS_LOCAL = '1'
+const extend = require('xtend/mutable')
+extend(process.env, {
+  CF_ObjectsBucket: 'ObjectsBucket',
+  CF_SecretsBucket: 'SecretsBucket',
+  CF_EventsTable: 'tradle-messaging-dev-EventsTable',
+  CF_InboxTable: 'tradle-messaging-dev-InboxTable',
+  CF_OutboxTable: 'tradle-messaging-dev-OutboxTable',
+  CF_PubKeysTable: 'tradle-messaging-dev-PubKeysTable',
+  CF_PresenceTable: 'tradle-messaging-dev-PresenceTable',
+  CF_IotClientRole: 'IotClientRole'
+})
+
+const awsMock = require('aws-sdk-mock')
+const AWS = require('aws-sdk')
+AWS.config.paramValidation = false
 
 const test = require('tape')
+const pify = require('pify')
+const ecdsa = require('nkey-ecdsa')
 const tradle = require('@tradle/engine')
 const { SIG, SEQ, TYPE, TYPES } = tradle.constants
-const { hexLink } = tradle.utils
-const { extractSigPubKey } = require('../lib/crypto')
+const { hexLink, newIdentity } = tradle.utils
+const wrap = require('../lib/wrap')
+const { extractSigPubKey, exportKeys, getSigningKey, sign } = require('../lib/crypto')
 const { loudCo, omit, co } = require('../lib/utils')
 const Objects = require('../lib/objects')
 const { createSendMessageEvent, createReceiveMessageEvent } = require('../lib/author')
@@ -110,6 +128,113 @@ test('format message', function (t) {
   t.end()
 })
 
+// test('createSendMessageEvent', loudCo(function* (t) {
+//   t.plan(3)
+
+//   const { putObject } = Objects
+//   const { putEvent } = Events
+//   const { getIdentityByPermalink } = Identities
+//   const { getNextSeq } = Messages
+//   const payload = {
+//     [TYPE]: 'tradle.SimpleMessage',
+//     message: 'hey bob'
+//   }
+
+//   // AWS.mock('S3', 'getObject', '')
+//   Identities.getIdentityByPermalink = mocks.getIdentityByPermalink
+//   Messages.getNextSeq = () => Promise.resolve(0)
+
+//   Objects.putObject = function ({ link, object }) {
+//     t.ok(object[SIG])
+//     payload[SIG] = object[SIG]
+//     t.same(object, payload)
+//     return Promise.resolve()
+//   }
+
+//   Events.putEvent = function (event) {
+//     t.equal(event.topic, 'send')
+//     // console.log(event)
+//     return Promise.resolve()
+//   }
+
+//   const event = yield createSendMessageEvent({
+//     author: alice,
+//     recipient: bob.permalink,
+//     object: payload
+//   })
+
+//   Messages.getNextSeq = getNextSeq
+//   Identities.getIdentityByPermalink = getIdentityByPermalink
+//   Objects.putObject = putObject
+//   Events.putEvent = putEvent
+
+//   // TODO: compare
+
+//   t.end()
+// }))
+
+// test('createReceiveMessageEvent', loudCo(function* (t) {
+//   t.plan(3)
+
+//   const message = toAliceFromBob
+//   const { putObject } = Objects
+//   const { putEvent } = Events
+//   const { getIdentityByPermalink } = Identities
+
+//   Identities.getIdentityMetadataByPub = mocks.getIdentityMetadataByPub
+//   Objects.putObject = function ({ link, object }) {
+//     t.ok(object[SIG])
+//     t.same(object, message.object)
+//     return Promise.resolve()
+//   }
+
+//   Events.putEvent = function (event) {
+//     t.equal(event.topic, 'receive')
+//     // console.log(event)
+//     return Promise.resolve()
+//   }
+
+//   // awsMock.mock('S3', 'headObject', function (params) {
+//   //   console.log('s3.headObject', arguments)
+//   // })
+
+//   // awsMock.mock('S3', 'getObject', function (params) {
+//   //   console.log('s3.getObject', arguments)
+//   // })
+
+//   // awsMock.mock('S3', 'putObject', function ({ Bucket, Key, Body }) {
+//   //   console.log('s3.putObject', arguments)
+//   // })
+
+//   // awsMock.mock('DynamoDB', 'putItem', function (params) {
+//   //   console.log('DynamoDB.putItem', arguments)
+//   // })
+
+//   // awsMock.mock('DynamoDB.DocumentClient', 'get', wrap.sync(function ({ Key }) {
+//   //   if (Key.pub) {
+//   //     return {
+//   //       Item: mocks.getIdentityByPub(Key.pub)
+//   //     }
+//   //   }
+
+//   //   console.log(Key)
+//   // }))
+
+//   // awsMock.mock('DynamoDB.DocumentClient', 'put', function (params) {
+//   //   console.log('docClient', arguments)
+//   // })
+
+//   const event = yield createReceiveMessageEvent({ message })
+
+//   Identities.getIdentityMetadataByPub = getIdentityMetadataByPub
+//   Objects.putObject = putObject
+//   Events.putEvent = putEvent
+
+//   // TODO: compare
+
+//   t.end()
+// }))
+
 test('createSendMessageEvent', loudCo(function* (t) {
   t.plan(3)
 
@@ -186,13 +311,48 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   t.end()
 }))
 
+// test.only('sign/verify1', function (t) {
+//   const key = ecdsa.genSync({ curve: 'p256' })
+//   const KeyEncoder = require('key-encoder')
+//   const encoder = new KeyEncoder('p256')
+//   console.log(encoder.encodePublic(new Buffer(key.toJSON().pub, 'hex'), 'raw', 'pem'))
+//   console.log(exportKeys([key])[0].encoded.pem.pub)
+//   // console.log(key.toJSON(true))
+//   // const data = new Buffer('some shit')
+//   // const sig = key.signSync(data)
+//   // console.log(key.verifySync(data, sig))
+// })
+
+test.only('sign/verify', loudCo(function* (t) {
+  const carol = yield pify(newIdentity)({ networkName: 'testnet' })
+  const exported = carol.keys.map(key => key.toJSON(true))
+  console.log(exported.find(key => key.curve === 'p256'))
+  const keys = exportKeys(carol.keys)
+  const key = getSigningKey(keys)
+  const object = {
+    _t: 'tradle.SimpleMessage',
+    message: 'hey'
+  }
+
+  const signed = yield sign({ key, object })
+  const pub = extractSigPubKey(signed.object)
+  t.same(pub.pub, key.pub)
+  t.end()
+}))
+
+// test.only('handshake', loudCo(function* (t) {
+//   const clientId = alice.permalink + ':alice1'
+//   yield onRequestTemporaryIdentity({ accountId: 'abc', clientId })
+
+// }))
+
 const mocks = {
-  getIdentityByPermalink: co(function* ({ permalink }) {
+  getIdentityByPermalink: co(function* (permalink) {
     if (permalink === alice.permalink) return omit(alice, 'keys')
     if (permalink === bob.permalink) return omit(bob, 'keys')
     throw new NotFound('identity not found by permalink: ' + permalink)
   }),
-  getIdentityByPub: co(function* ({ pub }) {
+  getIdentityByPub: co(function* (pub) {
     const found = [alice, bob].find(info => {
       return info.object.pubkeys.some(key => key.pub === pub)
     })
@@ -201,7 +361,7 @@ const mocks = {
 
     throw new NotFound('identity not found by pub: ' + pub)
   }),
-  getIdentityMetadataByPub: co(function* ({ pub }) {
+  getIdentityMetadataByPub: co(function* (pub) {
     const found = [alice, bob].find(info => {
       return info.object.pubkeys.some(key => key.pub === pub)
     })

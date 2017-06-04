@@ -7,7 +7,6 @@ const SELF_INTRODUCTION = 'tradle.SelfIntroduction'
 const INTRODUCTION = 'tradle.Introduction'
 const Objects = require('./objects')
 const Identities = require('./identities')
-const { put, find, findOne } = require('./db-utils')
 const { NotFound } = require('./errors')
 const { pick, omit } = require('./utils')
 const {
@@ -18,7 +17,7 @@ const {
 const {
   InboxTable,
   OutboxTable,
-} = require('./env')
+} = require('./tables')
 
 const MESSAGE_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author', 'recipient', 'inbound']
 const PAYLOAD_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author', 'type']
@@ -26,22 +25,26 @@ const PREFIXED_PAYLOAD_PROPS = PAYLOAD_WRAPPER_PROPS.map(key => PAYLOAD_PROP_PRE
 const PROP_NAMES = (function () {
   const prefixed = {}
   MESSAGE_WRAPPER_PROPS.concat(PREFIXED_PAYLOAD_PROPS).forEach(key => {
-    prefixed[key] = METADATA_PREFIX + prefixed[key]
+    prefixed[key] = prefixProp(key)
   })
 
   return prefixed
 }())
 
-const putMessage = co(function* (event) {
+function prefixProp (key) {
+  return METADATA_PREFIX + key
+}
+
+const putMessage = co(function* (message) {
   const { author, recipient } = PROP_NAMES
-  const TableName = event.topic === 'receive' ? InboxTable : OutboxTable
-  yield put({
-    TableName,
-    Key: {
-      [author]: event[author],
-      [recipient]: event[recipient]
-    },
-    Item: event
+  const { inbound } = message
+  const table = inbound ? InboxTable : OutboxTable
+  const Key = inbound ? { [author]: author } : { [recipient]: recipient }
+  Key.seq = message.seq
+
+  yield table.put({
+    Key,
+    Item: message
   })
 })
 
@@ -120,11 +123,10 @@ function unserializePubKey (key) {
 const getLastSent = co(function* ({ recipient }) {
   let last
   try {
-    last = yield findOne({
-      TableName: OutboxTable,
+    last = yield OutboxTable.findOne({
       KeyConditionExpression: '#recipient = :recipient',
       ExpressionAttributeNames: {
-        '#recipient': 'recipient'
+        '#recipient': prefixProp('recipient')
       },
       ExpressionAttributeValues: {
         ':recipient': recipient
@@ -150,10 +152,9 @@ const getNextSeq = co(function* ({ recipient }) {
 
 const getOutbound = co(function* ({ recipient, gt=0, lt=Infinity }) {
   const params = {
-    TableName: OutboxTable,
     KeyConditionExpression: '#recipient = :recipient AND #seq > :seq',
     ExpressionAttributeNames: {
-      '#recipient': 'recipient',
+      '#recipient': prefixProp('recipient'),
       '#seq': 'seq'
     },
     ExpressionAttributeValues: {
@@ -163,14 +164,14 @@ const getOutbound = co(function* ({ recipient, gt=0, lt=Infinity }) {
     ScanIndexForward: true
   }
 
-  if (typeof gt === 'number') {
+  if (typeof lt === 'number') {
     const limit = lt - gt - 1
     if (limit !== Infinity && limit > 0) {
       params.Limit = limit
     }
   }
 
-  const messages = yield find(params)
+  const messages = yield OutboxTable.find(params)
   return yield Promise.all(messages.map(loadMessage))
 })
 

@@ -1,8 +1,7 @@
 const debug = require('debug')('tradle:sls:author')
-const pify = require('pify')
 const { utils, protocol, typeforce, constants } = require('@tradle/engine')
 const wrap = require('./wrap')
-const signBuffer = require('./crypto').sign
+const { sign, getSigningKey } = require('./crypto')
 const Objects = require('./objects')
 const Secrets = require('./secrets')
 // const { saveIdentityAndKeys } = require('./identities')
@@ -14,7 +13,6 @@ const Events = require('./events')
 const { MessageNotForMe } = require('./errors')
 const { PAYLOAD_PROP_PREFIX, IDENTITY_KEYS_KEY } = require('./constants')
 const types = require('./types')
-const doSign = pify(protocol.sign.bind(protocol))
 const { TYPE, TYPES, SEQ, SIG } = constants
 const { MESSAGE } = TYPES
 
@@ -30,33 +28,6 @@ const lookupMyIdentity = loudCo(function* () {
 // TODO: how to invalidate cache on identity updates?
 // maybe ETag on bucket item? But then we still need to request every time..
 const getMyIdentity = cachifyPromiser(lookupMyIdentity)
-
-function getSigningKey (keys) {
-  return keys.find(key => key.type === 'ec' && key.purpose === 'sign')
-}
-
-function keyToSigner ({ curve, pub, encoded }) {
-  const { priv } = encoded.pem
-  return {
-    sigPubKey: {
-      curve,
-      pub: new Buffer(pub)
-    },
-    sign: wrap.sync(data => signBuffer(priv, data))
-  }
-}
-
-const sign = loudCo(function* ({ key, object }) {
-  const { pub, priv } = key
-  const author = keyToSigner(key)
-  /* { object, merkleRoot } */
-  const result = yield doSign({ object, author })
-
-  return {
-    sigPubKey: author.sigPubKey.pub.toString('hex'),
-    object: result.object
-  }
-})
 
 const signObject = co(function* ({ author, object }) {
   const wrapper = yield sign({
@@ -184,7 +155,6 @@ const ensureMessageIsForMe = co(function* ({ message }) {
 
 module.exports = {
   getMyIdentity,
-  sign,
   signObject,
   createSendMessageEvent,
   createReceiveMessageEvent

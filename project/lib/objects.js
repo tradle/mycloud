@@ -4,7 +4,7 @@ const omit = require('object.omit')
 const { utils, constants, typeforce } = require('@tradle/engine')
 const types = require('./types')
 const { get, put, findOne } = require('./db-utils')
-const { db, docClient, s3 } = require('./aws')
+const aws = require('./aws')
 const { getBucket } = require('./s3-utils')
 const { InvalidSignatureError } = require('./errors')
 const { TYPE, TYPES, PERMALINK, SEQ } = constants
@@ -35,12 +35,12 @@ const extractMetadata = co(function* (object) {
 
   const { getIdentityMetadataByPub } = require('./identities')
   const promises = {
-    author: getIdentityMetadataByPub(pubKey),
+    author: getIdentityMetadataByPub(pubKey.pub),
   }
 
   if (isMessage) {
     const pub = object.recipientPubKey.pub.toString('hex')
-    promises.recipient = yield getIdentityMetadataByPub({ pub })
+    promises.recipient = yield getIdentityMetadataByPub(pub)
   }
 
   const { author, recipient } = yield promises
