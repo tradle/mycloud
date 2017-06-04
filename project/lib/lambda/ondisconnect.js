@@ -1,8 +1,6 @@
 const wrap = require('../wrap')
-const { prettify, randomString } = require('../utils')
-const { docClient } = require('../aws')
-const { PresenceTable } = require('../env')
-const { deletePresence } = require('../presence')
+const { deletePresence } = require('../auth')
+const { prettify } = require('../utils')
 
 exports.handler = wrap.generator(function* (event, context) {
   console.log('client connected', prettify(event))

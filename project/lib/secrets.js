@@ -1,28 +1,24 @@
-const debug = require('debug')('tradle:sls:secrets')
-const { co, logifyFunction } = require('./utils')
-const { s3 } = require('./aws')
-const {
-  SecretsBucket
-} = require('./env')
+const { logifyFunction } = require('./utils')
+const { getBucket } = require('./s3-utils')
+const ENV = require('./env')
+const BucketName = ENV.SecretsBucket
+const SecretsBucket = getBucket(BucketName)
 
-const Bucket = SecretsBucket
-
-function getSecretObject (Key) {
-  return s3.getObject({ Bucket, Key }).promise()
+function getSecretObject (key) {
+  return SecretsBucket.get(key)
 }
 
-function putSecretObject (Key, Body) {
-  Body = JSON.stringify(Body)
-  return s3.putObject({ Bucket, Key, Body }).promise()
+function putSecretObject (key, value) {
+  return SecretsBucket.putJSON(key, value)
 }
 
 module.exports = {
   putSecretObject: logifyFunction({
     fn: putSecretObject,
-    name: Key => `put secret "${Key}" to "${Bucket}"`
+    name: Key => `put secret "${Key}" to "${BucketName}"`
   }),
   getSecretObject: logifyFunction({
     fn: getSecretObject,
-    name: Key => `get secret "${Key}" from "${Bucket}"`
+    name: Key => `get secret "${Key}" from "${BucketName}"`
   })
 }

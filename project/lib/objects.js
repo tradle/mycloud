@@ -5,14 +5,12 @@ const { utils, constants, typeforce } = require('@tradle/engine')
 const types = require('./types')
 const { get, put, findOne } = require('./db-utils')
 const { db, docClient, s3 } = require('./aws')
+const { getBucket } = require('./s3-utils')
 const { InvalidSignatureError } = require('./errors')
 const { TYPE, TYPES, PERMALINK, SEQ } = constants
 const { MESSAGE } = TYPES
-const {
-  ObjectsBucket,
-  EventsTable,
-  PubKeysTable,
-} = require('./env')
+const ENV = require('./env')
+const ObjectsBucket = getBucket(ENV.ObjectsBucket)
 
 const extractMetadata = co(function* (object) {
   typeforce(types.signedObject, object)
@@ -55,18 +53,9 @@ const extractMetadata = co(function* (object) {
   return metadata
 })
 
-function getObjectByLink ({ link }) {
+function getObjectByLink (link) {
   debug('getting', link)
-  return promiseGet({
-    Bucket: ObjectsBucket,
-    Key: link,
-    ResponseContentType: 'application/json'
-  })
-  .then(({ Body }) => JSON.parse(Body))
-}
-
-function promiseGet (params) {
-  return s3.getObject(params).promise()
+  return ObjectsBucket.getJSON(link)
 }
 
 function putObject (wrapper) {
@@ -78,17 +67,9 @@ function putObject (wrapper) {
 
   utils.addLinks(wrapper)
   debug('putting', wrapper.link)
-  return promisePut({
-    Key: wrapper.link,
-    Bucket: ObjectsBucket,
-    Body: JSON.stringify(wrapper),
-    ContentType: 'application/json'
-  })
+  return ObjectsBucket.putJSON(wrapper.link, wrapper)
 }
 
-function promisePut (params) {
-  return s3.putObject(params).promise()
-}
 
 function extractPubKey (object) {
   const pubKey = utils.extractSigPubKey(object)

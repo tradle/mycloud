@@ -2,7 +2,8 @@
 const debug = require('debug')('tradle:sls:λ:fan-out')
 const { marshalItem, unmarshalItem } = require('../db-utils')
 const wrap = require('../wrap')
-const { groupBy, invokeForTopic } = require('../utils')
+const { groupBy } = require('../utils')
+const { invokeForTopic } = require('../lambda-utils')
 
 exports.handler = wrap.generator(function* (event, context) {
   debug('fanning out', event)

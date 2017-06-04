@@ -23,6 +23,7 @@
     "tape": "^4.6.3"
   },
   "scripts": {
+    "postinstall": "node ./scripts/generate-env",
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "test": "node project/test",
     "deploy:local": "SLS_DEBUG=* IS_LOCAL=1 serverless deploy",

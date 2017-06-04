@@ -1,58 +1,21 @@
-const { iot, sts } = require('../aws')
+const debug = require('debug')('tradle:sls:λ:preauth')
+const { sts, getIotEndpoint } = require('../aws')
 const wrap = require('../wrap')
-const { IotRoleName } = require('../env')
-const { createChallenge } = require('../presence')
+const { IotClientRole } = require('../env')
+const { getTemporaryIdentity } = require('../auth')
 const { LambdaInvalidInvocation } = require('../errors')
+const { randomString } = require('../utils')
 
 exports.handler = wrap.generator(function* (event, context) {
-  console.log(event, JSON.stringify(event, null, 2))
-  const { clientId } = event
-  if (!clientId) {
-    throw new LambdaInvalidInvocation('expected "clientId"')
-  }
-
-  // get the endpoint address
-  const promiseEndpoint = iot.describeEndpoint().promise()
-  const promiseChallenge = promiseEndpoint.then(({ endpointAddress }) => {
-    return createChallenge({ clientId, endpointAddress })
-  })
-
-  // get the account id which will be used to assume a role
-  const promiseCaller = sts.getCallerIdentity().promise()
-
-  const [endpoint, caller] = yield [promiseEndpoint, promiseCaller]
-  const { endpointAddress } = endpoint
-  const region = getRegion(endpointAddress)
-  const params = {
-    RoleArn: `arn:aws:iam::${caller.Account}:role/${IotRoleName}`,
-    RoleSessionName: getRandomInt().toString()
-  }
-
-  // assume role returns temporary keys
-  const { Credentials } = yield sts.assumeRole(params)
+  const { queryStringParameters, requestContext } = event
+  const { clientId, tip } = queryStringParameters
+  const { accountId } = requestContext
+  const identity = yield getTemporaryIdentity({ accountId, clientId, tip })
   return {
     statusCode: 200,
     headers: {
       'Access-Control-Allow-Origin': '*'
     },
-    body: JSON.stringify({
-      iotEndpoint: endpointAddress,
-      region,
-      accessKey: Credentials.AccessKeyId,
-      secretKey: Credentials.SecretAccessKey,
-      sessionToken: Credentials.SessionToken,
-      challend: yield promiseChallenge
-    })
+    body: JSON.stringify(identity)
   }
 })
-
-function getRegion (iotEndpoint) {
-  const partial = iotEndpoint.replace('.amazonaws.com', '');
-  const iotIndex = iotEndpoint.indexOf('iot');
-  return partial.substring(iotIndex + 4);
-}
-
-// Get random Int
-function getRandomInt () {
-  return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
-}

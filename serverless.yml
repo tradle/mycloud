@@ -21,6 +21,7 @@ custom:
   prefix: ${{self:service}}-${{self:provider.stage}}-
   defaultStage: dev
   stage: ${{opt:stage, self:custom.defaultStage}}
+  accountId: ${{file(./env.json):ACCOUNT_ID}}
   NETWORK_NAME: testnet
   METADATA_PREFIX: ${{file(./project/lib/constants.json):METADATA_PREFIX}}
   IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
@@ -73,6 +74,8 @@ provider:
         - dynamodb:ListStreams
       Resource:
         - "arn:aws:dynamodb:${{self:provider.region}}:*:table/EventsTable"
+        # - "arn:aws:dynamodb:${{self:provider.region}}:*:table/MessagesTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/PresenceTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:*:table/InboxTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:*:table/OutboxTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:*:table/PubKeysTable"
@@ -104,6 +107,17 @@ provider:
         - lambda:InvokeAsync
       Resource: "*"
 
+    # Iot
+    - Effect: Allow
+      Action: ["iot:Connect", "iot:Subscribe", "iot:Publish", "iot:Receive", "iot:DescribeEndpoint"]
+      Resource: ["*"]
+
+    # gen Iot temp credentials (lambda: preauth)
+    - Effect: "Allow"
+      Action:
+        - sts:AssumeRole
+      Resource: "*"
+
       # Resource: "*"
    # - Effect: "Allow"
    #   Action:
@@ -122,18 +136,18 @@ provider:
 functions:
   preauth:
     handler: project/lib/lambda/preauth.handler
-    # role: IotRole
     memorySize: 512
     events:
       - http:
           path: tradle/preauth
-          method: post
+          method: get
           cors: true
     environment:
       DEBUG: tradle:*
     custom:
       env-resources:
         - PresenceTable
+        - IotClientRole
 
   createevent:
     handler: project/lib/lambda/createevent.handler
@@ -343,6 +357,7 @@ resources:
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
+
     # stores metadata about incoming messages
     # bodies rot in s3
     InboxTable:
@@ -385,6 +400,45 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
 
+
+    # stores metadata about incoming messages
+    # bodies rot in s3
+    # MessagesTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: MessagesTable
+    #     AttributeDefinitions:
+    #       - AttributeName: ${{self:custom.props.author}}
+    #         AttributeType: S
+    #       - AttributeName: ${{self:custom.props.recipient}}
+    #         AttributeType: S
+    #       - AttributeName: ${{self:custom.props.seq}}
+    #         AttributeType: N
+    #     # Inbox
+    #     KeySchema:
+    #       - AttributeName: ${{self:custom.props.author}}
+    #         KeyType: HASH
+    #       - AttributeName: ${{self:custom.props.seq}}
+    #         KeyType: RANGE
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     StreamSpecification:
+    #       StreamViewType: NEW_AND_OLD_IMAGES
+    #     # Outbox
+    #     GlobalSecondaryIndexes:
+    #       - IndexName: recipient
+    #         KeySchema:
+    #           - AttributeName: ${{self:custom.props.recipient}}
+    #             KeyType: HASH
+    #           - AttributeName: ${{self:custom.props.seq}}
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+
     # stores mappings between identity permalink and ephemeral clientIds
     # mappings are created after initial handshake and destroyed on disconnect
     PresenceTable:
@@ -421,52 +475,116 @@ resources:
 
     # IoT
     # define IoT role
-    IoTRole:
+    # IoTLambdaRole:
+    #   Type: AWS::IAM::Role
+    #   Properties:
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             AWS: arn:aws:iam:::root
+    #           Action:
+    #             - sts:AssumeRole
+
+    IotClientRole:
       Type: AWS::IAM::Role
       Properties:
+        RoleName: IotClientRole
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Principal:
                 Service:
-                  - iot.amazonaws.com
+                  - lambda.amazonaws.com
+                AWS:
+                  - arn:aws:iam::${{self:custom.accountId}}:root
+                  # - arn:aws:iam::${{self:custom.accountId}}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole"
+                  # - Fn::Join" : [":", ["arn:aws:iam", { "Ref" : "AWS::Region" }, { "Ref" : "AWS::AccountId" }, "lambdaRole" ] ] }
+
+                # AWS: "arn:aws:iam::${{}}:role/${{self:custom.prefix}}lambdaRole"
               Action:
                 - sts:AssumeRole
+        Policies:
+          - PolicyName: IotClientRole
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - dynamodb:*
+                  Resource:
+                    - arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PresenceTable
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: arn:aws:logs:::log-group:/aws/lambda/*:*:*
+                # restrict client connect by client id
+                - Effect: Allow
+                  Action: ["iot:Connect"]
+                  Resource: ["*"]
+                  # Resource: ["aws:iot:::client/${iot:ClientId}/*"]
+                # allow all clients to publish to the send topic
+                - Effect: "Allow"
+                  Action: ["iot:Publish"]
+                  Resource: ["*"]
+                  # Resource: [
+                  #   "aws:iot:::topic/message",
+                  #   "aws:iot:::topic/catchup",
+                  # ]
+                # restrict client topic subscriptions by their client id
+                - Effect: "Allow"
+                  Action: ["iot:Subscribe"]
+                  Resource: ["*"]
+                  # Resource: ["aws:iot:::topicfilter/${iot:ClientId}/*"]
+                # restrict messages clients receive by their client id
+                # this has the same function as the Subscribe rule above
+                # provided the Subscribe policy is upheld, this policy should always give a pass
+                - Effect: "Allow"
+                  Action: ["iot:Receive"]
+                  Resource: ["*"]
+                  # Resource: ["aws:iot:::topic/${iot:ClientId}/*"]
 
     # set policies for IoT client actions
-    IoTClientPolicy:
-      Type: AWS::IoT::Policy
-      Properties:
-        # Roles: [{ Ref: IoTRole }]
-        PolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            # restrict client connect by client id
-            - Effect: Allow
-              Action: ["iot:Connect"]
-              Resource: ["*"]
-              # Resource: ["aws:iot:::client/${iot:ClientId}/*"]
-            # allow all clients to publish to the send topic
-            - Effect: "Allow"
-              Action: ["iot:Publish"]
-              Resource: ["*"]
-              # Resource: [
-              #   "aws:iot:::topic/message",
-              #   "aws:iot:::topic/catchup",
-              # ]
-            # restrict client topic subscriptions by their client id
-            - Effect: "Allow"
-              Action: ["iot:Subscribe"]
-              Resource: ["*"]
-              # Resource: ["aws:iot:::topicfilter/${iot:ClientId}/*"]
-            # restrict messages clients receive by their client id
-            # this has the same function as the Subscribe rule above
-            # provided the Subscribe policy is upheld, this policy should always give a pass
-            - Effect: "Allow"
-              Action: ["iot:Receive"]
-              Resource: ["*"]
-              # Resource: ["aws:iot:::topic/${iot:ClientId}/*"]
+    # IoTClientPolicy:
+    #   Type: AWS::IoT::Policy
+    #   Properties:
+    #     # RoleName: IoTRole
+    #     RoleARN:
+    #       Fn::GetAtt: [ IoTRole, Arn ]
+
+    #     # Roles: [{ Ref: IoTRole }]
+    #     PolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         # restrict client connect by client id
+    #         - Effect: Allow
+    #           Action: ["iot:Connect"]
+    #           Resource: ["*"]
+    #           # Resource: ["aws:iot:::client/${iot:ClientId}/*"]
+    #         # allow all clients to publish to the send topic
+    #         - Effect: "Allow"
+    #           Action: ["iot:Publish"]
+    #           Resource: ["*"]
+    #           # Resource: [
+    #           #   "aws:iot:::topic/message",
+    #           #   "aws:iot:::topic/catchup",
+    #           # ]
+    #         # restrict client topic subscriptions by their client id
+    #         - Effect: "Allow"
+    #           Action: ["iot:Subscribe"]
+    #           Resource: ["*"]
+    #           # Resource: ["aws:iot:::topicfilter/${iot:ClientId}/*"]
+    #         # restrict messages clients receive by their client id
+    #         # this has the same function as the Subscribe rule above
+    #         # provided the Subscribe policy is upheld, this policy should always give a pass
+    #         - Effect: "Allow"
+    #           Action: ["iot:Receive"]
+    #           Resource: ["*"]
+    #           # Resource: ["aws:iot:::topic/${iot:ClientId}/*"]
 
     # call `preprocess` lambda on all messages (send to topic 'send')
     # IoTHandshakeRule:

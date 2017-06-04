@@ -7,7 +7,7 @@ const SELF_INTRODUCTION = 'tradle.SelfIntroduction'
 const INTRODUCTION = 'tradle.Introduction'
 const Objects = require('./objects')
 const Identities = require('./identities')
-const { put, findOne } = require('./db-utils')
+const { put, find, findOne } = require('./db-utils')
 const { NotFound } = require('./errors')
 const { pick, omit } = require('./utils')
 const {
@@ -43,6 +43,13 @@ const putMessage = co(function* (event) {
     },
     Item: event
   })
+})
+
+const loadMessage = co(function* (data) {
+  const { message, payload } = messageFromEventPayload(data)
+  message.object.object = yield Objects.getObjectByLink(message[PAYLOAD_PROP_PREFIX + 'link'])
+  payload.object = message.object.object
+  return { message, payload }
 })
 
 function messageToEventPayload (wrappers) {
@@ -115,12 +122,12 @@ const getLastSent = co(function* ({ recipient }) {
   try {
     last = yield findOne({
       TableName: OutboxTable,
-      KeyConditionExpression: '#recipient = :recipientValue',
+      KeyConditionExpression: '#recipient = :recipient',
       ExpressionAttributeNames: {
         '#recipient': 'recipient'
       },
       ExpressionAttributeValues: {
-        ':recipientValue': recipient
+        ':recipient': recipient
       },
       Limit: 1,
       ScanIndexForward: false
@@ -139,6 +146,32 @@ const getLastSent = co(function* ({ recipient }) {
 const getNextSeq = co(function* ({ recipient }) {
   const last = yield getLastSent({ recipient })
   return last + 1
+})
+
+const getOutbound = co(function* ({ recipient, gt=0, lt=Infinity }) {
+  const params = {
+    TableName: OutboxTable,
+    KeyConditionExpression: '#recipient = :recipient AND #seq > :seq',
+    ExpressionAttributeNames: {
+      '#recipient': 'recipient',
+      '#seq': 'seq'
+    },
+    ExpressionAttributeValues: {
+      ':recipient': recipient,
+      ':seq': gt
+    },
+    ScanIndexForward: true
+  }
+
+  if (typeof gt === 'number') {
+    const limit = lt - gt - 1
+    if (limit !== Infinity && limit > 0) {
+      params.Limit = limit
+    }
+  }
+
+  const messages = yield find(params)
+  return yield Promise.all(messages.map(loadMessage))
 })
 
 function mergeWrappers ({ message, payload }) {
@@ -238,6 +271,7 @@ module.exports = {
   mergeWrappers,
   normalizeInbound,
   parseInbound,
-  preProcessInbound
+  preProcessInbound,
+  getOutbound
   // receiveMessage
 }

@@ -1,6 +1,7 @@
 
 const extend = require('xtend/mutable')
 const AWS = require('aws-sdk')
+const { cachifyPromiser } = require('./utils')
 const services = process.env.IS_LOCAL ? require('../conf/services.dev') : require('../conf/services.prod')
 AWS.config.update(services.AWS)
 
@@ -9,12 +10,22 @@ let dynamodb
 let dynamodbStreams
 let docClient
 let iot
-let iotData
 let kms
 let lambda
 let sts
 
-module.exports = {
+const getIotEndpoint = cachifyPromiser(() => {
+  return cache.iot.describeEndpoint().promise()
+})
+
+const getIotData = cachifyPromiser(() => {
+  return getIotEndpoint().then(({ endpointAddress }) => {
+    const opts = extend({ endpoint: endpointAddress }, cache.Iot || {})
+    return new AWS.IotData(opts)
+  })
+})
+
+const cache = {
   AWS,
   get s3() {
     if (!s3) s3 = new AWS.S3(services.S3)
@@ -36,14 +47,6 @@ module.exports = {
 
     return docClient
   },
-  iotData(endpoint) {
-    if (!iotData) {
-      const opts = extend({ endpoint }, services.Iot || {})
-      iotData = new AWS.IotData(opts)
-    }
-
-    return iotData
-  },
   get iot() {
     if (!iot) iot = new AWS.Iot(services.Iot)
 
@@ -63,5 +66,9 @@ module.exports = {
     if (!lambda) lambda = new AWS.Lambda(services.Lambda)
 
     return lambda
-  }
+  },
+  getIotData,
+  getIotEndpoint
 }
+
+module.exports = cache

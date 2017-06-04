@@ -80,7 +80,7 @@ const findOrCreate = co(function* ({ link, object, author }) {
     return result
   }
 
-  return getObjectByLink({ link })
+  return getObjectByLink(link)
 })
 
 const _createSendMessageEvent = co(function* (opts) {
@@ -95,7 +95,7 @@ const _createSendMessageEvent = co(function* (opts) {
 
   const promisePayload = findOrCreate({ link, object, author })
   const promiseSeq = Messages.getNextSeq({ recipient })
-  const promiseRecipient = Identities.getIdentityByPermalink({ permalink: recipient })
+  const promiseRecipient = Identities.getIdentityByPermalink(recipient)
   const [payloadWrapper, recipientObj] = yield [
     promisePayload,
     promiseRecipient
@@ -114,14 +114,18 @@ const _createSendMessageEvent = co(function* (opts) {
   const signedMessage = yield signObject({ author, object: unsignedMessage })
   signedMessage.author = author.permalink
   signedMessage.recipient = recipientObj.permalink
-
-  return Events.putEvent({
-    topic: 'send',
-    data: Messages.messageToEventPayload({
-      message: signedMessage,
-      payload: payloadWrapper
-    })
+  const data = Messages.messageToEventPayload({
+    message: signedMessage,
+    payload: payloadWrapper
   })
+
+  const putEvent = Events.putEvent({
+    topic: 'send',
+    data: data
+  })
+
+  const putMessage = Messages.putMessage(data)
+  yield Promise.all([putEvent, putMessage])
 })
 
 const createSendMessageEvent = co(function* (opts) {
@@ -153,10 +157,16 @@ const createReceiveMessageEvent = co(function* ({ message }) {
   //   })
   // }
 
-  return Events.putEvent({
+  const data = Messages.messageToEventPayload(parsed)
+  data.inbound = true
+
+  const putEvent = Events.putEvent({
     topic: 'receive',
-    data: Messages.messageToEventPayload(parsed)
+    data: data
   })
+
+  const putMessage = Messages.putMessage(data)
+  yield Promise.all([putEvent, putMessage])
 })
 
 const ensureMessageIsForMe = co(function* ({ message }) {
@@ -172,18 +182,10 @@ const ensureMessageIsForMe = co(function* ({ message }) {
   }
 })
 
-const loadMessage = co(function* (data) {
-  const { message, payload } = Messages.messageFromEventPayload(data)
-  message.object.object = yield getObjectByLink(message[PAYLOAD_PROP_PREFIX + 'link'])
-  payload.object = message.object.object
-  return { message, payload }
-})
-
 module.exports = {
   getMyIdentity,
   sign,
   signObject,
   createSendMessageEvent,
-  createReceiveMessageEvent,
-  loadMessage
+  createReceiveMessageEvent
 }

@@ -21,14 +21,14 @@ function getIdentityMetadataByPub ({ pub }) {
 
 function getIdentityByPub ({ pub }) {
   return getIdentityMetadataByPub({ pub })
-  .then(Objects.getObjectByLink)
+  .then(({ link }) => Objects.getObjectByLink(link))
   .catch(err => {
     debug('unknown identity', pub, err)
     throw new NotFound('identity with pub: ' + pub)
   })
 }
 
-function getIdentityByPermalink ({ permalink }) {
+function getIdentityByPermalink (permalink) {
   const params = {
     TableName: PubKeysTable,
     IndexName: 'permalink',
@@ -43,7 +43,7 @@ function getIdentityByPermalink ({ permalink }) {
 
   debug('get identity by permalink')
   return findOne(params)
-    .then(({ link }) => Objects.getObjectByLink({ link }))
+    .then(({ link }) => Objects.getObjectByLink(link))
 }
 
 // function getIdentityByFingerprint ({ fingerprint }) {
@@ -131,7 +131,7 @@ const validateNewContact = co(function* ({ link, permalink, object }) {
 
 const addContact = co(function* ({ link, permalink, object }) {
   if (!object) {
-    const result = yield Objects.getObjectByLink({ link })
+    const result = yield Objects.getObjectByLink(link)
     object = result.object
   }
 

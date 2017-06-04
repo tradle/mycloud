@@ -8,5 +8,6 @@
     "MESSAGE": "tradle.Message",
     "IDENTITY": "tradle.Identity"
   },
-  "HANDSHAKE_TIMEOUT": 30000
+  "HANDSHAKE_TIMEOUT": 30000,
+  "PUSH_SERVER_URL": "https://push1.tradle.io"
 }
