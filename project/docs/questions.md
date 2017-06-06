@@ -70,3 +70,11 @@ receive pipeline:
 
 send pipeline:
   business logic event -> Lambda.queueSend -> log to EventsTable ---db-stream--> Lambda.fanout -> Lambda.deliver
+
+MQTT message with multiple messages
+
+when a client disconnects
+
+deleting expired sessions. Use DynamoDB TTL? or a scheduled lambda
+
+when does a client need to reauth? How do they know their session expired

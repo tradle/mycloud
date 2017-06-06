@@ -3,7 +3,6 @@ const microtime = require('microtime')
 
 exports.handler = function (items, context, cb) {
 
-
   const now = microtime.nowStruct().join('')
   items.forEach(({ id }) => {
     const start = +id

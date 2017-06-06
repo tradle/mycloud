@@ -1,11 +1,10 @@
 const debug = require('debug')('tradle:sls:λ:preauth')
 const wrap = require('../wrap')
-const { onRequestTemporaryIdentity } = require('../user')
+const { onPreAuth } = require('../user')
 
 exports.handler = wrap.httpGenerator(function* (event, context) {
   const { body, requestContext } = event
-  const { clientId, permalink } = JSON.parse(body)
+  const { clientId, identity } = typeof body === 'string' ? JSON.parse(body) : body
   const { accountId } = requestContext
-  const identity = yield onRequestTemporaryIdentity({ accountId, clientId, permalink })
-  return identity
+  return onPreAuth({ accountId, clientId, identity })
 })

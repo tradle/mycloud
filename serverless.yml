@@ -3,6 +3,7 @@ frameworkVersion: ">=1.5.0 <2.0.0"
 
 plugins:
   - serverless-resources-env
+  # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
   # - serverless-dynamodb-local
@@ -25,8 +26,8 @@ custom:
   NETWORK_NAME: testnet
   METADATA_PREFIX: ${{file(./project/lib/constants.json):METADATA_PREFIX}}
   IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
-  SECRETS_BUCKET: ${{self:custom.prefix}}secrets1
-  OBJECTS_BUCKET: ${{self:custom.prefix}}objects1
+  SECRETS_BUCKET: ${{self:custom.prefix}}secrets
+  OBJECTS_BUCKET: ${{self:custom.prefix}}objects
   props:
     author: ${{self:custom.METADATA_PREFIX}}author
     recipient: ${{self:custom.METADATA_PREFIX}}recipient
@@ -59,6 +60,7 @@ provider:
   environment:
     NETWORK_NAME: testnet
     DEBUG: tradle:*
+    STAGE: ${{self:custom.stage}}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -73,12 +75,13 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/EventsTable"
-        # - "arn:aws:dynamodb:${{self:provider.region}}:*:table/MessagesTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/PresenceTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/InboxTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/OutboxTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:*:table/PubKeysTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/EventsTable"
+        # - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/MessagesTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PresenceTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/InboxTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/OutboxTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable/index/permalink"
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
@@ -146,7 +149,12 @@ functions:
       DEBUG: tradle:*
     custom:
       env-resources:
+        - ObjectsBucket
+        - EventsTable
         - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
         - IotClientRole
   auth:
     handler: project/lib/lambda/auth.handler
@@ -160,10 +168,17 @@ functions:
       DEBUG: tradle:*
     custom:
       env-resources:
+        - ObjectsBucket
+        - EventsTable
         - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - IotClientRole
   createevent:
     handler: project/lib/lambda/createevent.handler
     memorySize: 512
+
   log:
     handler: project/lib/lambda/log.handler
     # package:
@@ -175,49 +190,71 @@ functions:
       env-resources:
         - SecretsBucket
         - ObjectsBucket
+        - PresenceTable
         - EventsTable
         - PubKeysTable
         - InboxTable
         - OutboxTable
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 20
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - EventsTable
-              - StreamArn
+    # events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 20
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - EventsTable
+  #             - StreamArn
 
-  fanout:
-    handler: project/lib/lambda/fan-out.handler
+  # fanout:
+  #   handler: project/lib/lambda/fan-out.handler
+  #   memorySize: 512
+  #   environment:
+  #     DEBUG: tradle:*
+  #     SERVERLESS_PREFIX: ${{self:custom.prefix}}
+  #   custom:
+  #     env-resources:
+  #       - SecretsBucket
+  #       - ObjectsBucket
+  #       - EventsTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 20
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - EventsTable
+  #             - StreamArn
+
+  # onconnect:
+  #   handler: project/lib/lambda/onconnect.handler
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * FROM '$aws/events/presence/connected/#'"
+  #   environment:
+  #     DEBUG: tradle:*
+
+  onsubscribe:
+    handler: project/lib/lambda/onsubscribe.handler
     memorySize: 512
-    environment:
-      DEBUG: tradle:*
-      SERVERLESS_PREFIX: ${{self:custom.prefix}}
-    custom:
-      env-resources:
-        - SecretsBucket
-        - ObjectsBucket
-        - EventsTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 20
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - EventsTable
-              - StreamArn
-  onconnect:
-    handler: project/lib/lambda/handshake.shake
     events:
       - iot:
-          sql: "SELECT * FROM '$aws/events/presence/connected'"
-  # ondisconnect:
+          sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+
+    # ondisconnect:
   #   handler: project/lib/lambda/handshake.break
   #   events:
   #     - iot:
@@ -230,14 +267,41 @@ functions:
       DEBUG: tradle:*
     events:
       - iot:
-          sql: "SELECT * FROM 'send'"
+          sql: "SELECT * FROM 'message'"
     custom:
       env-resources:
+        - SecretsBucket
         - ObjectsBucket
         - EventsTable
+        - PresenceTable
         - PubKeysTable
         - InboxTable
         - OutboxTable
+
+  echo:
+    handler: project/lib/lambda/echo.handler
+    memorySize: 512
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 20
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - InboxTable
+              - StreamArn
+    environment:
+      DEBUG: tradle:*
+
   addcontact:
     handler: project/lib/lambda/addContact.handler
     environment:
@@ -246,6 +310,7 @@ functions:
       env-resources:
         - ObjectsBucket
         - PubKeysTable
+
   identity:
     handler: project/lib/lambda/identity.handler
     environment:
@@ -255,6 +320,7 @@ functions:
         - SecretsBucket
         - ObjectsBucket
         - PubKeysTable
+
   init:
     handler: project/lib/lambda/init.handler
     memorySize: 512
@@ -266,6 +332,7 @@ functions:
         - SecretsBucket
         - ObjectsBucket
         - PubKeysTable
+
   queuesend:
     handler: project/lib/lambda/queuesend.handler
     memorySize: 512
@@ -279,18 +346,19 @@ functions:
         - PubKeysTable
         - InboxTable
         - OutboxTable
-  send:
-    handler: project/lib/lambda/send.handler
-    environment:
-      DEBUG: tradle:*
-    custom:
-      env-resources:
-        - SecretsBucket
-        - ObjectsBucket
-        - EventsTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
+
+  # send:
+  #   handler: project/lib/lambda/send.handler
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - SecretsBucket
+  #       - ObjectsBucket
+  #       - EventsTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
 
   # sign:
   #   handler: project/lib/lambda/sign.handler
@@ -460,9 +528,13 @@ resources:
         AttributeDefinitions:
           - AttributeName: clientId
             AttributeType: S
+          - AttributeName: permalink
+            AttributeType: S
         KeySchema:
-          - AttributeName: clientId
+          - AttributeName: permalink
             KeyType: HASH
+          - AttributeName: clientId
+            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5

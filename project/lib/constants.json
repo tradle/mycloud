@@ -1,9 +1,12 @@
 {
-  "PAYLOAD_PROP_PREFIX": "p:",
-  "METADATA_PREFIX": "m:",
-  "IDENTITY_KEYS_KEY": "IdentityKeys",
   "SIG": "_s",
+  "SEQ": "_n",
+  "PERMALINK": "_r",
+  "PREVLINK": "_p",
   "TYPE": "_t",
+  "PAYLOAD_PROP_PREFIX": "p_",
+  "METADATA_PREFIX": "m_",
+  "IDENTITY_KEYS_KEY": "IdentityKeys",
   "TYPES": {
     "MESSAGE": "tradle.Message",
     "IDENTITY": "tradle.Identity"

@@ -8,25 +8,29 @@ function publish (params) {
   return aws.getIotData().then(iotData => iotData.publish(params).promise())
 }
 
-function sendMessage ({ clientId, message }) {
+function sendMessages ({ clientId, payload }) {
   return publish({
-    topic: `${clientId}/message`,
-    payload: message
+    topic: getMessagesTopicForClient(clientId),
+    payload: JSON.stringify(payload)
   })
 }
 
-function sendChallenge ({ clientId, challenge }) {
-  return publish({
-    topic: `${clientId}/challenge`,
-    payload: challenge
-  })
+function getMessagesTopicForClient (clientId) {
+  return `${clientId}/message`
 }
 
-function sendAuthenticated ({ clientId }) {
-  return publish({
-    topic: `${clientId}/authenticated`
-  })
-}
+// function sendChallenge ({ clientId, challenge }) {
+//   return publish({
+//     topic: `${clientId}/challenge`,
+//     payload: challenge
+//   })
+// }
+
+// function sendAuthenticated ({ clientId }) {
+//   return publish({
+//     topic: `${clientId}/authenticated`
+//   })
+// }
 
 function getRegionFromEndpoint (iotEndpoint) {
   const partial = iotEndpoint.replace('.amazonaws.com', '');
@@ -36,8 +40,9 @@ function getRegionFromEndpoint (iotEndpoint) {
 
 module.exports = {
   publish,
-  sendMessage,
-  sendChallenge,
-  sendAuthenticated,
-  getRegionFromEndpoint
+  sendMessages,
+  // sendChallenge,
+  // sendAuthenticated,
+  getRegionFromEndpoint,
+  getMessagesTopicForClient
 }

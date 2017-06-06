@@ -1,16 +1,13 @@
 const co = require('co').wrap
 const debug = require('debug')('tradle:sls:objects')
-const omit = require('object.omit')
-const { utils, constants, typeforce } = require('@tradle/engine')
+const { utils } = require('@tradle/engine')
 const types = require('./types')
-const { get, put, findOne } = require('./db-utils')
 const aws = require('./aws')
-const { getBucket } = require('./s3-utils')
 const { InvalidSignatureError } = require('./errors')
-const { TYPE, TYPES, PERMALINK, SEQ } = constants
+const { TYPE, TYPES, PERMALINK, SEQ } = require('./constants')
 const { MESSAGE } = TYPES
-const ENV = require('./env')
-const ObjectsBucket = getBucket(ENV.ObjectsBucket)
+const { omit, typeforce } = require('./utils')
+const { ObjectsBucket } = require('./buckets')
 
 const extractMetadata = co(function* (object) {
   typeforce(types.signedObject, object)
@@ -54,6 +51,7 @@ const extractMetadata = co(function* (object) {
 })
 
 function getObjectByLink (link) {
+  typeforce(typeforce.String, link)
   debug('getting', link)
   return ObjectsBucket.getJSON(link)
 }

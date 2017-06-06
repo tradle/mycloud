@@ -10,7 +10,9 @@ const tables = {}
   'PubKeysTable',
   'EventsTable',
 ].forEach(TableName => {
-  tables[TableName] = getTable(TableName)
+  if (ENV[TableName]) {
+    tables[TableName] = getTable(ENV[TableName])
+  }
 })
 
 module.exports = tables

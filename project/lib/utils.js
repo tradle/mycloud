@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const typeforce = require('typeforce')
 const debug = require('debug')('tradle:sls:utils')
 const omit = require('object.omit')
 const pick = require('object.pick')
@@ -16,11 +17,12 @@ exports.extend = extend
 exports.co = co
 exports.omit = omit
 exports.pick = pick
+exports.typeforce = typeforce
 
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {
     try {
-      return yield co(gen)(...args)
+      return yield co(gen).apply(this, args)
     } catch (err) {
       console.error(err)
       throw err
@@ -83,30 +85,31 @@ exports.uppercaseFirst = function uppercaseFirst (str) {
   return str[0].toUpperCase() + str.slice(1)
 }
 
-exports.logifyFunction = function logifyFunction ({ fn, name }) {
+exports.logifyFunction = function logifyFunction ({ fn, name, log=debug }) {
   return co(function* (...args) {
     const taskName = typeof name === 'function' ? name(...args) : name
     let ret
     try {
       ret = yield fn(...args)
     } catch (err) {
-      debug(`${taskName} failed: ${err.stack}`)
+      log(`${taskName} failed: ${err.stack}`)
       throw err
     }
 
-    debug(`${taskName} succeeded`)
+    log(`${taskName} succeeded`)
     return ret
   })
 }
 
-exports.logifyFunctions = function logifyFunctions (obj) {
+exports.logifyFunctions = function logifyFunctions (obj, log) {
   const logified = {}
   for (let p in obj) {
     let val = obj[p]
     if (typeof val === 'function') {
       logified[p] = utils.logifyFunction({
         fn: val,
-        name: p
+        name: p,
+        log
       })
     } else {
       logified[p] = val

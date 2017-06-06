@@ -1,7 +1,8 @@
+const debug = require('debug')('tradle:sls:db-utils')
 const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
 const { NotFound } = require('./errors')
 const aws = require('./aws')
-const { pick } = require('./utils')
+const { pick, prettify } = require('./utils')
 
 module.exports = {
   get,
@@ -11,17 +12,21 @@ module.exports = {
   find,
   findOne,
   getUpdateExpressions,
-  marshalItem,
-  unmarshalItem,
+  marshalDBItem: marshalItem,
+  unmarshalDBItem: unmarshalItem,
   getTable
 }
 
 function getTable (TableName) {
-  const tableAPI = {}
+  const tableAPI = {
+    toString: () => TableName
+  }
+
   const api = { get, put, update, del, findOne, find }
   Object.keys(api).forEach(method => {
     tableAPI[method] = params => {
       params.TableName = TableName
+      debug(`performing "${method}" on ${TableName}: ${prettify(params)}`)
       return api[method](params)
     }
   })
@@ -35,6 +40,7 @@ function get (params) {
     .then(data => {
       const result = data && data.Item
       if (!result) throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
+      // debug(`got item from ${params.TableName}: ${prettify(result)}`)
       return result
     })
 }

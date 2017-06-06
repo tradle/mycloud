@@ -97,6 +97,7 @@ const _createSendMessageEvent = co(function* (opts) {
 
   const putMessage = Messages.putMessage(data)
   yield Promise.all([putEvent, putMessage])
+  return signedMessage
 })
 
 const createSendMessageEvent = co(function* (opts) {

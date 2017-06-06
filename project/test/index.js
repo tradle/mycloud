@@ -236,12 +236,12 @@ test('format message', function (t) {
 // }))
 
 test('createSendMessageEvent', loudCo(function* (t) {
-  t.plan(3)
+  t.plan(4)
 
   const { putObject } = Objects
   const { putEvent } = Events
   const { getIdentityByPermalink } = Identities
-  const { getNextSeq } = Messages
+  const { getNextSeq, putMessage } = Messages
   const payload = {
     [TYPE]: 'tradle.SimpleMessage',
     message: 'hey bob'
@@ -263,6 +263,12 @@ test('createSendMessageEvent', loudCo(function* (t) {
     return Promise.resolve()
   }
 
+  Messages.putMessage = function (message) {
+    t.notOk(message.inbound)
+    // console.log(event)
+    return Promise.resolve()
+  }
+
   const event = yield createSendMessageEvent({
     author: alice,
     recipient: bob.permalink,
@@ -270,6 +276,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
   })
 
   Messages.getNextSeq = getNextSeq
+  Messages.putMessage = putMessage
   Identities.getIdentityByPermalink = getIdentityByPermalink
   Objects.putObject = putObject
   Events.putEvent = putEvent
@@ -280,12 +287,13 @@ test('createSendMessageEvent', loudCo(function* (t) {
 }))
 
 test('createReceiveMessageEvent', loudCo(function* (t) {
-  t.plan(3)
+  t.plan(4)
 
   const message = toAliceFromBob
   const { putObject } = Objects
   const { putEvent } = Events
   const { getIdentityByPermalink } = Identities
+  const { putMessage } = Messages
 
   Identities.getIdentityMetadataByPub = mocks.getIdentityMetadataByPub
   Objects.putObject = function ({ link, object }) {
@@ -300,16 +308,24 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
     return Promise.resolve()
   }
 
+  Messages.putMessage = function (message) {
+    t.equal(message.inbound, true)
+    // console.log(event)
+    return Promise.resolve()
+  }
+
   const event = yield createReceiveMessageEvent({ message })
 
   Identities.getIdentityByPermalink = getIdentityByPermalink
   Objects.putObject = putObject
   Events.putEvent = putEvent
+  Messages.putMessage = putMessage
 
   // TODO: compare
 
   t.end()
 }))
+
 
 // test.only('sign/verify1', function (t) {
 //   const key = ecdsa.genSync({ curve: 'p256' })
@@ -323,25 +339,25 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
 //   // console.log(key.verifySync(data, sig))
 // })
 
-test.only('sign/verify', loudCo(function* (t) {
-  const carol = yield pify(newIdentity)({ networkName: 'testnet' })
-  const exported = carol.keys.map(key => key.toJSON(true))
-  console.log(exported.find(key => key.curve === 'p256'))
-  const keys = exportKeys(carol.keys)
-  const key = getSigningKey(keys)
-  const object = {
-    _t: 'tradle.SimpleMessage',
-    message: 'hey'
-  }
+// test('sign/verify', loudCo(function* (t) {
+//   const carol = yield pify(newIdentity)({ networkName: 'testnet' })
+//   const exported = carol.keys.map(key => key.toJSON(true))
+//   console.log(exported.find(key => key.curve === 'p256'))
+//   const keys = exportKeys(carol.keys)
+//   const key = getSigningKey(keys)
+//   const object = {
+//     _t: 'tradle.SimpleMessage',
+//     message: 'hey'
+//   }
 
-  const signed = yield sign({ key, object })
-  const pub = extractSigPubKey(signed.object)
-  t.same(pub.pub, key.pub)
-  t.end()
-}))
+//   const signed = yield sign({ key, object })
+//   const pub = extractSigPubKey(signed.object)
+//   t.same(pub.pub, key.pub)
+//   t.end()
+// }))
 
 // test.only('handshake', loudCo(function* (t) {
-//   const clientId = alice.permalink + ':alice1'
+//   const client =
 //   yield onRequestTemporaryIdentity({ accountId: 'abc', clientId })
 
 // }))

@@ -2,37 +2,53 @@ const debug = require('debug')('tradle:sls:delivery')
 const { co } = require('./utils')
 const Messages = require('./messages')
 const Iot = require('./iot-utils')
-// const { SEQ } = require('./constants')
+const { SEQ } = require('./constants')
 const MAX_BATCH_SIZE = 5
 
-const deliverMessage = co(function* ({ clientId, recipient, message }) {
-  const { seq, object } = message
-  debug(`delivering message ${seq} to ${recipient}`)
-  yield Iot.sendMessage({ clientId, message: object })
-  debug(`delivered message ${seq} to ${recipient}`)
+const deliverBatch = co(function* ({ clientId, permalink, messages }) {
+  const bodies = messages.map(message => message.object)
+  const from = bodies[0][SEQ]
+  const to = bodies[bodies.length - 1][SEQ]
+  debug(`delivering messages ${from}-${to} to ${permalink}`)
+  yield Iot.sendMessages({
+    clientId,
+    payload: { messages: bodies }
+  })
+
+  debug(`delivered messages ${from}-${to} to ${permalink}`)
 })
 
-const deliverMessages = co(function* ({ clientId, recipient, gt, lt=Infinity }) {
+const deliverMessages = co(function* ({ clientId, permalink, gt, lt=Infinity }) {
   // const clientId = Auth.getAuthenticated({})
   const originalLT = lt
+  debug(`looking up messages for ${permalink}`)
 
   while (true) {
     let batchSize = Math.min(lt - gt - 1, MAX_BATCH_SIZE)
     if (batchSize <= 0) return
 
-    let messages = yield Messages.getOutbound({ recipient, gt, lt: gt + batchSize })
-    debug(`found ${messages.length} messages for ${recipient}`)
+    let wrappers = yield Messages.getOutbound({
+      recipient: permalink,
+      gt,
+      lt: gt + batchSize
+    })
+
+    let messages = wrappers.map(wrapper => wrapper.message)
+    debug(`found ${messages.length} messages for ${permalink}`)
     if (!messages.length) return
 
-    while (messages.length) {
-      let message = messages.shift()
-      yield deliverMessage({ clientId, recipient, message })
-    }
+    yield deliverBatch({ clientId, permalink, messages })
+
+    // while (messages.length) {
+    //   let message = messages.shift()
+    //   yield deliverMessage({ clientId, permalink, message })
+    // }
 
     gt += batchSize
   }
 })
 
 module.exports = {
-  deliverMessages
+  deliverMessages,
+  deliverBatch
 }

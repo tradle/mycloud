@@ -1,31 +1,32 @@
 const crypto = require('crypto')
 const debug = require('debug')('tradle:sls:auth')
+const { utils } = require('@tradle/engine')
 const aws = require('./aws')
 const Iot = require('./iot-utils')
-const { get, put, del, findOne } = require('./db-utils')
-const { PresenceTable, IotClientRole } = require('./env')
-const { co, randomString, cachifyPromiser } = require('./utils')
+const { IotClientRole } = require('./env')
+const { co, randomString, cachifyPromiser, prettify } = require('./utils')
 const { HandshakeFailed, LambdaInvalidInvocation } = require('./errors')
-const { HANDSHAKE_TIMEOUT } = require('./constants')
+const { HANDSHAKE_TIMEOUT, PERMALINK } = require('./constants')
 const Objects = require('./objects')
 const Messages = require('./messages')
+const Identities = require('./identities')
+const { PresenceTable } = require('./tables')
 
-const onExit = co(function* ({ clientId }) {
-  try {
-    yield del({
-      TableName: PresenceTable,
-      KeyConditionExpression: '#clientId = :clientId',
-      ExpressionAttributeNames: {
-        '#clientId': 'clientId'
-      },
-      ExpressionAttributeValues: {
-        ':clientId': clientId
-      }
-    })
-  } catch (err) {
-    debug(`Failed to delete clientId => permalink mapping in ${PresenceTable}`, err)
-  }
-})
+// const onExit = co(function* ({ clientId }) {
+//   try {
+//     yield PresenceTable.del({
+//       KeyConditionExpression: '#clientId = :clientId',
+//       ExpressionAttributeNames: {
+//         '#clientId': 'clientId'
+//       },
+//       ExpressionAttributeValues: {
+//         ':clientId': clientId
+//       }
+//     })
+//   } catch (err) {
+//     debug(`Failed to delete clientId => permalink mapping in ${PresenceTable}`, err)
+//   }
+// })
 
 // const onEnter = co(function* ({ clientId }) {
 //   return publish({
@@ -37,50 +38,49 @@ const onExit = co(function* ({ clientId }) {
 
 const onAuthenticated = co(function* ({ clientId, permalink, tip }) {
   // TODO: change to use `update`
-  yield put({
-    TableName: PresenceTable,
-    Key: { clientId },
-    Item: {
-      clientId,
-      permalink,
-      tip,
-      authenticated: true
-    }
+  const Item = {
+    clientId,
+    permalink,
+    tip,
+    authenticated: true
+  }
+
+  debug('saving session', prettify(Item))
+  yield PresenceTable.put({
+    Key: { clientId, permalink },
+    Item
   })
 
   // yield Iot.sendAuthenticated({ clientId })
 })
 
-const getAuthenticatedClient = co(function* ({ permalink }) {
-  const result = yield findOne({
-    TableName: PresenceTable,
-    ConditionExpression: '#permalink = :permalink AND #authenticated = :authenticated',
-    ExpressionAttributeNames: {
-      '#permalink': 'permalink',
-      '#authenticated': 'authenticated'
-    },
+const getSessionsByPermalink = co(function* (permalink) {
+  return yield PresenceTable.find({
+    // ConditionExpression: '#permalink = :permalink AND #authenticated = :authenticated',
+    KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
     ExpressionAttributeValues: {
       ':permalink': permalink,
-      ':authenticated': true
+      // ':authenticated': true
     }
   })
-
-  return result.clientId
 })
 
-const getSession = co(function* ({ clientId }) {
-  return get({
-    TableName: PresenceTable,
-    Key: { clientId }
+function getSession ({ clientId }) {
+  return PresenceTable.findOne({
+    KeyConditionExpression: 'permalink = :permalink AND clientId = :clientId',
+    ExpressionAttributeValues: {
+      ':clientId': clientId,
+      ':permalink': getPermalinkFromClientId(clientId),
+      // ':authenticated': true
+    }
   })
-})
+}
 
 const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) {
   // const permalink = getPermalinkFromClientId(clientId)
   const challenge = newNonce()
-  yield put({
-    TableName: PresenceTable,
-    Key: { clientId },
+  yield PresenceTable.put({
+    Key: { clientId, permalink },
     Item: {
       clientId,
       permalink,
@@ -100,13 +100,13 @@ const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) 
 
 const handleChallengeResponse = co(function* (response) {
   const { clientId, permalink, challenge, tip } = response
+
   // const permalink = getPermalinkFromClientId(clientId)
-  const stored = yield get({
-    TableName: PresenceTable,
-    Key: { clientId }
+  const stored = yield PresenceTable.get({
+    Key: { clientId, permalink }
   })
 
-  if (response.challenge !== stored.challenge) {
+  if (challenge !== stored.challenge) {
     throw new HandshakeFailed('stored challenge does not match response')
   }
 
@@ -129,7 +129,7 @@ const handleChallengeResponse = co(function* (response) {
   yield onAuthenticated(session)
   return session
 
-  // const tip = yield Messages.getLastSent({ recipient: permalink })
+  // const tip = yield Messages.getLastSeq({ recipient: permalink })
   // yield publish({
   //   topic: `${clientId}/tip`,
   //   payload: { tip },
@@ -137,10 +137,20 @@ const handleChallengeResponse = co(function* (response) {
   // })
 })
 
-const getTemporaryIdentity = co(function* ({ accountId, clientId, permalink }) {
+const getTemporaryIdentity = co(function* ({ accountId, clientId, identity }) {
   if (!clientId) {
     throw new LambdaInvalidInvocation('expected "clientId"')
   }
+
+  const permalink = identity[PERMALINK] || utils.hexLink(identity)
+  if (permalink !== getPermalinkFromClientId(clientId)) {
+    throw new LambdaInvalidInvocation('expected "clientId" to have format `${permalink}${nonce}`')
+  }
+
+  const maybeAddContact = Identities.validateNewContact({ object: identity })
+    .then(result => {
+      if (!result.exists) return Identities.addContact(result)
+    })
 
   const role = `arn:aws:iam::${accountId}:role/${IotClientRole}`
   debug(`generating temp keys for client ${clientId}, role ${role}`)
@@ -156,7 +166,11 @@ const getTemporaryIdentity = co(function* ({ accountId, clientId, permalink }) {
   }
 
   // assume role returns temporary keys
-  const challenge = yield createChallenge({ clientId, permalink, endpointAddress })
+  const [challenge, addContact] = yield [
+    createChallenge({ clientId, permalink, endpointAddress }),
+    maybeAddContact
+  ]
+
   const { Credentials } = yield aws.sts.assumeRole(params).promise()
   return {
     iotEndpoint: endpointAddress,
@@ -172,16 +186,17 @@ function newNonce () {
   return crypto.randomBytes(32).toString('hex')
 }
 
-// function getPermalinkFromClientId (clientId) {
-//   return clientId.slice(0, 64)
-// }
+function getPermalinkFromClientId (clientId) {
+  return clientId.slice(0, 64)
+}
 
 module.exports = {
   // onEnter,
-  onExit,
+  // onExit,
   createChallenge,
   // sendChallenge,
   handleChallengeResponse,
   getTemporaryIdentity,
-  getSession
+  getSession,
+  getSessionsByPermalink
 }

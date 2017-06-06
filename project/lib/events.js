@@ -5,8 +5,8 @@ const typeforce = require('typeforce')
 const microtime = require('microtime')
 const { omit, extend } = require('./utils')
 const { PutFailed } = require('./errors')
-const { update, getUpdateExpressions } = require('./db-utils')
-const { EventsTable } = require('./env')
+const { getUpdateExpressions } = require('./db-utils')
+const { EventsTable } = require('./tables')
 
 const putEvent = co(function* (event, triesLeft=10) {
   typeforce({
@@ -19,8 +19,7 @@ const putEvent = co(function* (event, triesLeft=10) {
   const item = extend({ id }, event)
   const expressions = getUpdateExpressions(event)
   try {
-    yield update(extend({
-      TableName: EventsTable,
+    yield EventsTable.update(extend({
       Key: { id },
       ConditionExpression: 'attribute_not_exists(id)'
     }, expressions))

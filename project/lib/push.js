@@ -3,14 +3,12 @@ const crypto = require('crypto')
 const superagent = require('superagent')
 const subdown = require('subleveldown')
 const { protocol } = require('@tradle/engine')
-const { getBucket } = require('./s3-utils')
-const { s3 } = require('./aws')
 const { cachifyPromiser } = require('./utils')
 // const constants = require('@tradle/engine').constants
 // const TYPE = constants.TYPE
 
 const ENV = require('./env')
-const ConfStateBucket = getBucket(ENV.ConfStateBucket)
+const { ConfStateBucket } = require('./buckets')
 const { PUSH_SERVER_URL } = require('./constants')
 
   // const serverUrl = opts.url

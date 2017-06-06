@@ -7,7 +7,8 @@ const errors = {}
   'PutFailed',
   'MessageNotForMe',
   'HandshakeFailed',
-  'LambdaInvalidInvocation'
+  'LambdaInvalidInvocation',
+  'InvalidInput'
 ].forEach(name => errors[name] = ex(name))
 
 module.exports = errors

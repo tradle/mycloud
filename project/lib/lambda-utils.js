@@ -5,7 +5,6 @@ const { serverlessPrefix } = require('./env')
 const topicToLamba = require('./lambda-by-topic')
 const invokeDefaults = {
   InvocationType: 'RequestResponse',
-  LogType: 'Tail'
 }
 
 const RESOLVED = Promise.resolve()
@@ -29,6 +28,10 @@ exports.invokeForTopic = function invokeForTopic (topic, items) {
       Payload: JSON.stringify(items)
     }
   )
+
+  if (params.InvocationType !== 'RequestResponse') {
+    delete params.LogType
+  }
 
   debug(`invoking lambda "${params.FunctionName}" for "${topic}" event`)
   return aws.lambda.invoke(params).promise()

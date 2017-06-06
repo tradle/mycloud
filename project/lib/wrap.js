@@ -1,6 +1,7 @@
 const debug = require('debug')('tradle:sls:wrap')
 const co = require('co').wrap
 const RESOLVED = Promise.resolve()
+const { DEV } = require('./env')
 
 module.exports = {
   generator: wrapGenerator,
@@ -14,7 +15,7 @@ function wrapPromiser (fn) {
     const callback = logify(args.pop())
     // catch sync errors
     return RESOLVED
-      .then(() => fn(...args))
+      .then(() => fn.apply(this, args))
       .then(result => callback(null, result))
       .catch(callback)
   }
@@ -23,7 +24,7 @@ function wrapPromiser (fn) {
 function wrapGenerator (generatorFn) {
   return function (...args) {
     const callback = logify(args.pop())
-    return co(generatorFn)(...args)
+    return co(generatorFn).apply(this, args)
       .then(result => callback(null, result))
       .catch(callback)
   }
@@ -34,7 +35,7 @@ function wrapSync (fn) {
     const callback = logify(args.pop())
     let result
     try {
-      result = fn(...args)
+      result = fn.apply(this, args)
     } catch (err) {
       callback(err)
       return
@@ -55,7 +56,7 @@ function wrapHTTPGenerator (generatorFn) {
     const callback = logify(args.pop())
     let ret
     try {
-      ret = yield co(generatorFn)(...args)
+      ret = yield co(generatorFn).apply(this, args)
       resp.statusCode = 200
       if (ret != null) resp.body = JSON.stringify(ret)
     } catch (err) {
@@ -63,8 +64,10 @@ function wrapHTTPGenerator (generatorFn) {
         return callback(err)
       }
 
-      resp.statusCode = 500
-      resp.body = JSON.stringify('something went horribly wrong')
+      debug('wrapped task errored', err)
+      resp.statusCode = 400
+      const msg = DEV ? err.message : 'Something went horribly wrong'
+      resp.body = JSON.stringify(err.message)
     }
 
     callback(null, resp)

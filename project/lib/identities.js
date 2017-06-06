@@ -1,10 +1,9 @@
 const co = require('co').wrap
 const extend = require('xtend/mutable')
 const debug = require('debug')('tradle:sls:identities')
-const { utils, constants } = require('@tradle/engine')
-const { PREVLINK, PERMALINK } = constants
+const { utils } = require('@tradle/engine')
+const { PREVLINK, PERMALINK } = require('./constants')
 const Objects = require('./objects')
-const { get, put, findOne } = require('./db-utils')
 const { NotFound } = require('./errors')
 const { firstSuccess, logifyFunctions } = require('./utils')
 const Events = require('./events')
@@ -28,19 +27,15 @@ function getIdentityByPub (pub) {
 
 function getIdentityByPermalink (permalink) {
   const params = {
-    TableName: PubKeysTable,
     IndexName: 'permalink',
-    KeyConditionExpression: '#permalink = :permalinkValue',
-    ExpressionAttributeNames: {
-      "#permalink": "permalink"
-    },
+    KeyConditionExpression: 'permalink = :permalinkValue',
     ExpressionAttributeValues: {
       ":permalinkValue": permalink
     }
   }
 
   debug('get identity by permalink')
-  return findOne(params)
+  return PubKeysTable.findOne(params)
     .then(({ link }) => Objects.getObjectByLink(link))
 }
 
@@ -104,27 +99,20 @@ const validateNewContact = co(function* ({ link, permalink, object }) {
     existing = yield getExistingIdentityMapping({ object })
   } catch (err) {}
 
-  const links = utils.getLinks({ link, permalink, object })
-  link = links.link
-  permalink = links.permalink
-
+  const ret = utils.addLinks({ link, permalink, object })
+  link = ret.link
+  permalink = ret.permalink
   if (existing) {
     if (existing.link === link) {
       debug(`mapping is already up to date for identity ${permalink}`)
-      return
-    }
-
-    if (object[PREVLINK] !== existing.link) {
+      ret.exists = true
+    } else if (object[PREVLINK] !== existing.link) {
       debug('identity mapping collision. Refusing to add contact:', JSON.stringify(object))
       throw new Error(`refusing to add identity with link: "${link}"`)
     }
   }
 
-  return {
-    link,
-    permalink,
-    object
-  }
+  return ret
 })
 
 const addContact = co(function* ({ link, permalink, object }) {

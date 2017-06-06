@@ -1,11 +1,11 @@
-const debug = require('debug')('tradle:sls:λ:preprocess')
+const debug = require('debug')('tradle:sls:λ:queuereceive')
 const wrap = require('../wrap')
-const { preProcessInbound } = require('../messages')
+const { onSentMessage } = require('../user')
 const { createReceiveMessageEvent } = require('../author')
+const { prettify } = require('../utils')
 
 exports.handler = wrap.generator(function* (event, context) {
-  debug('prereceive')
-  const message = yield preProcessInbound(event)
-  yield createReceiveMessageEvent({ message })
+  debug('prereceive', prettify(event))
+  yield onSentMessage(event)
   debug('preceived')
 })

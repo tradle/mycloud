@@ -50,9 +50,9 @@ const putMessage = co(function* (message) {
 
 const loadMessage = co(function* (data) {
   const { message, payload } = messageFromEventPayload(data)
-  message.object.object = yield Objects.getObjectByLink(message[PAYLOAD_PROP_PREFIX + 'link'])
-  payload.object = message.object.object
-  return { message, payload }
+  const payloadWrapper = yield Objects.getObjectByLink(payload.link)
+  message.object.object = payloadWrapper.object
+  return { message, payload: payloadWrapper }
 })
 
 function messageToEventPayload (wrappers) {
@@ -120,14 +120,13 @@ function unserializePubKey (key) {
   }
 }
 
-const getLastSent = co(function* ({ recipient }) {
+const getLastSeq = co(function* ({ recipient }) {
+  debug(`looking up last message for ${recipient}`)
+
   let last
   try {
     last = yield OutboxTable.findOne({
-      KeyConditionExpression: '#recipient = :recipient',
-      ExpressionAttributeNames: {
-        '#recipient': prefixProp('recipient')
-      },
+      KeyConditionExpression: `${prefixProp('recipient')} = :recipient`,
       ExpressionAttributeValues: {
         ':recipient': recipient
       },
@@ -141,22 +140,25 @@ const getLastSent = co(function* ({ recipient }) {
       return -1
     }
 
+    debug('experienced error in getLastSeq', err.stack)
     throw err
   }
 })
 
 const getNextSeq = co(function* ({ recipient }) {
-  const last = yield getLastSent({ recipient })
+  const last = yield getLastSeq({ recipient })
   return last + 1
 })
 
 const getOutbound = co(function* ({ recipient, gt=0, lt=Infinity }) {
+  debug(`looking up outbound messages for ${recipient}, range=${gt}-${lt}`)
+
   const params = {
-    KeyConditionExpression: '#recipient = :recipient AND #seq > :seq',
-    ExpressionAttributeNames: {
-      '#recipient': prefixProp('recipient'),
-      '#seq': 'seq'
-    },
+    KeyConditionExpression: `${prefixProp('recipient')} = :recipient AND seq > :seq`,
+    // ExpressionAttributeNames: {
+    //   '#recipient': prefixProp('recipient'),
+    //   '#seq': 'seq'
+    // },
     ExpressionAttributeValues: {
       ':recipient': recipient,
       ':seq': gt
@@ -267,12 +269,13 @@ module.exports = {
   messageFromEventPayload,
   messageToEventPayload,
   putMessage,
-  getLastSent,
+  getLastSeq,
   getNextSeq,
   mergeWrappers,
   normalizeInbound,
   parseInbound,
   preProcessInbound,
-  getOutbound
+  getOutbound,
+  loadMessage
   // receiveMessage
 }
