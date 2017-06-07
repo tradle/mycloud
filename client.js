@@ -38,7 +38,7 @@ Client.prototype.setNode = function (node) {
 Client.prototype.auth = co(function* () {
   const node = this._node
   const { permalink, identity } = node
-  const clientId = this._clientId || (this._clientId = genClientId(node))
+  const clientId = this._clientId || (this._clientId = genClientId(permalink))
 
   debug('fetching temporary credentials')
   const {
@@ -49,6 +49,13 @@ Client.prototype.auth = co(function* () {
     sessionToken,
     challenge
   } = yield post(PREAUTH_ENDPOINT, { clientId, identity })
+
+  // const iotEndpoint = 'a21zoo1cfp44ha.iot.us-east-1.amazonaws.com'
+  // const region = 'us-east-1'
+  // const accessKey = 'abc'
+  // const secretKey = 'abc'
+  // const sessionToken = 'abc'
+  // const challenge = 'abc'
 
   const signed = yield node.sign({
     object: {
@@ -166,8 +173,8 @@ const post = co(function* (url, data) {
   return text
 })
 
-function genClientId (node) {
-  return node.permalink + crypto.randomBytes(20).toString('hex')
+function genClientId (permalink) {
+  return permalink + crypto.randomBytes(20).toString('hex')
 }
 
 function genNonce () {

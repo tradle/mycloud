@@ -10,7 +10,7 @@ const {
   CF_PresenceTable,
   CF_IotClientRole,
   NETWORK_NAME='testnet',
-  // SERVERLESS_SERVICE_NAME,
+  SERVERLESS_SERVICE_NAME,
   SERVERLESS_STAGE,
   SERVERLESS_PREFIX
 } = process.env
@@ -26,8 +26,8 @@ module.exports = clone(require('../../env'), {
   PresenceTable: CF_PresenceTable,
   IotClientRole: CF_IotClientRole,
   networkName: NETWORK_NAME,
-  // serverlessStage: SERVERLESS_STAGE,
-  // serverlessService: SERVERLESS_SERVICE_NAME,
+  serverlessStage: SERVERLESS_STAGE,
+  serverlessService: SERVERLESS_SERVICE_NAME,
   serverlessPrefix: SERVERLESS_PREFIX,
   DEV: SERVERLESS_STAGE === 'dev'
 })

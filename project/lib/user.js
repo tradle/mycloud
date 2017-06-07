@@ -24,10 +24,29 @@ const onSentMessage = co(function* (event) {
 
 const onPreAuth = Auth.getTemporaryIdentity
 const onSentChallengeResponse = Auth.handleChallengeResponse
+const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
+  let session
+  try {
+    session = yield Auth.getMostRecentSessionByClientId(clientId)
+  } catch (err) {}
+
+  if (!session) {
+    debug(`ignoring "restore" request from outdated session: ${clientId}`)
+    return
+  }
+
+  yield Delivery.deliverMessages({
+    clientId: session.clientId,
+    permalink: session.permalink,
+    gt,
+    lt
+  })
+})
 
 module.exports = {
   onSentChallengeResponse,
   onPreAuth,
   onSubscribed,
-  onSentMessage
+  onSentMessage,
+  onRestoreRequest
 }

@@ -21,6 +21,7 @@ exports.author = typeforce.compile({
   permalink: typeforce.String
 })
 
+exports.identity = identity
 exports.signedObject = types.signedObject
 exports.unsignedObject = types.rawObject
 exports.messageBody = types.messageBody

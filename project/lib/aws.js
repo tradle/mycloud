@@ -31,42 +31,42 @@ const getIotData = cachifyPromiser(() => {
 
 const cache = {
   AWS,
-  get s3() {
+  get s3 () {
     if (!s3 || !cacheServices) s3 = new AWS.S3(services.S3)
 
     return s3
   },
-  get dynamodb() {
+  get dynamodb () {
     if (!dynamodb || !cacheServices) dynamodb = new AWS.DynamoDB(services.DynamoDB)
 
     return dynamodb
   },
-  get dynamodbStreams() {
+  get dynamodbStreams () {
     if (!dynamodbStreams || !cacheServices) dynamodbStreams = new AWS.DynamoDBStreams(services.DynamoDBStreams)
 
     return dynamodbStreams
   },
-  get docClient() {
+  get docClient () {
     if (!docClient || !cacheServices) docClient = new AWS.DynamoDB.DocumentClient(services.DynamoDB)
 
     return docClient
   },
-  get iot() {
+  get iot () {
     if (!iot || !cacheServices) iot = new AWS.Iot(services.Iot)
 
     return iot
   },
-  get sts() {
+  get sts () {
     if (!sts || !cacheServices) sts = new AWS.STS(services.STS)
 
     return sts
   },
-  get kms() {
+  get kms () {
     if (!kms || !cacheServices) kms = new AWS.KMS(services.KMS)
 
     return kms
   },
-  get lambda() {
+  get lambda () {
     if (!lambda || !cacheServices) lambda = new AWS.Lambda(services.Lambda)
 
     return lambda

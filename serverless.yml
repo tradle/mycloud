@@ -17,6 +17,7 @@ package:
     - node_modules/**
     - simulate/**
     - garbage/**
+    - ./**/*.log
 
 custom:
   prefix: ${{self:service}}-${{self:provider.stage}}-
@@ -28,6 +29,7 @@ custom:
   IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
   SECRETS_BUCKET: ${{self:custom.prefix}}secrets
   OBJECTS_BUCKET: ${{self:custom.prefix}}objects
+  PUBLIC_BUCKET: ${{self:custom.prefix}}public
   props:
     author: ${{self:custom.METADATA_PREFIX}}author
     recipient: ${{self:custom.METADATA_PREFIX}}recipient
@@ -60,7 +62,8 @@ provider:
   environment:
     NETWORK_NAME: testnet
     DEBUG: tradle:*
-    STAGE: ${{self:custom.stage}}
+    SERVERLESS_STAGE: ${{self:custom.stage}}
+    SERVERLESS_SERVICE_NAME: ${{self:custom.stage}}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -139,7 +142,7 @@ provider:
 functions:
   preauth:
     handler: project/lib/lambda/preauth.handler
-    memorySize: 512
+    memorySize: 1024
     events:
       - http:
           path: tradle/preauth
@@ -158,7 +161,7 @@ functions:
         - IotClientRole
   auth:
     handler: project/lib/lambda/auth.handler
-    memorySize: 512
+    memorySize: 1024
     events:
       - http:
           path: tradle/auth
@@ -195,6 +198,7 @@ functions:
         - PubKeysTable
         - InboxTable
         - OutboxTable
+
     # events:
   #     - stream:
   #         type: dynamodb
@@ -239,10 +243,30 @@ functions:
 
   onsubscribe:
     handler: project/lib/lambda/onsubscribe.handler
-    memorySize: 512
+    memorySize: 1024
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+
+  restore:
+    handler: project/lib/lambda/restore.handler
+    memorySize: 1024
+    events:
+      - iot:
+          sql: "SELECT * as data, topic() as topic FROM '+/restore'"
+          actions:
+            - lambda:
+
     environment:
       DEBUG: tradle:*
     custom:
@@ -262,7 +286,7 @@ functions:
 
   queuereceive:
     handler: project/lib/lambda/queuereceive.handler
-    memorySize: 512
+    memorySize: 1024
     environment:
       DEBUG: tradle:*
     events:
@@ -280,7 +304,7 @@ functions:
 
   echo:
     handler: project/lib/lambda/echo.handler
-    memorySize: 512
+    memorySize: 1024
     custom:
       env-resources:
         - ObjectsBucket
@@ -320,6 +344,23 @@ functions:
         - SecretsBucket
         - ObjectsBucket
         - PubKeysTable
+
+  info:
+    handler: project/lib/lambda/info.handler
+    environment:
+      DEBUG: tradle:*
+      SERVERLESS_STAGE: ${{self:custom.stage}}
+      SERVERLESS_SERVICE_NAME: ${{self:custom.stage}}
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - PubKeysTable
+    events:
+      - http:
+          path: tradle/info
+          method: get
+          cors: true
 
   init:
     handler: project/lib/lambda/init.handler
@@ -393,6 +434,11 @@ resources:
       Type: "AWS::S3::Bucket"
       Properties:
         BucketName: ${{self:custom.SECRETS_BUCKET}}
+
+    # PublicBucket:
+    #   Type: "AWS::S3::Bucket"
+    #   Properties:
+    #     BucketName: ${{self:custom.PUBLIC_BUCKET}}
 
     EventsTable:
       Type: AWS::DynamoDB::Table
@@ -616,8 +662,8 @@ resources:
                   Action: ["iot:Publish"]
                   Resource: ["*"]
                   # Resource: [
-                  #   "aws:iot:::topic/message",
-                  #   "aws:iot:::topic/catchup",
+                  #   "aws:iot:::topic/${iot:ClientId}/message",
+                  #   "aws:iot:::topic/${iot:ClientId}/restore",
                   # ]
                 # restrict client topic subscriptions by their client id
                 - Effect: "Allow"

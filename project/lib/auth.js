@@ -4,12 +4,13 @@ const { utils } = require('@tradle/engine')
 const aws = require('./aws')
 const Iot = require('./iot-utils')
 const { IotClientRole } = require('./env')
-const { co, randomString, cachifyPromiser, prettify } = require('./utils')
-const { HandshakeFailed, LambdaInvalidInvocation } = require('./errors')
+const { co, randomString, cachifyPromiser, prettify, typeforce } = require('./utils')
+const { HandshakeFailed, InvalidInput, NotFound } = require('./errors')
 const { HANDSHAKE_TIMEOUT, PERMALINK } = require('./constants')
 const Objects = require('./objects')
 const Messages = require('./messages')
 const Identities = require('./identities')
+const types = require('./types')
 const { PresenceTable } = require('./tables')
 
 // const onExit = co(function* ({ clientId }) {
@@ -42,10 +43,13 @@ const onAuthenticated = co(function* ({ clientId, permalink, tip }) {
     clientId,
     permalink,
     tip,
-    authenticated: true
+    authenticated: true,
+    time: Date.now()
   }
 
   debug('saving session', prettify(Item))
+
+  // yield deleteSessionsByPermalink(permalink)
   yield PresenceTable.put({
     Key: { clientId, permalink },
     Item
@@ -54,8 +58,17 @@ const onAuthenticated = co(function* ({ clientId, permalink, tip }) {
   // yield Iot.sendAuthenticated({ clientId })
 })
 
-const getSessionsByPermalink = co(function* (permalink) {
-  return yield PresenceTable.find({
+function deleteSessionsByPermalink (permalink) {
+  return PresenceTable.del({
+    KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
+    ExpressionAttributeValues: {
+      ':permalink': permalink
+    }
+  })
+}
+
+function getSessionsByPermalink (permalink) {
+  return PresenceTable.find({
     // ConditionExpression: '#permalink = :permalink AND #authenticated = :authenticated',
     KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
     ExpressionAttributeValues: {
@@ -63,6 +76,23 @@ const getSessionsByPermalink = co(function* (permalink) {
       // ':authenticated': true
     }
   })
+}
+
+const getMostRecentSessionByPermalink = co(function* (permalink) {
+  const sessions = yield getSessionsByPermalink(permalink)
+  const latest = sessions
+    .filter(session => session.authenticated)
+    .sort((a, b) => {
+      return a.time - b.time
+    })
+    .pop()
+
+  if (!latest) {
+    throw new NotFound('no authenticated sessions found')
+  }
+
+  debug('latest authenticated session:', prettify(latest))
+  return latest
 })
 
 function getSession ({ clientId }) {
@@ -85,8 +115,7 @@ const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) 
       clientId,
       permalink,
       challenge,
-      authenticated: false,
-      time: Date.now()
+      authenticated: false
     }
   })
 
@@ -99,6 +128,18 @@ const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) 
 // })
 
 const handleChallengeResponse = co(function* (response) {
+  try {
+    typeforce({
+      clientId: typeforce.String,
+      permalink: typeforce.String,
+      challenge: typeforce.String,
+      tip: typeforce.Number
+    }, response)
+  } catch (err) {
+    debug('received invalid input', err.stack)
+    throw new InvalidInput(err.message)
+  }
+
   const { clientId, permalink, challenge, tip } = response
 
   // const permalink = getPermalinkFromClientId(clientId)
@@ -137,14 +178,22 @@ const handleChallengeResponse = co(function* (response) {
   // })
 })
 
-const getTemporaryIdentity = co(function* ({ accountId, clientId, identity }) {
-  if (!clientId) {
-    throw new LambdaInvalidInvocation('expected "clientId"')
+const getTemporaryIdentity = co(function* (opts) {
+  try {
+    typeforce({
+      accountId: typeforce.String,
+      clientId: typeforce.String,
+      identity: types.identity
+    }, opts)
+  } catch (err) {
+    debug('received invalid input', err.stack)
+    throw new InvalidInput(err.message)
   }
 
+  const { accountId, clientId, identity } = opts
   const permalink = identity[PERMALINK] || utils.hexLink(identity)
   if (permalink !== getPermalinkFromClientId(clientId)) {
-    throw new LambdaInvalidInvocation('expected "clientId" to have format `${permalink}${nonce}`')
+    throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
   }
 
   const maybeAddContact = Identities.validateNewContact({ object: identity })
@@ -161,7 +210,7 @@ const getTemporaryIdentity = co(function* ({ accountId, clientId, identity }) {
   debug('assuming role', role)
   const region = Iot.getRegionFromEndpoint(endpointAddress)
   const params = {
-    RoleArn: role,// `arn:aws:iam:${region}:${accountId}:role/${IotClientRole}`,
+    RoleArn: role,
     RoleSessionName: randomString(16),
   }
 
@@ -182,6 +231,18 @@ const getTemporaryIdentity = co(function* ({ accountId, clientId, identity }) {
   }
 })
 
+function getMostRecentSessionByClientId (clientId) {
+  return getMostRecentSessionByPermalink(getPermalinkFromClientId(clientId))
+}
+
+// const isMostRecentSession = co(function* ({ clientId }) {
+//   try {
+//     const session = yield getMostRecentSessionByPermalink(getPermalinkFromClientId(clientId))
+//     return session.clientId === clientId
+//   } catch (err) {}
+// })
+
+
 function newNonce () {
   return crypto.randomBytes(32).toString('hex')
 }
@@ -198,5 +259,8 @@ module.exports = {
   handleChallengeResponse,
   getTemporaryIdentity,
   getSession,
-  getSessionsByPermalink
+  getSessionsByPermalink,
+  getMostRecentSessionByPermalink,
+  getMostRecentSessionByClientId,
+  // isMostRecentSession
 }

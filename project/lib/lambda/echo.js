@@ -3,9 +3,10 @@ const wrap = require('../wrap')
 const { co } = require('../utils')
 const { unmarshalDBItem } = require('../db-utils')
 const { loadMessage } = require('../messages')
-const { getSessionsByPermalink } = require('../auth')
+const { getMostRecentSessionByPermalink } = require('../auth')
 const { deliverBatch } = require('../delivery')
 const { createSendMessageEvent } = require('../author')
+const { SEQ } = require('../constants')
 
 exports.handler = wrap.generator(function* (event, context) {
   const items = event.Records.map(record => unmarshalDBItem(record.dynamodb.NewImage))
@@ -13,28 +14,25 @@ exports.handler = wrap.generator(function* (event, context) {
   for (const metadata of items) {
     debug('loading message', metadata)
     const { message, payload } = yield loadMessage(metadata)
-    const promiseSessions = getSessionsByPermalink(message.author)
-      .then(sessions => sessions.filter(session => session.authenticated))
-
+    const promiseSession = getMostRecentSessionByPermalink(message.author)
     const echo = yield createSendMessageEvent({
       recipient: message.author,
       object: payload.object
     })
 
-    let sessions
+    let session
     try {
-      sessions = yield promiseSessions
+      session = yield promiseSession
     } catch (err) {
       continue
     }
 
-    for (let session of sessions) {
-      yield deliverBatch({
-        clientId: session.clientId,
-        permalink: session.permalink,
-        messages: [echo]
-      })
-    }
+    debug(`sending message ${echo.object[SEQ]} to ${message.author} live`)
+    yield deliverBatch({
+      clientId: session.clientId,
+      permalink: session.permalink,
+      messages: [echo]
+    })
   }
 
   // const messages = yield Promise.all(items.map(({ data }) => loadMessage(data)))
@@ -42,4 +40,3 @@ exports.handler = wrap.generator(function* (event, context) {
 
   // })
 })
-
