@@ -1,31 +1,36 @@
 const debug = require('debug')('tradle:sls:init-identity')
 const Objects = require('./objects')
 const Secrets = require('./secrets')
+const { PublicConfBucket } = require('./buckets')
 const { loudCo } = require('./utils')
 const { exportKeys } = require('./crypto')
 const Identities = require('./identities')
 const { utils } = require('@tradle/engine')
 const {
-  IDENTITY_KEYS_KEY
+  IDENTITY_KEYS_KEY,
+  PUBLIC_CONF_BUCKET
 } = require('./constants')
 
 const {
   NETWORK_NAME
-} = process.env
+} = require('./env')
 
 const saveIdentityAndKeys = loudCo(function* ({ object, link, keys }) {
   const permalink = link
   keys = exportKeys(keys)
+  const pub = { link, permalink, object }
+  const priv = { link, permalink, object, keys }
 
   yield [
     // TODO: encrypt
     // private
-    Secrets.putSecretObject(IDENTITY_KEYS_KEY, { link, permalink, object, keys }),
+    Secrets.putSecretObject(IDENTITY_KEYS_KEY, priv),
     // public
-    Objects.putObject({ link, permalink, object })
+    Objects.putObject(pub),
+    PublicConfBucket.put(PUBLIC_CONF_BUCKET.identity, pub)
   ];
 
-  yield Identities.addContact({ link, permalink, object })
+  yield Identities.addContact()
 })
 
 function createIdentity (opts) {

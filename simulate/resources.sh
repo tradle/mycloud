@@ -20,6 +20,10 @@ aws dynamodb create-table \
   --endpoint-url=http://localhost:4569 \
   --cli-input-json file://conf/presence-table-schema.json
 
+aws dynamodb create-table \
+  --endpoint-url=http://localhost:4569 \
+  --cli-input-json file://conf/cursor-table-schema.json
+
 aws s3api create-bucket \
   --endpoint-url=http://localhost:4572 \
   --bucket tradle-messaging-dev-objects1

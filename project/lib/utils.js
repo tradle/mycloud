@@ -127,4 +127,17 @@ exports.randomString = function randomString (bytes) {
   return crypto.randomBytes(bytes).toString('hex')
 }
 
+exports.toCamelCase = function toCamelCase (str, delimiter, upperFirst) {
+  return str
+    .split(delimiter)
+    .map((part, i) => {
+      if (i === 0 && !upperFirst) {
+        return part.toLowerCase()
+      }
+
+      return part[0].toUpperCase() + part.slice(1).toLowerCase()
+    })
+    .join('')
+}
+
 function noop () {}

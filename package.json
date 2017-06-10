@@ -10,6 +10,7 @@
     "@tradle/cb-blockr": "tradle/cb-blockr",
     "@tradle/engine": "^4.9.0",
     "@tradle/test-helpers": "tradle/test-helpers",
+    "array-shuffle": "^1.0.1",
     "aws-iot-device-sdk": "^1.0.14",
     "aws-sdk": "^2.60.0",
     "aws-sdk-mock": "^1.7.0",

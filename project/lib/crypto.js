@@ -219,6 +219,18 @@ function getEncoder (curve) {
   return encoders[curve]
 }
 
+function sha256 (data) {
+  return crypto.createHash('sha256').update(data).digest('base64')
+}
+
+function executeSuperagentRequest (req) {
+  return req.then(res => {
+    if (!res.ok) {
+      throw new Error(res.text || `request to ${req.url} failed`)
+    }
+  })
+}
+
 module.exports = {
   checkAuthentic,
   extractSigPubKey,
@@ -229,5 +241,7 @@ module.exports = {
   putEncryptedJSON,
   getEncryptedObject,
   getIdentityKeys,
-  exportKeys
+  exportKeys,
+  sha256,
+  executeSuperagentRequest
 }

@@ -3,7 +3,10 @@ const { co, prettify } = require('./utils')
 const Auth = require('./auth')
 const Delivery = require('./delivery')
 const Messages = require('./messages')
-const { createReceiveMessageEvent } = require('./author')
+const { createReceiveMessageEvent } = require('./provider')
+const { PUBLIC_CONF_BUCKET } = require('./constants')
+const { PublicConfBucket } = require('./buckets')
+const { SERVERLESS_STAGE } = require('../env')
 
 // const onConnect = co(function* ({ clientId }) {
 //   const { clientId, permalink, tip } = Auth.getSession({ clientId })
@@ -43,10 +46,22 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
   })
 })
 
+const onGetInfo = co(function* () {
+  const identity = PublicConfBucket.get(PUBLIC_CONF_BUCKET.identity)
+    .then(({ object }) => object)
+
+  return yield {
+    styles: PublicConfBucket.get(PUBLIC_CONF_BUCKET.styles),
+    identity: identity,
+    authEndpoint: `${event.headers.Host}/${SERVERLESS_STAGE}/tradle`
+  }
+})
+
 module.exports = {
   onSentChallengeResponse,
   onPreAuth,
   onSubscribed,
   onSentMessage,
-  onRestoreRequest
+  onRestoreRequest,
+  onGetInfo
 }

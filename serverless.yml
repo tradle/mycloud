@@ -29,7 +29,8 @@ custom:
   IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
   SECRETS_BUCKET: ${{self:custom.prefix}}secrets
   OBJECTS_BUCKET: ${{self:custom.prefix}}objects
-  PUBLIC_BUCKET: ${{self:custom.prefix}}public
+  PRIVATE_CONF_BUCKET: ${{self:custom.prefix}}private-conf
+  PUBLIC_CONF_BUCKET: ${{self:custom.prefix}}public-conf
   props:
     author: ${{self:custom.METADATA_PREFIX}}author
     recipient: ${{self:custom.METADATA_PREFIX}}recipient
@@ -57,6 +58,7 @@ provider:
   profile: serverless
   stage: ${{self:custom.stage}}
   region: us-east-1
+  pushServer: https://push1.tradle.io
   memorySize: 128
   # deploymentBucket: io.tradle.${{self:provider.region}.deploys # Overwrite the default deployment bucket
   environment:
@@ -64,6 +66,7 @@ provider:
     DEBUG: tradle:*
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:custom.stage}}
+    PUSH_SERVER_URL: ${{self:custom.pushServer}}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -373,6 +376,7 @@ functions:
         - SecretsBucket
         - ObjectsBucket
         - PubKeysTable
+        - PublicConfBucket
 
   queuesend:
     handler: project/lib/lambda/queuesend.handler
@@ -435,10 +439,16 @@ resources:
       Properties:
         BucketName: ${{self:custom.SECRETS_BUCKET}}
 
-    # PublicBucket:
-    #   Type: "AWS::S3::Bucket"
-    #   Properties:
-    #     BucketName: ${{self:custom.PUBLIC_BUCKET}}
+    PrivateConfBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: ${{self:custom.PRIVATE_CONF_BUCKET}}
+
+    PublicConfBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: ${{self:custom.PUBLIC_CONF_BUCKET}}
+        AccessControl: PublicRead
 
     EventsTable:
       Type: AWS::DynamoDB::Table
@@ -617,6 +627,20 @@ resources:
     #           Action:
     #             - sts:AssumeRole
 
+    PushSubcribersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: PushSubscribersTable
+        AttributeDefinitions:
+          - AttributeName: subscriber
+            AttributeType: S
+        KeySchema:
+          - AttributeName: subscriber
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
     IotClientRole:
       Type: AWS::IAM::Role
       Properties:
@@ -678,94 +702,3 @@ resources:
                   Resource: ["*"]
                   # Resource: ["aws:iot:::topic/${iot:ClientId}/*"]
 
-    # set policies for IoT client actions
-    # IoTClientPolicy:
-    #   Type: AWS::IoT::Policy
-    #   Properties:
-    #     # RoleName: IoTRole
-    #     RoleARN:
-    #       Fn::GetAtt: [ IoTRole, Arn ]
-
-    #     # Roles: [{ Ref: IoTRole }]
-    #     PolicyDocument:
-    #       Version: "2012-10-17"
-    #       Statement:
-    #         # restrict client connect by client id
-    #         - Effect: Allow
-    #           Action: ["iot:Connect"]
-    #           Resource: ["*"]
-    #           # Resource: ["aws:iot:::client/${iot:ClientId}/*"]
-    #         # allow all clients to publish to the send topic
-    #         - Effect: "Allow"
-    #           Action: ["iot:Publish"]
-    #           Resource: ["*"]
-    #           # Resource: [
-    #           #   "aws:iot:::topic/message",
-    #           #   "aws:iot:::topic/catchup",
-    #           # ]
-    #         # restrict client topic subscriptions by their client id
-    #         - Effect: "Allow"
-    #           Action: ["iot:Subscribe"]
-    #           Resource: ["*"]
-    #           # Resource: ["aws:iot:::topicfilter/${iot:ClientId}/*"]
-    #         # restrict messages clients receive by their client id
-    #         # this has the same function as the Subscribe rule above
-    #         # provided the Subscribe policy is upheld, this policy should always give a pass
-    #         - Effect: "Allow"
-    #           Action: ["iot:Receive"]
-    #           Resource: ["*"]
-    #           # Resource: ["aws:iot:::topic/${iot:ClientId}/*"]
-
-    # call `preprocess` lambda on all messages (send to topic 'send')
-    # IoTHandshakeRule:
-    #   Type: AWS::IoT::TopicRule
-    #   Properties:
-    #     TopicRulePayload:
-    #       RuleDisabled: false
-    #       Sql: "SELECT * FROM 'handshake'"
-    #       Actions:
-    #         - Lambda:
-    #             FunctionArn: { Fn::GetAtt: [ handshake, Arn ] }
-
-    # # allow iot to invoke the `preprocess` lambda
-    # IoTHandshakeInvokePermission:
-    #   Type: AWS::Lambda::Permission
-    #   Properties:
-    #     FunctionName: { Fn::GetAtt: [ handshake, Arn ] }
-    #     Action: lambda:InvokeFunction
-    #     Principal: iot.amazonaws.com
-
-    # IoTPreprocessRule:
-    #   Type: AWS::IoT::TopicRule
-    #   Properties:
-    #     TopicRulePayload:
-    #       RuleDisabled: false
-    #       Sql: "SELECT * FROM 'send'"
-    #       Actions:
-    #         - Lambda:
-    #             FunctionArn: { Fn::GetAtt: [ preprocess, Arn ] }
-
-    # # allow iot to invoke the `preprocess` lambda
-    # IoTPreprocessInvokePermission:
-    #   Type: AWS::Lambda::Permission
-    #   Properties:
-    #     FunctionName: { Fn::GetAtt: [ preprocess, Arn ] }
-    #     Action: lambda:InvokeFunction
-    #     Principal: iot.amazonaws.com
-
-    # # attach policy to IoT role to allow it to use lambda
-    # IoTRolePolicies:
-    #   Type: AWS::IAM::Policy
-    #   Properties:
-    #     Roles: [{ Ref: IoTRole }]
-    #     PolicyName: IoTRole_Policy
-    #     PolicyDocument:
-    #       Version: "2012-10-17"
-    #       Statement:
-    #         - Effect: Allow
-    #           Action:
-    #             - lambda:InvokeFunction
-    #           # Resource: "*"
-    #           Resource:
-    #             - { Fn::GetAtt: [ preprocess, Arn ] }
-    #             - { Fn::GetAtt: [ handshake, Arn ] }

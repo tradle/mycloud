@@ -1,22 +1,22 @@
 const {
-  serverlessPrefix
+  SERVERLESS_PREFIX
 } = require('./env')
 
 module.exports = {
   send: {
-    FunctionName: `${serverlessPrefix}send`,
+    FunctionName: `${SERVERLESS_PREFIX}send`,
     InvocationType: 'Event'
   },
   receive: {
-    FunctionName: `${serverlessPrefix}receive`,
+    FunctionName: `${SERVERLESS_PREFIX}receive`,
     InvocationType: 'Event'
   },
   seal: {
-    FunctionName: `${serverlessPrefix}seal`,
+    FunctionName: `${SERVERLESS_PREFIX}seal`,
     InvocationType: 'Event'
   },
   addcontact: {
-    FunctionName: `${serverlessPrefix}addcontact`,
+    FunctionName: `${SERVERLESS_PREFIX}addcontact`,
     InvocationType: 'Event'
   }
 }

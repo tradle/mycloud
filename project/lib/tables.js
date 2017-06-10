@@ -1,18 +1,14 @@
 
 const ENV = require('./env')
 const { getTable } = require('./db-utils')
+const { toCamelCase } = require('./utils')
 const tables = {}
 
-;[
-  'InboxTable',
-  'OutboxTable',
-  'PresenceTable',
-  'PubKeysTable',
-  'EventsTable',
-].forEach(TableName => {
-  if (ENV[TableName]) {
-    tables[TableName] = getTable(ENV[TableName])
+for (let prop in ENV) {
+  if (prop.endsWith('_TABLE')) {
+    let name = toCamelCase(prop, '_', true)
+    tables[name] = getTable(prop)
   }
-})
+}
 
 module.exports = tables

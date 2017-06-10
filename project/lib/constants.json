@@ -4,12 +4,16 @@
   "PERMALINK": "_r",
   "PREVLINK": "_p",
   "TYPE": "_t",
-  "PAYLOAD_PROP_PREFIX": "p_",
-  "METADATA_PREFIX": "m_",
-  "IDENTITY_KEYS_KEY": "IdentityKeys",
   "TYPES": {
     "MESSAGE": "tradle.Message",
     "IDENTITY": "tradle.Identity"
+  },
+  "PAYLOAD_PROP_PREFIX": "p_",
+  "METADATA_PREFIX": "m_",
+  "IDENTITY_KEYS_KEY": "IdentityKeys",
+  "PUBLIC_CONF_BUCKET": {
+    "identity": "identity",
+    "styles": "styles"
   },
   "HANDSHAKE_TIMEOUT": 30000,
   "PUSH_SERVER_URL": "https://push1.tradle.io"

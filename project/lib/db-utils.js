@@ -22,9 +22,9 @@ function getTable (TableName) {
     toString: () => TableName
   }
 
-  const api = { get, put, update, del, findOne, find }
+  const api = { get, put, update, del, findOne, find, scan, create, destroy }
   Object.keys(api).forEach(method => {
-    tableAPI[method] = params => {
+    tableAPI[method] = (params={}) => {
       params.TableName = TableName
       debug(`performing "${method}" on ${TableName}: ${prettify(params)}`)
       return api[method](params)
@@ -68,9 +68,7 @@ function findOne (params) {
 }
 
 function update (params) {
-  return aws.docClient
-    .update(params)
-    .promise()
+  return aws.docClient.update(params).promise()
 }
 
 function getUpdateExpressions (item) {
@@ -87,4 +85,16 @@ function getUpdateExpressions (item) {
     ExpressionAttributeValues,
     UpdateExpression
   }
+}
+
+function scan (params) {
+  return aws.docClient.scan(params).promise()
+}
+
+function create (params) {
+  return aws.dynamodb.createTable(params).promise()
+}
+
+function destroy (params) {
+  return aws.dynamodb.deleteTable(params).promise()
 }

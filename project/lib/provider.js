@@ -1,5 +1,5 @@
 const debug = require('debug')('tradle:sls:author')
-const { utils, protocol, typeforce, constants } = require('@tradle/engine')
+const { utils, protocol, typeforce } = require('@tradle/engine')
 const wrap = require('./wrap')
 const { sign, getSigningKey } = require('./crypto')
 const Objects = require('./objects')
@@ -11,9 +11,17 @@ const { getObjectByLink, extractMetadata } = require('./objects')
 const Identities = require('./identities')
 const Events = require('./events')
 const { MessageNotForMe } = require('./errors')
-const { PAYLOAD_PROP_PREFIX, IDENTITY_KEYS_KEY } = require('./constants')
 const types = require('./types')
-const { TYPE, TYPES, SEQ, SIG } = constants
+const {
+  PAYLOAD_PROP_PREFIX,
+  IDENTITY_KEYS_KEY,
+  TYPE,
+  TYPES,
+  SEQ,
+  SIG,
+  PUBLIC_CONF_BUCKET
+} = require('./constants')
+
 const { MESSAGE } = TYPES
 
 // const DECRYPTION_KEY = new Buffer(process.env.DECRYPTION_KEY, 'base64')
@@ -25,9 +33,14 @@ const lookupMyIdentity = loudCo(function* () {
   return JSON.parse(Body)
 })
 
+function lookupMyPublicIdentity () {
+  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
+}
+
 // TODO: how to invalidate cache on identity updates?
 // maybe ETag on bucket item? But then we still need to request every time..
 const getMyIdentity = cachifyPromiser(lookupMyIdentity)
+const getMyPublicIdentity = cachifyPromiser(lookupMyPublicIdentity)
 
 const signObject = co(function* ({ author, object }) {
   const wrapper = yield sign({
@@ -143,7 +156,7 @@ const createReceiveMessageEvent = co(function* ({ message }) {
 
 const ensureMessageIsForMe = co(function* ({ message }) {
   const toPubKey = message.recipientPubKey.pub.toString('hex')
-  const recipient = yield getMyIdentity()
+  const recipient = yield getMyPublicIdentity()
   const myPubKey = recipient.object.pubkeys.find(pubKey => {
     return pubKey.pub === toPubKey
   })
@@ -155,7 +168,7 @@ const ensureMessageIsForMe = co(function* ({ message }) {
 })
 
 module.exports = {
-  getMyIdentity,
+  getMyIdentity: getMyPublicIdentity,
   signObject,
   createSendMessageEvent,
   createReceiveMessageEvent

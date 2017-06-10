@@ -1,7 +1,7 @@
 const microtime = require('microtime')
 const wrap = require('../wrap')
 const { unmarshalDBItem } = require('../db-utils')
-const { loadMessage } = require('../author')
+const { loadMessage } = require('../provider')
 
 exports.handler = wrap.generator(function* (event, context) {
   const items = event.Records.map(record => unmarshalDBItem(record.dynamodb.NewImage))

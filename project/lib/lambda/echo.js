@@ -5,7 +5,7 @@ const { unmarshalDBItem } = require('../db-utils')
 const { loadMessage } = require('../messages')
 const { getMostRecentSessionByPermalink } = require('../auth')
 const { deliverBatch } = require('../delivery')
-const { createSendMessageEvent } = require('../author')
+const { createSendMessageEvent } = require('../provider')
 const { SEQ } = require('../constants')
 
 exports.handler = wrap.generator(function* (event, context) {

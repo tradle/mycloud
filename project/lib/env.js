@@ -12,22 +12,24 @@ const {
   NETWORK_NAME='testnet',
   SERVERLESS_SERVICE_NAME,
   SERVERLESS_STAGE,
-  SERVERLESS_PREFIX
+  SERVERLESS_PREFIX,
+  PUSH_SERVER_URL
 } = process.env
 
 module.exports = clone(require('../../env'), {
-  ObjectsBucket: CF_ObjectsBucket,
-  SecretsBucket: CF_SecretsBucket,
-  EventsTable: CF_EventsTable,
-  MessagesTable: CF_MessagesTable,
-  InboxTable: CF_InboxTable,
-  OutboxTable: CF_OutboxTable,
-  PubKeysTable: CF_PubKeysTable,
-  PresenceTable: CF_PresenceTable,
-  IotClientRole: CF_IotClientRole,
-  networkName: NETWORK_NAME,
-  serverlessStage: SERVERLESS_STAGE,
-  serverlessService: SERVERLESS_SERVICE_NAME,
-  serverlessPrefix: SERVERLESS_PREFIX,
-  DEV: SERVERLESS_STAGE === 'dev'
+  OBJECTS_BUCKET: CF_ObjectsBucket,
+  SECRETS_BUCKET: CF_SecretsBucket,
+  EVENTS_TABLE: CF_EventsTable,
+  MESSAGES_TABLE: CF_MessagesTable,
+  INBOX_TABLE: CF_InboxTable,
+  OUTBOX_TABLE: CF_OutboxTable,
+  PUBKEYS_TABLE: CF_PubKeysTable,
+  PRESENCE_TABLE: CF_PresenceTable,
+  IOT_CLIENT_ROLE: CF_IotClientRole,
+  NETWORK_NAME,
+  SERVERLESS_STAGE,
+  SERVERLESS_SERVICE_NAME,
+  SERVERLESS_PREFIX,
+  DEV: SERVERLESS_STAGE === 'dev',
+  PUSH_SERVER_URL
 })

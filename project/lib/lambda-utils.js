@@ -1,7 +1,7 @@
 const clone = require('xtend')
 const debug = require('debug')('tradle:sls:lambda-utils')
 const aws = require('./aws')
-const { serverlessPrefix } = require('./env')
+const { SERVERLESS_PREFIX } = require('./env')
 const topicToLamba = require('./lambda-by-topic')
 const invokeDefaults = {
   InvocationType: 'RequestResponse',
@@ -10,8 +10,8 @@ const invokeDefaults = {
 const RESOLVED = Promise.resolve()
 
 exports.invokeForTopic = function invokeForTopic (topic, items) {
-  if (!serverlessPrefix) {
-    throw new Error('this function requires the "serverlessPrefix" environment variable')
+  if (!SERVERLESS_PREFIX) {
+    throw new Error('this function requires the "SERVERLESS_PREFIX" environment variable')
   }
 
   if (!(topic in topicToLamba)) {

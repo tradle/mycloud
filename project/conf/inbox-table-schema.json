@@ -16,7 +16,7 @@
       },
       {
          "AttributeName": "seq",
-         "KeyType": "N"
+         "KeyType": "RANGE"
       }
    ],
    "ProvisionedThroughput": {

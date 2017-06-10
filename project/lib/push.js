@@ -2,21 +2,22 @@
 const crypto = require('crypto')
 const superagent = require('superagent')
 const subdown = require('subleveldown')
-const { protocol } = require('@tradle/engine')
-const { cachifyPromiser } = require('./utils')
+const { protocol, signBuffer } = require('@tradle/engine')
+const { cachifyPromiser, sha256, executeSuperagentRequest } = require('./utils')
 // const constants = require('@tradle/engine').constants
 // const TYPE = constants.TYPE
 
 const ENV = require('./env')
-const { ConfStateBucket } = require('./buckets')
-const { PUSH_SERVER_URL } = require('./constants')
+const { PrivateConfBucket } = require('./buckets')
+const { PushSubscribers } = require('./tables')
+const { PUSH_SERVER_URL } = require('./env')
 
   // const serverUrl = opts.url
   // const key = opts.key
   // const identity = opts.identity
   // const publisher = protocol.linkString(identity)
 
-const maybeRegister = cachifyPromiser(co(function* (key) {
+const ensureRegistered = cachifyPromiser(co(function* (key) {
   const registered = yield isRegistered()
   if (!registered) yield register(key)
 }))
@@ -25,19 +26,22 @@ function isRegistered (serverUrl) {
   return ConfStateBucket.exists(serverUrl)
 }
 
-const setRegistered = co(function* (serverUrl) {
-  return ConfStateBucket.putJSON(serverUrl, {})
-})
+function setRegistered (serverUrl) {
+  return ConfStateBucket.putJSON(serverUrl, {
+    dateRegistered: Date.now()
+  })
+}
 
-const register = co(function* (key) {
-  const res = yield superagent
+const register = co(function* ({ key }) {
+  const req = superagent
     .post(`${serverUrl}/publisher`)
     .send({
       identity: identity,
       key: key.toJSON()
     })
 
-  if (!res.ok) throw new Error('push publisher registration failed')
+  yield executeSuperagentRequest(req)
+  // if (!res.ok) throw new Error('push publisher registration failed')
 
   // challenge
   const nonce = res.text
@@ -47,25 +51,27 @@ const register = co(function* (key) {
     .post(`${serverUrl}/publisher`)
     .send({ nonce, salt, sig })
 
-  yield executeRequest(req)
+  yield executeSuperagentRequest(req)
+  yield setRegistered(serverUrl)
 })
 
 const push = co(function* ({ key, subscriber }) {
-  yield maybeRegister(key)
+  yield ensureRegistered(key)
   let info
   try {
-    info = yield get({
-      TableName: PushSubscribers,
-      Key: subscriber
+    info = yield PushSubscribers.update({
+      Key: { subscriber },
+      UpdateExpression: 'SET seq = seq + :incr',
+      ExpressionAttributeValues: {
+        ':incr': 1
+      }
     })
   } catch (err) {
     info = { seq: -1 }
   }
 
-  const seq = ++info.seq
-  yield put({
-    TableName: PushSubscribers,
-    Key: subscriber,
+  yield PushSubscribers.update({
+    Key: { subscriber },
     Item: info
   })
 
@@ -73,18 +79,5 @@ const push = co(function* ({ key, subscriber }) {
   const sig = signBuffer(key, sha256(seq + nonce))
   const body = { publisher, subscriber, seq, nonce, sig }
   const req = superagent.post(`${serverUrl}/notification`).send(body)
-  yield executeRequest(req)
-  yield setRegistered(serverUrl)
+  yield executeSuperagentRequest(req)
 })
-
-function executeRequest (req) {
-  return req.then(res => {
-    if (!res.ok) {
-      throw new Error(res.text || `request to ${req.url} failed`)
-    }
-  })
-}
-
-function sha256 (data) {
-  return crypto.createHash('sha256').update(data).digest('base64')
-}
