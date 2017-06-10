@@ -9,8 +9,8 @@ const defaults = {
   batchSize: 5
 }
 
-module.exports = function (tableName) {
-  return new Cursor(tableName)
+module.exports = function createCursor (opts) {
+  return new Cursor(opts)
 }
 
 function Cursor ({
@@ -92,6 +92,13 @@ proto.setIfInOrder = co(function* (props) {
   yield this.set(this._exportProps({ queue, seq }))
 })
 
+/**
+ * Scan from a given position to see if we have future items (that arrived out of order)
+ * @param {Object} props
+ * @param {String} props[queueProp]
+ * @param {Number} props[seqProp]
+ * @param {Number} [props.batchSize] - how many records to query at a time
+ */
 proto.scan = co(function* (props) {
   const { batchSize=this.batchSize } = props
   const { queue, seq } = this._parseProps(props)
