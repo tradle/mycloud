@@ -6,7 +6,7 @@ const Messages = require('./messages')
 const { createReceiveMessageEvent } = require('./provider')
 const { PUBLIC_CONF_BUCKET } = require('./constants')
 const { PublicConfBucket } = require('./buckets')
-const { SERVERLESS_STAGE } = require('../env')
+const { SERVERLESS_STAGE } = require('./env')
 
 // const onConnect = co(function* ({ clientId }) {
 //   const { clientId, permalink, tip } = Auth.getSession({ clientId })
@@ -46,7 +46,7 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
   })
 })
 
-const onGetInfo = co(function* () {
+const onGetInfo = co(function* (event) {
   const identity = PublicConfBucket.get(PUBLIC_CONF_BUCKET.identity)
     .then(({ object }) => object)
 

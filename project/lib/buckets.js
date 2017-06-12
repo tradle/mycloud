@@ -6,7 +6,7 @@ const buckets = {}
 for (let prop in ENV) {
   if (prop.endsWith('_BUCKET')) {
     let name = toCamelCase(prop, '_', true)
-    buckets[name] = getBucket(prop)
+    buckets[name] = getBucket(ENV[prop])
   }
 }
 

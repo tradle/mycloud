@@ -85,23 +85,46 @@ exports.uppercaseFirst = function uppercaseFirst (str) {
   return str[0].toUpperCase() + str.slice(1)
 }
 
-exports.logifyFunction = function logifyFunction ({ fn, name, log=debug }) {
+exports.logifyFunction = function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
   return co(function* (...args) {
     const taskName = typeof name === 'function' ? name(...args) : name
+    let start = Date.now()
+    let duration
     let ret
+    let err
     try {
       ret = yield fn(...args)
-    } catch (err) {
-      log(`${taskName} failed: ${err.stack}`)
+    } catch (e) {
+      err = e
       throw err
+    } finally {
+      duration = Date.now() - start
+      const parts = [
+        taskName,
+        err ? 'failed' : 'succeeded',
+        `in ${duration}ms`
+      ]
+
+      if (logInputOutput) {
+        parts.push('input:', utils.prettify(args))
+        if (!err) {
+          parts.push('output:', utils.prettify(ret))
+        }
+      }
+
+      if (err) {
+        parts.push(err.stack)
+      }
+
+      log(parts.join(' '))
     }
 
-    log(`${taskName} succeeded`)
     return ret
   })
 }
 
-exports.logifyFunctions = function logifyFunctions (obj, log) {
+exports.logify = function logify (obj, opts={}) {
+  const { log=debug, logInputOutput } = opts
   const logified = {}
   for (let p in obj) {
     let val = obj[p]
@@ -109,7 +132,8 @@ exports.logifyFunctions = function logifyFunctions (obj, log) {
       logified[p] = utils.logifyFunction({
         fn: val,
         name: p,
-        log
+        log,
+        logInputOutput
       })
     } else {
       logified[p] = val
@@ -135,9 +159,77 @@ exports.toCamelCase = function toCamelCase (str, delimiter, upperFirst) {
         return part.toLowerCase()
       }
 
-      return part[0].toUpperCase() + part.slice(1).toLowerCase()
+      return upperCaseFirstCharacter(part)
     })
     .join('')
 }
 
+// https://stackoverflow.com/questions/4149276/javascript-camelcase-to-regular-form
+exports.splitCamelCase = function splitCamelCase (str, delimiter=' ', upperFirst) {
+  const split = str.slice(0, 1) + str.slice(1)
+    // insert a space before all caps
+    .replace(/([A-Z])/g, delimiter + '$1')
+    .trim()
+
+  return upperFirst ? upperCaseFirstCharacter(split) : split
+}
+
+// exports.timify = function timify (obj, opts={}) {
+//   const { overwrite, log=debug } = opts
+//   const timed = overwrite ? obj : {}
+//   const totals = {}
+//   Object.keys(obj).forEach((k) => {
+//     const orig = obj[k]
+//     if (typeof orig !== 'function') {
+//       timed[k] = orig
+//       return
+//     }
+
+//     const total = totals[k] = {
+//       calls: 0,
+//       time: 0
+//     }
+
+//     timed[k] = function (...args) {
+//       const stopTimer = startTimer(k)
+//       const ret = orig(...args)
+//       if (!utils.isPromise(ret)) {
+//         recordDuration()
+//         return ret
+//       }
+
+//       return ret
+//         .then(val => {
+//           recordDuration()
+//           return val
+//         }, err => {
+//           recordDuration()
+//           throw err
+//         })
+
+//       function recordDuration () {
+//         const ms = stopTimer()
+//         total.time += ms
+//         total.calls++
+//         log(`${k} took ${ms}ms. ${total.calls} calls totaled ${total.time}ms`)
+//       }
+//     }
+//   })
+
+//   return timed
+// }
+
+exports.isPromise = obj => obj && typeof obj.then === 'function'
+
 function noop () {}
+
+function upperCaseFirstCharacter (str) {
+  return str[0].toUpperCase() + str.slice(1).toLowerCase()
+}
+
+// function startTimer (name) {
+//   const now = Date.now()
+//   return function () {
+//     return Date.now() - now
+//   }
+// }

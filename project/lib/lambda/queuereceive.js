@@ -5,7 +5,7 @@ const { createReceiveMessageEvent } = require('../provider')
 const { prettify } = require('../utils')
 
 exports.handler = wrap.generator(function* (event, context) {
-  debug('prereceive', prettify(event))
+  debug('prereceive [START]', Date.now(), prettify(event))
   // the user sent us a message
   yield onSentMessage(event)
   debug('preceived')

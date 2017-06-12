@@ -9,6 +9,7 @@ const { createSendMessageEvent } = require('../provider')
 const { SEQ } = require('../constants')
 
 exports.handler = wrap.generator(function* (event, context) {
+  debug('echo [START]', Date.now())
   const items = event.Records.map(record => unmarshalDBItem(record.dynamodb.NewImage))
 
   for (const metadata of items) {

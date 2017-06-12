@@ -2,7 +2,8 @@ const debug = require('debug')('tradle:sls:db-utils')
 const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
 const { NotFound } = require('./errors')
 const aws = require('./aws')
-const { pick, prettify } = require('./utils')
+const { pick, prettify, logify } = require('./utils')
+const { DEV } = require('./env')
 
 module.exports = {
   get,
@@ -23,15 +24,19 @@ function getTable (TableName) {
   }
 
   const api = { get, put, update, del, findOne, find, scan, create, destroy }
+  // aliases
+  api.query = find
+  api.queryOne = findOne
+
   Object.keys(api).forEach(method => {
     tableAPI[method] = (params={}) => {
       params.TableName = TableName
-      debug(`performing "${method}" on ${TableName}: ${prettify(params)}`)
+      // debug(`performing "${method}" on ${TableName}: ${prettify(params)}`)
       return api[method](params)
     }
   })
 
-  return tableAPI
+  return logify(tableAPI, { log: debug, logInputOutput: DEV })
 }
 
 function get (params) {
@@ -89,6 +94,7 @@ function getUpdateExpressions (item) {
 
 function scan (params) {
   return aws.docClient.scan(params).promise()
+    .then(data => data.Items)
 }
 
 function create (params) {

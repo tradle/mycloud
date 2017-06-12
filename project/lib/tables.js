@@ -7,7 +7,7 @@ const tables = {}
 for (let prop in ENV) {
   if (prop.endsWith('_TABLE')) {
     let name = toCamelCase(prop, '_', true)
-    tables[name] = getTable(prop)
+    tables[name] = getTable(ENV[prop])
   }
 }
 

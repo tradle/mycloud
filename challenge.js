@@ -51,16 +51,17 @@ const node = tradle.utils.promisifyNode(tradle.node({
 const client = new Client()
 client.setNode(node)
 
-;['authenticated', 'connect', 'message', 'close', 'error'].forEach(event => {
-  client.on(event, function (...args) {
-    console.log(event.toUpperCase(), ...args)
-  })
-})
+// ;['authenticated', 'connect', 'message', 'close', 'error'].forEach(event => {
+//   client.on(event, function (...args) {
+//     console.log(event.toUpperCase(), ...args)
+//   })
+// })
 
 node._send = function (msg, recipientInfo, cb) {
+  console.time('delivery')
   client.send(msg)
     .then(function (result) {
-      console.log('delivered!', result)
+      console.timeEnd('delivery')
       cb()
     }, function (err) {
       console.error(err.stack)
@@ -78,12 +79,13 @@ function sendMessage () {
     to: { permalink: alice.permalink },
     object: {
       _t: 'tradle.SimpleMessage',
-      message: 'hey alice!'
+      message: 'hey alice!',
+      time: Date.now()
     }
   })
-  .then(() => {
-    setTimeout(sendMessage, 10000)
-  }, console.error)
+  // .then(() => {
+  //   setTimeout(sendMessage, 10000)
+  // }, console.error)
 }
 
 // client.once('authenticated', loudCo(function* () {

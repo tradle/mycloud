@@ -24,6 +24,7 @@ custom:
   defaultStage: dev
   stage: ${{opt:stage, self:custom.defaultStage}}
   accountId: ${{file(./env.json):ACCOUNT_ID}}
+  pushServer: https://push1.tradle.io
   NETWORK_NAME: testnet
   METADATA_PREFIX: ${{file(./project/lib/constants.json):METADATA_PREFIX}}
   IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
@@ -58,7 +59,6 @@ provider:
   profile: serverless
   stage: ${{self:custom.stage}}
   region: us-east-1
-  pushServer: https://push1.tradle.io
   memorySize: 128
   # deploymentBucket: io.tradle.${{self:provider.region}.deploys # Overwrite the default deployment bucket
   environment:
@@ -84,6 +84,8 @@ provider:
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/EventsTable"
         # - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/MessagesTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PresenceTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/CursorTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/WebhooksTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/InboxTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/OutboxTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable"
@@ -97,6 +99,7 @@ provider:
         - s3:PutObject
         - s3:GetObject
       Resource:
+        - "arn:aws:s3:::${{self:custom.PUBLIC_CONF_BUCKET}}/*"
         - "arn:aws:s3:::${{self:custom.OBJECTS_BUCKET}}/*"
         - "arn:aws:s3:::${{self:custom.SECRETS_BUCKET}}/*"
 
@@ -305,6 +308,33 @@ functions:
         - InboxTable
         - OutboxTable
 
+  # calls webhooks
+  # hooker:
+  #   handler: project/lib/lambda/hooker.handler
+  #   memorySize: 1024
+  #   custom:
+  #     env-resources:
+  #       - ObjectsBucket
+  #       - CursorTable
+  #       - WebhooksTable
+  #       # - SecretsBucket
+  #       # - EventsTable
+  #       # - PresenceTable
+  #       # - PubKeysTable
+  #       - InboxTable
+  #       # - OutboxTable
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 1
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - CursorTable
+  #             - StreamArn
+  #   environment:
+  #     DEBUG: tradle:*
+
   echo:
     handler: project/lib/lambda/echo.handler
     memorySize: 1024
@@ -320,7 +350,7 @@ functions:
     events:
       - stream:
           type: dynamodb
-          batchSize: 20
+          batchSize: 1
           startingPosition: TRIM_HORIZON
           arn:
             Fn::GetAtt:
@@ -536,6 +566,45 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
 
+    # CursorTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: CursorTable
+    #     AttributeDefinitions:
+    #       - AttributeName: queue
+    #         AttributeType: S
+    #       - AttributeName: seq
+    #         AttributeType: N
+    #     KeySchema:
+    #       - AttributeName: queue
+    #         KeyType: HASH
+    #       - AttributeName: seq
+    #         KeyType: RANGE
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     StreamSpecification:
+    #       StreamViewType: NEW_AND_OLD_IMAGES
+
+    # WebhooksTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: WebhooksTable
+    #     AttributeDefinitions:
+    #       - AttributeName: event
+    #         AttributeType: S
+    #       - AttributeName: url
+    #         AttributeType: N
+    #     KeySchema:
+    #       - AttributeName: event
+    #         KeyType: HASH
+    #       - AttributeName: url
+    #         KeyType: RANGE
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     StreamSpecification:
+    #       StreamViewType: NEW_AND_OLD_IMAGES
 
     # stores metadata about incoming messages
     # bodies rot in s3

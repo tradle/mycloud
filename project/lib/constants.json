@@ -16,5 +16,10 @@
     "styles": "styles"
   },
   "HANDSHAKE_TIMEOUT": 30000,
-  "PUSH_SERVER_URL": "https://push1.tradle.io"
+  "PUSH_SERVER_URL": "https://push1.tradle.io",
+  "WEBHOOKS": {
+    "initialDelay": 1000,
+    "maxDelay": 300000,
+    "maxRetries": 100
+  }
 }

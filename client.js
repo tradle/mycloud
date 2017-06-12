@@ -65,7 +65,7 @@ Client.prototype.auth = co(function* () {
       permalink,
       // add our own nonce (to mitigate the case of the malicious server)
       nonce: genNonce(),
-      tip: 46 //getTip({ node, sender })
+      tip: 100000 //getTip({ node, sender })
     }
   })
 
@@ -122,7 +122,13 @@ Client.prototype._onmessage = function (topic, payload) {
   switch (topic) {
   case `${this._clientId}/message`:
     const { messages } = JSON.parse(payload)
-    messages.forEach(message => this.emit('message', message))
+    messages.forEach(message => {
+      try {
+        console.timeEnd('ROUNDTRIP: ' + message.object.time)
+      } catch (err) {}
+
+      this.emit('message', message)
+    })
     break
   }
 }
@@ -145,7 +151,9 @@ Client.prototype.send = co(function* (message) {
     yield new Promise(resolve => this.once('authenticated', resolve))
   }
 
-  yield this._publish('message', JSON.stringify(message.unserialized.object), {
+  message = message.unserialized.object
+  console.time('ROUNDTRIP: ' + message.object.time)
+  yield this._publish('message', JSON.stringify(message), {
     qos: 1
   })
 
@@ -163,7 +171,6 @@ const post = co(function* (url, data) {
   })
 
   const text = yield res.text()
-  console.log(text, res.status)
   if (res.status > 300) {
     throw new Error(text)
   }

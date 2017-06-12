@@ -1,8 +1,10 @@
 const debug = require('debug')('tradle:sls:s3-utils')
 const aws = require('./aws')
-const { logifyFunctions } = require('./utils')
+const { logify } = require('./utils')
+const { DEV } = require('./env')
 
 function put ({ key, value, bucket }) {
+  // debug(`putting ${key} -> ${value} into Bucket ${bucket}`)
   return aws.s3.putObject({
     Bucket: bucket,
     Key: key,
@@ -42,7 +44,7 @@ function exists ({ key, bucket }) {
 
 function getBucket (bucket) {
   debug(`wrapping ${bucket} bucket`)
-  return logifyFunctions({
+  return logify({
     get: key => get({ key, bucket }),
     getJSON: key => getJSON({ key, bucket }),
     put: (key, value) => put({ key, value, bucket }),
@@ -50,7 +52,7 @@ function getBucket (bucket) {
     head: key => head({ key, bucket }),
     exists: key => exists({ key, bucket }),
     toString: () => bucket
-  }, debug)
+  }, { log: debug, logInputOutput: DEV })
 }
 
 module.exports = {

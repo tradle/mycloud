@@ -27,10 +27,10 @@ const saveIdentityAndKeys = loudCo(function* ({ object, link, keys }) {
     Secrets.putSecretObject(IDENTITY_KEYS_KEY, priv),
     // public
     Objects.putObject(pub),
-    PublicConfBucket.put(PUBLIC_CONF_BUCKET.identity, pub)
+    PublicConfBucket.putJSON(PUBLIC_CONF_BUCKET.identity, pub)
   ];
 
-  yield Identities.addContact()
+  yield Identities.addContact(pub)
 })
 
 function createIdentity (opts) {

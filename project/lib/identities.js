@@ -5,7 +5,7 @@ const { utils } = require('@tradle/engine')
 const { PREVLINK, PERMALINK } = require('./constants')
 const Objects = require('./objects')
 const { NotFound } = require('./errors')
-const { firstSuccess, logifyFunctions } = require('./utils')
+const { firstSuccess, logify } = require('./utils')
 const Events = require('./events')
 const { PubKeysTable } = require('./tables')
 
@@ -156,7 +156,7 @@ function putPubKey ({ link, permalink, pub }) {
 //   return docClient.batchWrite({ RequestItems }).promise()
 // }
 
-module.exports = logifyFunctions({
+module.exports = logify({
   getIdentityByLink: Objects.getObjectByLink,
   getIdentityByPermalink,
   getIdentityByPub,

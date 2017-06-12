@@ -78,3 +78,6 @@ when a client disconnects
 deleting expired sessions. Use DynamoDB TTL? or a scheduled lambda
 
 when does a client need to reauth? How do they know their session expired
+
+
+cross-AWS-account IAM role for Tradle to monitor the Cloudwatch Logs

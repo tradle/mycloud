@@ -11,7 +11,7 @@ const aws = require('./aws')
 const wrap = require('./wrap')
 const { InvalidSignatureError } = require('./errors')
 const { IDENTITY_KEYS_KEY } = require('./constants')
-const { SecretsBucket } = require('./env')
+const { SecretsBucket } = require('./buckets')
 const SIGN_WITH_HASH = 'sha256'
 const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12
@@ -34,39 +34,39 @@ function decryptKey (encryptedKey) {
   .then(data => data.Plaintext.toString())
 }
 
-function getIdentityKeys ({ decryptionKey, encoding }) {
-  return getEncryptedJSON({
-    decryptionKey,
-    bucket: SecretsBucket,
-    key: IDENTITY_KEYS_KEY
-  })
-}
+// function getIdentityKeys ({ decryptionKey, encoding }) {
+//   return getEncryptedJSON({
+//     decryptionKey,
+//     bucket: SecretsBucket,
+//     key: IDENTITY_KEYS_KEY
+//   })
+// }
 
-function getEncryptedJSON ({ decryptionKey, bucket, key }) {
-  return getEncryptedObject({ decryptionKey, bucket, key })
-    .then(decryptedObject => JSON.parse(decryptedObject))
-}
+// function getEncryptedJSON ({ decryptionKey, bucket, key }) {
+//   return getEncryptedObject({ decryptionKey, bucket, key })
+//     .then(decryptedObject => JSON.parse(decryptedObject))
+// }
 
-function getEncryptedObject ({ decryptionKey, bucket, key }) {
-  const encryptedKeys = aws.s3.getObject({
-    Bucket: bucket,
-    Key: key,
-    ResponseContentType: 'application/octet-stream'
-  })
+// function getEncryptedObject ({ decryptionKey, bucket, key }) {
+//   const encryptedKeys = aws.s3.getObject({
+//     Bucket: bucket,
+//     Key: key,
+//     ResponseContentType: 'application/octet-stream'
+//   })
 
-  return decrypt({ key: decryptionKey, data: encryptedKeys })
-}
+//   return decrypt({ key: decryptionKey, data: encryptedKeys })
+// }
 
-function putEncryptedJSON ({ object, encryptionKey }) {
-  const encrypted = encrypt({
-    data: new Buffer(stringify(object)),
-    key: encryptionKey
-  })
+// function putEncryptedJSON ({ object, encryptionKey }) {
+//   const encrypted = encrypt({
+//     data: new Buffer(stringify(object)),
+//     key: encryptionKey
+//   })
 
-  return aws.s3.putObject({
-    Body: JSON.stringify(encrypted)
-  })
-}
+//   return aws.s3.putObject({
+//     Body: JSON.stringify(encrypted)
+//   })
+// }
 
 function encrypt ({ data, key, salt }) {
   if (key.length !== KEY_BYTES) throw new Error(`expected key length: ${KEY_BYTES} bytes`)
@@ -238,9 +238,9 @@ module.exports = {
   getSigningKey,
   encrypt,
   decrypt,
-  putEncryptedJSON,
-  getEncryptedObject,
-  getIdentityKeys,
+  // putEncryptedJSON,
+  // getEncryptedObject,
+  // getIdentityKeys,
   exportKeys,
   sha256,
   executeSuperagentRequest

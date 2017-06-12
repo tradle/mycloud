@@ -3,7 +3,7 @@ const debug = require('debug')('tradle:sls:auth')
 const { utils } = require('@tradle/engine')
 const aws = require('./aws')
 const Iot = require('./iot-utils')
-const { IotClientRole } = require('./env')
+const { IOT_CLIENT_ROLE } = require('./env')
 const { co, randomString, cachifyPromiser, prettify, typeforce } = require('./utils')
 const { HandshakeFailed, InvalidInput, NotFound } = require('./errors')
 const { HANDSHAKE_TIMEOUT, PERMALINK } = require('./constants')
@@ -201,7 +201,7 @@ const getTemporaryIdentity = co(function* (opts) {
       if (!result.exists) return Identities.addContact(result)
     })
 
-  const role = `arn:aws:iam::${accountId}:role/${IotClientRole}`
+  const role = `arn:aws:iam::${accountId}:role/${IOT_CLIENT_ROLE}`
   debug(`generating temp keys for client ${clientId}, role ${role}`)
 
   // get the account id which will be used to assume a role
