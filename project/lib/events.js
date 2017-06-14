@@ -4,7 +4,7 @@ const typeforce = require('typeforce')
 // const { typeforce } = require('@tradle/engine')
 const { omit, extend, timestamp } = require('./utils')
 const { PutFailed } = require('./errors')
-const { getUpdateExpressions } = require('./db-utils')
+const { getUpdateParams } = require('./db-utils')
 const { EventsTable } = require('./tables')
 
 const putEvent = co(function* (event, triesLeft=10) {
@@ -20,12 +20,12 @@ const putEvent = co(function* (event, triesLeft=10) {
     item.time = Number(id)
   }
 
-  const expressions = getUpdateExpressions(event)
+  const params = getUpdateParams(event)
   try {
     yield EventsTable.update(extend({
       Key: { id },
       ConditionExpression: 'attribute_not_exists(id)'
-    }, expressions))
+    }, params))
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
       if (triesLeft === 0) throw new PutFailed(`for "${topic}" event`)
@@ -44,30 +44,28 @@ const putEvent = co(function* (event, triesLeft=10) {
   return event
 })
 
-// function putEvents (events) {
-//   setIds(events)
-//   yield EventsTable.batchWriteItem(extend({
-//     Key: { id },
-//     ConditionExpression: 'attribute_not_exists(id)'
-//   }, expressions))
-// }
+function putEvents (events) {
+  setIds(events)
+  return EventsTable.batchPut(events)
+}
 
-// function setIds (events) {
-//   events.sort((a, b) => {
-//     return a.time - b.time
-//   })
+function setIds (events) {
+  events.sort((a, b) => {
+    return a.time - b.time
+  })
 
-//   events.forEach((event, i) => {
-//     if (i === 0) {
-//       event.id = event.time + ''
-//       return
-//     }
+  events.forEach((event, i) => {
+    if (i === 0) {
+      event.id = event.time + ''
+      return
+    }
 
-//     event.id = getNextUniqueId(events[i - 1].id, event.time + '')
-//   })
+    const prevId = events[i - 1].id
+    event.id = getNextUniqueId(prevId, event.time + '')
+  })
 
-//   return events
-// }
+  return events
+}
 
 function genId () {
   return timestamp() + ''

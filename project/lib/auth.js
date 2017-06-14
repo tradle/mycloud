@@ -37,23 +37,21 @@ const { PresenceTable } = require('./tables')
 //   })
 // })
 
-const onAuthenticated = co(function* ({ clientId, permalink, tip }) {
+const onAuthenticated = co(function* ({ clientId, permalink, clientPosition, serverPosition }) {
   // TODO: change to use `update`
-  const Item = {
+  const session = {
     clientId,
     permalink,
-    tip,
+    clientPosition,
+    serverPosition,
     authenticated: true,
     time: Date.now()
   }
 
-  debug('saving session', prettify(Item))
+  debug('saving session', prettify(session))
 
   // yield deleteSessionsByPermalink(permalink)
-  yield PresenceTable.put({
-    Key: { clientId, permalink },
-    Item
-  })
+  yield PresenceTable.put(session)
 
   // yield Iot.sendAuthenticated({ clientId })
 })
@@ -110,13 +108,10 @@ const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) 
   // const permalink = getPermalinkFromClientId(clientId)
   const challenge = newNonce()
   yield PresenceTable.put({
-    Key: { clientId, permalink },
-    Item: {
-      clientId,
-      permalink,
-      challenge,
-      authenticated: false
-    }
+    clientId,
+    permalink,
+    challenge,
+    authenticated: false
   })
 
   return challenge
@@ -133,20 +128,17 @@ const handleChallengeResponse = co(function* (response) {
       clientId: typeforce.String,
       permalink: typeforce.String,
       challenge: typeforce.String,
-      tip: typeforce.Number
+      position: types.position
     }, response)
   } catch (err) {
     debug('received invalid input', err.stack)
     throw new InvalidInput(err.message)
   }
 
-  const { clientId, permalink, challenge, tip } = response
+  const { clientId, permalink, challenge, position } = response
 
   // const permalink = getPermalinkFromClientId(clientId)
-  const stored = yield PresenceTable.get({
-    Key: { clientId, permalink }
-  })
-
+  const stored = yield PresenceTable.get({ clientId, permalink })
   if (challenge !== stored.challenge) {
     throw new HandshakeFailed('stored challenge does not match response')
   }
@@ -160,22 +152,29 @@ const handleChallengeResponse = co(function* (response) {
   }
 
   // validate sig
-  const metadata = yield Objects.extractMetadata(response)
+  const metadata = Objects.addMetadata({ object: response })
+  yield Identities.addAuthorMetadata(metadata)
+
   console.log(`claimed: ${permalink}, actual: ${metadata.author}`)
   if (metadata.author !== permalink) {
     throw new HandshakeFailed('signature does not match claimed identity')
   }
 
-  const session = { permalink, clientId, tip }
+  const session = { permalink, clientId, clientPosition: position }
+  const getLastSent = Messages.getLastMessageTo({ recipient: permalink, body: false })
+    .then(msg => Messages.getMessageId)
+    .catch(err => {
+      if (err instanceof NotFound) return null
+
+      throw err
+    })
+
+  session.serverPosition = {
+    sent: yield getLastSent
+  }
+
   yield onAuthenticated(session)
   return session
-
-  // const tip = yield Messages.getLastSeq({ recipient: permalink })
-  // yield publish({
-  //   topic: `${clientId}/tip`,
-  //   payload: { tip },
-  //   qos: 1
-  // })
 })
 
 const getTemporaryIdentity = co(function* (opts) {

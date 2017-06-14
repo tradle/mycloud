@@ -6,31 +6,31 @@ const { SEQ } = require('./constants')
 const MAX_BATCH_SIZE = 5
 
 const deliverBatch = co(function* ({ clientId, permalink, messages }) {
-  const bodies = messages.map(message => message.object)
-  const from = bodies[0][SEQ]
-  const to = bodies[bodies.length - 1][SEQ]
-  debug(`delivering messages ${from}-${to} to ${permalink}`)
+  debug(`delivering ${messages.length} messages to ${permalink}`)
   yield Iot.sendMessages({
     clientId,
-    payload: { messages: bodies }
+    payload: {
+      messages: messages.map(message => message.object)
+    }
   })
 
-  debug(`delivered messages ${from}-${to} to ${permalink}`)
+  debug(`delivered ${messages.length} messages to ${permalink}`)
 })
 
 const deliverMessages = co(function* ({ clientId, permalink, gt, lt=Infinity }) {
   // const clientId = Auth.getAuthenticated({})
-  const originalLT = lt
+  // const originalLT = lt
   debug(`looking up messages for ${permalink}`)
 
   while (true) {
     let batchSize = Math.min(lt - gt - 1, MAX_BATCH_SIZE)
     if (batchSize <= 0) return
 
-    let wrappers = yield Messages.getOutbound({
+    let wrappers = yield Messages.getMessagesTo({
       recipient: permalink,
       gt,
-      lt: gt + batchSize
+      limit: batchSize,
+      body: true
     })
 
     let messages = wrappers.map(wrapper => wrapper.message)
@@ -44,7 +44,8 @@ const deliverMessages = co(function* ({ clientId, permalink, gt, lt=Infinity }) 
     //   yield deliverMessage({ clientId, permalink, message })
     // }
 
-    gt += batchSize
+    let last = messages[messages.length - 1]
+    gt = last.object.time
   }
 })
 

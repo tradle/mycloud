@@ -4,52 +4,43 @@ const cache = require('lru-cache')
 const { utils } = require('@tradle/engine')
 const types = require('./types')
 const aws = require('./aws')
-const { InvalidSignatureError } = require('./errors')
+const { InvalidSignature } = require('./errors')
 const { TYPE, TYPES, PERMALINK, SEQ } = require('./constants')
 const { MESSAGE } = TYPES
 const { omit, typeforce } = require('./utils')
+const { extractSigPubKey } = require('./crypto')
 const { ObjectsBucket } = require('./buckets')
 
-const extractMetadata = co(function* (object) {
+const getLink = utils.hexLink
+const getLinks = utils.getLinks
+const addLinks = utils.addLinks
+
+const addMetadata = function addMetadata (wrapper) {
+  const { object } = wrapper
   typeforce(types.signedObject, object)
 
   const type = object[TYPE]
-  const metadata = { type }
+  wrapper.type = type
   const isMessage = type === MESSAGE
   if (isMessage) {
-    typeforce(types.messageBody, object)
-    metadata.seq = object[SEQ]
+    wrapper.time = object.time
   }
 
-  let pubKey
-  try {
-    pubKey = extractPubKey(object)
-  } catch (err) {
-    debug('invalid object', JSON.stringify(object), err)
-    throw new InvalidSignatureError(`for ${type}`)
+  if (!wrapper.sigPubKey) {
+    let pubKey
+    try {
+      pubKey = extractSigPubKey(object)
+    } catch (err) {
+      debug('invalid object', JSON.stringify(object), err)
+      throw new InvalidSignature(`for ${type}`)
+    }
+
+    wrapper.sigPubKey = pubKey.pub
   }
 
-  metadata.sigPubKey = pubKey.pub
-
-  const { getIdentityMetadataByPub } = require('./identities')
-  const promises = {
-    author: getIdentityMetadataByPub(pubKey.pub),
-  }
-
-  if (isMessage) {
-    const pub = object.recipientPubKey.pub.toString('hex')
-    promises.recipient = yield getIdentityMetadataByPub(pub)
-  }
-
-  const { author, recipient } = yield promises
-
-  metadata.author = author.permalink
-  if (isMessage) metadata.recipient = recipient.permalink
-
-  metadata.link = utils.hexLink(object)
-  metadata.permalink = object[PERMALINK] || metadata.link
-  return metadata
-})
+  utils.addLinks(wrapper)
+  return wrapper
+}
 
 function getObjectByLink (link) {
   typeforce(typeforce.String, link)
@@ -69,20 +60,13 @@ function putObject (wrapper) {
   return ObjectsBucket.putJSON(wrapper.link, wrapper)
 }
 
-
-function extractPubKey (object) {
-  const pubKey = utils.extractSigPubKey(object)
-  return {
-    type: 'ec',
-    curve: pubKey.curve,
-    pub: pubKey.pub.toString('hex')
-  }
-}
-
 module.exports = {
   getObjectByLink,
   // getObjectByPermalink,
   putObject,
   // putEvent,
-  extractMetadata
+  addMetadata,
+  getLink,
+  getLinks,
+  addLinks
 }

@@ -1,4 +1,5 @@
 
+const debug = require('debug')('tradle:sls:iot')
 const aws = require('./aws')
 const DEFAULT_QOS = 1
 
@@ -9,6 +10,7 @@ function publish (params) {
     params.payload = JSON.stringify(params.payload)
   }
 
+  debug(`publishing to ${params.topic}: ${JSON.stringify(params)}`)
   return aws.getIotData().then(iotData => iotData.publish(params).promise())
 }
 

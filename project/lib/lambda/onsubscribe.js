@@ -10,7 +10,11 @@ exports.handler = wrap.generator(function* (event, context) {
   // yield onEnter({ clientId })
 
   const messagesTopic = getMessagesTopicForClient(clientId)
-  const subscribedToMessages = topics.find(topic => topic === messagesTopic)
+  const catchAll = new RegExp(`${clientId}/[+#]{1}`)
+  const subscribedToMessages = topics.find(topic => {
+    return topic === messagesTopic || catchAll.test(topic)
+  })
+
   if (subscribedToMessages) {
     yield onSubscribed({ clientId })
   }

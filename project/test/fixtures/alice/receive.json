@@ -41,11 +41,12 @@
     }
   },
   "object": {
-    "_s": "CikKBHAyNTYSIQN6RjGscGY49msMcgkOdwQFf6kswk2Afg+WiYmAX4wlvBJHMEUCIQCkTUs60api0/BFBQFz5h2h2i5dSx4l5sM9EcDOfbKN6AIgDqpEzpdS8hWYTWS+/ewWYujYCKMV3kOmxqUsTMhSwmQ=",
+    "_s": "CikKBHAyNTYSIQN6RjGscGY49msMcgkOdwQFf6kswk2Afg+WiYmAX4wlvBJHMEUCIQD62h4Qy/KGMc1OwHpejyNgQVz/tCkVzy/DqGEBTtRAbQIgNW9tb7+o4v7pEOFgM5HtPkyX6117H629La4iGMpIbTM=",
     "_t": "tradle.SimpleMessage",
     "message": "hey alice!"
   },
-  "_s": "CikKBHAyNTYSIQN6RjGscGY49msMcgkOdwQFf6kswk2Afg+WiYmAX4wlvBJGMEQCIBtRaXhBK5lwXZ2Ua/Tc3kzJxNnr9B/9OBVulBZ1Lj4qAiAIzDZxUKvec5DeZUI3NJpBxMP82Lxubmx0RoTqoXtkmw==",
+  "_s": "CikKBHAyNTYSIQN6RjGscGY49msMcgkOdwQFf6kswk2Afg+WiYmAX4wlvBJHMEUCIDEDscLJHXAxaIx14I0PKg5DlUSyhey/tbS/ifI9rdojAiEAnUcq/bFCghnYl/6aM/ZiFToSDJOArkpvXiTCBkBVJ2A=",
   "_n": 0,
+  "time": 1497532411168,
   "_t": "tradle.Message"
 }

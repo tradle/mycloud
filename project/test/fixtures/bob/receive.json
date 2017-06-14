@@ -41,11 +41,12 @@
     }
   },
   "object": {
-    "_s": "CikKBHAyNTYSIQLRuoI9w4Pk8cbsPz49STEw5l4HURsZdlPiXwdbbfjM4hJHMEUCIGKmgJ0eMe7u5fYEYLudLhYGs8ZOkAiXgeKde80jHYCcAiEApqZ7YPiJKSehJgqGwhXVv/JOKchX4c6y25o2QFh0A38=",
+    "_s": "CikKBHAyNTYSIQLRuoI9w4Pk8cbsPz49STEw5l4HURsZdlPiXwdbbfjM4hJHMEUCIC7zmW0WxQUFaj1BufPL3ByhK9Oo9GHBqCQ2wKeaw3GuAiEAyn1DnyjMz1DBzXF8f/HQC0FketyDNGu8a9xlo9bebzE=",
     "_t": "tradle.SimpleMessage",
     "message": "hey bob!"
   },
-  "_s": "CikKBHAyNTYSIQLRuoI9w4Pk8cbsPz49STEw5l4HURsZdlPiXwdbbfjM4hJIMEYCIQD/daa8M1BsHPHNNolXQ7sYRwE68FYtpFXJhJCTKHuHXwIhAP0JxvCKrOtQKr6R5kyBn8rGEiruTV6dU5+m1B502hJO",
+  "_s": "CikKBHAyNTYSIQLRuoI9w4Pk8cbsPz49STEw5l4HURsZdlPiXwdbbfjM4hJHMEUCIHGjkRwBK93MzNsu2l88ZPkMZEKgXqEDEXhNuUD/7JYlAiEAvjitmQKCnGbMjSRAYlHPao7plM3k8Rwaoen0BDaD7GU=",
   "_n": 0,
+  "time": 1497532411168,
   "_t": "tradle.Message"
 }

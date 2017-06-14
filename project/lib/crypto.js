@@ -9,7 +9,7 @@ const { IDENTITY } = TYPES
 const { toBuffer, loudCo } = require('./utils')
 const aws = require('./aws')
 const wrap = require('./wrap')
-const { InvalidSignatureError } = require('./errors')
+const { InvalidSignature } = require('./errors')
 const { IDENTITY_KEYS_KEY } = require('./constants')
 const { SecretsBucket } = require('./buckets')
 const SIGN_WITH_HASH = 'sha256'
@@ -176,18 +176,18 @@ function extractSigPubKey (object) {
     }
   }
 
-  throw new InvalidSignatureError('unable to extract pub key from object')
+  throw new InvalidSignature('unable to extract pub key from object')
 }
 
 function checkAuthentic (wrapper) {
   const { object, link, author, sigPubKey } = wrapper
   const expectedPurpose = object[TYPE] === IDENTITY ? 'update' : 'sign'
   if (sigPubKey.purpose !== expectedPurpose) {
-    throw new InvalidSignatureError(`expected key with purpose "${expectedPurpose}", got "${sigPubKey.purpose}"`)
+    throw new InvalidSignature(`expected key with purpose "${expectedPurpose}", got "${sigPubKey.purpose}"`)
   }
 
   if (!utils.findPubKey(author.object, sigPubKey)) {
-    throw new InvalidSignatureError(`identity doesn't contain signing key`)
+    throw new InvalidSignature(`identity doesn't contain signing key`)
   }
 }
 
@@ -223,14 +223,6 @@ function sha256 (data) {
   return crypto.createHash('sha256').update(data).digest('base64')
 }
 
-function executeSuperagentRequest (req) {
-  return req.then(res => {
-    if (!res.ok) {
-      throw new Error(res.text || `request to ${req.url} failed`)
-    }
-  })
-}
-
 module.exports = {
   checkAuthentic,
   extractSigPubKey,
@@ -243,5 +235,5 @@ module.exports = {
   // getIdentityKeys,
   exportKeys,
   sha256,
-  executeSuperagentRequest
+  hexLink: utils.hexLink
 }

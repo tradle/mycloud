@@ -8,6 +8,7 @@ const clone = require('xtend')
 const extend = require('xtend/mutable')
 const co = require('co').wrap
 const stringify = require('json-stable-stringify')
+const { hexLink, addLinks, extractSigPubKey } = require('@tradle/engine').utils
 const { SIG, TYPE, TYPES } = require('./constants')
 const { MESSAGE } = TYPES
 
@@ -107,9 +108,9 @@ exports.logifyFunction = function logifyFunction ({ fn, name, log=debug, logInpu
       ]
 
       if (logInputOutput) {
-        parts.push('input:', utils.prettify(args))
+        parts.push('input:', stringify(args))
         if (!err) {
-          parts.push('output:', utils.prettify(ret))
+          parts.push('output:', stringify(ret))
         }
       }
 
@@ -247,6 +248,18 @@ exports.cachify = function cachify ({ get, put, cache }) {
 exports.timestamp = function timestamp () {
   const [seconds, microseconds] = microtime.nowStruct()
   return seconds * 1e6 + microseconds
+}
+
+exports.wait = function wait (millis) {
+  return new Promise(resolve => setTimeout(resolve, millis))
+}
+
+exports.executeSuperagentRequest = function executeSuperagentRequest (req) {
+  return req.then(res => {
+    if (!res.ok) {
+      throw new Error(res.text || `request to ${req.url} failed`)
+    }
+  })
 }
 
 function noop () {}

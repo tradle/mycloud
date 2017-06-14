@@ -1,4 +1,4 @@
-service: tradle-messaging
+service: ${{file(./env.json):SERVERLESS_SERVICE_NAME}}
 frameworkVersion: ">=1.5.0 <2.0.0"
 
 plugins:
@@ -16,7 +16,6 @@ package:
     - scripts/**
     - node_modules/**
     - simulate/**
-    - garbage/**
     - ./**/*.log
 
 custom:
@@ -36,7 +35,8 @@ custom:
     author: ${{self:custom.METADATA_PREFIX}}author
     recipient: ${{self:custom.METADATA_PREFIX}}recipient
     time: ${{self:custom.METADATA_PREFIX}}time
-    seq: seq
+    link: ${{self:custom.METADATA_PREFIX}}link
+    # seq: seq
   # writeEnvVars:
   #   SERVERLESS_STAGE: ${{self:custom.stage}}
   #   SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -53,6 +53,8 @@ custom:
   #     dir: offline/migrations
 
 provider:
+  # avoid some bugs in serverless
+  versionFunctions: false
   variableSyntax: '\${{([\s\S]+?)}}'
   # variableSyntax: "\${{([\s\S]+?)}}"
   name: aws
@@ -88,9 +90,10 @@ provider:
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/CursorTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/WebhooksTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/InboxTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/InboxTable/index/*"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/OutboxTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable/index/permalink"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable/index/*"
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
@@ -160,6 +163,7 @@ functions:
     custom:
       env-resources:
         - ObjectsBucket
+        - PublicConfBucket
         - EventsTable
         - PresenceTable
         - PubKeysTable
@@ -179,32 +183,58 @@ functions:
     custom:
       env-resources:
         - ObjectsBucket
+        - PublicConfBucket
         - EventsTable
         - PresenceTable
         - PubKeysTable
         - InboxTable
         - OutboxTable
         - IotClientRole
-  createevent:
-    handler: project/lib/lambda/createevent.handler
-    memorySize: 512
+  # createevent:
+  #   handler: project/lib/lambda/createevent.handler
+  #   memorySize: 512
 
-  log:
-    handler: project/lib/lambda/log.handler
-    # package:
-    #   exclude:
-    #     - node_modules/
-    environment:
-      DEBUG: tradle:*
-    custom:
-      env-resources:
-        - SecretsBucket
-        - ObjectsBucket
-        - PresenceTable
-        - EventsTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
+  # inbox2events:
+  #   handler: project/lib/lambda/inbox-events.handler
+  #   timeout: 10
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - ObjectsBucket
+  #       - SecretsBucket
+  #       - EventsTable
+  #       - PresenceTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
+  #       - PublicConfBucket
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 100
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - InboxTable
+  #             - StreamArn
+
+  # log:
+  #   handler: project/lib/lambda/log.handler
+  #   # package:
+  #   #   exclude:
+  #   #     - node_modules/
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - SecretsBucket
+  #       - ObjectsBucket
+  #       - PresenceTable
+  #       - EventsTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
 
     # events:
   #     - stream:
@@ -215,38 +245,6 @@ functions:
   #           Fn::GetAtt:
   #             - EventsTable
   #             - StreamArn
-
-  # fanout:
-  #   handler: project/lib/lambda/fan-out.handler
-  #   memorySize: 512
-  #   environment:
-  #     DEBUG: tradle:*
-  #     SERVERLESS_PREFIX: ${{self:custom.prefix}}
-  #   custom:
-  #     env-resources:
-  #       - SecretsBucket
-  #       - ObjectsBucket
-  #       - EventsTable
-  #       - PubKeysTable
-  #       - InboxTable
-  #       - OutboxTable
-  #   events:
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 20
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - EventsTable
-  #             - StreamArn
-
-  # onconnect:
-  #   handler: project/lib/lambda/onconnect.handler
-  #   events:
-  #     - iot:
-  #         sql: "SELECT * FROM '$aws/events/presence/connected/#'"
-  #   environment:
-  #     DEBUG: tradle:*
 
   # triggered when a client subscribes to an MQTT topic
   onsubscribe:
@@ -260,11 +258,13 @@ functions:
     custom:
       env-resources:
         - ObjectsBucket
+        - SecretsBucket
         - EventsTable
         - PresenceTable
         - PubKeysTable
         - InboxTable
         - OutboxTable
+        - PublicConfBucket
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
@@ -275,29 +275,25 @@ functions:
   #         sql: "SELECT * as data, topic() as topic FROM 'messages/get'"
 
   # triggered when a client requests a message range (outbound messages)
-  outbox:
-    handler: project/lib/lambda/outbox.handler
-    memorySize: 1024
-    events:
-      - iot:
-          sql: "SELECT * as data, topic() as topic FROM '+/restore'"
-
-    environment:
-      DEBUG: tradle:*
-    custom:
-      env-resources:
-        - ObjectsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-
-  # mqttsub:
-  #   handler: project/lib/lambda/mqttsub.handler
+  # outbox:
+  #   handler: project/lib/lambda/outbox.handler
+  #   memorySize: 1024
   #   events:
   #     - iot:
-  #         sql: "SELECT * as data, topic() as topic FROM '#'"
+  #         sql: "SELECT * as data, topic() as topic FROM '+/restore'"
+
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - ObjectsBucket
+  #       - SecretsBucket
+  #       - EventsTable
+  #       - PresenceTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
+  #       - PublicConfBucket
 
     # ondisconnect:
   #   handler: project/lib/lambda/handshake.break
@@ -317,43 +313,17 @@ functions:
       SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
-          sql: "SELECT * FROM 'message'"
+          sql: "SELECT * as data, clientid() as clientId FROM 'message'"
     custom:
       env-resources:
-        - SecretsBucket
         - ObjectsBucket
+        - SecretsBucket
         - EventsTable
         - PresenceTable
         - PubKeysTable
         - InboxTable
         - OutboxTable
-
-  # calls webhooks
-  # hooker:
-  #   handler: project/lib/lambda/hooker.handler
-  #   memorySize: 1024
-  #   custom:
-  #     env-resources:
-  #       - ObjectsBucket
-  #       - CursorTable
-  #       - WebhooksTable
-  #       # - SecretsBucket
-  #       # - EventsTable
-  #       # - PresenceTable
-  #       # - PubKeysTable
-  #       - InboxTable
-  #       # - OutboxTable
-  #   events:
-  #     - iot:
-  #         type: dynamodb
-  #         batchSize: 1
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - CursorTable
-  #             - StreamArn
-  #   environment:
-  #     DEBUG: tradle:*
+        - PublicConfBucket
 
   # echo bot (business logic layer)
   echo:
@@ -368,6 +338,7 @@ functions:
         - PubKeysTable
         - InboxTable
         - OutboxTable
+        - PublicConfBucket
     events:
       - iot:
           sql: "SELECT * as data, topic() as topic FROM 'message/preprocessed'"
@@ -383,14 +354,14 @@ functions:
     environment:
       DEBUG: tradle:*
 
-  addcontact:
-    handler: project/lib/lambda/add-contact.handler
-    environment:
-      DEBUG: tradle:*
-    custom:
-      env-resources:
-        - ObjectsBucket
-        - PubKeysTable
+  # addcontact:
+  #   handler: project/lib/lambda/add-contact.handler
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - ObjectsBucket
+  #       - PubKeysTable
 
   identity:
     handler: project/lib/lambda/identity.handler
@@ -400,6 +371,7 @@ functions:
       env-resources:
         - SecretsBucket
         - ObjectsBucket
+        - PublicConfBucket
         - PubKeysTable
 
   # public endpoint for clients to get public configuration / provider identity
@@ -411,6 +383,7 @@ functions:
       SERVERLESS_SERVICE_NAME: ${{self:service}}
     custom:
       env-resources:
+        - PublicConfBucket
         - SecretsBucket
         - ObjectsBucket
         - PubKeysTable
@@ -433,49 +406,6 @@ functions:
         - ObjectsBucket
         - PubKeysTable
         - PublicConfBucket
-
-  # queuesend:
-  #   handler: project/lib/lambda/queuesend.handler
-  #   memorySize: 512
-  #   environment:
-  #     DEBUG: tradle:*
-  #   custom:
-  #     env-resources:
-  #       - SecretsBucket
-  #       - ObjectsBucket
-  #       - EventsTable
-  #       - PubKeysTable
-  #       - InboxTable
-  #       - OutboxTable
-
-  # send:
-  #   handler: project/lib/lambda/send.handler
-  #   environment:
-  #     DEBUG: tradle:*
-  #   custom:
-  #     env-resources:
-  #       - SecretsBucket
-  #       - ObjectsBucket
-  #       - EventsTable
-  #       - PubKeysTable
-  #       - InboxTable
-  #       - OutboxTable
-
-  # sign:
-  #   handler: project/lib/lambda/sign.handler
-  #   events:
-  #     - http:
-  #         path: /sign
-  #         method: post
-  #         cors: true
-
-  # info:
-  #   handler: project/lib/lambda/info.handler
-  #   events:
-  #     - http:
-  #         path: info
-  #         method: get
-  #         cors: true
 
 
     # environment:
@@ -559,24 +489,28 @@ resources:
         AttributeDefinitions:
           - AttributeName: ${{self:custom.props.author}}
             AttributeType: S
-          - AttributeName: ${{self:custom.props.seq}}
-            AttributeType: N
+          # - AttributeName: ${{self:custom.props.seq}}
+          #   AttributeType: N
+          - AttributeName: ${{self:custom.props.link}}
+            AttributeType: S
           - AttributeName: ${{self:custom.props.time}}
             AttributeType: N
         KeySchema:
           - AttributeName: ${{self:custom.props.author}}
             KeyType: HASH
-          - AttributeName: ${{self:custom.props.seq}}
+          - AttributeName: ${{self:custom.props.time}}
             KeyType: RANGE
+          # - AttributeName: ${{self:custom.props.seq}}
+          #   KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
         GlobalSecondaryIndexes:
-          - IndexName: time
+          - IndexName: link
             KeySchema:
-              - AttributeName: ${{self:custom.props.time}}
+              - AttributeName: ${{self:custom.props.link}}
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
@@ -591,12 +525,12 @@ resources:
         AttributeDefinitions:
           - AttributeName: ${{self:custom.props.recipient}}
             AttributeType: S
-          - AttributeName: ${{self:custom.props.seq}}
+          - AttributeName: ${{self:custom.props.time}}
             AttributeType: N
         KeySchema:
           - AttributeName: ${{self:custom.props.recipient}}
             KeyType: HASH
-          - AttributeName: ${{self:custom.props.seq}}
+          - AttributeName: ${{self:custom.props.time}}
             KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 5

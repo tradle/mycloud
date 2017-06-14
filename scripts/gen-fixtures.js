@@ -6,7 +6,7 @@ const mkdirp = require('mkdirp')
 const { utils } = require('@tradle/engine')
 const contexts = require('@tradle/engine/test/contexts')
 const helpers = require('@tradle/engine/test/helpers')
-const { exportKeys } = require('./project/lib/crypto')
+const { exportKeys } = require('../project/lib/crypto')
 // const writeFile = function (relPath, data) {
 //   return new Promise((resolve, reject) => {
 //     fs.writeFile(path.join(fixturesPath, relPath), JSON.stringify(data, null, 2), function (err) {

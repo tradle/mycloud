@@ -6,7 +6,9 @@
   "TYPE": "_t",
   "TYPES": {
     "MESSAGE": "tradle.Message",
-    "IDENTITY": "tradle.Identity"
+    "IDENTITY": "tradle.Identity",
+    "SELF_INTRODUCTION": "tradle.SelfIntroduction",
+    "INTRODUCTION": "tradle.Introduction"
   },
   "PAYLOAD_PROP_PREFIX": "p_",
   "METADATA_PREFIX": "m_",
@@ -21,5 +23,6 @@
     "initialDelay": 1000,
     "maxDelay": 300000,
     "maxRetries": 100
-  }
+  },
+  "MAX_CLOCK_DRIFT": 10000
 }

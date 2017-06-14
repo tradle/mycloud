@@ -1,5 +1,6 @@
 const debug = require('debug')('tradle:sls:wrap')
 const co = require('co').wrap
+const stringify = require('json-stringify-safe')
 const RESOLVED = Promise.resolve()
 const { DEV } = require('./env')
 
@@ -58,7 +59,7 @@ function wrapHTTPGenerator (generatorFn) {
     try {
       ret = yield co(generatorFn).apply(this, args)
       resp.statusCode = 200
-      if (ret != null) resp.body = JSON.stringify(ret)
+      if (ret != null) resp.body = stringify(ret)
     } catch (err) {
       if (isDeveloperError(err)) {
         return callback(err)
@@ -67,7 +68,7 @@ function wrapHTTPGenerator (generatorFn) {
       debug('wrapped task errored', err)
       resp.statusCode = 400
       const msg = DEV ? err.message : 'Something went horribly wrong'
-      resp.body = JSON.stringify(err.message)
+      resp.body = stringify(err.message)
     }
 
     callback(null, resp)

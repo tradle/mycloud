@@ -2,13 +2,22 @@ const ex = require('error-ex')
 const errors = {}
 ;[
   'NotFound',
-  'InvalidSignatureError',
+  'InvalidSignature',
   'InvalidMessageFormat',
   'PutFailed',
   'MessageNotForMe',
   'HandshakeFailed',
   'LambdaInvalidInvocation',
-  'InvalidInput'
+  'InvalidInput',
+  'ClockDrift',
+  'BatchPutFailed',
+  'DuplicateMessage'
 ].forEach(name => errors[name] = ex(name))
 
-module.exports = errors
+exports = module.exports = errors
+exports.export = function (err) {
+  return {
+    type: err.name,
+    message: err.message
+  }
+}

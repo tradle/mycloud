@@ -121,4 +121,42 @@ call the bot lambda directly, don't use MQTT, or webhooks
 
 bot should be receiving event, and processing, not thinking about order 
 
-if we directly invoke lambda, we lose order guarantees (like the ones we have with sharding)
+if we directly invoke lambda, we lose order guarantees (like the ones we have with sharding), because if the bot is busy processing message 1 from user U, and message 2 comes in, it will launch another Lambda instance to process 2, ignoring 
+
+
+
+synchronizing clocks
+during auth, synchronize clocks (per provider)
+on reconnect, always broadcast position (last sent/received), and wait for green light
+messages queued offline are rejected if there are undelivered messages for you
+
+after green light, give Re-send option for any previously queued messages
+
+add timestamp to messages
+
+client delivers one message at a time, receives per-message acks (prevents needing to re-order)
+
+client connects:
+  sends the identifier of the last message it sent and the last message it received
+
+
+client waits for green light from server
+ordering is by timestamp
+
+per-message acks
+
+postpone implementation of:
+  lambda lock per client
+  re-ordering (ack instead)
+
+
+TODO:
+test whether clients get messages they subscribed to if they go offline and back online
+
+requires long-lived clientIds
+
+support WillNotDeliver error in @tradle/engine sender
+
+need "dontsend" sendstatus
+
+HTTP POST messages that are > 128KB

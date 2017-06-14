@@ -2,7 +2,8 @@ const co = require('co').wrap
 const extend = require('xtend/mutable')
 const debug = require('debug')('tradle:sls:identities')
 const { utils } = require('@tradle/engine')
-const { PREVLINK, PERMALINK } = require('./constants')
+const { PREVLINK, PERMALINK, TYPE, TYPES } = require('./constants')
+const { MESSAGE } = TYPES
 const Objects = require('./objects')
 const { NotFound } = require('./errors')
 const { firstSuccess, logify } = require('./utils')
@@ -11,13 +12,11 @@ const { PubKeysTable } = require('./tables')
 
 function getIdentityMetadataByPub (pub) {
   debug('get identity metadata by pub')
-  return PubKeysTable.get({
-    Key: { pub }
-  })
+  return PubKeysTable.get({ pub })
 }
 
 function getIdentityByPub (pub) {
-  return getIdentityMetadataByPub(pub)
+  return Identities.getIdentityMetadataByPub(pub)
   .then(({ link }) => Objects.getObjectByLink(link))
   .catch(err => {
     debug('unknown identity', pub, err)
@@ -134,14 +133,34 @@ const addContact = co(function* ({ link, permalink, object }) {
 function putPubKey ({ link, permalink, pub }) {
   debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
   return PubKeysTable.put({
-    Key: { pub },
-    Item: {
-      link,
-      permalink,
-      pub
-    }
+    link,
+    permalink,
+    pub
   })
 }
+
+const addAuthorMetadata = co(function* (wrapper) {
+  const { object } = wrapper
+  const type = object[TYPE]
+  const isMessage = type === MESSAGE
+  const promises = {
+    author: Identities.getIdentityMetadataByPub(wrapper.sigPubKey),
+  }
+
+  if (isMessage) {
+    const pub = object.recipientPubKey.pub.toString('hex')
+    promises.recipient = Identities.getIdentityMetadataByPub(pub)
+  }
+
+  const { author, recipient } = yield promises
+
+  wrapper.author = author.permalink
+  if (isMessage) wrapper.recipient = recipient.permalink
+
+  wrapper.link = utils.hexLink(object)
+  wrapper.permalink = object[PERMALINK] || wrapper.link
+  return wrapper
+})
 
 // function addContactPubKeys ({ link, permalink, identity }) {
 //   const RequestItems = {
@@ -156,7 +175,7 @@ function putPubKey ({ link, permalink, pub }) {
 //   return docClient.batchWrite({ RequestItems }).promise()
 // }
 
-module.exports = logify({
+const Identities = module.exports = logify({
   getIdentityByLink: Objects.getObjectByLink,
   getIdentityByPermalink,
   getIdentityByPub,
@@ -164,5 +183,6 @@ module.exports = logify({
   // getIdentityByFingerprint,
   createAddContactEvent,
   addContact,
-  validateNewContact
+  validateNewContact,
+  addAuthorMetadata
 })

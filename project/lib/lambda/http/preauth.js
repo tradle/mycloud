@@ -3,9 +3,12 @@ const wrap = require('../../wrap')
 const { onPreAuth } = require('../../user')
 
 exports.handler = wrap.httpGenerator(function* (event, context) {
-  debug('[START]', Date.now())
+  const now = Date.now()
+  debug('[START]', now)
   const { body, requestContext } = event
   const { clientId, identity } = typeof body === 'string' ? JSON.parse(body) : body
   const { accountId } = requestContext
-  return onPreAuth({ accountId, clientId, identity })
+  const session = yield onPreAuth({ accountId, clientId, identity })
+  session.time = now
+  return session
 })
