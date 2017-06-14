@@ -5,13 +5,17 @@ const DEFAULT_QOS = 1
 function publish (params) {
   if (!('qos' in params)) params.qos = DEFAULT_QOS
 
+  if (typeof params.payload === 'object') {
+    params.payload = JSON.stringify(params.payload)
+  }
+
   return aws.getIotData().then(iotData => iotData.publish(params).promise())
 }
 
 function sendMessages ({ clientId, payload }) {
   return publish({
     topic: getMessagesTopicForClient(clientId),
-    payload: JSON.stringify(payload)
+    payload
   })
 }
 

@@ -5,12 +5,14 @@ const { sign, getSigningKey } = require('./crypto')
 const Objects = require('./objects')
 const Secrets = require('./secrets')
 // const { saveIdentityAndKeys } = require('./identities')
-const { cachifyPromiser, loudCo, pick, omit, extend, co } = require('./utils')
+const { cachifyPromiser, loudCo, pick, omit, extend, co, timestamp } = require('./utils')
 const Messages = require('./messages')
 const { getObjectByLink, extractMetadata } = require('./objects')
 const { PublicConfBucket } = require('./buckets')
 const Identities = require('./identities')
 const Events = require('./events')
+const { getMostRecentSessionByPermalink } = require('./auth')
+const { deliverBatch } = require('./delivery')
 const { MessageNotForMe } = require('./errors')
 const types = require('./types')
 const {
@@ -69,7 +71,7 @@ const findOrCreate = co(function* ({ link, object, author }) {
 })
 
 const _createSendMessageEvent = co(function* (opts) {
-  const { author, recipient, link, object, other={} } = opts
+  const { author, recipient, link, object, other={}, time=timestamp() } = opts
 
   typeforce({
     recipient: types.link,
@@ -99,33 +101,36 @@ const _createSendMessageEvent = co(function* (opts) {
   const signedMessage = yield signObject({ author, object: unsignedMessage })
   signedMessage.author = author.permalink
   signedMessage.recipient = recipientObj.permalink
-  const data = Messages.messageToEventPayload({
+  signedMessage.time = time
+
+  const wrapper = {
     message: signedMessage,
     payload: payloadWrapper
-  })
+  }
 
   const putEvent = Events.putEvent({
     topic: 'send',
-    data: data
+    data: Messages.messageToEventPayload(wrapper)
   })
 
-  const putMessage = Messages.putMessage(data)
+  const putMessage = Messages.putMessage(wrapper)
   yield Promise.all([putEvent, putMessage])
-  return signedMessage
+  return wrapper
 })
 
 const createSendMessageEvent = co(function* (opts) {
   if (!opts.author) {
-    opts = extend({
-      author: yield getMyIdentity()
-    }, opts)
+    opts.time = timestamp()
+    opts.author = yield getMyIdentity()
   }
 
   return _createSendMessageEvent(opts)
 })
 
 const createReceiveMessageEvent = co(function* ({ message }) {
+  const time = timestamp()
   const parsed = yield Messages.parseInbound({ message })
+  parsed.message.time = time
   yield Objects.putObject(parsed.payload)
 
   // if (objectWrapper.type === IDENTITY && messageWrapper.sigPubKey === objectWrapper.sigPubKey) {
@@ -143,16 +148,14 @@ const createReceiveMessageEvent = co(function* ({ message }) {
   //   })
   // }
 
-  const data = Messages.messageToEventPayload(parsed)
-  data.inbound = true
-
   const putEvent = Events.putEvent({
     topic: 'receive',
-    data: data
+    data: Messages.messageToEventPayload(parsed)
   })
 
-  const putMessage = Messages.putMessage(data)
-  yield Promise.all([putEvent, putMessage])
+  const putMessage = Messages.putMessage(parsed)
+  yield Promise.all([putMessage, putEvent])
+  return parsed
 })
 
 const ensureMessageIsForMe = co(function* ({ message }) {
@@ -168,9 +171,31 @@ const ensureMessageIsForMe = co(function* ({ message }) {
   }
 })
 
+const sendMessage = co(function* ({ recipient, object, other={} }) {
+  // start this first to get a more accurate timestamp
+  const promiseCreate = createSendMessageEvent({ recipient, object, other })
+  const promiseSession = getMostRecentSessionByPermalink(recipient)
+  const wrapper = yield promiseCreate
+
+  let session
+  try {
+    session = yield promiseSession
+  } catch (err) {
+    return
+  }
+
+  debug(`sending message ${wrapper.object[SEQ]} to ${recipient} live`)
+  yield deliverBatch({
+    clientId: session.clientId,
+    permalink: session.permalink,
+    messages: [wrapper]
+  })
+})
+
 module.exports = {
   getMyIdentity: getMyPublicIdentity,
   signObject,
   createSendMessageEvent,
-  createReceiveMessageEvent
+  createReceiveMessageEvent,
+  sendMessage
 }

@@ -5,8 +5,8 @@ const leveldown = require('leveldown')
 const Blockchain = require('@tradle/cb-blockr')
 const tradle = require('@tradle/engine')
 const Client = require('./client')
-const { loudCo } = require('./project/lib/utils')
-const { sign, getSigningKey, extractSigPubKey } = require('./project/lib/crypto')
+// const { loudCo } = require('./project/lib/utils')
+// const { sign, getSigningKey, extractSigPubKey } = require('./project/lib/crypto')
 const keys = require('./project/test/fixtures/bob/keys')
 const bob = require('./project/test/fixtures/bob/object')
 const challenge = process.env[2]
@@ -48,7 +48,10 @@ const node = tradle.utils.promisifyNode(tradle.node({
 //   })
 // }
 
-const client = new Client()
+const client = new Client({
+  // clientId: `${node.permalink}${node.permalink}`
+})
+
 client.setNode(node)
 
 // ;['authenticated', 'connect', 'message', 'close', 'error'].forEach(event => {
@@ -86,6 +89,10 @@ function sendMessage () {
   // .then(() => {
   //   setTimeout(sendMessage, 10000)
   // }, console.error)
+}
+
+function getSigningKey (keys) {
+  return keys.find(key => key.type === 'ec' && key.purpose === 'sign')
 }
 
 // client.once('authenticated', loudCo(function* () {

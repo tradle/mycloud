@@ -35,6 +35,7 @@ custom:
   props:
     author: ${{self:custom.METADATA_PREFIX}}author
     recipient: ${{self:custom.METADATA_PREFIX}}recipient
+    time: ${{self:custom.METADATA_PREFIX}}time
     seq: seq
   # writeEnvVars:
   #   SERVERLESS_STAGE: ${{self:custom.stage}}
@@ -65,7 +66,7 @@ provider:
     NETWORK_NAME: testnet
     DEBUG: tradle:*
     SERVERLESS_STAGE: ${{self:custom.stage}}
-    SERVERLESS_SERVICE_NAME: ${{self:custom.stage}}
+    SERVERLESS_SERVICE_NAME: ${{self:service}}
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
   iamRoleStatements:
     - Effect: Allow
@@ -147,7 +148,7 @@ provider:
 
 functions:
   preauth:
-    handler: project/lib/lambda/preauth.handler
+    handler: project/lib/lambda/http/preauth.handler
     memorySize: 1024
     events:
       - http:
@@ -166,7 +167,7 @@ functions:
         - OutboxTable
         - IotClientRole
   auth:
-    handler: project/lib/lambda/auth.handler
+    handler: project/lib/lambda/http/auth.handler
     memorySize: 1024
     events:
       - http:
@@ -247,6 +248,7 @@ functions:
   #   environment:
   #     DEBUG: tradle:*
 
+  # triggered when a client subscribes to an MQTT topic
   onsubscribe:
     handler: project/lib/lambda/onsubscribe.handler
     memorySize: 1024
@@ -264,14 +266,21 @@ functions:
         - InboxTable
         - OutboxTable
 
-  restore:
-    handler: project/lib/lambda/restore.handler
+  # triggered when an internal bot requests a message range (inbound messages)
+  # inbox:
+  #   handler: project/lib/lambda/inbox.handler
+  #   memorySize: 1024
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * as data, topic() as topic FROM 'messages/get'"
+
+  # triggered when a client requests a message range (outbound messages)
+  outbox:
+    handler: project/lib/lambda/outbox.handler
     memorySize: 1024
     events:
       - iot:
           sql: "SELECT * as data, topic() as topic FROM '+/restore'"
-          actions:
-            - lambda:
 
     environment:
       DEBUG: tradle:*
@@ -284,17 +293,28 @@ functions:
         - InboxTable
         - OutboxTable
 
+  # mqttsub:
+  #   handler: project/lib/lambda/mqttsub.handler
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * as data, topic() as topic FROM '#'"
+
     # ondisconnect:
   #   handler: project/lib/lambda/handshake.break
   #   events:
   #     - iot:
   #         sql: "SELECT * FROM '$aws/events/presence/disconnected'"
 
+  # triggered when a client sends a message
   queuereceive:
     handler: project/lib/lambda/queuereceive.handler
     memorySize: 1024
     environment:
       DEBUG: tradle:*
+      BOT_LAMBDA: echo
+      SERVERLESS_PREFIX: ${{self:custom.prefix}}
+      SERVERLESS_STAGE: ${{self:custom.stage}}
+      SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
           sql: "SELECT * FROM 'message'"
@@ -324,7 +344,7 @@ functions:
   #       - InboxTable
   #       # - OutboxTable
   #   events:
-  #     - stream:
+  #     - iot:
   #         type: dynamodb
   #         batchSize: 1
   #         startingPosition: TRIM_HORIZON
@@ -335,6 +355,7 @@ functions:
   #   environment:
   #     DEBUG: tradle:*
 
+  # echo bot (business logic layer)
   echo:
     handler: project/lib/lambda/echo.handler
     memorySize: 1024
@@ -348,19 +369,22 @@ functions:
         - InboxTable
         - OutboxTable
     events:
-      - stream:
-          type: dynamodb
-          batchSize: 1
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - InboxTable
-              - StreamArn
+      - iot:
+          sql: "SELECT * as data, topic() as topic FROM 'message/preprocessed'"
+    # events:
+    #   - stream:
+    #       type: dynamodb
+    #       batchSize: 1
+    #       startingPosition: TRIM_HORIZON
+    #       arn:
+    #         Fn::GetAtt:
+    #           - InboxTable
+    #           - StreamArn
     environment:
       DEBUG: tradle:*
 
   addcontact:
-    handler: project/lib/lambda/addContact.handler
+    handler: project/lib/lambda/add-contact.handler
     environment:
       DEBUG: tradle:*
     custom:
@@ -378,12 +402,13 @@ functions:
         - ObjectsBucket
         - PubKeysTable
 
+  # public endpoint for clients to get public configuration / provider identity
   info:
     handler: project/lib/lambda/info.handler
     environment:
       DEBUG: tradle:*
       SERVERLESS_STAGE: ${{self:custom.stage}}
-      SERVERLESS_SERVICE_NAME: ${{self:custom.stage}}
+      SERVERLESS_SERVICE_NAME: ${{self:service}}
     custom:
       env-resources:
         - SecretsBucket
@@ -395,6 +420,7 @@ functions:
           method: get
           cors: true
 
+  # initialize provider identity
   init:
     handler: project/lib/lambda/init.handler
     memorySize: 512
@@ -408,19 +434,19 @@ functions:
         - PubKeysTable
         - PublicConfBucket
 
-  queuesend:
-    handler: project/lib/lambda/queuesend.handler
-    memorySize: 512
-    environment:
-      DEBUG: tradle:*
-    custom:
-      env-resources:
-        - SecretsBucket
-        - ObjectsBucket
-        - EventsTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
+  # queuesend:
+  #   handler: project/lib/lambda/queuesend.handler
+  #   memorySize: 512
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - SecretsBucket
+  #       - ObjectsBucket
+  #       - EventsTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
 
   # send:
   #   handler: project/lib/lambda/send.handler
@@ -535,6 +561,8 @@ resources:
             AttributeType: S
           - AttributeName: ${{self:custom.props.seq}}
             AttributeType: N
+          - AttributeName: ${{self:custom.props.time}}
+            AttributeType: N
         KeySchema:
           - AttributeName: ${{self:custom.props.author}}
             KeyType: HASH
@@ -545,6 +573,16 @@ resources:
           WriteCapacityUnits: 5
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
+        GlobalSecondaryIndexes:
+          - IndexName: time
+            KeySchema:
+              - AttributeName: ${{self:custom.props.time}}
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
 
     OutboxTable:
       Type: AWS::DynamoDB::Table

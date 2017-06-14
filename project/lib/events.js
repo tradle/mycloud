@@ -2,8 +2,7 @@ const co = require('co').wrap
 const debug = require('debug')('tradle:sls:events')
 const typeforce = require('typeforce')
 // const { typeforce } = require('@tradle/engine')
-const microtime = require('microtime')
-const { omit, extend } = require('./utils')
+const { omit, extend, timestamp } = require('./utils')
 const { PutFailed } = require('./errors')
 const { getUpdateExpressions } = require('./db-utils')
 const { EventsTable } = require('./tables')
@@ -14,9 +13,13 @@ const putEvent = co(function* (event, triesLeft=10) {
     data: typeforce.Object
   }, event)
 
-  const { topic } = event
-  const id = nextEventId()
+  let { topic, id=genId() } = event
+
   const item = extend({ id }, event)
+  if (!item.time) {
+    item.time = Number(id)
+  }
+
   const expressions = getUpdateExpressions(event)
   try {
     yield EventsTable.update(extend({
@@ -29,6 +32,7 @@ const putEvent = co(function* (event, triesLeft=10) {
 
       // try again
       debug('write event failed, retrying')
+      event.id = getNextUniqueId(event.id, event.id)
       return putEvent(event, --triesLeft)
     }
 
@@ -40,9 +44,42 @@ const putEvent = co(function* (event, triesLeft=10) {
   return event
 })
 
-function nextEventId () {
-  const [seconds, microseconds] = microtime.nowStruct()
-  return `${seconds}${microseconds}`
+// function putEvents (events) {
+//   setIds(events)
+//   yield EventsTable.batchWriteItem(extend({
+//     Key: { id },
+//     ConditionExpression: 'attribute_not_exists(id)'
+//   }, expressions))
+// }
+
+// function setIds (events) {
+//   events.sort((a, b) => {
+//     return a.time - b.time
+//   })
+
+//   events.forEach((event, i) => {
+//     if (i === 0) {
+//       event.id = event.time + ''
+//       return
+//     }
+
+//     event.id = getNextUniqueId(events[i - 1].id, event.time + '')
+//   })
+
+//   return events
+// }
+
+function genId () {
+  return timestamp() + ''
+}
+
+function getNextUniqueId (prev, next) {
+  return prev === next ? bumpSuffix(prev) : next
+}
+
+function bumpSuffix (id) {
+  const [main, suffix='0'] = id.split('.')
+  return main + (Number(suffix) + 1)
 }
 
 module.exports = { putEvent }

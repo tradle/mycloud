@@ -1,0 +1,14 @@
+module.exports = {
+  send: {
+    name: 'send'
+  },
+  receive: {
+    name: 'receive'
+  },
+  seal: {
+    name: 'seal'
+  },
+  addcontact: {
+    name: 'addcontact'
+  }
+}

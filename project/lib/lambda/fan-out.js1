@@ -5,6 +5,8 @@ const wrap = require('../wrap')
 const { groupBy } = require('../utils')
 const { invokeForTopic } = require('../lambda-utils')
 
+// NOT BEING USED
+
 exports.handler = wrap.generator(function* (event, context) {
   debug('fanning out', event)
   const { Records } = event

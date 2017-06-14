@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const microtime = require('microtime')
 const typeforce = require('typeforce')
 const debug = require('debug')('tradle:sls:utils')
 const omit = require('object.omit')
@@ -220,6 +221,33 @@ exports.splitCamelCase = function splitCamelCase (str, delimiter=' ', upperFirst
 // }
 
 exports.isPromise = obj => obj && typeof obj.then === 'function'
+
+exports.cachify = function cachify ({ get, put, cache }) {
+  return {
+    get: co(function* (key) {
+      let val = cache.get(key)
+      if (val != null) {
+        debug(`cache hit on ${key}!`)
+        return val
+      }
+
+      debug(`cache miss on ${key}`)
+      val = yield get(key)
+      cache.set(key, val)
+      return val
+    }),
+    put: co(function* (key, value) {
+      const ret = yield put(key, value)
+      cache.set(key, value)
+      return ret
+    })
+  }
+}
+
+exports.timestamp = function timestamp () {
+  const [seconds, microseconds] = microtime.nowStruct()
+  return seconds * 1e6 + microseconds
+}
 
 function noop () {}
 

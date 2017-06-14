@@ -81,3 +81,44 @@ when does a client need to reauth? How do they know their session expired
 
 
 cross-AWS-account IAM role for Tradle to monitor the Cloudwatch Logs
+
+separate logs with private data from logs that can be shared with Tradle
+
+Lambda infrastructure is internal to the company
+inter-Lambda infrastructures talk to each other via webhooks/REST
+clients to Lambda talk via MQTT, to take advantage of the persistent connection
+internal bots talk via MQTT
+external bots via webhooks/REST
+
+initial MQTT auth challenge-response needs to be upgraded to mutual auth: client firsts downloads identity of the server, and the server should sign the challenge
+
+how to auth internal/external bot, when they're pinged by a webhook?
+
+maybe:
+  webhooker lambda long-polls bot, bot responds with request for messages on the same connection, lambda delivers on the same connection
+
+Latency:
+  auth maybe should go over MQTT
+
+rely on MQTT to deliver (don't ask client to give you lost messages)
+
+bot can run:
+  in a wrapped lambda
+  in a naked lambda
+
+bot can read from InboxTable
+
+MQTT -> write to Inbox
+
+how important is ordering for identity
+  very important
+  re-ordering needs to be done before business logic is called
+
+InboxTable can have a flag: validated
+  if it's in order, validate it, otherwise validate it after ordering
+
+call the bot lambda directly, don't use MQTT, or webhooks
+
+bot should be receiving event, and processing, not thinking about order 
+
+if we directly invoke lambda, we lose order guarantees (like the ones we have with sharding)

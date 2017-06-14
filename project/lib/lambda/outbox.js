@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:λ:restore')
+const debug = require('debug')('tradle:sls:λ:outbox')
 const wrap = require('../wrap')
 const { prettify } = require('../utils')
 const { onRestoreRequest } = require('../user')

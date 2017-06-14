@@ -7,8 +7,7 @@ const awsIot = require('aws-iot-device-sdk')
 const bindAll = require('bindall')
 const pify = require('pify')
 const crypto = require('crypto')
-// const co = require('co').wrap
-const co = require('./project/lib/utils').loudCo
+const co = require('co').wrap
 const BASE_ENDPOINT = 'https://lc2zye4lv8.execute-api.us-east-1.amazonaws.com/dev/tradle'
 const PREAUTH_ENDPOINT = `${BASE_ENDPOINT}/preauth`
 const AUTH_ENDPOINT = `${BASE_ENDPOINT}/auth`
@@ -35,7 +34,7 @@ Client.prototype.setNode = function (node) {
   this.auth()
 }
 
-Client.prototype.auth = co(function* () {
+Client.prototype.auth = loudCo(function* () {
   const node = this._node
   const { permalink, identity } = node
   const clientId = this._clientId || (this._clientId = genClientId(permalink))
@@ -130,6 +129,8 @@ Client.prototype._onmessage = function (topic, payload) {
       this.emit('message', message)
     })
     break
+  case `${this._clientId}/ack`:
+    break
   }
 }
 
@@ -146,7 +147,7 @@ Client.prototype._onclose = function () {
   debug('closed')
 }
 
-Client.prototype.send = co(function* (message) {
+Client.prototype.send = loudCo(function* (message) {
   if (!this._authenticated) {
     yield new Promise(resolve => this.once('authenticated', resolve))
   }
@@ -160,7 +161,7 @@ Client.prototype.send = co(function* (message) {
   // this.emit('sent', message)
 })
 
-const post = co(function* (url, data) {
+const post = loudCo(function* (url, data) {
   const res = yield fetch(url, {
     method: 'POST',
     headers: {
@@ -186,4 +187,15 @@ function genClientId (permalink) {
 
 function genNonce () {
   return crypto.randomBytes(32).toString('hex')
+}
+
+function loudCo (gen) {
+  return co(function* (...args) {
+    try {
+      return yield co(gen).apply(this, args)
+    } catch (err) {
+      console.error(err)
+      throw err
+    }
+  })
 }

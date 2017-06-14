@@ -4,9 +4,11 @@ const Auth = require('./auth')
 const Delivery = require('./delivery')
 const Messages = require('./messages')
 const { createReceiveMessageEvent } = require('./provider')
-const { PUBLIC_CONF_BUCKET } = require('./constants')
+const Iot = require('./iot-utils')
+const { invoke } = require('./lambda-utils')
+const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
 const { PublicConfBucket } = require('./buckets')
-const { SERVERLESS_STAGE } = require('./env')
+const { SERVERLESS_STAGE, BOT_LAMBDA } = require('./env')
 
 // const onConnect = co(function* ({ clientId }) {
 //   const { clientId, permalink, tip } = Auth.getSession({ clientId })
@@ -22,7 +24,20 @@ const onSubscribed = co(function* ({ clientId }) {
 
 const onSentMessage = co(function* (event) {
   const message = yield Messages.preProcessInbound(event)
-  yield createReceiveMessageEvent({ message })
+  const wrapper = yield createReceiveMessageEvent({ message })
+  const { author, seq } = wrapper.message
+  yield invoke({
+    name: BOT_LAMBDA,
+    arg: JSON.stringify({ author, seq })
+  })
+
+  // yield Iot.publish({
+  //   topic: 'message/preprocessed',
+  //   payload: {
+  //     author: wrapper.message.author,
+  //     seq: wrapper.message.object[SEQ]
+  //   }
+  // })
 })
 
 const onPreAuth = Auth.getTemporaryIdentity

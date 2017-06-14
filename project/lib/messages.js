@@ -19,7 +19,7 @@ const {
   OutboxTable,
 } = require('./tables')
 
-const MESSAGE_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author', 'recipient', 'inbound']
+const MESSAGE_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author', 'recipient', 'inbound', 'time']
 const PAYLOAD_WRAPPER_PROPS = ['link', 'permalink', 'sigPubKey', 'author', 'type']
 const PREFIXED_PAYLOAD_PROPS = PAYLOAD_WRAPPER_PROPS.map(key => PAYLOAD_PROP_PREFIX + key)
 const PROP_NAMES = (function () {
@@ -35,16 +35,25 @@ function prefixProp (key) {
   return METADATA_PREFIX + key
 }
 
-const putMessage = co(function* (message) {
-  const { author, recipient } = PROP_NAMES
-  const { inbound } = message
-  const table = inbound ? InboxTable : OutboxTable
-  const Key = inbound ? { [author]: author } : { [recipient]: recipient }
-  Key.seq = message.seq
+function pickPrefixedProps (obj, props) {
+  return pick(obj, props.map(prop => PROP_NAMES[prop]))
+}
+
+const putMessage = co(function* ({ message, payload }) {
+  const { author, recipient, inbound } = message
+  const Key = { seq: message.object[SEQ] }
+  let table
+  if (inbound) {
+    table = InboxTable
+    Key[PROP_NAMES.author] = author
+  } else {
+    table = OutboxTable
+    Key[PROP_NAMES.recipient] = recipient
+  }
 
   yield table.put({
     Key,
-    Item: message
+    Item: messageToEventPayload({ message, payload })
   })
 })
 
@@ -53,6 +62,37 @@ const loadMessage = co(function* (data) {
   const payloadWrapper = yield Objects.getObjectByLink(payload.link)
   message.object.object = payloadWrapper.object
   return { message, payload: payloadWrapper }
+})
+
+const getInboundMessage = co(function* ({ author, seq }) {
+  const metadata = yield InboxTable.get({
+    Key: { author, seq }
+  })
+
+  return yield loadMessage(metadata)
+})
+
+const getInboundByAuthor = co(function* ({ author, gt, lt }) {
+  debug(`looking up inbound messages from ${author}, range=${gt}-${lt}`)
+
+  const params = {
+    KeyConditionExpression: `${prefixProp('author')} = :author AND seq > :seq`,
+    ExpressionAttributeValues: {
+      ':author': author,
+      ':seq': gt
+    },
+    ScanIndexForward: true
+  }
+
+  if (typeof lt === 'number') {
+    const limit = lt - gt - 1
+    if (limit !== Infinity && limit > 0) {
+      params.Limit = limit
+    }
+  }
+
+  const metadata = yield InboxTable.find(params)
+  return yield Promise.all(metadata.map(loadMessage))
 })
 
 function messageToEventPayload (wrappers) {
@@ -177,6 +217,24 @@ const getOutbound = co(function* ({ recipient, gt=0, lt=Infinity }) {
   return yield Promise.all(messages.map(loadMessage))
 })
 
+const getInboundByTimestamp = co(function* ({ gt }) {
+  debug(`looking up inbound messages with time > ${gt}`)
+  const time = gt
+  const KeyConditionExpression = `${prefixProp('time')} > :time`
+
+  const params = {
+    IndexName: 'time',
+    KeyConditionExpression,
+    ExpressionAttributeValues: {
+      ':gt': time,
+    },
+    ScanIndexForward: true
+  }
+
+  const messages = yield InboxTable.find(params)
+  return yield Promise.all(messages.map(loadMessage))
+})
+
 function mergeWrappers ({ message, payload }) {
   const wrapper = pick(message, MESSAGE_WRAPPER_PROPS)
   const payloadMeta = pick(payload, PAYLOAD_WRAPPER_PROPS)
@@ -231,6 +289,7 @@ const parseInbound = co(function* ({ message }) {
     Objects.extractMetadata(message.object)
   ];
 
+  messageWrapper.inbound = true
   messageWrapper.object = message
   payloadWrapper.object = message.object
   return {
@@ -276,6 +335,9 @@ module.exports = {
   parseInbound,
   preProcessInbound,
   getOutbound,
-  loadMessage
+  loadMessage,
+  getInboundByTimestamp,
+  getInboundByAuthor,
+  getInboundMessage
   // receiveMessage
 }

@@ -19,7 +19,7 @@ function get ({ key, bucket }) {
   }).promise()
 }
 
-function putJSON({ key, value, bucket }) {
+function putJSON ({ key, value, bucket }) {
   value = JSON.stringify(value)
   return put({ key, value, bucket })
 }
