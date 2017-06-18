@@ -2,36 +2,35 @@ const debug = require('debug')('tradle:sls:db-utils')
 const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
 const { NotFound } = require('./errors')
 const aws = require('./aws')
-const { co, pick, prettify, logify, timestamp, wait } = require('./utils')
+const { co, pick, prettify, logify, timestamp, wait, clone } = require('./utils')
 const { DEV } = require('./env')
 const Errors = require('./errors')
-
-module.exports = {
-  get,
-  put,
-  update,
-  del,
-  find,
-  findOne,
-  getUpdateParams,
-  marshalDBItem: marshalItem,
-  unmarshalDBItem: unmarshalItem,
-  getTable
-}
 
 function getTable (TableName) {
   const tableAPI = {
     toString: () => TableName,
     batchPut: batchPutToTable,
-    get: Key => get({ TableName, Key }),
-    put: Item => put({ TableName, Item })
+    // get: Key => get({ TableName, Key }),
+    // put: Item => put({ TableName, Item })
   }
 
-  const api = { update, del, findOne, find, scan, create, destroy }
-  // aliases
-  api.query = find
-  api.queryOne = findOne
+  const api = {
+    get,
+    put,
+    update,
+    del,
+    findOne,
+    find,
+    scan,
+    create: createTable,
+    createTable,
+    destroy: deleteTable,
+    deleteTable,
+    query: find,
+    queryOne: findOne
+  }
 
+  // aliases
   Object.keys(api).forEach(method => {
     tableAPI[method] = (params={}) => {
       params.TableName = TableName
@@ -114,44 +113,78 @@ function scan (params) {
     .then(data => data.Items)
 }
 
-function create (params) {
+function createTable (params) {
   return aws.dynamodb.createTable(params).promise()
 }
 
-function destroy (params) {
+function deleteTable (params) {
   return aws.dynamodb.deleteTable(params).promise()
 }
 
-function batchPut (params) {
+function rawBatchPut (params) {
   return aws.docClient.batchWrite(params).promise()
 }
 
-const batchPutWithBackoff = co(function* ({
-  params,
-  initialDelay=1000,
-  maxDelay=10000,
-  factor=2,
-  maxTries=10,
-  maxTime=60000
-}) {
+// const create = co(function* (schema) {
+//   try {
+//     yield dynamodb.createTable(schema).promise()
+//   } catch (err) {
+//     // already exists
+//     if (err.code !== 'ResourceInUseException') {
+//       throw err
+//     }
+//   }
+// })
+
+const batchPut = co(function* (params, backoffOptions={}) {
+  params = clone(params)
+
+  const {
+    backoff=defaultBackoffFunction,
+    maxTries=6
+  } = backoffOptions
+
   let tries = 0
   let start = Date.now()
   let time = 0
-  let delay = initialDelay
   let failed
-  while (tries < maxTries && time < maxTries) {
-    let result = yield batchPut(params)
-    failed = []
-    if (!failed.length) return
+  while (tries < maxTries) {
+    let result = yield rawBatchPut(params)
+    failed = result.UnprocessedItems
+    if (!(failed && Object.keys(failed).length > 0)) return
 
-    tries++
-    time = Date.now() - start
-    delay = Math.min(maxDelay, delay * factor)
-    yield wait(Math.min(delay, maxTime - time))
-    time = Date.now() - start
+    params.RequestItems = failed
+    yield wait(backoff(tries++))
   }
 
   const err = new Errors.BatchPutFailed()
   err.failed = failed
+  err.attempts = tries
   throw err
 })
+
+function jitter (val, percent) {
+  // jitter by val * percent
+  return val * (1 + 2 * percent * Math.random() - percent)
+}
+
+function defaultBackoffFunction (retryCount) {
+  const delay = Math.pow(2, retryCount) * 500
+  return Math.min(jitter(delay, 0.1), 10000)
+}
+
+module.exports = {
+  createTable,
+  deleteTable,
+  get,
+  put,
+  update,
+  del,
+  find,
+  findOne,
+  batchPut,
+  getUpdateParams,
+  marshalDBItem: marshalItem,
+  unmarshalDBItem: unmarshalItem,
+  getTable
+}

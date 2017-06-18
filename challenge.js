@@ -1,9 +1,8 @@
 const path = require('path')
-const crypto = require('crypto')
 const debug = require('debug')('tradle:sls:test')
 const co = require('co').wrap
 const once = require('once')
-const fetch = global.fetch = require('node-fetch')
+const fetch = require('isomorphic-fetch')
 const levelup = require('levelup')
 const leveldown = require('leveldown')
 const mkdirp = require('mkdirp')
@@ -63,6 +62,7 @@ const prepare = co(function* () {
     yield prepare
     yield client.ready()
     // console.log('HAHAHA!')
+    console.time('ROUNDTRIP')
     console.time('delivery')
     // client.send(msg.unserialized.object)
     try {
@@ -73,6 +73,10 @@ const prepare = co(function* () {
         }
       })
     } catch (err) {
+      if (err.type === 'timetravel') {
+        return cb(new tradle.errors.WillNotSend(err.message))
+      }
+
       console.error(err.stack)
       return cb(err)
     }
@@ -82,6 +86,7 @@ const prepare = co(function* () {
   })
 
   node.on('message', function ({ object }) {
+    console.timeEnd('ROUNDTRIP')
     console.log('received', prettify(object.object))
   })
 
@@ -113,21 +118,22 @@ const prepare = co(function* () {
     clientId: `${node.permalink}${node.permalink}`
   })
 
-  client.on('messages', co(function* (messages) {
-    for (let message of messages) {
-      debug('receiving')
-      try {
-        yield node.receive(message, { permalink })
-      } catch (err) {
-        if (err.type === 'exists') {
-          debug('ignoring duplicate message')
-          continue
-        }
+  client.onmessage = co(function* (message) {
+    debug('receiving')
+    try {
+      yield node.receive(message, { permalink })
+    } catch (err) {
+      if (err.type === 'exists') {
+        debug('ignoring duplicate message', err.stack)
+        return
       }
 
-      debug('received')
+      debug('failed to receive message', err.stack)
+      return
     }
-  }))
+
+    debug('received')
+  })
 
   return {
     node,
@@ -156,7 +162,7 @@ function sendMessage ({ node, client }) {
     to: { permalink: alice.permalink },
     object: {
       _t: 'tradle.SimpleMessage',
-      message: 'hey ho alice!'
+      message: 'hey hey hey alice!'
     },
     other: {
       time: client.now()
@@ -184,7 +190,11 @@ function getTip ({ node, counterparty, sent }) {
   const source = node.objects.bySeq(seqOpts)
   return new Promise((resolve, reject) => {
     source.on('error', reject)
-    source.on('data', data => resolve(data.timestamp))
+    source.on('data', data => resolve({
+      time: data.timestamp,
+      link: data.link
+    }))
+
     source.on('end', () => resolve(null))
   })
 }

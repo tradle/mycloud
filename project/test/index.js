@@ -134,115 +134,8 @@ test('format message', function (t) {
   t.end()
 })
 
-// test('createSendMessageEvent', loudCo(function* (t) {
-//   t.plan(3)
-
-//   const { putObject } = Objects
-//   const { putEvent } = Events
-//   const { getIdentityByPermalink } = Identities
-//   const { getNextSeq } = Messages
-//   const payload = {
-//     [TYPE]: 'tradle.SimpleMessage',
-//     message: 'hey bob'
-//   }
-
-//   // AWS.mock('S3', 'getObject', '')
-//   Identities.getIdentityByPermalink = mocks.getIdentityByPermalink
-//   Messages.getNextSeq = () => Promise.resolve(0)
-
-//   Objects.putObject = function ({ link, object }) {
-//     t.ok(object[SIG])
-//     payload[SIG] = object[SIG]
-//     t.same(object, payload)
-//     return Promise.resolve()
-//   }
-
-//   Events.putEvent = function (event) {
-//     t.equal(event.topic, 'send')
-//     // console.log(event)
-//     return Promise.resolve()
-//   }
-
-//   const event = yield createSendMessageEvent({
-//     author: alice,
-//     recipient: bob.permalink,
-//     object: payload
-//   })
-
-//   Messages.getNextSeq = getNextSeq
-//   Identities.getIdentityByPermalink = getIdentityByPermalink
-//   Objects.putObject = putObject
-//   Events.putEvent = putEvent
-
-//   // TODO: compare
-
-//   t.end()
-// }))
-
-// test('createReceiveMessageEvent', loudCo(function* (t) {
-//   t.plan(3)
-
-//   const message = toAliceFromBob
-//   const { putObject } = Objects
-//   const { putEvent } = Events
-//   const { getIdentityByPermalink } = Identities
-
-//   Identities.getIdentityMetadataByPub = mocks.getIdentityMetadataByPub
-//   Objects.putObject = function ({ link, object }) {
-//     t.ok(object[SIG])
-//     t.same(object, message.object)
-//     return Promise.resolve()
-//   }
-
-//   Events.putEvent = function (event) {
-//     t.equal(event.topic, 'receive')
-//     // console.log(event)
-//     return Promise.resolve()
-//   }
-
-//   // awsMock.mock('S3', 'headObject', function (params) {
-//   //   console.log('s3.headObject', arguments)
-//   // })
-
-//   // awsMock.mock('S3', 'getObject', function (params) {
-//   //   console.log('s3.getObject', arguments)
-//   // })
-
-//   // awsMock.mock('S3', 'putObject', function ({ Bucket, Key, Body }) {
-//   //   console.log('s3.putObject', arguments)
-//   // })
-
-//   // awsMock.mock('DynamoDB', 'putItem', function (params) {
-//   //   console.log('DynamoDB.putItem', arguments)
-//   // })
-
-//   // awsMock.mock('DynamoDB.DocumentClient', 'get', wrap.sync(function ({ Key }) {
-//   //   if (Key.pub) {
-//   //     return {
-//   //       Item: mocks.getIdentityByPub(Key.pub)
-//   //     }
-//   //   }
-
-//   //   console.log(Key)
-//   // }))
-
-//   // awsMock.mock('DynamoDB.DocumentClient', 'put', function (params) {
-//   //   console.log('docClient', arguments)
-//   // })
-
-//   const event = yield createReceiveMessageEvent({ message })
-
-//   Identities.getIdentityMetadataByPub = getIdentityMetadataByPub
-//   Objects.putObject = putObject
-//   Events.putEvent = putEvent
-
-//   // TODO: compare
-
-//   t.end()
-// }))
-
 test('createSendMessageEvent', loudCo(function* (t) {
-  t.plan(3)
+  // t.plan(3)
 
   const { putObject } = Objects
   const { putEvent } = Events
@@ -254,7 +147,9 @@ test('createSendMessageEvent', loudCo(function* (t) {
   }
 
   Identities.getIdentityByPermalink = mocks.getIdentityByPermalink
-  // Messages.getNextSeq = () => Promise.resolve(0)
+
+  let nextSeq = 0
+  Messages.getNextSeq = () => Promise.resolve(nextSeq)
 
   Objects.putObject = function ({ link, object }) {
     t.ok(object[SIG])
@@ -269,12 +164,22 @@ test('createSendMessageEvent', loudCo(function* (t) {
   //   return Promise.resolve()
   // }
 
-  Messages.putMessage = function ({ message, payload }) {
+  let stoleSeq
+  Messages.putMessage = co(function* ({ message, payload }) {
     t.notOk(message.inbound)
     typeforce(types.messageWrapper, message)
     typeforce(types.payloadWrapper, payload)
-    return Promise.resolve()
-  }
+    t.equal(message.object[SEQ], nextSeq)
+    if (!stoleSeq) {
+      nextSeq++
+      stoleSeq = true
+      const err = new Error()
+      err.code = 'ConditionalCheckFailedException'
+      throw err
+    }
+
+    t.end()
+  })
 
   const wrapper = yield createSendMessageEvent({
     time: Date.now(),
@@ -283,7 +188,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
     object: payload
   })
 
-  // Messages.getNextSeq = getNextSeq
+  Messages.getNextSeq = getNextSeq
   Messages.putMessage = putMessage
   Identities.getIdentityByPermalink = getIdentityByPermalink
   Objects.putObject = putObject
@@ -291,7 +196,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
 
   // TODO: compare
 
-  t.end()
+  // t.end()
 }))
 
 test('createReceiveMessageEvent', loudCo(function* (t) {
@@ -300,7 +205,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   const message = toAliceFromBob
   const { putObject } = Objects
   const { getIdentityByPermalink, getIdentityMetadataByPub } = Identities
-  const { getInboundByLink, putMessage } = Messages
+  const { getInboundByLink, putMessage, assertMonotonicallyIncreasingTimestamp } = Messages
 
   Identities.getIdentityMetadataByPub = mocks.getIdentityMetadataByPub
   Objects.putObject = function ({ link, object }) {
@@ -308,6 +213,8 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
     t.same(object, message.object)
     return Promise.resolve()
   }
+
+  Messages.assertMonotonicallyIncreasingTimestamp = co(function* () {})
 
   Messages.getInboundByLink = function (link) {
     throw new Errors.NotFound()
@@ -328,12 +235,12 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   Objects.putObject = putObject
   Messages.putMessage = putMessage
   Messages.getInboundByLink = getInboundByLink
+  Messages.assertMonotonicallyIncreasingTimestamp = assertMonotonicallyIncreasingTimestamp
 
   // TODO: compare
 
   t.end()
 }))
-
 
 // test.only('sign/verify1', function (t) {
 //   const key = ecdsa.genSync({ curve: 'p256' })

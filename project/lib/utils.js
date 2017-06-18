@@ -7,7 +7,9 @@ const pick = require('object.pick')
 const clone = require('xtend')
 const extend = require('xtend/mutable')
 const co = require('co').wrap
-const stringify = require('json-stable-stringify')
+const stringify = JSON.stringify.bind(JSON)
+const stableStringify = require('json-stable-stringify')
+const isGenerator = require('is-generator-function')
 const { hexLink, addLinks, extractSigPubKey } = require('@tradle/engine').utils
 const { SIG, TYPE, TYPES } = require('./constants')
 const { MESSAGE } = TYPES
@@ -20,6 +22,9 @@ exports.co = co
 exports.omit = omit
 exports.pick = pick
 exports.typeforce = typeforce
+exports.isGenerator = isGenerator
+
+exports.addLinks = utils.addLinks
 
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {
@@ -35,7 +40,7 @@ exports.loudCo = function loudCo (gen) {
 exports.toBuffer = function toBuffer (data) {
   if (Buffer.isBuffer(data)) return data
 
-  return new Buffer(stringify(data))
+  return new Buffer(stableStringify(data))
 }
 
 exports.now = function now () {
@@ -144,6 +149,8 @@ exports.logify = function logify (obj, opts={}) {
 
   return logified
 }
+
+exports.stableStringify = stringify
 
 exports.prettify = function prettify (obj) {
   return JSON.stringify(obj, null, 2)

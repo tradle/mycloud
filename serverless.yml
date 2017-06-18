@@ -79,6 +79,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem
         - dynamodb:DescribeStream
         - dynamodb:GetRecords
         - dynamodb:GetShardIterator
@@ -194,31 +195,57 @@ functions:
   #   handler: project/lib/lambda/createevent.handler
   #   memorySize: 512
 
-  # inbox2events:
-  #   handler: project/lib/lambda/inbox-events.handler
-  #   timeout: 10
-  #   environment:
-  #     DEBUG: tradle:*
-  #   custom:
-  #     env-resources:
-  #       - ObjectsBucket
-  #       - SecretsBucket
-  #       - EventsTable
-  #       - PresenceTable
-  #       - PubKeysTable
-  #       - InboxTable
-  #       - OutboxTable
-  #       - PublicConfBucket
-  #   events:
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - InboxTable
-  #             - StreamArn
+  inbox2events:
+    handler: project/lib/lambda/inbox-events.handler
+    timeout: 60
+    memorySize: 512
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - PublicConfBucket
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - InboxTable
+              - StreamArn
 
+  outbox2events:
+    handler: project/lib/lambda/outbox-events.handler
+    timeout: 60
+    memorySize: 512
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - PublicConfBucket
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - OutboxTable
+              - StreamArn
   # log:
   #   handler: project/lib/lambda/log.handler
   #   # package:
@@ -245,26 +272,6 @@ functions:
   #           Fn::GetAtt:
   #             - EventsTable
   #             - StreamArn
-
-  # triggered when a client subscribes to an MQTT topic
-  onsubscribe:
-    handler: project/lib/lambda/onsubscribe.handler
-    memorySize: 1024
-    events:
-      - iot:
-          sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
-    environment:
-      DEBUG: tradle:*
-    custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - PublicConfBucket
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
@@ -295,15 +302,65 @@ functions:
   #       - OutboxTable
   #       - PublicConfBucket
 
-    # ondisconnect:
-  #   handler: project/lib/lambda/handshake.break
-  #   events:
-  #     - iot:
-  #         sql: "SELECT * FROM '$aws/events/presence/disconnected'"
+  onconnect:
+    handler: project/lib/lambda/mqtt/onconnect.handler
+    events:
+      - iot:
+          sql: "SELECT * FROM '$aws/events/presence/connected/#'"
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - PublicConfBucket
+
+  ondisconnect:
+    handler: project/lib/lambda/mqtt/ondisconnect.handler
+    events:
+      - iot:
+          sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - PublicConfBucket
+
+  # triggered when a client subscribes to an MQTT topic
+  onsubscribe:
+    handler: project/lib/lambda/mqtt/onsubscribe.handler
+    memorySize: 1024
+    events:
+      - iot:
+          sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - PublicConfBucket
 
   # triggered when a client sends a message
-  queuereceive:
-    handler: project/lib/lambda/queuereceive.handler
+  onmessage:
+    handler: project/lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
     environment:
       DEBUG: tradle:*
@@ -314,6 +371,34 @@ functions:
     events:
       - iot:
           sql: "SELECT * as data, clientid() as clientId FROM 'message'"
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - PublicConfBucket
+
+  # pollchain:
+  #   handler: project/lib/lambda/pollchain.handler
+  #   events:
+  #     - schedule:
+  #         rate: rate(10 minutes)
+  #         enabled: false
+  #         # input:
+  #         #   key1: value1
+  #         #   key2: value2
+  #         #   stageParams:
+  #         #     stage: dev
+
+  # useful during development
+  # trigger a message to be queued/sent
+  send:
+    handler: project/lib/lambda/send.handler
+    memorySize: 1024
     custom:
       env-resources:
         - ObjectsBucket

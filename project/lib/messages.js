@@ -4,7 +4,7 @@ const { unserializeMessage } = require('@tradle/engine').utils
 const Objects = require('./objects')
 const Identities = require('./identities')
 const Errors = require('./errors')
-const { pick, omit, typeforce } = require('./utils')
+const { pick, omit, typeforce, prettify } = require('./utils')
 const { InboxTable, OutboxTable } = require('./tables')
 const types = require('./types')
 const {
@@ -13,7 +13,8 @@ const {
   METADATA_PREFIX,
   PAYLOAD_PROP_PREFIX,
   MAX_CLOCK_DRIFT,
-  DEV
+  DEV,
+  SEQ
 } = require('./constants')
 
 const {
@@ -29,7 +30,7 @@ const PREFIXED_PAYLOAD_PROPS = PAYLOAD_WRAPPER_PROPS.map(key => PAYLOAD_PROP_PRE
 
 const get = function get (table, key) {
   return table
-    .get(prefixProps(key))
+    .get({ Key: prefixProps(key) })
     .then(messageFromEventPayload)
 }
 
@@ -80,9 +81,35 @@ const putMessage = co(function* ({ message, payload }) {
   typeforce(types.messageWrapper, message)
   typeforce(types.payloadWrapper, payload)
 
-  const { author, recipient, inbound, object } = message
-  const table = inbound ? InboxTable : OutboxTable
-  yield table.put(messageToEventPayload({ message, payload }))
+  const item = messageToEventPayload({ message, payload })
+  if (message.inbound) {
+    yield putInboundMessage({ message, payload, item })
+  } else {
+    yield putOutboundMessage({ message, payload, item })
+  }
+})
+
+const putOutboundMessage = function putOutboundMessage ({ message, payload, item }) {
+  return OutboxTable.put({ Item: item })
+}
+
+const putInboundMessage = co(function* putInboundMessage ({ message, payload, item }) {
+  const params = {
+    Item: item,
+    ConditionExpression: `attribute_not_exists(${PROP_NAMES.link})`
+  }
+
+  try {
+    yield InboxTable.put(params)
+  } catch (err) {
+    if (err.code === 'ConditionalCheckFailedException') {
+      const dErr = new Errors.DuplicateMessage()
+      dErr.link = message.link
+      throw dErr
+    }
+
+    throw err
+  }
 })
 
 const loadMessage = co(function* ({ message, payload }) {
@@ -215,6 +242,36 @@ const unserializePubKey = function unserializePubKey (key) {
     pub: new Buffer(pub, 'hex')
   }
 }
+
+const getLastSeq = co(function* ({ recipient }) {
+  debug(`looking up last message to ${recipient}`)
+
+  let last
+  try {
+    last = yield OutboxTable.findOne({
+      KeyConditionExpression: `${prefixProp('recipient')} = :recipient`,
+      ExpressionAttributeValues: {
+        ':recipient': recipient
+      },
+      Limit: 1,
+      ScanIndexForward: false
+    })
+
+    return last[SEQ]
+  } catch (err) {
+    if (err instanceof Errors.NotFound) {
+      return -1
+    }
+
+    debug('experienced error in getLastSeq', err.stack)
+    throw err
+  }
+})
+
+const getNextSeq = co(function* ({ recipient }) {
+  const last = yield getLastSeq({ recipient })
+  return last + 1
+})
 
 const getMessagesTo = co(function* ({ recipient, gt, limit, body=true }) {
   debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
@@ -353,13 +410,43 @@ const getInboundByLink = function getInboundByLink (link) {
   })
 }
 
-const ensureNotDuplicate = co(function* (link) {
+// const assertNotDuplicate = co(function* (link) {
+//   try {
+//     const duplicate = yield Messages.getInboundByLink(link)
+//     debug(`duplicate found for message ${link}`)
+//     const dErr = new Errors.DuplicateMessage()
+//     dErr.link = link
+//     throw dErr
+//   } catch (err) {
+//     if (!(err instanceof Errors.NotFound)) {
+//       throw err
+//     }
+//   }
+// })
+
+const assertTimestampIncreased = co(function* ({ author, link, time }) {
   try {
-    const duplicate = yield Messages.getInboundByLink(link)
-    debug(`duplicate found for message ${link}`)
-    const dErr = new Errors.DuplicateMessage()
-    dErr.link = link
-    throw dErr
+    const result = yield Messages.getLastMessageFrom({ author, body: false })
+    const prev = result.message
+    debug('previous message:', prettify(prev))
+    if (prev.link === link) {
+      const dErr = new Errors.DuplicateMessage()
+      dErr.link = link
+      throw dErr
+    }
+
+    if (prev.time >= time) {
+      const msg = `timestamp for message ${link} is <= the previous messages's (${prev.link})`
+      debug(msg)
+      const dErr = new Errors.TimeTravel(msg)
+      dErr.link = link
+      // dErr.previous = {
+      //   time: prev.time,
+      //   link: prev.link
+      // }
+
+      throw dErr
+    }
   } catch (err) {
     if (!(err instanceof Errors.NotFound)) {
       throw err
@@ -372,14 +459,18 @@ const parseInbound = co(function* ({ message }) {
   // yield ensureMessageIsForMe({ message })
 
   const messageWrapper = Objects.addMetadata({ object: message })
-  const checkDuplicate = ensureNotDuplicate(messageWrapper.link)
-  const payloadWrapper = Objects.addMetadata({ object: message })
+  const payloadWrapper = Objects.addMetadata({ object: message.object })
 
-  yield checkDuplicate
+  // TODO:
+  // would be nice to parallelize some of these
+  // yield assertNotDuplicate(messageWrapper.link)
+
   yield [
     Identities.addAuthorMetadata(messageWrapper),
     Identities.addAuthorMetadata(payloadWrapper)
   ]
+
+  yield Messages.assertTimestampIncreased(messageWrapper)
 
   messageWrapper.inbound = true
   messageWrapper.object = message
@@ -397,7 +488,7 @@ const preProcessInbound = co(function* (event) {
     return
   }
 
-  // ensureNoDrift(message)
+  // assertNoDrift(message)
 
   const { object } = message
   const identity = getIntroducedIdentity(object)
@@ -409,14 +500,14 @@ const preProcessInbound = co(function* (event) {
   return message
 })
 
-const ensureNoDrift = function ensureNoDrift (message) {
-  const drift = message.time - Date.now()
-  const side = drift > 0 ? 'ahead' : 'behind'
-  if (Math.abs(drift) > MAX_CLOCK_DRIFT) {
-    debug(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
-    throw new Errors.ClockDrift(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
-  }
-}
+// const assertNoDrift = function assertNoDrift (message) {
+//   const drift = message.time - Date.now()
+//   const side = drift > 0 ? 'ahead' : 'behind'
+//   if (Math.abs(drift) > MAX_CLOCK_DRIFT) {
+//     debug(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
+//     throw new Errors.ClockDrift(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
+//   }
+// }
 
 const getIntroducedIdentity = function getIntroducedIdentity (payload) {
   const type = payload[TYPE]
@@ -427,11 +518,14 @@ const getIntroducedIdentity = function getIntroducedIdentity (payload) {
   }
 }
 
-const getMessageId = function getMessageId ({ object, time, link }) {
-  return {
-    link: link || Objects.getLink(object),
-    time: time || object.time
+const getMessageStub = function getMessageStub ({ message, error }) {
+  const stub = {
+    link: (error && error.link) || message.link || Objects.getLink(message.object),
+    time: message.time || message.object.time
   }
+
+  typeforce(types.messageStub, stub)
+  return stub
 }
 
 // enable overriding during testing
@@ -451,6 +545,11 @@ const Messages = module.exports = {
   getMessageFrom,
   getLastMessageFrom,
   getInboundByLink,
-  getMessageId
+  getMessageStub,
+  getLastSeq,
+  getNextSeq,
+  assertTimestampIncreased,
+  // assertNoDrift,
+  // assertNotDuplicate
   // receiveMessage
 }

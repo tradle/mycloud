@@ -12,7 +12,9 @@ const { PubKeysTable } = require('./tables')
 
 function getIdentityMetadataByPub (pub) {
   debug('get identity metadata by pub')
-  return PubKeysTable.get({ pub })
+  return PubKeysTable.get({
+    Key: { pub }
+  })
 }
 
 function getIdentityByPub (pub) {
@@ -133,9 +135,11 @@ const addContact = co(function* ({ link, permalink, object }) {
 function putPubKey ({ link, permalink, pub }) {
   debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
   return PubKeysTable.put({
-    link,
-    permalink,
-    pub
+    Item: {
+      link,
+      permalink,
+      pub
+    }
   })
 }
 

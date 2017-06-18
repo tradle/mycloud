@@ -48,12 +48,13 @@ exports.payloadWrapper = typeforce.compile({
   sigPubKey: typeforce.String
 })
 
-exports.position = typeforce.compile({
-  sent: typeforce.maybe(typeforce.Number),
-  received: typeforce.maybe(typeforce.Number),
-})
-
-exports.messageId = typeforce.compile({
+exports.messageStub = typeforce.compile({
   time: typeforce.Number,
   link: link
 })
+
+exports.position = typeforce.compile({
+  time: typeforce.maybe(exports.messageStub),
+  received: typeforce.maybe(exports.messageStub)
+})
+

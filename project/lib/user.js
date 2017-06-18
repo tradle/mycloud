@@ -12,42 +12,37 @@ const { SERVERLESS_STAGE, BOT_LAMBDA } = require('./env')
 const Errors = require('./errors')
 const types = require('./types')
 
-// const onConnect = co(function* ({ clientId }) {
-//   const { clientId, permalink, tip } = Auth.getSession({ clientId })
-//   yield Delivery.deliverMessages({ clientId, permalink, gt: tip })
-// })
+const onSubscribed = co(function* ({ clientId, topics }) {
+  debug('client subscribed to topics:', topics.join(', '))
+  // yield onEnter({ clientId })
 
-const onSubscribed = co(function* ({ clientId }) {
+  const messagesTopic = Iot.getMessagesTopicForClient(clientId)
+  const catchAll = new RegExp(`${clientId}/[+#]{1}`)
+  const subscribedToMessages = topics.find(topic => {
+    return topic === messagesTopic || catchAll.test(topic)
+  })
+
+  if (!subscribedToMessages) return
+
   const session = yield Auth.getSession({ clientId })
   debug('retrieved session', prettify(session))
   const { permalink, clientPosition, serverPosition } = session
-  const gt = clientPosition.received || 0
+  const gt = (clientPosition.received && clientPosition.received.time) || 0
   yield Delivery.deliverMessages({ clientId, permalink, gt })
 })
 
-const sendAck = function sendAck ({ clientId, id }) {
-  typeforce(types.messageId, id)
-
-  return Iot.publish({
-    topic: `${clientId}/ack`,
-    payload: {
-      message: id
-    }
-  })
-}
-
 const onSentMessage = co(function* ({ clientId, message }) {
+  // can probably move this to lamdba
+  // as it's normalizing transport-mangled inputs
   message = Messages.normalizeInbound(message)
   try {
     message = yield Messages.preProcessInbound(message)
   } catch (err) {
-    if (err instanceof Errors.ClockDrift || err instanceof Errors.InvalidMessageFormat) {
-      yield Iot.publish({
-        topic: `${clientId}/reject`,
-        payload: {
-          message: Messages.getMessageId({ object: message }),
-          reason: Errors.export(err)
-        }
+    if (err instanceof Errors.InvalidMessageFormat) {
+      yield Delivery.reject({
+        clientId,
+        message: { object: message },
+        reason: Errors.export(err)
       })
 
       return
@@ -61,16 +56,25 @@ const onSentMessage = co(function* ({ clientId, message }) {
   try {
     wrapper = yield createReceiveMessageEvent({ message })
   } catch (err) {
+    wrapper = { object: message }
     if (err instanceof Errors.DuplicateMessage) {
-      debug('ignoring duplicate message')
-      yield sendAck({
+      debug('ignoring but acking duplicate message', prettify(wrapper))
+      yield Delivery.ack({
         clientId,
-        id: {
-          time: message.time,
-          link: err.link
-        }
+        message: wrapper
       })
 
+      return
+    }
+
+    if (err instanceof Errors.TimeTravel) {
+      debug('rejecting message with lower timestamp than previous')
+      yield Delivery.reject({
+        clientId,
+        message: wrapper,
+        error: err
+      })
+      
       return
     }
 
@@ -78,9 +82,9 @@ const onSentMessage = co(function* ({ clientId, message }) {
     throw err
   }
 
-  yield sendAck({
+  yield Delivery.ack({
     clientId,
-    id: Messages.getMessageId(wrapper.message)
+    message: wrapper.message
   })
 
   const { author, time } = wrapper.message
@@ -97,6 +101,14 @@ const onSentMessage = co(function* ({ clientId, message }) {
   //   }
   // })
 })
+
+const onDisconnected = function ({ clientId }) {
+  return Auth.updatePresence({ clientId, connected: false })
+}
+
+const onConnected = function ({ clientId }) {
+  return Auth.updatePresence({ clientId, connected: true })
+}
 
 const onPreAuth = Auth.getTemporaryIdentity
 const onSentChallengeResponse = co(function* (response) {
@@ -151,6 +163,8 @@ function getProviderStyles () {
 module.exports = {
   onSentChallengeResponse,
   onPreAuth,
+  onConnected,
+  onDisconnected,
   onSubscribed,
   onSentMessage,
   onRestoreRequest,

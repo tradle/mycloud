@@ -11,13 +11,14 @@ const { getObjectByLink, extractMetadata } = require('./objects')
 const { PublicConfBucket } = require('./buckets')
 const Identities = require('./identities')
 const Events = require('./events')
-const { getMostRecentSessionByPermalink } = require('./auth')
+const { getLiveSessionByPermalink } = require('./auth')
 const { deliverBatch } = require('./delivery')
-const { MessageNotForMe } = require('./errors')
+const Errors = require('./errors')
 const types = require('./types')
 const {
   PAYLOAD_PROP_PREFIX,
   IDENTITY_KEYS_KEY,
+  SEQ,
   TYPE,
   TYPES,
   SIG,
@@ -77,16 +78,15 @@ const _createSendMessageEvent = co(function* (opts) {
     other: typeforce.maybe(typeforce.Object),
   }, opts)
 
+  // run in parallel
   const promisePayload = findOrCreate({ link, object, author })
+  const promiseSeq = Messages.getNextSeq({ recipient })
   const promiseRecipient = Identities.getIdentityByPermalink(recipient)
   const [payloadWrapper, recipientObj] = yield [
     promisePayload,
     promiseRecipient
   ]
 
-  // TODO:
-  // efficiency can be improved
-  // message signing can be done in parallel with putObject in findOrCreate
   const unsignedMessage = clone(other, {
     [TYPE]: MESSAGE,
     recipientPubKey: utils.sigPubKey(recipientObj.object),
@@ -94,18 +94,42 @@ const _createSendMessageEvent = co(function* (opts) {
     time: opts.time
   })
 
-  const signedMessage = yield signObject({ author, object: unsignedMessage })
-  signedMessage.author = author.permalink
-  signedMessage.recipient = recipientObj.permalink
-  signedMessage.time = opts.time
+  // TODO:
+  // efficiency can be improved
+  // message signing can be done in parallel with putObject in findOrCreate
 
-  const wrapper = {
-    message: signedMessage,
-    payload: payloadWrapper
+  let attemptsToGo = 3
+  let seq = yield promiseSeq
+  while (attemptsToGo--) {
+    debug(`signing message ${seq} to ${recipient}`)
+    unsignedMessage[SEQ] = seq
+    let signedMessage = yield signObject({ author, object: unsignedMessage })
+    signedMessage.author = author.permalink
+    signedMessage.recipient = recipientObj.permalink
+    signedMessage.time = opts.time
+
+    let wrapper = {
+      message: signedMessage,
+      payload: payloadWrapper
+    }
+
+    try {
+      yield Messages.putMessage(wrapper)
+      return wrapper
+    } catch (err) {
+      if (err.code !== 'ConditionalCheckFailedException') {
+        throw err
+      }
+
+      debug(`seq ${seq} was taken by another message`)
+      seq = yield Messages.getNextSeq({ recipient })
+      debug(`retrying with seq ${seq}`)
+    }
   }
 
-  yield Messages.putMessage(wrapper)
-  return wrapper
+  const err = new Errors.PutFailed('failing after 3 retries')
+  err.retryable = true
+  throw err
 })
 
 const createSendMessageEvent = co(function* (opts) {
@@ -152,14 +176,14 @@ const ensureMessageIsForMe = co(function* ({ message }) {
 
   if (!myPubKey) {
     debug(`ignoring message meant for someone else (with pubKey: ${toPubKey}) `)
-    throw new MessageNotForMe(`message to pub key: ${toPubKey}`)
+    throw new Errors.MessageNotForMe(`message to pub key: ${toPubKey}`)
   }
 })
 
 const sendMessage = co(function* ({ recipient, object, other={} }) {
   // start this first to get a more accurate timestamp
   const promiseCreate = createSendMessageEvent({ recipient, object, other })
-  const promiseSession = getMostRecentSessionByPermalink(recipient)
+  const promiseSession = getLiveSessionByPermalink(recipient)
   const { message } = yield promiseCreate
 
   let session

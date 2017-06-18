@@ -11,13 +11,14 @@ const errors = {}
   'InvalidInput',
   'ClockDrift',
   'BatchPutFailed',
-  'DuplicateMessage'
+  'DuplicateMessage',
+  'TimeTravel'
 ].forEach(name => errors[name] = ex(name))
 
 exports = module.exports = errors
 exports.export = function (err) {
   return {
-    type: err.name,
+    type: err.name.toLowerCase(),
     message: err.message
   }
 }

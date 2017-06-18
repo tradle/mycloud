@@ -3,6 +3,7 @@ const debug = require('debug')('tradle:sls:auth')
 const { utils } = require('@tradle/engine')
 const aws = require('./aws')
 const Iot = require('./iot-utils')
+const { getUpdateParams } = require('./db-utils')
 const { IOT_CLIENT_ROLE } = require('./env')
 const { co, randomString, cachifyPromiser, prettify, typeforce } = require('./utils')
 const { HandshakeFailed, InvalidInput, NotFound } = require('./errors')
@@ -45,41 +46,49 @@ const onAuthenticated = co(function* ({ clientId, permalink, clientPosition, ser
     clientPosition,
     serverPosition,
     authenticated: true,
-    time: Date.now()
+    time: Date.now(),
+    connected: false
   }
 
   debug('saving session', prettify(session))
 
+  // allow multiple sessions for the same user?
   // yield deleteSessionsByPermalink(permalink)
-  yield PresenceTable.put(session)
-
-  // yield Iot.sendAuthenticated({ clientId })
+  yield PresenceTable.put({ Item: session })
 })
 
+function updatePresence ({ clientId, connected }) {
+  const params = getUpdateParams({ connected })
+  params.Key = getKeyFromClientId(clientId)
+  return PresenceTable.update(params)
+}
+
+function deleteSession (clientId) {
+  const Key = getKeyFromClientId(clientId)
+  return PresenceTable.del({ Key })
+}
+
 function deleteSessionsByPermalink (permalink) {
-  return PresenceTable.del({
+  return PresenceTable.del(getSessionsByPermalinkQuery)
+}
+
+function getSessionsByPermalink (permalink) {
+  return PresenceTable.find(getSessionsByPermalinkQuery(permalink))
+}
+
+function getSessionsByPermalinkQuery (permalink) {
+  return {
     KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
     ExpressionAttributeValues: {
       ':permalink': permalink
     }
-  })
+  }
 }
 
-function getSessionsByPermalink (permalink) {
-  return PresenceTable.find({
-    // ConditionExpression: '#permalink = :permalink AND #authenticated = :authenticated',
-    KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
-    ExpressionAttributeValues: {
-      ':permalink': permalink,
-      // ':authenticated': true
-    }
-  })
-}
-
-const getMostRecentSessionByPermalink = co(function* (permalink) {
+const getLiveSessionByPermalink = co(function* (permalink) {
   const sessions = yield getSessionsByPermalink(permalink)
   const latest = sessions
-    .filter(session => session.authenticated)
+    .filter(session => session.authenticated && session.connected)
     .sort((a, b) => {
       return a.time - b.time
     })
@@ -108,10 +117,12 @@ const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) 
   // const permalink = getPermalinkFromClientId(clientId)
   const challenge = newNonce()
   yield PresenceTable.put({
-    clientId,
-    permalink,
-    challenge,
-    authenticated: false
+    Item: {
+      clientId,
+      permalink,
+      challenge,
+      authenticated: false
+    }
   })
 
   return challenge
@@ -138,7 +149,10 @@ const handleChallengeResponse = co(function* (response) {
   const { clientId, permalink, challenge, position } = response
 
   // const permalink = getPermalinkFromClientId(clientId)
-  const stored = yield PresenceTable.get({ clientId, permalink })
+  const stored = yield PresenceTable.get({
+    Key: { clientId, permalink }
+  })
+
   if (challenge !== stored.challenge) {
     throw new HandshakeFailed('stored challenge does not match response')
   }
@@ -162,7 +176,7 @@ const handleChallengeResponse = co(function* (response) {
 
   const session = { permalink, clientId, clientPosition: position }
   const getLastSent = Messages.getLastMessageTo({ recipient: permalink, body: false })
-    .then(msg => Messages.getMessageId)
+    .then(Messages.getMessageStub)
     .catch(err => {
       if (err instanceof NotFound) return null
 
@@ -231,12 +245,12 @@ const getTemporaryIdentity = co(function* (opts) {
 })
 
 function getMostRecentSessionByClientId (clientId) {
-  return getMostRecentSessionByPermalink(getPermalinkFromClientId(clientId))
+  return getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
 }
 
 // const isMostRecentSession = co(function* ({ clientId }) {
 //   try {
-//     const session = yield getMostRecentSessionByPermalink(getPermalinkFromClientId(clientId))
+//     const session = yield getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
 //     return session.clientId === clientId
 //   } catch (err) {}
 // })
@@ -250,6 +264,13 @@ function getPermalinkFromClientId (clientId) {
   return clientId.slice(0, 64)
 }
 
+function getKeyFromClientId (clientId) {
+  return {
+    clientId,
+    permalink: getPermalinkFromClientId(clientId)
+  }
+}
+
 module.exports = {
   // onEnter,
   // onExit,
@@ -259,7 +280,9 @@ module.exports = {
   getTemporaryIdentity,
   getSession,
   getSessionsByPermalink,
-  getMostRecentSessionByPermalink,
+  getLiveSessionByPermalink,
   getMostRecentSessionByClientId,
+  deleteSession,
+  updatePresence
   // isMostRecentSession
 }

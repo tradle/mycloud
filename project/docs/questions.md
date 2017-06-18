@@ -160,3 +160,29 @@ support WillNotDeliver error in @tradle/engine sender
 need "dontsend" sendstatus
 
 HTTP POST messages that are > 128KB
+if the server needs to send a message > 128KB, it can create a file in an S3 bucket, and give the client permission to download it. cron-Lambda can prune this bucket every 5 minutes
+
+check that inbound messages has increasing timestamp (compared with previous)
+
+on disconnect - mark them as disconnected
+authentication expires
+is reauth on every connect needed?
+
+when MQTT authentication expires, or authentication fails, the client should be able to detect that and reconnect/reauth
+
+Discussion (sequence numbers vs link-to-previous-message):
+  use sequence numbers for now (when creating messages on the server)
+  
+  add link to previous message
+
+  getLastSeq race condition:
+    retry update() if it fails because another write took that seq
+
+  client will reorder based on seq
+
+
+  test whether disconnect/reconnect lose messages
+
+how to prevent race condition on writes while ensuring increasing timestamp
+?
+  - by only accepting one message at a time
