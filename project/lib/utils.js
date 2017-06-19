@@ -25,6 +25,7 @@ exports.typeforce = typeforce
 exports.isGenerator = isGenerator
 
 exports.addLinks = utils.addLinks
+exports.toECKeyObj = utils.toECKeyObj
 
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {

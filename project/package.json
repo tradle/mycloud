@@ -7,6 +7,8 @@
   "author": "Mark Vayngrib <mark@tradle.io>",
   "license": "MIT",
   "dependencies": {
+    "@tradle/bitcoin-adapter": "tradle/bitcoin-adapter",
+    "@tradle/cb-blockr": "^3.2.0",
     "@tradle/engine": "^4.9.0",
     "co": "^4.6.0",
     "debug": "^2.6.8",
@@ -27,7 +29,8 @@
     "pify": "^2.3.0",
     "typeforce": "^1.11.1",
     "utf8-length": "^0.0.1",
-    "xtend": "^4.0.1"
+    "xtend": "^4.0.1",
+    "ya-promise-queue": "^1.1.0"
   },
   "devDependencies": {}
 }

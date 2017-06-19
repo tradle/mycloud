@@ -1,5 +1,6 @@
 const localstack = require('./localstack')
 const services = {
+  "maxRetries": 6,
   "AWS": {
     "region": "us-east-1"
   },

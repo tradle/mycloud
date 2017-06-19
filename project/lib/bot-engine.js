@@ -7,6 +7,7 @@ const wrap = require('./wrap')
 const Messages = require('./messages')
 const Provider = require('./provider')
 const Errors = require('./errors')
+const { queueSeal } = require('./seals')
 const ENV = require('./env')
 
 function wrapOnMessage (receive) {
@@ -45,14 +46,10 @@ function wrapReadSeal (readSeal) {
   })
 }
 
-function sealObject (link) {
-  throw new Error('not implemented yet')
-}
-
 module.exports = {
   onreadseal: wrapReadSeal,
   onmessage: wrapOnMessage,
   send: sendMessage,
-  seal: sealObject,
+  seal: queueSeal,
   constants: require('./constants')
 }

@@ -11,7 +11,7 @@ const errors = {}
   'InvalidInput',
   'ClockDrift',
   'BatchPutFailed',
-  'DuplicateMessage',
+  'Duplicate',
   'TimeTravel'
 ].forEach(name => errors[name] = ex(name))
 

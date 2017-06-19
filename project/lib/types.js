@@ -58,3 +58,9 @@ exports.position = typeforce.compile({
   received: typeforce.maybe(exports.messageStub)
 })
 
+exports.blockchain = typeforce.compile({
+  name: typeforce.String,
+  type: typeforce.String,
+  pubKeyToAddress: typeforce.Function,
+  seal: typeforce.Function
+})

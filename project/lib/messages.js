@@ -103,7 +103,7 @@ const putInboundMessage = co(function* putInboundMessage ({ message, payload, it
     yield InboxTable.put(params)
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
-      const dErr = new Errors.DuplicateMessage()
+      const dErr = new Errors.Duplicate()
       dErr.link = message.link
       throw dErr
     }
@@ -414,7 +414,7 @@ const getInboundByLink = function getInboundByLink (link) {
 //   try {
 //     const duplicate = yield Messages.getInboundByLink(link)
 //     debug(`duplicate found for message ${link}`)
-//     const dErr = new Errors.DuplicateMessage()
+//     const dErr = new Errors.Duplicate()
 //     dErr.link = link
 //     throw dErr
 //   } catch (err) {
@@ -430,7 +430,7 @@ const assertTimestampIncreased = co(function* ({ author, link, time }) {
     const prev = result.message
     debug('previous message:', prettify(prev))
     if (prev.link === link) {
-      const dErr = new Errors.DuplicateMessage()
+      const dErr = new Errors.Duplicate()
       dErr.link = link
       throw dErr
     }

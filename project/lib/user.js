@@ -57,7 +57,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
     wrapper = yield createReceiveMessageEvent({ message })
   } catch (err) {
     wrapper = { object: message }
-    if (err instanceof Errors.DuplicateMessage) {
+    if (err instanceof Errors.Duplicate) {
       debug('ignoring but acking duplicate message', prettify(wrapper))
       yield Delivery.ack({
         clientId,
@@ -74,7 +74,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
         message: wrapper,
         error: err
       })
-      
+
       return
     }
 

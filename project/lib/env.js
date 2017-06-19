@@ -4,9 +4,11 @@ const env = clone(
   process.env
 )
 
-if (!env.NETWORK_NAME) {
-  env.NETWORK_NAME = 'testnet'
-}
+env.BLOCKCHAIN = (function () {
+  const { BLOCKCHAIN='bitcoin:testnet' } = env
+  const [type, network] = BLOCKCHAIN.split(':')
+  return { type, network }
+}())
 
 env.DEV = env.SERVERLESS_STAGE === 'dev'
 

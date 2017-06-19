@@ -17,4 +17,8 @@ exports.handler = bot.onmessage(co(function* ({ message, payload }) {
       message: payload.object.message
     }
   })
+
+  yield bot.seal({
+    link: payload.link
+  })
 }))
