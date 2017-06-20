@@ -193,14 +193,20 @@ how to prevent race condition on writes while ensuring increasing timestamp
   - by only accepting one message at a time
 
 ## Blockchain
-  don't need cb-proxy because it's only one provider
+
+### Notes
+
+don't need cb-proxy because it's only one provider
 
 ### Questions
 
 - should there be a table per blockchain? or should all seals be in the same table
+- where will the full node run?
 
 in which tables and which cases can we tolerate eventually consistent reads? In which tables and which cases do we need strongly consistent reads?
 
 will we be implementing DynamoDB Transactions for Node.js?
   aws-sdk-js issue: https://github.com/aws/aws-sdk-js/issues/1004
   initial js implementation: https://github.com/aaaristo/dyngodb/issues/19
+
+should we use streams for reporting detected seals?

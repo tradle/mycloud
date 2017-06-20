@@ -9,7 +9,6 @@ const extend = require('xtend/mutable')
 const uuid = require('uuid')
 const co = require('co').wrap
 const promisify = require('pify')
-const stringify = JSON.stringify.bind(JSON)
 const stableStringify = require('json-stable-stringify')
 const isGenerator = require('is-generator-function')
 const { hexLink, addLinks, extractSigPubKey } = require('@tradle/engine').utils
@@ -118,9 +117,9 @@ exports.logifyFunction = function logifyFunction ({ fn, name, log=debug, logInpu
       ]
 
       if (logInputOutput) {
-        parts.push('input:', stringify(args))
+        parts.push('input:', stringifyWithFlatBuffers(args))
         if (!err) {
-          parts.push('output:', stringify(ret))
+          parts.push('output:', stringifyWithFlatBuffers(ret))
         }
       }
 
@@ -155,10 +154,10 @@ exports.logify = function logify (obj, opts={}) {
   return logified
 }
 
-exports.stableStringify = stringify
+exports.stableStringify = stableStringify
 
 exports.prettify = function prettify (obj) {
-  return JSON.stringify(obj, null, 2)
+  return JSON.stringify(obj, bufferReplacer, 2)
 }
 
 exports.randomString = function randomString (bytes) {
@@ -278,6 +277,20 @@ function noop () {}
 
 function upperCaseFirstCharacter (str) {
   return str[0].toUpperCase() + str.slice(1).toLowerCase()
+}
+
+function stringifyWithFlatBuffers (value, spacing) {
+  return JSON.stringify(value, bufferReplacer, spacing)
+}
+
+function bufferReplacer (key, value) {
+  // Filtering out properties
+  if (Object.keys(value).length === 2 && value.type === 'Buffer' && Array.isArray(value.data)) {
+    // don't prettify buffer
+    return JSON.stringify(value)
+  }
+
+  return value
 }
 
 // function startTimer (name) {

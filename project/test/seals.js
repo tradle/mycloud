@@ -16,18 +16,7 @@ const networkName = 'testnet'
 
 test('queue seal', co(function* (t) {
   const table = yield recreateTable(schema)
-  // adapters.bitcoin = function ({ networkName, privateKey, proxy }) {
-  //   return {
-  //     transactor: {
-  //       send: function (opts, cb) {
-  //         t.equal(opts.to[0].address, addressd)
-  //         t.ok('transacted')
-  //         cb()
-  //       }
-  //     }
-  //   }
-  // }
-
+  const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
   const txId = 'sometxid'
   const blockchain = createBlockchainAPI({ flavor, networkName })
 
@@ -47,10 +36,22 @@ test('queue seal', co(function* (t) {
     ])
   }
 
-  const seals = createSealsAPI({ blockchain, table })
+  let read
+  let wrote
+  const onread = function (seal) {
+    read = true
+    t.equal(seal.address, address)
+    t.equal(seal.txId, txId)
+  }
 
+  const onwrote = function (seal) {
+    wrote = true
+    t.equal(seal.address, address)
+    t.equal(seal.txId, txId)
+  }
+
+  const seals = createSealsAPI({ blockchain, table, onread, onwrote })
   const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
-  const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
   const address = blockchain.sealAddress({
     link,
     basePubKey: key
@@ -71,6 +72,9 @@ test('queue seal', co(function* (t) {
   yield seals.syncUnconfirmed()
   unconfirmed = yield seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
+
+  t.equal(read, true)
+  t.equal(wrote, true)
 
   t.end()
 }))

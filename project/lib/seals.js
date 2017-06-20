@@ -2,7 +2,7 @@ const debug = require('debug')('tradle:sls:seals')
 const { utils, protocol } = require('@tradle/engine')
 // const Blockchain = require('./blockchain')
 const { getUpdateParams } = require('./db-utils')
-const { co, extend, pick, timestamp, typeforce, uuid } = require('./utils')
+const { co, clone, extend, pick, timestamp, typeforce, uuid, isPromise } = require('./utils')
 const types = require('./types')
 const Errors = require('./errors')
 const MAX_ERRORS_RECORDED = 10
@@ -12,7 +12,9 @@ const WATCH_TYPE = {
   next: 'n'
 }
 
-function manageSeals ({ blockchain, table }) {
+const noop = () => {}
+
+function manageSeals ({ blockchain, table, onread=noop, onwrote=noop }) {
   typeforce(types.blockchain, blockchain)
 
   const confirmationsRequired = SEAL_CONFIRMATIONS[blockchain.toString()]
@@ -35,7 +37,7 @@ function manageSeals ({ blockchain, table }) {
 
     const { limit=Infinity } = opts
     const pending = yield getUnsealed({ limit })
-    for (let sealInfo of pending) {
+    yield pending.map(co(function* (sealInfo) {
       let result
       try {
         result = yield blockchain.seal(sealInfo)
@@ -44,12 +46,15 @@ function manageSeals ({ blockchain, table }) {
         return
       }
 
-      yield recordWriteSuccess({
+      let updated = yield recordWriteSuccess({
         blockchain,
         seal: sealInfo,
         result
       })
-    }
+
+      // call onwrote
+      yield callOnWrote(updated)
+    }))
   })
 
   const createSealRecord = co(function* (opts) {
@@ -122,23 +127,24 @@ function manageSeals ({ blockchain, table }) {
     return createSealRecord({ key, link, write: true })
   })
 
-  const recordWriteSuccess = function recordWriteSuccess ({ seal, result }) {
+  const recordWriteSuccess = co(function* ({ seal, result }) {
     typeforce({
       txId: typeforce.String,
       confirmations: typeforce.maybe(typeforce.Number)
     }, result)
 
-    const props = {
+    const update = {
       txId: result.txId,
       confirmations: result.confirmations || 0,
       timeSealed: timestamp(),
       unsealed: null
     }
 
-    const params = getUpdateParams(props)
+    const params = getUpdateParams(update)
     params.Key = getKey(seal)
-    return table.update(params)
-  }
+    yield table.update(params)
+    return clone(seal, update)
+  })
 
   const recordWriteError = function recordWriteError ({ seal, error }) {
     debug(`failed to seal ${seal.link}`, error.stack)
@@ -157,25 +163,52 @@ function manageSeals ({ blockchain, table }) {
       if (sealInfo.confirmations === txInfo.confirmations) return
 
       const { confirmations=0 } = txInfo
-      const update = getUpdateParams({
+      return {
         address: sealInfo.address,
         confirmations,
         unconfirmed: confirmations < confirmationsRequired ? 'x' : null
-      })
-
-      update.Key = getKey(sealInfo)
-      return update
+      }
     })
-    .filter(update => update)
 
-    if (!updates.length) {
+    const actualUpdates = updates.filter(update => update)
+    if (!actualUpdates.length) {
       debug(`blockchain has nothing new for ${addresses.length} synced addresses`)
       return
     }
 
+    yield updates.map(co(function* (update, i) {
+      if (!update) return
+
+      const seal = unconfirmed[i]
+      const params = getUpdateParams(update)
+      params.Key = getKey(seal)
+      yield table.update(params)
+
+      yield callOnRead(clone(seal, update))
+    }))
+
     // TODO: use dynamodb-wrapper
     // make this more robust
-    yield updates.map(table.update)
+  })
+
+  const callOnRead = co(function* (seal) {
+    // call onread
+    try {
+      let maybePromise = onread(seal)
+      if (isPromise(maybePromise)) yield maybePromise
+    } catch (err) {
+      debug(`onread handler failed for seal ${seal.id}`, err.stack)
+    }
+  })
+
+  const callOnWrote = co(function* (seal) {
+    // call onwrote
+    try {
+      let maybePromise = onwrote(seal)
+      if (isPromise(maybePromise)) yield maybePromise
+    } catch (err) {
+      debug(`onwrote handler failed for seal ${seal.id}`, err.stack)
+    }
   })
 
   function addError (errors=[], error) {
