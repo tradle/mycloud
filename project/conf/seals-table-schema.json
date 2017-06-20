@@ -1,0 +1,77 @@
+{
+   "TableName": "SealsTable",
+   "AttributeDefinitions": [
+      {
+         "AttributeName": "id",
+         "AttributeType": "S"
+      },
+      {
+         "AttributeName": "unconfirmed",
+         "AttributeType": "S"
+      },
+      {
+         "AttributeName": "unsealed",
+         "AttributeType": "S"
+      },
+      {
+         "AttributeName": "address",
+         "AttributeType": "S"
+      }
+   ],
+   "KeySchema": [
+      {
+         "AttributeName": "id",
+         "KeyType": "HASH"
+      }
+   ],
+   "ProvisionedThroughput": {
+      "ReadCapacityUnits": 5,
+      "WriteCapacityUnits": 5
+   },
+   "StreamSpecification": {
+      "StreamEnabled": true,
+      "StreamViewType": "NEW_AND_OLD_IMAGES"
+   },
+   "GlobalSecondaryIndexes": [
+      {
+         "IndexName": "unconfirmed",
+         "KeySchema": [
+            {
+               "AttributeName": "unconfirmed",
+               "KeyType": "HASH"
+            },
+            {
+               "AttributeName": "address",
+               "KeyType": "RANGE"
+            }
+         ],
+         "Projection": {
+           "ProjectionType": "ALL"
+         },
+         "ProvisionedThroughput": {
+           "ReadCapacityUnits": 5,
+           "WriteCapacityUnits": 5
+         }
+      },
+      {
+         "IndexName": "unsealed",
+         "KeySchema": [
+            {
+               "AttributeName": "unsealed",
+               "KeyType": "HASH"
+            },
+            {
+               "AttributeName": "address",
+               "KeyType": "RANGE"
+            }
+         ],
+         "Projection": {
+           "ProjectionType": "ALL"
+         },
+         "ProvisionedThroughput": {
+           "ReadCapacityUnits": 5,
+           "WriteCapacityUnits": 5
+         }
+      }
+   ]
+}

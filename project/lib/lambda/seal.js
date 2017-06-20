@@ -1,5 +1,6 @@
+const wrap = require('../wrap')
+const bot = require('../bot-engine')
 
-exports.handler = function (event, context, cb) {
-  console.log('STUB: seal', event)
-  cb()
-}
+exports.handler = wrap.generator(function* (event, context) {
+  yield bot.seal(event)
+})

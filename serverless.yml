@@ -651,29 +651,40 @@ resources:
       Properties:
         TableName: SealsTable
         AttributeDefinitions:
-          - AttributeName: time
+          - AttributeName: id
             AttributeType: S
           - AttributeName: confirmations
             AttributeType: N
           # 'y' vs null
-          - AttributeName: pending
+          - AttributeName: unconfirmed
+            AttributeType: S
+          - AttributeName: unsealed
             AttributeType: S
         KeySchema:
-          - AttributeName: time
+          - AttributeName: id
             KeyType: HASH
-          # - AttributeName: confirmations
-          #   KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
         GlobalSecondaryIndexes:
-          - IndexName: pending
+          - IndexName: unconfirmed
             KeySchema:
-              - AttributeName: pending
+              - AttributeName: unconfirmed
                 KeyType: HASH
-              - AttributeName: confirmations
+              - AttributeName: address
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+          - IndexName: unsealed
+            KeySchema:
+              - AttributeName: unsealed
+                KeyType: HASH
+              - AttributeName: address
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL

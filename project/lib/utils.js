@@ -6,7 +6,9 @@ const omit = require('object.omit')
 const pick = require('object.pick')
 const clone = require('xtend')
 const extend = require('xtend/mutable')
+const uuid = require('uuid')
 const co = require('co').wrap
+const promisify = require('pify')
 const stringify = JSON.stringify.bind(JSON)
 const stableStringify = require('json-stable-stringify')
 const isGenerator = require('is-generator-function')
@@ -23,6 +25,8 @@ exports.omit = omit
 exports.pick = pick
 exports.typeforce = typeforce
 exports.isGenerator = isGenerator
+exports.uuid = uuid.v4
+exports.promisify = promisify
 
 exports.addLinks = utils.addLinks
 exports.toECKeyObj = utils.toECKeyObj
@@ -258,7 +262,7 @@ exports.timestamp = function timestamp () {
   return seconds * 1e6 + microseconds
 }
 
-exports.wait = function wait (millis) {
+exports.wait = function wait (millis=0) {
   return new Promise(resolve => setTimeout(resolve, millis))
 }
 

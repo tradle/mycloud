@@ -93,12 +93,33 @@ function update (params) {
 }
 
 function getUpdateParams (item) {
-  const UpdateExpression = 'SET ' + Object.keys(item).map(key => `#${key} = :${key}`).join(', ')
+  const keys = Object.keys(item)
+  const toSet = keys.filter(key => item[key] != null)
+  const toRemove = keys.filter(key => item[key] == null)
+
+  let UpdateExpression = ''
+  if (toSet.length) {
+    const ops = toSet.map(key => `#${key} = :${key}`).join(', ')
+    UpdateExpression += `SET ${ops} `
+  }
+
+  if (toRemove.length) {
+    const ops = toRemove.map(key => `#${key}`).join(', ')
+    UpdateExpression += `REMOVE ${ops} `
+  }
+
+  UpdateExpression = UpdateExpression.trim()
+  if (!UpdateExpression.length) {
+    throw new Error('nothing was updated!')
+  }
+
   const ExpressionAttributeNames = {}
   const ExpressionAttributeValues = {}
   for (let key in item) {
     ExpressionAttributeNames[`#${key}`] = key
-    ExpressionAttributeValues[`:${key}`] = item[key]
+    if (toSet.indexOf(key) !== -1) {
+      ExpressionAttributeValues[`:${key}`] = item[key]
+    }
   }
 
   return {

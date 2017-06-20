@@ -1,6 +1,5 @@
 const Blockr = require('@tradle/cb-blockr')
 const Networks = require('@tradle/bitcoin-adapter')
-const network = Networks[networkName]
 
 module.exports = getNetworkAdapters
 
@@ -13,8 +12,4 @@ function getNetworkAdapters ({ networkName, privateKey, proxy }) {
     blockchain,
     transactor
   }
-}
-
-function createTransactor ({ privateKey }) {
-  return network.createTransactor({ privateKey, blockchain })
 }

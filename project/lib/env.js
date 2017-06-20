@@ -6,8 +6,8 @@ const env = clone(
 
 env.BLOCKCHAIN = (function () {
   const { BLOCKCHAIN='bitcoin:testnet' } = env
-  const [type, network] = BLOCKCHAIN.split(':')
-  return { type, network }
+  const [blockchain, name] = BLOCKCHAIN.split(':')
+  return { blockchain, name }
 }())
 
 env.DEV = env.SERVERLESS_STAGE === 'dev'

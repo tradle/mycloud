@@ -59,8 +59,8 @@ exports.position = typeforce.compile({
 })
 
 exports.blockchain = typeforce.compile({
-  name: typeforce.String,
-  type: typeforce.String,
+  flavor: typeforce.String,
+  networkName: typeforce.String,
   pubKeyToAddress: typeforce.Function,
   seal: typeforce.Function
 })

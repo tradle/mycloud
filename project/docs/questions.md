@@ -151,7 +151,12 @@ postpone implementation of:
 
 
 TODO:
+handle blockHeight
+support multiple networks
+table per network?
+
 test whether clients get messages they subscribed to if they go offline and back online
+  they don't
 
 requires long-lived clientIds
 
@@ -187,10 +192,12 @@ how to prevent race condition on writes while ensuring increasing timestamp
 ?
   - by only accepting one message at a time
 
-Blockchain:
+## Blockchain
   don't need cb-proxy because it's only one provider
 
-  should there be a table per blockchain? or should all seals be in the same table
+### Questions
+
+- should there be a table per blockchain? or should all seals be in the same table
 
 in which tables and which cases can we tolerate eventually consistent reads? In which tables and which cases do we need strongly consistent reads?
 

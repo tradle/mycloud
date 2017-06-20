@@ -29,6 +29,7 @@
     "pify": "^2.3.0",
     "typeforce": "^1.11.1",
     "utf8-length": "^0.0.1",
+    "uuid": "^3.1.0",
     "xtend": "^4.0.1",
     "ya-promise-queue": "^1.1.0"
   },

@@ -1,61 +1,46 @@
 const debug = require('debug')('tradle:sls:seals')
 const { utils, protocol } = require('@tradle/engine')
 // const Blockchain = require('./blockchain')
-const { SealsTable } = require('./tables')
 const { getUpdateParams } = require('./db-utils')
-const { extend, pick, timestamp, typeforce } = require('./utils')
+const { co, extend, pick, timestamp, typeforce, uuid } = require('./utils')
 const types = require('./types')
 const Errors = require('./errors')
 const MAX_ERRORS_RECORDED = 10
-const CONFIRMATIONS_BEFORE_CONFIRMED = 10
+const { SEAL_CONFIRMATIONS } = require('./env')
 const WATCH_TYPE = {
   this: 't',
   next: 'n'
 }
 
-module.exports = function manageSeals ({ blockchain, table }) {
-  typeforce(blockchain, types.blockchain)
+function manageSeals ({ blockchain, table }) {
+  typeforce(types.blockchain, blockchain)
 
-  const getPending = co(function* (limit=Infinity) {
-    const KeyConditionExpression = [
-      'time > :time',
-      'confirmations = :confirmations',
-    ].join(' AND ')
-
-    const query = {
-      KeyConditionExpression,
-      ExpressionAttributeValues: {
-        ':time': 0,
-        ':confirmations': -1
-      }
-    }
-
+  const confirmationsRequired = SEAL_CONFIRMATIONS[blockchain.toString()]
+  const scanner = IndexName => co(function* (opts={}) {
+    const { limit=Infinity } = opts
+    const query = { IndexName }
     if (limit !== Infinity) {
       query.Limit = limit
     }
 
-    return table.find(query)
+    return table.scan(query)
   })
 
-  // not incredibly efficient
-  const getPendingWrites = co(function* (limit) {
-    const pending = yield getPending(limit)
-    return pending.filter(seal => seal.write)
-  })
-
+  const getUnconfirmed = scanner('unconfirmed')
+  const getUnsealed = scanner('unsealed')
   const sealPending = co(function* (opts={}) {
     typeforce({
       limit: typeforce.maybe(typeforce.Number)
     }, opts)
 
     const { limit=Infinity } = opts
-    const pending = yield getPendingWrites(limit)
+    const pending = yield getUnsealed({ limit })
     for (let sealInfo of pending) {
       let result
       try {
         result = yield blockchain.seal(sealInfo)
       } catch (error) {
-        yield recordWriteError({ blockchaim, seal: sealInfo, error })
+        yield recordWriteError({ seal: sealInfo, error })
         return
       }
 
@@ -70,14 +55,14 @@ module.exports = function manageSeals ({ blockchain, table }) {
   const createSealRecord = co(function* (opts) {
     const seal = getNewSealParams(opts)
     try {
-      yield SealsTable.put({
+      yield table.put({
         Item: seal,
         ConditionExpression: 'attribute_not_exists(link)',
       })
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
         const dErr = new Errors.Duplicate()
-        dErr.link = link
+        dErr.link = seal.link
         throw dErr
       }
 
@@ -95,19 +80,17 @@ module.exports = function manageSeals ({ blockchain, table }) {
     // the tx for next version will have a predictable seal based on the current version's link
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
 
-    const linkBuf = utils.linkToBuf(link)
-    const basePubKey = utils.toECKeyObj(key)
     let pubKey
     if (watchType === WATCH_TYPE.this) {
-      pubKey = protocol.sealPubKey({ link: linkBuf, basePubKey })
+      pubKey = blockchain.sealPubKey({ link, basePubKey: key })
     } else {
-      pubKey = protocol.sealPrevPubKey({ prevLink: linkBuf, basePubKey })
+      pubKey = blockchain.sealPrevPubKey({ prevLink: link, basePubKey: key })
     }
 
-    const address = Blockchain.network.pubKeyToAddress(pubKey)
-    return {
-      blockchain: blockchain.type,
-      network: blockchain.name,
+    const address = blockchain.pubKeyToAddress(pubKey.pub)
+    const params = {
+      id: uuid(),
+      blockchain: blockchain.toString(),
       link,
       address,
       pubKey,
@@ -115,8 +98,15 @@ module.exports = function manageSeals ({ blockchain, table }) {
       write: true,
       time: timestamp(),
       confirmations: -1,
-      errors: []
+      errors: [],
+      unconfirmed: 'y'
     }
+
+    if (write) {
+      params.unsealed = 'y'
+    }
+
+    return params
   }
 
   const watch = function watch ({ key, link }) {
@@ -133,15 +123,21 @@ module.exports = function manageSeals ({ blockchain, table }) {
   })
 
   const recordWriteSuccess = function recordWriteSuccess ({ seal, result }) {
+    typeforce({
+      txId: typeforce.String,
+      confirmations: typeforce.maybe(typeforce.Number)
+    }, result)
+
     const props = {
       txId: result.txId,
-      confirmations: result.confirmations || 0
-      timeSealed: timestamp()
+      confirmations: result.confirmations || 0,
+      timeSealed: timestamp(),
+      unsealed: null
     }
 
     const params = getUpdateParams(props)
     params.Key = getKey(seal)
-    return SealsTable.update(params)
+    return table.update(params)
   }
 
   const recordWriteError = function recordWriteError ({ seal, error }) {
@@ -149,33 +145,22 @@ module.exports = function manageSeals ({ blockchain, table }) {
     const errors = addError(seal.errors, error)
     const params = getUpdateParams({ errors })
     params.Key = getKey(seal)
-    return SealsTable.update(params)
-  }
-
-  const getUnconfirmed = function getUnconfirmed () {
-    const query = {
-      // probably inefficient
-      KeyConditionExpression: 'time > :time AND confirmations < :confirmations',
-      ExpressionAttributeValues: {
-        ':time': 0,
-        ':confirmations': CONFIRMATIONS_BEFORE_CONFIRMED
-      }
-    }
-
-    return SealsTable.find(query)
+    return table.update(params)
   }
 
   const syncUnconfirmed = co(function* () {
     const unconfirmed = yield getUnconfirmed()
     const addresses = unconfirmed.map(({ address }) => address)
-    const txInfos = yield getTransactionsForAddresses(addresses)
+    const txInfos = yield blockchain.getTransactionsForAddresses(addresses)
     const updates = unconfirmed.map((sealInfo, i) => {
       const txInfo = txInfos[i]
       if (sealInfo.confirmations === txInfo.confirmations) return
 
+      const { confirmations=0 } = txInfo
       const update = getUpdateParams({
         address: sealInfo.address,
-        confirmations: txInfos.confirmations
+        confirmations,
+        unconfirmed: confirmations < confirmationsRequired ? 'x' : null
       })
 
       update.Key = getKey(sealInfo)
@@ -190,7 +175,7 @@ module.exports = function manageSeals ({ blockchain, table }) {
 
     // TODO: use dynamodb-wrapper
     // make this more robust
-    yield updates.map(SealsTable.update)
+    yield updates.map(table.update)
   })
 
   function addError (errors=[], error) {
@@ -207,18 +192,26 @@ module.exports = function manageSeals ({ blockchain, table }) {
   }
 
   function getKey (sealInfo) {
-    return pick(sealInfo, ['time', 'confirmations'])
+    return pick(sealInfo, 'id')
   }
 
   return {
-    getPending,
+    getUnconfirmed,
+    getUnsealed,
     sealPending,
-    // export for testing
-    recordWriteError,
-    recordWriteSuccess,
     syncUnconfirmed,
     create: createSeal,
     watch,
-    watchNextVersion
+    watchNextVersion,
+    // export for testing
+    recordWriteError,
+    recordWriteSuccess,
   }
 }
+
+module.exports = manageSeals
+
+// module.exports = manageSeals({
+//   blockchain: require('./blockchain'),
+//   table: require('./tables').SealsTable
+// })

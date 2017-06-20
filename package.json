@@ -47,5 +47,8 @@
     "rebuild": "cd project && docker run --rm -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd ..",
     "rebuild:local": "cd project && npm rebuild && cd ..",
     "nuke": "./scripts/nuke.sh"
+  },
+  "dependencies": {
+    "@tradle/bitcoin-adapter": "tradle/bitcoin-adapter"
   }
 }
