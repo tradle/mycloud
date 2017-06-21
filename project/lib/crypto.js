@@ -223,6 +223,10 @@ function sha256 (data) {
   return crypto.createHash('sha256').update(data).digest('base64')
 }
 
+function randomString (bytes) {
+  return crypto.randomBytes(bytes).toString('hex')
+}
+
 module.exports = {
   checkAuthentic,
   extractSigPubKey,
@@ -235,5 +239,6 @@ module.exports = {
   // getIdentityKeys,
   exportKeys,
   sha256,
-  hexLink: utils.hexLink
+  hexLink: utils.hexLink,
+  randomString
 }

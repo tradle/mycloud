@@ -1,4 +1,6 @@
-const { clone, pick, splitCamelCase } = require('./utils')
+const clone = require('xtend')
+const pick = require('xtend/mutable')
+const { splitCamelCase } = require('./string-utils')
 const env = clone(
   require('../../env'),
   process.env
@@ -6,8 +8,13 @@ const env = clone(
 
 env.BLOCKCHAIN = (function () {
   const { BLOCKCHAIN='bitcoin:testnet' } = env
-  const [blockchain, name] = BLOCKCHAIN.split(':')
-  return { blockchain, name }
+  const [flavor, networkName] = BLOCKCHAIN.split(':')
+  return {
+    flavor,
+    networkName,
+    toString: () => BLOCKCHAIN,
+    select: obj => obj[flavor]
+  }
 }())
 
 env.DEV = env.SERVERLESS_STAGE === 'dev'

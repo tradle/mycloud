@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:λ:preauth')
+const debug = require('debug')('λ:preauth')
 const wrap = require('../../wrap')
 const { onPreAuth } = require('../../user')
 

@@ -49,12 +49,12 @@ test('batch by size', function (t) {
   t.end()
 })
 
-test('getMessageStub', function (t) {
-  const message = {
-    object: messageObject
-  }
+// test('getMessageStub', function (t) {
+//   const message = {
+//     object: messageObject
+//   }
 
-  t.same(getMessageStub, {
+//   t.same(getMessageStub, {
 
-  })
-})
+//   })
+// })

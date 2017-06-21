@@ -4,7 +4,8 @@ const { unserializeMessage } = require('@tradle/engine').utils
 const Objects = require('./objects')
 const Identities = require('./identities')
 const Errors = require('./errors')
-const { pick, omit, typeforce, prettify } = require('./utils')
+const { pick, omit, typeforce } = require('./utils')
+const { prettify } = require('./string-utils')
 const { InboxTable, OutboxTable } = require('./tables')
 const types = require('./types')
 const {

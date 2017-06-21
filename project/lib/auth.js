@@ -1,11 +1,12 @@
-const crypto = require('crypto')
 const debug = require('debug')('tradle:sls:auth')
 const { utils } = require('@tradle/engine')
 const aws = require('./aws')
 const Iot = require('./iot-utils')
 const { getUpdateParams } = require('./db-utils')
 const { IOT_CLIENT_ROLE } = require('./env')
-const { co, randomString, cachifyPromiser, prettify, typeforce } = require('./utils')
+const { co, cachifyPromiser, typeforce } = require('./utils')
+const { prettify } = require('./string-utils')
+const { randomString } = require('./crypto')
 const { HandshakeFailed, InvalidInput, NotFound } = require('./errors')
 const { HANDSHAKE_TIMEOUT, PERMALINK } = require('./constants')
 const Objects = require('./objects')
@@ -115,7 +116,7 @@ function getSession ({ clientId }) {
 
 const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) {
   // const permalink = getPermalinkFromClientId(clientId)
-  const challenge = newNonce()
+  const challenge = randomString(32)
   yield PresenceTable.put({
     Item: {
       clientId,
@@ -255,10 +256,6 @@ function getMostRecentSessionByClientId (clientId) {
 //   } catch (err) {}
 // })
 
-
-function newNonce () {
-  return crypto.randomBytes(32).toString('hex')
-}
 
 function getPermalinkFromClientId (clientId) {
   return clientId.slice(0, 64)

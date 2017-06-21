@@ -150,13 +150,14 @@ postpone implementation of:
   re-ordering (ack instead)
 
 
-TODO:
-handle blockHeight
-support multiple networks
-table per network?
+## TODO
+  - handle blockHeight
+  - support multiple networks
+  - table per network?
+  - layer that abstracts away DynamoDB
 
-test whether clients get messages they subscribed to if they go offline and back online
-  they don't
+  - test whether clients get messages they subscribed to if they go offline and back online
+    - they don't
 
 requires long-lived clientIds
 

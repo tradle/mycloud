@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:λ:hooker')
+const debug = require('debug')('λ:hooker')
 const wrap = require('../wrap')
 const { unmarshalDBItem } = require('../db-utils')
 const { callWebhooks } = require('../provider')

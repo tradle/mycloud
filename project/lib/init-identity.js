@@ -11,9 +11,7 @@ const {
   PUBLIC_CONF_BUCKET
 } = require('./constants')
 
-const {
-  NETWORK_NAME
-} = require('./env')
+const { BLOCKCHAIN } = require('./env')
 
 const saveIdentityAndKeys = loudCo(function* ({ object, link, keys }) {
   const permalink = link
@@ -64,7 +62,7 @@ const initialize = loudCo(function* () {
 
   if (existing) throw new Error('already initialized')
 
-  const result = yield createIdentity({ networkName: NETWORK_NAME })
+  const result = yield createIdentity({ networkName: BLOCKCHAIN.network })
   yield saveIdentityAndKeys(result)
 })
 

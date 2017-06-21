@@ -3,6 +3,7 @@ const co = require('co').wrap
 const stringify = require('json-stringify-safe')
 const RESOLVED = Promise.resolve()
 const { DEV } = require('./env')
+const Errors = require('./errors')
 
 module.exports = {
   generator: wrapGenerator,
@@ -61,7 +62,7 @@ function wrapHTTPGenerator (generatorFn) {
       resp.statusCode = 200
       if (ret != null) resp.body = stringify(ret)
     } catch (err) {
-      if (isDeveloperError(err)) {
+      if (Errors.isDeveloperError(err)) {
         return callback(err)
       }
 
@@ -80,8 +81,4 @@ function logify (cb) {
     if (err) debug('wrapped task failed', err)
     cb(err, result)
   }
-}
-
-function isDeveloperError (err) {
-  return err instanceof TypeError || err instanceof ReferenceError || err instanceof SyntaxError
 }

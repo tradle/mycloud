@@ -64,3 +64,25 @@ exports.blockchain = typeforce.compile({
   pubKeyToAddress: typeforce.Function,
   seal: typeforce.Function
 })
+
+exports.address = {
+  bitcoin: function bitcoinAddress (val) {
+    const bitcoin = require('@tradle/bitcoinjs-lib')
+    try {
+      bitcoin.Address.fromBase58Check(val)
+      return true
+    } catch (err) {
+      return false
+    }
+  },
+  ethereum: function ethereumAddress (val) {
+    return /^0x[0-9a-fA-F]*$/.test(val)
+  }
+}
+
+exports.amount = {
+  bitcoin: typeforce.Number,
+  ethereum: function ethereumAmount (val) {
+    return /^0x[0-9a-fA-F]*$/.test(val)
+  }
+}

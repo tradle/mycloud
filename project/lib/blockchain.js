@@ -114,6 +114,6 @@ function createWrapper (blockchainIdentifier) {
   }
 }
 
-module.exports = createWrapper
+exports = module.exports = createWrapper
 
 // module.exports = createWrapper(ENV.BLOCKCHAIN)

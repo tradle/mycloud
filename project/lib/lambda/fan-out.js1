@@ -1,5 +1,5 @@
 
-const debug = require('debug')('tradle:sls:λ:fan-out')
+const debug = require('debug')('λ:fan-out')
 const { marshalItem, unmarshalItem } = require('../db-utils')
 const wrap = require('../wrap')
 const { groupBy } = require('../utils')

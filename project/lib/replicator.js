@@ -1,7 +1,7 @@
 const debug = require('debug')('tradle:sls:replicator')
 const wrap = require('./wrap')
 const Events = require('./events')
-const { prettify } = require('./utils')
+const { prettify } = require('./string-utils')
 const { unmarshalDBItem } = require('./db-utils')
 
 module.exports = {

@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:λ:outbox-events')
+const debug = require('debug')('λ:outbox-events')
 const replicator = require('../replicator')
 // replicate Inbox to EventsTable
 

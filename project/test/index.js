@@ -3,6 +3,7 @@
 // require('dotenv').config({ path: path.join(__dirname, '.env') })
 
 process.env.IS_LOCAL = '1'
+
 const extend = require('xtend/mutable')
 extend(process.env, {
   CF_ObjectsBucket: 'ObjectsBucket',
@@ -205,7 +206,11 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   const message = toAliceFromBob
   const { putObject } = Objects
   const { getIdentityByPermalink, getIdentityMetadataByPub } = Identities
-  const { getInboundByLink, putMessage, assertMonotonicallyIncreasingTimestamp } = Messages
+  const {
+    getInboundByLink,
+    putMessage,
+    assertTimestampIncreased
+  } = Messages
 
   Identities.getIdentityMetadataByPub = mocks.getIdentityMetadataByPub
   Objects.putObject = function ({ link, object }) {
@@ -214,7 +219,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
     return Promise.resolve()
   }
 
-  Messages.assertMonotonicallyIncreasingTimestamp = co(function* () {})
+  Messages.assertTimestampIncreased = co(function* () {})
 
   Messages.getInboundByLink = function (link) {
     throw new Errors.NotFound()
@@ -235,7 +240,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   Objects.putObject = putObject
   Messages.putMessage = putMessage
   Messages.getInboundByLink = getInboundByLink
-  Messages.assertMonotonicallyIncreasingTimestamp = assertMonotonicallyIncreasingTimestamp
+  Messages.assertTimestampIncreased = assertTimestampIncreased
 
   // TODO: compare
 

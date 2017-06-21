@@ -1,8 +1,8 @@
 const microtime = require('microtime')
-const debug = require('debug')('tradle:sls:λ:onmessage')
+const debug = require('debug')('λ:onmessage')
 const wrap = require('../../wrap')
 const user = require('../../user')
-const { prettify } = require('../../utils')
+const { prettify } = require('../../string-utils')
 const { SEQ } = require('../../constants')
 
 exports.handler = wrap.generator(function* (event, context) {

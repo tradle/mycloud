@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:λ:addcontact')
+const debug = require('debug')('λ:addcontact')
 const wrap = require('../wrap')
 const { addContact } = require('../identities')
 

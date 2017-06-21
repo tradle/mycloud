@@ -1,6 +1,6 @@
-const debug = require('debug')('tradle:sls:λ:subscribe')
+const debug = require('debug')('λ:subscribe')
 const wrap = require('../../wrap')
-const { prettify } = require('../../utils')
+const { prettify } = require('../../string-utils')
 const { onSubscribed } = require('../../user')
 const { getMessagesTopicForClient } = require('../../iot-utils')
 

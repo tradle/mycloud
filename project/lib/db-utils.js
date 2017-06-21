@@ -2,16 +2,15 @@ const debug = require('debug')('tradle:sls:db-utils')
 const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
 const { NotFound } = require('./errors')
 const aws = require('./aws')
-const { co, pick, prettify, logify, timestamp, wait, clone } = require('./utils')
+const { co, pick, logify, timestamp, wait, clone } = require('./utils')
+const { prettify } = require('./string-utils')
 const { DEV } = require('./env')
 const Errors = require('./errors')
 
 function getTable (TableName) {
   const tableAPI = {
     toString: () => TableName,
-    batchPut: batchPutToTable,
-    // get: Key => get({ TableName, Key }),
-    // put: Item => put({ TableName, Item })
+    batchPut: batchPutToTable
   }
 
   const api = {
@@ -194,6 +193,20 @@ function defaultBackoffFunction (retryCount) {
   return Math.min(jitter(delay, 0.1), 10000)
 }
 
+function getRecordsFromEvent (event, oldAndNew) {
+  return event.Records.map(record => {
+    const { NewImage, OldImage } = record.dynamodb
+    if (oldAndNew) {
+      return {
+        old: unmarshalItem(OldImage),
+        new: unmarshalItem(NewImage)
+      }
+    }
+
+    return unmarshalItem(NewImage)
+  })
+}
+
 module.exports = {
   createTable,
   deleteTable,
@@ -207,5 +220,6 @@ module.exports = {
   getUpdateParams,
   marshalDBItem: marshalItem,
   unmarshalDBItem: unmarshalItem,
-  getTable
+  getTable,
+  getRecordsFromEvent
 }

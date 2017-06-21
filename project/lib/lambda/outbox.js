@@ -1,6 +1,6 @@
-const debug = require('debug')('tradle:sls:λ:outbox')
+const debug = require('debug')('λ:outbox')
 const wrap = require('../wrap')
-const { prettify } = require('../utils')
+const { prettify } = require('../string-utils')
 const { onRestoreRequest } = require('../user')
 
 exports.handler = wrap.generator(function* (event, context) {

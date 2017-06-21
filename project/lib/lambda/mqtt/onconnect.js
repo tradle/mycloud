@@ -1,7 +1,7 @@
-const debug = require('debug')('tradle:sls:λ:onconnect')
+const debug = require('debug')('λ:onconnect')
 const wrap = require('../../wrap')
 const { onConnected } = require('../../user')
-const { prettify } = require('../../utils')
+const { prettify } = require('../../string-utils')
 
 exports.handler = wrap.generator(function* (event, context) {
   debug('client connected', prettify(event))

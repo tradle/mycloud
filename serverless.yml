@@ -408,8 +408,8 @@ functions:
         - PublicConfBucket
 
   # echo bot (business logic layer)
-  echo:
-    handler: project/lib/lambda/echo.handler
+  bot_onmessage:
+    handler: project/lib/lambda/samplebot/index.onmessage
     memorySize: 1024
     custom:
       env-resources:
@@ -435,6 +435,21 @@ functions:
     #           - StreamArn
     environment:
       DEBUG: tradle:*
+
+  onsealevent:
+    handler: project/lib/samplebot/index.onsealevent
+    memorySize: 1024
+    environment:
+      DEBUG: tradle:*
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - SealsTable
+              - StreamArn
 
   # addcontact:
   #   handler: project/lib/lambda/add-contact.handler

@@ -1,5 +1,6 @@
 const debug = require('debug')('tradle:sls:user')
-const { co, prettify, getLink, typeforce } = require('./utils')
+const { co, getLink, typeforce } = require('./utils')
+const { prettify } = require('./string-utils')
 const Auth = require('./auth')
 const Delivery = require('./delivery')
 const Messages = require('./messages')

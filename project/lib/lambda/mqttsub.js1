@@ -1,5 +1,5 @@
 const microtime = require('microtime')
-const debug = require('debug')('tradle:sls:λ:mqttsub')
+const debug = require('debug')('λ:mqttsub')
 const wrap = require('../wrap')
 
 exports.handler = wrap.generator(function* (event, context) {

@@ -6,7 +6,7 @@ const { co, clone, extend, pick, timestamp, typeforce, uuid, isPromise } = requi
 const types = require('./types')
 const Errors = require('./errors')
 const MAX_ERRORS_RECORDED = 10
-const { SEAL_CONFIRMATIONS } = require('./env')
+// const { SEAL_CONFIRMATIONS } = require('./env')
 const WATCH_TYPE = {
   this: 't',
   next: 'n'
@@ -14,10 +14,10 @@ const WATCH_TYPE = {
 
 const noop = () => {}
 
-function manageSeals ({ blockchain, table, onread=noop, onwrote=noop }) {
+function manageSeals ({ blockchain, table, confirmationsRequired }) {
   typeforce(types.blockchain, blockchain)
 
-  const confirmationsRequired = SEAL_CONFIRMATIONS[blockchain.toString()]
+  // const confirmationsRequired = SEAL_CONFIRMATIONS[blockchain.toString()]
   const scanner = IndexName => co(function* (opts={}) {
     const { limit=Infinity } = opts
     const query = { IndexName }
@@ -53,7 +53,7 @@ function manageSeals ({ blockchain, table, onread=noop, onwrote=noop }) {
       })
 
       // call onwrote
-      yield callOnWrote(updated)
+      // yield callOnWrote(updated)
     }))
   })
 
@@ -184,31 +184,11 @@ function manageSeals ({ blockchain, table, onread=noop, onwrote=noop }) {
       params.Key = getKey(seal)
       yield table.update(params)
 
-      yield callOnRead(clone(seal, update))
+      // yield callOnRead(clone(seal, update))
     }))
 
     // TODO: use dynamodb-wrapper
     // make this more robust
-  })
-
-  const callOnRead = co(function* (seal) {
-    // call onread
-    try {
-      let maybePromise = onread(seal)
-      if (isPromise(maybePromise)) yield maybePromise
-    } catch (err) {
-      debug(`onread handler failed for seal ${seal.id}`, err.stack)
-    }
-  })
-
-  const callOnWrote = co(function* (seal) {
-    // call onwrote
-    try {
-      let maybePromise = onwrote(seal)
-      if (isPromise(maybePromise)) yield maybePromise
-    } catch (err) {
-      debug(`onwrote handler failed for seal ${seal.id}`, err.stack)
-    }
   })
 
   function addError (errors=[], error) {

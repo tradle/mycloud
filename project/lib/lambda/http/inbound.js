@@ -1,5 +1,5 @@
 const microtime = require('microtime')
-const debug = require('debug')('tradle:sls:λ:inbound')
+const debug = require('debug')('λ:inbound')
 const wrap = require('../../wrap')
 const { getInbound } = require('../../messages')
 

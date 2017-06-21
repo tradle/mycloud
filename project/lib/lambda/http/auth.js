@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:λ:auth')
+const debug = require('debug')('λ:auth')
 const wrap = require('../../wrap')
 const { onSentChallengeResponse } = require('../../user')
 const { InvalidInput } = require('../../errors')

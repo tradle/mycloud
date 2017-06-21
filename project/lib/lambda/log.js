@@ -1,11 +1,11 @@
-const { unmarshalItem } = require('../db-utils')
-const { prettify } = require('../utils')
+const { getRecordsFromEvent } = require('../db-utils')
+const { prettify } = require('../string-utils')
 
 exports.handler = function (event, context, cb) {
   console.log('env', process.env)
   console.log('event', process.env)
   if (event.Records) {
-    const records = event.Records.map(record => unmarshalItem(record.dynamodb.NewImage))
+    const records = getRecordsFromEvent(event)
     console.log(prettify(records))
   } else {
     console.log('event', prettify(event))

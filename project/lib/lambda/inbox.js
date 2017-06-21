@@ -1,8 +1,7 @@
 const microtime = require('microtime')
-const debug = require('debug')('tradle:sls:λ:inbox')
+const debug = require('debug')('λ:inbox')
 const wrap = require('../wrap')
 const Iot = require('../iot-utils')
-// const { prettify } = require('../utils')
 const { getInbound } = require('../messages')
 
 exports.handler = wrap.generator(function* (event, context) {

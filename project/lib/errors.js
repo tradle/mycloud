@@ -22,3 +22,7 @@ exports.export = function (err) {
     message: err.message
   }
 }
+
+exports.isDeveloperError = function isDeveloperError (err) {
+  return err instanceof TypeError || err instanceof ReferenceError || err instanceof SyntaxError
+}
