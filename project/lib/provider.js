@@ -44,6 +44,10 @@ function lookupMyPublicIdentity () {
 // maybe ETag on bucket item? But then we still need to request every time..
 const getMyIdentity = cachifyPromiser(lookupMyIdentity)
 const getMyPublicIdentity = cachifyPromiser(lookupMyPublicIdentity)
+const getMyKeys = co(function* () {
+  const { keys } = yield getMyIdentity()
+  return keys
+})
 
 const signObject = co(function* ({ author, object }) {
   const key = getSigningKey(author.keys)
@@ -202,6 +206,7 @@ const sendMessage = co(function* ({ recipient, object, other={} }) {
 })
 
 module.exports = {
+  getMyKeys,
   getMyIdentity: getMyPublicIdentity,
   signObject,
   createSendMessageEvent,

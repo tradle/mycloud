@@ -1,5 +1,5 @@
 const crypto = require('crypto')
-const microtime = require('microtime')
+const microtime = require('./microtime')
 const typeforce = require('typeforce')
 const debug = require('debug')('tradle:sls:utils')
 const omit = require('object.omit')
@@ -224,8 +224,7 @@ exports.cachify = function cachify ({ get, put, cache }) {
 }
 
 exports.timestamp = function timestamp () {
-  const [seconds, microseconds] = microtime.nowStruct()
-  return seconds * 1e6 + microseconds
+  return microtime.now()
 }
 
 exports.wait = function wait (millis=0) {

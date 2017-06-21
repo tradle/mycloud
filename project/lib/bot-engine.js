@@ -6,26 +6,33 @@ const wrap = require('./wrap')
 const Messages = require('./messages')
 const Provider = require('./provider')
 const Errors = require('./errors')
-const { queueSeal } = require('./seals')
 const constants = require('./constants')
-const ENV = require('./env')
+const { getChainKey } = require('./crypto')
+const _tradle = require('./tradle')
 const waterfall = {
   onmessage: true
 }
 
 module.exports = createBotEngine
 
-function createBotEngine () {
-  const middleware = {}
-  const api = {
-    send: sendMessage,
-    seal: queueSeal,
-    constants
+function createBotEngine (tradle=_tradle) {
+  const { seals, network } = tradle
+  const chainKeyProps = {
+    type: network.flavor,
+    networkName: network.networkName
   }
 
-  ;['onreadseal', 'onwroteseal', 'onmessage'].forEach(method => {
-    middleware[method] = []
-    api[method] = fn => addMiddleware(method, fn)
+  const getMyChainKey = co(function* () {
+    const keys = yield Provider.getMyKeys()
+    return getChainKey(keys, chainKeyProps)
+  })
+
+  const createSeal = co(function* ({ link }) {
+    const chainKey = yield getMyChainKey()
+    yield seals.create({
+      link,
+      key: chainKey
+    })
   })
 
   const execMiddleware = co(function* (method, event) {
@@ -59,6 +66,23 @@ function createBotEngine () {
     return Provider.sendMessage(opts)
   }
 
+  const middleware = {}
+  const api = {
+    send: sendMessage,
+    seal: createSeal,
+    constants
+  }
+
+  ;['onreadseal', 'onwroteseal', 'onmessage'].forEach(method => {
+    middleware[method] = []
+    api[method] = fn => addMiddleware(method, fn)
+  })
+
+  addMiddleware('onmessage', co(function* (event) {
+    const { author, time } = JSON.parse(event)
+    return yield Messages.getMessageFrom({ author, time })
+  }))
+
   api._onsealevent = co(function* (event) {
     const records = getRecordsFromEvent(event, true)
     for (let record of records) {
@@ -74,11 +98,6 @@ function createBotEngine () {
       yield execMiddleware(method, record.new)
     }
   })
-
-  addMiddleware('onmessage', co(function* (event) {
-    const { author, time } = JSON.parse(event)
-    return yield Messages.getMessageFrom({ author, time })
-  }))
 
   return api
 }

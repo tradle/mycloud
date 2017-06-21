@@ -1,5 +1,4 @@
-process.env.IS_LOCAL = true
-process.env.CF_SealsTable = 'SealsTable'
+require('./env')
 
 // const AWS = require('aws-sdk')
 const test = require('tape')
@@ -8,6 +7,8 @@ const co = utils.loudCo
 const { wait } = utils
 const { getTable, batchPut } = require('../lib/db-utils')
 const schema = require('../conf/table/seals').Properties
+schema.StreamSpecification.StreamEnabled = true
+
 const aws = require('../lib/aws')
 // const createBlockchainAPI = require('../lib/blockchain')
 // const createSealsAPI = require('../lib/seals')

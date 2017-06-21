@@ -495,8 +495,8 @@ functions:
 
   # Blockchain
 
-  faucet:
-    handler: project/lib/lambda/faucet.handler
+  faucet_bitcoin:
+    handler: project/lib/lambda/faucet-bitcoin.withdraw
 
   recharge:
     handler: project/lib/lambda/recharge.handler

@@ -155,6 +155,18 @@ function getSigningKey (keys) {
   return keys.find(key => key.type === 'ec' && key.purpose === 'sign')
 }
 
+function getChainKey (keys, props={}) {
+  return keys.find(key => {
+    if (key.purpose !== 'messaging' || !key.networkName) return
+
+    for (let p in props) {
+      if (props[p] !== key[p]) return
+    }
+
+    return key
+  })
+}
+
 const sign = loudCo(function* ({ key, object }) {
   const { pub, priv } = key
   const author = keyToSigner(key)
@@ -232,6 +244,7 @@ module.exports = {
   extractSigPubKey,
   sign,
   getSigningKey,
+  getChainKey,
   encrypt,
   decrypt,
   // putEncryptedJSON,

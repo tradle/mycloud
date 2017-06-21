@@ -92,6 +92,7 @@ function Environment () {
   // this.env = {}
   this.tables = this.require('tables', './tables')
   this.buckets = this.require('buckets', './buckets')
+  // this.provider = this.require('provider', './provider')
 }
 
 Environment.prototype.setNetwork = function ({ flavor, networkName }) {
