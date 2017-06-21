@@ -14,7 +14,7 @@ AWS.config.update({
 const test = require('tape')
 const co = require('../lib/utils').loudCo
 const { getTable, batchPut } = require('../lib/db-utils')
-const schema = require('../conf/test-table-schema')
+const schema = require('../conf/table/test')
 const aws = require('../lib/aws')
 
 test('batch put', co(function* (t) {

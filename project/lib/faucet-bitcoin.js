@@ -26,13 +26,14 @@ module.exports = function createFaucet ({ privateKey, networkName }) {
       spender.to(address, amount)
     })
 
-    if (addresses.length < 3) {
+    if (to.length < 3) {
       // split up sending change to self
       spender.to(spender.key.pub.getAddress(spender.network).toString(), 100000)
     }
 
+    let tx
     try {
-      yield promisify(spender.execute)()
+      tx = yield promisify(spender.execute)()
     } catch (err) {
       debug('failed to distribute funds from faucet', err)
       throw err

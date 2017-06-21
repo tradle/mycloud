@@ -1,0 +1,26 @@
+Type: AWS::DynamoDB::Table
+Properties:
+  TableName: PubKeysTable
+  AttributeDefinitions:
+    - AttributeName: pub
+      AttributeType: S
+    - AttributeName: permalink
+      AttributeType: S
+  KeySchema:
+    - AttributeName: pub
+      KeyType: HASH
+  ProvisionedThroughput:
+    ReadCapacityUnits: 5
+    WriteCapacityUnits: 5
+  GlobalSecondaryIndexes:
+    - IndexName: permalink
+      KeySchema:
+        - AttributeName: permalink
+          KeyType: HASH
+      Projection:
+        ProjectionType: INCLUDE
+        NonKeyAttributes:
+          - link
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5

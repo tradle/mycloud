@@ -5,11 +5,11 @@ const { co } = require('../../utils')
 const bot = createBot()
 
 exports.onreadseal = bot.onreadseal(co(function* (seal) {
-  debug('[START]', Date.now(), 'seal:', JSON.stringify(seal))
+  debug('[START]', Date.now(), 'read seal:', JSON.stringify(seal))
 }))
 
 exports.onwroteseal = bot.onwroteseal(co(function* (seal) {
-  debug('[START]', Date.now(), 'seal:', JSON.stringify(seal))
+  debug('[START]', Date.now(), 'wrote seal:', JSON.stringify(seal))
 }))
 
 exports.onmessage = bot.onmessage(co(function* ({ message, payload }) {

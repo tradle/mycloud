@@ -2,6 +2,7 @@ const path = require('path')
 const debug = require('debug')('tradle:sls:test')
 const co = require('co').wrap
 const once = require('once')
+const extend = require('xtend/mutable')
 const fetch = require('isomorphic-fetch')
 const levelup = require('levelup')
 const leveldown = require('leveldown')
@@ -9,6 +10,7 @@ const mkdirp = require('mkdirp')
 const Blockchain = require('@tradle/cb-blockr')
 const tradle = require('@tradle/engine')
 const Client = require('@tradle/aws-client')
+const getNetworkAdapter = require('./project/lib/blockchain-adapter').bitcoin
 const Restore = require('@tradle/restore')
 const BASE_URL = 'https://2imx664qrj.execute-api.us-east-1.amazonaws.com/dev/tradle'
 // const { loudCo } = require('./project/lib/utils')
@@ -47,8 +49,11 @@ const dir = './clienttest'
 
 const prepare = co(function* () {
   mkdirp.sync(dir)
-  const node = tradle.utils.promisifyNode(tradle.node({
-    networkName: 'testnet',
+  const networkOpts = getNetworkAdapter({
+    networkName: 'testnet'
+  })
+
+  const node = tradle.utils.promisifyNode(tradle.node(extend({
     dir,
     keeper: tradle.utils.levelup(path.join(dir, 'keeper.db')),
     identity: bob.object,
@@ -56,7 +61,7 @@ const prepare = co(function* () {
     blockchain: new Blockchain('testnet'),
     leveldown,
     name: 'bob'
-  }))
+  }, networkOpts)))
 
   node._send = co(function* (msg, recipientInfo, cb) {
     yield prepare

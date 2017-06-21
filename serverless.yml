@@ -371,7 +371,7 @@ functions:
     memorySize: 1024
     environment:
       DEBUG: tradle:*
-      BOT_LAMBDA: echo
+      BOT_LAMBDA: bot_onmessage
       SERVERLESS_PREFIX: ${{self:custom.prefix}}
       SERVERLESS_STAGE: ${{self:custom.stage}}
       SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -421,18 +421,6 @@ functions:
         - InboxTable
         - OutboxTable
         - PublicConfBucket
-    events:
-      - iot:
-          sql: "SELECT * as data, topic() as topic FROM 'message/preprocessed'"
-    # events:
-    #   - stream:
-    #       type: dynamodb
-    #       batchSize: 1
-    #       startingPosition: TRIM_HORIZON
-    #       arn:
-    #         Fn::GetAtt:
-    #           - InboxTable
-    #           - StreamArn
     environment:
       DEBUG: tradle:*
 
@@ -522,14 +510,14 @@ functions:
     events:
       - schedule:
           rate: rate(10 minutes)
-          enabled: false
+          enabled: true
 
   pollchain:
     handler: project/lib/lambda/pollchain.handler
     events:
       - schedule:
           rate: rate(10 minutes)
-          enabled: false
+          enabled: true
 
     # environment:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
@@ -559,49 +547,8 @@ resources:
         BucketName: ${{self:custom.PUBLIC_CONF_BUCKET}}
         AccessControl: PublicRead
 
-    EventsTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: EventsTable
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_IMAGE
-
-    PubKeysTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: PubKeysTable
-        AttributeDefinitions:
-          - AttributeName: pub
-            AttributeType: S
-          - AttributeName: permalink
-            AttributeType: S
-        KeySchema:
-          - AttributeName: pub
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        GlobalSecondaryIndexes:
-          - IndexName: permalink
-            KeySchema:
-              - AttributeName: permalink
-                KeyType: HASH
-            Projection:
-              ProjectionType: INCLUDE
-              NonKeyAttributes:
-                - link
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
+    EventsTable: ${{file(./project/conf/table/events.yml)}}
+    PubKeysTable: ${{file(./project/conf/table/pubkeys.yml)}}
 
     # stores metadata about incoming messages
     # bodies rot in s3
@@ -661,51 +608,8 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
 
-    SealsTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: SealsTable
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-          - AttributeName: confirmations
-            AttributeType: N
-          # 'y' vs null
-          - AttributeName: unconfirmed
-            AttributeType: S
-          - AttributeName: unsealed
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
-        GlobalSecondaryIndexes:
-          - IndexName: unconfirmed
-            KeySchema:
-              - AttributeName: unconfirmed
-                KeyType: HASH
-              - AttributeName: address
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: unsealed
-            KeySchema:
-              - AttributeName: unsealed
-                KeyType: HASH
-              - AttributeName: address
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
+    SealsTable: ${{file(./project/conf/table/seals.yml)}}
+
 
     # CursorTable:
     #   Type: AWS::DynamoDB::Table

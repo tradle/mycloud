@@ -1,8 +1,8 @@
 const debug = require('debug')('λ:pollchain')
 const wrap = require('../../wrap')
-const { sync } = require('../../blockchain')
+const { seals } = require('../../tradle')
 
 exports.handler = wrap.promiser(function (event, context) {
   debug('[START]', Date.now())
-  return sync()
+  return seals.syncUnconfirmed()
 })

@@ -11,7 +11,7 @@ const co = require('co').wrap
 const promisify = require('pify')
 const isGenerator = require('is-generator-function')
 const { hexLink, addLinks, extractSigPubKey } = require('@tradle/engine').utils
-const stringUtils = require('./string-utils')
+const { prettify, stableStringify } = require('./string-utils')
 const { SIG, TYPE, TYPES } = require('./constants')
 const { MESSAGE } = TYPES
 
@@ -44,7 +44,7 @@ exports.loudCo = function loudCo (gen) {
 exports.toBuffer = function toBuffer (data) {
   if (Buffer.isBuffer(data)) return data
 
-  return new Buffer(stringUtils.stableStringify(data))
+  return new Buffer(stableStringify(data))
 }
 
 exports.now = function now () {
@@ -117,9 +117,9 @@ exports.logifyFunction = function logifyFunction ({ fn, name, log=debug, logInpu
       ]
 
       if (logInputOutput) {
-        parts.push('input:', stringifyWithFlatBuffers(args))
+        parts.push('input:', prettify(args))
         if (!err) {
-          parts.push('output:', stringifyWithFlatBuffers(ret))
+          parts.push('output:', prettify(ret))
         }
       }
 

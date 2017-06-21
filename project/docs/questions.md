@@ -159,6 +159,9 @@ postpone implementation of:
   - test whether clients get messages they subscribed to if they go offline and back online
     - they don't
 
+  - encrypt stuff
+    - https://github.com/serverless/examples/tree/master/aws-node-env-variables-encrypted-in-a-file
+
 requires long-lived clientIds
 
 support WillNotDeliver error in @tradle/engine sender
