@@ -239,6 +239,18 @@ exports.executeSuperagentRequest = function executeSuperagentRequest (req) {
   })
 }
 
+exports.promiseCall = function promiseCall (fn, ...args) {
+  return new Promise((resolve, reject) => {
+    args.push(function (err, result) {
+      if (err) return reject(err)
+
+      resolve(result)
+    })
+
+    fn(...args)
+  })
+}
+
 function noop () {}
 
 // function startTimer (name) {

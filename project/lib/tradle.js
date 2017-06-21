@@ -44,15 +44,20 @@ function Environment () {
   this.aws = this.require('aws', './aws')
   this.networks = this.require('networks', './networks')
 
+  let network
+  this.__defineGetter__('network', function () {
+    if (!network) {
+      network = self.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
+    }
+
+    return network
+  })
+
   let blockchain
   this.__defineGetter__('blockchain', function () {
     if (blockchain) return blockchain
 
     const createBlockchainAPI = require('./blockchain')
-    if (!this.network) {
-      this.setNetwork(BLOCKCHAIN)
-    }
-
     return blockchain = createBlockchainAPI(BLOCKCHAIN)
   })
 
@@ -93,10 +98,6 @@ function Environment () {
   this.tables = this.require('tables', './tables')
   this.buckets = this.require('buckets', './buckets')
   // this.provider = this.require('provider', './provider')
-}
-
-Environment.prototype.setNetwork = function ({ flavor, networkName }) {
-  this.network = this.networks[flavor][networkName]
 }
 
 exports = module.exports = new Environment()

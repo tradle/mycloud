@@ -40,10 +40,18 @@ function stringifyWithFlatBuffers (value, spacing) {
 
 function bufferReplacer (key, value) {
   // Filtering out properties
-  if (Object.keys(value).length === 2 && value.type === 'Buffer' && Array.isArray(value.data)) {
+  if (isLikeBuffer(value)) {
     // don't prettify buffer
     return JSON.stringify(value)
   }
 
   return value
+}
+
+function isLikeBuffer (value) {
+  return typeof value === 'object' &&
+    value &&
+    Object.keys(value).length === 2 &&
+    value.type === 'Buffer' &&
+    Array.isArray(value.data)
 }

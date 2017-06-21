@@ -7,7 +7,6 @@ const Messages = require('./messages')
 const Provider = require('./provider')
 const Errors = require('./errors')
 const constants = require('./constants')
-const { getChainKey } = require('./crypto')
 const _tradle = require('./tradle')
 const waterfall = {
   onmessage: true
@@ -16,19 +15,9 @@ const waterfall = {
 module.exports = createBotEngine
 
 function createBotEngine (tradle=_tradle) {
-  const { seals, network } = tradle
-  const chainKeyProps = {
-    type: network.flavor,
-    networkName: network.networkName
-  }
-
-  const getMyChainKey = co(function* () {
-    const keys = yield Provider.getMyKeys()
-    return getChainKey(keys, chainKeyProps)
-  })
-
+  const { seals } = tradle
   const createSeal = co(function* ({ link }) {
-    const chainKey = yield getMyChainKey()
+    const chainKey = yield Provider.getMyChainKey()
     yield seals.create({
       link,
       key: chainKey

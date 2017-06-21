@@ -30,10 +30,15 @@ test('queue seal', co(function* (t) {
   // const blockchain = createBlockchainAPI({ flavor, networkName })
   const tradle = createTradle()
   const { blockchain, seals } = tradle
+  const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
+  const address = blockchain.sealAddress({
+    link,
+    basePubKey: key
+  })
 
   let sealed
   blockchain.seal = function (sealInfo) {
-    t.equal(sealInfo.address, address)
+    t.same(sealInfo.addresses, [address])
     sealed = true
     return Promise.resolve({ txId })
   }
@@ -42,7 +47,10 @@ test('queue seal', co(function* (t) {
     return Promise.resolve([
       {
         txId,
-        confirmations: 10000
+        confirmations: 10000,
+        to: {
+          addresses: [address]
+        }
       }
     ])
   }
@@ -62,12 +70,6 @@ test('queue seal', co(function* (t) {
   // }
 
   // const seals = createSealsAPI({ blockchain, table /*, onread, onwrote*/ })
-  const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
-  const address = blockchain.sealAddress({
-    link,
-    basePubKey: key
-  })
-
   yield seals.create({ key, link })
   let unconfirmed = yield seals.getUnconfirmed()
   t.equal(unconfirmed.length, 1)
@@ -76,7 +78,7 @@ test('queue seal', co(function* (t) {
   let unsealed = yield seals.getUnsealed()
   t.same(unsealed, unconfirmed)
 
-  yield seals.sealPending()
+  yield seals.sealPending({ key })
   unsealed = yield seals.getUnsealed()
   t.equal(unsealed.length, 0)
 

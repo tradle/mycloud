@@ -1,7 +1,7 @@
 const debug = require('debug')('tradle:sls:author')
 const { utils, protocol, typeforce } = require('@tradle/engine')
 const wrap = require('./wrap')
-const { sign, getSigningKey } = require('./crypto')
+const { sign, getSigningKey, getChainKey } = require('./crypto')
 const Objects = require('./objects')
 const Secrets = require('./secrets')
 // const { saveIdentityAndKeys } = require('./identities')
@@ -15,6 +15,7 @@ const { getLiveSessionByPermalink } = require('./auth')
 const { deliverBatch } = require('./delivery')
 const Errors = require('./errors')
 const types = require('./types')
+const { network } = require('./tradle')
 const {
   PAYLOAD_PROP_PREFIX,
   IDENTITY_KEYS_KEY,
@@ -47,6 +48,14 @@ const getMyPublicIdentity = cachifyPromiser(lookupMyPublicIdentity)
 const getMyKeys = co(function* () {
   const { keys } = yield getMyIdentity()
   return keys
+})
+
+const getMyChainKey = co(function* () {
+  const keys = yield Provider.getMyKeys()
+  return getChainKey(keys, {
+    type: network.flavor,
+    networkName: network.networkName
+  })
 })
 
 const signObject = co(function* ({ author, object }) {
@@ -205,8 +214,9 @@ const sendMessage = co(function* ({ recipient, object, other={} }) {
   })
 })
 
-module.exports = {
+const Provider = module.exports = {
   getMyKeys,
+  getMyChainKey,
   getMyIdentity: getMyPublicIdentity,
   signObject,
   createSendMessageEvent,

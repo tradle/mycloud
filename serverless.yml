@@ -62,7 +62,7 @@ provider:
   profile: serverless
   stage: ${{self:custom.stage}}
   region: us-east-1
-  memorySize: 128
+  memorySize: 512
   # deploymentBucket: io.tradle.${{self:provider.region}.deploys # Overwrite the default deployment bucket
   environment:
     BLOCKCHAIN: ${{self:custom.blockchain}}
@@ -95,6 +95,8 @@ provider:
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/OutboxTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable/index/*"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/SealsTable"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/SealsTable/index/*"
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
@@ -250,6 +252,34 @@ functions:
             Fn::GetAtt:
               - OutboxTable
               - StreamArn
+
+  seal2events:
+    handler: project/lib/lambda/seal-events.handler
+    timeout: 60
+    memorySize: 512
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - SealsTable
+        - PublicConfBucket
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - SealsTable
+              - StreamArn
+
   # log:
   #   handler: project/lib/lambda/log.handler
   #   # package:
@@ -371,7 +401,7 @@ functions:
     memorySize: 1024
     environment:
       DEBUG: tradle:*
-      BOT_LAMBDA: bot_onmessage
+      BOT_LAMBDA: samplebot
       SERVERLESS_PREFIX: ${{self:custom.prefix}}
       SERVERLESS_STAGE: ${{self:custom.stage}}
       SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -408,7 +438,7 @@ functions:
         - PublicConfBucket
 
   # echo bot (business logic layer)
-  bot_onmessage:
+  samplebot:
     handler: project/lib/lambda/samplebot/index.onmessage
     memorySize: 1024
     custom:
@@ -416,6 +446,7 @@ functions:
         - ObjectsBucket
         - SecretsBucket
         - EventsTable
+        - SealsTable
         - PresenceTable
         - PubKeysTable
         - InboxTable
@@ -427,6 +458,17 @@ functions:
   onsealevent:
     handler: project/lib/samplebot/index.onsealevent
     memorySize: 1024
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - SecretsBucket
+        - EventsTable
+        - SealsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - PublicConfBucket
     environment:
       DEBUG: tradle:*
     events:
@@ -462,6 +504,8 @@ functions:
   # public endpoint for clients to get public configuration / provider identity
   info:
     handler: project/lib/lambda/info.handler
+    timeout: 10
+    memorySize: 256
     environment:
       DEBUG: tradle:*
       SERVERLESS_STAGE: ${{self:custom.stage}}
@@ -507,17 +551,47 @@ functions:
 
   sealpending:
     handler: project/lib/lambda/sealpending.handler
+    memorySize: 1024
+    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)
-          enabled: true
+          enabled: false
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - SecretsBucket
+        - ObjectsBucket
+        - PublicConfBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - SealsTable
 
   pollchain:
     handler: project/lib/lambda/pollchain.handler
+    memorySize: 1024
+    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)
-          enabled: true
+          enabled: false
+    environment:
+      DEBUG: tradle:*
+    custom:
+      env-resources:
+        - ObjectsBucket
+        - PublicConfBucket
+        - EventsTable
+        - PresenceTable
+        - PubKeysTable
+        - InboxTable
+        - OutboxTable
+        - SealsTable
+        - IotClientRole
 
     # environment:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
@@ -708,24 +782,6 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
-
-    # EventsStreamEventSourceMapping:
-    #   Type: AWS::Lambda::EventSourceMapping
-    #   DependsOn: IamPolicyLambdaExecution
-    #   Properties:
-    #     BatchSize: 10
-    #     EventSourceArn:
-    #       Fn::GetAtt:
-    #         - EventsTable
-    #         - StreamArn
-    #     FunctionName:
-    #       Fn::GetAtt:
-    #         - fanout
-    #         - Arn
-    #     StartingPosition: TRIM_HORIZON
-    #     Enabled: True
-
-
 
     # IoT
     # define IoT role

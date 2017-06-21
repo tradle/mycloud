@@ -2,21 +2,18 @@ const debug = require('debug')('tradle:sls:replicator')
 const wrap = require('./wrap')
 const Events = require('./events')
 const { prettify } = require('./string-utils')
-const { unmarshalDBItem } = require('./db-utils')
+const { getRecordsFromEvent } = require('./db-utils')
 
 module.exports = {
   toEvents
 }
 
-function toEvents (mapper) {
+function toEvents (mapper, oldAndNew) {
   return wrap.generator(function* (event, context) {
     // unmarshalling is prob a waste of time
-    const items = event.Records
-      .map(record => record.dynamodb.NewImage)
-      .filter(image => image)
-      .map(unmarshalDBItem)
+    const items = getRecordsFromEvent(event, oldAndNew)
       .map(mapper)
 
     yield Events.putEvents(items)
-  })
+  }, oldAndNew)
 }

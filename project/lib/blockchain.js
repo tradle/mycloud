@@ -1,5 +1,7 @@
+const debug = require('debug')('tradle:sls:blockchain')
 const { utils, protocol } = require('@tradle/engine')
 const { co, promisify, typeforce } = require('./utils')
+const { prettify } = require('./string-utils')
 // const { BLOCKCHAIN } = require('./env')
 const adapters = require('./blockchain-adapter')
 const ENV = require('./env')
@@ -54,6 +56,7 @@ function createWrapper (blockchainIdentifier) {
       }
     })
 
+    debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
     return txInfos
   })
 
@@ -63,7 +66,7 @@ function createWrapper (blockchainIdentifier) {
 
   const seal = co(function* ({ key, link, addresses }) {
     const writer = getWriter(key)
-    yield writer.send({
+    return yield writer.send({
       to: addresses.map(address => {
         return {
           address,
@@ -110,7 +113,8 @@ function createWrapper (blockchainIdentifier) {
     sealPrevPubKey,
     sealAddress,
     sealPrevAddress,
-    toString: () => `${network.blockchain}:${network.name}`
+    toString: () => `${network.blockchain}:${network.name}`,
+    _adapter: reader
   }
 }
 

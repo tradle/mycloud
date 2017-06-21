@@ -3,8 +3,10 @@ const { utils, protocol } = require('@tradle/engine')
 // const Blockchain = require('./blockchain')
 const { getUpdateParams } = require('./db-utils')
 const { co, clone, extend, pick, timestamp, typeforce, uuid, isPromise } = require('./utils')
+const { prettify } = require('./string-utils')
 const types = require('./types')
 const Errors = require('./errors')
+const Provider = require('./provider')
 const MAX_ERRORS_RECORDED = 10
 // const { SEAL_CONFIRMATIONS } = require('./env')
 const WATCH_TYPE = {
@@ -12,6 +14,7 @@ const WATCH_TYPE = {
   next: 'n'
 }
 
+const YES = 'y'
 const noop = () => {}
 
 function manageSeals ({ blockchain, table, confirmationsRequired }) {
@@ -32,28 +35,31 @@ function manageSeals ({ blockchain, table, confirmationsRequired }) {
   const getUnsealed = scanner('unsealed')
   const sealPending = co(function* (opts={}) {
     typeforce({
-      limit: typeforce.maybe(typeforce.Number)
+      limit: typeforce.maybe(typeforce.Number),
+      key: typeforce.maybe(types.privateKey)
     }, opts)
 
-    const { limit=Infinity } = opts
+    let { limit=Infinity, key } = opts
+    if (!key) {
+      key = yield Provider.getMyChainKey()
+    }
+
     const pending = yield getUnsealed({ limit })
     yield pending.map(co(function* (sealInfo) {
+      const { link, address } = sealInfo
+      const addresses = [address]
       let result
       try {
-        result = yield blockchain.seal(sealInfo)
+        result = yield blockchain.seal({ addresses, link, key })
       } catch (error) {
         yield recordWriteError({ seal: sealInfo, error })
         return
       }
 
-      let updated = yield recordWriteSuccess({
-        blockchain,
+      yield recordWriteSuccess({
         seal: sealInfo,
-        result
+        txId: result.txId
       })
-
-      // call onwrote
-      // yield callOnWrote(updated)
     }))
   })
 
@@ -104,11 +110,11 @@ function manageSeals ({ blockchain, table, confirmationsRequired }) {
       time: timestamp(),
       confirmations: -1,
       errors: [],
-      unconfirmed: 'y'
+      unconfirmed: YES
     }
 
     if (write) {
-      params.unsealed = 'y'
+      params.unsealed = YES
     }
 
     return params
@@ -127,15 +133,13 @@ function manageSeals ({ blockchain, table, confirmationsRequired }) {
     return createSealRecord({ key, link, write: true })
   })
 
-  const recordWriteSuccess = co(function* ({ seal, result }) {
-    typeforce({
-      txId: typeforce.String,
-      confirmations: typeforce.maybe(typeforce.Number)
-    }, result)
+  const recordWriteSuccess = co(function* ({ seal, txId }) {
+    typeforce(typeforce.String, txId)
+    debug(`sealed ${seal.link} with tx ${txId}`)
 
     const update = {
-      txId: result.txId,
-      confirmations: result.confirmations || 0,
+      txId,
+      confirmations: 0,
       timeSealed: timestamp(),
       unsealed: null
     }
@@ -156,35 +160,47 @@ function manageSeals ({ blockchain, table, confirmationsRequired }) {
 
   const syncUnconfirmed = co(function* () {
     const unconfirmed = yield getUnconfirmed()
+    if (!unconfirmed.length) return
+
     const addresses = unconfirmed.map(({ address }) => address)
     const txInfos = yield blockchain.getTransactionsForAddresses(addresses)
-    const updates = unconfirmed.map((sealInfo, i) => {
-      const txInfo = txInfos[i]
-      if (sealInfo.confirmations === txInfo.confirmations) return
+    if (!txInfos.length) return
 
-      const { confirmations=0 } = txInfo
-      return {
-        address: sealInfo.address,
-        confirmations,
-        unconfirmed: confirmations < confirmationsRequired ? 'x' : null
-      }
+    const addrToSeal = {}
+    addresses.forEach((address, i) => {
+      addrToSeal[address] = unconfirmed[i]
     })
 
-    const actualUpdates = updates.filter(update => update)
-    if (!actualUpdates.length) {
+    const updates = {}
+    for (let txInfo of txInfos) {
+      let { txId } = txInfo
+      let to = txInfo.to.addresses
+      for (let address of to) {
+        if (!addrToSeal[address]) continue
+
+        let seal = addrToSeal[address]
+        let { confirmations=0 } = txInfo
+        if (seal.confirmations >= confirmations) continue
+
+        updates[address] = {
+          txId,
+          confirmations,
+          unconfirmed: confirmations < confirmationsRequired ? YES : null
+        }
+      }
+    }
+
+    if (!Object.keys(updates).length) {
       debug(`blockchain has nothing new for ${addresses.length} synced addresses`)
       return
     }
 
-    yield updates.map(co(function* (update, i) {
-      if (!update) return
-
-      const seal = unconfirmed[i]
+    yield Object.keys(updates).map(co(function* (address, i) {
+      const update = updates[address]
+      const seal = addrToSeal[address]
       const params = getUpdateParams(update)
       params.Key = getKey(seal)
       yield table.update(params)
-
-      // yield callOnRead(clone(seal, update))
     }))
 
     // TODO: use dynamodb-wrapper

@@ -198,13 +198,14 @@ function getRecordsFromEvent (event, oldAndNew) {
     const { NewImage, OldImage } = record.dynamodb
     if (oldAndNew) {
       return {
-        old: unmarshalItem(OldImage),
-        new: unmarshalItem(NewImage)
+        old: OldImage && unmarshalItem(OldImage),
+        new: NewImage && unmarshalItem(NewImage)
       }
     }
 
-    return unmarshalItem(NewImage)
+    return NewImage && unmarshalItem(NewImage)
   })
+  .filter(data => data)
 }
 
 module.exports = {
