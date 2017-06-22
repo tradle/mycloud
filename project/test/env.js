@@ -7,7 +7,8 @@ process.env.IS_LOCAL = true
   'Events',
   'Inbox',
   'Outbox',
-  'Presence'
+  'Presence',
+  'Users'
 ].forEach(table => {
   process.env[`CF_${table}Table`] = `${table}Table`
 })

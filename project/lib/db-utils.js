@@ -67,10 +67,12 @@ function get (params) {
 function put (params) {
   debug(`putting to ${params.TableName}`, prettify(params))
   return aws.docClient.put(params).promise()
+    .then(result => tweakReturnValue(params, result))
 }
 
 function del (params) {
   return aws.docClient.delete(params).promise()
+    .then(result => tweakReturnValue(params, result))
 }
 
 function find (params) {
@@ -89,6 +91,15 @@ function findOne (params) {
 
 function update (params) {
   return aws.docClient.update(params).promise()
+    .then(result => tweakReturnValue(params, result))
+}
+
+function tweakReturnValue (params, result) {
+  if (params.ReturnValues !== 'NONE') {
+    return result.Attributes
+  }
+
+  return result
 }
 
 function getUpdateParams (item) {

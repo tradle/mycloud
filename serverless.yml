@@ -451,6 +451,7 @@ functions:
         - PubKeysTable
         - InboxTable
         - OutboxTable
+        - UsersTable
         - PublicConfBucket
     environment:
       DEBUG: tradle:*
@@ -468,6 +469,7 @@ functions:
         - PubKeysTable
         - InboxTable
         - OutboxTable
+        - UsersTable
         - PublicConfBucket
     environment:
       DEBUG: tradle:*
@@ -683,6 +685,7 @@ resources:
           StreamViewType: NEW_AND_OLD_IMAGES
 
     SealsTable: ${{file(./project/conf/table/seals.yml)}}
+    UsersTable: ${{file(./project/conf/table/users.yml)}}
 
 
     # CursorTable:

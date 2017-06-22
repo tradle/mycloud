@@ -1,22 +1,6 @@
-// const path = require('path')
+require('./env')
 
-// require('dotenv').config({ path: path.join(__dirname, '.env') })
-
-process.env.IS_LOCAL = '1'
-
-const extend = require('xtend/mutable')
-extend(process.env, {
-  CF_ObjectsBucket: 'ObjectsBucket',
-  CF_SecretsBucket: 'SecretsBucket',
-  CF_EventsTable: 'tradle-messaging-dev-EventsTable',
-  CF_InboxTable: 'tradle-messaging-dev-InboxTable',
-  CF_OutboxTable: 'tradle-messaging-dev-OutboxTable',
-  CF_PubKeysTable: 'tradle-messaging-dev-PubKeysTable',
-  CF_PresenceTable: 'tradle-messaging-dev-PresenceTable',
-  CF_IotClientRole: 'IotClientRole'
-})
-
-const awsMock = require('aws-sdk-mock')
+// const awsMock = require('aws-sdk-mock')
 const AWS = require('aws-sdk')
 AWS.config.paramValidation = false
 

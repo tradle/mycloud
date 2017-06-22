@@ -18,6 +18,10 @@
          {
             "AttributeName": "address",
             "AttributeType": "S"
+         },
+         {
+            "AttributeName": "link",
+            "AttributeType": "S"
          }
       ],
       "KeySchema": [
@@ -68,6 +72,22 @@
             ],
             "Projection": {
               "ProjectionType": "ALL"
+            },
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": 5,
+              "WriteCapacityUnits": 5
+            }
+         },
+         {
+            "IndexName": "link",
+            "KeySchema": [
+               {
+                  "AttributeName": "link",
+                  "KeyType": "HASH"
+               }
+            ],
+            "Projection": {
+              "ProjectionType": "KEYS_ONLY"
             },
             "ProvisionedThroughput": {
               "ReadCapacityUnits": 5,

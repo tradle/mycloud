@@ -11,6 +11,8 @@ Properties:
       AttributeType: S
     - AttributeName: unsealed
       AttributeType: S
+    - AttributeName: link
+      AttributeType: S
   KeySchema:
     - AttributeName: id
       KeyType: HASH
@@ -39,6 +41,15 @@ Properties:
           KeyType: RANGE
       Projection:
         ProjectionType: ALL
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+    - IndexName: link
+      KeySchema:
+        - AttributeName: link
+          KeyType: HASH
+      Projection:
+        ProjectionType: KEYS_ONLY
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5

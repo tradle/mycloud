@@ -1,5 +1,5 @@
 const debug = require('debug')('λ:samplebot')
-const createBot = require('../../bot-engine')
+const createBot = require('../../bot')
 const { co } = require('../../utils')
 
 const bot = createBot()
@@ -12,7 +12,8 @@ exports.onwroteseal = bot.onwroteseal(co(function* (seal) {
   debug('[START]', Date.now(), 'wrote seal:', JSON.stringify(seal))
 }))
 
-exports.onmessage = bot.onmessage(co(function* ({ message, payload }) {
+exports.onmessage = bot.onmessage(co(function* ({ user, wrapper }) {
+  const { message, payload } = wrapper
   debug('[START]', Date.now(), 'message:', JSON.stringify(message))
   // yield bot.send({
   //   recipient: message.author,
@@ -20,7 +21,7 @@ exports.onmessage = bot.onmessage(co(function* ({ message, payload }) {
   // })
 
   yield bot.send({
-    to: message.author,
+    to: user.id,
     object: {
       _t: 'tradle.SimpleMessage',
       message: payload.object.message

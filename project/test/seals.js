@@ -86,6 +86,10 @@ test('queue seal', co(function* (t) {
   unconfirmed = yield seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
 
+  const seal = yield seals.get({ link })
+  t.equal(seal.address, address)
+  t.equal(seal.link, link)
+
   // t.equal(read, true)
   // t.equal(wrote, true)
 

@@ -389,7 +389,9 @@ const _normalizeInbound = function _normalizeInbound (event) {
   }
 
   const { recipientPubKey } = event
-  if (!recipientPubKey) throw new Error('unexpected format')
+  if (!recipientPubKey) {
+    throw new Errors.InvalidMessageFormat('unexpected format')
+  }
 
   const { pub } = recipientPubKey
   if (!Buffer.isBuffer(pub)) {

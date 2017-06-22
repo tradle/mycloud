@@ -1,28 +1,27 @@
 const debug = require('debug')('tradle:sls:bot-engine')
-const types = require('./types')
-const { co, omit, typeforce, isPromise } = require('./utils')
-const { getRecordsFromEvent } = require('./db-utils')
-const wrap = require('./wrap')
-const Messages = require('./messages')
-const Provider = require('./provider')
-const Errors = require('./errors')
-const constants = require('./constants')
-const _tradle = require('./tradle')
+const types = require('../types')
+const { co, omit, typeforce, isPromise } = require('../utils')
+const { getRecordsFromEvent } = require('../db-utils')
+const wrap = require('../wrap')
+const Messages = require('../messages')
+const Identities = require('../identities')
+const Provider = require('../provider')
+const Errors = require('../errors')
+const constants = require('../constants')
+const defaultTradleInstance = require('../tradle')
+const createUsers = require('./users')
+const createHistory = require('./history')
+const createSeals = require('./seals')
 const waterfall = {
   onmessage: true
 }
 
-module.exports = createBotEngine
+module.exports = createBot
 
-function createBotEngine (tradle=_tradle) {
-  const { seals } = tradle
-  const createSeal = co(function* ({ link }) {
-    const chainKey = yield Provider.getMyChainKey()
-    yield seals.create({
-      link,
-      key: chainKey
-    })
-  })
+function createBot (tradle=defaultTradleInstance) {
+  const { tables } = tradle
+  const { UsersTable, InboxTable, OutboxTable } = tables
+  const seals = createSeals(tradle)
 
   const execMiddleware = co(function* (method, event) {
     const fns = middleware[method]
@@ -56,23 +55,33 @@ function createBotEngine (tradle=_tradle) {
   }
 
   const middleware = {}
-  const api = {
+  const bot = {
+    seal: seals.create,
     send: sendMessage,
-    seal: createSeal,
     constants
   }
 
   ;['onreadseal', 'onwroteseal', 'onmessage'].forEach(method => {
     middleware[method] = []
-    api[method] = fn => addMiddleware(method, fn)
+    bot[method] = fn => addMiddleware(method, fn)
   })
 
   addMiddleware('onmessage', co(function* (event) {
     const { author, time } = JSON.parse(event)
-    return yield Messages.getMessageFrom({ author, time })
+    const [wrapper, identity] = [
+      yield Messages.getMessageFrom({ author, time }),
+      yield Identities.getIdentityByPermalink(author)
+    ]
+
+    const user = yield bot.users.createIfNotExists({
+      id: author,
+      identity
+    })
+
+    return { user, wrapper }
   }))
 
-  api._onsealevent = co(function* (event) {
+  bot._onsealevent = co(function* (event) {
     const records = getRecordsFromEvent(event, true)
     for (let record of records) {
       let method
@@ -88,5 +97,12 @@ function createBotEngine (tradle=_tradle) {
     }
   })
 
-  return api
+  bot.seals = seals
+  bot.users = createUsers({ table: UsersTable })
+  bot.users.history = createHistory({
+    inbox: InboxTable,
+    outbox: OutboxTable
+  })
+
+  return bot
 }

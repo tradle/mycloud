@@ -224,7 +224,22 @@ function manageSeals ({ blockchain, table, confirmationsRequired }) {
     return pick(sealInfo, 'id')
   }
 
+  const getSeal = co(function* ({ link }) {
+    const { id } = yield table.findOne({
+      IndexName: 'link',
+      KeyConditionExpression: 'link = :link',
+      ExpressionAttributeValues: {
+        ':link': link
+      }
+    })
+
+    return table.get({
+      Key: { id }
+    })
+  })
+
   return {
+    get: getSeal,
     getUnconfirmed,
     getUnsealed,
     sealPending,
@@ -239,8 +254,3 @@ function manageSeals ({ blockchain, table, confirmationsRequired }) {
 }
 
 module.exports = manageSeals
-
-// module.exports = manageSeals({
-//   blockchain: require('./blockchain'),
-//   table: require('./tables').SealsTable
-// })
