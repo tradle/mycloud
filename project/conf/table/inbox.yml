@@ -1,0 +1,34 @@
+Type: AWS::DynamoDB::Table
+Properties:
+  TableName: InboxTable
+  AttributeDefinitions:
+    - AttributeName: author
+      AttributeType: S
+    # - AttributeName: ${{self:custom.props.seq}}
+    #   AttributeType: N
+    - AttributeName: link
+      AttributeType: S
+    - AttributeName: time
+      AttributeType: N
+  KeySchema:
+    - AttributeName: author
+      KeyType: HASH
+    - AttributeName: time
+      KeyType: RANGE
+    # - AttributeName: seq
+    #   KeyType: RANGE
+  ProvisionedThroughput:
+    ReadCapacityUnits: 5
+    WriteCapacityUnits: 5
+  StreamSpecification:
+    StreamViewType: NEW_AND_OLD_IMAGES
+  GlobalSecondaryIndexes:
+    - IndexName: link
+      KeySchema:
+        - AttributeName: link
+          KeyType: HASH
+      Projection:
+        ProjectionType: ALL
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5

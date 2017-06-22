@@ -1,6 +1,7 @@
 const debug = require('debug')('tradle:sls:bot-engine')
 const types = require('../types')
 const { co, omit, typeforce, isPromise } = require('../utils')
+const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
 const wrap = require('../wrap')
 const Messages = require('../messages')
@@ -8,6 +9,7 @@ const Identities = require('../identities')
 const Provider = require('../provider')
 const Errors = require('../errors')
 const constants = require('../constants')
+const { TYPE } = constants
 const defaultTradleInstance = require('../tradle')
 const createUsers = require('./users')
 const createHistory = require('./history')
@@ -41,16 +43,27 @@ function createBot (tradle=defaultTradleInstance) {
     try {
       typeforce({
         to: typeforce.String,
-        object: typeforce.oneOf(types.unsignedObject, types.signedObject),
+        object: typeforce.oneOf(
+          types.unsignedObject,
+          types.signedObject,
+          typeforce.String
+        ),
         other: typeforce.maybe(typeforce.Object)
       }, opts)
     } catch (err) {
-      throw new Errors.InvalidInput('invalid params to send()')
+      throw new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}`)
     }
 
     const { to } = opts
     opts = omit(opts, 'to')
     opts.recipient = to
+    if (typeof opts.object === 'string') {
+      opts.object = {
+        [TYPE]: 'tradle.SimpleMessage',
+        message: opts.object
+      }
+    }
+
     return Provider.sendMessage(opts)
   }
 

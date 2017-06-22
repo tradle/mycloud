@@ -163,6 +163,7 @@ postpone implementation of:
     - https://github.com/serverless/examples/tree/master/aws-node-env-variables-encrypted-in-a-file
 
   - compatibility layer so existing bots (e.g. silly) can work out of the box
+  - use VPC
 
 requires long-lived clientIds
 

@@ -17,7 +17,7 @@ const Objects = require('../lib/objects')
 const { createSendMessageEvent, createReceiveMessageEvent } = require('../lib/provider')
 const { MESSAGE } = TYPES
 const Errors = require('../lib/errors')
-const { METADATA_PREFIX, PAYLOAD_PROP_PREFIX } = require('../lib/constants')
+const { MESSAGE_PROP_PREFIX, PAYLOAD_METADATA_PREFIX } = require('../lib/constants')
 const Identities = require('../lib/identities')
 const Messages = require('../lib/messages')
 const Events = require('../lib/events')
@@ -93,22 +93,22 @@ test('format message', function (t) {
 
   const formatted = Messages.messageToEventPayload({ message, payload })
   t.same(formatted, {
-    [METADATA_PREFIX + 'time']: time,
-    [METADATA_PREFIX + 'link']: 'a',
-    [METADATA_PREFIX + 'permalink']: 'b',
-    [METADATA_PREFIX + 'author']: 'c',
-    [METADATA_PREFIX + 'recipient']: 'd',
-    [METADATA_PREFIX + 'sigPubKey']: 'd1',
-    [METADATA_PREFIX + PAYLOAD_PROP_PREFIX + 'link']: 'e',
-    [METADATA_PREFIX + PAYLOAD_PROP_PREFIX + 'permalink']: 'f',
-    [METADATA_PREFIX + PAYLOAD_PROP_PREFIX + 'type']: 'g',
-    [METADATA_PREFIX + PAYLOAD_PROP_PREFIX + 'author']: 'h',
-    [METADATA_PREFIX + PAYLOAD_PROP_PREFIX + 'sigPubKey']: 'i',
-    [SIG]: 'asdjklasdjklsa',
-    [SEQ]: 1,
-    context: 'abc',
-    recipientPubKey: 'p256:beefface',
-    time
+    time: time,
+    link: 'a',
+    permalink: 'b',
+    author: 'c',
+    recipient: 'd',
+    sigPubKey: 'd1',
+    [PAYLOAD_METADATA_PREFIX + 'link']: 'e',
+    [PAYLOAD_METADATA_PREFIX + 'permalink']: 'f',
+    [PAYLOAD_METADATA_PREFIX + 'type']: 'g',
+    [PAYLOAD_METADATA_PREFIX + 'author']: 'h',
+    [PAYLOAD_METADATA_PREFIX + 'sigPubKey']: 'i',
+    [MESSAGE_PROP_PREFIX + SIG]: 'asdjklasdjklsa',
+    [MESSAGE_PROP_PREFIX + SEQ]: 1,
+    [MESSAGE_PROP_PREFIX + 'context']: 'abc',
+    [MESSAGE_PROP_PREFIX + 'recipientPubKey']: 'p256:beefface',
+    [MESSAGE_PROP_PREFIX + 'time']: time
   })
 
   const recovered = Messages.messageFromEventPayload(formatted)

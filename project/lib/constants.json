@@ -10,8 +10,8 @@
     "SELF_INTRODUCTION": "tradle.SelfIntroduction",
     "INTRODUCTION": "tradle.Introduction"
   },
-  "PAYLOAD_PROP_PREFIX": "p_",
-  "METADATA_PREFIX": "m_",
+  "PAYLOAD_METADATA_PREFIX": "p_",
+  "MESSAGE_PROP_PREFIX": "m_",
   "IDENTITY_KEYS_KEY": "IdentityKeys",
   "PUBLIC_CONF_BUCKET": {
     "identity": "identity",

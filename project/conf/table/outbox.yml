@@ -1,0 +1,19 @@
+Type: AWS::DynamoDB::Table
+Properties:
+  TableName: OutboxTable
+  AttributeDefinitions:
+    - AttributeName: recipient
+      AttributeType: S
+    - AttributeName: time
+      AttributeType: N
+  KeySchema:
+    - AttributeName: recipient
+      KeyType: HASH
+    - AttributeName: time
+      KeyType: RANGE
+  ProvisionedThroughput:
+    ReadCapacityUnits: 5
+    WriteCapacityUnits: 5
+  StreamSpecification:
+    StreamViewType: NEW_AND_OLD_IMAGES
+

@@ -12,7 +12,7 @@ const tradle = require('@tradle/engine')
 const Client = require('@tradle/aws-client')
 const getNetworkAdapter = require('./project/lib/blockchain-adapter').bitcoin
 const Restore = require('@tradle/restore')
-const BASE_URL = 'https://2imx664qrj.execute-api.us-east-1.amazonaws.com/dev/tradle'
+const BASE_URL = 'https://tyvtq6efah.execute-api.us-east-1.amazonaws.com/dev/tradle'
 // const { loudCo } = require('./project/lib/utils')
 // const { sign, getSigningKey, extractSigPubKey } = require('./project/lib/crypto')
 const keys = require('./project/test/fixtures/bob/keys')
@@ -53,9 +53,10 @@ const prepare = co(function* () {
     networkName: 'testnet'
   })
 
+  const keeperPath = path.join(dir, 'keeper.db')
   const node = tradle.utils.promisifyNode(tradle.node(extend({
     dir,
-    keeper: tradle.utils.levelup(path.join(dir, 'keeper.db')),
+    keeper: tradle.utils.levelup(keeperPath, { leveldown }),
     identity: bob.object,
     keys: keys,
     blockchain: new Blockchain('testnet'),
@@ -73,9 +74,7 @@ const prepare = co(function* () {
     try {
       yield client.send({
         link: msg.unserialized.link,
-        message: {
-          data: msg.toString('base64')
-        }
+        message: msg
       })
     } catch (err) {
       if (err.type === 'timetravel') {

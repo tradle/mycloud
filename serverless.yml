@@ -25,18 +25,11 @@ custom:
   accountId: ${{file(./env.json):ACCOUNT_ID}}
   pushServer: https://push1.tradle.io
   blockchain: testnet
-  METADATA_PREFIX: ${{file(./project/lib/constants.json):METADATA_PREFIX}}
   IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
   SECRETS_BUCKET: ${{self:custom.prefix}}secrets
   OBJECTS_BUCKET: ${{self:custom.prefix}}objects
   PRIVATE_CONF_BUCKET: ${{self:custom.prefix}}private-conf
   PUBLIC_CONF_BUCKET: ${{self:custom.prefix}}public-conf
-  props:
-    author: ${{self:custom.METADATA_PREFIX}}author
-    recipient: ${{self:custom.METADATA_PREFIX}}recipient
-    time: ${{self:custom.METADATA_PREFIX}}time
-    link: ${{self:custom.METADATA_PREFIX}}link
-    # seq: seq
   # writeEnvVars:
   #   SERVERLESS_STAGE: ${{self:custom.stage}}
   #   SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -97,6 +90,7 @@ provider:
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable/index/*"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/SealsTable"
         - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/SealsTable/index/*"
+        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/UsersTable"
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
@@ -626,67 +620,13 @@ resources:
     EventsTable: ${{file(./project/conf/table/events.yml)}}
     PubKeysTable: ${{file(./project/conf/table/pubkeys.yml)}}
 
-    # stores metadata about incoming messages
     # bodies rot in s3
-    InboxTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: InboxTable
-        AttributeDefinitions:
-          - AttributeName: ${{self:custom.props.author}}
-            AttributeType: S
-          # - AttributeName: ${{self:custom.props.seq}}
-          #   AttributeType: N
-          - AttributeName: ${{self:custom.props.link}}
-            AttributeType: S
-          - AttributeName: ${{self:custom.props.time}}
-            AttributeType: N
-        KeySchema:
-          - AttributeName: ${{self:custom.props.author}}
-            KeyType: HASH
-          - AttributeName: ${{self:custom.props.time}}
-            KeyType: RANGE
-          # - AttributeName: ${{self:custom.props.seq}}
-          #   KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
-        GlobalSecondaryIndexes:
-          - IndexName: link
-            KeySchema:
-              - AttributeName: ${{self:custom.props.link}}
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-
-    OutboxTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: OutboxTable
-        AttributeDefinitions:
-          - AttributeName: ${{self:custom.props.recipient}}
-            AttributeType: S
-          - AttributeName: ${{self:custom.props.time}}
-            AttributeType: N
-        KeySchema:
-          - AttributeName: ${{self:custom.props.recipient}}
-            KeyType: HASH
-          - AttributeName: ${{self:custom.props.time}}
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
-
+    InboxTable: ${{file(./project/conf/table/inbox.yml)}}
+    OutboxTable: ${{file(./project/conf/table/outbox.yml)}}
     SealsTable: ${{file(./project/conf/table/seals.yml)}}
-    UsersTable: ${{file(./project/conf/table/users.yml)}}
 
+    # used by bot
+    UsersTable: ${{file(./project/conf/table/users.yml)}}
 
     # CursorTable:
     #   Type: AWS::DynamoDB::Table
@@ -727,44 +667,6 @@ resources:
     #       WriteCapacityUnits: 5
     #     StreamSpecification:
     #       StreamViewType: NEW_AND_OLD_IMAGES
-
-    # stores metadata about incoming messages
-    # bodies rot in s3
-    # MessagesTable:
-    #   Type: AWS::DynamoDB::Table
-    #   Properties:
-    #     TableName: MessagesTable
-    #     AttributeDefinitions:
-    #       - AttributeName: ${{self:custom.props.author}}
-    #         AttributeType: S
-    #       - AttributeName: ${{self:custom.props.recipient}}
-    #         AttributeType: S
-    #       - AttributeName: ${{self:custom.props.seq}}
-    #         AttributeType: N
-    #     # Inbox
-    #     KeySchema:
-    #       - AttributeName: ${{self:custom.props.author}}
-    #         KeyType: HASH
-    #       - AttributeName: ${{self:custom.props.seq}}
-    #         KeyType: RANGE
-    #     ProvisionedThroughput:
-    #       ReadCapacityUnits: 5
-    #       WriteCapacityUnits: 5
-    #     StreamSpecification:
-    #       StreamViewType: NEW_AND_OLD_IMAGES
-    #     # Outbox
-    #     GlobalSecondaryIndexes:
-    #       - IndexName: recipient
-    #         KeySchema:
-    #           - AttributeName: ${{self:custom.props.recipient}}
-    #             KeyType: HASH
-    #           - AttributeName: ${{self:custom.props.seq}}
-    #             KeyType: RANGE
-    #         Projection:
-    #           ProjectionType: ALL
-    #         ProvisionedThroughput:
-    #           ReadCapacityUnits: 5
-    #           WriteCapacityUnits: 5
 
     # stores mappings between identity permalink and ephemeral clientIds
     # mappings are created after initial handshake and destroyed on disconnect
