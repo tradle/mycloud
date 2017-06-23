@@ -47,6 +47,8 @@ contexts.nFriends(2, function (err, friends) {
   const [ alice, bob ] = friends
   helpers.connect(friends)
 
+  let togo = 2
+
   friends.forEach(node => {
     mkdirp.sync(`./project/test/fixtures/${node.name}`)
     fs.writeFileSync(`./project/test/fixtures/${node.name}/identity.json`, prettify(node.identityInfo.object))
@@ -59,6 +61,9 @@ contexts.nFriends(2, function (err, friends) {
     fs.writeFileSync(`./project/test/fixtures/${node.name}/keys.json`, prettify(exportKeys(node.keys)))
     node.on('message', function ({ object }) {
       fs.writeFileSync(`./project/test/fixtures/${node.name}/receive.json`, prettify(object))
+      if (--togo === 0) {
+        friends.forEach(friend => friend.destroy(rethrow))
+      }
     })
   })
 

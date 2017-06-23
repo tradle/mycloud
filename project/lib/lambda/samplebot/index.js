@@ -15,8 +15,8 @@ bot.users.on('create', function oncreate (user) {
 exports.onmessage = bot.onmessage(co(function* ({ user, wrapper }) {
   debug('user', prettify(user))
   debug('wrapper', prettify(wrapper))
-  const { message } = wrapper
-  const { object } = message
+  const { payload } = wrapper
+  const { object } = payload
   const type = object[TYPE]
   switch (type) {
   case 'tradle.SelfIntroduction':

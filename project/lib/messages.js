@@ -22,7 +22,8 @@ const {
   MESSAGE,
   IDENTITY,
   SELF_INTRODUCTION,
-  INTRODUCTION
+  INTRODUCTION,
+  IDENTITY_PUBLISH_REQUEST
 } = TYPES
 
 const get = function get (table, Key) {
@@ -224,16 +225,9 @@ const getLastSeq = co(function* ({ recipient }) {
 
   let last
   try {
-    last = yield OutboxTable.findOne({
-      KeyConditionExpression: 'recipient = :recipient',
-      ExpressionAttributeValues: {
-        ':recipient': recipient
-      },
-      Limit: 1,
-      ScanIndexForward: false
-    })
-
-    return last[SEQ]
+    last = yield getLastMessageTo({ recipient, body: false })
+    debug('last message:', prettify(last))
+    return last.message.object[SEQ]
   } catch (err) {
     if (err instanceof Errors.NotFound) {
       return -1
@@ -482,8 +476,7 @@ const preProcessInbound = co(function* (event) {
   const { object } = message
   const identity = getIntroducedIdentity(object)
   if (identity) {
-    const result = yield Identities.validateNewContact({ object })
-    yield Identities.addContact(result)
+    yield Identities.validateAndAdd({ object: identity })
   }
 
   return message
@@ -502,7 +495,7 @@ const getIntroducedIdentity = function getIntroducedIdentity (payload) {
   const type = payload[TYPE]
   if (type === IDENTITY) return payload
 
-  if (type === SELF_INTRODUCTION || type === INTRODUCTION) {
+  if (type === SELF_INTRODUCTION || type === INTRODUCTION || type === IDENTITY_PUBLISH_REQUEST) {
     return payload.identity
   }
 }

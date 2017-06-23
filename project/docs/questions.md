@@ -151,6 +151,10 @@ postpone implementation of:
 
 
 ## TODO
+  - TypeTable
+    - index by type
+  - need to create Organization resource in init-identity
+
   - handle blockHeight
   - support multiple networks
   - table per network?

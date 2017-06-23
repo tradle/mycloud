@@ -1,6 +1,6 @@
 const debug = require('debug')('λ:faucet.bitcoin')
 const wrap = require('./wrap')
-const { faucet } = require('./tradle')
+const { faucet } = require('./')
 
 exports.withdraw = wrap.generator(function* ({ to, fee }) {
   const total = to.reduce((total, next) => total + next.amount, 0)

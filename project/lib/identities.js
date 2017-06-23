@@ -6,7 +6,8 @@ const { PREVLINK, PERMALINK, TYPE, TYPES } = require('./constants')
 const { MESSAGE } = TYPES
 const Objects = require('./objects')
 const { NotFound } = require('./errors')
-const { firstSuccess, logify } = require('./utils')
+const { firstSuccess, logify, typeforce } = require('./utils')
+const types = require('./types')
 const Events = require('./events')
 const { PubKeysTable } = require('./tables')
 
@@ -85,14 +86,14 @@ function getExistingIdentityMapping ({ object }) {
 //   return findOne(params)
 // }
 
-const createAddContactEvent = co(function* ({ link, permalink, object }) {
-  const result = validateNewContact({ link, permalink, object })
-  debug(`queueing add contact ${link}`)
-  yield Events.putEvent({
-    topic: 'addcontact',
-    link: result.link
-  })
-})
+// const createAddContactEvent = co(function* ({ link, permalink, object }) {
+//   const result = validateNewContact({ link, permalink, object })
+//   debug(`queueing add contact ${link}`)
+//   yield Events.putEvent({
+//     topic: 'addcontact',
+//     link: result.link
+//   })
+// })
 
 const validateNewContact = co(function* ({ link, permalink, object }) {
   let existing
@@ -117,7 +118,9 @@ const validateNewContact = co(function* ({ link, permalink, object }) {
 })
 
 const addContact = co(function* ({ link, permalink, object }) {
-  if (!object) {
+  if (object) {
+    typeforce(types.identity, object)
+  } else {
     const result = yield Objects.getObjectByLink(link)
     object = result.object
   }
@@ -166,6 +169,12 @@ const addAuthorMetadata = co(function* (wrapper) {
   return wrapper
 })
 
+const validateAndAdd = co(function* (payloadWrapper) {
+  const result = yield Identities.validateNewContact(payloadWrapper)
+  // debug('validated contact:', prettify(result))
+  if (!result.exists) return Identities.addContact(result)
+})
+
 // function addContactPubKeys ({ link, permalink, identity }) {
 //   const RequestItems = {
 //     [PubKeysTable]: identity.pubkeys.map(pub => {
@@ -185,8 +194,9 @@ const Identities = module.exports = logify({
   getIdentityByPub,
   getIdentityMetadataByPub,
   // getIdentityByFingerprint,
-  createAddContactEvent,
+  // createAddContactEvent,
   addContact,
   validateNewContact,
+  validateAndAdd,
   addAuthorMetadata
 })

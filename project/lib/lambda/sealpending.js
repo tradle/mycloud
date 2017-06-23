@@ -1,6 +1,6 @@
 const debug = require('debug')('λ:sealpending')
 const wrap = require('../wrap')
-const { seals } = require('../tradle')
+const { seals } = require('../')
 
 exports.handler = wrap.promiser(function () {
   debug('[START]', Date.now())

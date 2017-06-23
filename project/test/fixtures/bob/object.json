@@ -1,45 +1,59 @@
 {
   "object": {
-    "_s": "CikKBHAyNTYSIQKtKMfeQol6YoQcLNR6jfKzmRXFx2blwmHkh/jjJBC3shJHMEUCIQDVm+JYNh7+78JzfGeMLcwtOc6L4IS+KaqhiJk4v1yc0AIgIIbPWdPPxaIaNpR4whvqA6QVeE2khEl+r1sR0MXgoq8=",
+    "_s": "CkkKBHAyNTYSQQRau5BSmwnoKSJLkUCjvgVl8Tg1tM/RzFgBKYYQA5YmOyLOcuXqjtM/4fea++DQBAVAto0fA5zVu/g+iEtbqs1REkcwRQIgIl/AMnQ04u7dnxNUNb7R5Q8ge4pIac5mN1guagxaHYsCIQC2MlTa8KfEsQRb+nj81uBsIrgocKjuwgw9LytaMcPyjA==",
     "_t": "tradle.Identity",
     "pubkeys": [
-      {
-        "networkName": "testnet",
-        "purpose": "payment",
-        "type": "bitcoin",
-        "fingerprint": "n15oiKHmcfMSpbjtK1VhGSCqULLw3cKjUE",
-        "pub": "03d3188458ae15510d2a37d1f43237d51b1d58e5ee0d02537fcc33395a10c25f44"
-      },
-      {
-        "networkName": "testnet",
-        "purpose": "messaging",
-        "type": "bitcoin",
-        "fingerprint": "mpbgADWnkGXaQyvgFhjihbG3t2gQ7a2A5B",
-        "pub": "02e7dafdb4ea60ead1d21cbd8ee59083f0518a8626cccfab8465ba55432599ad5b"
-      },
       {
         "curve": "p256",
         "purpose": "sign",
         "type": "ec",
-        "pub": "037a4631ac706638f66b0c72090e7704057fa92cc24d807e0f968989805f8c25bc",
-        "fingerprint": "0c98e83d6b6af01b5240e2d05e44141305df513a81f841d16d611434ea1c9a36"
+        "pub": "0441b39895b1180409b82d2029c532cae211fdefef2e7aea39a780706366b78e83a30433faee33df8f0bead6eb3dc6ef366132b1cb1357ff07481df611d4e99fa0",
+        "fingerprint": "fdf59ff9c2a7ad9013ab756b224ad4549514b1f79fca4b19e95e4aa77ce17ae2"
       },
       {
         "curve": "p256",
         "purpose": "update",
         "type": "ec",
-        "pub": "02ad28c7de42897a62841c2cd47a8df2b39915c5c766e5c261e487f8e32410b7b2",
-        "fingerprint": "e3a14312857892879a1fe9d59469012349a54e4c8156126e5f9d4c024bf00136"
+        "pub": "045abb90529b09e829224b9140a3be0565f13835b4cfd1cc58012986100396263b22ce72e5ea8ed33fe1f79afbe0d0040540b68d1f039cd5bbf83e884b5baacd51",
+        "fingerprint": "5dd4c427d03ab36449336998ad2000ed4c047bedf169c4288f687223db648921"
       },
       {
         "purpose": "tls",
         "type": "ec",
         "curve": "curve25519",
-        "pub": "900de866f6cb73c363a309931aae14619a229596c2a52c07dc49d2c529f81d51",
-        "fingerprint": "ffbf5d0ec0ae22d22df312341f1ce68bef6b392f85f74142c74b73eab7ce1aa6"
+        "pub": "ca4ec93634f30e563d09fec2cd9a9b5cc4f9bc420e98f736b67a9b0614fb5241",
+        "fingerprint": "196defa357a7a771a282e7f9f4c904144782d671275fcca36bb4943fa8f31a44"
+      },
+      {
+        "networkName": "testnet",
+        "purpose": "payment",
+        "type": "bitcoin",
+        "fingerprint": "mwGdjS4PdAakeB9w8kqDrVb3scyoSJjXsK",
+        "pub": "0418879eba0091a92e02b4d5adb700118a3856675beed409f1f17d4b5be116e01d5f7f8f6d76138f5875101424e0139c4a04cda0a7475c535e00bb0f279b8f5b8a"
+      },
+      {
+        "networkName": "testnet",
+        "purpose": "messaging",
+        "type": "bitcoin",
+        "fingerprint": "mpVhPjPyEHmDgRGCo565tGW2q1e5wHgFAe",
+        "pub": "04f25203a21392530053406e041605496ad01c1d0b440f9882f5fca74ad916d90c4ab2fe46ffa1c7cadd4f65d7d1648245a46824e75de6c83ef17d745ea11c4e2b"
+      },
+      {
+        "purpose": "payment",
+        "type": "ethereum",
+        "pub": "049d08600afff05dba3a291d6b71cf9ec47854f98b1098c6559909cf58f6a87f2e6ad9a8be201426f8cea746a22977c406f74518c82515290aaecfbfbf2338272c",
+        "fingerprint": "0038f7be2ed065fe30599906329c5d869a5db0b8",
+        "networkName": "ropsten"
+      },
+      {
+        "purpose": "messaging",
+        "type": "ethereum",
+        "pub": "045aaa1ae66a75bbb793f0c1d0b21aa378e359fa4c6057c025c71b43f2e9b7c62d5524912a05ebe928bf1dc8720df143c3ab1e5ef7d2563fdcbf259dcab2462377",
+        "fingerprint": "00ffc8bc213fd81d8db1e840e2144dc7f33e766a",
+        "networkName": "ropsten"
       }
     ]
   },
-  "link": "ef78b341f079cf4245faf23e79058992a337313080b264d476c7952d37d32462",
-  "permalink": "ef78b341f079cf4245faf23e79058992a337313080b264d476c7952d37d32462"
+  "link": "eec30ed5bc79e5af21797f339addcce1be4998efe2a292d8924bfee794d6c517",
+  "permalink": "eec30ed5bc79e5af21797f339addcce1be4998efe2a292d8924bfee794d6c517"
 }

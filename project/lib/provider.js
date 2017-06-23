@@ -15,7 +15,7 @@ const { getLiveSessionByPermalink } = require('./auth')
 const { deliverBatch } = require('./delivery')
 const Errors = require('./errors')
 const types = require('./types')
-const { network } = require('./tradle')
+const { network } = require('./')
 const {
   PAYLOAD_PROP_PREFIX,
   IDENTITY_KEYS_KEY,

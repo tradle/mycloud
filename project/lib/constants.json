@@ -1,6 +1,7 @@
 {
   "SIG": "_s",
   "SEQ": "_n",
+  "LINK": "_c",
   "PERMALINK": "_r",
   "PREVLINK": "_p",
   "TYPE": "_t",
@@ -12,10 +13,11 @@
   },
   "PAYLOAD_METADATA_PREFIX": "p_",
   "MESSAGE_PROP_PREFIX": "m_",
-  "IDENTITY_KEYS_KEY": "IdentityKeys",
+  "IDENTITY_KEYS_KEY": "keys.json",
   "PUBLIC_CONF_BUCKET": {
-    "identity": "identity",
-    "styles": "styles"
+    "info": "info.json",
+    "identity": "identity.json",
+    "style": "style.json"
   },
   "HANDSHAKE_TIMEOUT": 30000,
   "PUSH_SERVER_URL": "https://push1.tradle.io",

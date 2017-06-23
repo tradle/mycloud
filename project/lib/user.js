@@ -146,15 +146,16 @@ const getProviderIdentity = () => {
 }
 
 const onGetInfo = co(function* (event) {
-  return yield {
-    styles: getProviderStyles(),
-    identity: getProviderIdentity(),
-    authEndpoint: `https://${event.headers.Host}/${SERVERLESS_STAGE}/tradle`
-  }
+  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info)
+  // return yield {
+  //   style: getProviderStyle(),
+  //   identity: getProviderIdentity(),
+  //   authEndpoint: `https://${event.headers.Host}/${SERVERLESS_STAGE}/tradle`
+  // }
 })
 
-function getProviderStyles () {
-  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.styles)
+function getProviderStyle () {
+  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.style)
     .catch(err => {
       debug('no styles found')
       return {}

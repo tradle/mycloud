@@ -15,7 +15,7 @@ const aws = require('../lib/aws')
 const aliceKeys = require('./fixtures/alice/keys')
 const adapters = require('../lib/blockchain-adapter')
 const { recreateTable } = require('./utils')
-const createTradle = require('../lib/tradle').new
+const createTradle = require('../').new
 
 const blockchainOpts = {
   flavor: 'bitcoin',

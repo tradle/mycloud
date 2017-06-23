@@ -210,11 +210,7 @@ const getTemporaryIdentity = co(function* (opts) {
     throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
   }
 
-  const maybeAddContact = Identities.validateNewContact({ object: identity })
-    .then(result => {
-      if (!result.exists) return Identities.addContact(result)
-    })
-
+  const maybeAddContact = Identities.validateAndAdd({ object: identity })
   const role = `arn:aws:iam::${accountId}:role/${IOT_CLIENT_ROLE}`
   debug(`generating temp keys for client ${clientId}, role ${role}`)
 

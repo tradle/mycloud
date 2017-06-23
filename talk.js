@@ -95,7 +95,8 @@ const prepare = co(function* () {
   })
 
   const res = yield fetch(`${BASE_URL}/info`)
-  const { identity } = yield res.json()
+  const { bot } = yield res.json()
+  const identity = bot.pub
   const { link, permalink } = tradle.utils.getLinks({ object: identity })
   yield node.addContact(identity)
   const position = yield {

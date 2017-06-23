@@ -97,7 +97,7 @@ function Environment () {
   // this.env = {}
   this.tables = this.require('tables', './tables')
   this.buckets = this.require('buckets', './buckets')
-  // this.provider = this.require('provider', './provider')
+  this.provider = this.require('provider', './provider')
 }
 
 exports = module.exports = new Environment()
