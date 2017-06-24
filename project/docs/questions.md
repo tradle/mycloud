@@ -149,8 +149,21 @@ postpone implementation of:
   lambda lock per client
   re-ordering (ack instead)
 
-
 ## TODO
+  - map generated API gateway to custom domain
+    - https://stackoverflow.com/questions/39507004/how-to-add-a-custom-domain-for-a-serverless-1-0-0-framework-defined-deployed-api
+  - auto-setup ssl certificates
+    - http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-certificatemanager-certificate.html#w2ab2c19c12d100c17
+  - 1-click launch
+    - e.g.: curl https://github.com/tradle/serverless/bootstrap.sh | bash
+    - bootstrap.sh will (via a wizard):
+      - check that you have AWS keys configured
+      - run serverless deploy
+      - post-process to get API endpoints
+      - ask the user what CNAMEs they want, and create those mappings
+  - development environment for bots
+  - improve design for bot hooks (in other words, design it)
+
   - TypeTable
     - index by type
   - need to create Organization resource in init-identity
@@ -202,6 +215,10 @@ Discussion (sequence numbers vs link-to-previous-message):
 how to prevent race condition on writes while ensuring increasing timestamp
 ?
   - by only accepting one message at a time
+
+## Performance
+
+make dynamodb updates more efficient, e.g. updates that modify a nested property (like bot-keep-fresh does)
 
 ## Blockchain
 

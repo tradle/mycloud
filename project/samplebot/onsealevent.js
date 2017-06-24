@@ -4,5 +4,5 @@ const bot = require('../../bot-engine')
 
 exports.handler = wrap.promiser(function (event, context) {
   debug('[START]', Date.now())
-  return bot._onsealevent(event)
+  return bot.exports.onsealevent(event)
 })

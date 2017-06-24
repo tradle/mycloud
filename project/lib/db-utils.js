@@ -53,46 +53,44 @@ function getTable (TableName) {
   }
 }
 
-function get (params) {
-  return aws.docClient.get(params)
-    .promise()
-    .then(data => {
-      const result = data && data.Item
-      if (!result) throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
-      // debug(`got item from ${params.TableName}: ${prettify(result)}`)
-      return result
-    })
-}
+const get = co(function* (params) {
+  const data = yield aws.docClient.get(params).promise()
+  const result = data && data.Item
+  if (!result) throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
+  // debug(`got item from ${params.TableName}: ${prettify(result)}`)
+  return result
+})
 
-function put (params) {
+const put = co(function* (params) {
   debug(`putting to ${params.TableName}`, prettify(params))
-  return aws.docClient.put(params).promise()
-    .then(result => tweakReturnValue(params, result))
-}
+  const result = yield aws.docClient.put(params).promise()
+  return tweakReturnValue(params, result)
+})
 
-function del (params) {
-  return aws.docClient.delete(params).promise()
-    .then(result => tweakReturnValue(params, result))
-}
+const del = co(function* (params) {
+  const result = yield aws.docClient.delete(params).promise()
+  return tweakReturnValue(params, result)
+})
 
-function find (params) {
-  return aws.docClient.query(params).promise()
-    .then(data => data.Items)
-}
+const find = co(function* (params) {
+  const { Items } = yield aws.docClient.query(params).promise()
+  return Items
+})
 
-function findOne (params) {
+const findOne = co(function* (params) {
   params.Limit = 1
-  return find(params)
-    .then(results => {
-      if (!results.length) throw new NotFound(`"${params.TableName}" query returned 0 items`)
-      return results[0]
-    })
-}
+  const results = yield find(params)
+  if (!results.length) {
+    throw new NotFound(`"${params.TableName}" query returned 0 items`)
+  }
 
-function update (params) {
-  return aws.docClient.update(params).promise()
-    .then(result => tweakReturnValue(params, result))
-}
+  return results[0]
+})
+
+const update = co(function* (params) {
+  const result = yield aws.docClient.update(params).promise()
+  return tweakReturnValue(params, result)
+})
 
 function tweakReturnValue (params, result) {
   if (params.ReturnValues !== 'NONE') {
@@ -139,22 +137,22 @@ function getUpdateParams (item) {
   }
 }
 
-function scan (params) {
-  return aws.docClient.scan(params).promise()
-    .then(data => data.Items)
-}
+const scan = co(function* (params) {
+  const { Items } = yield aws.docClient.scan(params).promise()
+  return Items
+})
 
-function createTable (params) {
-  return aws.dynamodb.createTable(params).promise()
-}
+const createTable = co(function* (params) {
+  return yield aws.dynamodb.createTable(params).promise()
+})
 
-function deleteTable (params) {
-  return aws.dynamodb.deleteTable(params).promise()
-}
+const deleteTable = co(function* (params) {
+  return yield aws.dynamodb.deleteTable(params).promise()
+})
 
-function rawBatchPut (params) {
-  return aws.docClient.batchWrite(params).promise()
-}
+const rawBatchPut = co(function* (params) {
+  return yield aws.docClient.batchWrite(params).promise()
+})
 
 // const create = co(function* (schema) {
 //   try {

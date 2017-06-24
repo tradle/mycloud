@@ -223,11 +223,14 @@ const unserializePubKey = function unserializePubKey (key) {
 const getLastSeq = co(function* ({ recipient }) {
   debug(`looking up last message to ${recipient}`)
 
+  const query = getLastMessageToQuery({ recipient })
+  const seqProp = `${MESSAGE_PROP_PREFIX}${SEQ}`
+  query.ProjectionExpression = seqProp
   let last
   try {
-    last = yield getLastMessageTo({ recipient, body: false })
+    last = yield OutboxTable.findOne(query)
     debug('last message:', prettify(last))
-    return last.message.object[SEQ]
+    return last[seqProp]
   } catch (err) {
     if (err instanceof Errors.NotFound) {
       return -1

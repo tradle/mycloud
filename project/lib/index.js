@@ -92,6 +92,7 @@ function Environment () {
   this.constants = this.require('constants', './constants')
   this.errors = this.require('errors', './errors')
   this.utils = this.require('utils', './utils')
+  this.stringUtils = this.require('stringUtils', './string-utils')
   this.dbUtils = this.require('dbUtils', './db-utils')
   this.s3Utils = this.require('s3Utils', './s3-utils')
   // this.env = {}

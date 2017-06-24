@@ -1,31 +1,31 @@
 require('./env')
 
 const test = require('tape')
+const Tradle = require('../')
 const createBot = require('../lib/bot')
-const Messages = require('../lib/messages')
-const { co, loudCo, pick } = require('../lib/utils')
-const { toStreamItems } = require('./utils')
+// const messages = require('../lib/messages')
+const { co, loudCo, pick } = Tradle.utils
+const { toStreamItems, recreateTable } = require('./utils')
 // const seals = require('../lib/seals')
-const createTradle = require('../').new
-const Provider = require('../lib/provider')
-const Identities = require('../lib/identities')
-// const User = require('../lib/user')
-// const Delivery = require('../lib/delivery')
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
-const { recreateTable } = require('./utils')
 const schema = require('../conf/table/users').Properties
 
 test('users', loudCo(function* (t) {
   console.warn('make sure localstack is running')
   yield recreateTable(schema)
 
-  const { users } = createBot()
+  const bot = createBot()
+  const { users } = bot
   const user = {
     id: bob.permalink,
     identity: bob.object
   }
+
+  const promiseOnCreate = new Promise(resolve => {
+    bot.onusercreate(resolve)
+  })
 
   t.same(yield users.createIfNotExists(user), user, 'create if not exists')
   t.same(yield users.get(user.id), user, 'get by primary key')
@@ -35,6 +35,7 @@ test('users', loudCo(function* (t) {
     id: user.id
   })
 
+  t.same(yield promiseOnCreate, user)
   t.same(yield users.get(user.id), user, '2nd create does not clobber')
   t.same(yield users.list(), [user], 'list')
 
@@ -49,6 +50,8 @@ test('users', loudCo(function* (t) {
 test('onmessage', loudCo(function* (t) {
   t.plan(7)
 
+  const tradle = Tradle.new()
+  const { messages, identities } = tradle
   const bot = createBot()
   const { users } = bot
   users.createIfNotExists = co(function* (user) {
@@ -56,8 +59,8 @@ test('onmessage', loudCo(function* (t) {
     return user
   })
 
-  const { getMessageFrom } = Messages
-  const { getIdentityByPermalink } = Identities
+  const { getMessageFrom } = messages
+  const { getIdentityByPermalink } = identities
   const message = {
     author: 'bob',
     recipient: 'alice',
@@ -69,26 +72,29 @@ test('onmessage', loudCo(function* (t) {
     link: 'b'
   }
 
-  Messages.getMessageFrom = co(function* ({ author, time }) {
+  messages.getMessageFrom = co(function* ({ author, time }) {
     t.equal(author, message.author)
     t.equal(time, message.time)
     return { message, payload }
   })
 
-  Identities.getIdentityByPermalink = co(function* (permalink) {
+  identities.getIdentityByPermalink = co(function* (permalink) {
     t.equal(permalink, message.author)
     return bob.object
   })
 
-  const processMessage = bot.onmessage(co(function* ({ user, wrapper }) {
+  bot.onmessage(co(function* ({ user, wrapper }) {
     t.equal(user.id, message.author)
     t.same(wrapper.message, message)
     t.same(wrapper.payload, payload)
   }))
 
-  yield processMessage(JSON.stringify(pick(message, ['author', 'time'])))
-  Messages.getMessageFrom = getMessageFrom
-  Identities.getIdentityByPermalink = getIdentityByPermalink
+  // const conversation = yield bot.users.history('bob')
+  // console.log(conversation)
+
+  yield bot.exports.onmessage(JSON.stringify(pick(message, ['author', 'time'])))
+  messages.getMessageFrom = getMessageFrom
+  identities.getIdentityByPermalink = getIdentityByPermalink
 }))
 
 test('onreadseal', loudCo(function* (t) {
@@ -96,13 +102,13 @@ test('onreadseal', loudCo(function* (t) {
 
   let read
   let wrote
-  const tradle = createTradle()
-  const { seals } = tradle
-  const { getMyKeys } = Provider
-  Provider.getMyKeys = () => Promise.resolve(aliceKeys)
+  const tradle = Tradle.new()
+  const { seals, provider } = tradle
+  const { getMyKeys } = provider
+  provider.getMyKeys = () => Promise.resolve(aliceKeys)
 
   seals.create = co(function* ({ key, link }) {
-    yield bot._onsealevent(toStreamItems([
+    yield bot.exports.onsealevent(toStreamItems([
       {
         old: {
           link,
@@ -140,6 +146,33 @@ test('onreadseal', loudCo(function* (t) {
   t.equal(read, true)
   t.equal(wrote, true)
 
-  Provider.getMyKeys = getMyKeys
+  provider.getMyKeys = getMyKeys
+  t.end()
+}))
+
+test('use()', loudCo(function* (t) {
+  const expectedArg = {}
+  const called = {
+    onusercreate: false,
+    onuseronline: false,
+    onreadseal: false,
+    onwroteseal: false
+  }
+
+  const bot = createBot()
+  bot.use(() => {
+    Object.keys(called).forEach(method => {
+      bot[method](co(function* (arg) {
+        t.equal(arg, expectedArg)
+        called[method] = true
+      }))
+    })
+  })
+
+  for (let method in called) {
+    yield bot.exports[method](expectedArg)
+    t.equal(called[method], true)
+  }
+
   t.end()
 }))

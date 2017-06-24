@@ -1,20 +1,27 @@
 const debug = require('debug')('λ:samplebot')
-const createBot = require('../../bot')
-const { co } = require('../../utils')
-const { prettify } = require('../../string-utils')
+const keepModelsFresh = require('@tradle/bot-require-models')
+const createBot = require('../lib/bot')
+const tradle = require('../')
+const co = tradle.utils.loudCo
+const { TYPE } = tradle.constants
 const bot = createBot()
-const { TYPE } = bot.constants
 const send = function (user, object) {
   return bot.send({ to: user.id, object })
 }
 
-bot.users.on('create', function oncreate (user) {
+module.exports = bot.exports
+
+// bot.use(keepModelsFresh())
+
+bot.onusercreate(function oncreate (user) {
   send(user, 'Nice to meet you!')
 })
 
-exports.onmessage = bot.onmessage(co(function* ({ user, wrapper }) {
-  debug('user', prettify(user))
-  debug('wrapper', prettify(wrapper))
+bot.onuseronline(function onUserOnline (user) {
+  send(user, `you're online!`)
+})
+
+bot.onmessage(co(function* ({ user, wrapper }) {
   const { payload } = wrapper
   const { object } = payload
   const type = object[TYPE]
@@ -44,11 +51,11 @@ exports.onmessage = bot.onmessage(co(function* ({ user, wrapper }) {
   }
 }))
 
-exports.onreadseal = bot.onreadseal(co(function* (seal) {
+bot.onreadseal(co(function* (seal) {
   debug('[START]', Date.now(), 'read seal:', JSON.stringify(seal))
 }))
 
-exports.onwroteseal = bot.onwroteseal(co(function* (seal) {
+bot.onwroteseal(co(function* (seal) {
   debug('[START]', Date.now(), 'wrote seal:', JSON.stringify(seal))
 }))
 

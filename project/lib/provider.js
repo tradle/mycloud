@@ -197,15 +197,27 @@ const sendMessage = co(function* ({ recipient, object, other={} }) {
   // start this first to get a more accurate timestamp
   const promiseCreate = createSendMessageEvent({ recipient, object, other })
   const promiseSession = getLiveSessionByPermalink(recipient)
-  const { message } = yield promiseCreate
+  const ret = yield promiseCreate
+  const { message } = ret
 
-  let session
+  // should probably do this asynchronously
   try {
-    session = yield promiseSession
+    yield attemptLiveDelivery({
+      message,
+      session: yield promiseSession
+    })
   } catch (err) {
-    return
+    if (!(err instanceof Errors.NotFound)) {
+      // rethrow, as this is likely a developer error
+      debug('live delivery failed', err)
+      throw err
+    }
   }
 
+  return ret
+})
+
+const attemptLiveDelivery = co(function* ({ message, session }) {
   debug(`sending message (time=${message.time}) to ${recipient} live`)
   yield deliverBatch({
     clientId: session.clientId,

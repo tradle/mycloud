@@ -9,7 +9,7 @@ const Iot = require('./iot-utils')
 const { invoke } = require('./lambda-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
 const { PublicConfBucket } = require('./buckets')
-const { SERVERLESS_STAGE, BOT_LAMBDA } = require('./env')
+const { SERVERLESS_STAGE, BOT_ONMESSAGE } = require('./env')
 const Errors = require('./errors')
 const types = require('./types')
 
@@ -88,9 +88,14 @@ const onSentMessage = co(function* ({ clientId, message }) {
     message: wrapper.message
   })
 
+  if (!BOT_ONMESSAGE) {
+    debug('no bot subscribed to "onmessage"')
+    return
+  }
+
   const { author, time } = wrapper.message
   yield invoke({
-    name: BOT_LAMBDA,
+    name: BOT_ONMESSAGE,
     arg: JSON.stringify({ author, time })
   })
 

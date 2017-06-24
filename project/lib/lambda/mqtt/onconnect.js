@@ -7,4 +7,8 @@ exports.handler = wrap.generator(function* (event, context) {
   debug('client connected', prettify(event))
   const { clientId } = event
   yield onConnected({ clientId })
+  // yield bot.exports.onpresence({
+  //   event: 'online',
+  //   user:
+  // })
 })

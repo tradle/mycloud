@@ -8,6 +8,7 @@
   "license": "MIT",
   "dependencies": {
     "@tradle/bitcoin-adapter": "tradle/bitcoin-adapter",
+    "@tradle/bot-require-models": "tradle/bot-require-models#cloud",
     "@tradle/cb-blockr": "^3.2.0",
     "@tradle/engine": "^4.9.0",
     "co": "^4.6.0",

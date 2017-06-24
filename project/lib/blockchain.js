@@ -12,12 +12,12 @@ function createWrapper (blockchainIdentifier) {
     networkName: typeforce.String
   }, blockchainIdentifier)
 
-  const createAdapter = adapters[blockchainIdentifier.flavor]
+  const { flavor, networkName } = blockchainIdentifier
+  const createAdapter = adapters[flavor]
   if (!createAdapter) {
-    throw new Error(`unsupported blockchain type: ${blockchainIdentifier.flavor}`)
+    throw new Error(`unsupported blockchain type: ${flavor}`)
   }
 
-  const { networkName } = blockchainIdentifier
   const reader = createAdapter({ networkName })
   const Addresses = promisify(reader.blockchain.addresses)
   const getInfo = promisify(reader.blockchain.info)
@@ -104,8 +104,8 @@ function createWrapper (blockchainIdentifier) {
 
   return {
     pubKeyToAddress: network.pubKeyToAddress,
-    networkName: network.name,
-    flavor: network.blockchain,
+    flavor,
+    networkName,
     // sync,
     seal,
     getTransactionsForAddresses,

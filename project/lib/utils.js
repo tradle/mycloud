@@ -199,7 +199,8 @@ exports.logify = function logify (obj, opts={}) {
 //   return timed
 // }
 
-exports.isPromise = obj => obj && typeof obj.then === 'function'
+const isPromise = obj => obj && typeof obj.then === 'function'
+exports.isPromise = isPromise
 
 exports.cachify = function cachify ({ get, put, cache }) {
   return {
@@ -250,6 +251,41 @@ exports.promiseCall = function promiseCall (fn, ...args) {
     fn(...args)
   })
 }
+
+exports.series = co(function* (fns, ...args) {
+  for (let fn of fns) {
+    let maybePromise = fn(...args)
+    if (isPromise(maybePromise)) {
+      yield maybePromise
+    }
+  }
+})
+
+exports.seriesWithExit = co(function* (fns, ...args) {
+  for (let fn of fns) {
+    let keepGoing = fn(...args)
+    if (isPromise(keepGoing)) {
+      yield keepGoing
+    }
+
+    // enable exit
+    if (keepGoing === false) return
+  }
+})
+
+exports.waterfall = co(function* (fns, ...args) {
+  let result
+  for (let fn of fns) {
+    result = fn(...args)
+    if (isPromise(result)) {
+      result = yield result
+    }
+
+    args = [result]
+  }
+
+  return result
+})
 
 function noop () {}
 

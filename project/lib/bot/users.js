@@ -5,7 +5,7 @@ const { getUpdateParams } = require('../db-utils')
 const Errors = require('../errors')
 const PRIMARY_KEY = 'id'
 
-module.exports = function createUsers ({ table }) {
+module.exports = function createUsers ({ table, oncreate }) {
   const ee = new EventEmitter()
 
   // const cache = new Cache({ max: 200 })
@@ -31,7 +31,7 @@ module.exports = function createUsers ({ table }) {
     } catch (err) {
       if (err instanceof Errors.NotFound) {
         yield save(user)
-        ee.emit('create', user)
+        yield oncreate(user)
         return user
       }
 

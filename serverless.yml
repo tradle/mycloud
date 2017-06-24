@@ -30,6 +30,9 @@ custom:
   OBJECTS_BUCKET: ${{self:custom.prefix}}objects
   PRIVATE_CONF_BUCKET: ${{self:custom.prefix}}private-conf
   PUBLIC_CONF_BUCKET: ${{self:custom.prefix}}public-conf
+  BOT_ONMESSAGE: bot_onmessage
+  BOT_ONSEALEVENT: bot_onsealevent
+  BOT_PRESENCE: bot_onpresence
   # writeEnvVars:
   #   SERVERLESS_STAGE: ${{self:custom.stage}}
   #   SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -337,6 +340,7 @@ functions:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
     environment:
       DEBUG: tradle:*
+      BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     custom:
       env-resources:
         - ObjectsBucket
@@ -356,6 +360,7 @@ functions:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
     environment:
       DEBUG: tradle:*
+      BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     custom:
       env-resources:
         - ObjectsBucket
@@ -395,7 +400,7 @@ functions:
     memorySize: 1024
     environment:
       DEBUG: tradle:*
-      BOT_LAMBDA: samplebot
+      BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
       SERVERLESS_PREFIX: ${{self:custom.prefix}}
       SERVERLESS_STAGE: ${{self:custom.stage}}
       SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -432,8 +437,8 @@ functions:
         - PublicConfBucket
 
   # echo bot (business logic layer)
-  samplebot:
-    handler: project/lib/lambda/samplebot/index.onmessage
+  bot_onmessage:
+    handler: samplebot/index.onmessage
     memorySize: 1024
     custom:
       env-resources:
@@ -450,8 +455,8 @@ functions:
     environment:
       DEBUG: tradle:*
 
-  onsealevent:
-    handler: project/lib/samplebot/index.onsealevent
+  bot_onsealevent:
+    handler: samplebot/index.onsealevent
     memorySize: 1024
     custom:
       env-resources:
