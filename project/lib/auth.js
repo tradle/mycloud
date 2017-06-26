@@ -114,7 +114,7 @@ function getSession ({ clientId }) {
   })
 }
 
-const createChallenge = co(function* ({ clientId, permalink, endpointAddress }) {
+const createChallenge = co(function* ({ clientId, permalink }) {
   // const permalink = getPermalinkFromClientId(clientId)
   const challenge = randomString(32)
   yield PresenceTable.put({
@@ -216,9 +216,7 @@ const getTemporaryIdentity = co(function* (opts) {
 
   // get the account id which will be used to assume a role
 
-  const { endpointAddress } = yield aws.getIotEndpoint()
   debug('assuming role', role)
-  const region = Iot.getRegionFromEndpoint(endpointAddress)
   const params = {
     RoleArn: role,
     RoleSessionName: randomString(16),
@@ -226,14 +224,14 @@ const getTemporaryIdentity = co(function* (opts) {
 
   // assume role returns temporary keys
   const [challenge, addContact] = yield [
-    createChallenge({ clientId, permalink, endpointAddress }),
+    createChallenge({ clientId, permalink }),
     maybeAddContact
   ]
 
   const { Credentials } = yield aws.sts.assumeRole(params).promise()
   return {
-    iotEndpoint: endpointAddress,
-    region: region,
+    iotEndpoint: Iot.endpoint,
+    region: Iot.region,
     accessKey: Credentials.AccessKeyId,
     secretKey: Credentials.SecretAccessKey,
     sessionToken: Credentials.SessionToken,

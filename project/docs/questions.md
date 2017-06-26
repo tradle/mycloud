@@ -255,3 +255,5 @@ Optimization
 ### Gotchas
 
 if deploying from scratch, X-Ray requires permissions to be deployed before tracing can be turned on, so first deploy with awsTracingConfig commented out
+
+also, after first deploy, need to re-run gen:env script to get iot-endpoint

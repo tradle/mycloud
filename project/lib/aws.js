@@ -11,16 +11,9 @@ const services = process.env.IS_LOCAL
 
 AWS.config.update(services.AWS)
 
-const getIotEndpoint = cachifyPromiser(() => {
-  return api.iot.describeEndpoint().promise()
-})
-
-const getIotData = cachifyPromiser(() => {
-  return getIotEndpoint().then(({ endpointAddress }) => {
-    const opts = extend({ endpoint: endpointAddress }, services.Iot || {})
-    return new AWS.IotData(opts)
-  })
-})
+// const getIotEndpoint = cachifyPromiser(() => {
+//   return api.iot.describeEndpoint().promise()
+// })
 
 const instanceNameToServiceName = {
   s3: 'S3',
@@ -30,7 +23,8 @@ const instanceNameToServiceName = {
   iot: 'Iot',
   sts: 'STS',
   kms: 'KMS',
-  lambda: 'Lambda'
+  lambda: 'Lambda',
+  iotData: 'Iot'
 }
 
 const api = (function () {
@@ -46,6 +40,10 @@ const api = (function () {
         if (!service || !cacheServices) {
           if (instanceName === 'docClient') {
             service = new AWS.DynamoDB.DocumentClient(services.DynamoDB)
+          } else if (instanceName === 'iotData') {
+            const { endpoint } = require('./iot-utils')
+            const opts = extend({ endpoint }, services[serviceName] || {})
+            service = new AWS.IotData(opts)
           } else {
             service = new AWS[serviceName](services[serviceName])
           }
@@ -61,9 +59,6 @@ const api = (function () {
 
 api.AWS = AWS
 api.xray = AWSXRay
-api.getIotData = getIotData
-api.getIotEndpoint = getIotEndpoint
-
 api.trace = (function () {
   let segment
   return {

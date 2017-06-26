@@ -1,6 +1,8 @@
 
 const debug = require('debug')('tradle:sls:iot')
 const aws = require('./aws')
+const endpoint = require('./env').IOT_ENDPOINT
+const region = getRegionFromEndpoint(endpoint)
 const DEFAULT_QOS = 1
 
 function publish (params) {
@@ -11,7 +13,7 @@ function publish (params) {
   }
 
   debug(`publishing to ${params.topic}: ${JSON.stringify(params)}`)
-  return aws.getIotData().then(iotData => iotData.publish(params).promise())
+  return aws.iotData.publish(params).promise()
 }
 
 function sendMessages ({ clientId, payload }) {
@@ -45,10 +47,12 @@ function getRegionFromEndpoint (iotEndpoint) {
 }
 
 module.exports = {
+  endpoint,
+  region,
   publish,
   sendMessages,
   // sendChallenge,
   // sendAuthenticated,
-  getRegionFromEndpoint,
+  // getRegionFromEndpoint,
   getMessagesTopicForClient
 }
