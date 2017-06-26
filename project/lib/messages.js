@@ -86,7 +86,12 @@ const loadMessage = co(function* ({ message, payload }) {
   return { message, payload: payloadWrapper }
 })
 
-const getMessageFrom = co(function* ({ author, time, body=true }) {
+const getMessageFrom = co(function* ({ author, time, link, body=true }) {
+  if (body && link) {
+    // prime cache
+    Objects.prefetchByLink(link)
+  }
+
   return maybeAddBody({
     metadata: yield get(InboxTable, { author, time }),
     body

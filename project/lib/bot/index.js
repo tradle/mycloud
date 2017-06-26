@@ -42,9 +42,9 @@ function createBot (tradle=defaultTradleInstance) {
   const sealsAPI = createSeals(tradle)
   const pre = {
     onmessage: co(function* (event) {
-      const { author, time } = JSON.parse(event)
+      const { author, time, link } = JSON.parse(event)
       const [wrapper, identity] = [
-        yield messages.getMessageFrom({ author, time }),
+        yield messages.getMessageFrom({ author, time, link }),
         yield identities.getIdentityByPermalink(author)
       ]
 
@@ -64,8 +64,7 @@ function createBot (tradle=defaultTradleInstance) {
     onsealevent: wrapWithEmit(promisePassThrough, 'seal'),
     onusercreate: wrapWithEmit(promisePassThrough, 'user:create'),
     onuseronline: wrapWithEmit(promisePassThrough, 'user:online'),
-    onuseroffline: wrapWithEmit(promisePassThrough, 'user:offline'),
-    onsealevent: wrapWithEmit(promisePassThrough, 'seal')
+    onuseroffline: wrapWithEmit(promisePassThrough, 'user:offline')
   }
 
   const execMiddleware = co(function* (method, event) {
@@ -82,10 +81,10 @@ function createBot (tradle=defaultTradleInstance) {
 
   function addMiddleware (method, fn) {
     middleware[method].push(fn)
-    return removeMiddleware.bind(null, fn)
+    return () => removeMiddleware(...arguments)
   }
 
-  function removeMiddleware (fn) {
+  function removeMiddleware (method, fn) {
     middleware[method] = middleware[method].filter(handler => handler !== fn)
   }
 

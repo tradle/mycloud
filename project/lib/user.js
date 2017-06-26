@@ -93,10 +93,10 @@ const onSentMessage = co(function* ({ clientId, message }) {
     return
   }
 
-  const { author, time } = wrapper.message
+  const { author, time, link } = wrapper.message
   yield invoke({
     name: BOT_ONMESSAGE,
-    arg: JSON.stringify({ author, time })
+    arg: JSON.stringify({ author, time, link })
   })
 
   // yield Iot.publish({

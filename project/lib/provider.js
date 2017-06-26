@@ -218,7 +218,7 @@ const sendMessage = co(function* ({ recipient, object, other={} }) {
 })
 
 const attemptLiveDelivery = co(function* ({ message, session }) {
-  debug(`sending message (time=${message.time}) to ${recipient} live`)
+  debug(`sending message (time=${message.time}) to ${session.permalink} live`)
   yield deliverBatch({
     clientId: session.clientId,
     permalink: session.permalink,

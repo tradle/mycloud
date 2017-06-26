@@ -53,8 +53,24 @@ function getTable (TableName) {
   }
 }
 
+const exec = function exec (method, params) {
+  return aws.docClient[method](params).promise()
+}
+
+const dynamoDBExec = function dynamoDBExec (method, params) {
+  return aws.dynamodb[method](params).promise()
+}
+
+const createTable = co(function* (params) {
+  return yield dynamoDBExec('createTable', params)
+})
+
+const deleteTable = co(function* (params) {
+  return yield dynamoDBExec('deleteTable', params)
+})
+
 const get = co(function* (params) {
-  const data = yield aws.docClient.get(params).promise()
+  const data = yield exec('get', params)
   const result = data && data.Item
   if (!result) throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
   // debug(`got item from ${params.TableName}: ${prettify(result)}`)
@@ -63,17 +79,17 @@ const get = co(function* (params) {
 
 const put = co(function* (params) {
   debug(`putting to ${params.TableName}`, prettify(params))
-  const result = yield aws.docClient.put(params).promise()
+  const result = yield exec('put', params)
   return tweakReturnValue(params, result)
 })
 
 const del = co(function* (params) {
-  const result = yield aws.docClient.delete(params).promise()
+  const result = yield exec('delete', params)
   return tweakReturnValue(params, result)
 })
 
 const find = co(function* (params) {
-  const { Items } = yield aws.docClient.query(params).promise()
+  const { Items } = yield exec('query', params)
   return Items
 })
 
@@ -88,7 +104,7 @@ const findOne = co(function* (params) {
 })
 
 const update = co(function* (params) {
-  const result = yield aws.docClient.update(params).promise()
+  const result = yield exec('update', params)
   return tweakReturnValue(params, result)
 })
 
@@ -138,20 +154,12 @@ function getUpdateParams (item) {
 }
 
 const scan = co(function* (params) {
-  const { Items } = yield aws.docClient.scan(params).promise()
+  const { Items } = yield exec('scan', params)
   return Items
 })
 
-const createTable = co(function* (params) {
-  return yield aws.dynamodb.createTable(params).promise()
-})
-
-const deleteTable = co(function* (params) {
-  return yield aws.dynamodb.deleteTable(params).promise()
-})
-
 const rawBatchPut = co(function* (params) {
-  return yield aws.docClient.batchWrite(params).promise()
+  return yield exec('batchWrite', params)
 })
 
 // const create = co(function* (schema) {

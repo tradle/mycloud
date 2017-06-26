@@ -1,6 +1,8 @@
 
 const extend = require('xtend/mutable')
-const AWS = require('aws-sdk')
+const AWSXRay = require('aws-xray-sdk')
+const rawAWS = require('aws-sdk')
+const AWS = process.env.IS_LOCAL ? rawAWS : AWSXRay.captureAWS(rawAWS)
 const { cachifyPromiser } = require('./utils')
 const cacheServices = process.env.IS_LOCAL
 const services = process.env.IS_LOCAL
@@ -58,7 +60,20 @@ const api = (function () {
 }())
 
 api.AWS = AWS
+api.xray = AWSXRay
 api.getIotData = getIotData
 api.getIotEndpoint = getIotEndpoint
+
+api.trace = (function () {
+  let segment
+  return {
+    start: function () {
+      segment = AWSXRay.getSegment()
+    },
+    get: function () {
+      return segment
+    }
+  }
+}())
 
 module.exports = api

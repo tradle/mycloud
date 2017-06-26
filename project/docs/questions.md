@@ -164,9 +164,12 @@ postpone implementation of:
   - development environment for bots
   - improve design for bot hooks (in other words, design it)
 
+  - push notifications
+    - http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html
+    - https://www.npmjs.com/package/web-push
   - TypeTable
     - index by type
-  - need to create Organization resource in init-identity
+  - where should we be using ElastiCache instead of DynamoDB? For example - PresenceTable might be better placed in ElastiCache, since data there is small-sized and short lived. However, ElastiCache is for ephemeral data..
 
   - handle blockHeight
   - support multiple networks
@@ -181,6 +184,11 @@ postpone implementation of:
 
   - compatibility layer so existing bots (e.g. silly) can work out of the box
   - use VPC
+
+## Optimization
+  - find optimal memorySize for each function (maybe dynamically)
+  - locate the bottlenecks (AWS X-Ray)
+    - time all methods
 
 requires long-lived clientIds
 
@@ -227,7 +235,8 @@ make dynamodb updates more efficient, e.g. updates that modify a nested property
 don't need cb-proxy because it's only one provider
 
 ### Questions
-
+- do we need Kinesis as a buffer between IoT broke and Lambda?
+  - if there are max 1K Lambdas running at once, and 1M users come for a chat...
 - should there be a table per blockchain? or should all seals be in the same table
 - where will the full node run?
 
@@ -238,3 +247,11 @@ will we be implementing DynamoDB Transactions for Node.js?
   initial js implementation: https://github.com/aaaristo/dyngodb/issues/19
 
 should we use streams for reporting detected seals?
+
+Optimization
+  - put to s3 is too slow
+  - maybe put somewhere else fast, and then put in s3
+
+### Gotchas
+
+if deploying from scratch, X-Ray requires permissions to be deployed before tracing can be turned on, so first deploy with awsTracingConfig commented out

@@ -3,6 +3,7 @@ frameworkVersion: ">=1.5.0 <2.0.0"
 
 plugins:
   - serverless-resources-env
+  - serverless-plugin-tracing
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
@@ -24,15 +25,17 @@ custom:
   stage: ${{opt:stage, self:custom.defaultStage}}
   accountId: ${{file(./env.json):ACCOUNT_ID}}
   pushServer: https://push1.tradle.io
-  blockchain: testnet
+  blockchain: bitcoin:testnet
   IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
   SECRETS_BUCKET: ${{self:custom.prefix}}secrets
   OBJECTS_BUCKET: ${{self:custom.prefix}}objects
   PRIVATE_CONF_BUCKET: ${{self:custom.prefix}}private-conf
   PUBLIC_CONF_BUCKET: ${{self:custom.prefix}}public-conf
-  BOT_ONMESSAGE: bot_onmessage
-  BOT_ONSEALEVENT: bot_onsealevent
-  BOT_PRESENCE: bot_onpresence
+
+  # bot hooks
+  bot_onmessage: bot_onmessage
+  bot_onsealevent: bot_onsealevent
+  bot_onpresence: bot_onpresence
   # writeEnvVars:
   #   SERVERLESS_STAGE: ${{self:custom.stage}}
   #   SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -51,6 +54,7 @@ custom:
 provider:
   # avoid some bugs in serverless
   versionFunctions: false
+  tracing: true
   variableSyntax: '\${{([\s\S]+?)}}'
   # variableSyntax: "\${{([\s\S]+?)}}"
   name: aws
@@ -63,9 +67,12 @@ provider:
   environment:
     BLOCKCHAIN: ${{self:custom.blockchain}}
     DEBUG: tradle:*
+    SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
+    BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -129,9 +136,14 @@ provider:
       Resource: ["*"]
 
     # gen Iot temp credentials (lambda: preauth)
-    - Effect: "Allow"
+    - Effect: Allow
       Action:
         - sts:AssumeRole
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - xray:PutTraceSegments
+        - xray:PutTelemetryRecords
       Resource: "*"
 
       # Resource: "*"
@@ -158,8 +170,8 @@ functions:
           path: tradle/preauth
           method: post
           cors: true
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - ObjectsBucket
@@ -179,8 +191,8 @@ functions:
           path: tradle/auth
           method: post
           cors: true
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - ObjectsBucket
@@ -200,8 +212,8 @@ functions:
     handler: project/lib/lambda/inbox-events.handler
     timeout: 60
     memorySize: 512
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - ObjectsBucket
@@ -227,8 +239,8 @@ functions:
     handler: project/lib/lambda/outbox-events.handler
     timeout: 60
     memorySize: 512
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - ObjectsBucket
@@ -254,8 +266,8 @@ functions:
     handler: project/lib/lambda/seal-events.handler
     timeout: 60
     memorySize: 512
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - ObjectsBucket
@@ -338,9 +350,9 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
-    environment:
-      DEBUG: tradle:*
-      BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    # environment:
+    #   DEBUG: tradle:*
+    #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     custom:
       env-resources:
         - ObjectsBucket
@@ -358,9 +370,9 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
-    environment:
-      DEBUG: tradle:*
-      BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    # environment:
+    #   DEBUG: tradle:*
+    #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     custom:
       env-resources:
         - ObjectsBucket
@@ -380,8 +392,8 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - ObjectsBucket
@@ -398,12 +410,12 @@ functions:
   onmessage:
     handler: project/lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
-    environment:
-      DEBUG: tradle:*
-      BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
-      SERVERLESS_PREFIX: ${{self:custom.prefix}}
-      SERVERLESS_STAGE: ${{self:custom.stage}}
-      SERVERLESS_SERVICE_NAME: ${{self:service}}
+    # environment:
+    #   DEBUG: tradle:*
+    #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
+    #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
+    #   SERVERLESS_STAGE: ${{self:custom.stage}}
+    #   SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
           sql: "SELECT * as data, clientid() as clientId FROM 'message'"
@@ -438,7 +450,7 @@ functions:
 
   # echo bot (business logic layer)
   bot_onmessage:
-    handler: samplebot/index.onmessage
+    handler: project/samplebot/index.onmessage
     memorySize: 1024
     custom:
       env-resources:
@@ -452,11 +464,11 @@ functions:
         - OutboxTable
         - UsersTable
         - PublicConfBucket
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
 
   bot_onsealevent:
-    handler: samplebot/index.onsealevent
+    handler: project/samplebot/index.onsealevent
     memorySize: 1024
     custom:
       env-resources:
@@ -470,8 +482,8 @@ functions:
         - OutboxTable
         - UsersTable
         - PublicConfBucket
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     events:
       - stream:
           type: dynamodb
@@ -493,8 +505,8 @@ functions:
 
   identity:
     handler: project/lib/lambda/identity.handler
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - SecretsBucket
@@ -507,10 +519,10 @@ functions:
     handler: project/lib/lambda/info.handler
     timeout: 10
     memorySize: 256
-    environment:
-      DEBUG: tradle:*
-      SERVERLESS_STAGE: ${{self:custom.stage}}
-      SERVERLESS_SERVICE_NAME: ${{self:service}}
+    # environment:
+    #   DEBUG: tradle:*
+      # SERVERLESS_STAGE: ${{self:custom.stage}}
+      # SERVERLESS_SERVICE_NAME: ${{self:service}}
     custom:
       env-resources:
         - PublicConfBucket
@@ -524,19 +536,18 @@ functions:
           cors: true
 
   # initialize provider identity
-  init:
-    handler: project/lib/lambda/init.handler
-    memorySize: 512
-    environment:
-      BLOCKCHAIN: testnet
-      DEBUG: tradle:*
-    custom:
-      env-resources:
-        - SecretsBucket
-        - ObjectsBucket
-        - PubKeysTable
-        - PublicConfBucket
-
+  # init:
+  #   handler: project/lib/lambda/init.handler
+  #   memorySize: 512
+  #   environment:
+  #     BLOCKCHAIN: testnet
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - SecretsBucket
+  #       - ObjectsBucket
+  #       - PubKeysTable
+  #       - PublicConfBucket
 
   # Blockchain
 
@@ -558,8 +569,8 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - SecretsBucket
@@ -580,8 +591,8 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
-    environment:
-      DEBUG: tradle:*
+    # environment:
+    #   DEBUG: tradle:*
     custom:
       env-resources:
         - ObjectsBucket

@@ -65,6 +65,7 @@ function Environment () {
   this.__defineGetter__('seals', function () {
     if (!seals) {
       seals = require('./seals')({
+        provider: self.provider,
         table: self.tables.SealsTable,
         blockchain: self.blockchain,
         confirmationsRequired: ENV.SEAL_CONFIRMATIONS[ENV.BLOCKCHAIN]

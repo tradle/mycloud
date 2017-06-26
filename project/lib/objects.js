@@ -1,6 +1,5 @@
 const co = require('co').wrap
 const debug = require('debug')('tradle:sls:objects')
-const cache = require('lru-cache')
 const { utils } = require('@tradle/engine')
 const types = require('./types')
 const aws = require('./aws')
@@ -60,8 +59,14 @@ function putObject (wrapper) {
   return ObjectsBucket.putJSON(wrapper.link, wrapper)
 }
 
+function prefetchByLink (link) {
+  // prime cache
+  return getObjectByLink(link)
+}
+
 module.exports = {
   getObjectByLink,
+  prefetchByLink,
   // getObjectByPermalink,
   putObject,
   // putEvent,

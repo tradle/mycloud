@@ -17,7 +17,7 @@ const WATCH_TYPE = {
 const YES = 'y'
 const noop = () => {}
 
-function manageSeals ({ blockchain, table, confirmationsRequired }) {
+function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
   typeforce(types.blockchain, blockchain)
 
   // const confirmationsRequired = SEAL_CONFIRMATIONS[blockchain.toString()]
@@ -41,7 +41,7 @@ function manageSeals ({ blockchain, table, confirmationsRequired }) {
 
     let { limit=Infinity, key } = opts
     if (!key) {
-      key = yield Provider.getMyChainKey()
+      key = yield provider.getMyChainKey()
     }
 
     const pending = yield getUnsealed({ limit })
