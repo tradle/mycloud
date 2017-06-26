@@ -40,16 +40,13 @@
     "tape": "^4.6.3"
   },
   "scripts": {
+    "postinstall": "npm run gen:env",
     "gen:env": "./scripts/generate-env",
     "gen:fixtures": "./scripts/gen-fixtures",
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "test": "tap `git ls-files project/test/*.test.js`",
     "deploy:local": "SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
     "deploy:aws": "SLS_DEBUG=* IS_LOCAL= serverless deploy",
-    "invoke": "SLS_DEBUG=* serverless invoke",
-    "invoke:local": "SLS_DEBUG=* IS_LOCAL=1 serverless invoke",
-    "init:local": "./simulate/resources.sh && ./simulate/init.sh && ./simulate/addContact.sh",
-    "init": "./scripts/create-buckets.sh",
     "rebuild": "cd project && docker run --rm -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd ..",
     "rebuild:local": "cd project && npm rebuild && cd ..",
     "nuke": "./scripts/nuke.sh"
