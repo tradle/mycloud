@@ -203,20 +203,28 @@ const isPromise = obj => obj && typeof obj.then === 'function'
 exports.isPromise = isPromise
 
 exports.cachify = function cachify ({ get, put, cache }) {
+  const pending = {}
   return {
     get: co(function* (key) {
       let val = cache.get(key)
       if (val != null) {
         debug(`cache hit on ${key}!`)
+        // val might be a promise
+        // the magic of co should resolve it
+        // before returning
         return val
       }
 
       debug(`cache miss on ${key}`)
-      val = yield get(key)
-      cache.set(key, val)
-      return val
+      const promise = get(key)
+      promise.catch(err => cache.del(key))
+      cache.set(key, promise)
+      return promise
     }),
     put: co(function* (key, value) {
+      // TODO (if actually needed):
+      // get cached value, skip put if identical
+      cache.del(key)
       const ret = yield put(key, value)
       cache.set(key, value)
       return ret
