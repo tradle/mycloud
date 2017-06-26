@@ -9,9 +9,9 @@ const pify = require('pify')
 const ecdsa = require('nkey-ecdsa')
 const tradle = require('@tradle/engine')
 const { SIG, SEQ, TYPE, TYPES } = tradle.constants
-const { hexLink, newIdentity } = tradle.utils
+const { newIdentity } = tradle.utils
 const wrap = require('../lib/wrap')
-const { extractSigPubKey, exportKeys, getSigningKey, sign } = require('../lib/crypto')
+const { extractSigPubKey, exportKeys, getSigningKey, sign, hexLink } = require('../lib/crypto')
 const { loudCo, omit, co, typeforce } = require('../lib/utils')
 const Objects = require('../lib/objects')
 const { createSendMessageEvent, createReceiveMessageEvent } = require('../lib/provider')
@@ -29,8 +29,8 @@ const [alice, bob] = ['alice', 'bob'].map(name => {
   const identity = require(`./fixtures/${name}/identity`)
   return {
     object: identity,
-    link: tradle.utils.hexLink(identity),
-    permalink: tradle.utils.hexLink(identity),
+    link: hexLink(identity),
+    permalink: hexLink(identity),
     keys: require(`./fixtures/${name}/keys`)
   }
 })
@@ -230,6 +230,45 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
 
   t.end()
 }))
+
+// test('strip data', function (t) {
+//   const time = Date.now()
+//   const message = {
+//     time,
+//     link: 'a',
+//     permalink: 'b',
+//     author: 'c',
+//     recipient: 'd',
+//     sigPubKey: 'd1',
+//     object: {
+//       time,
+//       [SIG]: 'asdjklasdjklsa',
+//       [TYPE]: MESSAGE,
+//       [SEQ]: 1,
+//       context: 'abc',
+//       object: {
+//         [SIG]: 'sadjdlksa',
+//         [TYPE]: 'tradle.SimpleMessage',
+//         message: 'hey hey'
+//       },
+//       recipientPubKey: {
+//         curve: 'p256',
+//         pub: new Buffer('beefface', 'hex')
+//       }
+//     }
+//   }
+
+//   const wrapper = {
+//     message,
+//     payload: Objects.addLinks({
+//       author: message.author,
+//       object: message.object.object
+//     })
+//   }
+
+//   console.log(Messages.stripData(wrapper))
+//   t.same(Messages.stripData(wrapper))
+// })
 
 // test.only('sign/verify1', function (t) {
 //   const key = ecdsa.genSync({ curve: 'p256' })

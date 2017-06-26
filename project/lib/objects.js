@@ -7,12 +7,9 @@ const { InvalidSignature } = require('./errors')
 const { TYPE, TYPES, PERMALINK, SEQ } = require('./constants')
 const { MESSAGE } = TYPES
 const { omit, typeforce } = require('./utils')
-const { extractSigPubKey } = require('./crypto')
+const { extractSigPubKey, hexLink, getLinks, addLinks } = require('./crypto')
 const { ObjectsBucket } = require('./buckets')
-
-const getLink = utils.hexLink
-const getLinks = utils.getLinks
-const addLinks = utils.addLinks
+const getLink = hexLink
 
 const addMetadata = function addMetadata (wrapper) {
   const { object } = wrapper
@@ -37,7 +34,7 @@ const addMetadata = function addMetadata (wrapper) {
     wrapper.sigPubKey = pubKey.pub
   }
 
-  utils.addLinks(wrapper)
+  addLinks(wrapper)
   return wrapper
 }
 
@@ -54,7 +51,7 @@ function putObject (wrapper) {
     sigPubKey: typeforce.maybe(typeforce.String),
   }, wrapper)
 
-  utils.addLinks(wrapper)
+  addLinks(wrapper)
   debug('putting', wrapper.link)
   return ObjectsBucket.putJSON(wrapper.link, wrapper)
 }
@@ -71,7 +68,7 @@ module.exports = {
   putObject,
   // putEvent,
   addMetadata,
-  getLink,
   getLinks,
+  getLink,
   addLinks
 }

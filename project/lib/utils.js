@@ -27,9 +27,6 @@ exports.isGenerator = isGenerator
 exports.uuid = uuid.v4
 exports.promisify = promisify
 
-exports.addLinks = utils.addLinks
-exports.toECKeyObj = utils.toECKeyObj
-
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {
     try {

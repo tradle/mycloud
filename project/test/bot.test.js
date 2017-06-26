@@ -6,6 +6,7 @@ const createBot = require('../lib/bot')
 // const messages = require('../lib/messages')
 const { co, loudCo, pick } = Tradle.utils
 const { toStreamItems, recreateTable } = require('./utils')
+const Errors = require('../lib/errors')
 // const seals = require('../lib/seals')
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
@@ -48,10 +49,10 @@ test('users', loudCo(function* (t) {
 }))
 
 test('onmessage', loudCo(function* (t) {
-  t.plan(7)
+  t.plan(5)
 
   const tradle = Tradle.new()
-  const { messages, identities } = tradle
+  const { objects, messages, identities } = tradle
   const bot = createBot()
   const { users } = bot
   users.createIfNotExists = co(function* (user) {
@@ -59,23 +60,33 @@ test('onmessage', loudCo(function* (t) {
     return user
   })
 
-  const { getMessageFrom } = messages
   const { getIdentityByPermalink } = identities
+  const { getObjectByLink } = objects
+  const payload = {
+    link: 'b',
+    object: {
+      _t: 'a'
+    }
+  }
+
   const message = {
     author: 'bob',
     recipient: 'alice',
     link: 'a',
-    time: 123
+    time: 123,
+    object: {
+      object: payload.object
+    }
   }
 
-  const payload = {
-    link: 'b'
-  }
+  objects.getObjectByLink = co(function* (link) {
+    if (link === message.link) {
+      return message.object
+    } else if (link === payload.link) {
+      return payload.object
+    }
 
-  messages.getMessageFrom = co(function* ({ author, time }) {
-    t.equal(author, message.author)
-    t.equal(time, message.time)
-    return { message, payload }
+    throw new Errors.NotFound(link)
   })
 
   identities.getIdentityByPermalink = co(function* (permalink) {
@@ -92,8 +103,8 @@ test('onmessage', loudCo(function* (t) {
   // const conversation = yield bot.users.history('bob')
   // console.log(conversation)
 
-  yield bot.exports.onmessage(JSON.stringify(pick(message, ['author', 'time'])))
-  messages.getMessageFrom = getMessageFrom
+  yield bot.exports.onmessage(JSON.stringify({ message, payload }))
+  objects.getObjectByLink = getObjectByLink
   identities.getIdentityByPermalink = getIdentityByPermalink
 }))
 

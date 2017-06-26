@@ -4,7 +4,7 @@ const { unserializeMessage } = require('@tradle/engine').utils
 const Objects = require('./objects')
 const Identities = require('./identities')
 const Errors = require('./errors')
-const { pick, omit, typeforce } = require('./utils')
+const { clone, pick, omit, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
 const { InboxTable, OutboxTable } = require('./tables')
 const types = require('./types')
@@ -518,6 +518,15 @@ const getMessageStub = function getMessageStub ({ message, error }) {
   return stub
 }
 
+const stripData = function stripData ({ message, payload }) {
+  return {
+    message: clone(message, {
+      object: omit(message.object, 'object')
+    }),
+    payload: omit(payload, 'object')
+  }
+}
+
 // enable overriding during testing
 const Messages = module.exports = {
   messageFromEventPayload,
@@ -539,6 +548,7 @@ const Messages = module.exports = {
   getLastSeq,
   getNextSeq,
   assertTimestampIncreased,
+  stripData
   // assertNoDrift,
   // assertNotDuplicate
   // receiveMessage

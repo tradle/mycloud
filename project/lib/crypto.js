@@ -253,5 +253,8 @@ module.exports = {
   exportKeys,
   sha256,
   hexLink: utils.hexLink,
+  addLinks: utils.addLinks,
+  getLinks: utils.getLinks,
+  // toECKeyObj: utils.toECKeyObj,
   randomString
 }

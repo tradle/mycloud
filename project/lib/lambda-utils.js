@@ -18,7 +18,7 @@ function invoke ({ name, arg, sync=true, log }) {
   const params = {
     InvocationType: sync ? 'RequestResponse' : 'Event',
     FunctionName: getFullName(name),
-    Payload: JSON.stringify(arg)
+    Payload: typeof arg === 'string' ? arg : JSON.stringify(arg)
   }
 
   if (log) params.LogType = 'Tail'

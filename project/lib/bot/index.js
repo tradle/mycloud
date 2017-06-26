@@ -30,6 +30,7 @@ module.exports = createBot
 
 function createBot (tradle=defaultTradleInstance) {
   const {
+    objects,
     messages,
     identities,
     provider,
@@ -41,13 +42,25 @@ function createBot (tradle=defaultTradleInstance) {
   const { UsersTable, InboxTable, OutboxTable } = tables
   const sealsAPI = createSeals(tradle)
   const pre = {
-    onmessage: co(function* (event) {
-      const { author, time, link } = JSON.parse(event)
-      const [wrapper, identity] = [
-        yield messages.getMessageFrom({ author, time, link }),
+    onmessage: co(function* (wrapper) {
+      if (typeof wrapper === 'string') {
+        wrapper = JSON.parse(wrapper)
+      }
+
+      const { message, payload } = wrapper
+      const { author } = message
+      const getObject = payload.object
+        ? Promise.resolve(payload)
+        : objects.getObjectByLink(payload.link)
+
+      const [{ object }, identity] = [
+        yield getObject,
+        // yield messages.getMessageFrom({ author, time, link }),
         yield identities.getIdentityByPermalink(author)
       ]
 
+      message.object.object = object
+      payload.object = object
       const user = yield bot.users.createIfNotExists({
         id: author,
         identity

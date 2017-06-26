@@ -1,12 +1,12 @@
 const co = require('co').wrap
 const extend = require('xtend/mutable')
 const debug = require('debug')('tradle:sls:identities')
-const { utils } = require('@tradle/engine')
 const { PREVLINK, PERMALINK, TYPE, TYPES } = require('./constants')
 const { MESSAGE } = TYPES
 const Objects = require('./objects')
 const { NotFound } = require('./errors')
 const { firstSuccess, logify, typeforce } = require('./utils')
+const { addLinks } = require('./crypto')
 const types = require('./types')
 const Events = require('./events')
 const { PubKeysTable } = require('./tables')
@@ -101,7 +101,7 @@ const validateNewContact = co(function* ({ link, permalink, object }) {
     existing = yield getExistingIdentityMapping({ object })
   } catch (err) {}
 
-  const ret = utils.addLinks({ link, permalink, object })
+  const ret = addLinks({ link, permalink, object })
   link = ret.link
   permalink = ret.permalink
   if (existing) {
@@ -125,7 +125,7 @@ const addContact = co(function* ({ link, permalink, object }) {
     object = result.object
   }
 
-  const links = utils.getLinks({ link, permalink, object })
+  const links = Objects.getLinks({ link, permalink, object })
   link = links.link
   permalink = links.permalink
 
@@ -164,7 +164,7 @@ const addAuthorMetadata = co(function* (wrapper) {
   wrapper.author = author.permalink
   if (isMessage) wrapper.recipient = recipient.permalink
 
-  wrapper.link = utils.hexLink(object)
+  wrapper.link = Objects.getLink(object)
   wrapper.permalink = object[PERMALINK] || wrapper.link
   return wrapper
 })

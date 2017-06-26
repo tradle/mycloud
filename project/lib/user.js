@@ -1,5 +1,5 @@
 const debug = require('debug')('tradle:sls:user')
-const { co, getLink, typeforce } = require('./utils')
+const { co, getLink, typeforce, clone } = require('./utils')
 const { prettify } = require('./string-utils')
 const Auth = require('./auth')
 const Delivery = require('./delivery')
@@ -93,10 +93,14 @@ const onSentMessage = co(function* ({ clientId, message }) {
     return
   }
 
-  const { author, time, link } = wrapper.message
+  // const { author, time, link } = wrapper.message
+  const neutered = Messages.stripData(wrapper)
   yield invoke({
+    sync: false,
     name: BOT_ONMESSAGE,
-    arg: JSON.stringify({ author, time, link })
+    arg: neutered
+
+    // arg: JSON.stringify({ author, time, link })
   })
 
   // yield Iot.publish({
