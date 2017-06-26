@@ -732,6 +732,40 @@ resources:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
 
+    # A SKETCH, NOT REAL CLOUD FORMATION
+    # DAXCluster:
+    #   Type: AWS::DynamoDB::DAX
+    #   Properties:
+    #     ClusterName: TradleDAX
+    #     NodeType: dax.r3.large
+    #     ReplicationFactor: 3
+    #     IAMRoleArn: arn:aws:iam::${{self:custom.accountId}}:role/DAXRole
+    #     SubnetGroup: MySubnetGroup
+    #     Region: ${{self:provider.region}}
+
+    # DAXRole:
+    #   Type: AWS::IAM::Role
+    #   Properties:
+    #     RoleName: IotClientRole
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow,
+    #           Principal:
+    #             Service:
+    #               - dax.amazonaws.com
+    #           Action: sts:AssumeRole
+    #     Policies:
+    #       - PolicyName: DAXRole
+    #         PolicyDocument:
+    #           Version: "2012-10-17"
+    #           Statement:
+    #             - Effect: Allow
+    #               Action:
+    #                 - dynamodb:*
+    #               Resource:
+    #                 - arn:aws:dynamodb:us-west-2:${{self:custom.accountId}}:*
+
     IotClientRole:
       Type: AWS::IAM::Role
       Properties:
