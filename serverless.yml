@@ -36,6 +36,20 @@ custom:
   bot_onmessage: bot_onmessage
   bot_onsealevent: bot_onsealevent
   bot_onpresence: bot_onpresence
+  resource_names:
+    - ObjectsBucket
+    - SecretsBucket
+    - EventsTable
+    - PresenceTable
+    - PubKeysTable
+    - InboxTable
+    - OutboxTable
+    - SealsTable
+    - UsersTable
+    - PublicConfBucket
+    - PrivateConfBucket
+    - IotClientRole
+
   # writeEnvVars:
   #   SERVERLESS_STAGE: ${{self:custom.stage}}
   #   SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -66,7 +80,7 @@ provider:
   # deploymentBucket: io.tradle.${{self:provider.region}.deploys # Overwrite the default deployment bucket
   environment:
     BLOCKCHAIN: ${{self:custom.blockchain}}
-    DEBUG: tradle:*
+    DEBUG: tradle:*,λ*
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -170,19 +184,8 @@ functions:
           path: tradle/preauth
           method: post
           cors: true
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - ObjectsBucket
-        - PublicConfBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - IotClientRole
+      env-resources: ${{self:custom.resource_names}}
   auth:
     handler: project/lib/lambda/http/auth.handler
     memorySize: 1024
@@ -191,19 +194,8 @@ functions:
           path: tradle/auth
           method: post
           cors: true
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - ObjectsBucket
-        - PublicConfBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - IotClientRole
+      env-resources: ${{self:custom.resource_names}}
   # createevent:
   #   handler: project/lib/lambda/createevent.handler
   #   memorySize: 512
@@ -212,19 +204,8 @@ functions:
     handler: project/lib/lambda/inbox-events.handler
     timeout: 60
     memorySize: 512
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -239,19 +220,8 @@ functions:
     handler: project/lib/lambda/outbox-events.handler
     timeout: 60
     memorySize: 512
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -266,19 +236,8 @@ functions:
     handler: project/lib/lambda/seal-events.handler
     timeout: 60
     memorySize: 512
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -350,40 +309,18 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
-    # environment:
-    #   DEBUG: tradle:*
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
 
   ondisconnect:
     handler: project/lib/lambda/mqtt/ondisconnect.handler
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
-    # environment:
-    #   DEBUG: tradle:*
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
 
   # triggered when a client subscribes to an MQTT topic
   onsubscribe:
@@ -392,26 +329,13 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
 
   # triggered when a client sends a message
   onmessage:
     handler: project/lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
-    # environment:
-    #   DEBUG: tradle:*
     #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
     #   SERVERLESS_STAGE: ${{self:custom.stage}}
@@ -420,16 +344,18 @@ functions:
       - iot:
           sql: "SELECT * as data, clientid() as clientId FROM 'message'"
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
+
+  onmessage_http:
+    handler: project/lib/lambda/http/onmessage.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: tradle/message
+          method: put
+          cors: true
+    custom:
+      env-resources: ${{self:custom.resource_names}}
 
   # useful during development
   # trigger a message to be queued/sent
@@ -437,53 +363,20 @@ functions:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - PublicConfBucket
+      env-resources: ${{self:custom.resource_names}}
 
   # echo bot (business logic layer)
   bot_onmessage:
     handler: project/samplebot/index.onmessage
     memorySize: 1024
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - SealsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - UsersTable
-        - PublicConfBucket
-    # environment:
-    #   DEBUG: tradle:*
+      env-resources: ${{self:custom.resource_names}}
 
   bot_onsealevent:
     handler: project/samplebot/index.onsealevent
     memorySize: 1024
     custom:
-      env-resources:
-        - ObjectsBucket
-        - SecretsBucket
-        - EventsTable
-        - SealsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - UsersTable
-        - PublicConfBucket
-    # environment:
-    #   DEBUG: tradle:*
+      env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -505,8 +398,6 @@ functions:
 
   identity:
     handler: project/lib/lambda/identity.handler
-    # environment:
-    #   DEBUG: tradle:*
     custom:
       env-resources:
         - SecretsBucket
@@ -519,8 +410,6 @@ functions:
     handler: project/lib/lambda/info.handler
     timeout: 10
     memorySize: 256
-    # environment:
-    #   DEBUG: tradle:*
       # SERVERLESS_STAGE: ${{self:custom.stage}}
       # SERVERLESS_SERVICE_NAME: ${{self:service}}
     custom:
@@ -569,19 +458,8 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - SecretsBucket
-        - ObjectsBucket
-        - PublicConfBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
+      env-resources: ${{self:custom.resource_names}}
 
   pollchain:
     handler: project/lib/lambda/pollchain.handler
@@ -591,19 +469,8 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
-    # environment:
-    #   DEBUG: tradle:*
     custom:
-      env-resources:
-        - ObjectsBucket
-        - PublicConfBucket
-        - EventsTable
-        - PresenceTable
-        - PubKeysTable
-        - InboxTable
-        - OutboxTable
-        - SealsTable
-        - IotClientRole
+      env-resources: ${{self:custom.resource_names}}
 
     # environment:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}

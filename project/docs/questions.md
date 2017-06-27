@@ -150,6 +150,13 @@ postpone implementation of:
   re-ordering (ack instead)
 
 ## TODO
+
+### High Priority
+
+implement sending message via http POST, so bigger messages (like photos) can be sent
+implement this fallback in @tradle/aws-client
+
+### Medium Priority
   - map generated API gateway to custom domain
     - https://stackoverflow.com/questions/39507004/how-to-add-a-custom-domain-for-a-serverless-1-0-0-framework-defined-deployed-api
   - auto-setup ssl certificates

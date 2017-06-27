@@ -32,23 +32,95 @@ const onSubscribed = co(function* ({ clientId, topics }) {
   yield Delivery.deliverMessages({ clientId, permalink, gt })
 })
 
-const onSentMessage = co(function* ({ clientId, message }) {
-  // can probably move this to lamdba
-  // as it's normalizing transport-mangled inputs
-  message = Messages.normalizeInbound(message)
-  try {
-    message = yield Messages.preProcessInbound(message)
-  } catch (err) {
-    if (err instanceof Errors.InvalidMessageFormat) {
-      yield Delivery.reject({
-        clientId,
-        message: { object: message },
-        reason: Errors.export(err)
-      })
+// const onSentMessageOverMQTT = co(function* ({ clientId, message }) {
+//   try {
+//     yield onSentMessage({ message })
+//   } catch (err) {}
+// })
 
+const onSentMessage = co(function* ({ clientId, message }) {
+  let err
+  let wrapper
+  try {
+    wrapper = yield _onSentMessage({ clientId, message })
+  } catch (e) {
+    err = e
+  }
+
+  if (wrapper) {
+    // SUCCESS!
+    yield Delivery.ack({
+      clientId,
+      message: wrapper.message
+    })
+
+    if (!BOT_ONMESSAGE) {
+      debug('no bot subscribed to "onmessage"')
       return
     }
 
+    // const { author, time, link } = wrapper.message
+    const neutered = Messages.stripData(wrapper)
+    yield invoke({
+      sync: false,
+      name: BOT_ONMESSAGE,
+      arg: neutered
+
+      // arg: JSON.stringify({ author, time, link })
+    })
+
+    return wrapper
+  }
+
+  wrapper = err.progress
+  if (err instanceof Errors.InvalidMessageFormat) {
+    // HTTP
+    if (!clientId) {
+      err.code = 400
+      throw err
+    }
+
+    yield Delivery.reject({
+      clientId,
+      message: wrapper,
+      reason: err
+    })
+  } else if (err instanceof Errors.Duplicate) {
+    debug('ignoring but acking duplicate message', prettify(wrapper))
+    // HTTP
+    if (!clientId) return
+
+    yield Delivery.ack({
+      clientId,
+      message: wrapper
+    })
+  } else if (err instanceof Errors.TimeTravel) {
+    // HTTP
+    debug('rejecting message with lower timestamp than previous')
+    if (!clientId) {
+      err.code = 400
+      throw err
+    }
+
+    yield Delivery.reject({
+      clientId,
+      message: err.wrapper,
+      error: err
+    })
+  } else {
+    debug('unexpected error in pre-processing inbound message:', err.stack)
+    throw err
+  }
+})
+
+const _onSentMessage = co(function* ({ clientId, message }) {
+  // can probably move this to lamdba
+  // as it's normalizing transport-mangled inputs
+  try {
+    message = Messages.normalizeInbound(message)
+    message = yield Messages.preProcessInbound(message)
+  } catch (err) {
+    err.progress = { object: message }
     debug('unexpected error in pre-processing inbound message:', err.stack)
     throw err
   }
@@ -57,59 +129,11 @@ const onSentMessage = co(function* ({ clientId, message }) {
   try {
     wrapper = yield createReceiveMessageEvent({ message })
   } catch (err) {
-    wrapper = { object: message }
-    if (err instanceof Errors.Duplicate) {
-      debug('ignoring but acking duplicate message', prettify(wrapper))
-      yield Delivery.ack({
-        clientId,
-        message: wrapper
-      })
-
-      return
-    }
-
-    if (err instanceof Errors.TimeTravel) {
-      debug('rejecting message with lower timestamp than previous')
-      yield Delivery.reject({
-        clientId,
-        message: wrapper,
-        error: err
-      })
-
-      return
-    }
-
-    debug('unexpected error in processing inbound message:', err.stack)
+    err.progress = { object: message }
     throw err
   }
 
-  yield Delivery.ack({
-    clientId,
-    message: wrapper.message
-  })
-
-  if (!BOT_ONMESSAGE) {
-    debug('no bot subscribed to "onmessage"')
-    return
-  }
-
-  // const { author, time, link } = wrapper.message
-  const neutered = Messages.stripData(wrapper)
-  yield invoke({
-    sync: false,
-    name: BOT_ONMESSAGE,
-    arg: neutered
-
-    // arg: JSON.stringify({ author, time, link })
-  })
-
-  // yield Iot.publish({
-  //   topic: 'message/preprocessed',
-  //   payload: {
-  //     author: wrapper.message.author,
-  //     seq: wrapper.message.object[SEQ]
-  //   }
-  // })
+  return wrapper
 })
 
 const onDisconnected = function ({ clientId }) {

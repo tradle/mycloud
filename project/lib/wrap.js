@@ -51,7 +51,8 @@ function wrapHTTPGenerator (generatorFn) {
   return co(function* (...args) {
     const resp = {
       headers: {
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
       }
     }
 
@@ -59,17 +60,21 @@ function wrapHTTPGenerator (generatorFn) {
     let ret
     try {
       ret = yield co(generatorFn).apply(this, args)
-      resp.statusCode = 200
-      if (ret != null) resp.body = stringify(ret)
+      if (ret == null) {
+        resp.statusCode = 204
+      } else {
+        resp.statusCode = 200
+        resp.body = stringify(ret)
+      }
     } catch (err) {
       if (Errors.isDeveloperError(err)) {
         return callback(err)
       }
 
       debug('wrapped task errored', err)
-      resp.statusCode = 400
-      const msg = DEV ? err.message : 'Something went horribly wrong'
-      resp.body = stringify(err.message)
+      resp.statusCode = err.code || 400
+      const body = DEV ? Errors.export(err) : { message: 'Something went horribly wrong' }
+      resp.body = body
     }
 
     callback(null, resp)
