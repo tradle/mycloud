@@ -1,11 +1,10 @@
-const Messages = require('../messages')
 const { co, clone, timestamp } = require('../utils')
 
-module.exports = function createHistory ({ inbox, outbox }) {
+module.exports = function createHistory ({ messages }) {
   const get = co(function* ({ userId, gt=0, limit /* lt=Infinity */ }) {
     const [inbound, outbound] = yield [
-      Messages.getMessagesFrom({ author: userId, gt, limit }),
-      Messages.getMessagesTo({ recipient: userId, gt, limit })
+      messages.getMessagesFrom({ author: userId, gt, limit }),
+      messages.getMessagesTo({ recipient: userId, gt, limit })
     ]
 
     return mergeArrays(inbound, outbound, getTime)

@@ -16,7 +16,7 @@ const bob = require('./fixtures/bob/object')
 const schema = clone(
   require('../conf/table/users').Properties,
   {
-    TableName: 'UsersTableTest'
+    TableName: process.env.CF_UsersTable
   }
 )
 
@@ -24,7 +24,9 @@ const schema = clone(
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test(`users (${mode})`, loudCo(function* (t) {
     console.warn('make sure localstack is running')
-    yield recreateTable(schema)
+    if (mode === 'real') {
+      yield recreateTable(schema)
+    }
 
     const bot = createBot()
     const { users } = bot

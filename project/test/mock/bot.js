@@ -8,11 +8,12 @@ module.exports = function fakeBot (opts={}) {
   const {
     send=promiseNoop,
     objects={},
-    identities={}
+    identities={},
+    messages={}
   } = opts
 
   const {
-    tradle=fakeTradle({ objects, identities, send })
+    tradle=fakeTradle({ objects, messages, identities, send })
   } = opts
 
   const users = {}

@@ -10,7 +10,7 @@ process.env.IS_LOCAL = true
   'Presence',
   'Users'
 ].forEach(table => {
-  process.env[`CF_${table}Table`] = `${table}Table`
+  process.env[`CF_${table}Table`] = `${table}TableTest`
 })
 
 ;[
@@ -18,5 +18,5 @@ process.env.IS_LOCAL = true
   'Secrets',
   'PublicConf',
 ].forEach(bucket => {
-  process.env[`CF_${bucket}Bucket`] = `${bucket}Bucket`
+  process.env[`CF_${bucket}Bucket`] = `${bucket}BucketTest`
 })
