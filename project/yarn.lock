@@ -26,18 +26,40 @@
 
 "@tradle/bot-keep-fresh@tradle/bot-keep-fresh#cloud":
   version "2.0.1"
-  resolved "https://codeload.github.com/tradle/bot-keep-fresh/tar.gz/36afecba6bb2cff2867c54a5e4ac6d6a2f021ce2"
+  resolved "https://codeload.github.com/tradle/bot-keep-fresh/tar.gz/bfa034baf9dd57d4d710063f1b0c12f54a51a688"
   dependencies:
     co "^4.6.0"
     debug "^2.6.0"
     json-stable-stringify "^1.0.1"
     typeforce "^1.10.6"
 
+"@tradle/bot-products@tradle/bot-products#cloud":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/bot-products/tar.gz/066401ed6001b8b98e503627c5a21b5109d6ae18"
+  dependencies:
+    "@tradle/bot-require-models" tradle/bot-require-models#cloud
+    "@tradle/build-resource" tradle/build-resource
+    "@tradle/custom-models" "https://github.com/tradle/custom-models"
+    "@tradle/models" "https://github.com/tradle/models"
+    "@tradle/validate-model" tradle/validate-model
+    "@tradle/validate-resource" tradle/validate-resource
+    co "^4.6.0"
+    cross-env "^4.0.0"
+    uuid "^3.0.1"
+    xtend "^4.0.1"
+
 "@tradle/bot-require-models@tradle/bot-require-models#cloud":
   version "2.0.0"
-  resolved "https://codeload.github.com/tradle/bot-require-models/tar.gz/34bd1ca198b562d0e8804ad55cdb7ea1ecfec94c"
+  resolved "https://codeload.github.com/tradle/bot-require-models/tar.gz/47a13d617bb45021f52377dd41c111566bd1afcc"
   dependencies:
     "@tradle/bot-keep-fresh" tradle/bot-keep-fresh#cloud
+
+"@tradle/build-resource@tradle/build-resource":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/build-resource/tar.gz/b565bf893e27b3cf6f6d8b5e1bc59fec7d4b38ad"
+  dependencies:
+    clone "^2.1.0"
+    xtend "^4.0.1"
 
 "@tradle/cb-blockr@^3.2", "@tradle/cb-blockr@^3.2.0":
   version "3.2.0"
@@ -47,6 +69,14 @@
     async "^0.9.0"
     superagent "^1.2.0"
     throttleme "^1.0.3"
+
+"@tradle/custom-models@https://github.com/tradle/custom-models":
+  version "4.10.10"
+  resolved "https://github.com/tradle/custom-models#6bc2bbb00eabc084fcdd166f09e9638ea48546a5"
+  dependencies:
+    minimist "^1.2.0"
+    typeforce "^1.10.6"
+    write-file-atomic "^1.1.4"
 
 "@tradle/engine@^4.9.0":
   version "4.9.0"
@@ -86,6 +116,14 @@
     typeforce "^1.6.2"
     xtend "^4.0.1"
 
+"@tradle/models@https://github.com/tradle/models":
+  version "4.10.10"
+  resolved "https://github.com/tradle/models#39d3a14423db9009d0c53e6ba6f8f55d3867e97b"
+  dependencies:
+    minimist "^1.2.0"
+    typeforce "^1.10.6"
+    write-file-atomic "^1.1.4"
+
 "@tradle/protocol@2.3.0":
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/@tradle/protocol/-/protocol-2.3.0.tgz#e2509df829aa1d701561ee4fbe006cdb9a32e23b"
@@ -117,6 +155,21 @@
   dependencies:
     "@tradle/bitcoinjs-lib" "^1.5.7"
     dezalgo "^1.0.3"
+
+"@tradle/validate-model@tradle/validate-model":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/c67483a907399b56f06ade15c25bf5950bf3a3fd"
+  dependencies:
+    object.omit "^2.0.1"
+    object.pick "^1.2.0"
+    typeforce "^1.10.6"
+    xtend "^4.0.1"
+
+"@tradle/validate-resource@tradle/validate-resource":
+  version "1.0.0"
+  resolved "https://codeload.github.com/tradle/validate-resource/tar.gz/842c37f47f25a5a7ab4ca6a4d2927957e89e9a13"
+  dependencies:
+    traverse "^0.6.6"
 
 abstract-leveldown@^2.1.0, abstract-leveldown@^2.4.1:
   version "2.6.1"
@@ -378,7 +431,7 @@ cipher-base@^1.0.0, cipher-base@^1.0.1, cipher-base@^1.0.3:
   dependencies:
     inherits "^2.0.1"
 
-clone@^2.0.0:
+clone@^2.0.0, clone@^2.1.0, clone@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/clone/-/clone-2.1.1.tgz#d217d1e961118e3ac9a4b8bba3285553bf647cdb"
 
@@ -450,6 +503,21 @@ create-hmac@^1.1.3, create-hmac@^1.1.4:
     ripemd160 "^2.0.0"
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
+
+cross-env@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/cross-env/-/cross-env-4.0.0.tgz#16083862d08275a4628b0b243b121bedaa55dd80"
+  dependencies:
+    cross-spawn "^5.1.0"
+    is-windows "^1.0.0"
+
+cross-spawn@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-5.1.0.tgz#e8bd0efee58fcff6f8f94510a0a554bbfa235449"
+  dependencies:
+    lru-cache "^4.0.1"
+    shebang-command "^1.2.0"
+    which "^1.2.9"
 
 cycle@1.0.x:
   version "1.0.3"
@@ -736,6 +804,10 @@ github-from-package@0.0.0:
   version "0.0.0"
   resolved "https://registry.yarnpkg.com/github-from-package/-/github-from-package-0.0.0.tgz#97fb5d96bfde8973313f20e8288ef9a167fa64ce"
 
+graceful-fs@^4.1.11:
+  version "4.1.11"
+  resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.1.11.tgz#0e8bdfe4d1ddb8854d64e04ea7c00e2a026e5658"
+
 has-unicode@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/has-unicode/-/has-unicode-2.0.1.tgz#e0e6fe6a28cf51138855e086d1691e771de2a8b9"
@@ -771,6 +843,10 @@ hydration@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/hydration/-/hydration-1.0.0.tgz#a5adf228cae536f4e3917cd784032c20763317bf"
 
+imurmurhash@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/imurmurhash/-/imurmurhash-0.1.4.tgz#9218b9b2b928a238b13dc4fb6b6d576f231453ea"
+
 inherits@^2.0.1, inherits@^2.0.3, inherits@~2.0.1, inherits@~2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.3.tgz#633c2c83e3da42a502f52466022480f4208261de"
@@ -801,6 +877,10 @@ is-property@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/is-property/-/is-property-1.0.2.tgz#57fe1c4e48474edd65b09911f26b1cd4095dda84"
 
+is-windows@^1.0.0:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/is-windows/-/is-windows-1.0.1.tgz#310db70f742d259a16a369202b51af84233310d9"
+
 isarray@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/isarray/-/isarray-0.0.1.tgz#8a18acfca9a8f4177e09abfc6038939b05d1eedf"
@@ -808,6 +888,10 @@ isarray@0.0.1:
 isarray@1.0.0, isarray@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/isarray/-/isarray-1.0.0.tgz#bb935d48582cba168c06834957a54a3e07124f11"
+
+isexe@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
 
 isobject@^2.1.0:
   version "2.1.0"
@@ -951,7 +1035,7 @@ looper@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/looper/-/looper-3.0.0.tgz#2efa54c3b1cbaba9b94aee2e5914b0be57fbb749"
 
-lru-cache@^4.1.1:
+lru-cache@^4.0.1, lru-cache@^4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-4.1.1.tgz#622e32e82488b49279114a4f9ecf45e7cd6bba55"
   dependencies:
@@ -1402,6 +1486,16 @@ shallow-copy@~0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/shallow-copy/-/shallow-copy-0.0.1.tgz#415f42702d73d810330292cc5ee86eae1a11a170"
 
+shebang-command@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/shebang-command/-/shebang-command-1.2.0.tgz#44aac65b695b03398968c39f363fee5deafdf1ea"
+  dependencies:
+    shebang-regex "^1.0.0"
+
+shebang-regex@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/shebang-regex/-/shebang-regex-1.0.0.tgz#da42f49740c0b42db2ca9728571cb190c98efea3"
+
 shimmer@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/shimmer/-/shimmer-1.0.0.tgz#49c2d71c678360b802be18b278382d1cbb805c39"
@@ -1427,6 +1521,10 @@ simple-get@^1.4.2:
     once "^1.3.1"
     unzip-response "^1.0.0"
     xtend "^4.0.0"
+
+slide@^1.1.5:
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
 
 "source-map@>= 0.1.2", source-map@~0.1.33:
   version "0.1.43"
@@ -1631,13 +1729,19 @@ util-deprecate@~1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
 
-uuid@^3.1.0:
+uuid@^3.0.1, uuid@^3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.1.0.tgz#3dd3d3e790abc24d7b0d3a034ffababe28ebbc04"
 
 varint@^5.0.0, varint@~5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/varint/-/varint-5.0.0.tgz#d826b89f7490732fabc0c0ed693ed475dcb29ebf"
+
+which@^1.2.9:
+  version "1.2.14"
+  resolved "https://registry.yarnpkg.com/which/-/which-1.2.14.tgz#9a87c4378f03e827cecaf1acdf56c736c01c14e5"
+  dependencies:
+    isexe "^2.0.0"
 
 wide-align@^1.1.0:
   version "1.1.2"
@@ -1659,6 +1763,14 @@ winston@^2.2.0:
 wrappy@1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/wrappy/-/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"
+
+write-file-atomic@^1.1.4:
+  version "1.3.4"
+  resolved "https://registry.yarnpkg.com/write-file-atomic/-/write-file-atomic-1.3.4.tgz#f807a4f0b1d9e913ae7a48112e6cc3af1991b45f"
+  dependencies:
+    graceful-fs "^4.1.11"
+    imurmurhash "^0.1.4"
+    slide "^1.1.5"
 
 xtend@4.0.1, "xtend@>=4.0.0 <4.1.0-0", xtend@^4.0.0, xtend@^4.0.1, xtend@~4.0.0, xtend@~4.0.1:
   version "4.0.1"

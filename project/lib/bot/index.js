@@ -1,5 +1,7 @@
 const { EventEmitter } = require('events')
 const debug = require('debug')('tradle:sls:bot-engine')
+const deepEqual = require('deep-equal')
+const clone = require('clone')
 const types = require('../types')
 const { co, extend, omit, typeforce, isPromise, waterfall, series } = require('../utils')
 const { prettify } = require('../string-utils')
@@ -28,7 +30,13 @@ const METHODS = [
 
 module.exports = createBot
 
-function createBot (tradle=defaultTradleInstance) {
+function createBot (opts={}) {
+  const {
+    tradle=defaultTradleInstance,
+    users,
+    autosave=true
+  } = opts
+
   const {
     objects,
     messages,
@@ -66,12 +74,25 @@ function createBot (tradle=defaultTradleInstance) {
         identity
       })
 
-      return { user, wrapper }
+      const _userPre = clone(user)
+      return { user, wrapper, _userPre }
     })
   }
 
+  const promiseSaveUser = co(function* ({ user, _userPre }) {
+    if (!deepEqual(user, _userPre)) {
+      debug('merging changes to user state')
+      yield bot.users.merge(user)
+    }
+
+    debug('user state was not changed by onmessage handler')
+  })
+
   const post = {
-    onmessage: wrapWithEmit(promisePassThrough, 'message'),
+    onmessage: wrapWithEmit(
+      autosave ? promiseSaveUser : promisePassThrough,
+      'message'
+    ),
     onreadseal: wrapWithEmit(promisePassThrough, 'seal:read'),
     onwroteseal: wrapWithEmit(promisePassThrough, 'seal:wrote'),
     onsealevent: wrapWithEmit(promisePassThrough, 'seal'),
@@ -161,7 +182,7 @@ function createBot (tradle=defaultTradleInstance) {
   }))
 
   bot.seals = sealsAPI
-  bot.users = createUsers({
+  bot.users = users || createUsers({
     table: UsersTable,
     oncreate: user => bot.exports.onusercreate(user)
   })

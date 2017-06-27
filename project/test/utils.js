@@ -1,5 +1,6 @@
 const { co } = require('../lib/utils')
 const { getTable, marshalDBItem } = require('../lib/db-utils')
+const Errors = require('../lib/errors')
 
 const recreateTable = co(function* (schema) {
   const table = getTable(schema.TableName)
@@ -24,7 +25,41 @@ function toStreamItems (changes) {
   }
 }
 
+function getter (map) {
+  return co(function* (key) {
+    if (key in map) {
+      return map[key]
+    }
+
+    throw new Errors.NotFound(key)
+  })
+}
+
+function putter (map) {
+  return co(function* (key, value) {
+    map[key] = value
+  })
+}
+
+function deleter (map) {
+  return co(function* (key) {
+    const val = map[key]
+    delete map[key]
+    return val
+  })
+}
+
+function scanner (map) {
+  return co(function* () {
+    return Object.keys(map).map(key => map[key])
+  })
+}
+
 module.exports = {
   recreateTable,
-  toStreamItems
+  toStreamItems,
+  getter,
+  putter,
+  deleter,
+  scanner
 }

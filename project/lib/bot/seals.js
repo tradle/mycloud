@@ -1,9 +1,8 @@
 const { co } = require('../utils')
-const Provider = require('../provider')
 
-module.exports = function createSealsAPI ({ seals }) {
+module.exports = function createSealsAPI ({ provider, seals }) {
   const createSeal = co(function* ({ link }) {
-    const chainKey = yield Provider.getMyChainKey()
+    const chainKey = yield provider.getMyChainKey()
     yield seals.create({
       link,
       key: chainKey
