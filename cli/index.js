@@ -2,11 +2,12 @@
 
 const path = require('path')
 require('dotenv').config({
-  path: path.resolve(__dirname, '../.serverless-resources-env/.us-east-1_dev_init')
+  path: path.resolve(__dirname, '../.serverless-resources-env/.us-east-1_dev_onmessage')
 })
 
 const promisify = require('pify')
 const fs = promisify(require('fs'))
+const mkdirp = promisify(require('mkdirp'))
 const program = require('commander')
 const deepEqual = require('deep-equal')
 const omit = require('object.omit')
@@ -29,7 +30,7 @@ const {
 } = constants
 
 const { getHandleFromName, getDataURI } = require('./utils')
-const DIR = path.resolve('./conf')
+const DIR = path.resolve('./org')
 const defaults = {
   style: {},
   publicConfig: {
@@ -160,6 +161,7 @@ const init = co(function* (options) {
     })
   })
 
+  yield mkdirp(DIR)
   yield [
     writeJSON(FILES.org, org.object),
     writeJSON(FILES.pub, pub),

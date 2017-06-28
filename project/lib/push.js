@@ -8,7 +8,7 @@ const { cachifyPromiser, sha256, executeSuperagentRequest } = require('./utils')
 // const TYPE = constants.TYPE
 
 const ENV = require('./env')
-const { PrivateConfBucket } = require('./buckets')
+// const { PrivateConfBucket } = require('./buckets')
 const { PushSubscribers } = require('./tables')
 const { PUSH_SERVER_URL } = require('./env')
 

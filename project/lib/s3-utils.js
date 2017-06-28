@@ -2,6 +2,7 @@ const debug = require('debug')('tradle:sls:s3-utils')
 const aws = require('./aws')
 const { logify } = require('./utils')
 const { DEV } = require('./env')
+const Errors = require('./errors')
 
 function put ({ key, value, bucket }) {
   // debug(`putting ${key} -> ${value} into Bucket ${bucket}`)
@@ -16,7 +17,13 @@ function get ({ key, bucket }) {
   return aws.s3.getObject({
     Bucket: bucket,
     Key: key
-  }).promise()
+  })
+  .promise()
+  .catch(err => {
+    if (err.code === 'NoSuchKey') {
+      throw new Errors.NotFound()
+    }
+  })
 }
 
 function putJSON ({ key, value, bucket }) {

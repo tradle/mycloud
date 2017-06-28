@@ -18,6 +18,7 @@ env.BLOCKCHAIN = (function () {
 }())
 
 env.DEV = env.SERVERLESS_STAGE === 'dev'
+env.IS_LAMBDA_ENVIRONMENT = !!process.env.AWS_REGION
 
 for (let prop in process.env) {
   if (prop.slice(0, 3) === 'CF_') {

@@ -35,11 +35,12 @@
     superagent "^1.2.0"
     throttleme "^1.0.3"
 
-"@tradle/engine@file:///Users/tenaciousmv/Code/tim-core":
+"@tradle/engine@^4.9.0":
   version "4.9.0"
+  resolved "https://registry.yarnpkg.com/@tradle/engine/-/engine-4.9.0.tgz#742c81d7aae4fae085f97f94b8d8bbd8bce8f24c"
   dependencies:
     "@tradle/bitcoinjs-lib" "^1.6.0"
-    "@tradle/protocol" "github:tradle/protocol"
+    "@tradle/protocol" "2.3.0"
     async "^2.0.0-rc.4"
     backoff "^2.5.0"
     bs58check "^1.0.8"
@@ -72,9 +73,9 @@
     typeforce "^1.6.2"
     xtend "^4.0.1"
 
-"@tradle/protocol@github:tradle/protocol":
+"@tradle/protocol@2.3.0":
   version "2.3.0"
-  resolved "https://codeload.github.com/tradle/protocol/tar.gz/4454e4329f44fd2faeff29e887bf23eedc1b74b8"
+  resolved "https://registry.yarnpkg.com/@tradle/protocol/-/protocol-2.3.0.tgz#e2509df829aa1d701561ee4fbe006cdb9a32e23b"
   dependencies:
     elliptic "^6.3.1"
     flat-tree "1.4.0"
@@ -156,9 +157,15 @@
   version "0.0.34"
   resolved "https://registry.yarnpkg.com/@types/isomorphic-fetch/-/isomorphic-fetch-0.0.34.tgz#3c3483e606c041378438e951464f00e4e60706d6"
 
-abstract-leveldown@2.4.1, abstract-leveldown@^2.4.1, abstract-leveldown@~2.4.0:
+abstract-leveldown@2.4.1, abstract-leveldown@~2.4.0:
   version "2.4.1"
   resolved "https://registry.yarnpkg.com/abstract-leveldown/-/abstract-leveldown-2.4.1.tgz#b3bfedb884eb693a12775f0c55e9f0a420ccee64"
+  dependencies:
+    xtend "~4.0.0"
+
+abstract-leveldown@^2.4.1, abstract-leveldown@~2.6.1:
+  version "2.6.1"
+  resolved "https://registry.yarnpkg.com/abstract-leveldown/-/abstract-leveldown-2.6.1.tgz#f9014a5669b746418e145168dea49a044ae15900"
   dependencies:
     xtend "~4.0.0"
 
@@ -167,12 +174,6 @@ abstract-leveldown@~0.12.1:
   resolved "https://registry.yarnpkg.com/abstract-leveldown/-/abstract-leveldown-0.12.4.tgz#29e18e632e60e4e221d5810247852a63d7b2e410"
   dependencies:
     xtend "~3.0.0"
-
-abstract-leveldown@~2.6.1:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/abstract-leveldown/-/abstract-leveldown-2.6.1.tgz#f9014a5669b746418e145168dea49a044ae15900"
-  dependencies:
-    xtend "~4.0.0"
 
 acorn-jsx@^3.0.0:
   version "3.0.1"
@@ -305,9 +306,9 @@ array-union@^1.0.1:
   dependencies:
     array-uniq "^1.0.1"
 
-array-uniq@^1.0.1:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/array-uniq/-/array-uniq-1.0.3.tgz#af6ac877a25cc7f74e058894753858dfdb24fdb6"
+array-uniq@1.0.2, array-uniq@^1.0.1:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/array-uniq/-/array-uniq-1.0.2.tgz#5fcc373920775723cfd64d65c64bef53bf9eba6d"
 
 arrify@^1.0.0:
   version "1.0.1"
@@ -402,6 +403,10 @@ babel-code-frame@^6.16.0:
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
+babylon@^6.15.0:
+  version "6.17.4"
+  resolved "https://registry.yarnpkg.com/babylon/-/babylon-6.17.4.tgz#3e8b7402b88d22c3423e137a1577883b15ff869a"
+
 backoff@^2.5.0:
   version "2.5.0"
   resolved "https://registry.yarnpkg.com/backoff/-/backoff-2.5.0.tgz#f616eda9d3e4b66b8ca7fca79f695722c5f8e26f"
@@ -490,7 +495,7 @@ block-stream2@^1.0.0:
     inherits "^2.0.1"
     readable-stream "^2.0.4"
 
-bluebird@^3.4.0, bluebird@^3.4.6:
+bluebird@^3.4.0, bluebird@^3.4.6, bluebird@^3.5.0:
   version "3.5.0"
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.5.0.tgz#791420d7f551eea2897453a8a77653f96606d67c"
 
@@ -1509,6 +1514,17 @@ flatten@0.0.1:
 flatten@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/flatten/-/flatten-1.0.2.tgz#dae46a9d78fbe25292258cc1e780a41d95c03782"
+
+flow-bin@^0.48.0:
+  version "0.48.0"
+  resolved "https://registry.yarnpkg.com/flow-bin/-/flow-bin-0.48.0.tgz#72d075143524358db8901525e3c784dc13a7c7ee"
+
+flow-remove-types@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/flow-remove-types/-/flow-remove-types-1.2.1.tgz#58e261bf8b842bd234c86cafb982a1213aff0edb"
+  dependencies:
+    babylon "^6.15.0"
+    vlq "^0.2.1"
 
 for-each@^0.3.2, for-each@~0.3.2:
   version "0.3.2"
@@ -3006,6 +3022,12 @@ randombytes@^2.0.1:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/randombytes/-/randombytes-2.0.3.tgz#674c99760901c3c4112771a31e521dc349cc09ec"
 
+randomstring@^1.1.5:
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/randomstring/-/randomstring-1.1.5.tgz#6df0628f75cbd5932930d9fe3ab4e956a18518c3"
+  dependencies:
+    array-uniq "1.0.2"
+
 raven@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/raven/-/raven-1.2.1.tgz#949c134db028a190b7bbf8f790aae541b7c020bd"
@@ -3299,6 +3321,22 @@ serverless-resources-env@mvayngrib/serverless-resources-env:
     bluebird "^3.4.6"
     dotenv "^4.0.0"
     lodash "^4.17.1"
+
+serverless-sam@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/serverless-sam/-/serverless-sam-0.0.2.tgz#8ad162b723eb9293f2d259e5d63d2a019a9b77ec"
+  dependencies:
+    bluebird "^3.5.0"
+    js-yaml "^3.8.3"
+    randomstring "^1.1.5"
+
+serverless-sam@mvayngrib/serverless-sam:
+  version "0.0.2"
+  resolved "https://codeload.github.com/mvayngrib/serverless-sam/tar.gz/4a292a74073b36201fa137e10ef27603bf5832d9"
+  dependencies:
+    bluebird "^3.5.0"
+    js-yaml "^3.8.3"
+    randomstring "^1.1.5"
 
 serverless@mvayngrib/serverless:
   version "1.16.1"
@@ -3905,6 +3943,10 @@ verror@1.3.6:
   resolved "https://registry.yarnpkg.com/verror/-/verror-1.3.6.tgz#cff5df12946d297d2baaefaa2689e25be01c005c"
   dependencies:
     extsprintf "1.0.2"
+
+vlq@^0.2.1:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/vlq/-/vlq-0.2.2.tgz#e316d5257b40b86bb43cb8d5fea5d7f54d6b0ca1"
 
 vows@0.6.0:
   version "0.6.0"

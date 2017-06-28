@@ -21,6 +21,8 @@
     "datauri": "^1.0.5",
     "deep-equal": "^1.0.1",
     "eslint": "^3.19.0",
+    "flow-bin": "^0.48.0",
+    "flow-remove-types": "^1.2.1",
     "isomorphic-fetch": "^2.2.1",
     "jimp": "^0.2.28",
     "leveldown": "^1.7.2",
@@ -39,10 +41,11 @@
     "serverless": "mvayngrib/serverless",
     "serverless-plugin-tracing": "^1.0.6",
     "serverless-resources-env": "mvayngrib/serverless-resources-env",
+    "serverless-sam": "mvayngrib/serverless-sam",
     "tape": "^4.6.3"
   },
   "scripts": {
-    "postinstall": "npm run gen:env",
+    "postinstall": "yarn run gen:env",
     "gen:env": "./scripts/generate-env.js",
     "gen:fixtures": "./scripts/gen-fixtures.js",
     "lint": "eslint --quiet --ignore-path .gitignore .",
@@ -51,7 +54,10 @@
     "deploy:aws": "SLS_DEBUG=* IS_LOCAL= serverless deploy",
     "rebuild": "cd project && docker run --rm -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd ..",
     "rebuild:local": "cd project && npm rebuild && cd ..",
-    "nuke": "./scripts/nuke.sh"
+    "nuke": "./scripts/nuke.sh",
+    "build": "flow-remove-types project/ -d build/ && yarn run copynonjs",
+    "copynonjs": "find project/lib project/conf project/test -type f '!' -name '*.js' | cpio -pdm build/",
+    "export:template": "serverless sam export --output ./template.yml"
   },
   "dependencies": {}
 }

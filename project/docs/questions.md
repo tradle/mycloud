@@ -151,46 +151,70 @@ postpone implementation of:
 
 ## TODO
 
-### High Priority
+### Is Lambda better?
 
-implement sending message via http POST, so bigger messages (like photos) can be sent
-implement this fallback in @tradle/aws-client
+### Testing
 
-### Medium Priority
-  - map generated API gateway to custom domain
-    - https://stackoverflow.com/questions/39507004/how-to-add-a-custom-domain-for-a-serverless-1-0-0-framework-defined-deployed-api
-  - auto-setup ssl certificates
-    - http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-certificatemanager-certificate.html#w2ab2c19c12d100c17
-  - 1-click launch
-    - e.g.: curl https://github.com/tradle/serverless/bootstrap.sh | bash
-    - bootstrap.sh will (via a wizard):
-      - check that you have AWS keys configured
-      - run serverless deploy
-      - post-process to get API endpoints
-      - ask the user what CNAMEs they want, and create those mappings
-  - development environment for bots
-  - improve design for bot hooks (in other words, design it)
+Load testing - e.g. 100 clients, 100 messages / second
 
-  - push notifications
-    - http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html
-    - https://www.npmjs.com/package/web-push
-  - TypeTable
+### Bots
+- in-house bot functionality
+  - employees
+  - REST/GraphQL API
+    - TypeTable / index
     - index by type
-  - where should we be using ElastiCache instead of DynamoDB? For example - PresenceTable might be better placed in ElastiCache, since data there is small-sized and short lived. However, ElastiCache is for ephemeral data..
+- improve development experience for bots
+  - maybe: in-memory bot with same API as in-cloud
+- improve design for bot hooks (in other words, design it)
 
-  - handle blockHeight
-  - support multiple networks
-  - table per network?
-  - layer that abstracts away DynamoDB
+### Config (the journey to 1-click launch)
+- holy grail
+  - they go to tradle.io
+  - they talk to Tradle bot
+  - they put in their config:
+    - region
+    - vpc
+    - etc.
+  - they get a private link to launch their infrastructure (to a generated bootstrap.sh)
+- map generated API gateway to custom domain
+  - https://stackoverflow.com/questions/39507004/how-to-add-a-custom-domain-for-a-serverless-1-0-0-framework-defined-deployed-api
+- auto-setup ssl certificates
+  - http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-certificatemanager-certificate.html#w2ab2c19c12d100c17
+- 1-click launch will probably be a script, e.g.: `curl https://github.com/tradle/serverless/bootstrap.sh | bash`, where bootstrap.sh will:
+  - check that you have AWS keys configured
+  - run serverless deploy
+  - post-process to get API endpoints
+  - ask the user what CNAMEs they want, and create those mappings
+- use VPC
 
-  - test whether clients get messages they subscribed to if they go offline and back online
-    - they don't
+### Web App (bundled, served from s3 bucket)
 
-  - encrypt stuff
-    - https://github.com/serverless/examples/tree/master/aws-node-env-variables-encrypted-in-a-file
+### Stability
 
-  - compatibility layer so existing bots (e.g. silly) can work out of the box
-  - use VPC
+- aws-client edge cases, fallbacks
+
+### Optimization
+
+...
+
+### Misc Features
+- push notifications
+  - http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html
+  - https://www.npmjs.com/package/web-push
+- where should we be using ElastiCache instead of DynamoDB? For example - PresenceTable might be better placed in ElastiCache, since data there is small-sized and short lived. However, ElastiCache is for ephemeral data..
+
+- handle blockHeight
+- support multiple networks
+- table per network?
+- layer that abstracts away DynamoDB
+
+- test whether clients get messages they subscribed to if they go offline and back online
+  - they don't
+
+- encrypt stuff
+  - https://github.com/serverless/examples/tree/master/aws-node-env-variables-encrypted-in-a-file
+
+- compatibility layer so existing bots (e.g. silly) can work out of the box
 
 ## Optimization
   - find optimal memorySize for each function (maybe dynamically)
@@ -233,6 +257,8 @@ how to prevent race condition on writes while ensuring increasing timestamp
 
 ## Performance
 
+- calculate how many transactions we can handle
+
 make dynamodb updates more efficient, e.g. updates that modify a nested property (like bot-keep-fresh does)
 
 ## Blockchain
@@ -253,14 +279,75 @@ will we be implementing DynamoDB Transactions for Node.js?
   aws-sdk-js issue: https://github.com/aws/aws-sdk-js/issues/1004
   initial js implementation: https://github.com/aaaristo/dyngodb/issues/19
 
-should we use streams for reporting detected seals?
-
-Optimization
-  - put to s3 is too slow
-  - maybe put somewhere else fast, and then put in s3
-
 ### Gotchas
 
 if deploying from scratch, X-Ray requires permissions to be deployed before tracing can be turned on, so first deploy with awsTracingConfig commented out
 
 also, after first deploy, need to re-run gen:env script to get iot-endpoint
+
+
+
+### Parameters for customer deployment
+
+- capacity (scaled per table), e.g. 1 million txs / day
+- region
+
+
+### Resources
+
+#### VPC 
+sample with serverless:
+  https://serverless.zone/aws-lambda-in-a-vpc-with-the-serverless-framework-7c3b92c151ad
+  https://github.com/serverless-examples/serverless-infrastructure/issues/2
+
+https://stackoverflow.com/a/27326400/1126660
+  specify existing vpc during Launch Stack
+
+#### Per-customer custom Launch Stack button
+
+dynamically generating a cloud formation template per customer with a cross-account role:
+  https://aws.amazon.com/blogs/apn/generating-custom-aws-cloudformation-templates-with-lambda-to-create-cross-account-roles/
+  https://aws.amazon.com/blogs/security/how-to-use-external-id-when-granting-access-to-your-aws-resources/
+
+get response from aws (e.g. ARN for role) when customer deploys stack:
+  https://aws.amazon.com/blogs/apn/collecting-information-from-aws-cloudformation-resources-created-in-external-accounts-with-custom-resources/
+
+  https://aws.amazon.com/blogs/apn/wrap-up-cross-account-role-onboarding-workflow/
+  Custom resources provide an additional benefit. They are triggered whenever the CloudFormation stack is updated or deleted.  If the customer modifies the template or deletes the stack, a notification will be sent to the APN Partner, which allows them to react to the change appropriately.  For example, if a user deletes the stack, the partner can reach out and ask if there were any technical problems that led to them discontinuing the service, provide an exit survey, or trigger an off-boarding workflow.
+
+allow another AWS account to publish to your SNS topic
+  http://docs.aws.amazon.com/sns/latest/dg/AccessPolicyLanguage_UseCases_Sns.html#AccessPolicyLanguage_UseCase1_Sns
+
+  ```json
+    {   
+      "Version":"2012-10-17",
+      "Id":"SomePolicyId",
+      "Statement" :[
+          {
+              "Sid":"Statement1",
+              "Effect":"Allow",           
+              "Principal" :{
+                  "AWS":"111122223333"
+                },
+              "Action":["sns:Subscribe"],
+              "Resource": "arn:aws:sns:us-east-1:444455556666:MyTopic",
+              "Condition" :{
+                  "StringEquals" :{
+                      "sns:Protocol":"https"
+                   }
+              }   
+          }
+      ]
+    }
+  ```
+
+https://github.com/stelligent/dromedary-serverless
+
+get resource ids from stack via lambda
+  https://stelligent.com/2016/02/16/aws-lambda-backed-custom-resources-for-stack-outputs-resources-and-parameters/
+
+### Monitoring Usage
+  - monitor metrics logs
+    - downsize: can't specify which resources to monitor, only account-wide
+  - subscribe to their IoT $aws/events/subscriptions topic to measure how many customers they're talking with
+  - "phone home" - log to particular topics, monitor those topics

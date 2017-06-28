@@ -4,6 +4,7 @@ frameworkVersion: ">=1.5.0 <2.0.0"
 plugins:
   - serverless-resources-env
   - serverless-plugin-tracing
+  - serverless-sam
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
@@ -22,21 +23,21 @@ package:
 custom:
   prefix: ${{self:service}}-${{self:provider.stage}}-
   defaultStage: dev
+  topicPrefix: tradle-
   stage: ${{opt:stage, self:custom.defaultStage}}
-  accountId: ${{file(./env.json):ACCOUNT_ID}}
+  region: ${{opt:region, self:provider.region}}
+  # accountId: ${{file(./env.json):ACCOUNT_ID}}
   pushServer: https://push1.tradle.io
   blockchain: bitcoin:testnet
-  IDENTITY_KEYS_KEY: ${{file(./project/lib/constants.json):IDENTITY_KEYS_KEY}}
-  SECRETS_BUCKET: ${{self:custom.prefix}}secrets
-  OBJECTS_BUCKET: ${{self:custom.prefix}}objects
-  PRIVATE_CONF_BUCKET: ${{self:custom.prefix}}private-conf
-  PUBLIC_CONF_BUCKET: ${{self:custom.prefix}}public-conf
 
   # bot hooks
   bot_onmessage: bot_onmessage
   bot_onsealevent: bot_onsealevent
   bot_onpresence: bot_onpresence
+
+  # to make available in lambda's environment
   resource_names:
+    - ServerlessDeploymentBucket
     - ObjectsBucket
     - SecretsBucket
     - EventsTable
@@ -47,16 +48,10 @@ custom:
     - SealsTable
     - UsersTable
     - PublicConfBucket
-    - PrivateConfBucket
+    # - PrivateConfBucket
     - IotClientRole
 
-  # writeEnvVars:
-  #   SERVERLESS_STAGE: ${{self:custom.stage}}
-  #   SERVERLESS_SERVICE_NAME: ${{self:service}}
-  #   SERVERLESS_PREFIX: ${{self:service}}-${{self:provider.stage}}
-
 #   secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
-  # deployBucket: io.tradle.aws.code
   # dynamodb:
   #   start:
   #     port: 8000
@@ -69,16 +64,18 @@ provider:
   # avoid some bugs in serverless
   versionFunctions: false
   tracing: true
-  variableSyntax: '\${{([\s\S]+?)}}'
+  # variableSyntax: '\${{([\s\S]+?)}}'
   # variableSyntax: "\${{([\s\S]+?)}}"
+  variableSyntax: "\\${{([\\s\\S]+?)}}"
   name: aws
   runtime: nodejs6.10
   profile: serverless
   stage: ${{self:custom.stage}}
   region: us-east-1
   memorySize: 512
-  # deploymentBucket: io.tradle.${{self:provider.region}.deploys # Overwrite the default deployment bucket
+  # deploymentBucket: io.tradle.${{self:custom.stage}}.${{self:provider.region}}.deploys # Overwrite the default deployment bucket
   environment:
+    IOT_TOPIC_PREFIX: ${{self:custom.topicPrefix}}
     BLOCKCHAIN: ${{self:custom.blockchain}}
     DEBUG: tradle:*,λ*
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
@@ -102,19 +99,18 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/EventsTable"
-        # - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/MessagesTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PresenceTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/CursorTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/WebhooksTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/InboxTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/InboxTable/index/*"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/OutboxTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PubKeysTable/index/*"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/SealsTable"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/SealsTable/index/*"
-        - "arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/UsersTable"
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/EventsTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/PresenceTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/CursorTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/WebhooksTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/InboxTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/InboxTable/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/OutboxTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/PubKeysTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/PubKeysTable/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/SealsTable'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/SealsTable/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/UsersTable'
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
@@ -124,9 +120,26 @@ provider:
         - s3:PutObject
         - s3:GetObject
       Resource:
-        - "arn:aws:s3:::${{self:custom.PUBLIC_CONF_BUCKET}}/*"
-        - "arn:aws:s3:::${{self:custom.OBJECTS_BUCKET}}/*"
-        - "arn:aws:s3:::${{self:custom.SECRETS_BUCKET}}/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: PublicConfBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ObjectsBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: SecretsBucket
+            - "/*"
 
     # REMOVE in prod
     # allow access to buckets from the console
@@ -159,6 +172,11 @@ provider:
         - xray:PutTraceSegments
         - xray:PutTelemetryRecords
       Resource: "*"
+    - Effect: Allow
+      Sid: AllowCloudFrontUpdateDistribution
+      Action:
+        - cloudfront:updateDistribution
+      Resource: ["*"]
 
       # Resource: "*"
    # - Effect: "Allow"
@@ -342,7 +360,7 @@ functions:
     #   SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
-          sql: "SELECT * as data, clientid() as clientId FROM 'message'"
+          sql: "SELECT * as data, clientid() as clientId FROM '${{self:custom.topicPrefix}}message'"
     custom:
       env-resources: ${{self:custom.resource_names}}
 
@@ -399,11 +417,7 @@ functions:
   identity:
     handler: project/lib/lambda/identity.handler
     custom:
-      env-resources:
-        - SecretsBucket
-        - ObjectsBucket
-        - PublicConfBucket
-        - PubKeysTable
+      env-resources: ${{self:custom.resource_names}}
 
   # public endpoint for clients to get public configuration / provider identity
   info:
@@ -413,11 +427,7 @@ functions:
       # SERVERLESS_STAGE: ${{self:custom.stage}}
       # SERVERLESS_SERVICE_NAME: ${{self:service}}
     custom:
-      env-resources:
-        - PublicConfBucket
-        - SecretsBucket
-        - ObjectsBucket
-        - PubKeysTable
+      env-resources: ${{self:custom.resource_names}}
     events:
       - http:
           path: tradle/info
@@ -481,23 +491,17 @@ resources:
   Resources:
     ObjectsBucket:
       Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${{self:custom.OBJECTS_BUCKET}}
 
     SecretsBucket:
       Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${{self:custom.SECRETS_BUCKET}}
 
-    PrivateConfBucket:
-      Type: "AWS::S3::Bucket"
-      Properties:
-        BucketName: ${{self:custom.PRIVATE_CONF_BUCKET}}
+    # PrivateConfBucket:
+    #   Type: "AWS::S3::Bucket"
+    #   Properties:
 
     PublicConfBucket:
       Type: "AWS::S3::Bucket"
       Properties:
-        BucketName: ${{self:custom.PUBLIC_CONF_BUCKET}}
         AccessControl: PublicRead
 
     EventsTable: ${{file(./project/conf/table/events.yml)}}
@@ -645,7 +649,7 @@ resources:
                 Service:
                   - lambda.amazonaws.com
                 AWS:
-                  - arn:aws:iam::${{self:custom.accountId}}:root
+                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
                   # - arn:aws:iam::${{self:custom.accountId}}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole"
                   # - Fn::Join" : [":", ["arn:aws:iam", { "Ref" : "AWS::Region" }, { "Ref" : "AWS::AccountId" }, "lambdaRole" ] ] }
 
@@ -661,7 +665,7 @@ resources:
                   Action:
                     - dynamodb:*
                   Resource:
-                    - arn:aws:dynamodb:${{self:provider.region}}:${{self:custom.accountId}}:table/PresenceTable
+                    - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/PresenceTable'
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup
@@ -672,25 +676,32 @@ resources:
                 - Effect: Allow
                   Action: ["iot:Connect"]
                   Resource: ["*"]
-                  # Resource: ["aws:iot:::client/${iot:ClientId}/*"]
+                  # Resource: arn:aws:iot:::client/${iot:ClientId}
+
                 # allow all clients to publish to the send topic
                 - Effect: "Allow"
                   Action: ["iot:Publish"]
                   Resource: ["*"]
-                  # Resource: [
-                  #   "aws:iot:::topic/${iot:ClientId}/message",
-                  #   "aws:iot:::topic/${iot:ClientId}/restore",
-                  # ]
+                  # Resource:
+                  #   - arn:aws:iot:::topic/${{self:custom.topicPrefix}}message
+                  #   - arn:aws:iot:::topic/${{self:custom.topicPrefix}}restore
+
                 # restrict client topic subscriptions by their client id
                 - Effect: "Allow"
                   Action: ["iot:Subscribe"]
                   Resource: ["*"]
-                  # Resource: ["aws:iot:::topicfilter/${iot:ClientId}/*"]
+                  # Resource: arn:aws:iot:::topicfilter/${{self:custom.topicPrefix}}${iot:ClientId}/*
                 # restrict messages clients receive by their client id
                 # this has the same function as the Subscribe rule above
                 # provided the Subscribe policy is upheld, this policy should always give a pass
                 - Effect: "Allow"
                   Action: ["iot:Receive"]
                   Resource: ["*"]
-                  # Resource: ["aws:iot:::topic/${iot:ClientId}/*"]
-
+                  # Resource: arn:aws:iot:::topic/${{self:custom.topicPrefix}}${iot:ClientId}/*
+      # SSLCertificate:
+      #   Type: "AWS::CloudFormation::Stack"
+      #   Properties:
+      #     Parameters:
+      #       domain: ${{file(./parameters.json):DomainName.Default}}
+      #       hostedZoneName: ${{file(./parameters.json):HostedZoneName.Default}}
+      #     TemplateURL: "https://s3-eu-west-1.amazonaws.com/is24-infrastructure-public/cloudformation/verified-ssl-certificate/ssl-certificate.template.yaml"

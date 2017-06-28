@@ -28,8 +28,9 @@ const schema = clone(
       yield recreateTable(schema)
     }
 
-    const bot = createBot()
+    const bot = createBot({})
     const { users } = bot
+    // const user : Object = {
     const user = {
       id: bob.permalink,
       identity: bob.object
@@ -189,7 +190,7 @@ const schema = clone(
       onwroteseal: false
     }
 
-    const bot = createBot()
+    const bot = createBot({})
     bot.use(() => {
       Object.keys(called).forEach(method => {
         bot[method](co(function* (arg) {

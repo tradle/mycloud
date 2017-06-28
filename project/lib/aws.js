@@ -2,7 +2,10 @@
 const extend = require('xtend/mutable')
 const AWSXRay = require('aws-xray-sdk')
 const rawAWS = require('aws-sdk')
-const AWS = process.env.IS_LOCAL ? rawAWS : AWSXRay.captureAWS(rawAWS)
+const AWS = process.env.IS_LOCAL || !process.env.IS_LAMBDA_ENVIRONMENT
+  ? rawAWS
+  : AWSXRay.captureAWS(rawAWS)
+
 const { cachifyPromiser } = require('./utils')
 const cacheServices = process.env.IS_LOCAL
 const services = process.env.IS_LOCAL

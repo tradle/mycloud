@@ -17,13 +17,7 @@ const onSubscribed = co(function* ({ clientId, topics }) {
   debug('client subscribed to topics:', topics.join(', '))
   // yield onEnter({ clientId })
 
-  const messagesTopic = Iot.getMessagesTopicForClient(clientId)
-  const catchAll = new RegExp(`${clientId}/[+#]{1}`)
-  const subscribedToMessages = topics.find(topic => {
-    return topic === messagesTopic || catchAll.test(topic)
-  })
-
-  if (!subscribedToMessages) return
+  if (!Iot.includesClientMessagesTopic({ clientId, topics })) return
 
   const session = yield Auth.getSession({ clientId })
   debug('retrieved session', prettify(session))

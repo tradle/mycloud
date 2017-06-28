@@ -6,3 +6,4 @@ DynamoDBLocal/
 .serverless*
 env.json
 certs/
+build/
