@@ -153,6 +153,10 @@ postpone implementation of:
 
 ### Is Lambda better?
 
+### Security
+
+KMS for keys
+
 ### Testing
 
 Load testing - e.g. 100 clients, 100 messages / second
@@ -195,7 +199,12 @@ Load testing - e.g. 100 clients, 100 messages / second
 
 ### Optimization
 
-...
+DynamoDB
+  - reads: 
+    - see Select here: http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
+  select minimal attributes to make Read queries cheaper
+  - writes:
+    - make dynamodb updates more efficient, e.g. updates that modify a nested property (like bot-keep-fresh does)
 
 ### Misc Features
 - push notifications
@@ -255,12 +264,6 @@ how to prevent race condition on writes while ensuring increasing timestamp
 ?
   - by only accepting one message at a time
 
-## Performance
-
-- calculate how many transactions we can handle
-
-make dynamodb updates more efficient, e.g. updates that modify a nested property (like bot-keep-fresh does)
-
 ## Blockchain
 
 ### Notes
@@ -305,6 +308,8 @@ https://stackoverflow.com/a/27326400/1126660
 
 #### Per-customer custom Launch Stack button
 
+build --noDeploy in Lambda with parameters in serverless.yml?
+
 dynamically generating a cloud formation template per customer with a cross-account role:
   https://aws.amazon.com/blogs/apn/generating-custom-aws-cloudformation-templates-with-lambda-to-create-cross-account-roles/
   https://aws.amazon.com/blogs/security/how-to-use-external-id-when-granting-access-to-your-aws-resources/
@@ -346,8 +351,20 @@ https://github.com/stelligent/dromedary-serverless
 get resource ids from stack via lambda
   https://stelligent.com/2016/02/16/aws-lambda-backed-custom-resources-for-stack-outputs-resources-and-parameters/
 
+custom calculations based on template parameters
+  https://stackoverflow.com/questions/34693526/mathematical-operations-in-cloudformation
+
+signed one-time-url for template resources (lambda zips)
+
 ### Monitoring Usage
   - monitor metrics logs
     - downsize: can't specify which resources to monitor, only account-wide
   - subscribe to their IoT $aws/events/subscriptions topic to measure how many customers they're talking with
   - "phone home" - log to particular topics, monitor those topics
+  - tradle lambda in customer infrastructure that collects cloud metrics, e.g.: https://gist.github.com/fbrnc/5739f8bec042ac3326ad
+
+### Concerns
+
+sending a SelfIntroduction with an identity with N keys will cause N lookups in the PubKeysTable - potential attack against that table's read capacity
+
+maybe duplicate `pub` to another attribute and use IN ComparisonOperator (unusable in KeyConditionExpression)

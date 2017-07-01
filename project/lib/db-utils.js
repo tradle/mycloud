@@ -6,6 +6,7 @@ const { co, pick, logify, timestamp, wait, clone } = require('./utils')
 const { prettify } = require('./string-utils')
 const { DEV } = require('./env')
 const Errors = require('./errors')
+const CONSISTENT_READ_EVERYTHING = true
 
 function getTable (TableName) {
   const tableAPI = {
@@ -53,28 +54,29 @@ function getTable (TableName) {
   }
 }
 
-const exec = function exec (method, params) {
-  return aws.docClient[method](params).promise()
-}
+const exec = co(function* exec (method, params) {
+  params.ReturnConsumedCapacity = 'TOTAL'
+  const result = aws.docClient[method](params).promise()
+  logCapacityConsumption(method, result)
+  return result
+})
 
 const dynamoDBExec = function dynamoDBExec (method, params) {
   return aws.dynamodb[method](params).promise()
 }
 
-const createTable = co(function* (params) {
-  return yield dynamoDBExec('createTable', params)
-})
-
-const deleteTable = co(function* (params) {
-  return yield dynamoDBExec('deleteTable', params)
-})
+const createTable = params => dynamoDBExec('createTable', params)
+const deleteTable = params => dynamoDBExec('deleteTable', params)
 
 const get = co(function* (params) {
-  const data = yield exec('get', params)
-  const result = data && data.Item
-  if (!result) throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
+  maybeForceConsistentRead(params)
+  const result = yield exec('get', params)
+  if (!result.Item) {
+    throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
+  }
+
   // debug(`got item from ${params.TableName}: ${prettify(result)}`)
-  return result
+  return result.Item
 })
 
 const put = co(function* (params) {
@@ -89,8 +91,9 @@ const del = co(function* (params) {
 })
 
 const find = co(function* (params) {
-  const { Items } = yield exec('query', params)
-  return Items
+  maybeForceConsistentRead(params)
+  const result = yield exec('query', params)
+  return result.Items
 })
 
 const findOne = co(function* (params) {
@@ -108,7 +111,17 @@ const update = co(function* (params) {
   return tweakReturnValue(params, result)
 })
 
+function maybeForceConsistentRead (params) {
+  // ConsistentRead not supported on GlobalSecondaryIndexes
+  if (CONSISTENT_READ_EVERYTHING && !params.IndexName && !params.ConsistentRead) {
+    params.ConsistentRead = true
+    debug('forcing consistent read')
+  }
+}
+
 function tweakReturnValue (params, result) {
+  debug(`consumed ${result.ConsumedCapacityUnits} capacity units`)
+
   if (params.ReturnValues !== 'NONE') {
     return result.Attributes
   }
@@ -154,6 +167,7 @@ function getUpdateParams (item) {
 }
 
 const scan = co(function* (params) {
+  maybeForceConsistentRead(params)
   const { Items } = yield exec('scan', params)
   return Items
 })
@@ -223,6 +237,24 @@ function getRecordsFromEvent (event, oldAndNew) {
     return NewImage && unmarshalItem(NewImage)
   })
   .filter(data => data)
+}
+
+function logCapacityConsumption (method, result) {
+  let type
+  switch (method) {
+  case 'get':
+  case 'query':
+  case 'scan':
+    type = 'RCU'
+    break
+  default:
+    type = 'WCU'
+    break
+  }
+
+  if (result.ConsumedCapacity) {
+    debug(`consumed ${result.ConsumedCapacity.CapacityUnits} ${type}s`)
+  }
 }
 
 module.exports = {

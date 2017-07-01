@@ -37,17 +37,15 @@ const cachifiable = {
 }
 
 function Environment () {
-  const self = this
-
   this.require = lazy(require, this)
 
   this.aws = this.require('aws', './aws')
   this.networks = this.require('networks', './networks')
 
   let network
-  this.__defineGetter__('network', function () {
+  this.__defineGetter__('network', () => {
     if (!network) {
-      network = self.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
+      network = this.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
     }
 
     return network
@@ -62,12 +60,12 @@ function Environment () {
   })
 
   let seals
-  this.__defineGetter__('seals', function () {
+  this.__defineGetter__('seals', () => {
     if (!seals) {
       seals = require('./seals')({
-        provider: self.provider,
-        table: self.tables.SealsTable,
-        blockchain: self.blockchain,
+        provider: this.provider,
+        table: this.tables.SealsTable,
+        blockchain: this.blockchain,
         confirmationsRequired: ENV.SEAL_CONFIRMATIONS[ENV.BLOCKCHAIN]
       })
     }
@@ -90,6 +88,7 @@ function Environment () {
   this.identities = this.require('identities', './identities')
   this.messages = this.require('messages', './messages')
   this.objects = this.require('objects', './objects')
+  this.secrets = this.require('secrets', './secrets')
   this.constants = this.require('constants', './constants')
   this.errors = this.require('errors', './errors')
   this.utils = this.require('utils', './utils')
@@ -100,6 +99,7 @@ function Environment () {
   this.tables = this.require('tables', './tables')
   this.buckets = this.require('buckets', './buckets')
   this.provider = this.require('provider', './provider')
+  this.bot = this.require('bot', './bot')
 }
 
 exports = module.exports = new Environment()

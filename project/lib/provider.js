@@ -30,16 +30,8 @@ const { MESSAGE } = TYPES
 
 // const DECRYPTION_KEY = new Buffer(process.env.DECRYPTION_KEY, 'base64')
 
-// TODO: store identity in separate bucket
-
-const lookupMyIdentity = loudCo(function* () {
-  const { Body } = yield Secrets.getSecretObject(IDENTITY_KEYS_KEY)
-  return JSON.parse(Body)
-})
-
-function lookupMyPublicIdentity () {
-  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
-}
+const lookupMyIdentity = () => Secrets.get(IDENTITY_KEYS_KEY)
+const lookupMyPublicIdentity = () => PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
 
 // TODO: how to invalidate cache on identity updates?
 // maybe ETag on bucket item? But then we still need to request every time..

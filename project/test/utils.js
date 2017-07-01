@@ -3,7 +3,7 @@ const { getTable, marshalDBItem } = require('../lib/db-utils')
 const Errors = require('../lib/errors')
 
 const recreateTable = co(function* (schema) {
-  const table = getTable(schema.TableName)
+  const table = getTable(schema.TableName + 'Test')
   try {
     yield table.destroy()
   } catch (err) {}

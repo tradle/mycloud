@@ -5,45 +5,16 @@ require('dotenv').config({
   path: path.resolve(__dirname, '../.serverless-resources-env/.us-east-1_dev_onmessage')
 })
 
+const extend = require('xtend/mutable')
 const promisify = require('pify')
 const fs = promisify(require('fs'))
 const mkdirp = promisify(require('mkdirp'))
 const program = require('commander')
-const deepEqual = require('deep-equal')
-const omit = require('object.omit')
-const clone = require('xtend')
-const co = require('co').wrap
-const { utils } = require('@tradle/engine')
-const { buckets, constants } = require('../project')
-const { PublicConfBucket } = buckets
-const Secrets = require('../project/lib/secrets')
-const Objects = require('../project/lib/objects')
-const Errors = require('../project/lib/errors')
-const Identities = require('../project/lib/identities')
-const Provider = require('../project/lib/provider')
-const {
-  TYPE,
-  PUBLIC_CONF_BUCKET,
-  IDENTITY_KEYS_KEY,
-  PERMALINK,
-  LINK
-} = constants
-
-const { getHandleFromName, getDataURI } = require('./utils')
+const co = require('../project/lib/utils').loudCo
+const aws = require('../project/lib/aws')
+// const { PublicConfBucket } = require('../project/lib/buckets')
+const { init, push, clear } = require('../project/lib/init')
 const DIR = path.resolve('./org')
-const defaults = {
-  style: {},
-  publicConfig: {
-    canShareContext: false,
-    hasSupportLine: true
-  },
-  org: {
-    [TYPE]: 'tradle.Organization',
-    photos: [],
-    currency: '€'
-  }
-}
-
 const FILES = (function () {
   const map = {
     pub: 'identity-pub.json',
@@ -60,73 +31,18 @@ const FILES = (function () {
   return map
 }())
 
-const push = co(function* (options) {
-  const { force } = options
-  const priv = require(FILES.priv)
-  if (!force) {
+function getFiles () {
+  const vals = {}
+  for (let key in FILES) {
     try {
-      const existing = yield Secrets.getSecretObject(IDENTITY_KEYS_KEY)
-      if (!deepEqual(existing, priv)) {
-        throw new Error('refusing to overwrite identity keys')
-      }
-    } catch (err) {
-      if (!(err instanceof Errors.NotFound)) {
-        throw err
-      }
-    }
+      vals[key] = require(FILES[key])
+    } catch (err) {}
   }
 
-  const pub = require(FILES.pub)
-  const publicConfig = require(FILES.publicConfig)
-  const org = require(FILES.org)
-  const style = require(FILES.style)
-  yield [
-    // TODO: encrypt
-    // private
-    Secrets.putSecretObject(IDENTITY_KEYS_KEY, priv),
-    // public
-    Objects.putObject(pub),
-    PublicConfBucket.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
-    PublicConfBucket.putJSON(PUBLIC_CONF_BUCKET.info, {
-      bot: {
-        profile: {
-          name: {
-            firstName: `${org.name} Bot`
-          }
-        },
-        pub: pub.object
-      },
-      id: getHandleFromName(org.name),
-      org,
-      publicConfig,
-      style
-    })
-  ];
-
-  yield Identities.addContact(pub)
-})
-
-function createIdentity (opts) {
-  const object = require('../project/test/fixtures/alice/identity.json')
-  const keys = require('../project/test/fixtures/alice/keys.json')
-  // keys = keys.map(utils.importKey)
-  const link = utils.hexLink(object)
-  const permalink = link
-  return Promise.resolve({
-    object,
-    keys,
-    link,
-    permalink
-  })
-
-  // return new Promise((resolve, reject) => {
-  //   utils.newIdentity(opts, function (err, result) {
-  //     if (err) return reject(err)
-
-  //     resolve(result)
-  //   })
-  // })
+  return vals
 }
+
+
 
 function printUsage () {
   console.log(`
@@ -138,36 +54,14 @@ function writeJSON (file, obj) {
   return fs.writeFile(file, JSON.stringify(obj, null, 2), { encoding: 'utf8' })
 }
 
-const init = co(function* (options) {
-  const { name, logo, force } = options
-  if (!(name && logo)) {
-    if (!force) {
-      console.error('"name" and "logo" are required')
-      return
-    }
-  }
-
-  const priv = yield createIdentity()
-  const pub = omit(priv, 'keys')
-  const org = yield Provider.signObject({
-    author: priv,
-    object: clone(defaults.org, {
-      name,
-      photos: [
-        {
-          url: yield getDataURI(path.resolve(logo))
-        }
-      ]
-    })
-  })
-
+const writeFiles = co(function* ({ org, pub, priv, publicConfig, style }) {
   yield mkdirp(DIR)
   yield [
-    writeJSON(FILES.org, org.object),
+    writeJSON(FILES.org, org),
     writeJSON(FILES.pub, pub),
     writeJSON(FILES.priv, priv),
-    writeJSON(FILES.publicConfig, defaults.publicConfig),
-    writeJSON(FILES.style, defaults.style)
+    writeJSON(FILES.publicConfig, publicConfig),
+    writeJSON(FILES.style, style)
   ]
 })
 
@@ -179,21 +73,47 @@ program
   .option('-f, --force', 'overwrite existing identity / keys')
   .action(co(function* (cmd, options) {
     try {
-      yield init(options)
+      const values = yield init(options)
+      yield writeFiles(values)
     } catch (err) {
       console.error(err.stack)
     }
   }))
 
+// program
+//   .command('push')
+//   .option('-f, --force', 'overwrite existing identity / keys')
+//   .action(co(function* (cmd, options={}) {
+//     try {
+//       yield push(extend({ force: cmd.force }, getFiles()))
+//     } catch (err) {
+//       console.error(err.stack)
+//     }
+//   }))
+
 program
-  .command('push')
-  .option('-f, --force', 'overwrite existing identity / keys')
+  .command('destroy')
   .action(co(function* (cmd, options={}) {
     try {
-      yield push({ force: cmd.force })
+      yield clear()
     } catch (err) {
       console.error(err.stack)
     }
   }))
+
+// program
+//   .command('get')
+//   .action(co(function* (cmd) {
+//     const params = {
+//       RoleArn: 'arn:aws:iam:::role/tradle-dev-us-east-1-lambdaRole',
+//       RoleSessionName: 'abracadabra' + Math.random(),
+//     }
+
+//     yield aws.sts.assumeRole(params).promise()
+//     console.log(yield aws.s3.getObject({
+//       Bucket: 'tradle-dev-publicconfbucket-gd70s2lfklji',
+//       Key: 'info.json'
+//     }))
+//   }))
 
 program.parse(process.argv)

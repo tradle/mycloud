@@ -66,7 +66,7 @@ exports.blockchain = typeforce.compile({
 })
 
 exports.address = {
-  bitcoin: function bitcoinAddress (val) {
+  bitcoin: function (val) {
     const bitcoin = require('@tradle/bitcoinjs-lib')
     try {
       bitcoin.Address.fromBase58Check(val)
@@ -75,14 +75,14 @@ exports.address = {
       return false
     }
   },
-  ethereum: function ethereumAddress (val) {
+  ethereum: function (val) {
     return /^0x[0-9a-fA-F]*$/.test(val)
   }
 }
 
 exports.amount = {
   bitcoin: typeforce.Number,
-  ethereum: function ethereumAmount (val) {
+  ethereum: function (val) {
     return /^0x[0-9a-fA-F]*$/.test(val)
   }
 }

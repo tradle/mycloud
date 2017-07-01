@@ -167,19 +167,18 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
   })
 })
 
-const getProviderIdentity = () => {
-  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
-    .then(({ object }) => object)
-}
-
-const onGetInfo = co(function* (event) {
-  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info)
-  // return yield {
-  //   style: getProviderStyle(),
-  //   identity: getProviderIdentity(),
-  //   authEndpoint: `https://${event.headers.Host}/${SERVERLESS_STAGE}/tradle`
-  // }
+const getProviderIdentity = co(function* () {
+  const { object } = yield PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
+  return object
 })
+
+const onGetInfo = () => PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info)
+//   return yield {
+//     style: getProviderStyle(),
+//     identity: getProviderIdentity(),
+//     authEndpoint: `https://${event.headers.Host}/${SERVERLESS_STAGE}/tradle`
+//   }
+// })
 
 function getProviderStyle () {
   return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.style)

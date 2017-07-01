@@ -13,7 +13,7 @@ const { TYPE } = constants
 const createUsers = require('./users')
 const createHistory = require('./history')
 const createSeals = require('./seals')
-const promisePassThrough = input => Promise.resolve(input)
+const promisePassThrough = data => Promise.resolve(data)
 // const methodToExecutor = {
 //   onmessage: waterfall
 // }
@@ -49,6 +49,11 @@ function createBot (opts={}) {
 
   const { UsersTable, InboxTable, OutboxTable } = tables
   const sealsAPI = createSeals(tradle)
+  const normalizeInput = co(function* (data) {
+    data.bot = bot
+    return data
+  })
+
   const pre = {
     onmessage: co(function* (wrapper) {
       if (typeof wrapper === 'string') {
@@ -75,8 +80,15 @@ function createBot (opts={}) {
       })
 
       const _userPre = clone(user)
-      return { user, wrapper, _userPre }
-    })
+      return {
+        bot,
+        user,
+        wrapper,
+        _userPre,
+        type: payload[TYPE]
+      }
+    }),
+    onsealevent: normalizeInput
   }
 
   const promiseSaveUser = co(function* ({ user, _userPre }) {
@@ -113,9 +125,10 @@ function createBot (opts={}) {
     }
   })
 
-  function addMiddleware (method, fn) {
+  function addMiddleware (...args) {
+    const [method, fn] = args
     middleware[method].push(fn)
-    return () => removeMiddleware(...arguments)
+    return () => removeMiddleware(...args)
   }
 
   function removeMiddleware (method, fn) {
@@ -190,6 +203,10 @@ function createBot (opts={}) {
   bot.users.history = createHistory(tradle)
   bot.use = function use (strategy, opts) {
     return strategy(bot, opts)
+  }
+
+  bot.objects = {
+    get: objects.getObjectByLink
   }
 
   bot.exports = {}

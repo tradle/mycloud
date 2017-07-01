@@ -61,6 +61,10 @@ function prefetchByLink (link) {
   return getObjectByLink(link)
 }
 
+function del (link) {
+  return ObjectsBucket.del(link)
+}
+
 module.exports = {
   getObjectByLink,
   prefetchByLink,
@@ -70,5 +74,6 @@ module.exports = {
   addMetadata,
   getLinks,
   getLink,
-  addLinks
+  addLinks,
+  del
 }

@@ -21,8 +21,10 @@ function get ({ key, bucket }) {
   .promise()
   .catch(err => {
     if (err.code === 'NoSuchKey') {
-      throw new Errors.NotFound()
+      throw new Errors.NotFound(`${bucket}/${key}`)
     }
+
+    throw err
   })
 }
 
@@ -49,17 +51,28 @@ function exists ({ key, bucket }) {
     .then(() => true, err => false)
 }
 
+function del ({ key, bucket }) {
+  return aws.s3.deleteObject({
+    Bucket: bucket,
+    Key: key
+  }).promise()
+}
+
 function getBucket (bucket) {
   debug(`wrapping ${bucket} bucket`)
-  return logify({
+  const logified = logify({
     get: key => get({ key, bucket }),
     getJSON: key => getJSON({ key, bucket }),
     put: (key, value) => put({ key, value, bucket }),
     putJSON: (key, value) => putJSON({ key, value, bucket }),
     head: key => head({ key, bucket }),
     exists: key => exists({ key, bucket }),
-    toString: () => bucket
+    del: key => del({ key, bucket })
   }, { log: debug, logInputOutput: DEV })
+
+  logified.name = bucket
+  logified.toString = () => bucket
+  return logified
 }
 
 module.exports = {
@@ -69,5 +82,6 @@ module.exports = {
   put,
   putJSON,
   head,
+  del,
   exists
 }

@@ -12,6 +12,7 @@ plugins:
   # - serverless-offline
 
 package:
+  # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
   exclude:
     - .git/**
     - .serverless/**
@@ -26,6 +27,8 @@ custom:
   topicPrefix: tradle-
   stage: ${{opt:stage, self:custom.defaultStage}}
   region: ${{opt:region, self:provider.region}}
+  # hostedZoneName: tradle.io
+  # domainName: lambda1.tradle.io
   # accountId: ${{file(./env.json):ACCOUNT_ID}}
   pushServer: https://push1.tradle.io
   blockchain: bitcoin:testnet
@@ -116,9 +119,35 @@ provider:
     # TODO: give access only to the lambdas that need it
     - Effect: Allow
       Action:
+        # needed to get NoSuchKey error instead of AccessDenied for non-existent items
+        # https://forums.aws.amazon.com/thread.jspa?threadID=56531
         - s3:ListBucket
+      Resource:
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: PublicConfBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ObjectsBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: SecretsBucket
+
+    - Effect: Allow
+      Action:
         - s3:PutObject
+        # needed to create an object with public-read
+        - s3:PutObjectAcl
         - s3:GetObject
+        # needed to check existence
+        - s3:HeadObject
       Resource:
         - Fn::Join:
           - ""
@@ -501,8 +530,8 @@ resources:
 
     PublicConfBucket:
       Type: "AWS::S3::Bucket"
-      Properties:
-        AccessControl: PublicRead
+      # Properties:
+      #   AccessControl: PublicRead
 
     EventsTable: ${{file(./project/conf/table/events.yml)}}
     PubKeysTable: ${{file(./project/conf/table/pubkeys.yml)}}
@@ -705,3 +734,22 @@ resources:
       #       domain: ${{file(./parameters.json):DomainName.Default}}
       #       hostedZoneName: ${{file(./parameters.json):HostedZoneName.Default}}
       #     TemplateURL: "https://s3-eu-west-1.amazonaws.com/is24-infrastructure-public/cloudformation/verified-ssl-certificate/ssl-certificate.template.yaml"
+
+    # Type: AWS::Route53::RecordSet
+    # Properties:
+    #   HostedZoneName: ${{self:custom.hostedZoneName}}
+    #   Comment: Tradle public API endpoint subdomain
+    #   Name:  !Join ['', [!Ref 'Ec2Instance', ., !Ref 'AWS::Region', ., !Ref 'HostedZone', .]]
+    #   Type: CNAME
+    #   ResourceRecords:
+    #   - Fn::GetAtt: Ec2Instance.PublicIp
+
+    # PathMapping:
+    #   Type: AWS::ApiGateway::BasePathMapping
+    #   # DependsOn: ApiGatewayRestApi
+    #   Properties:
+    #     BasePath: ${{self:custom.stage}}
+    #     DomainName: ${self:custom.domainName}
+    #     RestApiId:
+    #       Ref: ApiGatewayRestApi
+    #     Stage: ${self:custom.stage}

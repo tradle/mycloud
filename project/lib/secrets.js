@@ -1,21 +1,37 @@
 const { logifyFunction } = require('./utils')
 const { SecretsBucket } = require('./buckets')
 
-function getSecretObject (key) {
-  return SecretsBucket.get(key)
+function del (key) {
+  return SecretsBucket.del(key)
 }
 
-function putSecretObject (key, value) {
+function get (key) {
+  return SecretsBucket.getJSON(key)
+}
+
+function put (key, value) {
   return SecretsBucket.putJSON(key, value)
 }
 
+function exists (key, value) {
+  return SecretsBucket.exists(key, value)
+}
+
 module.exports = {
-  putSecretObject: logifyFunction({
-    fn: putSecretObject,
+  put: logifyFunction({
+    fn: put,
     name: Key => `put secret "${Key}"`
   }),
-  getSecretObject: logifyFunction({
-    fn: getSecretObject,
+  get: logifyFunction({
+    fn: get,
     name: Key => `get secret "${Key}"`
+  }),
+  del: logifyFunction({
+    fn: del,
+    name: Key => `delete secret "${Key}"`
+  }),
+  exists: logifyFunction({
+    fn: exists,
+    name: Key => `check if exists: ${Key}`
   })
 }
