@@ -1,16 +1,50 @@
 #!/bin/sh
 
-read -p "This will empty and delete all buckets, tables, lambdas, etc. Are you sure? " -n 1 -r
-echo    # (optional) move to a new line
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
-    # do dangerous stuff
-  echo "emptying buckets"
-  aws s3 rb s3://tradle-messaging-dev-objects --force
-  aws s3 rb s3://tradle-messaging-dev-secrets --force
-  aws s3 rb s3://tradle-messaging-dev-public-conf --force
-  aws s3 rb s3://tradle-messaging-dev-private-conf --force
+ask() {
+    # https://djm.me/ask
+    local prompt default REPLY
 
-  echo "removing all of serverless's hard work"
-  sls remove
-fi
+    while true; do
+
+        if [ "${2:-}" = "Y" ]; then
+            prompt="Y/n"
+            default=Y
+        elif [ "${2:-}" = "N" ]; then
+            prompt="y/N"
+            default=N
+        else
+            prompt="y/n"
+            default=
+        fi
+
+        # Ask the question (not using "read -p" as it uses stderr not stdout)
+        echo -n "$1 [$prompt] "
+
+        # Read the answer (use /dev/tty in case stdin is redirected from somewhere else)
+        read REPLY </dev/tty
+
+        # Default?
+        if [ -z "$REPLY" ]; then
+            REPLY=$default
+        fi
+
+        # Check if the reply is valid
+        case "$REPLY" in
+            Y*|y*) return 0 ;;
+            N*|n*) return 1 ;;
+        esac
+
+    done
+}
+
+remove_buckets() {
+    # do dangerous stuff
+  # set -o xtrace
+  aws s3 ls | awk '{print $3;}' | grep tradle-dev | grep -v tradle-dev-serverless | while read line; do
+    ask "delete bucket ${line}?" && aws s3 rb "s3://$line" --force
+  done
+}
+
+echo "This will empty and delete all buckets, tables, lambdas, etc."
+ask && remove_buckets
+ask "delete resources stack" && sls remove
