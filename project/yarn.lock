@@ -35,7 +35,7 @@
 
 "@tradle/bot-products@tradle/bot-products#cloud":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/bot-products/tar.gz/066401ed6001b8b98e503627c5a21b5109d6ae18"
+  resolved "https://codeload.github.com/tradle/bot-products/tar.gz/d05033ddbfacc3b51a3c8fa8af7bd2285225248d"
   dependencies:
     "@tradle/bot-require-models" tradle/bot-require-models#cloud
     "@tradle/build-resource" tradle/build-resource
@@ -45,6 +45,8 @@
     "@tradle/validate-resource" tradle/validate-resource
     co "^4.6.0"
     cross-env "^4.0.0"
+    object.omit "^2.0.1"
+    object.pick "^1.2.0"
     uuid "^3.0.1"
     xtend "^4.0.1"
 

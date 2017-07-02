@@ -55,7 +55,8 @@
     "nuke": "./scripts/nuke.sh",
     "build": "flow-remove-types project/ -d build/ && yarn run copynonjs",
     "copynonjs": "find project/lib project/conf project/test -type f '!' -name '*.js' | cpio -pdm build/",
-    "export:template": "serverless sam export --output ./template.yml"
+    "export:template": "serverless sam export --output ./template.yml",
+    "makepublic": "./scripts/makepublic.js"
   },
   "dependencies": {}
 }

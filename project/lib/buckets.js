@@ -11,7 +11,7 @@ const cachifiable = {
 
 const CACHE_OPTS = {
   max: 200,
-  maxAge: 1000 * 60 * 60
+  maxAge: 60 * 1000
 }
 
 Object.keys(ENV)

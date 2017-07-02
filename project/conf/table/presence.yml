@@ -1,0 +1,16 @@
+Type: AWS::DynamoDB::Table
+Properties:
+  TableName: PresenceTable
+  AttributeDefinitions:
+    - AttributeName: clientId
+      AttributeType: S
+    - AttributeName: permalink
+      AttributeType: S
+  KeySchema:
+    - AttributeName: permalink
+      KeyType: HASH
+    - AttributeName: clientId
+      KeyType: RANGE
+  ProvisionedThroughput:
+    ReadCapacityUnits: 5
+    WriteCapacityUnits: 5

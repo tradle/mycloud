@@ -1,27 +1,26 @@
-const querystring = require('querystring')
 const debug = require('debug')('tradle:sls:deployment-bot')
 const co = require('co').wrap
 const clone = require('clone')
 const omit = require('object.omit')
 const { prettify } = require('../lib/string-utils')
-// const { PublicConfBucket, ServerlessDeploymentBucket } = require('../lib/buckets')
-const ServerlessDeploymentBucket = require('../lib/s3-utils').getBucket('tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k')
-const PublicConfBucket = require('../lib/s3-utils').getBucket('tradle-dev-publicconfbucket-gd70s2lfklji')
-const { getLogoDataURI } = require('./image-utils')
+const { PublicConfBucket, ServerlessDeploymentBucket } = require('../lib/buckets')
+// const ServerlessDeploymentBucket = require('../lib/s3-utils').getBucket('tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k')
+// const PublicConfBucket = require('../lib/s3-utils').getBucket('tradle-dev-publicconfbucket-gd70s2lfklji')
+const { getFaviconURL, getLogoDataURI } = require('../lib/image-utils')
 const { s3 } = require('../lib/aws')
+const utils = require('../lib/utils')
 const templateFileName = 'compiled-cloudformation-template.json'
 const {
-  SERVERLESS_STAGE='dev',
-  SERVERLESS_SERVICE_NAME='tradle',
-  // SERVERLESS_STAGE,
-  // SERVERLESS_SERVICE_NAME,
+  // SERVERLESS_STAGE='dev',
+  // SERVERLESS_SERVICE_NAME='tradle',
+  SERVERLESS_STAGE,
+  SERVERLESS_SERVICE_NAME,
 } = process.env
 
 const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 const MIN_SCALE = 1
 const MAX_SCALE = 3
 const CONFIG_FORM = 'tradle.aws.Configuration'
-const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 
 const getBaseTemplate = (function () {
   let baseTemplate
@@ -82,7 +81,7 @@ const onForm = co(function* ({ bot, user, type, wrapper, currentApplication }) {
   const { object } = wrapper.payload
   const { domain } = object
   try {
-    user.forms[type].logo = yield getLogoDataURI(domain)
+    yield getLogoDataURI(domain)
   } catch (err) {
     const message = `couldn't process your logo!`
     yield bot.requestEdit({
@@ -100,17 +99,18 @@ const onForm = co(function* ({ bot, user, type, wrapper, currentApplication }) {
 })
 
 const onFormsCollected = co(function* ({ bot, user, application }) {
-  const versions = user.forms[CONFIG_FORM]
-  const form = yield bot.objects.get(last(versions))
+  const configForms = user.forms[CONFIG_FORM]
+  const latest = getLatestFormVersion(configForms)
+  const form = yield bot.objects.get(latest.link)
   const parameters = normalizeParameters(form.object)
+  // parameters.logo = yield getFaviconURL(parameters.domain)
   const templateKey = yield writeTemplate({ parameters })
   const templateURL = `https://${PublicConfBucket.name}.s3.amazonaws.com/${templateKey}`
-  const query = {
+  const launchURL = utils.launchStackUrl({
     stackName: 'tradle',
     templateURL
-  }
+  })
 
-  const launchURL = `${LAUNCH_STACK_BASE_URL}?${querystring.stringify(query)}`
   yield bot.send({
     to: user.id,
     object: `[Launch your Tradle stack](${templateURL})`
@@ -122,7 +122,7 @@ function getLambdaEnv (lambda) {
 }
 
 function generateTemplate ({ template, parameters }) {
-  const { name, scale, logo, domain } = parameters
+  const { name, scale, domain } = parameters
   template.Description = `My Tradle Cloud instance`
 
   const { Resources } = template
@@ -135,7 +135,6 @@ function generateTemplate ({ template, parameters }) {
   ].forEach(env => {
     env.ORG_NAME = name
     env.ORG_DOMAIN = domain
-    env.ORG_LOGO = logo
   })
 
   for (let key in Resources) {
@@ -165,6 +164,10 @@ function scaleTable ({ table, scale }) {
 
 function last (arr) {
   return arr[arr.length - 1]
+}
+
+function getLatestFormVersion (formState) {
+  return last(last(formState).versions)
 }
 
 module.exports = {

@@ -5,11 +5,23 @@ const co = require('co').wrap
 const promisify = require('pify')
 const DataURI = require('datauri')
 const request = require('superagent')
-const getFaviconURL = promisify(require('favicon'))
+const _getFaviconURL = promisify(require('favicon'))
+const { domainToUrl } = require('./utils')
+const getFaviconURL = co(function* (siteURL) {
+  const faviconURL = yield _getFaviconURL(siteURL)
+  return getAbsoluteURL(siteURL, faviconURL)
+})
+
 const getFavicon = co(function* (siteURL) {
-  let faviconURL = yield getFaviconURL(siteURL)
-  faviconURL = getAbsoluteURL(siteURL, faviconURL)
-  const { ok, body, text } = yield request(faviconURL)
+  const faviconURL = yield getFaviconURL(siteURL)
+  return {
+    url: faviconURL,
+    image: yield downloadImage(faviconURL)
+  }
+})
+
+const downloadImage = co(function* (url) {
+  const { ok, body, text, header } = yield request(url)
     .set('Accept', 'application/octet-stream')
 
   if (!ok) {
@@ -17,8 +29,8 @@ const getFavicon = co(function* (siteURL) {
   }
 
   return {
-    url: faviconURL,
-    image: body
+    type: header['content-type'],
+    data: body
   }
 })
 
@@ -53,30 +65,31 @@ function getAbsoluteURL (base, url) {
   return url
 }
 
-function normalizeURL (domain) {
-  if (domain.startsWith('//')) {
-    return 'http:' + domain
-  }
-
-  if (!/^https?:\/\//.test(domain)) {
-    return 'http://' + domain
-  }
-
-  return domain
-}
-
-const getLogoDataURI = co(function* (domain) {
-  const {
-    url,
-    image
-  } = yield getFavicon(normalizeURL(domain))
-
-  const ext = url.split('.').pop()
+const getDataURI = co(function* (image, ext) {
+  // const ext = url.split('.').pop()
   const uri = new DataURI()
   uri.format(`.${ext}`, image)
   return uri.content
 })
 
+const getLogo = co(function* ({ logo, domain }) {
+  if (!logo) {
+    logo = yield getFaviconURL(domainToUrl(domain))
+  }
+
+  if (!/^data:image/.test(logo)) {
+    const ext = logo.slice(logo.lastIndexOf('.'))
+    const { data, type } = yield downloadImage(logo)
+    logo = yield getDataURI(data, ext)
+  }
+
+  return logo
+})
+
 module.exports = {
-  getLogoDataURI
+  getDataURI,
+  downloadImage,
+  getFavicon,
+  getFaviconURL,
+  getLogo
 }

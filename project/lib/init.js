@@ -72,10 +72,9 @@ const isInitialized = (function () {
   })
 }())
 
-const createProvider = co(function* (options) {
-  const { name, logo, force } = options
-  if (!(name && logo)) {
-    throw new Error('"name" and "logo" are required')
+const createProvider = co(function* ({ name, domain, logo, force }) {
+  if (!(name && domain)) {
+    throw new Error('"name" is required')
     // if (!force) {
     //   console.error('"name" and "logo" are required')
     //   return
@@ -83,6 +82,11 @@ const createProvider = co(function* (options) {
   }
 
   debug(`initializing provider ${name}`)
+
+  if (!logo || !/^data:/.test(logo)) {
+    const ImageUtils = require('./image-utils')
+    logo = yield ImageUtils.getLogo({ logo, domain })
+  }
 
   const priv = yield createIdentity()
   const pub = omit(priv, 'keys')

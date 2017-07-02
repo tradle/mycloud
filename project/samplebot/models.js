@@ -22,6 +22,10 @@ module.exports = {
     interfaces: ['tradle.Message'],
     subClassOf: 'tradle.Form',
     properties: {
+      name: {
+        type: 'string',
+        description: 'the name of your organization'
+      },
       scale: {
         type: 'number',
         description: 'in millions of customers, e.g. 100 means 100M customers'

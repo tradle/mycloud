@@ -66,6 +66,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
     return wrapper
   }
 
+  debug('processing error in receive:', err.name)
   wrapper = err.progress
   if (err instanceof Errors.InvalidMessageFormat) {
     // HTTP
@@ -99,6 +100,18 @@ const onSentMessage = co(function* ({ clientId, message }) {
     yield Delivery.reject({
       clientId,
       message: err.wrapper,
+      error: err
+    })
+  } else if (err instanceof Errors.NotFound) {
+    debug('rejecting message, sender identity not found')
+    if (!clientId) {
+      err.code = 400
+      throw err
+    }
+
+    yield Delivery.reject({
+      clientId,
+      message: 'sender identity not found',
       error: err
     })
   } else {

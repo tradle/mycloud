@@ -1,3 +1,4 @@
+const querystring = require('querystring')
 const crypto = require('crypto')
 const microtime = require('./microtime')
 const typeforce = require('typeforce')
@@ -13,6 +14,8 @@ const isGenerator = require('is-generator-function')
 const { hexLink, addLinks, extractSigPubKey } = require('@tradle/engine').utils
 const { prettify, stableStringify } = require('./string-utils')
 const { SIG, TYPE, TYPES } = require('./constants')
+const ENV = require('./env')
+const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE } = TYPES
 
 const utils = exports
@@ -291,6 +294,27 @@ exports.waterfall = co(function* (fns, ...args) {
 
   return result
 })
+
+exports.launchStackUrl = function launchStackUrl ({
+  region=process.env.AWS_REGION,
+  stackName,
+  templateURL
+}) {
+  const qs = querystring.stringify({ stackName, templateURL })
+  return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/new?${qs}`
+}
+
+exports.domainToUrl = function domainToUrl (domain) {
+  if (domain.startsWith('//')) {
+    return 'http:' + domain
+  }
+
+  if (!/^https?:\/\//.test(domain)) {
+    return 'http://' + domain
+  }
+
+  return domain
+}
 
 function noop () {}
 

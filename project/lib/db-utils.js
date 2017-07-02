@@ -80,7 +80,6 @@ const get = co(function* (params) {
 })
 
 const put = co(function* (params) {
-  debug(`putting to ${params.TableName}`, prettify(params))
   const result = yield exec('put', params)
   return tweakReturnValue(params, result)
 })
@@ -120,7 +119,7 @@ function maybeForceConsistentRead (params) {
 }
 
 function tweakReturnValue (params, result) {
-  debug(`consumed ${result.ConsumedCapacityUnits} capacity units`)
+  debug(`consumed ${result.ConsumedCapacity} capacity units`)
 
   if (params.ReturnValues !== 'NONE') {
     return result.Attributes

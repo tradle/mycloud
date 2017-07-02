@@ -461,6 +461,7 @@ const parseInbound = co(function* ({ message }) {
     Identities.addAuthorMetadata(payloadWrapper)
   ]
 
+  debug('added metadata for message and wrapper')
   yield Messages.assertTimestampIncreased(messageWrapper)
 
   messageWrapper.inbound = true
