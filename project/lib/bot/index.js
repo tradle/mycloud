@@ -56,40 +56,44 @@ function createBot (opts={}) {
   })
 
   const pre = {
-    onmessage: co(function* (wrapper) {
-      if (typeof wrapper === 'string') {
-        wrapper = JSON.parse(wrapper)
-      }
+    onmessage: [
+      co(function* (wrapper) {
+        if (typeof wrapper === 'string') {
+          wrapper = JSON.parse(wrapper)
+        }
 
-      const { message, payload } = wrapper
-      const { author } = message
-      const getObject = payload.object
-        ? Promise.resolve(payload)
-        : objects.getObjectByLink(payload.link)
+        const { message, payload } = wrapper
+        const { author } = message
+        const getObject = payload.object
+          ? Promise.resolve(payload)
+          : objects.getObjectByLink(payload.link)
 
-      const [{ object }, identity] = [
-        yield getObject,
-        // yield messages.getMessageFrom({ author, time, link }),
-        yield identities.getIdentityByPermalink(author)
-      ]
+        const [{ object }, identity] = [
+          yield getObject,
+          // yield messages.getMessageFrom({ author, time, link }),
+          yield identities.getIdentityByPermalink(author)
+        ]
 
-      message.object.object = object
-      payload.object = object
-      const user = yield bot.users.createIfNotExists({
-        id: author,
-        identity
+        message.object.object = object
+        payload.object = object
+        const user = yield bot.users.createIfNotExists({
+          id: author,
+          identity
+        })
+
+        const _userPre = clone(user)
+        return {
+          bot,
+          user,
+          wrapper,
+          _userPre,
+          type: payload[TYPE]
+        }
       })
-
-      const _userPre = clone(user)
-      return {
-        bot,
-        user,
-        wrapper,
-        _userPre,
-        type: payload[TYPE]
-      }
-    }),
-    onsealevent: normalizeInput
+    ],
+    onsealevent: [
+      normalizeInput
+    ]
   }
 
   const promiseSaveUser = co(function* ({ user, _userPre }) {
@@ -115,12 +119,9 @@ function createBot (opts={}) {
   }
 
   const execMiddleware = co(function* (method, event) {
-    if (pre[method]) {
-      event = yield pre[method](event)
-    }
+    event = yield waterfall(pre[method], event)
 
     yield series(middleware[method], event)
-
     if (post[method]) {
       yield post[method](event)
     }
@@ -172,9 +173,21 @@ function createBot (opts={}) {
     constants
   })
 
+  const promiseReady = new Promise(resolve => {
+    bot.ready = resolve
+  })
+
   METHODS.forEach(method => {
     middleware[method] = []
     bot[method] = fn => addMiddleware(method, fn)
+    if (!pre[method]) {
+      pre[method] = []
+    }
+
+    pre[method].unshift(co(function* (arg) {
+      yield promiseReady
+      return arg
+    }))
   })
 
   addMiddleware('onsealevent', co(function* (event) {
@@ -198,7 +211,7 @@ function createBot (opts={}) {
   bot.seals = sealsAPI
   bot.users = users || createUsers({
     table: tables.UsersTable,
-    oncreate: user => invokers.onusercreate(user)
+    oncreate: user => processors.onusercreate(user)
   })
 
   bot.users.history = createHistory(tradle)
@@ -212,16 +225,16 @@ function createBot (opts={}) {
 
   bot.resources = { tables, buckets }
 
-  const invokers = {}
+  const processors = {}
   bot.exports = {}
   METHODS.forEach(method => {
-    const invoker = event => execMiddleware(method, event)
-    invokers[method] = invoker
-    bot.exports[method] = wrap(invoker)
+    const processor = event => execMiddleware(method, event)
+    processors[method] = processor
+    bot.exports[method] = wrap(processor)
   })
 
   if (TESTING) {
-    bot.exports = invokers
+    bot.call = (method, ...args) => processors[method](...args)
   }
 
   return bot

@@ -34,6 +34,8 @@ bot.onmessage(co(function* ({ user, type }) {
   }
 }))
 
+bot.ready()
+
 module.exports = bot.exports
 
 function toObject (models) {

@@ -6,7 +6,7 @@ const { clone } = require('../lib/utils')
 const createRealBot = require('../lib/bot')
 const createFakeBot = require('./mock/bot')
 // const messages = require('../lib/messages')
-const { co, loudCo, pick } = Tradle.utils
+const { co, loudCo, pick, wait } = Tradle.utils
 const { toStreamItems, recreateTable } = require('./utils')
 const Errors = require('../lib/errors')
 // const seals = require('../lib/seals')
@@ -17,6 +17,34 @@ const schema = require('../conf/table/users').Properties
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
+  test('await ready', loudCo(function* (t) {
+    const bot = createBot({})
+    const expectedEvent = toStreamItems([
+      {
+        old: {
+          link: 'a',
+          unsealed: 'x'
+        },
+        new: {
+          link: 'b'
+        }
+      }
+    ])
+
+    let waited
+    bot.onsealevent(co(function* (event) {
+      t.equal(waited, true)
+      t.equal(event, expectedEvent)
+      t.end()
+    }))
+
+    bot.call('onsealevent', expectedEvent).catch(t.error)
+
+    yield wait(100)
+    waited = true
+    bot.ready()
+  }))
+
   test(`users (${mode})`, loudCo(function* (t) {
     if (mode === 'real') {
       yield recreateTable(schema)
@@ -33,6 +61,8 @@ const schema = require('../conf/table/users').Properties
     const promiseOnCreate = new Promise(resolve => {
       bot.onusercreate(resolve)
     })
+
+    bot.ready()
 
     t.same(yield users.createIfNotExists(user), user, 'create if not exists')
     t.same(yield users.get(user.id), user, 'get by primary key')
@@ -116,7 +146,9 @@ const schema = require('../conf/table/users').Properties
     // const conversation = yield bot.users.history('bob')
     // console.log(conversation)
 
-    yield bot.exports.onmessage(JSON.stringify({ message, payload }))
+    bot.ready()
+
+    yield bot.call('onmessage', { message, payload })
     t.equal(updatedUser, true)
     objects.getObjectByLink = getObjectByLink
     identities.getIdentityByPermalink = getIdentityByPermalink
@@ -133,7 +165,7 @@ const schema = require('../conf/table/users').Properties
     provider.getMyKeys = () => Promise.resolve(aliceKeys)
 
     seals.create = co(function* ({ key, link }) {
-      yield bot.exports.onsealevent(toStreamItems([
+      yield bot.call('onsealevent', toStreamItems([
         {
           old: {
             link,
@@ -166,6 +198,8 @@ const schema = require('../conf/table/users').Properties
       t.equal(event.link, link)
     }))
 
+    bot.ready()
+
     yield bot.seal({ link })
 
     t.equal(read, true)
@@ -194,8 +228,10 @@ const schema = require('../conf/table/users').Properties
       })
     })
 
+    bot.ready()
+
     for (let method in called) {
-      yield bot.exports[method](expectedArg)
+      yield bot.call(method, expectedArg)
       t.equal(called[method], true)
     }
 

@@ -20,7 +20,7 @@ module.exports = function fakeBot (opts={}) {
   const bot = createBot({
     users: fakeUsers({
       users,
-      oncreate: user => bot.exports.onusercreate(user)
+      oncreate: user => bot.call('onusercreate', user)
     }),
     tradle
   })
