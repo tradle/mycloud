@@ -9,11 +9,11 @@ module.exports = {
 }
 
 function toEvents (mapper, oldAndNew) {
-  return wrap.generator(function* (event, context) {
+  return wrap(function* (event, context) {
     // unmarshalling is prob a waste of time
     const items = getRecordsFromEvent(event, oldAndNew)
       .map(mapper)
 
     yield Events.putEvents(items)
-  }, oldAndNew)
+  })
 }

@@ -8,7 +8,7 @@ const { TYPE, TYPES, PERMALINK, SEQ } = require('./constants')
 const { MESSAGE } = TYPES
 const { omit, typeforce } = require('./utils')
 const { extractSigPubKey, hexLink, getLinks, addLinks } = require('./crypto')
-const { ObjectsBucket } = require('./buckets')
+const Buckets = require('./buckets')
 const getLink = hexLink
 
 const addMetadata = function addMetadata (wrapper) {
@@ -41,7 +41,7 @@ const addMetadata = function addMetadata (wrapper) {
 function getObjectByLink (link) {
   typeforce(typeforce.String, link)
   debug('getting', link)
-  return ObjectsBucket.getJSON(link)
+  return Buckets.ObjectsBucket.getJSON(link)
 }
 
 function putObject (wrapper) {
@@ -53,7 +53,7 @@ function putObject (wrapper) {
 
   addLinks(wrapper)
   debug('putting', wrapper.link)
-  return ObjectsBucket.putJSON(wrapper.link, wrapper)
+  return Buckets.ObjectsBucket.putJSON(wrapper.link, wrapper)
 }
 
 function prefetchByLink (link) {
@@ -62,7 +62,7 @@ function prefetchByLink (link) {
 }
 
 function del (link) {
-  return ObjectsBucket.del(link)
+  return Buckets.ObjectsBucket.del(link)
 }
 
 module.exports = {

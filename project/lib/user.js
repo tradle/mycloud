@@ -8,7 +8,7 @@ const { createReceiveMessageEvent } = require('./provider')
 const Iot = require('./iot-utils')
 const { invoke } = require('./lambda-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
-const { PublicConfBucket } = require('./buckets')
+const Buckets = require('./buckets')
 const { SERVERLESS_STAGE, BOT_ONMESSAGE } = require('./env')
 const Errors = require('./errors')
 const types = require('./types')
@@ -181,11 +181,11 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
 })
 
 const getProviderIdentity = co(function* () {
-  const { object } = yield PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
+  const { object } = yield Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
   return object
 })
 
-const onGetInfo = () => PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info)
+const onGetInfo = () => Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info)
 //   return yield {
 //     style: getProviderStyle(),
 //     identity: getProviderIdentity(),
@@ -193,13 +193,13 @@ const onGetInfo = () => PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info)
 //   }
 // })
 
-function getProviderStyle () {
-  return PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.style)
-    .catch(err => {
-      debug('no styles found')
-      return {}
-    })
-}
+// function getProviderStyle () {
+//   return Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.style)
+//     .catch(err => {
+//       debug('no styles found', err)
+//       return {}
+//     })
+// }
 
 module.exports = {
   onSentChallengeResponse,

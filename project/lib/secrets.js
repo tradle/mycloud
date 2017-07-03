@@ -1,20 +1,20 @@
 const { logifyFunction } = require('./utils')
-const { SecretsBucket } = require('./buckets')
+const Buckets = require('./buckets')
 
 function del (key) {
-  return SecretsBucket.del(key)
+  return Buckets.SecretsBucket.del(key)
 }
 
 function get (key) {
-  return SecretsBucket.getJSON(key)
+  return Buckets.SecretsBucket.getJSON(key)
 }
 
 function put (key, value) {
-  return SecretsBucket.putJSON(key, value)
+  return Buckets.SecretsBucket.putJSON(key, value)
 }
 
 function exists (key, value) {
-  return SecretsBucket.exists(key, value)
+  return Buckets.SecretsBucket.exists(key, value)
 }
 
 module.exports = {

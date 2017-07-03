@@ -3,6 +3,7 @@ const aws = require('./aws')
 const { logify } = require('./utils')
 const { DEV } = require('./env')
 const Errors = require('./errors')
+const Resources = require('./resources')
 
 function put ({ key, value, bucket }) {
   // debug(`putting ${key} -> ${value} into Bucket ${bucket}`)
@@ -68,7 +69,10 @@ function getBucket (bucket) {
     head: key => head({ key, bucket }),
     exists: key => exists({ key, bucket }),
     del: key => del({ key, bucket })
-  }, { log: debug, logInputOutput: DEV })
+  }, {
+    log: debug,
+    logInputOutput: DEV && bucket !== Resources.Bucket.SecretsBucket
+  })
 
   logified.name = bucket
   logified.toString = () => bucket

@@ -4,6 +4,6 @@ const wrap = require('../wrap')
 const { putEvent } = require('../events')
 const { extend } = require('../utils')
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   yield putEvent(event)
 })

@@ -16,7 +16,6 @@ const {
   provider
 } = require('./')
 
-const { PublicConfBucket } = buckets
 const {
   TYPE,
   PUBLIC_CONF_BUCKET,
@@ -119,6 +118,7 @@ const push = co(function* (options) {
     }
   }
 
+  const { PublicConfBucket } = buckets
   yield [
     // TODO: encrypt
     // private
@@ -156,6 +156,7 @@ const clear = co(function* () {
   }
 
   debug(`terminating provider ${priv && priv.link}`)
+  const { PublicConfBucket } = buckets
   yield [
     priv && objects.del(priv.link),
     secrets.del(IDENTITY_KEYS_KEY),

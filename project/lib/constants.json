@@ -26,5 +26,6 @@
     "maxDelay": 300000,
     "maxRetries": 100
   },
-  "MAX_CLOCK_DRIFT": 10000
+  "MAX_CLOCK_DRIFT": 10000,
+  "ENV_RESOURCE_PREFIX": "CF_"
 }

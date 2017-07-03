@@ -3,7 +3,7 @@ const crypto = require('crypto')
 const superagent = require('superagent')
 const subdown = require('subleveldown')
 const { protocol, signBuffer } = require('@tradle/engine')
-const { cachifyPromiser, sha256, executeSuperagentRequest } = require('./utils')
+const { co, cachifyPromiser, sha256, executeSuperagentRequest } = require('./utils')
 // const constants = require('@tradle/engine').constants
 // const TYPE = constants.TYPE
 
@@ -33,25 +33,25 @@ function setRegistered (serverUrl) {
 }
 
 const register = co(function* ({ key }) {
-  const req = superagent
+  const part1 = superagent
     .post(`${serverUrl}/publisher`)
     .send({
       identity: identity,
       key: key.toJSON()
     })
 
-  yield executeSuperagentRequest(req)
+  yield executeSuperagentRequest(part1)
   // if (!res.ok) throw new Error('push publisher registration failed')
 
   // challenge
   const nonce = res.text
   const salt = crypto.randomBytes(32).toString('base64')
   const sig = signBuffer(key, sha256(nonce + salt))
-  const req = superagent
+  const part2 = superagent
     .post(`${serverUrl}/publisher`)
     .send({ nonce, salt, sig })
 
-  yield executeSuperagentRequest(req)
+  yield executeSuperagentRequest(part2)
   yield setRegistered(serverUrl)
 })
 

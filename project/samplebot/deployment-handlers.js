@@ -56,9 +56,9 @@ function normalizeParameters (parameters) {
   return parameters
 }
 
-const writeTemplate = co(function* ({ parameters }) {
+const writeTemplate = co(function* ({ resources, parameters }) {
   const template = yield getBaseTemplate()
-  const customized = generateTemplate({ template, parameters })
+  const customized = generateTemplate({ resources, template, parameters })
   const templateKey = `templates/scale-${parameters.scale}.json`
   try {
     yield s3.putObject({
@@ -104,7 +104,11 @@ const onFormsCollected = co(function* ({ bot, user, application }) {
   const form = yield bot.objects.get(latest.link)
   const parameters = normalizeParameters(form.object)
   // parameters.logo = yield getFaviconURL(parameters.domain)
-  const templateKey = yield writeTemplate({ parameters })
+  const templateKey = yield writeTemplate({
+    resources: bot.resources,
+    parameters
+  })
+
   const templateURL = `https://${PublicConfBucket.name}.s3.amazonaws.com/${templateKey}`
   const launchURL = utils.launchStackUrl({
     stackName: 'tradle',
@@ -121,12 +125,19 @@ function getLambdaEnv (lambda) {
   return lambda.Properties.Environment.Variables
 }
 
-function generateTemplate ({ template, parameters }) {
+function generateTemplate ({ resources, template, parameters }) {
   const { name, scale, domain } = parameters
   template.Description = `My Tradle Cloud instance`
 
   const { Resources } = template
   getLambdaEnv(Resources.BotUnderscoreonmessageLambdaFunction).PRODUCT = 'tradle.aws.CurrentAccount'
+  for (let id in Resources) {
+    let resource = Resources[id]
+    if (resource.Type === 'AWS::Lambda::Function') {
+      // resolve Code bucket
+      resource.Properties.Code.S3Bucket = ServerlessDeploymentBucket.name
+    }
+  }
 
   // set org env
   ;[
@@ -176,6 +187,7 @@ module.exports = {
 
 co(function* () {
   const templateKey = yield writeTemplate({
+    resources: require('../lib/resources'),
     parameters: {
       name: 'Silly',
       scale: 1,

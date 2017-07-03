@@ -1,9 +1,9 @@
 // lazy load
 module.exports = {
-  get bitcoin() {
+  get bitcoin () {
     return require('./bitcoin')
   },
-  get ethereum() {
+  get ethereum () {
     return require('./ethereum')
   }
 }

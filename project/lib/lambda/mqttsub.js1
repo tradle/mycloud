@@ -2,7 +2,7 @@ const microtime = require('microtime')
 const debug = require('debug')('λ:mqttsub')
 const wrap = require('../wrap')
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   const start = microtime.now()
   console.log('START', start)
   yield new Promise(resolve => setTimeout(resolve, 2000))

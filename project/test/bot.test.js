@@ -13,17 +13,11 @@ const Errors = require('../lib/errors')
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
-const schema = clone(
-  require('../conf/table/users').Properties,
-  {
-    TableName: process.env.CF_UsersTable
-  }
-)
+const schema = require('../conf/table/users').Properties
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test(`users (${mode})`, loudCo(function* (t) {
-    console.warn('make sure localstack is running')
     if (mode === 'real') {
       yield recreateTable(schema)
     }

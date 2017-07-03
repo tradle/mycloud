@@ -6,17 +6,12 @@ const AWS = process.env.IS_LOCAL || !process.env.IS_LAMBDA_ENVIRONMENT
   ? rawAWS
   : AWSXRay.captureAWS(rawAWS)
 
-const { cachifyPromiser } = require('./utils')
 const cacheServices = process.env.IS_LOCAL
 const services = process.env.IS_LOCAL
   ? require('../conf/services.dev')
   : require('../conf/services.prod')
 
 AWS.config.update(services.AWS)
-
-// const getIotEndpoint = cachifyPromiser(() => {
-//   return api.iot.describeEndpoint().promise()
-// })
 
 const instanceNameToServiceName = {
   s3: 'S3',
@@ -27,7 +22,8 @@ const instanceNameToServiceName = {
   sts: 'STS',
   kms: 'KMS',
   lambda: 'Lambda',
-  iotData: 'Iot'
+  iotData: 'Iot',
+  cloudformation: 'CloudFormation'
 }
 
 const api = (function () {
@@ -44,8 +40,11 @@ const api = (function () {
           if (instanceName === 'docClient') {
             service = new AWS.DynamoDB.DocumentClient(services.DynamoDB)
           } else if (instanceName === 'iotData') {
-            const { endpoint } = require('./iot-utils')
-            const opts = extend({ endpoint }, services[serviceName] || {})
+            const { IOT_ENDPOINT } = require('./env')
+            const opts = extend({
+              endpoint: IOT_ENDPOINT
+            }, services[serviceName] || {})
+
             service = new AWS.IotData(opts)
           } else {
             service = new AWS[serviceName](services[serviceName])

@@ -3,7 +3,7 @@ const AWS = require('aws-sdk')
 AWS.config.update({
   maxRetries: 0,
   retryDelayOptions: {
-    customBackoff: function(retryCount) {
+    customBackoff: function (retryCount) {
       console.log("RETRY COUNT", retryCount)
       return Math.pow(2, retryCount) * 100
   // returns delay in ms

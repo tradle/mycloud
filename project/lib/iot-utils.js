@@ -1,10 +1,8 @@
 
 const debug = require('debug')('tradle:sls:iot')
 const aws = require('./aws')
-const { clone } = require('./utils')
-const { IOT_ENDPOINT, IOT_TOPIC_PREFIX='' } = require('./env')
-const endpoint = IOT_ENDPOINT
-const region = getRegionFromEndpoint(endpoint)
+const { co, clone } = require('./utils')
+const { IOT_TOPIC_PREFIX='' } = require('./env')
 const DEFAULT_QOS = 1
 
 function publish (params) {
@@ -40,7 +38,7 @@ function getMessagesTopicForClient (clientId) {
 }
 
 function includesClientMessagesTopic ({ clientId, topics }) {
-  const catchAllTopic = `${clientId}/\*`
+  const catchAllTopic = `${clientId}/*`
   const messagesTopic = getMessagesTopicForClient(clientId)
   return topics
     .map(unprefixTopic)
@@ -62,20 +60,24 @@ function includesClientMessagesTopic ({ clientId, topics }) {
 //   })
 // }
 
-function getRegionFromEndpoint (iotEndpoint) {
-  const partial = iotEndpoint.replace('.amazonaws.com', '');
-  const iotIndex = iotEndpoint.indexOf('iot');
-  return partial.substring(iotIndex + 4);
-}
+const getEndpoint = co(function* () {
+  const { endpointAddress } = yield aws.iot.describeEndpoint().promise()
+  return endpointAddress
+})
+
+// function getRegionFromEndpoint (iotEndpoint) {
+//   const partial = iotEndpoint.replace('.amazonaws.com', '');
+//   const iotIndex = iotEndpoint.indexOf('iot');
+//   return partial.substring(iotIndex + 4);
+// }
 
 module.exports = {
-  endpoint,
-  region,
   publish,
   sendMessages,
   // sendChallenge,
   // sendAuthenticated,
   // getRegionFromEndpoint,
   getMessagesTopicForClient,
-  includesClientMessagesTopic
+  includesClientMessagesTopic,
+  getEndpoint
 }

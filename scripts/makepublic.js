@@ -2,11 +2,16 @@
 const co = require('co').wrap
 const AWS = require('AWS-SDK')
 const s3 = new AWS.S3()
-const Bucket = 'io.tradle.dev.deploys'
+// const Bucket = 'io.tradle.dev.deploys'
 co(makeDeploymentBucketPublic)().catch(console.error)
 
 function* makeDeploymentBucketPublic () {
   // console.log(yield s3.getBucketAcl({ Bucket }).promise())
+  const { Buckets } = yield s3.listBuckets().promise()
+  const Bucket = Buckets.find(bucket => {
+    return bucket.Name.startsWith('tradle-dev-serverlessdeploymentbucket')
+  }).Name
+
   yield makePublic(Bucket)
 }
 
@@ -24,6 +29,7 @@ function* makePublic (Bucket) {
       }]
     }`
   }).promise()
+
   // yield s3.putBucketAcl({
   //   Bucket,
   //   ACL: 'public-read'

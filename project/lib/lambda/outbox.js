@@ -3,7 +3,7 @@ const wrap = require('../wrap')
 const { prettify } = require('../string-utils')
 const { onRestoreRequest } = require('../user')
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   const { topic, data } = event
   const clientId = topic.split('/')[0]
   const { gt, lt } = data

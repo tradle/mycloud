@@ -91,12 +91,12 @@ const batchBySize = function batchBySize (strings, max=MAX_PAYLOAD_SIZE) {
     if (length + str.length <= max) {
       cur.push(str)
       length += strLength
-    } else if (!cur.length) {
-      throw new Error(`string length (${strLength}) exceeds max (${max})`)
-    } else {
+    } else if (cur.length) {
       batches.push(cur)
       cur = [str]
       length = strLength
+    } else {
+      throw new Error(`string length (${strLength}) exceeds max (${max})`)
     }
   }
 

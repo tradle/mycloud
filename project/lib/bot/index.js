@@ -13,6 +13,8 @@ const { TYPE } = constants
 const createUsers = require('./users')
 const createHistory = require('./history')
 const createSeals = require('./seals')
+const Resources = require('../resources')
+const TESTING = process.env.NODE_ENV === 'test'
 const promisePassThrough = data => Promise.resolve(data)
 // const methodToExecutor = {
 //   onmessage: waterfall
@@ -47,7 +49,7 @@ function createBot (opts={}) {
     tables
   } = tradle
 
-  const { UsersTable, InboxTable, OutboxTable } = tables
+  const { UsersTable } = tables
   const sealsAPI = createSeals(tradle)
   const normalizeInput = co(function* (data) {
     data.bot = bot
@@ -197,7 +199,7 @@ function createBot (opts={}) {
   bot.seals = sealsAPI
   bot.users = users || createUsers({
     table: UsersTable,
-    oncreate: user => bot.exports.onusercreate(user)
+    oncreate: user => invokers.onusercreate(user)
   })
 
   bot.users.history = createHistory(tradle)
@@ -209,10 +211,22 @@ function createBot (opts={}) {
     get: objects.getObjectByLink
   }
 
+  bot.resources = {
+    tables: Resources.Table,
+    buckets: Resources.Bucket
+  }
+
+  const invokers = {}
   bot.exports = {}
   METHODS.forEach(method => {
-    bot.exports[method] = execMiddleware.bind(null, method)
+    const invoker = event => execMiddleware(method, event)
+    invokers[method] = invoker
+    bot.exports[method] = wrap(invoker)
   })
+
+  if (TESTING) {
+    bot.exports = invokers
+  }
 
   return bot
 

@@ -1,16 +1,16 @@
+const debug = require('debug')('tradls:sls:lambda-utils')
+const co = require('co').wrap
 const aws = require('./aws')
-const { SERVERLESS_PREFIX } = require('./env')
-const invokeDefaults = {}
+const {
+  SERVERLESS_SERVICE,
+  SERVERLESS_STAGE
+} = require('./env')
 
-const RESOLVED = Promise.resolve()
+const invokeDefaults = {}
 const utils = exports
 
-module.exports = {
-  getFullName,
-  invoke
-}
-
 function getFullName (name) {
+  const { SERVERLESS_PREFIX } = require('./env')
   return `${SERVERLESS_PREFIX}${name}`
 }
 
@@ -24,4 +24,9 @@ function invoke ({ name, arg, sync=true, log }) {
   if (log) params.LogType = 'Tail'
 
   return aws.lambda.invoke(params).promise()
+}
+
+module.exports = {
+  getFullName,
+  invoke
 }

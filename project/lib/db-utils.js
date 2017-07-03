@@ -119,8 +119,6 @@ function maybeForceConsistentRead (params) {
 }
 
 function tweakReturnValue (params, result) {
-  debug(`consumed ${result.ConsumedCapacity} capacity units`)
-
   if (params.ReturnValues !== 'NONE') {
     return result.Attributes
   }
@@ -215,6 +213,7 @@ const batchPut = co(function* (params, backoffOptions={}) {
 
 function jitter (val, percent) {
   // jitter by val * percent
+  // eslint-disable-next-line no-mixed-operators
   return val * (1 + 2 * percent * Math.random() - percent)
 }
 
@@ -251,8 +250,9 @@ function logCapacityConsumption (method, result) {
     break
   }
 
-  if (result.ConsumedCapacity) {
-    debug(`consumed ${result.ConsumedCapacity.CapacityUnits} ${type}s`)
+  const { ConsumedCapacity } = result
+  if (ConsumedCapacity) {
+    debug(`consumed ${prettify(ConsumedCapacity)} ${type}s`)
   }
 }
 

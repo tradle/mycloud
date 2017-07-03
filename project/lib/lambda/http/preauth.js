@@ -3,7 +3,7 @@ const wrap = require('../../wrap')
 const { onPreAuth } = require('../../user')
 const { ensureInitialized } = require('../../init')
 
-exports.handler = wrap.httpGenerator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   yield ensureInitialized()
 
   const now = Date.now()
@@ -14,4 +14,6 @@ exports.handler = wrap.httpGenerator(function* (event, context) {
   const session = yield onPreAuth({ accountId, clientId, identity })
   session.time = now
   return session
+}, {
+  type: 'http'
 })

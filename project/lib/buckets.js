@@ -1,10 +1,10 @@
 
 const Cache = require('lru-cache')
-const ENV = require('./env')
+const Resources = require('./resources')
 const { getBucket } = require('./s3-utils')
 const { cachify, extend } = require('./utils')
 const { toCamelCase } = require('./string-utils')
-const buckets = {}
+// const BUCKET_NAMES = ['SecretsBucket', 'ObjectsBucket', 'PublicConfBucket']
 const cachifiable = {
   ObjectsBucket: true
 }
@@ -14,23 +14,33 @@ const CACHE_OPTS = {
   maxAge: 60 * 1000
 }
 
-Object.keys(ENV)
-  .filter(prop => prop.endsWith('_BUCKET'))
-  .forEach(prop => {
-    const name = toCamelCase(prop, '_', true)
-    const bucket = getBucket(ENV[prop])
-    if (cachifiable[name]) {
-      const cachified = cachify({
-        get: bucket.getJSON,
-        put: bucket.putJSON,
-        cache: new Cache(CACHE_OPTS)
-      })
+function loadBucket (name) {
+  if (buckets[name]) return
 
-      bucket.getJSON = cachified.get
-      bucket.putJSON = cachified.put
-    }
+  const physicalId = Resources.Bucket[name]
+  if (!physicalId) throw new Error('bucket not found')
 
-    buckets[name] = bucket
-  })
+  const bucket = getBucket(physicalId)
+  if (cachifiable[name]) {
+    const cachified = cachify({
+      get: bucket.getJSON,
+      put: bucket.putJSON,
+      cache: new Cache(CACHE_OPTS)
+    })
+
+    bucket.getJSON = cachified.get
+    bucket.putJSON = cachified.put
+  }
+
+  buckets[name] = bucket
+}
+
+function update () {
+  Object.keys(Resources.Bucket).forEach(loadBucket)
+}
+
+const buckets = {}
+Resources.on('change', update)
+update()
 
 module.exports = buckets

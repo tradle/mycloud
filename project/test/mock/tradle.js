@@ -27,7 +27,8 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
       // getMessagesTo
     },
     provider: {
-      sendMessage: co(function* ({ to, object, other={} }) {
+      sendMessage: co(function* (args) {
+        const { to, object, other={} } = args
         if (!outbox[to]) outbox[to] = []
 
         outbox[to].push({
@@ -39,7 +40,7 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
           }, other)
         })
 
-        yield send(...arguments)
+        yield send(...args)
       }),
       getMyChainKey: promiseNoop
     }

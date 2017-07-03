@@ -217,8 +217,6 @@ function prettify (obj) {
 //   yield client.send('message', msg.object)
 // }))
 
-
-
 // co(function* () {
 //   const { challenge } = yield post(`https://7dmn0o7i1j.execute-api.us-east-1.amazonaws.com/dev/tradle/preauth`, { clientId, permalink })
 //   const signed = yield sign({

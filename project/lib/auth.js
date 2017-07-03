@@ -3,7 +3,7 @@ const { utils } = require('@tradle/engine')
 const aws = require('./aws')
 const Iot = require('./iot-utils')
 const { getUpdateParams } = require('./db-utils')
-const { IOT_CLIENT_ROLE } = require('./env')
+const Resources = require('./resources')
 const { co, cachifyPromiser, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
 const { randomString } = require('./crypto')
@@ -13,11 +13,12 @@ const Objects = require('./objects')
 const Messages = require('./messages')
 const Identities = require('./identities')
 const types = require('./types')
-const { PresenceTable } = require('./tables')
+const Tables = require('./tables')
+const ENV = require('./env')
 
 // const onExit = co(function* ({ clientId }) {
 //   try {
-//     yield PresenceTable.del({
+//     yield Tables.PresenceTable.del({
 //       KeyConditionExpression: '#clientId = :clientId',
 //       ExpressionAttributeNames: {
 //         '#clientId': 'clientId'
@@ -55,26 +56,26 @@ const onAuthenticated = co(function* ({ clientId, permalink, clientPosition, ser
 
   // allow multiple sessions for the same user?
   // yield deleteSessionsByPermalink(permalink)
-  yield PresenceTable.put({ Item: session })
+  yield Tables.PresenceTable.put({ Item: session })
 })
 
 function updatePresence ({ clientId, connected }) {
   const params = getUpdateParams({ connected })
   params.Key = getKeyFromClientId(clientId)
-  return PresenceTable.update(params)
+  return Tables.PresenceTable.update(params)
 }
 
 function deleteSession (clientId) {
   const Key = getKeyFromClientId(clientId)
-  return PresenceTable.del({ Key })
+  return Tables.PresenceTable.del({ Key })
 }
 
 function deleteSessionsByPermalink (permalink) {
-  return PresenceTable.del(getSessionsByPermalinkQuery)
+  return Tables.PresenceTable.del(getSessionsByPermalinkQuery)
 }
 
 function getSessionsByPermalink (permalink) {
-  return PresenceTable.find(getSessionsByPermalinkQuery(permalink))
+  return Tables.PresenceTable.find(getSessionsByPermalinkQuery(permalink))
 }
 
 function getSessionsByPermalinkQuery (permalink) {
@@ -104,7 +105,7 @@ const getLiveSessionByPermalink = co(function* (permalink) {
 })
 
 function getSession ({ clientId }) {
-  return PresenceTable.findOne({
+  return Tables.PresenceTable.findOne({
     KeyConditionExpression: 'permalink = :permalink AND clientId = :clientId',
     ExpressionAttributeValues: {
       ':clientId': clientId,
@@ -117,7 +118,7 @@ function getSession ({ clientId }) {
 const createChallenge = co(function* ({ clientId, permalink }) {
   // const permalink = getPermalinkFromClientId(clientId)
   const challenge = randomString(32)
-  yield PresenceTable.put({
+  yield Tables.PresenceTable.put({
     Item: {
       clientId,
       permalink,
@@ -150,7 +151,7 @@ const handleChallengeResponse = co(function* (response) {
   const { clientId, permalink, challenge, position } = response
 
   // const permalink = getPermalinkFromClientId(clientId)
-  const stored = yield PresenceTable.get({
+  const stored = yield Tables.PresenceTable.get({
     Key: { clientId, permalink }
   })
 
@@ -211,7 +212,7 @@ const getTemporaryIdentity = co(function* (opts) {
   }
 
   const maybeAddContact = Identities.validateAndAdd({ object: identity })
-  const role = `arn:aws:iam::${accountId}:role/${IOT_CLIENT_ROLE}`
+  const role = `arn:aws:iam::${accountId}:role/${Resources.Role.IotClientRole}`
   debug(`generating temp keys for client ${clientId}, role ${role}`)
 
   // get the account id which will be used to assume a role
@@ -229,9 +230,10 @@ const getTemporaryIdentity = co(function* (opts) {
   ]
 
   const { Credentials } = yield aws.sts.assumeRole(params).promise()
+  debug('assumed role', role)
   return {
-    iotEndpoint: Iot.endpoint,
-    region: Iot.region,
+    iotEndpoint: ENV.IOT_ENDPOINT,
+    region: ENV.AWS_REGION,
     accessKey: Credentials.AccessKeyId,
     secretKey: Credentials.SecretAccessKey,
     sessionToken: Credentials.SessionToken,

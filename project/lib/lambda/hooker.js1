@@ -4,7 +4,7 @@ const { unmarshalDBItem } = require('../db-utils')
 const { callWebhooks } = require('../provider')
 const { parseCursorRecords } = require('../cursors')
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   let parsed
   try {
     parsed = parseCursorRecords(event.Records)

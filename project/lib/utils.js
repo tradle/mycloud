@@ -15,6 +15,7 @@ const { hexLink, addLinks, extractSigPubKey } = require('@tradle/engine').utils
 const { prettify, stableStringify } = require('./string-utils')
 const { SIG, TYPE, TYPES } = require('./constants')
 const ENV = require('./env')
+const Resources = require('./resources')
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE } = TYPES
 
@@ -33,7 +34,7 @@ exports.promisify = promisify
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {
     try {
-      return yield co(gen).apply(this, args)
+      return yield co(gen)(...args)
     } catch (err) {
       console.error(err)
       throw err
@@ -314,6 +315,12 @@ exports.domainToUrl = function domainToUrl (domain) {
   }
 
   return domain
+}
+
+exports.environment = function () {
+  const env = Resources.environment()
+  env.IOT_ENDPOINT = ENV.IOT_ENDPOINT
+  return env
 }
 
 function noop () {}

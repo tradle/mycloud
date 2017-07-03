@@ -4,7 +4,7 @@ const { prettify } = require('../../string-utils')
 const { onSubscribed } = require('../../user')
 const { getMessagesTopicForClient } = require('../../iot-utils')
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   const { clientId, topics } = event
   yield onSubscribed({ clientId, topics })
 })

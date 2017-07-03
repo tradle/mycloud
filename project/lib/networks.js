@@ -16,7 +16,7 @@ Object.keys(networks).forEach(flavor => {
     networks[flavor][networkName] = {
       flavor,
       networkName,
-      get constants() {
+      get constants () {
         return getReadOnlyAdapter().constants
       },
       readOnlyAdapter: getReadOnlyAdapter,

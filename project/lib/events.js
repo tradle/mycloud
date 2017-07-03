@@ -1,11 +1,11 @@
 const co = require('co').wrap
 const debug = require('debug')('tradle:sls:events')
 const { omit, extend, timestamp } = require('./utils')
-const { EventsTable } = require('./tables')
+const Tables = require('./tables')
 
 function putEvents (events) {
   setIds(events)
-  return EventsTable.batchPut(events)
+  return Tables.EventsTable.batchPut(events)
 }
 
 function setIds (events) {

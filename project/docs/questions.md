@@ -160,6 +160,7 @@ KMS for keys
 ### Testing
 
 Load testing - e.g. 100 clients, 100 messages / second
+https://artillery.io/docs/gettingstarted.html
 
 ### Bots
 - in-house bot functionality
@@ -198,6 +199,9 @@ Load testing - e.g. 100 clients, 100 messages / second
 - aws-client edge cases, fallbacks
 
 ### Optimization
+
+DynamoDB Auto Scaling
+  http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/AutoScaling.HowTo.SDK.html
 
 DynamoDB
   - reads: 

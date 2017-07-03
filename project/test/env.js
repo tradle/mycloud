@@ -1,5 +1,9 @@
+console.warn('make sure localstack is running')
+
 process.env.NODE_ENV = 'test'
 process.env.IS_LOCAL = true
+process.env.SERVERLESS_STAGE = 'test'
+process.env.SERVERLESS_SERVICE = 'tradle'
 
 ;[
   'Seals',
@@ -10,7 +14,7 @@ process.env.IS_LOCAL = true
   'Presence',
   'Users'
 ].forEach(table => {
-  process.env[`CF_${table}Table`] = `${table}TableTest`
+  process.env[`CF_Table_${table}Table`] = `${table}TableTest`
 })
 
 ;[
@@ -18,5 +22,12 @@ process.env.IS_LOCAL = true
   'Secrets',
   'PublicConf',
 ].forEach(bucket => {
-  process.env[`CF_${bucket}Bucket`] = `${bucket}BucketTest`
+  process.env[`CF_Bucket_${bucket}Bucket`] = `${bucket}BucketTest`
+})
+
+;[
+  'bot_onmessage',
+  'bot_onsealevent'
+].forEach(fn => {
+  process.env[`CF_Function_${fn}Function`] = `${fn}FunctionTest`
 })

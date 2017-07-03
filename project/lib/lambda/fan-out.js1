@@ -7,7 +7,7 @@ const { invokeForTopic } = require('../lambda-utils')
 
 // NOT BEING USED
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   debug('fanning out', event)
   const { Records } = event
   const items = event.Records.map(record => unmarshalItem(record.dynamodb.NewImage))

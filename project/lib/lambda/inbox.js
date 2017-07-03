@@ -4,7 +4,7 @@ const Iot = require('../iot-utils')
 const { getInbound } = require('../messages')
 const { timestamp } = require('../utils')
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   debug('[START]', timestamp)
   const { gt, lt } = event.data
   const messages = yield getInbound({ gt, lt })

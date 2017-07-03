@@ -42,8 +42,6 @@ function getFiles () {
   return vals
 }
 
-
-
 function printUsage () {
   console.log(`
 USAGE:

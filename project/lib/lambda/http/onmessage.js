@@ -7,10 +7,12 @@ const { SEQ } = require('../../constants')
 const { timestamp } = require('../../utils')
 const Errors = require('../../errors')
 
-exports.handler = wrap.httpGenerator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   debug('[START]', timestamp())
   const message = new Buffer(JSON.parse(event.body), 'base64')
   // the user sent us a message
   yield user.onSentMessage({ message })
   debug('preceived')
+}, {
+  type: 'http'
 })

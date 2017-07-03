@@ -11,7 +11,6 @@ const aws = require('./aws')
 const wrap = require('./wrap')
 const { InvalidSignature } = require('./errors')
 const { IDENTITY_KEYS_KEY } = require('./constants')
-const { SecretsBucket } = require('./buckets')
 const SIGN_WITH_HASH = 'sha256'
 const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12

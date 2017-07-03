@@ -16,8 +16,8 @@ try {
 co(function* () {
   const props = yield {
     ACCOUNT_ID: exec('aws sts get-caller-identity --output text --query Account'),
-    IOT_ENDPOINT: exec('aws iot describe-endpoint --output text')
-      // .then(endpoint => `https://${endpoint}`)
+    // IOT_ENDPOINT: exec('aws iot describe-endpoint --output text')
+    //   // .then(endpoint => `https://${endpoint}`)
   }
 
   for (let prop in props) {
