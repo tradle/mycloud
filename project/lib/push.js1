@@ -9,7 +9,7 @@ const { co, cachifyPromiser, sha256, executeSuperagentRequest } = require('./uti
 
 const ENV = require('./env')
 // const { PrivateConfBucket } = require('./buckets')
-const { PushSubscribers } = require('./tables')
+const Tables = require('./tables')
 const { PUSH_SERVER_URL } = require('./env')
 
   // const serverUrl = opts.url
@@ -59,7 +59,7 @@ const push = co(function* ({ key, subscriber }) {
   yield ensureRegistered(key)
   let info
   try {
-    info = yield PushSubscribers.update({
+    info = yield Tables.PushSubscribers.update({
       Key: { subscriber },
       UpdateExpression: 'SET seq = seq + :incr',
       ExpressionAttributeValues: {
@@ -70,7 +70,7 @@ const push = co(function* ({ key, subscriber }) {
     info = { seq: -1 }
   }
 
-  yield PushSubscribers.update({
+  yield Tables.PushSubscribers.update({
     Key: { subscriber },
     Item: info
   })

@@ -1,24 +1,24 @@
 const { EventEmitter } = require('events')
-const debug = require('debug')('tradle:sls:resources')
+const debug = require('debug')('tradle:sls:Resources')
 const { RESOURCES_ENV_PATH } = require('./env')
 const { ENV_RESOURCE_PREFIX } = require('./constants')
-const resources = new EventEmitter()
-resources.Function = {}
-resources.Bucket = {}
-resources.Table = {}
-resources.Role = {}
+const Resources = new EventEmitter()
+Resources.Function = {}
+Resources.Bucket = {}
+Resources.Table = {}
+Resources.Role = {}
 
-resources.isMappedType = function (resourceType) {
-  return deflateResourceType(resourceType) in resources
+Resources.isMappedType = function (resourceType) {
+  return deflateResourceType(resourceType) in Resources
 }
 
-resources.set = function (vars) {
+Resources.set = function (vars) {
   for (let varName in vars) {
-    let mapping = resources.fromEnvironmentMapping(varName, vars[varName])
+    let mapping = Resources.fromEnvironmentMapping(varName, vars[varName])
     if (!mapping) continue
 
     let { type, key, value } = mapping
-    let cache = resources[type]
+    let cache = Resources[type]
     if (cache) {
       cache[key] = value
       debug(`mapped ${type} ${key}`)
@@ -27,16 +27,16 @@ resources.set = function (vars) {
     }
   }
 
-  resources.emit('change')
+  Resources.emit('change')
 }
 
-resources.environment = function () {
+Resources.environment = function () {
   const env = {}
-  for (let ResourceType in resources) {
-    let typed = resources[ResourceType]
+  for (let ResourceType in Resources) {
+    let typed = Resources[ResourceType]
     for (let LogicalResourceId in typed) {
       let PhysicalResourceId = typed[LogicalResourceId]
-      let { key, value } = resources.toEnvironmentMapping({
+      let { key, value } = Resources.toEnvironmentMapping({
         ResourceType,
         PhysicalResourceId,
         LogicalResourceId
@@ -49,7 +49,19 @@ resources.environment = function () {
   return env
 }
 
-resources.toEnvironmentMapping = function ({
+Resources.environmentForStack = function ({ StackResourceSummaries }) {
+  const env = {}
+  StackResourceSummaries
+    .filter(({ ResourceType }) => Resources.isMappedType(ResourceType))
+    .forEach(summary => {
+      const { key, value } = Resources.toEnvironmentMapping(summary)
+      env[key] = value
+    })
+
+  return env
+}
+
+Resources.toEnvironmentMapping = function ({
   ResourceType,
   PhysicalResourceId,
   LogicalResourceId
@@ -61,7 +73,7 @@ resources.toEnvironmentMapping = function ({
   }
 }
 
-resources.fromEnvironmentMapping = function (key, value) {
+Resources.fromEnvironmentMapping = function (key, value) {
   if (key.slice(0, ENV_RESOURCE_PREFIX.length) !== ENV_RESOURCE_PREFIX) {
     return
   }
@@ -83,12 +95,12 @@ function deflateResourceType (type) {
 }
 
 try {
-  const resources = require(RESOURCES_ENV_PATH)
-  resources.set(resources)
+  const rEnd = require(RESOURCES_ENV_PATH)
+  Resources.set(rEnd)
 } catch (err) {
-  debug('environment resources file not found')
+  debug('environment Resources file not found')
 }
 
-resources.set(process.env)
+Resources.set(process.env)
 
-module.exports = resources
+module.exports = Resources

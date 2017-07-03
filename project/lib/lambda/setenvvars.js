@@ -2,6 +2,6 @@
 const wrap = require('../wrap')
 
 exports.handler = wrap(function* (event, context) {
-  return require('../utils').environment()
+  return require('../utils').resources()
 })
 

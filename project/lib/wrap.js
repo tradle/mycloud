@@ -198,11 +198,15 @@ function smart (fn, opts={}) {
     type
   } = opts
 
-  const postProcess = type && postProcessors[type]
-  if (type && !postProcess) {
-    throw new Error(`unsupported event type: ${type}`)
+  let postProcess
+  if (type) {
+    postProcess = postProcessors[type]
+    if (!postProcess) {
+      throw new Error(`unsupported event type: ${type}`)
+    }
   }
 
+  debug(`will discover services: ${!!environment}`)
   const prepare = environment ? discoverServices() : RESOLVED
   return co(function* (...args) {
     const callback = logify(args.pop())

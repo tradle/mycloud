@@ -6,5 +6,5 @@ const REGIOn = 'us-east-1'
 console.log(utils.launchStackUrl({
   templateURL: process.argv[2],
   region: 'us-east-1',
-  stackName: 'mytradle'
+  stackName: 'tradle'
 }))

@@ -75,6 +75,7 @@ function getBucket (bucket) {
   })
 
   logified.name = bucket
+  logified.id = bucket
   logified.toString = () => bucket
   return logified
 }

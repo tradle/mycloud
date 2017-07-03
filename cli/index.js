@@ -10,6 +10,7 @@ const promisify = require('pify')
 const fs = promisify(require('fs'))
 const mkdirp = promisify(require('mkdirp'))
 const program = require('commander')
+const Discovery = require('../project/lib/discovery')
 const co = require('../project/lib/utils').loudCo
 const aws = require('../project/lib/aws')
 // const { PublicConfBucket } = require('../project/lib/buckets')
@@ -93,6 +94,7 @@ program
   .command('destroy')
   .action(co(function* (cmd, options={}) {
     try {
+      yield Discovery.discoverServices()
       yield clear()
     } catch (err) {
       console.error(err.stack)

@@ -6,7 +6,7 @@ const { cachify, extend } = require('./utils')
 const { toCamelCase } = require('./string-utils')
 // const BUCKET_NAMES = ['SecretsBucket', 'ObjectsBucket', 'PublicConfBucket']
 const cachifiable = {
-  ObjectsBucket: true
+  // ObjectsBucket: true
 }
 
 const CACHE_OPTS = {

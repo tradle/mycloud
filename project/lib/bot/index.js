@@ -13,7 +13,6 @@ const { TYPE } = constants
 const createUsers = require('./users')
 const createHistory = require('./history')
 const createSeals = require('./seals')
-const Resources = require('../resources')
 const TESTING = process.env.NODE_ENV === 'test'
 const promisePassThrough = data => Promise.resolve(data)
 // const methodToExecutor = {
@@ -46,10 +45,10 @@ function createBot (opts={}) {
     provider,
     errors,
     constants,
-    tables
+    tables,
+    buckets
   } = tradle
 
-  const { UsersTable } = tables
   const sealsAPI = createSeals(tradle)
   const normalizeInput = co(function* (data) {
     data.bot = bot
@@ -198,7 +197,7 @@ function createBot (opts={}) {
 
   bot.seals = sealsAPI
   bot.users = users || createUsers({
-    table: UsersTable,
+    table: tables.UsersTable,
     oncreate: user => invokers.onusercreate(user)
   })
 
@@ -211,10 +210,7 @@ function createBot (opts={}) {
     get: objects.getObjectByLink
   }
 
-  bot.resources = {
-    tables: Resources.Table,
-    buckets: Resources.Bucket
-  }
+  bot.resources = { tables, buckets }
 
   const invokers = {}
   bot.exports = {}

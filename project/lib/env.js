@@ -1,12 +1,21 @@
 const debug = require('debug')('tradle:sls:env')
 const clone = require('xtend')
-const pick = require('xtend/mutable')
+const extend = require('xtend/mutable')
 const { splitCamelCase } = require('./string-utils')
 
-const env = clone(
-  require('../../env'),
-  process.env
-)
+const env = clone(require('../../env'))
+env.set = obj => {
+  if (process.env !== obj) {
+    extend(process.env, obj)
+  }
+
+  extend(env, obj)
+}
+
+env.set(process.env)
+
+// this one might be set dynamically
+// env.__defineGetter__('IOT_ENDPOINT', () => process.env.IOT_ENDPOINT)
 
 const {
   SERVERLESS_STAGE,

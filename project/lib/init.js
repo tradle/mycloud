@@ -5,7 +5,14 @@ const deepEqual = require('deep-equal')
 const omit = require('object.omit')
 const clone = require('xtend')
 const { utils } = require('@tradle/engine')
-const { ORG } = require('./env')
+const {
+  ORG_NAME,
+  ORG_DOMAIN,
+  ORG_LOGO,
+  LOGO_UNKNOWN,
+  BLOCKCHAIN
+} = require('./env')
+
 const {
   buckets,
   constants,
@@ -16,6 +23,7 @@ const {
   provider
 } = require('./')
 
+const { exportKeys } = require('./crypto')
 const {
   TYPE,
   PUBLIC_CONF_BUCKET,
@@ -25,9 +33,9 @@ const {
 } = constants
 
 const ORG_PARAMS = {
-  name: ORG.ORG_NAME,
-  logo: ORG.ORG_LOGO,
-  domain: ORG.ORG_DOMAIN,
+  name: ORG_NAME,
+  logo: ORG_LOGO,
+  domain: ORG_DOMAIN,
 }
 
 function getHandleFromName (name) {
@@ -47,14 +55,14 @@ const defaults = {
   }
 }
 
-const ensureInitialized = co(function* (options) {
+const ensureInitialized = co(function* (options=ORG_PARAMS) {
   const initialized = yield isInitialized()
   if (!initialized) {
     yield init(options)
   }
 })
 
-const init = co(function* (options=ORG_PARAMS) {
+const init = co(function* (options) {
   const result = yield createProvider(options)
   yield push(result)
   return result
@@ -84,10 +92,19 @@ const createProvider = co(function* ({ name, domain, logo, force }) {
 
   if (!logo || !/^data:/.test(logo)) {
     const ImageUtils = require('./image-utils')
-    logo = yield ImageUtils.getLogo({ logo, domain })
+    try {
+      logo = yield ImageUtils.getLogo({ logo, domain })
+    } catch (err) {
+      debug(`unable to load logo for domain: ${domain}`)
+      logo = LOGO_UNKNOWN
+    }
   }
 
-  const priv = yield createIdentity()
+  const priv = yield createIdentity({
+    networkName: BLOCKCHAIN.networkName
+  })
+
+  debug('created identity', JSON.stringify(priv))
   const pub = omit(priv, 'keys')
   const org = yield provider.signObject({
     author: priv,
@@ -168,27 +185,29 @@ const clear = co(function* () {
   debug(`terminated provider ${priv && priv.link}`)
 })
 
-function createIdentity (opts) {
+function getTestIdentity () {
   const object = require('../test/fixtures/alice/identity.json')
   const keys = require('../test/fixtures/alice/keys.json')
   // keys = keys.map(utils.importKey)
   const link = utils.hexLink(object)
   const permalink = link
-  return Promise.resolve({
-    object,
-    keys,
-    link,
-    permalink
-  })
-
-  // return new Promise((resolve, reject) => {
-  //   utils.newIdentity(opts, function (err, result) {
-  //     if (err) return reject(err)
-
-  //     resolve(result)
-  //   })
-  // })
+  return { object, keys, link, permalink }
 }
+
+const _createIdentity = promisify(utils.newIdentity)
+const createIdentity = co(function* (opts) {
+  if (process.env.NODE_ENV === 'test') {
+    return getTestIdentity()
+  }
+
+  const { link, identity, keys } = yield _createIdentity(opts)
+  return {
+    link,
+    permalink: link,
+    object: identity,
+    keys: exportKeys(keys)
+  }
+})
 
 function getOrgObj ({ name, logo }) {
   return clone(defaults.org, {

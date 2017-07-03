@@ -96,6 +96,7 @@ provider:
   stage: ${{self:custom.stage}}
   region: us-east-1
   memorySize: 512
+  timeout: 60
   # deploymentBucket: io.tradle.${{self:custom.stage}}.deploys
   environment:
     IOT_TOPIC_PREFIX: ${{self:custom.topicPrefix}}
@@ -107,6 +108,9 @@ provider:
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
     BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
+    ORG_DOMAIN: silly.com
+    ORG_NAME: Silly
+    ORG_LOGO: ${{file(./env.json):LOGO_SILLY}}
     # TABLES: ${{self:custom.tables}}
     # BUCKETS: ${{self:custom.buckets}}
   iamRoleStatements:
@@ -289,7 +293,6 @@ functions:
 
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
-    timeout: 60
     memorySize: 512
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
@@ -305,7 +308,6 @@ functions:
 
   outbox2events:
     handler: project/lib/lambda/outbox-events.handler
-    timeout: 60
     memorySize: 512
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
@@ -321,7 +323,6 @@ functions:
 
   seal2events:
     handler: project/lib/lambda/seal-events.handler
-    timeout: 60
     memorySize: 512
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
@@ -490,14 +491,13 @@ functions:
 
   setenvvars:
     handler: project/lib/lambda/setenvvars.handler
-    timeout: 20
+    # hack to enable discovery own function's own stack
     description:
       Ref: AWS::StackId
 
   # public endpoint for clients to get public configuration / provider identity
   info:
     handler: project/lib/lambda/info.handler
-    timeout: 10
     memorySize: 256
       # SERVERLESS_STAGE: ${{self:custom.stage}}
       # SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -538,7 +538,6 @@ functions:
   sealpending:
     handler: project/lib/lambda/sealpending.handler
     memorySize: 1024
-    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)
@@ -549,7 +548,6 @@ functions:
   pollchain:
     handler: project/lib/lambda/pollchain.handler
     memorySize: 1024
-    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)

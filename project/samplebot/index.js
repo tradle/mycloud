@@ -1,4 +1,5 @@
 const debug = require('debug')('λ:samplebot')
+const co = require('co').wrap
 const validateModels = require('@tradle/validate-model')
 const models = require('./models')
 // const baseModels = require('@tradle/models').models
@@ -22,6 +23,14 @@ function getProductModelIds (models) {
 const createBot = require('../lib/bot')
 const bot = createBot({})
 deployTradleStrategy.install(bot)
+bot.onmessage(co(function* ({ user, type }) {
+  if (type === 'tradle.ForgetMe') {
+    yield bot.send({
+      to: user.id,
+      object: `sorry baby, you're unforgettable! I'll forget all your data though.`
+    })
+  }
+}))
 
 module.exports = bot.exports
 

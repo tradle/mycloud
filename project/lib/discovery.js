@@ -7,90 +7,91 @@ const co = require('co').wrap
 const extend = require('xtend/mutable')
 const Resources = require('./resources')
 const aws = require('./aws')
+const { invoke, getStack, getConfiguration } = require('./lambda-utils')
 const Iot = require('./iot-utils')
-const {
-  RESOURCES_ENV_PATH
-} = require('./env')
+const ENV = require('./env')
 
 const updateEnvironment = co(function* ({ functionName, current, update }) {
   if (!current) {
-    current = yield aws.lambda.getFunctionConfiguration({
-      FunctionName: functionName
-    }).promise()
+    current = yield getConfiguration(functionName)
   }
 
   const updated = {}
   const { Variables } = current.Environment
   for (let key in update) {
-    if (key in Variables) {
-    //   debug(`refusing to override environment variable: ${key}`)
-    // } else {
+    if (Variables[key] !== update[key]) {
       updated[key] = update[key]
     }
   }
 
-  if (Object.keys(updated)) {
-    extend(Variables, updated)
-    yield aws.lambda.updateFunctionConfiguration({
-      FunctionName: functionName,
-      Environment: { Variables }
-    }).promise()
+  if (!Object.keys(updated).length) {
+    debug(`not updating "${functionName}", no new environment variables`)
+    return
   }
+
+  debug(`updating "${functionName}" with new environment variables`)
+  extend(Variables, updated)
+  yield aws.lambda.updateFunctionConfiguration({
+    FunctionName: functionName,
+    Environment: { Variables }
+  }).promise()
 })
 
 function getServiceDiscoveryFunctionName () {
   // function naming is ${service}-${stage}-${name}
   const thisFunctionName = getThisFunctionName()
-  const parts = thisFunctionName.split('-')
-  parts[parts.length - 1] = 'setenvvars'
-  return parts.join('-')
-}
-
-const discoverServices = co(function* () {
-  const thisFunctionName = getThisFunctionName()
-  let env
-  if (thisFunctionName.endsWith('-setenvvars')) {
-    env = yield doDiscoverServices()
-  } else {
-    debug('delegating service discovery')
-    const result = yield aws.lambda.invoke({
-      // hackity hack
-      FunctionName: getServiceDiscoveryFunctionName(),
-      InvocationType: 'RequestResponse',
-      Payload: '{}'
-    }).promise()
-
-    env = JSON.parse(result.Payload)
-    debug('received env', JSON.stringify(env))
+  if (thisFunctionName) {
+    const parts = thisFunctionName.split('-')
+    parts[parts.length - 1] = 'setenvvars'
+    return parts.join('-')
   }
 
-  extend(process.env, env)
+  const {
+    SERVERLESS_STAGE,
+    SERVERLESS_SERVICE_NAME
+  } = require('./env')
+
+  return `${SERVERLESS_SERVICE_NAME}-${SERVERLESS_STAGE}-setenvvars`
+}
+
+const discoverServices = co(function* (StackName) {
+  const thisFunctionName = getThisFunctionName()
+  let env
+  if (thisFunctionName && thisFunctionName.endsWith('-setenvvars')) {
+    env = yield doDiscoverServices(StackName)
+  } else {
+    debug('delegating service discovery')
+    env = yield invoke({
+      // hackity hack
+      name: getServiceDiscoveryFunctionName(),
+      sync: true
+    })
+
+    debug('received env', env)
+  }
+
+  ENV.set(env)
   Resources.set(env)
   return env
 })
 
-const doDiscoverServices = co(function* () {
+const doDiscoverServices = co(function* (StackName) {
   debug('performing service discovery')
   const thisFunctionName = getThisFunctionName()
   const promiseIotEndpoint = Iot.getEndpoint()
-  const myConfig = yield aws.lambda.getFunctionConfiguration({
-    FunctionName: thisFunctionName
-  }).promise()
-
-  const { StackResourceSummaries } = yield aws.cloudformation.listStackResources({
-    StackName: myConfig.Description
-  }).promise()
-
-  const env = {
-    IOT_ENDPOINT: yield promiseIotEndpoint
+  let thisFunctionConfig
+  if (!StackName) {
+    thisFunctionConfig = yield getConfiguration(thisFunctionName)
+    StackName = thisFunctionConfig.Description
+    if (!StackName.startsWith('arn:aws:cloudformation')) {
+      throw new Error(`expected function ${thisFunctionName} Description to contain Ref: StackId`)
+    }
   }
 
-  StackResourceSummaries
-    .filter(({ ResourceType }) => Resources.isMappedType(ResourceType))
-    .forEach(summary => {
-      const { key, value } = Resources.toEnvironmentMapping(summary)
-      env[key] = value
-    })
+  const { StackResourceSummaries } = yield getStack(StackName)
+  const env = extend({
+    IOT_ENDPOINT: yield promiseIotEndpoint
+  }, Resources.environmentForStack({ StackResourceSummaries }))
 
   const willWrite = StackResourceSummaries.every(({ ResourceStatus }) => {
     return ResourceStatus === 'CREATE_COMPLETE' ||
@@ -106,9 +107,10 @@ const doDiscoverServices = co(function* () {
     yield Promise.all(functions.map(({ PhysicalResourceId }) => {
       let current
       if (PhysicalResourceId === thisFunctionName) {
-        current = myConfig
+        current = thisFunctionConfig
       }
 
+      debug(`updating environment variables for: ${PhysicalResourceId}`)
       return updateEnvironment({
         functionName: PhysicalResourceId,
         update: env,
@@ -129,6 +131,7 @@ function getThisFunctionName () {
 }
 
 const saveToLocalFS = co(function* (vars) {
+  const { RESOURCES_ENV_PATH } = ENV
   try {
     yield mkdirp(path.dirname(RESOURCES_ENV_PATH))
     yield fs.writeFile(RESOURCES_ENV_PATH, JSON.stringify(vars, null, 2))

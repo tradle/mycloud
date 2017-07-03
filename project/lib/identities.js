@@ -9,11 +9,11 @@ const { firstSuccess, logify, typeforce } = require('./utils')
 const { addLinks } = require('./crypto')
 const types = require('./types')
 const Events = require('./events')
-const { PubKeysTable } = require('./tables')
+const Tables = require('./tables')
 
 function getIdentityMetadataByPub (pub) {
   debug('get identity metadata by pub')
-  return PubKeysTable.get({
+  return Tables.PubKeysTable.get({
     Key: { pub }
   })
 }
@@ -37,7 +37,7 @@ function getIdentityByPermalink (permalink) {
   }
 
   debug('get identity by permalink')
-  return PubKeysTable.findOne(params)
+  return Tables.PubKeysTable.findOne(params)
     .then(({ link }) => Objects.getObjectByLink(link))
 }
 
@@ -137,7 +137,7 @@ const addContact = co(function* ({ link, permalink, object }) {
 
 function putPubKey ({ link, permalink, pub }) {
   debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
-  return PubKeysTable.put({
+  return Tables.PubKeysTable.put({
     Item: {
       link,
       permalink,

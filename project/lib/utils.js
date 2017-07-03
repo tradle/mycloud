@@ -317,7 +317,7 @@ exports.domainToUrl = function domainToUrl (domain) {
   return domain
 }
 
-exports.environment = function () {
+exports.resources = function () {
   const env = Resources.environment()
   env.IOT_ENDPOINT = ENV.IOT_ENDPOINT
   return env
