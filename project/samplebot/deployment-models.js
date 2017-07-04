@@ -1,13 +1,13 @@
 
-module.exports = {
-  'tradle.aws.Deployment': {
+module.exports = namespace => {
+  `${namespace}.Deployment`: {
     type: 'tradle.Model',
     title: 'Tradle in AWS',
-    id: 'tradle.aws.Deployment',
+    id: `${namespace}.Deployment`,
     interfaces: ['tradle.Message'],
     subClassOf: 'tradle.FinancialProduct',
     forms: [
-      'tradle.aws.Configuration'
+      `${namespace}.Configuration`
     ],
     properties: {
       scale: {
@@ -15,10 +15,10 @@ module.exports = {
       }
     }
   },
-  'tradle.aws.Configuration': {
+  `${namespace}.Configuration`: {
     type: 'tradle.Model',
     title: 'AWS Configuration',
-    id: 'tradle.aws.Configuration',
+    id: `${namespace}.Configuration`,
     interfaces: ['tradle.Message'],
     subClassOf: 'tradle.Form',
     properties: {
@@ -41,10 +41,10 @@ module.exports = {
       // }
     }
   },
-  'tradle.aws.ProductDefinition': {
+  `${namespace}.ProductDefinition`: {
     type: 'tradle.Model',
     title: 'Product Definition',
-    id: 'tradle.aws.ProductDefinition',
+    id: `${namespace}.ProductDefinition`,
     interfaces: ['tradle.Message'],
     subClassOf: 'tradle.Form',
     properties: {

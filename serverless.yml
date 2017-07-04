@@ -108,9 +108,9 @@ provider:
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
     BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
-    ORG_DOMAIN: silly.com
-    ORG_NAME: Silly
-    ORG_LOGO: ${{file(./env.json):LOGO_SILLY}}
+    ORG_DOMAIN: tradle.io
+    ORG_NAME: Tradle
+    ORG_LOGO: ${{file(./env.json):LOGO_TRADLE}}
     # TABLES: ${{self:custom.tables}}
     # BUCKETS: ${{self:custom.buckets}}
   iamRoleStatements:

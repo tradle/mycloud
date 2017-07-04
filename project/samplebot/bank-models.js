@@ -1,8 +1,8 @@
-module.exports = {
-  'tradle.aws.CurrentAccount': {
+module.exports = namespace => {
+  `${namespace}.CurrentAccount`: {
     type: 'tradle.Model',
     title: 'Current Account',
-    id: 'tradle.aws.CurrentAccount',
+    id: `${namespace}.CurrentAccount`,
     interfaces: ['tradle.Message'],
     subClassOf: 'tradle.FinancialProduct',
     forms: [

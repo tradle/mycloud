@@ -6,13 +6,22 @@ const validateModels = require('@tradle/validate-model')
 // const extend = require('xtend/mutable')
 // validateModels(extend(models, toObject(baseModels), toObject(customModels)))
 const DEPLOYMENT = 'tradle.aws.Deployment'
-const { PRODUCT=DEPLOYMENT } = process.env
-const models = PRODUCT === DEPLOYMENT
-  ? require('./deployment-models')
-  : require('./bank-models')
+const {
+  PRODUCT=DEPLOYMENT,
+  ORG_DOMAIN
+} = process.env
+
+const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
+const models = (function () {
+  const gen = PRODUCT === DEPLOYMENT
+    ? require('./deployment-models')
+    : require('./bank-models')
+
+  return gen(NAMESPACE)
+}())
 
 const deployTradleStrategy = require('@tradle/bot-products')({
-  namespace: 'tradle.aws',
+  namespace: NAMESPACE,
   models: models,
   products: [PRODUCT],
   handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
