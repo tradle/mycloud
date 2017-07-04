@@ -27,22 +27,22 @@ const saveIdentityAndKeys = co(function* (err, result) {
 
   yield [
     s3.createBucket({
-      Bucket: config.secretsBucket
+      Bucket: config.Secrets
     }).promise(),
     s3.createBucket({
-      Bucket: config.objectsBucket
+      Bucket: config.Objects
     }).promise()
   ];
 
   // TODO: encrypt
   yield [
     s3.putObject({
-      Bucket: config.secretsBucket,
+      Bucket: config.Secrets,
       Key: config.identityKeysKey,
       Body: JSON.stringify({ link, identity, keys })
     }).promise(),
     s3.putObject({
-      Bucket: config.objectsBucket,
+      Bucket: config.Objects,
       Key: link,
       Body: JSON.stringify({ link, permalink, object: identity })
     }).promise()

@@ -18,7 +18,7 @@ const ENV = require('./env')
 
 // const onExit = co(function* ({ clientId }) {
 //   try {
-//     yield Tables.PresenceTable.del({
+//     yield Tables.Presence.del({
 //       KeyConditionExpression: '#clientId = :clientId',
 //       ExpressionAttributeNames: {
 //         '#clientId': 'clientId'
@@ -28,7 +28,7 @@ const ENV = require('./env')
 //       }
 //     })
 //   } catch (err) {
-//     debug(`Failed to delete clientId => permalink mapping in ${PresenceTable}`, err)
+//     debug(`Failed to delete clientId => permalink mapping in ${Presence}`, err)
 //   }
 // })
 
@@ -56,26 +56,26 @@ const onAuthenticated = co(function* ({ clientId, permalink, clientPosition, ser
 
   // allow multiple sessions for the same user?
   // yield deleteSessionsByPermalink(permalink)
-  yield Tables.PresenceTable.put({ Item: session })
+  yield Tables.Presence.put({ Item: session })
 })
 
 function updatePresence ({ clientId, connected }) {
   const params = getUpdateParams({ connected })
   params.Key = getKeyFromClientId(clientId)
-  return Tables.PresenceTable.update(params)
+  return Tables.Presence.update(params)
 }
 
 function deleteSession (clientId) {
   const Key = getKeyFromClientId(clientId)
-  return Tables.PresenceTable.del({ Key })
+  return Tables.Presence.del({ Key })
 }
 
 function deleteSessionsByPermalink (permalink) {
-  return Tables.PresenceTable.del(getSessionsByPermalinkQuery)
+  return Tables.Presence.del(getSessionsByPermalinkQuery)
 }
 
 function getSessionsByPermalink (permalink) {
-  return Tables.PresenceTable.find(getSessionsByPermalinkQuery(permalink))
+  return Tables.Presence.find(getSessionsByPermalinkQuery(permalink))
 }
 
 function getSessionsByPermalinkQuery (permalink) {
@@ -105,7 +105,7 @@ const getLiveSessionByPermalink = co(function* (permalink) {
 })
 
 function getSession ({ clientId }) {
-  return Tables.PresenceTable.findOne({
+  return Tables.Presence.findOne({
     KeyConditionExpression: 'permalink = :permalink AND clientId = :clientId',
     ExpressionAttributeValues: {
       ':clientId': clientId,
@@ -118,7 +118,7 @@ function getSession ({ clientId }) {
 const createChallenge = co(function* ({ clientId, permalink }) {
   // const permalink = getPermalinkFromClientId(clientId)
   const challenge = randomString(32)
-  yield Tables.PresenceTable.put({
+  yield Tables.Presence.put({
     Item: {
       clientId,
       permalink,
@@ -151,7 +151,7 @@ const handleChallengeResponse = co(function* (response) {
   const { clientId, permalink, challenge, position } = response
 
   // const permalink = getPermalinkFromClientId(clientId)
-  const stored = yield Tables.PresenceTable.get({
+  const stored = yield Tables.Presence.get({
     Key: { clientId, permalink }
   })
 

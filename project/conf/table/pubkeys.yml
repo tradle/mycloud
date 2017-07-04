@@ -1,6 +1,6 @@
 Type: AWS::DynamoDB::Table
 Properties:
-  TableName: PubKeysTable
+  TableName: PubKeys
   AttributeDefinitions:
     - AttributeName: pub
       AttributeType: S

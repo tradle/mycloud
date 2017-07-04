@@ -14,7 +14,7 @@ process.env.SERVERLESS_SERVICE = 'tradle'
   'Presence',
   'Users'
 ].forEach(table => {
-  process.env[`CF_Table_${table}Table`] = `${table}TableTest`
+  process.env[`R_TABLE_${table}`] = `${table}Test`
 })
 
 ;[
@@ -22,12 +22,12 @@ process.env.SERVERLESS_SERVICE = 'tradle'
   'Secrets',
   'PublicConf',
 ].forEach(bucket => {
-  process.env[`CF_Bucket_${bucket}Bucket`] = `${bucket}BucketTest`
+  process.env[`R_BUCKET_${bucket}`] = `${bucket}Test`
 })
 
 ;[
   'bot_onmessage',
   'bot_onsealevent'
 ].forEach(fn => {
-  process.env[`CF_Function_${fn}Function`] = `${fn}FunctionTest`
+  process.env[`R_FUNCTION_${fn}`] = `${fn}Test`
 })

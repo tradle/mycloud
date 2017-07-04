@@ -1,0 +1,931 @@
+service: tradle
+frameworkVersion: ">=1.5.0 <2.0.0"
+
+plugins:
+  # - serverless-resources-env
+  - serverless-plugin-tracing
+  - serverless-sam
+  # - serverless-dynamodb-ttl
+  # - serverless-plugin-write-env-vars
+  # - serverless-plugin-include-dependencies
+  # - serverless-dynamodb-local
+  # - serverless-offline
+
+package:
+  # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
+  exclude:
+    - .git/**
+    - .serverless/**
+    - scripts/**
+    - node_modules/**
+    - simulate/**
+    - ./**/*.log
+
+custom:
+  defaultStage: dev
+  prefix: ${{self:service}}-${{self:provider.stage}}-
+  tablePrefix: ${{self:custom.prefix}}
+  rolePrefix: ${{self:custom.prefix}}
+  topicPrefix: tradle-
+  stage: ${{opt:stage, self:custom.defaultStage}}
+  region: ${{opt:region, self:provider.region}}
+  # hostedZoneName: tradle.io
+  # domainName: lambda1.tradle.io
+  # accountId: ${{file(./env.json):ACCOUNT_ID}}
+  pushServer: https://push1.tradle.io
+  blockchain: bitcoin:testnet
+
+  # bot hooks
+  bot_onmessage: bot_onmessage
+  bot_onsealevent: bot_onsealevent
+  bot_onpresence: bot_onpresence
+
+  tables:
+    presence: ${{self:custom.tablePrefix}}presence
+    seals: ${{self:custom.tablePrefix}}seals
+    pubkeys: ${{self:custom.tablePrefix}}pubkeys
+    inbox: ${{self:custom.tablePrefix}}inbox
+    outbox: ${{self:custom.tablePrefix}}outbox
+    events: ${{self:custom.tablePrefix}}events
+    # pushsubscribers: ${{self:custom.tablePrefix}}pushsubscribers
+    users: ${{self:custom.tablePrefix}}users
+
+  # to make available in lambda's environment
+  # resource_names:
+  #   # - ServerlessDeploymentBucket
+  #   - ObjectsBucket
+  #   - SecretsBucket
+  #   - EventsTable
+  #   - PresenceTable
+  #   - PubKeysTable
+  #   - InboxTable
+  #   - OutboxTable
+  #   - SealsTable
+  #   - UsersTable
+  #   - PublicConfBucket
+  #   # - PrivateConfBucket
+  #   - IotClientRole
+
+#   secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
+  # dynamodb:
+  #   start:
+  #     port: 8000
+  #     inMemory: true
+  #     migration: true
+  #   migration:
+  #     dir: offline/migrations
+
+provider:
+  # avoid some bugs in serverless
+  versionFunctions: false
+  tracing: true
+  # variableSyntax: '\${{([\s\S]+?)}}'
+  # variableSyntax: "\${{([\s\S]+?)}}"
+  variableSyntax: "\\${{([\\s\\S]+?)}}"
+  name: aws
+  runtime: nodejs6.10
+  profile: serverless
+  stage: ${{self:custom.stage}}
+  region: us-east-1
+  memorySize: 512
+  timeout: 60
+  # deploymentBucket: io.tradle.${{self:custom.stage}}.deploys
+  environment:
+    IOT_TOPIC_PREFIX: ${{self:custom.topicPrefix}}
+    # declare
+    IOT_ENDPOINT: ''
+    BLOCKCHAIN: ${{self:custom.blockchain}}
+    DEBUG: tradle:*,λ*
+    SERVERLESS_PREFIX: ${{self:custom.prefix}}
+    SERVERLESS_STAGE: ${{self:custom.stage}}
+    SERVERLESS_SERVICE_NAME: ${{self:service}}
+    PUSH_SERVER_URL: ${{self:custom.pushServer}}
+    BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
+    ORG_DOMAIN: tradle.io
+    ORG_NAME: Tradle
+    ORG_LOGO: ${{file(./env.json):LOGO_TRADLE}}
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem
+        - dynamodb:DescribeStream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:ListStreams
+      Resource:
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.events}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.presence}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.outbox}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}/index/*'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pushsubscribers}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}/index/*'
+
+    # so lambdas can list resources in their stack
+    - Effect: Allow
+      Action:
+        - cloudformation:ListStackResources
+      Resource: ["*"]
+
+    # allow lambdas to update themselves
+    - Effect: Allow
+      Action:
+        - lambda:UpdateFunctionConfiguration
+        - lambda:GetFunctionConfiguration
+      Resource:
+        - Fn::Sub: 'arn:aws:lambda:${{self:custom.region}}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
+
+    # allow access to bucket
+    # TODO: give access only to the lambdas that need it
+    - Effect: Allow
+      Action:
+        # needed to get NoSuchKey error instead of AccessDenied for non-existent items
+        # https://forums.aws.amazon.com/thread.jspa?threadID=56531
+        - s3:ListBucket
+      Resource:
+        # - arn:aws:s3:::${{self:provider.deploymentBucket}}
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: PublicConfBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ObjectsBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: SecretsBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
+
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        # needed to create an object with public-read
+        - s3:PutObjectAcl
+        - s3:GetObject
+        # needed to check existence
+        - s3:HeadObject
+      Resource:
+        # - arn:aws:s3:::${{self:provider.deploymentBucket}}/*
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: PublicConfBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ObjectsBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: SecretsBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
+
+    # REMOVE in prod
+    # allow access to buckets from the console
+    - Effect: Allow
+      Action:
+        - s3:GetBucketLocation
+        - s3:ListAllMyBuckets
+      Resource: "arn:aws:s3:::*"
+
+    # allow lambdas to call each other
+    # TODO: make this more fine grained
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+        - lambda:InvokeAsync
+      Resource: "*"
+
+    # Iot
+    - Effect: Allow
+      Action: ["iot:Connect", "iot:Subscribe", "iot:Publish", "iot:Receive", "iot:DescribeEndpoint"]
+      Resource: ["*"]
+
+    # gen Iot temp credentials (lambda: preauth)
+    - Effect: Allow
+      Action:
+        - sts:AssumeRole
+      Resource:
+        - Fn::GetAtt:
+          - IotClientRole
+          - Arn
+    - Effect: Allow
+      Action:
+        - xray:PutTraceSegments
+        - xray:PutTelemetryRecords
+      Resource: "*"
+    - Effect: Allow
+      Sid: AllowCloudFrontUpdateDistribution
+      Action:
+        - cloudfront:updateDistribution
+      Resource: ["*"]
+
+      # Resource: "*"
+   # - Effect: "Allow"
+   #   Action:
+   #     - "s3:GetObject"
+   #   Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+   # - Effect: "Allow"
+   #   Action:
+   #     - "s3:PutObject"
+   #   Resource:
+   #     Fn::Join:
+   #       - ""
+   #       - - "arn:aws:s3:::"
+   #         - "Ref" : "ServerlessDeploymentBucket"
+   #         - "/*"
+
+functions:
+  preauth:
+    handler: project/lib/lambda/http/preauth.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: tradle/preauth
+          method: post
+          cors: true
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+  auth:
+    handler: project/lib/lambda/http/auth.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: tradle/auth
+          method: post
+          cors: true
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+  # createevent:
+  #   handler: project/lib/lambda/createevent.handler
+  #   memorySize: 512
+
+  inbox2events:
+    handler: project/lib/lambda/inbox-events.handler
+    memorySize: 512
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - InboxTable
+              - StreamArn
+
+  outbox2events:
+    handler: project/lib/lambda/outbox-events.handler
+    memorySize: 512
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - OutboxTable
+              - StreamArn
+
+  seal2events:
+    handler: project/lib/lambda/seal-events.handler
+    memorySize: 512
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - SealsTable
+              - StreamArn
+
+  # log:
+  #   handler: project/lib/lambda/log.handler
+  #   # package:
+  #   #   exclude:
+  #   #     - node_modules/
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - SecretsBucket
+  #       - ObjectsBucket
+  #       - PresenceTable
+  #       - EventsTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
+
+    # events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 20
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - EventsTable
+  #             - StreamArn
+
+  # triggered when an internal bot requests a message range (inbound messages)
+  # inbox:
+  #   handler: project/lib/lambda/inbox.handler
+  #   memorySize: 1024
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * as data, topic() as topic FROM 'messages/get'"
+
+  # triggered when a client requests a message range (outbound messages)
+  # outbox:
+  #   handler: project/lib/lambda/outbox.handler
+  #   memorySize: 1024
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * as data, topic() as topic FROM '+/restore'"
+
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - ObjectsBucket
+  #       - SecretsBucket
+  #       - EventsTable
+  #       - PresenceTable
+  #       - PubKeysTable
+  #       - InboxTable
+  #       - OutboxTable
+  #       - PublicConfBucket
+
+  onconnect:
+    handler: project/lib/lambda/mqtt/onconnect.handler
+    events:
+      - iot:
+          sql: "SELECT * FROM '$aws/events/presence/connected/#'"
+    #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  ondisconnect:
+    handler: project/lib/lambda/mqtt/ondisconnect.handler
+    events:
+      - iot:
+          sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
+    #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  # triggered when a client subscribes to an MQTT topic
+  onsubscribe:
+    handler: project/lib/lambda/mqtt/onsubscribe.handler
+    memorySize: 1024
+    events:
+      - iot:
+          sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  # triggered when a client sends a message
+  onmessage:
+    handler: project/lib/lambda/mqtt/onmessage.handler
+    memorySize: 1024
+    #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
+    #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
+    #   SERVERLESS_STAGE: ${{self:custom.stage}}
+    #   SERVERLESS_SERVICE_NAME: ${{self:service}}
+    events:
+      - iot:
+          sql: "SELECT * as data, clientid() as clientId FROM '${{self:custom.topicPrefix}}message'"
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  onmessage_http:
+    handler: project/lib/lambda/http/onmessage.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: tradle/message
+          method: put
+          cors: true
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  # useful during development
+  # trigger a message to be queued/sent
+  send:
+    handler: project/lib/lambda/send.handler
+    memorySize: 1024
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  # echo bot (business logic layer)
+  bot_onmessage:
+    handler: project/samplebot/index.onmessage
+    memorySize: 1024
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  bot_onsealevent:
+    handler: project/samplebot/index.onsealevent
+    memorySize: 1024
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - SealsTable
+              - StreamArn
+
+  # addcontact:
+  #   handler: project/lib/lambda/add-contact.handler
+  #   environment:
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - ObjectsBucket
+  #       - PubKeysTable
+
+  identity:
+    handler: project/lib/lambda/identity.handler
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  setenvvars:
+    handler: project/lib/lambda/setenvvars.handler
+    # hack to enable discovery own function's own stack
+    description:
+      Ref: AWS::StackId
+
+  # public endpoint for clients to get public configuration / provider identity
+  info:
+    handler: project/lib/lambda/info.handler
+    memorySize: 256
+      # SERVERLESS_STAGE: ${{self:custom.stage}}
+      # SERVERLESS_SERVICE_NAME: ${{self:service}}
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - http:
+          path: tradle/info
+          method: get
+          cors: true
+
+  # initialize provider identity
+  # init:
+  #   handler: project/lib/lambda/init.handler
+  #   memorySize: 512
+  #   environment:
+  #     BLOCKCHAIN: testnet
+  #     DEBUG: tradle:*
+  #   custom:
+  #     env-resources:
+  #       - SecretsBucket
+  #       - ObjectsBucket
+  #       - PubKeysTable
+  #       - PublicConfBucket
+
+  # Blockchain
+
+  faucet_bitcoin:
+    handler: project/lib/lambda/faucet-bitcoin.withdraw
+
+  recharge:
+    handler: project/lib/lambda/recharge.handler
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          enabled: false
+
+  sealpending:
+    handler: project/lib/lambda/sealpending.handler
+    memorySize: 1024
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          enabled: false
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  pollchain:
+    handler: project/lib/lambda/pollchain.handler
+    memorySize: 1024
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          enabled: false
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+    # environment:
+    #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
+    #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
+
+
+resources:
+  Resources:
+    ObjectsBucket:
+      Type: "AWS::S3::Bucket"
+      Description: content-addressed storage for all objects
+
+    SecretsBucket:
+      Type: "AWS::S3::Bucket"
+      Description: stuff
+
+    # PrivateConfBucket:
+    #   Type: "AWS::S3::Bucket"
+    #   Properties:
+
+    PublicConfBucket:
+      Type: "AWS::S3::Bucket"
+      Description: public configuration, e.g. identity, styles, logo, etc.
+      # Properties:
+      #   AccessControl: PublicRead
+
+    # EventsTable: ${{file(./project/conf/table/events.yml)}}
+    EventsTable:
+      Type: AWS::DynamoDB::Table
+      Description: source of truth
+      Properties:
+        TableName: ${{self:custom.tables.events}}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+
+    # PubKeysTable: ${{file(./project/conf/table/pubkeys.yml)}}
+    PubKeysTable:
+      Type: AWS::DynamoDB::Table
+      Description: maps pub keys to identities
+      Properties:
+        TableName: ${{self:custom.tables.pubkeys}}
+        AttributeDefinitions:
+          - AttributeName: pub
+            AttributeType: S
+          - AttributeName: permalink
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pub
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: permalink
+            KeySchema:
+              - AttributeName: permalink
+                KeyType: HASH
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - link
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+
+    # bodies rot in s3
+    # InboxTable: ${{file(./project/conf/table/inbox.yml)}}
+    InboxTable:
+      Type: AWS::DynamoDB::Table
+      Description: inbound messages from users
+      Properties:
+        TableName: ${{self:custom.tables.inbox}}
+        AttributeDefinitions:
+          - AttributeName: author
+            AttributeType: S
+          # - AttributeName: ${{self:custom.props.seq}}
+          #   AttributeType: N
+          - AttributeName: link
+            AttributeType: S
+          - AttributeName: time
+            AttributeType: N
+        KeySchema:
+          - AttributeName: author
+            KeyType: HASH
+          - AttributeName: time
+            KeyType: RANGE
+          # - AttributeName: seq
+          #   KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        GlobalSecondaryIndexes:
+          - IndexName: link
+            KeySchema:
+              - AttributeName: link
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+
+    # OutboxTable: ${{file(./project/conf/table/outbox.yml)}}
+    OutboxTable:
+      Type: AWS::DynamoDB::Table
+      Description: outbound messages to users
+      Properties:
+        TableName: ${{self:custom.tables.outbox}}
+        AttributeDefinitions:
+          - AttributeName: recipient
+            AttributeType: S
+          - AttributeName: time
+            AttributeType: N
+        KeySchema:
+          - AttributeName: recipient
+            KeyType: HASH
+          - AttributeName: time
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    # SealsTable: ${{file(./project/conf/table/seals.yml)}}
+    SealsTable:
+      Type: AWS::DynamoDB::Table
+      Description: blockchain seals for objects
+      Properties:
+        TableName: ${{self:custom.tables.seals}}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: address
+            AttributeType: S
+          # 'y' vs null
+          - AttributeName: unconfirmed
+            AttributeType: S
+          - AttributeName: unsealed
+            AttributeType: S
+          - AttributeName: link
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        GlobalSecondaryIndexes:
+          - IndexName: unconfirmed
+            KeySchema:
+              - AttributeName: unconfirmed
+                KeyType: HASH
+              - AttributeName: address
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+          - IndexName: unsealed
+            KeySchema:
+              - AttributeName: unsealed
+                KeyType: HASH
+              - AttributeName: address
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+          - IndexName: link
+            KeySchema:
+              - AttributeName: link
+                KeyType: HASH
+            Projection:
+              ProjectionType: KEYS_ONLY
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+
+    # used by bot
+    # UsersTable: ${{file(./project/conf/table/users.yml)}}
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Description: per-user state objects
+      Properties:
+        TableName: ${{self:custom.tables.users}}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+    # stores mappings between identity permalink and ephemeral clientIds
+    # mappings are created after initial handshake and destroyed on disconnect
+    PresenceTable:
+      Type: AWS::DynamoDB::Table
+      Description: maps ephemeral mqtt client ids to identity permalinks
+      Properties:
+        TableName: ${{self:custom.tables.presence}}
+        AttributeDefinitions:
+          - AttributeName: clientId
+            AttributeType: S
+          - AttributeName: permalink
+            AttributeType: S
+        KeySchema:
+          - AttributeName: permalink
+            KeyType: HASH
+          - AttributeName: clientId
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+    # PushSubcribersTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Properties:
+    #     TableName: ${{self:custom.tables.pushsubscribers}}
+    #     AttributeDefinitions:
+    #       - AttributeName: subscriber
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: subscriber
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+
+    # IoT
+    # define IoT role
+    # IoTLambdaRole:
+    #   Type: AWS::IAM::Role
+    #   Properties:
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             AWS: arn:aws:iam:::root
+    #           Action:
+    #             - sts:AssumeRole
+
+    # A SKETCH, NOT REAL CLOUD FORMATION
+    # DAXCluster:
+    #   Type: AWS::DynamoDB::DAX
+    #   Properties:
+    #     ClusterName: TradleDAX
+    #     NodeType: dax.r3.large
+    #     ReplicationFactor: 3
+    #     IAMRoleArn: arn:aws:iam::${{self:custom.accountId}}:role/DAXRole
+    #     SubnetGroup: MySubnetGroup
+    #     Region: ${{self:provider.region}}
+
+    # DAXRole:
+    #   Type: AWS::IAM::Role
+    #   Properties:
+    #     RoleName: IotClientRole
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow,
+    #           Principal:
+    #             Service:
+    #               - dax.amazonaws.com
+    #           Action: sts:AssumeRole
+    #     Policies:
+    #       - PolicyName: DAXRole
+    #         PolicyDocument:
+    #           Version: "2012-10-17"
+    #           Statement:
+    #             - Effect: Allow
+    #               Action:
+    #                 - dynamodb:*
+    #               Resource:
+    #                 - arn:aws:dynamodb:us-west-2:${{self:custom.accountId}}:*
+
+    IotClientRole:
+      Type: AWS::IAM::Role
+      Description: role assumed by every connecting client
+      Properties:
+        RoleName: ${{self:custom.rolePrefix}}IotClientRole
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+                AWS:
+                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+                  # - arn:aws:iam::${{self:custom.accountId}}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole"
+                  # - Fn::Join" : [":", ["arn:aws:iam", { "Ref" : "AWS::Region" }, { "Ref" : "AWS::AccountId" }, "lambdaRole" ] ] }
+
+                # AWS: "arn:aws:iam::${{}}:role/${{self:custom.prefix}}lambdaRole"
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: IotClientRole
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - dynamodb:*
+                  Resource:
+                    - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/PresenceTable'
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: arn:aws:logs:::log-group:/aws/lambda/*:*:*
+                # restrict client connect by client id
+                - Effect: Allow
+                  Action: ["iot:Connect"]
+                  Resource: ["*"]
+                  # Resource: arn:aws:iot:::client/${iot:ClientId}
+
+                # allow all clients to publish to the send topic
+                - Effect: "Allow"
+                  Action: ["iot:Publish"]
+                  Resource: ["*"]
+                  # Resource:
+                  #   - arn:aws:iot:::topic/${{self:custom.topicPrefix}}message
+                  #   - arn:aws:iot:::topic/${{self:custom.topicPrefix}}restore
+
+                # restrict client topic subscriptions by their client id
+                - Effect: "Allow"
+                  Action: ["iot:Subscribe"]
+                  Resource: ["*"]
+                  # Resource: arn:aws:iot:::topicfilter/${{self:custom.topicPrefix}}${iot:ClientId}/*
+                # restrict messages clients receive by their client id
+                # this has the same function as the Subscribe rule above
+                # provided the Subscribe policy is upheld, this policy should always give a pass
+                - Effect: "Allow"
+                  Action: ["iot:Receive"]
+                  Resource: ["*"]
+                  # Resource: arn:aws:iot:::topic/${{self:custom.topicPrefix}}${iot:ClientId}/*
+      # SSLCertificate:
+      #   Type: "AWS::CloudFormation::Stack"
+      #   Properties:
+      #     Parameters:
+      #       domain: ${{file(./parameters.json):DomainName.Default}}
+      #       hostedZoneName: ${{file(./parameters.json):HostedZoneName.Default}}
+      #     TemplateURL: "https://s3-eu-west-1.amazonaws.com/is24-infrastructure-public/cloudformation/verified-ssl-certificate/ssl-certificate.template.yaml"
+
+    # Type: AWS::Route53::RecordSet
+    # Properties:
+    #   HostedZoneName: ${{self:custom.hostedZoneName}}
+    #   Comment: Tradle public API endpoint subdomain
+    #   Name:  !Join ['', [!Ref 'Ec2Instance', ., !Ref 'AWS::Region', ., !Ref 'HostedZone', .]]
+    #   Type: CNAME
+    #   ResourceRecords:
+    #   - Fn::GetAtt: Ec2Instance.PublicIp
+
+    # PathMapping:
+    #   Type: AWS::ApiGateway::BasePathMapping
+    #   # DependsOn: ApiGatewayRestApi
+    #   Properties:
+    #     BasePath: ${{self:custom.stage}}
+    #     DomainName: ${self:custom.domainName}
+    #     RestApiId:
+    #       Ref: ApiGatewayRestApi
+    #     Stage: ${self:custom.stage}

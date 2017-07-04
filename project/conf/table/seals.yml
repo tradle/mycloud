@@ -1,6 +1,6 @@
 Type: AWS::DynamoDB::Table
 Properties:
-  TableName: SealsTable
+  TableName: Seals
   AttributeDefinitions:
     - AttributeName: id
       AttributeType: S

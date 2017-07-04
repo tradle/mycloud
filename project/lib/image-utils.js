@@ -5,11 +5,11 @@ const co = require('co').wrap
 const promisify = require('pify')
 const DataURI = require('datauri')
 const request = require('superagent')
-const _getFaviconURL = promisify(require('favicon'))
+const { fetchFavicon } = require('@meltwater/fetch-favicon')
 const { domainToUrl } = require('./utils')
 const getFaviconURL = co(function* (siteURL) {
-  const faviconURL = yield _getFaviconURL(siteURL)
-  return getAbsoluteURL(siteURL, faviconURL)
+  const icon = yield fetchFavicon(siteURL)
+  return getAbsoluteURL(siteURL, icon)
 })
 
 const getFavicon = co(function* (siteURL) {

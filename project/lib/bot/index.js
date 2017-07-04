@@ -210,7 +210,7 @@ function createBot (opts={}) {
 
   bot.seals = sealsAPI
   bot.users = users || createUsers({
-    table: tables.UsersTable,
+    table: tables.Users,
     oncreate: user => processors.onusercreate(user)
   })
 

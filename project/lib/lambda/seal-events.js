@@ -1,6 +1,6 @@
 const debug = require('debug')('λ:seal-events')
 const replicator = require('../replicator')
-// replicate Inbox to EventsTable
+// replicate Inbox to Events
 
 exports.handler = replicator.toEvents(change => {
   return {

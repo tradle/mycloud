@@ -1,6 +1,6 @@
 Type: AWS::DynamoDB::Table
 Properties:
-  TableName: InboxTable
+  TableName: Inbox
   AttributeDefinitions:
     - AttributeName: author
       AttributeType: S

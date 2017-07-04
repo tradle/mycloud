@@ -1,3 +1,5 @@
+require('./env')
+
 const test = require('tape')
 const utf8length = require('utf8-length')
 const { batchBySize, MAX_PAYLOAD_SIZE, getMessageStub } = require('../lib/delivery')

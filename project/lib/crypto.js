@@ -36,7 +36,7 @@ function decryptKey (encryptedKey) {
 // function getIdentityKeys ({ decryptionKey, encoding }) {
 //   return getEncryptedJSON({
 //     decryptionKey,
-//     bucket: SecretsBucket,
+//     bucket: Secrets,
 //     key: IDENTITY_KEYS_KEY
 //   })
 // }

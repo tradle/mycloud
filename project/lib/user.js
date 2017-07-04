@@ -181,11 +181,11 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
 })
 
 const getProviderIdentity = co(function* () {
-  const { object } = yield Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
+  const { object } = yield Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
   return object
 })
 
-const onGetInfo = () => Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info)
+const onGetInfo = () => Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
 //   return yield {
 //     style: getProviderStyle(),
 //     identity: getProviderIdentity(),
@@ -194,7 +194,7 @@ const onGetInfo = () => Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.info
 // })
 
 // function getProviderStyle () {
-//   return Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.style)
+//   return Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.style)
 //     .catch(err => {
 //       debug('no styles found', err)
 //       return {}

@@ -1,6 +1,6 @@
 Type: AWS::DynamoDB::Table
 Properties:
-  TableName: ${{file(./vars.yml):prefix}}PushSubscribersTable
+  TableName: ${{file(./vars.yml):prefix}}PushSubscribers
   AttributeDefinitions:
     - AttributeName: subscriber
       AttributeType: S

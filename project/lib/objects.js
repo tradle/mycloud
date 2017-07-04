@@ -41,7 +41,7 @@ const addMetadata = function addMetadata (wrapper) {
 function getObjectByLink (link) {
   typeforce(typeforce.String, link)
   debug('getting', link)
-  return Buckets.ObjectsBucket.getJSON(link)
+  return Buckets.Objects.getJSON(link)
 }
 
 function putObject (wrapper) {
@@ -53,7 +53,7 @@ function putObject (wrapper) {
 
   addLinks(wrapper)
   debug('putting', wrapper.link)
-  return Buckets.ObjectsBucket.putJSON(wrapper.link, wrapper)
+  return Buckets.Objects.putJSON(wrapper.link, wrapper)
 }
 
 function prefetchByLink (link) {
@@ -62,7 +62,7 @@ function prefetchByLink (link) {
 }
 
 function del (link) {
-  return Buckets.ObjectsBucket.del(link)
+  return Buckets.Objects.del(link)
 }
 
 module.exports = {

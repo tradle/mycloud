@@ -27,5 +27,5 @@
       "StreamEnabled": true,
       "StreamViewType": "NEW_AND_OLD_IMAGES"
    },
-   "TableName": "InboxTable"
+   "TableName": "Inbox"
 }

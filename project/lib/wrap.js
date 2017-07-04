@@ -18,6 +18,12 @@ const discoverServices = co(function* () {
   return Discovery.discoverServices()
 })
 
+const getReady = co(function* () {
+  ENV.set({
+    IOT_ENDPOINT: yield require('./iot-utils').getEndpoint()
+  })
+})
+
 exports = module.exports = smart
 // exports.generator = wrapGenerator
 exports.sync = wrapSync
@@ -207,7 +213,8 @@ function smart (fn, opts={}) {
   }
 
   debug(`will discover services: ${!!environment}`)
-  const prepare = environment ? discoverServices() : RESOLVED
+  // const prepare = environment ? discoverServices() : RESOLVED
+  const prepare = environment ? getReady() : RESOLVED
   return co(function* (...args) {
     const callback = logify(args.pop())
     const [event, context] = args

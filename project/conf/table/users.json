@@ -1,7 +1,7 @@
 {
    "Type": "AWS::DynamoDB::Table",
    "Properties": {
-      "TableName": "UsersTable",
+      "TableName": "Users",
       "AttributeDefinitions": [
          {
             "AttributeName": "id",

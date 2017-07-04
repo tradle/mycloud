@@ -1,29 +1,3 @@
-// const { clone, pick, splitCamelCase } = require('./utils')
-// const env = clone(
-//   require('../../env'),
-//   process.env
-// )
-
-// env.BLOCKCHAIN = (function () {
-//   const { BLOCKCHAIN='bitcoin:testnet' } = env
-//   const [blockchain, networkName] = BLOCKCHAIN.split(':')
-//   return {
-//     blockchain,
-//     networkName,
-//     toString: () => BLOCKCHAIN,
-//     select: obj => obj[blockchain]
-//   }
-// }())
-
-// env.DEV = env.SERVERLESS_STAGE === 'dev'
-
-// for (let prop in process.env) {
-//   if (prop.slice(0, 3) === 'CF_') {
-//     let split = splitCamelCase(prop.slice(3), '_').toUpperCase()
-//     env[split] = process.env[prop]
-//   }
-// }
-
 const lazy = require('./lazy')
 const ENV = require('./env')
 const {
@@ -33,7 +7,7 @@ const {
 
 const { toCamelCase, splitCamelCase } = require('./string-utils')
 const cachifiable = {
-  ObjectsBucket: true
+  Objects: true
 }
 
 function Environment () {
@@ -64,7 +38,7 @@ function Environment () {
     if (!seals) {
       seals = require('./seals')({
         provider: this.provider,
-        table: this.tables.SealsTable,
+        table: this.tables.Seals,
         blockchain: this.blockchain,
         confirmationsRequired: ENV.SEAL_CONFIRMATIONS[ENV.BLOCKCHAIN]
       })

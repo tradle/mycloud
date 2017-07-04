@@ -5,7 +5,7 @@ const Tables = require('./tables')
 
 function putEvents (events) {
   setIds(events)
-  return Tables.EventsTable.batchPut(events)
+  return Tables.Events.batchPut(events)
 }
 
 function setIds (events) {

@@ -1,6 +1,6 @@
 Type: AWS::DynamoDB::Table
 Properties:
-  TableName: EventsTable
+  TableName: Events
   AttributeDefinitions:
     - AttributeName: id
       AttributeType: S

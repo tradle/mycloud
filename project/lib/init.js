@@ -135,15 +135,15 @@ const push = co(function* (options) {
     }
   }
 
-  const { PublicConfBucket } = buckets
+  const { PublicConf } = buckets
   yield [
     // TODO: encrypt
     // private
     secrets.put(IDENTITY_KEYS_KEY, priv),
     // public
     objects.putObject(pub),
-    PublicConfBucket.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
-    PublicConfBucket.putJSON(PUBLIC_CONF_BUCKET.info, {
+    PublicConf.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
+    PublicConf.putJSON(PUBLIC_CONF_BUCKET.info, {
       bot: {
         profile: {
           name: {
@@ -173,13 +173,13 @@ const clear = co(function* () {
   }
 
   debug(`terminating provider ${priv && priv.link}`)
-  const { PublicConfBucket } = buckets
+  const { PublicConf } = buckets
   yield [
     priv && objects.del(priv.link),
     secrets.del(IDENTITY_KEYS_KEY),
     // public
-    PublicConfBucket.del(PUBLIC_CONF_BUCKET.identity),
-    PublicConfBucket.del(PUBLIC_CONF_BUCKET.info)
+    PublicConf.del(PUBLIC_CONF_BUCKET.identity),
+    PublicConf.del(PUBLIC_CONF_BUCKET.info)
   ]
 
   debug(`terminated provider ${priv && priv.link}`)

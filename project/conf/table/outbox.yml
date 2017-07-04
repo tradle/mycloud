@@ -1,6 +1,6 @@
 Type: AWS::DynamoDB::Table
 Properties:
-  TableName: OutboxTable
+  TableName: Outbox
   AttributeDefinitions:
     - AttributeName: recipient
       AttributeType: S

@@ -71,7 +71,7 @@ function getBucket (bucket) {
     del: key => del({ key, bucket })
   }, {
     log: debug,
-    logInputOutput: DEV && bucket !== Resources.Bucket.SecretsBucket
+    logInputOutput: DEV && bucket !== Resources.Bucket.Secrets
   })
 
   logified.name = bucket

@@ -31,7 +31,7 @@ const { MESSAGE } = TYPES
 // const DECRYPTION_KEY = new Buffer(process.env.DECRYPTION_KEY, 'base64')
 
 const lookupMyIdentity = () => Secrets.get(IDENTITY_KEYS_KEY)
-const lookupMyPublicIdentity = () => Buckets.PublicConfBucket.getJSON(PUBLIC_CONF_BUCKET.identity)
+const lookupMyPublicIdentity = () => Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
 
 // TODO: how to invalidate cache on identity updates?
 // maybe ETag on bucket item? But then we still need to request every time..

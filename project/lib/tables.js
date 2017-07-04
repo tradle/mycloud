@@ -1,7 +1,6 @@
 
 const Resources = require('./resources')
 const { getTable } = require('./db-utils')
-const tables = {}
 
 function loadTable (name) {
   if (!tables[name]) {
@@ -9,11 +8,7 @@ function loadTable (name) {
   }
 }
 
-function update () {
-  Object.keys(Resources.Table).forEach(loadTable)
-}
-
-Resources.on('change', update)
-update()
+const tables = {}
+Object.keys(Resources.Table).forEach(loadTable)
 
 module.exports = tables

@@ -1,4 +1,4 @@
-process.env.CF_EventsTable = 'EventsTable'
+process.env.CF_Events = 'Events'
 require('../env')
 const wrap = require('../wrap')
 const { putEvent } = require('../events')

@@ -23,5 +23,5 @@
       "ReadCapacityUnits": 5,
       "WriteCapacityUnits": 5
    },
-   "TableName": "PresenceTable"
+   "TableName": "Presence"
 }

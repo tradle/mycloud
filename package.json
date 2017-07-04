@@ -23,6 +23,7 @@
     "flow-bin": "^0.48.0",
     "flow-remove-types": "^1.2.1",
     "isomorphic-fetch": "^2.2.1",
+    "js-yaml": "^3.8.4",
     "leveldown": "^1.7.2",
     "levelup": "^1.3.8",
     "memdown": "^1.2.4",
@@ -48,15 +49,16 @@
     "gen:fixtures": "./scripts/gen-fixtures.js",
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "test": "NODE_ENV=test tap `git ls-files project/test/*.test.js`",
-    "deploy:local": "yarn lint && SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
-    "deploy:aws": "yarn lint && SLS_DEBUG=* IS_LOCAL= serverless deploy",
+    "deploy:local": "yarn lint && yarn compile-template && SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
+    "deploy:aws": "yarn lint && yarn compile-template && SLS_DEBUG=* IS_LOCAL= serverless deploy",
     "rebuild": "cd project && docker run --rm -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd ..",
     "rebuild:local": "cd project && npm rebuild && cd ..",
     "nuke": "./scripts/nuke.sh",
     "build": "flow-remove-types project/ -d build/ && yarn run copynonjs",
     "copynonjs": "find project/lib project/conf project/test -type f '!' -name '*.js' | cpio -pdm build/",
     "export:template": "serverless sam export --output ./template.yml",
-    "makepublic": "./scripts/makepublic.js"
+    "makepublic": "./scripts/makepublic.js",
+    "compile-template": "./scripts/compile.js serverless-uncompiled.yml > serverless.yml"
   },
   "dependencies": {}
 }

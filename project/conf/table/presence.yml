@@ -1,6 +1,6 @@
 Type: AWS::DynamoDB::Table
 Properties:
-  TableName: PresenceTable
+  TableName: Presence
   AttributeDefinitions:
     - AttributeName: clientId
       AttributeType: S

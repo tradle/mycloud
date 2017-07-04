@@ -4,9 +4,9 @@ const Resources = require('./resources')
 const { getBucket } = require('./s3-utils')
 const { cachify, extend } = require('./utils')
 const { toCamelCase } = require('./string-utils')
-// const BUCKET_NAMES = ['SecretsBucket', 'ObjectsBucket', 'PublicConfBucket']
+// const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
 const cachifiable = {
-  // ObjectsBucket: true
+  // Objects: true
 }
 
 const CACHE_OPTS = {
@@ -35,12 +35,7 @@ function loadBucket (name) {
   buckets[name] = bucket
 }
 
-function update () {
-  Object.keys(Resources.Bucket).forEach(loadBucket)
-}
-
 const buckets = {}
-Resources.on('change', update)
-update()
+Object.keys(Resources.Bucket).forEach(loadBucket)
 
 module.exports = buckets

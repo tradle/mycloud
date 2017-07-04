@@ -57,7 +57,7 @@ const putMessage = co(function* ({ message, payload }) {
 })
 
 const putOutboundMessage = function putOutboundMessage ({ message, payload, item }) {
-  return Tables.OutboxTable.put({ Item: item })
+  return Tables.Outbox.put({ Item: item })
 }
 
 const putInboundMessage = co(function* putInboundMessage ({ message, payload, item }) {
@@ -67,7 +67,7 @@ const putInboundMessage = co(function* putInboundMessage ({ message, payload, it
   }
 
   try {
-    yield Tables.InboxTable.put(params)
+    yield Tables.Inbox.put(params)
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
       const dErr = new Errors.Duplicate()
@@ -93,7 +93,7 @@ const getMessageFrom = co(function* ({ author, time, link, body=true }) {
   }
 
   return maybeAddBody({
-    metadata: yield get(Tables.InboxTable, { author, time }),
+    metadata: yield get(Tables.Inbox, { author, time }),
     body
   })
 })
@@ -102,7 +102,7 @@ const getMessagesFrom = co(function* ({ author, gt, limit, body=true }) {
   debug(`looking up inbound messages from ${author}, > ${gt}`)
   const params = getMessagesFromQuery({ author, gt, limit })
   return maybeAddBody({
-    metadata: yield find(Tables.InboxTable, params),
+    metadata: yield find(Tables.Inbox, params),
     body
   })
 })
@@ -110,7 +110,7 @@ const getMessagesFrom = co(function* ({ author, gt, limit, body=true }) {
 const getLastMessageFrom = co(function* ({ author, body=true }) {
   const params = getLastMessageFromQuery({ author })
   return maybeAddBody({
-    metadata: yield findOne(Tables.InboxTable, params),
+    metadata: yield findOne(Tables.Inbox, params),
     body
   })
 })
@@ -233,7 +233,7 @@ const getLastSeq = co(function* ({ recipient }) {
   query.ProjectionExpression = seqProp
   let last
   try {
-    last = yield Tables.OutboxTable.findOne(query)
+    last = yield Tables.Outbox.findOne(query)
     debug('last message:', prettify(last))
     return last[seqProp]
   } catch (err) {
@@ -255,7 +255,7 @@ const getMessagesTo = co(function* ({ recipient, gt, limit, body=true }) {
   debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
   const params = getMessagesToQuery({ recipient, gt, limit })
   return maybeAddBody({
-    metadata: yield find(Tables.OutboxTable, params),
+    metadata: yield find(Tables.Outbox, params),
     body
   })
 })
@@ -263,7 +263,7 @@ const getMessagesTo = co(function* ({ recipient, gt, limit, body=true }) {
 const getLastMessageTo = co(function* ({ recipient, body=true }) {
   const params = getLastMessageToQuery({ recipient })
   return maybeAddBody({
-    metadata: yield findOne(Tables.OutboxTable, params),
+    metadata: yield findOne(Tables.Outbox, params),
     body
   })
 })
@@ -319,7 +319,7 @@ const getLastMessageToQuery = function getLastMessageToQuery ({ recipient }) {
 //     ScanIndexForward: true
 //   }
 
-//   const messages = yield Tables.InboxTable.find(params)
+//   const messages = yield Tables.Inbox.find(params)
 //   return yield Promise.all(messages.map(loadMessage))
 // })
 
@@ -390,7 +390,7 @@ const _normalizeInbound = function _normalizeInbound (event) {
 }
 
 const getInboundByLink = function getInboundByLink (link) {
-  return findOne(Tables.InboxTable, {
+  return findOne(Tables.Inbox, {
     IndexName: 'link',
     KeyConditionExpression: 'link = :link',
     ExpressionAttributeValues: {

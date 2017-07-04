@@ -5,7 +5,7 @@ const omit = require('object.omit')
 const { prettify } = require('../lib/string-utils')
 const Buckets = require('../lib/buckets')
 // const ServerlessDeploymentBucket = require('../lib/s3-utils').getBucket('tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k')
-// const PublicConfBucket = require('../lib/s3-utils').getBucket('tradle-dev-publicconfbucket-gd70s2lfklji')
+// const PublicConf = require('../lib/s3-utils').getBucket('tradle-dev-PublicConf-gd70s2lfklji')
 const { getFaviconURL, getLogoDataURI } = require('../lib/image-utils')
 const { s3 } = require('../lib/aws')
 const utils = require('../lib/utils')
@@ -64,10 +64,10 @@ const writeTemplate = co(function* ({ resources, parameters }) {
   const template = yield getBaseTemplate({ resources })
   const customized = generateTemplate({ resources, template, parameters })
   const templateKey = `templates/scale-${parameters.scale}.json`
-  const { PublicConfBucket } = resources.buckets
+  const { PublicConf } = resources.buckets
   try {
     yield s3.putObject({
-      Bucket: PublicConfBucket.id,
+      Bucket: PublicConf.id,
       Key: templateKey,
       Body: JSON.stringify(customized),
       ACL: 'public-read'
@@ -114,8 +114,8 @@ const onFormsCollected = co(function* ({ bot, user, application }) {
     parameters
   })
 
-  const { PublicConfBucket } = bot.resources.buckets
-  const templateURL = `https://${PublicConfBucket.id}.s3.amazonaws.com/${templateKey}`
+  const { PublicConf } = bot.resources.buckets
+  const templateURL = `https://${PublicConf.id}.s3.amazonaws.com/${templateKey}`
   const launchURL = utils.launchStackUrl({
     stackName: 'tradle',
     templateURL
@@ -207,7 +207,7 @@ module.exports = {
 //     }
 //   })
 
-//   console.log(`https://${Buckets.PublicConfBucket.id}.s3.amazonaws.com/${templateKey}`)
+//   console.log(`https://${Buckets.PublicConf.id}.s3.amazonaws.com/${templateKey}`)
 // })().catch(console.error)
 
 // co(function* () {
