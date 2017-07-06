@@ -13,25 +13,27 @@ mockery.registerSubstitute('q', 'bluebird-q')
 
 const co = require('co').wrap
 const debug = require('debug')('λ:clienttest')
+const randomName = require('random-name')
 const Client = require('@tradle/aws-client')
 const { utils } = require('@tradle/engine')
-const contexts = require('@tradle/engine/test/contexts')
-const { API_ENDPOINT } = process.env
+// const contexts = require('@tradle/engine/test/contexts')
+const helpers = require('@tradle/engine/test/helpers')
+const { IOT_ENDPOINT } = process.env
+const { RestAPI } = require('../resources')
 const wrap = require('../wrap')
 const getMe = require('../').provider.getMyIdentity()
 const allUsers = require('../../test/fixtures/users')
+// const names = allUsers.map(user => randomName.first())
 
 exports.handler = wrap(function* (event={}, context) {
   const {
     // table,
     concurrency=1,
+    offset=0
   } = event
 
-  const nodes = contexts
-    .nUsers(concurrency)
-    .map(node => utils.promisifyNode(node))
-
-  return Promise.all(nodes.map(pingPong))
+  const nodes = makeNodes(concurrency, offset)
+  yield Promise.all(nodes.map(pingPong))
 })
 
 const pingPong = co(function* (node, i) {
@@ -41,7 +43,7 @@ const pingPong = co(function* (node, i) {
   const client = new Client({
     node,
     counterparty: permalink,
-    endpoint: API_ENDPOINT,
+    endpoint: RestAPI.ApiGateway,
     clientId: `${node.permalink}${node.permalink}`
   })
 
@@ -98,7 +100,6 @@ function awaitEvent (node, event, filter=acceptAll) {
     node.on(event, checkEvent)
 
     function checkEvent (data) {
-      debugger
       if (filter(data)) {
         node.removeListener('event', checkEvent)
         resolve()
@@ -109,6 +110,24 @@ function awaitEvent (node, event, filter=acceptAll) {
 
 function acceptAll () {
   return true
+}
+
+function makeNodes (n, offset) {
+  let blockchain
+  if (allUsers.length < n + offset) {
+    throw new Error('not enough users in fixtures')
+  }
+
+  return allUsers.slice(offset, n).map((user, i) => {
+    const opts = helpers.userToOpts(user, user.profile.name.firstName)
+    opts.blockchain = blockchain
+
+    const node = helpers.createNode(opts)
+
+    if (!blockchain) blockchain = node.blockchain
+
+    return utils.promisifyNode(node)
+  })
 }
 
 if (process.env.NODE_ENV === 'test') {

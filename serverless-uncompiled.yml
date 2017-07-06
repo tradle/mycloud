@@ -23,10 +23,16 @@ package:
 
 custom:
   defaultStage: dev
+
+  # prefixes
   prefix: ${{self:service}}-${{self:provider.stage}}-
   tablePrefix: ${{self:custom.prefix}}
   rolePrefix: ${{self:custom.prefix}}
   topicPrefix: tradle-
+
+  # versions
+  versionSQL: "2016-03-23"
+
   stage: ${{opt:stage, self:custom.defaultStage}}
   region: ${{opt:region, self:provider.region}}
   # hostedZoneName: tradle.io
@@ -390,6 +396,7 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
+          sqlVersion: ${{self:custom.versionSQL}}
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
@@ -399,6 +406,7 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
+          sqlVersion: ${{self:custom.versionSQL}}
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
@@ -410,6 +418,7 @@ functions:
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
+          sqlVersion: ${{self:custom.versionSQL}}
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
 
@@ -424,6 +433,7 @@ functions:
     events:
       - iot:
           sql: "SELECT * as data, clientid() as clientId FROM '${{self:custom.topicPrefix}}message'"
+          sqlVersion: ${{self:custom.versionSQL}}
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
 

@@ -25,6 +25,13 @@ function forEachResource (yaml, fn) {
       Type: 'AWS::S3::Bucket'
     }
   })
+
+  fn({
+    id: 'ApiGatewayRestApi',
+    resource: {
+      Type: 'AWS::ApiGateway::RestApi'
+    }
+  })
 }
 
 function addResourcesToEnvironment (yaml) {

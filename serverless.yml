@@ -17,6 +17,7 @@ custom:
   tablePrefix: '${{self:custom.prefix}}'
   rolePrefix: '${{self:custom.prefix}}'
   topicPrefix: tradle-
+  versionSQL: '2016-03-23'
   stage: '${{opt:stage, self:custom.defaultStage}}'
   region: '${{opt:region, self:provider.region}}'
   pushServer: 'https://push1.tradle.io'
@@ -81,6 +82,8 @@ provider:
       Ref: IotClientRole
     R_BUCKET_ServerlessDeployment:
       Ref: ServerlessDeploymentBucket
+    R_RESTAPI_ApiGateway:
+      Ref: ApiGatewayRestApi
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -271,17 +274,20 @@ functions:
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/presence/connected/#'''
+          sqlVersion: '${{self:custom.versionSQL}}'
   ondisconnect:
     handler: project/lib/lambda/mqtt/ondisconnect.handler
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/presence/disconnected/#'''
+          sqlVersion: '${{self:custom.versionSQL}}'
   onsubscribe:
     handler: project/lib/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/subscriptions/subscribed/#'''
+          sqlVersion: '${{self:custom.versionSQL}}'
   onmessage:
     handler: project/lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
@@ -290,6 +296,7 @@ functions:
           sql: >-
             SELECT * as data, clientid() as clientId FROM
             '${{self:custom.topicPrefix}}message'
+          sqlVersion: '${{self:custom.versionSQL}}'
   onmessage_http:
     handler: project/lib/lambda/http/onmessage.handler
     memorySize: 1024
@@ -656,3 +663,6 @@ resources:
     ServerlessDeploymentBucket:
       Value:
         Ref: ServerlessDeploymentBucket
+    ApiGatewayRestApi:
+      Value:
+        Ref: ApiGatewayRestApi

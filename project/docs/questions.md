@@ -71,8 +71,6 @@ receive pipeline:
 send pipeline:
   business logic event -> Lambda.queueSend -> log to EventsTable ---db-stream--> Lambda.fanout -> Lambda.deliver
 
-MQTT message with multiple messages
-
 when a client disconnects
 
 deleting expired sessions. Use DynamoDB TTL? or a scheduled lambda
@@ -214,6 +212,7 @@ DynamoDB
   select minimal attributes to make Read queries cheaper
   - writes:
     - make dynamodb updates more efficient, e.g. updates that modify a nested property (like bot-keep-fresh does)
+    - use dynogels' algorithm for generating an UpdateExpression or https://github.com/4ossiblellc/dynamodb-update-expression
 
 ### Misc Features
 - push notifications
