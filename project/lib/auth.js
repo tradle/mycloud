@@ -212,7 +212,7 @@ const getTemporaryIdentity = co(function* (opts) {
   }
 
   const maybeAddContact = Identities.validateAndAdd({ object: identity })
-  const role = `arn:aws:iam::${accountId}:role/${Resources.Role.IotClientRole}`
+  const role = `arn:aws:iam::${accountId}:role/${Resources.Role.IotClient}`
   debug(`generating temp keys for client ${clientId}, role ${role}`)
 
   // get the account id which will be used to assume a role

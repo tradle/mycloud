@@ -4,8 +4,8 @@ const clone = require('clone')
 const omit = require('object.omit')
 const { prettify } = require('../lib/string-utils')
 const Buckets = require('../lib/buckets')
-// const ServerlessDeploymentBucket = require('../lib/s3-utils').getBucket('tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k')
-// const PublicConf = require('../lib/s3-utils').getBucket('tradle-dev-PublicConf-gd70s2lfklji')
+// const ServerlessDeployment = require('../lib/s3-utils').getBucket('tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k')
+// const PublicConf = require('../lib/s3-utils').getBucket('tradle-dev-PublicConfBucket-gd70s2lfklji')
 const { getFaviconURL, getLogoDataURI } = require('../lib/image-utils')
 const { s3 } = require('../lib/aws')
 const utils = require('../lib/utils')
@@ -15,21 +15,24 @@ const {
   // SERVERLESS_SERVICE_NAME='tradle',
   SERVERLESS_STAGE,
   SERVERLESS_SERVICE_NAME,
+  ORG_DOMAIN
 } = process.env
 
 const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 const MIN_SCALE = 1
 const MAX_SCALE = 3
-const CONFIG_FORM = 'tradle.aws.Configuration'
+const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
+const CONFIG_FORM = `${NAMESPACE}.Configuration`
+debug('config form:', CONFIG_FORM)
 
 const getBaseTemplate = (function () {
   let baseTemplate
   return co(function* ({ resources }) {
-    const { ServerlessDeploymentBucket } = resources.buckets
+    const { ServerlessDeployment } = resources.buckets
     if (!baseTemplate) {
       const objects = yield s3.listObjects({
-        Bucket: ServerlessDeploymentBucket.id,
-        // Bucket: 'tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k',
+        Bucket: ServerlessDeployment.id,
+        // Bucket: 'tradle-dev-serverlessdeployment-nnvi6x6tiv7k',
         Prefix: artifactDirectoryPrefix
       }).promise()
 
@@ -42,7 +45,7 @@ const getBaseTemplate = (function () {
         return
       }
 
-      baseTemplate = yield ServerlessDeploymentBucket.getJSON(metadata.Key)
+      baseTemplate = yield ServerlessDeployment.getJSON(metadata.Key)
     }
 
     return baseTemplate
@@ -135,10 +138,11 @@ function generateTemplate ({ resources, template, parameters }) {
   const { name, scale, domain } = parameters
   template.Description = `My Tradle Cloud instance`
 
+  const namespace = domain.split('.').reverse().join('.')
   const { Resources } = template
-  getLambdaEnv(Resources.BotUnderscoreonmessageLambdaFunction).PRODUCT = 'tradle.aws.CurrentAccount'
+  getLambdaEnv(Resources.BotUnderscoreonmessageLambdaFunction).PRODUCT = `${namespace}.CurrentAccount`
 
-  const deploymentBucketId = resources.buckets.ServerlessDeploymentBucket.id
+  const deploymentBucketId = resources.buckets.ServerlessDeployment.id
   for (let key in Resources) {
     let Resource = Resources[key]
     let { Type } = Resource

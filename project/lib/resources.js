@@ -11,7 +11,7 @@ Object.keys(ENV)
     return match && {
       key,
       type: upperFirst(match[1].toLowerCase()),
-      name: upperFirst(match[2].toLowerCase())
+      name: match[2]
     }
   })
   .filter(truthy)

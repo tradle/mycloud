@@ -456,9 +456,21 @@ const parseInbound = co(function* ({ message }) {
   // would be nice to parallelize some of these
   // yield assertNotDuplicate(messageWrapper.link)
 
+  const addMessageAuthor = Identities.addAuthorMetadata(messageWrapper)
+  let addPayloadAuthor
+  if (payloadWrapper.sigPubKey === messageWrapper.sigPubKey) {
+    addPayloadAuthor = addMessageAuthor.then(() => {
+      payloadWrapper.author = messageWrapper.author
+    })
+  } else {
+    addPayloadAuthor = Identities.addAuthorMetadata(payloadWrapper)
+  }
+
   yield [
-    Identities.addAuthorMetadata(messageWrapper),
-    Identities.addAuthorMetadata(payloadWrapper)
+    addMessageAuthor
+      .then(() => debug('loaded message author')),
+    addPayloadAuthor
+      .then(() => debug('loaded payload author')),
   ]
 
   debug('added metadata for message and wrapper')
@@ -476,8 +488,7 @@ const parseInbound = co(function* ({ message }) {
 const preProcessInbound = co(function* (event) {
   const message = Messages.normalizeInbound(event)
   if (message[TYPE] !== MESSAGE) {
-    debug('expected message, got: ' + message[TYPE])
-    return
+    throw new Errors.InvalidMessageFormat('expected message, got: ' + message[TYPE])
   }
 
   // assertNoDrift(message)

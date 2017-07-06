@@ -64,6 +64,7 @@ const ensureInitialized = co(function* (options=ORG_PARAMS) {
 
 const init = co(function* (options) {
   const result = yield createProvider(options)
+  result.force = options.force
   yield push(result)
   return result
 })
@@ -79,13 +80,9 @@ const isInitialized = (function () {
   })
 }())
 
-const createProvider = co(function* ({ name, domain, logo, force }) {
+const createProvider = co(function* ({ name, domain, logo }) {
   if (!(name && domain)) {
     throw new Error('"name" is required')
-    // if (!force) {
-    //   console.error('"name" and "logo" are required')
-    //   return
-    // }
   }
 
   debug(`initializing provider ${name}`)

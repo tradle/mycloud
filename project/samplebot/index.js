@@ -1,3 +1,7 @@
+// if (process.env.NODE_ENV === 'test') {
+//   require('xtend/mutable')(process.env, require('./env.test'))
+// }
+
 const debug = require('debug')('λ:samplebot')
 const co = require('co').wrap
 const validateModels = require('@tradle/validate-model')
@@ -5,7 +9,8 @@ const validateModels = require('@tradle/validate-model')
 // const customModels = require('@tradle/custom-models')
 // const extend = require('xtend/mutable')
 // validateModels(extend(models, toObject(baseModels), toObject(customModels)))
-const DEPLOYMENT = 'tradle.aws.Deployment'
+const TYPE = '_t'
+const DEPLOYMENT = 'io.tradle.Deployment'
 const {
   PRODUCT=DEPLOYMENT,
   ORG_DOMAIN
@@ -33,7 +38,23 @@ const deployTradleStrategy = require('@tradle/bot-products')({
 
 const createBot = require('../lib/bot')
 const bot = createBot({})
+// attach this first
+bot.onmessage(co(function* ({ user, type }) {
+  if (type === 'tradle.Ping') {
+    yield bot.send({
+      to: user.id,
+      object: {
+        [TYPE]: 'tradle.Pong'
+      }
+    })
+
+    // prevent further processing
+    return false
+  }
+}))
+
 deployTradleStrategy.install(bot)
+
 bot.onmessage(co(function* ({ user, type }) {
   if (type === 'tradle.ForgetMe') {
     yield bot.send({

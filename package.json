@@ -7,9 +7,8 @@
   "author": "Mark Vayngrib <mark@tradle.io>",
   "license": "MIT",
   "devDependencies": {
-    "@tradle/aws-client": "tradle/aws-client",
     "@tradle/cb-blockr": "tradle/cb-blockr",
-    "@tradle/engine": "^4.9.0",
+    "@tradle/engine": "^4.10.0",
     "@tradle/restore": "tradle/restore",
     "@tradle/test-helpers": "tradle/test-helpers",
     "array-shuffle": "^1.0.1",

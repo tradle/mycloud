@@ -36,7 +36,8 @@ module.exports = namespace => {
         },
         domain: {
           type: 'string',
-          description: 'top level domain you own'
+          description: 'top level domain you own',
+          pattern: '^[a-zA-Z0-9-_.]*$'
         },
         // subdomain: {
         //   type: 'string',

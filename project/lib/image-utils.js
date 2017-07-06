@@ -59,7 +59,11 @@ function getAbsoluteURL (base, url) {
   }
 
   if (!/^https?:\/\//.test(url)) {
-    return base.replace(/[/]*$/, '') + '/' + url.replace(/^[/]*/, '')
+    // trim leading and trailing slash, join
+    url = base.replace(/[/]*$/, '') + '/' + url.replace(/^[/]*/, '')
+    if (!/https?:\/\//.test(url)) {
+      url = 'http://' + url
+    }
   }
 
   return url

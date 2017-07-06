@@ -2,6 +2,7 @@ require('./env')
 
 const test = require('tape')
 const Cache = require('lru-cache')
+const { getFavicon } = require('../lib/image-utils')
 const { co, loudCo, cachify, clone } = require('../lib/utils')
 const wrap = require('../lib/wrap')
 
@@ -113,6 +114,11 @@ test('wrap', loudCo(function* (t) {
   lambdaUtils.performServiceDiscovery = performServiceDiscovery
   t.end()
 }))
+
+// test.only('favicon', loudCo(function* (t) {
+//   const favicon = yield getFavicon('bankofamerica.com')
+//   console.log(favicon)
+// }))
 
 function values (obj) {
   return Object.keys(obj).map(key => obj[key])

@@ -2,18 +2,6 @@
 # yarn lockfile v1
 
 
-"@tradle/aws-client@tradle/aws-client":
-  version "1.0.0"
-  resolved "https://codeload.github.com/tradle/aws-client/tar.gz/ff7528acfbf0f051fc7b897d0b0bbcea49799576"
-  dependencies:
-    any-promise "^1.3.0"
-    aws-iot-device-sdk mvayngrib/aws-iot-device-sdk-js
-    bindall "^2.0.1"
-    co "^4.6.0"
-    debug "^2.6.6"
-    isomorphic-fetch "^2.2.1"
-    pify "^3.0.0"
-
 "@tradle/bitcoinjs-lib@^1.5.7", "@tradle/bitcoinjs-lib@^1.6.0":
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/@tradle/bitcoinjs-lib/-/bitcoinjs-lib-1.6.0.tgz#1e1301dd99732f5caeecc2e65883c74d8ed4a4cd"
@@ -35,9 +23,9 @@
     superagent "^1.2.0"
     throttleme "^1.0.3"
 
-"@tradle/engine@^4.9.0":
-  version "4.9.0"
-  resolved "https://registry.yarnpkg.com/@tradle/engine/-/engine-4.9.0.tgz#742c81d7aae4fae085f97f94b8d8bbd8bce8f24c"
+"@tradle/engine@^4.10.0":
+  version "4.10.0"
+  resolved "https://registry.yarnpkg.com/@tradle/engine/-/engine-4.10.0.tgz#c2e290769b924b1e408fc5aabb1505794ab8b7d3"
   dependencies:
     "@tradle/bitcoinjs-lib" "^1.6.0"
     "@tradle/protocol" "2.3.0"
@@ -813,7 +801,7 @@ d@1:
   dependencies:
     es5-ext "^0.10.9"
 
-debug@2, debug@^2.1.1, debug@^2.2.0, debug@^2.6.3, debug@^2.6.6:
+debug@2, debug@^2.1.1, debug@^2.2.0, debug@^2.6.3:
   version "2.6.8"
   resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.8.tgz#e731531ca2ede27d188222427da17821d68ff4fc"
   dependencies:

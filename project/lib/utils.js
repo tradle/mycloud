@@ -34,7 +34,7 @@ exports.promisify = promisify
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {
     try {
-      return yield co(gen)(...args)
+      return yield co(gen).apply(this, args)
     } catch (err) {
       console.error(err)
       throw err
@@ -69,7 +69,7 @@ exports.groupBy = function groupBy (items, prop) {
 exports.cachifyPromiser = function cachifyPromiser (fn) {
   let promise
   return function (...args) {
-    if (!promise) promise = fn(...args)
+    if (!promise) promise = fn.apply(this, args)
 
     return promise
   }
@@ -99,13 +99,16 @@ exports.uppercaseFirst = function uppercaseFirst (str) {
 
 exports.logifyFunction = function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
   return co(function* (...args) {
-    const taskName = typeof name === 'function' ? name(...args) : name
+    const taskName = typeof name === 'function'
+      ? name.apply(this, args)
+      : name
+
     let start = Date.now()
     let duration
     let ret
     let err
     try {
-      ret = yield fn(...args)
+      ret = yield fn.apply(this, args)
     } catch (e) {
       err = e
       throw err
@@ -203,11 +206,12 @@ exports.logify = function logify (obj, opts={}) {
 const isPromise = obj => obj && typeof obj.then === 'function'
 exports.isPromise = isPromise
 
-exports.cachify = function cachify ({ get, put, cache }) {
+exports.cachify = function cachify ({ get, put, del, cache }) {
   const pending = {}
   return {
     get: co(function* (key) {
-      let val = cache.get(key)
+      const keyStr = stableStringify(key)
+      let val = cache.get(keyStr)
       if (val != null) {
         debug(`cache hit on ${key}!`)
         // val might be a promise
@@ -218,17 +222,22 @@ exports.cachify = function cachify ({ get, put, cache }) {
 
       debug(`cache miss on ${key}`)
       const promise = get(key)
-      promise.catch(err => cache.del(key))
-      cache.set(key, promise)
+      promise.catch(err => cache.del(keyStr))
+      cache.set(keyStr, promise)
       return promise
     }),
     put: co(function* (key, value) {
       // TODO (if actually needed):
       // get cached value, skip put if identical
-      cache.del(key)
+      const keyStr = stableStringify(key)
+      cache.del(keyStr)
       const ret = yield put(key, value)
-      cache.set(key, value)
+      cache.set(keyStr, value)
       return ret
+    }),
+    del: co(function* (key) {
+      cache.del(stableStringify(key))
+      return yield del(key)
     })
   }
 }
@@ -257,13 +266,13 @@ exports.promiseCall = function promiseCall (fn, ...args) {
       resolve(result)
     })
 
-    fn(...args)
+    fn.apply(this, args)
   })
 }
 
 exports.series = co(function* (fns, ...args) {
   for (let fn of fns) {
-    let maybePromise = fn(...args)
+    let maybePromise = fn.apply(this, args)
     if (isPromise(maybePromise)) {
       yield maybePromise
     }
@@ -272,7 +281,7 @@ exports.series = co(function* (fns, ...args) {
 
 exports.seriesWithExit = co(function* (fns, ...args) {
   for (let fn of fns) {
-    let keepGoing = fn(...args)
+    let keepGoing = fn.apply(this, args)
     if (isPromise(keepGoing)) {
       yield keepGoing
     }
@@ -285,7 +294,7 @@ exports.seriesWithExit = co(function* (fns, ...args) {
 exports.waterfall = co(function* (fns, ...args) {
   let result
   for (let fn of fns) {
-    result = fn(...args)
+    result = fn.apply(this, args)
     if (isPromise(result)) {
       result = yield result
     }

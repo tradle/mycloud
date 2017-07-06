@@ -146,7 +146,7 @@ function keyToSigner ({ curve, pub, encoded }) {
       curve,
       pub: new Buffer(pub, 'hex')
     },
-    sign: wrap.sync(data => rawSign(priv, data))
+    sign: wrap(data => rawSign(priv, data))
   }
 }
 

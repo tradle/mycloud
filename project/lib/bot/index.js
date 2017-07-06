@@ -15,9 +15,6 @@ const createHistory = require('./history')
 const createSeals = require('./seals')
 const TESTING = process.env.NODE_ENV === 'test'
 const promisePassThrough = data => Promise.resolve(data)
-// const methodToExecutor = {
-//   onmessage: waterfall
-// }
 
 const METHODS = [
   'onmessage',
@@ -50,49 +47,47 @@ function createBot (opts={}) {
   } = tradle
 
   const sealsAPI = createSeals(tradle)
-  const normalizeInput = co(function* (data) {
+  const normalizeOnSealInput = co(function* (data) {
     data.bot = bot
     return data
   })
 
+  const normalizeOnMessageInput = co(function* (wrapper) {
+    if (typeof wrapper === 'string') {
+      wrapper = JSON.parse(wrapper)
+    }
+
+    const { message, payload } = wrapper
+    const { author } = message
+    const getObject = payload.object
+      ? Promise.resolve(payload)
+      : objects.getObjectByLink(payload.link)
+
+    const [{ object }, user] = [
+      yield getObject,
+      yield bot.users.createIfNotExists({ id: author })
+    ]
+
+    message.object.object = object
+    payload.object = object
+    const _userPre = clone(user)
+    const type = object[TYPE]
+    debug(`receiving ${type}`)
+    return {
+      bot,
+      user,
+      wrapper,
+      _userPre,
+      type
+    }
+  })
+
   const pre = {
     onmessage: [
-      co(function* (wrapper) {
-        if (typeof wrapper === 'string') {
-          wrapper = JSON.parse(wrapper)
-        }
-
-        const { message, payload } = wrapper
-        const { author } = message
-        const getObject = payload.object
-          ? Promise.resolve(payload)
-          : objects.getObjectByLink(payload.link)
-
-        const [{ object }, identity] = [
-          yield getObject,
-          // yield messages.getMessageFrom({ author, time, link }),
-          yield identities.getIdentityByPermalink(author)
-        ]
-
-        message.object.object = object
-        payload.object = object
-        const user = yield bot.users.createIfNotExists({
-          id: author,
-          identity
-        })
-
-        const _userPre = clone(user)
-        return {
-          bot,
-          user,
-          wrapper,
-          _userPre,
-          type: payload[TYPE]
-        }
-      })
+      normalizeOnMessageInput
     ],
     onsealevent: [
-      normalizeInput
+      normalizeOnSealInput
     ]
   }
 
@@ -121,7 +116,15 @@ function createBot (opts={}) {
   const execMiddleware = co(function* (method, event) {
     event = yield waterfall(pre[method], event)
 
-    yield series(middleware[method], event)
+    for (let fn of middleware[method]) {
+      let result = fn.call(this, event)
+      if (isPromise(result)) result = yield result
+      if (result === false) {
+        debug(`middleware trigger early exit from ${method}`)
+        break
+      }
+    }
+
     if (post[method]) {
       yield post[method](event)
     }
@@ -241,7 +244,8 @@ function createBot (opts={}) {
 
   function wrapWithEmit (fn, event) {
     return co(function* (...args) {
-      const ret = fn(...args)
+      let ret = fn.apply(this, args)
+      if (isPromise(ret)) ret = yield ret
       bot.emit(event, ret)
       return ret
     })

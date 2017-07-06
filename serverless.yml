@@ -57,29 +57,29 @@ provider:
     ORG_DOMAIN: tradle.io
     ORG_NAME: Tradle
     ORG_LOGO: '${{file(./env.json):LOGO_TRADLE}}'
-    R_BUCKET_OBJECTS:
+    R_BUCKET_Objects:
       Ref: ObjectsBucket
-    R_BUCKET_SECRETS:
+    R_BUCKET_Secrets:
       Ref: SecretsBucket
-    R_BUCKET_PUBLICCONF:
+    R_BUCKET_PublicConf:
       Ref: PublicConfBucket
-    R_TABLE_EVENTS:
+    R_TABLE_Events:
       Ref: EventsTable
-    R_TABLE_PUBKEYS:
+    R_TABLE_PubKeys:
       Ref: PubKeysTable
-    R_TABLE_INBOX:
+    R_TABLE_Inbox:
       Ref: InboxTable
-    R_TABLE_OUTBOX:
+    R_TABLE_Outbox:
       Ref: OutboxTable
-    R_TABLE_SEALS:
+    R_TABLE_Seals:
       Ref: SealsTable
-    R_TABLE_USERS:
+    R_TABLE_Users:
       Ref: UsersTable
-    R_TABLE_PRESENCE:
+    R_TABLE_Presence:
       Ref: PresenceTable
-    R_ROLE_IOTCLIENT:
+    R_ROLE_IotClient:
       Ref: IotClientRole
-    R_BUCKET_SERVERLESSDEPLOYMENT:
+    R_BUCKET_ServerlessDeployment:
       Ref: ServerlessDeploymentBucket
   iamRoleStatements:
     - Effect: Allow
@@ -330,6 +330,9 @@ functions:
           path: tradle/info
           method: get
           cors: true
+  init:
+    handler: project/lib/lambda/init.handler
+    memorySize: 512
   faucet_bitcoin:
     handler: project/lib/lambda/faucet-bitcoin.withdraw
   recharge:
@@ -352,17 +355,22 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
+  clienttest:
+    handler: project/lib/lambda/clienttest.handler
 resources:
   Resources:
     ObjectsBucket:
       Type: 'AWS::S3::Bucket'
       Description: content-addressed storage for all objects
+      DeletionPolicy: Retain
     SecretsBucket:
       Type: 'AWS::S3::Bucket'
       Description: stuff
+      DeletionPolicy: Retain
     PublicConfBucket:
       Type: 'AWS::S3::Bucket'
       Description: 'public configuration, e.g. identity, styles, logo, etc.'
+      DeletionPolicy: Retain
     EventsTable:
       Type: 'AWS::DynamoDB::Table'
       Description: source of truth

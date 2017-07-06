@@ -85,7 +85,7 @@ const schema = require('../conf/table/users').Properties
   }))
 
   test(`onmessage (${mode})`, loudCo(function* (t) {
-    t.plan(6)
+    t.plan(5)
 
     const tradle = Tradle.new()
     const { objects, messages, identities } = tradle
@@ -102,7 +102,7 @@ const schema = require('../conf/table/users').Properties
       return user
     })
 
-    const { getIdentityByPermalink } = identities
+    // const { getIdentityByPermalink } = identities
     const { getObjectByLink } = objects
     const payload = {
       link: 'b',
@@ -131,10 +131,10 @@ const schema = require('../conf/table/users').Properties
       throw new Errors.NotFound(link)
     })
 
-    identities.getIdentityByPermalink = co(function* (permalink) {
-      t.equal(permalink, message.author)
-      return bob.object
-    })
+    // identities.getIdentityByPermalink = co(function* (permalink) {
+    //   t.equal(permalink, message.author)
+    //   return bob.object
+    // })
 
     bot.onmessage(co(function* ({ user, wrapper }) {
       user.bill = 'ted'
@@ -151,7 +151,7 @@ const schema = require('../conf/table/users').Properties
     yield bot.call('onmessage', { message, payload })
     t.equal(updatedUser, true)
     objects.getObjectByLink = getObjectByLink
-    identities.getIdentityByPermalink = getIdentityByPermalink
+    // identities.getIdentityByPermalink = getIdentityByPermalink
   }))
 
   test(`onreadseal (${mode})`, loudCo(function* (t) {

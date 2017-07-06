@@ -2,6 +2,8 @@
 
 // lazy('stableStringify', 'json-stable-stringify')
 
+exports.stableStringify = require('json-stable-stringify')
+
 exports.toCamelCase = function toCamelCase (str, delimiter, upperFirst) {
   return str
     .split(delimiter)

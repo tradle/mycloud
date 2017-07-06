@@ -9,50 +9,26 @@ const Errors = require('./errors')
 const Discovery = require('./discovery')
 const Resources = require('./resources')
 const discoverServices = co(function* () {
-  if (Object.keys(Resources.Table).length &&
-    Object.keys(Resources.Bucket).length) {
-    debug('skipping service discovery')
-    return
+  if (!ENV.IOT_ENDPOINT) {
+    return Discovery.discoverServices()
   }
-
-  return Discovery.discoverServices()
 })
 
-const getReady = co(function* () {
-  ENV.set({
-    IOT_ENDPOINT: yield require('./iot-utils').getEndpoint()
-  })
-})
+// const getReady = co(function* () {
+//   if (ENV.IOT_ENDPOINT) return
 
-exports = module.exports = smart
-// exports.generator = wrapGenerator
-exports.sync = wrapSync
-// exports.promiser = wrapPromiser
-// exports.httpGenerator = wrapHTTPGenerator
-exports.smart = smart
-// exports.withEnvironment = withEnvironment
-// exports.httpError = wrapHttpError
-// exports.httpSuccess = wrapHttpSuccess
+//   const Iot = require('./iot-utils')
+//   const promiseEndpoint = Iot.getEndpoint()
+//   const promiseStack = getStack(StackName)
 
-// exports.postProcess = {
-//   http: httpPostProcess
-// }
+//   ENV.set({
+//     IOT_ENDPOINT: yield Iot.getEndpoint()
+//   })
+// })
 
-// exports.toPromiseStyle = function toPromiseStyle (fn, post) {
-//   return function wrapPromiser (promiser) {
-//     return function wrapper (...args) {
-//       const callback = logify(args.pop())
-//       try {
-//         let ret = apply(promiser, args)
-//         if (isPromise(ret)) ret = yield ret
-//       } catch (err) {
-//         return callback(err)
-//       }
-
-//       callback(null, ret)
-//     }
-//   }
-// }
+exports = module.exports = wrap
+// exports.sync = wrapSync
+exports.wrap = wrap
 
 const wrapHttpError = err => {
   if (Errors.isDeveloperError(err)) {
@@ -89,104 +65,19 @@ const wrapHttpSuccess = result => {
   return resp
 }
 
-// const httpPostProcess = co(function* (promise) {
-//   const resp = {
-//     headers: {
-//       'Access-Control-Allow-Origin': '*',
-//       'Content-Type': 'application/json'
-//     }
-//   }
-
-//   let ret
-//   try {
-//     ret = yield promise
-//     if (ret == null) {
-//       resp.statusCode = 204
-//     } else {
-//       resp.statusCode = 200
-//       resp.body = stringify(ret)
-//     }
-//   } catch (err) {
-//     if (Errors.isDeveloperError(err)) {
-//       return callback(err)
-//     }
-
-//     debug('wrapped task errored', err)
-//     resp.statusCode = err.code || 400
-//     const body = DEV ? Errors.export(err) : { message: 'Something went horribly wrong' }
-//     resp.body = body
-//   }
-
-//   return resp
-// })
-
-// function wrapPromiser (fn) {
+// function wrapSync (fn) {
 //   return function (...args) {
 //     const callback = logify(args.pop())
-//     // catch sync errors
-//     return RESOLVED
-//       .then(() => fn(...args))
-//       .then(result => callback(null, result))
-//       .catch(callback)
-//   }
-// }
-
-// function wrapGenerator (generatorFn) {
-//   return function (...args) {
-//     const callback = logify(args.pop())
-//     return co(generatorFn)(...args)
-//       .then(result => callback(null, result))
-//       .catch(callback)
-//   }
-// }
-
-function wrapSync (fn) {
-  return function (...args) {
-    const callback = logify(args.pop())
-    let result
-    try {
-      result = fn(...args)
-    } catch (err) {
-      callback(err)
-      return
-    }
-
-    callback(null, result)
-  }
-}
-
-// function wrapHTTPGenerator (generatorFn) {
-//   co(function* (...args) {
-//     const resp = {
-//       headers: {
-//         'Access-Control-Allow-Origin': '*',
-//         'Content-Type': 'application/json'
-//       }
-//     }
-
-//     const callback = logify(args.pop())
-//     let ret
+//     let result
 //     try {
-//       ret = yield co(generatorFn)(...args)
-//       if (ret == null) {
-//         resp.statusCode = 204
-//       } else {
-//         resp.statusCode = 200
-//         resp.body = stringify(ret)
-//       }
+//       result = fn.apply(this, args)
 //     } catch (err) {
-//       if (Errors.isDeveloperError(err)) {
-//         return callback(err)
-//       }
-
-//       debug('wrapped task errored', err)
-//       resp.statusCode = err.code || 400
-//       const body = DEV ? Errors.export(err) : { message: 'Something went horribly wrong' }
-//       resp.body = body
+//       callback(err)
+//       return
 //     }
 
-//     callback(null, resp)
-//   })
+//     callback(null, result)
+//   }
 // }
 
 const postProcessors = {
@@ -196,7 +87,7 @@ const postProcessors = {
   }
 }
 
-function smart (fn, opts={}) {
+function wrap (fn, opts={}) {
   const {
     environment=true,
     // todo: postProcessorsing for other event types
@@ -212,9 +103,8 @@ function smart (fn, opts={}) {
     }
   }
 
-  debug(`will discover services: ${!!environment}`)
-  // const prepare = environment ? discoverServices() : RESOLVED
-  const prepare = environment ? getReady() : RESOLVED
+  const prepare = environment ? discoverServices() : RESOLVED
+  // const prepare = environment ? getReady() : RESOLVED
   return co(function* (...args) {
     const callback = logify(args.pop())
     const [event, context] = args
@@ -248,21 +138,12 @@ function smart (fn, opts={}) {
   })
 }
 
-// function withEnvironment (fn) {
-//   return wrapGenerator(function* (...args) {
-//     const [event, context] = args
-//     const env = yield lambdaUtils.discoverServices(context)
-//     debug('ensured env resources', JSON.stringify(require('./resources'), null, 2))
-//     return apply(fn, args)
-//   })
-// }
-
 function apply (fn, args) {
   if (isGeneratorFunction(fn)) {
-    return co(fn)(...args)
+    return co(fn).apply(this, args)
   }
 
-  return fn(...args)
+  return fn.apply(this, args)
 }
 
 function logify (cb) {

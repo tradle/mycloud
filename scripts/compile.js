@@ -37,13 +37,13 @@ function addResourcesToEnvironment (yaml) {
       throw new Error(`refusing to overwrite environment.${id}`)
     }
 
-    const type = resource.Type.split('::').pop()
+    const type = resource.Type.split('::').pop().toUpperCase()
     let shortName = id
-    if (id.endsWith(type)) {
+    if (id.toUpperCase().endsWith(type)) {
       shortName = shortName.slice(0, id.length - type.length)
     }
 
-    environment[`R_${type}_${shortName}`.toUpperCase()] = {
+    environment[`R_${type}_${shortName}`] = {
       Ref: id
     }
   })

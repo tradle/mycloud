@@ -71,7 +71,7 @@ const discoverServices = co(function* (StackName) {
   }
 
   ENV.set(env)
-  Resources.set(env)
+  // Resources.set(env)
   return env
 })
 
@@ -89,9 +89,13 @@ const doDiscoverServices = co(function* (StackName) {
   }
 
   const { StackResourceSummaries } = yield getStack(StackName)
-  const env = extend({
+  const env = {
     IOT_ENDPOINT: yield promiseIotEndpoint
-  }, Resources.environmentForStack({ StackResourceSummaries }))
+  }
+
+  // const env = extend({
+  //   IOT_ENDPOINT: yield promiseIotEndpoint
+  // }, Resources.environmentForStack({ StackResourceSummaries }))
 
   const willWrite = StackResourceSummaries.every(({ ResourceStatus }) => {
     return ResourceStatus === 'CREATE_COMPLETE' ||

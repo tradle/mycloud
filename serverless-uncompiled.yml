@@ -503,18 +503,9 @@ functions:
           cors: true
 
   # initialize provider identity
-  # init:
-  #   handler: project/lib/lambda/init.handler
-  #   memorySize: 512
-  #   environment:
-  #     BLOCKCHAIN: testnet
-  #     DEBUG: tradle:*
-  #   custom:
-  #     env-resources:
-  #       - SecretsBucket
-  #       - ObjectsBucket
-  #       - PubKeysTable
-  #       - PublicConfBucket
+  init:
+    handler: project/lib/lambda/init.handler
+    memorySize: 512
 
   # Blockchain
 
@@ -552,16 +543,20 @@ functions:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
     #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
+  clienttest:
+    handler: project/lib/lambda/clienttest.handler
 
 resources:
   Resources:
     ObjectsBucket:
       Type: "AWS::S3::Bucket"
       Description: content-addressed storage for all objects
+      DeletionPolicy: Retain
 
     SecretsBucket:
       Type: "AWS::S3::Bucket"
       Description: stuff
+      DeletionPolicy: Retain
 
     # PrivateConfBucket:
     #   Type: "AWS::S3::Bucket"
@@ -570,6 +565,7 @@ resources:
     PublicConfBucket:
       Type: "AWS::S3::Bucket"
       Description: public configuration, e.g. identity, styles, logo, etc.
+      DeletionPolicy: Retain
       # Properties:
       #   AccessControl: PublicRead
 

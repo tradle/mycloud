@@ -13,7 +13,7 @@ const Tables = require('./tables')
 
 function getIdentityMetadataByPub (pub) {
   debug('get identity metadata by pub')
-  return Tables.PubKeysTable.get({
+  return Tables.PubKeys.get({
     Key: { pub }
   })
 }
@@ -37,13 +37,13 @@ function getIdentityByPermalink (permalink) {
   }
 
   debug('get identity by permalink')
-  return Tables.PubKeysTable.findOne(params)
+  return Tables.PubKeys.findOne(params)
     .then(({ link }) => Objects.getObjectByLink(link))
 }
 
 // function getIdentityByFingerprint ({ fingerprint }) {
 //   const params = {
-//     TableName: PubKeysTable,
+//     TableName: PubKeys,
 //     IndexName: 'fingerprint',
 //     KeyConditionExpression: '#fingerprint = :fingerprintValue',
 //     ExpressionAttributeNames: {
@@ -73,7 +73,7 @@ function getExistingIdentityMapping ({ object }) {
 //   })
 
 //   const params = {
-//     TableName: PubKeysTable,
+//     TableName: PubKeys,
 //     IndexName: 'permalink',
 //     KeyConditionExpression,
 //     ExpressionAttributeNames: {
@@ -137,7 +137,7 @@ const addContact = co(function* ({ link, permalink, object }) {
 
 function putPubKey ({ link, permalink, pub }) {
   debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
-  return Tables.PubKeysTable.put({
+  return Tables.PubKeys.put({
     Item: {
       link,
       permalink,
@@ -146,8 +146,14 @@ function putPubKey ({ link, permalink, pub }) {
   })
 }
 
+/**
+ * Add author metadata, including designated recipient, if object is a message
+ * @param {Object} wrapper.object    object
+ * @param {String} wrapper.sigPubKey author sigPubKey
+ * @yield {[type]} [description]
+ */
 const addAuthorMetadata = co(function* (wrapper) {
-  const { object } = wrapper
+  const { object, sigPubKey } = wrapper
   const type = object[TYPE]
   const isMessage = type === MESSAGE
   const promises = {
@@ -164,8 +170,6 @@ const addAuthorMetadata = co(function* (wrapper) {
   wrapper.author = author.permalink
   if (isMessage) wrapper.recipient = recipient.permalink
 
-  wrapper.link = Objects.getLink(object)
-  wrapper.permalink = object[PERMALINK] || wrapper.link
   return wrapper
 })
 
@@ -177,7 +181,7 @@ const validateAndAdd = co(function* (payloadWrapper) {
 
 // function addContactPubKeys ({ link, permalink, identity }) {
 //   const RequestItems = {
-//     [PubKeysTable]: identity.pubkeys.map(pub => {
+//     [PubKeys]: identity.pubkeys.map(pub => {
 //       const Item = extend({ link, permalink }, pub)
 //       return {
 //         PutRequest: { Item }

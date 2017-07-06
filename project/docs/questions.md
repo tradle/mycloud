@@ -151,6 +151,11 @@ postpone implementation of:
 
 ## TODO
 
+### Demo
+
+- capture logo [DONE]
+- get testnet bitcoin
+
 ### Is Lambda better?
 
 ### Security
@@ -286,14 +291,6 @@ will we be implementing DynamoDB Transactions for Node.js?
   aws-sdk-js issue: https://github.com/aws/aws-sdk-js/issues/1004
   initial js implementation: https://github.com/aaaristo/dyngodb/issues/19
 
-### Gotchas
-
-if deploying from scratch, X-Ray requires permissions to be deployed before tracing can be turned on, so first deploy with awsTracingConfig commented out
-
-also, after first deploy, need to re-run gen:env script to get iot-endpoint
-
-
-
 ### Parameters for customer deployment
 
 - capacity (scaled per table), e.g. 1 million txs / day
@@ -366,6 +363,8 @@ signed one-time-url for template resources (lambda zips)
   - subscribe to their IoT $aws/events/subscriptions topic to measure how many customers they're talking with
   - "phone home" - log to particular topics, monitor those topics
   - tradle lambda in customer infrastructure that collects cloud metrics, e.g.: https://gist.github.com/fbrnc/5739f8bec042ac3326ad
+
+  - cross account cloudwatch event delivery: https://aws.amazon.com/blogs/aws/new-cross-account-delivery-of-cloudwatch-events/
 
 ### Concerns
 

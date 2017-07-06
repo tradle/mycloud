@@ -9,7 +9,7 @@ module.exports = function createUsers ({ table, oncreate }) {
   const ee = new EventEmitter()
 
   // const cache = new Cache({ max: 200 })
-  const save = user => table.put({ Item: user })
+  const save = user => table.put({ Item: user }).then(() => user)
   const del = primaryKey => table.del({
     Key: { [PRIMARY_KEY]: primaryKey },
     ReturnValues: 'ALL_OLD'

@@ -99,11 +99,11 @@ const onSentMessage = co(function* ({ clientId, message }) {
 
     yield Delivery.reject({
       clientId,
-      message: err.wrapper,
+      message: wrapper,
       error: err
     })
   } else if (err instanceof Errors.NotFound) {
-    debug('rejecting message, sender identity not found')
+    debug('rejecting message, either sender or payload identity was not found')
     if (!clientId) {
       err.code = 400
       throw err
@@ -111,7 +111,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
 
     yield Delivery.reject({
       clientId,
-      message: 'sender identity not found',
+      message: wrapper,
       error: err
     })
   } else {
