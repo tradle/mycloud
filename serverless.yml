@@ -12,27 +12,36 @@ package:
     - simulate/**
     - ./**/*.log
 custom:
+  vars: '${{file(./vars.yml)}}'
   defaultStage: dev
-  prefix: '${{self:service}}-${{self:provider.stage}}-'
-  tablePrefix: '${{self:custom.prefix}}'
-  rolePrefix: '${{self:custom.prefix}}'
-  topicPrefix: tradle-
+  stage: '${{opt:stage, self:custom.vars.stage, self:custom.defaultStage}}'
+  region: '${{opt:region, self:custom.vars.region}}'
+  prefix: '${{self:service}}-${{self:custom.stage}}-'
+  prefixTable: '${{self:custom.prefix}}'
+  prefixRole: '${{self:custom.prefix}}'
+  prefixIOTTopic: '${{self:service}}-'
+  prefixSNSTopic: '${{self:service}}'
   versionSQL: '2016-03-23'
-  stage: '${{opt:stage, self:custom.defaultStage}}'
-  region: '${{opt:region, self:provider.region}}'
+  thresholdBillingAlarm: '${{self:custom.vars.thresholdBillingAlarm}}'
+  thresholdThrottlingAlarm: '${{self:custom.vars.thresholdThrottlingAlarm}}'
+  thresholdInvocationErrorsAlarm: '${{self:custom.vars.thresholdInvocationErrorsAlarm}}'
+  defaultEmailForNotifications: '${{self:custom.vars.defaultEmailForNotifications}}'
+  billingAlarmTopic: '${{self:custom.prefixSNSTopic}}BillingAlarmNotification'
+  throttlingAlarmTopic: '${{self:custom.prefixSNSTopic}}ThrottlingAlarmNotification'
+  invocationErrorsAlarmTopic: '${{self:custom.prefixSNSTopic}}InvocationErrorsAlarmNotification'
   pushServer: 'https://push1.tradle.io'
-  blockchain: 'bitcoin:testnet'
+  blockchain: '${{self:custom.vars.blockchain}}'
   bot_onmessage: bot_onmessage
   bot_onsealevent: bot_onsealevent
   bot_onpresence: bot_onpresence
   tables:
-    presence: '${{self:custom.tablePrefix}}presence'
-    seals: '${{self:custom.tablePrefix}}seals'
-    pubkeys: '${{self:custom.tablePrefix}}pubkeys'
-    inbox: '${{self:custom.tablePrefix}}inbox'
-    outbox: '${{self:custom.tablePrefix}}outbox'
-    events: '${{self:custom.tablePrefix}}events'
-    users: '${{self:custom.tablePrefix}}users'
+    presence: '${{self:custom.prefixTable}}presence'
+    seals: '${{self:custom.prefixTable}}seals'
+    pubkeys: '${{self:custom.prefixTable}}pubkeys'
+    inbox: '${{self:custom.prefixTable}}inbox'
+    outbox: '${{self:custom.prefixTable}}outbox'
+    events: '${{self:custom.prefixTable}}events'
+    users: '${{self:custom.prefixTable}}users'
 provider:
   versionFunctions: false
   tracing: true
@@ -41,11 +50,11 @@ provider:
   runtime: nodejs6.10
   profile: serverless
   stage: '${{self:custom.stage}}'
-  region: us-east-1
+  region: '${{self:custom.region}}'
   memorySize: 512
   timeout: 60
   environment:
-    IOT_TOPIC_PREFIX: '${{self:custom.topicPrefix}}'
+    IOT_TOPIC_PREFIX: '${{self:custom.prefixIOTTopic}}'
     IOT_ENDPOINT: ''
     BLOCKCHAIN: '${{self:custom.blockchain}}'
     DEBUG: 'tradle:*,λ*'
@@ -80,6 +89,18 @@ provider:
       Ref: PresenceTable
     R_ROLE_IotClient:
       Ref: IotClientRole
+    R_TOPIC_BillingAlarmNotification:
+      Ref: BillingAlarmNotification
+    R_ALARM_Billing:
+      Ref: BillingAlarm
+    R_TOPIC_ThrottlingAlarmNotification:
+      Ref: ThrottlingAlarmNotification
+    R_ALARM_Throttling:
+      Ref: ThrottlingAlarm
+    R_TOPIC_InvocationErrorAlarmNotification:
+      Ref: InvocationErrorAlarmNotification
+    R_ALARM_InvocationError:
+      Ref: InvocationErrorAlarm
     R_BUCKET_ServerlessDeployment:
       Ref: ServerlessDeploymentBucket
     R_RESTAPI_ApiGateway:
@@ -295,7 +316,7 @@ functions:
       - iot:
           sql: >-
             SELECT * as data, clientid() as clientId FROM
-            '${{self:custom.topicPrefix}}message'
+            '${{self:custom.prefixIOTTopic}}message'
           sqlVersion: '${{self:custom.versionSQL}}'
   onmessage_http:
     handler: project/lib/lambda/http/onmessage.handler
@@ -566,7 +587,7 @@ resources:
       Type: 'AWS::IAM::Role'
       Description: role assumed by every connecting client
       Properties:
-        RoleName: '${{self:custom.rolePrefix}}IotClientRole'
+        RoleName: '${{self:custom.prefixRole}}IotClientRole'
         AssumeRolePolicyDocument:
           Version: '2012-10-17'
           Statement:
@@ -615,6 +636,72 @@ resources:
                     - 'iot:Receive'
                   Resource:
                     - '*'
+    BillingAlarmNotification:
+      Type: 'AWS::SNS::Topic'
+      Properties:
+        TopicName: '${{self:custom.billingAlarmTopic}}'
+    BillingAlarm:
+      Type: 'AWS::CloudWatch::Alarm'
+      Properties:
+        AlarmDescription: 'Alarm if AWS spending is over ${{self:custom.thresholdBillingAlarm}}'
+        Namespace: AWS/Billing
+        MetricName: EstimatedCharges
+        Dimensions:
+          - Name: Currency
+            Value: USD
+        Statistic: Maximum
+        Period: '21600'
+        EvaluationPeriods: '1'
+        Threshold: '${{self:custom.thresholdBillingAlarm}}'
+        ComparisonOperator: GreaterThanThreshold
+        AlarmActions:
+          - Ref: BillingAlarmNotification
+        InsufficientDataActions:
+          - Ref: BillingAlarmNotification
+    ThrottlingAlarmNotification:
+      Type: 'AWS::SNS::Topic'
+      Properties:
+        TopicName: '${{self:custom.throttlingAlarmTopic}}'
+        Subscription:
+          - Endpoint: '${{self:custom.defaultEmailForNotifications}}'
+            Protocol: email
+    ThrottlingAlarm:
+      Type: 'AWS::CloudWatch::Alarm'
+      Properties:
+        AlarmDescription: Alarm if a lambda function is throttled
+        Namespace: AWS/Lambda
+        MetricName: Throttles
+        Statistic: Maximum
+        Period: '60'
+        EvaluationPeriods: '1'
+        Threshold: '${{self:custom.thresholdThrottlingAlarm}}'
+        ComparisonOperator: GreaterThanThreshold
+        AlarmActions:
+          - Ref: ThrottlingAlarmNotification
+        InsufficientDataActions:
+          - Ref: ThrottlingAlarmNotification
+    InvocationErrorAlarmNotification:
+      Type: 'AWS::SNS::Topic'
+      Properties:
+        TopicName: '${{self:custom.invocationErrorsAlarmTopic}}'
+        Subscription:
+          - Endpoint: '${{self:custom.defaultEmailForNotifications}}'
+            Protocol: email
+    InvocationErrorAlarm:
+      Type: 'AWS::CloudWatch::Alarm'
+      Properties:
+        AlarmDescription: Alarm if a lambda functions throw errors
+        Namespace: AWS/Lambda
+        MetricName: Errors
+        Statistic: Maximum
+        Period: '60'
+        EvaluationPeriods: '1'
+        Threshold: '${{self:custom.thresholdInvocationErrorsAlarm}}'
+        ComparisonOperator: GreaterThanThreshold
+        AlarmActions:
+          - Ref: ThrottlingAlarmNotification
+        InsufficientDataActions:
+          - Ref: ThrottlingAlarmNotification
   Outputs:
     ObjectsBucket:
       Description: content-addressed storage for all objects
@@ -660,6 +747,24 @@ resources:
       Description: role assumed by every connecting client
       Value:
         Ref: IotClientRole
+    BillingAlarmNotification:
+      Value:
+        Ref: BillingAlarmNotification
+    BillingAlarm:
+      Value:
+        Ref: BillingAlarm
+    ThrottlingAlarmNotification:
+      Value:
+        Ref: ThrottlingAlarmNotification
+    ThrottlingAlarm:
+      Value:
+        Ref: ThrottlingAlarm
+    InvocationErrorAlarmNotification:
+      Value:
+        Ref: InvocationErrorAlarmNotification
+    InvocationErrorAlarm:
+      Value:
+        Ref: InvocationErrorAlarm
     ServerlessDeploymentBucket:
       Value:
         Ref: ServerlessDeploymentBucket
