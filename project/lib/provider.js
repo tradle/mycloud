@@ -13,6 +13,7 @@ const Identities = require('./identities')
 const Events = require('./events')
 const { getLiveSessionByPermalink } = require('./auth')
 const { deliverBatch } = require('./delivery')
+const { extend } = require('./utils')
 const Errors = require('./errors')
 const types = require('./types')
 const { network } = require('./')
@@ -85,7 +86,7 @@ const _createSendMessageEvent = co(function* (opts) {
 
   // run in parallel
   const promisePayload = findOrCreate({ link, object, author })
-  const promiseSeq = Messages.getNextSeq({ recipient })
+  const promisePrev = Messages.getLastSeqAndLink({ recipient })
   const promiseRecipient = Identities.getIdentityByPermalink(recipient)
   const [payloadWrapper, recipientObj] = yield [
     promisePayload,
@@ -104,10 +105,13 @@ const _createSendMessageEvent = co(function* (opts) {
   // message signing can be done in parallel with putObject in findOrCreate
 
   let attemptsToGo = 3
-  let seq = yield promiseSeq
+  let prev = yield promisePrev
   while (attemptsToGo--) {
+    extend(unsignedMessage, Messages.getPropsDerivedFromLast(prev))
+
+    let seq = unsignedMessage[SEQ]
     debug(`signing message ${seq} to ${recipient}`)
-    unsignedMessage[SEQ] = seq
+
     let signedMessage = yield signObject({ author, object: unsignedMessage })
     signedMessage.author = author.permalink
     signedMessage.recipient = recipientObj.permalink
@@ -127,7 +131,7 @@ const _createSendMessageEvent = co(function* (opts) {
       }
 
       debug(`seq ${seq} was taken by another message`)
-      seq = yield Messages.getNextSeq({ recipient })
+      prev = yield Messages.getLastSeqAndLink({ recipient })
       debug(`retrying with seq ${seq}`)
     }
   }

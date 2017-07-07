@@ -260,9 +260,6 @@ Discussion (sequence numbers vs link-to-previous-message):
   
   add link to previous message
 
-  getLastSeq race condition:
-    retry update() if it fails because another write took that seq
-
   client will reorder based on seq
 
 

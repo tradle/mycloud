@@ -1,6 +1,7 @@
 {
   "SIG": "_s",
   "SEQ": "_n",
+  "PREV_TO_SENDER": "_q",
   "LINK": "_c",
   "PERMALINK": "_r",
   "PREVLINK": "_p",

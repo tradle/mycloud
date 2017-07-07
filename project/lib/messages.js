@@ -15,7 +15,8 @@ const {
   MESSAGE_PROP_PREFIX,
   MAX_CLOCK_DRIFT,
   DEV,
-  SEQ
+  SEQ,
+  PREV_TO_SENDER
 } = require('./constants')
 
 const {
@@ -225,31 +226,45 @@ const unserializePubKey = function unserializePubKey (key) {
   }
 }
 
-const getLastSeq = co(function* ({ recipient }) {
+const getLastSeqAndLink = co(function* ({ recipient }) {
   debug(`looking up last message to ${recipient}`)
 
   const query = getLastMessageToQuery({ recipient })
   const seqProp = `${MESSAGE_PROP_PREFIX}${SEQ}`
-  query.ProjectionExpression = seqProp
+  query.ProjectionExpression = [seqProp, 'link'].join(', ')
+
   let last
   try {
     last = yield Tables.Outbox.findOne(query)
     debug('last message:', prettify(last))
-    return last[seqProp]
+    return {
+      seq: last[seqProp],
+      link: last.link
+    }
   } catch (err) {
     if (err instanceof Errors.NotFound) {
-      return -1
+      return null
     }
 
-    debug('experienced error in getLastSeq', err.stack)
+    debug('experienced error in getLastSeqAndLink', err.stack)
     throw err
   }
 })
 
-const getNextSeq = co(function* ({ recipient }) {
-  const last = yield getLastSeq({ recipient })
-  return last + 1
-})
+const getPropsDerivedFromLast = function getPropsDerivedFromLast (last) {
+  const seq = last ? last.seq + 1 : 0
+  const props = { [SEQ]: seq }
+  if (last) {
+    props[PREV_TO_SENDER] = last.link
+  }
+
+  return props
+}
+
+// const getNextSeq = co(function* ({ recipient }) {
+//   const last = yield getLastSeq({ recipient })
+//   return last + 1
+// })
 
 const getMessagesTo = co(function* ({ recipient, gt, limit, body=true }) {
   debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
@@ -557,8 +572,9 @@ const Messages = module.exports = {
   getLastMessageFrom,
   getInboundByLink,
   getMessageStub,
-  getLastSeq,
-  getNextSeq,
+  getLastSeqAndLink,
+  getPropsDerivedFromLast,
+  // getNextSeqAndPREV_TO_SENDER,
   assertTimestampIncreased,
   stripData
   // assertNoDrift,

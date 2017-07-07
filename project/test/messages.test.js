@@ -8,7 +8,7 @@ const test = require('tape')
 const pify = require('pify')
 const ecdsa = require('nkey-ecdsa')
 const tradle = require('@tradle/engine')
-const { SIG, SEQ, TYPE, TYPES } = tradle.constants
+const { SIG, SEQ, PREV_TO_SENDER, TYPE, TYPES } = tradle.constants
 const { newIdentity } = tradle.utils
 const wrap = require('../lib/wrap')
 const { extractSigPubKey, exportKeys, getSigningKey, sign, hexLink } = require('../lib/crypto')
@@ -125,7 +125,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
   const { putObject } = Objects
   const { putEvent } = Events
   const { getIdentityByPermalink } = Identities
-  const { getNextSeq, putMessage } = Messages
+  const { getLastSeqAndLink, putMessage } = Messages
   const payload = {
     [TYPE]: 'tradle.SimpleMessage',
     message: 'hey bob'
@@ -134,7 +134,11 @@ test('createSendMessageEvent', loudCo(function* (t) {
   Identities.getIdentityByPermalink = mocks.getIdentityByPermalink
 
   let nextSeq = 0
-  Messages.getNextSeq = () => Promise.resolve(nextSeq)
+  let prevMsgLink = 'abc'
+  Messages.getLastSeqAndLink = () => Promise.resolve({
+    seq: nextSeq - 1,
+    link: prevMsgLink
+  })
 
   Objects.putObject = function ({ link, object }) {
     t.ok(object[SIG])
@@ -155,6 +159,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
     typeforce(types.messageWrapper, message)
     typeforce(types.payloadWrapper, payload)
     t.equal(message.object[SEQ], nextSeq)
+    t.equal(message.object[PREV_TO_SENDER], prevMsgLink)
     if (!stoleSeq) {
       nextSeq++
       stoleSeq = true
@@ -173,7 +178,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
     object: payload
   })
 
-  Messages.getNextSeq = getNextSeq
+  Messages.getLastSeqAndLink = getLastSeqAndLink
   Messages.putMessage = putMessage
   Identities.getIdentityByPermalink = getIdentityByPermalink
   Objects.putObject = putObject

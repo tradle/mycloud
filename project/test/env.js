@@ -4,6 +4,8 @@ process.env.NODE_ENV = 'test'
 process.env.IS_LOCAL = true
 process.env.SERVERLESS_STAGE = 'test'
 process.env.SERVERLESS_SERVICE = 'tradle'
+process.env.IOT_ENDPOINT = 'localhost:1234'
+process.env.R_RESTAPI_ApiGateway = 'fhjdskfhdjks'
 
 ;[
   'Seals',
