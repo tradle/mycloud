@@ -292,7 +292,6 @@ will we be implementing DynamoDB Transactions for Node.js?
 - capacity (scaled per table), e.g. 1 million txs / day
 - region
 
-
 ### Resources
 
 #### VPC 
@@ -362,6 +361,7 @@ signed one-time-url for template resources (lambda zips)
 
   - cross account cloudwatch event delivery: https://aws.amazon.com/blogs/aws/new-cross-account-delivery-of-cloudwatch-events/
 
+  - cloud watch alerts -> sns notifications -> email http://marcelog.github.io/articles/aws_cloudwatch_monitor_lambda_alerts.html
 ### Concerns
 
 sending a SelfIntroduction with an identity with N keys will cause N lookups in the PubKeysTable - potential attack against that table's read capacity
