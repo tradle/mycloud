@@ -9,7 +9,7 @@ const Iot = require('./iot-utils')
 const { invoke } = require('./lambda-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
 const Buckets = require('./buckets')
-const { SERVERLESS_STAGE, BOT_ONMESSAGE } = require('./env')
+const { SERVERLESS_STAGE, BOT_ONMESSAGE, IOT_TOPIC_PREFIX } = require('./env')
 const Errors = require('./errors')
 const types = require('./types')
 
@@ -185,7 +185,12 @@ const getProviderIdentity = co(function* () {
   return object
 })
 
-const onGetInfo = () => Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
+const onGetInfo = co(function* () {
+  const conf = yield Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
+  conf.iotTopicPrefix = IOT_TOPIC_PREFIX
+  return conf
+})
+
 //   return yield {
 //     style: getProviderStyle(),
 //     identity: getProviderIdentity(),
