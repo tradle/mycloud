@@ -4,4 +4,4 @@ blockchain: bitcoin:testnet
 thresholdBillingAlarm: 1 # $1 / hr
 thresholdThrottlingAlarm: 0
 thresholdInvocationErrorsAlarm: 0
-defaultEmailForNotifications: mark@tradle.io
+defaultEmailForNotifications: mark@tradle.io # support@tradle.io

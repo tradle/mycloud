@@ -44,6 +44,10 @@ module.exports = namespace => {
         //   pattern: /[a-zA-Z]/,
         //   description: 'subdomain at which to place the Tradle cloud public endpoints'
         // }
+        // route53: {
+        //   type: 'boolean',
+        //   description: "are you using Amazon's Route53 for your DNS. If yes, we can automate creation of the subdomain tradle.[yourdomain] and an SSL certificate"
+        // }
       }
     },
     [PRODUCT_DEF]: {

@@ -141,18 +141,34 @@ client connects:
 client waits for green light from server
 ordering is by timestamp
 
-per-message acks
-
 postpone implementation of:
   lambda lock per client
   re-ordering (ack instead)
 
 ## TODO
 
+employee, employee onboarding
+graphql api
+
+### Failure modes
+
+how to handle failures?
+
+object->s3
+message->db
+invoke bot lambda
+lack of lock per client means 2nd message for client can hit a new bot lambda instance before the 1st is processed
+
 ### Demo
 
 - capture logo [DONE]
 - get testnet bitcoin
+- gauge for clienttest (loadtest)
+
+### Deploying custom bots
+
+middleware
+how to deploy? CodeBuild CodePipeline
 
 ### Is Lambda better?
 
@@ -213,6 +229,11 @@ DynamoDB
   - writes:
     - make dynamodb updates more efficient, e.g. updates that modify a nested property (like bot-keep-fresh does)
     - use dynogels' algorithm for generating an UpdateExpression or https://github.com/4ossiblellc/dynamodb-update-expression
+
+GraphQL
+  - DataLoader https://github.com/facebook/dataloader
+    - caches and batches behind the scenes
+  - https://dev-blog.apollodata.com/optimizing-your-graphql-request-waterfalls-7c3f3360b051
 
 ### Misc Features
 - push notifications
@@ -362,6 +383,7 @@ signed one-time-url for template resources (lambda zips)
   - cross account cloudwatch event delivery: https://aws.amazon.com/blogs/aws/new-cross-account-delivery-of-cloudwatch-events/
 
   - cloud watch alerts -> sns notifications -> email http://marcelog.github.io/articles/aws_cloudwatch_monitor_lambda_alerts.html
+
 ### Concerns
 
 sending a SelfIntroduction with an identity with N keys will cause N lookups in the PubKeysTable - potential attack against that table's read capacity
