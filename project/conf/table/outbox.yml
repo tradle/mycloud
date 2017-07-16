@@ -2,12 +2,12 @@ Type: AWS::DynamoDB::Table
 Properties:
   TableName: Outbox
   AttributeDefinitions:
-    - AttributeName: recipient
+    - AttributeName: _recipient
       AttributeType: S
     - AttributeName: time
       AttributeType: N
   KeySchema:
-    - AttributeName: recipient
+    - AttributeName: _recipient
       KeyType: HASH
     - AttributeName: time
       KeyType: RANGE

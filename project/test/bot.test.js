@@ -98,34 +98,32 @@ const schema = require('../conf/table/users').Properties
     })
 
     users.createIfNotExists = co(function* (user) {
-      t.equal(user.id, message.author)
+      t.equal(user.id, message._author)
       return user
     })
 
     // const { getIdentityByPermalink } = identities
     const { getObjectByLink } = objects
     const payload = {
-      link: 'b',
-      object: {
-        _t: 'a'
-      }
+      _link: 'b',
+      _t: 'a',
+      _s: 'sig',
+      _author: 'carol'
     }
 
     const message = {
-      author: 'bob',
-      recipient: 'alice',
-      link: 'a',
       time: 123,
-      object: {
-        object: payload.object
-      }
+      _author: 'bob',
+      _recipient: 'alice',
+      _link: 'a',
+      object: payload
     }
 
     objects.getObjectByLink = co(function* (link) {
-      if (link === message.link) {
+      if (link === message._link) {
         return message.object
-      } else if (link === payload.link) {
-        return payload.object
+      } else if (link === payload._link) {
+        return payload
       }
 
       throw new Errors.NotFound(link)
@@ -136,11 +134,12 @@ const schema = require('../conf/table/users').Properties
     //   return bob.object
     // })
 
-    bot.onmessage(co(function* ({ user, wrapper }) {
+    bot.onmessage(co(function* (data) {
+      const { user } = data
       user.bill = 'ted'
-      t.equal(user.id, message.author)
-      t.same(wrapper.message, message)
-      t.same(wrapper.payload, payload)
+      t.equal(user.id, message._author)
+      t.same(data.message, message)
+      t.same(data.payload, payload)
     }))
 
     // const conversation = yield bot.users.history('bob')
@@ -148,7 +147,7 @@ const schema = require('../conf/table/users').Properties
 
     bot.ready()
 
-    yield bot.call('onmessage', { message, payload })
+    yield bot.call('onmessage', message)
     t.equal(updatedUser, true)
     objects.getObjectByLink = getObjectByLink
     // identities.getIdentityByPermalink = getIdentityByPermalink

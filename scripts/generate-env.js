@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
 const path = require('path')
-const co = require('co').wrap
+const co = require('co')
 const promisify = require('pify')
 const { exec } = promisify(require('child_process'))
 const fs = promisify(require('fs'))
+const { prettify } = require('../project/lib/string-utils')
+const { getConfiguration } = require('../project/lib/lambda-utils')
 const envPath = path.join(process.cwd(), 'env.json')
+const serviceMapPath = path.join(process.cwd(), 'service-map.json')
 let env
 try {
   env = require(envPath)
@@ -24,6 +27,10 @@ co(function* () {
     env[prop] = props[prop].toString().trim()
   }
 
-  yield fs.writeFile(envPath, JSON.stringify(env, null, 2), { encoding: 'utf8' })
-})()
+  yield fs.writeFile(envPath, prettify(env), { encoding: 'utf8' })
+}).catch(console.error)
 
+co(function* () {
+  const { Environment } = yield getConfiguration('tradle-dev-setenvvars')
+  yield fs.writeFile(serviceMapPath, prettify(Environment.Variables))
+}).catch(console.error)

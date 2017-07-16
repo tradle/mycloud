@@ -22,18 +22,23 @@ package:
     - ./**/*.log
 
 custom:
-  vars: ${{file(./vars.yml)}}
+  # vars: ${{file(./vars.yml)}}
+  # move these to vars.yml when this issue is fixed:
+  #   https://github.com/serverless/serverless/issues/3740
+  stage: dev
+  region: us-east-1
+  blockchain: bitcoin:testnet
 
   # copied from vars.yml
-  defaultEmailForNotifications: ${{self:custom.vars.defaultEmailForNotifications}}
-  blockchain: ${{self:custom.vars.blockchain}}
-  thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm}}
-  thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm}}
-  thresholdInvocationErrorsAlarm: ${{self:custom.vars.thresholdInvocationErrorsAlarm}}
+  # defaultEmailForNotifications: ${{self:custom.vars.defaultEmailForNotifications}}
+  # blockchain: ${{self:custom.vars.blockchain}}
+  # thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm}}
+  # thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm}}
+  # thresholdInvocationErrorsAlarm: ${{self:custom.vars.thresholdInvocationErrorsAlarm}}
 
-  defaultStage: dev
-  stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaultStage}}
-  region: ${{opt:region, self:custom.vars.region}}
+  # defaultStage: dev
+  # stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaultStage}}
+  # region: ${{opt:region, self:custom.vars.region}}
 
   # prefixes
   prefix: ${{self:service}}-${{self:custom.stage}}-
@@ -41,15 +46,19 @@ custom:
   prefixRole: ${{self:custom.prefix}}
   # maybe during info/auth, the server can send back the prefix
   prefixIOTTopic: ${{self:service}}-
-  prefixSNSTopic: ${{self:custom:prefix}}
+  prefixSNSTopic: ${{self:custom.prefix}}
 
   # versions
   versionSQL: "2016-03-23"
+  thresholdBillingAlarm: 1 # $1 / hr
+  thresholdThrottlingAlarm: 0
+  thresholdInvocationErrorsAlarm: 0
+  defaultEmailForNotifications: mark@tradle.io # support@tradle.io
 
   # sns
-  billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
-  throttlingAlarmTopic: ${{self:custom.prefixSNSTopic}}ThrottlingAlarmNotification
-  invocationErrorsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationErrorsAlarmNotification
+  # billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
+  # throttlingAlarmTopic: ${{self:custom.prefixSNSTopic}}ThrottlingAlarmNotification
+  # invocationErrorsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationErrorsAlarmNotification
 
   # hostedZoneName: tradle.io
   # domainName: lambda1.tradle.io
@@ -570,6 +579,7 @@ functions:
 
   clienttest:
     handler: project/lib/lambda/clienttest.handler
+    timeout: 15
 
 resources:
   Resources:
@@ -650,16 +660,16 @@ resources:
       Properties:
         TableName: ${{self:custom.tables.inbox}}
         AttributeDefinitions:
-          - AttributeName: author
+          - AttributeName: _author
             AttributeType: S
           # - AttributeName: ${{self:custom.props.seq}}
           #   AttributeType: N
-          - AttributeName: link
+          - AttributeName: _link
             AttributeType: S
           - AttributeName: time
             AttributeType: N
         KeySchema:
-          - AttributeName: author
+          - AttributeName: _author
             KeyType: HASH
           - AttributeName: time
             KeyType: RANGE
@@ -671,9 +681,9 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
         GlobalSecondaryIndexes:
-          - IndexName: link
+          - IndexName: _link
             KeySchema:
-              - AttributeName: link
+              - AttributeName: _link
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
@@ -688,12 +698,12 @@ resources:
       Properties:
         TableName: ${{self:custom.tables.outbox}}
         AttributeDefinitions:
-          - AttributeName: recipient
+          - AttributeName: _recipient
             AttributeType: S
           - AttributeName: time
             AttributeType: N
         KeySchema:
-          - AttributeName: recipient
+          - AttributeName: _recipient
             KeyType: HASH
           - AttributeName: time
             KeyType: RANGE
@@ -927,88 +937,88 @@ resources:
 
     # Alarms
 
-    BillingAlarmNotification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${{self:custom.billingAlarmTopic}}
+    # BillingAlarmNotification:
+    #   Type: AWS::SNS::Topic
+    #   Properties:
+    #     TopicName: ${{self:custom.billingAlarmTopic}}
 
     # first enable Billing Alerts
     #
     # http://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/monitor-charges.html
-    BillingAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmDescription: Alarm if AWS spending is over ${{self:custom.thresholdBillingAlarm}}
-        Namespace: AWS/Billing
-        MetricName: EstimatedCharges
-        Dimensions:
-          - Name: Currency
-            Value: USD
-        Statistic: Maximum
-        Period: '21600'
-        EvaluationPeriods: '1'
-        Threshold: ${{self:custom.thresholdBillingAlarm}}
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - Ref: BillingAlarmNotification
-        InsufficientDataActions:
-          - Ref: BillingAlarmNotification
+    # BillingAlarm:
+    #   Type: AWS::CloudWatch::Alarm
+    #   Properties:
+    #     AlarmDescription: Alarm if AWS spending is over ${{self:custom.thresholdBillingAlarm}}
+    #     Namespace: AWS/Billing
+    #     MetricName: EstimatedCharges
+    #     Dimensions:
+    #       - Name: Currency
+    #         Value: USD
+    #     Statistic: Maximum
+    #     Period: '21600'
+    #     EvaluationPeriods: '1'
+    #     Threshold: ${{self:custom.thresholdBillingAlarm}}
+    #     ComparisonOperator: GreaterThanThreshold
+    #     AlarmActions:
+    #       - Ref: BillingAlarmNotification
+    #     InsufficientDataActions:
+    #       - Ref: BillingAlarmNotification
 
-    ThrottlingAlarmNotification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${{self:custom.throttlingAlarmTopic}}
-        Subscription:
-          - Endpoint: ${{self:custom.defaultEmailForNotifications}}
-            Protocol: email
+    # ThrottlingAlarmNotification:
+    #   Type: AWS::SNS::Topic
+    #   Properties:
+    #     TopicName: ${{self:custom.throttlingAlarmTopic}}
+    #     Subscription:
+    #       - Endpoint: ${{self:custom.defaultEmailForNotifications}}
+    #         Protocol: email
 
-    ThrottlingAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmDescription: Alarm if a lambda function is throttled
-        Namespace: AWS/Lambda
-        MetricName: Throttles
-        Statistic: Sum
-        Period: '60'
-        EvaluationPeriods: '1'
-        Threshold: ${{self:custom.thresholdThrottlingAlarm}}
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - Ref: ThrottlingAlarmNotification
-        InsufficientDataActions:
-          - Ref: ThrottlingAlarmNotification
+    # ThrottlingAlarm:
+    #   Type: AWS::CloudWatch::Alarm
+    #   Properties:
+    #     AlarmDescription: Alarm if a lambda function is throttled
+    #     Namespace: AWS/Lambda
+    #     MetricName: Throttles
+    #     Statistic: Sum
+    #     Period: '60'
+    #     EvaluationPeriods: '1'
+    #     Threshold: ${{self:custom.thresholdThrottlingAlarm}}
+    #     ComparisonOperator: GreaterThanThreshold
+    #     AlarmActions:
+    #       - Ref: ThrottlingAlarmNotification
+    #     InsufficientDataActions:
+    #       - Ref: ThrottlingAlarmNotification
 
-    InvocationErrorAlarmNotification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${{self:custom.invocationErrorsAlarmTopic}}
-        Subscription:
-          - Endpoint: ${{self:custom.defaultEmailForNotifications}}
-            Protocol: email
+    # InvocationErrorAlarmNotification:
+    #   Type: AWS::SNS::Topic
+    #   Properties:
+    #     TopicName: ${{self:custom.invocationErrorsAlarmTopic}}
+    #     Subscription:
+    #       - Endpoint: ${{self:custom.defaultEmailForNotifications}}
+    #         Protocol: email
 
-    InvocationErrorAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmDescription: Alarm if a lambda functions throw errors
-        Namespace: AWS/Lambda
-        MetricName: Errors
-        Statistic: Sum
-        Period: '60'
-        EvaluationPeriods: '1'
-        Threshold: ${{self:custom.thresholdInvocationErrorsAlarm}}
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - Ref: ThrottlingAlarmNotification
-        InsufficientDataActions:
-          - Ref: ThrottlingAlarmNotification
+    # InvocationErrorAlarm:
+    #   Type: AWS::CloudWatch::Alarm
+    #   Properties:
+    #     AlarmDescription: Alarm if a lambda functions throw errors
+    #     Namespace: AWS/Lambda
+    #     MetricName: Errors
+    #     Statistic: Sum
+    #     Period: '60'
+    #     EvaluationPeriods: '1'
+    #     Threshold: ${{self:custom.thresholdInvocationErrorsAlarm}}
+    #     ComparisonOperator: GreaterThanThreshold
+    #     AlarmActions:
+    #       - Ref: ThrottlingAlarmNotification
+    #     InsufficientDataActions:
+    #       - Ref: ThrottlingAlarmNotification
 
-      # SSLCertificate:
-      #   Type: "AWS::CloudFormation::Stack"
-      #   Properties:
-      #     Parameters:
-      #       domain: ${{file(./parameters.json):DomainName.Default}}
-      #       hostedZoneName: ${{file(./parameters.json):HostedZoneName.Default}}
-      #     TemplateURL: "https://s3-eu-west-1.amazonaws.com/is24-infrastructure-public/cloudformation/verified-ssl-certificate/ssl-certificate.template.yaml"
+    # SSLCertificate:
+    #   Type: "AWS::CloudFormation::Stack"
+    #   Properties:
+    #     Parameters:
+    #       domain: ${{file(./parameters.json):DomainName.Default}}
+    #       hostedZoneName: ${{file(./parameters.json):HostedZoneName.Default}}
+    #     TemplateURL: "https://s3-eu-west-1.amazonaws.com/is24-infrastructure-public/cloudformation/verified-ssl-certificate/ssl-certificate.template.yaml"
 
     # Type: AWS::Route53::RecordSet
     # Properties:

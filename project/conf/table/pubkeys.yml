@@ -4,7 +4,7 @@ Properties:
   AttributeDefinitions:
     - AttributeName: pub
       AttributeType: S
-    - AttributeName: permalink
+    - AttributeName: _permalink
       AttributeType: S
   KeySchema:
     - AttributeName: pub
@@ -13,9 +13,9 @@ Properties:
     ReadCapacityUnits: 5
     WriteCapacityUnits: 5
   GlobalSecondaryIndexes:
-    - IndexName: permalink
+    - IndexName: _permalink
       KeySchema:
-        - AttributeName: permalink
+        - AttributeName: _permalink
           KeyType: HASH
       Projection:
         ProjectionType: INCLUDE

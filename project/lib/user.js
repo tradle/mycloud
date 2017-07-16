@@ -1,5 +1,5 @@
 const debug = require('debug')('tradle:sls:user')
-const { co, getLink, typeforce, clone } = require('./utils')
+const { co, getLink, typeforce, clone, omitVirtual } = require('./utils')
 const { prettify } = require('./string-utils')
 const Auth = require('./auth')
 const Delivery = require('./delivery')
@@ -34,18 +34,19 @@ const onSubscribed = co(function* ({ clientId, topics }) {
 
 const onSentMessage = co(function* ({ clientId, message }) {
   let err
-  let wrapper
+  let processed
   try {
-    wrapper = yield _onSentMessage({ clientId, message })
+    processed = yield _onSentMessage({ clientId, message })
   } catch (e) {
     err = e
   }
 
-  if (wrapper) {
+  if (processed) {
+    debug('received valid message from user')
     // SUCCESS!
     yield Delivery.ack({
       clientId,
-      message: wrapper.message
+      message: processed
     })
 
     if (!BOT_ONMESSAGE) {
@@ -54,7 +55,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
     }
 
     // const { author, time, link } = wrapper.message
-    const neutered = Messages.stripData(wrapper)
+    const neutered = Messages.stripData(processed)
     yield invoke({
       sync: false,
       name: BOT_ONMESSAGE,
@@ -63,11 +64,11 @@ const onSentMessage = co(function* ({ clientId, message }) {
       // arg: JSON.stringify({ author, time, link })
     })
 
-    return wrapper
+    return processed
   }
 
   debug('processing error in receive:', err.name)
-  wrapper = err.progress
+  processed = err.progress
   if (err instanceof Errors.InvalidMessageFormat) {
     // HTTP
     if (!clientId) {
@@ -77,17 +78,17 @@ const onSentMessage = co(function* ({ clientId, message }) {
 
     yield Delivery.reject({
       clientId,
-      message: wrapper,
+      message: processed,
       reason: err
     })
   } else if (err instanceof Errors.Duplicate) {
-    debug('ignoring but acking duplicate message', prettify(wrapper))
+    debug('ignoring but acking duplicate message', prettify(processed))
     // HTTP
     if (!clientId) return
 
     yield Delivery.ack({
       clientId,
-      message: wrapper
+      message: processed
     })
   } else if (err instanceof Errors.TimeTravel) {
     // HTTP
@@ -99,7 +100,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
 
     yield Delivery.reject({
       clientId,
-      message: wrapper,
+      message: processed,
       error: err
     })
   } else if (err instanceof Errors.NotFound) {
@@ -111,7 +112,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
 
     yield Delivery.reject({
       clientId,
-      message: wrapper,
+      message: processed,
       error: err
     })
   } else {
@@ -127,20 +128,17 @@ const _onSentMessage = co(function* ({ clientId, message }) {
     message = Messages.normalizeInbound(message)
     message = yield Messages.preProcessInbound(message)
   } catch (err) {
-    err.progress = { object: message }
+    err.progress = message
     debug('unexpected error in pre-processing inbound message:', err.stack)
     throw err
   }
 
-  let wrapper
   try {
-    wrapper = yield createReceiveMessageEvent({ message })
+    return yield createReceiveMessageEvent({ message })
   } catch (err) {
-    err.progress = { object: message }
+    err.progress = message
     throw err
   }
-
-  return wrapper
 })
 
 const onDisconnected = function ({ clientId }) {
@@ -182,7 +180,7 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
 
 const getProviderIdentity = co(function* () {
   const { object } = yield Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
-  return object
+  return omitVirtual(object)
 })
 
 const onGetInfo = co(function* () {

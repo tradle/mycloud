@@ -6,11 +6,18 @@ const { protocol, utils, constants } = require('@tradle/engine')
 const doSign = pify(protocol.sign.bind(protocol))
 const { SIG, TYPE, TYPES } = constants
 const { IDENTITY } = TYPES
-const { toBuffer, loudCo } = require('./utils')
+const {
+  toBuffer,
+  loudCo,
+  extend,
+  omit,
+  omitVirtual,
+  setVirtual
+} = require('./utils')
 const aws = require('./aws')
 const wrap = require('./wrap')
 const { InvalidSignature } = require('./errors')
-const { IDENTITY_KEYS_KEY } = require('./constants')
+const { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } = require('./constants')
 const SIGN_WITH_HASH = 'sha256'
 const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12
@@ -170,15 +177,18 @@ const sign = loudCo(function* ({ key, object }) {
   const { pub, priv } = key
   const author = keyToSigner(key)
   /* { object, merkleRoot } */
-  const result = yield doSign({ object, author })
-  return {
-    sigPubKey: author.sigPubKey.pub.toString('hex'),
-    object: result.object
-  }
+  const result = yield doSign({
+    object: omitVirtual(object),
+    author
+  })
+
+  return setVirtual(result.object, {
+    _sigPubKey: author.sigPubKey.pub.toString('hex')
+  })
 })
 
 function extractSigPubKey (object) {
-  const pubKey = utils.extractSigPubKey(object)
+  const pubKey = utils.extractSigPubKey(omitVirtual(object))
   if (pubKey) {
     return {
       type: 'ec',
@@ -238,6 +248,42 @@ function randomString (bytes) {
   return crypto.randomBytes(bytes).toString('hex')
 }
 
+function calcLink (object) {
+  return utils.hexLink(omitVirtual(object))
+}
+
+function getLink (object) {
+  return object._link || calcLink(object)
+}
+
+function getLinks (object) {
+  const link = getLink(object)
+  return {
+    link,
+    permalink: getPermalink(object),
+    prevlink: object[PREVLINK]
+  }
+}
+
+function getPermalink (object) {
+  return object[PERMALINK] || getLink(object)
+}
+
+function addLinks (object) {
+  const links = getLinks(object)
+  setVirtual(object, {
+    _link: links.link,
+    _permalink: links.permalink
+  })
+
+  return links
+}
+
+function withLinks (object) {
+  addLinks(object)
+  return object
+}
+
 module.exports = {
   checkAuthentic,
   extractSigPubKey,
@@ -251,9 +297,11 @@ module.exports = {
   // getIdentityKeys,
   exportKeys,
   sha256,
-  hexLink: utils.hexLink,
-  addLinks: utils.addLinks,
-  getLinks: utils.getLinks,
+  getLink,
+  getPermalink,
+  getLinks,
+  addLinks,
+  withLinks,
   // toECKeyObj: utils.toECKeyObj,
   randomString
 }

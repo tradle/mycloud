@@ -1,6 +1,6 @@
-// if (process.env.NODE_ENV === 'test') {
-//   require('xtend/mutable')(process.env, require('./env.test'))
-// }
+if (process.env.NODE_ENV === 'test') {
+  require('xtend/mutable')(process.env, require('./env.test'))
+}
 
 const debug = require('debug')('λ:samplebot')
 const co = require('co').wrap
@@ -40,6 +40,7 @@ const createBot = require('../lib/bot')
 const bot = createBot({})
 // attach this first
 bot.onmessage(co(function* ({ user, type }) {
+  debug(`received ${type}`)
   if (type === 'tradle.Ping') {
     yield bot.send({
       to: user.id,

@@ -4,7 +4,9 @@ const promisify = require('pify')
 const deepEqual = require('deep-equal')
 const omit = require('object.omit')
 const clone = require('xtend')
-const { utils } = require('@tradle/engine')
+const tradleUtils = require('@tradle/engine').utils
+const { getLink, addLinks } = require('./crypto')
+const { omitVirtual, setVirtual } = require('./utils')
 const {
   ORG_NAME,
   ORG_DOMAIN,
@@ -102,14 +104,14 @@ const createProvider = co(function* ({ name, domain, logo }) {
   })
 
   debug('created identity', JSON.stringify(priv))
-  const pub = omit(priv, 'keys')
+  const pub = priv.identity
   const org = yield provider.signObject({
     author: priv,
     object: getOrgObj({ name, logo })
   })
 
   return {
-    org: org.object,
+    org,
     pub,
     priv,
     publicConfig: defaults.publicConfig,
@@ -147,10 +149,10 @@ const push = co(function* (options) {
             firstName: `${org.name} Bot`
           }
         },
-        pub: pub.object
+        pub: omitVirtual(pub)
       },
       id: getHandleFromName(org.name),
-      org,
+      org: omitVirtual(org),
       publicConfig,
       style
     })
@@ -169,39 +171,45 @@ const clear = co(function* () {
     }
   }
 
-  debug(`terminating provider ${priv && priv.link}`)
+  const link = priv && getLink(priv.identity)
+  debug(`terminating provider ${link}`)
   const { PublicConf } = buckets
   yield [
-    priv && objects.del(priv.link),
+    link ? objects.del(link) : Promise.resolve(),
     secrets.del(IDENTITY_KEYS_KEY),
     // public
     PublicConf.del(PUBLIC_CONF_BUCKET.identity),
     PublicConf.del(PUBLIC_CONF_BUCKET.info)
   ]
 
-  debug(`terminated provider ${priv && priv.link}`)
+  debug(`terminated provider ${link}`)
 })
 
 function getTestIdentity () {
   const object = require('../test/fixtures/alice/identity.json')
   const keys = require('../test/fixtures/alice/keys.json')
   // keys = keys.map(utils.importKey)
-  const link = utils.hexLink(object)
-  const permalink = link
-  return { object, keys, link, permalink }
+  // const link = getLink(object)
+  // const permalink = link
+  // return { object, keys, link, permalink }
+  addLinks(object)
+  return { object, keys }
 }
 
-const _createIdentity = promisify(utils.newIdentity)
+const _createIdentity = promisify(tradleUtils.newIdentity)
 const createIdentity = co(function* (opts) {
   if (process.env.NODE_ENV === 'test') {
     return getTestIdentity()
   }
 
   const { link, identity, keys } = yield _createIdentity(opts)
+  setVirtual({
+    _link: link,
+    _permalink: link
+  })
+
   return {
-    link,
-    permalink: link,
-    object: identity,
+    identity,
     keys: exportKeys(keys)
   }
 })

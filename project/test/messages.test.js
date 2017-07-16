@@ -8,114 +8,59 @@ const test = require('tape')
 const pify = require('pify')
 const ecdsa = require('nkey-ecdsa')
 const tradle = require('@tradle/engine')
-const { SIG, SEQ, PREV_TO_SENDER, TYPE, TYPES } = tradle.constants
 const { newIdentity } = tradle.utils
 const wrap = require('../lib/wrap')
-const { extractSigPubKey, exportKeys, getSigningKey, sign, hexLink } = require('../lib/crypto')
-const { loudCo, omit, co, typeforce } = require('../lib/utils')
+const { extractSigPubKey, exportKeys, getSigningKey, sign, getLink, withLinks } = require('../lib/crypto')
+const { loudCo, omit, clone, co, typeforce, pickVirtual, omitVirtual } = require('../lib/utils')
 const Objects = require('../lib/objects')
 const { createSendMessageEvent, createReceiveMessageEvent } = require('../lib/provider')
-const { MESSAGE } = TYPES
 const Errors = require('../lib/errors')
-const { MESSAGE_PROP_PREFIX, PAYLOAD_METADATA_PREFIX } = require('../lib/constants')
+const {
+  MESSAGE_PROP_PREFIX,
+  PAYLOAD_METADATA_PREFIX,
+  SIG,
+  SEQ,
+  PREV_TO_RECIPIENT,
+  TYPE,
+  TYPES
+} = require('../lib/constants')
+
+const { MESSAGE } = TYPES
 const Identities = require('../lib/identities')
 const Messages = require('../lib/messages')
 const Events = require('../lib/events')
 const types = require('../lib/types')
-const identity = require('./fixtures/identity-event')
 const toAliceFromBob = Messages.normalizeInbound(require('./fixtures/alice/receive.json'))
 const toBobFromAlice = require('./fixtures/bob/receive.json')
 const [alice, bob] = ['alice', 'bob'].map(name => {
   const identity = require(`./fixtures/${name}/identity`)
   return {
-    object: identity,
-    link: hexLink(identity),
-    permalink: hexLink(identity),
+    identity: withLinks(identity),
+    // object: identity,
+    // link: getLink(identity),
+    // permalink: getLink(identity),
     keys: require(`./fixtures/${name}/keys`)
   }
 })
 
 test('extract pub key', function (t) {
-  const { object } = identity
-  const { curve, pub } = extractSigPubKey(object)
-  const expected = object.pubkeys.find(key => {
+  const { identity } = alice
+  const { curve, pub } = extractSigPubKey(identity)
+  const expected = identity.pubkeys.find(key => {
     return key.purpose === 'update'
   })
 
   t.equal(curve, expected.curve)
   t.equal(pub, expected.pub)
 
-  object.blah = 'blah'
+  identity.blah = 'blah'
   try {
-    extractSigPubKey(object)
+    extractSigPubKey(identity)
     t.fail('validated invalid signature')
   } catch (err) {
     t.ok(err instanceof Errors.InvalidSignature)
   }
 
-  t.end()
-})
-
-test('format message', function (t) {
-  const time = Date.now()
-  const message = {
-    time,
-    link: 'a',
-    permalink: 'b',
-    author: 'c',
-    recipient: 'd',
-    sigPubKey: 'd1',
-    object: {
-      time,
-      [SIG]: 'asdjklasdjklsa',
-      [TYPE]: MESSAGE,
-      [SEQ]: 1,
-      context: 'abc',
-      object: {
-        [TYPE]: 'tradle.SimpleMessage',
-        message: 'hey hey'
-      },
-      recipientPubKey: {
-        curve: 'p256',
-        pub: new Buffer('beefface', 'hex')
-      }
-    }
-  }
-
-  const payload = {
-    link: 'e',
-    permalink: 'f',
-    type: 'g',
-    author: 'h',
-    sigPubKey: 'i',
-    object: message.object.object
-  }
-
-  const formatted = Messages.messageToEventPayload({ message, payload })
-  t.same(formatted, {
-    time: time,
-    link: 'a',
-    permalink: 'b',
-    author: 'c',
-    recipient: 'd',
-    sigPubKey: 'd1',
-    [PAYLOAD_METADATA_PREFIX + 'link']: 'e',
-    [PAYLOAD_METADATA_PREFIX + 'permalink']: 'f',
-    [PAYLOAD_METADATA_PREFIX + 'type']: 'g',
-    [PAYLOAD_METADATA_PREFIX + 'author']: 'h',
-    [PAYLOAD_METADATA_PREFIX + 'sigPubKey']: 'i',
-    [MESSAGE_PROP_PREFIX + SIG]: 'asdjklasdjklsa',
-    [MESSAGE_PROP_PREFIX + SEQ]: 1,
-    [MESSAGE_PROP_PREFIX + 'context']: 'abc',
-    [MESSAGE_PROP_PREFIX + 'recipientPubKey']: 'p256:beefface',
-    [MESSAGE_PROP_PREFIX + 'time']: time
-  })
-
-  const recovered = Messages.messageFromEventPayload(formatted)
-  recovered.message.object.object = message.object.object
-  recovered.payload.object = message.object.object
-  t.same(recovered.message, message)
-  t.same(recovered.payload, payload)
   t.end()
 })
 
@@ -140,10 +85,10 @@ test('createSendMessageEvent', loudCo(function* (t) {
     link: prevMsgLink
   })
 
-  Objects.putObject = function ({ link, object }) {
+  Objects.putObject = function (object) {
     t.ok(object[SIG])
     payload[SIG] = object[SIG]
-    t.same(object, payload)
+    t.same(omitVirtual(object), payload)
     return Promise.resolve()
   }
 
@@ -154,12 +99,11 @@ test('createSendMessageEvent', loudCo(function* (t) {
   // }
 
   let stoleSeq
-  Messages.putMessage = co(function* ({ message, payload }) {
-    t.notOk(message.inbound)
-    typeforce(types.messageWrapper, message)
-    typeforce(types.payloadWrapper, payload)
-    t.equal(message.object[SEQ], nextSeq)
-    t.equal(message.object[PREV_TO_SENDER], prevMsgLink)
+  Messages.putMessage = co(function* (message) {
+    typeforce(types.message, message)
+    t.notOk(message._inbound)
+    t.equal(message[SEQ], nextSeq)
+    t.equal(message[PREV_TO_RECIPIENT], prevMsgLink)
     if (!stoleSeq) {
       nextSeq++
       stoleSeq = true
@@ -171,10 +115,10 @@ test('createSendMessageEvent', loudCo(function* (t) {
     t.end()
   })
 
-  const wrapper = yield createSendMessageEvent({
+  const event = yield createSendMessageEvent({
     time: Date.now(),
     author: alice,
-    recipient: bob.permalink,
+    recipient: bob.identity._permalink,
     object: payload
   })
 
@@ -202,7 +146,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   } = Messages
 
   Identities.getIdentityMetadataByPub = mocks.getIdentityMetadataByPub
-  Objects.putObject = function ({ link, object }) {
+  Objects.putObject = function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
     return Promise.resolve()
@@ -214,10 +158,9 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
     throw new Errors.NotFound()
   }
 
-  Messages.putMessage = function ({ message, payload }) {
-    t.equal(message.inbound, true)
-    typeforce(types.messageWrapper, message)
-    typeforce(types.payloadWrapper, payload)
+  Messages.putMessage = function (message) {
+    t.equal(message._inbound, true)
+    typeforce(types.message, message)
     // console.log(event)
     return Promise.resolve()
   }
@@ -312,25 +255,35 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
 
 const mocks = {
   getIdentityByPermalink: co(function* (permalink) {
-    if (permalink === alice.permalink) return omit(alice, 'keys')
-    if (permalink === bob.permalink) return omit(bob, 'keys')
+    if (permalink === alice.identity._permalink) {
+      return alice.identity
+    }
+    if (permalink === bob.identity._permalink) {
+      return bob.identity
+    }
+
     throw new Errors.NotFound('identity not found by permalink: ' + permalink)
   }),
   getIdentityByPub: co(function* (pub) {
     const found = [alice, bob].find(info => {
-      return info.object.pubkeys.some(key => key.pub === pub)
+      return info.identity.pubkeys.some(key => key.pub === pub)
     })
 
-    if (found) return found
+    if (found) return found.identity
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
   }),
   getIdentityMetadataByPub: co(function* (pub) {
     const found = [alice, bob].find(info => {
-      return info.object.pubkeys.some(key => key.pub === pub)
+      return info.identity.pubkeys.some(key => key.pub === pub)
     })
 
-    if (found) return omit(found, ['keys', 'object'])
+    if (found) {
+      return {
+        link: found.identity._link,
+        permalink: found.identity._permalink
+      }
+    }
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
   })

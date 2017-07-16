@@ -3,16 +3,25 @@ const debug = require('debug')('tradle:sls:bot-engine')
 const deepEqual = require('deep-equal')
 const clone = require('clone')
 const types = require('../types')
-const { co, extend, omit, typeforce, isPromise, waterfall, series } = require('../utils')
+const {
+  co,
+  extend,
+  omit,
+  typeforce,
+  isPromise,
+  waterfall,
+  series
+} = require('../utils')
 const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
 const wrap = require('../wrap')
 const defaultTradleInstance = require('../')
 const { constants } = defaultTradleInstance
-const { TYPE } = constants
+const { TYPE, SIG } = constants
 const createUsers = require('./users')
 const createHistory = require('./history')
 const createSeals = require('./seals')
+// const createGraphQLAPI = require('./graphql')
 const TESTING = process.env.NODE_ENV === 'test'
 const promisePassThrough = data => Promise.resolve(data)
 
@@ -32,7 +41,8 @@ function createBot (opts={}) {
   const {
     tradle=defaultTradleInstance,
     users,
-    autosave=true
+    autosave=true,
+    // models
   } = opts
 
   const {
@@ -52,31 +62,29 @@ function createBot (opts={}) {
     return data
   })
 
-  const normalizeOnMessageInput = co(function* (wrapper) {
-    if (typeof wrapper === 'string') {
-      wrapper = JSON.parse(wrapper)
+  const normalizeOnMessageInput = co(function* (message) {
+    if (typeof message === 'string') {
+      message = JSON.parse(message)
     }
 
-    const { message, payload } = wrapper
-    const { author } = message
-    const getObject = payload.object
-      ? Promise.resolve(payload)
-      : objects.getObjectByLink(payload.link)
+    const getObject = message.object[SIG]
+      ? Promise.resolve(message.object)
+      : objects.getObjectByLink(message.object._link)
 
-    const [{ object }, user] = [
+    const [object, user] = [
       yield getObject,
-      yield bot.users.createIfNotExists({ id: author })
+      yield bot.users.createIfNotExists({ id: message._author })
     ]
 
-    message.object.object = object
-    payload.object = object
+    extend(message.object, object)
     const _userPre = clone(user)
     const type = object[TYPE]
     debug(`receiving ${type}`)
     return {
       bot,
       user,
-      wrapper,
+      message,
+      payload: message.object,
       _userPre,
       type
     }
@@ -235,6 +243,10 @@ function createBot (opts={}) {
     processors[method] = processor
     bot.exports[method] = wrap(processor)
   })
+
+  // if (models) {
+  //   extend(bot.exports, createGraphQLAPI({ objects, models }))
+  // }
 
   if (TESTING) {
     bot.call = (method, ...args) => processors[method](...args)

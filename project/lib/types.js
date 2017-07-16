@@ -1,6 +1,7 @@
 
 const { types, typeforce } = require('@tradle/engine')
 const { identity } = types
+const { PREV_TO_RECIPIENT, SEQ, SIG } = require('./constants')
 
 function link (val) {
   return typeof val === 'string' && val.length === 64
@@ -15,38 +16,39 @@ exports.privateKey = typeforce.compile({
 })
 
 exports.author = typeforce.compile({
-  object: identity,
-  keys: typeforce.arrayOf(exports.privateKey),
-  link: link,
-  permalink: link
+  identity,
+  keys: typeforce.arrayOf(exports.privateKey)
 })
 
 exports.identity = identity
 exports.signedObject = types.signedObject
 exports.unsignedObject = types.rawObject
-exports.messageBody = typeforce.compile({
+// exports.messageBody = typeforce.compile({
+//   recipientPubKey: types.ecPubKey,
+//   object: exports.signedObject,
+//   time: typeforce.Number
+// })
+
+exports.message = typeforce.compile({
+  [SEQ]: typeforce.Number,
+  [SIG]: typeforce.String,
+  object: types.signedObject,
+  [PREV_TO_RECIPIENT]: typeforce.maybe(typeforce.String),
   recipientPubKey: types.ecPubKey,
-  object: exports.signedObject,
-  time: typeforce.Number
-})
-
-exports.messageWrapper = typeforce.compile({
   time: typeforce.Number,
-  author: link,
-  recipient: link,
-  link: link,
-  permalink: link,
-  object: exports.messageBody,
-  sigPubKey: typeforce.String,
-  inbound: typeforce.maybe(typeforce.Boolean)
+  _author: typeforce.maybe(link),
+  _recipient: typeforce.maybe(link),
+  _link: typeforce.maybe(link),
+  _permalink: typeforce.maybe(link),
+  _inbound: typeforce.maybe(typeforce.Boolean),
 })
 
-exports.payloadWrapper = typeforce.compile({
-  link: link,
-  permalink: link,
-  object: exports.signedObject,
-  sigPubKey: typeforce.String
-})
+// exports.payloadWrapper = typeforce.compile({
+//   link: link,
+//   permalink: link,
+//   object: exports.signedObject,
+//   sigPubKey: typeforce.String
+// })
 
 exports.messageStub = typeforce.compile({
   time: typeforce.Number,

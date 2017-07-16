@@ -1,7 +1,7 @@
 {
   "SIG": "_s",
   "SEQ": "_n",
-  "PREV_TO_SENDER": "_q",
+  "PREV_TO_RECIPIENT": "_q",
   "LINK": "_c",
   "PERMALINK": "_r",
   "PREVLINK": "_p",
@@ -28,5 +28,13 @@
     "maxRetries": 100
   },
   "MAX_CLOCK_DRIFT": 10000,
-  "ENV_RESOURCE_PREFIX": "CF_"
+  "ENV_RESOURCE_PREFIX": "CF_",
+  "DERIVED_PROPERTIES": [
+    "_link",
+    "_permalink",
+    "_author",
+    "_recipient",
+    "_inbound",
+    "_sigPubKey"
+  ]
 }

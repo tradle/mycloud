@@ -1,7 +1,7 @@
 const debug = require('debug')('tradle:sls:author')
 const { utils, protocol, typeforce } = require('@tradle/engine')
 const wrap = require('./wrap')
-const { sign, getSigningKey, getChainKey } = require('./crypto')
+const { sign, getSigningKey, getChainKey, getLink, getPermalink } = require('./crypto')
 const Objects = require('./objects')
 const Secrets = require('./secrets')
 // const { saveIdentityAndKeys } = require('./identities')
@@ -13,7 +13,7 @@ const Identities = require('./identities')
 const Events = require('./events')
 const { getLiveSessionByPermalink } = require('./auth')
 const { deliverBatch } = require('./delivery')
-const { extend } = require('./utils')
+const { extend, setVirtual } = require('./utils')
 const Errors = require('./errors')
 const types = require('./types')
 const { network } = require('./')
@@ -53,17 +53,17 @@ const getMyChainKey = co(function* () {
 
 const signObject = co(function* ({ author, object }) {
   const key = getSigningKey(author.keys)
-  const wrapper = yield sign({ key, object })
+  const signed = yield sign({ key, object })
 
-  Objects.addMetadata(wrapper)
-  wrapper.author = author.permalink
-  return wrapper
+  Objects.addMetadata(signed)
+  setVirtual(signed, { _author: getPermalink(author.identity) })
+  return signed
 })
 
-const findOrCreate = co(function* ({ link, object, author }) {
+const findOrCreate = co(function* ({ object, author }) {
   if (object) {
     if (object[SIG]) {
-      return Objects.addMetadata({ object })
+      return Objects.addMetadata(object)
     }
 
     const result = yield signObject({ author, object })
@@ -71,7 +71,7 @@ const findOrCreate = co(function* ({ link, object, author }) {
     return result
   }
 
-  return getObjectByLink(link)
+  return getObjectByLink(getLink(object))
 })
 
 const _createSendMessageEvent = co(function* (opts) {
@@ -79,24 +79,23 @@ const _createSendMessageEvent = co(function* (opts) {
 
   typeforce({
     recipient: types.link,
-    link: typeforce.maybe(types.link),
     object: typeforce.maybe(typeforce.Object),
     other: typeforce.maybe(typeforce.Object),
   }, opts)
 
   // run in parallel
-  const promisePayload = findOrCreate({ link, object, author })
+  const promisePayload = findOrCreate({ object, author })
   const promisePrev = Messages.getLastSeqAndLink({ recipient })
   const promiseRecipient = Identities.getIdentityByPermalink(recipient)
-  const [payloadWrapper, recipientObj] = yield [
+  const [payload, recipientObj] = yield [
     promisePayload,
     promiseRecipient
   ]
 
   const unsignedMessage = clone(other, {
     [TYPE]: MESSAGE,
-    recipientPubKey: utils.sigPubKey(recipientObj.object),
-    object: payloadWrapper.object,
+    recipientPubKey: utils.sigPubKey(recipientObj),
+    object: payload,
     time: opts.time
   })
 
@@ -113,18 +112,14 @@ const _createSendMessageEvent = co(function* (opts) {
     debug(`signing message ${seq} to ${recipient}`)
 
     let signedMessage = yield signObject({ author, object: unsignedMessage })
-    signedMessage.author = author.permalink
-    signedMessage.recipient = recipientObj.permalink
-    signedMessage.time = opts.time
-
-    let wrapper = {
-      message: signedMessage,
-      payload: payloadWrapper
-    }
+    setVirtual(signedMessage, {
+      _author: getPermalink(author.identity),
+      _recipient: getPermalink(recipientObj)
+    })
 
     try {
-      yield Messages.putMessage(wrapper)
-      return wrapper
+      yield Messages.putMessage(signedMessage)
+      return signedMessage
     } catch (err) {
       if (err.code !== 'ConditionalCheckFailedException') {
         throw err
@@ -154,8 +149,8 @@ const createSendMessageEvent = co(function* (opts) {
 })
 
 const createReceiveMessageEvent = co(function* ({ message }) {
-  const wrapper = yield Messages.parseInbound({ message })
-  yield Objects.putObject(wrapper.payload)
+  message = yield Messages.parseInbound(message)
+  yield Objects.putObject(message.object)
 
   // if (objectWrapper.type === IDENTITY && messageWrapper.sigPubKey === objectWrapper.sigPubKey) {
   //   // special case: someone is sending us their own identity
@@ -172,29 +167,28 @@ const createReceiveMessageEvent = co(function* ({ message }) {
   //   })
   // }
 
-  yield Messages.putMessage(wrapper)
-  return wrapper
+  yield Messages.putMessage(message)
+  return message
 })
 
-const ensureMessageIsForMe = co(function* ({ message }) {
-  const toPubKey = message.recipientPubKey.pub.toString('hex')
-  const recipient = yield getMyPublicIdentity()
-  const myPubKey = recipient.object.pubkeys.find(pubKey => {
-    return pubKey.pub === toPubKey
-  })
+// const ensureMessageIsForMe = co(function* ({ message }) {
+//   const toPubKey = message.recipientPubKey.pub.toString('hex')
+//   const recipient = yield getMyPublicIdentity()
+//   const myPubKey = recipient.object.pubkeys.find(pubKey => {
+//     return pubKey.pub === toPubKey
+//   })
 
-  if (!myPubKey) {
-    debug(`ignoring message meant for someone else (with pubKey: ${toPubKey}) `)
-    throw new Errors.MessageNotForMe(`message to pub key: ${toPubKey}`)
-  }
-})
+//   if (!myPubKey) {
+//     debug(`ignoring message meant for someone else (with pubKey: ${toPubKey}) `)
+//     throw new Errors.MessageNotForMe(`message to pub key: ${toPubKey}`)
+//   }
+// })
 
 const sendMessage = co(function* ({ recipient, object, other={} }) {
   // start this first to get a more accurate timestamp
   const promiseCreate = createSendMessageEvent({ recipient, object, other })
   const promiseSession = getLiveSessionByPermalink(recipient)
-  const ret = yield promiseCreate
-  const { message } = ret
+  const message = yield promiseCreate
 
   // should probably do this asynchronously
   try {
@@ -210,7 +204,7 @@ const sendMessage = co(function* ({ recipient, object, other={} }) {
     }
   }
 
-  return ret
+  return message
 })
 
 const attemptLiveDelivery = co(function* ({ message, session }) {

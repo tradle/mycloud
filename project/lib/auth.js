@@ -1,12 +1,11 @@
 const debug = require('debug')('tradle:sls:auth')
-const { utils } = require('@tradle/engine')
 const aws = require('./aws')
 const Iot = require('./iot-utils')
 const { getUpdateParams } = require('./db-utils')
 const Resources = require('./resources')
 const { co, cachifyPromiser, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
-const { randomString } = require('./crypto')
+const { randomString, getPermalink } = require('./crypto')
 const { HandshakeFailed, InvalidInput, NotFound } = require('./errors')
 const { HANDSHAKE_TIMEOUT, PERMALINK } = require('./constants')
 const Objects = require('./objects')
@@ -168,17 +167,17 @@ const handleChallengeResponse = co(function* (response) {
   }
 
   // validate sig
-  const metadata = Objects.addMetadata({ object: response })
-  yield Identities.addAuthorMetadata(metadata)
+  Objects.addMetadata(response)
+  yield Identities.addAuthorMetadata(response)
 
-  console.log(`claimed: ${permalink}, actual: ${metadata.author}`)
-  if (metadata.author !== permalink) {
+  // console.log(`claimed: ${permalink}, actual: ${response._author}`)
+  if (response._author !== permalink) {
     throw new HandshakeFailed('signature does not match claimed identity')
   }
 
   const session = { permalink, clientId, clientPosition: position }
   const getLastSent = Messages.getLastMessageTo({ recipient: permalink, body: false })
-    .then(Messages.getMessageStub)
+    .then(message => Messages.getMessageStub({ message }))
     .catch(err => {
       if (err instanceof NotFound) return null
 
@@ -206,12 +205,12 @@ const getTemporaryIdentity = co(function* (opts) {
   }
 
   const { accountId, clientId, identity } = opts
-  const permalink = identity[PERMALINK] || utils.hexLink(identity)
+  const permalink = getPermalink(identity)
   if (permalink !== getPermalinkFromClientId(clientId)) {
     throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
   }
 
-  const maybeAddContact = Identities.validateAndAdd({ object: identity })
+  const maybeAddContact = Identities.validateAndAdd(identity)
   const role = `arn:aws:iam::${accountId}:role/${Resources.Role.IotClient}`
   debug(`generating temp keys for client ${clientId}, role ${role}`)
 

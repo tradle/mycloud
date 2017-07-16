@@ -1,6 +1,6 @@
 if (process.env.NODE_ENV === 'test') {
   // require('debug').enable('*tradle*')
-  require('xtend/mutable')(process.env, require('../../../real-env'))
+  require('xtend/mutable')(process.env, require('../../../service-map'))
 }
 
 const mockery = require('mockery')
@@ -18,10 +18,13 @@ const Client = require('@tradle/aws-client')
 const { utils } = require('@tradle/engine')
 // const contexts = require('@tradle/engine/test/contexts')
 const helpers = require('@tradle/engine/test/helpers')
+const validateResource = require('@tradle/validate-resource')
 const { IOT_ENDPOINT } = process.env
 const { RestAPI } = require('../resources')
 const wrap = require('../wrap')
 const getMe = require('../').provider.getMyIdentity()
+const { getLink, getPermalink } = require('../crypto')
+const { omitVirtual } = require('../utils')
 const allUsers = require('../../test/fixtures/users')
 // const names = allUsers.map(user => randomName.first())
 
@@ -39,7 +42,8 @@ exports.handler = wrap(function* (event={}, context) {
 const pingPong = co(function* (node, i) {
   const promisePong = awaitType(node, 'tradle.Pong')
   const me = yield getMe
-  const { permalink } = me
+  const permalink = getPermalink(me)
+  const realMe = omitVirtual(me)
   const client = new Client({
     node,
     counterparty: permalink,
@@ -54,7 +58,7 @@ const pingPong = co(function* (node, i) {
   })
 
   client.onmessage = co(function* (msg) {
-    debug(`receiving ${msg.object._t} ${utils.hexLink(msg)} from ${permalink}`)
+    debug(`receiving ${msg.object._t} ${getLink(msg)} from ${permalink}`)
     yield node.receive(msg, { permalink })
   })
 
@@ -65,7 +69,7 @@ const pingPong = co(function* (node, i) {
     })
   })
 
-  yield node.addContact(me.object)
+  yield node.addContact(realMe)
   yield client.ready()
 
   yield node.signAndSend({

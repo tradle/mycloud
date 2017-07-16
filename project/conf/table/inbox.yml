@@ -2,16 +2,16 @@ Type: AWS::DynamoDB::Table
 Properties:
   TableName: Inbox
   AttributeDefinitions:
-    - AttributeName: author
+    - AttributeName: _author
       AttributeType: S
     # - AttributeName: ${{self:custom.props.seq}}
     #   AttributeType: N
-    - AttributeName: link
+    - AttributeName: _link
       AttributeType: S
     - AttributeName: time
       AttributeType: N
   KeySchema:
-    - AttributeName: author
+    - AttributeName: _author
       KeyType: HASH
     - AttributeName: time
       KeyType: RANGE
@@ -23,9 +23,9 @@ Properties:
   StreamSpecification:
     StreamViewType: NEW_AND_OLD_IMAGES
   GlobalSecondaryIndexes:
-    - IndexName: link
+    - IndexName: _link
       KeySchema:
-        - AttributeName: link
+        - AttributeName: _link
           KeyType: HASH
       Projection:
         ProjectionType: ALL

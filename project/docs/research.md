@@ -9,7 +9,38 @@ LambCI - lambda-based CI, costs nothing when it's not building your crap
 
 ## Questions
 
-encrypt objects in s3?
+maybe seals should also be based on a model, e.g.:
+  {
+    type: 'tradle.Model',
+    id: 'tradle.Seal',
+    properties: {
+      network: {
+        type: 'object',
+        ref: 'tradle.BlockchainNetwork'
+      },
+      address: {
+        type: 'string'
+      },
+      link: {
+        type: 'string',
+        description: 'cryptographic link to the sealed object'
+      }
+    },
+    required: [
+      'link',
+      'address',
+      'network'
+    ]
+  }
+
+  and a different one for the opentimestamps version of a seal
+
+  cons:
+    currently all objects are signed, unclear when this would be
+
+maybe messages should be based on the tradle.Message model
+  
+flatten header props (link, permalink, author, etc) into objects
 
 what is the encrypt/decrypt identity keys flow?
 
@@ -159,6 +190,8 @@ message->db
 invoke bot lambda
 lack of lock per client means 2nd message for client can hit a new bot lambda instance before the 1st is processed
 
+dynamodb only allows consistent reads on primary keys, not secondary indexes
+
 ### Demo
 
 - capture logo [DONE]
@@ -229,6 +262,9 @@ DynamoDB
   - writes:
     - make dynamodb updates more efficient, e.g. updates that modify a nested property (like bot-keep-fresh does)
     - use dynogels' algorithm for generating an UpdateExpression or https://github.com/4ossiblellc/dynamodb-update-expression
+
+  - maybe use this instead of dynogels
+    https://github.com/davidguttman/dynamodown
 
 GraphQL
   - DataLoader https://github.com/facebook/dataloader
@@ -389,3 +425,5 @@ signed one-time-url for template resources (lambda zips)
 sending a SelfIntroduction with an identity with N keys will cause N lookups in the PubKeysTable - potential attack against that table's read capacity
 
 maybe duplicate `pub` to another attribute and use IN ComparisonOperator (unusable in KeyConditionExpression)
+
+if there are virtual props, you can't validate the signature without the model for the object

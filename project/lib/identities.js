@@ -5,8 +5,8 @@ const { PREVLINK, PERMALINK, TYPE, TYPES } = require('./constants')
 const { MESSAGE } = TYPES
 const Objects = require('./objects')
 const { NotFound } = require('./errors')
-const { firstSuccess, logify, typeforce } = require('./utils')
-const { addLinks } = require('./crypto')
+const { firstSuccess, logify, typeforce, omitVirtual, setVirtual } = require('./utils')
+const { addLinks, getLink, getLinks } = require('./crypto')
 const types = require('./types')
 const Events = require('./events')
 const Tables = require('./tables')
@@ -58,9 +58,9 @@ function getIdentityByPermalink (permalink) {
 //     .then(Objects.getObjectByLink)
 // }
 
-function getExistingIdentityMapping ({ object }) {
+function getExistingIdentityMapping (identity) {
   debug('checking existing mappings for pub keys')
-  const lookups = object.pubkeys.map(obj => getIdentityMetadataByPub(obj.pub))
+  const lookups = identity.pubkeys.map(obj => getIdentityMetadataByPub(obj.pub))
   return firstSuccess(lookups)
 }
 
@@ -95,69 +95,67 @@ function getExistingIdentityMapping ({ object }) {
 //   })
 // })
 
-const validateNewContact = co(function* ({ link, permalink, object }) {
+const validateNewContact = co(function* (identity) {
+  identity = omitVirtual(identity)
+
   let existing
   try {
-    existing = yield getExistingIdentityMapping({ object })
+    existing = yield getExistingIdentityMapping(identity)
   } catch (err) {}
 
-  const ret = addLinks({ link, permalink, object })
-  link = ret.link
-  permalink = ret.permalink
+  const { link, permalink } = addLinks(identity)
   if (existing) {
     if (existing.link === link) {
       debug(`mapping is already up to date for identity ${permalink}`)
-      ret.exists = true
-    } else if (object[PREVLINK] !== existing.link) {
-      debug('identity mapping collision. Refusing to add contact:', JSON.stringify(object))
+    } else if (identity[PREVLINK] !== existing.link) {
+      debug('identity mapping collision. Refusing to add contact:', JSON.stringify(identity))
       throw new Error(`refusing to add identity with link: "${link}"`)
     }
   }
 
-  return ret
+  return {
+    identity: existing || identity,
+    exists: !!existing
+  }
 })
 
-const addContact = co(function* ({ link, permalink, object }) {
+const addContact = co(function* (object) {
   if (object) {
     typeforce(types.identity, object)
   } else {
-    const result = yield Objects.getObjectByLink(link)
-    object = result.object
+    object = yield Objects.getObjectByLink(getLink(object))
   }
 
-  const links = Objects.getLinks({ link, permalink, object })
-  link = links.link
-  permalink = links.permalink
+  const { link, permalink } = addLinks(object)
+  const putPubKeys = object.pubkeys
+    .map(({ pub }) => putPubKey({ link, permalink, pub }))
 
-  const putPubKeys = object.pubkeys.map(pub => putPubKey({ link, permalink, pub: pub.pub }))
   yield Promise.all(putPubKeys.concat(
-    Objects.putObject({ link, permalink, object })
+    Objects.putObject(object)
   ))
 })
 
 function putPubKey ({ link, permalink, pub }) {
   debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
   return Tables.PubKeys.put({
-    Item: {
-      link,
-      permalink,
-      pub
-    }
+    Item: { link, permalink, pub }
   })
 }
 
 /**
  * Add author metadata, including designated recipient, if object is a message
- * @param {Object} wrapper.object    object
- * @param {String} wrapper.sigPubKey author sigPubKey
+ * @param {String} object._sigPubKey author sigPubKey
  * @yield {[type]} [description]
  */
-const addAuthorMetadata = co(function* (wrapper) {
-  const { object, sigPubKey } = wrapper
+const addAuthorMetadata = co(function* (object) {
+  if (!object._sigPubKey) {
+    Objects.addMetadata(object)
+  }
+
   const type = object[TYPE]
   const isMessage = type === MESSAGE
   const promises = {
-    author: Identities.getIdentityMetadataByPub(wrapper.sigPubKey),
+    author: Identities.getIdentityMetadataByPub(object._sigPubKey),
   }
 
   if (isMessage) {
@@ -167,16 +165,18 @@ const addAuthorMetadata = co(function* (wrapper) {
 
   const { author, recipient } = yield promises
 
-  wrapper.author = author.permalink
-  if (isMessage) wrapper.recipient = recipient.permalink
+  setVirtual(object, { _author: author.permalink })
+  if (isMessage) {
+    setVirtual(object, { _recipient: recipient.permalink })
+  }
 
-  return wrapper
+  return object
 })
 
-const validateAndAdd = co(function* (payloadWrapper) {
-  const result = yield Identities.validateNewContact(payloadWrapper)
+const validateAndAdd = co(function* (identity) {
+  const result = yield Identities.validateNewContact(identity)
   // debug('validated contact:', prettify(result))
-  if (!result.exists) return Identities.addContact(result)
+  if (!result.exists) return Identities.addContact(result.identity)
 })
 
 // function addContactPubKeys ({ link, permalink, identity }) {

@@ -11,14 +11,13 @@ const uuid = require('uuid')
 const co = require('co').wrap
 const promisify = require('pify')
 const isGenerator = require('is-generator-function')
-const { hexLink, addLinks, extractSigPubKey } = require('@tradle/engine').utils
+const buildResource = require('@tradle/build-resource')
 const { prettify, stableStringify } = require('./string-utils')
-const { SIG, TYPE, TYPES } = require('./constants')
+const { SIG, TYPE, TYPES, DERIVED_PROPERTIES } = require('./constants')
 const ENV = require('./env')
 const Resources = require('./resources')
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE } = TYPES
-
 const utils = exports
 
 exports.clone = clone
@@ -30,6 +29,9 @@ exports.typeforce = typeforce
 exports.isGenerator = isGenerator
 exports.uuid = uuid.v4
 exports.promisify = promisify
+exports.setVirtual = buildResource.setVirtual
+exports.omitVirtual = buildResource.omitVirtual
+exports.pickVirtual = buildResource.pickVirtual
 
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {

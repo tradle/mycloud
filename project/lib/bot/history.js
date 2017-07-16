@@ -13,8 +13,8 @@ module.exports = function createHistory ({ messages }) {
   return get
 }
 
-function getTime (wrapper) {
-  return wrapper.message.time
+function getTime (message) {
+  return message.time
 }
 
 function mergeArrays (a, b, getIndex) {

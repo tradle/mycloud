@@ -1,22 +1,32 @@
 const debug = require('debug')('tradle:sls:messages')
 const co = require('co').wrap
 const { unserializeMessage } = require('@tradle/engine').utils
+const validateResource = require('@tradle/validate-resource')
+const models = require('@tradle/models')
 const Objects = require('./objects')
 const Identities = require('./identities')
 const Errors = require('./errors')
-const { clone, pick, omit, typeforce } = require('./utils')
+const {
+  pick,
+  omit,
+  typeforce,
+  clone,
+  pickVirtual,
+  setVirtual
+} = require('./utils')
+const { getLink } = require('./crypto')
 const { prettify } = require('./string-utils')
 const Tables = require('./tables')
 const types = require('./types')
 const {
   TYPE,
   TYPES,
-  PAYLOAD_METADATA_PREFIX,
-  MESSAGE_PROP_PREFIX,
+  // PAYLOAD_METADATA_PREFIX,
+  // MESSAGE_PROP_PREFIX,
   MAX_CLOCK_DRIFT,
   DEV,
   SEQ,
-  PREV_TO_SENDER
+  PREV_TO_RECIPIENT
 } = require('./constants')
 
 const {
@@ -45,26 +55,26 @@ const find = function find (table, params) {
     .then(events => events.map(messageFromEventPayload))
 }
 
-const putMessage = co(function* ({ message, payload }) {
-  typeforce(types.messageWrapper, message)
-  typeforce(types.payloadWrapper, payload)
-
-  const item = messageToEventPayload({ message, payload })
-  if (message.inbound) {
-    yield putInboundMessage({ message, payload, item })
+const putMessage = co(function* (message) {
+  const item = messageToEventPayload(message)
+  if (message._inbound) {
+    yield putInboundMessage({ message, item })
   } else {
-    yield putOutboundMessage({ message, payload, item })
+    yield putOutboundMessage({ message, item })
   }
 })
 
-const putOutboundMessage = function putOutboundMessage ({ message, payload, item }) {
+const putOutboundMessage = function putOutboundMessage ({ message, item }) {
   return Tables.Outbox.put({ Item: item })
 }
 
-const putInboundMessage = co(function* putInboundMessage ({ message, payload, item }) {
+const putInboundMessage = co(function* ({ message, item }) {
   const params = {
     Item: item,
-    ConditionExpression: 'attribute_not_exists(link)'
+    ConditionExpression: 'attribute_not_exists(#link)',
+    ExpressionAttributeNames: {
+      '#link': '_link'
+    }
   }
 
   try {
@@ -72,7 +82,7 @@ const putInboundMessage = co(function* putInboundMessage ({ message, payload, it
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
       const dErr = new Errors.Duplicate()
-      dErr.link = message.link
+      dErr.link = getLink(message)
       throw dErr
     }
 
@@ -80,11 +90,9 @@ const putInboundMessage = co(function* putInboundMessage ({ message, payload, it
   }
 })
 
-const loadMessage = co(function* ({ message, payload }) {
-  // const { message, payload } = messageFromEventPayload(data)
-  const payloadWrapper = yield Objects.getObjectByLink(payload.link)
-  message.object.object = payloadWrapper.object
-  return { message, payload: payloadWrapper }
+const loadMessage = co(function* (message) {
+  message.object = yield Objects.getObjectByLink(getLink(message.object))
+  return message
 })
 
 const getMessageFrom = co(function* ({ author, time, link, body=true }) {
@@ -94,7 +102,10 @@ const getMessageFrom = co(function* ({ author, time, link, body=true }) {
   }
 
   return maybeAddBody({
-    metadata: yield get(Tables.Inbox, { author, time }),
+    message: yield get(Tables.Inbox, {
+      _author: author,
+      time
+    }),
     body
   })
 })
@@ -103,7 +114,7 @@ const getMessagesFrom = co(function* ({ author, gt, limit, body=true }) {
   debug(`looking up inbound messages from ${author}, > ${gt}`)
   const params = getMessagesFromQuery({ author, gt, limit })
   return maybeAddBody({
-    metadata: yield find(Tables.Inbox, params),
+    messages: yield find(Tables.Inbox, params),
     body
   })
 })
@@ -111,23 +122,24 @@ const getMessagesFrom = co(function* ({ author, gt, limit, body=true }) {
 const getLastMessageFrom = co(function* ({ author, body=true }) {
   const params = getLastMessageFromQuery({ author })
   return maybeAddBody({
-    metadata: yield findOne(Tables.Inbox, params),
+    message: yield findOne(Tables.Inbox, params),
     body
   })
 })
 
-const maybeAddBody = function maybeAddBody ({ metadata, body }) {
-  if (!body) return metadata
+const maybeAddBody = function maybeAddBody ({ messages, message, body }) {
+  if (!body) return messages || message
 
-  return Array.isArray(metadata)
-    ? Promise.all(metadata.map(loadMessage))
-    : loadMessage(metadata)
+  return messages
+    ? Promise.all(messages.map(loadMessage))
+    : loadMessage(message)
 }
 
 const getMessagesFromQuery = function getMessagesFromQuery ({ author, gt, limit }) {
   const params = {
-    KeyConditionExpression: 'author = :author AND #time > :time',
+    KeyConditionExpression: '#author = :author AND #time > :time',
     ExpressionAttributeNames: {
+      '#author': '_author',
       '#time': 'time'
     },
     ExpressionAttributeValues: {
@@ -146,8 +158,9 @@ const getMessagesFromQuery = function getMessagesFromQuery ({ author, gt, limit 
 
 const getLastMessageFromQuery = function getLastMessageFromQuery ({ author }) {
   return {
-    KeyConditionExpression: 'author = :author AND #time > :time',
+    KeyConditionExpression: '#author = :author AND #time > :time',
     ExpressionAttributeNames: {
+      '#author': '_author',
       '#time': 'time'
     },
     ExpressionAttributeValues: {
@@ -159,59 +172,16 @@ const getLastMessageFromQuery = function getLastMessageFromQuery ({ author }) {
   }
 }
 
-const messageToEventPayload = function messageToEventPayload (wrappers) {
-  const wrapper = mergeWrappers(wrappers)
-  const formatted = {}
-
-  for (let p in wrapper) {
-    if (p !== 'object') {
-      formatted[p] = wrapper[p]
-    }
-  }
-
-  const message = wrapper.object
-  for (let p in message) {
-    if (p.startsWith(MESSAGE_PROP_PREFIX) || p.startsWith(PAYLOAD_METADATA_PREFIX)) {
-      throw new Errors.InvalidMessageFormat('invalid message body')
-    }
-
-    let prefixed = MESSAGE_PROP_PREFIX + p
-    if (p === 'object' || p === TYPE) {
-      // omit payload
-      // TYPE is always MESSAGE
-    } else if (p === 'recipientPubKey') {
-      formatted[prefixed] = serializePubKey(message[p])
-    } else {
-      formatted[prefixed] = message[p]
-    }
-  }
-
-  return formatted
+const messageToEventPayload = function messageToEventPayload (message) {
+  return clone(message, {
+    recipientPubKey: serializePubKey(message.recipientPubKey)
+  })
 }
 
-const messageFromEventPayload = function messageFromEventPayload (formatted) {
-  const wrapper = {
-    object: {
-      [TYPE]: MESSAGE
-    }
-  }
-
-  for (let p in formatted) {
-    if (p.startsWith(PAYLOAD_METADATA_PREFIX)) {
-      wrapper[p] = formatted[p]
-    } else if (p.startsWith(MESSAGE_PROP_PREFIX)) {
-      let unprefixed = p.slice(MESSAGE_PROP_PREFIX.length)
-      if (unprefixed === 'recipientPubKey') {
-        wrapper.object[unprefixed] = unserializePubKey(formatted[p])
-      } else {
-        wrapper.object[unprefixed] = formatted[p]
-      }
-    } else {
-      wrapper[p] = formatted[p]
-    }
-  }
-
-  return parseMergedWrapper(wrapper)
+const messageFromEventPayload = function messageFromEventPayload (event) {
+  return clone(event, {
+    recipientPubKey: unserializePubKey(event.recipientPubKey)
+  })
 }
 
 const serializePubKey = function serializePubKey (key) {
@@ -230,16 +200,17 @@ const getLastSeqAndLink = co(function* ({ recipient }) {
   debug(`looking up last message to ${recipient}`)
 
   const query = getLastMessageToQuery({ recipient })
-  const seqProp = `${MESSAGE_PROP_PREFIX}${SEQ}`
-  query.ProjectionExpression = [seqProp, 'link'].join(', ')
+  query.ExpressionAttributeNames['#link'] = '_link'
+  query.ExpressionAttributeNames[`#${SEQ}`] = SEQ
+  query.ProjectionExpression = `#${SEQ}, #link`
 
   let last
   try {
     last = yield Tables.Outbox.findOne(query)
     debug('last message:', prettify(last))
     return {
-      seq: last[seqProp],
-      link: last.link
+      seq: last[SEQ],
+      link: last._link
     }
   } catch (err) {
     if (err instanceof Errors.NotFound) {
@@ -255,7 +226,7 @@ const getPropsDerivedFromLast = function getPropsDerivedFromLast (last) {
   const seq = last ? last.seq + 1 : 0
   const props = { [SEQ]: seq }
   if (last) {
-    props[PREV_TO_SENDER] = last.link
+    props[PREV_TO_RECIPIENT] = last.link
   }
 
   return props
@@ -270,7 +241,7 @@ const getMessagesTo = co(function* ({ recipient, gt, limit, body=true }) {
   debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
   const params = getMessagesToQuery({ recipient, gt, limit })
   return maybeAddBody({
-    metadata: yield find(Tables.Outbox, params),
+    messages: yield find(Tables.Outbox, params),
     body
   })
 })
@@ -278,15 +249,16 @@ const getMessagesTo = co(function* ({ recipient, gt, limit, body=true }) {
 const getLastMessageTo = co(function* ({ recipient, body=true }) {
   const params = getLastMessageToQuery({ recipient })
   return maybeAddBody({
-    metadata: yield findOne(Tables.Outbox, params),
+    message: yield findOne(Tables.Outbox, params),
     body
   })
 })
 
 const getMessagesToQuery = function getMessagesToQuery ({ recipient, gt, limit }) {
   const params = {
-    KeyConditionExpression: `recipient = :recipient AND #time > :time`,
+    KeyConditionExpression: `#recipient = :recipient AND #time > :time`,
     ExpressionAttributeNames: {
+      '#recipient': '_recipient',
       '#time': 'time'
     },
     ExpressionAttributeValues: {
@@ -305,8 +277,9 @@ const getMessagesToQuery = function getMessagesToQuery ({ recipient, gt, limit }
 
 const getLastMessageToQuery = function getLastMessageToQuery ({ recipient }) {
   return {
-    KeyConditionExpression: `recipient = :recipient AND #time > :time`,
+    KeyConditionExpression: `#recipient = :recipient AND #time > :time`,
     ExpressionAttributeNames: {
+      '#recipient': '_recipient',
       '#time': 'time'
     },
     ExpressionAttributeValues: {
@@ -338,38 +311,9 @@ const getLastMessageToQuery = function getLastMessageToQuery ({ recipient }) {
 //   return yield Promise.all(messages.map(loadMessage))
 // })
 
-const mergeWrappers = function mergeWrappers ({ message, payload }) {
-  const wrapper = omit(message, 'object')
-  const payloadMeta = omit(payload, 'object')
-  for (let p in payloadMeta) {
-    wrapper[PAYLOAD_METADATA_PREFIX + p] = payloadMeta[p]
-  }
-
-  wrapper.object = message.object
-  return wrapper
-}
-
-const parseMergedWrapper = function parseMergedWrapper (wrapper) {
-  const message = {}
-  const payload = {}
-  for (let p in wrapper) {
-    if (p.startsWith(PAYLOAD_METADATA_PREFIX)) {
-      let unprefixed = p.slice(PAYLOAD_METADATA_PREFIX.length)
-      payload[unprefixed] = wrapper[p]
-    } else {
-      message[p] = wrapper[p]
-    }
-  }
-
-  return {
-    message,
-    payload
-  }
-}
-
 const validateInbound = function validateInbound (message) {
   try {
-    typeforce(types.messageBody, message)
+    typeforce(types.message, message)
   } catch (err) {
     throw new Errors.InvalidMessageFormat(err.message)
   }
@@ -406,8 +350,11 @@ const _normalizeInbound = function _normalizeInbound (event) {
 
 const getInboundByLink = function getInboundByLink (link) {
   return findOne(Tables.Inbox, {
-    IndexName: 'link',
-    KeyConditionExpression: 'link = :link',
+    IndexName: '_link',
+    KeyConditionExpression: '#link = :link',
+    ExpressionAttributeNames: {
+      '#link': '_link'
+    },
     ExpressionAttributeValues: {
       ':link': link
     },
@@ -430,12 +377,17 @@ const getInboundByLink = function getInboundByLink (link) {
 //   }
 // })
 
-const assertTimestampIncreased = co(function* ({ author, link, time }) {
+const assertTimestampIncreased = co(function* (message) {
+  const link = getLink(message)
+  const { time=0 } = message
   try {
-    const result = yield Messages.getLastMessageFrom({ author, body: false })
-    const prev = result.message
+    const prev = yield Messages.getLastMessageFrom({
+      author: message._author,
+      body: false
+    })
+
     debug('previous message:', prettify(prev))
-    if (prev.link === link) {
+    if (prev._link === link) {
       const dErr = new Errors.Duplicate()
       dErr.link = link
       throw dErr
@@ -460,25 +412,25 @@ const assertTimestampIncreased = co(function* ({ author, link, time }) {
   }
 })
 
-const parseInbound = co(function* ({ message }) {
+const parseInbound = co(function* (message) {
   // TODO: uncomment below, check that message is for us
   // yield ensureMessageIsForMe({ message })
 
-  const messageWrapper = Objects.addMetadata({ object: message })
-  const payloadWrapper = Objects.addMetadata({ object: message.object })
+  Objects.addMetadata(message)
+  Objects.addMetadata(message.object)
 
   // TODO:
   // would be nice to parallelize some of these
   // yield assertNotDuplicate(messageWrapper.link)
 
-  const addMessageAuthor = Identities.addAuthorMetadata(messageWrapper)
+  const addMessageAuthor = Identities.addAuthorMetadata(message)
   let addPayloadAuthor
-  if (payloadWrapper.sigPubKey === messageWrapper.sigPubKey) {
+  if (message.object._sigPubKey === message._sigPubKey) {
     addPayloadAuthor = addMessageAuthor.then(() => {
-      payloadWrapper.author = messageWrapper.author
+      setVirtual(message.object, { _author: message._author })
     })
   } else {
-    addPayloadAuthor = Identities.addAuthorMetadata(payloadWrapper)
+    addPayloadAuthor = Identities.addAuthorMetadata(message.object)
   }
 
   yield [
@@ -489,15 +441,10 @@ const parseInbound = co(function* ({ message }) {
   ]
 
   debug('added metadata for message and wrapper')
-  yield Messages.assertTimestampIncreased(messageWrapper)
+  yield Messages.assertTimestampIncreased(message)
 
-  messageWrapper.inbound = true
-  messageWrapper.object = message
-  payloadWrapper.object = message.object
-  return {
-    message: messageWrapper,
-    payload: payloadWrapper
-  }
+  message._inbound = true
+  return message
 })
 
 const preProcessInbound = co(function* (event) {
@@ -508,10 +455,12 @@ const preProcessInbound = co(function* (event) {
 
   // assertNoDrift(message)
 
+  // validateResource({ models, resource: message })
+
   const { object } = message
   const identity = getIntroducedIdentity(object)
   if (identity) {
-    yield Identities.validateAndAdd({ object: identity })
+    yield Identities.validateAndAdd(identity)
   }
 
   return message
@@ -537,21 +486,18 @@ const getIntroducedIdentity = function getIntroducedIdentity (payload) {
 
 const getMessageStub = function getMessageStub ({ message, error }) {
   const stub = {
-    link: (error && error.link) || message.link || Objects.getLink(message.object),
-    time: message.time || message.object.time
+    link: (error && error.link) || getLink(message),
+    time: message.time
   }
 
   typeforce(types.messageStub, stub)
   return stub
 }
 
-const stripData = function stripData ({ message, payload }) {
-  return {
-    message: clone(message, {
-      object: omit(message.object, 'object')
-    }),
-    payload: omit(payload, 'object')
-  }
+const stripData = function stripData (message) {
+  return clone(message, {
+    object: pickVirtual(message.object)
+  })
 }
 
 // enable overriding during testing
@@ -559,7 +505,7 @@ const Messages = module.exports = {
   messageFromEventPayload,
   messageToEventPayload,
   putMessage,
-  mergeWrappers,
+  // mergeWrappers,
   normalizeInbound,
   parseInbound,
   preProcessInbound,
@@ -574,7 +520,7 @@ const Messages = module.exports = {
   getMessageStub,
   getLastSeqAndLink,
   getPropsDerivedFromLast,
-  // getNextSeqAndPREV_TO_SENDER,
+  // getNextSeqAndPREV_TO_RECIPIENT,
   assertTimestampIncreased,
   stripData
   // assertNoDrift,
