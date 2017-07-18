@@ -295,7 +295,10 @@ test('save to type table', loudCo(function* (t) {
     return Promise.resolve()
   }
 
-  const whole = clone(message.object, payload)
+  const whole = clone(message.object, payload, {
+    _time: message.time
+  })
+
   table.create = function (obj) {
     t.same(obj, whole)
     return Promise.resolve()

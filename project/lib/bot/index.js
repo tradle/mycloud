@@ -109,6 +109,8 @@ function createBot (opts={}) {
   })
 
   const savePayloads = co(function* (event) {
+    debug(`message stream event: ${JSON.stringify(event)}`)
+
     // unmarshalling is prob a waste of time
     const messages = getRecordsFromEvent(event)
     yield messages.map(savePayloadToTypeTable)
@@ -126,6 +128,10 @@ function createBot (opts={}) {
     const payload = yield getMessagePayload(message)
     // TODO: make this an update operation
     const full = extend(message.object, payload)
+    if (!full._time) {
+      full._time = message.time || message._time
+    }
+
     return yield table.create(full)
   })
 

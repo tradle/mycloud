@@ -16,7 +16,7 @@
     "@tradle/custom-models": "https://github.com/tradle/custom-models",
     "@tradle/dynamodb": "tradle/dynamodb",
     "@tradle/engine": "^4.10.0",
-    "@tradle/merge-models": "https://github.com/tradle/merge-models",
+    "@tradle/merge-models": "tradle/merge-models",
     "@tradle/models": "https://github.com/tradle/models",
     "@tradle/schema-graphql": "tradle/schema-graphql",
     "@tradle/schema-joi": "tradle/schema-joi",

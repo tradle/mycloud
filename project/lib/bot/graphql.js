@@ -1,3 +1,4 @@
+const debug = require('debug')('tradle:sls:graphql')
 const { graphql } = require('graphql')
 const {
   constants,
@@ -16,13 +17,22 @@ module.exports = function setup ({ table, models, objects }) {
     tables
   })
 
-  const { schema, schemas } = createSchema({ models, objects, resolvers })
+  // be lazy
+  let schema
+  const getSchema = () => {
+    if (!schema) {
+      schema = createSchema({ models, objects, resolvers }).schema
+    }
 
-  const executeQuery = function executeQuery (query, variables) {
-    return graphql(schema, query, null, {}, variables)
+    return schema
+  }
+
+  const executeQuery = (query, variables) => {
+    return graphql(getSchema(), query, null, {}, variables)
   }
 
   const handleHTTPRequest = co(function* (event) {
+    debug(`received GraphQL query: ${event.body}`)
     try {
       const { query, variables } = JSON.parse(event.body)
       return yield executeQuery(query, variables)
@@ -34,8 +44,6 @@ module.exports = function setup ({ table, models, objects }) {
   return {
     tables,
     resolvers,
-    schema,
-    schemas,
     executeQuery,
     handleHTTPRequest
   }

@@ -12,7 +12,8 @@ const {
   typeforce,
   clone,
   pickVirtual,
-  setVirtual
+  setVirtual,
+  extend
 } = require('./utils')
 const { getLink } = require('./crypto')
 const { prettify } = require('./string-utils')
@@ -56,11 +57,11 @@ const find = function find (table, params) {
 }
 
 const putMessage = co(function* (message) {
-  const item = messageToEventPayload(message)
-  setVirtual({
+  setVirtual(message, {
     _payloadType: message.object[TYPE]
   })
 
+  const item = messageToEventPayload(message)
   if (message._inbound) {
     yield putInboundMessage({ message, item })
   } else {
@@ -95,7 +96,10 @@ const putInboundMessage = co(function* ({ message, item }) {
 })
 
 const loadMessage = co(function* (message) {
-  message.object = yield Objects.getObjectByLink(getLink(message.object))
+  debug(`looking up body for ${JSON.stringify(message.object)}`)
+  const body = yield Objects.getObjectByLink(getLink(message.object))
+  message.object = extend(message.object || {}, body)
+  debug('loaded message', JSON.stringify(message.object).slice(0, 100))
   return message
 })
 
@@ -134,9 +138,20 @@ const getLastMessageFrom = co(function* ({ author, body=true }) {
 const maybeAddBody = function maybeAddBody ({ messages, message, body }) {
   if (!body) return messages || message
 
-  return messages
-    ? Promise.all(messages.map(loadMessage))
-    : loadMessage(message)
+  if (!messages) {
+    return loadMessage(message)
+  }
+
+  return Promise.all(messages.map(loadMessage))
+
+  // return Promise.all(messages.map(message => {
+  //   return loadMessage(message)
+  //     .catch(err => {
+  //       debug(`failed to load message ${prettify(message)}`, err)
+  //     })
+  // }))
+  // // filter out nulls
+  // .then(results => results.filter(message => message))
 }
 
 const getMessagesFromQuery = function getMessagesFromQuery ({ author, gt, limit }) {
@@ -241,9 +256,11 @@ const getPropsDerivedFromLast = function getPropsDerivedFromLast (last) {
 //   return last + 1
 // })
 
-const getMessagesTo = co(function* ({ recipient, gt, limit, body=true }) {
+const getMessagesTo = co(function* ({ recipient, gt=0, afterMessage, limit, body=true }) {
+  if (!gt) debug(`gt not specified: ${new Error().stack}`)
+
   debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
-  const params = getMessagesToQuery({ recipient, gt, limit })
+  const params = getMessagesToQuery({ recipient, gt, afterMessage, limit })
   return maybeAddBody({
     messages: yield find(Tables.Outbox, params),
     body
@@ -258,7 +275,12 @@ const getLastMessageTo = co(function* ({ recipient, body=true }) {
   })
 })
 
-const getMessagesToQuery = function getMessagesToQuery ({ recipient, gt, limit }) {
+const getMessagesToQuery = function getMessagesToQuery ({
+  recipient,
+  gt,
+  afterMessage,
+  limit
+}) {
   const params = {
     KeyConditionExpression: `#recipient = :recipient AND #time > :time`,
     ExpressionAttributeNames: {
@@ -270,6 +292,11 @@ const getMessagesToQuery = function getMessagesToQuery ({ recipient, gt, limit }
       ':time': gt
     },
     ScanIndexForward: true
+  }
+
+  if (afterMessage) {
+    debug(`looking up messages after ${afterMessage}`)
+    params.ExclusiveStartKey = afterMessage
   }
 
   if (limit) {

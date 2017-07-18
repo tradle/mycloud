@@ -23,6 +23,7 @@ const onSubscribed = co(function* ({ clientId, topics }) {
   debug('retrieved session', prettify(session))
   const { permalink, clientPosition, serverPosition } = session
   const gt = (clientPosition.received && clientPosition.received.time) || 0
+  debug(`delivering messages after time ${gt}`)
   yield Delivery.deliverMessages({ clientId, permalink, gt })
 })
 

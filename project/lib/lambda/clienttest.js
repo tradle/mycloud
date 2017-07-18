@@ -25,7 +25,7 @@ const wrap = require('../wrap')
 const getMe = require('../').provider.getMyIdentity()
 const { getLink, getPermalink } = require('../crypto')
 const { omitVirtual } = require('../utils')
-const allUsers = require('../../test/fixtures/users')
+const allUsers = require('../../test/fixtures/users').slice(3)
 // const names = allUsers.map(user => randomName.first())
 
 exports.handler = wrap(function* (event={}, context) {

@@ -69,6 +69,9 @@ custom:
   bot_onmessage: bot_onmessage
   bot_onsealevent: bot_onsealevent
   bot_onpresence: bot_onpresence
+  bot_graphql: bot_graphql
+  bot_processinbox: bot_processinbox
+  bot_processoutbox: bot_processoutbox
 
   tables:
     presence: ${{self:custom.prefixTable}}presence
@@ -314,15 +317,6 @@ functions:
   #   handler: project/lib/lambda/createevent.handler
   #   memorySize: 512
 
-  bot_graphql:
-    handler: project/samplebot/index.ongraphql
-    memorySize: 256
-    events:
-      - http:
-          path: tradle/graphql
-          method: post
-          cors: true
-
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
@@ -366,36 +360,6 @@ functions:
           arn:
             Fn::GetAtt:
               - SealsTable
-              - StreamArn
-
-  inbox2types:
-    handler: project/samplebot/index.processmessage
-    memorySize: 512
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - InboxTable
-              - StreamArn
-
-  outbox2types:
-    handler: project/samplebot/index.processmessage
-    memorySize: 512
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - OutboxTable
               - StreamArn
 
   # log:
@@ -519,28 +483,6 @@ functions:
     # custom:
     #   env-resources: ${{self:custom.resource_names}}
 
-  # echo bot (business logic layer)
-  bot_onmessage:
-    handler: project/samplebot/index.onmessage
-    memorySize: 1024
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
-
-  bot_onsealevent:
-    handler: project/samplebot/index.onsealevent
-    memorySize: 1024
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 1
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - SealsTable
-              - StreamArn
-
   # addcontact:
   #   handler: project/lib/lambda/add-contact.handler
   #   environment:
@@ -619,6 +561,69 @@ functions:
   clienttest:
     handler: project/lib/lambda/clienttest.handler
     timeout: 15
+
+
+
+  # echo bot (business logic layer)
+  bot_onmessage:
+    handler: project/samplebot/index.onmessage
+    memorySize: 1024
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+
+  bot_onsealevent:
+    handler: project/samplebot/index.onsealevent
+    memorySize: 1024
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - SealsTable
+              - StreamArn
+
+  bot_processinbox:
+    handler: project/samplebot/index.onmessagestream
+    memorySize: 512
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - InboxTable
+              - StreamArn
+
+  bot_processoutbox:
+    handler: project/samplebot/index.onmessagestream
+    memorySize: 512
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - OutboxTable
+              - StreamArn
+
+  bot_graphql:
+    handler: project/samplebot/index.ongraphql
+    memorySize: 256
+    events:
+      - http:
+          path: tradle/graphql
+          method: post
+          cors: true
 
 resources:
   Resources:

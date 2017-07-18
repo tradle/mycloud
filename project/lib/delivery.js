@@ -5,7 +5,8 @@ const Objects = require('./objects')
 const Messages = require('./messages')
 const Iot = require('./iot-utils')
 const Errors = require('./errors')
-const { addLinks, omitVirtual } = require('./utils')
+const { omitVirtual } = require('./utils')
+const { getLink } = require('./crypto')
 const MAX_BATCH_SIZE = 5
 // 128KB, but who knows what overhead MQTT adds, so leave a buffer
 // would be good to test it and know the hard limit
@@ -25,7 +26,13 @@ const deliverBatch = co(function* ({ clientId, permalink, messages }) {
   debug(`delivered ${messages.length} messages to ${permalink}`)
 })
 
-const deliverMessages = co(function* ({ clientId, permalink, gt, lt=Infinity }) {
+const deliverMessages = co(function* ({
+  clientId,
+  permalink,
+  gt=0,
+  afterMessage,
+  lt=Infinity
+}) {
   // const clientId = Auth.getAuthenticated({})
   // const originalLT = lt
   debug(`looking up messages for ${permalink} > ${gt}`)
@@ -37,6 +44,7 @@ const deliverMessages = co(function* ({ clientId, permalink, gt, lt=Infinity }) 
     let messages = yield Messages.getMessagesTo({
       recipient: permalink,
       gt,
+      afterMessage,
       limit: batchSize,
       body: true
     })
@@ -52,7 +60,7 @@ const deliverMessages = co(function* ({ clientId, permalink, gt, lt=Infinity }) 
     // }
 
     let last = messages[messages.length - 1]
-    gt = last.object.time
+    afterMessage = getLink(last)
   }
 })
 

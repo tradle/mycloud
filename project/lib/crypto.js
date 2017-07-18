@@ -177,6 +177,7 @@ const sign = loudCo(function* ({ key, object }) {
   const { pub, priv } = key
   const author = keyToSigner(key)
   /* { object, merkleRoot } */
+
   const result = yield doSign({
     object: omitVirtual(object),
     author

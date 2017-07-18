@@ -29,6 +29,9 @@ custom:
   bot_onmessage: bot_onmessage
   bot_onsealevent: bot_onsealevent
   bot_onpresence: bot_onpresence
+  bot_graphql: bot_graphql
+  bot_processinbox: bot_processinbox
+  bot_processoutbox: bot_processoutbox
   tables:
     presence: '${{self:custom.prefixTable}}presence'
     seals: '${{self:custom.prefixTable}}seals'
@@ -312,21 +315,6 @@ functions:
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
-  bot_onmessage:
-    handler: project/samplebot/index.onmessage
-    memorySize: 1024
-  bot_onsealevent:
-    handler: project/samplebot/index.onsealevent
-    memorySize: 1024
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 1
-          startingPosition: TRIM_HORIZON
-          arn:
-            'Fn::GetAtt':
-              - SealsTable
-              - StreamArn
   identity:
     handler: project/lib/lambda/identity.handler
   setenvvars:
@@ -369,6 +357,53 @@ functions:
   clienttest:
     handler: project/lib/lambda/clienttest.handler
     timeout: 15
+  bot_onmessage:
+    handler: project/samplebot/index.onmessage
+    memorySize: 1024
+  bot_onsealevent:
+    handler: project/samplebot/index.onsealevent
+    memorySize: 1024
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: TRIM_HORIZON
+          arn:
+            'Fn::GetAtt':
+              - SealsTable
+              - StreamArn
+  bot_processinbox:
+    handler: project/samplebot/index.onmessagestream
+    memorySize: 512
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            'Fn::GetAtt':
+              - InboxTable
+              - StreamArn
+  bot_processoutbox:
+    handler: project/samplebot/index.onmessagestream
+    memorySize: 512
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            'Fn::GetAtt':
+              - OutboxTable
+              - StreamArn
+  bot_graphql:
+    handler: project/samplebot/index.ongraphql
+    memorySize: 256
+    events:
+      - http:
+          path: tradle/graphql
+          method: post
+          cors: true
 resources:
   Resources:
     ObjectsBucket:

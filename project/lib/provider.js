@@ -13,7 +13,7 @@ const Identities = require('./identities')
 const Events = require('./events')
 const { getLiveSessionByPermalink } = require('./auth')
 const { deliverBatch } = require('./delivery')
-const { extend, setVirtual } = require('./utils')
+const { extend, setVirtual, pickVirtual } = require('./utils')
 const Errors = require('./errors')
 const types = require('./types')
 const { network } = require('./')
@@ -92,6 +92,7 @@ const _createSendMessageEvent = co(function* (opts) {
     promiseRecipient
   ]
 
+  const payloadVirtual = pickVirtual(payload)
   const unsignedMessage = clone(other, {
     [TYPE]: MESSAGE,
     recipientPubKey: utils.sigPubKey(recipientObj),
@@ -116,6 +117,8 @@ const _createSendMessageEvent = co(function* (opts) {
       _author: getPermalink(author.identity),
       _recipient: getPermalink(recipientObj)
     })
+
+    setVirtual(signedMessage.object, payloadVirtual)
 
     try {
       yield Messages.putMessage(signedMessage)
