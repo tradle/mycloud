@@ -14,6 +14,7 @@ const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
 const schema = require('../conf/table/users').Properties
+const BaseBotModels = require('../lib/bot/base-models')
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
@@ -237,3 +238,95 @@ const schema = require('../conf/table/users').Properties
     t.end()
   }))
 })
+
+test('save to type table', loudCo(function* (t) {
+  const message = {
+    "_author": "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
+    "_inbound": true,
+    "_link": "1843969525f8ecb105ba484b59bb70d3a5d0c38e465f29740fc335e95b766a09",
+    "_n": 1,
+    "_permalink": "1843969525f8ecb105ba484b59bb70d3a5d0c38e465f29740fc335e95b766a09",
+    "_q": "f58247298ef1e815a39394b5a3e724b01b8e0e3217b89699729b8b0698078d89",
+    "_recipient": "9fb7144218332ef152b34d6e38d6479ecb07f2c0b649af1cfe0559f870d137c4",
+    "_s": "CkkKBHAyNTYSQQSra+ZW0NbpXhWzsrPJ3jaSmzL4LelVpqFr5ZC+VElHxcOD+8zlS+PuhtQrHB6LJ7KF+d8XtQzgYhVX1FXEBYYREkcwRQIgcF+hp6e5KnVj9VapsvnVkaJ6d3DL84DmJ3UueEHGiQMCIQDr0w0RJXIrLk7O1AgeEeLQfloFslsDzWVcHs4AhOFcrg==",
+    "_sigPubKey": "04ab6be656d0d6e95e15b3b2b3c9de36929b32f82de955a6a16be590be544947c5c383fbcce54be3ee86d42b1c1e8b27b285f9df17b50ce0621557d455c4058611",
+    "_t": "tradle.Message",
+    "_payloadType": "tradle.Ping",
+    "_virtual": [
+      "_sigPubKey",
+      "_link",
+      "_permalink",
+      "_author",
+      "_recipient"
+    ],
+    "object": {
+      "_author": "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
+      "_link": "e886aba619b76982a6eb3ed6e70065d324eddcd9fe1968bf33ea0e59662925c4",
+      "_permalink": "e886aba619b76982a6eb3ed6e70065d324eddcd9fe1968bf33ea0e59662925c4",
+      "_sigPubKey": "04ab6be656d0d6e95e15b3b2b3c9de36929b32f82de955a6a16be590be544947c5c383fbcce54be3ee86d42b1c1e8b27b285f9df17b50ce0621557d455c4058611",
+      "_virtual": [
+        "_sigPubKey",
+        "_link",
+        "_permalink",
+        "_author"
+      ]
+    },
+    "recipientPubKey": "p256:04fffcaea5138d242b161f44d7310a20eefbbb2c39d8bed1061ec5df62c568d99eab7a6137cc4829ac4e2159f759dedf38ba34b6f4e42a0d9eb9486226402ed6ec",
+    "time": 1500317965602
+  }
+
+  const payload = {
+    _t: 'tradle.Ping'
+  }
+
+  const bot = createFakeBot({})
+  bot.objects = {
+    get: function (link) {
+      t.equal(link, message.object._link)
+      return Promise.resolve(payload)
+    }
+  }
+
+  bot.ready()
+  const table = bot.tables['tradle.Ping']
+  t.ok(table, 'table created per model')
+
+  table.createTable = function () {
+    return Promise.resolve()
+  }
+
+  const whole = clone(message.object, payload)
+  table.create = function (obj) {
+    t.same(obj, whole)
+    return Promise.resolve()
+  }
+
+  yield bot.call('onmessagestream', toStreamItems([
+    { new: message }
+  ]))
+
+  const { scan } = table
+  table.scan = table.query = function (...args) {
+    t.ok('queried table')
+    t.end()
+    // const op = scan(...args)
+    // op.exec = () => {
+    //   return Promise.resolve({
+    //     Count: 1,
+    //     Items: [whole]
+    //   })
+    // }
+
+    // return op
+  }
+
+  yield bot.call('ongraphql', {
+    body: JSON.stringify({
+      query: `{
+        rl_tradle_Ping {
+          _link
+        }
+      }`
+    })
+  })
+}))

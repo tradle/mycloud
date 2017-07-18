@@ -8,7 +8,7 @@ module.exports = namespace => {
       type: 'tradle.Model',
       title: 'Tradle in AWS',
       id: DEPLOYMENT,
-      interfaces: ['tradle.Message'],
+      interfaces: ['tradle.ChatItem'],
       subClassOf: 'tradle.FinancialProduct',
       forms: [
         `${namespace}.Configuration`
@@ -23,7 +23,7 @@ module.exports = namespace => {
       type: 'tradle.Model',
       title: 'AWS Configuration',
       id: CONFIGURATION,
-      interfaces: ['tradle.Message'],
+      interfaces: ['tradle.ChatItem'],
       subClassOf: 'tradle.Form',
       properties: {
         name: {
@@ -54,7 +54,7 @@ module.exports = namespace => {
       type: 'tradle.Model',
       title: 'Product Definition',
       id: PRODUCT_DEF,
-      interfaces: ['tradle.Message'],
+      interfaces: ['tradle.ChatItem'],
       subClassOf: 'tradle.Form',
       properties: {
         name: {

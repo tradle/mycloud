@@ -37,7 +37,8 @@ const deployTradleStrategy = require('@tradle/bot-products')({
 // }
 
 const createBot = require('../lib/bot')
-const bot = createBot({})
+const bot = createBot({ models })
+
 // attach this first
 bot.onmessage(co(function* ({ user, type }) {
   debug(`received ${type}`)

@@ -57,6 +57,10 @@ const find = function find (table, params) {
 
 const putMessage = co(function* (message) {
   const item = messageToEventPayload(message)
+  setVirtual({
+    _payloadType: message.object[TYPE]
+  })
+
   if (message._inbound) {
     yield putInboundMessage({ message, item })
   } else {
@@ -173,7 +177,7 @@ const getLastMessageFromQuery = function getLastMessageFromQuery ({ author }) {
 }
 
 const messageToEventPayload = function messageToEventPayload (message) {
-  return clone(message, {
+  return clone(stripData(message), {
     recipientPubKey: serializePubKey(message.recipientPubKey)
   })
 }

@@ -2,6 +2,8 @@ const { EventEmitter } = require('events')
 const debug = require('debug')('tradle:sls:bot-engine')
 const deepEqual = require('deep-equal')
 const clone = require('clone')
+const mergeModels = require('@tradle/merge-models')
+const BaseModels = require('./base-models')
 const types = require('../types')
 const {
   co,
@@ -21,18 +23,21 @@ const { TYPE, SIG } = constants
 const createUsers = require('./users')
 const createHistory = require('./history')
 const createSeals = require('./seals')
-// const createGraphQLAPI = require('./graphql')
+const createGraphQLAPI = require('./graphql')
+// const RESOLVED = Promise.resolve()
 const TESTING = process.env.NODE_ENV === 'test'
 const promisePassThrough = data => Promise.resolve(data)
 
 const METHODS = [
-  'onmessage',
-  'onsealevent',
-  'onreadseal',
-  'onwroteseal',
-  'onusercreate',
-  'onuseronline',
-  'onuseroffline'
+  { name: 'onmessage' },
+  { name: 'onsealevent' },
+  { name: 'onreadseal' },
+  { name: 'onwroteseal' },
+  { name: 'onusercreate' },
+  { name: 'onuseronline' },
+  { name: 'onuseroffline' },
+  { name: 'onmessagestream' },
+  { name: 'ongraphql', type: 'http' }
 ]
 
 module.exports = createBot
@@ -41,9 +46,20 @@ function createBot (opts={}) {
   const {
     tradle=defaultTradleInstance,
     users,
-    autosave=true,
-    // models
+    autosave=true
   } = opts
+
+  let { models } = opts
+  if (models) {
+    models = mergeModels()
+      .add(BaseModels)
+      .add(models)
+      .get()
+  } else {
+    models = mergeModels()
+      .add(BaseModels)
+      .get()
+  }
 
   const {
     objects,
@@ -51,9 +67,7 @@ function createBot (opts={}) {
     identities,
     provider,
     errors,
-    constants,
-    tables,
-    buckets
+    constants
   } = tradle
 
   const sealsAPI = createSeals(tradle)
@@ -62,40 +76,70 @@ function createBot (opts={}) {
     return data
   })
 
+  function getMessagePayload (message) {
+    if (message.object[SIG]) {
+      return Promise.resolve(message.object)
+    }
+
+    return bot.objects.get(message.object._link)
+  }
+
   const normalizeOnMessageInput = co(function* (message) {
     if (typeof message === 'string') {
       message = JSON.parse(message)
     }
 
-    const getObject = message.object[SIG]
-      ? Promise.resolve(message.object)
-      : objects.getObjectByLink(message.object._link)
-
-    const [object, user] = [
-      yield getObject,
+    let [payload, user] = [
+      yield getMessagePayload(message),
       yield bot.users.createIfNotExists({ id: message._author })
     ]
 
-    extend(message.object, object)
+    payload = extend(message.object, payload)
     const _userPre = clone(user)
-    const type = object[TYPE]
+    const type = payload[TYPE]
     debug(`receiving ${type}`)
     return {
       bot,
       user,
       message,
-      payload: message.object,
+      payload,
       _userPre,
       type
     }
   })
 
+  const savePayloads = co(function* (event) {
+    // unmarshalling is prob a waste of time
+    const messages = getRecordsFromEvent(event)
+    yield messages.map(savePayloadToTypeTable)
+  })
+
+  // process Inbox & Outbox tables -> type-specific tables
+  const savePayloadToTypeTable = co(function* (message) {
+    const type = message._payloadType
+    const table = bot.tables[type]
+    if (!table) {
+      debug(`not saving "${type}", don't have a model for it`)
+      return
+    }
+
+    const payload = yield getMessagePayload(message)
+    // TODO: make this an update operation
+    const full = extend(message.object, payload)
+    return yield table.create(full)
+  })
+
+  // TODO: make this lazier! It currently clocks in at 400ms+
+  const gqlAPI = createGraphQLAPI({ objects, models })
   const pre = {
     onmessage: [
       normalizeOnMessageInput
     ],
     onsealevent: [
       normalizeOnSealInput
+    ],
+    ongraphql: [
+      gqlAPI.handleHTTPRequest
     ]
   }
 
@@ -188,14 +232,14 @@ function createBot (opts={}) {
     bot.ready = resolve
   })
 
-  METHODS.forEach(method => {
-    middleware[method] = []
-    bot[method] = fn => addMiddleware(method, fn)
-    if (!pre[method]) {
-      pre[method] = []
+  METHODS.forEach(({ name }) => {
+    middleware[name] = []
+    bot[name] = fn => addMiddleware(name, fn)
+    if (!pre[name]) {
+      pre[name] = []
     }
 
-    pre[method].unshift(co(function* (arg) {
+    pre[name].unshift(co(function* (arg) {
       yield promiseReady
       return arg
     }))
@@ -219,9 +263,11 @@ function createBot (opts={}) {
     }
   }))
 
+  addMiddleware('onmessagestream', savePayloads)
+
   bot.seals = sealsAPI
   bot.users = users || createUsers({
-    table: tables.Users,
+    table: tradle.tables.Users,
     oncreate: user => processors.onusercreate(user)
   })
 
@@ -234,19 +280,16 @@ function createBot (opts={}) {
     get: objects.getObjectByLink
   }
 
-  bot.resources = { tables, buckets }
+  bot.tables = gqlAPI.tables
+  bot.resources = ['tables', 'buckets']
 
   const processors = {}
   bot.exports = {}
-  METHODS.forEach(method => {
-    const processor = event => execMiddleware(method, event)
-    processors[method] = processor
-    bot.exports[method] = wrap(processor)
+  METHODS.forEach(({ name, type }) => {
+    const processor = event => execMiddleware(name, event)
+    processors[name] = processor
+    bot.exports[name] = wrap(processor, { type })
   })
-
-  // if (models) {
-  //   extend(bot.exports, createGraphQLAPI({ objects, models }))
-  // }
 
   if (TESTING) {
     bot.call = (method, ...args) => processors[method](...args)

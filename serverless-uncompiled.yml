@@ -314,6 +314,15 @@ functions:
   #   handler: project/lib/lambda/createevent.handler
   #   memorySize: 512
 
+  bot_graphql:
+    handler: project/samplebot/index.ongraphql
+    memorySize: 256
+    events:
+      - http:
+          path: tradle/graphql
+          method: post
+          cors: true
+
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
@@ -357,6 +366,36 @@ functions:
           arn:
             Fn::GetAtt:
               - SealsTable
+              - StreamArn
+
+  inbox2types:
+    handler: project/samplebot/index.processmessage
+    memorySize: 512
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - InboxTable
+              - StreamArn
+
+  outbox2types:
+    handler: project/samplebot/index.processmessage
+    memorySize: 512
+    # custom:
+    #   env-resources: ${{self:custom.resource_names}}
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - OutboxTable
               - StreamArn
 
   # log:

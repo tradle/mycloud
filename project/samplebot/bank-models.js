@@ -5,7 +5,7 @@ module.exports = namespace => {
       type: 'tradle.Model',
       title: 'Current Account',
       id,
-      interfaces: ['tradle.Message'],
+      interfaces: ['tradle.ChatItem'],
       subClassOf: 'tradle.FinancialProduct',
       forms: [
         'tradle.PhotoID',
