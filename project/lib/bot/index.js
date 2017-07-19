@@ -92,7 +92,6 @@ function createBot (opts={}) {
       return Promise.resolve(message.object)
     }
 
-    debug('getMessagePayload', JSON.stringify(message))
     return bot.objects.get(getLink(message.object))
   }
 

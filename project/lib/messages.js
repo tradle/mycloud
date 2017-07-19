@@ -96,10 +96,8 @@ const putInboundMessage = co(function* ({ message, item }) {
 })
 
 const loadMessage = co(function* (message) {
-  debug(`looking up body for ${JSON.stringify(message.object)}`)
   const body = yield Objects.getObjectByLink(getLink(message.object))
   message.object = extend(message.object || {}, body)
-  debug('loaded message', JSON.stringify(message.object).slice(0, 100))
   return message
 })
 

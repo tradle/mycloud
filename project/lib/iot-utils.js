@@ -14,7 +14,7 @@ function publish (params) {
   }
 
   params.topic = prefixTopic(params.topic)
-  debug(`publishing to ${params.topic}: ${JSON.stringify(params)}`)
+  // debug(`publishing to ${params.topic}: ${JSON.stringify(params)}`)
   return aws.iotData.publish(params).promise()
 }
 
