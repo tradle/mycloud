@@ -1,7 +1,7 @@
 
 const { types, typeforce } = require('@tradle/engine')
 const { identity } = types
-const { PREV_TO_RECIPIENT, SEQ, SIG } = require('./constants')
+const { TYPE, PREV_TO_RECIPIENT, SEQ, SIG } = require('./constants')
 
 function link (val) {
   return typeof val === 'string' && val.length === 64
@@ -21,8 +21,26 @@ exports.author = typeforce.compile({
 })
 
 exports.identity = identity
-exports.signedObject = types.signedObject
-exports.unsignedObject = types.rawObject
+exports.hasType = function hasType (obj) {
+  if (!obj[TYPE]) {
+    throw new Error(`expected ${TYPE} property`)
+  }
+
+  return true
+}
+
+exports.signedObject = function signedObject (obj) {
+  typeforce(types.signedObject, obj)
+  typeforce(exports.hasType, obj)
+  return true
+}
+
+exports.unsignedObject = function unsignedObject (obj) {
+  typeforce(types.rawObject, obj)
+  typeforce(exports.hasType, obj)
+  return true
+}
+
 // exports.messageBody = typeforce.compile({
 //   recipientPubKey: types.ecPubKey,
 //   object: exports.signedObject,

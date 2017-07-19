@@ -51,6 +51,7 @@
     "object.pick": "^1.2.0",
     "pify": "^2.3.0",
     "random-name": "^0.1.2",
+    "settle-promise": "^1.0.0",
     "superagent": "^3.5.2",
     "typeforce": "^1.11.1",
     "utf8-length": "^0.0.1",

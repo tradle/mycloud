@@ -336,3 +336,74 @@ test('save to type table', loudCo(function* (t) {
     t.end()
   })
 }))
+
+test.only('validate send', loudCo(function* (t) {
+  const tradle = Tradle.new()
+  tradle.provider.sendMessage = () => Promise.resolve()
+
+  const models = {
+    'ding.bling': {
+      id: 'ding.bling',
+      title: 'Ding Bling',
+      type: 'tradle.Model',
+      properties: {
+        ding: {
+          type: 'string'
+        },
+        blink: {
+          type: 'number'
+        }
+      },
+      required: ['ding']
+    }
+  }
+
+  const bot = createRealBot({
+    tradle,
+    models
+  })
+
+  bot.ready()
+  try {
+    yield bot.send({
+      to: 'blah',
+      object: {}
+    })
+
+    t.fail('expected payload validation to fail')
+  } catch (err) {
+    t.ok(/expected/i.test(err.message))
+  }
+
+  // undeclared types are ok
+  yield bot.send({
+    to: 'blah',
+    object: {
+      _t: 'sometype'
+    }
+  })
+
+  // declared types are validated
+  try {
+    yield bot.send({
+      to: 'blah',
+      object: {
+        _t: 'ding.bling',
+      }
+    })
+
+    t.fail('validation should have failed')
+  } catch (err) {
+    t.ok(/required/.test(err.message))
+  }
+
+  yield bot.send({
+    to: 'blah',
+    object: {
+      _t: 'ding.bling',
+      ding: 'dong'
+    }
+  })
+
+  t.end()
+}))

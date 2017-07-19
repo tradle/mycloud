@@ -92,6 +92,10 @@ const del = co(function* (params) {
 const find = co(function* (params) {
   maybeForceConsistentRead(params)
   const result = yield exec('query', params)
+  if (result.LastEvaluatedKey) {
+    debug('LastEvaluatedKey', result.LastEvaluatedKey)
+  }
+
   return result.Items
 })
 

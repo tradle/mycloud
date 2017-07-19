@@ -1,6 +1,6 @@
 const debug = require('debug')('tradle:sls:delivery')
 const utf8length = require('utf8-length')
-const { co, typeforce } = require('./utils')
+const { co, typeforce, pick } = require('./utils')
 const Objects = require('./objects')
 const Messages = require('./messages')
 const Iot = require('./iot-utils')
@@ -60,7 +60,7 @@ const deliverMessages = co(function* ({
     // }
 
     let last = messages[messages.length - 1]
-    afterMessage = getLink(last)
+    afterMessage = pick(last, ['_recipient', 'time'])
   }
 })
 

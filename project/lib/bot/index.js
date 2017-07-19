@@ -3,6 +3,7 @@ const debug = require('debug')('tradle:sls:bot-engine')
 const deepEqual = require('deep-equal')
 const clone = require('clone')
 const mergeModels = require('@tradle/merge-models')
+const validateResource = require('@tradle/validate-resource')
 const BaseModels = require('./base-models')
 const types = require('../types')
 const {
@@ -12,8 +13,10 @@ const {
   typeforce,
   isPromise,
   waterfall,
-  series
+  series,
+  allSettled
 } = require('../utils')
+const { getLink } = require('../crypto')
 const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
 const wrap = require('../wrap')
@@ -89,7 +92,8 @@ function createBot (opts={}) {
       return Promise.resolve(message.object)
     }
 
-    return bot.objects.get(message.object._link)
+    debug('getMessagePayload', JSON.stringify(message))
+    return bot.objects.get(getLink(message.object))
   }
 
   const normalizeOnMessageInput = co(function* (message) {
@@ -119,8 +123,19 @@ function createBot (opts={}) {
   const savePayloads = co(function* (event) {
     // unmarshalling is prob a waste of time
     const messages = getRecordsFromEvent(event)
-    yield messages.map(savePayloadToTypeTable)
+    const results = yield allSettled(messages.map(savePayloadToTypeTable))
+    logAndThrow(results)
   })
+
+  function logAndThrow (results) {
+    const failed = results.map(({ reason }) => reason)
+      .filter(reason => reason)
+
+    if (failed.length) {
+      debug('failed to save payloads', failed)
+      throw failed[0].reason
+    }
+  }
 
   // process Inbox & Outbox tables -> type-specific tables
   const savePayloadToTypeTable = co(function* (message) {
@@ -228,7 +243,7 @@ function createBot (opts={}) {
         other: typeforce.maybe(typeforce.Object)
       }, opts)
     } catch (err) {
-      throw new errors.InvalidInput(`invalid params to send: ${prettify(opts)}`)
+      throw new errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
     }
 
     const { to } = opts
@@ -239,6 +254,12 @@ function createBot (opts={}) {
         [TYPE]: 'tradle.SimpleMessage',
         message: opts.object
       }
+    }
+
+    const payload = opts.object
+    const model = models[payload[TYPE]]
+    if (model) {
+      validateResource({ models, model, resource: payload })
     }
 
     return yield provider.sendMessage(opts)

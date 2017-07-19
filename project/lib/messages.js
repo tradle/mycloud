@@ -257,8 +257,6 @@ const getPropsDerivedFromLast = function getPropsDerivedFromLast (last) {
 // })
 
 const getMessagesTo = co(function* ({ recipient, gt=0, afterMessage, limit, body=true }) {
-  if (!gt) debug(`gt not specified: ${new Error().stack}`)
-
   debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
   const params = getMessagesToQuery({ recipient, gt, afterMessage, limit })
   return maybeAddBody({

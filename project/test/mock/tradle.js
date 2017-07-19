@@ -40,7 +40,7 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
           }, other)
         })
 
-        yield send(...args)
+        yield send(args)
       }),
       getMyChainKey: promiseNoop
     }
