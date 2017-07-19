@@ -9,8 +9,8 @@ const {
 const { createSchema } = require('@tradle/schema-graphql')
 const { co } = require('../utils')
 
-module.exports = function setup ({ table, models, objects }) {
-  const tables = createTables({ models, objects })
+module.exports = function setup ({ table, models, objects, prefix }) {
+  const tables = createTables({ models, objects, prefix })
   const resolvers = createResolvers({
     objects,
     models,

@@ -270,6 +270,8 @@ GraphQL
   - DataLoader https://github.com/facebook/dataloader
     - caches and batches behind the scenes
   - https://dev-blog.apollodata.com/optimizing-your-graphql-request-waterfalls-7c3f3360b051
+  - figure out what makes schema loading slow. 
+    - maybe export to AST JSON, import back
 
 ### Misc Features
 - push notifications

@@ -165,7 +165,7 @@
 
 "@tradle/models@https://github.com/tradle/models":
   version "4.10.10"
-  resolved "https://github.com/tradle/models#db823088a672162b4752c05495fd36b0b1dd5ca6"
+  resolved "https://github.com/tradle/models#d3e45d68764a7bd9805cea01b51cc1d8b3f9bf32"
   dependencies:
     minimist "^1.2.0"
     typeforce "^1.10.6"

@@ -16,7 +16,6 @@ custom:
   region: us-east-1
   blockchain: 'bitcoin:testnet'
   prefix: '${{self:service}}-${{self:custom.stage}}-'
-  prefixTable: '${{self:custom.prefix}}'
   prefixRole: '${{self:custom.prefix}}'
   prefixIOTTopic: '${{self:service}}-'
   prefixSNSTopic: '${{self:custom.prefix}}'
@@ -33,13 +32,13 @@ custom:
   bot_processinbox: bot_processinbox
   bot_processoutbox: bot_processoutbox
   tables:
-    presence: '${{self:custom.prefixTable}}presence'
-    seals: '${{self:custom.prefixTable}}seals'
-    pubkeys: '${{self:custom.prefixTable}}pubkeys'
-    inbox: '${{self:custom.prefixTable}}inbox'
-    outbox: '${{self:custom.prefixTable}}outbox'
-    events: '${{self:custom.prefixTable}}events'
-    users: '${{self:custom.prefixTable}}users'
+    presence: '${{self:custom.prefix}}presence'
+    seals: '${{self:custom.prefix}}seals'
+    pubkeys: '${{self:custom.prefix}}pubkeys'
+    inbox: '${{self:custom.prefix}}inbox'
+    outbox: '${{self:custom.prefix}}outbox'
+    events: '${{self:custom.prefix}}events'
+    users: '${{self:custom.prefix}}users'
 provider:
   versionFunctions: false
   tracing: true
@@ -94,6 +93,7 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
+        - 'dynamodb:CreateTable'
         - 'dynamodb:Query'
         - 'dynamodb:Scan'
         - 'dynamodb:GetItem'
@@ -107,27 +107,7 @@ provider:
         - 'dynamodb:ListStreams'
       Resource:
         - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.events}}
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.presence}}
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}/index/*
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.outbox}}
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}/index/*
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}/index/*
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}/index/*
+            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.prefix}}*
     - Effect: Allow
       Action:
         - 'cloudformation:ListStackResources'

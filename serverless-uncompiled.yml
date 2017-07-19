@@ -42,7 +42,6 @@ custom:
 
   # prefixes
   prefix: ${{self:service}}-${{self:custom.stage}}-
-  prefixTable: ${{self:custom.prefix}}
   prefixRole: ${{self:custom.prefix}}
   # maybe during info/auth, the server can send back the prefix
   prefixIOTTopic: ${{self:service}}-
@@ -74,14 +73,14 @@ custom:
   bot_processoutbox: bot_processoutbox
 
   tables:
-    presence: ${{self:custom.prefixTable}}presence
-    seals: ${{self:custom.prefixTable}}seals
-    pubkeys: ${{self:custom.prefixTable}}pubkeys
-    inbox: ${{self:custom.prefixTable}}inbox
-    outbox: ${{self:custom.prefixTable}}outbox
-    events: ${{self:custom.prefixTable}}events
-    # pushsubscribers: ${{self:custom.prefixTable}}pushsubscribers
-    users: ${{self:custom.prefixTable}}users
+    presence: ${{self:custom.prefix}}presence
+    seals: ${{self:custom.prefix}}seals
+    pubkeys: ${{self:custom.prefix}}pubkeys
+    inbox: ${{self:custom.prefix}}inbox
+    outbox: ${{self:custom.prefix}}outbox
+    events: ${{self:custom.prefix}}events
+    # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
+    users: ${{self:custom.prefix}}users
 
   # to make available in lambda's environment
   # resource_names:
@@ -142,6 +141,7 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
+        - dynamodb:CreateTable
         - dynamodb:Query
         - dynamodb:Scan
         - dynamodb:GetItem
@@ -154,18 +154,19 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.events}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.presence}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}/index/*'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.outbox}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}/index/*'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}/index/*'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pushsubscribers}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}'
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.events}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.presence}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}/index/*'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.outbox}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}/index/*'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}/index/*'
+        # # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pushsubscribers}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}'
+        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}/index/*'
 
     # so lambdas can list resources in their stack
     - Effect: Allow

@@ -25,7 +25,8 @@ const createHistory = require('./history')
 const createSeals = require('./seals')
 const createGraphQLAPI = require('./graphql')
 // const RESOLVED = Promise.resolve()
-const TESTING = process.env.NODE_ENV === 'test'
+const { NODE_ENV, SERVERLESS_PREFIX } = process.env
+const TESTING = NODE_ENV === 'test'
 const promisePassThrough = data => Promise.resolve(data)
 
 const METHODS = [
@@ -37,7 +38,7 @@ const METHODS = [
   { name: 'onuseronline' },
   { name: 'onuseroffline' },
   { name: 'onmessagestream' },
-  { name: 'ongraphql', type: 'http' }
+  // { name: 'ongraphql', type: 'http' }
 ]
 
 module.exports = createBot
@@ -69,6 +70,13 @@ function createBot (opts={}) {
     errors,
     constants
   } = tradle
+
+  const bot = new EventEmitter()
+  bot.objects = {
+    get: objects.getObjectByLink
+  }
+
+  bot.resources = ['tables', 'buckets']
 
   const sealsAPI = createSeals(tradle)
   const normalizeOnSealInput = co(function* (data) {
@@ -109,8 +117,6 @@ function createBot (opts={}) {
   })
 
   const savePayloads = co(function* (event) {
-    debug(`message stream event: ${JSON.stringify(event)}`)
-
     // unmarshalling is prob a waste of time
     const messages = getRecordsFromEvent(event)
     yield messages.map(savePayloadToTypeTable)
@@ -132,11 +138,23 @@ function createBot (opts={}) {
       full._time = message.time || message._time
     }
 
+    // TODO: rm this after updating models
+    if (BaseModels['tradle.Object'].properties._time.type === 'string') {
+      full._time = String(full._time)
+    }
+
     return yield table.create(full)
   })
 
   // TODO: make this lazier! It currently clocks in at 400ms+
-  const gqlAPI = createGraphQLAPI({ objects, models })
+  const gqlAPI = createGraphQLAPI({
+    objects: bot.objects,
+    models,
+    prefix: SERVERLESS_PREFIX
+  })
+
+  bot.tables = gqlAPI.tables
+
   const pre = {
     onmessage: [
       normalizeOnMessageInput
@@ -144,9 +162,9 @@ function createBot (opts={}) {
     onsealevent: [
       normalizeOnSealInput
     ],
-    ongraphql: [
-      gqlAPI.handleHTTPRequest
-    ]
+    // ongraphql: [
+    //   gqlAPI.handleHTTPRequest
+    // ]
   }
 
   const promiseSaveUser = co(function* ({ user, _userPre }) {
@@ -228,7 +246,7 @@ function createBot (opts={}) {
 
   const middleware = {}
   // easier to test
-  const bot = extend(new EventEmitter(), {
+  extend(bot, {
     seal: wrapWithEmit(sealsAPI.create, 'queueseal'),
     send: wrapWithEmit(sendMessage, 'sent'),
     constants
@@ -282,13 +300,6 @@ function createBot (opts={}) {
     return strategy(bot, opts)
   }
 
-  bot.objects = {
-    get: objects.getObjectByLink
-  }
-
-  bot.tables = gqlAPI.tables
-  bot.resources = ['tables', 'buckets']
-
   const processors = {}
   bot.exports = {}
   METHODS.forEach(({ name, type }) => {
@@ -296,6 +307,8 @@ function createBot (opts={}) {
     processors[name] = processor
     bot.exports[name] = wrap(processor, { type })
   })
+
+  bot.exports.ongraphql = wrap(gqlAPI.handleHTTPRequest, { type: 'http' })
 
   if (TESTING) {
     bot.call = (method, ...args) => processors[method](...args)

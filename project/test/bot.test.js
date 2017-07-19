@@ -296,7 +296,7 @@ test('save to type table', loudCo(function* (t) {
   }
 
   const whole = clone(message.object, payload, {
-    _time: message.time
+    _time: String(message.time)
   })
 
   table.create = function (obj) {
@@ -311,7 +311,7 @@ test('save to type table', loudCo(function* (t) {
   const { scan } = table
   table.scan = table.query = function (...args) {
     t.ok('queried table')
-    t.end()
+    // t.end()
     // const op = scan(...args)
     // op.exec = () => {
     //   return Promise.resolve({
@@ -323,7 +323,7 @@ test('save to type table', loudCo(function* (t) {
     // return op
   }
 
-  yield bot.call('ongraphql', {
+  yield bot.exports.ongraphql({
     body: JSON.stringify({
       query: `{
         rl_tradle_Ping {
@@ -331,5 +331,8 @@ test('save to type table', loudCo(function* (t) {
         }
       }`
     })
+  }, err => {
+    t.error(err)
+    t.end()
   })
 }))

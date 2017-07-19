@@ -26,10 +26,6 @@ function setIds (events) {
   return events
 }
 
-function genId () {
-  return timestamp() + ''
-}
-
 function getNextUniqueId (prev, next) {
   return prev === next ? bumpSuffix(prev) : next
 }
