@@ -1,5 +1,10 @@
 const debug = require('debug')('tradle:sls:graphql')
 const { graphql } = require('graphql')
+// const express = require('express')
+// const expressGraphQL = require('express-graphql')
+// const compression = require('compression')
+// const awsServerlessExpress = require('aws-serverless-express')
+// const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
 const {
   constants,
   createTables,
@@ -10,6 +15,19 @@ const { createSchema } = require('@tradle/schema-graphql')
 const { co } = require('../utils')
 
 module.exports = function setup ({ table, models, objects, prefix }) {
+  // const app = express()
+  // app.use(compression())
+  // app.use('/', expressGraphQL(() => ({
+  //   schema: getSchema(),
+  //   graphiql: true
+  // })))
+
+  // app.use(awsServerlessExpressMiddleware.eventContext())
+  // const server = awsServerlessExpress.createServer(app)
+  // const handleHTTPRequest = (event, context) => {
+  //   return awsServerlessExpress.proxy(server, event, context)
+  // }
+
   const tables = createTables({ models, objects, prefix })
   const resolvers = createResolvers({
     objects,
@@ -44,7 +62,7 @@ module.exports = function setup ({ table, models, objects, prefix }) {
   return {
     tables,
     resolvers,
-    executeQuery,
+    // executeQuery,
     handleHTTPRequest
   }
 }

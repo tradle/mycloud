@@ -166,6 +166,7 @@ provider:
             - ''
             - - 'arn:aws:s3:::'
               - Ref: ServerlessDeploymentBucket
+              - /*
     - Effect: Allow
       Action:
         - 's3:GetBucketLocation'

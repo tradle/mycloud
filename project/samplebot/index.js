@@ -1,5 +1,5 @@
 if (process.env.NODE_ENV === 'test') {
-  require('xtend/mutable')(process.env, require('./env.test'))
+  require('xtend/mutable')(process.env, require('../../service-map'))
 }
 
 const debug = require('debug')('λ:samplebot')
@@ -29,7 +29,7 @@ const deployTradleStrategy = require('@tradle/bot-products')({
   namespace: NAMESPACE,
   models: models,
   products: [PRODUCT],
-  handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
+  // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
 })
 
 // function getProductModelIds (models) {
@@ -37,7 +37,9 @@ const deployTradleStrategy = require('@tradle/bot-products')({
 // }
 
 const createBot = require('../lib/bot')
-const bot = createBot({ models })
+const bot = createBot({
+  models: deployTradleStrategy.models.all
+})
 
 // attach this first
 bot.onmessage(co(function* ({ user, type }) {
@@ -55,7 +57,10 @@ bot.onmessage(co(function* ({ user, type }) {
   }
 }))
 
-deployTradleStrategy.install(bot)
+const strategyAPI = deployTradleStrategy.install(bot)
+if (PRODUCT === DEPLOYMENT) {
+  strategyAPI.plugins.use(require('./deployment-handlers'))
+}
 
 bot.onmessage(co(function* ({ user, type }) {
   if (type === 'tradle.ForgetMe') {
@@ -75,3 +80,9 @@ function toObject (models) {
   models.forEach(m => obj[m.id] = m)
   return obj
 }
+
+// bot.exports.ongraphql({
+//   body: require('graphql').introspectionQuery
+// }, {
+//   succeed: console.log
+// })

@@ -23,7 +23,6 @@ const MIN_SCALE = 1
 const MAX_SCALE = 3
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
 const CONFIG_FORM = `${NAMESPACE}.Configuration`
-debug('config form:', CONFIG_FORM)
 
 const getBaseTemplate = (function () {
   let baseTemplate
@@ -110,7 +109,7 @@ const onFormsCollected = co(function* ({ bot, user, application }) {
   const configForms = user.forms[CONFIG_FORM]
   const latest = getLatestFormVersion(configForms)
   const form = yield bot.objects.get(latest.link)
-  const parameters = normalizeParameters(form.object)
+  const parameters = normalizeParameters(form)
   // parameters.logo = yield getFaviconURL(parameters.domain)
   const templateKey = yield writeTemplate({
     resources: bot.resources,

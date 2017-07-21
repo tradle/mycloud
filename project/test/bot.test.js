@@ -109,7 +109,8 @@ const BaseBotModels = require('../lib/bot/base-models')
       _link: 'b',
       _t: 'a',
       _s: 'sig',
-      _author: 'carol'
+      _author: 'carol',
+      _virtual: ['_author', '_link']
     }
 
     const message = {
@@ -117,7 +118,8 @@ const BaseBotModels = require('../lib/bot/base-models')
       _author: 'bob',
       _recipient: 'alice',
       _link: 'a',
-      object: payload
+      object: payload,
+      _virtual: ['_author', '_recipient', '_link']
     }
 
     objects.getObjectByLink = co(function* (link) {
@@ -296,7 +298,7 @@ test('save to type table', loudCo(function* (t) {
   }
 
   const whole = clone(message.object, payload, {
-    _time: String(message.time)
+    _time: message.time
   })
 
   table.create = function (obj) {
@@ -337,7 +339,7 @@ test('save to type table', loudCo(function* (t) {
   })
 }))
 
-test.only('validate send', loudCo(function* (t) {
+test('validate send', loudCo(function* (t) {
   const tradle = Tradle.new()
   tradle.provider.sendMessage = () => Promise.resolve()
 

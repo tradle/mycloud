@@ -10,13 +10,14 @@ const {
   co,
   extend,
   omit,
+  pick,
   typeforce,
   isPromise,
   waterfall,
   series,
   allSettled
 } = require('../utils')
-const { getLink } = require('../crypto')
+const { getLink, addLinks } = require('../crypto')
 const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
 const wrap = require('../wrap')
@@ -79,7 +80,7 @@ function createBot (opts={}) {
     get: objects.getObjectByLink
   }
 
-  bot.resources = ['tables', 'buckets']
+  bot.resources = pick(tradle, ['tables', 'buckets'])
 
   const sealsAPI = createSeals(tradle)
   const normalizeOnSealInput = co(function* (data) {
@@ -109,13 +110,16 @@ function createBot (opts={}) {
     const _userPre = clone(user)
     const type = payload[TYPE]
     debug(`receiving ${type}`)
+    addLinks(payload)
     return {
       bot,
       user,
       message,
       payload,
       _userPre,
-      type
+      type,
+      link: payload._link,
+      permalink: payload._permalink,
     }
   })
 
@@ -258,7 +262,12 @@ function createBot (opts={}) {
     const payload = opts.object
     const model = models[payload[TYPE]]
     if (model) {
-      validateResource({ models, model, resource: payload })
+      try {
+        validateResource({ models, model, resource: payload })
+      } catch (err) {
+        debug('failed to validate resource', prettify(payload))
+        throw err
+      }
     }
 
     return yield provider.sendMessage(opts)
@@ -329,6 +338,7 @@ function createBot (opts={}) {
   })
 
   bot.exports.ongraphql = wrap(gqlAPI.handleHTTPRequest, { type: 'http' })
+  // bot.exports.ongraphql = gqlAPI.handleHTTPRequest
 
   if (TESTING) {
     bot.call = (method, ...args) => processors[method](...args)

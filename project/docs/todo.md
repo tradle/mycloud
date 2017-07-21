@@ -15,3 +15,10 @@ onClientConnect:
 validate identity in preprocess
 
 fix putEvent to use conditional update 
+
+DynamoDB:
+  queries should keep removed properties in mind
+
+Lambda:
+  enable compression of response (gzip for graphql):
+    https://github.com/awslabs/aws-serverless-express/pull/51

@@ -1,3 +1,4 @@
+// const zlib = require('zlib')
 const debug = require('debug')('tradle:sls:wrap')
 const extend = require('xtend/mutable')
 const co = require('co').wrap
@@ -8,11 +9,12 @@ const ENV = require('./env')
 const Errors = require('./errors')
 const Discovery = require('./discovery')
 const Resources = require('./resources')
-const discoverServices = co(function* () {
+const { cachifyPromiser } = require('./utils')
+const discoverServices = cachifyPromiser(co(function* () {
   if (!ENV.IOT_ENDPOINT) {
     return Discovery.discoverServices()
   }
-})
+}))
 
 // const getReady = co(function* () {
 //   if (ENV.IOT_ENDPOINT) return
@@ -53,7 +55,8 @@ const wrapHttpSuccess = result => {
   const resp = {
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      // 'Content-Encoding': 'gzip'
     },
     statusCode: result === null ? 204 : 200
   }
@@ -116,10 +119,12 @@ function wrap (fn, opts={}) {
     } catch (err) {
       if (postProcess) {
         try {
-          return postProcess.error(err)
+          err = postProcess.error(err)
         } catch (err) {
           debug('wrapped error postprocessing failed', err)
         }
+
+        return callback(null, err)
       }
 
       return callback(err)
@@ -134,6 +139,7 @@ function wrap (fn, opts={}) {
       }
     }
 
+    debug(`finished wrapped task: ${fn.name}`)
     callback(null, ret)
   })
 }

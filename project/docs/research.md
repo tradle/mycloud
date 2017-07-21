@@ -340,6 +340,23 @@ don't need cb-proxy because it's only one provider
 - should there be a table per blockchain? or should all seals be in the same table
 - where will the full node run?
 
+- do we need Kinesis between Inbox+Outbox and Events + per-type-tables? Kinesis allows multiple consumers, unlike DynamoDB streams
+- DynamoDB search/filter - values that are removed are not searchable, probably need to add "OR propertyName in _removed" for each property in filter expression
+- strict/lax equality, e.g. should query with this filter:
+  country: {
+    code: 'USA'
+  }
+
+  match this value?
+
+  country: {
+    code: 'USA',
+    name: 'US of A'
+  }
+  
+  only needs to match on "code"
+  need to have property paths in EQ
+
 in which tables and which cases can we tolerate eventually consistent reads? In which tables and which cases do we need strongly consistent reads?
 
 will we be implementing DynamoDB Transactions for Node.js?
@@ -428,4 +445,4 @@ sending a SelfIntroduction with an identity with N keys will cause N lookups in 
 
 maybe duplicate `pub` to another attribute and use IN ComparisonOperator (unusable in KeyConditionExpression)
 
-if there are virtual props, you can't validate the signature without the model for the object
+Lambda limits response size to 6MB - pretty severe for graphql. Definitely need gzip

@@ -49,7 +49,8 @@
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "test": "NODE_ENV=test tap `git ls-files project/test/*.test.js`",
     "deploy:local": "yarn lint && yarn compile-template && SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
-    "deploy:aws": "yarn lint && yarn compile-template && SLS_DEBUG=* IS_LOCAL= serverless deploy",
+    "deploy": "yarn compile-template && SLS_DEBUG=* IS_LOCAL= serverless deploy",
+    "deploy:safe": "yarn lint && yarn test && yarn rebuild && yarn deploy",
     "rebuild": "cd project && docker run --rm -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && cd ..",
     "rebuild:local": "cd project && npm rebuild && cd ..",
     "nuke": "./scripts/nuke.sh",
@@ -57,7 +58,8 @@
     "copynonjs": "find project/lib project/conf project/test -type f '!' -name '*.js' | cpio -pdm build/",
     "export:template": "serverless sam export --output ./template.yml",
     "makepublic": "./scripts/makepublic.js",
-    "compile-template": "./scripts/compile.js serverless-uncompiled.yml > serverless.yml"
+    "compile-template": "./scripts/compile.js serverless-uncompiled.yml > serverless.yml",
+    "reinstall": "cd project && rm -rf node_modules yarn.lock && yarn cache clean && yarn && cd .."
   },
   "dependencies": {}
 }
