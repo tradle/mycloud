@@ -55,7 +55,7 @@
 
 "@tradle/bot-products@tradle/bot-products#cloud":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/bot-products/tar.gz/eb4523770842b1a4981b83b98102b9678479b37c"
+  resolved "https://codeload.github.com/tradle/bot-products/tar.gz/8fe87749cbc73efb168981b64dc254798989ef54"
   dependencies:
     "@tradle/bot-require-models" tradle/bot-require-models#cloud
     "@tradle/build-resource" tradle/build-resource
@@ -165,6 +165,10 @@
     deep-equal "^1.0.1"
     xtend "^4.0.1"
 
+"@tradle/models-corporate-onboarding@https://github.com/tradle/models-corporate-onboarding":
+  version "1.0.0"
+  resolved "https://github.com/tradle/models-corporate-onboarding#ce0cd64478075be224501a5e723b8dae476527b2"
+
 "@tradle/models@https://github.com/tradle/models":
   version "4.10.10"
   resolved "https://github.com/tradle/models#ce37b7e75e9fda6dfac73f7bfb610b34fce4a684"
@@ -254,7 +258,7 @@
 
 "@tradle/validate-model@tradle/validate-model":
   version "1.0.0"
-  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/ba39da038d63e237fd969cb2449c36e92a2edc3c"
+  resolved "https://codeload.github.com/tradle/validate-model/tar.gz/12bc1533e8ded2efaef7e127045b28530fd07371"
   dependencies:
     object.omit "^2.0.1"
     object.pick "^1.2.0"
@@ -1308,12 +1312,6 @@ fast-levenshtein@~2.0.4:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
 
-favicon@^0.0.2:
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/favicon/-/favicon-0.0.2.tgz#5a650d1e6684d300822ea8fe1f1f2eefcb4d3f91"
-  dependencies:
-    request "2.x.x"
-
 feed-indexer@1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/feed-indexer/-/feed-indexer-1.3.0.tgz#912a7dcdc2be36e7bd7a786c525c334b9381287c"
@@ -2329,8 +2327,8 @@ pkginfo@^0.4.0:
   resolved "https://registry.yarnpkg.com/pkginfo/-/pkginfo-0.4.0.tgz#349dbb7ffd38081fcadc0853df687f0c7744cd65"
 
 prebuild-install@^2.0.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/prebuild-install/-/prebuild-install-2.2.0.tgz#55934756a32bac8747390ca44ff663cee8b99b69"
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/prebuild-install/-/prebuild-install-2.2.1.tgz#cdf16b041505bde8c55168abd7e58ea264e537ca"
   dependencies:
     expand-template "^1.0.2"
     github-from-package "0.0.0"
@@ -2571,7 +2569,7 @@ reinterval@^1.0.1:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/reinterval/-/reinterval-1.1.0.tgz#3361ecfa3ca6c18283380dd0bb9546f390f5ece7"
 
-request@2.x.x, request@^2.55.0:
+request@^2.55.0:
   version "2.81.0"
   resolved "https://registry.yarnpkg.com/request/-/request-2.81.0.tgz#c6928946a0e06c5f8d6f8a9333469ffda46298a0"
   dependencies:

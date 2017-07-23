@@ -5,10 +5,11 @@ const co = require('co').wrap
 const promisify = require('pify')
 const DataURI = require('datauri')
 const request = require('superagent')
-const { fetchFavicon } = require('@meltwater/fetch-favicon')
+const { fetchFavicons } = require('@meltwater/fetch-favicon')
 const { domainToUrl } = require('./utils')
 const getFaviconURL = co(function* (siteURL) {
-  const icon = yield fetchFavicon(siteURL)
+  const icons = yield fetchFavicons(siteURL)
+  const icon = chooseIcon(icons)
   return getAbsoluteURL(siteURL, icon)
 })
 
@@ -89,6 +90,34 @@ const getLogo = co(function* ({ logo, domain }) {
 
   return logo
 })
+
+// copied and adapted from @meltwater/fetch-favicon/source/markActiveFavicon.js
+const predicates = [
+  (f, s) => f.name === 'apple-touch-icon-precomposed' && f.size >= s,
+  (f, s) => f.name === 'apple-touch-icon' && f.size >= s,
+  (f, s) => f.name === 'shortcut icon' && f.size >= s,
+  (f, s) => f.name === 'twitter:image' && f.size >= s,
+  (f, s) => f.name === 'icon' && f.size >= s,
+  (f, s) => f.name === 'og:image' && f.size >= s,
+  (f, s) => f.name === 'msapplication-TileImage' && f.size >= s,
+
+  // no size
+  (f, s) => f.name === 'apple-touch-icon-precomposed',
+  (f, s) => f.name === 'apple-touch-icon',
+  (f, s) => f.name === 'shortcut icon',
+  (f, s) => f.name === 'twitter:image',
+  (f, s) => f.name === 'icon',
+  (f, s) => f.name === 'og:image',
+  (f, s) => f.name === 'msapplication-TileImage',
+  (f, s) => f.name === 'favicon.ico'
+]
+
+const chooseIcon = function chooseIcon (favicons, minSize) {
+  for (let i = 0; i < predicates.length; i++) {
+    let result = favicons.find(favicon => predicates[i](favicon, minSize))
+    if (result) return result.href
+  }
+}
 
 module.exports = {
   getDataURI,
