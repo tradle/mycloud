@@ -1,5 +1,7 @@
+const shallowClone = require('xtend')
 if (process.env.NODE_ENV === 'test') {
-  require('xtend/mutable')(process.env, require('../../service-map'))
+  const extend = require('xtend/mutable')
+  extend(process.env, require('../../service-map'), shallowClone(process.env))
 }
 
 const debug = require('debug')('λ:samplebot')
@@ -12,23 +14,18 @@ const validateModels = require('@tradle/validate-model')
 const TYPE = '_t'
 const DEPLOYMENT = 'io.tradle.Deployment'
 const {
-  PRODUCT=DEPLOYMENT,
+  PRODUCTS=DEPLOYMENT,
   ORG_DOMAIN
 } = process.env
 
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
-const models = (function () {
-  const gen = PRODUCT === DEPLOYMENT
-    ? require('./deployment-models')
-    : require('./bank-models')
-
-  return gen(NAMESPACE)
-}())
-
+const deploymentModels = require('./deployment-models')('io.tradle')
+const bankModels = require('./bank-models')(NAMESPACE)
+const models = shallowClone(deploymentModels, bankModels)
 const deployTradleStrategy = require('@tradle/bot-products')({
   namespace: NAMESPACE,
   models: models,
-  products: [PRODUCT],
+  products: PRODUCTS.split(',').map(id => id.trim()),
   // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
 })
 
@@ -58,7 +55,7 @@ bot.onmessage(co(function* ({ user, type }) {
 }))
 
 const strategyAPI = deployTradleStrategy.install(bot)
-if (PRODUCT === DEPLOYMENT) {
+if (PRODUCTS === DEPLOYMENT) {
   strategyAPI.plugins.use(require('./deployment-handlers'))
 }
 

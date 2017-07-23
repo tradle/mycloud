@@ -123,9 +123,12 @@ const onFormsCollected = co(function* ({ bot, user, application }) {
     templateURL
   })
 
+  debug(`Launch your stack: ${launchURL}`)
+
   yield bot.send({
     to: user.id,
-    object: `[Launch your Tradle stack](${templateURL})`
+    // object: `Launch your Tradle stack\n**${launchURL}**`
+    object: '**Launch your Tradle stack**'
   })
 })
 
@@ -139,7 +142,10 @@ function generateTemplate ({ resources, template, parameters }) {
 
   const namespace = domain.split('.').reverse().join('.')
   const { Resources } = template
-  getLambdaEnv(Resources.BotUnderscoreonmessageLambdaFunction).PRODUCT = `${namespace}.CurrentAccount`
+  getLambdaEnv(Resources.BotUnderscoreonmessageLambdaFunction).PRODUCTS = [
+    `tradle.WealthManagementAccount`,
+    `cp.tradle.CorporateAccount`
+  ].join(',')
 
   const deploymentBucketId = resources.buckets.ServerlessDeployment.id
   for (let key in Resources) {
