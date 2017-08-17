@@ -5,6 +5,7 @@ plugins:
   # - serverless-resources-env
   - serverless-plugin-tracing
   - serverless-sam
+  - serverless-apigw-binary
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
@@ -82,6 +83,10 @@ custom:
     # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
     users: ${{self:custom.prefix}}users
 
+  apigwBinary:
+    types:
+      - '*/*'
+
   # to make available in lambda's environment
   # resource_names:
   #   # - ServerlessDeploymentBucket
@@ -127,7 +132,7 @@ provider:
     # declare
     IOT_ENDPOINT: ''
     BLOCKCHAIN: ${{self:custom.blockchain}}
-    DEBUG: tradle:*,λ*
+    DEBUG: tradle:*,λ*,@tradle*
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -625,6 +630,10 @@ functions:
       - http:
           path: tradle/graphql
           method: post
+          cors: true
+      - http:
+          path: tradle/graphql
+          method: get
           cors: true
 
 resources:

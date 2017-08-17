@@ -3008,6 +3008,10 @@ semver@~5.0.1:
   version "5.0.3"
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.0.3.tgz#77466de589cd5d3c95f138aa78bc569a3cb5d27a"
 
+serverless-apigw-binary@^0.3.5:
+  version "0.3.5"
+  resolved "https://registry.yarnpkg.com/serverless-apigw-binary/-/serverless-apigw-binary-0.3.5.tgz#da707050e1bfd66981be4fe464152f3a254b9e63"
+
 serverless-plugin-tracing@^1.0.6:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/serverless-plugin-tracing/-/serverless-plugin-tracing-1.0.6.tgz#27df5ea3a6999b0cb8f351835c1aa3c1b97c7e4e"

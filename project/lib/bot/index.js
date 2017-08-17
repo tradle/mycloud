@@ -329,6 +329,10 @@ function createBot (opts={}) {
     return strategy(bot, opts)
   }
 
+  bot.addressBook = {
+    byPermalink: identities.getIdentityByPermalink
+  }
+
   const processors = {}
   bot.exports = {}
   METHODS.forEach(({ name, type }) => {
@@ -337,7 +341,8 @@ function createBot (opts={}) {
     bot.exports[name] = wrap(processor, { type })
   })
 
-  bot.exports.ongraphql = wrap(gqlAPI.handleHTTPRequest, { type: 'http' })
+  bot.exports.ongraphql = gqlAPI.handleHTTPRequest
+  // bot.exports.ongraphql = wrap(gqlAPI.handleHTTPRequest, { type: 'http' })
   // bot.exports.ongraphql = gqlAPI.handleHTTPRequest
 
   if (TESTING) {

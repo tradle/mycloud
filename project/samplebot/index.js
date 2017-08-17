@@ -6,11 +6,6 @@ if (process.env.NODE_ENV === 'test') {
 
 const debug = require('debug')('λ:samplebot')
 const co = require('co').wrap
-const validateModels = require('@tradle/validate-model')
-// const baseModels = require('@tradle/models').models
-// const customModels = require('@tradle/custom-models')
-// const extend = require('xtend/mutable')
-// validateModels(extend(models, toObject(baseModels), toObject(customModels)))
 const TYPE = '_t'
 const DEPLOYMENT = 'io.tradle.Deployment'
 const {
@@ -56,6 +51,7 @@ bot.onmessage(co(function* ({ user, type }) {
 
 const strategyAPI = deployTradleStrategy.install(bot)
 if (PRODUCTS === DEPLOYMENT) {
+  strategyAPI.plugins.clear('onFormsCollected')
   strategyAPI.plugins.use(require('./deployment-handlers'))
 }
 

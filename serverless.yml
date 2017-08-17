@@ -3,6 +3,7 @@ frameworkVersion: '>=1.5.0 <2.0.0'
 plugins:
   - serverless-plugin-tracing
   - serverless-sam
+  - serverless-apigw-binary
 package:
   exclude:
     - .git/**
@@ -39,6 +40,9 @@ custom:
     outbox: '${{self:custom.prefix}}outbox'
     events: '${{self:custom.prefix}}events'
     users: '${{self:custom.prefix}}users'
+  apigwBinary:
+    types:
+      - '*/*'
 provider:
   versionFunctions: false
   tracing: true
@@ -54,7 +58,7 @@ provider:
     IOT_TOPIC_PREFIX: '${{self:custom.prefixIOTTopic}}'
     IOT_ENDPOINT: ''
     BLOCKCHAIN: '${{self:custom.blockchain}}'
-    DEBUG: 'tradle:*,λ*'
+    DEBUG: 'tradle:*,λ*,@tradle*'
     SERVERLESS_PREFIX: '${{self:custom.prefix}}'
     SERVERLESS_STAGE: '${{self:custom.stage}}'
     SERVERLESS_SERVICE_NAME: '${{self:service}}'
@@ -384,6 +388,10 @@ functions:
       - http:
           path: tradle/graphql
           method: post
+          cors: true
+      - http:
+          path: tradle/graphql
+          method: get
           cors: true
 resources:
   Resources:

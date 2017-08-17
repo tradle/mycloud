@@ -6,9 +6,9 @@ module.exports = namespace => {
   return {
     [DEPLOYMENT]: {
       type: 'tradle.Model',
-      title: 'Tradle in AWS',
+      title: 'MyCloud',
       id: DEPLOYMENT,
-      interfaces: ['tradle.ChatItem'],
+      interfaces: ['tradle.Message'],
       subClassOf: 'tradle.FinancialProduct',
       forms: [
         `${namespace}.Configuration`
@@ -21,9 +21,9 @@ module.exports = namespace => {
     },
     [CONFIGURATION]: {
       type: 'tradle.Model',
-      title: 'AWS Configuration',
+      title: 'MyCloud Configuration',
       id: CONFIGURATION,
-      interfaces: ['tradle.ChatItem'],
+      interfaces: ['tradle.Message'],
       subClassOf: 'tradle.Form',
       properties: {
         name: {
@@ -39,6 +39,17 @@ module.exports = namespace => {
           description: 'top level domain you own',
           pattern: '^[a-zA-Z0-9-_.]*$'
         },
+        formattedScale: {
+          type: 'string',
+          displayAs: '~{1}M customers',
+          title: 'MyCloud scale',
+          group: [
+            'scale'
+          ],
+          readOnly: true,
+          displayName: true
+        },
+
         // subdomain: {
         //   type: 'string',
         //   pattern: /[a-zA-Z]/,
@@ -48,13 +59,28 @@ module.exports = namespace => {
         //   type: 'boolean',
         //   description: "are you using Amazon's Route53 for your DNS. If yes, we can automate creation of the subdomain tradle.[yourdomain] and an SSL certificate"
         // }
-      }
+      },
+      viewCols: [
+        'name',
+        'formattedScale',
+        'domain'
+      ],
+      editCols: [
+        'name',
+        'scale',
+        'domain'
+      ],
+      required: [
+        'name',
+        'scale',
+        'domain'
+      ]
     },
     [PRODUCT_DEF]: {
       type: 'tradle.Model',
       title: 'Product Definition',
       id: PRODUCT_DEF,
-      interfaces: ['tradle.ChatItem'],
+      interfaces: ['tradle.Message'],
       subClassOf: 'tradle.Form',
       properties: {
         name: {

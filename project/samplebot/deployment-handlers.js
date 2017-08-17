@@ -20,7 +20,7 @@ const {
 
 const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 const MIN_SCALE = 1
-const MAX_SCALE = 3
+const MAX_SCALE = 1
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
 const CONFIG_FORM = `${NAMESPACE}.Configuration`
 
@@ -128,7 +128,7 @@ const onFormsCollected = co(function* ({ bot, user, application }) {
   yield bot.send({
     to: user.id,
     // object: `Launch your Tradle stack\n**${launchURL}**`
-    object: '**Launch your Tradle stack**'
+    object: '**Launch MyCloud**'
   })
 })
 
@@ -138,7 +138,7 @@ function getLambdaEnv (lambda) {
 
 function generateTemplate ({ resources, template, parameters }) {
   const { name, scale, domain } = parameters
-  template.Description = `My Tradle Cloud instance`
+  template.Description = `MyCloud, by Tradle`
 
   const namespace = domain.split('.').reverse().join('.')
   const { Resources } = template

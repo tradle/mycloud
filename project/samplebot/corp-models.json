@@ -6,7 +6,7 @@
     "title": "Business Details",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -141,7 +141,7 @@
     "title": "Certificate of Incorporation",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -205,7 +205,7 @@
     "title": "Articles of Incorporation",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -248,7 +248,7 @@
     "title": "Annual Report",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -290,7 +290,7 @@
     "title": "Commercial Register",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -339,7 +339,7 @@
     "title": "FATCA W-8BEN - Part I",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -476,7 +476,7 @@
     "title": "FATCA W-8BEN - Part II",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -551,7 +551,7 @@
     "title": "FATCA W-8BEN - Part III",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -612,7 +612,7 @@
     "title": "FATCA W-8BEN-E - Part I",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -723,7 +723,7 @@
     "title": "FATCA W-9",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -1212,7 +1212,7 @@
     "title": "Business Activity",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -1386,7 +1386,7 @@
   "tradle.PersonalAccountPayPal": {
     "id": "tradle.PersonalAccountPayPal",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "title": "Personal Account for PayPal",
     "type": "tradle.Model",
@@ -1417,7 +1417,7 @@
   "tradle.BusinessAccountPayPal": {
     "id": "tradle.BusinessAccountPayPal",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "title": "Business Account for PayPal",
     "type": "tradle.Model",
@@ -1452,7 +1452,7 @@
     "title": "Business Detail",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -1711,7 +1711,7 @@
     "id": "pp.tradle.PersonalInfo",
     "title": "Personal Info",
     "interfaces": [
-      "tradle.ChatItem",
+      "tradle.Message",
       "tradle.Verifiable"
     ],
     "subClassOf": "tradle.Form",
@@ -1804,7 +1804,7 @@
     "id": "san.tradle.ClientInformation",
     "title": "Client Information",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "subClassOf": "tradle.Form",
     "type": "tradle.Model",
@@ -1891,7 +1891,7 @@
     "id": "san.tradle.mifid",
     "title": "MIFID Categorisation",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "subClassOf": "tradle.Form",
     "type": "tradle.Model",
@@ -1994,7 +1994,7 @@
     "tradle.TaxChooser-Individual": {
     "id": "tradle.TaxChooser-Individual",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "title": "Self Assessment Tax Chooser-Individual",
     "type": "tradle.Model",
@@ -2029,7 +2029,7 @@
   "tradle.TaxChooser-ControllingPerson": {
     "id": "tradle.TaxChooser-ControllingPerson",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "title": "Self Assessment Tax Chooser-ControllingPerson",
     "type": "tradle.Model",
@@ -2066,7 +2066,7 @@
   "tradle.TaxChooser-Entity": {
     "id": "tradle.TaxChooser-Entity",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "title": "Entity tax residency self-certification",
     "type": "tradle.Model",
@@ -2105,7 +2105,7 @@
     "title": "Part 1 – Identification of Individual Account Holder",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2243,7 +2243,7 @@
     "title": "Part 2 – Country of Residence for Tax Purposes",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2252,7 +2252,7 @@
       "TaxRes": {
         "type": "string"
       },
-      "taxResidency-I": {
+      "taxResidency_I": {
         "type": "array",
         "icon": "ios-cash-outline",
         "title": "Tax Residence",
@@ -2270,7 +2270,7 @@
     "title": "Tax Residency",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem",
+      "tradle.Message",
       "tradle.Item"
     ],
     "style": {
@@ -2337,7 +2337,7 @@
     "title": "Part 3 – Declaration",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2364,7 +2364,7 @@
     "title": "Part 1 – Identification of a Controlling Person",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2512,7 +2512,7 @@
     "title": "Part 2 – Country of Residence for Tax Purposes",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2540,7 +2540,7 @@
     "title": "Tax Residency",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem",
+      "tradle.Message",
       "tradle.Item"
     ],
     "style": {
@@ -2581,7 +2581,7 @@
     "title": "Part 3 – Declaration",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2608,7 +2608,7 @@
     "title": "Name Of Entity",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem",
+      "tradle.Message",
       "tradle.Item"
     ],
     "style": {
@@ -2713,7 +2713,7 @@
     "title": "Part 1 – Identification of Account Holder",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2812,7 +2812,7 @@
     "title": "Part 2 – Entity Type",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2908,7 +2908,7 @@
     "title": "Part 3 – Country of Residence of Account Holder for Tax Purposes",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -2935,7 +2935,7 @@
     "title": "Tax Residency",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem",
+      "tradle.Message",
       "tradle.Item"
     ],
     "style": {
@@ -2976,7 +2976,7 @@
     "title": "Part 4 – Declaration",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -3003,7 +3003,7 @@
     "title": "Dodd Frank",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -3026,7 +3026,7 @@
     "title": "Dodd Frank Counterparty",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -3123,7 +3123,7 @@
     "title": "Financial Services Compensation Scheme",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -3212,7 +3212,7 @@
   "cp.tradle.CorporateAccount": {
     "id": "cp.tradle.CorporateAccount",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "title": "Corporate Account",
     "type": "tradle.Model",
@@ -3256,7 +3256,7 @@
   "cp.tradle.BrokerAccount": {
     "id": "cp.tradle.BrokerAccount",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "title": "Broker Account",
     "type": "tradle.Model",
@@ -3288,7 +3288,7 @@
     "title": "Broker Details",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
@@ -3357,7 +3357,7 @@
     "title": "European Market Infrastructure Regulation",
     "subClassOf": "tradle.Form",
     "interfaces": [
-      "tradle.ChatItem"
+      "tradle.Message"
     ],
     "style": {
       "backgroundColor": "#EBE1FA"
