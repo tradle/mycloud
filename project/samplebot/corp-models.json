@@ -45,7 +45,7 @@
       },
       "holdingCompany": {
         "type": "boolean",
-        "description": "\n\n **Is this entity a holding company?**\n\n\n- No, as it is primarily engaged in administering, overseeing, and managing other establishments of the company or enterprise or securities it holds (Operating company)\n- Yes, it is primarily engaged in holding the securities or other equity interest companies and enterprises for the purpose of owning a controlling interest or influencing the management decisions of these forms"
+        "description": "\n\n **Is this entity a holding company?**\n\n\n_ No, as it is primarily engaged in administering, overseeing, and managing other establishments of the company or enterprise or securities it holds (Operating company)\n- Yes, it is primarily engaged in holding the securities or other equity interest companies and enterprises for the purpose of owning a controlling interest or influencing the management decisions of these forms"
       },
       "AdditionalAssetsAndRevenue": {
         "description": "provide total assets and total revenue of the legal entity (where financials not available in support documents)",
@@ -333,10 +333,10 @@
       "photos"
     ]
   },
-  "tradle.W-8BEN-I": {
-    "id": "tradle.W-8BEN-I",
+  "tradle.W_8BEN_I": {
+    "id": "tradle.W_8BEN_I",
     "type": "tradle.Model",
-    "title": "FATCA W-8BEN - Part I",
+    "title": "FATCA W_8BEN - Part I",
     "subClassOf": "tradle.Form",
     "interfaces": [
       "tradle.Message"
@@ -470,10 +470,10 @@
       "mailing_group"
     ]
   },
-  "tradle.W-8BEN-II": {
-    "id": "tradle.W-8BEN-II",
+  "tradle.W_8BEN_II": {
+    "id": "tradle.W_8BEN_II",
     "type": "tradle.Model",
-    "title": "FATCA W-8BEN - Part II",
+    "title": "FATCA W_8BEN - Part II",
     "subClassOf": "tradle.Form",
     "interfaces": [
       "tradle.Message"
@@ -509,7 +509,7 @@
       },
       "claim_group": {
         "type": "string",
-        "title": "Part II - Claim of Tax Treaty Benefits",
+        "title": "Part II _ Claim of Tax Treaty Benefits",
         "list": [
           "certifyThisResidency",
           "paragraph",
@@ -545,10 +545,10 @@
       "additionalConditions"
     ]
   },
-  "tradle.W-8BEN-III": {
-    "id": "tradle.W-8BEN-III",
+  "tradle.W_8BEN_III": {
+    "id": "tradle.W_8BEN_III",
     "type": "tradle.Model",
-    "title": "FATCA W-8BEN - Part III",
+    "title": "FATCA W_8BEN - Part III",
     "subClassOf": "tradle.Form",
     "interfaces": [
       "tradle.Message"
@@ -574,7 +574,7 @@
       },
       "cert_group": {
         "type": "string",
-        "title": "Part III - Certification",
+        "title": "Part III _ Certification",
         "list": [
           "fullName",
           "date",
@@ -606,10 +606,10 @@
       "actingCapacity"
     ]
   },
-  "tradle.W-8BEN-E-I": {
-    "id": "tradle.W-8BEN-E-I",
+  "tradle.W_8BEN_E_I": {
+    "id": "tradle.W_8BEN_E_I",
     "type": "tradle.Model",
-    "title": "FATCA W-8BEN-E - Part I",
+    "title": "FATCA W_8BEN-E - Part I",
     "subClassOf": "tradle.Form",
     "interfaces": [
       "tradle.Message"
@@ -717,10 +717,10 @@
       "citizenDetails"
     ]
   },
-  "tradle.W-9": {
-    "id": "tradle.W-9",
+  "tradle.W_9": {
+    "id": "tradle.W_9",
     "type": "tradle.Model",
-    "title": "FATCA W-9",
+    "title": "FATCA W_9",
     "subClassOf": "tradle.Form",
     "interfaces": [
       "tradle.Message"
@@ -789,7 +789,7 @@
     },
     "enum": [
       {
-        "id": "Argentina - CNV",
+        "id": "Argentina _ CNV",
         "title": "Argentina - CNV"
       },
       {
@@ -1358,7 +1358,7 @@
     ],
     "enum": [
       {
-        "id": "Individual/sole proprietor or single-member LLC",
+        "id": "Individual/sole proprietor or single_member LLC",
         "title": "Individual/sole proprietor or single-member LLC"
       },
       {
@@ -1478,7 +1478,7 @@
       },
       "assetDeclaration": {
         "type": "boolean",
-        "description": "Are 50% or more of your organisation's assets held in real estate, bank accounts, shares, stocks, bonds, intellectual property or similar income-producing investments?"
+        "description": "Are 50% or more of your organisation's assets held in real estate, bank accounts, shares, stocks, bonds, intellectual property or similar income_producing investments?"
       },
       "notForProfit": {
         "type": "boolean",
@@ -1621,7 +1621,7 @@
         "title": "Home and garden"
       },
       {
-        "id": "Not-for-profit organisation",
+        "id": "Not_for-profit organisation",
         "title": "Not-for-profit organisation"
       },
       {
@@ -1757,7 +1757,7 @@
       },
       "houseNumber": {
         "type": "string",
-        "pattern": "^[a-zA-Z0-9.-]*$"
+        "pattern": "^[a_zA-Z0-9.-]*$"
       },
       "city": {
         "type": "string"
@@ -1778,7 +1778,7 @@
       },
       "emailAddress": {
         "type": "string",
-        "pattern": "^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$",
+        "pattern": "^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@((\\[[0_9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$",
         "keyboard": "email-address",
         "range": "email"
       }
@@ -1910,7 +1910,7 @@
       },
       "contactEmailAddress": {
         "type": "string",
-        "pattern": "^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$",
+        "pattern": "^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@((\\[[0_9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$",
         "keyboard": "email-address"
       }
     },
@@ -1991,23 +1991,23 @@
       }
     ]
   },
-    "tradle.TaxChooser-Individual": {
-    "id": "tradle.TaxChooser-Individual",
+    "tradle.TaxChooser_Individual": {
+    "id": "tradle.TaxChooser_Individual",
     "interfaces": [
       "tradle.Message"
     ],
-    "title": "Self Assessment Tax Chooser-Individual",
+    "title": "Self Assessment Tax Chooser_Individual",
     "type": "tradle.Model",
     "subClassOf": "tradle.FinancialProduct",
     "customerCanHaveMultiple": true,
     "forms": [
-      "tradle.CRS-Individual-1",
-      "tradle.CRS-Individual-2",
-      "tradle.TaxResidency-I",
-      "tradle.CRS-Individual-3"
+      "tradle.CRS_Individual_1",
+      "tradle.CRS_Individual_2",
+      "tradle.TaxResidency_I",
+      "tradle.CRS_Individual_3"
     ],
     "multiEntryForms": [
-      "tradle.TaxResidency-I"
+      "tradle.TaxResidency_I"
     ],
     "properties": {
       "_t": {
@@ -2026,25 +2026,25 @@
       }
     }
   },
-  "tradle.TaxChooser-ControllingPerson": {
-    "id": "tradle.TaxChooser-ControllingPerson",
+  "tradle.TaxChooser_ControllingPerson": {
+    "id": "tradle.TaxChooser_ControllingPerson",
     "interfaces": [
       "tradle.Message"
     ],
-    "title": "Self Assessment Tax Chooser-ControllingPerson",
+    "title": "Self Assessment Tax Chooser_ControllingPerson",
     "type": "tradle.Model",
     "subClassOf": "tradle.FinancialProduct",
     "customerCanHaveMultiple": true,
     "forms": [
-      "tradle.CRS-ControllingPerson-1",
-      "tradle.CRS-NameOfEntity",
-      "tradle.CRS-ControllingPerson-2",
-      "tradle.TaxResidency-CP",
-      "tradle.CRS-ControllingPerson-3"
+      "tradle.CRS_ControllingPerson_1",
+      "tradle.CRS_NameOfEntity",
+      "tradle.CRS_ControllingPerson_2",
+      "tradle.TaxResidency_CP",
+      "tradle.CRS_ControllingPerson_3"
     ],
     "multiEntryForms": [
-      "tradle.CRS-NameOfEntity",
-      "tradle.TaxResidency-CP"
+      "tradle.CRS_NameOfEntity",
+      "tradle.TaxResidency_CP"
     ],
     "properties": {
       "_t": {
@@ -2063,24 +2063,24 @@
       }
     }
   },
-  "tradle.TaxChooser-Entity": {
-    "id": "tradle.TaxChooser-Entity",
+  "tradle.TaxChooser_Entity": {
+    "id": "tradle.TaxChooser_Entity",
     "interfaces": [
       "tradle.Message"
     ],
-    "title": "Entity tax residency self-certification",
+    "title": "Entity tax residency self_certification",
     "type": "tradle.Model",
     "subClassOf": "tradle.FinancialProduct",
     "customerCanHaveMultiple": true,
     "forms": [
-      "tradle.CRS-EntityTaxResidency-1",
-      "tradle.CRS-EntityType-2",
-      "tradle.CRS-AccountHolderResidency-3",
-      "tradle.TaxResidency-E",
-      "tradle.CRS-Entity-4"
+      "tradle.CRS_EntityTaxResidency_1",
+      "tradle.CRS_EntityType_2",
+      "tradle.CRS_AccountHolderResidency_3",
+      "tradle.TaxResidency_E",
+      "tradle.CRS_Entity_4"
     ],
     "multiEntryForms": [
-      "tradle.TaxResidency-E"
+      "tradle.TaxResidency_E"
     ],
     "properties": {
       "_t": {
@@ -2099,8 +2099,8 @@
       }
     }
   },
-  "tradle.CRS-Individual-1": {
-    "id": "tradle.CRS-Individual-1",
+  "tradle.CRS_Individual_1": {
+    "id": "tradle.CRS_Individual_1",
     "type": "tradle.Model",
     "title": "Part 1 – Identification of Individual Account Holder",
     "subClassOf": "tradle.Form",
@@ -2237,8 +2237,8 @@
       "nameDetails"
     ]
   },
-  "tradle.CRS-Individual-2": {
-    "id": "tradle.CRS-Individual-2",
+  "tradle.CRS_Individual_2": {
+    "id": "tradle.CRS_Individual_2",
     "type": "tradle.Model",
     "title": "Part 2 – Country of Residence for Tax Purposes",
     "subClassOf": "tradle.Form",
@@ -2254,18 +2254,18 @@
       },
       "taxResidency_I": {
         "type": "array",
-        "icon": "ios-cash-outline",
+        "icon": "ios_cash-outline",
         "title": "Tax Residence",
         "allowToAdd": true,
         "items": {
           "backlink": "TaxResidency",
-          "ref": "tradle.TaxResidency-I"
+          "ref": "tradle.TaxResidency_I"
         }
       }
     }
   },
-  "tradle.TaxResidency-I": {
-    "id": "tradle.TaxResidency-I",
+  "tradle.TaxResidency_I": {
+    "id": "tradle.TaxResidency_I",
     "type": "tradle.Model",
     "title": "Tax Residency",
     "subClassOf": "tradle.Form",
@@ -2289,7 +2289,7 @@
         "type": "object",
         "title": "Tax Residency",
         "readOnly": true,
-        "ref": "tradle.CRS-Individual-2"
+        "ref": "tradle.CRS_Individual_2"
       },
       "NoTIN": {
         "description": "Select reason if you can't supply a Taxpayer Identification Number or equivalent number",
@@ -2319,7 +2319,7 @@
     "enum": [
       {
         "id": "Reason A",
-        "title": "Reason A - The country where the Account Holder is liable to pay tax does not issue TINs to its residents"
+        "title": "Reason A _ The country where the Account Holder is liable to pay tax does not issue TINs to its residents"
       },
       {
         "id": "Reason B",
@@ -2331,8 +2331,8 @@
       }
     ]
   },
-  "tradle.CRS-Individual-3": {
-    "id": "tradle.CRS-Individual-3",
+  "tradle.CRS_Individual_3": {
+    "id": "tradle.CRS_Individual_3",
     "type": "tradle.Model",
     "title": "Part 3 – Declaration",
     "subClassOf": "tradle.Form",
@@ -2346,7 +2346,7 @@
       "declaration": {
         "type": "boolean",
         "title": "Declaration",
-        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self-certification and Declaration within [up to XX] days of such change in circumstances."
+        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self_certification and Declaration within [up to XX] days of such change in circumstances."
       },
       "capacity": {
         "type": "string",
@@ -2358,8 +2358,8 @@
       "capacity"
     ]
   },
-  "tradle.CRS-ControllingPerson-1": {
-    "id": "tradle.CRS-ControllingPerson-1",
+  "tradle.CRS_ControllingPerson_1": {
+    "id": "tradle.CRS_ControllingPerson_1",
     "type": "tradle.Model",
     "title": "Part 1 – Identification of a Controlling Person",
     "subClassOf": "tradle.Form",
@@ -2431,12 +2431,12 @@
       },
       "legalEntity": {
         "type": "array",
-        "icon": "ios-cash-outline",
+        "icon": "ios_cash-outline",
         "title": "Legal Entity",
         "allowToAdd": true,
         "items": {
           "backlink": "entityName",
-          "ref": "tradle.CRS-NameOfEntity"
+          "ref": "tradle.CRS_NameOfEntity"
         }
       },
       "name_group": {
@@ -2506,8 +2506,8 @@
       "nameDetails"
     ]
   },
-  "tradle.CRS-ControllingPerson-2": {
-    "id": "tradle.CRS-ControllingPerson-2",
+  "tradle.CRS_ControllingPerson_2": {
+    "id": "tradle.CRS_ControllingPerson_2",
     "type": "tradle.Model",
     "title": "Part 2 – Country of Residence for Tax Purposes",
     "subClassOf": "tradle.Form",
@@ -2524,18 +2524,18 @@
       },
       "taxResidency": {
         "type": "array",
-        "icon": "ios-cash-outline",
+        "icon": "ios_cash-outline",
         "title": "Tax Residence",
         "allowToAdd": true,
         "items": {
           "backlink": "TaxResidency",
-          "ref": "tradle.TaxResidency-CP"
+          "ref": "tradle.TaxResidency_CP"
         }
       }
     }
   },
-  "tradle.TaxResidency-CP": {
-    "id": "tradle.TaxResidency-CP",
+  "tradle.TaxResidency_CP": {
+    "id": "tradle.TaxResidency_CP",
     "type": "tradle.Model",
     "title": "Tax Residency",
     "subClassOf": "tradle.Form",
@@ -2559,7 +2559,7 @@
         "type": "object",
         "title": "Tax Residency",
         "readOnly": true,
-        "ref": "tradle.CRS-ControllingPerson-2"
+        "ref": "tradle.CRS_ControllingPerson_2"
       },
       "NoTIN": {
         "description": "Select reason if you can't supply a Taxpayer Identification Number or equivalent number",
@@ -2575,8 +2575,8 @@
       "TIN"
     ]
   },
-  "tradle.CRS-ControllingPerson-3": {
-    "id": "tradle.CRS-ControllingPerson-3",
+  "tradle.CRS_ControllingPerson_3": {
+    "id": "tradle.CRS_ControllingPerson_3",
     "type": "tradle.Model",
     "title": "Part 3 – Declaration",
     "subClassOf": "tradle.Form",
@@ -2590,7 +2590,7 @@
       "declaration": {
         "type": "boolean",
         "title": "Declaration",
-        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self-certification and Declaration within [up to XX] days of such change in circumstances."
+        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self_certification and Declaration within [up to XX] days of such change in circumstances."
       },
       "capacity": {
         "type": "string",
@@ -2602,8 +2602,8 @@
       "capacity"
     ]
   },
-  "tradle.CRS-NameOfEntity": {
-    "id": "tradle.CRS-NameOfEntity",
+  "tradle.CRS_NameOfEntity": {
+    "id": "tradle.CRS_NameOfEntity",
     "type": "tradle.Model",
     "title": "Name Of Entity",
     "subClassOf": "tradle.Form",
@@ -2621,16 +2621,16 @@
       },
       "typeOfControllingPerson": {
         "type": "object",
-        "ref": "tradle.CRS-TypeOfControllingPerson"
+        "ref": "tradle.CRS_TypeOfControllingPerson"
       },
       "entityName": {
         "type": "array",
-        "icon": "ios-cash-outline",
+        "icon": "ios_cash-outline",
         "title": "Name of Entity",
         "allowToAdd": true,
         "items": {
           "backlink": "entityName",
-          "ref": "tradle.CRS-ControllingPerson-1"
+          "ref": "tradle.CRS_ControllingPerson_1"
         }
       }
     },
@@ -2638,8 +2638,8 @@
       "NameOfEntity"
     ]
   },
-  "tradle.CRS-TypeOfControllingPerson": {
-    "id": "tradle.CRS-TypeOfControllingPerson",
+  "tradle.CRS_TypeOfControllingPerson": {
+    "id": "tradle.CRS_TypeOfControllingPerson",
     "title": "Type Of Controlling Person",
     "subClassOf": "tradle.Enum",
     "type": "tradle.Model",
@@ -2667,7 +2667,7 @@
       },
       {
         "id": "d settlor",
-        "title": "d. Controlling Person of a trust - settlor"
+        "title": "d. Controlling Person of a trust _ settlor"
       },
       {
         "id": "e trustee",
@@ -2707,8 +2707,8 @@
       }
     ]
   },
-  "tradle.CRS-EntityTaxResidency-1": {
-    "id": "tradle.CRS-EntityTaxResidency-1",
+  "tradle.CRS_EntityTaxResidency_1": {
+    "id": "tradle.CRS_EntityTaxResidency_1",
     "type": "tradle.Model",
     "title": "Part 1 – Identification of Account Holder",
     "subClassOf": "tradle.Form",
@@ -2806,8 +2806,8 @@
       "entityName"
     ]
   },
-  "tradle.CRS-EntityType-2": {
-    "id": "tradle.CRS-EntityType-2",
+  "tradle.CRS_EntityType_2": {
+    "id": "tradle.CRS_EntityType_2",
     "type": "tradle.Model",
     "title": "Part 2 – Entity Type",
     "subClassOf": "tradle.Form",
@@ -2820,7 +2820,7 @@
     "properties": {
       "investmentEntityInNPJ": {
         "type": "boolean",
-        "title": "An Investment Entity located in a Non-Participating Jurisdiction",
+        "title": "An Investment Entity located in a Non_Participating Jurisdiction",
         "description": "An Investment Entity located in a Non-Participating Jurisdiction and managed by another Financial Institution"
       },
       "otherInvestmentEntity": {
@@ -2902,8 +2902,8 @@
       "nfe_group"
     ]
   },
-  "tradle.CRS-AccountHolderResidency-3": {
-    "id": "tradle.CRS-AccountHolderResidency-3",
+  "tradle.CRS_AccountHolderResidency_3": {
+    "id": "tradle.CRS_AccountHolderResidency_3",
     "type": "tradle.Model",
     "title": "Part 3 – Country of Residence of Account Holder for Tax Purposes",
     "subClassOf": "tradle.Form",
@@ -2919,18 +2919,18 @@
       },
       "taxResidency": {
         "type": "array",
-        "icon": "ios-cash-outline",
+        "icon": "ios_cash-outline",
         "title": "Tax Residence",
         "allowToAdd": true,
         "items": {
           "backlink": "CRS-AccountHolderResidency-3",
-          "ref": "tradle.TaxResidency-E"
+          "ref": "tradle.TaxResidency_E"
         }
       }
     }
   },
-  "tradle.TaxResidency-E": {
-    "id": "tradle.TaxResidency-E",
+  "tradle.TaxResidency_E": {
+    "id": "tradle.TaxResidency_E",
     "type": "tradle.Model",
     "title": "Tax Residency",
     "subClassOf": "tradle.Form",
@@ -2954,7 +2954,7 @@
         "type": "object",
         "title": "Tax Residency",
         "readOnly": true,
-        "ref": "tradle.CRS-AccountHolderResidency-3"
+        "ref": "tradle.CRS_AccountHolderResidency_3"
       },
       "NoTIN": {
         "description": "Select reason if you can't supply a Taxpayer Identification Number or equivalent number",
@@ -2970,8 +2970,8 @@
       "TIN"
     ]
   },
-  "tradle.CRS-Entity-4": {
-    "id": "tradle.CRS-Entity-4",
+  "tradle.CRS_Entity_4": {
+    "id": "tradle.CRS_Entity_4",
     "type": "tradle.Model",
     "title": "Part 4 – Declaration",
     "subClassOf": "tradle.Form",
@@ -2985,7 +2985,7 @@
       "declaration": {
         "type": "boolean",
         "title": "Declaration",
-        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self-certification and Declaration within [up to XX] days of such change in circumstances."
+        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self_certification and Declaration within [up to XX] days of such change in circumstances."
       },
       "capacity": {
         "type": "string",
@@ -3112,7 +3112,7 @@
       },
       {
         "id": "nonfinancialEnduser",
-        "title": "Non-financial End User"
+        "title": "Non_financial End User"
       }
     ]
   },
@@ -3222,18 +3222,18 @@
       "tradle.DoddFrankStatus",
       "tradle.DoddFrankCounterparty",
       "san.tradle.ClientInformation",
-      "tradle.W-8BEN-E-I",
+      "tradle.W_8BEN_E_I",
       "tradle.BusinessActivity",
       "san.tradle.mifid",
-      "tradle.CRS-ControllingPerson-1",
-      "tradle.CRS-NameOfEntity",
-      "tradle.TaxResidency-CP",
-      "tradle.CRS-ControllingPerson-3",
+      "tradle.CRS_ControllingPerson_1",
+      "tradle.CRS_NameOfEntity",
+      "tradle.TaxResidency_CP",
+      "tradle.CRS_ControllingPerson_3",
       "tradle.Emir",
       "tradle.FSCS"
     ],
     "multiEntryForms": [
-      "tradle.TaxResidency-CP"
+      "tradle.TaxResidency_CP"
     ],
 
     "properties": {
@@ -3384,7 +3384,7 @@
       },
       "counterparty": {
         "type": "string",
-        "title": "Counterparty contact details - Client email address"
+        "title": "Counterparty contact details _ Client email address"
       }
     },
     "editCols": [

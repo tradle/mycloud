@@ -32,6 +32,7 @@ custom:
   bot_graphql: bot_graphql
   bot_processinbox: bot_processinbox
   bot_processoutbox: bot_processoutbox
+  bot_samples: bot_samples
   tables:
     presence: '${{self:custom.prefix}}presence'
     seals: '${{self:custom.prefix}}seals'
@@ -391,6 +392,18 @@ functions:
           cors: true
       - http:
           path: tradle/graphql
+          method: get
+          cors: true
+  bot_samples:
+    handler: project/samplebot/index.samples
+    memorySize: 256
+    events:
+      - http:
+          path: tradle/samples
+          method: post
+          cors: true
+      - http:
+          path: tradle/samples
           method: get
           cors: true
 resources:

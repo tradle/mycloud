@@ -76,6 +76,7 @@ function createBot (opts={}) {
   } = tradle
 
   const bot = new EventEmitter()
+  bot.models = models
   bot.objects = {
     get: objects.getObjectByLink
   }
@@ -342,6 +343,13 @@ function createBot (opts={}) {
   })
 
   bot.exports.ongraphql = gqlAPI.handleHTTPRequest
+  bot.exports.samples = wrap(function* (event, context) {
+    const gen = require('./gen-samples')
+    yield gen({ bot, event, context })
+  }, {
+    type: 'http'
+  })
+
   // bot.exports.ongraphql = wrap(gqlAPI.handleHTTPRequest, { type: 'http' })
   // bot.exports.ongraphql = gqlAPI.handleHTTPRequest
 

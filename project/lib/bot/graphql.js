@@ -15,6 +15,7 @@ const {
 
 const { createSchema } = require('@tradle/schema-graphql')
 const { co } = require('../utils')
+const { docClient } = require('../aws')
 
 module.exports = function setup ({ table, models, objects, prefix }) {
   const app = express()
@@ -39,7 +40,7 @@ module.exports = function setup ({ table, models, objects, prefix }) {
     awsServerlessExpress.proxy(server, event, context)
   }
 
-  const tables = createTables({ models, objects, prefix })
+  const tables = createTables({ models, objects, prefix, docClient })
   const resolvers = createResolvers({
     objects,
     models,

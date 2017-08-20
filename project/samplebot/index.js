@@ -2,6 +2,7 @@ const shallowClone = require('xtend')
 if (process.env.NODE_ENV === 'test') {
   const extend = require('xtend/mutable')
   extend(process.env, require('../../service-map'), shallowClone(process.env))
+  console.log(process.env)
 }
 
 const debug = require('debug')('λ:samplebot')

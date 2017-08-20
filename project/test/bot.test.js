@@ -325,7 +325,7 @@ test('save to type table', loudCo(function* (t) {
     // return op
   }
 
-  yield bot.exports.ongraphql({
+  bot.exports.ongraphql({
     body: JSON.stringify({
       query: `{
         rl_tradle_Ping {
@@ -333,6 +333,12 @@ test('save to type table', loudCo(function* (t) {
         }
       }`
     })
+  }, {
+    succeed: function (resp) {
+      t.equal(resp.statusCode, 200)
+      t.end()
+    },
+    fail: t.error
   }, err => {
     t.error(err)
     t.end()
