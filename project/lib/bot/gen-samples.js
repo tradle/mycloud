@@ -23,13 +23,24 @@ module.exports = co(function* ({ bot, event, context }) {
     byTable[type].push(sample)
   }
 
-  yield Object.keys(byTable).map(type => {
-    return tables[type].batchPut(byTable[type])
-  })
+  yield Object.keys(byTable).map(co(function* (type) {
+    try {
+      yield tables[type].batchPut(byTable[type])
+    } catch (err) {
+      console.error(type, err)
+    }
+  }))
 
   return samples
 })
 
 function getParams ({ httpMethod, body, queryStringParameters }) {
-  return httpMethod === 'POST' ? JSON.parse(body) : queryStringParameters
+  if (httpMethod === 'POST') return JSON.parse(body)
+
+  const params = {
+    users: Number(queryStringParameters.users),
+    products: JSON.parse(queryStringParameters.products)
+  }
+
+  return params
 }

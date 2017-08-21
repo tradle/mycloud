@@ -1,18 +1,16 @@
 const localstack = require('./localstack')
 const services = {
   "maxRetries": 6,
-  "AWS": {
-    "region": "us-east-1"
-  },
-  "S3": {
-    "s3ForcePathStyle": true
-  }
+  "region": "us-east-1"
 }
 
 for (let name in localstack) {
-  if (!services[name]) services[name] = {}
+  let lname = name.toLowerCase()
+  if (!services[lname]) services[lname] = {}
 
-  services[name].endpoint = localstack[name]
+  services[lname].endpoint = localstack[name]
 }
+
+services.s3.s3ForcePathStyle = true
 
 module.exports = services

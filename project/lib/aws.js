@@ -11,7 +11,7 @@ const services = process.env.IS_LOCAL
   ? require('../conf/services.dev')
   : require('../conf/services.prod')
 
-AWS.config.update(services.AWS)
+AWS.config.update(services)
 
 const instanceNameToServiceName = {
   s3: 'S3',
