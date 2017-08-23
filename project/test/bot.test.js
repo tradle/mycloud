@@ -1,6 +1,9 @@
 require('./env')
 
+const crypto = require('crypto')
 const test = require('tape')
+const buildResource = require('@tradle/build-resource')
+const { SIG } = require('@tradle/constants')
 const Tradle = require('../')
 const { clone } = require('../lib/utils')
 const createRealBot = require('../lib/bot')
@@ -16,11 +19,12 @@ const bob = require('./fixtures/bob/object')
 const schema = require('../conf/table/users').Properties
 const BaseBotModels = require('../lib/bot/base-models')
 const apiGatewayEvent = require('./fixtures/events/api-gateway')
+const { userModel } = createFakeBot
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test('await ready', loudCo(function* (t) {
-    const bot = createBot({})
+    const bot = createBot.fromEngine({ userModel })
     const expectedEvent = toStreamItems([
       {
         old: {
@@ -34,13 +38,13 @@ const apiGatewayEvent = require('./fixtures/events/api-gateway')
     ])
 
     let waited
-    bot.onsealevent(co(function* (event) {
+    bot.hook('seal', co(function* (event) {
       t.equal(waited, true)
       t.equal(event, expectedEvent)
       t.end()
     }))
 
-    bot.call('onsealevent', expectedEvent).catch(t.error)
+    bot.call('seal', expectedEvent).catch(t.error)
 
     yield wait(100)
     waited = true
@@ -55,34 +59,49 @@ const apiGatewayEvent = require('./fixtures/events/api-gateway')
     const bot = createBot({})
     const { users } = bot
     // const user : Object = {
-    const user = {
-      id: bob.permalink,
-      identity: bob.object
-    }
+    const link = randomLink()
+    let user = buildResource({
+      models: bot.models,
+      model: userModel
+    })
+    .toJSON()
 
-    const promiseOnCreate = new Promise(resolve => {
-      bot.onusercreate(resolve)
+    buildResource.setVirtual(user, {
+      _time: Date.now(),
+      _link: link,
+      _permalink: link,
+      _author: bob.permalink,
+      [SIG]: randomSig()
     })
 
     bot.ready()
 
-    t.same(yield users.createIfNotExists(user), user, 'create if not exists')
-    t.same(yield users.get(user.id), user, 'get by primary key')
+    t.same(yield users.put(user), user, 'create if not exists')
+    t.same(yield users.get(link), user, 'get by primary key')
+    t.same(yield users.get(link), user, '2nd create does not clobber')
+    t.same(yield users.search(), [user], 'list')
 
-    // doesn't overwrite
-    yield users.createIfNotExists({
-      id: user.id
+    user = buildResource({
+      models: bot.models,
+      model: userModel,
+      resource: user
+    })
+    .set({
+      name: 'bob',
+      [SIG]: randomSig(),
+      [PREVLINK]: link,
+      [PERMALINK]: link
+    })
+    .toJSON()
+
+    setVirtual(user, {
+      _link: randomLink()
     })
 
-    t.same(yield promiseOnCreate, user)
-    t.same(yield users.get(user.id), user, '2nd create does not clobber')
-    t.same(yield users.list(), [user], 'list')
-
-    user.name = 'bob'
     t.same(yield users.merge(user), user, 'merge')
     t.same(yield users.get(user.id), user, 'get after merge')
     t.same(yield users.del(user.id), user, 'delete')
-    t.same(yield users.list(), [], 'list')
+    t.same(yield users.search(), [], 'list')
     t.end()
   }))
 
@@ -400,3 +419,11 @@ test('validate send', loudCo(function* (t) {
 
   t.end()
 }))
+
+function randomLink () {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+function randomSig () {
+  return crypto.randomBytes(128).toString('base64')
+}

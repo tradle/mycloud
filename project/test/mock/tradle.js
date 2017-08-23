@@ -32,14 +32,12 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
         const { to, object, other={} } = args
         if (!outbox[to]) outbox[to] = []
 
-        outbox[to].push({
-          author: 'bot',
-          link: 'abc',
-          permalink: 'abc',
-          object: extend({
-            recipientPubKey: {}
-          }, other)
-        })
+        outbox[to].push(extend({
+          _author: 'bot',
+          _link: 'abc',
+          _permalink: 'abc',
+          recipientPubKey: {}
+        }, other))
 
         yield send(args)
       }),

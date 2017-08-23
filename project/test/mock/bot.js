@@ -3,27 +3,35 @@ const createBot = require('../../lib/bot')
 const fakeTradle = require('./tradle')
 const fakeUsers = require('./users')
 const promiseNoop = co(function* () {})
+const defaultUserModel = {
+  id: 'tradle.User',
+  type: 'tradle.Model',
+  title: 'User',
+  properties: {
+    id: {
+      type: 'string'
+    }
+  }
+}
 
-module.exports = function fakeBot (opts={}) {
-  const {
+module.exports = fakeBot
+
+function fakeBot (opts={}) {
+  let {
     send=promiseNoop,
     objects={},
     identities={},
-    messages={}
+    messages={},
+    userModel=defaultUserModel
   } = opts
 
-  const {
-    tradle=fakeTradle({ objects, messages, identities, send })
-  } = opts
-
-  const users = {}
-  const bot = createBot({
-    users: fakeUsers({
-      users,
-      oncreate: user => bot.call('onusercreate', user)
-    }),
-    tradle
-  })
-
+  const tradle = opts.tradle || fakeTradle(opts)
+  const models = {}
+  const inputs = fakeBot.inputs({ userModel, models, tradle })
+  const bot = createBot(inputs)
   return bot
 }
+
+fakeBot.inputs = createBot.inputs
+fakeBot.fromEngine = opts => fakeBot(fakeBot.inputs(opts))
+fakeBot.userModel = defaultUserModel

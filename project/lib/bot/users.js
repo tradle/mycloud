@@ -1,62 +1,52 @@
-// const Cache = require('lru-cache')
-const { EventEmitter } = require('events')
-const { co, pick, omit, extend } = require('../utils')
-const { getUpdateParams } = require('../db-utils')
-const Errors = require('../errors')
-const PRIMARY_KEY = 'id'
+// // const Cache = require('lru-cache')
+// const { EventEmitter } = require('events')
+// const { co, pick, omit, extend } = require('../utils')
+// const { getUpdateParams } = require('../db-utils')
+// const Errors = require('../errors')
+// const PRIMARY_KEY = 'id'
 
-module.exports = function createUsers ({ table, oncreate }) {
-  const ee = new EventEmitter()
+// module.exports = function createUsers ({ table, oncreate }) {
+//   const ee = new EventEmitter()
 
-  // const cache = new Cache({ max: 200 })
-  const save = user => table.put({ Item: user }).then(() => user)
-  const del = primaryKey => table.del({
-    Key: { [PRIMARY_KEY]: primaryKey },
-    ReturnValues: 'ALL_OLD'
-  })
+//   // const cache = new Cache({ max: 200 })
+//   const save = user => table.update(user).then(() => user)
+//   const merge = save
+//   const del = primaryKey => table.del({ [PRIMARY_KEY]: primaryKey })
+//   const list = table.search
+//   const createIfNotExists = co(function* (user) {
+//     try {
+//       return yield table.get({
+//         Key: getKey(user)
+//       })
+//     } catch (err) {
+//       if (err instanceof Errors.NotFound) {
+//         yield save(user)
+//         yield oncreate(user)
+//         return user
+//       }
 
-  const merge = function merge (user) {
-    return table.update(extend({
-      Key: getKey(user),
-      ReturnValues: 'ALL_NEW',
-    }, getUpdateParams(getProps(user))))
-  }
+//       throw err
+//     }
+//   })
 
-  const list = table.scan
-  const createIfNotExists = co(function* (user) {
-    try {
-      return yield table.get({
-        Key: getKey(user)
-      })
-    } catch (err) {
-      if (err instanceof Errors.NotFound) {
-        yield save(user)
-        yield oncreate(user)
-        return user
-      }
+//   const get = primaryKey => table.get({
+//     Key: { [PRIMARY_KEY]: primaryKey }
+//   })
 
-      throw err
-    }
-  })
+//   return extend(ee, {
+//     get,
+//     createIfNotExists,
+//     save,
+//     del,
+//     merge,
+//     list
+//   })
+// }
 
-  const get = primaryKey => table.get({
-    Key: { [PRIMARY_KEY]: primaryKey }
-  })
+// function getKey (user) {
+//   return pick(user, PRIMARY_KEY)
+// }
 
-  return extend(ee, {
-    get,
-    createIfNotExists,
-    save,
-    del,
-    merge,
-    list
-  })
-}
-
-function getKey (user) {
-  return pick(user, PRIMARY_KEY)
-}
-
-function getProps (user) {
-  return omit(user, PRIMARY_KEY)
-}
+// function getProps (user) {
+//   return omit(user, PRIMARY_KEY)
+// }
