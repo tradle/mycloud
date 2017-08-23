@@ -336,6 +336,16 @@ exports.resources = function () {
   return env
 }
 
+exports.batchify = function (arr, batchSize) {
+  const batches = []
+  while (arr.length) {
+    batches.push(arr.slice(0, batchSize))
+    arr = arr.slice(batchSize)
+  }
+
+  return batches
+}
+
 function noop () {}
 
 // function startTimer (name) {

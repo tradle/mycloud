@@ -2,8 +2,10 @@ const co = require('co').wrap
 const Gen = require('@tradle/gen-samples')
 const { TYPE } = require('@tradle/constants')
 const { batchPut } = require('../db-utils')
+const { batchify } = require('../utils')
+const MAX_TABLES_PER_OP = 10
 
-module.exports = co(function* ({ bot, event, context }) {
+module.exports = co(function* ({ bot, event }) {
   const { users, products } = getParams(event)
   const { models, tables } = bot
   const gen = Gen.samples({ models })
@@ -23,13 +25,17 @@ module.exports = co(function* ({ bot, event, context }) {
     byTable[type].push(sample)
   }
 
-  yield Object.keys(byTable).map(co(function* (type) {
-    try {
-      yield tables[type].batchPut(byTable[type])
-    } catch (err) {
-      console.error(type, err)
-    }
-  }))
+  const typeBatches = batchify(Object.keys(byTable), MAX_TABLES_PER_OP)
+
+  for (const batch of typeBatches) {
+    yield batch.map(co(function* (type) {
+      try {
+        yield tables[type].batchPut(byTable[type])
+      } catch (err) {
+        console.error(type, err)
+      }
+    }))
+  }
 
   return samples
 })
