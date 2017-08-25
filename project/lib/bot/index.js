@@ -4,6 +4,8 @@ const deepEqual = require('deep-equal')
 const clone = require('clone')
 const mergeModels = require('@tradle/merge-models')
 const validateResource = require('@tradle/validate-resource')
+const { setVirtual } = validateResource.utils
+const { createTables } = require('@tradle/dynamodb')
 const BaseModels = require('./base-models')
 const types = require('../types')
 const {
@@ -27,10 +29,11 @@ const { TYPE, SIG } = constants
 const createUsers = require('./users')
 const createHistory = require('./history')
 const createSeals = require('./seals')
-const createGraphQLAPI = require('./graphql')
 // const RESOLVED = Promise.resolve()
-const { NODE_ENV, SERVERLESS_PREFIX } = process.env
+const { NODE_ENV, SERVERLESS_PREFIX, AWS_LAMBDA_FUNCTION_NAME } = process.env
 const TESTING = NODE_ENV === 'test'
+const isGraphQLLambda = TESTING || /graphql/i.test(AWS_LAMBDA_FUNCTION_NAME)
+const isGenSamplesLambda = TESTING || /sample/i.test(AWS_LAMBDA_FUNCTION_NAME)
 const promisePassThrough = data => Promise.resolve(data)
 
 const METHODS = [
@@ -152,39 +155,31 @@ function createBot (opts={}) {
 
     debug(`saving ${type}`)
     const payload = yield getMessagePayload(message)
-    // TODO: make this an update operation
     const full = extend(message.object, payload)
     if (!full._time) {
-      full._time = message.time || message._time
-    }
-
-    // TODO: rm this after updating models
-    if (BaseModels['tradle.Object'].properties._time.type === 'string') {
-      full._time = String(full._time)
+      const _time = message.time || message._time
+      if (_time) {
+        setVirtual(full, { _time })
+      }
     }
 
     return yield table.put(full)
   })
 
   // TODO: make this lazier! It currently clocks in at 400ms+
-  const gqlAPI = createGraphQLAPI({
+  // only need the graphql part
+  const dbOpts = {
+    docClient: tradle.aws.docClient,
     objects: bot.objects,
     models,
     prefix: SERVERLESS_PREFIX
-  })
+  }
 
-  bot.tables = gqlAPI.tables
+  bot.tables = createTables(dbOpts)
 
   const pre = {
-    onmessage: [
-      normalizeOnMessageInput
-    ],
-    onsealevent: [
-      normalizeOnSealInput
-    ],
-    // ongraphql: [
-    //   gqlAPI.handleHTTPRequest
-    // ]
+    onmessage: [normalizeOnMessageInput],
+    onsealevent: [normalizeOnSealInput]
   }
 
   const promiseSaveUser = co(function* ({ user, _userPre }) {
@@ -328,11 +323,7 @@ function createBot (opts={}) {
   })
 
   bot.users.history = createHistory(tradle)
-  bot.use = function use (strategy, opts) {
-    return strategy(bot, opts)
-  }
-
-  bot.getBotIdentity = provider.getMyIdentity
+  bot.use = (strategy, opts) => strategy(bot, opts)
   bot.addressBook = {
     byPermalink: identities.getIdentityByPermalink
   }
@@ -345,16 +336,25 @@ function createBot (opts={}) {
     bot.exports[name] = wrap(processor, { type })
   })
 
-  bot.exports.ongraphql = gqlAPI.handleHTTPRequest
-  processors.ongraphql = gqlAPI.executeQuery
-  processors.samples = co(function* (event) {
-    const gen = require('./gen-samples')
-    yield gen({ bot, event })
-  })
+  // TODO: check if we're in the graphql endpoint lambda
+  if (isGraphQLLambda) {
+    const createGraphQLAPI = require('./graphql')
+    const gqlOpts = extend({ tables: bot.tables }, dbOpts)
+    const gqlAPI = createGraphQLAPI(gqlOpts)
+    bot.exports.ongraphql = gqlAPI.handleHTTPRequest
+    processors.ongraphql = gqlAPI.executeQuery
+  }
 
-  bot.exports.samples = wrap(processors.samples, {
-    type: 'http'
-  })
+  if (isGenSamplesLambda) {
+    const gen = require('./gen-samples')
+    processors.samples = co(function* (event) {
+      yield gen({ bot, event })
+    })
+
+    bot.exports.samples = wrap(processors.samples, {
+      type: 'http'
+    })
+  }
 
   if (TESTING) {
     bot.call = (method, ...args) => processors[method](...args)

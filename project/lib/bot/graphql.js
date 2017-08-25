@@ -7,12 +7,7 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const awsServerlessExpress = require('aws-serverless-express')
 const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
-const {
-  constants,
-  createTables,
-  createResolvers
-} = require('@tradle/dynamodb')
-
+const { createResolvers } = require('@tradle/dynamodb')
 const { createSchema } = require('@tradle/schema-graphql')
 const { co } = require('../utils')
 const { docClient } = require('../aws')
@@ -20,7 +15,7 @@ const { NODE_ENV } = process.env
 const TESTING = process.env.NODE_ENV === 'test'
 
 module.exports = function setup (opts) {
-  const { models, objects, prefix } = opts
+  const { models, objects, tables } = opts
   const app = express()
   app.use(compression())
   app.use(cors())
@@ -42,12 +37,7 @@ module.exports = function setup (opts) {
     awsServerlessExpress.proxy(server, event, context)
   }
 
-  const tables = createTables(Object.assign({ docClient }, opts))
-  const resolvers = createResolvers({
-    objects,
-    models,
-    tables
-  })
+  const resolvers = createResolvers({ objects, models, tables })
 
   // be lazy
   let schema
