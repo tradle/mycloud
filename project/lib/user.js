@@ -186,6 +186,7 @@ const getProviderIdentity = co(function* () {
 
 const onGetInfo = co(function* () {
   const conf = yield Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
+  conf.aws = true
   conf.iotTopicPrefix = IOT_TOPIC_PREFIX
   return conf
 })
