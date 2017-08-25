@@ -5,7 +5,8 @@ phases:
     commands:
       - echo this is the install phase
       - printenv
-      - npm install && cd project && npm install
+      - cd project && npm install
+      - npm install
   pre_build:
     commands:
       - echo this is the pre_build phase
