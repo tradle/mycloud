@@ -513,7 +513,7 @@ functions:
 
   # public endpoint for clients to get public configuration / provider identity
   info:
-    handler: project/lib/lambda/info.handler
+    handler: project/lib/lambda/http/info.handler
     memorySize: 256
       # SERVERLESS_STAGE: ${{self:custom.stage}}
       # SERVERLESS_SERVICE_NAME: ${{self:service}}

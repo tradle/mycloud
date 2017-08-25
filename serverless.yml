@@ -308,7 +308,7 @@ functions:
     description:
       Ref: 'AWS::StackId'
   info:
-    handler: project/lib/lambda/info.handler
+    handler: project/lib/lambda/http/info.handler
     memorySize: 256
     events:
       - http:
