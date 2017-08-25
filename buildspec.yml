@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo this is the install phase
+      - printenv
+      - npm install && cd project && npm install
+  pre_build:
+    commands:
+      - echo this is the pre_build phase
+      - npm run dynamo:start
+  build:
+    commands:
+      - echo this is the build phase
+      - npm test
+      - npm run deploy
+  post_build:
+    commands:
+      - echo this is the post_build phase
+      - npm run dynamo:stop
+      - echo build completed on `date`
+artifacts:
+  files:
+    - ./**

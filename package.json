@@ -7,6 +7,7 @@
   "author": "Mark Vayngrib <mark@tradle.io>",
   "license": "MIT",
   "devDependencies": {
+    "@tradle/aws-client": "github:tradle/aws-client",
     "@tradle/cb-blockr": "tradle/cb-blockr",
     "@tradle/engine": "^4.10.0",
     "@tradle/restore": "tradle/restore",
@@ -60,7 +61,9 @@
     "export:template": "serverless sam export --output ./template.yml",
     "makepublic": "./scripts/makepublic.js",
     "compile-template": "./scripts/compile.js serverless-uncompiled.yml > serverless.yml",
-    "reinstall": "cd project && rm -rf node_modules yarn.lock && yarn cache clean && yarn && cd .."
+    "reinstall": "cd project && rm -rf node_modules yarn.lock && yarn cache clean && yarn && cd ..",
+    "dynamo:start": "docker-compose -f ./scripts/docker-compose-dynamo.yml up -d",
+    "dynamo:stop": "docker-compose -f ./scripts/docker-compose-dynamo.yml down"
   },
   "dependencies": {}
 }

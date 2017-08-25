@@ -1,0 +1,9 @@
+version: '2'
+services:
+  dynamo:
+    image: instructure/dynamo-local-admin
+    # dummy credentials
+    volumes:
+      - ./:/root/.aws
+    ports:
+      - 4569:8000
