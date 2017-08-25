@@ -6,7 +6,7 @@ const { InvalidInput } = require('../../errors')
 exports.handler = wrap(function* (event, context) {
   debug('[START]', Date.now())
   // TODO: use @tradle/validate-resource
-  return yield onSentChallengeResponse(JSON.parse(event.body))
+  return yield onSentChallengeResponse(event.body)
 }, {
   type: 'http'
 })

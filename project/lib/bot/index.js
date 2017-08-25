@@ -150,6 +150,7 @@ function createBot (opts={}) {
       return
     }
 
+    debug(`saving ${type}`)
     const payload = yield getMessagePayload(message)
     // TODO: make this an update operation
     const full = extend(message.object, payload)
@@ -162,7 +163,7 @@ function createBot (opts={}) {
       full._time = String(full._time)
     }
 
-    return yield table.create(full)
+    return yield table.put(full)
   })
 
   // TODO: make this lazier! It currently clocks in at 400ms+
@@ -279,6 +280,7 @@ function createBot (opts={}) {
   extend(bot, {
     seal: wrapWithEmit(sealsAPI.create, 'queueseal'),
     send: wrapWithEmit(sendMessage, 'sent'),
+    sign: provider.signObject,
     constants
   })
 
@@ -330,6 +332,7 @@ function createBot (opts={}) {
     return strategy(bot, opts)
   }
 
+  bot.getBotIdentity = provider.getMyIdentity
   bot.addressBook = {
     byPermalink: identities.getIdentityByPermalink
   }
@@ -343,15 +346,15 @@ function createBot (opts={}) {
   })
 
   bot.exports.ongraphql = gqlAPI.handleHTTPRequest
-  bot.exports.samples = wrap(function* (event, context) {
+  processors.ongraphql = gqlAPI.executeQuery
+  processors.samples = co(function* (event) {
     const gen = require('./gen-samples')
-    yield gen({ bot, event, context })
-  }, {
-    type: 'http'
+    yield gen({ bot, event })
   })
 
-  // bot.exports.ongraphql = wrap(gqlAPI.handleHTTPRequest, { type: 'http' })
-  // bot.exports.ongraphql = gqlAPI.handleHTTPRequest
+  bot.exports.samples = wrap(processors.samples, {
+    type: 'http'
+  })
 
   if (TESTING) {
     bot.call = (method, ...args) => processors[method](...args)

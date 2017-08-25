@@ -7,7 +7,8 @@
 //   .add(require('@tradle/custom-models'))
 //   .get()
 
-const corpModels = require('./corp-models')
+const corpModels = require('@tradle/models-corporate-onboarding')
+// const corpModels = require('./corp-models')
 // const models = mergeModels()
 //   .add(baseModels)
 //   .add(corpModels)

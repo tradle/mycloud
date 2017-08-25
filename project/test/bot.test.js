@@ -15,6 +15,7 @@ const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
 const schema = require('../conf/table/users').Properties
 const BaseBotModels = require('../lib/bot/base-models')
+const apiGatewayEvent = require('./fixtures/events/api-gateway')
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
@@ -281,7 +282,7 @@ test('save to type table', loudCo(function* (t) {
     _t: 'tradle.Ping'
   }
 
-  const bot = createFakeBot({})
+  const bot = createRealBot({})
   bot.objects = {
     get: function (link) {
       t.equal(link, message.object._link)
@@ -293,56 +294,37 @@ test('save to type table', loudCo(function* (t) {
   const table = bot.tables['tradle.Ping']
   t.ok(table, 'table created per model')
 
-  table.createTable = function () {
-    return Promise.resolve()
-  }
-
-  const whole = clone(message.object, payload, {
-    _time: message.time
-  })
-
-  table.create = function (obj) {
-    t.same(obj, whole)
-    return Promise.resolve()
-  }
-
   yield bot.call('onmessagestream', toStreamItems([
     { new: message }
   ]))
 
-  const { scan } = table
-  table.scan = table.query = function (...args) {
-    t.ok('queried table')
-    // t.end()
-    // const op = scan(...args)
-    // op.exec = () => {
-    //   return Promise.resolve({
-    //     Count: 1,
-    //     Items: [whole]
-    //   })
-    // }
-
-    // return op
-  }
-
-  bot.exports.ongraphql({
-    body: JSON.stringify({
-      query: `{
-        rl_tradle_Ping {
-          _link
+  const result = yield bot.call('ongraphql', `
+    {
+      rl_tradle_Ping {
+        edges {
+          node {
+            _link
+          }
         }
-      }`
-    })
-  }, {
-    succeed: function (resp) {
-      t.equal(resp.statusCode, 200)
-      t.end()
-    },
-    fail: t.error
-  }, err => {
-    t.error(err)
-    t.end()
+      }
+    }
+  `)
+
+  t.same(result, {
+    "data": {
+      "rl_tradle_Ping": {
+        "edges": [
+          {
+            "node": {
+              "_link": message.object._link
+            }
+          }
+        ]
+      }
+    }
   })
+
+  t.end()
 }))
 
 test('validate send', loudCo(function* (t) {

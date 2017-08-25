@@ -65,6 +65,7 @@ function Environment () {
   this.secrets = this.require('secrets', './secrets')
   this.constants = this.require('constants', './constants')
   this.errors = this.require('errors', './errors')
+  this.crypto = this.require('crypto', './crypto')
   this.utils = this.require('utils', './utils')
   this.stringUtils = this.require('stringUtils', './string-utils')
   this.dbUtils = this.require('dbUtils', './db-utils')

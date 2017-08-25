@@ -8,10 +8,12 @@ exports.handler = wrap(function* (event, context) {
   yield ensureInitialized()
 
   const now = Date.now()
-  debug('[START]', now)
-  const { body, requestContext } = event
-  const { clientId, identity } = typeof body === 'string' ? JSON.parse(body) : body
-  const { accountId } = requestContext
+  debug('[START]', now, event)
+  const {
+    body: { clientId, identity },
+    requestContext: { accountId }
+  } = event
+
   const session = yield onPreAuth({ accountId, clientId, identity })
   session.time = now
   session.iotTopicPrefix = ENV.IOT_TOPIC_PREFIX

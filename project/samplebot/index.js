@@ -1,5 +1,7 @@
 const shallowClone = require('xtend')
-if (process.env.NODE_ENV === 'test') {
+const buildResource = require('@tradle/build-resource')
+const { NODE_ENV } = process.env
+if (NODE_ENV === 'test') {
   const extend = require('xtend/mutable')
   extend(process.env, require('../../service-map'), shallowClone(process.env))
   console.log(process.env)
@@ -7,10 +9,12 @@ if (process.env.NODE_ENV === 'test') {
 
 const debug = require('debug')('λ:samplebot')
 const co = require('co').wrap
+const coExec = require('co')
 const TYPE = '_t'
 const DEPLOYMENT = 'io.tradle.Deployment'
 const {
   PRODUCTS=DEPLOYMENT,
+  // PRODUCTS='tradle.CRSSelection',
   ORG_DOMAIN
 } = process.env
 
@@ -18,10 +22,11 @@ const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
 const deploymentModels = require('./deployment-models')('io.tradle')
 const bankModels = require('./bank-models')(NAMESPACE)
 const models = shallowClone(deploymentModels, bankModels)
-const deployTradleStrategy = require('@tradle/bot-products')({
+const products = PRODUCTS.split(',').map(id => id.trim())
+const strategy = require('@tradle/bot-products')({
   namespace: NAMESPACE,
   models: models,
-  products: PRODUCTS.split(',').map(id => id.trim()),
+  products,
   // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
 })
 
@@ -31,7 +36,7 @@ const deployTradleStrategy = require('@tradle/bot-products')({
 
 const createBot = require('../lib/bot')
 const bot = createBot({
-  models: deployTradleStrategy.models.all
+  models: strategy.models.all
 })
 
 // attach this first
@@ -50,10 +55,14 @@ bot.onmessage(co(function* ({ user, type }) {
   }
 }))
 
-const strategyAPI = deployTradleStrategy.install(bot)
+const strategyAPI = strategy.install(bot)
 if (PRODUCTS === DEPLOYMENT) {
   strategyAPI.plugins.clear('onFormsCollected')
   strategyAPI.plugins.use(require('./deployment-handlers'))
+} else {
+  const biz = require('@tradle/biz-plugins')
+  // unshift
+  biz.forEach(plugin => strategyAPI.plugins.use(plugin(), true))
 }
 
 bot.onmessage(co(function* ({ user, type }) {
@@ -66,6 +75,25 @@ bot.onmessage(co(function* ({ user, type }) {
 }))
 
 bot.ready()
+
+// if (NODE_ENV === 'test') {
+//   const user = require('../lib/bot/tester')({ bot })
+//   coExec(function* () {
+//     // yield user.sendSelfIntroduction()
+//     debugger
+//     user.send(buildResource({
+//       models: strategyAPI.models,
+//       model: strategyAPI.appModels.application.id,
+//       resource: {
+//         product: `${strategyAPI.appModels.productList.id}_${strategyAPI.appModels.productList.enum[0].id}`
+//       }
+//     }).toJSON())
+
+//     const received = yield user.awaitMessage()
+//     console.log(received)
+//   })
+//   .catch(console.error)
+// }
 
 module.exports = bot.exports
 

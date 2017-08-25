@@ -83,6 +83,21 @@ const wrapHttpSuccess = result => {
 //   }
 // }
 
+const preProcessHttp = (event, context) => {
+  if (event.isBase64Encoded) {
+    event.body = new Buffer(event.body, 'base64').toString()
+  }
+
+  const type = event.headers['content-type'] || event.headers['Content-Type']
+  if (type === 'application/json') {
+    event.body = JSON.parse(event.body)
+  }
+}
+
+const preProcessors = {
+  http: preProcessHttp
+}
+
 const postProcessors = {
   http: {
     error: wrapHttpError,
@@ -99,9 +114,11 @@ function wrap (fn, opts={}) {
   } = opts
 
   let postProcess
+  let preProcess
   if (type) {
     postProcess = postProcessors[type]
-    if (!postProcess) {
+    preProcess = preProcessors[type]
+    if (!(postProcess || preProcess)) {
       throw new Error(`unsupported event type: ${type}`)
     }
   }
@@ -111,6 +128,11 @@ function wrap (fn, opts={}) {
   return co(function* (...args) {
     const callback = logify(args.pop())
     const [event, context] = args
+    if (preProcess) {
+      let maybePromise = preProcess(...args)
+      if (isPromise(maybePromise)) yield maybePromise
+    }
+
     let ret
     try {
       yield prepare

@@ -48,7 +48,7 @@ module.exports = {
         "complexity": "error",
         "computed-property-spacing": "error",
         "consistent-return": "warn",
-        "consistent-this": "error",
+        "consistent-this": "warn",
         "curly": "off",
         "default-case": "error",
         "dot-location": "off",
