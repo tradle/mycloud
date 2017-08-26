@@ -6,6 +6,7 @@ const isGeneratorFunction = require('is-generator-function')
 const stringify = require('json-stringify-safe')
 const RESOLVED = Promise.resolve()
 const ENV = require('./env')
+const { HTTP_METHODS } = ENV
 const Errors = require('./errors')
 const Discovery = require('./discovery')
 const Resources = require('./resources')
@@ -32,6 +33,21 @@ exports = module.exports = wrap
 // exports.sync = wrapSync
 exports.wrap = wrap
 
+function getHTTPHeaders () {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Credentials': true,
+    // 'Content-Type': 'application/json',
+    // 'Content-Encoding': 'gzip'
+  }
+
+  if (HTTP_METHODS) {
+    headers['Access-Control-Allow-Methods'] = HTTP_METHODS
+  }
+
+  return headers
+}
+
 const wrapHttpError = err => {
   if (Errors.isDeveloperError(err)) {
     throw err
@@ -39,10 +55,7 @@ const wrapHttpError = err => {
 
   const body = ENV.DEV ? Errors.export(err) : { message: 'Something went horribly wrong' }
   const resp = {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json'
-    },
+    headers: getHTTPHeaders(),
     statusCode: err.code || 400,
     body
   }
@@ -53,11 +66,7 @@ const wrapHttpError = err => {
 
 const wrapHttpSuccess = result => {
   const resp = {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json',
-      // 'Content-Encoding': 'gzip'
-    },
+    headers: getHTTPHeaders(),
     statusCode: result === null ? 204 : 200
   }
 
@@ -84,14 +93,17 @@ const wrapHttpSuccess = result => {
 // }
 
 const preProcessHttp = (event, context) => {
-  if (event.isBase64Encoded) {
-    event.body = new Buffer(event.body, 'base64').toString()
+  let { isBase64Encoded, headers={}, body } = event
+  if (isBase64Encoded) {
+    body = new Buffer(body, 'base64').toString()
   }
 
-  const type = event.headers['content-type'] || event.headers['Content-Type']
+  const type = headers['content-type'] || headers['Content-Type']
   if (type === 'application/json') {
-    event.body = JSON.parse(event.body)
+    body = JSON.parse(body)
   }
+
+  event.body = body
 }
 
 const preProcessors = {

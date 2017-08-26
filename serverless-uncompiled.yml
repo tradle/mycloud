@@ -148,6 +148,7 @@ provider:
     - Effect: Allow
       Action:
         - dynamodb:CreateTable
+        - dynamodb:DescribeTable
         - dynamodb:Query
         - dynamodb:Scan
         - dynamodb:GetItem
@@ -639,7 +640,7 @@ functions:
 
   bot_samples:
     handler: project/samplebot/index.samples
-    memorySize: 256
+    memorySize: 1024
     events:
       - http:
           path: tradle/samples

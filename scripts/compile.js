@@ -35,7 +35,11 @@ function forEachResource (yaml, fn) {
 }
 
 function addResourcesToEnvironment (yaml) {
-  const { provider } = yaml
+  const { provider, functions } = yaml
+  for (let fnName in functions) {
+    addHTTPMethodsToEnvironment(functions[fnName])
+  }
+
   if (!provider.environment) provider.environment = {}
 
   const { environment } = provider
@@ -54,6 +58,23 @@ function addResourcesToEnvironment (yaml) {
       Ref: id
     }
   })
+}
+
+function addHTTPMethodsToEnvironment (conf) {
+  if (!conf.events) return
+
+  const methods = conf.events.filter(e => e.http)
+    .map(e => e.http.method.toUpperCase())
+
+  if (!methods.length) return
+
+  if (!conf.environment) {
+    conf.environment = {}
+  }
+
+  conf.environment.HTTP_METHODS = methods
+    .concat('OPTIONS')
+    .join(',')
 }
 
 function addResourcesToOutputs (yaml) {

@@ -99,6 +99,7 @@ provider:
     - Effect: Allow
       Action:
         - 'dynamodb:CreateTable'
+        - 'dynamodb:DescribeTable'
         - 'dynamodb:Query'
         - 'dynamodb:Scan'
         - 'dynamodb:GetItem'
@@ -218,6 +219,8 @@ functions:
           path: tradle/preauth
           method: post
           cors: true
+    environment:
+      HTTP_METHODS: 'POST,OPTIONS'
   auth:
     handler: project/lib/lambda/http/auth.handler
     memorySize: 1024
@@ -226,6 +229,8 @@ functions:
           path: tradle/auth
           method: post
           cors: true
+    environment:
+      HTTP_METHODS: 'POST,OPTIONS'
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
@@ -298,6 +303,8 @@ functions:
           path: tradle/message
           method: put
           cors: true
+    environment:
+      HTTP_METHODS: 'PUT,OPTIONS'
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
@@ -315,6 +322,8 @@ functions:
           path: tradle/info
           method: get
           cors: true
+    environment:
+      HTTP_METHODS: 'GET,OPTIONS'
   init:
     handler: project/lib/lambda/init.handler
     memorySize: 512
@@ -394,9 +403,11 @@ functions:
           path: tradle/graphql
           method: get
           cors: true
+    environment:
+      HTTP_METHODS: 'POST,GET,OPTIONS'
   bot_samples:
     handler: project/samplebot/index.samples
-    memorySize: 256
+    memorySize: 1024
     events:
       - http:
           path: tradle/samples
@@ -406,6 +417,8 @@ functions:
           path: tradle/samples
           method: get
           cors: true
+    environment:
+      HTTP_METHODS: 'POST,GET,OPTIONS'
 resources:
   Resources:
     ObjectsBucket:
