@@ -37,7 +37,7 @@ function getHTTPHeaders () {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Credentials': true,
-    // 'Content-Type': 'application/json',
+    'Content-Type': 'application/json',
     // 'Content-Encoding': 'gzip'
   }
 
@@ -96,6 +96,7 @@ const preProcessHttp = (event, context) => {
   let { isBase64Encoded, headers={}, body } = event
   if (isBase64Encoded) {
     body = new Buffer(body, 'base64').toString()
+    event.isBase64Encoded = false
   }
 
   const type = headers['content-type'] || headers['Content-Type']
@@ -196,3 +197,8 @@ function logify (cb) {
 function isPromise (obj) {
   return obj && typeof obj.then === 'function'
 }
+
+process.on('unhandledRejection', (reason, p) => {
+  debug('Unhandled Rejection at: Promise', p, 'reason:', reason);
+  // application specific logging, throwing an error, or other logic here
+});

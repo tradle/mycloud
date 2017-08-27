@@ -7,10 +7,17 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const awsServerlessExpress = require('aws-serverless-express')
 const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
+const dynogels = require('dynogels')
 const { createResolvers } = require('@tradle/dynamodb')
 const { createSchema } = require('@tradle/schema-graphql')
 const { co } = require('../utils')
 const { docClient } = require('../aws')
+dynogels.log = {
+  info: require('debug')('dynogels:info'),
+  warn: require('debug')('dynogels:warn'),
+  level: 'info'
+}
+
 const { NODE_ENV } = process.env
 const TESTING = process.env.NODE_ENV === 'test'
 const binaryMimeTypes = [

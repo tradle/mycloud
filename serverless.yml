@@ -59,7 +59,7 @@ provider:
     IOT_TOPIC_PREFIX: '${{self:custom.prefixIOTTopic}}'
     IOT_ENDPOINT: ''
     BLOCKCHAIN: '${{self:custom.blockchain}}'
-    DEBUG: 'tradle:*,λ*,@tradle*'
+    DEBUG: 'tradle:*,λ*,@tradle*,dynogels*'
     SERVERLESS_PREFIX: '${{self:custom.prefix}}'
     SERVERLESS_STAGE: '${{self:custom.stage}}'
     SERVERLESS_SERVICE_NAME: '${{self:service}}'
