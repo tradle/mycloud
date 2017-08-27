@@ -48,6 +48,8 @@ const METHODS = [
   // { name: 'ongraphql', type: 'http' }
 ]
 
+debug(`lambda "${AWS_LAMBDA_FUNCTION_NAME}" initialized`)
+
 module.exports = createBot
 
 function createBot (opts={}) {
@@ -337,6 +339,7 @@ function createBot (opts={}) {
   })
 
   // TODO: check if we're in the graphql endpoint lambda
+  // make this an input, rather than an env check
   if (isGraphQLLambda) {
     const createGraphQLAPI = require('./graphql')
     const gqlOpts = extend({ tables: bot.tables }, dbOpts)
@@ -345,6 +348,7 @@ function createBot (opts={}) {
     processors.ongraphql = gqlAPI.executeQuery
   }
 
+  // make this an input, rather than an env check
   if (isGenSamplesLambda) {
     const gen = require('./gen-samples')
     processors.samples = co(function* (event) {

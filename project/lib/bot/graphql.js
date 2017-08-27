@@ -13,6 +13,25 @@ const { co } = require('../utils')
 const { docClient } = require('../aws')
 const { NODE_ENV } = process.env
 const TESTING = process.env.NODE_ENV === 'test'
+const binaryMimeTypes = [
+  'application/javascript',
+  'application/json',
+  'application/octet-stream',
+  'application/xml',
+  'font/eot',
+  'font/opentype',
+  'font/otf',
+  'image/jpeg',
+  'image/png',
+  'image/svg+xml',
+  'text/comma-separated-values',
+  'text/css',
+  'text/html',
+  'text/javascript',
+  'text/plain',
+  'text/text',
+  'text/xml'
+]
 
 module.exports = function setup (opts) {
   const { models, objects, tables } = opts
@@ -26,11 +45,6 @@ module.exports = function setup (opts) {
     schema: getSchema(),
     graphiql: true
   })))
-
-  const binaryMimeTypes = [
-    'application/json',
-    'text/html'
-  ]
 
   const server = awsServerlessExpress.createServer(app, null, binaryMimeTypes)
   const handleHTTPRequest = (event, context) => {
