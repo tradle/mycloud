@@ -63,7 +63,8 @@
     "compile-template": "./scripts/compile.js serverless-uncompiled.yml > serverless.yml",
     "reinstall": "cd project && rm -rf node_modules yarn.lock && yarn cache clean && yarn && cd ..",
     "dynamo:start": "docker-compose -f ./scripts/docker-compose-dynamo.yml up -d",
-    "dynamo:stop": "docker-compose -f ./scripts/docker-compose-dynamo.yml down"
+    "dynamo:stop": "docker-compose -f ./scripts/docker-compose-dynamo.yml down",
+    "tail": "./scripts/tail.sh"
   },
   "dependencies": {}
 }
