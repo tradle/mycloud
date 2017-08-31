@@ -40,6 +40,7 @@ ask() {
 remove_buckets() {
     # do dangerous stuff
   # set -o xtrace
+  # todo: respect actual service name and stage!
   aws s3 ls | awk '{print $3;}' | grep tradle-dev | grep -v tradle-dev-serverless | while read line; do
     ask "delete bucket ${line}?" && aws s3 rb "s3://$line" --force
   done
@@ -48,3 +49,4 @@ remove_buckets() {
 echo "This will empty and delete all buckets, tables, lambdas, etc."
 ask && remove_buckets
 ask "delete resources stack" && sls remove
+ask "delete per-type tables" && node ./scripts/delete-tables.js

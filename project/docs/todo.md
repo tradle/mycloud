@@ -20,5 +20,7 @@ DynamoDB:
   queries should keep removed properties in mind
 
 Lambda:
-  enable compression of response (gzip for graphql):
-    https://github.com/awslabs/aws-serverless-express/pull/51
+  use aws-serverless-express for all http endpoints
+  don't waste a lambda invocation on OPTIONS requests. Learn from aws-serverless-express/example, with OPTIONS contentHandling set to CONVERT_TO_TEXT
+
+don't waste lambda invocations on s3 resources (e.g. /info should really go straight to s3)

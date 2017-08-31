@@ -5,6 +5,7 @@ const YAML = require('js-yaml')
 const fs = require('fs')
 const file = fs.readFileSync(process.argv[2], { encoding: 'utf8' })
 const yaml = YAML.load(file)
+const ANY_METHODS = 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
 
 function forEachResource (yaml, fn) {
   const { resources, provider } = yaml
@@ -72,9 +73,13 @@ function addHTTPMethodsToEnvironment (conf) {
     conf.environment = {}
   }
 
-  conf.environment.HTTP_METHODS = methods
-    .concat('OPTIONS')
-    .join(',')
+  if (methods.length === 1 && methods[0] === 'ANY') {
+    conf.environment.HTTP_METHODS = ANY_METHODS
+  } else {
+    conf.environment.HTTP_METHODS = methods
+      .concat('OPTIONS')
+      .join(',')
+  }
 }
 
 function addResourcesToOutputs (yaml) {

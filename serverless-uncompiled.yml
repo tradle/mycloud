@@ -62,7 +62,6 @@ custom:
 
   # hostedZoneName: tradle.io
   # domainName: lambda1.tradle.io
-  # accountId: ${{file(./env.json):ACCOUNT_ID}}
   pushServer: https://push1.tradle.io
 
   # bot hooks
@@ -87,22 +86,6 @@ custom:
   apigwBinary:
     types:
       - '*/*'
-
-  # to make available in lambda's environment
-  # resource_names:
-  #   # - ServerlessDeploymentBucket
-  #   - ObjectsBucket
-  #   - SecretsBucket
-  #   - EventsTable
-  #   - PresenceTable
-  #   - PubKeysTable
-  #   - InboxTable
-  #   - OutboxTable
-  #   - SealsTable
-  #   - UsersTable
-  #   - PublicConfBucket
-  #   # - PrivateConfBucket
-  #   - IotClientRole
 
 #   secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
   # dynamodb:
@@ -142,7 +125,7 @@ provider:
     BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     ORG_DOMAIN: tradle.io
     ORG_NAME: Tradle
-    ORG_LOGO: ${{file(./env.json):LOGO_TRADLE}}
+    ORG_LOGO: ${{file(./project/conf/env.json):LOGO_TRADLE}}
 
   iamRoleStatements:
     - Effect: Allow
@@ -308,20 +291,14 @@ functions:
     events:
       - http:
           path: tradle/preauth
-          method: post
-          cors: true
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
+          method: any
   auth:
     handler: project/lib/lambda/http/auth.handler
     memorySize: 1024
     events:
       - http:
           path: tradle/auth
-          method: post
-          cors: true
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
+          method: any
   # createevent:
   #   handler: project/lib/lambda/createevent.handler
   #   memorySize: 512
@@ -329,8 +306,6 @@ functions:
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -344,8 +319,6 @@ functions:
   outbox2events:
     handler: project/lib/lambda/outbox-events.handler
     memorySize: 512
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -359,8 +332,6 @@ functions:
   seal2events:
     handler: project/lib/lambda/seal-events.handler
     memorySize: 512
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -378,15 +349,6 @@ functions:
   #   #     - node_modules/
   #   environment:
   #     DEBUG: tradle:*
-  #   custom:
-  #     env-resources:
-  #       - SecretsBucket
-  #       - ObjectsBucket
-  #       - PresenceTable
-  #       - EventsTable
-  #       - PubKeysTable
-  #       - InboxTable
-  #       - OutboxTable
 
     # events:
   #     - stream:
@@ -416,16 +378,6 @@ functions:
 
   #   environment:
   #     DEBUG: tradle:*
-  #   custom:
-  #     env-resources:
-  #       - ObjectsBucket
-  #       - SecretsBucket
-  #       - EventsTable
-  #       - PresenceTable
-  #       - PubKeysTable
-  #       - InboxTable
-  #       - OutboxTable
-  #       - PublicConfBucket
 
   onconnect:
     handler: project/lib/lambda/mqtt/onconnect.handler
@@ -434,8 +386,6 @@ functions:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
           sqlVersion: ${{self:custom.versionSQL}}
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   ondisconnect:
     handler: project/lib/lambda/mqtt/ondisconnect.handler
@@ -444,8 +394,6 @@ functions:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
           sqlVersion: ${{self:custom.versionSQL}}
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   # triggered when a client subscribes to an MQTT topic
   onsubscribe:
@@ -455,8 +403,6 @@ functions:
       - iot:
           sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
           sqlVersion: ${{self:custom.versionSQL}}
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   # triggered when a client sends a message
   onmessage:
@@ -470,8 +416,6 @@ functions:
       - iot:
           sql: "SELECT * as data, clientid() as clientId FROM '${{self:custom.prefixIOTTopic}}message'"
           sqlVersion: ${{self:custom.versionSQL}}
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   onmessage_http:
     handler: project/lib/lambda/http/onmessage.handler
@@ -479,32 +423,21 @@ functions:
     events:
       - http:
           path: tradle/message
-          method: put
-          cors: true
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
+          method: any
 
   # useful during development
   # trigger a message to be queued/sent
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   # addcontact:
   #   handler: project/lib/lambda/add-contact.handler
   #   environment:
   #     DEBUG: tradle:*
-  #   custom:
-  #     env-resources:
-  #       - ObjectsBucket
-  #       - PubKeysTable
 
   identity:
     handler: project/lib/lambda/identity.handler
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   setenvvars:
     handler: project/lib/lambda/setenvvars.handler
@@ -518,13 +451,10 @@ functions:
     memorySize: 256
       # SERVERLESS_STAGE: ${{self:custom.stage}}
       # SERVERLESS_SERVICE_NAME: ${{self:service}}
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
     events:
       - http:
           path: tradle/info
-          method: get
-          cors: true
+          method: any
 
   # initialize provider identity
   init:
@@ -550,8 +480,6 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   pollchain:
     handler: project/lib/lambda/pollchain.handler
@@ -560,8 +488,6 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
     # environment:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
@@ -577,14 +503,10 @@ functions:
   bot_onmessage:
     handler: project/samplebot/index.onmessage
     memorySize: 1024
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
 
   bot_onsealevent:
     handler: project/samplebot/index.onsealevent
     memorySize: 1024
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -598,8 +520,6 @@ functions:
   bot_processinbox:
     handler: project/samplebot/index.onmessagestream
     memorySize: 512
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -613,8 +533,6 @@ functions:
   bot_processoutbox:
     handler: project/samplebot/index.onmessagestream
     memorySize: 512
-    # custom:
-    #   env-resources: ${{self:custom.resource_names}}
     events:
       - stream:
           type: dynamodb
@@ -627,16 +545,11 @@ functions:
 
   bot_graphql:
     handler: project/samplebot/index.ongraphql
-    memorySize: 256
+    memorySize: 512
     events:
       - http:
           path: tradle/graphql
-          method: post
-          cors: true
-      - http:
-          path: tradle/graphql
-          method: get
-          cors: true
+          method: any
 
   bot_samples:
     handler: project/samplebot/index.samples
@@ -644,15 +557,19 @@ functions:
     events:
       - http:
           path: tradle/samples
-          method: post
-          cors: true
-      - http:
-          path: tradle/samples
-          method: get
-          cors: true
+          method: any
 
 resources:
   Resources:
+    # ApiGatewayStage:
+    #   Type: AWS::ApiGateway::Stage
+    #   Properties:
+    #     MethodSettings:
+    #       - DataTraceEnabled: true
+    #         HttpMethod: "*"
+    #         LoggingLevel: INFO
+    #         ResourcePath: "/*"
+    #         MetricsEnabled: true
     ObjectsBucket:
       Type: "AWS::S3::Bucket"
       Description: content-addressed storage for all objects
@@ -1004,6 +921,61 @@ resources:
                   Action: ["iot:Receive"]
                   Resource: ["*"]
                   # Resource: arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}${iot:ClientId}/*
+
+    AutoScalingRole:
+      Type: AWS::IAM::Role
+      Description: role for autoscaling resources
+      Properties:
+        RoleName: ${{self:custom.prefixRole}}AutoScalingRole
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - application-autoscaling.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: AutoScalingPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - dynamodb:DescribeTable
+                    - dynamodb:UpdateTable
+                    - cloudwatch:DescribeAlarms
+                    - cloudwatch:DeleteAlarms
+                    - cloudwatch:PutMetricAlarm
+                    - cloudwatch:GetMetricStatistics
+                    - cloudwatch:SetAlarmState
+                  Resource:
+                    - "*"
+
+    # WriteAutoscalingPolicy:
+    #   Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    #   Properties:
+    #     PolicyName: WriteAutoScalingPolicy
+    #     PolicyType: TargetTrackingScaling
+    #     TargetTrackingScalingPolicyConfiguration:
+    #       TargetValue: 50.0,
+    #       ScaleInCooldown: 60
+    #       ScaleOutCooldown: 60
+    #       PredefinedMetricSpecification:
+    #         PredefinedMetricType: DynamoDBWriteCapacityUtilization
+
+    # ReadAutoscalingPolicy:
+    #   Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    #   Properties:
+    #     PolicyName: ReadAutoScalingPolicy
+    #     PolicyType: TargetTrackingScaling
+    #     TargetTrackingScalingPolicyConfiguration:
+    #       TargetValue: 50.0,
+    #       ScaleInCooldown: 60
+    #       ScaleOutCooldown: 60
+    #       PredefinedMetricSpecification:
+    #         PredefinedMetricType: DynamoDBWriteCapacityUtilization
 
     # Alarms
 

@@ -3,7 +3,7 @@ const clone = require('xtend')
 const extend = require('xtend/mutable')
 const { splitCamelCase } = require('./string-utils')
 
-const env = clone(require('../../env'))
+const env = clone(require('../conf/env'))
 env.set = obj => {
   if (process.env !== obj) {
     extend(process.env, obj)

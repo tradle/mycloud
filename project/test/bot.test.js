@@ -324,6 +324,9 @@ test('save to type table', loudCo(function* (t) {
     }
   })
 
+  // const introspection = yield bot.call('ongraphql', require('./introspection-query'))
+  // console.log('introspection length', JSON.stringify(introspection).length)
+
   t.end()
 }))
 

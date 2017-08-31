@@ -36,7 +36,7 @@ exports.wrap = wrap
 function getHTTPHeaders () {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Credentials': true,
+    // 'Access-Control-Allow-Credentials': true,
     'Content-Type': 'application/json',
     // 'Content-Encoding': 'gzip'
   }
@@ -72,6 +72,7 @@ const wrapHttpSuccess = result => {
 
   if (result) {
     resp.body = stringify(result)
+    debug(`response body length: ${resp.body.length} chars`)
   }
 
   return resp
@@ -199,6 +200,6 @@ function isPromise (obj) {
 }
 
 process.on('unhandledRejection', (reason, p) => {
-  debug('Unhandled Rejection at: Promise', p, 'reason:', reason);
+  debug('Unhandled Rejection at:', p, 'reason:', reason);
   // application specific logging, throwing an error, or other logic here
 });

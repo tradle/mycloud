@@ -1,11 +1,13 @@
+#!/usr/bin/env node
+
 /**
  * Deletes tables that were dynamically generated for per-data-model
  */
 
 const co = require('co')
 const { dynamodb } = require('../project/lib/aws')
-const { batchify } = require('../project/lib/utils')
-const { SERVERLESS_PREFIX } = require('../service-map')
+const { batchify, runWithBackoffWhile } = require('../project/lib/utils')
+const { SERVERLESS_PREFIX } = require('../project/conf/service-map')
 const {
   service: {
     resources: { Resources }
@@ -23,11 +25,20 @@ co(function* () {
     return !tablesToKeep.includes(name)
   })
 
+  if (!toDelete) return
+
   console.log('deleting', toDelete)
-  const batches = batchify(toDelete, 10)
-  for (const batch of batches) {
-    console.log(batch)
-    yield batch.map(TableName => dynamodb.deleteTable({ TableName }).promise())
+
+  for (const TableName of TableNames) {
+    console.log(`deleting ${TableName}`)
+    runWithBackoffWhile(co.wrap(function* () {
+      yield dynamodb.deleteTable({ TableName }).promise()
+    }), {
+      shouldTryAgain: err => err.name === 'LimitExceededException',
+      initialDelay: 1000,
+      maxDelay: 10000,
+      maxTime: 5 * 60 * 1000
+    })
   }
 
   console.log('deleted', toDelete)

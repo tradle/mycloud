@@ -4,6 +4,6 @@ DynamoDBLocal/
 *.log
 *.zip
 .serverless*
-env.json
 certs/
 build/
+project/conf/service-map.json

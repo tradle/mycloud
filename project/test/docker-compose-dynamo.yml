@@ -2,6 +2,7 @@ version: '2'
 services:
   dynamo:
     image: instructure/dynamo-local-admin
+    container_name: tradle-dynamo-local
     # dummy credentials
     volumes:
       - ./:/root/.aws

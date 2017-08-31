@@ -2,6 +2,8 @@
 const co = require('co').wrap
 const AWS = require('AWS-SDK')
 const s3 = new AWS.S3()
+const serverlessYml = require('./serverless-yml')
+const { service, custom } = serverlessYml
 // const Bucket = 'io.tradle.dev.deploys'
 co(makeDeploymentBucketPublic)().catch(console.error)
 
@@ -9,7 +11,8 @@ function* makeDeploymentBucketPublic () {
   // console.log(yield s3.getBucketAcl({ Bucket }).promise())
   const { Buckets } = yield s3.listBuckets().promise()
   const Bucket = Buckets.find(bucket => {
-    return bucket.Name.startsWith('tradle-dev-serverlessdeploymentbucket')
+    return new RegExp(`${service}-${custom.stage}-serverlessdeploymentbucket`)
+      .test(bucket.Name)
   }).Name
 
   yield makePublic(Bucket)

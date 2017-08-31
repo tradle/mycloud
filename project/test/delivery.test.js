@@ -1,7 +1,6 @@
 require('./env')
 
 const test = require('tape')
-const utf8length = require('utf8-length')
 const { batchBySize, MAX_PAYLOAD_SIZE, getMessageStub } = require('../lib/delivery')
 const messageObject = require('./fixtures/alice/receive.json')
 
@@ -12,7 +11,7 @@ test('batch by size', function (t) {
   }
 
   const s = JSON.stringify(sampleJSON)
-  const length = utf8length(s)
+  const length = Buffer.byteLength(s, 'utf8')
   const MAX = length
   const oneThird = Math.floor(length / 3)
   const twoFifths = Math.floor(2 * length / 5)

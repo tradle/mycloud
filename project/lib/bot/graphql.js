@@ -12,10 +12,13 @@ const { createResolvers } = require('@tradle/dynamodb')
 const { createSchema } = require('@tradle/schema-graphql')
 const { co } = require('../utils')
 const { docClient } = require('../aws')
+const ENV = require('../env')
+const { HTTP_METHODS } = ENV
+
 dynogels.log = {
   info: require('debug')('dynogels:info'),
   warn: require('debug')('dynogels:warn'),
-  level: 'info'
+  level: 'warn'
 }
 
 const { NODE_ENV } = process.env
@@ -48,6 +51,14 @@ module.exports = function setup (opts) {
   app.use(bodyParser.json())
   app.use(bodyParser.urlencoded({ extended: true }))
   app.use(awsServerlessExpressMiddleware.eventContext())
+  if (HTTP_METHODS) {
+    app.use((req, res, next) => {
+      debug(`setting Access-Control-Allow-Methods: ${HTTP_METHODS}`)
+      res.header('Access-Control-Allow-Methods', HTTP_METHODS)
+      next()
+    })
+  }
+
   app.use('/', expressGraphQL(() => ({
     schema: getSchema(),
     graphiql: true

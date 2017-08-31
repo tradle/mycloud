@@ -68,7 +68,7 @@ provider:
     BOT_ONMESSAGE: '${{self:custom.bot_onmessage}}'
     ORG_DOMAIN: tradle.io
     ORG_NAME: Tradle
-    ORG_LOGO: '${{file(./env.json):LOGO_TRADLE}}'
+    ORG_LOGO: '${{file(./project/conf/env.json):LOGO_TRADLE}}'
     R_BUCKET_Objects:
       Ref: ObjectsBucket
     R_BUCKET_Secrets:
@@ -91,6 +91,8 @@ provider:
       Ref: PresenceTable
     R_ROLE_IotClient:
       Ref: IotClientRole
+    R_ROLE_AutoScaling:
+      Ref: AutoScalingRole
     R_BUCKET_ServerlessDeployment:
       Ref: ServerlessDeploymentBucket
     R_RESTAPI_ApiGateway:
@@ -217,20 +219,18 @@ functions:
     events:
       - http:
           path: tradle/preauth
-          method: post
-          cors: true
+          method: any
     environment:
-      HTTP_METHODS: 'POST,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   auth:
     handler: project/lib/lambda/http/auth.handler
     memorySize: 1024
     events:
       - http:
           path: tradle/auth
-          method: post
-          cors: true
+          method: any
     environment:
-      HTTP_METHODS: 'POST,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
@@ -301,10 +301,9 @@ functions:
     events:
       - http:
           path: tradle/message
-          method: put
-          cors: true
+          method: any
     environment:
-      HTTP_METHODS: 'PUT,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
@@ -320,10 +319,9 @@ functions:
     events:
       - http:
           path: tradle/info
-          method: get
-          cors: true
+          method: any
     environment:
-      HTTP_METHODS: 'GET,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   init:
     handler: project/lib/lambda/init.handler
     memorySize: 512
@@ -393,32 +391,22 @@ functions:
               - StreamArn
   bot_graphql:
     handler: project/samplebot/index.ongraphql
-    memorySize: 256
+    memorySize: 512
     events:
       - http:
           path: tradle/graphql
-          method: post
-          cors: true
-      - http:
-          path: tradle/graphql
-          method: get
-          cors: true
+          method: any
     environment:
-      HTTP_METHODS: 'POST,GET,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   bot_samples:
     handler: project/samplebot/index.samples
     memorySize: 1024
     events:
       - http:
           path: tradle/samples
-          method: post
-          cors: true
-      - http:
-          path: tradle/samples
-          method: get
-          cors: true
+          method: any
     environment:
-      HTTP_METHODS: 'POST,GET,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
 resources:
   Resources:
     ObjectsBucket:
@@ -670,6 +658,36 @@ resources:
                     - 'iot:Receive'
                   Resource:
                     - '*'
+    AutoScalingRole:
+      Type: 'AWS::IAM::Role'
+      Description: role for autoscaling resources
+      Properties:
+        RoleName: '${{self:custom.prefixRole}}AutoScalingRole'
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - application-autoscaling.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        Policies:
+          - PolicyName: AutoScalingPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'dynamodb:DescribeTable'
+                    - 'dynamodb:UpdateTable'
+                    - 'cloudwatch:DescribeAlarms'
+                    - 'cloudwatch:DeleteAlarms'
+                    - 'cloudwatch:PutMetricAlarm'
+                    - 'cloudwatch:GetMetricStatistics'
+                    - 'cloudwatch:SetAlarmState'
+                  Resource:
+                    - '*'
   Outputs:
     ObjectsBucket:
       Description: content-addressed storage for all objects
@@ -715,6 +733,10 @@ resources:
       Description: role assumed by every connecting client
       Value:
         Ref: IotClientRole
+    AutoScalingRole:
+      Description: role for autoscaling resources
+      Value:
+        Ref: AutoScalingRole
     ServerlessDeploymentBucket:
       Value:
         Ref: ServerlessDeploymentBucket

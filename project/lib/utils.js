@@ -19,6 +19,9 @@ const ENV = require('./env')
 const Resources = require('./resources')
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE } = TYPES
+const wait = millis =>
+  new Promise(resolve => setTimeout(resolve, millis))
+
 const utils = exports
 
 exports.clone = clone
@@ -346,11 +349,37 @@ exports.batchify = function (arr, batchSize) {
   return batches
 }
 
-function noop () {}
+exports.runWithBackoffWhile = co(function* (fn, opts) {
+  const {
+    initialDelay=1000,
+    maxAttempts=10,
+    maxTime=60000,
+    factor=2,
+    shouldTryAgain
+  } = opts
 
-// function startTimer (name) {
-//   const now = Date.now()
-//   return function () {
-//     return Date.now() - now
-//   }
-// }
+  const { maxDelay=maxTime/2 } = opts
+  const start = Date.now()
+  let millisToWait = initialDelay
+  let attempts = 0
+  while (Date.now() - start < maxTime && attempts++ < maxAttempts) {
+    try {
+      return yield fn()
+    } catch (err) {
+      if (!shouldTryAgain(err)) {
+        throw err
+      }
+
+      yield wait(millisToWait)
+      millisToWait = Math.min(
+        maxDelay,
+        millisToWait * factor,
+        maxTime - Date.now()
+      )
+    }
+  }
+
+  throw new Error('timed out')
+})
+
+exports.wait = wait

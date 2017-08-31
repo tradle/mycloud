@@ -1,5 +1,4 @@
 const debug = require('debug')('tradle:sls:delivery')
-const utf8length = require('utf8-length')
 const { co, typeforce, pick } = require('./utils')
 const Objects = require('./objects')
 const Messages = require('./messages')
@@ -95,7 +94,7 @@ const batchBySize = function batchBySize (strings, max=MAX_PAYLOAD_SIZE) {
   let str
   let length = 0
   while (str = strings.shift()) {
-    let strLength = utf8length(str)
+    let strLength = Buffer.byteLength(str, 'utf8')
     if (length + str.length <= max) {
       cur.push(str)
       length += strLength

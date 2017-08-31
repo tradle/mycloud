@@ -1,25 +1,44 @@
 
 # tradle/aws
 
-## Usage
+## Setup
+
+Run Docker, set up aws credentials in ~/.aws/
+
+```sh
+npm run setup
+```
+
+## Directory Structure
+
+```sh
+.              # dev dependencies, serverless framework config
+  /cli         # ignore me for now
+  /scripts     # various helper scripts in `./scripts`
+  /project     # code that will be deployed to lambda
+    /conf      # various table schemas, used for tests
+    /lib
+      /bot     # bot engine
+    /samplebot # currently co-located sample bot in `./project/samplebot`
+```
 
 ### Deploy
 
-You should have docker running. The below scripts will first rebuild the native modules for the AWS linux environment
-
 ```sh
-# deploy to localstack
-npm run rebuild && npm run deploy:local
-
-# deploy to aws
-npm run rebuild && npm run deploy:aws
+# make sure docker is running
+docker ps
+# 1. lint & test
+# 2. rebuild native modules with AWS Linux container
+# 3. deploy to cloud
+npm run deploy:safe
 ```
 
-### Init
+### Destroy
 
-Initialize your provider / bot
+Sometimes you want to wipe the slate clean and start from scratch (usually by age 25 or so). The following command will wipe out all the AWS resources created in your deployment. Obviously, use with EXTREME caution, as this command executes with your AWS credentials (best use a separate account).
 
 ```sh
-node cli/index.js init --logo "/path/to/silly-logo.png" --name Silly
-node cli/index.js push
+npm run nuke
+# a series of y/n prompts ensues, 
+# ensuring you're committed to the destruction of all that is holy
 ```

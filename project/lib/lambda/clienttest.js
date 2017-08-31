@@ -1,6 +1,6 @@
 if (process.env.NODE_ENV === 'test') {
   // require('debug').enable('*tradle*')
-  require('xtend/mutable')(process.env, require('../../../service-map'))
+  require('xtend/mutable')(process.env, require('../../conf/service-map'))
 }
 
 const mockery = require('mockery')
@@ -135,5 +135,7 @@ function makeNodes (n, offset) {
 }
 
 if (process.env.NODE_ENV === 'test') {
-  exports.handler()
+  exports.handler({}, {}, err => {
+    if (err) console.error(err)
+  })
 }
