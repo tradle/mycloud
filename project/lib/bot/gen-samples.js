@@ -41,7 +41,7 @@ module.exports = co(function* ({ bot, event }) {
 })
 
 function getParams ({ httpMethod, body, queryStringParameters }) {
-  if (httpMethod === 'POST') return JSON.parse(body)
+  if (httpMethod === 'POST') return body
 
   const params = {
     users: Number(queryStringParameters.users),

@@ -65,7 +65,7 @@ curl -X POST --data '{"users":1,"products":["tradle.CurrentAccount"]}' \
 
 #### Explore the API
 
-Open GraphiQL and play with API. Let's create a url with a sample query (because there's an unresolved issue for when no query is passed):
+Open GraphiQL and play with the API. Let's create a url with a sample query (because there's an unresolved issue for when no query is passed):
 
 ```js
 const url = 'https://example.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql?query=' + encodeURIComponent(`{

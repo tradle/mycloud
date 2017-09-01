@@ -28,6 +28,7 @@
     "leveldown": "^1.7.2",
     "levelup": "^1.3.8",
     "memdown": "^1.2.4",
+    "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
     "nkey-bitcoin": "^1.2.0",
     "nkey-curve25519": "^1.0.1",
@@ -43,13 +44,14 @@
     "serverless-plugin-tracing": "^1.0.6",
     "serverless-resources-env": "mvayngrib/serverless-resources-env",
     "serverless-sam": "mvayngrib/serverless-sam",
+    "superagent": "^3.6.0",
     "tape": "^4.6.3"
   },
   "scripts": {
     "setup": "cd project && npm i && cd .. && npm i",
     "gen:testenv": "./scripts/gen-env.js",
     "gen:fixtures": "./scripts/gen-fixtures.js",
-    "gen:samples": "./scripts/gen-samples.sh",
+    "gen:samples": "./scripts/gen-samples.js",
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "test": "npm run dynamo:start && NODE_ENV=test tap `git ls-files project/test/*.test.js`",
     "deploy:local": "npm run lint && npm run compile-template && SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
