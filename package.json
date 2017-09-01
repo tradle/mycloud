@@ -49,6 +49,7 @@
     "setup": "cd project && npm i && cd .. && npm i",
     "gen:testenv": "./scripts/gen-env.js",
     "gen:fixtures": "./scripts/gen-fixtures.js",
+    "gen:samples": "./scripts/gen-samples.sh",
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "test": "npm run dynamo:start && NODE_ENV=test tap `git ls-files project/test/*.test.js`",
     "deploy:local": "npm run lint && npm run compile-template && SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
@@ -66,7 +67,8 @@
     "reinstall": "rm -rf node_modules project/node_modules && npm run setup",
     "dynamo:start": "docker-compose -f ./project/test/docker-compose-dynamo.yml up -d",
     "dynamo:stop": "docker-compose -f ./project/test/docker-compose-dynamo.yml down",
-    "tail": "./scripts/tail.sh"
+    "tail": "./scripts/tail.sh",
+    "info": "serverless info"
   },
   "dependencies": {}
 }
