@@ -1,5 +1,4 @@
-console.warn('make sure dynamodb is running')
-console.warn('to start, run: npm run dynamo:start')
+console.warn('make sure dynamodb is running (npm run dynamo:start)')
 
 process.env.NODE_ENV = 'test'
 process.env.IS_LOCAL = true

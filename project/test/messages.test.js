@@ -16,8 +16,6 @@ const Objects = require('../lib/objects')
 const { createSendMessageEvent, createReceiveMessageEvent } = require('../lib/provider')
 const Errors = require('../lib/errors')
 const {
-  MESSAGE_PROP_PREFIX,
-  PAYLOAD_METADATA_PREFIX,
   SIG,
   SEQ,
   PREV_TO_RECIPIENT,

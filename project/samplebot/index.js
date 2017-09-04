@@ -3,7 +3,7 @@ const buildResource = require('@tradle/build-resource')
 const { NODE_ENV } = process.env
 if (NODE_ENV === 'test') {
   const extend = require('xtend/mutable')
-  extend(process.env, require('../../service-map'), shallowClone(process.env))
+  extend(process.env, require('../../conf/service-map'), shallowClone(process.env))
   console.log(process.env)
 }
 
@@ -13,8 +13,8 @@ const coExec = require('co')
 const TYPE = '_t'
 const DEPLOYMENT = 'io.tradle.Deployment'
 const {
-  PRODUCTS=DEPLOYMENT,
-  // PRODUCTS='tradle.CRSSelection',
+  // PRODUCTS=DEPLOYMENT,
+  PRODUCTS='tradle.CRSSelection',
   ORG_DOMAIN
 } = process.env
 

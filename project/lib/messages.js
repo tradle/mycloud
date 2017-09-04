@@ -22,8 +22,6 @@ const types = require('./types')
 const {
   TYPE,
   TYPES,
-  // PAYLOAD_METADATA_PREFIX,
-  // MESSAGE_PROP_PREFIX,
   MAX_CLOCK_DRIFT,
   DEV,
   SEQ,
