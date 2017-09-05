@@ -81,7 +81,7 @@ User.prototype.sign = function (object) {
 
 User.prototype.send = co(function* (payload) {
   const message = yield this._createMessage(payload)
-  return yield this.bot.call('onmessage', message)
+  return yield this.bot.trigger('message', message)
 })
 
 User.prototype._createMessage = co(function* (payload) {

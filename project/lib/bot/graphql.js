@@ -82,7 +82,8 @@ module.exports = function setup (opts) {
   }
 
   const executeQuery = (query, variables) => {
-    return graphql(getSchema(), query, null, {}, variables)
+    const schema = getSchema()
+    return graphql(schema, query, null, {}, variables)
   }
 
   return {

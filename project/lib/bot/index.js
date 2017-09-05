@@ -4,11 +4,12 @@ const deepEqual = require('deep-equal')
 const clone = require('clone')
 const validateResource = require('@tradle/validate-resource')
 const { setVirtual } = validateResource.utils
-const { createTables } = require('@tradle/dynamodb')
 const buildResource = require('@tradle/build-resource')
 const createHooks = require('event-hooks')
 const BaseModels = require('./base-models')
 const installDefaultHooks = require('./default-hooks')
+const makeBackwardsCompat = require('./backwards-compat')
+const errors = require('../errors')
 const types = require('../types')
 const {
   co,
@@ -20,16 +21,16 @@ const {
   waterfall,
   series,
 } = require('../utils')
-const { getLink, addLinks } = require('../crypto')
+const { addLinks } = require('../crypto')
 const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
+const { getMessagePayload } = require('./utils')
 const wrap = require('../wrap')
 const defaultTradleInstance = require('../')
 const { constants } = defaultTradleInstance
 const { TYPE, SIG } = constants
 const createUsers = require('./users')
-const createHistory = require('./history')
-const createSeals = require('./seals')
+const aws = require('../aws')
 // const RESOLVED = Promise.resolve()
 const { NODE_ENV, SERVERLESS_PREFIX, AWS_LAMBDA_FUNCTION_NAME } = process.env
 const TESTING = NODE_ENV === 'test'
@@ -38,9 +39,9 @@ const isGenSamplesLambda = TESTING || /sample/i.test(AWS_LAMBDA_FUNCTION_NAME)
 const promisePassThrough = data => Promise.resolve(data)
 
 const COPY_TO_BOT = [
-  'models', 'objects', 'db', 'seals',
-  'identities', 'history', 'graphqlAPI',
-  'resources', 'sign'
+  'models', 'objects', 'db', 'seals', 'seal',
+  'identities', 'users', 'history', 'graphqlAPI',
+  'resources', 'sign', 'send'
 ]
 
 const HOOKABLE = [
@@ -57,7 +58,7 @@ const HOOKABLE = [
 exports = module.exports = createBot
 exports.inputs = require('./inputs')
 exports.lambdas = require('./lambdas')
-exports.fromEngine = (opts) => createBot(exports.inputs(opts))
+exports.fromEngine = opts => createBot(exports.inputs(opts))
 
 /**
  * bot engine factory
@@ -79,37 +80,27 @@ function createBot (opts={}) {
   let {
     autosave=true,
     models,
-    userModel,
+    resources,
     send,
     sign,
     seals,
   } = opts
 
-  if (!models[userModel.id]) {
-    throw new Error('expected models to have user model')
-  }
-
   if (!Object.keys(BaseModels).every(id => id in models)) {
     throw new Error('expected models to have @tradle/models and @tradle/custom-models')
-  }
-
-  if (userModel.properties.id.type !== 'string') {
-    throw new Error('expected userModel to have property "id" with type "string"')
   }
 
   const bot = new EventEmitter()
   extend(bot, pick(opts, COPY_TO_BOT))
 
-  bot.users = bot.db.tables[userModel.id]
-  if (!bot.users) {
-    throw new Error('missing table for users')
-  }
+  bot.users = bot.users || createUsers({
+    table: resources.tables.Users,
+    oncreate: user => hooks.fire('usercreate', user)
+  })
 
-  if (seals) {
-    bot.seal = seals.create
-  }
-
-  const sendMessage = co(function* (opts) {
+  bot.save = resource => bot.db.put(resource)
+  bot.merge = resource => bot.db.merge(resource)
+  bot.send = co(function* (opts) {
     try {
       typeforce({
         to: typeforce.oneOf(typeforce.String, typeforce.Object),
@@ -148,7 +139,6 @@ function createBot (opts={}) {
     return yield send(opts)
   })
 
-  bot.send = wrapWithEmit(sendMessage, 'sent')
   bot.createNextVersion = co(function* ({ resource, previous }) {
     buildResource.previous(previous)
     resource = yield bot.sign(resource)
@@ -166,25 +156,14 @@ function createBot (opts={}) {
     return data
   })
 
-  function getMessagePayload (message) {
-    if (message.object[SIG]) {
-      return Promise.resolve(message.object)
-    }
-
-    return bot.objects.get(getLink(message.object))
-  }
-
   const normalizeOnMessageInput = co(function* (message) {
     if (typeof message === 'string') {
       message = JSON.parse(message)
     }
 
     let [payload, user] = [
-      yield getMessagePayload(message),
-      yield bot.db.latest({
-        type: userModel.id,
-        link: message._author
-      })
+      yield getMessagePayload({ bot, message }),
+      yield bot.users.createIfNotExists({ id: message._author })
     ]
 
     payload = extend(message.object, payload)
@@ -207,12 +186,12 @@ function createBot (opts={}) {
   // END preprocessors
 
   const promiseSaveUser = co(function* ({ user, _userPre }) {
-    if (deepEqual(user, _userPre)) {
-      debug('user state was not changed by onmessage handler')
-    } else {
+    if (!deepEqual(user, _userPre)) {
       debug('merging changes to user state')
-      yield bot.createNextVersion({ user, previous: _userPre })
+      yield bot.users.merge(user)
     }
+
+    debug('user state was not changed by onmessage handler')
   })
 
   const pre = {
@@ -239,7 +218,10 @@ function createBot (opts={}) {
 
   const processEvent = co(function* (event, payload) {
     yield promiseReady
-    payload = yield waterfall(pre[event], payload)
+    if (pre[event]) {
+      payload = yield waterfall(pre[event], payload)
+    }
+
     // bubble to allow handlers to terminate processing
     yield hooks.bubble(event, payload)
     if (post[event]) {
@@ -265,33 +247,45 @@ function createBot (opts={}) {
     }
   })
 
-  bot.users.history = createHistory(tradle)
   bot.use = (strategy, opts) => strategy(bot, opts)
   bot.addressBook = {
-    byPermalink: identities.getIdentityByPermalink
+    byPermalink: bot.identities.getIdentityByPermalink
   }
 
   if (bot.graphqlAPI) {
     bot.process.graphql = {
       type: 'wrapped',
+      raw: bot.graphqlAPI.executeQuery,
       handler: bot.graphqlAPI.handleHTTPRequest
     }
   }
 
-  bot.process.samples = {
-    type: 'http',
-    handler: co(function* (event) {
-      const gen = require('./gen-samples')
-      yield gen({ bot, event })
-    })
+  if (isGenSamplesLambda) {
+    bot.process.samples = {
+      type: 'http',
+      handler: co(function* (event) {
+        const gen = require('./gen-samples')
+        yield gen({ bot, event })
+      })
+    }
   }
 
   // END exports
 
   if (TESTING) {
-    bot.call = (event, ...args) => bot.process[event].handler(...args)
+    bot.trigger = (event, ...args) => {
+      const conf = bot.process[event]
+      if (conf) {
+        return (conf.raw || conf.handler)(...args)
+      }
+
+      return Promise.resolve()
+    }
+
+    bot.hooks = hooks
   }
 
+  makeBackwardsCompat(bot)
   return bot
 
   function wrapWithEmit (fn, event) {

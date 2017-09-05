@@ -2,8 +2,14 @@ const co = require('co').wrap
 const debug = require('debug')('tradle:sls:bot-engine')
 const { getRecordsFromEvent } = require('../db-utils')
 const {
-  allSettled
+  allSettled,
+  extend,
+  setVirtual
 } = require('../utils')
+
+const {
+  getMessagePayload
+} = require('./utils')
 
 module.exports = function installDefaultHooks ({ bot, hooks }) {
   const savePayloads = co(function* (event) {
@@ -26,14 +32,14 @@ module.exports = function installDefaultHooks ({ bot, hooks }) {
   // process Inbox & Outbox tables -> type-specific tables
   const savePayloadToTypeTable = co(function* (message) {
     const type = message._payloadType
-    const table = bot.tables[type]
+    const table = bot.db.tables[type]
     if (!table) {
       debug(`not saving "${type}", don't have a model for it`)
       return
     }
 
     debug(`saving ${type}`)
-    const payload = yield getMessagePayload(message)
+    const payload = yield getMessagePayload({ bot, message })
     const full = extend(message.object, payload)
     if (!full._time) {
       const _time = message.time || message._time

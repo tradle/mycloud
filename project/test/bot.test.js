@@ -1,16 +1,13 @@
 require('./env')
 
-const crypto = require('crypto')
 const test = require('tape')
-const buildResource = require('@tradle/build-resource')
-const { SIG } = require('@tradle/constants')
 const Tradle = require('../')
 const { clone } = require('../lib/utils')
 const createRealBot = require('../lib/bot')
 const createFakeBot = require('./mock/bot')
 // const messages = require('../lib/messages')
 const { co, loudCo, pick, wait } = Tradle.utils
-const { toStreamItems, recreateTable } = require('./utils')
+const { toStreamItems, recreateTable, shallowExend } = require('./utils')
 const Errors = require('../lib/errors')
 // const seals = require('../lib/seals')
 const aliceKeys = require('./fixtures/alice/keys')
@@ -19,12 +16,11 @@ const bob = require('./fixtures/bob/object')
 const schema = require('../conf/table/users').Properties
 const BaseBotModels = require('../lib/bot/base-models')
 const apiGatewayEvent = require('./fixtures/events/api-gateway')
-const { userModel } = createFakeBot
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test('await ready', loudCo(function* (t) {
-    const bot = createBot.fromEngine({ userModel })
+    const bot = createBot.fromEngine({})
     const expectedEvent = toStreamItems([
       {
         old: {
@@ -44,7 +40,7 @@ const { userModel } = createFakeBot
       t.end()
     }))
 
-    bot.call('seal', expectedEvent).catch(t.error)
+    bot.trigger('seal', expectedEvent).catch(t.error)
 
     yield wait(100)
     waited = true
@@ -56,52 +52,37 @@ const { userModel } = createFakeBot
       yield recreateTable(schema)
     }
 
-    const bot = createBot({})
+    const bot = createBot.fromEngine({})
     const { users } = bot
     // const user : Object = {
-    const link = randomLink()
-    let user = buildResource({
-      models: bot.models,
-      model: userModel
-    })
-    .toJSON()
+    const user = {
+      id: bob.permalink,
+      identity: bob.object
+    }
 
-    buildResource.setVirtual(user, {
-      _time: Date.now(),
-      _link: link,
-      _permalink: link,
-      _author: bob.permalink,
-      [SIG]: randomSig()
+    const promiseOnCreate = new Promise(resolve => {
+      bot.hook('usercreate', resolve)
     })
 
     bot.ready()
 
-    t.same(yield users.put(user), user, 'create if not exists')
-    t.same(yield users.get(link), user, 'get by primary key')
-    t.same(yield users.get(link), user, '2nd create does not clobber')
-    t.same(yield users.search(), [user], 'list')
+    t.same(yield users.createIfNotExists(user), user, 'create if not exists')
+    t.same(yield users.get(user.id), user, 'get by primary key')
 
-    user = buildResource({
-      models: bot.models,
-      model: userModel,
-      resource: user
-    })
-    .set({
-      name: 'bob',
-      [SIG]: randomSig(),
-      [PREVLINK]: link,
-      [PERMALINK]: link
-    })
-    .toJSON()
-
-    setVirtual(user, {
-      _link: randomLink()
+    // doesn't overwrite
+    yield users.createIfNotExists({
+      id: user.id
     })
 
+    t.same(yield promiseOnCreate, user)
+    t.same(yield users.get(user.id), user, '2nd create does not clobber')
+    t.same(yield users.list(), [user], 'list')
+
+    user.name = 'bob'
     t.same(yield users.merge(user), user, 'merge')
     t.same(yield users.get(user.id), user, 'get after merge')
     t.same(yield users.del(user.id), user, 'delete')
-    t.same(yield users.search(), [], 'list')
+    t.same(yield users.list(), [], 'list')
     t.end()
   }))
 
@@ -110,7 +91,7 @@ const { userModel } = createFakeBot
 
     const tradle = Tradle.new()
     const { objects, messages, identities } = tradle
-    const bot = createBot({ tradle })
+    const bot = createBot.fromEngine(tradle)
     const { users } = bot
 
     let updatedUser
@@ -157,7 +138,7 @@ const { userModel } = createFakeBot
     //   return bob.object
     // })
 
-    bot.onmessage(co(function* (data) {
+    bot.hook('message', co(function* (data) {
       const { user } = data
       user.bill = 'ted'
       t.equal(user.id, message._author)
@@ -170,13 +151,13 @@ const { userModel } = createFakeBot
 
     bot.ready()
 
-    yield bot.call('onmessage', message)
+    yield bot.trigger('message', message)
     t.equal(updatedUser, true)
     objects.getObjectByLink = getObjectByLink
     // identities.getIdentityByPermalink = getIdentityByPermalink
   }))
 
-  test(`onreadseal (${mode})`, loudCo(function* (t) {
+  test(`readseal (${mode})`, loudCo(function* (t) {
     const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
 
     let read
@@ -186,43 +167,39 @@ const { userModel } = createFakeBot
     const { getMyKeys } = provider
     provider.getMyKeys = () => Promise.resolve(aliceKeys)
 
-    seals.create = co(function* ({ key, link }) {
-      yield bot.call('onsealevent', toStreamItems([
-        {
-          old: {
-            link,
-            unsealed: 'x'
-          },
-          new: {
-            link
-          }
-        },
-        {
-          old: {
-            link,
-            unconfirmed: 'x'
-          },
-          new: {
-            link
-          }
-        }
-      ]))
-    })
-
-    const bot = createBot({ tradle })
-    bot.onreadseal(co(function* (event) {
+    const bot = createBot.fromEngine(tradle)
+    bot.hook('readseal', co(function* (event) {
       read = true
       t.equal(event.link, link)
     }))
 
-    bot.onwroteseal(co(function* (event) {
+    bot.hook('wroteseal', co(function* (event) {
       wrote = true
       t.equal(event.link, link)
     }))
 
     bot.ready()
 
-    yield bot.seal({ link })
+    yield bot.trigger('seal', toStreamItems([
+      {
+        old: {
+          link,
+          unsealed: 'x'
+        },
+        new: {
+          link
+        }
+      },
+      {
+        old: {
+          link,
+          unconfirmed: 'x'
+        },
+        new: {
+          link
+        }
+      }
+    ]))
 
     t.equal(read, true)
     t.equal(wrote, true)
@@ -234,27 +211,27 @@ const { userModel } = createFakeBot
   test(`use() (${mode})`, loudCo(function* (t) {
     const expectedArg = {}
     const called = {
-      onusercreate: false,
-      onuseronline: false,
-      onreadseal: false,
-      onwroteseal: false
+      usercreate: false,
+      useronline: false,
+      readseal: false,
+      wroteseal: false
     }
 
-    const bot = createBot({})
+    const bot = createBot.fromEngine({})
     bot.use(() => {
-      Object.keys(called).forEach(method => {
-        bot[method](co(function* (arg) {
+      Object.keys(called).forEach(event => {
+        bot.hook(event, co(function* (arg) {
           t.equal(arg, expectedArg)
-          called[method] = true
+          called[event] = true
         }))
       })
     })
 
     bot.ready()
 
-    for (let method in called) {
-      yield bot.call(method, expectedArg)
-      t.equal(called[method], true)
+    for (let event in called) {
+      yield bot.trigger(event, expectedArg)
+      t.equal(called[event], true)
     }
 
     t.end()
@@ -301,7 +278,7 @@ test('save to type table', loudCo(function* (t) {
     _t: 'tradle.Ping'
   }
 
-  const bot = createRealBot({})
+  const bot = createRealBot.fromEngine({})
   bot.objects = {
     get: function (link) {
       t.equal(link, message.object._link)
@@ -310,14 +287,14 @@ test('save to type table', loudCo(function* (t) {
   }
 
   bot.ready()
-  const table = bot.tables['tradle.Ping']
+  const table = bot.db.tables['tradle.Ping']
   t.ok(table, 'table created per model')
 
-  yield bot.call('onmessagestream', toStreamItems([
+  yield bot.trigger('messagestream', toStreamItems([
     { new: message }
   ]))
 
-  const result = yield bot.call('ongraphql', `
+  const result = yield bot.trigger('graphql', `
     {
       rl_tradle_Ping {
         edges {
@@ -343,7 +320,7 @@ test('save to type table', loudCo(function* (t) {
     }
   })
 
-  // const introspection = yield bot.call('ongraphql', require('./introspection-query'))
+  // const introspection = yield bot.trigger('graphql', require('./introspection-query'))
   // console.log('introspection length', JSON.stringify(introspection).length)
 
   t.end()
@@ -370,12 +347,10 @@ test('validate send', loudCo(function* (t) {
     }
   }
 
-  const bot = createRealBot({
-    tradle,
-    models
-  })
+  const bot = createRealBot(createRealBot.inputs({ tradle, models }))
 
   bot.ready()
+  debugger
   try {
     yield bot.send({
       to: 'blah',
@@ -419,11 +394,3 @@ test('validate send', loudCo(function* (t) {
 
   t.end()
 }))
-
-function randomLink () {
-  return crypto.randomBytes(32).toString('hex')
-}
-
-function randomSig () {
-  return crypto.randomBytes(128).toString('base64')
-}

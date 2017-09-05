@@ -5,7 +5,7 @@ module.exports = function createLambdas (bot) {
   const { process } = bot
   for (let method in process) {
     let { type, handler } = process[method]
-    if (type === 'wrapper') {
+    if (type === 'wrapped') {
       handlers[method] = handler
     } else {
       handlers[method] = wrap(handler, { type })

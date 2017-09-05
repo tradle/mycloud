@@ -1,4 +1,5 @@
 const co = require('co').wrap
+const pick = require('object.pick')
 const tradleDynamo = require('@tradle/dynamodb')
 const mergeModels = require('@tradle/merge-models')
 const defaultTradleInstance = require('../')
@@ -13,7 +14,7 @@ const {
 const MAX_ITEM_SIZE = 4000
 
 module.exports = function createBotInputs ({
-  userModel,
+  // userModel,
   models=baseModels,
   tradle=defaultTradleInstance
 }) {
@@ -23,13 +24,21 @@ module.exports = function createBotInputs ({
   models = mergeModels()
     .add(baseModels)
     .add(models === baseModels ? {} : models)
-    .add({ [userModel.id]: userModel })
+    // .add({ [userModel.id]: userModel })
     .get()
 
-  const db = tradleDynamo.db({ models, objects, docClient, maxItemSize: MAX_ITEM_SIZE })
+  const db = tradleDynamo.db({
+    models,
+    objects,
+    docClient,
+    maxItemSize: MAX_ITEM_SIZE,
+    prefix: SERVERLESS_PREFIX
+  })
+
   const graphqlAPI = createGraphQLAPI({
     objects,
     models,
+    tables: db.tables,
     prefix: SERVERLESS_PREFIX
   })
 
@@ -43,15 +52,17 @@ module.exports = function createBotInputs ({
 
   const send = provider.sendMessage.bind(provider)
   return {
-    userModel,
+    // userModel,
     models,
     db,
+    resources: pick(tradle, ['tables', 'buckets']),
     identities: {
       byPermalink: identities.getIdentityByPermalink
     },
     objects: {
       get: objects.getObjectByLink
     },
+    seals,
     seal,
     send,
     history: createHistory(tradle),

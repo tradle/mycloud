@@ -40,7 +40,7 @@ const bot = createBot({
 })
 
 // attach this first
-bot.onmessage(co(function* ({ user, type }) {
+bot.hook('message', co(function* ({ user, type }) {
   debug(`received ${type}`)
   if (type === 'tradle.Ping') {
     yield bot.send({
@@ -65,7 +65,7 @@ if (PRODUCTS === DEPLOYMENT) {
   biz.forEach(plugin => strategyAPI.plugins.use(plugin(), true))
 }
 
-bot.onmessage(co(function* ({ user, type }) {
+bot.hook('message', co(function* ({ user, type }) {
   if (type === 'tradle.ForgetMe') {
     yield bot.send({
       to: user.id,

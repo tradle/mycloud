@@ -13,7 +13,6 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
     aws,
     errors,
     constants,
-    tables: {},
     seals: fakeSeals({
       seals
     }),
