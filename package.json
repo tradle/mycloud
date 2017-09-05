@@ -9,9 +9,13 @@
   "devDependencies": {
     "@tradle/aws-client": "github:tradle/aws-client",
     "@tradle/cb-blockr": "tradle/cb-blockr",
-    "@tradle/engine": "^4.10.0",
+    "@tradle/dynamodb": "github:tradle/dynamodb",
+    "@tradle/engine": "^4.10.3",
+    "@tradle/models": "github:tradle/models",
     "@tradle/restore": "tradle/restore",
     "@tradle/test-helpers": "tradle/test-helpers",
+    "@tradle/validate-model": "^2.0.2",
+    "@tradle/validate-resource": "^2.5.0",
     "array-shuffle": "^1.0.1",
     "aws-iot-device-sdk": "mvayngrib/aws-iot-device-sdk-js",
     "aws-sdk": "^2.60.0",
@@ -45,6 +49,7 @@
     "serverless-resources-env": "mvayngrib/serverless-resources-env",
     "serverless-sam": "mvayngrib/serverless-sam",
     "superagent": "^3.6.0",
+    "tap": "^10.7.2",
     "tape": "^4.6.3"
   },
   "scripts": {

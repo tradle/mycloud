@@ -26,3 +26,13 @@ exports.export = function (err) {
 exports.isDeveloperError = function isDeveloperError (err) {
   return err instanceof TypeError || err instanceof ReferenceError || err instanceof SyntaxError
 }
+
+/**
+ * check if error is of a certain type
+ * @param  {Error}             err
+ * @param  {ErrorType|String}  type
+ * @return {Boolean}
+ */
+exports.is = function (err, type) {
+  return (err.name || '').toLowerCase() === (type || type.type).toLowerCase()
+}

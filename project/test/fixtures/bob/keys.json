@@ -1,15 +1,31 @@
 [
   {
+    "networkName": "testnet",
+    "purpose": "payment",
+    "type": "bitcoin",
+    "fingerprint": "n1VbKsrCU5tqV1twKmWoHQoNRhcU2ZiPVg",
+    "pub": "03a354484fff12b211829464bd5560f98934efd535bea4ccae976b523ec3f326d0",
+    "priv": "cMcEM1v5xHQfsUhVQjvup17iNSVVshi4utpqQvKoJtWCG1qyTfjy"
+  },
+  {
+    "networkName": "testnet",
+    "purpose": "messaging",
+    "type": "bitcoin",
+    "fingerprint": "mv7WTBrZDULZJkhhCd7vxAX5xyY9DPVEnf",
+    "pub": "030956cdc677ecf1a0b8368e4c45751ecf5243aa712ab3c7330708674270c22256",
+    "priv": "cQpbBQ4RWQ8hyxRFQomLJeLiX6QApkirYM4PQbmnu3GcNhxKiF27"
+  },
+  {
     "curve": "p256",
     "purpose": "sign",
     "type": "ec",
-    "pub": "0441b39895b1180409b82d2029c532cae211fdefef2e7aea39a780706366b78e83a30433faee33df8f0bead6eb3dc6ef366132b1cb1357ff07481df611d4e99fa0",
-    "fingerprint": "fdf59ff9c2a7ad9013ab756b224ad4549514b1f79fca4b19e95e4aa77ce17ae2",
-    "priv": "a345db6ff62566c32eafb10280ec19e64db22e2d4d7e0db787a71436071d8c14",
+    "pub": "046a67c99cf31e9838dc00542948509749f321529b1a255c03173c8d9d533ae9cb5e9d5b58caa168fffef68f8c7f5217338a89ee1b7feac7aa41fe70c5c2201898",
+    "fingerprint": "0020c2ae4b563482c4d292f949c949cd87632e899c93b78f898ff0cf9b90501a",
+    "priv": "0a682d6d7a5c58e8cdb4f20207e0274475730b46785bd28af1f0555aa4aba7f3",
     "encoded": {
       "pem": {
-        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIKNF22/2JWbDLq+xAoDsGeZNsi4tTX4Nt4enFDYHHYwUoAoGCCqGSM49\nAwEHoUQDQgAEQbOYlbEYBAm4LSApxTLK4hH97+8ueuo5p4BwY2a3joOjBDP67jPf\njwvq1us9xu82YTKxyxNX/wdIHfYR1OmfoA==\n-----END EC PRIVATE KEY-----",
-        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQbOYlbEYBAm4LSApxTLK4hH97+8u\neuo5p4BwY2a3joOjBDP67jPfjwvq1us9xu82YTKxyxNX/wdIHfYR1OmfoA==\n-----END PUBLIC KEY-----"
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIApoLW16XFjozbTyAgfgJ0R1cwtGeFvSivHwVVqkq6fzoAoGCCqGSM49\nAwEHoUQDQgAEamfJnPMemDjcAFQpSFCXSfMhUpsaJVwDFzyNnVM66ctenVtYyqFo\n//72j4x/UhczionuG3/qx6pB/nDFwiAYmA==\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEamfJnPMemDjcAFQpSFCXSfMhUpsa\nJVwDFzyNnVM66ctenVtYyqFo//72j4x/UhczionuG3/qx6pB/nDFwiAYmA==\n-----END PUBLIC KEY-----"
       }
     }
   },
@@ -17,13 +33,13 @@
     "curve": "p256",
     "purpose": "update",
     "type": "ec",
-    "pub": "045abb90529b09e829224b9140a3be0565f13835b4cfd1cc58012986100396263b22ce72e5ea8ed33fe1f79afbe0d0040540b68d1f039cd5bbf83e884b5baacd51",
-    "fingerprint": "5dd4c427d03ab36449336998ad2000ed4c047bedf169c4288f687223db648921",
-    "priv": "775f49e1e15c33f86701443574b6e0a47e48aba5b97f6c9aea08a4bf681e1897",
+    "pub": "048ceb86b6a710d9ac5d35ffe6a8b2e8f379de4852de567bf30441bf64f2ed816d4e3b3d10370c5e6f546342a012ea54c101a888d75575d29121e8711918f7f084",
+    "fingerprint": "d885dc0234c1aae78ac58ec36c87204c13f04ffd482afa608746ffbe20a19b46",
+    "priv": "af63078646f9f28ca8d902b4e77baf568067c14df194b9c2b546352ef52fc2",
     "encoded": {
       "pem": {
-        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIHdfSeHhXDP4ZwFENXS24KR+SKuluX9smuoIpL9oHhiXoAoGCCqGSM49\nAwEHoUQDQgAEWruQUpsJ6CkiS5FAo74FZfE4NbTP0cxYASmGEAOWJjsiznLl6o7T\nP+H3mvvg0AQFQLaNHwOc1bv4PohLW6rNUQ==\n-----END EC PRIVATE KEY-----",
-        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWruQUpsJ6CkiS5FAo74FZfE4NbTP\n0cxYASmGEAOWJjsiznLl6o7TP+H3mvvg0AQFQLaNHwOc1bv4PohLW6rNUQ==\n-----END PUBLIC KEY-----"
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHYCAQEEH69jB4ZG+fKMqNkCtOd7r1aAZ8FN8ZS5wrVGNS71L8KgCgYIKoZIzj0D\nAQehRANCAASM64a2pxDZrF01/+aosujzed5IUt5We/MEQb9k8u2BbU47PRA3DF5v\nVGNCoBLqVMEBqIjXVXXSkSHocRkY9/CE\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEjOuGtqcQ2axdNf/mqLLo83neSFLe\nVnvzBEG/ZPLtgW1OOz0QNwxeb1RjQqAS6lTBAaiI11V10pEh6HEZGPfwhA==\n-----END PUBLIC KEY-----"
       }
     }
   },
@@ -31,42 +47,8 @@
     "purpose": "tls",
     "curve": "curve25519",
     "type": "ec",
-    "pub": "ca4ec93634f30e563d09fec2cd9a9b5cc4f9bc420e98f736b67a9b0614fb5241",
-    "fingerprint": "196defa357a7a771a282e7f9f4c904144782d671275fcca36bb4943fa8f31a44",
-    "priv": "e64576fc31b873c0a501043ab136f4fe260656fdf64b3ae86d8a6470006ae98e"
-  },
-  {
-    "networkName": "testnet",
-    "purpose": "payment",
-    "type": "bitcoin",
-    "fingerprint": "mwGdjS4PdAakeB9w8kqDrVb3scyoSJjXsK",
-    "pub": "0418879eba0091a92e02b4d5adb700118a3856675beed409f1f17d4b5be116e01d5f7f8f6d76138f5875101424e0139c4a04cda0a7475c535e00bb0f279b8f5b8a",
-    "priv": "91rssDRozmU3SzDrFw4mDpjCvJFif5rZ2R8qHTSS7Zn99J4DB8X"
-  },
-  {
-    "networkName": "testnet",
-    "purpose": "messaging",
-    "type": "bitcoin",
-    "fingerprint": "mpVhPjPyEHmDgRGCo565tGW2q1e5wHgFAe",
-    "pub": "04f25203a21392530053406e041605496ad01c1d0b440f9882f5fca74ad916d90c4ab2fe46ffa1c7cadd4f65d7d1648245a46824e75de6c83ef17d745ea11c4e2b",
-    "priv": "92UpYg7RaZzgpuZa1vXBCuAjLbapp59dCWfFWNoWRxYJjCECqFW"
-  },
-  {
-    "purpose": "payment",
-    "networkName": "ropsten",
-    "type": "ethereum",
-    "curve": "secp256k1",
-    "pub": "049d08600afff05dba3a291d6b71cf9ec47854f98b1098c6559909cf58f6a87f2e6ad9a8be201426f8cea746a22977c406f74518c82515290aaecfbfbf2338272c",
-    "fingerprint": "0038f7be2ed065fe30599906329c5d869a5db0b8",
-    "priv": "3ac4a605f9e679e644b5d67cd9a360ecdde856d7aebead55817e8ba7308bb194"
-  },
-  {
-    "purpose": "messaging",
-    "networkName": "ropsten",
-    "type": "ethereum",
-    "curve": "secp256k1",
-    "pub": "045aaa1ae66a75bbb793f0c1d0b21aa378e359fa4c6057c025c71b43f2e9b7c62d5524912a05ebe928bf1dc8720df143c3ab1e5ef7d2563fdcbf259dcab2462377",
-    "fingerprint": "00ffc8bc213fd81d8db1e840e2144dc7f33e766a",
-    "priv": "60a439183a013620194c1bb75f512298f3a66fc41618c90b187f62633216e43f"
+    "pub": "6483058bfbd6671dda0ed5036acbd7edd7dd7094723a2f7ebc5e8cab1eacb637",
+    "fingerprint": "d26218694def714f32e9c80aac919312d4407ecbd83b7d868040b4f306faaf6e",
+    "priv": "f4676dc005c77f8da8627c4c4f44bd433ea29b0b5db17f6eb21d1378955e59ea"
   }
 ]

@@ -1,59 +1,45 @@
 {
   "object": {
-    "_s": "CkkKBHAyNTYSQQRau5BSmwnoKSJLkUCjvgVl8Tg1tM/RzFgBKYYQA5YmOyLOcuXqjtM/4fea++DQBAVAto0fA5zVu/g+iEtbqs1REkcwRQIgIl/AMnQ04u7dnxNUNb7R5Q8ge4pIac5mN1guagxaHYsCIQC2MlTa8KfEsQRb+nj81uBsIrgocKjuwgw9LytaMcPyjA==",
+    "_s": "CkkKBHAyNTYSQQSM64a2pxDZrF01/+aosujzed5IUt5We/MEQb9k8u2BbU47PRA3DF5vVGNCoBLqVMEBqIjXVXXSkSHocRkY9/CEEkgwRgIhAJQTDx8JUu13oP751cHDgb0KWEmTFHIaRrvBBoTPHfahAiEA822oKU/gOMp8qgTGZy2yyjwQZvvXBeo1bRHyLtgY41E=",
     "_t": "tradle.Identity",
     "pubkeys": [
+      {
+        "networkName": "testnet",
+        "purpose": "payment",
+        "type": "bitcoin",
+        "fingerprint": "n1VbKsrCU5tqV1twKmWoHQoNRhcU2ZiPVg",
+        "pub": "03a354484fff12b211829464bd5560f98934efd535bea4ccae976b523ec3f326d0"
+      },
+      {
+        "networkName": "testnet",
+        "purpose": "messaging",
+        "type": "bitcoin",
+        "fingerprint": "mv7WTBrZDULZJkhhCd7vxAX5xyY9DPVEnf",
+        "pub": "030956cdc677ecf1a0b8368e4c45751ecf5243aa712ab3c7330708674270c22256"
+      },
       {
         "curve": "p256",
         "purpose": "sign",
         "type": "ec",
-        "pub": "0441b39895b1180409b82d2029c532cae211fdefef2e7aea39a780706366b78e83a30433faee33df8f0bead6eb3dc6ef366132b1cb1357ff07481df611d4e99fa0",
-        "fingerprint": "fdf59ff9c2a7ad9013ab756b224ad4549514b1f79fca4b19e95e4aa77ce17ae2"
+        "pub": "046a67c99cf31e9838dc00542948509749f321529b1a255c03173c8d9d533ae9cb5e9d5b58caa168fffef68f8c7f5217338a89ee1b7feac7aa41fe70c5c2201898",
+        "fingerprint": "0020c2ae4b563482c4d292f949c949cd87632e899c93b78f898ff0cf9b90501a"
       },
       {
         "curve": "p256",
         "purpose": "update",
         "type": "ec",
-        "pub": "045abb90529b09e829224b9140a3be0565f13835b4cfd1cc58012986100396263b22ce72e5ea8ed33fe1f79afbe0d0040540b68d1f039cd5bbf83e884b5baacd51",
-        "fingerprint": "5dd4c427d03ab36449336998ad2000ed4c047bedf169c4288f687223db648921"
+        "pub": "048ceb86b6a710d9ac5d35ffe6a8b2e8f379de4852de567bf30441bf64f2ed816d4e3b3d10370c5e6f546342a012ea54c101a888d75575d29121e8711918f7f084",
+        "fingerprint": "d885dc0234c1aae78ac58ec36c87204c13f04ffd482afa608746ffbe20a19b46"
       },
       {
         "purpose": "tls",
         "type": "ec",
         "curve": "curve25519",
-        "pub": "ca4ec93634f30e563d09fec2cd9a9b5cc4f9bc420e98f736b67a9b0614fb5241",
-        "fingerprint": "196defa357a7a771a282e7f9f4c904144782d671275fcca36bb4943fa8f31a44"
-      },
-      {
-        "networkName": "testnet",
-        "purpose": "payment",
-        "type": "bitcoin",
-        "fingerprint": "mwGdjS4PdAakeB9w8kqDrVb3scyoSJjXsK",
-        "pub": "0418879eba0091a92e02b4d5adb700118a3856675beed409f1f17d4b5be116e01d5f7f8f6d76138f5875101424e0139c4a04cda0a7475c535e00bb0f279b8f5b8a"
-      },
-      {
-        "networkName": "testnet",
-        "purpose": "messaging",
-        "type": "bitcoin",
-        "fingerprint": "mpVhPjPyEHmDgRGCo565tGW2q1e5wHgFAe",
-        "pub": "04f25203a21392530053406e041605496ad01c1d0b440f9882f5fca74ad916d90c4ab2fe46ffa1c7cadd4f65d7d1648245a46824e75de6c83ef17d745ea11c4e2b"
-      },
-      {
-        "purpose": "payment",
-        "type": "ethereum",
-        "pub": "049d08600afff05dba3a291d6b71cf9ec47854f98b1098c6559909cf58f6a87f2e6ad9a8be201426f8cea746a22977c406f74518c82515290aaecfbfbf2338272c",
-        "fingerprint": "0038f7be2ed065fe30599906329c5d869a5db0b8",
-        "networkName": "ropsten"
-      },
-      {
-        "purpose": "messaging",
-        "type": "ethereum",
-        "pub": "045aaa1ae66a75bbb793f0c1d0b21aa378e359fa4c6057c025c71b43f2e9b7c62d5524912a05ebe928bf1dc8720df143c3ab1e5ef7d2563fdcbf259dcab2462377",
-        "fingerprint": "00ffc8bc213fd81d8db1e840e2144dc7f33e766a",
-        "networkName": "ropsten"
+        "pub": "6483058bfbd6671dda0ed5036acbd7edd7dd7094723a2f7ebc5e8cab1eacb637",
+        "fingerprint": "d26218694def714f32e9c80aac919312d4407ecbd83b7d868040b4f306faaf6e"
       }
     ]
   },
-  "link": "eec30ed5bc79e5af21797f339addcce1be4998efe2a292d8924bfee794d6c517",
-  "permalink": "eec30ed5bc79e5af21797f339addcce1be4998efe2a292d8924bfee794d6c517"
+  "link": "19991c2db472a4e85c3517c41a4a9eeba0638fbf719fa55e4110aadf57ecf8a4",
+  "permalink": "19991c2db472a4e85c3517c41a4a9eeba0638fbf719fa55e4110aadf57ecf8a4"
 }

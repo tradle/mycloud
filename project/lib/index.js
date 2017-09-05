@@ -13,6 +13,7 @@ const cachifiable = {
 function Environment () {
   this.require = lazy(require, this)
 
+  this.env = ENV
   this.aws = this.require('aws', './aws')
   this.networks = this.require('networks', './networks')
 
@@ -70,7 +71,6 @@ function Environment () {
   this.stringUtils = this.require('stringUtils', './string-utils')
   this.dbUtils = this.require('dbUtils', './db-utils')
   this.s3Utils = this.require('s3Utils', './s3-utils')
-  // this.env = {}
   this.tables = this.require('tables', './tables')
   this.buckets = this.require('buckets', './buckets')
   this.provider = this.require('provider', './provider')

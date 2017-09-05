@@ -28,8 +28,12 @@ const Identities = require('../lib/identities')
 const Messages = require('../lib/messages')
 const Events = require('../lib/events')
 const types = require('../lib/types')
-const toAliceFromBob = Messages.normalizeInbound(require('./fixtures/alice/receive.json'))
-const toBobFromAlice = require('./fixtures/bob/receive.json')
+const fromBobToAlice = require('./fixtures/alice/receive.json')
+  .map(Messages.normalizeInbound)
+
+const fromAliceToBob = require('./fixtures/bob/receive.json')
+  .map(Messages.normalizeInbound)
+
 const [alice, bob] = ['alice', 'bob'].map(name => {
   const identity = require(`./fixtures/${name}/identity`)
   return {
@@ -134,7 +138,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
 test('createReceiveMessageEvent', loudCo(function* (t) {
   t.plan(3)
 
-  const message = toAliceFromBob
+  const message = fromBobToAlice[0]
   const { putObject } = Objects
   const { getIdentityByPermalink, getIdentityMetadataByPub } = Identities
   const {
@@ -173,6 +177,43 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   Messages.assertTimestampIncreased = assertTimestampIncreased
 
   // TODO: compare
+
+  t.end()
+}))
+
+// only makes sense in the single-Messages-table implementation
+// (vs Inbox+Outbox)
+test.skip('getLastMessageFrom/To', loudCo(function* (t) {
+  // start fresh
+  try {
+    yield Messages.table.destroy()
+  } catch (err) {}
+
+  yield Messages.table.create()
+
+  console.log('ALICE', alice.identity._permalink)
+  console.log('BOB', bob.identity._permalink)
+  for (let message of fromBobToAlice) {
+    message = clone(message)
+    message._inbound = true
+    yield Messages.putMessage(message)
+    const last = yield Messages.getLastMessageFrom({
+      author: bob.identity._permalink,
+      body: false
+    })
+
+    t.same(last, Messages.stripData(message))
+  }
+
+  for (let message of fromAliceToBob) {
+    yield Messages.putMessage(message)
+    const last = yield Messages.getLastMessageTo({
+      recipient: bob.identity._permalink,
+      body: false
+    })
+
+    t.same(last, Messages.stripData(message))
+  }
 
   t.end()
 }))

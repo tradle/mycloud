@@ -3,10 +3,14 @@
 const fs = require('fs')
 const path = require('path')
 const mkdirp = require('mkdirp')
+const co = require('co')
+const promisify = require('pify')
 const { utils } = require('@tradle/engine')
 const contexts = require('@tradle/engine/test/contexts')
 const helpers = require('@tradle/engine/test/helpers')
+const { setVirtual } = require('@tradle/validate-resource').utils
 const { exportKeys } = require('../project/lib/crypto')
+
 // const writeFile = function (relPath, data) {
 //   return new Promise((resolve, reject) => {
 //     fs.writeFile(path.join(fixturesPath, relPath), JSON.stringify(data, null, 2), function (err) {
@@ -43,13 +47,26 @@ const { exportKeys } = require('../project/lib/crypto')
 //     })
 // }
 
-contexts.nFriends(2, function (err, friends) {
+co(function* () {
+  const users = yield promisify(helpers.genUsers)(2)
+  const friends = users
+    .map((user, i) => helpers.userToOpts(user, i ? 'alice' : 'bob'))
+    .map(helpers.createNode)
+    .map(node => utils.promisifyNode(node))
+
+  yield promisify(helpers.meet)(friends)
+
   const [ alice, bob ] = friends
   helpers.connect(friends)
 
-  let togo = 2
+  const eachToGet = 2
+  let togo = eachToGet * 2
+  let firstTimestamp = Date.now()
 
+  const received = {}
   friends.forEach(node => {
+    received[node.name] = []
+
     mkdirp.sync(`./project/test/fixtures/${node.name}`)
     fs.writeFileSync(`./project/test/fixtures/${node.name}/identity.json`, prettify(node.identityInfo.object))
     fs.writeFileSync(`./project/test/fixtures/${node.name}/object.json`, prettify({
@@ -59,23 +76,51 @@ contexts.nFriends(2, function (err, friends) {
     }))
 
     fs.writeFileSync(`./project/test/fixtures/${node.name}/keys.json`, prettify(exportKeys(node.keys)))
-    node.on('message', function ({ object }) {
-      fs.writeFileSync(`./project/test/fixtures/${node.name}/receive.json`, prettify(object))
-      if (--togo === 0) {
-        friends.forEach(friend => friend.destroy(rethrow))
-      }
+    node.on('message', function ({ object, author, permalink, link, objectinfo }) {
+      setVirtual(object.object, {
+        _author: objectinfo.author,
+        _permalink: objectinfo.permalink,
+        _link: objectinfo.link,
+        _time: object.time
+      })
+
+      setVirtual(object, {
+        _author: author,
+        _permalink: permalink,
+        _link: link,
+        _time: object.time
+      })
+
+      received[node.name].push(object)
+      if (--togo) return
+
+      friends.forEach(node => {
+        fs.writeFileSync(`./project/test/fixtures/${node.name}/receive.json`, prettify(received[node.name]))
+        node.destroy(rethrow)
+      })
     })
   })
 
-  helpers.eachOther(friends, function (a, b, done) {
-    a.signAndSend({
-      to: b._recipientOpts,
-      object: {
-        _t: 'tradle.SimpleMessage',
-        message: `hey ${b.name}!`
-      }
-    }, done)
-  }, rethrow)
+  new Array(eachToGet).fill(0).forEach((n, i) => {
+    helpers.eachOther(friends, function (a, b, done) {
+      a.signAndSend({
+        to: b._recipientOpts,
+        object: {
+          _t: 'tradle.SimpleMessage',
+          message: `${i}. hey ${b.name}!`
+        },
+        time: nextTimestamp()
+      }, done)
+    }, rethrow)
+  })
+
+  function nextTimestamp () {
+    return firstTimestamp++
+  }
+})
+.catch(err => {
+  console.error(err)
+  process.exit(1)
 })
 
 function prettify (object) {
