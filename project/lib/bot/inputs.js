@@ -50,7 +50,8 @@ module.exports = function createBotInputs ({
     })
   })
 
-  const send = provider.sendMessage.bind(provider)
+  const send = opts => provider.sendMessage(opts)
+  const sign = object => provider.signObject({ object })
   return {
     // userModel,
     models,
@@ -65,6 +66,7 @@ module.exports = function createBotInputs ({
     seals,
     seal,
     send,
+    sign,
     history: createHistory(tradle),
     graphqlAPI
   }

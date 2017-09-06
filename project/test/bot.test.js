@@ -14,7 +14,6 @@ const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
 const schema = require('../conf/table/users').Properties
-const BaseBotModels = require('../lib/bot/base-models')
 const apiGatewayEvent = require('./fixtures/events/api-gateway')
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
@@ -278,7 +277,10 @@ test('save to type table', loudCo(function* (t) {
     _t: 'tradle.Ping'
   }
 
-  const bot = createRealBot.fromEngine({})
+  const bot = createRealBot.fromEngine({
+    models: require('../lib/bot/ping-pong-models')
+  })
+
   bot.objects = {
     get: function (link) {
       t.equal(link, message.object._link)

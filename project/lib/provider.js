@@ -52,6 +52,8 @@ const getMyChainKey = co(function* () {
 })
 
 const signObject = co(function* ({ author, object }) {
+  if (!author) author = yield getMyIdentity()
+
   const key = getSigningKey(author.keys)
   const signed = yield sign({ key, object })
 

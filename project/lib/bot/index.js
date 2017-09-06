@@ -98,8 +98,8 @@ function createBot (opts={}) {
     oncreate: user => hooks.fire('usercreate', user)
   })
 
-  bot.save = resource => bot.db.put(resource)
-  bot.merge = resource => bot.db.merge(resource)
+  bot.save = resource => bot.db.put(ensureTimestamped(resource))
+  bot.merge = reosurce => bot.db.merge(ensureTimestamped(resource))
   bot.send = co(function* (opts) {
     try {
       typeforce({
@@ -296,4 +296,12 @@ function createBot (opts={}) {
       return ret
     })
   }
+}
+
+function ensureTimestamped (resource) {
+  if (!resource._time) {
+    setVirtual(resource, { _time: Date.now() })
+  }
+
+  return resource
 }

@@ -193,7 +193,7 @@ function getTestIdentity () {
   // const permalink = link
   // return { object, keys, link, permalink }
   addLinks(object)
-  return { object, keys }
+  return { identity: object, keys }
 }
 
 const _createIdentity = promisify(tradleUtils.newIdentity)

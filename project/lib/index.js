@@ -71,6 +71,7 @@ function Environment () {
   this.stringUtils = this.require('stringUtils', './string-utils')
   this.dbUtils = this.require('dbUtils', './db-utils')
   this.s3Utils = this.require('s3Utils', './s3-utils')
+  this.resources = this.require('resources', './resources')
   this.tables = this.require('tables', './tables')
   this.buckets = this.require('buckets', './buckets')
   this.provider = this.require('provider', './provider')

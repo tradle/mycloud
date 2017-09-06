@@ -13,6 +13,7 @@ env.set = obj => {
 }
 
 env.set(process.env)
+env.TESTING = env.NODE_ENV === 'test'
 
 // this one might be set dynamically
 // env.__defineGetter__('IOT_ENDPOINT', () => process.env.IOT_ENDPOINT)
