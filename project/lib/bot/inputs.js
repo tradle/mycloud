@@ -51,14 +51,18 @@ module.exports = function createBotInputs ({
   })
 
   const send = opts => provider.sendMessage(opts)
-  const sign = object => provider.signObject({ object })
+  const sign = (object, author) => provider.signObject({ object, author })
   return {
     // userModel,
     models,
     db,
     resources: pick(tradle, ['tables', 'buckets']),
     identities: {
-      byPermalink: identities.getIdentityByPermalink
+      byPermalink: identities.getIdentityByPermalink,
+      byPub: identities.getIdentityByPub,
+      byPubMini: identities.getIdentityMetadataByPub,
+      addAuthor: identities.addAuthorMetadata,
+      addContact: identities.validateAndAdd
     },
     objects: {
       get: objects.getObjectByLink

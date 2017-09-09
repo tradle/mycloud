@@ -99,7 +99,7 @@ function createBot (opts={}) {
   })
 
   bot.save = resource => bot.db.put(ensureTimestamped(resource))
-  bot.merge = reosurce => bot.db.merge(ensureTimestamped(resource))
+  bot.merge = resource => bot.db.merge(ensureTimestamped(resource))
   bot.send = co(function* (opts) {
     try {
       typeforce({
@@ -163,6 +163,7 @@ function createBot (opts={}) {
 
     let [payload, user] = [
       yield getMessagePayload({ bot, message }),
+      // identity permalink serves as user id
       yield bot.users.createIfNotExists({ id: message._author })
     ]
 
@@ -248,9 +249,13 @@ function createBot (opts={}) {
   })
 
   bot.use = (strategy, opts) => strategy(bot, opts)
-  bot.addressBook = {
-    byPermalink: bot.identities.getIdentityByPermalink
-  }
+
+  // alias
+  Object.defineProperty(bot, 'addressBook', {
+    get() {
+      return bot.identities
+    }
+  })
 
   if (bot.graphqlAPI) {
     bot.process.graphql = {

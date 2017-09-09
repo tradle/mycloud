@@ -352,7 +352,6 @@ test('validate send', loudCo(function* (t) {
   const bot = createRealBot(createRealBot.inputs({ tradle, models }))
 
   bot.ready()
-  debugger
   try {
     yield bot.send({
       to: 'blah',
