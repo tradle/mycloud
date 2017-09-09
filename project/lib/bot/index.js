@@ -195,39 +195,29 @@ function createBot (opts={}) {
     debug('user state was not changed by onmessage handler')
   })
 
-  const pre = {
-    message: [
-      normalizeOnMessageInput
-    ],
-    seal: [
-      normalizeOnSealInput
-    ]
+  const preProcessHooks = createHooks()
+  preProcessHooks.hook('message', normalizeOnMessageInput)
+  preProcessHooks.hook('seal', normalizeOnSealInput)
+
+  const postProcessHooks = createHooks()
+  if (autosave) {
+    postProcessHooks.hook('message', promiseSaveUser)
   }
 
-  const post = {
-    message: wrapWithEmit(
-      autosave ? promiseSaveUser : promisePassThrough,
-      'message'
-    ),
-    readseal: wrapWithEmit(promisePassThrough, 'seal:read'),
-    wroteseal: wrapWithEmit(promisePassThrough, 'seal:wrote'),
-    sealevent: wrapWithEmit(promisePassThrough, 'seal'),
-    usercreate: wrapWithEmit(promisePassThrough, 'user:create'),
-    useronline: wrapWithEmit(promisePassThrough, 'user:online'),
-    useroffline: wrapWithEmit(promisePassThrough, 'user:offline')
-  }
+  postProcessHooks.hook('readseal', emitAs('seal:read'))
+  postProcessHooks.hook('wroteseal', emitAs('seal:wrote'))
+  postProcessHooks.hook('sealevent', emitAs('seal'))
+  postProcessHooks.hook('usercreate', emitAs('user:create'))
+  postProcessHooks.hook('useronline', emitAs('user:online'))
+  postProcessHooks.hook('useroffline', emitAs('user:offline'))
 
   const processEvent = co(function* (event, payload) {
     yield promiseReady
-    if (pre[event]) {
-      payload = yield waterfall(pre[event], payload)
-    }
-
+    // waterfall to preprocess
+    payload = yield preProcessHooks.waterfall(event, payload)
     // bubble to allow handlers to terminate processing
     yield hooks.bubble(event, payload)
-    if (post[event]) {
-      yield post[event](payload)
-    }
+    yield postProcessHooks.fire(event, payload)
   })
 
   const promiseReady = new Promise(resolve => {
@@ -293,13 +283,10 @@ function createBot (opts={}) {
   makeBackwardsCompat(bot)
   return bot
 
-  function wrapWithEmit (fn, event) {
-    return co(function* (...args) {
-      let ret = fn.apply(this, args)
-      if (isPromise(ret)) ret = yield ret
-      bot.emit(event, ret)
-      return ret
-    })
+  function emitAs (event) {
+    return function (...args) {
+      bot.emit(event, ...args)
+    }
   }
 }
 

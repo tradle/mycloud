@@ -5,6 +5,7 @@ const inherits = require('inherits')
 const { EventEmitter } = require('events')
 const coexec = require('co')
 const co = require('co').wrap
+const debug = require('debug')('@tradle/bot:tester')
 const { TYPE, SIG, SEQ } = require('@tradle/constants')
 const buildResource = require('@tradle/build-resource')
 const mergeModels = require('@tradle/merge-models')
@@ -14,8 +15,9 @@ const createEmployeeManager = require('@tradle/bot-employee-manager')
 const genSample = require('@tradle/gen-samples').fake
 const tradle = require('../')
 const { utils, crypto, aws, buckets, resources, provider } = tradle
-const { extend, clone } = utils
+const { extend, clone, omit, batchify } = utils
 const { ensureInitialized } = require('../init')
+const botFixture = require('../../test/fixtures/bot')
 const userIdentities = require('../../test/fixtures/users-pem')
 const nextUserIdentity = (function () {
   let i = 0
@@ -54,13 +56,16 @@ function createProductsBot (opts={}) {
     models: {
       all: models
     },
-    products,
-    // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
+    products
   })
 
   const employeeManager = createEmployeeManager({ productsAPI })
-  const employeeModels = clone(productsAPI.models.all, employeeManager.models.all)
-  const customerModels = productsAPI.models.all
+  const employeeModels = productsAPI.models.all
+  const customerModels = omit(
+    productsAPI.models.all,
+    Object.keys(productsAPI.models.private)
+  )
+
   const bot = createBot.fromEngine({
     tradle,
     models: productsAPI.models.all
@@ -75,9 +80,7 @@ function createProductsBot (opts={}) {
     getModelsForUser: user => {
       return employeeManager.isEmployee(user) ? employeeModels : customerModels
     },
-    send: ({ user, object }) => {
-      return productsAPI.send({ user, object })
-    }
+    send: productsAPI.send.bind(productsAPI)
   })))
 
   bot.ready()
@@ -86,11 +89,36 @@ function createProductsBot (opts={}) {
 
 const endToEndTest = co(function* () {
   const { bot, productsAPI, employeeManager } = createProductsBot()
-  const employee = createUser({ bot })
+  const employee = createUser({ bot, name: 'EMPLOYEE' })
+  const customer = createUser({ bot, name: 'CUSTOMER' })
   yield [
-    bot.addressBook.addContact(employee.identity),
-    bot.addressBook.addContact(bot.identity)
-  ]
+    employee.identity,
+    bot.identity,
+    customer.identity
+  ].map(identity => {
+    crypto.addLinks(identity)
+    return Promise.all([
+      bot.addressBook.addContact(identity),
+      bot.users.del(identity._permalink)
+    ])
+  })
+
+  debug('EMPLOYEE:', employee.identity._permalink)
+  debug('CUSTOMER:', customer.identity._permalink)
+  debug('BOT:', bot.identity._permalink)
+  const types = []
+
+  function recordType (message) {
+    const type = message.object[TYPE]
+    if (type !== 'tradle.Message' && !types.includes(type)) {
+      types.push(type)
+    }
+  }
+
+  ;[customer, employee].forEach(user => {
+    user.on('message', recordType)
+    bot.on('message', recordType)
+  })
 
   yield runThroughApplication({
     productsAPI,
@@ -100,37 +128,53 @@ const endToEndTest = co(function* () {
     product: 'tradle.EmployeeOnboarding'
   })
 
+  let context
   employee.on('message', co(function* (message) {
     if (message.object.object) message = message.object
+    if (message.context) context = message.context
 
     const payload = message.object
     const type = payload[TYPE]
-    console.log('EMPLOYEE RECEIVED', type)
+    // console.log('EMPLOYEE RECEIVED', type, 'from customer')
     if (productsAPI.models.all[type].subClassOf === 'tradle.Form') {
       yield bot.addressBook.addAuthor(message)
-      employee.send({
-        object: {
-          [TYPE]: 'tradle.SimpleMessage',
-          message: `got ${type}!`
-        },
-        other: {
-          forward: message._author,
-          context: message.context
-        }
-      })
+      // employee.send({
+      //   object: {
+      //     [TYPE]: 'tradle.SimpleMessage',
+      //     message: `got ${type}!`
+      //   },
+      //   other: {
+      //     forward: message._author,
+      //     context: message.context
+      //   }
+      // })
     }
   }))
 
-  const user = createUser({ bot })
-  yield bot.addressBook.addContact(user.identity)
   yield runThroughApplication({
     productsAPI,
     employeeManager,
-    user,
+    user: customer,
     employeeToAssign: employee,
-    awaitCertificate: true,
+    // awaitCertificate: true,
     product: 'tradle.CurrentAccount'
   })
+
+  const application = yield getApplicationByContext({ productsAPI, context })
+  yield employee.send({
+    object: buildResource({
+        models: productsAPI.models.all,
+        model: 'tradle.ApplicationApproval',
+      })
+      .set({
+        application,
+        message: 'approved!'
+      })
+      .toJSON(),
+    other: { context }
+  })
+
+  yield dumpDB({ bot, types })
 })
 
 const runThroughApplication = co(function* ({
@@ -142,7 +186,7 @@ const runThroughApplication = co(function* ({
   employeeToAssign
 }) {
   yield user.sendSelfIntroduction()
-  const allModels = clone(productsAPI.models.all, employeeManager.models.all)
+  const allModels = productsAPI.models.all
   const bizModels = productsAPI.models.biz
   const privateModels = productsAPI.models.private
   const productRequest = buildResource({
@@ -154,25 +198,12 @@ const runThroughApplication = co(function* ({
 
   user.send({ object: productRequest })
 
-  const types = [
-    bizModels.productRequest.id,
-    privateModels.application.id,
-    'tradle.FormRequest',
-    'tradle.MyEmployeeOnboarding'
-  ]
-
   const assignEmployee = co(function* (context) {
-    const application = yield productsAPI.bot.db.findOne({
-      type: privateModels.application.id,
-      filter: {
-        EQ: { context }
-      }
-    })
-
+    const application = yield getApplicationByContext({ productsAPI, context })
     const assign = employeeToAssign.send({
       object: buildResource({
         models: allModels,
-        model: privateModels.assignRM,
+        model: 'tradle.AssignRelationshipManager',
         resource: {
           employee: buildResource.stub({
             models: allModels,
@@ -199,15 +230,7 @@ const runThroughApplication = co(function* ({
     }
 
     let type = object[TYPE]
-
-    console.log('USER RECEIVED', type)
-    if (!types.includes(type)) {
-      types.push(type)
-    }
-
     if (type === 'tradle.FormRequest') {
-      types.push(object.form)
-      console.log('USER SENDING', object.form)
       let form = genSample({
         models: productsAPI.models.all,
         model: productsAPI.models.all[object.form]
@@ -228,9 +251,8 @@ const runThroughApplication = co(function* ({
     } else if (allModels[type].subClassOf === 'tradle.MyProduct') {
       break
     } else if (type === 'tradle.Message') {
-      console.log('..from employee')
+      // console.log('..from employee')
     } else if (!awaitCertificate) {
-      debugger
       break
     }
   }
@@ -246,47 +268,94 @@ const dumpDB = co(function* ({ bot, types }) {
 
 const clear = co(function* (opts) {
   const { bot } = createProductsBot()
-  for (let id in bot.db.tables) {
-    let table = bot.db.tables[id]
-    let info = yield table.info()
-    if (info) yield table.destroy()
+  // try {
+  //   yield bot.resources.tables.Users.deleteTable()
+  // } catch (err) {
+  //   if (err.name !== 'ResourceNotFoundException') {
+  //     throw err
+  //   }
+  // }
+
+  // yield require('../../scripts/gen-local-resources')
+  // try {
+  //   yield bot.resources.tables.Users.createTable()
+  // } catch (err) {
+  //   if (err.name !== 'ResourceInUseException') {
+  //     throw err
+  //   }
+  // }
+
+  const existingTables = yield aws.dynamodb.listTables().promise()
+  const toDelete = Object.keys(bot.models)
+    .filter(id => {
+      const name = bot.db.tables[id].name
+      return existingTables.TableNames.includes(name)
+    })
+
+  const batches = batchify(toDelete, 5)
+  yield batches.map(co(function* (batch) {
+    yield batch.map(id => {
+      return destroyTable(bot.db.tables[id])
+    })
+  }))
+})
+
+// destroy @tradle/dynamodb table
+const destroyTable = co(function* (table) {
+  let info = yield table.info()
+  if (!info) return
+
+  while (true) {
+    try {
+      yield table.destroy()
+      debug(`deleted table: ${table.name}`)
+    } catch (err) {
+      if (err.name === 'ResourceNotFoundException') {
+        break
+      }
+
+      if (err.name !== 'LimitExceededException') {
+        throw err
+      }
+
+      yield wait(1000)
+    }
   }
 })
 
-function createUser ({ bot, onmessage }) {
-  const botFixture = require('../../test/fixtures/bot')
-  bot.users = require('../../test/mock/users')()
-  bot.identity = botFixture.identity
-  bot.keys = botFixture.keys
-
-  // bot.identities.addAuthor = co(function* (object) {
-  //   const sigPubKey = crypto.extractSigPubKey(object)
-  // })
-
-  // bot.identities.byPubMini = co(function* (pub) {
-  //   return userIdentities.find(user => {
-  //     return user.identity.pubkeys.some(key => key.pub === pub)
-  //   }).identity
-  // })
-
-  // bot.identities.byPermalink = co(function* (permalink) {
-  //   return userIdentities.find(user => {
-  //     return buildResource.permalink(user.identity) === permalink
-  //   }).identity
-  // })
-
-  const user = nextUserIdentity()
-  return new User({ user, bot, onmessage })
+function getApplicationByContext ({ productsAPI, context }) {
+  return productsAPI.bot.db.findOne({
+    type: productsAPI.models.private.application.id,
+    filter: {
+      EQ: { context }
+    }
+  })
 }
 
-function User ({ user, bot, onmessage }) {
+function createUser ({ bot, onmessage, name }) {
+  // bot.users = require('../../test/mock/users')()
+  bot.identity = botFixture.identity
+  bot.keys = botFixture.keys
+  const { identity, keys, profile } = nextUserIdentity()
+  return new User({
+    identity,
+    keys,
+    bot,
+    profile,
+    name: name || profile.name.formatted,
+    onmessage
+  })
+}
+
+function User ({ identity, keys, profile, name, bot, onmessage }) {
   EventEmitter.call(this)
 
   const self = this
-  this.identity = user.identity
+  this.name = name
+  this.identity = identity
   this.permalink = crypto.getPermalink(this.identity)
-  this.keys = user.keys
-  this.profile = user.profile
+  this.keys = keys
+  this.profile = profile
   this.bot = bot
   this.userPubKey = tradleUtils.sigPubKey(this.identity)
   this.botPubKey = tradleUtils.sigPubKey(bot.identity)
@@ -318,6 +387,17 @@ function User ({ user, bot, onmessage }) {
       return onmessage(signedMessage)
     }
   })
+
+  this.on('message', message => {
+    const types = []
+    let envelope = message
+    while (envelope.object) {
+      types.push(envelope.object[TYPE])
+      envelope = envelope.object
+    }
+
+    this._debug('received', types.join(' -> '))
+  })
 }
 
 inherits(User, EventEmitter)
@@ -330,7 +410,13 @@ User.prototype.sign = function (object) {
   return this.bot.sign(object, this)
 }
 
+User.prototype._debug = function (...args) {
+  args.unshift(this.name)
+  return debug(...args)
+}
+
 User.prototype.send = co(function* ({ object, other }) {
+  this._debug('sending', object[TYPE])
   const message = yield this._createMessage({ object, other })
   return yield this.bot.trigger('message', message)
 })
