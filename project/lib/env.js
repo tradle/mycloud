@@ -1,3 +1,5 @@
+global.Promise = require('bluebird')
+
 const debug = require('debug')('tradle:sls:env')
 const clone = require('xtend')
 const extend = require('xtend/mutable')
@@ -12,7 +14,12 @@ env.set = obj => {
   extend(env, obj)
 }
 
-env.set(process.env)
+if (process.env.IS_LOCAL) {
+  env.set(extend(process.env, require('../conf/service-map'), clone(process.env)))
+} else {
+  env.set(process.env)
+}
+
 env.TESTING = env.NODE_ENV === 'test'
 
 // this one might be set dynamically
