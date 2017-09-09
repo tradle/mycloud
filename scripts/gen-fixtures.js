@@ -48,6 +48,17 @@ const { exportKeys } = require('../project/lib/crypto')
 // }
 
 co(function* () {
+  const users = yield promisify(helpers.genUsers)(10)
+  users.forEach(user => {
+    user.keys = exportKeys(user.keys.map(key => {
+      return utils.importKey(key)
+    }))
+  })
+
+  fs.writeFileSync(`./project/test/fixtures/users-pem.json`, prettify(users))
+})
+
+co(function* () {
   const users = yield promisify(helpers.genUsers)(2)
   const friends = users
     .map((user, i) => helpers.userToOpts(user, i ? 'alice' : 'bob'))
