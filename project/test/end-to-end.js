@@ -1,4 +1,4 @@
-require('../../test/env')
+require('./env')
 
 const inherits = require('inherits')
 const { EventEmitter } = require('events')
@@ -15,9 +15,9 @@ const genSample = require('@tradle/gen-samples').fake
 const tradle = require('../')
 const { utils, crypto, aws, buckets, resources, provider } = tradle
 const { extend, clone, omit, batchify } = utils
-const { ensureInitialized } = require('../init')
-const botFixture = require('../../test/fixtures/bot')
-const userIdentities = require('../../test/fixtures/users-pem')
+const { ensureInitialized } = require('../lib/init')
+const botFixture = require('./fixtures/bot')
+const userIdentities = require('./fixtures/users-pem')
 const nextUserIdentity = (function () {
   let i = 0
   return function () {
@@ -25,8 +25,8 @@ const nextUserIdentity = (function () {
   }
 }())
 
-const createBot = require('./')
-const baseModels = require('./base-models')
+const createBot = require('../lib/bot')
+const baseModels = require('../lib/bot/base-models')
 const defaultModels = mergeModels()
   .add(baseModels)
   .get()
@@ -86,7 +86,8 @@ function createProductsBot (opts={}) {
   return { bot, productsAPI, employeeManager }
 }
 
-const endToEndTest = co(function* () {
+const endToEndTest = co(function* (opts={}) {
+  const { approve=true } = opts
   const { bot, productsAPI, employeeManager } = createProductsBot()
   const employee = createUser({ bot, name: 'EMPLOYEE' })
   const customer = createUser({ bot, name: 'CUSTOMER' })
@@ -180,13 +181,14 @@ const endToEndTest = co(function* () {
     })
     .toJSON()
 
-  const judgment = approval // denial
+  const judgment = approve ? approval : denial
   yield employee.send({
     object: judgment,
     other: { context }
   })
 
-  yield dumpDB({ bot, types })
+  // uncomment to dump dbs to screen
+  // yield dumpDB({ bot, types })
 })
 
 const runThroughApplication = co(function* ({
@@ -473,15 +475,6 @@ module.exports = {
   endToEndTest,
   clear
 }
-
-coexec(function* () {
-  yield clear()
-  yield endToEndTest()
-})
-.catch(err => {
-  console.error(err)
-  process.exit(1)
-})
 
 function wait (millis) {
   return new Promise(resolve => setTimeout(resolve, millis))

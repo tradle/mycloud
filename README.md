@@ -16,17 +16,29 @@ The [Serverless Framework](https://github.com/serverless/serverless) is installe
 npm i -g serverless
 ```
 
-### Run Tests
+### Local Testing Setup
+
+This project uses [localstack](https://github.com/localstack/localstack) for simulating AWS resources locally (DynamoDB, S3, etc).
+
+Before you can run tests on local resoures, you need to create them:
 
 ```sh
-# start localstack. See: https://github.com/localstack/localstack
-npm run localstack:start
-# generate cloudformation
+# generate the blueprints for our local resources (cloudformation files)
 npm run package
-# generate local resources based on cloudformation (tables, buckets, etc.)
+# start up localstack
+npm run localstack:start
+# to stop localstack (and lose your tables and buckets)
+#   npm run localstack:stop
+# restart localstack (and lose your tables and buckets)
+#   npm run localstack:restart
+# generate local resources based on cloudformation
 npm run gen:localresources
 # run tests on local resources
-npm test
+npm run test
+# run an end-to-end test, which will creates sample business data in the process
+npm run test:e2e
+# browse that data via graphql
+npm run test:graphqlserver
 ```
 
 ### Deploy
@@ -116,7 +128,7 @@ npm run nuke
 # ensuring you're committed to the destruction of all that is holy
 ```
 
-## Directory Structure
+### Directory Structure
 
 ```sh
 .              # dev dependencies, serverless framework config
@@ -129,7 +141,7 @@ npm run nuke
     /samplebot # currently co-located sample bot in `./project/samplebot`
 ```
 
-## Troubleshooting
+### Troubleshooting
 
 If you see errors like the one below, it means `localstack` is not up. Launch `localstack` with `npm run localstack:start`
 

@@ -1,6 +1,15 @@
 version: '2.1'
 
 services:
+  dynamo:
+    image: aaronshaf/dynamodb-admin
+    # dummy credentials
+    ports:
+      - ${DYNAMO_ADMIN_PORT}:8001
+    environment:
+      - AWS_ACCESS_KEY_ID=mykey
+      - AWS_SECRET_ACCESS_KEY=mysecret
+      - DYNAMO_ENDPOINT=http://localstack:4569
   localstack:
     image: localstack/localstack
     ports:

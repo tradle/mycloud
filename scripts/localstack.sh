@@ -6,8 +6,13 @@ if [ "$(uname)" == "Darwin" ]; then
   TMPDIR=/private$TMPDIR
 fi
 
-if [ "$1" == "up" ]; then
-  docker-compose -f ./docker/docker-compose-localstack.yml up -d
+COMMAND="$1"
+
+# to load docker/.env
+cd docker
+
+if [ "$COMMAND" == "up" ]; then
+  docker-compose -f ./docker-compose-localstack.yml up -d
 else
-  docker-compose -f ./docker/docker-compose-localstack.yml down
+  docker-compose -f ./docker-compose-localstack.yml down
 fi

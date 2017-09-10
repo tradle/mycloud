@@ -87,6 +87,9 @@ module.exports = function setup (opts) {
   }
 
   return {
+    get schema() {
+      return getSchema()
+    },
     tables,
     resolvers,
     executeQuery,
