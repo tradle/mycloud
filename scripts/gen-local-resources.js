@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-process.env.IS_LOCAL = true
+require('../project/test/env')
 
 const co = require('co')
 const extend = require('xtend/mutable')

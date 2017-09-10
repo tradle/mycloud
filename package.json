@@ -54,9 +54,11 @@
   },
   "scripts": {
     "setup": "cd project && npm i && cd .. && npm i",
+    "package": "serverless package",
     "gen:testenv": "./scripts/gen-env.js",
     "gen:fixtures": "./scripts/gen-fixtures.js",
     "gen:samples": "./scripts/gen-samples.js",
+    "gen:localresources": "./scripts/gen-local-resources.js",
     "lint": "eslint --quiet --ignore-path .gitignore .",
     "test": "npm run localstack:start && NODE_ENV=test tap `git ls-files project/test/*.test.js` && npm run localstack:stop",
     "deploy:local": "npm run lint && npm run compile-template && SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
@@ -76,6 +78,7 @@
     "dynamo:stop": "docker-compose -f ./docker/docker-compose-dynamo.yml down",
     "localstack:start": "./scripts/localstack.sh up",
     "localstack:stop": "./scripts/localstack.sh down",
+    "localstack:restart": "./scripts/localstack.sh down && ./scripts/localstack.sh up",
     "tail": "./scripts/tail.sh",
     "info": "serverless info"
   },

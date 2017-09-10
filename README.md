@@ -19,6 +19,13 @@ npm i -g serverless
 ### Run Tests
 
 ```sh
+# start localstack. See: https://github.com/localstack/localstack
+npm run localstack:start
+# generate cloudformation
+npm run package
+# generate local resources based on cloudformation (tables, buckets, etc.)
+npm run gen:localresources
+# run tests on local resources
 npm test
 ```
 
@@ -121,3 +128,21 @@ npm run nuke
       /bot     # bot engine
     /samplebot # currently co-located sample bot in `./project/samplebot`
 ```
+
+## Troubleshooting
+
+If you see errors like the one below, it means `localstack` is not up. Launch `localstack` with `npm run localstack:start`
+
+```sh
+# Error: connect ECONNREFUSED 127.0.0.1:4569
+# ...
+```
+
+If tests are failing with errors like the one below, it means you need to generate local resources on `localstack`. Run `npm run gen:localresources`
+
+```sh
+# ResourceNotFoundException: Cannot do operations on a non-existent table
+# ...
+```
+
+If `gen:localresources` fails, you may need to first run `npm run package` to generate the cloudformation files which `gen:localresources` to generate local resources.

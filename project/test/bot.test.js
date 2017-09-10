@@ -7,7 +7,7 @@ const createRealBot = require('../lib/bot')
 const createFakeBot = require('./mock/bot')
 // const messages = require('../lib/messages')
 const { co, loudCo, pick, wait } = Tradle.utils
-const { toStreamItems, recreateTable, shallowExend } = require('./utils')
+const { toStreamItems, shallowExend } = require('./utils')
 const Errors = require('../lib/errors')
 // const seals = require('../lib/seals')
 const aliceKeys = require('./fixtures/alice/keys')
@@ -47,10 +47,6 @@ const apiGatewayEvent = require('./fixtures/events/api-gateway')
   }))
 
   test(`users (${mode})`, loudCo(function* (t) {
-    if (mode === 'real') {
-      yield recreateTable(schema)
-    }
-
     const bot = createBot.fromEngine({})
     const { users } = bot
     // const user : Object = {
