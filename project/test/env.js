@@ -1,4 +1,4 @@
-console.warn('make sure dynamodb is running (npm run dynamo:start)')
+console.warn('make sure localstack is running (npm run localstack:start)')
 
 process.env.NODE_ENV = 'test'
 process.env.IS_LOCAL = true
