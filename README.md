@@ -39,6 +39,8 @@ npm run test
 npm run test:e2e
 # browse that data via graphql
 npm run test:graphqlserver
+# GraphiQL is at       http://localhost:4000
+# DynamoDB Admin is at http://localhost:8001
 ```
 
 ### Deploy
