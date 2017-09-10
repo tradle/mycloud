@@ -1,5 +1,4 @@
-process.env.IS_LOCAL = true
-process.env.NODE_ENV = 'test'
+require('../../test/env')
 
 const inherits = require('inherits')
 const { EventEmitter } = require('events')
@@ -161,16 +160,29 @@ const endToEndTest = co(function* () {
   })
 
   const application = yield getApplicationByContext({ productsAPI, context })
+  const approval = buildResource({
+      models: productsAPI.models.all,
+      model: 'tradle.ApplicationApproval',
+    })
+    .set({
+      application,
+      message: 'approved!'
+    })
+    .toJSON()
+
+  const denial = buildResource({
+      models: productsAPI.models.all,
+      model: 'tradle.ApplicationDenial',
+    })
+    .set({
+      application,
+      message: 'denied!'
+    })
+    .toJSON()
+
+  const judgment = approval // denial
   yield employee.send({
-    object: buildResource({
-        models: productsAPI.models.all,
-        model: 'tradle.ApplicationApproval',
-      })
-      .set({
-        application,
-        message: 'approved!'
-      })
-      .toJSON(),
+    object: judgment,
     other: { context }
   })
 
