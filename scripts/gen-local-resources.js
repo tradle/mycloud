@@ -12,26 +12,23 @@ const setup = co.wrap(function* () {
   const { Resources } = stack
   const tables = []
   const buckets = []
-  Object.keys(Resources).forEach(name => {
-    const { Type, Properties } = Resources[name]
-    switch (Type) {
-      case 'AWS::DynamoDB::Table':
-        if (Properties.StreamSpecification) {
-          Properties.StreamSpecification.StreamEnabled = true
-        }
+  Object.keys(Resources)
+    .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
+    .forEach(name => {
+      const { Type, Properties } = Resources[name]
+      if (Properties.StreamSpecification) {
+        Properties.StreamSpecification.StreamEnabled = true
+      }
 
-        tables.push(aws.dynamodb
-          .createTable(Properties)
-          .promise()
-          .catch(err => {
-            if (err.name !== 'ResourceInUseException') {
-              throw err
-            }
-          }))
-
-        break
-    }
-  })
+      tables.push(aws.dynamodb
+        .createTable(Properties)
+        .promise()
+        .catch(err => {
+          if (err.name !== 'ResourceInUseException') {
+            throw err
+          }
+        }))
+    })
 
   Object.keys(resources.Bucket).forEach(name => {
     const Bucket = resources.Bucket[name]

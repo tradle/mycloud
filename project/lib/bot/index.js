@@ -242,7 +242,7 @@ function createBot (opts={}) {
 
   // alias
   Object.defineProperty(bot, 'addressBook', {
-    get() {
+    get () {
       return bot.identities
     }
   })

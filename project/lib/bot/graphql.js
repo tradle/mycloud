@@ -87,7 +87,7 @@ module.exports = function setup (opts) {
   }
 
   return {
-    get schema() {
+    get schema () {
       return getSchema()
     },
     tables,

@@ -6,6 +6,12 @@ const fs = require('fs')
 const file = fs.readFileSync(process.argv[2], { encoding: 'utf8' })
 const yaml = YAML.load(file)
 const ANY_METHODS = 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
+const isLocal = process.env.IS_LOCAL
+const LOCALLY_AVAILABLE = [
+  'AWS::DynamoDB::Table',
+  'AWS::S3::Bucket',
+  'AWS::ApiGateway::RestApi'
+]
 
 function forEachResource (yaml, fn) {
   const { resources, provider } = yaml
@@ -101,6 +107,24 @@ function addResourcesToOutputs (yaml) {
       Ref: id
     }
   })
+}
+
+function removeResourcesThatDontWorkLocally ({ provider, resources }) {
+  const { Resources } = resources
+  resources.Resources = {}
+  Object.keys(Resources)
+    .forEach(name => {
+      const resource = Resources[name]
+      if (LOCALLY_AVAILABLE.includes(resource.Type)) {
+        resources.Resources[name] = resource
+      }
+    })
+
+  provider.iamRoleStatements = []
+}
+
+if (isLocal) {
+  removeResourcesThatDontWorkLocally(yaml)
 }
 
 addResourcesToEnvironment(yaml)

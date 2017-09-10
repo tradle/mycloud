@@ -6,7 +6,8 @@ const request = require('superagent')
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     u: 'users',
-    p: 'products'
+    p: 'products',
+    l: 'local'
   },
   default: {
     users: 1,
@@ -14,11 +15,17 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
+const projectRequire = require('./require')
+if (argv.local) {
+  // projectRequire('./test/env')
+  process.exit(0)
+}
+
 const {
   SERVERLESS_STAGE,
   SERVERLESS_SERVICE_NAME,
   R_RESTAPI_ApiGateway
-} = require('../project/conf/service-map')
+} = projectRequire('./conf/service-map')
 
 const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}/samples`
 
