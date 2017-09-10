@@ -157,4 +157,10 @@ If tests are failing with errors like the one below, it means you need to genera
 # ...
 ```
 
+If tests are failing for some other reason, you may want to run
+```sh
+npm run localstack:restart # delete the dbs, buckets, etc.
+npm run gen:localresources # regen dbs, buckets, etc.
+```
+
 If `gen:localresources` fails, you may need to first run `npm run package` to generate the cloudformation files which `gen:localresources` to generate local resources.

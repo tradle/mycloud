@@ -3,7 +3,7 @@ const buildResource = require('@tradle/build-resource')
 const { NODE_ENV } = process.env
 if (NODE_ENV === 'test') {
   const extend = require('xtend/mutable')
-  extend(process.env, require('../../conf/service-map'), shallowClone(process.env))
+  extend(process.env, require('../conf/service-map'), shallowClone(process.env))
   console.log(process.env)
 }
 
@@ -23,7 +23,13 @@ const deploymentModels = require('./deployment-models')('io.tradle')
 const bankModels = require('./bank-models')(NAMESPACE)
 const models = shallowClone(deploymentModels, bankModels)
 const products = PRODUCTS.split(',').map(id => id.trim())
-const strategy = require('@tradle/bot-products')({
+const createBot = require('../lib/bot')
+const strategies = require('../lib/bot/strategy')
+const {
+  bot,
+  productsAPI,
+  employeeManager
+} = strategies.products({
   namespace: NAMESPACE,
   models: models,
   products,
@@ -34,12 +40,7 @@ const strategy = require('@tradle/bot-products')({
 //   return Object.keys(models).filter(id => models[id].subClassOf === 'tradle.FinancialProduct')
 // }
 
-const createBot = require('../lib/bot')
-const bot = createBot({
-  models: strategy.models.all
-})
-
-// attach this first
+// prepend this hook
 bot.hook('message', co(function* ({ user, type }) {
   debug(`received ${type}`)
   if (type === 'tradle.Ping') {
@@ -53,16 +54,15 @@ bot.hook('message', co(function* ({ user, type }) {
     // prevent further processing
     return false
   }
-}))
+}), true) // prepend
 
-const strategyAPI = strategy.install(bot)
 if (PRODUCTS === DEPLOYMENT) {
-  strategyAPI.plugins.clear('onFormsCollected')
-  strategyAPI.plugins.use(require('./deployment-handlers'))
+  productsAPI.plugins.clear('onFormsCollected')
+  productsAPI.plugins.use(require('./deployment-handlers'))
 } else {
   const biz = require('@tradle/biz-plugins')
   // unshift
-  biz.forEach(plugin => strategyAPI.plugins.use(plugin(), true))
+  biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
 }
 
 bot.hook('message', co(function* ({ user, type }) {
@@ -82,10 +82,10 @@ bot.ready()
 //     // yield user.sendSelfIntroduction()
 //     debugger
 //     user.send(buildResource({
-//       models: strategyAPI.models,
-//       model: strategyAPI.appModels.application.id,
+//       models: productsAPI.models,
+//       model: productsAPI.appModels.application.id,
 //       resource: {
-//         product: `${strategyAPI.appModels.productList.id}_${strategyAPI.appModels.productList.enum[0].id}`
+//         product: `${productsAPI.appModels.productList.id}_${productsAPI.appModels.productList.enum[0].id}`
 //       }
 //     }).toJSON())
 
@@ -95,13 +95,19 @@ bot.ready()
 //   .catch(console.error)
 // }
 
-module.exports = bot.exports
+module.exports = createBot.lambdas(bot)
 
-function toObject (models) {
-  const obj = {}
-  models.forEach(m => obj[m.id] = m)
-  return obj
-}
+// bot.graphqlAPI.executeQuery(`
+//   {
+//     rl_tradle_FormRequest {
+//       edges {
+//         node {
+//           _link
+//         }
+//       }
+//     }
+//   }
+// `, {})
 
 // bot.exports.ongraphql({
 //   body: require('graphql').introspectionQuery

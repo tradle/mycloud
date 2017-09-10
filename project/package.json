@@ -22,7 +22,7 @@
     "@tradle/gen-samples": "github:tradle/gen-samples",
     "@tradle/merge-models": "^2.0.0",
     "@tradle/models": "github:tradle/models",
-    "@tradle/models-corporate-onboarding": "github:tradle/models-corporate-onboarding",
+    "@tradle/models-corporate-onboarding": "github:tradle/models-corporate-onboarding#ab8e235",
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "tradle/schema-joi",
     "@tradle/test-helpers": "tradle/test-helpers",

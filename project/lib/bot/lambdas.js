@@ -3,8 +3,9 @@ const wrap = require('../wrap')
 module.exports = function createLambdas (bot) {
   const handlers = {}
   const { process } = bot
-  for (let method in process) {
-    let { type, handler } = process[method]
+  for (let event in process) {
+    let method = `on${event}`
+    let { type, handler } = process[event]
     if (type === 'wrapped') {
       handlers[method] = handler
     } else {
