@@ -105,7 +105,7 @@ provider:
   variableSyntax: "\\${{([\\s\\S]+?)}}"
   name: aws
   runtime: nodejs6.10
-  profile: serverless
+  # profile: serverless
   stage: ${{self:custom.stage}}
   region: ${{self:custom.region}}
   memorySize: 512
