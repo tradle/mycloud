@@ -18,6 +18,7 @@ const { extend, clone, omit, batchify } = utils
 const { ensureInitialized } = require('../lib/init')
 const botFixture = require('./fixtures/bot')
 const userIdentities = require('./fixtures/users-pem')
+const createProductsBot = require('../lib/bot/strategy').products
 const nextUserIdentity = (function () {
   let i = 0
   return function () {
@@ -44,51 +45,14 @@ let uCounter = 0
 //   return new User(opts)
 // }
 
-function createProductsBot (opts={}) {
-  const {
-    models=defaultModels,
-    products=defaultProducts
-  } = opts
-
-  const productsAPI = createProductsStrategy({
-    namespace: 'test.bot',
-    models: {
-      all: models
-    },
-    products
-  })
-
-  const employeeManager = createEmployeeManager({ productsAPI })
-  const employeeModels = productsAPI.models.all
-  const customerModels = omit(
-    productsAPI.models.all,
-    Object.keys(productsAPI.models.private)
-  )
-
-  const bot = createBot.fromEngine({
-    tradle,
-    models: productsAPI.models.all
-  })
-
-  productsAPI.install(bot)
-  // productsAPI.plugins.use({
-  //   onFormsCollected: productsAPI.issueCertificate
-  // })
-
-  bot.hook('message', createProductsStrategy.keepModelsFresh(({
-    getModelsForUser: user => {
-      return employeeManager.isEmployee(user) ? employeeModels : customerModels
-    },
-    send: productsAPI.send.bind(productsAPI)
-  })))
-
-  bot.ready()
-  return { bot, productsAPI, employeeManager }
-}
-
 const endToEndTest = co(function* (opts={}) {
   const { approve=true } = opts
-  const { bot, productsAPI, employeeManager } = createProductsBot()
+  const { bot, productsAPI, employeeManager } = createProductsBot({
+    products: ['tradle.CurrentAccount']
+  })
+
+  bot.ready()
+
   const employee = createUser({ bot, name: 'EMPLOYEE' })
   const customer = createUser({ bot, name: 'CUSTOMER' })
   yield [
