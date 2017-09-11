@@ -228,7 +228,11 @@ const getTemporaryIdentity = co(function* (opts) {
     maybeAddContact
   ]
 
-  const { Credentials } = yield aws.sts.assumeRole(params).promise()
+  const {
+    AssumedRoleUser,
+    Credentials
+  } = yield aws.sts.assumeRole(params).promise()
+
   debug('assumed role', role)
   return {
     iotEndpoint: ENV.IOT_ENDPOINT,
@@ -236,9 +240,14 @@ const getTemporaryIdentity = co(function* (opts) {
     accessKey: Credentials.AccessKeyId,
     secretKey: Credentials.SecretAccessKey,
     sessionToken: Credentials.SessionToken,
+    uploadPrefix: getUploadPrefix(AssumedRoleUser),
     challenge
   }
 })
+
+function getUploadPrefix (AssumedRoleUser) {
+  return `s3://${Resources.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
+}
 
 function getMostRecentSessionByClientId (clientId) {
   return getLiveSessionByPermalink(getPermalinkFromClientId(clientId))

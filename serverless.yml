@@ -75,6 +75,8 @@ provider:
       Ref: SecretsBucket
     R_BUCKET_PublicConf:
       Ref: PublicConfBucket
+    R_BUCKET_FileUpload:
+      Ref: FileUploadBucket
     R_TABLE_Events:
       Ref: EventsTable
     R_TABLE_PubKeys:
@@ -148,6 +150,10 @@ provider:
             - ''
             - - 'arn:aws:s3:::'
               - Ref: ServerlessDeploymentBucket
+        - 'Fn::Join':
+            - ''
+            - - 'arn:aws:s3:::'
+              - Ref: FileUploadBucket
     - Effect: Allow
       Action:
         - 's3:PutObject'
@@ -174,6 +180,11 @@ provider:
             - ''
             - - 'arn:aws:s3:::'
               - Ref: ServerlessDeploymentBucket
+              - /*
+        - 'Fn::Join':
+            - ''
+            - - 'arn:aws:s3:::'
+              - Ref: FileUploadBucket
               - /*
     - Effect: Allow
       Action:
@@ -421,6 +432,19 @@ resources:
       Type: 'AWS::S3::Bucket'
       Description: 'public configuration, e.g. identity, styles, logo, etc.'
       DeletionPolicy: Retain
+    FileUploadBucket:
+      Type: 'AWS::S3::Bucket'
+      Description: file upload destination for all users
+      DeletionPolicy: Retain
+      Properties:
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - PUT
+                - POST
+              AllowedOrigins:
+                - '*'
+              MaxAge: 3600
     EventsTable:
       Type: 'AWS::DynamoDB::Table'
       Description: source of truth
@@ -658,6 +682,20 @@ resources:
                     - 'iot:Receive'
                   Resource:
                     - '*'
+                - Effect: Allow
+                  Action:
+                    - 's3:PutObject'
+                  Condition:
+                    Bool:
+                      'aws:SecureTransport': true
+                  Resource:
+                    - 'Fn::Join':
+                        - ''
+                        - - 'arn:aws:s3:::'
+                          - Ref: FileUploadBucket
+                          - /
+                          - '${aws:userid}'
+                          - /*
     AutoScalingRole:
       Type: 'AWS::IAM::Role'
       Description: role for autoscaling resources
@@ -701,6 +739,10 @@ resources:
       Description: 'public configuration, e.g. identity, styles, logo, etc.'
       Value:
         Ref: PublicConfBucket
+    FileUploadBucket:
+      Description: file upload destination for all users
+      Value:
+        Ref: FileUploadBucket
     EventsTable:
       Description: source of truth
       Value:

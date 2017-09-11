@@ -197,6 +197,10 @@ provider:
           - ""
           - - "arn:aws:s3:::"
             - Ref: ServerlessDeploymentBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: FileUploadBucket
 
     - Effect: Allow
       Action:
@@ -227,6 +231,11 @@ provider:
           - ""
           - - "arn:aws:s3:::"
             - Ref: ServerlessDeploymentBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: FileUploadBucket
             - "/*"
 
     # REMOVE in prod
@@ -591,6 +600,20 @@ resources:
       # Properties:
       #   AccessControl: PublicRead
 
+    FileUploadBucket:
+      Type: "AWS::S3::Bucket"
+      Description: file upload destination for all users
+      DeletionPolicy: Retain
+      Properties:
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - PUT
+                - POST
+              AllowedOrigins:
+                - "*"
+              MaxAge: 3600
+
     # EventsTable: ${{file(./project/conf/table/events.yml)}}
     EventsTable:
       Type: AWS::DynamoDB::Table
@@ -921,6 +944,24 @@ resources:
                   Action: ["iot:Receive"]
                   Resource: ["*"]
                   # Resource: arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}${iot:ClientId}/*
+
+                # allow users to upload directly without getting a pre-signed url
+                - Effect: Allow
+                  Action:
+                    - s3:PutObject
+                  Condition:
+                    Bool:
+                      aws:SecureTransport: true
+                  Resource:
+                    - Fn::Join:
+                      - ""
+                      - - "arn:aws:s3:::"
+                        - Ref: FileUploadBucket
+                        - /
+                        # ${aws:userid} will change on every session
+                        # which will prevent users from clobbering old uploads
+                        - ${aws:userid}
+                        - "/*"
 
     AutoScalingRole:
       Type: AWS::IAM::Role

@@ -24,3 +24,10 @@ Lambda:
   don't waste a lambda invocation on OPTIONS requests. Learn from aws-serverless-express/example, with OPTIONS contentHandling set to CONVERT_TO_TEXT
 
 don't waste lambda invocations on s3 resources (e.g. /info should really go straight to s3)
+
+IoT:
+  get the subscribe/receive topic restrictions working (per ${iot:ClientId})
+  make 2nd auth step (/auth) available via MQTT
+
+S3:
+  limit max object size in FileUploadBucket
