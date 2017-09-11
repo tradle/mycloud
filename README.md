@@ -1,10 +1,20 @@
 
 # tradle/aws
 
-## Setup
+### Setup AWS Cli
+
+```sh
+brew install awscli
+# optional:
+#   create a new IAM user with AdministratorAccess
+#   configure your aws cli settings
+aws configure
+```
 
 1. Set up AWS credentials in ~/.aws/
 2. Install 
+
+### Install
 
 ```sh
 npm run setup
@@ -16,7 +26,7 @@ The [Serverless Framework](https://github.com/serverless/serverless) is installe
 npm i -g serverless
 ```
 
-### Local Testing Setup
+### Setup for Local Testing
 
 This project uses [localstack](https://github.com/localstack/localstack) for simulating AWS resources locally (DynamoDB, S3, etc).
 
@@ -161,8 +171,7 @@ If tests are failing with errors like the one below, it means you need to genera
 
 If tests are failing for some other reason, you may want to run
 ```sh
-npm run localstack:restart # delete the dbs, buckets, etc.
-npm run gen:localresources # regen dbs, buckets, etc.
+npm run reset:local # delete + regen local dbs, buckets, etc.
 ```
 
 If `gen:localresources` fails, you may need to first run `npm run package` to generate the cloudformation files which `gen:localresources` to generate local resources.

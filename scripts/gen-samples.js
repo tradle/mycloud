@@ -25,7 +25,7 @@ const {
   SERVERLESS_STAGE,
   SERVERLESS_SERVICE_NAME,
   R_RESTAPI_ApiGateway
-} = projectRequire('./conf/service-map')
+} = projectRequire('./test/service-map')
 
 const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}/samples`
 

@@ -6,6 +6,10 @@ const extend = require('xtend/mutable')
 const { splitCamelCase } = require('./string-utils')
 
 const env = clone(require('../conf/env'))
+if (process.env.NODE_ENV === 'test') {
+  extend(process.env, require('../test/service-map'))
+}
+
 env.set = obj => {
   if (process.env !== obj) {
     extend(process.env, obj)
@@ -14,12 +18,7 @@ env.set = obj => {
   extend(env, obj)
 }
 
-if (process.env.IS_LOCAL) {
-  env.set(extend(process.env, require('../conf/service-map'), clone(process.env)))
-} else {
-  env.set(process.env)
-}
-
+env.set(process.env)
 env.TESTING = env.NODE_ENV === 'test'
 
 // this one might be set dynamically

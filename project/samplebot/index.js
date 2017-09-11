@@ -3,7 +3,7 @@ const buildResource = require('@tradle/build-resource')
 const { NODE_ENV } = process.env
 if (NODE_ENV === 'test') {
   const extend = require('xtend/mutable')
-  extend(process.env, require('../conf/service-map'), shallowClone(process.env))
+  extend(process.env, require('../test/service-map'), shallowClone(process.env))
   console.log(process.env)
 }
 

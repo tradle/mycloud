@@ -1,6 +1,6 @@
 const wrap = require('../wrap')
-const bot = require('../bot-engine')
+const bot = require('../bot')
 
-exports.handler = wrap.generator(function* (event, context) {
+exports.handler = wrap(function* (event, context) {
   yield bot.send(event)
 })

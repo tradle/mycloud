@@ -7,8 +7,8 @@ const { exec } = promisify(require('child_process'))
 const fs = promisify(require('fs'))
 const { prettify } = require('../project/lib/string-utils')
 const { getConfiguration } = require('../project/lib/lambda-utils')
-const serviceMapPath = path.join(process.cwd(), 'project/conf/service-map.json')
-const serverlessYml = require('./serverless-yml')
+const serviceMapPath = path.resolve(__dirname, '../project/test/fixtures/remote-service-map.json')
+const serverlessYml = require('../serverless-yml')
 
 // when this is merged:
 // https://github.com/serverless/serverless/pull/4169

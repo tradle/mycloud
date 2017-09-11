@@ -6,4 +6,4 @@ DynamoDBLocal/
 .serverless*
 certs/
 build/
-project/conf/service-map.json
+remote-service-map.json
