@@ -103,6 +103,7 @@ const batchBySize = function batchBySize (strings, max=MAX_PAYLOAD_SIZE) {
       cur = [str]
       length = strLength
     } else {
+      debug('STRING TOO LONG!', str)
       throw new Error(`string length (${strLength}) exceeds max (${max})`)
     }
   }
