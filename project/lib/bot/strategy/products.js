@@ -46,7 +46,7 @@ module.exports = function createProductsBot (opts={}) {
       return customerModels
     },
     send: productsAPI.send.bind(productsAPI)
-  }))
+  }), true) // prepend
 
   return {
     bot,
