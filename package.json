@@ -33,6 +33,7 @@
     "express-graphql": "^0.6.11",
     "flow-bin": "^0.48.0",
     "flow-remove-types": "^1.2.1",
+    "husky": "^0.14.3",
     "isomorphic-fetch": "^2.2.1",
     "js-yaml": "^3.8.4",
     "leveldown": "^1.7.2",
@@ -89,7 +90,8 @@
     "localstack:stop": "./scripts/localstack.sh down",
     "localstack:restart": "./scripts/localstack.sh down && ./scripts/localstack.sh up",
     "tail": "./scripts/tail.sh",
-    "info": "serverless info"
+    "info": "serverless info",
+    "precommit": "npm run compile-template && git add serverless.yml"
   },
   "dependencies": {}
 }
