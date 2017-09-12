@@ -246,7 +246,7 @@ const getTemporaryIdentity = co(function* (opts) {
 })
 
 function getUploadPrefix (AssumedRoleUser) {
-  return `s3://${Resources.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
+  return `${Resources.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
 }
 
 function getMostRecentSessionByClientId (clientId) {
