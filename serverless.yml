@@ -317,8 +317,6 @@ functions:
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
-  identity:
-    handler: project/lib/lambda/identity.handler
   setenvvars:
     handler: project/lib/lambda/setenvvars.handler
     description:

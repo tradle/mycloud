@@ -18,6 +18,9 @@ fix putEvent to use conditional update
 
 DynamoDB:
   queries should keep removed properties in mind
+  collapse Inbox/Outbox?
+  use @tradle/dynamodb or at least dynogels wrappers for Messages and Identities
+    - but how to avoid creating expensive indexes for _author + _time, _recipient + _time, etc?
 
 Lambda:
   use aws-serverless-express for all http endpoints

@@ -294,6 +294,10 @@ provider:
    #         - "/*"
 
 functions:
+  # 1. generates temporary credentials (STS) for new connections,
+  #    and assumes IotClientRole on them
+  # 2. creates an unauthenticated session,
+  #    generates a challenge to be signed (verified in /auth)
   preauth:
     handler: project/lib/lambda/http/preauth.handler
     memorySize: 1024
@@ -301,6 +305,9 @@ functions:
       - http:
           path: tradle/preauth
           method: any
+
+  # 1. validates the challenge response
+  # 2. marks the session as authenticated
   auth:
     handler: project/lib/lambda/http/auth.handler
     memorySize: 1024
@@ -308,10 +315,12 @@ functions:
       - http:
           path: tradle/auth
           method: any
+
   # createevent:
   #   handler: project/lib/lambda/createevent.handler
   #   memorySize: 512
 
+  # replicates InboxTable to EventsTable
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
@@ -325,6 +334,7 @@ functions:
               - InboxTable
               - StreamArn
 
+  # replicates OutboxTable to EventsTable
   outbox2events:
     handler: project/lib/lambda/outbox-events.handler
     memorySize: 512
@@ -338,6 +348,7 @@ functions:
               - OutboxTable
               - StreamArn
 
+  # replicates SealsTable to EventsTable
   seal2events:
     handler: project/lib/lambda/seal-events.handler
     memorySize: 512
@@ -388,6 +399,8 @@ functions:
   #   environment:
   #     DEBUG: tradle:*
 
+  # handles IoT (MQTT) connections post-authentication
+  # updates presence in PresenceTable
   onconnect:
     handler: project/lib/lambda/mqtt/onconnect.handler
     events:
@@ -396,6 +409,7 @@ functions:
           sqlVersion: ${{self:custom.versionSQL}}
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
 
+  # updates presence in PresenceTable
   ondisconnect:
     handler: project/lib/lambda/mqtt/ondisconnect.handler
     events:
@@ -405,6 +419,7 @@ functions:
     #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
 
   # triggered when a client subscribes to an MQTT topic
+  # sends the client any queued up messages
   onsubscribe:
     handler: project/lib/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
@@ -414,6 +429,9 @@ functions:
           sqlVersion: ${{self:custom.versionSQL}}
 
   # triggered when a client sends a message
+  #
+  # validates, stores in OutboxTable, in ObjectsBucker (for now),
+  # and passes off to bot engine
   onmessage:
     handler: project/lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
@@ -426,6 +444,8 @@ functions:
           sql: "SELECT * as data, clientid() as clientId FROM '${{self:custom.prefixIOTTopic}}message'"
           sqlVersion: ${{self:custom.versionSQL}}
 
+  # same as onmessage, but can handle larger payloads
+  # MQTT is limited to 128KB, HTTP to 6MB
   onmessage_http:
     handler: project/lib/lambda/http/onmessage.handler
     memorySize: 1024
@@ -435,7 +455,7 @@ functions:
           method: any
 
   # useful during development
-  # trigger a message to be queued/sent
+  # trigger a message to be queued/sent to a user
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
@@ -445,9 +465,11 @@ functions:
   #   environment:
   #     DEBUG: tradle:*
 
-  identity:
-    handler: project/lib/lambda/identity.handler
+  # identity:
+  #   handler: project/lib/lambda/identity.handler
 
+  # performs service discovery - builds a map of logical->physical ids
+  # and writes that map to the environment variables of all other lambdas
   setenvvars:
     handler: project/lib/lambda/setenvvars.handler
     # hack to enable discovery own function's own stack
@@ -455,6 +477,7 @@ functions:
       Ref: AWS::StackId
 
   # public endpoint for clients to get public configuration / provider identity
+  # e.g. the provider's identity object, styles, currency, etc.
   info:
     handler: project/lib/lambda/http/info.handler
     memorySize: 256
@@ -465,16 +488,20 @@ functions:
           path: tradle/info
           method: any
 
-  # initialize provider identity
+  # initializes provider identity
+  # generates a new identity and keys, and other misc crap
   init:
     handler: project/lib/lambda/init.handler
     memorySize: 512
 
   # Blockchain
 
+  # bitcoin faucet (surprise!)
+  # distributes testnet coins from local funds
   faucet_bitcoin:
     handler: project/lib/lambda/faucet-bitcoin.withdraw
 
+  # gets funds from a bitcoin testnet faucet
   recharge:
     handler: project/lib/lambda/recharge.handler
     events:
@@ -482,6 +509,7 @@ functions:
           rate: rate(10 minutes)
           enabled: false
 
+  # writes pending transactions to the blockchain
   sealpending:
     handler: project/lib/lambda/sealpending.handler
     memorySize: 1024
@@ -490,6 +518,7 @@ functions:
           rate: rate(10 minutes)
           enabled: false
 
+  # polls the status of unconfirmed blockchain transactions
   pollchain:
     handler: project/lib/lambda/pollchain.handler
     memorySize: 1024
@@ -502,17 +531,22 @@ functions:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
     #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
+  # simulates a short (hi! hello!) conversation with a user
   clienttest:
     handler: project/lib/lambda/clienttest.handler
     timeout: 15
 
-
-
-  # echo bot (business logic layer)
+  # bot-serviced lambda
+  # receives pre-validated messages from the tradle engine
+  # pre-processes with bot-engine
+  # hands off to bot's business logic
   bot_onmessage:
     handler: project/samplebot/index.onmessage
     memorySize: 1024
 
+  # bot-serviced lambda
+  # receives seal (read/wrote) events from the tradle engine
+  # hands off to bot's business logic
   bot_onsealevent:
     handler: project/samplebot/index.onsealevent
     memorySize: 1024
@@ -526,6 +560,8 @@ functions:
               - SealsTable
               - StreamArn
 
+  # bot-serviced lambda
+  # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
   bot_processinbox:
     handler: project/samplebot/index.onmessagestream
     memorySize: 512
@@ -539,6 +575,8 @@ functions:
               - InboxTable
               - StreamArn
 
+  # bot-serviced lambda
+  # replicates Outbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
   bot_processoutbox:
     handler: project/samplebot/index.onmessagestream
     memorySize: 512
@@ -552,6 +590,8 @@ functions:
               - OutboxTable
               - StreamArn
 
+  # bot-serviced lambda
+  # graphql API and GraphiQL UI endpoint
   bot_graphql:
     handler: project/samplebot/index.ongraphql
     memorySize: 512
@@ -560,6 +600,8 @@ functions:
           path: tradle/graphql
           method: any
 
+  # bot-serviced lambda
+  # generates sample data for browsing with GraphQL
   bot_samples:
     handler: project/samplebot/index.samples
     memorySize: 1024
@@ -570,6 +612,7 @@ functions:
 
 resources:
   Resources:
+    # servless-framework-generated API Gateway
     # ApiGatewayStage:
     #   Type: AWS::ApiGateway::Stage
     #   Properties:
@@ -579,11 +622,16 @@ resources:
     #         LoggingLevel: INFO
     #         ResourcePath: "/*"
     #         MetricsEnabled: true
+
+    # content-addressed storage
+    # stores message payloads (message minus envelope)
+    # may be going away soon
     ObjectsBucket:
       Type: "AWS::S3::Bucket"
       Description: content-addressed storage for all objects
       DeletionPolicy: Retain
 
+    # stores identity keys
     SecretsBucket:
       Type: "AWS::S3::Bucket"
       Description: stuff
@@ -593,6 +641,8 @@ resources:
     #   Type: "AWS::S3::Bucket"
     #   Properties:
 
+    # stores the provider's public config
+    # e.g. styles, currency, etc.
     PublicConfBucket:
       Type: "AWS::S3::Bucket"
       Description: public configuration, e.g. identity, styles, logo, etc.
@@ -600,6 +650,7 @@ resources:
       # Properties:
       #   AccessControl: PublicRead
 
+    # stores media uploaded by users
     FileUploadBucket:
       Type: "AWS::S3::Bucket"
       Description: file upload destination for all users
@@ -615,6 +666,9 @@ resources:
               MaxAge: 3600
 
     # EventsTable: ${{file(./project/conf/table/events.yml)}}
+
+    # master log from which things can be rebuilt
+    # in case of schema changes, disasters, etc.
     EventsTable:
       Type: AWS::DynamoDB::Table
       Description: source of truth
@@ -633,6 +687,9 @@ resources:
           StreamViewType: NEW_IMAGE
 
     # PubKeysTable: ${{file(./project/conf/table/pubkeys.yml)}}
+
+    # address book
+    # maps public keys to identities that control them
     PubKeysTable:
       Type: AWS::DynamoDB::Table
       Description: maps pub keys to identities
@@ -664,6 +721,8 @@ resources:
 
     # bodies rot in s3
     # InboxTable: ${{file(./project/conf/table/inbox.yml)}}
+
+    # stores received messages (minus their payloads)
     InboxTable:
       Type: AWS::DynamoDB::Table
       Description: inbound messages from users
@@ -702,6 +761,8 @@ resources:
               WriteCapacityUnits: 5
 
     # OutboxTable: ${{file(./project/conf/table/outbox.yml)}}
+
+    # stores received messages (minus their payloads)
     OutboxTable:
       Type: AWS::DynamoDB::Table
       Description: outbound messages to users
@@ -724,6 +785,9 @@ resources:
           StreamViewType: NEW_AND_OLD_IMAGES
 
     # SealsTable: ${{file(./project/conf/table/seals.yml)}}
+
+    # stores pending and confirmed seals
+    # i.e. object links and corresponding blockchain transaction links
     SealsTable:
       Type: AWS::DynamoDB::Table
       Description: blockchain seals for objects
@@ -782,8 +846,10 @@ resources:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
 
-    # used by bot
     # UsersTable: ${{file(./project/conf/table/users.yml)}}
+
+    # used by the bot
+    # stores schema-free user state objects
     UsersTable:
       Type: AWS::DynamoDB::Table
       Description: per-user state objects
@@ -799,7 +865,7 @@ resources:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
 
-    # stores mappings between identity permalink and ephemeral clientIds
+    # stores mappings between identity permalinks and ephemeral clientIds
     # mappings are created after initial handshake and destroyed on disconnect
     PresenceTable:
       Type: AWS::DynamoDB::Table
@@ -882,6 +948,7 @@ resources:
     #               Resource:
     #                 - arn:aws:dynamodb:us-west-2:${{self:custom.accountId}}:*
 
+    # role assumed by all IoT clients
     IotClientRole:
       Type: AWS::IAM::Role
       Description: role assumed by every connecting client
@@ -963,6 +1030,7 @@ resources:
                         - ${aws:userid}
                         - "/*"
 
+    # primarily for autoscaling dynamodb
     AutoScalingRole:
       Type: AWS::IAM::Role
       Description: role for autoscaling resources
