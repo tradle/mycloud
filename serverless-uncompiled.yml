@@ -665,6 +665,35 @@ resources:
                 - "*"
               MaxAge: 3600
 
+    FileUploadBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: FileUploadBucket
+        PolicyDocument:
+          Id: FileUploadBucketPolicy
+          Version: '2012-10-17'
+          Statement:
+          - Sid: PutAccess
+            Action:
+            - s3:PutObject
+            Effect: Allow
+            Resource:
+              - Fn::Join:
+                - ""
+                - - "arn:aws:s3:::"
+                  - Ref: FileUploadBucket
+                  - /
+                  # ${aws:userid} will change on every session
+                  # which will prevent users from clobbering old uploads
+                  - ${aws:userid}
+                  - "/*"
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - IotClientRole
+                  - Arn
+
     # EventsTable: ${{file(./project/conf/table/events.yml)}}
 
     # master log from which things can be rebuilt
@@ -1011,24 +1040,6 @@ resources:
                   Action: ["iot:Receive"]
                   Resource: ["*"]
                   # Resource: arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}${iot:ClientId}/*
-
-                # allow users to upload directly without getting a pre-signed url
-                - Effect: Allow
-                  Action:
-                    - s3:PutObject
-                  Condition:
-                    Bool:
-                      aws:SecureTransport: true
-                  Resource:
-                    - Fn::Join:
-                      - ""
-                      - - "arn:aws:s3:::"
-                        - Ref: FileUploadBucket
-                        - /
-                        # ${aws:userid} will change on every session
-                        # which will prevent users from clobbering old uploads
-                        - ${aws:userid}
-                        - "/*"
 
     # primarily for autoscaling dynamodb
     AutoScalingRole:

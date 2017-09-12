@@ -76,6 +76,8 @@ provider:
       Ref: PublicConfBucket
     R_BUCKET_FileUpload:
       Ref: FileUploadBucket
+    R_BUCKETPOLICY_FileUpload:
+      Ref: FileUploadBucketPolicy
     R_TABLE_Events:
       Ref: EventsTable
     R_TABLE_PubKeys:
@@ -442,6 +444,32 @@ resources:
               AllowedOrigins:
                 - '*'
               MaxAge: 3600
+    FileUploadBucketPolicy:
+      Type: 'AWS::S3::BucketPolicy'
+      Properties:
+        Bucket:
+          Ref: FileUploadBucket
+        PolicyDocument:
+          Id: FileUploadBucketPolicy
+          Version: '2012-10-17'
+          Statement:
+            - Sid: PutAccess
+              Action:
+                - 's3:PutObject'
+              Effect: Allow
+              Resource:
+                - 'Fn::Join':
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - Ref: FileUploadBucket
+                      - /
+                      - '${aws:userid}'
+                      - /*
+              Principal:
+                AWS:
+                  'Fn::GetAtt':
+                    - IotClientRole
+                    - Arn
     EventsTable:
       Type: 'AWS::DynamoDB::Table'
       Description: source of truth
@@ -679,20 +707,6 @@ resources:
                     - 'iot:Receive'
                   Resource:
                     - '*'
-                - Effect: Allow
-                  Action:
-                    - 's3:PutObject'
-                  Condition:
-                    Bool:
-                      'aws:SecureTransport': true
-                  Resource:
-                    - 'Fn::Join':
-                        - ''
-                        - - 'arn:aws:s3:::'
-                          - Ref: FileUploadBucket
-                          - /
-                          - '${aws:userid}'
-                          - /*
     AutoScalingRole:
       Type: 'AWS::IAM::Role'
       Description: role for autoscaling resources
@@ -740,6 +754,9 @@ resources:
       Description: file upload destination for all users
       Value:
         Ref: FileUploadBucket
+    FileUploadBucketPolicy:
+      Value:
+        Ref: FileUploadBucketPolicy
     EventsTable:
       Description: source of truth
       Value:
