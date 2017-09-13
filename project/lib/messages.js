@@ -440,22 +440,30 @@ const assertTimestampIncreased = co(function* (message) {
 const parseInbound = co(function* (message) {
   // TODO: uncomment below, check that message is for us
   // yield ensureMessageIsForMe({ message })
+  const min = message
+
+  // prereq to running validation
+  yield Objects.resolveEmbeds(message)
 
   Objects.addMetadata(message)
   Objects.addMetadata(message.object)
+
+  setVirtual(min, pickVirtual(message))
+  setVirtual(min.object, pickVirtual(message.object))
+  message = min
 
   // TODO:
   // would be nice to parallelize some of these
   // yield assertNotDuplicate(messageWrapper.link)
 
-  const addMessageAuthor = Identities.addAuthorMetadata(message)
+  const addMessageAuthor = Identities.addAuthorInfo(message)
   let addPayloadAuthor
   if (message.object._sigPubKey === message._sigPubKey) {
     addPayloadAuthor = addMessageAuthor.then(() => {
       setVirtual(message.object, { _author: message._author })
     })
   } else {
-    addPayloadAuthor = Identities.addAuthorMetadata(message.object)
+    addPayloadAuthor = Identities.addAuthorInfo(message.object)
   }
 
   yield [
@@ -525,6 +533,11 @@ const stripData = function stripData (message) {
   })
 }
 
+function prepareForDelivery (messages) {
+  [].concat(messages).forEach(message => Objects.presignUrls(message))
+  return messages
+}
+
 // enable overriding during testing
 const Messages = module.exports = {
   messageFromEventPayload,
@@ -547,7 +560,8 @@ const Messages = module.exports = {
   getPropsDerivedFromLast,
   // getNextSeqAndPREV_TO_RECIPIENT,
   assertTimestampIncreased,
-  stripData
+  stripData,
+  prepareForDelivery
   // assertNoDrift,
   // assertNotDuplicate
   // receiveMessage

@@ -12,9 +12,11 @@ const tradleUtils = require('@tradle/engine').utils
 const createProductsStrategy = require('@tradle/bot-products')
 const createEmployeeManager = require('@tradle/bot-employee-manager')
 const genSample = require('@tradle/gen-samples').fake
+const { replaceDataUrls } = require('@tradle/embed')
+// const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
 const tradle = require('../')
-const { utils, crypto, aws, buckets, resources, provider } = tradle
-const { extend, clone, omit, batchify } = utils
+const { utils, crypto, aws, buckets, resources, provider, objects, s3Utils } = tradle
+const { extend, clone, pick, omit, batchify } = utils
 const { ensureInitialized } = require('../lib/init')
 const botFixture = require('./fixtures/bot')
 const userIdentities = require('./fixtures/users-pem')
@@ -26,13 +28,19 @@ const nextUserIdentity = (function () {
   }
 }())
 
+const credentials = (function () {
+  const { credentials } = aws.AWS.config
+  return pick(credentials, ['accessKeyId', 'secretAccessKey'])
+}())
+
+const s3Host = s3Utils.host
 const createBot = require('../lib/bot')
 const baseModels = require('../lib/bot/base-models')
 const defaultModels = mergeModels()
   .add(baseModels)
   .get()
 
-const defaultProducts = ['tradle.CurrentAccount']
+const defaultProducts = ['nl.tradle.DigitalPassport']
 // const users = [require('../../test/fixtures/user')]
 
 let uCounter = 0
@@ -46,10 +54,16 @@ let uCounter = 0
 // }
 
 const endToEndTest = co(function* (opts={}) {
-  const { approve=true } = opts
-  const { bot, productsAPI, employeeManager } = createProductsBot({
-    products: ['tradle.CurrentAccount']
-  })
+  const {
+    approve=true,
+    products=defaultProducts
+  } = opts
+
+  const {
+    bot,
+    productsAPI,
+    employeeManager
+  } = createProductsBot({ products })
 
   bot.ready()
 
@@ -98,21 +112,18 @@ const endToEndTest = co(function* (opts={}) {
     if (message.context) context = message.context
 
     const payload = message.object
-    const type = payload[TYPE]
-    // console.log('EMPLOYEE RECEIVED', type, 'from customer')
-    if (productsAPI.models.all[type].subClassOf === 'tradle.Form') {
-      yield bot.addressBook.addAuthor(message)
-      // employee.send({
-      //   object: {
-      //     [TYPE]: 'tradle.SimpleMessage',
-      //     message: `got ${type}!`
-      //   },
-      //   other: {
-      //     forward: message._author,
-      //     context: message.context
-      //   }
-      // })
-    }
+
+    // pre-signed urls don't work in localstack yet
+    // so resolve with root credentials
+    // if (payload[TYPE] === 'tradle.PhotoID') debugger
+
+    yield objects.resolveEmbeds(payload)
+
+    // console.log('EMPLOYEE RECEIVED', JSON.stringify(payload, null, 2))
+    // const type = payload[TYPE]
+    // if (productsAPI.models.all[type].subClassOf === 'tradle.Form') {
+    //   yield bot.addressBook.addAuthorInfo(message)
+    // }
   }))
 
   yield runThroughApplication({
@@ -121,7 +132,7 @@ const endToEndTest = co(function* (opts={}) {
     user: customer,
     employeeToAssign: employee,
     // awaitCertificate: true,
-    product: 'tradle.CurrentAccount'
+    product: products[0]
   })
 
   const application = yield getApplicationByContext({ productsAPI, context })
@@ -396,7 +407,8 @@ User.prototype._debug = function (...args) {
 User.prototype.send = co(function* ({ object, other }) {
   this._debug('sending', object[TYPE])
   const message = yield this._createMessage({ object, other })
-  return yield this.bot.trigger('message', message)
+  return yield this.bot.process.message.handler(message)
+  // return yield this.bot.trigger('message', message)
 })
 
 User.prototype._createMessage = co(function* ({ object, other={} }) {
@@ -416,6 +428,30 @@ User.prototype._createMessage = co(function* ({ object, other={} }) {
   const signMessage = this.sign(unsigned)
   const [message] = yield [signMessage, savePayload]
   message.object = object // with virtual props
+  const replacements = replaceDataUrls({
+    host: s3Host,
+    // region,
+    object,
+    bucket: buckets.FileUpload.name,
+    keyPrefix: `test-${this.permalink}`
+  })
+
+  if (replacements.length) {
+    yield replacements.map(({ key, bucket, body, mimetype }) => {
+      return s3Utils.put({ key, bucket, value: body, contentType: mimetype })
+    })
+
+    debug('uploaded embedded media')
+  }
+
+  // const uploaded = yield extractAndUploadEmbeds({
+  //   host: s3Host,
+  //   object,
+  //   credentials,
+  //   bucket: buckets.FileUpload.name,
+  //   keyPrefix: `test-${this.permalink}`
+  // })
+
   return message
 })
 

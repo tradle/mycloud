@@ -168,7 +168,7 @@ const handleChallengeResponse = co(function* (response) {
 
   // validate sig
   Objects.addMetadata(response)
-  yield Identities.addAuthorMetadata(response)
+  yield Identities.addAuthorInfo(response)
 
   // console.log(`claimed: ${permalink}, actual: ${response._author}`)
   if (response._author !== permalink) {

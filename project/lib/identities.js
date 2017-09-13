@@ -147,7 +147,7 @@ function putPubKey ({ link, permalink, pub }) {
  * @param {String} object._sigPubKey author sigPubKey
  * @yield {[type]} [description]
  */
-const addAuthorMetadata = co(function* (object) {
+const addAuthorInfo = co(function* (object) {
   if (!object._sigPubKey) {
     Objects.addMetadata(object)
   }
@@ -202,5 +202,5 @@ const Identities = module.exports = logify({
   addContact,
   validateNewContact,
   validateAndAdd,
-  addAuthorMetadata
+  addAuthorInfo
 })

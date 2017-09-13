@@ -175,3 +175,23 @@ npm run reset:local # delete + regen local dbs, buckets, etc.
 ```
 
 If `gen:localresources` fails, you may need to first run `npm run package` to generate the cloudformation files which `gen:localresources` to generate local resources.
+
+### Scripts
+
+#### npm run reset:local
+
+delete and recreate up local resources (tables, buckets, etc)
+
+#### npm run deploy:safe
+
+lint, run tests, and only then deploy
+
+#### npm run test:e2e
+
+run an end-to-end simulated interaction between a bot, customer, and employee. This is useful for later exploration of the data created in graphql (`npm run test:graphqlserver`)
+
+#### npm run test:graphqlserver
+
+start up two UIs for browsing local data:
+- a DynamoDB Admin interface
+- GraphiQL

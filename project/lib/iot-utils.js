@@ -19,7 +19,7 @@ function publish (params) {
 }
 
 function sendMessages ({ clientId, payload }) {
-  return publish({
+  return Iot.publish({
     topic: getMessagesTopicForClient(clientId),
     payload
   })
@@ -71,7 +71,7 @@ const getEndpoint = co(function* () {
 //   return partial.substring(iotIndex + 4);
 // }
 
-module.exports = {
+const Iot = module.exports = {
   publish,
   sendMessages,
   // sendChallenge,

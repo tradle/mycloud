@@ -44,7 +44,7 @@ const binaryMimeTypes = [
 ]
 
 module.exports = function setup (opts) {
-  const { models, objects, tables } = opts
+  const { models, objects, messages, tables, presignUrls } = opts
   const app = express()
   app.use(compression())
   app.use(cors())
@@ -69,7 +69,12 @@ module.exports = function setup (opts) {
     awsServerlessExpress.proxy(server, event, context)
   }
 
-  const resolvers = createResolvers({ objects, models, tables })
+  const _resolvers = createResolvers({ objects, models, tables })
+  const resolvers = {
+    get: wrapWithPrepare(_resolvers.get),
+    list: wrapWithPrepare(_resolvers.list),
+    upadte: _resolvers.update
+  }
 
   // be lazy
   let schema
@@ -94,5 +99,14 @@ module.exports = function setup (opts) {
     resolvers,
     executeQuery,
     handleHTTPRequest
+  }
+
+  function wrapWithPrepare (fn) {
+    return co(function* (...args) {
+      const result = yield fn.call(this, ...args)
+      messages.prepareForDelivery(result)
+      // ;[].concat(result).forEach(presignUrls)
+      return result
+    })
   }
 }

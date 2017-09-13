@@ -62,18 +62,24 @@ const signObject = co(function* ({ author, object }) {
   return signed
 })
 
-const findOrCreate = co(function* ({ object, author }) {
-  if (object) {
-    if (object[SIG]) {
-      return Objects.addMetadata(object)
-    }
-
-    const result = yield signObject({ author, object })
-    yield Objects.putObject(result)
-    return result
+const findOrCreate = co(function* ({ link, object, author }) {
+  if (!object) {
+    return getObjectByLink(link)
   }
 
-  return getObjectByLink(getLink(object))
+  let willPut
+  if (!object[SIG]) {
+    willPut = true
+    object = yield signObject({ author, object })
+  }
+
+  yield Objects.replaceEmbeds(object)
+  if (willPut) {
+    yield Objects.putObject(object)
+  }
+
+  Objects.addMetadata(object)
+  return object
 })
 
 const _createSendMessageEvent = co(function* (opts) {
@@ -86,7 +92,7 @@ const _createSendMessageEvent = co(function* (opts) {
   }, opts)
 
   // run in parallel
-  const promisePayload = findOrCreate({ object, author })
+  const promisePayload = findOrCreate({ link, object, author })
   const promisePrev = Messages.getLastSeqAndLink({ recipient })
   const promiseRecipient = Identities.getIdentityByPermalink(recipient)
   const [payload, recipientObj] = yield [
@@ -155,6 +161,7 @@ const createSendMessageEvent = co(function* (opts) {
 
 const createReceiveMessageEvent = co(function* ({ message }) {
   message = yield Messages.parseInbound(message)
+  // TODO: phase this out
   yield Objects.putObject(message.object)
 
   // if (objectWrapper.type === IDENTITY && messageWrapper.sigPubKey === objectWrapper.sigPubKey) {

@@ -7,10 +7,19 @@ AWS.config.paramValidation = false
 const test = require('tape')
 const pify = require('pify')
 const ecdsa = require('nkey-ecdsa')
+const sinon = require('sinon')
 const tradle = require('@tradle/engine')
 const { newIdentity } = tradle.utils
 const wrap = require('../lib/wrap')
-const { extractSigPubKey, exportKeys, getSigningKey, sign, getLink, withLinks } = require('../lib/crypto')
+const {
+  extractSigPubKey,
+  exportKeys,
+  getSigningKey,
+  sign,
+  getLink,
+  withLinks
+} = require('../lib/crypto')
+
 const { loudCo, omit, clone, co, typeforce, pickVirtual, omitVirtual } = require('../lib/utils')
 const Objects = require('../lib/objects')
 const { createSendMessageEvent, createReceiveMessageEvent } = require('../lib/provider')
@@ -33,6 +42,8 @@ const fromBobToAlice = require('./fixtures/alice/receive.json')
 
 const fromAliceToBob = require('./fixtures/bob/receive.json')
   .map(Messages.normalizeInbound)
+
+const promiseNoop = () => Promise.resolve()
 
 const [alice, bob] = ['alice', 'bob'].map(name => {
   const identity = require(`./fixtures/${name}/identity`)
@@ -69,30 +80,31 @@ test('extract pub key', function (t) {
 test('createSendMessageEvent', loudCo(function* (t) {
   // t.plan(3)
 
-  const { putObject } = Objects
-  const { putEvent } = Events
-  const { getIdentityByPermalink } = Identities
-  const { getLastSeqAndLink, putMessage } = Messages
   const payload = {
     [TYPE]: 'tradle.SimpleMessage',
-    message: 'hey bob'
+    message: 'hey bob',
+    // embed: 'data:image/jpeg;base64,somebase64'
   }
 
-  Identities.getIdentityByPermalink = mocks.getIdentityByPermalink
+  const stub = stubber()
+  stub(Identities, 'getIdentityByPermalink', mocks.getIdentityByPermalink)
 
   let nextSeq = 0
   let prevMsgLink = 'abc'
-  Messages.getLastSeqAndLink = () => Promise.resolve({
-    seq: nextSeq - 1,
-    link: prevMsgLink
-  })
+  const stubLastSeqAndLink = sinon.stub(Messages, 'getLastSeqAndLink')
+    .callsFake(() => Promise.resolve({
+      seq: nextSeq - 1,
+      link: prevMsgLink
+    }))
 
-  Objects.putObject = function (object) {
+  const stubPutObject = stub(Objects, 'putObject', function (object) {
     t.ok(object[SIG])
     payload[SIG] = object[SIG]
     t.same(omitVirtual(object), payload)
     return Promise.resolve()
-  }
+  })
+
+  const stubReplaceEmbeds = stub(Objects, 'replaceEmbeds', promiseNoop)
 
   // Events.putEvent = function (event) {
   //   t.equal(event.topic, 'send')
@@ -101,7 +113,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
   // }
 
   let stoleSeq
-  Messages.putMessage = co(function* (message) {
+  const stubPutMessage = stub(Messages, 'putMessage', co(function* (message) {
     typeforce(types.message, message)
     t.notOk(message._inbound)
     t.equal(message[SEQ], nextSeq)
@@ -115,7 +127,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
     }
 
     t.end()
-  })
+  }))
 
   const event = yield createSendMessageEvent({
     time: Date.now(),
@@ -124,10 +136,12 @@ test('createSendMessageEvent', loudCo(function* (t) {
     object: payload
   })
 
-  Messages.getLastSeqAndLink = getLastSeqAndLink
-  Messages.putMessage = putMessage
-  Identities.getIdentityByPermalink = getIdentityByPermalink
-  Objects.putObject = putObject
+  t.equal(stubPutObject.callCount, 1)
+  t.equal(stubReplaceEmbeds.callCount, 1)
+  t.equal(stubPutMessage.callCount, 2)
+  t.equal(stubLastSeqAndLink.callCount, 2)
+  stub.restore()
+
   // Events.putEvent = putEvent
 
   // TODO: compare
@@ -136,46 +150,44 @@ test('createSendMessageEvent', loudCo(function* (t) {
 }))
 
 test('createReceiveMessageEvent', loudCo(function* (t) {
-  t.plan(3)
-
   const message = fromBobToAlice[0]
-  const { putObject } = Objects
-  const { getIdentityByPermalink, getIdentityMetadataByPub } = Identities
-  const {
-    getInboundByLink,
-    putMessage,
-    assertTimestampIncreased
-  } = Messages
+  const stub = stubber()
+  const stubGetIdentity = stub(
+    Identities,
+    'getIdentityMetadataByPub',
+    mocks.getIdentityMetadataByPub
+  )
 
-  Identities.getIdentityMetadataByPub = mocks.getIdentityMetadataByPub
-  Objects.putObject = function (object) {
+  const stubPutObject = stub(Objects, 'putObject', function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
     return Promise.resolve()
-  }
+  })
 
-  Messages.assertTimestampIncreased = co(function* () {})
+  const stubTimestampInc = stub(
+    Messages,
+    'assertTimestampIncreased',
+    promiseNoop
+  )
 
-  Messages.getInboundByLink = function (link) {
+  const stubGetInbound = stub(Messages, 'getInboundByLink', function (link) {
     throw new Errors.NotFound()
-  }
+  })
 
-  Messages.putMessage = function (message) {
+  const stubPutMessage = stub(Messages, 'putMessage', function (message) {
     t.equal(message._inbound, true)
     typeforce(types.message, message)
     // console.log(event)
     return Promise.resolve()
-  }
+  })
 
   yield createReceiveMessageEvent({ message })
-
-  Identities.getIdentityMetadataByPub = getIdentityMetadataByPub
-  // Identities.getIdentityByPermalink = getIdentityByPermalink
-  Objects.putObject = putObject
-  Messages.putMessage = putMessage
-  Messages.getInboundByLink = getInboundByLink
-  Messages.assertTimestampIncreased = assertTimestampIncreased
-
+  t.equal(stubPutMessage.callCount, 1)
+  t.equal(stubPutObject.callCount, 1)
+  t.equal(stubGetIdentity.callCount, 2)
+  t.equal(stubGetInbound.callCount, 0)
+  t.equal(stubTimestampInc.callCount, 1)
+  stub.restore()
   // TODO: compare
 
   t.end()
@@ -326,4 +338,16 @@ const mocks = {
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
   })
+}
+
+function stubber () {
+  const stubs = []
+  const stub = (obj, prop, fn) => {
+    const thisStub = sinon.stub(obj, prop).callsFake(fn)
+    stubs.push(thisStub)
+    return thisStub
+  }
+
+  stub.restore = () => stubs.forEach(stub => stub.restore())
+  return stub
 }

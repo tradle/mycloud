@@ -139,6 +139,14 @@ function createBot (opts={}) {
     return yield send(opts)
   })
 
+  bot.resolveEmbeds = bot.objects.resolveEmbeds
+  bot.presignUrls = bot.objects.presignUrls
+  // bot.resolvePresignedUrls = bot.objects.presignUrls
+
+  // bot.loadEmbeddedResource = function (url) {
+  //   return uploads.get(url)
+  // }
+
   bot.createNextVersion = co(function* ({ resource, previous }) {
     buildResource.previous(previous)
     resource = yield bot.sign(resource)

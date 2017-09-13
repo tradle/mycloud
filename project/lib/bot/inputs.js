@@ -18,7 +18,7 @@ module.exports = function createBotInputs ({
   models=baseModels,
   tradle=defaultTradleInstance
 }) {
-  const { provider, seals, identities, objects, aws } = tradle
+  const { provider, seals, identities, objects, messages, aws } = tradle
   const { docClient } = aws
 
   models = mergeModels()
@@ -39,7 +39,9 @@ module.exports = function createBotInputs ({
     objects,
     models,
     tables: db.tables,
-    prefix: SERVERLESS_PREFIX
+    prefix: SERVERLESS_PREFIX,
+    messages,
+    presignUrls: objects.presignUrls
   })
 
   const seal = co(function* ({ link }) {
@@ -61,11 +63,14 @@ module.exports = function createBotInputs ({
       byPermalink: identities.getIdentityByPermalink,
       byPub: identities.getIdentityByPub,
       byPubMini: identities.getIdentityMetadataByPub,
-      addAuthor: identities.addAuthorMetadata,
+      addAuthorInfo: identities.addAuthorInfo,
       addContact: identities.validateAndAdd
     },
     objects: {
-      get: objects.getObjectByLink
+      get: objects.getObjectByLink,
+      getEmbeds: objects.getEmbeds,
+      resolveEmbeds: objects.resolveEmbeds,
+      presignUrls: objects.presignUrls
     },
     seals,
     seal,

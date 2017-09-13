@@ -1,3 +1,4 @@
+const parseUrl = require('url').parse
 const debug = require('debug')('tradle:sls:s3-utils')
 const aws = require('./aws')
 const { logify } = require('./utils')
@@ -5,13 +6,19 @@ const { DEV } = require('./env')
 const Errors = require('./errors')
 const Resources = require('./resources')
 
-function put ({ key, value, bucket }) {
+function put ({ key, value, bucket, contentType }) {
   // debug(`putting ${key} -> ${value} into Bucket ${bucket}`)
-  return aws.s3.putObject({
+  const opts = {
     Bucket: bucket,
     Key: key,
     Body: value
-  }).promise()
+  }
+
+  if (contentType) {
+    opts.ContentType = contentType
+  }
+
+  return aws.s3.putObject(opts).promise()
 }
 
 function get ({ key, bucket }) {
@@ -80,6 +87,15 @@ function getBucket (bucket) {
   return logified
 }
 
+const host = parseUrl(aws.AWS.config.s3.endpoint).host
+
+function createPresignedUrl ({ bucket, key }) {
+  return aws.s3.getSignedUrl('getObject', {
+    Bucket: bucket,
+    Key: key
+  })
+}
+
 module.exports = {
   getBucket,
   get,
@@ -88,5 +104,7 @@ module.exports = {
   putJSON,
   head,
   del,
-  exists
+  exists,
+  host,
+  createPresignedUrl
 }

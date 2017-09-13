@@ -7,11 +7,14 @@ const omit = require('object.omit')
 const pick = require('object.pick')
 const clone = require('xtend')
 const extend = require('xtend/mutable')
+const traverse = require('traverse')
+const dotProp = require('dot-prop')
 const uuid = require('uuid')
 const co = require('co').wrap
 const promisify = require('pify')
 const allSettled = require('settle-promise').settle
 const isGenerator = require('is-generator-function')
+const DataURI = require('strong-data-uri')
 const buildResource = require('@tradle/build-resource')
 const { prettify, stableStringify } = require('./string-utils')
 const { SIG, TYPE, TYPES } = require('./constants')
@@ -26,6 +29,8 @@ const utils = exports
 
 exports.clone = clone
 exports.extend = extend
+exports.traverse = traverse
+exports.dotProp = dotProp
 exports.co = co
 exports.omit = omit
 exports.pick = pick
@@ -37,6 +42,8 @@ exports.allSettled = allSettled
 exports.setVirtual = buildResource.setVirtual
 exports.omitVirtual = buildResource.omitVirtual
 exports.pickVirtual = buildResource.pickVirtual
+exports.encodeDataURI = DataURI.encode
+exports.decodeDataURI = DataURI.decode
 
 exports.loudCo = function loudCo (gen) {
   return co(function* (...args) {
