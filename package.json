@@ -71,7 +71,7 @@
     "gen:localresources": "./scripts/gen-local-resources.js",
     "reset:local": "npm run localstack:restart && sleep 4 && npm run gen:localresources",
     "lint": "eslint --quiet --ignore-path .gitignore .",
-    "test": "tap `git ls-files project/test/*.test.js`",
+    "test": "cd project && npm test",
     "test:e2e": "DEBUG=@tradle/bot* node scripts/end-to-end-test.js",
     "test:graphqlserver": "node ./scripts/graphql-server",
     "deploy:local": "npm run lint && npm run compile-template && SLS_DEBUG=* IS_LOCAL=1 serverless deploy",
