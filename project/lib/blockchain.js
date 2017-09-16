@@ -40,7 +40,7 @@ function createWrapper (blockchainIdentifier) {
   }
 
   const wrapInStartStop = function wrapInStartStop (fn) {
-    return co(function* () {
+    return co(function* (...args) {
       start()
       try {
         return yield fn(...args)
@@ -75,8 +75,7 @@ function createWrapper (blockchainIdentifier) {
   //   return getTxsForAddresses(addresses)
   // })
 
-  const seal = co(function* ({ key, link, addresses }) {
-    const writer = getWriter(key)
+  const _seal = wrapInStartStop(co(function* ({ writer, link, addresses }) {
     return yield writer.send({
       to: addresses.map(address => {
         return {
@@ -85,11 +84,14 @@ function createWrapper (blockchainIdentifier) {
         }
       })
     })
-  })
+  }))
 
-  const getTransactionAmount = function getTransactionAmount () {
-    return network.minOutputAmount
+  const seal = function seal ({ key, link, addresses }) {
+    const writer = getWriter(key)
+    return _seal({ writer, link, addresses })
   }
+
+  const getTransactionAmount = () => network.minOutputAmount
 
   const sealPubKey = function sealPubKey ({ link, basePubKey }) {
     link = utils.linkToBuf(link)

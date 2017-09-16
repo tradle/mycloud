@@ -15,7 +15,7 @@ module.exports = function getNetworkAdapters ({ networkName='ropsten', privateKe
     networkName,
     privateKey,
     pollingInterval: 20000,
-    // etherscan: true,
+    etherscan: true,
     autostart: false
   })
 

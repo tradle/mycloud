@@ -17,8 +17,8 @@ const SealsTableLogicalId = 'SealsTable'
 const createTradle = require('../').new
 
 const blockchainOpts = {
-  flavor: 'bitcoin',
-  networkName: 'testnet'
+  flavor: 'ethereum',
+  networkName: 'ropsten'
 }
 
 test('queue seal', co(function* (t) {
@@ -94,7 +94,7 @@ test('queue seal', co(function* (t) {
   // t.equal(read, true)
   // t.equal(wrote, true)
 
-  // yield blockchain.close()
+  // yield blockchain.stop()
   stubSeal.restore()
   stubGetTxs.restore()
   t.end()

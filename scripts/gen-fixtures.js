@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+require = require('./require')
+
 const fs = require('fs')
 const path = require('path')
 const mkdirp = require('mkdirp')
@@ -9,7 +11,7 @@ const { utils } = require('@tradle/engine')
 const contexts = require('@tradle/engine/test/contexts')
 const helpers = require('@tradle/engine/test/helpers')
 const { setVirtual } = require('@tradle/validate-resource').utils
-const { exportKeys } = require('../project/lib/crypto')
+const { exportKeys } = require('./lib/crypto')
 
 // const writeFile = function (relPath, data) {
 //   return new Promise((resolve, reject) => {
