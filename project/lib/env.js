@@ -36,7 +36,7 @@ env.RESOURCES_ENV_PATH = `/tmp/serverless/${SERVERLESS_SERVICE}/env.${SERVERLESS
 // }
 
 env.BLOCKCHAIN = (function () {
-  const { BLOCKCHAIN='bitcoin:testnet' } = env
+  const { BLOCKCHAIN='ethereum:ropsten' } = env
   const [flavor, networkName] = BLOCKCHAIN.split(':')
   return {
     flavor,

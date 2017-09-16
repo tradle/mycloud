@@ -163,7 +163,7 @@ function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
     if (!unconfirmed.length) return
 
     const addresses = unconfirmed.map(({ address }) => address)
-    const txInfos = yield blockchain.getTransactionsForAddresses(addresses)
+    const txInfos = yield blockchain.getTxsForAddresses(addresses)
     if (!txInfos.length) return
 
     const addrToSeal = {}

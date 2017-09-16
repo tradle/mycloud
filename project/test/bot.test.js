@@ -1,3 +1,7 @@
+// console.log = console.warn = console.error = console.info = function () {
+//   debugger
+// }
+
 require('./env')
 
 const test = require('tape')
@@ -7,7 +11,7 @@ const createRealBot = require('../lib/bot')
 const createFakeBot = require('./mock/bot')
 // const messages = require('../lib/messages')
 const { co, loudCo, pick, wait } = Tradle.utils
-const { toStreamItems, shallowExend } = require('./utils')
+const { toStreamItems, shallowExend, recreateTable } = require('./utils')
 const Errors = require('../lib/errors')
 // const seals = require('../lib/seals')
 const aliceKeys = require('./fixtures/alice/keys')
@@ -15,6 +19,7 @@ const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
 const schema = require('../conf/table/users').Properties
 const apiGatewayEvent = require('./fixtures/events/api-gateway')
+const UsersTableLogicalId = 'UsersTable'
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
@@ -47,6 +52,10 @@ const apiGatewayEvent = require('./fixtures/events/api-gateway')
   }))
 
   test(`users (${mode})`, loudCo(function* (t) {
+    if (mode === 'real') {
+      yield recreateTable(UsersTableLogicalId)
+    }
+
     const bot = createBot.fromEngine({})
     const { users } = bot
     // const user : Object = {

@@ -39,12 +39,23 @@ function createWrapper (blockchainIdentifier) {
     return writerCache[pub]
   }
 
-  const getBlockHeight = co(function* () {
+  const wrapInStartStop = function wrapInStartStop (fn) {
+    return co(function* () {
+      start()
+      try {
+        return yield fn(...args)
+      } finally {
+        stop()
+      }
+    })
+  }
+
+  const getBlockHeight = wrapInStartStop(co(function* () {
     const { blockHeight } = yield getInfo()
     return blockHeight
-  })
+  }))
 
-  const getTransactionsForAddresses = co(function* (addresses, blockHeight) {
+  const getTxsForAddresses = wrapInStartStop(co(function* (addresses, blockHeight) {
     if (typeof blockHeight !== 'number') {
       blockHeight = yield getBlockHeight()
     }
@@ -58,10 +69,10 @@ function createWrapper (blockchainIdentifier) {
 
     debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
     return txInfos
-  })
+  }))
 
   // const sync = co(function* (addresses) {
-  //   return getTransactionsForAddresses(addresses)
+  //   return getTxsForAddresses(addresses)
   // })
 
   const seal = co(function* ({ key, link, addresses }) {
@@ -102,13 +113,29 @@ function createWrapper (blockchainIdentifier) {
     return network.pubKeyToAddress(pub)
   }
 
+  const startOrStop = co(function* startOrStop (method) {
+    Object.keys(writerCache)
+      .map(key => writerCache[key])
+      .concat(reader)
+      .forEach(client => {
+        if (client[method]) {
+          client[method]()
+        }
+      })
+  })
+
+  const start = startOrStop.bind(null, 'start')
+  const stop = startOrStop.bind(null, 'stop')
+
   return {
+    stop,
+    start,
     pubKeyToAddress: network.pubKeyToAddress,
     flavor,
     networkName,
     // sync,
     seal,
-    getTransactionsForAddresses,
+    getTxsForAddresses,
     sealPubKey,
     sealPrevPubKey,
     sealAddress,

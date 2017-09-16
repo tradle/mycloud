@@ -1,9 +1,29 @@
+require('./env')
+
 const { co } = require('../lib/utils')
 const { getTable, marshalDBItem } = require('../lib/db-utils')
 const Errors = require('../lib/errors')
 
+function getSchema (logicalName) {
+  const {
+    Resources
+  } = require('./stack')
+
+  const { Type, Properties } = Resources[logicalName]
+  if (Type === 'AWS::DynamoDB::Table' && Properties.StreamSpecification) {
+    // for localstack
+    Properties.StreamSpecification.StreamEnabled = true
+  }
+
+  return Properties
+}
+
 const recreateTable = co(function* (schema) {
-  const table = getTable(schema.TableName + 'Test')
+  if (typeof schema === 'string') {
+    schema = getSchema(schema)
+  }
+
+  const table = getTable(schema.TableName)
   try {
     yield table.destroy()
   } catch (err) {}
@@ -56,6 +76,7 @@ function scanner (map) {
 }
 
 module.exports = {
+  getSchema,
   recreateTable,
   toStreamItems,
   getter,
