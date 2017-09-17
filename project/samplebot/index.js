@@ -14,7 +14,8 @@ const TYPE = '_t'
 const DEPLOYMENT = 'io.tradle.Deployment'
 const {
   // PRODUCTS=DEPLOYMENT,
-  PRODUCTS='tradle.CRSSelection,tradle.CoverholderApproval,tradle.MortgageProduct',
+  // PRODUCTS='tradle.CRSSelection,tradle.CoverholderApproval,tradle.MortgageProduct',
+  PRODUCTS='nl.tradle.DigitalPassport',
   ORG_DOMAIN
 } = process.env
 

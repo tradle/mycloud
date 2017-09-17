@@ -5,6 +5,7 @@ const { logify } = require('./utils')
 const { DEV } = require('./env')
 const Errors = require('./errors')
 const Resources = require('./resources')
+const { host } = aws.s3.endpoint
 
 function put ({ key, value, bucket, contentType }) {
   // debug(`putting ${key} -> ${value} into Bucket ${bucket}`)
@@ -86,8 +87,6 @@ function getBucket (bucket) {
   logified.toString = () => bucket
   return logified
 }
-
-const host = parseUrl(aws.AWS.config.s3.endpoint).host
 
 function createPresignedUrl ({ bucket, key }) {
   return aws.s3.getSignedUrl('getObject', {

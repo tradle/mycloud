@@ -1,5 +1,5 @@
 const { SIG } = require('@tradle/constants')
-const { getLink } = require('../crypto')
+const buildResource = require('@tradle/build-resource')
 
 module.exports = {
   getMessagePayload
@@ -10,6 +10,6 @@ function getMessagePayload ({ bot, message }) {
     return Promise.resolve(message.object)
   }
 
-  return bot.objects.get(getLink(message.object))
+  return bot.objects.get(buildResource.link(message.object))
 }
 

@@ -6,8 +6,8 @@ const { SEQ } = require('../../constants')
 const { timestamp } = require('../../utils')
 
 exports.handler = wrap(function* (event, context) {
-  debug('[START]', timestamp(), prettify(event))
   // the user sent us a message
+  debug('[START]', timestamp())
   const { clientId, data } = event
   const message = new Buffer(data.data, 'base64')
   yield user.onSentMessage({ clientId, message })

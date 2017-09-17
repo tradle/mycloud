@@ -5,8 +5,9 @@ const deepEqual = require('deep-equal')
 const omit = require('object.omit')
 const clone = require('xtend')
 const tradleUtils = require('@tradle/engine').utils
-const { getLink, addLinks } = require('./crypto')
-const { omitVirtual, setVirtual } = require('./utils')
+const { crypto, utils, networks } = require('./')
+const { getLink, addLinks } = crypto
+const { omitVirtual, setVirtual } = utils
 const {
   ORG_NAME,
   ORG_DOMAIN,
@@ -99,9 +100,7 @@ const createProvider = co(function* ({ name, domain, logo }) {
     }
   }
 
-  const priv = yield createIdentity({
-    networkName: BLOCKCHAIN.networkName
-  })
+  const priv = yield createIdentity(getIdentitySpecs({ networks }))
 
   debug('created identity', JSON.stringify(priv))
   const pub = priv.identity
@@ -225,9 +224,26 @@ function getOrgObj ({ name, logo }) {
   })
 }
 
+function getIdentitySpecs ({ networks }) {
+  const nets = {}
+  for (let flavor in networks) {
+    if (!nets[flavor]) {
+      nets[flavor] = []
+    }
+
+    let constants = networks[flavor]
+    for (let networkName in constants) {
+      nets[flavor].push(networkName)
+    }
+  }
+
+  return { networks: nets }
+}
+
 module.exports = {
   ensureInitialized,
   init,
   push,
-  clear
+  clear,
+  getIdentitySpecs
 }

@@ -106,8 +106,7 @@ function createBot (opts={}) {
         to: typeforce.oneOf(typeforce.String, typeforce.Object),
         object: typeforce.oneOf(
           types.unsignedObject,
-          types.signedObject,
-          typeforce.String
+          types.signedObject
         ),
         other: typeforce.maybe(typeforce.Object)
       }, opts)

@@ -104,7 +104,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
     return Promise.resolve()
   })
 
-  const stubReplaceEmbeds = stub(Objects, 'replaceEmbeds', promiseNoop)
+  // const stubReplaceEmbeds = stub(Objects, 'replaceEmbeds', promiseNoop)
 
   // Events.putEvent = function (event) {
   //   t.equal(event.topic, 'send')
@@ -137,7 +137,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
   })
 
   t.equal(stubPutObject.callCount, 1)
-  t.equal(stubReplaceEmbeds.callCount, 1)
+  // t.equal(stubReplaceEmbeds.callCount, 1)
   t.equal(stubPutMessage.callCount, 2)
   t.equal(stubLastSeqAndLink.callCount, 2)
   stub.restore()

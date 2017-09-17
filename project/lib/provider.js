@@ -73,7 +73,6 @@ const findOrCreate = co(function* ({ link, object, author }) {
     object = yield signObject({ author, object })
   }
 
-  yield Objects.replaceEmbeds(object)
   if (willPut) {
     yield Objects.putObject(object)
   }

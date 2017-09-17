@@ -10,6 +10,7 @@ const { TYPE, TYPES, PERMALINK, SEQ } = require('./constants')
 const { MESSAGE } = TYPES
 const {
   omit,
+  deepClone,
   typeforce,
   omitVirtual,
   setVirtual,
@@ -21,10 +22,12 @@ const { extractSigPubKey, hexLink, getLinks, addLinks } = require('./crypto')
 const s3Utils = require('./s3-utils')
 const { get, put, createPresignedUrl } = s3Utils
 const Buckets = require('./buckets')
+const FileUploadBucket = Buckets.FileUpload
 const getLink = hexLink
 
 const replaceEmbeds = co(function* (object) {
   const replacements = replaceDataUrls({
+    bucket: FileUploadBucket.name,
     object,
     host: s3Utils.host
   })
@@ -74,12 +77,14 @@ function getObjectByLink (link) {
   return Buckets.Objects.getJSON(link)
 }
 
-function putObject (object) {
+const putObject = co(function* (object) {
   typeforce(types.signedObject, object)
   addMetadata(object)
+  object = deepClone(object)
+  yield Objects.replaceEmbeds(object)
   debug('putting', object._link)
   return Buckets.Objects.putJSON(object._link, object)
-}
+})
 
 function prefetchByLink (link) {
   // prime cache
@@ -100,7 +105,7 @@ function presignUrlsInObject (object) {
   })
 }
 
-module.exports = {
+const Objects = module.exports = {
   getObjectByLink,
   prefetchByLink,
   // getObjectByPermalink,

@@ -3,6 +3,7 @@ const adapters = require('./blockchain-adapter')
 const networks = module.exports = {
   bitcoin: {
     testnet: {},
+    // bitcoinjs-lib's name for it
     bitcoin: {}
   },
   ethereum: {
