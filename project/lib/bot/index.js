@@ -139,8 +139,7 @@ function createBot (opts={}) {
   })
 
   bot.resolveEmbeds = bot.objects.resolveEmbeds
-  bot.presignUrls = bot.objects.presignUrls
-  // bot.resolvePresignedUrls = bot.objects.presignUrls
+  bot.presignEmbeddedMediaLinks = bot.objects.presignEmbeddedMediaLinks
 
   // bot.loadEmbeddedResource = function (url) {
   //   return uploads.get(url)

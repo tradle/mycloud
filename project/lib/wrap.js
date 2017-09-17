@@ -1,11 +1,11 @@
 // const zlib = require('zlib')
+const ENV = require('./env')
+
 const debug = require('debug')('tradle:sls:wrap')
 const extend = require('xtend/mutable')
 const co = require('co').wrap
 const isGeneratorFunction = require('is-generator-function')
 const stringify = require('json-stringify-safe')
-const RESOLVED = Promise.resolve()
-const ENV = require('./env')
 const { TESTING, HTTP_METHODS } = ENV
 const Errors = require('./errors')
 const Discovery = require('./discovery')
@@ -16,6 +16,8 @@ const discoverServices = cachifyPromiser(co(function* () {
     return Discovery.discoverServices()
   }
 }))
+
+const RESOLVED = Promise.resolve()
 
 // const getReady = co(function* () {
 //   if (ENV.IOT_ENDPOINT) return

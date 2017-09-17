@@ -41,7 +41,7 @@ module.exports = function createBotInputs ({
     tables: db.tables,
     prefix: SERVERLESS_PREFIX,
     messages,
-    presignUrls: objects.presignUrls
+    presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks
   })
 
   const seal = co(function* ({ link }) {
@@ -70,7 +70,7 @@ module.exports = function createBotInputs ({
       get: objects.getObjectByLink,
       getEmbeds: objects.getEmbeds,
       resolveEmbeds: objects.resolveEmbeds,
-      presignUrls: objects.presignUrls
+      presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks
     },
     seals,
     seal,

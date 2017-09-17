@@ -1,10 +1,10 @@
 const co = require('co').wrap
 const debug = require('debug')('tradle:sls:objects')
 const { utils } = require('@tradle/engine')
-const { getEmbeds, resolveEmbeds, replaceDataUrls, presignUrls } = require('@tradle/embed')
+const Embed = require('@tradle/embed')
 const types = require('./types')
 const aws = require('./aws')
-const { IS_LOCAL } = require('./env')
+const { IS_LOCAL, REGION } = require('./env')
 const { InvalidSignature } = require('./errors')
 const { TYPE, TYPES, PERMALINK, SEQ } = require('./constants')
 const { MESSAGE } = TYPES
@@ -19,22 +19,23 @@ const {
   encodeDataURI
 } = require('./utils')
 const { extractSigPubKey, hexLink, getLinks, addLinks } = require('./crypto')
-const s3Utils = require('./s3-utils')
-const { get, put, createPresignedUrl } = s3Utils
+const { get, put, createPresignedUrl } = require('./s3-utils')
 const Buckets = require('./buckets')
 const FileUploadBucket = Buckets.FileUpload
 const getLink = hexLink
 
 const replaceEmbeds = co(function* (object) {
-  const replacements = replaceDataUrls({
+  const replacements = Embed.replaceDataUrls({
+    region: REGION,
     bucket: FileUploadBucket.name,
-    object,
-    host: s3Utils.host
+    keyPrefix: '',
+    object
   })
 
   if (replacements.length) {
     debug(`replaced ${replacements.length} embedded media`)
-    yield replacements.map(({ bucket, key, body }) => {
+    yield replacements.map(replacement => {
+      const { bucket, key, body } = replacement
       return put({ bucket, key, value: body })
     })
   }
@@ -47,8 +48,8 @@ const resolveEmbed = (...args) => {
   })
 }
 
-const resolveEmbedsInS3 = object =>
-  resolveEmbeds({ object, resolve: resolveEmbed })
+const resolveEmbeds = object =>
+  Embed.resolveEmbeds({ object, resolve: resolveEmbed })
 
 const addMetadata = function addMetadata (object) {
   typeforce(types.signedObject, object)
@@ -95,14 +96,20 @@ function del (link) {
   return Buckets.Objects.del(link)
 }
 
-function presignUrlsInObject (object) {
-  presignUrls({
+function presignEmbeddedMediaLinks ({ object, stripEmbedPrefix }) {
+  Embed.presignUrls({
     object,
     sign: ({ bucket, key, path }) => {
       debug(`pre-signing url for ${object[TYPE]} property ${path}`)
       return createPresignedUrl({ bucket, key })
     }
   })
+
+  if (stripEmbedPrefix) {
+    Embed.stripEmbedPrefix(object)
+  }
+
+  return object
 }
 
 const Objects = module.exports = {
@@ -117,7 +124,7 @@ const Objects = module.exports = {
   addLinks,
   del,
   replaceEmbeds,
-  getEmbeds,
-  resolveEmbeds: resolveEmbedsInS3,
-  presignUrls: presignUrlsInObject
+  getEmbeds: Embed.getEmbeds,
+  resolveEmbeds,
+  presignEmbeddedMediaLinks
 }

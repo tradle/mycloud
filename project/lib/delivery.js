@@ -13,7 +13,7 @@ const MAX_PAYLOAD_SIZE = 126000
 
 const deliverBatch = co(function* ({ clientId, permalink, messages }) {
   debug(`delivering ${messages.length} messages to ${permalink}`)
-  Messages.prepareForDelivery(messages)
+  messages.forEach(object => Objects.presignEmbeddedMediaLinks({ object }))
   const strings = messages.map(stringify)
   const subBatches = batchBySize(strings, MAX_PAYLOAD_SIZE)
   for (let subBatch of subBatches) {

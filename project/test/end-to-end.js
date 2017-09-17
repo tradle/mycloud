@@ -33,7 +33,6 @@ const credentials = (function () {
   return pick(credentials, ['accessKeyId', 'secretAccessKey'])
 }())
 
-const s3Host = s3Utils.host
 const createBot = require('../lib/bot')
 const baseModels = require('../lib/bot/base-models')
 const defaultModels = mergeModels()
@@ -418,7 +417,6 @@ User.prototype._createMessage = co(function* ({ object, other={} }) {
     object = yield this.sign(object)
   }
 
-  const savePayload = this.bot.save(object)
   const unsigned = extend({
     [TYPE]: 'tradle.Message',
     [SEQ]: this._userSeq++,
@@ -427,11 +425,10 @@ User.prototype._createMessage = co(function* ({ object, other={} }) {
     object: utils.omitVirtual(object)
   }, other)
 
-  const signMessage = this.sign(unsigned)
-  const [message] = yield [signMessage, savePayload]
+  const message = yield this.sign(unsigned)
   message.object = object // with virtual props
   const replacements = replaceDataUrls({
-    host: s3Host,
+    host: aws.s3.endpoint,
     // region,
     object,
     bucket: buckets.FileUpload.name,
@@ -446,6 +443,7 @@ User.prototype._createMessage = co(function* ({ object, other={} }) {
     debug('uploaded embedded media')
   }
 
+  yield this.bot.save(object)
   // const uploaded = yield extractAndUploadEmbeds({
   //   host: s3Host,
   //   object,

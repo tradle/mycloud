@@ -533,11 +533,6 @@ const stripData = function stripData (message) {
   })
 }
 
-function prepareForDelivery (messages) {
-  [].concat(messages).forEach(message => Objects.presignUrls(message))
-  return messages
-}
-
 // enable overriding during testing
 const Messages = module.exports = {
   messageFromEventPayload,
@@ -560,8 +555,7 @@ const Messages = module.exports = {
   getPropsDerivedFromLast,
   // getNextSeqAndPREV_TO_RECIPIENT,
   assertTimestampIncreased,
-  stripData,
-  prepareForDelivery
+  stripData
   // assertNoDrift,
   // assertNotDuplicate
   // receiveMessage

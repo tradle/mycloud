@@ -1,5 +1,5 @@
 const debug = require('debug')('tradle:sls:graphql')
-const { graphql } = require('graphql')
+const { graphql, formatError } = require('graphql')
 const express = require('express')
 const expressGraphQL = require('express-graphql')
 const compression = require('compression')
@@ -44,7 +44,7 @@ const binaryMimeTypes = [
 ]
 
 module.exports = function setup (opts) {
-  const { models, objects, messages, tables, presignUrls } = opts
+  const { models, objects, tables, presignUrls } = opts
   const app = express()
   app.use(compression())
   app.use(cors())
@@ -61,19 +61,43 @@ module.exports = function setup (opts) {
 
   app.use('/', expressGraphQL(() => ({
     schema: getSchema(),
-    graphiql: true
+    graphiql: true,
+    formatError: err => {
+      console.error('experienced error executing GraphQL query', err.stack)
+      return formatError(err)
+    }
   })))
+
+  app.use(function (err, req, res, next) {
+    console.error(err.stack, err)
+    res.status(500).send(`something went wrong, we're looking into it`)
+  })
 
   const server = awsServerlessExpress.createServer(app, null, binaryMimeTypes)
   const handleHTTPRequest = (event, context) => {
     awsServerlessExpress.proxy(server, event, context)
   }
 
-  const _resolvers = createResolvers({ objects, models, tables })
-  const resolvers = {
-    get: wrapWithPrepare(_resolvers.get),
-    list: wrapWithPrepare(_resolvers.list),
-    upadte: _resolvers.update
+  const resolvers = createResolvers({
+    objects,
+    models,
+    tables,
+    postProcess
+  })
+
+  function postProcess (result, op) {
+    switch (op) {
+    case 'get':
+      presignEmbeddedMediaLinks(result)
+      break
+    case 'list':
+      result.items = presignEmbeddedMediaLinks(result.items)
+      break
+    default:
+      break
+    }
+
+    return result
   }
 
   // be lazy
@@ -101,11 +125,16 @@ module.exports = function setup (opts) {
     handleHTTPRequest
   }
 
-  function wrapWithPrepare (fn) {
-    return co(function* (...args) {
-      const result = yield fn.call(this, ...args)
-      messages.prepareForDelivery(result)
-      return result
+  function presignEmbeddedMediaLinks (items) {
+    if (!items) return items
+
+    ;[].concat(items).forEach(object => {
+      objects.presignEmbeddedMediaLinks({
+        object,
+        stripEmbedPrefix: true
+      })
     })
+
+    return items
   }
 }
