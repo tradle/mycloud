@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 
-require = require('./require')
-
 const fs = require('fs')
 const path = require('path')
-const mkdirp = require('mkdirp')
-const co = require('co')
-const promisify = require('pify')
-const { utils } = require('@tradle/engine')
-const contexts = require('@tradle/engine/test/contexts')
-const helpers = require('@tradle/engine/test/helpers')
-const { setVirtual } = require('@tradle/validate-resource').utils
-const { exportKeys } = require('./lib/crypto')
+const requireFromProject = require('./require')
+const mkdirp = requireFromProject('mkdirp')
+const co = requireFromProject('co')
+const promisify = requireFromProject('pify')
+const { utils } = requireFromProject('@tradle/engine')
+const contexts = requireFromProject('@tradle/engine/test/contexts')
+const helpers = requireFromProject('@tradle/engine/test/helpers')
+const { setVirtual } = requireFromProject('@tradle/validate-resource').utils
+const { exportKeys } = requireFromProject('./lib/crypto')
 
 // const writeFile = function (relPath, data) {
 //   return new Promise((resolve, reject) => {
