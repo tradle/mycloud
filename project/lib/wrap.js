@@ -32,6 +32,7 @@ const discoverServices = cachifyPromiser(co(function* () {
 exports = module.exports = wrap
 // exports.sync = wrapSync
 exports.wrap = wrap
+exports.plain = plain
 
 function getHTTPHeaders () {
   const headers = {
@@ -117,6 +118,22 @@ const postProcessors = {
     error: wrapHttpError,
     success: wrapHttpSuccess
   }
+}
+
+function plain (fn) {
+  return co(function* (...args) {
+    const callback = logify(args.pop())
+    const [event, context] = args
+    let ret
+    try {
+      ret = yield apply(fn, args)
+      if (isPromise(ret)) ret = yield ret
+    } catch (err) {
+      return callback(err)
+    }
+
+    callback(null, ret)
+  })
 }
 
 function wrap (fn, opts={}) {
