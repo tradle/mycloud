@@ -353,7 +353,7 @@ functions:
           enabled: false
   sealpending:
     handler: project/lib/lambda/sealpending.handler
-    memorySize: 128
+    memorySize: 512
     timeout: 60
     events:
       - schedule:
@@ -361,7 +361,7 @@ functions:
           enabled: false
   pollchain:
     handler: project/lib/lambda/pollchain.handler
-    memorySize: 128
+    memorySize: 512
     timeout: 60
     events:
       - schedule:
