@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// require('../project/test/env')
+
 const co = require('co')
 const Discovery = require('../project/lib/discovery')
 // const Bucket = 'io.tradle.dev.deploys'

@@ -2,7 +2,17 @@ const debug = require('debug')('tradle:sls:seals')
 const { utils, protocol } = require('@tradle/engine')
 // const Blockchain = require('./blockchain')
 const { getUpdateParams } = require('./db-utils')
-const { co, clone, extend, pick, timestamp, typeforce, uuid, isPromise } = require('./utils')
+const {
+  co,
+  clone,
+  extend,
+  pick,
+  timestamp,
+  typeforce,
+  uuid,
+  isPromise,
+  seriesMap
+} = require('./utils')
 const { prettify } = require('./string-utils')
 const types = require('./types')
 const Errors = require('./errors')
@@ -16,6 +26,7 @@ const WATCH_TYPE = {
 
 const YES = 'y'
 const noop = () => {}
+const notNull = val => !!val
 
 function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
   typeforce(types.blockchain, blockchain)
@@ -33,7 +44,7 @@ function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
 
   const getUnconfirmed = scanner('unconfirmed')
   const getUnsealed = scanner('unsealed')
-  const sealPending = co(function* (opts={}) {
+  const sealPending = blockchain.runOperation(co(function* (opts={}) {
     typeforce({
       limit: typeforce.maybe(typeforce.Number),
       key: typeforce.maybe(types.privateKey)
@@ -45,23 +56,37 @@ function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
     }
 
     const pending = yield getUnsealed({ limit })
-    yield pending.map(co(function* (sealInfo) {
+    debug(`found ${pending.length} pending seals`)
+    let aborted
+    const results = seriesMap(pending, co(function* (sealInfo) {
+      if (aborted) return
+
       const { link, address } = sealInfo
       const addresses = [address]
       let result
       try {
         result = yield blockchain.seal({ addresses, link, key })
       } catch (error) {
+        if (/insufficient/i.test(error.message)) {
+          debug(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
+          aborted = true
+        }
+
         yield recordWriteError({ seal: sealInfo, error })
         return
       }
 
+      const { txId } = result
       yield recordWriteSuccess({
         seal: sealInfo,
-        txId: result.txId
+        txId
       })
+
+      return { txId, link }
     }))
-  })
+
+    return results.filter(notNull)
+  }))
 
   const createSealRecord = co(function* (opts) {
     const seal = getNewSealParams(opts)
@@ -158,7 +183,11 @@ function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
     return table.update(params)
   }
 
-  const syncUnconfirmed = co(function* () {
+  const syncUnconfirmed = blockchain.runOperation(co(function* () {
+    // start making whatever connections
+    // are necessary
+    blockchain.start()
+
     const unconfirmed = yield getUnconfirmed()
     if (!unconfirmed.length) return
 
@@ -205,7 +234,7 @@ function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
 
     // TODO: use dynamodb-wrapper
     // make this more robust
-  })
+  }))
 
   function addError (errors=[], error) {
     errors = errors.concat({

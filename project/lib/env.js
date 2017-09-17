@@ -1,6 +1,16 @@
 global.Promise = require('bluebird')
 
 const debug = require('debug')('tradle:sls:env')
+
+const mockery = require('mockery')
+mockery.enable({
+  warnOnReplace: false,
+  warnOnUnregistered: false
+})
+
+mockery.registerMock('scrypt', {})
+debug('mocking "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
+
 const clone = require('xtend')
 const extend = require('xtend/mutable')
 const { splitCamelCase } = require('./string-utils')

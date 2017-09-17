@@ -11,11 +11,13 @@ package:
     - scripts/**
     - node_modules/**
     - simulate/**
+    - node_modules/**/test/**
+    - ./bot/**
     - ./**/*.log
 custom:
   stage: dev
   region: us-east-1
-  blockchain: 'bitcoin:testnet'
+  blockchain: 'ethereum:ropsten'
   prefix: '${{self:service}}-${{self:custom.stage}}-'
   prefixRole: '${{self:custom.prefix}}'
   prefixIOTTopic: '${{self:service}}-'
@@ -337,22 +339,30 @@ functions:
     memorySize: 512
   faucet_bitcoin:
     handler: project/lib/lambda/faucet-bitcoin.withdraw
-  recharge:
-    handler: project/lib/lambda/recharge.handler
+  recharge_bitcoin:
+    handler: project/lib/lambda/recharge-bitcoin.handler
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          enabled: false
+  recharge_ethereum:
+    handler: project/lib/lambda/recharge-ethereum.handler
     events:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
   sealpending:
     handler: project/lib/lambda/sealpending.handler
-    memorySize: 1024
+    memorySize: 128
+    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
   pollchain:
     handler: project/lib/lambda/pollchain.handler
-    memorySize: 1024
+    memorySize: 128
+    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)

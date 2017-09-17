@@ -14,7 +14,7 @@ module.exports = function getNetworkAdapters ({ networkName='ropsten', privateKe
   const engine = Network.createEngine({
     networkName,
     privateKey,
-    pollingInterval: 20000,
+    pollingInterval: 10000,
     etherscan: true,
     autostart: false
   })

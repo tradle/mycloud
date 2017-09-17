@@ -50,12 +50,14 @@ function createWrapper (blockchainIdentifier) {
     })
   }
 
-  const getBlockHeight = wrapInStartStop(co(function* () {
+  const getBlockHeight = co(function* () {
+    start()
     const { blockHeight } = yield getInfo()
     return blockHeight
-  }))
+  })
 
-  const getTxsForAddresses = wrapInStartStop(co(function* (addresses, blockHeight) {
+  const getTxsForAddresses = co(function* (addresses, blockHeight) {
+    start()
     if (typeof blockHeight !== 'number') {
       blockHeight = yield getBlockHeight()
     }
@@ -69,13 +71,16 @@ function createWrapper (blockchainIdentifier) {
 
     debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
     return txInfos
-  }))
+  })
 
   // const sync = co(function* (addresses) {
   //   return getTxsForAddresses(addresses)
   // })
 
-  const _seal = wrapInStartStop(co(function* ({ writer, link, addresses }) {
+  const seal = co(function* ({ key, link, addresses }) {
+    const writer = getWriter(key)
+    start()
+    debug(`sealing ${link}`)
     return yield writer.send({
       to: addresses.map(address => {
         return {
@@ -84,12 +89,7 @@ function createWrapper (blockchainIdentifier) {
         }
       })
     })
-  }))
-
-  const seal = function seal ({ key, link, addresses }) {
-    const writer = getWriter(key)
-    return _seal({ writer, link, addresses })
-  }
+  })
 
   const getTransactionAmount = () => network.minOutputAmount
 
@@ -143,6 +143,7 @@ function createWrapper (blockchainIdentifier) {
     sealAddress,
     sealPrevAddress,
     toString: () => `${network.blockchain}:${network.name}`,
+    runOperation: wrapInStartStop,
     _adapter: reader
   }
 }

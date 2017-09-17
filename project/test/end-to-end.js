@@ -115,7 +115,9 @@ const endToEndTest = co(function* (opts={}) {
 
     // pre-signed urls don't work in localstack yet
     // so resolve with root credentials
-    // if (payload[TYPE] === 'tradle.PhotoID') debugger
+    if (payload[TYPE] === 'tradle.PhotoID') {
+      console.log(payload.scan.url)
+    }
 
     yield objects.resolveEmbeds(payload)
 

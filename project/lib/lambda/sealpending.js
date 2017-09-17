@@ -1,3 +1,5 @@
+require('../../test/env')
+
 const debug = require('debug')('λ:sealpending')
 const wrap = require('../wrap')
 const { seals } = require('../')

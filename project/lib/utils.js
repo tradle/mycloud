@@ -392,3 +392,13 @@ exports.runWithBackoffWhile = co(function* (fn, opts) {
 })
 
 exports.wait = wait
+
+exports.seriesMap = co(function* (arr, fn) {
+  const results = []
+  for (const item of arr) {
+    const result = yield fn(item)
+    results.push(result)
+  }
+
+  return results
+})

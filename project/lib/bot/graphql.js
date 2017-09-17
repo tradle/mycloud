@@ -105,7 +105,6 @@ module.exports = function setup (opts) {
     return co(function* (...args) {
       const result = yield fn.call(this, ...args)
       messages.prepareForDelivery(result)
-      // ;[].concat(result).forEach(presignUrls)
       return result
     })
   }

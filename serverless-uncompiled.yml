@@ -20,6 +20,8 @@ package:
     - scripts/**
     - node_modules/**
     - simulate/**
+    - node_modules/**/test/**
+    - ./bot/**
     - ./**/*.log
 
 custom:
@@ -28,7 +30,7 @@ custom:
   #   https://github.com/serverless/serverless/issues/3740
   stage: dev
   region: us-east-1
-  blockchain: bitcoin:testnet
+  blockchain: ethereum:ropsten
 
   # copied from vars.yml
   # defaultEmailForNotifications: ${{self:custom.vars.defaultEmailForNotifications}}
@@ -502,8 +504,15 @@ functions:
     handler: project/lib/lambda/faucet-bitcoin.withdraw
 
   # gets funds from a bitcoin testnet faucet
-  recharge:
-    handler: project/lib/lambda/recharge.handler
+  recharge_bitcoin:
+    handler: project/lib/lambda/recharge-bitcoin.handler
+    events:
+      - schedule:
+          rate: rate(10 minutes)
+          enabled: false
+
+  recharge_ethereum:
+    handler: project/lib/lambda/recharge-ethereum.handler
     events:
       - schedule:
           rate: rate(10 minutes)
@@ -512,7 +521,8 @@ functions:
   # writes pending transactions to the blockchain
   sealpending:
     handler: project/lib/lambda/sealpending.handler
-    memorySize: 1024
+    memorySize: 128
+    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)
@@ -521,7 +531,8 @@ functions:
   # polls the status of unconfirmed blockchain transactions
   pollchain:
     handler: project/lib/lambda/pollchain.handler
-    memorySize: 1024
+    memorySize: 128
+    timeout: 60
     events:
       - schedule:
           rate: rate(10 minutes)
