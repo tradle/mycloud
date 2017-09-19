@@ -1,19 +1,18 @@
 #!/usr/bin/env node
+require('../lib/env')
+
 const fs = require('fs')
 const path = require('path')
 const randomName = require('random-name')
-const requireFromProject = require('./require')
-const tradle = requireFromProject('./')
-
-const mkdirp = requireFromProject('mkdirp')
-const co = requireFromProject('co')
-const promisify = requireFromProject('pify')
-const { utils } = requireFromProject('@tradle/engine')
-const helpers = requireFromProject('@tradle/engine/test/helpers')
-const { setVirtual } = requireFromProject('@tradle/validate-resource').utils
-const { exportKeys } = requireFromProject('./lib/crypto')
-const { getIdentitySpecs } = requireFromProject('./lib/crypto')
-const networks = requireFromProject('./lib/networks')
+const mkdirp = require('mkdirp')
+const co = require('co')
+const promisify = require('pify')
+const { utils } = require('@tradle/engine')
+const helpers = require('@tradle/engine/test/helpers')
+const { setVirtual } = require('@tradle/validate-resource').utils
+const { exportKeys } = require('../lib/crypto')
+const { getIdentitySpecs } = require('../lib/crypto')
+const networks = require('../lib/networks')
 const identityOpts = getIdentitySpecs({ networks })
 const genUser = promisify(utils.newIdentity)
 const genUsers = n => new Array(n).fill(0).map(() => {

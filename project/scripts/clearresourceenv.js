@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 const co = require('co').wrap
 const AWS = require('AWS-SDK')
-const aws = require('../project/lib/aws')
-const Resources = require('../project/lib/resources')
+const aws = require('../lib/aws')
+const Resources = require('../lib/resources')
 const StackName = process.argv[2]
 // const Bucket = 'io.tradle.dev.deploys'
 co(clearResourceEnvVars)().catch(console.error)

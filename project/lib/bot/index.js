@@ -24,7 +24,8 @@ const {
 const { addLinks } = require('../crypto')
 const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
-const { getMessagePayload, locker } = require('./utils')
+const { getMessagePayload } = require('./utils')
+const locker = require('./locker')
 const wrap = require('../wrap')
 const defaultTradleInstance = require('../')
 const { constants } = defaultTradleInstance
@@ -162,7 +163,11 @@ function createBot (opts={}) {
     return data
   })
 
-  const messageProcessingLocker = locker({ timeout: MESSAGE_LOCK_TIMEOUT })
+  const messageProcessingLocker = locker({
+    name: 'message processing lock',
+    timeout: MESSAGE_LOCK_TIMEOUT
+  })
+
   const normalizeOnMessageInput = co(function* (message) {
     if (typeof message === 'string') {
       message = JSON.parse(message)

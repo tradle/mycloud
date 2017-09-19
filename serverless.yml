@@ -8,7 +8,7 @@ package:
   exclude:
     - .git/**
     - .serverless/**
-    - scripts/**
+    - project/scripts/**
     - node_modules/**
     - simulate/**
     - node_modules/**/test/**

@@ -214,7 +214,6 @@ const runThroughApplication = co(function* ({
   let assignedEmployee
   while (true) {
     let { context, object } = yield user.awaitMessage()
-    console.log('CONTEXT', context)
     if (employeeToAssign && !assignedEmployee) {
       yield assignEmployee(context)
       assignedEmployee = true

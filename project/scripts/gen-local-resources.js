@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-require('../project/test/env')
+require('..//test/env')
 
 const co = require('co')
 const extend = require('xtend/mutable')
-const { aws, resources } = require('../project')
-const { ensureInitialized } = require('../project/lib/init')
+const { aws, resources } = require('../')
+const { ensureInitialized } = require('..//lib/init')
 
 const setup = co.wrap(function* () {
-  const stack = require('../.serverless/cloudformation-template-update-stack')
+  const stack = require('../../.serverless/cloudformation-template-update-stack')
   const { Resources } = stack
   const tables = []
   const buckets = []

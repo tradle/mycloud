@@ -8,7 +8,7 @@ const networks = module.exports = {
     },
     // bitcoinjs-lib's name for it
     bitcoin: {
-      minBalance: 1000000      
+      minBalance: 1000000
     }
   },
   ethereum: {
@@ -16,7 +16,7 @@ const networks = module.exports = {
       minBalance: '2000000000000000000'
     },
     rinkeby: {
-      minBalance: '2000000000000000000'      
+      minBalance: '2000000000000000000'
     }
   }
 }

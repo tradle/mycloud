@@ -2,7 +2,7 @@
 const co = require('co').wrap
 const AWS = require('AWS-SDK')
 const s3 = new AWS.S3()
-const serverlessYml = require('../serverless-yml')
+const serverlessYml = require('./serverless-yml')
 const { service, custom } = serverlessYml
 // const Bucket = 'io.tradle.dev.deploys'
 co(makeDeploymentBucketPublic)().catch(console.error)

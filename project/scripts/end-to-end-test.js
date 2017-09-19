@@ -4,7 +4,7 @@ const co = require('co')
 const {
   clear,
   endToEndTest
-} = require('../project/test/end-to-end')
+} = require('..//test/end-to-end')
 
 co(function* () {
   yield clear()

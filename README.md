@@ -33,6 +33,8 @@ This project uses [localstack](https://github.com/localstack/localstack) for sim
 Before you can run tests on local resoures, you need to create them:
 
 ```sh
+# make sure docker is running
+docker ps
 # generate the blueprints for our local resources (cloudformation files)
 npm run package
 # start up localstack

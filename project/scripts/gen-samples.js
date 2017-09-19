@@ -15,9 +15,7 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const projectRequire = require('./require')
 if (argv.local) {
-  // projectRequire('./test/env')
   process.exit(0)
 }
 
@@ -25,7 +23,7 @@ const {
   SERVERLESS_STAGE,
   SERVERLESS_SERVICE_NAME,
   R_RESTAPI_ApiGateway
-} = projectRequire('./test/service-map')
+} = require('../test/service-map')
 
 const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}/samples`
 
