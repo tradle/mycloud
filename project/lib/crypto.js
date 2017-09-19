@@ -285,6 +285,22 @@ function withLinks (object) {
   return object
 }
 
+function getIdentitySpecs ({ networks }) {
+  const nets = {}
+  for (let flavor in networks) {
+    if (!nets[flavor]) {
+      nets[flavor] = []
+    }
+
+    let constants = networks[flavor]
+    for (let networkName in constants) {
+      nets[flavor].push(networkName)
+    }
+  }
+
+  return { networks: nets }
+}
+
 module.exports = {
   checkAuthentic,
   extractSigPubKey,
@@ -304,5 +320,6 @@ module.exports = {
   addLinks,
   withLinks,
   // toECKeyObj: utils.toECKeyObj,
-  randomString
+  randomString,
+  getIdentitySpecs
 }

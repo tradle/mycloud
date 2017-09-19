@@ -18,6 +18,7 @@ debug('mocking "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
 const clone = require('xtend')
 const extend = require('xtend/mutable')
 const { splitCamelCase } = require('./string-utils')
+const networks = require('./networks')
 const constants = require('./constants')
 
 const env = clone(require('../conf/env'))
@@ -54,13 +55,7 @@ env.RESOURCES_ENV_PATH = `/tmp/serverless/${SERVERLESS_SERVICE}/env.${SERVERLESS
 env.BLOCKCHAIN = (function () {
   const { BLOCKCHAIN='ethereum:ropsten' } = env
   const [flavor, networkName] = BLOCKCHAIN.split(':')
-  const blockchainConstants = constants.BLOCKCHAIN[BLOCKCHAIN]
-  return extend({
-    flavor,
-    networkName,
-    toString: () => BLOCKCHAIN,
-    select: obj => obj[flavor]
-  }, blockchainConstants)
+  return networks[flavor][networkName]
 }())
 
 env.DEV = !(env.SERVERLESS_STAGE || '').startsWith('prod')

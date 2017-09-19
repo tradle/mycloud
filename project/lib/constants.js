@@ -19,18 +19,18 @@ module.exports = deepExtend({
     "maxRetries": 100
   },
   "MAX_CLOCK_DRIFT": 10000,
-  "BLOCKCHAIN": {
-    "ethereum:ropsten": {
-      // 2 ether
-      "minBalance": "2000000000000000000"
-    },
-    "ethereum:rinkeby": {
-      // 2 ether
-      "minBalance": "2000000000000000000"
-    },
-    "bitcoin:testnet": {
-      // 0.01 bitcoin
-      "minBalance": 1000000
-    }
-  }
+  // "BLOCKCHAIN": {
+  //   "ethereum:ropsten": {
+  //     // 2 ether
+  //     "minBalance": "2000000000000000000"
+  //   },
+  //   "ethereum:rinkeby": {
+  //     // 2 ether
+  //     "minBalance": "2000000000000000000"
+  //   },
+  //   "bitcoin:testnet": {
+  //     // 0.01 bitcoin
+  //     "minBalance": 1000000
+  //   }
+  // }
 }, tradleConstants)

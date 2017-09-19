@@ -31,7 +31,7 @@ function Environment () {
     if (blockchain) return blockchain
 
     const createBlockchainAPI = require('./blockchain')
-    return blockchain = createBlockchainAPI(BLOCKCHAIN)
+    return blockchain = createBlockchainAPI(this.network)
   })
 
   let seals

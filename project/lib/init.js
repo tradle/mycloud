@@ -6,7 +6,7 @@ const omit = require('object.omit')
 const clone = require('xtend')
 const tradleUtils = require('@tradle/engine').utils
 const { crypto, utils, networks } = require('./')
-const { getLink, addLinks } = crypto
+const { getLink, addLinks, getIdentitySpecs } = crypto
 const { omitVirtual, setVirtual } = utils
 const {
   ORG_NAME,
@@ -224,26 +224,9 @@ function getOrgObj ({ name, logo }) {
   })
 }
 
-function getIdentitySpecs ({ networks }) {
-  const nets = {}
-  for (let flavor in networks) {
-    if (!nets[flavor]) {
-      nets[flavor] = []
-    }
-
-    let constants = networks[flavor]
-    for (let networkName in constants) {
-      nets[flavor].push(networkName)
-    }
-  }
-
-  return { networks: nets }
-}
-
 module.exports = {
   ensureInitialized,
   init,
   push,
-  clear,
-  getIdentitySpecs
+  clear
 }

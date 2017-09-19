@@ -110,19 +110,8 @@ module.exports = createBot.lambdas(bot)
 //   }
 // `, {})
 
-bot.graphqlAPI.executeQuery(`
-  {
-    rl_tradle_Selfie {
-      edges {
-        node {
-          selfie {
-            url
-          }
-        }
-      }
-    }
-  }
-`)
-.then(result => {
-  debugger
-})
+// bot.exports.ongraphql({
+//   body: require('graphql').introspectionQuery
+// }, {
+//   succeed: console.log
+// })

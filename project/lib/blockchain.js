@@ -2,17 +2,18 @@ const debug = require('debug')('tradle:sls:blockchain')
 const { utils, protocol } = require('@tradle/engine')
 const { co, promisify, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
-const { BLOCKCHAIN } = require('./env')
 const adapters = require('./blockchain-adapter')
 const ENV = require('./env')
 
 function createWrapper (blockchainIdentifier) {
   typeforce({
     flavor: typeforce.String,
-    networkName: typeforce.String
+    networkName: typeforce.String,
+    minBalance: typeforce.oneOf(typeforce.String, typeforce.Number)
   }, blockchainIdentifier)
 
   const { flavor, networkName } = blockchainIdentifier
+  const defaultMinBalance = blockchainIdentifier.minBalance
   const createAdapter = adapters[flavor]
   if (!createAdapter) {
     throw new Error(`unsupported blockchain type: ${flavor}`)
@@ -140,7 +141,7 @@ function createWrapper (blockchainIdentifier) {
     }
 
     if (!minBalance) {
-      minBalance = BLOCKCHAIN.minBalance
+      minBalance = defaultMinBalance
     }
 
     const client = writerCache[address] || reader

@@ -25,9 +25,7 @@ module.exports = function createUsers ({ table, oncreate }) {
   const list = table.scan
   const createIfNotExists = co(function* (user) {
     try {
-      return yield table.get({
-        Key: getKey(user)
-      })
+      return yield get(user[PRIMARY_KEY])
     } catch (err) {
       if (err instanceof Errors.NotFound) {
         yield save(user)
@@ -40,7 +38,8 @@ module.exports = function createUsers ({ table, oncreate }) {
   })
 
   const get = primaryKey => table.get({
-    Key: { [PRIMARY_KEY]: primaryKey }
+    Key: { [PRIMARY_KEY]: primaryKey },
+    ConsistentRead: true
   })
 
   return extend(ee, {

@@ -1,20 +1,30 @@
 
+const extend = require('xtend/mutable')
 const adapters = require('./blockchain-adapter')
 const networks = module.exports = {
   bitcoin: {
-    testnet: {},
+    testnet: {
+      minBalance: 1000000
+    },
     // bitcoinjs-lib's name for it
-    bitcoin: {}
+    bitcoin: {
+      minBalance: 1000000      
+    }
   },
   ethereum: {
-    ropsten: {}
+    ropsten: {
+      minBalance: '2000000000000000000'
+    },
+    rinkeby: {
+      minBalance: '2000000000000000000'      
+    }
   }
 }
 
 Object.keys(networks).forEach(flavor => {
   Object.keys(networks[flavor]).forEach(networkName => {
     let readOnlyAdapter
-    networks[flavor][networkName] = {
+    extend(networks[flavor][networkName], {
       flavor,
       networkName,
       get constants () {
@@ -24,10 +34,11 @@ Object.keys(networks).forEach(flavor => {
       transactor: function (privateKey) {
         return adapters[flavor]({ networkName, privateKey }).transactor
       },
-      toString: () => `${flavor}:${networkName}`
-    }
+      toString: () => `${flavor}:${networkName}`,
+      select: obj => obj[flavor]
+    })
 
-    function getReadOnlyAdapter (opts) {
+    function getReadOnlyAdapter (opts={}) {
       if (!readOnlyAdapter) {
         opts.networkName = networkName
         readOnlyAdapter = adapters[flavor](opts)

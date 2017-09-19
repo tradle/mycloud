@@ -19,12 +19,12 @@ const {
   typeforce,
   isPromise,
   waterfall,
-  series,
+  series
 } = require('../utils')
 const { addLinks } = require('../crypto')
 const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
-const { getMessagePayload } = require('./utils')
+const { getMessagePayload, locker } = require('./utils')
 const wrap = require('../wrap')
 const defaultTradleInstance = require('../')
 const { constants } = defaultTradleInstance
@@ -32,11 +32,11 @@ const { TYPE, SIG } = constants
 const createUsers = require('./users')
 const aws = require('../aws')
 // const RESOLVED = Promise.resolve()
-const { NODE_ENV, SERVERLESS_PREFIX, AWS_LAMBDA_FUNCTION_NAME } = process.env
-const TESTING = NODE_ENV === 'test'
+const { TESTING, AWS_LAMBDA_FUNCTION_NAME } = require('../env')
 const isGraphQLLambda = TESTING || /graphql/i.test(AWS_LAMBDA_FUNCTION_NAME)
 const isGenSamplesLambda = TESTING || /sample/i.test(AWS_LAMBDA_FUNCTION_NAME)
 const promisePassThrough = data => Promise.resolve(data)
+const MESSAGE_LOCK_TIMEOUT = TESTING ? Infinity : 10000
 
 const COPY_TO_BOT = [
   'models', 'objects', 'db', 'seals', 'seal',
@@ -162,15 +162,19 @@ function createBot (opts={}) {
     return data
   })
 
+  const messageProcessingLocker = locker({ timeout: MESSAGE_LOCK_TIMEOUT })
   const normalizeOnMessageInput = co(function* (message) {
     if (typeof message === 'string') {
       message = JSON.parse(message)
     }
 
+    const userId = message._author
+    yield messageProcessingLocker.lock(userId)
+
     let [payload, user] = [
       yield getMessagePayload({ bot, message }),
       // identity permalink serves as user id
-      yield bot.users.createIfNotExists({ id: message._author })
+      yield bot.users.createIfNotExists({ id: userId })
     ]
 
     payload = extend(message.object, payload)
@@ -196,6 +200,7 @@ function createBot (opts={}) {
     if (!deepEqual(user, _userPre)) {
       debug('merging changes to user state')
       yield bot.users.merge(user)
+      return
     }
 
     debug('user state was not changed by onmessage handler')
@@ -210,6 +215,18 @@ function createBot (opts={}) {
     postProcessHooks.hook('message', promiseSaveUser)
   }
 
+  postProcessHooks.hook('message', ({ user }) => {
+    messageProcessingLocker.unlock(user.id)
+  })
+
+  postProcessHooks.hook('message:error', ({ payload }) => {
+    if (typeof payload === 'string') {
+      payload = JSON.parse(payload)
+    }
+
+    messageProcessingLocker.unlock(payload._author)
+  })
+
   postProcessHooks.hook('readseal', emitAs('seal:read'))
   postProcessHooks.hook('wroteseal', emitAs('seal:wrote'))
   postProcessHooks.hook('sealevent', emitAs('seal'))
@@ -217,13 +234,19 @@ function createBot (opts={}) {
   postProcessHooks.hook('useronline', emitAs('user:online'))
   postProcessHooks.hook('useroffline', emitAs('user:offline'))
 
+  const finallyHooks = createHooks()
   const processEvent = co(function* (event, payload) {
     yield promiseReady
-    // waterfall to preprocess
-    payload = yield preProcessHooks.waterfall(event, payload)
-    // bubble to allow handlers to terminate processing
-    yield hooks.bubble(event, payload)
-    yield postProcessHooks.fire(event, payload)
+    try {
+      // waterfall to preprocess
+      payload = yield preProcessHooks.waterfall(event, payload)
+      // bubble to allow handlers to terminate processing
+      yield hooks.bubble(event, payload)
+      yield postProcessHooks.fire(event, payload)
+    } catch (error) {
+      debug(`failed to process ${event}`, error.stack)
+      yield postProcessHooks.fire(`${event}:error`, { payload, error })
+    }
   })
 
   const promiseReady = new Promise(resolve => {

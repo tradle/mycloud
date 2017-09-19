@@ -11,7 +11,7 @@ const {
   SERVERLESS_PREFIX='tradle-'
 } = process.env
 
-const MAX_ITEM_SIZE = 4000
+const MAX_ITEM_SIZE = 6000
 
 module.exports = function createBotInputs ({
   // userModel,

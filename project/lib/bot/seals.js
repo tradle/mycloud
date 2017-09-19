@@ -3,6 +3,7 @@ const { co } = require('../utils')
 module.exports = function createSealsAPI ({ provider, seals }) {
   const createSeal = co(function* ({ link }) {
     const chainKey = yield provider.getMyChainKey()
+    debugger
     yield seals.create({
       link,
       key: chainKey

@@ -1,16 +1,30 @@
 #!/usr/bin/env node
-
 const fs = require('fs')
 const path = require('path')
+const randomName = require('random-name')
 const requireFromProject = require('./require')
+const tradle = requireFromProject('./')
+
 const mkdirp = requireFromProject('mkdirp')
 const co = requireFromProject('co')
 const promisify = requireFromProject('pify')
 const { utils } = requireFromProject('@tradle/engine')
-const contexts = requireFromProject('@tradle/engine/test/contexts')
 const helpers = requireFromProject('@tradle/engine/test/helpers')
 const { setVirtual } = requireFromProject('@tradle/validate-resource').utils
 const { exportKeys } = requireFromProject('./lib/crypto')
+const { getIdentitySpecs } = requireFromProject('./lib/crypto')
+const networks = requireFromProject('./lib/networks')
+const identityOpts = getIdentitySpecs({ networks })
+const genUser = promisify(utils.newIdentity)
+const genUsers = n => new Array(n).fill(0).map(() => {
+  return genUser(identityOpts)
+    .then(user => {
+      user.profile = newProfile()
+      return user
+    })
+})
+
+// const genUsers = promisify(helpers.genUsers)
 
 // const writeFile = function (relPath, data) {
 //   return new Promise((resolve, reject) => {
@@ -49,7 +63,7 @@ const { exportKeys } = requireFromProject('./lib/crypto')
 // }
 
 co(function* () {
-  const users = yield promisify(helpers.genUsers)(10)
+  const users = yield genUsers(10)
   users.forEach(user => {
     user.keys = exportKeys(user.keys.map(key => {
       return utils.importKey(key)
@@ -60,7 +74,7 @@ co(function* () {
 })
 
 co(function* () {
-  const users = yield promisify(helpers.genUsers)(2)
+  const users = yield genUsers(2)
   const friends = users
     .map((user, i) => helpers.userToOpts(user, i ? 'alice' : 'bob'))
     .map(helpers.createNode)
@@ -141,4 +155,16 @@ function prettify (object) {
 
 function rethrow (err) {
   if (err) throw err
+}
+
+function newProfile () {
+  const first = randomName.first()
+  const last = randomName.last()
+  return {
+    name: {
+      firstName: first,
+      lastName: last,
+      formatted: first + ' ' + last
+    }
+  }
 }
