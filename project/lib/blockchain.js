@@ -2,7 +2,7 @@ const debug = require('debug')('tradle:sls:blockchain')
 const { utils, protocol } = require('@tradle/engine')
 const { co, promisify, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
-// const { BLOCKCHAIN } = require('./env')
+const { BLOCKCHAIN } = require('./env')
 const adapters = require('./blockchain-adapter')
 const ENV = require('./env')
 
@@ -26,17 +26,17 @@ function createWrapper (blockchainIdentifier) {
   const writerCache = {}
 
   const getWriter = function getWriter (key) {
-    const { pub, priv } = key
-    if (!writerCache[pub]) {
+    const { fingerprint, priv } = key
+    if (!writerCache[fingerprint]) {
       const { transactor } = createAdapter({
         networkName,
         privateKey: priv
       })
 
-      writerCache[pub] = promisify(transactor)
+      writerCache[fingerprint] = promisify(transactor)
     }
 
-    return writerCache[pub]
+    return writerCache[fingerprint]
   }
 
   const wrapInStartStop = function wrapInStartStop (fn) {
@@ -129,9 +129,38 @@ function createWrapper (blockchainIdentifier) {
   const start = startOrStop.bind(null, 'start')
   const stop = startOrStop.bind(null, 'stop')
 
+  const getMyChainPub = () => require('./').provider.getMyChainKeyPub()
+  const getMyChainAddress = () => getMyChainPub()
+    .then(({ fingerprint }) => fingerprint)
+
+  const recharge = co(function* (opts={}) {
+    let { address, minBalance, force } = opts
+    if (!address) {
+      address = yield getMyChainAddress()
+    }
+
+    if (!minBalance) {
+      minBalance = BLOCKCHAIN.minBalance
+    }
+
+    const client = writerCache[address] || reader
+    return client.recharge({ address, minBalance, force })
+  })
+
+  const getBalance = co(function* (opts={}) {
+    let { address } = opts
+    if (!address) {
+      address = yield getMyChainAddress()
+    }
+
+    return Addresses.balance(address)
+  })
+
   return {
+    recharge,
     stop,
     start,
+    balance: getBalance,
     pubKeyToAddress: network.pubKeyToAddress,
     flavor,
     networkName,

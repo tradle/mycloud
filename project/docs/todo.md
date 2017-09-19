@@ -34,3 +34,12 @@ IoT:
 
 S3:
   limit max object size in FileUploadBucket
+
+Misc:
+  scrap superagent, use node-fetch
+
+Init:
+  recharge, seal own identity
+
+Ethereum:
+  transactions may not be mined at all. After being successfully submitted to etherscan, if they're non-existent on the next sync, they need to be unqueued for syncUnconfirmed and re-queued for sealPending

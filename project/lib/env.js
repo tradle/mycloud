@@ -1,5 +1,9 @@
 global.Promise = require('bluebird')
 
+process.on('unhandledRejection', function (reason, promise) {
+  debug('possibly unhandled rejection', reason)
+})
+
 const debug = require('debug')('tradle:sls:env')
 
 const mockery = require('mockery')
@@ -14,6 +18,7 @@ debug('mocking "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
 const clone = require('xtend')
 const extend = require('xtend/mutable')
 const { splitCamelCase } = require('./string-utils')
+const constants = require('./constants')
 
 const env = clone(require('../conf/env'))
 if (process.env.NODE_ENV === 'test') {
@@ -29,6 +34,7 @@ env.set = obj => {
 }
 
 env.set(process.env)
+env.REGION = env.AWS_REGION
 env.TESTING = env.NODE_ENV === 'test'
 
 // this one might be set dynamically
@@ -48,12 +54,13 @@ env.RESOURCES_ENV_PATH = `/tmp/serverless/${SERVERLESS_SERVICE}/env.${SERVERLESS
 env.BLOCKCHAIN = (function () {
   const { BLOCKCHAIN='ethereum:ropsten' } = env
   const [flavor, networkName] = BLOCKCHAIN.split(':')
-  return {
+  const blockchainConstants = constants.BLOCKCHAIN[BLOCKCHAIN]
+  return extend({
     flavor,
     networkName,
     toString: () => BLOCKCHAIN,
     select: obj => obj[flavor]
-  }
+  }, blockchainConstants)
 }())
 
 env.DEV = !(env.SERVERLESS_STAGE || '').startsWith('prod')

@@ -16,6 +16,7 @@ const { deliverBatch } = require('./delivery')
 const { extend, setVirtual, pickVirtual } = require('./utils')
 const Errors = require('./errors')
 const types = require('./types')
+const { BLOCKCHAIN } = require('./env')
 const { network } = require('./')
 const {
   PAYLOAD_PROP_PREFIX,
@@ -49,6 +50,21 @@ const getMyChainKey = co(function* () {
     type: network.flavor,
     networkName: network.networkName
   })
+})
+
+const getMyChainKeyPub = co(function* () {
+  const identity = yield getMyPublicIdentity()
+  const key = identity.pubkeys.find(key => {
+    return key.type === BLOCKCHAIN.flavor &&
+      key.networkName === BLOCKCHAIN.networkName &&
+      key.purpose === 'messaging'
+  })
+
+  if (!key) {
+    throw new Error(`no key found for blockchain network ${BLOCKCHAIN.toString()}`)
+  }
+
+  return key
 })
 
 const signObject = co(function* ({ author, object }) {
@@ -230,6 +246,7 @@ const attemptLiveDelivery = co(function* ({ message, session }) {
 const Provider = module.exports = {
   getMyKeys,
   getMyChainKey,
+  getMyChainKeyPub,
   getMyIdentity: getMyPublicIdentity,
   signObject,
   createSendMessageEvent,

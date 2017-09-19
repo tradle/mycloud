@@ -30,7 +30,7 @@ custom:
   #   https://github.com/serverless/serverless/issues/3740
   stage: dev
   region: us-east-1
-  blockchain: ethereum:ropsten
+  blockchain: ethereum:rinkeby
 
   # copied from vars.yml
   # defaultEmailForNotifications: ${{self:custom.vars.defaultEmailForNotifications}}
@@ -114,6 +114,8 @@ provider:
   timeout: 60
   # deploymentBucket: io.tradle.${{self:custom.stage}}.deploys
   environment:
+    # enable long stack traces
+    BLUEBIRD_DEBUG: 1
     IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
     # declare
     IOT_ENDPOINT: ''
@@ -511,6 +513,8 @@ functions:
           rate: rate(10 minutes)
           enabled: false
 
+  # get funds from ethereum testnet faucet
+  # (doesn't work on rinkeby, and doesn't work well on ropsten)
   recharge_ethereum:
     handler: project/lib/lambda/recharge-ethereum.handler
     events:
@@ -521,7 +525,7 @@ functions:
   # writes pending transactions to the blockchain
   sealpending:
     handler: project/lib/lambda/sealpending.handler
-    memorySize: 128
+    memorySize: 512
     timeout: 60
     events:
       - schedule:
@@ -531,7 +535,7 @@ functions:
   # polls the status of unconfirmed blockchain transactions
   pollchain:
     handler: project/lib/lambda/pollchain.handler
-    memorySize: 128
+    memorySize: 512
     timeout: 60
     events:
       - schedule:

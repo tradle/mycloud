@@ -94,7 +94,6 @@ test('queue seal', co(function* (t) {
   // t.equal(read, true)
   // t.equal(wrote, true)
 
-  // yield blockchain.stop()
   stubSeal.restore()
   stubGetTxs.restore()
   t.end()

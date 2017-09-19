@@ -1,3 +1,4 @@
+const debug = require('debug')('tradle:sls:errors')
 const ex = require('error-ex')
 const errors = {}
 ;[
