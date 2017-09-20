@@ -7,12 +7,6 @@ TODO:
   put Elasticache (Redis) in front of Objects bucket
 
   tighten policies on access to buckets/tables
-  
-onClientConnect:
-  1. handshake
-  2. send next unsent message
-
-validate identity in preprocess
 
 fix putEvent to use conditional update 
 
@@ -49,7 +43,6 @@ DynamoDB:
 
 Lambda:
   use aws-serverless-express for all http endpoints
-  don't waste a lambda invocation on OPTIONS requests. Learn from aws-serverless-express/example, with OPTIONS contentHandling set to CONVERT_TO_TEXT
   optimal memory/cpu size tuning: https://serverless.com/blog/aws-lambda-power-tuning/
 
 don't waste lambda invocations on s3 resources (e.g. /info should really go straight to s3)
@@ -63,24 +56,3 @@ S3:
 
 Misc:
   scrap superagent, use node-fetch
-
-Init:
-  recharge, seal own identity
-
-Ethereum:
-  transactions may not be mined at all. After being successfully submitted to etherscan, if they're non-existent on the next sync, they need to be unqueued for syncUnconfirmed and re-queued for sealPending
-
-Cloud-cloud delivery
-  HTTP (not MQTT). No sessions, just sign every message, with recent ethereum block hashes serving as nonces (to prove signature recency)
-
-  potential algorithm:
-    send message:
-      1. POST to their outbox - get messages queued up for me since the last message received
-      2. POST to their inbox - send messages
-      response may contain messages sent in response, but maybe not worth waiting, as lambdas are billed on time.
-
-  or should we be augmenting the graphql api with mutations?
-
-Security
-  graphql api needs authentication, e.g. requests can be signed with employee credentials
-
