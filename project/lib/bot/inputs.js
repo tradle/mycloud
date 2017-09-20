@@ -5,7 +5,6 @@ const mergeModels = require('@tradle/merge-models')
 const defaultTradleInstance = require('../')
 const createHistory = require('./history')
 const createGraphQLAPI = require('./graphql')
-const baseModels = require('./base-models')
 const {
   NODE_ENV='development',
   SERVERLESS_PREFIX='tradle-'
@@ -15,25 +14,17 @@ const MAX_ITEM_SIZE = 6000
 
 module.exports = function createBotInputs ({
   // userModel,
-  models=baseModels,
+  models,
   tradle=defaultTradleInstance
 }) {
-  const { provider, seals, identities, objects, messages, aws } = tradle
+  const { provider, seals, identities, objects, messages, aws, db } = tradle
   const { docClient } = aws
 
-  models = mergeModels()
-    .add(baseModels)
-    .add(models === baseModels ? {} : models)
-    // .add({ [userModel.id]: userModel })
-    .get()
+  if (models) {
+    db.addModels(models)
+  }
 
-  const db = tradleDynamo.db({
-    models,
-    objects,
-    docClient,
-    maxItemSize: MAX_ITEM_SIZE,
-    prefix: SERVERLESS_PREFIX
-  })
+  ({ models } = db)
 
   const graphqlAPI = createGraphQLAPI({
     objects,

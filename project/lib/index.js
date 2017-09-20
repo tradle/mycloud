@@ -10,15 +10,16 @@ const cachifiable = {
   Objects: true
 }
 
-function Environment () {
+function Tradle () {
   this.require = lazy(require, this)
 
   this.env = ENV
   this.aws = this.require('aws', './aws')
   this.networks = this.require('networks', './networks')
+  this.models = this.require('models', './models')
 
   let network
-  this.__defineGetter__('network', () => {
+  defineGetter(this, 'network', () => {
     if (!network) {
       network = this.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
     }
@@ -27,7 +28,7 @@ function Environment () {
   })
 
   let blockchain
-  this.__defineGetter__('blockchain', function () {
+  defineGetter(this, 'blockchain', () => {
     if (blockchain) return blockchain
 
     const createBlockchainAPI = require('./blockchain')
@@ -35,7 +36,7 @@ function Environment () {
   })
 
   let seals
-  this.__defineGetter__('seals', () => {
+  defineGetter(this, 'seals', () => {
     if (!seals) {
       seals = require('./seals')({
         provider: this.provider,
@@ -49,7 +50,7 @@ function Environment () {
   })
 
   let faucet
-  this.__defineGetter__('faucet', function () {
+  defineGetter(this, 'faucet', () => {
     if (!faucet) {
       faucet = require('./faucet')({
         networkName: BLOCKCHAIN.networkName,
@@ -60,6 +61,7 @@ function Environment () {
     return faucet
   })
 
+  defineGetter(this, 'db', () => require('./db')())
   this.identities = this.require('identities', './identities')
   this.messages = this.require('messages', './messages')
   this.objects = this.require('objects', './objects')
@@ -78,5 +80,9 @@ function Environment () {
   this.bot = this.require('bot', './bot')
 }
 
-exports = module.exports = new Environment()
-exports.new = () => new Environment()
+function defineGetter (obj, property, get) {
+  Object.defineProperty(obj, property, { get })
+}
+
+exports = module.exports = new Tradle()
+exports.new = () => new Tradle()

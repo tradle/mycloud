@@ -1,5 +1,5 @@
 const co = require('co').wrap
-const { errors, constants, utils, aws } = require('../../')
+const { errors, constants, utils, aws, db } = require('../../')
 const { extend } = utils
 const { getter } = require('../utils')
 const fakeSeals = require('./seals')
@@ -16,6 +16,7 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
     seals: fakeSeals({
       seals
     }),
+    db,
     objects: {
       getObjectByLink: getter(objects),
       getEmbeds: () => {

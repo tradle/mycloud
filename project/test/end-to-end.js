@@ -34,7 +34,7 @@ const credentials = (function () {
 }())
 
 const createBot = require('../lib/bot')
-const baseModels = require('../lib/bot/base-models')
+const baseModels = require('../lib/models')
 const defaultModels = mergeModels()
   .add(baseModels)
   .get()
