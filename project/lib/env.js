@@ -21,7 +21,7 @@ const { splitCamelCase } = require('./string-utils')
 const networks = require('./networks')
 const constants = require('./constants')
 
-const env = clone(require('../conf/env'))
+const env = {}
 if (process.env.NODE_ENV === 'test') {
   extend(process.env, require('../test/service-map'))
 }

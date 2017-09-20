@@ -4,19 +4,23 @@ const adapters = require('./blockchain-adapter')
 const networks = module.exports = {
   bitcoin: {
     testnet: {
-      minBalance: 1000000
+      minBalance: 1000000,
+      confirmations: 6
     },
     // bitcoinjs-lib's name for it
     bitcoin: {
-      minBalance: 1000000
+      minBalance: 1000000,
+      confirmations: 6
     }
   },
   ethereum: {
     ropsten: {
-      minBalance: '2000000000000000000'
+      minBalance: '2000000000000000000',
+      confirmations: 12
     },
     rinkeby: {
-      minBalance: '2000000000000000000'
+      minBalance: '2000000000000000000',
+      confirmations: 12
     }
   }
 }

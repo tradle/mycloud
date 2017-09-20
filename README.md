@@ -146,13 +146,13 @@ npm run nuke
 
 ```sh
 .              # dev dependencies, serverless framework config
-  /cli         # ignore me for now
-  /scripts     # various helper scripts
-  /project     # code that will be deployed to lambda
-    /conf      # various table schemas, used for tests
-    /lib
-      /bot     # bot engine
-    /samplebot # currently co-located sample bot in `./project/samplebot`
+  cli/         # ignore me for now
+  project/     # mostly code that will be deployed to lambda
+    scripts/   # command line scripts, and utils
+    conf/      # schemas, and service maps, used for tests
+    lib/
+      bot/     # bot engine
+    samplebot/ # currently co-located sample bot that uses tradle/bot-products#modeled
 ```
 
 ### Troubleshooting

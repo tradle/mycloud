@@ -8,7 +8,7 @@ const { aws, resources } = require('../')
 const { ensureInitialized } = require('..//lib/init')
 
 const setup = co.wrap(function* () {
-  const stack = require('../../.serverless/cloudformation-template-update-stack')
+  const stack = require('../test/stack')
   const { Resources } = stack
   const tables = []
   const buckets = []

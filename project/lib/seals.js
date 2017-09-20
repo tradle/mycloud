@@ -18,7 +18,6 @@ const types = require('./types')
 const Errors = require('./errors')
 const Provider = require('./provider')
 const MAX_ERRORS_RECORDED = 10
-// const { SEAL_CONFIRMATIONS } = require('./env')
 const WATCH_TYPE = {
   this: 't',
   next: 'n'
@@ -31,7 +30,6 @@ const notNull = val => !!val
 function manageSeals ({ provider, blockchain, table, confirmationsRequired }) {
   typeforce(types.blockchain, blockchain)
 
-  // const confirmationsRequired = SEAL_CONFIRMATIONS[blockchain.toString()]
   const scanner = IndexName => co(function* (opts={}) {
     const { limit=Infinity } = opts
     const query = { IndexName }

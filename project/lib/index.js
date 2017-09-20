@@ -41,7 +41,7 @@ function Environment () {
         provider: this.provider,
         table: this.tables.Seals,
         blockchain: this.blockchain,
-        confirmationsRequired: ENV.SEAL_CONFIRMATIONS[ENV.BLOCKCHAIN]
+        confirmationsRequired: this.network.confirmations
       })
     }
 

@@ -7,10 +7,7 @@ const AWS = process.env.IS_LOCAL || !process.env.IS_LAMBDA_ENVIRONMENT
   : AWSXRay.captureAWS(rawAWS)
 
 const cacheServices = process.env.IS_LOCAL
-const services = process.env.IS_LOCAL
-  ? require('../conf/services.dev')
-  : require('../conf/services.prod')
-
+const services = require('./aws-config')
 AWS.config.update(services)
 
 const instanceNameToServiceName = {

@@ -14,7 +14,30 @@ AWS.config.update({
 const test = require('tape')
 const co = require('../lib/utils').loudCo
 const { getTable, batchPut } = require('../lib/db-utils')
-const schema = require('../conf/table/test')
+const schema = {
+  "AttributeDefinitions": [
+    {
+       "AttributeName": "id",
+       "AttributeType": "S"
+    }
+  ],
+  "KeySchema": [
+    {
+      "AttributeName": "id",
+      "KeyType": "HASH"
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 1,
+    "WriteCapacityUnits": 1
+  },
+  "StreamSpecification": {
+    "StreamEnabled": true,
+    "StreamViewType": "NEW_AND_OLD_IMAGES"
+  },
+  "TableName": "TestTable"
+}
+
 const aws = require('../lib/aws')
 
 test('batch put', co(function* (t) {
