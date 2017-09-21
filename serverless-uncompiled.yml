@@ -129,7 +129,7 @@ provider:
     BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     ORG_DOMAIN: tradle.io
     ORG_NAME: Tradle
-    ORG_LOGO: ${{file(./project/conf/env.json):LOGO_TRADLE}}
+    ORG_LOGO: ${{file(./project/lib/media.json):LOGO_TRADLE}}
 
   iamRoleStatements:
     - Effect: Allow
@@ -471,6 +471,10 @@ functions:
 
   # identity:
   #   handler: project/lib/lambda/identity.handler
+
+  addfriend:
+    handler: project/lib/lambda/add-friend.handler
+    memorySize: 1024
 
   # performs service discovery - builds a map of logical->physical ids
   # and writes that map to the environment variables of all other lambdas

@@ -12,9 +12,12 @@ const {
   ORG_NAME,
   ORG_DOMAIN,
   ORG_LOGO,
-  LOGO_UNKNOWN,
   BLOCKCHAIN
 } = require('./env')
+
+const {
+  LOGO_UNKNOWN
+} = require('./media')
 
 const {
   buckets,

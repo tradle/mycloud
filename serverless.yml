@@ -70,7 +70,7 @@ provider:
     BOT_ONMESSAGE: '${{self:custom.bot_onmessage}}'
     ORG_DOMAIN: tradle.io
     ORG_NAME: Tradle
-    ORG_LOGO: '${{file(./project/conf/env.json):LOGO_TRADLE}}'
+    ORG_LOGO: '${{file(./project/lib/media.json):LOGO_TRADLE}}'
     R_BUCKET_Objects:
       Ref: ObjectsBucket
     R_BUCKET_Secrets:
@@ -321,6 +321,9 @@ functions:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   send:
     handler: project/lib/lambda/send.handler
+    memorySize: 1024
+  addfriend:
+    handler: project/lib/lambda/add-friend.handler
     memorySize: 1024
   setenvvars:
     handler: project/lib/lambda/setenvvars.handler

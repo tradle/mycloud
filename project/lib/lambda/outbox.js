@@ -1,3 +1,5 @@
+// NOT CURRENTLY USED
+
 const debug = require('debug')('λ:outbox')
 const wrap = require('../wrap')
 const { prettify } = require('../string-utils')

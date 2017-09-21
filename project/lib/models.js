@@ -8,6 +8,12 @@ const cloud = {
     id: 'tradle.MyCloudFriend',
     title: 'MyCloud Friend',
     properties: {
+      name: {
+        type: 'string',
+      },
+      url: {
+        type: 'string',
+      },
       bot: {
         type: 'object',
         ref: 'tradle.Identity'
@@ -20,7 +26,11 @@ const cloud = {
         type: 'object',
         range: 'json'
       }
-    }
+    },
+    required: [
+      'name',
+      'url'
+    ]
   }
 }
 
