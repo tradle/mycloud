@@ -56,3 +56,9 @@ S3:
 
 Misc:
   scrap superagent, use node-fetch
+
+ES7 Async/Await:
+  https://github.com/AnomalyInnovations/serverless-es7
+
+Function optimization:
+  https://github.com/serverless-heaven/serverless-webpack
