@@ -5,9 +5,9 @@
  */
 
 const co = require('co')
-const { dynamodb } = require('..//lib/aws')
-const { batchify, runWithBackoffWhile } = require('..//lib/utils')
-const { SERVERLESS_PREFIX } = require('..//test/service-map')
+const { dynamodb } = require('../lib/aws')
+const { batchify, runWithBackoffWhile } = require('../lib/utils')
+const { SERVERLESS_PREFIX } = require('../test/service-map')
 const {
   service: {
     resources: { Resources }

@@ -10,7 +10,9 @@ const awsServerlessExpressMiddleware = require('aws-serverless-express/middlewar
 const dynogels = require('dynogels')
 const { createResolvers } = require('@tradle/dynamodb')
 const { createSchema } = require('@tradle/schema-graphql')
-const { co } = require('../utils')
+const { TYPE, TYPES } = require('@tradle/constants')
+const { MESSAGE } = TYPES
+const { co, extend } = require('../utils')
 const { docClient } = require('../aws')
 const ENV = require('../env')
 const { HTTP_METHODS } = ENV
@@ -44,7 +46,7 @@ const binaryMimeTypes = [
 ]
 
 module.exports = function setup (opts) {
-  const { models, objects, tables, presignUrls } = opts
+  const { models, objects, db, presignUrls } = opts
   const app = express()
   app.use(compression())
   app.use(cors())
@@ -78,19 +80,22 @@ module.exports = function setup (opts) {
     awsServerlessExpress.proxy(server, event, context)
   }
 
-  const resolvers = createResolvers({
-    objects,
-    models,
-    tables,
-    postProcess
-  })
-
-  function postProcess (result, op) {
+  const postProcess = co(function* (result, op) {
     switch (op) {
     case 'get':
+      if (result[TYPE] === MESSAGE) {
+        yield loadPayloads(result)
+      }
+
       presignEmbeddedMediaLinks(result)
       break
     case 'list':
+      if (result.items && result.items.length) {
+        if (result.items[0][TYPE] === MESSAGE) {
+          yield loadPayloads(result.items)
+        }
+      }
+
       result.items = presignEmbeddedMediaLinks(result.items)
       break
     default:
@@ -98,7 +103,14 @@ module.exports = function setup (opts) {
     }
 
     return result
-  }
+  })
+
+  const resolvers = createResolvers({
+    objects,
+    models,
+    db,
+    postProcess
+  })
 
   // be lazy
   let schema
@@ -115,11 +127,22 @@ module.exports = function setup (opts) {
     return graphql(schema, query, null, {}, variables)
   }
 
+  const loadPayloads = co(function* (messages) {
+    messages = [].concat(messages)
+    const payloads = yield messages.map(msg => objects.getObjectByLink(msg.object._link))
+    payloads.forEach((payload, i) => {
+      const neutered = messages[i].object
+      const virtual = (neutered._virtual || []).concat(payload._virtual || [])
+      extend(neutered, payload)
+      neutered._virtual = virtual
+    })
+  })
+
   return {
     get schema () {
       return getSchema()
     },
-    tables,
+    db,
     resolvers,
     executeQuery,
     handleHTTPRequest

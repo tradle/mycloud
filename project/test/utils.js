@@ -7,7 +7,7 @@ const Errors = require('../lib/errors')
 function getSchema (logicalName) {
   const {
     Resources
-  } = require('./stack')
+  } = require('../lib/cli/stack')
 
   const { Type, Properties } = Resources[logicalName]
   if (Type === 'AWS::DynamoDB::Table' && Properties.StreamSpecification) {

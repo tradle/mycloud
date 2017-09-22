@@ -9,6 +9,7 @@ package:
     - .git/**
     - .serverless/**
     - project/scripts/**
+    - project/lib/cli/**
     - node_modules/**
     - simulate/**
     - node_modules/**/test/**

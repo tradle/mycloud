@@ -1,10 +1,11 @@
+const { EventEmitter } = require('events')
 const debug = require('debug')('tradle:sls:delivery')
 const { co, typeforce, pick } = require('./utils')
 const Objects = require('./objects')
 const Messages = require('./messages')
 const Iot = require('./iot-utils')
 const Errors = require('./errors')
-const { omitVirtual } = require('./utils')
+const { omitVirtual, extend } = require('./utils')
 const { getLink } = require('./crypto')
 const MAX_BATCH_SIZE = 5
 // 128KB, but who knows what overhead MQTT adds, so leave a buffer
@@ -52,7 +53,7 @@ const deliverMessages = co(function* ({
     debug(`found ${messages.length} messages for ${permalink}`)
     if (!messages.length) return
 
-    yield deliverBatch({ clientId, permalink, messages })
+    yield Delivery.deliverBatch({ clientId, permalink, messages })
 
     // while (messages.length) {
     //   let message = messages.shift()
@@ -120,11 +121,12 @@ function stringify (msg) {
   return JSON.stringify(omitVirtual(msg))
 }
 
-module.exports = {
+// eventemitter makes testing easier
+const Delivery = module.exports = extend(new EventEmitter(), {
   deliverMessages,
   deliverBatch,
   ack,
   reject,
   batchBySize,
   MAX_PAYLOAD_SIZE
-}
+})

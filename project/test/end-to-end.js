@@ -13,6 +13,8 @@ const createProductsStrategy = require('@tradle/bot-products')
 const createEmployeeManager = require('@tradle/bot-employee-manager')
 const genSample = require('@tradle/gen-samples').fake
 const { replaceDataUrls } = require('@tradle/embed')
+const dbUtils = require('../lib/db-utils')
+const Delivery = require('../lib/delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
 const tradle = require('../')
 const { utils, crypto, aws, buckets, resources, provider, objects, s3Utils } = tradle
@@ -21,6 +23,7 @@ const { ensureInitialized } = require('../lib/init')
 const botFixture = require('./fixtures/bot')
 const userIdentities = require('./fixtures/users-pem')
 const createProductsBot = require('../lib/bot/strategy').products
+const intercept = require('./interceptor')
 const nextUserIdentity = (function () {
   let i = 0
   return function () {
@@ -59,15 +62,34 @@ const endToEndTest = co(function* (opts={}) {
   } = opts
 
   const {
+    tradle,
     bot,
     productsAPI,
     employeeManager
   } = createProductsBot({ products })
 
+  // const authenticate = function authenticate (user) {
+  //   return tradle.auth.onAuthenticated({
+  //     clientId: user.permalink.repeat(2),
+  //     permalink: user.permalink,
+  //     clientPosition: {},
+  //     serverPosition: {},
+  //   })
+  // }
+
   bot.ready()
 
   const employee = createUser({ bot, name: 'EMPLOYEE' })
   const customer = createUser({ bot, name: 'CUSTOMER' })
+  const interceptor = intercept({
+    bot,
+    onmessage: function ({ permalink, messages }) {
+      if (permalink === employee.permalink) {
+        yield
+      }
+    }
+  })
+
   yield [
     employee.identity,
     bot.identity,
@@ -77,8 +99,18 @@ const endToEndTest = co(function* (opts={}) {
     return Promise.all([
       bot.addressBook.addContact(identity),
       bot.users.del(identity._permalink)
+        .catch(err => {
+          if (err.name !== 'ResourceNotFoundException') {
+            throw err
+          }
+        })
     ])
   })
+
+  // yield [
+  //   authenticate(employee),
+  //   authenticate(customer)
+  // ]
 
   debug('EMPLOYEE:', employee.identity._permalink)
   debug('CUSTOMER:', customer.identity._permalink)
@@ -163,6 +195,7 @@ const endToEndTest = co(function* (opts={}) {
     other: { context }
   })
 
+  interceptor.restore()
   // uncomment to dump dbs to screen
   // yield dumpDB({ bot, types })
 })
@@ -276,29 +309,27 @@ const clear = co(function* (opts) {
   // }
 
   const existingTables = yield aws.dynamodb.listTables().promise()
-  const toDelete = Object.keys(bot.models)
-    .filter(id => {
-      const name = bot.db.tables[id].name
-      return existingTables.TableNames.includes(name)
-    })
+  const toDelete = existingTables.TableNames
+
+  // const toDelete = Object.keys(bot.models)
+  //   .filter(id => {
+  //     const name = bot.db.tables[id].name
+  //     return existingTables.TableNames.includes(name)
+  //   })
 
   const batches = batchify(toDelete, 5)
   yield batches.map(co(function* (batch) {
     yield batch.map(id => {
-      return destroyTable(bot.db.tables[id])
+      return destroyTable(id)//bot.db.tables[id])
     })
   }))
 })
 
-// destroy @tradle/dynamodb table
-const destroyTable = co(function* (table) {
-  let info = yield table.info()
-  if (!info) return
-
+const destroyTable = co(function* (TableName) {
   while (true) {
     try {
-      yield table.destroy()
-      debug(`deleted table: ${table.name}`)
+      yield dbUtils.deleteTable({ TableName })
+      debug(`deleted table: ${TableName}`)
     } catch (err) {
       if (err.name === 'ResourceNotFoundException') {
         break
@@ -322,12 +353,13 @@ function getApplicationByContext ({ productsAPI, context }) {
   })
 }
 
-function createUser ({ bot, onmessage, name }) {
+function createUser ({ tradle, bot, onmessage, name }) {
   // bot.users = require('../../test/mock/users')()
   bot.identity = botFixture.identity
   bot.keys = botFixture.keys
   const { identity, keys, profile } = nextUserIdentity()
   return new User({
+    tradle,
     identity,
     keys,
     bot,
@@ -337,13 +369,14 @@ function createUser ({ bot, onmessage, name }) {
   })
 }
 
-function User ({ identity, keys, profile, name, bot, onmessage }) {
+function User ({ tradle, identity, keys, profile, name, bot, onmessage }) {
   EventEmitter.call(this)
 
   const self = this
   this.name = name
   this.identity = identity
   this.permalink = crypto.getPermalink(this.identity)
+  this.clientId = this.permalink.repeat(2)
   this.keys = keys
   this.profile = profile
   this.bot = bot
@@ -351,33 +384,8 @@ function User ({ identity, keys, profile, name, bot, onmessage }) {
   this.botPubKey = tradleUtils.sigPubKey(bot.identity)
   this._userSeq = 0
   this._botSeq = 0
-  const { send } = bot
 
-  // ugly monkeypatch warning!
-  bot.send = co(function* (opts) {
-    let { to, object, other={} } = opts
-    if (to !== self.permalink && to.id !== self.permalink) {
-      return send.call(this, opts)
-    }
-
-    if (!object[SIG]) object = yield bot.sign(object)
-
-    const save = bot.save(object)
-    const signMessage = bot.sign(extend({
-      [TYPE]: 'tradle.Message',
-      [SEQ]: self._botSeq++,
-      time: Date.now(),
-      recipientPubKey: self.userPubKey,
-      object
-    }, other))
-
-    const [signedMessage] = yield [signMessage, save]
-    self.emit('message', signedMessage)
-    if (onmessage) {
-      return onmessage(signedMessage)
-    }
-  })
-
+  // const { send } = bot
   this.on('message', message => {
     const types = []
     let envelope = message
@@ -387,6 +395,12 @@ function User ({ identity, keys, profile, name, bot, onmessage }) {
     }
 
     this._debug('received', types.join(' -> '))
+  })
+
+  Delivery.on('message', ({ permalink, message }) => {
+    if (permalink === this.permalink) {
+      this.emit('message', message)
+    }
   })
 }
 
@@ -408,7 +422,13 @@ User.prototype._debug = function (...args) {
 User.prototype.send = co(function* ({ object, other }) {
   this._debug('sending', object[TYPE])
   const message = yield this._createMessage({ object, other })
-  return yield this.bot.process.message.handler(message)
+  const userSim = require('../lib/user')
+  yield userSim.onSentMessage({
+    clientId: this.clientId,
+    message
+  })
+
+  // return yield this.bot.process.message.handler(message)
   // return yield this.bot.trigger('message', message)
 })
 
@@ -469,13 +489,6 @@ User.prototype.sendSelfIntroduction = function () {
   return this.send({ object: selfIntro })
 }
 
-module.exports = {
-  createUser,
-  createProductsBot,
-  endToEndTest,
-  clear
-}
-
 function wait (millis) {
   return new Promise(resolve => setTimeout(resolve, millis))
 }
@@ -486,4 +499,11 @@ function getPubKeyString (pub) {
   }
 
   return pub.toString('hex')
+}
+
+module.exports = {
+  createUser,
+  createProductsBot,
+  endToEndTest,
+  clear
 }

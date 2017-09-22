@@ -3,12 +3,12 @@
 process.env.NODE_ENV = 'test'
 process.env.IS_LOCAL = true
 
+const serviceMap = require('./service-map')
 const pick = require('object.pick')
 const extend = require('xtend/mutable')
-const serviceMap = require('./service-map')
 
 extend(process.env, pick(serviceMap, [
   'SERVERLESS_STAGE',
   'SERVERLESS_SERVICE_NAME',
-  'SERVERLESS_SERVICE_PREFIX'
+  'SERVERLESS_PREFIX'
 ]))

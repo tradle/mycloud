@@ -83,7 +83,7 @@ const putObject = co(function* (object) {
   addMetadata(object)
   object = deepClone(object)
   yield Objects.replaceEmbeds(object)
-  debug('putting', object._link)
+  debug('putting', object[TYPE], object._link)
   return Buckets.Objects.putJSON(object._link, object)
 })
 

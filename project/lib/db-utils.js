@@ -39,6 +39,7 @@ function getTable (TableName) {
     }
   })
 
+  tableAPI.name = TableName
   return logify(tableAPI, { log: debug, logInputOutput: DEV })
 
   function batchPutToTable (items) {

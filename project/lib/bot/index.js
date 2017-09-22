@@ -102,28 +102,30 @@ function createBot (opts={}) {
   bot.save = resource => bot.db.put(ensureTimestamped(resource))
   bot.merge = resource => bot.db.merge(ensureTimestamped(resource))
   bot.send = co(function* (opts) {
+    const { object, to } = opts
     try {
+      if (object[SIG]) {
+        typeforce(types.signedObject, object)
+      } else {
+        typeforce(types.unsignedObject, object)
+      }
+
       typeforce({
         to: typeforce.oneOf(typeforce.String, typeforce.Object),
-        object: typeforce.oneOf(
-          types.unsignedObject,
-          types.signedObject
-        ),
         other: typeforce.maybe(typeforce.Object)
       }, opts)
     } catch (err) {
       throw new errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
     }
 
-    const { to } = opts
     opts = omit(opts, 'to')
     opts.recipient = to.id || to
-    if (typeof opts.object === 'string') {
-      opts.object = {
-        [TYPE]: 'tradle.SimpleMessage',
-        message: opts.object
-      }
-    }
+    // if (typeof opts.object === 'string') {
+    //   opts.object = {
+    //     [TYPE]: 'tradle.SimpleMessage',
+    //     message: opts.object
+    //   }
+    // }
 
     const payload = opts.object
     const model = models[payload[TYPE]]

@@ -78,6 +78,7 @@ function Tradle () {
   this.buckets = this.require('buckets', './buckets')
   this.provider = this.require('provider', './provider')
   this.bot = this.require('bot', './bot')
+  this.auth = this.require('auth', './auth')
 }
 
 function defineGetter (obj, property, get) {

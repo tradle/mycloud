@@ -29,7 +29,7 @@ module.exports = function createBotInputs ({
   const graphqlAPI = createGraphQLAPI({
     objects,
     models,
-    tables: db.tables,
+    db,
     prefix: SERVERLESS_PREFIX,
     messages,
     presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks

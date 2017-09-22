@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { unmarshalDBItem } = require('..//lib/db-utils')
+const { unmarshalDBItem } = require('../lib/db-utils')
 
 let str = ''
 process.stdin

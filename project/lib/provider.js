@@ -11,8 +11,8 @@ const { getObjectByLink, extractMetadata } = require('./objects')
 const Buckets = require('./buckets')
 const Identities = require('./identities')
 const Events = require('./events')
-const { getLiveSessionByPermalink } = require('./auth')
-const { deliverBatch } = require('./delivery')
+const Auth = require('./auth')
+const Delivery = require('./delivery')
 const { extend, setVirtual, pickVirtual } = require('./utils')
 const Errors = require('./errors')
 const types = require('./types')
@@ -88,16 +88,11 @@ const findOrCreate = co(function* ({ link, object, author }) {
     return getObjectByLink(link)
   }
 
-  let willPut
   if (!object[SIG]) {
-    willPut = true
     object = yield signObject({ author, object })
   }
 
-  if (willPut) {
-    yield Objects.putObject(object)
-  }
-
+  yield Objects.putObject(object)
   Objects.addMetadata(object)
   return object
 })
@@ -219,7 +214,7 @@ const createReceiveMessageEvent = co(function* ({ message }) {
 const sendMessage = co(function* ({ recipient, object, other={} }) {
   // start this first to get a more accurate timestamp
   const promiseCreate = createSendMessageEvent({ recipient, object, other })
-  const promiseSession = getLiveSessionByPermalink(recipient)
+  const promiseSession = Auth.getLiveSessionByPermalink(recipient)
   const message = yield promiseCreate
 
   // should probably do this asynchronously
@@ -241,7 +236,7 @@ const sendMessage = co(function* ({ recipient, object, other={} }) {
 
 const attemptLiveDelivery = co(function* ({ message, session }) {
   debug(`sending message (time=${message.time}) to ${session.permalink} live`)
-  yield deliverBatch({
+  yield Delivery.deliverBatch({
     clientId: session.clientId,
     permalink: session.permalink,
     messages: [message]
