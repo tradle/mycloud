@@ -31,6 +31,7 @@
     "serverless-resources-env": "mvayngrib/serverless-resources-env",
     "serverless-sam": "mvayngrib/serverless-sam",
     "sinon": "^3.3.0",
+    "snyk": "^1.41.1",
     "tap": "^10.7.2",
     "tape": "^4.6.3",
     "validate-commit-msg": "^2.14.0"
@@ -67,7 +68,7 @@
     "localstack:restart": "./project/scripts/localstack.sh down && ./project/scripts/localstack.sh up",
     "tail": "./project/scripts/tail.sh",
     "info": "serverless info",
-    "precommit": "npm run compile-template && git add serverless.yml",
+    "precommit": "snyk test && npm run compile-template && git add serverless.yml",
     "commit": "git-cz"
   },
   "dependencies": {}
