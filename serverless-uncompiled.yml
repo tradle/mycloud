@@ -6,6 +6,7 @@ plugins:
   - serverless-plugin-tracing
   - serverless-sam
   - serverless-apigw-binary
+  - print
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies

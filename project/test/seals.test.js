@@ -37,11 +37,11 @@ test('queue seal', co(function* (t) {
 
   let sealed
   const stubSeal = sinon.stub(blockchain, 'seal')
-    .callsFake(function (sealInfo) {
+    .callsFake(co(function* (sealInfo) {
       t.same(sealInfo.addresses, [address])
       sealed = true
-      return Promise.resolve({ txId })
-    })
+      return { txId }
+    }))
 
   const stubGetTxs = sinon.stub(blockchain, 'getTxsForAddresses')
     .callsFake(function (addresses, blockHeight) {

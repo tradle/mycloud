@@ -3,6 +3,7 @@ const crypto = require('crypto')
 const microtime = require('./microtime')
 const typeforce = require('typeforce')
 const debug = require('debug')('tradle:sls:utils')
+const bindAll = require('bindall')
 const omit = require('object.omit')
 const pick = require('object.pick')
 const deepClone = require('clone')
@@ -19,7 +20,6 @@ const DataURI = require('strong-data-uri')
 const buildResource = require('@tradle/build-resource')
 const { prettify, stableStringify } = require('./string-utils')
 const { SIG, TYPE, TYPES } = require('./constants')
-const ENV = require('./env')
 const Resources = require('./resources')
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE } = TYPES
@@ -28,6 +28,7 @@ const wait = millis =>
 
 const utils = exports
 
+exports.bindAll = bindAll
 exports.deepClone = deepClone
 exports.clone = clone
 exports.extend = extend
@@ -340,12 +341,6 @@ exports.domainToUrl = function domainToUrl (domain) {
   }
 
   return domain
-}
-
-exports.resources = function () {
-  const env = Resources.environment()
-  env.IOT_ENDPOINT = ENV.IOT_ENDPOINT
-  return env
 }
 
 exports.batchify = function (arr, batchSize) {

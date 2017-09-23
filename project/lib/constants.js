@@ -19,5 +19,6 @@ module.exports = deepExtend({
     maxRetries: 100
   },
   MAX_CLOCK_DRIFT: 10000,
-  MAX_DB_ITEM_SIZE: 6000
+  MAX_DB_ITEM_SIZE: 6000,
+  ENV_RESOURCE_PREFIX: 'R_'
 }, tradleConstants)

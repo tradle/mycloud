@@ -13,7 +13,10 @@ AWS.config.update({
 
 const test = require('tape')
 const co = require('../lib/utils').loudCo
-const { getTable, batchPut } = require('../lib/db-utils')
+const {
+  dbUtils: { getTable, batchPut }
+} = require('../')
+
 const schema = {
   "AttributeDefinitions": [
     {

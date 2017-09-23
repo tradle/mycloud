@@ -4,8 +4,8 @@ const { NotFound } = require('./errors')
 const aws = require('./aws')
 const { co, pick, logify, timestamp, wait, clone } = require('./utils')
 const { prettify } = require('./string-utils')
-const { DEV } = require('./env')
 const Errors = require('./errors')
+const { DEV } = require('./env')
 const CONSISTENT_READ_EVERYTHING = true
 
 function getTable (TableName) {

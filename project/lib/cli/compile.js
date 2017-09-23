@@ -5,6 +5,8 @@ const LOCALLY_AVAILABLE = [
   'AWS::ApiGateway::RestApi'
 ]
 
+const { ENV_RESOURCE_PREFIX } = require('../constants')
+
 module.exports = {
   forEachResource,
   addResourcesToOutputs,
@@ -61,7 +63,7 @@ function addResourcesToEnvironment (yaml) {
       shortName = shortName.slice(0, id.length - type.length)
     }
 
-    environment[`R_${type}_${shortName}`] = {
+    environment[`${ENV_RESOURCE_PREFIX}${type}_${shortName}`] = {
       Ref: id
     }
   })

@@ -1,22 +1,23 @@
 const debug = require('debug')('tradle:sls:author')
-const { utils, protocol, typeforce } = require('@tradle/engine')
-const wrap = require('./wrap')
+const { utils } = require('@tradle/engine')
 const { sign, getSigningKey, getChainKey, getLink, getPermalink } = require('./crypto')
-const Objects = require('./objects')
-const Secrets = require('./secrets')
-// const { saveIdentityAndKeys } = require('./identities')
-const { cachifyPromiser, loudCo, pick, omit, clone, co, timestamp } = require('./utils')
-const Messages = require('./messages')
-const { getObjectByLink, extractMetadata } = require('./objects')
-const Buckets = require('./buckets')
-const Identities = require('./identities')
-const Events = require('./events')
-const Auth = require('./auth')
-const Delivery = require('./delivery')
-const { extend, setVirtual, pickVirtual } = require('./utils')
+const {
+  cachifyPromiser,
+  loudCo,
+  extend,
+  pick,
+  omit,
+  clone,
+  co,
+  timestamp,
+  setVirtual,
+  pickVirtual,
+  typeforce,
+  bindAll
+} = require('./utils')
+
 const Errors = require('./errors')
 const types = require('./types')
-const { network } = require('./')
 const {
   PAYLOAD_PROP_PREFIX,
   IDENTITY_KEYS_KEY,
@@ -29,22 +30,43 @@ const {
 
 const { MESSAGE } = TYPES
 
-// const DECRYPTION_KEY = new Buffer(process.env.DECRYPTION_KEY, 'base64')
+module.exports = Provider
 
-const lookupMyIdentity = () => Secrets.get(IDENTITY_KEYS_KEY)
-const lookupMyPublicIdentity = () => Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
+function Provider (tradle) {
+  bindAll(this)
+
+  this.objects = tradle.objects
+  this.messages = tradle.messages
+  this.secrets = tradle.secrets
+  this.identities = tradle.identities
+  this.buckets = tradle.buckets
+  this.auth = tradle.auth
+  this.network = tradle.network
+  this.delivery = tradle.delivery
+}
+
+const proto = Provider.prototype
+
+proto.lookupMyIdentity = function () {
+  return this.secrets.get(IDENTITY_KEYS_KEY)
+}
+
+proto.lookupMyPublicIdentity = function () {
+  return this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
+}
 
 // TODO: how to invalidate cache on identity updates?
 // maybe ETag on bucket item? But then we still need to request every time..
-const getMyIdentity = cachifyPromiser(lookupMyIdentity)
-const getMyPublicIdentity = cachifyPromiser(lookupMyPublicIdentity)
-const getMyKeys = co(function* () {
-  const { keys } = yield getMyIdentity()
+proto.getMyPrivateIdentity = cachifyPromiser(proto.lookupMyIdentity)
+proto.getMyPublicIdentity = cachifyPromiser(proto.lookupMyPublicIdentity)
+proto.getMyKeys = co(function* () {
+  const { keys } = yield this.getMyPrivateIdentity()
   return keys
 })
 
-const getMyChainKey = co(function* () {
-  const keys = yield Provider.getMyKeys()
+proto.getMyChainKey = co(function* () {
+  const { network } = this
+  const keys = yield this.getMyKeys()
   const chainKey = getChainKey(keys, {
     type: network.flavor,
     networkName: network.networkName
@@ -57,8 +79,9 @@ const getMyChainKey = co(function* () {
   return chainKey
 })
 
-const getMyChainKeyPub = co(function* () {
-  const identity = yield getMyPublicIdentity()
+proto.getMyChainKeyPub = co(function* () {
+  const { network } = this
+  const identity = yield this.getMyPublicIdentity()
   const key = identity.pubkeys.find(key => {
     return key.type === network.flavor &&
       key.networkName === network.networkName &&
@@ -72,32 +95,32 @@ const getMyChainKeyPub = co(function* () {
   return key
 })
 
-const signObject = co(function* ({ author, object }) {
-  if (!author) author = yield getMyIdentity()
+proto.signObject = co(function* ({ author, object }) {
+  if (!author) author = yield this.getMyPrivateIdentity()
 
   const key = getSigningKey(author.keys)
   const signed = yield sign({ key, object })
 
-  Objects.addMetadata(signed)
+  this.objects.addMetadata(signed)
   setVirtual(signed, { _author: getPermalink(author.identity) })
   return signed
 })
 
-const findOrCreate = co(function* ({ link, object, author }) {
+proto.findOrCreate = co(function* ({ link, object, author }) {
   if (!object) {
-    return getObjectByLink(link)
+    return this.objects.getObjectByLink(link)
   }
 
   if (!object[SIG]) {
-    object = yield signObject({ author, object })
+    object = yield this.signObject({ author, object })
   }
 
-  yield Objects.putObject(object)
-  Objects.addMetadata(object)
+  yield this.objects.putObject(object)
+  this.objects.addMetadata(object)
   return object
 })
 
-const _createSendMessageEvent = co(function* (opts) {
+proto._createSendMessageEvent = co(function* (opts) {
   const { author, recipient, link, object, other={} } = opts
 
   typeforce({
@@ -107,9 +130,9 @@ const _createSendMessageEvent = co(function* (opts) {
   }, opts)
 
   // run in parallel
-  const promisePayload = findOrCreate({ link, object, author })
-  const promisePrev = Messages.getLastSeqAndLink({ recipient })
-  const promiseRecipient = Identities.getIdentityByPermalink(recipient)
+  const promisePayload = this.findOrCreate({ link, object, author })
+  const promisePrev = this.messages.getLastSeqAndLink({ recipient })
+  const promiseRecipient = this.identities.getIdentityByPermalink(recipient)
   const [payload, recipientObj] = yield [
     promisePayload,
     promiseRecipient
@@ -130,12 +153,12 @@ const _createSendMessageEvent = co(function* (opts) {
   let attemptsToGo = 3
   let prev = yield promisePrev
   while (attemptsToGo--) {
-    extend(unsignedMessage, Messages.getPropsDerivedFromLast(prev))
+    extend(unsignedMessage, this.messages.getPropsDerivedFromLast(prev))
 
     let seq = unsignedMessage[SEQ]
     debug(`signing message ${seq} to ${recipient}`)
 
-    let signedMessage = yield signObject({ author, object: unsignedMessage })
+    let signedMessage = yield this.signObject({ author, object: unsignedMessage })
     setVirtual(signedMessage, {
       _author: getPermalink(author.identity),
       _recipient: getPermalink(recipientObj)
@@ -144,7 +167,7 @@ const _createSendMessageEvent = co(function* (opts) {
     setVirtual(signedMessage.object, payloadVirtual)
 
     try {
-      yield Messages.putMessage(signedMessage)
+      yield this.messages.putMessage(signedMessage)
       return signedMessage
     } catch (err) {
       if (err.code !== 'ConditionalCheckFailedException') {
@@ -152,7 +175,7 @@ const _createSendMessageEvent = co(function* (opts) {
       }
 
       debug(`seq ${seq} was taken by another message`)
-      prev = yield Messages.getLastSeqAndLink({ recipient })
+      prev = yield this.messages.getLastSeqAndLink({ recipient })
       debug(`retrying with seq ${seq}`)
     }
   }
@@ -162,22 +185,42 @@ const _createSendMessageEvent = co(function* (opts) {
   throw err
 })
 
-const createSendMessageEvent = co(function* (opts) {
+proto.createSendMessageEvent = co(function* (opts) {
   if (!opts.time) {
     opts.time = Date.now()
   }
 
   if (!opts.author) {
-    opts.author = yield getMyIdentity()
+    opts.author = yield this.getMyPrivateIdentity()
   }
 
-  return _createSendMessageEvent(opts)
+  return this._createSendMessageEvent(opts)
 })
 
-const createReceiveMessageEvent = co(function* ({ message }) {
-  message = yield Messages.parseInbound(message)
+proto.receiveMessage = co(function* ({ message }) {
+  // can probably move this to lamdba
+  // as it's normalizing transport-mangled inputs
+  try {
+    message = this.messages.normalizeInbound(message)
+    message = yield this.messages.preProcessInbound(message)
+  } catch (err) {
+    err.progress = message
+    debug('unexpected error in pre-processing inbound message:', err.stack)
+    throw err
+  }
+
+  try {
+    return yield this.createReceiveMessageEvent({ message })
+  } catch (err) {
+    err.progress = message
+    throw err
+  }
+})
+
+proto.createReceiveMessageEvent = co(function* ({ message }) {
+  message = yield this.messages.parseInbound(message)
   // TODO: phase this out
-  yield Objects.putObject(message.object)
+  yield this.objects.putObject(message.object)
 
   // if (objectWrapper.type === IDENTITY && messageWrapper.sigPubKey === objectWrapper.sigPubKey) {
   //   // special case: someone is sending us their own identity
@@ -194,7 +237,7 @@ const createReceiveMessageEvent = co(function* ({ message }) {
   //   })
   // }
 
-  yield Messages.putMessage(message)
+  yield this.messages.putMessage(message)
   return message
 })
 
@@ -211,15 +254,15 @@ const createReceiveMessageEvent = co(function* ({ message }) {
 //   }
 // })
 
-const sendMessage = co(function* ({ recipient, object, other={} }) {
+proto.sendMessage = co(function* ({ recipient, object, other={} }) {
   // start this first to get a more accurate timestamp
-  const promiseCreate = createSendMessageEvent({ recipient, object, other })
-  const promiseSession = Auth.getLiveSessionByPermalink(recipient)
+  const promiseCreate = this.createSendMessageEvent({ recipient, object, other })
+  const promiseSession = this.auth.getLiveSessionByPermalink(recipient)
   const message = yield promiseCreate
 
   // should probably do this asynchronously
   try {
-    yield attemptLiveDelivery({
+    yield this.attemptLiveDelivery({
       message,
       session: yield promiseSession
     })
@@ -234,22 +277,11 @@ const sendMessage = co(function* ({ recipient, object, other={} }) {
   return message
 })
 
-const attemptLiveDelivery = co(function* ({ message, session }) {
+proto.attemptLiveDelivery = co(function* ({ message, session }) {
   debug(`sending message (time=${message.time}) to ${session.permalink} live`)
-  yield Delivery.deliverBatch({
+  yield this.delivery.deliverBatch({
     clientId: session.clientId,
     permalink: session.permalink,
     messages: [message]
   })
 })
-
-const Provider = module.exports = {
-  getMyKeys,
-  getMyChainKey,
-  getMyChainKeyPub,
-  getMyIdentity: getMyPublicIdentity,
-  signObject,
-  createSendMessageEvent,
-  createReceiveMessageEvent,
-  sendMessage
-}

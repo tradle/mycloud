@@ -1,56 +1,59 @@
 const debug = require('debug')('tradls:sls:lambda-utils')
 const co = require('co').wrap
 const aws = require('./aws')
-const {
-  SERVERLESS_SERVICE,
-  SERVERLESS_STAGE
-} = require('./env')
 
-const utils = exports
+module.exports = Utils
 
-function getFullName (name) {
-  const { SERVERLESS_PREFIX='' } = require('./env')
-  return name.startsWith(SERVERLESS_PREFIX)
-    ? name
-    : `${SERVERLESS_PREFIX}${name}`
-}
-
-const invoke = co(function* ({ name, arg={}, sync=true, log }) {
-  const FunctionName = getFullName(name)
-  const params = {
-    InvocationType: sync ? 'RequestResponse' : 'Event',
-    FunctionName,
-    Payload: typeof arg === 'string' ? arg : JSON.stringify(arg)
-  }
-
-  if (log) params.LogType = 'Tail'
-
+function Utils ({ env }) {
   const {
-    StatusCode,
-    Payload,
-    FunctionError
-  } = yield aws.lambda.invoke(params).promise()
+    SERVERLESS_SERVICE,
+    SERVERLESS_STAGE
+  } = env
 
-  if (StatusCode >= 300) {
-    const message = Payload || `experienced ${FunctionError} error invoking lambda: ${name}`
-    throw new Error(message)
+  function getFullName (name) {
+    const { SERVERLESS_PREFIX='' } = require('./env')
+    return name.startsWith(SERVERLESS_PREFIX)
+      ? name
+      : `${SERVERLESS_PREFIX}${name}`
   }
 
-  if (sync) return JSON.parse(Payload)
-})
+  const invoke = co(function* ({ name, arg={}, sync=true, log }) {
+    const FunctionName = getFullName(name)
+    const params = {
+      InvocationType: sync ? 'RequestResponse' : 'Event',
+      FunctionName,
+      Payload: typeof arg === 'string' ? arg : JSON.stringify(arg)
+    }
 
-function getConfiguration (FunctionName) {
-  debug(`looking up configuration for ${FunctionName}`)
-  return aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
-}
+    if (log) params.LogType = 'Tail'
 
-function getStack (StackName) {
-  return aws.cloudformation.listStackResources({ StackName }).promise()
-}
+    const {
+      StatusCode,
+      Payload,
+      FunctionError
+    } = yield aws.lambda.invoke(params).promise()
 
-module.exports = {
-  getFullName,
-  invoke,
-  getStack,
-  getConfiguration
+    if (StatusCode >= 300) {
+      const message = Payload || `experienced ${FunctionError} error invoking lambda: ${name}`
+      throw new Error(message)
+    }
+
+    if (sync) return JSON.parse(Payload)
+  })
+
+  function getConfiguration (FunctionName) {
+    debug(`looking up configuration for ${FunctionName}`)
+    return aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
+  }
+
+  function getStack (StackName) {
+    return aws.cloudformation.listStackResources({ StackName }).promise()
+  }
+
+  return {
+    getFullName,
+    invoke,
+    getStack,
+    getConfiguration
+  }
 }

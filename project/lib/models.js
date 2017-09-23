@@ -31,10 +31,6 @@ const cloud = {
         type: 'object',
         ref: 'tradle.Identity'
       },
-      // _botPermalink: {
-      //   type: 'string',
-      //   virtual: true
-      // },
       org: {
         type: 'object',
         ref: 'tradle.Organization'
@@ -42,6 +38,10 @@ const cloud = {
       publicConfig: {
         type: 'object',
         range: 'json'
+      },
+      _botPermalink: {
+        type: 'string',
+        virtual: true
       }
     },
     required: [

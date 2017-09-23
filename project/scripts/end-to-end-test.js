@@ -6,13 +6,14 @@ const co = require('co')
 const { genLocalResources } = require('../lib/cli/utils')
 const {
   clear,
-  endToEndTest
+  Test
 } = require('../test/end-to-end')
 
 co(function* () {
   yield clear()
   yield genLocalResources()
-  yield endToEndTest()
+  let test = new Test()
+  yield test.runEmployeeAndCustomer()
 })
 .catch(err => {
   console.error(err)

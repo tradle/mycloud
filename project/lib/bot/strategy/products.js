@@ -1,14 +1,15 @@
 const omit = require('object.omit')
 const createProductsStrategy = require('@tradle/bot-products')
 const createEmployeeManager = require('@tradle/bot-employee-manager')
-const tradle = require('../../')
+const defaultTradleInstance = require('../../')
 const createBot = require('../')
-const baseModels = tradle.models
+const baseModels = defaultTradleInstance.models
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DEFAULT_PRODUCTS = ['tradle.CurrentAccount']
 
 module.exports = function createProductsBot (opts={}) {
   const {
+    tradle=defaultTradleInstance,
     models=baseModels,
     products=DEFAULT_PRODUCTS,
     namespace='test.bot'
@@ -31,7 +32,7 @@ module.exports = function createProductsBot (opts={}) {
   )
 
   const bot = createBot.fromEngine({
-    tradle: tradle.new(),
+    tradle,
     models: productsAPI.models.all
   })
 

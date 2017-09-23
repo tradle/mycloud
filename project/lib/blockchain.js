@@ -116,13 +116,13 @@ function createWrapper (blockchainIdentifier) {
     return network.pubKeyToAddress(pub)
   }
 
-  const startOrStop = co(function* startOrStop (method) {
+  const startOrStop = co(function* (method) {
     Object.keys(writerCache)
       .map(key => writerCache[key])
       .concat(reader)
       .forEach(client => {
-        if (client[method]) {
-          client[method]()
+        if (client.blockchain[method]) {
+          client.blockchain[method]()
         }
       })
   })
@@ -173,7 +173,7 @@ function createWrapper (blockchainIdentifier) {
     sealAddress,
     sealPrevAddress,
     toString: () => `${network.blockchain}:${network.name}`,
-    runOperation: wrapInStartStop,
+    wrapOperation: wrapInStartStop,
     _adapter: reader
   }
 }

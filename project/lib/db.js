@@ -1,9 +1,8 @@
 const tradleDynamo = require('@tradle/dynamodb')
 const { models, objects, aws, constants, env } = require('./')
-const Tables = require('./tables')
-const prefix = env.SERVERLESS_PREFIX
+// const Tables = require('./tables')
 
-module.exports = function createDB () {
+module.exports = function createDB ({ prefix, tables }) {
   const db = tradleDynamo.db({
     models,
     objects,
@@ -18,7 +17,7 @@ module.exports = function createDB () {
     models,
     objects,
     model: messageModel,
-    tableName: Tables.Outbox.name,
+    tableName: tables.Outbox.name,
     prefix,
     // better load these from serverless-yml
     hashKey: '_recipient',

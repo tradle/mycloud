@@ -1,7 +1,8 @@
 require('./env')
 
 const test = require('tape')
-const { batchBySize, MAX_PAYLOAD_SIZE, getMessageStub } = require('../lib/delivery')
+const { delivery } = require('../')
+const { batchBySize, MAX_PAYLOAD_SIZE, getMessageStub } = delivery
 const messageObject = require('./fixtures/alice/receive.json')
 
 test('batch by size', function (t) {

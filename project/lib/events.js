@@ -1,40 +1,39 @@
 const co = require('co').wrap
 const debug = require('debug')('tradle:sls:events')
 const { omit, extend, timestamp } = require('./utils')
-const Tables = require('./tables')
 
-function putEvents (events) {
-  setIds(events)
-  return Tables.Events.batchPut(events)
-}
+module.exports = function createEvents ({ tables }) {
+  const { Events } = tables
 
-function setIds (events) {
-  events.sort((a, b) => {
-    return a.data.time - b.data.time
-  })
+  function putEvents (events) {
+    setIds(events)
+    return Events.batchPut(events)
+  }
 
-  events.forEach((event, i) => {
-    if (i === 0) {
-      event.id = event.data.time + ''
-      return
-    }
+  function setIds (events) {
+    events.sort((a, b) => {
+      return a.data.time - b.data.time
+    })
 
-    const prevId = events[i - 1].id
-    event.id = getNextUniqueId(prevId, event.data.time + '')
-  })
+    events.forEach((event, i) => {
+      if (i === 0) {
+        event.id = event.data.time + ''
+        return
+      }
 
-  return events
-}
+      const prevId = events[i - 1].id
+      event.id = getNextUniqueId(prevId, event.data.time + '')
+    })
 
-function getNextUniqueId (prev, next) {
-  return prev === next ? bumpSuffix(prev) : next
-}
+    return events
+  }
 
-function bumpSuffix (id) {
-  const [main, suffix='0'] = id.split('.')
-  return main + (Number(suffix) + 1)
-}
+  function getNextUniqueId (prev, next) {
+    return prev === next ? bumpSuffix(prev) : next
+  }
 
-module.exports = {
-  putEvents
+  function bumpSuffix (id) {
+    const [main, suffix='0'] = id.split('.')
+    return main + (Number(suffix) + 1)
+  }
 }

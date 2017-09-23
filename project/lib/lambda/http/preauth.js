@@ -1,8 +1,7 @@
 const debug = require('debug')('λ:preauth')
-const wrap = require('../../wrap')
-const { onPreAuth } = require('../../user')
-const { ensureInitialized } = require('../../init')
-const ENV = require('../../env')
+const { wrap, user, init, env } = require('../../')
+const { onPreAuth } = user
+const { ensureInitialized } = init
 
 exports.handler = wrap(function* (event, context) {
   yield ensureInitialized()
@@ -16,7 +15,7 @@ exports.handler = wrap(function* (event, context) {
 
   const session = yield onPreAuth({ accountId, clientId, identity })
   session.time = now
-  session.iotTopicPrefix = ENV.IOT_TOPIC_PREFIX
+  session.iotTopicPrefix = env.IOT_TOPIC_PREFIX
   return session
 }, {
   type: 'http'

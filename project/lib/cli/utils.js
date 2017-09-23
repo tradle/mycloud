@@ -1,14 +1,14 @@
 const co = require('co')
 const extend = require('xtend/mutable')
 const debug = require('debug')('tradle:sls:cli:utils')
-const { aws, resources } = require('../')
-const { s3 } = aws
-const { ensureInitialized } = require('../init')
 const serverlessYml = require('./serverless-yml')
 const { service, custom } = serverlessYml
 const stack = require('./stack')
-
-const genLocalResources = co.wrap(function* () {
+const defaultTradleInstance = require('../')
+const genLocalResources = co.wrap(function* (tradle=defaultTradleInstance) {
+  const { env, aws, resources, init } = tradle
+  const { s3 } = aws
+  const { ensureInitialized } = init
   const { Resources } = stack
   const tables = []
   const buckets = []

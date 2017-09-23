@@ -2,7 +2,7 @@
 // require('../test/env')
 
 const co = require('co')
-const Discovery = require('../lib/discovery')
+const { discovery } = require('../')
 // const Bucket = 'io.tradle.dev.deploys'
 co(discover)
   .then(env => {
@@ -12,7 +12,7 @@ co(discover)
 
 function* discover () {
   // console.log(yield s3.getBucketAcl({ Bucket }).promise())
-  return yield Discovery.discoverServices({
+  return yield discovery.discoverServices({
     functionName: 'tradle-dev-setenvvars'
   })
 }

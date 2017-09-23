@@ -1,12 +1,11 @@
 const querystring = require('querystring')
 const debug = require('debug')('λ:recharge:bitcoin')
 const request = require('superagent')
-const wrap = require('../wrap')
-const tradle = require('../')
+const { wrap, provider } = require('../')
 const PIECES = 2
 
 exports.handler = wrap(function* ({ amount=100000 }) {
-  const { object } = yield tradle.provider.getMyIdentity()
+  const { object } = yield provider.getMyIdentity()
   const address = object.pubkeys.find(key => {
     return key.networkName === 'testnet' && key.purpose === 'messaging'
   }).fingerprint

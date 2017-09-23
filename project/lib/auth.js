@@ -1,23 +1,16 @@
 const debug = require('debug')('tradle:sls:auth')
-const aws = require('./aws')
-const Iot = require('./iot-utils')
 const { getUpdateParams } = require('./db-utils')
-const Resources = require('./resources')
 const { co, cachifyPromiser, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
 const { randomString, getPermalink } = require('./crypto')
 const { HandshakeFailed, InvalidInput, NotFound } = require('./errors')
-const { HANDSHAKE_TIMEOUT, PERMALINK } = require('./constants')
-const Objects = require('./objects')
-const Messages = require('./messages')
-const Identities = require('./identities')
 const types = require('./types')
-const Tables = require('./tables')
-const ENV = require('./env')
+const { constants } = require('./')
+const { HANDSHAKE_TIMEOUT, PERMALINK } = constants
 
 // const onExit = co(function* ({ clientId }) {
 //   try {
-//     yield Tables.Presence.del({
+//     yield this.tables.Presence.del({
 //       KeyConditionExpression: '#clientId = :clientId',
 //       ExpressionAttributeNames: {
 //         '#clientId': 'clientId'
@@ -39,7 +32,19 @@ const ENV = require('./env')
 //   })
 // })
 
-const onAuthenticated = co(function* ({ clientId, permalink, clientPosition, serverPosition }) {
+module.exports = Auth
+
+function Auth ({ resources, tables, identities, objects, messages }) {
+  this.resources = resources
+  this.tables = tables
+  this.identities = identities
+  this.objects = objects
+  this.messages = messages
+}
+
+const proto = Auth.prototype
+
+proto.onAuthenticated = co(function* ({ clientId, permalink, clientPosition, serverPosition }) {
   // TODO: change to use `update`
   const session = {
     clientId,
@@ -55,39 +60,30 @@ const onAuthenticated = co(function* ({ clientId, permalink, clientPosition, ser
 
   // allow multiple sessions for the same user?
   // yield deleteSessionsByPermalink(permalink)
-  yield Tables.Presence.put({ Item: session })
+  yield this.tables.Presence.put({ Item: session })
 })
 
-function updatePresence ({ clientId, connected }) {
+proto.updatePresence = function updatePresence ({ clientId, connected }) {
   const params = getUpdateParams({ connected })
   params.Key = getKeyFromClientId(clientId)
-  return Tables.Presence.update(params)
+  return this.tables.Presence.update(params)
 }
 
-function deleteSession (clientId) {
+proto.deleteSession = function deleteSession (clientId) {
   const Key = getKeyFromClientId(clientId)
-  return Tables.Presence.del({ Key })
+  return this.tables.Presence.del({ Key })
 }
 
-function deleteSessionsByPermalink (permalink) {
-  return Tables.Presence.del(getSessionsByPermalinkQuery)
+proto.deleteSessionsByPermalink = function deleteSessionsByPermalink (permalink) {
+  return this.tables.Presence.del(getSessionsByPermalinkQuery)
 }
 
-function getSessionsByPermalink (permalink) {
-  return Tables.Presence.find(getSessionsByPermalinkQuery(permalink))
+proto.getSessionsByPermalink = function getSessionsByPermalink (permalink) {
+  return this.tables.Presence.find(getSessionsByPermalinkQuery(permalink))
 }
 
-function getSessionsByPermalinkQuery (permalink) {
-  return {
-    KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
-    ExpressionAttributeValues: {
-      ':permalink': permalink
-    }
-  }
-}
-
-const getLiveSessionByPermalink = co(function* (permalink) {
-  const sessions = yield getSessionsByPermalink(permalink)
+proto.getLiveSessionByPermalink = co(function* (permalink) {
+  const sessions = yield this.getSessionsByPermalink(permalink)
   const latest = sessions
     .filter(session => session.authenticated && session.connected)
     .sort((a, b) => {
@@ -103,8 +99,8 @@ const getLiveSessionByPermalink = co(function* (permalink) {
   return latest
 })
 
-function getSession ({ clientId }) {
-  return Tables.Presence.findOne({
+proto.getSession = function getSession ({ clientId }) {
+  return this.tables.Presence.findOne({
     KeyConditionExpression: 'permalink = :permalink AND clientId = :clientId',
     ExpressionAttributeValues: {
       ':clientId': clientId,
@@ -114,10 +110,10 @@ function getSession ({ clientId }) {
   })
 }
 
-const createChallenge = co(function* ({ clientId, permalink }) {
+proto.createChallenge = co(function* ({ clientId, permalink }) {
   // const permalink = getPermalinkFromClientId(clientId)
   const challenge = randomString(32)
-  yield Tables.Presence.put({
+  yield this.tables.Presence.put({
     Item: {
       clientId,
       permalink,
@@ -134,7 +130,7 @@ const createChallenge = co(function* ({ clientId, permalink }) {
 //   yield Iot.sendChallenge({ clientId, challenge })
 // })
 
-const handleChallengeResponse = co(function* (response) {
+proto.handleChallengeResponse = co(function* (response) {
   try {
     typeforce({
       clientId: typeforce.String,
@@ -150,7 +146,7 @@ const handleChallengeResponse = co(function* (response) {
   const { clientId, permalink, challenge, position } = response
 
   // const permalink = getPermalinkFromClientId(clientId)
-  const stored = yield Tables.Presence.get({
+  const stored = yield this.tables.Presence.get({
     Key: { clientId, permalink }
   })
 
@@ -167,8 +163,8 @@ const handleChallengeResponse = co(function* (response) {
   }
 
   // validate sig
-  Objects.addMetadata(response)
-  yield Identities.addAuthorInfo(response)
+  this.objects.addMetadata(response)
+  yield this.identities.addAuthorInfo(response)
 
   // console.log(`claimed: ${permalink}, actual: ${response._author}`)
   if (response._author !== permalink) {
@@ -176,8 +172,8 @@ const handleChallengeResponse = co(function* (response) {
   }
 
   const session = { permalink, clientId, clientPosition: position }
-  const getLastSent = Messages.getLastMessageTo({ recipient: permalink, body: false })
-    .then(message => Messages.getMessageStub({ message }))
+  const getLastSent = this.messages.getLastMessageTo({ recipient: permalink, body: false })
+    .then(message => this.messages.getMessageStub({ message }))
     .catch(err => {
       if (err instanceof NotFound) return null
 
@@ -188,11 +184,11 @@ const handleChallengeResponse = co(function* (response) {
     sent: yield getLastSent
   }
 
-  yield onAuthenticated(session)
+  yield this.onAuthenticated(session)
   return session
 })
 
-const getTemporaryIdentity = co(function* (opts) {
+proto.getTemporaryIdentity = co(function* (opts) {
   try {
     typeforce({
       accountId: typeforce.String,
@@ -210,8 +206,8 @@ const getTemporaryIdentity = co(function* (opts) {
     throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
   }
 
-  const maybeAddContact = Identities.validateAndAdd(identity)
-  const role = `arn:aws:iam::${accountId}:role/${Resources.Role.IotClient}`
+  const maybeAddContact = this.identities.validateAndAdd(identity)
+  const role = `arn:aws:iam::${accountId}:role/${this.resources.Role.IotClient}`
   debug(`generating temp keys for client ${clientId}, role ${role}`)
 
   // get the account id which will be used to assume a role
@@ -224,33 +220,33 @@ const getTemporaryIdentity = co(function* (opts) {
 
   // assume role returns temporary keys
   const [challenge, addContact] = yield [
-    createChallenge({ clientId, permalink }),
+    this.createChallenge({ clientId, permalink }),
     maybeAddContact
   ]
 
   const {
     AssumedRoleUser,
     Credentials
-  } = yield aws.sts.assumeRole(params).promise()
+  } = yield this.aws.sts.assumeRole(params).promise()
 
   debug('assumed role', role)
   return {
-    iotEndpoint: ENV.IOT_ENDPOINT,
-    region: ENV.AWS_REGION,
+    iotEndpoint: this.env.IOT_ENDPOINT,
+    region: this.env.AWS_REGION,
     accessKey: Credentials.AccessKeyId,
     secretKey: Credentials.SecretAccessKey,
     sessionToken: Credentials.SessionToken,
-    uploadPrefix: getUploadPrefix(AssumedRoleUser),
+    uploadPrefix: this.getUploadPrefix(AssumedRoleUser),
     challenge
   }
 })
 
-function getUploadPrefix (AssumedRoleUser) {
-  return `${Resources.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
+proto.getUploadPrefix = function getUploadPrefix (AssumedRoleUser) {
+  return `${this.resources.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
 }
 
-function getMostRecentSessionByClientId (clientId) {
-  return getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
+proto.getMostRecentSessionByClientId = function getMostRecentSessionByClientId (clientId) {
+  return this.getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
 }
 
 // const isMostRecentSession = co(function* ({ clientId }) {
@@ -272,18 +268,27 @@ function getKeyFromClientId (clientId) {
   }
 }
 
-module.exports = {
-  // onEnter,
-  // onExit,
-  createChallenge,
-  // sendChallenge,
-  handleChallengeResponse,
-  getTemporaryIdentity,
-  getSession,
-  getSessionsByPermalink,
-  getLiveSessionByPermalink,
-  getMostRecentSessionByClientId,
-  deleteSession,
-  updatePresence
-  // isMostRecentSession
+function getSessionsByPermalinkQuery (permalink) {
+  return {
+    KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
+    ExpressionAttributeValues: {
+      ':permalink': permalink
+    }
+  }
 }
+
+// module.exports = {
+//   // onEnter,
+//   // onExit,
+//   createChallenge,
+//   // sendChallenge,
+//   handleChallengeResponse,
+//   getTemporaryIdentity,
+//   getSession,
+//   getSessionsByPermalink,
+//   getLiveSessionByPermalink,
+//   getMostRecentSessionByClientId,
+//   deleteSession,
+//   updatePresence
+//   // isMostRecentSession
+// }

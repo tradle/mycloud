@@ -1,7 +1,7 @@
 const debug = require('debug')('λ:onconnect')
-const wrap = require('../../wrap')
-const { onConnected } = require('../../user')
-const { prettify } = require('../../string-utils')
+const { wrap, user, stringUtils } = require('../..')
+const { onConnected } = user
+const { prettify } = stringUtils
 
 exports.handler = wrap(function* (event, context) {
   debug('client connected', prettify(event))

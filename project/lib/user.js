@@ -1,30 +1,46 @@
 const debug = require('debug')('tradle:sls:user')
 const { co, getLink, typeforce, clone, omitVirtual } = require('./utils')
 const { prettify } = require('./string-utils')
-const Auth = require('./auth')
-const Delivery = require('./delivery')
-const Messages = require('./messages')
-const { createReceiveMessageEvent } = require('./provider')
-const Iot = require('./iot-utils')
-const { invoke } = require('./lambda-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
-const Buckets = require('./buckets')
-const { SERVERLESS_STAGE, BOT_ONMESSAGE, IOT_TOPIC_PREFIX } = require('./env')
 const Errors = require('./errors')
 const types = require('./types')
 
-const onSubscribed = co(function* ({ clientId, topics }) {
+module.exports = UserSim
+
+function UserSim ({
+  env,
+  auth,
+  iot,
+  provider,
+  delivery,
+  buckets,
+  messages,
+  lambdaUtils
+}) {
+  this.env = env
+  this.auth = auth
+  this.iot = iot
+  this.provider = provider
+  this.delivery = delivery
+  this.buckets = buckets
+  this.messages = messages
+  this.lambdaUtils = lambdaUtils
+}
+
+const proto = UserSim.prototype
+
+proto.onSubscribed = co(function* ({ clientId, topics }) {
   debug('client subscribed to topics:', topics.join(', '))
   // yield onEnter({ clientId })
 
-  if (!Iot.includesClientMessagesTopic({ clientId, topics })) return
+  if (!this.iot.includesClientMessagesTopic({ clientId, topics })) return
 
-  const session = yield Auth.getSession({ clientId })
+  const session = yield this.auth.getSession({ clientId })
   debug('retrieved session', prettify(session))
   const { permalink, clientPosition, serverPosition } = session
   const gt = (clientPosition.received && clientPosition.received.time) || 0
   debug(`delivering messages after time ${gt}`)
-  yield Delivery.deliverMessages({ clientId, permalink, gt })
+  yield this.delivery.deliverMessages({ clientId, permalink, gt })
 })
 
 // const onSentMessageOverMQTT = co(function* ({ clientId, message }) {
@@ -33,11 +49,11 @@ const onSubscribed = co(function* ({ clientId, topics }) {
 //   } catch (err) {}
 // })
 
-const onSentMessage = co(function* ({ clientId, message }) {
+proto.onSentMessage = co(function* ({ clientId, message }) {
   let err
   let processed
   try {
-    processed = yield _onSentMessage({ clientId, message })
+    processed = yield this.provider.receiveMessage({ clientId, message })
   } catch (e) {
     err = e
   }
@@ -45,19 +61,20 @@ const onSentMessage = co(function* ({ clientId, message }) {
   if (processed) {
     debug('received valid message from user')
     // SUCCESS!
-    yield Delivery.ack({
+    yield this.delivery.ack({
       clientId,
       message: processed
     })
 
+    const { BOT_ONMESSAGE } = this.env
     if (!BOT_ONMESSAGE) {
       debug('no bot subscribed to "onmessage"')
       return
     }
 
     // const { author, time, link } = wrapper.message
-    const neutered = Messages.stripData(processed)
-    yield invoke({
+    const neutered = this.messages.stripData(processed)
+    yield this.lambdaUtils.invoke({
       sync: false,
       name: BOT_ONMESSAGE,
       arg: neutered
@@ -77,7 +94,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
       throw err
     }
 
-    yield Delivery.reject({
+    yield this.delivery.reject({
       clientId,
       message: processed,
       reason: err
@@ -87,7 +104,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
     // HTTP
     if (!clientId) return
 
-    yield Delivery.ack({
+    yield this.delivery.ack({
       clientId,
       message: processed
     })
@@ -99,7 +116,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
       throw err
     }
 
-    yield Delivery.reject({
+    yield this.delivery.reject({
       clientId,
       message: processed,
       error: err
@@ -111,7 +128,7 @@ const onSentMessage = co(function* ({ clientId, message }) {
       throw err
     }
 
-    yield Delivery.reject({
+    yield this.delivery.reject({
       clientId,
       message: processed,
       error: err
@@ -122,48 +139,31 @@ const onSentMessage = co(function* ({ clientId, message }) {
   }
 })
 
-const _onSentMessage = co(function* ({ clientId, message }) {
-  // can probably move this to lamdba
-  // as it's normalizing transport-mangled inputs
-  try {
-    message = Messages.normalizeInbound(message)
-    message = yield Messages.preProcessInbound(message)
-  } catch (err) {
-    err.progress = message
-    debug('unexpected error in pre-processing inbound message:', err.stack)
-    throw err
-  }
-
-  try {
-    return yield createReceiveMessageEvent({ message })
-  } catch (err) {
-    err.progress = message
-    throw err
-  }
-})
-
-const onDisconnected = function ({ clientId }) {
-  return Auth.updatePresence({ clientId, connected: false })
+proto.onDisconnected = function ({ clientId }) {
+  return this.auth.updatePresence({ clientId, connected: false })
 }
 
-const onConnected = function ({ clientId }) {
-  return Auth.updatePresence({ clientId, connected: true })
+proto.onConnected = function ({ clientId }) {
+  return this.auth.updatePresence({ clientId, connected: true })
 }
 
-const onPreAuth = Auth.getTemporaryIdentity
-const onSentChallengeResponse = co(function* (response) {
+proto.onPreAuth = function (...args) {
+  return this.auth.getTemporaryIdentity(...args)
+}
+
+proto.onSentChallengeResponse = co(function* (response) {
   const time = Date.now()
-  const session = yield Auth.handleChallengeResponse(response)
+  const session = yield proto.auth.handleChallengeResponse(response)
   return {
     time,
     position: session.serverPosition
   }
 })
 
-const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
+proto.onRestoreRequest = co(function* ({ clientId, gt, lt }) {
   let session
   try {
-    session = yield Auth.getMostRecentSessionByClientId(clientId)
+    session = yield this.auth.getMostRecentSessionByClientId(clientId)
   } catch (err) {}
 
   if (!session) {
@@ -171,7 +171,7 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
     return
   }
 
-  yield Delivery.deliverMessages({
+  yield this.delivery.deliverMessages({
     clientId: session.clientId,
     permalink: session.permalink,
     gt,
@@ -179,15 +179,15 @@ const onRestoreRequest = co(function* ({ clientId, gt, lt }) {
   })
 })
 
-const getProviderIdentity = co(function* () {
-  const { object } = yield Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
+proto.getProviderIdentity = co(function* () {
+  const { object } = yield this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
   return omitVirtual(object)
 })
 
-const onGetInfo = co(function* () {
-  const conf = yield Buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
+proto.onGetInfo = co(function* () {
+  const conf = yield this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
   conf.aws = true
-  conf.iotTopicPrefix = IOT_TOPIC_PREFIX
+  conf.iotTopicPrefix = this.env.IOT_TOPIC_PREFIX
   return conf
 })
 
@@ -205,14 +205,3 @@ const onGetInfo = co(function* () {
 //       return {}
 //     })
 // }
-
-module.exports = {
-  onSentChallengeResponse,
-  onPreAuth,
-  onConnected,
-  onDisconnected,
-  onSubscribed,
-  onSentMessage,
-  onRestoreRequest,
-  onGetInfo
-}

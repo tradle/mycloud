@@ -1,10 +1,6 @@
 const debug = require('debug')('tradle:sls:messages')
 const co = require('co').wrap
 const { unserializeMessage } = require('@tradle/engine').utils
-const validateResource = require('@tradle/validate-resource')
-const models = require('@tradle/models')
-const Objects = require('./objects')
-const Identities = require('./identities')
 const Errors = require('./errors')
 const {
   pick,
@@ -13,11 +9,11 @@ const {
   clone,
   pickVirtual,
   setVirtual,
-  extend
+  extend,
+  bindAll
 } = require('./utils')
 const { getLink } = require('./crypto')
 const { prettify } = require('./string-utils')
-const Tables = require('./tables')
 const types = require('./types')
 const {
   TYPE,
@@ -36,42 +32,38 @@ const {
   IDENTITY_PUBLISH_REQUEST
 } = TYPES
 
-const get = function get (table, Key) {
-  return table
-    .get({ Key })
-    .then(messageFromEventPayload)
+module.exports = Messages
+
+function Messages ({ identities, objects, tables }) {
+  bindAll(this)
+
+  this.identities = identities
+  this.objects = objects
+  this.tables = tables
+  this.outbox = tables.Outbox
+  this.inbox = tables.Inbox
 }
 
-const findOne = function findOne (table, params) {
-  return table
-    .findOne(params)
-    .then(messageFromEventPayload)
-}
+const proto = Messages.prototype
 
-const find = function find (table, params) {
-  return table
-    .find(params)
-    .then(events => events.map(messageFromEventPayload))
-}
-
-const putMessage = co(function* (message) {
+proto.putMessage = co(function* (message) {
   setVirtual(message, {
     _payloadType: message.object[TYPE]
   })
 
-  const item = messageToEventPayload(message)
+  const item = Messages.messageToEventPayload(message)
   if (message._inbound) {
-    yield putInboundMessage({ message, item })
+    yield this.putInboundMessage({ message, item })
   } else {
-    yield putOutboundMessage({ message, item })
+    yield this.putOutboundMessage({ message, item })
   }
 })
 
-const putOutboundMessage = function putOutboundMessage ({ message, item }) {
-  return Tables.Outbox.put({ Item: item })
+proto.putOutboundMessage = function putOutboundMessage ({ message, item }) {
+  return this.outbox.put({ Item: item })
 }
 
-const putInboundMessage = co(function* ({ message, item }) {
+proto.putInboundMessage = co(function* ({ message, item }) {
   const params = {
     Item: item,
     ConditionExpression: 'attribute_not_exists(#link)',
@@ -81,7 +73,7 @@ const putInboundMessage = co(function* ({ message, item }) {
   }
 
   try {
-    yield Tables.Inbox.put(params)
+    yield this.inbox.put(params)
   } catch (err) {
     if (err.code === 'ConditionalCheckFailedException') {
       const dErr = new Errors.Duplicate()
@@ -93,20 +85,20 @@ const putInboundMessage = co(function* ({ message, item }) {
   }
 })
 
-const loadMessage = co(function* (message) {
-  const body = yield Objects.getObjectByLink(getLink(message.object))
+proto.loadMessage = co(function* (message) {
+  const body = yield this.objects.getObjectByLink(getLink(message.object))
   message.object = extend(message.object || {}, body)
   return message
 })
 
-const getMessageFrom = co(function* ({ author, time, link, body=true }) {
+proto.getMessageFrom = co(function* ({ author, time, link, body=true }) {
   if (body && link) {
     // prime cache
-    Objects.prefetchByLink(link)
+    this.objects.prefetchByLink(link)
   }
 
-  return maybeAddBody({
-    message: yield get(Tables.Inbox, {
+  return this.maybeAddBody({
+    message: yield get(this.inbox, {
       _author: author,
       time
     }),
@@ -114,31 +106,31 @@ const getMessageFrom = co(function* ({ author, time, link, body=true }) {
   })
 })
 
-const getMessagesFrom = co(function* ({ author, gt, limit, body=true }) {
+proto.getMessagesFrom = co(function* ({ author, gt, limit, body=true }) {
   debug(`looking up inbound messages from ${author}, > ${gt}`)
   const params = getMessagesFromQuery({ author, gt, limit })
-  return maybeAddBody({
-    messages: yield find(Tables.Inbox, params),
+  return this.maybeAddBody({
+    messages: yield find(this.inbox, params),
     body
   })
 })
 
-const getLastMessageFrom = co(function* ({ author, body=true }) {
+proto.getLastMessageFrom = co(function* ({ author, body=true }) {
   const params = getLastMessageFromQuery({ author })
-  return maybeAddBody({
-    message: yield findOne(Tables.Inbox, params),
+  return this.maybeAddBody({
+    message: yield findOne(this.inbox, params),
     body
   })
 })
 
-const maybeAddBody = function maybeAddBody ({ messages, message, body }) {
+proto.maybeAddBody = function maybeAddBody ({ messages, message, body }) {
   if (!body) return messages || message
 
   if (!messages) {
-    return loadMessage(message)
+    return this.loadMessage(message)
   }
 
-  return Promise.all(messages.map(loadMessage))
+  return Promise.all(messages.map(this.loadMessage))
 
   // return Promise.all(messages.map(message => {
   //   return loadMessage(message)
@@ -148,6 +140,273 @@ const maybeAddBody = function maybeAddBody ({ messages, message, body }) {
   // }))
   // // filter out nulls
   // .then(results => results.filter(message => message))
+}
+
+proto.getLastSeqAndLink = co(function* ({ recipient }) {
+  debug(`looking up last message to ${recipient}`)
+
+  const query = getLastMessageToQuery({ recipient })
+  query.ExpressionAttributeNames['#link'] = '_link'
+  query.ExpressionAttributeNames[`#${SEQ}`] = SEQ
+  query.ProjectionExpression = `#${SEQ}, #link`
+
+  let last
+  try {
+    last = yield this.outbox.findOne(query)
+    debug('last message:', prettify(last))
+    return {
+      seq: last[SEQ],
+      link: last._link
+    }
+  } catch (err) {
+    if (err instanceof Errors.NotFound) {
+      return null
+    }
+
+    debug('experienced error in getLastSeqAndLink', err.stack)
+    throw err
+  }
+})
+
+// const getNextSeq = co(function* ({ recipient }) {
+//   const last = yield getLastSeq({ recipient })
+//   return last + 1
+// })
+
+proto.getMessagesTo = co(function* ({ recipient, gt=0, afterMessage, limit, body=true }) {
+  debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
+  const params = getMessagesToQuery({ recipient, gt, afterMessage, limit })
+  return this.maybeAddBody({
+    messages: yield find(this.outbox, params),
+    body
+  })
+})
+
+proto.getLastMessageTo = co(function* ({ recipient, body=true }) {
+  const params = getLastMessageToQuery({ recipient })
+  return this.maybeAddBody({
+    message: yield findOne(this.outbox, params),
+    body
+  })
+})
+
+proto.getInboundByLink = function getInboundByLink (link) {
+  return findOne(this.inbox, {
+    IndexName: '_link',
+    KeyConditionExpression: '#link = :link',
+    ExpressionAttributeNames: {
+      '#link': '_link'
+    },
+    ExpressionAttributeValues: {
+      ':link': link
+    },
+    ScanIndexForward: true,
+    Limit: 1
+  })
+}
+
+// const assertNotDuplicate = co(function* (link) {
+//   try {
+//     const duplicate = yield Messages.getInboundByLink(link)
+//     debug(`duplicate found for message ${link}`)
+//     const dErr = new Errors.Duplicate()
+//     dErr.link = link
+//     throw dErr
+//   } catch (err) {
+//     if (!(err instanceof Errors.NotFound)) {
+//       throw err
+//     }
+//   }
+// })
+
+proto.assertTimestampIncreased = co(function* (message) {
+  const link = getLink(message)
+  const { time=0 } = message
+  try {
+    const prev = yield this.getLastMessageFrom({
+      author: message._author,
+      body: false
+    })
+
+    debug('previous message:', prettify(prev))
+    if (prev._link === link) {
+      const dErr = new Errors.Duplicate()
+      dErr.link = link
+      throw dErr
+    }
+
+    if (prev.time >= time) {
+      const msg = `timestamp for message ${link} is <= the previous messages's (${prev._link})`
+      debug(msg)
+      const dErr = new Errors.TimeTravel(msg)
+      dErr.link = link
+      // dErr.previous = {
+      //   time: prev.time,
+      //   link: prev.link
+      // }
+
+      throw dErr
+    }
+  } catch (err) {
+    if (!(err instanceof Errors.NotFound)) {
+      throw err
+    }
+  }
+})
+
+proto.parseInbound = co(function* (message) {
+  // TODO: uncomment below, check that message is for us
+  // yield ensureMessageIsForMe({ message })
+  const min = message
+
+  // prereq to running validation
+  yield this.objects.resolveEmbeds(message)
+
+  this.objects.addMetadata(message)
+  this.objects.addMetadata(message.object)
+
+  setVirtual(min, pickVirtual(message))
+  setVirtual(min.object, pickVirtual(message.object))
+  message = min
+
+  // TODO:
+  // would be nice to parallelize some of these
+  // yield assertNotDuplicate(messageWrapper.link)
+
+  const addMessageAuthor = this.identities.addAuthorInfo(message)
+  let addPayloadAuthor
+  if (message.object._sigPubKey === message._sigPubKey) {
+    addPayloadAuthor = addMessageAuthor.then(() => {
+      setVirtual(message.object, { _author: message._author })
+    })
+  } else {
+    addPayloadAuthor = this.identities.addAuthorInfo(message.object)
+  }
+
+  yield [
+    addMessageAuthor
+      .then(() => debug('loaded message author')),
+    addPayloadAuthor
+      .then(() => debug('loaded payload author')),
+  ]
+
+  debug('added metadata for message and wrapper')
+  yield this.assertTimestampIncreased(message)
+
+  message._inbound = true
+  return message
+})
+
+proto.preProcessInbound = co(function* (event) {
+  const message = Messages.normalizeInbound(event)
+  if (message[TYPE] !== MESSAGE) {
+    throw new Errors.InvalidMessageFormat('expected message, got: ' + message[TYPE])
+  }
+
+  // assertNoDrift(message)
+
+  // validateResource({ models, resource: message })
+
+  const { object } = message
+  const identity = getIntroducedIdentity(object)
+  if (identity) {
+    yield this.identities.validateAndAdd(identity)
+  }
+
+  return message
+})
+
+// const assertNoDrift = function assertNoDrift (message) {
+//   const drift = message.time - Date.now()
+//   const side = drift > 0 ? 'ahead' : 'behind'
+//   if (Math.abs(drift) > MAX_CLOCK_DRIFT) {
+//     debug(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
+//     throw new Errors.ClockDrift(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
+//   }
+// }
+
+// STATIC METHODS
+
+Messages.getPropsDerivedFromLast =
+proto.getPropsDerivedFromLast = function getPropsDerivedFromLast (last) {
+  const seq = last ? last.seq + 1 : 0
+  const props = { [SEQ]: seq }
+  if (last) {
+    props[PREV_TO_RECIPIENT] = last.link
+  }
+
+  return props
+}
+
+Messages.normalizeInbound =
+proto.normalizeInbound = function normalizeInbound (event) {
+  const message = _normalizeInbound(event)
+  validateInbound(message)
+  return message
+}
+
+Messages.messageToEventPayload =
+proto.messageToEventPayload = function messageToEventPayload (message) {
+  return clone(Messages.stripData(message), {
+    recipientPubKey: Messages.serializePubKey(message.recipientPubKey)
+  })
+}
+
+Messages.messageFromEventPayload =
+proto.messageFromEventPayload = function messageFromEventPayload (event) {
+  return clone(event, {
+    recipientPubKey: Messages.unserializePubKey(event.recipientPubKey)
+  })
+}
+
+Messages.serializePubKey =
+proto.serializePubKey = function serializePubKey (key) {
+  return `${key.curve}:${key.pub.toString('hex')}`
+}
+
+Messages.unserializePubKey =
+proto.unserializePubKey = function unserializePubKey (key) {
+  const [curve, pub] = key.split(':')
+  return {
+    curve: curve,
+    pub: new Buffer(pub, 'hex')
+  }
+}
+
+Messages.getMessageStub =
+proto.getMessageStub = function getMessageStub ({ message, error }) {
+  const stub = {
+    link: (error && error.link) || getLink(message),
+    time: message.time
+  }
+
+  typeforce(types.messageStub, stub)
+  return stub
+}
+
+Messages.stripData =
+proto.stripData = function stripData (message) {
+  return clone(message, {
+    object: pickVirtual(message.object)
+  })
+}
+
+const get = function get (table, Key) {
+  return table
+    .get({ Key })
+    .then(Messages.messageFromEventPayload)
+}
+
+const findOne = function findOne (table, params) {
+  return table
+    .findOne(params)
+    .then(Messages.messageFromEventPayload)
+}
+
+const find = function find (table, params) {
+  return table
+    .find(params)
+    .then(events => events.map(Messages.messageFromEventPayload))
 }
 
 const getMessagesFromQuery = function getMessagesFromQuery ({ author, gt, limit }) {
@@ -187,87 +446,6 @@ const getLastMessageFromQuery = function getLastMessageFromQuery ({ author }) {
   }
 }
 
-const messageToEventPayload = function messageToEventPayload (message) {
-  return clone(stripData(message), {
-    recipientPubKey: serializePubKey(message.recipientPubKey)
-  })
-}
-
-const messageFromEventPayload = function messageFromEventPayload (event) {
-  return clone(event, {
-    recipientPubKey: unserializePubKey(event.recipientPubKey)
-  })
-}
-
-const serializePubKey = function serializePubKey (key) {
-  return `${key.curve}:${key.pub.toString('hex')}`
-}
-
-const unserializePubKey = function unserializePubKey (key) {
-  const [curve, pub] = key.split(':')
-  return {
-    curve: curve,
-    pub: new Buffer(pub, 'hex')
-  }
-}
-
-const getLastSeqAndLink = co(function* ({ recipient }) {
-  debug(`looking up last message to ${recipient}`)
-
-  const query = getLastMessageToQuery({ recipient })
-  query.ExpressionAttributeNames['#link'] = '_link'
-  query.ExpressionAttributeNames[`#${SEQ}`] = SEQ
-  query.ProjectionExpression = `#${SEQ}, #link`
-
-  let last
-  try {
-    last = yield Tables.Outbox.findOne(query)
-    debug('last message:', prettify(last))
-    return {
-      seq: last[SEQ],
-      link: last._link
-    }
-  } catch (err) {
-    if (err instanceof Errors.NotFound) {
-      return null
-    }
-
-    debug('experienced error in getLastSeqAndLink', err.stack)
-    throw err
-  }
-})
-
-const getPropsDerivedFromLast = function getPropsDerivedFromLast (last) {
-  const seq = last ? last.seq + 1 : 0
-  const props = { [SEQ]: seq }
-  if (last) {
-    props[PREV_TO_RECIPIENT] = last.link
-  }
-
-  return props
-}
-
-// const getNextSeq = co(function* ({ recipient }) {
-//   const last = yield getLastSeq({ recipient })
-//   return last + 1
-// })
-
-const getMessagesTo = co(function* ({ recipient, gt=0, afterMessage, limit, body=true }) {
-  debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
-  const params = getMessagesToQuery({ recipient, gt, afterMessage, limit })
-  return maybeAddBody({
-    messages: yield find(Tables.Outbox, params),
-    body
-  })
-})
-
-const getLastMessageTo = co(function* ({ recipient, body=true }) {
-  const params = getLastMessageToQuery({ recipient })
-  return maybeAddBody({
-    message: yield findOne(Tables.Outbox, params),
-    body
-  })
-})
 
 const getMessagesToQuery = function getMessagesToQuery ({
   recipient,
@@ -344,12 +522,6 @@ const validateInbound = function validateInbound (message) {
   }
 }
 
-const normalizeInbound = function normalizeInbound (event) {
-  const message = _normalizeInbound(event)
-  validateInbound(message)
-  return message
-}
-
 const _normalizeInbound = function _normalizeInbound (event) {
   if (Buffer.isBuffer(event)) {
     try {
@@ -373,141 +545,6 @@ const _normalizeInbound = function _normalizeInbound (event) {
   return event
 }
 
-const getInboundByLink = function getInboundByLink (link) {
-  return findOne(Tables.Inbox, {
-    IndexName: '_link',
-    KeyConditionExpression: '#link = :link',
-    ExpressionAttributeNames: {
-      '#link': '_link'
-    },
-    ExpressionAttributeValues: {
-      ':link': link
-    },
-    ScanIndexForward: true,
-    Limit: 1
-  })
-}
-
-// const assertNotDuplicate = co(function* (link) {
-//   try {
-//     const duplicate = yield Messages.getInboundByLink(link)
-//     debug(`duplicate found for message ${link}`)
-//     const dErr = new Errors.Duplicate()
-//     dErr.link = link
-//     throw dErr
-//   } catch (err) {
-//     if (!(err instanceof Errors.NotFound)) {
-//       throw err
-//     }
-//   }
-// })
-
-const assertTimestampIncreased = co(function* (message) {
-  const link = getLink(message)
-  const { time=0 } = message
-  try {
-    const prev = yield Messages.getLastMessageFrom({
-      author: message._author,
-      body: false
-    })
-
-    debug('previous message:', prettify(prev))
-    if (prev._link === link) {
-      const dErr = new Errors.Duplicate()
-      dErr.link = link
-      throw dErr
-    }
-
-    if (prev.time >= time) {
-      const msg = `timestamp for message ${link} is <= the previous messages's (${prev.link})`
-      debug(msg)
-      const dErr = new Errors.TimeTravel(msg)
-      dErr.link = link
-      // dErr.previous = {
-      //   time: prev.time,
-      //   link: prev.link
-      // }
-
-      throw dErr
-    }
-  } catch (err) {
-    if (!(err instanceof Errors.NotFound)) {
-      throw err
-    }
-  }
-})
-
-const parseInbound = co(function* (message) {
-  // TODO: uncomment below, check that message is for us
-  // yield ensureMessageIsForMe({ message })
-  const min = message
-
-  // prereq to running validation
-  yield Objects.resolveEmbeds(message)
-
-  Objects.addMetadata(message)
-  Objects.addMetadata(message.object)
-
-  setVirtual(min, pickVirtual(message))
-  setVirtual(min.object, pickVirtual(message.object))
-  message = min
-
-  // TODO:
-  // would be nice to parallelize some of these
-  // yield assertNotDuplicate(messageWrapper.link)
-
-  const addMessageAuthor = Identities.addAuthorInfo(message)
-  let addPayloadAuthor
-  if (message.object._sigPubKey === message._sigPubKey) {
-    addPayloadAuthor = addMessageAuthor.then(() => {
-      setVirtual(message.object, { _author: message._author })
-    })
-  } else {
-    addPayloadAuthor = Identities.addAuthorInfo(message.object)
-  }
-
-  yield [
-    addMessageAuthor
-      .then(() => debug('loaded message author')),
-    addPayloadAuthor
-      .then(() => debug('loaded payload author')),
-  ]
-
-  debug('added metadata for message and wrapper')
-  yield Messages.assertTimestampIncreased(message)
-
-  message._inbound = true
-  return message
-})
-
-const preProcessInbound = co(function* (event) {
-  const message = Messages.normalizeInbound(event)
-  if (message[TYPE] !== MESSAGE) {
-    throw new Errors.InvalidMessageFormat('expected message, got: ' + message[TYPE])
-  }
-
-  // assertNoDrift(message)
-
-  // validateResource({ models, resource: message })
-
-  const { object } = message
-  const identity = getIntroducedIdentity(object)
-  if (identity) {
-    yield Identities.validateAndAdd(identity)
-  }
-
-  return message
-})
-
-// const assertNoDrift = function assertNoDrift (message) {
-//   const drift = message.time - Date.now()
-//   const side = drift > 0 ? 'ahead' : 'behind'
-//   if (Math.abs(drift) > MAX_CLOCK_DRIFT) {
-//     debug(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
-//     throw new Errors.ClockDrift(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)
-//   }
-// }
-
 const getIntroducedIdentity = function getIntroducedIdentity (payload) {
   const type = payload[TYPE]
   if (type === IDENTITY) return payload
@@ -515,48 +552,4 @@ const getIntroducedIdentity = function getIntroducedIdentity (payload) {
   if (type === SELF_INTRODUCTION || type === INTRODUCTION || type === IDENTITY_PUBLISH_REQUEST) {
     return payload.identity
   }
-}
-
-const getMessageStub = function getMessageStub ({ message, error }) {
-  const stub = {
-    link: (error && error.link) || getLink(message),
-    time: message.time
-  }
-
-  typeforce(types.messageStub, stub)
-  return stub
-}
-
-const stripData = function stripData (message) {
-  return clone(message, {
-    object: pickVirtual(message.object)
-  })
-}
-
-// enable overriding during testing
-const Messages = module.exports = {
-  messageFromEventPayload,
-  messageToEventPayload,
-  putMessage,
-  // mergeWrappers,
-  normalizeInbound,
-  parseInbound,
-  preProcessInbound,
-  getMessagesTo,
-  getLastMessageTo,
-  loadMessage,
-  // getInboundByTimestamp,
-  getMessagesFrom,
-  getMessageFrom,
-  getLastMessageFrom,
-  getInboundByLink,
-  getMessageStub,
-  getLastSeqAndLink,
-  getPropsDerivedFromLast,
-  // getNextSeqAndPREV_TO_RECIPIENT,
-  assertTimestampIncreased,
-  stripData
-  // assertNoDrift,
-  // assertNotDuplicate
-  // receiveMessage
 }

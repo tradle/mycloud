@@ -8,12 +8,12 @@ const isGeneratorFunction = require('is-generator-function')
 const stringify = require('json-stringify-safe')
 const { TESTING, HTTP_METHODS } = ENV
 const Errors = require('./errors')
-const Discovery = require('./discovery')
-const Resources = require('./resources')
+const { discovery } = require('./')
 const { cachifyPromiser } = require('./utils')
 const discoverServices = cachifyPromiser(co(function* () {
   if (!ENV.IOT_ENDPOINT) {
-    return Discovery.discoverServices()
+    const env = discovery.discoverServices()
+    ENV.set(env)
   }
 }))
 

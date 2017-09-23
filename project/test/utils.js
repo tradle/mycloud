@@ -1,8 +1,13 @@
 require('./env')
 
 const { co } = require('../lib/utils')
-const { getTable, marshalDBItem } = require('../lib/db-utils')
+const { isResourceEnvironmentVariable } = require('../lib/resources')
+const {
+  dbUtils: { getTable, marshalDBItem }
+} = require('../')
+
 const Errors = require('../lib/errors')
+const yml = require('../lib/cli/serverless-yml')
 
 function getSchema (logicalName) {
   const {
@@ -75,6 +80,22 @@ function scanner (map) {
   })
 }
 
+function reprefixServices (map, prefix) {
+  const { service } = yml
+  const { stage } = yml.custom
+  const reprefixed = {}
+  for (let key in map) {
+    let val = map[key]
+    if (isResourceEnvironmentVariable(key)) {
+      reprefixed[key] = val.replace(`${service}-${stage}-`, prefix)
+    } else {
+      reprefixed[key] = val
+    }
+  }
+
+  return reprefixed
+}
+
 module.exports = {
   getSchema,
   recreateTable,
@@ -82,5 +103,6 @@ module.exports = {
   getter,
   putter,
   deleter,
-  scanner
+  scanner,
+  reprefixServices
 }

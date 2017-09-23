@@ -68,7 +68,8 @@
     "localstack:restart": "./project/scripts/localstack.sh down && ./project/scripts/localstack.sh up",
     "tail": "./project/scripts/tail.sh",
     "info": "serverless info",
-    "precommit": "snyk test && npm run compile-template && git add serverless.yml",
+    "precommit": "npm run compile-template && git add serverless.yml",
+    "prepush": "snyk test",
     "commit": "git-cz"
   },
   "dependencies": {}

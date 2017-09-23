@@ -4,45 +4,25 @@ const promisify = require('pify')
 const deepEqual = require('deep-equal')
 const omit = require('object.omit')
 const clone = require('xtend')
+const { TYPE } = require('@tradle/constants')
 const tradleUtils = require('@tradle/engine').utils
-const { crypto, utils, networks } = require('./')
-const { getLink, addLinks, getIdentitySpecs } = crypto
-const { omitVirtual, setVirtual } = utils
+const crypto = require('./crypto')
+const utils = require('./utils')
+const errors = require('./errors')
+const constants = require('./constants')
+// const { crypto, utils, networks, constants, errors } = require('./')
 const {
-  ORG_NAME,
-  ORG_DOMAIN,
-  ORG_LOGO,
-  BLOCKCHAIN
-} = require('./env')
+  PUBLIC_CONF_BUCKET,
+  IDENTITY_KEYS_KEY
+} = constants
 
+const { getLink, addLinks, getIdentitySpecs } = crypto
+const { omitVirtual, setVirtual, shallowClone, bindAll } = utils
 const {
   LOGO_UNKNOWN
 } = require('./media')
 
-const {
-  buckets,
-  constants,
-  secrets,
-  objects,
-  errors,
-  identities,
-  provider
-} = require('./')
-
 const { exportKeys } = require('./crypto')
-const {
-  TYPE,
-  PUBLIC_CONF_BUCKET,
-  IDENTITY_KEYS_KEY,
-  PERMALINK,
-  LINK
-} = constants
-
-const ORG_PARAMS = {
-  name: ORG_NAME,
-  logo: ORG_LOGO,
-  domain: ORG_DOMAIN,
-}
 
 function getHandleFromName (name) {
   return name.replace(/[^A-Za-z]/g, '').toLowerCase()
@@ -61,32 +41,61 @@ const defaults = {
   }
 }
 
-const ensureInitialized = co(function* (options=ORG_PARAMS) {
-  const initialized = yield isInitialized()
+module.exports = Initializer
+
+function Initializer ({ env, networks, secrets, provider, buckets, objects }) {
+  bindAll(this)
+
+  this.env = env
+  this.secrets = secrets
+  this.networks = networks
+  this.provider = provider
+  this.buckets = buckets
+  this.objects = objects
+  const {
+    ORG_NAME,
+    ORG_DOMAIN,
+    ORG_LOGO,
+    BLOCKCHAIN
+  } = env
+
+  this.orgOpts = {
+    name: ORG_NAME,
+    logo: ORG_LOGO,
+    domain: ORG_DOMAIN,
+  }
+}
+
+const proto = Initializer.prototype
+
+proto.ensureInitialized = co(function* (options) {
+  const initialized = yield this.isInitialized()
   if (!initialized) {
-    yield init(options)
+    yield this.init(options)
   }
 })
 
-const init = co(function* (options) {
-  const result = yield createProvider(options)
+proto.init = co(function* (options) {
+  const result = yield this.createProvider(options)
   result.force = options.force
-  yield push(result)
+  yield this.push(result)
   return result
 })
 
-const isInitialized = (function () {
+proto.isInitialized = (function () {
   let initialized
   return co(function* () {
     if (!initialized) {
-      initialized = yield secrets.exists(IDENTITY_KEYS_KEY)
+      initialized = yield this.secrets.exists(IDENTITY_KEYS_KEY)
     }
 
     return initialized
   })
 }())
 
-const createProvider = co(function* ({ name, domain, logo }) {
+proto.createProvider = co(function* (opts) {
+  opts = shallowClone(this.orgOpts, opts)
+  let { name, domain, logo } = opts
   if (!(name && domain)) {
     throw new Error('"name" is required')
   }
@@ -103,11 +112,13 @@ const createProvider = co(function* ({ name, domain, logo }) {
     }
   }
 
-  const priv = yield createIdentity(getIdentitySpecs({ networks }))
+  const priv = yield createIdentity(getIdentitySpecs({
+    networks: this.networks
+  }))
 
   debug('created identity', JSON.stringify(priv))
   const pub = priv.identity
-  const org = yield provider.signObject({
+  const org = yield this.provider.signObject({
     author: priv,
     object: getOrgObj({ name, logo })
   })
@@ -121,11 +132,11 @@ const createProvider = co(function* ({ name, domain, logo }) {
   }
 })
 
-const push = co(function* (options) {
+proto.push = co(function* (options) {
   const { priv, pub, publicConfig, org, style, force } = options
   if (!force) {
     try {
-      const existing = yield secrets.get(IDENTITY_KEYS_KEY)
+      const existing = yield this.secrets.get(IDENTITY_KEYS_KEY)
       if (!deepEqual(existing, priv)) {
         throw new Error('refusing to overwrite identity keys')
       }
@@ -136,13 +147,13 @@ const push = co(function* (options) {
     }
   }
 
-  const { PublicConf } = buckets
+  const { PublicConf } = this.buckets
   yield [
     // TODO: encrypt
     // private
-    secrets.put(IDENTITY_KEYS_KEY, priv),
+    this.secrets.put(IDENTITY_KEYS_KEY, priv),
     // public
-    objects.putObject(pub),
+    this.objects.putObject(pub),
     PublicConf.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
     PublicConf.putJSON(PUBLIC_CONF_BUCKET.info, {
       bot: {
@@ -160,13 +171,13 @@ const push = co(function* (options) {
     })
   ];
 
-  yield identities.addContact(pub)
+  yield this.identities.addContact(pub)
 })
 
-const clear = co(function* () {
+proto.clear = co(function* () {
   let priv
   try {
-    priv = yield secrets.get(IDENTITY_KEYS_KEY)
+    priv = yield this.secrets.get(IDENTITY_KEYS_KEY)
   } catch (err) {
     if (!(err instanceof errors.NotFound)) {
       throw err
@@ -175,10 +186,10 @@ const clear = co(function* () {
 
   const link = priv && getLink(priv.identity)
   debug(`terminating provider ${link}`)
-  const { PublicConf } = buckets
+  const { PublicConf } = this.buckets
   yield [
-    link ? objects.del(link) : Promise.resolve(),
-    secrets.del(IDENTITY_KEYS_KEY),
+    link ? this.objects.del(link) : Promise.resolve(),
+    this.secrets.del(IDENTITY_KEYS_KEY),
     // public
     PublicConf.del(PUBLIC_CONF_BUCKET.identity),
     PublicConf.del(PUBLIC_CONF_BUCKET.info)
@@ -225,11 +236,4 @@ function getOrgObj ({ name, logo }) {
       }
     ]
   })
-}
-
-module.exports = {
-  ensureInitialized,
-  init,
-  push,
-  clear
 }

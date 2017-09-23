@@ -5,15 +5,21 @@ const fs = promisify(require('fs'))
 const mkdirp = promisify(require('mkdirp'))
 const co = require('co').wrap
 const extend = require('xtend/mutable')
-const Resources = require('./resources')
-const aws = require('./aws')
-const { invoke, getStack, getConfiguration } = require('./lambda-utils')
-const Iot = require('./iot-utils')
-const ENV = require('./env')
 
-const updateEnvironment = co(function* ({ functionName, current, update }) {
+module.exports = Discovery
+
+function Discovery ({ env, aws, lambdaUtils, iot }) {
+  this.env = env
+  this.aws = aws
+  this.lambdaUtils = lambdaUtils
+  this.iot = iot
+}
+
+const proto = Discovery.prototype
+
+proto.updateEnvironment = co(function* ({ functionName, current, update }) {
   if (!current) {
-    current = yield getConfiguration(functionName)
+    current = yield this.lambdaUtils.getConfiguration(functionName)
   }
 
   const updated = {}
@@ -31,15 +37,15 @@ const updateEnvironment = co(function* ({ functionName, current, update }) {
 
   debug(`updating "${functionName}" with new environment variables`)
   extend(Variables, updated)
-  yield aws.lambda.updateFunctionConfiguration({
+  yield this.aws.lambda.updateFunctionConfiguration({
     FunctionName: functionName,
     Environment: { Variables }
   }).promise()
 })
 
-function getServiceDiscoveryFunctionName () {
+proto.getServiceDiscoveryFunctionName = function getServiceDiscoveryFunctionName () {
   // function naming is ${service}-${stage}-${name}
-  const thisFunctionName = getThisFunctionName()
+  const thisFunctionName = this.getThisFunctionName()
   if (thisFunctionName) {
     const parts = thisFunctionName.split('-')
     parts[parts.length - 1] = 'setenvvars'
@@ -49,46 +55,44 @@ function getServiceDiscoveryFunctionName () {
   const {
     SERVERLESS_STAGE,
     SERVERLESS_SERVICE_NAME
-  } = require('./env')
+  } = this.env
 
   return `${SERVERLESS_SERVICE_NAME}-${SERVERLESS_STAGE}-setenvvars`
 }
 
-const discoverServices = co(function* (StackName) {
-  const thisFunctionName = getThisFunctionName()
+proto.discoverServices = co(function* (StackName) {
+  const thisFunctionName = this.getThisFunctionName()
   let env
   if (thisFunctionName && thisFunctionName.endsWith('-setenvvars')) {
-    env = yield doDiscoverServices(StackName)
+    env = yield this.doDiscoverServices(StackName)
   } else {
     debug('delegating service discovery')
-    env = yield invoke({
+    env = yield this.lambdaUtils.invoke({
       // hackity hack
-      name: getServiceDiscoveryFunctionName(),
+      name: this.getServiceDiscoveryFunctionName(),
       sync: true
     })
 
     debug('received env', env)
   }
 
-  ENV.set(env)
-  // Resources.set(env)
   return env
 })
 
-const doDiscoverServices = co(function* (StackName) {
+proto.doDiscoverServices = co(function* (StackName) {
   debug('performing service discovery')
-  const thisFunctionName = getThisFunctionName()
-  const promiseIotEndpoint = Iot.getEndpoint()
+  const thisFunctionName = this.getThisFunctionName()
+  const promiseIotEndpoint = this.iot.getEndpoint()
   let thisFunctionConfig
   if (!StackName) {
-    thisFunctionConfig = yield getConfiguration(thisFunctionName)
+    thisFunctionConfig = yield this.lambdaUtils.getConfiguration(thisFunctionName)
     StackName = thisFunctionConfig.Description
     if (!StackName.startsWith('arn:aws:cloudformation')) {
       throw new Error(`expected function ${thisFunctionName} Description to contain Ref: StackId`)
     }
   }
 
-  const { StackResourceSummaries } = yield getStack(StackName)
+  const { StackResourceSummaries } = yield this.lambdaUtils.getStack(StackName)
   const env = {
     IOT_ENDPOINT: yield promiseIotEndpoint
   }
@@ -115,7 +119,7 @@ const doDiscoverServices = co(function* (StackName) {
       }
 
       debug(`updating environment variables for: ${PhysicalResourceId}`)
-      return updateEnvironment({
+      return this.updateEnvironment({
         functionName: PhysicalResourceId,
         update: env,
         current
@@ -123,19 +127,19 @@ const doDiscoverServices = co(function* (StackName) {
     }))
 
     if (process.env.IS_LOCAL) {
-      yield saveToLocalFS(env)
+      yield this.saveToLocalFS(env)
     }
   }
 
   return env
 })
 
-function getThisFunctionName () {
-  return process.env.AWS_LAMBDA_FUNCTION_NAME
+proto.getThisFunctionName = function getThisFunctionName () {
+  return this.env.AWS_LAMBDA_FUNCTION_NAME
 }
 
-const saveToLocalFS = co(function* (vars) {
-  const { RESOURCES_ENV_PATH } = ENV
+proto.saveToLocalFS = co(function* (vars) {
+  const { RESOURCES_ENV_PATH } = this.env
   try {
     yield mkdirp(path.dirname(RESOURCES_ENV_PATH))
     yield fs.writeFile(RESOURCES_ENV_PATH, JSON.stringify(vars, null, 2))
@@ -150,9 +154,4 @@ function getFunctionNameFromArn (arn) {
 
 function isLambda (summary) {
   return summary.ResourceType === 'AWS::Lambda::Function'
-}
-
-module.exports = {
-  discoverServices,
-  updateEnvironment
 }

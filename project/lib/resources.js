@@ -1,50 +1,55 @@
 
 const debug = require('debug')('tradle:sls:Resources')
-const ENV = require('./env')
-const {
-  SERVERLESS_SERVICE_NAME,
-  SERVERLESS_STAGE
-} = ENV
+const { ENV_RESOURCE_PREFIX } = require('./constants')
+const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)_(.*)$`)
 
-const RESOURCE_REGEX = /^R_([^_]*)_(.*)/
-const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)
-const Resources = {}
+exports = module.exports = resourcesForEnv
+exports.isResourceEnvironmentVariable = str => RESOURCE_REGEX.test(str)
 
-Object.keys(ENV)
-  .map(key => {
-    const match = RESOURCE_REGEX.exec(key)
-    if (!match) return
+function resourcesForEnv ({ env }) {
+  const {
+    SERVERLESS_SERVICE_NAME,
+    SERVERLESS_STAGE
+  } = env
 
-    let type = match[1].toLowerCase()
-    type = type === 'restapi'
-      ? 'RestAPI'
-      : upperFirst(type)
+  const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)
+  const resources = {}
 
-    return {
-      key,
-      type,
-      name: match[2]
+  Object.keys(env)
+    .map(key => {
+      const match = RESOURCE_REGEX.exec(key)
+      if (!match) return
+
+      let type = match[1].toLowerCase()
+      type = type === 'restapi'
+        ? 'RestAPI'
+        : upperFirst(type)
+
+      return {
+        key,
+        type,
+        name: match[2]
+      }
+    })
+    .filter(truthy)
+    .forEach(register)
+
+  function register ({ key, type, name }) {
+    if (!resources[type]) {
+      resources[type] = {}
     }
-  })
-  .filter(truthy)
-  .forEach(register)
 
-function register ({ key, type, name }) {
-  if (!Resources[type]) {
-    Resources[type] = {}
+    const value = type === 'RestAPI'
+      ? `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}`
+      : env[key]
+
+    debug(`registered ${type} ${name} -> ${value}`)
+    resources[type][name] = value
   }
 
-  const value = type === 'RestAPI'
-    ? `https://${ENV[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}`
-    : ENV[key]
+  function truthy (obj) {
+    return !!obj
+  }
 
-  debug(`registered ${type} ${name} -> ${value}`)
-  Resources[type][name] = value
+  return resources
 }
-
-function truthy (obj) {
-  return !!obj
-}
-
-module.exports = Resources
-

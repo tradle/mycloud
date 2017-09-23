@@ -1,4 +1,6 @@
-global.Promise = require('bluebird')
+if (process.env.NODE_ENV !== 'test') {
+  global.Promise = require('bluebird')
+}
 
 process.on('unhandledRejection', function (reason, promise) {
   debug('possibly unhandled rejection', reason)
@@ -37,6 +39,7 @@ env.set = obj => {
 env.set(process.env)
 env.REGION = env.AWS_REGION
 env.TESTING = env.NODE_ENV === 'test'
+// env.prefix = env.SERVERLESS_PREFIX
 
 // this one might be set dynamically
 // env.__defineGetter__('IOT_ENDPOINT', () => process.env.IOT_ENDPOINT)

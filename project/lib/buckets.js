@@ -1,7 +1,5 @@
 
 const Cache = require('lru-cache')
-const Resources = require('./resources')
-const { getBucket } = require('./s3-utils')
 const { cachify, extend } = require('./utils')
 const { toCamelCase } = require('./string-utils')
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
@@ -14,28 +12,31 @@ const CACHE_OPTS = {
   maxAge: 60 * 1000
 }
 
-function loadBucket (name) {
-  if (buckets[name]) return
+module.exports = function getBuckets ({ s3Utils, resources }) {
+  const { getBucket } = s3Utils
 
-  const physicalId = Resources.Bucket[name]
-  if (!physicalId) throw new Error('bucket not found')
+  function loadBucket (name) {
+    if (buckets[name]) return
 
-  const bucket = getBucket(physicalId)
-  if (cachifiable[name]) {
-    const cachified = cachify({
-      get: bucket.getJSON,
-      put: bucket.putJSON,
-      cache: new Cache(CACHE_OPTS)
-    })
+    const physicalId = resources.Bucket[name]
+    if (!physicalId) throw new Error('bucket not found')
 
-    bucket.getJSON = cachified.get
-    bucket.putJSON = cachified.put
+    const bucket = getBucket(physicalId)
+    if (cachifiable[name]) {
+      const cachified = cachify({
+        get: bucket.getJSON,
+        put: bucket.putJSON,
+        cache: new Cache(CACHE_OPTS)
+      })
+
+      bucket.getJSON = cachified.get
+      bucket.putJSON = cachified.put
+    }
+
+    buckets[name] = bucket
   }
 
-  buckets[name] = bucket
+  const buckets = {}
+  Object.keys(resources.Bucket).forEach(loadBucket)
+  return buckets
 }
-
-const buckets = {}
-Object.keys(Resources.Bucket).forEach(loadBucket)
-
-module.exports = buckets

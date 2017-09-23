@@ -1,6 +1,5 @@
 
-const wrap = require('../wrap')
-const Friends = require('../friends')
+const { wrap, friends } = require('../friends')
 // const { getRecordsFromEvent } = require('../db-utils')
 
 exports.handler = wrap(function* (event) {
@@ -12,5 +11,5 @@ exports.handler = wrap(function* (event) {
     throw new Error('"name" and "url" are required')
   }
 
-  return yield Friends.load({ name, url })
+  return yield friends.load({ name, url })
 })

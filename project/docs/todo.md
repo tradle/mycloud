@@ -62,3 +62,9 @@ ES7 Async/Await:
 
 Function optimization:
   https://github.com/serverless-heaven/serverless-webpack
+
+Environment variables alternative:
+  http://theburningmonk.com/2017/09/you-should-use-ssm-parameter-store-over-lambda-env-variables/
+
+GraphQL
+  protocol buffers? With a strongly typed system, and the verbosity of json, could be a great payload diet

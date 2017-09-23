@@ -5,15 +5,12 @@
 require('./env')
 
 const test = require('tape')
-const Tradle = require('../')
-const { clone } = require('../lib/utils')
+const defaultTradleInstance = require('../')
 const createRealBot = require('../lib/bot')
 const createFakeBot = require('./mock/bot')
-// const messages = require('../lib/messages')
-const { co, loudCo, pick, wait } = Tradle.utils
+const { co, loudCo, clone, pick, wait } = defaultTradleInstance.utils
 const { toStreamItems, shallowExend, recreateTable } = require('./utils')
 const Errors = require('../lib/errors')
-// const seals = require('../lib/seals')
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
@@ -92,7 +89,7 @@ const UsersTableLogicalId = 'UsersTable'
   test(`onmessage (${mode})`, loudCo(function* (t) {
     t.plan(5)
 
-    const tradle = Tradle.new()
+    const tradle = defaultTradleInstance.new()
     const { objects, messages, identities } = tradle
     const bot = createBot.fromEngine(tradle)
     const { users } = bot
@@ -165,7 +162,7 @@ const UsersTableLogicalId = 'UsersTable'
 
     let read
     let wrote
-    const tradle = Tradle.new()
+    const tradle = defaultTradleInstance.new()
     const { seals, provider } = tradle
     const { getMyKeys } = provider
     provider.getMyKeys = () => Promise.resolve(aliceKeys)
@@ -333,7 +330,7 @@ test('save to type table', loudCo(function* (t) {
 }))
 
 test('validate send', loudCo(function* (t) {
-  const tradle = Tradle.new()
+  const tradle = defaultTradleInstance.new()
   tradle.provider.sendMessage = () => Promise.resolve()
 
   const models = {

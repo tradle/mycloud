@@ -1,10 +1,7 @@
 const debug = require('debug')('λ:subscribe')
-const wrap = require('../../wrap')
-const { prettify } = require('../../string-utils')
-const { onSubscribed } = require('../../user')
-const { getMessagesTopicForClient } = require('../../iot-utils')
+const { wrap, user } = require('../..')
 
 exports.handler = wrap(function* (event, context) {
   const { clientId, topics } = event
-  yield onSubscribed({ clientId, topics })
+  yield user.onSubscribed({ clientId, topics })
 })

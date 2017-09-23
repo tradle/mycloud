@@ -16,18 +16,30 @@ const {
   setVirtual,
   traverse,
   dotProp,
-  encodeDataURI
+  encodeDataURI,
+  bindAll
 } = require('./utils')
 const { extractSigPubKey, hexLink, getLinks, addLinks } = require('./crypto')
-const { get, put, createPresignedUrl } = require('./s3-utils')
-const Buckets = require('./buckets')
-const FileUploadBucket = Buckets.FileUpload
+// const { get, put, createPresignedUrl } = require('./s3-utils')
 const getLink = hexLink
 
-const replaceEmbeds = co(function* (object) {
+module.exports = Objects
+
+function Objects ({ buckets, s3Utils }) {
+  bindAll(this)
+
+  this.buckets = buckets
+  this.bucket = this.buckets.Objects
+  this.s3Utils = s3Utils
+  this.fileUploadBucket = buckets.FileUpload
+}
+
+const proto = Objects.prototype
+
+proto.replaceEmbeds = co(function* (object) {
   const replacements = Embed.replaceDataUrls({
     region: REGION,
-    bucket: FileUploadBucket.name,
+    bucket: this.fileUploadBucket.name,
     keyPrefix: '',
     object
   })
@@ -36,22 +48,67 @@ const replaceEmbeds = co(function* (object) {
     debug(`replaced ${replacements.length} embedded media`)
     yield replacements.map(replacement => {
       const { bucket, key, body } = replacement
-      return put({ bucket, key, value: body })
+      return this.s3Utils.put({ bucket, key, value: body })
     })
   }
 })
 
-const resolveEmbed = (...args) => {
-  return get(...args).then(({ Body, ContentType }) => {
+proto.resolveEmbed = function (...args) {
+  return this.s3Utils.get(...args).then(({ Body, ContentType }) => {
     Body.mimetype = ContentType
     return Body
   })
 }
 
-const resolveEmbeds = object =>
-  Embed.resolveEmbeds({ object, resolve: resolveEmbed })
+proto.resolveEmbeds = function (object) {
+  return Embed.resolveEmbeds({ object, resolve: this.resolveEmbed })
+}
 
-const addMetadata = function addMetadata (object) {
+proto.getObjectByLink = function getObjectByLink (link) {
+  typeforce(typeforce.String, link)
+  debug('getting', link)
+  return this.bucket.getJSON(link)
+}
+
+proto.putObject = co(function* (object) {
+  typeforce(types.signedObject, object)
+  this.addMetadata(object)
+  object = deepClone(object)
+  yield this.replaceEmbeds(object)
+  debug('putting', object[TYPE], object._link)
+  return this.bucket.putJSON(object._link, object)
+})
+
+proto.prefetchByLink = function prefetchByLink (link) {
+  // prime cache
+  return this.getObjectByLink(link)
+}
+
+proto.del = function del (link) {
+  return this.bucket.del(link)
+}
+
+proto.presignEmbeddedMediaLinks = function presignEmbeddedMediaLinks ({
+  object,
+  stripEmbedPrefix
+}) {
+  Embed.presignUrls({
+    object,
+    sign: ({ bucket, key, path }) => {
+      debug(`pre-signing url for ${object[TYPE]} property ${path}`)
+      return this.s3Utils.createPresignedUrl({ bucket, key })
+    }
+  })
+
+  if (stripEmbedPrefix) {
+    Embed.stripEmbedPrefix(object)
+  }
+
+  return object
+}
+
+Objects.addMetadata =
+Objects.prototype.addMetadata = function addMetadata (object) {
   typeforce(types.signedObject, object)
 
   const type = object[TYPE]
@@ -70,61 +127,4 @@ const addMetadata = function addMetadata (object) {
 
   addLinks(object)
   return object
-}
-
-function getObjectByLink (link) {
-  typeforce(typeforce.String, link)
-  debug('getting', link)
-  return Buckets.Objects.getJSON(link)
-}
-
-const putObject = co(function* (object) {
-  typeforce(types.signedObject, object)
-  addMetadata(object)
-  object = deepClone(object)
-  yield Objects.replaceEmbeds(object)
-  debug('putting', object[TYPE], object._link)
-  return Buckets.Objects.putJSON(object._link, object)
-})
-
-function prefetchByLink (link) {
-  // prime cache
-  return getObjectByLink(link)
-}
-
-function del (link) {
-  return Buckets.Objects.del(link)
-}
-
-function presignEmbeddedMediaLinks ({ object, stripEmbedPrefix }) {
-  Embed.presignUrls({
-    object,
-    sign: ({ bucket, key, path }) => {
-      debug(`pre-signing url for ${object[TYPE]} property ${path}`)
-      return createPresignedUrl({ bucket, key })
-    }
-  })
-
-  if (stripEmbedPrefix) {
-    Embed.stripEmbedPrefix(object)
-  }
-
-  return object
-}
-
-const Objects = module.exports = {
-  getObjectByLink,
-  prefetchByLink,
-  // getObjectByPermalink,
-  putObject,
-  // putEvent,
-  addMetadata,
-  getLinks,
-  getLink,
-  addLinks,
-  del,
-  replaceEmbeds,
-  getEmbeds: Embed.getEmbeds,
-  resolveEmbeds,
-  presignEmbeddedMediaLinks
 }

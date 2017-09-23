@@ -21,8 +21,7 @@ const {
 } = require('../lib/crypto')
 
 const { loudCo, omit, clone, co, typeforce, pickVirtual, omitVirtual } = require('../lib/utils')
-const Objects = require('../lib/objects')
-const { createSendMessageEvent, createReceiveMessageEvent } = require('../lib/provider')
+// const Objects = require('../lib/objects')
 const Errors = require('../lib/errors')
 const {
   SIG,
@@ -33,15 +32,14 @@ const {
 } = require('../lib/constants')
 
 const { MESSAGE } = TYPES
-const Identities = require('../lib/identities')
-const Messages = require('../lib/messages')
-const Events = require('../lib/events')
+const { identities, messages, objects, provider } = require('../')
+const { createSendMessageEvent, createReceiveMessageEvent } = provider
 const types = require('../lib/types')
 const fromBobToAlice = require('./fixtures/alice/receive.json')
-  .map(Messages.normalizeInbound)
+  .map(messages.normalizeInbound)
 
 const fromAliceToBob = require('./fixtures/bob/receive.json')
-  .map(Messages.normalizeInbound)
+  .map(messages.normalizeInbound)
 
 const promiseNoop = () => Promise.resolve()
 
@@ -87,24 +85,24 @@ test('createSendMessageEvent', loudCo(function* (t) {
   }
 
   const stub = stubber()
-  stub(Identities, 'getIdentityByPermalink', mocks.getIdentityByPermalink)
+  stub(identities, 'getIdentityByPermalink', mocks.getIdentityByPermalink)
 
   let nextSeq = 0
   let prevMsgLink = 'abc'
-  const stubLastSeqAndLink = sinon.stub(Messages, 'getLastSeqAndLink')
+  const stubLastSeqAndLink = sinon.stub(messages, 'getLastSeqAndLink')
     .callsFake(() => Promise.resolve({
       seq: nextSeq - 1,
       link: prevMsgLink
     }))
 
-  const stubPutObject = stub(Objects, 'putObject', function (object) {
+  const stubPutObject = stub(objects, 'putObject', function (object) {
     t.ok(object[SIG])
     payload[SIG] = object[SIG]
     t.same(omitVirtual(object), payload)
     return Promise.resolve()
   })
 
-  // const stubReplaceEmbeds = stub(Objects, 'replaceEmbeds', promiseNoop)
+  // const stubReplaceEmbeds = stub(objects, 'replaceEmbeds', promiseNoop)
 
   // Events.putEvent = function (event) {
   //   t.equal(event.topic, 'send')
@@ -113,7 +111,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
   // }
 
   let stoleSeq
-  const stubPutMessage = stub(Messages, 'putMessage', co(function* (message) {
+  const stubPutMessage = stub(messages, 'putMessage', co(function* (message) {
     typeforce(types.message, message)
     t.notOk(message._inbound)
     t.equal(message[SEQ], nextSeq)
@@ -153,28 +151,28 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   const message = fromBobToAlice[0]
   const stub = stubber()
   const stubGetIdentity = stub(
-    Identities,
+    identities,
     'getIdentityMetadataByPub',
     mocks.getIdentityMetadataByPub
   )
 
-  const stubPutObject = stub(Objects, 'putObject', function (object) {
+  const stubPutObject = stub(objects, 'putObject', function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
     return Promise.resolve()
   })
 
   const stubTimestampInc = stub(
-    Messages,
+    messages,
     'assertTimestampIncreased',
     promiseNoop
   )
 
-  const stubGetInbound = stub(Messages, 'getInboundByLink', function (link) {
+  const stubGetInbound = stub(messages, 'getInboundByLink', function (link) {
     throw new Errors.NotFound()
   })
 
-  const stubPutMessage = stub(Messages, 'putMessage', function (message) {
+  const stubPutMessage = stub(messages, 'putMessage', function (message) {
     t.equal(message._inbound, true)
     typeforce(types.message, message)
     // console.log(event)
@@ -193,38 +191,38 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   t.end()
 }))
 
-// only makes sense in the single-Messages-table implementation
+// only makes sense in the single-messages-table implementation
 // (vs Inbox+Outbox)
 test.skip('getLastMessageFrom/To', loudCo(function* (t) {
   // start fresh
   try {
-    yield Messages.table.destroy()
+    yield messages.table.destroy()
   } catch (err) {}
 
-  yield Messages.table.create()
+  yield messages.table.create()
 
   console.log('ALICE', alice.identity._permalink)
   console.log('BOB', bob.identity._permalink)
   for (let message of fromBobToAlice) {
     message = clone(message)
     message._inbound = true
-    yield Messages.putMessage(message)
-    const last = yield Messages.getLastMessageFrom({
+    yield messages.putMessage(message)
+    const last = yield messages.getLastMessageFrom({
       author: bob.identity._permalink,
       body: false
     })
 
-    t.same(last, Messages.stripData(message))
+    t.same(last, messages.stripData(message))
   }
 
   for (let message of fromAliceToBob) {
-    yield Messages.putMessage(message)
-    const last = yield Messages.getLastMessageTo({
+    yield messages.putMessage(message)
+    const last = yield messages.getLastMessageTo({
       recipient: bob.identity._permalink,
       body: false
     })
 
-    t.same(last, Messages.stripData(message))
+    t.same(last, messages.stripData(message))
   }
 
   t.end()
@@ -259,14 +257,14 @@ test.skip('getLastMessageFrom/To', loudCo(function* (t) {
 
 //   const wrapper = {
 //     message,
-//     payload: Objects.addLinks({
+//     payload: objects.addLinks({
 //       author: message.author,
 //       object: message.object.object
 //     })
 //   }
 
-//   console.log(Messages.stripData(wrapper))
-//   t.same(Messages.stripData(wrapper))
+//   console.log(messages.stripData(wrapper))
+//   t.same(messages.stripData(wrapper))
 // })
 
 // test.only('sign/verify1', function (t) {

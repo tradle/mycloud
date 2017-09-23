@@ -1,9 +1,7 @@
 const { EventEmitter } = require('events')
+const inherits = require('inherits')
 const debug = require('debug')('tradle:sls:delivery')
 const { co, typeforce, pick } = require('./utils')
-const Objects = require('./objects')
-const Messages = require('./messages')
-const Iot = require('./iot-utils')
 const Errors = require('./errors')
 const { omitVirtual, extend } = require('./utils')
 const { getLink } = require('./crypto')
@@ -12,13 +10,28 @@ const MAX_BATCH_SIZE = 5
 // would be good to test it and know the hard limit
 const MAX_PAYLOAD_SIZE = 126000
 
-const deliverBatch = co(function* ({ clientId, permalink, messages }) {
+module.exports = Delivery
+
+function Delivery ({ env, iot, messages, objects }) {
+  EventEmitter.call(this)
+
+  this.env = env
+  this.iot = iot
+  this.messages = messages
+  this.objects = objects
+}
+
+const proto = Delivery.prototype
+// eventemitter makes testing easier
+inherits(Delivery, EventEmitter)
+
+proto.deliverBatch = co(function* ({ clientId, permalink, messages }) {
   debug(`delivering ${messages.length} messages to ${permalink}`)
-  messages.forEach(object => Objects.presignEmbeddedMediaLinks({ object }))
+  messages.forEach(object => this.objects.presignEmbeddedMediaLinks({ object }))
   const strings = messages.map(stringify)
-  const subBatches = batchBySize(strings, MAX_PAYLOAD_SIZE)
+  const subBatches = Delivery.batchBySize(strings, MAX_PAYLOAD_SIZE)
   for (let subBatch of subBatches) {
-    yield Iot.sendMessages({
+    yield this.iot.sendMessages({
       clientId,
       payload: `{"messages":[${subBatch.join(',')}]}`
     })
@@ -27,7 +40,7 @@ const deliverBatch = co(function* ({ clientId, permalink, messages }) {
   debug(`delivered ${messages.length} messages to ${permalink}`)
 })
 
-const deliverMessages = co(function* ({
+proto.deliverMessages = co(function* ({
   clientId,
   permalink,
   gt=0,
@@ -42,7 +55,7 @@ const deliverMessages = co(function* ({
     let batchSize = Math.min(lt - gt - 1, MAX_BATCH_SIZE)
     if (batchSize <= 0) return
 
-    let messages = yield Messages.getMessagesTo({
+    let messages = yield this.messages.getMessagesTo({
       recipient: permalink,
       gt,
       afterMessage,
@@ -53,7 +66,7 @@ const deliverMessages = co(function* ({
     debug(`found ${messages.length} messages for ${permalink}`)
     if (!messages.length) return
 
-    yield Delivery.deliverBatch({ clientId, permalink, messages })
+    yield this.deliverBatch({ clientId, permalink, messages })
 
     // while (messages.length) {
     //   let message = messages.shift()
@@ -65,10 +78,10 @@ const deliverMessages = co(function* ({
   }
 })
 
-const ack = function ack ({ clientId, message }) {
+proto.ack = function ack ({ clientId, message }) {
   debug(`acking message from ${clientId}`)
-  const stub = Messages.getMessageStub({ message })
-  return Iot.publish({
+  const stub = this.messages.getMessageStub({ message })
+  return this.iot.publish({
     topic: `${clientId}/ack`,
     payload: {
       message: stub
@@ -76,10 +89,10 @@ const ack = function ack ({ clientId, message }) {
   })
 }
 
-const reject = function reject ({ clientId, message, error }) {
+proto.reject = function reject ({ clientId, message, error }) {
   debug(`rejecting message from ${clientId}`, error)
-  const stub = Messages.getMessageStub({ message, error })
-  return Iot.publish({
+  const stub = this.messages.getMessageStub({ message, error })
+  return this.iot.publish({
     topic: `${clientId}/reject`,
     payload: {
       message: stub,
@@ -88,7 +101,8 @@ const reject = function reject ({ clientId, message, error }) {
   })
 }
 
-const batchBySize = function batchBySize (strings, max=MAX_PAYLOAD_SIZE) {
+Delivery.batchBySize =
+proto.batchBySize = function batchBySize (strings, max=MAX_PAYLOAD_SIZE) {
   strings = strings.filter(s => s.length)
 
   const batches = []
@@ -120,13 +134,3 @@ const batchBySize = function batchBySize (strings, max=MAX_PAYLOAD_SIZE) {
 function stringify (msg) {
   return JSON.stringify(omitVirtual(msg))
 }
-
-// eventemitter makes testing easier
-const Delivery = module.exports = extend(new EventEmitter(), {
-  deliverMessages,
-  deliverBatch,
-  ack,
-  reject,
-  batchBySize,
-  MAX_PAYLOAD_SIZE
-})

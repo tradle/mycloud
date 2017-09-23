@@ -3,31 +3,50 @@ const extend = require('xtend/mutable')
 const debug = require('debug')('tradle:sls:identities')
 const { PREVLINK, PERMALINK, TYPE, TYPES } = require('./constants')
 const { MESSAGE } = TYPES
-const Objects = require('./objects')
 const { NotFound } = require('./errors')
-const { firstSuccess, logify, typeforce, omitVirtual, setVirtual } = require('./utils')
+const {
+  firstSuccess,
+  logify,
+  typeforce,
+  omitVirtual,
+  setVirtual,
+  bindAll
+} = require('./utils')
 const { addLinks, getLink, getLinks } = require('./crypto')
 const types = require('./types')
 const Events = require('./events')
-const Tables = require('./tables')
 
-function getIdentityMetadataByPub (pub) {
+module.exports = Identities
+
+function Identities ({ tables, objects }) {
+  logify(this)
+  bindAll(this)
+
+  this.tables = tables
+  this.objects = objects
+  this.pubKeys = this.tables.PubKeys
+}
+
+const proto = Identities.prototype
+
+proto.getIdentityMetadataByPub = function getIdentityMetadataByPub (pub) {
   debug('get identity metadata by pub')
-  return Tables.PubKeys.get({
-    Key: { pub }
+  return this.pubKeys.get({
+    Key: { pub },
+    ConsistentRead: true
   })
 }
 
-function getIdentityByPub (pub) {
-  return Identities.getIdentityMetadataByPub(pub)
-  .then(({ link }) => Objects.getObjectByLink(link))
+proto.getIdentityByPub = function getIdentityByPub (pub) {
+  return this.getIdentityMetadataByPub(pub)
+  .then(({ link }) => this.objects.getObjectByLink(link))
   .catch(err => {
     debug('unknown identity', pub, err)
     throw new NotFound('identity with pub: ' + pub)
   })
 }
 
-function getIdentityByPermalink (permalink) {
+proto.getIdentityByPermalink = function getIdentityByPermalink (permalink) {
   const params = {
     IndexName: 'permalink',
     KeyConditionExpression: 'permalink = :permalinkValue',
@@ -37,8 +56,8 @@ function getIdentityByPermalink (permalink) {
   }
 
   debug('get identity by permalink')
-  return Tables.PubKeys.findOne(params)
-    .then(({ link }) => Objects.getObjectByLink(link))
+  return this.pubKeys.findOne(params)
+    .then(({ link }) => this.objects.getObjectByLink(link))
 }
 
 // function getIdentityByFingerprint ({ fingerprint }) {
@@ -55,12 +74,12 @@ function getIdentityByPermalink (permalink) {
 //   }
 
 //   return findOne(params)
-//     .then(Objects.getObjectByLink)
+//     .then(this.objects.getObjectByLink)
 // }
 
-function getExistingIdentityMapping (identity) {
+proto.getExistingIdentityMapping = function getExistingIdentityMapping (identity) {
   debug('checking existing mappings for pub keys')
-  const lookups = identity.pubkeys.map(obj => getIdentityMetadataByPub(obj.pub))
+  const lookups = identity.pubkeys.map(obj => this.getIdentityMetadataByPub(obj.pub))
   return firstSuccess(lookups)
 }
 
@@ -95,12 +114,12 @@ function getExistingIdentityMapping (identity) {
 //   })
 // })
 
-const validateNewContact = co(function* (identity) {
+proto.validateNewContact = co(function* (identity) {
   identity = omitVirtual(identity)
 
   let existing
   try {
-    existing = yield getExistingIdentityMapping(identity)
+    existing = yield this.getExistingIdentityMapping(identity)
   } catch (err) {}
 
   const { link, permalink } = addLinks(identity)
@@ -119,25 +138,25 @@ const validateNewContact = co(function* (identity) {
   }
 })
 
-const addContact = co(function* (object) {
+proto.addContact = co(function* (object) {
   if (object) {
     typeforce(types.identity, object)
   } else {
-    object = yield Objects.getObjectByLink(getLink(object))
+    object = yield this.objects.getObjectByLink(getLink(object))
   }
 
   const { link, permalink } = addLinks(object)
   const putPubKeys = object.pubkeys
-    .map(({ pub }) => putPubKey({ link, permalink, pub }))
+    .map(({ pub }) => this.putPubKey({ link, permalink, pub }))
 
   yield Promise.all(putPubKeys.concat(
-    Objects.putObject(object)
+    this.objects.putObject(object)
   ))
 })
 
-function putPubKey ({ link, permalink, pub }) {
+proto.putPubKey = function putPubKey ({ link, permalink, pub }) {
   debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
-  return Tables.PubKeys.put({
+  return this.pubKeys.put({
     Item: { link, permalink, pub }
   })
 }
@@ -147,20 +166,20 @@ function putPubKey ({ link, permalink, pub }) {
  * @param {String} object._sigPubKey author sigPubKey
  * @yield {[type]} [description]
  */
-const addAuthorInfo = co(function* (object) {
+proto.addAuthorInfo = co(function* (object) {
   if (!object._sigPubKey) {
-    Objects.addMetadata(object)
+    this.objects.addMetadata(object)
   }
 
   const type = object[TYPE]
   const isMessage = type === MESSAGE
   const promises = {
-    author: Identities.getIdentityMetadataByPub(object._sigPubKey),
+    author: this.getIdentityMetadataByPub(object._sigPubKey),
   }
 
   if (isMessage) {
     const pub = object.recipientPubKey.pub.toString('hex')
-    promises.recipient = Identities.getIdentityMetadataByPub(pub)
+    promises.recipient = this.getIdentityMetadataByPub(pub)
   }
 
   const { author, recipient } = yield promises
@@ -173,10 +192,10 @@ const addAuthorInfo = co(function* (object) {
   return object
 })
 
-const validateAndAdd = co(function* (identity) {
-  const result = yield Identities.validateNewContact(identity)
+proto.validateAndAdd = co(function* (identity) {
+  const result = yield this.validateNewContact(identity)
   // debug('validated contact:', prettify(result))
-  if (!result.exists) return Identities.addContact(result.identity)
+  if (!result.exists) return this.addContact(result.identity)
 })
 
 // function addContactPubKeys ({ link, permalink, identity }) {
@@ -192,15 +211,15 @@ const validateAndAdd = co(function* (identity) {
 //   return docClient.batchWrite({ RequestItems }).promise()
 // }
 
-const Identities = module.exports = logify({
-  getIdentityByLink: Objects.getObjectByLink,
-  getIdentityByPermalink,
-  getIdentityByPub,
-  getIdentityMetadataByPub,
-  // getIdentityByFingerprint,
-  // createAddContactEvent,
-  addContact,
-  validateNewContact,
-  validateAndAdd,
-  addAuthorInfo
-})
+// const Identities = module.exports = logify({
+//   getIdentityByLink: this.objects.getObjectByLink,
+//   getIdentityByPermalink,
+//   getIdentityByPub,
+//   getIdentityMetadataByPub,
+//   // getIdentityByFingerprint,
+//   // createAddContactEvent,
+//   addContact,
+//   validateNewContact,
+//   validateAndAdd,
+//   addAuthorInfo
+// })
