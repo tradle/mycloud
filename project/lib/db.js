@@ -13,18 +13,21 @@ module.exports = function createDB ({ prefix, tables }) {
 
   // export Outbox only
   const messageModel = models['tradle.Message']
-  const outbox = tradleDynamo.createTable({
-    models,
-    objects,
-    model: messageModel,
-    tableName: tables.Outbox.name,
-    prefix,
-    // better load these from serverless-yml
-    hashKey: '_recipient',
-    rangeKey: 'time',
-    indexes: []
-  })
+  if (!messageModel.isInterface) {
+    const outbox = tradleDynamo.createTable({
+      models,
+      objects,
+      model: messageModel,
+      tableName: tables.Outbox.name,
+      prefix,
+      // better load these from serverless-yml
+      hashKey: '_recipient',
+      rangeKey: 'time',
+      indexes: []
+    })
 
-  db.setTableForType('tradle.Message', outbox)
+    db.setTableForType('tradle.Message', outbox)
+  }
+
   return db
 }

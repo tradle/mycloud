@@ -18,6 +18,7 @@ const allSettled = require('settle-promise').settle
 const isGenerator = require('is-generator-function')
 const DataURI = require('strong-data-uri')
 const buildResource = require('@tradle/build-resource')
+const fetch = require('node-fetch')
 const { prettify, stableStringify } = require('./string-utils')
 const { SIG, TYPE, TYPES } = require('./constants')
 const Resources = require('./resources')
@@ -28,6 +29,7 @@ const wait = millis =>
 
 const utils = exports
 
+exports.fetch = fetch
 exports.bindAll = bindAll
 exports.deepClone = deepClone
 exports.clone = clone
@@ -99,14 +101,18 @@ exports.firstSuccess = function firstSuccess (promises) {
     // waiting for other possible successes. If a request succeeds,
     // treat it as a rejection so Promise.all immediately bails out.
     return p.then(
-      val => Promise.reject(val),
+      val => {
+        var wrapper = new Error('wrapper for success')
+        wrapper.firstSuccessResult = val
+        return Promise.reject(wrapper)
+      },
       err => Promise.resolve(err)
     )
   })).then(
     // If '.all' resolved, we've just got an array of errors.
     errors => Promise.reject(errors),
     // If '.all' rejected, we've got the result we wanted.
-    val => Promise.resolve(val)
+    val => Promise.resolve(val.firstSuccessResult)
   )
 }
 
@@ -397,3 +403,53 @@ exports.seriesMap = co(function* (arr, fn) {
 
   return results
 })
+
+exports.post = co(function* (url, data) {
+  const res = yield fetch(url, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+
+  return processResponse(res)
+})
+
+const processResponse = co(function* (res) {
+  if (res.status > 300) {
+    throw new Error(res.statusText)
+  }
+
+  return yield res.json()
+})
+
+exports.batchStringsBySize = function batchStringsBySize (strings, max) {
+  strings = strings.filter(s => s.length)
+
+  const batches = []
+  let cur = []
+  let str
+  let length = 0
+  while (str = strings.shift()) {
+    let strLength = Buffer.byteLength(str, 'utf8')
+    if (length + str.length <= max) {
+      cur.push(str)
+      length += strLength
+    } else if (cur.length) {
+      batches.push(cur)
+      cur = [str]
+      length = strLength
+    } else {
+      debug('STRING TOO LONG!', str)
+      throw new Error(`string length (${strLength}) exceeds max (${max})`)
+    }
+  }
+
+  if (cur.length) {
+    batches.push(cur)
+  }
+
+  return batches
+}

@@ -31,9 +31,10 @@ exports.isDeveloperError = function isDeveloperError (err) {
 /**
  * check if error is of a certain type
  * @param  {Error}             err
- * @param  {ErrorType|String}  type
+ * @param  {String}  type
  * @return {Boolean}
  */
-exports.is = function (err, type) {
-  return (err.name || '').toLowerCase() === (type || type.type).toLowerCase()
+exports.is = function (err, errType) {
+  const { name='' } = err
+  return name.toLowerCase() === (errType || errType.type).toLowerCase()
 }

@@ -1,6 +1,6 @@
 const debug = require('debug')('tradle:sls:auth')
 const { getUpdateParams } = require('./db-utils')
-const { co, cachifyPromiser, typeforce } = require('./utils')
+const { co, cachifyPromiser, typeforce, bindAll } = require('./utils')
 const { prettify } = require('./string-utils')
 const { randomString, getPermalink } = require('./crypto')
 const { HandshakeFailed, InvalidInput, NotFound } = require('./errors')
@@ -34,7 +34,11 @@ const { HANDSHAKE_TIMEOUT, PERMALINK } = constants
 
 module.exports = Auth
 
-function Auth ({ resources, tables, identities, objects, messages }) {
+function Auth ({ env, aws, resources, tables, identities, objects, messages }) {
+  bindAll(this)
+
+  this.env = env
+  this.aws = aws
   this.resources = resources
   this.tables = tables
   this.identities = identities

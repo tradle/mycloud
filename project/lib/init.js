@@ -1,9 +1,4 @@
 const debug = require('debug')('tradle:sls:init')
-const co = require('co').wrap
-const promisify = require('pify')
-const deepEqual = require('deep-equal')
-const omit = require('object.omit')
-const clone = require('xtend')
 const { TYPE } = require('@tradle/constants')
 const tradleUtils = require('@tradle/engine').utils
 const crypto = require('./crypto')
@@ -17,7 +12,7 @@ const {
 } = constants
 
 const { getLink, addLinks, getIdentitySpecs } = crypto
-const { omitVirtual, setVirtual, shallowClone, bindAll } = utils
+const { omitVirtual, setVirtual, omit, deepEqual, clone, bindAll, promisify, co } = utils
 const {
   LOGO_UNKNOWN
 } = require('./media')
@@ -43,7 +38,7 @@ const defaults = {
 
 module.exports = Initializer
 
-function Initializer ({ env, networks, secrets, provider, buckets, objects }) {
+function Initializer ({ env, networks, secrets, provider, buckets, objects, identities }) {
   bindAll(this)
 
   this.env = env
@@ -52,6 +47,7 @@ function Initializer ({ env, networks, secrets, provider, buckets, objects }) {
   this.provider = provider
   this.buckets = buckets
   this.objects = objects
+  this.identities = identities
   const {
     ORG_NAME,
     ORG_DOMAIN,
@@ -68,16 +64,17 @@ function Initializer ({ env, networks, secrets, provider, buckets, objects }) {
 
 const proto = Initializer.prototype
 
-proto.ensureInitialized = co(function* (options) {
+proto.ensureInitialized = co(function* (opts) {
   const initialized = yield this.isInitialized()
   if (!initialized) {
-    yield this.init(options)
+    yield this.init(opts)
   }
 })
 
-proto.init = co(function* (options) {
-  const result = yield this.createProvider(options)
-  result.force = options.force
+proto.init = co(function* (opts) {
+  opts = clone(this.orgOpts, opts)
+  const result = yield this.createProvider(opts)
+  result.force = opts.force
   yield this.push(result)
   return result
 })
@@ -94,7 +91,6 @@ proto.isInitialized = (function () {
 }())
 
 proto.createProvider = co(function* (opts) {
-  opts = shallowClone(this.orgOpts, opts)
   let { name, domain, logo } = opts
   if (!(name && domain)) {
     throw new Error('"name" is required')
@@ -132,8 +128,8 @@ proto.createProvider = co(function* (opts) {
   }
 })
 
-proto.push = co(function* (options) {
-  const { priv, pub, publicConfig, org, style, force } = options
+proto.push = co(function* (opts) {
+  const { priv, pub, publicConfig, org, style, force } = opts
   if (!force) {
     try {
       const existing = yield this.secrets.get(IDENTITY_KEYS_KEY)

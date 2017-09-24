@@ -27,7 +27,7 @@ const cloud = {
       url: {
         type: 'string',
       },
-      bot: {
+      identity: {
         type: 'object',
         ref: 'tradle.Identity'
       },
@@ -39,7 +39,7 @@ const cloud = {
         type: 'object',
         range: 'json'
       },
-      _botPermalink: {
+      _identityPermalink: {
         type: 'string',
         virtual: true
       }
@@ -64,19 +64,23 @@ const defaultSet = mergeModels()
   .add(custom)
   .get()
 
-for (let id in defaultSet) {
-  fix(defaultSet[id])
-}
+;(function () {
+  if (base['tradle.Message'].isInterface) return
+
+  for (let id in defaultSet) {
+    fix(defaultSet[id])
+  }
+
+  function fix (model) {
+    model.interfaces = (model.interfaces || []).map(iface => {
+      return iface === 'tradle.Message' ? 'tradle.ChatItem' : iface
+    })
+
+    return model
+  }
+}())
 
 module.exports = mergeModels()
   .add(defaultSet)
   .add(cloud)
   .get()
-
-function fix (model) {
-  model.interfaces = (model.interfaces || []).map(iface => {
-    return iface === 'tradle.Message' ? 'tradle.ChatItem' : iface
-  })
-
-  return model
-}

@@ -35,6 +35,7 @@ module.exports = Provider
 function Provider (tradle) {
   bindAll(this)
 
+  this.tradle = tradle
   this.objects = tradle.objects
   this.messages = tradle.messages
   this.secrets = tradle.secrets
@@ -42,7 +43,6 @@ function Provider (tradle) {
   this.buckets = tradle.buckets
   this.auth = tradle.auth
   this.network = tradle.network
-  this.delivery = tradle.delivery
 }
 
 const proto = Provider.prototype
@@ -267,7 +267,9 @@ proto.sendMessage = co(function* ({ recipient, object, other={} }) {
       session: yield promiseSession
     })
   } catch (err) {
-    if (!(err instanceof Errors.NotFound)) {
+    if (err instanceof Errors.NotFound) {
+      debug('live delivery canceled', err.stack)
+    } else {
       // rethrow, as this is likely a developer error
       debug('live delivery failed', err)
       throw err
@@ -279,9 +281,9 @@ proto.sendMessage = co(function* ({ recipient, object, other={} }) {
 
 proto.attemptLiveDelivery = co(function* ({ message, session }) {
   debug(`sending message (time=${message.time}) to ${session.permalink} live`)
-  yield this.delivery.deliverBatch({
+  yield this.tradle.delivery.deliverBatch({
     clientId: session.clientId,
-    permalink: session.permalink,
+    recipient: session.permalink,
     messages: [message]
   })
 })

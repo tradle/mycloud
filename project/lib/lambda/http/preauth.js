@@ -7,7 +7,7 @@ exports.handler = wrap(function* (event, context) {
   yield ensureInitialized()
 
   const now = Date.now()
-  debug('[START]', now, event)
+  debug('[START]', now)
   const {
     body: { clientId, identity },
     requestContext: { accountId }

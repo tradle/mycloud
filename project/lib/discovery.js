@@ -1,14 +1,14 @@
 const debug = require('debug')('tradle:sls:discovery')
 const path = require('path')
-const promisify = require('pify')
+const { co, extend, bindAll, promisify } = require('./utils')
 const fs = promisify(require('fs'))
 const mkdirp = promisify(require('mkdirp'))
-const co = require('co').wrap
-const extend = require('xtend/mutable')
 
 module.exports = Discovery
 
 function Discovery ({ env, aws, lambdaUtils, iot }) {
+  bindAll(this)
+
   this.env = env
   this.aws = aws
   this.lambdaUtils = lambdaUtils

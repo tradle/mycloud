@@ -1,76 +1,58 @@
 const { EventEmitter } = require('events')
 const inherits = require('inherits')
 const debug = require('debug')('tradle:sls:delivery')
-const { co, typeforce, pick } = require('./utils')
+const DeliveryMQTT = require('./delivery-mqtt')
+const DeliveryHTTP = require('./delivery-http')
+const { co, clone, pick, bindAll } = require('./utils')
 const Errors = require('./errors')
-const { omitVirtual, extend } = require('./utils')
-const { getLink } = require('./crypto')
 const MAX_BATCH_SIZE = 5
-// 128KB, but who knows what overhead MQTT adds, so leave a buffer
-// would be good to test it and know the hard limit
-const MAX_PAYLOAD_SIZE = 126000
 
 module.exports = Delivery
 
-function Delivery ({ env, iot, messages, objects }) {
+function Delivery (opts) {
   EventEmitter.call(this)
+  bindAll(this)
 
-  this.env = env
-  this.iot = iot
+  const { friends, messages } = opts
   this.messages = messages
-  this.objects = objects
+  this.friends = friends
+  this.http = new DeliveryHTTP(opts)
+  this.mqtt = new DeliveryMQTT(opts)
 }
 
 const proto = Delivery.prototype
-// eventemitter makes testing easier
 inherits(Delivery, EventEmitter)
 
-proto.deliverBatch = co(function* ({ clientId, permalink, messages }) {
-  debug(`delivering ${messages.length} messages to ${permalink}`)
-  messages.forEach(object => this.objects.presignEmbeddedMediaLinks({ object }))
-  const strings = messages.map(stringify)
-  const subBatches = Delivery.batchBySize(strings, MAX_PAYLOAD_SIZE)
-  for (let subBatch of subBatches) {
-    yield this.iot.sendMessages({
-      clientId,
-      payload: `{"messages":[${subBatch.join(',')}]}`
-    })
-  }
+proto.deliverMessages = co(function* (opts) {
+  opts = clone(opts)
+  let {
+    recipient,
+    gt=0,
+    lt=Infinity,
+    afterMessage
+  } = opts
 
-  debug(`delivered ${messages.length} messages to ${permalink}`)
-})
-
-proto.deliverMessages = co(function* ({
-  clientId,
-  permalink,
-  gt=0,
-  afterMessage,
-  lt=Infinity
-}) {
-  // const clientId = Auth.getAuthenticated({})
-  // const originalLT = lt
-  debug(`looking up messages for ${permalink} > ${gt}`)
-
+  debug(`looking up messages for ${recipient} > ${gt}`)
   while (true) {
     let batchSize = Math.min(lt - gt - 1, MAX_BATCH_SIZE)
     if (batchSize <= 0) return
 
     let messages = yield this.messages.getMessagesTo({
-      recipient: permalink,
+      recipient,
       gt,
       afterMessage,
       limit: batchSize,
-      body: true
+      body: true,
     })
 
-    debug(`found ${messages.length} messages for ${permalink}`)
+    debug(`found ${messages.length} messages for ${recipient}`)
     if (!messages.length) return
 
-    yield this.deliverBatch({ clientId, permalink, messages })
+    yield this.deliverBatch(clone(opts, { messages }))
 
     // while (messages.length) {
     //   let message = messages.shift()
-    //   yield deliverMessage({ clientId, permalink, message })
+    //   yield deliverMessage({ clientId, recipient, message })
     // }
 
     let last = messages[messages.length - 1]
@@ -78,59 +60,35 @@ proto.deliverMessages = co(function* ({
   }
 })
 
-proto.ack = function ack ({ clientId, message }) {
-  debug(`acking message from ${clientId}`)
-  const stub = this.messages.getMessageStub({ message })
-  return this.iot.publish({
-    topic: `${clientId}/ack`,
-    payload: {
-      message: stub
-    }
-  })
-}
+proto.deliverBatch = withTransport('deliverBatch')
+proto.ack = withTransport('ack')
+proto.reject = withTransport('reject')
 
-proto.reject = function reject ({ clientId, message, error }) {
-  debug(`rejecting message from ${clientId}`, error)
-  const stub = this.messages.getMessageStub({ message, error })
-  return this.iot.publish({
-    topic: `${clientId}/reject`,
-    payload: {
-      message: stub,
-      reason: Errors.export(error)
-    }
-  })
-}
-
-Delivery.batchBySize =
-proto.batchBySize = function batchBySize (strings, max=MAX_PAYLOAD_SIZE) {
-  strings = strings.filter(s => s.length)
-
-  const batches = []
-  let cur = []
-  let str
-  let length = 0
-  while (str = strings.shift()) {
-    let strLength = Buffer.byteLength(str, 'utf8')
-    if (length + str.length <= max) {
-      cur.push(str)
-      length += strLength
-    } else if (cur.length) {
-      batches.push(cur)
-      cur = [str]
-      length = strLength
-    } else {
-      debug('STRING TOO LONG!', str)
-      throw new Error(`string length (${strLength}) exceeds max (${max})`)
-    }
+proto.getTransport = co(function* (opts) {
+  const { method, recipient, clientId } = opts
+  if (clientId || !(method in this.http)) {
+    return this.mqtt
   }
 
-  if (cur.length) {
-    batches.push(cur)
+  if (!(method in this.mqtt)) {
+    return this.http
   }
 
-  return batches
-}
+  try {
+    opts.friend = yield this.friends.get({ permalink: recipient })
+    return this.http
+  } catch (err) {
+    if (err.name !== 'NotFound') {
+      throw err
+    }
 
-function stringify (msg) {
-  return JSON.stringify(omitVirtual(msg))
+    return this.mqtt
+  }
+})
+
+function withTransport (method) {
+  return co(function* (opts) {
+    const transport = yield this.getTransport(clone(opts, { method }))
+    return transport[method](opts)
+  })
 }

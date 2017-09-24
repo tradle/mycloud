@@ -3,7 +3,6 @@ frameworkVersion: '>=1.5.0 <2.0.0'
 plugins:
   - serverless-plugin-tracing
   - serverless-sam
-  - serverless-apigw-binary
   - print
 package:
   exclude:
@@ -45,9 +44,6 @@ custom:
     outbox: '${{self:custom.prefix}}outbox'
     events: '${{self:custom.prefix}}events'
     users: '${{self:custom.prefix}}users'
-  apigwBinary:
-    types:
-      - '*/*'
 provider:
   versionFunctions: false
   tracing: true
@@ -236,18 +232,18 @@ functions:
     events:
       - http:
           path: tradle/preauth
-          method: any
+          method: post
     environment:
-      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
+      HTTP_METHODS: 'POST,OPTIONS'
   auth:
     handler: project/lib/lambda/http/auth.handler
     memorySize: 1024
     events:
       - http:
           path: tradle/auth
-          method: any
+          method: post
     environment:
-      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
+      HTTP_METHODS: 'POST,OPTIONS'
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
@@ -284,6 +280,15 @@ functions:
             'Fn::GetAtt':
               - SealsTable
               - StreamArn
+  inbox:
+    handler: project/lib/lambda/inbox.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: tradle/inbox
+          method: post
+    environment:
+      HTTP_METHODS: 'POST,OPTIONS'
   onconnect:
     handler: project/lib/lambda/mqtt/onconnect.handler
     events:
@@ -318,9 +323,9 @@ functions:
     events:
       - http:
           path: tradle/message
-          method: any
+          method: post
     environment:
-      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
+      HTTP_METHODS: 'POST,OPTIONS'
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
@@ -337,9 +342,9 @@ functions:
     events:
       - http:
           path: tradle/info
-          method: any
+          method: 'get,post'
     environment:
-      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
+      HTTP_METHODS: 'GET,POST,OPTIONS'
   init:
     handler: project/lib/lambda/init.handler
     memorySize: 512

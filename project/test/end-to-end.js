@@ -1,11 +1,14 @@
 require('./env')
+const nock = require('nock')
 
+const assert = require('assert')
 const inherits = require('inherits')
 const { EventEmitter } = require('events')
 const coexec = require('co')
 const co = require('co').wrap
 const debug = require('debug')('@tradle/bot:tester')
-const { TYPE, SIG, SEQ } = require('@tradle/constants')
+const { TYPE, TYPES, SIG, SEQ } = require('@tradle/constants')
+const { MESSAGE } = TYPES
 const buildResource = require('@tradle/build-resource')
 const mergeModels = require('@tradle/merge-models')
 const tradleUtils = require('@tradle/engine').utils
@@ -17,7 +20,7 @@ const { replaceDataUrls } = require('@tradle/embed')
 // const Delivery = require('../lib/delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
 const defaultTradleInstance = require('../')
-const { utils, crypto } = require('../')
+const { wrap, utils, crypto } = require('../')
 const { extend, clone, pick, omit, batchify } = utils
 const botFixture = require('./fixtures/bot')
 const userIdentities = require('./fixtures/users-pem')
@@ -88,22 +91,46 @@ proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
   })
 }))
 
-// proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
-//   yield this._ready
-//   const { tradle, bot } = this
-//   const { friends } = tradle
-//   const friend = {
+proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
+  yield this._ready
+  const { tradle, bot, productsAPI } = this
+  const allModels = productsAPI.models.all
+  const employee = createUser({ bot, tradle, name: 'employee' })
+  yield this.onboardEmployee({ user: employee })
 
-//   }
+  const { friends } = tradle
+  const url = 'http://localhost:12345'
+  const friend = {
+    name: 'friendly bank',
+    identity: nextUserIdentity().identity,
+    url
+  }
 
-//   yield friends.add({
+  yield friends.add(friend)
+  const hey = {
+    [TYPE]: 'tradle.SimpleMessage',
+    message: 'hey'
+  }
 
-//   })
+  nock(url)
+    .post('/inbox')
+    .reply(function (uri, body) {
+      assert.equal(body.length, 1)
+      const msg = body[0]
+      assert.equal(msg.object[TYPE], MESSAGE)
+      assert.deepEqual(pick(msg.object.object, Object.keys(hey)), hey)
+      return [
+        201
+      ]
+    })
 
-//   const employee = createUser({ bot, tradle, name: 'employee' })
-//   yield this.onboardEmployee({ user: employee })
-
-// })
+  yield employee.send({
+    other: {
+      forward: buildResource.permalink(friend.identity)
+    },
+    object: hey
+  })
+}))
 
 proto.onboardEmployee = co(function* ({ user }) {
   return yield this.runThroughApplication({
@@ -317,7 +344,7 @@ proto.clear = co(function* (opts) {
   const batches = batchify(toDelete, 5)
   yield batches.map(co(function* (batch) {
     yield batch.map(id => {
-      return self.destroyTable(id)//bot.db.tables[id])
+      return self.destroyTable(id)
     })
   }))
 })
@@ -395,8 +422,8 @@ function User ({ tradle, identity, keys, profile, name, bot, onmessage }) {
     this._debug('received', types.join(' -> '))
   })
 
-  tradle.delivery.on('message', ({ permalink, message }) => {
-    if (permalink === this.permalink) {
+  tradle.delivery.mqtt.on('message', ({ recipient, message }) => {
+    if (recipient === this.permalink) {
       this.emit('message', message)
     }
   })

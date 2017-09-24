@@ -3,13 +3,13 @@ const co = require('co').wrap
 const fetch = require('node-fetch')
 const buildResource = require('@tradle/build-resource')
 const { addLinks } = require('./crypto')
-const { models, db, provider } = require('./')
 const FRIEND_TYPE = 'tradle.MyCloudFriend'
-const model = models[FRIEND_TYPE]
 
 module.exports = Friends
 
-function Friends ({ db, identities, provider }) {
+function Friends ({ models, db, identities, provider }) {
+  this.models = models
+  this.model = models[FRIEND_TYPE]
   this.db = db
   this.addContact = identities.addContact
   this.signObject = provider.signObject
@@ -31,45 +31,44 @@ Friends.prototype.load = co(function* ({ name, url }) {
     publicConfig
   } = info
 
-  addLinks(pub)
   yield this.add({
     name,
     url,
     org,
     publicConfig,
-    bot: pub
+    identity: pub
   })
 })
 
 Friends.prototype.add = co(function* (props) {
-  const { bot } = props
-  const object = buildResource({
-      models,
-      model
-    })
+  const { models, model } = this
+  const { identity } = props
+  addLinks(identity)
+
+  const object = buildResource({ models, model })
     .set(props)
     .toJSON()
 
   const signed = yield this.signObject({ object })
   buildResource.setVirtual(signed, {
     _time: Date.now(),
-    _botPermalink: buildResource.permalink(bot)
+    _identityPermalink: buildResource.permalink(identity)
   })
 
   yield [
-    this.addContact(bot),
+    this.addContact(identity),
     this.db.merge(signed)
   ]
 
   return signed
 })
 
-Friends.prototype.getByBotPermalink = function getByBotPermalink ({ permalink }) {
+Friends.prototype.get = function get ({ permalink }) {
   return this.db.findOne({
     type: FRIEND_TYPE,
     filter: {
       EQ: {
-        _botPermalink: permalink
+        _identityPermalink: permalink
       }
     }
   })

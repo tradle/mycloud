@@ -1,6 +1,6 @@
-if (process.env.NODE_ENV !== 'test') {
+// if (process.env.NODE_ENV !== 'test') {
   global.Promise = require('bluebird')
-}
+// }
 
 process.on('unhandledRejection', function (reason, promise) {
   debug('possibly unhandled rejection', reason)

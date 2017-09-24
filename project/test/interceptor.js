@@ -7,6 +7,7 @@ const createBot = require('../lib/bot')
 
 module.exports = function ({ bot, tradle }) {
   const { delivery, auth, aws, prefix } = tradle
+  const { mqtt } = delivery
   const sandbox = sinon.sandbox.create()
   const lambdas = createBot.lambdas(bot)
 
@@ -16,23 +17,23 @@ module.exports = function ({ bot, tradle }) {
     }
   }))
 
-  sandbox.stub(delivery, 'deliverBatch').callsFake(co(function* ({ permalink, messages }) {
+  sandbox.stub(mqtt, 'deliverBatch').callsFake(co(function* ({ recipient, messages }) {
     // for (const message of messages) {
     //   yield onmessage(permalink, message)
     // }
 
-    delivery.emit('messages', { permalink, messages })
+    mqtt.emit('messages', { recipient, messages })
     for (const message of messages) {
-      delivery.emit('message', { permalink, message })
+      mqtt.emit('message', { recipient, message })
     }
   }))
 
-  sandbox.stub(delivery, 'ack').callsFake(co(function* (...args) {
-    delivery.emit('ack', ...args)
+  sandbox.stub(mqtt, 'ack').callsFake(co(function* (...args) {
+    mqtt.emit('ack', ...args)
   }))
 
-  sandbox.stub(delivery, 'reject').callsFake(co(function* (...args) {
-    delivery.emit('reject', ...args)
+  sandbox.stub(mqtt, 'reject').callsFake(co(function* (...args) {
+    mqtt.emit('reject', ...args)
   }))
 
   sandbox.stub(aws.lambda, 'invoke').callsFake(function ({

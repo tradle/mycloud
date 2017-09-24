@@ -1,5 +1,5 @@
 const debug = require('debug')('tradle:sls:user')
-const { co, getLink, typeforce, clone, omitVirtual } = require('./utils')
+const { co, getLink, typeforce, clone, omitVirtual, bindAll } = require('./utils')
 const { prettify } = require('./string-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
 const Errors = require('./errors')
@@ -17,6 +17,8 @@ function UserSim ({
   messages,
   lambdaUtils
 }) {
+  bindAll(this)
+
   this.env = env
   this.auth = auth
   this.iot = iot
@@ -40,7 +42,11 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
   const { permalink, clientPosition, serverPosition } = session
   const gt = (clientPosition.received && clientPosition.received.time) || 0
   debug(`delivering messages after time ${gt}`)
-  yield this.delivery.deliverMessages({ clientId, permalink, gt })
+  yield this.delivery.deliverMessages({
+    clientId,
+    recipient: permalink,
+    gt
+  })
 })
 
 // const onSentMessageOverMQTT = co(function* ({ clientId, message }) {
@@ -53,8 +59,10 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
   let err
   let processed
   try {
-    processed = yield this.provider.receiveMessage({ clientId, message })
+    processed = yield this.provider.receiveMessage({ message })
   } catch (e) {
+    // delivery http
+    if (!clientId) throw e
     err = e
   }
 
@@ -153,31 +161,31 @@ proto.onPreAuth = function (...args) {
 
 proto.onSentChallengeResponse = co(function* (response) {
   const time = Date.now()
-  const session = yield proto.auth.handleChallengeResponse(response)
+  const session = yield this.auth.handleChallengeResponse(response)
   return {
     time,
     position: session.serverPosition
   }
 })
 
-proto.onRestoreRequest = co(function* ({ clientId, gt, lt }) {
-  let session
-  try {
-    session = yield this.auth.getMostRecentSessionByClientId(clientId)
-  } catch (err) {}
+// proto.onRestoreRequest = co(function* ({ clientId, gt, lt }) {
+//   let session
+//   try {
+//     session = yield this.auth.getMostRecentSessionByClientId(clientId)
+//   } catch (err) {}
 
-  if (!session) {
-    debug(`ignoring "restore" request from outdated session: ${clientId}`)
-    return
-  }
+//   if (!session) {
+//     debug(`ignoring "restore" request from outdated session: ${clientId}`)
+//     return
+//   }
 
-  yield this.delivery.deliverMessages({
-    clientId: session.clientId,
-    permalink: session.permalink,
-    gt,
-    lt
-  })
-})
+//   yield this.delivery.deliverMessages({
+//     clientId: session.clientId,
+//     recipient: session.permalink,
+//     gt,
+//     lt
+//   })
+// })
 
 proto.getProviderIdentity = co(function* () {
   const { object } = yield this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)

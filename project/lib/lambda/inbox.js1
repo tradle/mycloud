@@ -5,7 +5,7 @@ const { getInbound } = require('../messages')
 const { timestamp } = require('../utils')
 
 exports.handler = wrap(function* (event, context) {
-  debug('[START]', timestamp)
+  debug('[START]', timestamp())
   const { gt, lt } = event.data
   const messages = yield getInbound({ gt, lt })
   yield Iot.publish({

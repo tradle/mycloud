@@ -386,6 +386,15 @@ functions:
   #             - EventsTable
   #             - StreamArn
 
+  # POST messages here
+  inbox:
+    handler: project/lib/lambda/inbox.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: tradle/inbox
+          method: post
+
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
   #   handler: project/lib/lambda/inbox.handler

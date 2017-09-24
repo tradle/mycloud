@@ -12,7 +12,8 @@ const {
 co(function* () {
   yield clear()
   yield genLocalResources()
-  let test = new Test()
+  const test = new Test()
+  // yield test.runEmployeeAndFriend()
   yield test.runEmployeeAndCustomer()
 })
 .catch(err => {

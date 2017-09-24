@@ -4,11 +4,11 @@ const debug = require('debug')('tradle:sls:cli:utils')
 const serverlessYml = require('./serverless-yml')
 const { service, custom } = serverlessYml
 const stack = require('./stack')
-const defaultTradleInstance = require('../')
-const genLocalResources = co.wrap(function* (tradle=defaultTradleInstance) {
-  const { env, aws, resources, init } = tradle
-  const { s3 } = aws
-  const { ensureInitialized } = init
+const tradle = require('../')
+const { env, aws, resources, init } = tradle
+const { s3 } = aws
+const { ensureInitialized } = init
+const genLocalResources = co.wrap(function* () {
   const { Resources } = stack
   const tables = []
   const buckets = []
