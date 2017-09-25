@@ -1,14 +1,14 @@
-const debug = require('debug')('λ:onmessage')
-const { wrap, user, stringUtils, utils, constants } = require('../..')
-const { prettify } = stringUtils
-const { SEQ } = constants
-const { timestamp } = utils
-
+const debug = require('debug')('λ:onmessage');
+const { wrap, user, stringUtils, utils, constants } = require('../..');
+const { prettify } = stringUtils;
+const { SEQ } = constants;
+const { timestamp } = utils;
 exports.handler = wrap(function* (event, context) {
-  // the user sent us a message
-  debug('[START]', timestamp())
-  const { clientId, data } = event
-  const message = new Buffer(data.data, 'base64')
-  yield user.onSentMessage({ clientId, message })
-  debug('preceived')
-})
+    // the user sent us a message
+    debug('[START]', timestamp());
+    const { clientId, data } = event;
+    const message = new Buffer(data.data, 'base64');
+    yield user.onSentMessage({ clientId, message });
+    debug('preceived');
+});
+//# sourceMappingURL=onmessage.js.map

@@ -8,6 +8,8 @@
   "license": "MIT",
   "devDependencies": {
     "@tradle/aws-client": "github:tradle/aws-client",
+    "@types/aws-sdk": "^2.7.0",
+    "@types/node": "^8.0.30",
     "aws-sdk": "^2.60.0",
     "aws-sdk-mock": "^1.7.0",
     "aws-xray-sdk": "^1.1.3",
@@ -37,6 +39,9 @@
     "snyk": "^1.41.1",
     "tap": "^10.7.2",
     "tape": "^4.6.3",
+    "tslint": "^5.7.0",
+    "tslint-config-standard": "^6.0.1",
+    "typescript": "^2.5.2",
     "validate-commit-msg": "^2.14.0"
   },
   "scripts": {
@@ -72,7 +77,10 @@
     "tail": "./project/scripts/tail.sh",
     "info": "serverless info",
     "precommit": "npm run compile-template && git add serverless.yml",
-    "commit": "git-cz"
+    "commit": "git-cz",
+    "watch": "tsc -w",
+    "copystatic": "./project/src/scripts/copystatic.sh",
+    "tslint": "tslint **/*.ts"
   },
   "dependencies": {}
 }

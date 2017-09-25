@@ -4,7 +4,6 @@ plugins:
   - serverless-plugin-tracing
   - serverless-sam
   - serverless-apigw-binary
-  - serverless-plugin-typescript
   - print
   - serverless-offline
 package:

@@ -7,7 +7,7 @@ plugins:
   # - serverless-pseudo-parameters
   - serverless-sam
   - serverless-apigw-binary
-  - serverless-plugin-typescript
+  # - serverless-plugin-typescript
   - print
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
