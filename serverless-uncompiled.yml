@@ -30,7 +30,8 @@ custom:
   # vars: ${{file(./vars.yml)}}
   # move these to vars.yml when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
-  stage: dev
+  defaultStage: dev
+  stage: ${{opt:stage, self:custom.defaultStage}}
   region: us-east-1
   blockchain: ethereum:rinkeby
 
@@ -41,7 +42,6 @@ custom:
   # thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm}}
   # thresholdInvocationErrorsAlarm: ${{self:custom.vars.thresholdInvocationErrorsAlarm}}
 
-  # defaultStage: dev
   # stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaultStage}}
   # region: ${{opt:region, self:custom.vars.region}}
 

@@ -18,7 +18,8 @@ package:
     - ./bot/**
     - ./**/*.log
 custom:
-  stage: dev
+  defaultStage: dev
+  stage: '${{opt:stage, self:custom.defaultStage}}'
   region: us-east-1
   blockchain: 'ethereum:rinkeby'
   prefix: '${{self:service}}-${{self:custom.stage}}-'
