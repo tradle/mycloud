@@ -4,6 +4,7 @@ DynamoDBLocal/
 *.log
 *.zip
 .serverless*
+!.serverless_plugins
 certs/
 build/
 remote-service-map.json
