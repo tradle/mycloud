@@ -1,5 +1,20 @@
 #!/bin/sh
 
+# SERVICE=$(./project/scripts/var.js service)
+# STAGE=$(./project/scripts/var.js custom.stage)
+
+SERVICE=$1
+STAGE=$2
+if [ -z "$SERVICE" ]; then
+  echo "first arg must be the service name"
+  exit 1
+fi
+
+if [ -z "$STAGE" ]; then
+  echo "second arg must be the stage name"
+  exit 1
+fi
+
 ask() {
     # https://djm.me/ask
     local prompt default REPLY
@@ -41,12 +56,12 @@ remove_buckets() {
     # do dangerous stuff
   # set -o xtrace
   # todo: respect actual service name and stage!
-  aws s3 ls | awk '{print $3;}' | grep tradle-dev | grep -v tradle-dev-serverless | while read line; do
+  aws s3 ls | awk '{print $3;}' | grep "$SERVICE-$STAGE" | grep -v "$SERVICE-$STAGE-serverless" | while read line; do
     ask "delete bucket ${line}?" && aws s3 rb "s3://$line" --force
   done
 }
 
-echo "This will empty and delete all buckets, tables, lambdas, etc."
+echo "This will empty and delete all buckets, tables, lambdas, etc. for \nservice: $SERVICE \nstage: $STAGE"
 ask && remove_buckets
-ask "delete resources stack" && sls remove
-ask "delete per-type tables" && node ./scripts/delete-tables.js
+ask "delete resources stack" && sls remove --stage="$STAGE"
+ask "delete per-type tables" && node ./project/scripts/delete-tables.js --stage="$STAGE" --service="$SERVICE"

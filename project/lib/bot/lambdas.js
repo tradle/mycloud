@@ -1,3 +1,4 @@
+const debug = require('debug')('tradle:sls:bot-lambdas')
 const wrap = require('../wrap')
 
 module.exports = function createLambdas (bot) {
@@ -5,6 +6,7 @@ module.exports = function createLambdas (bot) {
   const { process } = bot
   for (let event in process) {
     let method = `on${event}`
+    debug(`attached bot lambda handler: ${method}`)
     let { type, handler } = process[event]
     if (type === 'wrapped') {
       handlers[method] = handler

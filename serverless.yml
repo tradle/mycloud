@@ -22,6 +22,7 @@ custom:
   stage: '${{opt:stage, self:custom.defaultStage}}'
   region: us-east-1
   blockchain: 'ethereum:rinkeby'
+  brand: '${{file(./project/conf/${{self:service}}.json)}}'
   prefix: '${{self:service}}-${{self:custom.stage}}-'
   prefixRole: '${{self:custom.prefix}}'
   prefixIOTTopic: '${{self:service}}-'
@@ -55,7 +56,7 @@ custom:
 provider:
   versionFunctions: false
   tracing: true
-  variableSyntax: '\${{([\s\S]+?)}}'
+  variableSyntax: '\${{([ ~:a-zA-Z0-9._\''",\-\/\(\)]+?)}}'
   name: aws
   runtime: nodejs6.10
   profile: serverless
@@ -75,9 +76,10 @@ provider:
     PUSH_SERVER_URL: '${{self:custom.pushServer}}'
     BOT_ONPRESENCE: '${{self:custom.bot_onpresence}}'
     BOT_ONMESSAGE: '${{self:custom.bot_onmessage}}'
-    ORG_DOMAIN: tradle.io
-    ORG_NAME: Tradle
-    ORG_LOGO: '${{file(./project/lib/media.json):LOGO_TRADLE}}'
+    ORG_DOMAIN: '${{self:custom.brand.ORG_DOMAIN}}'
+    ORG_NAME: '${{self:custom.brand.ORG_NAME}}'
+    ORG_LOGO: '${{self:custom.brand.ORG_LOGO}}'
+    PRODUCTS: '${{self:custom.brand.PRODUCTS}}'
     R_BUCKET_Objects:
       Ref: ObjectsBucket
     R_BUCKET_Secrets:
@@ -403,8 +405,8 @@ functions:
     handler: project/samplebot/index.onmessage
     memorySize: 1024
   bot_onsealevent:
-    handler: project/samplebot/index.onsealevent
-    memorySize: 1024
+    handler: project/samplebot/index.onseal
+    memorySize: 256
     events:
       - stream:
           type: dynamodb
@@ -416,7 +418,7 @@ functions:
               - StreamArn
   bot_processinbox:
     handler: project/samplebot/index.onmessagestream
-    memorySize: 512
+    memorySize: 256
     events:
       - stream:
           type: dynamodb
@@ -428,7 +430,7 @@ functions:
               - StreamArn
   bot_processoutbox:
     handler: project/samplebot/index.onmessagestream
-    memorySize: 512
+    memorySize: 256
     events:
       - stream:
           type: dynamodb

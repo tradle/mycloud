@@ -8,6 +8,14 @@ const co = require('co')
 const { dynamodb } = require('../lib/aws')
 const { batchify, runWithBackoffWhile } = require('../lib/utils')
 const { SERVERLESS_PREFIX } = require('../test/service-map')
+const { service, stage } = require('minimist')(process.argv.slice(2), {
+  default: {
+    service: 'tradle',
+    stage: 'dev'
+  }
+})
+
+const serviceStageRegExp = new RegExp(`^${service}-${stage}-`)
 const {
   service: {
     resources: { Resources }
@@ -22,7 +30,7 @@ const tablesToKeep = Object.keys(Resources)
 co(function* () {
   const { TableNames } = yield dynamodb.listTables().promise()
   const toDelete = TableNames.filter(name => {
-    return !tablesToKeep.includes(name)
+    return !tablesToKeep.includes(name) && !serviceStageRegExp.test(name)
   })
 
   if (!toDelete) return

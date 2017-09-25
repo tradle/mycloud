@@ -4,6 +4,7 @@ frameworkVersion: ">=1.5.0 <2.0.0"
 plugins:
   # - serverless-resources-env
   - serverless-plugin-tracing
+  # - serverless-pseudo-parameters
   - serverless-sam
   - serverless-apigw-binary
   - print
@@ -34,6 +35,7 @@ custom:
   stage: ${{opt:stage, self:custom.defaultStage}}
   region: us-east-1
   blockchain: ethereum:rinkeby
+  brand: ${{file(./project/conf/${{self:service}}.json)}}
 
   # copied from vars.yml
   # defaultEmailForNotifications: ${{self:custom.vars.defaultEmailForNotifications}}
@@ -94,7 +96,7 @@ custom:
   serverless-offline:
     port: 21012
 
-#   secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
+#   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
   #   start:
   #     port: 8000
@@ -107,9 +109,8 @@ provider:
   # avoid some bugs in serverless
   versionFunctions: false
   tracing: true
-  # variableSyntax: '\${{([\s\S]+?)}}'
-  # variableSyntax: "\${{([\s\S]+?)}}"
-  variableSyntax: "\\${{([\\s\\S]+?)}}"
+  # https://github.com/serverless/serverless/issues/4312#issuecomment-331946882
+  variableSyntax: "\\${{([ ~:a-zA-Z0-9._\\'\",\\-\\/\\(\\)]+?)}}"
   name: aws
   runtime: nodejs6.10
   profile: serverless
@@ -132,9 +133,10 @@ provider:
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
     BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
-    ORG_DOMAIN: tradle.io
-    ORG_NAME: Tradle
-    ORG_LOGO: ${{file(./project/lib/media.json):LOGO_TRADLE}}
+    ORG_DOMAIN: ${{self:custom.brand.ORG_DOMAIN}}
+    ORG_NAME: ${{self:custom.brand.ORG_NAME}}
+    ORG_LOGO: ${{self:custom.brand.ORG_LOGO}}
+    PRODUCTS: ${{self:custom.brand.PRODUCTS}}
 
   iamRoleStatements:
     - Effect: Allow
@@ -589,8 +591,8 @@ functions:
   # receives seal (read/wrote) events from the tradle engine
   # hands off to bot's business logic
   bot_onsealevent:
-    handler: project/samplebot/index.onsealevent
-    memorySize: 1024
+    handler: project/samplebot/index.onseal
+    memorySize: 256
     events:
       - stream:
           type: dynamodb
@@ -605,7 +607,7 @@ functions:
   # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
   bot_processinbox:
     handler: project/samplebot/index.onmessagestream
-    memorySize: 512
+    memorySize: 256
     events:
       - stream:
           type: dynamodb
@@ -620,7 +622,7 @@ functions:
   # replicates Outbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
   bot_processoutbox:
     handler: project/samplebot/index.onmessagestream
-    memorySize: 512
+    memorySize: 256
     events:
       - stream:
           type: dynamodb
@@ -1039,7 +1041,7 @@ resources:
                   # - arn:aws:iam::${{self:custom.accountId}}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole"
                   # - Fn::Join" : [":", ["arn:aws:iam", { "Ref" : "AWS::Region" }, { "Ref" : "AWS::AccountId" }, "lambdaRole" ] ] }
 
-                # AWS: "arn:aws:iam::${{}}:role/${{self:custom.prefix}}lambdaRole"
+                # AWS: "arn:aws:iam::${{{}}}:role/${{self:custom.prefix}}lambdaRole"
               Action:
                 - sts:AssumeRole
         Policies:
@@ -1240,7 +1242,7 @@ resources:
     #   # DependsOn: ApiGatewayRestApi
     #   Properties:
     #     BasePath: ${{self:custom.stage}}
-    #     DomainName: ${self:custom.domainName}
+    #     DomainName: ${{self:custom.domainName}}
     #     RestApiId:
     #       Ref: ApiGatewayRestApi
-    #     Stage: ${self:custom.stage}
+    #     Stage: ${{self:custom.stage}}
