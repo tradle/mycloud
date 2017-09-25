@@ -1,24 +1,15 @@
 #!/usr/bin/env node
 
-const fs = require('fs')
-const YAML = require('js-yaml')
 const debug = require('debug')('tradle:sls:compile')
-const file = fs.readFileSync(process.argv[2], { encoding: 'utf8' })
-const yaml = YAML.load(file)
-const isLocal = process.env.IS_LOCAL
-const {
-  addResourcesToEnvironment,
-  addResourcesToOutputs,
-  removeResourcesThatDontWorkLocally,
-} = require('../lib/cli/compile')
-
-if (isLocal) {
-  removeResourcesThatDontWorkLocally(yaml)
-}
-
-addResourcesToEnvironment(yaml)
-addResourcesToOutputs(yaml)
-process.stdout.write(YAML.dump(yaml))
+const { compileTemplate, interpolateTemplate } = require('../lib/cli/utils')
+compileTemplate(process.argv[2])
+  .then(
+    result => process.stdout.write(result),
+    err => {
+      console.error(err)
+      process.exit(1)
+    }
+  )
 
 // const fs = require('fs')
 // const file = fs.readFileSync(process.argv[2] || 'serverless.yml', { encoding: 'utf8' })
