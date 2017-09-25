@@ -86,13 +86,8 @@ const makePublic = co(function* (Bucket) {
   // }).promise()
 })
 
-const interpolateTemplate = co(function* (opts) {
-  const command = 'sls print ' + Object.keys(opts)
-    .map(key => {
-      return `--${key}="${opts[key]}"`
-    })
-    .join(' ')
-
+const interpolateTemplate = co(function* (argStr) {
+  const command = `sls print ${argStr}`
   console.log(command)
   return proc.exec(command, {
     cwd: process.cwd()
