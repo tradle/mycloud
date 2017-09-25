@@ -2,7 +2,7 @@
 const extend = require('xtend/mutable')
 const AWSXRay = require('aws-xray-sdk')
 const rawAWS = require('aws-sdk')
-const AWS = process.env.IS_LOCAL || !process.env.IS_LAMBDA_ENVIRONMENT
+const AWS = process.env.IS_LOCAL || !process.env.AWS_REGION
   ? rawAWS
   : AWSXRay.captureAWS(rawAWS)
 

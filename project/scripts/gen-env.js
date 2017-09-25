@@ -6,7 +6,7 @@ const promisify = require('pify')
 const { exec } = promisify(require('child_process'))
 const fs = promisify(require('fs'))
 const { prettify } = require('../lib/string-utils')
-const { getConfiguration } = require('../lib/lambda-utils')
+const { lambdaUtils } = require('../')
 const serviceMapPath = path.resolve(__dirname, '../test/fixtures/remote-service-map.json')
 const serverlessYml = require('../lib/cli/serverless-yml')
 
@@ -17,7 +17,7 @@ co(function* () {
   const { service, custom } = serverlessYml
   const prefix = `${service}-${custom.stage}-`
   const setEnvFnName = `${prefix}setenvvars`
-  const { Environment } = yield getConfiguration(setEnvFnName)
+  const { Environment } = yield lambdaUtils.getConfiguration(setEnvFnName)
   yield fs.writeFile(serviceMapPath, prettify(Environment.Variables))
 })
 .catch(err => {

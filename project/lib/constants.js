@@ -20,5 +20,6 @@ module.exports = deepExtend({
   },
   MAX_CLOCK_DRIFT: 10000,
   MAX_DB_ITEM_SIZE: 6000,
-  ENV_RESOURCE_PREFIX: 'R_'
+  ENV_RESOURCE_PREFIX: 'R_',
+  HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
 }, tradleConstants)

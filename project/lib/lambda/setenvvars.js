@@ -1,12 +1,11 @@
-// const debug = require('debug')('λ:setenv')
-const wrap = require('../wrap')
-const ENV = require('../env')
-const Discovery = require('../discovery')
+const debug = require('debug')('λ:setenv')
+const { discovery, env, wrap } = require('../')
 
 exports.handler = wrap.plain(function* (event, context) {
-  yield Discovery.discoverServices()
+  debug('mapping services')
+  yield discovery.discoverServices()
   return {
-    IOT_ENDPOINT: ENV.IOT_ENDPOINT
+    IOT_ENDPOINT: env.IOT_ENDPOINT
   }
 })
 

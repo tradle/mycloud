@@ -21,6 +21,7 @@ const {
   waterfall,
   series
 } = require('../utils')
+const handleHTTPRequest = require('../http-request-handler')
 const { addLinks } = require('../crypto')
 const { prettify } = require('../string-utils')
 const { getRecordsFromEvent } = require('../db-utils')
@@ -287,13 +288,14 @@ function createBot (opts={}) {
     bot.process.graphql = {
       type: 'wrapped',
       raw: bot.graphqlAPI.executeQuery,
-      handler: bot.graphqlAPI.handleHTTPRequest
+      handler: handleHTTPRequest
     }
   }
 
   if (isGenSamplesLambda) {
     bot.process.samples = {
       type: 'http',
+      path: 'samples',
       handler: co(function* (event) {
         const gen = require('./gen-samples')
         yield gen({ bot, event })

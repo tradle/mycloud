@@ -17,7 +17,7 @@ module.exports = function createBotInputs ({
   models,
   tradle=defaultTradleInstance
 }) {
-  const { provider, seals, identities, objects, messages, aws, db } = tradle
+  const { provider, seals, identities, objects, messages, aws, db, router } = tradle
   const { docClient } = aws
 
   if (models) {
@@ -27,6 +27,7 @@ module.exports = function createBotInputs ({
   ({ models } = db)
 
   const graphqlAPI = createGraphQLAPI({
+    router,
     objects,
     models,
     db,

@@ -16,7 +16,7 @@ module.exports = function ({ prefix='' }) {
 
     params.topic = prefixTopic(params.topic)
     debug(`publishing to ${params.topic}`)
-    //: ${JSON.stringify(params)}`)
+    // : ${JSON.stringify(params)}`)
     return aws.iotData.publish(params).promise()
   }
 

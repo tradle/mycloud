@@ -66,6 +66,7 @@ function Tradle (env) {
   this.define('discovery', './discovery')
   this.define('user', './user')
   this.define('delivery', './delivery')
+  this.define('router', './router')
   // this.bot = this.require('bot', './bot')
 }
 

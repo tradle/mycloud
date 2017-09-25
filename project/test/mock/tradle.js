@@ -4,6 +4,7 @@ const { extend } = utils
 const { getter } = require('../utils')
 const fakeSeals = require('./seals')
 const promiseNoop = co(function* () {})
+const noop = co(function* () {})
 
 module.exports = function fakeTradle ({ objects, identities, messages, send }) {
   const seals = {}
@@ -17,6 +18,11 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
       seals
     }),
     db,
+    router: {
+      use: noop,
+      get: noop,
+      post: noop
+    },
     objects: {
       getObjectByLink: getter(objects),
       getEmbeds: () => {

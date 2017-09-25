@@ -1,11 +1,10 @@
-const ANY_METHODS = 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
 const LOCALLY_AVAILABLE = [
   'AWS::DynamoDB::Table',
   'AWS::S3::Bucket',
   'AWS::ApiGateway::RestApi'
 ]
 
-const { ENV_RESOURCE_PREFIX } = require('../constants')
+const { HTTP_METHODS, ENV_RESOURCE_PREFIX } = require('../constants')
 
 module.exports = {
   forEachResource,
@@ -82,7 +81,7 @@ function addHTTPMethodsToEnvironment (conf) {
   }
 
   if (methods.length === 1 && methods[0] === 'ANY') {
-    conf.environment.HTTP_METHODS = ANY_METHODS
+    conf.environment.HTTP_METHODS = HTTP_METHODS
   } else {
     conf.environment.HTTP_METHODS = methods
       .concat('OPTIONS')

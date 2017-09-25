@@ -36,4 +36,8 @@ module.exports = function createEvents ({ tables }) {
     const [main, suffix='0'] = id.split('.')
     return main + (Number(suffix) + 1)
   }
+
+  return {
+    putEvents
+  }
 }

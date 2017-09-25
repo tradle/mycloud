@@ -1,6 +1,6 @@
 const debug = require('debug')('tradle:sls:replicator')
 const wrap = require('./wrap')
-const Events = require('./events')
+const { events } = require('./')
 const { prettify } = require('./string-utils')
 const { getRecordsFromEvent } = require('./db-utils')
 
@@ -14,6 +14,6 @@ function toEvents (mapper, oldAndNew) {
     const items = getRecordsFromEvent(event, oldAndNew)
       .map(mapper)
 
-    yield Events.putEvents(items)
+    yield events.putEvents(items)
   })
 }

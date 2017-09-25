@@ -3,7 +3,9 @@ frameworkVersion: '>=1.5.0 <2.0.0'
 plugins:
   - serverless-plugin-tracing
   - serverless-sam
+  - serverless-apigw-binary
   - print
+  - serverless-offline
 package:
   exclude:
     - .git/**
@@ -44,12 +46,18 @@ custom:
     outbox: '${{self:custom.prefix}}outbox'
     events: '${{self:custom.prefix}}events'
     users: '${{self:custom.prefix}}users'
+  apigwBinary:
+    types:
+      - '*/*'
+  serverless-offline:
+    port: 21012
 provider:
   versionFunctions: false
   tracing: true
   variableSyntax: '\${{([\s\S]+?)}}'
   name: aws
   runtime: nodejs6.10
+  profile: serverless
   stage: '${{self:custom.stage}}'
   region: '${{self:custom.region}}'
   memorySize: 512
@@ -227,23 +235,23 @@ provider:
         - '*'
 functions:
   preauth:
-    handler: project/lib/lambda/http/preauth.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/preauth
-          method: post
+          path: preauth
+          method: any
     environment:
-      HTTP_METHODS: 'POST,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   auth:
-    handler: project/lib/lambda/http/auth.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/auth
-          method: post
+          path: auth
+          method: any
     environment:
-      HTTP_METHODS: 'POST,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   inbox2events:
     handler: project/lib/lambda/inbox-events.handler
     memorySize: 512
@@ -280,15 +288,24 @@ functions:
             'Fn::GetAtt':
               - SealsTable
               - StreamArn
-  inbox:
-    handler: project/lib/lambda/inbox.handler
+  log:
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/inbox
-          method: post
+          path: log
+          method: any
     environment:
-      HTTP_METHODS: 'POST,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
+  inbox:
+    handler: project/lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: inbox
+          method: any
+    environment:
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   onconnect:
     handler: project/lib/lambda/mqtt/onconnect.handler
     events:
@@ -318,14 +335,14 @@ functions:
             '${{self:custom.prefixIOTTopic}}message'
           sqlVersion: '${{self:custom.versionSQL}}'
   onmessage_http:
-    handler: project/lib/lambda/http/onmessage.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/message
-          method: post
+          path: message
+          method: any
     environment:
-      HTTP_METHODS: 'POST,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   send:
     handler: project/lib/lambda/send.handler
     memorySize: 1024
@@ -337,14 +354,14 @@ functions:
     description:
       Ref: 'AWS::StackId'
   info:
-    handler: project/lib/lambda/http/info.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 256
     events:
       - http:
-          path: tradle/info
-          method: 'get,post'
+          path: info
+          method: any
     environment:
-      HTTP_METHODS: 'GET,POST,OPTIONS'
+      HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   init:
     handler: project/lib/lambda/init.handler
     memorySize: 512
@@ -425,16 +442,16 @@ functions:
     memorySize: 512
     events:
       - http:
-          path: tradle/graphql
+          path: graphql
           method: any
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   bot_samples:
-    handler: project/samplebot/index.samples
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/samples
+          path: samples
           method: any
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'

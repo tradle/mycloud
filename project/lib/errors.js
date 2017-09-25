@@ -1,7 +1,7 @@
 const debug = require('debug')('tradle:sls:errors')
 const ex = require('error-ex')
 const errors = {}
-;[
+const names = [
   'NotFound',
   'InvalidSignature',
   'InvalidMessageFormat',
@@ -14,7 +14,9 @@ const errors = {}
   'BatchPutFailed',
   'Duplicate',
   'TimeTravel'
-].forEach(name => errors[name] = ex(name))
+]
+
+names.forEach(name => errors[name] = ex(name))
 
 exports = module.exports = errors
 exports.export = function (err) {
@@ -26,6 +28,10 @@ exports.export = function (err) {
 
 exports.isDeveloperError = function isDeveloperError (err) {
   return err instanceof TypeError || err instanceof ReferenceError || err instanceof SyntaxError
+}
+
+exports.isCustomError = function isCustomError (err) {
+  return names.includes(err.name)
 }
 
 /**

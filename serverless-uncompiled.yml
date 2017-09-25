@@ -11,7 +11,7 @@ plugins:
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
   # - serverless-dynamodb-local
-  # - serverless-offline
+  - serverless-offline
 
 package:
   # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
@@ -91,6 +91,9 @@ custom:
     types:
       - '*/*'
 
+  serverless-offline:
+    port: 21012
+
 #   secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
   # dynamodb:
   #   start:
@@ -109,7 +112,7 @@ provider:
   variableSyntax: "\\${{([\\s\\S]+?)}}"
   name: aws
   runtime: nodejs6.10
-  # profile: serverless
+  profile: serverless
   stage: ${{self:custom.stage}}
   region: ${{self:custom.region}}
   memorySize: 512
@@ -305,21 +308,21 @@ functions:
   # 2. creates an unauthenticated session,
   #    generates a challenge to be signed (verified in /auth)
   preauth:
-    handler: project/lib/lambda/http/preauth.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/preauth
+          path: preauth
           method: any
 
   # 1. validates the challenge response
   # 2. marks the session as authenticated
   auth:
-    handler: project/lib/lambda/http/auth.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/auth
+          path: auth
           method: any
 
   # createevent:
@@ -387,13 +390,21 @@ functions:
   #             - StreamArn
 
   # POST messages here
-  inbox:
-    handler: project/lib/lambda/inbox.handler
+  log:
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/inbox
-          method: post
+          path: log
+          method: any
+
+  inbox:
+    handler: project/lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: inbox
+          method: any
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
@@ -462,11 +473,11 @@ functions:
   # same as onmessage, but can handle larger payloads
   # MQTT is limited to 128KB, HTTP to 6MB
   onmessage_http:
-    handler: project/lib/lambda/http/onmessage.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/message
+          path: message
           method: any
 
   # useful during development
@@ -498,13 +509,13 @@ functions:
   # public endpoint for clients to get public configuration / provider identity
   # e.g. the provider's identity object, styles, currency, etc.
   info:
-    handler: project/lib/lambda/http/info.handler
+    handler: project/lib/lambda/http/default.handler
     memorySize: 256
       # SERVERLESS_STAGE: ${{self:custom.stage}}
       # SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - http:
-          path: tradle/info
+          path: info
           method: any
 
   # initializes provider identity
@@ -623,21 +634,24 @@ functions:
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint
   bot_graphql:
+    # make sure graphql route gets loaded
     handler: project/samplebot/index.ongraphql
+    # handler: project/lib/lambda/http/default.handler
     memorySize: 512
     events:
       - http:
-          path: tradle/graphql
+          path: graphql
           method: any
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
   bot_samples:
-    handler: project/samplebot/index.samples
+    # handler: project/samplebot/index.samples
+    handler: project/lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
-          path: tradle/samples
+          path: samples
           method: any
 
 resources:

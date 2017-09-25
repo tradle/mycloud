@@ -102,7 +102,7 @@ exports.firstSuccess = function firstSuccess (promises) {
     // treat it as a rejection so Promise.all immediately bails out.
     return p.then(
       val => {
-        var wrapper = new Error('wrapper for success')
+        const wrapper = new Error('wrapper for success')
         wrapper.firstSuccessResult = val
         return Promise.reject(wrapper)
       },

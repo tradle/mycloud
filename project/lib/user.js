@@ -156,7 +156,13 @@ proto.onConnected = function ({ clientId }) {
 }
 
 proto.onPreAuth = function (...args) {
+  const now = Date.now()
   return this.auth.getTemporaryIdentity(...args)
+    .then(session => {
+      session.time = now
+      session.iotTopicPrefix = this.env.IOT_TOPIC_PREFIX
+      return session
+    })
 }
 
 proto.onSentChallengeResponse = co(function* (response) {

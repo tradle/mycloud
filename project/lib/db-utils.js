@@ -2,13 +2,30 @@ const debug = require('debug')('tradle:sls:db-utils')
 const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
 const { NotFound } = require('./errors')
 const aws = require('./aws')
-const { co, pick, logify, timestamp, wait, clone } = require('./utils')
+const { co, pick, logify, timestamp, wait, clone, batchify } = require('./utils')
 const { prettify } = require('./string-utils')
 const Errors = require('./errors')
 const { DEV } = require('./env')
+const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 
 function getTable (TableName) {
+  const batchPutToTable = co(function* (items) {
+    const batches = batchify(items, MAX_BATCH_SIZE)
+    for (const batch of batches) {
+      debug(`putting batch of ${batch.length} to ${TableName}`)
+      yield batchPut({
+        RequestItems: {
+          [TableName]: batch.map(Item => {
+            return {
+              PutRequest: { Item }
+            }
+          })
+        }
+      })
+    }
+  })
+
   const tableAPI = {
     toString: () => TableName,
     batchPut: batchPutToTable
@@ -41,18 +58,6 @@ function getTable (TableName) {
 
   tableAPI.name = TableName
   return logify(tableAPI, { log: debug, logInputOutput: DEV })
-
-  function batchPutToTable (items) {
-    return batchPut({
-      RequestItems: {
-        [TableName]: items.map(Item => {
-          return {
-            PutRequest: { Item }
-          }
-        })
-      }
-    })
-  }
 }
 
 const exec = co(function* exec (method, params) {
