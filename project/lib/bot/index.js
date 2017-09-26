@@ -10,7 +10,7 @@ const BaseModels = require('../models')
 const installDefaultHooks = require('./default-hooks')
 const makeBackwardsCompat = require('./backwards-compat')
 const errors = require('../errors')
-const types = require('../types')
+const types = require('../typeforce-types')
 const {
   co,
   extend,

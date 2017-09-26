@@ -15,7 +15,7 @@ const {
 } = require('./utils')
 const { prettify } = require('./string-utils')
 const dbUtils = require('./db-utils')
-const types = require('./types')
+const types = require('./typeforce-types')
 const Errors = require('./errors')
 const MAX_ERRORS_RECORDED = 10
 const WATCH_TYPE = {

@@ -14,7 +14,7 @@ const {
 } = require('./utils')
 const { getLink } = require('./crypto')
 const { prettify } = require('./string-utils')
-const types = require('./types')
+const types = require('./typeforce-types')
 const {
   TYPE,
   TYPES,

@@ -7,13 +7,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+Object.defineProperty(exports, "__esModule", { value: true });
 const debug = require('debug')('tradle:sls:identities');
-const constants_1 = require("./constants");
-const { MESSAGE } = constants_1.TYPES;
-const errors_1 = require("./errors");
+const constants = require("./constants");
+const Errors = require("./errors");
 const utils_1 = require("./utils");
 const crypto_1 = require("./crypto");
-const types = require("./types");
+const types = require("./typeforce-types");
+const { PREVLINK, PERMALINK, TYPE, TYPES } = constants;
+const { MESSAGE } = TYPES;
+const { NotFound } = Errors;
 class Identities {
     constructor(opts) {
         this.getIdentityMetadataByPub = pub => {
@@ -30,7 +33,7 @@ class Identities {
             }
             catch (err) {
                 debug('unknown identity', pub, err);
-                throw new errors_1.NotFound('identity with pub: ' + pub);
+                throw new NotFound('identity with pub: ' + pub);
             }
         });
         this.getIdentityByPermalink = (permalink) => __awaiter(this, void 0, void 0, function* () {
@@ -48,7 +51,7 @@ class Identities {
             }
             catch (err) {
                 debug('unknown identity', permalink, err);
-                throw new errors_1.NotFound('identity with permalink: ' + permalink);
+                throw new NotFound('identity with permalink: ' + permalink);
             }
         });
         this.getExistingIdentityMapping = identity => {
@@ -68,7 +71,7 @@ class Identities {
                 if (existing.link === link) {
                     debug(`mapping is already up to date for identity ${permalink}`);
                 }
-                else if (identity[constants_1.PREVLINK] !== existing.link) {
+                else if (identity[PREVLINK] !== existing.link) {
                     debug('identity mapping collision. Refusing to add contact:', JSON.stringify(identity));
                     throw new Error(`refusing to add identity with link: "${link}"`);
                 }
@@ -101,7 +104,7 @@ class Identities {
             if (!object._sigPubKey) {
                 this.objects.addMetadata(object);
             }
-            const type = object[constants_1.TYPE];
+            const type = object[TYPE];
             const isMessage = type === MESSAGE;
             const pub = isMessage && object.recipientPubKey.pub.toString('hex');
             const promises = {
@@ -127,5 +130,5 @@ class Identities {
         this.pubKeys = tables.PubKeys;
     }
 }
-module.exports = Identities;
+exports.default = Identities;
 //# sourceMappingURL=identities.js.map

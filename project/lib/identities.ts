@@ -1,7 +1,6 @@
 const debug = require('debug')('tradle:sls:identities')
-import { PREVLINK, PERMALINK, TYPE, TYPES } from './constants'
-const { MESSAGE } = TYPES
-import { NotFound } from './errors'
+import constants = require('./constants')
+import Errors = require('./errors')
 import {
   firstSuccess,
   logify,
@@ -13,10 +12,14 @@ import {
 } from './utils'
 
 import { addLinks, getLink, getLinks } from './crypto'
-import * as types from './types'
+import * as types from './typeforce-types'
 import * as Events from './events'
 
-class Identities {
+const { PREVLINK, PERMALINK, TYPE, TYPES } = constants
+const { MESSAGE } = TYPES
+const { NotFound } = Errors
+
+export default class Identities {
   private objects: any
   private pubKeys: any
   constructor (opts: { tables: any, objects: any }) {
@@ -201,7 +204,6 @@ class Identities {
   }
 }
 
-export = Identities
 
 // function addContactPubKeys ({ link, permalink, identity }) {
 //   const RequestItems = {

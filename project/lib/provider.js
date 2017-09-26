@@ -17,7 +17,7 @@ const {
 } = require('./utils')
 
 const Errors = require('./errors')
-const types = require('./types')
+const types = require('./typeforce-types')
 const {
   PAYLOAD_PROP_PREFIX,
   IDENTITY_KEYS_KEY,

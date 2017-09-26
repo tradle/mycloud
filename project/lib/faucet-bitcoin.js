@@ -2,7 +2,7 @@ const debug = require('debug')('tradle:sls:faucet')
 const Spender = require('@tradle/spender')
 const Blockchain = require('@tradle/cb-blockr')
 const { co, promisify, typeforce } = require('./utils')
-const types = require('./types')
+const types = require('./typeforce-types')
 const addressAmount = typeforce.compile({
   address: types.address.bitcoin,
   amount: types.amount.bitcoin

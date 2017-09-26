@@ -34,7 +34,7 @@ const {
 const { MESSAGE } = TYPES
 const { identities, messages, objects, provider } = require('../')
 const { createSendMessageEvent, createReceiveMessageEvent } = provider
-const types = require('../lib/types')
+const types = require('../lib/typeforce-types')
 const fromBobToAlice = require('./fixtures/alice/receive.json')
   .map(messages.normalizeInbound)
 

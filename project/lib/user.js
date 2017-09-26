@@ -3,7 +3,7 @@ const { co, getLink, typeforce, clone, omitVirtual, bindAll } = require('./utils
 const { prettify } = require('./string-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
 const Errors = require('./errors')
-const types = require('./types')
+const types = require('./typeforce-types')
 
 module.exports = UserSim
 
@@ -156,13 +156,7 @@ proto.onConnected = function ({ clientId }) {
 }
 
 proto.onPreAuth = function (...args) {
-  const now = Date.now()
   return this.auth.getTemporaryIdentity(...args)
-    .then(session => {
-      session.time = now
-      session.iotTopicPrefix = this.env.IOT_TOPIC_PREFIX
-      return session
-    })
 }
 
 proto.onSentChallengeResponse = co(function* (response) {

@@ -1,6 +1,12 @@
 const debug = require('debug')('tradle:sls')
 import * as ENV from './env'
 import { toCamelCase, splitCamelCase } from './string-utils'
+import { Identities, Auth, Delivery, Discovery } from './types'
+
+const requireMaybeDefault = (path:string) => {
+  const result = require(path)
+  return result.__esModule ? result.default : result
+}
 
 const cachifiable = {
   Objects: true
@@ -12,15 +18,19 @@ function createNewInstance (env) {
 
 class Tradle {
   // aliases for instantiation
-  static new = createNewInstance;
-  static createInstance = createNewInstance;
-  public new = createNewInstance;
-  public createInstance = createNewInstance;
+  static new = createNewInstance
+  static createInstance = createNewInstance
+  public new = createNewInstance
+  public createInstance = createNewInstance
 
-  public env: any;
-  public router: any;
-  public buckets: any;
-  public prefix: string;
+  public env: any
+  public router: any
+  public buckets: any
+  public identities: Identities
+  public auth: Auth
+  public delivery: Delivery
+  public discovery: Discovery
+  public prefix: string
 
   constructor(env=ENV) {
     const {
@@ -38,76 +48,75 @@ class Tradle {
     this.define('blockchain', './blockchain', createBlockchainAPI =>
       createBlockchainAPI(this.network))
 
-    const construct = this.construct.bind(this)
-    this.define('seals', './seals', construct)
+    this.define('seals', './seals', this.construct)
 
     // this.define('faucet', './faucet', createFaucet => createFaucet({
     //   networkName: BLOCKCHAIN.networkName,
     //   privateKey: FAUCET_PRIVATE_KEY
     // }))
 
-    this.define('resources', './resources', construct)
-    this.define('tables', './tables', construct)
-    this.define('buckets', './buckets', construct)
+    this.define('resources', './resources', this.construct)
+    this.define('tables', './tables', this.construct)
+    this.define('buckets', './buckets', this.construct)
     this.define('db', './db', initialize => initialize(this))
-    this.define('s3Utils', './s3-utils', construct)
-    this.define('lambdaUtils', './lambda-utils', construct)
+    this.define('s3Utils', './s3-utils', this.construct)
+    this.define('lambdaUtils', './lambda-utils', this.construct)
     this.define('iot', './iot-utils', initialize => initialize({
       prefix: env.IOT_TOPIC_PREFIX
     }))
 
-    this.define('identities', './identities', construct)
-    this.define('friends', './friends', construct)
-    this.define('messages', './messages', construct)
-    this.define('events', './events', construct)
-    this.define('provider', './provider', construct)
-    this.define('auth', './auth', construct)
-    this.define('objects', './objects', construct)
+    this.define('identities', './identities', this.construct)
+    this.define('friends', './friends', this.construct)
+    this.define('messages', './messages', this.construct)
+    this.define('events', './events', this.construct)
+    this.define('provider', './provider', this.construct)
+    this.define('auth', './auth', this.construct)
+    this.define('objects', './objects', this.construct)
     this.define('secrets', './secrets', initialize => initialize({
       bucket: this.buckets.Secrets
     }))
 
-    this.define('init', './init', construct)
-    this.define('discovery', './discovery', construct)
-    this.define('user', './user', construct)
-    this.define('delivery', './delivery', construct)
-    this.define('router', './router', construct)
+    this.define('init', './init', this.construct)
+    this.define('discovery', './discovery', this.construct)
+    this.define('user', './user', this.construct)
+    this.define('delivery', './delivery', this.construct)
+    this.define('router', './router', this.construct)
     // this.bot = this.require('bot', './bot')
   }
 
   get aws () {
-    return require('./aws')
+    return requireMaybeDefault('./aws')
   }
   get networks () {
-    return require('./networks')
+    return requireMaybeDefault('./networks')
   }
   get network () {
     const { BLOCKCHAIN } = this.env
     return this.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
   }
   get models () {
-    return require('./models')
+    return requireMaybeDefault('./models')
   }
   get constants () {
-    return require('./constants')
+    return requireMaybeDefault('./constants')
   }
   get errors () {
-    return require('./errors')
+    return requireMaybeDefault('./errors')
   }
   get crypto () {
-    return require('./crypto')
+    return requireMaybeDefault('./crypto')
   }
   get utils () {
-    return require('./utils')
+    return requireMaybeDefault('./utils')
   }
   get stringUtils () {
-    return require('./string-utils')
+    return requireMaybeDefault('./string-utils')
   }
   get dbUtils () {
-    return require('./db-utils')
+    return requireMaybeDefault('./db-utils')
   }
   get wrap () {
-    return require('./wrap')
+    return requireMaybeDefault('./wrap')
   }
   private construct = (Ctor) => {
     return new Ctor(this)
@@ -117,7 +126,7 @@ class Tradle {
     defineGetter(this, property, () => {
       if (!instance) {
         if (path) {
-          const subModule = require(path)
+          const subModule = requireMaybeDefault(path)
           instance = instantiator(subModule)
         } else {
           instance = instantiator()
