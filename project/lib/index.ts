@@ -1,6 +1,7 @@
 const debug = require('debug')('tradle:sls')
-const ENV = require('./env')
-const { toCamelCase, splitCamelCase } = require('./string-utils')
+import * as ENV from './env'
+import { toCamelCase, splitCamelCase } from './string-utils'
+
 const cachifiable = {
   Objects: true
 }
@@ -10,6 +11,7 @@ function createNewInstance (env) {
 }
 
 class Tradle {
+  // aliases for instantiation
   static new = createNewInstance;
   static createInstance = createNewInstance;
   public new = createNewInstance;
@@ -107,10 +109,10 @@ class Tradle {
   get wrap () {
     return require('./wrap')
   }
-  private construct (Ctor) {
+  private construct = (Ctor) => {
     return new Ctor(this)
   }
-  define(property: string, path: string, instantiator: Function) {
+  define = (property: string, path: string, instantiator: Function) => {
     let instance
     defineGetter(this, property, () => {
       if (!instance) {
@@ -127,10 +129,6 @@ class Tradle {
       return instance
     })
   }
-  // require(property, path) {
-  //   // lazy
-  //   defineGetter(this, property, () => require(path))
-  // }
 }
 
 function defineGetter (obj, property, get) {

@@ -1,7 +1,6 @@
 "use strict";
 const debug = require('debug')('tradle:sls');
-const ENV = require('./env');
-const { toCamelCase, splitCamelCase } = require('./string-utils');
+const ENV = require("./env");
 const cachifiable = {
     Objects: true
 };
@@ -12,6 +11,25 @@ class Tradle {
     constructor(env = ENV) {
         this.new = createNewInstance;
         this.createInstance = createNewInstance;
+        this.construct = (Ctor) => {
+            return new Ctor(this);
+        };
+        this.define = (property, path, instantiator) => {
+            let instance;
+            defineGetter(this, property, () => {
+                if (!instance) {
+                    if (path) {
+                        const subModule = require(path);
+                        instance = instantiator(subModule);
+                    }
+                    else {
+                        instance = instantiator();
+                    }
+                    debug('defined', property);
+                }
+                return instance;
+            });
+        };
         const { FAUCET_PRIVATE_KEY, BLOCKCHAIN, SERVERLESS_PREFIX } = env;
         this.env = env;
         this.prefix = SERVERLESS_PREFIX;
@@ -76,25 +94,6 @@ class Tradle {
     }
     get wrap() {
         return require('./wrap');
-    }
-    construct(Ctor) {
-        return new Ctor(this);
-    }
-    define(property, path, instantiator) {
-        let instance;
-        defineGetter(this, property, () => {
-            if (!instance) {
-                if (path) {
-                    const subModule = require(path);
-                    instance = instantiator(subModule);
-                }
-                else {
-                    instance = instantiator();
-                }
-                debug('defined', property);
-            }
-            return instance;
-        });
     }
 }
 Tradle.new = createNewInstance;

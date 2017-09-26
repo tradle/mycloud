@@ -1,225 +1,131 @@
-const co = require('co').wrap
-const extend = require('xtend/mutable')
-const debug = require('debug')('tradle:sls:identities')
-const { PREVLINK, PERMALINK, TYPE, TYPES } = require('./constants')
-const { MESSAGE } = TYPES
-const { NotFound } = require('./errors')
-const {
-  firstSuccess,
-  logify,
-  typeforce,
-  omitVirtual,
-  setVirtual,
-  bindAll
-} = require('./utils')
-const { addLinks, getLink, getLinks } = require('./crypto')
-const types = require('./types')
-const Events = require('./events')
-
-module.exports = Identities
-
-function Identities ({ tables, objects }) {
-  logify(this)
-  bindAll(this)
-
-  this.tables = tables
-  this.objects = objects
-  this.pubKeys = this.tables.PubKeys
-}
-
-const proto = Identities.prototype
-
-proto.getIdentityMetadataByPub = function getIdentityMetadataByPub (pub) {
-  debug('get identity metadata by pub')
-  return this.pubKeys.get({
-    Key: { pub },
-    ConsistentRead: true
-  })
-}
-
-proto.getIdentityByPub = function getIdentityByPub (pub) {
-  return this.getIdentityMetadataByPub(pub)
-  .then(({ link }) => this.objects.getObjectByLink(link))
-  .catch(err => {
-    debug('unknown identity', pub, err)
-    throw new NotFound('identity with pub: ' + pub)
-  })
-}
-
-proto.getIdentityByPermalink = function getIdentityByPermalink (permalink) {
-  const params = {
-    IndexName: 'permalink',
-    KeyConditionExpression: 'permalink = :permalinkValue',
-    ExpressionAttributeValues: {
-      ":permalinkValue": permalink
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const debug = require('debug')('tradle:sls:identities');
+const constants_1 = require("./constants");
+const { MESSAGE } = constants_1.TYPES;
+const errors_1 = require("./errors");
+const utils_1 = require("./utils");
+const crypto_1 = require("./crypto");
+const types = require("./types");
+class Identities {
+    constructor(opts) {
+        this.getIdentityMetadataByPub = pub => {
+            debug('get identity metadata by pub');
+            return this.pubKeys.get({
+                Key: { pub },
+                ConsistentRead: true
+            });
+        };
+        this.getIdentityByPub = (pub) => __awaiter(this, void 0, void 0, function* () {
+            const { link } = yield this.getIdentityMetadataByPub(pub);
+            try {
+                return yield this.objects.getObjectByLink(link);
+            }
+            catch (err) {
+                debug('unknown identity', pub, err);
+                throw new errors_1.NotFound('identity with pub: ' + pub);
+            }
+        });
+        this.getIdentityByPermalink = (permalink) => __awaiter(this, void 0, void 0, function* () {
+            const params = {
+                IndexName: 'permalink',
+                KeyConditionExpression: 'permalink = :permalinkValue',
+                ExpressionAttributeValues: {
+                    ":permalinkValue": permalink
+                }
+            };
+            debug('get identity by permalink');
+            const { link } = yield this.pubKeys.findOne(params);
+            try {
+                return yield this.objects.getObjectByLink(link);
+            }
+            catch (err) {
+                debug('unknown identity', permalink, err);
+                throw new errors_1.NotFound('identity with permalink: ' + permalink);
+            }
+        });
+        this.getExistingIdentityMapping = identity => {
+            debug('checking existing mappings for pub keys');
+            const lookups = identity.pubkeys.map(obj => this.getIdentityMetadataByPub(obj.pub));
+            return utils_1.firstSuccess(lookups);
+        };
+        this.validateNewContact = (identity) => __awaiter(this, void 0, void 0, function* () {
+            identity = utils_1.omitVirtual(identity);
+            let existing;
+            try {
+                existing = yield this.getExistingIdentityMapping(identity);
+            }
+            catch (err) { }
+            const { link, permalink } = crypto_1.addLinks(identity);
+            if (existing) {
+                if (existing.link === link) {
+                    debug(`mapping is already up to date for identity ${permalink}`);
+                }
+                else if (identity[constants_1.PREVLINK] !== existing.link) {
+                    debug('identity mapping collision. Refusing to add contact:', JSON.stringify(identity));
+                    throw new Error(`refusing to add identity with link: "${link}"`);
+                }
+            }
+            return {
+                identity: existing || identity,
+                exists: !!existing
+            };
+        });
+        this.addContact = (object) => __awaiter(this, void 0, void 0, function* () {
+            if (object) {
+                utils_1.typeforce(types.identity, object);
+            }
+            else {
+                object = yield this.objects.getObjectByLink(crypto_1.getLink(object));
+            }
+            const { link, permalink } = crypto_1.addLinks(object);
+            const putPubKeys = object.pubkeys
+                .map(({ pub }) => this.putPubKey({ link, permalink, pub }));
+            yield Promise.all(putPubKeys.concat(this.objects.putObject(object)));
+        });
+        this.putPubKey = (opts) => {
+            const { link, permalink, pub } = opts;
+            debug(`adding mapping from pubKey "${pub}" to link "${link}"`);
+            return this.pubKeys.put({
+                Item: { link, permalink, pub }
+            });
+        };
+        this.addAuthorInfo = (object) => __awaiter(this, void 0, void 0, function* () {
+            if (!object._sigPubKey) {
+                this.objects.addMetadata(object);
+            }
+            const type = object[constants_1.TYPE];
+            const isMessage = type === MESSAGE;
+            const pub = isMessage && object.recipientPubKey.pub.toString('hex');
+            const promises = {
+                author: yield this.getIdentityMetadataByPub(object._sigPubKey),
+                recipient: yield (pub ? this.getIdentityMetadataByPub(pub) : utils_1.RESOLVED_PROMISE)
+            };
+            const { author, recipient } = promises;
+            utils_1.setVirtual(object, { _author: author.permalink });
+            if (recipient) {
+                utils_1.setVirtual(object, { _recipient: recipient.permalink });
+            }
+            return object;
+        });
+        this.validateAndAdd = (identity) => __awaiter(this, void 0, void 0, function* () {
+            const result = yield this.validateNewContact(identity);
+            if (!result.exists)
+                return this.addContact(result.identity);
+        });
+        utils_1.logify(this);
+        utils_1.bindAll(this);
+        const { tables, objects } = opts;
+        this.objects = objects;
+        this.pubKeys = tables.PubKeys;
     }
-  }
-
-  debug('get identity by permalink')
-  return this.pubKeys.findOne(params)
-    .then(({ link }) => this.objects.getObjectByLink(link))
 }
-
-// function getIdentityByFingerprint ({ fingerprint }) {
-//   const params = {
-//     TableName: PubKeys,
-//     IndexName: 'fingerprint',
-//     KeyConditionExpression: '#fingerprint = :fingerprintValue',
-//     ExpressionAttributeNames: {
-//       "#fingerprint": 'fingerprint'
-//     },
-//     ExpressionAttributeValues: {
-//       ":fingerprintValue": fingerprint
-//     }
-//   }
-
-//   return findOne(params)
-//     .then(this.objects.getObjectByLink)
-// }
-
-proto.getExistingIdentityMapping = function getExistingIdentityMapping (identity) {
-  debug('checking existing mappings for pub keys')
-  const lookups = identity.pubkeys.map(obj => this.getIdentityMetadataByPub(obj.pub))
-  return firstSuccess(lookups)
-}
-
-// function getExistingIdentityMapping ({ identity }) {
-//   const pubKeys = identity.pubkeys.map(pub => pub.pub)
-//   const KeyConditionExpression = `#pub IN (${pubKeys.map((pub, i) => `:pubValue${i}`).join(',')})`
-//   const ExpressionAttributeValues = {}
-//   pubKeys.forEach((pub, i) => {
-//     ExpressionAttributeValues[`:pubValue${i}`] = pub
-//   })
-
-//   const params = {
-//     TableName: PubKeys,
-//     IndexName: 'permalink',
-//     KeyConditionExpression,
-//     ExpressionAttributeNames: {
-//       "#pub": "pub"
-//     },
-//     ExpressionAttributeValues
-//   }
-
-//   console.log(params)
-//   return findOne(params)
-// }
-
-// const createAddContactEvent = co(function* ({ link, permalink, object }) {
-//   const result = validateNewContact({ link, permalink, object })
-//   debug(`queueing add contact ${link}`)
-//   yield Events.putEvent({
-//     topic: 'addcontact',
-//     link: result.link
-//   })
-// })
-
-proto.validateNewContact = co(function* (identity) {
-  identity = omitVirtual(identity)
-
-  let existing
-  try {
-    existing = yield this.getExistingIdentityMapping(identity)
-  } catch (err) {}
-
-  const { link, permalink } = addLinks(identity)
-  if (existing) {
-    if (existing.link === link) {
-      debug(`mapping is already up to date for identity ${permalink}`)
-    } else if (identity[PREVLINK] !== existing.link) {
-      debug('identity mapping collision. Refusing to add contact:', JSON.stringify(identity))
-      throw new Error(`refusing to add identity with link: "${link}"`)
-    }
-  }
-
-  return {
-    identity: existing || identity,
-    exists: !!existing
-  }
-})
-
-proto.addContact = co(function* (object) {
-  if (object) {
-    typeforce(types.identity, object)
-  } else {
-    object = yield this.objects.getObjectByLink(getLink(object))
-  }
-
-  const { link, permalink } = addLinks(object)
-  const putPubKeys = object.pubkeys
-    .map(({ pub }) => this.putPubKey({ link, permalink, pub }))
-
-  yield Promise.all(putPubKeys.concat(
-    this.objects.putObject(object)
-  ))
-})
-
-proto.putPubKey = function putPubKey ({ link, permalink, pub }) {
-  debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
-  return this.pubKeys.put({
-    Item: { link, permalink, pub }
-  })
-}
-
-/**
- * Add author metadata, including designated recipient, if object is a message
- * @param {String} object._sigPubKey author sigPubKey
- * @yield {[type]} [description]
- */
-proto.addAuthorInfo = co(function* (object) {
-  if (!object._sigPubKey) {
-    this.objects.addMetadata(object)
-  }
-
-  const type = object[TYPE]
-  const isMessage = type === MESSAGE
-  const promises = {
-    author: this.getIdentityMetadataByPub(object._sigPubKey),
-  }
-
-  if (isMessage) {
-    const pub = object.recipientPubKey.pub.toString('hex')
-    promises.recipient = this.getIdentityMetadataByPub(pub)
-  }
-
-  const { author, recipient } = yield promises
-
-  setVirtual(object, { _author: author.permalink })
-  if (isMessage) {
-    setVirtual(object, { _recipient: recipient.permalink })
-  }
-
-  return object
-})
-
-proto.validateAndAdd = co(function* (identity) {
-  const result = yield this.validateNewContact(identity)
-  // debug('validated contact:', prettify(result))
-  if (!result.exists) return this.addContact(result.identity)
-})
-
-// function addContactPubKeys ({ link, permalink, identity }) {
-//   const RequestItems = {
-//     [PubKeys]: identity.pubkeys.map(pub => {
-//       const Item = extend({ link, permalink }, pub)
-//       return {
-//         PutRequest: { Item }
-//       }
-//     })
-//   }
-
-//   return docClient.batchWrite({ RequestItems }).promise()
-// }
-
-// const Identities = module.exports = logify({
-//   getIdentityByLink: this.objects.getObjectByLink,
-//   getIdentityByPermalink,
-//   getIdentityByPub,
-//   getIdentityMetadataByPub,
-//   // getIdentityByFingerprint,
-//   // createAddContactEvent,
-//   addContact,
-//   validateNewContact,
-//   validateAndAdd,
-//   addAuthorInfo
-// })
+module.exports = Identities;
+//# sourceMappingURL=identities.js.map

@@ -453,3 +453,5 @@ exports.batchStringsBySize = function batchStringsBySize (strings, max) {
 
   return batches
 }
+
+exports.RESOLVED_PROMISE = Promise.resolve()
