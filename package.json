@@ -78,7 +78,6 @@
     "localstack:restart": "./scripts/localstack.sh down && ./scripts/localstack.sh up",
     "tail": "./scripts/tail.sh",
     "info": "serverless info",
-    "precommit": "npm run build:slsyml && git add serverless.yml",
     "commit": "git-cz",
     "watch": "tsc -w",
     "tslint": "tslint **/*.ts",
