@@ -17,14 +17,19 @@ package:
     - dist/scripts/**
     - dist/test/**
 custom:
+  defaultStage: dev
   stage: dev
   region: us-east-1
   blockchain: 'ethereum:rinkeby'
-  brand: '${{file(./conf/${{self:service}}.json)}}'
-  prefix: '${{self:service}}-${{self:custom.stage}}-'
-  prefixRole: '${{self:custom.prefix}}'
-  prefixIOTTopic: '${{self:service}}-'
-  prefixSNSTopic: '${{self:custom.prefix}}'
+  brand:
+    ORG_LOGO: 'http://tradle.io/images/apple-touch-icon.png'
+    ORG_DOMAIN: tradle.io
+    ORG_NAME: Tradle
+    PRODUCTS: nl.tradle.DigitalPassport
+  prefix: tradle-dev-
+  prefixRole: tradle-dev-
+  prefixIOTTopic: tradle-
+  prefixSNSTopic: tradle-dev-
   versionSQL: '2016-03-23'
   thresholdBillingAlarm: 1
   thresholdThrottlingAlarm: 0
@@ -39,13 +44,13 @@ custom:
   bot_processoutbox: bot_processoutbox
   bot_samples: bot_samples
   tables:
-    presence: '${{self:custom.prefix}}presence'
-    seals: '${{self:custom.prefix}}seals'
-    pubkeys: '${{self:custom.prefix}}pubkeys'
-    inbox: '${{self:custom.prefix}}inbox'
-    outbox: '${{self:custom.prefix}}outbox'
-    events: '${{self:custom.prefix}}events'
-    users: '${{self:custom.prefix}}users'
+    presence: tradle-dev-presence
+    seals: tradle-dev-seals
+    pubkeys: tradle-dev-pubkeys
+    inbox: tradle-dev-inbox
+    outbox: tradle-dev-outbox
+    events: tradle-dev-events
+    users: tradle-dev-users
   apigwBinary:
     types:
       - '*/*'
@@ -54,30 +59,29 @@ custom:
 provider:
   versionFunctions: false
   tracing: true
-  variableSyntax: '\${{([ ~:a-zA-Z0-9._\''",\-\/\(\)]+?)}}'
   name: aws
   runtime: nodejs6.10
   profile: serverless
-  stage: '${{self:custom.stage}}'
-  region: '${{self:custom.region}}'
+  stage: dev
+  region: us-east-1
   memorySize: 512
   timeout: 60
   environment:
     BLUEBIRD_DEBUG: 1
-    IOT_TOPIC_PREFIX: '${{self:custom.prefixIOTTopic}}'
+    IOT_TOPIC_PREFIX: tradle-
     IOT_ENDPOINT: ''
-    BLOCKCHAIN: '${{self:custom.blockchain}}'
+    BLOCKCHAIN: 'ethereum:rinkeby'
     DEBUG: 'tradle:*,λ*,@tradle*,dynogels*'
-    SERVERLESS_PREFIX: '${{self:custom.prefix}}'
-    SERVERLESS_STAGE: '${{self:custom.stage}}'
-    SERVERLESS_SERVICE_NAME: '${{self:service}}'
-    PUSH_SERVER_URL: '${{self:custom.pushServer}}'
-    BOT_ONPRESENCE: '${{self:custom.bot_onpresence}}'
-    BOT_ONMESSAGE: '${{self:custom.bot_onmessage}}'
-    ORG_DOMAIN: '${{self:custom.brand.ORG_DOMAIN}}'
-    ORG_NAME: '${{self:custom.brand.ORG_NAME}}'
-    ORG_LOGO: '${{self:custom.brand.ORG_LOGO}}'
-    PRODUCTS: '${{self:custom.brand.PRODUCTS}}'
+    SERVERLESS_PREFIX: tradle-dev-
+    SERVERLESS_STAGE: dev
+    SERVERLESS_SERVICE_NAME: tradle
+    PUSH_SERVER_URL: 'https://push1.tradle.io'
+    BOT_ONPRESENCE: bot_onpresence
+    BOT_ONMESSAGE: bot_onmessage
+    ORG_DOMAIN: tradle.io
+    ORG_NAME: Tradle
+    ORG_LOGO: 'http://tradle.io/images/apple-touch-icon.png'
+    PRODUCTS: nl.tradle.DigitalPassport
     R_BUCKET_Objects:
       Ref: ObjectsBucket
     R_BUCKET_Secrets:
@@ -127,8 +131,7 @@ provider:
         - 'dynamodb:GetShardIterator'
         - 'dynamodb:ListStreams'
       Resource:
-        - 'Fn::Sub': >-
-            arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.prefix}}*
+        - 'Fn::Sub': 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/tradle-dev-*'
     - Effect: Allow
       Action:
         - 'cloudformation:ListStackResources'
@@ -139,8 +142,7 @@ provider:
         - 'lambda:UpdateFunctionConfiguration'
         - 'lambda:GetFunctionConfiguration'
       Resource:
-        - 'Fn::Sub': >-
-            arn:aws:lambda:${{self:custom.region}}:${AWS::AccountId}:function:${{self:custom.prefix}}*
+        - 'Fn::Sub': 'arn:aws:lambda:us-east-1:${AWS::AccountId}:function:tradle-dev-*'
     - Effect: Allow
       Action:
         - 's3:ListBucket'
@@ -234,6 +236,7 @@ provider:
         - 'cloudfront:updateDistribution'
       Resource:
         - '*'
+  variableSyntax: '\${{([ ~:a-zA-Z0-9._\''",\-\/\(\)]+?)}}'
 functions:
   preauth:
     handler: lib/lambda/http/default.handler
@@ -312,29 +315,27 @@ functions:
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/presence/connected/#'''
-          sqlVersion: '${{self:custom.versionSQL}}'
+          sqlVersion: '2016-03-23'
   ondisconnect:
     handler: lib/lambda/mqtt/ondisconnect.handler
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/presence/disconnected/#'''
-          sqlVersion: '${{self:custom.versionSQL}}'
+          sqlVersion: '2016-03-23'
   onsubscribe:
     handler: lib/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/subscriptions/subscribed/#'''
-          sqlVersion: '${{self:custom.versionSQL}}'
+          sqlVersion: '2016-03-23'
   onmessage:
     handler: lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
     events:
       - iot:
-          sql: >-
-            SELECT * as data, clientid() as clientId FROM
-            '${{self:custom.prefixIOTTopic}}message'
-          sqlVersion: '${{self:custom.versionSQL}}'
+          sql: 'SELECT * as data, clientid() as clientId FROM ''tradle-message'''
+          sqlVersion: '2016-03-23'
   onmessage_http:
     handler: lib/lambda/http/default.handler
     memorySize: 1024
@@ -513,7 +514,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: source of truth
       Properties:
-        TableName: '${{self:custom.tables.events}}'
+        TableName: tradle-dev-events
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -529,7 +530,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: maps pub keys to identities
       Properties:
-        TableName: '${{self:custom.tables.pubkeys}}'
+        TableName: tradle-dev-pubkeys
         AttributeDefinitions:
           - AttributeName: pub
             AttributeType: S
@@ -557,7 +558,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: inbound messages from users
       Properties:
-        TableName: '${{self:custom.tables.inbox}}'
+        TableName: tradle-dev-inbox
         AttributeDefinitions:
           - AttributeName: _author
             AttributeType: S
@@ -589,7 +590,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: outbound messages to users
       Properties:
-        TableName: '${{self:custom.tables.outbox}}'
+        TableName: tradle-dev-outbox
         AttributeDefinitions:
           - AttributeName: _recipient
             AttributeType: S
@@ -609,7 +610,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: blockchain seals for objects
       Properties:
-        TableName: '${{self:custom.tables.seals}}'
+        TableName: tradle-dev-seals
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -665,7 +666,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: per-user state objects
       Properties:
-        TableName: '${{self:custom.tables.users}}'
+        TableName: tradle-dev-users
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -679,7 +680,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: maps ephemeral mqtt client ids to identity permalinks
       Properties:
-        TableName: '${{self:custom.tables.presence}}'
+        TableName: tradle-dev-presence
         AttributeDefinitions:
           - AttributeName: clientId
             AttributeType: S
@@ -697,7 +698,7 @@ resources:
       Type: 'AWS::IAM::Role'
       Description: role assumed by every connecting client
       Properties:
-        RoleName: '${{self:custom.prefixRole}}IotClientRole'
+        RoleName: tradle-dev-IotClientRole
         AssumeRolePolicyDocument:
           Version: '2012-10-17'
           Statement:
@@ -719,7 +720,7 @@ resources:
                     - 'dynamodb:*'
                   Resource:
                     - 'Fn::Sub': >-
-                        arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/PresenceTable
+                        arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/PresenceTable
                 - Effect: Allow
                   Action:
                     - 'logs:CreateLogGroup'
@@ -750,7 +751,7 @@ resources:
       Type: 'AWS::IAM::Role'
       Description: role for autoscaling resources
       Properties:
-        RoleName: '${{self:custom.prefixRole}}AutoScalingRole'
+        RoleName: tradle-dev-AutoScalingRole
         AssumeRolePolicyDocument:
           Version: '2012-10-17'
           Statement:

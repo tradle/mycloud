@@ -39,9 +39,9 @@ custom:
   # vars: ${{file(./vars.yml)}}
   # move these to vars.yml when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
-  # defaultStage: dev
-  # stage: ${{opt:stage, self:custom.defaultStage}}
-  stage: dev
+  defaultStage: dev
+  stage: ${{opt:stage, self:custom.defaultStage}}
+  # stage: dev
   region: us-east-1
   blockchain: ethereum:rinkeby
   brand: ${{file(./conf/${{self:service}}.json)}}
