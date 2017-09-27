@@ -10,7 +10,7 @@
   "ORG_NAME": "Tradle",
   "PUSH_SERVER_URL": "https://push1.tradle.io",
   "R_BUCKET_FileUpload": "{prefix}fileuploadbucket",
-  "R_BUCKET_Objects": "{prefix}objectsbucket-14j3jzllggvn",
+  "R_BUCKET_Objects": "{prefix}objectsbucket",
   "R_BUCKET_PublicConf": "{prefix}publicconfbucket",
   "R_BUCKET_Secrets": "{prefix}secretsbucket",
   "R_BUCKET_ServerlessDeployment": "{prefix}serverlessdeploymentbucket",

@@ -1,7 +1,7 @@
 const format = require('string-format')
-try {
-  module.exports = require('./fixtures/remote-service-map')
-} catch (err) {
+// try {
+//   module.exports = require('./fixtures/remote-service-map')
+// } catch (err) {
   const {
     custom: { prefix }
   } = require('../lib/cli/serverless-yml')
@@ -12,4 +12,4 @@ try {
   }
 
   module.exports = map
-}
+// }

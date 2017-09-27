@@ -35,8 +35,6 @@ Before you can run tests on local resoures, you need to create them:
 ```sh
 # make sure docker is running
 docker ps
-# generate the blueprints for our local resources (cloudformation files)
-npm run package
 # start up localstack
 npm run localstack:start
 # to stop localstack (and lose your tables and buckets)
@@ -175,8 +173,6 @@ If tests are failing for some other reason, you may want to run
 ```sh
 npm run reset:local # delete + regen local dbs, buckets, etc.
 ```
-
-If `gen:localresources` fails, you may need to first run `npm run package` to generate the cloudformation files which `gen:localresources` to generate local resources.
 
 ### Scripts
 

@@ -45,7 +45,7 @@
     "validate-commit-msg": "^2.14.0"
   },
   "scripts": {
-    "setup": "npm i",
+    "setup": "npm i && npm run build:slsyml && npm run package",
     "package": "serverless package",
     "gen:testenv": "./scripts/gen-env.js",
     "gen:fixtures": "./scripts/gen-fixtures.js",
