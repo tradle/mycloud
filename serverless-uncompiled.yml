@@ -718,6 +718,8 @@ resources:
                 - POST
               AllowedOrigins:
                 - "*"
+              AllowedHeaders:
+                - "*"
               MaxAge: 3600
 
     FileUploadBucketPolicy:
