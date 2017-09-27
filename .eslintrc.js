@@ -58,7 +58,7 @@ module.exports = {
                 "allowKeywords": true
             }
         ],
-        "eol-last": "error",
+        "eol-last": "off",
         "eqeqeq": "warn",
         "func-call-spacing": "error",
         "func-name-matching": "error",
@@ -254,10 +254,7 @@ module.exports = {
         ],
         "space-infix-ops": "off",
         "space-unary-ops": "error",
-        "spaced-comment": [
-            "error",
-            "always"
-        ],
+        "spaced-comment": "off",
         "strict": "error",
         "symbol-description": "error",
         "template-curly-spacing": [

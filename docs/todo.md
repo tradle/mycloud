@@ -42,8 +42,22 @@ DynamoDB:
     - but how to avoid creating expensive indexes for _author + _time, _recipient + _time, etc?
 
 Lambda:
-  use aws-serverless-express for all http endpoints
   optimal memory/cpu size tuning: https://serverless.com/blog/aws-lambda-power-tuning/
+  use one lambda for all http endpoints?
+    https://github.com/dougmoscrop/serverless-http/blob/master/docs/EXAMPLES.md
+    pros
+      less lambdas to warm
+    cons
+      memory/cpu can't be fine tuned
+
+  keep lambdas warm:
+    https://github.com/FidelLimited/serverless-plugin-warmup
+  logging:
+    https://github.com/dougmoscrop/serverless-plugin-log-subscription#configuration
+    http://theburningmonk.com/2017/09/tips-and-tricks-for-logging-and-monitoring-aws-lambda-functions/
+  slim code zip
+    https://github.com/dougmoscrop/serverless-plugin-include-dependencies
+    https://github.com/dougmoscrop/serverless-plugin-common-excludes
 
 don't waste lambda invocations on s3 resources (e.g. /info should really go straight to s3)
 

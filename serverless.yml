@@ -4,25 +4,23 @@ plugins:
   - serverless-plugin-tracing
   - serverless-sam
   - serverless-apigw-binary
+  - serverless-plugin-common-excludes
   - print
   - serverless-offline
 package:
+  include:
+    - conf
+    - dist
+    - node_modules
   exclude:
-    - .git/**
-    - .serverless/**
-    - project/scripts/**
-    - project/lib/cli/**
-    - node_modules/**
-    - simulate/**
-    - node_modules/**/test/**
-    - ./bot/**
-    - ./**/*.log
+    - dist/.serverless/**
+    - dist/scripts/**
+    - dist/test/**
 custom:
-  defaultStage: dev
-  stage: '${{opt:stage, self:custom.defaultStage}}'
+  stage: dev
   region: us-east-1
   blockchain: 'ethereum:rinkeby'
-  brand: '${{file(./project/conf/${{self:service}}.json)}}'
+  brand: '${{file(./conf/${{self:service}}.json)}}'
   prefix: '${{self:service}}-${{self:custom.stage}}-'
   prefixRole: '${{self:custom.prefix}}'
   prefixIOTTopic: '${{self:service}}-'
@@ -238,7 +236,7 @@ provider:
         - '*'
 functions:
   preauth:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -247,7 +245,7 @@ functions:
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   auth:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -256,7 +254,7 @@ functions:
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   inbox2events:
-    handler: project/lib/lambda/inbox-events.handler
+    handler: lib/lambda/inbox-events.handler
     memorySize: 512
     events:
       - stream:
@@ -268,7 +266,7 @@ functions:
               - InboxTable
               - StreamArn
   outbox2events:
-    handler: project/lib/lambda/outbox-events.handler
+    handler: lib/lambda/outbox-events.handler
     memorySize: 512
     events:
       - stream:
@@ -280,7 +278,7 @@ functions:
               - OutboxTable
               - StreamArn
   seal2events:
-    handler: project/lib/lambda/seal-events.handler
+    handler: lib/lambda/seal-events.handler
     memorySize: 512
     events:
       - stream:
@@ -292,7 +290,7 @@ functions:
               - SealsTable
               - StreamArn
   log:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -301,7 +299,7 @@ functions:
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   inbox:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -310,26 +308,26 @@ functions:
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   onconnect:
-    handler: project/lib/lambda/mqtt/onconnect.handler
+    handler: lib/lambda/mqtt/onconnect.handler
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/presence/connected/#'''
           sqlVersion: '${{self:custom.versionSQL}}'
   ondisconnect:
-    handler: project/lib/lambda/mqtt/ondisconnect.handler
+    handler: lib/lambda/mqtt/ondisconnect.handler
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/presence/disconnected/#'''
           sqlVersion: '${{self:custom.versionSQL}}'
   onsubscribe:
-    handler: project/lib/lambda/mqtt/onsubscribe.handler
+    handler: lib/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
     events:
       - iot:
           sql: 'SELECT * FROM ''$aws/events/subscriptions/subscribed/#'''
           sqlVersion: '${{self:custom.versionSQL}}'
   onmessage:
-    handler: project/lib/lambda/mqtt/onmessage.handler
+    handler: lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
     events:
       - iot:
@@ -338,7 +336,7 @@ functions:
             '${{self:custom.prefixIOTTopic}}message'
           sqlVersion: '${{self:custom.versionSQL}}'
   onmessage_http:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -347,17 +345,17 @@ functions:
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   send:
-    handler: project/lib/lambda/send.handler
+    handler: lib/lambda/send.handler
     memorySize: 1024
   addfriend:
-    handler: project/lib/lambda/add-friend.handler
+    handler: lib/lambda/add-friend.handler
     memorySize: 1024
   setenvvars:
-    handler: project/lib/lambda/setenvvars.handler
+    handler: lib/lambda/setenvvars.handler
     description:
       Ref: 'AWS::StackId'
   info:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 256
     events:
       - http:
@@ -366,24 +364,24 @@ functions:
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   init:
-    handler: project/lib/lambda/init.handler
+    handler: lib/lambda/init.handler
     memorySize: 512
   faucet_bitcoin:
-    handler: project/lib/lambda/faucet-bitcoin.withdraw
+    handler: lib/lambda/faucet-bitcoin.withdraw
   recharge_bitcoin:
-    handler: project/lib/lambda/recharge-bitcoin.handler
+    handler: lib/lambda/recharge-bitcoin.handler
     events:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
   recharge_ethereum:
-    handler: project/lib/lambda/recharge-ethereum.handler
+    handler: lib/lambda/recharge-ethereum.handler
     events:
       - schedule:
           rate: rate(10 minutes)
           enabled: false
   sealpending:
-    handler: project/lib/lambda/sealpending.handler
+    handler: lib/lambda/sealpending.handler
     memorySize: 512
     timeout: 60
     events:
@@ -391,7 +389,7 @@ functions:
           rate: rate(10 minutes)
           enabled: false
   pollchain:
-    handler: project/lib/lambda/pollchain.handler
+    handler: lib/lambda/pollchain.handler
     memorySize: 512
     timeout: 60
     events:
@@ -399,13 +397,13 @@ functions:
           rate: rate(10 minutes)
           enabled: false
   clienttest:
-    handler: project/lib/lambda/clienttest.handler
+    handler: lib/lambda/clienttest.handler
     timeout: 15
   bot_onmessage:
-    handler: project/samplebot/index.onmessage
+    handler: samplebot/index.onmessage
     memorySize: 1024
   bot_onsealevent:
-    handler: project/samplebot/index.onseal
+    handler: samplebot/index.onseal
     memorySize: 256
     events:
       - stream:
@@ -417,7 +415,7 @@ functions:
               - SealsTable
               - StreamArn
   bot_processinbox:
-    handler: project/samplebot/index.onmessagestream
+    handler: samplebot/index.onmessagestream
     memorySize: 256
     events:
       - stream:
@@ -429,7 +427,7 @@ functions:
               - InboxTable
               - StreamArn
   bot_processoutbox:
-    handler: project/samplebot/index.onmessagestream
+    handler: samplebot/index.onmessagestream
     memorySize: 256
     events:
       - stream:
@@ -441,7 +439,7 @@ functions:
               - OutboxTable
               - StreamArn
   bot_graphql:
-    handler: project/samplebot/index.ongraphql
+    handler: samplebot/index.ongraphql
     memorySize: 512
     events:
       - http:
@@ -450,7 +448,7 @@ functions:
     environment:
       HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
   bot_samples:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:

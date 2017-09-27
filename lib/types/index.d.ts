@@ -19,6 +19,7 @@ export interface Session {
 export interface IotClientResponse {
   iotEndpoint: string
   iotTopicPrefix: string
+  challenge: string
   time: number
   region: string
   accessKey: string

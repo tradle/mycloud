@@ -7,6 +7,7 @@ plugins:
   # - serverless-pseudo-parameters
   - serverless-sam
   - serverless-apigw-binary
+  - serverless-plugin-common-excludes
   # - serverless-plugin-typescript
   - print
   # - serverless-dynamodb-ttl
@@ -17,26 +18,33 @@ plugins:
 
 package:
   # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
+  include:
+    - conf
+
+    - dist
+    - node_modules
   exclude:
-    - .git/**
-    - .serverless/**
-    - project/scripts/**
-    - project/lib/cli/**
-    - node_modules/**
-    - simulate/**
-    - node_modules/**/test/**
-    - ./bot/**
-    - ./**/*.log
+    # - .git/**
+    - dist/.serverless/**
+    - dist/scripts/**
+    - dist/test/**
+    # - lib/cli/**
+    # - node_modules/**
+    # - simulate/**
+    # - node_modules/**/test/**
+    # - ./bot/**
+    # - ./**/*.log
 
 custom:
   # vars: ${{file(./vars.yml)}}
   # move these to vars.yml when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
-  defaultStage: dev
-  stage: ${{opt:stage, self:custom.defaultStage}}
+  # defaultStage: dev
+  # stage: ${{opt:stage, self:custom.defaultStage}}
+  stage: dev
   region: us-east-1
   blockchain: ethereum:rinkeby
-  brand: ${{file(./project/conf/${{self:service}}.json)}}
+  brand: ${{file(./conf/${{self:service}}.json)}}
 
   # copied from vars.yml
   # defaultEmailForNotifications: ${{self:custom.vars.defaultEmailForNotifications}}
@@ -311,7 +319,7 @@ functions:
   # 2. creates an unauthenticated session,
   #    generates a challenge to be signed (verified in /auth)
   preauth:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -321,7 +329,7 @@ functions:
   # 1. validates the challenge response
   # 2. marks the session as authenticated
   auth:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -329,12 +337,12 @@ functions:
           method: any
 
   # createevent:
-  #   handler: project/lib/lambda/createevent.handler
+  #   handler: lib/lambda/createevent.handler
   #   memorySize: 512
 
   # replicates InboxTable to EventsTable
   inbox2events:
-    handler: project/lib/lambda/inbox-events.handler
+    handler: lib/lambda/inbox-events.handler
     memorySize: 512
     events:
       - stream:
@@ -348,7 +356,7 @@ functions:
 
   # replicates OutboxTable to EventsTable
   outbox2events:
-    handler: project/lib/lambda/outbox-events.handler
+    handler: lib/lambda/outbox-events.handler
     memorySize: 512
     events:
       - stream:
@@ -362,7 +370,7 @@ functions:
 
   # replicates SealsTable to EventsTable
   seal2events:
-    handler: project/lib/lambda/seal-events.handler
+    handler: lib/lambda/seal-events.handler
     memorySize: 512
     events:
       - stream:
@@ -375,7 +383,7 @@ functions:
               - StreamArn
 
   # log:
-  #   handler: project/lib/lambda/log.handler
+  #   handler: lib/lambda/log.handler
   #   # package:
   #   #   exclude:
   #   #     - node_modules/
@@ -394,7 +402,7 @@ functions:
 
   # POST messages here
   log:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -402,7 +410,7 @@ functions:
           method: any
 
   inbox:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -411,7 +419,7 @@ functions:
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
-  #   handler: project/lib/lambda/inbox.handler
+  #   handler: lib/lambda/inbox.handler
   #   memorySize: 1024
   #   events:
   #     - iot:
@@ -419,7 +427,7 @@ functions:
 
   # triggered when a client requests a message range (outbound messages)
   # outbox:
-  #   handler: project/lib/lambda/outbox.handler
+  #   handler: lib/lambda/outbox.handler
   #   memorySize: 1024
   #   events:
   #     - iot:
@@ -431,7 +439,7 @@ functions:
   # handles IoT (MQTT) connections post-authentication
   # updates presence in PresenceTable
   onconnect:
-    handler: project/lib/lambda/mqtt/onconnect.handler
+    handler: lib/lambda/mqtt/onconnect.handler
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
@@ -440,7 +448,7 @@ functions:
 
   # updates presence in PresenceTable
   ondisconnect:
-    handler: project/lib/lambda/mqtt/ondisconnect.handler
+    handler: lib/lambda/mqtt/ondisconnect.handler
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
@@ -450,7 +458,7 @@ functions:
   # triggered when a client subscribes to an MQTT topic
   # sends the client any queued up messages
   onsubscribe:
-    handler: project/lib/lambda/mqtt/onsubscribe.handler
+    handler: lib/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
     events:
       - iot:
@@ -462,7 +470,7 @@ functions:
   # validates, stores in OutboxTable, in ObjectsBucker (for now),
   # and passes off to bot engine
   onmessage:
-    handler: project/lib/lambda/mqtt/onmessage.handler
+    handler: lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
     #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
@@ -476,7 +484,7 @@ functions:
   # same as onmessage, but can handle larger payloads
   # MQTT is limited to 128KB, HTTP to 6MB
   onmessage_http:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -486,25 +494,25 @@ functions:
   # useful during development
   # trigger a message to be queued/sent to a user
   send:
-    handler: project/lib/lambda/send.handler
+    handler: lib/lambda/send.handler
     memorySize: 1024
 
   # addcontact:
-  #   handler: project/lib/lambda/add-contact.handler
+  #   handler: lib/lambda/add-contact.handler
   #   environment:
   #     DEBUG: tradle:*
 
   # identity:
-  #   handler: project/lib/lambda/identity.handler
+  #   handler: lib/lambda/identity.handler
 
   addfriend:
-    handler: project/lib/lambda/add-friend.handler
+    handler: lib/lambda/add-friend.handler
     memorySize: 1024
 
   # performs service discovery - builds a map of logical->physical ids
   # and writes that map to the environment variables of all other lambdas
   setenvvars:
-    handler: project/lib/lambda/setenvvars.handler
+    handler: lib/lambda/setenvvars.handler
     # hack to enable discovery own function's own stack
     description:
       Ref: AWS::StackId
@@ -512,7 +520,7 @@ functions:
   # public endpoint for clients to get public configuration / provider identity
   # e.g. the provider's identity object, styles, currency, etc.
   info:
-    handler: project/lib/lambda/http/default.handler
+    handler: lib/lambda/http/default.handler
     memorySize: 256
       # SERVERLESS_STAGE: ${{self:custom.stage}}
       # SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -524,7 +532,7 @@ functions:
   # initializes provider identity
   # generates a new identity and keys, and other misc crap
   init:
-    handler: project/lib/lambda/init.handler
+    handler: lib/lambda/init.handler
     memorySize: 512
 
   # Blockchain
@@ -532,11 +540,11 @@ functions:
   # bitcoin faucet (surprise!)
   # distributes testnet coins from local funds
   faucet_bitcoin:
-    handler: project/lib/lambda/faucet-bitcoin.withdraw
+    handler: lib/lambda/faucet-bitcoin.withdraw
 
   # gets funds from a bitcoin testnet faucet
   recharge_bitcoin:
-    handler: project/lib/lambda/recharge-bitcoin.handler
+    handler: lib/lambda/recharge-bitcoin.handler
     events:
       - schedule:
           rate: rate(10 minutes)
@@ -545,7 +553,7 @@ functions:
   # get funds from ethereum testnet faucet
   # (doesn't work on rinkeby, and doesn't work well on ropsten)
   recharge_ethereum:
-    handler: project/lib/lambda/recharge-ethereum.handler
+    handler: lib/lambda/recharge-ethereum.handler
     events:
       - schedule:
           rate: rate(10 minutes)
@@ -553,7 +561,7 @@ functions:
 
   # writes pending transactions to the blockchain
   sealpending:
-    handler: project/lib/lambda/sealpending.handler
+    handler: lib/lambda/sealpending.handler
     memorySize: 512
     timeout: 60
     events:
@@ -563,7 +571,7 @@ functions:
 
   # polls the status of unconfirmed blockchain transactions
   pollchain:
-    handler: project/lib/lambda/pollchain.handler
+    handler: lib/lambda/pollchain.handler
     memorySize: 512
     timeout: 60
     events:
@@ -577,7 +585,7 @@ functions:
 
   # simulates a short (hi! hello!) conversation with a user
   clienttest:
-    handler: project/lib/lambda/clienttest.handler
+    handler: lib/lambda/clienttest.handler
     timeout: 15
 
   # bot-serviced lambda
@@ -585,14 +593,14 @@ functions:
   # pre-processes with bot-engine
   # hands off to bot's business logic
   bot_onmessage:
-    handler: project/samplebot/index.onmessage
+    handler: samplebot/index.onmessage
     memorySize: 1024
 
   # bot-serviced lambda
   # receives seal (read/wrote) events from the tradle engine
   # hands off to bot's business logic
   bot_onsealevent:
-    handler: project/samplebot/index.onseal
+    handler: samplebot/index.onseal
     memorySize: 256
     events:
       - stream:
@@ -607,7 +615,7 @@ functions:
   # bot-serviced lambda
   # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
   bot_processinbox:
-    handler: project/samplebot/index.onmessagestream
+    handler: samplebot/index.onmessagestream
     memorySize: 256
     events:
       - stream:
@@ -622,7 +630,7 @@ functions:
   # bot-serviced lambda
   # replicates Outbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
   bot_processoutbox:
-    handler: project/samplebot/index.onmessagestream
+    handler: samplebot/index.onmessagestream
     memorySize: 256
     events:
       - stream:
@@ -638,8 +646,8 @@ functions:
   # graphql API and GraphiQL UI endpoint
   bot_graphql:
     # make sure graphql route gets loaded
-    handler: project/samplebot/index.ongraphql
-    # handler: project/lib/lambda/http/default.handler
+    handler: samplebot/index.ongraphql
+    # handler: lib/lambda/http/default.handler
     memorySize: 512
     events:
       - http:
@@ -649,8 +657,8 @@ functions:
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
   bot_samples:
-    # handler: project/samplebot/index.samples
-    handler: project/lib/lambda/http/default.handler
+    # handler: samplebot/index.samples
+    handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -741,7 +749,7 @@ resources:
                   - IotClientRole
                   - Arn
 
-    # EventsTable: ${{file(./project/conf/table/events.yml)}}
+    # EventsTable: ${{file(./conf/table/events.yml)}}
 
     # master log from which things can be rebuilt
     # in case of schema changes, disasters, etc.
@@ -762,7 +770,7 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_IMAGE
 
-    # PubKeysTable: ${{file(./project/conf/table/pubkeys.yml)}}
+    # PubKeysTable: ${{file(./conf/table/pubkeys.yml)}}
 
     # address book
     # maps public keys to identities that control them
@@ -796,7 +804,7 @@ resources:
               WriteCapacityUnits: 5
 
     # bodies rot in s3
-    # InboxTable: ${{file(./project/conf/table/inbox.yml)}}
+    # InboxTable: ${{file(./conf/table/inbox.yml)}}
 
     # stores received messages (minus their payloads)
     InboxTable:
@@ -836,7 +844,7 @@ resources:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
 
-    # OutboxTable: ${{file(./project/conf/table/outbox.yml)}}
+    # OutboxTable: ${{file(./conf/table/outbox.yml)}}
 
     # stores received messages (minus their payloads)
     OutboxTable:
@@ -860,7 +868,7 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
 
-    # SealsTable: ${{file(./project/conf/table/seals.yml)}}
+    # SealsTable: ${{file(./conf/table/seals.yml)}}
 
     # stores pending and confirmed seals
     # i.e. object links and corresponding blockchain transaction links
@@ -922,7 +930,7 @@ resources:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
 
-    # UsersTable: ${{file(./project/conf/table/users.yml)}}
+    # UsersTable: ${{file(./conf/table/users.yml)}}
 
     # used by the bot
     # stores schema-free user state objects

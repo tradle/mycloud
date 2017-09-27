@@ -14,7 +14,10 @@ class Discovery {
   private iot: any
   constructor (opts: { env: any, aws: any, lambdaUtils: any, iot: any }) {
     const { env, aws, lambdaUtils, iot } = opts
-    Object.assign(this, opts)
+    this.env = env
+    this.aws = aws
+    this.lambdaUtils = lambdaUtils
+    this.iot = iot
   }
 
   get thisFunctionName () {
@@ -69,7 +72,7 @@ class Discovery {
     return `${SERVERLESS_SERVICE_NAME}-${SERVERLESS_STAGE}-setenvvars`
   }
 
-  discoverServices = async (StackName: string) => {
+  discoverServices = async (StackName?: string) => {
     const { thisFunctionName } = this
     let env
     if (thisFunctionName && thisFunctionName.endsWith('-setenvvars')) {
@@ -88,7 +91,7 @@ class Discovery {
     return env
   }
 
-  doDiscoverServices = async (StackName) => {
+  doDiscoverServices = async (StackName?: string) => {
     debug('performing service discovery')
     const { thisFunctionName } = this
     const promiseIotEndpoint = this.iot.getEndpoint()

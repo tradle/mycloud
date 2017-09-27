@@ -20,7 +20,7 @@ const {
   service: {
     resources: { Resources }
   }
-} = require('../.serverless/serverless-state')
+} = require('../../.serverless/serverless-state')
 
 const tablesToKeep = Object.keys(Resources)
   .map(key => Resources[key])

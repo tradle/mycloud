@@ -1,5 +1,6 @@
 import * as serverlessHTTP from 'serverless-http'
-import { router, env } from './'
+import { router, env, discovery, utils } from './'
+const { cachifyPromiser } = utils
 const { TESTING } = env
 const binaryMimeTypes = TESTING ? [] : [
   'application/javascript',
@@ -21,9 +22,18 @@ const binaryMimeTypes = TESTING ? [] : [
   'text/xml'
 ]
 
+const discoverServices = cachifyPromiser(async () => {
+  const serviceMap = await discovery.discoverServices()
+  env.set(serviceMap)
+})
+
 module.exports = serverlessHTTP(router, {
   binary: binaryMimeTypes,
-  request: (request, event, context) => {
+  request: async (request, event, context) => {
+    if (!env.IOT_ENDPOINT) {
+      await discoverServices()
+    }
+
     request.context = context
     request.event = event
     return request

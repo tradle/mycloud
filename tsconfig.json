@@ -7,16 +7,17 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "removeComments": true,
-    "rootDir": "project/",
+    "rootDir": ".",
     "allowJs": true,
     "lib": ["es2015"]
   },
   "include": [
-    "project/lib/**/*"
+    "lib/**/*",
+    "samplebot/**/*",
+    "test/**/*"
   ],
   "exclude": [
-    "node_modules",
-    "project/node_modules"
+    "node_modules"
   ],
   "types": [
     "node",

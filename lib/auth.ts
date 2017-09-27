@@ -1,6 +1,6 @@
 const debug = require('debug')('tradle:sls:auth')
 import { getUpdateParams } from './db-utils'
-import { co, cachifyPromiser, typeforce, bindAll } from './utils'
+import { co, cachifyPromiser, typeforce, bindAll, defineGetter } from './utils'
 import { prettify } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors = require('./errors')
@@ -51,7 +51,11 @@ class Auth {
     objects: any,
     messages: any
   }) {
-    Object.assign(this, opts)
+    // lazy define
+    [
+      'env', 'aws', 'resources', 'tables',
+      'identities', 'objects', 'messages'
+    ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
   }
 
   onAuthenticated = async (session:Session): Promise<void> => {
@@ -199,6 +203,7 @@ class Auth {
         throw err
       })
 
+    session.clientPosition = position
     session.serverPosition = {
       sent: await getLastSent
     }
@@ -261,7 +266,8 @@ class Auth {
       secretKey: Credentials.SecretAccessKey,
       sessionToken: Credentials.SessionToken,
       uploadPrefix: this.getUploadPrefix(AssumedRoleUser),
-      time: Date.now()
+      time: Date.now(),
+      challenge
     }
   }
 
