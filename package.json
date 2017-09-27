@@ -70,7 +70,7 @@
     "export:template": "serverless sam export --output ./template.yml",
     "makepublic": "./scripts/makepublic.js",
     "compile-template": "./scripts/compile.js serverless-uncompiled.yml > serverless.yml",
-    "interpolate-template": "sls print | ./scripts/postprocess-yml.js > serverless-tmp.yml && mv serverless-tmp.yml serverless.yml",
+    "interpolate-template": "sls print > serverless-tmp.yml && mv serverless-tmp.yml serverless.yml",
     "build:slsyml": "npm run compile-template && npm run interpolate-template",
     "reinstall": "rm -rf node_modules && npm run setup",
     "localstack:start": "./scripts/localstack.sh up",
