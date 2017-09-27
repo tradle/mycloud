@@ -8,3 +8,4 @@ DynamoDBLocal/
 certs/
 remote-service-map.json
 *.js.map
+serverless.yml
