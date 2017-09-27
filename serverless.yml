@@ -1,4 +1,4 @@
-service: silly
+service: tradle
 frameworkVersion: '>=1.5.0 <2.0.0'
 plugins:
   - serverless-plugin-tracing
@@ -22,14 +22,14 @@ custom:
   region: us-east-1
   blockchain: 'ethereum:rinkeby'
   brand:
-    ORG_LOGO: 'http://pix.iemoji.com/images/emoji/apple/ios-9/256/'
-    ORG_DOMAIN: silly.io
-    ORG_NAME: Silly
+    ORG_LOGO: 'http://tradle.io/images/apple-touch-icon.png'
+    ORG_DOMAIN: tradle.io
+    ORG_NAME: Tradle
     PRODUCTS: nl.tradle.DigitalPassport
-  prefix: silly-dev-
-  prefixRole: silly-dev-
-  prefixIOTTopic: silly-
-  prefixSNSTopic: silly-dev-
+  prefix: tradle-dev-
+  prefixRole: tradle-dev-
+  prefixIOTTopic: tradle-
+  prefixSNSTopic: tradle-dev-
   versionSQL: '2016-03-23'
   thresholdBillingAlarm: 1
   thresholdThrottlingAlarm: 0
@@ -44,13 +44,13 @@ custom:
   bot_processoutbox: bot_processoutbox
   bot_samples: bot_samples
   tables:
-    presence: silly-dev-presence
-    seals: silly-dev-seals
-    pubkeys: silly-dev-pubkeys
-    inbox: silly-dev-inbox
-    outbox: silly-dev-outbox
-    events: silly-dev-events
-    users: silly-dev-users
+    presence: tradle-dev-presence
+    seals: tradle-dev-seals
+    pubkeys: tradle-dev-pubkeys
+    inbox: tradle-dev-inbox
+    outbox: tradle-dev-outbox
+    events: tradle-dev-events
+    users: tradle-dev-users
   apigwBinary:
     types:
       - '*/*'
@@ -61,26 +61,26 @@ provider:
   tracing: true
   name: aws
   runtime: nodejs6.10
-  profile: mv
+  profile: serverless
   stage: dev
   region: us-east-1
   memorySize: 512
   timeout: 60
   environment:
     BLUEBIRD_DEBUG: 1
-    IOT_TOPIC_PREFIX: silly-
+    IOT_TOPIC_PREFIX: tradle-
     IOT_ENDPOINT: ''
     BLOCKCHAIN: 'ethereum:rinkeby'
     DEBUG: 'tradle:*,λ*,@tradle*,dynogels*'
-    SERVERLESS_PREFIX: silly-dev-
+    SERVERLESS_PREFIX: tradle-dev-
     SERVERLESS_STAGE: dev
-    SERVERLESS_SERVICE_NAME: silly
+    SERVERLESS_SERVICE_NAME: tradle
     PUSH_SERVER_URL: 'https://push1.tradle.io'
     BOT_ONPRESENCE: bot_onpresence
     BOT_ONMESSAGE: bot_onmessage
-    ORG_DOMAIN: silly.io
-    ORG_NAME: Silly
-    ORG_LOGO: 'http://pix.iemoji.com/images/emoji/apple/ios-9/256/'
+    ORG_DOMAIN: tradle.io
+    ORG_NAME: Tradle
+    ORG_LOGO: 'http://tradle.io/images/apple-touch-icon.png'
     PRODUCTS: nl.tradle.DigitalPassport
     R_BUCKET_Objects:
       Ref: ObjectsBucket
@@ -131,7 +131,7 @@ provider:
         - 'dynamodb:GetShardIterator'
         - 'dynamodb:ListStreams'
       Resource:
-        - 'Fn::Sub': 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/silly-dev-*'
+        - 'Fn::Sub': 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/tradle-dev-*'
     - Effect: Allow
       Action:
         - 'cloudformation:ListStackResources'
@@ -142,7 +142,7 @@ provider:
         - 'lambda:UpdateFunctionConfiguration'
         - 'lambda:GetFunctionConfiguration'
       Resource:
-        - 'Fn::Sub': 'arn:aws:lambda:us-east-1:${AWS::AccountId}:function:silly-dev-*'
+        - 'Fn::Sub': 'arn:aws:lambda:us-east-1:${AWS::AccountId}:function:tradle-dev-*'
     - Effect: Allow
       Action:
         - 's3:ListBucket'
@@ -334,7 +334,7 @@ functions:
     memorySize: 1024
     events:
       - iot:
-          sql: 'SELECT * as data, clientid() as clientId FROM ''silly-message'''
+          sql: 'SELECT * as data, clientid() as clientId FROM ''tradle-message'''
           sqlVersion: '2016-03-23'
   onmessage_http:
     handler: lib/lambda/http/default.handler
@@ -514,7 +514,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: source of truth
       Properties:
-        TableName: silly-dev-events
+        TableName: tradle-dev-events
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -530,7 +530,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: maps pub keys to identities
       Properties:
-        TableName: silly-dev-pubkeys
+        TableName: tradle-dev-pubkeys
         AttributeDefinitions:
           - AttributeName: pub
             AttributeType: S
@@ -558,7 +558,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: inbound messages from users
       Properties:
-        TableName: silly-dev-inbox
+        TableName: tradle-dev-inbox
         AttributeDefinitions:
           - AttributeName: _author
             AttributeType: S
@@ -590,7 +590,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: outbound messages to users
       Properties:
-        TableName: silly-dev-outbox
+        TableName: tradle-dev-outbox
         AttributeDefinitions:
           - AttributeName: _recipient
             AttributeType: S
@@ -610,7 +610,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: blockchain seals for objects
       Properties:
-        TableName: silly-dev-seals
+        TableName: tradle-dev-seals
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -666,7 +666,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: per-user state objects
       Properties:
-        TableName: silly-dev-users
+        TableName: tradle-dev-users
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -680,7 +680,7 @@ resources:
       Type: 'AWS::DynamoDB::Table'
       Description: maps ephemeral mqtt client ids to identity permalinks
       Properties:
-        TableName: silly-dev-presence
+        TableName: tradle-dev-presence
         AttributeDefinitions:
           - AttributeName: clientId
             AttributeType: S
@@ -698,7 +698,7 @@ resources:
       Type: 'AWS::IAM::Role'
       Description: role assumed by every connecting client
       Properties:
-        RoleName: silly-dev-IotClientRole
+        RoleName: tradle-dev-IotClientRole
         AssumeRolePolicyDocument:
           Version: '2012-10-17'
           Statement:
@@ -751,7 +751,7 @@ resources:
       Type: 'AWS::IAM::Role'
       Description: role for autoscaling resources
       Properties:
-        RoleName: silly-dev-AutoScalingRole
+        RoleName: tradle-dev-AutoScalingRole
         AssumeRolePolicyDocument:
           Version: '2012-10-17'
           Statement:
@@ -839,3 +839,4 @@ resources:
     ApiGatewayRestApi:
       Value:
         Ref: ApiGatewayRestApi
+
