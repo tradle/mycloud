@@ -8,7 +8,12 @@ const { interpolateTemplate } = require('../lib/cli/utils')
 interpolateTemplate(args.join(' '))
   .then(result => {
     const yml = YAML.load(result)
-    process.stdout.write(dotProp.get(yml, path))
+    const val = dotProp.get(yml, path)
+    if (typeof val === 'undefined') {
+      throw new Error(`property path ${path} not found in yml`)
+    }
+
+    process.stdout.write(val)
   }, err => {
     console.error(err.stack)
     process.exit(1)
