@@ -11,8 +11,10 @@ const yml = require('../lib/cli/serverless-yml')
 
 function getSchema (logicalName) {
   const {
-    Resources
-  } = require('../lib/cli/stack')
+    resources: {
+      Resources
+    }
+  } = require('../lib/cli/serverless-yml')
 
   const { Type, Properties } = Resources[logicalName]
   if (Type === 'AWS::DynamoDB::Table' && Properties.StreamSpecification) {

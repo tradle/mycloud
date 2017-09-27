@@ -130,6 +130,10 @@ npm run tail -- {function-name} {minutes-ago}
 npm run tail -- bot_graphql 5
 ```
 
+### Developing
+
+If you modify `serverless-uncompiled.yml`, run `npm run build:slsyml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
+
 ### Destroy
 
 Sometimes you want to wipe the slate clean and start from scratch (usually by age 25 or so). The following command will wipe out all the AWS resources created in your deployment. Obviously, use with EXTREME caution, as this command executes with your AWS credentials (best use a separate account).
