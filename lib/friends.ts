@@ -63,7 +63,7 @@ class Friends {
       .set(props)
       .toJSON()
 
-    const promiseMyIdentity = this.provider.getMyPublicIdentity()
+    // const promiseMyIdentity = this.provider.getMyPublicIdentity()
     const promiseAddContact = this.identities.addContact(identity)
     const signed = await this.provider.signObject({ object })
     const permalink = buildResource.permalink(identity)
@@ -80,18 +80,18 @@ class Friends {
       saveFriend
     ])
 
-    debug(`sending self introduction to friend "${name}"`)
-    await this.provider.sendMessage({
-      recipient: permalink,
-      object: buildResource({
-          models,
-          model: 'tradle.SelfIntroduction',
-        })
-        .set({
-          identity: await promiseMyIdentity
-        })
-        .toJSON()
-    })
+    // debug(`sending self introduction to friend "${name}"`)
+    // await this.provider.sendMessage({
+    //   recipient: permalink,
+    //   object: buildResource({
+    //       models,
+    //       model: 'tradle.SelfIntroduction',
+    //     })
+    //     .set({
+    //       identity: await promiseMyIdentity
+    //     })
+    //     .toJSON()
+    // })
 
     return signed
   }
