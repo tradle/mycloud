@@ -69,7 +69,7 @@ co(function* () {
     }))
   })
 
-  fs.writeFileSync(`./project/test/fixtures/users-pem.json`, prettify(users))
+  fs.writeFileSync(`./test/fixtures/users-pem.json`, prettify(users))
 })
 
 co(function* () {
@@ -92,15 +92,15 @@ co(function* () {
   friends.forEach(node => {
     received[node.name] = []
 
-    mkdirp.sync(`./project/test/fixtures/${node.name}`)
-    fs.writeFileSync(`./project/test/fixtures/${node.name}/identity.json`, prettify(node.identityInfo.object))
-    fs.writeFileSync(`./project/test/fixtures/${node.name}/object.json`, prettify({
+    mkdirp.sync(`./test/fixtures/${node.name}`)
+    fs.writeFileSync(`./test/fixtures/${node.name}/identity.json`, prettify(node.identityInfo.object))
+    fs.writeFileSync(`./test/fixtures/${node.name}/object.json`, prettify({
       object: node.identityInfo.object,
       link: node.link,
       permalink: node.permalink
     }))
 
-    fs.writeFileSync(`./project/test/fixtures/${node.name}/keys.json`, prettify(exportKeys(node.keys)))
+    fs.writeFileSync(`./test/fixtures/${node.name}/keys.json`, prettify(exportKeys(node.keys)))
     node.on('message', function ({ object, author, permalink, link, objectinfo }) {
       setVirtual(object.object, {
         _author: objectinfo.author,
@@ -120,7 +120,7 @@ co(function* () {
       if (--togo) return
 
       friends.forEach(node => {
-        fs.writeFileSync(`./project/test/fixtures/${node.name}/receive.json`, prettify(received[node.name]))
+        fs.writeFileSync(`./test/fixtures/${node.name}/receive.json`, prettify(received[node.name]))
         node.destroy(rethrow)
       })
     })

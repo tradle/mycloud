@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# SERVICE=$(./project/scripts/var.js service)
-# STAGE=$(./project/scripts/var.js custom.stage)
-
 SERVICE=$1
 STAGE=$2
 if [ -z "$SERVICE" ]; then
@@ -64,4 +61,4 @@ remove_buckets() {
 echo "This will empty and delete all buckets, tables, lambdas, etc. for \nservice: $SERVICE \nstage: $STAGE"
 ask && remove_buckets
 ask "delete resources stack" && sls remove --stage="$STAGE"
-ask "delete per-type tables" && node ./project/scripts/delete-tables.js --stage="$STAGE" --service="$SERVICE"
+ask "delete per-type tables" && node ./scripts/delete-tables.js --stage="$STAGE" --service="$SERVICE"
