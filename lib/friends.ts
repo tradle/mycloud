@@ -72,9 +72,12 @@ class Friends {
       _identityPermalink: permalink
     })
 
+    const saveFriend = this.db.merge(signed)
+    debug(`saving friend: ${name}, ${JSON.stringify(signed)}`)
+
     await Promise.all([
       promiseAddContact,
-      this.db.merge(signed)
+      saveFriend
     ])
 
     debug(`sending self introduction to friend "${name}"`)
