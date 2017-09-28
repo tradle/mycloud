@@ -50,7 +50,13 @@ class Friends {
     })
   }
 
-  add = async (props: { identity: any }) => {
+  add = async (props: {
+    name: string,
+    url: string,
+    org: any,
+    publicConfig: any,
+    identity: any
+  }) => {
     const { models, model } = this
     const { identity } = props
     addLinks(identity)
