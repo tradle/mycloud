@@ -12,18 +12,16 @@ class Friends {
   private db: any;
   private identities: Identities;
   private provider: any;
-  public addContact: Function;
-  public signObject: Function;
   constructor (opts: { models, db, identities: Identities, provider }) {
     const { models, db, identities, provider } = opts
     this.models = models
     this.model = models[FRIEND_TYPE]
     this.db = db
-    this.addContact = identities.addContact
-    this.signObject = provider.signObject
+    this.identities = identities
+    this.provider = provider
   }
 
-  load = async (opts: { url: string }) => {
+  load = async (opts: { url: string }):Promise<void> => {
     let { url } = opts
     url = url.replace(/[/]+$/, '')
 
@@ -56,25 +54,41 @@ class Friends {
     org: any,
     publicConfig: any,
     identity: any
-  }) => {
+  }):Promise<any> => {
     const { models, model } = this
-    const { identity } = props
+    const { name, identity } = props
     addLinks(identity)
 
     const object = buildResource({ models, model })
       .set(props)
       .toJSON()
 
-    const signed = await this.signObject({ object })
+    const promiseMyIdentity = this.provider.getMyPublicIdentity()
+    const promiseAddContact = this.identities.addContact(identity)
+    const signed = await this.provider.signObject({ object })
+    const permalink = buildResource.permalink(identity)
     buildResource.setVirtual(signed, {
       _time: Date.now(),
-      _identityPermalink: buildResource.permalink(identity)
+      _identityPermalink: permalink
     })
 
     await Promise.all([
-      this.addContact(identity),
+      promiseAddContact,
       this.db.merge(signed)
     ])
+
+    debug(`sending self introduction to friend "${name}"`)
+    await this.provider.sendMessage({
+      recipient: permalink,
+      object: buildResource({
+          models,
+          model: 'tradle.SelfIntroduction',
+        })
+        .set({
+          identity: await promiseMyIdentity
+        })
+        .toJSON()
+    })
 
     return signed
   }

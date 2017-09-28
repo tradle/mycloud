@@ -157,12 +157,15 @@ export default class Identities {
     const putPubKeys = object.pubkeys
       .map(props => this.putPubKey({ ...props, link, permalink }))
 
+    debug(`adding contact ${permalink}`)
     await Promise.all(putPubKeys.concat(
       this.objects.putObject(object)
     ))
+
+    debug(`added contact ${permalink}`)
   }
 
-  putPubKey = (props: { link: string, permalink: string, pub: string }) => {
+  putPubKey = (props: { link: string, permalink: string, pub: string }):Promise<any> => {
     const { pub, link } = props
     debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
     return this.pubKeys.put({
