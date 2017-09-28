@@ -34,6 +34,7 @@ const {
   namespace: NAMESPACE,
   models: models,
   products,
+  approveAllEmployees: true
   // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
 })
 
