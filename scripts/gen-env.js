@@ -8,6 +8,7 @@ const fs = promisify(require('fs'))
 const { prettify } = require('../lib/string-utils')
 const { lambdaUtils } = require('../')
 const serviceMapPath = path.resolve(__dirname, '../test/fixtures/remote-service-map.json')
+const { loadCredentials } = require('../lib/cli/utils')
 const serverlessYml = require('../lib/cli/serverless-yml')
 
 // when this is merged:
