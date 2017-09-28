@@ -341,7 +341,7 @@ proto.clear = co(function* () {
   const self = this
   const existingTables = yield this.tradle.aws.dynamodb.listTables().promise()
   const toDelete = existingTables.TableNames
-    .filter(name => name.startsWith(this.tradle.env.prefix))
+    .filter(name => name.startsWith(this.tradle.prefix))
 
   const batches = batchify(toDelete, 5)
   yield batches.map(co(function* (batch) {
