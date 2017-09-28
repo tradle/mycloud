@@ -112,11 +112,14 @@ proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
     message: 'hey'
   }
 
+  const identityPermalink = buildResource.permalink(friend.identity)
+  this.interceptor.httpOnly(identityPermalink)
   nock(url)
     .post('/inbox')
     .reply(function (uri, body) {
-      assert.equal(body.length, 1)
-      const msg = body[0]
+      const { messages } = body
+      assert.equal(messages.length, 1)
+      const msg = messages[0]
       assert.equal(msg.object[TYPE], MESSAGE)
       assert.deepEqual(pick(msg.object.object, Object.keys(hey)), hey)
       return [
@@ -126,7 +129,7 @@ proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
 
   yield employee.send({
     other: {
-      forward: buildResource.permalink(friend.identity)
+      forward: identityPermalink
     },
     object: hey
   })
@@ -545,7 +548,7 @@ function recordTypes (user, types) {
 function wrapWithIntercept (fn) {
   return co(function* (...args) {
     const { bot, tradle } = this
-    const interceptor = intercept({
+    this.interceptor = intercept({
       bot,
       tradle,
       // onmessage: function ({ permalink, messages }) {
@@ -559,7 +562,7 @@ function wrapWithIntercept (fn) {
     try {
       yield fn.apply(this, args)
     } finally {
-      interceptor.restore()
+      this.interceptor.restore()
     }
   })
 }

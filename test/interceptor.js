@@ -10,12 +10,18 @@ module.exports = function ({ bot, tradle }) {
   const { mqtt } = delivery
   const sandbox = sinon.sandbox.create()
   const lambdas = createBot.lambdas(bot)
+  const noMQTT = {}
 
   sandbox.stub(auth, 'getLiveSessionByPermalink').callsFake(co(function* (recipient) {
     return {
+      clientId: noMQTT[recipient] ? null : 'fakeclientid',
       permalink: recipient
     }
   }))
+
+  sandbox.httpOnly = function (permalink) {
+    noMQTT[permalink] = true
+  }
 
   sandbox.stub(mqtt, 'deliverBatch').callsFake(co(function* ({ recipient, messages }) {
     // for (const message of messages) {

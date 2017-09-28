@@ -10,7 +10,8 @@ const MAX_BATCH_SIZE = 5
 
 function withTransport (method: string) {
   return async function (opts: any) {
-    const transport = await this.getTransport({ ...opts, method })
+    opts = { ...opts, method }
+    const transport = await this.getTransport(opts)
     return transport[method](opts)
   }
 }
@@ -90,11 +91,8 @@ class Delivery extends EventEmitter {
       opts.friend = await this.friends.get({ permalink: recipient })
       return this.http
     } catch (err) {
-      if (err.name !== 'NotFound') {
-        throw err
-      }
-
-      return this.mqtt
+      debug(`cannot determine transport to use for recipient ${recipient}`)
+      throw err
     }
   }
 }
