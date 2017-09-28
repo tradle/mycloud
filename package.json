@@ -61,6 +61,7 @@
     "deploy:local": "npm run tslint && SLS_DEBUG=* IS_LOCAL=1 ./scripts/deploy.js dev",
     "deploy": "SLS_DEBUG=* IS_LOCAL= ./scripts/deploy.js && npm run makepublic && npm run gen:testenv",
     "deploy:safe": "npm test && npm run rebuild:lambda && ./scripts/deploy.js dev",
+    "deploy:fromscratch": "npm run reinstall && npm run deploy:safe",
     "rebuild:lambda": "docker run --rm -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10",
     "rebuild:local": "npm rebuild",
     "nuke": "./scripts/nuke.sh",
