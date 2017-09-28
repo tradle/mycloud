@@ -2,7 +2,7 @@
 
 const path = require('path')
 const loadEnv = require('node-env-file')
-loadEnv(path.resolve(__dirname, '../../docker/.env'))
+loadEnv(path.resolve(__dirname, '../docker/.env'))
 
 require('../test/env')
 
