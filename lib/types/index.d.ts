@@ -30,6 +30,6 @@ export interface IotClientResponse {
 
 export * from './identities'
 export * from './auth'
-export * from './delivery'
+export { IDelivery } from './delivery'
 export * from './discovery'
 export * from './errors'

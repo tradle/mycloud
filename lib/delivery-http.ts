@@ -1,8 +1,9 @@
 import { EventEmitter } from 'events'
 const debug = require('debug')('tradle:sls:delivery-http')
 const { post, promiseNoop } = require('./utils')
+import { IDelivery } from './types'
 
-class Delivery extends EventEmitter {
+export default class Delivery extends EventEmitter implements IDelivery {
   constructor (opts) {
     super()
   }
@@ -19,6 +20,4 @@ class Delivery extends EventEmitter {
     await post(endpoint, { messages })
   }
 }
-
-export = Delivery
 

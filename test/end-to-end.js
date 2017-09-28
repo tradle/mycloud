@@ -79,9 +79,29 @@ proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
   const employee = createUser({ bot, tradle, name: 'employee' })
   const customer = createUser({ bot, tradle, name: 'customer' })
   const employeeApp = yield this.onboardEmployee({ user: employee })
+  employee.on('message', co(function* (message) {
+    if (message.object[TYPE] === MESSAGE) {
+      message = message.object
+    } else {
+      return
+    }
+
+    const hey = {
+      [TYPE]: 'tradle.SimpleMessage',
+      message: 'hey'
+    }
+
+    yield employee.send({
+      other: {
+        forward: message._author
+      },
+      object: hey
+    })
+  }))
+
   const application = yield this.onboardCustomer({
     user: customer,
-    employee
+    relationshipManager: employee
   })
 
   yield this.approve({

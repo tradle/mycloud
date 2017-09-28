@@ -1,7 +1,8 @@
 import { EventEmitter } from 'events'
 import * as inherits from 'inherits'
 import * as DeliveryMQTT from './delivery-mqtt'
-import * as DeliveryHTTP from './delivery-http'
+import DeliveryHTTP from './delivery-http'
+import { IDelivery } from './types'
 import { clone, pick, bindAll } from './utils'
 import * as Errors from './errors'
 
@@ -16,9 +17,9 @@ function withTransport (method: string) {
   }
 }
 
-class Delivery extends EventEmitter {
+class Delivery extends EventEmitter implements IDelivery {
   mqtt: any
-  http: any
+  http: DeliveryHTTP
   friends: any
   messages: any
   constructor (opts) {
