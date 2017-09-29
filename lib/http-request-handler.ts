@@ -1,26 +1,29 @@
-import * as serverlessHTTP from 'serverless-http'
-import { router, env, discovery, utils } from './'
+import 'source-map-support/register'
+import * as serverlessHTTP from "serverless-http"
+import { router, env, discovery, utils } from "./"
 const { cachifyPromiser } = utils
 const { TESTING } = env
-const binaryMimeTypes = TESTING ? [] : [
-  'application/javascript',
-  'application/json',
-  'application/octet-stream',
-  'application/xml',
-  'font/eot',
-  'font/opentype',
-  'font/otf',
-  'image/jpeg',
-  'image/png',
-  'image/svg+xml',
-  'text/comma-separated-values',
-  'text/css',
-  'text/html',
-  'text/javascript',
-  'text/plain',
-  'text/text',
-  'text/xml'
-]
+const binaryMimeTypes = TESTING
+  ? []
+  : [
+      "application/javascript",
+      "application/json",
+      "application/octet-stream",
+      "application/xml",
+      "font/eot",
+      "font/opentype",
+      "font/otf",
+      "image/jpeg",
+      "image/png",
+      "image/svg+xml",
+      "text/comma-separated-values",
+      "text/css",
+      "text/html",
+      "text/javascript",
+      "text/plain",
+      "text/text",
+      "text/xml"
+    ]
 
 const discoverServices = cachifyPromiser(async () => {
   const serviceMap = await discovery.discoverServices()

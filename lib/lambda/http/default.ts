@@ -1,2 +1,2 @@
-import * as handler from '../../http-request-handler'
+import * as handler from "../../http-request-handler"
 export { handler }

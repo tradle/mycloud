@@ -1,18 +1,18 @@
-const debug = require('debug')('tradle:sls:friends')
-import * as fetch from 'node-fetch'
-import * as buildResource from '@tradle/build-resource'
-import { addLinks } from './crypto'
-import { Identities } from './types'
+const debug = require("debug")("tradle:sls:friends")
+import * as fetch from "node-fetch"
+import * as buildResource from "@tradle/build-resource"
+import { addLinks } from "./crypto"
+import { Identities } from "./types"
 
-const FRIEND_TYPE = 'tradle.MyCloudFriend'
+const FRIEND_TYPE = "tradle.MyCloudFriend"
 
 class Friends {
-  private models: any;
-  private model: any;
-  private db: any;
-  private identities: Identities;
-  private provider: any;
-  constructor (opts: { models, db, identities: Identities, provider }) {
+  private models: any
+  private model: any
+  private db: any
+  private identities: Identities
+  private provider: any
+  constructor(opts: { models; db; identities: Identities; provider }) {
     const { models, db, identities, provider } = opts
     this.models = models
     this.model = models[FRIEND_TYPE]
@@ -21,9 +21,9 @@ class Friends {
     this.provider = provider
   }
 
-  load = async (opts: { url: string }):Promise<void> => {
+  load = async (opts: { url: string }): Promise<void> => {
     let { url } = opts
-    url = url.replace(/[/]+$/, '')
+    url = url.replace(/[/]+$/, "")
 
     const infoUrl = getInfoEndpoint(url)
     const res = await fetch(infoUrl)
@@ -32,11 +32,7 @@ class Friends {
     }
 
     const info = await res.json()
-    const {
-      bot: { pub },
-      org,
-      publicConfig
-    } = info
+    const { bot: { pub }, org, publicConfig } = info
 
     const { name } = org
     await this.add({
@@ -49,12 +45,12 @@ class Friends {
   }
 
   add = async (props: {
-    name: string,
-    url: string,
-    org: any,
-    publicConfig: any,
+    name: string
+    url: string
+    org: any
+    publicConfig: any
     identity: any
-  }):Promise<any> => {
+  }): Promise<any> => {
     const { models, model } = this
     const { name, identity } = props
     addLinks(identity)
@@ -73,12 +69,9 @@ class Friends {
     })
 
     const saveFriend = this.db.merge(signed)
-    debug(`saving friend: ${name}, ${JSON.stringify(signed)}`)
+    debug(`saving friend: ${name}`)
 
-    await Promise.all([
-      promiseAddContact,
-      saveFriend
-    ])
+    await Promise.all([promiseAddContact, saveFriend])
 
     // debug(`sending self introduction to friend "${name}"`)
     // await this.provider.sendMessage({
@@ -106,23 +99,23 @@ class Friends {
         }
       }
     })
-  }
+  };
 
   list = (opts: { permalink: string }) => {
     const { permalink } = opts
     return this.db.find({
       type: FRIEND_TYPE,
       orderBy: {
-        property: '_time',
+        property: "_time",
         desc: true
       }
     })
   }
 }
 
-function getInfoEndpoint (url) {
-  if (!url.endsWith('/info')) {
-    url += '/info'
+function getInfoEndpoint(url) {
+  if (!url.endsWith("/info")) {
+    url += "/info"
   }
 
   return url
@@ -144,4 +137,3 @@ function getInfoEndpoint (url) {
 // .catch(console.error)
 
 export = Friends
-

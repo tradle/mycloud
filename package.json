@@ -21,11 +21,13 @@
     "flow-remove-types": "^1.2.1",
     "husky": "^0.14.3",
     "js-yaml": "^3.8.4",
+    "lint-staged": "^4.2.3",
     "memdown": "^1.2.4",
     "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
     "nock": "^9.0.19",
     "node-env-file": "^0.1.8",
+    "prettier": "^1.7.2",
     "serverless": "github:mvayngrib/serverless",
     "serverless-apigw-binary": "^0.3.5",
     "serverless-offline": "^3.16.0",
@@ -40,12 +42,14 @@
     "tap": "^10.7.2",
     "tape": "^4.6.3",
     "tslint": "^5.7.0",
+    "tslint-config-prettier": "^1.5.0",
     "tslint-config-standard": "^6.0.1",
     "typescript": "^2.5.2",
     "validate-commit-msg": "^2.14.0"
   },
   "scripts": {
     "setup": "npm i && npm run build:slsyml && npm run package",
+    "precommit": "lint-staged",
     "package": "serverless package",
     "gen:testenv": "./scripts/gen-env.js",
     "gen:fixtures": "./scripts/gen-fixtures.js",
@@ -149,11 +153,18 @@
     "random-name": "^0.1.2",
     "serverless-http": "^1.5.0",
     "settle-promise": "^1.0.0",
+    "source-map-support": "^0.4.18",
     "string-format": "^0.5.0",
     "superagent": "^3.5.2",
     "typeforce": "^1.11.1",
     "uuid": "^3.1.0",
     "xtend": "^4.0.1",
     "ya-promise-queue": "^1.1.0"
+  },
+  "lint-staged": {
+    "*.{ts}": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }

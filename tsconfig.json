@@ -11,16 +11,7 @@
     "allowJs": true,
     "lib": ["es2015"]
   },
-  "include": [
-    "lib/**/*",
-    "samplebot/**/*",
-    "test/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
-  "types": [
-    "node",
-    "aws-sdk"
-  ]
+  "include": ["lib/**/*", "samplebot/**/*", "test/**/*"],
+  "exclude": ["node_modules"],
+  "types": ["node", "aws-sdk"]
 }
