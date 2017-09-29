@@ -2,6 +2,8 @@
 
 SERVICE=$1
 STAGE=$2
+PROFILE=$3
+
 if [ -z "$SERVICE" ]; then
   echo "first arg must be the service name"
   exit 1
@@ -10,6 +12,10 @@ fi
 if [ -z "$STAGE" ]; then
   echo "second arg must be the stage name"
   exit 1
+fi
+
+if [ -z "$PROFILE" ]; then
+  PROFILE=$(./scripts/var.js provider.profile)
 fi
 
 ask() {
@@ -53,8 +59,8 @@ remove_buckets() {
     # do dangerous stuff
   # set -o xtrace
   # todo: respect actual service name and stage!
-  aws s3 ls | awk '{print $3;}' | grep "$SERVICE-$STAGE" | grep -v "$SERVICE-$STAGE-serverless" | while read line; do
-    ask "delete bucket ${line}?" && aws s3 rb "s3://$line" --force
+  aws --profile="$PROFILE" s3 ls | awk '{print $3;}' | grep "$SERVICE-$STAGE" | grep -v "$SERVICE-$STAGE-serverless" | while read line; do
+    ask "delete bucket ${line}?" && aws --profile="$PROFILE" s3 rb "s3://$line" --force
   done
 }
 

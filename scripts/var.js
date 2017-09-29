@@ -15,6 +15,6 @@ interpolateTemplate(args.join(' '))
 
     process.stdout.write(val)
   }, err => {
-    console.error(err.stack)
+    process.stderr.write(err.stack)
     process.exit(1)
   })
