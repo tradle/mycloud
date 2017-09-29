@@ -180,13 +180,13 @@ proto.onboardCustomer = co(function* ({
 
       // pre-signed urls don't work in localstack yet
       // so resolve with root credentials
-      if (payload[TYPE] === 'tradle.PhotoID') {
-        console.log(payload.scan.url)
-      }
+      // if (payload[TYPE] === 'tradle.PhotoID') {
+      //   console.log(payload.scan.url)
+      // }
 
       yield tradle.objects.resolveEmbeds(payload)
 
-      // console.log('EMPLOYEE RECEIVED', JSON.stringify(payload, null, 2))
+      console.log('EMPLOYEE RECEIVED', payload[TYPE])
       // const type = payload[TYPE]
       // if (productsAPI.models.all[type].subClassOf === 'tradle.Form') {
       //   yield bot.addressBook.addAuthorInfo(message)
@@ -255,6 +255,8 @@ proto.judge = co(function* ({
     other: { context }
   })
 
+  // TODO: check approval received
+  yield wait(4000)
   // uncomment to dump dbs to screen
   // yield dumpDB({ bot, types })
 })
