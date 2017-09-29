@@ -9,9 +9,17 @@ import * as Errors from './errors'
 const debug = require('debug')('tradle:sls:delivery')
 const MAX_BATCH_SIZE = 5
 
+function normalizeOpts (opts) {
+  if (!opts.recipient && opts.message) {
+    opts.recipient = opts.message._author
+  }
+
+  return opts
+}
+
 function withTransport (method: string) {
   return async function (opts: any) {
-    opts = { ...opts, method }
+    opts = normalizeOpts({ ...opts, method })
     const transport = await this.getTransport(opts)
     return transport[method](opts)
   }
@@ -61,7 +69,7 @@ class Delivery extends EventEmitter implements IDelivery {
       debug(`found ${messages.length} messages for ${recipient}`)
       if (!messages.length) return
 
-      await this.deliverBatch(clone(opts, { messages }))
+      await this.deliverBatch({ ...opts, messages })
 
       // while (messages.length) {
       //   let message = messages.shift()
