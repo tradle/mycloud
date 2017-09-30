@@ -3,6 +3,8 @@
 process.env.NODE_ENV = 'test'
 process.env.IS_LOCAL = true
 
+require('source-map-support').install()
+
 const debug = require('debug')('tradle:sls:test:env')
 const serviceMap = require('./service-map')
 const pick = require('object.pick')

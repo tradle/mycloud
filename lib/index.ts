@@ -45,9 +45,7 @@ class Tradle {
     // singletons
 
     // instances
-    this.define('blockchain', './blockchain', createBlockchainAPI =>
-      createBlockchainAPI(this.network))
-
+    this.define('blockchain', './blockchain', Blockchain => new Blockchain(this.network))
     this.define('seals', './seals', this.construct)
 
     // this.define('faucet', './faucet', createFaucet => createFaucet({
