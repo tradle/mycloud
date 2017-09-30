@@ -59,7 +59,12 @@ class Friends {
       .set(props)
       .toJSON()
 
-    // const promiseMyIdentity = this.provider.getMyPublicIdentity()
+    const myIdentity = yield this.provider.getMyPublicIdentity()
+    if (myIdentity._permalink === identity._permalink ||
+      myIdentity._link === identity._link) {
+      throw new Error('refusing to add self as friend')
+    }
+
     const promiseAddContact = this.identities.addContact(identity)
     const signed = await this.provider.signObject({ object })
     const permalink = buildResource.permalink(identity)
