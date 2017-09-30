@@ -1177,6 +1177,7 @@ resources:
     #         Value: USD
     #     Statistic: Maximum
     #     Period: '21600'
+    #     Unit: Seconds
     #     EvaluationPeriods: '1'
     #     Threshold: ${{self:custom.thresholdBillingAlarm}}
     #     TreatMissingData: breaching
@@ -1202,6 +1203,7 @@ resources:
         MetricName: Throttles
         Statistic: Sum
         Period: '60'
+        Unit: Seconds
         EvaluationPeriods: '1'
         Threshold: ${{self:custom.thresholdThrottlingAlarm}}
         TreatMissingData: breaching
@@ -1227,6 +1229,7 @@ resources:
         MetricName: Errors
         Statistic: Sum
         Period: '60'
+        Unit: Seconds
         EvaluationPeriods: '1'
         Threshold: ${{self:custom.thresholdInvocationsAlarm}}
         TreatMissingData: breaching
@@ -1252,6 +1255,7 @@ resources:
         MetricName: Errors
         Statistic: Sum
         Period: '60'
+        Unit: Seconds
         EvaluationPeriods: '1'
         Threshold: ${{self:custom.thresholdInvocationErrorsAlarm}}
         TreatMissingData: breaching

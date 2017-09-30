@@ -11,7 +11,7 @@ if (!/^[a-zA-Z-_]+$/.test(stage)) {
 // https://forum.serverless.com/t/feature-branching-and-aws-apigateway-name/1890
 const command = `sls deploy --stage=${stage}`
 
-console.log(command)
+console.log('will run:', command)
 
 proc.execSync('npm run build:slsyml', {
   cwd: process.cwd(),
