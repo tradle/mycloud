@@ -21,7 +21,7 @@ class Friends {
     this.provider = provider
   }
 
-  load = async (opts: { url: string }): Promise<void> => {
+  public load = async (opts: { url: string }): Promise<void> => {
     let { url } = opts
     url = url.replace(/[/]+$/, "")
 
@@ -44,7 +44,7 @@ class Friends {
     })
   }
 
-  add = async (props: {
+  public add = async (props: {
     name: string
     url: string
     org: any
@@ -94,7 +94,7 @@ class Friends {
     return signed
   }
 
-  get = (opts: { permalink: string }) => {
+  public get = (opts: { permalink: string }) => {
     const { permalink } = opts
     return this.db.findOne({
       type: FRIEND_TYPE,
@@ -106,7 +106,7 @@ class Friends {
     })
   };
 
-  list = (opts: { permalink: string }) => {
+  public list = (opts: { permalink: string }) => {
     const { permalink } = opts
     return this.db.find({
       type: FRIEND_TYPE,

@@ -8,9 +8,9 @@ export default class Delivery extends EventEmitter implements IDelivery {
     super()
   }
 
-  ack = promiseNoop
-  reject = (opts: { reason: Error }) => Promise.reject(opts.reason)
-  deliverBatch = async (opts: { friend: any; recipient: string; messages: Array<any> }) => {
+  public ack = promiseNoop
+  public reject = (opts: { reason: Error }) => Promise.reject(opts.reason)
+  public deliverBatch = async (opts: { friend: any; recipient: string; messages: T[] }) => {
     const { friend, messages } = opts
     const endpoint = `${friend.url}/inbox`
     await post(endpoint, { messages })

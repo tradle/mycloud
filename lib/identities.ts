@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:identities')
+import * as Debug from 'debug'
 import constants = require('./constants')
 import Errors = require('./errors')
 import {
@@ -15,6 +15,7 @@ import { addLinks, getLink, getLinks } from './crypto'
 import * as types from './typeforce-types'
 import * as Events from './events'
 
+const debug = Debug('tradle:sls:identities')
 const { PREVLINK, PERMALINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
@@ -31,7 +32,7 @@ export default class Identities {
     this.pubKeys = tables.PubKeys
   }
 
-  getIdentityMetadataByPub = pub => {
+  public getIdentityMetadataByPub = pub => {
     debug('get identity metadata by pub')
     return this.pubKeys.get({
       Key: { pub },
@@ -39,7 +40,7 @@ export default class Identities {
     })
   }
 
-  getIdentityByPub = async (pub) => {
+  public getIdentityByPub = async (pub) => {
     const { link } = await this.getIdentityMetadataByPub(pub)
     try {
       return await this.objects.getObjectByLink(link)
@@ -49,7 +50,7 @@ export default class Identities {
     }
   }
 
-  getIdentityByPermalink = async (permalink: string) => {
+  public getIdentityByPermalink = async (permalink: string) => {
     const params = {
       IndexName: 'permalink',
       KeyConditionExpression: 'permalink = :permalinkValue',
@@ -85,7 +86,7 @@ export default class Identities {
 //     .then(this.objects.getObjectByLink)
 // }
 
-  getExistingIdentityMapping = identity => {
+  public getExistingIdentityMapping = identity => {
     debug('checking existing mappings for pub keys')
     const lookups = identity.pubkeys.map(obj => this.getIdentityMetadataByPub(obj.pub))
     return firstSuccess(lookups)
@@ -122,7 +123,7 @@ export default class Identities {
 //   })
 // })
 
-  validateNewContact = async (identity) => {
+  public validateNewContact = async (identity) => {
     identity = omitVirtual(identity)
 
     let existing
@@ -146,7 +147,7 @@ export default class Identities {
     }
   }
 
-  addContact = async (object) => {
+  public addContact = async (object) => {
     if (object) {
       typeforce(types.identity, object)
     } else {
@@ -165,7 +166,7 @@ export default class Identities {
     debug(`added contact ${permalink}`)
   }
 
-  putPubKey = (props: { link: string, permalink: string, pub: string }):Promise<any> => {
+  public putPubKey = (props: { link: string, permalink: string, pub: string }):Promise<any> => {
     const { pub, link } = props
     debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
     return this.pubKeys.put({
@@ -177,7 +178,7 @@ export default class Identities {
    * Add author metadata, including designated recipient, if object is a message
    * @param {String} object._sigPubKey author sigPubKey
    */
-  addAuthorInfo = async (object) => {
+  public addAuthorInfo = async (object) => {
     if (!object._sigPubKey) {
       this.objects.addMetadata(object)
     }
@@ -200,10 +201,12 @@ export default class Identities {
     return object
   }
 
-  validateAndAdd = async (identity) => {
+  public validateAndAdd = async (identity) => {
     const result = await this.validateNewContact(identity)
     // debug('validated contact:', prettify(result))
-    if (!result.exists) return this.addContact(result.identity)
+    if (!result.exists) {
+      return this.addContact(result.identity)
+    }
   }
 }
 

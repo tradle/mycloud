@@ -1,23 +1,28 @@
 const debug = require('debug')('tradls:sls:lambda-utils')
-const co = require('co').wrap
-const aws = require('./aws')
+import { extend } from './utils'
 
 class Utils {
+  private env: any
+  private aws: any
+  public get thisFunctionName () {
+    return this.env.AWS_LAMBDA_FUNCTION_NAME
+  }
+
   constructor ({ env, aws }) {
     this.env = env
     this.aws = aws
   }
 
-  getFullName = (name: string):boolean => {
+  public getFullName = (name: string):boolean => {
     const { SERVERLESS_PREFIX='' } = this.env
     return name.startsWith(SERVERLESS_PREFIX)
       ? name
       : `${SERVERLESS_PREFIX}${name}`
   }
 
-  invoke = async (opts: { name: string, arg?: any, sync?:boolean, log?: boolean }) => {
+  public invoke = async (opts: { name: string, arg?: any, sync?:boolean, log?: boolean }) => {
     const { name, arg={}, sync=true, log } = opts
-    const FunctionName = getFullName(name)
+    const FunctionName = this.getFullName(name)
     const params = {
       InvocationType: sync ? 'RequestResponse' : 'Event',
       FunctionName,
@@ -40,25 +45,26 @@ class Utils {
     if (sync) return JSON.parse(Payload)
   }
 
-  getConfiguration = (FunctionName:string):Promise<any> => {
+  public getConfiguration = (FunctionName:string):Promise<any> => {
     debug(`looking up configuration for ${FunctionName}`)
     return aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
-  getStack = (StackName: string):Promise<any> => {
+  public getStack = (StackName: string):Promise<any> => {
     return aws.cloudformation.listStackResources({ StackName }).promise()
   }
 
-  listFunctions = ():Promise<any> => {
+  public listFunctions = ():Promise<any> => {
     return aws.lambda.listFunctions().promise()
   }
 
-  updateEnvironment = async (opts: {
+  public updateEnvironment = async (opts: {
     functionName: string,
     current?: any,
     update: any
   }) => {
-    let { functionName, current, update } = opts
+    const { functionName, update } = opts
+    let { current } = opts
     if (!current) {
       current = await this.getConfiguration(functionName)
     }
@@ -82,10 +88,6 @@ class Utils {
       FunctionName: functionName,
       Environment: { Variables }
     }).promise()
-  }
-
-  get thisFunctionName () {
-    return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
 }
 

@@ -26,10 +26,14 @@ function withTransport (method: string) {
 }
 
 class Delivery extends EventEmitter implements IDelivery {
-  mqtt: any
-  http: DeliveryHTTP
-  friends: any
-  messages: any
+  private mqtt: any
+  private http: DeliveryHTTP
+  private friends: any
+  private messages: any
+  public deliverBatch = withTransport('deliverBatch')
+  public ack = withTransport('ack')
+  public reject = withTransport('reject')
+
   constructor (opts) {
     super()
 
@@ -40,11 +44,7 @@ class Delivery extends EventEmitter implements IDelivery {
     this.mqtt = new DeliveryMQTT(opts)
   }
 
-  deliverBatch = withTransport('deliverBatch')
-  ack = withTransport('ack')
-  reject = withTransport('reject')
-
-  async deliverMessages (opts) {
+  public async deliverMessages (opts) {
     opts = clone(opts)
     let {
       recipient,
@@ -81,7 +81,7 @@ class Delivery extends EventEmitter implements IDelivery {
     }
   }
 
-  async getTransport (opts: {
+  public async getTransport (opts: {
     method: string,
     recipient: string,
     clientId?: string,

@@ -58,7 +58,7 @@ class Auth {
     ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
   }
 
-  onAuthenticated = async (session:Session): Promise<void> => {
+  public onAuthenticated = async (session:Session): Promise<void> => {
     session = {
       ...session,
       authenticated: true
@@ -71,7 +71,7 @@ class Auth {
     await this.tables.Presence.put({ Item: session })
   }
 
-  updatePresence = (opts: {
+  public updatePresence = (opts: {
     clientId: string,
     connected: boolean
   }): Promise<any> => {
@@ -81,20 +81,20 @@ class Auth {
     return this.tables.Presence.update(params)
   }
 
-  deleteSession = (clientId: string): Promise<any> => {
+  public deleteSession = (clientId: string): Promise<any> => {
     const Key = getKeyFromClientId(clientId)
     return this.tables.Presence.del({ Key })
   }
 
-  deleteSessionsByPermalink = (permalink: string): Promise<any> => {
+  public deleteSessionsByPermalink = (permalink: string): Promise<any> => {
     return this.tables.Presence.del(getSessionsByPermalinkQuery)
   }
 
-  getSessionsByPermalink = (permalink: string): Promise<any> => {
+  public getSessionsByPermalink = (permalink: string): Promise<any> => {
     return this.tables.Presence.find(getSessionsByPermalinkQuery(permalink))
   }
 
-  getLiveSessionByPermalink = async (permalink: string): Promise<any> => {
+  public getLiveSessionByPermalink = async (permalink: string): Promise<any> => {
     const sessions = await this.getSessionsByPermalink(permalink)
     const latest = sessions
       .filter(session => session.authenticated && session.connected)
@@ -111,7 +111,7 @@ class Auth {
     return latest
   }
 
-  getSession = (opts: { clientId: string }): Promise<any> => {
+  public getSession = (opts: { clientId: string }): Promise<any> => {
     const { clientId } = opts
     return this.tables.Presence.findOne({
       KeyConditionExpression: 'permalink = :permalink AND clientId = :clientId',
@@ -123,7 +123,7 @@ class Auth {
     })
   }
 
-  createChallenge = async (opts: {
+  public createChallenge = async (opts: {
     clientId: string,
     permalink: string
   }): Promise<string> => {
@@ -148,7 +148,7 @@ class Auth {
   //   await Iot.sendChallenge({ clientId, challenge })
   // })
 
-  handleChallengeResponse = async (response: {
+  public handleChallengeResponse = async (response: {
     clientId: string,
     permalink: string,
     challenge: string,
@@ -212,7 +212,7 @@ class Auth {
     return session
   }
 
-  getTemporaryIdentity = async (opts: {
+  public getTemporaryIdentity = async (opts: {
     accountId: string,
     clientId: string,
     identity: string
@@ -271,13 +271,13 @@ class Auth {
     }
   }
 
-  getUploadPrefix = (AssumedRoleUser: {
+  public getUploadPrefix = (AssumedRoleUser: {
     AssumedRoleId: string
   }):string => {
     return `${this.resources.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
   }
 
-  getMostRecentSessionByClientId = (clientId): Promise<any> => {
+  public getMostRecentSessionByClientId = (clientId): Promise<any> => {
     return this.getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
   }
 }

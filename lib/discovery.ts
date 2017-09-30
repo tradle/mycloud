@@ -12,6 +12,10 @@ class Discovery {
   private aws: any
   private lambdaUtils: any
   private iot: any
+  public get thisFunctionName () {
+    return this.lambdaUtils.thisFunctionName
+  }
+
   constructor (opts: { env: any, aws: any, lambdaUtils: any, iot: any }) {
     const { env, aws, lambdaUtils, iot } = opts
     this.env = env
@@ -20,11 +24,7 @@ class Discovery {
     this.iot = iot
   }
 
-  get thisFunctionName () {
-    return this.lambdaUtils.thisFunctionName
-  }
-
-  getServiceDiscoveryFunctionName = () => {
+  public getServiceDiscoveryFunctionName = () => {
     // function naming is ${service}-${stage}-${name}
     const { thisFunctionName } = this
     if (thisFunctionName) {
@@ -41,7 +41,7 @@ class Discovery {
     return `${SERVERLESS_SERVICE_NAME}-${SERVERLESS_STAGE}-setenvvars`
   }
 
-  discoverServices = async (StackName?: string) => {
+  public discoverServices = async (StackName?: string) => {
     const { thisFunctionName } = this
     let env
     if (thisFunctionName && thisFunctionName.endsWith('-setenvvars')) {
@@ -60,7 +60,7 @@ class Discovery {
     return env
   }
 
-  doDiscoverServices = async (StackName?: string) => {
+  private doDiscoverServices = async (StackName?: string) => {
     debug('performing service discovery')
     const { thisFunctionName } = this
     const promiseIotEndpoint = this.iot.getEndpoint()
@@ -115,7 +115,7 @@ class Discovery {
     return env
   }
 
-  saveToLocalFS = async (vars) => {
+  private saveToLocalFS = async (vars) => {
     const { RESOURCES_ENV_PATH } = this.env
     try {
       await pmkdirp(path.dirname(RESOURCES_ENV_PATH))

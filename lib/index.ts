@@ -18,8 +18,8 @@ function createNewInstance (env) {
 
 class Tradle {
   // aliases for instantiation
-  static new = createNewInstance
-  static createInstance = createNewInstance
+  public static new = createNewInstance
+  public static createInstance = createNewInstance
   public new = createNewInstance
   public createInstance = createNewInstance
 
@@ -121,7 +121,7 @@ class Tradle {
   private construct = (Ctor) => {
     return new Ctor(this)
   }
-  define = (property: string, path: string, instantiator: Function) => {
+  private define = (property: string, path: string, instantiator: () => any) => {
     let instance
     defineGetter(this, property, () => {
       if (!instance) {
