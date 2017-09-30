@@ -21,38 +21,7 @@ class Discovery {
   }
 
   get thisFunctionName () {
-    return this.env.AWS_LAMBDA_FUNCTION_NAME
-  }
-
-  updateEnvironment = async (opts: {
-    functionName: string,
-    current?: any,
-    update: any
-  }) => {
-    let { functionName, current, update } = opts
-    if (!current) {
-      current = await this.lambdaUtils.getConfiguration(functionName)
-    }
-
-    const updated = {}
-    const { Variables } = current.Environment
-    for (let key in update) {
-      if (Variables[key] !== update[key]) {
-        updated[key] = update[key]
-      }
-    }
-
-    if (!Object.keys(updated).length) {
-      debug(`not updating "${functionName}", no new environment variables`)
-      return
-    }
-
-    debug(`updating "${functionName}" with new environment variables`)
-    extend(Variables, updated)
-    await this.aws.lambda.updateFunctionConfiguration({
-      FunctionName: functionName,
-      Environment: { Variables }
-    }).promise()
+    return this.lambdaUtils.thisFunctionName
   }
 
   getServiceDiscoveryFunctionName = () => {
@@ -131,7 +100,7 @@ class Discovery {
         }
 
         debug(`updating environment variables for: ${PhysicalResourceId}`)
-        return this.updateEnvironment({
+        return this.lambdaUtils.updateEnvironment({
           functionName: PhysicalResourceId,
           update: env,
           current
