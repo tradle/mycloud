@@ -186,7 +186,7 @@ proto.onboardCustomer = co(function* ({
 
       yield tradle.objects.resolveEmbeds(payload)
 
-      console.log('EMPLOYEE RECEIVED', payload[TYPE])
+      // console.log('EMPLOYEE RECEIVED', payload[TYPE])
       // const type = payload[TYPE]
       // if (productsAPI.models.all[type].subClassOf === 'tradle.Form') {
       //   yield bot.addressBook.addAuthorInfo(message)

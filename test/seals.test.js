@@ -18,7 +18,7 @@ const createTradle = require('../').new
 
 const blockchainOpts = {
   flavor: 'ethereum',
-  networkName: 'ropsten'
+  networkName: 'rinkeby'
 }
 
 test('queue seal', co(function* (t) {

@@ -1,5 +1,5 @@
 {
-  "BLOCKCHAIN": "ethereum:ropsten",
+  "BLOCKCHAIN": "ethereum:rinkeby",
   "BOT_ONMESSAGE": "bot_onmessage",
   "BOT_ONPRESENCE": "bot_onpresence",
   "DEBUG": "tradle:*,λ*,@tradle*,dynogels*",
