@@ -1180,7 +1180,7 @@ resources:
     #     Unit: Seconds
     #     EvaluationPeriods: '1'
     #     Threshold: ${{self:custom.thresholdBillingAlarm}}
-    #     TreatMissingData: breaching
+    #     TreatMissingData: missing
     #     ComparisonOperator: GreaterThanThreshold
     #     AlarmActions:
     #       - Ref: BillingAlarmNotification
@@ -1206,7 +1206,7 @@ resources:
         Unit: Seconds
         EvaluationPeriods: '1'
         Threshold: ${{self:custom.thresholdThrottlingAlarm}}
-        TreatMissingData: breaching
+        TreatMissingData: missing
         ComparisonOperator: GreaterThanThreshold
         AlarmActions:
           - Ref: ThrottlingAlarmNotification
@@ -1232,7 +1232,7 @@ resources:
         Unit: Seconds
         EvaluationPeriods: '1'
         Threshold: ${{self:custom.thresholdInvocationsAlarm}}
-        TreatMissingData: breaching
+        TreatMissingData: missing
         ComparisonOperator: GreaterThanThreshold
         AlarmActions:
           - Ref: InvocationAlarmNotification
@@ -1258,7 +1258,7 @@ resources:
         Unit: Seconds
         EvaluationPeriods: '1'
         Threshold: ${{self:custom.thresholdInvocationErrorsAlarm}}
-        TreatMissingData: breaching
+        TreatMissingData: missing
         ComparisonOperator: GreaterThanThreshold
         AlarmActions:
           - Ref: InvocationErrorAlarmNotification
