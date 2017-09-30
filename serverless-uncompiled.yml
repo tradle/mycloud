@@ -1183,8 +1183,8 @@ resources:
     #     ComparisonOperator: GreaterThanThreshold
     #     AlarmActions:
     #       - Ref: BillingAlarmNotification
-    #     InsufficientDataActions:
-    #       - Ref: BillingAlarmNotification
+    #    # InsufficientDataActions:
+    #    #   - Ref: BillingAlarmNotification
 
     ThrottlingAlarmNotification:
       Type: AWS::SNS::Topic
@@ -1208,8 +1208,8 @@ resources:
         ComparisonOperator: GreaterThanThreshold
         AlarmActions:
           - Ref: ThrottlingAlarmNotification
-        InsufficientDataActions:
-          - Ref: ThrottlingAlarmNotification
+        # InsufficientDataActions:
+        #   - Ref: ThrottlingAlarmNotification
 
     InvocationAlarmNotification:
       Type: AWS::SNS::Topic
@@ -1233,8 +1233,8 @@ resources:
         ComparisonOperator: GreaterThanThreshold
         AlarmActions:
           - Ref: InvocationAlarmNotification
-        InsufficientDataActions:
-          - Ref: InvocationAlarmNotification
+        # InsufficientDataActions:
+        #   - Ref: InvocationAlarmNotification
 
     InvocationErrorAlarmNotification:
       Type: AWS::SNS::Topic
@@ -1258,8 +1258,8 @@ resources:
         ComparisonOperator: GreaterThanThreshold
         AlarmActions:
           - Ref: InvocationErrorAlarmNotification
-        InsufficientDataActions:
-          - Ref: InvocationErrorAlarmNotification
+        # InsufficientDataActions:
+        #   - Ref: InvocationErrorAlarmNotification
 
     # SSLCertificate:
     #   Type: "AWS::CloudFormation::Stack"
