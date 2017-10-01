@@ -83,7 +83,15 @@ class Utils {
     }
 
     debug(`updating "${functionName}" with new environment variables`)
-    extend(Variables, updated)
+    for (let key in updated) {
+      let val = updated[key]
+      if (val == null) {
+        delete Variables[key]
+      } else {
+        Variables[key] = val
+      }
+    }
+
     await this.aws.lambda.updateFunctionConfiguration({
       FunctionName: functionName,
       Environment: { Variables }
