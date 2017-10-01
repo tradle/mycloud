@@ -7,8 +7,8 @@ const ENV = require('./env')
 
 interface BlockchainIdentifier {
   flavor: string,
-  network: string,
-  minBalance: string|number
+  networkName: string,
+  minBalance: string
 }
 
 interface Key {
@@ -31,10 +31,10 @@ class Blockchain {
   private blockchainIdentifier: BlockchainIdentifier;
   private getTxAmount = () => this.network.minOutputAmount
 
-  private createAdapter = ({ privateKey }) => {
+  private createAdapter = (opts:{ privateKey?: string }={}) => {
     const { flavor, networkName } = this
     const create = adapters[flavor]
-    return create({ flavor, networkName, privateKey })
+    return create({ flavor, networkName, ...opts })
   }
 
   private getWriter = (key: Key) => {
@@ -62,8 +62,8 @@ class Blockchain {
   }
 
   public addressesAPI: {
-    transactions: () => Promise<any>,
-    balance: () => Promise<string|number>
+    transactions: (addresses: Array<string>, blockHeight?: number) => Promise<any>,
+    balance: (address: string) => Promise<string|number>
   };
 
   public getInfo: () => Promise<any>;
@@ -77,12 +77,11 @@ class Blockchain {
     Object.assign(this, blockchainIdentifier)
 
     const { flavor, networkName } = blockchainIdentifier
-    const defaultMinBalance = blockchainIdentifier.minBalance
     if (!adapters[flavor]) {
       throw new Error(`unsupported blockchain type: ${flavor}`)
     }
 
-    this.reader = this.createAdapter({ networkName })
+    this.reader = this.createAdapter()
     this.addressesAPI = promisify(this.reader.blockchain.addresses)
     this.getInfo = promisify(this.reader.blockchain.info)
     this.network = this.reader.network
@@ -108,15 +107,17 @@ class Blockchain {
     return blockHeight
   }
 
-  public getTxsForAddresses = async (addresses:T[], blockHeight?:number) => {
+  public getTxsForAddresses = async (addresses:Array<string>, blockHeight?:number) => {
     this.start()
     // if (typeof blockHeight !== 'number') {
     //   blockHeight = await this.getBlockHeight()
     // }
 
     const txInfos = await this.addressesAPI.transactions(addresses, blockHeight)
-    txInfos.forEach(info => {
-      if (!info.confirmations && typeof info.blockHeight === 'number') {
+    txInfos.forEach((info:any) => {
+      if (!info.confirmations &&
+        typeof info.blockHeight === 'number' &&
+        typeof blockHeight === 'number') {
         info.confirmations = blockHeight - info.blockHeight
       }
     })
@@ -178,24 +179,30 @@ class Blockchain {
   public start = () => this.startOrStop('start')
   public stop = () => this.startOrStop('stop')
   public getMyChainPub = () => require('./').provider.getMyChainKeyPub()
-  public getMyChainAddress = () => this.getMyChainPub()
+  public getMyChainAddress = ():Promise<string> => this.getMyChainPub()
     .then(({ fingerprint }) => fingerprint)
 
-  public recharge = async (opts={}) => {
+  public recharge = async (opts: {
+    address:string,
+    minBalance: string,
+    force?: boolean
+  }) => {
     let { address, minBalance, force } = opts
     if (!address) {
       address = await this.getMyChainAddress()
     }
 
     if (!minBalance) {
-      minBalance = defaultMinBalance
+      minBalance = this.minBalance
     }
 
     const client = this.writers[address] || this.reader
     return client.recharge({ address, minBalance, force })
   }
 
-  public balance = async (opts={}) => {
+  public balance = async (opts: {
+    address?: string
+  }={}) => {
     let { address } = opts
     if (!address) {
       address = await this.getMyChainAddress()

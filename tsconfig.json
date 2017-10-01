@@ -3,15 +3,21 @@
     "preserveConstEnums": true,
     "strictNullChecks": true,
     "sourceMap": true,
-    "target": "es2015",
+    "target": "es6",
     "module": "commonjs",
     "moduleResolution": "node",
     "removeComments": true,
     "rootDir": ".",
-    "allowJs": true,
-    "lib": ["es2015"]
+    "lib": ["es2015"],
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "node_modules/*",
+        "lib/types/*"
+      ]
+    },
+    "types": ["node", "aws-sdk"]
   },
-  "include": ["lib/**/*", "samplebot/**/*", "test/**/*"],
-  "exclude": ["node_modules"],
-  "types": ["node", "aws-sdk"]
+  "include": ["lib/**/*.ts", "test/**/*.ts", "samplebot/**/*.ts"],
+  "exclude": ["node_modules", "**/*.js"]
 }

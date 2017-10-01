@@ -1,13 +1,13 @@
 const debug = require('debug')('tradle:sls:auth')
 import { getUpdateParams } from './db-utils'
-import { co, cachifyPromiser, typeforce, bindAll, defineGetter } from './utils'
+import { typeforce, defineGetter } from './utils'
 import { prettify } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors = require('./errors')
 import * as types from './typeforce-types'
 import { constants } from './'
 import { Session, Identities, IotClientResponse } from './types/index.d'
-const { HANDSHAKE_TIMEOUT, PERMALINK } = constants
+const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
 
 // const onExit = co(function* ({ clientId }) {
@@ -247,7 +247,7 @@ class Auth {
     }
 
     // assume role returns temporary keys
-    const [challenge, addContact] = await Promise.all([
+    const [challenge] = await Promise.all([
       this.createChallenge({ clientId, permalink }),
       maybeAddContact
     ])

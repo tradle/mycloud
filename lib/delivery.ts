@@ -30,18 +30,27 @@ class Delivery extends EventEmitter implements IDelivery {
   private http: DeliveryHTTP
   private friends: any
   private messages: any
-  public deliverBatch = withTransport('deliverBatch')
-  public ack = withTransport('ack')
-  public reject = withTransport('reject')
+  private objects: any
+  private _deliverBatch = withTransport('deliverBatch')
 
   constructor (opts) {
     super()
 
-    const { friends, messages } = opts
+    const { friends, messages, objects } = opts
     this.messages = messages
+    this.objects = objects
     this.friends = friends
     this.http = new DeliveryHTTP(opts)
     this.mqtt = new DeliveryMQTT(opts)
+  }
+
+  public ack = withTransport('ack')
+  public reject = withTransport('reject')
+
+  public deliverBatch = async (opts: { messages: Array<any> })  => {
+    const { messages } = opts
+    messages.forEach(object => this.objects.presignEmbeddedMediaLinks({ object }))
+    return this._deliverBatch(opts)
   }
 
   public async deliverMessages (opts) {

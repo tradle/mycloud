@@ -1,5 +1,5 @@
 const debug = require('debug')('tradls:sls:lambda-utils')
-import { extend } from './utils'
+import { Lambda } from 'aws-sdk'
 
 class Utils {
   private env: any
@@ -13,17 +13,22 @@ class Utils {
     this.aws = aws
   }
 
-  public getFullName = (name: string):boolean => {
+  public getFullName = (name: string):string => {
     const { SERVERLESS_PREFIX='' } = this.env
     return name.startsWith(SERVERLESS_PREFIX)
       ? name
       : `${SERVERLESS_PREFIX}${name}`
   }
 
-  public invoke = async (opts: { name: string, arg?: any, sync?:boolean, log?: boolean }) => {
+  public invoke = async (opts: {
+    name: string,
+    arg?: any,
+    sync?:boolean,
+    log?: boolean
+  }):Promise<any> => {
     const { name, arg={}, sync=true, log } = opts
     const FunctionName = this.getFullName(name)
-    const params = {
+    const params:Lambda.Types.InvocationRequest = {
       InvocationType: sync ? 'RequestResponse' : 'Event',
       FunctionName,
       Payload: typeof arg === 'string' ? arg : JSON.stringify(arg)
@@ -35,7 +40,7 @@ class Utils {
       StatusCode,
       Payload,
       FunctionError
-    } = await aws.lambda.invoke(params).promise()
+    } = await this.aws.lambda.invoke(params).promise()
 
     if (StatusCode >= 300) {
       const message = Payload || `experienced ${FunctionError} error invoking lambda: ${name}`
@@ -45,17 +50,17 @@ class Utils {
     if (sync) return JSON.parse(Payload)
   }
 
-  public getConfiguration = (FunctionName:string):Promise<any> => {
+  public getConfiguration = (FunctionName:string):Promise<Lambda.Types.FunctionConfiguration> => {
     debug(`looking up configuration for ${FunctionName}`)
-    return aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
+    return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
   public getStack = (StackName: string):Promise<any> => {
-    return aws.cloudformation.listStackResources({ StackName }).promise()
+    return this.aws.cloudformation.listStackResources({ StackName }).promise()
   }
 
   public listFunctions = ():Promise<any> => {
-    return aws.lambda.listFunctions().promise()
+    return this.aws.lambda.listFunctions().promise()
   }
 
   public updateEnvironment = async (opts: {

@@ -84,8 +84,8 @@
     "tail": "./scripts/tail.sh",
     "info": "serverless info",
     "commit": "git-cz",
-    "watch": "tsc -w",
-    "tslint": "tslint **/*.ts",
+    "tswatch": "tsc -w",
+    "tslint": "tslint -p .",
     "symlink:dist": "ln -sf ../.serverless ./dist/.serverless && ln -sf ../conf ./dist/conf",
     "invoke:http": "./scripts/invoke-unzip.sh"
   },

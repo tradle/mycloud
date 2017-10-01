@@ -59,7 +59,7 @@ class Friends {
       .set(props)
       .toJSON()
 
-    const myIdentity = yield this.provider.getMyPublicIdentity()
+    const myIdentity = await this.provider.getMyPublicIdentity()
     if (myIdentity._permalink === identity._permalink ||
       myIdentity._link === identity._link) {
       throw new Error('refusing to add self as friend')

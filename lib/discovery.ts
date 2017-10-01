@@ -2,6 +2,7 @@ import * as path from 'path'
 import { extend, bindAll, promisify } from './utils'
 import * as fs from 'fs'
 import * as mkdirp from 'mkdirp'
+import { Lambda } from 'aws-sdk'
 
 const debug = require('debug')('tradle:sls:discovery')
 const pfs = promisify(fs)
@@ -67,6 +68,7 @@ class Discovery {
     let thisFunctionConfig
     if (!StackName) {
       thisFunctionConfig = await this.lambdaUtils.getConfiguration(thisFunctionName)
+
       StackName = thisFunctionConfig.Description
       if (!StackName.startsWith('arn:aws:cloudformation')) {
         throw new Error(`expected function ${thisFunctionName} Description to contain Ref: StackId`)

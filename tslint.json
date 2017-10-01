@@ -5,5 +5,8 @@
     "object-literal-sort-keys": false,
     "curly": false,
     "no-this-assignment": false
+  },
+  "jsRules": {
+    "no-use-before-declare": true
   }
 }

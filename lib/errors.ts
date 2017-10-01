@@ -1,4 +1,4 @@
-const debug = require('debug')('tradle:sls:errors')
+// const debug = require('debug')('tradle:sls:errors')
 const ex = require('error-ex')
 import { Errors } from './types'
 

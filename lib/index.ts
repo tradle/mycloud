@@ -8,10 +8,6 @@ const requireMaybeDefault = (path:string) => {
   return result.__esModule ? result.default : result
 }
 
-const cachifiable = {
-  Objects: true
-}
-
 function createNewInstance (env) {
   return new Tradle(env)
 }
@@ -34,8 +30,8 @@ class Tradle {
 
   constructor(env=ENV) {
     const {
-      FAUCET_PRIVATE_KEY,
-      BLOCKCHAIN,
+      // FAUCET_PRIVATE_KEY,
+      // BLOCKCHAIN,
       SERVERLESS_PREFIX
     } = env
 
@@ -119,7 +115,7 @@ class Tradle {
   private construct = (Ctor) => {
     return new Ctor(this)
   }
-  private define = (property: string, path: string, instantiator: () => any) => {
+  private define = (property: string, path: string, instantiator: Function) => {
     let instance
     defineGetter(this, property, () => {
       if (!instance) {

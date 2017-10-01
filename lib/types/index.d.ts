@@ -42,6 +42,6 @@ export interface LambdaExecutionContext {
 
 export * from './identities'
 export * from './auth'
-export { IDelivery } from './delivery'
+export * from './delivery'
 export * from './discovery'
 export * from './errors'
