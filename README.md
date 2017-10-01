@@ -132,7 +132,7 @@ npm run tail -- bot_graphql 5
 
 ### Developing
 
-If you modify `serverless-uncompiled.yml`, run `npm run build:slsyml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
+If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
 
 ### Destroy
 

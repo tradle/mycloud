@@ -13,7 +13,7 @@ const command = `sls deploy --stage=${stage}`
 
 console.log('will run:', command)
 
-proc.execSync('npm run build:slsyml', {
+proc.execSync('npm run build:yml', {
   cwd: process.cwd(),
   stdio: 'inherit'
 })
