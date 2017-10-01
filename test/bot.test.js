@@ -14,7 +14,7 @@ const Errors = require('../lib/errors')
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
-const apiGatewayEvent = require('./fixtures/events/api-gateway')
+// const apiGatewayEvent = require('./fixtures/events/api-gateway')
 const UsersTableLogicalId = 'UsersTable'
 
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {

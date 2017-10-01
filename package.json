@@ -86,7 +86,8 @@
     "commit": "git-cz",
     "watch": "tsc -w",
     "tslint": "tslint **/*.ts",
-    "symlink:dist": "ln -sf ../.serverless ./dist/.serverless && ln -sf ../conf ./dist/conf"
+    "symlink:dist": "ln -sf ../.serverless ./dist/.serverless && ln -sf ../conf ./dist/conf",
+    "invoke:http": "./scripts/invoke-unzip.sh"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",

@@ -1,6 +1,6 @@
-import 'source-map-support/register'
 import * as serverlessHTTP from "serverless-http"
 import { router, env, discovery, utils } from "./"
+import { LambdaExecutionContext } from './types'
 const { cachifyPromiser } = utils
 const { TESTING } = env
 const binaryMimeTypes = TESTING
@@ -32,7 +32,8 @@ const discoverServices = cachifyPromiser(async () => {
 
 module.exports = serverlessHTTP(router, {
   binary: binaryMimeTypes,
-  request: async (request, event, context) => {
+  request: async (request, event, context:LambdaExecutionContext) => {
+    env.setFromLambdaEvent(event, context)
     if (!env.IOT_ENDPOINT) {
       await discoverServices()
     }
