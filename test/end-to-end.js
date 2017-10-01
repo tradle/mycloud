@@ -2,6 +2,7 @@ require('./env')
 const nock = require('nock')
 
 const assert = require('assert')
+const nodeCrypto = require('crypto')
 const inherits = require('inherits')
 const { EventEmitter } = require('events')
 const coexec = require('co')
@@ -304,7 +305,10 @@ proto.runThroughApplication = co(function* ({
       models: allModels,
       model: bizModels.productRequest.id,
     })
-    .set('requestFor', product)
+    .set({
+      requestFor: product,
+      contextId: nodeCrypto.randomBytes(12).toString('hex')
+    })
     .toJSON()
 
   user.send({ object: productRequest })
