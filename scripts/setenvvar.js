@@ -32,7 +32,7 @@ co(function* () {
   }
 
   const update = {
-    [key]: value
+    [key]: '' + value
   }
 
   console.log('setting', update)
