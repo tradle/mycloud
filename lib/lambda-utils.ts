@@ -1,6 +1,8 @@
 const debug = require('debug')('tradls:sls:lambda-utils')
 import { Lambda } from 'aws-sdk'
 
+const notNull = (val:any):boolean => !!val
+
 class Utils {
   private env: any
   private aws: any
@@ -59,25 +61,46 @@ class Utils {
     return this.aws.cloudformation.listStackResources({ StackName }).promise()
   }
 
-  public listFunctions = ():Promise<any> => {
+  public listFunctions = ():Promise<Lambda.Types.ListFunctionsResponse> => {
     return this.aws.lambda.listFunctions().promise()
   }
 
+  public updateEnvironments = async(map:(conf:Lambda.Types.FunctionConfiguration) => any) => {
+    const { Functions } = await this.listFunctions()
+    if (!Functions) return
+
+    const writes = Functions.map(current => {
+      const update = map(current)
+      return update && {
+        current,
+        update
+      }
+    })
+    .filter(notNull)
+    .map(this.updateEnvironment)
+
+    await Promise.all(writes)
+  }
+
   public updateEnvironment = async (opts: {
-    functionName: string,
+    functionName?: string,
     current?: any,
     update: any
   }) => {
-    const { functionName, update } = opts
+    let { functionName, update } = opts
     let { current } = opts
     if (!current) {
+      if (!functionName) throw new Error('expected "functionName"')
+
       current = await this.getConfiguration(functionName)
     }
 
+    functionName = current.FunctionName
     const updated = {}
     const { Variables } = current.Environment
     for (let key in update) {
-      if (Variables[key] !== update[key]) {
+      // allow null == undefined
+      if (Variables[key] != update[key]) {
         updated[key] = update[key]
       }
     }
