@@ -10,13 +10,17 @@ if (NODE_ENV === 'test') {
 const debug = require('debug')('λ:samplebot')
 const co = require('co').wrap
 const coExec = require('co')
+const yn = require('yn')
 const TYPE = '_t'
 const DEPLOYMENT = 'io.tradle.Deployment'
 const {
   // PRODUCTS=DEPLOYMENT,
   // PRODUCTS='tradle.CRSSelection,tradle.CoverholderApproval,tradle.MortgageProduct',
   PRODUCTS='nl.tradle.DigitalPassport',
-  ORG_DOMAIN
+  ORG_DOMAIN,
+  AUTO_VERIFY_FORMS,
+  AUTO_APPROVE_APPS,
+  AUTO_APPROVE_EMPLOYEES=true
 } = process.env
 
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
@@ -32,9 +36,11 @@ const {
   employeeManager
 } = strategies.products({
   namespace: NAMESPACE,
-  models: models,
+  models,
   products,
-  approveAllEmployees: true
+  approveAllEmployees: yn(AUTO_APPROVE_EMPLOYEES),
+  autoVerify: yn(AUTO_VERIFY_FORMS),
+  autoApprove: yn(AUTO_APPROVE_APPS),
   // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
 })
 

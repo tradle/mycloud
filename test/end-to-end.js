@@ -58,7 +58,14 @@ function E2ETest (opts={}) {
     bot,
     productsAPI,
     employeeManager
-  } = createProductsBot({ products, tradle })
+  } = createProductsBot({
+    products,
+    tradle,
+    // autoPrompt: true,
+    autoVerify: true,
+    autoApprove: true,
+    approveAllEmployees: false
+  })
 
   extend(bot, nextUserIdentity())
 
@@ -105,11 +112,11 @@ proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
     relationshipManager: employee
   })
 
-  yield this.approve({
-    employee,
-    user: customer,
-    application
-  })
+  // yield this.approve({
+  //   employee,
+  //   user: customer,
+  //   application
+  // })
 }))
 
 proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
@@ -198,7 +205,8 @@ proto.onboardCustomer = co(function* ({
   const application = yield this.runThroughApplication({
     user,
     relationshipManager,
-    product: product || this.products[0]
+    product: product || this.products[0],
+    awaitCertificate: true
   })
 
   return application
@@ -588,6 +596,7 @@ function wrapWithIntercept (fn) {
     try {
       yield fn.apply(this, args)
     } finally {
+      yield wait(2000)
       this.interceptor.restore()
     }
   })
