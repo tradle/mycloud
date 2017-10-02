@@ -1,4 +1,4 @@
-service: tradle
+service: ${{self:custom.service}}
 frameworkVersion: ">=1.5.0 <2.0.0"
 
 plugins:
@@ -36,22 +36,25 @@ package:
     # - ./**/*.log
 
 custom:
-  # vars: ${{file(./vars.yml)}}
+  vars: ${{file(./vars.yml), file(./default-vars.yml)}}
+  defaults: ${{file(./default-vars.yml)}}
   # move these to vars.yml when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
-  defaultStage: dev
-  stage: ${{opt:stage, self:custom.defaultStage}}
+
+  service: ${{self:custom.vars.service, self:custom.defaults.service}}
+  stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaults.stage}}
   # stage: dev
-  region: us-east-1
-  blockchain: ethereum:rinkeby
+  region: ${{opt:region, self:custom.vars.region, self:custom.defaults.region}}
+  blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   brand: ${{file(./conf/${{self:service}}.json)}}
 
   # copied from vars.yml
-  # defaultEmailForNotifications: ${{self:custom.vars.defaultEmailForNotifications}}
+  # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
   # blockchain: ${{self:custom.vars.blockchain}}
-  # thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm}}
-  # thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm}}
-  # thresholdInvocationErrorsAlarm: ${{self:custom.vars.thresholdInvocationErrorsAlarm}}
+  thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm, self:custom.defaults.thresholdBillingAlarm}}
+  thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm, self:custom.defaults.thresholdThrottlingAlarm}}
+  thresholdInvocationErrorsAlarm: ${{self:custom.vars.thresholdInvocationErrorsAlarm, self:custom.defaults.thresholdInvocationErrorsAlarm}}
+  thresholdInvocationsAlarm: ${{self:custom.vars.thresholdInvocationsAlarm, self:custom.defaults.thresholdInvocationsAlarm}}
 
   # stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaultStage}}
   # region: ${{opt:region, self:custom.vars.region}}
@@ -65,11 +68,8 @@ custom:
 
   # versions
   versionSQL: "2016-03-23"
-  thresholdBillingAlarm: 1 # $1 / hr
-  thresholdThrottlingAlarm: 10
-  thresholdInvocationErrorsAlarm: 10
-  thresholdInvocationsAlarm: 50 # / min
-  defaultEmailForNotifications: mark@tradle.io # support@tradle.io
+  emailForNotifications:
+    ${{self:custom.vars.emailForNotifications, self:custom.defaults.emailForNotifications}}
 
   # sns
   billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
@@ -1207,7 +1207,7 @@ resources:
       Properties:
         TopicName: ${{self:custom.throttlingAlarmTopic}}
         Subscription:
-          - Endpoint: ${{self:custom.defaultEmailForNotifications}}
+          - Endpoint: ${{self:custom.emailForNotifications}}
             Protocol: email
 
     ThrottlingAlarm:
@@ -1233,7 +1233,7 @@ resources:
       Properties:
         TopicName: ${{self:custom.invocationsAlarmTopic}}
         Subscription:
-          - Endpoint: ${{self:custom.defaultEmailForNotifications}}
+          - Endpoint: ${{self:custom.emailForNotifications}}
             Protocol: email
 
     InvocationAlarm:
@@ -1259,7 +1259,7 @@ resources:
       Properties:
         TopicName: ${{self:custom.invocationErrorsAlarmTopic}}
         Subscription:
-          - Endpoint: ${{self:custom.defaultEmailForNotifications}}
+          - Endpoint: ${{self:custom.emailForNotifications}}
             Protocol: email
 
     InvocationErrorAlarm:

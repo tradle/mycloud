@@ -9,4 +9,5 @@ certs/
 remote-service-map.json
 *.js.map
 serverless.yml
+vars.yml
 conf/friends.js

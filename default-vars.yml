@@ -1,0 +1,9 @@
+service: tradle
+stage: dev
+region: us-east-1
+emailForNotifications: mark@tradle.io # support@tradle.io
+blockchain: ethereum:rinkeby
+thresholdBillingAlarm: 1 # $1 / hr
+thresholdThrottlingAlarm: 10 # times throttled
+thresholdInvocationErrorsAlarm: 10 # errors
+thresholdInvocationsAlarm: 50 # invocations
