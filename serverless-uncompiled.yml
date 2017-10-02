@@ -40,11 +40,11 @@ custom:
   defaults: ${{file(./default-vars.yml)}}
   # move these to vars.yml when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
-
   service: ${{self:custom.vars.service, self:custom.defaults.service}}
   stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaults.stage}}
   # stage: dev
   region: ${{opt:region, self:custom.vars.region, self:custom.defaults.region}}
+  profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   brand: ${{file(./conf/${{self:service}}.json)}}
 
@@ -124,7 +124,7 @@ provider:
   variableSyntax: "\\${{([ ~:a-zA-Z0-9._\\'\",\\-\\/\\(\\)]+?)}}"
   name: aws
   runtime: nodejs6.10
-  profile: serverless
+  profile: ${{self:custom.profile}}
   stage: ${{self:custom.stage}}
   region: ${{self:custom.region}}
   memorySize: 512

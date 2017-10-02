@@ -1,6 +1,7 @@
 service: tradle
 stage: dev
 region: us-east-1
+profile: serverless
 emailForNotifications: mark@tradle.io # support@tradle.io
 blockchain: ethereum:rinkeby
 thresholdBillingAlarm: 1 # $1 / hr
