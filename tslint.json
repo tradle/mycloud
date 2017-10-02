@@ -4,7 +4,8 @@
     "ordered-imports": false,
     "object-literal-sort-keys": false,
     "curly": false,
-    "no-this-assignment": false
+    "no-this-assignment": false,
+    "variable-name": false
   },
   "jsRules": {
     "no-use-before-declare": true

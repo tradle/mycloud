@@ -4,7 +4,9 @@ import * as fs from 'fs'
 import * as mkdirp from 'mkdirp'
 import { Lambda } from 'aws-sdk'
 
-const debug = require('debug')('tradle:sls:discovery')
+import Debug = require('debug')
+const debug = Debug('tradle:sls:discovery')
+
 const pfs = promisify(fs)
 const pmkdirp = promisify(mkdirp)
 
