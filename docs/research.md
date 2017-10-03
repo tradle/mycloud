@@ -446,3 +446,8 @@ sending a SelfIntroduction with an identity with N keys will cause N lookups in 
 maybe duplicate `pub` to another attribute and use IN ComparisonOperator (unusable in KeyConditionExpression)
 
 Lambda limits response size to 6MB - pretty severe for graphql. Definitely need gzip
+
+### Serverless hooks / lifecycle
+
+https://gist.github.com/HyperBrain/50d38027a8f57778d5b0f135d80ea406
+https://gist.github.com/HyperBrain/bba5c9698e92ac693bb461c99d6cfeec#package

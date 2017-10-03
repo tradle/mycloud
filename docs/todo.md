@@ -75,6 +75,7 @@ ES7 Async/Await:
   https://github.com/AnomalyInnovations/serverless-es7
 
 Function optimization:
+  can we package continuously in the background?
   https://github.com/serverless-heaven/serverless-webpack
 
 Environment variables alternative:
