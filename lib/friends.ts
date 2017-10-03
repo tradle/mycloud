@@ -6,7 +6,7 @@ import { Identities } from "./types"
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
 
-class Friends {
+export default class Friends {
   private models: any
   private model: any
   private db: any
@@ -140,5 +140,3 @@ function getInfoEndpoint(url) {
 //   })
 // }())
 // .catch(console.error)
-
-export = Friends

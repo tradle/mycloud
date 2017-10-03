@@ -10,7 +10,7 @@ const debug = Debug('tradle:sls:discovery')
 const pfs = promisify(fs)
 const pmkdirp = promisify(mkdirp)
 
-class Discovery {
+export default class Discovery {
   private env: any
   private aws: any
   private lambdaUtils: any
@@ -137,6 +137,3 @@ function getFunctionNameFromArn (arn) {
 function isLambda (summary) {
   return summary.ResourceType === 'AWS::Lambda::Function'
 }
-
-export = Discovery
-

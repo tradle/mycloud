@@ -34,7 +34,7 @@ const { HandshakeFailed, InvalidInput, NotFound } = Errors
 //   })
 // })
 
-class Auth {
+export default class Auth {
   private env: any
   private aws: any
   private resources: any
@@ -309,8 +309,6 @@ function getSessionsByPermalinkQuery (permalink) {
     }
   }
 }
-
-export = Auth
 
 // module.exports = {
 //   // onEnter,

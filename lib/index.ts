@@ -1,16 +1,31 @@
 const debug = require('debug')('tradle:sls')
 import * as ENV from './env'
 import { toCamelCase, splitCamelCase } from './string-utils'
-import { Identities, Auth, Delivery, Discovery } from './types'
+// import { Identities, Auth, Delivery, Discovery } from './types'
 
-const requireMaybeDefault = (path:string) => {
-  const result = require(path)
-  return result.__esModule ? result.default : result
-}
+import Provider from './provider'
+import Identities from './identities'
+import Objects from './objects'
+import Auth from './auth'
+import Delivery from './delivery'
+import Discovery from './discovery'
+import Blockchain from './blockchain'
+import Seals from './seals'
+import Friends from './friends'
 
-function createNewInstance (env) {
-  return new Tradle(env)
-}
+const requireMaybeDefault = (() => {
+  const cache = {}
+  return (path: string) => {
+    if (!cache[path]) {
+      const result = require(path)
+      cache[path] = result.__esModule ? result.default : result
+    }
+
+    return cache[path]
+  }
+})()
+
+const createNewInstance = env => new Tradle(env)
 
 class Tradle {
   // aliases for instantiation
@@ -22,10 +37,14 @@ class Tradle {
   public env: any
   public router: any
   public buckets: any
+  public objects: Objects
   public identities: Identities
   public auth: Auth
   public delivery: Delivery
   public discovery: Discovery
+  public seals: Seals
+  public blockchain: Blockchain
+  public friends: Friends
   public prefix: string
 
   constructor(env=ENV) {

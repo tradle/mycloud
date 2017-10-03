@@ -34,6 +34,9 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
       presignUrls: () => {
         throw new Error('mock presignUrls not implemented')
       },
+      presignEmbeddedMediaLinks: () => {
+        throw new Error('mock presignEmbeddedMediaLinks not implemented')
+      }
     },
     identities: {
       getIdentityByPermalink: getter(identities),

@@ -28,7 +28,7 @@ export interface IotClientResponse {
   uploadPrefix: string
 }
 
-export interface LambdaExecutionContext {
+export interface ILambdaExecutionContext {
   callbackWaitsForEmptyEventLoop: boolean
   logGroupName:                   string
   logStreamName:                  string
@@ -38,6 +38,17 @@ export interface LambdaExecutionContext {
   invokeid:                       string
   awsRequestId:                   string
   invokedFunctionArn:             string
+}
+
+export interface IDelivery {
+  deliverBatch: (
+    opts: {
+      recipient: string
+      messages: any[]
+    }
+  ) => Promise<any>
+  ack: (opts: any) => Promise<any>
+  reject: (opts: any) => Promise<any>
 }
 
 export * from './identities'

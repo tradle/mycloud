@@ -25,7 +25,7 @@ function withTransport (method: string) {
   }
 }
 
-class Delivery extends EventEmitter implements IDelivery {
+export default class Delivery extends EventEmitter implements IDelivery {
   private mqtt: any
   private http: DeliveryHTTP
   private friends: any
@@ -114,5 +114,3 @@ class Delivery extends EventEmitter implements IDelivery {
     }
   }
 }
-
-export = Delivery

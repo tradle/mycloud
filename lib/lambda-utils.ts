@@ -3,7 +3,7 @@ import { Lambda } from 'aws-sdk'
 
 const notNull = (val:any):boolean => !!val
 
-class Utils {
+export default class Utils {
   private env: any
   private aws: any
   public get thisFunctionName () {
@@ -126,5 +126,3 @@ class Utils {
     }).promise()
   }
 }
-
-export = Utils

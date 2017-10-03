@@ -17,11 +17,12 @@ interface Key {
 }
 
 interface Sealable {
-  link: string
+  link?: string
+  prevLink?: string
   basePubKey: any
 }
 
-class Blockchain {
+export default class Blockchain {
   private reader: any;
   private network: any;
   private writers = {};
@@ -211,7 +212,5 @@ class Blockchain {
     return this.addressesAPI.balance(address)
   }
 }
-
-export = Blockchain
 
 // module.exports = createWrapper(ENV.BLOCKCHAIN)

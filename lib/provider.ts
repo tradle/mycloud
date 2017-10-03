@@ -31,7 +31,7 @@ import {
 
 const { MESSAGE } = TYPES
 
-class Provider {
+export default class Provider {
   private tradle: any
   private objects: any
   private messages: any
@@ -302,5 +302,3 @@ class Provider {
     throw err
   }
 }
-
-export = Provider

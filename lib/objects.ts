@@ -16,7 +16,7 @@ import { extractSigPubKey, addLinks } from './crypto'
 
 const { MESSAGE } = TYPES
 
-class Objects {
+export default class Objects {
   public static addMetadata = (object):any => {
     typeforce(types.signedObject, object)
 
@@ -127,5 +127,3 @@ class Objects {
     return object
   }
 }
-
-export = Objects
