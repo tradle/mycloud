@@ -62,6 +62,7 @@
     "test:e2e": "DEBUG=@tradle/bot*,tradle:sls:bot* node scripts/end-to-end-test.js",
     "test:e2e:debug": "DEBUG=@tradle/bot*,tradle:sls:bot* node --debug --inspect scripts/end-to-end-test.js",
     "test:graphqlserver": "node ./scripts/graphql-server",
+    "test:graphqlserver:debug": "node --debug --inspect ./scripts/graphql-server",
     "deploy:local": "npm run tslint && SLS_DEBUG=* IS_LOCAL=1 ./scripts/deploy.js dev",
     "deploy": "SLS_DEBUG=* IS_LOCAL= ./scripts/deploy.js && npm run makepublic && npm run gen:testenv",
     "deploy:safe": "npm test && npm run rebuild:lambda && ./scripts/deploy.js dev",
