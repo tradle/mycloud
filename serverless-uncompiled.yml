@@ -77,6 +77,8 @@ custom:
   invocationsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationAlarmNotification
   invocationErrorsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationErrorsAlarmNotification
 
+  dlqTopic: ${{self:custom.prefixSNSTopic}}DLQ
+
   # hostedZoneName: tradle.io
   # domainName: lambda1.tradle.io
   pushServer: https://push1.tradle.io
@@ -643,6 +645,8 @@ functions:
             Fn::GetAtt:
               - InboxTable
               - StreamArn
+    onError:
+      Ref: DLQNotification
 
   # bot-serviced lambda
   # replicates Outbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
@@ -658,6 +662,8 @@ functions:
             Fn::GetAtt:
               - OutboxTable
               - StreamArn
+    onError:
+      Ref: DLQNotification
 
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint
@@ -1241,7 +1247,7 @@ resources:
       Properties:
         AlarmDescription: Alarm if there suspiciously many lambda invocations
         Namespace: AWS/Lambda
-        MetricName: Errors
+        MetricName: Invocations
         Statistic: Sum
         Period: '60'
         Unit: Seconds
@@ -1279,6 +1285,14 @@ resources:
           - Ref: InvocationErrorAlarmNotification
         # InsufficientDataActions:
         #   - Ref: InvocationErrorAlarmNotification
+
+    DLQNotification:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${{self:custom.dlqTopic}}
+        Subscription:
+          - Endpoint: ${{self:custom.emailForNotifications}}
+            Protocol: email
 
     # SSLCertificate:
     #   Type: "AWS::CloudFormation::Stack"
