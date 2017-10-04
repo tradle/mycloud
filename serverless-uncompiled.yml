@@ -45,6 +45,7 @@ custom:
   # stage: dev
   region: ${{opt:region, self:custom.vars.region, self:custom.defaults.region}}
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
+  versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   brand: ${{file(./conf/${{self:service}}.json)}}
 
@@ -122,7 +123,7 @@ custom:
 
 provider:
   # avoid some bugs in serverless
-  versionFunctions: false
+  versionFunctions: ${{self:custom.versionFunctions}}
   tracing: true
   # https://github.com/serverless/serverless/issues/4312#issuecomment-331946882
   variableSyntax: "\\${{([ ~:a-zA-Z0-9._\\'\",\\-\\/\\(\\)]+?)}}"
