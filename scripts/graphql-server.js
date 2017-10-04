@@ -11,11 +11,8 @@ const expressGraphQL = require('express-graphql')
 const compression = require('compression')
 const cors = require('cors')
 const dynogels = require('dynogels')
-const { createSchema } = require('@tradle/schema-graphql')
-const { createResolvers, createTables } = require('@tradle/dynamodb')
-const { objects, env } = require('../')
 const { createProductsBot } = require('../test/end-to-end')
-const { bot, productsAPI } = createProductsBot()
+const { bot } = createProductsBot()
 
 const { port } = require('minimist')(process.argv.slice(2), {
   default: {
