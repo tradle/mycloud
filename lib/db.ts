@@ -1,17 +1,18 @@
-import tradleDynamo from '@tradle/dynamodb'
+import { db as newDB, createTable } from '@tradle/dynamodb'
+import AWS = require('aws-sdk')
 // const Tables = require('./tables')
 
 export = function createDB (opts: {
   models: any,
   objects: any,
   tables: any,
-  aws: any,
+  aws: AWS,
   constants: any,
   env: any,
   prefix: string
 }) {
   const { models, objects, tables, aws, constants, env, prefix } = opts
-  const db = tradleDynamo.db({
+  const db = newDB({
     models,
     objects,
     docClient: aws.docClient,
@@ -22,7 +23,7 @@ export = function createDB (opts: {
   // export Outbox only
   const messageModel = models['tradle.Message']
   if (!messageModel.isInterface) {
-    const outbox = tradleDynamo.createTable({
+    const outbox = createTable({
       models,
       objects,
       model: messageModel,
@@ -42,7 +43,7 @@ export = function createDB (opts: {
   }
 
   const pubKeyModel = models['tradle.PubKey']
-  const pubKeys = tradleDynamo.createTable({
+  const pubKeys = createTable({
     models: {
       ...models,
       [pubKeyModel.id]: pubKeyModel

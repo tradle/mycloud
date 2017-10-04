@@ -30,11 +30,11 @@ const discoverServices = cachifyPromiser(async () => {
   env.set(serviceMap)
 })
 
-module.exports = serverlessHTTP(router, {
+export = serverlessHTTP(router, {
   binary: binaryMimeTypes,
   request: async (request, event, context:ILambdaExecutionContext) => {
     env.setFromLambdaEvent(event, context)
-    if (!env.IOT_ENDPOINT) {
+    if (!env.TESTING && !env.IOT_ENDPOINT) {
       await discoverServices()
     }
 

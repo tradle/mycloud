@@ -8,15 +8,14 @@
     "moduleResolution": "node",
     "removeComments": true,
     "rootDir": ".",
-    "lib": ["es2015"],
+    "lib": ["es2015", "es2015.promise"],
     "baseUrl": ".",
     "paths": {
       "*": [
         "node_modules/*",
         "lib/types/*"
       ]
-    },
-    "types": ["node", "aws-sdk"]
+    }
   },
   "include": ["lib/**/*.ts", "test/**/*.ts", "samplebot/**/*.ts"],
   "exclude": ["node_modules", "**/*.js"]

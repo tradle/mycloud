@@ -1,6 +1,6 @@
 const debug = require('debug')('tradle:sls:seals')
 import { utils, protocol } from '@tradle/engine'
-// import { DynamoDB } from 'aws-sdk'
+import AWS = require('aws-sdk')
 import Blockchain from './blockchain'
 import Provider from './provider'
 import {
@@ -143,7 +143,8 @@ export default class Seals {
     return clone(seal, update)
   }
 
-  private recordWriteError = async ({ seal, error }) => {
+  private recordWriteError = async ({ seal, error })
+    :Promise<AWS.DynamoDB.Types.UpdateItemOutput> => {
     debug(`failed to seal ${seal.link}`, error.stack)
     const errors = addError(seal.errors, error)
     const params = dbUtils.getUpdateParams({ errors })
@@ -205,7 +206,7 @@ export default class Seals {
     return results.filter(notNull)
   }
 
-  private createSealRecord = async (opts) => {
+  private createSealRecord = async (opts):Promise<void> => {
     const seal = this.getNewSealParams(opts)
     try {
       await this.table.put({
@@ -223,7 +224,7 @@ export default class Seals {
     }
   }
 
-  private _syncUnconfirmed = async (opts: LimitOpts = {}) => {
+  private _syncUnconfirmed = async (opts: LimitOpts = {}):Promise<void> => {
     const { blockchain, getUnconfirmed, network, table } = this
     // start making whatever connections
     // are necessary
