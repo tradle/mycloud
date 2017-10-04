@@ -451,3 +451,11 @@ Lambda limits response size to 6MB - pretty severe for graphql. Definitely need 
 
 https://gist.github.com/HyperBrain/50d38027a8f57778d5b0f135d80ea406
 https://gist.github.com/HyperBrain/bba5c9698e92ac693bb461c99d6cfeec#package
+
+### ElasticSearch
+
+from DynamoDB:
+https://aws.amazon.com/blogs/compute/indexing-amazon-dynamodb-content-with-amazon-elasticsearch-service-using-aws-lambda/
+
+danger:
+https://read.acloud.guru/things-you-should-know-before-using-awss-elasticsearch-service-7cd70c9afb4f
