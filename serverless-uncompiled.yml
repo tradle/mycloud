@@ -65,6 +65,7 @@ custom:
   # maybe during info/auth, the server can send back the prefix
   prefixIOTTopic: ${{self:service}}-
   prefixSNSTopic: ${{self:custom.prefix}}
+  prefixSQS: ${{self:custom.prefix}}
 
   # versions
   versionSQL: "2016-03-23"
@@ -77,7 +78,8 @@ custom:
   invocationsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationAlarmNotification
   invocationErrorsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationErrorsAlarmNotification
 
-  dlqTopic: ${{self:custom.prefixSNSTopic}}DLQ
+  # sqs
+  deadLetterQueueName: ${{self:custom.prefixSQS}}dead-letter-queue
 
   # hostedZoneName: tradle.io
   # domainName: lambda1.tradle.io
@@ -301,6 +303,15 @@ provider:
       Action:
         - cloudfront:updateDistribution
       Resource: ["*"]
+
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      # Resource: ["*"]
+      Resource:
+        - Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
 
       # Resource: "*"
    # - Effect: "Allow"
@@ -645,8 +656,8 @@ functions:
             Fn::GetAtt:
               - InboxTable
               - StreamArn
-    onError:
-      Ref: DLQNotification
+    # onError:
+    #   Ref: DeadLetterQueue
 
   # bot-serviced lambda
   # replicates Outbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
@@ -662,8 +673,8 @@ functions:
             Fn::GetAtt:
               - OutboxTable
               - StreamArn
-    onError:
-      Ref: DLQNotification
+    # onError:
+    #   Ref: DeadLetterQueue
 
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint
@@ -892,6 +903,16 @@ resources:
           WriteCapacityUnits: 5
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
+        GlobalSecondaryIndexes:
+          - IndexName: _payloadLink
+            KeySchema:
+              - AttributeName: _payloadLink
+                KeyType: HASH
+            Projection:
+              ProjectionType: KEYS_ONLY
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
 
     # SealsTable: ${{file(./conf/table/seals.yml)}}
 
@@ -1286,13 +1307,8 @@ resources:
         # InsufficientDataActions:
         #   - Ref: InvocationErrorAlarmNotification
 
-    DLQNotification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${{self:custom.dlqTopic}}
-        Subscription:
-          - Endpoint: ${{self:custom.emailForNotifications}}
-            Protocol: email
+    # DeadLetterQueue:
+    #   Type: AWS::SQS::Queue
 
     # SSLCertificate:
     #   Type: "AWS::CloudFormation::Stack"

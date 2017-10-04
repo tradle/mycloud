@@ -1,4 +1,4 @@
-const tradleDynamo = require('@tradle/dynamodb')
+import tradleDynamo from '@tradle/dynamodb'
 // const Tables = require('./tables')
 
 export = function createDB (opts: {
@@ -31,7 +31,11 @@ export = function createDB (opts: {
       // better load these from serverless-yml
       hashKey: '_recipient',
       rangeKey: 'time',
-      indexes: []
+      indexes: [
+        {
+          hashKey: '_payloadLink'
+        }
+      ]
     })
 
     db.setTableForType('tradle.Message', outbox)
