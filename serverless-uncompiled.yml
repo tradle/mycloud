@@ -142,17 +142,21 @@ provider:
     # declare
     IOT_ENDPOINT: ''
     BLOCKCHAIN: ${{self:custom.blockchain}}
-    DEBUG: tradle:*,λ*,@tradle*,dynogels*
+    DEBUG: tradle:*,λ*,@tradle*
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
+
+    # bot config
     BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     ORG_DOMAIN: ${{self:custom.brand.ORG_DOMAIN}}
     ORG_NAME: ${{self:custom.brand.ORG_NAME}}
     ORG_LOGO: ${{self:custom.brand.ORG_LOGO}}
     PRODUCTS: ${{self:custom.brand.PRODUCTS}}
+    AUTO_VERIFY_FORMS: ${{self:custom.brand.AUTO_VERIFY_FORMS, 'n'}}
+    AUTO_APPROVE_APPS: ${{self:custom.brand.AUTO_APPROVE_APPS, 'n'}}
 
   iamRoleStatements:
     - Effect: Allow

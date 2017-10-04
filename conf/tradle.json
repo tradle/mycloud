@@ -2,5 +2,7 @@
   "ORG_LOGO": "http://tradle.io/images/apple-touch-icon.png",
   "ORG_DOMAIN": "tradle.io",
   "ORG_NAME": "Tradle",
-  "PRODUCTS": "nl.tradle.DigitalPassport"
+  "PRODUCTS": "nl.tradle.DigitalPassport",
+  "AUTO_APPROVE_APPS": true,
+  "AUTO_VERIFY_FORMS": true
 }
