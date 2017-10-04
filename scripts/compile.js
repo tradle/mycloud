@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
+const path = require('path')
+const fs = require('fs')
 const debug = require('debug')('tradle:sls:compile')
 const { compileTemplate, interpolateTemplate } = require('../lib/cli/utils')
-compileTemplate(process.argv[2])
+const [input, output] = process.argv.slice(2).map(file => path.resolve(process.cwd(), file))
+compileTemplate(input)
   .then(
-    result => process.stdout.write(result),
+    compiled => fs.writeFileSync(output, compiled),
     err => {
       console.error(err)
       process.exit(1)
