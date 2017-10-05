@@ -309,17 +309,7 @@ proto.runThroughApplication = co(function* ({
   const allModels = productsAPI.models.all
   const bizModels = productsAPI.models.biz
   const privateModels = productsAPI.models.private
-  const productRequest = buildResource({
-      models: allModels,
-      model: bizModels.productRequest.id,
-    })
-    .set({
-      requestFor: product,
-      contextId: nodeCrypto.randomBytes(12).toString('hex')
-    })
-    .toJSON()
-
-  user.send({ object: productRequest })
+  user.send({ object: createProductRequest(product) })
 
   let assignedEmployee
   let context
@@ -364,6 +354,19 @@ proto.runThroughApplication = co(function* ({
   }
 
   return this.getApplicationByContext({ context })
+
+  function createProductRequest (product) {
+    return buildResource({
+        models: allModels,
+        model: bizModels.productRequest.id,
+      })
+      .set({
+        requestFor: product,
+        contextId: nodeCrypto.randomBytes(12).toString('hex')
+      })
+      .toJSON()
+
+  }
 })
 
 proto.dumpDB = co(function* ({ types }) {
