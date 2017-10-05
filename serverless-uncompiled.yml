@@ -662,7 +662,10 @@ functions:
               - InboxTable
               - StreamArn
     # onError:
-    #   Ref: DeadLetterQueue
+    #   Fn::GetAtt:
+    #     - DeadLetterQueue
+    #     - Arn
+      # Ref: DeadLetterQueue
 
   # bot-serviced lambda
   # replicates Outbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
@@ -679,6 +682,9 @@ functions:
               - OutboxTable
               - StreamArn
     # onError:
+    #   Fn::GetAtt:
+    #     - DeadLetterQueue
+    #     - Arn
     #   Ref: DeadLetterQueue
 
   # bot-serviced lambda
@@ -898,6 +904,8 @@ resources:
             AttributeType: S
           - AttributeName: time
             AttributeType: N
+          - AttributeName: _payloadLink
+            AttributeType: S
         KeySchema:
           - AttributeName: _recipient
             KeyType: HASH
