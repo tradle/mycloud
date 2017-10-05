@@ -1,0 +1,36 @@
+{
+  "type": "tradle.Model",
+  "id": "tradle.MyCloudFriend",
+  "title": "MyCloud Friend",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "identity": {
+      "type": "object",
+      "ref": "tradle.Identity"
+    },
+    "org": {
+      "type": "object",
+      "ref": "tradle.Organization"
+    },
+    "publicConfig": {
+      "type": "object",
+      "range": "json"
+    },
+    "_identityPermalink": {
+      "type": "string",
+      "virtual": true
+    }
+  },
+  "required": [
+    "name",
+    "url"
+  ],
+  "primaryKeys": {
+    "hashKey": "url"
+  }
+}

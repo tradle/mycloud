@@ -1,12 +1,12 @@
 import { db as newDB, createTable } from '@tradle/dynamodb'
-import AWS = require('aws-sdk')
+// import AWS = require('aws-sdk')
 // const Tables = require('./tables')
 
 export = function createDB (opts: {
   models: any,
   objects: any,
   tables: any,
-  aws: AWS,
+  aws: any,
   constants: any,
   env: any,
   prefix: string
