@@ -309,14 +309,14 @@ provider:
         - cloudfront:updateDistribution
       Resource: ["*"]
 
-    - Effect: Allow
-      Action:
-        - sns:Publish
-      # Resource: ["*"]
-      Resource:
-        - Fn::GetAtt:
-          - DeadLetterQueue
-          - Arn
+    # - Effect: Allow
+    #   Action:
+    #     - sqs:SendMessage
+    #   # Resource: ["*"]
+    #   Resource:
+    #     - Fn::GetAtt:
+    #       - DeadLetterQueue
+    #       - Arn
 
       # Resource: "*"
    # - Effect: "Allow"
@@ -662,9 +662,6 @@ functions:
               - InboxTable
               - StreamArn
     # onError:
-    #   Fn::GetAtt:
-    #     - DeadLetterQueue
-    #     - Arn
       # Ref: DeadLetterQueue
 
   # bot-serviced lambda
@@ -682,9 +679,6 @@ functions:
               - OutboxTable
               - StreamArn
     # onError:
-    #   Fn::GetAtt:
-    #     - DeadLetterQueue
-    #     - Arn
     #   Ref: DeadLetterQueue
 
   # bot-serviced lambda
