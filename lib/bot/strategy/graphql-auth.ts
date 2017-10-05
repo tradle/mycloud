@@ -1,8 +1,10 @@
+const debug = require('debug')('tradle:sls:graphql-auth')
 import * as coexpress from 'co-express'
 import * as pick from 'object.pick'
 import { utils as tradleUtils } from '@tradle/engine'
 import * as validateResource from '@tradle/validate-resource'
 import { TYPE, SIG, MAX_CLOCK_DRIFT } from '../../constants'
+import * as Errors from '../../errors'
 
 export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
   const { identities, objects } = tradle
@@ -21,12 +23,14 @@ export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
       return
     }
 
+    debug('authenticating')
     const sig = req.headers['x-tradle-sig']
     if (sig == null) {
       res.status(403).json({
         message: `expected header "x-tradle-sig"`
       })
 
+      debug('expected sig')
       return
     }
 
@@ -50,9 +54,11 @@ export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
 
     checkDrift(queryObj.time)
 
+    debug('looking up query author')
     yield identities.addAuthorInfo(queryObj)
     const user = yield bot.users.get(queryObj._author)
     if (!employeeManager.isEmployee(user)) {
+      debug('rejecting non-employee')
       res.status(403).json({
         message: 'employees only'
       })
@@ -60,6 +66,7 @@ export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
       return
     }
 
+    debug('allowing')
     next()
   })
 }

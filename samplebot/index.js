@@ -20,7 +20,8 @@ const {
   ORG_DOMAIN,
   AUTO_VERIFY_FORMS,
   AUTO_APPROVE_APPS,
-  AUTO_APPROVE_EMPLOYEES=true
+  AUTO_APPROVE_EMPLOYEES=true,
+  GRAPHQL_AUTH=true
 } = process.env
 
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
@@ -41,6 +42,7 @@ const {
   approveAllEmployees: yn(AUTO_APPROVE_EMPLOYEES),
   autoVerify: yn(AUTO_VERIFY_FORMS),
   autoApprove: yn(AUTO_APPROVE_APPS),
+  graphqlRequiresAuth: yn(GRAPHQL_AUTH)
   // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
 })
 

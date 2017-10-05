@@ -6,7 +6,7 @@ export = function createDB (opts: {
   models: any,
   objects: any,
   tables: any,
-  aws: AWS,
+  aws: any,
   constants: any,
   env: any,
   prefix: string
