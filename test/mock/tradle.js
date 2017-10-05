@@ -3,6 +3,7 @@ const { errors, constants, utils, aws, db } = require('../../')
 const { extend } = utils
 const { getter } = require('../utils')
 const fakeSeals = require('./seals')
+const env = require('../../lib/env')
 const promiseNoop = co(function* () {})
 const noop = co(function* () {})
 
@@ -11,6 +12,7 @@ module.exports = function fakeTradle ({ objects, identities, messages, send }) {
   const inbox = {}
   const outbox = {}
   return {
+    env,
     aws,
     errors,
     constants,
