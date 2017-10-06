@@ -358,7 +358,7 @@ proto.runThroughApplication = co(function* ({
   function createProductRequest (product) {
     return buildResource({
         models: allModels,
-        model: bizModels.productRequest.id,
+        model: 'tradle.ProductRequest',
       })
       .set({
         requestFor: product,
