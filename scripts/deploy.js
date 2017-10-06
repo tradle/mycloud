@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+const path = require('path')
+const fs = require('fs')
+if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
+  throw new Error('expected vars.yml file')
+}
+
+
 const proc = require('child_process')
 const omit = require('object.omit')
 
