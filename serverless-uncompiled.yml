@@ -602,7 +602,7 @@ functions:
     events:
       - schedule:
           rate: rate(10 minutes)
-          enabled: false
+          # enabled: false
 
   # polls the status of unconfirmed blockchain transactions
   pollchain:
@@ -612,7 +612,7 @@ functions:
     events:
       - schedule:
           rate: rate(10 minutes)
-          enabled: false
+          # enabled: false
 
     # environment:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
