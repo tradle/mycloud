@@ -188,7 +188,6 @@ export default class Provider {
     // start this first to get a more accurate timestamp
     const promiseCreate = this.createSendMessageEvent({ recipient, object, other })
     const promiseSession = this.auth.getLiveSessionByPermalink(recipient)
-    const message = await promiseCreate
 
     // should probably do this asynchronously
     let session
@@ -198,6 +197,7 @@ export default class Provider {
       debug(`mqtt session not found for ${recipient}`)
     }
 
+    const message = await promiseCreate
     try {
       await this.attemptLiveDelivery({ recipient, message, session })
     } catch (err) {
