@@ -21,7 +21,7 @@ const {
   AUTO_VERIFY_FORMS,
   AUTO_APPROVE_APPS,
   AUTO_APPROVE_EMPLOYEES=true,
-  GRAPHQL_AUTH=true
+  GRAPHQL_AUTH//=true
 } = process.env
 
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
@@ -74,15 +74,6 @@ if (PRODUCTS === DEPLOYMENT) {
   // unshift
   biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
 }
-
-bot.hook('message', co(function* ({ user, type }) {
-  if (type === 'tradle.ForgetMe') {
-    yield bot.send({
-      to: user.id,
-      object: `sorry baby, you're unforgettable! I'll forget all your data though.`
-    })
-  }
-}))
 
 bot.ready()
 
