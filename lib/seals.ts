@@ -64,7 +64,7 @@ export default class Seals {
   public getUnconfirmed: (opts?: LimitOpts) => Promise<any>
   public syncUnconfirmed: (opts?: LimitOpts) => Promise<any>
   public getUnsealed: (opts?: LimitOpts) => Promise<any>
-  public sealPending: () => Promise<any>
+  public sealPending: (opts?:any) => Promise<any>
   private provider: Provider
   private blockchain: Blockchain
   private table: any
@@ -153,7 +153,7 @@ export default class Seals {
   }
 
 
-  private _sealPending = async (opts?: { limit?: number, key?: any }) => {
+  private _sealPending = async (opts: { limit?: number, key?: any } = {}) => {
     typeforce({
       limit: typeforce.maybe(typeforce.Number),
       key: typeforce.maybe(types.privateKey)

@@ -79,7 +79,7 @@ test('queue seal', co(function* (t) {
   let unsealed = yield seals.getUnsealed()
   t.same(unsealed, unconfirmed)
 
-  yield seals.sealPending({ key })
+  yield seals.sealPending()
   unsealed = yield seals.getUnsealed()
   t.equal(unsealed.length, 0)
 
