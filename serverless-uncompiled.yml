@@ -530,7 +530,7 @@ functions:
   # trigger a message to be queued/sent to a user
   send:
     handler: lib/lambda/send.handler
-    memorySize: 1024
+    memorySize: 256
 
   # addcontact:
   #   handler: lib/lambda/add-contact.handler
@@ -542,7 +542,7 @@ functions:
 
   addfriend:
     handler: lib/lambda/add-friend.handler
-    memorySize: 1024
+    memorySize: 256
 
   # performs service discovery - builds a map of logical->physical ids
   # and writes that map to the environment variables of all other lambdas
@@ -597,7 +597,7 @@ functions:
   # writes pending transactions to the blockchain
   sealpending:
     handler: lib/lambda/sealpending.handler
-    memorySize: 512
+    memorySize: 256
     timeout: 60
     events:
       - schedule:
@@ -607,7 +607,7 @@ functions:
   # polls the status of unconfirmed blockchain transactions
   pollchain:
     handler: lib/lambda/pollchain.handler
-    memorySize: 512
+    memorySize: 256
     timeout: 60
     events:
       - schedule:
