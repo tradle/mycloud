@@ -6,9 +6,13 @@ if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
   throw new Error('expected vars.yml file')
 }
 
-
 const proc = require('child_process')
 const omit = require('object.omit')
+
+const expectedNodeVersion = 'v6.10.3'
+if (process.version !== expectedNodeVersion) {
+  throw new Error(`expected Node.js ${expectedNodeVersion}, you're running ${process.version}`)
+}
 
 // some bug, otherwise you could just run sls deploy
 // https://forum.serverless.com/t/feature-branching-and-aws-apigateway-name/1890
