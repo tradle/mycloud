@@ -12,9 +12,14 @@ export = function createDB (opts: {
   prefix: string
 }) {
   const { models, objects, tables, aws, constants, env, prefix } = opts
+  const readOnlyObjects = {
+    get: objects.getObjectByLink,
+    put: objects.putObject
+  }
+
   const db = newDB({
     models,
-    objects,
+    objects: readOnlyObjects,
     docClient: aws.docClient,
     maxItemSize: constants.MAX_DB_ITEM_SIZE,
     prefix
@@ -25,7 +30,7 @@ export = function createDB (opts: {
   if (!messageModel.isInterface) {
     const outbox = createTable({
       models,
-      objects,
+      objects: readOnlyObjects,
       model: messageModel,
       tableName: tables.Outbox.name,
       prefix,
@@ -54,7 +59,7 @@ export = function createDB (opts: {
       ...models,
       [pubKeyModel.id]: pubKeyModel
     },
-    objects,
+    objects: readOnlyObjects,
     model: pubKeyModel,
     tableName: tables.PubKeys.name,
     prefix,

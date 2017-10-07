@@ -112,6 +112,18 @@ proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
     relationshipManager: employee
   })
 
+  customer.send({
+    object: {
+      [TYPE]: 'tradle.ForgetMe',
+      message: 'please forget me'
+    }
+  })
+
+  while (true) {
+    let received = yield customer.awaitMessage()
+    if (received.object[TYPE] === 'tradle.ForgotMe') break
+  }
+
   // yield this.approve({
   //   employee,
   //   user: customer,
