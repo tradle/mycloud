@@ -78,7 +78,7 @@
     "compile-template": "./scripts/compile.js serverless-uncompiled.yml serverless.yml",
     "interpolate-template": "sls print > serverless-tmp.yml && mv serverless-tmp.yml serverless.yml",
     "build:yml": "npm run compile-template && npm run interpolate-template",
-    "reinstall": "rm -rf node_modules && npm run setup",
+    "reinstall": "rm -rf node_modules && npm install",
     "localstack:start": "./scripts/localstack.sh up",
     "localstack:stop": "./scripts/localstack.sh down",
     "localstack:restart": "./scripts/localstack.sh down && ./scripts/localstack.sh up",
