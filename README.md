@@ -199,3 +199,7 @@ run an end-to-end simulated interaction between a bot, customer, and employee. T
 start up two UIs for browsing local data:
 - a DynamoDB Admin interface
 - GraphiQL
+
+#### npm run setstyle
+
+To set the style of your provider, refer to the [StylesPack](https://github.com/tradle/models/blob/master/models/tradle.StylesPack.json) model. Set it in the "style" property in `conf/{service}.json`
