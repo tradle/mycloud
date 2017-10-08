@@ -49,7 +49,8 @@ co(function* () {
       },
       initialDelay: 1000,
       maxDelay: 10000,
-      maxTime: 5 * 60 * 1000
+      maxAttempts: Infinity,
+      maxTime: Infinity
     })
   }
 
