@@ -570,6 +570,10 @@ functions:
     handler: lib/lambda/init.handler
     memorySize: 512
 
+  setstyle:
+    handler: lib/lambda/setstyle.handler
+    memorySize: 128
+
   # Blockchain
 
   # bitcoin faucet (surprise!)
