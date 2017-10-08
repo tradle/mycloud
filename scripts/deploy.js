@@ -17,11 +17,11 @@ if (process.version !== expectedNodeVersion) {
 // some bug, otherwise you could just run sls deploy
 // https://forum.serverless.com/t/feature-branching-and-aws-apigateway-name/1890
 
-proc.execSync('npm run build:yml', {
-  cwd: process.cwd(),
-  stdio: 'inherit',
-  env: omit(process.env, ['SLS_DEBUG', 'DEBUG'])
-})
+// proc.execSync('npm run build:yml', {
+//   cwd: process.cwd(),
+//   stdio: 'inherit',
+//   env: omit(process.env, ['SLS_DEBUG', 'DEBUG'])
+// })
 
 const yml = require('../lib/cli/serverless-yml')
 const stage = process.argv[2] || yml.custom.stage
