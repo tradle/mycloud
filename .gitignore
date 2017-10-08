@@ -11,3 +11,4 @@ remote-service-map.json
 serverless.yml
 vars.yml
 conf/friends.js
+conf/tradle.json
