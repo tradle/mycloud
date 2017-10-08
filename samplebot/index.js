@@ -96,7 +96,9 @@ bot.ready()
 //   .catch(console.error)
 // }
 
-module.exports = createBot.lambdas(bot)
+exports = module.exports = createBot.lambdas(bot)
+exports.models = productsAPI.models.all
+exports.tables = productsAPI.bot.db.tables
 
 // bot.graphqlAPI.executeQuery(`
 //   {
