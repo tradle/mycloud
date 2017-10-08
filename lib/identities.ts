@@ -11,12 +11,11 @@ import {
   RESOLVED_PROMISE
 } from './utils'
 
-import { addLinks, getLink, getLinks } from './crypto'
+import { addLinks, getLink } from './crypto'
 import * as types from './typeforce-types'
-import * as Events from './events'
 
 const debug = Debug('tradle:sls:identities')
-const { PREVLINK, PERMALINK, TYPE, TYPES } = constants
+const { PREVLINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
 

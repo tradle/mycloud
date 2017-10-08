@@ -1,5 +1,5 @@
 import { EventEmitter } from "events"
-const debug = require("debug")("tradle:sls:delivery-http")
+// const debug = require("debug")("tradle:sls:delivery-http")
 const { post, promiseNoop } = require("./utils")
 import { IDelivery } from "./types"
 

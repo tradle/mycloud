@@ -8,7 +8,6 @@ import {
   deepClone,
   typeforce,
   setVirtual,
-  bindAll,
   download
 } from './utils'
 import { extractSigPubKey, addLinks } from './crypto'
@@ -21,7 +20,6 @@ export default class Objects {
     typeforce(types.signedObject, object)
 
     const type = object[TYPE]
-    const isMessage = type === MESSAGE
     if (!object._sigPubKey) {
       let pubKey
       try {

@@ -1,5 +1,5 @@
 import * as path from 'path'
-import { extend, bindAll, promisify } from './utils'
+import { promisify } from './utils'
 import * as fs from 'fs'
 import * as mkdirp from 'mkdirp'
 import { Lambda } from 'aws-sdk'
@@ -130,9 +130,9 @@ export default class Discovery {
   }
 }
 
-function getFunctionNameFromArn (arn) {
-  return arn.slice(arn.lastIndexOf('/') + 1)
-}
+// function getFunctionNameFromArn (arn) {
+//   return arn.slice(arn.lastIndexOf('/') + 1)
+// }
 
 function isLambda (summary) {
   return summary.ResourceType === 'AWS::Lambda::Function'

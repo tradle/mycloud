@@ -1,26 +1,19 @@
 import Debug from 'debug'
 const debug = Debug('tradle:sls:provider')
 import { utils } from '@tradle/engine'
-import { sign, getSigningKey, getChainKey, getLink, getPermalink } from './crypto'
+import { sign, getSigningKey, getChainKey, getPermalink } from './crypto'
 import {
   cachifyPromiser,
-  loudCo,
   extend,
-  pick,
-  omit,
   clone,
-  co,
-  timestamp,
   setVirtual,
   pickVirtual,
-  typeforce,
-  bindAll
+  typeforce
 } from './utils'
 
 import * as Errors from './errors'
 import * as types from './typeforce-types'
 import {
-  PAYLOAD_PROP_PREFIX,
   IDENTITY_KEYS_KEY,
   SEQ,
   TYPE,

@@ -1,10 +1,8 @@
 import { EventEmitter } from 'events'
-import * as inherits from 'inherits'
 import * as DeliveryMQTT from './delivery-mqtt'
 import DeliveryHTTP from './delivery-http'
 import { IDelivery } from './types'
-import { clone, pick, bindAll } from './utils'
-import * as Errors from './errors'
+import { clone, pick } from './utils'
 
 const debug = require('debug')('tradle:sls:delivery')
 const MAX_BATCH_SIZE = 5
