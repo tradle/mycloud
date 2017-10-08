@@ -89,7 +89,8 @@
     "tslint": "tslint -p .",
     "symlink:dist": "ln -sf ../.serverless ./dist/.serverless && ln -sf ../conf ./dist/conf",
     "invoke:http": "./scripts/invoke-unzip.sh",
-    "delete:applications": "./scripts/delete-applications.js"
+    "delete:applications": "./scripts/delete-applications.js",
+    "getmyinfo": "./scripts/info.js > myinfo.json && open ./myinfo.json"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
