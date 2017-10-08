@@ -37,6 +37,7 @@ co(function* () {
   const url = `${endpoint}/info`
   const res = yield fetch(url)
   const info = yield res.json()
+  info.endpoint = endpoint
   const { pub } = info.bot
   const { link, permalink } = buildResource.links(pub)
   buildResource.setVirtual(pub, {
