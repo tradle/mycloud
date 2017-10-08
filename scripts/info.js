@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// download and print my provider info
+
 // #!/bin/sh
 
 // function yaml2json()

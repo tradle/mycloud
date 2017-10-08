@@ -42,7 +42,11 @@ co(function* () {
     runWithBackoffWhile(co.wrap(function* () {
       yield dynamodb.deleteTable({ TableName }).promise()
     }), {
-      shouldTryAgain: err => err.name === 'LimitExceededException',
+      shouldTryAgain: err => {
+        const willRetry = err.name === 'LimitExceededException'
+        console.log(`error deleting ${TableName}: ${err.name}, will retry: ${willRetry}`)
+        return willRetry
+      },
       initialDelay: 1000,
       maxDelay: 10000,
       maxTime: 5 * 60 * 1000
