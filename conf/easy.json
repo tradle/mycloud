@@ -1,0 +1,8 @@
+{
+  "ORG_LOGO": "https://s3.amazonaws.com/tradle-public-images/easy.png",
+  "ORG_DOMAIN": "easy.io",
+  "ORG_NAME": "Easy Bank",
+  "PRODUCTS": "nl.tradle.DigitalPassport,tradle.CoverholderApproval,tradle.MortgageProduct",
+  "AUTO_APPROVE_APPS": true,
+  "AUTO_VERIFY_FORMS": true
+}
