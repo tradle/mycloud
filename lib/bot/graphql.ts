@@ -53,6 +53,12 @@ export = function setup (opts) {
   router.use(router.defaultErrorHandler)
 
   const postProcess = async (result, op) => {
+    if (!result) return result
+
+    if (Array.isArray(result) && !result.length) {
+      return result
+    }
+
     switch (op) {
     case 'get':
       if (result[TYPE] === MESSAGE) {
