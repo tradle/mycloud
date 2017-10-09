@@ -83,3 +83,5 @@ Environment variables alternative:
 
 GraphQL
   protocol buffers? With a strongly typed system, and the verbosity of json, could be a great payload diet
+
+don't save double-wrapped messages in {prefix}tradle_Message

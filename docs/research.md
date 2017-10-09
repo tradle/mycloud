@@ -452,6 +452,9 @@ Lambda limits response size to 6MB - pretty severe for graphql. Definitely need 
 https://gist.github.com/HyperBrain/50d38027a8f57778d5b0f135d80ea406
 https://gist.github.com/HyperBrain/bba5c9698e92ac693bb461c99d6cfeec#package
 
+yaml tricks:
+https://github.com/serverless/serverless/pull/4169#issuecomment-334229982
+
 ### ElasticSearch
 
 from DynamoDB:

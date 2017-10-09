@@ -15,7 +15,11 @@
         "node_modules/*",
         "lib/types/*"
       ]
-    }
+    },
+    "types": [
+      "node",
+      "aws-sdk"
+    ]
   },
   "include": ["lib/**/*.ts", "test/**/*.ts", "samplebot/**/*.ts"],
   "exclude": ["node_modules", "**/*.js"]

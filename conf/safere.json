@@ -4,5 +4,11 @@
   "ORG_NAME": "SafeRe",
   "PRODUCTS": "nl.tradle.DigitalPassport,tradle.CoverholderApproval,tradle.MortgageProduct",
   "AUTO_APPROVE_APPS": true,
-  "AUTO_VERIFY_FORMS": true
+  "AUTO_VERIFY_FORMS": true,
+  "style": {
+    "_t": "tradle.StylesPack",
+    "backgroundImage": {
+      "url": "https://s3.amazonaws.com/tradle-public-images/bg-sunny-path-opacity-50.png"
+    }
+  }
 }
