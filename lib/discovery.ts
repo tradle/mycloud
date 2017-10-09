@@ -28,20 +28,7 @@ export default class Discovery {
   }
 
   public getServiceDiscoveryFunctionName = () => {
-    // function naming is ${service}-${stage}-${name}
-    const { thisFunctionName } = this
-    if (thisFunctionName) {
-      const parts = thisFunctionName.split('-')
-      parts[parts.length - 1] = 'setenvvars'
-      return parts.join('-')
-    }
-
-    const {
-      SERVERLESS_STAGE,
-      SERVERLESS_SERVICE_NAME
-    } = this.env
-
-    return `${SERVERLESS_SERVICE_NAME}-${SERVERLESS_STAGE}-setenvvars`
+    return this.env.SERVERLESS_PREFIX + 'setenvvars'
   }
 
   public discoverServices = async (StackName?: string) => {
