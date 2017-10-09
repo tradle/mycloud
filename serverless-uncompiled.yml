@@ -55,7 +55,7 @@ custom:
   # blockchain: ${{self:custom.vars.blockchain}}
   thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm, self:custom.defaults.thresholdBillingAlarm}}
   thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm, self:custom.defaults.thresholdThrottlingAlarm}}
-  thresholdInvocationErrorsAlarm: ${{self:custom.vars.thresholdInvocationErrorsAlarm, self:custom.defaults.thresholdInvocationErrorsAlarm}}
+  thresholdErrorsAlarm: ${{self:custom.vars.thresholdErrorsAlarm, self:custom.defaults.thresholdErrorsAlarm}}
   thresholdInvocationsAlarm: ${{self:custom.vars.thresholdInvocationsAlarm, self:custom.defaults.thresholdInvocationsAlarm}}
   thresholdDurationAlarm: ${{self:custom.vars.thresholdDurationAlarm, self:custom.defaults.thresholdDurationAlarm}}
 
@@ -1350,7 +1350,7 @@ resources:
     #     Period: '60'
     #     Unit: Seconds
     #     EvaluationPeriods: '1'
-    #     Threshold: ${{self:custom.thresholdInvocationErrorsAlarm}}
+    #     Threshold: ${{self:custom.thresholdErrorsAlarm}}
     #     TreatMissingData: missing
     #     ComparisonOperator: GreaterThanThreshold
     #     AlarmActions:
