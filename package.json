@@ -111,7 +111,7 @@
     "@tradle/gen-samples": "github:tradle/gen-samples",
     "@tradle/merge-models": "^2.1.0",
     "@tradle/models": "github:tradle/models",
-    "@tradle/models-corporate-onboarding": "github:tradle/models-corporate-onboarding#ab8e235",
+    "@tradle/models-corporate-onboarding": "github:tradle/models-corporate-onboarding",
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",

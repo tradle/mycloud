@@ -42,14 +42,17 @@ const nextUserIdentity = (function () {
 
 const createBot = require('../lib/bot')
 const baseModels = require('../lib/models')
-const defaultModels = mergeModels()
-  .add(baseModels)
-  .get()
+// const defaultModels = mergeModels()
+//   .add(baseModels)
+//   .get()
 
+const defaultModels = require('../samplebot').models
 const defaultProducts = ['nl.tradle.DigitalPassport']
+// const defaultProducts = ['tradle.CorporateBankAccount']
 
 function E2ETest (opts={}) {
   const {
+    models=defaultModels,
     products=defaultProducts,
     tradle=defaultTradleInstance.new()
   } = opts
@@ -59,6 +62,7 @@ function E2ETest (opts={}) {
     productsAPI,
     employeeManager
   } = createProductsBot({
+    models,
     products,
     tradle,
     // autoPrompt: true,

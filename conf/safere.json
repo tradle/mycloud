@@ -2,7 +2,7 @@
   "ORG_LOGO": "https://s3.amazonaws.com/tradle-public-images/safe-re.png",
   "ORG_DOMAIN": "safere.io",
   "ORG_NAME": "SafeRe",
-  "PRODUCTS": "nl.tradle.DigitalPassport,tradle.CoverholderApproval,tradle.MortgageProduct",
+  "PRODUCTS": "nl.tradle.DigitalPassport,tradle.CorporateBankAccount",
   "AUTO_APPROVE_APPS": true,
   "AUTO_VERIFY_FORMS": true,
   "style": {

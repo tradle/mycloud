@@ -76,7 +76,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#b7605b93f29cd76fe69a3c7fc6b3eb4d06bcb04d",
+      "resolved": "git://github.com/tradle/bot-products.git#bd4b2adbf1cbeaa557b1492d56f14b620aa676ac",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -227,8 +227,8 @@
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
-      "from": "tradle/models-corporate-onboarding#ab8e235",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#ab8e235c415f7f11d253a12964381d81e3460762"
+      "from": "tradle/models-corporate-onboarding",
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#d497aa771dfe15eeeab56b35cf7d6cf31086c77a"
     },
     "@tradle/protocol": {
       "version": "3.0.0",
