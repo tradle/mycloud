@@ -70,9 +70,9 @@ if (PRODUCTS === DEPLOYMENT) {
   productsAPI.plugins.clear('onFormsCollected')
   productsAPI.plugins.use(require('./deployment-handlers'))
 } else {
-  const biz = require('@tradle/biz-plugins')
-  // unshift
-  biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
+  // const biz = require('@tradle/biz-plugins')
+  // // unshift
+  // biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
 }
 
 bot.ready()
