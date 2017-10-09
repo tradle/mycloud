@@ -614,6 +614,10 @@ functions:
     handler: lib/lambda/setstyle.handler
     memorySize: 128
 
+  precreate-tables:
+    handler: lib/lambda/precreate-tables.handler
+    memorySize: 128
+
   # Blockchain
 
   # bitcoin faucet (surprise!)

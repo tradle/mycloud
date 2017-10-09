@@ -17,3 +17,16 @@ export async function setStyle (style) {
   info.style = style
   await buckets.PublicConf.putJSON(KEY, info)
 }
+
+export async function preCreateTables ({ db, ids }) {
+  return await Promise.all(ids.map(async (id) => {
+    try {
+      await db.tables[id].create()
+    } catch (err) {
+      // ignore if already exists
+      if (err.name !== 'ResourceInUseException') {
+        throw err
+      }
+    }
+  }))
+}
