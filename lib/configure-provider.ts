@@ -32,7 +32,7 @@ export async function preCreateTables ({ productsAPI, ids }) {
     .concat(TABLES_TO_PRECREATE)
   }
 
-  return await Promise.all(ids.map(async (id) => {
+  await Promise.all(ids.map(async (id) => {
     try {
       debug(`creating table ${id}`)
       await bot.db.tables[id].create()
