@@ -8,9 +8,7 @@ const { SERVERLESS_PREFIX } = env
 const { listTables, clear } = dbUtils
 const { models, tables } = require('../samplebot')
 const readline = require('readline');
-const promisify = require('pify')
 const rl = readline.createInterface(process.stdin, process.stdout)
-const confirm = promisify(rl.question.bind(rl))
 
 const getTablesToClear = co.wrap(function* () {
   console.log('looking up tables...')
@@ -59,9 +57,12 @@ const getTablesToClear = co.wrap(function* () {
 const clearTables = co.wrap(function* () {
   const toDelete = yield getTablesToClear()
   console.log('will empty the following tables\n', toDelete)
-  const answer = yield confirm('continue? y/[n]:')
+  const answer = yield new Promise(resolve => {
+    rl.question('continue? y/[n]:', resolve)
+  })
+
   rl.close()
-  if (yn(answer)) {
+  if (!yn(answer)) {
     console.log('aborted')
     return
   }
