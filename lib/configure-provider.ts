@@ -20,12 +20,13 @@ export async function setStyle (style) {
 
 // should prob move this to samplebot
 export async function preCreateTables ({ productsAPI, ids }) {
-  if (!ids) {
-    const { models, bot } = productsAPI
+  const { models, bot } = productsAPI
+  if (!Array.isArray(ids)) {
     const { products, productForCertificate } = models.biz
     ids = products.map(product => {
+      const cert = productForCertificate[product]
       return (models.all[product].forms || [])
-        .concat(productForCertificate[product] || [])
+        .concat(cert ? cert.id : [])
     })
     .reduce((forms, batch) => forms.concat(batch), [])
     .concat(TABLES_TO_PRECREATE)
@@ -33,6 +34,7 @@ export async function preCreateTables ({ productsAPI, ids }) {
 
   return await Promise.all(ids.map(async (id) => {
     try {
+      debug(`creating table ${id}`)
       await bot.db.tables[id].create()
     } catch (err) {
       // ignore if already exists
