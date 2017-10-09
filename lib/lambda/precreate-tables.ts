@@ -1,6 +1,6 @@
 
 import { preCreateTables } from '../configure-provider'
 import * as wrap from '../wrap'
-import { db } from '../../samplebot'
+import { productsAPI } from '../../samplebot'
 
-export const handler = wrap(event => preCreateTables({ db, ids: event }))
+export const handler = wrap(event => preCreateTables({ productsAPI, ids: event }))

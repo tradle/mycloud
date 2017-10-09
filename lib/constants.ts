@@ -23,7 +23,26 @@ const constants = {
   MAX_CLOCK_DRIFT: 10000,
   MAX_DB_ITEM_SIZE: 6000,
   ENV_RESOURCE_PREFIX: 'R_',
-  HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'
+  HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
+  TABLES_TO_PRECREATE: [
+    'tradle.Application',
+    'tradle.FormRequest',
+    'tradle.ProductRequest',
+    'tradle.Verification',
+    'tradle.CustomerWaiting',
+    'tradle.Introduction',
+    'tradle.SelfIntroduction',
+    'tradle.IdentityPublishRequest',
+    'tradle.ApplicationApproval',
+    'tradle.ApplicationDenial',
+    'tradle.Name',
+    'tradle.SimpleMessage',
+    'tradle.MyEmployeeOnboarding',
+    'tradle.MyCloudFriend',
+    'tradle.ForgetMe',
+    'tradle.ForgotYou',
+    'tradle.ModelsPack'
+  ]
 }
 
 export = constants

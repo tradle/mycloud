@@ -101,6 +101,7 @@ exports.models = productsAPI.models.all
 exports.bot = productsAPI.bot.bot
 exports.db = productsAPI.bot.db
 exports.tables = productsAPI.bot.db.tables
+exports.productsAPI = productsAPI
 
 // bot.graphqlAPI.executeQuery(`
 //   {
