@@ -41,7 +41,8 @@ const constants = {
     'tradle.MyCloudFriend',
     'tradle.ForgetMe',
     'tradle.ForgotYou',
-    'tradle.ModelsPack'
+    'tradle.ModelsPack',
+    'tradle.ShareRequest'
   ]
 }
 
