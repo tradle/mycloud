@@ -7252,6 +7252,12 @@
       "resolved": "https://registry.npmjs.org/serverless-offline/-/serverless-offline-3.16.0.tgz",
       "dev": true
     },
+    "serverless-plugin-aws-alerts": {
+      "version": "1.2.4",
+      "from": "serverless-plugin-aws-alerts@latest",
+      "resolved": "https://registry.npmjs.org/serverless-plugin-aws-alerts/-/serverless-plugin-aws-alerts-1.2.4.tgz",
+      "dev": true
+    },
     "serverless-plugin-common-excludes": {
       "version": "2.0.0",
       "from": "serverless-plugin-common-excludes@>=2.0.0 <3.0.0",

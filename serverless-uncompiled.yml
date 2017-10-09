@@ -7,6 +7,7 @@ plugins:
   # - serverless-pseudo-parameters
   - serverless-sam
   - serverless-apigw-binary
+  - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes
   # - serverless-plugin-typescript
   - print
@@ -56,6 +57,7 @@ custom:
   thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm, self:custom.defaults.thresholdThrottlingAlarm}}
   thresholdInvocationErrorsAlarm: ${{self:custom.vars.thresholdInvocationErrorsAlarm, self:custom.defaults.thresholdInvocationErrorsAlarm}}
   thresholdInvocationsAlarm: ${{self:custom.vars.thresholdInvocationsAlarm, self:custom.defaults.thresholdInvocationsAlarm}}
+  thresholdDurationAlarm: ${{self:custom.vars.thresholdDurationAlarm, self:custom.defaults.thresholdDurationAlarm}}
 
   # stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaultStage}}
   # region: ${{opt:region, self:custom.vars.region}}
@@ -74,10 +76,48 @@ custom:
     ${{self:custom.vars.emailForNotifications, self:custom.defaults.emailForNotifications}}
 
   # sns
-  billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
-  throttlingAlarmTopic: ${{self:custom.prefixSNSTopic}}ThrottlingAlarmNotification
-  invocationsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationAlarmNotification
-  invocationErrorsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationErrorsAlarmNotification
+  # billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
+  # throttlingAlarmTopic: ${{self:custom.prefixSNSTopic}}ThrottlingAlarmNotification
+  # invocationsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationAlarmNotification
+  # invocationErrorsAlarmTopic: ${{self:custom.prefixSNSTopic}}InvocationErrorsAlarmNotification
+
+  alertNotifications:
+    - protocol: email
+      endpoint: ${{self:custom.emailForNotifications}}
+
+  alerts:
+    stages:
+      - dev
+    dashboards: true
+    topics:
+      ok:
+        topic: ${{self:custom.prefix}}alerts-ok
+        notifications: ${{self:custom.alertNotifications}}
+      alarm:
+        topic: ${{self:custom.prefix}}alerts-alarm
+        notifications: ${{self:custom.alertNotifications}}
+      insufficientData:
+        topic: ${{self:custom.prefix}}alerts-insufficientData
+        notifications: ${{self:custom.alertNotifications}}
+    definitions:
+      functionErrors:
+        period: 60
+        threshold: ${{self:custom.thresholdErrorsAlarm}}
+      functionThrottles:
+        period: 60
+        threshold: ${{self:custom.thresholdThrottlingAlarm}}
+      functionInvocations:
+        period: 60
+        threshold: ${{self:custom.thresholdInvocationsAlarm}}
+      functionDuration:
+        period: 60
+        threshold: ${{self:custom.thresholdDurationAlarm}}
+
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
+      - functionDuration
 
   # sqs
   deadLetterQueueName: ${{self:custom.prefixSQS}}dead-letter-queue
@@ -1240,83 +1280,83 @@ resources:
     #    # InsufficientDataActions:
     #    #   - Ref: BillingAlarmNotification
 
-    ThrottlingAlarmNotification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${{self:custom.throttlingAlarmTopic}}
-        Subscription:
-          - Endpoint: ${{self:custom.emailForNotifications}}
-            Protocol: email
+    # ThrottlingAlarmNotification:
+    #   Type: AWS::SNS::Topic
+    #   Properties:
+    #     TopicName: ${{self:custom.throttlingAlarmTopic}}
+    #     Subscription:
+    #       - Endpoint: ${{self:custom.emailForNotifications}}
+    #         Protocol: email
 
-    ThrottlingAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmDescription: Alarm if a lambda function is throttled
-        Namespace: AWS/Lambda
-        MetricName: Throttles
-        Statistic: Sum
-        Period: '60'
-        Unit: Seconds
-        EvaluationPeriods: '1'
-        Threshold: ${{self:custom.thresholdThrottlingAlarm}}
-        TreatMissingData: missing
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - Ref: ThrottlingAlarmNotification
-        # InsufficientDataActions:
-        #   - Ref: ThrottlingAlarmNotification
+    # ThrottlingAlarm:
+    #   Type: AWS::CloudWatch::Alarm
+    #   Properties:
+    #     AlarmDescription: Alarm if a lambda function is throttled
+    #     Namespace: AWS/Lambda
+    #     MetricName: Throttles
+    #     Statistic: Sum
+    #     Period: '60'
+    #     Unit: Seconds
+    #     EvaluationPeriods: '1'
+    #     Threshold: ${{self:custom.thresholdThrottlingAlarm}}
+    #     TreatMissingData: missing
+    #     ComparisonOperator: GreaterThanThreshold
+    #     AlarmActions:
+    #       - Ref: ThrottlingAlarmNotification
+    #     # InsufficientDataActions:
+    #     #   - Ref: ThrottlingAlarmNotification
 
-    InvocationAlarmNotification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${{self:custom.invocationsAlarmTopic}}
-        Subscription:
-          - Endpoint: ${{self:custom.emailForNotifications}}
-            Protocol: email
+    # InvocationAlarmNotification:
+    #   Type: AWS::SNS::Topic
+    #   Properties:
+    #     TopicName: ${{self:custom.invocationsAlarmTopic}}
+    #     Subscription:
+    #       - Endpoint: ${{self:custom.emailForNotifications}}
+    #         Protocol: email
 
-    InvocationAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmDescription: Alarm if there suspiciously many lambda invocations
-        Namespace: AWS/Lambda
-        MetricName: Invocations
-        Statistic: Sum
-        Period: '60'
-        Unit: Seconds
-        EvaluationPeriods: '1'
-        Threshold: ${{self:custom.thresholdInvocationsAlarm}}
-        TreatMissingData: missing
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - Ref: InvocationAlarmNotification
-        # InsufficientDataActions:
-        #   - Ref: InvocationAlarmNotification
+    # InvocationAlarm:
+    #   Type: AWS::CloudWatch::Alarm
+    #   Properties:
+    #     AlarmDescription: Alarm if there suspiciously many lambda invocations
+    #     Namespace: AWS/Lambda
+    #     MetricName: Invocations
+    #     Statistic: Sum
+    #     Period: '60'
+    #     Unit: Seconds
+    #     EvaluationPeriods: '1'
+    #     Threshold: ${{self:custom.thresholdInvocationsAlarm}}
+    #     TreatMissingData: missing
+    #     ComparisonOperator: GreaterThanThreshold
+    #     AlarmActions:
+    #       - Ref: InvocationAlarmNotification
+    #     # InsufficientDataActions:
+    #     #   - Ref: InvocationAlarmNotification
 
-    InvocationErrorAlarmNotification:
-      Type: AWS::SNS::Topic
-      Properties:
-        TopicName: ${{self:custom.invocationErrorsAlarmTopic}}
-        Subscription:
-          - Endpoint: ${{self:custom.emailForNotifications}}
-            Protocol: email
+    # InvocationErrorAlarmNotification:
+    #   Type: AWS::SNS::Topic
+    #   Properties:
+    #     TopicName: ${{self:custom.invocationErrorsAlarmTopic}}
+    #     Subscription:
+    #       - Endpoint: ${{self:custom.emailForNotifications}}
+    #         Protocol: email
 
-    InvocationErrorAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmDescription: Alarm if a lambda functions throw errors
-        Namespace: AWS/Lambda
-        MetricName: Errors
-        Statistic: Sum
-        Period: '60'
-        Unit: Seconds
-        EvaluationPeriods: '1'
-        Threshold: ${{self:custom.thresholdInvocationErrorsAlarm}}
-        TreatMissingData: missing
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - Ref: InvocationErrorAlarmNotification
-        # InsufficientDataActions:
-        #   - Ref: InvocationErrorAlarmNotification
+    # InvocationErrorAlarm:
+    #   Type: AWS::CloudWatch::Alarm
+    #   Properties:
+    #     AlarmDescription: Alarm if a lambda functions throw errors
+    #     Namespace: AWS/Lambda
+    #     MetricName: Errors
+    #     Statistic: Sum
+    #     Period: '60'
+    #     Unit: Seconds
+    #     EvaluationPeriods: '1'
+    #     Threshold: ${{self:custom.thresholdInvocationErrorsAlarm}}
+    #     TreatMissingData: missing
+    #     ComparisonOperator: GreaterThanThreshold
+    #     AlarmActions:
+    #       - Ref: InvocationErrorAlarmNotification
+    #     # InsufficientDataActions:
+    #     #   - Ref: InvocationErrorAlarmNotification
 
     # DeadLetterQueue:
     #   Type: AWS::SQS::Queue
