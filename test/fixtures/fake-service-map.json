@@ -26,5 +26,6 @@
   "R_TABLE_Users": "{prefix}users",
   "SERVERLESS_PREFIX": "{prefix}",
   "SERVERLESS_SERVICE_NAME": "tradle",
-  "SERVERLESS_STAGE": "dev"
+  "SERVERLESS_STAGE": "dev",
+  "AWS_LAMBDA_FUNCTION_NAME": "{prefix}test-lambda"
 }

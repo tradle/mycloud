@@ -1,4 +1,5 @@
-process.env.IS_LOCAL = true
+require('./env')
+
 const AWS = require('aws-sdk')
 AWS.config.update({
   maxRetries: 0,

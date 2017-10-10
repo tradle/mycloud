@@ -27,5 +27,6 @@ AWS.mock('STS', 'assumeRole', function (params, callback) {
 extend(process.env, pick(serviceMap, [
   'SERVERLESS_STAGE',
   'SERVERLESS_SERVICE_NAME',
-  'SERVERLESS_PREFIX'
+  'SERVERLESS_PREFIX',
+  'AWS_LAMBDA_FUNCTION_NAME'
 ]))
