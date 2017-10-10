@@ -9,6 +9,7 @@ plugins:
   - serverless-apigw-binary
   - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes
+  - serverless-plugin-warmup
   # - serverless-plugin-typescript
   - print
   # - serverless-dynamodb-ttl
@@ -378,6 +379,7 @@ functions:
   # see various commented out http-event functions below
   # for details on what they do
   http_catchall:
+    warmup: true
     memorySize: 1024
     handler: lib/lambda/http/default.handler
     events:
@@ -514,6 +516,7 @@ functions:
   # handles IoT (MQTT) connections post-authentication
   # updates presence in PresenceTable
   onconnect:
+    warmup: true
     handler: lib/lambda/mqtt/onconnect.handler
     events:
       - iot:
@@ -523,6 +526,7 @@ functions:
 
   # updates presence in PresenceTable
   ondisconnect:
+    warmup: true
     handler: lib/lambda/mqtt/ondisconnect.handler
     events:
       - iot:
@@ -533,6 +537,7 @@ functions:
   # triggered when a client subscribes to an MQTT topic
   # sends the client any queued up messages
   onsubscribe:
+    warmup: true
     handler: lib/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
     events:
@@ -545,6 +550,7 @@ functions:
   # validates, stores in OutboxTable, in ObjectsBucker (for now),
   # and passes off to bot engine
   onmessage:
+    warmup: true
     handler: lib/lambda/mqtt/onmessage.handler
     memorySize: 1024
     #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
@@ -676,6 +682,7 @@ functions:
   # pre-processes with bot-engine
   # hands off to bot's business logic
   bot_onmessage:
+    warmup: true
     handler: samplebot/index.onmessage
     memorySize: 1024
 
@@ -732,6 +739,7 @@ functions:
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint
   bot_graphql:
+    warmup: true
     # make sure graphql route gets loaded
     handler: samplebot/index.ongraphql
     # handler: lib/lambda/http/default.handler
