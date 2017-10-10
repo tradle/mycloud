@@ -93,7 +93,8 @@
     "invoke:http": "./scripts/invoke-unzip.sh",
     "delete:applications": "./scripts/delete-applications.js",
     "getmyinfo": "./scripts/info.js > myinfo.json && open ./myinfo.json",
-    "setstyle": "./scripts/setstyle.sh"
+    "setstyle": "./scripts/setstyle.sh",
+    "reshrink": "npm dedupe && npm prune && npm shrinkwrap"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
