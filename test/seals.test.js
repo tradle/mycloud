@@ -1,4 +1,4 @@
-require('./env')
+require('./env').install()
 
 // const AWS = require('aws-sdk')
 const test = require('tape')

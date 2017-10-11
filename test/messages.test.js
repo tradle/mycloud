@@ -1,4 +1,4 @@
-require('./env')
+require('./env').install()
 
 // const awsMock = require('aws-sdk-mock')
 const AWS = require('aws-sdk')
@@ -184,7 +184,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   t.equal(stubPutObject.callCount, 1)
   t.equal(stubGetIdentity.callCount, 2)
   t.equal(stubGetInbound.callCount, 0)
-  t.equal(stubTimestampInc.callCount, 1)
+  t.equal(stubTimestampInc.callCount, process.env.NO_TIME_TRAVEL ? 1 : 0)
   stub.restore()
   // TODO: compare
 

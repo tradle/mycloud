@@ -16,7 +16,8 @@ aws configure
 
 ### Install some tools
 
-[jq](https://stedolan.github.io/jq/download/)
+Command line JSON parser: [jq](https://stedolan.github.io/jq/download/)
+Typescript: `npm i -g typescript`
 
 ### Install
 

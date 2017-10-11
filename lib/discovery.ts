@@ -4,9 +4,6 @@ import * as fs from 'fs'
 import * as mkdirp from 'mkdirp'
 import { Lambda } from 'aws-sdk'
 
-import Debug = require('debug')
-const debug = Debug('tradle:sls:discovery')
-
 const pfs = promisify(fs)
 const pmkdirp = promisify(mkdirp)
 
@@ -15,6 +12,7 @@ export default class Discovery {
   private aws: any
   private lambdaUtils: any
   private iot: any
+  private debug: (...any) => void
   public get thisFunctionName () {
     return this.lambdaUtils.thisFunctionName
   }
@@ -22,6 +20,7 @@ export default class Discovery {
   constructor (opts: { env: any, aws: any, lambdaUtils: any, iot: any }) {
     const { env, aws, lambdaUtils, iot } = opts
     this.env = env
+    this.debug = env.logger('discovery')
     this.aws = aws
     this.lambdaUtils = lambdaUtils
     this.iot = iot
@@ -37,22 +36,22 @@ export default class Discovery {
     if (thisFunctionName && thisFunctionName.endsWith('-setenvvars')) {
       env = await this.doDiscoverServices(StackName)
     } else {
-      debug('delegating service discovery')
+      this.debug('delegating service discovery')
       env = await this.lambdaUtils.invoke({
         // hackity hack
         name: this.getServiceDiscoveryFunctionName(),
         sync: true
       })
 
-      debug('received env', env)
+      this.debug('received env', env)
     }
 
     return env
   }
 
   private doDiscoverServices = async (StackName?: string) => {
-    debug('performing service discovery')
     const { thisFunctionName } = this
+    this.debug(`performing service discovery in function ${thisFunctionName}`)
     const promiseIotEndpoint = this.iot.getEndpoint()
     let thisFunctionConfig
     if (!StackName) {
@@ -64,7 +63,7 @@ export default class Discovery {
       }
     }
 
-    const { StackResourceSummaries } = await this.lambdaUtils.getStack(StackName)
+    const resources = await this.lambdaUtils.getStackResources(StackName)
     const env = {
       IOT_ENDPOINT: await promiseIotEndpoint
     }
@@ -73,24 +72,25 @@ export default class Discovery {
     //   IOT_ENDPOINT: await promiseIotEndpoint
     // }, Resources.environmentForStack({ StackResourceSummaries }))
 
-    const willWrite = StackResourceSummaries.every(({ ResourceStatus }) => {
+    const willWrite = resources.every(({ ResourceStatus }) => {
       return ResourceStatus === 'CREATE_COMPLETE' ||
         ResourceStatus === 'UPDATE_COMPLETE'
     })
 
     if (willWrite) {
-      debug('setting environment variables for lambdas')
+      this.debug('setting environment variables for lambdas', JSON.stringify(env, null, 2))
 
       // theoretically, this could run
       // while the function does its actual work
-      const functions = StackResourceSummaries.filter(isLambda)
+      const functions = resources.filter(isLambda)
+      this.debug('will update functions', JSON.stringify(functions, null, 2))
       await Promise.all(functions.map(({ PhysicalResourceId }) => {
         let current
         if (PhysicalResourceId === thisFunctionName) {
           current = thisFunctionConfig
         }
 
-        debug(`updating environment variables for: ${PhysicalResourceId}`)
+        this.debug(`updating environment variables for: ${PhysicalResourceId}`)
         return this.lambdaUtils.updateEnvironment({
           functionName: PhysicalResourceId,
           update: env,
@@ -112,7 +112,7 @@ export default class Discovery {
       await pmkdirp(path.dirname(RESOURCES_ENV_PATH))
       await pfs.writeFile(RESOURCES_ENV_PATH, JSON.stringify(vars, null, 2))
     } catch (err) {
-      debug('failed to write environment')
+      this.debug('failed to write environment')
     }
   }
 }

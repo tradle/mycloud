@@ -1,11 +1,10 @@
-const debug = require('debug')('tradle:sls:seals')
 import { utils, protocol } from '@tradle/engine'
 import AWS = require('aws-sdk')
 import Blockchain from './blockchain'
 import Provider from './provider'
+import Env from './env'
 import {
   clone,
-  pick,
   timestamp,
   typeforce,
   uuid,
@@ -24,7 +23,6 @@ const WATCH_TYPE = {
 }
 
 const YES = 'y'
-const noop = () => {}
 const notNull = val => !!val
 
 interface SealInfo {
@@ -69,11 +67,14 @@ export default class Seals {
   private blockchain: Blockchain
   private table: any
   private network: any
+  private env:Env
+  private debug:(...any) => void
   constructor ({
     provider,
     blockchain,
     tables,
-    network
+    network,
+    env
   }) {
     typeforce(types.blockchain, blockchain)
     bindAll(this)
@@ -82,9 +83,15 @@ export default class Seals {
     this.blockchain = blockchain
     this.table = tables.Seals
     this.network = network
+    this.env = env
+    this.debug = env.logger('seals')
     const scanner = IndexName => async (opts:LimitOpts = {}) => {
       const { limit=Infinity } = opts
-      const query = { IndexName }
+      const query:AWS.DynamoDB.ScanInput = {
+        TableName: this.table.name,
+        IndexName
+      }
+
       if (limit !== Infinity) {
         query.Limit = limit
       }
@@ -128,7 +135,7 @@ export default class Seals {
 
   private recordWriteSuccess = async ({ seal, txId }) => {
     typeforce(typeforce.String, txId)
-    debug(`sealed ${seal.link} with tx ${txId}`)
+    this.debug(`sealed ${seal.link} with tx ${txId}`)
 
     const update = {
       txId,
@@ -145,7 +152,7 @@ export default class Seals {
 
   private recordWriteError = async ({ seal, error })
     :Promise<AWS.DynamoDB.Types.UpdateItemOutput> => {
-    debug(`failed to seal ${seal.link}`, error.stack)
+    this.debug(`failed to seal ${seal.link}`, error.stack)
     const errors = addError(seal.errors, error)
     const params = dbUtils.getUpdateParams({ errors })
     params.Key = getKey(seal)
@@ -174,7 +181,7 @@ export default class Seals {
     }
 
     const pending = await this.getUnsealed({ limit })
-    debug(`found ${pending.length} pending seals`)
+    this.debug(`found ${pending.length} pending seals`)
     let aborted
     const results = await seriesMap(pending, async (sealInfo: SealInfo) => {
       if (aborted) return
@@ -186,7 +193,7 @@ export default class Seals {
         result = await this.blockchain.seal({ addresses, link, key })
       } catch (error) {
         if (/insufficient/i.test(error.message)) {
-          debug(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
+          this.debug(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
           aborted = true
         }
 
@@ -263,7 +270,7 @@ export default class Seals {
     }
 
     if (!Object.keys(updates).length) {
-      debug(`blockchain has nothing new for ${addresses.length} synced addresses`)
+      this.debug(`blockchain has nothing new for ${addresses.length} synced addresses`)
       return
     }
 

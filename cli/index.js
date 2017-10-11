@@ -10,11 +10,9 @@ const promisify = require('pify')
 const fs = promisify(require('fs'))
 const mkdirp = promisify(require('mkdirp'))
 const program = require('commander')
-const Discovery = require('../lib/discovery')
 const co = require('../lib/utils').loudCo
-const aws = require('../lib/aws')
 // const { PublicConfBucket } = require('../lib/buckets')
-const { init, push, clear } = require('../lib/init')
+const { aws, discovery, init, push, clear } = require('../lib/init')
 const DIR = path.resolve('./org')
 const FILES = (function () {
   const map = {
@@ -94,7 +92,7 @@ program
   .command('destroy')
   .action(co(function* (cmd, options={}) {
     try {
-      yield Discovery.discoverServices()
+      yield discovery.discoverServices()
       yield clear()
     } catch (err) {
       console.error(err.stack)

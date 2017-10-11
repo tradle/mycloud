@@ -85,3 +85,6 @@ GraphQL
   protocol buffers? With a strongly typed system, and the verbosity of json, could be a great payload diet
 
 don't save double-wrapped messages in {prefix}tradle_Message
+
+Lambda Tests:
+  ensure events incoming to lambdas map to correct library function calls

@@ -3,16 +3,16 @@ const { errors, constants, utils, aws, db } = require('../../')
 const { extend } = utils
 const { getter } = require('../utils')
 const fakeSeals = require('./seals')
-const env = require('../../lib/env')
+const Env = require('../../lib/env')
 const promiseNoop = co(function* () {})
 const noop = co(function* () {})
 
-module.exports = function fakeTradle ({ objects, identities, messages, send }) {
+module.exports = function fakeTradle ({ env, objects, identities, messages, send }) {
   const seals = {}
   const inbox = {}
   const outbox = {}
   return {
-    env,
+    env: env || new Env(process.env),
     aws,
     errors,
     constants,

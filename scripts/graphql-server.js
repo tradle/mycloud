@@ -4,7 +4,7 @@ const path = require('path')
 const loadEnv = require('node-env-file')
 loadEnv(path.resolve(__dirname, '../docker/.env'))
 
-require('../test/env')
+require('../test/env').install()
 
 const express = require('express')
 const expressGraphQL = require('express-graphql')

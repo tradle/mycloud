@@ -1,32 +1,28 @@
-// console.warn('make sure localstack is running (npm run localstack:start)')
-
-process.env.NODE_ENV = 'test'
-process.env.IS_LOCAL = true
-
-require('source-map-support').install()
-
-const debug = require('debug')('tradle:sls:test:env')
-const serviceMap = require('./service-map')
-const pick = require('object.pick')
-const extend = require('xtend/mutable')
-const AWS = require('aws-sdk-mock')
-AWS.mock('STS', 'assumeRole', function (params, callback) {
-  debug('assumed role')
-  callback(null, {
-    AssumedRoleUser: {
-      AssumedRoleId: 'abcdef'
-    },
-    Credentials: {
-      AccessKeyId: 'abc',
-      SecretAccessKey: 'def',
-      SessionToken: 'ghi'
-    }
-  })
-})
-
-extend(process.env, pick(serviceMap, [
-  'SERVERLESS_STAGE',
-  'SERVERLESS_SERVICE_NAME',
-  'SERVERLESS_PREFIX',
-  'AWS_LAMBDA_FUNCTION_NAME'
-]))
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require('source-map-support').install();
+const AWS = require("aws-sdk-mock");
+const serviceMap = require("./service-map");
+const debug = require('debug')('tradle:sls:test:env');
+const props = Object.assign({}, serviceMap, { NODE_ENV: 'test', IS_LOCAL: true });
+exports.createTestEnv = () => {
+    const Env = require('../lib/env');
+    return new Env(props);
+};
+exports.install = () => {
+    Object.assign(process.env, props);
+    AWS.mock('STS', 'assumeRole', (params, callback) => {
+        debug('assumed role');
+        callback(null, {
+            AssumedRoleUser: {
+                AssumedRoleId: 'abcdef'
+            },
+            Credentials: {
+                AccessKeyId: 'abc',
+                SecretAccessKey: 'def',
+                SessionToken: 'ghi'
+            }
+        });
+    });
+};
+//# sourceMappingURL=env.js.map

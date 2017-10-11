@@ -12,10 +12,7 @@ module.exports = {
         "array-bracket-spacing": "warn",
         "array-callback-return": "warn",
         "arrow-body-style": "warn",
-        "arrow-parens": [
-            "error",
-            "as-needed"
-        ],
+        "arrow-parens": "off",
         "arrow-spacing": [
             "error",
             {
@@ -25,14 +22,11 @@ module.exports = {
         ],
         "block-scoped-var": "error",
         "block-spacing": "error",
-        "brace-style": [
-            "error",
-            "1tbs"
-        ],
-        "callback-return": "error",
+        "brace-style": "off",
+        "callback-return": "warn",
         "camelcase": "warn",
         "capitalized-comments": "off",
-        "class-methods-use-this": "error",
+        "class-methods-use-this": "warn",
         "comma-dangle": "off",
         "comma-spacing": [
             "error",
@@ -52,12 +46,7 @@ module.exports = {
         "curly": "off",
         "default-case": "error",
         "dot-location": "off",
-        "dot-notation": [
-            "error",
-            {
-                "allowKeywords": true
-            }
-        ],
+        "dot-notation": "warn",
         "eol-last": "off",
         "eqeqeq": "warn",
         "func-call-spacing": "error",
@@ -87,17 +76,17 @@ module.exports = {
             "error",
             "unix"
         ],
-        "lines-around-comment": "warn",
-        "lines-around-directive": "error",
+        "lines-around-comment": "off",
+        "lines-around-directive": "off",
         "max-depth": "error",
         "max-len": "off",
         "max-lines": "warn",
         "max-nested-callbacks": "error",
         "max-params": "warn",
         "max-statements": "off",
-        "max-statements-per-line": "error",
+        "max-statements-per-line": "off",
         "multiline-ternary": "warn",
-        "new-cap": "error",
+        "new-cap": "warn",
         "new-parens": "error",
         "newline-after-var": "off",
         "newline-before-return": "off",
@@ -145,7 +134,7 @@ module.exports = {
         "no-lonely-if": "error",
         "no-loop-func": "error",
         "no-magic-numbers": "off",
-        "no-mixed-operators": "error",
+        "no-mixed-operators": "warn",
         "no-mixed-requires": "error",
         "no-multi-assign": "warn",
         "no-multi-spaces": "error",
@@ -185,13 +174,13 @@ module.exports = {
         "no-template-curly-in-string": "error",
         "no-ternary": "off",
         "no-throw-literal": "error",
-        "no-trailing-spaces": "error",
+        "no-trailing-spaces": "warn",
         "no-undef-init": "warn",
         "no-undefined": "warn",
         "no-underscore-dangle": "off",
         "no-unmodified-loop-condition": "error",
         "no-unneeded-ternary": "error",
-        "no-unused-expressions": "error",
+        "no-unused-expressions": "off",
         "no-unused-vars": "warn",
         "no-use-before-define": "off",
         "no-useless-call": "error",
@@ -201,8 +190,8 @@ module.exports = {
         "no-useless-escape": "error",
         "no-useless-rename": "error",
         "no-useless-return": "error",
-        "no-var": "error",
-        "no-void": "error",
+        "no-var": "warn",
+        "no-void": "off",
         "no-warning-comments": "warn",
         "no-whitespace-before-property": "error",
         "no-with": "error",
@@ -211,12 +200,7 @@ module.exports = {
             "error",
             "always"
         ],
-        "object-property-newline": [
-            "error",
-            {
-                "allowMultiplePropertiesPerLine": true
-            }
-        ],
+        "object-property-newline": "warn",
         "object-shorthand": "warn",
         "one-var": "off",
         "one-var-declaration-per-line": "error",
@@ -247,7 +231,7 @@ module.exports = {
         "sort-keys": "off",
         "sort-vars": "error",
         "space-before-blocks": "error",
-        "space-before-function-paren": "error",
+        "space-before-function-paren": "off",
         "space-in-parens": [
             "error",
             "never"
@@ -255,7 +239,7 @@ module.exports = {
         "space-infix-ops": "off",
         "space-unary-ops": "error",
         "spaced-comment": "off",
-        "strict": "error",
+        "strict": "warn",
         "symbol-description": "error",
         "template-curly-spacing": [
             "error",

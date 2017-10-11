@@ -3,7 +3,7 @@ const debug = Debug('tradle:sls:objects')
 import * as Embed from '@tradle/embed'
 import * as types from './typeforce-types'
 import { InvalidSignature } from './errors'
-import { TYPE, TYPES } from './constants'
+import { TYPE } from './constants'
 import {
   deepClone,
   typeforce,
@@ -12,8 +12,7 @@ import {
 } from './utils'
 import { extractSigPubKey, addLinks } from './crypto'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
-
-const { MESSAGE } = TYPES
+import Env from './env'
 
 export default class Objects {
   public static addMetadata = (object):any => {
@@ -36,13 +35,14 @@ export default class Objects {
     return object
   }
 
-  private env: any
+  private env: Env
   private buckets: any
   private bucket: any
   private s3Utils: any
   private fileUploadBucketName: string
   constructor ({ env, buckets, s3Utils }) {
     this.env = env
+    this.region = env.REGION
     this.buckets = buckets
     this.bucket = this.buckets.Objects
     this.s3Utils = s3Utils
@@ -53,7 +53,7 @@ export default class Objects {
 
   public replaceEmbeds = async (object) => {
     const replacements = Embed.replaceDataUrls({
-      region: this.env.region,
+      region: this.region,
       bucket: this.fileUploadBucketName,
       keyPrefix: '',
       object

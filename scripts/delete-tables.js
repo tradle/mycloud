@@ -5,7 +5,7 @@
  */
 
 const co = require('co')
-const { dynamodb } = require('../lib/aws')
+const { aws: { dynamodb } } = require('../')
 const { batchify, runWithBackoffWhile } = require('../lib/utils')
 const { service, stage, profile } = require('minimist')(process.argv.slice(2))
 if (!(service && stage)) {

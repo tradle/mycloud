@@ -1,4 +1,3 @@
-const debug = require('debug')('tradls:sls:lambda-utils')
 import { Lambda } from 'aws-sdk'
 
 const notNull = (val:any):boolean => !!val
@@ -6,6 +5,7 @@ const notNull = (val:any):boolean => !!val
 export default class Utils {
   private env: any
   private aws: any
+  private debug: (...any) => void
   public get thisFunctionName () {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
@@ -13,6 +13,7 @@ export default class Utils {
   constructor ({ env, aws }) {
     this.env = env
     this.aws = aws
+    this.debug = env.logger('lambda-utils')
   }
 
   public getFullName = (name: string):string => {
@@ -53,12 +54,26 @@ export default class Utils {
   }
 
   public getConfiguration = (FunctionName:string):Promise<Lambda.Types.FunctionConfiguration> => {
-    debug(`looking up configuration for ${FunctionName}`)
+    this.debug(`looking up configuration for ${FunctionName}`)
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
-  public getStack = (StackName: string):Promise<any> => {
-    return this.aws.cloudformation.listStackResources({ StackName }).promise()
+  public getStackResources = async (StackName: string)
+    :Promise<AWS.CloudFormation.StackResourceSummaries[]> => {
+    let resources = []
+    const opts:AWS.CloudFormation.ListStackResourcesInput = { StackName }
+    while (true) {
+      let {
+        StackResourceSummaries,
+        NextToken
+      } = await this.aws.cloudformation.listStackResources(opts).promise()
+
+      resources = resources.concat(StackResourceSummaries)
+      opts.NextToken = NextToken
+      if (!opts.NextToken) break
+    }
+
+    return resources
   }
 
   public listFunctions = ():Promise<Lambda.Types.ListFunctionsResponse> => {
@@ -106,11 +121,11 @@ export default class Utils {
     }
 
     if (!Object.keys(updated).length) {
-      debug(`not updating "${functionName}", no new environment variables`)
+      this.debug(`not updating "${functionName}", no new environment variables`)
       return
     }
 
-    debug(`updating "${functionName}" with new environment variables`)
+    this.debug(`updating "${functionName}" with new environment variables`)
     for (let key in updated) {
       let val = updated[key]
       if (val == null) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require('../test/env')
+require('../test/env').install()
 
 const co = require('co')
 const { genLocalResources } = require('../lib/cli/utils')

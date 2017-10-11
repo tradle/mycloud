@@ -4,7 +4,7 @@ console.warn(`if you made any changes to serverless-uncompiled.yml
 make sure to run: npm run build:yml before running this script
 `)
 
-require('../test/env')
+require('../test/env').install()
 const { genLocalResources } = require('../lib/cli/utils')
 
 genLocalResources().catch(err => {

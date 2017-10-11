@@ -1,4 +1,4 @@
-require('./env')
+require('./env').install()
 
 const test = require('tape')
 const Cache = require('lru-cache')

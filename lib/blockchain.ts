@@ -3,7 +3,6 @@ const { utils, protocol } = require('@tradle/engine')
 const { promisify, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
 const adapters = require('./blockchain-adapter')
-const ENV = require('./env')
 
 interface BlockchainIdentifier {
   flavor: string,
@@ -31,6 +30,7 @@ export default class Blockchain {
   private minBalance: string;
   private blockchainIdentifier: BlockchainIdentifier;
   private getTxAmount = () => this.network.minOutputAmount
+  private debug:(...any) => void
 
   private createAdapter = (opts:{ privateKey?: string }={}) => {
     const { flavor, networkName } = this
@@ -68,16 +68,16 @@ export default class Blockchain {
   };
 
   public getInfo: () => Promise<any>;
-  constructor(blockchainIdentifier: BlockchainIdentifier) {
+  constructor({ env, network }) {
     // typeforce({
     //   flavor: typeforce.String,
     //   networkName: typeforce.String,
     //   minBalance: typeforce.oneOf(typeforce.String, typeforce.Number)
     // }, blockchainIdentifier)
 
-    Object.assign(this, blockchainIdentifier)
+    Object.assign(this, network)
 
-    const { flavor, networkName } = blockchainIdentifier
+    const { flavor, networkName } = network
     if (!adapters[flavor]) {
       throw new Error(`unsupported blockchain type: ${flavor}`)
     }
@@ -86,6 +86,7 @@ export default class Blockchain {
     this.addressesAPI = promisify(this.reader.blockchain.addresses)
     this.getInfo = promisify(this.reader.blockchain.info)
     this.network = this.reader.network
+    this.debug = env.logger('blockchain')
   }
 
   public toString = () => `${this.network.blockchain}:${this.network.name}`
@@ -124,9 +125,9 @@ export default class Blockchain {
     })
 
     if (txInfos.length) {
-      debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
+      this.debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
     } else {
-      debug(`no transactions found for addresses: ${addresses.join(', ')}`)
+      this.debug(`no transactions found for addresses: ${addresses.join(', ')}`)
     }
 
     return txInfos
@@ -139,8 +140,7 @@ export default class Blockchain {
   public seal = async ({ key, link, addresses }) => {
     const writer = this.getWriter(key)
     this.start()
-    debug(`sealing ${link}`)
-    debugger
+    this.debug(`sealing ${link}`)
     return await writer.send({
       to: addresses.map(address => {
         return {
@@ -212,5 +212,3 @@ export default class Blockchain {
     return this.addressesAPI.balance(address)
   }
 }
-
-// module.exports = createWrapper(ENV.BLOCKCHAIN)

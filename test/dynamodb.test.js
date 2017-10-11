@@ -1,4 +1,4 @@
-require('./env')
+require('./env').install()
 
 const AWS = require('aws-sdk')
 AWS.config.update({
@@ -15,6 +15,7 @@ AWS.config.update({
 const test = require('tape')
 const co = require('../lib/utils').loudCo
 const {
+  aws,
   dbUtils: { getTable, batchPut }
 } = require('../')
 
@@ -42,12 +43,8 @@ const schema = {
   "TableName": "TestTable"
 }
 
-const aws = require('../lib/aws')
-
 test('batch put', co(function* (t) {
   // const table = yield recreateTable(schema)
-
-
   let timesCalled = 0
   const { docClient } = aws
   aws.docClient = {

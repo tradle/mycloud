@@ -1,12 +1,10 @@
-const debug = require('debug')('tradle:sls:graphql')
-const coexpress = require('co-express')
-const { graphql, formatError } = require('graphql')
-const expressGraphQL = require('express-graphql')
-const dynogels = require('dynogels')
-const { createResolvers } = require('@tradle/dynamodb')
-const { createSchema } = require('@tradle/schema-graphql')
-const { SIG, TYPE, TYPES } = require('@tradle/constants')
-const Errors = require('../errors')
+import * as coexpress from 'co-express'
+import { graphql, formatError } from 'graphql'
+import * as expressGraphQL from 'express-graphql'
+import * as dynogels from 'dynogels'
+import { createResolvers } from '@tradle/dynamodb'
+import { createSchema } from '@tradle/schema-graphql'
+import { TYPE, TYPES } from '@tradle/constants'
 const { MESSAGE } = TYPES
 
 dynogels.log = {
@@ -21,13 +19,10 @@ export = function setup (opts) {
     router,
     models,
     objects,
-    identities,
     db,
-    utils,
-    constants
   } = opts
 
-  const { TESTING } = env
+  const { debug } = env
   debug('attaching /graphql route')
 
   let auth

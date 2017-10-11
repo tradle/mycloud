@@ -25,7 +25,7 @@ const getTablesToClear = co.wrap(function* () {
       }
     })
 
-  const names = yield listTables()
+  const names = yield listTables(env)
   const usersTableName = SERVERLESS_PREFIX + 'users'
   const toDelete = names
     .filter(name => {

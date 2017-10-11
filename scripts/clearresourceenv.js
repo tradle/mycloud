@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 const co = require('co').wrap
 const AWS = require('AWS-SDK')
-const aws = require('../lib/aws')
-const Resources = require('../lib/resources')
+const { aws, resources } = require('../')
 const StackName = process.argv[2]
 // const Bucket = 'io.tradle.dev.deploys'
 co(clearResourceEnvVars)().catch(console.error)
@@ -28,7 +27,7 @@ function* clearResourceEnvVarsForFunction (summary) {
 
   const { Variables } = current.Environment
   const toDelete = Object.keys(Variables).filter(key => {
-    return Resources.fromEnvironmentMapping(key, Variables[key])
+    return resources.fromEnvironmentMapping(key, Variables[key])
   })
 
   if (!toDelete.length) return

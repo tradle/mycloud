@@ -1,4 +1,4 @@
-require('./env')
+require('./env').install()
 const nock = require('nock')
 
 const assert = require('assert')

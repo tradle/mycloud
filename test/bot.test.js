@@ -2,7 +2,7 @@
 //   debugger
 // }
 
-require('./env')
+require('./env').install()
 
 const test = require('tape')
 const defaultTradleInstance = require('../')
@@ -20,7 +20,7 @@ const UsersTableLogicalId = 'UsersTable'
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test('await ready', loudCo(function* (t) {
-    const bot = createBot.fromEngine({})
+    const bot = createBot.fromEngine(defaultTradleInstance.new())
     const expectedEvent = toStreamItems([
       {
         old: {
@@ -52,7 +52,7 @@ const UsersTableLogicalId = 'UsersTable'
       yield recreateTable(UsersTableLogicalId)
     }
 
-    const bot = createBot.fromEngine({})
+    const bot = createBot.fromEngine(defaultTradleInstance.new())
     const { users } = bot
     // const user : Object = {
     const user = {
@@ -217,7 +217,7 @@ const UsersTableLogicalId = 'UsersTable'
       wroteseal: false
     }
 
-    const bot = createBot.fromEngine({})
+    const bot = createBot.fromEngine(defaultTradleInstance.new())
     bot.use(() => {
       Object.keys(called).forEach(event => {
         bot.hook(event, co(function* (arg) {

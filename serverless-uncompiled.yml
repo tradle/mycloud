@@ -188,7 +188,7 @@ provider:
     # declare
     IOT_ENDPOINT: ''
     BLOCKCHAIN: ${{self:custom.blockchain}}
-    DEBUG: tradle:*,λ*,@tradle*
+    DEBUG: 'λ*,tradle:*,,@tradle*'
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -620,7 +620,8 @@ functions:
   # generates a new identity and keys, and other misc crap
   init:
     handler: lib/lambda/init.handler
-    memorySize: 512
+    memorySize: 256
+    timeout: 300
 
   setstyle:
     handler: lib/lambda/setstyle.handler
@@ -629,6 +630,7 @@ functions:
   precreate-tables:
     handler: lib/lambda/precreate-tables.handler
     memorySize: 128
+    timeout: 180
 
   # Blockchain
 

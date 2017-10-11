@@ -98,7 +98,7 @@ bot.ready()
 
 exports = module.exports = createBot.lambdas(bot)
 exports.models = productsAPI.models.all
-exports.bot = productsAPI.bot.bot
+exports.bot = productsAPI.bot
 exports.db = productsAPI.bot.db
 exports.tables = productsAPI.bot.db.tables
 exports.productsAPI = productsAPI

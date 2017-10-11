@@ -7,7 +7,7 @@ import { TYPE, SIG, MAX_CLOCK_DRIFT } from '../../constants'
 import * as Errors from '../../errors'
 
 export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
-  const { identities, objects } = tradle
+  const { identities } = tradle
   return coexpress(function* (req, res, next) {
     const method = req.method.toLowerCase()
     if (method === 'options') {
@@ -39,7 +39,7 @@ export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
     const queryObj = {
       [TYPE]: 'tradle.GraphQLQuery',
       [SIG]: sig,
-      body: tradleUtils.stringify(req.body)
+      body: tradleUtils.stringify(body)
     }
 
     try {

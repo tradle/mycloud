@@ -1,5 +1,5 @@
 const debug = require('debug')('tradle:sls')
-import * as ENV from './env'
+import Env from './env'
 import { toCamelCase, splitCamelCase } from './string-utils'
 // import { Identities, Auth, Delivery, Discovery } from './types'
 
@@ -31,10 +31,23 @@ class Tradle {
   // aliases for instantiation
   public static new = createNewInstance
   public static createInstance = createNewInstance
+
+  // re-export modules
+  // public static Identities
+  // public static Delivery
+  // public static Auth
+  // public static Provider
+  // public static Env
+  // public static Seals
+  // public static Blockchain
+  // public static Friends
+
   public new = createNewInstance
   public createInstance = createNewInstance
 
-  public env: any
+  // export modules instances
+  public env: Env
+  public aws: any
   public router: any
   public buckets: any
   public objects: Objects
@@ -47,7 +60,7 @@ class Tradle {
   public friends: Friends
   public prefix: string
 
-  constructor(env=ENV) {
+  constructor(env=new Env(process.env)) {
     const {
       // FAUCET_PRIVATE_KEY,
       // BLOCKCHAIN,
@@ -60,7 +73,7 @@ class Tradle {
     // singletons
 
     // instances
-    this.define('blockchain', './blockchain', Blockchain => new Blockchain(this.network))
+    this.define('blockchain', './blockchain', Blockchain => new Blockchain(this))
     this.define('seals', './seals', this.construct)
 
     // this.define('faucet', './faucet', createFaucet => createFaucet({
@@ -75,6 +88,7 @@ class Tradle {
     this.define('s3Utils', './s3-utils', this.construct)
     this.define('lambdaUtils', './lambda-utils', this.construct)
     this.define('iot', './iot-utils', initialize => initialize({
+      aws: this.aws,
       prefix: env.IOT_TOPIC_PREFIX
     }))
 
@@ -94,12 +108,11 @@ class Tradle {
     this.define('user', './user', this.construct)
     this.define('delivery', './delivery', this.construct)
     this.define('router', './router', this.construct)
+    this.define('aws', './aws', initialize => initialize(this))
+    this.define('dbUtils', './db-utils', initialize => initialize(this))
     // this.bot = this.require('bot', './bot')
   }
 
-  get aws () {
-    return requireMaybeDefault('./aws')
-  }
   get networks () {
     return requireMaybeDefault('./networks')
   }
@@ -125,11 +138,11 @@ class Tradle {
   get stringUtils () {
     return requireMaybeDefault('./string-utils')
   }
-  get dbUtils () {
-    return requireMaybeDefault('./db-utils')
-  }
   get wrap () {
     return requireMaybeDefault('./wrap')
+  }
+  get debug () {
+    return this.env.debug
   }
   private construct = (Ctor) => {
     return new Ctor(this)
@@ -157,5 +170,17 @@ function defineGetter (obj, property, get) {
   Object.defineProperty(obj, property, { get })
 }
 
-const defaultInstance = new Tradle(ENV)
+const defaultInstance = new Tradle()
+Object.assign(defaultInstance, {
+  Identities,
+  Provider,
+  Objects,
+  Auth,
+  Delivery,
+  Blockchain,
+  Seals,
+  Friends,
+  Env
+})
+
 export = defaultInstance

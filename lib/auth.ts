@@ -5,8 +5,9 @@ import { prettify } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors = require('./errors')
 import * as types from './typeforce-types'
-import { constants } from './'
-import { Session, Identities, IotClientResponse } from './types/index.d'
+import Identities from './identities'
+import * as constants from './constants'
+import { Session, IotClientResponse } from './types/index.d'
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
 
