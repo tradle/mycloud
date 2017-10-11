@@ -86,39 +86,39 @@ custom:
     - protocol: email
       endpoint: ${{self:custom.emailForNotifications}}
 
-  # alerts:
-  #   stages:
-  #     - dev
-  #   dashboards: true
-  #   topics:
-  #     ok:
-  #       topic: ${{self:custom.prefix}}alerts-ok
-  #       notifications: ${{self:custom.alertNotifications}}
-  #     alarm:
-  #       topic: ${{self:custom.prefix}}alerts-alarm
-  #       notifications: ${{self:custom.alertNotifications}}
-  #     insufficientData:
-  #       topic: ${{self:custom.prefix}}alerts-insufficientData
-  #       notifications: ${{self:custom.alertNotifications}}
-  #   definitions:
-  #     functionErrors:
-  #       period: 60
-  #       threshold: ${{self:custom.thresholdErrorsAlarm}}
-  #     functionThrottles:
-  #       period: 60
-  #       threshold: ${{self:custom.thresholdThrottlingAlarm}}
-  #     functionInvocations:
-  #       period: 60
-  #       threshold: ${{self:custom.thresholdInvocationsAlarm}}
-  #     functionDuration:
-  #       period: 60
-  #       threshold: ${{self:custom.thresholdDurationAlarm}}
+  alerts:
+    stages:
+      - dev
+    dashboards: true
+    topics:
+      # ok:
+      #   topic: ${{self:custom.prefix}}alerts-ok
+      #   notifications: ${{self:custom.alertNotifications}}
+      alarm:
+        topic: ${{self:custom.prefix}}alerts-alarm
+        notifications: ${{self:custom.alertNotifications}}
+      # insufficientData:
+      #   topic: ${{self:custom.prefix}}alerts-insufficientData
+      #   notifications: ${{self:custom.alertNotifications}}
+    definitions:
+      functionErrors:
+        period: 60
+        threshold: ${{self:custom.thresholdErrorsAlarm}}
+      functionThrottles:
+        period: 60
+        threshold: ${{self:custom.thresholdThrottlingAlarm}}
+      functionInvocations:
+        period: 60
+        threshold: ${{self:custom.thresholdInvocationsAlarm}}
+      functionDuration:
+        period: 60
+        threshold: ${{self:custom.thresholdDurationAlarm}}
 
-  #   alarms:
-  #     - functionErrors
-  #     - functionThrottles
-  #     - functionInvocations
-  #     - functionDuration
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
+      # - functionDuration
 
   # sqs
   deadLetterQueueName: ${{self:custom.prefixSQS}}dead-letter-queue
