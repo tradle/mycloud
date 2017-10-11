@@ -9,6 +9,7 @@
     "_t": "tradle.StylesPack",
     "backgroundImage": {
       "url": "https://s3.amazonaws.com/tradle-public-images/bg-sunny-path-opacity-50.png"
-    }
+    },
+    "logoNeedsText": true
   }
 }
