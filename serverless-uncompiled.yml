@@ -193,6 +193,7 @@ provider:
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
+    NO_TIME_TRAVEL: false # allow time-travel messages for now
 
     # bot config
     BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
