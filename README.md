@@ -14,6 +14,10 @@ aws configure
 1. Set up AWS credentials in ~/.aws/
 2. Install 
 
+### Install some tools
+
+[jq](https://stedolan.github.io/jq/download/)
+
 ### Install
 
 ```sh
