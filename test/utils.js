@@ -4,7 +4,7 @@ const { co } = require('../lib/utils')
 const { isResourceEnvironmentVariable } = require('../lib/resources')
 const {
   dbUtils: { getTable, marshalDBItem }
-} = require('../')
+} = require('../').tradle
 
 const Errors = require('../lib/errors')
 const yml = require('../lib/cli/serverless-yml')

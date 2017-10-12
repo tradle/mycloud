@@ -1,6 +1,7 @@
 import * as serverlessHTTP from "serverless-http"
-import { router, env, discovery, utils } from "./"
 import { ILambdaExecutionContext } from './types'
+import { tradle } from './'
+const { router, env, discovery, utils } = tradle
 const { cachifyPromiser } = utils
 const { TESTING } = env
 const binaryMimeTypes = TESTING

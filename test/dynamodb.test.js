@@ -17,7 +17,7 @@ const co = require('../lib/utils').loudCo
 const {
   aws,
   dbUtils: { getTable, batchPut }
-} = require('../')
+} = require('../').tradle
 
 const schema = {
   "AttributeDefinitions": [

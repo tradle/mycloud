@@ -1,186 +1,128 @@
-const debug = require('debug')('tradle:sls')
-import Env from './env'
-import { toCamelCase, splitCamelCase } from './string-utils'
-// import { Identities, Auth, Delivery, Discovery } from './types'
+import { requireDefault } from './require-default'
 
-import Provider from './provider'
-import Identities from './identities'
-import Objects from './objects'
-import Auth from './auth'
-import Delivery from './delivery'
-import Discovery from './discovery'
-import Blockchain from './blockchain'
-import Seals from './seals'
-import Friends from './friends'
+let tradle
 
-const requireMaybeDefault = (() => {
-  const cache = {}
-  return (path: string) => {
-    if (!cache[path]) {
-      const result = require(path)
-      cache[path] = result.__esModule ? result.default : result
+module.exports = {
+  // proxy to default instance props
+  get tradle() {
+    if (!tradle) {
+      const { Tradle } = module.exports
+      tradle = new Tradle()
     }
 
-    return cache[path]
-  }
-})()
+    return tradle
+  },
+  get env () {
+    return module.exports.tradle.env
+  },
 
-const createNewInstance = env => new Tradle(env)
-
-class Tradle {
-  // aliases for instantiation
-  public static new = createNewInstance
-  public static createInstance = createNewInstance
-
-  // re-export modules
-  // public static Identities
-  // public static Delivery
-  // public static Auth
-  // public static Provider
-  // public static Env
-  // public static Seals
-  // public static Blockchain
-  // public static Friends
-
-  public new = createNewInstance
-  public createInstance = createNewInstance
-
-  // export modules instances
-  public env: Env
-  public aws: any
-  public router: any
-  public buckets: any
-  public objects: Objects
-  public identities: Identities
-  public auth: Auth
-  public delivery: Delivery
-  public discovery: Discovery
-  public seals: Seals
-  public blockchain: Blockchain
-  public friends: Friends
-  public prefix: string
-
-  constructor(env=new Env(process.env)) {
-    const {
-      // FAUCET_PRIVATE_KEY,
-      // BLOCKCHAIN,
-      SERVERLESS_PREFIX
-    } = env
-
-    this.env = env
-    this.prefix = SERVERLESS_PREFIX
-
-    // singletons
-
-    // instances
-    this.define('blockchain', './blockchain', Blockchain => new Blockchain(this))
-    this.define('seals', './seals', this.construct)
-
-    // this.define('faucet', './faucet', createFaucet => createFaucet({
-    //   networkName: BLOCKCHAIN.networkName,
-    //   privateKey: FAUCET_PRIVATE_KEY
-    // }))
-
-    this.define('resources', './resources', this.construct)
-    this.define('tables', './tables', this.construct)
-    this.define('buckets', './buckets', this.construct)
-    this.define('db', './db', initialize => initialize(this))
-    this.define('s3Utils', './s3-utils', this.construct)
-    this.define('lambdaUtils', './lambda-utils', this.construct)
-    this.define('iot', './iot-utils', initialize => initialize({
-      aws: this.aws,
-      prefix: env.IOT_TOPIC_PREFIX
-    }))
-
-    this.define('identities', './identities', this.construct)
-    this.define('friends', './friends', this.construct)
-    this.define('messages', './messages', this.construct)
-    this.define('events', './events', this.construct)
-    this.define('provider', './provider', this.construct)
-    this.define('auth', './auth', this.construct)
-    this.define('objects', './objects', this.construct)
-    this.define('secrets', './secrets', initialize => initialize({
-      bucket: this.buckets.Secrets
-    }))
-
-    this.define('init', './init', this.construct)
-    this.define('discovery', './discovery', this.construct)
-    this.define('user', './user', this.construct)
-    this.define('delivery', './delivery', this.construct)
-    this.define('router', './router', this.construct)
-    this.define('aws', './aws', initialize => initialize(this))
-    this.define('dbUtils', './db-utils', initialize => initialize(this))
-    // this.bot = this.require('bot', './bot')
-  }
-
-  get networks () {
-    return requireMaybeDefault('./networks')
-  }
-  get network () {
-    const { BLOCKCHAIN } = this.env
-    return this.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
-  }
-  get models () {
-    return requireMaybeDefault('./models')
-  }
-  get constants () {
-    return requireMaybeDefault('./constants')
-  }
-  get errors () {
-    return requireMaybeDefault('./errors')
-  }
-  get crypto () {
-    return requireMaybeDefault('./crypto')
-  }
-  get utils () {
-    return requireMaybeDefault('./utils')
-  }
-  get stringUtils () {
-    return requireMaybeDefault('./string-utils')
-  }
-  get wrap () {
-    return requireMaybeDefault('./wrap')
-  }
-  get debug () {
-    return this.env.debug
-  }
-  private construct = (Ctor) => {
-    return new Ctor(this)
-  }
-  private define = (property: string, path: string, instantiator: Function) => {
-    let instance
-    defineGetter(this, property, () => {
-      if (!instance) {
-        if (path) {
-          const subModule = requireMaybeDefault(path)
-          instance = instantiator(subModule)
-        } else {
-          instance = instantiator()
-        }
-
-        debug('defined', property)
-      }
-
-      return instance
-    })
+  // sub-modules
+  get Tradle() {
+    return requireDefault('./tradle')
+  },
+  get Env() {
+    return requireDefault('./env')
+  },
+  get Identities() {
+    return requireDefault('./identities')
+  },
+  get Provider() {
+    return requireDefault('./provider')
+  },
+  get Auth() {
+    return requireDefault('./auth')
+  },
+  get Objects() {
+    return requireDefault('./objects')
+  },
+  get Buckets() {
+    return requireDefault('./buckets')
+  },
+  get Tables() {
+    return requireDefault('./tables')
+  },
+  get Secrets() {
+    return requireDefault('./secrets')
+  },
+  get Friends() {
+    return requireDefault('./friends')
+  },
+  get Errors() {
+    return requireDefault('./errors')
+  },
+  get Events() {
+    return requireDefault('./events')
+  },
+  get Init() {
+    return requireDefault('./init')
+  },
+  get aws() {
+    return requireDefault('./aws')
+  },
+  get awsConfig() {
+    return requireDefault('./aws-config')
+  },
+  get User() {
+    return requireDefault('./user')
+  },
+  get Messages() {
+    return requireDefault('./messages')
+  },
+  get Router() {
+    return requireDefault('./router')
+  },
+  get Delivery() {
+    return requireDefault('./delivery')
+  },
+  get Discovery() {
+    return requireDefault('./discovery')
+  },
+  get Seals() {
+    return requireDefault('./seals')
+  },
+  get Blockchain() {
+    return requireDefault('./blockchain')
+  },
+  get Iot() {
+    return requireDefault('./iot-utils')
+  },
+  get S3() {
+    return requireDefault('./s3-utils')
+  },
+  get Lambda() {
+    return requireDefault('./lambda-utils')
+  },
+  get DB() {
+    return requireDefault('./db-utils')
+  },
+  get Resources() {
+    return requireDefault('./resources')
+  },
+  get stringUtils() {
+    return requireDefault('./string-utils')
+  },
+  get imageUtils() {
+    return requireDefault('./image-utils')
+  },
+  get configureProvider() {
+    return requireDefault('./configure-provider')
+  },
+  get crypto() {
+    return requireDefault('./crypto')
+  },
+  get utils() {
+    return requireDefault('./utils')
+  },
+  get constants() {
+    return requireDefault('./constants')
+  },
+  get models() {
+    return requireDefault('./models')
+  },
+  get wrap() {
+    return requireDefault('./wrap')
+  },
+  get Bot() {
+    return requireDefault('./bot')
   }
 }
-
-function defineGetter (obj, property, get) {
-  Object.defineProperty(obj, property, { get })
-}
-
-const defaultInstance = new Tradle()
-Object.assign(defaultInstance, {
-  Identities,
-  Provider,
-  Objects,
-  Auth,
-  Delivery,
-  Blockchain,
-  Seals,
-  Friends,
-  Env
-})
-
-export = defaultInstance

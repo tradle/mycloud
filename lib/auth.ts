@@ -7,7 +7,7 @@ import Errors = require('./errors')
 import * as types from './typeforce-types'
 import Identities from './identities'
 import * as constants from './constants'
-import { Session, IotClientResponse } from './types/index.d'
+import { ISession, IotClientResponse } from './types/index.d'
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
 
@@ -59,7 +59,7 @@ export default class Auth {
     ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
   }
 
-  public onAuthenticated = async (session:Session): Promise<void> => {
+  public onAuthenticated = async (session:ISession): Promise<void> => {
     session = {
       ...session,
       authenticated: true
@@ -91,11 +91,11 @@ export default class Auth {
     return this.tables.Presence.del(getSessionsByPermalinkQuery)
   }
 
-  public getSessionsByPermalink = (permalink: string): Promise<any> => {
+  public getSessionsByPermalink = (permalink: string): Promise<ISession[]> => {
     return this.tables.Presence.find(getSessionsByPermalinkQuery(permalink))
   }
 
-  public getLiveSessionByPermalink = async (permalink: string): Promise<any> => {
+  public getLiveSessionByPermalink = async (permalink: string): Promise<ISession> => {
     const sessions = await this.getSessionsByPermalink(permalink)
     const latest = sessions
       .filter(session => session.authenticated && session.connected)
@@ -131,7 +131,7 @@ export default class Auth {
     const { clientId, permalink } = opts
     // const permalink = getPermalinkFromClientId(clientId)
     const challenge = randomString(32)
-    const Item:Session = {
+    const Item:ISession = {
       clientId,
       permalink,
       challenge,
@@ -154,7 +154,7 @@ export default class Auth {
     permalink: string,
     challenge: string,
     position: any
-  }): Promise<Session> => {
+  }): Promise<ISession> => {
     // TODO: get rid of this after TypeScript migration
     try {
       typeforce({

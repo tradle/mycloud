@@ -20,7 +20,7 @@ const { replaceDataUrls } = require('@tradle/embed')
 // const dbUtils = require('../lib/db-utils')
 // const Delivery = require('../lib/delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
-const defaultTradleInstance = require('../')
+const { Tradle } = require('../')
 const { wrap, utils, crypto } = require('../')
 const { extend, clone, pick, omit, batchify } = utils
 const botFixture = require('./fixtures/bot')
@@ -54,7 +54,7 @@ function E2ETest (opts={}) {
   const {
     models=defaultModels,
     products=defaultProducts,
-    tradle=defaultTradleInstance.new()
+    tradle=new Tradle()
   } = opts
 
   const {

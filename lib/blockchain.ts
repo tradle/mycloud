@@ -1,4 +1,6 @@
-const debug = require('debug')('tradle:sls:blockchain')
+import Env from './env'
+import Tradle from './tradle'
+
 const { utils, protocol } = require('@tradle/engine')
 const { promisify, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
@@ -22,15 +24,16 @@ interface Sealable {
 }
 
 export default class Blockchain {
-  private reader: any;
-  private network: any;
-  private writers = {};
-  private flavor: string;
-  private networkName: string;
-  private minBalance: string;
-  private blockchainIdentifier: BlockchainIdentifier;
+  private reader: any
+  private network: any
+  private writers = {}
+  private flavor: string
+  private networkName: string
+  private minBalance: string
+  private blockchainIdentifier: BlockchainIdentifier
   private getTxAmount = () => this.network.minOutputAmount
   private debug:(...any) => void
+  private tradle:Tradle
 
   private createAdapter = (opts:{ privateKey?: string }={}) => {
     const { flavor, networkName } = this
@@ -65,10 +68,12 @@ export default class Blockchain {
   public addressesAPI: {
     transactions: (addresses: Array<string>, blockHeight?: number) => Promise<any>,
     balance: (address: string) => Promise<string|number>
-  };
+  }
 
-  public getInfo: () => Promise<any>;
-  constructor({ env, network }) {
+  public getInfo: () => Promise<any>
+  constructor(tradle:Tradle) {
+    this.tradle = tradle
+    const { env, network } = tradle
     // typeforce({
     //   flavor: typeforce.String,
     //   networkName: typeforce.String,
@@ -179,7 +184,9 @@ export default class Blockchain {
 
   public start = () => this.startOrStop('start')
   public stop = () => this.startOrStop('stop')
-  public getMyChainPub = () => require('./').provider.getMyChainKeyPub()
+
+  // lazy access this.tradle.provider, to prevent circular dep
+  public getMyChainPub = () => this.tradle.provider.getMyChainKeyPub()
   public getMyChainAddress = ():Promise<string> => this.getMyChainPub()
     .then(({ fingerprint }) => fingerprint)
 

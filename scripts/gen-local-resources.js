@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+process.env.DEBUG = process.env.DEBUG || 'tradle*'
+
 console.warn(`if you made any changes to serverless-uncompiled.yml
 make sure to run: npm run build:yml before running this script
 `)

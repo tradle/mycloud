@@ -9,8 +9,8 @@ exports.createTestEnv = () => {
     const Env = require('../lib/env');
     return new Env(props);
 };
-exports.install = () => {
-    Object.assign(process.env, props);
+exports.install = (target = process.env) => {
+    Object.assign(target, props);
     AWS.mock('STS', 'assumeRole', (params, callback) => {
         debug('assumed role');
         callback(null, {

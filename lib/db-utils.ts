@@ -1,5 +1,9 @@
 const debug = require('debug')('tradle:sls:db-utils')
-const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
+import {
+  marshalItem as marshalDBItem,
+  unmarshalItem as unmarshalDBItem
+} from 'dynamodb-marshaler'
+
 const { NotFound } = require('./errors')
 const { co, pick, logify, timestamp, wait, clone, batchify } = require('./utils')
 const { prettify } = require('./string-utils')
@@ -10,6 +14,8 @@ const CONSISTENT_READ_EVERYTHING = true
 exports = module.exports = createDBUtils
 exports.getRecordsFromEvent = getRecordsFromEvent
 exports.getUpdateParams = getUpdateParams
+exports.marshalDBItem = marshalDBItem
+exports.unmarshalDBItem = unmarshalDBItem
 
 function createDBUtils ({ aws, env }) {
   const debug = env.logger('db-utils')
@@ -63,7 +69,8 @@ function createDBUtils ({ aws, env }) {
     })
 
     tableAPI.name = TableName
-    return logify(tableAPI, { log: debug }) //, logInputOutput: DEV })
+    return tableAPI
+    // return logify(tableAPI, { log: debug }) //, logInputOutput: DEV })
   }
 
   const exec = co(function* (method, params) {
@@ -200,8 +207,6 @@ function createDBUtils ({ aws, env }) {
     } = backoffOptions
 
     let tries = 0
-    let start = Date.now()
-    let time = 0
     let failed
     while (tries < maxTries) {
       let result = yield rawBatchPut(params)
@@ -231,8 +236,8 @@ function createDBUtils ({ aws, env }) {
     findOne,
     batchPut,
     getUpdateParams,
-    marshalDBItem: marshalItem,
-    unmarshalDBItem: unmarshalItem,
+    marshalDBItem,
+    unmarshalDBItem,
     getTable,
     getRecordsFromEvent
   }
@@ -254,12 +259,12 @@ function getRecordsFromEvent (event, oldAndNew) {
     const { NewImage, OldImage } = record.dynamodb
     if (oldAndNew) {
       return {
-        old: OldImage && unmarshalItem(OldImage),
-        new: NewImage && unmarshalItem(NewImage)
+        old: OldImage && unmarshalDBItem(OldImage),
+        new: NewImage && unmarshalDBItem(NewImage)
       }
     }
 
-    return NewImage && unmarshalItem(NewImage)
+    return NewImage && unmarshalDBItem(NewImage)
   })
   .filter(data => data)
 }

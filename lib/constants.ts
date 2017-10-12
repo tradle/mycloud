@@ -5,7 +5,8 @@ const constants = {
   PERMALINK: tradleConstants.PERMALINK,
   TYPES: {
     ...tradleConstants.TYPES,
-    INTRODUCTION: 'tradle.Introduction'
+    INTRODUCTION: 'tradle.Introduction',
+    IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest'
   },
   IDENTITY_KEYS_KEY: 'keys.json',
   PUBLIC_CONF_BUCKET: {

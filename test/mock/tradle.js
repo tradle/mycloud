@@ -1,5 +1,5 @@
 const co = require('co').wrap
-const { errors, constants, utils, aws, db } = require('../../')
+const { errors, constants, utils, aws, db } = require('../../').tradle
 const { extend } = utils
 const { getter } = require('../utils')
 const fakeSeals = require('./seals')

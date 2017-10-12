@@ -1,10 +1,10 @@
 const debug = require('debug')('tradle:sls:config')
 import * as validateResource from '@tradle/validate-resource'
-import { buckets, constants, models } from '../'
+import { constants, models } from './'
 const { PUBLIC_CONF_BUCKET, TABLES_TO_PRECREATE } = constants
 const KEY = PUBLIC_CONF_BUCKET.info
 
-export async function setStyle (style) {
+export async function setStyle ({ buckets, style }) {
   debug('setting style', JSON.stringify(style, null, 2))
 
   validateResource({

@@ -58,6 +58,8 @@ Lambda:
   slim code zip
     https://github.com/dougmoscrop/serverless-plugin-include-dependencies
     https://github.com/dougmoscrop/serverless-plugin-common-excludes
+  cost calculation:
+    https://github.com/concurrencylabs/aws-pricing-tools
 
 don't waste lambda invocations on s3 resources (e.g. /info should really go straight to s3)
 
@@ -88,3 +90,15 @@ don't save double-wrapped messages in {prefix}tradle_Message
 
 Lambda Tests:
   ensure events incoming to lambdas map to correct library function calls
+
+fix /inbox, rm /message route
+
+Bot / Bot Engine / Tradle Engine co-location
+  - how will people develop bots? Will they clone tradle/serverless, and develop inside the cloned repo? Currently samplebot/ is in this repo, but it can sit outside just fine. Need some conf file for the engine to know where to find the bot code and initialize it, e.g. in conf/tradle.json, the dev can add: "bot": "my-bot-module", and the predeploy script can install it
+    - maybe there should be two stacks
+    - 1. you deploy the tradle stack
+    - 2. you deploy the bot stack, and somehow give the tradle stack the bot stack's coordinates...and models, and everything else
+  - how does Tradle Engine know where to find the bot code?
+
+scrap service discovery
+  it's now only used to set the IOT_ENDPOINT env var on all lambdas, so it's prob not really needed. Lambdas that need the IOT_ENDPOINT, can get it themselves via aws.iot.describeEndpoint

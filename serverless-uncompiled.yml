@@ -5,7 +5,7 @@ plugins:
   # - serverless-resources-env
   - serverless-plugin-tracing
   # - serverless-pseudo-parameters
-  - serverless-sam
+  # - serverless-sam
   - serverless-apigw-binary
   - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes

@@ -25,16 +25,16 @@ const WATCH_TYPE = {
 const YES = 'y'
 const notNull = val => !!val
 
-interface SealInfo {
+interface ISealInfo {
   address: string
   link: string
 }
 
-interface LimitOpts {
+interface ILimitOpts {
   limit?: number
 }
 
-interface TxInfo {
+interface ITxInfo {
   // address: string
   txId: string
   to: {
@@ -43,25 +43,25 @@ interface TxInfo {
   confirmations?: number
 }
 
-interface SealUpdate {
+interface ISealUpdate {
   txId: string
   confirmations: number
   unconfirmed: string|null
 }
 
-interface SealUpdates {
-  [key: string]: SealUpdate
+interface ISealUpdates {
+  [key: string]: ISealUpdate
 }
 
-interface ErrorRecord {
+interface IErrorRecord {
   time: number
   stack: string
 }
 
 export default class Seals {
-  public getUnconfirmed: (opts?: LimitOpts) => Promise<any>
-  public syncUnconfirmed: (opts?: LimitOpts) => Promise<any>
-  public getUnsealed: (opts?: LimitOpts) => Promise<any>
+  public getUnconfirmed: (opts?: ILimitOpts) => Promise<any>
+  public syncUnconfirmed: (opts?: ILimitOpts) => Promise<any>
+  public getUnsealed: (opts?: ILimitOpts) => Promise<any>
   public sealPending: (opts?:any) => Promise<any>
   private provider: Provider
   private blockchain: Blockchain
@@ -85,7 +85,7 @@ export default class Seals {
     this.network = network
     this.env = env
     this.debug = env.logger('seals')
-    const scanner = IndexName => async (opts:LimitOpts = {}) => {
+    const scanner = IndexName => async (opts:ILimitOpts = {}) => {
       const { limit=Infinity } = opts
       const query:AWS.DynamoDB.ScanInput = {
         TableName: this.table.name,
@@ -183,7 +183,7 @@ export default class Seals {
     const pending = await this.getUnsealed({ limit })
     this.debug(`found ${pending.length} pending seals`)
     let aborted
-    const results = await seriesMap(pending, async (sealInfo: SealInfo) => {
+    const results = await seriesMap(pending, async (sealInfo: ISealInfo) => {
       if (aborted) return
 
       const { link, address } = sealInfo
@@ -231,7 +231,7 @@ export default class Seals {
     }
   }
 
-  private _syncUnconfirmed = async (opts: LimitOpts = {}):Promise<void> => {
+  private _syncUnconfirmed = async (opts: ILimitOpts = {}):Promise<void> => {
     const { blockchain, getUnconfirmed, network, table } = this
     // start making whatever connections
     // are necessary
@@ -241,7 +241,7 @@ export default class Seals {
     if (!unconfirmed.length) return
 
     const addresses = unconfirmed.map(({ address }) => address)
-    const txInfos:TxInfo[] = await blockchain.getTxsForAddresses(addresses)
+    const txInfos:ITxInfo[] = await blockchain.getTxsForAddresses(addresses)
     if (!txInfos.length) return
 
     const addrToSeal = {}
@@ -249,7 +249,7 @@ export default class Seals {
       addrToSeal[address] = unconfirmed[i]
     })
 
-    const updates:SealUpdates = {}
+    const updates:ISealUpdates = {}
 
     for (const txInfo of txInfos) {
       const { txId } = txInfo
@@ -328,7 +328,7 @@ export default class Seals {
   }
 }
 
-function addError (errors: ErrorRecord[] = [], error) {
+function addError (errors: IErrorRecord[] = [], error) {
   errors = errors.concat({
     time: timestamp(),
     stack: error.stack

@@ -22,6 +22,8 @@ import {
   PUBLIC_CONF_BUCKET
 } from './constants'
 
+import { ISession } from './types'
+
 const { MESSAGE } = TYPES
 
 export default class Provider {
@@ -206,11 +208,15 @@ export default class Provider {
     return message
   }
 
-  public attemptLiveDelivery = async (opts: { message: any, recipient: string, session?: any }) => {
-    const { message, recipient, session={} } = opts
+  public attemptLiveDelivery = async (opts: {
+    message: any,
+    recipient: string,
+    session?: ISession
+  }) => {
+    const { message, recipient, session } = opts
     debug(`sending message (time=${message.time}) to ${recipient} live`)
     await this.tradle.delivery.deliverBatch({
-      clientId: session.clientId,
+      clientId: session && session.clientId,
       recipient,
       messages: [message]
     })

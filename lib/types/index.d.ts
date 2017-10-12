@@ -5,7 +5,7 @@ export interface Position {
   received?: number
 }
 
-export interface Session {
+export interface ISession {
   clientId: string
   permalink: string
   challenge: string

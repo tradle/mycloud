@@ -50,7 +50,9 @@ export default class Utils {
       throw new Error(message)
     }
 
-    if (sync) return JSON.parse(Payload)
+    if (sync && Payload) {
+      return JSON.parse(Payload)
+    }
   }
 
   public getConfiguration = (FunctionName:string):Promise<Lambda.Types.FunctionConfiguration> => {

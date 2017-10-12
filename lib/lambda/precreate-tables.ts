@@ -1,5 +1,5 @@
-
-import { preCreateTables } from '../configure-provider'
+import { tradle } from '../'
+const {configureProvider: { preCreateTables } } = tradle
 import * as wrap from '../wrap'
 import { productsAPI } from '../../samplebot'
 

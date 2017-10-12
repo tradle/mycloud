@@ -1,5 +1,10 @@
 
+import { wrap, tradle } from '../'
 import { setStyle } from '../configure-provider'
-import * as wrap from '../wrap'
 
-export const handler = wrap(setStyle)
+export const handler = wrap(function* (event) {
+  yield setStyle({
+    buckets: tradle.buckets,
+    style: event
+  })
+})

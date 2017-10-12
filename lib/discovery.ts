@@ -49,6 +49,9 @@ export default class Discovery {
     return env
   }
 
+  /**
+   * updates IOT_ENDPOINT env var on all lambdas
+   */
   private doDiscoverServices = async (StackName?: string) => {
     const { thisFunctionName } = this
     this.debug(`performing service discovery in function ${thisFunctionName}`)

@@ -1,11 +1,16 @@
 {
-  "extends": ["tslint-config-standard", "tslint:latest", "tslint-config-prettier"],
+  "extends": [
+    "tslint:recommended",
+    "tslint-config-prettier",
+    "tslint-eslint-rules"
+  ],
   "rules": {
     "ordered-imports": false,
     "object-literal-sort-keys": false,
     "curly": false,
     "no-this-assignment": false,
-    "variable-name": false
+    "variable-name": false,
+    "no-floating-promises": false
   },
   "jsRules": {
     "no-use-before-declare": true

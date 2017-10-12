@@ -6,15 +6,11 @@ const sinon = require('sinon')
 const utils = require('../lib/utils')
 const co = utils.loudCo
 const { wait } = utils
-const { getTable, batchPut } = require('../lib/db-utils')
-const aws = require('../lib/aws')
-// const createBlockchainAPI = require('../lib/blockchain')
-// const createSealsAPI = require('../lib/seals')
 const aliceKeys = require('./fixtures/alice/keys')
 const adapters = require('../lib/blockchain-adapter')
 const { recreateTable } = require('./utils')
 const SealsTableLogicalId = 'SealsTable'
-const createTradle = require('../').new
+const { Tradle } = require('../')
 
 const blockchainOpts = {
   flavor: 'ethereum',
@@ -27,7 +23,7 @@ test('queue seal', co(function* (t) {
   const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
   const txId = 'sometxid'
   // const blockchain = createBlockchainAPI({ flavor, networkName })
-  const tradle = createTradle()
+  const tradle = new Tradle()
   const { blockchain, seals } = tradle
   const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const address = blockchain.sealAddress({
