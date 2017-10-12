@@ -426,7 +426,7 @@ functions:
   # replicates InboxTable to EventsTable
   inbox2events:
     handler: lib/lambda/inbox-events.handler
-    memorySize: 512
+    memorySize: 256
     events:
       - stream:
           type: dynamodb
@@ -440,7 +440,7 @@ functions:
   # replicates OutboxTable to EventsTable
   outbox2events:
     handler: lib/lambda/outbox-events.handler
-    memorySize: 512
+    memorySize: 256
     events:
       - stream:
           type: dynamodb
