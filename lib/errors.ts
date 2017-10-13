@@ -1,12 +1,11 @@
 // const debug = require('debug')('tradle:sls:errors')
 const ex = require('error-ex')
-import { Errors } from './types'
 
 function createError (name: string): ErrorConstructor {
   return ex(name)
 }
 
-const errors:Errors = {
+const errors = {
   NotFound: createError('NotFound'),
   InvalidSignature: createError('InvalidSignature'),
   InvalidMessageFormat: createError('InvalidMessageFormat'),
@@ -19,6 +18,7 @@ const errors:Errors = {
   BatchPutFailed: createError('BatchPutFailed'),
   Duplicate: createError('Duplicate'),
   TimeTravel: createError('TimeTravel'),
+  ExecutionTimeout: createError('ExecutionTimeout'),
   export: (err:Error): {
     type:string,
     message:string

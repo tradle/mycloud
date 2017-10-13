@@ -51,8 +51,9 @@ export interface IDelivery {
   reject: (opts: any) => Promise<any>
 }
 
+export type IDebug = (...any) => void
+
 export * from './identities'
 export * from './auth'
 export * from './delivery'
 export * from './discovery'
-export * from './errors'

@@ -5,6 +5,9 @@ import * as createLogger from 'debug'
 import * as yn from 'yn'
 import * as Networks from './networks'
 import { parseArn } from './utils'
+import { IDebug } from './types'
+
+const returnInfinity = () => Infinity
 
 export default class Env {
   public TESTING:boolean
@@ -72,7 +75,7 @@ export default class Env {
   /**
    * Dynamically change logger namespace as "nick" is set lazily, e.g. from router
    */
-  public logger = (namespace:string) => {
+  public logger = (namespace:string):IDebug => {
     let logger = createLogger(`λ:${this.nick}:${namespace}`)
     let currentNick = this.nick
     return (...args) => {
@@ -81,13 +84,18 @@ export default class Env {
         logger = createLogger(`λ:${this.nick}:${namespace}`)
       }
 
-      return logger(...args)
+      logger(...args)
     }
   }
 
   public setDebugNamespace = (nickname:string) => {
     this.nick = nickname
     this.debug = createLogger(`λ:${nickname}`)
+  }
+
+  // gets overridden when lambda is attached
+  public getRemainingTimeInMillis = ():number => {
+    return Infinity
   }
 
   public setFromLambdaEvent = (event, context) => {
@@ -97,14 +105,17 @@ export default class Env {
       this.set(require('../test/service-map'))
     }
 
-    const { invokedFunctionArn } = context
-    if (invokedFunctionArn) {
-      const {
-        accountId
-      } = parseArn(invokedFunctionArn)
+    const {
+      invokedFunctionArn,
+      getRemainingTimeInMillis
+    } = context
 
+    if (invokedFunctionArn) {
+      const { accountId } = parseArn(invokedFunctionArn)
       this.set({ accountId })
     }
+
+    this.set({ getRemainingTimeInMillis })
   }
 }
 

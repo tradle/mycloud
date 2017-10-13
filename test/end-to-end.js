@@ -49,6 +49,7 @@ const baseModels = require('../lib/models')
 const defaultModels = require('../samplebot').models
 const defaultProducts = ['nl.tradle.DigitalPassport']
 // const defaultProducts = ['tradle.CorporateBankAccount']
+const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 
 function E2ETest (opts={}) {
   const {
@@ -99,7 +100,7 @@ proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
     }
 
     const hey = {
-      [TYPE]: 'tradle.SimpleMessage',
+      [TYPE]: SIMPLE_MESSAGE,
       message: 'hey'
     }
 
@@ -152,7 +153,7 @@ proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
 
   yield friends.add(friend)
   const hey = {
-    [TYPE]: 'tradle.SimpleMessage',
+    [TYPE]: SIMPLE_MESSAGE,
     message: 'hey'
   }
 
@@ -164,8 +165,8 @@ proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
       const { messages } = body
       assert.equal(messages.length, 1)
       const msg = messages[0]
-      assert.equal(msg.object[TYPE], MESSAGE)
-      assert.deepEqual(pick(msg.object.object, Object.keys(hey)), hey)
+      assert.equal(msg.object[TYPE], SIMPLE_MESSAGE)
+      assert.deepEqual(pick(msg.object, Object.keys(hey)), hey)
       return [
         201
       ]
