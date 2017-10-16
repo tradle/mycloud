@@ -21,6 +21,7 @@ const { replaceDataUrls } = require('@tradle/embed')
 // const Delivery = require('../lib/delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
 const { Tradle } = require('../')
+const { genLocalResources } = require('../lib/cli/utils')
 const { wrap, utils, crypto } = require('../')
 const { extend, clone, pick, omit, batchify } = utils
 const botFixture = require('./fixtures/bot')
@@ -47,8 +48,8 @@ const baseModels = require('../lib/models')
 //   .get()
 
 const defaultModels = require('../samplebot').models
-const defaultProducts = ['nl.tradle.DigitalPassport']
-// const defaultProducts = ['tradle.CorporateBankAccount']
+// const defaultProducts = ['nl.tradle.DigitalPassport']
+const defaultProducts = ['tradle.CorporateBankAccount']
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 
 function E2ETest (opts={}) {
@@ -406,6 +407,8 @@ proto.clear = co(function* () {
       return self.destroyTable(id)
     })
   }))
+
+  yield genLocalResources(this.tradle)
 })
 
 proto.destroyTable = co(function* (TableName) {

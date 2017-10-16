@@ -46,8 +46,8 @@
     },
     "@tradle/biz-plugins": {
       "version": "1.0.0",
-      "from": "tradle/biz-plugins",
-      "resolved": "git://github.com/tradle/biz-plugins.git#7e816c19df35eb744bb481cca8b4d8858ff77de8",
+      "from": "tradle/biz-plugins#cloud",
+      "resolved": "git://github.com/tradle/biz-plugins.git#a0a9cc52dbdd097d1dae74f5103db38fbbd27daf",
       "dependencies": {
         "@tradle/constants": {
           "version": "1.3.0",
@@ -76,7 +76,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#e0a7d7d668fe8c221e8ef10b8d691f40ba2b4ba7",
+      "resolved": "git://github.com/tradle/bot-products.git#3fb0e41bb111ab70bf31885c3153907d72192db7",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -243,7 +243,7 @@
     "@tradle/schema-joi": {
       "version": "1.0.0",
       "from": "tradle/schema-joi",
-      "resolved": "git://github.com/tradle/schema-joi.git#995494bd5f86634f9476a5793b764fc874539a3a"
+      "resolved": "git://github.com/tradle/schema-joi.git#a27b1bd931ef8e151630f2461bfc91978a2452ce"
     },
     "@tradle/simple-wallet": {
       "version": "1.3.1",
