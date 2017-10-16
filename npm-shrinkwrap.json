@@ -47,7 +47,7 @@
     "@tradle/biz-plugins": {
       "version": "1.0.0",
       "from": "tradle/biz-plugins#cloud",
-      "resolved": "git://github.com/tradle/biz-plugins.git#a0a9cc52dbdd097d1dae74f5103db38fbbd27daf",
+      "resolved": "git://github.com/tradle/biz-plugins.git#2a96dd6633c4e3d82b9a82c1c048c93490ddac48",
       "dependencies": {
         "@tradle/constants": {
           "version": "1.3.0",
