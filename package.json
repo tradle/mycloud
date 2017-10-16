@@ -94,6 +94,7 @@
     "delete:applications": "./scripts/delete-applications.js",
     "getmyinfo": "./scripts/info.js > myinfo.json && open ./myinfo.json",
     "setstyle": "./scripts/setstyle.sh",
+    "addfriends": "./scripts/addfriends.js",
     "reshrink": "npm dedupe && npm prune && npm shrinkwrap"
   },
   "dependencies": {

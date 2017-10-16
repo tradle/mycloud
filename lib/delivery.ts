@@ -3,6 +3,8 @@ import * as DeliveryMQTT from './delivery-mqtt'
 import DeliveryHTTP from './delivery-http'
 import { IDelivery } from './types'
 import { clone, pick } from './utils'
+import Env from './env'
+import LambdaUtils from './lambda-utils'
 
 const debug = require('debug')('tradle:sls:delivery')
 const MAX_BATCH_SIZE = 5
@@ -29,17 +31,21 @@ export default class Delivery extends EventEmitter implements IDelivery {
   private friends: any
   private messages: any
   private objects: any
+  private env: Env
+  private lambdaUtils: LambdaUtils
   private _deliverBatch = withTransport('deliverBatch')
 
   constructor (opts) {
     super()
 
-    const { friends, messages, objects } = opts
+    const { friends, messages, objects, env, lambdaUtils } = opts
     this.messages = messages
     this.objects = objects
     this.friends = friends
     this.http = new DeliveryHTTP(opts)
     this.mqtt = new DeliveryMQTT(opts)
+    this.env = env
+    this.lambdaUtils = lambdaUtils
   }
 
   public ack = withTransport('ack')
@@ -75,6 +81,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
       debug(`found ${messages.length} messages for ${recipient}`)
       if (!messages.length) return
+
+      // if (this.env.getRemainingTimeInMillis() < 2000) {
+      //   debug('recursing delivery')
+      //   return this.lambdaUtils.invoke({
+      //     name: this.env.AWS_LAMBDA_FUNCTION_NAME,
+      //     arg: this.env.event
+      //   })
+      // }
 
       await this.deliverBatch({ ...opts, messages })
 

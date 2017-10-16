@@ -115,7 +115,7 @@ export default class Env {
       this.set({ accountId })
     }
 
-    this.set({ getRemainingTimeInMillis })
+    this.set({ event, context, getRemainingTimeInMillis })
   }
 }
 
