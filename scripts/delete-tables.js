@@ -5,14 +5,18 @@
  */
 
 const co = require('co')
-const { aws: { dynamodb } } = require('../')
+const yn = require('yn')
+const readline = require('readline')
+const rl = readline.createInterface(process.stdin, process.stdout)
+const { tradle } = require('../')
+const { aws } = tradle
 const { batchify, runWithBackoffWhile } = require('../lib/utils')
 const { service, stage, profile } = require('minimist')(process.argv.slice(2))
 if (!(service && stage)) {
   throw new Error('expected "--service", "--stage" and "--profile"')
 }
 
-const { loadCredentials } = require('../lib/cli/utils')
+const { loadCredentials, getStackResources } = require('../lib/cli/utils')
 const serviceStageRegExp = new RegExp(`^${service}-${stage}-`)
 const {
   service: {
@@ -22,25 +26,41 @@ const {
 
 loadCredentials()
 
-const tablesToKeep = Object.keys(Resources)
-  .map(key => Resources[key])
-  .filter(resource => resource.Type === 'AWS::DynamoDB::Table')
-  .map(table => table.Properties.TableName)
-
 co(function* () {
-  const { TableNames } = yield dynamodb.listTables().promise()
+  let stackTables = []
+  try {
+    const stackResources = yield getStackResources()
+    stackTables = stackResources
+      .filter(res => res.ResourceType === 'AWS::DynamoDB::Table')
+      .map(res => res.PhysicalResourceId)
+  } catch (err) {
+    if (!/stack.*does not exist/i.test(err.message)) {
+      throw err
+    }
+  }
+
+  const { TableNames } = yield aws.dynamodb.listTables().promise()
   const toDelete = TableNames.filter(name => {
-    return !tablesToKeep.includes(name) && serviceStageRegExp.test(name)
+    return !stackTables.includes(name) && serviceStageRegExp.test(name)
   })
 
   if (!toDelete.length) return
 
-  console.log('deleting', toDelete)
+  console.log('will delete', JSON.stringify(toDelete, null, 2))
+  const answer = yield new Promise(resolve => {
+    rl.question('continue? y/[n]:', resolve)
+  })
+
+  rl.close()
+  if (!yn(answer)) {
+    console.log('aborted')
+    return
+  }
 
   for (const TableName of TableNames) {
     console.log(`deleting ${TableName}`)
     runWithBackoffWhile(co.wrap(function* () {
-      yield dynamodb.deleteTable({ TableName }).promise()
+      yield aws.dynamodb.deleteTable({ TableName }).promise()
     }), {
       shouldTryAgain: err => {
         const willRetry = err.name === 'LimitExceededException'
