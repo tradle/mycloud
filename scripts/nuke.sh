@@ -67,4 +67,4 @@ remove_buckets() {
 echo "This will empty and delete all buckets, tables, lambdas, etc. for \nservice: $SERVICE \nstage: $STAGE"
 ask && remove_buckets
 ask "delete resources stack" && sls remove --stage="$STAGE"
-ask "delete per-type tables" && node ./scripts/delete-tables.js --stage="$STAGE" --service="$SERVICE"
+ask "delete per-type tables" && DEBUG=* node ./scripts/delete-tables.js --stage="$STAGE" --service="$SERVICE" --profile="$PROFILE" --force true

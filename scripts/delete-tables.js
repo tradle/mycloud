@@ -7,12 +7,14 @@
 const co = require('co')
 const yn = require('yn')
 const readline = require('readline')
-const rl = readline.createInterface(process.stdin, process.stdout)
 const { tradle } = require('../')
 const { aws } = tradle
 const { batchify, runWithBackoffWhile } = require('../lib/utils')
-const { service, stage, profile } = require('minimist')(process.argv.slice(2))
-if (!(service && stage)) {
+const { service, stage, profile, force } = require('minimist')(process.argv.slice(2), {
+  boolean: ['force']
+})
+
+if (!(service && stage && profile)) {
   throw new Error('expected "--service", "--stage" and "--profile"')
 }
 
@@ -47,19 +49,22 @@ co(function* () {
   if (!toDelete.length) return
 
   console.log('will delete', JSON.stringify(toDelete, null, 2))
-  const answer = yield new Promise(resolve => {
-    rl.question('continue? y/[n]:', resolve)
-  })
+  if (!force) {
+    const rl = readline.createInterface(process.stdin, process.stdout)
+    const answer = yield new Promise(resolve => {
+      rl.question('continue? y/[n]:', resolve)
+    })
 
-  rl.close()
-  if (!yn(answer)) {
-    console.log('aborted')
-    return
+    rl.close()
+    if (!yn(answer)) {
+      console.log('aborted')
+      return
+    }
   }
 
   for (const TableName of toDelete) {
     console.log(`deleting ${TableName}`)
-    runWithBackoffWhile(co.wrap(function* () {
+    yield runWithBackoffWhile(co.wrap(function* () {
       yield aws.dynamodb.deleteTable({ TableName }).promise()
     }), {
       shouldTryAgain: err => {
