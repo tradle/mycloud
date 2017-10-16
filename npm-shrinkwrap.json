@@ -76,7 +76,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#83adff40c09c0ec7379e077c6bf38330343e76fe",
+      "resolved": "git://github.com/tradle/bot-products.git#e0a7d7d668fe8c221e8ef10b8d691f40ba2b4ba7",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -157,7 +157,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#7ce3be4ae0ae6c0471fcc13674fef7e2dc7dbbe2",
+      "resolved": "git://github.com/tradle/dynamodb.git#5ec340b2dfbc922d0d31b0cf915251d4ad567744",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
