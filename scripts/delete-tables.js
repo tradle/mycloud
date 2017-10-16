@@ -57,7 +57,7 @@ co(function* () {
     return
   }
 
-  for (const TableName of TableNames) {
+  for (const TableName of toDelete) {
     console.log(`deleting ${TableName}`)
     runWithBackoffWhile(co.wrap(function* () {
       yield aws.dynamodb.deleteTable({ TableName }).promise()
