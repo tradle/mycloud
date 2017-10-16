@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("../lib/globals");
 require('source-map-support').install();
 const AWS = require("aws-sdk-mock");
 const serviceMap = require("./service-map");

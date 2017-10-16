@@ -1,3 +1,5 @@
+import '../lib/globals'
+
 // console.warn('make sure localstack is running (npm run localstack:start)')
 
 require('source-map-support').install()
