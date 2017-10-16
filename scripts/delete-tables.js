@@ -10,8 +10,14 @@ const readline = require('readline')
 const { tradle } = require('../')
 const { aws } = tradle
 const { batchify, runWithBackoffWhile } = require('../lib/utils')
+const yml = require('../lib/cli/serverless-yml')
 const { service, stage, profile, force } = require('minimist')(process.argv.slice(2), {
-  boolean: ['force']
+  boolean: ['force'],
+  default: {
+    profile: yml.provider.profile,
+    stage: yml.provider.stage,
+    service: yml.service
+  }
 })
 
 if (!(service && stage && profile)) {
