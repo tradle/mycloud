@@ -36,6 +36,10 @@ const endpoint = endpoints
 co(function* () {
   const url = `${endpoint}/info`
   const res = yield fetch(url)
+  if (res.statusCode > 300) {
+    throw new Error(res.statusText)
+  }
+
   const info = yield res.json()
   info.endpoint = endpoint
   const { pub } = info.bot
@@ -46,4 +50,8 @@ co(function* () {
   })
 
   process.stdout.write(JSON.stringify(info, null, 2))
+})
+.catch(err => {
+  console.error(err.stack)
+  process.exitCode = 1
 })
