@@ -238,7 +238,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#b4fac4e9febc8bd86da69ea06c1424d405227eac"
+      "resolved": "git://github.com/tradle/schema-graphql.git#aae59cdf28900fb7b309f67f99a16d384a7021b4"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
