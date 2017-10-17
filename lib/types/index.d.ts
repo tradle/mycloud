@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 
-export interface Position {
+export interface IPosition {
   sent?: number
   received?: number
 }
@@ -12,8 +12,8 @@ export interface ISession {
   authenticated: boolean
   time: number
   connected: boolean
-  clientPosition?: Position
-  serverPosition?: Position
+  clientPosition?: IPosition
+  serverPosition?: IPosition
 }
 
 export interface IotClientResponse {

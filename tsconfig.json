@@ -22,5 +22,6 @@
     ]
   },
   "include": ["lib/**/*.ts", "test/**/*.ts", "samplebot/**/*.ts"],
-  "exclude": ["node_modules", "**/*.js"]
+  "exclude": ["node_modules", "**/*.js"],
+  "compileOnSave": false
 }
