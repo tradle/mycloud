@@ -43,6 +43,7 @@ const constants = {
   HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
   TABLES_TO_PRECREATE: [
     'tradle.Application',
+    'tradle.AssignRelationshipManager',
     'tradle.FormRequest',
     'tradle.ProductRequest',
     'tradle.Verification',
