@@ -69,6 +69,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
   public deliverMessages = async ({
     recipient,
+    clientId,
     friend,
     range,
     batchSize=MAX_BATCH_SIZE
@@ -105,7 +106,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
         break
       }
 
-      await this.deliverBatch({ recipient, messages, friend })
+      await this.deliverBatch({ recipient, messages, clientId, friend })
       let last = messages[messages.length - 1]
       afterMessage = pick(last, ['_recipient', 'time'])
       result.range.afterMessage = afterMessage

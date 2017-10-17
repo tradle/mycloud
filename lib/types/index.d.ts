@@ -104,6 +104,7 @@ export interface IDeliveryRequest {
   recipient: string
   range: IDeliveryMessageRange
   batchSize?: number
+  clientId?: any
   friend?: any
 }
 
