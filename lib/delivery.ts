@@ -121,7 +121,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     recipient: string,
     clientId?: string,
     friend?: any
-  }) {
+  }):Promise<IDelivery> {
     const { method, recipient, clientId, friend } = opts
     if (clientId || !(method in this.http)) {
       return this.mqtt

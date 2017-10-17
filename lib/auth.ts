@@ -9,7 +9,7 @@ import Messages from './messages'
 import Objects from './objects'
 import Env from './env'
 import * as constants from './constants'
-import { IDebug, ISession, IotClientResponse } from './types/index.d'
+import { IDebug, ISession, IotClientResponse, IIdentity } from './types/index.d'
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
 
@@ -221,7 +221,7 @@ export default class Auth {
   public getTemporaryIdentity = async (opts: {
     accountId: string,
     clientId: string,
-    identity: string
+    identity: IIdentity
   }): Promise<IotClientResponse> => {
     try {
       typeforce({
