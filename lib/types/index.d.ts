@@ -46,6 +46,7 @@ export interface ITradleObject {
   _permalink?: string
   _author?: string
   _time?: number
+  [x: string]: any
 }
 
 export interface IECMiniPubKey {
@@ -57,8 +58,11 @@ export interface ITradleMessage extends ITradleObject {
   recipientPubKey: IECMiniPubKey
   object: ITradleObject
   time: number
+  context?: string
+  forward?: string
   _recipient?: string
   _inbound?: boolean
+  [x: string]: any
 }
 
 export interface IPubKey {

@@ -30,6 +30,7 @@ export default class Tradle {
   public blockchain: Blockchain
   public friends: Friends
   public provider: Provider
+  public s3Utils: any
   public prefix: string
 
   constructor(env=new Env(process.env)) {
