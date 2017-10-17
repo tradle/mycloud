@@ -396,17 +396,18 @@ export default class Messages {
     // TODO: uncomment below, check that message is for us
     // await ensureMessageIsForMe({ message })
     const min = message
-    const payload = message.object
+    // const payload = message.object
 
     // prereq to running validation
     await this.objects.resolveEmbeds(message)
 
     this.objects.addMetadata(message)
-    this.objects.addMetadata(payload)
+    this.objects.addMetadata(message.object)
 
     setVirtual(min, pickVirtual(message))
-    setVirtual(min.object, pickVirtual(payload))
+    setVirtual(min.object, pickVirtual(message.object))
     message = min
+    const payload = message.object
 
     // TODO:
     // would be nice to parallelize some of these
@@ -427,12 +428,12 @@ export default class Messages {
       addPayloadAuthor = this.identities.addAuthorInfo(payload)
     }
 
-    await [
+    await Promise.all([
       addMessageAuthor
         .then(() => this.debug('loaded message author')),
       addPayloadAuthor
         .then(() => this.debug('loaded payload author')),
-    ]
+    ])
 
     if (payload[PREVLINK]) {
       try {
@@ -443,7 +444,6 @@ export default class Messages {
         }
 
         this.debug(`previous version of ${payload._link} (${payload[PREVLINK]}) was not found, skipping validation`)
-        return
       }
     }
 
