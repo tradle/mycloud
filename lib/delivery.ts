@@ -67,13 +67,12 @@ export default class Delivery extends EventEmitter implements IDelivery {
     return this._deliverBatch(opts)
   }
 
-  public deliverMessages = async (opts:IDeliveryRequest):Promise<IDeliveryResult> => {
-    const {
-      recipient,
-      friend,
-      range,
-      batchSize=MAX_BATCH_SIZE
-    } = opts
+  public deliverMessages = async ({
+    recipient,
+    friend,
+    range,
+    batchSize=MAX_BATCH_SIZE
+  }:IDeliveryRequest):Promise<IDeliveryResult> => {
 
     let { afterMessage } = range
     const { before, after } = range

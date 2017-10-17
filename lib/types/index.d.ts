@@ -40,43 +40,6 @@ export interface ILambdaExecutionContext {
   invokedFunctionArn:             string
 }
 
-export interface IDelivery {
-  deliverBatch: (
-    opts: {
-      recipient: string
-      messages: any[]
-      friend?: any
-    }
-  ) => Promise<any>
-  ack: (opts: any) => Promise<any>
-  reject: (opts: any) => Promise<any>
-}
-
-export interface IDeliverBatchRequest {
-  recipient: string
-  messages: Array<any>
-  friend?: any
-  clientId?: string
-}
-
-export interface IDeliveryResult {
-  finished: boolean
-  range: IDeliveryMessageRange
-}
-
-export interface IDeliveryRequest {
-  recipient: string
-  range: IDeliveryMessageRange
-  batchSize?: number
-  friend?: any
-}
-
-export interface IDeliveryMessageRange {
-  after?: number
-  before?: number
-  afterMessage?: string
-}
-
 export interface ITradleObject {
   _sigPubKey: string
   _link?: string
@@ -112,3 +75,40 @@ export interface IIdentity extends ITradleObject {
 }
 
 export type IDebug = (...any) => void
+
+export interface IDelivery {
+  deliverBatch: (
+    opts: {
+      recipient: string
+      messages: ITradleMessage[]
+      friend?: any
+    }
+  ) => Promise<any>
+  ack: (opts: any) => Promise<any>
+  reject: (opts: any) => Promise<any>
+}
+
+export interface IDeliverBatchRequest {
+  recipient: string
+  messages: ITradleMessage[]
+  friend?: any
+  clientId?: string
+}
+
+export interface IDeliveryResult {
+  finished: boolean
+  range: IDeliveryMessageRange
+}
+
+export interface IDeliveryRequest {
+  recipient: string
+  range: IDeliveryMessageRange
+  batchSize?: number
+  friend?: any
+}
+
+export interface IDeliveryMessageRange {
+  after?: number
+  before?: number
+  afterMessage?: string
+}
