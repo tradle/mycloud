@@ -157,7 +157,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#1592d0f4f0077e126a079938014597c52696b049",
+      "resolved": "git://github.com/tradle/dynamodb.git#598f00ddad06db471afacaac4fd7cdef63fbc15b",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -238,7 +238,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#aae59cdf28900fb7b309f67f99a16d384a7021b4"
+      "resolved": "git://github.com/tradle/schema-graphql.git#af2914569490011b718e85ae720011b42946c1d4"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
