@@ -9,6 +9,7 @@ import Auth from './auth'
 import Delivery from './delivery'
 import Discovery from './discovery'
 import Blockchain from './blockchain'
+import Messages from './messages'
 import Seals from './seals'
 import Friends from './friends'
 import { requireDefault } from './require-default'
@@ -20,8 +21,10 @@ export default class Tradle {
   public aws: any
   public router: any
   public buckets: any
+  public secrets: any
   public objects: Objects
   public identities: Identities
+  public messages: Messages
   public auth: Auth
   public delivery: Delivery
   public discovery: Discovery

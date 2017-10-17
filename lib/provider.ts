@@ -22,20 +22,26 @@ import {
   PUBLIC_CONF_BUCKET
 } from './constants'
 
+import Tradle from './tradle'
+import Auth from './auth'
+import Identities from './identities'
+import Messages from './messages'
+import Objects from './objects'
+import Env from './env'
 import { ISession } from './types'
 
 const { MESSAGE } = TYPES
 
 export default class Provider {
-  private tradle: any
-  private objects: any
-  private messages: any
+  private tradle: Tradle
+  private objects: Objects
+  private messages: Messages
   private secrets: any
-  private identities: any
+  private identities: Identities
   private buckets: any
-  private auth: any
+  private auth: Auth
   private network: any
-  constructor (tradle) {
+  constructor (tradle: Tradle) {
     this.tradle = tradle
     this.objects = tradle.objects
     this.messages = tradle.messages

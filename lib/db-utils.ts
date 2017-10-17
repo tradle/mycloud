@@ -6,8 +6,8 @@ import {
 
 const { NotFound } = require('./errors')
 const { co, pick, logify, timestamp, wait, clone, batchify } = require('./utils')
-const { prettify } = require('./string-utils')
-const Errors = require('./errors')
+import { prettify } from './string-utils'
+import * as Errors from './errors'
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 

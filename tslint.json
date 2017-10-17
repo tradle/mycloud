@@ -10,7 +10,8 @@
     "curly": false,
     "no-this-assignment": false,
     "variable-name": false,
-    "no-floating-promises": false
+    "no-floating-promises": false,
+    "member-ordering": false
   },
   "jsRules": {
     "no-use-before-declare": true

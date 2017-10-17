@@ -1,6 +1,7 @@
 type ModuleMap = { [key: string]: any }
+type Require = (module:string) => any
 
-exports.requireDefault = (() => {
+const requireDefault:Require = (() => {
   const cache:ModuleMap = {}
 
   return (path:string) => {
@@ -12,3 +13,5 @@ exports.requireDefault = (() => {
     return cache[path]
   }
 })()
+
+export { requireDefault }

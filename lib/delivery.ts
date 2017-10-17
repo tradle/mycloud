@@ -1,12 +1,20 @@
 import { EventEmitter } from 'events'
 import * as DeliveryMQTT from './delivery-mqtt'
 import DeliveryHTTP from './delivery-http'
-import { IDelivery } from './types'
+import Messages from './messages'
+import {
+  IDelivery,
+  IDeliveryRequest,
+  IDeliveryResult,
+  IDeliverBatchRequest,
+  IDeliveryMessageRange,
+  IDebug
+} from './types'
 import { clone, pick } from './utils'
 import Env from './env'
 import LambdaUtils from './lambda-utils'
 
-const debug = require('debug')('tradle:sls:delivery')
+const MIN_BATCH_DELIVERY_TIME = 2000
 const MAX_BATCH_SIZE = 5
 
 function normalizeOpts (opts) {
@@ -26,12 +34,16 @@ function withTransport (method: string) {
 }
 
 export default class Delivery extends EventEmitter implements IDelivery {
+  public ack = withTransport('ack')
+  public reject = withTransport('reject')
+
   private mqtt: any
   private http: DeliveryHTTP
   private friends: any
-  private messages: any
+  private messages: Messages
   private objects: any
   private env: Env
+  private debug: IDebug
   private lambdaUtils: LambdaUtils
   private _deliverBatch = withTransport('deliverBatch')
 
@@ -45,61 +57,63 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.http = new DeliveryHTTP(opts)
     this.mqtt = new DeliveryMQTT(opts)
     this.env = env
+    this.debug = env.logger('delivery')
     this.lambdaUtils = lambdaUtils
   }
 
-  public ack = withTransport('ack')
-  public reject = withTransport('reject')
-
-  public deliverBatch = async (opts: { messages: Array<any> })  => {
+  public deliverBatch = async (opts:IDeliverBatchRequest) => {
     const { messages } = opts
     messages.forEach(object => this.objects.presignEmbeddedMediaLinks({ object }))
     return this._deliverBatch(opts)
   }
 
-  public async deliverMessages (opts) {
-    opts = clone(opts)
-    let {
+  public deliverMessages = async (opts:IDeliveryRequest):Promise<IDeliveryResult> => {
+    const {
       recipient,
-      gt=0,
-      lt=Infinity,
-      afterMessage
+      friend,
+      range,
+      batchSize=MAX_BATCH_SIZE
     } = opts
 
-    debug(`looking up messages for ${recipient} > ${gt}`)
-    while (true) {
-      let batchSize = Math.min(lt - gt - 1, MAX_BATCH_SIZE)
-      if (batchSize <= 0) return
+    let { afterMessage } = range
+    const { before, after } = range
 
+    this.debug(`looking up messages for ${recipient} > ${after}`)
+    const result:IDeliveryResult = {
+      finished: false,
+      range: { ...range }
+    }
+
+    while (true) {
       let messages = await this.messages.getMessagesTo({
         recipient,
-        gt,
+        gt: after,
+        lt: before,
         afterMessage,
         limit: batchSize,
         body: true,
       })
 
-      debug(`found ${messages.length} messages for ${recipient}`)
-      if (!messages.length) return
+      this.debug(`found ${messages.length} messages for ${recipient}`)
+      if (!messages.length) {
+        result.finished = true
+        break
+      }
 
-      // if (this.env.getRemainingTimeInMillis() < 2000) {
-      //   debug('recursing delivery')
-      //   return this.lambdaUtils.invoke({
-      //     name: this.env.AWS_LAMBDA_FUNCTION_NAME,
-      //     arg: this.env.event
-      //   })
-      // }
+      if (this.env.getRemainingTime() < MIN_BATCH_DELIVERY_TIME) {
+        this.debug('delivery ran out of time')
+        // TODO: recurse
+        break
+      }
 
-      await this.deliverBatch({ ...opts, messages })
-
-      // while (messages.length) {
-      //   let message = messages.shift()
-      //   await deliverMessage({ clientId, recipient, message })
-      // }
-
+      await this.deliverBatch({ recipient, messages, friend })
       let last = messages[messages.length - 1]
       afterMessage = pick(last, ['_recipient', 'time'])
+      result.range.afterMessage = afterMessage
+      delete result.range.after
     }
+
+    return result
   }
 
   public async getTransport (opts: {
@@ -121,7 +135,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       opts.friend = await this.friends.get({ permalink: recipient })
       return this.http
     } catch (err) {
-      debug(`cannot determine transport to use for recipient ${recipient}`)
+      this.debug(`cannot determine transport to use for recipient ${recipient}`)
       throw err
     }
   }

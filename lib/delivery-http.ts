@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 import { post, promiseNoop, tryUntilTimeRunsOut } from './utils'
-import { IDelivery } from "./types"
+import { IDelivery, IDeliverBatchRequest } from "./types"
 import Env from './env'
 import { IDebug } from './types'
 
@@ -17,7 +17,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
   public ack = promiseNoop
   public reject = (opts: { reason: Error }) => Promise.reject(opts.reason)
-  public deliverBatch = async (opts: { friend: any; recipient: string; messages: Array<any> }) => {
+  public deliverBatch = async (opts:IDeliverBatchRequest) => {
     const { friend, messages } = opts
     const endpoint = `${friend.url}/inbox`
     return await tryUntilTimeRunsOut(() => post(endpoint, { messages }), {

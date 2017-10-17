@@ -1,6 +1,6 @@
 import * as Debug from 'debug'
 import constants = require('./constants')
-import Errors = require('./errors')
+import * as Errors from './errors'
 import {
   firstSuccess,
   logify,

@@ -1,13 +1,15 @@
-const debug = require('debug')('tradle:sls:auth')
 import { getUpdateParams } from './db-utils'
 import { typeforce, defineGetter } from './utils'
 import { prettify } from './string-utils'
 import { randomString, getPermalink } from './crypto'
-import Errors = require('./errors')
+import * as Errors from './errors'
 import * as types from './typeforce-types'
 import Identities from './identities'
+import Messages from './messages'
+import Objects from './objects'
+import Env from './env'
 import * as constants from './constants'
-import { ISession, IotClientResponse } from './types/index.d'
+import { IDebug, ISession, IotClientResponse } from './types/index.d'
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
 
@@ -23,7 +25,7 @@ const { HandshakeFailed, InvalidInput, NotFound } = Errors
 //       }
 //     })
 //   } catch (err) {
-//     debug(`Failed to delete clientId => permalink mapping in ${Presence}`, err)
+//     this.debug(`Failed to delete clientId => permalink mapping in ${Presence}`, err)
 //   }
 // })
 
@@ -36,27 +38,30 @@ const { HandshakeFailed, InvalidInput, NotFound } = Errors
 // })
 
 export default class Auth {
-  private env: any
+  private env: Env
   private aws: any
   private resources: any
   private tables: any
   private identities: Identities
-  private objects: any
-  private messages: any
+  private objects: Objects
+  private messages: Messages
+  private debug: IDebug
   constructor (opts: {
-    env: any,
+    env: Env,
     aws: any,
     resources: any,
     tables: any,
     identities: Identities,
-    objects: any,
-    messages: any
+    objects: Objects,
+    messages: Messages
   }) {
     // lazy define
     [
       'env', 'aws', 'resources', 'tables',
       'identities', 'objects', 'messages'
     ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
+
+    this.debug = this.env.logger('auth')
   }
 
   public onAuthenticated = async (session:ISession): Promise<void> => {
@@ -65,7 +70,7 @@ export default class Auth {
       authenticated: true
     }
 
-    debug('saving session', prettify(session))
+    this.debug('saving session', prettify(session))
 
     // allow multiple sessions for the same user?
     // await deleteSessionsByPermalink(permalink)
@@ -108,7 +113,7 @@ export default class Auth {
       throw new NotFound('no authenticated sessions found')
     }
 
-    debug('latest authenticated session:', prettify(latest))
+    this.debug('latest authenticated session:', prettify(latest))
     return latest
   }
 
@@ -164,7 +169,7 @@ export default class Auth {
         position: types.position
       }, response)
     } catch (err) {
-      debug('received invalid input', err.stack)
+      this.debug('received invalid input', err.stack)
       throw new InvalidInput(err.message)
     }
 
@@ -225,7 +230,7 @@ export default class Auth {
         identity: types.identity
       }, opts)
     } catch (err) {
-      debug('received invalid input', err.stack)
+      this.debug('received invalid input', err.stack)
       throw new InvalidInput(err.message)
     }
 
@@ -237,11 +242,11 @@ export default class Auth {
 
     const maybeAddContact = this.identities.validateAndAdd(identity)
     const role = `arn:aws:iam::${accountId}:role/${this.resources.Role.IotClient}`
-    debug(`generating temp keys for client ${clientId}, role ${role}`)
+    this.debug(`generating temp keys for client ${clientId}, role ${role}`)
 
     // get the account id which will be used to assume a role
 
-    debug('assuming role', role)
+    this.debug('assuming role', role)
     const params = {
       RoleArn: role,
       RoleSessionName: randomString(16),
@@ -258,7 +263,7 @@ export default class Auth {
       Credentials
     } = await this.aws.sts.assumeRole(params).promise()
 
-    debug('assumed role', role)
+    this.debug('assumed role', role)
     return {
       iotEndpoint: this.env.IOT_ENDPOINT,
       iotTopicPrefix: this.env.IOT_TOPIC_PREFIX,

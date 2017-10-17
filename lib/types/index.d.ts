@@ -45,15 +45,36 @@ export interface IDelivery {
     opts: {
       recipient: string
       messages: any[]
+      friend?: any
     }
   ) => Promise<any>
   ack: (opts: any) => Promise<any>
   reject: (opts: any) => Promise<any>
 }
 
-export type IDebug = (...any) => void
+export interface IDeliverBatchRequest {
+  recipient: string
+  messages: Array<any>
+  friend?: any
+  clientId?: string
+}
 
-export * from './identities'
-export * from './auth'
-export * from './delivery'
-export * from './discovery'
+export interface IDeliveryResult {
+  finished: boolean
+  range: IDeliveryMessageRange
+}
+
+export interface IDeliveryRequest {
+  recipient: string
+  range: IDeliveryMessageRange
+  batchSize?: number
+  friend?: any
+}
+
+export interface IDeliveryMessageRange {
+  after?: number
+  before?: number
+  afterMessage?: string
+}
+
+export type IDebug = (...any) => void

@@ -36,6 +36,7 @@ export default class Objects {
   }
 
   private env: Env
+  private region: string
   private buckets: any
   private bucket: any
   private s3Utils: any

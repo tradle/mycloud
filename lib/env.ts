@@ -30,8 +30,8 @@ export default class Env {
   public NO_TIME_TRAVEL:boolean
   public IOT_TOPIC_PREFIX:string
   public IOT_ENDPOINT:string
+  public debug:IDebug
 
-  private debug:(...any) => void
   private nick:string
   constructor(props:any) {
     this.set(props)
@@ -94,7 +94,7 @@ export default class Env {
   }
 
   // gets overridden when lambda is attached
-  public getRemainingTimeInMillis = ():number => {
+  public getRemainingTime = ():number => {
     return Infinity
   }
 
@@ -115,7 +115,11 @@ export default class Env {
       this.set({ accountId })
     }
 
-    this.set({ event, context, getRemainingTimeInMillis })
+    this.set({
+      event,
+      context,
+      getRemainingTime: getRemainingTimeInMillis
+    })
   }
 }
 

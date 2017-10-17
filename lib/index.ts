@@ -1,10 +1,12 @@
 import { requireDefault } from './require-default'
+import Tradle from './tradle'
+import Env from './env'
 
 let tradle
 
-module.exports = {
+export = {
   // proxy to default instance props
-  get tradle() {
+  get tradle():Tradle {
     if (!tradle) {
       const { Tradle } = module.exports
       tradle = new Tradle()
@@ -12,7 +14,7 @@ module.exports = {
 
     return tradle
   },
-  get env () {
+  get env():Env {
     return module.exports.tradle.env
   },
 
