@@ -28,7 +28,7 @@ import Identities from './identities'
 import Messages from './messages'
 import Objects from './objects'
 import Env from './env'
-import { ISession } from './types'
+import { ISession, ITradleMessage, ITradleObject, IIdentity, IPubKey } from './types'
 
 const { MESSAGE } = TYPES
 
@@ -74,7 +74,7 @@ export default class Provider {
     return chainKey
   }
 
-  public getMyChainKeyPub = async () => {
+  public getMyChainKeyPub = async ():Promise<IPubKey> => {
     const { network } = this
     const identity = await this.getMyPublicIdentity()
     const key = identity.pubkeys.find(pub => {
@@ -90,7 +90,7 @@ export default class Provider {
     return key
   }
 
-  public signObject = async ({ author, object }) => {
+  public signObject = async ({ author, object }):Promise<ITradleObject> => {
     if (!author) author = await this.getMyPrivateIdentity()
 
     const key = getSigningKey(author.keys)
@@ -101,21 +101,21 @@ export default class Provider {
     return signed
   }
 
-  public findOrCreate = async ({ link, object, author }) => {
+  public findOrCreate = async ({ link, object, author }):Promise<ITradleObject> => {
     if (!object) {
-      return this.objects.getObjectByLink(link)
+      return this.objects.get(link)
     }
 
     if (!object[SIG]) {
       object = await this.signObject({ author, object })
     }
 
-    await this.objects.putObject(object)
+    await this.objects.put(object)
     this.objects.addMetadata(object)
     return object
   }
 
-  public createSendMessageEvent = async (opts) => {
+  public createSendMessageEvent = async (opts):Promise<ITradleMessage> => {
     if (!opts.time) {
       opts.time = Date.now()
     }
@@ -127,7 +127,7 @@ export default class Provider {
     return this._createSendMessageEvent(opts)
   }
 
-  public receiveMessage = async ({ message }) => {
+  public receiveMessage = async ({ message }):Promise<ITradleMessage> => {
     // can probably move this to lamdba
     // as it's normalizing transport-mangled inputs
     try {
@@ -147,10 +147,10 @@ export default class Provider {
     }
   }
 
-  public createReceiveMessageEvent = async ({ message }) => {
+  public createReceiveMessageEvent = async ({ message }):Promise<ITradleMessage> => {
     message = await this.messages.parseInbound(message)
     // TODO: phase this out
-    await this.objects.putObject(message.object)
+    await this.objects.put(message.object)
 
     // if (objectWrapper.type === IDENTITY && messageWrapper.sigPubKey === objectWrapper.sigPubKey) {
     //   // special case: someone is sending us their own identity
@@ -184,7 +184,11 @@ export default class Provider {
   //   }
   // })
 
-  public sendMessage = async (opts: { recipient: string, object: any, other?: any }) => {
+  public sendMessage = async (opts: {
+    recipient: string,
+    object: ITradleObject,
+    other?: any
+  }):Promise<ITradleMessage> => {
     const { recipient, object, other={} } = opts
     // start this first to get a more accurate timestamp
     const promiseCreate = this.createSendMessageEvent({ recipient, object, other })
@@ -215,7 +219,7 @@ export default class Provider {
   }
 
   public attemptLiveDelivery = async (opts: {
-    message: any,
+    message: ITradleMessage,
     recipient: string,
     session?: ISession
   }) => {
@@ -232,15 +236,16 @@ export default class Provider {
     return this.secrets.get(IDENTITY_KEYS_KEY)
   }
 
-  public lookupMyPublicIdentity = ():Promise<any> => {
+  public lookupMyPublicIdentity = ():Promise<IIdentity> => {
     return this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
   }
 
   public getMyPrivateIdentity = cachifyPromiser(this.lookupMyIdentity)
 
-  public getMyPublicIdentity = cachifyPromiser(this.lookupMyPublicIdentity)
+  public getMyPublicIdentity:() => Promise<IIdentity> =
+    cachifyPromiser(this.lookupMyPublicIdentity)
 
-  private _createSendMessageEvent = async (opts) => {
+  private _createSendMessageEvent = async (opts):Promise<ITradleMessage> => {
     const { author, recipient, link, object, other={} } = opts
 
     typeforce({

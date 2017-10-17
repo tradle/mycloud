@@ -105,7 +105,7 @@ const UsersTableLogicalId = 'UsersTable'
     })
 
     // const { getIdentityByPermalink } = identities
-    const { getObjectByLink } = objects
+    const { get } = objects
     const payload = {
       _link: 'b',
       _t: 'a',
@@ -123,7 +123,7 @@ const UsersTableLogicalId = 'UsersTable'
       _virtual: ['_author', '_recipient', '_link']
     }
 
-    objects.getObjectByLink = co(function* (link) {
+    objects.get = co(function* (link) {
       if (link === message._link) {
         return message.object
       } else if (link === payload._link) {
@@ -153,7 +153,7 @@ const UsersTableLogicalId = 'UsersTable'
 
     yield bot.trigger('message', message)
     t.equal(updatedUser, true)
-    objects.getObjectByLink = getObjectByLink
+    objects.get = get
     // identities.getIdentityByPermalink = getIdentityByPermalink
   }))
 

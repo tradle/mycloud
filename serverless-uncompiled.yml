@@ -546,6 +546,8 @@ functions:
     warmup: true
     handler: lib/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
+    # give enough time to deliver backed-up message
+    timeout: 60
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
@@ -630,7 +632,7 @@ functions:
   precreate-tables:
     handler: lib/lambda/precreate-tables.handler
     memorySize: 128
-    timeout: 180
+    timeout: 300
 
   # Blockchain
 

@@ -86,14 +86,16 @@ export = function setup (opts) {
   })
 
   // be lazy
-  let schema
-  const getSchema = () => {
-    if (!schema) {
-      schema = createSchema({ models, objects, resolvers }).schema
-    }
+  const getSchema = (() => {
+    let schema
+    return () => {
+      if (!schema) {
+        schema = createSchema({ models, objects, resolvers }).schema
+      }
 
-    return schema
-  }
+      return schema
+    }
+  })()
 
   const executeQuery = (query, variables) => {
     const schema = getSchema()
@@ -103,7 +105,7 @@ export = function setup (opts) {
   const loadPayloads = async (messages) => {
     messages = [].concat(messages)
     const payloads = await Promise.all(messages.map(
-      msg => objects.getObjectByLink(msg.object._link)
+      msg => objects.get(msg.object._link)
     ))
 
     payloads.forEach((payload, i) => {

@@ -77,4 +77,38 @@ export interface IDeliveryMessageRange {
   afterMessage?: string
 }
 
+export interface ITradleObject {
+  _sigPubKey: string
+  _link?: string
+  _permalink?: string
+  _author?: string
+  _time?: number
+}
+
+export interface IECMiniPubKey {
+  pub: Buffer
+  curve: string
+}
+
+export interface ITradleMessage extends ITradleObject {
+  recipientPubKey: IECMiniPubKey
+  object: ITradleObject
+  time: number
+  _recipient?: string
+  _inbound?: boolean
+}
+
+export interface IPubKey {
+  type: string
+  purpose: string
+  pub: string
+  fingerprint: string
+  networkName?: string
+  curve?: string
+}
+
+export interface IIdentity extends ITradleObject {
+  pubkeys: Array<IPubKey>
+}
+
 export type IDebug = (...any) => void

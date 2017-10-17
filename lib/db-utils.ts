@@ -11,11 +11,13 @@ import * as Errors from './errors'
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 
-exports = module.exports = createDBUtils
-exports.getRecordsFromEvent = getRecordsFromEvent
-exports.getUpdateParams = getUpdateParams
-exports.marshalDBItem = marshalDBItem
-exports.unmarshalDBItem = unmarshalDBItem
+export default createDBUtils
+export {
+  getRecordsFromEvent,
+  getUpdateParams,
+  marshalDBItem,
+  unmarshalDBItem
+}
 
 function createDBUtils ({ aws, env }) {
   const debug = env.logger('db-utils')

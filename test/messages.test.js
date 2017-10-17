@@ -95,7 +95,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
       link: prevMsgLink
     }))
 
-  const stubPutObject = stub(objects, 'putObject', function (object) {
+  const stubPutObject = stub(objects, 'put', function (object) {
     t.ok(object[SIG])
     payload[SIG] = object[SIG]
     t.same(omitVirtual(object), payload)
@@ -156,7 +156,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
     mocks.getIdentityMetadataByPub
   )
 
-  const stubPutObject = stub(objects, 'putObject', function (object) {
+  const stubPutObject = stub(objects, 'put', function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
     return Promise.resolve()

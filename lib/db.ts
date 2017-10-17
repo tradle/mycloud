@@ -13,8 +13,8 @@ export = function createDB (opts: {
 }) {
   const { models, objects, tables, aws, constants, env, prefix } = opts
   const readOnlyObjects = {
-    get: objects.getObjectByLink,
-    put: objects.putObject
+    get: objects.get,
+    put: objects.put
   }
 
   const db = newDB({

@@ -1,10 +1,26 @@
-import * as tradleConstants from '@tradle/constants'
+import {
+  TYPE,
+  PERMALINK,
+  PREVLINK,
+  LINK,
+  SEQ,
+  SIG,
+  PREV_TO_RECIPIENT,
+  NONCE,
+  TYPES
+} from '@tradle/constants'
 
 const constants = {
-  ...tradleConstants,
-  PERMALINK: tradleConstants.PERMALINK,
+  TYPE,
+  PERMALINK,
+  PREVLINK,
+  LINK,
+  SEQ,
+  SIG,
+  PREV_TO_RECIPIENT,
+  NONCE,
   TYPES: {
-    ...tradleConstants.TYPES,
+    ...TYPES,
     INTRODUCTION: 'tradle.Introduction',
     IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest'
   },

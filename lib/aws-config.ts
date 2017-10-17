@@ -1,5 +1,6 @@
+import Env from './env'
 
-export const createConfig = ({ env }) => {
+export const createConfig = ({ env } : { env: Env }) => {
   const { TESTING } = env
   const services = {
     maxRetries: 6,
@@ -7,18 +8,17 @@ export const createConfig = ({ env }) => {
   }
 
   if (TESTING) {
-    const localstack = require('../test/localstack')
+    const localstackEndpoints = require('../test/localstack')
 
-    for (let name in localstack) {
+    for (let name in localstackEndpoints) {
       let lname = name.toLowerCase()
       if (!services[lname]) services[lname] = {}
 
-      services[lname].endpoint = localstack[name]
+      services[lname].endpoint = localstackEndpoints[name]
     }
 
     services.s3.s3ForcePathStyle = true
   }
 
   return services
-  // module.exports = services
 }

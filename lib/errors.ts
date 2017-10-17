@@ -8,6 +8,8 @@ function createError (name: string): ErrorConstructor {
 const errors = {
   NotFound: createError('NotFound'),
   InvalidSignature: createError('InvalidSignature'),
+  InvalidAuthor: createError('InvalidAuthor'),
+  InvalidVersion: createError('InvalidVersion'),
   InvalidMessageFormat: createError('InvalidMessageFormat'),
   PutFailed: createError('PutFailed'),
   MessageNotForMe: createError('MessageNotForMe'),

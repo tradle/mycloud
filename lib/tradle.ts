@@ -14,8 +14,6 @@ import Seals from './seals'
 import Friends from './friends'
 import { requireDefault } from './require-default'
 
-const createNewInstance = env => new Tradle(env)
-
 export default class Tradle {
   public env: Env
   public aws: any

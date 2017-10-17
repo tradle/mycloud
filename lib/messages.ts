@@ -2,7 +2,7 @@ import AWS = require('aws-sdk')
 import Identities from './identities'
 import Objects from './objects'
 import Env from './env'
-import { IDebug } from './types'
+import { IDebug, ITradleMessage, ITradleObject, IECMiniPubKey } from './types'
 import { utils as tradleUtils } from '@tradle/engine'
 import * as Errors from './errors'
 import {
@@ -12,7 +12,8 @@ import {
   pickVirtual,
   setVirtual,
   extend,
-  bindAll
+  bindAll,
+  RESOLVED_PROMISE
 } from './utils'
 import { getLink } from './crypto'
 import { prettify } from './string-utils'
@@ -21,9 +22,10 @@ import {
   TYPE,
   TYPES,
   MAX_CLOCK_DRIFT,
-  DEV,
   SEQ,
-  PREV_TO_RECIPIENT
+  PREV_TO_RECIPIENT,
+  PERMALINK,
+  PREVLINK
 } from './constants'
 
 const { unserializeMessage } = tradleUtils
@@ -34,11 +36,6 @@ const {
   INTRODUCTION,
   IDENTITY_PUBLISH_REQUEST
 } = TYPES
-
-interface IECPubKey {
-  curve: string
-  pub: Buffer
-}
 
 interface IMessageStub {
   time: number
@@ -75,7 +72,7 @@ export default class Messages {
     this.inbox = tables.Inbox
   }
 
-  public normalizeInbound = (event) => {
+  public normalizeInbound = (event):ITradleMessage => {
     let message
     if (Buffer.isBuffer(event)) {
       try {
@@ -112,7 +109,7 @@ export default class Messages {
     return props
   }
 
-  public messageToEventPayload = (message) => {
+  public messageToEventPayload = (message: ITradleMessage) => {
     const neutered = this.stripData(message)
     return {
       ...neutered,
@@ -120,18 +117,18 @@ export default class Messages {
     }
   }
 
-  public messageFromEventPayload = (event) => {
+  public messageFromEventPayload = (event):ITradleMessage => {
     return {
       ...event,
       recipientPubKey: this.unserializePubKey(event.recipientPubKey)
     }
   }
 
-  public serializePubKey = (key:IECPubKey):string => {
+  public serializePubKey = (key:IECMiniPubKey):string => {
     return `${key.curve}:${key.pub.toString('hex')}`
   }
 
-  public unserializePubKey = (key:string):IECPubKey => {
+  public unserializePubKey = (key:string):IECMiniPubKey => {
     const [curve, pub] = key.split(':')
     return {
       curve,
@@ -139,7 +136,11 @@ export default class Messages {
     }
   }
 
-  public getMessageStub = ({ message, error }):IMessageStub => {
+  public getMessageStub = (opts: {
+    message: ITradleMessage,
+    error?: Error
+  }):IMessageStub => {
+    const { message, error } = opts
     const stub = {
       link: (error && error.link) || getLink(message),
       time: message.time
@@ -149,14 +150,14 @@ export default class Messages {
     return stub
   }
 
-  public stripData = (message) => {
+  public stripData = (message: ITradleMessage) => {
     return {
       ...message,
       object: pickVirtual(message.object)
     }
   }
 
-  public putMessage = async (message) => {
+  public putMessage = async (message: ITradleMessage) => {
     setVirtual(message, {
       _payloadType: message.object[TYPE],
       _payloadLink: message.object._link,
@@ -171,11 +172,19 @@ export default class Messages {
     }
   }
 
-  public putOutboundMessage = async ({ message, item }):Promise<void> => {
+  public putOutboundMessage = async (opts: {
+    message: ITradleMessage,
+    item
+  }):Promise<void> => {
+    const { item } = opts
     await this.outbox.put({ Item: item })
   }
 
-  public putInboundMessage = async ({ message, item }):Promise<void> => {
+  public putInboundMessage = async (opts: {
+    message: ITradleMessage,
+    item
+  }):Promise<void> => {
+    const { item, message } = opts
     const params = {
       Item: item,
       ConditionExpression: 'attribute_not_exists(#link)',
@@ -197,8 +206,8 @@ export default class Messages {
     }
   }
 
-  public loadMessage = async (message) => {
-    const body = await this.objects.getObjectByLink(getLink(message.object))
+  public loadMessage = async (message: ITradleMessage):Promise<ITradleMessage> => {
+    const body = await this.objects.get(getLink(message.object))
     message.object = extend(message.object || {}, body)
     return message
   }
@@ -208,11 +217,11 @@ export default class Messages {
     time: number,
     link?: string,
     body?:boolean
-  }) => {
+  }):Promise<ITradleMessage> => {
     const { author, time, link, body=true } = opts
     if (body && link) {
       // prime cache
-      this.objects.prefetchByLink(link)
+      this.objects.prefetch(link)
     }
 
     return await this.maybeAddBody({
@@ -229,17 +238,18 @@ export default class Messages {
     gt: number,
     limit: number,
     body: boolean
-  }) => {
+  }):Promise<ITradleMessage[]> => {
     const { author, gt, limit, body=true } = opts
     this.debug(`looking up inbound messages from ${author}, > ${gt}`)
     const params = this.getMessagesFromQuery({ author, gt, limit })
-    return await this.maybeAddBody({
-      messages: await this.find(this.inbox, params),
-      body
-    })
+    const messages = await this.find(this.inbox, params)
+    return body ? Promise.all(messages.map(this.loadMessage)) : messages
   }
 
-  public getLastMessageFrom = async (opts: { author: string, body: boolean }) => {
+  public getLastMessageFrom = async (opts: {
+    author: string,
+    body: boolean
+  }):Promise<ITradleMessage> => {
     const { author, body=true } = opts
     const params = this.getLastMessageFromQuery({ author })
     return this.maybeAddBody({
@@ -249,27 +259,11 @@ export default class Messages {
   }
 
   public maybeAddBody = async (opts: {
-    messages?:Array<any>,
-    message?:any,
+    message:any,
     body: boolean
-  }) => {
-    const { messages, message, body } = opts
-    if (!body) return messages || message
-
-    if (!messages) {
-      return this.loadMessage(message)
-    }
-
-    return await Promise.all(messages.map(this.loadMessage))
-
-    // return Promise.all(messages.map(message => {
-    //   return loadMessage(message)
-    //     .catch(err => {
-    //       this.debug(`failed to load message ${prettify(message)}`, err)
-    //     })
-    // }))
-    // // filter out nulls
-    // .then(results => results.filter(message => message))
+  }):Promise<ITradleMessage> => {
+    const { message, body } = opts
+    return body ? this.loadMessage(message) : message
   }
 
   public getLastSeqAndLink = async (opts: { recipient: string }):Promise<ISeqAndLink|null> => {
@@ -310,7 +304,7 @@ export default class Messages {
     afterMessage?: any,
     limit?:number,
     body?:boolean
-  }) => {
+  }):Promise<ITradleMessage[]> => {
     const { recipient, gt=0, afterMessage, limit, body=true } = opts
     if (afterMessage) {
       this.debug(`looking up outbound messages for ${recipient}, after ${afterMessage}`)
@@ -319,13 +313,15 @@ export default class Messages {
     }
 
     const params = this.getMessagesToQuery({ recipient, gt, afterMessage, limit })
-    return this.maybeAddBody({
-      messages: await this.find(this.outbox, params),
-      body
-    })
+    const messages = await this.find(this.outbox, params)
+    return body ? Promise.all(messages.map(this.loadMessage)) : messages
   }
 
-  public getLastMessageTo = async ({ recipient, body=true }) => {
+  public getLastMessageTo = async (opts: {
+    recipient: string,
+    body: boolean
+  }):Promise<ITradleMessage> => {
+    const { recipient, body=true } = opts
     const params = this.getLastMessageToQuery({ recipient })
     return this.maybeAddBody({
       message: await this.findOne(this.outbox, params),
@@ -396,33 +392,39 @@ export default class Messages {
     }
   }
 
-  public parseInbound = async (message) => {
+  public parseInbound = async (message: ITradleMessage):Promise<ITradleMessage> => {
     // TODO: uncomment below, check that message is for us
     // await ensureMessageIsForMe({ message })
     const min = message
+    const payload = message.object
 
     // prereq to running validation
     await this.objects.resolveEmbeds(message)
 
     this.objects.addMetadata(message)
-    this.objects.addMetadata(message.object)
+    this.objects.addMetadata(payload)
 
     setVirtual(min, pickVirtual(message))
-    setVirtual(min.object, pickVirtual(message.object))
+    setVirtual(min.object, pickVirtual(payload))
     message = min
 
     // TODO:
     // would be nice to parallelize some of these
     // await assertNotDuplicate(messageWrapper.link)
 
+    if (payload[PREVLINK]) {
+      // prime cache
+      this.objects.prefetch(payload[PREVLINK])
+    }
+
     const addMessageAuthor = this.identities.addAuthorInfo(message)
     let addPayloadAuthor
-    if (message.object._sigPubKey === message._sigPubKey) {
+    if (payload._sigPubKey === message._sigPubKey) {
       addPayloadAuthor = addMessageAuthor.then(() => {
-        setVirtual(message.object, { _author: message._author })
+        setVirtual(payload, { _author: message._author })
       })
     } else {
-      addPayloadAuthor = this.identities.addAuthorInfo(message.object)
+      addPayloadAuthor = this.identities.addAuthorInfo(payload)
     }
 
     await [
@@ -431,6 +433,19 @@ export default class Messages {
       addPayloadAuthor
         .then(() => this.debug('loaded payload author')),
     ]
+
+    if (payload[PREVLINK]) {
+      try {
+        await this.objects.validateNewVersion({ object: payload })
+      } catch (err) {
+        if (!(err instanceof Errors.NotFound)) {
+          throw err
+        }
+
+        this.debug(`previous version of ${payload._link} (${payload[PREVLINK]}) was not found, skipping validation`)
+        return
+      }
+    }
 
     this.debug('added metadata for message and wrapper')
     if (this.env.NO_TIME_TRAVEL) {
@@ -444,7 +459,7 @@ export default class Messages {
     return message
   }
 
-  public preProcessInbound = async (event) => {
+  public preProcessInbound = async (event):Promise<ITradleMessage> => {
     const message = this.normalizeInbound(event)
     if (message[TYPE] !== MESSAGE) {
       throw new Errors.InvalidMessageFormat('expected message, got: ' + message[TYPE])
@@ -463,19 +478,19 @@ export default class Messages {
     return message
   }
 
-  private get = (table, Key) => {
+  private get = (table, Key):Promise<ITradleMessage> => {
     return table
       .get({ Key })
       .then(this.messageFromEventPayload)
   }
 
-  private findOne = (table, params) => {
+  private findOne = (table, params):Promise<ITradleMessage> => {
     return table
       .findOne(params)
       .then(this.messageFromEventPayload)
   }
 
-  private find = (table, params) => {
+  private find = (table, params):Promise<ITradleMessage[]> => {
     return table
       .find(params)
       .then(events => events.map(this.messageFromEventPayload))

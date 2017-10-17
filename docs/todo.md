@@ -26,17 +26,21 @@ DynamoDB:
           primary key:
             _link
             secondary indexes:
-              _author + time
-              _recipient + time
+              _author, time
+              _recipient, time
 
         B:
           primary key:
-            _author + time
+            _author, time
           secondary indexes:
-            _recipient + time
+            concat(_inbound + _recipient), time
             _link
+        C:
+          primary key:
+            concat(_author, _recipient, time)
+
+
   maybe create two identical fake models to map to Inbox, Outbox? e.g. InboundMessage, OutboundMessage.
-    - then @tradle/dynamodb would need to support alternate primary keys (currently it's _link for everything)
 
   use @tradle/dynamodb or at least dynogels wrappers for Messages and Identities
     - but how to avoid creating expensive indexes for _author + _time, _recipient + _time, etc?

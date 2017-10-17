@@ -1,5 +1,5 @@
 import * as Debug from 'debug'
-import constants = require('./constants')
+import * as constants from './constants'
 import * as Errors from './errors'
 import {
   firstSuccess,
@@ -13,6 +13,7 @@ import {
 
 import { addLinks, getLink } from './crypto'
 import * as types from './typeforce-types'
+import { IIdentity, ITradleObject } from './types'
 
 const debug = Debug('tradle:sls:identities')
 const { PREVLINK, TYPE, TYPES } = constants
@@ -31,7 +32,7 @@ export default class Identities {
     this.pubKeys = tables.PubKeys
   }
 
-  public getIdentityMetadataByPub = pub => {
+  public getIdentityMetadataByPub = (pub:string) => {
     debug('get identity metadata by pub')
     return this.pubKeys.get({
       Key: { pub },
@@ -39,17 +40,17 @@ export default class Identities {
     })
   }
 
-  public getIdentityByPub = async (pub) => {
+  public getIdentityByPub = async (pub:string):Promise<IIdentity> => {
     const { link } = await this.getIdentityMetadataByPub(pub)
     try {
-      return await this.objects.getObjectByLink(link)
+      return await this.objects.get(link)
     } catch(err) {
       debug('unknown identity', pub, err)
       throw new NotFound('identity with pub: ' + pub)
     }
   }
 
-  public getIdentityByPermalink = async (permalink: string) => {
+  public getIdentityByPermalink = async (permalink: string):Promise<IIdentity> => {
     const params = {
       IndexName: 'permalink',
       KeyConditionExpression: 'permalink = :permalinkValue',
@@ -61,7 +62,7 @@ export default class Identities {
     debug('get identity by permalink')
     const { link } = await this.pubKeys.findOne(params)
     try {
-      return await this.objects.getObjectByLink(link)
+      return await this.objects.get(link)
     } catch(err) {
       debug('unknown identity', permalink, err)
       throw new NotFound('identity with permalink: ' + permalink)
@@ -82,10 +83,10 @@ export default class Identities {
 //   }
 
 //   return findOne(params)
-//     .then(this.objects.getObjectByLink)
+//     .then(this.objects.get)
 // }
 
-  public getExistingIdentityMapping = identity => {
+  public getExistingIdentityMapping = (identity):Promise<object> => {
     debug('checking existing mappings for pub keys')
     const lookups = identity.pubkeys.map(obj => this.getIdentityMetadataByPub(obj.pub))
     return firstSuccess(lookups)
@@ -146,11 +147,11 @@ export default class Identities {
     }
   }
 
-  public addContact = async (object) => {
+  public addContact = async (object: IIdentity):Promise<void> => {
     if (object) {
       typeforce(types.identity, object)
     } else {
-      object = await this.objects.getObjectByLink(getLink(object))
+      object = await this.objects.get(getLink(object))
     }
 
     const { link, permalink } = addLinks(object)
@@ -159,7 +160,7 @@ export default class Identities {
 
     debug(`adding contact ${permalink}`)
     await Promise.all(putPubKeys.concat(
-      this.objects.putObject(object)
+      this.objects.put(object)
     ))
 
     debug(`added contact ${permalink}`)
@@ -177,7 +178,7 @@ export default class Identities {
    * Add author metadata, including designated recipient, if object is a message
    * @param {String} object._sigPubKey author sigPubKey
    */
-  public addAuthorInfo = async (object) => {
+  public addAuthorInfo = async (object: ITradleObject) => {
     if (!object._sigPubKey) {
       this.objects.addMetadata(object)
     }
@@ -185,12 +186,10 @@ export default class Identities {
     const type = object[TYPE]
     const isMessage = type === MESSAGE
     const pub = isMessage && object.recipientPubKey.pub.toString('hex')
-    const promises = {
+    const { author, recipient } = {
       author: await this.getIdentityMetadataByPub(object._sigPubKey),
       recipient: await (pub ? this.getIdentityMetadataByPub(pub) : RESOLVED_PROMISE)
     }
-
-    const { author, recipient } = promises
 
     setVirtual(object, { _author: author.permalink })
     if (recipient) {
@@ -200,11 +199,11 @@ export default class Identities {
     return object
   }
 
-  public validateAndAdd = async (identity) => {
+  public validateAndAdd = async (identity:IIdentity):Promise<void> => {
     const result = await this.validateNewContact(identity)
     // debug('validated contact:', prettify(result))
     if (!result.exists) {
-      return this.addContact(result.identity)
+      await this.addContact(result.identity)
     }
   }
 }
@@ -224,7 +223,7 @@ export default class Identities {
 // }
 
 // const Identities = module.exports = logify({
-//   getIdentityByLink: this.objects.getObjectByLink,
+//   getIdentityByLink: this.objects.get,
 //   getIdentityByPermalink,
 //   getIdentityByPub,
 //   getIdentityMetadataByPub,

@@ -6,18 +6,18 @@ const { promisify, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
 const adapters = require('./blockchain-adapter')
 
-interface BlockchainIdentifier {
+interface IBlockchainIdentifier {
   flavor: string,
   networkName: string,
   minBalance: string
 }
 
-interface Key {
+interface IKey {
   fingerprint: string
   priv: string
 }
 
-interface Sealable {
+interface ISealable {
   link?: string
   prevLink?: string
   basePubKey: any
@@ -30,7 +30,7 @@ export default class Blockchain {
   private flavor: string
   private networkName: string
   private minBalance: string
-  private blockchainIdentifier: BlockchainIdentifier
+  private blockchainIdentifier: IBlockchainIdentifier
   private getTxAmount = () => this.network.minOutputAmount
   private debug:(...any) => void
   private tradle:Tradle
@@ -41,7 +41,7 @@ export default class Blockchain {
     return create({ flavor, networkName, ...opts })
   }
 
-  private getWriter = (key: Key) => {
+  private getWriter = (key: IKey) => {
     const { fingerprint, priv } = key
     if (!this.writers[fingerprint]) {
       const { transactor } = this.createAdapter({
@@ -66,7 +66,7 @@ export default class Blockchain {
   }
 
   public addressesAPI: {
-    transactions: (addresses: Array<string>, blockHeight?: number) => Promise<any>,
+    transactions: (addresses: string[], blockHeight?: number) => Promise<any>,
     balance: (address: string) => Promise<string|number>
   }
 
@@ -156,27 +156,27 @@ export default class Blockchain {
     })
   }
 
-  public sealPubKey = (opts: Sealable) => {
+  public sealPubKey = (opts: ISealable) => {
     let { link, basePubKey } = opts
     link = utils.linkToBuf(link)
     basePubKey = utils.toECKeyObj(basePubKey)
     return protocol.sealPubKey({ link, basePubKey })
   }
 
-  public sealPrevPubKey = (opts: Sealable) => {
+  public sealPrevPubKey = (opts: ISealable) => {
     let { link, basePubKey } = opts
     link = utils.linkToBuf(link)
     basePubKey = utils.toECKeyObj(basePubKey)
     return protocol.sealPrevPubKey({ link, basePubKey })
   }
 
-  public sealAddress = (opts: Sealable) => {
+  public sealAddress = (opts: ISealable) => {
     const { link, basePubKey } = opts
     const { pub } = this.sealPubKey({ link, basePubKey })
     return this.network.pubKeyToAddress(pub)
   }
 
-  public sealPrevAddress = (opts: Sealable ) => {
+  public sealPrevAddress = (opts: ISealable ) => {
     const { link, basePubKey } = opts
     const { pub } = this.sealPrevPubKey({ link, basePubKey })
     return this.network.pubKeyToAddress(pub)

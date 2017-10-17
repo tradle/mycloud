@@ -26,7 +26,7 @@ module.exports = function fakeTradle ({ env, objects, identities, messages, send
       post: noop
     },
     objects: {
-      getObjectByLink: getter(objects),
+      get: getter(objects),
       getEmbeds: () => {
         throw new Error('mock getEmbeds not implemented')
       },
