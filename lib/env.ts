@@ -6,6 +6,7 @@ import * as yn from 'yn'
 import * as Networks from './networks'
 import { parseArn } from './utils'
 import { IDebug } from './types'
+import { WARMUP_SOURCE_NAME } from './constants'
 
 const returnInfinity = () => Infinity
 
@@ -99,7 +100,7 @@ export default class Env {
   }
 
   public setFromLambdaEvent = (event, context) => {
-    this.IS_WARM_UP = event.source === 'serverless-plugin-warmup'
+    this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
     if (this.TESTING) {
       this.debug('setting TEST resource map')
       this.set(require('../test/service-map'))

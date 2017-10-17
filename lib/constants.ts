@@ -61,7 +61,8 @@ const constants = {
     'tradle.ForgotYou',
     'tradle.ModelsPack',
     'tradle.ShareRequest'
-  ]
+  ],
+  WARMUP_SOURCE_NAME: 'warmup'
 }
 
 export = constants

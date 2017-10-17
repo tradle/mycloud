@@ -35,7 +35,6 @@
     "serverless-plugin-common-excludes": "^2.0.0",
     "serverless-plugin-tracing": "^1.0.6",
     "serverless-plugin-typescript": "^1.1.2",
-    "serverless-plugin-warmup": "^3.2.0-rc.1",
     "serverless-pseudo-parameters": "^1.1.5",
     "serverless-resources-env": "mvayngrib/serverless-resources-env",
     "serverless-sam": "mvayngrib/serverless-sam",

@@ -7291,26 +7291,6 @@
         }
       }
     },
-    "serverless-plugin-warmup": {
-      "version": "3.2.0-rc.1",
-      "from": "serverless-plugin-warmup@latest",
-      "resolved": "https://registry.npmjs.org/serverless-plugin-warmup/-/serverless-plugin-warmup-3.2.0-rc.1.tgz",
-      "dev": true,
-      "dependencies": {
-        "fs-extra": {
-          "version": "3.0.1",
-          "from": "fs-extra@>=3.0.1 <4.0.0",
-          "resolved": "https://registry.npmjs.org/fs-extra/-/fs-extra-3.0.1.tgz",
-          "dev": true
-        },
-        "jsonfile": {
-          "version": "3.0.1",
-          "from": "jsonfile@>=3.0.0 <4.0.0",
-          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-3.0.1.tgz",
-          "dev": true
-        }
-      }
-    },
     "serverless-pseudo-parameters": {
       "version": "1.2.5",
       "from": "serverless-pseudo-parameters@>=1.1.5 <2.0.0",
