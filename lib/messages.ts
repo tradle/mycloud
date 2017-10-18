@@ -55,14 +55,16 @@ export default class Messages {
   private tables: any
   private inbox: any
   private outbox: any
+  private db: any
 
   constructor (opts: {
     env: Env,
     identities: Identities,
     objects: Objects,
-    tables: any
+    tables: any,
+    db: any
   }) {
-    const { env, identities, objects, tables } = opts
+    const { env, identities, objects, tables, db } = opts
     this.env = env
     this.debug = env.logger('messages')
     this.identities = identities
@@ -70,6 +72,7 @@ export default class Messages {
     this.tables = tables
     this.outbox = tables.Outbox
     this.inbox = tables.Inbox
+    this.db = db
   }
 
   public normalizeInbound = (event):ITradleMessage => {
@@ -329,8 +332,8 @@ export default class Messages {
     })
   }
 
-  public getInboundByLink = function getInboundByLink (link) {
-    return this.findOne(this.inbox, {
+  public getInboundByLink = async (link:string) => {
+    return await this.findOne(this.inbox, {
       IndexName: '_link',
       KeyConditionExpression: '#link = :link',
       ExpressionAttributeNames: {
@@ -478,22 +481,19 @@ export default class Messages {
     return message
   }
 
-  private get = (table, Key):Promise<ITradleMessage> => {
-    return table
-      .get({ Key })
-      .then(this.messageFromEventPayload)
+  private get = async (table, Key):Promise<ITradleMessage> => {
+    const event = await table.get({ Key })
+    return this.messageFromEventPayload(event)
   }
 
-  private findOne = (table, params):Promise<ITradleMessage> => {
-    return table
-      .findOne(params)
-      .then(this.messageFromEventPayload)
+  private findOne = async (table, params):Promise<ITradleMessage> => {
+    const event = await table.findOne(params)
+    return this.messageFromEventPayload(event)
   }
 
-  private find = (table, params):Promise<ITradleMessage[]> => {
-    return table
-      .find(params)
-      .then(events => events.map(this.messageFromEventPayload))
+  private find = async (table, params):Promise<ITradleMessage[]> => {
+    const events = await table.find(params)
+    return events.map(this.messageFromEventPayload)
   }
 
   private getMessagesFromQuery = ({
@@ -502,7 +502,6 @@ export default class Messages {
     limit
   }):AWS.DynamoDB.DocumentClient.QueryInput => {
     const params:AWS.DynamoDB.DocumentClient.QueryInput = {
-      TableName: this.inbox.name,
       KeyConditionExpression: '#author = :author AND #time > :time',
       ExpressionAttributeNames: {
         '#author': '_author',

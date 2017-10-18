@@ -4,7 +4,7 @@ const { NODE_ENV } = process.env
 if (NODE_ENV === 'test') {
   const extend = require('xtend/mutable')
   extend(process.env, require('../test/service-map'), shallowClone(process.env))
-  console.log(process.env)
+  // console.log(process.env)
 }
 
 const debug = require('debug')('λ:samplebot')

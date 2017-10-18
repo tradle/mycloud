@@ -61,8 +61,7 @@ export default class Tradle {
     this.define('s3Utils', './s3-utils', this.construct)
     this.define('lambdaUtils', './lambda-utils', this.construct)
     this.define('iot', './iot-utils', initialize => initialize({
-      aws: this.aws,
-      prefix: env.IOT_TOPIC_PREFIX
+      aws: this.aws
     }))
 
     this.define('identities', './identities', this.construct)

@@ -14,5 +14,6 @@
   "Route53": "http://localhost:4580",
   "CloudFormation": "http://localhost:4581",
   "CloudWatch": "http://localhost:4582",
-  "CloudWatchLogs": "http://localhost:4582"
+  "CloudWatchLogs": "http://localhost:4582",
+  "IotData": "http://localhost:1884"
 }

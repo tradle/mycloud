@@ -24,7 +24,7 @@ const { Tradle } = require('../')
 const { genLocalResources } = require('../lib/cli/utils')
 const { wrap, utils, crypto } = require('../')
 const { extend, clone, pick, omit, batchify } = utils
-const botFixture = require('./fixtures/bot')
+// const botFixture = require('./fixtures/bot')
 const userIdentities = require('./fixtures/users-pem')
 const createProductsBot = require('../lib/bot/strategy').products
 const intercept = require('./interceptor')
@@ -73,18 +73,26 @@ function E2ETest (opts={}) {
     approveAllEmployees: false
   })
 
-  extend(bot, nextUserIdentity())
+  // extend(bot, botFixture)
 
   this.tradle = tradle
   this.bot = bot
   this.productsAPI = productsAPI
   this.employeeManager = employeeManager
   this.products = products
-  this._ready = bot.addressBook.addContact(bot.identity)
-    .then(() => this.bot.ready())
+  this._ready = this._init()
 }
 
 const proto = E2ETest.prototype
+
+proto._init = co(function* () {
+  yield this.tradle.init.ensureInitialized()
+  const { keys, identity } = yield this.tradle.provider.getMyPrivateIdentity()
+  extend(this.bot, { keys, identity })
+  yield this.bot.addressBook.addContact(this.bot.identity)
+  this.bot.ready()
+  debug('bot permalink', crypto.getPermalink(this.bot.identity))
+})
 
 proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
   yield this._ready
@@ -492,6 +500,7 @@ function User ({ tradle, identity, keys, profile, name, bot, onmessage }) {
 
   this._types = []
   recordTypes(this, this._types)
+  this._debug('permalink', this.permalink)
   this._ready = tradle.identities.addContact(this.identity)
 }
 

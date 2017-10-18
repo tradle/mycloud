@@ -1,3 +1,4 @@
+import crypto = require('crypto')
 import '../lib/globals'
 
 // console.warn('make sure localstack is running (npm run localstack:start)')
@@ -11,7 +12,9 @@ const debug = require('debug')('tradle:sls:test:env')
 const props = {
   ...serviceMap,
   NODE_ENV: 'test',
-  IS_LOCAL: true
+  AWS_REGION: 'us-east-1',
+  IS_LOCAL: true,
+  IOT_ENDPOINT: 'localhost:1884'
 }
 
 export const createTestEnv = () => {
@@ -32,13 +35,15 @@ export const install = (target=process.env):void => {
     debug('assumed role')
     callback(null, {
       AssumedRoleUser: {
-        AssumedRoleId: 'abcdef'
+        AssumedRoleId: randomBase64(32)
       },
       Credentials: {
-        AccessKeyId: 'abc',
-        SecretAccessKey: 'def',
-        SessionToken: 'ghi'
+        AccessKeyId: randomBase64(15),
+        SecretAccessKey: randomBase64(30),
+        SessionToken: randomBase64(128)
       }
     })
   })
 }
+
+const randomBase64 = (bytes:number):string => crypto.randomBytes(bytes).toString('base64')

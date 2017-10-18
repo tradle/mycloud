@@ -14,5 +14,9 @@ mockery.enable({
   warnOnUnregistered: false
 })
 
+console.warn('disabling "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
 mockery.registerMock('scrypt', {})
-console.warn('mocking "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
+if (process.env.IS_OFFLINE || process.env.IS_LOCAL || process.env.NODE_ENV === 'test') {
+  console.warn('disabling "aws-xray-sdk" as this is a local environment')
+  mockery.registerMock('aws-xray-sdk', null)
+}

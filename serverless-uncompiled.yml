@@ -68,7 +68,8 @@ custom:
   prefix: ${{self:service}}-${{self:custom.stage}}-
   prefixRole: ${{self:custom.prefix}}
   # maybe during info/auth, the server can send back the prefix
-  prefixIOTTopic: ${{self:service}}-
+  # prefixIOTTopic: ${{self:service}}-
+  iotParentTopic: ${{self:service}}-${{self:custom.stage}}
   prefixSNSTopic: ${{self:custom.prefix}}
   prefixSQS: ${{self:custom.prefix}}
 
@@ -185,7 +186,8 @@ provider:
   environment:
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
-    IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
+    # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
+    IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
     # declare
     IOT_ENDPOINT: ''
     BLOCKCHAIN: ${{self:custom.blockchain}}
@@ -580,7 +582,7 @@ functions:
     #   SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
-          sql: "SELECT * as data, clientid() as clientId FROM '${{self:custom.prefixIOTTopic}}message'"
+          sql: "SELECT * as data, clientid() as clientId, topic() as topic FROM '${{self:custom.iotParentTopic}}/+/outbox'"
           sqlVersion: ${{self:custom.versionSQL}}
 
   # same as onmessage, but can handle larger payloads

@@ -1,5 +1,6 @@
 import { db as newDB, createTable } from '@tradle/dynamodb'
 import AWS = require('aws-sdk')
+import { createTable as createMessagesTable } from './messages-table'
 // const Tables = require('./tables')
 
 export = function createDB (opts: {
@@ -12,14 +13,9 @@ export = function createDB (opts: {
   prefix: string
 }) {
   const { models, objects, tables, aws, constants, env, prefix } = opts
-  const readOnlyObjects = {
-    get: objects.get,
-    put: objects.put
-  }
-
   const db = newDB({
     models,
-    objects: readOnlyObjects,
+    objects,
     docClient: aws.docClient,
     maxItemSize: constants.MAX_DB_ITEM_SIZE,
     prefix
@@ -28,29 +24,8 @@ export = function createDB (opts: {
   // export Outbox only
   const messageModel = models['tradle.Message']
   if (!messageModel.isInterface) {
-    const outbox = createTable({
-      models,
-      objects: readOnlyObjects,
-      model: messageModel,
-      tableName: tables.Outbox.name,
-      prefix,
-      // better load these from serverless-yml
-      hashKey: '_recipient',
-      rangeKey: 'time',
-      indexes: [
-        {
-          hashKey: '_payloadLink',
-          rangeKey: 'time',
-          name: 'PayloadLinkIndex',
-          type: 'global',
-          projection: {
-            ProjectionType: 'KEYS_ONLY'
-          }
-        }
-      ]
-    })
-
-    db.setTableForType('tradle.Message', outbox)
+    const messagesTable = createMessagesTable({ models, tables, prefix })
+    db.setTableForType('tradle.Message', messagesTable)
   }
 
   const pubKeyModel = models['tradle.PubKey']
@@ -59,7 +34,7 @@ export = function createDB (opts: {
       ...models,
       [pubKeyModel.id]: pubKeyModel
     },
-    objects: readOnlyObjects,
+    objects,
     model: pubKeyModel,
     tableName: tables.PubKeys.name,
     prefix,

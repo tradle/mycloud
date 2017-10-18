@@ -264,9 +264,9 @@ export default class Auth {
     } = await this.aws.sts.assumeRole(params).promise()
 
     this.debug('assumed role', role)
-    return {
+    const resp:IotClientResponse = {
       iotEndpoint: this.env.IOT_ENDPOINT,
-      iotTopicPrefix: this.env.IOT_TOPIC_PREFIX,
+      iotParentTopic: this.env.IOT_PARENT_TOPIC,
       region: this.env.AWS_REGION,
       accessKey: Credentials.AccessKeyId,
       secretKey: Credentials.SecretAccessKey,
@@ -275,6 +275,12 @@ export default class Auth {
       time: Date.now(),
       challenge
     }
+
+    if (this.env.IS_OFFLINE) {
+      resp.s3Endpoint = this.aws.s3.endpoint.host
+    }
+
+    return resp
   }
 
   public getUploadPrefix = (AssumedRoleUser: {

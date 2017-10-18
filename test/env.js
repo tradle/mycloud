@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const crypto = require("crypto");
 require("../lib/globals");
 require('source-map-support').install();
 const AWS = require("aws-sdk-mock");
 const serviceMap = require("./service-map");
 const debug = require('debug')('tradle:sls:test:env');
-const props = Object.assign({}, serviceMap, { NODE_ENV: 'test', IS_LOCAL: true });
+const props = Object.assign({}, serviceMap, { NODE_ENV: 'test', AWS_REGION: 'us-east-1', IS_LOCAL: true, IOT_ENDPOINT: 'localhost:1884' });
 exports.createTestEnv = () => {
     const Env = require('../lib/env');
     return new Env(props);
@@ -21,14 +22,15 @@ exports.install = (target = process.env) => {
         debug('assumed role');
         callback(null, {
             AssumedRoleUser: {
-                AssumedRoleId: 'abcdef'
+                AssumedRoleId: randomBase64(32)
             },
             Credentials: {
-                AccessKeyId: 'abc',
-                SecretAccessKey: 'def',
-                SessionToken: 'ghi'
+                AccessKeyId: randomBase64(15),
+                SecretAccessKey: randomBase64(30),
+                SessionToken: randomBase64(128)
             }
         });
     });
 };
+const randomBase64 = (bytes) => crypto.randomBytes(bytes).toString('base64');
 //# sourceMappingURL=env.js.map

@@ -1,4 +1,6 @@
+import path = require('path')
 import { Lambda } from 'aws-sdk'
+import { promisify } from './utils'
 
 const notNull = (val:any):boolean => !!val
 
@@ -14,6 +16,10 @@ export default class Utils {
     this.env = env
     this.aws = aws
     this.debug = env.logger('lambda-utils')
+  }
+
+  public getShortName = (name: string):string => {
+    return name.slice(this.env.SERVERLESS_PREFIX.length)
   }
 
   public getFullName = (name: string):string => {
@@ -43,9 +49,9 @@ export default class Utils {
       StatusCode,
       Payload,
       FunctionError
-    } = await this.aws.lambda.invoke(params).promise()
+    } = await this._invoke(params)
 
-    if (StatusCode >= 300) {
+    if (FunctionError || (StatusCode && StatusCode >= 300)) {
       const message = Payload || `experienced ${FunctionError} error invoking lambda: ${name}`
       throw new Error(message)
     }
@@ -141,5 +147,50 @@ export default class Utils {
       FunctionName: functionName,
       Environment: { Variables }
     }).promise()
+  }
+
+  private _invoke = async (params:AWS.Lambda.InvocationRequest)
+    :Promise<AWS.Lambda.InvocationResponse> => {
+    if (this.env.IS_OFFLINE) {
+      return await this._requireAndInvoke(params)
+    } else {
+      return await this.aws.lambda.invoke(params).promise()
+    }
+  }
+
+  private _requireAndInvoke = async (params:AWS.Lambda.InvocationRequest)
+    :Promise<AWS.Lambda.InvocationResponse> => {
+    const { FunctionName, InvocationType, Payload } = params
+    const shortName = this.getShortName(FunctionName)
+    const yml = require('./cli/serverless-yml')
+    const createLambdaContext = require('serverless-offline/src/createLambdaContext')
+    const { functions } = yml
+    const handlerExportPath = functions[shortName].handler
+    const lastDotIdx = handlerExportPath.lastIndexOf('.')
+    const handlerPath = path.resolve(__dirname, '..', handlerExportPath.slice(0, lastDotIdx))
+    const handleExportName = handlerExportPath.slice(lastDotIdx + 1)
+    const handler = require(handlerPath)[handleExportName]
+    const event = typeof Payload === 'string' ? JSON.parse(Payload) : {}
+    // not ideal as the called function may have different environment vars
+    const context = createLambdaContext(FunctionName)
+    const result = {
+      StatusCode: InvocationType === 'Event' ? 202 : 200,
+      Payload: '',
+      FunctionError: ''
+    }
+
+    try {
+      const promise = promisify(handler)(event, context, context.done)
+      if (InvocationType === 'RequestResponse') {
+        const resp = await promise
+        result.Payload = JSON.stringify(resp)
+      }
+    } catch (err) {
+      result.Payload = err.stack
+      result.FunctionError = err.stack
+      result.StatusCode = 400
+    }
+
+    return result
   }
 }

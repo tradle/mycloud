@@ -18,7 +18,7 @@ export interface ISession {
 
 export interface IotClientResponse {
   iotEndpoint: string
-  iotTopicPrefix: string
+  iotParentTopic: string
   challenge: string
   time: number
   region: string
@@ -26,6 +26,7 @@ export interface IotClientResponse {
   secretKey: string
   sessionToken: string
   uploadPrefix: string
+  s3Endpoint?: string
 }
 
 export interface ILambdaExecutionContext {
@@ -112,8 +113,13 @@ export interface IDeliveryRequest {
   friend?: any
 }
 
+export interface IOutboundMessagePointer {
+  _recipient: string
+  time: number
+}
+
 export interface IDeliveryMessageRange {
   after?: number
   before?: number
-  afterMessage?: string
+  afterMessage?: IOutboundMessagePointer
 }

@@ -16,6 +16,7 @@ export default class Env {
   public IS_WARM_UP:boolean
   public IS_LAMBDA_ENVIRONMENT:boolean
   public IS_LOCAL:boolean
+  public IS_OFFLINE:boolean
   public DISABLED:boolean
 
   public AWS_REGION:string
@@ -29,7 +30,7 @@ export default class Env {
 
   public BLOCKCHAIN:any
   public NO_TIME_TRAVEL:boolean
-  public IOT_TOPIC_PREFIX:string
+  public IOT_PARENT_TOPIC:string
   public IOT_ENDPOINT:string
   public debug:IDebug
 
@@ -61,14 +62,8 @@ export default class Env {
       require('../test/env').install(this)
     }
 
-    const [flavor, networkName] = BLOCKCHAIN.split(':')
-    this.BLOCKCHAIN = Networks[flavor][networkName]
     // serverless-offline plugin sets IS_OFFLINE
-
-    this.DEV = !SERVERLESS_STAGE.startsWith('prod')
-    this.NO_TIME_TRAVEL = yn(NO_TIME_TRAVEL)
-    this.REGION = this.AWS_REGION
-    this.IS_LAMBDA_ENVIRONMENT = !!AWS_REGION
+    this._recalc()
   }
 
   public set = props => Object.assign(this, props)
@@ -121,6 +116,19 @@ export default class Env {
       context,
       getRemainingTime: getRemainingTimeInMillis
     })
+
+    this._recalc()
+  }
+
+  private _recalc = ():void => {
+    this.DEV = !this.SERVERLESS_STAGE.startsWith('prod')
+    this.NO_TIME_TRAVEL = yn(this.NO_TIME_TRAVEL)
+    this.REGION = this.AWS_REGION
+    this.IS_LAMBDA_ENVIRONMENT = !this.TESTING
+    if (typeof this.BLOCKCHAIN === 'string') {
+      const [flavor, networkName] = this.BLOCKCHAIN.split(':')
+      this.BLOCKCHAIN = Networks[flavor][networkName]
+    }
   }
 
   private _recalc = (props:any):void => {
