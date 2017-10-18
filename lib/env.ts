@@ -36,18 +36,16 @@ export default class Env {
 
   private nick:string
   constructor(props:any) {
-    this.set(props)
-
     const {
       SERVERLESS_PREFIX,
-      SERVERLESS_STAGE='',
+      SERVERLESS_STAGE,
       NODE_ENV,
       IS_LOCAL,
       IS_OFFLINE,
       AWS_REGION,
       AWS_LAMBDA_FUNCTION_NAME,
       NO_TIME_TRAVEL,
-      BLOCKCHAIN='ethereum:rinkeby'
+      BLOCKCHAIN
     } = props
 
     this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
@@ -57,16 +55,19 @@ export default class Env {
       : '[unknown]'
 
     this.setDebugNamespace(shortName)
+    this.set(props)
     if (this.TESTING) {
       this.debug('setting TEST resource map')
       require('../test/env').install(this)
     }
 
     // serverless-offline plugin sets IS_OFFLINE
-    this._recalc()
   }
 
-  public set = props => Object.assign(this, props)
+  public set = props => {
+    Object.assign(this, props)
+    this._recalc(props)
+  }
 
   /**
    * Dynamically change logger namespace as "nick" is set lazily, e.g. from router
@@ -116,19 +117,6 @@ export default class Env {
       context,
       getRemainingTime: getRemainingTimeInMillis
     })
-
-    this._recalc()
-  }
-
-  private _recalc = ():void => {
-    this.DEV = !this.SERVERLESS_STAGE.startsWith('prod')
-    this.NO_TIME_TRAVEL = yn(this.NO_TIME_TRAVEL)
-    this.REGION = this.AWS_REGION
-    this.IS_LAMBDA_ENVIRONMENT = !this.TESTING
-    if (typeof this.BLOCKCHAIN === 'string') {
-      const [flavor, networkName] = this.BLOCKCHAIN.split(':')
-      this.BLOCKCHAIN = Networks[flavor][networkName]
-    }
   }
 
   private _recalc = (props:any):void => {

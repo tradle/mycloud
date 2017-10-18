@@ -17,7 +17,7 @@ const {
   // PRODUCTS=DEPLOYMENT,
   // PRODUCTS='tradle.CRSSelection,tradle.CoverholderApproval,tradle.MortgageProduct',
   PRODUCTS='nl.tradle.DigitalPassport',
-  ORG_DOMAIN,
+  ORG_DOMAIN='tradle.io',
   AUTO_VERIFY_FORMS,
   AUTO_APPROVE_APPS,
   AUTO_APPROVE_EMPLOYEES=true,
@@ -25,7 +25,7 @@ const {
 } = process.env
 
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
-const deploymentModels = require('./deployment-models')('io.tradle')
+const deploymentModels = require('./deployment-models')(NAMESPACE)
 const bankModels = require('./bank-models')(NAMESPACE)
 const models = shallowClone(deploymentModels, bankModels)
 const products = PRODUCTS.split(',').map(id => id.trim())

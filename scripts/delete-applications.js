@@ -3,7 +3,7 @@
 const co = require('co')
 const yn = require('yn')
 // const toDelete = ['tradle.Application']
-const { dbUtils, env } = require('../')
+const { dbUtils, env } = require('../').tradle
 const { SERVERLESS_PREFIX } = env
 const { listTables, clear } = dbUtils
 const { models, tables } = require('../samplebot')
