@@ -72,6 +72,7 @@
     "rebuild:local": "npm rebuild",
     "nuke": "./scripts/nuke.sh",
     "delete:typetables": "node ./scripts/delete-tables.js",
+    "clear:tables": "node ./scripts/clear-tables.js",
     "build": "flow-remove-types  -d build/ && npm run copynonjs",
     "copynonjs": "./scripts/copy-non-compiled.js",
     "export:template": "serverless sam export --output ./template.yml",
