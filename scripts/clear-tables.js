@@ -2,7 +2,10 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = false
 
-require('../lib/cli/utils').loadEnv()
+const { loadEnv, loadCredentials } = require('../lib/cli/utils')
+
+loadEnv()
+loadCredentials()
 
 const co = require('co')
 const yn = require('yn')
@@ -14,7 +17,8 @@ const skip = [
   'pubkeys',
   'presence',
   'events',
-  'seals'
+  'seals',
+  'tradle_MyCloudFriend'
 ]
 
 const { href } = aws.dynamodb.endpoint
@@ -43,9 +47,16 @@ const getTablesToClear = co.wrap(function* (tables=process.argv.slice(2)) {
 
 const clearTables = co.wrap(function* () {
   const tables = yield getTablesToClear()
+  if (!(tables && tables.length)) return
+
   console.log(`will empty the following tables at endpoint ${href}\n`, tables)
   console.log('let the games begin!')
-  yield tables.map(clear)
+  for (const table of tables) {
+    console.log('clearing', table)
+    const numDeleted = yield clear(table)
+    console.log(`deleted ${numDeleted} items from ${table}`)
+  }
+
   console.log('done!')
 })
 

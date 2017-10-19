@@ -93,10 +93,11 @@ function createDBUtils ({ aws, env }) {
     const tableInfo = yield aws.dynamodb.describeTable({ TableName }).promise()
     const { Table: { KeySchema } } = tableInfo
     const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
+    let count = 0
     let scan = yield exec('scan', { TableName })
     while (true) {
       let { Items, LastEvaluatedKey } = scan
-      if (!Items.length) return
+      if (!Items.length) break
 
       debug(`deleting ${Items.length} from table ${TableName}`)
       yield Items.map(item => exec('delete', {
@@ -104,12 +105,15 @@ function createDBUtils ({ aws, env }) {
         Key: pick(item, keyProps)
       }))
 
+      count += Items.length
       if (!LastEvaluatedKey) {
-        return
+        break
       }
 
       scan = yield exec('scan', { TableName, ExclusiveStartKey: LastEvaluatedKey })
     }
+
+    return count
   })
 
   const listTables = co(function* (env) {
