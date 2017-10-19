@@ -156,6 +156,7 @@ module.exports = {
         "no-process-exit": "off",
         "no-proto": "error",
         "no-prototype-builtins": "error",
+        "no-redeclare": "warn",
         "no-restricted-globals": "error",
         "no-restricted-imports": "error",
         "no-restricted-modules": "error",
@@ -250,7 +251,7 @@ module.exports = {
             "never"
         ],
         "valid-jsdoc": "warn",
-        "vars-on-top": "error",
+        "vars-on-top": "warn",
         "wrap-iife": "error",
         "wrap-regex": "warn",
         "yield-star-spacing": "error",
