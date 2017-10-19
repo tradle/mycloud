@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+process.env.IS_LAMBDA_ENVIRONMENT = false
+
 const path = require('path')
 const co = require('co')
 const promisify = require('pify')
