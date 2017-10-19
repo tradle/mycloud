@@ -152,8 +152,10 @@ export default class Utils {
   private _invoke = async (params:AWS.Lambda.InvocationRequest)
     :Promise<AWS.Lambda.InvocationResponse> => {
     if (this.env.IS_OFFLINE) {
+      this.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
       return await this._requireAndInvoke(params)
     } else {
+      this.debug(`invoking ${params.FunctionName}`)
       return await this.aws.lambda.invoke(params).promise()
     }
   }
