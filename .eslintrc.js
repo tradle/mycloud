@@ -20,7 +20,7 @@ module.exports = {
                 "before": true
             }
         ],
-        "block-scoped-var": "error",
+        "block-scoped-var": "warn",
         "block-spacing": "error",
         "brace-style": "off",
         "callback-return": "warn",
@@ -203,7 +203,7 @@ module.exports = {
         "object-property-newline": "warn",
         "object-shorthand": "warn",
         "one-var": "off",
-        "one-var-declaration-per-line": "error",
+        "one-var-declaration-per-line": "warn",
         "operator-assignment": "error",
         "operator-linebreak": "error",
         "padded-blocks": "off",
