@@ -7,7 +7,7 @@ const { dbUtils, env } = require('../')
 const { SERVERLESS_PREFIX } = env
 const { listTables, clear } = dbUtils
 const { models, tables } = require('../samplebot')
-const readline = require('readline');
+const readline = require('readline')
 const rl = readline.createInterface(process.stdin, process.stdout)
 
 const getTablesToClear = co.wrap(function* () {

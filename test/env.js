@@ -11,7 +11,12 @@ exports.createTestEnv = () => {
     return new Env(props);
 };
 exports.install = (target = process.env) => {
-    Object.assign(target, props);
+    if (typeof target.set === 'function') {
+        target.set(props);
+    }
+    else {
+        Object.assign(target, props);
+    }
     AWS.mock('STS', 'assumeRole', (params, callback) => {
         debug('assumed role');
         callback(null, {

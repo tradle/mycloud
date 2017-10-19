@@ -21,7 +21,12 @@ export const createTestEnv = () => {
 }
 
 export const install = (target=process.env):void => {
-  Object.assign(target, props)
+  if (typeof target.set === 'function') {
+    target.set(props)
+  } else {
+    Object.assign(target, props)
+  }
+
   // THIS DOESN'T BELONG HERE
   AWS.mock('STS', 'assumeRole', (params, callback) => {
     debug('assumed role')

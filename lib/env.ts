@@ -122,6 +122,28 @@ export default class Env {
       getRemainingTime: getRemainingTimeInMillis
     })
   }
+
+  private _recalc = (props:any):void => {
+    if ('SERVERLESS_STAGE' in props) {
+      this.DEV = !this.SERVERLESS_STAGE.startsWith('prod')
+    }
+
+    if ('NO_TIME_TRAVEL' in props) {
+      this.NO_TIME_TRAVEL = yn(props.NO_TIME_TRAVEL)
+    }
+
+    this.REGION = this.AWS_REGION
+    if ('IS_LAMBDA_ENVIRONMENT' in props) {
+      this.IS_LAMBDA_ENVIRONMENT = yn(props.IS_LAMBDA_ENVIRONMENT)
+    } else if (typeof this.IS_LAMBDA_ENVIRONMENT !== 'boolean') {
+      this.IS_LAMBDA_ENVIRONMENT = !this.TESTING
+    }
+
+    if ('BLOCKCHAIN' in props) {
+      const [flavor, networkName] = props.BLOCKCHAIN.split(':')
+      this.BLOCKCHAIN = Networks[flavor][networkName]
+    }
+  }
 }
 
 // const env = {}

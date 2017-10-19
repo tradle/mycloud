@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-process.env.IS_LOCAL = true
+process.env.IS_LAMBDA_ENVIRONMENT = false
+
+require('../lib/cli/utils').loadEnv()
 
 const co = require('co')
 const yn = require('yn')
