@@ -69,7 +69,7 @@
     "deploy": "npm run build:yml && SLS_DEBUG=* IS_LOCAL= ./scripts/deploy.js && npm run makepublic && npm run gen:testenv",
     "deploy:safe": "npm run eslint && npm run build:yml && npm test && npm run rebuild:lambda && ./scripts/deploy.js dev",
     "deploy:fromscratch": "npm run reinstall && npm run localstack:start && npm run gen:localresources && npm run deploy:safe",
-    "rebuild:lambda": "npm uninstall serverless-offline && docker run --rm -v \"$PWD\":/var/task lambci/lambda:build-nodejs6.10 && npm i -D tradle/serverless-offline",
+    "rebuild:lambda": "./scripts/rebuild-lambda.sh",
     "rebuild:local": "npm rebuild",
     "nuke": "./scripts/nuke.sh",
     "delete:typetables": "node ./scripts/delete-tables.js",
