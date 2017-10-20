@@ -1,0 +1,5 @@
+require('./bot.test')
+require('./dynamodb.test')
+require('./seals.test')
+require('./utils.test')
+require('./messages.test')
