@@ -937,10 +937,12 @@ resources:
             AttributeType: S
           # - AttributeName: ${{self:custom.props.seq}}
           #   AttributeType: N
-          - AttributeName: _link
-            AttributeType: S
           - AttributeName: time
             AttributeType: N
+          - AttributeName: _link
+            AttributeType: S
+          - AttributeName: context
+            AttributeType: S
         KeySchema:
           - AttributeName: _author
             KeyType: HASH
@@ -963,6 +965,17 @@ resources:
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
+          - IndexName: context
+            KeySchema:
+              - AttributeName: context
+                KeyType: HASH
+              - AttributeName: time
+                KeyType: RANGE
+            Projection:
+              ProjectionType: KEYS_ONLY
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
 
     # OutboxTable: ${{file(./conf/table/outbox.yml)}}
 
@@ -979,6 +992,8 @@ resources:
             AttributeType: N
           - AttributeName: _payloadLink
             AttributeType: S
+          - AttributeName: context
+            AttributeType: S
         KeySchema:
           - AttributeName: _recipient
             KeyType: HASH
@@ -994,6 +1009,17 @@ resources:
             KeySchema:
               - AttributeName: _payloadLink
                 KeyType: HASH
+            Projection:
+              ProjectionType: KEYS_ONLY
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+          - IndexName: context
+            KeySchema:
+              - AttributeName: context
+                KeyType: HASH
+              - AttributeName: time
+                KeyType: RANGE
             Projection:
               ProjectionType: KEYS_ONLY
             ProvisionedThroughput:

@@ -21,7 +21,6 @@ export = function createDB (opts: {
     prefix
   })
 
-  // export Outbox only
   const messageModel = models['tradle.Message']
   if (!messageModel.isInterface) {
     const messagesTable = createMessagesTable({ models, tables, prefix })

@@ -21,6 +21,15 @@ export function createTable ({ models, tables, prefix }: { models, tables, prefi
         projection: {
           ProjectionType: 'KEYS_ONLY'
         }
+      },
+      {
+        hashKey: 'context',
+        rangeKey: 'time',
+        name: 'context',
+        type: 'global',
+        projection: {
+          ProjectionType: 'KEYS_ONLY'
+        }
       }
     ]
   })
@@ -39,6 +48,15 @@ export function createTable ({ models, tables, prefix }: { models, tables, prefi
         hashKey: '_payloadLink',
         rangeKey: 'time',
         name: '_payloadLink',
+        type: 'global',
+        projection: {
+          ProjectionType: 'KEYS_ONLY'
+        }
+      },
+      {
+        hashKey: 'context',
+        rangeKey: 'time',
+        name: 'context',
         type: 'global',
         projection: {
           ProjectionType: 'KEYS_ONLY'

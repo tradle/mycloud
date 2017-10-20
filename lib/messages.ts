@@ -24,7 +24,6 @@ import {
   MAX_CLOCK_DRIFT,
   SEQ,
   PREV_TO_RECIPIENT,
-  PERMALINK,
   PREVLINK
 } from './constants'
 
@@ -53,18 +52,16 @@ export default class Messages {
   private identities: Identities
   private objects: Objects
   private tables: any
-  private inbox: any
-  private outbox: any
-  private db: any
+  public inbox: any
+  public outbox: any
 
   constructor (opts: {
     env: Env,
     identities: Identities,
     objects: Objects,
-    tables: any,
-    db: any
+    tables: any
   }) {
-    const { env, identities, objects, tables, db } = opts
+    const { env, identities, objects, tables } = opts
     this.env = env
     this.debug = env.logger('messages')
     this.identities = identities
@@ -72,7 +69,6 @@ export default class Messages {
     this.tables = tables
     this.outbox = tables.Outbox
     this.inbox = tables.Inbox
-    this.db = db
   }
 
   public normalizeInbound = (event):ITradleMessage => {
@@ -329,6 +325,34 @@ export default class Messages {
     return this.maybeAddBody({
       message: await this.findOne(this.outbox, params),
       body
+    })
+  }
+
+  public getLastMessageByContext = async ({ inbound, context } : {
+    context: string
+    inbound: boolean
+  }) => {
+    return this.getMessagesByContext({ inbound, context, limit: 1, reverse: true })
+  }
+
+  public getMessagesByContext = async ({ inbound, context, limit, reverse=true } : {
+    context: string
+    inbound: boolean
+    limit: number
+    reverse?: boolean
+  }) => {
+    const box = inbound ? this.inbox : this.outbox
+    return await box.find({
+      IndexName: 'context',
+      KeyConditionExpression: '#context = :context',
+      ExpressionAttributeNames: {
+        '#context': 'context'
+      },
+      ExpressionAttributeValues: {
+        ':context': context
+      },
+      ScanIndexForward: !reverse,
+      Limit: limit
     })
   }
 
