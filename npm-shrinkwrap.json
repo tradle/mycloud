@@ -68,7 +68,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#02fb09575d16a7f4c9dec4b9f10394376e1c24f8",
+      "resolved": "git://github.com/tradle/bot-products.git#5ef482a0c1070e626e8be5c04cab762ebf6aac91",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -2827,8 +2827,8 @@
     },
     "level-change-processor": {
       "version": "1.0.0",
-      "from": "mvayngrib/level-change-processor#7100404",
-      "resolved": "git://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b"
+      "from": "git+https://github.com/mvayngrib/level-change-processor.git#7100404",
+      "resolved": "git+https://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b"
     },
     "level-codec": {
       "version": "6.1.0",
