@@ -6,6 +6,7 @@ function createError (name: string): ErrorConstructor {
 }
 
 const errors = {
+  ClientUnreachable: createError('ClientUnreachable'),
   NotFound: createError('NotFound'),
   InvalidSignature: createError('InvalidSignature'),
   InvalidAuthor: createError('InvalidAuthor'),

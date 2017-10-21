@@ -23,23 +23,27 @@ const skip = [
 
 const { href } = aws.dynamodb.endpoint
 const getTablesToClear = co.wrap(function* (tables=process.argv.slice(2)) {
-  if (!tables.length) {
+  if (tables.length) {
+    tables = tables.map(name => {
+      return name.startsWith(env.SERVERLESS_PREFIX) ? name : env.SERVERLESS_PREFIX + name
+    })
+  } else {
     tables = yield listTables(env)
     tables = tables.filter(name => {
       return !skip.find(skippable => env.SERVERLESS_PREFIX + skippable === name)
     })
+  }
 
-    console.log(`will empty the following tables at endpoint ${href}\n`, tables)
-    const rl = readline.createInterface(process.stdin, process.stdout)
-    const answer = yield new Promise(resolve => {
-      rl.question('continue? y/[n]:', resolve)
-    })
+  console.log(`will empty the following tables at endpoint ${href}\n`, tables)
+  const rl = readline.createInterface(process.stdin, process.stdout)
+  const answer = yield new Promise(resolve => {
+    rl.question('continue? y/[n]:', resolve)
+  })
 
-    rl.close()
-    if (!yn(answer)) {
-      console.log('aborted')
-      return
-    }
+  rl.close()
+  if (!yn(answer)) {
+    console.log('aborted')
+    return
   }
 
   return tables

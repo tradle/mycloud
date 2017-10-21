@@ -9,7 +9,7 @@ const { exec } = promisify(require('child_process'))
 const fs = promisify(require('fs'))
 const { prettify } = require('../lib/string-utils')
 const { lambdaUtils } = require('../').tradle
-const serviceMapPath = path.resolve(__dirname, '../test/fixtures/remote-service-map.json')
+const serviceMapPath = path.resolve(__dirname, '../lib/cli/remote-service-map.json')
 const { loadCredentials } = require('../lib/cli/utils')
 const serverlessYml = require('../lib/cli/serverless-yml')
 

@@ -8,8 +8,6 @@ import { parseArn } from './utils'
 import { IDebug } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
 
-const returnInfinity = () => Infinity
-
 export default class Env {
   public TESTING:boolean
   public DEV:boolean

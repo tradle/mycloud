@@ -11,6 +11,7 @@ import {
   IDebug
 } from './types'
 import { clone, pick } from './utils'
+import { ClientUnreachable } from './errors'
 import Env from './env'
 import LambdaUtils from './lambda-utils'
 
@@ -136,7 +137,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       return this.http
     } catch (err) {
       this.debug(`cannot determine transport to use for recipient ${recipient}`)
-      throw err
+      throw new ClientUnreachable(`${recipient} is unreachable for live delivery`)
     }
   }
 }
