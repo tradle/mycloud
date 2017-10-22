@@ -463,15 +463,18 @@ export default class Messages {
     ])
 
     if (payload[PREVLINK]) {
-      try {
-        await this.objects.validateNewVersion({ object: payload })
-      } catch (err) {
-        if (!(err instanceof Errors.NotFound)) {
-          throw err
-        }
+      this.debug(`validation of new versions of objects is temporarily disabled,
+        until employees switch to command-based operation, rather than re-signing`)
 
-        this.debug(`previous version of ${payload._link} (${payload[PREVLINK]}) was not found, skipping validation`)
-      }
+      // try {
+      //   await this.objects.validateNewVersion({ object: payload })
+      // } catch (err) {
+      //   if (!(err instanceof Errors.NotFound)) {
+      //     throw err
+      //   }
+
+      //   this.debug(`previous version of ${payload._link} (${payload[PREVLINK]}) was not found, skipping validation`)
+      // }
     }
 
     this.debug('added metadata for message and wrapper')
