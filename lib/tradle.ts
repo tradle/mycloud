@@ -65,7 +65,7 @@ export default class Tradle {
     this.define('identities', './identities', this.construct)
     this.define('friends', './friends', this.construct)
     this.define('messages', './messages', this.construct)
-    this.define('events', './events', this.construct)
+    this.define('events', './events', initialize => initialize(this))
     this.define('provider', './provider', this.construct)
     this.define('auth', './auth', this.construct)
     this.define('objects', './objects', this.construct)

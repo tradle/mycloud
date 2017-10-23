@@ -133,8 +133,7 @@ custom:
   bot_onsealevent: bot_onsealevent
   bot_onpresence: bot_onpresence
   bot_graphql: bot_graphql
-  bot_processinbox: bot_processinbox
-  bot_processoutbox: bot_processoutbox
+  bot_onmessagestream: bot_onmessagestream
   bot_samples: bot_samples
 
   tables:
@@ -450,8 +449,8 @@ functions:
   #   memorySize: 512
 
   # replicates InboxTable to EventsTable
-  inbox2events:
-    handler: lib/lambda/inbox-events.handler
+  to-events:
+    handler: lib/lambda/replicate-to-events.handler
     memorySize: 256
     events:
       - stream:
@@ -462,16 +461,6 @@ functions:
             Fn::GetAtt:
               - InboxTable
               - StreamArn
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
-
-  # replicates OutboxTable to EventsTable
-  outbox2events:
-    handler: lib/lambda/outbox-events.handler
-    memorySize: 256
-    events:
       - stream:
           type: dynamodb
           batchSize: 100
@@ -480,16 +469,6 @@ functions:
             Fn::GetAtt:
               - OutboxTable
               - StreamArn
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
-
-  # replicates SealsTable to EventsTable
-  seal2events:
-    handler: lib/lambda/seal-events.handler
-    memorySize: 512
-    events:
       - stream:
           type: dynamodb
           batchSize: 100
@@ -789,7 +768,7 @@ functions:
 
   # bot-serviced lambda
   # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
-  bot_processinbox:
+  bot_onmessagestream:
     handler: samplebot/index.onmessagestream
     memorySize: 256
     events:
@@ -801,19 +780,6 @@ functions:
             Fn::GetAtt:
               - InboxTable
               - StreamArn
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
-    # onError:
-      # Ref: DeadLetterQueue
-
-  # bot-serviced lambda
-  # replicates Outbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
-  bot_processoutbox:
-    handler: samplebot/index.onmessagestream
-    memorySize: 256
-    events:
       - stream:
           type: dynamodb
           batchSize: 100
@@ -827,7 +793,7 @@ functions:
       - functionThrottles
       - functionInvocations
     # onError:
-    #   Ref: DeadLetterQueue
+      # Ref: DeadLetterQueue
 
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint

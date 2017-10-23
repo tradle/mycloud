@@ -94,7 +94,7 @@ export = {
   get Lambda() {
     return requireDefault('./lambda-utils')
   },
-  get DB() {
+  get dbUtils() {
     return requireDefault('./db-utils')
   },
   get Resources() {

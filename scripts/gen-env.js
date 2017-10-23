@@ -19,7 +19,7 @@ const serverlessYml = require('../lib/cli/serverless-yml')
 co(function* () {
   const { service, custom } = serverlessYml
   const prefix = `${service}-${custom.stage}-`
-  const setEnvFnName = `${prefix}setenvvars`
+  const setEnvFnName = `${prefix}onmessage`
   const { Environment } = yield lambdaUtils.getConfiguration(setEnvFnName)
   yield fs.writeFile(serviceMapPath, prettify(Environment.Variables))
 })
