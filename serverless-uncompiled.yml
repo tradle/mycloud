@@ -9,6 +9,7 @@ plugins:
   - serverless-apigw-binary
   - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes
+  - serverless-dynamodb-autoscaling
   # - serverless-plugin-warmup
   # - serverless-plugin-typescript
   - print
@@ -145,6 +146,21 @@ custom:
     events: ${{self:custom.prefix}}events
     # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
     users: ${{self:custom.prefix}}users
+
+  tableBuckets:
+    count: 4
+    index:
+      - _author
+    read:
+      minimum: 5        # Minimum read capacity
+      maximum: 100      # Maximum read capacity
+      usage: 0.75       # Targeted usage percentage
+    write:
+      minimum: 5        # Minimum write capacity
+      maximum: 100      # Maximum write capacity
+      usage: 0.5        # Targeted usage percentage
+
+  # auto-scaling dynamodb
 
   apigwBinary:
     types:
@@ -1324,6 +1340,45 @@ resources:
                     - cloudwatch:SetAlarmState
                   Resource:
                     - "*"
+
+    # ReadCapacityScalableTarget:
+    #   Type: "AWS::ApplicationAutoScaling::ScalableTarget"
+    #   Properties:
+    #     MaxCapacity: 10
+    #     MinCapacity: 5
+    #     ResourceId: !Join
+    #       - /
+    #       - - table
+    #         - !Ref DDBTable
+    #     RoleARN: !GetAtt AutoScalingRole.Arn
+    #     ScalableDimension: dynamodb:table:ReadCapacityUnits
+    #     ServiceNamespace: dynamo
+
+    # WriteCapacityScalableTarget:
+    #   Type: "AWS::ApplicationAutoScaling::ScalableTarget"
+    #   Properties:
+    #     MaxCapacity: 10
+    #     MinCapacity: 5
+    #     ResourceId: !Join
+    #       - /
+    #       - - table
+    #         - !Ref DDBTable
+    #     RoleARN: !GetAtt AutoScalingRole.Arn
+    #     ScalableDimension: dynamodb:table:WriteCapacityUnits
+    #     ServiceNamespace: dynamodb
+
+    # WriteScalingPolicy:
+    #   Type: "AWS::ApplicationAutoScaling::ScalingPolicy"
+    #   Properties:
+    #     PolicyName: WriteAutoScalingPolicy
+    #     PolicyType: TargetTrackingScaling
+    #     ScalingTargetId: !Ref WriteCapacityScalableTarget
+    #     TargetTrackingScalingPolicyConfiguration:
+    #       TargetValue: 50.0
+    #       ScaleInCooldown: 60
+    #       ScaleOutCooldown: 60
+    #       PredefinedMetricSpecification:
+    #         PredefinedMetricType: DynamoDBWriteCapacityUtilization
 
     # WriteAutoscalingPolicy:
     #   Type: AWS::ApplicationAutoScaling::ScalingPolicy
