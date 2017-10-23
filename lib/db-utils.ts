@@ -8,6 +8,7 @@ const { NotFound } = require('./errors')
 const { co, pick, logify, timestamp, wait, clone, batchify } = require('./utils')
 import { prettify } from './string-utils'
 import * as Errors from './errors'
+import Env from './env'
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 
@@ -23,11 +24,11 @@ function createDBUtils ({ aws, env }) {
   const debug = env.logger('db-utils')
 
   function getTable (TableName) {
-    const batchPutToTable = co(function* (items) {
+    const batchPutToTable = async (items) => {
       const batches = batchify(items, MAX_BATCH_SIZE)
       for (const batch of batches) {
         debug(`putting batch of ${batch.length} to ${TableName}`)
-        yield batchPut({
+        await batchPut({
           RequestItems: {
             [TableName]: batch.map(Item => {
               return {
@@ -37,7 +38,7 @@ function createDBUtils ({ aws, env }) {
           }
         })
       }
-    })
+    }
 
     const tableAPI = {
       toString: () => TableName,
@@ -116,56 +117,71 @@ function createDBUtils ({ aws, env }) {
     return count
   })
 
-  const listTables = co(function* (env) {
-    const { TableNames } = yield aws.dynamodb.listTables().promise()
-    return TableNames.filter(name => name.startsWith(env.SERVERLESS_PREFIX))
-  })
+  const listTables = async (env:Env) => {
+    let tables:string[] = []
+    let opts:AWS.DynamoDB.ListTablesInput = {}
+    while (true) {
+      let {
+        TableNames,
+        LastEvaluatedTableName
+      } = await aws.dynamodb.listTables(opts).promise()
 
-  const get = co(function* (params) {
+      tables = tables.concat(TableNames)
+      if (!TableNames.length || !LastEvaluatedTableName) {
+        break
+      }
+
+      opts.ExclusiveStartTableName = LastEvaluatedTableName
+    }
+
+    return tables.filter(name => name.startsWith(env.SERVERLESS_PREFIX))
+  }
+
+  const get = async (params:AWS.DynamoDB.GetItemInput) => {
     maybeForceConsistentRead(params)
-    const result = yield exec('get', params)
+    const result = await exec('get', params)
     if (!result.Item) {
       throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
     }
 
     // debug(`got item from ${params.TableName}: ${prettify(result)}`)
     return result.Item
-  })
+  }
 
-  const put = co(function* (params) {
-    const result = yield exec('put', params)
+  const put = async (params:AWS.DynamoDB.PutItemInput) => {
+    const result = await exec('put', params)
     return tweakReturnValue(params, result)
-  })
+  }
 
-  const del = co(function* (params) {
-    const result = yield exec('delete', params)
+  const del = async (params:AWS.DynamoDB.DeleteItemInput) => {
+    const result = await exec('delete', params)
     return tweakReturnValue(params, result)
-  })
+  }
 
-  const find = co(function* (params) {
+  const find = async (params:AWS.DynamoDB.QueryInput) => {
     maybeForceConsistentRead(params)
-    const result = yield exec('query', params)
+    const result = await exec('query', params)
     if (result.LastEvaluatedKey) {
       debug('LastEvaluatedKey', result.LastEvaluatedKey)
     }
 
     return result.Items
-  })
+  }
 
-  const findOne = co(function* (params) {
+  const findOne = async (params:AWS.DynamoDB.QueryInput) => {
     params.Limit = 1
-    const results = yield find(params)
+    const results = await find(params)
     if (!results.length) {
       throw new NotFound(`"${params.TableName}" query returned 0 items`)
     }
 
     return results[0]
-  })
+  }
 
-  const update = co(function* (params) {
-    const result = yield exec('update', params)
+  const update = async (params:AWS.DynamoDB.UpdateItemInput) => {
+    const result = await exec('update', params)
     return tweakReturnValue(params, result)
-  })
+  }
 
   function maybeForceConsistentRead (params) {
     // ConsistentRead not supported on GlobalSecondaryIndexes
@@ -183,15 +199,15 @@ function createDBUtils ({ aws, env }) {
     return result
   }
 
-  const scan = co(function* (params) {
+  const scan = async (params:AWS.DynamoDB.ScanInput) => {
     maybeForceConsistentRead(params)
-    const { Items } = yield exec('scan', params)
+    const { Items } = await exec('scan', params)
     return Items
-  })
+  }
 
-  const rawBatchPut = co(function* (params) {
-    return yield exec('batchWrite', params)
-  })
+  const rawBatchPut = async (params:AWS.DynamoDB.BatchWriteItemInput) => {
+    return await exec('batchWrite', params)
+  }
 
   // const create = co(function* (schema) {
   //   try {
@@ -204,7 +220,7 @@ function createDBUtils ({ aws, env }) {
   //   }
   // })
 
-  const batchPut = co(function* (params, backoffOptions={}) {
+  const batchPut = async (params:AWS.DynamoDB.BatchWriteItemInput, backoffOptions={}) => {
     params = clone(params)
 
     const {
@@ -215,19 +231,19 @@ function createDBUtils ({ aws, env }) {
     let tries = 0
     let failed
     while (tries < maxTries) {
-      let result = yield rawBatchPut(params)
+      let result = await rawBatchPut(params)
       failed = result.UnprocessedItems
       if (!(failed && Object.keys(failed).length > 0)) return
 
       params.RequestItems = failed
-      yield wait(backoff(tries++))
+      await wait(backoff(tries++))
     }
 
     const err = new Errors.BatchPutFailed()
     err.failed = failed
     err.attempts = tries
     throw err
-  })
+  }
 
   return {
     listTables,
