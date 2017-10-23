@@ -45,6 +45,7 @@ export default class Auth {
   private identities: Identities
   private objects: Objects
   private messages: Messages
+  private iot: any
   private debug: IDebug
   constructor (opts: {
     env: Env,
@@ -53,12 +54,13 @@ export default class Auth {
     tables: any,
     identities: Identities,
     objects: Objects,
-    messages: Messages
+    messages: Messages,
+    iot: any
   }) {
     // lazy define
     [
       'env', 'aws', 'resources', 'tables',
-      'identities', 'objects', 'messages'
+      'identities', 'objects', 'messages', 'iot'
     ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
 
     this.debug = this.env.logger('auth')
@@ -265,7 +267,7 @@ export default class Auth {
 
     this.debug('assumed role', role)
     const resp:IotClientResponse = {
-      iotEndpoint: this.env.IOT_ENDPOINT,
+      iotEndpoint: await this.iot.getEndpoint(),
       iotParentTopic: this.env.IOT_PARENT_TOPIC,
       region: this.env.AWS_REGION,
       accessKey: Credentials.AccessKeyId,

@@ -51,6 +51,8 @@ export default class Discovery {
 
   /**
    * updates IOT_ENDPOINT env var on all lambdas
+   *
+   * NOT USED ANYMORE
    */
   private doDiscoverServices = async (StackName?: string) => {
     const { thisFunctionName } = this

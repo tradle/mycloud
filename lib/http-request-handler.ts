@@ -35,10 +35,6 @@ export = serverlessHTTP(router, {
   binary: binaryMimeTypes,
   request: async (request, event, context:ILambdaExecutionContext) => {
     env.setFromLambdaEvent(event, context)
-    if (!env.TESTING && !env.IOT_ENDPOINT) {
-      await discoverServices()
-    }
-
     request.context = context
     request.event = event
     return request
