@@ -115,11 +115,10 @@ custom:
       functionDuration:
         period: 60
         threshold: ${{self:custom.thresholdDurationAlarm}}
-
     alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
+      # - functionErrors
+      # - functionThrottles
+      # - functionInvocations
       # - functionDuration
 
   # sqs
@@ -400,6 +399,10 @@ functions:
               - onmessage
               - bot_onmessage
               - bot_graphql
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # http router function
   # see various commented out http-event functions below
@@ -415,6 +418,10 @@ functions:
           # match all paths, the token 'any' doesn't mean anything special
           path: /{any+}
           method: ANY
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
@@ -455,6 +462,10 @@ functions:
             Fn::GetAtt:
               - InboxTable
               - StreamArn
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # replicates OutboxTable to EventsTable
   outbox2events:
@@ -469,6 +480,10 @@ functions:
             Fn::GetAtt:
               - OutboxTable
               - StreamArn
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # replicates SealsTable to EventsTable
   seal2events:
@@ -483,6 +498,10 @@ functions:
             Fn::GetAtt:
               - SealsTable
               - StreamArn
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # log:
   #   handler: lib/lambda/log.handler
@@ -546,7 +565,10 @@ functions:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
           sqlVersion: ${{self:custom.versionSQL}}
-    #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # updates presence in PresenceTable
   ondisconnect:
@@ -555,7 +577,10 @@ functions:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
           sqlVersion: ${{self:custom.versionSQL}}
-    #   BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # triggered when a client subscribes to an MQTT topic
   # sends the client any queued up messages
@@ -568,6 +593,10 @@ functions:
       - iot:
           sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
           sqlVersion: ${{self:custom.versionSQL}}
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # triggered when a client sends a message
   #
@@ -584,16 +613,24 @@ functions:
       - iot:
           sql: "SELECT * as data, clientid() as clientId, topic() as topic FROM '${{self:custom.iotParentTopic}}/+/outbox'"
           sqlVersion: ${{self:custom.versionSQL}}
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # same as onmessage, but can handle larger payloads
   # MQTT is limited to 128KB, HTTP to 6MB
-  # onmessage_http:
-  #   handler: lib/lambda/http/default.handler
-  #   memorySize: 1024
-  #   events:
-  #     - http:
-  #         path: message
-  #         method: any
+  onmessage_http:
+    handler: lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: message
+          method: any
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # useful during development
   # trigger a message to be queued/sent to a user
@@ -615,11 +652,11 @@ functions:
 
   # performs service discovery - builds a map of logical->physical ids
   # and writes that map to the environment variables of all other lambdas
-  setenvvars:
-    handler: lib/lambda/setenvvars.handler
-    # hack to enable discovery own function's own stack
-    description:
-      Ref: AWS::StackId
+  # setenvvars:
+  #   handler: lib/lambda/setenvvars.handler
+  #   # hack to enable discovery own function's own stack
+  #   description:
+  #     Ref: AWS::StackId
 
   # public endpoint for clients to get public configuration / provider identity
   # e.g. the provider's identity object, styles, currency, etc.
@@ -639,10 +676,18 @@ functions:
     handler: lib/lambda/init.handler
     memorySize: 256
     timeout: 300
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   setstyle:
     handler: lib/lambda/setstyle.handler
     memorySize: 128
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   precreate-tables:
     handler: lib/lambda/precreate-tables.handler
@@ -682,6 +727,10 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           # enabled: false
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # polls the status of unconfirmed blockchain transactions
   pollchain:
@@ -692,6 +741,10 @@ functions:
       - schedule:
           rate: rate(10 minutes)
           # enabled: false
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
     # environment:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
@@ -709,6 +762,10 @@ functions:
   bot_onmessage:
     handler: samplebot/index.onmessage
     memorySize: 1024
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # bot-serviced lambda
   # receives seal (read/wrote) events from the tradle engine
@@ -725,6 +782,10 @@ functions:
             Fn::GetAtt:
               - SealsTable
               - StreamArn
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # bot-serviced lambda
   # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
@@ -740,6 +801,10 @@ functions:
             Fn::GetAtt:
               - InboxTable
               - StreamArn
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
     # onError:
       # Ref: DeadLetterQueue
 
@@ -757,6 +822,10 @@ functions:
             Fn::GetAtt:
               - OutboxTable
               - StreamArn
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
     # onError:
     #   Ref: DeadLetterQueue
 
@@ -771,6 +840,10 @@ functions:
       - http:
           path: graphql
           method: any
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
