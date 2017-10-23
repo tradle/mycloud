@@ -6,7 +6,8 @@ if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
   throw new Error('expected vars.yml file')
 }
 
-const proc = require('child_process')
+const proc = require('pify')(require('child_process'))
+const co = require('co')
 const omit = require('object.omit')
 
 const expectedNodeVersion = 'v6.10.3'
@@ -29,10 +30,23 @@ if (!/^[a-zA-Z-_]+$/.test(stage)) {
   throw new Error('invalid stage: ' + stage)
 }
 
-const command = `sls deploy --stage=${stage}`
-console.log('will run:', command)
+let command = `sls deploy --stage=${stage}`
 
-proc.execSync(command, {
-  cwd: process.cwd(),
-  stdio: 'inherit'
+co(function* () {
+  try {
+    const pathToNtfy = yield proc.exec('which ntfy', {
+      cwd: process.cwd(),
+      stdio: 'inherit'
+    })
+
+    if (pathToNtfy) {
+      command = 'ntfy done ' + command
+    }
+  } catch (err) {}
+
+  console.log(command)
+  proc.execSync(command, {
+    cwd: process.cwd(),
+    stdio: 'inherit'
+  })
 })
