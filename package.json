@@ -47,7 +47,7 @@
     "eslint": "eslint --quiet --ignore-path .gitignore .",
     "test": "node test",
     "test:setup": "npm run localstack:start && npm run gen:localresources",
-    "test:e2e": "BLUEBIRD_DEBUG=1 DEBUG=@tradle/bot*,tradle:sls:bot*,tradle:sls:objects node scripts/end-to-end-test.js",
+    "test:e2e": "BLUEBIRD_DEBUG=1 DEBUG=*tradle* node scripts/end-to-end-test.js",
     "test:e2e:debug": "BLUEBIRD_DEBUG=1 DEBUG=@tradle/bot*,tradle:sls:bot*,tradle:sls:objects node --debug --inspect scripts/end-to-end-test.js",
     "test:graphqlserver": "node ./scripts/graphql-server",
     "test:graphqlserver:debug": "node --debug --inspect ./scripts/graphql-server",
