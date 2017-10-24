@@ -1,5 +1,4 @@
 import Debug from 'debug'
-const debug = Debug('tradle:sls:provider')
 import { utils } from '@tradle/engine'
 import { sign, getSigningKey, getChainKey, getPermalink } from './crypto'
 import {
@@ -28,7 +27,7 @@ import Identities from './identities'
 import Messages from './messages'
 import Objects from './objects'
 import Env from './env'
-import { ISession, ITradleMessage, ITradleObject, IIdentity, IPubKey } from './types'
+import { ISession, ITradleMessage, ITradleObject, IIdentity, IPubKey, IDebug } from './types'
 
 const { MESSAGE } = TYPES
 
@@ -41,6 +40,7 @@ export default class Provider {
   private buckets: any
   private auth: Auth
   private network: any
+  private debug:IDebug
   constructor (tradle: Tradle) {
     this.tradle = tradle
     this.objects = tradle.objects
@@ -50,6 +50,7 @@ export default class Provider {
     this.buckets = tradle.buckets
     this.auth = tradle.auth
     this.network = tradle.network
+    this.debug = tradle.env.logger('provider')
   }
 
   // TODO: how to invalidate cache on identity updates?
@@ -135,7 +136,7 @@ export default class Provider {
       message = await this.messages.preProcessInbound(message)
     } catch (err) {
       err.progress = message
-      debug('unexpected error in pre-processing inbound message:', err.stack)
+      this.debug('unexpected error in pre-processing inbound message:', err.stack)
       throw err
     }
 
@@ -147,10 +148,32 @@ export default class Provider {
     }
   }
 
+  public watchSealedPayload = async ({ seal, object }) => {
+    this.debug('message has seal identifier for payload', JSON.stringify(seal))
+
+    const { flavor, networkName } = this.network
+    if (seal.blockchain === flavor && seal.network === networkName) {
+      this.debug('placing watch on seal')
+      this.tradle.seals.watch({
+        link: seal.link,
+        key: {
+          type: this.network.flavor,
+          curve: this.network.curve,
+          pub: seal.basePubKey.toString('hex')
+        }
+      })
+    } else {
+      this.debug('seal is on a different network, ignoring for now')
+    }
+  }
+
   public createReceiveMessageEvent = async ({ message }):Promise<ITradleMessage> => {
     message = await this.messages.parseInbound(message)
     // TODO: phase this out
     await this.objects.put(message.object)
+    if (message.seal) {
+      this.watchSealedPayload(message)
+    }
 
     // if (objectWrapper.type === IDENTITY && messageWrapper.sigPubKey === objectWrapper.sigPubKey) {
     //   // special case: someone is sending us their own identity
@@ -179,7 +202,7 @@ export default class Provider {
   //   })
 
   //   if (!myPubKey) {
-  //     debug(`ignoring message meant for someone else (with pubKey: ${toPubKey}) `)
+  //     this.debug(`ignoring message meant for someone else (with pubKey: ${toPubKey}) `)
   //     throw new Errors.MessageNotForMe(`message to pub key: ${toPubKey}`)
   //   }
   // })
@@ -199,7 +222,7 @@ export default class Provider {
     try {
       session = await promiseSession
     } catch (err) {
-      debug(`mqtt session not found for ${recipient}`)
+      this.debug(`mqtt session not found for ${recipient}`)
     }
 
     const message = await promiseCreate
@@ -207,10 +230,10 @@ export default class Provider {
       await this.attemptLiveDelivery({ recipient, message, session })
     } catch (err) {
       if (err instanceof Errors.NotFound) {
-        debug('live delivery canceled', err.stack)
+        this.debug('live delivery canceled', err.stack)
       } else {
         // rethrow, as this is likely a developer error
-        debug('live delivery failed', err)
+        this.debug('live delivery failed', err)
         throw err
       }
     }
@@ -224,7 +247,7 @@ export default class Provider {
     session?: ISession
   }) => {
     const { message, recipient, session } = opts
-    debug(`sending message (time=${message.time}) to ${recipient} live`)
+    this.debug(`sending message (time=${message.time}) to ${recipient} live`)
     await this.tradle.delivery.deliverBatch({
       clientId: session && session.clientId,
       recipient,
@@ -283,7 +306,7 @@ export default class Provider {
       extend(unsignedMessage, this.messages.getPropsDerivedFromLast(prev))
 
       seq = unsignedMessage[SEQ]
-      debug(`signing message ${seq} to ${recipient}`)
+      this.debug(`signing message ${seq} to ${recipient}`)
 
       signedMessage = await this.signObject({ author, object: unsignedMessage })
       setVirtual(signedMessage, {
@@ -301,9 +324,9 @@ export default class Provider {
           throw err
         }
 
-        debug(`seq ${seq} was taken by another message`)
+        this.debug(`seq ${seq} was taken by another message`)
         prev = await this.messages.getLastSeqAndLink({ recipient })
-        debug(`retrying with seq ${seq}`)
+        this.debug(`retrying with seq ${seq}`)
       }
     }
 

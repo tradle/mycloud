@@ -170,9 +170,9 @@
       "resolved": "git://github.com/tradle/embed.git#e19d8047d38eef19036cc8732117803b386ca9b3"
     },
     "@tradle/engine": {
-      "version": "5.3.3",
-      "from": "@tradle/engine@>=5.2.0 <6.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/engine/-/engine-5.3.3.tgz",
+      "version": "5.4.0",
+      "from": "@tradle/engine@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/engine/-/engine-5.4.0.tgz",
       "dependencies": {
         "async": {
           "version": "2.5.0",

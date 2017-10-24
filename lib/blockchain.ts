@@ -24,13 +24,13 @@ interface ISealable {
 }
 
 export default class Blockchain {
+  public blockchainIdentifier: IBlockchainIdentifier
   private reader: any
   private network: any
   private writers = {}
   private flavor: string
   private networkName: string
   private minBalance: string
-  private blockchainIdentifier: IBlockchainIdentifier
   private getTxAmount = () => this.network.minOutputAmount
   private debug:(...any) => void
   private tradle:Tradle

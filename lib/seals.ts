@@ -290,10 +290,10 @@ export default class Seals {
     key,
     link,
     watchType=WATCH_TYPE.this,
-    write=true
+    write=true,
+    blockchainIdentifier
   }) => {
     const { blockchain } = this
-
     // the next version's previous is the current version
     // the tx for next version will have a predictable seal based on the current version's link
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
@@ -308,7 +308,7 @@ export default class Seals {
     const address = blockchain.pubKeyToAddress(pubKey.pub)
     const params = {
       id: uuid(),
-      blockchain: blockchain.toString(),
+      blockchain: blockchainIdentifier || blockchain.toString(),
       link,
       address,
       pubKey,
