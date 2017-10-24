@@ -4,6 +4,8 @@
  * Deletes tables that were dynamically generated for per-data-model
  */
 
+process.env.IS_LAMBDA_ENVIRONMENT = false
+
 const co = require('co')
 const yn = require('yn')
 const readline = require('readline')

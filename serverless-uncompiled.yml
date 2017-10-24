@@ -691,10 +691,10 @@ functions:
       - functionThrottles
       - functionInvocations
 
-  precreate-tables:
-    handler: lib/lambda/precreate-tables.handler
-    memorySize: 128
-    timeout: 300
+  # precreate-tables:
+  #   handler: lib/lambda/precreate-tables.handler
+  #   memorySize: 128
+  #   timeout: 300
 
   # Blockchain
 
