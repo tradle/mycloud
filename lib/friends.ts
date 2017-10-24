@@ -1,6 +1,6 @@
 const debug = require("debug")("tradle:sls:friends")
 import fetch = require('node-fetch')
-import { TYPE } from '@tradle/constants'
+import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { addLinks } from './crypto'
 import { pick } from './utils'
@@ -59,14 +59,7 @@ export default class Friends {
 
     let existing
     try {
-      existing = await this.db.findOne({
-        filter: {
-          EQ: {
-            [TYPE]: FRIEND_TYPE,
-            _identityPermalink: identity._permalink
-          }
-        }
-      })
+      existing = await this.get({ permalink: identity._permalink })
     } catch (err) {
       existing = {}
     }
@@ -75,6 +68,11 @@ export default class Friends {
       .set(pick(existing, Object.keys(model.properties)))
       .set(props)
       .toJSON()
+
+    if (Object.keys(existing).length) {
+      object[PREVLINK] = buildResource.link(existing)
+      object[PERMALINK] = buildResource.permalink(existing)
+    }
 
     const myIdentity = await this.provider.getMyPublicIdentity()
     if (myIdentity._permalink === identity._permalink ||
