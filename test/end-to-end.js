@@ -434,9 +434,11 @@ proto.destroyTable = co(function* (TableName) {
 proto.getApplicationByContext = function ({ context }) {
   const { bot, productsAPI } = this
   return bot.db.findOne({
-    type: productsAPI.models.private.application.id,
     filter: {
-      EQ: { context }
+      EQ: {
+        [TYPE]: productsAPI.models.private.application.id,
+        context
+      }
     }
   })
 }

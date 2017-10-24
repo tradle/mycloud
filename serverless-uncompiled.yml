@@ -10,6 +10,7 @@ plugins:
   - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes
   - serverless-dynamodb-autoscaling
+  # - serverless-plugin-split-stacks
   # - serverless-plugin-warmup
   # - serverless-plugin-typescript
   - print
@@ -24,20 +25,6 @@ package:
   # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
   include:
     - conf
-
-    - dist
-    - node_modules
-  exclude:
-    # - .git/**
-    - dist/.serverless/**
-    - dist/scripts/**
-    - dist/test/**
-    # - lib/cli/**
-    # - node_modules/**
-    # - simulate/**
-    # - node_modules/**/test/**
-    # - ./bot/**
-    # - ./**/*.log
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
@@ -147,20 +134,40 @@ custom:
     # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
     users: ${{self:custom.prefix}}users
 
-  tableBuckets:
-    count: 4
-    index:
-      - _author
+  # auto-scaled tables that serve as buckets for multiple models each
+  defaultCapacity: &defaultCapacity
     read:
       minimum: 5        # Minimum read capacity
       maximum: 100      # Maximum read capacity
-      usage: 0.75       # Targeted usage percentage
+      usage: 0.70       # Targeted usage percentage
     write:
       minimum: 5        # Minimum write capacity
       maximum: 100      # Maximum write capacity
       usage: 0.5        # Targeted usage percentage
 
-  # auto-scaling dynamodb
+  tableBuckets:
+    count: 4
+    index:
+      - _author
+    <<: *defaultCapacity
+
+  capacities:
+    - table: PubKeysTable
+      index:
+        - permalink
+      <<: *defaultCapacity
+
+    - table: InboxTable
+      index:
+        - _link
+        - context
+      <<: *defaultCapacity
+
+    - table: OutboxTable
+      index:
+        - _payloadLink
+        - context
+      <<: *defaultCapacity
 
   apigwBinary:
     types:

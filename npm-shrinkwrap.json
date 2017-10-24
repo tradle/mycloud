@@ -57,7 +57,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager#cloud",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#0be7466d6371a4fb4c9b81b3d8137edc1eee4788",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#d62d1a6476d4053992d311bf2011e2930b17db37",
       "dependencies": {
         "is-extendable": {
           "version": "1.0.1",
@@ -154,8 +154,8 @@
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
-      "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#c6d494d2536ac9345c3c4066b229892b512bbf0a",
+      "from": "tradle/dynamodb#buckets",
+      "resolved": "git://github.com/tradle/dynamodb.git#70e41c1561e35ea24d544627945c1788281ff400",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -258,7 +258,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#b2a61d3851e6f8cd1374aff5bba9484d030f3f5d"
+      "resolved": "git://github.com/tradle/schema-graphql.git#503b89d1dc9a94b17d977da0f5379085d0537a91"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",

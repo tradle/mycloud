@@ -1,68 +1,26 @@
-import * as clone from 'clone'
-import { createTable } from '@tradle/dynamodb'
+import clone = require('clone')
+import { createTable, utils } from '@tradle/dynamodb'
+const definitions = require('./definitions')
 
-export function createTable ({ models, tables, prefix }: { models, tables, prefix:string }) {
+export function createMessagesTable ({ models, tables }: {
+  models,
+  tables
+}) {
   const model = models['tradle.Message']
-  const inbox = createTable({
+  const inbox = createTable(definitions.InboxTable.TableName, {
     models,
     model,
-    tableName: tables.Inbox.name,
+    exclusive: true,
     forbidScan: true,
-    prefix,
-    // TODO: load these from serverless-yml
-    hashKey: '_author',
-    rangeKey: 'time',
-    indexes: [
-      {
-        hashKey: '_link',
-        rangeKey: 'time',
-        name: '_link',
-        type: 'global',
-        projection: {
-          ProjectionType: 'KEYS_ONLY'
-        }
-      },
-      {
-        hashKey: 'context',
-        rangeKey: 'time',
-        name: 'context',
-        type: 'global',
-        projection: {
-          ProjectionType: 'KEYS_ONLY'
-        }
-      }
-    ]
+    tableDefinition: utils.toDynogelTableDefinition(definitions.InboxTable)
   })
 
-  const outbox = createTable({
+  const outbox = createTable(definitions.OutboxTable.TableName, {
     models,
     model,
-    tableName: tables.Outbox.name,
+    exclusive: true,
     forbidScan: true,
-    prefix,
-    // TODO: load these from serverless-yml
-    hashKey: '_recipient',
-    rangeKey: 'time',
-    indexes: [
-      {
-        hashKey: '_payloadLink',
-        rangeKey: 'time',
-        name: '_payloadLink',
-        type: 'global',
-        projection: {
-          ProjectionType: 'KEYS_ONLY'
-        }
-      },
-      {
-        hashKey: 'context',
-        rangeKey: 'time',
-        name: 'context',
-        type: 'global',
-        projection: {
-          ProjectionType: 'KEYS_ONLY'
-        }
-      }
-    ]
+    tableDefinition: utils.toDynogelTableDefinition(definitions.OutboxTable)
   })
 
   const getBoxFromFilter = query => {
@@ -94,13 +52,14 @@ export function createTable ({ models, tables, prefix }: { models, tables, prefi
   }
 
   const table = {
+    exclusive: true,
     get,
     search: find,
     find,
     findOne
   }
 
-  ;['put', 'batchPut', 'latest'].forEach(method => {
+  ;['put', 'del', 'update', 'batchPut', 'latest'].forEach(method => {
     table[method] = async () => {
       throw new Error(`"${method}" is not supported on tradle.Message table`)
     }

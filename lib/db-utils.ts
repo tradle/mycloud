@@ -4,13 +4,17 @@ import {
   unmarshalItem as unmarshalDBItem
 } from 'dynamodb-marshaler'
 
+import { utils as vrUtils } from '@tradle/validate-resource'
 const { NotFound } = require('./errors')
 const { co, pick, logify, timestamp, wait, clone, batchify } = require('./utils')
-import { prettify } from './string-utils'
+import { prettify, alphabetical } from './string-utils'
+import { sha256 } from './crypto'
 import * as Errors from './errors'
 import Env from './env'
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
+const definitions = require('./definitions')
+const TABLE_BUCKET_REGEX = /-bucket-\d+$/
 
 export default createDBUtils
 export {
@@ -22,6 +26,19 @@ export {
 
 function createDBUtils ({ aws, env }) {
   const debug = env.logger('db-utils')
+
+  let tableBuckets
+  const getTableBuckets = () => {
+    if (!tableBuckets) {
+      tableBuckets = Object.keys(definitions)
+        .filter(logicalId => {
+          return TABLE_BUCKET_REGEX.test(definitions[logicalId].Properties.TableName)
+        })
+        .map(logicalId => definitions[logicalId].Properties)
+    }
+
+    return tableBuckets
+  }
 
   function getTable (TableName) {
     const batchPutToTable = async (items) => {
@@ -245,6 +262,28 @@ function createDBUtils ({ aws, env }) {
     throw err
   }
 
+  function getModelMap ({ models, tableNames }) {
+    if (!tableNames) {
+      tableNames = getTableBuckets().map(def => def.TableName)
+    }
+
+    tableNames.sort(alphabetical)
+
+    const modelToBucket = {}
+    Object.keys(models)
+      .filter(id => vrUtils.isInstantiable(models[id]))
+      .forEach(id => {
+        const num = parseInt(sha256(id, 'hex').slice(0, 6), 16)
+        const idx = num % tableNames.length
+        modelToBucket[id] = tableNames[idx]
+      })
+
+    return {
+      tableNames,
+      models: modelToBucket
+    }
+  }
+
   return {
     listTables,
     createTable,
@@ -261,7 +300,9 @@ function createDBUtils ({ aws, env }) {
     marshalDBItem,
     unmarshalDBItem,
     getTable,
-    getRecordsFromEvent
+    getRecordsFromEvent,
+    getTableBuckets,
+    getModelMap
   }
 }
 

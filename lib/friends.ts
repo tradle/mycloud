@@ -1,8 +1,9 @@
 const debug = require("debug")("tradle:sls:friends")
-import * as fetch from "node-fetch"
-import * as buildResource from "@tradle/build-resource"
-import { addLinks } from "./crypto"
-import { Identities } from "./types"
+import fetch = require('node-fetch')
+import { TYPE } from '@tradle/constants'
+import buildResource = require('@tradle/build-resource')
+import { addLinks } from './crypto'
+import Identities from './identities'
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
 
@@ -97,9 +98,9 @@ export default class Friends {
   public get = (opts: { permalink: string }) => {
     const { permalink } = opts
     return this.db.findOne({
-      type: FRIEND_TYPE,
       filter: {
         EQ: {
+          [TYPE]: FRIEND_TYPE,
           _identityPermalink: permalink
         }
       }
@@ -109,7 +110,11 @@ export default class Friends {
   public list = (opts: { permalink: string }) => {
     const { permalink } = opts
     return this.db.find({
-      type: FRIEND_TYPE,
+      filter: {
+        EQ: {
+          [TYPE]: FRIEND_TYPE
+        }
+      },
       orderBy: {
         property: "_time",
         desc: true
