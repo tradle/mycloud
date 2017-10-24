@@ -658,6 +658,15 @@ functions:
     handler: lib/lambda/add-friend.handler
     memorySize: 256
 
+  addfriend_dev:
+    handler: lib/lambda/http/default.handler
+    # dev mode only
+    events:
+      - http:
+          path: /{any+}
+          method: POST
+
+
   # performs service discovery - builds a map of logical->physical ids
   # and writes that map to the environment variables of all other lambdas
   # setenvvars:
