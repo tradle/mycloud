@@ -60,6 +60,7 @@ export = function createDB (opts: {
     model: models['tradle.PubKey'],
     table: createTable(pubKeysDef.TableName, {
       ...commonOpts,
+      readOnly: true,
       model: models['tradle.PubKey'],
       tableDefinition: utils.toDynogelTableDefinition(pubKeysDef)
     })

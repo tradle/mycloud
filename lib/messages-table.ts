@@ -12,6 +12,7 @@ export function createMessagesTable ({ models, tables }: {
     model,
     exclusive: true,
     forbidScan: true,
+    readOnly: true,
     tableDefinition: utils.toDynogelTableDefinition(definitions.InboxTable)
   })
 
@@ -20,6 +21,7 @@ export function createMessagesTable ({ models, tables }: {
     model,
     exclusive: true,
     forbidScan: true,
+    readOnly: true,
     tableDefinition: utils.toDynogelTableDefinition(definitions.OutboxTable)
   })
 
