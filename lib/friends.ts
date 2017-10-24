@@ -3,6 +3,7 @@ import fetch = require('node-fetch')
 import { TYPE } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { addLinks } from './crypto'
+import { pick } from './utils'
 import Identities from './identities'
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
@@ -56,7 +57,22 @@ export default class Friends {
     const { name, identity } = props
     addLinks(identity)
 
+    let existing
+    try {
+      existing = await this.db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: FRIEND_TYPE,
+            _identityPermalink: identity._permalink
+          }
+        }
+      })
+    } catch (err) {
+      existing = {}
+    }
+
     const object = buildResource({ models, model })
+      .set(pick(existing, Object.keys(model.properties)))
       .set(props)
       .toJSON()
 
