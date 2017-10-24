@@ -700,25 +700,25 @@ functions:
 
   # bitcoin faucet (surprise!)
   # distributes testnet coins from local funds
-  faucet_bitcoin:
-    handler: lib/lambda/faucet-bitcoin.withdraw
+  # faucet_bitcoin:
+  #   handler: lib/lambda/faucet-bitcoin.withdraw
 
   # gets funds from a bitcoin testnet faucet
-  recharge_bitcoin:
-    handler: lib/lambda/recharge-bitcoin.handler
-    events:
-      - schedule:
-          rate: rate(10 minutes)
-          enabled: false
+  # recharge_bitcoin:
+  #   handler: lib/lambda/recharge-bitcoin.handler
+  #   events:
+  #     - schedule:
+  #         rate: rate(10 minutes)
+  #         enabled: false
 
   # get funds from ethereum testnet faucet
   # (doesn't work on rinkeby, and doesn't work well on ropsten)
-  recharge_ethereum:
-    handler: lib/lambda/recharge-ethereum.handler
-    events:
-      - schedule:
-          rate: rate(10 minutes)
-          enabled: false
+  # recharge_ethereum:
+  #   handler: lib/lambda/recharge-ethereum.handler
+  #   events:
+  #     - schedule:
+  #         rate: rate(10 minutes)
+  #         enabled: false
 
   # writes pending transactions to the blockchain
   sealpending:
@@ -1317,36 +1317,36 @@ resources:
                   # Resource: arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}${iot:ClientId}/*
 
     # primarily for autoscaling dynamodb
-    AutoScalingRole:
-      Type: AWS::IAM::Role
-      Description: role for autoscaling resources
-      Properties:
-        RoleName: ${{self:custom.prefixRole}}AutoScalingRole
-        AssumeRolePolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - application-autoscaling.amazonaws.com
-              Action:
-                - sts:AssumeRole
-        Policies:
-          - PolicyName: AutoScalingPolicy
-            PolicyDocument:
-              Version: "2012-10-17"
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - dynamodb:DescribeTable
-                    - dynamodb:UpdateTable
-                    - cloudwatch:DescribeAlarms
-                    - cloudwatch:DeleteAlarms
-                    - cloudwatch:PutMetricAlarm
-                    - cloudwatch:GetMetricStatistics
-                    - cloudwatch:SetAlarmState
-                  Resource:
-                    - "*"
+    # AutoScalingRole:
+    #   Type: AWS::IAM::Role
+    #   Description: role for autoscaling resources
+    #   Properties:
+    #     RoleName: ${{self:custom.prefixRole}}AutoScalingRole
+    #     AssumeRolePolicyDocument:
+    #       Version: "2012-10-17"
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             Service:
+    #               - application-autoscaling.amazonaws.com
+    #           Action:
+    #             - sts:AssumeRole
+    #     Policies:
+    #       - PolicyName: AutoScalingPolicy
+    #         PolicyDocument:
+    #           Version: "2012-10-17"
+    #           Statement:
+    #             - Effect: Allow
+    #               Action:
+    #                 - dynamodb:DescribeTable
+    #                 - dynamodb:UpdateTable
+    #                 - cloudwatch:DescribeAlarms
+    #                 - cloudwatch:DeleteAlarms
+    #                 - cloudwatch:PutMetricAlarm
+    #                 - cloudwatch:GetMetricStatistics
+    #                 - cloudwatch:SetAlarmState
+    #               Resource:
+    #                 - "*"
 
     # ReadCapacityScalableTarget:
     #   Type: "AWS::ApplicationAutoScaling::ScalableTarget"
