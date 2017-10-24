@@ -169,6 +169,12 @@ custom:
         - context
       <<: *defaultCapacity
 
+    - table: EventsTable
+      write:
+        minimum: 5        # Minimum write capacity
+        maximum: 20       # Maximum write capacity
+        usage: 0.5        # Targeted usage percentage
+
   apigwBinary:
     types:
       - '*/*'
