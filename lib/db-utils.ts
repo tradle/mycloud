@@ -107,32 +107,51 @@ function createDBUtils ({ aws, env }) {
   const createTable = params => dynamoDBExec('createTable', params)
   const deleteTable = params => dynamoDBExec('deleteTable', params)
 
-  const clear = co(function* (TableName) {
-    const tableInfo = yield aws.dynamodb.describeTable({ TableName }).promise()
-    const { Table: { KeySchema } } = tableInfo
-    const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
+  const forEachItem = async ({ tableName, fn }) => {
+    const TableName = tableName
+    const tableDescription = await aws.dynamodb.describeTable({ TableName }).promise()
     let count = 0
-    let scan = yield exec('scan', { TableName })
+    let scan = await exec('scan', { TableName })
     while (true) {
       let { Items, LastEvaluatedKey } = scan
       if (!Items.length) break
 
-      debug(`deleting ${Items.length} from table ${TableName}`)
-      yield Items.map(item => exec('delete', {
-        TableName,
-        Key: pick(item, keyProps)
-      }))
+      const results = await Promise.all(Items.map((item, i) => fn({
+        tableDescription,
+        i,
+        item,
+      })))
+
+      // allow abort mid-way
+      if (results.includes(false)) break
 
       count += Items.length
       if (!LastEvaluatedKey) {
         break
       }
 
-      scan = yield exec('scan', { TableName, ExclusiveStartKey: LastEvaluatedKey })
+      scan = await exec('scan', {
+        TableName,
+        ExclusiveStartKey: LastEvaluatedKey
+      })
     }
 
     return count
-  })
+  }
+
+  const clear = async (TableName:string) => {
+    return await forEachItem({
+      tableName: TableName,
+      fn: async ({ item, tableDescription }) => {
+        const { KeySchema } = tableDescription.Table
+        const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
+        await exec('delete', {
+          TableName,
+          Key: pick(item, keyProps)
+        })
+      }
+    })
+  }
 
   const listTables = async (env:Env) => {
     let tables:string[] = []
@@ -285,6 +304,7 @@ function createDBUtils ({ aws, env }) {
   }
 
   return {
+    forEachItem,
     listTables,
     createTable,
     deleteTable,
