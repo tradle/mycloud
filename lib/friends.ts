@@ -74,7 +74,7 @@ export default class Friends {
       _identityPermalink: permalink
     })
 
-    const saveFriend = this.db.merge(signed)
+    const saveFriend = this.db.update(signed)
     debug(`saving friend: ${name}`)
 
     await Promise.all([promiseAddContact, saveFriend])
