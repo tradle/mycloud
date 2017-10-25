@@ -7,6 +7,10 @@ console.warn(`if you made any changes to serverless-uncompiled.yml
 make sure to run: npm run build:yml before running this script
 `)
 
+const { force } = require('minimist')(process.argv.slice(2), {
+  boolean: ['force']
+})
+
 const co = require('co')
 
 require('../test/env').install()
@@ -15,7 +19,7 @@ const { genLocalResources } = require('../lib/cli/utils')
 
 co(function* () {
   yield genLocalResources()
-  yield init.init({ force: true })
+  yield init.init({ force })
 })
 .catch(err => {
   console.error(err)
