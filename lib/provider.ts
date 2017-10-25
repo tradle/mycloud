@@ -231,10 +231,11 @@ export default class Provider {
     } catch (err) {
       if (err instanceof Errors.NotFound) {
         this.debug('live delivery canceled', err.stack)
+      } else if (err instanceof Errors.ClientUnreachable) {
+        this.debug('live delivery failed, client unreachable', err.stack)
       } else {
         // rethrow, as this is likely a developer error
-        this.debug('live delivery failed', err)
-        throw err
+        this.debug('live delivery failed due, likely to developer error', err.stack)
       }
     }
 
