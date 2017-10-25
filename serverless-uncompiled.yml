@@ -182,11 +182,6 @@ custom:
   serverless-offline:
     port: 21012
 
-  # warmup:
-  #   schedule: 'rate(5 minutes)'
-  #   timeout: 10
-  #   prewarm: true
-
 #   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
   #   start:
@@ -425,6 +420,8 @@ functions:
               - ondisconnect
               - onsubscribe
               - onmessage
+              - to-events
+              - bot_onmessagestream
               - bot_onmessage
               - bot_graphql
     alarms:
