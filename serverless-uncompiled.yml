@@ -223,12 +223,12 @@ provider:
     # bot config
     BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
-    ORG_DOMAIN: ${{self:custom.brand.ORG_DOMAIN}}
-    ORG_NAME: ${{self:custom.brand.ORG_NAME}}
-    ORG_LOGO: ${{self:custom.brand.ORG_LOGO}}
-    PRODUCTS: ${{self:custom.brand.PRODUCTS}}
-    AUTO_VERIFY_FORMS: ${{self:custom.brand.AUTO_VERIFY_FORMS, 'n'}}
-    AUTO_APPROVE_APPS: ${{self:custom.brand.AUTO_APPROVE_APPS, 'n'}}
+    ORG_DOMAIN: ${{self:custom.brand.env.ORG_DOMAIN}}
+    ORG_NAME: ${{self:custom.brand.env.ORG_NAME}}
+    ORG_LOGO: ${{self:custom.brand.env.ORG_LOGO}}
+    PRODUCTS: ${{self:custom.brand.env.PRODUCTS}}
+    AUTO_VERIFY_FORMS: ${{self:custom.brand.env.AUTO_VERIFY_FORMS, 'n'}}
+    AUTO_APPROVE_APPS: ${{self:custom.brand.env.AUTO_APPROVE_APPS, 'n'}}
 
   iamRoleStatements:
     - Effect: Allow

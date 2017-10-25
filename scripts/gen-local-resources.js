@@ -19,7 +19,11 @@ const { genLocalResources } = require('../lib/cli/utils')
 
 co(function* () {
   yield genLocalResources()
-  yield init.init({ force })
+  if (force) {
+    yield init.init({ force })
+  } else {
+    yield init.ensureInitialized()
+  }
 })
 .catch(err => {
   console.error(err)
