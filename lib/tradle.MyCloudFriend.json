@@ -29,8 +29,5 @@
   "required": [
     "name",
     "url"
-  ],
-  "primaryKeys": {
-    "hashKey": "url"
-  }
+  ]
 }
