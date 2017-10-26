@@ -1,18 +1,23 @@
 const shallowClone = require('xtend')
 const buildResource = require('@tradle/build-resource')
-const { NODE_ENV } = process.env
+const { IS_LAMBDA_ENVIRONMENT, NODE_ENV } = process.env
+const extend = require('xtend/mutable')
+const yn = require('yn')
 if (NODE_ENV === 'test') {
-  const extend = require('xtend/mutable')
   extend(process.env, require('../test/service-map'), shallowClone(process.env))
   // console.log(process.env)
+}
+
+if (!yn(IS_LAMBDA_ENVIRONMENT)) {
+  const { env } = require('../lib/cli/serverless-yml').custom.brand
+  extend(process.env, env)
 }
 
 const debug = require('debug')('λ:samplebot')
 const co = require('co').wrap
 const coExec = require('co')
-const yn = require('yn')
 const TYPE = '_t'
-const {
+let {
   // PRODUCTS=DEPLOYMENT,
   // PRODUCTS='tradle.CRSSelection,tradle.CoverholderApproval,tradle.MortgageProduct',
   PRODUCTS,
