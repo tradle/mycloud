@@ -12,11 +12,10 @@ const co = require('co').wrap
 const coExec = require('co')
 const yn = require('yn')
 const TYPE = '_t'
-const DEPLOYMENT = 'io.tradle.Deployment'
 const {
   // PRODUCTS=DEPLOYMENT,
   // PRODUCTS='tradle.CRSSelection,tradle.CoverholderApproval,tradle.MortgageProduct',
-  PRODUCTS='nl.tradle.DigitalPassport',
+  PRODUCTS,
   ORG_DOMAIN='tradle.io',
   AUTO_VERIFY_FORMS,
   AUTO_APPROVE_APPS,
@@ -25,6 +24,7 @@ const {
 } = process.env
 
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
+const DEPLOYMENT = `${NAMESPACE}.Deployment`
 const deploymentModels = require('./deployment-models')(NAMESPACE)
 const bankModels = require('./bank-models')(NAMESPACE)
 const models = shallowClone(deploymentModels, bankModels)
@@ -66,14 +66,14 @@ bot.hook('message', co(function* ({ user, type }) {
   }
 }), true) // prepend
 
-if (PRODUCTS === DEPLOYMENT) {
-  productsAPI.plugins.clear('onFormsCollected')
+if (products.includes(DEPLOYMENT)) {
+  // productsAPI.plugins.clear('onFormsCollected')
   productsAPI.plugins.use(require('./deployment-handlers'))
-} else {
-  // const biz = require('@tradle/biz-plugins')
-  // // unshift
-  // biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
 }
+
+const biz = require('@tradle/biz-plugins')
+// unshift
+biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
 
 bot.ready()
 
