@@ -9,6 +9,8 @@ certs/
 remote-service-map.json
 *.js.map
 serverless.yml
+serverless-compiled.yml
+serverless-interpolated.yml
 vars.yml
 conf/friends.js
 conf/tradle.json
