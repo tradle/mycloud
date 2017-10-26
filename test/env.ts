@@ -13,8 +13,7 @@ const props = {
   ...serviceMap,
   NODE_ENV: 'test',
   AWS_REGION: 'us-east-1',
-  IS_LOCAL: true,
-  IOT_ENDPOINT: 'localhost:1884'
+  IS_LOCAL: true
 }
 
 export const createTestEnv = () => {

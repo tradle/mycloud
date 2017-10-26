@@ -6,7 +6,7 @@ require('source-map-support').install();
 const AWS = require("aws-sdk-mock");
 const serviceMap = require("./service-map");
 const debug = require('debug')('tradle:sls:test:env');
-const props = Object.assign({}, serviceMap, { NODE_ENV: 'test', AWS_REGION: 'us-east-1', IS_LOCAL: true, IOT_ENDPOINT: 'localhost:1884' });
+const props = Object.assign({}, serviceMap, { NODE_ENV: 'test', AWS_REGION: 'us-east-1', IS_LOCAL: true });
 exports.createTestEnv = () => {
     const Env = require('../lib/env');
     return new Env(props);
