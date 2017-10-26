@@ -13,9 +13,10 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
+const { custom } = require('../lib/cli/serverless-yml')
 const env = argv.path
   ? require(path.resolve(process.cwd(), argv.path))
-  : require('../lib/cli/serverless-yml').custom.brand.env
+  : custom.brand.env
 
 loadEnv()
 loadCredentials()
@@ -29,7 +30,7 @@ console.log('setting env', JSON.stringify(env, null, 2))
 co(function* () {
   const functions = argv.functions && argv.functions.split(',').map(f => f.trim())
   yield lambdaUtils.updateEnvironments(function ({ FunctionName }) {
-    if (functions && !functions.includes(FunctionName.slice(prefix.length))) {
+    if (functions && !functions.includes(FunctionName.slice(custom.prefix.length))) {
       console.log('not updating', FunctionName)
       return null
     }
