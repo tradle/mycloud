@@ -16,3 +16,4 @@ conf/friends.js
 conf/tradle.json
 lib/definitions.json
 lib/modelmap.json
+lib/cli/cloudformation-template.json
