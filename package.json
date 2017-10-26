@@ -69,7 +69,7 @@
     "copynonjs": "./scripts/copy-non-compiled.js",
     "export:template": "serverless sam export --output ./template.yml",
     "makepublic": "./scripts/makepublic.js",
-    "compile-template": "./scripts/compile.js serverless-uncompiled.yml serverless.yml",
+    "compile-template": "cp serverless-uncompiled.yml serverless.yml && ./scripts/compile.js serverless-uncompiled.yml serverless.yml",
     "interpolate-template": "sls print > serverless-tmp.yml && mv serverless-tmp.yml serverless.yml",
     "build:yml": "npm run compile-template && npm run interpolate-template && npm run gen:resourcedefs && npm run gen:modelmap",
     "reinstall": "rm -rf node_modules && npm install",

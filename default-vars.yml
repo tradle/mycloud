@@ -10,3 +10,6 @@ thresholdErrorsAlarm: 10 # errors
 thresholdInvocationsAlarm: 50 # invocations
 thresholdDurationAlarm: 60 # seconds
 versionFunctions: false
+serverless-offline:
+  port: 21012
+  mqttPort: 1884
