@@ -16,13 +16,20 @@ const co = require('co')
 require('../test/env').install()
 const { init } = require('../').tradle
 const { genLocalResources } = require('../lib/cli/utils')
+const { brand } = require('../lib/cli/serverless-yml').custom
+const opts = {
+  force,
+  name: brand.env.ORG_NAME + '-local',
+  domain: brand.env.ORG_DOMAIN + '.local',
+  logo: brand.env.ORG_LOGO
+}
 
 co(function* () {
   yield genLocalResources()
   if (force) {
-    yield init.init({ force })
+    yield init.init(opts)
   } else {
-    yield init.ensureInitialized()
+    yield init.ensureInitialized(opts)
   }
 })
 .catch(err => {
