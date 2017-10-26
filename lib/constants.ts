@@ -13,7 +13,7 @@ import {
 let prefix = ''
 if (!process.env.IS_LAMBDA_ENVIRONMENT) {
   const { ORG_NAME } = process.env
-  if (ORG_NAME) prefix = ORG_NAME.replace(/[^a-zA-Z0-9]$/g, '').toLowerCase()
+  if (ORG_NAME) prefix = ORG_NAME.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
 }
 
 const constants = {
