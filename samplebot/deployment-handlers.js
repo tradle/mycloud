@@ -2,12 +2,13 @@ const debug = require('debug')('tradle:sls:deployment-bot')
 const co = require('co').wrap
 const clone = require('clone')
 const omit = require('object.omit')
+const { parseStub } = require('@tradle/validate-resource').utils
+const { TYPE } = require('@tradle/constants')
 const { prettify } = require('../lib/string-utils')
 const Buckets = require('../lib/buckets')
 // const ServerlessDeployment = require('../lib/s3-utils').getBucket('tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k')
 // const PublicConf = require('../lib/s3-utils').getBucket('tradle-dev-PublicConfBucket-gd70s2lfklji')
 const { getFaviconURL, getLogoDataURI } = require('../lib/image-utils')
-const { s3 } = require('../lib/aws')
 const utils = require('../lib/utils')
 const templateFileName = 'compiled-cloudformation-template.json'
 const {
@@ -26,7 +27,12 @@ const CONFIG_FORM = `${NAMESPACE}.Configuration`
 
 const getBaseTemplate = (function () {
   let baseTemplate
-  return co(function* ({ resources }) {
+  if (process.env.IS_OFFLINE) {
+    baseTemplate = require('../lib/cli/cloudformation-template')
+    return () => Promise.resolve(baseTemplate)
+  }
+
+  return co(function* ({ s3, resources }) {
     const { ServerlessDeployment } = resources.buckets
     if (!baseTemplate) {
       const objects = yield s3.listObjects({
@@ -62,8 +68,8 @@ function normalizeParameters (parameters) {
   return parameters
 }
 
-const writeTemplate = co(function* ({ resources, parameters }) {
-  const template = yield getBaseTemplate({ resources })
+const writeTemplate = co(function* ({ s3, resources, parameters }) {
+  const template = yield getBaseTemplate({ s3, resources })
   const customized = generateTemplate({ resources, template, parameters })
   const templateKey = `templates/scale-${parameters.scale}.json`
   const { PublicConf } = resources.buckets
@@ -106,12 +112,15 @@ const onForm = co(function* ({ bot, user, type, wrapper, currentApplication }) {
 })
 
 const onFormsCollected = co(function* ({ bot, user, application }) {
-  const configForms = user.forms[CONFIG_FORM]
-  const latest = getLatestFormVersion(configForms)
-  const form = yield bot.objects.get(latest.link)
+  const latest = application.forms.slice().reverse().find(stub => {
+    return parseStub(stub).type === CONFIG_FORM
+  })
+
+  const form = yield bot.objects.get(parseStub(latest).link)
   const parameters = normalizeParameters(form)
   // parameters.logo = yield getFaviconURL(parameters.domain)
   const templateKey = yield writeTemplate({
+    s3: bot.aws.s3,
     resources: bot.resources,
     parameters
   })
@@ -128,7 +137,11 @@ const onFormsCollected = co(function* ({ bot, user, application }) {
   yield bot.send({
     to: user.id,
     // object: `Launch your Tradle stack\n**${launchURL}**`
-    object: '**Launch MyCloud**'
+    object: {
+      [TYPE]: 'tradle.SimpleMessage',
+      message: `**[Launch MyCloud](${launchURL})**`
+      // message: '**Launch MyCloud**'
+    }
   })
 })
 
@@ -184,10 +197,6 @@ function scaleTable ({ table, scale }) {
 
 function last (arr) {
   return arr[arr.length - 1]
-}
-
-function getLatestFormVersion (formState) {
-  return last(last(formState).versions)
 }
 
 function latestS3Object (list) {
