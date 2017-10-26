@@ -8,7 +8,8 @@ if (NODE_ENV === 'test') {
   // console.log(process.env)
 }
 
-if (!yn(IS_LAMBDA_ENVIRONMENT)) {
+// locally
+if (yn(IS_LAMBDA_ENVIRONMENT) === false) {
   const { env } = require('../lib/cli/serverless-yml').custom.brand
   extend(process.env, env)
 }
