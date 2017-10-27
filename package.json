@@ -71,7 +71,7 @@
     "makepublic": "./scripts/makepublic.js",
     "compile-template": "cp serverless-uncompiled.yml serverless.yml && ./scripts/compile.js serverless-uncompiled.yml serverless.yml && cp serverless.yml serverless-compiled.yml",
     "interpolate-template": "./scripts/interpolate-template.sh",
-    "build:yml": "npm run compile-template && npm run interpolate-template && npm run gen:resourcedefs && npm run gen:modelmap",
+    "build:yml": "npm run compile-template && npm run interpolate-template && npm run gen:resourcedefs",
     "reinstall": "rm -rf node_modules && npm install",
     "localstack:start": "./scripts/localstack.sh up",
     "localstack:stop": "./scripts/localstack.sh down",
