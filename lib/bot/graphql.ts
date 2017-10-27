@@ -1,11 +1,15 @@
 import * as coexpress from 'co-express'
 import { graphql, formatError } from 'graphql'
+import { print } from 'graphql/language/printer'
+import { parse } from 'graphql/language/parser'
 import * as expressGraphQL from 'express-graphql'
 import * as dynogels from 'dynogels'
 import { createResolvers } from '@tradle/dynamodb'
 import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
+
 const { MESSAGE } = TYPES
+const prettifyQuery = query => print(parse(query))
 
 dynogels.log = {
   info: require('debug')('dynogels:info'),
@@ -36,14 +40,22 @@ export = function setup (opts) {
     }
   }))
 
-  router.use('/graphql', expressGraphQL(() => ({
-    schema: getSchema(),
-    graphiql: true,
-    formatError: err => {
-      console.error('experienced error executing GraphQL query', err.stack)
-      return formatError(err)
+  router.use('/graphql', expressGraphQL(req => {
+    const { query } = req.body
+    if (query && query.indexOf('query IntrospectionQuery') === -1) {
+      debug('received query:')
+      debug(prettifyQuery(req.body.query))
     }
-  })))
+
+    return {
+      schema: getSchema(),
+      graphiql: true,
+      formatError: err => {
+        console.error('experienced error executing GraphQL query', err.stack)
+        return formatError(err)
+      }
+    }
+  }))
 
   router.use(router.defaultErrorHandler)
 
