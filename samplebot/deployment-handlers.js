@@ -24,6 +24,7 @@ const MIN_SCALE = 1
 const MAX_SCALE = 1
 const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
 const CONFIG_FORM = `${NAMESPACE}.Configuration`
+const DEPLOYMENT_PRODUCT = `${NAMESPACE}.Deployment`
 
 const getBaseTemplate = (function () {
   let baseTemplate
@@ -90,6 +91,7 @@ const writeTemplate = co(function* ({ s3, resources, parameters }) {
 
 const onForm = co(function* ({ bot, user, type, wrapper, currentApplication }) {
   if (type !== CONFIG_FORM) return
+  if (!currentApplication || currentApplication.requestFor !== DEPLOYMENT_PRODUCT) return
 
   const { object } = wrapper.payload
   const { domain } = object
@@ -112,6 +114,8 @@ const onForm = co(function* ({ bot, user, type, wrapper, currentApplication }) {
 })
 
 const onFormsCollected = co(function* ({ bot, user, application }) {
+  if (application.requestFor !== DEPLOYMENT_PRODUCT) return
+
   const latest = application.forms.slice().reverse().find(stub => {
     return parseStub(stub).type === CONFIG_FORM
   })
