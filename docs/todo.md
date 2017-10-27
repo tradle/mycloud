@@ -108,3 +108,5 @@ scrap service discovery
   it's now only used to set the IOT_ENDPOINT env var on all lambdas, so it's prob not really needed. Lambdas that need the IOT_ENDPOINT, can get it themselves via aws.iot.describeEndpoint
 
 get rid of compile-template step
+
+deploy without overriding provider config environment variables: PRODUCTS, ORG_NAME, etc.

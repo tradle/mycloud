@@ -88,9 +88,7 @@
     "setenv": "./scripts/setenv.js",
     "setstyle": "./scripts/setstyle.sh",
     "addfriends": "./scripts/addfriends.js",
-    "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
-    "start": "DEBUG=λ*,*tradle* serverless offline start",
-    "debug": "DEBUG=λ*,*tradle* node --debug --inspect ./node_modules/.bin/serverless offline start"
+    "reshrink": "npm dedupe && npm prune && npm shrinkwrap"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
@@ -165,6 +163,7 @@
     "uuid": "^3.1.0",
     "xtend": "^4.0.1",
     "ya-promise-queue": "^1.1.0",
+    "yargs-parser": "~2.4.1",
     "yn": "^2.0.0"
   },
   "lint-staged": {
