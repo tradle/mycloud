@@ -51,7 +51,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager#cloud",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#9436ec03c226109369dc946870b0d0feee2d13fa",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#95d31039297a1c24013f3da22ec8acc4cc0beffc",
       "dependencies": {
         "is-extendable": {
           "version": "1.0.1",
@@ -68,7 +68,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#05b969b01482da4fd4b1f239883605683ef1e4dc",
+      "resolved": "git://github.com/tradle/bot-products.git#af5836f8d1a43b568bad893abbee0b1affba9112",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
