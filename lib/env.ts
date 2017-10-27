@@ -94,6 +94,8 @@ export default class Env {
   }
 
   public setFromLambdaEvent = (event, context) => {
+    context.callbackWaitsForEmptyEventLoop = false
+
     this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
     if (this.TESTING) {
       this.debug('setting TEST resource map')
