@@ -273,6 +273,7 @@ provider:
       Action:
         - lambda:UpdateFunctionConfiguration
         - lambda:GetFunctionConfiguration
+        - lambda:ListFunctions
       Resource:
         - Fn::Sub: 'arn:aws:lambda:${{self:custom.region}}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
 

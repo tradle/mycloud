@@ -50,7 +50,10 @@ export class Commander {
     const parts = command.match(COMMAND_REGEX)
     const isEmployee = this.employeeManager.isEmployee(req.user)
     const commands = isEmployee ? EMPLOYEE_COMMANDS : CUSTOMER_COMMANDS
-    const matchingCommand = commands.find(({ name }) => name === parts[1])
+    const matchingCommand = commands.find(({ name, disabled }) => {
+      return !disabled && name === parts[1]
+    })
+
     if (!matchingCommand) {
       const message = isEmployee
         ? `command not found: ${command}`

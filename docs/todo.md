@@ -104,9 +104,6 @@ Bot / Bot Engine / Tradle Engine co-location
     - 2. you deploy the bot stack, and somehow give the tradle stack the bot stack's coordinates...and models, and everything else
   - how does Tradle Engine know where to find the bot code?
 
-scrap service discovery
-  it's now only used to set the IOT_ENDPOINT env var on all lambdas, so it's prob not really needed. Lambdas that need the IOT_ENDPOINT, can get it themselves via aws.iot.describeEndpoint
-
 get rid of compile-template step
 
 deploy without overriding provider config environment variables: PRODUCTS, ORG_NAME, etc.

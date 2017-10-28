@@ -66,8 +66,16 @@ export default class Utils {
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
-  public getStackResources = async (StackName: string)
-    :Promise<AWS.CloudFormation.StackResourceSummaries[]> => {
+  public getStackResources = async (StackName?: string)
+    :Promise<AWS.CloudFormation.StackResourceSummaries> => {
+    if (!StackName) {
+      StackName = this.env.STACK_ID
+    }
+
+    if (!StackName) {
+      throw new Error(`expected "StackName"`)
+    }
+
     let resources = []
     const opts:AWS.CloudFormation.ListStackResourcesInput = { StackName }
     while (true) {
@@ -84,15 +92,55 @@ export default class Utils {
     return resources
   }
 
-  public listFunctions = ():Promise<Lambda.Types.ListFunctionsResponse> => {
-    return this.aws.lambda.listFunctions().promise()
+  public listFunctions = async (StackName?:string):Promise<Lambda.Types.FunctionConfiguration[]> => {
+    let all = []
+    let Marker
+    let opts:Lambda.Types.ListFunctionsRequest = {}
+    while (true) {
+      let { NextMarker, Functions } = await this.aws.lambda.listFunctions(opts).promise()
+      all = all.concat(Functions)
+      if (!NextMarker) break
+
+      opts.Marker = NextMarker
+    }
+
+    return all
+  }
+
+  public listStackFunctions = async (StackName?:string)
+    :Promise<string[]> => {
+    const resources = await this.getStackResources(StackName)
+    const lambdaNames:string[] = []
+    for (const { ResourceType, PhysicalResourceId } of resources) {
+      if (ResourceType === 'AWS::Lambda::Function' && PhysicalResourceId) {
+        lambdaNames.push(PhysicalResourceId)
+      }
+    }
+
+    return lambdaNames
+  }
+
+  // public getStackFunctionConfigurations = async (StackName?:string)
+  //   :Promise<Lambda.Types.FunctionConfiguration[]> => {
+  //   const names = await this.listStackFunctions()
+  //   return Promise.all(names.map(name => this.getConfiguration(name)))
+  // }
+
+  public getStackFunctionConfigurations = async (StackName?:string)
+    :Promise<Lambda.Types.FunctionConfiguration[]> => {
+    const [names, configs] = await Promise.all([
+      this.listStackFunctions(),
+      this.listFunctions()
+    ])
+
+    return configs.filter(({ FunctionName }) => names.includes(FunctionName))
   }
 
   public updateEnvironments = async(map:(conf:Lambda.Types.FunctionConfiguration) => any) => {
-    const { Functions } = await this.listFunctions()
-    if (!Functions) return
+    const functions = await this.getStackFunctionConfigurations()
+    if (!functions) return
 
-    const writes = Functions.map(current => {
+    const writes = functions.map(current => {
       const update = map(current)
       return update && {
         current,

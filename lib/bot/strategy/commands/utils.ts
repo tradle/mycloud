@@ -4,7 +4,7 @@ export const toggleProduct = async ({ context, req, product, enable }: {
   req: any,
   product:string,
   enable:boolean
-}) {
+}) => {
   const { tradle, bot, productsAPI } = context
   const { products, models } = productsAPI
   if (enable && products.includes(product)) {
@@ -32,11 +32,9 @@ export const toggleProduct = async ({ context, req, product, enable }: {
     PRODUCTS: newProductsList.join(',')
   }
 
-  const verb = enable ? 'enabling' : 'disabling'
+  const verb = enable ? 'enabled' : 'disabled'
   const message = `${verb} product ${product}`
   bot.debug(message)
-  await Promise.all[
-    tradle.lambdaUtils.updateEnvironments(lambda => update)
-    context.sendSimpleMessage({ req, message })
-  ])
+  await tradle.lambdaUtils.updateEnvironments(lambda => update)
+  await context.sendSimpleMessage({ req, message })
 }

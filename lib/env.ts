@@ -30,6 +30,7 @@ export default class Env {
   public NO_TIME_TRAVEL:boolean
   public IOT_PARENT_TOPIC:string
   public IOT_ENDPOINT:string
+  public STACK_ID:string
   public debug:IDebug
 
   private nick:string
