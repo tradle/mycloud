@@ -294,6 +294,7 @@ proto.assignEmployee = co(function* ({ user, employee, context }) {
   const application = yield this.getApplicationByContext({ context })
   const allModels = this.productsAPI.models.all
   const assign = employee.send({
+    other: { context },
     object: buildResource({
       models: allModels,
       model: 'tradle.AssignRelationshipManager',
@@ -382,7 +383,7 @@ proto.runThroughApplication = co(function* ({
       })
       .set({
         requestFor: product,
-        contextId: nodeCrypto.randomBytes(12).toString('hex')
+        contextId: nodeCrypto.randomBytes(32).toString('hex')
       })
       .toJSON()
 
