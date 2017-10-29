@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 
 const path = require('path')
-const loadEnv = require('node-env-file')
-loadEnv(path.resolve(__dirname, '../docker/.env'))
+const loadDockerEnv = require('node-env-file')
+loadDockerEnv(path.resolve(__dirname, '../docker/.env'))
 
-require('../test/env').install()
+const { loadEnv, loadCredentials } = require('../lib/cli/utils')
+
+loadEnv()
+loadCredentials()
+
+if (process.env.NODE_ENV === 'test') {
+  require('../test/env').install()
+}
 
 const express = require('express')
 const expressGraphQL = require('express-graphql')
 const compression = require('compression')
 const cors = require('cors')
 const dynogels = require('dynogels')
-const { createProductsBot } = require('../test/end-to-end')
+const createProductsBot = require('../lib/bot/strategy').products
 const { bot } = createProductsBot()
 
 const { port } = require('minimist')(process.argv.slice(2), {
