@@ -51,7 +51,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager#cloud",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#0573daef2fe68c1469e6c38c95cf7bef105e5bdb",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#407ef500df3457623b81b275a9f6dd8ec09e240e",
       "dependencies": {
         "is-extendable": {
           "version": "1.0.1",
