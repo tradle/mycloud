@@ -908,6 +908,7 @@ resources:
         CorsConfiguration:
           CorsRules:
             - AllowedMethods:
+                - GET
                 - PUT
                 - POST
               AllowedOrigins:
