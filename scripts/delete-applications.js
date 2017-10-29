@@ -5,6 +5,12 @@ process.env.IS_LAMBDA_ENVIRONMENT = false
 const co = require('co')
 const yn = require('yn')
 const pick = require('object.pick')
+const argv = require('minimist')(process.argv.slice(2), {
+  alias: {
+    f: 'force'
+  }
+})
+
 const { loadEnv, loadCredentials } = require('../lib/cli/utils')
 
 loadEnv()
@@ -52,15 +58,17 @@ const deleteApplications = co.wrap(function* () {
 
   console.log('2. will also clear the following tables\n', tablesToClear)
 
-  const rl = readline.createInterface(process.stdin, process.stdout)
-  const answer = yield new Promise(resolve => {
-    rl.question('continue? y/[n]:', resolve)
-  })
+  if (!argv.force) {
+    const rl = readline.createInterface(process.stdin, process.stdout)
+    const answer = yield new Promise(resolve => {
+      rl.question('continue? y/[n]:', resolve)
+    })
 
-  rl.close()
-  if (!yn(answer)) {
-    console.log('aborted')
-    return
+    rl.close()
+    if (!yn(answer)) {
+      console.log('aborted')
+      return
+    }
   }
 
   console.log('let the games begin!')
