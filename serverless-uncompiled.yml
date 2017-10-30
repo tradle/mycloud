@@ -417,7 +417,7 @@ functions:
           rate: rate(5 minutes)
           enabled: true
           input:
-            concurrency: 10
+            concurrency: 5
             functions:
               - http_catchall
               - onconnect

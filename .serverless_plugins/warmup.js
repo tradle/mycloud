@@ -2,7 +2,7 @@ const { WARMUP_SOURCE_NAME } = require('../lib/constants')
 const PRICING = require('../lib/lambda-pricing')
 const { normalizeWarmUpConf } = require('../lib/lambda/warmup')
 const WARMUP_FUNCTION_SHORT_NAME = 'warmup'
-const WARMUP_FUNCTION_DURATION = 10000
+const WARMUP_FUNCTION_DURATION = 5000
 const unitToMillis = {
   minute: 60000,
   hour: 60 * 60000,
