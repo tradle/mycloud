@@ -63,9 +63,17 @@ class WarmUp {
     const event = functions[WARMUP_FUNCTION_SHORT_NAME].events.find(event => event.schedule)
     const { rate, input } = event.schedule
     const period = parseRateExpression(rate)
+    const warmUpConfs = input.functions.map(normalizeWarmUpConf)
+    warmUpConfs.forEach(conf => {
+      if (!(conf.functionName in functions)) {
+        throw new Error(`function ${conf.functionName} listed in warmup event does not exist`)
+      }
+    })
+
     return {
       period,
       input,
+      warmUpConfs,
       functionName: warmUpFunctionLongName
     }
   }
@@ -90,8 +98,7 @@ class WarmUp {
       costs[unit] = fnCostPerPeriod
     }
 
-    for (let conf of info.input.functions) {
-      conf = normalizeWarmUpConf(conf)
+    for (const conf of info.warmUpConfs) {
       const { functionName, concurrency=info.input.concurrency } = conf
       const memorySize = getMemorySize(functions[functionName], provider)
       // assume a warm up takes 100ms or less

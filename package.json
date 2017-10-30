@@ -43,7 +43,7 @@
     "gen:fixtures": "./scripts/gen-fixtures.js",
     "gen:samples": "./scripts/gen-samples.js",
     "gen:localsamples": "./scripts/gen-samples.js --local",
-    "gen:localresources": "./scripts/gen-local-resources.js",
+    "gen:localresources": "./scripts/gen-local-resources.js --force",
     "gen:resourcedefs": "./scripts/gen-resource-defs.js",
     "gen:modelmap": "./scripts/map-models-to-buckets.js",
     "reset:local": "npm run localstack:restart && sleep 4 && npm run gen:localresources",

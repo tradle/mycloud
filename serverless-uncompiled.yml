@@ -419,13 +419,18 @@ functions:
           input:
             concurrency: 5
             functions:
-              - http_catchall
+              # - http_catchall
               - onconnect
               - ondisconnect
               - onsubscribe
               - onmessage
               - bot_onmessage
               - bot_graphql
+              - info
+              - preauth
+              - auth
+              - inbox
+              - onmessage_http
               - to-events:
                   concurrency: 2
               - bot_onmessagestream:
@@ -438,43 +443,43 @@ functions:
   # http router function
   # see various commented out http-event functions below
   # for details on what they do
-  http_catchall:
-    memorySize: 1024
-    handler: lib/lambda/http/default.handler
-    events:
-      - http:
-          path: /
-          method: ANY
-      - http:
-          # match all paths, the token 'any' doesn't mean anything special
-          path: /{any+}
-          method: ANY
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
+  # http_catchall:
+  #   memorySize: 1024
+  #   handler: lib/lambda/http/default.handler
+  #   events:
+  #     - http:
+  #         path: /
+  #         method: ANY
+  #     - http:
+  #         # match all paths, the token 'any' doesn't mean anything special
+  #         path: /{any+}
+  #         method: ANY
+  #   alarms:
+  #     - functionErrors
+  #     - functionThrottles
+  #     - functionInvocations
 
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
   # 2. creates an unauthenticated session,
   #    generates a challenge to be signed (verified in /auth)
-  # preauth:
-  #   handler: lib/lambda/http/default.handler
-  #   memorySize: 1024
-  #   events:
-  #     - http:
-  #         path: preauth
-  #         method: any
+  preauth:
+    handler: lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: preauth
+          method: any
 
   # 1. validates the challenge response
   # 2. marks the session as authenticated
-  # auth:
-  #   handler: lib/lambda/http/default.handler
-  #   memorySize: 1024
-  #   events:
-  #     - http:
-  #         path: auth
-  #         method: any
+  auth:
+    handler: lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: auth
+          method: any
 
   # createevent:
   #   handler: lib/lambda/createevent.handler
@@ -541,13 +546,13 @@ functions:
   #         path: log
   #         method: any
 
-  # inbox:
-  #   handler: lib/lambda/http/default.handler
-  #   memorySize: 1024
-  #   events:
-  #     - http:
-  #         path: inbox
-  #         method: any
+  inbox:
+    handler: lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: inbox
+          method: any
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
@@ -677,15 +682,15 @@ functions:
 
   # public endpoint for clients to get public configuration / provider identity
   # e.g. the provider's identity object, styles, currency, etc.
-  # info:
-  #   handler: lib/lambda/http/default.handler
-  #   memorySize: 256
-  #     # SERVERLESS_STAGE: ${{self:custom.stage}}
-  #     # SERVERLESS_SERVICE_NAME: ${{self:service}}
-  #   events:
-  #     - http:
-  #         path: info
-  #         method: any
+  info:
+    handler: lib/lambda/http/default.handler
+    memorySize: 256
+      # SERVERLESS_STAGE: ${{self:custom.stage}}
+      # SERVERLESS_SERVICE_NAME: ${{self:service}}
+    events:
+      - http:
+          path: info
+          method: any
 
   # initializes provider identity
   # generates a new identity and keys, and other misc crap
