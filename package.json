@@ -90,7 +90,8 @@
     "setenv": "./scripts/setenv.js",
     "setstyle": "./scripts/setstyle.sh",
     "addfriends": "./scripts/addfriends.js",
-    "reshrink": "npm dedupe && npm prune && npm shrinkwrap"
+    "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
+    "start": "DEBUG=λ*,*tradle* serverless offline start"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
