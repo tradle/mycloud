@@ -1,8 +1,8 @@
 const { WARMUP_SOURCE_NAME } = require('../lib/constants')
 const PRICING = require('../lib/lambda-pricing')
 const { normalizeWarmUpConf } = require('../lib/lambda/warmup')
-const warmUpFunctionShortName = 'warmup'
-const WARMUP_FUNCTION_DURATION = 2500
+const WARMUP_FUNCTION_SHORT_NAME = 'warmup'
+const WARMUP_FUNCTION_DURATION = 10000
 const unitToMillis = {
   minute: 60000,
   hour: 60 * 60000,
@@ -28,23 +28,30 @@ class WarmUp {
     this.serverless = serverless
     this.provider = this.serverless.getProvider('aws')
     this.commands = {
-      warmupcost: {
-        usage: 'Estimate the cost of warming up your functions',
-        lifecycleEvents: [
-          'warmupcost'
-        ]
-      },
       warmup: {
         usage: 'Warm up your functions',
-        lifecycleEvents: [
-          'warmup'
-        ]
+        commands: {
+          run: {
+            usage: 'Warm up your functions',
+            lifecycleEvents: [
+              'init',
+              'end'
+            ],
+          },
+          cost: {
+            usage: 'Estimate the cost of warming up your functions',
+            lifecycleEvents: [
+              'init',
+              'end'
+            ],
+          }
+        }
       }
     }
 
     this.hooks = {
-      'warmupcost:warmupcost': () => Promise.resolve(this.estimateCost()),
-      'warmup:warmup': () => Promise.resolve(this.warmUp()),
+      'warmup:cost:end': () => Promise.resolve(this.estimateCost()),
+      'warmup:run:end': () => Promise.resolve(this.warmUp()),
       'after:deploy:deploy': () => this.afterDeployFunctions()
     }
   }
@@ -52,14 +59,14 @@ class WarmUp {
   getInfo() {
     const { service } = this.serverless
     const { functions, provider } = service
-    const warmUpFunctionLongName = service.service + '-' + provider.stage + '-' + warmUpFunctionShortName
-    const event = functions[warmUpFunctionShortName].events.find(event => event.schedule)
+    const warmUpFunctionLongName = service.service + '-' + provider.stage + '-' + WARMUP_FUNCTION_SHORT_NAME
+    const event = functions[WARMUP_FUNCTION_SHORT_NAME].events.find(event => event.schedule)
     const { rate, input } = event.schedule
     const period = parseRateExpression(rate)
     return {
       period,
       input,
-      functionName: warmUpFunctionShortName
+      functionName: warmUpFunctionLongName
     }
   }
 
@@ -68,7 +75,7 @@ class WarmUp {
     const info = this.getInfo()
     const costPerFunction = {
       [info.functionName]: {
-        once: PRICING[getMemorySize(functions[info.functionName], provider)] * WARMUP_FUNCTION_DURATION
+        once: PRICING[getMemorySize(functions[WARMUP_FUNCTION_SHORT_NAME], provider)] * WARMUP_FUNCTION_DURATION
       }
     }
 
@@ -100,14 +107,16 @@ class WarmUp {
       }
     }
 
-    this.serverless.cli.log(`Assuming warm-up function itself takes ${WARMUP_FUNCTION_DURATION}ms to run`)
-    this.serverless.cli.log(`Estimated cost per warm-up operation: $${costs.once}`)
+    this.serverless.cli.consoleLog(`WARNING: the warm-up function itself is likely the greatest expense`)
+    this.serverless.cli.consoleLog(`Assuming warm-up function itself takes ${WARMUP_FUNCTION_DURATION}ms to run`)
+    this.serverless.cli.consoleLog('')
+    this.serverless.cli.consoleLog(`Estimated cost per warm-up operation: $${costs.once}`)
     for (let unit in unitToMillis) {
-      this.serverless.cli.log(`Estimated cost of warm-up per ${unit}: $${costs[unit]}`)
+      this.serverless.cli.consoleLog(`Estimated cost of warm-up per ${unit}: $${costs[unit]}`)
     }
 
-    this.serverless.cli.log('costs per warmed up function:')
-    this.serverless.cli.log(JSON.stringify(costPerFunction, null, 2))
+    this.serverless.cli.consoleLog('costs per warmed up function:')
+    this.serverless.cli.consoleLog(JSON.stringify(costPerFunction, null, 2))
   }
 
   warmUp() {
@@ -121,8 +130,8 @@ class WarmUp {
     }
 
     return this.provider.request('Lambda', 'invoke', params)
-      .then(data => this.serverless.cli.log('WarmUp: Functions sucessfuly pre-warmed'))
-      .catch(error => this.serverless.cli.log('WarmUp: Error while pre-warming functions', error))
+      .then(data => this.serverless.cli.consoleLog('WarmUp: Functions sucessfuly pre-warmed'))
+      .catch(error => this.serverless.cli.consoleLog(`WarmUp: Error while pre-warming functions: ${error.stack}`))
   }
 
   afterDeployFunctions() {

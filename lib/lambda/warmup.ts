@@ -21,13 +21,14 @@ const commonParams = {
 }
 
 const defaultConcurrency = 1
+const notNull = obj => !!obj
 
 export async function handler (event, context, callback) {
   const { functions } = event
   let invokes = []
   let errors = 0
   console.log('Warm Up Start')
-  await Promise.all(functions.map(async (warmUpConf) => {
+  const results = await Promise.all(functions.map(async (warmUpConf) => {
     warmUpConf = normalizeWarmUpConf(warmUpConf)
     const { functionName, concurrency=event.concurrency } = warmUpConf
     const params = {
@@ -36,19 +37,36 @@ export async function handler (event, context, callback) {
     }
 
     console.log(`Attempting to warm up ${concurrency} instances of ${functionName}`)
-    await Promise.all(new Array(concurrency).fill(0).map(async () => {
+    const fnResults = await Promise.all(new Array(concurrency).fill(0).map(async () => {
       try {
         const resp = await lambda.invoke(params).promise()
         console.log(`Warm Up Invoke Success: ${functionName}`, resp)
+        return resp
       } catch (err) {
         errors++
         console.log(`Warm Up Invoke Error: ${functionName}`, err.stack)
+        return {
+          error: err.stack
+        }
       }
     }))
+
+    return fnResults.reduce((summary, next) => {
+      if (next.error) {
+        summary.errors++
+      } else if (next.isVirgin) {
+        summary.containersCreated++
+      }
+
+      return summary
+    }, {
+      functionName,
+      containersCreated: 0
+    })
   }))
 
   console.log(`Warm Up Finished with ${errors} invoke errors`)
-  callback()
+  callback(null, results)
 }
 
 export const normalizeWarmUpConf = warmUpConf => {
