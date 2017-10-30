@@ -5,7 +5,7 @@ import * as createLogger from 'debug'
 import * as yn from 'yn'
 import * as Networks from './networks'
 import { parseArn } from './utils'
-import { IDebug } from './types'
+import { IDebug, ILambdaExecutionContext } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
 
 export default class Env {
@@ -16,6 +16,7 @@ export default class Env {
   public IS_LOCAL:boolean
   public IS_OFFLINE:boolean
   public DISABLED:boolean
+  public LAMBDA_BIRTH_DATE:number
 
   public AWS_REGION:string
   public REGION:string
@@ -32,6 +33,12 @@ export default class Env {
   public IOT_ENDPOINT:string
   public STACK_ID:string
   public debug:IDebug
+  public event:any
+  public context:ILambdaExecutionContext
+  public isVirgin:boolean
+  public get containerAge () {
+    return this.LAMBDA_BIRTH_DATE ? Date.now() - this.LAMBDA_BIRTH_DATE : null
+  }
 
   private nick:string
   constructor(props:any) {
@@ -95,6 +102,13 @@ export default class Env {
   }
 
   public setFromLambdaEvent = (event, context) => {
+    if (this.event) {
+      this.isVirgin = false
+    } else {
+      this.debug('I am a fresh container!')
+      this.isVirgin = true
+    }
+
     context.callbackWaitsForEmptyEventLoop = false
 
     this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
@@ -127,6 +141,10 @@ export default class Env {
 
     if ('NO_TIME_TRAVEL' in props) {
       this.NO_TIME_TRAVEL = yn(props.NO_TIME_TRAVEL)
+    }
+
+    if ('LAMBDA_BIRTH_DATE' in props) {
+      this.LAMBDA_BIRTH_DATE = Number(props.LAMBDA_BIRTH_DATE)
     }
 
     this.REGION = this.AWS_REGION

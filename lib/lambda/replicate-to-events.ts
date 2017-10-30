@@ -1,3 +1,5 @@
+process.env.LAMBDA_BIRTH_DATE = Date.now()
+
 import { tradle, wrap } from '../'
 
 const { events } = tradle

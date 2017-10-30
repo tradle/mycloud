@@ -1,3 +1,4 @@
+process.env.LAMBDA_BIRTH_DATE = Date.now()
 
 import { wrap, tradle } from '../'
 import { setStyle } from '../configure-provider'

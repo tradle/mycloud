@@ -411,13 +411,16 @@ functions:
   # warm up other functions
   warmup:
     handler: lib/lambda/warmup.handler
+    memorySize: 128
     events:
       - schedule:
           rate: rate(5 minutes)
           enabled: true
           input:
+            concurrency: 2
             functions:
-              - http_catchall
+              - http_catchall:
+                  concurrency: 3
               - onconnect
               - ondisconnect
               - onsubscribe
@@ -425,7 +428,8 @@ functions:
               - to-events
               - bot_onmessagestream
               - bot_onmessage
-              - bot_graphql
+              - bot_graphql:
+                  concurrency: 3
     alarms:
       - functionErrors
       - functionThrottles
@@ -649,9 +653,6 @@ functions:
   #   handler: lib/lambda/add-contact.handler
   #   environment:
   #     DEBUG: tradle:*
-
-  # identity:
-  #   handler: lib/lambda/identity.handler
 
   addfriend:
     handler: lib/lambda/add-friend.handler

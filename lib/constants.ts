@@ -48,7 +48,7 @@ const constants = {
   ENV_RESOURCE_PREFIX: 'R_',
   HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
   WARMUP_SOURCE_NAME: 'warmup',
-  WARMUP_SLEEP: 50
+  WARMUP_SLEEP: 40
 }
 
 export = constants
