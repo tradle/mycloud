@@ -85,21 +85,24 @@ export default class Seals {
     this.network = network
     this.env = env
     this.debug = env.logger('seals')
-    const scanner = IndexName => async (opts:ILimitOpts = {}) => {
-      const { limit=Infinity } = opts
+    const scanner = (IndexName, defaultOpts={}) => async (opts={}) => {
       const query:AWS.DynamoDB.ScanInput = {
         TableName: this.table.name,
-        IndexName
-      }
-
-      if (limit !== Infinity) {
-        query.Limit = limit
+        IndexName,
+        ...defaultOpts,
+        ...opts
       }
 
       return this.table.scan(query)
     }
 
-    this.getUnconfirmed = scanner('unconfirmed')
+    this.getUnconfirmed = scanner('unconfirmed', {
+      FilterExpression: 'attribute_not_exists(#unsealed)',
+      ExpressionAttributeNames: {
+        '#unsealed': 'unsealed'
+      }
+    })
+
     this.getUnsealed = scanner('unsealed')
     this.sealPending = blockchain.wrapOperation(this._sealPending)
     this.syncUnconfirmed = blockchain.wrapOperation(this._syncUnconfirmed)
@@ -290,7 +293,7 @@ export default class Seals {
     key,
     link,
     watchType=WATCH_TYPE.this,
-    write=true,
+    write,
     blockchainIdentifier
   }) => {
     const { blockchain } = this
@@ -306,6 +309,7 @@ export default class Seals {
     }
 
     const address = blockchain.pubKeyToAddress(pubKey.pub)
+    const time = timestamp()
     const params = {
       id: uuid(),
       blockchain: blockchainIdentifier || blockchain.toString(),
@@ -314,14 +318,18 @@ export default class Seals {
       pubKey,
       watchType,
       write: true,
-      time: timestamp(),
+      time,
       confirmations: -1,
       errors: [],
-      unconfirmed: YES
+      // unconfirmed is an index hashKey,
+      // this makes for a better partition key than YES
+      unconfirmed: YES + time
     }
 
     if (write) {
-      params.unsealed = YES
+      // unconfirmed is an index hashKey,
+      // this makes for a better partition key than YES
+      params.unsealed = YES + time
     }
 
     return params

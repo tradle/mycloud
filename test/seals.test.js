@@ -69,11 +69,11 @@ test('queue seal', co(function* (t) {
   // const seals = createSealsAPI({ blockchain, table /*, onread, onwrote*/ })
   yield seals.create({ key, link })
   let unconfirmed = yield seals.getUnconfirmed()
-  t.equal(unconfirmed.length, 1)
-  t.equal(unconfirmed[0].address, address)
+  t.equal(unconfirmed.length, 0)
 
   let unsealed = yield seals.getUnsealed()
-  t.same(unsealed, unconfirmed)
+  t.equal(unsealed.length, 1)
+  t.equal(unsealed[0].address, address)
 
   yield seals.sealPending()
   unsealed = yield seals.getUnsealed()
