@@ -20,15 +20,16 @@ const commonParams = {
   })
 }
 
+const defaultConcurrency = 1
+
 export async function handler (event, context, callback) {
   const { functions } = event
-  const defaultConcurrency = event.concurrency || 1
   let invokes = []
   let errors = 0
   console.log('Warm Up Start')
   await Promise.all(functions.map(async (warmUpConf) => {
     warmUpConf = normalizeWarmUpConf(warmUpConf)
-    const { functionName, concurrency=defaultConcurrency } = warmUpConf
+    const { functionName, concurrency=event.concurrency } = warmUpConf
     const params = {
       ...commonParams,
       FunctionName: `${SERVERLESS_PREFIX}${functionName}`
@@ -50,9 +51,11 @@ export async function handler (event, context, callback) {
   callback()
 }
 
-const normalizeWarmUpConf = warmUpConf => {
+export const normalizeWarmUpConf = warmUpConf => {
   if (typeof warmUpConf === 'string') {
-    return { functionName: warmUpConf }
+    return {
+      functionName: warmUpConf
+    }
   }
 
   let functionName
@@ -63,6 +66,6 @@ const normalizeWarmUpConf = warmUpConf => {
 
   return {
     functionName,
-    concurrency: warmUpConf[functionName].concurrency
+    concurrency: warmUpConf[functionName].concurrency || defaultConcurrency
   }
 }

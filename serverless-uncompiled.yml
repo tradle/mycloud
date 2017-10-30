@@ -417,19 +417,19 @@ functions:
           rate: rate(5 minutes)
           enabled: true
           input:
-            concurrency: 2
+            concurrency: 10
             functions:
-              - http_catchall:
-                  concurrency: 3
+              - http_catchall
               - onconnect
               - ondisconnect
               - onsubscribe
               - onmessage
-              - to-events
-              - bot_onmessagestream
               - bot_onmessage
-              - bot_graphql:
-                  concurrency: 3
+              - bot_graphql
+              - to-events:
+                  concurrency: 2
+              - bot_onmessagestream:
+                  concurrency: 2
     alarms:
       - functionErrors
       - functionThrottles
