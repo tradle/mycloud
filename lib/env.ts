@@ -1,5 +1,6 @@
 
 import './globals'
+import './console'
 import * as createLogger from 'debug'
 
 import * as yn from 'yn'
@@ -56,11 +57,7 @@ export default class Env {
 
     this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
     this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME || '[unknown]'
-    const shortName = AWS_LAMBDA_FUNCTION_NAME
-      ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
-      : '[unknown]'
-
-    this.setDebugNamespace(shortName)
+    this.debug = createLogger('env')
     this.set(props)
     if (this.TESTING) {
       this.debug('setting TEST resource map')
@@ -79,22 +76,23 @@ export default class Env {
    * Dynamically change logger namespace as "nick" is set lazily, e.g. from router
    */
   public logger = (namespace:string):IDebug => {
-    let logger = createLogger(`λ:${this.nick}:${namespace}`)
-    let currentNick = this.nick
-    return (...args) => {
-      if (currentNick !== this.nick) {
-        currentNick = this.nick
-        logger = createLogger(`λ:${this.nick}:${namespace}`)
-      }
+    return createLogger(namespace)
+    // let logger = createLogger(`λ:${this.nick}:${namespace}`)
+    // let currentNick = this.nick
+    // return (...args) => {
+    //   if (currentNick !== this.nick) {
+    //     currentNick = this.nick
+    //     logger = createLogger(`λ:${this.nick}:${namespace}`)
+    //   }
 
-      logger(...args)
-    }
+    //   logger(...args)
+    // }
   }
 
-  public setDebugNamespace = (nickname:string) => {
-    this.nick = nickname
-    this.debug = createLogger(`λ:${nickname}`)
-  }
+  // public setDebugNamespace = (nickname:string) => {
+  //   this.nick = nickname
+  //   this.debug = createLogger(`λ:${nickname}`)
+  // }
 
   // gets overridden when lambda is attached
   public getRemainingTime = ():number => {
