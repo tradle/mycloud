@@ -31,12 +31,18 @@ const discoverServices = cachifyPromiser(async () => {
   env.set(serviceMap)
 })
 
+// const serverlessHttpHandler =
 export = serverlessHTTP(router, {
   binary: binaryMimeTypes,
   request: async (request, event, context:ILambdaExecutionContext) => {
-    env.setFromLambdaEvent({ event, context, source: 'apigateway' })
+    env.setFromLambdaEvent({ event, context, source: 'http' })
     request.context = context
     request.event = event
     return request
   }
 })
+
+// export const handler = (event, context, callback) => {
+//   env.setFromLambdaEvent({ event, context, source: 'http' })
+//   return serverlessHttpHandler(event, context, callback)
+// }

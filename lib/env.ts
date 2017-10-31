@@ -128,16 +128,18 @@ export default class Env {
       getRemainingTimeInMillis
     } = context
 
-    if (invokedFunctionArn) {
-      const { accountId } = parseArn(invokedFunctionArn)
-      this.set({ accountId })
-    }
-
-    this.set({
+    let props = {
       event,
       context,
       getRemainingTime: getRemainingTimeInMillis
-    })
+    }
+
+    if (invokedFunctionArn) {
+      const { accountId } = parseArn(invokedFunctionArn)
+      props.accountId = accountId
+    }
+
+    this.set(props)
 
     const requestCtx = {
       'correlation-id': context.awsRequestId,
@@ -162,11 +164,11 @@ export default class Env {
   public setRequestContext(ctx) {
     const prefixed = {}
     for (let key in ctx) {
-      if (!key.startsWith('x-')) {
-        key = 'x-' + key
+      if (key.startsWith('x-')) {
+        prefixed[key] = ctx[key]
+      } else {
+        prefixed['x-' + key] = ctx[key]
       }
-
-      prefixed[key] = ctx[key]
     }
 
     this.requestCtx = prefixed
