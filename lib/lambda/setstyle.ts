@@ -8,4 +8,4 @@ export const handler = wrap(function* (event) {
     buckets: tradle.buckets,
     style: event
   })
-})
+}, { source: 'lambda' })

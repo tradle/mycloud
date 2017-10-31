@@ -14,6 +14,7 @@ import { clone, pick } from './utils'
 import { ClientUnreachable } from './errors'
 import Env from './env'
 import LambdaUtils from './lambda-utils'
+import Logger from './logger'
 
 const MIN_BATCH_DELIVERY_TIME = 2000
 const MAX_BATCH_SIZE = 5
@@ -44,7 +45,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
   private messages: Messages
   private objects: any
   private env: Env
-  private debug: IDebug
+  private logger: Logger
   private lambdaUtils: LambdaUtils
   private _deliverBatch = withTransport('deliverBatch')
 
@@ -58,7 +59,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.http = new DeliveryHTTP(opts)
     this.mqtt = new DeliveryMQTT(opts)
     this.env = env
-    this.debug = env.logger('delivery')
+    this.logger = this.env.sublogger('delivery')
     this.lambdaUtils = lambdaUtils
   }
 
@@ -79,7 +80,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     let { afterMessage } = range
     const { before, after } = range
 
-    this.debug(`looking up messages for ${recipient} > ${after}`)
+    this.logger.debug(`looking up messages for ${recipient} > ${after}`)
     const result:IDeliveryResult = {
       finished: false,
       range: { ...range }
@@ -95,14 +96,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
         body: true,
       })
 
-      this.debug(`found ${messages.length} messages for ${recipient}`)
+      this.logger.debug(`found ${messages.length} messages for ${recipient}`)
       if (!messages.length) {
         result.finished = true
         break
       }
 
       if (this.env.getRemainingTime() < MIN_BATCH_DELIVERY_TIME) {
-        this.debug('delivery ran out of time')
+        this.logger.info('delivery ran out of time')
         // TODO: recurse
         break
       }
@@ -136,7 +137,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       opts.friend = await this.friends.get({ permalink: recipient })
       return this.http
     } catch (err) {
-      this.debug(`cannot determine transport to use for recipient ${recipient}`)
+      this.logger.debug(`cannot determine transport to use for recipient ${recipient}`)
       throw new ClientUnreachable(`${recipient} is unreachable for live delivery`)
     }
   }

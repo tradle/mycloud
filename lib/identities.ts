@@ -1,4 +1,3 @@
-import * as Debug from 'debug'
 import * as constants from './constants'
 import * as Errors from './errors'
 import {
@@ -14,8 +13,9 @@ import {
 import { addLinks, getLink } from './crypto'
 import * as types from './typeforce-types'
 import { IIdentity, ITradleObject } from './types'
+import Env from './env'
+import Logger from './logger'
 
-const debug = Debug('tradle:sls:identities')
 const { PREVLINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
@@ -23,17 +23,21 @@ const { NotFound } = Errors
 export default class Identities {
   private objects: any
   private pubKeys: any
-  constructor (opts: { tables: any, objects: any }) {
+  private env: Env
+  private logger: Logger
+  constructor (opts: { tables: any, objects: any, env: Env }) {
     logify(this)
     bindAll(this)
 
-    const { tables, objects } = opts
+    const { tables, objects, env } = opts
     this.objects = objects
     this.pubKeys = tables.PubKeys
+    this.env = env
+    this.logger = env.sublogger('identities')
   }
 
   public getIdentityMetadataByPub = (pub:string) => {
-    debug('get identity metadata by pub')
+    this.logger.debug('get identity metadata by pub')
     return this.pubKeys.get({
       Key: { pub },
       ConsistentRead: true
@@ -45,7 +49,11 @@ export default class Identities {
     try {
       return await this.objects.get(link)
     } catch(err) {
-      debug('unknown identity', pub, err)
+      this.logger.debug('unknown identity', {
+        pub,
+        error: err.stack
+      })
+
       throw new NotFound('identity with pub: ' + pub)
     }
   }
@@ -59,12 +67,12 @@ export default class Identities {
       }
     }
 
-    debug('get identity by permalink')
+    this.logger.debug('get identity by permalink')
     const { link } = await this.pubKeys.findOne(params)
     try {
       return await this.objects.get(link)
     } catch(err) {
-      debug('unknown identity', permalink, err)
+      this.logger.debug('unknown identity', { permalink })
       throw new NotFound('identity with permalink: ' + permalink)
     }
   }
@@ -87,7 +95,7 @@ export default class Identities {
 // }
 
   public getExistingIdentityMapping = (identity):Promise<object> => {
-    debug('checking existing mappings for pub keys')
+    this.logger.debug('checking existing mappings for pub keys')
     const lookups = identity.pubkeys.map(obj => this.getIdentityMetadataByPub(obj.pub))
     return firstSuccess(lookups)
   }
@@ -134,9 +142,9 @@ export default class Identities {
     const { link, permalink } = addLinks(identity)
     if (existing) {
       if (existing.link === link) {
-        debug(`mapping is already up to date for identity ${permalink}`)
+        this.logger.debug(`mapping is already up to date for identity ${permalink}`)
       } else if (identity[PREVLINK] !== existing.link) {
-        debug('identity mapping collision. Refusing to add contact:', JSON.stringify(identity))
+        this.logger.warn('identity mapping collision. Refusing to add contact:', identity)
         throw new Error(`refusing to add identity with link: "${link}"`)
       }
     }
@@ -158,17 +166,19 @@ export default class Identities {
     const putPubKeys = object.pubkeys
       .map(props => this.putPubKey({ ...props, link, permalink }))
 
-    debug(`adding contact ${permalink}`)
+    this.logger.info('adding contact', { permalink })
     await Promise.all(putPubKeys.concat(
       this.objects.put(object)
     ))
-
-    debug(`added contact ${permalink}`)
   }
 
   public putPubKey = (props: { link: string, permalink: string, pub: string }):Promise<any> => {
     const { pub, link } = props
-    debug(`adding mapping from pubKey "${pub}" to link "${link}"`)
+    this.logger.debug(`adding mapping"`, {
+      pub,
+      link
+    })
+
     return this.pubKeys.put({
       Item: props
     })

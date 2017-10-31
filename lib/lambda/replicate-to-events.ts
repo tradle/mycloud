@@ -8,4 +8,4 @@ exports.handler = wrap(function* (event, context) {
   if (results.length) {
     yield events.putEvents(results)
   }
-})
+}, { source: 'dynamodbstreams' })

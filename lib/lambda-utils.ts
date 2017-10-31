@@ -1,13 +1,14 @@
 import path = require('path')
 import { Lambda } from 'aws-sdk'
 import { promisify } from './utils'
+import Logger from './logger'
 
 const notNull = (val:any):boolean => !!val
 
 export default class Utils {
   private env: any
   private aws: any
-  private debug: (...any) => void
+  private logger: Logger
   public get thisFunctionName () {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
@@ -15,7 +16,7 @@ export default class Utils {
   constructor ({ env, aws }) {
     this.env = env
     this.aws = aws
-    this.debug = env.logger('lambda-utils')
+    this.logger = env.sublogger('lambda-utils')
   }
 
   public getShortName = (name: string):string => {
@@ -40,7 +41,10 @@ export default class Utils {
     const params:Lambda.Types.InvocationRequest = {
       InvocationType: sync ? 'RequestResponse' : 'Event',
       FunctionName,
-      Payload: typeof arg === 'string' ? arg : JSON.stringify(arg)
+      Payload: JSON.stringify({
+        requestContext: this.env.getRequestContext(),
+        payload: arg
+      })
     }
 
     if (log) params.LogType = 'Tail'
@@ -62,7 +66,7 @@ export default class Utils {
   }
 
   public getConfiguration = (FunctionName:string):Promise<Lambda.Types.FunctionConfiguration> => {
-    this.debug(`looking up configuration for ${FunctionName}`)
+    this.logger.debug(`looking up configuration for ${FunctionName}`)
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
@@ -177,11 +181,11 @@ export default class Utils {
     }
 
     if (!Object.keys(updated).length) {
-      this.debug(`not updating "${functionName}", no new environment variables`)
+      this.logger.debug(`not updating "${functionName}", no new environment variables`)
       return
     }
 
-    this.debug(`updating "${functionName}" with new environment variables`)
+    this.logger.debug(`updating "${functionName}" with new environment variables`)
     for (let key in updated) {
       let val = updated[key]
       if (val == null) {
@@ -200,11 +204,11 @@ export default class Utils {
   private _invoke = async (params:AWS.Lambda.InvocationRequest)
     :Promise<AWS.Lambda.InvocationResponse> => {
     if (this.env.IS_OFFLINE) {
-      this.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
+      this.logger.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
       return await this._requireAndInvoke(params)
     }
 
-    this.debug(`invoking ${params.FunctionName}`)
+    this.logger.debug(`invoking ${params.FunctionName}`)
     return await this.aws.lambda.invoke(params).promise()
   }
 

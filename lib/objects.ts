@@ -1,5 +1,3 @@
-import Debug from 'debug'
-const debug = Debug('tradle:sls:objects')
 import * as Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
 import { IDebug, ITradleObject } from './types'
@@ -11,12 +9,14 @@ import {
   typeforce,
   setVirtual,
   download,
+  pick,
   RESOLVED_PROMISE
 } from './utils'
 import { extractSigPubKey, addLinks } from './crypto'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
 import Env from './env'
 import Tradle from './tradle'
+import Logger from './logger'
 
 export default class Objects {
   public static addMetadata = (object:ITradleObject):ITradleObject => {
@@ -28,7 +28,11 @@ export default class Objects {
       try {
         pubKey = extractSigPubKey(object)
       } catch (err) {
-        debug('invalid object', JSON.stringify(object), err)
+        this.logger.error('invalid object', {
+          object,
+          error: err.stack
+        })
+
         throw new InvalidSignature(`for ${type}`)
       }
 
@@ -41,7 +45,7 @@ export default class Objects {
 
   private tradle: Tradle
   private env: Env
-  private debug: IDebug
+  private logger: Logger
   private region: string
   private buckets: any
   private bucket: any
@@ -56,6 +60,7 @@ export default class Objects {
     this.bucket = this.buckets.Objects
     this.s3Utils = s3Utils
     this.fileUploadBucketName = buckets.FileUpload.name
+    this.logger = env.sublogger('objects')
   }
 
   public addMetadata = object => Objects.addMetadata(object)
@@ -69,7 +74,7 @@ export default class Objects {
     })
 
     if (replacements.length) {
-      debug(`replaced ${replacements.length} embedded media`)
+      this.logger.debug(`replaced ${replacements.length} embedded media`)
       await Promise.all(replacements.map(replacement => {
         const { bucket, key, body } = replacement
         return this.s3Utils.put({ bucket, key, value: body })
@@ -78,7 +83,7 @@ export default class Objects {
   }
 
   public resolveEmbed = (embed):Promise<any> => {
-    debug(`resolving embedded media: ${embed.url}`)
+    this.logger.debug(`resolving embedded media: ${embed.url}`)
     return embed.presigned
       ? download(embed)
       : this.s3Utils.get(embed).then(({ Body, ContentType }) => {
@@ -93,7 +98,7 @@ export default class Objects {
 
   public get = (link: string):Promise<ITradleObject> => {
     typeforce(typeforce.String, link)
-    debug('getting', link)
+    this.logger.debug('getting', link)
     return this.bucket.getJSON(link)
   }
 
@@ -102,7 +107,7 @@ export default class Objects {
     this.addMetadata(object)
     object = deepClone(object)
     await this.replaceEmbeds(object)
-    debug('putting', object[TYPE], object._link)
+    this.logger.debug('putting', pick(object, [TYPE, '_link']))
     return this.bucket.putJSON(object._link, object)
   }
 
@@ -123,7 +128,7 @@ export default class Objects {
     Embed.presignUrls({
       object,
       sign: ({ bucket, key, path }) => {
-        debug(`pre-signing url for ${object[TYPE]} property ${path}`)
+        this.logger.debug(`pre-signing url for ${object[TYPE]} property ${path}`)
         return this.s3Utils.createPresignedUrl({ bucket, key })
       }
     })

@@ -10,6 +10,7 @@ import Objects from './objects'
 import Env from './env'
 import * as constants from './constants'
 import { IDebug, ISession, IotClientResponse, IIdentity } from './types/index.d'
+import Logger from './logger'
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
 
@@ -25,7 +26,7 @@ const { HandshakeFailed, InvalidInput, NotFound } = Errors
 //       }
 //     })
 //   } catch (err) {
-//     this.debug(`Failed to delete clientId => permalink mapping in ${Presence}`, err)
+//     this.logger.debug(`Failed to delete clientId => permalink mapping in ${Presence}`, err)
 //   }
 // })
 
@@ -47,6 +48,7 @@ export default class Auth {
   private messages: Messages
   private iot: any
   private debug: IDebug
+  private logger: Logger
   constructor (opts: {
     env: Env,
     aws: any,
@@ -63,7 +65,7 @@ export default class Auth {
       'identities', 'objects', 'messages', 'iot'
     ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
 
-    this.debug = this.env.logger('auth')
+    this.logger = this.env.sublogger('auth')
   }
 
   public onAuthenticated = async (session:ISession): Promise<void> => {
@@ -72,7 +74,7 @@ export default class Auth {
       authenticated: true
     }
 
-    this.debug('saving session', prettify(session))
+    this.logger.debug('saving session', session)
 
     // allow multiple sessions for the same user?
     // await deleteSessionsByPermalink(permalink)
@@ -115,7 +117,7 @@ export default class Auth {
       throw new NotFound('no authenticated sessions found')
     }
 
-    this.debug('latest authenticated session:', prettify(latest))
+    this.logger.debug('latest authenticated session', latest)
     return latest
   }
 
@@ -171,7 +173,7 @@ export default class Auth {
         position: types.position
       }, response)
     } catch (err) {
-      this.debug('received invalid input', err.stack)
+      this.logger.error('received invalid input', err.stack)
       throw new InvalidInput(err.message)
     }
 
@@ -232,7 +234,7 @@ export default class Auth {
         identity: types.identity
       }, opts)
     } catch (err) {
-      this.debug('received invalid input', err.stack)
+      this.logger.error('received invalid input', { input: opts, stack: err.stack })
       throw new InvalidInput(err.message)
     }
 
@@ -244,11 +246,11 @@ export default class Auth {
 
     const maybeAddContact = this.identities.validateAndAdd(identity)
     const role = `arn:aws:iam::${accountId}:role/${this.resources.Role.IotClient}`
-    this.debug(`generating temp keys for client ${clientId}, role ${role}`)
+    this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
 
     // get the account id which will be used to assume a role
 
-    this.debug('assuming role', role)
+    this.logger.info('assuming role', role)
     const params = {
       RoleArn: role,
       RoleSessionName: randomString(16),
@@ -265,7 +267,7 @@ export default class Auth {
       Credentials
     } = await this.aws.sts.assumeRole(params).promise()
 
-    this.debug('assumed role', role)
+    this.logger.debug('assumed role', role)
     const resp:IotClientResponse = {
       iotEndpoint: await this.iot.getEndpoint(),
       iotParentTopic: this.env.IOT_PARENT_TOPIC,

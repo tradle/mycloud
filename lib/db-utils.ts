@@ -25,7 +25,8 @@ export {
 }
 
 function createDBUtils ({ aws, env }) {
-  const debug = env.logger('db-utils')
+  const logger = env.sublogger('db-utils')
+  const { debug } = logger
 
   let tableBuckets
   const getTableBuckets = () => {
@@ -223,7 +224,7 @@ function createDBUtils ({ aws, env }) {
     // ConsistentRead not supported on GlobalSecondaryIndexes
     if (CONSISTENT_READ_EVERYTHING && !params.IndexName && !params.ConsistentRead) {
       params.ConsistentRead = true
-      debug('forcing consistent read')
+      logger.info('forcing consistent read')
     }
   }
 

@@ -1,5 +1,5 @@
 const HELP_MENU_CUSTOMER = `**/help** - see this menu
-**/products** - see the list of products
+**/listproducts** - see the list of products
 **/forgetme** - exercise your right to be forgotten`
 
 const HELP_MENU_EMPLOYEE = `${HELP_MENU_CUSTOMER}

@@ -3,16 +3,17 @@ import { post, promiseNoop, tryUntilTimeRunsOut } from './utils'
 import { IDelivery, IDeliverBatchRequest } from "./types"
 import Env from './env'
 import { IDebug } from './types'
+import Logger from './logger'
 
 const FETCH_TIMEOUT = 10000
 
 export default class Delivery extends EventEmitter implements IDelivery {
   private env:Env
-  private debug:IDebug
+  private logger:Logger
   constructor(opts: { env:Env }) {
     super()
     this.env = opts.env
-    this.debug = this.env.logger('delivery-http')
+    this.logger = this.env.sublogger('delivery-http')
   }
 
   public ack = promiseNoop
@@ -24,7 +25,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       env: this.env,
       attemptTimeout: FETCH_TIMEOUT,
       onError: (err:Error) => {
-        this.debug('failed to delivery messages', err.stack)
+        this.logger.error('failed to delivery messages', { stack: err.stack })
       }
     })
   }

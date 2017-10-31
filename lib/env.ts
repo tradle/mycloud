@@ -1,13 +1,15 @@
 
 import './globals'
 import './console'
-import * as createLogger from 'debug'
 
-import * as yn from 'yn'
-import * as Networks from './networks'
+import yn = require('yn')
+import randomName = require('random-name')
+import Networks = require('./networks')
 import { parseArn } from './utils'
 import { IDebug, ILambdaExecutionContext } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
+import Logger, { Level } from './logger'
+import { name as packageName } from '../package.json'
 
 export default class Env {
   public TESTING:boolean
@@ -33,9 +35,13 @@ export default class Env {
   public IOT_PARENT_TOPIC:string
   public IOT_ENDPOINT:string
   public STACK_ID:string
+  public logger:Logger
   public debug:IDebug
   public event:any
   public context:ILambdaExecutionContext
+  public containerId:string
+  public requestCtx:any
+  public _X_AMZN_TRACE_ID:string
   public isVirgin:boolean
   public get containerAge () {
     return this.LAMBDA_BIRTH_DATE ? Date.now() - this.LAMBDA_BIRTH_DATE : null
@@ -57,7 +63,14 @@ export default class Env {
 
     this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
     this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME || '[unknown]'
-    this.debug = createLogger('env')
+    this.logger = new Logger({
+      namespace: this.TESTING ? packageName : '',
+      context: {},
+      level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
+      pretty : this.TESTING
+    })
+
+    this.debug = this.logger.debug
     this.set(props)
     if (this.TESTING) {
       this.debug('setting TEST resource map')
@@ -75,45 +88,40 @@ export default class Env {
   /**
    * Dynamically change logger namespace as "nick" is set lazily, e.g. from router
    */
-  public logger = (namespace:string):IDebug => {
-    return createLogger(namespace)
-    // let logger = createLogger(`λ:${this.nick}:${namespace}`)
-    // let currentNick = this.nick
-    // return (...args) => {
-    //   if (currentNick !== this.nick) {
-    //     currentNick = this.nick
-    //     logger = createLogger(`λ:${this.nick}:${namespace}`)
-    //   }
-
-    //   logger(...args)
-    // }
+  public sublogger = (namespace:string):Logger => {
+    // create sub-logger
+    return this.logger.logger({ namespace })
   }
-
-  // public setDebugNamespace = (nickname:string) => {
-  //   this.nick = nickname
-  //   this.debug = createLogger(`λ:${nickname}`)
-  // }
 
   // gets overridden when lambda is attached
   public getRemainingTime = ():number => {
     return Infinity
   }
 
-  public setFromLambdaEvent = (event, context) => {
-    if (this.event) {
+  public setFromLambdaEvent = ({
+    event,
+    context,
+    source
+  }) => {
+    if (this.containerId) {
       this.isVirgin = false
     } else {
-      this.debug('I am a fresh container!')
+      this.logger.info('I am a fresh container!')
       this.isVirgin = true
+      this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()}`
+    }
+
+    if (source === 'lambda' && event.requestContext) {
+      this.setRequestContext(event.requestContext)
     }
 
     context.callbackWaitsForEmptyEventLoop = false
 
     this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
-    if (this.TESTING) {
-      this.debug('setting TEST resource map')
-      this.set(require('../test/service-map'))
-    }
+    // if (this.TESTING) {
+    //   this.debug('setting TEST resource map')
+    //   this.set(require('../test/service-map'))
+    // }
 
     const {
       invokedFunctionArn,
@@ -130,6 +138,43 @@ export default class Env {
       context,
       getRemainingTime: getRemainingTimeInMillis
     })
+
+    const requestCtx = {
+      'correlation-id': context.awsRequestId,
+      'container-id': this.containerId
+    }
+
+    if (source) {
+      requestCtx['correlation-source'] = source
+    }
+
+    if (this._X_AMZN_TRACE_ID) {
+      requestCtx['trace-id'] = this._X_AMZN_TRACE_ID
+    }
+
+    if (this.IS_OFFLINE) {
+      requestCtx['function'] = this.FUNCTION_NAME
+    }
+
+    this.setRequestContext(requestCtx)
+  }
+
+  public setRequestContext(ctx) {
+    const prefixed = {}
+    for (let key in ctx) {
+      if (!key.startsWith('x-')) {
+        key = 'x-' + key
+      }
+
+      prefixed[key] = ctx[key]
+    }
+
+    this.requestCtx = prefixed
+    this.logger.setContext(this.requestCtx)
+  }
+
+  public getRequestContext() {
+    return { ...this.requestCtx }
   }
 
   private _recalc = (props:any):void => {

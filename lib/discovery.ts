@@ -3,6 +3,7 @@ import { promisify } from './utils'
 import * as fs from 'fs'
 import * as mkdirp from 'mkdirp'
 import { Lambda } from 'aws-sdk'
+import Logger from './logger'
 
 const pfs = promisify(fs)
 const pmkdirp = promisify(mkdirp)
@@ -12,7 +13,7 @@ export default class Discovery {
   private aws: any
   private lambdaUtils: any
   private iot: any
-  private debug: (...any) => void
+  private logger: Logger
   public get thisFunctionName () {
     return this.lambdaUtils.thisFunctionName
   }
@@ -20,7 +21,7 @@ export default class Discovery {
   constructor (opts: { env: any, aws: any, lambdaUtils: any, iot: any }) {
     const { env, aws, lambdaUtils, iot } = opts
     this.env = env
-    this.debug = env.logger('discovery')
+    this.logger = this.env.sublogger('discovery')
     this.aws = aws
     this.lambdaUtils = lambdaUtils
     this.iot = iot
@@ -36,14 +37,14 @@ export default class Discovery {
     if (thisFunctionName && thisFunctionName.endsWith('-setenvvars')) {
       env = await this.doDiscoverServices(StackName)
     } else {
-      this.debug('delegating service discovery')
+      this.logger.info('delegating service discovery')
       env = await this.lambdaUtils.invoke({
         // hackity hack
         name: this.getServiceDiscoveryFunctionName(),
         sync: true
       })
 
-      this.debug('received env', env)
+      this.logger.debug('received env', env)
     }
 
     return env
@@ -56,7 +57,7 @@ export default class Discovery {
    */
   private doDiscoverServices = async (StackName?: string) => {
     const { thisFunctionName } = this
-    this.debug(`performing service discovery in function ${thisFunctionName}`)
+    this.logger.debug(`performing service discovery in function ${thisFunctionName}`)
     const promiseIotEndpoint = this.iot.getEndpoint()
     let thisFunctionConfig
     if (!StackName) {
@@ -83,19 +84,19 @@ export default class Discovery {
     })
 
     if (willWrite) {
-      this.debug('setting environment variables for lambdas', JSON.stringify(env, null, 2))
+      this.logger.debug('setting environment variables for lambdas', JSON.stringify(env, null, 2))
 
       // theoretically, this could run
       // while the function does its actual work
       const functions = resources.filter(isLambda)
-      this.debug('will update functions', JSON.stringify(functions, null, 2))
-      await Promise.all(functions.map(({ PhysicalResourceId }) => {
+      this.logger.debug('will update functions', JSON.stringify(functions, null, 2))
+      await Promise.all(functions.map(async ({ PhysicalResourceId }) => {
         let current
         if (PhysicalResourceId === thisFunctionName) {
           current = thisFunctionConfig
         }
 
-        this.debug(`updating environment variables for: ${PhysicalResourceId}`)
+        this.logger.debug(`updating environment variables for: ${PhysicalResourceId}`)
         return this.lambdaUtils.updateEnvironment({
           functionName: PhysicalResourceId,
           update: env,
@@ -117,7 +118,7 @@ export default class Discovery {
       await pmkdirp(path.dirname(RESOURCES_ENV_PATH))
       await pfs.writeFile(RESOURCES_ENV_PATH, JSON.stringify(vars, null, 2))
     } catch (err) {
-      this.debug('failed to write environment')
+      this.logger.error('failed to write environment', { error: err.stack })
     }
   }
 }

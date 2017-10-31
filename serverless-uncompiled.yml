@@ -214,7 +214,7 @@ provider:
     # declare
     IOT_ENDPOINT: ''
     BLOCKCHAIN: ${{self:custom.blockchain}}
-    DEBUG: 'λ*,tradle:*,,@tradle*'
+    DEBUG: 'λ*,tradle:*,@tradle*'
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}

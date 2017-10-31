@@ -12,6 +12,7 @@ const { brand } = require('../lib/cli/serverless-yml').custom
 const brandEnv = brand.env || {}
 const debug = require('debug')('tradle:sls:test:env')
 const props = {
+  ...process.env,
   ...serviceMap,
   NODE_ENV: 'test',
   AWS_REGION: 'us-east-1',

@@ -7,7 +7,6 @@ const inherits = require('inherits')
 const { EventEmitter } = require('events')
 const coexec = require('co')
 const co = require('co').wrap
-const debug = require('debug')('@tradle/bot:tester')
 const { TYPE, TYPES, SIG, SEQ } = require('@tradle/constants')
 const { MESSAGE } = TYPES
 const buildResource = require('@tradle/build-resource')
@@ -81,6 +80,8 @@ function E2ETest (opts={}) {
   this.employeeManager = employeeManager
   this.products = products
   this._ready = this._init()
+  this.logger = tradle.env.sublogger('e2e')
+  this.debug = this.logger.debug
 }
 
 const proto = E2ETest.prototype
@@ -91,7 +92,7 @@ proto._init = co(function* () {
   extend(this.bot, { keys, identity })
   yield this.bot.addressBook.addContact(this.bot.identity)
   this.bot.ready()
-  debug('bot permalink', crypto.getPermalink(this.bot.identity))
+  this.debug('bot permalink', crypto.getPermalink(this.bot.identity))
 })
 
 proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
@@ -417,7 +418,7 @@ proto.destroyTable = co(function* (TableName) {
   while (true) {
     try {
       yield this.tradle.dbUtils.deleteTable({ TableName })
-      debug(`deleted table: ${TableName}`)
+      this.debug(`deleted table: ${TableName}`)
     } catch (err) {
       if (err.name === 'ResourceNotFoundException') {
         break
@@ -464,6 +465,9 @@ function User ({ tradle, identity, keys, profile, name, bot, onmessage }) {
 
   const self = this
   this.tradle = tradle
+  this.env = tradle.env
+  this.logger = this.env.sublogger('e2e:user')
+  this.debug = this.logger.debug
   this.name = name
   this.identity = identity
   this.permalink = crypto.getPermalink(this.identity)
@@ -485,7 +489,7 @@ function User ({ tradle, identity, keys, profile, name, bot, onmessage }) {
       envelope = envelope.object
     }
 
-    this._debug('received', types.join(' -> '))
+    this.debug('received', types.join(' -> '))
   })
 
   tradle.delivery.mqtt.on('message', ({ recipient, message }) => {
@@ -496,7 +500,7 @@ function User ({ tradle, identity, keys, profile, name, bot, onmessage }) {
 
   this._types = []
   recordTypes(this, this._types)
-  this._debug('permalink', this.permalink)
+  this.debug('permalink', this.permalink)
   this._ready = tradle.identities.addContact(this.identity)
 }
 
@@ -510,15 +514,10 @@ User.prototype.sign = function (object) {
   return this.bot.sign(object, this)
 }
 
-User.prototype._debug = function (...args) {
-  args.unshift(this.name)
-  return debug(...args)
-}
-
 User.prototype.send = co(function* ({ object, other }) {
   yield this._ready
 
-  this._debug('sending', object[TYPE])
+  this.debug('sending', object[TYPE])
   const message = yield this._createMessage({ object, other })
   yield this.tradle.user.onSentMessage({
     clientId: this.clientId,
@@ -557,7 +556,7 @@ User.prototype._createMessage = co(function* ({ object, other={} }) {
       return this.tradle.s3Utils.put({ key, bucket, value: body, contentType: mimetype })
     })
 
-    debug('uploaded embedded media')
+    this.debug('uploaded embedded media')
   }
 
   yield this.bot.save(object)

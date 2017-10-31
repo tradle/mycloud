@@ -1,10 +1,12 @@
 import Env from './env'
 import Tradle from './tradle'
+import Logger from './logger'
 
 const { utils, protocol } = require('@tradle/engine')
 const { promisify, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
 const adapters = require('./blockchain-adapter')
+import { IDebug } from './types'
 
 interface IBlockchainIdentifier {
   flavor: string,
@@ -32,7 +34,8 @@ export default class Blockchain {
   private networkName: string
   private minBalance: string
   private getTxAmount = () => this.network.minOutputAmount
-  private debug:(...any) => void
+  private debug:IDebug
+  private logger:Logger
   private tradle:Tradle
 
   private createAdapter = (opts:{ privateKey?: string }={}) => {
@@ -91,7 +94,7 @@ export default class Blockchain {
     this.addressesAPI = promisify(this.reader.blockchain.addresses)
     this.getInfo = promisify(this.reader.blockchain.info)
     this.network = this.reader.network
-    this.debug = env.logger('blockchain')
+    this.logger = env.sublogger('blockchain')
   }
 
   public toString = () => `${this.network.blockchain}:${this.network.name}`
@@ -130,9 +133,9 @@ export default class Blockchain {
     })
 
     if (txInfos.length) {
-      this.debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
+      this.logger.debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
     } else {
-      this.debug(`no transactions found for addresses: ${addresses.join(', ')}`)
+      this.logger.debug(`no transactions found for addresses: ${addresses.join(', ')}`)
     }
 
     return txInfos
@@ -145,7 +148,7 @@ export default class Blockchain {
   public seal = async ({ key, link, addresses }) => {
     const writer = this.getWriter(key)
     this.start()
-    this.debug(`sealing ${link}`)
+    this.logger.debug(`sealing ${link}`)
     return await writer.send({
       to: addresses.map(address => {
         return {

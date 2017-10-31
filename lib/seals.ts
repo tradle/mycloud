@@ -16,6 +16,7 @@ import { prettify } from './string-utils'
 import * as dbUtils from './db-utils'
 import * as types from './typeforce-types'
 import * as Errors from './errors'
+import Logger from './logger'
 const MAX_ERRORS_RECORDED = 10
 const WATCH_TYPE = {
   this: 't',
@@ -68,7 +69,7 @@ export default class Seals {
   private table: any
   private network: any
   private env:Env
-  private debug:(...any) => void
+  private logger:Logger
   constructor ({
     provider,
     blockchain,
@@ -84,7 +85,7 @@ export default class Seals {
     this.table = tables.Seals
     this.network = network
     this.env = env
-    this.debug = env.logger('seals')
+    this.logger = env.sublogger('seals')
     const scanner = (IndexName, defaultOpts={}) => async (opts={}) => {
       const query:AWS.DynamoDB.ScanInput = {
         TableName: this.table.name,
@@ -138,7 +139,7 @@ export default class Seals {
 
   private recordWriteSuccess = async ({ seal, txId }) => {
     typeforce(typeforce.String, txId)
-    this.debug(`sealed ${seal.link} with tx ${txId}`)
+    this.logger.info(`sealed ${seal.link} with tx ${txId}`)
 
     const update = {
       txId,
@@ -155,7 +156,7 @@ export default class Seals {
 
   private recordWriteError = async ({ seal, error })
     :Promise<AWS.DynamoDB.Types.UpdateItemOutput> => {
-    this.debug(`failed to seal ${seal.link}`, error.stack)
+    this.logger.error(`failed to seal ${seal.link}`, { error: error.stack })
     const errors = addError(seal.errors, error)
     const params = dbUtils.getUpdateParams({ errors })
     params.Key = getKey(seal)
@@ -184,7 +185,7 @@ export default class Seals {
     }
 
     const pending = await this.getUnsealed({ limit })
-    this.debug(`found ${pending.length} pending seals`)
+    this.logger.info(`found ${pending.length} pending seals`)
     let aborted
     const results = await seriesMap(pending, async (sealInfo: ISealInfo) => {
       if (aborted) return
@@ -196,7 +197,7 @@ export default class Seals {
         result = await this.blockchain.seal({ addresses, link, key })
       } catch (error) {
         if (/insufficient/i.test(error.message)) {
-          this.debug(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
+          this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
           aborted = true
         }
 
@@ -273,7 +274,7 @@ export default class Seals {
     }
 
     if (!Object.keys(updates).length) {
-      this.debug(`blockchain has nothing new for ${addresses.length} synced addresses`)
+      this.logger.info(`blockchain has nothing new for ${addresses.length} synced addresses`)
       return
     }
 

@@ -4,7 +4,7 @@ const notNull = obj => !!obj
 const SEPARATOR = ':'
 
 export default function createEvents ({ env, tables, dbUtils }) {
-  const debug = env.logger('events')
+  const logger = env.sublogger('events')
   const { Events, Seals, Inbox, Outbox } = tables
   const putEvents = async (events) => {
     if (!events.length) return
@@ -13,7 +13,7 @@ export default function createEvents ({ env, tables, dbUtils }) {
     try {
       await Events.batchPut(events)
     } catch (err) {
-      debug('failed to put events', JSON.stringify(events), err.stack)
+      logger.error('failed to put events', { events, error: err.stack })
       throw err
     }
   }
@@ -50,7 +50,7 @@ export default function createEvents ({ env, tables, dbUtils }) {
       event.id = getNextUniqueId(prevId, id)
     })
 
-    debug('putting events', events.map(({ topic, id }) => ({ id, topic })))
+    logger.debug('putting events', events.map(({ topic, id }) => ({ id, topic })))
     return events
   }
 
@@ -101,7 +101,7 @@ export default function createEvents ({ env, tables, dbUtils }) {
           data: item
         }
       default:
-        debug(`received unexpected stream event from table ${tableName}`)
+        logger.debug(`received unexpected stream event from table ${tableName}`, change)
         break
     }
   }

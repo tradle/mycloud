@@ -18,6 +18,7 @@ import {
 import { getLink } from './crypto'
 import { prettify } from './string-utils'
 import * as types from './typeforce-types'
+import Logger from './logger'
 import {
   TYPE,
   TYPES,
@@ -48,7 +49,7 @@ interface ISeqAndLink {
 
 export default class Messages {
   private env: Env
-  private debug: IDebug
+  private logger: Logger
   private identities: Identities
   private objects: Objects
   private tables: any
@@ -63,7 +64,7 @@ export default class Messages {
   }) {
     const { env, identities, objects, tables } = opts
     this.env = env
-    this.debug = env.logger('messages')
+    this.logger = env.sublogger('messages')
     this.identities = identities
     this.objects = objects
     this.tables = tables
@@ -77,7 +78,7 @@ export default class Messages {
       try {
         message = unserializeMessage(event)
       } catch (err) {
-        this.debug('unable to unserialize message', event, err)
+        this.logger.error('unable to unserialize message', { event, error: err.stack })
         throw err
       }
     } else {
@@ -239,7 +240,7 @@ export default class Messages {
     body: boolean
   }):Promise<ITradleMessage[]> => {
     const { author, gt, limit, body=true } = opts
-    this.debug(`looking up inbound messages from ${author}, > ${gt}`)
+    this.logger.debug(`looking up inbound messages from ${author}, > ${gt}`)
     const params = this.getMessagesFromQuery({ author, gt, limit })
     const messages = await this.find(this.inbox, params)
     return body ? Promise.all(messages.map(this.loadMessage)) : messages
@@ -267,7 +268,7 @@ export default class Messages {
 
   public getLastSeqAndLink = async (opts: { recipient: string }):Promise<ISeqAndLink|null> => {
     const { recipient } = opts
-    this.debug(`looking up last message to ${recipient}`)
+    this.logger.debug(`looking up last message to ${recipient}`)
 
     const query = this.getLastMessageToQuery({ recipient })
     query.ExpressionAttributeNames!['#link'] = '_link'
@@ -277,7 +278,7 @@ export default class Messages {
     let last
     try {
       last = await this.outbox.findOne(query)
-      this.debug('last message:', prettify(last))
+      this.logger.debug('last message', last)
       return {
         seq: last[SEQ],
         link: last._link
@@ -287,7 +288,7 @@ export default class Messages {
         return null
       }
 
-      this.debug('experienced error in getLastSeqAndLink', err.stack)
+      this.logger.error('experienced error in getLastSeqAndLink', { error: err.stack })
       throw err
     }
   }
@@ -306,9 +307,9 @@ export default class Messages {
   }):Promise<ITradleMessage[]> => {
     const { recipient, gt=0, afterMessage, limit, body=true } = opts
     if (afterMessage) {
-      this.debug(`looking up outbound messages for ${recipient}, after ${afterMessage}`)
+      this.logger.debug(`looking up outbound messages for ${recipient}, after ${afterMessage}`)
     } else {
-      this.debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
+      this.logger.debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
     }
 
     const params = this.getMessagesToQuery({ recipient, gt, afterMessage, limit })
@@ -401,8 +402,8 @@ export default class Messages {
       }
 
       if (prev.time >= time) {
-        const msg = `timestamp for message ${link} is <= the previous messages's (${prev._link})`
-        this.debug(msg)
+        const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${prev._link})`
+        this.logger.debug(msg)
         const dErr = new Errors.TimeTravel(msg)
         dErr.link = link
         // dErr.previous = {
@@ -457,13 +458,13 @@ export default class Messages {
 
     await Promise.all([
       addMessageAuthor
-        .then(() => this.debug('loaded message author')),
+        .then(() => this.logger.debug('loaded message author')),
       addPayloadAuthor
-        .then(() => this.debug('loaded payload author')),
+        .then(() => this.logger.debug('loaded payload author')),
     ])
 
     if (payload[PREVLINK]) {
-      this.debug(`validation of new versions of objects is temporarily disabled,
+      this.logger.warn(`validation of new versions of objects is temporarily disabled,
         until employees switch to command-based operation, rather than re-signing`)
 
       // try {
@@ -477,7 +478,7 @@ export default class Messages {
       // }
     }
 
-    this.debug('added metadata for message and wrapper')
+    this.logger.debug('added metadata for message and wrapper')
     if (this.env.NO_TIME_TRAVEL) {
       await this.assertTimestampIncreased(message)
     }

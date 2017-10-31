@@ -28,6 +28,7 @@ import Messages from './messages'
 import Objects from './objects'
 import Env from './env'
 import { ISession, ITradleMessage, ITradleObject, IIdentity, IPubKey, IDebug } from './types'
+import Logger from './logger'
 
 const { MESSAGE } = TYPES
 
@@ -40,7 +41,7 @@ export default class Provider {
   private buckets: any
   private auth: Auth
   private network: any
-  private debug:IDebug
+  private logger:Logger
   constructor (tradle: Tradle) {
     this.tradle = tradle
     this.objects = tradle.objects
@@ -50,7 +51,7 @@ export default class Provider {
     this.buckets = tradle.buckets
     this.auth = tradle.auth
     this.network = tradle.network
-    this.debug = tradle.env.logger('provider')
+    this.logger = tradle.env.sublogger('provider')
   }
 
   // TODO: how to invalidate cache on identity updates?
@@ -136,7 +137,11 @@ export default class Provider {
       message = await this.messages.preProcessInbound(message)
     } catch (err) {
       err.progress = message
-      this.debug('unexpected error in pre-processing inbound message:', err.stack)
+      this.logger.error('unexpected error in pre-processing inbound message:', {
+        message,
+        error: err.stack
+      })
+
       throw err
     }
 
@@ -149,11 +154,11 @@ export default class Provider {
   }
 
   public watchSealedPayload = async ({ seal, object }) => {
-    this.debug('message has seal identifier for payload', JSON.stringify(seal))
+    this.logger.debug('message has seal identifier for payload', seal)
 
     const { flavor, networkName } = this.network
     if (seal.blockchain === flavor && seal.network === networkName) {
-      this.debug('placing watch on seal')
+      this.logger.info('placing watch on seal', seal)
       this.tradle.seals.watch({
         link: seal.link,
         key: {
@@ -163,7 +168,7 @@ export default class Provider {
         }
       })
     } else {
-      this.debug('seal is on a different network, ignoring for now')
+      this.logger.warn('seal is on a different network, ignoring for now')
     }
   }
 
@@ -222,20 +227,24 @@ export default class Provider {
     try {
       session = await promiseSession
     } catch (err) {
-      this.debug(`mqtt session not found for ${recipient}`)
+      this.logger.debug(`mqtt session not found for ${recipient}`)
     }
 
     const message = await promiseCreate
     try {
       await this.attemptLiveDelivery({ recipient, message, session })
     } catch (err) {
+      const error = { error: err.stack }
       if (err instanceof Errors.NotFound) {
-        this.debug('live delivery canceled', err.stack)
+        this.logger.debug('live delivery canceled', error)
       } else if (err instanceof Errors.ClientUnreachable) {
-        this.debug('live delivery failed, client unreachable', err.stack)
+        this.logger.debug('live delivery failed, client unreachable', error)
       } else {
         // rethrow, as this is likely a developer error
-        this.debug('live delivery failed due, likely to developer error', err.stack)
+        this.logger.error('live delivery failed due, likely to developer error', {
+          message,
+          ...error
+        })
       }
     }
 
@@ -248,7 +257,7 @@ export default class Provider {
     session?: ISession
   }) => {
     const { message, recipient, session } = opts
-    this.debug(`sending message (time=${message.time}) to ${recipient} live`)
+    this.logger.debug(`sending message (time=${message.time}) to ${recipient} live`)
     await this.tradle.delivery.deliverBatch({
       clientId: session && session.clientId,
       recipient,
@@ -307,7 +316,7 @@ export default class Provider {
       extend(unsignedMessage, this.messages.getPropsDerivedFromLast(prev))
 
       seq = unsignedMessage[SEQ]
-      this.debug(`signing message ${seq} to ${recipient}`)
+      this.logger.debug(`signing message ${seq} to ${recipient}`)
 
       signedMessage = await this.signObject({ author, object: unsignedMessage })
       setVirtual(signedMessage, {
@@ -325,9 +334,9 @@ export default class Provider {
           throw err
         }
 
-        this.debug(`seq ${seq} was taken by another message`)
+        this.logger.info(`seq ${seq} was taken by another message`)
         prev = await this.messages.getLastSeqAndLink({ recipient })
-        this.debug(`retrying with seq ${seq}`)
+        this.logger.info(`retrying with seq ${seq}`)
       }
     }
 

@@ -111,6 +111,9 @@ export default class Tradle {
   get wrap () {
     return requireDefault('./wrap')
   }
+  get logger () {
+    return this.env.logger
+  }
   get debug () {
     return this.env.debug
   }
@@ -128,7 +131,7 @@ export default class Tradle {
           instance = instantiator()
         }
 
-        this.debug('defined', property)
+        this.debug(`defined ${property}`)
       }
 
       return instance
