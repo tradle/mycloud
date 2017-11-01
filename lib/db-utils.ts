@@ -282,7 +282,7 @@ function createDBUtils ({ aws, env }) {
     throw err
   }
 
-  function getModelMap ({ models, tableNames }) {
+  function getModelMap ({ types, models, tableNames }) {
     if (!tableNames) {
       tableNames = getTableBuckets().map(def => def.TableName)
     }
@@ -290,13 +290,16 @@ function createDBUtils ({ aws, env }) {
     tableNames.sort(alphabetical)
 
     const modelToBucket = {}
-    Object.keys(models)
-      .filter(id => vrUtils.isInstantiable(models[id]))
-      .forEach(id => {
-        const num = parseInt(sha256(id, 'hex').slice(0, 6), 16)
-        const idx = num % tableNames.length
-        modelToBucket[id] = tableNames[idx]
-      })
+    if (!types) {
+      types = Object.keys(models)
+        .filter(id => vrUtils.isInstantiable(models[id]))
+    }
+
+    types.forEach(id => {
+      const num = parseInt(sha256(id, 'hex').slice(0, 6), 16)
+      const idx = num % tableNames.length
+      modelToBucket[id] = tableNames[idx]
+    })
 
     return {
       tableNames,
