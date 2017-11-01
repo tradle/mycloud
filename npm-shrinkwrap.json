@@ -67,8 +67,8 @@
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
-      "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#40c2649ccad26cf0ebf83034b5747ef3d13ff93a",
+      "from": "tradle/bot-products#c9f4659",
+      "resolved": "git://github.com/tradle/bot-products.git#c9f46593be7d758e6f337fe77470e9be37e63c11",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -161,7 +161,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb#buckets",
-      "resolved": "git://github.com/tradle/dynamodb.git#3962f4a36c4daf1040ad8ec14f42435d1dac7749",
+      "resolved": "git://github.com/tradle/dynamodb.git#ebffd8552ea400ee543d800571d9a010fe41c71c",
       "dependencies": {
         "pify": {
           "version": "3.0.0",

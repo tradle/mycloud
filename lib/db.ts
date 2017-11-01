@@ -57,12 +57,25 @@ export = function createDB (opts: {
   const pubKeyModel = models['tradle.PubKey']
   const pubKeysDef = definitions.PubKeysTable.Properties
   db.setExclusive({
-    model: models['tradle.PubKey'],
+    model: pubKeyModel,
     table: createTable(pubKeysDef.TableName, {
       ...commonOpts,
+      exclusive: true,
       readOnly: true,
-      model: models['tradle.PubKey'],
+      model: pubKeyModel,
       tableDefinition: utils.toDynogelTableDefinition(pubKeysDef)
+    })
+  })
+
+  const friendModel = models['tradle.MyCloudFriend']
+  const friendsDef = definitions.FriendsTable.Properties
+  db.setExclusive({
+    model: friendModel,
+    table: createTable(friendsDef.TableName, {
+      ...commonOpts,
+      exclusive: true,
+      model: friendModel,
+      tableDefinition: utils.toDynogelTableDefinition(friendsDef)
     })
   })
 

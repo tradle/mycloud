@@ -27,7 +27,12 @@
     }
   },
   "required": [
+    "identity",
+    "_identityPermalink",
     "name",
     "url"
-  ]
+  ],
+  "primaryKeys": {
+    "hashKey": "_identityPermalink"
+  }
 }

@@ -59,14 +59,17 @@ export default class Friends {
 
     let existing
     try {
-      existing = await this.get({ permalink: identity._permalink })
+      existing = await this.getByIdentityPermalink(identity._permalink)
     } catch (err) {
       existing = {}
     }
 
     const object = buildResource({ models, model })
-      .set(pick(existing, Object.keys(model.properties)))
-      .set(props)
+      .set({
+        ...pick(existing, Object.keys(model.properties)),
+        ...props,
+        _identityPermalink: identity._permalink
+      })
       .toJSON()
 
     if (Object.keys(existing).length) {
@@ -80,7 +83,7 @@ export default class Friends {
       throw new Error('refusing to add self as friend')
     }
 
-    const promiseAddContact = this.identities.addContact(identity)
+    const promiseAddContact = this.identities.validateAndAdd(identity)
     const signed = await this.provider.signObject({ object })
     const permalink = buildResource.permalink(identity)
     buildResource.setVirtual(signed, {
@@ -88,10 +91,9 @@ export default class Friends {
       _identityPermalink: permalink
     })
 
-    const saveFriend = this.db.update(signed)
+    await promiseAddContact
     debug(`saving friend: ${name}`)
-
-    await Promise.all([promiseAddContact, saveFriend])
+    await this.db.update(signed)
 
     // debug(`sending self introduction to friend "${name}"`)
     // await this.provider.sendMessage({
@@ -109,15 +111,10 @@ export default class Friends {
     return signed
   }
 
-  public get = (opts: { permalink: string }) => {
-    const { permalink } = opts
-    return this.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: FRIEND_TYPE,
-          _identityPermalink: permalink
-        }
-      }
+  public getByIdentityPermalink = (permalink:string) => {
+    return this.db.get({
+      [TYPE]: FRIEND_TYPE,
+      _identityPermalink: permalink
     })
   };
 
@@ -128,10 +125,6 @@ export default class Friends {
         EQ: {
           [TYPE]: FRIEND_TYPE
         }
-      },
-      orderBy: {
-        property: "_time",
-        desc: true
       }
     })
   }

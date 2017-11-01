@@ -134,7 +134,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     }
 
     try {
-      opts.friend = await this.friends.get({ permalink: recipient })
+      opts.friend = await this.friends.getByIdentityPermalink(recipient)
       return this.http
     } catch (err) {
       this.logger.debug(`cannot determine transport to use for recipient ${recipient}`)

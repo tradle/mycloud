@@ -133,6 +133,7 @@ custom:
     events: ${{self:custom.prefix}}events
     # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
     users: ${{self:custom.prefix}}users
+    friends: ${{self:custom.prefix}}friends
 
   # auto-scaled tables that serve as buckets for multiple models each
   defaultCapacity: &defaultCapacity
@@ -1207,6 +1208,23 @@ resources:
             KeyType: HASH
           - AttributeName: clientId
             KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+    FriendsTable:
+      Type: AWS::DynamoDB::Table
+      Description: store friends (other providers)
+      Properties:
+        TableName: ${{self:custom.tables.friends}}
+        AttributeDefinitions:
+          # - AttributeName: url
+          #   AttributeType: S
+          - AttributeName: _identityPermalink
+            AttributeType: S
+        KeySchema:
+          - AttributeName: _identityPermalink
+            KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
