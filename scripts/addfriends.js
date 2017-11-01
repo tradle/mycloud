@@ -4,6 +4,11 @@ const path = require('path')
 const promisify = require('pify')
 const proc = promisify(require('child_process'))
 const pathToFriendsFile = process.argv[2] || path.join(__dirname, '../conf/friends.js')
+const { loadEnv, loadCredentials } = require('../lib/cli/utils')
+
+loadEnv()
+loadCredentials()
+
 const yml = require('../lib/cli/serverless-yml')
 const {
   stage=yml.custom.stage,
