@@ -1,6 +1,5 @@
 // inspired by
 // http://theburningmonk.com/2017/09/capture-and-forward-correlation-ids-through-different-lambda-event-sources/
-const debug = require('debug')
 
 export const Level = {
   ERROR: 0,
@@ -10,6 +9,19 @@ export const Level = {
   DEBUG: 4,
   SILLY: 5
 }
+
+// const getLevelName = level => {
+//   for (let name in Level) {
+//     if (Level[name] === level) return name
+//   }
+
+//   throw new Error(`invalid level: ${level}`)
+// }
+
+const FORMATS = [
+  'json',
+  'text'
+]
 
 const METHODS = {
   error: 'error',
@@ -28,11 +40,17 @@ const COLORS = {
   SILLY: 'pink'
 }
 
+type Console = {
+  log: Function
+  [x: string]: any
+}
+
 type LoggerConf = {
   namespace?:string
   context?:any
   level?:number
-  pretty?:boolean
+  console?:Console
+  outputFormat?:string
 }
 
 export default class Logger {
@@ -40,11 +58,18 @@ export default class Logger {
   public context:any
   public level:number
   public subloggers:Logger[]
-  private console:any
-  private pretty:pretty
+  private console:Console
+  private outputFormat:string
   private conf:LoggerConf
   constructor (conf: LoggerConf) {
-    const { namespace='', context={}, level=Level.DEBUG, pretty } = conf
+    const {
+      namespace='',
+      context={},
+      level=Level.DEBUG,
+      console=global.console,
+      outputFormat='json'
+    } = conf
+
     this.conf = conf
     this.namespace = namespace
     this.context = context
@@ -53,32 +78,42 @@ export default class Logger {
       throw new Error(`expected level >= 0 && level <=3, got ${level}`)
     }
 
-    this.pretty = pretty
-    this.console = pretty
-      ? { log: debug(this.namespace) }
-      : console
+    this.console = console
+    this.outputFormat = outputFormat
+    if (!FORMATS.includes(outputFormat)) {
+      throw new Error(`expected outputFormat to be one of: ${FORMATS.join(', ')}`)
+    }
 
     this.subloggers = []
   }
 
   private log (level:string, msg:string, params?:any) {
-    if (level < Level[level]) {
+    if (this.level < Level[level]) {
       // ignore
       return
     }
 
-    const logMsg = {
-      msg,
-      time: new Date().toISOString(),
-      level,
-      ...this.context
-    }
-
-    if (params) logMsg.params = params
-
+    const output = this.formatOutput(level, msg, params)
     const { console } = this
     const fn = console[METHODS[level]] || console.log
-    fn.call(console, JSON.stringify(logMsg))
+    fn.call(console, output)
+  }
+
+  private formatOutput = (level, msg, params) => {
+    if (this.outputFormat === 'json') {
+      const logMsg = {
+        msg,
+        time: new Date().toISOString(),
+        level,
+        ...this.context
+      }
+
+      if (params) logMsg.params = params
+
+      return JSON.stringify(logMsg)
+    }
+
+    return `${level}: ${msg}`
   }
 
   public setContext = (value:any) => {

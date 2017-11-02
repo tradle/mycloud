@@ -3,6 +3,7 @@ import './globals'
 import './console'
 
 import yn = require('yn')
+import debug = require('debug')
 import randomName = require('random-name')
 import Networks = require('./networks')
 import { parseArn } from './utils'
@@ -63,11 +64,16 @@ export default class Env {
 
     this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
     this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME || '[unknown]'
+
+    const namespace = this.TESTING ? packageName : ''
     this.logger = new Logger({
-      namespace: this.TESTING ? packageName : '',
+      namespace,
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
-      pretty : this.TESTING
+      console: this.TESTING
+        ? { log: debug(namespace) }
+        : global.console,
+      outputFormat: this.TESTING ? 'text': 'json'
     })
 
     this.debug = this.logger.debug
