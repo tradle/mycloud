@@ -6,11 +6,12 @@ loadDockerEnv(path.resolve(__dirname, '../docker/.env'))
 
 const { loadEnv, loadCredentials } = require('../lib/cli/utils')
 
-loadEnv()
 loadCredentials()
 
 if (process.env.NODE_ENV === 'test') {
   require('../test/env').install()
+} else {
+  loadEnv()
 }
 
 const express = require('express')
