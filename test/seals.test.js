@@ -3,14 +3,18 @@ require('./env').install()
 // const AWS = require('aws-sdk')
 const test = require('tape')
 const sinon = require('sinon')
+const { TYPE } = require('@tradle/constants')
 const utils = require('../lib/utils')
+const crypto = require('../lib/crypto')
 const co = utils.loudCo
-const { wait } = utils
+const { wait, deepClone } = utils
 const aliceKeys = require('./fixtures/alice/keys')
 const adapters = require('../lib/blockchain-adapter')
 const { recreateTable } = require('./utils')
 const SealsTableLogicalId = 'SealsTable'
 const { Tradle } = require('../')
+const sealedObj = deepClone(require('./fixtures/bob/identity'))
+crypto.addLinks(sealedObj)
 
 const blockchainOpts = {
   flavor: 'ethereum',
@@ -20,7 +24,8 @@ const blockchainOpts = {
 test('queue seal', co(function* (t) {
   const { flavor, networkName } = blockchainOpts
   const table = yield recreateTable(SealsTableLogicalId)
-  const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
+  const link = sealedObj._link
+  const permalink = sealedObj._permalink
   const txId = 'sometxid'
   // const blockchain = createBlockchainAPI({ flavor, networkName })
   const tradle = new Tradle()
@@ -52,22 +57,31 @@ test('queue seal', co(function* (t) {
       ])
     })
 
-  // let read
-  // let wrote
-  // const onread = function (seal) {
-  //   read = true
-  //   t.equal(seal.address, address)
-  //   t.equal(seal.txId, txId)
-  // }
 
-  // const onwrote = function (seal) {
-  //   wrote = true
-  //   t.equal(seal.address, address)
-  //   t.equal(seal.txId, txId)
-  // }
+  const stubObjectsGet = sinon.stub(tradle.objects, 'get')
+    .callsFake(co(function* (_link) {
+      if (_link === link) {
+        return sealedObj
+      }
 
-  // const seals = createSealsAPI({ blockchain, table /*, onread, onwrote*/ })
-  yield seals.create({ key, link })
+      throw new Error('NotFound')
+    }))
+
+  const stubObjectsPut = sinon.stub(tradle.objects, 'put')
+    .callsFake(co(function* (object) {
+      t.equal(object._seal.link, sealedObj._link)
+      t.equal(object._seal.txId, txId)
+    }))
+
+  const stubDBUpdate = sinon.stub(tradle.db, 'update')
+    .callsFake(co(function* (props) {
+      t.equal(props[TYPE], sealedObj[TYPE])
+      t.equal(props._permalink, sealedObj._permalink)
+      t.equal(props._seal.link, sealedObj._link)
+      t.equal(props._seal.txId, txId)
+    }))
+
+  yield seals.create({ key, link, permalink })
   let unconfirmed = yield seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
 
@@ -87,10 +101,13 @@ test('queue seal', co(function* (t) {
   t.equal(seal.address, address)
   t.equal(seal.link, link)
 
-  // t.equal(read, true)
-  // t.equal(wrote, true)
+  t.equal(stubObjectsGet.callCount, 1)
+  t.equal(stubObjectsPut.callCount, 1)
+  t.equal(stubDBUpdate.callCount, 1)
 
   stubSeal.restore()
   stubGetTxs.restore()
+  stubObjectsGet.restore()
+  stubDBUpdate.restore()
   t.end()
 }))

@@ -25,7 +25,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       env: this.env,
       attemptTimeout: FETCH_TIMEOUT,
       onError: (err:Error) => {
-        this.logger.error('failed to delivery messages', { stack: err.stack })
+        this.logger.error('failed to deliver messages', { stack: err.stack })
       }
     })
   }

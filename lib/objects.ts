@@ -19,7 +19,27 @@ import Tradle from './tradle'
 import Logger from './logger'
 
 export default class Objects {
-  public static addMetadata = (object:ITradleObject):ITradleObject => {
+  private tradle: Tradle
+  private env: Env
+  private logger: Logger
+  private region: string
+  private buckets: any
+  private bucket: any
+  private s3Utils: any
+  private fileUploadBucketName: string
+  constructor (tradle: Tradle) {
+    const { env, buckets, s3Utils } = tradle
+    this.tradle = tradle
+    this.env = env
+    this.region = env.REGION
+    this.buckets = buckets
+    this.bucket = this.buckets.Objects
+    this.s3Utils = s3Utils
+    this.fileUploadBucketName = buckets.FileUpload.name
+    this.logger = env.sublogger('objects')
+  }
+
+  public addMetadata = (object:ITradleObject):ITradleObject => {
     typeforce(types.signedObject, object)
 
     const type = object[TYPE]
@@ -42,28 +62,6 @@ export default class Objects {
     addLinks(object)
     return object
   }
-
-  private tradle: Tradle
-  private env: Env
-  private logger: Logger
-  private region: string
-  private buckets: any
-  private bucket: any
-  private s3Utils: any
-  private fileUploadBucketName: string
-  constructor (tradle: Tradle) {
-    const { env, buckets, s3Utils } = tradle
-    this.tradle = tradle
-    this.env = env
-    this.region = env.REGION
-    this.buckets = buckets
-    this.bucket = this.buckets.Objects
-    this.s3Utils = s3Utils
-    this.fileUploadBucketName = buckets.FileUpload.name
-    this.logger = env.sublogger('objects')
-  }
-
-  public addMetadata = object => Objects.addMetadata(object)
 
   public replaceEmbeds = async (object: ITradleObject) => {
     const replacements = Embed.replaceDataUrls({

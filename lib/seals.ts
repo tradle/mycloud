@@ -1,5 +1,8 @@
-import { utils, protocol } from '@tradle/engine'
 import AWS = require('aws-sdk')
+import { DB } from '@tradle/dynamodb'
+import { utils, protocol } from '@tradle/engine'
+import buildResource = require('@tradle/build-resource')
+import { TYPE } from '@tradle/constants'
 import Blockchain from './blockchain'
 import Provider from './provider'
 import Env from './env'
@@ -10,21 +13,73 @@ import {
   uuid,
   isPromise,
   seriesMap,
-  bindAll
+  bindAll,
+  deepEqual,
+  pick
 } from './utils'
 import { prettify } from './string-utils'
 import * as dbUtils from './db-utils'
 import * as types from './typeforce-types'
 import * as Errors from './errors'
 import Logger from './logger'
+import Tradle from './tradle'
+import Objects from './objects'
+import SealModel = require('./seal-model')
+import { IECMiniPubKey } from './types'
+
+const SEAL_MODEL_ID = 'tradle.Seal'
 const MAX_ERRORS_RECORDED = 10
 const WATCH_TYPE = {
   this: 't',
   next: 'n'
 }
 
+type SealRecordOpts = {
+  key: IECMiniPubKey
+  link: string
+  permalink?: string
+  watchType?: string
+  write?: boolean
+}
+
 const YES = 'y'
 const notNull = val => !!val
+
+type ErrorSummary = {
+  stack: string
+  time: number
+}
+
+type WatchOpts = {
+  key: IECMiniPubKey
+  link: string
+  write?: boolean
+}
+
+type Seal = {
+  id: string
+  link: string
+  permalink?: string
+  blockchain: string
+  network: string
+  address: string
+  pubKey: Buffer
+  watchType: string
+  time: number
+  confirmations: number
+  write?: boolean
+  errors?: ErrorSummary[],
+  // unconfirmed, unsealed are index hashKeys,
+  // this makes for a better partition key than YES
+  unconfirmed?: string
+  unsealed?: string
+  txId?: string
+}
+
+type SealMap = {
+  [key:string]: Seal
+}
+
 
 interface ISealInfo {
   address: string
@@ -60,23 +115,28 @@ interface IErrorRecord {
 }
 
 export default class Seals {
-  public getUnconfirmed: (opts?: ILimitOpts) => Promise<any>
+  public getUnconfirmed: (opts?: ILimitOpts) => Promise<Seal[]>
   public syncUnconfirmed: (opts?: ILimitOpts) => Promise<any>
-  public getUnsealed: (opts?: ILimitOpts) => Promise<any>
+  public getUnsealed: (opts?: ILimitOpts) => Promise<Seal[]>
   public sealPending: (opts?:any) => Promise<any>
   private provider: Provider
   private blockchain: Blockchain
+  private objects: Objects
   private table: any
   private network: any
+  private db: DB
+  private model: any
   private env:Env
   private logger:Logger
   constructor ({
     provider,
     blockchain,
-    tables,
     network,
+    tables,
+    db,
+    objects,
     env
-  }) {
+  }:Tradle) {
     typeforce(types.blockchain, blockchain)
     bindAll(this)
 
@@ -84,6 +144,8 @@ export default class Seals {
     this.blockchain = blockchain
     this.table = tables.Seals
     this.network = network
+    this.objects = objects
+    this.db = db
     this.env = env
     this.logger = env.sublogger('seals')
     const scanner = (IndexName, defaultOpts={}) => async (opts={}) => {
@@ -109,17 +171,16 @@ export default class Seals {
     this.syncUnconfirmed = blockchain.wrapOperation(this._syncUnconfirmed)
   }
 
-  public watch = ({ key, link }) => {
-    return this.createSealRecord({ key, link, write: false })
+  public watch = (opts:WatchOpts) => {
+    return this.createSealRecord({ ...opts, write: false })
   }
 
-  public watchNextVersion = ({ key, link }) => {
-    const type = WATCH_TYPE.next
-    return this.createSealRecord({ key, link, type, write: false })
+  public watchNextVersion = (opts: WatchOpts) => {
+    return this.createSealRecord({ ...opts, watchType: WATCH_TYPE.next, write: false })
   }
 
-  public create = async ({ key, link }) => {
-    return this.createSealRecord({ key, link, write: true })
+  public create = async (opts:SealRecordOpts) => {
+    return this.createSealRecord({ ...opts, write: true })
   }
 
   public get = async (seal: { link: string }) => {
@@ -217,7 +278,7 @@ export default class Seals {
     return results.filter(notNull)
   }
 
-  private createSealRecord = async (opts):Promise<void> => {
+  private createSealRecord = async (opts:SealRecordOpts):Promise<void> => {
     const seal = this.getNewSealParams(opts)
     try {
       await this.table.put({
@@ -248,9 +309,12 @@ export default class Seals {
     const txInfos:ITxInfo[] = await blockchain.getTxsForAddresses(addresses)
     if (!txInfos.length) return
 
-    const addrToSeal = {}
+    const addrToSeal:SealMap = {}
+    const linkToSeal:SealMap = {}
     addresses.forEach((address, i) => {
-      addrToSeal[address] = unconfirmed[i]
+      const seal = unconfirmed[i]
+      addrToSeal[address] = seal
+      linkToSeal[seal.link] = seal
     })
 
     const updates:ISealUpdates = {}
@@ -278,13 +342,53 @@ export default class Seals {
       return
     }
 
-    await Promise.all(Object.keys(updates).map(async (address) => {
+    const updateSeals = Promise.all(Object.keys(updates).map(async (address) => {
       const update = updates[address]
       const seal = addrToSeal[address]
       const params = dbUtils.getUpdateParams(update)
       params.Key = getKey(seal)
       await table.update(params)
     }))
+
+    const links = Object.keys(linkToSeal)
+    const updateObjectsAndDB = Promise.all(links.map(async (link) => {
+      const seal = linkToSeal[link]
+      let object
+      try {
+        object = await this.objects.get(link)
+      } catch (err) {
+        this.logger.error(`object not found, skipping objects+db update with confirmed seal`, {
+          link,
+          seal: seal.id,
+          error: err.stack
+        })
+
+        return
+      }
+
+      const sealResource = pick(seal, Object.keys(SealModel.properties))
+      sealResource[TYPE] = SEAL_MODEL_ID
+      if (deepEqual(object._seal, sealResource)) return
+
+      buildResource.setVirtual(object, {
+        _seal: sealResource
+      })
+
+      await Promise.all([
+        this.db.update({
+          [TYPE]: object[TYPE],
+          _permalink: object._permalink,
+          _seal: sealResource,
+          _virtual: object._virtual
+        }),
+        this.objects.put(object)
+      ])
+    }))
+
+    await Promise.all([
+      updateSeals,
+      updateObjectsAndDB
+    ])
 
     // TODO: use dynamodb-wrapper
     // make this more robust
@@ -293,11 +397,11 @@ export default class Seals {
   private getNewSealParams = ({
     key,
     link,
+    permalink,
     watchType=WATCH_TYPE.this,
-    write,
-    blockchainIdentifier
-  }) => {
-    const { blockchain } = this
+    write
+  }:SealRecordOpts) => {
+    const { blockchain, network } = this
     // the next version's previous is the current version
     // the tx for next version will have a predictable seal based on the current version's link
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
@@ -311,9 +415,10 @@ export default class Seals {
 
     const address = blockchain.pubKeyToAddress(pubKey.pub)
     const time = timestamp()
-    const params = {
+    const params:Seal = {
       id: uuid(),
-      blockchain: blockchainIdentifier || blockchain.toString(),
+      blockchain: network.flavor,
+      network: network.networkName,
       link,
       address,
       pubKey,
@@ -325,6 +430,10 @@ export default class Seals {
       // unconfirmed is an index hashKey,
       // this makes for a better partition key than YES
       unconfirmed: YES + time
+    }
+
+    if (permalink) {
+      params.permalink = permalink
     }
 
     if (write) {

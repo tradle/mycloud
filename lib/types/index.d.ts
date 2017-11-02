@@ -53,6 +53,7 @@ export interface ITradleObject {
 export interface IECMiniPubKey {
   pub: Buffer
   curve: string
+  [x: string]: any
 }
 
 export interface ITradleMessage extends ITradleObject {

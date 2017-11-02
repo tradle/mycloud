@@ -1,3 +1,4 @@
+import { DB } from '@tradle/dynamodb'
 import Env from './env'
 import { toCamelCase, splitCamelCase } from './string-utils'
 // import { Identities, Auth, Delivery, Discovery } from './types'
@@ -19,10 +20,12 @@ export default class Tradle {
   public aws: any
   public router: any
   public buckets: any
+  public tables: any
   public secrets: any
   public objects: Objects
   public identities: Identities
   public messages: Messages
+  public db: DB
   public auth: Auth
   public delivery: Delivery
   public discovery: Discovery
