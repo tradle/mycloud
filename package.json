@@ -26,7 +26,7 @@
     "nock": "^9.0.19",
     "node-env-file": "^0.1.8",
     "serverless": "github:mvayngrib/serverless",
-    "serverless-apigw-binary": "^0.3.5",
+    "serverless-apigw-binary": "github:mvayngrib/serverless-apigw-binary",
     "serverless-dynamodb-autoscaling": "^0.6.2",
     "serverless-offline": "github:tradle/serverless-offline",
     "serverless-plugin-aws-alerts": "^1.2.4",
