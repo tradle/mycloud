@@ -150,6 +150,7 @@ custom:
     count: 4
     index:
       - _author
+      - _t
     <<: *defaultCapacity
 
   capacities:

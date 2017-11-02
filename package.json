@@ -8,6 +8,7 @@
   "license": "MIT",
   "devDependencies": {
     "@tradle/aws-client": "github:tradle/aws-client",
+    "@tradle/dynamodb": "github:tradle/dynamodb#buckets",
     "@types/aws-sdk": "^2.7.0",
     "@types/node": "^8.0.30",
     "aws-sdk": "^2.60.0",
