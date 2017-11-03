@@ -4,7 +4,7 @@ const test = require('tape')
 const Cache = require('lru-cache')
 const sinon = require('sinon')
 const { getFavicon } = require('../lib/image-utils')
-const { randomString } = require('../lib/crypto')
+const { randomString, sha256 } = require('../lib/crypto')
 const { co, loudCo, cachify, clone, batchStringsBySize } = require('../lib/utils')
 const wrap = require('../lib/wrap')
 const { tradle } = require('../')
@@ -209,6 +209,12 @@ test('getCacheable', loudCo(function* (t) {
   t.end()
 }))
 
+test('content-addressed-storage', loudCo(function* (t) {
+  const { contentAddressedStorage } = tradle
+  const key = yield contentAddressedStorage.put('a')
+  t.equal(key, sha256('a', 'hex'))
+  t.end()
+}))
 
 // test.only('favicon', loudCo(function* (t) {
 //   const favicon = yield getFavicon('bankofamerica.com')

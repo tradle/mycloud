@@ -295,6 +295,10 @@ provider:
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
+            - Ref: ContentAddressedBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
             - Ref: ObjectsBucket
         - Fn::Join:
           - ""
@@ -323,6 +327,11 @@ provider:
           - ""
           - - "arn:aws:s3:::"
             - Ref: PublicConfBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ContentAddressedBucket
             - "/*"
         - Fn::Join:
           - ""
@@ -915,6 +924,11 @@ resources:
       DeletionPolicy: Retain
       # Properties:
       #   AccessControl: PublicRead
+
+    ContentAddressedBucket:
+      Type: "AWS::S3::Bucket"
+      Description: content-addressed storage
+      DeletionPolicy: Retain
 
     # stores media uploaded by users
     FileUploadBucket:

@@ -62,6 +62,13 @@ export default class Tradle {
     this.define('buckets', './buckets', this.construct)
     this.define('db', './db', initialize => initialize(this))
     this.define('s3Utils', './s3-utils', this.construct)
+    this.define('contentAddressedStorage', './content-addressed-storage', ctor => {
+      return new ctor({
+        bucket: this.buckets.ContentAddressed,
+        aws: this.aws
+      })
+    })
+
     this.define('lambdaUtils', './lambda-utils', this.construct)
     this.define('iot', './iot-utils', initialize => initialize(this))
 
