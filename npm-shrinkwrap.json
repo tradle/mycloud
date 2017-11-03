@@ -259,7 +259,7 @@
     "@tradle/plugin-customize-message": {
       "version": "1.0.0",
       "from": "tradle/plugin-customize-message",
-      "resolved": "git://github.com/tradle/plugin-customize-message.git#3d638ffa44cda23f1664b559707ed6ab768f3305"
+      "resolved": "git://github.com/tradle/plugin-customize-message.git#57502c308136c9f4183ac9c93f85731a7869f0c0"
     },
     "@tradle/protocol": {
       "version": "3.0.0",

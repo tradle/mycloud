@@ -72,24 +72,33 @@ bot.hook('message', co(function* ({ user, type }) {
   }
 }), true) // prepend
 
+const cacheableConf = bot.resources.buckets.PublicConf.getCacheable({
+  key: 'bot-conf.json',
+  ttl: 60000,
+  parse: JSON.parse.bind(JSON)
+})
+
 const getConf = co(function* () {
   try {
-    return yield bot.resources.buckets.PublicConf.getJSON('bot-conf.json')
+    return cacheableConf.get()
   } catch (err) {
     return require('./default-conf')
   }
 })
 
+const getPluginConf = co(function* (pluginName) {
+  const conf = yield getConf()
+  const { plugins={} } = conf
+  return plugins[pluginName]
+})
+
 const customize = co(function* () {
   const { plugins={} } = yield getConf()
-  const msgCustomizerConf = plugins['customize-message']
-  if (msgCustomizerConf) {
-    const customizeMessage = require('@tradle/plugin-customize-message')
-    productsAPI.plugins.use(customizeMessage({
-      conf: msgCustomizerConf,
-      logger: bot.logger
-    }))
-  }
+  const customizeMessage = require('@tradle/plugin-customize-message')
+  productsAPI.plugins.use(customizeMessage({
+    getConf: () => getPluginConf('customize-message'),
+    logger: bot.logger
+  }))
 
   if (products.includes(DEPLOYMENT)) {
     // productsAPI.plugins.clear('onFormsCollected')
