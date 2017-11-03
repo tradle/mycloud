@@ -72,16 +72,36 @@ bot.hook('message', co(function* ({ user, type }) {
   }
 }), true) // prepend
 
-if (products.includes(DEPLOYMENT)) {
-  // productsAPI.plugins.clear('onFormsCollected')
-  productsAPI.plugins.use(require('./deployment-handlers'))
-}
+const getConf = co(function* () {
+  try {
+    return yield bot.resources.buckets.PublicConf.getJSON('bot-conf.json')
+  } catch (err) {
+    return require('./default-conf')
+  }
+})
 
-const biz = require('@tradle/biz-plugins')
-// unshift
-biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
+const customize = co(function* () {
+  const { plugins={} } = yield getConf()
+  const msgCustomizerConf = plugins['customize-message']
+  if (msgCustomizerConf) {
+    const customizeMessage = require('@tradle/plugin-customize-message')
+    productsAPI.plugins.use(customizeMessage({
+      conf: msgCustomizerConf,
+      logger: bot.logger
+    }))
+  }
 
-bot.ready()
+  if (products.includes(DEPLOYMENT)) {
+    // productsAPI.plugins.clear('onFormsCollected')
+    productsAPI.plugins.use(require('./deployment-handlers'))
+  }
+
+  const biz = require('@tradle/biz-plugins')
+  // unshift
+  biz.forEach(plugin => productsAPI.plugins.use(plugin(), true))
+})
+
+customize().then(() => bot.ready())
 
 // if (NODE_ENV === 'test') {
 //   const user = require('../lib/bot/tester')({ bot })
