@@ -2,9 +2,12 @@ require('./env').install()
 
 const test = require('tape')
 const Cache = require('lru-cache')
+const sinon = require('sinon')
 const { getFavicon } = require('../lib/image-utils')
+const { randomString } = require('../lib/crypto')
 const { co, loudCo, cachify, clone, batchStringsBySize } = require('../lib/utils')
 const wrap = require('../lib/wrap')
+const { tradle } = require('../')
 
 test('cachify', loudCo(function* (t) {
   const data = {
@@ -160,6 +163,52 @@ test('batch by size', function (t) {
   t.same(batchStringsBySize(input, MAX), expected)
   t.end()
 })
+
+test('getCacheable', loudCo(function* (t) {
+  const { aws, s3Utils } = tradle
+  const { s3 } = aws
+  const bucketName = `test-${Date.now()}-${randomString(10)}`
+  yield s3.createBucket({ Bucket: bucketName }).promise()
+
+  const key = 'a'
+  const bucket = s3Utils.getBucket(bucketName)
+  const cacheable = bucket.getCacheable({
+    key,
+    parse: JSON.parse.bind(JSON),
+    ttl: 100
+  })
+
+  try {
+    yield cacheable.get(key)
+    t.fail('expected error')
+  } catch (err) {
+    t.equal(err.name, 'NotFound')
+  }
+
+  let value = { a: 1 }
+  yield bucket.putJSON(key, value)
+
+  const getObjectSpy = sinon.spy(s3, 'getObject')
+  t.same(yield cacheable.get(key), value)
+  t.equal(getObjectSpy.callCount, 1)
+  t.same(yield cacheable.get(key), value)
+  t.equal(getObjectSpy.callCount, 1)
+
+  value = { a: 2 }
+  yield bucket.putJSON(key, value)
+  yield new Promise(resolve => setTimeout(resolve, 200))
+  t.same(yield cacheable.get(key), value)
+  t.equal(getObjectSpy.callCount, 2)
+  t.same(yield cacheable.get(key), value)
+  t.equal(getObjectSpy.callCount, 2)
+
+  getObjectSpy.restore()
+  yield bucket.del(key)
+  yield s3.deleteBucket({ Bucket: bucketName }).promise()
+
+  t.end()
+}))
+
 
 // test.only('favicon', loudCo(function* (t) {
 //   const favicon = yield getFavicon('bankofamerica.com')
