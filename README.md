@@ -85,11 +85,13 @@ The first time you start the playground, Docker will pull the necessary images, 
 npm start
 ```
 
-Now open your browser to `http://localhost:55555`. If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml)
+Now open your browser to `http://localhost:55555`. If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml).
 
-#### Hot re-loading
+Profile                                    | Conversations                             | Chat
+:-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
+![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat-w250.png)
 
-Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will hot-reload, which makes development that much sweeter.
+
 
 ### Testing 
 
@@ -199,6 +201,10 @@ To override variables in the yml without picking a fight with git, create a `var
 #### Code
 
 This project is transitioning to Typescript. If you're changing any `*.ts` files, be sure you have `tsc -w` running to transpile to Javascript on the fly.
+
+##### Hot re-loading
+
+Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will hot-reload, which makes development that much sweeter.
 
 ### Destroy
 
