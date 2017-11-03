@@ -116,14 +116,6 @@ custom:
   # domainName: lambda1.tradle.io
   pushServer: https://push1.tradle.io
 
-  # bot hooks
-  bot_onmessage: bot_onmessage
-  bot_onsealevent: bot_onsealevent
-  bot_onpresence: bot_onpresence
-  bot_graphql: bot_graphql
-  bot_onmessagestream: bot_onmessagestream
-  bot_samples: bot_samples
-
   tables:
     presence: ${{self:custom.prefix}}presence
     seals: ${{self:custom.prefix}}seals
@@ -224,8 +216,8 @@ provider:
     NO_TIME_TRAVEL: false # allow time-travel messages for now
 
     # bot config
-    BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
-    BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
+    # BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
+    BOT_ONMESSAGE: bot_onmessage
     ORG_DOMAIN: ${{self:custom.brand.env.ORG_DOMAIN}}
     ORG_NAME: ${{self:custom.brand.env.ORG_NAME}}
     ORG_LOGO: ${{self:custom.brand.env.ORG_LOGO}}
@@ -798,92 +790,24 @@ functions:
   # receives pre-validated messages from the tradle engine
   # pre-processes with bot-engine
   # hands off to bot's business logic
-  bot_onmessage:
-    handler: samplebot/index.onmessage
-    memorySize: 1024
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
+  bot_onmessage: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_onmessage}}
 
   # bot-serviced lambda
   # receives seal (read/wrote) events from the tradle engine
   # hands off to bot's business logic
-  bot_onsealevent:
-    handler: samplebot/index.onseal
-    memorySize: 256
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 1
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - SealsTable
-              - StreamArn
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
+  bot_onsealevent: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_onsealevent}}
 
   # bot-serviced lambda
   # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
-  bot_onmessagestream:
-    handler: samplebot/index.onmessagestream
-    memorySize: 256
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - InboxTable
-              - StreamArn
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - OutboxTable
-              - StreamArn
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
-    # onError:
-      # Ref: DeadLetterQueue
+  bot_onmessagestream: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_onmessagestream}}
 
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint
-  bot_graphql:
-    # make sure graphql route gets loaded
-    handler: samplebot/index.ongraphql
-    # handler: lib/lambda/http/default.handler
-    memorySize: 512
-    events:
-      - http:
-          path: graphql
-          method: get
-      - http:
-          path: graphql
-          method: post
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
+  bot_graphql: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_graphql}}
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
-  bot_samples:
-    # handler: samplebot/index.samples
-    handler: lib/lambda/http/default.handler
-    memorySize: 1024
-    events:
-      - http:
-          path: samples
-          method: post
+  bot_samples: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_samples}}
 
 resources:
   Resources:
@@ -1266,54 +1190,6 @@ resources:
     #     ProvisionedThroughput:
     #       ReadCapacityUnits: 5
     #       WriteCapacityUnits: 5
-
-    # IoT
-    # define IoT role
-    # IoTLambdaRole:
-    #   Type: AWS::IAM::Role
-    #   Properties:
-    #     AssumeRolePolicyDocument:
-    #       Version: "2012-10-17"
-    #       Statement:
-    #         - Effect: Allow
-    #           Principal:
-    #             AWS: arn:aws:iam:::root
-    #           Action:
-    #             - sts:AssumeRole
-
-    # A SKETCH, NOT REAL CLOUD FORMATION
-    # DAXCluster:
-    #   Type: AWS::DynamoDB::DAX
-    #   Properties:
-    #     ClusterName: TradleDAX
-    #     NodeType: dax.r3.large
-    #     ReplicationFactor: 3
-    #     IAMRoleArn: arn:aws:iam::${{self:custom.accountId}}:role/DAXRole
-    #     SubnetGroup: MySubnetGroup
-    #     Region: ${{self:provider.region}}
-
-    # DAXRole:
-    #   Type: AWS::IAM::Role
-    #   Properties:
-    #     RoleName: IotClientRole
-    #     AssumeRolePolicyDocument:
-    #       Version: "2012-10-17"
-    #       Statement:
-    #         - Effect: Allow,
-    #           Principal:
-    #             Service:
-    #               - dax.amazonaws.com
-    #           Action: sts:AssumeRole
-    #     Policies:
-    #       - PolicyName: DAXRole
-    #         PolicyDocument:
-    #           Version: "2012-10-17"
-    #           Statement:
-    #             - Effect: Allow
-    #               Action:
-    #                 - dynamodb:*
-    #               Resource:
-    #                 - arn:aws:dynamodb:us-west-2:${{self:custom.accountId}}:*
 
     # role assumed by all IoT clients
     IotClientRole:
