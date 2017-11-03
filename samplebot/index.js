@@ -80,7 +80,7 @@ const cacheableConf = bot.resources.buckets.PublicConf.getCacheable({
 
 const getConf = co(function* () {
   try {
-    return cacheableConf.get()
+    return yield cacheableConf.get()
   } catch (err) {
     return require('./default-conf')
   }
@@ -93,7 +93,6 @@ const getPluginConf = co(function* (pluginName) {
 })
 
 const customize = co(function* () {
-  const { plugins={} } = yield getConf()
   const customizeMessage = require('@tradle/plugin-customize-message')
   productsAPI.plugins.use(customizeMessage({
     getConf: () => getPluginConf('customize-message'),

@@ -25,3 +25,12 @@ services:
     volumes:
       - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+  tradle_web:
+    image: tradle/web-app:cloud
+    container_name: tradle-web-app
+    restart: always
+    ports:
+      - "55555:80"
+    environment:
+      # if url contains any '~' characters, be sure to escape them:
+      - DEFAULT_TRADLE_SERVER_URL=${DEFAULT_TRADLE_SERVER_URL}

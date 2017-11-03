@@ -113,7 +113,8 @@ export default class Logger {
       return JSON.stringify(logMsg)
     }
 
-    return `${level}: ${msg}`
+    const stringifiedParams = params ? JSON.stringify(params) : ''
+    return `${level}: ${msg} ${stringifiedParams}`
   }
 
   public setContext = (value:any) => {

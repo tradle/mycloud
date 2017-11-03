@@ -37,20 +37,20 @@
     "validate-commit-msg": "^2.14.0"
   },
   "scripts": {
-    "setup": "npm i && npm run build:yml && npm run package",
+    "init": "npm i && npm run build:yml",
     "precommit": "lint-staged",
     "package": "serverless package",
     "gen:testenv": "./scripts/gen-test-env.js",
     "gen:fixtures": "./scripts/gen-fixtures.js",
     "gen:samples": "./scripts/gen-samples.js",
     "gen:localsamples": "./scripts/gen-samples.js --local",
-    "gen:localresources": "./scripts/gen-local-resources.js --force",
+    "gen:localresources": "./scripts/gen-local-resources.js",
     "gen:resourcedefs": "./scripts/gen-resource-defs.js",
     "gen:modelmap": "./scripts/map-models-to-buckets.js",
     "reset:local": "npm run localstack:restart && sleep 4 && npm run gen:localresources",
     "eslint": "eslint --quiet --ignore-path .gitignore .",
+    "setup:local": "npm run localstack:start && npm run gen:localresources",
     "test": "node test",
-    "test:setup": "npm run localstack:start && npm run gen:localresources",
     "test:e2e": "BLUEBIRD_DEBUG=1 DEBUG=λ*,*tradle* node scripts/end-to-end-test.js",
     "test:e2e:debug": "BLUEBIRD_DEBUG=1 DEBUG=λ*,*tradle* node --debug --inspect scripts/end-to-end-test.js",
     "test:graphqlserver": "NODE_ENV=test node ./scripts/graphql-server",
@@ -92,7 +92,7 @@
     "setstyle": "npm run build:yml && ./scripts/setstyle.sh",
     "addfriends": "./scripts/addfriends.js",
     "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
-    "start": "DEBUG=λ*,*tradle* serverless offline start",
+    "start": "npm run setup:local && DEBUG=λ*,*tradle* serverless offline start",
     "warmup": "serverless warmup"
   },
   "dependencies": {

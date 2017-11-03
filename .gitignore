@@ -14,6 +14,7 @@ serverless-interpolated.yml
 vars.yml
 conf/friends.js
 conf/tradle.json
+!conf/sample-conf.json
 lib/definitions.json
 lib/modelmap.json
 lib/cli/cloudformation-template.json

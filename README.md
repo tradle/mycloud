@@ -1,53 +1,99 @@
 
-# tradle/aws
+# @tradle/serverless
 
-### Setup AWS Cli
+Welcome to Tradle, serverless! You'll find everything you need to configure and launch your own Tradle instance here.
 
-```sh
-brew install awscli
-# optional:
-#   create a new IAM user with AdministratorAccess
-#   configure your aws cli settings
-aws configure
-```
+If you're developer, you'll also see how to set up your local environment, deploy, and develop your own chatbots.
 
-1. Set up AWS credentials in ~/.aws/
-2. Install 
+## Orientation
 
-### Install some tools
+### Digital Identity Intro
 
-Command line JSON parser: [jq](https://stedolan.github.io/jq/download/)
-Typescript: `npm i -g typescript`
+Jump down the [rabbit hole](./docs/mythos.md)
+
+### Serverless
+
+This project uses the [Serverless](https://github.com/serverless/serverless) framework. `serverless.yml` file is thus the main configuration file for the cloud architecture you'll be deploying: tables, buckets, IaM roles, lambda functions, logs, alarms, pictures of kittens, etc.
+
+You can set up a local playground, with most of the functionality of the cloud one right on your machine. To make this possible, this project uses [localstack](https://github.com/localstack/localstack) for simulating DynamoDB and S3 locally, and [serverless-offline](https://github.com/dherault/serverless-offline) + [mosca](https://github.com/mcollina/mosca) for simulating AWS's APIGateway and IoT broker, respectively.
+
+## Setup
+
+### Docker & Docker Compose
+
+Docker is used during the build process, as well as in the local playground.
+
+- [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
+- [Docker for Window](https://docs.docker.com/docker-for-windows/install/)
+- [Docker for Linux](https://docs.docker.com/engine/installation/#server)
+
+- [Docker Compose](https://docs.docker.com/compose/install/) - for container orchestration and networking
+
+### AWS cli
+
+You'll be deploying to AWS, so you'll need an account and a command line client:
+
+1. [Install](http://docs.aws.amazon.com/cli/latest/userguide/installing.html). On OS X, I have it installed with brew: `brew install awscli`
+2. create a new IAM user with AdministratorAccess
+3. Configure your settings: `aws configure`. This will set up your AWS credentials in `~/.aws/`
 
 ### Install
 
+Install the project dependencies, and build your `serverless.yml`:
+
 ```sh
-npm run setup
+# install dependencies
+npm install
+# this compiles/interpolates serverless-uncompiled.yml into:
+#   -> serverless-interpolated.yml 
+#   -> serverless.yml
+npm run build:yml
 ```
 
-The [Serverless Framework](https://github.com/serverless/serverless) is installed as part of `devDependencies`, but you probably also want it installed globally so you can use the serverless cli:
+### Install some more tools (pre-requisite only for development)
+
+- [redis](https://redis.io/topics/quickstart) - a key value store used by the local simulator of AWS's IoT broker. (On OS X, you can `brew install redis`)
+- [jq](https://stedolan.github.io/jq/download/) - a great command line JSON parser (On OS X, you can `brew install jq`)
+- [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript`)  
+- The [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
+
+## Get Started 
+
+### Local Playground
+
+Note: if you don't care about playing locally and want to skip ahead to launching Tradle in the cloud, skip this section
+
+Goal: set up an environment where we can talk to the chatbot that comes in the box, and see how we can develop our own.
+
+#### Start docker, redis
 
 ```sh
-npm i -g serverless
-```
-
-### Setup for Local Testing
-
-This project uses [localstack](https://github.com/localstack/localstack) for simulating AWS resources locally (DynamoDB, S3, etc).
-
-Before you can run tests on local resoures, you need to create them:
-
-```sh
-# make sure docker is running
+# make sure you have docker running
 docker ps
-# start up localstack
-npm run localstack:start
-# to stop localstack (and lose your tables and buckets)
-#   npm run localstack:stop
-# restart localstack (and lose your tables and buckets)
-#   npm run localstack:restart
-# generate local resources based on cloudformation
-npm run gen:localresources
+```
+
+```sh
+# run redis
+redis-server
+```
+
+#### Start the Playground
+
+The first time you start the playground, Docker will pull the necessary images, which can take a while, depending on which century your internet connection is from.
+
+```sh
+npm start
+```
+
+Now open your browser to `http://localhost:55555`. If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml)
+
+#### Hot re-loading
+
+Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will hot-reload, which makes development that much sweeter.
+
+### Testing 
+
+```sh
 # run tests on local resources
 npm run test
 # run an end-to-end test, which will creates sample business data in the process
@@ -71,12 +117,18 @@ docker ps
 npm run deploy:safe
 ```
 
+### Configure
+
+There's configuration and configuration. 
+
+- To configure the built-in bot, copy `./conf/sample-conf.json` to 
+
 ### Explore
 
 #### List deployed resources, API endpoints, ...
 
 ```sh
-npm run info
+npm run info # or run: serverless info
 
 # Service Information
 # service: tradle
@@ -91,7 +143,7 @@ npm run info
 
 #### Generate sample data
 
-If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json).
+If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json)
 
 ```sh
 # replace endpoint url with your own
@@ -101,22 +153,23 @@ curl -X POST --data '{"users":1,"products":["tradle.CurrentAccount"]}' \
 
 #### Explore the API
 
-Open GraphiQL and play with the API. Let's create a url with a sample query (because there's an unresolved issue for when no query is passed):
+Open GraphiQL and play with the API
 
-```js
-const url = 'https://example.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql?query=' + encodeURIComponent(`{
+```sh
+# http://localhost:4000
+# https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
+# 
+# sample query:
+{
   rl_tradle_FormRequest {
     edges {
       node {
-        _link
+        _link,
+        form
       }
     }
   }
-}`)
-
-console.log(url)
-// https://example.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql?query=%7B%0A%20%20rl_tradle_FormRequest%20%7B%0A%20%20%20%20edges%20%7B%0A%20%20%20%20%20%20node%20%7B%0A%20%20%20%20%20%20%20%20_link%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%0A%20%20%7D%0A%7D
-// open in browser
+}
 ```
 
 #### Logging
@@ -135,11 +188,17 @@ npm run tail -- {function-name} {minutes-ago}
 npm run tail -- bot_graphql 5
 ```
 
-### Developing
+### Development
+
+#### serverless.yml
 
 If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
 
-To override variables in the yml without picking a fight with git, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override
+To override variables in the yml without picking a fight with git, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
+
+#### Code
+
+This project is transitioning to Typescript. If you're changing any `*.ts` files, be sure you have `tsc -w` running to transpile to Javascript on the fly.
 
 ### Destroy
 
@@ -154,14 +213,13 @@ npm run nuke
 ### Directory Structure
 
 ```sh
-.              # dev dependencies, serverless framework config
-  cli/         # ignore me for now
-  project/     # mostly code that will be deployed to lambda
-    scripts/   # command line scripts, and utils
-    conf/      # schemas, and service maps, used for tests
-    lib/
-      bot/     # bot engine
-    samplebot/ # currently co-located sample bot that uses tradle/bot-products#modeled
+./
+  serverless-uncompiled.yml # gets pre-processed into serverless.yml by `npm run build:yml`
+  scripts/                  # command line scripts, and utils
+  conf/                     # configuration for your instance
+  lib/
+    bot/                    # bot engine
+  samplebot/                # currently co-located sample bot that uses tradle/bot-products#modeled
 ```
 
 ### Troubleshooting
@@ -187,13 +245,27 @@ npm run reset:local # delete + regen local dbs, buckets, etc.
 
 ### Scripts
 
+#### npm run localstack:start
+
+#### npm run localstack:stop
+
+Note: running this destroys your playground's tables and buckets
+
+#### npm run localstack:restart
+
+Note: running this destroys your playground's tables and buckets
+
+#### generate local resources (tables, buckets), local identity
+
+Note: running this destroys your playground's identity, and creates a new one
+
 #### npm run reset:local
 
-delete and recreate up local resources (tables, buckets, etc)
+delete and recreate local resources (tables, buckets, identity)
 
 #### npm run deploy:safe
 
-lint, run tests, and only then deploy
+lint, run tests, rebuild native modules for the AWS Linux Container, and deploy
 
 #### npm run test:e2e
 

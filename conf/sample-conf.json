@@ -1,0 +1,17 @@
+{
+  "env": {
+    "ORG_LOGO": "https://s3.amazonaws.com/tradle-public-images/easy.png",
+    "ORG_DOMAIN": "easy.io",
+    "ORG_NAME": "Easy Bank",
+    "PRODUCTS": "nl.tradle.DigitalPassport,tradle.CorporateBankAccount,tradle.MortgageProduct",
+    "AUTO_APPROVE_APPS": "1",
+    "AUTO_VERIFY_FORMS": "1"
+  },
+  "style": {
+    "_t": "tradle.StylesPack",
+    "backgroundImage": {
+      "url": "https://s3.amazonaws.com/tradle-public-images/bg-rainbow-fuzz-opacity-50.png"
+    },
+    "logoNeedsText": true
+  }
+}
