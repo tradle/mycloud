@@ -51,17 +51,27 @@ export async function handler (event, context, callback) {
       }
     }))
 
+    const containers = {}
     return fnResults.reduce((summary, next) => {
       if (next.error) {
         summary.errors++
-      } else if (next.isVirgin) {
+        return summary
+      }
+
+      if (next.isVirgin) {
         summary.containersCreated++
+      }
+
+      if (!containers[summary.containerId]) {
+        containers[summary.containerId] = true
+        summary.containersWarmed++
       }
 
       return summary
     }, {
       functionName,
-      containersCreated: 0
+      containersCreated: 0,
+      containersWarmed: 0
     })
   }))
 

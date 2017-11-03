@@ -7,6 +7,7 @@ import debug = require('debug')
 import randomName = require('random-name')
 import Networks = require('./networks')
 import { parseArn } from './utils'
+import { randomString } from './crypto'
 import { IDebug, ILambdaExecutionContext } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
 import Logger, { Level } from './logger'
@@ -114,7 +115,7 @@ export default class Env {
     } else {
       this.logger.info('I am a fresh container!')
       this.isVirgin = true
-      this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()}`
+      this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
     }
 
     if (source === 'lambda' && event.requestContext) {
