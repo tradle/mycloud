@@ -1,9 +1,55 @@
-
 # @tradle/serverless
 
-Welcome to Tradle, serverless, sometimes referred to below as MyCloud! You'll find everything you need to configure and launch your own Tradle instance here.
+Welcome to Tradle serverless / Tradle MyCloud! You'll find everything you need to configure and launch your own Tradle instance here.
 
 If you're developer, you'll also see how to set up your local environment, deploy, and develop your own chatbots.
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Orientation](#orientation)
+  - [Digital Identity Intro](#digital-identity-intro)
+  - [Serverless](#serverless)
+- [Setup](#setup)
+  - [Docker & Docker Compose](#docker-&-docker-compose)
+  - [AWS cli](#aws-cli)
+  - [Install dependencies](#install-dependencies)
+  - [Install local playground tools](#install-local-playground-tools)
+  - [Install development tools](#install-development-tools)
+- [Local Playground](#local-playground)
+  - [Start docker, redis](#start-docker-redis)
+  - [Start the Playground](#start-the-playground)
+  - [Explore the API](#explore-the-api)
+- [Deploy](#deploy)
+  - [Configure](#configure)
+  - [Explore the Architecture](#explore-the-architecture)
+    - [List deployed resources, API endpoints, ...](#list-deployed-resources-api-endpoints-)
+- [Development](#development)
+  - [serverless.yml](#serverlessyml)
+  - [Testing](#testing)
+  - [Hot re-loading](#hot-re-loading)
+  - [Logging](#logging)
+- [Destroy](#destroy)
+- [Troubleshooting](#troubleshooting)
+- [Scripts](#scripts)
+  - [npm run localstack:start](#npm-run-localstackstart)
+  - [npm run localstack:stop](#npm-run-localstackstop)
+  - [npm run localstack:restart](#npm-run-localstackrestart)
+  - [generate local resources (tables, buckets), local identity](#generate-local-resources-tables-buckets-local-identity)
+  - [npm run reset:local](#npm-run-resetlocal)
+  - [npm run deploy:safe](#npm-run-deploysafe)
+  - [npm run test:e2e](#npm-run-teste2e)
+  - [npm run test:graphqlserver](#npm-run-testgraphqlserver)
+  - [npm run setstyle](#npm-run-setstyle)
+- [Project Architecture](#project-architecture)
+  - [Directory Structure](#directory-structure)
+  - [Main Components](#main-components)
+    - [Core Tables](#core-tables)
+    - [Buckets](#buckets)
+    - [Functions](#functions)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Orientation
 
@@ -21,13 +67,13 @@ You can set up a local playground, with most of the functionality of the cloud o
 
 ### Docker & Docker Compose
 
-Docker is used during the build process, as well as in the local playground.
+Docker is used during the build process, as well as in the local playground. Docker Compose is used for container orchestration and networking
 
-- [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
-- [Docker for Window](https://docs.docker.com/docker-for-windows/install/)
-- [Docker for Linux](https://docs.docker.com/engine/installation/#server)
-
-- [Docker Compose](https://docs.docker.com/compose/install/) - for container orchestration and networking
+1. Docker 
+  a. [OS X](https://docs.docker.com/docker-for-mac/install/)  
+  b. [Window](https://docs.docker.com/docker-for-windows/install/)  
+  c. [Linux](https://docs.docker.com/engine/installation/#server)  
+2. [Docker Compose](https://docs.docker.com/compose/install/)
 
 ### AWS cli
 
@@ -37,7 +83,7 @@ You'll be deploying to AWS, so you'll need an account and a command line client:
 2. create a new IAM user with AdministratorAccess
 3. Configure your settings: `aws configure`. This will set up your AWS credentials in `~/.aws/`
 
-### Install
+### Install dependencies
 
 Install the project dependencies, and build your `serverless.yml`:
 
@@ -50,22 +96,23 @@ npm install
 npm run build:yml
 ```
 
-### Install some more tools (pre-requisite only for development)
+### Install local playground tools
 
 - [redis](https://redis.io/topics/quickstart) - a key value store used by the local simulator of AWS's IoT broker. (On OS X, you can `brew install redis`)
+
+### Install development tools
+
 - [jq](https://stedolan.github.io/jq/download/) - a great command line JSON parser (On OS X, you can `brew install jq`)
 - [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript`)  
 - The [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
 
-## Get Started 
+## Local Playground
 
-### Local Playground
-
-Note: if you don't care about playing locally and want to skip ahead to launching Tradle in the cloud, skip this section
+*Note: if you don't care about playing locally and want to skip ahead to deploying Tradle MyCloud to the cloud, skip this section*
 
 Goal: set up an environment where we can talk to the chatbot that comes in the box, and see how we can develop our own.
 
-#### Start docker, redis
+### Start docker, redis
 
 ```sh
 # make sure you have docker running
@@ -77,27 +124,26 @@ docker ps
 redis-server
 ```
 
-#### Start the Playground
+### Start the Playground
 
-The first time you start the playground, Docker will pull the necessary images, which can take a while, depending on which century your internet connection is from.
+The first time you start the playground, Docker will pull the necessary images from [Docker Hub](https://hub.docker.com), which can take a while, depending on which century your internet connection is from.
 
 ```sh
 npm start
 ```
 
-Now open your browser to `http://localhost:55555`. If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml).
+Now open your browser to [http://localhost:55555](http://localhost:55555). If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml).
 
 Profile                                    | Conversations                             | Chat
 :-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
 ![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat1-w250.png)
 
-#### Explore the API
+### Explore the API
 
 After you chat with the bot a bit, open up GraphiQL at [http://localhost:4000](http://localhost:4000) and play with the API:
 
 ```sh
 # http://localhost:4000
-# https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
 # 
 # sample query:
 {
@@ -116,20 +162,9 @@ After you chat with the bot a bit, open up GraphiQL at [http://localhost:4000](h
 
 You can also browse the database via the DynamoDB Admin at [http://localhost:8001](http://localhost:8001)
 
-### Testing 
+When you deploy to the cloud, GraphiQL will be available at https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
 
-```sh
-# run tests on local resources
-npm run test
-# run an end-to-end test, which creates sample business data in the process
-npm run test:e2e
-# browse that data via graphql
-npm run test:graphqlserver
-# GraphiQL is at       http://localhost:4000
-# DynamoDB Admin is at http://localhost:8001
-```
-
-### Deploy
+## Deploy
 
 First, make sure Docker is running
 
@@ -142,13 +177,18 @@ docker ps
 npm run deploy:safe
 ```
 
+Deployment can take ~5-10 minutes.
+
+Once everything's deployed, open your browser to [http://localhost:55555](http://localhost:55555). On the Conversations page, click the red button, and choose Add Server URL. Paste in your API endpoint (it looks like https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/)
+
 ### Configure
 
 There's configuration and configuration. 
 
-- To configure the built-in bot, copy `./conf/sample-conf.json` to 
+- To configure the built-in bot, copy `./conf/sample-conf.json` to `./conf/tradle.json`
+- If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./samplebot/index.js](./samplebot/index.js).
 
-### Explore
+### Explore the Architecture
 
 #### List deployed resources, API endpoints, ...
 
@@ -166,7 +206,34 @@ npm run info # or run: serverless info
 #  ..
 ```
 
-#### Logging
+## Development
+
+Note: this project is transitioning to Typescript. If you're changing any `*.ts` files, be sure you have `tsc -w` running to transpile to Javascript on the fly.
+
+### serverless.yml
+
+If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
+
+To override variables in the yml without picking a fight with git, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
+
+### Testing 
+
+```sh
+# run tests on local resources
+npm run test
+# run an end-to-end test, which creates sample business data in the process
+npm run test:e2e
+# browse that data via graphql
+npm run test:graphqlserver
+# GraphiQL is at       http://localhost:4000
+# DynamoDB Admin is at http://localhost:8001
+```
+
+### Hot re-loading
+
+Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will hot-reload, which makes development that much sweeter.
+
+### Logging
 
 You can use the serverless cli:
 
@@ -182,23 +249,7 @@ npm run tail -- {function-name} {minutes-ago}
 npm run tail -- bot_graphql 5
 ```
 
-### Development
-
-#### serverless.yml
-
-If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
-
-To override variables in the yml without picking a fight with git, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
-
-#### Code
-
-This project is transitioning to Typescript. If you're changing any `*.ts` files, be sure you have `tsc -w` running to transpile to Javascript on the fly.
-
-##### Hot re-loading
-
-Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will hot-reload, which makes development that much sweeter.
-
-### Destroy
+## Destroy
 
 Sometimes you want to wipe the slate clean and start from scratch (usually by age 25 or so). The following command will wipe out all the AWS resources created in your deployment. Obviously, use with EXTREME caution, as this command executes with your AWS credentials (best use a separate account).
 
@@ -208,7 +259,7 @@ npm run nuke
 # ensuring you're committed to the destruction of all that is holy
 ```
 
-### Troubleshooting
+## Troubleshooting
 
 If you see errors like the one below, it means `localstack` is not up. Launch `localstack` with `npm run localstack:start`
 
@@ -229,41 +280,41 @@ If tests are failing for some other reason, you may want to run
 npm run reset:local # delete + regen local dbs, buckets, etc.
 ```
 
-### Scripts
+## Scripts
 
-#### npm run localstack:start
+### npm run localstack:start
 
-#### npm run localstack:stop
-
-Note: running this destroys your playground's tables and buckets
-
-#### npm run localstack:restart
+### npm run localstack:stop
 
 Note: running this destroys your playground's tables and buckets
 
-#### generate local resources (tables, buckets), local identity
+### npm run localstack:restart
+
+Note: running this destroys your playground's tables and buckets
+
+### generate local resources (tables, buckets), local identity
 
 Note: running this destroys your playground's identity, and creates a new one
 
-#### npm run reset:local
+### npm run reset:local
 
 delete and recreate local resources (tables, buckets, identity)
 
-#### npm run deploy:safe
+### npm run deploy:safe
 
 lint, run tests, rebuild native modules for the AWS Linux Container, and deploy
 
-#### npm run test:e2e
+### npm run test:e2e
 
 run an end-to-end simulated interaction between a bot, customer, and employee. This is useful for later exploration of the data created in graphql (`npm run test:graphqlserver`)
 
-#### npm run test:graphqlserver
+### npm run test:graphqlserver
 
 start up two UIs for browsing local data:
 - a DynamoDB Admin interface
 - GraphiQL
 
-#### npm run setstyle
+### npm run setstyle
 
 To set the style of your provider, refer to the [StylesPack](https://github.com/tradle/models/blob/master/models/tradle.StylesPack.json) model. Set it in the "style" property in `conf/{service}.json`
 

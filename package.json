@@ -176,6 +176,9 @@
     "*.{ts}": [
       "prettier --write",
       "git add"
+    ],
+    "README.md": [
+      "doctoc"
     ]
   }
 }
