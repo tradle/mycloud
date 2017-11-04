@@ -89,7 +89,7 @@ Now open your browser to `http://localhost:55555`. If 55555 is already your favo
 
 Profile                                    | Conversations                             | Chat
 :-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
-![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat-w250.png)
+![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat1-w250.png)
 
 #### Explore the API
 
