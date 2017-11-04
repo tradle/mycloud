@@ -116,17 +116,6 @@ After you chat with the bot a bit, open up GraphiQL at [http://localhost:4000](h
 
 You can also browse the database via the DynamoDB Admin at [http://localhost:8001](http://localhost:8001)
 
-#### Generate sample data
-
-If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json)
-
-```sh
-# replace endpoint url with your own
-curl -X POST --data '{"users":1,"products":["tradle.CurrentAccount"]}' \
-'https://example.execute-api.us-east-1.amazonaws.com/dev/tradle/samples'
-```
-
-
 ### Testing 
 
 ```sh
@@ -339,6 +328,5 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 - bot_onsealevent: where your bot (business logic) processes seal events (reads/writes)
 - bot_onmessagestream: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
 - bot_graphql: your bot's built-in graphql API
-- bot_samples: generates a bunch of sample data
 
 \* Note: the purpose of authentication is to know whether to send the user messages from the `outbox` table. Inbound messages don't require pre-authentication, as they are all signed.
