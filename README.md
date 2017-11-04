@@ -1,7 +1,7 @@
 
 # @tradle/serverless
 
-Welcome to Tradle, serverless! You'll find everything you need to configure and launch your own Tradle instance here.
+Welcome to Tradle, serverless, sometimes referred to below as MyCloud! You'll find everything you need to configure and launch your own Tradle instance here.
 
 If you're developer, you'll also see how to set up your local environment, deploy, and develop your own chatbots.
 
@@ -91,6 +91,40 @@ Profile                                    | Conversations                      
 :-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
 ![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat-w250.png)
 
+#### Explore the API
+
+After you chat with the bot a bit, open up GraphiQL at [http://localhost:4000](http://localhost:4000) and play with the API:
+
+```sh
+# http://localhost:4000
+# https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
+# 
+# sample query:
+{
+  rl_tradle_ProductRequest {
+    edges {
+      node {
+        _author,
+        _time,
+        _link,
+        requestFor
+      }
+    }
+  }
+}
+```
+
+You can also browse the database via the DynamoDB Admin at [http://localhost:8001](http://localhost:8001)
+
+#### Generate sample data
+
+If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json)
+
+```sh
+# replace endpoint url with your own
+curl -X POST --data '{"users":1,"products":["tradle.CurrentAccount"]}' \
+'https://example.execute-api.us-east-1.amazonaws.com/dev/tradle/samples'
+```
 
 
 ### Testing 
@@ -98,7 +132,7 @@ Profile                                    | Conversations                      
 ```sh
 # run tests on local resources
 npm run test
-# run an end-to-end test, which will creates sample business data in the process
+# run an end-to-end test, which creates sample business data in the process
 npm run test:e2e
 # browse that data via graphql
 npm run test:graphqlserver
@@ -143,37 +177,6 @@ npm run info # or run: serverless info
 #  ..
 ```
 
-#### Generate sample data
-
-If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json)
-
-```sh
-# replace endpoint url with your own
-curl -X POST --data '{"users":1,"products":["tradle.CurrentAccount"]}' \
-'https://example.execute-api.us-east-1.amazonaws.com/dev/tradle/samples'
-```
-
-#### Explore the API
-
-Open GraphiQL and play with the API
-
-```sh
-# http://localhost:4000
-# https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
-# 
-# sample query:
-{
-  rl_tradle_FormRequest {
-    edges {
-      node {
-        _link,
-        form
-      }
-    }
-  }
-}
-```
-
 #### Logging
 
 You can use the serverless cli:
@@ -214,18 +217,6 @@ Sometimes you want to wipe the slate clean and start from scratch (usually by ag
 npm run nuke
 # a series of y/n prompts ensues, 
 # ensuring you're committed to the destruction of all that is holy
-```
-
-### Directory Structure
-
-```sh
-./
-  serverless-uncompiled.yml # gets pre-processed into serverless.yml by `npm run build:yml`
-  scripts/                  # command line scripts, and utils
-  conf/                     # configuration for your instance
-  lib/
-    bot/                    # bot engine
-  samplebot/                # currently co-located sample bot that uses tradle/bot-products#modeled
 ```
 
 ### Troubleshooting
@@ -286,3 +277,68 @@ start up two UIs for browsing local data:
 #### npm run setstyle
 
 To set the style of your provider, refer to the [StylesPack](https://github.com/tradle/models/blob/master/models/tradle.StylesPack.json) model. Set it in the "style" property in `conf/{service}.json`
+
+## Project Architecture
+
+### Directory Structure
+
+```sh
+./
+  serverless-uncompiled.yml # gets pre-processed into serverless.yml by `npm run build:yml`
+  scripts/                  # command line scripts, and utils
+  conf/                     # configuration for your instance
+  lib/
+    bot/                    # bot engine
+  samplebot/                # currently co-located sample bot that uses tradle/bot-products#modeled
+```
+
+### Main Components
+
+#### Core Tables
+
+you'll typically see the tables prefixed per the servless convention, [service]-[stage]-[name] e.g. the `presence` table is `tradle-dev-presence` on the `dev` stage
+
+- pubkeys: maps public keys to identities that control them
+- presence: 
+- seals: tracks blockchain seals for objects, watches placed on expected seals, and seals queued for write
+- inbox: inbound messages from users
+- outbox: outbound messages to users
+- users: user state objects
+- friends: known Tradle/MyCloud nodes
+- events: master log, which due to performance issues, is ironically written to post-fact
+- bucket-x: tables that store instances of Tradle models, e.g. tradle.PhotoID, tradle.MyLifeInsurance, tradle.FormRequest. Each table stores multiple types, and types are mapped deterministically to a table "bucket"
+- push-subscribers (todo)
+
+#### Buckets
+
+- ObjectsBucket: stores all objects send/received to/from users
+- SecretsBucket: if I told you, I'd have to kill you. It stores the private keys for your MyCloud's identity.
+- PublicConfBucket: will probably be renamed to ConfBucket soon. It stores public/private configuration like: identity, styles, and bot plugin configuration files
+- ContentAddressedBucket: content-addressed storage, usable by bots
+- FileUploadBucket: because Lambda and IoT message-size limits, any media embedded in objects sent by users is first uploaded here
+
+#### Functions
+
+- warmup: keeps lambda containers warm to prevent cold start. Concurrency is configurable
+- preauth (HTTP): generates temporary credentials (STS) for new connections from users, attaches the IotClientRole to them, creates a new session in the `presence` table (still `unauthenticated`). Generates a challenge to be signed (verified in `auth`) \*
+- auth (HTTP): verifies the challenge, marks the session as authenticated \*
+- onconnect (IoT): updates the user's session, marks the user as connected
+- ondisconnect (IoT): updates the user's session, marks the user as disconnected
+- onsubscribe (IoT): sends the user messages depending on their announced send/receive position
+- onmessage (IoT): processes inbound messages from the user. Pending validation, stores the object in ObjectsBucket and passes the message off to the `bot_onmessage` lambda
+- onmessage_http (HTTP): (DEPRECATED in favor of `inbox`) same as `onmessage`, but HTTP, so it has a higher maximum payload size.
+- inbox (HTTP): receives batches of inbound messages (typically from other MyCloud's)
+- to-events: replicates streams from `inbox`/`outbox`/`seals` tables to the `events` table
+- addfriend: add a known MyCloud to the `friends` table, so outbound messages can be delivered to them
+- info (HTTP): get the public information about this MyCloud - the identity, style, logo, country, currency, etc.
+- init: initialize the MyCloud node - generate an identity and keys, save secrets and default configuration files to respective buckets
+- sealpending (scheduled): write queued seals to the blockchain
+- pollchain (scheduled): query unconfirmed seals
+- setstyle: update the style
+- bot_onmessage: where your bot (business logic) processes inbound messages
+- bot_onsealevent: where your bot (business logic) processes seal events (reads/writes)
+- bot_onmessagestream: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
+- bot_graphql: your bot's built-in graphql API
+- bot_samples: generates a bunch of sample data
+
+\* Note: the purpose of authentication is to know whether to send the user messages from the `outbox` table. Inbound messages don't require pre-authentication, as they are all signed.
