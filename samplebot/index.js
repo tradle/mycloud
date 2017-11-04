@@ -36,7 +36,7 @@ const bankModels = require('./bank-models')(NAMESPACE)
 const models = shallowClone(deploymentModels, bankModels)
 const products = PRODUCTS.split(',').map(id => id.trim())
 const createBot = require('../lib/bot')
-const strategies = require('../lib/bot/strategy')
+const strategies = require('./strategy')
 const {
   bot,
   productsAPI,

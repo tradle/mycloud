@@ -5,8 +5,8 @@ const coexpress = require("co-express");
 const pick = require("object.pick");
 const engine_1 = require("@tradle/engine");
 const validateResource = require("@tradle/validate-resource");
-const constants_1 = require("../../constants");
-const Errors = require("../../errors");
+const _1 = require("../../");
+const { TYPE, SIG, MAX_CLOCK_DRIFT } = _1.constants;
 function createGraphQLAuth({ tradle, bot, employeeManager }) {
     const { identities } = tradle;
     return coexpress(function* (req, res, next) {
@@ -33,8 +33,8 @@ function createGraphQLAuth({ tradle, bot, employeeManager }) {
         const props = Object.keys(req).filter(key => req[key] != null);
         const body = pick(req, props);
         const queryObj = {
-            [constants_1.TYPE]: 'tradle.GraphQLQuery',
-            [constants_1.SIG]: sig,
+            [TYPE]: 'tradle.GraphQLQuery',
+            [SIG]: sig,
             body: engine_1.utils.stringify(body)
         };
         try {
@@ -45,7 +45,7 @@ function createGraphQLAuth({ tradle, bot, employeeManager }) {
             });
         }
         catch (err) {
-            throw new Errors.InvalidInput(`invalid tradle.GraphQLQuery: ${err.message}`);
+            throw new _1.Errors.InvalidInput(`invalid tradle.GraphQLQuery: ${err.message}`);
         }
         checkDrift(queryObj.time);
         debug('looking up query author');
@@ -67,9 +67,9 @@ function checkDrift(time) {
     time = Number(time);
     const drift = time - Date.now();
     const abs = Math.abs(drift);
-    if (abs > constants_1.MAX_CLOCK_DRIFT) {
+    if (abs > MAX_CLOCK_DRIFT) {
         const type = drift > 0 ? 'ahead' : 'behind';
-        throw new Errors.ClockDrift(`your clock is ${type}`);
+        throw new _1.Errors.ClockDrift(`your clock is ${type}`);
     }
 }
 //# sourceMappingURL=graphql-auth.js.map

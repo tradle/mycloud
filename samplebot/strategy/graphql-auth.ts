@@ -3,8 +3,8 @@ import * as coexpress from 'co-express'
 import * as pick from 'object.pick'
 import { utils as tradleUtils } from '@tradle/engine'
 import * as validateResource from '@tradle/validate-resource'
-import { TYPE, SIG, MAX_CLOCK_DRIFT } from '../../constants'
-import * as Errors from '../../errors'
+import { constants, Errors } from '../../'
+const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
 
 export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
   const { identities } = tradle
