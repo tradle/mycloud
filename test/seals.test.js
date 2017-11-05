@@ -1,3 +1,5 @@
+const nock = require('nock')
+
 require('./env').install()
 
 // const AWS = require('aws-sdk')
@@ -20,6 +22,20 @@ const blockchainOpts = {
   flavor: 'ethereum',
   networkName: 'rinkeby'
 }
+
+const rejectEtherscanCalls = () => {
+  nock('http://rinkeby.etherscan.io/')
+    .get(uri => uri.startsWith('/api'))
+    .reply(function () {
+      rejectEtherscanCalls()
+      return {
+        statusCode: 403,
+        body: '403 - Forbidden: Access is denied.'
+      }
+    })
+}
+
+rejectEtherscanCalls()
 
 test('queue seal', co(function* (t) {
   const { flavor, networkName } = blockchainOpts
