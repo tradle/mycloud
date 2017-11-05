@@ -179,7 +179,8 @@
       "git add"
     ],
     "README.md": [
-      "doctoc"
+      "doctoc",
+      "git add"
     ]
   }
 }

@@ -21,6 +21,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Start docker, redis](#start-docker-redis)
   - [Start the Playground](#start-the-playground)
   - [Explore the API](#explore-the-api)
+  - [Generate sample data](#generate-sample-data)
 - [Deploy](#deploy)
   - [Configure](#configure)
   - [Explore the Architecture](#explore-the-architecture)
@@ -164,6 +165,14 @@ You can also browse the database via the DynamoDB Admin at [http://localhost:800
 
 When you deploy to the cloud, GraphiQL will be available at https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
 
+### Generate sample data
+
+If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json)
+
+```sh
+echo '{"users":1,"products":["tradle.CurrentAccount"]}' | serverless invoke -f bot_samples
+```
+
 ## Deploy
 
 First, make sure Docker is running
@@ -216,7 +225,7 @@ If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess
 
 To override variables in the yml without picking a fight with git, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
 
-### Testing 
+### Testing
 
 ```sh
 # run tests on local resources
@@ -379,5 +388,6 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 - bot_onsealevent: where your bot (business logic) processes seal events (reads/writes)
 - bot_onmessagestream: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
 - bot_graphql: your bot's built-in graphql API
+- bot_samples: generates a bunch of sample data
 
 \* Note: the purpose of authentication is to know whether to send the user messages from the `outbox` table. Inbound messages don't require pre-authentication, as they are all signed.
