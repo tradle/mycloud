@@ -84,8 +84,13 @@ bot_graphql:
 # bot-serviced lambda
 # generates sample data for browsing with GraphQL
 bot_samples:
-  # handler: samplebot/index.samples
-  handler: lib/lambda/http/default.handler
+  handler: samplebot/index.onsamples
+  # handler: lib/lambda/http/default.handler
+  memorySize: 1024
+
+bot_samples_dev:
+  handler: samplebot/index.onsamples
+  # handler: lib/lambda/http/default.handler
   memorySize: 1024
   events:
     - http:

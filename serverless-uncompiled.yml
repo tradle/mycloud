@@ -782,9 +782,9 @@ functions:
     #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
   # simulates a short (hi! hello!) conversation with a user
-  clienttest:
-    handler: lib/lambda/clienttest.handler
-    timeout: 15
+  # clienttest:
+  #   handler: lib/lambda/clienttest.handler
+  #   timeout: 15
 
   # bot-serviced lambda
   # receives pre-validated messages from the tradle engine
@@ -795,19 +795,21 @@ functions:
   # bot-serviced lambda
   # receives seal (read/wrote) events from the tradle engine
   # hands off to bot's business logic
-  bot_onsealevent: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_onsealevent}}
+  bot_onsealevent: ${{self:custom.vars.bot_onsealevent, self:custom.defaults.bot_onsealevent}}
 
   # bot-serviced lambda
   # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
-  bot_onmessagestream: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_onmessagestream}}
+  bot_onmessagestream: ${{self:custom.vars.bot_onmessagestream, self:custom.defaults.bot_onmessagestream}}
 
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint
-  bot_graphql: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_graphql}}
+  bot_graphql: ${{self:custom.vars.bot_graphql, self:custom.defaults.bot_graphql}}
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
-  bot_samples: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_samples}}
+  bot_samples: ${{self:custom.vars.bot_samples, self:custom.defaults.bot_samples}}
+  # for testing
+  bot_samples_dev: ${{self:custom.vars.bot_samples_dev, self:custom.defaults.bot_samples_dev}}
 
 resources:
   Resources:

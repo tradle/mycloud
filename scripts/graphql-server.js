@@ -24,7 +24,7 @@ const { bot } = createProductsBot()
 
 const { port } = require('minimist')(process.argv.slice(2), {
   default: {
-    port: 4000
+    port: 21012
   }
 })
 

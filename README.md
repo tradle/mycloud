@@ -140,10 +140,10 @@ Profile                                    | Conversations                      
 
 ### Explore the API
 
-After you chat with the bot a bit, open up GraphiQL at [http://localhost:4000](http://localhost:4000) and play with the API:
+After you chat with the bot a bit, open up GraphiQL at [http://localhost:21012](http://localhost:21012) and play with the API:
 
 ```sh
-# http://localhost:4000
+# http://localhost:21012
 # 
 # sample query:
 {
@@ -225,7 +225,7 @@ npm run test
 npm run test:e2e
 # browse that data via graphql
 npm run test:graphqlserver
-# GraphiQL is at       http://localhost:4000
+# GraphiQL is at       http://localhost:21012
 # DynamoDB Admin is at http://localhost:8001
 ```
 

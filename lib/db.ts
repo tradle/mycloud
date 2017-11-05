@@ -32,16 +32,22 @@ export = function createDB (opts: {
     }
   }
 
+  const tableNames = tableBuckets.map(({ TableName }) => TableName)
   const db = new DB({
-    tableNames: modelMap.tableNames,
-    tableOpts: {
-      ...commonOpts,
-      tableDefinition: utils.toDynogelTableDefinition(tableBuckets[0])
+    models,
+    tableNames,
+    defineTable: name => {
+      const cloudformation = tableBuckets[tableNames.indexOf(name)]
+      return createTable({
+        ...commonOpts,
+        tableDefinition: utils.toDynogelTableDefinition(cloudformation)
+      })
     },
     chooseTable
   })
 
   db.on('update:models', ({ models }) => {
+    commonOpts.models = models
     modelMap = dbUtils.getModelMap({ models })
   })
 
@@ -58,10 +64,10 @@ export = function createDB (opts: {
   const pubKeysDef = definitions.PubKeysTable.Properties
   db.setExclusive({
     model: pubKeyModel,
-    table: createTable(pubKeysDef.TableName, {
+    table: createTable({
       ...commonOpts,
       exclusive: true,
-      readOnly: true,
+      readOnly: !env.TESTING,
       model: pubKeyModel,
       tableDefinition: utils.toDynogelTableDefinition(pubKeysDef)
     })
@@ -71,7 +77,7 @@ export = function createDB (opts: {
   const friendsDef = definitions.FriendsTable.Properties
   db.setExclusive({
     model: friendModel,
-    table: createTable(friendsDef.TableName, {
+    table: createTable({
       ...commonOpts,
       exclusive: true,
       model: friendModel,
