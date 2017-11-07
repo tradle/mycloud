@@ -24,9 +24,10 @@ import * as Errors from './errors'
 import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'
-import SealModel = require('./seal-model')
+import { models as BaseModels } from '@tradle/models'
 import { IECMiniPubKey } from './types'
 
+const SealModel = BaseModels['tradle.Seal']
 const SEAL_MODEL_ID = 'tradle.Seal'
 const MAX_ERRORS_RECORDED = 10
 const WATCH_TYPE = {
