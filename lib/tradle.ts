@@ -26,6 +26,8 @@ export default class Tradle {
   public identities: Identities
   public messages: Messages
   public db: DB
+  public contentAddressedStorage:ContentAddressedStorage
+  public conf:KeyValueTable
   public auth: Auth
   public delivery: Delivery
   public discovery: Discovery
@@ -66,6 +68,12 @@ export default class Tradle {
       return new ctor({
         bucket: this.buckets.ContentAddressed,
         aws: this.aws
+      })
+    })
+
+    this.define('conf', './key-value-table', ctor => {
+      return new ctor({
+        table: this.tables.Conf
       })
     })
 

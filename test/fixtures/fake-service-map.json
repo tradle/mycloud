@@ -24,6 +24,7 @@
   "R_TABLE_PubKeys": "{prefix}pubkeys",
   "R_TABLE_Seals": "{prefix}seals",
   "R_TABLE_Users": "{prefix}users",
+  "R_TABLE_Conf": "{prefix}conf",
   "SERVERLESS_PREFIX": "{prefix}",
   "SERVERLESS_SERVICE_NAME": "tradle",
   "SERVERLESS_STAGE": "dev"

@@ -216,6 +216,28 @@ test('content-addressed-storage', loudCo(function* (t) {
   t.end()
 }))
 
+test('key-value table', loudCo(function* (t) {
+  const { conf } = tradle
+  yield conf.put('a', {
+    b: 'c'
+  })
+
+  t.same(yield conf.get('a'), {
+    b: 'c'
+  })
+
+  const sub = conf.sub('mynamespace')
+  yield sub.put('a', {
+    d: 'e'
+  })
+
+  t.same(yield conf.get('mynamespacea'), {
+    d: 'e'
+  })
+
+  t.end()
+}))
+
 // test.only('favicon', loudCo(function* (t) {
 //   const favicon = yield getFavicon('bankofamerica.com')
 //   console.log(favicon)

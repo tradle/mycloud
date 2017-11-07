@@ -64,6 +64,12 @@ export = {
   get awsConfig() {
     return requireDefault('./aws-config')
   },
+  get ContentAddressedStorage() {
+    return requireDefault('./content-addressed-storage')
+  },
+  get KeyValueTable() {
+    return requireDefault('./key-value-table')
+  },
   get User() {
     return requireDefault('./user')
   },
