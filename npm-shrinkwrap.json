@@ -68,7 +68,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#362c9c26c2bdd2e053409b890c888a5e883415b7",
+      "resolved": "git://github.com/tradle/bot-products.git#df60c43a1bc043a9a11ca9033f754e6ea2804fc4",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
