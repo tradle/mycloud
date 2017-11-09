@@ -1,4 +1,5 @@
 const messageInterface = require('./message-interface')
+const interfaces = messageInterface ? [messageInterface] : []
 
 module.exports = namespace => {
   const DEPLOYMENT = `${namespace}.Deployment`
@@ -9,7 +10,7 @@ module.exports = namespace => {
       type: 'tradle.Model',
       title: 'MyCloud',
       id: DEPLOYMENT,
-      interfaces: [messageInterface],
+      interfaces,
       subClassOf: 'tradle.FinancialProduct',
       forms: [
         `${namespace}.Configuration`
@@ -24,7 +25,7 @@ module.exports = namespace => {
       type: 'tradle.Model',
       title: 'MyCloud Configuration',
       id: CONFIGURATION,
-      interfaces: [messageInterface],
+      interfaces,
       subClassOf: 'tradle.Form',
       properties: {
         name: {
@@ -81,7 +82,7 @@ module.exports = namespace => {
       type: 'tradle.Model',
       title: 'Product Definition',
       id: PRODUCT_DEF,
-      interfaces: [messageInterface],
+      interfaces,
       subClassOf: 'tradle.Form',
       properties: {
         name: {

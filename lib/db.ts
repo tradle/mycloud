@@ -53,7 +53,7 @@ export = function createDB (opts: {
 
   const messageModel = models['tradle.Message']
   if (!messageModel.isInterface) {
-    const messagesTable = createMessagesTable({ models, tables })
+    const messagesTable = createMessagesTable({ models })
     db.setExclusive({
       model: messageModel,
       table: messagesTable

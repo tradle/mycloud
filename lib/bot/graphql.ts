@@ -116,6 +116,8 @@ export = function setup (opts) {
 
   const loadPayloads = async (messages) => {
     messages = [].concat(messages)
+
+    // maybe better just pre-sign urls
     const payloads = await Promise.all(messages.map(
       msg => objects.get(msg.object._link)
     ))

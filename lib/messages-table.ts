@@ -2,27 +2,28 @@ import clone = require('clone')
 import { createTable, utils } from '@tradle/dynamodb'
 const definitions = require('./definitions')
 
-export function createMessagesTable ({ models, tables }: {
-  models,
-  tables
+export function createMessagesTable ({ models }: {
+  models
 }) {
   const model = models['tradle.Message']
-  const inbox = createTable(definitions.InboxTable.TableName, {
+  const inbox = createTable({
+    bodyInObjects: false,
     models,
     model,
     exclusive: true,
     forbidScan: true,
     readOnly: true,
-    tableDefinition: utils.toDynogelTableDefinition(definitions.InboxTable)
+    tableDefinition: utils.toDynogelTableDefinition(definitions.InboxTable.Properties)
   })
 
-  const outbox = createTable(definitions.OutboxTable.TableName, {
+  const outbox = createTable({
+    bodyInObjects: false,
     models,
     model,
     exclusive: true,
     forbidScan: true,
     readOnly: true,
-    tableDefinition: utils.toDynogelTableDefinition(definitions.OutboxTable)
+    tableDefinition: utils.toDynogelTableDefinition(definitions.OutboxTable.Properties)
   })
 
   const getBoxFromFilter = query => {
@@ -58,7 +59,9 @@ export function createMessagesTable ({ models, tables }: {
     get,
     search: find,
     find,
-    findOne
+    findOne,
+    model,
+    name: 'messageTablePlaceholderName'
   }
 
   ;['put', 'del', 'update', 'batchPut', 'latest'].forEach(method => {
