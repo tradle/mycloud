@@ -1,6 +1,6 @@
 
-const extend = require('xtend/mutable')
-const adapters = require('./blockchain-adapter')
+import extend = require('xtend/mutable')
+import adapters from './blockchain-adapter'
 const curve = 'secp256k1'
 const networks = module.exports = {
   bitcoin: {

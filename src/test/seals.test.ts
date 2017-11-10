@@ -3,26 +3,26 @@ const nock = require('nock')
 require('./env').install()
 
 // const AWS = require('aws-sdk')
-const test = require('tape')
-const sinon = require('sinon')
-const { TYPE } = require('@tradle/constants')
-const utils = require('../utils')
-const crypto = require('../crypto')
-const co = utils.loudCo
-const { wait, deepClone } = utils
+import test = require('tape')
+import sinon = require('sinon')
+import { TYPE } from '@tradle/constants'
+import { wait, deepClone } from '../utils'
+import { addLinks } from '../crypto'
+import adapters from '../blockchain-adapter'
+import { recreateTable } from './utils'
+import Tradle from '../tradle'
 const aliceKeys = require('./fixtures/alice/keys')
-const adapters = require('../blockchain-adapter')
-const { recreateTable } = require('./utils')
-const SealsTableLogicalId = 'SealsTable'
-const { Tradle } = require('../')
-const sealedObj = deepClone(require('./fixtures/bob/identity'))
-crypto.addLinks(sealedObj)
-
+const bobKeys = require('./fixtures/bob/keys')
+const aliceIdentity = require('./fixtures/alice/identity')
+const bobIdentity = require('./fixtures/bob/identity')
+addLinks(aliceIdentity)
+addLinks(bobIdentity)
 const blockchainOpts = {
   flavor: 'ethereum',
   networkName: 'rinkeby'
 }
 
+const SealsTableLogicalId = 'SealsTable'
 const rejectEtherscanCalls = () => {
   nock('http://rinkeby.etherscan.io/')
     .get(uri => uri.startsWith('/api'))
@@ -37,9 +37,64 @@ const rejectEtherscanCalls = () => {
 
 rejectEtherscanCalls()
 
-test('queue seal', co(function* (t) {
+test('handle failed reads/writes', async (t) => {
   const { flavor, networkName } = blockchainOpts
-  const table = yield recreateTable(SealsTableLogicalId)
+  const table = await recreateTable(SealsTableLogicalId)
+  const txId = 'sometxid'
+  const tradle = new Tradle()
+  const { blockchain, seals } = tradle
+  const aliceKey = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
+  const bobKey = bobKeys.find(key => key.type === flavor && key.networkName === networkName)
+  const stubGetTxs = sinon.stub(blockchain, 'getTxsForAddresses').resolves([])
+
+  await seals.create({ key: aliceKey, link: aliceIdentity._link })
+  await seals.watch({ key: bobKey, link: bobIdentity._link })
+
+  let unconfirmed = await seals.getUnconfirmed()
+  t.equal(unconfirmed.length, 1)
+
+  let failedReads = await seals.getFailedReads({ gracePeriod: 1 }) // 1ms
+  t.equal(failedReads.length, 1)
+
+  const stubSeal = sinon.stub(seals.blockchain, 'seal').resolves({ txId: 'sometxid' })
+  await seals.sealPending()
+
+  let failedWrites = await seals.getFailedWrites({ gracePeriod: 1 }) // 1ms
+  t.equal(failedWrites.length, 1)
+
+  let longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1 }) // 1ms
+  t.equal(longUnconfirmed.length, 2)
+
+  const spyBatchPut = sinon.spy(seals.table, 'batchPut')
+  await seals.handleFailures({ gracePeriod: 1 })
+
+  t.equal(spyBatchPut.callCount, 2)
+  spyBatchPut.getCalls().forEach(({ args }) => {
+    const [expired] = args
+    t.equal(expired.length, 1)
+    if (expired[0].link === failedReads[0].link) {
+      t.ok(expired[0].unwatched)
+    } else {
+      t.same(expired[0].link, failedWrites[0].link)
+      t.ok(expired[0].unsealed)
+    }
+  })
+
+  let unsealed = await seals.getUnsealed()
+  t.equal(unsealed.length, 1)
+
+  t.equal(stubSeal.callCount, 1)
+  await seals.sealPending()
+
+  t.equal(stubSeal.callCount, 2)
+
+  t.end()
+})
+
+test('queue seal', async (t) => {
+  const { flavor, networkName } = blockchainOpts
+  const table = await recreateTable(SealsTableLogicalId)
+  const sealedObj = aliceIdentity
   const link = sealedObj._link
   const permalink = sealedObj._permalink
   const txId = 'sometxid'
@@ -54,11 +109,11 @@ test('queue seal', co(function* (t) {
 
   let sealed
   const stubSeal = sinon.stub(blockchain, 'seal')
-    .callsFake(co(function* (sealInfo) {
+    .callsFake(async (sealInfo) => {
       t.same(sealInfo.addresses, [address])
       sealed = true
       return { txId }
-    }))
+    })
 
   const stubGetTxs = sinon.stub(blockchain, 'getTxsForAddresses')
     .callsFake(function (addresses, blockHeight) {
@@ -73,47 +128,55 @@ test('queue seal', co(function* (t) {
       ])
     })
 
-
   const stubObjectsGet = sinon.stub(tradle.objects, 'get')
-    .callsFake(co(function* (_link) {
+    .callsFake(async (_link) => {
       if (_link === link) {
         return sealedObj
       }
 
       throw new Error('NotFound')
-    }))
+    })
 
   const stubObjectsPut = sinon.stub(tradle.objects, 'put')
-    .callsFake(co(function* (object) {
-      t.equal(object._seal.link, sealedObj._link)
+    .callsFake(async (object) => {
+      t.equal(object._seal.link, link)
       t.equal(object._seal.txId, txId)
-    }))
+    })
 
   const stubDBUpdate = sinon.stub(tradle.db, 'update')
-    .callsFake(co(function* (props) {
+    .callsFake(async (props) => {
       t.equal(props[TYPE], sealedObj[TYPE])
-      t.equal(props._permalink, sealedObj._permalink)
-      t.equal(props._seal.link, sealedObj._link)
+      t.equal(props._permalink, permalink)
+      t.equal(props._seal.link, link)
       t.equal(props._seal.txId, txId)
-    }))
+    })
 
-  yield seals.create({ key, link, permalink })
-  let unconfirmed = yield seals.getUnconfirmed()
+  await seals.create({ key, link, permalink })
+  let unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
 
-  let unsealed = yield seals.getUnsealed()
+  let unsealed = await seals.getUnsealed()
   t.equal(unsealed.length, 1)
   t.equal(unsealed[0].address, address)
 
-  yield seals.sealPending()
-  unsealed = yield seals.getUnsealed()
+  await seals.sealPending()
+  unsealed = await seals.getUnsealed()
   t.equal(unsealed.length, 0)
 
-  yield seals.syncUnconfirmed()
-  unconfirmed = yield seals.getUnconfirmed()
+  unconfirmed = await seals.getUnconfirmed()
+  t.equal(unconfirmed.length, 1)
+
+  let longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1 }) // 1ms
+  t.equal(longUnconfirmed.length, 1)
+
+  longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1000 }) // 1s
+  t.equal(longUnconfirmed.length, 0)
+
+  await seals.syncUnconfirmed()
+  unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
 
-  const seal = yield seals.get({ link })
+  const seal = await seals.get({ link })
   t.equal(seal.address, address)
   t.equal(seal.link, link)
 
@@ -126,4 +189,4 @@ test('queue seal', co(function* (t) {
   stubObjectsGet.restore()
   stubDBUpdate.restore()
   t.end()
-}))
+})

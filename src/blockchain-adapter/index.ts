@@ -1,5 +1,5 @@
 // lazy load
-module.exports = {
+export default {
   get bitcoin () {
     return require('./bitcoin')
   },

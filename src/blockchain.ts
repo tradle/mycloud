@@ -5,7 +5,7 @@ import Logger from './logger'
 const { utils, protocol } = require('@tradle/engine')
 const { promisify, typeforce } = require('./utils')
 const { prettify } = require('./string-utils')
-const adapters = require('./blockchain-adapter')
+import adapters from './blockchain-adapter'
 import { IDebug } from './types'
 
 interface IBlockchainIdentifier {
