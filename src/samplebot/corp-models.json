@@ -1,0 +1,3401 @@
+{
+
+  "tradle.BusinessDetails": {
+    "id": "tradle.BusinessDetails",
+    "type": "tradle.Model",
+    "title": "Business Details",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "companyDescription": {
+        "description": "Please provide a brief company description covering the following points:\n\nThe nature of the business (primary activity, incl. products and services, that generate the majority of revenue and primary lines of businesses) and the marketplace needs that the company is trying to satisfy, or for holding companies those of the securities it holds (please include industry classification code where available e.g. NAIC)",
+        "type": "string",
+        "maxLength": 300
+      },
+      "typeOfIdentityDocument": {
+        "type": "object",
+        "ref": "tradle.IdentityDocumentType"
+      },
+      "regulator": {
+        "description": "if the business is regulated, select the regulator (FINMA)",
+        "type": "object",
+        "ref": "tradle.FinanicalRegulator"
+      },
+      "countryOperations": {
+        "description": "Select the countries in which the entity maintains significant operations",
+        "type": "array",
+        "inlined": true,
+        "items": {
+          "ref": "tradle.Country"
+        }
+      },
+      "OFACSanctionScreening": {
+        "description": "Please advise in case the company, including any subsidiaries and affiliates, engages in or expect to engage in activity with a Sanctioned Country/Region (current OFAC Sanctioned Countries/Regions are Cuba, Iran, Syria, Sudan, Crimea and North Korea (countries may be subject to change)",
+        "title": "OFAC Sanction Screening",
+        "type": "string"
+      },
+      "holdingCompany": {
+        "type": "boolean",
+        "description": "\n\n **Is this entity a holding company?**\n\n\n_ No, as it is primarily engaged in administering, overseeing, and managing other establishments of the company or enterprise or securities it holds (Operating company)\n- Yes, it is primarily engaged in holding the securities or other equity interest companies and enterprises for the purpose of owning a controlling interest or influencing the management decisions of these forms"
+      },
+      "AdditionalAssetsAndRevenue": {
+        "description": "provide total assets and total revenue of the legal entity (where financials not available in support documents)",
+        "type": "string"
+      },
+      "PartnerLocations": {
+        "description": "describe and provide geographic location significant supplier and vendor",
+        "type": "string"
+      },
+      "Ownership": {
+        "description": "confirm ownership up to ultimate parent level",
+        "type": "string"
+      },
+      "BearerSharesIssued": {
+        "description": "Have Bearer Shares of 10% or more been issued by the customer",
+        "type": "boolean"
+      },
+      "BearerShares": {
+        "description": "Are Bearer Shares permitted by the customer?",
+        "type": "boolean"
+      },
+      "ownership_group": {
+        "type": "string",
+        "title": "Ownership",
+        "list": [
+          "holdingCompany",
+          "PartnerLocations",
+          "Ownership",
+          "BearerSharesIssued",
+          "BearerShares"
+        ]
+      },
+      "ownership": {
+        "type": "string",
+        "displayAs": "{1}, {2}, {3} {4}, {5}",
+        "group": [
+          "holdingCompany",
+          "PartnerLocations",
+          "Ownership",
+          "BearerSharesIssued",
+          "BearerShares"
+        ],
+        "title": "Ownership",
+        "readOnly": true
+      },
+      "assets_group": {
+        "type": "string",
+        "title": "Assets",
+        "list": [
+          "AdditionalAssetsAndRevenue",
+          "BearerSharesIssued",
+          "BearerShares"
+        ]
+      },
+      "assets": {
+        "type": "string",
+        "displayAs": "{1}, {2}, {3} {4}",
+        "group": [
+          "AdditionalAssetsAndRevenue",
+          "BearerSharesIssued",
+          "BearerShares"
+        ],
+        "title": "Assets",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "companyDescription",
+      "regulator",
+      "countryOperations",
+      "OFACSanctionScreening",
+      "ownership_group",
+      "assets_group"
+    ],
+    "required": [
+      "companyDescription",
+      "countryOperations",
+      "regulator"
+    ],
+    "viewCols": [
+      "companyDescription",
+      "regulator",
+      "countryOperations",
+      "OFACSanctionScreening",
+      "ownership",
+      "assets"
+    ]
+  },
+
+  "tradle.CertificateOfIncorporation": {
+    "id": "tradle.CertificateOfIncorporation",
+    "type": "tradle.Model",
+    "title": "Certificate of Incorporation",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "companyName": {
+        "type": "string"
+      },
+      "companyNumber": {
+        "type": "number",
+        "displayName": true
+      },
+      "dateOfIncorporation": {
+        "type": "date",
+        "maxDate": "today",
+        "minDate": "200 years before"
+      },
+      "issuingCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "photos": {
+        "type": "array",
+        "range": "photo",
+        "title": "Document Snapshots",
+        "inlined": true,
+        "items": {
+          "ref": "tradle.Photo"
+        }
+      }
+    },
+    "editCols": [
+      "companyName",
+      "companyNumber",
+      "dateOfIncorporation",
+      "issuingCountry",
+      "photos"
+    ],
+    "required": [
+      "companyName",
+      "companyNumber",
+      "dateOfIncorporation",
+      "issuingCountry",
+      "photos"
+    ],
+    "viewCols": [
+      "companyName",
+      "companyNumber",
+      "dateOfIncorporation",
+      "issuingCountry",
+      "photos"
+    ]
+  },
+  "tradle.ArticlesOfIncorporation": {
+    "id": "tradle.ArticlesOfIncorporation",
+    "type": "tradle.Model",
+    "title": "Articles of Incorporation",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "domicile": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "photos": {
+        "type": "array",
+        "range": "photo",
+        "title": "Document Snapshots",
+        "inlined": true,
+        "items": {
+          "ref": "tradle.Photo"
+        }
+      }
+    },
+    "editCols": [
+      "domicile",
+      "photos"
+    ],
+    "required": [
+      "domicile",
+      "photos"
+    ],
+    "viewCols": [
+      "domicile",
+      "photos"
+    ]
+  },
+  "tradle.AnnualReport": {
+    "id": "tradle.AnnualReport",
+    "type": "tradle.Model",
+    "title": "Annual Report",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "yearOfReport": {
+        "type": "string"
+      },
+      "photos": {
+        "type": "array",
+        "range": "photo",
+        "title": "Document Snapshots",
+        "inlined": true,
+        "items": {
+          "ref": "tradle.Photo"
+        }
+      }
+    },
+    "editCols": [
+      "yearOfReport",
+      "photos"
+    ],
+    "required": [
+      "yearOfReport",
+      "photos"
+    ],
+    "viewCols": [
+      "yearOfReport",
+      "photos"
+    ]
+  },
+  "tradle.CommercialRegister": {
+    "id": "tradle.CommercialRegister",
+    "type": "tradle.Model",
+    "title": "Commercial Register",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "nameOfRegister": {
+        "type": "string"
+      },
+      "countryOfRegister": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "photos": {
+        "type": "array",
+        "range": "photo",
+        "title": "Document Snapshots",
+        "inlined": true,
+        "items": {
+          "ref": "tradle.Photo"
+        }
+      }
+    },
+    "editCols": [
+      "nameOfRegister",
+      "countryOfRegister",
+      "photos"
+    ],
+    "required": [
+      "nameOfRegister",
+      "countryOfRegister",
+      "photos"
+    ],
+    "viewCols": [
+      "nameOfRegister",
+      "countryOfRegister",
+      "photos"
+    ]
+  },
+  "tradle.W_8BEN_I": {
+    "id": "tradle.W_8BEN_I",
+    "type": "tradle.Model",
+    "title": "FATCA W_8BEN - Part I",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "name": {
+        "type": "string",
+        "description": "Name of individual who is the beneficial owner"
+      },
+      "countryOfCitizenship": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "residentialBuildingNameNumber": {
+        "type": "string",
+        "title": "BuildingNameNumber"
+      },
+      "residentialStreet": {
+        "type": "string"
+      },
+      "residentialCity": {
+        "type": "string"
+      },
+      "residentialPostalCode": {
+        "type": "string"
+      },
+      "residentialCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "mailingBuildingNameNumber": {
+        "type": "string"
+      },
+      "mailingStreet": {
+        "type": "string"
+      },
+      "mailingCity": {
+        "type": "string"
+      },
+      "mailingPostalCode": {
+        "type": "string"
+      },
+      "mailingCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "usTaxId": {
+        "type": "string",
+        "description": "U.S. taxpayer identification number (SSN or ITIN)"
+      },
+      "foreignTaxId": {
+        "type": "string",
+        "description": "Foreign tax identifying number"
+      },
+      "referenceNo": {
+        "type": "string",
+        "description": "Reference number(s)"
+      },
+      "dateOfBirth": {
+        "type": "date",
+        "maxDate": "today",
+        "minDate": "200 years before"
+      },
+      "citizen_group": {
+        "type": "string",
+        "title": "Citizen Details",
+        "list": [
+          "name",
+          "countryOfCitizenship",
+          "usTaxId",
+          "foreignTaxId",
+          "referenceNo",
+          "dateOfBirth"
+        ]
+      },
+      "residential_group": {
+        "type": "string",
+        "title": "Residential Address",
+        "list": [
+          "residentialBuildingNameNumber",
+          "residentialStreet",
+          "residentialCity",
+          "residentialPostalCode",
+          "residentialCountry"
+        ]
+      },
+      "mailing_group": {
+        "type": "string",
+        "title": "Mailing Address",
+        "list": [
+          "mailingBuildingNameNumber",
+          "mailingStreet",
+          "mailingCity",
+          "mailingPostalCode",
+          "mailingCountry"
+        ]
+      },
+      "citizenDetails": {
+        "type": "string",
+        "displayAs": "{1}, {2}, {3} {4} {5} {6}",
+        "group": [
+          "name",
+          "countryOfCitizenship",
+          "usTaxId",
+          "foreignTaxId",
+          "referenceNo",
+          "dateOfBirth"
+        ],
+        "title": "Part I Identification of Beneficial Owner",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "citizen_group",
+      "residential_group",
+      "mailing_group"
+    ],
+    "required": [
+      "name"
+    ],
+    "viewCols": [
+      "citizenDetails",
+      "residential_group",
+      "mailing_group"
+    ]
+  },
+  "tradle.W_8BEN_II": {
+    "id": "tradle.W_8BEN_II",
+    "type": "tradle.Model",
+    "title": "FATCA W_8BEN - Part II",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "certifyThisResidency": {
+        "type": "string",
+        "description": "I certify that the beneficial owner is a resident of the country above within the meaning of the income tax treaty between the United States and that country"
+      },
+      "paragraph": {
+        "type": "string",
+        "description": "The beneficial owner is claiming the provisions of Article and paragraph above of the treaty identified above"
+      },
+      "percentWithholding": {
+        "type": "string",
+        "description": "The beneficial owner is claiming the % rate below of withholding on:"
+      },
+      "typeOfIncome": {
+        "type": "string",
+        "description": "The beneficial owner is claiming the % rate of withholding for the income of type"
+      },
+      "additionalConditions": {
+        "type": "string",
+        "maxLength": 300,
+        "description": "Explain the additional conditions in the Article and paragraph the beneficial owner meets to be eligible for the rate of withholding"
+      },
+      "claim_group": {
+        "type": "string",
+        "title": "Part II _ Claim of Tax Treaty Benefits",
+        "list": [
+          "certifyThisResidency",
+          "paragraph",
+          "percentWithholding",
+          "typeOfIncome",
+          "additionalConditions"
+        ]
+      },
+      "claim": {
+        "type": "string",
+        "group": [
+          "certifyThisResidency",
+          "paragraph",
+          "percentWithholding",
+          "typeOfIncome",
+          "additionalConditions"
+        ],
+        "title": "Part II - Claim of Tax Treaty Benefits",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "claim_group"
+    ],
+    "required": [
+      "certifyThisResidency"
+    ],
+    "viewCols": [
+      "certifyThisResidency",
+      "paragraph",
+      "percentWithholding",
+      "typeOfIncome",
+      "additionalConditions"
+    ]
+  },
+  "tradle.W_8BEN_III": {
+    "id": "tradle.W_8BEN_III",
+    "type": "tradle.Model",
+    "title": "FATCA W_8BEN - Part III",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "fullName": {
+        "type": "string",
+        "description": "Under penalties of perjury, I declare that I have examined the information on this form and to the best of my knowledge and belief it is true, correct, and complete. I further certify under penalties of perjury that:"
+      },
+      "date": {
+        "type": "date"
+      },
+      "actingCapacity": {
+        "type": "string",
+        "description": "Capacity in which acting (if form is not signed by beneficial owner)"
+      },
+      "cert_group": {
+        "type": "string",
+        "title": "Part III _ Certification",
+        "list": [
+          "fullName",
+          "date",
+          "actingCapacity"
+        ]
+      },
+      "cert": {
+        "type": "string",
+        "group": [
+          "fullName",
+          "date",
+          "actingCapacity"
+        ],
+        "title": "Part III - Certification",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "fullName",
+      "date",
+      "actingCapacity"
+    ],
+    "required": [
+      "fullName"
+    ],
+    "viewCols": [
+      "fullName",
+      "date",
+      "actingCapacity"
+    ]
+  },
+  "tradle.W_8BEN_E_I": {
+    "id": "tradle.W_8BEN_E_I",
+    "type": "tradle.Model",
+    "title": "FATCA W_8BEN-E - Part I",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "name": {
+        "type": "string",
+        "description": "Name of organization that is the beneficial owner"
+      },
+      "countryOfIncorporation": {
+        "type": "object",
+        "ref": "tradle.Country",
+        "description": "Country of incorporation or organization"
+      },
+      "residentialBuildingNameNumber": {
+        "type": "string",
+        "title": "BuildingNameNumber"
+      },
+      "residentialStreet": {
+        "type": "string"
+      },
+      "residentialCity": {
+        "type": "string"
+      },
+      "residentialPostalCode": {
+        "type": "string"
+      },
+      "residentialCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "mailingBuildingNameNumber": {
+        "type": "string"
+      },
+      "mailingStreet": {
+        "type": "string"
+      },
+      "mailingCity": {
+        "type": "string"
+      },
+      "mailingPostalCode": {
+        "type": "string"
+      },
+      "mailingCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "citizen_group": {
+        "type": "string",
+        "title": "Citizen Details",
+        "list": [
+          "name",
+          "countryOfIncorporation"
+        ]
+      },
+      "residential_group": {
+        "type": "string",
+        "title": "Residential Address",
+        "list": [
+          "residentialBuildingNameNumber",
+          "residentialStreet",
+          "residentialCity",
+          "residentialPostalCode",
+          "residentialCountry"
+        ]
+      },
+      "mailing_group": {
+        "type": "string",
+        "title": "Mailing Address",
+        "list": [
+          "mailingBuildingNameNumber",
+          "mailingStreet",
+          "mailingCity",
+          "mailingPostalCode",
+          "mailingCountry"
+        ]
+      },
+      "citizenDetails": {
+        "type": "string",
+        "displayAs": "{1}, {2}",
+        "group": [
+          "name",
+          "countryOfIncorporation"
+        ],
+        "title": "Part I Identification of Beneficial Owner",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "citizen_group",
+      "residential_group",
+      "mailing_group"
+    ],
+    "required": [
+      "name"
+    ],
+    "viewCols": [
+      "citizenDetails"
+    ]
+  },
+  "tradle.W_9": {
+    "id": "tradle.W_9",
+    "type": "tradle.Model",
+    "title": "FATCA W_9",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "fullName": {
+        "type": "string",
+        "description": "Name (as shown on your income tax return)"
+      },
+      "businessName": {
+        "type": "string",
+        "description": "Business name/disregarded entity name, if different from above"
+      },
+      "taxClassification": {
+        "type": "object",
+        "description": "Select the federal tax classification",
+        "ref": "tradle.FederalTaxClassification"
+      },
+      "socialSecurityNumber": {
+        "type": "string",
+        "description": "Enter your Taxpayer Identification Number (TIN) in the appropriate box. The TIN provided must match the name given on line 1 to avoid backup withholding. For individuals, this is generally your social security number (SSN)"
+      },
+      "employeeIdentificationNumber": {
+        "type": "string",
+        "description": "For other entities, it is your employer identification number (EIN)"
+      },
+      "date": {
+        "type": "date"
+      }
+    },
+    "editCols": [
+      "fullName",
+      "taxClassification",
+      "socialSecurityNumber",
+      "employeeIdentificationNumber",
+      "date"
+    ],
+    "required": [
+      "fullName"
+    ],
+    "viewCols": [
+      "fullName",
+      "taxClassification",
+      "socialSecurityNumber",
+      "employeeIdentificationNumber",
+      "date"
+    ]
+  },
+  "tradle.FinanicalRegulator": {
+    "id": "tradle.FinanicalRegulator",
+    "title": "Regulator",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "regulator": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "enum": [
+      {
+        "id": "Argentina _ CNV",
+        "title": "Argentina - CNV"
+      },
+      {
+        "id": "Australia - ASIC",
+        "title": "Australia - ASIC"
+      },
+      {
+        "id": "Australia - APRA",
+        "title": "Australia - APRA"
+      },
+      {
+        "id": "Australia - AUSTRAC",
+        "title": "Australia - AUSTRAC"
+      },
+      {
+        "id": "Austria - FMA",
+        "title": "Austria - FMA"
+      },
+      {
+        "id": "Bahamas - SCB",
+        "title": "Bahamas - SCB"
+      },
+      {
+        "id": "Bahrain - CBB",
+        "title": "Bahrain - CBB"
+      },
+      {
+        "id": "Belgium - FSMA",
+        "title": "Belgium - FSMA"
+      },
+      {
+        "id": "Belize - IFSC",
+        "title": "Belize - IFSC"
+      },
+      {
+        "id": "Botswana - NBFIRA",
+        "title": "Botswana - NBFIRA"
+      },
+      {
+        "id": "Brazil - CVM",
+        "title": "Brazil - CVM"
+      },
+      {
+        "id": "British Virgin Islands - FSC",
+        "title": "British Virgin Islands - FSC"
+      },
+      {
+        "id": "Bulgaria - BNB",
+        "title": "Bulgaria - BNB"
+      },
+      {
+        "id": "Canada - IIROC",
+        "title": "Canada - IIROC"
+      },
+      {
+        "id": "Canada - CIPF",
+        "title": "Canada - CIPF"
+      },
+      {
+        "id": "China - CSRC",
+        "title": "China - CSRC"
+      },
+      {
+        "id": "China - FSCEY",
+        "title": "China - FSCEY"
+      },
+      {
+        "id": "Croatia - HANFA",
+        "title": "Croatia - HANFA"
+      },
+      {
+        "id": "Cyprus - CySEC",
+        "title": "Cyprus - CySEC"
+      },
+      {
+        "id": "Czech Republic - CNB",
+        "title": "Czech Republic - CNB"
+      },
+      {
+        "id": "Denmark - DFSA",
+        "title": "Denmark - DFSA"
+      },
+      {
+        "id": "Egypt - EFSA",
+        "title": "Egypt - EFSA"
+      },
+      {
+        "id": "Estonia - FSAEE",
+        "title": "Estonia - FSAEE"
+      },
+      {
+        "id": "Estonia - MKM",
+        "title": "Estonia - MKM"
+      },
+      {
+        "id": "Finland - FINFSA",
+        "title": "Finland - FINFSA"
+      },
+      {
+        "id": "France - AMF",
+        "title": "France - AMF"
+      },
+      {
+        "id": "France - CECEI",
+        "title": "France - CECEI"
+      },
+      {
+        "id": "France - REGAFI",
+        "title": "France - REGAFI"
+      },
+      {
+        "id": "France - ACPR",
+        "title": "France - ACPR"
+      },
+      {
+        "id": "Germany - BaFin",
+        "title": "Germany - BaFin"
+      },
+      {
+        "id": "Gibraltar - FSC",
+        "title": "Gibraltar - FSC"
+      },
+      {
+        "id": "Greece - CMC",
+        "title": "Greece - CMC"
+      },
+      {
+        "id": "Hong Kong - SFC",
+        "title": "Hong Kong - SFC"
+      },
+      {
+        "id": "Hong Kong - FinCom",
+        "title": "Hong Kong - FinCom"
+      },
+      {
+        "id": "Hungary - HFSA",
+        "title": "Hungary - HFSA"
+      },
+      {
+        "id": "Hungary - CBH",
+        "title": "Hungary - CBH"
+      },
+      {
+        "id": "India - SEBI",
+        "title": "India - SEBI"
+      },
+      {
+        "id": "India - CDSL",
+        "title": "India - CDSL"
+      },
+      {
+        "id": "India - NSDL",
+        "title": "India - NSDL"
+      },
+      {
+        "id": "Indonesia - CoFTRA",
+        "title": "Indonesia - CoFTRA"
+      },
+      {
+        "id": "Ireland - CBI",
+        "title": "Ireland - CBI"
+      },
+      {
+        "id": "Israel - ISA",
+        "title": "Israel - ISA"
+      },
+      {
+        "id": "Italy - CONSOB",
+        "title": "Italy - CONSOB"
+      },
+      {
+        "id": "Jamaica - FSC",
+        "title": "Jamaica - FSC"
+      },
+      {
+        "id": "Japan - JSDA",
+        "title": "Japan - JSDA"
+      },
+      {
+        "id": "Japan - FSA",
+        "title": "Japan - FSA"
+      },
+      {
+        "id": "Jordan - JSC",
+        "title": "Jordan - JSC"
+      },
+      {
+        "id": "Kenya - CMA",
+        "title": "Kenya - CMA"
+      },
+      {
+        "id": "Kuwait - KCCI",
+        "title": "Kuwait - KCCI"
+      },
+      {
+        "id": "Latvia - FCMC",
+        "title": "Latvia - FCMC"
+      },
+      {
+        "id": "Lebanon - BDL",
+        "title": "Lebanon - BDL"
+      },
+      {
+        "id": "Lebanon - AFE",
+        "title": "Lebanon - AFE"
+      },
+      {
+        "id": "Lithuania - LSC",
+        "title": "Lithuania - LSC"
+      },
+      {
+        "id": "Malta - MFSA",
+        "title": "Malta - MFSA"
+      },
+      {
+        "id": "Mauritius - FSC",
+        "title": "Mauritius - FSC"
+      },
+      {
+        "id": "Mexico - CNBV",
+        "title": "Mexico - CNBV"
+      },
+      {
+        "id": "Morocco - CDVM",
+        "title": "Morocco - CDVM"
+      },
+      {
+        "id": "Netherlands - AFM",
+        "title": "Netherlands - AFM"
+      },
+      {
+        "id": "New Zealand - FSPR",
+        "title": "New Zealand - FSPR"
+      },
+      {
+        "id": "New Zealand - NZX",
+        "title": "New Zealand - NZX"
+      },
+      {
+        "id": "New Zealand - FDRS",
+        "title": "New Zealand - FDRS"
+      },
+      {
+        "id": "Nicaragua - CIMA",
+        "title": "Nicaragua - CIMA"
+      },
+      {
+        "id": "Norway - NFSA",
+        "title": "Norway - NFSA"
+      },
+      {
+        "id": "Pakistan - SEC",
+        "title": "Pakistan - SEC"
+      },
+      {
+        "id": "Panama - SMV",
+        "title": "Panama - SMV"
+      },
+      {
+        "id": "Philippines - SEC",
+        "title": "Philippines - SEC"
+      },
+      {
+        "id": "Poland - PFSA",
+        "title": "Poland - PFSA"
+      },
+      {
+        "id": "Portugal - CMVM",
+        "title": "Portugal - CMVM"
+      },
+      {
+        "id": "Qatar - QCB",
+        "title": "Qatar - QCB"
+      },
+      {
+        "id": "Romania - CNVMR",
+        "title": "Romania - CNVMR"
+      },
+      {
+        "id": "Russia - FCSM",
+        "title": "Russia - FCSM"
+      },
+      {
+        "id": "Russia - CRFIN",
+        "title": "Russia - CRFIN"
+      },
+      {
+        "id": "Russia - Naufor",
+        "title": "Russia - Naufor"
+      },
+      {
+        "id": "Russia - CROFR",
+        "title": "Russia - CROFR"
+      },
+      {
+        "id": "Russia - CBR",
+        "title": "Russia - CBR"
+      },
+      {
+        "id": "Russia - ARB",
+        "title": "Russia - ARB"
+      },
+      {
+        "id": "Russia - ASROS",
+        "title": "Russia - ASROS"
+      },
+      {
+        "id": "Russia - CROFR (ЦРОФР)",
+        "title": "Russia - CROFR (ЦРОФР)"
+      },
+      {
+        "id": "Saint Vincent and the Grenadines - FSA",
+        "title": "Saint Vincent and the Grenadines - FSA"
+      },
+      {
+        "id": "Saudi Arabia - CMA",
+        "title": "Saudi Arabia - CMA"
+      },
+      {
+        "id": "Singapore - MAS",
+        "title": "Singapore - MAS"
+      },
+      {
+        "id": "South Africa - FSB",
+        "title": "South Africa - FSB"
+      },
+      {
+        "id": "Spain - CNMV",
+        "title": "Spain - CNMV"
+      },
+      {
+        "id": "Sri Lanka - CBSL",
+        "title": "Sri Lanka - CBSL"
+      },
+      {
+        "id": "Sri Lanka - SEC",
+        "title": "Sri Lanka - SEC"
+      },
+      {
+        "id": "Sweden - FSA",
+        "title": "Sweden - FSA"
+      },
+      {
+        "id": "Switzerland - FINMA",
+        "title": "Switzerland - FINMA"
+      },
+      {
+        "id": "Thailand - SCB",
+        "title": "Thailand - SCB"
+      },
+      {
+        "id": "Thailand - BOT",
+        "title": "Thailand - BOT"
+      },
+      {
+        "id": "Turkey - CMB [SPK]",
+        "title": "Turkey - CMB [SPK]"
+      },
+      {
+        "id": "Ukraine - NSSMC",
+        "title": "Ukraine - NSSMC"
+      },
+      {
+        "id": "Ukraine - UCRFIN",
+        "title": "Ukraine - UCRFIN"
+      },
+      {
+        "id": "United Arab Emirates - DFSA",
+        "title": "United Arab Emirates - DFSA"
+      },
+      {
+        "id": "United Arab Emirates - U.A.E",
+        "title": "United Arab Emirates - U.A.E"
+      },
+      {
+        "id": "United Arab Emirates - SCA",
+        "title": "United Arab Emirates - SCA"
+      },
+      {
+        "id": "United Kingdom - FCA",
+        "title": "United Kingdom - FCA"
+      },
+      {
+        "id": "United States - CFTC",
+        "title": "United States - CFTC"
+      },
+      {
+        "id": "United States - FINRA",
+        "title": "United States - FINRA"
+      },
+      {
+        "id": "United States - NFA",
+        "title": "United States - NFA"
+      },
+      {
+        "id": "United States - SEC",
+        "title": "United States - SEC"
+      },
+      {
+        "id": "United States - SIPC",
+        "title": "United States - SIPC"
+      },
+      {
+        "id": "United States - FDIC",
+        "title": "United States - FDIC"
+      },
+      {
+        "id": "United States - FATCA",
+        "title": "United States - FATCA"
+      },
+      {
+        "id": "Vanuatu - VFSC",
+        "title": "Vanuatu - VFSC"
+      }
+    ]
+  },
+  "tradle.BusinessActivity": {
+    "id": "tradle.BusinessActivity",
+    "type": "tradle.Model",
+    "title": "Business Activity",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "businessActivity": {
+        "description": "select the areas of business",
+        "type": "array",
+        "inlined": true,
+        "items": {
+          "ref": "tradle.BusinessArea"
+        }
+      }
+    },
+    "editCols": [
+      "businessActivity"
+    ],
+    "required": [
+      "businessActivity"
+    ],
+    "viewCols": [
+      "businessActivity"
+    ]
+  },
+  "tradle.BusinessArea": {
+    "id": "tradle.BusinessArea",
+    "title": "Business Area",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "BusinessArea": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "BusinessArea"
+    ],
+    "enum": [
+      {
+        "id": "Bearer Share Corporations",
+        "title": "Bearer Share Corporations"
+      },
+      {
+        "id": "Broker / Dealers",
+        "title": "Broker / Dealers"
+      },
+      {
+        "id": "Casinos or Other Gaming Institutions",
+        "title": "Casinos or Other Gaming Institutions"
+      },
+      {
+        "id": "Charitable Organizations or Foundations",
+        "title": "Charitable Organizations or Foundations"
+      },
+      {
+        "id": "Correspondent Banks",
+        "title": "Correspondent Banks"
+      },
+      {
+        "id": "Endowments",
+        "title": "Endowments"
+      },
+      {
+        "id": "Government Entities",
+        "title": "Government Entities"
+      },
+      {
+        "id": "Hedge Funds",
+        "title": "Hedge Funds"
+      },
+      {
+        "id": "High Net Worth Individuals",
+        "title": "High Net Worth Individuals"
+      },
+      {
+        "id": "Individuals",
+        "title": "Individuals"
+      },
+      {
+        "id": "Insurance Companies",
+        "title": "Insurance Companies"
+      },
+      {
+        "id": "Medium/Large Corporations",
+        "title": "Medium/Large Corporations"
+      },
+      {
+        "id": "Money Service Businesses",
+        "title": "Money Service Businesses"
+      },
+      {
+        "id": "Mutual Funds",
+        "title": "Mutual Funds"
+      },
+      {
+        "id": "Partnerships",
+        "title": "Partnerships"
+      },
+      {
+        "id": "Pensions",
+        "title": "Pensions"
+      },
+      {
+        "id": "Related Companies Only",
+        "title": "Related Companies Only"
+      },
+      {
+        "id": "Retail Businesses",
+        "title": "Retail Businesses"
+      },
+      {
+        "id": "Small Businesses",
+        "title": "Small Businesses"
+      },
+      {
+        "id": "Trusts",
+        "title": "Trusts"
+      },
+      {
+        "id": "Other",
+        "title": "Other"
+      }
+    ]
+  },
+  "tradle.FederalTaxClassification": {
+    "id": "tradle.FederalTaxClassification",
+    "title": "Federal Tax Classification",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "classification": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "classification"
+    ],
+    "enum": [
+      {
+        "id": "Individual/sole proprietor or single_member LLC",
+        "title": "Individual/sole proprietor or single-member LLC"
+      },
+      {
+        "id": "C Corporation",
+        "title": "C Corporation"
+      },
+      {
+        "id": "S Corporation",
+        "title": "S Corporation"
+      },
+      {
+        "id": "Partnership",
+        "title": "Partnership"
+      },
+      {
+        "id": "Trust/estate",
+        "title": "Trust/estate"
+      },
+      {
+        "id": "Limited liability company",
+        "title": "Limited liability company"
+      }
+    ]
+  },
+  "tradle.PersonalAccountPayPal": {
+    "id": "tradle.PersonalAccountPayPal",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "title": "Personal Account for PayPal",
+    "type": "tradle.Model",
+    "subClassOf": "tradle.FinancialProduct",
+    "customerCanHaveMultiple": true,
+    "forms": [
+      "pp.tradle.PersonalInfo",
+      "tradle.PhotoID",
+      "tradle.Selfie"
+    ],
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      }
+    }
+  },
+  "tradle.BusinessAccountPayPal": {
+    "id": "tradle.BusinessAccountPayPal",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "title": "Business Account for PayPal",
+    "type": "tradle.Model",
+    "subClassOf": "tradle.FinancialProduct",
+    "customerCanHaveMultiple": true,
+    "forms": [
+      "pp.tradle.PersonalInfo",
+      "tradle.PhotoID",
+      "tradle.Selfie",
+      "tradle.BusinessDetail"
+    ],
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      }
+    }
+  },
+  "tradle.BusinessDetail": {
+    "id": "tradle.BusinessDetail",
+    "type": "tradle.Model",
+    "title": "Business Detail",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "businessType": {
+        "description": "Select the type of business",
+        "type": "object",
+        "ref": "pp.tradle.BusinessType"
+      },
+      "BusinessCategory": {
+        "description": "Select the category of business",
+        "type": "object",
+        "ref": "tradle.BusinessCategory"
+      },
+      "taxDeclaration": {
+        "type": "boolean",
+        "description": "**To comply with tax laws**\n we’re required to ask our customers specific questions about their organisations. In 2016, did your organisation earn 50% or more of its gross income from dividends, interest, rents, royalties or similar sources?"
+      },
+      "assetDeclaration": {
+        "type": "boolean",
+        "description": "Are 50% or more of your organisation's assets held in real estate, bank accounts, shares, stocks, bonds, intellectual property or similar income_producing investments?"
+      },
+      "notForProfit": {
+        "type": "boolean",
+        "description": "Is your organisation a not-for-profit organisation that meets all of these requirements? It operates only for religious, charitable, scientific, artistic, cultural or educational purposes. It is exempt from income tax. It has no owners who are entitled to its income or assets, even if it is dissolved."
+      },
+      "beneficialOwners": {
+        "type": "boolean",
+        "description": "Does your organisation have beneficial owners who own or control, directly or indirectly, more than 10% of shares, voting rights or profit and capital interests in your organisation?"
+      },
+      "ownership_group": {
+        "type": "string",
+        "title": "Ownership",
+        "list": [
+          "businessType",
+          "BusinessCategory",
+          "taxDeclaration",
+          "assetDeclaration",
+          "notForProfit",
+          "beneficialOwners"
+        ]
+      },
+      "ownership": {
+        "type": "string",
+        "displayAs": "{1}, {2}, {3} {4}, {5}",
+        "group": [
+          "businessType",
+          "BusinessCategory",
+          "taxDeclaration",
+          "assetDeclaration",
+          "notForProfit",
+          "beneficialOwners"
+        ],
+        "title": "Ownership",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "businessType",
+      "BusinessCategory",
+      "taxDeclaration",
+      "assetDeclaration",
+      "notForProfit",
+      "beneficialOwners"
+    ],
+    "required": [
+      "businessType",
+      "BusinessCategory",
+      "taxDeclaration"
+    ],
+    "viewCols": [
+      "businessType",
+      "BusinessCategory",
+      "taxDeclaration",
+      "assetDeclaration",
+      "notForProfit",
+      "beneficialOwners"
+    ]
+  },
+  "tradle.BusinessCategory": {
+    "id": "tradle.BusinessCategory",
+    "title": "Business Category",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "businessCategory": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "businessCategory"
+    ],
+    "enum": [
+      {
+        "id": "Arts, crafts and collectables",
+        "title": "Arts, crafts and collectables"
+      },
+      {
+        "id": "Baby",
+        "title": "Baby"
+      },
+      {
+        "id": "Beauty and fragrances",
+        "title": "Beauty and fragrances"
+      },
+      {
+        "id": "Books and magazines",
+        "title": "Books and magazines"
+      },
+      {
+        "id": "Business to business",
+        "title": "Business to business"
+      },
+      {
+        "id": "Clothing, accessories and shoes",
+        "title": "Clothing, accessories and shoes"
+      },
+      {
+        "id": "Computers, accessories and services",
+        "title": "Computers, accessories and services"
+      },
+      {
+        "id": "Education",
+        "title": "Education"
+      },
+      {
+        "id": "Electronics and telecom",
+        "title": "Electronics and telecom"
+      },
+      {
+        "id": "Entertainment and media",
+        "title": "Entertainment and media"
+      },
+      {
+        "id": "Financial services and products",
+        "title": "Financial services and products"
+      },
+      {
+        "id": "Food retail and service",
+        "title": "Food retail and service"
+      },
+      {
+        "id": "Gifts and flowers",
+        "title": "Gifts and flowers"
+      },
+      {
+        "id": "Government",
+        "title": "Government"
+      },
+      {
+        "id": "Health and personal care",
+        "title": "Health and personal care"
+      },
+      {
+        "id": "Home and garden",
+        "title": "Home and garden"
+      },
+      {
+        "id": "Not_for-profit organisation",
+        "title": "Not-for-profit organisation"
+      },
+      {
+        "id": "Pets and animals",
+        "title": "Pets and animals"
+      },
+      {
+        "id": "Religion and spirituality (for profit)",
+        "title": "Religion and spirituality (for profit)"
+      },
+      {
+        "id": "Retail (not elsewhere classified)",
+        "title": "Retail (not elsewhere classified)"
+      },
+      {
+        "id": "Services – other",
+        "title": "Services – other"
+      },
+      {
+        "id": "Sports and outdoors",
+        "title": "Sports and outdoors"
+      },
+      {
+        "id": "Toys and hobbies",
+        "title": "Toys and hobbies"
+      },
+      {
+        "id": "Travel",
+        "title": "Travel"
+      },
+      {
+        "id": "Vehicle sales",
+        "title": "Vehicle sales"
+      },
+      {
+        "id": "Vehicle service and accessories",
+        "title": "Vehicle service and accessories"
+      }
+    ]
+  },
+  "pp.tradle.BusinessType": {
+    "id": "pp.tradle.BusinessType",
+    "title": "Business Type",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "classification": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "classification"
+    ],
+    "enum": [
+      {
+        "id": "Individual",
+        "title": "Individual"
+      },
+      {
+        "id": "Proprietorship",
+        "title": "Proprietorship"
+      },
+      {
+        "id": "Partnership",
+        "title": "Partnership"
+      },
+      {
+        "id": "Corporation",
+        "title": "Corporation"
+      },
+      {
+        "id": "Private Corporation",
+        "title": "Private Corporation"
+      },
+      {
+        "id": "Non Profit",
+        "title": "Non Profit"
+      },
+      {
+        "id": "Government",
+        "title": "Government"
+      }
+    ]
+  },
+  "pp.tradle.PersonalInfo": {
+    "id": "pp.tradle.PersonalInfo",
+    "title": "Personal Info",
+    "interfaces": [
+      "tradle.Message",
+      "tradle.Verifiable"
+    ],
+    "subClassOf": "tradle.Form",
+    "type": "tradle.Model",
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "firstName": {
+        "type": "string"
+      },
+      "lastName": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string",
+        "displayAs": "{2} {1}",
+        "group": [
+          "lastName",
+          "firstName"
+        ],
+        "readOnly": true,
+        "displayName": true
+      },
+      "dateOfBirth": {
+        "type": "date",
+        "maxDate": "18 years before",
+        "minDate": "110 years before"
+      },
+      "name_group": {
+        "type": "string",
+        "title": "Personal detail",
+        "list": [
+          "firstName",
+          "lastName",
+          "emailAddress",
+          "dateOfBirth"
+        ]
+      },
+      "street": {
+        "type": "string"
+      },
+      "houseNumber": {
+        "type": "string",
+        "pattern": "^[a_zA-Z0-9.-]*$"
+      },
+      "city": {
+        "type": "string"
+      },
+      "postalCode": {
+        "type": "string"
+      },
+      "country": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "phones": {
+        "type": "array",
+        "inlined": true,
+        "items": {
+          "ref": "tradle.Phone"
+        }
+      },
+      "emailAddress": {
+        "type": "string",
+        "pattern": "^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@((\\[[0_9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$",
+        "keyboard": "email-address",
+        "range": "email"
+      }
+    },
+    "editCols": [
+      "name_group",
+      "phones"
+    ],
+    "required": [
+      "firstName",
+      "lastName",
+      "dateOfBirth",
+      "phones"
+    ],
+    "viewCols": [
+      "name_group",
+      "name",
+      "dateOfBirth",
+      "phones"
+    ]
+  },
+  "san.tradle.ClientInformation": {
+    "id": "san.tradle.ClientInformation",
+    "title": "Client Information",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "subClassOf": "tradle.Form",
+    "type": "tradle.Model",
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "companyName": {
+        "type": "string"
+      },
+      "registrationNumber": {
+        "type": "string"
+      },
+      "businessEntity": {
+        "type": "object",
+        "ref": "tradle.BusinessEntity"
+      },
+      "companyDetails_group": {
+        "type": "string",
+        "title": "Company Details",
+        "list": [
+          "companyName",
+          "businessEntity",
+          "registrationNumber"
+        ]
+      },
+      "address": {
+        "type": "string"
+      },
+      "address2": {
+        "type": "string"
+      },
+      "address3": {
+        "type": "string"
+      },
+      "city": {
+        "type": "string"
+      },
+      "postcode": {
+        "type": "string"
+      },
+      "country": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "companyAddress_group": {
+        "type": "string",
+        "title": "Company Address",
+        "list": [
+          "address",
+          "address2",
+          "address3",
+          "city",
+          "postcode",
+          "country"
+        ]
+      },
+      "swiftCode": {
+        "type": "string"
+      },
+      "natureOfCompany": {
+        "type": "string"
+      },
+      "dateOfFormation": {
+        "type": "date"
+      }
+    },
+    "required": [
+      "companyName"
+    ],
+    "viewCols": [
+      "companyDetails_group",
+      "companyAddress_group",
+      "address",
+      "address2",
+      "address3",
+      "city",
+      "postcode",
+      "country"
+    ]
+  },
+  "san.tradle.mifid": {
+    "id": "san.tradle.mifid",
+    "title": "MIFID Categorisation",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "subClassOf": "tradle.Form",
+    "type": "tradle.Model",
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "mifidProduct": {
+        "type": "boolean",
+        "title": "Is this for a MIFID product?"
+      },
+      "mifidCategorisation": {
+        "type": "object",
+        "ref": "tradle.MifidCategory"
+      },
+      "contactEmailAddress": {
+        "type": "string",
+        "pattern": "^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@((\\[[0_9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$",
+        "keyboard": "email-address"
+      }
+    },
+    "required": [
+      "mifidCategorisation"
+    ],
+    "viewCols": [
+      "mifidProduct",
+      "mifidCategorisation",
+      "contactEmailAddress"
+    ]
+  },
+  "tradle.BusinessEntity": {
+    "id": "tradle.BusinessEntity",
+    "title": "Business Entity",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "entityType": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "enum": [
+      {
+        "id": "plcs",
+        "title": "Private Company Limited by Shares"
+      },
+      {
+        "id": "plcg",
+        "title": "Private Company Limited by Guarantee"
+      },
+      {
+        "id": "rmplc",
+        "title": "Ready Made Private Limited Company"
+      },
+      {
+        "id": "pulc",
+        "title": "Public Limited Company"
+      },
+      {
+        "id": "llp",
+        "title": "Limited Liability Partnership"
+      }
+    ]
+  },
+  "tradle.MifidCategory": {
+    "id": "tradle.MifidCategory",
+    "title": "Business Entity",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "category": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "enum": [
+      {
+        "id": "professional",
+        "title": "Professional client"
+      },
+      {
+        "id": "ecp",
+        "title": "Eligible counterparty"
+      },
+      {
+        "id": "rcp",
+        "title": "Retail counterparty"
+      }
+    ]
+  },
+    "tradle.TaxChooser_Individual": {
+    "id": "tradle.TaxChooser_Individual",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "title": "Self Assessment Tax Chooser_Individual",
+    "type": "tradle.Model",
+    "subClassOf": "tradle.FinancialProduct",
+    "customerCanHaveMultiple": true,
+    "forms": [
+      "tradle.CRS_Individual_1",
+      "tradle.CRS_Individual_2",
+      "tradle.TaxResidency_I",
+      "tradle.CRS_Individual_3"
+    ],
+    "multiEntryForms": [
+      "tradle.TaxResidency_I"
+    ],
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      }
+    }
+  },
+  "tradle.TaxChooser_ControllingPerson": {
+    "id": "tradle.TaxChooser_ControllingPerson",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "title": "Self Assessment Tax Chooser_ControllingPerson",
+    "type": "tradle.Model",
+    "subClassOf": "tradle.FinancialProduct",
+    "customerCanHaveMultiple": true,
+    "forms": [
+      "tradle.CRS_ControllingPerson_1",
+      "tradle.CRS_NameOfEntity",
+      "tradle.CRS_ControllingPerson_2",
+      "tradle.TaxResidency_CP",
+      "tradle.CRS_ControllingPerson_3"
+    ],
+    "multiEntryForms": [
+      "tradle.CRS_NameOfEntity",
+      "tradle.TaxResidency_CP"
+    ],
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      }
+    }
+  },
+  "tradle.TaxChooser_Entity": {
+    "id": "tradle.TaxChooser_Entity",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "title": "Entity tax residency self_certification",
+    "type": "tradle.Model",
+    "subClassOf": "tradle.FinancialProduct",
+    "customerCanHaveMultiple": true,
+    "forms": [
+      "tradle.CRS_EntityTaxResidency_1",
+      "tradle.CRS_EntityType_2",
+      "tradle.CRS_AccountHolderResidency_3",
+      "tradle.TaxResidency_E",
+      "tradle.CRS_Entity_4"
+    ],
+    "multiEntryForms": [
+      "tradle.TaxResidency_E"
+    ],
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      }
+    }
+  },
+  "tradle.CRS_Individual_1": {
+    "id": "tradle.CRS_Individual_1",
+    "type": "tradle.Model",
+    "title": "Part 1 – Identification of Individual Account Holder",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "surname": {
+        "type": "string",
+        "description": "family name or surname"
+      },
+      "title": {
+        "type": "string"
+      },
+      "firstName": {
+        "type": "string"
+      },
+      "middleName": {
+        "type": "string"
+      },
+      "residentialBuildingNameNumber": {
+        "type": "string",
+        "title": "BuildingNameNumber"
+      },
+      "residentialStreet": {
+        "type": "string"
+      },
+      "residentialCity": {
+        "type": "string"
+      },
+      "residentialPostalCode": {
+        "type": "string"
+      },
+      "residentialCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "mailingBuildingNameNumber": {
+        "type": "string"
+      },
+      "mailingStreet": {
+        "type": "string"
+      },
+      "mailingCity": {
+        "type": "string"
+      },
+      "mailingPostalCode": {
+        "type": "string"
+      },
+      "mailingCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "dateOfBirth": {
+        "type": "date",
+        "maxDate": "today",
+        "minDate": "200 years before"
+      },
+      "placeOfBirth": {
+        "type": "string",
+        "description": "town or city of birth"
+      },
+      "countryOfBirth": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "name_group": {
+        "type": "string",
+        "title": "A. Name of Account Holder",
+        "list": [
+          "surname",
+          "title",
+          "firstName",
+          "middleName"
+        ]
+      },
+      "residential_group": {
+        "type": "string",
+        "title": "B. Residential Address",
+        "list": [
+          "residentialBuildingNameNumber",
+          "residentialStreet",
+          "residentialCity",
+          "residentialPostalCode",
+          "residentialCountry"
+        ]
+      },
+      "mailing_group": {
+        "type": "string",
+        "title": "C. Mailing Address",
+        "list": [
+          "mailingBuildingNameNumber",
+          "mailingStreet",
+          "mailingCity",
+          "mailingPostalCode",
+          "mailingCountry"
+        ]
+      },
+      "birth_group": {
+        "type": "string",
+        "title": "D. Birth details",
+        "list": [
+          "dateOfBirth",
+          "placeOfBirth",
+          "countryOfBirth"
+        ]
+      },
+      "nameDetails": {
+        "type": "string",
+        "displayAs": "{1}, {2}, {3}, {4}",
+        "group": [
+          "surname",
+          "title",
+          "firstName",
+          "middleName"
+        ],
+        "title": "Part I Identification of Beneficial Owner",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "name_group",
+      "residential_group",
+      "mailing_group",
+      "birth_group"
+    ],
+    "required": [
+      "surname"
+    ],
+    "viewCols": [
+      "nameDetails"
+    ]
+  },
+  "tradle.CRS_Individual_2": {
+    "id": "tradle.CRS_Individual_2",
+    "type": "tradle.Model",
+    "title": "Part 2 – Country of Residence for Tax Purposes",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "TaxRes": {
+        "type": "string"
+      },
+      "taxResidency_I": {
+        "type": "array",
+        "icon": "ios_cash-outline",
+        "title": "Tax Residence",
+        "allowToAdd": true,
+        "items": {
+          "backlink": "TaxResidency",
+          "ref": "tradle.TaxResidency_I"
+        }
+      }
+    }
+  },
+  "tradle.TaxResidency_I": {
+    "id": "tradle.TaxResidency_I",
+    "type": "tradle.Model",
+    "title": "Tax Residency",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message",
+      "tradle.Item"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "countryOfTaxResidence": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "TIN": {
+        "type": "string",
+        "title": "Taxpayer Identification Number"
+      },
+      "TaxResidency": {
+        "type": "object",
+        "title": "Tax Residency",
+        "readOnly": true,
+        "ref": "tradle.CRS_Individual_2"
+      },
+      "NoTIN": {
+        "description": "Select reason if you can't supply a Taxpayer Identification Number or equivalent number",
+        "type": "object",
+        "ref": "tradle.IfNoTIN"
+      },
+      "reasonForB": {
+        "type": "string",
+        "description": "If you selected Reason B explain why you are unable to obtain a TIN"
+      }
+    }
+  },
+  "tradle.IfNoTIN": {
+    "id": "tradle.IfNoTIN",
+    "title": "If No TIN",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "classification": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "classification"
+    ],
+    "enum": [
+      {
+        "id": "Reason A",
+        "title": "Reason A _ The country where the Account Holder is liable to pay tax does not issue TINs to its residents"
+      },
+      {
+        "id": "Reason B",
+        "title": "Reason B - The Account Holder is otherwise unable to obtain a TIN or equivalent number(Please explain why you are unable to obtain a TIN in the below table if you have selected this reason)"
+      },
+      {
+        "id": "Reason C",
+        "title": "Reason C - No TIN is required."
+      }
+    ]
+  },
+  "tradle.CRS_Individual_3": {
+    "id": "tradle.CRS_Individual_3",
+    "type": "tradle.Model",
+    "title": "Part 3 – Declaration",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "declaration": {
+        "type": "boolean",
+        "title": "Declaration",
+        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self_certification and Declaration within [up to XX] days of such change in circumstances."
+      },
+      "capacity": {
+        "type": "string",
+        "description": "Note: If you are not the Account Holder please indicate the capacity in which you are signing the form. If signing under a power of attorney please also attach a certified copy of the power of attorney."
+      }
+    },
+    "viewCols": [
+      "declaration",
+      "capacity"
+    ]
+  },
+  "tradle.CRS_ControllingPerson_1": {
+    "id": "tradle.CRS_ControllingPerson_1",
+    "type": "tradle.Model",
+    "title": "Part 1 – Identification of a Controlling Person",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "surname": {
+        "type": "string",
+        "description": "family name or surname"
+      },
+      "title": {
+        "type": "string"
+      },
+      "firstName": {
+        "type": "string"
+      },
+      "middleName": {
+        "type": "string"
+      },
+      "residentialBuildingNameNumber": {
+        "type": "string",
+        "title": "BuildingNameNumber"
+      },
+      "residentialStreet": {
+        "type": "string"
+      },
+      "residentialCity": {
+        "type": "string"
+      },
+      "residentialPostalCode": {
+        "type": "string"
+      },
+      "residentialCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "mailingBuildingNameNumber": {
+        "type": "string"
+      },
+      "mailingStreet": {
+        "type": "string"
+      },
+      "mailingCity": {
+        "type": "string"
+      },
+      "mailingPostalCode": {
+        "type": "string"
+      },
+      "mailingCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "dateOfBirth": {
+        "type": "date",
+        "maxDate": "today",
+        "minDate": "200 years before"
+      },
+      "placeOfBirth": {
+        "type": "string",
+        "description": "town or city of birth"
+      },
+      "countryOfBirth": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "legalEntity": {
+        "type": "array",
+        "icon": "ios_cash-outline",
+        "title": "Legal Entity",
+        "allowToAdd": true,
+        "items": {
+          "backlink": "entityName",
+          "ref": "tradle.CRS_NameOfEntity"
+        }
+      },
+      "name_group": {
+        "type": "string",
+        "title": "A. Name of Controlling Person",
+        "list": [
+          "surname",
+          "title",
+          "firstName",
+          "middleName"
+        ]
+      },
+      "residential_group": {
+        "type": "string",
+        "title": "B. Residential Address",
+        "list": [
+          "residentialBuildingNameNumber",
+          "residentialStreet",
+          "residentialCity",
+          "residentialPostalCode",
+          "residentialCountry"
+        ]
+      },
+      "mailing_group": {
+        "type": "string",
+        "title": "C. Mailing Address",
+        "list": [
+          "mailingBuildingNameNumber",
+          "mailingStreet",
+          "mailingCity",
+          "mailingPostalCode",
+          "mailingCountry"
+        ]
+      },
+      "birth_group": {
+        "type": "string",
+        "title": "D. Birth details",
+        "list": [
+          "dateOfBirth",
+          "placeOfBirth",
+          "countryOfBirth"
+        ]
+      },
+      "nameDetails": {
+        "type": "string",
+        "displayAs": "{1}, {2}, {3}, {4}",
+        "group": [
+          "surname",
+          "title",
+          "firstName",
+          "middleName"
+        ],
+        "title": "Part I Identification of Beneficial Owner",
+        "readOnly": true
+      }
+    },
+    "editCols": [
+      "name_group",
+      "residential_group",
+      "mailing_group",
+      "birth_group"
+    ],
+    "required": [
+      "surname"
+    ],
+    "viewCols": [
+      "nameDetails"
+    ]
+  },
+  "tradle.CRS_ControllingPerson_2": {
+    "id": "tradle.CRS_ControllingPerson_2",
+    "type": "tradle.Model",
+    "title": "Part 2 – Country of Residence for Tax Purposes",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "taxResidency": {
+        "type": "array",
+        "icon": "ios_cash-outline",
+        "title": "Tax Residence",
+        "allowToAdd": true,
+        "items": {
+          "backlink": "TaxResidency",
+          "ref": "tradle.TaxResidency_CP"
+        }
+      }
+    }
+  },
+  "tradle.TaxResidency_CP": {
+    "id": "tradle.TaxResidency_CP",
+    "type": "tradle.Model",
+    "title": "Tax Residency",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message",
+      "tradle.Item"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "countryOfTaxResidence": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "TIN": {
+        "type": "string",
+        "title": "Taxpayer Identification Number"
+      },
+      "TaxResidency": {
+        "type": "object",
+        "title": "Tax Residency",
+        "readOnly": true,
+        "ref": "tradle.CRS_ControllingPerson_2"
+      },
+      "NoTIN": {
+        "description": "Select reason if you can't supply a Taxpayer Identification Number or equivalent number",
+        "type": "object",
+        "ref": "tradle.IfNoTIN"
+      },
+      "reasonForB": {
+        "type": "string",
+        "description": "If you selected Reason B explain why you are unable to obtain a TIN"
+      }
+    },
+    "required": [
+      "TIN"
+    ]
+  },
+  "tradle.CRS_ControllingPerson_3": {
+    "id": "tradle.CRS_ControllingPerson_3",
+    "type": "tradle.Model",
+    "title": "Part 3 – Declaration",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "declaration": {
+        "type": "boolean",
+        "title": "Declaration",
+        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self_certification and Declaration within [up to XX] days of such change in circumstances."
+      },
+      "capacity": {
+        "type": "string",
+        "description": "Note: If you are not the Account Holder please indicate the capacity in which you are signing the form. If signing under a power of attorney please also attach a certified copy of the power of attorney."
+      }
+    },
+    "viewCols": [
+      "declaration",
+      "capacity"
+    ]
+  },
+  "tradle.CRS_NameOfEntity": {
+    "id": "tradle.CRS_NameOfEntity",
+    "type": "tradle.Model",
+    "title": "Name Of Entity",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message",
+      "tradle.Item"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "NameOfEntity": {
+        "type": "string",
+        "description": "Please enter the legal name of the relevant entity Account Holder(s) of which you are a Controlling Person"
+      },
+      "typeOfControllingPerson": {
+        "type": "object",
+        "ref": "tradle.CRS_TypeOfControllingPerson"
+      },
+      "entityName": {
+        "type": "array",
+        "icon": "ios_cash-outline",
+        "title": "Name of Entity",
+        "allowToAdd": true,
+        "items": {
+          "backlink": "entityName",
+          "ref": "tradle.CRS_ControllingPerson_1"
+        }
+      }
+    },
+    "required": [
+      "NameOfEntity"
+    ]
+  },
+  "tradle.CRS_TypeOfControllingPerson": {
+    "id": "tradle.CRS_TypeOfControllingPerson",
+    "title": "Type Of Controlling Person",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "classification": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "classification"
+    ],
+    "enum": [
+      {
+        "id": "a control by ownership",
+        "title": "a. Controlling Person of a legal person – control by ownership"
+      },
+      {
+        "id": "b control by other means",
+        "title": "b. Controlling Person of a legal person – control by other means"
+      },
+      {
+        "id": "c senior managing official",
+        "title": "c. Controlling Person of a legal person – senior managing official"
+      },
+      {
+        "id": "d settlor",
+        "title": "d. Controlling Person of a trust _ settlor"
+      },
+      {
+        "id": "e trustee",
+        "title": "e. Controlling Person of a trust – trustee"
+      },
+      {
+        "id": "f protector",
+        "title": "f. Controlling Person of a trust – protector"
+      },
+      {
+        "id": "g beneficiary",
+        "title": "g. Controlling Person of a trust – beneficiary"
+      },
+      {
+        "id": "h other",
+        "title": "h. Controlling Person of a trust – other"
+      },
+      {
+        "id": "i settlor-equivalent",
+        "title": "i. Controlling Person of a legal arrangement (non-trust) – settlor-equivalent"
+      },
+      {
+        "id": "j trustee-equivalent",
+        "title": "j. Controlling Person of a legal arrangement (non-trust) – trustee-equivalent"
+      },
+      {
+        "id": "k protector-equivalent",
+        "title": "k. Controlling Person of a legal arrangement (non-trust) – protector-equivalent"
+      },
+      {
+        "id": "l beneficiary-equivalent",
+        "title": "l. Controlling Person of a legal arrangement (non-trust) – beneficiary-equivalent"
+      },
+      {
+        "id": "m other-equivalent",
+        "title": "m. Controlling Person of a legal arrangement (non-trust) – other-equivalent"
+      }
+    ]
+  },
+  "tradle.CRS_EntityTaxResidency_1": {
+    "id": "tradle.CRS_EntityTaxResidency_1",
+    "type": "tradle.Model",
+    "title": "Part 1 – Identification of Account Holder",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "entityName": {
+        "type": "string"
+      },
+      "countryOfIncorporation": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "residentialBuildingNameNumber": {
+        "type": "string",
+        "title": "BuildingNameNumber"
+      },
+      "residentialStreet": {
+        "type": "string"
+      },
+      "residentialCity": {
+        "type": "string"
+      },
+      "residentialPostalCode": {
+        "type": "string"
+      },
+      "residentialCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "mailingBuildingNameNumber": {
+        "type": "string"
+      },
+      "mailingStreet": {
+        "type": "string"
+      },
+      "mailingCity": {
+        "type": "string"
+      },
+      "mailingPostalCode": {
+        "type": "string"
+      },
+      "mailingCountry": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "name_group": {
+        "type": "string",
+        "title": "A. Legal Name of Entity/Branch*",
+        "list": [
+          "entityName"
+        ]
+      },
+      "country_group": {
+        "type": "string",
+        "title": "B. Country of incorporation or organisation",
+        "list": [
+          "countryOfIncorporation"
+        ]
+      },
+      "residential_group": {
+        "type": "string",
+        "title": "B. Residential Address",
+        "list": [
+          "residentialBuildingNameNumber",
+          "residentialStreet",
+          "residentialCity",
+          "residentialPostalCode",
+          "residentialCountry"
+        ]
+      },
+      "mailing_group": {
+        "type": "string",
+        "title": "C. Mailing Address",
+        "list": [
+          "mailingBuildingNameNumber",
+          "mailingStreet",
+          "mailingCity",
+          "mailingPostalCode",
+          "mailingCountry"
+        ]
+      }
+    },
+    "editCols": [
+      "name_group",
+      "country_group",
+      "residential_group",
+      "mailing_group"
+    ],
+    "required": [
+      "entityName"
+    ]
+  },
+  "tradle.CRS_EntityType_2": {
+    "id": "tradle.CRS_EntityType_2",
+    "type": "tradle.Model",
+    "title": "Part 2 – Entity Type",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "investmentEntityInNPJ": {
+        "type": "boolean",
+        "title": "An Investment Entity located in a Non_Participating Jurisdiction",
+        "description": "An Investment Entity located in a Non-Participating Jurisdiction and managed by another Financial Institution"
+      },
+      "otherInvestmentEntity": {
+        "type": "boolean",
+        "title": "Other Investment Entity"
+      },
+      "financialInstitution": {
+        "type": "boolean",
+        "title": "Financial Institution",
+        "description": "Financial Institution – Depository Institution, Custodial Institution or Specified Insurance Company"
+      },
+      "GIIN": {
+        "type": "string",
+        "title": "Global Intermediary Identification Number",
+        "description": "If you have selected one of the above, please provide, if held, the Account Holder’s GIIN obtained for FATCA purposes"
+      },
+      "corporationOfStock": {
+        "type": "boolean",
+        "title": "Active NFE – A Corporation of Stock",
+        "description": "a corporation the stock of which is regularly traded on an established securities market or a corporation which is a related entity of such a corporation"
+      },
+      "securitiesMarket": {
+        "type": "string",
+        "description": "If you have checked 'A Corporation of Stock', please provide the name of the established securities market on which the corporation is regularly traded"
+      },
+      "tradedCorporation": {
+        "type": "string",
+        "description": "If you are a Related Entity of a regularly traded corporation, please provide the name of the regularly traded corporation that the Entity is a Related Entity of"
+      },
+      "governmentEntity": {
+        "type": "boolean",
+        "title": "Active NFE – a Government Entity or Central Bank"
+      },
+      "internationalOrganisation": {
+        "type": "boolean",
+        "title": "Active NFE – an International Organisation"
+      },
+      "otherNFE": {
+        "type": "boolean",
+        "title": "Other NFE",
+        "description": "Active NFE – other type of NFE (for example a start-up NFE or a non-profit NFE)"
+      },
+      "passiveNFE": {
+        "type": "boolean",
+        "title": "Passive NFE",
+        "description": "Passive NFE – other type of NFE (for example a start-up NFE or a non-profit NFE)"
+      },
+      "nameOfCPAccountHolders": {
+        "type": "string",
+        "title": "Name of any Controlling Person(s) of Account Holder",
+        "description": "If you selected Investment Entity or Passive NFE above please indicate the name of any Controlling Person(s) of the Account Holder"
+      },
+      "institution_group": {
+        "type": "string",
+        "title": "Institution details",
+        "list": [
+          "investmentEntityInNPJ",
+          "otherInvestmentEntity",
+          "financialInstitution"
+        ]
+      },
+      "nfe_group": {
+        "type": "string",
+        "title": "NFE details",
+        "list": [
+          "corporationOfStock",
+          "securitiesMarket",
+          "tradedCorporation",
+          "governmentEntity",
+          "internationalOrganisation",
+          "otherNFE",
+          "passiveNFE",
+          "nameOfCPAccountHolders"
+        ]
+      }
+    },
+    "editCols": [
+      "institution_group",
+      "nfe_group"
+    ]
+  },
+  "tradle.CRS_AccountHolderResidency_3": {
+    "id": "tradle.CRS_AccountHolderResidency_3",
+    "type": "tradle.Model",
+    "title": "Part 3 – Country of Residence of Account Holder for Tax Purposes",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "TaxRes": {
+        "type": "string"
+      },
+      "taxResidency": {
+        "type": "array",
+        "icon": "ios_cash-outline",
+        "title": "Tax Residence",
+        "allowToAdd": true,
+        "items": {
+          "backlink": "CRS-AccountHolderResidency-3",
+          "ref": "tradle.TaxResidency_E"
+        }
+      }
+    }
+  },
+  "tradle.TaxResidency_E": {
+    "id": "tradle.TaxResidency_E",
+    "type": "tradle.Model",
+    "title": "Tax Residency",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message",
+      "tradle.Item"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "countryOfTaxResidence": {
+        "type": "object",
+        "ref": "tradle.Country"
+      },
+      "TIN": {
+        "type": "string",
+        "title": "Taxpayer Identification Number"
+      },
+      "TaxResidency": {
+        "type": "object",
+        "title": "Tax Residency",
+        "readOnly": true,
+        "ref": "tradle.CRS_AccountHolderResidency_3"
+      },
+      "NoTIN": {
+        "description": "Select reason if you can't supply a Taxpayer Identification Number or equivalent number",
+        "type": "object",
+        "ref": "tradle.IfNoTIN"
+      },
+      "reasonForB": {
+        "type": "string",
+        "description": "If you selected Reason B explain why you are unable to obtain a TIN"
+      }
+    },
+    "required": [
+      "TIN"
+    ]
+  },
+  "tradle.CRS_Entity_4": {
+    "id": "tradle.CRS_Entity_4",
+    "type": "tradle.Model",
+    "title": "Part 4 – Declaration",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "declaration": {
+        "type": "boolean",
+        "title": "Declaration",
+        "description": "I understand that the information supplied by me is covered by the full provisions of the terms and conditions governing the Account Holder’s relationship with [the FI] setting out how [the FI] may use and share the information supplied by me.\n\n I acknowledge that the information contained in this form and information regarding the Account Holder and any Reportable Account(s) may be provided to the tax authorities of the country in which this account(s) is/are maintained and exchanged with tax authorities of another country or countries in which the Account Holder may be tax resident pursuant to intergovernmental agreements to exchange financial account information. \n\n I certify that I am the Account Holder (or am authorised to sign for the Account Holder) of all the account(s) to which this form relates. \n\n I declare that all statements made in this declaration are, to the best of my knowledge and belief, correct and complete. \n\n  I undertake to advise [FI’s name] within [XX] days of any change in circumstances which affects the tax residency status of the individual identified in Part 1 of this form or causes the information contained herein to become incorrect or incomplete, and to provide [FI’s name] with a suitably updated self_certification and Declaration within [up to XX] days of such change in circumstances."
+      },
+      "capacity": {
+        "type": "string",
+        "description": "Note: If you are not the Account Holder please indicate the capacity in which you are signing the form. If signing under a power of attorney please also attach a certified copy of the power of attorney."
+      }
+    },
+    "viewCols": [
+      "declaration",
+      "capacity"
+    ]
+  },
+  "tradle.DoddFrankStatus": {
+    "id": "tradle.DoddFrankStatus",
+    "type": "tradle.Model",
+    "title": "Dodd Frank",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "DFAStatus": {
+        "type": "object",
+        "ref": "tradle.DoddFrankStatusType",
+        "title": "Dodd Frank Person Status"
+      }
+
+    },
+    "viewCols": [
+      "DFAStatus"
+    ]
+  },
+  "tradle.DoddFrankCounterparty": {
+    "id": "tradle.DoddFrankCounterparty",
+    "type": "tradle.Model",
+    "title": "Dodd Frank Counterparty",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "counterpartyClassification": {
+        "type": "object",
+        "ref": "tradle.DFAClassification",
+        "title": "Counterparty Classification"
+      },
+      "transactInUS": {
+        "type":"boolean",
+        "title":"Transact in the US",
+        "description":"Will the Counterparty transact via personnel/ branch located in the US?"
+      }
+
+    },
+    "viewCols": [
+      "counterpartyClassification",
+      "transactInUS"
+    ]
+  },
+  "tradle.DoddFrankStatusType": {
+    "id": "tradle.DoddFrankStatusType",
+    "title": "Dodd Frank Status",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "dfstatus": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "dfstatus"
+    ],
+    "enum": [
+      {
+        "id": "USPerson",
+        "title": "US person"
+      },
+      {
+        "id": "NonUSPerson",
+        "title": "Non US person"
+      },
+      {
+        "id": "NonUSConduit",
+        "title": "Non US conduit of a US person"
+      },
+      {
+        "id": "NonUSAffiliate",
+        "title": " Non US Affiliate which is Guaranteed in the US"
+      }
+    ]
+  },
+
+  "tradle.DFAClassification": {
+    "id": "tradle.DFAClassification",
+    "title": "Dodd Frank counterparty classification",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "cpclass": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "cpclass"
+    ],
+    "enum": [
+      {
+        "id": "swapDealer",
+        "title": "Swap dealer"
+      },
+      {
+        "id": "majorSwapParticipant",
+        "title": "Major Swap Participant"
+      },
+      {
+        "id": "financialEnduser",
+        "title": "Financial End User"
+      },
+      {
+        "id": "nonfinancialEnduser",
+        "title": "Non_financial End User"
+      }
+    ]
+  },
+
+  "tradle.FSCS": {
+    "id": "tradle.FSCS",
+    "type": "tradle.Model",
+    "title": "Financial Services Compensation Scheme",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "eligibility": {
+        "type": "object",
+        "title":"FSCS Eligibility",
+        "ref": "tradle.FSCSEligible"
+      },
+      "eligibilityType": {
+        "type": "object",
+        "ref": "tradle.EligibilityType",
+        "title": "Eligibility Type"
+      }
+
+    },
+    "viewCols": [
+      "eligibility",
+      "eligibilityType"
+    ]
+  },
+  "tradle.FSCSEligible": {
+    "id": "tradle.FSCSEligible",
+    "title": "FSCS Eligibility",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "eligible": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "eligible"
+    ],
+    "enum": [
+      {
+        "id": "Eligible",
+        "title": "Eligible"
+      },
+      {
+        "id": "Ineligible",
+        "title": "Ineligible"
+      }
+    ]
+  },
+  "tradle.EligibilityType": {
+    "id": "tradle.EligibilityType",
+    "title": "FSCS Eligibility Type",
+    "subClassOf": "tradle.Enum",
+    "type": "tradle.Model",
+    "properties": {
+      "eligibleType": {
+        "displayName": true,
+        "type": "string"
+      }
+    },
+    "required": [
+      "eligibleType"
+    ],
+    "enum": [
+      {
+        "id": "Individual",
+        "title": "Individual"
+      },
+      {
+        "id": "Pension Funds",
+        "title": "Pension Funds"
+      },
+      {
+        "id": "SmallLocalAuthorities",
+        "title": "Small Local Authorities"
+      },
+      {
+        "id": "SMECorporates",
+        "title": "SME Corporates"
+      },
+      {
+        "id": "LargeCorporates",
+        "title": "Large Corporates"
+      }
+    ]
+  },
+
+  "cp.tradle.CorporateAccount": {
+    "id": "cp.tradle.CorporateAccount",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "title": "Corporate Account",
+    "type": "tradle.Model",
+    "subClassOf": "tradle.FinancialProduct",
+    "customerCanHaveMultiple": true,
+    "forms": [
+      "tradle.DoddFrankStatus",
+      "tradle.DoddFrankCounterparty",
+      "san.tradle.ClientInformation",
+      "tradle.W_8BEN_E_I",
+      "tradle.BusinessActivity",
+      "san.tradle.mifid",
+      "tradle.CRS_ControllingPerson_1",
+      "tradle.CRS_NameOfEntity",
+      "tradle.TaxResidency_CP",
+      "tradle.CRS_ControllingPerson_3",
+      "tradle.Emir",
+      "tradle.FSCS"
+    ],
+    "multiEntryForms": [
+      "tradle.TaxResidency_CP"
+    ],
+
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      }
+    }
+  },
+  "cp.tradle.BrokerAccount": {
+    "id": "cp.tradle.BrokerAccount",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "title": "Broker Account",
+    "type": "tradle.Model",
+    "subClassOf": "tradle.FinancialProduct",
+    "customerCanHaveMultiple": true,
+    "forms": [
+      "tradle.Broker"
+    ],
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      }
+    }
+  },
+  "tradle.Broker": {
+    "id": "tradle.Broker",
+    "type": "tradle.Model",
+    "title": "Broker Details",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "startDate": {
+        "type": "date"
+      },
+      "regulatedBroker": {
+        "type": "boolean",
+        "description": "are you a regulated broker?"
+      },
+      "regulator": {
+        "description": "if the business is regulated, select the regulator ",
+        "type": "object",
+        "ref": "tradle.FinanicalRegulator"
+      },
+      "creditAbbey": {
+        "type": "boolean",
+        "description": "do you have a credit facility with Abbey National?"
+      },
+      "valueOfAssets": {
+        "type": "object",
+        "ref": "tradle.Money"
+      },
+      "equity": {
+        "type": "object",
+        "ref": "tradle.Money",
+        "title": "Equity (net worth)"
+      },
+      "netProfit": {
+        "type": "object",
+        "ref": "tradle.Money"
+      },
+      "reportingDate": {
+        "type": "date",
+        "title": "Reporting date (no more than one year ago)"
+      },
+      "giveUpAgreement": {
+        "type": "boolean",
+        "description": "Will a give up agreement be signed ?"
+      }
+    },
+    "editCols": [
+      "startDate",
+      "regulatedBroker",
+      "regulator",
+      "creditAbbey",
+      "valueOfAssets",
+      "equity",
+      "netProfit",
+      "reportingDate",
+      "giveUpAgreement"
+    ],
+    "required": [
+      "startDate"
+    ]
+  },
+  "tradle.Emir": {
+    "id": "tradle.Emir",
+    "type": "tradle.Model",
+    "title": "European Market Infrastructure Regulation",
+    "subClassOf": "tradle.Form",
+    "interfaces": [
+      "tradle.Message"
+    ],
+    "style": {
+      "backgroundColor": "#EBE1FA"
+    },
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "counterpartyClassification": {
+        "type": "string"
+      },
+      "LEI": {
+        "type": "string",
+        "title": "LEI",
+        "description": "LEI Code (20 digits)"
+      },
+      "reportingArrangements": {
+        "type": "string"
+      },
+      "clearingArrangements": {
+        "type": "string",
+        "description": "Clearing Arrangements Clearing IRS Category"
+      },
+      "counterparty": {
+        "type": "string",
+        "title": "Counterparty contact details _ Client email address"
+      }
+    },
+    "editCols": [
+      "counterpartyClassification",
+      "LEI",
+      "reportingArrangements",
+      "clearingArrangements",
+      "counterparty"
+    ],
+    "required": [
+      "counterpartyClassification"
+    ]
+  }
+}

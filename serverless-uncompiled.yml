@@ -25,6 +25,8 @@ package:
   # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
   include:
     - conf
+  exclude:
+    - src
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}

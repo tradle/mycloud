@@ -1,0 +1,10 @@
+{
+  "recipient": "ef78b341f079cf4245faf23e79058992a337313080b264d476c7952d37d32462",
+  "object": {
+    "_t": "tradle.SimpleMessage",
+    "message": "this is such a good test"
+  },
+  "other": {
+    "context": "some context"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "object": {
+    "_s": "CkkKBHAyNTYSQQSMPreE58AX7nziIxydQsaNPECQNcJ1qbzSPps+s2hlxMuP8Ms0S0llKQ4+et6mT2KR4rsbpVmbjnVRKsEcNZuaEkcwRQIhAIT8EqPggQRrrnh7EjYMLDoMozumYLixQMD6ILKaQW/TAiBfZfw42K06Vp1omgbA7igWivzsmm1Z5ZICzMQLqmq8fw==",
+    "_t": "tradle.Identity",
+    "pubkeys": [
+      {
+        "networkName": "testnet",
+        "purpose": "payment",
+        "type": "bitcoin",
+        "fingerprint": "msBTMJB9VT3TbQNCUW6UpkU9GHEhLRCxNB",
+        "pub": "02a95275e6358eed82e0b823920046e46a0372f93be19e6b56542dbd33225580d3"
+      },
+      {
+        "networkName": "testnet",
+        "purpose": "messaging",
+        "type": "bitcoin",
+        "fingerprint": "mmyBEXxiUPNsqWkCYugeTd6f8Sua6GnBdV",
+        "pub": "0223a2fb37ca25e21f9bb41efbd538824d3a53386791684461e3c133b880bb2f28"
+      },
+      {
+        "curve": "p256",
+        "purpose": "sign",
+        "type": "ec",
+        "pub": "046059d57d5bf18f0b26f6941a4aee56cded8baa11c4d68b2562b095e4a25187cac8e646fb2b6d4269780f7e6b2b3ccf33caea9a9b1b71ad39a3461e6a952d6e07",
+        "fingerprint": "c8630a1a0e18a9809185117ebe710597acf5a1a7e29d61022fabbfacbb5cbbe4"
+      },
+      {
+        "curve": "p256",
+        "purpose": "update",
+        "type": "ec",
+        "pub": "048c3eb784e7c017ee7ce2231c9d42c68d3c409035c275a9bcd23e9b3eb36865c4cb8ff0cb344b4965290e3e7adea64f6291e2bb1ba5599b8e75512ac11c359b9a",
+        "fingerprint": "a14dddd14923bb8cf04375e340bfa972905798225fb333ed669a278bcea83a3b"
+      },
+      {
+        "purpose": "tls",
+        "type": "ec",
+        "curve": "curve25519",
+        "pub": "7f2d4f6b9410caf7bf7adb48723a7278a1d3680bb2120f50c6dbdab73d47a514",
+        "fingerprint": "74049b91ce7c613f4c7d946947db9e0638efe82ee332e2867b0fa1dbce3b7dcf"
+      }
+    ]
+  }
+}

@@ -1,0 +1,748 @@
+{
+  "EventsTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "source of truth",
+    "Properties": {
+      "TableName": "tradle-dev-events",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "id",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "id",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "StreamSpecification": {
+        "StreamViewType": "NEW_IMAGE",
+        "StreamEnabled": true
+      }
+    }
+  },
+  "PubKeysTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "maps pub keys to identities",
+    "Properties": {
+      "TableName": "tradle-dev-pubkeys",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "pub",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "permalink",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "pub",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "permalink",
+          "KeySchema": [
+            {
+              "AttributeName": "permalink",
+              "KeyType": "HASH"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "INCLUDE",
+            "NonKeyAttributes": [
+              "link"
+            ]
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  },
+  "InboxTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "inbound messages from users",
+    "Properties": {
+      "TableName": "tradle-dev-inbox",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "_author",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "time",
+          "AttributeType": "N"
+        },
+        {
+          "AttributeName": "_link",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "context",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "_author",
+          "KeyType": "HASH"
+        },
+        {
+          "AttributeName": "time",
+          "KeyType": "RANGE"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "StreamSpecification": {
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "StreamEnabled": true
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "_link",
+          "KeySchema": [
+            {
+              "AttributeName": "_link",
+              "KeyType": "HASH"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "context",
+          "KeySchema": [
+            {
+              "AttributeName": "context",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "KEYS_ONLY"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  },
+  "OutboxTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "outbound messages to users",
+    "Properties": {
+      "TableName": "tradle-dev-outbox",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "_recipient",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "time",
+          "AttributeType": "N"
+        },
+        {
+          "AttributeName": "_payloadLink",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "context",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "_recipient",
+          "KeyType": "HASH"
+        },
+        {
+          "AttributeName": "time",
+          "KeyType": "RANGE"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "StreamSpecification": {
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "StreamEnabled": true
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "_payloadLink",
+          "KeySchema": [
+            {
+              "AttributeName": "_payloadLink",
+              "KeyType": "HASH"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "KEYS_ONLY"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "context",
+          "KeySchema": [
+            {
+              "AttributeName": "context",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "KEYS_ONLY"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  },
+  "SealsTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "blockchain seals for objects",
+    "Properties": {
+      "TableName": "tradle-dev-seals",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "id",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "address",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "unconfirmed",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "unsealed",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "link",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "id",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "StreamSpecification": {
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "StreamEnabled": true
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "unconfirmed",
+          "KeySchema": [
+            {
+              "AttributeName": "unconfirmed",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "address",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "unsealed",
+          "KeySchema": [
+            {
+              "AttributeName": "unsealed",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "address",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "link",
+          "KeySchema": [
+            {
+              "AttributeName": "link",
+              "KeyType": "HASH"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "KEYS_ONLY"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  },
+  "UsersTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "per-user state objects",
+    "Properties": {
+      "TableName": "tradle-dev-users",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "id",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "id",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      }
+    }
+  },
+  "PresenceTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "maps ephemeral mqtt client ids to identity permalinks",
+    "Properties": {
+      "TableName": "tradle-dev-presence",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "clientId",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "permalink",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "permalink",
+          "KeyType": "HASH"
+        },
+        {
+          "AttributeName": "clientId",
+          "KeyType": "RANGE"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      }
+    }
+  },
+  "FriendsTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "store friends (other providers)",
+    "Properties": {
+      "TableName": "tradle-dev-friends",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "_identityPermalink",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "_identityPermalink",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      }
+    }
+  },
+  "ConfTable": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "freeform configuration values",
+    "Properties": {
+      "TableName": "tradle-dev-conf",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "key",
+          "AttributeType": "S"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "key",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      }
+    }
+  },
+  "BucketTable0": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "table that stores multiple models",
+    "Properties": {
+      "TableName": "tradle-dev-bucket-0",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "_tpermalink",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_t",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_author",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_time",
+          "AttributeType": "N"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "_tpermalink",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "_author",
+          "KeySchema": [
+            {
+              "AttributeName": "_author",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "type",
+          "KeySchema": [
+            {
+              "AttributeName": "_t",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  },
+  "BucketTable1": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "table that stores multiple models",
+    "Properties": {
+      "TableName": "tradle-dev-bucket-1",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "_tpermalink",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_t",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_author",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_time",
+          "AttributeType": "N"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "_tpermalink",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "_author",
+          "KeySchema": [
+            {
+              "AttributeName": "_author",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "type",
+          "KeySchema": [
+            {
+              "AttributeName": "_t",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  },
+  "BucketTable2": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "table that stores multiple models",
+    "Properties": {
+      "TableName": "tradle-dev-bucket-2",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "_tpermalink",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_t",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_author",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_time",
+          "AttributeType": "N"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "_tpermalink",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "_author",
+          "KeySchema": [
+            {
+              "AttributeName": "_author",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "type",
+          "KeySchema": [
+            {
+              "AttributeName": "_t",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  },
+  "BucketTable3": {
+    "Type": "AWS::DynamoDB::Table",
+    "Description": "table that stores multiple models",
+    "Properties": {
+      "TableName": "tradle-dev-bucket-3",
+      "AttributeDefinitions": [
+        {
+          "AttributeName": "_tpermalink",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_t",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_author",
+          "AttributeType": "S"
+        },
+        {
+          "AttributeName": "_time",
+          "AttributeType": "N"
+        }
+      ],
+      "KeySchema": [
+        {
+          "AttributeName": "_tpermalink",
+          "KeyType": "HASH"
+        }
+      ],
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      },
+      "GlobalSecondaryIndexes": [
+        {
+          "IndexName": "_author",
+          "KeySchema": [
+            {
+              "AttributeName": "_author",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        },
+        {
+          "IndexName": "type",
+          "KeySchema": [
+            {
+              "AttributeName": "_t",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "_time",
+              "KeyType": "RANGE"
+            }
+          ],
+          "Projection": {
+            "ProjectionType": "ALL"
+          },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      ]
+    }
+  }
+}

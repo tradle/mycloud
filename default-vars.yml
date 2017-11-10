@@ -15,7 +15,7 @@ serverless-offline:
   mqttPort: 1884
 
 bot_onmessage:
-  handler: samplebot/index.onmessage
+  handler: lib/samplebot/index.onmessage
   memorySize: 1024
   alarms:
     - functionErrors
@@ -23,7 +23,7 @@ bot_onmessage:
     - functionInvocations
 
 bot_onsealevent:
-  handler: samplebot/index.onseal
+  handler: lib/samplebot/index.onseal
   memorySize: 256
   events:
     - stream:
@@ -38,7 +38,7 @@ bot_onsealevent:
   - functionErrors
 
 bot_onmessagestream:
-  handler: samplebot/index.onmessagestream
+  handler: lib/samplebot/index.onmessagestream
   memorySize: 256
   events:
     - stream:
@@ -66,7 +66,7 @@ bot_onmessagestream:
 
 bot_graphql:
   # make sure graphql route gets loaded
-  handler: samplebot/index.ongraphql
+  handler: lib/samplebot/index.ongraphql
   # handler: lib/lambda/http/default.handler
   memorySize: 512
   events:
@@ -84,12 +84,12 @@ bot_graphql:
 # bot-serviced lambda
 # generates sample data for browsing with GraphQL
 bot_samples:
-  handler: samplebot/index.onsamples
+  handler: lib/samplebot/index.onsamples
   # handler: lib/lambda/http/default.handler
   memorySize: 1024
 
 bot_samples_dev:
-  handler: samplebot/index.onsamples
+  handler: lib/samplebot/index.onsamples
   # handler: lib/lambda/http/default.handler
   memorySize: 1024
   events:

@@ -1,0 +1,87 @@
+{
+  "_s": "CkkKBHAyNTYSQQT+PnloRtwrifnBqS06PqtaQ09fGVlSG9+kYWa5t6cNXUuBeCLQHuEtsmzbtObaECgJ9FNoxXJLpHVcHIRek0G3EkYwRAIgKsnkN1pHVFwewXggun9sWE5s8CAonGuhOCxeoH7Yr7MCIEhkh3Xo8MwVMMYabePWPXNPX1YaLhcnJ0ghbTirOuBL",
+  "_t": "tradle.Identity",
+  "pubkeys": [
+    {
+      "curve": "p256",
+      "purpose": "sign",
+      "type": "ec",
+      "pub": "043912b4c61f4f24445e1374fc02346fbbce2a62985dde1a45e750a592888eaa8506c9a95fcbe2419e6b3c563ef99f4b2144a54ea52c5d7738fc508c69f76a9b0b",
+      "fingerprint": "da3c250387e87f271353595c79ba4fda973723893518b2a8c3f3eadb874bae6d"
+    },
+    {
+      "curve": "p256",
+      "purpose": "update",
+      "type": "ec",
+      "pub": "04fe3e796846dc2b89f9c1a92d3a3eab5a434f5f1959521bdfa46166b9b7a70d5d4b817822d01ee12db26cdbb4e6da102809f45368c5724ba4755c1c845e9341b7",
+      "fingerprint": "c20d3063d0ef82c552fe3a21dd18d4b77a02bc9f39270ee94e243cdea79ee82e"
+    },
+    {
+      "purpose": "tls",
+      "type": "ec",
+      "curve": "curve25519",
+      "pub": "599cd1617d8f3f56b828895429f4e3d3d44de9d784d94462ed52390b541eea72",
+      "fingerprint": "4c85791b83acfb4d54c8c76cfb2c58122d97c77859c1fc357f4596debb4b8052"
+    },
+    {
+      "networkName": "testnet",
+      "purpose": "payment",
+      "type": "bitcoin",
+      "fingerprint": "moJeYCYsnRZYJAkWPb6CAipuyj7FaQGQU9",
+      "pub": "03847afdd5ee86309683ef234c5e320d8619fe6a868669590b09491101c7a66b1c"
+    },
+    {
+      "networkName": "testnet",
+      "purpose": "messaging",
+      "type": "bitcoin",
+      "fingerprint": "mtgdnkSQx5Yw9ZgGWH4RSPi77Lq3MfTAdU",
+      "pub": "03b6ea7a32428302159d168b27c0ef6ac5d4a4d4795a407b1526d6ce4fa116e39b"
+    },
+    {
+      "networkName": "bitcoin",
+      "purpose": "payment",
+      "type": "bitcoin",
+      "fingerprint": "15UwWVpt2En58EpKEDjR3fxScfSzFdnsqz",
+      "pub": "0377e4f8976e080b4fd2b35ca5a5f046fd2ab225a25f61afb1148853f71b5506a3"
+    },
+    {
+      "networkName": "bitcoin",
+      "purpose": "messaging",
+      "type": "bitcoin",
+      "fingerprint": "13iLQLaxV3NS2nWDYkJVwHLR4yLKmXEAXp",
+      "pub": "024abbab56449e8711c71d7687ec4401c5a0d150c58aab3c4e6072d56fbdad1581"
+    },
+    {
+      "purpose": "payment",
+      "type": "ethereum",
+      "curve": "secp256k1",
+      "pub": "046fd6dab422e01d8ea853e5811072a01825c4b5812b80c8aaf1154632ae20c7e035e1b68956f235b77f1795cdc18a57a465a654641276046bbbdf5a4f4676aa0c",
+      "fingerprint": "00dcbbe49603739f84d571254b34afe43dec6820",
+      "networkName": "ropsten"
+    },
+    {
+      "purpose": "messaging",
+      "type": "ethereum",
+      "curve": "secp256k1",
+      "pub": "04e38b6f5362858bb4be2b3bdcb6183b3e19be0184df1ae941853f5588d2edb5e35f084ac638a84dd78eefacea42f871284a07b233d1d8e622cc7f358bc982ba97",
+      "fingerprint": "00e385ac6dfdeadc097c5f20856ff18dfb2edf4f",
+      "networkName": "ropsten"
+    },
+    {
+      "purpose": "payment",
+      "type": "ethereum",
+      "curve": "secp256k1",
+      "pub": "045db655fde6d823ca98fb5e9701af1db593b75e3a85d920af1c1d01e649d94ed08875d6d202ed2acd66243d4a6380c7086ee82ff5a071dbc622b2330f9b1ff172",
+      "fingerprint": "00f4aa584c939cd1d4c876e464f24de5dc93118b",
+      "networkName": "rinkeby"
+    },
+    {
+      "purpose": "messaging",
+      "type": "ethereum",
+      "curve": "secp256k1",
+      "pub": "04ffb46bcb8023c56ddcbe576bdd5689b043d26b96e8c8e9dbe18b3adc382acd2685b86a3d4b103d018ae7759b40f442145378688a6d28ea54fc1f89625c69cf9b",
+      "fingerprint": "00664c1c1c391f0a94b69afae997af0177a551aa",
+      "networkName": "rinkeby"
+    }
+  ]
+}

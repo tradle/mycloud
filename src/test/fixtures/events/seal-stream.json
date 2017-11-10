@@ -1,0 +1,107 @@
+{
+  "Records": [
+    {
+      "eventID": "1",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "Keys": {
+          "Id": {
+            "S": "sealid1"
+          }
+        },
+        "OldImage": {
+          "time": {
+            "N": "1508793901323"
+          },
+          "unsealed": {
+            "B": "true"
+          },
+          "Id": {
+            "S": "sealid1"
+          }
+        },
+        "NewImage": {
+          "time": {
+            "N": "1508793901323"
+          },
+          "Id": {
+            "S": "sealid1"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "SequenceNumber": "111",
+        "SizeBytes": 26
+      },
+      "awsRegion": "us-west-2",
+      "eventName": "INSERT",
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:account-id:table/tradle-dev-seals/stream/2015-06-27T00:48:05.899",
+      "eventSource": "aws:dynamodb"
+    },
+    {
+      "eventID": "1",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "Keys": {
+          "Id": {
+            "S": "sealid2"
+          }
+        },
+        "OldImage": {
+          "Id": {
+            "S": "sealid2"
+          },
+          "time": {
+            "N": "1508793901324"
+          }
+        },
+        "NewImage": {
+          "Id": {
+            "S": "sealid2"
+          },
+          "confirmations": {
+            "N": "1"
+          },
+          "time": {
+            "N": "1508793901324"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "SequenceNumber": "333",
+        "SizeBytes": 26
+      },
+      "awsRegion": "us-west-2",
+      "eventName": "INSERT",
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:account-id:table/tradle-dev-seals/stream/2015-06-27T00:48:05.899",
+      "eventSource": "aws:dynamodb"
+    },
+    {
+      "eventID": "1",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "Keys": {
+          "Id": {
+            "S": "sealid2"
+          }
+        },
+        "NewImage": {
+          "Id": {
+            "S": "sealid2"
+          },
+          "unsealed": {
+            "B": "true"
+          },
+          "time": {
+            "N": "1508793901325"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "SequenceNumber": "444",
+        "SizeBytes": 26
+      },
+      "awsRegion": "us-west-2",
+      "eventName": "INSERT",
+      "eventSourceARN": "arn:aws:dynamodb:us-east-1:account-id:table/tradle-dev-seals/stream/2015-06-27T00:48:05.899",
+      "eventSource": "aws:dynamodb"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+    "httpMethod": "POST",
+    "path": "/preauth",
+    "resource": "/preauth",
+    "queryStringParameters": {},
+    "pathParameters": {
+        "proxy": "users"
+    },
+    "headers": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, sdch, br",
+        "Accept-Language": "en-US,en;q=0.8",
+        "CloudFront-Forwarded-Proto": "https",
+        "CloudFront-Is-Desktop-Viewer": "true",
+        "CloudFront-Is-Mobile-Viewer": "false",
+        "CloudFront-Is-SmartTV-Viewer": "false",
+        "CloudFront-Is-Tablet-Viewer": "false",
+        "CloudFront-Viewer-Country": "US",
+        "Content-Type": "application/json",
+        "Host": "xxxxxxxxxx.execute-api.us-east-1.amazonaws.com",
+        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36",
+        "Via": "1.1 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.cloudfront.net (CloudFront)",
+        "X-Amz-Cf-Id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_xxxxxxxxxxx_xxxx==",
+        "X-Forwarded-For": "11.111.111.111, 11.111.111.111",
+        "X-Forwarded-Port": "111",
+        "X-Forwarded-Proto": "http"
+    },
+    "requestContext": {
+        "accountId": "111111111111",
+        "resourceId": "xxxxxx",
+        "stage": "prod",
+        "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "identity": {
+            "cognitoIdentityPoolId": "",
+            "accountId": "",
+            "cognitoIdentityId": "",
+            "caller": "",
+            "apiKey": "",
+            "sourceIp": "11.111.111.111",
+            "cognitoAuthenticationType": "",
+            "cognitoAuthenticationProvider": "",
+            "userArn": "",
+            "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36",
+            "user": ""
+        },
+        "resourcePath": "/{proxy+}",
+        "httpMethod": "GET",
+        "apiId": "xxxxxxxxxx"
+    },
+    "body": "{\"clientId\":\"0618ff2cd36119da3db11ffa9b1ae2c1393b806c4db17fafa32df225bcbae3489b1ae2c1393b806c4db17fafa32df225bcbae348\",\"identity\":{\"_s\":\"CkkKBHAyNTYSQQTrCsK4HgsFKajfYpB3PJF/9cXnzT9TISuAMfSV03Eqx0/qnm7KldYUBRfTdzEtHo+1+48g+CIgCdTqRiy/jcwYEkYwRAIgBgkLrBfq/XDuxZtP0PNsNsP0IhpI7d/Yc0jwMybwtScCIFOZgk3Id26kpSQv7M3zz4btI1lPSafNQvVib/ZFRRD9\",\"_t\":\"tradle.Identity\",\"pubkeys\":[{\"networkName\":\"testnet\",\"purpose\":\"payment\",\"type\":\"bitcoin\",\"fingerprint\":\"mnEeappuBHAcYC7DWSAHf85fYvFvKe67o6\",\"pub\":\"03bd2dd561d7e6808fa01c2ab1aae7df05f8855d7e7be876b84df1c1ef281fea0d\"},{\"networkName\":\"testnet\",\"purpose\":\"messaging\",\"type\":\"bitcoin\",\"fingerprint\":\"n2WNec5bEuBtU7hnzwtBbzgG7xc3NSNFuV\",\"pub\":\"0371091455ee36700cb0c221cc3064f503df947783a8cfa340df94391451501c3e\"},{\"curve\":\"p256\",\"purpose\":\"sign\",\"type\":\"ec\",\"pub\":\"049eba0f2e1f74837b9ba9f9ee5246586d2c0932bba491597a28b076d69891c770ef40c73b72eb51c5db2164c458365b47e28cfd93b7580b8d35054a4eb0561c71\",\"fingerprint\":\"480f4dfd2986e58b1e8a4e9e9715abae3269fe29f14c82bcdbe20c0406aaed51\"},{\"curve\":\"p256\",\"purpose\":\"update\",\"type\":\"ec\",\"pub\":\"04eb0ac2b81e0b0529a8df6290773c917ff5c5e7cd3f53212b8031f495d3712ac74fea9e6eca95d6140517d377312d1e8fb5fb8f20f8222009d4ea462cbf8dcc18\",\"fingerprint\":\"4046f44f1437090365c04ba9354f3cfd1b608a31d75323d1346b3848eead1c9a\"},{\"purpose\":\"tls\",\"type\":\"ec\",\"curve\":\"curve25519\",\"pub\":\"d0020d44a752d5d9c95b22af1508a108fa20661be76ef62c5013ee97855a5932\",\"fingerprint\":\"5428cee660d4101d2390d650947309e357d33a7b5d9b5915ce7b925eae77b55f\"}]}}"
+}
