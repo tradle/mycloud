@@ -127,6 +127,7 @@ custom:
     users: ${{self:custom.prefix}}users
     friends: ${{self:custom.prefix}}friends
     conf: ${{self:custom.prefix}}conf
+    kv: ${{self:custom.prefix}}kv
 
   # auto-scaled tables that serve as buckets for multiple models each
   defaultCapacity: &defaultCapacity
@@ -1187,6 +1188,21 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: _identityPermalink
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+    KVTable:
+      Type: AWS::DynamoDB::Table
+      Description: freeform key-value store
+      Properties:
+        TableName: ${{self:custom.tables.kv}}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 5

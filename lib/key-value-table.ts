@@ -8,8 +8,16 @@ export default class KeyValueTable {
   }
 
   public get = async (key:string) => {
-    const { value } = await this.table.get({ Key: { key } })
-    return value
+    try {
+      const { value } = await this.table.get({ Key: { key } })
+      return value
+    } catch (err) {
+      if (err.code === 'ResourceNotFoundException' || err.name === 'NotFound') {
+        err.notFound = true
+      }
+
+      throw err
+    }
   }
 
   public put = async (key:string, value):Promise<void> => {

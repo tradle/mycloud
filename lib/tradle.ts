@@ -28,6 +28,7 @@ export default class Tradle {
   public db: DB
   public contentAddressedStorage:ContentAddressedStorage
   public conf:KeyValueTable
+  public kv:KeyValueTable
   public auth: Auth
   public delivery: Delivery
   public discovery: Discovery
@@ -74,6 +75,12 @@ export default class Tradle {
     this.define('conf', './key-value-table', ctor => {
       return new ctor({
         table: this.tables.Conf
+      })
+    })
+
+    this.define('kv', './key-value-table', ctor => {
+      return new ctor({
+        table: this.tables.KV
       })
     })
 
