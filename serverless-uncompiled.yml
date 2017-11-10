@@ -797,6 +797,17 @@ functions:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
     #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
+  checkFailedSeals:
+    handler: lib/lambda/check-failed-seals.handler
+    memorySize: 256
+    timeout: 60
+    events:
+      - schedule:
+          rate: rate(17 minutes)
+          # enabled: false
+    alarms:
+      - functionErrors
+
   # simulates a short (hi! hello!) conversation with a user
   # clienttest:
   #   handler: lib/lambda/clienttest.handler

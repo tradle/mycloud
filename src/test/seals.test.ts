@@ -176,6 +176,8 @@ test('queue seal', async (t) => {
   unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
 
+  t.same(await seals.getLongUnconfirmed(), [])
+
   const seal = await seals.get({ link })
   t.equal(seal.address, address)
   t.equal(seal.link, link)
