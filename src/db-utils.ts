@@ -42,15 +42,22 @@ function createDBUtils ({ aws, env }) {
   }
 
   function getTable (TableName) {
-    const batchPutToTable = async (items) => {
-      const batches = batchify(items, MAX_BATCH_SIZE)
+    const batchWriteToTable = async (ops) => {
+      ops.forEach(({ type }) => {
+        if (type !== 'put' && type !== 'del') {
+          throw new Error(`expected "type" to be either "put" or "del", got ${type}`)
+        }
+      })
+
+      const batches = batchify(ops, MAX_BATCH_SIZE)
       for (const batch of batches) {
-        debug(`putting batch of ${batch.length} to ${TableName}`)
+        debug(`writing batch of ${batch.length} to ${TableName}`)
         await batchPut({
           RequestItems: {
-            [TableName]: batch.map(Item => {
+            [TableName]: batch.map(op => {
+              const reqType = op.type === 'put' ? 'PutRequest' : 'DeleteRequest'
               return {
-                PutRequest: { Item }
+                [reqType]: { Item: op.value }
               }
             })
           }
@@ -58,9 +65,21 @@ function createDBUtils ({ aws, env }) {
       }
     }
 
+    const batchPutToTable = async (items) => {
+      const ops = items.map(value => ({ type: 'put', value }))
+      return batchWriteToTable(ops)
+    }
+
+    const batchDeleteFromTable = async (items) => {
+      const ops = items.map(value => ({ type: 'del', value }))
+      return batchWriteToTable(ops)
+    }
+
     const tableAPI = {
       toString: () => TableName,
-      batchPut: batchPutToTable
+      batchWrite: batchWriteToTable,
+      batchPut: batchPutToTable,
+      batchDelete: batchDeleteFromTable
     }
 
     const api = {
