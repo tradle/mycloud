@@ -334,14 +334,19 @@ To set the style of your provider, refer to the [StylesPack](https://github.com/
 ```sh
 ./
   serverless-uncompiled.yml # gets pre-processed into serverless.yml by `npm run build:yml`
-  scripts/                  # command line scripts, and utils
   conf/                     # configuration for your instance
-  lib/
+  src/                      # typescript code, some shell scripts
+    *.ts
+    scripts/                # command line scripts, and utils
     bot/                    # bot engine
-  samplebot/                # currently co-located sample bot that uses tradle/bot-products#modeled
+    samplebot/              # currently co-located sample bot  tradle/bot-products#modeled
+    test/
+  lib/                      # transpiled JS code
 ```
 
 ### Main Components
+
+Below you'll find the description of the various architecture components that get created when the stack is deployed.
 
 #### Core Tables
 
