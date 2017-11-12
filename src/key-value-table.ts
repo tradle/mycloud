@@ -13,6 +13,7 @@ export default class KeyValueTable {
       return value
     } catch (err) {
       if (err.code === 'ResourceNotFoundException' || err.name === 'NotFound') {
+        err.name = 'NotFound'
         err.notFound = true
       }
 
