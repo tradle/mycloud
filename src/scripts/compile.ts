@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+require('source-map-support').install()
+
 const path = require('path')
 const fs = require('fs')
 const debug = require('debug')('tradle:sls:compile')
