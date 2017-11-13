@@ -39,7 +39,7 @@
     "@tradle/biz-plugins": {
       "version": "1.0.0",
       "from": "tradle/biz-plugins#cloud",
-      "resolved": "git://github.com/tradle/biz-plugins.git#2b2f431afc99978ab0b4b58b897baf0ad4c8a233"
+      "resolved": "git://github.com/tradle/biz-plugins.git#1620e0949f12bfae6a9f39df42eaf30cee282744"
     },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",

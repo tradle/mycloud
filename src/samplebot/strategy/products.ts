@@ -92,8 +92,20 @@ module.exports = function createProductsBot (opts={}) {
     send: (...args) => productsAPI.send(...args)
   })
 
+  if (products.includes(`${namespace}.Deployment`)) {
+    bot.logger.debug('attaching deployment handlers')
+    // productsAPI.plugins.clear('onFormsCollected')
+    productsAPI.plugins.use(require('./deployment-handlers'))
+  }
+
   // prepend
-  bizPlugins.forEach(plugin => productsAPI.plugins.use(plugin(), true))
+  bizPlugins.forEach(plugin => productsAPI.plugins.use(plugin({
+    bot,
+    get models() {
+      return productsAPI.models.all
+    },
+    productsAPI
+  }), true))
 
   // prepend
   productsAPI.plugins.use({ onmessage: keepModelsFresh }, true)

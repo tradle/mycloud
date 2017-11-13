@@ -107,15 +107,15 @@ const customize = async () => {
     productsAPI.plugins.use(require('./deployment-handlers'))
   }
 
-  const biz = require('@tradle/biz-plugins')
-  // unshift
-  biz.forEach(plugin => productsAPI.plugins.use(plugin({
-    bot,
-    productsAPI,
-    get models () {
-      return productsAPI.models.all
-    }
-  }), true))
+  // const biz = require('@tradle/biz-plugins')
+  // // unshift
+  // biz.forEach(plugin => productsAPI.plugins.use(plugin({
+  //   bot,
+  //   productsAPI,
+  //   get models () {
+  //     return productsAPI.models.all
+  //   }
+  // }), true))
 }
 
 customize().then(() => bot.ready())

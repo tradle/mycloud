@@ -299,6 +299,7 @@ function createBot (opts={}) {
       const result = yield hooks.bubble(event, payload)
       yield postProcessHooks.fire(event, payload, result)
     } catch (error) {
+      debugger
       logger.error(`failed to process ${event}`, {
         event,
         payload,
