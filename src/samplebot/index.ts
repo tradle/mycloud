@@ -57,10 +57,10 @@ const {
 // }
 
 // prepend this hook
-bot.hook('message', co(function* ({ user, type }) {
+bot.hook('message', async ({ user, type }) => {
   debug(`received ${type}`)
   if (type === 'tradle.Ping') {
-    yield bot.send({
+    await bot.send({
       to: user.id,
       object: {
         [TYPE]: 'tradle.Pong'
@@ -70,7 +70,7 @@ bot.hook('message', co(function* ({ user, type }) {
     // prevent further processing
     return false
   }
-}), true) // prepend
+}, true) // prepend
 
 const cacheableConf = bot.resources.buckets.PublicConf.getCacheable({
   key: 'bot-conf.json',
@@ -78,21 +78,21 @@ const cacheableConf = bot.resources.buckets.PublicConf.getCacheable({
   parse: JSON.parse.bind(JSON)
 })
 
-const getConf = co(function* () {
-  try {
-    return yield cacheableConf.get()
-  } catch (err) {
+const getConf = async () => {
+  // try {
+  //   return await cacheableConf.get()
+  // } catch (err) {
     return require('./default-conf')
-  }
-})
+  // }
+}
 
-const getPluginConf = co(function* (pluginName) {
-  const conf = yield getConf()
+const getPluginConf = async (pluginName) => {
+  const conf = await getConf()
   const { plugins={} } = conf
   return plugins[pluginName]
-})
+}
 
-const customize = co(function* () {
+const customize = async () => {
   const customizeMessage = require('@tradle/plugin-customize-message')
   productsAPI.plugins.use(customizeMessage({
     get models () {
@@ -116,14 +116,14 @@ const customize = co(function* () {
       return productsAPI.models.all
     }
   }), true))
-})
+}
 
 customize().then(() => bot.ready())
 
 // if (NODE_ENV === 'test') {
 //   const user = require('../bot/tester')({ bot })
 //   coExec(function* () {
-//     // yield user.sendSelfIntroduction()
+//     // await user.sendSelfIntroduction()
 //     debugger
 //     user.send(buildResource({
 //       models: productsAPI.models,
@@ -133,7 +133,7 @@ customize().then(() => bot.ready())
 //       }
 //     }).toJSON())
 
-//     const received = yield user.awaitMessage()
+//     const received = await user.awaitMessage()
 //     console.log(received)
 //   })
 //   .catch(console.error)

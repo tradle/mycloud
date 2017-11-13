@@ -639,3 +639,17 @@ exports.networkFromIdentifier = str => {
   const forFlavor = networks[flavor] || {}
   return forFlavor[networkName]
 }
+
+exports.summarizeObject = object => {
+  const links = buildResource.links(object)
+  const summary = {
+    ...links,
+    type: object[TYPE]
+  }
+
+  if (object[TYPE] === 'tradle.Message') {
+    summary.payload = utils.summarizeObject(object.object)
+  }
+
+  return summary
+}

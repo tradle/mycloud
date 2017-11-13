@@ -10,6 +10,7 @@ import {
   setVirtual,
   download,
   pick,
+  summarizeObject,
   RESOLVED_PROMISE
 } from './utils'
 import { extractSigPubKey, addLinks } from './crypto'
@@ -105,7 +106,7 @@ export default class Objects {
     this.addMetadata(object)
     object = deepClone(object)
     await this.replaceEmbeds(object)
-    this.logger.debug('putting', pick(object, [TYPE, '_link']))
+    this.logger.debug('putting', summarizeObject(object))
     return this.bucket.putJSON(object._link, object)
   }
 
@@ -126,7 +127,11 @@ export default class Objects {
     Embed.presignUrls({
       object,
       sign: ({ bucket, key, path }) => {
-        this.logger.debug(`pre-signing url for ${object[TYPE]} property ${path}`)
+        this.logger.debug('pre-signing url for', {
+          type: object[TYPE],
+          property: path
+        })
+
         return this.s3Utils.createPresignedUrl({ bucket, key })
       }
     })

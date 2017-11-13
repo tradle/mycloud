@@ -5,9 +5,11 @@ import {
   cachifyPromiser,
   extend,
   clone,
+  deepClone,
   setVirtual,
   pickVirtual,
-  typeforce
+  typeforce,
+  summarizeObject
 } from './utils'
 
 import * as Errors from './errors'
@@ -99,6 +101,7 @@ export default class Provider {
     const signed = await sign({ key, object })
 
     this.objects.addMetadata(signed)
+    this.logger.debug(`signed`, summarizeObject(signed))
     setVirtual(signed, { _author: getPermalink(author.identity) })
     return signed
   }
@@ -112,7 +115,7 @@ export default class Provider {
       object = await this.signObject({ author, object })
     }
 
-    await this.objects.put(object)
+    await this.objects.put(deepClone(object))
     this.objects.addMetadata(object)
     return object
   }
@@ -296,6 +299,7 @@ export default class Provider {
       promiseRecipient
     ])
 
+    await this.objects.resolveEmbeds(payload)
     const payloadVirtual = pickVirtual(payload)
     const unsignedMessage = clone(other, {
       [TYPE]: MESSAGE,
@@ -316,8 +320,6 @@ export default class Provider {
       extend(unsignedMessage, this.messages.getPropsDerivedFromLast(prev))
 
       seq = unsignedMessage[SEQ]
-      this.logger.debug(`signing message ${seq} to ${recipient}`)
-
       signedMessage = await this.signObject({ author, object: unsignedMessage })
       setVirtual(signedMessage, {
         _author: getPermalink(author.identity),
@@ -325,7 +327,6 @@ export default class Provider {
       })
 
       setVirtual(signedMessage.object, payloadVirtual)
-
       try {
         await this.messages.putMessage(signedMessage)
         return signedMessage
@@ -334,9 +335,12 @@ export default class Provider {
           throw err
         }
 
-        this.logger.info(`seq ${seq} was taken by another message`)
+        this.logger.info(`seq was taken by another message, retrying`, {
+          seq,
+          recipient
+        })
+
         prev = await this.messages.getLastSeqAndLink({ recipient })
-        this.logger.info(`retrying with seq ${seq}`)
       }
     }
 
