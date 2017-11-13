@@ -74,8 +74,8 @@ export default class Objects {
     if (replacements.length) {
       this.logger.debug(`replaced ${replacements.length} embedded media`)
       await Promise.all(replacements.map(replacement => {
-        const { bucket, key, body } = replacement
-        return this.s3Utils.put({ bucket, key, value: body })
+        const { bucket, key, body, mimetype } = replacement
+        return this.s3Utils.put({ bucket, key, value: body, contentType: mimetype })
       }))
     }
   }
