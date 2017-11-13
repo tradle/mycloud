@@ -291,6 +291,7 @@ function createBot (opts={}) {
   const finallyHooks = createHooks()
   // invocations are wrapped to preserve context
   const processEvent = co(function* (event, payload) {
+    const originalPayload = { ...payload }
     yield promiseReady
     try {
       // waterfall to preprocess
@@ -299,10 +300,9 @@ function createBot (opts={}) {
       const result = yield hooks.bubble(event, payload)
       yield postProcessHooks.fire(event, payload, result)
     } catch (error) {
-      debugger
       logger.error(`failed to process ${event}`, {
         event,
-        payload,
+        payload: originalPayload,
         error: error.stack
       })
 
