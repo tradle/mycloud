@@ -95,7 +95,8 @@
     "addfriends": "./lib/scripts/addfriends.js",
     "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
     "start": "npm run setup:local && DEBUG=λ*,*tradle* serverless offline start",
-    "warmup": "serverless warmup"
+    "warmup": "serverless warmup",
+    "postinstall": "./src/scripts/postinstall.sh"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
