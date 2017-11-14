@@ -7,9 +7,27 @@ export default class KeyValueTable {
     this.prefix = prefix
   }
 
-  public get = async (key:string) => {
+  public exists = async (key:string):Promise<boolean> => {
     try {
-      const { value } = await this.table.get({ Key: { key } })
+      await this.get(key, {
+        AttributesToGet: ['key']
+      })
+
+      return true
+    } catch (err) {
+      return false
+    }
+  }
+
+  public get = async (key:string, opts:any={}):Promise<any> => {
+    try {
+      const { value } = await this.table.get({
+        Key: {
+          key: this.prefix + key
+        },
+        ...opts
+      })
+
       return value
     } catch (err) {
       if (err.code === 'ResourceNotFoundException' || err.name === 'NotFound') {
@@ -28,6 +46,17 @@ export default class KeyValueTable {
         value
       }
     })
+  }
+
+  public update = async (key:string, opts:any):Promise<any> => {
+    const result = await this.table.update({
+      Key: {
+        key: this.prefix + key,
+      },
+      ...opts
+    })
+
+    return result && result.value
   }
 
   public sub = (prefix=''):KeyValueTable => {

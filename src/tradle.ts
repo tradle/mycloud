@@ -23,6 +23,7 @@ export default class Tradle {
   public router: any
   public buckets: any
   public tables: any
+  public dbUtils: any
   public secrets: any
   public objects: Objects
   public identities: Identities

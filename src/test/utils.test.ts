@@ -1,45 +1,49 @@
 require('./env').install()
 
-const test = require('tape')
-const Cache = require('lru-cache')
-const sinon = require('sinon')
-const { getFavicon } = require('../image-utils')
-const { randomString, sha256 } = require('../crypto')
-const { co, loudCo, cachify, clone, batchStringsBySize } = require('../utils')
-const wrap = require('../wrap')
-const { tradle } = require('../')
+import test = require('tape')
+import Cache = require('lru-cache')
+import sinon = require('sinon')
+import KeyValueTable from '../key-value-table'
+import { getFavicon } from '../image-utils'
+import { randomString, sha256 } from '../crypto'
+import { co, loudCo, cachify, clone, batchStringsBySize } from '../utils'
+import { loudAsync } from './utils'
+import { wrap, tradle } from '../'
+import { KVTable } from '../definitions'
 
-test('cachify', loudCo(function* (t) {
+const { dbUtils } = tradle
+
+test('cachify', loudAsync(async (t) => {
   const data = {
     a: 1
   }
 
   const misses = {}
   const raw = {
-    get: co(function* (key, value) {
+    get: async (key, value) => {
       misses[key] = (misses[key] || 0) + 1
       if (key in data) return data[key]
 
       throw new Error('not found')
-    }),
-    put: co(function* (key, value) {
+    },
+    put: async (key, value) => {
       data[key] = value
-    }),
+    },
     cache: new Cache({ max: 100 })
   }
 
   const cachified = cachify(raw)
   // miss
-  t.equal(yield cachified.get('a'), data.a)
+  t.equal(await cachified.get('a'), data.a)
   t.equal(misses.a, 1)
 
   // hit
-  t.equal(yield cachified.get('a'), data.a)
+  t.equal(await cachified.get('a'), data.a)
   t.equal(misses.a, 1)
 
   cachified.put('a', 2)
   // miss
-  t.equal(yield cachified.get('a'), data.a)
+  t.equal(await cachified.get('a'), data.a)
   t.equal(misses.a, 2)
 
   cachified.put('a', 3)
@@ -47,14 +51,14 @@ test('cachify', loudCo(function* (t) {
   // hit
   const miss = cachified.get('a')
   const hit = cachified.get('a')
-  t.equal(yield miss, data.a)
+  t.equal(await miss, data.a)
   t.equal(misses.a, 3)
-  t.equal(yield hit, data.a)
+  t.equal(await hit, data.a)
 
   t.end()
 }))
 
-test('wrap', loudCo(function* (t) {
+test('wrap', loudAsync(async (t) => {
   const lambdaUtils = require('../lambda-utils')
   const { performServiceDiscovery } = lambdaUtils
   lambdaUtils.performServiceDiscovery = () => Promise.resolve()
@@ -95,7 +99,7 @@ test('wrap', loudCo(function* (t) {
   // eslint-disable-next-line no-mixed-operators
   let togo = good.length * 2 + bad.length
 
-  yield good.map(lambda => {
+  await good.map(lambda => {
     return new Promise(resolve => {
       lambda({}, {}, function (err, result) {
         t.error(err)
@@ -105,7 +109,7 @@ test('wrap', loudCo(function* (t) {
     })
   })
 
-  yield bad.map(lambda => {
+  await bad.map(lambda => {
     return new Promise(resolve => {
       lambda({}, {}, function (err, result) {
         t.equal(err, expectedError)
@@ -164,11 +168,11 @@ test('batch by size', function (t) {
   t.end()
 })
 
-test('getCacheable', loudCo(function* (t) {
+test('getCacheable', loudAsync(async (t) => {
   const { aws, s3Utils } = tradle
   const { s3 } = aws
   const bucketName = `test-${Date.now()}-${randomString(10)}`
-  yield s3.createBucket({ Bucket: bucketName }).promise()
+  await s3.createBucket({ Bucket: bucketName }).promise()
 
   const key = 'a'
   const bucket = s3Utils.getBucket(bucketName)
@@ -179,67 +183,110 @@ test('getCacheable', loudCo(function* (t) {
   })
 
   try {
-    yield cacheable.get(key)
+    await cacheable.get(key)
     t.fail('expected error')
   } catch (err) {
     t.equal(err.name, 'NotFound')
   }
 
   let value = { a: 1 }
-  yield bucket.putJSON(key, value)
+  await bucket.putJSON(key, value)
 
   const getObjectSpy = sinon.spy(s3, 'getObject')
-  t.same(yield cacheable.get(key), value)
+  t.same(await cacheable.get(key), value)
   t.equal(getObjectSpy.callCount, 1)
-  t.same(yield cacheable.get(key), value)
+  t.same(await cacheable.get(key), value)
   t.equal(getObjectSpy.callCount, 1)
 
   value = { a: 2 }
-  yield bucket.putJSON(key, value)
-  yield new Promise(resolve => setTimeout(resolve, 200))
-  t.same(yield cacheable.get(key), value)
+  await bucket.putJSON(key, value)
+  await new Promise(resolve => setTimeout(resolve, 200))
+  t.same(await cacheable.get(key), value)
   t.equal(getObjectSpy.callCount, 2)
-  t.same(yield cacheable.get(key), value)
+  t.same(await cacheable.get(key), value)
   t.equal(getObjectSpy.callCount, 2)
 
   getObjectSpy.restore()
-  yield bucket.del(key)
-  yield s3.deleteBucket({ Bucket: bucketName }).promise()
+  await bucket.del(key)
+  await s3.deleteBucket({ Bucket: bucketName }).promise()
 
   t.end()
 }))
 
-test('content-addressed-storage', loudCo(function* (t) {
+test('content-addressed-storage', loudAsync(async (t) => {
   const { contentAddressedStorage } = tradle
-  const key = yield contentAddressedStorage.put('a')
+  const key = await contentAddressedStorage.put('a')
   t.equal(key, sha256('a', 'hex'))
   t.end()
 }))
 
-test('key-value table', loudCo(function* (t) {
-  const { conf } = tradle
-  yield conf.put('a', {
-    b: 'c'
+test('key-value table', loudAsync(async (t) => {
+  const newTableName = 'kvTable' + Date.now()
+  const { aws } = tradle
+
+  await aws.dynamodb.createTable({
+    ...KVTable.Properties,
+    TableName: newTableName
+  }).promise()
+
+  const table = dbUtils.getTable(newTableName)
+  const conf = new KeyValueTable({ table })
+  t.equal(await conf.exists('a'), false)
+
+  await conf.put('a', {
+    b: 'c',
+    age: 75
   })
 
-  t.same(yield conf.get('a'), {
-    b: 'c'
+  t.equal(await conf.exists('a'), true)
+  t.same(await conf.get('a'), {
+    b: 'c',
+    age: 75
   })
+
+  const update = await conf.update('a', {
+    UpdateExpression: 'SET #value.#age = #value.#age + :incr',
+    ExpressionAttributeNames: {
+      '#value': 'value',
+      '#age': 'age'
+    },
+    ExpressionAttributeValues: {
+      ':incr': 1
+    },
+    ReturnValues: 'UPDATED_NEW'
+  })
+
+  t.same(update.age, 76)
 
   const sub = conf.sub('mynamespace')
-  yield sub.put('a', {
+  t.equal(await sub.exists('a'), false)
+  try {
+    await sub.get('mynamespacea')
+    t.fail('sub should not have value')
+  } catch (err) {
+    t.ok(err)
+  }
+
+  await sub.put('a', {
     d: 'e'
   })
 
-  t.same(yield conf.get('mynamespacea'), {
+  t.equal(await sub.exists('a'), true)
+  t.same(await sub.get('a'), {
     d: 'e'
   })
 
+  t.equal(await conf.exists('mynamespacea'), true)
+  t.same(await conf.get('mynamespacea'), {
+    d: 'e'
+  })
+
+  await table.destroy()
   t.end()
 }))
 
-// test.only('favicon', loudCo(function* (t) {
-//   const favicon = yield getFavicon('bankofamerica.com')
+// test.only('favicon', loudAsync(async (t) => {
+//   const favicon = await getFavicon('bankofamerica.com')
 //   console.log(favicon)
 // }))
 
