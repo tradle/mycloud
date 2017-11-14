@@ -1,11 +1,12 @@
 import Debug from 'debug'
+import dotProp = require('dot-prop')
 import { utils } from '@tradle/engine'
+import Embed = require('@tradle/embed')
 import { sign, getSigningKey, getChainKey, getPermalink } from './crypto'
 import {
   cachifyPromiser,
   extend,
   clone,
-  deepClone,
   setVirtual,
   pickVirtual,
   typeforce,
@@ -115,7 +116,7 @@ export default class Provider {
       object = await this.signObject({ author, object })
     }
 
-    await this.objects.put(deepClone(object))
+    await this.objects.put(object)
     this.objects.addMetadata(object)
     return object
   }
@@ -299,6 +300,9 @@ export default class Provider {
       promiseRecipient
     ])
 
+    const embeds = Embed.getEmbeds(payload)
+    // the signature will be validated against the embeded
+    // data url
     await this.objects.resolveEmbeds(payload)
     const payloadVirtual = pickVirtual(payload)
     const unsignedMessage = clone(other, {
@@ -329,6 +333,11 @@ export default class Provider {
       setVirtual(signedMessage.object, payloadVirtual)
       try {
         await this.messages.putMessage(signedMessage)
+        // restore embed links
+        embeds.forEach(embed => {
+          dotProp.set(signedMessage.object, embed.path, embed.value)
+        })
+
         return signedMessage
       } catch (err) {
         if (err.code !== 'ConditionalCheckFailedException') {

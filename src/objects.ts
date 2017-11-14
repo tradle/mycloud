@@ -1,7 +1,7 @@
-import * as Embed from '@tradle/embed'
+import Embed = require('@tradle/embed')
 import { protocol } from '@tradle/engine'
 import { IDebug, ITradleObject } from './types'
-import * as types from './typeforce-types'
+import types = require('./typeforce-types')
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
 import { TYPE, PREVLINK, PERMALINK } from './constants'
 import {
@@ -11,7 +11,7 @@ import {
   download,
   pick,
   summarizeObject,
-  RESOLVED_PROMISE
+  RESOLVED_PROMISE,
 } from './utils'
 import { extractSigPubKey, addLinks } from './crypto'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
