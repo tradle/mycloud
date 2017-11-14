@@ -334,9 +334,9 @@ export default class Provider {
       try {
         await this.messages.putMessage(signedMessage)
         // restore embed links
-        embeds.forEach(embed => {
+        for (let embed of embeds) {
           dotProp.set(signedMessage.object, embed.path, embed.value)
-        })
+        }
 
         return signedMessage
       } catch (err) {
