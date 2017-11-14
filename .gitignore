@@ -12,6 +12,7 @@ serverless.yml
 serverless-compiled.yml
 serverless-interpolated.yml
 vars.yml
+secrets.yml
 conf/friends.js
 conf/tradle.json
 !conf/sample-conf.json

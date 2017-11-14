@@ -96,3 +96,12 @@ bot_samples_dev:
     - http:
         path: samples
         method: post
+
+bot_onfido:
+  handler: lib/samplebot/index.handleOnfidoWebhookEvent
+  # handler: lib/lambda/http/default.handler
+  memorySize: 1024
+  events:
+    - http:
+        path: onfido
+        method: post

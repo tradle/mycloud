@@ -27,6 +27,8 @@ package:
     - conf
   exclude:
     - src
+    - secrets.yml
+    - vars.yml
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
@@ -35,6 +37,7 @@ custom:
   #   https://github.com/serverless/serverless/issues/3740
   service: ${{self:custom.vars.service, self:custom.defaults.service}}
   stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaults.stage}}
+  secrets: ${{file(./secrets.yml):${{self:custom.stage}}, self:custom.defaults.secrets}}
   # stage: dev
   region: ${{opt:region, self:custom.vars.region, self:custom.defaults.region}}
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
@@ -240,6 +243,9 @@ provider:
     PRODUCTS: ${{self:custom.brand.env.PRODUCTS}}
     AUTO_VERIFY_FORMS: ${{self:custom.brand.env.AUTO_VERIFY_FORMS, 'n'}}
     AUTO_APPROVE_APPS: ${{self:custom.brand.env.AUTO_APPROVE_APPS, 'n'}}
+
+    # API KEYS
+    ONFIDO_API_KEY: ${{self:custom.secrets.ONFIDO_API_KEY, ''}}
 
   iamRoleStatements:
     - Effect: Allow
@@ -837,6 +843,7 @@ functions:
   bot_samples: ${{self:custom.vars.bot_samples, self:custom.defaults.bot_samples}}
   # for testing
   bot_samples_dev: ${{self:custom.vars.bot_samples_dev, self:custom.defaults.bot_samples_dev}}
+  bot_onfido: ${{self:custom.vars.bot_onfido, self:custom.defaults.bot_onfido}}
 
 resources:
   Resources:
