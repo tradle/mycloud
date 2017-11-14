@@ -183,7 +183,7 @@
     "@tradle/embed": {
       "version": "0.0.0",
       "from": "tradle/embed",
-      "resolved": "git://github.com/tradle/embed.git#e19d8047d38eef19036cc8732117803b386ca9b3"
+      "resolved": "git://github.com/tradle/embed.git#379be5aba8ac888e3e1bf780ee6d072a84b8dd63"
     },
     "@tradle/engine": {
       "version": "5.4.0",
@@ -286,7 +286,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#8e394f7f87818508839d6a5ae5dacf5ebc889075"
+      "resolved": "git://github.com/tradle/schema-graphql.git#c9c9a0d898fd9341ce7ca79faf2e93bc8ed7ecae"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
