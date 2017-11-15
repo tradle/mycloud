@@ -91,10 +91,6 @@ Install the project dependencies, and build your `serverless.yml`:
 ```sh
 # install dependencies
 npm install
-# this compiles/interpolates serverless-uncompiled.yml into:
-#   -> serverless-interpolated.yml 
-#   -> serverless.yml
-npm run build:yml
 ```
 
 ### Install local playground tools
@@ -333,7 +329,10 @@ To set the style of your provider, refer to the [StylesPack](https://github.com/
 
 ```sh
 ./
-  serverless-uncompiled.yml # gets pre-processed into serverless.yml by `npm run build:yml`
+  serverless-uncompiled.yml # npm run build:yml turns this into:
+                            #   -> serverless-interpolated.yml 
+                            #   -> serverless-compiled.yml
+                            #   -> serverless.yml
   conf/                     # configuration for your instance
   src/                      # typescript code, some shell scripts
     *.ts

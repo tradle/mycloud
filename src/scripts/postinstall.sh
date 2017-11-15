@@ -10,6 +10,11 @@ do
   fi
 done
 
+if [ ! -e "conf/provider.json" ]; then
+  echo "creating conf/provider.json"
+  cp "conf/provider-sample.json" "conf/provider.json"
+fi
+
 if [ ! -e "serverless.yml" ]; then
   echo "copying placeholder serverless.yml"
   cp serverless-uncompiled.yml serverless.yml

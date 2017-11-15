@@ -43,7 +43,7 @@ custom:
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
-  brand: ${{file(./conf/${{self:service}}.json)}}
+  brand: ${{file(./conf/provider.json)}}
 
   # copied from vars.yml
   # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
