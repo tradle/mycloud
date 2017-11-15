@@ -28,6 +28,7 @@ const defaultTradleInstance = require('../').tradle
 const { constants } = defaultTradleInstance
 const { TYPE, SIG } = constants
 const createUsers = require('./users')
+import addConvenienceMethods from './convenience'
 // const RESOLVED = Promise.resolve()
 const promisePassThrough = data => Promise.resolve(data)
 
@@ -159,37 +160,6 @@ function createBot (opts={}) {
 
     return message
   })
-
-  bot.resolveEmbeds = bot.objects.resolveEmbeds
-  bot.presignEmbeddedMediaLinks = bot.objects.presignEmbeddedMediaLinks
-
-  // bot.loadEmbeddedResource = function (url) {
-  //   return uploads.get(url)
-  // }
-
-  bot.version = co(function* (resource) {
-    const latest = buildResource.version(resource)
-    yield bot.sign(latest)
-    addLinks(latest)
-    return latest
-  })
-
-  bot.signAndSave = co(function* (resource) {
-    yield bot.sign(resource)
-    addLinks(resource)
-    yield bot.save(resource)
-    return resource
-  })
-
-  bot.versionAndSave = co(function* (resource) {
-    const newVersion = yield bot.version(resource)
-    yield this.save(newVersion)
-    return newVersion
-  })
-
-  bot.reSign = function reSign (object) {
-    return bot.sign(omit(object, [SIG]))
-  }
 
   // setup hooks
   const hooks = createHooks()
@@ -373,6 +343,7 @@ function createBot (opts={}) {
   }
 
   makeBackwardsCompat(bot)
+  addConvenienceMethods(bot)
   return bot
 
   function emitAs (event) {

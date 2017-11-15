@@ -124,3 +124,15 @@ export interface IDeliveryMessageRange {
   before?: number
   afterMessage?: IOutboundMessagePointer
 }
+
+export type ResourceStub = {
+  id: string
+  title?: string
+}
+
+export type ParsedResourceStub = {
+  type: string
+  link: string
+  permalink: string
+  title?: string
+}

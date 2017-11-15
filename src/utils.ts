@@ -1,33 +1,36 @@
-const fs = require('fs')
-const Promise = require('bluebird')
-const querystring = require('querystring')
-const format = require('string-format')
-const crypto = require('crypto')
-const microtime = require('./microtime')
-const typeforce = require('typeforce')
+import fs = require('fs')
+import Promise = require('bluebird')
+import querystring = require('querystring')
+import format = require('string-format')
+import crypto = require('crypto')
+import microtime = require('./microtime')
+import typeforce = require('typeforce')
+import bindAll = require('bindall')
+import omit = require('object.omit')
+import pick = require('object.pick')
+import deepEqual = require('deep-equal')
+import deepClone = require('clone')
+import clone = require('xtend')
+import extend = require('xtend/mutable')
+import traverse = require('traverse')
+import dotProp = require('dot-prop')
+import { v4 as uuid } from 'uuid'
+import { wrap as co } from 'co'
+import promisify = require('pify')
+import { settle as allSettled } from 'settle-promise'
+import isGenerator = require('is-generator-function')
+import { encode as encodeDataURI, decode as decodeDataURI } from 'strong-data-uri'
+import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
+import buildResource = require('@tradle/build-resource')
+import fetch = require('node-fetch')
+import { prettify, stableStringify } from './string-utils'
+import { SIG, TYPE, TYPES, WARMUP_SLEEP } from './constants'
+import Resources = require('./resources')
+import { ExecutionTimeout } from './errors'
+
 const debug = require('debug')('tradle:sls:utils')
-const bindAll = require('bindall')
-const omit = require('object.omit')
-const pick = require('object.pick')
-const deepEqual = require('deep-equal')
-const deepClone = require('clone')
-const clone = require('xtend')
-const extend = require('xtend/mutable')
-const traverse = require('traverse')
-const dotProp = require('dot-prop')
-const uuid = require('uuid')
-const co = require('co').wrap
-const promisify = require('pify')
-const allSettled = require('settle-promise').settle
-const isGenerator = require('is-generator-function')
-const DataURI = require('strong-data-uri')
-const { marshalItem, unmarshalItem } = require('dynamodb-marshaler')
-const buildResource = require('@tradle/build-resource')
-const fetch = require('node-fetch')
-const { prettify, stableStringify } = require('./string-utils')
-const { SIG, TYPE, TYPES, WARMUP_SLEEP } = require('./constants')
-const Resources = require('./resources')
-const { ExecutionTimeout } = require('./errors')
+const isPromise = obj => obj && typeof obj.then === 'function'
+const { omitVirtual, setVirtual, pickVirtual } = buildResource
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE } = TYPES
 const noop = () => {}
@@ -43,13 +46,13 @@ const createTimeout = (fn, millis, unref) => {
   return timeout
 }
 
-const wait = (millis=0, unref) => {
+export const wait = (millis=0, unref) => {
   return new Promise(resolve => {
     createTimeout(resolve, millis, unref)
   })
 }
 
-const timeoutIn = (millis=0, unref) => {
+export const timeoutIn = (millis=0, unref) => {
   return new Promise((resolve, reject) => {
     createTimeout(() => {
       reject(new Error('timed out'))
@@ -57,33 +60,34 @@ const timeoutIn = (millis=0, unref) => {
   })
 }
 
-const utils = exports
+export {
+ format,
+ fetch,
+ bindAll,
+ deepClone,
+ clone,
+ extend,
+ deepEqual,
+ traverse,
+ dotProp,
+ co,
+ omit,
+ pick,
+ typeforce,
+ isGenerator,
+ uuid,
+ promisify,
+ isPromise,
+ allSettled,
+ setVirtual,
+ omitVirtual,
+ pickVirtual,
+ encodeDataURI,
+ decodeDataURI,
+ noop
+}
 
-exports.format = format
-exports.fetch = fetch
-exports.bindAll = bindAll
-exports.deepClone = deepClone
-exports.clone = clone
-exports.extend = extend
-exports.deepEqual = deepEqual
-exports.traverse = traverse
-exports.dotProp = dotProp
-exports.co = co
-exports.omit = omit
-exports.pick = pick
-exports.typeforce = typeforce
-exports.isGenerator = isGenerator
-exports.uuid = uuid.v4
-exports.promisify = promisify
-exports.allSettled = allSettled
-exports.setVirtual = buildResource.setVirtual
-exports.omitVirtual = buildResource.omitVirtual
-exports.pickVirtual = buildResource.pickVirtual
-exports.encodeDataURI = DataURI.encode
-exports.decodeDataURI = DataURI.decode
-exports.noop = noop
-
-exports.loudCo = function loudCo (gen) {
+export function loudCo (gen) {
   return co(function* (...args) {
     try {
       return yield co(gen).apply(this, args)
@@ -94,17 +98,17 @@ exports.loudCo = function loudCo (gen) {
   })
 }
 
-exports.toBuffer = function toBuffer (data) {
+export function toBuffer (data) {
   if (Buffer.isBuffer(data)) return data
 
   return new Buffer(stableStringify(data))
 }
 
-exports.now = function now () {
+export function now () {
   return Date.now()
 }
 
-exports.groupBy = function groupBy (items, prop) {
+export function groupBy (items, prop) {
   const groups = {}
   for (const item of items) {
     const val = item[prop]
@@ -118,7 +122,7 @@ exports.groupBy = function groupBy (items, prop) {
   return groups
 }
 
-exports.cachifyPromiser = function cachifyPromiser (fn) {
+export function cachifyPromiser (fn) {
   let promise
   return function (...args) {
     if (!promise) promise = fn.apply(this, args)
@@ -128,7 +132,7 @@ exports.cachifyPromiser = function cachifyPromiser (fn) {
 }
 
 // trick from: https://stackoverflow.com/questions/37234191/resolve-es6-promise-with-first-success
-exports.firstSuccess = function firstSuccess (promises) {
+export function firstSuccess (promises) {
   return Promise.all(promises.map(p => {
     // If a request fails, count that as a resolution so it will keep
     // waiting for other possible successes. If a request succeeds,
@@ -153,11 +157,11 @@ exports.firstSuccess = function firstSuccess (promises) {
   )
 }
 
-exports.uppercaseFirst = function uppercaseFirst (str) {
+export function uppercaseFirst (str) {
   return str[0].toUpperCase() + str.slice(1)
 }
 
-exports.logifyFunction = function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
+export function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
   return co(function* (...args) {
     const taskName = typeof name === 'function'
       ? name.apply(this, args)
@@ -198,13 +202,13 @@ exports.logifyFunction = function logifyFunction ({ fn, name, log=debug, logInpu
   })
 }
 
-exports.logify = function logify (obj, opts={}) {
+export function logify (obj, opts={}) {
   const { log=debug, logInputOutput } = opts
   const logified = {}
   for (let p in obj) {
     let val = obj[p]
     if (typeof val === 'function') {
-      logified[p] = utils.logifyFunction({
+      logified[p] = logifyFunction({
         fn: val,
         name: p,
         log,
@@ -218,7 +222,7 @@ exports.logify = function logify (obj, opts={}) {
   return logified
 }
 
-// exports.timify = function timify (obj, opts={}) {
+// export function timify (obj, opts={}) {
 //   const { overwrite, log=debug } = opts
 //   const timed = overwrite ? obj : {}
 //   const totals = {}
@@ -237,7 +241,7 @@ exports.logify = function logify (obj, opts={}) {
 //     timed[k] = function (...args) {
 //       const stopTimer = startTimer(k)
 //       const ret = orig(...args)
-//       if (!utils.isPromise(ret)) {
+//       if (!isPromise(ret)) {
 //         recordDuration()
 //         return ret
 //       }
@@ -263,10 +267,7 @@ exports.logify = function logify (obj, opts={}) {
 //   return timed
 // }
 
-const isPromise = obj => obj && typeof obj.then === 'function'
-exports.isPromise = isPromise
-
-exports.cachify = function cachify ({ get, put, del, cache }) {
+export function cachify ({ get, put, del, cache }) {
   const pending = {}
   return {
     get: co(function* (key) {
@@ -302,11 +303,11 @@ exports.cachify = function cachify ({ get, put, del, cache }) {
   }
 }
 
-exports.timestamp = function timestamp () {
+export function timestamp () {
   return microtime.now()
 }
 
-exports.executeSuperagentRequest = function executeSuperagentRequest (req) {
+export function executeSuperagentRequest (req) {
   return req.then(res => {
     if (!res.ok) {
       throw new Error(res.text || `request to ${req.url} failed`)
@@ -314,7 +315,7 @@ exports.executeSuperagentRequest = function executeSuperagentRequest (req) {
   })
 }
 
-exports.promiseCall = function promiseCall (fn, ...args) {
+export function promiseCall (fn, ...args) {
   return new Promise((resolve, reject) => {
     args.push(function (err, result) {
       if (err) return reject(err)
@@ -326,42 +327,42 @@ exports.promiseCall = function promiseCall (fn, ...args) {
   })
 }
 
-exports.series = co(function* (fns, ...args) {
+export async function series (fns, ...args) {
   for (let fn of fns) {
     let maybePromise = fn.apply(this, args)
     if (isPromise(maybePromise)) {
-      yield maybePromise
+      await maybePromise
     }
   }
-})
+}
 
-exports.seriesWithExit = co(function* (fns, ...args) {
+export async function seriesWithExit (fns, ...args) {
   for (let fn of fns) {
     let keepGoing = fn.apply(this, args)
     if (isPromise(keepGoing)) {
-      yield keepGoing
+      await keepGoing
     }
 
     // enable exit
     if (keepGoing === false) return
   }
-})
+}
 
-exports.waterfall = co(function* (fns, ...args) {
+export async function waterfall (fns, ...args) {
   let result
   for (let fn of fns) {
     result = fn.apply(this, args)
     if (isPromise(result)) {
-      result = yield result
+      result = await result
     }
 
     args = [result]
   }
 
   return result
-})
+}
 
-exports.launchStackUrl = function launchStackUrl ({
+export function launchStackUrl ({
   region=process.env.AWS_REGION,
   stackName,
   templateURL
@@ -370,7 +371,7 @@ exports.launchStackUrl = function launchStackUrl ({
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/new?${qs}`
 }
 
-exports.domainToUrl = function domainToUrl (domain) {
+export function domainToUrl (domain) {
   if (domain.startsWith('//')) {
     return 'http:' + domain
   }
@@ -382,7 +383,7 @@ exports.domainToUrl = function domainToUrl (domain) {
   return domain
 }
 
-exports.batchify = function (arr, batchSize) {
+export function batchify (arr, batchSize) {
   const batches = []
   while (arr.length) {
     batches.push(arr.slice(0, batchSize))
@@ -392,7 +393,7 @@ exports.batchify = function (arr, batchSize) {
   return batches
 }
 
-exports.runWithBackoffWhile = co(function* (fn, opts) {
+export async function runWithBackoffWhile (fn, opts) {
   const {
     initialDelay=1000,
     maxAttempts=10,
@@ -407,13 +408,13 @@ exports.runWithBackoffWhile = co(function* (fn, opts) {
   let attempts = 0
   while (Date.now() - start < maxTime && attempts++ < maxAttempts) {
     try {
-      return yield fn()
+      return await fn()
     } catch (err) {
       if (!shouldTryAgain(err)) {
         throw err
       }
 
-      yield wait(millisToWait)
+      await wait(millisToWait)
       millisToWait = Math.min(
         maxDelay,
         millisToWait * factor,
@@ -423,11 +424,11 @@ exports.runWithBackoffWhile = co(function* (fn, opts) {
   }
 
   throw new Error('timed out')
-})
+}
 
 const GIVE_UP_TIME = 2000
 const GIVE_UP_RETRY_TIME = 5000
-exports.tryUntilTimeRunsOut = co(function* (fn, opts={}) {
+export async function tryUntilTimeRunsOut (fn, opts={}) {
   const {
     attemptTimeout,
     onError=noop,
@@ -439,7 +440,7 @@ exports.tryUntilTimeRunsOut = co(function* (fn, opts={}) {
     let timeLeft = env.getRemainingTime()
     let timeout = Math.min(attemptTimeout, timeLeft / 2)
     try {
-      return yield Promise.race([
+      return await Promise.race([
         Promise.resolve(fn()),
         timeoutIn(timeout, true) // unref
       ])
@@ -459,25 +460,23 @@ exports.tryUntilTimeRunsOut = co(function* (fn, opts={}) {
       }
     }
 
-    yield wait(Math.min(2000, timeLeft / 2))
+    await wait(Math.min(2000, timeLeft / 2))
   }
-})
+}
 
-exports.wait = wait
-exports.timeoutIn = timeoutIn
-exports.seriesMap = co(function* (arr, fn) {
+export async function seriesMap (arr, fn) {
   const results = []
   for (const item of arr) {
-    const result = yield fn(item)
+    const result = await fn(item)
     results.push(result)
   }
 
   return results
-})
+}
 
-exports.post = co(function* (url, data) {
+export async function post (url, data) {
   debug(`POST to ${url}`)
-  const res = yield fetch(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       // 'Accept': 'application/json',
@@ -488,35 +487,35 @@ exports.post = co(function* (url, data) {
 
   debug(`processing response from POST to ${url}`)
   return processResponse(res)
-})
+}
 
-exports.download = co(function* ({ url }) {
+export async function download ({ url }) {
   debug(`downloading from ${url}`)
-  const res = yield fetch(url)
+  const res = await fetch(url)
   if (res.status > 300) {
     throw new Error(res.statusText)
   }
 
-  const buf = yield res.buffer()
+  const buf = await res.buffer()
   buf.mimetype = res.headers.get('content-type')
   return buf
-})
+}
 
-const processResponse = co(function* (res) {
+async function processResponse (res) {
   if (res.status > 300) {
     throw new Error(res.statusText)
   }
 
-  const text = yield res.text()
+  const text = await res.text()
   const contentType = res.headers.get('content-type') || ''
   if (contentType.startsWith('application/json')) {
     return JSON.parse(text)
   }
 
   return text
-})
+}
 
-exports.batchStringsBySize = function batchStringsBySize (strings, max) {
+export function batchStringsBySize (strings, max) {
   strings = strings.filter(s => s.length)
 
   const batches = []
@@ -545,16 +544,16 @@ exports.batchStringsBySize = function batchStringsBySize (strings, max) {
   return batches
 }
 
-exports.RESOLVED_PROMISE = Promise.resolve()
-exports.promiseNoop = () => exports.RESOLVED_PROMISE
+export const RESOLVED_PROMISE = Promise.resolve()
+export const promiseNoop = () => RESOLVED_PROMISE
 
-exports.defineGetter = function defineGetter (obj, property, get) {
+export function defineGetter (obj, property, get) {
   Object.defineProperty(obj, property, { get })
 }
 
-exports.race = Promise.race
+export const race = Promise.race
 
-exports.parseArn = function parseArn (arn) {
+export function parseArn (arn) {
   // e.g. arn:aws:lambda:us-east-1:210041114155:function:tradle-dev-http_catchall
   const parts = arn.split(':')
   return {
@@ -565,7 +564,7 @@ exports.parseArn = function parseArn (arn) {
   }
 }
 
-exports.getRecordsFromEvent = (event, oldAndNew) => {
+export const getRecordsFromEvent = (event, oldAndNew) => {
   return event.Records.map(record => {
     const { NewImage, OldImage } = record.dynamodb
     if (oldAndNew) {
@@ -580,41 +579,43 @@ exports.getRecordsFromEvent = (event, oldAndNew) => {
   .filter(data => data)
 }
 
-exports.marshalDBItem = marshalItem
-exports.unmarshalDBItem = unmarshalItem
+export const marshalDBItem = marshalItem
+export const unmarshalDBItem = unmarshalItem
 
-exports.applyFunction = function applyFunction (fn, args) {
+export const applyFunction = (fn, context, args) => {
+  if (!context) context = this
+
   if (isGenerator(fn)) {
-    return co(fn).apply(this, args)
+    return co(fn).apply(context, args)
   }
 
-  return fn.apply(this, args)
+  return fn.apply(context, args)
 }
 
 /**
  * @param  {Function} fn function that expects a callback parameter
  * @return {Function} function that returns a promise
  */
-exports.wrap = function wrap (fn) {
-  return co(function* (...args) {
+export const wrap = (fn) => {
+  return async function (...args) {
     const callback = args.pop()
     let ret
     try {
-      ret = utils.applyFunction(fn, args)
-      if (isPromise(ret)) ret = yield ret
+      ret = applyFunction(fn, this, args)
+      if (isPromise(ret)) ret = await ret
     } catch (err) {
       return callback(err)
     }
 
     callback(null, ret)
-  })
+  }
 }
 
 // utils is not the best home for this function
 // but I couldn't decide on a better one yet
 // especially due to the duality of lambdas that wake up router.js
 // vs the others (like in lambda/mqtt)
-exports.onWarmUp = ({
+export const onWarmUp = ({
   env,
   event,
   context,
@@ -633,14 +634,14 @@ exports.onWarmUp = ({
   }, WARMUP_SLEEP)
 }
 
-exports.networkFromIdentifier = str => {
+export const networkFromIdentifier = str => {
   const [flavor, networkName] = str.split(':')
   const networks = require('./networks')
   const forFlavor = networks[flavor] || {}
   return forFlavor[networkName]
 }
 
-exports.summarizeObject = object => {
+export const summarizeObject = object => {
   const links = buildResource.links(object)
   const summary = {
     ...links,
@@ -648,7 +649,7 @@ exports.summarizeObject = object => {
   }
 
   if (object[TYPE] === 'tradle.Message') {
-    summary.payload = utils.summarizeObject(object.object)
+    summary.payload = summarizeObject(object.object)
   }
 
   return summary

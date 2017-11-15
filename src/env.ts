@@ -45,6 +45,9 @@ export default class Env {
   public requestCtx:any
   public _X_AMZN_TRACE_ID:string
   public isVirgin:boolean
+
+  public PUSH_SERVER_URL:string
+
   public get containerAge () {
     return this.LAMBDA_BIRTH_DATE ? Date.now() - this.LAMBDA_BIRTH_DATE : null
   }

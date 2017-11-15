@@ -1,3 +1,5 @@
-module.exports = {
-  products: require('./products')
+import products from './products'
+
+export {
+  products
 }

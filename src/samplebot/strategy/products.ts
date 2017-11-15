@@ -1,15 +1,25 @@
+import crypto = require('crypto')
+import omit = require('object.omit')
+import coexpress = require('co-express')
+import createProductsStrategy = require('@tradle/bot-products')
+import createEmployeeManager = require('@tradle/bot-employee-manager')
+import bizPlugins = require('@tradle/biz-plugins')
+import validateResource = require('@tradle/validate-resource')
+import mergeModels = require('@tradle/merge-models')
+import { TYPE } from '@tradle/constants'
+import OnfidoAPI = require('@tradle/onfido-api')
+import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
+import setNamePlugin from './set-name'
+import { createGraphQLAuth } from './graphql-auth'
+import { tradle as defaultTradleInstance } from '../../'
+import createBot = require('../../bot')
+import { Commander } from './commander'
 const debug = require('debug')('tradle:sls:products')
-const co = require('co').wrap
-const omit = require('object.omit')
-const createProductsStrategy = require('@tradle/bot-products')
-const createEmployeeManager = require('@tradle/bot-employee-manager')
-const bizPlugins = require('@tradle/biz-plugins')
-const { createGraphQLAuth } = require('./graphql-auth')
-const defaultTradleInstance = require('../../').tradle
-const { TYPE } = require('../../').constants
-const createBot = require('../../bot')
-const { Commander } = require('./commander')
-const baseModels = defaultTradleInstance.models
+const { parseStub } = validateResource.utils
+const baseModels = mergeModels()
+  .add(defaultTradleInstance.models)
+  .get()
+
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DEFAULT_PRODUCTS = ['tradle.CurrentAccount']
 const DONT_FORWARD_FROM_EMPLOYEE = [
@@ -19,7 +29,7 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
   'tradle.AssignRelationshipManager'
 ]
 
-module.exports = function createProductsBot (opts={}) {
+export default function createProductsBot (opts={}) {
   const {
     tradle=defaultTradleInstance,
     models=baseModels,
@@ -31,10 +41,15 @@ module.exports = function createProductsBot (opts={}) {
     graphqlRequiresAuth
   } = opts
 
+  const { ONFIDO_API_KEY } = process.env
   const productsAPI = createProductsStrategy({
     namespace,
     models: {
-      all: models
+      all: mergeModels()
+        .add(baseModels)
+        .add(models)
+        .add(ONFIDO_API_KEY ? onfidoModels.all : {})
+        .get()
     },
     products
   })
@@ -55,6 +70,9 @@ module.exports = function createProductsBot (opts={}) {
     Object.keys(productsAPI.models.private)
       .concat(BASE_MODELS_IDS)
   )
+
+  employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
+  customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
 
   const bot = createBot.fromEngine({
     tradle,
@@ -110,7 +128,7 @@ module.exports = function createProductsBot (opts={}) {
   // prepend
   productsAPI.plugins.use({ onmessage: keepModelsFresh }, true)
   productsAPI.plugins.use({
-    'onmessage:tradle.Form': co(function* (req) {
+    'onmessage:tradle.Form': async (req) => {
       let { type, application } = req
       if (type === 'tradle.ProductRequest') {
         debug(`deferring to default handler for ${type}`)
@@ -135,9 +153,27 @@ module.exports = function createProductsBot (opts={}) {
       }
 
       debug(`auto-verifying ${type}`)
-      yield productsAPI.verify({ req, application, send: true })
-    }),
-    'onmessage:tradle.SimpleMessage': co(function* (req) {
+      await productsAPI.verify({
+        req,
+        application,
+        send: true,
+        verification: {
+          [TYPE]: 'tradle.Verification',
+          method: {
+            aspect: 'validity',
+            reference: [{
+              queryId: crypto.randomBytes(8).toString('hex')
+            }],
+            [TYPE]: 'tradle.APIBasedVerificationMethod',
+            api: {
+              [TYPE]: 'tradle.API',
+              name: 'tradle-internal'
+            }
+          }
+        }
+      })
+    },
+    'onmessage:tradle.SimpleMessage': async (req) => {
       const { application, object } = req
       const { message } = object
       if (message[0] === '/') return
@@ -145,7 +181,7 @@ module.exports = function createProductsBot (opts={}) {
 
       const lowercase = message.toLowerCase()
       if (/^hey|hi|hello$/.test(message)) {
-        yield productsAPI.send({
+        await productsAPI.send({
           req,
           object: {
             [TYPE]: 'tradle.SimpleMessage',
@@ -153,8 +189,8 @@ module.exports = function createProductsBot (opts={}) {
           }
         })
       }
-    }),
-    onFormsCollected: co(function* (req) {
+    },
+    onFormsCollected: async (req) => {
       if (!autoApprove) return
 
       const { user, application } = req
@@ -164,14 +200,39 @@ module.exports = function createProductsBot (opts={}) {
       })
 
       if (!approved) {
-        yield productsAPI.approveApplication({ req })
+        await productsAPI.approveApplication({ req })
       }
-    }),
-    onCommand: co(function* ({ req, command }) {
-      yield commands.exec({ req, command })
-    })
+    },
+    onCommand: async ({ req, command }) => {
+      await commands.exec({ req, command })
+    }
 
   }) // append
+
+  if (ONFIDO_API_KEY) {
+    const onfidoAPI = new OnfidoAPI({ token: ONFIDO_API_KEY })
+    const onfidoPlugin = new Onfido({
+      bot,
+      logger: tradle.env.sublogger('onfido'),
+      products: [{
+        product: 'tradle.OnfidoVerification',
+        reports: ['document', 'facialsimilarity']
+      }],
+      productsAPI,
+      onfidoAPI,
+      padApplicantName: true,
+      formsToRequestCorrectionsFor: ['tradle.OnfidoApplicant', 'tradle.Selfie']
+    })
+
+    productsAPI.plugins.use(onfidoPlugin)
+    tradle.router.post('/onfido', coexpress(function* (req, res) {
+      yield onfidoPlugin.processWebhookEvent({ req, res })
+    }))
+
+    tradle.router.use(tradle.router.defaultErrorHandler)
+  }
+
+  productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
 
   // bot.hook('message', , true) // prepend
 

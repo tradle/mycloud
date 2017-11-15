@@ -78,7 +78,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#32f90a3496ed430e470bd0cb096f876c074f5098",
+      "resolved": "git://github.com/tradle/bot-products.git#e52232b40a35cbdb0cfef137440b848da9af56f6",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -266,17 +266,46 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models#messagemodel",
-      "resolved": "git://github.com/tradle/models.git#272cec3acc71e37012d367115d5d5f79a7aed726"
+      "resolved": "git://github.com/tradle/models.git#96622c5fa048ace0e551d7f885524969ac1abe61"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
       "resolved": "git://github.com/tradle/models-corporate-onboarding.git#3dfa35e2125c6d9d24c6fbbc8bcc6c62e04e5063"
     },
+    "@tradle/onfido-api": {
+      "version": "1.0.0",
+      "from": "tradle/onfido-api",
+      "resolved": "git://github.com/tradle/onfido-api.git#94cf62095837147823d4cf28284605c8a4ffa71b",
+      "dependencies": {
+        "deep-extend": {
+          "version": "0.4.2",
+          "from": "deep-extend@>=0.4.1 <0.5.0",
+          "resolved": "https://registry.npmjs.org/deep-extend/-/deep-extend-0.4.2.tgz"
+        }
+      }
+    },
     "@tradle/plugin-customize-message": {
       "version": "1.0.0",
       "from": "tradle/plugin-customize-message",
       "resolved": "git://github.com/tradle/plugin-customize-message.git#a3bf0b4fb379c5cdd9379541ebe09fddec998e82"
+    },
+    "@tradle/plugin-onfido": {
+      "version": "1.0.0",
+      "from": "tradle/plugin-onfido",
+      "resolved": "git://github.com/tradle/plugin-onfido.git#4a56a48a02618b0fdf02975e2700bc3fad9acaa4",
+      "dependencies": {
+        "is-extendable": {
+          "version": "1.0.1",
+          "from": "is-extendable@>=1.0.0 <2.0.0",
+          "resolved": "https://registry.npmjs.org/is-extendable/-/is-extendable-1.0.1.tgz"
+        },
+        "object.omit": {
+          "version": "3.0.0",
+          "from": "object.omit@>=3.0.0 <4.0.0",
+          "resolved": "https://registry.npmjs.org/object.omit/-/object.omit-3.0.0.tgz"
+        }
+      }
     },
     "@tradle/protocol": {
       "version": "3.0.0",
@@ -319,9 +348,9 @@
       "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-4.0.0.tgz"
     },
     "@tradle/validate-resource": {
-      "version": "2.12.1",
+      "version": "2.13.0",
       "from": "@tradle/validate-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.12.1.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.13.0.tgz",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -1448,6 +1477,11 @@
       "from": "data-uri-regex@>=0.1.4 <0.2.0",
       "resolved": "https://registry.npmjs.org/data-uri-regex/-/data-uri-regex-0.1.4.tgz"
     },
+    "data-uri-to-buffer": {
+      "version": "0.0.3",
+      "from": "data-uri-to-buffer@0.0.3",
+      "resolved": "https://registry.npmjs.org/data-uri-to-buffer/-/data-uri-to-buffer-0.0.3.tgz"
+    },
     "data-uri-to-file": {
       "version": "0.1.8",
       "from": "data-uri-to-file@>=0.1.8 <0.2.0",
@@ -2088,8 +2122,8 @@
     },
     "express-graphql": {
       "version": "0.6.11",
-      "from": "express-graphql@>=0.6.7 <0.7.0",
-      "resolved": "https://registry.npmjs.org/express-graphql/-/express-graphql-0.6.11.tgz"
+      "from": "mvayngrib/express-graphql#dist",
+      "resolved": "git://github.com/mvayngrib/express-graphql.git#c35f92c4d6d1b4786823f51c5a4f05dcd727bfbd"
     },
     "extend": {
       "version": "3.0.1",
@@ -3457,6 +3491,11 @@
       "version": "1.0.2",
       "from": "os-tmpdir@>=1.0.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/os-tmpdir/-/os-tmpdir-1.0.2.tgz"
+    },
+    "parse-data-uri": {
+      "version": "0.2.0",
+      "from": "parse-data-uri@>=0.2.0 <0.3.0",
+      "resolved": "https://registry.npmjs.org/parse-data-uri/-/parse-data-uri-0.2.0.tgz"
     },
     "parse-headers": {
       "version": "2.0.1",

@@ -1,22 +1,27 @@
-const shallowClone = require('xtend')
-const buildResource = require('@tradle/build-resource')
+import shallowClone = require('xtend')
+import buildResource = require('@tradle/build-resource')
+import extend = require('xtend/mutable')
+import yn = require('yn')
+import biz = require('@tradle/biz-plugins')
+import {
+  listPhotoIds,
+  listApplications,
+  listNames
+} from './sample-queries'
+
 const { IS_LAMBDA_ENVIRONMENT, NODE_ENV } = process.env
-const extend = require('xtend/mutable')
-const yn = require('yn')
 if (NODE_ENV === 'test') {
-  extend(process.env, require('../test/service-map'), shallowClone(process.env))
+  Object.assign(process.env, require('../test/service-map'), { ...process.env })
   // console.log(process.env)
 }
 
 // locally
 if (yn(IS_LAMBDA_ENVIRONMENT) === false) {
   const { env } = require('../cli/serverless-yml').custom.brand
-  extend(process.env, env)
+  Object.assign(process.env, env)
 }
 
 const debug = require('debug')('λ:samplebot')
-const co = require('co').wrap
-const coExec = require('co')
 const TYPE = '_t'
 let {
   // PRODUCTS=DEPLOYMENT,
@@ -51,6 +56,30 @@ const {
   graphqlRequiresAuth: yn(GRAPHQL_AUTH)
   // handlers: PRODUCT === DEPLOYMENT ? require('./deployment-handlers') : {}
 })
+
+if (bot.graphqlAPI) {
+  bot.graphqlAPI.setGraphiqlOptions({
+    logo: {
+      src: 'https://blog.tradle.io/content/images/2016/08/256x-no-text-1.png',
+      width: 32,
+      height: 32
+    },
+    bookmarks: [
+      {
+        title: 'Photo ID list',
+        query: listPhotoIds
+      },
+      {
+        title: 'Application list',
+        query: listApplications
+      },
+      {
+        title: 'Name forms list',
+        query: listNames
+      }
+    ]
+  })
+}
 
 // function getProductModelIds (models) {
 //   return Object.keys(models).filter(id => models[id].subClassOf === 'tradle.FinancialProduct')

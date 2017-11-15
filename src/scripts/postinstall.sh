@@ -14,3 +14,5 @@ if [ ! -e "serverless.yml" ]; then
   echo "copying placeholder serverless.yml"
   cp serverless-uncompiled.yml serverless.yml
 fi
+
+npm run build:yml

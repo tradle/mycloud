@@ -1,12 +1,9 @@
-const crypto = require('crypto')
-const stringify = require('json-stable-stringify')
-const KeyEncoder = require('key-encoder')
-const pify = require('pify')
-const { protocol, utils, constants } = require('@tradle/engine')
-const doSign = pify(protocol.sign.bind(protocol))
-const { SIG, TYPE, TYPES } = constants
-const { IDENTITY } = TYPES
-const {
+import crypto = require('crypto')
+import stringify = require('json-stable-stringify')
+import KeyEncoder = require('key-encoder')
+import pify = require('pify')
+import { protocol, utils, constants } from '@tradle/engine'
+import {
   toBuffer,
   loudCo,
   extend,
@@ -14,10 +11,14 @@ const {
   omitVirtual,
   setVirtual,
   wrap
-} = require('./utils')
+} from './utils'
 
-const { InvalidSignature } = require('./errors')
-const { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } = require('./constants')
+import { InvalidSignature } from './errors'
+import { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } from './constants'
+
+const doSign = pify(protocol.sign.bind(protocol))
+const { SIG, TYPE, TYPES } = constants
+const { IDENTITY } = TYPES
 const SIGN_WITH_HASH = 'sha256'
 const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12

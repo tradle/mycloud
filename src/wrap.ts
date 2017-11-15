@@ -74,7 +74,7 @@ function wrap (fn, opts={}) {
     let ret
     try {
       yield prepare
-      ret = applyFunction(fn, args)
+      ret = applyFunction(fn, this, args)
       if (isPromise(ret)) ret = yield ret
     } catch (err) {
       clearInterval(monitor)

@@ -126,6 +126,7 @@ export default class Logger {
   public info = (msg:string, params?:any) => this.log('INFO', msg, params)
   public warn = (msg:string, params?:any) => this.log('WARN', msg, params)
   public error = (msg:string, params?:any) => this.log('ERROR', msg, params)
+  public sub = (conf:LoggerConf) => this.logger(conf)
   public logger = (conf:LoggerConf) => {
     const sublogger = new Logger({
       ...this.conf,

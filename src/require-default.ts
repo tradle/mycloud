@@ -7,7 +7,7 @@ const requireDefault:Require = (() => {
   return (path:string) => {
     if (!cache[path]) {
       const result = require(path)
-      cache[path] = result.__esModule ? result.default : result
+      cache[path] = result.__esModule && result.default ? result.default : result
     }
 
     return cache[path]

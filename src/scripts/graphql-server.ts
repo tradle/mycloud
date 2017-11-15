@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
-const path = require('path')
-const loadDockerEnv = require('node-env-file')
-loadDockerEnv(path.resolve(__dirname, '../docker/.env'))
+require('source-map-support').install()
 
-const { loadEnv, loadCredentials } = require('../cli/utils')
+import path = require('path')
+import loadDockerEnv = require('node-env-file')
+loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
+
+import { loadEnv, loadCredentials } from '../cli/utils'
 
 loadCredentials()
 
@@ -14,14 +16,19 @@ if (process.env.NODE_ENV === 'test') {
   loadEnv()
 }
 
-const express = require('express')
-const expressGraphQL = require('express-graphql')
-const compression = require('compression')
-const cors = require('cors')
-const dynogels = require('dynogels')
-const createProductsBot = require('../bot/strategy').products
-const { bot } = createProductsBot()
+import express = require('express')
+import expressGraphQL = require('express-graphql')
+import compression = require('compression')
+import cors = require('cors')
+import dynogels = require('dynogels')
+import { products as createProductsBot } from '../samplebot/strategy'
+import {
+  listPhotoIds,
+  listApplications,
+  listNames
+} from '../samplebot/sample-queries'
 
+const { bot } = createProductsBot()
 const { port } = require('minimist')(process.argv.slice(2), {
   default: {
     port: 21012
@@ -43,7 +50,27 @@ app.use(cors())
 app.use(compression())
 app.use('/', expressGraphQL(req => ({
   schema: bot.graphqlAPI.schema,
-  graphiql: true,
+  graphiql: {
+    logo: {
+      src: 'https://blog.tradle.io/content/images/2016/08/256x-no-text-1.png',
+      width: 32,
+      height: 32
+    },
+    bookmarks: [
+      {
+        title: 'Photo ID list',
+        query: listPhotoIds
+      },
+      {
+        title: 'Application list',
+        query: listApplications
+      },
+      {
+        title: 'Name forms list',
+        query: listNames
+      }
+    ],
+  },
   pretty: true
 })))
 

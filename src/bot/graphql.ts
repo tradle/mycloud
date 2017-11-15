@@ -30,7 +30,9 @@ export = function setup (opts) {
   debug('attaching /graphql route')
 
   let auth
+  let graphiqlOptions
   const setAuth = authImpl => auth = authImpl
+  const setGraphiqlOptions = options => graphiqlOptions = options
 
   router.use('/graphql', coexpress(function* (req, res, next) {
     if (auth) {
@@ -49,7 +51,7 @@ export = function setup (opts) {
 
     return {
       schema: getSchema(),
-      graphiql: true,
+      graphiql: graphiqlOptions,
       formatError: err => {
         console.error('experienced error executing GraphQL query', err.stack)
         return formatError(err)
@@ -137,7 +139,8 @@ export = function setup (opts) {
     db,
     resolvers,
     executeQuery,
-    setAuth
+    setAuth,
+    setGraphiqlOptions
   }
 
   function presignEmbeddedMediaLinks (items) {

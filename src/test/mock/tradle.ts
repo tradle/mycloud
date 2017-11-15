@@ -1,13 +1,14 @@
-const co = require('co').wrap
-const { errors, constants, utils, aws, db } = require('../../').tradle
-const { extend } = utils
-const { getter } = require('../utils')
-const fakeSeals = require('./seals')
-const Env = require('../../env')
-const promiseNoop = co(function* () {})
-const noop = co(function* () {})
+import { tradle } from '../../'
+import { getter } from '../utils'
+import fakeSeals = require('./seals')
+import Env from '../../env'
 
-module.exports = function fakeTradle ({ env, objects, identities, messages, send }) {
+const { errors, constants, utils, aws, db } = tradle
+const { extend } = utils
+const promiseNoop = async () => {}
+const noop = () => {}
+
+module.exports = function fakeTradle ({ env, conf, kv, objects, identities, messages, send }) {
   const seals = {}
   const inbox = {}
   const outbox = {}
@@ -16,6 +17,8 @@ module.exports = function fakeTradle ({ env, objects, identities, messages, send
     aws,
     errors,
     constants,
+    conf,
+    kv,
     seals: fakeSeals({
       seals
     }),
@@ -51,7 +54,7 @@ module.exports = function fakeTradle ({ env, objects, identities, messages, send
       // getMessagesTo
     },
     provider: {
-      sendMessage: co(function* (args) {
+      sendMessage: async (args) => {
         const { to, object, other={} } = args
         if (!outbox[to]) outbox[to] = []
 
@@ -63,7 +66,7 @@ module.exports = function fakeTradle ({ env, objects, identities, messages, send
         }, other))
 
         yield send(args)
-      }),
+      },
       getMyChainKey: promiseNoop
     }
   }

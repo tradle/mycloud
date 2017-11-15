@@ -17,7 +17,8 @@ const cloud = {
   //   ]
   // },
   'tradle.MyCloudFriend': require('./tradle.MyCloudFriend.json'),
-  'tradle.GraphQLQuery': require('./tradle.GraphQLQuery.json')
+  'tradle.GraphQLQuery': require('./tradle.GraphQLQuery.json'),
+  'tradle.OnfidoVerification': require('./tradle.OnfidoVerification.json')
 }
 
 const defaultSet = mergeModels()
