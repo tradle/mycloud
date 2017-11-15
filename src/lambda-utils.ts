@@ -73,11 +73,7 @@ export default class Utils {
   public getStackResources = async (StackName?: string)
     :Promise<AWS.CloudFormation.StackResourceSummaries> => {
     if (!StackName) {
-      StackName = this.env.STACK_ID
-    }
-
-    if (!StackName) {
-      throw new Error(`expected "StackName"`)
+      StackName = this.getStackName()
     }
 
     let resources = []
@@ -96,7 +92,15 @@ export default class Utils {
     return resources
   }
 
+  public getStackName ():string {
+    return this.env.STACK_ID
+  }
+
   public listFunctions = async (StackName?:string):Promise<Lambda.Types.FunctionConfiguration[]> => {
+    if (!StackName) {
+      StackName = this.getStackName()
+    }
+
     let all = []
     let Marker
     let opts:Lambda.Types.ListFunctionsRequest = {}

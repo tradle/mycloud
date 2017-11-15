@@ -49,4 +49,6 @@ export const install = (target=process.env):void => {
   })
 }
 
+export const get = () => ({ ...props })
+
 const randomBase64 = (bytes:number):string => crypto.randomBytes(bytes).toString('base64')
