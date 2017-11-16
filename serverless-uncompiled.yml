@@ -1301,14 +1301,24 @@ resources:
                   Action: ["iot:Connect"]
                   # Resource: ["*"]
                   Resource:
-                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/${iot:ClientId}'
+                    - Fn::Join:
+                      - ":"
+                      - - 'arn:aws:iot'
+                        - Ref: AWS::Region
+                        - Ref: AWS::AccountId
+                        - 'client/${iot:ClientId}'
 
                 # allow all clients to publish to the send topic
                 - Effect: "Allow"
                   Action: ["iot:Publish"]
                   # Resource: ["*"]
                   Resource:
-                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${{self:custom.iotParentTopic}}/${iot:ClientId}/pub/*'
+                    - Fn::Join:
+                      - ":"
+                      - - 'arn:aws:iot'
+                        - Ref: AWS::Region
+                        - Ref: AWS::AccountId
+                        - 'topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/pub/outbox'
                   #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}message
                   #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}restore
 
@@ -1317,15 +1327,24 @@ resources:
                   Action: ["iot:Subscribe"]
                   # Resource: ["*"]
                   Resource:
-                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
+                    - Fn::Join:
+                      - ":"
+                      - - 'arn:aws:iot'
+                        - Ref: AWS::Region
+                        - Ref: AWS::AccountId
+                        - 'topicfilter/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
                 # restrict messages clients receive by their client id
                 # this has the same function as the Subscribe rule above
                 # provided the Subscribe policy is upheld, this policy should always give a pass
                 - Effect: "Allow"
                   Action: ["iot:Receive"]
-                  # Resource: ["*"]
                   Resource:
-                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
+                    - Fn::Join:
+                      - ":"
+                      - - 'arn:aws:iot'
+                        - Ref: AWS::Region
+                        - Ref: AWS::AccountId
+                        - 'topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
 
     # primarily for autoscaling dynamodb
     # AutoScalingRole:
