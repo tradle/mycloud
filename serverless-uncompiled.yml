@@ -1271,11 +1271,13 @@ resources:
                 Service:
                   - lambda.amazonaws.com
                 AWS:
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-                  # - arn:aws:iam::${{self:custom.accountId}}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole"
-                  # - Fn::Join" : [":", ["arn:aws:iam", { "Ref" : "AWS::Region" }, { "Ref" : "AWS::AccountId" }, "lambdaRole" ] ] }
-
-                # AWS: "arn:aws:iam::${{{}}}:role/${{self:custom.prefix}}lambdaRole"
+                  # - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+                  # would be nice to use the below Fn::GetAtt
+                  # but it creates a circular dep
+                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole'
+                  # - Fn::GetAtt:
+                  #   - IamRoleLambdaExecution
+                  #   - Arn
               Action:
                 - sts:AssumeRole
         Policies:

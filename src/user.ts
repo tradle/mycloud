@@ -42,7 +42,10 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
   this.logger.debug('client subscribed to topics:', topics.join(', '))
   // yield onEnter({ clientId })
 
-  if (!this.delivery.mqtt.includesClientMessagesTopic({ clientId, topics })) return
+  if (!this.delivery.mqtt.includesClientMessagesTopic({ clientId, topics })) {
+    this.logger.debug('message topic not found in topics array')
+    return
+  }
 
   const session = yield this.auth.getSession({ clientId })
   this.logger.debug('retrieved session', prettify(session))
