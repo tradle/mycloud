@@ -1,8 +1,69 @@
 // const debug = require('debug')('tradle:sls:errors')
-const ex = require('error-ex')
+import deepEqual = require('deep-equal')
+import ex = require('error-ex')
+import { AssertionError } from 'assert'
+import { TfTypeError, TfPropertyTypeError } from 'typeforce'
 
 function createError (name: string): ErrorConstructor {
   return ex(name)
+}
+
+const types = {
+  system: [
+    // JavaScript
+    EvalError,
+    RangeError,
+    ReferenceError,
+    SyntaxError,
+    TypeError,
+    URIError,
+
+    // Node
+    AssertionError,
+
+    // Typeforce
+    TfTypeError,
+    TfPropertyTypeError
+  ]
+}
+
+const isSystemError = err => types.system.some(ErrorCtor => {
+  return err instanceof ErrorCtor
+})
+
+const matches = (err, type) => {
+  if (type === 'system') {
+    return isSystemError(err)
+  }
+  if (typeof type === 'function' && err instanceof type) {
+    return true
+  }
+
+  for (let key in type) {
+    let expected = type[key]
+    let actual = err[key]
+    if (expected instanceof RegExp) {
+      if (!expected.test(actual)) {
+        return false
+      }
+    } else if (!deepEqual(expected, actual)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const ignore = (err, type) => {
+  if (!matches(err, type)) {
+    throw err
+  }
+}
+
+const rethrow = (err, type) => {
+  if (matches(err, type)) {
+    throw err
+  }
 }
 
 const errors = {
@@ -46,7 +107,10 @@ const errors = {
   is: (err:Error, errType:any): boolean => {
     const { name='' } = err
     return name.toLowerCase() === (errType || errType.type).toLowerCase()
-  }
+  },
+  ignore,
+  rethrow,
+  matches
 }
 
 export = errors

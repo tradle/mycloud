@@ -8,6 +8,7 @@ import { getFavicon } from '../image-utils'
 import { randomString, sha256 } from '../crypto'
 import { co, loudCo, cachify, clone, batchStringsBySize } from '../utils'
 import { loudAsync } from './utils'
+import * as Errors from '../errors'
 import { wrap, tradle } from '../'
 import { KVTable } from '../definitions'
 
@@ -284,6 +285,54 @@ test('key-value table', loudAsync(async (t) => {
   await table.destroy()
   t.end()
 }))
+
+test('errors', function (t) {
+  ;[
+    {
+      error: new TypeError('bad type'),
+      matches: [
+        { type: 'system', result: true },
+        { type: { message: 'bad type' }, result: true },
+        { type: { message: /bad type/ }, result: true },
+        { type: {}, result: true }
+      ]
+    },
+    {
+      error: (() => {
+        const err = new Error('resource not found')
+        err.code = 'ResourceNotFoundException'
+        err.name = 'somename'
+        return err
+      })(),
+      matches: [
+        {
+          type: 'system',
+          result: false
+        },
+        {
+          type: {
+            code: 'ResourceNotFoundException'
+          },
+          result: true
+        },
+        {
+          type: {
+            code: 'ResourceNotFoundException',
+            name: 'someothername'
+          },
+          result: false
+        },
+        { type: {}, result: true }
+      ]
+    },
+  ].forEach(({ error, matches }) => {
+    matches.forEach(({ type, result }) => {
+      t.equal(Errors.matches(error, type), result)
+    })
+  })
+
+  t.end()
+})
 
 // test.only('favicon', loudAsync(async (t) => {
 //   const favicon = await getFavicon('bankofamerica.com')
