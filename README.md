@@ -190,7 +190,7 @@ Once everything's deployed, open your browser to [http://localhost:55555](http:/
 
 There's configuration and configuration. 
 
-- To configure the built-in bot, copy `./conf/sample-conf.json` to `./conf/tradle.json`
+- To configure the built-in bot, edit `./conf/provider.json`
 - If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./samplebot/index.js](./samplebot/index.js).
 
 ### Explore the Architecture
@@ -321,7 +321,7 @@ start up two UIs for browsing local data:
 
 ### npm run setstyle
 
-To set the style of your provider, refer to the [StylesPack](https://github.com/tradle/models/blob/master/models/tradle.StylesPack.json) model. Set it in the "style" property in `conf/{service}.json`
+To set the style of your provider, refer to the [StylesPack](https://github.com/tradle/models/blob/master/models/tradle.StylesPack.json) model. Set it in the "style" property in `./conf/provider.json`
 
 ## Project Architecture
 
@@ -334,6 +334,7 @@ To set the style of your provider, refer to the [StylesPack](https://github.com/
                             #   -> serverless-compiled.yml
                             #   -> serverless.yml
   conf/                     # configuration for your instance
+    provider.json           # main customization file
   src/                      # typescript code, some shell scripts
     *.ts
     scripts/                # command line scripts, and utils
