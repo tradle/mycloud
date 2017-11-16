@@ -98,9 +98,9 @@
       }
     },
     "@tradle/build-resource": {
-      "version": "2.11.0",
+      "version": "2.12.0",
       "from": "@tradle/build-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-2.11.0.tgz"
+      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-2.12.0.tgz"
     },
     "@tradle/cb-blockr": {
       "version": "3.2.1",
@@ -293,7 +293,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#4a56a48a02618b0fdf02975e2700bc3fad9acaa4",
+      "resolved": "git://github.com/tradle/plugin-onfido.git#b42ccfc6cff6b0e1ff9fac2f3c7caa48cc2f7d92",
       "dependencies": {
         "is-extendable": {
           "version": "1.0.1",

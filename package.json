@@ -105,7 +105,7 @@
     "@tradle/biz-plugins": "github:tradle/biz-plugins#cloud",
     "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager#cloud",
     "@tradle/bot-products": "github:tradle/bot-products#modeled",
-    "@tradle/build-resource": "^2.11.0",
+    "@tradle/build-resource": "^2.12.0",
     "@tradle/cb-blockr": "^3.2.1",
     "@tradle/constants": "^2.1.0",
     "@tradle/custom-models": "github:tradle/custom-models#messagemodel",
