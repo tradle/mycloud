@@ -131,6 +131,8 @@ module.exports = function createRouter ({ user, friends, env, utils, init }) {
   }))
 
   app.post('/auth', coexpress(function* (req, res) {
+    yield init.ensureInitialized()
+
     // debug('[START] /auth', Date.now())
     const event = req.body
     // TODO: use @tradle/validate-resource

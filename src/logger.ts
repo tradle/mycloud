@@ -40,16 +40,16 @@ const COLORS = {
   SILLY: 'pink'
 }
 
-type Console = {
+export type Writer = {
   log: Function
   [x: string]: any
 }
 
-type LoggerConf = {
+export type LoggerConf = {
   namespace?:string
   context?:any
   level?:number
-  console?:Console
+  writer?:Writer
   outputFormat?:string
 }
 
@@ -58,7 +58,7 @@ export default class Logger {
   public context:any
   public level:number
   public subloggers:Logger[]
-  private console:Console
+  private writer:Writer
   private outputFormat:string
   private conf:LoggerConf
   constructor (conf: LoggerConf) {
@@ -66,7 +66,7 @@ export default class Logger {
       namespace='',
       context={},
       level=Level.DEBUG,
-      console=global.console,
+      writer=global.console,
       outputFormat='json'
     } = conf
 
@@ -78,7 +78,7 @@ export default class Logger {
       throw new Error(`expected level >= 0 && level <=3, got ${level}`)
     }
 
-    this.console = console
+    this.writer = writer
     this.outputFormat = outputFormat
     if (!FORMATS.includes(outputFormat)) {
       throw new Error(`expected outputFormat to be one of: ${FORMATS.join(', ')}`)
@@ -87,34 +87,11 @@ export default class Logger {
     this.subloggers = []
   }
 
-  private log (level:string, msg:string, params?:any) {
-    if (this.level < Level[level]) {
-      // ignore
-      return
+  public setWriter = (writer:Writer, propagateToSubWriters:boolean) => {
+    this.writer = writer
+    if (propagateToSubWriters) {
+      this.subloggers.forEach(logger => logger.setWriter(writer, propagateToSubWriters))
     }
-
-    const output = this.formatOutput(level, msg, params)
-    const { console } = this
-    const fn = console[METHODS[level]] || console.log
-    fn.call(console, output)
-  }
-
-  private formatOutput = (level, msg, params) => {
-    if (this.outputFormat === 'json') {
-      const logMsg = {
-        msg,
-        time: new Date().toISOString(),
-        level,
-        ...this.context
-      }
-
-      if (params) logMsg.params = params
-
-      return JSON.stringify(logMsg)
-    }
-
-    const stringifiedParams = params ? JSON.stringify(params) : ''
-    return `${level}: ${msg} ${stringifiedParams}`
   }
 
   public setContext = (value:any) => {
@@ -136,5 +113,35 @@ export default class Logger {
 
     this.subloggers.push(sublogger)
     return sublogger
+  }
+
+  public log (level:string, msg:string, params?:any) {
+    if (this.level < Level[level]) {
+      // ignore
+      return
+    }
+
+    const output = this.formatOutput(level, msg, params)
+    const { writer } = this
+    const fn = writer[METHODS[level]] || writer.log
+    fn.call(writer, output)
+  }
+
+  private formatOutput = (level, msg, params) => {
+    if (this.outputFormat === 'json') {
+      const logMsg = {
+        msg,
+        time: new Date().toISOString(),
+        level,
+        ...this.context
+      }
+
+      if (params) logMsg.params = params
+
+      return JSON.stringify(logMsg)
+    }
+
+    const stringifiedParams = params ? JSON.stringify(params) : ''
+    return `${level}: ${msg} ${stringifiedParams}`
   }
 }

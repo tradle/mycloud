@@ -74,9 +74,7 @@ export default class Env {
       namespace,
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
-      console: this.TESTING
-        ? { log: debug(namespace) }
-        : global.console,
+      writer: this.TESTING ? { log: debug(namespace) } : global.console,
       outputFormat: this.TESTING ? 'text': 'json'
     })
 

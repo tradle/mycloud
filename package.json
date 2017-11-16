@@ -8,7 +8,6 @@
   "license": "MIT",
   "devDependencies": {
     "@tradle/aws-client": "github:tradle/aws-client",
-    "@tradle/dynamodb": "github:tradle/dynamodb#buckets",
     "@types/aws-sdk": "^2.7.0",
     "@types/node": "^8.0.30",
     "aws-sdk": "^2.60.0",
@@ -74,7 +73,7 @@
     "copy-static-assets": "./src/scripts/copy-static-assets.sh",
     "export:template": "serverless sam export --output ./template.yml",
     "makepublic": "./lib/scripts/makepublic.js",
-    "compile-template": "./lib/scripts/compile.js serverless-uncompiled.yml serverless.yml && cp serverless.yml serverless-compiled.yml",
+    "compile-template": "rm serverless.yml && ./lib/scripts/compile.js serverless-uncompiled.yml serverless.yml && cp serverless.yml serverless-compiled.yml",
     "interpolate-template": "./src/scripts/interpolate-template.sh",
     "build:yml": "npm run compile-template && npm run interpolate-template && npm run gen:resourcedefs",
     "reinstall": "rm -rf node_modules && npm install",
