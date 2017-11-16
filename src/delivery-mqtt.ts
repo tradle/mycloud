@@ -39,8 +39,8 @@ proto.includesClientMessagesTopic = function includesClientMessagesTopic ({
   clientId,
   topics
 }) {
-  const catchAllTopic = `${clientId}/*`
-  const messagesTopic = `${clientId}/inbox`
+  const catchAllTopic = `${clientId}/sub/+`
+  const messagesTopic = `${clientId}/sub/inbox`
   return topics
     .map(topic => this._unprefixTopic(topic))
     .find(topic => topic === messagesTopic || topic === catchAllTopic)
@@ -54,7 +54,7 @@ proto.deliverBatch = co(function* ({ clientId, recipient, messages }) {
   const subBatches = batchStringsBySize(strings, MAX_PAYLOAD_SIZE)
   for (let subBatch of subBatches) {
     yield this.iot.publish({
-      topic: this._prefixTopic(`${clientId}/inbox`),
+      topic: this._prefixTopic(`${clientId}/sub/inbox`),
       payload: `{"messages":[${subBatch.join(',')}]}`
     })
   }
@@ -66,7 +66,7 @@ proto.ack = function ack ({ clientId, message }) {
   debug(`acking message from ${clientId}`)
   const stub = this.messages.getMessageStub({ message })
   return this.iot.publish({
-    topic: this._prefixTopic(`${clientId}/ack`),
+    topic: this._prefixTopic(`${clientId}/sub/ack`),
     payload: {
       message: stub
     }
@@ -77,7 +77,7 @@ proto.reject = function reject ({ clientId, message, error }) {
   debug(`rejecting message from ${clientId}`, error)
   const stub = this.messages.getMessageStub({ message, error })
   return this.iot.publish({
-    topic: this._prefixTopic(`${clientId}/reject`),
+    topic: this._prefixTopic(`${clientId}/sub/reject`),
     payload: {
       message: stub,
       reason: Errors.export(error)

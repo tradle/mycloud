@@ -655,7 +655,7 @@ functions:
     #   SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
-          sql: "SELECT * as data, clientid() as clientId, topic() as topic FROM '${{self:custom.iotParentTopic}}/+/outbox'"
+          sql: "SELECT * as data, clientid() as clientId, topic() as topic FROM '${{self:custom.iotParentTopic}}/+/pub/outbox'"
           sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors
@@ -1289,7 +1289,7 @@ resources:
                   Action:
                     - dynamodb:*
                   Resource:
-                    - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/PresenceTable'
+                    - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/PresenceTable'
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup
@@ -1299,29 +1299,33 @@ resources:
                 # restrict client connect by client id
                 - Effect: Allow
                   Action: ["iot:Connect"]
-                  Resource: ["*"]
-                  # Resource: arn:aws:iot:::client/${iot:ClientId}
+                  # Resource: ["*"]
+                  Resource:
+                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/${iot:ClientId}'
 
                 # allow all clients to publish to the send topic
                 - Effect: "Allow"
                   Action: ["iot:Publish"]
-                  Resource: ["*"]
-                  # Resource:
+                  # Resource: ["*"]
+                  Resource:
+                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${{self:custom.iotParentTopic}}/${iot:ClientId}/pub/*'
                   #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}message
                   #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}restore
 
                 # restrict client topic subscriptions by their client id
                 - Effect: "Allow"
                   Action: ["iot:Subscribe"]
-                  Resource: ["*"]
-                  # Resource: arn:aws:iot:::topicfilter/${{self:custom.prefixIOTTopic}}${iot:ClientId}/*
+                  # Resource: ["*"]
+                  Resource:
+                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
                 # restrict messages clients receive by their client id
                 # this has the same function as the Subscribe rule above
                 # provided the Subscribe policy is upheld, this policy should always give a pass
                 - Effect: "Allow"
                   Action: ["iot:Receive"]
-                  Resource: ["*"]
-                  # Resource: arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}${iot:ClientId}/*
+                  # Resource: ["*"]
+                  Resource:
+                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*
 
     # primarily for autoscaling dynamodb
     # AutoScalingRole:
