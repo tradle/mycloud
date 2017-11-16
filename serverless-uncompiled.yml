@@ -1325,7 +1325,7 @@ resources:
                   Action: ["iot:Receive"]
                   # Resource: ["*"]
                   Resource:
-                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*
+                    - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
 
     # primarily for autoscaling dynamodb
     # AutoScalingRole:

@@ -5,6 +5,14 @@ import { CommandOpts, ICommand, Cli } from '../'
 import { Command } from './'
 import { prettify } from '../../string-utils'
 
+const skip = [
+  'pubkeys',
+  'presence',
+  'events',
+  'seals',
+  'tradle_MyCloudFriend'
+]
+
 export default class ClearTables extends Command implements ICommand {
   public static requiresConfirmation = true
   public static description = 'this will clear tables in the REMOTE DynamoDB'
@@ -33,9 +41,10 @@ export default class ClearTables extends Command implements ICommand {
   }
 
   private clearTables = async (names) => {
+    const { href } = this.tradle.aws.dynamodb.endpoint
     await this.confirm(`will empty the following tables at endpoint ${href}\n${prettify(names)}`)
 
-    for (const table of tables) {
+    for (const table of names) {
       this.logger.debug('clearing', table)
       const numDeleted = await this.tradle.dbUtils.clear(table)
       this.logger.debug(`deleted ${numDeleted} items from ${table}`)
