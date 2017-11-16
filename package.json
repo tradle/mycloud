@@ -73,7 +73,7 @@
     "copy-static-assets": "./src/scripts/copy-static-assets.sh",
     "export:template": "serverless sam export --output ./template.yml",
     "makepublic": "./lib/scripts/makepublic.js",
-    "compile-template": "rm serverless.yml && ./lib/scripts/compile.js serverless-uncompiled.yml serverless.yml && cp serverless.yml serverless-compiled.yml",
+    "compile-template": "rm -f serverless.yml && ./lib/scripts/compile.js serverless-uncompiled.yml serverless.yml && cp serverless.yml serverless-compiled.yml",
     "interpolate-template": "./src/scripts/interpolate-template.sh",
     "build:yml": "npm run compile-template && npm run interpolate-template && npm run gen:resourcedefs",
     "reinstall": "rm -rf node_modules && npm install",
