@@ -84,7 +84,7 @@ export default class Env {
     this.set(props)
     if (this.TESTING) {
       this.debug('setting TEST resource map')
-      this.set(require('./test/env').get())
+      require('./test/env').install(this)
     }
 
     // serverless-offline plugin sets IS_OFFLINE
