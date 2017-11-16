@@ -170,8 +170,8 @@
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
-      "from": "tradle/dynamodb#buckets",
-      "resolved": "git://github.com/tradle/dynamodb.git#8de532ad03a2bf3ed1aabd0e7b7518a4db16514e",
+      "from": "tradle/dynamodb",
+      "resolved": "git://github.com/tradle/dynamodb.git#c61cbaceb77f2f1a192f31c7eefa4bb0d271399c",
       "dependencies": {
         "pify": {
           "version": "3.0.0",

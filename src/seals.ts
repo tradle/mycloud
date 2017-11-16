@@ -16,7 +16,8 @@ import {
   bindAll,
   deepEqual,
   pick,
-  omit
+  omit,
+  summarizeObject
 } from './utils'
 import { prettify } from './string-utils'
 import * as dbUtils from './db-utils'
@@ -486,9 +487,13 @@ export default class Seals {
         _seal: sealResource
       })
 
+      this.logger.debug(`updating resource with seal`, summarizeObject(object))
       await Promise.all([
         this.db.update({
           [TYPE]: object[TYPE],
+          // needed to pinpoint the resource to (conditionally) update
+          _time: object._time,
+          _link: object._link,
           _permalink: object._permalink,
           _seal: sealResource,
           _virtual: object._virtual
