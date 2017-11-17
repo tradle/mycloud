@@ -654,3 +654,16 @@ export const summarizeObject = object => {
 
   return summary
 }
+
+export const uniqueStrict = arr => {
+  const map = new Map()
+  const uniq:any[] = []
+  for (const item of arr) {
+    if (!map.has(item)) {
+      map.set(item, true)
+      uniq.push(item)
+    }
+  }
+
+  return uniq
+}

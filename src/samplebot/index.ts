@@ -3,11 +3,7 @@ import buildResource = require('@tradle/build-resource')
 import extend = require('xtend/mutable')
 import yn = require('yn')
 import biz = require('@tradle/biz-plugins')
-import {
-  listPhotoIds,
-  listApplications,
-  listNames
-} from './sample-queries'
+import sampleQueries from '../samplebot/sample-queries'
 
 const { IS_LAMBDA_ENVIRONMENT, NODE_ENV } = process.env
 if (NODE_ENV === 'test') {
@@ -65,20 +61,12 @@ if (bot.graphqlAPI) {
       width: 32,
       height: 32
     },
-    bookmarks: [
-      {
-        title: 'Photo ID list',
-        query: listPhotoIds
-      },
-      {
-        title: 'Application list',
-        query: listApplications
-      },
-      {
-        title: 'Name forms list',
-        query: listNames
-      }
-    ]
+    bookmarks: {
+      // not supported
+      // autorun: true,
+      title: 'Samples',
+      items: sampleQueries
+    }
   })
 }
 

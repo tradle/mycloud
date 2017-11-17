@@ -22,11 +22,7 @@ import compression = require('compression')
 import cors = require('cors')
 import dynogels = require('dynogels')
 import { products as createProductsBot } from '../samplebot/strategy'
-import {
-  listPhotoIds,
-  listApplications,
-  listNames
-} from '../samplebot/sample-queries'
+import sampleQueries from '../samplebot/sample-queries'
 
 const { bot } = createProductsBot()
 const { port } = require('minimist')(process.argv.slice(2), {
@@ -56,20 +52,12 @@ app.use('/', expressGraphQL(req => ({
       width: 32,
       height: 32
     },
-    bookmarks: [
-      {
-        title: 'Photo ID list',
-        query: listPhotoIds
-      },
-      {
-        title: 'Application list',
-        query: listApplications
-      },
-      {
-        title: 'Name forms list',
-        query: listNames
-      }
-    ],
+    bookmarks: {
+      // not supported
+      // autorun: true,
+      title: 'Samples',
+      items: sampleQueries
+    }
   },
   pretty: true
 })))

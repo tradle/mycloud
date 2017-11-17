@@ -10,6 +10,7 @@ import dynogels = require('dynogels')
 import { createResolvers } from '@tradle/dynamodb'
 import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
+import { uniqueStrict } from '../utils'
 
 const { MESSAGE } = TYPES
 const prettifyQuery = query => print(parse(query))
@@ -133,7 +134,7 @@ export = function setup (opts) {
 
     payloads.forEach((payload, i) => {
       const neutered = messages[i].object
-      const virtual = (neutered._virtual || []).concat(payload._virtual || [])
+      const virtual = uniqueStrict((neutered._virtual || []).concat(payload._virtual || []))
       Object.assign(neutered, payload)
       neutered._virtual = virtual
     })

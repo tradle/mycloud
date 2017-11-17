@@ -78,7 +78,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#e52232b40a35cbdb0cfef137440b848da9af56f6",
+      "resolved": "git://github.com/tradle/bot-products.git#335f3f6f73035987c7a22a8ba741c6039cbfa56e",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -171,7 +171,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#c61cbaceb77f2f1a192f31c7eefa4bb0d271399c",
+      "resolved": "git://github.com/tradle/dynamodb.git#5f5b22ca7b154b6e8732acb422ea4c63185376a0",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -315,7 +315,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#c9c9a0d898fd9341ce7ca79faf2e93bc8ed7ecae"
+      "resolved": "git://github.com/tradle/schema-graphql.git#445d4ae3023fe8f91cc8bd9414e3e853b8cec4b8"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
@@ -2123,7 +2123,7 @@
     "express-graphql": {
       "version": "0.6.11",
       "from": "mvayngrib/express-graphql#dist",
-      "resolved": "git://github.com/mvayngrib/express-graphql.git#c35f92c4d6d1b4786823f51c5a4f05dcd727bfbd"
+      "resolved": "git://github.com/mvayngrib/express-graphql.git#8c23c219e0cae55ff2fd500246981e82dbb8b078"
     },
     "extend": {
       "version": "3.0.1",

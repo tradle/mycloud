@@ -36,7 +36,7 @@ module.exports = function createBotInputs ({
   ({ models } = db)
 
   let graphqlAPI
-  if (/graphql/.test(env.FUNCTION_NAME)) {
+  if (env.TESTING || /graphql/.test(env.FUNCTION_NAME)) {
     graphqlAPI = createGraphQLAPI({
       env,
       router,
