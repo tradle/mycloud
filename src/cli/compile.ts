@@ -175,6 +175,10 @@ function addResourcesToEnvironment (yaml) {
   environment.STACK_ID = {
     Ref: 'AWS::StackId'
   }
+
+  environment[`${ENV_RESOURCE_PREFIX}RESTAPI_ApiGateway`] = {
+    Ref: 'ApiGatewayRestApi'
+  }
 }
 
 function addHTTPMethodsToEnvironment (conf) {

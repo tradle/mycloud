@@ -1,17 +1,17 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const compression = require('compression')
-const cors = require('cors')
-const helmet = require('helmet')
-const coexpress = require('co-express')
-const constants = require('./constants')
-const Errors = require('./errors')
+import express = require('express')
+import compression = require('compression')
+import coexpress = require('co-express')
+import constants = require('./constants')
+import Errors = require('./errors')
 
-module.exports = function createRouter ({ user, friends, env, utils, init }) {
+module.exports = function createRouter (tradle) {
+  const { user, friends, env, utils, init } = tradle
   const logger = env.sublogger('router')
   const {
     HTTP_METHODS=constants.HTTP_METHODS,
-    TESTING
+    TESTING,
+    _X_AMZN_TRACE_ID,
+    FUNCTION_NAME
   } = env
 
   const { timestamp } = utils
@@ -29,12 +29,6 @@ module.exports = function createRouter ({ user, friends, env, utils, init }) {
     app.use(compression())
   }
 
-  const { _X_AMZN_TRACE_ID } = env
-
-  app.use(cors())
-  app.use(helmet())
-  app.use(bodyParser.json({ limit: '10mb' }))
-  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
   app.use(function (req, res, next) {
     req._tradleStartTimestamp = timestamp()
     const path = getReqPath(req)
@@ -63,47 +57,21 @@ module.exports = function createRouter ({ user, friends, env, utils, init }) {
     next()
   })
 
-  const inboxHandler = coexpress(function* (req, res) {
-    // debug('[START] /auth', timestamp())
-    const { messages } = req.body
-    logger.debug(`receiving ${messages.length} messages in inbox`)
-    for (const message of messages) {
-      try {
-        yield user.onSentMessage({ message })
-      } catch (err) {
-        if (err instanceof Errors.Duplicate) {
-          logger.debug('received duplicate')
-          continue
-        }
-
-        throw err
-      }
-    }
-
-    logger.debug(`received ${messages.length} messages in inbox`)
-    // i don't think API Gateway likes non-json responses
-    // it lets them through but Content-Type ends up as application/json
-    // and clients fail on trying to parse an empty string as json
-    res.json({})
-  })
-
-  app.put('/inbox', inboxHandler)
-  app.post('/inbox', inboxHandler)
-
-  // TODO: scrap this in favor of /inbox,
-  // adjust @tradle/aws-client accordingly
-
-  const messageHandler = coexpress(function* (req, res) {
-    const event = req.body
-    const { message } = event
-    // the user sent us a message
-    const result = yield user.onSentMessage({ message })
-    res.json(result)
-    // debug('preceived')
-  })
-
-  app.post('/message', messageHandler)
-  app.put('/message', messageHandler)
+  if (FUNCTION_NAME === 'info') {
+    require('./routes/info')({ tradle, router: app })
+  } else if (FUNCTION_NAME === 'inbox') {
+    require('./routes/inbox')({ tradle, router: app })
+  } else if (FUNCTION_NAME === 'preauth') {
+    require('./routes/preauth')({ tradle, router: app })
+  } else if (FUNCTION_NAME === 'auth') {
+    require('./routes/auth')({ tradle, router: app })
+  } else if (FUNCTION_NAME === 'onmessage_http') {
+    // TODO: scrap this in favor of /inbox,
+    // adjust @tradle/aws-client accordingly
+    require('./routes/onmessage_http')({ tradle, router: app })
+  } else if (FUNCTION_NAME === 'addfriend_dev' && TESTING) {
+    require('./routes/addfriend_dev')({ tradle, router: app })
+  }
 
   // app.post('/log', coexpress(function* (req, res) {
   //   res.json({
@@ -113,47 +81,8 @@ module.exports = function createRouter ({ user, friends, env, utils, init }) {
   //   })
   // }))
 
-  app.get('/info', coexpress(function* (req, res) {
-    logger.debug('[START] /info', timestamp())
-    yield init.ensureInitialized()
-    const result = yield user.onGetInfo()
-    res.json(result)
-  }))
-
-  app.post('/preauth', coexpress(function* (req, res) {
-    yield init.ensureInitialized()
-
-    // debug('[START]', now)
-    const { clientId, identity } = req.body
-    const { accountId } = req.event.requestContext
-    const session = yield user.onPreAuth({ accountId, clientId, identity })
-    res.json(session)
-  }))
-
-  app.post('/auth', coexpress(function* (req, res) {
-    yield init.ensureInitialized()
-
-    // debug('[START] /auth', Date.now())
-    const event = req.body
-    // TODO: use @tradle/validate-resource
-    const result = yield user.onSentChallengeResponse(req.body)
-    res.json(result)
-  }))
-
-  if (TESTING) {
-    app.post('/addfriend', coexpress(function* (req, res) {
-      const { handler } = require('./lambda/add-friend')
-      const result = yield utils.promisify(handler)(req.body, env.context)
-      if (result && typeof result === 'object') {
-        res.json(result)
-      } else {
-        res.end()
-      }
-    }))
-  }
 
   app.use(defaultErrorHandler)
-
   app.use(function (req, res, next) {
     const start = req._tradleStartTimestamp
     const end = timestamp()

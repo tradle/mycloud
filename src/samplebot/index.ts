@@ -45,7 +45,8 @@ const strategies = require('./strategy')
 const {
   bot,
   productsAPI,
-  employeeManager
+  employeeManager,
+  onfidoPlugin
 } = strategies.products({
   namespace: NAMESPACE,
   models,
@@ -169,6 +170,7 @@ customize().then(() => bot.ready())
 // }
 
 exports = module.exports = createBot.lambdas(bot)
+exports.handleOnfidoWebhookEvent = require('../lambda/http/default').handler
 exports.models = productsAPI.models.all
 exports.bot = productsAPI.bot
 exports.db = productsAPI.bot.db

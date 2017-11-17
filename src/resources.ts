@@ -23,7 +23,7 @@ function resourcesForEnv ({ env }) {
 
       let type = match[1].toLowerCase()
       type = type === 'restapi'
-        ? 'RestAPI'
+        ? 'RestApi'
         : upperFirst(type)
 
       return {
@@ -40,9 +40,15 @@ function resourcesForEnv ({ env }) {
       resources[type] = {}
     }
 
-    const value = type === 'RestAPI'
-      ? `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}`
-      : env[key]
+    let value
+    if (type === 'RestApi') {
+      value = env.IS_OFFLINE
+        ? env.SERVERLESS_OFFLINE_APIGW || `http://localhost:${env.SERVERLESS_OFFLINE_PORT}`
+        : `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}`
+
+    } else {
+      value = env[key]
+    }
 
     debug(`registered ${type} ${name} -> ${value}`)
     resources[type][name] = value

@@ -37,6 +37,8 @@ export default class Tradle {
   public discovery: Discovery
   public seals: Seals
   public blockchain: Blockchain
+  public init: any
+  public user: any
   public friends: Friends
   public provider: Provider
   public s3Utils: any

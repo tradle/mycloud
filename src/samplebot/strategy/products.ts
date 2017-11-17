@@ -1,5 +1,8 @@
 import crypto = require('crypto')
 import omit = require('object.omit')
+import bodyParser = require('body-parser')
+import cors = require('cors')
+import helmet = require('helmet')
 import coexpress = require('co-express')
 import createProductsStrategy = require('@tradle/bot-products')
 import createEmployeeManager = require('@tradle/bot-employee-manager')
@@ -209,28 +212,12 @@ export default function createProductsBot (opts={}) {
 
   }) // append
 
-  if (ONFIDO_API_KEY) {
-    const onfidoAPI = new OnfidoAPI({ token: ONFIDO_API_KEY })
-    const onfidoPlugin = new Onfido({
-      bot,
-      logger: tradle.env.sublogger('onfido'),
-      products: [{
-        product: 'tradle.OnfidoVerification',
-        reports: ['document', 'facialsimilarity']
-      }],
-      productsAPI,
-      onfidoAPI,
-      padApplicantName: true,
-      formsToRequestCorrectionsFor: ['tradle.OnfidoApplicant', 'tradle.Selfie']
-    })
-
-    productsAPI.plugins.use(onfidoPlugin)
-    tradle.router.post('/onfido', coexpress(function* (req, res) {
-      yield onfidoPlugin.processWebhookEvent({ req, res })
-    }))
-
-    tradle.router.use(tradle.router.defaultErrorHandler)
-  }
+  const onfidoPlugin = ONFIDO_API_KEY && createOnfidoPlugin({
+    tradle,
+    bot,
+    productsAPI,
+    token: ONFIDO_API_KEY
+  })
 
   productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
 
@@ -248,6 +235,47 @@ export default function createProductsBot (opts={}) {
     tradle,
     bot,
     productsAPI,
-    employeeManager
+    employeeManager,
+    onfidoPlugin
   }
+}
+
+const createOnfidoPlugin = ({ tradle, bot, productsAPI, token }) => {
+  const onfidoAPI = new OnfidoAPI({ token })
+  const onfidoPlugin = new Onfido({
+    bot,
+    logger: bot.env.sublogger('onfido'),
+    products: [{
+      product: 'tradle.OnfidoVerification',
+      reports: onfidoAPI.mode === 'test'
+        ? ['document', 'identity']
+        : ['document', 'identity', 'facialsimilarity']
+    }],
+    productsAPI,
+    onfidoAPI,
+    padApplicantName: true,
+    formsToRequestCorrectionsFor: ['tradle.OnfidoApplicant', 'tradle.Selfie']
+  })
+
+  ;(async () => {
+    try {
+      await onfidoPlugin.getWebhook()
+    } catch (err) {
+      // ideally get the path from the cloudformation
+      const url = `${tradle.resources.RestApi.ApiGateway}/onfido`
+      bot.logger.debug(`registering webhook for url: ${url}`)
+      await onfidoPlugin.registerWebhook({ url })
+    }
+  })()
+
+  productsAPI.plugins.use(onfidoPlugin)
+  const { router } = tradle
+  router.use(cors())
+  router.use(helmet())
+  router.post('/onfido', coexpress(function* (req, res) {
+    yield onfidoPlugin.processWebhookEvent({ req, res })
+  }))
+
+  tradle.router.use(tradle.router.defaultErrorHandler)
+  return onfidoPlugin
 }

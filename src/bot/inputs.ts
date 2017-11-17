@@ -35,16 +35,19 @@ module.exports = function createBotInputs ({
 
   ({ models } = db)
 
-  const graphqlAPI = createGraphQLAPI({
-    env,
-    router,
-    objects,
-    models,
-    db,
-    prefix: env.SERVERLESS_PREFIX,
-    messages,
-    presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks
-  })
+  let graphqlAPI
+  if (/graphql/.test(env.FUNCTION_NAME)) {
+    graphqlAPI = createGraphQLAPI({
+      env,
+      router,
+      objects,
+      models,
+      db,
+      prefix: env.SERVERLESS_PREFIX,
+      messages,
+      presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks
+    })
+  }
 
   const seal = co(function* ({ link, permalink }) {
     const chainKey = yield provider.getMyChainKey()

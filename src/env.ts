@@ -1,6 +1,6 @@
 
 import './globals'
-import './console'
+// import './console'
 
 import yn = require('yn')
 import debug = require('debug')
@@ -67,7 +67,9 @@ export default class Env {
     } = props
 
     this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
-    this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME || '[unknown]'
+    this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
+      ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
+      : '[unknown]'
 
     const namespace = this.TESTING ? packageName : ''
     this.logger = new Logger({

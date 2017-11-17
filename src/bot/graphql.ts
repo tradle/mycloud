@@ -1,9 +1,12 @@
-import * as coexpress from 'co-express'
+import bodyParser = require('body-parser')
+import cors = require('cors')
+import helmet = require('helmet')
+import coexpress = require('co-express')
 import { graphql, formatError } from 'graphql'
 import { print } from 'graphql/language/printer'
 import { parse } from 'graphql/language/parser'
-import * as expressGraphQL from 'express-graphql'
-import * as dynogels from 'dynogels'
+import expressGraphQL = require('express-graphql')
+import dynogels = require('dynogels')
 import { createResolvers } from '@tradle/dynamodb'
 import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
@@ -34,6 +37,10 @@ export = function setup (opts) {
   const setAuth = authImpl => auth = authImpl
   const setGraphiqlOptions = options => graphiqlOptions = options
 
+  router.use(cors())
+  router.use(helmet())
+  router.use(bodyParser.json({ limit: '10mb' }))
+  router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
   router.use('/graphql', coexpress(function* (req, res, next) {
     if (auth) {
       yield auth(req, res, next)
