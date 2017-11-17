@@ -276,6 +276,6 @@ const createOnfidoPlugin = ({ tradle, bot, productsAPI, token }) => {
     yield onfidoPlugin.processWebhookEvent({ req, res })
   }))
 
-  tradle.router.use(tradle.router.defaultErrorHandler)
+  router.use(tradle.router.defaultErrorHandler)
   return onfidoPlugin
 }

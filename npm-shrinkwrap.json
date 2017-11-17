@@ -266,7 +266,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models#messagemodel",
-      "resolved": "git://github.com/tradle/models.git#96622c5fa048ace0e551d7f885524969ac1abe61"
+      "resolved": "git://github.com/tradle/models.git#91482510288fb41c83013fef4773836078809d93"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -293,7 +293,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#b42ccfc6cff6b0e1ff9fac2f3c7caa48cc2f7d92",
+      "resolved": "git://github.com/tradle/plugin-onfido.git#a8f558b93b332e179e14206d548ebf15de33b420",
       "dependencies": {
         "is-extendable": {
           "version": "1.0.1",
