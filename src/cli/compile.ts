@@ -98,7 +98,7 @@ function getTableBucketDefinition ({
           ProjectionType: 'ALL'
           // ProjectionType: 'INCLUDE',
           // NonKeyAttributes: [
-          //   TYPE
+          //   TYPE, '_link'
           // ]
         },
         ProvisionedThroughput: {
