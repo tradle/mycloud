@@ -24,8 +24,7 @@ const { addLinks } = require('../crypto')
 const { prettify } = require('../string-utils')
 const { getMessagePayload, getMessageGist } = require('./utils')
 const locker = require('./locker')
-const defaultTradleInstance = require('../').tradle
-const { constants } = defaultTradleInstance
+const constants = require('../constants')
 const { TYPE, SIG } = constants
 const createUsers = require('./users')
 import addConvenienceMethods from './convenience'

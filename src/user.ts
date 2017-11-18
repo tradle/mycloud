@@ -184,7 +184,7 @@ proto.onConnected = function ({ clientId }) {
 }
 
 proto.onPreAuth = function (...args) {
-  return this.auth.getTemporaryIdentity(...args)
+  return this.auth.createTemporaryIdentity(...args)
 }
 
 proto.onSentChallengeResponse = co(function* (response) {

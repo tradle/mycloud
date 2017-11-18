@@ -1,4 +1,19 @@
 {
+  "org": {
+    "logo": "https://s3.amazonaws.com/tradle-public-images/safe-re.png",
+    "domain": "safere.io",
+    "name": "SafeRe",
+    "products": "nl.tradle.DigitalPassport,tradle.CorporateBankAccount,tradle.LifeInsurance,tradle.MortgageProduct,tradle.CurrentAccount,tradle.OnfidoVerification",
+    "autoApprove": false,
+    "autoVerify": false
+  },
+  "style": {
+    "_t": "tradle.StylesPack",
+    "backgroundImage": {
+      "url": "https://s3.amazonaws.com/tradle-public-images/blue-underwater-gradient-opacity-15.png"
+    },
+    "logoNeedsText": true
+  },
   "plugins": {
     "customize-message": {
       "tradle.FormRequest": {

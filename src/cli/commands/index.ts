@@ -8,10 +8,12 @@ export class Command {
   protected cli: Cli
   protected env: Env
   protected tradle: Tradle
+  protected bot: any
   constructor (cli:Cli) {
     this.cli = cli
     this.tradle = cli.tradle
     this.env = this.tradle.env
+    this.bot = bot
   }
 
   public confirm = async (message:string) => this.cli.confirm(message)

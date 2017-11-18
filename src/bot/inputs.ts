@@ -2,7 +2,6 @@ const co = require('co').wrap
 const pick = require('object.pick')
 const tradleDynamo = require('@tradle/dynamodb')
 const mergeModels = require('@tradle/merge-models')
-const defaultTradleInstance = require('../').tradle
 const createHistory = require('./history')
 const createGraphQLAPI = require('./graphql')
 const MAX_ITEM_SIZE = 6000
@@ -10,7 +9,7 @@ const MAX_ITEM_SIZE = 6000
 module.exports = function createBotInputs ({
   // userModel,
   models,
-  tradle=defaultTradleInstance
+  tradle
 }) {
   const {
     env,

@@ -21,14 +21,15 @@ const cloud = {
   'tradle.OnfidoVerification': require('./tradle.OnfidoVerification.json')
 }
 
+const mergeOpts = { validate: process.env.NODE_ENV !== 'production' }
 const defaultSet = mergeModels()
-  .add(base)
+  .add(base, mergeOpts)
   // .add({
   //     'tradle.Message': messageModel
   //   }, {
   //     overwrite: true
   //   })
-  .add(custom)
+  .add(custom, mergeOpts)
   .get()
 
 ;(function () {

@@ -14,14 +14,12 @@ import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 import setNamePlugin from './set-name'
 import { createGraphQLAuth } from './graphql-auth'
-import { tradle as defaultTradleInstance } from '../../'
+// import { tradle as defaultTradleInstance } from '../../'
 import createBot = require('../../bot')
 import { Commander } from './commander'
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
-const baseModels = mergeModels()
-  .add(defaultTradleInstance.models)
-  .get()
+const baseModels = require('../../models')
 
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DEFAULT_PRODUCTS = ['tradle.CurrentAccount']
@@ -236,7 +234,8 @@ export default function createProductsBot (opts={}) {
     bot,
     productsAPI,
     employeeManager,
-    onfidoPlugin
+    onfidoPlugin,
+    commands
   }
 }
 

@@ -3,6 +3,7 @@ import cors = require('cors')
 import helmet = require('helmet')
 import coexpress = require('co-express')
 import Tradle from '../tradle'
+import { getRequestIps } from '../utils'
 
 export = function attachHandler ({ tradle, router }: {
   tradle:Tradle,
@@ -17,9 +18,10 @@ export = function attachHandler ({ tradle, router }: {
     yield init.ensureInitialized()
 
     // debug('[START]', now)
+    const ips = getRequestIps(req)
     const { clientId, identity } = req.body
     const { accountId } = req.event.requestContext
-    const session = yield user.onPreAuth({ accountId, clientId, identity })
+    const session = yield user.onPreAuth({ accountId, clientId, identity, ips })
     res.json(session)
   }))
 }

@@ -681,3 +681,13 @@ export const uniqueStrict = arr => {
 
   return uniq
 }
+
+export const getRequestIps = (req) => {
+  return [
+    req.ip,
+    req.get('x-forwarded-for'),
+    req.get('x-real-ip')
+  ].filter(notNull)
+}
+
+const notNull = obj => obj != null

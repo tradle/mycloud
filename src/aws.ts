@@ -28,7 +28,7 @@ export default function createAWSWrapper ({ env }) {
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
 
-  const cacheServices = true// env.IS_LOCAL
+  const cacheServices = true
   const services = createConfig({ env })
   AWS.config.update(services)
 

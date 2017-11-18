@@ -222,7 +222,7 @@ export default class Auth {
     return session
   }
 
-  public getTemporaryIdentity = async (opts: {
+  public createTemporaryIdentity = async (opts: {
     accountId: string,
     clientId: string,
     identity: IIdentity

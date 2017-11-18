@@ -6,6 +6,8 @@ import Logger, { Writer } from '../logger'
 import Env from '../env'
 import remoteServiceMap = require('./remote-service-map')
 import testServiceMap = require('../test/service-map')
+import createBot from '../samplebot/bot'
+import providerConf = require('../../conf/provider')
 import {
   Command,
   register as registerCommand,
@@ -27,28 +29,54 @@ export interface ICommand {
   exec: (any) => Promise<any>
 }
 
+let instance
+
 export default class Cli {
   public tradle: Tradle
+  public bot: any
   public remote: boolean
   public logger: Logger
   public env: Env
+  public productsAPI: any
+  public onfidoPlugin: any
   constructor ({ remote }: CliOpts) {
+    if (instance) throw new Error('only one instance allowed')
+
     this.remote = !!remote
 
     const serviceMap = remote ? remoteServiceMap : testServiceMap
-    const env = new Env({
+    const processEnv = {
       ...serviceMap,
-      ...process.env,
-      console
-    })
+      ...providerConf.env,
+      ...process.env
+    }
 
-    this.tradle = new Tradle(env)
-    this.logger = env.sublogger('cli')
-    this.env = env
+    if (!this.remote) {
+      // some resources are unavailable
+      processEnv.IS_LOCAL = true
+      // serverless-offline
+      processEnv.IS_OFFLINE = true
+    }
+
+    Object.assign(process.env, processEnv)
+
+    const {
+      tradle,
+      bot,
+      productsAPI,
+      onfidoPlugin
+    } = createBot(processEnv)
+
+    this.tradle = tradle
+    this.bot = bot
+    this.productsAPI = productsAPI
+    this.onfidoPlugin = onfidoPlugin
+    this.env = this.tradle.env
+    this.logger = this.env.sublogger(':cli')
   }
 
   public setWriter (writer:Writer, propagateToSubWriters:boolean) {
-    this.tradle.logger.setWriter(writer, propagateToSubWriters)
+    this.logger.setWriter(writer, propagateToSubWriters)
   }
 
   public exec = async (name, opts):Promise<any> => {

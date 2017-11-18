@@ -25,6 +25,11 @@ export default function createReplServer ({ prompt, cli }) {
 
   Object.assign(context, {
     cli,
+    ...pick(cli, [
+      'bot',
+      'productsAPI',
+      'onfidoPlugin'
+    ]),
     ...pick(cli.tradle, [
       'env',
       'dbUtils',

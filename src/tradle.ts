@@ -48,6 +48,10 @@ export default class Tradle {
   public prefix: string
 
   constructor(env=new Env(process.env)) {
+    if (!(env instanceof Env)) {
+      env = new Env(env)
+    }
+
     const {
       // FAUCET_PRIVATE_KEY,
       // BLOCKCHAIN,

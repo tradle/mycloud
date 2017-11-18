@@ -95,6 +95,10 @@ export default class Env {
     this._recalc(props)
   }
 
+  public get = () => {
+    return JSON.stringify(this)
+  }
+
   /**
    * Dynamically change logger namespace as "nick" is set lazily, e.g. from router
    */
