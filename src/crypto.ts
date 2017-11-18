@@ -1,3 +1,5 @@
+require('source-map-support').install()
+
 import crypto = require('crypto')
 import stringify = require('json-stable-stringify')
 import KeyEncoder = require('key-encoder')
@@ -10,11 +12,13 @@ import {
   omit,
   omitVirtual,
   setVirtual,
-  wrap
+  wrap,
+  deepClone
 } from './utils'
 
 import { InvalidSignature } from './errors'
 import { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } from './constants'
+import { IECMiniPubKey } from './types'
 
 const doSign = pify(protocol.sign.bind(protocol))
 const { SIG, TYPE, TYPES } = constants
@@ -25,6 +29,49 @@ const IV_BYTES = 12
 const KEY_BYTES = 32
 const SALT_BYTES = 32
 const encoders = {}
+
+export class ECKey {
+  public pub: string
+  public curve: string
+  public sigPubKey: IECMiniPubKey
+  public sign: (data: any, callback: Function) => void
+  public verify: (data: any, sig: any, callback: Function) => void
+  public promiseSign: (any) => Promise<string>
+  public promiseVerify: (data: any, sig: any) => Promise<boolean>
+  public signSync: (any) => string
+  public verifySync: (data: any, sig: any) => boolean
+  private keyJSON: any
+  constructor (keyJSON) {
+    this.keyJSON = keyJSON
+
+    const { curve, pub, encoded } = keyJSON
+    if (!encoded) {
+      throw new Error('expected "encoded"')
+    }
+
+    const { pem } = encoded
+    this.signSync = data => rawSign(pem.priv, data)
+    this.sign = wrap(this.signSync)
+    this.promiseSign = async (data) => this.signSync(data)
+    this.verifySync = (data, sig) => rawVerify(pem.pub, data, sig)
+    this.verify = wrap(this.verifySync)
+    this.promiseVerify = async (data, sig) => this.verifySync(data, sig)
+    this.sigPubKey = {
+      curve,
+      pub: new Buffer(pub, 'hex')
+    }
+  }
+
+  public toJSON = (exportPrivate?:boolean):object => {
+    const json = deepClone(this.keyJSON)
+    if (!exportPrivate) {
+      delete json.priv
+      delete json.encoded.pem.priv
+    }
+
+    return json
+  }
+}
 
 // function encryptKey (key) {
 //   return kms.encrypt({
@@ -140,26 +187,38 @@ function decrypt ({ key, data }) {
   ])
 }
 
-function rawSign (key, data) {
+function rawSign (key, data):string {
   return crypto
     .createSign(SIGN_WITH_HASH)
     .update(toBuffer(data))
     .sign(key, 'hex')
 }
 
-function keyToSigner ({ curve, pub, encoded }) {
-  const { priv } = encoded.pem
-  return {
-    sigPubKey: {
-      curve,
-      pub: new Buffer(pub, 'hex')
-    },
-    sign: wrap(data => rawSign(priv, data))
+function rawVerify (key, data, sig):boolean {
+  if (typeof sig === 'string') {
+    sig = new Buffer(sig, 'hex')
   }
+
+  return crypto
+    .createVerify(SIGN_WITH_HASH)
+    .update(toBuffer(data))
+    .verify(key, sig)
 }
 
-function getSigningKey (keys) {
-  return keys.find(key => key.type === 'ec' && key.purpose === 'sign')
+// function keyToSigner ({ curve, pub, encoded }) {
+//   const { priv } = encoded.pem
+//   return {
+//     sigPubKey: {
+//       curve,
+//       pub: new Buffer(pub, 'hex')
+//     },
+//     sign: wrap(data => rawSign(priv, data))
+//   }
+// }
+
+function getSigningKey (keys):ECKey {
+  const key = keys.find(key => key.type === 'ec' && key.purpose === 'sign')
+  return new ECKey(key)
 }
 
 function getChainKey (keys, props={}) {
@@ -175,8 +234,7 @@ function getChainKey (keys, props={}) {
 }
 
 const sign = loudCo(function* ({ key, object }) {
-  const { pub, priv } = key
-  const author = keyToSigner(key)
+  const author = key instanceof ECKey ? key : new ECKey(key)
   /* { object, merkleRoot } */
 
   const result = yield doSign({
@@ -302,7 +360,7 @@ function getIdentitySpecs ({ networks }) {
   return { networks: nets }
 }
 
-module.exports = {
+export {
   checkAuthentic,
   extractSigPubKey,
   sign,
@@ -322,5 +380,7 @@ module.exports = {
   withLinks,
   // toECKeyObj: utils.toECKeyObj,
   randomString,
-  getIdentitySpecs
+  getIdentitySpecs,
+  rawSign,
+  rawVerify
 }

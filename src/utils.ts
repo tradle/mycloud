@@ -99,6 +99,7 @@ export function loudCo (gen) {
 }
 
 export function toBuffer (data) {
+  if (typeof data === 'string') return new Buffer(data)
   if (Buffer.isBuffer(data)) return data
 
   return new Buffer(stableStringify(data))

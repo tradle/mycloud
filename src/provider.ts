@@ -2,7 +2,7 @@ import Debug from 'debug'
 import dotProp = require('dot-prop')
 import { utils } from '@tradle/engine'
 import Embed = require('@tradle/embed')
-import { sign, getSigningKey, getChainKey, getPermalink } from './crypto'
+import { ECKey, sign, getSigningKey, getChainKey, getPermalink } from './crypto'
 import {
   cachifyPromiser,
   extend,
@@ -93,6 +93,11 @@ export default class Provider {
     }
 
     return key
+  }
+
+  public getMySigningKey = async ():Promise<ECKey> => {
+    const { keys } = await this.getMyPrivateIdentity()
+    return getSigningKey(keys)
   }
 
   public signObject = async ({ author, object }):Promise<ITradleObject> => {

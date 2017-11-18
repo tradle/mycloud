@@ -5,12 +5,13 @@ import Cache = require('lru-cache')
 import sinon = require('sinon')
 import KeyValueTable from '../key-value-table'
 import { getFavicon } from '../image-utils'
-import { randomString, sha256 } from '../crypto'
-import { co, loudCo, cachify, clone, batchStringsBySize } from '../utils'
+import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
+import { co, loudCo, cachify, clone, batchStringsBySize, promisify } from '../utils'
 import { loudAsync } from './utils'
 import * as Errors from '../errors'
 import { wrap, tradle } from '../'
 import { KVTable } from '../definitions'
+import aliceKeys = require('./fixtures/alice/keys')
 
 const { dbUtils } = tradle
 
@@ -259,10 +260,10 @@ test('key-value table', loudAsync(async (t) => {
 
   t.same(update.age, 76)
 
-  const sub = conf.sub('mynamespace')
+  const sub = conf.sub('mynamespace:')
   t.equal(await sub.exists('a'), false)
   try {
-    await sub.get('mynamespacea')
+    await sub.get('mynamespace:a')
     t.fail('sub should not have value')
   } catch (err) {
     t.ok(err)
@@ -277,8 +278,8 @@ test('key-value table', loudAsync(async (t) => {
     d: 'e'
   })
 
-  t.equal(await conf.exists('mynamespacea'), true)
-  t.same(await conf.get('mynamespacea'), {
+  t.equal(await conf.exists('mynamespace:a'), true)
+  t.same(await conf.get('mynamespace:a'), {
     d: 'e'
   })
 
@@ -333,6 +334,31 @@ test('errors', function (t) {
 
   t.end()
 })
+
+test('sign/verify', loudAsync(async (t) => {
+  const key = aliceKeys.find(key => key.type === 'ec')
+  const sig = rawSign(key.encoded.pem.priv, 'a')
+  t.ok(rawVerify(key.encoded.pem.pub, 'a', new Buffer(sig, 'hex')))
+  t.notOk(rawVerify(key.encoded.pem.pub, 'a1', sig))
+
+  const ecKey = new ECKey(key)
+  const sig1 = ecKey.signSync('b')
+  t.ok(ecKey.verifySync('b', sig1))
+  t.notOk(ecKey.verifySync('b', sig))
+  t.notOk(ecKey.verifySync('b1', sig1))
+
+  const sig2 = await promisify(ecKey.sign)('c')
+  t.ok(await promisify(ecKey.verify)('c', sig2))
+  t.notOk(await promisify(ecKey.verify)('c', sig))
+  t.notOk(await promisify(ecKey.verify)('c1', sig2))
+
+  const sig3 = await ecKey.promiseSign('d')
+  t.ok(await ecKey.promiseVerify('d', sig3))
+  t.notOk(await ecKey.promiseVerify('d', sig))
+  t.notOk(await ecKey.promiseVerify('d1', sig3))
+
+  t.end()
+}))
 
 // test.only('favicon', loudAsync(async (t) => {
 //   const favicon = await getFavicon('bankofamerica.com')

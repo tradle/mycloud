@@ -109,7 +109,7 @@ function loudAsync (asyncFn) {
   }
 }
 
-module.exports = {
+export {
   getSchema,
   recreateTable,
   toStreamItems,
