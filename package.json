@@ -86,7 +86,6 @@
     "commit": "git-cz",
     "tswatch": "tsc -w",
     "tslint": "tslint -p .",
-    "symlink:dist": "ln -sf ../.serverless ./dist/.serverless && ln -sf ../conf ./dist/conf",
     "invoke:http": "./src/scripts/invoke-unzip.sh",
     "delete:applications": "./lib/scripts/delete-applications.js",
     "getmyinfo": "./lib/scripts/info.js > myinfo.json && open ./myinfo.json",
