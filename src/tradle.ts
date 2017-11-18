@@ -42,8 +42,9 @@ export default class Tradle {
   public user: any
   public friends: Friends
   public provider: Provider
-  public push: Push
+  public pushNotifications: Push
   public s3Utils: any
+  public lambdaUtils: any
   public prefix: string
 
   constructor(env=new Env(process.env)) {
@@ -112,12 +113,19 @@ export default class Tradle {
     this.define('router', './router', this.construct)
     this.define('aws', './aws', initialize => initialize(this))
     this.define('dbUtils', './db-utils', initialize => initialize(this))
-    this.define('push', './push', ctor => new ctor({
-      logger: this.env.sublogger('push'),
-      serverUrl: this.env.PUSH_SERVER_URL,
-      conf: this.conf,
-      provider: this.provider
-    }))
+    this.define('pushNotifications', './push', ctor => {
+      if (!this.env.PUSH_SERVER_URL) {
+        this.logger.warn('missing PUSH_SERVER_URL, push notifications not available')
+        return
+      }
+
+      return new ctor({
+        logger: this.env.sublogger('push'),
+        serverUrl: this.env.PUSH_SERVER_URL,
+        conf: this.conf,
+        provider: this.provider
+      })
+    })
     // this.bot = this.require('bot', './bot')
   }
 

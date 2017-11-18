@@ -106,6 +106,21 @@ export default class Push {
     }
   }
 
+  public saveError = async ({ error, subscriber }) => {
+    // TBD: whether to save last X err messages/stacks
+    return await this.subscribers.update(subscriber, {
+      UpdateExpression: 'ADD #value.#errorCount :incr',
+      ExpressionAttributeNames: {
+        '#value': 'value',
+        '#errorCount': 'errorCount'
+      },
+      ExpressionAttributeValues: {
+        ':incr': 1
+      },
+      ReturnValues: 'ALL_NEW'
+    })
+  }
+
   public push = async ({ identity, key, subscriber }) => {
     await this.ensureRegistered({ identity, key })
     const info = await this.incrementSubscriberNotificationCount(subscriber)
@@ -113,12 +128,17 @@ export default class Push {
     const nonce = randomString(8, 'base64')
     const sig = await key.promiseSign(getNotificationData({ seq, nonce }))
     const publisher = buildResource.permalink(identity)
-    await post(`${this.serverUrl}/notification`, {
-      publisher,
-      subscriber,
-      seq,
-      nonce,
-      sig
-    })
+    try {
+      await post(`${this.serverUrl}/notification`, {
+        publisher,
+        subscriber,
+        seq,
+        nonce,
+        sig
+      })
+    } catch (error) {
+      await this.saveError({ subscriber, error })
+      throw error
+    }
   }
 }

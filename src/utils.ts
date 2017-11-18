@@ -504,7 +504,14 @@ export async function download ({ url }) {
 
 async function processResponse (res) {
   if (res.status > 300) {
-    throw new Error(res.statusText)
+    let message = res.statusText
+    if (!message) {
+      message = await res.text()
+    }
+
+    const err = new Error(message)
+    err.code = res.status
+    throw err
   }
 
   const text = await res.text()

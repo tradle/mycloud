@@ -97,5 +97,28 @@ test('push', loudAsync(async (t) => {
 
   t.same(await push.getSubscriber(subscriber), { seq: 1 })
 
+  nock(serverUrl)
+    .post('/notification')
+    .reply((uri, body) => {
+      return [
+        400,
+        'subscriber not found'
+      ]
+    })
+
+  try {
+    await push.push({
+      identity: alice,
+      key,
+      subscriber
+    })
+
+    t.fail('expected failure')
+  } catch (err) {
+    t.ok(err)
+  }
+
+  t.same(await push.getSubscriber(subscriber), { seq: 2, errorCount: 1 })
+
   t.end()
 }))

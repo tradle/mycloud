@@ -13,8 +13,8 @@ import {
 import { clone, pick } from './utils'
 import { ClientUnreachable } from './errors'
 import Env from './env'
-import LambdaUtils from './lambda-utils'
 import Logger from './logger'
+import Tradle from './tradle'
 
 const MIN_BATCH_DELIVERY_TIME = 2000
 const MAX_BATCH_SIZE = 5
@@ -46,13 +46,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
   private objects: any
   private env: Env
   private logger: Logger
-  private lambdaUtils: LambdaUtils
+  private tradle: Tradle
   private _deliverBatch = withTransport('deliverBatch')
 
-  constructor (opts) {
+  constructor (tradle:Tradle) {
     super()
 
-    const { friends, messages, objects, env, lambdaUtils } = opts
+    const { friends, messages, objects, env } = tradle
+    this.tradle = tradle
     this.messages = messages
     this.objects = objects
     this.friends = friends
@@ -60,7 +61,6 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.mqtt = new DeliveryMQTT(opts)
     this.env = env
     this.logger = this.env.sublogger('delivery')
-    this.lambdaUtils = lambdaUtils
   }
 
   public deliverBatch = async (opts:IDeliverBatchRequest) => {
@@ -90,7 +90,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       let messages = await this.messages.getMessagesTo({
         recipient,
         gt: after,
-        lt: before,
+        // lt: before,
         afterMessage,
         limit: batchSize,
         body: true,
@@ -118,12 +118,12 @@ export default class Delivery extends EventEmitter implements IDelivery {
     return result
   }
 
-  public async getTransport (opts: {
+  public getTransport = async (opts: {
     method: string,
     recipient: string,
     clientId?: string,
     friend?: any
-  }):Promise<IDelivery> {
+  }):Promise<IDelivery> => {
     const { method, recipient, clientId, friend } = opts
     if (clientId || !(method in this.http)) {
       return this.mqtt

@@ -248,6 +248,13 @@ export default class Provider {
         this.logger.debug('live delivery canceled', error)
       } else if (err instanceof Errors.ClientUnreachable) {
         this.logger.debug('live delivery failed, client unreachable', error)
+        if (this.tradle.pushNotifications) {
+          try {
+            await this.sendPushNotification(recipient)
+          } catch (pushErr) {
+            this.logger.error('failed to send push notification', pushErr)
+          }
+        }
       } else {
         // rethrow, as this is likely a developer error
         this.logger.error('live delivery failed due, likely to developer error', {
@@ -271,6 +278,15 @@ export default class Provider {
       clientId: session && session.clientId,
       recipient,
       messages: [message]
+    })
+  }
+
+  public sendPushNotification = async (recipient:string):Promise<void> => {
+    const { identity, keys } = await this.tradle.provider.getMyPrivateIdentity()
+    await this.tradle.pushNotifications.push({
+      key: getSigningKey(keys),
+      identity,
+      subscriber: recipient
     })
   }
 
