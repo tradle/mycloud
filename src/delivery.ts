@@ -57,8 +57,8 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.messages = messages
     this.objects = objects
     this.friends = friends
-    this.http = new DeliveryHTTP(opts)
-    this.mqtt = new DeliveryMQTT(opts)
+    this.http = new DeliveryHTTP(tradle)
+    this.mqtt = new DeliveryMQTT(tradle)
     this.env = env
     this.logger = this.env.sublogger('delivery')
   }

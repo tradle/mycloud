@@ -35,7 +35,8 @@ const matches = (err, type) => {
   if (type === 'system') {
     return isSystemError(err)
   }
-  if (typeof type === 'function' && err instanceof type) {
+  if (typeof type === 'function' &&
+    (err instanceof type || errors.is(err, type))) {
     return true
   }
 

@@ -1,11 +1,11 @@
 // const zlib = require('zlib')
 
-const extend = require('xtend/mutable')
-const co = require('co').wrap
-const stringify = require('json-stringify-safe')
-const Errors = require('./errors')
-const { cachifyPromiser, applyFunction, onWarmUp } = require('./utils')
-const { Level } = require('./logger')
+import extend = require('xtend/mutable')
+import stringify = require('json-stringify-safe')
+import Errors = require('./errors')
+import { cachifyPromiser, applyFunction, onWarmUp } from './utils'
+import { Level } from './logger'
+
 const RESOLVED = Promise.resolve()
 
 exports = module.exports = wrap
@@ -29,7 +29,7 @@ function wrap (fn, opts={}) {
 
   const prepare = RESOLVED // discover ? discoverServices() : RESOLVED
   // const prepare = environment ? getReady() : RESOLVED
-  const wrapper = co(function* (...args) {
+  const wrapper = async (...args) => {
     const callback = logify(args.pop())
     let [event, context] = args
     const eventInfo = {
@@ -73,9 +73,9 @@ function wrap (fn, opts={}) {
 
     let ret
     try {
-      yield prepare
+      await prepare
       ret = applyFunction(fn, this, args)
-      if (isPromise(ret)) ret = yield ret
+      if (isPromise(ret)) ret = await ret
     } catch (err) {
       clearInterval(monitor)
       return callback(err)
@@ -84,7 +84,7 @@ function wrap (fn, opts={}) {
     clearInterval(monitor)
     debug(`finished wrapped task: ${fn.name}`)
     callback(null, ret)
-  })
+  }
 
   const logify = cb => {
     const { _X_AMZN_TRACE_ID } = process.env

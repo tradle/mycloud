@@ -1,5 +1,8 @@
-require('./bot.test')
-require('./dynamodb.test')
-require('./seals.test')
-require('./utils.test')
-require('./messages.test')
+import path = require('path')
+import fs = require('fs')
+
+fs.readdirSync(__dirname).forEach(file => {
+  if (file.endsWith('.test.js')) {
+    require(path.join(__dirname, file))
+  }
+})

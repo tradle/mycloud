@@ -466,13 +466,19 @@ export async function tryUntilTimeRunsOut (fn, opts={}) {
 }
 
 export async function seriesMap (arr, fn) {
-  const results = []
+  const results:any[] = []
   for (const item of arr) {
     const result = await fn(item)
     results.push(result)
   }
 
   return results
+}
+
+export async function get (url, opts?) {
+  debug(`GET ${url}`)
+  const res = await fetch(url, opts)
+  return processResponse(res)
 }
 
 export async function post (url, data) {

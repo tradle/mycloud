@@ -13,8 +13,8 @@ import {
   summarizeObject
 } from './utils'
 
-import * as Errors from './errors'
-import * as types from './typeforce-types'
+import Errors = require('./errors')
+import types = require('./typeforce-types')
 import {
   IDENTITY_KEYS_KEY,
   SEQ,
@@ -230,18 +230,24 @@ export default class Provider {
     // start this first to get a more accurate timestamp
     const promiseCreate = this.createSendMessageEvent({ recipient, object, other })
     const promiseSession = this.auth.getLiveSessionByPermalink(recipient)
+      .catch(err => {
+        Errors.ignore(err, { name: 'NotFound' })
+        this.logger.debug('mqtt session not found for counterparty', { permalink: recipient })
+        return undefined
+      })
 
-    // should probably do this asynchronously
-    let session
-    try {
-      session = await promiseSession
-    } catch (err) {
-      this.logger.debug(`mqtt session not found for ${recipient}`)
-    }
+    const promiseFriend = this.tradle.friends.getByIdentityPermalink(recipient)
+      .catch(err => {
+        Errors.ignore(err, { name: 'NotFound' })
+        this.logger.debug('friend not found for counterparty', { permalink: recipient })
+        return undefined
+      })
 
+    const session = await promiseSession
+    const friend = await promiseFriend
     const message = await promiseCreate
     try {
-      await this.attemptLiveDelivery({ recipient, message, session })
+      await this.attemptLiveDelivery({ recipient, message, session, friend })
     } catch (err) {
       const error = { error: err.stack }
       if (err instanceof Errors.NotFound) {
@@ -270,6 +276,7 @@ export default class Provider {
   public attemptLiveDelivery = async (opts: {
     message: ITradleMessage,
     recipient: string,
+    friend?: any
     session?: ISession
   }) => {
     const { message, recipient, session } = opts

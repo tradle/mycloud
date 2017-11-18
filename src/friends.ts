@@ -1,12 +1,16 @@
 const debug = require("debug")("tradle:sls:friends")
+import Cache = require('lru-cache')
 import fetch = require('node-fetch')
 import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { addLinks } from './crypto'
-import { pick } from './utils'
+import { pick, get } from './utils'
 import Identities from './identities'
+import Tradle from './tradle'
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
+const TEN_MINUTES = 10 * 60 * 60000
+const createCache = () => new Cache({ max: 100, maxAge: TEN_MINUTES })
 
 export default class Friends {
   private models: any
@@ -14,13 +18,15 @@ export default class Friends {
   private db: any
   private identities: Identities
   private provider: any
-  constructor(opts: { models; db; identities: Identities; provider }) {
-    const { models, db, identities, provider } = opts
+  private cache: any
+  constructor(tradle:Tradle) {
+    const { models, db, identities, provider } = tradle
     this.models = models
     this.model = models[FRIEND_TYPE]
     this.db = db
     this.identities = identities
     this.provider = provider
+    this.cache = createCache()
   }
 
   public load = async (opts: { url: string }): Promise<void> => {
@@ -28,12 +34,7 @@ export default class Friends {
     url = url.replace(/[/]+$/, "")
 
     const infoUrl = getInfoEndpoint(url)
-    const res = await fetch(infoUrl)
-    if (res.status > 300) {
-      throw new Error(res.statusText)
-    }
-
-    const info = await res.json()
+    const info = await get(infoUrl)
     const { bot: { pub }, org, publicConfig } = info
 
     const { name } = org
@@ -108,14 +109,21 @@ export default class Friends {
     //     .toJSON()
     // })
 
+    this.cache.set(identity._permalink, signed)
     return signed
   }
 
-  public getByIdentityPermalink = (permalink:string) => {
-    return this.db.get({
+  public getByIdentityPermalink = async (permalink:string) => {
+    const cached = this.cache.get(permalink)
+    if (cached) return cached
+
+    const friend = await this.db.get({
       [TYPE]: FRIEND_TYPE,
       _identityPermalink: permalink
     })
+
+    this.cache.set(permalink, friend)
+    return friend
   };
 
   public list = (opts: { permalink: string }) => {
