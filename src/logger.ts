@@ -61,7 +61,7 @@ export default class Logger {
   private writer:Writer
   private outputFormat:string
   private conf:LoggerConf
-  constructor (conf: LoggerConf) {
+  constructor (conf:LoggerConf={}) {
     const {
       namespace='',
       context={},

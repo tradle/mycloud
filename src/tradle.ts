@@ -16,6 +16,7 @@ import Friends from './friends'
 import KeyValueTable from './key-value-table'
 import ContentAddressedStorage from './content-addressed-storage'
 import { requireDefault } from './require-default'
+import Push from './push'
 
 export default class Tradle {
   public env: Env
@@ -41,6 +42,7 @@ export default class Tradle {
   public user: any
   public friends: Friends
   public provider: Provider
+  public push: Push
   public s3Utils: any
   public prefix: string
 
@@ -110,6 +112,12 @@ export default class Tradle {
     this.define('router', './router', this.construct)
     this.define('aws', './aws', initialize => initialize(this))
     this.define('dbUtils', './db-utils', initialize => initialize(this))
+    this.define('push', './push', ctor => new ctor({
+      logger: this.env.sublogger('push'),
+      serverUrl: this.env.PUSH_SERVER_URL,
+      conf: this.conf,
+      provider: this.provider
+    }))
     // this.bot = this.require('bot', './bot')
   }
 
