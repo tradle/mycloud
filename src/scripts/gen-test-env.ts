@@ -8,7 +8,8 @@ const promisify = require('pify')
 const { exec } = promisify(require('child_process'))
 const fs = promisify(require('fs'))
 const { prettify } = require('../string-utils')
-const { aws, lambdaUtils } = require('../').tradle
+const tradle = require('../').tradle
+const { lambdaUtils } = tradle
 const serviceMapPath = path.resolve(__dirname, '../cli/remote-service-map.json')
 const latestTemplatePath = path.resolve(__dirname, '../cli/cloudformation-template.json')
 const { loadCredentials, downloadDeploymentTemplate } = require('../cli/utils')
@@ -22,7 +23,7 @@ const getEnv = co.wrap(function* () {
 })
 
 const getTemplate = co.wrap(function* () {
-  const template = yield downloadDeploymentTemplate()
+  const template = yield downloadDeploymentTemplate(tradle)
   yield fs.writeFile(latestTemplatePath, prettify(template))
 })
 

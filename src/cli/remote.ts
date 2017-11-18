@@ -1,5 +1,5 @@
 
-import { loadEnv, loadCredentials } from './utils'
+import { loadRemoteEnv, loadCredentials } from './utils'
 
-loadEnv()
+loadRemoteEnv()
 loadCredentials()

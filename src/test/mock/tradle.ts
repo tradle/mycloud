@@ -1,8 +1,9 @@
-import { tradle } from '../../'
+import { Tradle } from '../../'
 import { getter } from '../utils'
 import fakeSeals = require('./seals')
 import Env from '../../env'
 
+const tradle = new Tradle()
 const { errors, constants, utils, aws, db } = tradle
 const { extend } = utils
 const promiseNoop = async () => {}
@@ -23,11 +24,12 @@ module.exports = function fakeTradle ({ env, conf, kv, objects, identities, mess
       seals
     }),
     db,
-    router: {
-      use: noop,
-      get: noop,
-      post: noop
-    },
+    router: require('../../').tradle.router,
+    // router: {
+    //   use: noop,
+    //   get: noop,
+    //   post: noop
+    // },
     objects: {
       get: getter(objects),
       getEmbeds: () => {

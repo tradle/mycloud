@@ -12,9 +12,8 @@ const { force } = require('minimist')(process.argv.slice(2), {
 })
 
 const co = require('co')
-
-require('../test/env').install()
-const { init } = require('../').tradle
+const tradle = require('../').createTestTradle()
+const { init } = tradle
 const { genLocalResources } = require('../cli/utils')
 const { brand } = require('../cli/serverless-yml').custom
 const opts = {
@@ -25,7 +24,7 @@ const opts = {
 }
 
 co(function* () {
-  yield genLocalResources()
+  yield genLocalResources({ tradle })
   if (force) {
     yield init.init(opts)
   } else {

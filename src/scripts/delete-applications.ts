@@ -11,14 +11,13 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { loadEnv, loadCredentials, clearTypes } = require('../cli/utils')
+const { loadCredentials, clearTypes } = require('../cli/utils')
 
-loadEnv()
 loadCredentials()
 
 // const toDelete = ['tradle.Application']
 const { TYPE } = require('@tradle/constants')
-const { db, dbUtils, env } = require('../').tradle
+const { db, dbUtils, env } = require('../').createRemoteTradle()
 const { SERVERLESS_PREFIX } = env
 const { clear } = dbUtils
 const { models, tables } = require('../samplebot')

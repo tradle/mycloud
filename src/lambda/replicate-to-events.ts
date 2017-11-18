@@ -1,8 +1,8 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-import { tradle, wrap } from '../'
+import { Tradle } from '../'
 
-const { events } = tradle
+const { events, wrap } = new Tradle()
 exports.handler = wrap(function* (event, context) {
   const results = events.fromStreamEvent(event)
   if (results.length) {

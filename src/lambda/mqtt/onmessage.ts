@@ -1,9 +1,19 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-const { debug, wrap, user, env, stringUtils, utils, constants } = require('../..').tradle
+const {
+  debug,
+  wrap,
+  user,
+  env,
+  stringUtils,
+  utils,
+  constants
+} = require('../..').tradle
+
 const { prettify } = stringUtils
 const { SEQ } = constants
 const { timestamp } = utils
+
 exports.handler = wrap(function* (event, context) {
   // the user sent us a message
   debug('[START]', timestamp())

@@ -1,6 +1,7 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-const { wrap, tradle } = require('../')
+const { tradle } = require('../')
+const { wrap, env } = tradle
 // const { getRecordsFromEvent } = require('../db-utils')
 exports.handler = wrap(function* (event) {
   // const friends = getRecordsFromEvent(event)
@@ -12,4 +13,4 @@ exports.handler = wrap(function* (event) {
 
   yield tradle.friends.load({ url })
   console.log('DONE LOADING FRIEND')
-}, { souce: 'lambda' })
+}, { source: 'lambda' })

@@ -1,7 +1,8 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-import { tradle } from '../'
+import Tradle from '../tradle'
 
+const tradle = new Tradle()
 const { debug, wrap, seals } = tradle
 const SIX_HOURS = 6 * 3600 * 1000
 

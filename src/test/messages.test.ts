@@ -32,7 +32,7 @@ const {
 } = require('../constants')
 
 const { MESSAGE } = TYPES
-const { identities, messages, objects, provider } = require('../').tradle
+const { identities, messages, objects, provider } = require('../').createTestTradle()
 const { createSendMessageEvent, createReceiveMessageEvent } = provider
 const types = require('../typeforce-types')
 const fromBobToAlice = require('./fixtures/alice/receive.json')

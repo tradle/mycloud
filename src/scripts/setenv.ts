@@ -4,8 +4,8 @@ process.env.IS_LAMBDA_ENVIRONMENT = false
 
 const path = require('path')
 const co = require('co')
-const { loadEnv, loadCredentials } = require('../cli/utils')
-const { lambdaUtils } = require('../').tradle
+const { loadCredentials } = require('../cli/utils')
+const { lambdaUtils } = require('../').createRemoteTradle()
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'functions',
@@ -18,7 +18,6 @@ const env = argv.path
   ? require(path.resolve(process.cwd(), argv.path))
   : custom.brand.env
 
-loadEnv()
 loadCredentials()
 
 if (!(env && Object.keys(env).length)) {

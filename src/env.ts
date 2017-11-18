@@ -18,7 +18,11 @@ export default class Env {
   public DEV:boolean
   public IS_WARM_UP:boolean
   public IS_LAMBDA_ENVIRONMENT:boolean
+  // if either IS_LOCAL, or IS_OFFLINE is true
+  // operations will be performed on local resources
+  // is running locally (not in lambda)
   public IS_LOCAL:boolean
+  // is running in serverless-offline
   public IS_OFFLINE:boolean
   public DISABLED:boolean
   public LAMBDA_BIRTH_DATE:number
@@ -82,12 +86,6 @@ export default class Env {
 
     this.debug = this.logger.debug
     this.set(props)
-    if (this.TESTING) {
-      this.debug('setting TEST resource map')
-      require('./test/env').install(this)
-    }
-
-    // serverless-offline plugin sets IS_OFFLINE
   }
 
   public set = props => {
@@ -118,6 +116,7 @@ export default class Env {
     source
   }) => {
     if (this.containerId) {
+      this.logger.info('I am a used container!')
       this.isVirgin = false
     } else {
       this.logger.info('I am a fresh container!')
@@ -132,10 +131,6 @@ export default class Env {
     context.callbackWaitsForEmptyEventLoop = false
 
     this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
-    // if (this.TESTING) {
-    //   this.debug('setting TEST resource map')
-    //   this.set(require('./test/service-map'))
-    // }
 
     const {
       invokedFunctionArn,
@@ -219,25 +214,3 @@ export default class Env {
     }
   }
 }
-
-// const env = {}
-// env.IS_LAMBDA_ENVIRONMENT = !!process.env.AWS_REGION
-// if (TESTING) {
-//   extend(process.env, require('./test/service-map'))
-// } else if (!env.IS_LAMBDA_ENVIRONMENT) {
-//   require('./cli/utils').loadCredentials()
-//   try {
-//     extend(process.env, require('./test/fixtures/remote-service-map'))
-//   } catch (err) {}
-// }
-
-// env.set(process.env)
-// env.REGION = env.AWS_REGION
-// env.TESTING = TESTING
-// env.prefix = env.SERVERLESS_PREFIX
-
-// this one might be set dynamically
-// env.__defineGetter__('IOT_ENDPOINT', () => process.env.IOT_ENDPOINT)
-
-
-// module.exports = env

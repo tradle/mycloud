@@ -36,11 +36,6 @@ const cloud = {
 
 const defaultSet = mergeModels()
   .add(base, mergeOpts)
-  // .add({
-  //     'tradle.Message': messageModel
-  //   }, {
-  //     overwrite: true
-  //   })
   .add(custom, mergeOpts)
   .get()
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 const co = require('co')
-const { loadEnv, loadCredentials } = require('../cli/utils')
-const { lambdaUtils } = require('../').tradle
+const { loadCredentials } = require('../cli/utils')
+const { lambdaUtils } = require('../').createRemoteTradle()
 let {
   functions,
   key,
@@ -24,7 +24,6 @@ const {
   custom: { stage, prefix }
 } = require('../cli/serverless-yml')
 
-loadEnv()
 loadCredentials()
 
 co(function* () {

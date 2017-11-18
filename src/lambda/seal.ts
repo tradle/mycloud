@@ -1,7 +1,7 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-const wrap = require('../wrap')
-const { bot } = require('../../samplebot')
+const { tradle, bot } = require('../samplebot')
+const { wrap } = tradle
 exports.handler = wrap(function* (event, context) {
   yield bot.seal(event)
 })

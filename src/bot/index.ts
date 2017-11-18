@@ -34,7 +34,7 @@ const promisePassThrough = data => Promise.resolve(data)
 const COPY_TO_BOT = [
   'aws', 'models', 'objects', 'db', 'conf', 'kv', 'seals', 'seal',
   'identities', 'users', 'history', 'graphqlAPI', 'messages',
-  'resources', 'sign', 'send', 'getMyIdentity', 'env'
+  'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router'
 ]
 
 const HOOKABLE = [
@@ -308,11 +308,12 @@ function createBot (opts={}) {
   })
 
   if (bot.graphqlAPI) {
+    const { createHandler } = require('../http-request-handler')
     bot.process.graphql = {
       type: 'wrapped',
       source: 'http',
       raw: bot.graphqlAPI.executeQuery,
-      handler: require('../http-request-handler')
+      handler: createHandler(opts)
     }
   }
 

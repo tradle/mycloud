@@ -12,10 +12,11 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { loadEnv, loadCredentials, clearTypes } = require('../cli/utils')
+const { loadCredentials, clearTypes } = require('../cli/utils')
 
-loadEnv()
 loadCredentials()
+
+const tradle = require('../').createRemoteTradle()
 
 co(function* () {
   const types = (argv.types || '').split(',').map(str => str.trim())
@@ -37,7 +38,7 @@ co(function* () {
     }
   }
 
-  clearTypes({ types })
+  clearTypes({ tradle, types })
 })
 .catch(err => {
   console.error(err)

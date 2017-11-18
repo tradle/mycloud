@@ -4,9 +4,9 @@ const path = require('path')
 const promisify = require('pify')
 const proc = promisify(require('child_process'))
 const pathToFriendsFile = process.argv[2] || path.join(__dirname, '../conf/friends.js')
-const { loadEnv, loadCredentials } = require('../cli/utils')
+const { loadRemoteEnv, loadCredentials } = require('../cli/utils')
 
-loadEnv()
+loadRemoteEnv()
 loadCredentials()
 
 const yml = require('../cli/serverless-yml')

@@ -1,4 +1,10 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-import * as handler from "../../http-request-handler"
-export { handler }
+import { tradle } from '../../'
+import { createHandler } from '../../http-request-handler'
+
+const handler = createHandler(tradle)
+
+export {
+  handler
+}

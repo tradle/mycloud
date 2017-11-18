@@ -23,7 +23,8 @@ const helpers = require('@tradle/engine/test/helpers')
 const validateResource = require('@tradle/validate-resource')
 const { RestAPI } = require('../resources')
 const wrap = require('../wrap')
-const getMe = require('../').tradle.provider.getMyIdentity()
+const tradle = require('../').createTradle()
+const getMe = tradle.provider.getMyIdentity()
 const { getLink, getPermalink } = require('../crypto')
 const { omitVirtual } = require('../utils')
 const allUsers = require('../../test/fixtures/users').slice(4)
@@ -38,7 +39,7 @@ exports.handler = wrap(function* (event={}, context) {
 
   const nodes = makeNodes(concurrency, offset)
   yield Promise.all(nodes.map(pingPong))
-}, { source: 'lambda' })
+}, { source: 'lambda', env })
 
 const pingPong = co(function* (node, i) {
   const promisePong = awaitType(node, 'tradle.Pong')

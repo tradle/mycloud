@@ -2,9 +2,10 @@ require('./env')
 
 const { co } = require('../utils')
 const { isResourceEnvironmentVariable } = require('../resources')
+const { Tradle } = require('../')
 const {
   dbUtils: { getTable, marshalDBItem }
-} = require('../').tradle
+} = new Tradle()
 
 const Errors = require('../errors')
 const yml = require('../cli/serverless-yml')

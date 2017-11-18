@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-require('../test/env').install()
+// require('../test/env').install()
 
+import { createTestTradle } from '../'
 import { genLocalResources } from '../cli/utils'
 import {
   clear,
@@ -9,8 +10,9 @@ import {
 } from '../test/end-to-end'
 
 (async () => {
+  const tradle = createTestTradle()
   await clear()
-  await genLocalResources()
+  await genLocalResources({ tradle })
   const test = new Test()
   // await test.runEmployeeAndFriend()
   await test.runEmployeeAndCustomer()

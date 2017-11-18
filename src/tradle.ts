@@ -18,6 +18,8 @@ import ContentAddressedStorage from './content-addressed-storage'
 import { requireDefault } from './require-default'
 import Push from './push'
 
+let instanceCount = 0
+
 export default class Tradle {
   public env: Env
   public aws: any
@@ -48,6 +50,10 @@ export default class Tradle {
   public prefix: string
 
   constructor(env=new Env(process.env)) {
+    // if (++instanceCount > 2) {
+    //   throw new Error('multiple instances not allowed')
+    // }
+
     if (!(env instanceof Env)) {
       env = new Env(env)
     }
@@ -159,7 +165,12 @@ export default class Tradle {
     return requireDefault('./string-utils')
   }
   get wrap () {
-    return requireDefault('./wrap')
+    const wrap = requireDefault('./wrap')
+    return (fn, opts={}) => {
+      if (!opts.env) opts.env = this.env
+
+      return wrap(fn, opts)
+    }
   }
   get logger () {
     return this.env.logger

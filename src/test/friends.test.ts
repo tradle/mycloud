@@ -4,7 +4,7 @@ const test = require('tape')
 const buildResource = require('@tradle/build-resource')
 const { loudCo, pick, clone, co } = require('../utils')
 
-const { friends } = require('../').tradle
+const { friends } = require('../').createTestTradle()
 const alice = require('./fixtures/alice/object')
 const bob = require('./fixtures/bob/object')
 

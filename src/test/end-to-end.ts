@@ -411,7 +411,7 @@ proto.clear = co(function* () {
     })
   }))
 
-  yield genLocalResources(this.tradle)
+  yield genLocalResources({ tradle: this.tradle })
 })
 
 proto.destroyTable = co(function* (TableName) {

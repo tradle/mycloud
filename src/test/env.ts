@@ -22,7 +22,7 @@ const props = {
 
 export const createTestEnv = () => {
   // important to import lazily
-  const Env = require('../env')
+  const Env = require('../env').default
   return new Env(props)
 }
 

@@ -4,12 +4,11 @@ process.env.IS_LAMBDA_ENVIRONMENT = false
 
 const path = require('path')
 const co = require('co')
-const { loadEnv, loadCredentials } = require('../cli/utils')
+const { loadCredentials } = require('../cli/utils')
 
-loadEnv()
 loadCredentials()
 
-const { buckets, s3Utils } = require('../').tradle
+const { buckets, s3Utils } = require('../').createRemoteTradle()
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     c: 'conf'

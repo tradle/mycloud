@@ -11,7 +11,7 @@ import { loudAsync } from './utils'
 import { getSigningKey, sha256 } from '../crypto'
 import alice = require('./fixtures/alice/identity')
 import aliceKeys = require('./fixtures/alice/keys')
-import { tradle } from '../'
+import { Tradle } from '../'
 
 test('push', loudAsync(async (t) => {
   const serverUrl = 'http://localhost:12345'
@@ -44,6 +44,7 @@ test('push', loudAsync(async (t) => {
     })
 
   const namespace = 'test' + Date.now()
+  const tradle = new Tradle()
   const push = new Push({
     serverUrl,
     conf: tradle.conf.sub(namespace),

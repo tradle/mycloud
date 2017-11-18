@@ -129,7 +129,7 @@ export default function createBotFromEnv (env) {
 
   customize().then(() => bot.ready())
 
-  const lambdas = !IS_LOCAL && createBot.lambdas(bot)
+  const lambdas = createBot.lambdas(bot)
   return {
     tradle,
     bot,

@@ -6,13 +6,14 @@ import sinon = require('sinon')
 import KeyValueTable from '../key-value-table'
 import { getFavicon } from '../image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
-import { co, loudCo, cachify, clone, batchStringsBySize, promisify } from '../utils'
+import { co, loudCo, cachify, clone, batchStringsBySize, promisify, wrap } from '../utils'
 import { loudAsync } from './utils'
 import * as Errors from '../errors'
-import { wrap, tradle } from '../'
 import { KVTable } from '../definitions'
 import aliceKeys = require('./fixtures/alice/keys')
+import { Tradle } from '../'
 
+const tradle = new Tradle()
 const { dbUtils } = tradle
 
 test('cachify', loudAsync(async (t) => {

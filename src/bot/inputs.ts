@@ -65,6 +65,7 @@ module.exports = function createBotInputs ({
     env,
     models,
     db,
+    router,
     conf: conf.sub(':bot'),
     kv: kv.sub(':bot'),
     contentAddressedStorage,

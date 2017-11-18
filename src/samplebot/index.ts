@@ -3,6 +3,7 @@ import buildResource = require('@tradle/build-resource')
 import extend = require('xtend/mutable')
 import yn = require('yn')
 import createBot from './bot'
+import { handler as httpHandler } from '../lambda/http/default'
 
 const { IS_LAMBDA_ENVIRONMENT, NODE_ENV } = process.env
 if (NODE_ENV === 'test') {
@@ -20,6 +21,7 @@ const debug = require('debug')('λ:samplebot')
 const TYPE = '_t'
 const {
   bot,
+  tradle,
   lambdas,
   productsAPI,
   employeeManager,
@@ -71,12 +73,13 @@ const {
 // }
 
 exports = module.exports = lambdas
-exports.handleOnfidoWebhookEvent = require('../lambda/http/default').handler
+exports.handleOnfidoWebhookEvent = httpHandler
 exports.models = productsAPI.models.all
 exports.bot = productsAPI.bot
 exports.db = productsAPI.bot.db
 exports.tables = productsAPI.bot.db.tables
 exports.productsAPI = productsAPI
+exports.tradle = tradle
 
 // bot.graphqlAPI.executeQuery(`
 //   {

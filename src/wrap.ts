@@ -13,7 +13,7 @@ exports.wrap = wrap
 
 function wrap (fn, opts={}) {
   // lazy import
-  const { env } = require('./').tradle
+  const env = opts.env || opts.tradle.env
   if (env.DISABLED) {
     return (event, context, callback) => callback(new Error('function is disabled'))
   }

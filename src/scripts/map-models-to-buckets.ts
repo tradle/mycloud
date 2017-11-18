@@ -5,12 +5,11 @@ process.env.IS_LAMBDA_ENVIRONMENT = false
 const crypto = require('crypto')
 const path = require('path')
 const fs = require('fs')
-const { loadEnv, loadCredentials, getTableDefinitions } = require('../cli/utils')
+const { loadCredentials, getTableDefinitions } = require('../cli/utils')
 
-loadEnv()
 loadCredentials()
 
-const { dbUtils } = require('../').tradle
+const { dbUtils } = require('../').createRemoteTradle()
 const { models } = require('../samplebot')
 const outputPath = path.join(__dirname, '../modelmap.json')
 const output = dbUtils.getModelMap({ models })

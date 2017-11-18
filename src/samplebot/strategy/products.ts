@@ -42,6 +42,10 @@ export default function createProductsBot (opts={}) {
     graphqlRequiresAuth
   } = opts
 
+  if (!tradle) {
+    throw new Error('expected "tradle"')
+  }
+
   const { ONFIDO_API_KEY } = process.env
   const productsAPI = createProductsStrategy({
     namespace,

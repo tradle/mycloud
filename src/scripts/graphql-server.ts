@@ -6,16 +6,8 @@ import path = require('path')
 import loadDockerEnv = require('node-env-file')
 loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
 
-import { loadEnv, loadCredentials } from '../cli/utils'
-
-loadCredentials()
-
-if (process.env.NODE_ENV === 'test') {
-  require('../test/env').install()
-} else {
-  loadEnv()
-}
-
+import { loadCredentials } from '../cli/utils'
+import { createRemoteTradle, createTestTradle } from '../'
 import express = require('express')
 import expressGraphQL = require('express-graphql')
 import compression = require('compression')
@@ -24,7 +16,16 @@ import dynogels = require('dynogels')
 import { products as createProductsBot } from '../samplebot/strategy'
 import sampleQueries from '../samplebot/sample-queries'
 
-const { bot } = createProductsBot()
+const TESTING = process.env.NODE_ENV === 'test'
+if (!TESTING) {
+  loadCredentials()
+  console.log('WARNING: querying remote server')
+}
+
+const { bot } = createProductsBot({
+  tradle: TESTING ? createTestTradle() : createRemoteTradle()
+})
+
 const { port } = require('minimist')(process.argv.slice(2), {
   default: {
     port: 21012

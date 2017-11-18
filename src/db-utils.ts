@@ -5,12 +5,13 @@ import {
 } from 'dynamodb-marshaler'
 
 import { utils as vrUtils } from '@tradle/validate-resource'
-const { NotFound } = require('./errors')
-const { co, pick, logify, timestamp, wait, clone, batchify } = require('./utils')
+import { NotFound } from './errors'
+import { pick, logify, timestamp, wait, clone, batchify } from './utils'
 import { prettify, alphabetical } from './string-utils'
 import { sha256 } from './crypto'
 import * as Errors from './errors'
 import Env from './env'
+
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 const definitions = require('./definitions')
@@ -113,12 +114,12 @@ function createDBUtils ({ aws, env }) {
     // return logify(tableAPI, { log: debug }) //, logInputOutput: DEV })
   }
 
-  const exec = co(function* (method, params) {
+  const exec = async (method, params) => {
     params.ReturnConsumedCapacity = 'TOTAL'
-    const result = aws.docClient[method](params).promise()
+    const result = await aws.docClient[method](params).promise()
     logCapacityConsumption(method, result)
     return result
-  })
+  }
 
   const dynamoDBExec = function dynamoDBExec (method, params) {
     return aws.dynamodb[method](params).promise()

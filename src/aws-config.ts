@@ -1,13 +1,13 @@
 import Env from './env'
 
 export const createConfig = ({ env } : { env: Env }) => {
-  const { TESTING } = env
+  const { IS_LOCAL, IS_OFFLINE } = env
   const services = {
     maxRetries: 6,
     region: process.env.AWS_REGION || 'us-east-1'
   }
 
-  if (TESTING) {
+  if (IS_LOCAL || IS_OFFLINE) {
     const localstackEndpoints = require('./test/localstack')
 
     for (let name in localstackEndpoints) {
@@ -18,6 +18,8 @@ export const createConfig = ({ env } : { env: Env }) => {
     }
 
     services.s3.s3ForcePathStyle = true
+  } else {
+    debugger
   }
 
   return services

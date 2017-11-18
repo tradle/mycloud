@@ -5,7 +5,7 @@
 require('./env').install()
 
 const test = require('tape')
-const { Tradle } = require('../')
+const { createTestTradle } = require('../')
 const createRealBot = require('../bot')
 const createFakeBot = require('./mock/bot')
 const { co, loudCo, clone, pick, wait } = require('../utils')
@@ -20,7 +20,7 @@ const UsersTableLogicalId = 'UsersTable'
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test('await ready', loudCo(function* (t) {
-    const bot = createBot.fromEngine({ tradle: new Tradle() })
+    const bot = createBot.fromEngine({ tradle: createTestTradle() })
     const expectedEvent = toStreamItems([
       {
         old: {
@@ -52,7 +52,7 @@ const UsersTableLogicalId = 'UsersTable'
       yield recreateTable(UsersTableLogicalId)
     }
 
-    const bot = createBot.fromEngine({ tradle: new Tradle() })
+    const bot = createBot.fromEngine({ tradle: createTestTradle() })
     const { users } = bot
     // const user : Object = {
     const user = {
@@ -89,7 +89,7 @@ const UsersTableLogicalId = 'UsersTable'
   test(`onmessage (${mode})`, loudCo(function* (t) {
     t.plan(5)
 
-    const tradle = new Tradle()
+    const tradle = createTestTradle()
     const { objects, messages, identities } = tradle
     const bot = createBot.fromEngine({ tradle })
     const { users } = bot
@@ -162,7 +162,7 @@ const UsersTableLogicalId = 'UsersTable'
 
     let read
     let wrote
-    const tradle = new Tradle()
+    const tradle = createTestTradle()
     const { seals, provider } = tradle
     const { getMyKeys } = provider
     provider.getMyKeys = () => Promise.resolve(aliceKeys)
@@ -217,7 +217,7 @@ const UsersTableLogicalId = 'UsersTable'
       wroteseal: false
     }
 
-    const bot = createBot.fromEngine({ tradle: new Tradle() })
+    const bot = createBot.fromEngine({ tradle: createTestTradle() })
     bot.use(() => {
       Object.keys(called).forEach(event => {
         bot.hook(event, co(function* (arg) {
@@ -282,7 +282,7 @@ test('save to type table', loudCo(function* (t) {
 
   const bot = createRealBot.fromEngine({
     models: require('../bot/ping-pong-models'),
-    tradle: new Tradle()
+    tradle: createTestTradle()
   })
 
   bot.objects = {
@@ -335,7 +335,7 @@ test('save to type table', loudCo(function* (t) {
 }))
 
 test('validate send', loudCo(function* (t) {
-  const tradle = new Tradle()
+  const tradle = createTestTradle()
   tradle.provider.sendMessage = () => Promise.resolve()
 
   const models = {

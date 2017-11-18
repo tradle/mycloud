@@ -5,4 +5,4 @@ exports.handler = wrap(function (event, context) {
   const { link } = event
   tradle.debug('adding contact', link)
   return tradle.identities.addContact({ link })
-}, { source: 'lambda' })
+}, { source: 'lambda', tradle })

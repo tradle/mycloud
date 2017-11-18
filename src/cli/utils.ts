@@ -31,13 +31,16 @@ const getStackName = () => {
   return `${service}-${stage}`
 }
 
-const getStackResources = () => {
-  const { lambdaUtils } = require('../').tradle
-  return lambdaUtils.getStackResources(getStackName())
+const getStackResources = ({ tradle, stackName }) => {
+  return tradle.lambdaUtils.getStackResources(stackName || getStackName())
 }
 
-const getPhysicalId = async (logicalId) => {
-  const resources = await getStackResources()
+const getPhysicalId = async ({ tradle, logicalId }) => {
+  const resources = await getStackResources({
+    tradle,
+    stackName: getStackName()
+  })
+
   const match = resources.find(({ LogicalResourceId }) => LogicalResourceId === logicalId)
   if (!match) {
     const list = resources.map(({ LogicalResourceId }) => LogicalResourceId)
@@ -47,8 +50,10 @@ const getPhysicalId = async (logicalId) => {
   return match.PhysicalResourceId
 }
 
-const genLocalResources = async (tradle) => {
-  if (!tradle) tradle = require('../').tradle
+const genLocalResources = async ({ tradle }) => {
+  if (!tradle) {
+    tradle = require('../').createTestTradle()
+  }
 
   const { aws, init } = tradle
   const { s3 } = aws
@@ -187,9 +192,13 @@ function loadCredentials () {
   AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
 }
 
-function loadEnv () {
+function getRemoteEnv () {
+  return require('./remote-service-map')
+}
+
+function loadRemoteEnv () {
   const { env } = require('../').tradle
-  env.set(require('./remote-service-map'))
+  env.set(getRemoteEnv())
 }
 
 // borrowed gratefully from https://github.com/juliangruber/native-modules
@@ -265,12 +274,18 @@ const validateBrand = brand => {
   }
 }
 
-const downloadDeploymentTemplate = async () => {
-  const { aws, s3Utils } = require('../').tradle
+const downloadDeploymentTemplate = async (tradle) => {
+  loadCredentials()
+
+  const { aws, s3Utils } = tradle
   const { service, provider: { stage } } = require('./serverless-yml')
   const artifactDirectoryPrefix = `serverless/${service}/${stage}`
   const templateFileName = 'compiled-cloudformation-template.json'
-  const physicalId = await getPhysicalId('ServerlessDeploymentBucket')
+  const physicalId = await getPhysicalId({
+    tradle,
+    logicalId: 'ServerlessDeploymentBucket'
+  })
+
   const objects = await aws.s3.listObjects({
     Bucket: physicalId,
     Prefix: artifactDirectoryPrefix
@@ -303,8 +318,7 @@ function getLatestS3Object (list) {
   return latest
 }
 
-const clearTypes = async ({ types }) => {
- const { tradle } = require('../')
+const clearTypes = async ({ tradle, types }) => {
   const { dbUtils } = tradle
   const { getModelMap, clear } = dbUtils
   const modelMap = getModelMap({ types })
@@ -349,7 +363,8 @@ const clearTypes = async ({ types }) => {
 }
 
 module.exports = {
-  loadEnv,
+  getRemoteEnv,
+  loadRemoteEnv,
   compileTemplate,
   interpolateTemplate,
   genLocalResources,

@@ -21,7 +21,7 @@ const co = require('../utils').loudCo
 const {
   aws,
   dbUtils: { getTable, batchPut }
-} = require('../').tradle
+} = require('../').createTestTradle()
 
 const schema = {
   "AttributeDefinitions": [

@@ -17,8 +17,16 @@ export = {
   get env():Env {
     return module.exports.tradle.env
   },
-
   // sub-modules
+  createTradle(env) {
+    return new Tradle(env)
+  },
+  createTestTradle() {
+    return new Tradle(require('./test/env').createTestEnv())
+  },
+  createRemoteTradle() {
+    return new Tradle(require('./cli/remote-service-map'))
+  },
   get Tradle() {
     return requireDefault('./tradle')
   },
