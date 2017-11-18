@@ -3,6 +3,7 @@ import cors = require('cors')
 import helmet = require('helmet')
 import coexpress = require('co-express')
 import Tradle from '../tradle'
+import Errors = require('../errors')
 
 export = function attachHandler ({ tradle, router }: {
   tradle:Tradle,

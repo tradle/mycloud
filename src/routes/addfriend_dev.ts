@@ -15,7 +15,7 @@ export = function attachHandler ({ tradle, router }: {
   router.use(bodyParser.json({ limit: '10mb' }))
   // router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
   router.post('/addfriend', coexpress(function* (req, res) {
-    const result = yield promisify(handler)(req.body, env.context)
+    const result = yield promisify(handler)(req.body, tradle.env.context)
     if (result && typeof result === 'object') {
       res.json(result)
     } else {
