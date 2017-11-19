@@ -20,7 +20,17 @@ export default function createBotFromEnv (env) {
     IS_LOCAL
   } = env
 
-  tradle.env.set(env)
+  // important: don't set all props from env
+  // as in testing mode it overrides resources like R_BUCKET_...
+  tradle.env.set({
+    PRODUCTS,
+    ORG_DOMAIN,
+    AUTO_VERIFY_FORMS,
+    AUTO_APPROVE_APPS,
+    AUTO_APPROVE_EMPLOYEES,
+    GRAPHQL_AUTH,
+    IS_LOCAL
+  })
 
   const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
   const deploymentModels = createDeploymentModels(NAMESPACE)
@@ -44,9 +54,10 @@ export default function createBotFromEnv (env) {
     graphqlRequiresAuth: yn(GRAPHQL_AUTH)
   })
 
+  const confBucket = bot.resources.buckets.PublicConf
   const CONF_FILE = 'bot-conf.json'
-  const putConf = (conf) => bot.resources.buckets.PublicConf.put(CONF_FILE, conf)
-  const cacheableConf = bot.resources.buckets.PublicConf.getCacheable({
+  const putConf = (conf) => confBucket.put(CONF_FILE, conf)
+  const cacheableConf = confBucket.getCacheable({
     key: CONF_FILE,
     ttl: 60000,
     parse: JSON.parse.bind(JSON)

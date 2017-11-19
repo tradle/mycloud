@@ -32,7 +32,7 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 
 export default function createProductsBot (opts={}) {
   const {
-    tradle=defaultTradleInstance,
+    tradle,
     models=baseModels,
     products=DEFAULT_PRODUCTS,
     namespace='test.bot',

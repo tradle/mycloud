@@ -1,8 +1,10 @@
 {
   "org": {
-    "logo": "https://s3.amazonaws.com/tradle-public-images/safe-re.png",
-    "domain": "safere.io",
-    "name": "SafeRe",
+    "LOGO": "https://s3.amazonaws.com/tradle-public-images/safe-re.png",
+    "DOMAIN": "safere.io",
+    "NAME": "SafeRe"
+  },
+  "products": {
     "products": "nl.tradle.DigitalPassport,tradle.CorporateBankAccount,tradle.LifeInsurance,tradle.MortgageProduct,tradle.CurrentAccount,tradle.OnfidoVerification",
     "autoApprove": false,
     "autoVerify": false

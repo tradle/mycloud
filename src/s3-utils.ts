@@ -114,6 +114,10 @@ module.exports = function createUtils ({ resources, env, aws }) {
   }
 
   function getBucket (bucket) {
+    if (typeof bucket !== 'string') {
+      throw new Error('expected string bucket name')
+    }
+
     debug(`wrapping ${bucket} bucket`)
     let api = {
       get: key => get({ key, bucket }),

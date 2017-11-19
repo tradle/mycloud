@@ -29,6 +29,7 @@ import Resources = require('./resources')
 import { ExecutionTimeout } from './errors'
 
 const debug = require('debug')('tradle:sls:utils')
+const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
 const { omitVirtual, setVirtual, pickVirtual } = buildResource
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
@@ -689,5 +690,3 @@ export const getRequestIps = (req) => {
     req.get('x-real-ip')
   ].filter(notNull)
 }
-
-const notNull = obj => obj != null
