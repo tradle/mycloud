@@ -13,7 +13,7 @@ export = function createDB (opts: {
   env: any,
   dbUtils: any
 }) {
-  const { models, objects, tables, aws, constants, env, dbUtils } = opts
+  const { models, objects, tables, provider, aws, constants, env, dbUtils } = opts
   const tableBuckets = dbUtils.getTableBuckets()
 
   let modelMap = dbUtils.getModelMap({ models })
@@ -53,7 +53,11 @@ export = function createDB (opts: {
 
   const messageModel = models['tradle.Message']
   if (!messageModel.isInterface) {
-    const messagesTable = createMessagesTable({ models })
+    const messagesTable = createMessagesTable({
+      models,
+      getMyIdentity: () => provider.getMyPublicIdentity()
+    })
+
     db.setExclusive({
       model: messageModel,
       table: messagesTable

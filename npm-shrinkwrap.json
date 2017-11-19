@@ -168,7 +168,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#5f5b22ca7b154b6e8732acb422ea4c63185376a0",
+      "resolved": "git://github.com/tradle/dynamodb.git#7e3d0c8f7473d061b3e92e974a22bfdc19ea4f25",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -312,7 +312,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#445d4ae3023fe8f91cc8bd9414e3e853b8cec4b8"
+      "resolved": "git://github.com/tradle/schema-graphql.git#9785a537afb3175cabc5c8644d0a858495d5a969"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
@@ -3118,6 +3118,11 @@
       "version": "1.0.1",
       "from": "merge-descriptors@1.0.1",
       "resolved": "https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.1.tgz"
+    },
+    "merge-sorted": {
+      "version": "1.0.0",
+      "from": "merge-sorted@latest",
+      "resolved": "https://registry.npmjs.org/merge-sorted/-/merge-sorted-1.0.0.tgz"
     },
     "merkle-patricia-tree": {
       "version": "2.2.0",

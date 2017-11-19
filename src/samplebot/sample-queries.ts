@@ -1,5 +1,5 @@
 const listPhotoIds = `{
-  rl_tradle_PhotoID(first:5) {
+  rl_tradle_PhotoID(limit:5) {
     edges {
       node {
         documentType {
@@ -17,7 +17,7 @@ const listPhotoIds = `{
 }`
 
 const listApplications = `{
-  rl_tradle_Application(first:5) {
+  rl_tradle_Application(limit:5) {
     edges {
       node {
         _permalink
@@ -119,7 +119,7 @@ const listInboundMessages = `
 # IN THE QUERY VARIABlES AT THE BOTTOM
 query ($author: String, $context: String) {
   rl_tradle_Message(
-    first: 20,
+    limit: 20,
     filter: {
       EQ: {
         _inbound: true
