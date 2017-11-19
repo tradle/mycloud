@@ -3,12 +3,20 @@ module.exports = {
     id: 'tradle.Ping',
     title: 'Ping',
     type: 'tradle.Model',
-    properties: {}
+    properties: {
+      _time: {
+        type: 'number'
+      }
+    }
   },
   'tradle.Pong': {
     id: 'tradle.Pong',
     title: 'Pong',
     type: 'tradle.Model',
-    properties: {}
+    properties: {
+      _time: {
+        type: 'number'
+      }
+    }
   }
 }

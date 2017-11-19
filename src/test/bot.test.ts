@@ -20,7 +20,7 @@ const UsersTableLogicalId = 'UsersTable'
 ;[createFakeBot, createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test('await ready', loudCo(function* (t) {
-    const bot = createBot.fromEngine(new Tradle())
+    const bot = createBot.fromEngine({ tradle: new Tradle() })
     const expectedEvent = toStreamItems([
       {
         old: {
@@ -52,7 +52,7 @@ const UsersTableLogicalId = 'UsersTable'
       yield recreateTable(UsersTableLogicalId)
     }
 
-    const bot = createBot.fromEngine(new Tradle())
+    const bot = createBot.fromEngine({ tradle: new Tradle() })
     const { users } = bot
     // const user : Object = {
     const user = {
@@ -91,7 +91,7 @@ const UsersTableLogicalId = 'UsersTable'
 
     const tradle = new Tradle()
     const { objects, messages, identities } = tradle
-    const bot = createBot.fromEngine(tradle)
+    const bot = createBot.fromEngine({ tradle })
     const { users } = bot
 
     let updatedUser
@@ -167,7 +167,7 @@ const UsersTableLogicalId = 'UsersTable'
     const { getMyKeys } = provider
     provider.getMyKeys = () => Promise.resolve(aliceKeys)
 
-    const bot = createBot.fromEngine(tradle)
+    const bot = createBot.fromEngine({ tradle })
     bot.hook('readseal', co(function* (event) {
       read = true
       t.equal(event.link, link)
@@ -217,7 +217,7 @@ const UsersTableLogicalId = 'UsersTable'
       wroteseal: false
     }
 
-    const bot = createBot.fromEngine(new Tradle())
+    const bot = createBot.fromEngine({ tradle: new Tradle() })
     bot.use(() => {
       Object.keys(called).forEach(event => {
         bot.hook(event, co(function* (arg) {
@@ -275,11 +275,14 @@ test('save to type table', loudCo(function* (t) {
   }
 
   const payload = {
-    _t: 'tradle.Ping'
+    _t: 'tradle.Ping',
+    _s: 'abc',
+    _time: Date.now()
   }
 
   const bot = createRealBot.fromEngine({
-    models: require('../bot/ping-pong-models')
+    models: require('../bot/ping-pong-models'),
+    tradle: new Tradle()
   })
 
   bot.objects = {
@@ -299,7 +302,9 @@ test('save to type table', loudCo(function* (t) {
 
   const result = yield bot.trigger('graphql', `
     {
-      rl_tradle_Ping {
+      rl_tradle_Ping(orderBy:{
+        property: _time
+      }) {
         edges {
           node {
             _link
