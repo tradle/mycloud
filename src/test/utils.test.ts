@@ -12,6 +12,7 @@ import * as Errors from '../errors'
 import { KVTable } from '../definitions'
 import aliceKeys = require('./fixtures/alice/keys')
 import { Tradle } from '../'
+import Bucket from '../bucket'
 
 const tradle = new Tradle()
 const { dbUtils } = tradle
@@ -172,13 +173,13 @@ test('batch by size', function (t) {
 })
 
 test('getCacheable', loudAsync(async (t) => {
-  const { aws, s3Utils } = tradle
+  const { aws } = tradle
   const { s3 } = aws
   const bucketName = `test-${Date.now()}-${randomString(10)}`
-  await s3.createBucket({ Bucket: bucketName }).promise()
+  const bucket = new Bucket({ name: bucketName, s3 })
+  await bucket.create()
 
   const key = 'a'
-  const bucket = s3Utils.getBucket(bucketName)
   const cacheable = bucket.getCacheable({
     key,
     parse: JSON.parse.bind(JSON),
@@ -186,28 +187,28 @@ test('getCacheable', loudAsync(async (t) => {
   })
 
   try {
-    await cacheable.get(key)
+    await cacheable.get()
     t.fail('expected error')
   } catch (err) {
     t.equal(err.name, 'NotFound')
   }
 
   let value = { a: 1 }
-  await bucket.putJSON(key, value)
+  await cacheable.put({ value })
 
   const getObjectSpy = sinon.spy(s3, 'getObject')
-  t.same(await cacheable.get(key), value)
-  t.equal(getObjectSpy.callCount, 1)
-  t.same(await cacheable.get(key), value)
-  t.equal(getObjectSpy.callCount, 1)
+  t.same(await cacheable.get(), value)
+  t.equal(getObjectSpy.callCount, 0)
+  t.same(await cacheable.get(), value)
+  t.equal(getObjectSpy.callCount, 0)
 
   value = { a: 2 }
   await bucket.putJSON(key, value)
   await new Promise(resolve => setTimeout(resolve, 200))
-  t.same(await cacheable.get(key), value)
-  t.equal(getObjectSpy.callCount, 2)
-  t.same(await cacheable.get(key), value)
-  t.equal(getObjectSpy.callCount, 2)
+  t.same(await cacheable.get(), value)
+  t.equal(getObjectSpy.callCount, 1)
+  t.same(await cacheable.get(), value)
+  t.equal(getObjectSpy.callCount, 1)
 
   getObjectSpy.restore()
   await bucket.del(key)

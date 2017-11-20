@@ -1,7 +1,8 @@
 
-const Cache = require('lru-cache')
-const { cachify, extend } = require('./utils')
-const { toCamelCase } = require('./string-utils')
+import Cache = require('lru-cache')
+import Bucket from './bucket'
+import { cachify, extend } from './utils'
+import { toCamelCase } from './string-utils'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
 const cachifiable = {
   Objects: true,
@@ -13,8 +14,7 @@ const CACHE_OPTS = {
   maxAge: 60 * 1000
 }
 
-module.exports = function getBuckets ({ s3Utils, resources }) {
-  const { getBucket } = s3Utils
+module.exports = function getBuckets ({ aws, resources }) {
 
   function loadBucket (name) {
     if (buckets[name]) return
@@ -22,7 +22,7 @@ module.exports = function getBuckets ({ s3Utils, resources }) {
     const physicalId = resources.Bucket[name]
     if (!physicalId) throw new Error('bucket not found')
 
-    const bucket = getBucket(physicalId)
+    const bucket = new Bucket({ name: physicalId, s3: aws.s3 })
     if (cachifiable[name]) {
       const cachified = cachify({
         get: bucket.getJSON,
