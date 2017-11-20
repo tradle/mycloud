@@ -12,6 +12,7 @@
   "R_BUCKET_Objects": "{prefix}objectsbucket",
   "R_BUCKET_ContentAddressed": "{prefix}contentaddressedbucket",
   "R_BUCKET_PublicConf": "{prefix}publicconfbucket",
+  "R_BUCKET_PrivateConf": "{prefix}privateconfbucket",
   "R_BUCKET_Secrets": "{prefix}secretsbucket",
   "R_BUCKET_ServerlessDeployment": "{prefix}serverlessdeploymentbucket",
   "R_RESTAPI_ApiGateway": "abcedfghij",

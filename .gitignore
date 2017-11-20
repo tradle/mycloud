@@ -18,3 +18,4 @@ conf/provider.json
 !conf/provider-sample.json
 lib/modelmap.json
 lib/cli/cloudformation-template.json
+lib/definitions.json

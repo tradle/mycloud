@@ -11,26 +11,36 @@ const { force } = require('minimist')(process.argv.slice(2), {
   boolean: ['force']
 })
 
-const co = require('co')
-const tradle = require('../').createTestTradle()
-const { init } = tradle
-const { genLocalResources } = require('../cli/utils')
-const { brand } = require('../cli/serverless-yml').custom
-const opts = {
-  force,
-  name: brand.env.ORG_NAME + '-local',
-  domain: brand.env.ORG_DOMAIN + '.local',
-  logo: brand.env.ORG_LOGO
+import promisify = require('pify')
+import { tradle } from '../'
+import { genLocalResources } from '../cli/utils'
+import { handler } from '../samplebot/lambda/init'
+import { org } from '../../conf/provider'
+import Errors = require('../errors')
+
+const rethrow = (err) => {
+  if (err) throw err
 }
 
-co(function* () {
-  yield genLocalResources({ tradle })
-  if (force) {
-    yield init.init(opts)
-  } else {
-    yield init.ensureInitialized(opts)
+(async () => {
+  try {
+    await genLocalResources({ tradle })
+    await promisify(handler)({
+      RequestType: 'Create',
+      ResourceProperties: {
+        org: {
+          // force,
+          name: org.name + '-local',
+          domain: org.domain + '.local',
+          logo: org.logo
+        }
+      }
+    }, {})
+  } catch (err) {
+    Errors.ignore(err, Errors.Exists)
+    console.log('prevented overwrite of existing identity/keys')
   }
-})
+})()
 .catch(err => {
   console.error(err)
   process.exitCode = 1

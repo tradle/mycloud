@@ -1,97 +1,66 @@
-import yn = require('yn')
+import dotProp = require('dot-prop')
 import biz = require('@tradle/biz-plugins')
+import customizeMessage = require('@tradle/plugin-customize-message')
 import createDeploymentModels from './deployment-models'
 import createBankModels from './bank-models'
 import createDeploymentHandlers from './deployment-handlers'
-import sampleQueries from './sample-queries'
-import createBot = require('../bot')
+import createBaseBot = require('../bot')
 import strategies = require('./strategy')
-import { tradle } from '../'
-import DEFAULT_CONF = require('./default-conf')
+import { createTradle } from '../'
+import { createConf } from './conf'
 
-export default function createBotFromEnv (env) {
+export async function createBot (tradle=createTradle()) {
   const {
-    PRODUCTS,
-    ORG_DOMAIN,
-    AUTO_VERIFY_FORMS,
-    AUTO_APPROVE_APPS,
-    AUTO_APPROVE_EMPLOYEES,
-    GRAPHQL_AUTH,
+    // PRODUCTS,
+    // ORG_DOMAIN,
+    // ORG_LOGO,
+    // ORG_NAME,
+    // AUTO_VERIFY_FORMS,
+    // AUTO_APPROVE_APPS,
+    // AUTO_APPROVE_EMPLOYEES,
+    // GRAPHQL_AUTH,
     IS_LOCAL
-  } = env
+  } = tradle.env
 
-  // important: don't set all props from env
-  // as in testing mode it overrides resources like R_BUCKET_...
-  tradle.env.set({
-    PRODUCTS,
-    ORG_DOMAIN,
-    AUTO_VERIFY_FORMS,
-    AUTO_APPROVE_APPS,
-    AUTO_APPROVE_EMPLOYEES,
-    GRAPHQL_AUTH,
-    IS_LOCAL
-  })
+  const conf = createConf({ tradle })
+  let privateConf = await conf.getPrivateConf()
 
-  const NAMESPACE = ORG_DOMAIN.split('.').reverse().join('.')
-  const deploymentModels = createDeploymentModels(NAMESPACE)
+  const { org } = privateConf
+  const products = privateConf.products.enabled
+  const namespace = org.domain.split('.').reverse().join('.')
+  const deploymentModels = createDeploymentModels(namespace)
   const DEPLOYMENT = deploymentModels.deployment.id
-  const bankModels = createBankModels(NAMESPACE)
+  const bankModels = createBankModels(namespace)
   const models = { ...deploymentModels.all, ...bankModels }
-  const products = PRODUCTS.split(',').map(id => id.trim())
   const {
     bot,
     productsAPI,
     employeeManager,
     onfidoPlugin
   } = strategies.products({
+    conf,
     tradle,
-    namespace: NAMESPACE,
+    namespace,
     models,
     products,
-    approveAllEmployees: yn(AUTO_APPROVE_EMPLOYEES),
-    autoVerify: yn(AUTO_VERIFY_FORMS),
-    autoApprove: yn(AUTO_APPROVE_APPS),
-    graphqlRequiresAuth: yn(GRAPHQL_AUTH)
+    approveAllEmployees: products.approveAllEmployees,
+    autoVerify: products.autoVerify,
+    autoApprove: products.autoApprove,
+    // graphqlRequiresAuth: yn(GRAPHQL_AUTH)
   })
-
-  const confBucket = bot.resources.buckets.PublicConf
-  const CONF_FILE = 'bot-conf.json'
-  const putConf = (conf) => confBucket.put(CONF_FILE, conf)
-  const cacheableConf = confBucket.getCacheable({
-    key: CONF_FILE,
-    ttl: 60000,
-    parse: JSON.parse.bind(JSON)
-  })
-
-  const getConf = async () => {
-    try {
-      return await cacheableConf.get()
-    } catch (err) {
-      return DEFAULT_CONF
-    }
-  }
-
-  const ensureConfStored = async () => {
-    try {
-      return await cacheableConf.get()
-    } catch (err) {
-      return await putConf(DEFAULT_CONF)
-    }
-  }
 
   const getPluginConf = async (pluginName) => {
-    const conf = await getConf()
-    const { plugins={} } = conf
+    privateConf = await conf.getPrivateConf()
+    const { plugins={} } = privateConf
     return plugins[pluginName]
   }
 
   const customize = async () => {
-    const customizeMessage = require('@tradle/plugin-customize-message')
     productsAPI.plugins.use(customizeMessage({
       get models () {
         return productsAPI.models.all
       },
-      getConf: () => getPluginConf('customize-message'),
+      getConf: () => dotProp.get(privateConf, 'plugins.customize-message'),
       logger: bot.logger
     }))
 
@@ -111,26 +80,11 @@ export default function createBotFromEnv (env) {
     }), true))
   }
 
-  if (bot.graphqlAPI) {
-    bot.graphqlAPI.setGraphiqlOptions({
-      logo: {
-        src: 'https://blog.tradle.io/content/images/2016/08/256x-no-text-1.png',
-        width: 32,
-        height: 32
-      },
-      bookmarks: {
-        // not supported
-        // autorun: true,
-        title: 'Samples',
-        items: sampleQueries
-      }
-    })
-  }
-
   customize().then(() => bot.ready())
 
-  const lambdas = createBot.lambdas(bot)
+  const lambdas = createBaseBot.lambdas(bot)
   return {
+    conf,
     tradle,
     bot,
     lambdas,

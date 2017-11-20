@@ -32,6 +32,10 @@ const isSystemError = err => types.system.some(ErrorCtor => {
 })
 
 const matches = (err, type) => {
+  if (!(err && type)) {
+    throw new Error('expected error and match parameters')
+  }
+
   if (type === 'system') {
     return isSystemError(err)
   }
@@ -84,6 +88,7 @@ const errors = {
   Duplicate: createError('Duplicate'),
   TimeTravel: createError('TimeTravel'),
   ExecutionTimeout: createError('ExecutionTimeout'),
+  Exists: createError('Exists'),
   export: (err:Error): {
     type:string,
     message:string
@@ -106,8 +111,11 @@ const errors = {
    * @return {Boolean}
    */
   is: (err:Error, errType:any): boolean => {
+    const { type } = errType
+    if (!type) return false
+
     const { name='' } = err
-    return name.toLowerCase() === (errType || errType.type).toLowerCase()
+    return name.toLowerCase() === type.toLowerCase()
   },
   ignore,
   rethrow,

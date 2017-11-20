@@ -9,14 +9,8 @@ fi
 
 PONG=$(redis-cli ping)
 if [ "$PONG" != "PONG" ]; then
-  # if [ "$REDIS_SERVER" == "" ]; then
-    echo 'please start redis first, e.g.: redis-server'
-    exit 1
-  # fi
-
-  # echo 'starting redis in the background...'
-  # redis-server &
-  # sleep 3
+  echo 'please start redis first (run: redis-server)'
+  exit 1
 fi
 
 npm run setup:local && DEBUG=λ*,*tradle* serverless offline start

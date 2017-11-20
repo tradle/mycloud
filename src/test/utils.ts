@@ -1,11 +1,11 @@
-require('./env')
+require('./env').install()
 
 const { co } = require('../utils')
 const { isResourceEnvironmentVariable } = require('../resources')
-const { Tradle } = require('../')
+const tradle = require('../').createTestTradle()
 const {
   dbUtils: { getTable, marshalDBItem }
-} = new Tradle()
+} = tradle
 
 const Errors = require('../errors')
 const yml = require('../cli/serverless-yml')

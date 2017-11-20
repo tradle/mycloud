@@ -55,7 +55,7 @@ const genLocalResources = async ({ tradle }) => {
     tradle = require('../').createTestTradle()
   }
 
-  const { aws, init } = tradle
+  const { aws } = tradle
   const { s3 } = aws
   const yml = require('./serverless-yml')
   const { resources } = yml
@@ -95,7 +95,6 @@ const genLocalResources = async ({ tradle }) => {
 
   await buckets
   await tables
-  await init.ensureInitialized()
 }
 
 const makeDeploymentBucketPublic = async () => {

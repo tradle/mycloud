@@ -8,7 +8,7 @@ const {
   stringUtils,
   utils,
   constants
-} = require('../..').tradle
+} = require('../..').createTradle()
 
 const { prettify } = stringUtils
 const { SEQ } = constants

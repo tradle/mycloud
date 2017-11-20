@@ -133,25 +133,7 @@ export default class Auth {
     })
   }
 
-  public createChallenge = async (opts: {
-    clientId: string,
-    permalink: string
-  }): Promise<string> => {
-    const { clientId, permalink } = opts
-    // const permalink = getPermalinkFromClientId(clientId)
-    const challenge = randomString(32)
-    const Item:ISession = {
-      clientId,
-      permalink,
-      challenge,
-      time: Date.now(),
-      authenticated: false,
-      connected: false
-    }
-
-    await this.tables.Presence.put({ Item })
-    return challenge
-  }
+  public createChallenge = () => randomString(32)
 
   // const sendChallenge = co(function* ({ clientId, permalink }) {
   //   const challenge = await createChallenge({ clientId, permalink })
@@ -257,8 +239,20 @@ export default class Auth {
     }
 
     // assume role returns temporary keys
-    const [challenge] = await Promise.all([
-      this.createChallenge({ clientId, permalink }),
+    const challenge = this.createChallenge()
+    const saveSession = this.tables.Presence.put({
+      Item: {
+        clientId,
+        permalink,
+        challenge,
+        time: Date.now(),
+        authenticated: false,
+        connected: false
+      }
+    })
+
+    await Promise.all([
+      saveSession,
       maybeAddContact
     ])
 

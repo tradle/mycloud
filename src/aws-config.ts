@@ -18,8 +18,6 @@ export const createConfig = ({ env } : { env: Env }) => {
     }
 
     services.s3.s3ForcePathStyle = true
-  } else {
-    debugger
   }
 
   return services

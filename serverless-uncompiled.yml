@@ -43,7 +43,8 @@ custom:
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
-  brand: ${{file(./conf/provider.json)}}
+  brand: &brand
+    ${{file(./src/samplebot/default-conf.json)}}
 
   # copied from vars.yml
   # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
@@ -237,12 +238,12 @@ provider:
     # bot config
     # BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: bot_onmessage
-    ORG_DOMAIN: ${{self:custom.brand.env.ORG_DOMAIN}}
-    ORG_NAME: ${{self:custom.brand.env.ORG_NAME}}
-    ORG_LOGO: ${{self:custom.brand.env.ORG_LOGO}}
-    PRODUCTS: ${{self:custom.brand.env.PRODUCTS}}
-    AUTO_VERIFY_FORMS: ${{self:custom.brand.env.AUTO_VERIFY_FORMS, 'n'}}
-    AUTO_APPROVE_APPS: ${{self:custom.brand.env.AUTO_APPROVE_APPS, 'n'}}
+    # ORG_DOMAIN: ${{self:custom.brand.env.ORG_DOMAIN}}
+    # ORG_NAME: ${{self:custom.brand.env.ORG_NAME}}
+    # ORG_LOGO: ${{self:custom.brand.env.ORG_LOGO}}
+    # PRODUCTS: ${{self:custom.brand.env.PRODUCTS}}
+    # AUTO_VERIFY_FORMS: ${{self:custom.brand.env.AUTO_VERIFY_FORMS, 'n'}}
+    # AUTO_APPROVE_APPS: ${{self:custom.brand.env.AUTO_APPROVE_APPS, 'n'}}
 
     # API KEYS
     ONFIDO_API_KEY: ${{self:custom.secrets.ONFIDO_API_KEY, ''}}
@@ -451,7 +452,7 @@ functions:
               - onmessage
               - bot_onmessage
               - bot_graphql
-              - info
+              - bot_info
               - preauth
               - auth
               - inbox
@@ -711,36 +712,24 @@ functions:
   #   description:
   #     Ref: AWS::StackId
 
-  # public endpoint for clients to get public configuration / provider identity
-  # e.g. the provider's identity object, styles, currency, etc.
-  info:
-    handler: lib/lambda/http/default.handler
-    memorySize: 256
-      # SERVERLESS_STAGE: ${{self:custom.stage}}
-      # SERVERLESS_SERVICE_NAME: ${{self:service}}
-    events:
-      - http:
-          path: info
-          method: get
-
   # initializes provider identity
   # generates a new identity and keys, and other misc crap
-  init:
-    handler: lib/lambda/init.handler
-    memorySize: 256
-    timeout: 300
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
+  # init:
+  #   handler: lib/lambda/init.handler
+  #   memorySize: 256
+  #   timeout: 300
+  #   alarms:
+  #     - functionErrors
+  #     - functionThrottles
+  #     - functionInvocations
 
-  setstyle:
-    handler: lib/lambda/setstyle.handler
-    memorySize: 128
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
+  # setstyle:
+  #   handler: lib/lambda/setstyle.handler
+  #   memorySize: 128
+  #   alarms:
+  #     - functionErrors
+  #     - functionThrottles
+  #     - functionInvocations
 
   # precreate-tables:
   #   handler: lib/lambda/precreate-tables.handler
@@ -819,6 +808,12 @@ functions:
   #   handler: lib/lambda/clienttest.handler
   #   timeout: 15
 
+  bot_oninit: ${{self:custom.vars.bot_oninit, self:custom.defaults.bot_oninit}}
+
+  # public endpoint for clients to get public configuration / provider identity
+  # e.g. the provider's identity object, styles, currency, etc.
+  bot_info: ${{self:custom.vars.bot_info, self:custom.defaults.bot_info}}
+
   # bot-serviced lambda
   # receives pre-validated messages from the tradle engine
   # pre-processes with bot-engine
@@ -833,6 +828,8 @@ functions:
   # bot-serviced lambda
   # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
   bot_onmessagestream: ${{self:custom.vars.bot_onmessagestream, self:custom.defaults.bot_onmessagestream}}
+
+  bot_setstyle: ${{self:custom.vars.bot_setstyle, self:custom.defaults.bot_setstyle}}
 
   # bot-serviced lambda
   # graphql API and GraphiQL UI endpoint
@@ -872,9 +869,9 @@ resources:
       Description: stuff
       DeletionPolicy: Retain
 
-    # PrivateConfBucket:
-    #   Type: "AWS::S3::Bucket"
-    #   Properties:
+    PrivateConfBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
 
     # stores the provider's public config
     # e.g. styles, currency, etc.
@@ -1345,6 +1342,19 @@ resources:
                         - Ref: AWS::Region
                         - Ref: AWS::AccountId
                         - 'topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
+
+    Initialize:
+      Type: "Custom::InitializeDeployment"
+      Properties:
+        ServiceToken:
+          Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
+        ProviderConf:
+          <<: *brand
+
+        # CodeDeployApplicationName: !Ref "CodeDeployApplication"
+        # CodeDeployDeploymentGroupName: !Ref "CodeDeployDeploymentGroup"
+        # LoadBalancerName: !Ref "ElasticLoadBalancingLoadBalancer"
+        # ResourceProperties:
 
     # primarily for autoscaling dynamodb
     # AutoScalingRole:

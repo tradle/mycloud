@@ -5,12 +5,12 @@ const Errors = require('./errors')
 
 module.exports = function createUtils (aws) {
 
-  function put ({ key, value, bucket, contentType }: {
+  const put = async ({ key, value, bucket, contentType }: {
     key:string,
     value:any,
     bucket:string,
     contentType?:string
-  }):Promise<AWS.S3.Types.PutObjectOutput> {
+  }):Promise<AWS.S3.Types.PutObjectOutput> => {
     // debug(`putting ${key} -> ${value} into Bucket ${bucket}`)
     const opts:AWS.S3.Types.PutObjectRequest = {
       Bucket: bucket,
@@ -22,43 +22,46 @@ module.exports = function createUtils (aws) {
       opts.ContentType = contentType
     }
 
-    debugger
-    return aws.s3.putObject(opts).promise()
+    return await aws.s3.putObject(opts).promise()
   }
 
-  function get ({ key, bucket, ...opts }: {
+  const get = async ({ key, bucket, ...opts }: {
     key:string,
     bucket:string,
     [x:string]: any
-  }):Promise<AWS.S3.Types.GetObjectOutput> {
+  }):Promise<AWS.S3.Types.GetObjectOutput> => {
     const params:AWS.S3.Types.GetObjectRequest = {
       Bucket: bucket,
       Key: key,
       ...opts
     }
 
-    return aws.s3.getObject(params)
-    .promise()
-    .catch(err => {
+    try {
+      return await aws.s3.getObject(params).promise()
+    } catch(err) {
       if (err.code === 'NoSuchKey') {
         throw new Errors.NotFound(`${bucket}/${key}`)
       }
 
       throw err
-    })
+    }
   }
 
-  function getCacheable ({ key, bucket, ttl, parse, ...defaultOpts }: {
+  const getCacheable = ({ key, bucket, ttl, parse, ...defaultOpts }: {
     key:string,
     bucket:string,
     ttl:number,
     parse?:(any) => any,
     [x:string]: any
-  }) {
+  }) => {
     let cached
     let etag
     let cachedTime
     const maybeGet = async (opts) => {
+      if (typeof opts === 'string') {
+        opts = { key: opts }
+      }
+
       if (etag && Date.now() - cachedTime < ttl) {
         return cached
       }
@@ -82,6 +85,8 @@ module.exports = function createUtils (aws) {
     }
 
     const putAndCache = async ({ value, ...opts }) => {
+      if (value == null) throw new Error('expected "value"')
+
       const result = await put({ bucket, key, value, ...defaultOpts, ...opts })
       cached = parse ? value : result
       cachedTime = Date.now()
@@ -96,44 +101,50 @@ module.exports = function createUtils (aws) {
 
   const putJSON = put
 
-  function getJSON ({ key, bucket }) {
-    return get({ key, bucket })
-      .then(({ Body }) => JSON.parse(Body))
+  const getJSON = ({ key, bucket }) => {
+    return get({ key, bucket }).then(({ Body }) => JSON.parse(Body))
   }
 
-
-  function head ({ key, bucket }) {
+  const head = ({ key, bucket }) => {
     return aws.s3.headObject({
       Bucket: bucket,
       Key: key
     }).promise()
   }
 
-  function exists ({ key, bucket }) {
+  const exists = ({ key, bucket }) => {
     return head({ key, bucket })
       .then(() => true, err => false)
   }
 
-  function del ({ key, bucket }) {
+  const del = ({ key, bucket }) => {
     return aws.s3.deleteObject({
       Bucket: bucket,
       Key: key
     }).promise()
   }
 
-  function createPresignedUrl ({ bucket, key }) {
+  const createPresignedUrl = ({ bucket, key }) => {
     return aws.s3.getSignedUrl('getObject', {
       Bucket: bucket,
       Key: key
     })
   }
 
-  function createBucket ({ bucket }) {
+  const createBucket = ({ bucket }) => {
     return aws.s3.createBucket({ Bucket: bucket }).promise()
   }
 
+  const urlForKey = ({ bucket, key }) => {
+    const { host } = aws.s3.endpoint
+    if (host.startsWith('localhost')) {
+      return `http://${host}/${bucket}${key}`
+    }
+
+    return `https://${bucket}.s3.amazonaws.com/${key}`
+  }
+
   return {
-    createBucket,
     get,
     getJSON,
     getCacheable,
@@ -142,13 +153,16 @@ module.exports = function createUtils (aws) {
     head,
     del,
     exists,
-    createPresignedUrl
+    createPresignedUrl,
+    createBucket,
+    urlForKey
   }
 }
 
 const toStringOrBuf = (value) => {
   if (typeof value === 'string') return value
   if (Buffer.isBuffer(value)) return value
+  if (!value) throw new Error('expected string, Buffer, or stringifiable object')
 
   return JSON.stringify(value)
 }

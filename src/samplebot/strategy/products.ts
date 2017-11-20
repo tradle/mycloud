@@ -20,7 +20,6 @@ import { Commander } from './commander'
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
 const baseModels = require('../../models')
-
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DEFAULT_PRODUCTS = ['tradle.CurrentAccount']
 const DONT_FORWARD_FROM_EMPLOYEE = [
@@ -32,6 +31,7 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 
 export default function createProductsBot (opts={}) {
   const {
+    conf,
     tradle,
     models=baseModels,
     products=DEFAULT_PRODUCTS,
@@ -86,6 +86,7 @@ export default function createProductsBot (opts={}) {
 
   productsAPI.install(bot)
   const commands = new Commander({
+    conf,
     tradle,
     bot,
     productsAPI,
@@ -114,12 +115,6 @@ export default function createProductsBot (opts={}) {
     },
     send: (...args) => productsAPI.send(...args)
   })
-
-  if (products.includes(`${namespace}.Deployment`)) {
-    bot.logger.debug('attaching deployment handlers')
-    // productsAPI.plugins.clear('onFormsCollected')
-    productsAPI.plugins.use(require('./deployment-handlers'))
-  }
 
   // prepend
   bizPlugins.forEach(plugin => productsAPI.plugins.use(plugin({

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const co = require('co').wrap
-const { aws } = require('../').tradle
+const { aws } = require('../').createRemoteTradle()
 // const Bucket = 'io.tradle.dev.deploys'
 co(getEnv)().catch(console.error)
 

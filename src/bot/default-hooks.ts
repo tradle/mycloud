@@ -13,7 +13,8 @@ const {
 
 const IGNORE_PAYLOAD_TYPES = [
   'tradle.Message',
-  'tradle.CustomerWaiting'
+  'tradle.CustomerWaiting',
+  'tradle.ModelsPack'
 ]
 
 module.exports = function installDefaultHooks ({ bot, hooks }) {
@@ -21,6 +22,10 @@ module.exports = function installDefaultHooks ({ bot, hooks }) {
     // unmarshalling is prob a waste of time
     const messages = getRecordsFromEvent(event)
     const results = yield allSettled(messages.map(savePayloadToTypeTable))
+    yield bot.hooks.fire('messagestream:post', {
+      messages: messages.filter((msg, i) => !results[i].reason)
+    })
+
     logAndThrow(results)
   })
 
@@ -88,6 +93,14 @@ module.exports = function installDefaultHooks ({ bot, hooks }) {
   }))
 
   bot.hook('messagestream', savePayloads)
+
+  bot.hook('init', co(function* (event) {
+    if (event.type === 'init') {
+      bot.logger.info('initializing...')
+      yield bot.init(event.payload)
+    }
+  }))
+
   return {
     savePayloadToTypeTable
   }

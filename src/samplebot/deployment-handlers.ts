@@ -6,7 +6,7 @@ const { TYPE } = require('@tradle/constants')
 const { prettify } = require('../string-utils')
 // const ServerlessDeployment = require('../s3-utils').getBucket('tradle-dev-serverlessdeploymentbucket-nnvi6x6tiv7k')
 // const PublicConf = require('../s3-utils').getBucket('tradle-dev-PublicConfBucket-gd70s2lfklji')
-const { getFaviconURL, getLogoDataURI } = require('../image-utils')
+const { getFaviconURL, getLogoDataURI } = require('./image-utils')
 const utils = require('../utils')
 const templateFileName = 'compiled-cloudformation-template.json'
 const MIN_SCALE = 1
@@ -17,8 +17,7 @@ export default function createDeploymentHandlers ({ bot, deploymentModels }) {
     // SERVERLESS_STAGE='dev',
     // SERVERLESS_SERVICE_NAME='tradle',
     SERVERLESS_STAGE,
-    SERVERLESS_SERVICE_NAME,
-    ORG_DOMAIN
+    SERVERLESS_SERVICE_NAME
   } = bot.env
 
   const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
@@ -27,8 +26,8 @@ export default function createDeploymentHandlers ({ bot, deploymentModels }) {
 
   const getBaseTemplate = (function () {
     let baseTemplate
-    if (process.env.IS_OFFLINE) {
-      baseTemplate = require('../cli/cloudformation-template')
+    if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
+      baseTemplate = require('../../.serverless/cloudformation-template-update-stack')
       return async () => baseTemplate
     }
 
@@ -129,7 +128,7 @@ export default function createDeploymentHandlers ({ bot, deploymentModels }) {
     })
 
     const { PublicConf } = bot.resources.buckets
-    const templateURL = `https://${PublicConf.id}.s3.amazonaws.com/${templateKey}`
+    const templateURL = PublicConf.getUrlForKey(templateKey)
     const launchURL = utils.launchStackUrl({
       stackName: 'tradle',
       templateURL
@@ -164,10 +163,7 @@ function generateTemplate ({ resources, template, parameters }) {
 
   const namespace = domain.split('.').reverse().join('.')
   const { Resources } = template
-  getLambdaEnv(Resources.BotUnderscoreonmessageLambdaFunction).PRODUCTS = [
-    `tradle.WealthManagementAccount`,
-    `cp.tradle.CorporateAccount`
-  ].join(',')
+  Resources.Initialize.Properties.ProviderConf.org = { name, domain }
 
   const deploymentBucketId = resources.buckets.ServerlessDeployment.id
   for (let key in Resources) {
@@ -181,11 +177,6 @@ function generateTemplate ({ resources, template, parameters }) {
     case 'AWS::Lambda::Function':
       // resolve Code bucket
       Resource.Properties.Code.S3Bucket = deploymentBucketId
-      let lEnv = getLambdaEnv(Resource)
-      lEnv.ORG_NAME = name
-      lEnv.ORG_DOMAIN = domain
-      delete lEnv.ORG_LOGO
-
       break
     default:
       break

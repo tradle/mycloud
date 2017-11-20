@@ -29,4 +29,5 @@ export default class Bucket {
   public getCacheable = opts => this.utils.getCacheable({ ...opts, bucket: this.name })
   public create = () => this.utils.createBucket({ bucket: this.name })
   public toString = () => this.name
+  public urlForKey = (key:string) => this.utils.urlForKey({ key, bucket: this.name })
 }

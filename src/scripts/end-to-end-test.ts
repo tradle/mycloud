@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-// require('../test/env').install()
-
 import { createTestTradle } from '../'
 import { genLocalResources } from '../cli/utils'
 import {
@@ -9,11 +7,15 @@ import {
   Test
 } from '../test/end-to-end'
 
+import { promiseBot } from '../samplebot/lambda/onmessage'
+
 (async () => {
   const tradle = createTestTradle()
-  await clear()
+  const opts = await promiseBot
+  await clear(opts)
+  await new Promise(resolve => setTimeout(resolve, 3000))
   await genLocalResources({ tradle })
-  const test = new Test()
+  const test = new Test(opts)
   // await test.runEmployeeAndFriend()
   await test.runEmployeeAndCustomer()
 })()

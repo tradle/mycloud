@@ -1,0 +1,45 @@
+{
+  "RequestType": "Create",
+  "ResourceProperties": {
+    "org": {
+      "logo": "https://s3.amazonaws.com/tradle-public-images/safe-re.png",
+      "domain": "safere.io",
+      "name": "SafeRe"
+    },
+    "products": {
+      "enabled": [
+        "nl.tradle.DigitalPassport",
+        "tradle.CorporateBankAccount",
+        "tradle.LifeInsurance",
+        "tradle.MortgageProduct",
+        "tradle.CurrentAccount",
+        "tradle.OnfidoVerification"
+      ],
+      "autoApprove": false,
+      "autoVerify": false,
+      "approveAllEmployees": true
+    },
+    "style": {
+      "_t": "tradle.StylesPack",
+      "backgroundImage": {
+        "url": "https://s3.amazonaws.com/tradle-public-images/blue-underwater-gradient-opacity-15.png"
+      },
+      "logoNeedsText": true
+    },
+    "plugins": {
+      "customize-message": {
+        "tradle.FormRequest": {
+          "tradle.PhotoID": "Please click to scan your **ID document**",
+          "tradle.Selfie": "Thank you. Now take a '**selfie**' photo of yourself that I can match against your ID document",
+          "tradle.Residence": {
+            "first": "Thank you. Now I need you to provide your **residence** information",
+            "nth": "Thank you. Do you have another **residence**? If yes, tap Add, otherwise tap Next"
+          }
+        },
+        "tradle.Confirmation": {
+          "tradle.Remediation": "Thanks for importing your data!"
+        }
+      }
+    }
+  }
+}

@@ -4,29 +4,40 @@ import Env from './env'
 
 let tradle
 
-export = {
+const createTestTradle = () => {
+  return new Tradle(require('./test/env').createTestEnv())
+}
+
+const createRemoteTradle = () => {
+  return new Tradle(require('./cli/remote-service-map'))
+}
+
+const createTradle = env => {
+  if (env) return new Tradle(env)
+  if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
+    require('./test/env').install()
+    return createTestTradle()
+  }
+
+  return new Tradle()
+}
+
+const exp = {
   // proxy to default instance props
   get tradle():Tradle {
     if (!tradle) {
-      const { Tradle } = module.exports
-      tradle = new Tradle()
+      tradle = createTradle()
     }
 
     return tradle
   },
   get env():Env {
-    return module.exports.tradle.env
+    return exp.tradle.env
   },
   // sub-modules
-  createTradle(env) {
-    return new Tradle(env)
-  },
-  createTestTradle() {
-    return new Tradle(require('./test/env').createTestEnv())
-  },
-  createRemoteTradle() {
-    return new Tradle(require('./cli/remote-service-map'))
-  },
+  createTradle,
+  createTestTradle,
+  createRemoteTradle,
   get Tradle() {
     return requireDefault('./tradle')
   },
@@ -120,9 +131,6 @@ export = {
   get imageUtils() {
     return requireDefault('./image-utils')
   },
-  get configureProvider() {
-    return requireDefault('./configure-provider')
-  },
   get crypto() {
     return requireDefault('./crypto')
   },
@@ -142,3 +150,5 @@ export = {
     return requireDefault('./bot')
   }
 }
+
+export = exp

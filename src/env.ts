@@ -85,6 +85,7 @@ export default class Env {
     })
 
     this.debug = this.logger.debug
+    this.debug('TESTING', this.TESTING)
     this.set(props)
   }
 

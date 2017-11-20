@@ -3,7 +3,6 @@ const pick = require('object.pick')
 const tradleDynamo = require('@tradle/dynamodb')
 const mergeModels = require('@tradle/merge-models')
 const createHistory = require('./history')
-const createGraphQLAPI = require('./graphql')
 const MAX_ITEM_SIZE = 6000
 
 module.exports = function createBotInputs ({
@@ -23,7 +22,9 @@ module.exports = function createBotInputs ({
     kv,
     conf,
     contentAddressedStorage,
-    router
+    router,
+    init,
+    wrap
   } = tradle
 
   const { docClient } = aws
@@ -32,21 +33,7 @@ module.exports = function createBotInputs ({
     db.addModels(models)
   }
 
-  ({ models } = db)
-
-  let graphqlAPI
-  if (env.TESTING || /graphql/.test(env.FUNCTION_NAME)) {
-    graphqlAPI = createGraphQLAPI({
-      env,
-      router,
-      objects,
-      models,
-      db,
-      prefix: env.SERVERLESS_PREFIX,
-      messages,
-      presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks
-    })
-  }
+  ;({ models } = db)
 
   const seal = co(function* ({ link, permalink }) {
     const chainKey = yield provider.getMyChainKey()
@@ -61,11 +48,13 @@ module.exports = function createBotInputs ({
   const sign = (object, author) => provider.signObject({ object, author })
   return {
     // userModel,
+    init: opts => init.init(opts),
     aws,
     env,
     models,
     db,
     router,
+    wrap,
     conf: conf.sub(':bot'),
     kv: kv.sub(':bot'),
     contentAddressedStorage,
@@ -84,6 +73,7 @@ module.exports = function createBotInputs ({
       validateNewVersion: objects.validateNewVersion,
       getEmbeds: objects.getEmbeds,
       resolveEmbeds: objects.resolveEmbeds,
+      replaceEmbeds: objects.replaceEmbeds,
       presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks
     },
     getMyIdentity: provider.getMyPublicIdentity,
@@ -91,7 +81,6 @@ module.exports = function createBotInputs ({
     seal,
     send,
     sign,
-    history: createHistory(tradle),
-    graphqlAPI
+    history: createHistory(tradle)
   }
 }

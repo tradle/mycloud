@@ -2,8 +2,8 @@ import shallowClone = require('xtend')
 import buildResource = require('@tradle/build-resource')
 import extend = require('xtend/mutable')
 import yn = require('yn')
-import createBot from './bot'
-import { handler as httpHandler } from '../lambda/http/default'
+import { createBot } from './bot'
+import { createHandler } from '../http-request-handler'
 
 const { IS_LAMBDA_ENVIRONMENT, NODE_ENV } = process.env
 if (NODE_ENV === 'test') {
@@ -18,20 +18,27 @@ if (yn(IS_LAMBDA_ENVIRONMENT) === false) {
 }
 
 const debug = require('debug')('λ:samplebot')
-const TYPE = '_t'
-const {
-  bot,
-  tradle,
-  lambdas,
-  productsAPI,
-  employeeManager,
-  onfidoPlugin
-} = createBot({
-  ORG_DOMAIN: 'tradle.io',
-  AUTO_APPROVE_EMPLOYEES: true,
-  ...process.env
-})
 
+;(async () => {
+  const {
+    bot,
+    tradle,
+    lambdas,
+    productsAPI,
+    employeeManager,
+    onfidoPlugin
+  } = await createBot()
+
+  Object.assign(exports, lambdas)
+  // onfidoPlugin already mounted a handler on the http router
+  exports.handleOnfidoWebhookEvent = createHandler(tradle)
+  exports.models = productsAPI.models.all
+  exports.bot = productsAPI.bot
+  exports.db = productsAPI.bot.db
+  exports.tables = productsAPI.bot.db.tables
+  exports.productsAPI = productsAPI
+  exports.tradle = tradle
+})()
 
 // function getProductModelIds (models) {
 //   return Object.keys(models).filter(id => models[id].subClassOf === 'tradle.FinancialProduct')
@@ -71,15 +78,6 @@ const {
 //   })
 //   .catch(console.error)
 // }
-
-exports = module.exports = lambdas
-exports.handleOnfidoWebhookEvent = httpHandler
-exports.models = productsAPI.models.all
-exports.bot = productsAPI.bot
-exports.db = productsAPI.bot.db
-exports.tables = productsAPI.bot.db.tables
-exports.productsAPI = productsAPI
-exports.tradle = tradle
 
 // bot.graphqlAPI.executeQuery(`
 //   {

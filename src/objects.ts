@@ -83,9 +83,10 @@ export default class Objects {
 
   public resolveEmbed = (embed):Promise<any> => {
     this.logger.debug(`resolving embedded media: ${embed.url}`)
+    const { presigned, key, bucket } = embed
     return embed.presigned
       ? download(embed)
-      : this.s3Utils.get(embed).then(({ Body, ContentType }) => {
+      : this.s3Utils.get({ key, bucket }).then(({ Body, ContentType }) => {
           Body.mimetype = ContentType
           return Body
         })

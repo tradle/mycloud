@@ -38,7 +38,7 @@ const setNamePlugin = ({ bot, productsAPI }) => {
     }
 
     const name = getNameFromForm(form)
-    if (name) {
+    if (name && name.formatted) {
       application.applicantName = name.formatted
     }
   }
@@ -84,7 +84,7 @@ const getNameFromForm = (form:any):Name|null => {
       : firstName || lastName
   }
 
-  return { firstName, lastName, formatted }
+  return formatted && { firstName, lastName, formatted }
 }
 
 export default setNamePlugin

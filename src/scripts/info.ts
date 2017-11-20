@@ -11,6 +11,8 @@
 
 // ENDPOINTS=$(sls info | tail -n +2 | yaml2json | jq .endpoints)
 
+require('source-map-support').install()
+
 const proc = require('child_process')
 const fetch = require('node-fetch')
 const YAML = require('js-yaml')

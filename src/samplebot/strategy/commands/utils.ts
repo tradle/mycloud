@@ -5,7 +5,7 @@ export const toggleProduct = async ({ context, req, product, enable }: {
   product:string,
   enable:boolean
 }) => {
-  const { tradle, bot, productsAPI } = context
+  const { bot, productsAPI, conf } = context
   const { products, models } = productsAPI
   if (enable && products.includes(product)) {
     throw new Error(`product ${product} is already enabled!`)
@@ -28,13 +28,12 @@ export const toggleProduct = async ({ context, req, product, enable }: {
     ? products.concat(product)
     : products.filter(id => id !== product)
 
-  const update = {
-    PRODUCTS: newProductsList.join(',')
-  }
+  const privateConf = await conf.getPrivateConf()
+  privateConf.products.enabled = newProductsList
+  await conf.savePrivateConf(privateConf)
 
   const verb = enable ? 'enabled' : 'disabled'
   const message = `${verb} product ${product}`
   bot.debug(message)
-  await tradle.lambdaUtils.updateEnvironments(lambda => update)
   await context.sendSimpleMessage({ req, message })
 }

@@ -19,13 +19,12 @@ const { replaceDataUrls } = require('@tradle/embed')
 // const dbUtils = require('../db-utils')
 // const Delivery = require('../delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
-const { Tradle } = require('../')
+const { createTestTradle } = require('../')
 const { genLocalResources } = require('../cli/utils')
 const { wrap, utils, crypto } = require('../')
 const { extend, clone, pick, omit, batchify } = utils
 // const botFixture = require('./fixtures/bot')
 const userIdentities = require('./fixtures/users-pem')
-const createProductsBot = require('../samplebot/strategy').products
 const intercept = require('./interceptor')
 const { reprefixServices } = require('./utils')
 const nextUserIdentity = (function () {
@@ -40,7 +39,6 @@ const nextUserIdentity = (function () {
 //   return pick(credentials, ['accessKeyId', 'secretAccessKey'])
 // }())
 
-const createBot = require('../bot')
 const baseModels = require('../models')
 // const defaultModels = mergeModels()
 //   .add(baseModels)
@@ -51,26 +49,30 @@ const defaultModels = require('../samplebot').models
 const defaultProducts = ['tradle.CorporateBankAccount']
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 
-function E2ETest (opts={}) {
-  const {
-    models=defaultModels,
-    products=defaultProducts,
-    tradle=new Tradle()
-  } = opts
+function E2ETest ({
+  models,
+  products,
+  tradle,
+  bot,
+  productsAPI,
+  employeeManager
+}) {
+  // const {
+  //   models=defaultModels,
+  //   products=defaultProducts,
+  //   tradle=createTestTradle()
+  // } = opts
 
-  const {
-    bot,
-    productsAPI,
-    employeeManager
-  } = createProductsBot({
-    models,
-    products,
-    tradle,
-    // autoPrompt: true,
-    autoVerify: true,
-    autoApprove: true,
-    approveAllEmployees: false
-  })
+  // const {
+  //   bot,
+  //   productsAPI,
+  //   employeeManager
+  // } = createProductsBot(tradle)
+  //   // autoPrompt: true,
+  //   autoVerify: true,
+  //   autoApprove: true,
+  //   approveAllEmployees: false
+  // })
 
   // extend(bot, botFixture)
 
@@ -78,7 +80,7 @@ function E2ETest (opts={}) {
   this.bot = bot
   this.productsAPI = productsAPI
   this.employeeManager = employeeManager
-  this.products = products
+  this.products = productsAPI.products
   this._ready = this._init()
   this.logger = tradle.env.sublogger('e2e')
   this.debug = this.logger.debug
@@ -544,7 +546,7 @@ User.prototype._createMessage = co(function* ({ object, other={} }) {
   const message = yield this.sign(unsigned)
   message.object = object // with virtual props
   const replacements = replaceDataUrls({
-    host: this.tradle.aws.s3.endpoint,
+    endpoint: this.tradle.aws.s3.endpoint.host,
     // region,
     object,
     bucket: this.tradle.buckets.FileUpload.name,
@@ -642,7 +644,7 @@ function wrapWithIntercept (fn) {
 
 module.exports = {
   createUser,
-  createProductsBot,
+  // createProductsBot,
   Test: E2ETest,
   // endToEndTest: opts => new E2ETest(opts).run(),
   clear: opts => new E2ETest(opts).clear()

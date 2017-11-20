@@ -21,6 +21,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Start docker, redis](#start-docker-redis)
   - [Start the Playground](#start-the-playground)
   - [Explore the API](#explore-the-api)
+  - [AWS cli (local)](#aws-cli-local)
   - [Generate sample data](#generate-sample-data)
 - [Deploy](#deploy)
   - [Configure](#configure)
@@ -160,6 +161,15 @@ After you chat with the bot a bit, open up GraphiQL at [http://localhost:21012](
 You can also browse the database via the DynamoDB Admin at [http://localhost:8001](http://localhost:8001)
 
 When you deploy to the cloud, GraphiQL will be available at https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/tradle/graphql
+
+### AWS cli (local)
+
+The local endpoints for localstack are enumerated in their docs (or see [./src/test/localstack.json](./src/test/localstack.json)). To query them using the AWS cli, specify an additional `--endpoint` option, e.g.:
+
+```sh
+aws dynamodb list-tables --endpoint http://localhost:4569
+aws s3 ls --endpoint http://localhost:4572
+```
 
 ### Generate sample data
 

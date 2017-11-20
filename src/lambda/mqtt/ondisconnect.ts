@@ -1,6 +1,6 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-const { debug, wrap, user, stringUtils } = require('../..').tradle
+const { debug, wrap, user, stringUtils } = require('../..').createTradle()
 const { onDisconnected } = user
 const { prettify } = stringUtils
 exports.handler = wrap(function* (event, context) {

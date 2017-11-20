@@ -11,12 +11,10 @@ const makeBackwardsCompat = require('./backwards-compat')
 const errors = require('../errors')
 const types = require('../typeforce-types')
 const {
-  co,
   extend,
   omit,
   pick,
   typeforce,
-  isPromise,
   waterfall,
   series
 } = require('../utils')
@@ -33,11 +31,12 @@ const promisePassThrough = data => Promise.resolve(data)
 
 const COPY_TO_BOT = [
   'aws', 'models', 'objects', 'db', 'conf', 'kv', 'seals', 'seal',
-  'identities', 'users', 'history', 'graphqlAPI', 'messages',
-  'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router'
+  'identities', 'users', 'history', 'messages', 'wrap',
+  'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router', 'init'
 ]
 
 const HOOKABLE = [
+  // { name: 'init', source: 'cloudformation' },
   { name: 'message', source: 'lambda' },
   { name: 'seal', source: 'dynamodbstreams' },
   { name: 'readseal', source: 'dynamodbstreams' },
@@ -52,6 +51,12 @@ exports = module.exports = createBot
 exports.inputs = require('./inputs')
 exports.lambdas = require('./lambdas')
 exports.fromEngine = opts => createBot(exports.inputs(opts))
+exports.createBot = (opts={}) => {
+  return exports.fromEngine({
+    ...opts,
+    tradle: opts.tradle || require('../').createTradle()
+  })
+}
 
 /**
  * bot engine factory
@@ -65,7 +70,6 @@ exports.fromEngine = opts => createBot(exports.inputs(opts))
  * @param  {Object}             opts.identities
  * @param  {Object}             opts.db
  * @param  {Object}             opts.history
- * @param  {Object}             opts.graphqlAPI
  * @param  {Object}             opts.resources physical ids of cloud resources
  * @return {BotEngine}
  */
@@ -104,12 +108,18 @@ function createBot (opts={}) {
     oncreate: user => hooks.fire('usercreate', user)
   })
 
-  bot.save = resource => bot.db.put(ensureTimestamped(resource))
+  bot.save = async (resource) => {
+    resource = clone(resource)
+    await bot.objects.replaceEmbeds(resource)
+    bot.db.put(ensureTimestamped(resource))
+    return resource
+  }
+
   bot.update = resource => bot.db.update(ensureTimestamped(resource))
-  bot.send = co(function* (opts) {
+  bot.send = async (opts) => {
     let { link, object, to } = opts
     if (!object && link) {
-      object = yield bot.objects.get(link)
+      object = await bot.objects.get(link)
     }
 
     try {
@@ -152,13 +162,18 @@ function createBot (opts={}) {
       }
     }
 
-    const message = yield send(opts)
+    const message = await send(opts)
     if (TESTING && message) {
-      yield savePayloadToTypeTable(clone(message))
+      await savePayloadToTypeTable(clone(message))
     }
 
+    // await hooks.fire('send', {
+    //   message,
+    //   payload
+    // })
+
     return message
-  })
+  }
 
   // setup hooks
   const hooks = createHooks()
@@ -166,9 +181,18 @@ function createBot (opts={}) {
   const { savePayloadToTypeTable } = installDefaultHooks({ bot, hooks })
 
   // START preprocessors
-  const normalizeOnSealInput = co(function* (data) {
+  const normalizeOnSealInput = async (data) => {
     data.bot = bot
     return data
+  }
+
+  bot.wrapInit = init => bot.wrap(async (event) => {
+    bot.logger.debug(`received stack event: ${event.RequestType}`)
+    let type = event.RequestType.toLowerCase()
+    if (type === 'create') type = 'init'
+
+    const payload = event.ResourceProperties
+    await init({ type, payload })
   })
 
   const messageProcessingLocker = locker({
@@ -177,18 +201,18 @@ function createBot (opts={}) {
     timeout: MESSAGE_LOCK_TIMEOUT
   })
 
-  const normalizeOnMessageInput = co(function* (message) {
+  const normalizeOnMessageInput = async (message) => {
     if (typeof message === 'string') {
       message = JSON.parse(message)
     }
 
     const userId = message._author
-    yield messageProcessingLocker.lock(userId)
+    await messageProcessingLocker.lock(userId)
 
     let [payload, user] = [
-      yield getMessagePayload({ bot, message }),
+      await getMessagePayload({ bot, message }),
       // identity permalink serves as user id
-      yield bot.users.createIfNotExists({ id: userId })
+      await bot.users.createIfNotExists({ id: userId })
     ]
 
     payload = extend(message.object, payload)
@@ -196,7 +220,7 @@ function createBot (opts={}) {
     const type = payload[TYPE]
     addLinks(payload)
     if (TESTING) {
-      yield savePayloadToTypeTable(clone(message))
+      await savePayloadToTypeTable(clone(message))
     }
 
     logger.debug('receiving', getMessageGist(message))
@@ -210,19 +234,19 @@ function createBot (opts={}) {
       link: payload._link,
       permalink: payload._permalink,
     }
-  })
+  }
 
   // END preprocessors
 
-  const promiseSaveUser = co(function* ({ user, _userPre }) {
+  const promiseSaveUser = async ({ user, _userPre }) => {
     if (!deepEqual(user, _userPre)) {
       logger.debug('merging changes to user state')
-      yield bot.users.merge(user)
+      await bot.users.merge(user)
       return
     }
 
     logger.debug('user state was not changed by onmessage handler')
-  })
+  }
 
   const preProcessHooks = createHooks()
   preProcessHooks.hook('message', normalizeOnMessageInput)
@@ -259,15 +283,15 @@ function createBot (opts={}) {
 
   const finallyHooks = createHooks()
   // invocations are wrapped to preserve context
-  const processEvent = co(function* (event, payload) {
+  const processEvent = async (event, payload) => {
     const originalPayload = { ...payload }
-    yield promiseReady
+    await promiseReady
     try {
       // waterfall to preprocess
-      payload = yield preProcessHooks.waterfall(event, payload)
+      payload = await preProcessHooks.waterfall(event, payload)
       // bubble to allow handlers to terminate processing
-      const result = yield hooks.bubble(event, payload)
-      yield postProcessHooks.fire(event, payload, result)
+      const result = await hooks.bubble(event, payload)
+      await postProcessHooks.fire(event, payload, result)
     } catch (error) {
       logger.error(`failed to process ${event}`, {
         event,
@@ -275,9 +299,9 @@ function createBot (opts={}) {
         error: error.stack
       })
 
-      yield postProcessHooks.fire(`${event}:error`, { payload, error })
+      await postProcessHooks.fire(`${event}:error`, { payload, error })
     }
-  })
+  }
 
   const promiseReady = new Promise(resolve => {
     bot.ready = resolve
@@ -307,23 +331,13 @@ function createBot (opts={}) {
     }
   })
 
-  if (bot.graphqlAPI) {
-    const { createHandler } = require('../http-request-handler')
-    bot.process.graphql = {
-      type: 'wrapped',
-      source: 'http',
-      raw: bot.graphqlAPI.executeQuery,
-      handler: createHandler(opts)
-    }
-  }
-
   if (isGenSamplesLambda) {
     bot.process.samples = {
       path: 'samples',
-      handler: co(function* (event) {
+      handler: async (event) => {
         const gen = require('./gen-samples')
-        return yield gen({ bot, event })
-      })
+        return await gen({ bot, event })
+      }
     }
   }
 

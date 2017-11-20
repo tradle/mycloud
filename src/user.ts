@@ -220,13 +220,13 @@ proto.getProviderIdentity = co(function* () {
   return omitVirtual(object)
 })
 
-proto.onGetInfo = co(function* () {
-  const conf = yield this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
-  conf.aws = true
-  conf.iotParentTopic = this.env.IOT_PARENT_TOPIC
-  // conf.iotTopicPrefix = this.env.IOT_TOPIC_PREFIX
-  return conf
-})
+// proto.onGetInfo = co(function* () {
+//   const conf = yield this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.info)
+//   conf.aws = true
+//   conf.iotParentTopic = this.env.IOT_PARENT_TOPIC
+//   // conf.iotTopicPrefix = this.env.IOT_TOPIC_PREFIX
+//   return conf
+// })
 
 //   return yield {
 //     style: getProviderStyle(),

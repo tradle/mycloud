@@ -50,9 +50,11 @@ export default class Tradle {
   public prefix: string
 
   constructor(env=new Env(process.env)) {
-    // if (++instanceCount > 2) {
-    //   throw new Error('multiple instances not allowed')
-    // }
+    if (++instanceCount > 2) {
+      if (!env.TESTING) {
+        throw new Error('multiple instances not allowed')
+      }
+    }
 
     if (!(env instanceof Env)) {
       env = new Env(env)
@@ -177,6 +179,10 @@ export default class Tradle {
   }
   get debug () {
     return this.env.debug
+  }
+  public createHttpHandler = () => {
+    const { createHandler } = require('./http-request-handler')
+    return createHandler(this)
   }
   private construct = (Ctor) => {
     return new Ctor(this)

@@ -32,9 +32,7 @@ const constants = {
   },
   IDENTITY_KEYS_KEY: prefix + 'keys.json',
   PUBLIC_CONF_BUCKET: {
-    info: prefix + 'info.json',
     identity: prefix + 'identity.json',
-    style: prefix + 'style.json'
   },
   HANDSHAKE_TIMEOUT: 30000,
   PUSH_SERVER_URL: 'https://push1.tradle.io',

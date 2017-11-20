@@ -2,6 +2,8 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = false
 
+require('source-map-support').install()
+
 const co = require('co')
 const yn = require('yn')
 const pick = require('object.pick')
@@ -17,14 +19,17 @@ loadCredentials()
 
 // const toDelete = ['tradle.Application']
 const { TYPE } = require('@tradle/constants')
-const { db, dbUtils, env } = require('../').createRemoteTradle()
+const tradle = require('../').createRemoteTradle()
+const { db, dbUtils, env } = tradle
 const { SERVERLESS_PREFIX } = env
 const { clear } = dbUtils
-const { models, tables } = require('../samplebot')
+const { createBot } = require('../samplebot/bot')
 const definitions = require('../definitions')
 const readline = require('readline')
 
 const deleteApplications = co.wrap(function* () {
+  const { productsAPI } = await createBot(tradle)
+  const models = productsAPI.models.all
   console.log('finding victims...')
   const modelsToDelete = Object.keys(models).filter(id => {
     const model = models[id]

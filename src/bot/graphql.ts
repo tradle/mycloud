@@ -21,20 +21,33 @@ dynogels.log = {
   level: 'warn'
 }
 
-export = function setup (opts) {
-  const {
+export function setupGraphQL (opts) {
+  let {
     env,
     router,
-    models,
     objects,
     db,
+    graphiqlOptions={}
   } = opts
+
+  // allow models to be set asynchronously
+  let resolveWithModels
+  const promiseModels = new Promise(resolve => {
+    resolveWithModels = resolve
+  })
+
+  const promiseInitialized = promiseModels.then(models => {
+    initSchema(models)
+  })
+
+  if (opts.models) {
+    resolveWithModels(opts.models)
+  }
 
   const { debug } = env
   debug('attaching /graphql route')
 
   let auth
-  let graphiqlOptions
   const setAuth = authImpl => auth = authImpl
   const setGraphiqlOptions = options => graphiqlOptions = options
 
@@ -50,7 +63,8 @@ export = function setup (opts) {
     }
   }))
 
-  router.use('/graphql', expressGraphQL(req => {
+  router.use('/graphql', expressGraphQL(async (req) => {
+    await promiseInitialized
     const { query } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
       debug('received query:')
@@ -58,7 +72,7 @@ export = function setup (opts) {
     }
 
     return {
-      schema: getSchema(),
+      schema,
       graphiql: graphiqlOptions,
       formatError: err => {
         console.error('experienced error executing GraphQL query', err.stack)
@@ -100,27 +114,26 @@ export = function setup (opts) {
     return result
   }
 
-  const resolvers = createResolvers({
-    objects,
-    models,
-    db,
-    postProcess
-  })
-
   // be lazy
-  const getSchema = (() => {
-    let schema
-    return () => {
+  let resolvers
+  let schema
+  const initSchema = (() => {
+    return (models) => {
       if (!schema) {
+        resolvers = createResolvers({
+          objects,
+          models,
+          db,
+          postProcess
+        })
+
         schema = createSchema({ models, objects, resolvers }).schema
       }
-
-      return schema
     }
   })()
 
-  const executeQuery = (query, variables) => {
-    const schema = getSchema()
+  const executeQuery = async (query, variables) => {
+    await promiseInitialized
     return graphql(schema, query, null, {}, variables)
   }
 
@@ -141,11 +154,14 @@ export = function setup (opts) {
   }
 
   return {
+    setModels: resolveWithModels,
     get schema () {
-      return getSchema()
+      return schema
+    },
+    get resolvers() {
+      return resolvers
     },
     db,
-    resolvers,
     executeQuery,
     setAuth,
     setGraphiqlOptions

@@ -1,13 +1,22 @@
 {
-  "org": {
-    "LOGO": "https://s3.amazonaws.com/tradle-public-images/safe-re.png",
-    "DOMAIN": "safere.io",
-    "NAME": "SafeRe"
+  "publicConfig": {
+    "canShareContext": false,
+    "hasSupportLine": true,
+    "country": "GB",
+    "currency": "GBP"
   },
   "products": {
-    "products": "nl.tradle.DigitalPassport,tradle.CorporateBankAccount,tradle.LifeInsurance,tradle.MortgageProduct,tradle.CurrentAccount,tradle.OnfidoVerification",
+    "enabled": [
+      "nl.tradle.DigitalPassport",
+      "tradle.CorporateBankAccount",
+      "tradle.LifeInsurance",
+      "tradle.MortgageProduct",
+      "tradle.CurrentAccount",
+      "tradle.OnfidoVerification"
+    ],
     "autoApprove": false,
-    "autoVerify": false
+    "autoVerify": false,
+    "approveAllEmployees": true
   },
   "style": {
     "_t": "tradle.StylesPack",

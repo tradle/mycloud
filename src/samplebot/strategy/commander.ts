@@ -40,12 +40,15 @@ export class Commander {
   private bot:any
   private productsAPI:any
   private employeeManager:any
-  constructor ({ tradle, bot, productsAPI, employeeManager }) {
+  private conf: any
+  constructor ({ tradle, bot, productsAPI, employeeManager, conf }) {
     this.tradle = tradle
     this.bot = bot
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
+    this.conf = conf
   }
+
   async exec({ req, command }) {
     const parts = command.match(COMMAND_REGEX)
     const isEmployee = this.employeeManager.isEmployee(req.user)

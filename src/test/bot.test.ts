@@ -1,10 +1,11 @@
+// require('./env').install()
+
 // console.log = console.warn = console.error = console.info = function () {
 //   debugger
 // }
 
-require('./env').install()
-
 const test = require('tape')
+const sinon = require('sinon')
 const { createTestTradle } = require('../')
 const createRealBot = require('../bot')
 const createFakeBot = require('./mock/bot')
@@ -17,7 +18,7 @@ const bob = require('./fixtures/bob/object')
 // const apiGatewayEvent = require('./fixtures/events/api-gateway')
 const UsersTableLogicalId = 'UsersTable'
 
-;[createFakeBot, createRealBot].forEach((createBot, i) => {
+;[/*createFakeBot,*/ createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test('await ready', loudCo(function* (t) {
     const bot = createBot.fromEngine({ tradle: createTestTradle() })
@@ -84,6 +85,33 @@ const UsersTableLogicalId = 'UsersTable'
     t.same(yield users.del(user.id), user, 'delete')
     t.same(yield users.list(), [], 'list')
     t.end()
+  }))
+
+  test('init', loudCo(function* (t) {
+    const tradle = createTestTradle()
+    const bot = createBot.fromEngine({ tradle })
+    const originalEvent = {
+      RequestType: 'Create',
+      ResourceProperties: {
+        some: 'prop'
+      }
+    }
+
+    const expectedEvent = {
+      type: 'init',
+      payload: {
+        some: 'prop'
+      }
+    }
+
+    sinon.stub(tradle.init, 'init').callsFake(async (opts) => {
+      t.same(opts, expectedEvent.payload)
+    })
+
+    bot.ready()
+    bot.wrapInit(co(function* (event) {
+      t.same(event, expectedEvent)
+    }))(originalEvent, {}, t.end)
   }))
 
   test(`onmessage (${mode})`, loudCo(function* (t) {
