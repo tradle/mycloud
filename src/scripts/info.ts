@@ -31,7 +31,7 @@ const { endpoints } = yml
 const endpoint = endpoints
   .split(' ')
   .find(str => str.startsWith('https://'))
-  .replace(/[/]+$/, '')
+  .replace(/\/[^/]+$/, '')
 
 co(function* () {
   const url = `${endpoint}/info`
