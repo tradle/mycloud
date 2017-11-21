@@ -13,7 +13,7 @@ export class Command {
     this.cli = cli
     this.tradle = cli.tradle
     this.env = this.tradle.env
-    this.bot = bot
+    this.bot = cli.bot
   }
 
   public confirm = async (message:string) => this.cli.confirm(message)
