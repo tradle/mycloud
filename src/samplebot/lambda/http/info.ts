@@ -3,7 +3,7 @@ import cors = require('cors')
 import helmet = require('helmet')
 import { timestamp } from '../utils'
 import { createTradle } from '../../../'
-import { createConf } from '../../conf'
+import { createConf } from '../../configure'
 
 const tradle = createTradle()
 const { router } = tradle

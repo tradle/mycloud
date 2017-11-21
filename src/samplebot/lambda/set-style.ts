@@ -1,7 +1,7 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
 import { createTradle } from '../../'
-import { createConf } from '../conf'
+import { createConf } from '../configure'
 
 const tradle = createTradle()
 const conf = createConf({ tradle })

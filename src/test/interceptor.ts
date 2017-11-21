@@ -9,7 +9,7 @@ module.exports = function ({ bot, tradle }) {
   const { delivery, auth, aws, prefix } = tradle
   const { mqtt } = delivery
   const sandbox = sinon.sandbox.create()
-  const lambdas = createBot.lambdas(bot)
+  // const lambdas = createBot.lambdas(bot)
   const noMQTT = {}
 
   sandbox.stub(auth, 'getLiveSessionByPermalink').callsFake(co(function* (recipient) {
@@ -52,8 +52,9 @@ module.exports = function ({ bot, tradle }) {
     const conf = serverlessYaml.functions[name]
     const { handler } = conf
     const [file, handleName] = handler.split('.')
-    const lambdaHandler = lambdas[handleName]
-    // const module = require(path.resolve(__dirname, '../../', file))
+    // const lambdaHandler = lambdas[handleName]
+    const module = require(path.resolve(__dirname, '../../', file))
+    const lambdaHandler = module[handleName]
     const exec = promisify(lambdaHandler)
     const promise = exec(Payload, {}).then(
       () => {

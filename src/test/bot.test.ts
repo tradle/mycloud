@@ -1,4 +1,4 @@
-// require('./env').install()
+require('./env').install()
 
 // console.log = console.warn = console.error = console.info = function () {
 //   debugger
@@ -8,6 +8,7 @@ const test = require('tape')
 const sinon = require('sinon')
 const { createTestTradle } = require('../')
 const createRealBot = require('../bot')
+const { setupGraphQL } = require('../bot/graphql')
 const createFakeBot = require('./mock/bot')
 const { co, loudCo, clone, pick, wait } = require('../utils')
 const { toStreamItems, shallowExend, recreateTable } = require('./utils')
@@ -308,16 +309,18 @@ test('save to type table', loudCo(function* (t) {
     _time: Date.now()
   }
 
+  const tradle = createTestTradle()
   const bot = createRealBot.fromEngine({
     models: require('../bot/ping-pong-models'),
-    tradle: createTestTradle()
+    tradle
   })
 
   bot.objects = {
     get: function (link) {
       t.equal(link, message.object._link)
       return Promise.resolve(payload)
-    }
+    },
+    presignEmbeddedMediaLinks: object => object
   }
 
   bot.ready()
@@ -328,7 +331,8 @@ test('save to type table', loudCo(function* (t) {
     { new: message }
   ]))
 
-  const result = yield bot.trigger('graphql', `
+  const gql = setupGraphQL(bot)
+  const result = yield gql.executeQuery(`
     {
       rl_tradle_Ping(orderBy:{
         property: _time

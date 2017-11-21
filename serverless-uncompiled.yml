@@ -43,8 +43,8 @@ custom:
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
-  brand: &brand
-    ${{file(./src/samplebot/default-conf.json)}}
+  providerConf: &providerConf
+    ${{file(./src/samplebot/conf/provider.json)}}
 
   # copied from vars.yml
   # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
@@ -238,12 +238,6 @@ provider:
     # bot config
     # BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: bot_onmessage
-    # ORG_DOMAIN: ${{self:custom.brand.env.ORG_DOMAIN}}
-    # ORG_NAME: ${{self:custom.brand.env.ORG_NAME}}
-    # ORG_LOGO: ${{self:custom.brand.env.ORG_LOGO}}
-    # PRODUCTS: ${{self:custom.brand.env.PRODUCTS}}
-    # AUTO_VERIFY_FORMS: ${{self:custom.brand.env.AUTO_VERIFY_FORMS, 'n'}}
-    # AUTO_APPROVE_APPS: ${{self:custom.brand.env.AUTO_APPROVE_APPS, 'n'}}
 
     # API KEYS
     ONFIDO_API_KEY: ${{self:custom.secrets.ONFIDO_API_KEY, ''}}
@@ -871,7 +865,8 @@ resources:
 
     PrivateConfBucket:
       Type: "AWS::S3::Bucket"
-      Properties:
+      Description: private configuration files
+      DeletionPolicy: Retain
 
     # stores the provider's public config
     # e.g. styles, currency, etc.
@@ -1349,7 +1344,7 @@ resources:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
         ProviderConf:
-          <<: *brand
+          <<: *providerConf
 
         # CodeDeployApplicationName: !Ref "CodeDeployApplication"
         # CodeDeployDeploymentGroupName: !Ref "CodeDeployDeploymentGroup"

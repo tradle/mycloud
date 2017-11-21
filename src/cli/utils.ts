@@ -13,6 +13,7 @@ const models = require('@tradle/models')
 const validateResource = require('@tradle/validate-resource')
 const { TYPE } = require('@tradle/constants')
 const prettify = obj => JSON.stringify(obj, null, 2)
+const Errors = require('../errors')
 
 const {
   addResourcesToEnvironment,
@@ -62,6 +63,8 @@ const genLocalResources = async ({ tradle }) => {
   const { Resources } = resources
   const tables = []
   const buckets = []
+
+  let numCreated = 0
   Object.keys(Resources)
     .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
     .forEach(name => {
@@ -72,7 +75,10 @@ const genLocalResources = async ({ tradle }) => {
 
       tables.push(
         aws.dynamodb.createTable(Properties).promise()
-          .then(result => debug(`created table: ${name}, ${prettify(result)}`))
+          .then(result => {
+            debug(`created table: ${name}, ${prettify(result)}`)
+            numCreated++
+          })
           .catch(err => {
             if (err.name !== 'ResourceInUseException') {
               throw err
@@ -81,20 +87,29 @@ const genLocalResources = async ({ tradle }) => {
       )
     })
 
+  const currentBuckets = await aws.s3.listBuckets().promise()
   Object.keys(Resources)
     .filter(name => Resources[name].Type === 'AWS::S3::Bucket')
     .forEach(name => {
+      const Bucket = tradle.prefix + name.toLowerCase()
+      const exists = currentBuckets.Buckets.find(({ Name }) => {
+        return Name === Bucket
+      })
+
+      if (exists) return
+
       buckets.push(
-        aws.s3.createBucket({
-          Bucket: tradle.prefix + name.toLowerCase()
-        })
+        aws.s3.createBucket({ Bucket })
         .promise()
-        .then(result => debug(`created bucket: ${name}, ${prettify(result)}`))
+        .then(result => {
+          numCreated++
+          debug(`created bucket: ${name}, ${prettify(result)}`)
+        })
       )
     })
 
-  await buckets
-  await tables
+  await Promise.all(buckets.concat(tables))
+  return numCreated
 }
 
 const makeDeploymentBucketPublic = async () => {
@@ -170,7 +185,7 @@ const compileTemplate = async (path) => {
 
   const interpolatedStr = await interpolateTemplate()
   const interpolated = YAML.safeLoad(interpolatedStr)
-  validateBrand(interpolated.custom.brand)
+  validateProviderConf(interpolated.custom.providerConf)
   addBucketTables({ yml, prefix: interpolated.custom.prefix })
   stripDevFunctions(yml)
 
@@ -255,21 +270,13 @@ const getTableDefinitions = () => {
   return map
 }
 
-const validateBrand = brand => {
-  const { env, style } = brand
+const validateProviderConf = conf => {
+  const { style } = conf.public
   if (style) {
     validateResource({
       models,
       resource: style
     })
-  }
-
-  if (env) {
-    for (let key in env) {
-      if (env[key] != null && typeof env[key] !== 'string') {
-        throw new Error('brand conf "env" variables can only be strings or nulls')
-      }
-    }
   }
 }
 
@@ -361,6 +368,30 @@ const clearTypes = async ({ tradle, types }) => {
   return deleteCounts
 }
 
+const initializeProvider = async () => {
+  const { handler } = require('../samplebot/lambda/init')
+  const providerConf = require('../samplebot/conf/provider')
+  const { org } = providerConf.private
+  try {
+    await promisify(handler)({
+      RequestType: 'Create',
+      ResourceProperties: {
+        private: {
+          org: {
+            // force,
+            name: org.name + '-local',
+            domain: org.domain + '.local',
+            logo: org.logo
+          }
+        }
+      }
+    }, {})
+  } catch (err) {
+    Errors.ignore(err, Errors.Exists)
+    console.log('prevented overwrite of existing identity/keys')
+  }
+}
+
 module.exports = {
   getRemoteEnv,
   loadRemoteEnv,
@@ -376,5 +407,6 @@ module.exports = {
   getProductionModules,
   getTableDefinitions,
   downloadDeploymentTemplate,
-  clearTypes
+  clearTypes,
+  initializeProvider
 }

@@ -44,7 +44,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager#cloud",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#ad09addc9e7b25cb9e8715782ebb925cd2a6539b",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#813ea16abe7f977448a3647dc4408ba460304b42",
       "dependencies": {
         "@tradle/validate-model": {
           "version": "3.0.0",
@@ -312,7 +312,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#9785a537afb3175cabc5c8644d0a858495d5a969"
+      "resolved": "git://github.com/tradle/schema-graphql.git#9c9daa1913ae14836bfb31dd95c6a5049f449d4a"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",

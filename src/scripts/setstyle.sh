@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cat ./conf/provider.json | jq .style | sls invoke -f bot_setstyle
+cat ./srx/samplebot/conf/provider.json | jq .style | sls invoke -f bot_setstyle

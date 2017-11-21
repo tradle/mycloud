@@ -4,6 +4,7 @@ require('./env').install()
 const AWS = require('aws-sdk')
 AWS.config.paramValidation = false
 
+const yn = require('yn')
 const test = require('tape')
 const pify = require('pify')
 const ecdsa = require('nkey-ecdsa')
@@ -184,7 +185,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   t.equal(stubPutObject.callCount, 1)
   t.equal(stubGetIdentity.callCount, 2)
   t.equal(stubGetInbound.callCount, 0)
-  t.equal(stubTimestampInc.callCount, process.env.NO_TIME_TRAVEL ? 1 : 0)
+  t.equal(stubTimestampInc.callCount, yn(process.env.NO_TIME_TRAVEL) ? 1 : 0)
   stub.restore()
   // TODO: compare
 

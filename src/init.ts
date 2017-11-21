@@ -129,9 +129,7 @@ proto.clear = co(function* () {
   try {
     priv = yield this.secrets.get(IDENTITY_KEYS_KEY)
   } catch (err) {
-    if (!(err instanceof Errors.NotFound)) {
-      throw err
-    }
+    Errors.ignore(err, Errors.NotFound)
   }
 
   const link = priv && getLink(priv.identity)

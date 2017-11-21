@@ -21,13 +21,13 @@ const { utils } = require('@tradle/engine')
 // const contexts = require('@tradle/engine/test/contexts')
 const helpers = require('@tradle/engine/test/helpers')
 const validateResource = require('@tradle/validate-resource')
-const { RestAPI } = require('../resources')
-const wrap = require('../wrap')
 const tradle = require('../').createTradle()
+const { wrap, resources } = tradle
+const { RestAPI } = resources
 const getMe = tradle.provider.getMyIdentity()
 const { getLink, getPermalink } = require('../crypto')
 const { omitVirtual } = require('../utils')
-const allUsers = require('../../test/fixtures/users').slice(4)
+const allUsers = require('../test/fixtures/users').slice(4)
 // const names = allUsers.map(user => randomName.first())
 
 exports.handler = wrap(function* (event={}, context) {
@@ -39,7 +39,7 @@ exports.handler = wrap(function* (event={}, context) {
 
   const nodes = makeNodes(concurrency, offset)
   yield Promise.all(nodes.map(pingPong))
-}, { source: 'lambda', env })
+}, { source: 'lambda' })
 
 const pingPong = co(function* (node, i) {
   const promisePong = awaitType(node, 'tradle.Pong')

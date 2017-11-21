@@ -5,7 +5,6 @@ import { setupGraphQL } from '../../../bot/graphql'
 import sampleQueries from '../../sample-queries'
 
 const tradle = createTradle()
-// models will be set asynchronously
 const gql = setupGraphQL(pick(tradle, [
   'env',
   'router',
@@ -13,11 +12,12 @@ const gql = setupGraphQL(pick(tradle, [
   'db'
 ]))
 
+// models will be set asynchronously
 export const handler = tradle.createHttpHandler()
 
 ;(async () => {
-  const { conf, productsAPI } = await createBot(tradle)
-  const { org } = await conf.privateConf.get()
+  const { bot, conf, productsAPI } = await createBot(tradle)
+  const { org } = await conf.getPrivateConf()
   gql.setGraphiqlOptions({
     logo: {
       src: org.logo,

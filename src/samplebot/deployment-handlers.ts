@@ -163,7 +163,7 @@ function generateTemplate ({ resources, template, parameters }) {
 
   const namespace = domain.split('.').reverse().join('.')
   const { Resources } = template
-  Resources.Initialize.Properties.ProviderConf.org = { name, domain }
+  Resources.Initialize.Properties.ProviderConf.private.org = { name, domain }
 
   const deploymentBucketId = resources.buckets.ServerlessDeployment.id
   for (let key in Resources) {

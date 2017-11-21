@@ -7,7 +7,7 @@ import createDeploymentHandlers from './deployment-handlers'
 import createBaseBot = require('../bot')
 import strategies = require('./strategy')
 import { createTradle } from '../'
-import { createConf } from './conf'
+import { createConf } from './configure'
 
 export async function createBot (tradle=createTradle()) {
   const {

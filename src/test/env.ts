@@ -8,16 +8,13 @@ require('source-map-support').install()
 import * as AWS from 'aws-sdk-mock'
 import * as serviceMap from './service-map'
 
-const { brand } = require('../cli/serverless-yml').custom
-const brandEnv = brand.env || {}
 const debug = require('debug')('tradle:sls:test:env')
 const props = {
   ...process.env,
   ...serviceMap,
   NODE_ENV: 'test',
   AWS_REGION: 'us-east-1',
-  IS_LOCAL: true,
-  ...brandEnv
+  IS_LOCAL: true
 }
 
 export const createTestEnv = () => {

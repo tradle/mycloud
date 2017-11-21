@@ -10,9 +10,9 @@ do
   fi
 done
 
-if [ ! -e "conf/provider.json" ]; then
-  echo "creating conf/provider.json"
-  cp "conf/provider-sample.json" "conf/provider.json"
+if [ ! -e "src/samplebot/conf/provider.json" ]; then
+  echo "creating src/samplebot/conf/provider.json"
+  cp "src/samplebot/conf/default.json" "src/samplebot/conf/provider.json"
 fi
 
 if [ ! -e "serverless.yml" ]; then
@@ -20,4 +20,5 @@ if [ ! -e "serverless.yml" ]; then
   cp serverless-uncompiled.yml serverless.yml
 fi
 
+npm run copy-static-assets
 npm run build:yml

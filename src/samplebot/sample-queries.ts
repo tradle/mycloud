@@ -1,5 +1,11 @@
 const listPhotoIds = `{
-  rl_tradle_PhotoID(limit:5) {
+  rl_tradle_PhotoID(
+    limit:5
+    orderBy: {
+      property: _time,
+      desc: true
+    }
+  ) {
     edges {
       node {
         documentType {
@@ -17,7 +23,13 @@ const listPhotoIds = `{
 }`
 
 const listApplications = `{
-  rl_tradle_Application(limit:5) {
+  rl_tradle_Application(
+    limit:5
+    orderBy: {
+      property: dateModified,
+      desc: true
+    }
+  ) {
     edges {
       node {
         _permalink
@@ -83,7 +95,11 @@ const listApplications = `{
 }`
 
 const listNames = `{
-  rl_tradle_Name {
+  rl_tradle_Name(
+    orderBy: {
+      property: _time
+    }
+  ) {
     edges {
       node {
         givenName
@@ -94,7 +110,12 @@ const listNames = `{
 }`
 
 const listVerifications = `{
-  rl_tradle_Verification {
+  rl_tradle_Verification(
+    orderBy: {
+      property: _time,
+      desc: true
+    }
+  ) {
     edges {
       node {
         _link

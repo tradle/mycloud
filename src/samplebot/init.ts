@@ -4,10 +4,11 @@ import { TYPE } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { createBot } from '../bot'
 import { PUBLIC_CONF_KEY, PRIVATE_CONF_KEY } from './constants'
-import DEFAULT_CONF = require('./default-conf')
+import DEFAULT_CONF = require('./conf/provider')
 import { LOGO_UNKNOWN } from './media'
-import { createConf } from './conf'
+import { createConf } from './configure'
 import Errors = require('../errors')
+import Logger from '../'
 
 const baseOrgObj = {
   [TYPE]: 'tradle.Organization'
@@ -21,18 +22,25 @@ export default class Init {
   private bot: any
   private conf: any
   private confManager: any
-  constructor({ bot, tradle, conf }) {
+  private logger: Logger
+  constructor({ bot, tradle, conf={} }) {
     this.bot = bot
+    this.logger = bot.logger
     this.confManager = createConf({ tradle })
-    this.conf = {
-      ...DEFAULT_CONF,
-      ...conf
+    this.pub = {
+      ...DEFAULT_CONF.public,
+      ...(conf.public || {})
+    }
+
+    this.priv = {
+      ...DEFAULT_CONF.private,
+      ...(conf.private || {})
     }
   }
 
   public ensureInitialized = async () => {
     try {
-      await bot.getMyIdentity()
+      await this.bot.getMyIdentity()
     } catch (err) {
       Errors.ignore(err, Errors.NotFound)
       await this.init()
@@ -40,21 +48,24 @@ export default class Init {
   }
 
   public init = async (opts) => {
-    const { bot, conf } = this
-    bot.logger.info(`initializing provider ${conf.org.name}`)
+    const { bot, priv } = this
+    bot.logger.info(`initializing provider ${priv.org.name}`)
 
-    const { pub, priv } = await bot.init(opts)
+    const identityInfo = await bot.init(opts)
     const org = await this.createOrg()
     await Promise.all([
       this.savePrivateConf(),
-      this.savePublicConf({ org, identity: pub })
+      this.savePublicConf({ org, identity: identityInfo.pub })
     ])
   }
+
+  public getPrivateConf = () => this.confManager.getPrivateConf()
+  public getPublicConf = () => this.confManager.getPublicConf()
 
   public savePublicConf = async (opts={}) => {
     const getOrg = opts.org
       ? Promise.resolve(opts.org)
-      : this.publicConf.get().then(conf => conf.org)
+      : this.getPublicConf().then(conf => conf.org)
 
     const getIdentity = opts.identity
       ? Promise.resolve(opts.identity)
@@ -65,13 +76,39 @@ export default class Init {
   }
 
   public savePrivateConf = async () => {
-    this.bot.logger.debug(`saving private conf`)
-    await this.confManager.savePrivateConf(this.createPrivateConf(this.conf))
+    this.logger.debug(`saving private conf`)
+    let current
+    try {
+      current = await this.getPrivateConf()
+    } catch (err) {
+      Errors.ignore(err, Errors.NotFound)
+    }
+
+    if (current) {
+      await this.updateOrg({ current: current.org })
+    }
+
+    await this.confManager.savePrivateConf(this.priv)
+  }
+
+  private updateOrg = async ({ current }) => {
+    const update = this.priv.org
+    if (update.domain !== current.domain) {
+      throw new Error('cannot change org "domain" at this time')
+    }
+
+    if (update.name !== current.name) {
+      throw new Error('cannot change org "domain" at this time')
+    }
+
+    if (update.logo && update.logo !== current.logo) {
+      throw new Error('cannot change org "logo" at this time')
+    }
   }
 
   public createOrg = async () => {
-    const { bot, conf } = this
-    let { name, domain, logo } = conf.org
+    const { bot, priv } = this
+    let { name, domain, logo } = priv.org
     if (!(name && domain)) {
       throw new Error('org "name" and "domain" are required')
     }
@@ -81,20 +118,20 @@ export default class Init {
       try {
         logo = await ImageUtils.getLogo({ logo, domain })
       } catch (err) {
-        debug(`unable to load logo for domain: ${domain}`)
+        this.logger.debug(`unable to load logo for domain: ${domain}`)
         logo = LOGO_UNKNOWN
       }
     }
 
+    priv.logo = logo
     return await bot.signAndSave(this.getOrgObj({ name, logo }))
   }
 
   public update = async () => {
-    try {
-      await this.privateConf.get(PRIVATE_CONF_KEY)
-    } catch (err) {
-      await this.savePrivateConf()
-    }
+    await Promise.all([
+      this.savePublicConf(),
+      this.savePrivateConf()
+    ])
   }
 
   public getOrgObj = ({ name, logo }) => ({
@@ -118,9 +155,7 @@ export default class Init {
     },
     id: getHandleFromName(org.name),
     org: buildResource.omitVirtual(org),
-    publicConfig: this.conf.publicConfig,
-    style: this.conf.style
+    publicConfig: this.pub.publicConfig,
+    style: this.pub.style
   })
-
-  public createPrivateConf = (conf) => conf
 }
