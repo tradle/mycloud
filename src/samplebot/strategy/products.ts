@@ -1,5 +1,6 @@
 import crypto = require('crypto')
 import omit = require('object.omit')
+import express = require('express')
 import bodyParser = require('body-parser')
 import cors = require('cors')
 import helmet = require('helmet')
@@ -32,7 +33,7 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 export default function createProductsBot (opts={}) {
   const {
     conf,
-    tradle,
+    bot,
     models=baseModels,
     products=DEFAULT_PRODUCTS,
     namespace='test.bot',
@@ -42,8 +43,8 @@ export default function createProductsBot (opts={}) {
     graphqlRequiresAuth
   } = opts
 
-  if (!tradle) {
-    throw new Error('expected "tradle"')
+  if (!bot) {
+    throw new Error('expected "bot"')
   }
 
   const { ONFIDO_API_KEY } = process.env
@@ -79,15 +80,10 @@ export default function createProductsBot (opts={}) {
   employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
   customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
 
-  const bot = createBot.fromEngine({
-    tradle,
-    models: productsAPI.models.all
-  })
-
+  bot.setCustomModels(productsAPI.models.all)
   productsAPI.install(bot)
   const commands = new Commander({
     conf,
-    tradle,
     bot,
     productsAPI,
     employeeManager
@@ -210,7 +206,6 @@ export default function createProductsBot (opts={}) {
   }) // append
 
   const onfidoPlugin = ONFIDO_API_KEY && createOnfidoPlugin({
-    tradle,
     bot,
     productsAPI,
     token: ONFIDO_API_KEY
@@ -220,16 +215,14 @@ export default function createProductsBot (opts={}) {
 
   // bot.hook('message', , true) // prepend
 
-  if (graphqlRequiresAuth) {
+  if (bot.graphqlAPI && graphqlRequiresAuth) {
     bot.graphqlAPI.setAuth(createGraphQLAuth({
-      tradle,
       bot,
       employeeManager
     }))
   }
 
   return {
-    tradle,
     bot,
     productsAPI,
     employeeManager,
@@ -238,7 +231,7 @@ export default function createProductsBot (opts={}) {
   }
 }
 
-const createOnfidoPlugin = ({ tradle, bot, productsAPI, token }) => {
+const createOnfidoPlugin = ({ bot, productsAPI, token }) => {
   const onfidoAPI = new OnfidoAPI({ token })
   const onfidoPlugin = new Onfido({
     bot,
@@ -260,20 +253,22 @@ const createOnfidoPlugin = ({ tradle, bot, productsAPI, token }) => {
       await onfidoPlugin.getWebhook()
     } catch (err) {
       // ideally get the path from the cloudformation
-      const url = `${tradle.resources.RestApi.ApiGateway}/onfido`
+      const url = `${bot.resources.RestApi.ApiGateway}/onfido`
       bot.logger.debug(`registering webhook for url: ${url}`)
       await onfidoPlugin.registerWebhook({ url })
     }
   })()
 
   productsAPI.plugins.use(onfidoPlugin)
-  const { router } = tradle
-  router.use(cors())
-  router.use(helmet())
-  router.post('/onfido', coexpress(function* (req, res) {
+  const { router } = bot
+  const onfidoRouter = express.Router()
+  onfidoRouter.use(cors())
+  onfidoRouter.use(helmet())
+  onfidoRouter.post('/', coexpress(function* (req, res) {
     yield onfidoPlugin.processWebhookEvent({ req, res })
   }))
 
-  router.use(tradle.router.defaultErrorHandler)
+  onfidoRouter.use(router.defaultErrorHandler)
+  router.use('/onfido', onfidoRouter)
   return onfidoPlugin
 }

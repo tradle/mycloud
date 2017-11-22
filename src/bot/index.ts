@@ -1,9 +1,11 @@
 const { EventEmitter } = require('events')
 const deepEqual = require('deep-equal')
 const clone = require('clone')
+const Promise = require('bluebird')
 const validateResource = require('@tradle/validate-resource')
 const { setVirtual } = validateResource.utils
 const buildResource = require('@tradle/build-resource')
+const mergeModels = require('@tradle/merge-models')
 const createHooks = require('event-hooks')
 const BaseModels = require('../models')
 const installDefaultHooks = require('./default-hooks')
@@ -25,13 +27,14 @@ const locker = require('./locker')
 const constants = require('../constants')
 const { TYPE, SIG } = constants
 const createUsers = require('./users')
+const createLambdas = require('./lambdas')
 import addConvenienceMethods from './convenience'
 // const RESOLVED = Promise.resolve()
 const promisePassThrough = data => Promise.resolve(data)
 
 const COPY_TO_BOT = [
-  'aws', 'models', 'objects', 'db', 'conf', 'kv', 'seals', 'seal',
-  'identities', 'users', 'history', 'messages', 'wrap',
+  'aws', 'objects', 'db', 'conf', 'kv', 'seals', 'seal',
+  'identities', 'users', 'history', 'messages', 'friends',
   'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router', 'init'
 ]
 
@@ -44,17 +47,18 @@ const HOOKABLE = [
   { name: 'usercreate' },
   { name: 'useronline' },
   { name: 'useroffline' },
-  { name: 'messagestream', source: 'dynamodbstreams' }
+  { name: 'messagestream', source: 'dynamodbstreams' },
+  { name: 'info', source: 'http' }
 ]
 
 exports = module.exports = createBot
 exports.inputs = require('./inputs')
-exports.lambdas = require('./lambdas')
+exports.lambdas = createLambdas
 exports.fromEngine = opts => createBot(exports.inputs(opts))
 exports.createBot = (opts={}) => {
   return exports.fromEngine({
     ...opts,
-    tradle: opts.tradle || require('../').createTradle()
+    tradle: opts.tradle || require('../').tradle
   })
 }
 
@@ -76,8 +80,8 @@ exports.createBot = (opts={}) => {
 function createBot (opts={}) {
   let {
     autosave=true,
-    models,
     resources,
+    models,
     send,
     sign,
     seals,
@@ -90,18 +94,49 @@ function createBot (opts={}) {
   } = env
 
   const logger = env.sublogger('bot-engine')
-  const isGraphQLLambda = TESTING || /graphql/i.test(FUNCTION_NAME)
-  const isGenSamplesLambda = TESTING || /sample/i.test(FUNCTION_NAME)
   const MESSAGE_LOCK_TIMEOUT = TESTING ? null : 10000
-
-  const missingBaseModels = Object.keys(BaseModels).filter(id => !models[id])
-  if (missingBaseModels.length) {
-    throw new Error(`expected models to have @tradle/models and @tradle/custom-models, missing: ${missingBaseModels.join(', ')}`)
-  }
 
   const bot = new EventEmitter()
   extend(bot, pick(opts, COPY_TO_BOT))
-  bot.logger = logger
+
+  Object.defineProperty(bot, 'models', {
+    get () { return models }
+  })
+
+  bot.setCustomModels = customModels => {
+    models = mergeModels()
+      .add(BaseModels, { validate: false })
+      .add(customModels, { validate: true })
+      .get()
+
+    if (graphqlAPI) {
+      graphqlAPI.setModels(models)
+    }
+  }
+
+  let graphqlAPI
+  Object.defineProperty(bot, 'graphqlAPI', {
+    get() {
+      if (!graphqlAPI) {
+        const { setupGraphQL } = require('./graphql')
+        graphqlAPI = setupGraphQL(this)
+      }
+
+      return graphqlAPI
+    }
+  })
+
+  bot.createHandler = opts.wrap
+  bot.createHttpHandler = (opts={}) => {
+    const { createHandler } = require('../http-request-handler')
+    return createHandler({
+      router: bot.router,
+      env: bot.env,
+      preprocess: () => promiseReady
+    })
+  }
+
+  bot.logger = logger.sub(':bot')
   bot.debug = logger.debug
   bot.users = bot.users || createUsers({
     table: resources.tables.Users,
@@ -109,14 +144,32 @@ function createBot (opts={}) {
   })
 
   bot.save = async (resource) => {
+    if (promiseReady.isPending()) {
+      logger.debug('waiting for bot.ready()')
+      await promiseReady
+    }
+
     resource = clone(resource)
     await bot.objects.replaceEmbeds(resource)
     bot.db.put(ensureTimestamped(resource))
     return resource
   }
 
-  bot.update = resource => bot.db.update(ensureTimestamped(resource))
+  bot.update = async (resource) => {
+    if (promiseReady.isPending()) {
+      logger.debug('waiting for bot.ready()')
+      await promiseReady
+    }
+
+    return await bot.db.update(ensureTimestamped(resource))
+  }
+
   bot.send = async (opts) => {
+    if (promiseReady.isPending()) {
+      logger.debug('waiting for bot.ready()')
+      await promiseReady
+    }
+
     let { link, object, to } = opts
     if (!object && link) {
       object = await bot.objects.get(link)
@@ -186,14 +239,22 @@ function createBot (opts={}) {
     return data
   }
 
-  bot.wrapInit = init => bot.wrap(async (event) => {
-    bot.logger.debug(`received stack event: ${event.RequestType}`)
-    let type = event.RequestType.toLowerCase()
-    if (type === 'create') type = 'init'
+  bot.oninit = init => async (event, context) => {
+    const response = require('cfn-response')
+    try {
+      logger.debug(`received stack event: ${event.RequestType}`)
+      let type = event.RequestType.toLowerCase()
+      if (type === 'create') type = 'init'
 
-    const payload = event.ResourceProperties
-    await init({ type, payload })
-  })
+      const payload = event.ResourceProperties
+      await init({ type, payload })
+    } catch (err) {
+      response.send(event, context, response.FAILED, pick(err, ['message', 'stack']))
+      return
+    }
+
+    response.send(event, context, response.SUCCESS, {})
+  }
 
   const messageProcessingLocker = locker({
     name: 'message processing lock',
@@ -284,8 +345,12 @@ function createBot (opts={}) {
   const finallyHooks = createHooks()
   // invocations are wrapped to preserve context
   const processEvent = async (event, payload) => {
+    if (promiseReady.isPending()) {
+      logger.debug('waiting for bot.ready()')
+      await promiseReady
+    }
+
     const originalPayload = { ...payload }
-    await promiseReady
     try {
       // waterfall to preprocess
       payload = await preProcessHooks.waterfall(event, payload)
@@ -303,8 +368,11 @@ function createBot (opts={}) {
     }
   }
 
-  const promiseReady = new Promise(resolve => {
-    bot.ready = resolve
+  const promiseReady = bot.promiseReady = new Promise(resolve => {
+    bot.ready = () => {
+      logger.debug('ready!')
+      resolve()
+    }
   })
 
   bot.use = (strategy, opts) => strategy(bot, opts)
@@ -331,13 +399,11 @@ function createBot (opts={}) {
     }
   })
 
-  if (isGenSamplesLambda) {
-    bot.process.samples = {
-      path: 'samples',
-      handler: async (event) => {
-        const gen = require('./gen-samples')
-        return await gen({ bot, event })
-      }
+  bot.process.samples = {
+    path: 'samples',
+    handler: async (event) => {
+      const gen = require('./gen-samples')
+      return await gen({ bot, event })
     }
   }
 
@@ -358,6 +424,7 @@ function createBot (opts={}) {
 
   makeBackwardsCompat(bot)
   addConvenienceMethods(bot)
+  bot.lambdas = createLambdas(bot)
   return bot
 
   function emitAs (event) {

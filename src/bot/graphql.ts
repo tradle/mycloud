@@ -1,3 +1,4 @@
+import express = require('express')
 import bodyParser = require('body-parser')
 import cors = require('cors')
 import helmet = require('helmet')
@@ -21,41 +22,31 @@ dynogels.log = {
   level: 'warn'
 }
 
-export function setupGraphQL (opts) {
+export function setupGraphQL (bot) {
   let {
-    env,
+    logger,
     router,
     objects,
+    models,
     db,
-    graphiqlOptions={}
-  } = opts
+    promiseReady
+  } = bot
 
   // allow models to be set asynchronously
-  let resolveWithModels
-  const promiseModels = new Promise(resolve => {
-    resolveWithModels = resolve
-  })
-
-  const promiseInitialized = promiseModels.then(models => {
-    initSchema(models)
-  })
-
-  if (opts.models) {
-    resolveWithModels(opts.models)
-  }
-
-  const { debug } = env
-  debug('attaching /graphql route')
+  logger.debug('attaching /graphql route')
 
   let auth
+  let graphiqlOptions = {}
   const setAuth = authImpl => auth = authImpl
   const setGraphiqlOptions = options => graphiqlOptions = options
 
-  router.use(cors())
-  router.use(helmet())
-  router.use(bodyParser.json({ limit: '10mb' }))
-  router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
-  router.use('/graphql', coexpress(function* (req, res, next) {
+  const gqlRouter = express.Router()
+  gqlRouter.use(cors())
+  gqlRouter.use(helmet())
+  gqlRouter.use(bodyParser.json({ limit: '10mb' }))
+  gqlRouter.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
+  gqlRouter.use('/', coexpress(function* (req, res, next) {
+    yield promiseReady
     if (auth) {
       yield auth(req, res, next)
     } else {
@@ -63,16 +54,16 @@ export function setupGraphQL (opts) {
     }
   }))
 
-  router.use('/graphql', expressGraphQL(async (req) => {
-    await promiseInitialized
+  gqlRouter.use('/', expressGraphQL(async (req) => {
+    await promiseReady
     const { query } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
-      debug('received query:')
-      debug(prettifyQuery(req.body.query))
+      logger.debug('received query:')
+      logger.debug(prettifyQuery(req.body.query))
     }
 
     return {
-      schema,
+      schema: getSchema(),
       graphiql: graphiqlOptions,
       formatError: err => {
         console.error('experienced error executing GraphQL query', err.stack)
@@ -81,7 +72,8 @@ export function setupGraphQL (opts) {
     }
   }))
 
-  router.use(router.defaultErrorHandler)
+  gqlRouter.use(router.defaultErrorHandler)
+  router.use('/graphql', gqlRouter)
 
   const postProcess = async (result, op) => {
     if (!result) return result
@@ -117,8 +109,8 @@ export function setupGraphQL (opts) {
   // be lazy
   let resolvers
   let schema
-  const initSchema = (() => {
-    return (models) => {
+  const getSchema = (() => {
+    return () => {
       if (!schema) {
         resolvers = createResolvers({
           objects,
@@ -129,12 +121,14 @@ export function setupGraphQL (opts) {
 
         schema = createSchema({ models, objects, resolvers }).schema
       }
+
+      return schema
     }
   })()
 
   const executeQuery = async (query, variables) => {
-    await promiseInitialized
-    return graphql(schema, query, null, {}, variables)
+    await promiseReady
+    return graphql(getSchema(), query, null, {}, variables)
   }
 
   const loadPayloads = async (messages) => {
@@ -153,12 +147,18 @@ export function setupGraphQL (opts) {
     })
   }
 
+  const setModels = (_models) => {
+    models = _models
+    schema = null
+  }
+
   return {
-    setModels: resolveWithModels,
+    setModels,
     get schema () {
-      return schema
+      return getSchema()
     },
     get resolvers() {
+      getSchema()
       return resolvers
     },
     db,

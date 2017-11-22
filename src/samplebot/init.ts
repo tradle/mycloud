@@ -18,40 +18,37 @@ const getHandleFromName = (name:string) => {
   return name.replace(/[^A-Za-z]/g, '').toLowerCase()
 }
 
-export default class Init {
+export class Init {
   private bot: any
-  private conf: any
+  private priv: any
+  private pub: any
+  private forceRecreateIdentity: boolean
   private confManager: any
   private logger: Logger
-  constructor({ bot, tradle, conf={} }) {
+  constructor({ bot }) {
     this.bot = bot
     this.logger = bot.logger
-    this.confManager = createConf({ tradle })
-    this.pub = {
-      ...DEFAULT_CONF.public,
-      ...(conf.public || {})
-    }
-
-    this.priv = {
-      ...DEFAULT_CONF.private,
-      ...(conf.private || {})
-    }
+    this.confManager = createConf(bot)
   }
 
-  public ensureInitialized = async () => {
+  public ensureInitialized = async (conf) => {
     try {
       await this.bot.getMyIdentity()
     } catch (err) {
       Errors.ignore(err, Errors.NotFound)
-      await this.init()
+      await this.init(conf)
     }
   }
 
-  public init = async (opts) => {
+  public init = async (conf) => {
+    this.setConf(conf)
     const { bot, priv } = this
     bot.logger.info(`initializing provider ${priv.org.name}`)
 
-    const identityInfo = await bot.init(opts)
+    const identityInfo = await bot.init({
+      force: this.forceRecreateIdentity
+    })
+
     const org = await this.createOrg()
     await Promise.all([
       this.savePrivateConf(),
@@ -106,7 +103,7 @@ export default class Init {
     }
   }
 
-  public createOrg = async () => {
+  public createOrg = async ():Promise<any> => {
     const { bot, priv } = this
     let { name, domain, logo } = priv.org
     if (!(name && domain)) {
@@ -127,7 +124,8 @@ export default class Init {
     return await bot.signAndSave(this.getOrgObj({ name, logo }))
   }
 
-  public update = async () => {
+  public update = async (conf) => {
+    this.setConf(conf)
     await Promise.all([
       this.savePublicConf(),
       this.savePrivateConf()
@@ -158,4 +156,17 @@ export default class Init {
     publicConfig: this.pub.publicConfig,
     style: this.pub.style
   })
+
+  private setConf = (conf) => {
+    this.forceRecreateIdentity = conf.forceRecreateIdentity
+    this.pub = {
+      ...DEFAULT_CONF.public,
+      ...(conf.public || {})
+    }
+
+    this.priv = {
+      ...DEFAULT_CONF.private,
+      ...(conf.private || {})
+    }
+  }
 }

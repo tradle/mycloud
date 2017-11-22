@@ -55,9 +55,12 @@ proto.ensureInitialized = co(function* (opts) {
 })
 
 proto.init = co(function* (opts={}) {
-  const result = yield this.createProvider(opts)
-  result.force = opts.force
-  yield this.write(result)
+  const result = yield this.createProvider()
+  yield this.write({
+    ...result,
+    ...opts
+  })
+
   return result
 })
 
@@ -72,7 +75,7 @@ proto.isInitialized = (function () {
   })
 }())
 
-proto.createProvider = co(function* (opts) {
+proto.createProvider = co(function* () {
   const priv = yield createIdentity(getIdentitySpecs({
     networks: this.networks
   }))

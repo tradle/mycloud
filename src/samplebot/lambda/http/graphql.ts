@@ -1,24 +1,18 @@
 import pick = require('object.pick')
-import { createTradle } from '../../../'
-import { createBot } from '../../bot'
-import { setupGraphQL } from '../../../bot/graphql'
+import { customize } from '../../customize'
 import sampleQueries from '../../sample-queries'
+import { createBot } from '../../../bot'
 
-const tradle = createTradle()
-const gql = setupGraphQL(pick(tradle, [
-  'env',
-  'router',
-  'objects',
-  'db'
-]))
+const bot = createBot()
 
 // models will be set asynchronously
-export const handler = tradle.createHttpHandler()
+bot.graphqlAPI
+export const handler = bot.createHttpHandler()
 
 ;(async () => {
-  const { bot, conf, productsAPI } = await createBot(tradle)
+  const { conf, productsAPI } = await customize({ bot, delayReady: true })
   const { org } = await conf.getPrivateConf()
-  gql.setGraphiqlOptions({
+  bot.graphqlAPI.setGraphiqlOptions({
     logo: {
       src: org.logo,
       width: 32,
@@ -32,5 +26,5 @@ export const handler = tradle.createHttpHandler()
     }
   })
 
-  gql.setModels(productsAPI.models.all)
+  bot.ready()
 })()

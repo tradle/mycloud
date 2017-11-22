@@ -6,10 +6,11 @@ export class Conf {
   public publicConfBucket: any
   public privateConf: any
   public publicConf: any
-  constructor({ tradle }) {
-    this.tradle = tradle
-    this.privateConfBucket = tradle.buckets.PrivateConf
-    this.publicConfBucket = tradle.buckets.PublicConf
+  constructor(bot) {
+    this.bot = bot
+    const { buckets } = bot.resources
+    this.privateConfBucket = buckets.PrivateConf
+    this.publicConfBucket = buckets.PublicConf
     this.privateConf = this.privateConfBucket.getCacheable({
       key: PRIVATE_CONF_KEY,
       ttl: 60000,
@@ -35,8 +36,9 @@ export class Conf {
   }
 
   public setStyle = async (style) => {
+    await bot.promiseReady
     validateResource({
-      models: tradle.models,
+      models: bot.models,
       model: 'tradle.StylesPack',
       resource: style
     })
@@ -47,6 +49,6 @@ export class Conf {
   }
 }
 
-export function createConf ({ tradle }) {
-  return new Conf({ tradle })
+export function createConf (bot) {
+  return new Conf(bot)
 }

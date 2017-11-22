@@ -27,6 +27,8 @@ const { extend, clone, pick, omit, batchify } = utils
 const userIdentities = require('./fixtures/users-pem')
 const intercept = require('./interceptor')
 const { reprefixServices } = require('./utils')
+const Errors = require('../errors')
+const defaultTradleInstance = require('../').tradle
 const nextUserIdentity = (function () {
   let i = 0
   return function () {
@@ -40,19 +42,13 @@ const nextUserIdentity = (function () {
 // }())
 
 const baseModels = require('../models')
-// const defaultModels = mergeModels()
-//   .add(baseModels)
-//   .get()
-
-const defaultModels = require('../samplebot').models
-// const defaultProducts = ['nl.tradle.DigitalPassport']
 const defaultProducts = ['tradle.CorporateBankAccount']
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 
 function E2ETest ({
+  tradle=defaultTradleInstance,
   models,
   products,
-  tradle,
   bot,
   productsAPI,
   employeeManager
@@ -76,13 +72,13 @@ function E2ETest ({
 
   // extend(bot, botFixture)
 
-  this.tradle = tradle
   this.bot = bot
+  this.tradle = tradle
   this.productsAPI = productsAPI
   this.employeeManager = employeeManager
   this.products = productsAPI.products
   this._ready = this._init()
-  this.logger = tradle.env.sublogger('e2e')
+  this.logger = bot.env.sublogger('e2e')
   this.debug = this.logger.debug
 }
 
@@ -90,8 +86,7 @@ const proto = E2ETest.prototype
 
 proto._init = co(function* () {
   yield this.tradle.init.ensureInitialized()
-  const { keys, identity } = yield this.tradle.provider.getMyPrivateIdentity()
-  extend(this.bot, { keys, identity })
+  this.bot.identity = yield this.bot.getMyIdentity()
   yield this.bot.addressBook.addContact(this.bot.identity)
   this.bot.ready()
   this.debug('bot permalink', crypto.getPermalink(this.bot.identity))
@@ -144,12 +139,12 @@ proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
 
 proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
   yield this._ready
-  const { tradle, bot, productsAPI } = this
+  const { bot, productsAPI } = this
   const allModels = productsAPI.models.all
-  const employee = createUser({ bot, tradle, name: 'employee' })
+  const employee = createUser({ bot, name: 'employee' })
   yield this.onboardEmployee({ user: employee })
 
-  const { friends } = tradle
+  const { friends } = bot
   const url = 'http://localhost:12345'
   const friend = {
     name: 'friendly bank',
@@ -199,7 +194,7 @@ proto.onboardCustomer = co(function* ({
   relationshipManager,
   product
 }) {
-  const { tradle } = this
+  const { bot } = this
 
   if (relationshipManager) {
     let context
@@ -215,7 +210,7 @@ proto.onboardCustomer = co(function* ({
       //   console.log(payload.scan.url)
       // }
 
-      yield tradle.objects.resolveEmbeds(payload)
+      yield bot.objects.resolveEmbeds(payload)
 
       // console.log('EMPLOYEE RECEIVED', payload[TYPE])
       // const type = payload[TYPE]
@@ -399,40 +394,6 @@ proto.dumpDB = co(function* ({ types }) {
     console.log(type)
     console.log(JSON.stringify(results[i].items, null, 2))
   })
-})
-
-proto.clear = co(function* () {
-  const self = this
-  const existingTables = yield this.tradle.dbUtils.listTables(this.tradle.env)
-  const toDelete = existingTables.filter(name => name.startsWith(this.tradle.prefix))
-
-  const batches = batchify(toDelete, 5)
-  yield batches.map(co(function* (batch) {
-    yield batch.map(id => {
-      return self.destroyTable(id)
-    })
-  }))
-
-  yield genLocalResources({ tradle: this.tradle })
-})
-
-proto.destroyTable = co(function* (TableName) {
-  while (true) {
-    try {
-      yield this.tradle.dbUtils.deleteTable({ TableName })
-      this.debug(`deleted table: ${TableName}`)
-    } catch (err) {
-      if (err.name === 'ResourceNotFoundException') {
-        break
-      }
-
-      if (err.name !== 'LimitExceededException') {
-        throw err
-      }
-
-      yield wait(1000)
-    }
-  }
 })
 
 proto.getApplicationByContext = function ({ context }) {
@@ -642,10 +603,66 @@ function wrapWithIntercept (fn) {
 //   return defaultTradleInstance.createInstance(env)
 // }
 
+const clearBuckets = async ({ tradle }) => {
+  await Promise.all(Object.keys(tradle.buckets).map(async (id) => {
+    const bucket = tradle.buckets[id]
+    try {
+      await bucket.clear()
+      // await bucket.destroy()
+    } catch (err) {
+      Errors.ignore(err, {
+        code: 'NoSuchBucket'
+      })
+    }
+  }))
+}
+
+const clearTables = async ({ tradle }) => {
+  const { debug } = tradle.logger
+  const clearTable = async (TableName) => {
+    while (true) {
+      try {
+        await tradle.dbUtils.clear(TableName)
+        debug(`cleared table: ${TableName}`)
+        break
+      } catch (err) {
+        if (err.name === 'ResourceNotFoundException') {
+          break
+        }
+
+        if (err.name !== 'LimitExceededException') {
+          throw err
+        }
+
+        await wait(1000)
+      }
+    }
+  }
+
+  const existingTables = await tradle.dbUtils.listTables(tradle.env)
+  const toDelete = existingTables.filter(name => name.startsWith(tradle.prefix))
+  debug('clearing tables', toDelete)
+
+  const batches = batchify(toDelete, 5)
+  await Promise.all(batches.map(async (batch) => {
+    await Promise.all(batch.map(clearTable))
+    debug('cleared tables', batch)
+  }))
+
+  debug('done clearing tables')
+}
+
+const clear = async ({ tradle }) => {
+  await Promise.all([
+    clearTables({ tradle }),
+    clearBuckets({ tradle })
+  ])
+}
+
 module.exports = {
   createUser,
   // createProductsBot,
   Test: E2ETest,
   // endToEndTest: opts => new E2ETest(opts).run(),
-  clear: opts => new E2ETest(opts).clear()
+  clear
 }

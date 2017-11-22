@@ -1,6 +1,5 @@
 import parse = require('minimist')
 import { TYPE } from '@tradle/constants'
-import Tradle from '../../tradle'
 import {
   Command,
   ExecCommandFunction
@@ -41,8 +40,7 @@ export class Commander {
   private productsAPI:any
   private employeeManager:any
   private conf: any
-  constructor ({ tradle, bot, productsAPI, employeeManager, conf }) {
-    this.tradle = tradle
+  constructor ({ bot, productsAPI, employeeManager, conf }) {
     this.bot = bot
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager

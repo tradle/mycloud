@@ -1,15 +1,12 @@
 
-import { createTradle } from '../../'
 import { createBot } from '../../bot'
-import Init from '../init'
+import { Init } from '../init'
 
-const tradle = createTradle()
-const bot = createBot(tradle)
+const bot = createBot()
 
-export const handler = bot.wrapInit(async ({ type, payload }) => {
+export const handler = bot.oninit(async ({ type, payload }) => {
   const init = new Init({
     bot,
-    tradle,
     conf: payload
   })
 

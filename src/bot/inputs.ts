@@ -24,7 +24,8 @@ module.exports = function createBotInputs ({
     contentAddressedStorage,
     router,
     init,
-    wrap
+    wrap,
+    friends
   } = tradle
 
   const { docClient } = aws
@@ -60,6 +61,7 @@ module.exports = function createBotInputs ({
     contentAddressedStorage,
     resources: pick(tradle, ['tables', 'buckets']),
     messages,
+    friends,
     identities: {
       byPermalink: identities.getIdentityByPermalink,
       byPub: identities.getIdentityByPub,

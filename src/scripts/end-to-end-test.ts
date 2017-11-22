@@ -1,21 +1,38 @@
 #!/usr/bin/env node
 
-import { createTestTradle } from '../'
-import { genLocalResources } from '../cli/utils'
+require('source-map-support').install()
+require('../test/env').install()
+
+import { wait } from '../utils'
+import { genLocalResources, initializeProvider } from '../cli/utils'
 import {
   clear,
   Test
 } from '../test/end-to-end'
 
-import { promiseBot } from '../samplebot/lambda/onmessage'
+import { createTestTradle } from '../'
+import { createBot } from '../bot'
+import { customize } from '../samplebot/customize'
 
 (async () => {
-  const tradle = createTestTradle()
-  const opts = await promiseBot
-  await clear(opts)
-  await new Promise(resolve => setTimeout(resolve, 3000))
-  await genLocalResources({ tradle })
-  const test = new Test(opts)
+  let tradle = createTestTradle()
+  const { debug } = tradle.logger
+  await clear({ tradle })
+  debug('cleared stored data')
+  // await wait(2000)
+  // await genLocalResources({ tradle })
+  // await wait(2000)
+
+  tradle = createTestTradle()
+  await initializeProvider(createBot({ tradle }))
+  debug('initialized provider')
+
+  tradle.logger.debug('setting up bot')
+
+  const bot = createBot()
+  const customStuff = await customize({ bot })
+  tradle.logger.debug('running test')
+  const test = new Test(customStuff)
   // await test.runEmployeeAndFriend()
   await test.runEmployeeAndCustomer()
 })()

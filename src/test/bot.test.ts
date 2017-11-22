@@ -6,6 +6,7 @@ require('./env').install()
 
 const test = require('tape')
 const sinon = require('sinon')
+const cfnResponse = require('cfn-response')
 const { createTestTradle } = require('../')
 const createRealBot = require('../bot')
 const { setupGraphQL } = require('../bot/graphql')
@@ -18,6 +19,9 @@ const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
 // const apiGatewayEvent = require('./fixtures/events/api-gateway')
 const UsersTableLogicalId = 'UsersTable'
+const rethrow = err => {
+  if (err) throw err
+}
 
 ;[/*createFakeBot,*/ createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
@@ -105,14 +109,42 @@ const UsersTableLogicalId = 'UsersTable'
       }
     }
 
+    const originalContext = {}
     sinon.stub(tradle.init, 'init').callsFake(async (opts) => {
       t.same(opts, expectedEvent.payload)
     })
 
     bot.ready()
-    bot.wrapInit(co(function* (event) {
+    let stubResponse = sinon.stub(cfnResponse, 'send')
+      .callsFake((event, context, type, props) => {
+        t.equal(event, originalEvent)
+        t.same(context, originalContext)
+        t.same(type, cfnResponse.SUCCESS)
+      })
+
+    yield bot.oninit(co(function* (event) {
       t.same(event, expectedEvent)
-    }))(originalEvent, {}, t.end)
+    }))(originalEvent, {}, rethrow)
+
+    stubResponse.restore()
+
+    let err
+    stubResponse = sinon.stub(cfnResponse, 'send')
+      .callsFake((event, context, type, props) => {
+        t.equal(event, originalEvent)
+        t.same(context, originalContext)
+        t.same(type, cfnResponse.FAILED)
+        t.equal(props.message, err.message)
+        t.equal(props.stack, err.stack)
+      })
+
+    yield bot.oninit(co(function* (event) {
+      err = new Error('blah')
+      throw err
+    }))(originalEvent, {}, rethrow)
+
+    stubResponse.restore()
+    t.end()
   }))
 
   test(`onmessage (${mode})`, loudCo(function* (t) {

@@ -1,6 +1,6 @@
 
 import Cache = require('lru-cache')
-import Bucket from './bucket'
+import { Bucket } from './bucket'
 import { cachify, extend } from './utils'
 import { toCamelCase } from './string-utils'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']

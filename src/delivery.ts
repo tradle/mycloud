@@ -76,7 +76,6 @@ export default class Delivery extends EventEmitter implements IDelivery {
     range,
     batchSize=MAX_BATCH_SIZE
   }:IDeliveryRequest):Promise<IDeliveryResult> => {
-
     let { afterMessage } = range
     const { before, after } = range
 

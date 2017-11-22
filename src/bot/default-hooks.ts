@@ -94,6 +94,9 @@ module.exports = function installDefaultHooks ({ bot, hooks }) {
 
   bot.hook('messagestream', savePayloads)
 
+  // bot.hook('info', co(function* () {
+  // }))
+
   bot.hook('init', co(function* (event) {
     if (event.type === 'init') {
       bot.logger.info('initializing...')

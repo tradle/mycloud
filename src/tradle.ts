@@ -50,11 +50,11 @@ export default class Tradle {
   public prefix: string
 
   constructor(env=new Env(process.env)) {
-    if (++instanceCount > 2) {
-      if (!env.TESTING) {
-        throw new Error('multiple instances not allowed')
-      }
-    }
+    // if (++instanceCount > 1) {
+    //   if (!env.TESTING) {
+    //     throw new Error('multiple instances not allowed')
+    //   }
+    // }
 
     if (!(env instanceof Env)) {
       env = new Env(env)

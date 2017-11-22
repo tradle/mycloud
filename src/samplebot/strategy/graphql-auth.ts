@@ -6,8 +6,8 @@ import * as validateResource from '@tradle/validate-resource'
 import { constants, Errors } from '../../'
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
 
-export function createGraphQLAuth ({ tradle, bot, employeeManager }) {
-  const { identities } = tradle
+export function createGraphQLAuth ({ bot, employeeManager }) {
+  const { identities } = bot
   return coexpress(function* (req, res, next) {
     const method = req.method.toLowerCase()
     if (method === 'options') {

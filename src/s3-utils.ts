@@ -1,6 +1,3 @@
-const parseUrl = require('url').parse
-const debug = require('debug')('tradle:sls:s3-utils')
-const { logify, clone } = require('./utils')
 const Errors = require('./errors')
 
 module.exports = function createUtils (aws) {
@@ -47,6 +44,21 @@ module.exports = function createUtils (aws) {
     }
   }
 
+  const listBucket = async ({ bucket, ...opts })
+    :Promise<AWS.S3.Types.ListObjectsOutput> => {
+    const params:AWS.S3.Types.ListObjectsRequest = {
+      Bucket: bucket,
+      ...opts
+    }
+
+    return await aws.s3.listObjects(params).promise()
+  }
+
+  const clearBucket = async ({ bucket }) => {
+    const { Contents } = await listBucket({ bucket })
+    await Promise.all(Contents.map(({ Key }) => del({ bucket, key: Key })))
+  }
+
   const getCacheable = ({ key, bucket, ttl, parse, ...defaultOpts }: {
     key:string,
     bucket:string,
@@ -71,7 +83,7 @@ module.exports = function createUtils (aws) {
         opts.IfNoneMatch = etag
       }
 
-      cached = yield get({ key, bucket, ...opts })
+      cached = await get({ key, bucket, ...opts })
       if (cached.ETag !== etag) {
         etag = cached.ETag
       }
@@ -135,6 +147,10 @@ module.exports = function createUtils (aws) {
     return aws.s3.createBucket({ Bucket: bucket }).promise()
   }
 
+  const destroyBucket = ({ bucket }) => {
+    return aws.s3.deleteBucket({ Bucket: bucket }).promise()
+  }
+
   const urlForKey = ({ bucket, key }) => {
     const { host } = aws.s3.endpoint
     if (host.startsWith('localhost')) {
@@ -148,6 +164,8 @@ module.exports = function createUtils (aws) {
     get,
     getJSON,
     getCacheable,
+    listBucket,
+    clearBucket,
     put,
     putJSON,
     head,
@@ -155,6 +173,7 @@ module.exports = function createUtils (aws) {
     exists,
     createPresignedUrl,
     createBucket,
+    destroyBucket,
     urlForKey
   }
 }

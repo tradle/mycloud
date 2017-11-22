@@ -12,7 +12,7 @@ import * as Errors from '../errors'
 import { KVTable } from '../definitions'
 import aliceKeys = require('./fixtures/alice/keys')
 import { Tradle } from '../'
-import Bucket from '../bucket'
+import { Bucket } from '../bucket'
 
 const tradle = new Tradle()
 const { dbUtils } = tradle

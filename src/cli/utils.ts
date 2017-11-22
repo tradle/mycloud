@@ -61,6 +61,7 @@ const genLocalResources = async ({ tradle }) => {
   const yml = require('./serverless-yml')
   const { resources } = yml
   const { Resources } = resources
+  const togo = {}
   const tables = []
   const buckets = []
 
@@ -73,10 +74,13 @@ const genLocalResources = async ({ tradle }) => {
         Properties.StreamSpecification.StreamEnabled = true
       }
 
+      togo[name] = true
       tables.push(
         aws.dynamodb.createTable(Properties).promise()
           .then(result => {
-            debug(`created table: ${name}, ${prettify(result)}`)
+            delete togo[name]
+            debug(`created table: ${name}`)
+            debug('waiting on', togo)
             numCreated++
           })
           .catch(err => {
@@ -98,17 +102,23 @@ const genLocalResources = async ({ tradle }) => {
 
       if (exists) return
 
+      togo[name] = true
       buckets.push(
         aws.s3.createBucket({ Bucket })
         .promise()
         .then(result => {
           numCreated++
-          debug(`created bucket: ${name}, ${prettify(result)}`)
+          delete togo[name]
+          debug(`created bucket: ${name}`)
+          debug('waiting on', togo)
         })
       )
     })
 
-  await Promise.all(buckets.concat(tables))
+  const promises = buckets.concat(tables)
+  debug(`waiting for resources...`)
+  await Promise.all(promises)
+  debug('resources created!')
   return numCreated
 }
 
@@ -364,24 +374,29 @@ const clearTypes = async ({ tradle, types }) => {
   return deleteCounts
 }
 
-const initializeProvider = async () => {
-  const { handler } = require('../samplebot/lambda/init')
+const initializeProvider = async (bot) => {
+  if (!bot) {
+    const { createBot } = require('../bot')
+    bot = createBot()
+  }
+
+  bot.ready()
+
+  const { Init } = require('../samplebot/init')
+  const init = new Init({ bot })
   const providerConf = require('../samplebot/conf/provider')
   const { org } = providerConf.private
   try {
-    await promisify(handler)({
-      RequestType: 'Create',
-      ResourceProperties: {
-        private: {
-          org: {
-            // force,
-            name: org.name + '-local',
-            domain: org.domain + '.local',
-            logo: org.logo
-          }
+    await init.init({
+      private: {
+        org: {
+          // force,
+          name: org.name + '-local',
+          domain: org.domain + '.local',
+          logo: org.logo
         }
       }
-    }, {})
+    })
   } catch (err) {
     Errors.ignore(err, Errors.Exists)
     console.log('prevented overwrite of existing identity/keys')

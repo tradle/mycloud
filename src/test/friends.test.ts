@@ -8,7 +8,7 @@ const { friends } = require('../').createTestTradle()
 const alice = require('./fixtures/alice/object')
 const bob = require('./fixtures/bob/object')
 
-test('function', loudCo(function* (t) {
+test('friends', loudCo(function* (t) {
   const friendOpts = {
     name: 'testfriend',
     url: 'http://localhost/friend',

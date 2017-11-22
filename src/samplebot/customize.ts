@@ -6,23 +6,12 @@ import createBankModels from './bank-models'
 import createDeploymentHandlers from './deployment-handlers'
 import createBaseBot = require('../bot')
 import strategies = require('./strategy')
-import { createTradle } from '../'
+import { createBot } from '../bot'
 import { createConf } from './configure'
 
-export async function createBot (tradle=createTradle()) {
-  const {
-    // PRODUCTS,
-    // ORG_DOMAIN,
-    // ORG_LOGO,
-    // ORG_NAME,
-    // AUTO_VERIFY_FORMS,
-    // AUTO_APPROVE_APPS,
-    // AUTO_APPROVE_EMPLOYEES,
-    // GRAPHQL_AUTH,
-    IS_LOCAL
-  } = tradle.env
-
-  const conf = createConf({ tradle })
+export async function customize (opts={}) {
+  const { bot=createBot(), delayReady } = opts
+  const conf = createConf(bot)
   let privateConf = await conf.getPrivateConf()
 
   const { org } = privateConf
@@ -33,13 +22,12 @@ export async function createBot (tradle=createTradle()) {
   const bankModels = createBankModels(namespace)
   const models = { ...deploymentModels.all, ...bankModels }
   const {
-    bot,
     productsAPI,
     employeeManager,
     onfidoPlugin
   } = strategies.products({
     conf,
-    tradle,
+    bot,
     namespace,
     models,
     products,
@@ -80,14 +68,13 @@ export async function createBot (tradle=createTradle()) {
     }), true))
   }
 
-  customize().then(() => bot.ready())
+  if (!opts.delayReady) {
+    customize().then(() => bot.ready())
+  }
 
-  const lambdas = createBaseBot.lambdas(bot)
   return {
     conf,
-    tradle,
     bot,
-    lambdas,
     productsAPI,
     employeeManager,
     onfidoPlugin

@@ -1,10 +1,10 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-import { createTradle } from '../../'
+import { createBot } from '../../bot'
 import { createConf } from '../configure'
 
-const tradle = createTradle()
-const conf = createConf({ tradle })
-export const handler = tradle.wrap(function* (event) {
-  yield conf.setStyle(event)
+const bot = createBot()
+const conf = createConf(bot)
+export const handler = bot.createHandler(async (event) => {
+  await conf.setStyle(event)
 }, { source: 'lambda' })

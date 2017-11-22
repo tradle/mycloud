@@ -1,44 +1,38 @@
-import shallowClone = require('xtend')
-import buildResource = require('@tradle/build-resource')
-import extend = require('xtend/mutable')
-import yn = require('yn')
-import { createBot } from './bot'
+import { customize } from './customize'
+import { createBot } from '../bot'
 import { createHandler } from '../http-request-handler'
 
-const { IS_LAMBDA_ENVIRONMENT, NODE_ENV } = process.env
-if (NODE_ENV === 'test') {
-  Object.assign(process.env, require('../test/service-map'), { ...process.env })
-  // console.log(process.env)
-}
+// const { IS_LAMBDA_ENVIRONMENT, NODE_ENV } = process.env
+// if (NODE_ENV === 'test') {
+//   Object.assign(process.env, require('../test/service-map'), { ...process.env })
+//   // console.log(process.env)
+// }
 
-// locally
-if (yn(IS_LAMBDA_ENVIRONMENT) === false) {
-  const { env } = require('../cli/serverless-yml').custom.brand
-  Object.assign(process.env, env)
-}
+const bot = createBot()
+// for testing
+Object.assign(exports, bot.lambdas)
+export const promiseCustomized = customize({ bot })
 
-const debug = require('debug')('λ:samplebot')
+// ;(async () => {
+//   const {
+//     bot,
+//     tradle,
+//     lambdas,
+//     productsAPI,
+//     employeeManager,
+//     onfidoPlugin
+//   } = await createBot()
 
-;(async () => {
-  const {
-    bot,
-    tradle,
-    lambdas,
-    productsAPI,
-    employeeManager,
-    onfidoPlugin
-  } = await createBot()
-
-  Object.assign(exports, lambdas)
-  // onfidoPlugin already mounted a handler on the http router
-  exports.handleOnfidoWebhookEvent = createHandler(tradle)
-  exports.models = productsAPI.models.all
-  exports.bot = productsAPI.bot
-  exports.db = productsAPI.bot.db
-  exports.tables = productsAPI.bot.db.tables
-  exports.productsAPI = productsAPI
-  exports.tradle = tradle
-})()
+//   Object.assign(exports, lambdas)
+//   // onfidoPlugin already mounted a handler on the http router
+//   exports.handleOnfidoWebhookEvent = createHandler(tradle)
+//   exports.models = productsAPI.models.all
+//   exports.bot = productsAPI.bot
+//   exports.db = productsAPI.bot.db
+//   exports.tables = productsAPI.bot.db.tables
+//   exports.productsAPI = productsAPI
+//   exports.tradle = tradle
+// })()
 
 // function getProductModelIds (models) {
 //   return Object.keys(models).filter(id => models[id].subClassOf === 'tradle.FinancialProduct')

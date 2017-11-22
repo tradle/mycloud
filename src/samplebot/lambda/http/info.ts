@@ -1,21 +1,26 @@
+import express = require('express')
 import coexpress = require('co-express')
 import cors = require('cors')
 import helmet = require('helmet')
-import { timestamp } from '../utils'
-import { createTradle } from '../../../'
+import { createBot } from '../../../bot'
 import { createConf } from '../../configure'
 
-const tradle = createTradle()
-const { router } = tradle
-const conf = createConf({ tradle })
-router.use(cors())
-router.use(helmet())
-router.get('/info', coexpress(function* (req, res) {
-  const result = yield conf.publicConf.get()
+const bot = createBot()
+const { router } = bot
+const conf = createConf(bot)
+const infoRouter = express.Router()
+infoRouter.use(cors())
+infoRouter.use(helmet())
+infoRouter.get('/', coexpress(function* (req, res) {
+  const result = yield conf.getPublicConf()
+  // HACK ALERT
+  // this belongs in bot engine
   result.aws = true
-  result.iotParentTopic = tradle.env.IOT_PARENT_TOPIC
+  result.iotParentTopic = bot.env.IOT_PARENT_TOPIC
   res.json(result)
 }))
 
-router.use(router.defaultErrorHandler)
-export const handler = tradle.createHttpHandler()
+infoRouter.use(router.defaultErrorHandler)
+router.use('/info', infoRouter)
+
+export const handler = bot.createHttpHandler()
