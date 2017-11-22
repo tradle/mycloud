@@ -304,6 +304,10 @@ provider:
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
+            - Ref: PrivateConfBucket
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
             - Ref: ContentAddressedBucket
         - Fn::Join:
           - ""
@@ -336,6 +340,11 @@ provider:
           - ""
           - - "arn:aws:s3:::"
             - Ref: PublicConfBucket
+            - "/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: PrivateConfBucket
             - "/*"
         - Fn::Join:
           - ""
@@ -1263,10 +1272,10 @@ resources:
                 Service:
                   - lambda.amazonaws.com
                 AWS:
-                  # - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
                   # would be nice to use the below Fn::GetAtt
                   # but it creates a circular dep
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole'
+                  # - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole'
                   # - Fn::GetAtt:
                   #   - IamRoleLambdaExecution
                   #   - Arn
