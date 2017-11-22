@@ -27,9 +27,20 @@ function addBucketTables ({ yml, prefix }) {
   const { count, read, write, index } = tableBuckets
   if (!custom.capacities) custom.capacities = []
 
+  const tables = Object.keys(Resources).filter(name => {
+    return Resources[name].Type === 'AWS::DynamoDB::Table'
+  })
+
   for (let i = 0; i < count; i++) {
     let name = `${prefix}bucket-${i}`
-    let def = getTableBucketDefinition({ read, write, indexes: index, name })
+    let def = getTableBucketDefinition({
+      read,
+      write,
+      indexes: index,
+      name,
+      dependencies: tables
+    })
+
     let logicalId = `BucketTable${i}`
     Resources[logicalId] = def
     // custom.capacities.push({
@@ -47,11 +58,15 @@ function getTableBucketDefinition ({
   name,
   read,
   write,
-  indexes
+  indexes,
+  dependencies
 }) {
   return {
     Type: 'AWS::DynamoDB::Table',
     Description: `table that stores multiple models`,
+    // a trick to avoid exceeding the limits on
+    // simultaneous create/update table operations
+    DependsOn: dependencies,
     Properties: {
       TableName: name,
       AttributeDefinitions: [
@@ -117,6 +132,15 @@ function forEachResource (yaml, fn) {
 
   let updated
   for (let logicalId in Resources) {
+    let resource = Resources[logicalId]
+    if (logicalId === 'IamRoleLambdaExecution') {
+      continue
+    }
+
+    if (resource.Type.startsWith('Custom::')) {
+      continue
+    }
+
     fn({
       id: logicalId,
       resource: Resources[logicalId]
