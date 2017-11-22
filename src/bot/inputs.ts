@@ -67,15 +67,7 @@ module.exports = function createBotInputs ({
       addAuthorInfo: identities.addAuthorInfo,
       addContact: identities.validateAndAdd
     },
-    objects: {
-      get: objects.get,
-      put: objects.put,
-      validateNewVersion: objects.validateNewVersion,
-      getEmbeds: objects.getEmbeds,
-      resolveEmbeds: objects.resolveEmbeds,
-      replaceEmbeds: objects.replaceEmbeds,
-      presignEmbeddedMediaLinks: objects.presignEmbeddedMediaLinks
-    },
+    objects,
     getMyIdentity: provider.getMyPublicIdentity,
     seals,
     seal,
