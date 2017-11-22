@@ -155,11 +155,7 @@ const interpolateTemplate = (opts={}) => {
   const { arg='', sync } = opts
   const command = `sls print ${arg}`
   if (sync) {
-    try {
-      return proc.execSync(command).toString()
-    } catch (err) {
-      console.error(err.stack)
-    }
+    return proc.execSync(command).toString()
   }
 
   return new Promise((resolve, reject) => {
