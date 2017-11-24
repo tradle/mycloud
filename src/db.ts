@@ -27,7 +27,7 @@ export = function createDB (opts: {
     objects,
     docClient: aws.docClient,
     maxItemSize: constants.MAX_DB_ITEM_SIZE,
-    // forbidScan: true,
+    forbidScan: true,
     defaultReadOptions: {
       consistentRead: true
     }
