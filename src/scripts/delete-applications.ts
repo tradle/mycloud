@@ -20,15 +20,16 @@ loadCredentials()
 // const toDelete = ['tradle.Application']
 const { TYPE } = require('@tradle/constants')
 const tradle = require('../').createRemoteTradle()
+const bot = require('../bot').createBot({ tradle })
 const { db, dbUtils, env } = tradle
 const { SERVERLESS_PREFIX } = env
 const { clear } = dbUtils
-const { createBot } = require('../samplebot/bot')
+const { customize } = require('../samplebot/customize')
 const definitions = require('../definitions')
 const readline = require('readline')
 
 const deleteApplications = co.wrap(function* () {
-  const { productsAPI } = await createBot(tradle)
+  const { productsAPI } = await customize({ bot })
   const models = productsAPI.models.all
   console.log('finding victims...')
   const modelsToDelete = Object.keys(models).filter(id => {
@@ -66,6 +67,7 @@ const deleteApplications = co.wrap(function* () {
 
   console.log('let the games begin!')
   const deleteCounts = yield clearTypes({
+    tradle,
     types: Object.keys(models)
   })
 

@@ -3,7 +3,7 @@ process.env.LAMBDA_BIRTH_DATE = Date.now()
 const querystring = require('querystring')
 const debug = require('debug')('λ:recharge:bitcoin')
 const request = require('superagent')
-const { wrap, provider } = require('../').createTradle()
+const { wrap, provider } = require('../').tradle
 const PIECES = 2
 
 export const handler = wrap(function* ({ amount = 100000 }) {

@@ -8,7 +8,6 @@ bot.ready()
 const init = new Init({ bot })
 
 export const handler = bot.oninit(async ({ type, payload }) => {
-  debugger
   if (type === 'init') {
     // initialize identity, keys, etc.
     // yes, this can be optimized, but it's a one time operation...

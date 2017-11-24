@@ -1,6 +1,6 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-const tradle = require('../').createTradle()
+const tradle = require('../').tradle
 const { wrap, env } = tradle
 // const { getRecordsFromEvent } = require('../db-utils')
 exports.handler = wrap(function* (event) {

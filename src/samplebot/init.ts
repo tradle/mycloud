@@ -45,14 +45,22 @@ export class Init {
     const { bot, priv } = this
     bot.logger.info(`initializing provider ${priv.org.name}`)
 
-    const identityInfo = await bot.init({
-      force: this.forceRecreateIdentity
-    })
+    let identity
+    try {
+      const identityInfo = await bot.init({
+        force: this.forceRecreateIdentity
+      })
+
+      identity = identityInfo.pub
+    } catch (err) {
+      Errors.ignore(err, Errors.Exists)
+      identity = await bot.getMyIdentity()
+    }
 
     const org = await this.createOrg()
     await Promise.all([
       this.savePrivateConf(),
-      this.savePublicConf({ org, identity: identityInfo.pub })
+      this.savePublicConf({ org, identity })
     ])
   }
 

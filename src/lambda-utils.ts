@@ -1,6 +1,6 @@
 import path = require('path')
 import { Lambda } from 'aws-sdk'
-import { promisify } from './utils'
+import { promisify, createLambdaContext } from './utils'
 import Logger from './logger'
 
 const notNull = (val:any):boolean => !!val
@@ -34,9 +34,10 @@ export default class Utils {
     name: string,
     arg?: any,
     sync?:boolean,
+    local?: boolean,
     log?: boolean
   }):Promise<any> => {
-    const { name, arg={}, sync=true, log } = opts
+    const { name, arg={}, sync=true, log, local=this.env.IS_OFFLINE } = opts
     const FunctionName = this.getFullName(name)
     const params:Lambda.Types.InvocationRequest = {
       InvocationType: sync ? 'RequestResponse' : 'Event',
@@ -49,11 +50,20 @@ export default class Utils {
 
     if (log) params.LogType = 'Tail'
 
+    this.logger.debug(`invoking ${params.FunctionName}`)
+
+    let result
+    if (local) {
+      result = await this.invokeLocal(params)
+    } else {
+      result = await this.aws.lambda.invoke(params).promise()
+    }
+
     const {
       StatusCode,
       Payload,
       FunctionError
-    } = await this._invoke(params)
+    } = result
 
     if (FunctionError || (StatusCode && StatusCode >= 300)) {
       const message = Payload || `experienced ${FunctionError} error invoking lambda: ${name}`
@@ -205,27 +215,16 @@ export default class Utils {
     }).promise()
   }
 
-  private _invoke = async (params:AWS.Lambda.InvocationRequest)
-    :Promise<AWS.Lambda.InvocationResponse> => {
-    if (this.env.IS_OFFLINE) {
-      this.logger.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
-      return await this._requireAndInvoke(params)
-    }
-
-    this.logger.debug(`invoking ${params.FunctionName}`)
-    return await this.aws.lambda.invoke(params).promise()
-  }
-
-  private _requireAndInvoke = async (params:AWS.Lambda.InvocationRequest)
+  private invokeLocal = async (params:AWS.Lambda.InvocationRequest)
     :Promise<AWS.Lambda.InvocationResponse> => {
     const { FunctionName, InvocationType, Payload } = params
+    this.logger.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
     const shortName = this.getShortName(FunctionName)
     const yml = require('./cli/serverless-yml')
-    const createLambdaContext = require('serverless-offline/src/createLambdaContext')
     const { functions } = yml
     const handlerExportPath = functions[shortName].handler
     const lastDotIdx = handlerExportPath.lastIndexOf('.')
-    const handlerPath = path.resolve(__dirname, '..', handlerExportPath.slice(0, lastDotIdx))
+    const handlerPath = path.join('..', handlerExportPath.slice(0, lastDotIdx))
     const handleExportName = handlerExportPath.slice(lastDotIdx + 1)
     const handler = require(handlerPath)[handleExportName]
     const event = typeof Payload === 'string' ? JSON.parse(Payload) : {}

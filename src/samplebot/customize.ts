@@ -36,7 +36,7 @@ export async function customize (opts={}) {
     approveAllEmployees: products.approveAllEmployees,
     autoVerify: products.autoVerify,
     autoApprove: products.autoApprove,
-    queueSends: products.queueSends
+    queueSends: bot.env.TESTING ? true : products.queueSends
     // graphqlRequiresAuth: yn(GRAPHQL_AUTH)
   })
 
@@ -46,34 +46,30 @@ export async function customize (opts={}) {
     return plugins[pluginName]
   }
 
-  const customize = async () => {
-    productsAPI.plugins.use(customizeMessage({
-      get models () {
-        return productsAPI.models.all
-      },
-      getConf: () => getPluginConf('customize-message'),
-      logger: bot.logger
-    }))
+  productsAPI.plugins.use(customizeMessage({
+    get models () {
+      return productsAPI.models.all
+    },
+    getConf: () => getPluginConf('customize-message'),
+    logger: bot.logger
+  }))
 
-    if (productsAPI.products.includes(DEPLOYMENT)) {
-      // productsAPI.plugins.clear('onFormsCollected')
-      productsAPI.plugins.use(createDeploymentHandlers({ bot, deploymentModels }))
+  if (productsAPI.products.includes(DEPLOYMENT)) {
+    // productsAPI.plugins.clear('onFormsCollected')
+    productsAPI.plugins.use(createDeploymentHandlers({ bot, deploymentModels }))
+  }
+
+  // const biz = require('@tradle/biz-plugins')
+  // unshift
+  biz.forEach(plugin => productsAPI.plugins.use(plugin({
+    bot,
+    productsAPI,
+    get models () {
+      return productsAPI.models.all
     }
+  }), true))
 
-    // const biz = require('@tradle/biz-plugins')
-    // unshift
-    biz.forEach(plugin => productsAPI.plugins.use(plugin({
-      bot,
-      productsAPI,
-      get models () {
-        return productsAPI.models.all
-      }
-    }), true))
-  }
-
-  if (!opts.delayReady) {
-    customize().then(() => bot.ready())
-  }
+  if (!opts.delayReady) bot.ready()
 
   return {
     conf,
