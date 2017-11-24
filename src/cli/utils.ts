@@ -388,14 +388,7 @@ const initializeProvider = async (bot) => {
   const { org } = providerConf.private
   try {
     await init.init({
-      private: {
-        org: {
-          // force,
-          name: org.name + '-local',
-          domain: org.domain + '.local',
-          logo: org.logo
-        }
-      }
+      private: { org }
     })
   } catch (err) {
     Errors.ignore(err, Errors.Exists)

@@ -1,10 +1,5 @@
 import crypto = require('crypto')
 import omit = require('object.omit')
-import express = require('express')
-import bodyParser = require('body-parser')
-import cors = require('cors')
-import helmet = require('helmet')
-import coexpress = require('co-express')
 import createProductsStrategy = require('@tradle/bot-products')
 import createEmployeeManager = require('@tradle/bot-employee-manager')
 import bizPlugins = require('@tradle/biz-plugins')
@@ -13,6 +8,7 @@ import mergeModels = require('@tradle/merge-models')
 import { TYPE } from '@tradle/constants'
 import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
+import nkeyEthereum = require('nkey-ethereum')
 import setNamePlugin from './set-name'
 import { createGraphQLAuth } from './graphql-auth'
 // import { tradle as defaultTradleInstance } from '../../'
@@ -30,13 +26,17 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
   'tradle.AssignRelationshipManager'
 ]
 
+const USE_ONFIDO = false
+
 export default function createProductsBot (opts={}) {
   const {
     conf,
+    onfido,
     bot,
     models=baseModels,
     products=DEFAULT_PRODUCTS,
     namespace='test.bot',
+    queueSends,
     approveAllEmployees,
     autoVerify,
     autoApprove,
@@ -47,17 +47,18 @@ export default function createProductsBot (opts={}) {
     throw new Error('expected "bot"')
   }
 
-  const { ONFIDO_API_KEY } = process.env
+  const onfidoApiKey = USE_ONFIDO && onfido.apiKey
   const productsAPI = createProductsStrategy({
     namespace,
     models: {
       all: mergeModels()
         .add(baseModels)
         .add(models)
-        .add(ONFIDO_API_KEY ? onfidoModels.all : {})
+        .add(onfidoApiKey ? onfidoModels.all : {})
         .get()
     },
-    products
+    products,
+    queueSends
   })
 
   const employeeManager = createEmployeeManager({
@@ -205,10 +206,10 @@ export default function createProductsBot (opts={}) {
 
   }) // append
 
-  const onfidoPlugin = ONFIDO_API_KEY && createOnfidoPlugin({
+  const onfidoPlugin = onfidoApiKey && createOnfidoPlugin({
     bot,
     productsAPI,
-    token: ONFIDO_API_KEY
+    apiKey: onfido.apiKey
   })
 
   productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
@@ -231,11 +232,12 @@ export default function createProductsBot (opts={}) {
   }
 }
 
-const createOnfidoPlugin = ({ bot, productsAPI, token }) => {
-  const onfidoAPI = new OnfidoAPI({ token })
+const createOnfidoPlugin = ({ bot, productsAPI, apiKey }) => {
+  const onfidoAPI = new OnfidoAPI({ token: apiKey })
+  const logger = bot.logger.sub(':onfido')
   const onfidoPlugin = new Onfido({
     bot,
-    logger: bot.env.sublogger('onfido'),
+    logger,
     products: [{
       product: 'tradle.OnfidoVerification',
       reports: onfidoAPI.mode === 'test'
@@ -253,22 +255,21 @@ const createOnfidoPlugin = ({ bot, productsAPI, token }) => {
       await onfidoPlugin.getWebhook()
     } catch (err) {
       // ideally get the path from the cloudformation
-      const url = `${bot.resources.RestApi.ApiGateway}/onfido`
-      bot.logger.debug(`registering webhook for url: ${url}`)
+      const { apiGateway } = bot.resources
+      if (/^https?:\/\/localhost/.test(apiGateway)) {
+        logger.warn(`can't register webhook for localhost. ` +
+          `Run: ngrok http ${bot.env.SERVERLESS_OFFLINE_PORT} ` +
+          `and set the SERVERLESS_OFFLINE_APIGW environment variable`)
+
+        return
+      }
+
+      const url = `${bot.resources.apiGateway}/onfido`
+      logger.info(`registering webhook for url: ${url}`)
       await onfidoPlugin.registerWebhook({ url })
     }
   })()
 
   productsAPI.plugins.use(onfidoPlugin)
-  const { router } = bot
-  const onfidoRouter = express.Router()
-  onfidoRouter.use(cors())
-  onfidoRouter.use(helmet())
-  onfidoRouter.post('/', coexpress(function* (req, res) {
-    yield onfidoPlugin.processWebhookEvent({ req, res })
-  }))
-
-  onfidoRouter.use(router.defaultErrorHandler)
-  router.use('/onfido', onfidoRouter)
   return onfidoPlugin
 }

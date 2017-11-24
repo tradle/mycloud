@@ -115,35 +115,23 @@ const rethrow = err => {
     })
 
     bot.ready()
-    let stubResponse = sinon.stub(cfnResponse, 'send')
-      .callsFake((event, context, type, props) => {
-        t.equal(event, originalEvent)
-        t.same(context, originalContext)
-        t.same(type, cfnResponse.SUCCESS)
-      })
-
+    let { callCount } = cfnResponse.send
     yield bot.oninit(co(function* (event) {
       t.same(event, expectedEvent)
-    }))(originalEvent, {}, rethrow)
+    }))(originalEvent, {
+      done: (err) => t.error(err)
+    })
 
-    stubResponse.restore()
-
-    let err
-    stubResponse = sinon.stub(cfnResponse, 'send')
-      .callsFake((event, context, type, props) => {
-        t.equal(event, originalEvent)
-        t.same(context, originalContext)
-        t.same(type, cfnResponse.FAILED)
-        t.equal(props.message, err.message)
-        t.equal(props.stack, err.stack)
-      })
+    t.equal(cfnResponse.send.getCall(callCount++).args[2], cfnResponse.SUCCESS)
 
     yield bot.oninit(co(function* (event) {
-      err = new Error('blah')
-      throw err
-    }))(originalEvent, {}, rethrow)
+      throw new Error('blah')
+    }))(originalEvent, {
+      done: (err) => t.equal(err.message, 'blah')
+    })
 
-    stubResponse.restore()
+    t.equal(cfnResponse.send.getCall(callCount++).args[2], cfnResponse.FAILED)
+
     t.end()
   }))
 

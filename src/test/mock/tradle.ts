@@ -68,7 +68,7 @@ module.exports = function fakeTradle ({ env, conf, kv, objects, identities, mess
           recipientPubKey: {}
         }, other))
 
-        yield send(args)
+        await send(args)
       },
       getMyChainKey: promiseNoop
     }

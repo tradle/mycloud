@@ -1,13 +1,17 @@
-const format = require('string-format')
-const {
-  custom: { prefix },
-  provider: { environment },
-  resources: {
-    Resources
-  }
-} = require('../cli/serverless-yml')
+import format = require('string-format')
+import Logger from '../logger'
+import map = require('./fixtures/fake-service-map')
+import {
+  custom,
+  provider,
+  resources
+} from '../cli/serverless-yml'
 
-const map = require('./fixtures/fake-service-map')
+const { prefix } = custom
+const { environment } = provider
+const { Resources } = resources
+const logger = new Logger('service-map')
+
 for (let logicalId in map) {
   map[logicalId] = format(map[logicalId], { prefix })
 }
@@ -18,7 +22,7 @@ for (let key in environment) {
   if (Ref) {
     let resource = Resources[Ref]
     if (!resource) {
-      console.log('not a resource?', key, val)
+      logger.debug('not a resource?', key, val)
       continue
     }
 
@@ -28,7 +32,7 @@ for (let key in environment) {
     } else if (Type === 'AWS::S3::Bucket') {
       map[key] = `${prefix}${Ref.toLowerCase()}`
     } else {
-      console.log('SKIPPING ENVIRONMENT VARIABLE', key, val)
+      logger.debug('SKIPPING ENVIRONMENT VARIABLE', key, val)
     }
   } else {
     map[key] = val

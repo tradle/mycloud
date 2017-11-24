@@ -22,7 +22,7 @@ module.exports = function installDefaultHooks ({ bot, hooks }) {
     // unmarshalling is prob a waste of time
     const messages = getRecordsFromEvent(event)
     const results = yield allSettled(messages.map(savePayloadToTypeTable))
-    yield bot.hooks.fire('messagestream:post', {
+    yield hooks.fire('messagestream:post', {
       messages: messages.filter((msg, i) => !results[i].reason)
     })
 

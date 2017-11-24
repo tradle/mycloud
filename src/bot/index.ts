@@ -104,14 +104,16 @@ function createBot (opts={}) {
   })
 
   bot.setCustomModels = customModels => {
-    models = mergeModels()
+    const merger = mergeModels()
       .add(BaseModels, { validate: false })
       .add(customModels, { validate: true })
-      .get()
 
+    models = merger.get()
     if (graphqlAPI) {
       graphqlAPI.setModels(models)
     }
+
+    bot.db.addModels(merger.rest())
   }
 
   let graphqlAPI
@@ -337,6 +339,7 @@ function createBot (opts={}) {
 
   postProcessHooks.hook('readseal', emitAs('seal:read'))
   postProcessHooks.hook('wroteseal', emitAs('seal:wrote'))
+  // is 'sealevent' still used?
   postProcessHooks.hook('sealevent', emitAs('seal'))
   postProcessHooks.hook('usercreate', emitAs('user:create'))
   postProcessHooks.hook('useronline', emitAs('user:online'))

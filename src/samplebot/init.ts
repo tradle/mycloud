@@ -168,5 +168,11 @@ export class Init {
       ...DEFAULT_CONF.private,
       ...(conf.private || {})
     }
+
+    if (this.bot.env.TESTING) {
+      const { org } = this.priv
+      org.domain += '.local'
+      org.name += '-local'
+    }
   }
 }

@@ -4,12 +4,12 @@ import Env from './env'
 
 let tradle
 
-const createTestTradle = () => {
-  return new Tradle(require('./test/env').createTestEnv())
+const createTestTradle = (env) => {
+  return new Tradle(env || require('./test/env').createTestEnv())
 }
 
-const createRemoteTradle = () => {
-  return new Tradle(require('./cli/remote-service-map'))
+const createRemoteTradle = (env) => {
+  return new Tradle(env || require('./cli/remote-service-map'))
 }
 
 const createTradle = env => {

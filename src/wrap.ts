@@ -1,9 +1,8 @@
 // const zlib = require('zlib')
 
-import extend = require('xtend/mutable')
-import stringify = require('json-stringify-safe')
+import Env from './env'
 import Errors = require('./errors')
-import { cachifyPromiser, applyFunction, onWarmUp } from './utils'
+import { applyFunction, onWarmUp } from './utils'
 import { Level } from './logger'
 
 const RESOLVED = Promise.resolve()
@@ -11,31 +10,27 @@ const RESOLVED = Promise.resolve()
 exports = module.exports = wrap
 exports.wrap = wrap
 
-function wrap (fn, opts={}) {
+export type WrapOpts = {
+  env: Env
+  source?: string
+  type?: string
+}
+
+function wrap (fn:Function, opts:WrapOpts) {
   // lazy import
-  const env = opts.env || opts.tradle.env
+  const { env, source, type } = opts
   if (env.DISABLED) {
     return (event, context, callback) => callback(new Error('function is disabled'))
   }
 
   const { debug } = env
-  const {
-    // discover=!env.TESTING,
-    // todo: postProcessorsing for other event types
-    // e.g. for type: 'http' use postProcessorsors['http']
-    source,
-    type
-  } = opts
-
-  const prepare = RESOLVED // discover ? discoverServices() : RESOLVED
-  // const prepare = environment ? getReady() : RESOLVED
   const wrapper = async (...args) => {
     const callback = logify(args.pop())
     let [event, context] = args
     const eventInfo = {
       event,
       context,
-      source: opts.source || source
+      source
     }
 
     env.setFromLambdaEvent(eventInfo)
@@ -59,12 +54,10 @@ function wrap (fn, opts={}) {
     if (env.logger.level >= Level.DEBUG) {
       const now = Date.now()
       monitor = setInterval(() => {
+        const time = Date.now() - now
         const params = {
-          time: Date.now() - now
-        }
-
-        if (params.time > 20000) {
-          params.event = event
+          time,
+          event: time > 20000 && event
         }
 
         debug('event processing time', params)
@@ -73,7 +66,6 @@ function wrap (fn, opts={}) {
 
     let ret
     try {
-      await prepare
       ret = applyFunction(fn, this, args)
       if (isPromise(ret)) ret = await ret
     } catch (err) {

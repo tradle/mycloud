@@ -168,7 +168,7 @@ export default class Tradle {
   }
   get wrap () {
     const wrap = requireDefault('./wrap')
-    return (fn, opts={}) => {
+    return (fn, opts: { env?: Env }={}) => {
       if (!opts.env) opts.env = this.env
 
       return wrap(fn, opts)

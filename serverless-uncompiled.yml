@@ -806,44 +806,113 @@ functions:
     alarms:
       - functionErrors
 
-  # simulates a short (hi! hello!) conversation with a user
-  # clienttest:
-  #   handler: lib/lambda/clienttest.handler
-  #   timeout: 15
+  bot_oninit:
+    handler: lib/samplebot/lambda/init.handler
+    memorySize: 1024
 
-  bot_oninit: ${{self:custom.vars.bot_oninit, self:custom.defaults.bot_oninit}}
+  bot_info:
+    handler: lib/samplebot/lambda/http/info.handler
+    memorySize: 256
+    events:
+      - http:
+          path: info
+          method: get
 
-  # public endpoint for clients to get public configuration / provider identity
-  # e.g. the provider's identity object, styles, currency, etc.
-  bot_info: ${{self:custom.vars.bot_info, self:custom.defaults.bot_info}}
+  bot_onmessage:
+    handler: lib/samplebot/index.onmessage
+    memorySize: 1024
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
-  # bot-serviced lambda
-  # receives pre-validated messages from the tradle engine
-  # pre-processes with bot-engine
-  # hands off to bot's business logic
-  bot_onmessage: ${{self:custom.vars.bot_onmessage, self:custom.defaults.bot_onmessage}}
+  bot_onsealevent:
+    handler: lib/samplebot/index.onseal
+    memorySize: 256
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 1
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - SealsTable
+              - StreamArn
+    alarms:
+    - functionErrors
 
-  # bot-serviced lambda
-  # receives seal (read/wrote) events from the tradle engine
-  # hands off to bot's business logic
-  bot_onsealevent: ${{self:custom.vars.bot_onsealevent, self:custom.defaults.bot_onsealevent}}
+  bot_onmessagestream:
+    handler: lib/samplebot/index.onmessagestream
+    memorySize: 256
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - InboxTable
+              - StreamArn
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - OutboxTable
+              - StreamArn
+    alarms:
+      - functionErrors
+      # - functionThrottles
+      # - functionInvocations
+    # onError:
+      # Ref: DeadLetterQueue
 
-  # bot-serviced lambda
-  # replicates Inbox to per-type tables, e.g. tradle_AboutYou, tradle_PhotoID
-  bot_onmessagestream: ${{self:custom.vars.bot_onmessagestream, self:custom.defaults.bot_onmessagestream}}
+  bot_graphql:
+    # make sure graphql route gets loaded
+    handler: lib/samplebot/lambda/http/graphql.handler
+    # handler: lib/lambda/http/default.handler
+    memorySize: 512
+    events:
+      - http:
+          path: graphql
+          method: get
+      - http:
+          path: graphql
+          method: post
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionInvocations
 
-  bot_setstyle: ${{self:custom.vars.bot_setstyle, self:custom.defaults.bot_setstyle}}
-
-  # bot-serviced lambda
-  # graphql API and GraphiQL UI endpoint
-  bot_graphql: ${{self:custom.vars.bot_graphql, self:custom.defaults.bot_graphql}}
+  bot_setstyle:
+    handler: lib/samplebot/lambda/set-style.handler
+    memorySize: 128
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
-  bot_samples: ${{self:custom.vars.bot_samples, self:custom.defaults.bot_samples}}
-  # for testing
-  bot_samples_dev: ${{self:custom.vars.bot_samples_dev, self:custom.defaults.bot_samples_dev}}
-  bot_onfido: ${{self:custom.vars.bot_onfido, self:custom.defaults.bot_onfido}}
+  bot_samples:
+    handler: lib/samplebot/index.onsamples
+    # handler: lib/lambda/http/default.handler
+    memorySize: 1024
+
+  bot_samples_dev:
+    handler: lib/samplebot/index.onsamples
+    # handler: lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: samples
+          method: post
+
+  bot_onfido:
+    handler: lib/samplebot/lambda/http/onfido-webhook.handler
+    # handler: lib/lambda/http/default.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: onfido
+          method: post
 
 resources:
   Resources:

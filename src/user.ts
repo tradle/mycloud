@@ -1,5 +1,4 @@
-const debug = require('debug')('tradle:sls:user')
-const { co, getLink, typeforce, clone, omitVirtual, bindAll } = require('./utils')
+const { co, omitVirtual, bindAll } = require('./utils')
 const { prettify } = require('./string-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
 const Errors = require('./errors')

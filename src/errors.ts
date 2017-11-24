@@ -89,6 +89,11 @@ const errors = {
   TimeTravel: createError('TimeTravel'),
   ExecutionTimeout: createError('ExecutionTimeout'),
   Exists: createError('Exists'),
+  // HttpError: (code, message) => {
+  //   const err = new Error(message)
+  //   err.code = code
+  //   return err
+  // },
   export: (err:Error): {
     type:string,
     message:string

@@ -59,7 +59,11 @@ module.exports = function createBotInputs ({
     conf: conf.sub(':bot'),
     kv: kv.sub(':bot'),
     contentAddressedStorage,
-    resources: pick(tradle, ['tables', 'buckets']),
+    resources: {
+      tables: tradle.tables,
+      buckets: tradle.buckets,
+      apiGateway: tradle.resources.RestApi.ApiGateway
+    },
     messages,
     friends,
     identities: {

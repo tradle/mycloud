@@ -14,8 +14,9 @@ export async function customize (opts={}) {
   const conf = createConf(bot)
   let privateConf = await conf.getPrivateConf()
 
-  const { org } = privateConf
-  const products = privateConf.products.enabled
+  const { org, products } = privateConf
+  const { plugins={} } = products
+  const { onfido={} } = plugins
   const namespace = org.domain.split('.').reverse().join('.')
   const deploymentModels = createDeploymentModels(namespace)
   const DEPLOYMENT = deploymentModels.deployment.id
@@ -27,13 +28,15 @@ export async function customize (opts={}) {
     onfidoPlugin
   } = strategies.products({
     conf,
+    onfido,
     bot,
     namespace,
     models,
-    products,
+    products: products.enabled,
     approveAllEmployees: products.approveAllEmployees,
     autoVerify: products.autoVerify,
     autoApprove: products.autoApprove,
+    queueSends: products.queueSends
     // graphqlRequiresAuth: yn(GRAPHQL_AUTH)
   })
 
@@ -48,11 +51,11 @@ export async function customize (opts={}) {
       get models () {
         return productsAPI.models.all
       },
-      getConf: () => dotProp.get(privateConf, 'plugins.customize-message'),
+      getConf: () => getPluginConf('customize-message'),
       logger: bot.logger
     }))
 
-    if (products.includes(DEPLOYMENT)) {
+    if (productsAPI.products.includes(DEPLOYMENT)) {
       // productsAPI.plugins.clear('onFormsCollected')
       productsAPI.plugins.use(createDeploymentHandlers({ bot, deploymentModels }))
     }
