@@ -31,7 +31,7 @@ const USE_ONFIDO = false
 export default function createProductsBot (opts={}) {
   const {
     conf,
-    onfido,
+    onfido={},
     bot,
     models=baseModels,
     products=DEFAULT_PRODUCTS,
