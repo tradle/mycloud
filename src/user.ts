@@ -93,7 +93,11 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
       message: processed
     })
 
-    const { BOT_ONMESSAGE } = this.env
+    const {
+      BOT_ONMESSAGE,
+      INVOKE_BOT_ONMESSAGE_DIRECTLY=TESTING
+    } = this.env
+
     if (!BOT_ONMESSAGE) {
       this.logger.warn('no bot subscribed to "onmessage"')
       return
@@ -103,8 +107,8 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     const neutered = this.messages.stripData(processed)
     this.logger.debug(`passing message from ${processed._author} on to bot`)
     const resp = yield this.lambdaUtils.invoke({
-      sync: this.env.INVOKE_BOT_ONMESSAGE_DIRECTLY || TESTING,
-      local: this.env.INVOKE_BOT_ONMESSAGE_DIRECTLY,
+      sync: INVOKE_BOT_ONMESSAGE_DIRECTLY,
+      local: INVOKE_BOT_ONMESSAGE_DIRECTLY,
       name: BOT_ONMESSAGE,
       arg: neutered
       // arg: JSON.stringify({ author, time, link })

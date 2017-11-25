@@ -239,6 +239,8 @@ provider:
     # BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: bot_onmessage
 
+    INVOKE_BOT_ONMESSAGE_DIRECTLY: 1
+
     # API KEYS
     ONFIDO_API_KEY: ${{self:custom.secrets.ONFIDO_API_KEY, ''}}
 
