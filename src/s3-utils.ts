@@ -75,8 +75,9 @@ module.exports = function createUtils (aws) {
         opts = { key: opts }
       }
 
-      if (etag && Date.now() - cachedTime < ttl) {
-        logger.debug(`returning cached item for key ${key}`)
+      const age = Date.now() - cachedTime
+      if (etag && age < ttl) {
+        logger.debug(`returning cached item for key ${key}, ttl: ${(ttl - age)}`)
         return cached
       }
 
@@ -89,7 +90,7 @@ module.exports = function createUtils (aws) {
         cached = await get({ key, bucket, ...opts })
       } catch (err) {
         if (err.code === 'NotModified') {
-          logger.debug(`304, returning cached item for key ${key}`)
+          logger.debug(`304, returning cached item for key ${key}, ETag ${etag}`)
           return cached
         }
 
@@ -105,7 +106,7 @@ module.exports = function createUtils (aws) {
       }
 
       cachedTime = Date.now()
-      logger.debug(`fetched and cached item for key ${key}`)
+      logger.debug(`fetched and cached item for key ${key}, ETag ${etag}`)
       return cached
     }
 
