@@ -187,28 +187,17 @@ export default class Provider {
 
   public createReceiveMessageEvent = async ({ message }):Promise<ITradleMessage> => {
     message = await this.messages.parseInbound(message)
-    // TODO: phase this out
-    await this.objects.put(message.object)
+
+    const tasks = [
+      this.objects.put(message.object),
+      this.messages.putMessage(message)
+    ]
+
     if (message.seal) {
-      this.watchSealedPayload(message)
+      tasks.push(this.watchSealedPayload(message))
     }
 
-    // if (objectWrapper.type === IDENTITY && messageWrapper.sigPubKey === objectWrapper.sigPubKey) {
-    //   // special case: someone is sending us their own identity
-
-    //   // TODO: validate identity
-    //   // await getIdentityByPubKey(objectWrapper.sigPubKey)
-
-    //   const { link, permalink, sigPubKey } = objectWrapper
-    //   await Events.putEvent({
-    //     topic: 'addcontact',
-    //     link,
-    //     permalink,
-    //     sigPubKey
-    //   })
-    // }
-
-    await this.messages.putMessage(message)
+    await Promise.all(tasks)
     return message
   }
 
@@ -333,8 +322,8 @@ export default class Provider {
     ])
 
     const embeds = Embed.getEmbeds(payload)
-    // the signature will be validated against the embeded
-    // data url
+    // the signature will be validated against the object with
+    // media embeded as data urls
     await this.objects.resolveEmbeds(payload)
     const payloadVirtual = pickVirtual(payload)
     const unsignedMessage = clone(other, {

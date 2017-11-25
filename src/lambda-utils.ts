@@ -16,7 +16,7 @@ export default class Utils {
   constructor ({ env, aws }) {
     this.env = env
     this.aws = aws
-    this.logger = env.sublogger('lambda-utils')
+    this.logger = env.sublogger(':lambda-utils')
   }
 
   public getShortName = (name: string):string => {
@@ -155,6 +155,11 @@ export default class Utils {
   }
 
   public updateEnvironments = async(map:(conf:Lambda.Types.FunctionConfiguration) => any) => {
+    if (this.env.TESTING) {
+      this.logger.debug(`updateEnvironments is skipped in test mode`)
+      return
+    }
+
     const functions = await this.getStackFunctionConfigurations()
     if (!functions) return
 
@@ -176,6 +181,11 @@ export default class Utils {
     current?: any,
     update: any
   }) => {
+    if (this.env.TESTING) {
+      this.logger.debug(`updateEnvironment is skipped in test mode`)
+      return
+    }
+
     let { functionName, update } = opts
     let { current } = opts
     if (!current) {
@@ -215,6 +225,21 @@ export default class Utils {
     }).promise()
   }
 
+  public forceReinitializeContainers = async (functions?:string[]) => {
+    await this.updateEnvironments(({ FunctionName }) => {
+      if (!functions || functions.includes(FunctionName)) {
+        return getDateUpdatedEnvironmentVariables()
+      }
+    })
+  }
+
+  public forceReinitializeContainer = async (functionName:string) => {
+    await this.updateEnvironment({
+      functionName,
+      update: getDateUpdatedEnvironmentVariables()
+    })
+  }
+
   private invokeLocal = async (params:AWS.Lambda.InvocationRequest)
     :Promise<AWS.Lambda.InvocationResponse> => {
     const { FunctionName, InvocationType, Payload } = params
@@ -251,3 +276,7 @@ export default class Utils {
     return result
   }
 }
+
+const getDateUpdatedEnvironmentVariables = () => ({
+  DATE_UPDATED: Date.now()
+})

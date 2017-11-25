@@ -43,6 +43,7 @@ custom:
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
+  invokeBotLambdasDirectly: ${{self:custom.vars.invokeBotLambdasDirectly, self:custom.defaults.invokeBotLambdasDirectly}}
   providerConf: &providerConf
     ${{file(./src/samplebot/conf/provider.json)}}
 
@@ -225,8 +226,6 @@ provider:
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
     IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
-    # declare
-    IOT_ENDPOINT: ''
     BLOCKCHAIN: ${{self:custom.blockchain}}
     DEBUG: 'λ*,tradle:*,@tradle*'
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
@@ -239,10 +238,7 @@ provider:
     # BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
     BOT_ONMESSAGE: bot_onmessage
 
-    INVOKE_BOT_ONMESSAGE_DIRECTLY: 1
-
-    # API KEYS
-    ONFIDO_API_KEY: ${{self:custom.secrets.ONFIDO_API_KEY, ''}}
+    INVOKE_BOT_LAMBDAS_DIRECTLY: ${{self:custom.invokeBotLambdasDirectly}}
 
   iamRoleStatements:
     - Effect: Allow
@@ -285,8 +281,13 @@ provider:
     - Effect: Allow
       Action:
         - lambda:UpdateFunctionConfiguration
-        - lambda:GetFunctionConfiguration
         - lambda:ListFunctions
+      # This action does not support resource-level permissions
+      Resource: ["*"]
+
+    - Effect: Allow
+      Action:
+        - lambda:GetFunctionConfiguration
       Resource:
         - Fn::Sub: 'arn:aws:lambda:${{self:custom.region}}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
 
@@ -455,7 +456,7 @@ functions:
               - ondisconnect
               - onsubscribe
               - onmessage
-              - bot_onmessage
+              # - bot_onmessage
               - bot_graphql
               - bot_info
               - preauth
@@ -464,8 +465,8 @@ functions:
               - onmessage_http
               - to-events:
                   concurrency: 2
-              - bot_onmessagestream:
-                  concurrency: 2
+              # - bot_onmessagestream:
+              #     concurrency: 2
     alarms:
       - functionErrors
       # - functionThrottles

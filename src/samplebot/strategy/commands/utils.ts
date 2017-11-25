@@ -1,3 +1,4 @@
+import { Conf } from '../../configure'
 
 export const toggleProduct = async ({ context, req, product, enable }: {
   context,
@@ -28,9 +29,9 @@ export const toggleProduct = async ({ context, req, product, enable }: {
     ? products.concat(product)
     : products.filter(id => id !== product)
 
-  const privateConf = await conf.getPrivateConf()
-  privateConf.products.enabled = newProductsList
-  await conf.savePrivateConf(privateConf)
+  conf.products.enabled = newProductsList
+  const confManager = new Conf(bot)
+  await confManager.savePrivateConf(conf)
 
   const verb = enable ? 'enabled' : 'disabled'
   const message = `${verb} product ${product}`

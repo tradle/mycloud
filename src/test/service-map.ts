@@ -22,7 +22,7 @@ for (let key in environment) {
   if (Ref) {
     let resource = Resources[Ref]
     if (!resource) {
-      logger.debug('not a resource?', key, val)
+      // logger.debug('not a resource?', key, val)
       continue
     }
 
@@ -31,9 +31,10 @@ for (let key in environment) {
       map[key] = Properties.TableName
     } else if (Type === 'AWS::S3::Bucket') {
       map[key] = `${prefix}${Ref.toLowerCase()}`
-    } else {
-      logger.debug('SKIPPING ENVIRONMENT VARIABLE', key, val)
     }
+    // else {
+    //   logger.debug('SKIPPING ENVIRONMENT VARIABLE', key, val)
+    // }
   } else {
     map[key] = val
   }

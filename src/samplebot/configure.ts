@@ -11,44 +11,38 @@ export class Conf {
     const { buckets } = bot.resources
     this.privateConfBucket = buckets.PrivateConf
     this.publicConfBucket = buckets.PublicConf
-    this.privateConf = this.privateConfBucket.getCacheable({
-      key: PRIVATE_CONF_KEY,
-      ttl: 60000,
-      parse: JSON.parse.bind(JSON)
-    })
-
-    this.publicConf = this.publicConfBucket.getCacheable({
-      key: PUBLIC_CONF_KEY,
-      ttl: 60000,
-      parse: JSON.parse.bind(JSON)
-    })
   }
 
-  public getPrivateConf = () => this.privateConf.get()
-  public getPublicConf = () => this.publicConf.get()
-
-  public savePublicConf = (value) => {
-    return this.publicConf.put({ value })
+  public getPrivateConf = () => this.privateConfBucket.getJSON(PRIVATE_CONF_KEY)
+  public getPublicConf = () => this.publicConfBucket.getJSON(PUBLIC_CONF_KEY)
+  public savePublicConf = async (value:any, reinitializeContainers:boolean=true) => {
+    await this.publicConfBucket.put(PUBLIC_CONF_KEY, value)
+    if (reinitializeContainers) {
+      await this.forceReinitializeContainers()
+    }
   }
 
-  public savePrivateConf = (value) => {
-    return this.privateConf.put({ value })
+  public savePrivateConf = async (value:any, reinitializeContainers:boolean=true) => {
+    await this.privateConfBucket.put(PRIVATE_CONF_KEY, value)
+    if (reinitializeContainers) {
+      await this.forceReinitializeContainers()
+    }
   }
 
-  public setStyle = async (style) => {
-    await bot.promiseReady
+  public forceReinitializeContainers = () => this.bot.forceReinitializeContainers()
+
+  public setStyle = async (style:any, reinitializeContainers:boolean=true) => {
+    await this.bot.promiseReady()
     validateResource({
-      models: bot.models,
+      models: this.bot.models,
       model: 'tradle.StylesPack',
       resource: style
     })
 
-    const publicConf = await this.publicConf.get()
+    const publicConf = await this.getPublicConf()
     publicConf.style = style
-    await this.savePublicConf(publicConf)
+    await this.savePublicConf(publicConf, reinitializeContainers)
   }
 }
 
-export function createConf (bot) {
-  return new Conf(bot)
-}
+export const createConf = (bot):Conf => new Conf(bot)

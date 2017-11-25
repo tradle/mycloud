@@ -51,6 +51,7 @@ export default class Env {
   public isVirgin:boolean
 
   public PUSH_SERVER_URL:string
+  public INVOKE_BOT_LAMBDAS_DIRECTLY:boolean
 
   public get containerAge () {
     return this.LAMBDA_BIRTH_DATE ? Date.now() - this.LAMBDA_BIRTH_DATE : null
@@ -195,6 +196,10 @@ export default class Env {
 
     if ('NO_TIME_TRAVEL' in props) {
       this.NO_TIME_TRAVEL = yn(props.NO_TIME_TRAVEL)
+    }
+
+    if ('INVOKE_BOT_LAMBDAS_DIRECTLY' in props) {
+      this.INVOKE_BOT_LAMBDAS_DIRECTLY = yn(props.INVOKE_BOT_LAMBDAS_DIRECTLY)
     }
 
     if ('LAMBDA_BIRTH_DATE' in props) {

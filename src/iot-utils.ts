@@ -20,7 +20,7 @@ module.exports = function ({ aws, env, prefix='' }) {
     if (!iotData) {
       let endpoint = env.IOT_ENDPOINT
       if (!endpoint) {
-        // set for ./aws to pick up
+        // HACK: set for ./aws to pick up
         env.IOT_ENDPOINT = yield getEndpoint()
       }
 

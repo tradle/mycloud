@@ -12,6 +12,7 @@ const installDefaultHooks = require('./default-hooks')
 const makeBackwardsCompat = require('./backwards-compat')
 const errors = require('../errors')
 const types = require('../typeforce-types')
+const { readyMixin } = require('./ready-mixin')
 const {
   extend,
   omit,
@@ -35,7 +36,8 @@ const promisePassThrough = data => Promise.resolve(data)
 const COPY_TO_BOT = [
   'aws', 'objects', 'db', 'conf', 'kv', 'seals', 'seal',
   'identities', 'users', 'history', 'messages', 'friends',
-  'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router', 'init'
+  'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router',
+  'init'
 ]
 
 const HOOKABLE = [
@@ -98,6 +100,8 @@ function createBot (opts={}) {
 
   const bot = new EventEmitter()
   extend(bot, pick(opts, COPY_TO_BOT))
+  readyMixin(bot)
+  bot.on('ready', () => bot.debug('ready!'))
 
   Object.defineProperty(bot, 'models', {
     get () { return models }
@@ -117,16 +121,15 @@ function createBot (opts={}) {
   }
 
   let graphqlAPI
-  Object.defineProperty(bot, 'graphqlAPI', {
-    get() {
-      if (!graphqlAPI) {
-        const { setupGraphQL } = require('./graphql')
-        graphqlAPI = setupGraphQL(this)
-      }
-
-      return graphqlAPI
+  bot.hasGraphqlAPI = () => !!graphqlAPI
+  bot.getGraphqlAPI = () => {
+    if (!graphqlAPI) {
+      const { setupGraphQL } = require('./graphql')
+      graphqlAPI = setupGraphQL(bot)
     }
-  })
+
+    return graphqlAPI
+  }
 
   bot.createHandler = opts.wrap
   bot.createHttpHandler = (opts={}) => {
@@ -134,8 +137,12 @@ function createBot (opts={}) {
     return createHandler({
       router: bot.router,
       env: bot.env,
-      preprocess: () => promiseReady
+      preprocess: bot.promiseReady
     })
+  }
+
+  if (opts.lambdaUtils) {
+    bot.forceReinitializeContainers = opts.lambdaUtils.forceReinitializeContainers
   }
 
   bot.logger = logger.sub(':bot')
@@ -146,9 +153,9 @@ function createBot (opts={}) {
   })
 
   bot.save = async (resource) => {
-    if (promiseReady.isPending()) {
+    if (!bot.isReady()) {
       logger.debug('waiting for bot.ready()')
-      await promiseReady
+      await bot.promiseReady()
     }
 
     resource = clone(resource)
@@ -158,18 +165,18 @@ function createBot (opts={}) {
   }
 
   bot.update = async (resource) => {
-    if (promiseReady.isPending()) {
+    if (!bot.isReady()) {
       logger.debug('waiting for bot.ready()')
-      await promiseReady
+      await bot.promiseReady()
     }
 
     return await bot.db.update(ensureTimestamped(resource))
   }
 
   bot.send = async (opts) => {
-    if (promiseReady.isPending()) {
+    if (!bot.isReady()) {
       logger.debug('waiting for bot.ready()')
-      await promiseReady
+      await bot.promiseReady()
     }
 
     let { link, object, to } = opts
@@ -348,9 +355,9 @@ function createBot (opts={}) {
   const finallyHooks = createHooks()
   // invocations are wrapped to preserve context
   const processEvent = async (event, payload) => {
-    if (promiseReady.isPending()) {
+    if (!bot.isReady()) {
       logger.debug('waiting for bot.ready()')
-      await promiseReady
+      await bot.promiseReady()
     }
 
     const originalPayload = { ...payload }
@@ -370,13 +377,6 @@ function createBot (opts={}) {
       await postProcessHooks.fire(`${event}:error`, { payload, error })
     }
   }
-
-  const promiseReady = bot.promiseReady = new Promise(resolve => {
-    bot.ready = () => {
-      logger.debug('ready!')
-      resolve()
-    }
-  })
 
   bot.use = (strategy, opts) => strategy(bot, opts)
 

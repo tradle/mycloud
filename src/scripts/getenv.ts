@@ -6,7 +6,7 @@ co(getEnv)().catch(console.error)
 
 function* getEnv () {
   const { Environment } = yield aws.lambda.getFunctionConfiguration({
-    FunctionName: 'tradle-dev-info'
+    FunctionName: 'tradle-dev-onmessage'
   }).promise()
 
   process.stdout.write(JSON.stringify(Environment.Variables, null, 2))

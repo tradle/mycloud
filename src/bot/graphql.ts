@@ -46,7 +46,7 @@ export function setupGraphQL (bot) {
   gqlRouter.use(bodyParser.json({ limit: '10mb' }))
   gqlRouter.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
   gqlRouter.use('/', coexpress(function* (req, res, next) {
-    yield promiseReady
+    yield promiseReady()
     if (auth) {
       yield auth(req, res, next)
     } else {
@@ -55,7 +55,7 @@ export function setupGraphQL (bot) {
   }))
 
   gqlRouter.use('/', expressGraphQL(async (req) => {
-    await promiseReady
+    await promiseReady()
     const { query } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
       logger.debug('received query:')
@@ -127,7 +127,7 @@ export function setupGraphQL (bot) {
   })()
 
   const executeQuery = async (query, variables) => {
-    await promiseReady
+    await promiseReady()
     return graphql(getSchema(), query, null, {}, variables)
   }
 

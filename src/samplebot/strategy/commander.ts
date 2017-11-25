@@ -48,6 +48,7 @@ export class Commander {
   }
 
   async exec({ req, command }) {
+    this.bot.debug(`processing command: ${command}`)
     const parts = command.match(COMMAND_REGEX)
     const isEmployee = this.employeeManager.isEmployee(req.user)
     const commands = isEmployee ? EMPLOYEE_COMMANDS : CUSTOMER_COMMANDS

@@ -6,9 +6,10 @@ import { createBot } from '../bot'
 import { PUBLIC_CONF_KEY, PRIVATE_CONF_KEY } from './constants'
 import DEFAULT_CONF = require('./conf/provider')
 import { LOGO_UNKNOWN } from './media'
-import { createConf } from './configure'
+import { Conf } from './configure'
 import Errors = require('../errors')
 import Logger from '../'
+import Conf from './configure'
 
 const baseOrgObj = {
   [TYPE]: 'tradle.Organization'
@@ -23,12 +24,12 @@ export class Init {
   private priv: any
   private pub: any
   private forceRecreateIdentity: boolean
-  private confManager: any
+  private confManager: Conf
   private logger: Logger
   constructor({ bot }) {
     this.bot = bot
     this.logger = bot.logger
-    this.confManager = createConf(bot)
+    this.confManager = new Conf(bot)
   }
 
   public ensureInitialized = async (conf) => {
@@ -59,7 +60,7 @@ export class Init {
 
     const org = await this.createOrg()
     await Promise.all([
-      this.savePrivateConf(),
+      this.savePrivateConf({ forceReinitializeContainers: false }),
       this.savePublicConf({ org, identity })
     ])
   }
@@ -77,10 +78,11 @@ export class Init {
       : this.bot.getMyIdentity()
 
     const [org, identity] = await Promise.all([getOrg, getIdentity])
-    await this.confManager.savePublicConf(this.createPublicConf({ org, identity }))
+    const pub = this.createPublicConf({ org, identity })
+    await this.confManager.savePublicConf(pub)
   }
 
-  public savePrivateConf = async () => {
+  public savePrivateConf = async (opts={}) => {
     this.logger.debug(`saving private conf`)
     let current
     try {
@@ -93,7 +95,7 @@ export class Init {
       await this.updateOrg({ current: current.org })
     }
 
-    await this.confManager.savePrivateConf(this.priv)
+    await this.confManager.savePrivateConf(this.priv, opts.forceReinitializeContainers)
   }
 
   private updateOrg = async ({ current }) => {
@@ -138,6 +140,8 @@ export class Init {
       this.savePublicConf(),
       this.savePrivateConf()
     ])
+
+    await this.confManager.forceReinitializeContainers()
   }
 
   public getOrgObj = ({ name, logo }) => ({

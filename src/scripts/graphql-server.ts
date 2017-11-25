@@ -15,7 +15,6 @@ import cors = require('cors')
 import dynogels = require('dynogels')
 import { createBot } from '../samplebot/bot'
 import sampleQueries from '../samplebot/sample-queries'
-import { setupGraphQL } from '../bot/graphql'
 
 const TESTING = process.env.NODE_ENV === 'test'
 if (TESTING) {
@@ -42,7 +41,7 @@ dynogels.log = {
 
 ;(async () => {
   const { bot } = await createBot()
-  const graphqlAPI = setupGraphQL(bot)
+  const graphqlAPI = bot.getGraphqlAPI()
   const app = express()
   app.use(cors())
   // app.use(express.static(__dirname))

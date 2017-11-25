@@ -6,14 +6,18 @@ import bizPlugins = require('@tradle/biz-plugins')
 import validateResource = require('@tradle/validate-resource')
 import mergeModels = require('@tradle/merge-models')
 import { TYPE } from '@tradle/constants'
-import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
-import nkeyEthereum = require('nkey-ethereum')
+import customizeMessage = require('@tradle/plugin-customize-message')
 import setNamePlugin from './set-name'
 import { createGraphQLAuth } from './graphql-auth'
 // import { tradle as defaultTradleInstance } from '../../'
 import createBot = require('../../bot')
 import { Commander } from './commander'
+import createDeploymentModels from '../deployment-models'
+import createBankModels from '../bank-models'
+import createDeploymentHandlers from '../deployment-handlers'
+import { createOnfidoPlugin } from './onfido'
+
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
 const baseModels = require('../../models')
@@ -28,25 +32,27 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 
 const USE_ONFIDO = false
 
-export default function createProductsBot (opts={}) {
+export default function createProductsBot ({ bot, conf }) {
   const {
-    conf,
-    onfido={},
-    bot,
-    models=baseModels,
-    products=DEFAULT_PRODUCTS,
-    namespace='test.bot',
-    queueSends,
-    approveAllEmployees,
-    autoVerify,
+    domain
+  } = conf.org
+
+  const {
+    enabled,
+    plugins={},
     autoApprove,
+    autoVerify,
+    approveAllEmployees,
+    queueSends,
     graphqlRequiresAuth
-  } = opts
+  } = conf.products
 
-  if (!bot) {
-    throw new Error('expected "bot"')
-  }
-
+  const { onfido={} } = plugins
+  const namespace = domain.split('.').reverse().join('.')
+  const deploymentModels = createDeploymentModels(namespace)
+  const DEPLOYMENT = deploymentModels.deployment.id
+  const bankModels = createBankModels(namespace)
+  const models = { ...deploymentModels.all, ...bankModels }
   const onfidoApiKey = USE_ONFIDO && onfido.apiKey
   const productsAPI = createProductsStrategy({
     namespace,
@@ -57,8 +63,8 @@ export default function createProductsBot (opts={}) {
         .add(onfidoApiKey ? onfidoModels.all : {})
         .get()
     },
-    products,
-    queueSends
+    products: enabled,
+    queueSends: bot.env.TESTING ? true : queueSends
   })
 
   const employeeManager = createEmployeeManager({
@@ -137,7 +143,7 @@ export default function createProductsBot (opts={}) {
         return
       }
 
-      if (application && application.requestFor.endsWith('.Deployment')) {
+      if (application && application.requestFor === DEPLOYMENT) {
         debug(`not autoverifying MyCloud config form: ${type}`)
         return
       }
@@ -173,6 +179,7 @@ export default function createProductsBot (opts={}) {
     'onmessage:tradle.SimpleMessage': async (req) => {
       const { application, object } = req
       const { message } = object
+      bot.debug(`processing simple message: ${message}`)
       if (message[0] === '/') return
       if (application && application.relationshipManager) return
 
@@ -206,6 +213,11 @@ export default function createProductsBot (opts={}) {
 
   }) // append
 
+  if (productsAPI.products.includes(DEPLOYMENT)) {
+    // productsAPI.plugins.clear('onFormsCollected')
+    productsAPI.plugins.use(createDeploymentHandlers({ bot, deploymentModels }))
+  }
+
   const onfidoPlugin = onfidoApiKey && createOnfidoPlugin({
     bot,
     productsAPI,
@@ -216,11 +228,24 @@ export default function createProductsBot (opts={}) {
 
   // bot.hook('message', , true) // prepend
 
-  if (bot.graphqlAPI && graphqlRequiresAuth) {
-    bot.graphqlAPI.setAuth(createGraphQLAuth({
-      bot,
-      employeeManager
+  if (bot.hasGraphqlAPI() && graphqlRequiresAuth) {
+    bot.getGraphqlAPI().setAuth(createGraphQLAuth({ bot, employeeManager }))
+  }
+
+  const customizeMessageOpts = plugins['customize-message']
+  if (customizeMessageOpts) {
+    productsAPI.plugins.use(customizeMessage({
+      models: productsAPI.models.all,
+      conf: customizeMessageOpts,
+      logger: bot.logger
     }))
+  }
+
+  const uninstall = () => {
+    productsAPI.uninstall()
+    if (bot.hasGraphqlAPI()) {
+      bot.getGraphqlAPI().setAuth(null)
+    }
   }
 
   return {
@@ -228,48 +253,7 @@ export default function createProductsBot (opts={}) {
     productsAPI,
     employeeManager,
     onfidoPlugin,
-    commands
+    commands,
+    uninstall
   }
-}
-
-const createOnfidoPlugin = ({ bot, productsAPI, apiKey }) => {
-  const onfidoAPI = new OnfidoAPI({ token: apiKey })
-  const logger = bot.logger.sub(':onfido')
-  const onfidoPlugin = new Onfido({
-    bot,
-    logger,
-    products: [{
-      product: 'tradle.OnfidoVerification',
-      reports: onfidoAPI.mode === 'test'
-        ? ['document', 'identity']
-        : ['document', 'identity', 'facialsimilarity']
-    }],
-    productsAPI,
-    onfidoAPI,
-    padApplicantName: true,
-    formsToRequestCorrectionsFor: ['tradle.OnfidoApplicant', 'tradle.Selfie']
-  })
-
-  ;(async () => {
-    try {
-      await onfidoPlugin.getWebhook()
-    } catch (err) {
-      // ideally get the path from the cloudformation
-      const { apiGateway } = bot.resources
-      if (/^https?:\/\/localhost/.test(apiGateway)) {
-        logger.warn(`can't register webhook for localhost. ` +
-          `Run: ngrok http ${bot.env.SERVERLESS_OFFLINE_PORT} ` +
-          `and set the SERVERLESS_OFFLINE_APIGW environment variable`)
-
-        return
-      }
-
-      const url = `${bot.resources.apiGateway}/onfido`
-      logger.info(`registering webhook for url: ${url}`)
-      await onfidoPlugin.registerWebhook({ url })
-    }
-  })()
-
-  productsAPI.plugins.use(onfidoPlugin)
-  return onfidoPlugin
 }

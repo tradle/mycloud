@@ -4,15 +4,15 @@ import sampleQueries from '../../sample-queries'
 import { createBot } from '../../../bot'
 
 const bot = createBot()
+const graphqlAPI = bot.getGraphqlAPI()
 
 // models will be set asynchronously
-bot.graphqlAPI
 export const handler = bot.createHttpHandler()
 
 ;(async () => {
   const { conf, productsAPI } = await customize({ bot, delayReady: true })
-  const { org } = await conf.getPrivateConf()
-  bot.graphqlAPI.setGraphiqlOptions({
+  const { org } = conf
+  graphqlAPI.setGraphiqlOptions({
     logo: {
       src: org.logo,
       width: 32,

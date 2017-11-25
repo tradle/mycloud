@@ -13,10 +13,10 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { custom } = require('../cli/serverless-yml')
+const { provider } = require('../cli/serverless-yml')
 const env = argv.path
   ? require(path.resolve(process.cwd(), argv.path))
-  : custom.brand.env
+  : minusObjectValues(provider.environment)
 
 loadCredentials()
 
@@ -42,3 +42,15 @@ co(function* () {
   console.error(err)
   process.exit(1)
 })
+
+function minusObjectValues (obj) {
+  const minus = {}
+  for (let key in obj) {
+    let val = obj[key]
+    if (typeof val !== 'object') {
+      minus[key] = val
+    }
+  }
+
+  return minus
+}

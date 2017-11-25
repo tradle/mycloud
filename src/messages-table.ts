@@ -16,7 +16,6 @@ export function createMessagesTable ({ models, getMyIdentity }: {
   getMyIdentity:() => Promise<any>
 }) {
   const model = models['tradle.Message']
-  const promiseMyIdentity = getMyIdentity()
   const inbox = createTable({
     bodyInObjects: false,
     models,
@@ -95,7 +94,7 @@ export function createMessagesTable ({ models, getMyIdentity }: {
         throw new Error('expected IN._author and IN._recipient to be the same')
       }
 
-      const identity = await promiseMyIdentity
+      const identity = await getMyIdentity()
       if (!_author.includes(identity._permalink)) {
         throw new Error(`expected one of the parties to be this bot: "${identity._permalink}"`)
       }
