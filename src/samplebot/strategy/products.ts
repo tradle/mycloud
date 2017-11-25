@@ -74,7 +74,7 @@ export default function createProductsBot (opts={}) {
   const employeeModels = omit(productsAPI.models.all, BASE_MODELS_IDS)
   const customerModels = omit(
     productsAPI.models.all,
-    Object.keys(productsAPI.models.private)
+    Object.keys(productsAPI.models.private.all)
       .concat(BASE_MODELS_IDS)
   )
 
