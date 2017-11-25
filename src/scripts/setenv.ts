@@ -13,7 +13,7 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { provider } = require('../cli/serverless-yml')
+const { custom, provider } = require('../cli/serverless-yml')
 const env = argv.path
   ? require(path.resolve(process.cwd(), argv.path))
   : minusObjectValues(provider.environment)

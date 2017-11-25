@@ -87,7 +87,8 @@ function createBot (opts={}) {
     send,
     sign,
     seals,
-    env={}
+    env={},
+    lambdaUtils
   } = opts
 
   const {
@@ -141,8 +142,14 @@ function createBot (opts={}) {
     })
   }
 
-  if (opts.lambdaUtils) {
-    bot.forceReinitializeContainers = opts.lambdaUtils.forceReinitializeContainers
+  if (lambdaUtils) {
+    bot.forceReinitializeContainers = async (functions?:string[]) => {
+      await lambdaUtils.invoke({
+        name: 'reinitialize-containers',
+        sync: false,
+        arg: functions
+      })
+    }
   }
 
   bot.logger = logger.sub(':bot')

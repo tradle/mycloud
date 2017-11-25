@@ -14,7 +14,12 @@ export = function attachHandler ({ tradle, router }: {
     const { message } = event
     // the user sent us a message
     const result = yield user.onSentMessage({ message })
-    res.json(result)
+    if (result) {
+      res.json(result)
+    } else {
+      res.send(200)
+    }
+
     // debug('preceived')
   })
 

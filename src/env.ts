@@ -76,13 +76,15 @@ export default class Env {
       ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
       : '[unknown]'
 
-    const namespace = this.TESTING ? packageName : ''
+    const namespace = '' //this.TESTING ? packageName : ''
     this.logger = new Logger({
       namespace,
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
-      writer: this.TESTING ? { log: debug(namespace) } : global.console,
-      outputFormat: this.TESTING ? 'text': 'json'
+      // writer: this.TESTING ? { log: debug(namespace) } : global.console,
+      // outputFormat: this.TESTING ? 'text': 'json'
+      writer: console,
+      outputFormat: 'text'
     })
 
     this.debug = this.logger.debug

@@ -227,7 +227,7 @@ provider:
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
     IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
     BLOCKCHAIN: ${{self:custom.blockchain}}
-    DEBUG: 'λ*,tradle:*,@tradle*'
+    DEBUG: 'λ*,*tradle*'
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -798,7 +798,7 @@ functions:
     #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
     #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
-  checkFailedSeals:
+  check-failed-seals:
     handler: lib/lambda/check-failed-seals.handler
     memorySize: 256
     timeout: 60
@@ -808,6 +808,10 @@ functions:
           # enabled: false
     alarms:
       - functionErrors
+
+  # force reinitialize lambda containers
+  reinitialize-containers:
+    handler: lib/lambda/reinitialize-containers.handler
 
   bot_oninit:
     handler: lib/samplebot/lambda/init.handler

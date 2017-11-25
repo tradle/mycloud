@@ -241,19 +241,11 @@ export default function createProductsBot ({ bot, conf }) {
     }))
   }
 
-  const uninstall = () => {
-    productsAPI.uninstall()
-    if (bot.hasGraphqlAPI()) {
-      bot.getGraphqlAPI().setAuth(null)
-    }
-  }
-
   return {
     bot,
     productsAPI,
     employeeManager,
     onfidoPlugin,
-    commands,
-    uninstall
+    commands
   }
 }

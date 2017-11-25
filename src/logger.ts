@@ -61,7 +61,11 @@ export default class Logger {
   private writer:Writer
   private outputFormat:string
   private conf:LoggerConf
-  constructor (conf:LoggerConf={}) {
+  constructor (conf:LoggerConf|string) {
+    if (typeof conf === 'string') {
+      conf = { namespace: conf }
+    }
+
     const {
       namespace='',
       context={},
@@ -147,6 +151,9 @@ export default class Logger {
     }
 
     const stringifiedParams = params ? JSON.stringify(params) : ''
-    return `${this.namespace}:${level}: ${msg} ${stringifiedParams}`
+    let part1 = this.namespace
+    if (part1) part1 += ':'
+
+    return `${part1}${level}: ${msg} ${stringifiedParams}`
   }
 }
