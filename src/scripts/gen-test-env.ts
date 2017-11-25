@@ -16,6 +16,9 @@ const { loadCredentials, downloadDeploymentTemplate } = require('../cli/utils')
 const serverlessYml = require('../cli/serverless-yml')
 const { service, custom } = serverlessYml
 const prefix = `${service}-${custom.stage}-`
+
+loadCredentials()
+
 const getEnv = co.wrap(function* () {
   const setEnvFnName = `${prefix}onmessage`
   const { Environment } = yield lambdaUtils.getConfiguration(setEnvFnName)
