@@ -13,7 +13,7 @@ plugins:
   # - serverless-plugin-split-stacks
   # - serverless-plugin-warmup
   # - serverless-plugin-typescript
-  - print
+  # - print
   - warmup
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
