@@ -1,3 +1,4 @@
+import omit = require('object.omit')
 import Errors = require('./errors')
 import Logger from './logger'
 
@@ -70,18 +71,20 @@ module.exports = function createUtils (aws) {
     let cached
     let etag
     let cachedTime
-    const maybeGet = async (opts) => {
-      if (typeof opts === 'string') {
-        opts = { key: opts }
+    const maybeGet = async (opts={}) => {
+      if (!opts.force) {
+        const age = Date.now() - cachedTime
+        if (etag && age < ttl) {
+          logger.debug(`returning cached item for key ${key}, ttl: ${(ttl - age)}`)
+          return cached
+        }
       }
 
-      const age = Date.now() - cachedTime
-      if (etag && age < ttl) {
-        logger.debug(`returning cached item for key ${key}, ttl: ${(ttl - age)}`)
-        return cached
+      opts = {
+        ...defaultOpts,
+        ...omit(opts, ['force'])
       }
 
-      opts = { ...defaultOpts, ...opts }
       if (etag) {
         opts.IfNoneMatch = etag
       }

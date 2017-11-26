@@ -10,15 +10,38 @@ export class Conf {
   public bot: any
   public privateConfBucket: any
   public publicConfBucket: any
+  public publicConf: any
+  public privateConf: any
   constructor(bot) {
     this.bot = bot
     const { buckets } = bot.resources
     this.privateConfBucket = buckets.PrivateConf
     this.publicConfBucket = buckets.PublicConf
+    this.publicConf = this.publicConfBucket.getCacheable({
+      ttl: 60000,
+      key: PUBLIC_CONF_KEY,
+      parse: JSON.parse.bind(JSON)
+    })
+
+    this.privateConf = this.privateConfBucket.getCacheable({
+      ttl: 60000,
+      key: PRIVATE_CONF_KEY,
+      parse: JSON.parse.bind(JSON)
+    })
   }
 
-  public getPrivateConf = () => this.privateConfBucket.getJSON(PRIVATE_CONF_KEY)
-  public getPublicConf = () => this.publicConfBucket.getJSON(PUBLIC_CONF_KEY)
+  public getPrivateConf = (forceFetch:boolean) => {
+    return this.privateConf.get({
+      force: forceFetch
+    })
+  }
+
+  public getPublicConf = (forceFetch:boolean) => {
+    return this.publicConf.get({
+      force: forceFetch
+    })
+  }
+
   public savePublicConf = async (value:any, reinitializeContainers:boolean=true) => {
     await this.putIfDifferent({
       bucket: this.publicConfBucket,
