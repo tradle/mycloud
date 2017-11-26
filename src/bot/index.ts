@@ -273,11 +273,20 @@ function createBot (opts={}) {
       const payload = event.ResourceProperties
       await init({ type, payload })
     } catch (err) {
-      response.send(event, context, response.FAILED, pick(err, ['message', 'stack']))
+      if (event.ResponseURL) {
+        response.send(event, context, response.FAILED, pick(err, ['message', 'stack']))
+      } else {
+        context.done(err)
+      }
+
       return
     }
 
-    response.send(event, context, response.SUCCESS, {})
+    if (event.ResponseURL) {
+      response.send(event, context, response.SUCCESS, {})
+    } else {
+      context.done()
+    }
   }
 
   const outboundMessageLocker = locker({

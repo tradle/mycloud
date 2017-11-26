@@ -7,10 +7,9 @@ import Errors = require('../errors')
 const { reinitializeOnConfChanged } = serverlessYml.custom
 
 export class Conf {
+  public bot: any
   public privateConfBucket: any
   public publicConfBucket: any
-  public privateConf: any
-  public publicConf: any
   constructor(bot) {
     this.bot = bot
     const { buckets } = bot.resources
