@@ -34,7 +34,7 @@ export const toggleProduct = async ({ context, req, product, enable }: {
   await confManager.savePrivateConf(conf)
 
   const verb = enable ? 'enabled' : 'disabled'
-  const message = `${verb} product ${product}`
+  const message = `${verb} product ${product}. Give me ~30 seconds to process this doozy.`
   bot.debug(message)
   await context.sendSimpleMessage({ req, message })
 }

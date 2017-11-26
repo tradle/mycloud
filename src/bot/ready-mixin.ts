@@ -12,6 +12,6 @@ export function readyMixin (emitter) {
     resolveReady()
   }
 
-  emitter.isReady = ():boolean => promise.isPending()
+  emitter.isReady = ():boolean => promise.isFulfilled()
   emitter.promiseReady = ():Promise<void> => promise
 }

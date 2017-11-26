@@ -1,3 +1,4 @@
+process.env.LAMBDA_BIRTH_DATE = Date.now()
 
 import { createBot } from '../../bot'
 import { Init } from '../init'
@@ -12,7 +13,8 @@ export const handler = bot.oninit(async ({ type, payload }) => {
     // initialize identity, keys, etc.
     // yes, this can be optimized, but it's a one time operation...
     await init.init(payload)
-  } else if (type === 'update') {
-    await init.update(payload)
   }
+  // else if (type === 'update') {
+  //   await init.update(payload)
+  // }
 })

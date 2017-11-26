@@ -25,6 +25,7 @@ package:
   # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
   include:
     - conf
+    - serverless-interpolated.yml
   exclude:
     - src
     - secrets.yml

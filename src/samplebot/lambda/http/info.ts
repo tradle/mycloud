@@ -1,3 +1,5 @@
+process.env.LAMBDA_BIRTH_DATE = Date.now()
+
 import express = require('express')
 import coexpress = require('co-express')
 import cors = require('cors')

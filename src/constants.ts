@@ -16,6 +16,14 @@ let prefix = ''
 //   if (ORG_NAME) prefix = ORG_NAME.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
 // }
 
+const unitToMillis = {
+  minute: 60000,
+  hour: 60 * 60000,
+  day: 24 * 60 * 60000,
+  month: 30 * 24 * 60 * 60000,
+  year: 365 * 24 * 60 * 60000,
+}
+
 const constants = {
   TYPE,
   PERMALINK,
@@ -46,7 +54,8 @@ const constants = {
   ENV_RESOURCE_PREFIX: 'R_',
   HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
   WARMUP_SOURCE_NAME: 'warmup',
-  WARMUP_SLEEP: 40
+  WARMUP_SLEEP: 40,
+  unitToMillis
 }
 
 export = constants

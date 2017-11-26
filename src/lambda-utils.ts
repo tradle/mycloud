@@ -2,8 +2,29 @@ import path = require('path')
 import { Lambda } from 'aws-sdk'
 import { promisify, createLambdaContext } from './utils'
 import Logger from './logger'
+import Env from './env'
+import {
+  WARMUP_SOURCE_NAME,
+  unitToMillis
+} from './constants'
 
+import PRICING = require('./lambda-pricing')
+
+const defaultConcurrency = 1
 const notNull = (val:any):boolean => !!val
+const RATE_REGEX = /^rate\((\d+)\s(minute|hour|day)s?\)$/
+
+export type StringToConf = {
+  [x:string]:any
+}
+
+export type WarmUpOpts = {
+  concurrency?:number
+  functions?:StringToConf
+}
+
+export const WARMUP_FUNCTION_SHORT_NAME = 'warmup'
+export const WARMUP_FUNCTION_DURATION = 5000
 
 export default class Utils {
   private env: any
@@ -35,20 +56,36 @@ export default class Utils {
     arg?: any,
     sync?:boolean,
     local?: boolean,
-    log?: boolean
+    log?: boolean,
+    qualifier?:string
+    wrapPayload?:boolean
   }):Promise<any> => {
-    const { name, arg={}, sync=true, log, local=this.env.IS_OFFLINE } = opts
+    let {
+      name,
+      arg={},
+      sync=true,
+      log,
+      local=this.env.IS_OFFLINE,
+      qualifier,
+      wrapPayload
+    } = opts
+
     const FunctionName = this.getFullName(name)
+    if (wrapPayload !== false) {
+      arg = {
+        requestContext: this.env.getRequestContext(),
+        payload: arg
+      }
+    }
+
     const params:Lambda.Types.InvocationRequest = {
       InvocationType: sync ? 'RequestResponse' : 'Event',
       FunctionName,
-      Payload: JSON.stringify({
-        requestContext: this.env.getRequestContext(),
-        payload: arg
-      })
+      Payload: JSON.stringify(arg)
     }
 
     if (log) params.LogType = 'Tail'
+    if (qualifier) params.Qualifier = qualifier
 
     this.logger.debug(`invoking ${params.FunctionName}`)
 
@@ -275,8 +312,162 @@ export default class Utils {
 
     return result
   }
+
+  public parseRateExpression = rate => {
+    const match = rate.match(RATE_REGEX)
+    if (!match) throw new Error(`failed to parse rate expression: ${rate}`)
+
+    const [val, unit] = match.slice(1)
+    return Number(val) * unitToMillis[unit]
+  }
+
+  public normalizeWarmUpConf = warmUpConf => {
+    if (typeof warmUpConf === 'string') {
+      return {
+        functionName: warmUpConf
+      }
+    }
+
+    let functionName
+    for (let p in warmUpConf) {
+      functionName = p
+      break
+    }
+
+    return {
+      functionName,
+      concurrency: warmUpConf[functionName].concurrency || defaultConcurrency
+    }
+  }
+
+  public getWarmUpInfo = (yml) => {
+    const { service, functions, provider } = yml
+    const event = functions[WARMUP_FUNCTION_SHORT_NAME].events.find(event => event.schedule)
+    const { rate, input } = event.schedule
+    const period = this.parseRateExpression(rate)
+    const warmUpConfs = input.functions.map(conf => this.normalizeWarmUpConf(conf))
+    warmUpConfs.forEach(conf => {
+      if (!(conf.functionName in functions)) {
+        throw new Error(`function ${conf.functionName} listed in warmup event does not exist`)
+      }
+    })
+
+    return {
+      period,
+      input,
+      warmUpConfs,
+      functionName: WARMUP_FUNCTION_SHORT_NAME
+    }
+  }
+
+  public estimateCost = (yml) =>  {
+    const { provider, functions } = yml
+    const info = this.getWarmUpInfo(yml)
+    const costPerFunction = {
+      [info.functionName]: {
+        once: PRICING[getMemorySize(functions[WARMUP_FUNCTION_SHORT_NAME], provider)] * WARMUP_FUNCTION_DURATION
+      }
+    }
+
+    const costs = {
+      once: costPerFunction[info.functionName].once
+    }
+
+    for (let unit in unitToMillis) {
+      let once = costPerFunction[info.functionName].once
+      let fnCostPerPeriod = once * unitToMillis[unit] / info.period
+      costPerFunction[info.functionName][unit] = fnCostPerPeriod
+      costs[unit] = fnCostPerPeriod
+    }
+
+    for (const conf of info.warmUpConfs) {
+      const { functionName, concurrency=info.input.concurrency } = conf
+      const memorySize = getMemorySize(functions[functionName], provider)
+      // assume a warm up takes 100ms or less
+      costPerFunction[functionName] = {
+        once: PRICING[memorySize] * concurrency
+      }
+
+      costs.once += costPerFunction[functionName].once
+      for (let unit in unitToMillis) {
+        let fnCostPerPeriod = costPerFunction[functionName].once * unitToMillis[unit] / info.period
+        costPerFunction[functionName][unit] = fnCostPerPeriod
+        costs[unit] += fnCostPerPeriod
+      }
+    }
+
+    return {
+      costs,
+      costPerFunction,
+      warmUpFunctionDuration: WARMUP_FUNCTION_DURATION
+    }
+  }
+
+  public warmUp = async (opts:WarmUpOpts) => {
+    const { concurrency=defaultConcurrency, functions } = opts
+    return await Promise.all(functions.map(conf => {
+      return this.warmUpFunction({
+        concurrency,
+        ...this.normalizeWarmUpConf(conf)
+      })
+    }))
+  }
+
+  public warmUpFunction = async (warmUpConf) => {
+    const { functionName, concurrency } = warmUpConf
+    const opts = {
+      name: functionName,
+      sync: true,
+      qualifier: this.env.SERVERLESS_ALIAS || '$LATEST',
+      arg: {
+        source: WARMUP_SOURCE_NAME
+      },
+      wrapPayload: false
+    }
+
+    this.logger.info(`Attempting to warm up ${concurrency} instances of ${functionName}`)
+    const fnResults = await Promise.all(new Array(concurrency).fill(0).map(async () => {
+      try {
+        const resp = await this.invoke(opts)
+        this.logger.info(`Warm Up Invoke Success: ${functionName}`, resp)
+        return resp
+      } catch (err) {
+        this.logger.info(`Warm Up Invoke Error: ${functionName}`, err.stack)
+        return {
+          error: err.stack
+        }
+      }
+    }))
+
+    const containers = {}
+    return fnResults.reduce((summary, next) => {
+      if (next.error) {
+        summary.errors++
+        return summary
+      }
+
+      if (next.isVirgin) {
+        summary.containersCreated++
+      }
+
+      if (!containers[summary.containerId]) {
+        containers[summary.containerId] = true
+        summary.containersWarmed++
+      }
+
+      return summary
+    }, {
+      functionName,
+      containersCreated: 0,
+      containersWarmed: 0
+    })
+  }
 }
 
 const getDateUpdatedEnvironmentVariables = () => ({
   DATE_UPDATED: String(Date.now())
 })
+
+const getMemorySize = (conf, provider) => {
+  return conf.memorySize || provider.memorySize || 128
+}

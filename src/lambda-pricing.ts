@@ -1,6 +1,6 @@
 // https://aws.amazon.com/lambda/pricing/
 
-module.exports = {
+export = {
   128: 0.000000208,
   192: 0.000000313,
   256: 0.000000417,

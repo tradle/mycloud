@@ -35,6 +35,7 @@ export default class Env {
   public SERVERLESS_PREFIX:string
   public SERVERLESS_STAGE:string
   public SERVERLESS_SERVICE_NAME:string
+  public SERVERLESS_ALIAS?:string
 
   public BLOCKCHAIN:any
   public NO_TIME_TRAVEL:boolean
@@ -81,9 +82,9 @@ export default class Env {
       namespace,
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
-      // writer: this.TESTING ? { log: debug(namespace) } : global.console,
+      writer: this.TESTING ? { log: debug(namespace) } : global.console,
       // outputFormat: this.TESTING ? 'text': 'json'
-      writer: console,
+      // writer: console,
       outputFormat: 'text'
     })
 
