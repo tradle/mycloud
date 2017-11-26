@@ -15,8 +15,6 @@ export = function attachHandler ({ tradle, router }: {
   router.use(bodyParser.json({ limit: '10mb' }))
   // router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
   router.post('/preauth', coexpress(function* (req, res) {
-    yield init.ensureInitialized()
-
     // debug('[START]', now)
     const ips = getRequestIps(req)
     const { clientId, identity } = req.body

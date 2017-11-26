@@ -38,9 +38,8 @@ function withTransport (method: string) {
 export default class Delivery extends EventEmitter implements IDelivery {
   public ack = withTransport('ack')
   public reject = withTransport('reject')
-
-  private mqtt: any
-  private http: DeliveryHTTP
+  public mqtt: any
+  public http: DeliveryHTTP
   private friends: any
   private messages: Messages
   private objects: any

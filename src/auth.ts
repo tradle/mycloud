@@ -86,9 +86,21 @@ export default class Auth {
     connected: boolean
   }): Promise<any> => {
     const { clientId, connected } = opts
-    const params: any = getUpdateParams({ connected })
-    params.Key = getKeyFromClientId(clientId)
-    return this.tables.Presence.update(params)
+    // const params:any = getUpdateParams({ connected })
+    // params.Key = getKeyFromClientId(clientId)
+    return this.tables.Presence.update({
+      Key: getKeyFromClientId(clientId),
+      UpdateExpression: 'SET #connected = :connected',
+      ConditionExpression: '#authenticated = :authenticated',
+      ExpressionAttributeNames: {
+        '#connected': 'connected',
+        '#authenticated': 'authenticated'
+      },
+      ExpressionAttributeValues: {
+        ':connected': true,
+        ':authenticated': true
+      }
+    })
   }
 
   public deleteSession = (clientId: string): Promise<any> => {

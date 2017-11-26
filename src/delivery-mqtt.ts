@@ -53,8 +53,9 @@ proto.deliverBatch = co(function* ({ clientId, recipient, messages }) {
   const strings = messages.map(stringify)
   const subBatches = batchStringsBySize(strings, MAX_PAYLOAD_SIZE)
   for (let subBatch of subBatches) {
-    yield this.iot.publish({
-      topic: this._prefixTopic(`${clientId}/sub/inbox`),
+    yield this.emit({
+      clientId,
+      topic: 'inbox',
       payload: `{"messages":[${subBatch.join(',')}]}`
     })
   }
@@ -65,8 +66,9 @@ proto.deliverBatch = co(function* ({ clientId, recipient, messages }) {
 proto.ack = function ack ({ clientId, message }) {
   debug(`acking message from ${clientId}`)
   const stub = this.messages.getMessageStub({ message })
-  return this.iot.publish({
-    topic: this._prefixTopic(`${clientId}/sub/ack`),
+  return this.emit({
+    clientId,
+    topic: 'ack',
     payload: {
       message: stub
     }
@@ -76,12 +78,20 @@ proto.ack = function ack ({ clientId, message }) {
 proto.reject = function reject ({ clientId, message, error }) {
   debug(`rejecting message from ${clientId}`, error)
   const stub = this.messages.getMessageStub({ message, error })
-  return this.iot.publish({
-    topic: this._prefixTopic(`${clientId}/sub/reject`),
+  return this.emit({
+    clientId,
+    topic: 'reject',
     payload: {
       message: stub,
       reason: Errors.export(error)
     }
+  })
+}
+
+proto.emit = function emit ({ clientId, topic, payload }) {
+  return this.iot.publish({
+    topic: this._prefixTopic(`${clientId}/sub/${topic}`),
+    payload
   })
 }
 

@@ -14,8 +14,6 @@ export = function attachHandler ({ tradle, router }: {
   router.use(bodyParser.json({ limit: '10mb' }))
   // router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
   router.post('/auth', coexpress(function* (req, res) {
-    yield init.ensureInitialized()
-
     // debug('[START] /auth', Date.now())
     const event = req.body
     // TODO: use @tradle/validate-resource

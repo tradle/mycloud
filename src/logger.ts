@@ -1,6 +1,8 @@
 // inspired by
 // http://theburningmonk.com/2017/09/capture-and-forward-correlation-ids-through-different-lambda-event-sources/
 
+import stringifySafe = require('json-stringify-safe')
+
 export const Level = {
   ERROR: 0,
   WARN: 1,
@@ -152,10 +154,10 @@ export default class Logger {
 
       if (params) logMsg.params = params
 
-      return JSON.stringify(logMsg)
+      return stringifySafe(logMsg)
     }
 
-    const stringifiedParams = params ? JSON.stringify(params) : ''
+    const stringifiedParams = params ? stringifySafe(params) : ''
     let part1 = this.namespace
     if (part1) part1 += ':'
 
