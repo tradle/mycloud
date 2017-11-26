@@ -162,6 +162,7 @@ export default class Messages {
       _payloadType: message.object[TYPE],
       _payloadLink: message.object._link,
       _payloadAuthor: message.object._author,
+      // _seqToRecipient: `${message._recipient}:${message[SEQ]}`
     })
 
     const item = this.messageToEventPayload(message)
@@ -177,7 +178,13 @@ export default class Messages {
     item
   }):Promise<void> => {
     const { item } = opts
-    await this.outbox.put({ Item: item })
+    await this.outbox.put({
+      Item: item,
+      // ConditionExpression: 'attribute_not_exists(#seqToRecipient)',
+      // ExpressionAttributeNames: {
+      //   '#seqToRecipient': '_seqToRecipient'
+      // }
+    })
   }
 
   public putInboundMessage = async (opts: {

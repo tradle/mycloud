@@ -2,13 +2,14 @@
 import help from './help'
 import listproducts from './listproducts'
 import forgetme from './forgetme'
-import enableproduct from './enableproduct'
-import disableproduct from './disableproduct'
+import setproductenabled from './setproductenabled'
+import setautoverify from './setautoverify'
 
 export {
   help,
   listproducts,
   forgetme,
-  enableproduct,
-  disableproduct
+  setproductenabled,
+  setautoverify,
+  // autoApprove
 }

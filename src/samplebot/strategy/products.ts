@@ -87,6 +87,11 @@ export default function createProductsBot ({ bot, conf }) {
   employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
   customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
 
+  // console.log('customer models', Object.keys(customerModels).join(', '))
+  // console.log('employee models', Object.keys(employeeModels).join(', '))
+  // console.log('base models', BASE_MODELS_IDS.join(', '))
+  // console.log('all models', Object.keys(productsAPI.models.all).join(', '))
+
   bot.setCustomModels(productsAPI.models.all)
   productsAPI.install(bot)
   const commands = new Commander({

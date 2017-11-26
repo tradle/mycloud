@@ -142,14 +142,14 @@ function createBot (opts={}) {
     })
   }
 
-  if (lambdaUtils) {
-    bot.forceReinitializeContainers = async (functions?:string[]) => {
-      await lambdaUtils.invoke({
-        name: 'reinitialize-containers',
-        sync: false,
-        arg: functions
-      })
-    }
+  bot.forceReinitializeContainers = async (functions?:string[]) => {
+    if (bot.env.TESTING) return
+
+    await lambdaUtils.invoke({
+      name: 'reinitialize-containers',
+      sync: false,
+      arg: functions
+    })
   }
 
   bot.logger = logger.sub(':bot')
@@ -231,7 +231,15 @@ function createBot (opts={}) {
       }
     }
 
-    const message = await send(opts)
+    const lockId = opts.recipient
+    await outboundMessageLocker.lock(lockId)
+    let message
+    try {
+      message = await send(opts)
+    } finally {
+      outboundMessageLocker.unlock(lockId)
+    }
+
     if (TESTING && message) {
       await savePayloadToTypeTable(clone(message))
     }
@@ -272,9 +280,15 @@ function createBot (opts={}) {
     response.send(event, context, response.SUCCESS, {})
   }
 
-  const messageProcessingLocker = locker({
+  const outboundMessageLocker = locker({
+    name: 'message send lock',
+    debug: env.sublogger('message-locker:send').debug,
+    timeout: MESSAGE_LOCK_TIMEOUT
+  })
+
+  const inboundMessageLocker = locker({
     name: 'message processing lock',
-    debug: env.sublogger('message-locker').debug,
+    debug: env.sublogger('message-locker:receive').debug,
     timeout: MESSAGE_LOCK_TIMEOUT
   })
 
@@ -284,7 +298,7 @@ function createBot (opts={}) {
     }
 
     const userId = message._author
-    await messageProcessingLocker.lock(userId)
+    await inboundMessageLocker.lock(userId)
 
     let [payload, user] = [
       await getMessagePayload({ bot, message }),
@@ -336,7 +350,7 @@ function createBot (opts={}) {
 
   postProcessHooks.hook('message', (opts, result) => {
     const { user } = opts
-    messageProcessingLocker.unlock(user.id)
+    inboundMessageLocker.unlock(user.id)
     bot.emit('sent', {
       to: opts.recipient,
       result
@@ -348,7 +362,7 @@ function createBot (opts={}) {
       payload = JSON.parse(payload)
     }
 
-    messageProcessingLocker.unlock(payload._author)
+    inboundMessageLocker.unlock(payload._author)
   })
 
   postProcessHooks.hook('readseal', emitAs('seal:read'))

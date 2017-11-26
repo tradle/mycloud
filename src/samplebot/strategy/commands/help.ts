@@ -1,20 +1,30 @@
-const HELP_MENU_CUSTOMER = `**/help** - see this menu
-**/listproducts** - see the list of products
-**/forgetme** - exercise your right to be forgotten`
-
-const HELP_MENU_EMPLOYEE = `${HELP_MENU_CUSTOMER}
-**/enableproduct [productId]** - enable a product
-**/disableproduct [productId]** - disable a product
-`
+import parse = require('yargs-parser')
+import {
+  getAvailableCommands,
+  getCommandByName
+} from '../utils'
 
 export default {
   name: 'help',
-  description: 'show the command menu',
+  description: 'see this menu, or the help for a particular command',
+  examples: [
+    '/help',
+    '/help listproducts'
+  ],
   exec: async function ({ context, req, command }) {
     const { employeeManager } = context
-    const message = employeeManager.isEmployee(req.user)
-      ? HELP_MENU_EMPLOYEE
-      : HELP_MENU_CUSTOMER
+    const commandName = parse(command)._[0]
+    let message
+    if (commandName) {
+      const c = getCommandByName(commandName)
+      message = c.description
+      if (c.examples) {
+        message = `${message}\n\nExamples:\n${c.examples.join('\n')}`
+      }
+    } else {
+      const availableCommands = getAvailableCommands({ context, req })
+      message = `These are the available commands:\n${availableCommands.join('\n')}`
+    }
 
     await context.sendSimpleMessage({ req, message })
   }

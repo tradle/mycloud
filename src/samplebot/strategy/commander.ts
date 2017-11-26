@@ -5,29 +5,27 @@ import {
   ExecCommandFunction
 } from './types'
 
+import * as commands from './commands'
+
+// import {
+//   help,
+//   listProducts,
+//   forgetMe,
+//   setProductEnabled,
+//   setAutoVerify,
+//   setAutoApprove,
+//   // setAutoPrompt
+// } from './commands'
+
 import {
-  help,
-  listproducts,
-  forgetme,
-  enableproduct,
-  disableproduct
-} from './commands'
+  getAvailableCommands,
+  getCommandByName
+} from './utils'
+
+import Logger from '../../'
 
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?$/
 const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
-const EMPLOYEE_COMMANDS:Command[] = [
-  help,
-  listproducts,
-  forgetme,
-  enableproduct,
-  disableproduct
-]
-
-const CUSTOMER_COMMANDS:Command[] = [
-  help,
-  listproducts,
-  forgetme
-]
 
 type Args = {
   _: string[],
@@ -39,25 +37,23 @@ export class Commander {
   private productsAPI:any
   private employeeManager:any
   private conf: any
+  private logger: Logger
   constructor ({ bot, productsAPI, employeeManager, conf }) {
     this.bot = bot
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
     this.conf = conf
+    this.logger = bot.logger.sub(':cli')
   }
 
   async exec({ req, command }) {
-    this.bot.debug(`processing command: ${command}`)
-    const parts = command.match(COMMAND_REGEX)
+    this.logger.debug(`processing command: ${command}`)
     const isEmployee = this.employeeManager.isEmployee(req.user)
-    const commands = isEmployee ? EMPLOYEE_COMMANDS : CUSTOMER_COMMANDS
-    const matchingCommand = commands.find(({ name, disabled }) => {
-      return !disabled && name === parts[1]
-    })
-
-    if (!matchingCommand) {
+    const [commandName, argsStr=''] = command.match(COMMAND_REGEX).slice(1)
+    const commandNames = getAvailableCommands({ context: this, req })
+    if (!commandNames.includes(commandName)) {
       const message = isEmployee
-        ? `command not found: ${command}`
+        ? `command not found: ${commandName}`
         : DEFAULT_ERROR_MESSAGE
 
       await this.sendSimpleMessage({ req, message })
@@ -65,13 +61,14 @@ export class Commander {
     }
 
     try {
+      const matchingCommand = getCommandByName(commandName)
       await matchingCommand.exec({
         context: this,
         req,
-        command: parts[2] || ''
+        command: argsStr
       })
     } catch (err) {
-      this.bot.debug(`failed to process command: ${matchingCommand.name}`, err.stack)
+      this.logger.debug(`failed to process command: ${command}`, err.stack)
       const message = isEmployee
         ? err.message
         : DEFAULT_ERROR_MESSAGE

@@ -37,7 +37,7 @@ export default class Utils {
   constructor ({ env, aws }) {
     this.env = env
     this.aws = aws
-    this.logger = env.sublogger(':lambda-utils')
+    this.logger = env.sublogger('lambda-utils')
   }
 
   public getShortName = (name: string):string => {

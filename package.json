@@ -179,7 +179,6 @@
     "typeforce": "^1.11.1",
     "uuid": "^3.1.0",
     "xtend": "^4.0.1",
-    "ya-promise-queue": "^1.1.0",
     "yargs-parser": "~2.4.1",
     "yn": "^2.0.0"
   },

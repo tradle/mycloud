@@ -113,10 +113,15 @@ export default class Logger {
       conf = { namespace: conf }
     }
 
+    let { namespace='' } = conf
+    if (namespace && this.namespace) {
+      namespace = `${this.namespace}:${namespace}`
+    }
+
     const sublogger = new Logger({
       ...this.conf,
       ...conf,
-      namespace: conf.namespace ? this.namespace + ':' + conf.namespace : ''
+      namespace
     })
 
     this.subloggers.push(sublogger)

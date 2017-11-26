@@ -77,7 +77,7 @@ export default class Env {
       ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
       : '[unknown]'
 
-    const namespace = '' //this.TESTING ? packageName : ''
+    const namespace = packageName
     this.logger = new Logger({
       namespace,
       context: {},

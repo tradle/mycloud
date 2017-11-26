@@ -201,6 +201,8 @@ custom:
     mqttPort: ${{self:custom.vars.serverless-offline.mqttPort, self:custom.defaults.serverless-offline.mqttPort}}
     port: ${{self:custom.vars.serverless-offline.port, self:custom.defaults.serverless-offline.port}}
 
+  reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
+
 #   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
   #   start:

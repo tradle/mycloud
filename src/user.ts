@@ -107,7 +107,7 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     const neutered = this.messages.stripData(processed)
     this.logger.debug(`passing message from ${processed._author} on to bot`)
     const resp = yield this.lambdaUtils.invoke({
-      sync: INVOKE_BOT_LAMBDAS_DIRECTLY,
+      sync: true,
       local: INVOKE_BOT_LAMBDAS_DIRECTLY,
       name: BOT_ONMESSAGE,
       arg: neutered
@@ -115,6 +115,7 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     })
 
     this.logger.debug(`${BOT_ONMESSAGE} finished processing`)
+    return TESTING ? resp : processed
   }
 
   this.logger.debug(`processing error in receive: ${err.name}`)
