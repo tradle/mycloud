@@ -35,7 +35,6 @@ type Args = {
 }
 
 export class Commander {
-  private tradle:Tradle
   private bot:any
   private productsAPI:any
   private employeeManager:any

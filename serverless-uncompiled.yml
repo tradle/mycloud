@@ -48,6 +48,8 @@ custom:
   providerConf: &providerConf
     ${{file(./src/samplebot/conf/provider.json)}}
 
+  # logging: ${{self:custom.vars.logging, self:custom.defaults.logging}}
+
   # copied from vars.yml
   # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
   # blockchain: ${{self:custom.vars.blockchain}}

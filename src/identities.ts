@@ -36,7 +36,7 @@ export default class Identities {
     this.logger = env.sublogger('identities')
   }
 
-  public getIdentityMetadataByPub = (pub:string) => {
+  public metaByPub = (pub:string) => {
     this.logger.debug('get identity metadata by pub')
     return this.pubKeys.get({
       Key: { pub },
@@ -44,8 +44,8 @@ export default class Identities {
     })
   }
 
-  public getIdentityByPub = async (pub:string):Promise<IIdentity> => {
-    const { link } = await this.getIdentityMetadataByPub(pub)
+  public byPub = async (pub:string):Promise<IIdentity> => {
+    const { link } = await this.metaByPub(pub)
     try {
       return await this.objects.get(link)
     } catch(err) {
@@ -58,7 +58,7 @@ export default class Identities {
     }
   }
 
-  public getIdentityByPermalink = async (permalink: string):Promise<IIdentity> => {
+  public byPermalink = async (permalink: string):Promise<IIdentity> => {
     const params = {
       IndexName: 'permalink',
       KeyConditionExpression: 'permalink = :permalinkValue',
@@ -96,7 +96,7 @@ export default class Identities {
 
   public getExistingIdentityMapping = (identity):Promise<object> => {
     this.logger.debug('checking existing mappings for pub keys')
-    const lookups = identity.pubkeys.map(obj => this.getIdentityMetadataByPub(obj.pub))
+    const lookups = identity.pubkeys.map(obj => this.metaByPub(obj.pub))
     return firstSuccess(lookups)
   }
 
@@ -155,7 +155,7 @@ export default class Identities {
     }
   }
 
-  public addContact = async (object: IIdentity):Promise<void> => {
+  public addContactWithoutValidating = async (object: IIdentity):Promise<void> => {
     if (object) {
       typeforce(types.identity, object)
     } else {
@@ -197,8 +197,8 @@ export default class Identities {
     const isMessage = type === MESSAGE
     const pub = isMessage && object.recipientPubKey.pub.toString('hex')
     const { author, recipient } = {
-      author: await this.getIdentityMetadataByPub(object._sigPubKey),
-      recipient: await (pub ? this.getIdentityMetadataByPub(pub) : RESOLVED_PROMISE)
+      author: await this.metaByPub(object._sigPubKey),
+      recipient: await (pub ? this.metaByPub(pub) : RESOLVED_PROMISE)
     }
 
     setVirtual(object, { _author: author.permalink })
@@ -209,11 +209,11 @@ export default class Identities {
     return object
   }
 
-  public validateAndAdd = async (identity:IIdentity):Promise<void> => {
+  public addContact = async (identity:IIdentity):Promise<void> => {
     const result = await this.validateNewContact(identity)
     // debug('validated contact:', prettify(result))
     if (!result.exists) {
-      await this.addContact(result.identity)
+      await this.addContactWithoutValidating(result.identity)
     }
   }
 }
@@ -234,13 +234,13 @@ export default class Identities {
 
 // const Identities = module.exports = logify({
 //   getIdentityByLink: this.objects.get,
-//   getIdentityByPermalink,
-//   getIdentityByPub,
-//   getIdentityMetadataByPub,
+//   byPermalink,
+//   byPub,
+//   metaByPub,
 //   // getIdentityByFingerprint,
 //   // createAddContactEvent,
 //   addContact,
 //   validateNewContact,
-//   validateAndAdd,
+//   addContact,
 //   addAuthorInfo
 // })

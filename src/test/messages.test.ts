@@ -86,7 +86,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
   }
 
   const stub = stubber()
-  stub(identities, 'getIdentityByPermalink', mocks.getIdentityByPermalink)
+  stub(identities, 'byPermalink', mocks.byPermalink)
 
   let nextSeq = 0
   let prevMsgLink = 'abc'
@@ -153,8 +153,8 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
   const stub = stubber()
   const stubGetIdentity = stub(
     identities,
-    'getIdentityMetadataByPub',
-    mocks.getIdentityMetadataByPub
+    'metaByPub',
+    mocks.metaByPub
   )
 
   const stubPutObject = stub(objects, 'put', function (object) {
@@ -304,7 +304,7 @@ test.skip('getLastMessageFrom/To', loudCo(function* (t) {
 // }))
 
 const mocks = {
-  getIdentityByPermalink: co(function* (permalink) {
+  byPermalink: co(function* (permalink) {
     if (permalink === alice.identity._permalink) {
       return alice.identity
     }
@@ -314,7 +314,7 @@ const mocks = {
 
     throw new Errors.NotFound('identity not found by permalink: ' + permalink)
   }),
-  getIdentityByPub: co(function* (pub) {
+  byPub: co(function* (pub) {
     const found = [alice, bob].find(info => {
       return info.identity.pubkeys.some(key => key.pub === pub)
     })
@@ -323,7 +323,7 @@ const mocks = {
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
   }),
-  getIdentityMetadataByPub: co(function* (pub) {
+  metaByPub: co(function* (pub) {
     const found = [alice, bob].find(info => {
       return info.identity.pubkeys.some(key => key.pub === pub)
     })

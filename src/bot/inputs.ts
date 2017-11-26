@@ -67,13 +67,7 @@ module.exports = function createBotInputs ({
     },
     messages,
     friends,
-    identities: {
-      byPermalink: identities.getIdentityByPermalink,
-      byPub: identities.getIdentityByPub,
-      byPubMini: identities.getIdentityMetadataByPub,
-      addAuthorInfo: identities.addAuthorInfo,
-      addContact: identities.validateAndAdd
-    },
+    identities,
     objects,
     getMyIdentity: provider.getMyPublicIdentity,
     seals,

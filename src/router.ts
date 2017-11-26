@@ -3,9 +3,10 @@ import compression = require('compression')
 import coexpress = require('co-express')
 import constants = require('./constants')
 import Errors = require('./errors')
+import utils = require('./utils')
 
 module.exports = function createRouter (tradle) {
-  const { user, friends, env, utils, init } = tradle
+  const { env } = tradle
   const logger = env.sublogger('router')
   const {
     HTTP_METHODS=constants.HTTP_METHODS,

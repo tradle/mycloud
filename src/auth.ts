@@ -226,7 +226,7 @@ export default class Auth {
       throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
     }
 
-    const maybeAddContact = this.identities.validateAndAdd(identity)
+    const maybeAddContact = this.identities.addContact(identity)
     const role = `arn:aws:iam::${accountId}:role/${this.resources.Role.IotClient}`
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
 

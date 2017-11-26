@@ -315,7 +315,7 @@ export default class Provider {
     // run in parallel
     const promisePayload = this.findOrCreate({ link, object, author })
     const promisePrev = this.messages.getLastSeqAndLink({ recipient })
-    const promiseRecipient = this.identities.getIdentityByPermalink(recipient)
+    const promiseRecipient = this.identities.byPermalink(recipient)
     const [payload, recipientObj] = await Promise.all([
       promisePayload,
       promiseRecipient

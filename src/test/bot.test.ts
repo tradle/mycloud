@@ -153,7 +153,7 @@ const rethrow = err => {
       return user
     })
 
-    // const { getIdentityByPermalink } = identities
+    // const { byPermalink } = identities
     const { get } = objects
     const payload = {
       _link: 'b',
@@ -182,7 +182,7 @@ const rethrow = err => {
       throw new Errors.NotFound(link)
     })
 
-    // identities.getIdentityByPermalink = co(function* (permalink) {
+    // identities.byPermalink = co(function* (permalink) {
     //   t.equal(permalink, message.author)
     //   return bob.object
     // })
@@ -203,7 +203,7 @@ const rethrow = err => {
     yield bot.trigger('message', message)
     t.equal(updatedUser, true)
     objects.get = get
-    // identities.getIdentityByPermalink = getIdentityByPermalink
+    // identities.byPermalink = byPermalink
   }))
 
   test(`readseal (${mode})`, loudCo(function* (t) {

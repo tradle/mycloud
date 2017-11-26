@@ -84,7 +84,7 @@ export default class Friends {
       throw new Error('refusing to add self as friend')
     }
 
-    const promiseAddContact = this.identities.validateAndAdd(identity)
+    const promiseAddContact = this.identities.addContact(identity)
     const signed = await this.provider.signObject({ object })
     const permalink = buildResource.permalink(identity)
     buildResource.setVirtual(signed, {

@@ -47,7 +47,7 @@ module.exports = function fakeTradle ({ env, conf, kv, objects, identities, mess
       }
     },
     identities: {
-      getIdentityByPermalink: getter(identities),
+      byPermalink: getter(identities),
       addAuthorInfo: () => {
         throw new Error('mock addAuthorInfo not implemented')
       }

@@ -503,7 +503,7 @@ export default class Messages {
     const { object } = message
     const identity = getIntroducedIdentity(object)
     if (identity) {
-      await this.identities.validateAndAdd(identity)
+      await this.identities.addContact(identity)
     }
 
     return message

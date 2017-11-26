@@ -115,7 +115,6 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     })
 
     this.logger.debug(`${BOT_ONMESSAGE} finished processing`)
-    return TESTING ? resp : processed
   }
 
   this.logger.debug(`processing error in receive: ${err.name}`)
