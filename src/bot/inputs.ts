@@ -46,7 +46,8 @@ module.exports = function createBotInputs ({
     })
   })
 
-  const send = opts => provider.sendMessage(opts)
+  const send = opts => provider.sendMessageBatch([].concat(opts))
+
   const sign = (object, author) => provider.signObject({ object, author })
   return {
     // userModel,

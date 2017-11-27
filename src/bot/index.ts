@@ -2,28 +2,24 @@ const { EventEmitter } = require('events')
 const deepEqual = require('deep-equal')
 const clone = require('clone')
 const Promise = require('bluebird')
-const validateResource = require('@tradle/validate-resource')
-const { setVirtual } = validateResource.utils
-const buildResource = require('@tradle/build-resource')
 const mergeModels = require('@tradle/merge-models')
 const createHooks = require('event-hooks')
 const BaseModels = require('../models')
 const installDefaultHooks = require('./default-hooks')
 const makeBackwardsCompat = require('./backwards-compat')
-const errors = require('../errors')
-const types = require('../typeforce-types')
 const { readyMixin } = require('./ready-mixin')
 const {
   extend,
-  omit,
-  pick,
-  typeforce,
-  waterfall,
-  series
+  pick
 } = require('../utils')
 const { addLinks } = require('../crypto')
-const { prettify } = require('../string-utils')
-const { getMessagePayload, getMessageGist } = require('./utils')
+const {
+  getMessagePayload,
+  getMessageGist,
+  ensureTimestamped,
+  normalizeSendOpts,
+  normalizeRecipient
+} = require('./utils')
 const locker = require('./locker')
 const constants = require('../constants')
 const { TYPE, SIG } = constants
@@ -181,75 +177,25 @@ function createBot (opts={}) {
   }
 
   bot.send = async (opts) => {
-    if (!bot.isReady()) {
-      logger.debug('waiting for bot.ready()')
-      await bot.promiseReady()
-    }
+    const batch = await Promise.all([].concat(opts)
+       .map(oneOpts => normalizeSendOpts(bot, oneOpts)))
 
-    let { link, object, to } = opts
-    if (!object && link) {
-      object = await bot.objects.get(link)
-    }
-
+    const { recipient } = batch[0]
+    await outboundMessageLocker.lock(recipient)
+    let messages
     try {
-      if (object[SIG]) {
-        typeforce(types.signedObject, object)
-      } else {
-        typeforce(types.unsignedObject, object)
-      }
-
-      typeforce({
-        to: typeforce.oneOf(typeforce.String, typeforce.Object),
-        other: typeforce.maybe(typeforce.Object)
-      }, opts)
-    } catch (err) {
-      throw new errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
-    }
-
-    bot.objects.presignEmbeddedMediaLinks(object)
-    opts = omit(opts, 'to')
-    opts.recipient = to.id || to
-    // if (typeof opts.object === 'string') {
-    //   opts.object = {
-    //     [TYPE]: 'tradle.SimpleMessage',
-    //     message: opts.object
-    //   }
-    // }
-
-    const payload = opts.object
-    const model = models[payload[TYPE]]
-    if (model) {
-      try {
-        validateResource({ models, model, resource: payload })
-      } catch (err) {
-        logger.error('failed to validate resource', {
-          resource: payload,
-          error: err.stack
-        })
-
-        throw err
-      }
-    }
-
-    const lockId = opts.recipient
-    await outboundMessageLocker.lock(lockId)
-    let message
-    try {
-      message = await send(opts)
+      messages = await send(batch)
     } finally {
-      outboundMessageLocker.unlock(lockId)
+      outboundMessageLocker.unlock(recipient)
     }
 
-    if (TESTING && message) {
-      await savePayloadToTypeTable(clone(message))
+    if (TESTING && messages) {
+      await Promise.all(messages.map(message => savePayloadToTypeTable(clone(message))))
     }
 
-    // await hooks.fire('send', {
-    //   message,
-    //   payload
-    // })
-
-    return message
+    if (messages) {
+      return Array.isArray(opts) ? messages : messages[0]
+    }
   }
 
   // setup hooks
@@ -465,12 +411,4 @@ function createBot (opts={}) {
       bot.emit(event, ...args)
     }
   }
-}
-
-function ensureTimestamped (resource) {
-  if (!resource._time) {
-    setVirtual(resource, { _time: Date.now() })
-  }
-
-  return resource
 }

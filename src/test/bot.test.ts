@@ -97,6 +97,7 @@ const rethrow = err => {
     const bot = createBot.fromEngine({ tradle })
     const originalEvent = {
       RequestType: 'Create',
+      ResponseURL: 'some-s3-url',
       ResourceProperties: {
         some: 'prop'
       }
@@ -119,7 +120,7 @@ const rethrow = err => {
     yield bot.oninit(co(function* (event) {
       t.same(event, expectedEvent)
     }))(originalEvent, {
-      done: (err) => t.error(err)
+      done: t.error
     })
 
     t.equal(cfnResponse.send.getCall(callCount++).args[2], cfnResponse.SUCCESS)
@@ -389,6 +390,7 @@ test('save to type table', loudCo(function* (t) {
 test('validate send', loudCo(function* (t) {
   const tradle = createTestTradle()
   tradle.provider.sendMessage = () => Promise.resolve()
+  tradle.provider.sendMessageBatch = () => Promise.resolve()
 
   const models = {
     'ding.bling': {
@@ -412,7 +414,7 @@ test('validate send', loudCo(function* (t) {
   bot.ready()
   try {
     yield bot.send({
-      to: 'blah',
+      to: bob.permalink,
       object: {}
     })
 
@@ -423,7 +425,7 @@ test('validate send', loudCo(function* (t) {
 
   // undeclared types are ok
   yield bot.send({
-    to: 'blah',
+    to: bob.permalink,
     object: {
       _t: 'sometype'
     }
@@ -432,7 +434,7 @@ test('validate send', loudCo(function* (t) {
   // declared types are validated
   try {
     yield bot.send({
-      to: 'blah',
+      to: bob.permalink,
       object: {
         _t: 'ding.bling',
       }
@@ -444,7 +446,7 @@ test('validate send', loudCo(function* (t) {
   }
 
   yield bot.send({
-    to: 'blah',
+    to: bob.permalink,
     object: {
       _t: 'ding.bling',
       ding: 'dong'

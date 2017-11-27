@@ -330,12 +330,17 @@ export function promiseCall (fn, ...args) {
 }
 
 export async function series (fns, ...args) {
-  for (let fn of fns) {
-    let maybePromise = fn.apply(this, args)
-    if (isPromise(maybePromise)) {
-      await maybePromise
+  const results = []
+  for (const fn of fns) {
+    let result = fn.apply(this, args)
+    if (isPromise(result)) {
+      result = await result
     }
+
+    results.push(result)
   }
+
+  return results
 }
 
 export async function seriesWithExit (fns, ...args) {
@@ -719,3 +724,5 @@ export const createLambdaContext = (fun, cb) => {
     clientContext:      {}
   }
 }
+
+export const flatten = arr => arr.reduce((flat, batch) => flat.concat(batch), [])

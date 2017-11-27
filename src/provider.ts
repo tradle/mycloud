@@ -10,7 +10,9 @@ import {
   setVirtual,
   pickVirtual,
   typeforce,
-  summarizeObject
+  summarizeObject,
+  series,
+  flatten
 } from './utils'
 
 import Errors = require('./errors')
@@ -34,6 +36,29 @@ import { ISession, ITradleMessage, ITradleObject, IIdentity, IPubKey, IDebug } f
 import Logger from './logger'
 
 const { MESSAGE } = TYPES
+
+export interface IMessageOpts {
+  object: ITradleObject
+  other?: any
+}
+
+export interface ISendOpts extends IMessageOpts {
+  recipient: string
+}
+
+export type IBatchSendOpts = ISendOpts[]
+
+// export interface IBatchSendOpts {
+//   messages: IMessageOpts[]
+//   recipient: string
+// }
+
+export interface ILiveDeliveryOpts {
+  messages: ITradleMessage[]
+  recipient: string
+  friend?: any
+  session?: ISession
+}
 
 export default class Provider {
   private tradle: Tradle
@@ -135,7 +160,7 @@ export default class Provider {
       opts.author = await this.getMyPrivateIdentity()
     }
 
-    return this._createSendMessageEvent(opts)
+    return await this._createSendMessageEvent(opts)
   }
 
   public receiveMessage = async ({ message }):Promise<ITradleMessage> => {
@@ -214,11 +239,52 @@ export default class Provider {
   //   }
   // })
 
-  public sendMessage = async (opts: {
-    recipient: string,
-    object: ITradleObject,
-    other?: any
-  }):Promise<ITradleMessage> => {
+  public sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
+    const byRecipient = {}
+    batch.forEach(message => {
+      const { recipient } = message
+      if (!byRecipient[recipient]) {
+        byRecipient[recipient] = []
+      }
+
+      byRecipient[recipient].push(message)
+    })
+
+    const results = await Promise.all(Object.keys(byRecipient).map(recipient => {
+      return this._sendMessageBatch(byRecipient[recipient])
+    }))
+
+    return flatten(results)
+  }
+
+  public _sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
+    // start this first to get a more accurate timestamp
+    const { recipient } = batch[0]
+    const promiseCreates = series(batch.map(sendOpts =>
+      () => this.createSendMessageEvent(sendOpts)))
+
+    const promiseSession = this.auth.getLiveSessionByPermalink(recipient)
+      .catch(err => {
+        Errors.ignore(err, { name: 'NotFound' })
+        this.logger.debug('mqtt session not found for counterparty', { permalink: recipient })
+        return undefined
+      })
+
+    const promiseFriend = this.tradle.friends.getByIdentityPermalink(recipient)
+      .catch(err => {
+        Errors.ignore(err, { name: 'NotFound' })
+        this.logger.debug('friend not found for counterparty', { permalink: recipient })
+        return undefined
+      })
+
+    const session = await promiseSession
+    const friend = await promiseFriend
+    const messages = await promiseCreates
+    await this.attemptLiveDelivery({ recipient, messages, session, friend })
+    return messages
+  }
+
+  public sendMessage = async (opts: ISendOpts):Promise<ITradleMessage> => {
     const { recipient, object, other={} } = opts
     // start this first to get a more accurate timestamp
     const promiseCreate = this.createSendMessageEvent({ recipient, object, other })
@@ -239,8 +305,14 @@ export default class Provider {
     const session = await promiseSession
     const friend = await promiseFriend
     const message = await promiseCreate
+    await this.attemptLiveDelivery({ recipient, messages: [message], session, friend })
+    return message
+  }
+
+  public attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
+    const { messages, recipient, session, friend } = opts
     try {
-      await this.attemptLiveDelivery({ recipient, message, session, friend })
+      await this._attemptLiveDelivery(opts)
     } catch (err) {
       const error = { error: err.stack }
       if (err instanceof Errors.NotFound) {
@@ -257,27 +329,20 @@ export default class Provider {
       } else {
         // rethrow, as this is likely a developer error
         this.logger.error('live delivery failed due, likely to developer error', {
-          message,
+          messages,
           ...error
         })
       }
     }
-
-    return message
   }
 
-  public attemptLiveDelivery = async (opts: {
-    message: ITradleMessage,
-    recipient: string,
-    friend?: any
-    session?: ISession
-  }) => {
-    const { message, recipient, session } = opts
-    this.logger.debug(`sending message (time=${message.time}) to ${recipient} live`)
+  private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
+    const { messages, recipient, session } = opts
+    this.logger.debug(`attempting to deliver batch of ${messages.length} messages to ${recipient}`)
     await this.tradle.delivery.deliverBatch({
       clientId: session && session.clientId,
       recipient,
-      messages: [message]
+      messages
     })
   }
 
