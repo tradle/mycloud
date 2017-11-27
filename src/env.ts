@@ -155,7 +155,8 @@ export default class Env {
     this.set(props)
 
     const requestCtx = {
-      'correlation-id': context.awsRequestId,
+      'request-id': context.awsRequestId,
+      'correlation-id': source === 'http' ? event.requestContext.requestId : context.awsRequestId,
       'container-id': this.containerId
     }
 
