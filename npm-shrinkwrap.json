@@ -75,7 +75,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#f1647ecb2c74ddf767229e5e7026fc97639541cc",
+      "resolved": "git://github.com/tradle/bot-products.git#f6e0a92775a98209c88ff309640795352ece011a",
       "dependencies": {
         "@tradle/build-resource": {
           "version": "2.12.2",
@@ -5016,11 +5016,6 @@
       "version": "3.2.1",
       "from": "y18n@>=3.2.1 <4.0.0",
       "resolved": "https://registry.npmjs.org/y18n/-/y18n-3.2.1.tgz"
-    },
-    "ya-promise-queue": {
-      "version": "1.1.0",
-      "from": "ya-promise-queue@>=1.1.0 <2.0.0",
-      "resolved": "https://registry.npmjs.org/ya-promise-queue/-/ya-promise-queue-1.1.0.tgz"
     },
     "yallist": {
       "version": "2.1.2",
