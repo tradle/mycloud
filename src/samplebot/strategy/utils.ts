@@ -10,7 +10,8 @@ export const EMPLOYEE_COMMANDS = [
   'listproducts',
   'forgetme',
   'setproductenabled',
-  'setautoverify'
+  'setautoverify',
+  'addfriend'
 ]
 
 export const CUSTOMER_COMMANDS = [

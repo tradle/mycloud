@@ -29,7 +29,7 @@ export default class Friends {
     this.cache = createCache()
   }
 
-  public load = async (opts: { url: string }): Promise<void> => {
+  public load = async (opts: { url: string }): Promise<any> => {
     let { url } = opts
     url = url.replace(/[/]+$/, "")
 
@@ -38,7 +38,7 @@ export default class Friends {
     const { bot: { pub }, org, publicConfig } = info
 
     const { name } = org
-    await this.add({
+    return await this.add({
       name,
       url,
       org,

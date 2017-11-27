@@ -43,7 +43,7 @@ export class Commander {
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
     this.conf = conf
-    this.logger = bot.logger.sub(':cli')
+    this.logger = bot.logger.sub('cli')
   }
 
   async exec({ req, command }) {

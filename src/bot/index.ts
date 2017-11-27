@@ -148,7 +148,7 @@ function createBot (opts={}) {
     })
   }
 
-  bot.logger = logger.sub(':bot')
+  bot.logger = logger.sub('bot')
   bot.debug = logger.debug
   bot.users = bot.users || createUsers({
     table: resources.tables.Users,

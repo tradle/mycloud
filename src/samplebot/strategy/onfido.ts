@@ -3,7 +3,7 @@ import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 
 export const createOnfidoPlugin = ({ bot, productsAPI, apiKey }) => {
   const onfidoAPI = new OnfidoAPI({ token: apiKey })
-  const logger = bot.logger.sub(':onfido')
+  const logger = bot.logger.sub('onfido')
   const onfidoPlugin = new Onfido({
     bot,
     logger,
