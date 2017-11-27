@@ -189,7 +189,7 @@ proto.onConnected = co(function* ({ clientId }) {
     yield this.auth.updatePresence({ clientId, connected: true })
   } catch (err) {
     this.logger.error('failed to update presence information', err)
-    yield this.delivery.mqtt.emit({
+    yield this.delivery.mqtt.trigger({
       clientId,
       topic: 'error',
       payload: {
