@@ -31,6 +31,7 @@ const cloud = {
   // },
   'tradle.MyCloudFriend': require('./tradle.MyCloudFriend.json'),
   'tradle.GraphQLQuery': require('./tradle.GraphQLQuery.json'),
+  'tradle.IotSession': require('./tradle.IotSession.json'),
   'tradle.OnfidoVerification': require('./tradle.OnfidoVerification.json')
 }
 

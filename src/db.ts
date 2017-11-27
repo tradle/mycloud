@@ -1,16 +1,17 @@
 import { createTable, DB, utils } from '@tradle/dynamodb'
 import AWS = require('aws-sdk')
 import { createMessagesTable } from './messages-table'
-
-const definitions = require('./definitions')
+import Provider from './provider'
+import Env from './env'
 
 export = function createDB (opts: {
   models: any,
   objects: any,
   tables: any,
+  provider: Provider,
   aws: any,
   constants: any,
-  env: any,
+  env: Env,
   dbUtils: any
 }) {
   const { models, objects, tables, provider, aws, constants, env, dbUtils } = opts
@@ -65,28 +66,34 @@ export = function createDB (opts: {
     })
   }
 
-  const pubKeyModel = models['tradle.PubKey']
-  const pubKeysDef = definitions.PubKeysTable.Properties
-  db.setExclusive({
-    model: pubKeyModel,
-    table: createTable({
-      ...commonOpts,
-      exclusive: true,
-      readOnly: !env.TESTING,
-      model: pubKeyModel,
-      tableDefinition: utils.toDynogelTableDefinition(pubKeysDef)
-    })
-  })
-
-  const friendModel = models['tradle.MyCloudFriend']
-  const friendsDef = definitions.FriendsTable.Properties
-  db.setExclusive({
-    model: friendModel,
-    table: createTable({
-      ...commonOpts,
-      exclusive: true,
-      model: friendModel,
-      tableDefinition: utils.toDynogelTableDefinition(friendsDef)
+  ;[
+    {
+      type: 'tradle.PubKey',
+      definition: tables.PubKeys.definition,
+    },
+    {
+      type: 'tradle.MyCloudFriend',
+      definition: tables.Friends.definition,
+    },
+    {
+      type: 'tradle.IotSession',
+      definition: tables.Presence.definition,
+      opts: {
+        forbidScan: false
+      }
+    }
+  ].forEach(({ type, definition, opts={} }) => {
+    const model = models[type]
+    db.setExclusive({
+      model,
+      table: createTable({
+        ...commonOpts,
+        exclusive: true,
+        readOnly: !env.TESTING,
+        model,
+        tableDefinition: utils.toDynogelTableDefinition(definition),
+        ...opts
+      })
     })
   })
 

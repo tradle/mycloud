@@ -11,10 +11,10 @@ import { prettify, alphabetical } from './string-utils'
 import { sha256 } from './crypto'
 import * as Errors from './errors'
 import Env from './env'
+import definitions = require('./definitions')
 
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
-const definitions = require('./definitions')
 const TABLE_BUCKET_REGEX = /-bucket-\d+$/
 
 export default createDBUtils
@@ -110,6 +110,7 @@ function createDBUtils ({ aws, env }) {
     })
 
     tableAPI.name = TableName
+    tableAPI.definition = getDefinition(TableName)
     return tableAPI
     // return logify(tableAPI, { log: debug }) //, logInputOutput: DEV })
   }
@@ -430,4 +431,12 @@ function getUpdateParams (item) {
     ExpressionAttributeValues,
     UpdateExpression
   }
+}
+
+const getDefinition = tableName => {
+  const logicalId = Object.keys(definitions).find(logicalId => {
+    return definitions[logicalId].Properties.TableName === tableName
+  })
+
+  return logicalId && definitions[logicalId].Properties
 }
