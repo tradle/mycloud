@@ -726,3 +726,30 @@ export const createLambdaContext = (fun, cb) => {
 }
 
 export const flatten = arr => arr.reduce((flat, batch) => flat.concat(batch), [])
+
+export const logResponseBody = (logger) => (req, res, next) => {
+  const oldWrite = res.write
+  const oldEnd = res.end
+  const chunks = []
+
+  res.write = function (chunk) {
+    chunks.push(chunk)
+
+    oldWrite.apply(res, arguments)
+  }
+
+  res.end = function (chunk) {
+    if (chunk)
+      chunks.push(chunk)
+
+    const body = Buffer.concat(chunks).toString('utf8')
+    logger.debug('RESPONSE BODY', {
+      path: req.path,
+      body
+    })
+
+    oldEnd.apply(res, arguments)
+  }
+
+  next()
+}

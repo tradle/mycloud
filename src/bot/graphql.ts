@@ -11,7 +11,8 @@ import dynogels = require('dynogels')
 import { createResolvers } from '@tradle/dynamodb'
 import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
-import { uniqueStrict } from '../utils'
+import { Level } from '../logger'
+import { uniqueStrict, logResponseBody } from '../utils'
 
 const { MESSAGE } = TYPES
 const prettifyQuery = query => print(parse(query))
@@ -53,6 +54,10 @@ export function setupGraphQL (bot) {
       next()
     }
   }))
+
+  if (logger.level >= Level.SILLY) {
+    gqlRouter.use(logResponseBody(logger))
+  }
 
   gqlRouter.use('/', expressGraphQL(async (req) => {
     await promiseReady()
