@@ -33,7 +33,7 @@ const COPY_TO_BOT = [
   'aws', 'objects', 'db', 'conf', 'kv', 'seals', 'seal',
   'identities', 'users', 'history', 'messages', 'friends',
   'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router',
-  'init'
+  'init', 'version'
 ]
 
 const HOOKABLE = [

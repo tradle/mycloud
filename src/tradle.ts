@@ -141,6 +141,10 @@ export default class Tradle {
     // this.bot = this.require('bot', './bot')
   }
 
+  get version () {
+    return require('./version')
+  }
+
   get networks () {
     return requireDefault('./networks')
   }

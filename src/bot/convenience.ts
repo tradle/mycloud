@@ -26,7 +26,7 @@ export default function addConvenienceMethods (bot) {
   //   return uploads.get(url)
   // }
 
-  bot.version = async (resource) => {
+  bot.createNewVersion = async (resource) => {
     const latest = buildResource.version(resource)
     const signed = await bot.sign(latest)
     addLinks(signed)
@@ -41,7 +41,7 @@ export default function addConvenienceMethods (bot) {
   }
 
   bot.versionAndSave = async (resource) => {
-    const newVersion = await bot.version(resource)
+    const newVersion = await bot.createNewVersion(resource)
     await bot.save(newVersion)
     return newVersion
   }

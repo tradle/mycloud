@@ -19,6 +19,7 @@ infoRouter.get('/', coexpress(function* (req, res) {
   // this belongs in bot engine
   result.aws = true
   result.iotParentTopic = bot.env.IOT_PARENT_TOPIC
+  result.version = bot.version
   res.json(result)
 }))
 

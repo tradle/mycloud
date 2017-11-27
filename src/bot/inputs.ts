@@ -26,7 +26,8 @@ module.exports = function createBotInputs ({
     init,
     wrap,
     friends,
-    lambdaUtils
+    lambdaUtils,
+    version
   } = tradle
 
   const { docClient } = aws
@@ -76,6 +77,7 @@ module.exports = function createBotInputs ({
     send,
     sign,
     history: createHistory(tradle),
-    lambdaUtils
+    lambdaUtils,
+    version
   }
 }

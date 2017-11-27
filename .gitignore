@@ -19,3 +19,4 @@ secrets.yml
 lib/modelmap.json
 lib/cli/cloudformation-template.json
 lib/definitions.json
+./*/version.json
