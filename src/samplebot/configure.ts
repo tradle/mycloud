@@ -30,13 +30,13 @@ export class Conf {
     })
   }
 
-  public getPrivateConf = (forceFetch:boolean) => {
+  public getPrivateConf = (forceFetch?:boolean) => {
     return this.privateConf.get({
       force: forceFetch
     })
   }
 
-  public getPublicConf = (forceFetch:boolean) => {
+  public getPublicConf = (forceFetch?:boolean) => {
     return this.publicConf.get({
       force: forceFetch
     })
