@@ -43,7 +43,7 @@ export default function createProductsBot ({ bot, conf }) {
     autoApprove,
     autoVerify,
     approveAllEmployees,
-    queueSends,
+    // queueSends,
     graphqlRequiresAuth
   } = conf.products
 
@@ -64,7 +64,7 @@ export default function createProductsBot ({ bot, conf }) {
         .get()
     },
     products: enabled,
-    queueSends: bot.env.TESTING ? true : queueSends
+    // queueSends: bot.env.TESTING ? true : queueSends
   })
 
   const employeeManager = createEmployeeManager({
