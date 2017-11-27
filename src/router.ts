@@ -16,8 +16,8 @@ module.exports = function createRouter (tradle) {
   } = env
 
   const { timestamp } = utils
-  const app = express()
-  app.use(function (req, res, next) {
+  const router = express()
+  router.use(function (req, res, next) {
     if (env.DISABLED) {
       logger.warn('returning 500 as this function is disabled')
       return res.status(500).end()
@@ -27,10 +27,10 @@ module.exports = function createRouter (tradle) {
   })
 
   if (!TESTING) {
-    app.use(compression())
+    router.use(compression())
   }
 
-  app.use(function (req, res, next) {
+  router.use(function (req, res, next) {
     req._tradleStartTimestamp = timestamp()
     const path = getReqPath(req)
     // env.setDebugNamespace(path)
@@ -41,38 +41,41 @@ module.exports = function createRouter (tradle) {
 
     logger.debug(`setting Access-Control-Allow-Methods: ${HTTP_METHODS}`)
     res.header('Access-Control-Allow-Methods', HTTP_METHODS)
-    if (env.IS_WARM_UP) {
-      utils.onWarmUp({
-        env,
-        event: req.event,
-        context: req.context,
-        callback: function () {
-          logger.info('all warmed up')
-          return res.end()
+    if (!env.IS_WARM_UP) return next()
+
+    utils.onWarmUp({
+      env,
+      event: req.event,
+      context: req.context,
+      callback: function (err, data) {
+        logger.info('all warmed up')
+        if (err) {
+          res.status(500).json({
+            message: err.message,
+            stack: err.stack
+          })
+        } else {
+          res.json(data || {})
         }
-      })
-
-      return
-    }
-
-    next()
+      }
+    })
   })
 
   if (FUNCTION_NAME === 'inbox') {
-    require('./routes/inbox')({ tradle, router: app })
+    require('./routes/inbox')({ tradle, router })
   } else if (FUNCTION_NAME === 'preauth') {
-    require('./routes/preauth')({ tradle, router: app })
+    require('./routes/preauth')({ tradle, router })
   } else if (FUNCTION_NAME === 'auth') {
-    require('./routes/auth')({ tradle, router: app })
+    require('./routes/auth')({ tradle, router })
   } else if (FUNCTION_NAME === 'onmessage_http') {
     // TODO: scrap this in favor of /inbox,
     // adjust @tradle/aws-client accordingly
-    require('./routes/onmessage_http')({ tradle, router: app })
+    require('./routes/onmessage_http')({ tradle, router })
   } else if (FUNCTION_NAME === 'addfriend_dev' && TESTING) {
-    require('./routes/addfriend_dev')({ tradle, router: app })
+    require('./routes/addfriend_dev')({ tradle, router })
   }
 
-  // app.post('/log', coexpress(function* (req, res) {
+  // router.post('/log', coexpress(function* (req, res) {
   //   res.json({
   //     event: req.event,
   //     body: req.body,
@@ -81,8 +84,8 @@ module.exports = function createRouter (tradle) {
   // }))
 
 
-  app.use(defaultErrorHandler)
-  app.use(function (req, res, next) {
+  router.use(defaultErrorHandler)
+  router.use(function (req, res, next) {
     const start = req._tradleStartTimestamp
     const end = timestamp()
     logger.debug(`[END] ${getReqPath(req)}, ${end}, time: ${(end - start)/1000}ms`)
@@ -93,8 +96,8 @@ module.exports = function createRouter (tradle) {
     next()
   })
 
-  app.defaultErrorHandler = defaultErrorHandler
-  return app
+  router.defaultErrorHandler = defaultErrorHandler
+  return router
 
   function defaultErrorHandler (err, req, res, next) {
     console.error('sending HTTP error', err.stack, err)
