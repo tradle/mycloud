@@ -89,7 +89,7 @@ export = function createDB (opts: {
       table: createTable({
         ...commonOpts,
         exclusive: true,
-        readOnly: !env.TESTING,
+        // readOnly: !env.TESTING,
         model,
         tableDefinition: utils.toDynogelTableDefinition(definition),
         ...opts
