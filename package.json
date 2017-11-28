@@ -69,7 +69,6 @@
     "rebuild:lambda": "./src/scripts/rebuild-lambda.sh",
     "rebuild:local": "npm rebuild",
     "nuke": "./src/scripts/nuke.sh",
-    "delete:typetables": "node ./lib/scripts/delete-tables.js",
     "clear:tables": "DEBUG=* node ./lib/scripts/clear-tables.js",
     "copy-static-assets": "./src/scripts/copy-static-assets.sh",
     "export:template": "serverless sam export --output ./template.yml",

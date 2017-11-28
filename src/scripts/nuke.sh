@@ -16,6 +16,7 @@ fi
 
 if [ -z "$PROFILE" ]; then
   PROFILE=$(./lib/scripts/var.js provider.profile)
+  echo "using AWS profile $PROFILE"
 fi
 
 ask() {
@@ -67,4 +68,3 @@ remove_buckets() {
 echo "This will empty and delete all buckets, tables, lambdas, etc. for \nservice: $SERVICE \nstage: $STAGE"
 ask && remove_buckets
 ask "delete resources stack" && sls remove --stage="$STAGE"
-ask "delete per-type tables" && DEBUG=* node ./lib/scripts/delete-tables.js --stage="$STAGE" --service="$SERVICE" --profile="$PROFILE" --force true
