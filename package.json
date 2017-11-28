@@ -97,7 +97,7 @@
     "addfriends": "./lib/scripts/addfriends.js",
     "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
     "start": "./src/scripts/start.sh",
-    "warmup": "serverless warmup",
+    "warmup": "serverless warmup run",
     "postinstall": "./src/scripts/postinstall.sh",
     "remove": "npm run build:yml && serverless remove"
   },
