@@ -76,7 +76,6 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
     this.logger.error('failed to update presence information', err)
     yield this.requestIotClientReconnect({ clientId })
     Errors.rethrow(err, 'system')
-    return
   }
 })
 
