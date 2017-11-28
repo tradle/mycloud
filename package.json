@@ -94,7 +94,7 @@
     "setconf": "./src/scripts/setconf.sh",
     "setstyle:local": "IS_LOCAL=1 ./src/scripts/setstyle.sh",
     "setconf:local": "IS_LOCAL=1 ./src/scripts/setconf.sh",
-    "addfriends": "./lib/scripts/addfriends.js",
+    "addfriends": "npm run copy-static-assets && ./lib/scripts/addfriends.js",
     "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
     "start": "./src/scripts/start.sh",
     "warmup": "serverless warmup run",
