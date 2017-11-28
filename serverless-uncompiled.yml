@@ -140,15 +140,21 @@ custom:
     kv: ${{self:custom.prefix}}kv
 
   # auto-scaled tables that serve as buckets for multiple models each
-  defaultCapacity: &defaultCapacity
+  defaultCapacityRead: &defaultCapacityRead
     read:
       minimum: 5        # Minimum read capacity
       maximum: 100      # Maximum read capacity
       usage: 0.70       # Targeted usage percentage
+
+  defaultCapacityWrite: &defaultCapacityWrite
     write:
-      minimum: 5        # Minimum write capacity
-      maximum: 100      # Maximum write capacity
+      minimum: 5        # Minimum read capacity
+      maximum: 100      # Maximum read capacity
       usage: 0.5        # Targeted usage percentage
+
+  defaultCapacity: &defaultCapacity
+    <<: *defaultCapacityRead
+    <<: *defaultCapacityWrite
 
   tableBuckets:
     count: 4
@@ -167,13 +173,27 @@ custom:
       index:
         - _link
         - context
-      <<: *defaultCapacity
+      read:
+        minimum: 10       # Minimum read capacity
+        maximum: 100      # Maximum read capacity
+        usage: 0.70       # Targeted usage percentage
+      write:
+        minimum: 5        # Minimum write capacity
+        maximum: 100      # Maximum write capacity
+        usage: 0.5        # Targeted usage percentage
 
     - table: OutboxTable
       index:
         - _payloadLink
         - context
-      <<: *defaultCapacity
+      read:
+        minimum: 10       # Minimum read capacity
+        maximum: 100      # Maximum read capacity
+        usage: 0.70       # Targeted usage percentage
+      write:
+        minimum: 5        # Minimum write capacity
+        maximum: 100      # Maximum write capacity
+        usage: 0.5        # Targeted usage percentage
 
     - table: EventsTable
       write:
