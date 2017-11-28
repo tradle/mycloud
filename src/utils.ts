@@ -700,7 +700,7 @@ export const getRequestIps = (req) => {
   Mimicks the lambda context object
   http://docs.aws.amazon.com/lambda/latest/dg/nodejs-prog-model-context.html
 */
-export const createLambdaContext = (fun, cb) => {
+export const createLambdaContext = (fun, cb?) => {
   const functionName = fun.name
   const endTime = new Date().getTime() + (fun.timeout ? fun.timeout * 1000 : 6000)
   const done = typeof cb === 'function' ? cb : ((x, y) => x || y) // eslint-disable-line no-extra-parens

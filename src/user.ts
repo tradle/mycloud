@@ -131,13 +131,13 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     }
 
     // const { author, time, link } = wrapper.message
-    const neutered = this.messages.stripData(processed)
+    const arg = INVOKE_BOT_LAMBDAS_DIRECTLY ? processed : this.messages.stripData(processed)
     this.logger.debug(`passing message from ${processed._author} on to bot`)
     const resp = yield this.lambdaUtils.invoke({
       sync: true,
       local: INVOKE_BOT_LAMBDAS_DIRECTLY,
       name: BOT_ONMESSAGE,
-      arg: neutered
+      arg
       // arg: JSON.stringify({ author, time, link })
     })
 
