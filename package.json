@@ -65,7 +65,7 @@
     "deploy": "npm run deploy:prepare && npm run deploy:base",
     "deploy:safe": "npm run deploy:prepare && npm run gen:localresources && npm test && npm run rebuild:lambda && npm run deploy:base",
     "deploy:fromscratch": "npm run reinstall && npm run localstack:start && npm run deploy:safe",
-    "deploy:postprocess": "npm run gen:testenv",
+    "deploy:postprocess": "npm run gen:testenv && npm run warmup",
     "rebuild:lambda": "./src/scripts/rebuild-lambda.sh",
     "rebuild:local": "npm rebuild",
     "nuke": "./src/scripts/nuke.sh",

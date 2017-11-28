@@ -25,8 +25,7 @@ class WarmUp {
 
     this.hooks = {
       'warmup:cost:end': () => Promise.resolve(this.estimateCost()),
-      'warmup:run:end': () => Promise.resolve(this.warmUp()),
-      'after:deploy:deploy': () => this.afterDeployFunctions()
+      'warmup:run:end': () => Promise.resolve(this.warmUp())
     }
   }
 
@@ -46,10 +45,6 @@ class WarmUp {
 
     logger.info('costs per warmed up function:')
     logger.info(JSON.stringify(costPerFunction, null, 2))
-  }
-
-  afterDeployFunctions() {
-    return this.warmUp()
   }
 
   warmUp() {
