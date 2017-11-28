@@ -55,7 +55,11 @@ class WarmUp {
   warmUp() {
     // lazy require
     const { logger, lambdaUtils } = require('../').createRemoteTradle()
+    const { loadCredentials } = require('../lib/cli/utils')
     const serverlessYml = require('../lib/cli/serverless-yml')
+
+    loadCredentials()
+
     return lambdaUtils.warmUp(lambdaUtils.getWarmUpInfo(serverlessYml).input)
   }
 }
