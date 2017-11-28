@@ -41,21 +41,43 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
   this.logger.debug('client subscribed to topics:', topics.join(', '))
   // yield onEnter({ clientId })
 
+  // if (Math.random() < 0.5) {
+  //   console.log('ONSUBSCRIBED, REQUESTING RECONNECT')
+  //   yield this.requestIotClientReconnect({ clientId })
+  //   return
+  // }
+
   if (!this.delivery.mqtt.includesClientMessagesTopic({ clientId, topics })) {
     this.logger.debug('message topic not found in topics array')
     return
   }
 
-  const session = yield this.auth.getSession({ clientId })
-  this.logger.debug('retrieved session', prettify(session))
+  let session
+  try {
+    session = yield this.auth.setSubscribed({ clientId, subscribed: true })
+    this.logger.debug(`client subscribed: ${clientId}`, session)
+  } catch (err) {
+    this.logger.error('failed to update presence information', err)
+    yield this.requestIotClientReconnect({ clientId })
+    Errors.rethrow(err, 'system')
+    return
+  }
+
   const { permalink, clientPosition, serverPosition } = session
   const after = (clientPosition.received && clientPosition.received.time) || 0
   this.logger.debug(`delivering messages after time ${after}`)
-  yield this.delivery.deliverMessages({
-    clientId,
-    recipient: permalink,
-    range: { after }
-  })
+  try {
+    yield this.delivery.deliverMessages({
+      session,
+      recipient: permalink,
+      range: { after }
+    })
+  } catch (err) {
+    this.logger.error('failed to update presence information', err)
+    yield this.requestIotClientReconnect({ clientId })
+    Errors.rethrow(err, 'system')
+    return
+  }
 })
 
 // const onSentMessageOverMQTT = co(function* ({ clientId, message }) {
@@ -66,6 +88,12 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
 
 proto.onSentMessage = co(function* ({ clientId, message }) {
   const { TESTING } = this.env
+
+  // if (Math.random() < 0.5) {
+  //   console.log('ONSENTMESSAGE, REQUESTING RECONNECT')
+  //   yield this.requestIotClientReconnect({ clientId })
+  //   return
+  // }
 
   let err
   let processed
@@ -180,24 +208,43 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
   throw err
 })
 
-proto.onDisconnected = function ({ clientId }) {
-  return this.auth.updatePresence({ clientId, connected: false })
-}
-
-proto.onConnected = co(function* ({ clientId }) {
+proto.onDisconnected = co(function* ({ clientId }) {
   try {
-    yield this.auth.updatePresence({ clientId, connected: true })
+    yield this.auth.setConnected({ clientId, connected: false })
+    this.logger.debug(`client disconnected: ${clientId}`)
   } catch (err) {
     this.logger.error('failed to update presence information', err)
-    yield this.delivery.mqtt.trigger({
-      clientId,
-      topic: 'error',
-      payload: {
-        message: 'please reconnect'
-      }
-    })
+    yield this.requestIotClientReconnect({ clientId })
+    Errors.rethrow(err, 'system')
   }
 })
+
+proto.onConnected = co(function* ({ clientId }) {
+  // if (Math.random() < 0.5) {
+  //   console.log('ONCONNECTED, REQUESTING RECONNECT')
+  //   yield this.requestIotClientReconnect({ clientId })
+  //   return
+  // }
+
+  try {
+    yield this.auth.setConnected({ clientId, connected: true })
+    this.logger.debug(`client connected: ${clientId}`)
+  } catch (err) {
+    this.logger.error('failed to update presence information', err)
+    yield this.requestIotClientReconnect({ clientId })
+    Errors.rethrow(err, 'system')
+  }
+})
+
+proto.requestIotClientReconnect = function ({ clientId, message='please reconnect' }) {
+  return this.delivery.mqtt.trigger({
+    clientId,
+    topic: 'error',
+    payload: {
+      message
+    }
+  })
+}
 
 proto.onPreAuth = function (...args) {
   return this.auth.createTemporaryIdentity(...args)

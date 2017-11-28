@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import * as DeliveryMQTT from './delivery-mqtt'
+import DeliveryIot from './delivery-mqtt'
 import DeliveryHTTP from './delivery-http'
 import Messages from './messages'
 import {
@@ -8,7 +8,8 @@ import {
   IDeliveryResult,
   IDeliverBatchRequest,
   IDeliveryMessageRange,
-  IDebug
+  IDebug,
+  ISession
 } from './types'
 import { clone, pick } from './utils'
 import { ClientUnreachable } from './errors'
@@ -57,7 +58,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.objects = objects
     this.friends = friends
     this.http = new DeliveryHTTP(tradle)
-    this.mqtt = new DeliveryMQTT(tradle)
+    this.mqtt = new DeliveryIot(tradle)
     this.env = env
     this.logger = this.env.sublogger('delivery')
   }
@@ -70,7 +71,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
   public deliverMessages = async ({
     recipient,
-    clientId,
+    session,
     friend,
     range,
     batchSize=MAX_BATCH_SIZE
@@ -106,7 +107,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
         break
       }
 
-      await this.deliverBatch({ recipient, messages, clientId, friend })
+      await this.deliverBatch({ recipient, messages, session, friend })
       let last = messages[messages.length - 1]
       afterMessage = pick(last, ['_recipient', 'time'])
       result.range.afterMessage = afterMessage
@@ -120,10 +121,11 @@ export default class Delivery extends EventEmitter implements IDelivery {
     method: string,
     recipient: string,
     clientId?: string,
+    session?: ISession,
     friend?: any
   }):Promise<IDelivery> => {
-    const { method, recipient, clientId, friend } = opts
-    if (clientId || !(method in this.http)) {
+    const { method, recipient, clientId, session, friend } = opts
+    if (clientId || session || !(method in this.http)) {
       return this.mqtt
     }
 

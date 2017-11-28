@@ -32,33 +32,19 @@ import Identities from './identities'
 import Messages from './messages'
 import Objects from './objects'
 import Env from './env'
-import { ISession, ITradleMessage, ITradleObject, IIdentity, IPubKey, IDebug } from './types'
+import {
+  ISession,
+  ITradleMessage,
+  ITradleObject,
+  IIdentity,
+  IPubKey,
+  IDebug,
+  ILiveDeliveryOpts,
+  IBatchSendOpts
+} from './types'
 import Logger from './logger'
 
 const { MESSAGE } = TYPES
-
-export interface IMessageOpts {
-  object: ITradleObject
-  other?: any
-}
-
-export interface ISendOpts extends IMessageOpts {
-  recipient: string
-}
-
-export type IBatchSendOpts = ISendOpts[]
-
-// export interface IBatchSendOpts {
-//   messages: IMessageOpts[]
-//   recipient: string
-// }
-
-export interface ILiveDeliveryOpts {
-  messages: ITradleMessage[]
-  recipient: string
-  friend?: any
-  session?: ISession
-}
 
 export default class Provider {
   private tradle: Tradle
@@ -337,13 +323,9 @@ export default class Provider {
   }
 
   private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
-    const { messages, recipient, session } = opts
+    const { messages, recipient } = opts
     this.logger.debug(`attempting to deliver batch of ${messages.length} messages to ${recipient}`)
-    await this.tradle.delivery.deliverBatch({
-      clientId: session && session.clientId,
-      recipient,
-      messages
-    })
+    await this.tradle.delivery.deliverBatch(opts)
   }
 
   public sendPushNotification = async (recipient:string):Promise<void> => {

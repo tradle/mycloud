@@ -61,7 +61,7 @@ export default class Auth {
   }) {
     // lazy define
     [
-      'env', 'aws', 'resources', 'tables',
+      'env', 'aws', 'resources', 'tables', 'db',
       'identities', 'objects', 'messages', 'iot'
     ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
 
@@ -81,13 +81,14 @@ export default class Auth {
     await this.tables.Presence.put({ Item: session })
   }
 
-  public updatePresence = (opts: {
-    clientId: string,
-    connected: boolean
-  }): Promise<any> => {
-    const { clientId, connected } = opts
-    // const params:any = getUpdateParams({ connected })
-    // params.Key = getKeyFromClientId(clientId)
+  public setConnected = async ({ clientId, connected }): Promise<any> => {
+    if (!connected) {
+      return this.tables.Presence.update({
+        Key: getKeyFromClientId(clientId),
+        ...getUpdateParams({ connected: false, subscribed: false })
+      })
+    }
+
     return this.tables.Presence.update({
       Key: getKeyFromClientId(clientId),
       UpdateExpression: 'SET #connected = :connected',
@@ -99,7 +100,33 @@ export default class Auth {
       ExpressionAttributeValues: {
         ':connected': true,
         ':authenticated': true
-      }
+      },
+      ReturnValues: 'ALL_NEW'
+    })
+  }
+
+  public setSubscribed = async ({ clientId, subscribed }): Promise<any> => {
+    // params.Key = getKeyFromClientId(clientId)
+    if (!subscribed) {
+      return this.tables.Presence.update({
+        Key: getKeyFromClientId(clientId),
+        ...getUpdateParams({ subscribed: false })
+      })
+    }
+
+    return this.tables.Presence.update({
+      Key: getKeyFromClientId(clientId),
+      UpdateExpression: 'SET #subscribed = :subscribed',
+      ConditionExpression: '#authenticated = :authenticated',
+      ExpressionAttributeNames: {
+        '#subscribed': 'subscribed',
+        '#authenticated': 'authenticated'
+      },
+      ExpressionAttributeValues: {
+        ':subscribed': true,
+        ':authenticated': true
+      },
+      ReturnValues: 'ALL_NEW'
     })
   }
 

@@ -117,9 +117,18 @@ function createDBUtils ({ aws, env }) {
 
   const exec = async (method, params) => {
     params.ReturnConsumedCapacity = 'TOTAL'
-    const result = await aws.docClient[method](params).promise()
-    logCapacityConsumption(method, result)
-    return result
+    try {
+      const result = await aws.docClient[method](params).promise()
+      logCapacityConsumption(method, result)
+      return result
+    } catch (err) {
+      Errors.rethrow(err, 'system')
+      if (err.code === 'ValidationException') {
+        throw new Errors.InvalidInput(err.message)
+      }
+
+      throw err
+    }
   }
 
   const dynamoDBExec = function dynamoDBExec (method, params) {

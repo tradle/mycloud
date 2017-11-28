@@ -82,13 +82,27 @@ export interface IIdentity extends ITradleObject {
 
 export type IDebug = (...any) => void
 
+export interface IMessageOpts {
+  object: ITradleObject
+  other?: any
+}
+
+export interface ISendOpts extends IMessageOpts {
+  recipient: string
+}
+
+export type IBatchSendOpts = ISendOpts[]
+
+export interface ILiveDeliveryOpts {
+  recipient: string
+  messages: ITradleMessage[]
+  session?: ISession,
+  friend?: any
+}
+
 export interface IDelivery {
   deliverBatch: (
-    opts: {
-      recipient: string
-      messages: ITradleMessage[]
-      friend?: any
-    }
+    opts: ILiveDeliveryOpts
   ) => Promise<any>
   ack: (opts: any) => Promise<any>
   reject: (opts: any) => Promise<any>
@@ -98,7 +112,7 @@ export interface IDeliverBatchRequest {
   recipient: string
   messages: ITradleMessage[]
   friend?: any
-  clientId?: string
+  session?: ISession
 }
 
 export interface IDeliveryResult {
@@ -110,7 +124,7 @@ export interface IDeliveryRequest {
   recipient: string
   range: IDeliveryMessageRange
   batchSize?: number
-  clientId?: any
+  session?: ISession
   friend?: any
 }
 

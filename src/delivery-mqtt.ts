@@ -1,100 +1,119 @@
-const { EventEmitter } = require('events')
-const inherits = require('inherits')
-const debug = require('debug')('tradle:sls:delivery-mqtt')
-const { SEQ } = require('@tradle/constants')
-const { co, typeforce, pick } = require('./utils')
-const Errors = require('./errors')
-const { omitVirtual, extend, batchStringsBySize, bindAll } = require('./utils')
-const { getLink } = require('./crypto')
+import { EventEmitter } from 'events'
+import { SEQ } from '@tradle/constants'
+import { co, typeforce, pick } from './utils'
+import Errors = require('./errors')
+import { omitVirtual, extend, batchStringsBySize, bindAll } from './utils'
+import { getLink } from './crypto'
+import { IDelivery } from './types'
+import Messages from './messages'
+import Objects from './objects'
+import Env from './env'
+import Auth from './auth'
+import Logger from './logger'
+
 // 128KB, but who knows what overhead MQTT adds, so leave a buffer
 // would be good to test it and know the hard limit
 const MAX_PAYLOAD_SIZE = 115000
 
-module.exports = Delivery
-
-function Delivery ({ env, iot, messages, objects }) {
-  EventEmitter.call(this)
-  bindAll(this)
-
-  this.env = env
-  this.iot = iot
-  this.messages = messages
-  this.objects = objects
-  this._parentTopic = env.IOT_PARENT_TOPIC
-}
-
-const proto = Delivery.prototype
 // eventemitter makes testing easier
-inherits(Delivery, EventEmitter)
+export default class DeliveryIot extends EventEmitter implements IDelivery {
+  private env: Env
+  private iot: any
+  private messages: Messages
+  private objects: Objects
+  private auth: Auth
+  private logger: Logger
+  private _parentTopic: string
+  constructor ({ env, iot, auth, messages, objects }) {
+    super()
 
-proto._prefixTopic = function _prefixTopic (topic) {
-  return `${this._parentTopic}/${topic}`
-}
+    this.env = env
+    this.logger = env.sublogger('delivery-iot')
+    this.iot = iot
+    this.auth = auth
+    this.messages = messages
+    this.objects = objects
+    this._parentTopic = env.IOT_PARENT_TOPIC
+  }
 
-proto._unprefixTopic = function _unprefixTopic (topic) {
-  return topic.slice(this._parentTopic.length + 1)
-}
+  public includesClientMessagesTopic = ({
+    clientId,
+    topics
+  }):boolean => {
+    const catchAllTopic = `${clientId}/sub/+`
+    const messagesTopic = `${clientId}/sub/inbox`
+    return topics
+      .map(topic => this._unprefixTopic(topic))
+      .find(topic => topic === messagesTopic || topic === catchAllTopic)
+  }
 
-proto.includesClientMessagesTopic = function includesClientMessagesTopic ({
-  clientId,
-  topics
-}) {
-  const catchAllTopic = `${clientId}/sub/+`
-  const messagesTopic = `${clientId}/sub/inbox`
-  return topics
-    .map(topic => this._unprefixTopic(topic))
-    .find(topic => topic === messagesTopic || topic === catchAllTopic)
-}
+  public canReceive = async ({ clientId, session }) => {
+    if (!session) {
+      session = await this.auth.getMostRecentSessionByClientId(clientId)
+    }
 
+    return session.authenticated && session.connected
+  }
 
-proto.deliverBatch = co(function* ({ clientId, recipient, messages }) {
-  const seqs = messages.map(m => m[SEQ])
-  debug(`delivering ${messages.length} messages to ${recipient}: ${seqs.join(', ')}`)
-  const strings = messages.map(stringify)
-  const subBatches = batchStringsBySize(strings, MAX_PAYLOAD_SIZE)
-  for (let subBatch of subBatches) {
-    yield this.trigger({
+  public deliverBatch = async ({ session, recipient, messages }) => {
+    if (!(session.authenticated && session.connected)) {
+      throw new Errors.ClientUnreachable('client must be authenticated and connected')
+    }
+
+    const seqs = messages.map(m => m[SEQ])
+    this.logger.debug(`delivering ${messages.length} messages to ${recipient}: ${seqs.join(', ')}`)
+    const strings = messages.map(stringify)
+    const subBatches = batchStringsBySize(strings, MAX_PAYLOAD_SIZE)
+    for (let subBatch of subBatches) {
+      await this.trigger({
+        clientId: session.clientId,
+        topic: 'inbox',
+        payload: `{"messages":[${subBatch.join(',')}]}`
+      })
+    }
+
+    this.logger.debug(`delivered ${messages.length} messages to ${recipient}`)
+  }
+
+  public ack = ({ clientId, message }) => {
+    this.logger.debug(`acking message from ${clientId}`)
+    const stub = this.messages.getMessageStub({ message })
+    return this.trigger({
       clientId,
-      topic: 'inbox',
-      payload: `{"messages":[${subBatch.join(',')}]}`
+      topic: 'ack',
+      payload: {
+        message: stub
+      }
     })
   }
 
-  debug(`delivered ${messages.length} messages to ${recipient}`)
-})
+  public reject = ({ clientId, message, error }) => {
+    this.logger.debug(`rejecting message from ${clientId}`, error)
+    const stub = this.messages.getMessageStub({ message, error })
+    return this.trigger({
+      clientId,
+      topic: 'reject',
+      payload: {
+        message: stub,
+        reason: Errors.export(error)
+      }
+    })
+  }
 
-proto.ack = function ack ({ clientId, message }) {
-  debug(`acking message from ${clientId}`)
-  const stub = this.messages.getMessageStub({ message })
-  return this.trigger({
-    clientId,
-    topic: 'ack',
-    payload: {
-      message: stub
-    }
-  })
+  public trigger = ({ clientId, topic, payload }) => {
+    return this.iot.publish({
+      topic: this._prefixTopic(`${clientId}/sub/${topic}`),
+      payload
+    })
+  }
+
+  private _prefixTopic = (topic) => {
+    return `${this._parentTopic}/${topic}`
+  }
+
+  private _unprefixTopic = (topic) => {
+    return topic.slice(this._parentTopic.length + 1)
+  }
 }
 
-proto.reject = function reject ({ clientId, message, error }) {
-  debug(`rejecting message from ${clientId}`, error)
-  const stub = this.messages.getMessageStub({ message, error })
-  return this.trigger({
-    clientId,
-    topic: 'reject',
-    payload: {
-      message: stub,
-      reason: Errors.export(error)
-    }
-  })
-}
-
-proto.trigger = function trigger ({ clientId, topic, payload }) {
-  return this.iot.publish({
-    topic: this._prefixTopic(`${clientId}/sub/${topic}`),
-    payload
-  })
-}
-
-function stringify (msg) {
-  return JSON.stringify(omitVirtual(msg))
-}
+const stringify = msg => JSON.stringify(omitVirtual(msg))
