@@ -23,8 +23,7 @@ export function setupGraphQL (bot) {
     router,
     objects,
     models,
-    db,
-    promiseReady
+    db
   } = bot
 
   // allow models to be set asynchronously
@@ -48,7 +47,8 @@ export function setupGraphQL (bot) {
   gqlRouter.use(bodyParser.json({ limit: '10mb' }))
   gqlRouter.use(bodyParser.urlencoded({ limit: '10mb', extended: true }))
   gqlRouter.use('/', coexpress(function* (req, res, next) {
-    yield promiseReady()
+    logger.debug('hit graphql auth route, ready:', bot.isReady())
+    yield bot.promiseReady()
     if (auth) {
       yield auth(req, res, next)
     } else {
@@ -61,7 +61,8 @@ export function setupGraphQL (bot) {
   }
 
   gqlRouter.use('/', expressGraphQL(async (req) => {
-    await promiseReady()
+    logger.debug('hit graphql query route, ready:', bot.isReady())
+    await bot.promiseReady()
     const { query } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
       logger.debug('received query:')
@@ -133,7 +134,7 @@ export function setupGraphQL (bot) {
   })()
 
   const executeQuery = async (query, variables) => {
-    await promiseReady()
+    await bot.promiseReady()
     return graphql(getSchema(), query, null, {}, variables)
   }
 

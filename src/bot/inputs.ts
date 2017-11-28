@@ -22,12 +22,16 @@ module.exports = function createBotInputs ({
     kv,
     conf,
     contentAddressedStorage,
+    resources,
+    tables,
+    buckets,
     router,
     init,
     wrap,
     friends,
     lambdaUtils,
-    version
+    version,
+    apiBaseUrl
   } = tradle
 
   const { docClient } = aws
@@ -63,9 +67,8 @@ module.exports = function createBotInputs ({
     kv: kv.sub(':bot'),
     contentAddressedStorage,
     resources: {
-      tables: tradle.tables,
-      buckets: tradle.buckets,
-      apiGateway: tradle.resources.RestApi.ApiGateway
+      tables,
+      buckets
     },
     messages,
     friends,
@@ -78,6 +81,7 @@ module.exports = function createBotInputs ({
     sign,
     history: createHistory(tradle),
     lambdaUtils,
-    version
+    version,
+    apiBaseUrl
   }
 }

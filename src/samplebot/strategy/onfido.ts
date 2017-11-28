@@ -33,7 +33,7 @@ export const createOnfidoPlugin = ({ bot, productsAPI, apiKey }) => {
         return
       }
 
-      const url = `${bot.resources.apiGateway}/onfido`
+      const url = `${bot.apiBaseUrl}/onfido`
       logger.info(`registering webhook for url: ${url}`)
       await onfidoPlugin.registerWebhook({ url })
     }

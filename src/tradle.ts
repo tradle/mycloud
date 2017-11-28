@@ -46,6 +46,7 @@ export default class Tradle {
   public provider: Provider
   public pushNotifications: Push
   public s3Utils: any
+  public iot: any
   public lambdaUtils: any
   public prefix: string
 
@@ -139,6 +140,10 @@ export default class Tradle {
       })
     })
     // this.bot = this.require('bot', './bot')
+  }
+
+  get apiBaseUrl () {
+    return this.resources.RestApi.ApiGateway
   }
 
   get version () {

@@ -85,16 +85,16 @@ module.exports = function createRouter (tradle) {
 
 
   router.use(defaultErrorHandler)
-  router.use(function (req, res, next) {
-    const start = req._tradleStartTimestamp
-    const end = timestamp()
-    logger.debug(`[END] ${getReqPath(req)}, ${end}, time: ${(end - start)/1000}ms`)
-    if (_X_AMZN_TRACE_ID) {
-      logger.info('_X_AMZN_TRACE_ID', _X_AMZN_TRACE_ID)
-    }
+  // router.use(function (req, res, next) {
+  //   const start = req._tradleStartTimestamp
+  //   const end = timestamp()
+  //   logger.debug(`[END] ${getReqPath(req)}, ${end}, time: ${(end - start)/1000}ms`)
+  //   if (_X_AMZN_TRACE_ID) {
+  //     logger.info('_X_AMZN_TRACE_ID', _X_AMZN_TRACE_ID)
+  //   }
 
-    next()
-  })
+  //   next()
+  // })
 
   router.defaultErrorHandler = defaultErrorHandler
   return router

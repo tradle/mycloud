@@ -1,6 +1,5 @@
 process.env.LAMBDA_BIRTH_DATE = Date.now()
 
-import pick = require('object.pick')
 import { customize } from '../../customize'
 import sampleQueries from '../../sample-queries'
 import { createBot } from '../../../bot'

@@ -8,10 +8,7 @@ export function readyMixin (emitter) {
     })
     .then(() => emitter.emit('ready'))
 
-  emitter.ready = ():void => {
-    resolveReady()
-  }
-
+  emitter.ready = ():void => resolveReady()
   emitter.isReady = ():boolean => promise.isFulfilled()
   emitter.promiseReady = ():Promise<void> => promise
 }
