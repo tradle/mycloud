@@ -17,12 +17,6 @@ import { uniqueStrict, logResponseBody } from '../utils'
 const { MESSAGE } = TYPES
 const prettifyQuery = query => print(parse(query))
 
-dynogels.log = {
-  info: require('debug')('dynogels:info'),
-  warn: require('debug')('dynogels:warn'),
-  level: 'warn'
-}
-
 export function setupGraphQL (bot) {
   let {
     logger,
@@ -35,6 +29,13 @@ export function setupGraphQL (bot) {
 
   // allow models to be set asynchronously
   logger.debug('attaching /graphql route')
+
+  // const dynogelsLogger = logger.sub('dynogels')
+  // dynogels.log = {
+  //   info: (...data) => dynogelsLogger.info('', data),
+  //   warn: (...data) => dynogelsLogger.warn('', data),
+  //   level: logger.level >= Level.INFO ? 'info' : 'warn'
+  // }
 
   let auth
   let graphiqlOptions = {}
@@ -137,6 +138,7 @@ export function setupGraphQL (bot) {
   }
 
   const loadPayloads = async (messages) => {
+    const now = Date.now()
     messages = [].concat(messages)
 
     // maybe better just pre-sign urls
@@ -150,6 +152,9 @@ export function setupGraphQL (bot) {
       Object.assign(neutered, payload)
       neutered._virtual = virtual
     })
+
+    const time = Date.now() - now
+    logger.debug(`loading message payloads took: ${time}ms`)
   }
 
   const setModels = (_models) => {
