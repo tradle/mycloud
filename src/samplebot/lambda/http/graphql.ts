@@ -8,7 +8,9 @@ const bot = createBot()
 const graphqlAPI = bot.getGraphqlAPI()
 
 // models will be set asynchronously
-export const handler = bot.createHttpHandler()
+const handler = bot.createHttpHandler()
+
+export { bot, handler }
 
 ;(async () => {
   const { conf, productsAPI } = await customize({ bot, delayReady: true })
