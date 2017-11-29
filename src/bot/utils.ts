@@ -18,7 +18,7 @@ const getMessagePayload = async ({ bot, message }) => {
 
 const summarize = (payload:any):string => {
   switch (payload[TYPE]) {
-  case 'tradle.SimpleMessage':
+  case SIMPLE_MESSAGE:
     return payload.message
   case 'tradle.ProductRequest':
     return `for ${payload.requestFor}`
@@ -52,6 +52,13 @@ const ensureTimestamped = (resource) => {
 
 const normalizeSendOpts = async (bot, opts) => {
   let { link, object, to } = opts
+  if (typeof object === 'string') {
+    object = {
+      [TYPE]: SIMPLE_MESSAGE,
+      message: object
+    }
+  }
+
   if (!object && link) {
     object = await bot.objects.get(link)
   }

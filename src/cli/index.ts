@@ -1,18 +1,15 @@
 
 import readline = require('readline')
 import yn = require('yn')
-import Tradle from '../tradle'
 import Logger, { Writer } from '../logger'
 import Env from '../env'
 import remoteServiceMap = require('./remote-service-map')
 import testServiceMap = require('../test/service-map')
-import createBot from '../samplebot/bot'
+import { customize } from '../samplebot/customize'
+import { createBot } from '../bot'
 import providerConf = require('../../conf/provider')
-import {
-  Command,
-  register as registerCommand,
-  create as createCommand
-} from './commands'
+import { list as listCommands, get as getCommand } from './registrar'
+import Command from './command'
 
 export type CliOpts = {
   remote?: boolean
@@ -32,13 +29,13 @@ export interface ICommand {
 let instance
 
 export default class Cli {
-  public tradle: Tradle
   public bot: any
   public remote: boolean
   public logger: Logger
   public env: Env
   public productsAPI: any
   public onfidoPlugin: any
+  public ready: Promise<void>
   constructor ({ remote }: CliOpts) {
     if (instance) throw new Error('only one instance allowed')
 
@@ -59,20 +56,22 @@ export default class Cli {
     }
 
     Object.assign(process.env, processEnv)
+    this.ready = this.init()
+  }
+
+  private init = async () => {
+    const bot = createBot()
+    this.bot = bot
+    this.env = bot.env
+    this.logger = this.env.sublogger(':cli')
 
     const {
-      tradle,
-      bot,
       productsAPI,
       onfidoPlugin
-    } = createBot(processEnv)
+    } = await customize({ bot })
 
-    this.tradle = tradle
-    this.bot = bot
     this.productsAPI = productsAPI
     this.onfidoPlugin = onfidoPlugin
-    this.env = this.tradle.env
-    this.logger = this.env.sublogger(':cli')
   }
 
   public setWriter (writer:Writer, propagateToSubWriters:boolean) {
@@ -80,7 +79,9 @@ export default class Cli {
   }
 
   public exec = async (name, opts):Promise<any> => {
-    const command = createCommand({ cli: this, name })
+    await this.ready
+    const ctor = getCommand(name)
+    const command = new ctor(this)
     return await command.exec(opts)
   }
 

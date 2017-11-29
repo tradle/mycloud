@@ -30,7 +30,7 @@ import addConvenienceMethods from './convenience'
 const promisePassThrough = data => Promise.resolve(data)
 
 const COPY_TO_BOT = [
-  'aws', 'objects', 'db', 'conf', 'kv', 'seals', 'seal',
+  'aws', 'objects', 'db', 'dbUtils', 'conf', 'kv', 'seals', 'seal',
   'identities', 'users', 'history', 'messages', 'friends',
   'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router',
   'init', 'version', 'apiBaseUrl'

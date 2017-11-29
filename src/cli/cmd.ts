@@ -4,6 +4,7 @@ import mkdirp = require('mkdirp')
 import minimist = require('minimist')
 import Cli from './'
 import createRepl from './repl'
+import { list as listCommands } from './registrar'
 
 const { remote } = minimist(process.argv.slice(2), {
   alias: {
@@ -24,15 +25,24 @@ mkdirp.sync(logsDir)
 const logPath = path.join(logsDir, `cli-log-${new Date().toISOString()}.log`)
 const logStream = fs.createWriteStream(logPath, {'flags': 'a'})
 const cli = new Cli({ remote })
-cli.setWriter({
-  log: (...args) => {
-    args.unshift(new Date().toLocaleString())
-    const str = args.join(' ') + '\n'
-    logStream.write(str)
-  }
-}, true) // propagate to sub-writers
+;(async () => {
+  await cli.ready
 
-createRepl({
-  prompt: '\uD83C\uDF36  ',
-  cli
-})
+  cli.setWriter({
+    log: (...args) => {
+      args.unshift(new Date().toLocaleString())
+      const str = args.join(' ') + '\n'
+      logStream.write(str)
+    }
+  }, true) // propagate to sub-writers
+
+  // shortcuts
+  listCommands().forEach(name => {
+    cli[name] = opts => cli.exec(name, opts)
+  })
+
+  createRepl({
+    prompt: '\uD83C\uDF36  ',
+    cli
+  })
+})()

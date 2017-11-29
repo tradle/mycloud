@@ -2,7 +2,7 @@ import Tradle from '../../tradle'
 import Env from '../../env'
 import Logger from '../../logger'
 import { CommandOpts, ICommand, Cli } from '../'
-import { Command } from './'
+import Command from '../command'
 import { prettify } from '../../string-utils'
 
 const skip = [
@@ -24,6 +24,7 @@ export default class ClearTables extends Command implements ICommand {
 
   public exec = async (names) => {
     const tables = await this.getTables(names)
+    await this.clearTables(tables)
   }
 
   private getTables = async (names) => {
