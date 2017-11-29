@@ -40,6 +40,7 @@ import {
   IPubKey,
   IDebug,
   ILiveDeliveryOpts,
+  ISendOpts,
   IBatchSendOpts
 } from './types'
 import Logger from './logger'
@@ -271,28 +272,8 @@ export default class Provider {
   }
 
   public sendMessage = async (opts: ISendOpts):Promise<ITradleMessage> => {
-    const { recipient, object, other={} } = opts
-    // start this first to get a more accurate timestamp
-    const promiseCreate = this.createSendMessageEvent({ recipient, object, other })
-    const promiseSession = this.auth.getLiveSessionByPermalink(recipient)
-      .catch(err => {
-        Errors.ignore(err, { name: 'NotFound' })
-        this.logger.debug('mqtt session not found for counterparty', { permalink: recipient })
-        return undefined
-      })
-
-    const promiseFriend = this.tradle.friends.getByIdentityPermalink(recipient)
-      .catch(err => {
-        Errors.ignore(err, { name: 'NotFound' })
-        this.logger.debug('friend not found for counterparty', { permalink: recipient })
-        return undefined
-      })
-
-    const session = await promiseSession
-    const friend = await promiseFriend
-    const message = await promiseCreate
-    await this.attemptLiveDelivery({ recipient, messages: [message], session, friend })
-    return message
+    const results = await this.sendMessageBatch([opts])
+    return results[0]
   }
 
   public attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
