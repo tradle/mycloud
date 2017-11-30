@@ -83,16 +83,7 @@ function wrap (fn:Function, opts:WrapOpts) {
   }
 
   const logify = cb => {
-    const { _X_AMZN_TRACE_ID } = process.env
-    if (_X_AMZN_TRACE_ID) {
-      debug('_X_AMZN_TRACE_ID start', _X_AMZN_TRACE_ID)
-    }
-
     return function (err, result) {
-      if (_X_AMZN_TRACE_ID) {
-        debug('_X_AMZN_TRACE_ID end', _X_AMZN_TRACE_ID)
-      }
-
       if (err) debug('wrapped task failed', err)
       cb(err, result)
     }
