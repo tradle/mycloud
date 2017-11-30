@@ -10,6 +10,7 @@ Module._load = function (name, parent) {
   return _load.apply(this, arguments)
 }
 
-require("time-require")
+// require("time-require")
 process.env.LAMBDA_BIRTH_DATE = Date.now()
+require('source-map-support').install()
 import './globals'

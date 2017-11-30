@@ -14,7 +14,6 @@ const getMessagePayload = async ({ bot, message }) => {
     return message.object
   }
 
-  debugger
   return bot.objects.get(buildResource.link(message.object))
 }
 
