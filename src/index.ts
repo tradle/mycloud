@@ -122,8 +122,8 @@ const exp = {
   get dbUtils() {
     return requireDefault('./db-utils')
   },
-  get Resources() {
-    return requireDefault('./resources')
+  get ServiceMap() {
+    return requireDefault('./service-map')
   },
   get stringUtils() {
     return requireDefault('./string-utils')

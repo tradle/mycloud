@@ -1,6 +1,4 @@
 const { EventEmitter } = require('events')
-const deepEqual = require('deep-equal')
-const clone = require('clone')
 const Promise = require('bluebird')
 const mergeModels = require('@tradle/merge-models')
 const createHooks = require('event-hooks')
@@ -9,8 +7,11 @@ const installDefaultHooks = require('./default-hooks')
 const makeBackwardsCompat = require('./backwards-compat')
 const { readyMixin } = require('./ready-mixin')
 const {
+  pick,
+  defineGetter,
   extend,
-  pick
+  deepClone,
+  deepEqual
 } = require('../utils')
 const { addLinks } = require('../crypto')
 const {
@@ -25,15 +26,17 @@ const constants = require('../constants')
 const { TYPE, SIG } = constants
 const createUsers = require('./users')
 const createLambdas = require('./lambdas')
+
+import Tradle from '../tradle'
 import addConvenienceMethods from './convenience'
 // const RESOLVED = Promise.resolve()
 const promisePassThrough = data => Promise.resolve(data)
 
-const COPY_TO_BOT = [
-  'aws', 'objects', 'db', 'dbUtils', 'conf', 'kv', 'seals', 'seal',
-  'identities', 'users', 'history', 'messages', 'friends',
-  'resources', 'sign', 'send', 'getMyIdentity', 'env', 'router',
-  'init', 'version', 'apiBaseUrl'
+const PROXY_TO_TRADLE = [
+  'aws', 'objects', 'db', 'dbUtils', 'lambdaUtils', 'seals',
+  'identities', 'history', 'messages', 'friends',
+  'resources', 'env', 'router', 'buckets', 'tables',
+  'serviceMap', 'version', 'apiBaseUrl', 'wrap'
 ]
 
 const HOOKABLE = [
@@ -50,11 +53,9 @@ const HOOKABLE = [
 ]
 
 exports = module.exports = createBot
-exports.inputs = require('./inputs')
 exports.lambdas = createLambdas
-exports.fromEngine = opts => createBot(exports.inputs(opts))
 exports.createBot = (opts={}) => {
-  return exports.fromEngine({
+  return createBot({
     ...opts,
     tradle: opts.tradle || require('../').tradle
   })
@@ -63,29 +64,27 @@ exports.createBot = (opts={}) => {
 /**
  * bot engine factory
  * @param  {Object}             opts
+ * @param  {Tradle}             opts.tradle
  * @param  {Boolean}            opts.autosave if false, will not autosave user after every message receipt
  * @param  {Object}             opts.models
- * @param  {Function}           opts.send
- * @param  {Function}           opts.sign
- * @param  {Function}           opts.seals.get
- * @param  {Function}           opts.seals.create
- * @param  {Object}             opts.identities
- * @param  {Object}             opts.db
- * @param  {Object}             opts.history
- * @param  {Object}             opts.resources physical ids of cloud resources
  * @return {BotEngine}
  */
-function createBot (opts={}) {
+function createBot (opts: {
+  tradle: Tradle,
+  users?: any,
+  models?: any,
+  autosave?: boolean
+}) {
   let {
-    autosave=true,
-    resources,
+    tradle,
+    users,
     models,
-    send,
-    sign,
-    seals,
-    env={},
-    lambdaUtils
+    autosave=true
   } = opts
+
+  const {
+    env,
+  } = tradle
 
   const {
     TESTING,
@@ -96,13 +95,29 @@ function createBot (opts={}) {
   const MESSAGE_LOCK_TIMEOUT = TESTING ? null : 10000
 
   const bot = new EventEmitter()
-  extend(bot, pick(opts, COPY_TO_BOT))
+
+  PROXY_TO_TRADLE.forEach(prop => {
+    defineGetter(bot, prop, () => tradle[prop])
+  })
+
   readyMixin(bot)
   bot.on('ready', () => bot.debug('ready!'))
 
-  Object.defineProperty(bot, 'models', {
-    get () { return models }
-  })
+  defineGetter(bot, 'conf', () => tradle.conf.sub(':bot'))
+  defineGetter(bot, 'kv', () => tradle.kv.sub(':bot'))
+  defineGetter(bot, 'models', () => models)
+
+  bot.init = () => tradle.init.init(opts)
+  bot.getMyIdentity = () => tradle.provider.getMyPublicIdentity()
+  bot.sign = (object, author) => tradle.provider.signObject({ object, author })
+  bot.seal = async ({ link, permalink }) => {
+    const chainKey = await tradle.provider.getMyChainKey()
+    await bot.seals.create({
+      link,
+      permalink,
+      key: chainKey
+    })
+  }
 
   bot.setCustomModels = customModels => {
     const merger = mergeModels()
@@ -128,7 +143,11 @@ function createBot (opts={}) {
     return graphqlAPI
   }
 
-  bot.createHandler = opts.wrap
+  if (models) {
+    bot.setCustomModels(models)
+  }
+
+  bot.createHandler = tradle.wrap
   bot.createHttpHandler = (opts={}) => {
     const { createHandler } = require('../http-request-handler')
     return createHandler({
@@ -141,7 +160,7 @@ function createBot (opts={}) {
   bot.forceReinitializeContainers = async (functions?:string[]) => {
     if (bot.env.TESTING) return
 
-    await lambdaUtils.invoke({
+    await bot.lambdaUtils.invoke({
       name: 'reinitialize-containers',
       sync: false,
       arg: functions
@@ -150,9 +169,16 @@ function createBot (opts={}) {
 
   bot.logger = logger.sub('bot')
   bot.debug = logger.debug
-  bot.users = bot.users || createUsers({
-    table: resources.tables.Users,
-    oncreate: user => hooks.fire('usercreate', user)
+
+  defineGetter(bot, 'users', () => {
+    if (!users) {
+      users = createUsers({
+        table: tradle.tables.Users,
+        oncreate: user => hooks.fire('usercreate', user)
+      })
+    }
+
+    return users
   })
 
   bot.save = async (resource) => {
@@ -161,7 +187,7 @@ function createBot (opts={}) {
       await bot.promiseReady()
     }
 
-    resource = clone(resource)
+    resource = deepClone(resource)
     await bot.objects.replaceEmbeds(resource)
     bot.db.put(ensureTimestamped(resource))
     return resource
@@ -184,13 +210,13 @@ function createBot (opts={}) {
     await outboundMessageLocker.lock(recipient)
     let messages
     try {
-      messages = await send(batch)
+      messages = await tradle.provider.sendMessageBatch(batch)
     } finally {
       outboundMessageLocker.unlock(recipient)
     }
 
     if (TESTING && messages) {
-      await Promise.all(messages.map(message => savePayloadToTypeTable(clone(message))))
+      await Promise.all(messages.map(message => savePayloadToTypeTable(deepClone(message))))
     }
 
     if (messages) {
@@ -262,11 +288,11 @@ function createBot (opts={}) {
     ]
 
     payload = extend(message.object, payload)
-    const _userPre = clone(user)
+    const _userPre = deepClone(user)
     const type = payload[TYPE]
     addLinks(payload)
     if (TESTING) {
-      await savePayloadToTypeTable(clone(message))
+      await savePayloadToTypeTable(deepClone(message))
     }
 
     logger.debug('receiving', getMessageGist(message))

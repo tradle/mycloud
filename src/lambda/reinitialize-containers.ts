@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../init-lambda'
 
 import { tradle } from '../'
 import serverlessYml = require('../cli/serverless-yml')

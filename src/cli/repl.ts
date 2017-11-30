@@ -31,9 +31,6 @@ export default function createReplServer ({ prompt, cli }) {
     get productsAPI() {
       return cli.productsAPI
     },
-    get productsAPI() {
-      return cli.productsAPI
-    },
     get onfidoPlugin() {
       return cli.onfidoPlugin
     },

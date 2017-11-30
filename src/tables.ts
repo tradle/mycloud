@@ -1,14 +1,14 @@
 
-module.exports = function getTables ({ resources, dbUtils }) {
+module.exports = function getTables ({ serviceMap, dbUtils }) {
   const { getTable } = dbUtils
 
   function loadTable (name) {
     if (!tables[name]) {
-      tables[name] = getTable(resources.Table[name])
+      tables[name] = getTable(serviceMap.Table[name])
     }
   }
 
   const tables = {}
-  Object.keys(resources.Table).forEach(loadTable)
+  Object.keys(serviceMap.Table).forEach(loadTable)
   return tables
 }

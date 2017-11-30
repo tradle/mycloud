@@ -1,9 +1,10 @@
-const { wrap } = require('../')
-
 module.exports = function createLambdas (bot) {
   const handlers = {}
-  const { process, debug, env } = bot
+  const { process, debug, env, wrap } = bot
+  const fnName = env.FUNCTION_NAME.toLowerCase()
   for (let event in process) {
+    // if (!fnName.includes(event.toLowerCase())) continue
+
     let method = `on${event}`
     debug(`attached bot lambda handler: ${method}`)
     let { source, type, handler } = process[event]

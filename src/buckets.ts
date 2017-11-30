@@ -19,12 +19,12 @@ type Buckets = {
   [name:string]: Bucket
 }
 
-module.exports = function getBuckets ({ aws, resources }):Buckets {
+module.exports = function getBuckets ({ aws, serviceMap }):Buckets {
 
   function loadBucket (name) {
     if (buckets[name]) return
 
-    const physicalId = resources.Bucket[name]
+    const physicalId = serviceMap.Bucket[name]
     if (!physicalId) throw new Error('bucket not found')
 
     const bucket = new Bucket({ name: physicalId, s3: aws.s3 })
@@ -45,6 +45,6 @@ module.exports = function getBuckets ({ aws, resources }):Buckets {
   }
 
   const buckets:Buckets = {}
-  Object.keys(resources.Bucket).forEach(loadBucket)
+  Object.keys(serviceMap.Bucket).forEach(loadBucket)
   return buckets
 }

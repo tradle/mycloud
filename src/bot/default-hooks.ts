@@ -35,7 +35,7 @@ module.exports = function installDefaultHooks ({ bot, hooks }) {
 
     if (failed.length) {
       debug('failed to save payloads', failed)
-      throw failed[0].reason
+      throw new Error(failed[0])
     }
   }
 

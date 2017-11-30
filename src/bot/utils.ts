@@ -8,11 +8,13 @@ import Errors = require('../errors')
 import { prettify } from '../string-utils'
 import types = require('../typeforce-types')
 
+const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const getMessagePayload = async ({ bot, message }) => {
   if (message.object[SIG]) {
     return message.object
   }
 
+  debugger
   return bot.objects.get(buildResource.link(message.object))
 }
 

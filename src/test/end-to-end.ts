@@ -604,17 +604,24 @@ function wrapWithIntercept (fn) {
 // }
 
 const clearBuckets = async ({ tradle }) => {
-  await Promise.all(Object.keys(tradle.buckets).map(async (id) => {
-    const bucket = tradle.buckets[id]
-    try {
-      await bucket.clear()
-      // await bucket.destroy()
-    } catch (err) {
-      Errors.ignore(err, {
-        code: 'NoSuchBucket'
-      })
-    }
-  }))
+  await Promise.all(Object.keys(tradle.buckets)
+    .filter(id => {
+      return id !== 'PublicConf' &&
+        id !== 'PrivateConf' &&
+        id !== 'Secrets' &&
+        id !== 'Objects'
+    })
+    .map(async (id) => {
+      const bucket = tradle.buckets[id]
+      try {
+        await bucket.clear()
+        // await bucket.destroy()
+      } catch (err) {
+        Errors.ignore(err, {
+          code: 'NoSuchBucket'
+        })
+      }
+    }))
 }
 
 const clearTables = async ({ tradle }) => {
@@ -640,7 +647,15 @@ const clearTables = async ({ tradle }) => {
   }
 
   const existingTables = await tradle.dbUtils.listTables(tradle.env)
-  const toDelete = existingTables.filter(name => name.startsWith(tradle.prefix))
+  const toDelete = existingTables.filter(name => {
+    if (!name.startsWith(tradle.prefix)) {
+      return false
+    }
+
+    name = name.slice(tradle.prefix.length)
+    return name !== 'pubkeys'
+  })
+
   debug('clearing tables', toDelete)
 
   const batches = batchify(toDelete, 5)

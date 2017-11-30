@@ -25,7 +25,6 @@ import buildResource = require('@tradle/build-resource')
 import fetch = require('node-fetch')
 import { prettify, stableStringify } from './string-utils'
 import { SIG, TYPE, TYPES, WARMUP_SLEEP } from './constants'
-import Resources = require('./resources')
 import { ExecutionTimeout } from './errors'
 
 const debug = require('debug')('tradle:sls:utils')
@@ -568,7 +567,10 @@ export const RESOLVED_PROMISE = Promise.resolve()
 export const promiseNoop = () => RESOLVED_PROMISE
 
 export function defineGetter (obj, property, get) {
-  Object.defineProperty(obj, property, { get })
+  Object.defineProperty(obj, property, {
+    get,
+    enumerable: true
+  })
 }
 
 export const race = Promise.race

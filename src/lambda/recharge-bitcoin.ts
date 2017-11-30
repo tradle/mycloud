@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../init-lambda'
 
 const querystring = require('querystring')
 const debug = require('debug')('λ:recharge:bitcoin')

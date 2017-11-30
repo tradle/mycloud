@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../init-lambda'
 
 const tradle = require('../').tradle
 const { wrap, env } = tradle

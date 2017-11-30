@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../../../init-lambda'
 
 import express = require('express')
 import coexpress = require('co-express')

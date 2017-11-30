@@ -1,5 +1,4 @@
 
-const debug = require('debug')('tradle:sls:Resources')
 const { ENV_RESOURCE_PREFIX } = require('./constants')
 const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)_(.*)$`)
 
@@ -7,6 +6,7 @@ exports = module.exports = resourcesForEnv
 exports.isResourceEnvironmentVariable = str => RESOURCE_REGEX.test(str)
 
 function resourcesForEnv ({ env }) {
+  const { logger } = env
   const {
     SERVERLESS_SERVICE_NAME,
     SERVERLESS_STAGE,
@@ -50,7 +50,7 @@ function resourcesForEnv ({ env }) {
       value = env[key]
     }
 
-    debug(`registered ${type} ${name} -> ${value}`)
+    logger.silly(`registered ${type} ${name} -> ${value}`)
     resources[type][name] = value
   }
 

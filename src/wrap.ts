@@ -25,6 +25,8 @@ function wrap (fn:Function, opts:WrapOpts) {
 
   const { debug } = env
   const wrapper = async (...args) => {
+    require.track = true
+
     const callback = logify(args.pop())
     let [event, context] = args
     const eventInfo = {
@@ -71,6 +73,8 @@ function wrap (fn:Function, opts:WrapOpts) {
     } catch (err) {
       clearInterval(monitor)
       return callback(err)
+    } finally {
+      require.track = false
     }
 
     clearInterval(monitor)

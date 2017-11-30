@@ -4,7 +4,9 @@ import {
   unmarshalItem as unmarshalDBItem
 } from 'dynamodb-marshaler'
 
+import dynogels = require('dynogels')
 import { utils as vrUtils } from '@tradle/validate-resource'
+import { Level } from './logger'
 import { NotFound } from './errors'
 import { pick, logify, timestamp, wait, clone, batchify } from './utils'
 import { prettify, alphabetical } from './string-utils'
@@ -28,6 +30,18 @@ export {
 function createDBUtils ({ aws, env }) {
   const logger = env.sublogger('db-utils')
   const { debug } = logger
+  const dynogelsLogger = logger.sub('dynogels')
+  if (logger.level >= Level.WARN) {
+    const level = logger.level >= Level.SILLY ? 'info' : 'warn'
+    dynogels.log = {
+      info: (...data) => {
+        const str = JSON.stringify(data)
+        dynogelsLogger.info('', str.length > 1000 ? str.slice(0, 1000) + '...' : data)
+      },
+      warn: (...data) => dynogelsLogger.warn('', data),
+      level
+    }
+  }
 
   let tableBuckets
   const getTableBuckets = () => {

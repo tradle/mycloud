@@ -31,8 +31,8 @@ export default function createDeploymentHandlers ({ bot, deploymentModels }) {
       return async () => baseTemplate
     }
 
-    return async ({ s3, resources }) => {
-      const { ServerlessDeployment } = resources.buckets
+    return async ({ s3, buckets }) => {
+      const { ServerlessDeployment } = buckets
       if (!baseTemplate) {
         const objects = await s3.listObjects({
           Bucket: ServerlessDeployment.id,
@@ -67,11 +67,11 @@ export default function createDeploymentHandlers ({ bot, deploymentModels }) {
     return parameters
   }
 
-  const writeTemplate = async ({ s3, resources, parameters }) => {
-    const template = await getBaseTemplate({ s3, resources })
-    const customized = generateTemplate({ resources, template, parameters })
+  const writeTemplate = async ({ s3, buckets, parameters }) => {
+    const template = await getBaseTemplate({ s3, buckets })
+    const customized = generateTemplate({ buckets, template, parameters })
     const templateKey = `templates/scale-${parameters.scale}.json`
-    const { PublicConf } = resources.buckets
+    const { PublicConf } = buckets
     try {
       await s3.putObject({
         Bucket: PublicConf.id,
@@ -123,11 +123,11 @@ export default function createDeploymentHandlers ({ bot, deploymentModels }) {
     // parameters.logo = await getFaviconURL(parameters.domain)
     const templateKey = await writeTemplate({
       s3: bot.aws.s3,
-      resources: bot.resources,
+      buckets: bot.buckets,
       parameters
     })
 
-    const { PublicConf } = bot.resources.buckets
+    const { PublicConf } = bot.buckets
     const templateURL = PublicConf.getUrlForKey(templateKey)
     const launchURL = utils.launchStackUrl({
       stackName: 'tradle',
@@ -157,7 +157,7 @@ function getLambdaEnv (lambda) {
   return lambda.Properties.Environment.Variables
 }
 
-function generateTemplate ({ resources, template, parameters }) {
+function generateTemplate ({ buckets, template, parameters }) {
   const { name, scale, domain } = parameters
   template.Description = `MyCloud, by Tradle`
 
@@ -165,7 +165,7 @@ function generateTemplate ({ resources, template, parameters }) {
   const { Resources } = template
   Resources.Initialize.Properties.ProviderConf.private.org = { name, domain }
 
-  const deploymentBucketId = resources.buckets.ServerlessDeployment.id
+  const deploymentBucketId = buckets.ServerlessDeployment.id
   for (let key in Resources) {
     let Resource = Resources[key]
     let { Type } = Resource

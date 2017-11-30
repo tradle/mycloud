@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../init-lambda'
 
 const debug = require('debug')('λ:faucet.bitcoin')
 const { wrap, faucet } = require('../').tradle

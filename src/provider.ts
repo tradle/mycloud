@@ -49,6 +49,7 @@ const { MESSAGE } = TYPES
 
 export default class Provider {
   private tradle: Tradle
+  private logger:Logger
   private objects: Objects
   private messages: Messages
   private secrets: any
@@ -56,9 +57,9 @@ export default class Provider {
   private buckets: any
   private auth: Auth
   private network: any
-  private logger:Logger
   constructor (tradle: Tradle) {
     this.tradle = tradle
+    this.logger = tradle.env.sublogger('provider')
     this.objects = tradle.objects
     this.messages = tradle.messages
     this.secrets = tradle.secrets
@@ -66,8 +67,15 @@ export default class Provider {
     this.buckets = tradle.buckets
     this.auth = tradle.auth
     this.network = tradle.network
-    this.logger = tradle.env.sublogger('provider')
   }
+
+  // get objects() { return this.tradle.objects }
+  // get messages() { return this.tradle.messages }
+  // get secrets() { return this.tradle.secrets }
+  // get identities() { return this.tradle.identities }
+  // get buckets() { return this.tradle.buckets }
+  // get auth() { return this.tradle.auth }
+  // get network() { return this.tradle.network }
 
   // TODO: how to invalidate cache on identity updates?
   // maybe ETag on bucket item? But then we still need to request every time..

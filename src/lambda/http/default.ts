@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../../init-lambda'
 
 import { createTradle } from '../../'
 import { createHandler } from '../../http-request-handler'

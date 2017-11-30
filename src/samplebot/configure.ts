@@ -14,7 +14,7 @@ export class Conf {
   public privateConf: any
   constructor(bot) {
     this.bot = bot
-    const { buckets } = bot.resources
+    const { buckets } = bot
     this.privateConfBucket = buckets.PrivateConf
     this.publicConfBucket = buckets.PublicConf
     this.publicConf = this.publicConfBucket.getCacheable({

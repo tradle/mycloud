@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../../../init-lambda'
 
 import { customize } from '../../customize'
 import sampleQueries from '../../sample-queries'

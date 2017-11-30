@@ -1,7 +1,7 @@
 require('./env').install()
 
 const { co } = require('../utils')
-const { isResourceEnvironmentVariable } = require('../resources')
+const { isResourceEnvironmentVariable } = require('../service-map')
 const tradle = require('../').createTestTradle()
 const {
   dbUtils: { getTable, marshalDBItem }

@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../init-lambda'
 
 if (process.env.NODE_ENV === 'test') {
   // require('debug').enable('*tradle*')

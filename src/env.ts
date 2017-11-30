@@ -5,7 +5,6 @@ import './globals'
 import yn = require('yn')
 import debug = require('debug')
 import randomName = require('random-name')
-import Networks = require('./networks')
 import { parseArn } from './utils'
 import { randomString } from './crypto'
 import { IDebug, ILambdaExecutionContext } from './types'
@@ -219,7 +218,7 @@ export default class Env {
 
     if ('BLOCKCHAIN' in props) {
       const [flavor, networkName] = props.BLOCKCHAIN.split(':')
-      this.BLOCKCHAIN = Networks[flavor][networkName]
+      this.BLOCKCHAIN = { flavor, networkName }
     }
   }
 }

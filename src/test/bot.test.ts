@@ -8,7 +8,7 @@ const test = require('tape')
 const sinon = require('sinon')
 const cfnResponse = require('cfn-response')
 const { createTestTradle } = require('../')
-const createRealBot = require('../bot')
+const createRealBot = require('../bot').createBot
 const { setupGraphQL } = require('../bot/graphql')
 const createFakeBot = require('./mock/bot')
 const { co, loudCo, clone, pick, wait } = require('../utils')
@@ -26,7 +26,7 @@ const rethrow = err => {
 ;[/*createFakeBot,*/ createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   test('await ready', loudCo(function* (t) {
-    const bot = createBot.fromEngine({ tradle: createTestTradle() })
+    const bot = createBot({ tradle: createTestTradle() })
     const expectedEvent = toStreamItems([
       {
         old: {
@@ -58,7 +58,7 @@ const rethrow = err => {
       yield recreateTable(UsersTableLogicalId)
     }
 
-    const bot = createBot.fromEngine({ tradle: createTestTradle() })
+    const bot = createBot({ tradle: createTestTradle() })
     const { users } = bot
     // const user : Object = {
     const user = {
@@ -94,7 +94,7 @@ const rethrow = err => {
 
   test('init', loudCo(function* (t) {
     const tradle = createTestTradle()
-    const bot = createBot.fromEngine({ tradle })
+    const bot = createBot({ tradle })
     const originalEvent = {
       RequestType: 'Create',
       ResponseURL: 'some-s3-url',
@@ -141,7 +141,7 @@ const rethrow = err => {
 
     const tradle = createTestTradle()
     const { objects, messages, identities } = tradle
-    const bot = createBot.fromEngine({ tradle })
+    const bot = createBot({ tradle })
     const { users } = bot
 
     let updatedUser
@@ -217,7 +217,7 @@ const rethrow = err => {
     const { getMyKeys } = provider
     provider.getMyKeys = () => Promise.resolve(aliceKeys)
 
-    const bot = createBot.fromEngine({ tradle })
+    const bot = createBot({ tradle })
     bot.hook('readseal', co(function* (event) {
       read = true
       t.equal(event.link, link)
@@ -267,7 +267,7 @@ const rethrow = err => {
       wroteseal: false
     }
 
-    const bot = createBot.fromEngine({ tradle: createTestTradle() })
+    const bot = createBot({ tradle: createTestTradle() })
     bot.use(() => {
       Object.keys(called).forEach(event => {
         bot.hook(event, co(function* (arg) {
@@ -331,18 +331,18 @@ test('save to type table', loudCo(function* (t) {
   }
 
   const tradle = createTestTradle()
-  const bot = createRealBot.fromEngine({
+  const bot = createRealBot({
     models: require('../bot/ping-pong-models'),
     tradle
   })
 
-  bot.objects = {
-    get: function (link) {
-      t.equal(link, message.object._link)
-      return Promise.resolve(payload)
-    },
-    presignEmbeddedMediaLinks: object => object
-  }
+  const stubGet = sinon.stub(bot.objects, 'get').callsFake(async (link) => {
+    t.equal(link, message.object._link)
+    return payload
+  })
+
+  const stubPreSign = sinon.stub(bot.objects, 'presignEmbeddedMediaLinks')
+    .callsFake(object => object)
 
   bot.ready()
   const table = bot.db.tables['tradle.Ping']
@@ -352,7 +352,7 @@ test('save to type table', loudCo(function* (t) {
     { new: message }
   ]))
 
-  const gql = setupGraphQL(bot)
+  const gql = bot.getGraphqlAPI()
   const result = yield gql.executeQuery(`
     {
       rl_tradle_Ping(orderBy:{
@@ -384,6 +384,9 @@ test('save to type table', loudCo(function* (t) {
   // const introspection = yield bot.trigger('graphql', require('./introspection-query'))
   // console.log('introspection length', JSON.stringify(introspection).length)
 
+  stubGet.restore()
+  stubPreSign.restore()
+
   t.end()
 }))
 
@@ -409,7 +412,7 @@ test('validate send', loudCo(function* (t) {
     }
   }
 
-  const bot = createRealBot(createRealBot.inputs({ tradle, models }))
+  const bot = createRealBot({ tradle, models })
 
   bot.ready()
   try {

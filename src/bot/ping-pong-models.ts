@@ -5,7 +5,8 @@ module.exports = {
     type: 'tradle.Model',
     properties: {
       _time: {
-        type: 'number'
+        type: 'number',
+        virtual: true
       }
     }
   },
@@ -15,7 +16,8 @@ module.exports = {
     type: 'tradle.Model',
     properties: {
       _time: {
-        type: 'number'
+        type: 'number',
+        virtual: true
       }
     }
   }

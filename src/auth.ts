@@ -41,18 +41,17 @@ const { HandshakeFailed, InvalidInput, NotFound } = Errors
 export default class Auth {
   private env: Env
   private aws: any
-  private resources: any
+  private serviceMap: any
   private tables: any
   private identities: Identities
   private objects: Objects
   private messages: Messages
   private iot: any
-  private debug: IDebug
   private logger: Logger
   constructor (opts: {
     env: Env,
     aws: any,
-    resources: any,
+    serviceMap: any,
     tables: any,
     identities: Identities,
     objects: Objects,
@@ -60,11 +59,14 @@ export default class Auth {
     iot: any
   }) {
     // lazy define
-    [
-      'env', 'aws', 'resources', 'tables', 'db',
-      'identities', 'objects', 'messages', 'iot'
-    ].forEach(prop => defineGetter(this, prop, () => opts[prop]))
-
+    this.env = opts.env
+    this.aws = opts.aws
+    this.serviceMap = opts.serviceMap
+    this.tables = opts.tables
+    this.identities = opts.identities
+    this.objects = opts.objects
+    this.messages = opts.messages
+    this.iot = opts.iot
     this.logger = this.env.sublogger('auth')
   }
 
@@ -266,7 +268,7 @@ export default class Auth {
     }
 
     const maybeAddContact = this.identities.addContact(identity)
-    const role = `arn:aws:iam::${accountId}:role/${this.resources.Role.IotClient}`
+    const role = `arn:aws:iam::${accountId}:role/${this.serviceMap.Role.IotClient}`
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
 
     // get the account id which will be used to assume a role
@@ -323,7 +325,7 @@ export default class Auth {
   public getUploadPrefix = (AssumedRoleUser: {
     AssumedRoleId: string
   }):string => {
-    return `${this.resources.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
+    return `${this.serviceMap.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
   }
 
   public getMostRecentSessionByClientId = (clientId): Promise<any> => {

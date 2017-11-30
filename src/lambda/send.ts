@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../init-lambda'
 
 const bot = require('../bot').createBot()
 exports.handler = bot.createHandler(function* (event, context) {

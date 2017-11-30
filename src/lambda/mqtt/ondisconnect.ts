@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../../init-lambda'
 
 const { debug, wrap, user, stringUtils } = require('../..').tradle
 const { onDisconnected } = user

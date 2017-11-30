@@ -1,4 +1,4 @@
-process.env.LAMBDA_BIRTH_DATE = Date.now()
+import '../init-lambda'
 
 const { wrap, init, env } = require('../').tradle
 exports.handler = wrap(function* (event, context) {

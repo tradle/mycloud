@@ -2,10 +2,11 @@
 const debug = require('debug')('tradle:sls:ethereum-adapter')
 const co = require('co').wrap
 const Wallet = require('ethereumjs-wallet')
-const request = require('superagent')
 const BN = require('bn.js')
 const promisify = require('pify')
+const fetch = require('node-fetch')
 const Network = require('@tradle/ethereum-adapter')
+const { processResponse } = require('../utils')
 const FAUCET_BASE_URL = 'http://faucet.ropsten.be:3001/donate'
 
 module.exports = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
@@ -31,7 +32,7 @@ module.exports = function getNetworkAdapters ({ networkName='ropsten', privateKe
 
   const blockchain = Network.createBlockchainAPI({ engine })
   const getBalance = promisify(blockchain.addresses.balance)
-  const recharge = co(function* ({ address, minBalance, force }) {
+  const recharge = async ({ address, minBalance, force }) => {
     const minBalanceBN = minBalance.startsWith('0x')
       ? new BN(minBalance.slice(2), 16)
       : new BN(minBalance)
@@ -40,7 +41,7 @@ module.exports = function getNetworkAdapters ({ networkName='ropsten', privateKe
       let balance
       blockchain.start()
       try {
-        balance = yield getBalance(address)
+        balance = await getBalance(address)
         debug(`current balance: ${balance}, min balance: ${minBalance}`)
       } finally {
         blockchain.stop()
@@ -56,14 +57,9 @@ module.exports = function getNetworkAdapters ({ networkName='ropsten', privateKe
 
     debug(`recharging ${address} from faucet at ${FAUCET_BASE_URL}`)
 
-    const res = yield request(`${FAUCET_BASE_URL}/${address}`)
-    const { ok, body, text } = res
-    if (!ok) {
-      throw new Error(text)
-    }
-
-    return body
-  })
+    const res = await fetch(`${FAUCET_BASE_URL}/${address}`)
+    return await processResponse(res)
+  }
 
   return {
     network,

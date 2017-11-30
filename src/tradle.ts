@@ -24,6 +24,7 @@ export default class Tradle {
   public env: Env
   public aws: any
   public router: any
+  public serviceMap: any
   public buckets: any
   public tables: any
   public dbUtils: any
@@ -81,7 +82,7 @@ export default class Tradle {
     //   privateKey: FAUCET_PRIVATE_KEY
     // }))
 
-    this.define('resources', './resources', this.construct)
+    this.define('serviceMap', './service-map', this.construct)
     this.define('tables', './tables', this.construct)
     this.define('buckets', './buckets', this.construct)
     this.define('db', './db', initialize => initialize(this))
@@ -143,7 +144,7 @@ export default class Tradle {
   }
 
   get apiBaseUrl () {
-    return this.resources.RestApi.ApiGateway
+    return this.serviceMap.RestApi.ApiGateway
   }
 
   get version () {
@@ -178,6 +179,8 @@ export default class Tradle {
   get wrap () {
     const wrap = requireDefault('./wrap')
     return (fn, opts: { env?: Env }={}) => {
+      // this.initAllSubModules()
+
       if (!opts.env) opts.env = this.env
 
       return wrap(fn, opts)
@@ -193,6 +196,13 @@ export default class Tradle {
     const { createHandler } = require('./http-request-handler')
     return createHandler(this)
   }
+
+  public initAllSubModules = () => {
+    for (let p in this) {
+      this[p]
+    }
+  }
+
   private construct = (Ctor) => {
     return new Ctor(this)
   }
@@ -207,7 +217,7 @@ export default class Tradle {
           instance = instantiator()
         }
 
-        this.debug(`defined ${property}`)
+        this.logger.silly(`defined ${property}`)
       }
 
       return instance

@@ -105,6 +105,7 @@ export default class Logger {
     this.subloggers.forEach(logger => logger.setContext(this.context))
   }
 
+  public silly = (msg:string, params?:any) => this.log('SILLY', msg, params)
   public debug = (msg:string, params?:any) => this.log('DEBUG', msg, params)
   public info = (msg:string, params?:any) => this.log('INFO', msg, params)
   public warn = (msg:string, params?:any) => this.log('WARN', msg, params)

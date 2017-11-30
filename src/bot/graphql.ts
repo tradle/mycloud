@@ -7,7 +7,6 @@ import { graphql, formatError } from 'graphql'
 import { print } from 'graphql/language/printer'
 import { parse } from 'graphql/language/parser'
 import expressGraphQL = require('express-graphql')
-import dynogels = require('dynogels')
 import { createResolvers } from '@tradle/dynamodb'
 import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
@@ -28,13 +27,6 @@ export function setupGraphQL (bot) {
 
   // allow models to be set asynchronously
   logger.debug('attaching /graphql route')
-
-  // const dynogelsLogger = logger.sub('dynogels')
-  // dynogels.log = {
-  //   info: (...data) => dynogelsLogger.info('', data),
-  //   warn: (...data) => dynogelsLogger.warn('', data),
-  //   level: logger.level >= Level.INFO ? 'info' : 'warn'
-  // }
 
   let auth
   let graphiqlOptions = {}

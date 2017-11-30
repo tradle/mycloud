@@ -24,8 +24,7 @@ export const createOnfidoPlugin = ({ bot, productsAPI, apiKey }) => {
       await onfidoPlugin.getWebhook()
     } catch (err) {
       // ideally get the path from the cloudformation
-      const { apiGateway } = bot.resources
-      if (/^https?:\/\/localhost/.test(apiGateway)) {
+      if (/^https?:\/\/localhost/.test(bot.apiBaseUrl)) {
         logger.warn(`can't register webhook for localhost. ` +
           `Run: ngrok http ${bot.env.SERVERLESS_OFFLINE_PORT} ` +
           `and set the SERVERLESS_OFFLINE_APIGW environment variable`)
