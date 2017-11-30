@@ -8,6 +8,7 @@ import {
   unitToMillis
 } from './constants'
 
+import serverlessYml = require('./cli/serverless-yml')
 import PRICING = require('./lambda-pricing')
 
 const defaultConcurrency = 1
@@ -277,18 +278,21 @@ export default class Utils {
     })
   }
 
+  private requireLambdaByName = (shortName:string) => {
+    const { functions } = serverlessYml
+    const handlerExportPath = functions[shortName].handler
+    const lastDotIdx = handlerExportPath.lastIndexOf('.')
+    const handlerPath = path.join('..', handlerExportPath.slice(0, lastDotIdx))
+    const handleExportName = handlerExportPath.slice(lastDotIdx + 1)
+    return require(handlerPath)[handleExportName]
+  }
+
   private invokeLocal = async (params:AWS.Lambda.InvocationRequest)
     :Promise<AWS.Lambda.InvocationResponse> => {
     const { FunctionName, InvocationType, Payload } = params
     this.logger.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
     const shortName = this.getShortName(FunctionName)
-    const yml = require('./cli/serverless-yml')
-    const { functions } = yml
-    const handlerExportPath = functions[shortName].handler
-    const lastDotIdx = handlerExportPath.lastIndexOf('.')
-    const handlerPath = path.join('..', handlerExportPath.slice(0, lastDotIdx))
-    const handleExportName = handlerExportPath.slice(lastDotIdx + 1)
-    const handler = require(handlerPath)[handleExportName]
+    const handler = this.requireLambdaByName(shortName)
     const event = typeof Payload === 'string' ? JSON.parse(Payload) : {}
     // not ideal as the called function may have different environment vars
     const context = createLambdaContext(FunctionName)

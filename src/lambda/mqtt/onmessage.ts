@@ -5,6 +5,7 @@ const {
   wrap,
   user,
   env,
+  lambdaUtils,
   stringUtils,
   utils,
   constants
@@ -13,6 +14,10 @@ const {
 const { prettify } = stringUtils
 const { SEQ } = constants
 const { timestamp } = utils
+
+if (env.INVOKE_BOT_LAMBDAS_DIRECTLY) {
+  lambdaUtils.requireLambdaByName(env.BOT_ONMESSAGE)
+}
 
 exports.handler = wrap(function* (event, context) {
   // the user sent us a message
