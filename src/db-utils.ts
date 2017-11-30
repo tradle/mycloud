@@ -242,10 +242,6 @@ function createDBUtils ({ aws, env }) {
   const find = async (params:AWS.DynamoDB.QueryInput) => {
     maybeForceConsistentRead(params)
     const result = await exec('query', params)
-    if (result.LastEvaluatedKey) {
-      debug('LastEvaluatedKey', result.LastEvaluatedKey)
-    }
-
     return result.Items
   }
 

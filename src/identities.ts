@@ -1,3 +1,4 @@
+import Cache = require('lru-cache')
 import * as constants from './constants'
 import * as Errors from './errors'
 import {
@@ -19,12 +20,26 @@ import Logger from './logger'
 const { PREVLINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
+const CACHE_MAX_AGE = 2000
+const cachify = (fn, identities:Identities) => async (str:string) => {
+  const cached = identities.cache.get(str)
+  if (cached) {
+    identities.logger.debug('cache hit', str)
+    return cached
+  }
+
+  identities.logger.debug('cache miss', str)
+  const result = await fn.call(identities, str)
+  identities.cache.set(str, result)
+  return result
+}
 
 export default class Identities {
-  private objects: any
-  private pubKeys: any
-  private env: Env
-  private logger: Logger
+  public objects: any
+  public pubKeys: any
+  public env: Env
+  public logger: Logger
+  public cache: any
   constructor (opts: { tables: any, objects: any, env: Env }) {
     logify(this)
     bindAll(this)
@@ -34,9 +49,12 @@ export default class Identities {
     this.pubKeys = tables.PubKeys
     this.env = env
     this.logger = env.sublogger('identities')
+    this.cache = new Cache({ maxAge: CACHE_MAX_AGE })
+    this.metaByPub = cachify(this.metaByPub, this)
+    this.byPermalink = cachify(this.byPermalink, this)
   }
 
-  public metaByPub = (pub:string) => {
+  public metaByPub = async (pub:string) => {
     this.logger.debug('get identity metadata by pub', pub)
     return this.pubKeys.get({
       Key: { pub },
@@ -179,6 +197,7 @@ export default class Identities {
       link
     })
 
+    this.cache.set(pub, props)
     return this.pubKeys.put({
       Item: props
     })
