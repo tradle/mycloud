@@ -40,19 +40,19 @@ const unrefdTimeout = (...args) => {
   return handle
 }
 
-const createTimeout = (fn, millis, unref) => {
+const createTimeout = (fn, millis, unref?) => {
   const timeout = setTimeout(fn, millis)
   if (unref && timeout.unref) timeout.unref()
   return timeout
 }
 
-export const wait = (millis=0, unref) => {
+export const wait = (millis=0, unref?) => {
   return new Promise(resolve => {
     createTimeout(resolve, millis, unref)
   })
 }
 
-export const timeoutIn = (millis=0, unref) => {
+export const timeoutIn = (millis=0, unref?) => {
   return new Promise((resolve, reject) => {
     createTimeout(() => {
       reject(new Error('timed out'))
@@ -96,6 +96,17 @@ export function loudCo (gen) {
       throw err
     }
   })
+}
+
+export function loudAsync (asyncFn) {
+  return async (...args) => {
+    try {
+      return await asyncFn(...args)
+    } catch (err) {
+      console.error(err)
+      throw err
+    }
+  }
 }
 
 export function toBuffer (data) {

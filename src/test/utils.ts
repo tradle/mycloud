@@ -99,17 +99,6 @@ function reprefixServices (map, prefix) {
   return reprefixed
 }
 
-function loudAsync (asyncFn) {
-  return async (...args) => {
-    try {
-      return await asyncFn(...args)
-    } catch (err) {
-      console.error(err)
-      throw err
-    }
-  }
-}
-
 export {
   getSchema,
   recreateTable,
@@ -118,6 +107,5 @@ export {
   putter,
   deleter,
   scanner,
-  reprefixServices,
-  loudAsync
+  reprefixServices
 }

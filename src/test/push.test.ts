@@ -7,7 +7,7 @@ import sinon = require('sinon')
 import buildResource = require('@tradle/build-resource')
 import Push, { getChallenge, getNotificationData } from '../push'
 import Logger from '../logger'
-import { loudAsync } from './utils'
+import { loudAsync } from '../utils'
 import { getSigningKey, sha256 } from '../crypto'
 import alice = require('./fixtures/alice/identity')
 import aliceKeys = require('./fixtures/alice/keys')

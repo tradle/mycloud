@@ -430,6 +430,10 @@ function createBot (opts: {
   makeBackwardsCompat(bot)
   addConvenienceMethods(bot)
   bot.lambdas = createLambdas(bot)
+
+  // prime cache
+  bot.getMyIdentity()
+
   return bot
 
   function emitAs (event) {

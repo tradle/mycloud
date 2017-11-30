@@ -6,8 +6,17 @@ import sinon = require('sinon')
 import KeyValueTable from '../key-value-table'
 import { getFavicon } from '../image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
-import { co, loudCo, cachify, clone, batchStringsBySize, promisify, wrap } from '../utils'
-import { loudAsync } from './utils'
+import {
+  loudAsync,
+  firstSuccess,
+  cachify,
+  clone,
+  batchStringsBySize,
+  promisify,
+  wrap,
+  wait,
+  timeoutIn
+} from '../utils'
 import * as Errors from '../errors'
 import { KVTable } from '../definitions'
 import aliceKeys = require('./fixtures/alice/keys')
@@ -358,6 +367,42 @@ test('sign/verify', loudAsync(async (t) => {
   t.ok(await ecKey.promiseVerify('d', sig3))
   t.notOk(await ecKey.promiseVerify('d', sig))
   t.notOk(await ecKey.promiseVerify('d1', sig3))
+
+  t.end()
+}))
+
+test('first success', loudAsync(async (t) => {
+  const pending = [
+    wait(200).then(() => 200),
+    timeoutIn(150)
+  ]
+
+  const failed = [
+    timeoutIn(0),
+    timeoutIn(50)
+  ]
+
+  const resolved = [
+    wait(100).then(() => 100)
+  ]
+
+  const result = await firstSuccess(pending.concat(failed).concat(resolved))
+  t.equal(result, 100)
+  failed.forEach(promise => t.equal(promise.isRejected(), true))
+  resolved.forEach(promise => t.equal(promise.isResolved(), true))
+  pending.forEach(promise => t.equal(promise.isPending(), true))
+
+  try {
+    await firstSuccess([
+      timeoutIn(0),
+      timeoutIn(50),
+      timeoutIn(100)
+    ])
+
+    t.fail('expected error')
+  } catch (err) {
+    t.ok(err)
+  }
 
   t.end()
 }))

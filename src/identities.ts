@@ -37,7 +37,7 @@ export default class Identities {
   }
 
   public metaByPub = (pub:string) => {
-    this.logger.debug('get identity metadata by pub')
+    this.logger.debug('get identity metadata by pub', pub)
     return this.pubKeys.get({
       Key: { pub },
       ConsistentRead: true

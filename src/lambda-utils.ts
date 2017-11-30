@@ -295,7 +295,9 @@ export default class Utils {
     const handler = this.requireLambdaByName(shortName)
     const event = typeof Payload === 'string' ? JSON.parse(Payload) : {}
     // not ideal as the called function may have different environment vars
-    const context = createLambdaContext(FunctionName)
+    const context = this.env.context ||
+      (this.env.TESTING && createLambdaContext(this.env.FUNCTION_NAME))
+
     const result = {
       StatusCode: InvocationType === 'Event' ? 202 : 200,
       Payload: '',
