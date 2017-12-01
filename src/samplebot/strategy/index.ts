@@ -41,7 +41,7 @@ export default function createProductsBot ({ bot, conf }) {
     enabled,
     plugins={},
     autoApprove,
-    autoVerify,
+    // autoVerify,
     approveAllEmployees,
     // queueSends,
     graphqlRequiresAuth
@@ -137,51 +137,51 @@ export default function createProductsBot ({ bot, conf }) {
   // prepend
   productsAPI.plugins.use({ onmessage: keepModelsFresh }, true)
   productsAPI.plugins.use({
-    'onmessage:tradle.Form': async (req) => {
-      let { type, application } = req
-      if (type === 'tradle.ProductRequest') {
-        debug(`deferring to default handler for ${type}`)
-        return
-      }
+    // 'onmessage:tradle.Form': async (req) => {
+    //   let { type, application } = req
+    //   if (type === 'tradle.ProductRequest') {
+    //     debug(`deferring to default handler for ${type}`)
+    //     return
+    //   }
 
-      if (!autoVerify) {
-        debug(`not auto-verifying ${type}`)
-        return
-      }
+    //   if (!autoVerify) {
+    //     debug(`not auto-verifying ${type}`)
+    //     return
+    //   }
 
-      if (application && application.requestFor === DEPLOYMENT) {
-        debug(`not autoverifying MyCloud config form: ${type}`)
-        return
-      }
+    //   if (application && application.requestFor === DEPLOYMENT) {
+    //     debug(`not autoverifying MyCloud config form: ${type}`)
+    //     return
+    //   }
 
-      if (!application) {
-        // normal for tradle.AssignRelationshipManager
-        // because the user is the employee, but the application is the customer's
-        debug(`not auto-verifying ${type} (unknown application)`)
-        return
-      }
+    //   if (!application) {
+    //     // normal for tradle.AssignRelationshipManager
+    //     // because the user is the employee, but the application is the customer's
+    //     debug(`not auto-verifying ${type} (unknown application)`)
+    //     return
+    //   }
 
-      debug(`auto-verifying ${type}`)
-      await productsAPI.verify({
-        req,
-        application,
-        send: true,
-        verification: {
-          [TYPE]: 'tradle.Verification',
-          method: {
-            aspect: 'validity',
-            reference: [{
-              queryId: crypto.randomBytes(8).toString('hex')
-            }],
-            [TYPE]: 'tradle.APIBasedVerificationMethod',
-            api: {
-              [TYPE]: 'tradle.API',
-              name: 'tradle-internal'
-            }
-          }
-        }
-      })
-    },
+    //   debug(`auto-verifying ${type}`)
+    //   await productsAPI.verify({
+    //     req,
+    //     application,
+    //     send: false,
+    //     verification: {
+    //       [TYPE]: 'tradle.Verification',
+    //       method: {
+    //         aspect: 'validity',
+    //         reference: [{
+    //           queryId: crypto.randomBytes(8).toString('hex')
+    //         }],
+    //         [TYPE]: 'tradle.APIBasedVerificationMethod',
+    //         api: {
+    //           [TYPE]: 'tradle.API',
+    //           name: 'tradle-internal'
+    //         }
+    //       }
+    //     }
+    //   })
+    // },
     'onmessage:tradle.SimpleMessage': async (req) => {
       const { application, object } = req
       const { message } = object
@@ -201,9 +201,12 @@ export default function createProductsBot ({ bot, conf }) {
       }
     },
     onFormsCollected: async (req) => {
-      if (!autoApprove) return
-
       const { user, application } = req
+      if (!autoApprove) {
+        const goodToGo = productsAPI.haveAllSubmittedFormsBeenVerified({ application })
+        if (!goodToGo) return
+      }
+
       const approved = productsAPI.state.hasApplication({
         applications: user.applicationsApproved || [],
         application
@@ -211,7 +214,7 @@ export default function createProductsBot ({ bot, conf }) {
 
       if (!approved) {
         await productsAPI.approveApplication({ req })
-        // await sendVerifications({ req, user, application })
+        await productsAPI.issueVerifications({ req, user, application, send: true })
       }
     },
     onCommand: async ({ req, command }) => {
@@ -219,37 +222,6 @@ export default function createProductsBot ({ bot, conf }) {
     }
 
   }) // append
-
-  const sendVerifications = async ({ req, user, application }) => {
-    if (req) {
-      if (!user) user = req.user
-      if (!application) application = req.application
-    } else {
-      req = productsAPI.state.newRequestState({ user })
-    }
-
-    const {
-      forms,
-      verificationsImported=[],
-      verificationsIssued=[]
-    } = application
-
-    const unverified = forms.filter(form => {
-      return !verificationsIssued.find(({ item }) => {
-        return item.id === form.id
-      })
-    })
-
-    await Promise.all(unverified.map(formStub => {
-      return productsAPI.verify({
-        req,
-        user,
-        application,
-        object: formStub,
-        send: true
-      })
-    }))
-  }
 
   if (productsAPI.products.includes(DEPLOYMENT)) {
     // productsAPI.plugins.clear('onFormsCollected')
