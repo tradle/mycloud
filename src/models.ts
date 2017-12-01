@@ -8,6 +8,13 @@ baseMessageModel.properties._counterparty = {
   virtual: true
 }
 
+if (!baseMessageModel.properties._inbound) {
+  baseMessageModel.properties._inbound = {
+    type: 'boolean',
+    virtual: true
+  }
+}
+
 const custom = require('@tradle/custom-models')
 const cloud = {
   // 'tradle.OutboxQuery': {
