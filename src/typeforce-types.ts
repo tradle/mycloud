@@ -23,7 +23,15 @@ exports.author = typeforce.compile({
 exports.identity = identity
 exports.hasType = function hasType (obj) {
   if (!obj[TYPE]) {
-    throw new Error(`expected ${TYPE} property`)
+    throw new Error(`expected string ${TYPE}`)
+  }
+
+  return true
+}
+
+exports.hasTimestamp = function hasType (obj) {
+  if (typeof obj._time !== 'number') {
+    throw new Error(`expected timestamp "_time"`)
   }
 
   return true

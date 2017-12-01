@@ -159,7 +159,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#e4fcf22cccc9c22e4892b1667fe599d449f01427",
+      "resolved": "git://github.com/tradle/dynamodb.git#ec0f444e25257616e9213b3f6eaa7bff2b89c24b",
       "dependencies": {
         "pify": {
           "version": "3.0.0",

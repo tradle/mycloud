@@ -11,6 +11,7 @@ import {
   download,
   pick,
   summarizeObject,
+  ensureTimestamped,
   RESOLVED_PROMISE,
 } from './utils'
 import { extractSigPubKey, addLinks } from './crypto'
@@ -104,6 +105,7 @@ export default class Objects {
 
   public put = async (object: ITradleObject) => {
     typeforce(types.signedObject, object)
+    ensureTimestamped(object)
     this.addMetadata(object)
     object = deepClone(object)
     await this.replaceEmbeds(object)

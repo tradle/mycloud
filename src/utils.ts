@@ -766,3 +766,13 @@ export const logResponseBody = (logger) => (req, res, next) => {
 
   next()
 }
+
+export const ensureTimestamped = (resource) => {
+  if (!resource._time) {
+    setVirtual(resource, {
+      _time: resource.time || Date.now()
+    })
+  }
+
+  return resource
+}

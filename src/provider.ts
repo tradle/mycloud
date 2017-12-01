@@ -12,7 +12,8 @@ import {
   typeforce,
   summarizeObject,
   series,
-  flatten
+  flatten,
+  ensureTimestamped
 } from './utils'
 
 import Errors = require('./errors')

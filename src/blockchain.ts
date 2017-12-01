@@ -133,7 +133,7 @@ export default class Blockchain {
     })
 
     if (txInfos.length) {
-      this.logger.debug(`fetched transactions for addresses: ${addresses.join(', ')}: ${prettify(txInfos)}`)
+      this.logger.debug(`fetched transactions for addresses: ${addresses.join(', ')}`, txInfos)
     } else {
       this.logger.debug(`no transactions found for addresses: ${addresses.join(', ')}`)
     }

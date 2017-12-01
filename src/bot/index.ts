@@ -11,13 +11,13 @@ const {
   defineGetter,
   extend,
   deepClone,
-  deepEqual
+  deepEqual,
+  ensureTimestamped
 } = require('../utils')
 const { addLinks } = require('../crypto')
 const {
   getMessagePayload,
   getMessageGist,
-  ensureTimestamped,
   normalizeSendOpts,
   normalizeRecipient
 } = require('./utils')

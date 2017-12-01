@@ -43,14 +43,6 @@ const getMessageGist = (message):any => {
   }
 }
 
-const ensureTimestamped = (resource) => {
-  if (!resource._time) {
-    buildResource.setVirtual(resource, { _time: Date.now() })
-  }
-
-  return resource
-}
-
 const normalizeSendOpts = async (bot, opts) => {
   let { link, object, to } = opts
   if (typeof object === 'string') {

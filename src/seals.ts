@@ -490,13 +490,9 @@ export default class Seals {
       this.logger.debug(`updating resource with seal`, summarizeObject(object))
       await Promise.all([
         this.db.update({
-          [TYPE]: object[TYPE],
+          ...pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
           // needed to pinpoint the resource to (conditionally) update
-          _time: object._time,
-          _link: object._link,
-          _permalink: object._permalink,
-          _seal: sealResource,
-          _virtual: object._virtual
+          _seal: sealResource
         }),
         this.objects.put(object)
       ])
