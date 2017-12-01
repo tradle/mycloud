@@ -64,6 +64,7 @@ export default function createProductsBot ({ bot, conf }) {
         .get()
     },
     products: enabled,
+    validateModels: bot.env.TESTING
     // queueSends: bot.env.TESTING ? true : queueSends
   })
 
@@ -210,6 +211,7 @@ export default function createProductsBot ({ bot, conf }) {
 
       if (!approved) {
         await productsAPI.approveApplication({ req })
+        // await sendVerifications({ req, user, application })
       }
     },
     onCommand: async ({ req, command }) => {
@@ -217,6 +219,37 @@ export default function createProductsBot ({ bot, conf }) {
     }
 
   }) // append
+
+  const sendVerifications = async ({ req, user, application }) => {
+    if (req) {
+      if (!user) user = req.user
+      if (!application) application = req.application
+    } else {
+      req = productsAPI.state.newRequestState({ user })
+    }
+
+    const {
+      forms,
+      verificationsImported=[],
+      verificationsIssued=[]
+    } = application
+
+    const unverified = forms.filter(form => {
+      return !verificationsIssued.find(({ item }) => {
+        return item.id === form.id
+      })
+    })
+
+    await Promise.all(unverified.map(formStub => {
+      return productsAPI.verify({
+        req,
+        user,
+        application,
+        object: formStub,
+        send: true
+      })
+    }))
+  }
 
   if (productsAPI.products.includes(DEPLOYMENT)) {
     // productsAPI.plugins.clear('onFormsCollected')
