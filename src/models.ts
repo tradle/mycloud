@@ -1,13 +1,7 @@
 
 const mergeModels = require('@tradle/merge-models')
-const mergeOpts = { validate: process.env.NODE_ENV !== 'production' }
-
-// tradle/models is exported weirdly
-// normalize it here
-const base = mergeModels()
-  .add(require('@tradle/models').models, mergeOpts)
-  .get()
-
+const mergeOpts = { validate: false }
+const base = require('@tradle/models').models
 const baseMessageModel = base['tradle.Message']
 baseMessageModel.properties._counterparty = {
   type: 'string',
@@ -35,35 +29,8 @@ const cloud = {
   'tradle.OnfidoVerification': require('./tradle.OnfidoVerification.json')
 }
 
-const defaultSet = mergeModels()
+module.exports = mergeModels()
   .add(base, mergeOpts)
   .add(custom, mergeOpts)
-  .get()
-
-;(function () {
-  const message = base['tradle.Message']
-  if (message.isInterface) return
-
-  if (!message.properties._inbound) {
-    message.properties._inbound = {
-      type: 'boolean'
-    }
-  }
-
-  for (let id in defaultSet) {
-    fix(defaultSet[id])
-  }
-
-  function fix (model) {
-    model.interfaces = (model.interfaces || []).map(iface => {
-      return iface === 'tradle.Message' ? 'tradle.ChatItem' : iface
-    })
-
-    return model
-  }
-}())
-
-module.exports = mergeModels()
-  .add(defaultSet)
-  .add(cloud)
+  .add(cloud, mergeOpts)
   .get()
