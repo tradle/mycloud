@@ -654,9 +654,9 @@ export const onWarmUp = ({
   context,
   callback
 }) => {
-  debug(`warmup, sleeping for ${WARMUP_SLEEP}ms`)
+  env.debug(`warmup, sleeping for ${WARMUP_SLEEP}ms`)
   setTimeout(() => {
-    debug(`warmup, done`)
+    env.debug(`warmup, done`)
     callback(null, {
       containerAge: env.containerAge,
       containerId: env.containerId,
