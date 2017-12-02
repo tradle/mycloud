@@ -29,7 +29,7 @@ exports.hasType = function hasType (obj) {
   return true
 }
 
-exports.hasTimestamp = function hasType (obj) {
+exports.hasTimestamp = function hasTimestamp (obj) {
   if (typeof obj._time !== 'number') {
     throw new Error(`expected timestamp "_time"`)
   }
