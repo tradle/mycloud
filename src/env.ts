@@ -5,7 +5,7 @@ import './globals'
 import yn = require('yn')
 import debug = require('debug')
 import randomName = require('random-name')
-import { parseArn } from './utils'
+import { parseArn, allSettled, RESOLVED_PROMISE } from './utils'
 import { randomString } from './crypto'
 import { IDebug, ILambdaExecutionContext } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
@@ -49,6 +49,7 @@ export default class Env {
   public requestCtx:any
   public _X_AMZN_TRACE_ID:string
   public isVirgin:boolean
+  public waitFor:Promise<any|void>[]
 
   public PUSH_SERVER_URL:string
   public INVOKE_BOT_LAMBDAS_DIRECTLY:boolean
@@ -89,6 +90,19 @@ export default class Env {
 
     this.debug = this.logger.debug
     this.set(props)
+    this.waitFor = []
+  }
+
+  public finishAsyncTasks = async () => {
+    if (this.waitFor.length) {
+      const promises = this.waitFor.slice()
+      this.waitFor.length = 0
+      await allSettled(promises)
+    }
+  }
+
+  public addAsyncTask = (fn) => {
+    this.waitFor.push(RESOLVED_PROMISE.then(fn))
   }
 
   public set = props => {

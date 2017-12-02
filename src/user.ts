@@ -55,7 +55,7 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
   let session
   try {
     session = yield this.auth.setSubscribed({ clientId, subscribed: true })
-    this.logger.debug(`client subscribed: ${clientId}`, session)
+    this.logger.debug(`client subscribed`, session)
   } catch (err) {
     this.logger.error('failed to update presence information', err)
     yield this.requestIotClientReconnect({ clientId })
@@ -73,7 +73,7 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
       range: { after }
     })
   } catch (err) {
-    this.logger.error('failed to update presence information', err)
+    this.logger.error('live delivery failed', err)
     yield this.requestIotClientReconnect({ clientId })
     Errors.rethrow(err, 'system')
   }
@@ -115,10 +115,10 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     // SUCCESS!
     this.logger.debug('received valid message from user')
 
-    yield this.delivery.ack({
+    this.env.addAsyncTask(() => this.delivery.ack({
       clientId,
       message: processed
-    })
+    }))
 
     const {
       BOT_ONMESSAGE,
@@ -156,10 +156,10 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     // HTTP
     if (!clientId) return
 
-    yield this.delivery.ack({
+    this.env.addAsyncTask(() => this.delivery.ack({
       clientId,
       message: processed
-    })
+    }))
 
     return
   }
@@ -190,11 +190,11 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
       throw err
     }
 
-    yield this.delivery.reject({
+    this.env.addAsyncTask(() => this.delivery.reject({
       clientId,
       message: processed,
       error: err
-    })
+    }))
 
     return
   }
@@ -209,8 +209,8 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
 
 proto.onDisconnected = co(function* ({ clientId }) {
   try {
-    yield this.auth.setConnected({ clientId, connected: false })
-    this.logger.debug(`client disconnected: ${clientId}`)
+    const session = yield this.auth.setConnected({ clientId, connected: false })
+    this.logger.debug(`client disconnected`, session)
   } catch (err) {
     this.logger.error('failed to update presence information', err)
     yield this.requestIotClientReconnect({ clientId })
@@ -226,8 +226,8 @@ proto.onConnected = co(function* ({ clientId }) {
   // }
 
   try {
-    yield this.auth.setConnected({ clientId, connected: true })
-    this.logger.debug(`client connected: ${clientId}`)
+    const session = yield this.auth.setConnected({ clientId, connected: true })
+    this.logger.debug(`client connected`, session)
   } catch (err) {
     this.logger.error('failed to update presence information', err)
     yield this.requestIotClientReconnect({ clientId })

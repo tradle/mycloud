@@ -18,6 +18,7 @@ import {
 
 import Errors = require('./errors')
 import types = require('./typeforce-types')
+import Env from './env'
 import {
   IDENTITY_KEYS_KEY,
   SEQ,
@@ -50,6 +51,7 @@ const { MESSAGE } = TYPES
 
 export default class Provider {
   private tradle: Tradle
+  private env: Env
   private logger:Logger
   private objects: Objects
   private messages: Messages
@@ -60,6 +62,7 @@ export default class Provider {
   private network: any
   constructor (tradle: Tradle) {
     this.tradle = tradle
+    this.env = tradle.env
     this.logger = tradle.env.sublogger('provider')
     this.objects = tradle.objects
     this.messages = tradle.messages
@@ -254,29 +257,12 @@ export default class Provider {
   }
 
   public _sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
-    // start this first to get a more accurate timestamp
     const { recipient } = batch[0]
-    const promiseCreates = series(batch.map(sendOpts =>
-      () => this.createSendMessageEvent(sendOpts)))
+    const messages = await series(batch.map(
+      sendOpts => () => this.createSendMessageEvent(sendOpts))
+    )
 
-    const promiseSession = this.auth.getLiveSessionByPermalink(recipient)
-      .catch(err => {
-        Errors.ignore(err, { name: 'NotFound' })
-        this.logger.debug('mqtt session not found for counterparty', { permalink: recipient })
-        return undefined
-      })
-
-    const promiseFriend = this.tradle.friends.getByIdentityPermalink(recipient)
-      .catch(err => {
-        Errors.ignore(err, { name: 'NotFound' })
-        this.logger.debug('friend not found for counterparty', { permalink: recipient })
-        return undefined
-      })
-
-    const session = await promiseSession
-    const friend = await promiseFriend
-    const messages = await promiseCreates
-    await this.attemptLiveDelivery({ recipient, messages, session, friend })
+    this.env.addAsyncTask(() => this.attemptLiveDelivery({ recipient, messages }))
     return messages
   }
 
@@ -286,9 +272,29 @@ export default class Provider {
   }
 
   public attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
-    const { messages, recipient, session, friend } = opts
+    const { recipient, messages } = opts
+    const promiseSession = opts.session
+      ? Promise.resolve(opts.session)
+      : this.auth.getLiveSessionByPermalink(recipient).catch(err => {
+          Errors.ignore(err, { name: 'NotFound' })
+          this.logger.debug('mqtt session not found for counterparty', { permalink: recipient })
+          return undefined
+        })
+
+    const promiseFriend = opts.friend
+      ? Promise.resolve(opts.friend)
+      : this.tradle.friends.getByIdentityPermalink(recipient).catch(err => {
+          Errors.ignore(err, { name: 'NotFound' })
+          this.logger.debug('friend not found for counterparty', { permalink: recipient })
+          return undefined
+        })
+
     try {
-      await this._attemptLiveDelivery(opts)
+      await this._attemptLiveDelivery({
+        ...opts,
+        session: await promiseSession,
+        friend: await promiseFriend
+      })
     } catch (err) {
       const error = { error: err.stack }
       if (err instanceof Errors.NotFound) {

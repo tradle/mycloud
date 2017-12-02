@@ -35,6 +35,9 @@ export function createHandler ({ router, env }) {
       request.context = context
       request.event = event
       return request
+    },
+    response: async () => {
+      await env.finishAsyncTasks()
     }
   })
 }

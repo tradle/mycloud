@@ -2,7 +2,7 @@
 
 import Env from './env'
 import Errors = require('./errors')
-import { applyFunction, onWarmUp } from './utils'
+import { applyFunction, onWarmUp, allSettled } from './utils'
 import { Level } from './logger'
 
 const RESOLVED = Promise.resolve()
@@ -70,6 +70,7 @@ function wrap (fn:Function, opts:WrapOpts) {
     try {
       ret = applyFunction(fn, this, args)
       if (isPromise(ret)) ret = await ret
+      await env.finishAsyncTasks()
     } catch (err) {
       clearInterval(monitor)
       return callback(err)
