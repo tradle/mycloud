@@ -26,6 +26,8 @@ import fetch = require('node-fetch')
 import { prettify, stableStringify } from './string-utils'
 import { SIG, TYPE, TYPES, WARMUP_SLEEP } from './constants'
 import { ExecutionTimeout } from './errors'
+import { CacheContainer } from './types'
+import Logger from './logger'
 
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
@@ -279,21 +281,27 @@ export function logify (obj, opts={}) {
 //   return timed
 // }
 
-export function cachify ({ get, put, del, cache }) {
+export function cachify ({ get, put, del, logger, cache }: {
+  get:(key:any) => Promise<any>
+  put:(key:any, value:any) => Promise<any|void>
+  del:(key:any) => Promise<any|void>
+  cache: any
+  logger?: Logger
+}) {
   const pending = {}
   return {
     get: co(function* (key) {
       const keyStr = stableStringify(key)
       let val = cache.get(keyStr)
       if (val != null) {
-        debug(`cache hit on ${key}!`)
+        if (logger) logger.debug(`cache hit on ${key}!`)
         // val might be a promise
         // the magic of co should resolve it
         // before returning
         return val
       }
 
-      debug(`cache miss on ${key}`)
+      if (logger) logger.debug(`cache miss on ${key}`)
       const promise = get(key)
       promise.catch(err => cache.del(keyStr))
       cache.set(keyStr, promise)
@@ -302,7 +310,13 @@ export function cachify ({ get, put, del, cache }) {
     put: co(function* (key, value) {
       // TODO (if actually needed):
       // get cached value, skip put if identical
+      if (logger) logger.debug(`cache: set ${key}`)
+
       const keyStr = stableStringify(key)
+      if (logger && cache.has(keyStr)) {
+        logger.warn(`cache already has value for ${key}, put may not be necessary`)
+      }
+
       cache.del(keyStr)
       const ret = yield put(key, value)
       cache.set(keyStr, value)
@@ -775,4 +789,25 @@ export const ensureTimestamped = (resource) => {
   }
 
   return resource
+}
+
+export const cachifyFunction = (
+  container:CacheContainer,
+  method: string
+) => {
+  const original = container[method]
+  const { cache, logger } = container
+  return async (...args) => {
+    const str = stableStringify(args)
+    const cached = cache.get(str)
+    if (cached) {
+      logger.debug('cache hit', str)
+      return cached
+    }
+
+    logger.debug('cache miss', str)
+    const result = await original.apply(container, args)
+    cache.set(str, result)
+    return result
+  }
 }

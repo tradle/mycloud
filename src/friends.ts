@@ -4,29 +4,33 @@ import fetch = require('node-fetch')
 import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { addLinks } from './crypto'
-import { pick, get } from './utils'
+import { pick, get, cachifyFunction } from './utils'
 import Identities from './identities'
 import Tradle from './tradle'
+import Logger from './logger'
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
 const TEN_MINUTES = 10 * 60 * 60000
 const createCache = () => new Cache({ max: 100, maxAge: TEN_MINUTES })
 
 export default class Friends {
-  private models: any
-  private model: any
-  private db: any
-  private identities: Identities
-  private provider: any
-  private cache: any
+  public models: any
+  public model: any
+  public db: any
+  public identities: Identities
+  public provider: any
+  public cache: any
+  public logger: Logger
   constructor(tradle:Tradle) {
-    const { models, db, identities, provider } = tradle
+    const { models, db, identities, provider, logger } = tradle
     this.models = models
     this.model = models[FRIEND_TYPE]
     this.db = db
     this.identities = identities
     this.provider = provider
     this.cache = createCache()
+    this.logger = logger.sub('friends')
+    this.getByIdentityPermalink = cachifyFunction(this, 'getByIdentityPermalink')
   }
 
   public load = async (opts: { url: string }): Promise<any> => {
@@ -114,16 +118,10 @@ export default class Friends {
   }
 
   public getByIdentityPermalink = async (permalink:string) => {
-    const cached = this.cache.get(permalink)
-    if (cached) return cached
-
-    const friend = await this.db.get({
+    return await this.db.get({
       [TYPE]: FRIEND_TYPE,
       _identityPermalink: permalink
     })
-
-    this.cache.set(permalink, friend)
-    return friend
   };
 
   public list = (opts: { permalink: string }) => {

@@ -8,6 +8,7 @@ import {
   omitVirtual,
   setVirtual,
   bindAll,
+  cachifyFunction,
   RESOLVED_PROMISE
 } from './utils'
 
@@ -21,18 +22,6 @@ const { PREVLINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 2000
-const cachify = (fn, identities:Identities) => async (str:string) => {
-  const cached = identities.cache.get(str)
-  if (cached) {
-    identities.logger.debug('cache hit', str)
-    return cached
-  }
-
-  identities.logger.debug('cache miss', str)
-  const result = await fn.call(identities, str)
-  identities.cache.set(str, result)
-  return result
-}
 
 export default class Identities {
   public objects: any
@@ -50,8 +39,8 @@ export default class Identities {
     this.env = env
     this.logger = env.sublogger('identities')
     this.cache = new Cache({ maxAge: CACHE_MAX_AGE })
-    this.metaByPub = cachify(this.metaByPub, this)
-    this.byPermalink = cachify(this.byPermalink, this)
+    this.metaByPub = cachifyFunction(this, 'metaByPub')
+    this.byPermalink = cachifyFunction(this, 'byPermalink')
   }
 
   public metaByPub = async (pub:string) => {

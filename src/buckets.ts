@@ -5,21 +5,45 @@ import { cachify, extend } from './utils'
 import { toCamelCase } from './string-utils'
 import { Bucket } from './bucket'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
-const cachifiable = {
-  Objects: true,
-  ContentAddressed: true
+const MINUTE = 60 * 1000
+const HOUR = 60 * MINUTE
+const cacheConfig = {
+  Objects: {
+    max: 500,
+    maxAge: HOUR
+  },
+  Secrets: {
+    max: 10,
+    maxAge: MINUTE
+  },
+  ContentAddressed: {
+    max: 500,
+    maxAge: HOUR
+  },
+  PublicConf: {
+    max: 10,
+    maxAge: MINUTE
+  },
+  PrivateConf: {
+    max: 10,
+    maxAge: MINUTE
+  },
+  FileUpload: {
+    max: 50,
+    maxAge: 10 * MINUTE
+  }
 }
 
 const CACHE_OPTS = {
-  max: 200,
-  maxAge: 60 * 1000
+  max: 500,
+  maxAge: 60 * 1000 * 1000
 }
 
 type Buckets = {
   [name:string]: Bucket
 }
 
-module.exports = function getBuckets ({ aws, serviceMap }):Buckets {
+module.exports = function getBuckets ({ logger, aws, serviceMap }):Buckets {
 
   function loadBucket (name) {
     if (buckets[name]) return
@@ -27,21 +51,12 @@ module.exports = function getBuckets ({ aws, serviceMap }):Buckets {
     const physicalId = serviceMap.Bucket[name]
     if (!physicalId) throw new Error('bucket not found')
 
-    const bucket = new Bucket({ name: physicalId, s3: aws.s3 })
-    if (cachifiable[name]) {
-      // TODO: resolve the duplicate efforts of this
-      // and Bucket.getCachable
-      const cachified = cachify({
-        get: bucket.getJSON,
-        put: bucket.putJSON,
-        cache: new Cache(CACHE_OPTS)
-      })
-
-      bucket.getJSON = cachified.get
-      bucket.putJSON = cachified.put
-    }
-
-    buckets[name] = bucket
+    buckets[name] = new Bucket({
+      name: physicalId,
+      s3: aws.s3,
+      cache: cacheConfig[name] && new Cache(cacheConfig[name]),
+      logger: logger.sub(`bucket:${name}`)
+    })
   }
 
   const buckets:Buckets = {}

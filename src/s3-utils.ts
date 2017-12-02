@@ -1,4 +1,5 @@
 import omit = require('object.omit')
+import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Logger from './logger'
 
@@ -10,7 +11,7 @@ module.exports = function createUtils (aws) {
     bucket:string,
     contentType?:string
   }):Promise<AWS.S3.Types.PutObjectOutput> => {
-    // debug(`putting ${key} -> ${value} into Bucket ${bucket}`)
+    logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts:AWS.S3.Types.PutObjectRequest = {
       Bucket: bucket,
       Key: key,
@@ -36,7 +37,9 @@ module.exports = function createUtils (aws) {
     }
 
     try {
-      return await aws.s3.getObject(params).promise()
+      const result = await aws.s3.getObject(params).promise()
+      logger.debug('got', { key, bucket, type: result[TYPE] })
+      return result
     } catch(err) {
       if (err.code === 'NoSuchKey') {
         throw new Errors.NotFound(`${bucket}/${key}`)
@@ -69,13 +72,20 @@ module.exports = function createUtils (aws) {
     [x:string]: any
   }) => {
     let cached
+    let type
     let etag
-    let cachedTime
+    let cachedTime = 0
     const maybeGet = async (opts={}) => {
+      let summary = { key, bucket, type }
       if (!opts.force) {
         const age = Date.now() - cachedTime
         if (etag && age < ttl) {
-          logger.debug(`returning cached item for key ${key}, ttl: ${(ttl - age)}`)
+          logger.debug('returning cached item', {
+            ...summary,
+            age,
+            ttl: (ttl - age)
+          })
+
           return cached
         }
       }
@@ -93,7 +103,7 @@ module.exports = function createUtils (aws) {
         cached = await get({ key, bucket, ...opts })
       } catch (err) {
         if (err.code === 'NotModified') {
-          logger.debug(`304, returning cached item for key ${key}, ETag ${etag}`)
+          logger.debug('304, returning cached item', summary)
           return cached
         }
 
@@ -109,7 +119,8 @@ module.exports = function createUtils (aws) {
       }
 
       cachedTime = Date.now()
-      logger.debug(`fetched and cached item for key ${key}, ETag ${etag}`)
+      logger.debug('fetched and cached item', summary)
+
       return cached
     }
 

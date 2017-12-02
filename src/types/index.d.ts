@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events'
+import Logger from '../logger'
 
 export interface IPosition {
   sent?: number
@@ -149,4 +150,9 @@ export type ParsedResourceStub = {
   link: string
   permalink: string
   title?: string
+}
+
+export type CacheContainer = {
+  cache: any
+  logger: Logger
 }
