@@ -72,13 +72,12 @@ function wrap (fn:Function, opts:WrapOpts) {
       if (isPromise(ret)) ret = await ret
       await env.finishAsyncTasks()
     } catch (err) {
-      clearInterval(monitor)
       return callback(err)
     } finally {
+      clearInterval(monitor)
       require.track = false
     }
 
-    clearInterval(monitor)
     debug(`finished wrapped task: ${fn.name}`)
     callback(null, ret)
   }
