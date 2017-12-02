@@ -323,7 +323,9 @@ export function cachify ({ get, put, del, logger, cache }: {
       return ret
     }),
     del: co(function* (key) {
-      cache.del(stableStringify(key))
+      const keyStr = stableStringify(key)
+      if (logger) logger.debug(`cache unset ${key}`)
+      cache.del(keyStr)
       return yield del(key)
     })
   }

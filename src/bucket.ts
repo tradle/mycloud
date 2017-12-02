@@ -26,7 +26,17 @@ export class Bucket {
     this.logger = logger || new Logger(`bucket:${name}`)
     if (cache) {
       this.cache = cache
-      Object.assign(this, cachify(this))
+      const cachified = cachify({
+        get: this.getJSON,
+        put: this.put,
+        del: this.del,
+        logger: this.logger,
+        cache
+      })
+
+      this.getJSON = cachified.get
+      this.putJSON = cachified.put
+      this.del = cachified.del
     }
   }
 

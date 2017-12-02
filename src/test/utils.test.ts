@@ -226,6 +226,104 @@ test('getCacheable', loudAsync(async (t) => {
   t.end()
 }))
 
+test('Bucket', loudAsync(async (t) => {
+  const { aws } = tradle
+  const { s3 } = aws
+  const bucketName = `test-${Date.now()}-${randomString(10)}`
+  const bucket = new Bucket({ name: bucketName, s3 })
+  await bucket.create()
+
+  const ops = [
+    { method: 'exists', args: ['abc'], result: false },
+    { method: 'get', args: ['abc'], error: 'NotFound' },
+    { method: 'getJSON', args: ['abc'], error: 'NotFound' },
+    { method: 'put', args: ['abc', { cba: 1 }] },
+    { method: 'exists', args: ['abc'], result: true },
+    { method: 'get', args: ['abc'], body: new Buffer(JSON.stringify({ cba: 1 })) },
+    { method: 'getJSON', args: ['abc'], result: { cba: 1 } },
+    { method: 'del', args: ['abc'] },
+    { method: 'exists', args: ['abc'], result: false },
+    { method: 'exists', args: ['abcd'], result: false },
+    { method: 'del', args: ['abcd'], result: {} },
+  ]
+
+  for (const op of ops) {
+    const { method, args, result, body, error } = op
+    try {
+      const actualResult = await bucket[method](...args)
+      if (error) {
+        t.fail(`expected error: ${error}`)
+      } else if (typeof result !== 'undefined') {
+        t.same(actualResult, result)
+      } else if (typeof body !== 'undefined') {
+        t.same(actualResult.Body, body)
+      }
+    } catch (err) {
+      t.equal(err.name, error)
+    }
+  }
+
+  await bucket.destroy()
+  t.end()
+}))
+
+test('Bucket with cache', loudAsync(async (t) => {
+  const { aws } = tradle
+  const { s3 } = aws
+  const bucketName = `test-${Date.now()}-${randomString(10)}`
+  const bucket = new Bucket({
+    name: bucketName,
+    s3,
+    cache: new Cache({ maxAge: 500 })
+  })
+
+  await bucket.create()
+
+  const ops = [
+    { method: 'exists', args: ['abc'], result: false },
+    { method: 'get', args: ['abc'], error: 'NotFound' },
+    { method: 'getJSON', args: ['abc'], error: 'NotFound' },
+    { method: 'putJSON', args: ['abc', { cba: 1 }] },
+    { method: 'exists', args: ['abc'], result: true },
+    { method: 'get', args: ['abc'], body: new Buffer(JSON.stringify({ cba: 1 })) },
+    { method: 'getJSON', args: ['abc'], result: { cba: 1 }, cached: true },
+    { method: 'del', args: ['abc'] },
+    { method: 'exists', args: ['abc'], result: false },
+    { method: 'exists', args: ['abcd'], result: false },
+    { method: 'del', args: ['abcd'], result: {} },
+  ]
+
+  for (const op of ops) {
+    const { method, args, result, body, cached, error } = op
+    let getObjStub
+    if (cached) {
+      getObjStub = sinon.stub(s3, 'getObject').callsFake(() => {
+        t.fail('expected object to be cached')
+      })
+    }
+
+    try {
+      const actualResult = await bucket[method](...args)
+      if (error) {
+        t.fail(`expected error: ${error}`)
+      } else if (typeof result !== 'undefined') {
+        t.same(actualResult, result)
+      } else if (typeof body !== 'undefined') {
+        t.same(actualResult.Body, body)
+      }
+    } catch (err) {
+      t.equal(err.name, error)
+    } finally {
+      if (getObjStub) {
+        getObjStub.restore()
+      }
+    }
+  }
+
+  await bucket.destroy()
+  t.end()
+}))
+
 test('content-addressed-storage', loudAsync(async (t) => {
   const { contentAddressedStorage } = tradle
   const key = await contentAddressedStorage.put('a')
