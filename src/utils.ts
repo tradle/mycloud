@@ -671,8 +671,9 @@ export const onWarmUp = ({
   callback
 }) => {
   env.debug(`warmup, sleeping for ${WARMUP_SLEEP}ms`)
-  setTimeout(() => {
+  setTimeout(async () => {
     env.debug(`warmup, done`)
+    await env.finishAsyncTasks()
     callback(null, {
       containerAge: env.containerAge,
       containerId: env.containerId,

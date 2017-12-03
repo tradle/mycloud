@@ -94,9 +94,16 @@ export default class Env {
   }
 
   public finishAsyncTasks = async () => {
-    if (this.waitFor.length) {
-      const promises = this.waitFor.slice()
-      this.waitFor.length = 0
+    if (!this.waitFor.length) return
+
+    const promises = this.waitFor.slice().filter(promise => {
+      // bluebird promises have isPending()
+      return !('isPending' in promise) || promise.isPending()
+    })
+
+    this.waitFor.length = 0
+    if (promises.length) {
+      this.logger.debug(`waiting for ${promises} async tasks to complete`)
       await allSettled(promises)
     }
   }

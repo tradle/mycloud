@@ -39,7 +39,7 @@ module.exports = function createRouter (tradle) {
       logger.info('_X_AMZN_TRACE_ID', _X_AMZN_TRACE_ID)
     }
 
-    logger.debug(`setting Access-Control-Allow-Methods: ${HTTP_METHODS}`)
+    // logger.debug(`setting Access-Control-Allow-Methods: ${HTTP_METHODS}`)
     res.header('Access-Control-Allow-Methods', HTTP_METHODS)
     if (!env.IS_WARM_UP) return next()
 

@@ -102,6 +102,8 @@ function createBot (opts: {
 
   readyMixin(bot)
   bot.on('ready', () => bot.debug('ready!'))
+  // make sure bot is ready before lambda exists
+  bot.env.addAsyncTask(() => bot.promiseReady())
 
   defineGetter(bot, 'conf', () => tradle.conf.sub(':bot'))
   defineGetter(bot, 'kv', () => tradle.kv.sub(':bot'))
