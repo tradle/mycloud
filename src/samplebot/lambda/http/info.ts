@@ -25,5 +25,6 @@ infoRouter.get('/', coexpress(function* (req, res) {
 
 infoRouter.use(router.defaultErrorHandler)
 router.use('/info', infoRouter)
+bot.ready()
 
 export const handler = bot.createHttpHandler()

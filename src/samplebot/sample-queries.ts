@@ -26,7 +26,7 @@ const listApplications = `{
   rl_tradle_Application(
     limit:5
     orderBy: {
-      property: dateModified,
+      property: _time,
       desc: true
     }
   ) {

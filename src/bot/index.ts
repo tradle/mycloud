@@ -104,7 +104,18 @@ function createBot (opts: {
   bot.on('ready', () => bot.debug('ready!'))
   // make sure bot is ready before lambda exits
   //
-  bot.env.addAsyncTask(() => bot.promiseReady())
+  bot.env.addAsyncTask(() => new Promise(resolve => {
+    const now = Date.now()
+    const interval = setInterval(() => {
+      const time = Date.now() - now
+      bot.logger.warn(`${time}ms passed. Did you forget to call bot.ready()?`)
+    }, 5000).unref()
+
+    bot.once('ready', () => {
+      clearInterval(interval)
+      resolve()
+    })
+  }))
 
   defineGetter(bot, 'conf', () => tradle.conf.sub(':bot'))
   defineGetter(bot, 'kv', () => tradle.kv.sub(':bot'))
