@@ -152,7 +152,7 @@ export function setupGraphQL (bot) {
 
   const setModels = (_models) => {
     models = _models
-    schema = null
+    schema = getSchema()
   }
 
   return {

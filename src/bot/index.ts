@@ -102,7 +102,8 @@ function createBot (opts: {
 
   readyMixin(bot)
   bot.on('ready', () => bot.debug('ready!'))
-  // make sure bot is ready before lambda exists
+  // make sure bot is ready before lambda exits
+  //
   bot.env.addAsyncTask(() => bot.promiseReady())
 
   defineGetter(bot, 'conf', () => tradle.conf.sub(':bot'))
@@ -124,7 +125,7 @@ function createBot (opts: {
   bot.setCustomModels = customModels => {
     const merger = mergeModels()
       .add(BaseModels, { validate: false })
-      .add(customModels, { validate: true })
+      .add(customModels, { validate: bot.env.TESTING })
 
     models = merger.get()
     if (graphqlAPI) {
