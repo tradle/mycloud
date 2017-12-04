@@ -663,26 +663,29 @@ export const wrap = (fn) => {
 
 // utils is not the best home for this function
 // but I couldn't decide on a better one yet
-// especially due to the duality of lambdas that wake up router.js
+// especially due to the duality of lambdas that wake up in router.js
 // vs the others (like in lambda/mqtt)
-export const onWarmUp = ({
+export const onWarmUp = async ({
   env,
   event,
   context,
   callback
 }) => {
-  env.debug(`warmup, sleeping for ${WARMUP_SLEEP}ms`)
-  setTimeout(async () => {
-    env.debug(`warmup, done`)
-    await env.finishAsyncTasks()
-    callback(null, {
-      containerAge: env.containerAge,
-      containerId: env.containerId,
-      uptime: fs.readFileSync('/proc/uptime', { encoding: 'utf-8' }),
-      logStreamName: context.logStreamName,
-      isVirgin: env.isVirgin
-    })
-  }, WARMUP_SLEEP)
+  const start = Date.now()
+  env.addAsyncTask(() => {
+    env.debug(`warmup, sleeping for ${WARMUP_SLEEP}ms`)
+    return wait(WARMUP_SLEEP)
+  })
+
+  await env.finishAsyncTasks()
+  env.debug(`warmup, done`)
+  callback(null, {
+    containerAge: env.containerAge,
+    containerId: env.containerId,
+    uptime: fs.readFileSync('/proc/uptime', { encoding: 'utf-8' }),
+    logStreamName: context.logStreamName,
+    isVirgin: env.isVirgin
+  })
 }
 
 export const networkFromIdentifier = str => {
@@ -810,7 +813,7 @@ export const cachifyFunction = (
     }
 
     logger.debug('cache miss', str)
-    const result = await original.apply(container, args)
+    const result = original.apply(container, args)
     cache.set(str, result)
     return result
   }
