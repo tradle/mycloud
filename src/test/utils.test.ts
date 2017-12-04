@@ -42,6 +42,9 @@ test('cachify', loudAsync(async (t) => {
     put: async (key, value) => {
       data[key] = value
     },
+    del: async (key) => {
+      delete data[key]
+    },
     cache: new Cache({ max: 100 })
   }
 

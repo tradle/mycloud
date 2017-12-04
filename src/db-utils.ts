@@ -8,7 +8,7 @@ import dynogels = require('dynogels')
 import { utils as vrUtils } from '@tradle/validate-resource'
 import { Level } from './logger'
 import { NotFound } from './errors'
-import { pick, logify, timestamp, wait, clone, batchify } from './utils'
+import { pick, logify, timestamp, wait, clone, batchify, timeMethods } from './utils'
 import { prettify, alphabetical } from './string-utils'
 import { sha256 } from './crypto'
 import * as Errors from './errors'
@@ -27,8 +27,7 @@ export {
   unmarshalDBItem
 }
 
-function createDBUtils ({ aws, env }) {
-  const logger = env.sublogger('db-utils')
+function createDBUtils ({ aws, logger }) {
   const { debug } = logger
   const dynogelsLogger = logger.sub('dynogels')
   if (logger.level >= Level.WARN) {
@@ -118,15 +117,13 @@ function createDBUtils ({ aws, env }) {
     Object.keys(api).forEach(method => {
       tableAPI[method] = (params={}) => {
         params.TableName = TableName
-        // debug(`performing "${method}" on ${TableName}: ${prettify(params)}`)
         return api[method](params)
       }
     })
 
     tableAPI.name = TableName
     tableAPI.definition = getDefinition(TableName)
-    return tableAPI
-    // return logify(tableAPI, { log: debug }) //, logInputOutput: DEV })
+    return timeMethods(tableAPI, logger)
   }
 
   const exec = async (method, params) => {
@@ -347,7 +344,7 @@ function createDBUtils ({ aws, env }) {
     }
   }
 
-  return {
+  return timeMethods({
     forEachItem,
     listTables,
     createTable,
@@ -367,7 +364,7 @@ function createDBUtils ({ aws, env }) {
     getRecordsFromEvent,
     getTableBuckets,
     getModelMap
-  }
+  }, logger)
 }
 
 function jitter (val, percent) {

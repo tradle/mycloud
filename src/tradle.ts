@@ -17,6 +17,7 @@ import KeyValueTable from './key-value-table'
 import ContentAddressedStorage from './content-addressed-storage'
 import { requireDefault } from './require-default'
 import Push from './push'
+import { applyFunction } from './utils'
 
 let instanceCount = 0
 
@@ -86,7 +87,11 @@ export default class Tradle {
     this.define('tables', './tables', this.construct)
     this.define('buckets', './buckets', this.construct)
     this.define('db', './db', initialize => initialize(this))
-    this.define('s3Utils', './s3-utils', initialize => initialize(this.aws))
+    this.define('s3Utils', './s3-utils', initialize => initialize({
+      s3: this.aws.s3,
+      logger: this.logger.sub('s3-utils')
+    }))
+
     this.define('contentAddressedStorage', './content-addressed-storage', ctor => {
       return new ctor({
         bucket: this.buckets.ContentAddressed,
@@ -126,7 +131,11 @@ export default class Tradle {
     this.define('delivery', './delivery', this.construct)
     this.define('router', './router', this.construct)
     this.define('aws', './aws', initialize => initialize(this))
-    this.define('dbUtils', './db-utils', initialize => initialize(this))
+    this.define('dbUtils', './db-utils', initialize => initialize({
+      aws: this.aws,
+      logger: this.logger.sub('db-utils')
+    }))
+
     this.define('pushNotifications', './push', ctor => {
       if (!this.env.PUSH_SERVER_URL) {
         this.logger.warn('missing PUSH_SERVER_URL, push notifications not available')
@@ -183,7 +192,10 @@ export default class Tradle {
 
       if (!opts.env) opts.env = this.env
 
-      return wrap(fn, opts)
+      return wrap(async (...args) => {
+        this.warmUpCaches()
+        return applyFunction(fn, this, args)
+      }, opts)
     }
   }
   get logger () {
@@ -201,6 +213,11 @@ export default class Tradle {
     for (let p in this) {
       this[p]
     }
+  }
+
+  public warmUpCaches = () => {
+    this.provider.getMyPrivateIdentity()
+    this.provider.getMyPublicIdentity()
   }
 
   private construct = (Ctor) => {

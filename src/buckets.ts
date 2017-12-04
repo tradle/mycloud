@@ -1,49 +1,61 @@
 
 import Cache = require('lru-cache')
 import { Bucket } from './bucket'
-import { cachify, extend } from './utils'
+import { cachify, extend, isPromise } from './utils'
 import { toCamelCase } from './string-utils'
 import { Bucket } from './bucket'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
+const MEG = 1024 * 1024
+const byteLengthFn = val => {
+  if (isPromise(val)) return 10000 // HACK
+  if (typeof val === 'string' || Buffer.isBuffer(val)) {
+    return Buffer.byteLength(val)
+  }
+
+  return Buffer.byteLength(JSON.stringify(val))
+}
+
 const cacheConfig = {
   Objects: {
-    max: 500,
-    maxAge: HOUR
+    length: byteLengthFn,
+    max: 50 * MEG,
+    maxAge: Infinity //HOUR
   },
   Secrets: {
-    max: 10,
-    maxAge: MINUTE
-  },
-  ContentAddressed: {
-    max: 500,
+    max: 10, // 10 items
     maxAge: HOUR
   },
+  ContentAddressed: {
+    length: byteLengthFn,
+    max: 50 * MEG,
+    maxAge: Infinity
+  },
   PublicConf: {
-    max: 10,
+    length: byteLengthFn,
+    max: 50 * MEG,
     maxAge: MINUTE
   },
   PrivateConf: {
-    max: 10,
+    length: byteLengthFn,
+    max: 50 * MEG,
     maxAge: MINUTE
   },
   FileUpload: {
-    max: 50,
+    length: byteLengthFn,
+    max: 50 * MEG,
     maxAge: 10 * MINUTE
   }
-}
-
-const CACHE_OPTS = {
-  max: 500,
-  maxAge: 60 * 1000 * 1000
 }
 
 type Buckets = {
   [name:string]: Bucket
 }
 
-module.exports = function getBuckets ({ logger, aws, serviceMap }):Buckets {
+module.exports = function getBuckets ({ env, logger, aws, serviceMap }):Buckets {
+
+  const { MEMORY_SIZE } = env
 
   function loadBucket (name) {
     if (buckets[name]) return

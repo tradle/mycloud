@@ -30,6 +30,9 @@ export default class Env {
   public REGION:string
   public AWS_LAMBDA_FUNCTION_NAME:string
   public FUNCTION_NAME:string
+  public MEMORY_SIZE:number
+  public DEBUG_FORMAT:string
+  public DEBUG_LEVEL:string
 
   public SERVERLESS_PREFIX:string
   public SERVERLESS_STAGE:string
@@ -68,6 +71,7 @@ export default class Env {
       IS_OFFLINE,
       AWS_REGION,
       AWS_LAMBDA_FUNCTION_NAME,
+      AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
       NO_TIME_TRAVEL,
       BLOCKCHAIN
     } = props
@@ -77,11 +81,15 @@ export default class Env {
       ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
       : '[unknown]'
 
+    this.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
+      ? 512
+      : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
+
     const namespace = `λ:${this.FUNCTION_NAME}`
     this.logger = new Logger({
       namespace: this.TESTING ? '' : namespace,
       writer: this.TESTING ? { log: debug(namespace) } : global.console,
-      outputFormat: this.TESTING ? 'text': 'json',
+      outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
       // writer: console,
@@ -103,7 +111,7 @@ export default class Env {
 
     this.waitFor.length = 0
     if (promises.length) {
-      this.logger.debug(`waiting for ${promises} async tasks to complete`)
+      this.logger.debug(`waiting for ${promises.length} async tasks to complete`)
       await allSettled(promises)
     }
   }

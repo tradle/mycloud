@@ -65,12 +65,38 @@ export default class Identities {
     }
   }
 
+  // public sigPubKeysByPermalink = async (permalink:string):Promise<string[]> => {
+  //   const params = {
+  //     IndexName: 'permalink',
+  //     KeyConditionExpression: 'permalink = :permalinkValue',
+  //     FilterExpression: '#type = :type AND #purpose = :purpose',
+  //     ExpressionAttributeNames: {
+  //       '#type': 'type',
+  //       '#purpose': 'purpose'
+  //     },
+  //     ExpressionAttributeValues: {
+  //       ':permalinkValue': permalink,
+  //       ':type': 'ec',
+  //       ':purpose': 'messaging'
+  //     }
+  //   }
+
+  //   this.logger.debug('get sig pub keys by permalink')
+  //   const results = await this.pubKeys.find(params)
+  //   if (!results.length) {
+  //     this.logger.debug('unknown identity', { permalink })
+  //     throw new NotFound('identity with permalink: ' + permalink)
+  //   }
+
+  //   return results
+  // }
+
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
     const params = {
       IndexName: 'permalink',
       KeyConditionExpression: 'permalink = :permalinkValue',
       ExpressionAttributeValues: {
-        ":permalinkValue": permalink
+        ':permalinkValue': permalink
       }
     }
 

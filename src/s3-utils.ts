@@ -2,16 +2,16 @@ import omit = require('object.omit')
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Logger from './logger'
+import { timeMethods } from './utils'
 
-module.exports = function createUtils (aws) {
-  const logger = new Logger('s3-utils')
+module.exports = function createUtils ({ s3, logger }) {
   const put = async ({ key, value, bucket, contentType }: {
     key:string,
     value:any,
     bucket:string,
     contentType?:string
   }):Promise<AWS.S3.Types.PutObjectOutput> => {
-    logger.debug('putting', { key, bucket, type: value[TYPE] })
+    // logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts:AWS.S3.Types.PutObjectRequest = {
       Bucket: bucket,
       Key: key,
@@ -22,7 +22,7 @@ module.exports = function createUtils (aws) {
       opts.ContentType = contentType
     }
 
-    return await aws.s3.putObject(opts).promise()
+    return await s3.putObject(opts).promise()
   }
 
   const get = async ({ key, bucket, ...opts }: {
@@ -37,8 +37,8 @@ module.exports = function createUtils (aws) {
     }
 
     try {
-      const result = await aws.s3.getObject(params).promise()
-      logger.debug('got', { key, bucket, type: result[TYPE] })
+      const result = await s3.getObject(params).promise()
+      // logger.debug('got', { key, bucket, type: result[TYPE] })
       return result
     } catch(err) {
       if (err.code === 'NoSuchKey') {
@@ -56,7 +56,7 @@ module.exports = function createUtils (aws) {
       ...opts
     }
 
-    return await aws.s3.listObjects(params).promise()
+    return await s3.listObjects(params).promise()
   }
 
   const clearBucket = async ({ bucket }) => {
@@ -146,7 +146,7 @@ module.exports = function createUtils (aws) {
   }
 
   const head = ({ key, bucket }) => {
-    return aws.s3.headObject({
+    return s3.headObject({
       Bucket: bucket,
       Key: key
     }).promise()
@@ -158,29 +158,29 @@ module.exports = function createUtils (aws) {
   }
 
   const del = ({ key, bucket }) => {
-    return aws.s3.deleteObject({
+    return s3.deleteObject({
       Bucket: bucket,
       Key: key
     }).promise()
   }
 
   const createPresignedUrl = ({ bucket, key }) => {
-    return aws.s3.getSignedUrl('getObject', {
+    return s3.getSignedUrl('getObject', {
       Bucket: bucket,
       Key: key
     })
   }
 
   const createBucket = ({ bucket }) => {
-    return aws.s3.createBucket({ Bucket: bucket }).promise()
+    return s3.createBucket({ Bucket: bucket }).promise()
   }
 
   const destroyBucket = ({ bucket }) => {
-    return aws.s3.deleteBucket({ Bucket: bucket }).promise()
+    return s3.deleteBucket({ Bucket: bucket }).promise()
   }
 
   const urlForKey = ({ bucket, key }) => {
-    const { host } = aws.s3.endpoint
+    const { host } = s3.endpoint
     if (host.startsWith('localhost')) {
       return `http://${host}/${bucket}${key}`
     }
@@ -188,7 +188,7 @@ module.exports = function createUtils (aws) {
     return `https://${bucket}.s3.amazonaws.com/${key}`
   }
 
-  return {
+  return timeMethods({
     get,
     getJSON,
     getCacheable,
@@ -203,7 +203,7 @@ module.exports = function createUtils (aws) {
     createBucket,
     destroyBucket,
     urlForKey
-  }
+  }, logger)
 }
 
 const toStringOrBuf = (value) => {

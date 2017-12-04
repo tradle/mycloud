@@ -28,3 +28,6 @@ reinitializeOnConfChanged:
   - bot_samples
   - bot_setstyle
   - bot_onfido
+debug:
+  format: text
+  level: 4

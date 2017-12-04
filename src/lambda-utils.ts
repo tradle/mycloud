@@ -284,7 +284,10 @@ export default class Utils {
     const lastDotIdx = handlerExportPath.lastIndexOf('.')
     const handlerPath = path.join('..', handlerExportPath.slice(0, lastDotIdx))
     const handleExportName = handlerExportPath.slice(lastDotIdx + 1)
-    return require(handlerPath)[handleExportName]
+    const start = Date.now()
+    const lambda = require(handlerPath)[handleExportName]
+    this.logger.debug(`require ${handlerPath} took ${(Date.now() - start)}ms`)
+    return lambda
   }
 
   private invokeLocal = async (params:AWS.Lambda.InvocationRequest)

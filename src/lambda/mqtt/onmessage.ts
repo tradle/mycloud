@@ -8,7 +8,8 @@ const {
   lambdaUtils,
   stringUtils,
   utils,
-  constants
+  constants,
+  warmUpCaches
 } = require('../..').tradle
 
 const { prettify } = stringUtils

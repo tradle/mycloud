@@ -253,6 +253,8 @@ provider:
     IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
     BLOCKCHAIN: ${{self:custom.blockchain}}
     DEBUG: 'λ*,*tradle*'
+    DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
+    DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}

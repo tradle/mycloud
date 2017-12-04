@@ -6,7 +6,7 @@ import Errors = require('./errors')
 import utils = require('./utils')
 
 module.exports = function createRouter (tradle) {
-  const { env } = tradle
+  const { env, warmUpCaches } = tradle
   const logger = env.sublogger('router')
   const {
     HTTP_METHODS=constants.HTTP_METHODS,
@@ -18,6 +18,7 @@ module.exports = function createRouter (tradle) {
   const { timestamp } = utils
   const router = express()
   router.use(function (req, res, next) {
+    warmUpCaches()
     if (env.DISABLED) {
       logger.warn('returning 500 as this function is disabled')
       return res.status(500).end()

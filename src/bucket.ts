@@ -22,8 +22,8 @@ export class Bucket {
 
     this.name = name
     this.id = name // alias
-    this.utils = createS3Utils({ s3 })
     this.logger = logger || new Logger(`bucket:${name}`)
+    this.utils = createS3Utils({ s3, logger: this.logger })
     if (cache) {
       this.cache = cache
       const cachified = cachify({

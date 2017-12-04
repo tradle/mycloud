@@ -144,10 +144,19 @@ export default class Logger {
   }
 
   private formatOutput = (level, msg, params) => {
+    if (!params) {
+      params = {}
+    }
+
+    if (typeof params !== 'object') {
+      params = { value: params }
+    }
+
+    params.msg = msg
     if (this.outputFormat === 'json') {
       const logMsg = {
-        msg,
         namespace: this.namespace,
+        msg,
         time: new Date().toISOString(),
         level,
         ...this.context
@@ -162,6 +171,6 @@ export default class Logger {
     let part1 = this.namespace
     if (part1) part1 += ':'
 
-    return `${part1}${level}: ${msg} ${stringifiedParams}`
+    return `${part1}${level}: ${stringifiedParams}`
   }
 }

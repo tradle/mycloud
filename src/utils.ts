@@ -305,6 +305,7 @@ export function cachify ({ get, put, del, logger, cache }: {
       const promise = get(key)
       promise.catch(err => cache.del(keyStr))
       cache.set(keyStr, promise)
+      // promise.then(result => cache.set(keyStr, result))
       return promise
     }),
     put: co(function* (key, value) {
@@ -813,4 +814,33 @@ export const cachifyFunction = (
     cache.set(str, result)
     return result
   }
+}
+
+export const timeMethods = (obj, logger) => {
+  logger = logger.sub('timer')
+  Object.keys(obj).forEach(key => {
+    const val = obj[key]
+    if (typeof val !== 'function') return
+
+    obj[key] = (...args) => {
+      const start = Date.now()
+      const log = () => {
+        logger.debug({
+          fn: key,
+          args: JSON.stringify(args).slice(0, 100),
+          time: Date.now() - start
+        })
+      }
+
+      /* eslint-disable prefer-reflect */
+      const ret = val.apply(obj, args)
+      if (isPromise(ret)) {
+        ret.then(log, log)
+      }
+
+      return ret
+    }
+  })
+
+  return obj
 }
