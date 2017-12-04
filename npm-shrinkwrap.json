@@ -154,7 +154,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#dc9bf4d8be7be05a2292e1e4303fbb5cb998318b"
+      "resolved": "git://github.com/tradle/custom-models.git#640158ce1a116990a594cb68c438ee689e93ba88"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
