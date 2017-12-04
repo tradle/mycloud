@@ -30,6 +30,7 @@ export default class Env {
   public REGION:string
   public AWS_LAMBDA_FUNCTION_NAME:string
   public FUNCTION_NAME:string
+  public BOT_ONMESSAGE:string
   public MEMORY_SIZE:number
   public DEBUG_FORMAT:string
   public DEBUG_LEVEL:string
