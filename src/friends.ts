@@ -124,14 +124,20 @@ export default class Friends {
     })
   };
 
-  public list = (opts: { permalink: string }) => {
-    const { permalink } = opts
-    return this.db.find({
+  public list = async () => {
+    return await this.db.find({
       filter: {
         EQ: {
           [TYPE]: FRIEND_TYPE
         }
       }
+    })
+  }
+
+  public removeByIdentityPermalink = async (permalink:string) => {
+    await this.db.del({
+      [TYPE]: FRIEND_TYPE,
+      _identityPermalink: permalink
     })
   }
 }

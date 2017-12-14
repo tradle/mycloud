@@ -3,6 +3,7 @@ import AWS = require('aws-sdk')
 import { createMessagesTable } from './messages-table'
 import Provider from './provider'
 import Env from './env'
+import dynogels = require('dynogels')
 
 export = function createDB (opts: {
   models: any,
@@ -15,6 +16,9 @@ export = function createDB (opts: {
   dbUtils: any
 }) {
   const { models, objects, tables, provider, aws, constants, env, dbUtils } = opts
+
+  dynogels.dynamoDriver(aws.dynamodb)
+
   const tableBuckets = dbUtils.getTableBuckets()
 
   let modelMap = dbUtils.getModelMap({ models })
@@ -30,7 +34,7 @@ export = function createDB (opts: {
     maxItemSize: constants.MAX_DB_ITEM_SIZE,
     forbidScan: true,
     defaultReadOptions: {
-      consistentRead: true
+      ConsistentRead: false
     }
   }
 

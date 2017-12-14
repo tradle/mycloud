@@ -4,12 +4,13 @@ import * as fs from 'fs'
 import * as mkdirp from 'mkdirp'
 import { Lambda } from 'aws-sdk'
 import Logger from './logger'
+import Env from './env'
 
 const pfs = promisify(fs)
 const pmkdirp = promisify(mkdirp)
 
 export default class Discovery {
-  private env: any
+  private env: Env
   private aws: any
   private lambdaUtils: any
   private iot: any
@@ -18,10 +19,16 @@ export default class Discovery {
     return this.lambdaUtils.thisFunctionName
   }
 
-  constructor (opts: { env: any, aws: any, lambdaUtils: any, iot: any }) {
-    const { env, aws, lambdaUtils, iot } = opts
+  constructor (opts: {
+    env: Env,
+    aws: any,
+    lambdaUtils: any,
+    iot: any,
+    logger: Logger
+  }) {
+    const { env, aws, lambdaUtils, iot, logger } = opts
     this.env = env
-    this.logger = this.env.sublogger('discovery')
+    this.logger = logger.sub('discovery')
     this.aws = aws
     this.lambdaUtils = lambdaUtils
     this.iot = iot

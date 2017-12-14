@@ -54,4 +54,5 @@ export class Bucket {
   public clear = () => this.utils.clearBucket({ bucket: this.name })
   public toString = () => this.name
   public urlForKey = (key:string) => this.utils.urlForKey({ key, bucket: this.name })
+  public forEach = (opts) => this.utils.forEachItemInBucket({ bucket: this.name, ...opts })
 }

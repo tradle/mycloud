@@ -1,14 +1,23 @@
+import clone = require('clone')
 import pick = require('object.pick')
 import omit = require('object.omit')
 import typeforce = require('typeforce')
 import { TYPE, SIG } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import validateResource = require('@tradle/validate-resource')
+import crypto = require('../crypto')
 import Errors = require('../errors')
 import { prettify } from '../string-utils'
 import types = require('../typeforce-types')
 
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
+
+const IGNORED_PAYLOAD_TYPES = [
+  'tradle.Message',
+  'tradle.CustomerWaiting',
+  'tradle.ModelsPack'
+]
+
 const getMessagePayload = async ({ bot, message }) => {
   if (message.object[SIG]) {
     return message.object
@@ -102,11 +111,61 @@ const normalizeSendOpts = async (bot, opts) => {
 
 const normalizeRecipient = to => to.id || to
 
+const savePayloadToDB = async ({ bot, message }) => {
+  const type = message._payloadType
+  const { logger } = bot
+  if (IGNORED_PAYLOAD_TYPES.includes(type)) {
+    logger.debug(`not saving ${type} to type-differentiated table`)
+    return false
+  }
+
+  const table = bot.db.tables[type]
+  if (!table) {
+    logger.debug(`not saving "${type}", don't have a table for it`)
+    return
+  }
+
+  const payload = await getMessagePayload({ bot, message })
+  Object.assign(message.object, payload)
+  await bot.save(message.object)
+}
+
+const preProcessMessageEvent = async ({ bot, message }):Promise<any> => {
+  let [payload, user] = await Promise.all([
+    getMessagePayload({ bot, message }),
+    // identity permalink serves as user id
+    bot.users.createIfNotExists({ id: message._author })
+  ])
+
+  payload = message.object = {
+    ...message.object,
+    ...payload
+  }
+
+  const type = payload[TYPE]
+  crypto.addLinks(payload)
+  if (bot.isTesting) {
+    await savePayloadToDB({ bot, message: clone(message) })
+  }
+
+  return {
+    bot,
+    user,
+    message,
+    payload,
+    type,
+    link: payload._link,
+    permalink: payload._permalink,
+  }
+}
+
 export {
   getMessagePayload,
   getMessageGist,
   summarize,
-  ensureTimestamped,
   normalizeSendOpts,
-  normalizeRecipient
+  normalizeRecipient,
+  savePayloadToDB,
+  preProcessMessageEvent,
+  IGNORED_PAYLOAD_TYPES
 }

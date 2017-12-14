@@ -12,7 +12,7 @@ const templateFileName = 'compiled-cloudformation-template.json'
 const MIN_SCALE = 1
 const MAX_SCALE = 1
 
-export default function createDeploymentHandlers ({ bot, deploymentModels }) {
+export const createDeploymentHandlers = ({ bot, deploymentModels }) => {
   const {
     // SERVERLESS_STAGE='dev',
     // SERVERLESS_SERVICE_NAME='tradle',

@@ -1,4 +1,5 @@
 // const debug = require('debug')('tradle:sls:errors')
+import pick = require('object.pick')
 import deepEqual = require('deep-equal')
 import ex = require('error-ex')
 import { AssertionError } from 'assert'
@@ -71,6 +72,7 @@ const rethrow = (err, type) => {
   }
 }
 
+const HttpError = createError('HttpError')
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
   NotFound: createError('NotFound'),
@@ -89,19 +91,17 @@ const errors = {
   TimeTravel: createError('TimeTravel'),
   ExecutionTimeout: createError('ExecutionTimeout'),
   Exists: createError('Exists'),
-  // HttpError: (code, message) => {
-  //   const err = new Error(message)
-  //   err.code = code
-  //   return err
-  // },
+  HttpError: (code, message) => {
+    const err = new HttpError(message)
+    err.status = code
+    return err
+  },
+  Timeout: createError('Timeout'),
   export: (err:Error): {
     type:string,
     message:string
   } => {
-    return {
-      type: err.name.toLowerCase(),
-      message: err.message
-    }
+    return pick(err, ['message', 'stack', 'name', 'type'])
   },
   isDeveloperError: (err:Error): boolean => {
     return err instanceof TypeError || err instanceof ReferenceError || err instanceof SyntaxError

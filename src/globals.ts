@@ -1,12 +1,12 @@
-import * as Promise from 'bluebird'
+import Promise = require('bluebird')
 import { install as installSourceMapSupport } from 'source-map-support'
 
 installSourceMapSupport()
 
 global.Promise = Promise
-process.on('unhandledRejection', function (reason, promise) {
-  console.error('possibly unhandled rejection', reason)
-})
+// process.on('unhandledRejection', function (reason, promise) {
+//   console.error('possibly unhandled rejection', reason)
+// })
 
 const mockery = require('mockery')
 mockery.enable({

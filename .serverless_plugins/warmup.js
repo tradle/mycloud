@@ -56,6 +56,10 @@ class WarmUp {
     loadCredentials()
 
     return lambdaUtils.warmUp(lambdaUtils.getWarmUpInfo(serverlessYml).input)
+      .then(results => {
+        results = JSON.stringify(results, null, 2)
+        this.serverless.cli.log(`WarmUp: ${results}`)
+      })
   }
 }
 

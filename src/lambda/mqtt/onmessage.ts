@@ -1,31 +1,21 @@
-import '../../init-lambda'
+import { tradle } from '../../'
+import { Lambda, EventSource } from '../../lambda'
 
-const {
-  debug,
-  wrap,
-  user,
-  env,
-  lambdaUtils,
-  stringUtils,
-  utils,
-  constants,
-  warmUpCaches
-} = require('../..').tradle
+const lambda = new Lambda({
+  source: EventSource.IOT,
+  tradle
+})
 
-const { prettify } = stringUtils
-const { SEQ } = constants
-const { timestamp } = utils
-
-exports.handler = wrap(function* (event, context) {
-  // the user sent us a message
-  debug('[START]', timestamp())
+lambda.use(async ({ event, context }) => {
   let { topic, clientId, data } = event
-  if (!clientId && env.IS_OFFLINE) {
+  if (!clientId && lambda.isUsingServerlessOffline) {
     // serverless-offline support
     clientId = topic.match(/\/([^/]+)\/[^/]+/)[1]
   }
 
   const message = new Buffer(data.data, 'base64')
-  yield user.onSentMessage({ clientId, message })
-  debug('preceived')
-}, { source: 'iot' })
+  await tradle.user.onSentMessage({ clientId, message })
+  lambda.logger.debug('preceived')
+})
+
+export const handler = lambda.handler

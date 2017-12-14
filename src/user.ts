@@ -1,4 +1,4 @@
-const { co, omitVirtual, bindAll } = require('./utils')
+const { co, omitVirtual, bindAll, RESOLVED_PROMISE } = require('./utils')
 const { prettify } = require('./string-utils')
 const { PUBLIC_CONF_BUCKET, SEQ } = require('./constants')
 const Errors = require('./errors')
@@ -14,18 +14,20 @@ module.exports = UserSim
  */
 function UserSim ({
   env,
+  logger,
   auth,
   iot,
   provider,
   delivery,
   buckets,
   messages,
-  lambdaUtils
+  lambdaUtils,
+  tasks
 }) {
   bindAll(this)
 
   this.env = env
-  this.logger = env.sublogger('usersim')
+  this.logger = logger.sub('usersim')
   this.auth = auth
   this.iot = iot
   this.provider = provider
@@ -33,6 +35,7 @@ function UserSim ({
   this.buckets = buckets
   this.messages = messages
   this.lambdaUtils = lambdaUtils
+  this.tasks = tasks
 }
 
 const proto = UserSim.prototype
@@ -56,10 +59,10 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
   try {
     session = yield this.auth.setSubscribed({ clientId, subscribed: true })
     this.logger.debug(`client subscribed`, session)
-  } catch (err) {
-    this.logger.error('failed to update presence information', err)
-    yield this.requestIotClientReconnect({ clientId })
-    Errors.rethrow(err, 'system')
+  } catch (error) {
+    this.logger.error('failed to update presence information', error)
+    yield this.requestIotClientReconnect({ clientId, error })
+    Errors.rethrow(error, 'system')
     return
   }
 
@@ -72,10 +75,10 @@ proto.onSubscribed = co(function* ({ clientId, topics }) {
       recipient: permalink,
       range: { after }
     })
-  } catch (err) {
-    this.logger.error('live delivery failed', err)
-    yield this.requestIotClientReconnect({ clientId })
-    Errors.rethrow(err, 'system')
+  } catch (error) {
+    this.logger.error('live delivery failed', error)
+    yield this.requestIotClientReconnect({ clientId, error })
+    Errors.rethrow(error, 'system')
   }
 })
 
@@ -94,6 +97,11 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
   //   return
   // }
 
+  let ensureLiveSession = RESOLVED_PROMISE
+  if (clientId) {
+    ensureLiveSession = this.tasks.add(this.ensureLiveSession({ clientId }))
+  }
+
   let err
   let processed
   try {
@@ -102,12 +110,8 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     // delivery http
     err = e
     if (!clientId) {
-      this.logger.error('failed to process inbound message:', {
-        message,
-        error: err.stack
-      })
-
-      throw err
+      Errors.ignore(err, Errors.Duplicate)
+      return
     }
   }
 
@@ -115,10 +119,16 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     // SUCCESS!
     this.logger.debug('received valid message from user')
 
-    this.env.addAsyncTask(() => this.delivery.ack({
-      clientId,
-      message: processed
-    }))
+    this.tasks.add({
+      name: 'delivery:ack',
+      promiser: async () => {
+        await ensureLiveSession
+        await this.delivery.ack({
+          clientId,
+          message: processed
+        })
+      }
+    })
 
     const {
       BOT_ONMESSAGE,
@@ -156,10 +166,16 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
     // HTTP
     if (!clientId) return
 
-    this.env.addAsyncTask(() => this.delivery.ack({
-      clientId,
-      message: processed
-    }))
+    this.tasks.add({
+      name: 'delivery:ack',
+      promiser: async () => {
+        await ensureLiveSession
+        await this.delivery.ack({
+          clientId,
+          message: processed
+        })
+      }
+    })
 
     return
   }
@@ -190,11 +206,17 @@ proto.onSentMessage = co(function* ({ clientId, message }) {
       throw err
     }
 
-    this.env.addAsyncTask(() => this.delivery.reject({
-      clientId,
-      message: processed,
-      error: err
-    }))
+    this.tasks.add({
+      name: 'delivery:reject',
+      promiser: async () => {
+        await ensureLiveSession
+        await this.delivery.reject({
+          clientId,
+          message: processed,
+          error: err
+        })
+      }
+    })
 
     return
   }
@@ -211,12 +233,22 @@ proto.onDisconnected = co(function* ({ clientId }) {
   try {
     const session = yield this.auth.setConnected({ clientId, connected: false })
     this.logger.debug(`client disconnected`, session)
-  } catch (err) {
-    this.logger.error('failed to update presence information', err)
-    yield this.requestIotClientReconnect({ clientId })
-    Errors.rethrow(err, 'system')
+  } catch (error) {
+    this.logger.error('failed to update presence information', error)
+    yield this.requestIotClientReconnect({ clientId, error })
+    Errors.rethrow(error, 'system')
   }
 })
+
+proto.ensureLiveSession = async function ensureLiveSession ({ clientId }) {
+  try {
+    await this.auth.getMostRecentSessionByClientId(clientId)
+  } catch (error) {
+    Errors.ignore(error, Errors.NotFound)
+    this.logger.debug('iot session not found', { clientId })
+    await this.requestIotClientReconnect({ clientId, error })
+  }
+}
 
 proto.onConnected = co(function* ({ clientId }) {
   // if (Math.random() < 0.5) {
@@ -228,14 +260,18 @@ proto.onConnected = co(function* ({ clientId }) {
   try {
     const session = yield this.auth.setConnected({ clientId, connected: true })
     this.logger.debug(`client connected`, session)
-  } catch (err) {
-    this.logger.error('failed to update presence information', err)
-    yield this.requestIotClientReconnect({ clientId })
-    Errors.rethrow(err, 'system')
+  } catch (error) {
+    this.logger.error('failed to update presence information', error)
+    yield this.requestIotClientReconnect({ clientId, error })
+    Errors.rethrow(error, 'system')
   }
 })
 
-proto.requestIotClientReconnect = function ({ clientId, message='please reconnect' }) {
+proto.requestIotClientReconnect = function ({ clientId, error, message='please reconnect' }) {
+  this.logger.debug('requesting iot client reconnect', error && {
+    stack: error.stack
+  })
+
   return this.delivery.mqtt.trigger({
     clientId,
     topic: 'error',

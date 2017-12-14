@@ -24,7 +24,7 @@ import { customize } from '../samplebot/customize'
   // await wait(2000)
 
   tradle = createTestTradle()
-  await initializeProvider(createBot({ tradle }))
+  await initializeProvider({ bot: createBot({ tradle }) })
   debug('initialized provider')
 
   tradle.logger.debug('setting up bot')

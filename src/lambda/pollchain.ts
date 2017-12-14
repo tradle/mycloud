@@ -1,7 +1,12 @@
-import '../init-lambda'
+import { tradle } from '../'
+import { Lambda, EventSource } from '../lambda'
 
-const { debug, wrap, seals } = require('../').tradle
-exports.handler = wrap(function (event, context) {
-  debug('[START]', Date.now())
-  return seals.syncUnconfirmed()
-}, { source: 'schedule' })
+const { seals } = tradle
+const lambda = new Lambda({ source: EventSource.SCHEDULE, tradle })
+
+lambda.use(async ({ event, context }) => {
+  await seals.syncUnconfirmed()
+})
+
+export const handler = lambda.handler
+

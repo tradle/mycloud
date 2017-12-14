@@ -7,8 +7,8 @@ services:
     ports:
       - ${DYNAMO_ADMIN_PORT}:8001
     environment:
-      - AWS_ACCESS_KEY_ID=mykey
-      - AWS_SECRET_ACCESS_KEY=mysecret
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - DYNAMO_ENDPOINT=http://localstack:4569
   localstack:
     image: localstack/localstack

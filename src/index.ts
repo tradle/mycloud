@@ -44,6 +44,9 @@ const exp = {
   get Env() {
     return requireDefault('./env')
   },
+  get Lambda() {
+    return requireDefault('./lambda')
+  },
   get Identities() {
     return requireDefault('./identities')
   },
@@ -95,9 +98,9 @@ const exp = {
   get Messages() {
     return requireDefault('./messages')
   },
-  get Router() {
-    return requireDefault('./router')
-  },
+  // get Router() {
+  //   return requireDefault('./router')
+  // },
   get Delivery() {
     return requireDefault('./delivery')
   },
@@ -116,7 +119,7 @@ const exp = {
   get S3() {
     return requireDefault('./s3-utils')
   },
-  get Lambda() {
+  get lambdaUtils() {
     return requireDefault('./lambda-utils')
   },
   get dbUtils() {
@@ -142,9 +145,6 @@ const exp = {
   },
   get models() {
     return requireDefault('./models')
-  },
-  get wrap() {
-    return requireDefault('./wrap')
   },
   get Bot() {
     return requireDefault('./bot')

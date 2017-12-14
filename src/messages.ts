@@ -61,10 +61,11 @@ export default class Messages {
     identities: Identities,
     objects: Objects,
     tables: any
+    logger: Logger
   }) {
-    const { env, identities, objects, tables } = opts
+    const { env, identities, objects, tables, logger } = opts
     this.env = env
-    this.logger = env.sublogger('messages')
+    this.logger = logger.sub('messages')
     this.identities = identities
     this.objects = objects
     this.tables = tables
@@ -537,6 +538,7 @@ export default class Messages {
     limit
   }):AWS.DynamoDB.DocumentClient.QueryInput => {
     const params:AWS.DynamoDB.DocumentClient.QueryInput = {
+      TableName: this.inbox.name,
       KeyConditionExpression: '#author = :author AND #time > :time',
       ExpressionAttributeNames: {
         '#author': '_author',
@@ -579,7 +581,7 @@ export default class Messages {
   private getMessagesToQuery = (opts: {
     recipient: string,
     gt?: number,
-    afterMessage?: string,
+    afterMessage?: any,
     limit?: number
   }):AWS.DynamoDB.DocumentClient.QueryInput => {
     const { recipient, gt, afterMessage, limit } = opts

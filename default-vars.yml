@@ -12,7 +12,9 @@ thresholdDurationAlarm: 60 # seconds
 versionFunctions: false
 serverless-offline:
   port: 21012
-  mqttPort: 1884
+
+serverless-iot-local:
+  port: 1884
 
 # if true, bot lambdas will be used directly in the parent lambda
 # if false, bot lambdas will be invoked with the lambda API

@@ -1,12 +1,13 @@
-import '../../init-lambda'
-
+import { EventSource } from '../../lambda'
+import { Conf, createConf } from '../configure'
 import { createBot } from '../../bot'
-import { createConf } from '../configure'
 
 const bot = createBot()
-bot.ready()
-
+const lambda = bot.createLambda({ source: EventSource.LAMBDA })
 const conf = createConf(bot)
-export const handler = bot.createHandler(async (event) => {
-  await conf.setStyle(event)
-}, { source: 'lambda' })
+
+lambda.use(async (ctx) => {
+  await this.conf.setStyle(ctx.event)
+})
+
+export const handler = lambda.handler

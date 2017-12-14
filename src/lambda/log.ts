@@ -1,5 +1,3 @@
-import '../init-lambda'
-
 const { getRecordsFromEvent } = require('../db-utils')
 const { prettify } = require('../string-utils')
 exports.handler = function (event, context, cb) {

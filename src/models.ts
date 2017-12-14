@@ -15,6 +15,13 @@ if (!baseMessageModel.properties._inbound) {
   }
 }
 
+if (!baseMessageModel.properties._deliveryStatus) {
+  baseMessageModel.properties._deliveryStatus = {
+    type: 'string',
+    virtual: true
+  }
+}
+
 const custom = require('@tradle/custom-models')
 const cloud = {
   // 'tradle.OutboxQuery': {

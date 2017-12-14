@@ -1,39 +1,42 @@
 const debug = require('debug')('tradle:sls:graphql-auth')
-import * as coexpress from 'co-express'
-import * as pick from 'object.pick'
+import pick = require('object.pick')
 import { utils as tradleUtils } from '@tradle/engine'
-import * as validateResource from '@tradle/validate-resource'
+import validateResource = require('@tradle/validate-resource')
 import { constants, Errors } from '../../'
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
 
 export function createGraphQLAuth ({ bot, employeeManager }) {
   const { identities } = bot
-  return coexpress(function* (req, res, next) {
-    const method = req.method.toLowerCase()
+  return async (ctx, next) => {
+    const method = ctx.method.toLowerCase()
     if (method === 'options') {
-      next()
+      await next()
       return
     }
 
     if (method !== 'get' && method !== 'post') {
-      res.status(403).json({
+      ctx.status = 403
+      ctx.body = {
         message: `method "${method}" is forbidden`
-      })
+      }
 
       return
     }
 
     debug('authenticating')
-    const sig = req.headers['x-tradle-sig']
+    const sig = ctx.headers['x-tradle-sig']
     if (sig == null) {
-      res.status(403).json({
+      ctx.status = 403
+      ctx.body = {
         message: `expected header "x-tradle-sig"`
-      })
+      }
 
       debug('expected sig')
       return
     }
 
+    const req = ctx.request
+    // TODO: rewrite next two lines
     const props = Object.keys(req).filter(key => req[key] != null)
     const body = pick(req, props)
     const queryObj = {
@@ -55,20 +58,21 @@ export function createGraphQLAuth ({ bot, employeeManager }) {
     checkDrift(queryObj.time)
 
     debug('looking up query author')
-    yield identities.addAuthorInfo(queryObj)
-    const user = yield bot.users.get(queryObj._author)
+    await identities.addAuthorInfo(queryObj)
+    const user = await bot.users.get(queryObj._author)
     if (!employeeManager.isEmployee(user)) {
       debug('rejecting non-employee')
-      res.status(403).json({
+      ctx.status = 403
+      ctx.body = {
         message: 'employees only'
-      })
+      }
 
       return
     }
 
     debug('allowing')
-    next()
-  })
+    await next()
+  }
 }
 
 function checkDrift (time) {

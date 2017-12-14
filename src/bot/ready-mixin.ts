@@ -1,4 +1,4 @@
-const Promise = require('bluebird')
+import Promise = require('bluebird')
 
 export function readyMixin (emitter) {
   let resolveReady

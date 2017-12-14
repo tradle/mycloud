@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-process.env.IS_LAMBDA_ENVIRONMENT = false
+process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 const co = require('co')
 const yn = require('yn')

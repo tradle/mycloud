@@ -5,6 +5,7 @@ import Logger from './logger'
 import Env from './env'
 import {
   WARMUP_SOURCE_NAME,
+  WARMUP_SLEEP,
   unitToMillis
 } from './constants'
 
@@ -283,11 +284,11 @@ export default class Utils {
     const handlerExportPath = functions[shortName].handler
     const lastDotIdx = handlerExportPath.lastIndexOf('.')
     const handlerPath = path.join('..', handlerExportPath.slice(0, lastDotIdx))
-    const handleExportName = handlerExportPath.slice(lastDotIdx + 1)
+    // const handleExportName = handlerExportPath.slice(lastDotIdx + 1)
     const start = Date.now()
-    const lambda = require(handlerPath)[handleExportName]
+    const lambdaExports = require(handlerPath)
     this.logger.debug(`require ${handlerPath} took ${(Date.now() - start)}ms`)
-    return lambda
+    return lambdaExports
   }
 
   private invokeLocal = async (params:AWS.Lambda.InvocationRequest)
@@ -295,12 +296,13 @@ export default class Utils {
     const { FunctionName, InvocationType, Payload } = params
     this.logger.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
     const shortName = this.getShortName(FunctionName)
-    const handler = this.requireLambdaByName(shortName)
+    const lambdaExports = this.requireLambdaByName(shortName)
+    const { functions } = serverlessYml
+    const handlerExportPath = functions[shortName].handler
+    const handler = lambdaExports[handlerExportPath.split('.').pop()]
     const event = typeof Payload === 'string' ? JSON.parse(Payload) : {}
     // not ideal as the called function may have different environment vars
-    const context = this.env.context ||
-      (this.env.TESTING && createLambdaContext(this.env.FUNCTION_NAME))
-
+    const context = createLambdaContext(FunctionName)
     const result = {
       StatusCode: InvocationType === 'Event' ? 202 : 200,
       Payload: '',
@@ -343,9 +345,10 @@ export default class Utils {
       break
     }
 
+    const concurrency = warmUpConf[functionName].concurrency || defaultConcurrency
     return {
       functionName,
-      concurrency: warmUpConf[functionName].concurrency || defaultConcurrency
+      concurrency
     }
   }
 
@@ -429,7 +432,8 @@ export default class Utils {
       sync: true,
       qualifier: this.env.SERVERLESS_ALIAS || '$LATEST',
       arg: {
-        source: WARMUP_SOURCE_NAME
+        source: WARMUP_SOURCE_NAME,
+        sleep: WARMUP_SLEEP
       },
       wrapPayload: false
     }
@@ -438,8 +442,12 @@ export default class Utils {
     const fnResults = await Promise.all(new Array(concurrency).fill(0).map(async () => {
       try {
         const resp = await this.invoke(opts)
-        this.logger.info(`Warm Up Invoke Success: ${functionName}`, resp)
-        return resp
+        const body = resp.headers && resp.body && resp.isBase64Encoded
+          ? JSON.parse(new Buffer(resp.body, 'base64'))
+          : resp
+
+        this.logger.info(`Warm Up Invoke Success: ${functionName}`, body)
+        return body
       } catch (err) {
         this.logger.info(`Warm Up Invoke Error: ${functionName}`, err.stack)
         return {
@@ -450,17 +458,18 @@ export default class Utils {
 
     const containers = {}
     return fnResults.reduce((summary, next) => {
-      if (next.error) {
+      const { error, isVirgin, containerId } = next
+      if (error) {
         summary.errors++
         return summary
       }
 
-      if (next.isVirgin) {
+      if (isVirgin) {
         summary.containersCreated++
       }
 
-      if (!containers[summary.containerId]) {
-        containers[summary.containerId] = true
+      if (!containers[containerId]) {
+        containers[containerId] = true
         summary.containersWarmed++
       }
 

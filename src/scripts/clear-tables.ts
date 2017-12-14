@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-process.env.IS_LAMBDA_ENVIRONMENT = false
+process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 const { loadCredentials } = require('../cli/utils')
 
@@ -8,7 +8,7 @@ loadCredentials()
 
 const co = require('co')
 const yn = require('yn')
-const { aws, env, dbUtils } = require('../').createRemoteTradle()
+const { aws, env, dbUtils } = require('../').tradle
 const { listTables, clear } = dbUtils
 const readline = require('readline')
 const tableToClear = process.argv.slice(2)

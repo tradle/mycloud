@@ -1,12 +1,14 @@
 import * as serverlessHTTP from "serverless-http"
-import { ILambdaExecutionContext } from './types'
 import { utils } from './'
 
 const { cachifyPromiser } = utils
 
-export function createHandler ({ router, env }) {
-  const { TESTING } = env
-  const binaryMimeTypes = TESTING
+export function createHandler ({
+  lambda,
+  preProcess,
+  postProcess
+}) {
+  const binaryMimeTypes = lambda.isTesting
     ? []
     : [
         "application/javascript",
@@ -28,16 +30,9 @@ export function createHandler ({ router, env }) {
         "text/xml"
       ]
 
-  return serverlessHTTP(router, {
+  return serverlessHTTP(lambda.koa, {
     binary: binaryMimeTypes,
-    request: async (request, event, context:ILambdaExecutionContext) => {
-      env.setFromLambdaEvent({ event, context, source: 'http' })
-      request.context = context
-      request.event = event
-      return request
-    },
-    response: async () => {
-      await env.finishAsyncTasks()
-    }
+    request: preProcess,
+    response: postProcess
   })
 }

@@ -1,7 +1,10 @@
-import '../init-lambda'
+import { Lambda, EventSource } from '../lambda'
+import { tradle } from '../'
 
-const { wrap, seals, debug } = require('../').tradle
-exports.handler = wrap(function () {
-  debug('[START]', Date.now())
-  return seals.sealPending()
+const lambda = new Lambda({ source: EventSource.SCHEDULE, tradle })
+const { seals } = tradle
+lambda.use(async (ctx) => {
+  ctx.body = await seals.sealPending()
 })
+
+export const handler = lambda.handler

@@ -1,30 +1,23 @@
-import '../../../init-lambda'
-
-import express = require('express')
-import coexpress = require('co-express')
-import cors = require('cors')
-import helmet = require('helmet')
-import { createBot } from '../../../bot'
+import Router = require('koa-router')
+import cors = require('kcors')
 import { createConf } from '../../configure'
+import { createBot } from '../../../bot'
+import { EventSource } from '../../../lambda'
 
 const bot = createBot()
-const { router } = bot
+const lambda = bot.lambdas.info()
+const { logger } = lambda
 const conf = createConf(bot)
-const infoRouter = express.Router()
-infoRouter.use(cors())
-infoRouter.use(helmet())
-infoRouter.get('/', coexpress(function* (req, res) {
-  const result = yield conf.getPublicConf()
-  // HACK ALERT
-  // this belongs in bot engine
-  result.aws = true
-  result.iotParentTopic = bot.env.IOT_PARENT_TOPIC
-  result.version = bot.version
-  res.json(result)
-}))
+const router = new Router()
+router.get('/info', async (ctx, next) => {
+  const result = await conf.getPublicConf()
+  if (!ctx.body) ctx.body = {}
+  Object.assign(ctx.body, result)
+})
 
-infoRouter.use(router.defaultErrorHandler)
-router.use('/info', infoRouter)
+lambda.use(cors())
+lambda.use(router.routes())
+
 bot.ready()
 
-export const handler = bot.createHttpHandler()
+export const handler = lambda.handler

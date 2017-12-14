@@ -29,15 +29,14 @@ export default class Identities {
   public env: Env
   public logger: Logger
   public cache: any
-  constructor (opts: { tables: any, objects: any, env: Env }) {
+  constructor (opts: { tables: any, objects: any, logger: Logger }) {
     logify(this)
     bindAll(this)
 
-    const { tables, objects, env } = opts
+    const { tables, objects, logger } = opts
     this.objects = objects
     this.pubKeys = tables.PubKeys
-    this.env = env
-    this.logger = env.sublogger('identities')
+    this.logger = logger.sub('identities')
     this.cache = new Cache({ maxAge: CACHE_MAX_AGE })
     this.metaByPub = cachifyFunction(this, 'metaByPub')
     this.byPermalink = cachifyFunction(this, 'byPermalink')

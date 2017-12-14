@@ -4,10 +4,11 @@ import { prettify } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import * as Errors from './errors'
 import * as types from './typeforce-types'
+import Tradle from './tradle'
+import Env from './env'
 import Identities from './identities'
 import Messages from './messages'
 import Objects from './objects'
-import Env from './env'
 import * as constants from './constants'
 import { IDebug, ISession, IotClientResponse, IIdentity } from './types/index.d'
 import Logger from './logger'
@@ -56,7 +57,8 @@ export default class Auth {
     identities: Identities,
     objects: Objects,
     messages: Messages,
-    iot: any
+    iot: any,
+    logger: Logger
   }) {
     // lazy define
     this.env = opts.env
@@ -67,7 +69,7 @@ export default class Auth {
     this.objects = opts.objects
     this.messages = opts.messages
     this.iot = opts.iot
-    this.logger = this.env.sublogger('auth')
+    this.logger = opts.logger.sub('auth')
   }
 
   public onAuthenticated = async (session:ISession): Promise<void> => {

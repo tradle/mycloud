@@ -8,10 +8,6 @@ loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
 
 import { loadCredentials } from '../cli/utils'
 import { createRemoteTradle, createTestTradle } from '../'
-import express = require('express')
-import expressGraphQL = require('express-graphql')
-import compression = require('compression')
-import cors = require('cors')
 import dynogels = require('dynogels')
 // import { createBot } from '../samplebot/bot'
 // import sampleQueries from '../samplebot/sample-queries'
@@ -32,46 +28,15 @@ const { port } = require('minimist')(process.argv.slice(2), {
 
 const { DYNAMO_ADMIN_PORT } = process.env
 
-const debug = require('debug')('dynogels')
 dynogels.log = {
-  info: debug,
-  warn: debug,
+  info: require('debug')('dynogels:info'),
+  warn: require('debug')('dynogels:warn'),
   level: 'info'
 }
 
-import { bot } from '../samplebot/lambda/http/graphql'
-bot.router.listen(port)
+import lambda = require('../samplebot/lambda/http/graphql')
+lambda.execCtx = {}
+lambda.koa.listen(port)
 
 console.log(`GraphiQL is at http://localhost:${port}`)
 console.log(`DynamoDB Admin is at http://localhost:${DYNAMO_ADMIN_PORT}`)
-
-// ;(async () => {
-//   const { bot } = await createBot()
-//   const graphqlAPI = bot.getGraphqlAPI()
-//   const app = express()
-//   app.use(cors())
-//   // app.use(express.static(__dirname))
-//   app.use(compression())
-//   app.use('/', expressGraphQL(req => ({
-//     schema: graphqlAPI.schema,
-//     graphiql: {
-//       logo: {
-//         src: 'https://blog.tradle.io/content/images/2016/08/256x-no-text-1.png',
-//         width: 32,
-//         height: 32
-//       },
-//       bookmarks: {
-//         // not supported
-//         // autorun: true,
-//         title: 'Samples',
-//         items: sampleQueries
-//       }
-//     },
-//     pretty: true
-//   })))
-
-//   app.listen(port)
-
-//   console.log(`GraphiQL is at http://localhost:${port}`)
-//   console.log(`DynamoDB Admin is at http://localhost:${DYNAMO_ADMIN_PORT}`)
-// })()

@@ -1,0 +1,9 @@
+
+import { createBot } from '../../bot'
+import { customize } from '../customize'
+
+const bot = createBot()
+const lambda = bot.lambdas.onmessagestream()
+customize({ bot, event: 'messagestream' })
+
+export const handler = lambda.handler

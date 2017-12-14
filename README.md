@@ -97,6 +97,7 @@ npm install
 ### Install local playground tools
 
 - [redis](https://redis.io/topics/quickstart) - a key value store used by the local simulator of AWS's IoT broker. (On OS X, you can `brew install redis`)
+- [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
 
 ### Install development tools
 

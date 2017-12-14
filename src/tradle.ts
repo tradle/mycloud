@@ -15,6 +15,7 @@ import Seals from './seals'
 import Friends from './friends'
 import KeyValueTable from './key-value-table'
 import ContentAddressedStorage from './content-addressed-storage'
+import { TaskManager } from './task-manager'
 import { requireDefault } from './require-default'
 import Push from './push'
 import { applyFunction } from './utils'
@@ -24,13 +25,14 @@ let instanceCount = 0
 export default class Tradle {
   public env: Env
   public aws: any
-  public router: any
+  // public router: any
   public serviceMap: any
   public buckets: any
   public tables: any
   public dbUtils: any
   public secrets: any
   public objects: Objects
+  public events: any
   public identities: Identities
   public messages: Messages
   public db: DB
@@ -50,6 +52,7 @@ export default class Tradle {
   public s3Utils: any
   public iot: any
   public lambdaUtils: any
+  public tasks:TaskManager
   public prefix: string
 
   constructor(env=new Env(process.env)) {
@@ -129,7 +132,7 @@ export default class Tradle {
     this.define('discovery', './discovery', this.construct)
     this.define('user', './user', this.construct)
     this.define('delivery', './delivery', this.construct)
-    this.define('router', './router', this.construct)
+    // this.define('router', './router', this.construct)
     this.define('aws', './aws', initialize => initialize(this))
     this.define('dbUtils', './db-utils', initialize => initialize({
       aws: this.aws,
@@ -149,6 +152,11 @@ export default class Tradle {
         provider: this.provider
       })
     })
+
+    this.tasks = new TaskManager({
+      logger: this.logger.sub('async-tasks')
+    })
+
     // this.bot = this.require('bot', './bot')
   }
 
@@ -185,19 +193,6 @@ export default class Tradle {
   get stringUtils () {
     return requireDefault('./string-utils')
   }
-  get wrap () {
-    const wrap = requireDefault('./wrap')
-    return (fn, opts: { env?: Env }={}) => {
-      // this.initAllSubModules()
-
-      if (!opts.env) opts.env = this.env
-
-      return wrap(async (...args) => {
-        this.warmUpCaches()
-        return applyFunction(fn, this, args)
-      }, opts)
-    }
-  }
   get logger () {
     return this.env.logger
   }
@@ -215,14 +210,17 @@ export default class Tradle {
     }
   }
 
-  public warmUpCaches = () => {
-    this.provider.getMyPrivateIdentity()
-    this.provider.getMyPublicIdentity()
+  public warmUpCaches = async () => {
+    await Promise.all([
+      this.provider.getMyPrivateIdentity(),
+      this.provider.getMyPublicIdentity()
+    ])
   }
 
   private construct = (Ctor) => {
     return new Ctor(this)
   }
+
   private define = (property: string, path: string, instantiator: Function) => {
     let instance
     defineGetter(this, property, () => {

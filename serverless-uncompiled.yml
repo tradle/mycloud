@@ -19,6 +19,10 @@ plugins:
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
   # - serverless-dynamodb-local
+  - serverless-dynamodb-local
+  - serverless-s3-local
+  - serverless-iot-local
+  - init-local
   - serverless-offline
 
 package:
@@ -218,10 +222,38 @@ custom:
       - '*/*'
 
   serverless-offline:
-    mqttPort: ${{self:custom.vars.serverless-offline.mqttPort, self:custom.defaults.serverless-offline.mqttPort}}
     port: ${{self:custom.vars.serverless-offline.port, self:custom.defaults.serverless-offline.port}}
 
+  serverless-iot-local:
+    port: ${{self:custom.vars.serverless-iot-local.port, self:custom.defaults.serverless-iot-local.port}}
+    httpPort: ${{self:custom.vars.serverless-iot-local.httpPort, self:custom.defaults.serverless-iot-local.httpPort}}
+
   reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
+
+  # serverless-dynamodb-local settings
+  dynamodb:
+    start:
+      port: 4569
+      migrate: true
+      inMemory: true
+      # use dockerized dynamodb from localstack
+      noStart: true
+
+  # serverless-s3-local settings
+  s3:
+    host: 0.0.0.0
+    port: 4572
+    # directory: /tmp
+    buckets:
+      - ${{self:custom.prefix}}objectsbucket
+      - ${{self:custom.prefix}}secretsbucket
+      - ${{self:custom.prefix}}privateconfbucket
+      - ${{self:custom.prefix}}publicconfbucket
+      - ${{self:custom.prefix}}contentaddressedbucket
+      - ${{self:custom.prefix}}fileuploadbucket
+    cors: false
+    # use dockerized s3 from localstack
+    noStart: true
 
 #   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
@@ -523,7 +555,7 @@ functions:
   # 2. creates an unauthenticated session,
   #    generates a challenge to be signed (verified in /auth)
   preauth:
-    handler: lib/lambda/http/default.handler
+    handler: lib/lambda/http/preauth.handler
     memorySize: 1024
     events:
       - http:
@@ -533,7 +565,7 @@ functions:
   # 1. validates the challenge response
   # 2. marks the session as authenticated
   auth:
-    handler: lib/lambda/http/default.handler
+    handler: lib/lambda/http/auth.handler
     memorySize: 1024
     events:
       - http:
@@ -606,7 +638,7 @@ functions:
   #         method: any
 
   inbox:
-    handler: lib/lambda/http/default.handler
+    handler: lib/lambda/http/inbox.handler
     memorySize: 1024
     events:
       - http:
@@ -699,7 +731,7 @@ functions:
   # same as onmessage, but can handle larger payloads
   # MQTT is limited to 128KB, HTTP to 6MB
   onmessage_http:
-    handler: lib/lambda/http/default.handler
+    handler: lib/lambda/http/onmessage.handler
     memorySize: 1024
     events:
       - http:
@@ -712,29 +744,6 @@ functions:
       - functionErrors
       - functionThrottles
       - functionInvocations
-
-  # useful during development
-  # trigger a message to be queued/sent to a user
-  send:
-    handler: lib/lambda/send.handler
-    memorySize: 256
-
-  # addcontact:
-  #   handler: lib/lambda/add-contact.handler
-  #   environment:
-  #     DEBUG: tradle:*
-
-  addfriend:
-    handler: lib/lambda/add-friend.handler
-    memorySize: 256
-
-  addfriend_dev:
-    handler: lib/lambda/http/default.handler
-    # dev mode only
-    events:
-      - http:
-          path: /addfriend
-          method: post
 
 
   # performs service discovery - builds a map of logical->physical ids
@@ -840,9 +849,11 @@ functions:
   reinitialize-containers:
     handler: lib/lambda/reinitialize-containers.handler
 
-  bot_oninit:
-    handler: lib/samplebot/lambda/init.handler
-    memorySize: 1024
+  # useful during development
+  # trigger a message to be queued/sent to a user
+  bot_send:
+    handler: lib/samplebot/lambda/send.handler
+    memorySize: 256
 
   bot_info:
     handler: lib/samplebot/lambda/http/info.handler
@@ -852,16 +863,20 @@ functions:
           path: info
           method: get
 
+  bot_oninit:
+    handler: lib/samplebot/lambda/oninit.handler
+    memorySize: 1024
+
   bot_onmessage:
-    handler: lib/samplebot/index.onmessage
+    handler: lib/samplebot/lambda/onmessage.handler
     memorySize: 1024
     alarms:
       - functionErrors
       - functionThrottles
       - functionInvocations
 
-  bot_onsealevent:
-    handler: lib/samplebot/index.onseal
+  bot_onsealstream:
+    handler: lib/samplebot/lambda/onsealstream.handler
     memorySize: 256
     events:
       - stream:
@@ -876,7 +891,7 @@ functions:
     - functionErrors
 
   bot_onmessagestream:
-    handler: lib/samplebot/index.onmessagestream
+    handler: lib/samplebot/lambda/onmessagestream.handler
     memorySize: 256
     events:
       - stream:
@@ -923,15 +938,32 @@ functions:
     handler: lib/samplebot/lambda/set-style.handler
     memorySize: 128
 
+  bot_addfriend:
+    handler: lib/samplebot/lambda/add-friend.handler
+    memorySize: 256
+
+  bot_addfriend_dev:
+    handler: lib/samplebot/lambda/add-friend.handlerHttp
+    # dev mode only
+    events:
+      - http:
+          path: /addfriend
+          method: post
+
+  # bot_addcontact:
+  #   handler: lib/samplebot/lambda/add-contact.handler
+  #   environment:
+  #     DEBUG: tradle:*
+
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
   bot_samples:
-    handler: lib/samplebot/index.onsamples
+    handler: lib/samplebot/lambda/samples.handler
     # handler: lib/lambda/http/default.handler
     memorySize: 1024
 
   bot_samples_dev:
-    handler: lib/samplebot/index.onsamples
+    handler: lib/samplebot/lambda/samples.handler
     # handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:

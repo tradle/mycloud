@@ -22,7 +22,7 @@ import {
   getCommandByName
 } from './utils'
 
-import Logger from '../../'
+import Logger from '../../logger'
 
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?$/
 const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`

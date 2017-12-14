@@ -1,12 +1,12 @@
-import '../init-lambda'
+import { tradle } from '../'
+import { Lambda, EventSource } from '../lambda'
 
-import { createTradle } from '../'
-
-const tradle = createTradle()
-const { debug, wrap, seals } = tradle
+const { seals } = tradle
+const lambda = new Lambda({ source: EventSource.SCHEDULE, tradle })
 const SIX_HOURS = 6 * 3600 * 1000
 
-export const handler = wrap(function (event, context) {
-  debug('[START]', Date.now())
-  return seals.handleFailures({ gracePeriod: SIX_HOURS })
-}, { source: 'schedule' })
+lambda.use(async ({ event, context }) => {
+  await seals.handleFailures({ gracePeriod: SIX_HOURS })
+})
+
+export const handler = lambda.handler

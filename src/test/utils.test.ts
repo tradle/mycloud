@@ -3,6 +3,7 @@ require('./env').install()
 import test = require('tape')
 import Cache = require('lru-cache')
 import sinon = require('sinon')
+import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
 import { getFavicon } from '../image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
@@ -10,18 +11,21 @@ import {
   loudAsync,
   firstSuccess,
   cachify,
+  cachifyFunction,
   clone,
   batchStringsBySize,
   promisify,
   wrap,
   wait,
-  timeoutIn
+  timeoutIn,
+  batchProcess
 } from '../utils'
 import * as Errors from '../errors'
 import { KVTable } from '../definitions'
 import aliceKeys = require('./fixtures/alice/keys')
 import { Tradle } from '../'
 import { Bucket } from '../bucket'
+import { createSilentLogger } from './utils'
 
 const tradle = new Tradle()
 const { dbUtils } = tradle
@@ -71,6 +75,41 @@ test('cachify', loudAsync(async (t) => {
   t.equal(misses.a, 3)
   t.equal(await hit, data.a)
 
+  t.end()
+}))
+
+test('cachifyFunction', loudAsync(async (t) => {
+  const actions = [
+    async () => {
+      throw new Error('test fail a')
+    },
+    async () => {
+      return 'a'
+    }
+  ]
+
+  const container = {
+    cache: new Cache({ max: 100 }),
+    logger: createSilentLogger(),
+    fn: async (...args) => {
+      return await actions[i++](...args)
+    }
+  }
+
+  let i = 0
+  const cachified = cachifyFunction(container, 'fn')
+  try {
+    await cachified()
+    t.fail('expected error')
+  } catch (err) {
+    t.equal(err.message, 'test fail a')
+  }
+
+  t.equal(i, 1)
+  t.equal(await cachified(), 'a')
+  t.equal(i, 2)
+  t.equal(await cachified(), 'a')
+  t.equal(i, 2)
   t.end()
 }))
 
@@ -395,6 +434,15 @@ test('key-value table', loudAsync(async (t) => {
     d: 'e'
   })
 
+  await sub.del('a')
+  t.equal(await sub.exists('a'), false)
+  try {
+    await sub.get('a')
+    t.fail('sub should not have value')
+  } catch (err) {
+    t.ok(err)
+  }
+
   await table.destroy()
   t.end()
 }))
@@ -508,6 +556,79 @@ test('first success', loudAsync(async (t) => {
   t.end()
 }))
 
+test('batchProcess', loudAsync(async (t) => {
+  let i = 0
+
+  // series
+  await batchProcess({
+    data: [0, 1, 2],
+    batchSize: 10,
+    series: true,
+    processOne: (num) => {
+      t.equal(num, i++)
+      return wait(10)
+    }
+  })
+
+  // parallel
+  let time = Date.now()
+  await batchProcess({
+    data: [100, 100, 100],
+    batchSize: 10,
+    processOne: wait
+  })
+
+  t.ok(Math.abs(Date.now() - time - 100) < 50)
+  time = Date.now()
+
+  // parallel, limited batch size
+  await batchProcess({
+    data: [100, 100, 100],
+    batchSize: 1,
+    processOne: wait
+  })
+
+  t.ok(Math.abs(Date.now() - time - 300) < 50)
+
+  // parallel, limited batch size
+  let results = await batchProcess({
+    data: [100, 100, 100],
+    batchSize: 1,
+    processOne: timeoutIn,
+    settle: true
+  })
+
+  t.ok(results.every(r => r.reason))
+
+  time = Date.now()
+  // parallel, process batch
+  results = await batchProcess({
+    data: [100, 100, 100, 100],
+    batchSize: 2,
+    processBatch: batch => {
+      t.equal(batch.length, 2)
+      return wait(sum(batch))
+    },
+    settle: true
+  })
+
+  t.ok(Math.abs(Date.now() - time - 400) < 50)
+
+  time = Date.now()
+  // series, process batch
+  results = await batchProcess({
+    data: [100, 100, 100, 100],
+    batchSize: 2,
+    processOne: wait,
+    series: true,
+    settle: true
+  })
+
+  t.ok(Math.abs(Date.now() - time - 400) < 50)
+
+  t.end()
+}))
+
 // test.only('favicon', loudAsync(async (t) => {
 //   const favicon = await getFavicon('bankofamerica.com')
 //   console.log(favicon)
@@ -515,4 +636,8 @@ test('first success', loudAsync(async (t) => {
 
 function values (obj) {
   return Object.keys(obj).map(key => obj[key])
+}
+
+function sum (arr) {
+  return arr.reduce((total, one) => total + one, 0)
 }

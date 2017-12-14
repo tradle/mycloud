@@ -11,7 +11,6 @@ const ecdsa = require('nkey-ecdsa')
 const sinon = require('sinon')
 const tradle = require('@tradle/engine')
 const { newIdentity } = tradle.utils
-const wrap = require('../wrap')
 const {
   extractSigPubKey,
   exportKeys,

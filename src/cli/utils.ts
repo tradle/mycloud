@@ -1,9 +1,9 @@
-
+const path = require('path')
 const promisify = require('pify')
 const proc = require('child_process')
-const pexec = proc.exec.bind(proc)
+const pexec = promisify(proc.exec.bind(proc))
+const parseEnv = require('env-file-parser').parseSync
 const fs = promisify(require('fs'))
-const co = require('co').wrap
 const YAML = require('js-yaml')
 const isNative = require('is-native-module')
 const extend = require('xtend/mutable')
@@ -13,7 +13,10 @@ const { models } = require('@tradle/models')
 const validateResource = require('@tradle/validate-resource')
 const { TYPE } = require('@tradle/constants')
 const prettify = obj => JSON.stringify(obj, null, 2)
+const { Bucket } = require('../bucket')
 const Errors = require('../errors')
+const Localstack = require('../test/localstack')
+const copy = promisify(require('copy-dynamodb-table').copy)
 
 const {
   addResourcesToEnvironment,
@@ -248,7 +251,7 @@ const getNativeModules = async (dir='node_modules', modules={}) => {
 
 const getProductionModules = async () => {
   const command = 'npm ls --production --parseable=true --long=false --silent'
-  const buf = await promisify(pexec)(command, {
+  const buf = await pexec(command, {
     cwd: process.cwd()
   })
 
@@ -345,36 +348,51 @@ const clearTypes = async ({ tradle, types }) => {
   })
 
   console.log('deleting items from buckets:', buckets.join(', '))
-  await Promise.all(buckets.map((tableName) => {
-    return dbUtils.forEachItem({
-      tableName,
-      fn: async ({ item, tableDescription }) => {
-        const type = item[TYPE]
-        if (!types.includes(type)) return
+  await Promise.all(buckets.map(async (TableName) => {
+    const { KeySchema } = await dbUtils.getTableDefinition(TableName)
+    const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
+    const processOne = async (item) => {
+      const type = item[TYPE]
+      if (!types.includes(item[TYPE])) return
 
-        const { TableName, KeySchema } = tableDescription.Table
-        const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
-        const Key = pick(item, keyProps)
-        console.log('deleting item', Key, 'from', TableName)
-        if (!deleteCounts[TableName]) {
-          deleteCounts[TableName] = {}
+      const Key = pick(item, keyProps)
+      while (true) {
+        try {
+          console.log('deleting item', Key, 'from', TableName)
+          await dbUtils.del({ TableName, Key })
+          break
+        } catch (err) {
+          const { name } = err
+          if (!(name === 'ResourceNotFoundException' || name === 'LimitExceededException')) {
+            throw err
+          }
+
+          console.log('failed to delete item, will retry', err.name)
         }
-
-        if (deleteCounts[TableName][type]) {
-          deleteCounts[TableName][type]++
-        } else {
-          deleteCounts[TableName][type] = 1
-        }
-
-        await dbUtils.del({ TableName, Key })
       }
+
+      if (!deleteCounts[TableName]) {
+        deleteCounts[TableName] = {}
+      }
+
+      if (deleteCounts[TableName][type]) {
+        deleteCounts[TableName][type]++
+      } else {
+        deleteCounts[TableName][type] = 1
+      }
+    }
+
+    await dbUtils.batchProcess({
+      params: { TableName },
+      processOne
     })
   }))
 
   return deleteCounts
 }
 
-const initializeProvider = async (bot) => {
+const initializeProvider = async (opts={}) => {
+  let { bot, force } = opts
   if (!bot) {
     const { createBot } = require('../bot')
     bot = createBot()
@@ -388,12 +406,76 @@ const initializeProvider = async (bot) => {
   const { org } = providerConf.private
   try {
     await init.init({
+      force,
       private: { org }
     })
   } catch (err) {
     Errors.ignore(err, Errors.Exists)
     console.log('prevented overwrite of existing identity/keys')
   }
+}
+
+const cloneRemoteTable = async ({ source, destination }) => {
+  loadCredentials()
+
+  const AWS = require('aws-sdk')
+  const yml = require('./serverless-yml')
+  const localCredentials = parseEnv(path.resolve(__dirname, '../../docker/.env'))
+  const destinationAWSConfig = {
+    accessKeyId: localCredentials.AWS_ACCESS_KEY_ID,
+    secretAccessKey: localCredentials.AWS_SECRET_ACCESS_KEY
+  }
+
+  const { region } = yml.provider
+  await copy({
+    config: {
+      region
+    },
+    source: {
+      tableName: source,
+      dynamoClient: new AWS.DynamoDB.DocumentClient({ region })
+    },
+    destination: {
+      tableName: destination, // required
+      dynamoClient: new AWS.DynamoDB.DocumentClient({
+        region,
+        endpoint: Localstack.DynamoDB
+      })
+    },
+    log: true
+  })
+}
+
+const alwaysTrue = (...any) => true
+const cloneRemoteBucket = async ({ source, destination, filter=alwaysTrue }) => {
+  loadCredentials()
+
+  const AWS = require('aws-sdk')
+  const sourceBucket = new Bucket({
+    name: source,
+    s3: new AWS.S3()
+  })
+
+  const destinationS3 = new AWS.S3({
+    endpoint: Localstack.S3,
+    s3ForcePathStyle: true
+  })
+
+  await sourceBucket.forEach({
+    getBody: true,
+    map: batch => {
+      const keep = batch.filter(filter)
+      console.log(`processing batch of ${keep.length} items`)
+      return Promise.all(keep.map(async (item) => {
+        return destinationS3.putObject({
+          Key: item.Key,
+          Bucket: destination,
+          Body: item.Body,
+          ContentType: item.ContentType
+        }).promise()
+      }))
+    }
+  })
 }
 
 module.exports = {
@@ -412,5 +494,7 @@ module.exports = {
   getTableDefinitions,
   downloadDeploymentTemplate,
   clearTypes,
-  initializeProvider
+  initializeProvider,
+  cloneRemoteTable,
+  cloneRemoteBucket
 }

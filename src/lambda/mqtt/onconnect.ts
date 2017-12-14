@@ -1,11 +1,15 @@
-import '../../init-lambda'
+import { tradle } from '../../'
+import { Lambda, EventSource } from '../../lambda'
 
-const tradle = require('../..').tradle
-const { debug, wrap, user, stringUtils } = tradle
-const { onConnected } = user
-const { prettify } = stringUtils
-exports.handler = wrap(function* (event, context) {
-  debug('client connected', event)
+const lambda = new Lambda({
+  source: EventSource.IOT,
+  tradle
+})
+
+lambda.use(async ({ event, context }) => {
+  lambda.logger.debug('client connected', event)
   const { clientId } = event
-  yield onConnected({ clientId })
-}, { source: 'iot' })
+  await tradle.user.onConnected({ clientId })
+})
+
+export const handler = lambda.handler

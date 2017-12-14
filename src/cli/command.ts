@@ -1,6 +1,6 @@
-import Tradle from '../../tradle'
-import Env from '../../env'
-import { CommandOpts, ICommand, Cli } from '../'
+import Tradle from '../tradle'
+import Env from '../env'
+import { Cli } from '../'
 
 export default class Command {
   protected cli: Cli

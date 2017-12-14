@@ -152,7 +152,7 @@ export default class Logger {
       params = { value: params }
     }
 
-    params.msg = msg
+    params = { msg, ...params }
     if (this.outputFormat === 'json') {
       const logMsg = {
         namespace: this.namespace,

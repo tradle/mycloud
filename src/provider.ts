@@ -13,7 +13,8 @@ import {
   summarizeObject,
   series,
   flatten,
-  ensureTimestamped
+  ensureTimestamped,
+  groupBy
 } from './utils'
 
 import Errors = require('./errors')
@@ -239,16 +240,7 @@ export default class Provider {
   // })
 
   public sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
-    const byRecipient = {}
-    batch.forEach(message => {
-      const { recipient } = message
-      if (!byRecipient[recipient]) {
-        byRecipient[recipient] = []
-      }
-
-      byRecipient[recipient].push(message)
-    })
-
+    const byRecipient = groupBy(batch, 'recipient')
     const results = await Promise.all(Object.keys(byRecipient).map(recipient => {
       return this._sendMessageBatch(byRecipient[recipient])
     }))
@@ -262,7 +254,6 @@ export default class Provider {
       sendOpts => () => this.createSendMessageEvent(sendOpts))
     )
 
-    this.env.addAsyncTask(() => this.attemptLiveDelivery({ recipient, messages }))
     return messages
   }
 
@@ -277,7 +268,7 @@ export default class Provider {
       ? Promise.resolve(opts.session)
       : this.auth.getLiveSessionByPermalink(recipient).catch(err => {
           Errors.ignore(err, { name: 'NotFound' })
-          this.logger.debug('mqtt session not found for counterparty', { permalink: recipient })
+          this.logger.debug('iot session not found for counterparty', { permalink: recipient })
           return undefined
         })
 
@@ -388,6 +379,7 @@ export default class Provider {
       extend(unsignedMessage, this.messages.getPropsDerivedFromLast(prev))
 
       seq = unsignedMessage[SEQ]
+      this.logger.debug(`signing message ${seq} to ${recipient}`)
       signedMessage = await this.signObject({ author, object: unsignedMessage })
       setVirtual(signedMessage, {
         _author: getPermalink(author.identity),

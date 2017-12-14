@@ -30,7 +30,7 @@ export default class Objects {
   private s3Utils: any
   private fileUploadBucketName: string
   constructor (tradle: Tradle) {
-    const { env, buckets, s3Utils } = tradle
+    const { env, buckets, s3Utils, logger } = tradle
     this.tradle = tradle
     this.env = env
     this.region = env.REGION
@@ -38,7 +38,7 @@ export default class Objects {
     this.bucket = this.buckets.Objects
     this.s3Utils = s3Utils
     this.fileUploadBucketName = buckets.FileUpload.name
-    this.logger = env.sublogger('objects')
+    this.logger = logger.sub('objects')
   }
 
   public addMetadata = (object:ITradleObject):ITradleObject => {

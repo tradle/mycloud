@@ -12,6 +12,7 @@ import deepEqual = require('deep-equal')
 import deepClone = require('clone')
 import clone = require('xtend')
 import extend = require('xtend/mutable')
+import flatten = require('flatten')
 import traverse = require('traverse')
 import dotProp = require('dot-prop')
 import { v4 as uuid } from 'uuid'
@@ -48,6 +49,10 @@ const createTimeout = (fn, millis, unref?) => {
   return timeout
 }
 
+export const waitImmediate = () => {
+  return new Promise(resolve => setImmediate(resolve))
+}
+
 export const wait = (millis=0, unref?) => {
   return new Promise(resolve => {
     createTimeout(resolve, millis, unref)
@@ -55,11 +60,16 @@ export const wait = (millis=0, unref?) => {
 }
 
 export const timeoutIn = (millis=0, unref?) => {
-  return new Promise((resolve, reject) => {
-    createTimeout(() => {
+  let timeout
+  const { stack } = new Error()
+  const promise = new Promise((resolve, reject) => {
+    timeout = createTimeout(() => {
       reject(new Error('timed out'))
     }, millis, unref)
   })
+
+  promise.cancel = () => clearTimeout(timeout)
+  return promise
 }
 
 export {
@@ -70,6 +80,7 @@ export {
  clone,
  extend,
  deepEqual,
+ flatten,
  traverse,
  dotProp,
  co,
@@ -289,25 +300,32 @@ export function cachify ({ get, put, del, logger, cache }: {
   logger?: Logger
 }) {
   const pending = {}
-  return {
-    get: co(function* (key) {
-      const keyStr = stableStringify(key)
-      let val = cache.get(keyStr)
-      if (val != null) {
-        if (logger) logger.debug(`cache hit on ${key}!`)
-        // val might be a promise
-        // the magic of co should resolve it
-        // before returning
-        return val
+  const cachifiedGet = co(function* (key) {
+    const keyStr = stableStringify(key)
+    let val = cache.get(keyStr)
+    if (val != null) {
+      if (logger) logger.debug(`cache hit on ${key}!`)
+      // val might be a promise
+      // the magic of co should resolve it
+      // before returning
+      if (isPromise(val)) {
+        // refetch on error
+        return val.catch(err => cachifiedGet(key))
       }
 
-      if (logger) logger.debug(`cache miss on ${key}`)
-      const promise = get(key)
-      promise.catch(err => cache.del(keyStr))
-      cache.set(keyStr, promise)
-      // promise.then(result => cache.set(keyStr, result))
-      return promise
-    }),
+      return val
+    }
+
+    if (logger) logger.debug(`cache miss on ${key}`)
+    const promise = get(key)
+    promise.catch(err => cache.del(keyStr))
+    cache.set(keyStr, promise)
+    // promise.then(result => cache.set(keyStr, result))
+    return promise
+  })
+
+  return {
+    get: cachifiedGet,
     put: co(function* (key, value) {
       // TODO (if actually needed):
       // get cached value, skip put if identical
@@ -415,6 +433,55 @@ export function domainToUrl (domain) {
   }
 
   return domain
+}
+
+export const batchProcess = async ({
+  data,
+  batchSize=1,
+  processOne,
+  processBatch,
+  series,
+  settle
+}: {
+  data:any[]
+  batchSize:number
+  processOne?:Function
+  processBatch?:Function
+  series?: boolean
+  settle?: boolean
+}) => {
+  const batches = batchify(data, batchSize)
+  let batchResolver
+  if (series) {
+    if (!processOne) {
+      throw new Error('expected "processOne"')
+    }
+
+    batchResolver = settle ? settleSeries : Promise.mapSeries
+  } else {
+    batchResolver = settle ? settleMap : Promise.map
+  }
+
+  const results = await Promise.mapSeries(batches, batch => {
+    if (processBatch) {
+      return processBatch(batch)
+    }
+
+    return batchResolver(batch, one => processOne(one))
+  })
+
+  return flatten(results)
+}
+
+export const settleMap = (data, fn):Promise => {
+  return RESOLVED_PROMISE.then(() => allSettled(data.map(item => fn(item))))
+}
+
+export const settleSeries = (data, fn):Promise => {
+  return Promise.mapSeries(data, async (item) => {
+    const results = await allSettled(RESOLVED_PROMISE.then(() => fn(item)))
+    return results[0]
+  })
 }
 
 export function batchify (arr, batchSize) {
@@ -661,33 +728,6 @@ export const wrap = (fn) => {
   }
 }
 
-// utils is not the best home for this function
-// but I couldn't decide on a better one yet
-// especially due to the duality of lambdas that wake up in router.js
-// vs the others (like in lambda/mqtt)
-export const onWarmUp = async ({
-  env,
-  event,
-  context,
-  callback
-}) => {
-  const start = Date.now()
-  env.addAsyncTask(() => {
-    env.debug(`warmup, sleeping for ${WARMUP_SLEEP}ms`)
-    return wait(WARMUP_SLEEP)
-  })
-
-  await env.finishAsyncTasks()
-  env.debug(`warmup, done`)
-  callback(null, {
-    containerAge: env.containerAge,
-    containerId: env.containerId,
-    uptime: fs.readFileSync('/proc/uptime', { encoding: 'utf-8' }),
-    logStreamName: context.logStreamName,
-    isVirgin: env.isVirgin
-  })
-}
-
 export const networkFromIdentifier = str => {
   const [flavor, networkName] = str.split(':')
   const networks = require('./networks')
@@ -759,8 +799,6 @@ export const createLambdaContext = (fun, cb?) => {
   }
 }
 
-export const flatten = arr => arr.reduce((flat, batch) => flat.concat(batch), [])
-
 export const logResponseBody = (logger) => (req, res, next) => {
   const oldWrite = res.write
   const oldEnd = res.end
@@ -804,19 +842,30 @@ export const cachifyFunction = (
 ) => {
   const original = container[method]
   const { cache, logger } = container
-  return async (...args) => {
+  const cachified = async (...args) => {
     const str = stableStringify(args)
     const cached = cache.get(str)
     if (cached) {
+      if (isPromise(cached)) {
+        // refetch on error
+        return cached.catch(err => cachified(...args))
+      }
+
       logger.debug('cache hit', str)
       return cached
     }
 
     logger.debug('cache miss', str)
     const result = original.apply(container, args)
+    if (isPromise(result)) {
+      result.catch(err => cache.del(str))
+    }
+
     cache.set(str, result)
     return result
   }
+
+  return cachified
 }
 
 export const timeMethods = (obj, logger) => {

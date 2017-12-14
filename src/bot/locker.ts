@@ -1,7 +1,15 @@
-const locker = require('promise-locker')
-const noop = () => {}
+import locker = require('promise-locker')
+import { IDebug } from '../types'
 
-module.exports = function createLocker (opts={}) {
+const noop:IDebug = (...any) => {}
+
+export type LockerOpts = {
+  name?: string
+  debug?: IDebug
+  timeout?: number
+}
+
+export function createLocker (opts:LockerOpts={}) {
   const { name='', debug=noop } = opts
   const lock = locker(opts)
   const unlocks = {}

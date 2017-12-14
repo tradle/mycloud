@@ -2,9 +2,9 @@ import { EventEmitter } from 'events'
 import { SEQ } from '@tradle/constants'
 import { co, typeforce, pick } from './utils'
 import Errors = require('./errors')
-import { omitVirtual, extend, batchStringsBySize, bindAll } from './utils'
+import { pick, omitVirtual, extend, batchStringsBySize, bindAll } from './utils'
 import { getLink } from './crypto'
-import { IDelivery } from './types'
+import { IDelivery, ILiveDeliveryOpts } from './types'
 import Messages from './messages'
 import Objects from './objects'
 import Env from './env'
@@ -17,18 +17,16 @@ const MAX_PAYLOAD_SIZE = 115000
 
 // eventemitter makes testing easier
 export default class DeliveryIot extends EventEmitter implements IDelivery {
-  private env: Env
   private iot: any
   private messages: Messages
   private objects: Objects
   private auth: Auth
   private logger: Logger
   private _parentTopic: string
-  constructor ({ env, iot, auth, messages, objects }) {
+  constructor ({ env, iot, auth, messages, objects, logger }) {
     super()
 
-    this.env = env
-    this.logger = env.sublogger('delivery-iot')
+    this.logger = logger.sub('delivery-iot')
     this.iot = iot
     this.auth = auth
     this.messages = messages
@@ -55,9 +53,10 @@ export default class DeliveryIot extends EventEmitter implements IDelivery {
     return session.authenticated && session.connected
   }
 
-  public deliverBatch = async ({ session, recipient, messages }) => {
+  public deliverBatch = async ({ session, recipient, messages }:ILiveDeliveryOpts) => {
     if (!(session.authenticated && session.connected)) {
-      throw new Errors.ClientUnreachable('client must be authenticated and connected')
+      const status = JSON.stringify(pick(session, ['authenticated', 'connected']))
+      throw new Errors.ClientUnreachable(`Client is ${status} but must be both`)
     }
 
     const seqs = messages.map(m => m[SEQ])

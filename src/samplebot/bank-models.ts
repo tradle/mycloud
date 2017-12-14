@@ -3,7 +3,7 @@ import clone = require('clone')
 const corpModels = require('@tradle/models-corporate-onboarding')
 
 export default function createBankModels (namespace) {
-  const models = clone(corpModels)
+  const models = clone(corpModels, false)
 
   // get rid of this after upgrading models-corporate-onboarding
   for (let id in models) {

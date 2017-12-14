@@ -5,14 +5,17 @@ import './globals'
 import yn = require('yn')
 import debug = require('debug')
 import randomName = require('random-name')
-import { parseArn, allSettled, RESOLVED_PROMISE } from './utils'
+import { allSettled, RESOLVED_PROMISE } from './utils'
 import { randomString } from './crypto'
-import { IDebug, ILambdaExecutionContext } from './types'
+import { IDebug, ILambdaAWSExecutionContext } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
 import Logger, { Level } from './logger'
+import { Lambda, IRequestContext } from './lambda'
 import { name as packageName } from '../package.json'
 
 export default class Env {
+  public lambda:Lambda
+  public reqCtx:IRequestContext
   public TESTING:boolean
   public DEV:boolean
   public IS_WARM_UP:boolean
@@ -24,7 +27,6 @@ export default class Env {
   // is running in serverless-offline
   public IS_OFFLINE:boolean
   public DISABLED:boolean
-  public LAMBDA_BIRTH_DATE:number
 
   public AWS_REGION:string
   public REGION:string
@@ -47,20 +49,10 @@ export default class Env {
   public STACK_ID:string
   public logger:Logger
   public debug:IDebug
-  public event:any
-  public context:ILambdaExecutionContext
-  public containerId:string
-  public requestCtx:any
   public _X_AMZN_TRACE_ID:string
-  public isVirgin:boolean
-  public waitFor:Promise<any|void>[]
 
   public PUSH_SERVER_URL:string
   public INVOKE_BOT_LAMBDAS_DIRECTLY:boolean
-
-  public get containerAge () {
-    return this.LAMBDA_BIRTH_DATE ? Date.now() - this.LAMBDA_BIRTH_DATE : null
-  }
 
   private nick:string
   constructor(props:any) {
@@ -89,7 +81,7 @@ export default class Env {
     const namespace = `λ:${this.FUNCTION_NAME}`
     this.logger = new Logger({
       namespace: this.TESTING ? '' : namespace,
-      writer: this.TESTING ? { log: debug(namespace) } : global.console,
+      writer: this.TESTING ? { log: debug(`λ:${this.FUNCTION_NAME}`) } : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
@@ -99,26 +91,7 @@ export default class Env {
 
     this.debug = this.logger.debug
     this.set(props)
-    this.waitFor = []
-  }
-
-  public finishAsyncTasks = async () => {
-    if (!this.waitFor.length) return
-
-    const promises = this.waitFor.slice().filter(promise => {
-      // bluebird promises have isPending()
-      return !('isPending' in promise) || promise.isPending()
-    })
-
-    this.waitFor.length = 0
-    if (promises.length) {
-      this.logger.debug(`waiting for ${promises.length} async tasks to complete`)
-      await allSettled(promises)
-    }
-  }
-
-  public addAsyncTask = (fn) => {
-    this.waitFor.push(RESOLVED_PROMISE.then(fn))
+    // this.asyncTasks = []
   }
 
   public set = props => {
@@ -140,86 +113,34 @@ export default class Env {
 
   // gets overridden when lambda is attached
   public getRemainingTime = ():number => {
-    return Infinity
+    return this.lambda ? this.lambda.timeLeft : 0
   }
 
-  public setFromLambdaEvent = ({
-    event,
-    context,
-    source
-  }) => {
-    if (this.containerId) {
-      this.logger.info('I am a used container!')
-      this.isVirgin = false
-    } else {
-      this.logger.info('I am a fresh container!')
-      this.isVirgin = true
-      this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
-    }
-
-    if (source === 'lambda' && event.requestContext) {
-      this.setRequestContext(event.requestContext)
-    }
-
-    context.callbackWaitsForEmptyEventLoop = false
-
+  public setLambda = (lambda) => {
+    this.lambda = lambda
+    this.setRequestContext(lambda.reqCtx)
+    const { event, context } = lambda.execCtx
     this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
-
-    const {
-      invokedFunctionArn,
-      getRemainingTimeInMillis
-    } = context
-
-    let props = {
-      event,
-      context,
-      getRemainingTime: getRemainingTimeInMillis
-    }
-
-    if (invokedFunctionArn) {
-      const { accountId } = parseArn(invokedFunctionArn)
-      props.accountId = accountId
-    }
-
-    this.set(props)
-
-    const requestCtx = {
-      'request-id': context.awsRequestId,
-      'correlation-id': source === 'http' ? event.requestContext.requestId : context.awsRequestId,
-      'container-id': this.containerId
-    }
-
-    if (source) {
-      requestCtx['correlation-source'] = source
-    }
-
-    if (this._X_AMZN_TRACE_ID) {
-      requestCtx['trace-id'] = this._X_AMZN_TRACE_ID
-    }
-
-    if (this.IS_OFFLINE) {
-      requestCtx['function'] = this.FUNCTION_NAME
-    }
-
-    this.setRequestContext(requestCtx)
+    this.set({ accountId: lambda.accountId })
   }
 
   public setRequestContext(ctx) {
-    const prefixed = {}
-    for (let key in ctx) {
-      if (key.startsWith('x-')) {
-        prefixed[key] = ctx[key]
-      } else {
-        prefixed['x-' + key] = ctx[key]
-      }
-    }
+    // const prefixed = {}
+    // for (let key in ctx) {
+    //   if (key.startsWith('x-')) {
+    //     prefixed[key] = ctx[key]
+    //   } else {
+    //     prefixed['x-' + key] = ctx[key]
+    //   }
+    // }
 
-    this.requestCtx = prefixed
-    this.logger.setContext(this.requestCtx)
+    // this.reqCtx = prefixed
+    this.reqCtx = ctx
+    this.logger.setContext(this.reqCtx)
   }
 
   public getRequestContext() {
-    return { ...this.requestCtx }
+    return { ...this.reqCtx }
   }
 
   private _recalc = (props:any):void => {
@@ -233,10 +154,6 @@ export default class Env {
 
     if ('INVOKE_BOT_LAMBDAS_DIRECTLY' in props) {
       this.INVOKE_BOT_LAMBDAS_DIRECTLY = yn(props.INVOKE_BOT_LAMBDAS_DIRECTLY)
-    }
-
-    if ('LAMBDA_BIRTH_DATE' in props) {
-      this.LAMBDA_BIRTH_DATE = Number(props.LAMBDA_BIRTH_DATE)
     }
 
     this.REGION = this.AWS_REGION

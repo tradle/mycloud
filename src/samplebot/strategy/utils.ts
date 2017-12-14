@@ -56,6 +56,13 @@ export const toggleProduct = createEditConfOp(async ({ context, req, product, en
 }) => {
   const { bot, productsAPI, conf } = context
   const { products, models } = productsAPI
+
+  // allow to use title
+  const byTitle = Object.keys(models.all)
+    .find(id => models.all[id].title.toLowerCase() === product.toLowerCase())
+
+  if (byTitle) product = byTitle
+
   if (enable && products.includes(product)) {
     throw new Error(`product ${product} is already enabled!`)
   }

@@ -2,7 +2,7 @@ import omit = require('object.omit')
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Logger from './logger'
-import { timeMethods } from './utils'
+import { timeMethods, isPromise, batchify, batchProcess } from './utils'
 
 module.exports = function createUtils ({ s3, logger }) {
   const put = async ({ key, value, bucket, contentType }: {
@@ -49,19 +49,60 @@ module.exports = function createUtils ({ s3, logger }) {
     }
   }
 
-  const listBucket = async ({ bucket, ...opts })
-    :Promise<AWS.S3.Types.ListObjectsOutput> => {
+  const forEachItemInBucket = async ({ bucket, getBody, map, ...opts }: {
+    bucket: string,
+    getBody?: boolean,
+    map: Function,
+    [x:string]: any
+  }) => {
     const params:AWS.S3.Types.ListObjectsRequest = {
       Bucket: bucket,
       ...opts
     }
 
-    return await s3.listObjects(params).promise()
+    let Marker
+    while (true) {
+      let { NextMarker, Contents } = await s3.listObjects(params).promise()
+      if (getBody) {
+        await batchProcess({
+          data: Contents,
+          batchSize: 20,
+          processOne: async (item) => {
+            const withBody = await s3.getObject({ Bucket: bucket, Key: item.Key }).promise()
+            let result = map({ ...item, ...withBody })
+            if (isPromise(result)) await result
+          }
+        })
+      } else {
+        await Promise.all(Contents.map(async (item) => {
+          const result = map(item)
+          if (isPromise(result)) await result
+        }))
+      }
+
+      if (!NextMarker) break
+
+      params.Marker = NextMarker
+    }
+  }
+
+  const listBucket = async ({ bucket, ...opts })
+    :Promise<AWS.S3.Object[]> => {
+    const all = []
+    await forEachItemInBucket({
+      ...opts,
+      bucket,
+      map: item => all.push(item)
+    })
+
+    return all
   }
 
   const clearBucket = async ({ bucket }) => {
-    const { Contents } = await listBucket({ bucket })
-    await Promise.all(Contents.map(({ Key }) => del({ bucket, key: Key })))
+    await forEachItemInBucket({
+      bucket,
+      map: ({ Key }) => del({ bucket, key: Key })
+    })
   }
 
   const getCacheable = ({ key, bucket, ttl, parse, ...defaultOpts }: {
@@ -202,7 +243,8 @@ module.exports = function createUtils ({ s3, logger }) {
     createPresignedUrl,
     createBucket,
     destroyBucket,
-    urlForKey
+    urlForKey,
+    forEachItemInBucket
   }, logger)
 }
 

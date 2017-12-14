@@ -3,8 +3,8 @@ const { randomString } = require('./crypto')
 const notNull = obj => !!obj
 const SEPARATOR = ':'
 
-export default function createEvents ({ env, tables, dbUtils }) {
-  const logger = env.sublogger('events')
+export default function createEvents ({ logger, tables, dbUtils }) {
+  logger = logger.sub('events')
   const { Events, Seals, Inbox, Outbox } = tables
   const putEvents = async (events) => {
     if (!events.length) return

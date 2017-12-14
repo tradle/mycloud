@@ -9,7 +9,7 @@ const sinon = require('sinon')
 const cfnResponse = require('cfn-response')
 const { createTestTradle } = require('../')
 const createRealBot = require('../bot').createBot
-const { setupGraphQL } = require('../bot/graphql')
+const { getGraphqlAPI } = require('../bot/graphql')
 const createFakeBot = require('./mock/bot')
 const { co, loudCo, clone, pick, wait } = require('../utils')
 const { toStreamItems, shallowExend, recreateTable } = require('./utils')
@@ -25,33 +25,33 @@ const rethrow = err => {
 
 ;[/*createFakeBot,*/ createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
-  test('await ready', loudCo(function* (t) {
-    const bot = createBot({ tradle: createTestTradle() })
-    const expectedEvent = toStreamItems([
-      {
-        old: {
-          link: 'a',
-          unsealed: 'x'
-        },
-        new: {
-          link: 'b'
-        }
-      }
-    ])
+  // test('await ready', loudCo(function* (t) {
+  //   const bot = createBot({ tradle: createTestTradle() })
+  //   const expectedEvent = toStreamItems([
+  //     {
+  //       old: {
+  //         link: 'a',
+  //         unsealed: 'x'
+  //       },
+  //       new: {
+  //         link: 'b'
+  //       }
+  //     }
+  //   ])
 
-    let waited
-    bot.hook('seal', co(function* (event) {
-      t.equal(waited, true)
-      t.equal(event, expectedEvent)
-      t.end()
-    }))
+  //   let waited
+  //   bot.hook('seal', co(function* (event) {
+  //     t.equal(waited, true)
+  //     t.equal(event, expectedEvent)
+  //     t.end()
+  //   }))
 
-    bot.trigger('seal', expectedEvent).catch(t.error)
+  //   bot.trigger('seal', expectedEvent).catch(t.error)
 
-    yield wait(100)
-    waited = true
-    bot.ready()
-  }))
+  //   yield wait(100)
+  //   waited = true
+  //   bot.ready()
+  // }))
 
   test(`users (${mode})`, loudCo(function* (t) {
     if (mode === 'real') {
@@ -117,27 +117,31 @@ const rethrow = err => {
 
     bot.ready()
     let { callCount } = cfnResponse.send
-    yield bot.oninit(co(function* (event) {
+
+    bot.oninit(co(function* (event) {
       t.same(event, expectedEvent)
-    }))(originalEvent, {
+    }))
+
+    yield bot.lambdas.oninit().handler(originalEvent, {
       done: t.error
     })
 
     t.equal(cfnResponse.send.getCall(callCount++).args[2], cfnResponse.SUCCESS)
 
-    yield bot.oninit(co(function* (event) {
-      throw new Error('blah')
-    }))(originalEvent, {
-      done: (err) => t.equal(err.message, 'blah')
+    bot.oninit(co(function* (event) {
+      throw new Error('test error')
+    }))
+
+    yield bot.lambdas.oninit().handler(originalEvent, {
+      done: (err) => t.equal(err.message, 'test error')
     })
 
     t.equal(cfnResponse.send.getCall(callCount++).args[2], cfnResponse.FAILED)
-
     t.end()
   }))
 
   test(`onmessage (${mode})`, loudCo(function* (t) {
-    t.plan(5)
+    t.plan(6)
 
     const tradle = createTestTradle()
     const { objects, messages, identities } = tradle
@@ -150,18 +154,19 @@ const rethrow = err => {
     })
 
     users.createIfNotExists = co(function* (user) {
+      // #1
       t.equal(user.id, message._author)
       return user
     })
 
     // const { byPermalink } = identities
-    const { get } = objects
     const payload = {
       _link: 'b',
+      _permalink: 'b',
       _t: 'a',
       _s: 'sig',
       _author: 'carol',
-      _virtual: ['_author', '_link']
+      _virtual: ['_author', '_link', '_permalink']
     }
 
     const message = {
@@ -173,7 +178,7 @@ const rethrow = err => {
       _virtual: ['_author', '_recipient', '_link']
     }
 
-    objects.get = co(function* (link) {
+    sinon.stub(objects, 'get').callsFake(co(function* (link) {
       if (link === message._link) {
         return message.object
       } else if (link === payload._link) {
@@ -181,7 +186,7 @@ const rethrow = err => {
       }
 
       throw new Errors.NotFound(link)
-    })
+    }))
 
     // identities.byPermalink = co(function* (permalink) {
     //   t.equal(permalink, message.author)
@@ -191,6 +196,7 @@ const rethrow = err => {
     bot.hook('message', co(function* (data) {
       const { user } = data
       user.bill = 'ted'
+      // 2, 3, 4
       t.equal(user.id, message._author)
       t.same(data.message, message)
       t.same(data.payload, payload)
@@ -200,10 +206,14 @@ const rethrow = err => {
     // console.log(conversation)
 
     bot.ready()
+    // #5
+    yield bot.lambdas.onmessage().handler(message, {
+      done: t.error
+    })
 
-    yield bot.trigger('message', message)
+    // yield bot.trigger('message', message)
+    // #6
     t.equal(updatedUser, true)
-    objects.get = get
     // identities.byPermalink = byPermalink
   }))
 
@@ -229,8 +239,7 @@ const rethrow = err => {
     }))
 
     bot.ready()
-
-    yield bot.trigger('seal', toStreamItems([
+    yield bot.lambdas.onsealstream().handler(toStreamItems([
       {
         old: {
           link,
@@ -249,7 +258,9 @@ const rethrow = err => {
           link
         }
       }
-    ]))
+    ]), {
+      done: t.error
+    })
 
     t.equal(read, true)
     t.equal(wrote, true)
@@ -288,7 +299,7 @@ const rethrow = err => {
   }))
 })
 
-test('save to type table', loudCo(function* (t) {
+test('onmessagestream', loudCo(function* (t) {
   const message = {
     "_author": "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
     "_inbound": true,
@@ -336,7 +347,14 @@ test('save to type table', loudCo(function* (t) {
     tradle
   })
 
+  const table = bot.db.tables['tradle.Ping']
+  // #1
+  t.ok(table, 'table created per model')
+
+  const { users } = bot
+
   const stubGet = sinon.stub(bot.objects, 'get').callsFake(async (link) => {
+    // #2
     t.equal(link, message.object._link)
     return payload
   })
@@ -344,15 +362,40 @@ test('save to type table', loudCo(function* (t) {
   const stubPreSign = sinon.stub(bot.objects, 'presignEmbeddedMediaLinks')
     .callsFake(object => object)
 
+  users.createIfNotExists = co(function* (user) {
+    // #3
+    t.equal(user.id, message._author)
+    return user
+  })
+
+  bot.hook('message', co(function* (data) {
+    // #4, 5
+    const { user } = data
+    user.bill = 'ted'
+    t.equal(user.id, message._author)
+    t.same(data.message, {
+      ...message, object: {
+        ...message.object,
+        ...payload
+      }
+    })
+  }))
+
+  let updatedUser
+  users.merge = co(function* () {
+    updatedUser = true
+  })
+
   bot.ready()
-  const table = bot.db.tables['tradle.Ping']
-  t.ok(table, 'table created per model')
 
-  yield bot.trigger('messagestream', toStreamItems([
+  yield bot.lambdas.onmessagestream().handler(toStreamItems([
     { new: message }
-  ]))
+  ]), {
+    // #6
+    done: t.error
+  })
 
-  const gql = bot.getGraphqlAPI()
+  const gql = getGraphqlAPI({ bot })
   const result = yield gql.executeQuery(`
     {
       rl_tradle_Ping(orderBy:{
@@ -367,6 +410,7 @@ test('save to type table', loudCo(function* (t) {
     }
   `)
 
+  // #7
   t.same(result, {
     "data": {
       "rl_tradle_Ping": {

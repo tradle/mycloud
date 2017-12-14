@@ -1,11 +1,13 @@
-import '../init-lambda'
+import { Lambda, EventSource } from '../lambda'
+import { tradle } from '../'
 
-import { Tradle } from '../'
-
-const { events, wrap } = new Tradle()
-exports.handler = wrap(function* (event, context) {
+const { events } = tradle
+const lambda = new Lambda({ source: EventSource.DYNAMODB, tradle })
+lambda.use(async ({ event }) => {
   const results = events.fromStreamEvent(event)
   if (results.length) {
-    yield events.putEvents(results)
+    await events.putEvents(results)
   }
-}, { source: 'dynamodbstreams' })
+})
+
+export const handler = lambda.handler

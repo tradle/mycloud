@@ -17,7 +17,6 @@ export function createMessagesTable ({ models, getMyIdentity }: {
 }) {
   const model = models['tradle.Message']
   const inbox = createTable({
-    bodyInObjects: false,
     models,
     model,
     exclusive: true,
@@ -27,7 +26,6 @@ export function createMessagesTable ({ models, getMyIdentity }: {
   })
 
   const outbox = createTable({
-    bodyInObjects: false,
     models,
     model,
     exclusive: true,

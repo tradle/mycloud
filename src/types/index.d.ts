@@ -30,7 +30,7 @@ export interface IotClientResponse {
   s3Endpoint?: string
 }
 
-export interface ILambdaExecutionContext {
+export interface ILambdaAWSExecutionContext {
   callbackWaitsForEmptyEventLoop: boolean
   logGroupName:                   string
   logStreamName:                  string
@@ -40,6 +40,10 @@ export interface ILambdaExecutionContext {
   invokeid:                       string
   awsRequestId:                   string
   invokedFunctionArn:             string
+  getRemainingTimeInMillis:       Function
+  done:                           Function
+  succeed:                        Function
+  fail:                           Function
 }
 
 export interface ITradleObject {
@@ -95,6 +99,7 @@ export interface ISendOpts extends IMessageOpts {
 export type IBatchSendOpts = ISendOpts[]
 
 export interface ILiveDeliveryOpts {
+  timeout: number
   recipient: string
   messages: ITradleMessage[]
   session?: ISession,
@@ -110,6 +115,7 @@ export interface IDelivery {
 }
 
 export interface IDeliverBatchRequest {
+  timeout: number
   recipient: string
   messages: ITradleMessage[]
   friend?: any

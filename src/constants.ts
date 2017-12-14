@@ -55,6 +55,7 @@ const constants = {
   HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
   WARMUP_SOURCE_NAME: 'warmup',
   WARMUP_SLEEP: 40,
+  UNDELIVERED_STATUS: 'u',
   unitToMillis
 }
 

@@ -16,7 +16,6 @@ export default {
       url = 'https://' + url
     }
 
-    debugger
     const friend = await context.bot.friends.load({ url })
     await context.sendSimpleMessage({
       req,

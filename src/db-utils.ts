@@ -8,7 +8,16 @@ import dynogels = require('dynogels')
 import { utils as vrUtils } from '@tradle/validate-resource'
 import { Level } from './logger'
 import { NotFound } from './errors'
-import { pick, logify, timestamp, wait, clone, batchify, timeMethods } from './utils'
+import {
+  pick,
+  logify,
+  timestamp,
+  wait,
+  waitImmediate,
+  clone,
+  batchify,
+  timeMethods
+} from './utils'
 import { prettify, alphabetical } from './string-utils'
 import { sha256 } from './crypto'
 import * as Errors from './errors'
@@ -18,6 +27,14 @@ import definitions = require('./definitions')
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 const TABLE_BUCKET_REGEX = /-bucket-\d+$/
+
+type Batch = {
+  Items: any[]
+  LastEvaluatedKey?: any
+}
+
+type BatchWorker = (batch:Batch) => Promise<boolean|void>
+type ItemWorker = (item:any) => Promise<boolean|void>
 
 export default createDBUtils
 export {
@@ -33,12 +50,14 @@ function createDBUtils ({ aws, logger }) {
   if (logger.level >= Level.WARN) {
     const level = logger.level >= Level.SILLY ? 'info' : 'warn'
     dynogels.log = {
-      info: (...data) => {
-        const str = JSON.stringify(data)
-        dynogelsLogger.info('', str.length > 1000 ? str.slice(0, 1000) + '...' : data)
-      },
+      info: () => {},
+      // info: (...data) => {
+      //   const str = JSON.stringify(data)
+      //   // dynogelsLogger.info('', str.length > 1000 ? str.slice(0, 1000) + '...' : data)
+      //   dynogelsLogger.info('', str)
+      // },
       warn: (...data) => dynogelsLogger.warn('', data),
-      level
+      level: 'warn'
     }
   }
 
@@ -109,8 +128,7 @@ function createDBUtils ({ aws, logger }) {
       destroy: deleteTable,
       deleteTable,
       query: find,
-      queryOne: findOne,
-      clear: () => clear(TableName)
+      queryOne: findOne
     }
 
     // aliases
@@ -123,7 +141,26 @@ function createDBUtils ({ aws, logger }) {
 
     tableAPI.name = TableName
     tableAPI.definition = getDefinition(TableName)
+    tableAPI.batchProcess = ({ params={}, ...opts }) => {
+      return batchProcess({
+        params: { ...params, TableName },
+        ...opts
+      })
+    }
+
+    tableAPI.clear = () => clear(TableName)
+    tableAPI.getTableDefinition = () => getTableDefinition(TableName)
     return timeMethods(tableAPI, logger)
+  }
+
+  const execWhile = async (method, params, filter) => {
+    while (true) {
+      try {
+        return await exec(method, params)
+      } catch (err) {
+        if (!filter(err)) throw err
+      }
+    }
   }
 
   const exec = async (method, params) => {
@@ -149,50 +186,71 @@ function createDBUtils ({ aws, logger }) {
   const createTable = params => dynamoDBExec('createTable', params)
   const deleteTable = params => dynamoDBExec('deleteTable', params)
 
-  const forEachItem = async ({ tableName, fn }) => {
-    const TableName = tableName
-    const tableDescription = await aws.dynamodb.describeTable({ TableName }).promise()
-    let count = 0
-    let scan = await exec('scan', { TableName })
-    while (true) {
-      let { Items, LastEvaluatedKey } = scan
-      if (!Items.length) break
+  const batchProcess = async ({ params, processOne, processBatch }: {
+    params: any
+    processOne?: ItemWorker,
+    processBatch?: BatchWorker
+  }) => {
+    const method = params.KeyConditionExpression ? 'query' : 'scan'
+    let lastEvaluatedKey = null
+    let retry = true
+    let keepGoing:boolean|void = true
+    let response
+    while (keepGoing && (lastEvaluatedKey || retry)) {
+      try {
+        response = await aws.docClient[method](params).promise()
+      } catch (err) {
+        if (err.retryable) {
+          retry = true
+          await waitImmediate()
+          continue
+        }
 
-      const results = await Promise.all(Items.map((item, i) => fn({
-        tableDescription,
-        i,
-        item,
-      })))
-
-      // allow abort mid-way
-      if (results.includes(false)) break
-
-      count += Items.length
-      if (!LastEvaluatedKey) {
-        break
+        retry = false
+        throw err
       }
 
-      scan = await exec('scan', {
-        TableName,
-        ExclusiveStartKey: LastEvaluatedKey
-      })
-    }
+      retry = false
+      lastEvaluatedKey = response.LastEvaluatedKey
+      if (lastEvaluatedKey) {
+        params.ExclusiveStartKey = lastEvaluatedKey
+      } else {
+        delete params.ExclusiveStartKey
+      }
 
-    return count
+      if (processBatch) {
+        keepGoing = await processBatch(response)
+      } else {
+        const results = await Promise.all(response.Items.map(item => processOne(item)))
+        keepGoing = results.every(result => result !== false)
+      }
+    }
   }
 
-  const clear = async (TableName:string) => {
-    return await forEachItem({
-      tableName: TableName,
-      fn: async ({ item, tableDescription }) => {
-        const { KeySchema } = tableDescription.Table
-        const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
-        await exec('delete', {
+  const getTableDefinition = async (TableName:string) => {
+    if (definitions[TableName]) return definitions[TableName]
+
+    const { Table } = await aws.dynamodb.describeTable({ TableName }).promise()
+    return Table
+  }
+
+  const clear = async (TableName:string):number => {
+    const { KeySchema } = await getTableDefinition(TableName)
+    const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
+    let count = 0
+    await batchProcess({
+      params: { TableName },
+      processOne: async (item) => {
+        await execWhile('delete', {
           TableName,
           Key: pick(item, keyProps)
-        })
+        }, err => err.name === 'LimitExceededException' || err.name === 'ResourceNotFoundException')
+
+        count++
       }
     })
+
+    return count
   }
 
   const listTables = async (env:Env) => {
@@ -345,7 +403,7 @@ function createDBUtils ({ aws, logger }) {
   }
 
   return timeMethods({
-    forEachItem,
+    batchProcess,
     listTables,
     createTable,
     deleteTable,
@@ -363,7 +421,8 @@ function createDBUtils ({ aws, logger }) {
     getTable,
     getRecordsFromEvent,
     getTableBuckets,
-    getModelMap
+    getModelMap,
+    getTableDefinition
   }, logger)
 }
 
@@ -378,7 +437,7 @@ function defaultBackoffFunction (retryCount) {
   return Math.min(jitter(delay, 0.1), 10000)
 }
 
-function getRecordsFromEvent (event, oldAndNew) {
+function getRecordsFromEvent (event, oldAndNew?) {
   return event.Records.map(record => {
     const { NewImage, OldImage } = record.dynamodb
     if (oldAndNew) {

@@ -488,6 +488,7 @@ export default class Seals {
       })
 
       this.logger.debug(`updating resource with seal`, summarizeObject(object))
+      // const before = await this.db.get(pick(object, [TYPE, '_permalink']))
       await Promise.all([
         this.db.update({
           ...pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
@@ -496,6 +497,13 @@ export default class Seals {
         }),
         this.objects.put(object)
       ])
+
+      // const saved = await this.db.get(pick(object, [TYPE, '_permalink']))
+      // const lost = Object.keys(object).filter(p => !(p in saved))
+      // if (lost.length) {
+      //   this.logger.debug(`lost properties ${lost.join(', ')}`)
+      //   this.logger.debug(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
+      // }
     }))
 
     await Promise.all([

@@ -1,9 +1,11 @@
-import '../init-lambda'
-
 import { tradle } from '../'
+import { Lambda, EventSource } from '../lambda'
 
-const { wrap, lambdaUtils } = tradle
+const { lambdaUtils } = tradle
+const lambda = new Lambda({ tradle, source: EventSource.LAMBDA })
 
-export const handler = wrap(async (event) => {
-  return await lambdaUtils.warmUp(event)
+lambda.use(async (ctx) => {
+  ctx.body = await lambdaUtils.warmUp(ctx.event)
 })
+
+export const handler = lambda.handler

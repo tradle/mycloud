@@ -9,6 +9,16 @@ const {
 
 const Errors = require('../errors')
 const yml = require('../cli/serverless-yml')
+const Logger = require('../logger').default
+
+const createSilentLogger = (opts={}) => {
+  const logger = new Logger(opts)
+  logger.setWriter({
+    log: () => {}
+  })
+
+  return logger
+}
 
 function getSchema (logicalName) {
   const {
@@ -107,5 +117,6 @@ export {
   putter,
   deleter,
   scanner,
-  reprefixServices
+  reprefixServices,
+  createSilentLogger
 }

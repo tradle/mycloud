@@ -1,5 +1,3 @@
-import '../init-lambda'
-
 if (process.env.NODE_ENV === 'test') {
   // require('debug').enable('*tradle*')
   require('xtend/mutable')(process.env, require('../../test/service-map'))
@@ -22,15 +20,18 @@ const { utils } = require('@tradle/engine')
 const helpers = require('@tradle/engine/test/helpers')
 const validateResource = require('@tradle/validate-resource')
 const tradle = require('../').tradle
-const { wrap, resources } = tradle
+const { resources } = tradle
 const { RestAPI } = resources
 const getMe = tradle.provider.getMyIdentity()
 const { getLink, getPermalink } = require('../crypto')
-const { omitVirtual } = require('../utils')
+const { omitVirtual, wrap } = require('../utils')
+import { Lambda, EventSource } from '../lambda'
 const allUsers = require('../test/fixtures/users').slice(4)
 // const names = allUsers.map(user => randomName.first())
 
-exports.handler = wrap(function* (event={}, context) {
+const lambda = new Lambda({ tradle, source: EventSource.LAMBDA })
+
+lambda.use(async ({ event={}, context }) => {
   const {
     // table,
     concurrency=1,
@@ -38,8 +39,10 @@ exports.handler = wrap(function* (event={}, context) {
   } = event
 
   const nodes = makeNodes(concurrency, offset)
-  yield Promise.all(nodes.map(pingPong))
-}, { source: 'lambda' })
+  await Promise.all(nodes.map(pingPong))
+})
+
+export const handler = lambda.handler
 
 const pingPong = co(function* (node, i) {
   const promisePong = awaitType(node, 'tradle.Pong')

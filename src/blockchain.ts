@@ -1,4 +1,3 @@
-import Env from './env'
 import Tradle from './tradle'
 import Logger from './logger'
 
@@ -76,7 +75,7 @@ export default class Blockchain {
   public getInfo: () => Promise<any>
   constructor(tradle:Tradle) {
     this.tradle = tradle
-    const { env, network } = tradle
+    const { logger, network } = tradle
     // typeforce({
     //   flavor: typeforce.String,
     //   networkName: typeforce.String,
@@ -94,7 +93,7 @@ export default class Blockchain {
     this.addressesAPI = promisify(this.reader.blockchain.addresses)
     this.getInfo = promisify(this.reader.blockchain.info)
     this.network = this.reader.network
-    this.logger = env.sublogger('blockchain')
+    this.logger = logger.sub('blockchain')
   }
 
   public toString = () => `${this.network.blockchain}:${this.network.name}`

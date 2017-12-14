@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 REDIS_CLI=$(which redis-cli)
 REDIS_SERVER=$(which redis-server)
 if [ "$REDIS_CLI" == "" ] || [ "$REDIS_SERVER" == "" ]; then
@@ -13,4 +15,8 @@ if [ "$PONG" != "PONG" ]; then
   exit 1
 fi
 
-npm run setup:local && DEBUG=λ*,*tradle* serverless offline start
+serverless dynamodb start --migrate &
+serverless s3 start &
+wait
+npm run gen:localresources
+DEBUG=λ*,*tradle* serverless offline start

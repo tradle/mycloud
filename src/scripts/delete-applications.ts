@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-process.env.IS_LAMBDA_ENVIRONMENT = false
+process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 require('source-map-support').install()
 
