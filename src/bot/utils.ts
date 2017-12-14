@@ -15,7 +15,8 @@ const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const IGNORED_PAYLOAD_TYPES = [
   'tradle.Message',
   'tradle.CustomerWaiting',
-  'tradle.ModelsPack'
+  'tradle.ModelsPack',
+  'tradle.StylesPack'
 ]
 
 const getMessagePayload = async ({ bot, message }) => {

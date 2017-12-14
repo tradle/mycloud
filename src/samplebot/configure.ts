@@ -1,8 +1,9 @@
 import deepEqual = require('deep-equal')
 import validateResource = require('@tradle/validate-resource')
-import { PUBLIC_CONF_KEY, PRIVATE_CONF_KEY } from './constants'
+import { PUBLIC_CONF_KEY, PRIVATE_CONF_KEY, CUSTOM_MODELS_KEY, STYLES_KEY } from './constants'
 import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
+import { allSettled } from '../utils'
 
 const { reinitializeOnConfChanged } = serverlessYml.custom
 
@@ -12,11 +13,14 @@ export class Conf {
   public publicConfBucket: any
   public publicConf: any
   public privateConf: any
+  public customModels: any
+  public styles: any
   constructor(bot) {
     this.bot = bot
     const { buckets } = bot
     this.privateConfBucket = buckets.PrivateConf
     this.publicConfBucket = buckets.PublicConf
+
     this.publicConf = this.publicConfBucket.getCacheable({
       ttl: 60000,
       key: PUBLIC_CONF_KEY,
@@ -28,18 +32,57 @@ export class Conf {
       key: PRIVATE_CONF_KEY,
       parse: JSON.parse.bind(JSON)
     })
-  }
 
-  public getPrivateConf = (forceFetch?:boolean) => {
-    return this.privateConf.get({
-      force: forceFetch
+    this.customModels = this.privateConfBucket.getCacheable({
+      ttl: 60000,
+      key: CUSTOM_MODELS_KEY,
+      parse: JSON.parse.bind(JSON)
+    })
+
+    this.styles = this.privateConfBucket.getCacheable({
+      ttl: 60000,
+      key: STYLES_KEY,
+      parse: JSON.parse.bind(JSON)
     })
   }
 
-  public getPublicConf = (forceFetch?:boolean) => {
-    return this.publicConf.get({
-      force: forceFetch
-    })
+  public get = async (forceFetch?:boolean) => {
+    const results = await allSettled([
+      this.getPrivateConf(),
+      this.getPublicConf(),
+      this.getStyles(),
+      this.getCustomModels()
+    ])
+
+    const [
+      privateConf,
+      publicConf,
+      styles,
+      customModels
+    ] = results.map(r => value)
+
+    return {
+      privateConf,
+      publicConf,
+      styles,
+      customModels
+    }
+  }
+
+  public getCustomModels = async (forceFetch?:boolean) => {
+    return this.customModels.get({ force: forceFetch })
+  }
+
+  public getStyles = async (forceFetch?:boolean) => {
+    return this.styles.get({ force: forceFetch })
+  }
+
+  public getPrivateConf = async (forceFetch?:boolean) => {
+    return this.privateConf.get({ force: forceFetch })
+  }
+
+  public getPublicConf = async (forceFetch?:boolean) => {
+    return this.publicConf.get({ force: forceFetch })
   }
 
   public savePublicConf = async (value:any, reinitializeContainers:boolean=true) => {

@@ -6,7 +6,8 @@ import validateResource = require('@tradle/validate-resource')
 import mergeModels = require('@tradle/merge-models')
 import { TYPE } from '@tradle/constants'
 import { models as onfidoModels } from '@tradle/plugin-onfido'
-import setNamePlugin from './set-name'
+import { setNamePlugin } from './set-name'
+import { keepStylesFreshPlugin } from './keep-styles-fresh'
 import { createGraphQLAuth } from './graphql-auth'
 // import { tradle as defaultTradleInstance } from '../../'
 import createBot = require('../../bot')
@@ -31,7 +32,7 @@ const USE_ONFIDO = true
 // then some handlers can migrate to 'messagestream'
 const willHandleMessages = event => event === 'message'
 
-export default function createProductsBot ({ bot, conf, event }) {
+export default function createProductsBot ({ bot, conf, customModels, styles, event }) {
   const {
     domain
   } = conf.org
@@ -55,13 +56,14 @@ export default function createProductsBot ({ bot, conf, event }) {
     namespace,
     models: {
       all: mergeModels()
-        .add(baseModels)
-        .add(models)
-        .add(USE_ONFIDO ? onfidoModels.all : {})
+        .add(baseModels, { validate: bot.isTesting })
+        .add(models, { validate: bot.isTesting })
+        .add(USE_ONFIDO ? onfidoModels.all : {}, { validate: bot.isTesting })
+        .add(customModels || {}, { validate: bot.isTesting })
         .get()
     },
     products: enabled,
-    validateModels: bot.env.TESTING
+    validateModels: bot.isTesting
     // queueSends: bot.env.TESTING ? true : queueSends
   })
 
@@ -106,6 +108,15 @@ export default function createProductsBot ({ bot, conf, event }) {
 
     employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
     customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
+
+    if (styles) {
+      const keepStylesFresh = keepStylesFreshPlugin({
+        styles,
+        send: (...args) => productsAPI.send(...args)
+      })
+
+      productsAPI.plugins.use({ onmessage: keepStylesFresh }, true)
+    }
 
     const keepModelsFresh = createProductsStrategy.keepModelsFresh({
       getIdentifier: req => {

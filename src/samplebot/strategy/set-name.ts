@@ -4,7 +4,7 @@ import validateResource = require('@tradle/validate-resource')
 const { parseStub } = validateResource.utils
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 
-const setNamePlugin = ({ bot, productsAPI }) => {
+export const setNamePlugin = ({ bot, productsAPI }) => {
   const logger = bot.logger.sub('plugin-set-name')
   const productToNameForm = {
     'nl.tradle.DigitalPassport': 'tradle.PhotoID',
@@ -86,5 +86,3 @@ const getNameFromForm = (form:any):Name|null => {
 
   return formatted && { firstName, lastName, formatted }
 }
-
-export default setNamePlugin
