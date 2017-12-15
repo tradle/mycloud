@@ -1,5 +1,6 @@
 
-export const PUBLIC_CONF_KEY = 'info.json'
-export const PRIVATE_CONF_KEY = 'bot-priv-conf.json'
-export const CUSTOM_MODELS_KEY = 'custom-models.json'
-export const STYLES_KEY = 'styles.json'
+export const PRIVATE_CONF_KEY = 'conf/bot.json'
+export const CUSTOM_MODELS_KEY = 'conf/models.json'
+export const STYLES_KEY = 'conf/style.json'
+export const ORG_KEY = 'org/org.json'
+export const INFO_KEY = 'info/info.json'

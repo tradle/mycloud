@@ -5,7 +5,7 @@ import Cache = require('lru-cache')
 import sinon = require('sinon')
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
-import { getFavicon } from '../image-utils'
+// import { getFavicon } from '../samplebot/image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
 import {
   loudAsync,
@@ -20,7 +20,7 @@ import {
   timeoutIn,
   batchProcess
 } from '../utils'
-import * as Errors from '../errors'
+import Errors = require('../errors')
 import { KVTable } from '../definitions'
 import aliceKeys = require('./fixtures/alice/keys')
 import { Tradle } from '../'

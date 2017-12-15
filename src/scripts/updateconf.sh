@@ -1,7 +1,6 @@
 #!/bin/sh
 
-CONF=$(cat ./src/samplebot/conf/provider.json)
-EVENT="{\"RequestType\":\"SetConf\",\"ResourceProperties\":$CONF}"
+EVENT="{\"RequestType\":\"UpdateConf\",\"ResourceProperties\":{}}"
 
 # set -x
 if [ "$IS_LOCAL" ]

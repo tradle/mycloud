@@ -1,8 +1,6 @@
 import crypto = require('crypto')
 import stableStringify = require('json-stable-stringify')
 
-const defaultPropertyName = 'stylesHash'
-
 function defaultGetIdentifier (req) {
   return req.user.id
 }
@@ -15,16 +13,16 @@ function hashString (algorithm, data) {
   return crypto.createHash(algorithm).update(data).digest('hex')
 }
 
-export const keepStylesFreshPlugin = ({
-  styles,
-  propertyName=defaultPropertyName,
+export const keepFreshPlugin = ({
+  object,
+  propertyName,
   // unique identifier for counterparty
   // which will be used to track freshness.
   // defaults to user.id
   getIdentifier=defaultGetIdentifier,
   send
 }) => {
-  const hash = hashObject(styles)
+  const hash = hashObject(object)
   return async (req) => {
     const identifier = getIdentifier(req)
     const { user } = req
@@ -33,10 +31,10 @@ export const keepStylesFreshPlugin = ({
     }
 
     const container = user[propertyName]
-    const stylesHash = container[identifier]
-    if (hash === stylesHash) return
+    const savedHash = container[identifier]
+    if (hash === savedHash) return
 
     container[identifier] = hash
-    await send({ req, object: styles }))
+    await send({ req, object })
   }
 }

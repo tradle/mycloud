@@ -17,13 +17,13 @@ lambda.tasks.add({
   name: 'init',
   promiser: async () => {
     const {
+      org,
       conf,
       productsAPI,
       employeeManager
     } = await customize({ bot, delayReady: true, event: 'graphql' })
 
     logger.debug('finished setting up bot graphql middleware')
-    const { org } = conf
     lambda.setGraphiqlOptions({
       logo: {
         src: org.logo,

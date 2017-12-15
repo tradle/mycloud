@@ -29,14 +29,14 @@ export const createEditConfOp = edit => async (opts) => {
   if (deepEqual(conf, current)) {
     throw new Error('you changed...nothing')
   } else {
-    const confManager = new Conf(bot)
-    await confManager.savePrivateConf(conf)
+    const confManager = new Conf({ bot })
+    await confManager.saveBotConf(conf)
   }
 }
 
-export const setProperty = createEditConfOp(({ context, req, path, value }) => {
-  dotProp.set(context.conf, path, value)
-})
+// export const setProperty = createEditConfOp(({ context, req, path, value }) => {
+//   dotProp.set(context.conf, path, value)
+// })
 
 // export const toggleFlag = createEditConfOp(({ context, req, flag, value }) => {
 //   const { conf } = context

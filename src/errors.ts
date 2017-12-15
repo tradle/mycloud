@@ -40,6 +40,11 @@ const matches = (err, type) => {
   if (type === 'system') {
     return isSystemError(err)
   }
+
+  if (Array.isArray(type)) {
+    return type.some(subType => matches(err, subType))
+  }
+
   if (typeof type === 'function' &&
     (err instanceof type || errors.is(err, type))) {
     return true

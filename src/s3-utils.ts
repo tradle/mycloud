@@ -112,6 +112,9 @@ module.exports = function createUtils ({ s3, logger }) {
     parse?:(any) => any,
     [x:string]: any
   }) => {
+    if (!key) throw new Error('expected "key"')
+    if (!bucket) throw new Error('expected "bucket"')
+
     let cached
     let type
     let etag

@@ -1,9 +1,14 @@
 import { EventEmitter } from 'events'
 import Logger from '../logger'
 
+export interface IPositionPair {
+  sent?: IPosition
+  received?: IPosition
+}
+
 export interface IPosition {
-  sent?: number
-  received?: number
+  time?: number
+  link?: string
 }
 
 export interface ISession {
@@ -13,8 +18,8 @@ export interface ISession {
   authenticated: boolean
   time: number
   connected: boolean
-  clientPosition?: IPosition
-  serverPosition?: IPosition
+  clientPosition?: IPositionPair
+  serverPosition?: IPositionPair
 }
 
 export interface IotClientResponse {

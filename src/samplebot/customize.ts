@@ -5,35 +5,42 @@ import validateResource = require('@tradle/validate-resource')
 import createProductsStrategy from './strategy'
 import { createBot } from '../bot'
 import { createConf } from './configure'
+import Errors = require('../errors')
 
 const ONFIDO_PLUGIN_PATH = 'products.plugins.onfido'
 
 export async function customize (opts) {
   const { bot, delayReady, event } = opts
-  const botConf = createConf(bot)
-  let [conf, customModels, styles] = await Promise.all([
-    botConf.getPrivateConf(),
-    botConf.getCustomModels().catch(err => {
+  const confy = createConf({ bot })
+  let [org, conf, customModels, style] = await Promise.all([
+    confy.org.get(),
+    confy.botConf.get(),
+    confy.models.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
     }),
-    botConf.getStyles().catch(err => {
+    confy.style.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
     })
   ])
 
+  const { domain } = org
+  const namespace = domain.split('.').reverse().join('.')
   const onfido = dotProp.get(conf, ONFIDO_PLUGIN_PATH)
-  try {
-    validateResource({ models, resource: styles })
-  } catch (err) {
-    bot.logger.error('invalid styles', err.stack)
-    styles = null
+  if (style) {
+    try {
+      validateResource({ models, resource: style })
+    } catch (err) {
+      bot.logger.error('invalid style', err.stack)
+      style = null
+    }
   }
 
   const components = createProductsStrategy({
     bot,
+    namespace,
     conf,
     customModels,
-    styles,
+    style,
     event
   })
 
@@ -41,6 +48,7 @@ export async function customize (opts) {
 
   return {
     ...components,
-    conf
+    conf,
+    org
   }
 }

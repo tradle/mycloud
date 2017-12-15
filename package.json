@@ -99,6 +99,7 @@
     "setenv": "npm run build:yml && ./lib/scripts/setenv.js",
     "setstyle": "./src/scripts/setstyle.sh",
     "setconf": "./src/scripts/setconf.sh",
+    "updateconf": "./src/scripts/updateconf.sh",
     "setstyle:local": "IS_LOCAL=1 ./src/scripts/setstyle.sh",
     "setconf:local": "IS_LOCAL=1 ./src/scripts/setconf.sh",
     "addfriends": "npm run copy-static-assets && ./lib/scripts/addfriends.js",
@@ -106,7 +107,8 @@
     "start": "./src/scripts/start.sh",
     "warmup": "serverless warmup run",
     "postinstall": "./src/scripts/postinstall.sh",
-    "remove": "npm run build:yml && serverless remove"
+    "remove": "npm run build:yml && serverless remove",
+    "reinitializecontainers": "sls invoke -f reinitialize-containers"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
@@ -134,7 +136,7 @@
     "@tradle/schema-joi": "github:tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",
     "@tradle/validate-model": "^4.1.0",
-    "@tradle/validate-resource": "^2.13.0",
+    "@tradle/validate-resource": "^2.14.0",
     "aws-xray-sdk": "^1.1.4",
     "bluebird": "^3.5.0",
     "bluebird-q": "^2.1.1",

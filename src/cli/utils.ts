@@ -280,7 +280,7 @@ const getTableDefinitions = () => {
 }
 
 const validateProviderConf = conf => {
-  const { style } = conf.public
+  const { style } = conf
   if (style) {
     validateResource({
       models,
@@ -403,7 +403,7 @@ const initializeProvider = async (opts={}) => {
   const { Init } = require('../samplebot/init')
   const init = new Init({ bot })
   const providerConf = require('../samplebot/conf/provider')
-  const { org } = providerConf.private
+  const { org } = providerConf
   try {
     await init.init({
       force,

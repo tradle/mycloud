@@ -250,6 +250,7 @@ export default class Provider {
 
   public _sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
     const { recipient } = batch[0]
+    this.logger.debug(`sending batch of ${batch.length} messages to ${recipient}`)
     const messages = await series(batch.map(
       sendOpts => () => this.createSendMessageEvent(sendOpts))
     )

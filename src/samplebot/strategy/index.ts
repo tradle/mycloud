@@ -7,7 +7,7 @@ import mergeModels = require('@tradle/merge-models')
 import { TYPE } from '@tradle/constants'
 import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { setNamePlugin } from './set-name'
-import { keepStylesFreshPlugin } from './keep-styles-fresh'
+import { keepFreshPlugin } from './keep-fresh'
 import { createGraphQLAuth } from './graphql-auth'
 // import { tradle as defaultTradleInstance } from '../../'
 import createBot = require('../../bot')
@@ -32,11 +32,14 @@ const USE_ONFIDO = true
 // then some handlers can migrate to 'messagestream'
 const willHandleMessages = event => event === 'message'
 
-export default function createProductsBot ({ bot, conf, customModels, styles, event }) {
-  const {
-    domain
-  } = conf.org
-
+export default function createProductsBot ({
+  bot,
+  namespace,
+  conf,
+  customModels,
+  style,
+  event
+}) {
   const {
     enabled,
     plugins={},
@@ -47,19 +50,22 @@ export default function createProductsBot ({ bot, conf, customModels, styles, ev
     graphqlRequiresAuth
   } = conf.products
 
-  const namespace = domain.split('.').reverse().join('.')
+  bot.logger.debug('setting up products strategy')
+
   const deploymentModels = createDeploymentModels(namespace)
   const DEPLOYMENT = deploymentModels.deployment.id
   const bankModels = createBankModels(namespace)
   const models = { ...deploymentModels.all, ...bankModels }
+  const handleMessages = willHandleMessages(event)
+  const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
     namespace,
     models: {
       all: mergeModels()
-        .add(baseModels, { validate: bot.isTesting })
-        .add(models, { validate: bot.isTesting })
-        .add(USE_ONFIDO ? onfidoModels.all : {}, { validate: bot.isTesting })
-        .add(customModels || {}, { validate: bot.isTesting })
+        .add(baseModels, { validate: false })
+        .add(models, mergeModelsOpts)
+        .add(USE_ONFIDO ? onfidoModels.all : {}, mergeModelsOpts)
+        .add(customModels || {}, mergeModelsOpts)
         .get()
     },
     products: enabled,
@@ -67,7 +73,7 @@ export default function createProductsBot ({ bot, conf, customModels, styles, ev
     // queueSends: bot.env.TESTING ? true : queueSends
   })
 
-  const handleMessages = willHandleMessages(event)
+  const send = (...args) => productsAPI.send(...args)
   const employeeManager = createEmployeeManager({
     productsAPI,
     approveAll: approveAllEmployees,
@@ -85,7 +91,12 @@ export default function createProductsBot ({ bot, conf, customModels, styles, ev
   // console.log('all models', Object.keys(productsAPI.models.all).join(', '))
 
   bot.setCustomModels(productsAPI.models.all)
-  productsAPI.install(bot)
+  if (handleMessages) {
+    productsAPI.install(bot)
+  } else {
+    productsAPI.bot = bot
+    productsAPI.emit('bot', bot)
+  }
 
   // prepend
   let commands
@@ -109,10 +120,25 @@ export default function createProductsBot ({ bot, conf, customModels, styles, ev
     employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
     customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
 
-    if (styles) {
-      const keepStylesFresh = keepStylesFreshPlugin({
-        styles,
-        send: (...args) => productsAPI.send(...args)
+    const { tours } = conf
+    if (tours) {
+      const { intro } = tours
+      if (intro) {
+        const sendLatestTour = keepFreshPlugin({
+          object: intro,
+          propertyName: 'introTour',
+          send
+        })
+
+        productsAPI.plugins.use({ onmessage: sendLatestTour })
+      }
+    }
+
+    if (style) {
+      const keepStylesFresh = keepFreshPlugin({
+        object: style,
+        propertyName: 'stylesHash',
+        send
       })
 
       productsAPI.plugins.use({ onmessage: keepStylesFresh }, true)
@@ -136,7 +162,7 @@ export default function createProductsBot ({ bot, conf, customModels, styles, ev
 
         return customerModels
       },
-      send: (...args) => productsAPI.send(...args)
+      send
     })
 
     const bizPlugins = require('@tradle/biz-plugins')
@@ -205,7 +231,7 @@ export default function createProductsBot ({ bot, conf, customModels, styles, ev
 
         const lowercase = message.toLowerCase()
         if (/^hey|hi|hello$/.test(message)) {
-          await productsAPI.send({
+          await send({
             req,
             object: {
               [TYPE]: 'tradle.SimpleMessage',

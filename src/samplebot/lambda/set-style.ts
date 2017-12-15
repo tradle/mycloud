@@ -4,7 +4,7 @@ import { createBot } from '../../bot'
 
 const bot = createBot()
 const lambda = bot.createLambda({ source: EventSource.LAMBDA })
-const conf = createConf(bot)
+const conf = createConf({ bot })
 
 lambda.use(async (ctx) => {
   await this.conf.setStyle(ctx.event)

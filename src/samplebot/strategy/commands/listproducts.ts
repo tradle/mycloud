@@ -3,6 +3,10 @@ export default {
   examples: [
     '/listproducts'
   ],
+  aliases: [
+    '/lsproducts',
+    '/ls-products'
+  ],
   description: 'see a list of products',
   exec: async function ({ context, req, command }) {
     const { productsAPI } = context

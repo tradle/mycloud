@@ -1,11 +1,9 @@
 
-const { types, typeforce } = require('@tradle/engine')
-const { identity } = types
-const { TYPE, PREV_TO_RECIPIENT, SEQ, SIG } = require('./constants')
+import { types, typeforce } from '@tradle/engine'
+import { TYPE, PREV_TO_RECIPIENT, SEQ, SIG } from './constants'
 
-function link (val) {
-  return typeof val === 'string' && val.length === 64
-}
+const { identity } = types
+const link = val => typeof val === 'string' && val.length === 64
 
 exports.link = link
 exports.permalink = link

@@ -26,7 +26,7 @@ import buildResource = require('@tradle/build-resource')
 import fetch = require('node-fetch')
 import { prettify, stableStringify } from './string-utils'
 import { SIG, TYPE, TYPES, WARMUP_SLEEP } from './constants'
-import { ExecutionTimeout } from './errors'
+import { HttpError, ExecutionTimeout } from './errors'
 import { CacheContainer } from './types'
 import Logger from './logger'
 
@@ -615,9 +615,7 @@ async function processResponse (res) {
       message = await res.text()
     }
 
-    const err = new Error(message)
-    err.code = res.status
-    throw err
+    throw new HttpError(res.status, message)
   }
 
   const text = await res.text()

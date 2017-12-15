@@ -7,10 +7,10 @@ import { EventSource } from '../../../lambda'
 const bot = createBot()
 const lambda = bot.lambdas.info()
 const { logger } = lambda
-const conf = createConf(bot)
+const conf = createConf({ bot })
 const router = new Router()
 router.get('/info', async (ctx, next) => {
-  const result = await conf.getPublicConf()
+  const result = await conf.info.get()
   if (!ctx.body) ctx.body = {}
   Object.assign(ctx.body, result)
 })

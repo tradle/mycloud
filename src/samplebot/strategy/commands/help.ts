@@ -23,6 +23,8 @@ export default {
       }
     } else {
       const availableCommands = getAvailableCommands({ context, req })
+        .map(command => `/${command}`)
+
       message = `These are the available commands:\n${availableCommands.join('\n')}`
     }
 

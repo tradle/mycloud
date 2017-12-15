@@ -1,3 +1,9 @@
+import {
+  PRIVATE_CONF_KEY,
+  CUSTOM_MODELS_KEY,
+  STYLES_KEY
+} from '../constants'
+import { processResponse } from '../../utils'
 import { Init } from '../init'
 import { createBot } from '../../bot'
 
@@ -11,7 +17,13 @@ lambda.use(async (ctx, next) => {
     await init.init(payload)
   } else if (type === 'setconf') {
     // artificial event, not CloudFormation
+    // if (typeof payload === 'string') {
+    //   const payload =
+    // }
+
     await init.update(payload)
+  } else if (type === 'updateconf') {
+    await init.recalcPublicInfo()
   }
 })
 
