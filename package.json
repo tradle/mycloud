@@ -49,7 +49,7 @@
     "gen:fixtures": "./lib/scripts/gen-fixtures.js",
     "gen:samples": "./lib/scripts/gen-samples.js",
     "gen:localsamples": "./lib/scripts/gen-samples.js --local",
-    "gen:localresources": "./lib/scripts/gen-local-resources.js",
+    "gen:localresources": "npm run gen:localcloudresources && ./lib/scripts/gen-local-resources.js",
     "gen:localcloudresources": "sls dynamodb migrate & sls s3 create & wait",
     "gen:resourcedefs": "./lib/scripts/gen-resource-defs.js",
     "gen:modelmap": "./lib/scripts/map-models-to-buckets.js",

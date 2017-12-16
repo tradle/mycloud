@@ -522,8 +522,8 @@ functions:
               - auth
               - inbox
               - onmessage_http
-              - to-events:
-                  concurrency: 2
+              # - to-events:
+              #     concurrency: 2
               # - bot_onmessagestream:
               #     concurrency: 2
     alarms:
