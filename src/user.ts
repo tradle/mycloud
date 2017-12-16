@@ -224,7 +224,7 @@ class UserSim {
       })
 
       if (!clientId) {
-        throw Errors.HttpError(400, err.message)
+        throw new Errors.HttpError(400, err.message)
       }
 
       this.tasks.add({

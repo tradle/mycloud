@@ -77,7 +77,15 @@ const rethrow = (err, type) => {
   }
 }
 
-const HttpError = createError('HttpError')
+const _HttpError = createError('HttpError')
+class HttpError extends Error {
+  public status: number
+  constructor(code, message) {
+    super(message)
+    this.status = code || 500
+  }
+}
+
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
   NotFound: createError('NotFound'),
@@ -96,11 +104,7 @@ const errors = {
   TimeTravel: createError('TimeTravel'),
   ExecutionTimeout: createError('ExecutionTimeout'),
   Exists: createError('Exists'),
-  HttpError: (code, message) => {
-    const err = new HttpError(message)
-    err.status = code
-    return err
-  },
+  HttpError,
   Timeout: createError('Timeout'),
   export: (err:Error): {
     type:string,

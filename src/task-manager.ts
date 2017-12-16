@@ -12,16 +12,17 @@ const RESOLVED = Promise.resolve()
 
 export class TaskManager {
   private tasks:Task[]
+  private logger: Logger
 
-  constructor(opts={}) {
-    this.logger = opts.logger || new Logger('task-manager')
+  constructor({ logger }: { logger?:Logger }={}) {
+    this.logger = logger || new Logger('task-manager')
     this.tasks = []
   }
 
   public add = (task: Task) => {
     this.logger.debug('add', { name: task.name })
 
-    const promise = task.promise || RESOLVED.then(task.promiser)
+    const promise = task.promise || RESOLVED.then(() => task.promiser())
     task = { ...task, promise }
     const start = Date.now()
     promise

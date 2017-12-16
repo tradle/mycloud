@@ -6,6 +6,11 @@ const lambda = new Lambda({
   tradle
 })
 
+lambda.tasks.add({
+  name: 'getiotendpoint',
+  promiser: lambda.tradle.iot.getEndpoint
+})
+
 lambda.use(async ({ event, context }) => {
   const { clientId, topics } = event
   await tradle.user.onSubscribed({ clientId, topics })

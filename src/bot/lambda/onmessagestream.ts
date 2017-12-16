@@ -26,6 +26,11 @@ export const outfitLambda = (lambda, opts) => {
     }
   }
 
+  lambda.tasks.add({
+    name: 'getiotendpoint',
+    promiser: bot.iot.getEndpoint
+  })
+
   lambda.use(async (ctx, next) => {
     const { event } = ctx
     event.bot = bot

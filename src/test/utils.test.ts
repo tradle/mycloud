@@ -12,6 +12,7 @@ import {
   firstSuccess,
   cachify,
   cachifyFunction,
+  cachifyPromiser,
   clone,
   batchStringsBySize,
   promisify,
@@ -110,6 +111,38 @@ test('cachifyFunction', loudAsync(async (t) => {
   t.equal(i, 2)
   t.equal(await cachified(), 'a')
   t.equal(i, 2)
+  t.end()
+}))
+
+test('cachifyPromiser', loudAsync(async (t) => {
+  const actions = [
+    async () => {
+      throw new Error('test err')
+    },
+    async () => {
+      return 'a'
+    }
+  ]
+
+  let i = 0
+  const fn = cachifyPromiser(() => actions[i++]())
+
+  try {
+    await fn()
+    t.fail('expected error')
+  } catch (err) {
+    t.equal(err.message, 'test err')
+  }
+
+  t.equal(await fn(), 'a')
+  t.equal(await fn(), 'a')
+  try {
+    fn('something')
+    t.fail('expected error')
+  } catch (err) {
+    t.ok(/arguments/.test(err.message))
+  }
+
   t.end()
 }))
 

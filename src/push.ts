@@ -1,9 +1,10 @@
 
 import superagent = require('superagent')
+import Cache = require('lru-cache')
 import { protocol } from '@tradle/engine'
 import buildResource = require('@tradle/build-resource')
 import { ECKey, sha256, randomString } from './crypto'
-import { cachifyPromiser, post } from './utils'
+import { cachifyFunction, post } from './utils'
 import Logger from './logger'
 import Provider from './provider'
 import KeyValueTable from './key-value-table'
@@ -27,10 +28,11 @@ export const getNotificationData = ({ nonce, seq }: {
 export const createSubscriberInfo = () => ({ seq: -1 })
 
 export default class Push {
-  private logger: Logger
   private serverUrl: string
   private registration: KeyValueTable
   private subscribers: KeyValueTable
+  public cache: any
+  public logger: Logger
   constructor ({ serverUrl, conf, logger }:{
     serverUrl:string
     conf:KeyValueTable
@@ -40,12 +42,15 @@ export default class Push {
     this.registration = pushConf.sub(':reg')
     this.subscribers = pushConf.sub(':sub')
     this.serverUrl = serverUrl
+    this.cache = new Cache({ max: 1 })
+    this.logger = logger
+    this.ensureRegistered = cachifyFunction(this, 'ensureRegistered')
   }
 
-  public ensureRegistered = cachifyPromiser(async ({ identity, key }) => {
+  public ensureRegistered = async ({ identity, key }) => {
     const registered = await this.isRegistered()
     if (!registered) await this.register({ identity, key })
-  })
+  }
 
   public isRegistered = () =>
     this.registration.exists(this.serverUrl)

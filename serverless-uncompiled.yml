@@ -639,7 +639,7 @@ functions:
 
   inbox:
     handler: lib/lambda/http/inbox.handler
-    memorySize: 1024
+    memorySize: 2048
     events:
       - http:
           path: inbox
@@ -714,7 +714,7 @@ functions:
   # and passes off to bot engine
   onmessage:
     handler: lib/lambda/mqtt/onmessage.handler
-    memorySize: 1024
+    memorySize: 2048
     #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
     #   SERVERLESS_STAGE: ${{self:custom.stage}}
@@ -921,7 +921,7 @@ functions:
     # make sure graphql route gets loaded
     handler: lib/samplebot/lambda/http/graphql.handler
     # handler: lib/lambda/http/default.handler
-    memorySize: 512
+    memorySize: 1024
     events:
       - http:
           path: graphql

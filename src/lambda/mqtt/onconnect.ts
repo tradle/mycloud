@@ -6,6 +6,11 @@ const lambda = new Lambda({
   tradle
 })
 
+lambda.tasks.add({
+  name: 'getiotendpoint',
+  promiser: tradle.iot.getEndpoint
+})
+
 lambda.use(async ({ event, context }) => {
   lambda.logger.debug('client connected', event)
   const { clientId } = event

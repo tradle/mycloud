@@ -9,6 +9,11 @@ export const createLambda = (opts) => {
 }
 
 export const outfitLambda = (lambda, opts) => {
+  lambda.tasks.add({
+    name: 'getiotendpoint',
+    promiser: lambda.bot.iot.getEndpoint
+  })
+
   lambda.use(onmessage(lambda, opts))
   return lambda
 }

@@ -9,6 +9,11 @@ const lambda = new Lambda({
   tradle
 })
 
+lambda.tasks.add({
+  name: 'getiotendpoint',
+  promiser: tradle.iot.getEndpoint
+})
+
 const messageHandler = async (ctx) => {
   const { message } = ctx.event
   // the user sent us a message

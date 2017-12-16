@@ -26,6 +26,11 @@ const lambda = new Lambda({
   tradle
 })
 
+lambda.tasks.add({
+  name: 'getiotendpoint',
+  promiser: tradle.iot.getEndpoint
+})
+
 lambda.use(cors())
 lambda.use(bodyParser({ jsonLimit: '10mb' }))
 
