@@ -1,6 +1,7 @@
 class WarmUp {
-  constructor(serverless) {
+  constructor(serverless, options) {
     this.serverless = serverless
+    this.options = options
     this.commands = {
       warmup: {
         usage: 'Warm up your functions',
@@ -11,6 +12,16 @@ class WarmUp {
               'init',
               'end'
             ],
+            options: {
+              "functions": {
+                "shortcut": "f",
+                "usage": "The function(s) to warm up"
+              },
+              "concurrency": {
+                "shortcut": "c",
+                "usage": "The concurrency with which to warm up the specified function"
+              }
+            }
           },
           cost: {
             usage: 'Estimate the cost of warming up your functions',
@@ -55,7 +66,18 @@ class WarmUp {
 
     loadCredentials()
 
-    return lambdaUtils.warmUp(lambdaUtils.getWarmUpInfo(serverlessYml).input)
+    const { concurrency, functions } = this.options
+    let input
+    if (functions) {
+      input = {
+        functions: [].concat(functions),
+        concurrency: concurrency || 1
+      }
+    } else {
+      input = lambdaUtils.getWarmUpInfo(serverlessYml).input
+    }
+
+    return lambdaUtils.warmUp(input)
       .then(results => {
         results = JSON.stringify(results, null, 2)
         this.serverless.cli.log(`WarmUp: ${results}`)
