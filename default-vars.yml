@@ -14,7 +14,8 @@ serverless-offline:
   port: 21012
 
 serverless-iot-local:
-  port: 1884
+  port: 1883
+  httpPort: 1884
 
 # if true, bot lambdas will be used directly in the parent lambda
 # if false, bot lambdas will be invoked with the lambda API
