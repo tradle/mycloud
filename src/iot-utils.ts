@@ -1,6 +1,8 @@
 
+const promisify = require('pify')
+const gzip = promisify(require('zlib').gzip)
 const debug = require('debug')('tradle:sls:iot')
-const { co, clone, cachifyPromiser } = require('./utils')
+const { clone, cachifyPromiser } = require('./utils')
 const DEFAULT_QOS = 1
 
 module.exports = function ({ aws, env, prefix='' }) {
@@ -8,34 +10,36 @@ module.exports = function ({ aws, env, prefix='' }) {
   // initialized lazily
   let iotData
 
-  const publish = co(function* (params) {
-    params = clone(params)
+  const publish = async (params) => {
+    params = { ...params }
     if (!('qos' in params)) params.qos = DEFAULT_QOS
 
-    if (typeof params.payload === 'object') {
-      params.payload = JSON.stringify(params.payload)
+    let { payload } = params
+    if (!(typeof payload === 'string' || Buffer.isBuffer(payload))) {
+      payload = JSON.stringify(payload)
     }
 
+    params.payload = await gzip(payload)
     debug(`publishing to ${params.topic}`)
     if (!iotData) {
       let endpoint = env.IOT_ENDPOINT
       if (!endpoint) {
         // HACK: set for ./aws to pick up
-        env.IOT_ENDPOINT = yield getEndpoint()
+        env.IOT_ENDPOINT = await getEndpoint()
       }
 
       iotData = aws.iotData
     }
 
-    return yield iotData.publish(params).promise()
-  })
+    return await iotData.publish(params).promise()
+  }
 
-  const getEndpoint = cachifyPromiser(co(function* () {
+  const getEndpoint = cachifyPromiser(async () => {
     if (env.IOT_ENDPOINT) return env.IOT_ENDPOINT
 
-    const { endpointAddress } = yield aws.iot.describeEndpoint().promise()
+    const { endpointAddress } = await aws.iot.describeEndpoint().promise()
     return endpointAddress
-  }))
+  })
 
   const Iot = {
     publish,

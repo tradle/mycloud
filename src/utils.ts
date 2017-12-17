@@ -644,25 +644,25 @@ async function processResponse (res) {
   return text
 }
 
-export function batchStringsBySize (strings, max) {
-  strings = strings.filter(s => s.length)
+export function batchByByteLength (arr:Array<string|Buffer>, max) {
+  arr = arr.filter(s => s.length)
 
   const batches = []
   let cur = []
-  let str
+  let item
   let length = 0
-  while (str = strings.shift()) {
-    let strLength = Buffer.byteLength(str, 'utf8')
-    if (length + str.length <= max) {
-      cur.push(str)
-      length += strLength
+  while (item = arr.shift()) {
+    let itemLength = Buffer.isBuffer(item) ? item.length : Buffer.byteLength(item, 'utf8')
+    if (length + item.length <= max) {
+      cur.push(item)
+      length += itemLength
     } else if (cur.length) {
       batches.push(cur)
-      cur = [str]
-      length = strLength
+      cur = [item]
+      length = itemLength
     } else {
-      debug('STRING TOO LONG!', str)
-      throw new Error(`string length (${strLength}) exceeds max (${max})`)
+      debug('STRING TOO LONG!', item)
+      throw new Error(`item length (${itemLength}) exceeds max (${max})`)
     }
   }
 

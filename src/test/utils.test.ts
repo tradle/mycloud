@@ -14,7 +14,7 @@ import {
   cachifyFunction,
   cachifyPromiser,
   clone,
-  batchStringsBySize,
+  batchByByteLength,
   promisify,
   wrap,
   wait,
@@ -252,7 +252,7 @@ test('batch by size', function (t) {
 
   const input = expected.reduce((arr, next) => arr.concat(next), [])
 
-  t.same(batchStringsBySize(input, MAX), expected)
+  t.same(batchByByteLength(input, MAX), expected)
   t.end()
 })
 

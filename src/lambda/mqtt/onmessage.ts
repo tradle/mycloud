@@ -1,5 +1,8 @@
+
 import { tradle } from '../../'
 import { Lambda, EventSource } from '../../lambda'
+import promisify = require('pify')
+const zlib = promisify(require('zlib'))
 
 const lambda = new Lambda({
   source: EventSource.IOT,
@@ -13,7 +16,8 @@ lambda.use(async ({ event, context }) => {
     clientId = topic.match(/\/([^/]+)\/[^/]+/)[1]
   }
 
-  const message = new Buffer(data.data, 'base64')
+  const buf = typeof data === 'string' ? new Buffer(data, 'base64') : data
+  const message = await zlib.gunzip(buf)
   await tradle.user.onSentMessage({ clientId, message })
   lambda.logger.debug('preceived')
 })

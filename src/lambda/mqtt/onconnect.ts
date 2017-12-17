@@ -12,6 +12,8 @@ lambda.tasks.add({
 })
 
 lambda.use(async ({ event, context }) => {
+  if (Buffer.isBuffer(event)) event = JSON.parse(event)
+
   lambda.logger.debug('client connected', event)
   const { clientId } = event
   await tradle.user.onConnected({ clientId })

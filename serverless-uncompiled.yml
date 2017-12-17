@@ -639,7 +639,7 @@ functions:
 
   inbox:
     handler: lib/lambda/http/inbox.handler
-    memorySize: 2048
+    memorySize: 1024
     events:
       - http:
           path: inbox
@@ -714,14 +714,14 @@ functions:
   # and passes off to bot engine
   onmessage:
     handler: lib/lambda/mqtt/onmessage.handler
-    memorySize: 2048
+    memorySize: 1024
     #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
     #   SERVERLESS_STAGE: ${{self:custom.stage}}
     #   SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
-          sql: "SELECT * as data, clientid() as clientId, topic() as topic FROM '${{self:custom.iotParentTopic}}/+/pub/outbox'"
+          sql: "SELECT encode(*, 'base64') as data, clientid() as clientId, topic() as topic FROM '${{self:custom.iotParentTopic}}/+/pub/outbox'"
           sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors

@@ -12,6 +12,8 @@ lambda.tasks.add({
 })
 
 lambda.use(async ({ event, context }) => {
+  if (Buffer.isBuffer(event)) event = JSON.parse(event)
+
   const { clientId, topics } = event
   await tradle.user.onSubscribed({ clientId, topics })
 })

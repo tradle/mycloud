@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { SEQ } from '@tradle/constants'
 import { co, typeforce, pick } from './utils'
 import Errors = require('./errors')
-import { pick, omitVirtual, extend, batchStringsBySize, bindAll } from './utils'
+import { pick, omitVirtual, extend, batchByByteLength, bindAll } from './utils'
 import { getLink } from './crypto'
 import { IDelivery, ILiveDeliveryOpts } from './types'
 import Messages from './messages'
@@ -13,7 +13,8 @@ import Logger from './logger'
 
 // 128KB, but who knows what overhead MQTT adds, so leave a buffer
 // would be good to test it and know the hard limit
-const MAX_PAYLOAD_SIZE = 115000
+// but there's also gzip, which cuts size by 5-10x for large JSONs
+const MAX_PAYLOAD_SIZE = 120000 * 5
 
 // eventemitter makes testing easier
 export default class DeliveryIot extends EventEmitter implements IDelivery {
@@ -62,7 +63,7 @@ export default class DeliveryIot extends EventEmitter implements IDelivery {
     const seqs = messages.map(m => m[SEQ])
     this.logger.debug(`delivering ${messages.length} messages to ${recipient}: ${seqs.join(', ')}`)
     const strings = messages.map(stringify)
-    const subBatches = batchStringsBySize(strings, MAX_PAYLOAD_SIZE)
+    const subBatches = batchByByteLength(strings, MAX_PAYLOAD_SIZE)
     const promises = []
     // this assumes the client has a processing queue
     // that reorders by seq/time

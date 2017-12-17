@@ -8,6 +8,8 @@ const lambda = new Lambda({
 })
 
 lambda.use(async ({ event, context }) => {
+  if (Buffer.isBuffer(event)) event = JSON.parse(event)
+
   lambda.logger.debug('client disconnected', prettify(event))
   const { clientId } = event
   await tradle.user.onDisconnected({ clientId })
