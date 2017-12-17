@@ -152,12 +152,7 @@ export function cachifyPromiser (fn, opts={}) {
   let promise
   const cachified = (...args) => {
     if (args.length) {
-      const msg = 'functions cachified with cachifyPromiser do not accept arguments'
-      if (process.env.IS_OFFLINE) {
-        throw new Error(msg)
-      } else {
-        console.warn(msg)
-      }
+      throw new Error('functions cachified with cachifyPromiser do not accept arguments')
     }
 
     if (!promise) {
