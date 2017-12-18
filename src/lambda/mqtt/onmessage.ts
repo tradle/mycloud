@@ -1,8 +1,8 @@
 
+import IotMessage = require('@tradle/iot-message')
 import { tradle } from '../../'
 import { Lambda, EventSource } from '../../lambda'
-import promisify = require('pify')
-const zlib = promisify(require('zlib'))
+import Errors = require('../../errors')
 
 const lambda = new Lambda({
   source: EventSource.IOT,
@@ -17,7 +17,13 @@ lambda.use(async ({ event, context }) => {
   }
 
   const buf = typeof data === 'string' ? new Buffer(data, 'base64') : data
-  const message = await zlib.gunzip(buf)
+  let message
+  try {
+    message = await IotMessage.decode(buf)
+  } catch (err) {
+    throw new Errors.InvalidInput('client sent invalid MQTT payload')
+  }
+
   await tradle.user.onSentMessage({ clientId, message })
   lambda.logger.debug('preceived')
 })

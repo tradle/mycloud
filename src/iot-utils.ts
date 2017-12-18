@@ -1,12 +1,12 @@
 
-const promisify = require('pify')
-const gzip = promisify(require('zlib').gzip)
-const debug = require('debug')('tradle:sls:iot')
-const { clone, cachifyPromiser } = require('./utils')
+import promisify = require('pify')
+import IotMessage = require('@tradle/iot-message')
+import { clone, cachifyPromiser } from './utils'
 const DEFAULT_QOS = 1
 
 module.exports = function ({ aws, env, prefix='' }) {
 
+  const logger = env.logger.sub('iot-utils')
   // initialized lazily
   let iotData
 
@@ -14,13 +14,12 @@ module.exports = function ({ aws, env, prefix='' }) {
     params = { ...params }
     if (!('qos' in params)) params.qos = DEFAULT_QOS
 
-    let { payload } = params
-    if (!(typeof payload === 'string' || Buffer.isBuffer(payload))) {
-      payload = JSON.stringify(payload)
-    }
+    params.payload = await IotMessage.encode({
+      payload: params.payload,
+      encoding: 'gzip'
+    })
 
-    params.payload = await gzip(payload)
-    debug(`publishing to ${params.topic}`)
+    logger.debug(`publishing to ${params.topic}`)
     if (!iotData) {
       let endpoint = env.IOT_ENDPOINT
       if (!endpoint) {
