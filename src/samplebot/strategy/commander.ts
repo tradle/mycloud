@@ -46,7 +46,7 @@ export class Commander {
     this.logger = bot.logger.sub('cli')
   }
 
-  async exec({ req, command }) {
+  public exec = async ({ req, command }) => {
     this.logger.debug(`processing command: ${command}`)
     const isEmployee = this.employeeManager.isEmployee(req.user)
     const [commandName, argsStr=''] = command.match(COMMAND_REGEX).slice(1)
@@ -76,11 +76,16 @@ export class Commander {
       await this.sendSimpleMessage({ req, message })
     }
   }
-  async sendSimpleMessage ({ req, to, message }: {
+
+  public send = async (...args) => {
+    return await this.productsAPI.send(...args)
+  }
+
+  public sendSimpleMessage = async ({ req, to, message }: {
     req: any
     to?: any
     message: string
-  }) {
+  }) => {
     if (!to) to = req.user
 
     await this.productsAPI.send({

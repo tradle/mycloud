@@ -11,13 +11,15 @@ export const EMPLOYEE_COMMANDS = [
   'forgetme',
   'setproductenabled',
   'setautoverify',
-  'addfriend'
+  'addfriend',
+  'tours'
 ]
 
 export const CUSTOMER_COMMANDS = [
   'help',
   'listproducts',
-  'forgetme'
+  'forgetme',
+  'tours'
 ]
 
 export const createEditConfOp = edit => async (opts) => {
@@ -34,9 +36,9 @@ export const createEditConfOp = edit => async (opts) => {
   }
 }
 
-// export const setProperty = createEditConfOp(({ context, req, path, value }) => {
-//   dotProp.set(context.conf, path, value)
-// })
+export const setProperty = createEditConfOp(({ context, req, path, value }) => {
+  dotProp.set(context.conf, path, value)
+})
 
 // export const toggleFlag = createEditConfOp(({ context, req, flag, value }) => {
 //   const { conf } = context

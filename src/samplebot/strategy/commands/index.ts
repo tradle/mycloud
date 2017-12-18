@@ -5,6 +5,7 @@ import forgetme from './forgetme'
 import setproductenabled from './setproductenabled'
 import setautoverify from './setautoverify'
 import addfriend from './addfriend'
+import tours from './tours'
 
 export {
   help,
@@ -12,6 +13,7 @@ export {
   forgetme,
   setproductenabled,
   setautoverify,
-  addfriend
+  addfriend,
+  tours
   // autoApprove
 }
