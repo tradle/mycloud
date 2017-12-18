@@ -15,8 +15,7 @@ if [ "$PONG" != "PONG" ]; then
   exit 1
 fi
 
-serverless dynamodb start --migrate &
-serverless s3 start &
-wait
+npm run localstack:start
+sleep 5
 npm run gen:localresources
 DEBUG=λ*,*tradle* serverless offline start

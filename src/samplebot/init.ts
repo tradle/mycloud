@@ -21,6 +21,10 @@ export class Init {
     this.confManager = new Conf({ bot })
   }
 
+  public getConf = async () => {
+    return this.confManager.get()
+  }
+
   public ensureInitialized = async (conf) => {
     try {
       await this.bot.getMyIdentity()

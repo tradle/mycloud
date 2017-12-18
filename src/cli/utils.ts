@@ -400,14 +400,23 @@ const initializeProvider = async (opts={}) => {
 
   bot.ready()
 
-  const { Init } = require('../samplebot/init')
-  const init = new Init({ bot })
+  const { Conf } = require('../samplebot/configure')
+  const conf = new Conf({ bot })
+  if (!force) {
+    try {
+      const current = await conf.get()
+      const { info, botConf } = current
+      if (info && botConf) {
+        console.log('already initialized')
+        return
+      }
+    } catch (err) {}
+  }
+
   const providerConf = require('../samplebot/conf/provider')
-  const { org } = providerConf
   try {
-    await init.init({
-      force,
-      private: { org }
+    await conf.init(providerConf, {
+      forceRecreateIdentity: force
     })
   } catch (err) {
     Errors.ignore(err, Errors.Exists)

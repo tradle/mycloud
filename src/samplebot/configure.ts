@@ -117,6 +117,15 @@ export class Conf {
   //   }
   // }
 
+  public get = async () => {
+    const promises = {}
+    Object.keys(parts).forEach(key => {
+      promises[key] = this[key].get().catch(err => null)
+    })
+
+    return await Promise.props(promises)
+  }
+
   public saveBotConf = async (value:any, reinitializeContainers:boolean=true) => {
     await this.botConf.put(value)
     if (reinitializeContainers) {

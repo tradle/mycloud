@@ -23,7 +23,7 @@ services:
       - KINESIS_ERROR_PROBABILITY=${KINESIS_ERROR_PROBABILITY- }
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
+      - "$TMPDIR/${TRADLE_LOCALSTACK_TMP_SUBDIR}:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
   tradle_web:
     image: tradle/web-app:cloud

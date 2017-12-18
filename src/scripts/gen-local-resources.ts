@@ -22,17 +22,7 @@ const rethrow = (err) => {
   if (err) throw err
 }
 
-;(async () => {
-  // the below has been replaced by the plugins serverless-dynamodb-local and serverless-s3-local
-  // const numCreated = await genLocalResources({ tradle })
-  // if (numCreated) {
-  //   console.log('waiting a bit to ensure resources are ready...')
-  //   await new Promise(resolve => setTimeout(resolve, 5000))
-  // }
-
-  await initializeProvider()
-})()
-.catch(err => {
+initializeProvider().catch(err => {
   console.error(err)
   process.exitCode = 1
 })
