@@ -13,6 +13,11 @@ import Messages from './messages'
 import Tradle from './tradle'
 import { ISession } from './types'
 
+const ClientErrors = {
+  reconnect_required: 'reconnect_required',
+  incompatible_client: 'incompatible_client'
+}
+
 /**
  * simulates user actions, e.g.
  *  a user sending us a message
@@ -292,15 +297,11 @@ class UserSim {
     await this.maybeDeliverMessagesToClient(session)
   }
 
-  public requestIotClientReconnect = async ({
-    clientId,
-    error,
-    message='please reconnect'
-  }) => {
-    this.logger.debug('requesting iot client reconnect', error && {
-      stack: error.stack
-    })
+  public onIncompatibleClient = async ({ clientId }) => {
+    await this.sendError({ clientId, message: ClientErrors.incompatible_client })
+  }
 
+  public sendError = async ({ clientId, message }) => {
     await this.delivery.mqtt.trigger({
       clientId,
       topic: 'error',
@@ -308,6 +309,18 @@ class UserSim {
         message
       }
     })
+  }
+
+  public requestIotClientReconnect = async ({
+    clientId,
+    error,
+    message=ClientErrors.reconnect_required
+  }) => {
+    this.logger.debug('requesting iot client reconnect', error && {
+      stack: error.stack
+    })
+
+    await this.sendError({ clientId, message })
   }
 
   public onPreAuth = async (opts) => {

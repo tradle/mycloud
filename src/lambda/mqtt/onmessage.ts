@@ -21,7 +21,9 @@ lambda.use(async ({ event, context }) => {
   try {
     message = await IotMessage.decode(buf)
   } catch (err) {
-    throw new Errors.InvalidInput('client sent invalid MQTT payload')
+    lambda.logger.error('client sent invalid MQTT payload', err.stack)
+    await tradle.user.onIncompatibleClient({ clientId })
+    return
   }
 
   await tradle.user.onSentMessage({ clientId, message })
