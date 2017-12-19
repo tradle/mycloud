@@ -35,7 +35,8 @@ const { TYPE, SIG } = constants
 const promisePassThrough = data => Promise.resolve(data)
 
 const PROXY_TO_TRADLE = [
-  'aws', 'objects', 'db', 'dbUtils', 'lambdaUtils', 'iot', 'seals',
+  'aws', 'objects', 'db', 'dbUtils', 'contentAddressedStore',
+  'lambdaUtils', 'iot', 'seals',
   'identities', 'history', 'messages', 'friends',
   'resources', 'env', 'router', 'buckets', 'tables',
   'serviceMap', 'version', 'apiBaseUrl', 'tasks'

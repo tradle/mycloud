@@ -86,8 +86,8 @@ const exp = {
   get awsConfig() {
     return requireDefault('./aws-config')
   },
-  get ContentAddressedStorage() {
-    return requireDefault('./content-addressed-storage')
+  get ContentAddressedStore() {
+    return requireDefault('./content-addressed-store')
   },
   get KeyValueTable() {
     return requireDefault('./key-value-table')

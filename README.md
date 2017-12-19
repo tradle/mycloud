@@ -38,12 +38,17 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [npm run localstack:start](#npm-run-localstackstart)
   - [npm run localstack:stop](#npm-run-localstackstop)
   - [npm run localstack:restart](#npm-run-localstackrestart)
-  - [generate local resources (tables, buckets), local identity](#generate-local-resources-tables-buckets-local-identity)
+  - [npm run gen:localstack](#npm-run-genlocalstack)
+  - [npm run gen:localresources](#npm-run-genlocalresources)
+  - [npm run nuke:local](#npm-run-nukelocal)
   - [npm run reset:local](#npm-run-resetlocal)
   - [npm run deploy:safe](#npm-run-deploysafe)
   - [npm run test:e2e](#npm-run-teste2e)
   - [npm run test:graphqlserver](#npm-run-testgraphqlserver)
+  - [npm run graphqlserver](#npm-run-graphqlserver)
   - [npm run setstyle](#npm-run-setstyle)
+  - [npm run setconf](#npm-run-setconf)
+  - [warmup](#warmup)
 - [Project Architecture](#project-architecture)
   - [Directory Structure](#directory-structure)
   - [Main Components](#main-components)
@@ -300,17 +305,27 @@ npm run reset:local # delete + regen local dbs, buckets, etc.
 
 ### npm run localstack:start
 
+start DynamoDB and S3 in a Docker
+
 ### npm run localstack:stop
 
-Note: running this destroys your playground's tables and buckets
+stop local DynamoDB and S3
 
 ### npm run localstack:restart
 
-Note: running this destroys your playground's tables and buckets
+restart local DynamoDB and S3
 
-### generate local resources (tables, buckets), local identity
+### npm run gen:localstack
 
-Note: running this destroys your playground's identity, and creates a new one
+generate local DynamoDB tables and S3 buckets
+
+### npm run gen:localresources
+
+generate local tables, buckets, identity and keys
+
+### npm run nuke:local
+
+delete local tables, buckets, identity and keys
 
 ### npm run reset:local
 
@@ -318,7 +333,7 @@ delete and recreate local resources (tables, buckets, identity)
 
 ### npm run deploy:safe
 
-lint, run tests, rebuild native modules for the AWS Linux Container, and deploy
+lint, run tests, rebuild native modules for the AWS Linux Container used by AWS Lambda, and deploy to AWS
 
 ### npm run test:e2e
 
@@ -330,9 +345,27 @@ start up two UIs for browsing local data:
 - a DynamoDB Admin interface
 - GraphiQL
 
+### npm run graphqlserver
+
+starts up GraphiQL for querying remote data
+
 ### npm run setstyle
 
+DEPRECATED (use https://github.com/tradle/configure-tradle)
+
 To set the style of your provider, refer to the [StylesPack](https://github.com/tradle/models/blob/master/models/tradle.StylesPack.json) model. Set it in the "style" property in `./conf/provider.json`
+
+### npm run setconf
+
+DEPRECATED (use https://github.com/tradle/configure-tradle)
+
+Update the style and/or bot configuration of your provider
+
+### warmup
+
+- warm up all functions with: `serverless warmup run`
+- warm up a subset of functions with `serverless warmup run -f [function1] -f [function2] -c [concurrency]`
+- estimate cost of warm ups: `serverless warmup cost`
 
 ## Project Architecture
 
@@ -363,23 +396,25 @@ Below you'll find the description of the various architecture components that ge
 
 you'll typically see the tables prefixed per the servless convention, [service]-[stage]-[name] e.g. the `presence` table is `tradle-dev-presence` on the `dev` stage
 
-- pubkeys: maps public keys to identities that control them
-- presence: 
-- seals: tracks blockchain seals for objects, watches placed on expected seals, and seals queued for write
-- inbox: inbound messages from users
-- outbox: outbound messages to users
-- users: user state objects
-- friends: known Tradle/MyCloud nodes
-- events: master log, which due to performance issues, is ironically written to post-fact
-- bucket-x: tables that store instances of Tradle models, e.g. tradle.PhotoID, tradle.MyLifeInsurance, tradle.FormRequest. Each table stores multiple types, and types are mapped deterministically to a table "bucket"
-- push-subscribers (todo)
+- `pubkeys`: maps public keys to identities that control them
+- `presence`: Iot client sessions
+- `seals`: tracks blockchain seals for objects, watches placed on expected seals, and seals queued for write
+- `inbox`: inbound messages from users
+- `outbox`: outbound messages to users
+- `users`: user state objects
+- `friends`: known Tradle/MyCloud nodes
+- `events`: master log, which due to performance issues, is ironically written to post-fact
+- `bucket`-x: tables that store resources created from Tradle models, e.g. tradle.Application, tradle.PhotoID, tradle.MyLifeInsurance, tradle.FormRequest. Each table stores multiple types, and types are mapped deterministically to a table "bucket". Anything that gets put in inbox/outbox also ends up stored and indexed here. The GraphQL API reads from here.
+- `conf`: undifferentiated key/value store where you can store application and system-level configuration values. Currently stored push notification subscription information. 
+- `kv`: undifferentiated key/value store. This might be going away in favor of the `conf` table. Currently it's used by the Onfido plugin to store intermediate application/check state.
 
 #### Buckets
 
 - ObjectsBucket: stores all objects send/received to/from users
 - SecretsBucket: if I told you, I'd have to kill you. It stores the private keys for your MyCloud's identity.
-- PublicConfBucket: will probably be renamed to ConfBucket soon. It stores public/private configuration like: identity, styles, and bot plugin configuration files
-- ContentAddressedBucket: content-addressed storage, usable by bots
+- PublicConfBucket: won't be around much longer, but currently stores the pulic identity file
+- PrivateConfBucket: may be renamed to ConfBucket soon. It stores public/private configuration like: identity, styles, and bot plugin configuration files
+- ContentAddressedBucket: content-addressed storage, usable by bots. Use via `bot.contentAddressedStorage`
 - FileUploadBucket: because Lambda and IoT message-size limits, any media embedded in objects sent by users is first uploaded here
 
 #### Functions
@@ -387,10 +422,10 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 - warmup: keeps lambda containers warm to prevent cold start. Concurrency is configurable
 - preauth (HTTP): generates temporary credentials (STS) for new connections from users, attaches the IotClientRole to them, creates a new session in the `presence` table (still `unauthenticated`). Generates a challenge to be signed (verified in `auth`) \*
 - auth (HTTP): verifies the challenge, marks the session as authenticated \*
-- onconnect (IoT): updates the user's session, marks the user as connected
+- onconnect (IoT): updates the user's session. If the user is already subscribed to the right MQTT topics, attempts to deliver queued up messages depending on the user's announced send/receive position
 - ondisconnect (IoT): updates the user's session, marks the user as disconnected
-- onsubscribe (IoT): sends the user messages depending on their announced send/receive position
-- onmessage (IoT): processes inbound messages from the user. Pending validation, stores the object in ObjectsBucket and passes the message off to the `bot_onmessage` lambda
+- onsubscribe (IoT): updates the user's session. If the user is already connected, attempts to deliver messages depending on the user's announced send/receive position
+- onmessage (IoT): processes inbound messages from the user. Pending validation, stores the object in `ObjectsBucket` and passes the message off to the `bot_onmessage` lambda. *Note: currently the bot_onmessage lambda is run in-process, rather than invoked through AWS Lambda*
 - onmessage_http (HTTP): (DEPRECATED in favor of `inbox`) same as `onmessage`, but HTTP, so it has a higher maximum payload size.
 - inbox (HTTP): receives batches of inbound messages (typically from other MyCloud's)
 - to-events: replicates streams from `inbox`/`outbox`/`seals` tables to the `events` table

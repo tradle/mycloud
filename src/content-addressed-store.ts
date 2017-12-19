@@ -12,7 +12,7 @@ type Hasher = (any) => string
 
 const defaultHasher = data => sha256(data, 'hex')
 
-export default class ContentAddressedStorage {
+export default class ContentAddressedStore {
   private aws:AwsApis
   private bucket:any
   private hasher:Hasher

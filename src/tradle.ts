@@ -14,7 +14,7 @@ import Messages from './messages'
 import Seals from './seals'
 import Friends from './friends'
 import KeyValueTable from './key-value-table'
-import ContentAddressedStorage from './content-addressed-storage'
+import ContentAddressedStore from './content-addressed-store'
 import { TaskManager } from './task-manager'
 import { requireDefault } from './require-default'
 import Push from './push'
@@ -36,7 +36,7 @@ export default class Tradle {
   public identities: Identities
   public messages: Messages
   public db: DB
-  public contentAddressedStorage:ContentAddressedStorage
+  public contentAddressedStore:ContentAddressedStore
   public conf:KeyValueTable
   public kv:KeyValueTable
   public auth: Auth
@@ -95,7 +95,7 @@ export default class Tradle {
       logger: this.logger.sub('s3-utils')
     }))
 
-    this.define('contentAddressedStorage', './content-addressed-storage', ctor => {
+    this.define('contentAddressedStore', './content-addressed-store', ctor => {
       return new ctor({
         bucket: this.buckets.ContentAddressed,
         aws: this.aws

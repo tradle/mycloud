@@ -400,8 +400,8 @@ test('Bucket with cache', loudAsync(async (t) => {
 }))
 
 test('content-addressed-storage', loudAsync(async (t) => {
-  const { contentAddressedStorage } = tradle
-  const key = await contentAddressedStorage.put('a')
+  const { contentAddressedStore } = tradle
+  const key = await contentAddressedStore.put('a')
   t.equal(key, sha256('a', 'hex'))
   t.end()
 }))
