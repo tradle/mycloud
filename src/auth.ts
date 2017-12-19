@@ -10,10 +10,25 @@ import Identities from './identities'
 import Messages from './messages'
 import Objects from './objects'
 import * as constants from './constants'
-import { IDebug, ISession, IotClientResponse, IIdentity } from './types/index.d'
+import {
+  IDebug,
+  ISession,
+  IIotClientResponse,
+  IRoleCredentials,
+  IAuthResponse,
+  IIdentity,
+  ITradleObject
+} from './types/index.d'
 import Logger from './logger'
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
+
+interface IChallengeResponse extends ITradleObject {
+  clientId: string
+  permalink: string
+  challenge: string
+  position: any
+}
 
 // const onExit = co(function* ({ clientId }) {
 //   try {
@@ -70,6 +85,10 @@ export default class Auth {
     this.messages = opts.messages
     this.iot = opts.iot
     this.logger = opts.logger.sub('auth')
+  }
+
+  get accountId () {
+    return this.env.accountId
   }
 
   public onAuthenticated = async (session:ISession): Promise<void> => {
@@ -183,12 +202,8 @@ export default class Auth {
   //   await Iot.sendChallenge({ clientId, challenge })
   // })
 
-  public handleChallengeResponse = async (response: {
-    clientId: string,
-    permalink: string,
-    challenge: string,
-    position: any
-  }): Promise<ISession> => {
+  public handleChallengeResponse = async (challengeResponse: IChallengeResponse)
+    :Promise<ISession> => {
     // TODO: get rid of this after TypeScript migration
     try {
       typeforce({
@@ -196,13 +211,13 @@ export default class Auth {
         permalink: typeforce.String,
         challenge: typeforce.String,
         position: types.position
-      }, response)
+      }, challengeResponse)
     } catch (err) {
       this.logger.error('received invalid input', err.stack)
       throw new InvalidInput(err.message)
     }
 
-    const { clientId, permalink, challenge, position } = response
+    const { clientId, permalink, challenge, position } = challengeResponse
 
     // const permalink = getPermalinkFromClientId(clientId)
     const session = await this.tables.Presence.get({
@@ -222,14 +237,15 @@ export default class Auth {
     }
 
     // validate sig
-    this.objects.addMetadata(response)
-    await this.identities.addAuthorInfo(response)
+    this.objects.addMetadata(challengeResponse)
+    await this.identities.addAuthorInfo(challengeResponse)
 
-    // console.log(`claimed: ${permalink}, actual: ${response._author}`)
-    if (response._author !== permalink) {
+    // console.log(`claimed: ${permalink}, actual: ${challengeResponse._author}`)
+    if (challengeResponse._author !== permalink) {
       throw new HandshakeFailed('signature does not match claimed identity')
     }
 
+    // const promiseCredentials = this.createCredentials(session)
     const getLastSent = this.messages.getLastMessageTo({ recipient: permalink, body: false })
       .then(message => this.messages.getMessageStub({ message }))
       .catch(err => {
@@ -245,16 +261,46 @@ export default class Auth {
 
     await this.onAuthenticated(session)
     return session
+    // const credentials = await promiseCredentials
+    // return {
+    //   time,
+    //   position: session.serverPosition,
+    //   // ...credentials
+    // }
   }
 
-  public createTemporaryIdentity = async (opts: {
-    accountId: string,
+  public createCredentials = async (session:ISession, role:string):Promise<IRoleCredentials> => {
+    const { clientId } = session
+    const role = `arn:aws:iam::${this.accountId}:role/${this.serviceMap.Role.IotClient}`
+    this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
+
+    this.logger.info('assuming role', role)
+    const params = {
+      RoleArn: role,
+      RoleSessionName: randomString(16),
+    }
+
+    const promiseRole = this.aws.sts.assumeRole(params).promise()
+    const {
+      AssumedRoleUser,
+      Credentials
+    } = await promiseRole
+
+    this.logger.debug('assumed role', role)
+    return {
+      accessKey: Credentials.AccessKeyId,
+      secretKey: Credentials.SecretAccessKey,
+      sessionToken: Credentials.SessionToken,
+      uploadPrefix: this.getUploadPrefix(AssumedRoleUser)
+    }
+  }
+
+  public createSession = async (opts: {
     clientId: string,
     identity: IIdentity
-  }): Promise<IotClientResponse> => {
+  }): Promise<IIotClientResponse> => {
     try {
       typeforce({
-        accountId: typeforce.String,
         clientId: typeforce.String,
         identity: types.identity
       }, opts)
@@ -263,23 +309,13 @@ export default class Auth {
       throw new InvalidInput(err.message)
     }
 
-    const { accountId, clientId, identity } = opts
+    const { clientId, identity } = opts
     const permalink = getPermalink(identity)
     if (permalink !== getPermalinkFromClientId(clientId)) {
       throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
     }
 
     const maybeAddContact = this.identities.addContact(identity)
-    const role = `arn:aws:iam::${accountId}:role/${this.serviceMap.Role.IotClient}`
-    this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
-
-    // get the account id which will be used to assume a role
-
-    this.logger.info('assuming role', role)
-    const params = {
-      RoleArn: role,
-      RoleSessionName: randomString(16),
-    }
 
     // assume role returns temporary keys
     const challenge = this.createChallenge()
@@ -299,20 +335,10 @@ export default class Auth {
       maybeAddContact
     ])
 
-    const {
-      AssumedRoleUser,
-      Credentials
-    } = await this.aws.sts.assumeRole(params).promise()
-
-    this.logger.debug('assumed role', role)
-    const resp:IotClientResponse = {
+    const resp:IIotClientResponse = {
       iotEndpoint: await this.iot.getEndpoint(),
       iotParentTopic: this.env.IOT_PARENT_TOPIC,
       region: this.env.AWS_REGION,
-      accessKey: Credentials.AccessKeyId,
-      secretKey: Credentials.SecretAccessKey,
-      sessionToken: Credentials.SessionToken,
-      uploadPrefix: this.getUploadPrefix(AssumedRoleUser),
       time: Date.now(),
       challenge
     }

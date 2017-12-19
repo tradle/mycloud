@@ -324,16 +324,11 @@ class UserSim {
   }
 
   public onPreAuth = async (opts) => {
-    return await this.auth.createTemporaryIdentity(opts)
+    return await this.auth.createSession(opts)
   }
 
-  public onSentChallengeResponse = async (response) => {
-    const time = Date.now()
-    const session = await this.auth.handleChallengeResponse(response)
-    return {
-      time,
-      position: session.serverPosition
-    }
+  public onSentChallengeResponse = async (opts) => {
+    return await this.auth.handleChallengeResponse(opts)
   }
 
   // public onRestoreRequest = async ({ clientId, gt, lt }) => {

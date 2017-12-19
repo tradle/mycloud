@@ -22,17 +22,25 @@ export interface ISession {
   serverPosition?: IPositionPair
 }
 
-export interface IotClientResponse {
+export interface IIotClientResponse {
   iotEndpoint: string
   iotParentTopic: string
   challenge: string
   time: number
   region: string
+  s3Endpoint?: string
+}
+
+export interface IRoleCredentials {
   accessKey: string
   secretKey: string
   sessionToken: string
   uploadPrefix: string
-  s3Endpoint?: string
+}
+
+export interface IAuthResponse extends IRoleCredentials {
+  position: IPosition
+  time: number
 }
 
 export interface ILambdaAWSExecutionContext {

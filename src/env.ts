@@ -50,6 +50,7 @@ export default class Env {
   public logger:Logger
   public debug:IDebug
   public _X_AMZN_TRACE_ID:string
+  public accountId: string
 
   public PUSH_SERVER_URL:string
   public INVOKE_BOT_LAMBDAS_DIRECTLY:boolean
