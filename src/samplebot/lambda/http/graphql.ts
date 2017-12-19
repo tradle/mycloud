@@ -38,7 +38,7 @@ lambda.tasks.add({
       }
     })
 
-    if (false) {
+    if (lambda.stage !== 'dev') {
       createGraphQLAuth({ bot, employeeManager })
     }
 
