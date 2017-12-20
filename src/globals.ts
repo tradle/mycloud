@@ -17,6 +17,8 @@ mockery.enable({
   warnOnUnregistered: false
 })
 
+// mockery.registerMock('@tradle/serverless', './')
+
 console.warn('disabling "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
 mockery.registerMock('scrypt', {})
 if (process.env.IS_OFFLINE || process.env.IS_LOCAL || process.env.NODE_ENV === 'test') {

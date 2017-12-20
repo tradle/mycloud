@@ -4,7 +4,7 @@ import Logger from './logger'
 
 export type Task = {
   name: string
-  promiser: (...any) => Promise<void|any>
+  promiser?: (...any) => Promise<void|any>
   promise?: Promise<any|void>
 }
 
@@ -24,24 +24,7 @@ export class TaskManager {
 
     const promise = task.promise || RESOLVED.then(() => task.promiser())
     task = { ...task, promise }
-    const start = Date.now()
-    promise
-      .then(result => {
-        this.logger.debug('task completed', {
-          name: task.name,
-          time: Date.now() - start
-        })
-      })
-      .catch(err => {
-        this.logger.warn('task failed', {
-          name: task.name,
-          stack: err.stack
-        })
-      })
-      .finally(() => {
-        this.tasks.splice(this.tasks.indexOf(task), 1)
-      })
-
+    this.monitorTask(task)
     this.tasks.push(task)
     return promise
   }
@@ -64,5 +47,23 @@ export class TaskManager {
     })
 
     return results
+  }
+
+  private monitorTask = async (task) => {
+    const start = Date.now()
+    try {
+      await task.promise
+      this.logger.debug('task completed', {
+        name: task.name,
+        time: Date.now() - start
+      })
+    } catch (err) {
+      this.logger.warn('task failed', {
+        name: task.name,
+        stack: err.stack
+      })
+    } finally {
+      this.tasks.splice(this.tasks.indexOf(task), 1)
+    }
   }
 }

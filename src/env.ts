@@ -32,7 +32,6 @@ export default class Env {
   public REGION:string
   public AWS_LAMBDA_FUNCTION_NAME:string
   public FUNCTION_NAME:string
-  public BOT_ONMESSAGE:string
   public MEMORY_SIZE:number
   public DEBUG_FORMAT:string
   public DEBUG_LEVEL:string
@@ -53,7 +52,6 @@ export default class Env {
   public accountId: string
 
   public PUSH_SERVER_URL:string
-  public INVOKE_BOT_LAMBDAS_DIRECTLY:boolean
 
   private nick:string
   constructor(props:any) {
@@ -151,10 +149,6 @@ export default class Env {
 
     if ('NO_TIME_TRAVEL' in props) {
       this.NO_TIME_TRAVEL = yn(props.NO_TIME_TRAVEL)
-    }
-
-    if ('INVOKE_BOT_LAMBDAS_DIRECTLY' in props) {
-      this.INVOKE_BOT_LAMBDAS_DIRECTLY = yn(props.INVOKE_BOT_LAMBDAS_DIRECTLY)
     }
 
     this.REGION = this.AWS_REGION

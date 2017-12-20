@@ -321,7 +321,7 @@ export default class Seals {
     }, opts))
   }
 
-  public handleFailures = async (opts:IFailureQueryOpts={}) => {
+  public handleFailures = async (opts:IFailureQueryOpts={}):Promise<any> => {
     const { gracePeriod=DEFAULT_WRITE_GRACE_PERIOD } = opts
     const failures = await this.getLongUnconfirmed(opts)
     const failedWrites:Seal[] = []
@@ -334,10 +334,18 @@ export default class Seals {
       }
     }
 
-    await Promise.all([
+    const [
+      requeuedWrites,
+      canceledReads
+    ] = await Promise.all([
       this._requeueWrites(failedWrites),
       this._cancelReads(failedReads)
     ])
+
+    return {
+      requeuedWrites,
+      canceledReads
+    }
   }
 
   public getFailedReads = async (opts:IFailureQueryOpts={}) => {
@@ -379,7 +387,7 @@ export default class Seals {
     await this._requeueWrites(unconfirmed)
   }
 
-  private _requeueWrites = async (seals:Seal[]) => {
+  private _requeueWrites = async (seals:Seal[]):Promise<Seal[]> => {
     if (!seals.length) return
 
     this.logger.debug('failed writes', seals.map(seal => pick(seal, ['timeSealed', 'txId'])))
@@ -394,9 +402,10 @@ export default class Seals {
     })
 
     await this.table.batchPut(puts)
+    return seals
   }
 
-  private _cancelReads = async (seals:Seal[]) => {
+  private _cancelReads = async (seals:Seal[]):Promise<Seal[]> => {
     if (!seals.length) return
 
     this.logger.debug('failed reads', seals.map(seal => pick(seal, ['address', 'link'])))
@@ -410,6 +419,7 @@ export default class Seals {
     })
 
     await this.table.batchPut(puts)
+    return seals
   }
 
   private _syncUnconfirmed = async (opts: ILimitOpts = {}):Promise<void> => {
@@ -511,6 +521,7 @@ export default class Seals {
       updateObjectsAndDB
     ])
 
+    return changed
     // TODO: use dynamodb-wrapper
     // make this more robust
   }

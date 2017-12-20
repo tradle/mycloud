@@ -112,9 +112,9 @@ export interface ISendOpts extends IMessageOpts {
 export type IBatchSendOpts = ISendOpts[]
 
 export interface ILiveDeliveryOpts {
-  timeout: number
   recipient: string
   messages: ITradleMessage[]
+  timeout?: number
   session?: ISession,
   friend?: any
 }

@@ -9,12 +9,10 @@ if [ "$REDIS_CLI" == "" ] || [ "$REDIS_SERVER" == "" ]; then
   exit 1
 fi
 
-PONG=$(redis-cli ping) || { echo 'please start redis first (run: redis-server)'; }
+redis-cli ping >/dev/null 2>&1 || { echo 'please start redis first (run: redis-server)'; exit 1; }
+docker ps >/dev/null 2>&1 || { echo 'please start Docker first'; exit 1; }
 
-if [ ! -z "$PONG" ]
-then
-  npm run localstack:start
-  sleep 5
-  npm run gen:localresources
-  DEBUG=λ*,*tradle* serverless offline start
-fi
+npm run localstack:start
+sleep 5
+# npm run gen:localresources
+DEBUG=λ*,*tradle* serverless offline start

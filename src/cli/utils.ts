@@ -398,8 +398,6 @@ const initializeProvider = async (opts={}) => {
     bot = createBot()
   }
 
-  bot.ready()
-
   const { Conf } = require('../samplebot/configure')
   const conf = new Conf({ bot })
   if (!force) {

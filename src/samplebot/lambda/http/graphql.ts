@@ -4,7 +4,7 @@ import sampleQueries from '../../sample-queries'
 import { createBot } from '../../../bot'
 import { createGraphQLAuth } from '../../strategy/graphql-auth'
 
-const bot = createBot()
+const bot = createBot({ ready: false })
 const lambda = bot.lambdas.graphql()
 // mute the warning about not attaching handler
 const { logger, handler } = lambda

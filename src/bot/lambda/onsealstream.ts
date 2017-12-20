@@ -3,13 +3,15 @@ import { batchProcess } from '../../utils'
 import { EventSource } from '../../lambda'
 
 export const createLambda = (opts) => {
-  return outfitLambda(opts.bot.createLambda({
+  const lambda = opts.bot.createLambda({
     source: EventSource.DYNAMODB,
     ...opts
-  }), opts)
+  })
+
+  return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const outfitLambda = (lambda, opts) => {
+export const createMiddleware = (lambda, opts) => {
   const { bot } = lambda
   const { batchSize=10 } = opts
   const processOne = async (record) => {
@@ -28,7 +30,7 @@ export const outfitLambda = (lambda, opts) => {
     await bot.hooks.fire(sealEvent, record.new)
   }
 
-  lambda.use(async (ctx, next) => {
+  return async (ctx, next) => {
     const { event } = ctx
     const records = getRecordsFromEvent(event, true) // new + old image
     await batchProcess({
@@ -38,7 +40,5 @@ export const outfitLambda = (lambda, opts) => {
     })
 
     await next()
-  })
-
-  return lambda
+  }
 }

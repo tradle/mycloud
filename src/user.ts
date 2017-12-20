@@ -157,29 +157,7 @@ class UserSim {
         }
       })
 
-      const {
-        BOT_ONMESSAGE,
-        INVOKE_BOT_LAMBDAS_DIRECTLY=TESTING
-      } = this.env
-
-      if (!BOT_ONMESSAGE) {
-        this.logger.warn('no bot subscribed to "onmessage"')
-        return
-      }
-
-      // const { author, time, link } = wrapper.message
-      const arg = INVOKE_BOT_LAMBDAS_DIRECTLY ? processed : this.messages.stripData(processed)
-      this.logger.debug(`passing message from ${processed._author} on to bot`)
-      const resp = await this.lambdaUtils.invoke({
-        sync: true,
-        local: INVOKE_BOT_LAMBDAS_DIRECTLY,
-        name: BOT_ONMESSAGE,
-        arg
-        // arg: JSON.stringify({ author, time, link })
-      })
-
-      this.logger.debug(`${BOT_ONMESSAGE} finished processing`)
-      return TESTING ? resp : processed
+      return processed
     }
 
     this.logger.debug(`processing error in receive: ${err.name}`)
@@ -321,14 +299,6 @@ class UserSim {
     })
 
     await this.sendError({ clientId, message })
-  }
-
-  public onPreAuth = async (opts) => {
-    return await this.auth.createSession(opts)
-  }
-
-  public onSentChallengeResponse = async (opts) => {
-    return await this.auth.handleChallengeResponse(opts)
   }
 
   // public onRestoreRequest = async ({ clientId, gt, lt }) => {

@@ -3,15 +3,17 @@ import cfnResponse = require('cfn-response')
 import { EventSource } from '../../lambda'
 
 export const createLambda = (opts) => {
-  return outfitLambda(opts.bot.createLambda({
+  const lambda = opts.bot.createLambda({
     source: EventSource.CLOUDFORMATION,
     ...opts
-  }), opts)
+  })
+
+  return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const outfitLambda = (lambda, opts) => {
+export const createMiddleware = (lambda, opts) => {
   const { bot } = lambda
-  lambda.use(async (ctx, next) => {
+  return async (ctx, next) => {
     const { event, context } = ctx
     const { RequestType, ResourceProperties, ResponseURL } = event
     lambda.logger.debug(`received stack event: ${RequestType}`)
@@ -37,7 +39,5 @@ export const outfitLambda = (lambda, opts) => {
     } else {
       context.done(err)
     }
-  })
-
-  return lambda
+  }
 }

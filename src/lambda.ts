@@ -28,7 +28,7 @@ import {
   ILambdaAWSExecutionContext
 } from './types'
 
-import { warmup } from './middleware-warmup'
+import { warmup } from './middleware/warmup'
 
 const isPromise = obj => obj && typeof obj.then === 'function'
 const NOT_FOUND = new Error('nothing here')
@@ -123,7 +123,6 @@ export class Lambda {
     this.reset()
     this._gotHandler = false
     this.use(warmup({ lambda: this }))
-    this._runUglyHacks()
     this.tasks.add({
       name: 'warmup:cache',
       promiser: () => tradle.warmUpCaches()
@@ -136,10 +135,14 @@ export class Lambda {
     })
   }
 
-  public use = (fn) => {
+  public use = (fn):Lambda => {
     if (this._gotHandler) {
       console.warn('adding middleware after exporting the lambda handler ' +
         'can result in unexpected behavior')
+    }
+
+    if (typeof fn !== 'function') {
+      throw new Error('middleware must be a function!')
     }
 
     if (this.source === EventSource.HTTP) {
@@ -147,6 +150,8 @@ export class Lambda {
     } else {
       this.middleware.push(fn)
     }
+
+    return this
   }
 
   get name():string {
@@ -361,6 +366,13 @@ export class Lambda {
         }
       }
 
+      if (!ctx.body) {
+        // i don't think API Gateway likes non-json responses
+        // it lets them through but Content-Type still ends up as application/json
+        // and clients fail on trying to parse an empty string as json
+        ctx.body = {}
+      }
+
       await this.exit()
     })
 
@@ -417,27 +429,6 @@ export class Lambda {
     }
 
     return this.execCtx
-  }
-
-  private _runUglyHacks = () => {
-    if (!this.env.INVOKE_BOT_LAMBDAS_DIRECTLY) return
-
-    const isMessageLambda = this.shortName === 'onmessage' ||
-      this.shortName === 'onmessage_http' ||
-      this.shortName === 'inbox'
-
-    if (!isMessageLambda) return
-
-    this.logger.debug('requiring bot_onmessage lambda to save time for next execution')
-    const lambda = this.tradle.lambdaUtils.requireLambdaByName('bot_onmessage')
-    // get bot_onmessage all set up during warmup
-    if (lambda.bot) {
-      this.logger.debug('pre-initializing bot_onmessage lambda')
-      this.tasks.add({
-        name: 'bot:ready',
-        promiser: lambda.bot.promiseReady
-      })
-    }
   }
 
   private _exportError = (err) => {

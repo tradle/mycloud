@@ -131,35 +131,6 @@ const savePayloadToDB = async ({ bot, message }) => {
   await bot.save(message.object)
 }
 
-const preProcessMessageEvent = async ({ bot, message }):Promise<any> => {
-  let [payload, user] = await Promise.all([
-    getMessagePayload({ bot, message }),
-    // identity permalink serves as user id
-    bot.users.createIfNotExists({ id: message._author })
-  ])
-
-  payload = message.object = {
-    ...message.object,
-    ...payload
-  }
-
-  const type = payload[TYPE]
-  crypto.addLinks(payload)
-  if (bot.isTesting) {
-    await savePayloadToDB({ bot, message: clone(message) })
-  }
-
-  return {
-    bot,
-    user,
-    message,
-    payload,
-    type,
-    link: payload._link,
-    permalink: payload._permalink,
-  }
-}
-
 export {
   getMessagePayload,
   getMessageGist,
@@ -167,6 +138,5 @@ export {
   normalizeSendOpts,
   normalizeRecipient,
   savePayloadToDB,
-  preProcessMessageEvent,
   IGNORED_PAYLOAD_TYPES
 }

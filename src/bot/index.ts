@@ -74,13 +74,15 @@ function _createBot (opts: {
   tradle: Tradle,
   users?: any,
   models?: any,
-  autosave?: boolean
+  autosave?: boolean,
+  ready?:boolean
 }) {
   let {
     tradle,
     users,
     models,
-    autosave=true
+    autosave=true,
+    ready=true
   } = opts
 
   const {
@@ -243,8 +245,20 @@ function _createBot (opts: {
     get onmessagestream() { return require('./lambda/onmessagestream') },
     get onsealstream() { return require('./lambda/onsealstream') },
     get oninit() { return require('./lambda/oninit') },
+    get onsubscribe() { return require('./lambda/onsubscribe') },
+    get onconnect() { return require('./lambda/onconnect') },
+    get ondisconnect() { return require('./lambda/ondisconnect') },
+    get sealpending() { return require('./lambda/sealpending') },
+    get pollchain() { return require('./lambda/pollchain') },
+    get checkFailedSeals() { return require('./lambda/check-failed-seals') },
+    get toevents() { return require('./lambda/to-events') },
     get info() { return require('./lambda/info') },
-    get graphql() { return require('./lambda/graphql') }
+    get preauth() { return require('./lambda/preauth') },
+    get auth() { return require('./lambda/auth') },
+    get inbox() { return require('./lambda/inbox') },
+    get graphql() { return require('./lambda/graphql') },
+    get warmup() { return require('./lambda/warmup') },
+    get reinitializeContainers() { return require('./lambda/reinitializeContainers') },
   }
 
   bot.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
@@ -275,6 +289,8 @@ function _createBot (opts: {
 
   // makeBackwardsCompat(bot)
   addConvenienceMethods(bot)
+  if (ready) bot.ready()
+
   return bot
 
   function emitAs (event) {

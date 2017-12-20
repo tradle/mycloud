@@ -8,13 +8,20 @@ import { EventSource } from '../../lambda'
 import { onmessage as createOnMessageMiddleware } from '../middleware/onmessage'
 
 export const createLambda = (opts) => {
-  return outfitLambda(opts.bot.createLambda({
+  const lambda = opts.bot.createLambda({
     source: EventSource.DYNAMODB,
     ...opts
-  }), opts)
+  })
+
+  lambda.tasks.add({
+    name: 'getiotendpoint',
+    promiser: lambda.bot.iot.getEndpoint
+  })
+
+  return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const outfitLambda = (lambda, opts) => {
+export const createMiddleware = (lambda, opts) => {
   const { bot, logger } = lambda
   const logAndThrow = (results) => {
     const failed = results.map(({ reason }) => reason)
@@ -26,12 +33,7 @@ export const outfitLambda = (lambda, opts) => {
     }
   }
 
-  lambda.tasks.add({
-    name: 'getiotendpoint',
-    promiser: bot.iot.getEndpoint
-  })
-
-  lambda.use(async (ctx, next) => {
+  return async (ctx, next) => {
     const { event } = ctx
     event.bot = bot
     // unmarshalling is prob a waste of time
@@ -84,7 +86,5 @@ export const outfitLambda = (lambda, opts) => {
 
     logAndThrow(ctx.results)
     await next()
-  })
-
-  return lambda
+  }
 }

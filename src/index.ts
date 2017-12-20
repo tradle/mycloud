@@ -4,15 +4,15 @@ import Env from './env'
 
 let tradle
 
-const createTestTradle = (env) => {
+const createTestTradle = (env?) => {
   return new Tradle(env || require('./test/env').createTestEnv())
 }
 
-const createRemoteTradle = (env) => {
+const createRemoteTradle = (env?) => {
   return new Tradle(env || require('./cli/remote-service-map'))
 }
 
-const createTradle = env => {
+const createTradle = (env?) => {
   if (env) return new Tradle(env)
   if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
     require('./test/env').install()
@@ -146,8 +146,8 @@ const exp = {
   get models() {
     return requireDefault('./models')
   },
-  get Bot() {
-    return requireDefault('./bot')
+  get createBot() {
+    return requireDefault('./bot').createBot
   }
 }
 

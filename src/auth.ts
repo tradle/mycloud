@@ -1,3 +1,4 @@
+import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
 import { typeforce, defineGetter } from './utils'
 import { prettify } from './string-utils'
@@ -64,6 +65,7 @@ export default class Auth {
   private messages: Messages
   private iot: any
   private logger: Logger
+  private tasks: TaskManager
   constructor (opts: {
     env: Env,
     aws: any,
@@ -85,13 +87,14 @@ export default class Auth {
     this.messages = opts.messages
     this.iot = opts.iot
     this.logger = opts.logger.sub('auth')
+    this.tasks = opts.tasks
   }
 
   get accountId () {
     return this.env.accountId
   }
 
-  public onAuthenticated = async (session:ISession): Promise<void> => {
+  public setAuthenticated = async (session:ISession): Promise<void> => {
     session = {
       ...session,
       authenticated: true
@@ -259,27 +262,28 @@ export default class Auth {
       sent: await getLastSent
     }
 
-    await this.onAuthenticated(session)
+    this.tasks.add({
+      name: 'savesession',
+      promise: this.setAuthenticated(session)
+    })
+
     return session
-    // const credentials = await promiseCredentials
-    // return {
-    //   time,
-    //   position: session.serverPosition,
-    //   // ...credentials
-    // }
   }
 
   public createCredentials = async (session:ISession, role:string):Promise<IRoleCredentials> => {
     const { clientId } = session
-    const role = `arn:aws:iam::${this.accountId}:role/${this.serviceMap.Role.IotClient}`
-    this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
+    if (!role.startsWith('arn:')) {
+      role = `arn:aws:iam::${this.accountId}:role/${role}`
+    }
 
+    this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
     this.logger.info('assuming role', role)
     const params = {
       RoleArn: role,
       RoleSessionName: randomString(16),
     }
 
+    // assume role returns temporary keys
     const promiseRole = this.aws.sts.assumeRole(params).promise()
     const {
       AssumedRoleUser,
@@ -316,9 +320,8 @@ export default class Auth {
     }
 
     const maybeAddContact = this.identities.addContact(identity)
-
-    // assume role returns temporary keys
     const challenge = this.createChallenge()
+    const getIotEndpoint = this.iot.getEndpoint()
     const saveSession = this.tables.Presence.put({
       Item: {
         clientId,
@@ -336,7 +339,7 @@ export default class Auth {
     ])
 
     const resp:IIotClientResponse = {
-      iotEndpoint: await this.iot.getEndpoint(),
+      iotEndpoint: await getIotEndpoint,
       iotParentTopic: this.env.IOT_PARENT_TOPIC,
       region: this.env.AWS_REGION,
       time: Date.now(),

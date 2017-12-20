@@ -1,12 +1,10 @@
 require('./env').install()
 
-// console.log = console.warn = console.error = console.info = function () {
-//   debugger
-// }
-
 const test = require('tape')
 const sinon = require('sinon')
 const cfnResponse = require('cfn-response')
+const IotMessage = require('@tradle/iot-message')
+const tradleUtils = require('@tradle/engine').utils
 const { createTestTradle } = require('../')
 const createRealBot = require('../bot').createBot
 const { getGraphqlAPI } = require('../bot/graphql')
@@ -70,8 +68,6 @@ const rethrow = err => {
       bot.hook('usercreate', resolve)
     })
 
-    bot.ready()
-
     t.same(yield users.createIfNotExists(user), user, 'create if not exists')
     t.same(yield users.get(user.id), user, 'get by primary key')
 
@@ -115,7 +111,6 @@ const rethrow = err => {
       t.same(opts, expectedEvent.payload)
     })
 
-    bot.ready()
     let { callCount } = cfnResponse.send
 
     bot.oninit(co(function* (event) {
@@ -188,6 +183,10 @@ const rethrow = err => {
       throw new Errors.NotFound(link)
     }))
 
+    sinon.stub(tradle.user, 'onSentMessage').callsFake(async () => {
+      return message
+    })
+
     // identities.byPermalink = co(function* (permalink) {
     //   t.equal(permalink, message.author)
     //   return bob.object
@@ -205,9 +204,15 @@ const rethrow = err => {
     // const conversation = yield bot.users.history('bob')
     // console.log(conversation)
 
-    bot.ready()
     // #5
-    yield bot.lambdas.onmessage().handler(message, {
+    const data = yield IotMessage.encode({
+      payload: message
+    })
+
+    yield bot.lambdas.onmessage().handler({
+      // clientId: 'ted',
+      data
+    }, {
       done: t.error
     })
 
@@ -238,7 +243,6 @@ const rethrow = err => {
       t.equal(event.link, link)
     }))
 
-    bot.ready()
     yield bot.lambdas.onsealstream().handler(toStreamItems([
       {
         old: {
@@ -287,8 +291,6 @@ const rethrow = err => {
         }))
       })
     })
-
-    bot.ready()
 
     for (let event in called) {
       yield bot.trigger(event, expectedArg)
@@ -386,8 +388,6 @@ test('onmessagestream', loudCo(function* (t) {
     updatedUser = true
   })
 
-  bot.ready()
-
   yield bot.lambdas.onmessagestream().handler(toStreamItems([
     { new: message }
   ]), {
@@ -457,8 +457,6 @@ test('validate send', loudCo(function* (t) {
   }
 
   const bot = createRealBot({ tradle, models })
-
-  bot.ready()
   try {
     yield bot.send({
       to: bob.permalink,

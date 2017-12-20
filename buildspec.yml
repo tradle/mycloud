@@ -3,7 +3,7 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo this is the install phase
+      - echo 'this is the install phase'
       - printenv
       - cd project && npm install
       - npm install
@@ -21,6 +21,3 @@ phases:
       - echo this is the post_build phase
       - npm run dynamo:stop
       - echo build completed on `date`
-artifacts:
-  files:
-    - ./**

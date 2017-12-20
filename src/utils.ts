@@ -620,7 +620,7 @@ export async function download ({ url }) {
   return buf
 }
 
-async function processResponse (res) {
+export async function processResponse (res) {
   if (res.status > 300) {
     let message = res.statusText
     if (!message) {

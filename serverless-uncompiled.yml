@@ -221,13 +221,8 @@ custom:
     types:
       - '*/*'
 
-  serverless-offline:
-    port: ${{self:custom.vars.serverless-offline.port, self:custom.defaults.serverless-offline.port}}
-
-  serverless-iot-local:
-    port: ${{self:custom.vars.serverless-iot-local.port, self:custom.defaults.serverless-iot-local.port}}
-    httpPort: ${{self:custom.vars.serverless-iot-local.httpPort, self:custom.defaults.serverless-iot-local.httpPort}}
-
+  serverless-offline: ${{self:custom.vars.serverless-offline, self:custom.defaults.serverless-offline}}
+  serverless-iot-local: ${{self:custom.vars.serverless-iot-local, self:custom.defaults.serverless-iot-local}}
   reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
 
   # serverless-dynamodb-local settings
@@ -292,12 +287,6 @@ provider:
     SERVERLESS_SERVICE_NAME: ${{self:service}}
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
     NO_TIME_TRAVEL: false # allow time-travel messages for now
-
-    # bot config
-    # BOT_ONPRESENCE: ${{self:custom.bot_onpresence}}
-    BOT_ONMESSAGE: bot_onmessage
-
-    INVOKE_BOT_LAMBDAS_DIRECTLY: ${{self:custom.invokeBotLambdasDirectly}}
 
   iamRoleStatements:
     - Effect: Allow
@@ -501,7 +490,7 @@ provider:
 functions:
   # warm up other functions
   warmup:
-    handler: lib/lambda/warmup.handler
+    handler: lib/samplebot/lambda/warmup.handler
     memorySize: 128
     events:
       - schedule:
@@ -515,16 +504,15 @@ functions:
               - ondisconnect
               - onsubscribe
               - onmessage
-              # - bot_onmessage
-              - bot_graphql
-              - bot_info
+              - graphql
+              - info
               - preauth
               - auth
               - inbox
               - onmessage_http
               # - to-events:
               #     concurrency: 2
-              # - bot_onmessagestream:
+              # - onmessagestream:
               #     concurrency: 2
     alarms:
       - functionErrors
@@ -555,7 +543,7 @@ functions:
   # 2. creates an unauthenticated session,
   #    generates a challenge to be signed (verified in /auth)
   preauth:
-    handler: lib/lambda/http/preauth.handler
+    handler: lib/samplebot/lambda/http/preauth.handler
     memorySize: 1024
     events:
       - http:
@@ -565,7 +553,7 @@ functions:
   # 1. validates the challenge response
   # 2. marks the session as authenticated
   auth:
-    handler: lib/lambda/http/auth.handler
+    handler: lib/samplebot/lambda/http/auth.handler
     memorySize: 1024
     events:
       - http:
@@ -578,7 +566,7 @@ functions:
 
   # replicates InboxTable to EventsTable
   to-events:
-    handler: lib/lambda/replicate-to-events.handler
+    handler: lib/samplebot/lambda/to-events.handler
     memorySize: 256
     events:
       - stream:
@@ -638,7 +626,7 @@ functions:
   #         method: any
 
   inbox:
-    handler: lib/lambda/http/inbox.handler
+    handler: lib/samplebot/lambda/http/inbox.handler
     memorySize: 1024
     events:
       - http:
@@ -670,7 +658,7 @@ functions:
   # handles IoT (MQTT) connections post-authentication
   # updates presence in PresenceTable
   onconnect:
-    handler: lib/lambda/mqtt/onconnect.handler
+    handler: lib/samplebot/lambda/mqtt/onconnect.handler
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/connected/#'"
@@ -682,7 +670,7 @@ functions:
 
   # updates presence in PresenceTable
   ondisconnect:
-    handler: lib/lambda/mqtt/ondisconnect.handler
+    handler: lib/samplebot/lambda/mqtt/ondisconnect.handler
     events:
       - iot:
           sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
@@ -695,7 +683,7 @@ functions:
   # triggered when a client subscribes to an MQTT topic
   # sends the client any queued up messages
   onsubscribe:
-    handler: lib/lambda/mqtt/onsubscribe.handler
+    handler: lib/samplebot/lambda/mqtt/onsubscribe.handler
     memorySize: 1024
     # give enough time to deliver backed-up message
     timeout: 60
@@ -713,9 +701,8 @@ functions:
   # validates, stores in OutboxTable, in ObjectsBucker (for now),
   # and passes off to bot engine
   onmessage:
-    handler: lib/lambda/mqtt/onmessage.handler
+    handler: lib/samplebot/lambda/mqtt/onmessage.handler
     memorySize: 1024
-    #   BOT_ONMESSAGE: ${{self:custom.bot_onmessage}}
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
     #   SERVERLESS_STAGE: ${{self:custom.stage}}
     #   SERVERLESS_SERVICE_NAME: ${{self:service}}
@@ -730,21 +717,20 @@ functions:
 
   # same as onmessage, but can handle larger payloads
   # MQTT is limited to 128KB, HTTP to 6MB
-  onmessage_http:
-    handler: lib/lambda/http/onmessage.handler
-    memorySize: 1024
-    events:
-      - http:
-          path: message
-          method: put
-      - http:
-          path: message
-          method: post
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
-
+  # onmessage_http:
+  #   handler: lib/samplebot/lambda/http/onmessage.handler
+  #   memorySize: 1024
+  #   events:
+  #     - http:
+  #         path: message
+  #         method: put
+  #     - http:
+  #         path: message
+  #         method: post
+  #   alarms:
+  #     - functionErrors
+  #     - functionThrottles
+  #     - functionInvocations
 
   # performs service discovery - builds a map of logical->physical ids
   # and writes that map to the environment variables of all other lambdas
@@ -804,7 +790,7 @@ functions:
 
   # writes pending transactions to the blockchain
   sealpending:
-    handler: lib/lambda/sealpending.handler
+    handler: lib/samplebot/lambda/sealpending.handler
     memorySize: 256
     timeout: 60
     events:
@@ -818,7 +804,7 @@ functions:
 
   # polls the status of unconfirmed blockchain transactions
   pollchain:
-    handler: lib/lambda/pollchain.handler
+    handler: lib/samplebot/lambda/pollchain.handler
     memorySize: 256
     timeout: 60
     events:
@@ -835,7 +821,7 @@ functions:
     #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
   check-failed-seals:
-    handler: lib/lambda/check-failed-seals.handler
+    handler: lib/samplebot/lambda/check-failed-seals.handler
     memorySize: 256
     timeout: 60
     events:
@@ -847,15 +833,15 @@ functions:
 
   # force reinitialize lambda containers
   reinitialize-containers:
-    handler: lib/lambda/reinitialize-containers.handler
+    handler: lib/samplebot/lambda/reinitialize-containers.handler
 
   # useful during development
   # trigger a message to be queued/sent to a user
-  bot_send:
+  send:
     handler: lib/samplebot/lambda/send.handler
     memorySize: 256
 
-  bot_info:
+  info:
     handler: lib/samplebot/lambda/http/info.handler
     memorySize: 256
     events:
@@ -863,19 +849,11 @@ functions:
           path: info
           method: get
 
-  bot_oninit:
+  oninit:
     handler: lib/samplebot/lambda/oninit.handler
     memorySize: 1024
 
-  bot_onmessage:
-    handler: lib/samplebot/lambda/onmessage.handler
-    memorySize: 1024
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
-
-  bot_onsealstream:
+  onsealstream:
     handler: lib/samplebot/lambda/onsealstream.handler
     memorySize: 256
     events:
@@ -890,7 +868,7 @@ functions:
     alarms:
     - functionErrors
 
-  bot_onmessagestream:
+  onmessagestream:
     handler: lib/samplebot/lambda/onmessagestream.handler
     memorySize: 256
     events:
@@ -917,10 +895,9 @@ functions:
     # onError:
       # Ref: DeadLetterQueue
 
-  bot_graphql:
+  graphql:
     # make sure graphql route gets loaded
     handler: lib/samplebot/lambda/http/graphql.handler
-    # handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
@@ -934,15 +911,15 @@ functions:
       - functionThrottles
       - functionInvocations
 
-  bot_setstyle:
+  setstyle:
     handler: lib/samplebot/lambda/set-style.handler
     memorySize: 128
 
-  bot_addfriend:
+  addfriend:
     handler: lib/samplebot/lambda/add-friend.handler
     memorySize: 256
 
-  bot_addfriend_dev:
+  addfriend_dev:
     handler: lib/samplebot/lambda/add-friend.handlerHttp
     # dev mode only
     events:
@@ -950,30 +927,27 @@ functions:
           path: /addfriend
           method: post
 
-  # bot_addcontact:
+  # addcontact:
   #   handler: lib/samplebot/lambda/add-contact.handler
   #   environment:
   #     DEBUG: tradle:*
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
-  bot_samples:
+  samples:
     handler: lib/samplebot/lambda/samples.handler
-    # handler: lib/lambda/http/default.handler
     memorySize: 1024
 
-  bot_samples_dev:
+  samples_dev:
     handler: lib/samplebot/lambda/samples.handler
-    # handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:
           path: samples
           method: post
 
-  bot_onfido:
+  onfido:
     handler: lib/samplebot/lambda/http/onfido-webhook.handler
-    # handler: lib/lambda/http/default.handler
     memorySize: 1024
     events:
       - http:

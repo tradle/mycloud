@@ -4,7 +4,7 @@ import cors = require('kcors')
 import { createBot } from '../../../bot'
 import { customize } from '../../customize'
 
-const bot = createBot()
+const bot = createBot({ ready: false })
 const lambda = bot.createLambda({ source: EventSource.HTTP })
 const promiseCustomize = customize({ bot, event: 'onfido:webhook' })
 lambda.tasks.add({

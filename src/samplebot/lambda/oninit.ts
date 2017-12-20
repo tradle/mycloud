@@ -3,7 +3,7 @@ import {
   CUSTOM_MODELS_KEY,
   STYLES_KEY
 } from '../constants'
-import { processResponse } from '../../utils'
+
 import { Init } from '../init'
 import { createBot } from '../../bot'
 
@@ -27,5 +27,4 @@ lambda.use(async (ctx, next) => {
   }
 })
 
-bot.ready()
 export const handler = lambda.handler

@@ -1,20 +1,78 @@
+import Promise = require('bluebird')
 import clone = require('clone')
 import deepEqual = require('deep-equal')
+import IotMessage = require('@tradle/iot-message')
 import { TYPE } from '@tradle/constants'
 import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
+import { groupBy, allSettled } from '../../utils'
 import {
   getMessagePayload,
   getMessageGist,
-  savePayloadToDB,
-  preProcessMessageEvent
+  savePayloadToDB
 } from '../utils'
 
 import { EventSource } from '../../lambda'
 
+const notNull = val => !!val
+
+export const preProcessInbox = (lambda, opts) => {
+  const { logger, tradle } = lambda
+  const { user } = tradle
+  return async (ctx, next) => {
+    const { messages } = ctx.event
+    logger.debug(`preprocessing ${messages.length} messages in inbox`)
+    const processed = await Promise.mapSeries(messages, message => user.onSentMessage({ message }))
+    ctx.messages = processed.filter(notNull)
+    if (ctx.messages.length) {
+      logger.debug(`preprocessed ${ctx.messages.length} messages in inbox`)
+      await next()
+    }
+  }
+}
+
+export const preProcessIotMessage = (lambda, opts) => {
+  const { logger, tradle, tasks, isUsingServerlessOffline } = lambda
+  const { user } = tradle
+
+  tasks.add({
+    name: 'getiotendpoint',
+    promiser: tradle.iot.getEndpoint
+  })
+
+  return async (ctx, next) => {
+    const { event, context } = ctx
+    let { topic, clientId, data } = event
+    if (!clientId && isUsingServerlessOffline) {
+      // serverless-offline support
+      clientId = topic.match(/\/([^/]+)\/[^/]+/)[1]
+    }
+
+    const buf = typeof data === 'string' ? new Buffer(data, 'base64') : data
+    let message
+    try {
+      message = await IotMessage.decode(buf)
+    } catch (err) {
+      logger.error('client sent invalid MQTT payload', err.stack)
+      await user.onIncompatibleClient({ clientId })
+      return
+    }
+
+    const processed = await user.onSentMessage({ clientId, message })
+    if (processed) {
+      ctx.messages = [processed]
+      logger.debug('preprocessed message')
+      await next()
+    }
+  }
+}
+
+/**
+ * runs after the inbound message has been written to inbox
+ */
 export const onmessage = (lambda, opts) => {
   const { autosave=true } = opts
-  const { bot, logger, isTesting } = lambda
+  const { bot, tradle, tasks, logger, isTesting } = lambda
   const locker = createLocker({
     name: 'inbound message lock',
     debug: lambda.logger.sub('lock:receive').debug,
@@ -23,30 +81,59 @@ export const onmessage = (lambda, opts) => {
 
   const lock = id => locker.lock(id)
   const unlock = id => locker.unlock(id)
+  tasks.add({
+    name: 'getiotendpoint',
+    promiser: tradle.iot.getEndpoint
+  })
+
   return async (ctx, next) => {
-    let message = ctx.event
-    if (typeof message === 'string') {
-      message = JSON.parse(message)
-    }
+    const { messages } = ctx
+    if (!messages) return
 
-    const userId = message._author
-    await lock(userId)
-    try {
-      const botMessageEvent = await preProcessMessageEvent({ bot, message })
-      const userPre = clone(botMessageEvent.user)
-      await bot.hooks.fire('message', botMessageEvent)
-      await next()
-      if (opts.autosave === false) return
+    const byUser = groupBy(messages, '_author')
+    await allSettled(Object.keys(byUser).map(async (userId) => {
+      let botMessageEvent
+      const batch = byUser[userId]
+      await lock(userId)
+      try {
+        let userPre = await bot.users.createIfNotExists({ id: userId })
+        let user = clone(userPre)
+        for (const message of batch) {
+          if (bot.isTesting) {
+            await savePayloadToDB({ bot, message })
+          }
 
-      const { user } = botMessageEvent
-      if (deepEqual(user, userPre)) {
-        logger.debug('user state was not changed by onmessage handler')
-      } else {
-        logger.debug('merging changes to user state')
-        await bot.users.merge(user)
+          botMessageEvent = toBotMessageEvent({ bot, user, message })
+          await bot.hooks.fire('message', botMessageEvent)
+        }
+
+        user = botMessageEvent.user
+        if (deepEqual(user, userPre)) {
+          logger.debug('user state was not changed by onmessage handler')
+        } else {
+          logger.debug('merging changes to user state')
+          await bot.users.merge(user)
+        }
+      } finally {
+        await unlock(userId)
       }
-    } finally {
-      await unlock(userId)
-    }
+    }))
+
+    await next()
+  }
+}
+
+const toBotMessageEvent = ({ bot, user, message }):any => {
+  // identity permalink serves as user id
+  const payload = message.object
+  const type = payload[TYPE]
+  return {
+    bot,
+    user,
+    message,
+    payload,
+    type,
+    link: payload._link,
+    permalink: payload._permalink,
   }
 }
