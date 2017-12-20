@@ -69,10 +69,11 @@ export default class Friends {
       existing = {}
     }
 
+    const keys = Object.keys(model.properties)
     const object = buildResource({ models, model })
       .set({
-        ...pick(existing, Object.keys(model.properties)),
-        ...props,
+        ...pick(existing, keys),
+        ...pick(props, keys),
         _identityPermalink: identity._permalink
       })
       .toJSON()

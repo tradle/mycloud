@@ -17,10 +17,6 @@
       "type": "object",
       "ref": "tradle.Organization"
     },
-    "publicConfig": {
-      "type": "object",
-      "range": "json"
-    },
     "_identityPermalink": {
       "type": "string",
       "virtual": true
