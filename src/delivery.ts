@@ -11,7 +11,7 @@ import {
   IDebug,
   ISession
 } from './types'
-import { clone, pick } from './utils'
+import { pick } from './utils'
 import { ClientUnreachable } from './errors'
 import Env from './env'
 import Logger from './logger'

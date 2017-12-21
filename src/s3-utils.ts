@@ -1,4 +1,4 @@
-import omit = require('object.omit')
+import { omit } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Logger from './logger'

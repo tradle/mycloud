@@ -1,3 +1,4 @@
+// @ts-ignore
 import Promise = require('bluebird')
 import { settle } from 'settle-promise'
 import Logger from './logger'

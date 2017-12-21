@@ -1,6 +1,5 @@
+import { omit, cloneDeep } from 'lodash'
 const debug = require('debug')('tradle:sls:deployment-bot')
-const clone = require('clone')
-const omit = require('object.omit')
 const { parseStub } = require('@tradle/validate-resource').utils
 const { TYPE } = require('@tradle/constants')
 const { prettify } = require('../string-utils')
@@ -57,7 +56,7 @@ export const createDeploymentHandlers = ({ bot, deploymentModels }) => {
   }())
 
   function normalizeParameters (parameters) {
-    parameters = clone(parameters)
+    parameters = cloneDeep(parameters)
     let scale = Math.round(parameters.scale)
 
     if (scale < MIN_SCALE) scale = MIN_SCALE

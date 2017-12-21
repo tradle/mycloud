@@ -2,6 +2,15 @@ import fs = require('fs')
 // allow override promise
 // @ts-ignore
 import Promise = require('bluebird')
+import {
+  pick,
+  omit,
+  merge,
+  cloneDeep as deepClone,
+  extend,
+  isEqual as deepEqual
+} from 'lodash'
+
 import Cache = require('lru-cache')
 import querystring = require('querystring')
 import format = require('string-format')
@@ -9,13 +18,8 @@ import crypto = require('crypto')
 import microtime = require('./microtime')
 import typeforce = require('typeforce')
 import bindAll = require('bindall')
-import omit = require('object.omit')
-import pick = require('object.pick')
-import deepEqual = require('deep-equal')
-import deepClone = require('clone')
-import clone = require('xtend')
-import extend = require('xtend/mutable')
 import flatten = require('flatten')
+import clone = require('xtend')
 import traverse = require('traverse')
 import dotProp = require('dot-prop')
 import { v4 as uuid } from 'uuid'
@@ -615,16 +619,16 @@ export async function get (url, opts?) {
   return processResponse(res)
 }
 
-export async function post (url, data) {
+export async function post (url, data, opts={}) {
   debug(`POST to ${url}`)
-  const res = await fetch(url, {
+  const res = await fetch(url, merge({
     method: 'POST',
     headers: {
       // 'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(data)
-  })
+  }, opts))
 
   debug(`processing response from POST to ${url}`)
   return processResponse(res)

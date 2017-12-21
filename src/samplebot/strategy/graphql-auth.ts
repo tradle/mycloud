@@ -1,5 +1,5 @@
 const debug = require('debug')('tradle:sls:graphql-auth')
-import pick = require('object.pick')
+import { pick } from 'lodash'
 import { utils as tradleUtils } from '@tradle/engine'
 import validateResource = require('@tradle/validate-resource')
 import { constants, Errors } from '../../'

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events'
+// @ts-ignore
 import Promise = require('bluebird')
 import mergeModels = require('@tradle/merge-models')
 import createHooks = require('event-hooks')

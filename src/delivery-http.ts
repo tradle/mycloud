@@ -1,11 +1,14 @@
+import _zlib = require('zlib')
 import { EventEmitter } from 'events'
-import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut } from './utils'
+import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, promisify } from './utils'
 import { IDelivery, IDeliverBatchRequest } from "./types"
 import { IDebug } from './types'
 import Logger from './logger'
 import Env from './env'
 import Errors = require('./errors')
 
+const zlib = promisify(_zlib)
+const COMPRESSION_THRESHOLD = 2000
 const FETCH_TIMEOUT = 10000
 
 export default class Delivery extends EventEmitter implements IDelivery {
@@ -25,7 +28,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
   public deliverBatch = async (opts:IDeliverBatchRequest) => {
     const { recipient, friend, messages, timeout } = opts
     const endpoint = `${friend.url}/inbox`
-    await tryUntilTimeRunsOut(() => post(endpoint, { messages }), {
+    const headers = {}
+    let payload = JSON.stringify({ messages })
+    if (!this.env.IS_OFFLINE && payload.length > COMPRESSION_THRESHOLD) {
+      payload = await zlib.gzip(payload)
+      headers['Content-Encoding'] = 'gzip'
+    }
+
+    await tryUntilTimeRunsOut(() => post(endpoint, payload, { headers }), {
       env: this.env,
       attemptTimeout: FETCH_TIMEOUT,
       onError: (err:Error) => {

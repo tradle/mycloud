@@ -1,4 +1,4 @@
-import pick = require('object.pick')
+import { pick } from 'lodash'
 import cfnResponse = require('cfn-response')
 import { EventSource } from '../../lambda'
 

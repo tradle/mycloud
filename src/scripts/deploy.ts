@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
-const path = require('path')
-const fs = require('fs')
+import path = require('path')
+import fs = require('fs')
 if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
   throw new Error('expected vars.yml file')
 }
 
-const proc = require('pify')(require('child_process'))
-const co = require('co')
-const omit = require('object.omit')
+import promisify = require('pify')
+import _proc = require('child_process')
+import { omit } from 'lodash'
 
+const proc = promisify(_proc)
 const expectedNodeVersion = 'v6.10.3'
 if (process.version !== expectedNodeVersion) {
   throw new Error(`expected Node.js ${expectedNodeVersion}, you're running ${process.version}`)

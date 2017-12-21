@@ -1,4 +1,5 @@
 import AWS = require('aws-sdk')
+// @ts-ignore
 import Promise = require('bluebird')
 import { install as installSourceMapSupport } from 'source-map-support'
 

@@ -1,5 +1,4 @@
-import clone = require('clone')
-import omit = require('object.omit')
+import { omit, cloneDeep } from 'lodash'
 import mergeSorted = require('merge-sorted')
 import { createTable, utils, constants } from '@tradle/dynamodb'
 
@@ -45,7 +44,7 @@ export function createMessagesTable ({ models, getMyIdentity }: {
   }
 
   const sanitizeQuery = (query) => {
-    query = clone(query)
+    query = cloneDeep(query)
     delete query.filter.EQ._inbound
     return query
   }

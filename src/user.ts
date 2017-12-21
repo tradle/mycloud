@@ -1,3 +1,5 @@
+// @ts-ignore
+import Promise = require('bluebird')
 import { pick, omitVirtual, bindAll, RESOLVED_PROMISE } from './utils'
 import { prettify } from './string-utils'
 import { PUBLIC_CONF_BUCKET, SEQ } from './constants'
@@ -13,6 +15,7 @@ import Messages from './messages'
 import Tradle from './tradle'
 import { ISession } from './types'
 
+const notNull = val => !!val
 const ClientErrors = {
   reconnect_required: 'reconnect_required',
   incompatible_client: 'incompatible_client'
@@ -110,6 +113,15 @@ class UserSim {
       await this.requestIotClientReconnect({ clientId, error })
       Errors.rethrow(error, 'system')
     }
+  }
+
+  public onSentMessages = async ({ clientId, messages }) => {
+    const processed = await Promise.mapSeries(
+      messages,
+      message => this.onSentMessage({ clientId, message })
+    )
+
+    return processed.filter(notNull)
   }
 
   public onSentMessage = async ({ clientId, message }) => {

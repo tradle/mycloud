@@ -1,4 +1,4 @@
-import omit = require('object.omit')
+import { omit } from 'lodash'
 import { TYPE, SIG } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import validateResource = require('@tradle/validate-resource')

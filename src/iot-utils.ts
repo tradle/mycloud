@@ -1,7 +1,7 @@
 
 import promisify = require('pify')
 import IotMessage = require('@tradle/iot-message')
-import { clone, cachifyPromiser } from './utils'
+import { cachifyPromiser } from './utils'
 const DEFAULT_QOS = 1
 
 module.exports = function ({ aws, env, prefix='' }) {

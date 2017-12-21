@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const co = require('co')
-const pick = require('object.pick')
-const request = require('superagent')
+import { pick } from 'lodash'
+import request = require('superagent')
+
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     u: 'users',
@@ -27,8 +27,8 @@ const {
 
 const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}/samples`
 
-co(function* () {
-  const res = yield request
+;(async () => {
+  const res = await request
     .post(genSamplesUrl)
     .set('Accept', 'application/json')
     .send(pick(argv, ['users', 'products']))
@@ -42,7 +42,7 @@ co(function* () {
   if (text) {
     console.log(text)
   }
-})
+})()
 .catch(err => {
   console.error(err)
   process.exit(1)

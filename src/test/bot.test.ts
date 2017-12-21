@@ -206,7 +206,7 @@ const rethrow = err => {
 
     // #5
     const data = yield IotMessage.encode({
-      payload: message
+      payload: { messages: [message] }
     })
 
     yield bot.lambdas.onmessage().handler({

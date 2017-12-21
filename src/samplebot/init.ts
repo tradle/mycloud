@@ -1,5 +1,5 @@
 
-import omit = require('object.omit')
+import { omit } from 'lodash'
 import dotProp = require('dot-prop')
 import { TYPE } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')

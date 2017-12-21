@@ -1,8 +1,7 @@
 import { EventEmitter } from 'events'
 import { SEQ } from '@tradle/constants'
-import { co, typeforce, pick } from './utils'
 import Errors = require('./errors')
-import { pick, omitVirtual, extend, batchByByteLength, bindAll } from './utils'
+import { pick, typeforce, omitVirtual, batchByByteLength, bindAll } from './utils'
 import { getLink } from './crypto'
 import { IDelivery, ILiveDeliveryOpts } from './types'
 import Messages from './messages'

@@ -1,4 +1,4 @@
-import omit = require('object.omit')
+import { omit } from 'lodash'
 import dotProp = require('dot-prop')
 import { models } from '@tradle/models'
 import validateResource = require('@tradle/validate-resource')

@@ -5,8 +5,11 @@ import { parseSync as parseEnv } from 'env-file-parser'
 import _fs = require('fs')
 import YAML = require('js-yaml')
 import isNative = require('is-native-module')
-import extend = require('xtend/mutable')
-import pick = require('object.pick')
+import {
+  pick,
+  extend
+} from 'lodash'
+
 import { models } from '@tradle/models'
 import validateResource = require('@tradle/validate-resource')
 import { TYPE } from '@tradle/constants'

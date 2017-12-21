@@ -1,7 +1,7 @@
+// @ts-ignore
 import Promise = require('bluebird')
-import omit = require('object.omit')
+import { omit, isEqual } from 'lodash'
 import dotProp = require('dot-prop')
-import deepEqual = require('deep-equal')
 import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
@@ -294,7 +294,7 @@ export const createConf = (opts):Conf => new Conf(opts)
 const hasDifferentValue = async ({ bucket, key, value }) => {
   try {
     const current = await bucket.get(key)
-    return !deepEqual(current, value)
+    return !isEqual(current, value)
   } catch (err) {
     Errors.ignore(err, Errors.NotFound)
     return true

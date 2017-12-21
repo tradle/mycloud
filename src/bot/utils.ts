@@ -1,6 +1,8 @@
-import clone = require('clone')
-import pick = require('object.pick')
-import omit = require('object.omit')
+import {
+  pick,
+  omit
+} from 'lodash'
+
 import typeforce = require('typeforce')
 import { TYPE, SIG } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')

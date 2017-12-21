@@ -1,3 +1,4 @@
+// @ts-ignore
 import Promise = require('bluebird')
 
 export function readyMixin (emitter) {

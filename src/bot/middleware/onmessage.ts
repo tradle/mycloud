@@ -1,6 +1,10 @@
+// @ts-ignore
 import Promise = require('bluebird')
-import clone = require('clone')
-import deepEqual = require('deep-equal')
+import {
+  cloneDeep,
+  isEqual
+} from 'lodash'
+
 import IotMessage = require('@tradle/iot-message')
 import { TYPE } from '@tradle/constants'
 import { addLinks } from '../../crypto'
@@ -13,23 +17,6 @@ import {
 } from '../utils'
 
 import { EventSource } from '../../lambda'
-
-const notNull = val => !!val
-
-export const preProcessInbox = (lambda, opts) => {
-  const { logger, tradle } = lambda
-  const { user } = tradle
-  return async (ctx, next) => {
-    const { messages } = ctx.event
-    logger.debug(`preprocessing ${messages.length} messages in inbox`)
-    const processed = await Promise.mapSeries(messages, message => user.onSentMessage({ message }))
-    ctx.messages = processed.filter(notNull)
-    if (ctx.messages.length) {
-      logger.debug(`preprocessed ${ctx.messages.length} messages in inbox`)
-      await next()
-    }
-  }
-}
 
 export const preProcessIotMessage = (lambda, opts) => {
   const { logger, tradle, tasks, isUsingServerlessOffline } = lambda
@@ -49,19 +36,19 @@ export const preProcessIotMessage = (lambda, opts) => {
     }
 
     const buf = typeof data === 'string' ? new Buffer(data, 'base64') : data
-    let message
+    let messages
     try {
-      message = await IotMessage.decode(buf)
+      const payload = await IotMessage.decode(buf)
+      messages = JSON.parse(payload).messages
     } catch (err) {
       logger.error('client sent invalid MQTT payload', err.stack)
       await user.onIncompatibleClient({ clientId })
       return
     }
 
-    const processed = await user.onSentMessage({ clientId, message })
-    if (processed) {
-      ctx.messages = [processed]
-      logger.debug('preprocessed message')
+    ctx.messages = await user.onSentMessages({ clientId, messages })
+    if (ctx.messages.length) {
+      logger.debug('preprocessed messages')
       await next()
     }
   }
@@ -97,7 +84,7 @@ export const onmessage = (lambda, opts) => {
       await lock(userId)
       try {
         let userPre = await bot.users.createIfNotExists({ id: userId })
-        let user = clone(userPre)
+        let user = cloneDeep(userPre)
         for (const message of batch) {
           if (bot.isTesting) {
             await savePayloadToDB({ bot, message })
@@ -108,7 +95,7 @@ export const onmessage = (lambda, opts) => {
         }
 
         user = botMessageEvent.user
-        if (deepEqual(user, userPre)) {
+        if (isEqual(user, userPre)) {
           logger.debug('user state was not changed by onmessage handler')
         } else {
           logger.debug('merging changes to user state')

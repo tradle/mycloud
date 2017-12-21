@@ -28,7 +28,23 @@ import {
   PREVLINK
 } from './constants'
 
-const { unserializeMessage } = tradleUtils
+const unserializeMessage = message => {
+  if (Buffer.isBuffer(message)) {
+    try {
+      return JSON.parse(message)
+    } catch (e) {
+      try {
+        return tradleUtils.unserializeMessage(message)
+      } catch (err) {
+        this.logger.error('unable to unserialize message', { message, error: err.stack })
+        throw err
+      }
+    }
+  }
+
+  return message
+}
+
 const {
   MESSAGE,
   IDENTITY,
@@ -73,19 +89,7 @@ export default class Messages {
     this.inbox = tables.Inbox
   }
 
-  public normalizeInbound = (event):ITradleMessage => {
-    let message
-    if (Buffer.isBuffer(event)) {
-      try {
-        message = unserializeMessage(event)
-      } catch (err) {
-        this.logger.error('unable to unserialize message', { event, error: err.stack })
-        throw err
-      }
-    } else {
-      message = event
-    }
-
+  public normalizeInbound = (message:any):ITradleMessage => {
     const { recipientPubKey } = message
     if (!recipientPubKey) {
       throw new Errors.InvalidMessageFormat('unexpected format')

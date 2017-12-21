@@ -4,9 +4,9 @@ process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 require('source-map-support').install()
 
-const co = require('co')
-const yn = require('yn')
-const pick = require('object.pick')
+import yn = require('yn')
+import { pick } from 'lodash'
+
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'force'
@@ -18,17 +18,19 @@ const { loadCredentials, clearTypes } = require('../cli/utils')
 loadCredentials()
 
 // const toDelete = ['tradle.Application']
-const { TYPE } = require('@tradle/constants')
-const tradle = require('../').createRemoteTradle()
+import { TYPE } from '@tradle/constants'
+import { createRemoteTradle } from '../'
+import { customize } from '../samplebot/customize'
+
+const tradle = createRemoteTradle()
 const bot = require('../bot').createBot({ tradle })
 const { db, dbUtils, env } = tradle
 const { SERVERLESS_PREFIX } = env
 const { clear } = dbUtils
-const { customize } = require('../samplebot/customize')
 const definitions = require('../definitions')
 const readline = require('readline')
 
-const deleteApplications = co.wrap(function* () {
+const deleteApplications = async () => {
   const { productsAPI } = await customize({ bot })
   const models = productsAPI.models.all
   console.log('finding victims...')
@@ -54,7 +56,7 @@ const deleteApplications = co.wrap(function* () {
 
   if (!argv.force) {
     const rl = readline.createInterface(process.stdin, process.stdout)
-    const answer = yield new Promise(resolve => {
+    const answer = await new Promise(resolve => {
       rl.question('continue? y/[n]:', resolve)
     })
 
@@ -66,7 +68,7 @@ const deleteApplications = co.wrap(function* () {
   }
 
   console.log('let the games begin!')
-  const deleteCounts = yield clearTypes({
+  const deleteCounts = await clearTypes({
     tradle,
     types: Object.keys(models)
   })
@@ -75,10 +77,10 @@ const deleteApplications = co.wrap(function* () {
 
   for (const table of tablesToClear) {
     console.log('clearing', table)
-    const numDeleted = yield clear(table)
+    const numDeleted = await clear(table)
     console.log(`deleted ${numDeleted} items from ${table}`)
   }
-})
+}
 
 deleteApplications().catch(err => {
   console.error(err)

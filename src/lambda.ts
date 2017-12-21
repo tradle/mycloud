@@ -7,7 +7,11 @@ require('source-map-support').install()
 import './globals'
 
 import fs = require('fs')
-import pick = require('object.pick')
+import {
+  pick
+} from 'lodash'
+
+// @ts-ignore
 import Promise = require('bluebird')
 import compose = require('koa-compose')
 import randomName = require('random-name')
@@ -24,6 +28,7 @@ import {
   timeoutIn,
   parseArn
 } from './utils'
+
 import {
   ILambdaAWSExecutionContext
 } from './types'

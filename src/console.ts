@@ -1,5 +1,8 @@
-const pick = require('object.pick')
-const extend = require('xtend/mutable')
+import {
+  pick,
+  extend
+} from 'lodash'
+
 const {
   SERVERLESS_PREFIX,
   AWS_LAMBDA_FUNCTION_NAME

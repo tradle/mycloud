@@ -12,7 +12,7 @@ import {
 
 const debug = require('debug')('tradle:sls:init')
 const { getLink, addLinks, getIdentitySpecs, getChainKey } = crypto
-const { omitVirtual, setVirtual, omit, deepEqual, clone, bindAll, promisify, co } = utils
+const { omitVirtual, setVirtual, omit, deepEqual, bindAll, promisify, co } = utils
 const { exportKeys } = require('./crypto')
 
 module.exports = Initializer

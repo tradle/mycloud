@@ -1,6 +1,9 @@
 // const debug = require('debug')('tradle:sls:errors')
-import pick = require('object.pick')
-import deepEqual = require('deep-equal')
+import {
+  pick,
+  isEqual
+} from 'lodash'
+
 import ex = require('error-ex')
 import { AssertionError } from 'assert'
 import { TfTypeError, TfPropertyTypeError } from 'typeforce'
@@ -57,7 +60,7 @@ const matches = (err, type) => {
       if (!expected.test(actual)) {
         return false
       }
-    } else if (!deepEqual(expected, actual)) {
+    } else if (!isEqual(expected, actual)) {
       return false
     }
   }

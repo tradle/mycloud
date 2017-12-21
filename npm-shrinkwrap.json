@@ -314,7 +314,7 @@
     },
     "@tradle/validate-model": {
       "version": "4.2.0",
-      "from": "@tradle/validate-model@>=4.1.0 <5.0.0",
+      "from": "@tradle/validate-model@latest",
       "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-4.2.0.tgz"
     },
     "@tradle/validate-resource": {
@@ -346,6 +346,11 @@
       "resolved": "https://registry.npmjs.org/@types/graphql/-/graphql-0.10.2.tgz",
       "dev": true,
       "optional": true
+    },
+    "@types/lodash": {
+      "version": "4.14.91",
+      "from": "@types/lodash@latest",
+      "resolved": "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.91.tgz"
     },
     "@types/node": {
       "version": "8.5.1",
@@ -5377,7 +5382,7 @@
     },
     "lodash": {
       "version": "4.17.4",
-      "from": "lodash@>=4.1.0 <5.0.0",
+      "from": "lodash@4.17.4",
       "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.4.tgz"
     },
     "lodash-es": {
