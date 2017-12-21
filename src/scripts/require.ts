@@ -1,7 +1,7 @@
 const path = require('path')
 const globalRequire = require
 
-module.exports = function (modulePath) {
+export = function requireOverride (modulePath) {
   if (modulePath[0] !== '.') {
     return globalRequire(modulePath)
   }

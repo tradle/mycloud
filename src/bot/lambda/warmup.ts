@@ -1,15 +1,11 @@
-import { EventSource } from '../../lambda'
+import { Lambda, fromSchedule } from '../lambda'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.SCHEDULE,
-    ...opts
-  })
-
+  const lambda = fromSchedule(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda, opts) => {
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { tradle } = lambda
   const { lambdaUtils } = tradle
   return async (ctx, next) => {

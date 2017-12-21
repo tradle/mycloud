@@ -2,18 +2,14 @@ import compose = require('koa-compose')
 import cors = require('kcors')
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
-import { EventSource, Lambda } from '../../lambda'
+import { EventSource, Lambda, fromHTTP } from '../lambda'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.HTTP,
-    ...opts
-  })
-
+  const lambda = fromHTTP(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda, opts) => {
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { tradle, bot } = lambda
   const { auth, serviceMap } = tradle
   return compose([

@@ -18,6 +18,7 @@ import ContentAddressedStore from './content-addressed-store'
 import { TaskManager } from './task-manager'
 import { requireDefault } from './require-default'
 import Push from './push'
+import User from './user'
 import { applyFunction } from './utils'
 
 let instanceCount = 0
@@ -45,7 +46,7 @@ export default class Tradle {
   public seals: Seals
   public blockchain: Blockchain
   public init: any
-  public user: any
+  public user: User
   public friends: Friends
   public provider: Provider
   public pushNotifications: Push

@@ -1,13 +1,9 @@
-import { EventSource, Lambda } from '../../lambda'
+import { EventSource, Lambda, fromHTTP } from '../lambda'
 import { createGraphQLRouter } from '../graphql'
 import { defineGetter } from '../../utils'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.HTTP,
-    ...opts
-  })
-
+  const lambda = fromHTTP(opts)
   const router = createRouter(lambda, opts)
   defineGetter(lambda, 'setGraphQLAuth', () => router.setGraphQLAuth)
   defineGetter(lambda, 'setGraphiqlOptions', () => router.setGraphiqlOptions)

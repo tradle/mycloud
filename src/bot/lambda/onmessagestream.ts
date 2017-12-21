@@ -3,16 +3,12 @@ import Errors = require('../../errors')
 import { getRecordsFromEvent } from '../../db-utils'
 import { getMessagePayload } from '../utils'
 import { pick, batchProcess, ensureTimestamped, promiseNoop } from '../../utils'
-import { savePayloadToDB, preProcessMessageEvent } from '../utils'
-import { EventSource } from '../../lambda'
+import { savePayloadToDB } from '../utils'
+import { Lambda, fromDynamoDB } from '../lambda'
 import { onmessage as createOnMessageMiddleware } from '../middleware/onmessage'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.DYNAMODB,
-    ...opts
-  })
-
+  const lambda = fromDynamoDB(opts)
   lambda.tasks.add({
     name: 'getiotendpoint',
     promiser: lambda.bot.iot.getEndpoint
@@ -21,7 +17,7 @@ export const createLambda = (opts) => {
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda, opts) => {
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { bot, logger } = lambda
   const logAndThrow = (results) => {
     const failed = results.map(({ reason }) => reason)

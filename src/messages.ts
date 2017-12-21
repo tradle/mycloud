@@ -31,7 +31,7 @@ import {
 const unserializeMessage = message => {
   if (Buffer.isBuffer(message)) {
     try {
-      return JSON.parse(message)
+      return JSON.parse(message.toString())
     } catch (e) {
       try {
         return tradleUtils.unserializeMessage(message)
@@ -143,7 +143,7 @@ export default class Messages {
 
   public getMessageStub = (opts: {
     message: ITradleMessage,
-    error?: Error
+    error?: ErrorWithLink
   }):IMessageStub => {
     const { message, error } = opts
     const stub = {
@@ -209,9 +209,7 @@ export default class Messages {
       await this.inbox.put(params)
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
-        const dErr = new Errors.Duplicate()
-        dErr.link = getLink(message)
-        throw dErr
+        throw new Errors.Duplicate('duplicate inbound message', getLink(message))
       }
 
       throw err
@@ -408,16 +406,13 @@ export default class Messages {
       })
 
       if (prev._link === link) {
-        const dErr = new Errors.Duplicate()
-        dErr.link = link
-        throw dErr
+        throw new Errors.Duplicate('duplicate inbound message', link)
       }
 
       if (prev.time >= time) {
         const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${prev._link})`
         this.logger.debug(msg)
-        const dErr = new Errors.TimeTravel(msg)
-        dErr.link = link
+        throw new Errors.TimeTravel(msg, link)
         // dErr.previous = {
         //   time: prev.time,
         //   link: prev.link

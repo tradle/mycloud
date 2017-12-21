@@ -28,6 +28,13 @@ const types = {
     // Typeforce
     TfTypeError,
     TfPropertyTypeError
+  ],
+  developer: [
+    'system',
+    {
+      // dynamodb
+      code: 'ValidationException'
+    }
   ]
 }
 
@@ -81,13 +88,35 @@ const rethrow = (err, type) => {
 }
 
 const _HttpError = createError('HttpError')
-class HttpError extends Error {
+
+class ExportableError extends Error {
+  public toJSON = () => exportError(this)
+}
+
+class HttpError extends ExportableError {
   public status: number
   constructor(code, message) {
     super(message)
     this.status = code || 500
   }
+
+  public toJSON = () => ({ ...exportError(this), status: this.status })
 }
+
+class ErrorWithLink extends ExportableError {
+  public link: string
+  constructor(message, link) {
+    super(message)
+    this.link = link
+  }
+
+  public toJSON = () => ({ ...exportError(this), link: this.link })
+}
+
+class Duplicate extends ErrorWithLink {}
+class TimeTravel extends ErrorWithLink {}
+
+const exportError = (err:Error) => pick(err, ['message', 'stack', 'name', 'type'])
 
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
@@ -103,20 +132,23 @@ const errors = {
   InvalidInput: createError('InvalidInput'),
   ClockDrift: createError('ClockDrift'),
   BatchPutFailed: createError('BatchPutFailed'),
-  Duplicate: createError('Duplicate'),
-  TimeTravel: createError('TimeTravel'),
+  Duplicate,
+  TimeTravel,
   ExecutionTimeout: createError('ExecutionTimeout'),
   Exists: createError('Exists'),
   HttpError,
   Timeout: createError('Timeout'),
-  export: (err:Error): {
-    type:string,
-    message:string
-  } => {
-    return pick(err, ['message', 'stack', 'name', 'type'])
+  export: (err:Error):any => {
+    if (err instanceof ExportableError) {
+      return (err as ExportableError).toJSON()
+
+    }
+    return exportError(err)
   },
   isDeveloperError: (err:Error): boolean => {
-    return err instanceof TypeError || err instanceof ReferenceError || err instanceof SyntaxError
+    const is = matches(err, 'developer')
+    if (is) debugger
+    return is
   },
   isCustomError: (err:Error): boolean => {
     return err.name in errors

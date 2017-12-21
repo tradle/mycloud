@@ -1,6 +1,6 @@
 const { logifyFunction } = require('./utils')
 
-module.exports = function createSecrets ({ bucket }) {
+export = function createSecrets ({ bucket }) {
   function del (key) {
     return bucket.del(key)
   }

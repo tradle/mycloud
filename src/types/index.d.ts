@@ -1,6 +1,13 @@
 import { EventEmitter } from 'events'
 import Logger from '../logger'
 
+export interface ISettledPromise {
+  isFulfilled: boolean
+  isRejected: boolean
+  value?: any
+  reason?: Error
+}
+
 export interface IPositionPair {
   sent?: IPosition
   received?: IPosition

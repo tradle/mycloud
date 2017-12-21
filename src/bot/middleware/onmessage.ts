@@ -39,7 +39,7 @@ export const preProcessIotMessage = (lambda, opts) => {
     let messages
     try {
       const payload = await IotMessage.decode(buf)
-      messages = JSON.parse(payload).messages
+      messages = JSON.parse(payload.toString()).messages
     } catch (err) {
       logger.error('client sent invalid MQTT payload', err.stack)
       await user.onIncompatibleClient({ clientId })

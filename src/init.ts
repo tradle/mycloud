@@ -6,16 +6,13 @@ import models = require('./models')
 import {
   TYPE,
   PUBLIC_CONF_BUCKET,
-  IDENTITY_KEYS_KEY,
-  TABLES_TO_PRECREATE
+  IDENTITY_KEYS_KEY
 } from './constants'
 
 const debug = require('debug')('tradle:sls:init')
 const { getLink, addLinks, getIdentitySpecs, getChainKey } = crypto
 const { omitVirtual, setVirtual, omit, deepEqual, bindAll, promisify, co } = utils
 const { exportKeys } = require('./crypto')
-
-module.exports = Initializer
 
 function Initializer ({
   env,
@@ -177,3 +174,5 @@ const createIdentity = co(function* (opts) {
     keys: exportKeys(keys)
   }
 })
+
+export = Initializer

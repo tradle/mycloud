@@ -1,11 +1,7 @@
-import { EventSource } from '../../lambda'
+import { EventSource, fromIot, Lambda } from '../lambda'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.IOT,
-    ...opts
-  })
-
+  const lambda = fromIot(opts)
   lambda.tasks.add({
     name: 'getiotendpoint',
     promiser: lambda.bot.iot.getEndpoint
@@ -15,17 +11,20 @@ export const createLambda = (opts) => {
 }
 
 export const createMiddleware = (lambda, opts ) => {
-  const { logger, tradle } = lambda
+  const { logger, tradle, bot } = lambda
   const { user } = tradle
   return async (ctx, next) => {
     let { event } = ctx
     if (Buffer.isBuffer(event)) {
-      ctx.event = event = JSON.parse(event)
+      ctx.event = event = JSON.parse(event.toString())
     }
 
     logger.debug('client connected', event)
     const { clientId } = event
-    await user.onConnected({ clientId })
-    await next()
+    const session = await user.onConnected({ clientId })
+    if (session) {
+      await bot.hooks.fire('useronline', session.permalink)
+      await next()
+    }
   }
 }

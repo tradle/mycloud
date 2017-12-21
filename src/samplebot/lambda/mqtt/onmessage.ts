@@ -6,4 +6,4 @@ const bot = createBot({ ready: false })
 const lambda = bot.lambdas.onmessage()
 customize({ bot, event: 'message' })
 const { handler } = lambda
-module.exports = lambda
+export = lambda

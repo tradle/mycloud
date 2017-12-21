@@ -277,9 +277,7 @@ export default class Seals {
       })
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
-        const dErr = new Errors.Duplicate()
-        dErr.link = seal.link
-        throw dErr
+        throw new Errors.Duplicate('duplicate seal with link', seal.link)
       }
 
       throw err

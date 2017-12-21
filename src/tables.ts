@@ -1,5 +1,5 @@
 
-module.exports = function getTables ({ serviceMap, dbUtils }) {
+export = function getTables ({ serviceMap, dbUtils }) {
   const { getTable } = dbUtils
 
   function loadTable (name) {

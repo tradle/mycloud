@@ -11,7 +11,6 @@ import { IDebug, ILambdaAWSExecutionContext } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
 import Logger, { Level } from './logger'
 import { Lambda, IRequestContext } from './lambda'
-import { name as packageName } from '../package.json'
 
 export default class Env {
   public lambda:Lambda

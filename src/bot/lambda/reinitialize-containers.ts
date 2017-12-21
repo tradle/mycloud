@@ -1,16 +1,12 @@
 import serverlessYml = require('../../cli/serverless-yml')
-import { EventSource } from '../../lambda'
+import { Lambda, fromLambda } from '../lambda'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.LAMBDA,
-    ...opts
-  })
-
+  const lambda = fromLambda(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda, opts) => {
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { logger, tradle } = lambda
   const { lambdaUtils } = tradle
   return async (ctx, next) => {

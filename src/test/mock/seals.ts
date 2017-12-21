@@ -1,12 +1,11 @@
-const co = require('co').wrap
-const { getter } = require('../utils')
+import { getter } from '../utils'
 
-module.exports = function fakeSeals (opts={}) {
+export = function fakeSeals (opts={}) {
   const { seals={} } = opts
   return {
-    create: co(function* ({ link }) {
+    create: async ({ link }) => {
       seals[link] = { link }
-    }),
+    },
     get: getter(seals)
   }
 }

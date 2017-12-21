@@ -2,6 +2,14 @@
 import Promise = require('bluebird')
 import { settle } from 'settle-promise'
 import Logger from './logger'
+import Errors = require('./errors')
+import {
+  ISettledPromise
+} from './types'
+
+export interface ITaskResult extends ISettledPromise {
+  name: string
+}
 
 export type Task = {
   name: string
@@ -37,17 +45,22 @@ export class TaskManager {
     return await Promise.all(this.tasks.map(task => task.promise))
   }
 
-  public awaitAllSettled = async () => {
+  public awaitAllSettled = async ():Promise<ITaskResult> => {
     if (!this.tasks.length) return []
 
     this.logger.debug(`waiting for ${this.tasks.length} tasks to complete or fail`)
     const names = this.tasks.map(task => task.name)
-    const results = await settle(this.tasks.map(task => task.promise))
-    results.forEach((result, i) => {
-      result.task = names[i].name
+    const results:ISettledPromise[] = await settle(this.tasks.map(task => task.promise))
+    results.forEach(({ reason }) => {
+      if (reason && Errors.isDeveloperError(reason)) {
+        this.logger.warn('developer error', Errors.export(reason))
+      }
     })
 
-    return results
+    return results.map((result, i) => ({
+      ...result,
+      name: names[i]
+    }))
   }
 
   private monitorTask = async (task) => {

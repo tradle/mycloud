@@ -443,7 +443,7 @@ export default class Utils {
       try {
         const resp = await this.invoke(opts)
         const body = resp.headers && resp.body && resp.isBase64Encoded
-          ? JSON.parse(new Buffer(resp.body, 'base64'))
+          ? JSON.parse(new Buffer(resp.body, 'base64').toString())
           : resp
 
         this.logger.info(`Warm Up Invoke Success: ${functionName}`, body)

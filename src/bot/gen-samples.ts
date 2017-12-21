@@ -1,10 +1,8 @@
-const co = require('co').wrap
-const Gen = require('@tradle/gen-samples')
-const { TYPE } = require('@tradle/constants')
-const { batchify } = require('../utils')
-const MAX_TABLES_PER_OP = 10
+import Gen = require('@tradle/gen-samples')
+import { TYPE } from '@tradle/constants'
+import { batchify } from '../utils'
 
-module.exports = co(function* ({ bot, event }) {
+export = async function genSamples ({ bot, event }) {
   const { TESTING } = bot.env
   const { users, products } = TESTING ? getParams(event) : event
   if (typeof users !== 'number') throw new Error('expected number "users"')
@@ -28,13 +26,13 @@ module.exports = co(function* ({ bot, event }) {
   // flatten
   .reduce((all, some) => all.concat(some), [])
 
-  yield db.batchPut(samples)
+  await db.batchPut(samples)
   if (TESTING) {
     return {
       statusCode: 200
     }
   }
-})
+}
 
 const getParams = ({ httpMethod, body, queryStringParameters }) => {
   if (httpMethod === 'POST') {

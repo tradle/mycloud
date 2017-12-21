@@ -1,17 +1,13 @@
 import { getRecordsFromEvent } from '../../db-utils'
 import { batchProcess } from '../../utils'
-import { EventSource } from '../../lambda'
+import { Lambda, fromDynamoDB } from '../lambda'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.DYNAMODB,
-    ...opts
-  })
-
+  const lambda = fromDynamoDB(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda, opts) => {
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { bot } = lambda
   const { batchSize=10 } = opts
   const processOne = async (record) => {

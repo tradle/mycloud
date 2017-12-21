@@ -1,15 +1,15 @@
 
+import Wallet = require('ethereumjs-wallet')
+import BN = require('bn.js')
+import promisify = require('pify')
+import fetch = require('node-fetch')
+import Network = require('@tradle/ethereum-adapter')
+import { processResponse } from '../utils'
+
 const debug = require('debug')('tradle:sls:ethereum-adapter')
-const co = require('co').wrap
-const Wallet = require('ethereumjs-wallet')
-const BN = require('bn.js')
-const promisify = require('pify')
-const fetch = require('node-fetch')
-const Network = require('@tradle/ethereum-adapter')
-const { processResponse } = require('../utils')
 const FAUCET_BASE_URL = 'http://faucet.ropsten.be:3001/donate'
 
-module.exports = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
+export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
   let wallet
   let transactor
   if (privateKey) {

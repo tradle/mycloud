@@ -1,13 +1,9 @@
-import { EventSource } from '../../lambda'
+import { Lambda, EventSource, fromSchedule } from '../lambda'
 
 const SIX_HOURS = 6 * 3600 * 1000
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.SCHEDULE,
-    ...opts
-  })
-
+  const lambda = fromSchedule(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 

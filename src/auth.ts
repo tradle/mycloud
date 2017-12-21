@@ -91,32 +91,30 @@ export default class Auth {
     this.tasks = opts.tasks
   }
 
+
+  static getPermalinkFromClientId = getPermalinkFromClientId
+  public getPermalinkFromClientId = getPermalinkFromClientId
+
   get accountId () {
     return this.env.accountId
   }
 
-  public setAuthenticated = async (session:ISession): Promise<void> => {
-    session = {
-      ...session,
-      authenticated: true
-    }
-
+  public putSession = async (session:ISession): Promise<ISession> => {
     this.logger.debug('saving session', session)
 
     // allow multiple sessions for the same user?
     // await deleteSessionsByPermalink(permalink)
-    await this.tables.Presence.put({ Item: session })
+    return await this.tables.Presence.put({
+      Item: session
+    })
   }
 
   public setConnected = async ({ clientId, connected }): Promise<any> => {
     if (!connected) {
-      return this.tables.Presence.update({
-        Key: getKeyFromClientId(clientId),
-        ...getUpdateParams({ connected: false, subscribed: false })
-      })
+      return await this.updateSession({ clientId }, { connected: false, subscribed: false })
     }
 
-    return this.tables.Presence.update({
+    return await this.tables.Presence.update({
       Key: getKeyFromClientId(clientId),
       UpdateExpression: 'SET #connected = :connected',
       ConditionExpression: '#authenticated = :authenticated',
@@ -135,13 +133,10 @@ export default class Auth {
   public setSubscribed = async ({ clientId, subscribed }): Promise<any> => {
     // params.Key = getKeyFromClientId(clientId)
     if (!subscribed) {
-      return this.tables.Presence.update({
-        Key: getKeyFromClientId(clientId),
-        ...getUpdateParams({ subscribed: false })
-      })
+      return await this.updateSession({ clientId }, { subscribed: false })
     }
 
-    return this.tables.Presence.update({
+    return await this.tables.Presence.update({
       Key: getKeyFromClientId(clientId),
       UpdateExpression: 'SET #subscribed = :subscribed',
       ConditionExpression: '#authenticated = :authenticated',
@@ -263,9 +258,10 @@ export default class Auth {
       sent: await getLastSent
     }
 
+    session.authenticated = true
     this.tasks.add({
       name: 'savesession',
-      promise: this.setAuthenticated(session)
+      promise: this.putSession(session)
     })
 
     return session
@@ -302,7 +298,8 @@ export default class Auth {
 
   public createSession = async (opts: {
     clientId: string,
-    identity: IIdentity
+    identity: IIdentity,
+    ips?: string[]
   }): Promise<IIotClientResponse> => {
     try {
       typeforce({
@@ -363,6 +360,14 @@ export default class Auth {
   public getMostRecentSessionByClientId = (clientId): Promise<any> => {
     return this.getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
   }
+
+  private updateSession = async ({ clientId }, update):Promise<ISession> => {
+    return await this.tables.Presence.update({
+      Key: getKeyFromClientId(clientId),
+      ReturnValues: 'ALL_NEW',
+      ...getUpdateParams(update)
+    })
+  }
 }
 
 // const isMostRecentSession = co(function* ({ clientId }) {
@@ -372,16 +377,15 @@ export default class Auth {
 //   } catch (err) {}
 // })
 
-
-function getPermalinkFromClientId (clientId) {
-  return clientId.slice(0, 64)
-}
-
 function getKeyFromClientId (clientId) {
   return {
     clientId,
     permalink: getPermalinkFromClientId(clientId)
   }
+}
+
+function getPermalinkFromClientId (clientId:string):string {
+  return clientId.slice(0, 64)
 }
 
 function getSessionsByPermalinkQuery (permalink) {

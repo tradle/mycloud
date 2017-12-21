@@ -264,6 +264,10 @@ export class Lambda {
     }
 
     if (err) {
+      if (Errors.isDeveloperError(err)) {
+        this.logger.warn('likely developer error', Errors.export(err))
+      }
+
       ctx.body = this._exportError(err)
       this.logger.debug('lambda execution failed', { stack: err.stack })
     } else if (result) {
@@ -438,7 +442,7 @@ export class Lambda {
 
   private _exportError = (err) => {
     if (this.isTesting) {
-      return pick(err, ['message', 'stack', 'type', 'name'])
+      return Errors.export(err)
     }
 
     return {

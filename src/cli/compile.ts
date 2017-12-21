@@ -8,7 +8,7 @@ const LOCALLY_AVAILABLE = [
 
 const { HTTP_METHODS, ENV_RESOURCE_PREFIX } = require('../constants')
 
-module.exports = {
+export {
   forEachResource,
   addResourcesToOutputs,
   addHTTPMethodsToEnvironment,

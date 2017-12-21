@@ -9,7 +9,7 @@ const { extend } = utils
 const promiseNoop = async () => {}
 const noop = () => {}
 
-module.exports = function fakeTradle ({ env, conf, kv, objects, identities, messages, send }) {
+export = function fakeTradle ({ env, conf, kv, objects, identities, messages, send }) {
   const seals = {}
   const inbox = {}
   const outbox = {}

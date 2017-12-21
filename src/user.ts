@@ -27,7 +27,7 @@ const ClientErrors = {
  *  a user subscribing to a topic
  *  a user calling his grandma on her birthday
  */
-class UserSim {
+export default class User {
   private env: Env
   private logger: Logger
   private auth: Auth
@@ -53,7 +53,7 @@ class UserSim {
     } = tradle
 
     this.env = env
-    this.logger = logger.sub('usersim')
+    this.logger = logger.sub('user')
     this.auth = auth
     this.iot = iot
     this.provider = provider
@@ -115,7 +115,10 @@ class UserSim {
     }
   }
 
-  public onSentMessages = async ({ clientId, messages }) => {
+  public onSentMessages = async ({ clientId, messages }: {
+    clientId?:string,
+    messages:any[]
+  }) => {
     const processed = await Promise.mapSeries(
       messages,
       message => this.onSentMessage({ clientId, message })
@@ -247,10 +250,11 @@ class UserSim {
     throw err
   }
 
-  public onDisconnected = async ({ clientId }) => {
+  public onDisconnected = async ({ clientId }):Promise<ISession|void> => {
     try {
       const session = await this.auth.setConnected({ clientId, connected: false })
       this.logger.debug(`client disconnected`, session)
+      return session
     } catch (error) {
       this.logger.error('failed to update presence information', error)
       await this.requestIotClientReconnect({ clientId, error })
@@ -268,7 +272,7 @@ class UserSim {
     }
   }
 
-  public onConnected = async ({ clientId }) => {
+  public onConnected = async ({ clientId }):Promise<ISession|void> => {
     // if (Math.random() < 0.5) {
     //   console.log('ONCONNECTED, REQUESTING RECONNECT')
     //   await this.requestIotClientReconnect({ clientId })
@@ -287,6 +291,7 @@ class UserSim {
     }
 
     await this.maybeDeliverMessagesToClient(session)
+    return session
   }
 
   public onIncompatibleClient = async ({ clientId }) => {
@@ -343,5 +348,3 @@ class UserSim {
 const getDeliveryReadiness = session => {
   return prettify(pick(session, ['connected', 'subscribed']))
 }
-
-module.exports = UserSim

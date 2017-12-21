@@ -1,8 +1,8 @@
-const co = require('co').wrap
-const createBot = require('../../bot')
-const fakeTradle = require('./tradle')
-const fakeUsers = require('./users')
-const promiseNoop = co(function* () {})
+import { createBot } from '../../bot'
+import fakeTradle = require('./tradle')
+import fakeUsers = require('./users')
+
+const promiseNoop = async () => {}
 // const defaultUserModel = {
 //   id: 'tradle.User',
 //   type: 'tradle.Model',
@@ -11,9 +11,7 @@ const promiseNoop = co(function* () {})
 //   }
 // }
 
-module.exports = fakeBot
-
-function fakeBot (opts={}) {
+function fakeBot (opts:any={}) {
   let {
     send=promiseNoop,
     objects={},
@@ -34,3 +32,5 @@ function fakeBot (opts={}) {
 
 fakeBot.inputs = createBot.inputs
 fakeBot.fromEngine = opts => fakeBot(fakeBot.inputs(opts))
+
+export = fakeBot

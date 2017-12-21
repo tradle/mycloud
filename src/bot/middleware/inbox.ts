@@ -1,9 +1,10 @@
 // @ts-ignore
 import Promise = require('bluebird')
+import { Lambda, fromDynamoDB } from '../lambda'
 
 const notNull = val => !!val
 
-export const preProcess = (lambda, opts) => {
+export const preProcess = (lambda:Lambda, opts?:any) => {
   const { logger, tradle } = lambda
   const { user } = tradle
   return async (ctx, next) => {

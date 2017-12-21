@@ -53,7 +53,7 @@ type Buckets = {
   [name:string]: Bucket
 }
 
-module.exports = function getBuckets ({ env, logger, aws, serviceMap }):Buckets {
+export = function getBuckets ({ env, logger, aws, serviceMap }):Buckets {
 
   const { MEMORY_SIZE } = env
 

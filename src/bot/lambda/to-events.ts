@@ -1,15 +1,11 @@
-import { EventSource } from '../../lambda'
+import { Lambda, fromDynamoDB } from '../lambda'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.DYNAMODB,
-    ...opts
-  })
-
+  const lambda = fromDynamoDB(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda, opts) => {
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { events } = lambda.tradle
   return async (ctx, next) => {
     const { event } = ctx

@@ -1,4 +1,4 @@
-module.exports = {
+export = {
   'tradle.Ping': {
     id: 'tradle.Ping',
     title: 'Ping',

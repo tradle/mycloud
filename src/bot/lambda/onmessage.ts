@@ -1,13 +1,9 @@
 import compose = require('koa-compose')
-import { EventSource } from '../../lambda'
+import { EventSource, Lambda, fromLambda } from '../lambda'
 import { preProcessIotMessage, onmessage } from '../middleware/onmessage'
 
 export const createLambda = (opts) => {
-  const lambda = opts.bot.createLambda({
-    source: EventSource.LAMBDA,
-    ...opts
-  })
-
+  const lambda = fromLambda(opts)
   lambda.tasks.add({
     name: 'getiotendpoint',
     promiser: lambda.bot.iot.getEndpoint
@@ -16,7 +12,7 @@ export const createLambda = (opts) => {
   return lambda.use(createMiddleware(lambda, opts))
 }
 
-export const createMiddleware = (lambda, opts) => {
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
   return compose([
     preProcessIotMessage(lambda, opts),
     onmessage(lambda, opts)

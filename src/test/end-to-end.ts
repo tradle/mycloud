@@ -672,7 +672,7 @@ const clear = async ({ tradle }) => {
   ])
 }
 
-module.exports = {
+export = {
   createUser,
   // createProductsBot,
   Test: E2ETest,

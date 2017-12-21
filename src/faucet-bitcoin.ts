@@ -8,7 +8,7 @@ const addressAmount = typeforce.compile({
   amount: types.amount.bitcoin
 })
 
-module.exports = function createFaucet ({ privateKey, networkName }) {
+export = function createFaucet ({ privateKey, networkName }) {
   const blockchain = new Blockchain(networkName)
   const withdraw = co(function* ({ to, fee }) {
     const spender = new Spender(networkName)

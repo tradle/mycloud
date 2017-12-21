@@ -119,7 +119,7 @@ const chooseIcon = function chooseIcon (favicons, minSize) {
   }
 }
 
-module.exports = {
+export {
   getDataURI,
   downloadImage,
   getFavicon,

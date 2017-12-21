@@ -4,7 +4,7 @@ import IotMessage = require('@tradle/iot-message')
 import { cachifyPromiser } from './utils'
 const DEFAULT_QOS = 1
 
-module.exports = function ({ aws, env, prefix='' }) {
+export = function createIotUtils ({ aws, env, prefix='' }) {
 
   const logger = env.logger.sub('iot-utils')
   // initialized lazily

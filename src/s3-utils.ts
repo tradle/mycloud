@@ -4,7 +4,7 @@ import Errors = require('./errors')
 import Logger from './logger'
 import { timeMethods, isPromise, batchify, batchProcess } from './utils'
 
-module.exports = function createUtils ({ s3, logger }) {
+export = function createUtils ({ s3, logger }) {
   const put = async ({ key, value, bucket, contentType }: {
     key:string,
     value:any,
