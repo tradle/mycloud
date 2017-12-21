@@ -10,6 +10,7 @@ import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
 import { Level } from '../logger'
 import { uniqueStrict, logResponseBody } from '../utils'
+import { ITradleObject } from '../types'
 
 const { MESSAGE } = TYPES
 const prettifyQuery = query => print(parse(query))

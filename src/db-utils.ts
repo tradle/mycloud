@@ -22,8 +22,8 @@ import { prettify, alphabetical } from './string-utils'
 import { sha256 } from './crypto'
 import * as Errors from './errors'
 import Env from './env'
-import definitions = require('./definitions')
 
+const definitions = require('./definitions')
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 const TABLE_BUCKET_REGEX = /-bucket-\d+$/

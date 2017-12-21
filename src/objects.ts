@@ -97,10 +97,10 @@ export default class Objects {
     return Embed.resolveEmbeds({ object, resolve: this.resolveEmbed })
   }
 
-  public get = (link: string):Promise<ITradleObject> => {
+  public get = async (link: string):Promise<ITradleObject> => {
     typeforce(typeforce.String, link)
     this.logger.debug('getting', link)
-    return this.bucket.getJSON(link)
+    return await this.bucket.getJSON(link)
   }
 
   public put = async (object: ITradleObject) => {
@@ -110,7 +110,7 @@ export default class Objects {
     object = deepClone(object)
     await this.replaceEmbeds(object)
     this.logger.debug('putting', summarizeObject(object))
-    return this.bucket.putJSON(object._link, object)
+    return await this.bucket.putJSON(object._link, object)
   }
 
   public prefetch = (link: string):void => {

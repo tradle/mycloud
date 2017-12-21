@@ -1,22 +1,25 @@
-const path = require('path')
-const promisify = require('pify')
-const proc = require('child_process')
-const pexec = promisify(proc.exec.bind(proc))
-const parseEnv = require('env-file-parser').parseSync
-const fs = promisify(require('fs'))
-const YAML = require('js-yaml')
-const isNative = require('is-native-module')
-const extend = require('xtend/mutable')
-const pick = require('object.pick')
-const debug = require('debug')('tradle:sls:cli:utils')
-const { models } = require('@tradle/models')
-const validateResource = require('@tradle/validate-resource')
-const { TYPE } = require('@tradle/constants')
-const prettify = obj => JSON.stringify(obj, null, 2)
-const { Bucket } = require('../bucket')
-const Errors = require('../errors')
+import path = require('path')
+import promisify = require('pify')
+import proc = require('child_process')
+import { parseSync as parseEnv } from 'env-file-parser'
+import _fs = require('fs')
+import YAML = require('js-yaml')
+import isNative = require('is-native-module')
+import extend = require('xtend/mutable')
+import pick = require('object.pick')
+import { models } from '@tradle/models'
+import validateResource = require('@tradle/validate-resource')
+import { TYPE } from '@tradle/constants'
+import { Bucket } from '../bucket'
+import Errors = require('../errors')
+
 const Localstack = require('../test/localstack')
+const debug = require('debug')('tradle:sls:cli:utils')
+const prettify = obj => JSON.stringify(obj, null, 2)
 const copy = promisify(require('copy-dynamodb-table').copy)
+
+const pexec = promisify(proc.exec.bind(proc))
+const fs = promisify(_fs)
 
 const {
   addResourcesToEnvironment,
@@ -485,7 +488,7 @@ const cloneRemoteBucket = async ({ source, destination, filter=alwaysTrue }) => 
   })
 }
 
-module.exports = {
+export {
   getRemoteEnv,
   loadRemoteEnv,
   compileTemplate,

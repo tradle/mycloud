@@ -509,7 +509,7 @@ functions:
               - preauth
               - auth
               - inbox
-              - onmessage_http
+              # - onmessage_http
               # - to-events:
               #     concurrency: 2
               # - onmessagestream:
@@ -849,7 +849,9 @@ functions:
           path: info
           method: get
 
-  oninit:
+  # rename later, temporarily can't rename, get AWS error:
+  #   "Modifying service token is not allowed..""
+  bot_oninit:
     handler: lib/samplebot/lambda/oninit.handler
     memorySize: 1024
 

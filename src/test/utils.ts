@@ -1,18 +1,18 @@
 require('./env').install()
 
-const { co } = require('../utils')
-const { isResourceEnvironmentVariable } = require('../service-map')
-const tradle = require('../').createTestTradle()
+import { co } from '../utils'
+import { createTestTradle } from '../'
+import Errors = require('../errors')
+import yml = require('../cli/serverless-yml')
+import Logger from '../logger'
+
+const tradle = createTestTradle()
 const {
   dbUtils: { getTable, marshalDBItem }
 } = tradle
 
-const Errors = require('../errors')
-const yml = require('../cli/serverless-yml')
-const Logger = require('../logger').default
-
-const createSilentLogger = (opts={}) => {
-  const logger = new Logger(opts)
+const createSilentLogger = () => {
+  const logger = new Logger('silent')
   logger.setWriter({
     log: () => {}
   })
@@ -93,22 +93,6 @@ function scanner (map) {
   })
 }
 
-function reprefixServices (map, prefix) {
-  const { service } = yml
-  const { stage } = yml.custom
-  const reprefixed = {}
-  for (let key in map) {
-    let val = map[key]
-    if (isResourceEnvironmentVariable(key)) {
-      reprefixed[key] = val.replace(`${service}-${stage}-`, prefix)
-    } else {
-      reprefixed[key] = val
-    }
-  }
-
-  return reprefixed
-}
-
 export {
   getSchema,
   recreateTable,
@@ -117,6 +101,5 @@ export {
   putter,
   deleter,
   scanner,
-  reprefixServices,
   createSilentLogger
 }

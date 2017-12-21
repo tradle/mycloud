@@ -26,7 +26,6 @@ const { extend, clone, pick, omit, batchify } = utils
 // const botFixture = require('./fixtures/bot')
 const userIdentities = require('./fixtures/users-pem')
 const intercept = require('./interceptor')
-const { reprefixServices } = require('./utils')
 const Errors = require('../errors')
 const defaultTradleInstance = require('../').tradle
 const nextUserIdentity = (function () {
@@ -599,7 +598,6 @@ function wrapWithIntercept (fn) {
 //     SERVERLESS_PREFIX: `${service}-${stage}-`
 //   })
 
-//   env = reprefixServices(env, env.SERVERLESS_PREFIX)
 //   return defaultTradleInstance.createInstance(env)
 // }
 

@@ -1,11 +1,11 @@
 // const Cache = require('lru-cache')
-const { EventEmitter } = require('events')
-const { co, pick, omit, extend } = require('../utils')
-const { getUpdateParams } = require('../db-utils')
-const Errors = require('../errors')
+import { EventEmitter } from 'events'
+import { co, pick, omit, extend } from '../utils'
+import { getUpdateParams } from '../db-utils'
+import Errors = require('../errors')
 const PRIMARY_KEY = 'id'
 
-module.exports = function createUsers ({ table, oncreate }) {
+export = function createUsers ({ table, oncreate }) {
   const ee = new EventEmitter()
 
   // const cache = new Cache({ max: 200 })

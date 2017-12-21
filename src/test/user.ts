@@ -1,14 +1,14 @@
-const test = require('tape')
-const { loudCo } = require('../utils')
-const User = require('../user')
-const Delivery = require('../delivery')
+import test = require('tape')
+import { tradle } from '../'
+import { loudCo } from '../utils'
+
 const alice = require('./fixtures/alice/object')
 const bob = require('./fixtures/bob/object')
 const fromBob = require('./fixtures/alice/receive.json')
 
 test('onSentMessage', loudCo(function* (t) {
   try {
-    yield User.onSentMessage({
+    yield tradle.user.onSentMessage({
       clientId: `${bob.permalink}blah`,
       message: { blah: 1 }
     })

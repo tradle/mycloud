@@ -4,22 +4,25 @@ import { TYPE, PREV_TO_RECIPIENT, SEQ, SIG } from './constants'
 
 const { identity } = types
 const link = val => typeof val === 'string' && val.length === 64
+const permalink = link
 
-exports.link = link
-exports.permalink = link
+export {
+  link,
+  permalink,
+  identity
+}
 
-exports.privateKey = typeforce.compile({
+export const privateKey = typeforce.compile({
   pub: typeforce.String,
   priv: typeforce.String
 })
 
-exports.author = typeforce.compile({
+export const author = typeforce.compile({
   identity,
-  keys: typeforce.arrayOf(exports.privateKey)
+  keys: typeforce.arrayOf(privateKey)
 })
 
-exports.identity = identity
-exports.hasType = function hasType (obj) {
+export const hasType = function hasType (obj) {
   if (!obj[TYPE]) {
     throw new Error(`expected string ${TYPE}`)
   }
@@ -27,7 +30,7 @@ exports.hasType = function hasType (obj) {
   return true
 }
 
-exports.hasTimestamp = function hasTimestamp (obj) {
+export const hasTimestamp = function hasTimestamp (obj) {
   if (typeof obj._time !== 'number') {
     throw new Error(`expected timestamp "_time"`)
   }
@@ -35,25 +38,25 @@ exports.hasTimestamp = function hasTimestamp (obj) {
   return true
 }
 
-exports.signedObject = function signedObject (obj) {
+export const signedObject = function signedObject (obj) {
   typeforce(types.signedObject, obj)
-  typeforce(exports.hasType, obj)
+  typeforce(hasType, obj)
   return true
 }
 
-exports.unsignedObject = function unsignedObject (obj) {
+export const unsignedObject = function unsignedObject (obj) {
   typeforce(types.rawObject, obj)
-  typeforce(exports.hasType, obj)
+  typeforce(hasType, obj)
   return true
 }
 
-// exports.messageBody = typeforce.compile({
+// export const messageBody = typeforce.compile({
 //   recipientPubKey: types.ecPubKey,
 //   object: exports.signedObject,
 //   time: typeforce.Number
 // })
 
-exports.message = typeforce.compile({
+export const message = typeforce.compile({
   [SEQ]: typeforce.Number,
   [SIG]: typeforce.String,
   object: types.signedObject,
@@ -74,24 +77,24 @@ exports.message = typeforce.compile({
 //   sigPubKey: typeforce.String
 // })
 
-exports.messageStub = typeforce.compile({
+export const messageStub = typeforce.compile({
   time: typeforce.Number,
   link: link
 })
 
-exports.position = typeforce.compile({
-  time: typeforce.maybe(exports.messageStub),
-  received: typeforce.maybe(exports.messageStub)
+export const position = typeforce.compile({
+  time: typeforce.maybe(messageStub),
+  received: typeforce.maybe(messageStub)
 })
 
-exports.blockchain = typeforce.compile({
+export const blockchain = typeforce.compile({
   flavor: typeforce.String,
   networkName: typeforce.String,
   pubKeyToAddress: typeforce.Function,
   seal: typeforce.Function
 })
 
-exports.address = {
+export const address = {
   bitcoin: function (val) {
     const bitcoin = require('@tradle/bitcoinjs-lib')
     try {
@@ -106,7 +109,7 @@ exports.address = {
   }
 }
 
-exports.amount = {
+export const amount = {
   bitcoin: typeforce.Number,
   ethereum: function (val) {
     return /^0x[0-9a-fA-F]*$/.test(val)

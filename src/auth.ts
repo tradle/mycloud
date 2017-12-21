@@ -75,7 +75,8 @@ export default class Auth {
     objects: Objects,
     messages: Messages,
     iot: any,
-    logger: Logger
+    logger: Logger,
+    tasks: TaskManager
   }) {
     // lazy define
     this.env = opts.env

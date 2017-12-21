@@ -1,4 +1,6 @@
 import fs = require('fs')
+// allow override promise
+// @ts-ignore
 import Promise = require('bluebird')
 import Cache = require('lru-cache')
 import querystring = require('querystring')
@@ -30,6 +32,7 @@ import { SIG, TYPE, TYPES, WARMUP_SLEEP } from './constants'
 import { HttpError, ExecutionTimeout } from './errors'
 import { CacheContainer } from './types'
 import Logger from './logger'
+import Env from './env'
 
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
@@ -38,8 +41,8 @@ const { omitVirtual, setVirtual, pickVirtual } = buildResource
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE } = TYPES
 const noop = () => {}
-const unrefdTimeout = (...args) => {
-  const handle = setTimeout(...args)
+const unrefdTimeout = (callback, ms, ...args) => {
+  const handle = setTimeout(callback, ms, ...args)
   if (handle.unref) handle.unref()
   return handle
 }
@@ -168,6 +171,14 @@ export function cachifyPromiser (fn, opts={}) {
   return cachified
 }
 
+class MultiErrorWrapper extends Error {
+  public errors: Error[]
+}
+
+class FirstSuccessWrapper extends Error {
+  public firstSuccessResult: any
+}
+
 // trick from: https://stackoverflow.com/questions/37234191/resolve-es6-promise-with-first-success
 export function firstSuccess (promises) {
   return Promise.all(promises.map(p => {
@@ -176,7 +187,7 @@ export function firstSuccess (promises) {
     // treat it as a rejection so Promise.all immediately bails out.
     return p.then(
       val => {
-        const wrapper = new Error('wrapper for success')
+        const wrapper = new FirstSuccessWrapper('wrapper for success')
         wrapper.firstSuccessResult = val
         return Promise.reject(wrapper)
       },
@@ -185,7 +196,7 @@ export function firstSuccess (promises) {
   })).then(
     // If '.all' resolved, we've just got an array of errors.
     errors => {
-      const wrapper = new Error('wrapper for errors')
+      const wrapper = new MultiErrorWrapper('wrapper for errors')
       wrapper.errors = errors
       return Promise.reject(wrapper)
     },
@@ -239,7 +250,12 @@ export function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
   })
 }
 
-export function logify (obj, opts={}) {
+type LogifyOpts = {
+  log?: Function
+  logInputOutput?: boolean
+}
+
+export function logify (obj, opts:LogifyOpts={}) {
   const { log=debug, logInputOutput } = opts
   const logified = {}
   for (let p in obj) {
@@ -541,7 +557,13 @@ export async function runWithBackoffWhile (fn, opts) {
 
 const GIVE_UP_TIME = 2000
 const GIVE_UP_RETRY_TIME = 5000
-export async function tryUntilTimeRunsOut (fn, opts={}) {
+type RetryOpts = {
+  attemptTimeout: number,
+  onError?: Function,
+  env: Env
+}
+
+export async function tryUntilTimeRunsOut (fn:()=>Promise, opts:RetryOpts) {
   const {
     attemptTimeout,
     onError=noop,

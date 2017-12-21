@@ -1,4 +1,5 @@
-const YAML = require('js-yaml')
+import YAML = require('js-yaml')
+
 const serverlessYml = require('../serverless-interpolated')
 const { Resources } = serverlessYml.resources
 const tables = Object.keys(Resources)
@@ -24,4 +25,4 @@ tables.forEach(name => {
   }
 })
 
-module.exports = serverlessYml
+export = serverlessYml

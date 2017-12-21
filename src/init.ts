@@ -1,16 +1,16 @@
-const debug = require('debug')('tradle:sls:init')
-const tradleUtils = require('@tradle/engine').utils
-const crypto = require('./crypto')
-const utils = require('./utils')
-const Errors = require('./errors')
-const models = require('./models')
-const {
+import { utils as tradleUtils } from '@tradle/engine'
+import crypto = require('./crypto')
+import utils = require('./utils')
+import Errors = require('./errors')
+import models = require('./models')
+import {
   TYPE,
   PUBLIC_CONF_BUCKET,
   IDENTITY_KEYS_KEY,
   TABLES_TO_PRECREATE
-} = require('./constants')
+} from './constants'
 
+const debug = require('debug')('tradle:sls:init')
 const { getLink, addLinks, getIdentitySpecs, getChainKey } = crypto
 const { omitVirtual, setVirtual, omit, deepEqual, clone, bindAll, promisify, co } = utils
 const { exportKeys } = require('./crypto')

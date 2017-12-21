@@ -2,9 +2,9 @@
 
 // lazy('stableStringify', 'json-stable-stringify')
 
-exports.stableStringify = require('json-stable-stringify')
+export const stableStringify = require('json-stable-stringify')
 
-exports.toCamelCase = function toCamelCase (str, delimiter, upperFirst) {
+export const toCamelCase = (str, delimiter, upperFirst) => {
   return str
     .split(delimiter)
     .map((part, i) => {
@@ -18,7 +18,7 @@ exports.toCamelCase = function toCamelCase (str, delimiter, upperFirst) {
 }
 
 // https://stackoverflow.com/questions/4149276/javascript-camelcase-to-regular-form
-exports.splitCamelCase = function splitCamelCase (str, delimiter=' ', upperFirst) {
+export const splitCamelCase = (str, delimiter=' ', upperFirst) => {
   const split = str.slice(0, 1) + str.slice(1)
     // insert a space before all caps
     .replace(/([A-Z])/g, delimiter + '$1')
@@ -28,11 +28,11 @@ exports.splitCamelCase = function splitCamelCase (str, delimiter=' ', upperFirst
 }
 
 
-exports.prettify = function prettify (obj) {
+export const prettify = (obj) => {
   return JSON.stringify(obj, bufferReplacer, 2)
 }
 
-exports.alphabetical = function alphabetical (a, b) {
+export const alphabetical = (a, b) => {
   if (a === b) return 0
   if (a < b) return -1
   return 1
@@ -40,10 +40,6 @@ exports.alphabetical = function alphabetical (a, b) {
 
 function upperCaseFirstCharacter (str) {
   return str[0].toUpperCase() + str.slice(1).toLowerCase()
-}
-
-function stringifyWithFlatBuffers (value, spacing) {
-  return JSON.stringify(value, bufferReplacer, spacing)
 }
 
 function bufferReplacer (key, value) {

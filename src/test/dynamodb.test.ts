@@ -1,6 +1,6 @@
 require('./env').install()
 
-const AWS = require('aws-sdk')
+import AWS = require('aws-sdk')
 AWS.config.update({
   maxRetries: 0,
   retryDelayOptions: {
@@ -16,12 +16,14 @@ AWS.config.update({
   }
 })
 
-const test = require('tape')
-const co = require('../utils').loudCo
+import test = require('tape')
+import { createTestTradle  } from '../'
+import { loudAsync } from '../utils'
+
 const {
   aws,
   dbUtils: { getTable, batchPut }
-} = require('../').createTestTradle()
+} = createTestTradle()
 
 const schema = {
   "AttributeDefinitions": [
@@ -47,8 +49,8 @@ const schema = {
   "TableName": "TestTable"
 }
 
-test('batch put', co(function* (t) {
-  // const table = yield recreateTable(schema)
+test('batch put', loudAsync(async (t) => {
+  // const table = await recreateTable(schema)
   let timesCalled = 0
   const { docClient } = aws
   aws.docClient = {
@@ -86,7 +88,7 @@ test('batch put', co(function* (t) {
     }
   }
 
-  yield batchPut(batch)
+  await batchPut(batch)
   t.equal(timesCalled, 2)
   aws.docClient = docClient
 
@@ -98,17 +100,17 @@ test('batch put', co(function* (t) {
   //   })
   // })
 
-  // yield Promise.all(batches.map(batch => table.batchPut(batch)))
+  // await Promise.all(batches.map(batch => table.batchPut(batch)))
 
   t.end()
 }))
 
-// const recreateTable = co(function* (schema) {
+// const recreateTable = loudAsync(async (schema) => {
 //   const table = getTable(schema.TableName)
 //   try {
-//     yield table.destroy()
+//     await table.destroy()
 //   } catch (err) {}
 
-//   yield table.create(schema)
+//   await table.create(schema)
 //   return table
 // })

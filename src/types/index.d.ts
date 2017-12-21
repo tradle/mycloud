@@ -65,6 +65,7 @@ export interface ITradleObject {
   _permalink?: string
   _author?: string
   _time?: number
+  _virtual?:string[]
   [x: string]: any
 }
 

@@ -10,6 +10,7 @@
     "@tradle/aws-client": "github:tradle/aws-client",
     "@types/aws-sdk": "^2.7.0",
     "@types/node": "^8.0.30",
+    "@types/sinon": "^4.1.2",
     "aws-sdk": "^2.60.0",
     "aws-sdk-mock": "^1.7.0",
     "bindall": "^2.0.1",

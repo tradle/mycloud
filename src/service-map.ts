@@ -2,10 +2,7 @@
 const { ENV_RESOURCE_PREFIX } = require('./constants')
 const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)_(.*)$`)
 
-exports = module.exports = resourcesForEnv
-exports.isResourceEnvironmentVariable = str => RESOURCE_REGEX.test(str)
-
-function resourcesForEnv ({ env }) {
+export = function resourcesForEnv ({ env }) {
   const { logger } = env
   const {
     SERVERLESS_SERVICE_NAME,

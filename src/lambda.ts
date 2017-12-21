@@ -122,7 +122,7 @@ export class Lambda {
     this.exit = this.exit.bind(this)
     this.reset()
     this._gotHandler = false
-    this.use(warmup({ lambda: this }))
+    this.use(warmup(this))
     this.tasks.add({
       name: 'warmup:cache',
       promiser: () => tradle.warmUpCaches()

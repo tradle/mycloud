@@ -1,9 +1,9 @@
-const co = require('co').wrap
-const clone = require('clone')
-const { getter, putter, deleter, scanner } = require('../utils')
-const promiseNoop = co(function* () {})
+import clone = require('clone')
+import { getter, putter, deleter, scanner } from '../utils'
 
-module.exports = function fakeUsers (opts={}) {
+const promiseNoop = async () => {}
+
+export = function fakeUsers (opts:any={}) {
   const {
     users={},
     oncreate=promiseNoop
@@ -11,7 +11,7 @@ module.exports = function fakeUsers (opts={}) {
 
   return {
     get: getter(users),
-    merge: co(function* (user) {
+    merge: async (user) => {
       const { id } = user
       if (!users[id]) {
         users[id] = user
@@ -20,17 +20,17 @@ module.exports = function fakeUsers (opts={}) {
 
       users[id] = clone(users[id], user)
       return users[id]
-    }),
+    },
     save: putter(users),
     list: scanner(users),
-    createIfNotExists: co(function* (user) {
+    createIfNotExists: async (user) => {
       if (!users[user.id]) {
         users[user.id] = user
         yield oncreate(user)
       }
 
       return users[user.id]
-    }),
+    },
     del: deleter(users)
   }
 }

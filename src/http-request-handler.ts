@@ -1,4 +1,4 @@
-import * as serverlessHTTP from "serverless-http"
+import serverlessHTTP = require('serverless-http')
 import { utils } from './'
 
 const { cachifyPromiser } = utils

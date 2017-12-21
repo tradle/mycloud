@@ -1,40 +1,41 @@
 require('./env').install()
 
 // const awsMock = require('aws-sdk-mock')
-const AWS = require('aws-sdk')
+import AWS = require('aws-sdk')
 AWS.config.paramValidation = false
 
-const yn = require('yn')
-const test = require('tape')
-const pify = require('pify')
-const ecdsa = require('nkey-ecdsa')
-const sinon = require('sinon')
-const tradle = require('@tradle/engine')
-const { newIdentity } = tradle.utils
-const {
+import yn = require('yn')
+import test = require('tape')
+import pify = require('pify')
+import ecdsa = require('nkey-ecdsa')
+import sinon = require('sinon')
+import tradle = require('@tradle/engine')
+import {
   extractSigPubKey,
   exportKeys,
   getSigningKey,
   sign,
   getLink,
   withLinks
-} = require('../crypto')
+} from '../crypto'
 
-const { loudCo, omit, clone, co, typeforce, pickVirtual, omitVirtual } = require('../utils')
-// const Objects = require('../objects')
-const Errors = require('../errors')
-const {
+import { loudAsync, omit, clone, co, typeforce, pickVirtual, omitVirtual } from '../utils'
+import Errors = require('../errors')
+import {
   SIG,
   SEQ,
   PREV_TO_RECIPIENT,
   TYPE,
   TYPES
-} = require('../constants')
+} from '../constants'
 
+import { createTestTradle } from '../'
+import types = require('../typeforce-types')
+
+const { newIdentity } = tradle.utils
 const { MESSAGE } = TYPES
-const { identities, messages, objects, provider } = require('../').createTestTradle()
+const { identities, messages, objects, provider } = createTestTradle()
 const { createSendMessageEvent, createReceiveMessageEvent } = provider
-const types = require('../typeforce-types')
 const fromBobToAlice = require('./fixtures/alice/receive.json')
   .map(messages.normalizeInbound)
 
@@ -75,7 +76,7 @@ test('extract pub key', function (t) {
   t.end()
 })
 
-test('createSendMessageEvent', loudCo(function* (t) {
+test('createSendMessageEvent', loudAsync(async (t) => {
   // t.plan(3)
 
   const payload = {
@@ -119,7 +120,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
     if (!stoleSeq) {
       nextSeq++
       stoleSeq = true
-      const err = new Error()
+      const err:any = new Error()
       err.code = 'ConditionalCheckFailedException'
       throw err
     }
@@ -127,7 +128,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
     t.end()
   }))
 
-  const event = yield createSendMessageEvent({
+  const event = await createSendMessageEvent({
     time: Date.now(),
     author: alice,
     recipient: bob.identity._permalink,
@@ -147,7 +148,7 @@ test('createSendMessageEvent', loudCo(function* (t) {
   // t.end()
 }))
 
-test('createReceiveMessageEvent', loudCo(function* (t) {
+test('createReceiveMessageEvent', loudAsync(async (t) => {
   const message = fromBobToAlice[0]
   const stub = stubber()
   const stubGetIdentity = stub(
@@ -179,7 +180,7 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
     return Promise.resolve()
   })
 
-  yield createReceiveMessageEvent({ message })
+  await createReceiveMessageEvent({ message })
   t.equal(stubPutMessage.callCount, 1)
   t.equal(stubPutObject.callCount, 1)
   t.equal(stubGetIdentity.callCount, 2)
@@ -193,40 +194,40 @@ test('createReceiveMessageEvent', loudCo(function* (t) {
 
 // only makes sense in the single-messages-table implementation
 // (vs Inbox+Outbox)
-test.skip('getLastMessageFrom/To', loudCo(function* (t) {
-  // start fresh
-  try {
-    yield messages.table.destroy()
-  } catch (err) {}
+// test.skip('getLastMessageFrom/To', loudAsync(async (t) => {
+//   // start fresh
+//   try {
+//     await messages.table.destroy()
+//   } catch (err) {}
 
-  yield messages.table.create()
+//   await messages.table.create()
 
-  console.log('ALICE', alice.identity._permalink)
-  console.log('BOB', bob.identity._permalink)
-  for (let message of fromBobToAlice) {
-    message = clone(message)
-    message._inbound = true
-    yield messages.putMessage(message)
-    const last = yield messages.getLastMessageFrom({
-      author: bob.identity._permalink,
-      body: false
-    })
+//   console.log('ALICE', alice.identity._permalink)
+//   console.log('BOB', bob.identity._permalink)
+//   for (let message of fromBobToAlice) {
+//     message = clone(message)
+//     message._inbound = true
+//     await messages.putMessage(message)
+//     const last = await messages.getLastMessageFrom({
+//       author: bob.identity._permalink,
+//       body: false
+//     })
 
-    t.same(last, messages.stripData(message))
-  }
+//     t.same(last, messages.stripData(message))
+//   }
 
-  for (let message of fromAliceToBob) {
-    yield messages.putMessage(message)
-    const last = yield messages.getLastMessageTo({
-      recipient: bob.identity._permalink,
-      body: false
-    })
+//   for (let message of fromAliceToBob) {
+//     await messages.putMessage(message)
+//     const last = await messages.getLastMessageTo({
+//       recipient: bob.identity._permalink,
+//       body: false
+//     })
 
-    t.same(last, messages.stripData(message))
-  }
+//     t.same(last, messages.stripData(message))
+//   }
 
-  t.end()
-}))
+//   t.end()
+// }))
 
 // test('strip data', function (t) {
 //   const time = Date.now()
@@ -279,8 +280,8 @@ test.skip('getLastMessageFrom/To', loudCo(function* (t) {
 //   // console.log(key.verifySync(data, sig))
 // })
 
-// test('sign/verify', loudCo(function* (t) {
-//   const carol = yield pify(newIdentity)({ networkName: 'testnet' })
+// test('sign/verify', loudAsync(async (t) => {
+//   const carol = await pify(newIdentity)({ networkName: 'testnet' })
 //   const exported = carol.keys.map(key => key.toJSON(true))
 //   console.log(exported.find(key => key.curve === 'p256'))
 //   const keys = exportKeys(carol.keys)
@@ -290,15 +291,15 @@ test.skip('getLastMessageFrom/To', loudCo(function* (t) {
 //     message: 'hey'
 //   }
 
-//   const signed = yield sign({ key, object })
+//   const signed = await sign({ key, object })
 //   const pub = extractSigPubKey(signed.object)
 //   t.same(pub.pub, key.pub)
 //   t.end()
 // }))
 
-// test.only('handshake', loudCo(function* (t) {
+// test.only('handshake', loudAsync(async (t) => {
 //   const client =
-//   yield onRequestTemporaryIdentity({ accountId: 'abc', clientId })
+//   await onRequestTemporaryIdentity({ accountId: 'abc', clientId })
 
 // }))
 
@@ -340,7 +341,7 @@ const mocks = {
 
 function stubber () {
   const stubs = []
-  const stub = (obj, prop, fn) => {
+  const stub:any = (obj, prop, fn) => {
     const thisStub = sinon.stub(obj, prop).callsFake(fn)
     stubs.push(thisStub)
     return thisStub

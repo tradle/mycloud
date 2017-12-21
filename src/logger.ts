@@ -93,7 +93,7 @@ export default class Logger {
     this.subloggers = []
   }
 
-  public setWriter = (writer:Writer, propagateToSubWriters:boolean) => {
+  public setWriter = (writer:Writer, propagateToSubWriters?:boolean) => {
     this.writer = writer
     if (propagateToSubWriters) {
       this.subloggers.forEach(logger => logger.setWriter(writer, propagateToSubWriters))

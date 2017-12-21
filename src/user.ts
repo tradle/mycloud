@@ -142,7 +142,7 @@ class UserSim {
       }
     }
 
-    if (processed) {
+    if (!err) {
       // SUCCESS!
       this.logger.debug('received valid message from user')
 
@@ -193,8 +193,10 @@ class UserSim {
       let logMsg
       if (err instanceof Errors.TimeTravel) {
         logMsg = 'rejecting message with lower timestamp than previous'
+        // @ts-ignore
       } else if (err instanceof Errors.NotFound) {
         logMsg = 'rejecting message, either sender or payload identity was not found'
+        // @ts-ignore
       } else if (err instanceof Errors.InvalidMessageFormat) {
         logMsg = 'rejecting message, invalid message format'
       } else {

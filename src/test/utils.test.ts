@@ -22,11 +22,12 @@ import {
   batchProcess
 } from '../utils'
 import Errors = require('../errors')
-import { KVTable } from '../definitions'
-import aliceKeys = require('./fixtures/alice/keys')
 import { Tradle } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
+
+const { KVTable } = require('../definitions')
+const aliceKeys = require('./fixtures/alice/keys')
 
 const tradle = new Tradle()
 const { dbUtils } = tradle
@@ -36,9 +37,9 @@ test('cachify', loudAsync(async (t) => {
     a: 1
   }
 
-  const misses = {}
+  const misses:any = {}
   const raw = {
-    get: async (key, value) => {
+    get: async (key) => {
       misses[key] = (misses[key] || 0) + 1
       if (key in data) return data[key]
 
@@ -308,7 +309,7 @@ test('Bucket', loudAsync(async (t) => {
   const bucket = new Bucket({ name: bucketName, s3 })
   await bucket.create()
 
-  const ops = [
+  const ops:any[] = [
     { method: 'exists', args: ['abc'], result: false },
     { method: 'get', args: ['abc'], error: 'NotFound' },
     { method: 'getJSON', args: ['abc'], error: 'NotFound' },
@@ -354,7 +355,7 @@ test('Bucket with cache', loudAsync(async (t) => {
 
   await bucket.create()
 
-  const ops = [
+  const ops:any[] = [
     { method: 'exists', args: ['abc'], result: false },
     { method: 'get', args: ['abc'], error: 'NotFound' },
     { method: 'getJSON', args: ['abc'], error: 'NotFound' },
@@ -493,7 +494,7 @@ test('errors', function (t) {
     },
     {
       error: (() => {
-        const err = new Error('resource not found')
+        const err:any = new Error('resource not found')
         err.code = 'ResourceNotFoundException'
         err.name = 'somename'
         return err

@@ -39,14 +39,13 @@ export default class Friends {
 
     const infoUrl = getInfoEndpoint(url)
     const info = await get(infoUrl)
-    const { bot: { pub }, org, publicConfig } = info
+    const { bot: { pub }, org } = info
 
     const { name } = org
     return await this.add({
       name,
       url,
       org,
-      publicConfig,
       identity: pub
     })
   }
@@ -55,7 +54,6 @@ export default class Friends {
     name: string
     url: string
     org: any
-    publicConfig: any
     identity: any
   }): Promise<any> => {
     const { models, model } = this

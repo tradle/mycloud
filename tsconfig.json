@@ -20,10 +20,11 @@
     },
     "types": [
       "node",
-      "aws-sdk"
+      "aws-sdk",
+      "sinon"
     ]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.js"],
+  "exclude": ["node_modules", "**/*.js", "src/test/mock/*.ts"],
   "compileOnSave": false
 }

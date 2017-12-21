@@ -29,6 +29,10 @@ import createUsers = require('./users')
 import { createLambda } from './lambda'
 import { createLocker } from './locker'
 import Tradle from '../tradle'
+import Objects from '../objects'
+import Messages from '../messages'
+import Identities from '../identities'
+import Auth from '../auth'
 import addConvenienceMethods from './convenience'
 // const RESOLVED = Promise.resolve()
 const { TYPE, SIG } = constants
@@ -61,6 +65,12 @@ export const createBot = (opts={}) => {
     tradle: opts.tradle || require('../').tradle
   })
 }
+
+// type Bot = {
+//   objects: Objects
+//   identities: Identities
+//   messages: Messages
+// }
 
 /**
  * bot engine factory

@@ -1,15 +1,15 @@
 import format = require('string-format')
 import Logger from '../logger'
-import map = require('./fixtures/fake-service-map')
-import {
+import serverlessYml = require('../cli/serverless-yml')
+const {
   custom,
   provider,
   resources
-} from '../cli/serverless-yml'
-
+} = serverlessYml
 const { prefix } = custom
 const { environment } = provider
 const { Resources } = resources
+const map = require('./fixtures/fake-service-map')
 const logger = new Logger('service-map')
 
 for (let logicalId in map) {
@@ -40,4 +40,4 @@ for (let key in environment) {
   }
 }
 
-module.exports = map
+export = map

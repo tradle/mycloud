@@ -1,5 +1,6 @@
 import crypto = require('crypto')
 import '../globals'
+import Env from '../env'
 
 // console.warn('make sure localstack is running (npm run localstack:start)')
 
@@ -39,7 +40,7 @@ export const createTestEnv = () => {
 }
 
 export const install = (target=process.env):void => {
-  if (typeof target.set === 'function') {
+  if (target instanceof Env) {
     target.set(props)
   } else {
     Object.assign(target, props)

@@ -1,27 +1,31 @@
-const path = require('path')
-const sinon = require('sinon')
-const serverlessYaml = require('../cli/serverless-yml')
-const { co, pick, extend, promisify } = require('../utils')
+import path = require('path')
+import sinon = require('sinon')
+import serverlessYml = require('../cli/serverless-yml')
+import { pick, extend, promisify } from '../utils'
 
-module.exports = function ({ bot, tradle }) {
+interface Sandbox extends sinon.SinonSandbox {
+  httpOnly?: (permalink:string) => void
+}
+
+export = function ({ bot, tradle }) {
   const { env, delivery, auth, aws, prefix } = tradle
   const { mqtt } = delivery
-  const sandbox = sinon.sandbox.create()
+  const sandbox:Sandbox = sinon.sandbox.create()
   // const lambdas = createBot.lambdas(bot)
   const noMQTT = {}
 
-  sandbox.stub(auth, 'getLiveSessionByPermalink').callsFake(co(function* (recipient) {
+  sandbox.stub(auth, 'getLiveSessionByPermalink').callsFake(async (recipient) => {
     return {
       clientId: noMQTT[recipient] ? null : 'fakeclientid',
       permalink: recipient
     }
-  }))
+  })
 
   sandbox.httpOnly = function (permalink) {
     noMQTT[permalink] = true
   }
 
-  sandbox.stub(mqtt, 'deliverBatch').callsFake(co(function* ({ recipient, messages }) {
+  sandbox.stub(mqtt, 'deliverBatch').callsFake(async ({ recipient, messages }) => {
     // for (const message of messages) {
     //   yield onmessage(permalink, message)
     // }
@@ -30,15 +34,15 @@ module.exports = function ({ bot, tradle }) {
     for (const message of messages) {
       mqtt.emit('message', { recipient, message })
     }
-  }))
+  })
 
-  sandbox.stub(mqtt, 'ack').callsFake(co(function* (...args) {
+  sandbox.stub(mqtt, 'ack').callsFake(async (...args) => {
     mqtt.emit('ack', ...args)
-  }))
+  })
 
-  sandbox.stub(mqtt, 'reject').callsFake(co(function* (...args) {
+  sandbox.stub(mqtt, 'reject').callsFake(async (...args) => {
     mqtt.emit('reject', ...args)
-  }))
+  })
 
   sandbox.stub(aws.lambda, 'invoke').callsFake(function ({
     InvocationType,
@@ -47,7 +51,7 @@ module.exports = function ({ bot, tradle }) {
   }) {
     Payload = JSON.parse(Payload)
     const name = FunctionName.slice(prefix.length)
-    const conf = serverlessYaml.functions[name]
+    const conf = serverlessYml.functions[name]
     const { handler } = conf
     const [file, handleName] = handler.split('.')
     // const lambdaHandler = lambdas[handleName]

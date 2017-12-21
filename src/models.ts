@@ -1,7 +1,9 @@
 
-const mergeModels = require('@tradle/merge-models')
+import mergeModels = require('@tradle/merge-models')
+import { models as base } from '@tradle/models'
+import custom = require('@tradle/custom-models')
+
 const mergeOpts = { validate: false }
-const base = require('@tradle/models').models
 const baseMessageModel = base['tradle.Message']
 baseMessageModel.properties._counterparty = {
   type: 'string',
@@ -22,7 +24,6 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
-const custom = require('@tradle/custom-models')
 const cloud = {
   // 'tradle.OutboxQuery': {
   //   type: 'tradle.Model',
@@ -43,7 +44,7 @@ const cloud = {
   'tradle.OnfidoVerification': require('./tradle.OnfidoVerification.json')
 }
 
-module.exports = mergeModels()
+export = mergeModels()
   .add(base, mergeOpts)
   .add(custom, mergeOpts)
   .add(cloud, mergeOpts)

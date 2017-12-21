@@ -9,6 +9,7 @@ type WarmUpOpts = {
 
 export const warmup = (lambda, opts:WarmUpOpts={}) => {
   const { source=WARMUP_SOURCE_NAME } = opts
+  const { logger } = lambda
   return async (ctx, next) => {
     const { event, context } = ctx
     if (event.source !== source) {
@@ -17,7 +18,7 @@ export const warmup = (lambda, opts:WarmUpOpts={}) => {
     }
 
     const sleep = event.sleep || opts.sleep || WARMUP_SLEEP
-    lambda.logger.debug(`warmup, sleeping for ${sleep}ms`)
+    logger.debug(`warmup, sleeping for ${sleep}ms`)
     await wait(sleep)
     let uptime
     if (!(lambda.isUsingServerlessOffline || lambda.env.IS_LOCAL)) {

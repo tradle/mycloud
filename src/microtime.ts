@@ -1,4 +1,4 @@
-module.exports = require('microtime-nodejs')
+export = require('microtime-nodejs')
 
 // if (process.env.NODE_ENV === 'test') {
 //   module.exports = {
