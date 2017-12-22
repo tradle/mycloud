@@ -23,7 +23,7 @@ export const createMiddleware = (lambda, opts ) => {
     const { clientId } = event
     const session = await user.onConnected({ clientId })
     if (session) {
-      await bot.hooks.fire('useronline', session.permalink)
+      await bot.hooks.fire('user:online', session.permalink)
       await next()
     }
   }

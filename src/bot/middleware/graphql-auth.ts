@@ -1,11 +1,13 @@
-const debug = require('debug')('tradle:sls:graphql-auth')
-import { pick } from 'lodash'
 import { utils as tradleUtils } from '@tradle/engine'
 import validateResource = require('@tradle/validate-resource')
 import { constants, Errors } from '../../'
+import { ITradleObject } from '../../types'
+import { pick, isPromise } from '../../utils'
+
+const debug = require('debug')('tradle:sls:graphql-auth')
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
 
-export function createGraphQLAuth ({ bot, employeeManager }) {
+export const createAuth = ({ bot }, { allowGuest, canUserRunQuery }) => {
   const { identities } = bot
   return async (ctx, next) => {
     const method = ctx.method.toLowerCase()
@@ -25,7 +27,7 @@ export function createGraphQLAuth ({ bot, employeeManager }) {
 
     debug('authenticating')
     const sig = ctx.headers['x-tradle-sig']
-    if (sig == null) {
+    if (!allowGuest && sig == null) {
       ctx.status = 403
       ctx.body = {
         message: `expected header "x-tradle-sig"`
@@ -35,15 +37,12 @@ export function createGraphQLAuth ({ bot, employeeManager }) {
       return
     }
 
-    const req = ctx.request
-    // TODO: rewrite next two lines
-    const props = Object.keys(req).filter(key => req[key] != null)
-    const body = pick(req, props)
-    const queryObj = {
+    const queryObj:ITradleObject = {
       [TYPE]: 'tradle.GraphQLQuery',
-      [SIG]: sig,
-      body: tradleUtils.stringify(body)
+      body: tradleUtils.stringify(ctx.event)
     }
+
+    if (sig) queryObj[SIG] = sig
 
     try {
       validateResource({
@@ -57,14 +56,19 @@ export function createGraphQLAuth ({ bot, employeeManager }) {
 
     checkDrift(queryObj.time)
 
-    debug('looking up query author')
-    await identities.addAuthorInfo(queryObj)
-    const user = await bot.users.get(queryObj._author)
-    if (!employeeManager.isEmployee(user)) {
-      debug('rejecting non-employee')
+    let { user } = ctx
+    if (sig && !user) {
+      debug('looking up query author')
+      await identities.addAuthorInfo(queryObj)
+      ctx.user = user = await bot.users.get(queryObj._author)
+    }
+
+    let allowed = canUserRunQuery({ user, query: queryObj })
+    if (isPromise(allowed)) allowed = await allowed
+    if (!allowed) {
       ctx.status = 403
       ctx.body = {
-        message: 'employees only'
+        message: 'not allowed'
       }
 
       return

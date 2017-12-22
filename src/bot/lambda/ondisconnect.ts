@@ -23,7 +23,7 @@ export const createMiddleware = (lambda:Lambda, opts) => {
     logger.debug('client disconnected', prettify(event))
     const { clientId } = event
     await user.onDisconnected({ clientId })
-    await bot.hooks.fire('useroffline', auth.getPermalinkFromClientId(clientId))
+    await bot.hooks.fire('user:offline', auth.getPermalinkFromClientId(clientId))
     await next()
   }
 }

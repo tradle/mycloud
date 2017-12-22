@@ -105,7 +105,8 @@ export {
  pickVirtual,
  encodeDataURI,
  decodeDataURI,
- noop
+ noop,
+ stableStringify
 }
 
 export function loudCo (gen) {

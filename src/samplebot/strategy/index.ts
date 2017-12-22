@@ -8,6 +8,11 @@ import { TYPE } from '@tradle/constants'
 import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { setNamePlugin } from './set-name'
 import { keepFreshPlugin } from './keep-fresh'
+import {
+  keepModelsFreshPlugin,
+  createGetIdentifierFromReq,
+  createGetModelsForUser
+} from './keep-models-fresh'
 import { createGraphQLAuth } from './graphql-auth'
 // import { tradle as defaultTradleInstance } from '../../'
 import createBot = require('../../bot')
@@ -110,16 +115,6 @@ export default function createProductsBot ({
     })
 
     productsAPI.removeDefaultHandler('onCommand')
-    const employeeModels = omit(productsAPI.models.all, BASE_MODELS_IDS)
-    const customerModels = omit(
-      productsAPI.models.all,
-      Object.keys(productsAPI.models.private.all)
-        .concat(BASE_MODELS_IDS)
-    )
-
-    employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
-    customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
-
     const { tours } = conf
     if (tours) {
       const { intro } = tours
@@ -144,24 +139,9 @@ export default function createProductsBot ({
       productsAPI.plugins.use({ onmessage: keepStylesFresh }, true)
     }
 
-    const keepModelsFresh = createProductsStrategy.keepModelsFresh({
-      getIdentifier: req => {
-        const { user, message } = req
-        const { originalSender } = message
-        let id = user.id
-        if (originalSender) {
-          id += ':' + originalSender
-        }
-
-        return employeeManager.isEmployee(user) ? 'e:' + id : id
-      },
-      getModelsForUser: user => {
-        if (employeeManager.isEmployee(user)) {
-          return employeeModels
-        }
-
-        return customerModels
-      },
+    const keepModelsFresh = keepModelsFreshPlugin({
+      getIdentifier: createGetIdentifierFromReq({ employeeManager }),
+      getModelsForUser: createGetModelsForUser({ productsAPI, employeeManager }),
       send
     })
 

@@ -1,5 +1,3 @@
-import bodyParser = require('koa-body')
-import cors = require('kcors')
 import Router = require('koa-router')
 import { graphql, formatError } from 'graphql'
 import { print } from 'graphql/language/printer'
@@ -8,19 +6,19 @@ import graphqlHTTP = require('koa-graphql')
 import { createResolvers } from '@tradle/dynamodb'
 import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
-import { Level } from '../logger'
-import { uniqueStrict, logResponseBody } from '../utils'
-import { ITradleObject } from '../types'
+import { Level } from '../../logger'
+import { uniqueStrict, logResponseBody } from '../../utils'
+import { ITradleObject } from '../../types'
 
 const { MESSAGE } = TYPES
 const prettifyQuery = query => print(parse(query))
 
-export const createGraphQLRouter = (opts) => {
+export const createRouter = (opts) => {
   const { bot, logger } = opts
 
   // allow models to be set asynchronously
 
-  let auth
+  // let auth
   let graphiqlOptions = {}
   let api
 
@@ -48,21 +46,22 @@ export const createGraphQLRouter = (opts) => {
   })
 
   const router = new Router()
-  router.setGraphQLAuth = authImpl => auth = authImpl
+  // router.setGraphQLAuth = authImpl => auth = authImpl
   router.setGraphiqlOptions = options => graphiqlOptions = options
   router.getGraphqlAPI = () => getGraphqlAPI(opts)
 
-  router.use(cors())
-  router.use(bodyParser({ jsonLimit: '10mb' }))
-  router.use('/graphql', async (ctx, next) => {
-    logger.debug(`hit graphql auth route, ready: ${bot.isReady()}`)
-    await bot.promiseReady()
-    if (auth) {
-      await auth(ctx, next)
-    } else {
-      await next()
-    }
-  })
+  // router.use(cors())
+  // router.use(bodyParser({ jsonLimit: '10mb' }))
+
+  // router.use('/graphql', async (ctx, next) => {
+  //   logger.debug(`hit graphql auth route, ready: ${bot.isReady()}`)
+  //   await bot.promiseReady()
+  //   if (auth) {
+  //     await auth(ctx, next)
+  //   } else {
+  //     await next()
+  //   }
+  // })
 
   if (logger.level >= Level.SILLY) {
     router.use(logResponseBody(logger))

@@ -53,9 +53,10 @@ const HOOKABLE = [
   { name: 'seal' },
   { name: 'readseal' },
   { name: 'wroteseal' },
-  { name: 'usercreate' },
-  { name: 'useronline' },
-  { name: 'useroffline' },
+  { name: 'user:create' },
+  { name: 'user:online' },
+  { name: 'user:offline' },
+  { name: 'user:authenticated' },
   { name: 'messagestream' },
   { name: 'info' }
 ]
@@ -267,9 +268,18 @@ function _createBot (opts: {
     get preauth() { return require('./lambda/preauth') },
     get auth() { return require('./lambda/auth') },
     get inbox() { return require('./lambda/inbox') },
-    get graphql() { return require('./lambda/graphql') },
+    // get graphql() { return require('./lambda/graphql') },
     get warmup() { return require('./lambda/warmup') },
     get reinitializeContainers() { return require('./lambda/reinitializeContainers') },
+  }
+
+  bot.middleware = {
+    get graphql() {
+      return {
+        createRouter: require('./middleware/graphql').createRouter,
+        createAuth: require('./middleware/graphql-auth').createAuth
+      }
+    }
   }
 
   bot.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {

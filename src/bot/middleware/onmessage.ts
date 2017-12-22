@@ -9,7 +9,7 @@ import IotMessage = require('@tradle/iot-message')
 import { TYPE } from '@tradle/constants'
 import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
-import { groupBy, allSettled } from '../../utils'
+import { allSettled, uniqueStrict } from '../../utils'
 import {
   getMessagePayload,
   getMessageGist,
@@ -77,34 +77,37 @@ export const onmessage = (lambda, opts) => {
     const { messages } = ctx
     if (!messages) return
 
-    const byUser = groupBy(messages, '_author')
-    await allSettled(Object.keys(byUser).map(async (userId) => {
-      let botMessageEvent
-      const batch = byUser[userId]
-      await lock(userId)
-      try {
-        let userPre = await bot.users.createIfNotExists({ id: userId })
-        let user = cloneDeep(userPre)
-        for (const message of batch) {
-          if (bot.isTesting) {
-            await savePayloadToDB({ bot, message })
-          }
+    const authors = uniqueStrict(messages.map(({ _author }) => _author))
+    if (authors.length > 1) {
+      throw new Error('only messages from a single author allowed')
+    }
 
-          botMessageEvent = toBotMessageEvent({ bot, user, message })
-          await bot.hooks.fire('message', botMessageEvent)
+    const userId = authors[0]
+    let botMessageEvent
+    await lock(userId)
+    try {
+      ctx.user = await bot.users.createIfNotExists({ id: userId })
+      let { user } = ctx
+      let userPre = cloneDeep(user)
+      for (const message of messages) {
+        if (bot.isTesting) {
+          await savePayloadToDB({ bot, message })
         }
 
-        user = botMessageEvent.user
-        if (isEqual(user, userPre)) {
-          logger.debug('user state was not changed by onmessage handler')
-        } else {
-          logger.debug('merging changes to user state')
-          await bot.users.merge(user)
-        }
-      } finally {
-        await unlock(userId)
+        botMessageEvent = toBotMessageEvent({ bot, user, message })
+        await bot.hooks.fire('message', botMessageEvent)
       }
-    }))
+
+      user = botMessageEvent.user
+      if (isEqual(user, userPre)) {
+        logger.debug('user state was not changed by onmessage handler')
+      } else {
+        logger.debug('merging changes to user state')
+        await bot.users.merge(user)
+      }
+    } finally {
+      await unlock(userId)
+    }
 
     await next()
   }

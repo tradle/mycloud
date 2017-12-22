@@ -3,11 +3,13 @@ import {
   Lambda as BaseLambda
 } from '../lambda'
 
+import { isPromise } from '../utils'
+
 export { EventSource }
 export class Lambda extends BaseLambda {
   public bot: any
   public promiseReady: () => Promise<void>
-  constructor ({ bot, ...lambdaOpts }: any) {
+  constructor ({ bot, middleware, ...lambdaOpts }: any) {
     super(lambdaOpts)
     this.bot = bot
     this.promiseReady = bot.promiseReady
@@ -27,6 +29,8 @@ export class Lambda extends BaseLambda {
       name: 'bot:ready',
       promiser: () => this.promiseReady()
     })
+
+    if (middleware) this.use(middleware)
   }
 }
 

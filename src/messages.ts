@@ -413,12 +413,6 @@ export default class Messages {
         const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${prev._link})`
         this.logger.debug(msg)
         throw new Errors.TimeTravel(msg, link)
-        // dErr.previous = {
-        //   time: prev.time,
-        //   link: prev.link
-        // }
-
-        throw dErr
       }
     } catch (err) {
       if (!(err instanceof Errors.NotFound)) {

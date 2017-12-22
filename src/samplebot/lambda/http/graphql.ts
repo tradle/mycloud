@@ -2,46 +2,60 @@ import { EventSource } from '../../../lambda'
 import { customize } from '../../customize'
 import sampleQueries from '../../sample-queries'
 import { createBot } from '../../../bot'
-import { createGraphQLAuth } from '../../strategy/graphql-auth'
+import { createMiddleware } from '../../middleware/graphql'
 
 const bot = createBot({ ready: false })
-const lambda = bot.lambdas.graphql()
-// mute the warning about not attaching handler
-const { logger, handler } = lambda
 
-// export the whole thing for scripts/graphql-server to import
-export = lambda
+// mute the warning about not attaching handler
+const promiseCustomize = customize({
+    bot,
+    delayReady: true,
+    event: 'graphql'
+  })
+  .then(components => {
+    return {
+      ...components,
+      middleware: createMiddleware(lambda, components)
+    }
+  })
+
+const lambda = bot.createLambda({
+  source: EventSource.HTTP,
+  middleware: promiseCustomize.then(({ middleware }) => middleware)
+})
+
+const { logger, handler } = lambda
+const init = async () => {
+  const components = await promiseCustomize
+  const {
+    org,
+    middleware
+  } = components
+
+  logger.debug('finished setting up bot graphql middleware')
+  middleware.setGraphiqlOptions({
+    logo: {
+      src: org.logo,
+      width: 32,
+      height: 32
+    },
+    bookmarks: {
+      // not supported
+      // autorun: true,
+      title: 'Samples',
+      items: sampleQueries
+    }
+  })
+
+  // lambda.use(graphqlMiddleware(lambda, components))
+  bot.ready()
+}
 
 // models will be set asynchronously
 lambda.tasks.add({
   name: 'init',
-  promiser: async () => {
-    const {
-      org,
-      conf,
-      productsAPI,
-      employeeManager
-    } = await customize({ bot, delayReady: true, event: 'graphql' })
-
-    logger.debug('finished setting up bot graphql middleware')
-    lambda.setGraphiqlOptions({
-      logo: {
-        src: org.logo,
-        width: 32,
-        height: 32
-      },
-      bookmarks: {
-        // not supported
-        // autorun: true,
-        title: 'Samples',
-        items: sampleQueries
-      }
-    })
-
-    if (lambda.stage !== 'dev') {
-      createGraphQLAuth({ bot, employeeManager })
-    }
-
-    bot.ready()
-  }
+  promiser: init
 })
+
+// export the whole thing for scripts/graphql-server to import
+export = lambda

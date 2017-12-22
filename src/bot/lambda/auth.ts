@@ -10,33 +10,37 @@ export const createLambda = (opts) => {
 }
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { tradle, bot } = lambda
-  const { auth, serviceMap } = tradle
   return compose([
     cors(),
     bodyParser(),
-    async (ctx, next) => {
-      const time = Date.now()
-      ctx.session = await auth.handleChallengeResponse(ctx.request.body)
-      ctx.userId = ctx.session.permalink
-      await next()
-      if (ctx.body) {
-         // allow full customization of authentication
-        return
-      }
-
-      const {
-        session,
-        role=serviceMap.Role.IotClient
-      } = ctx
-
-      const credentials = await auth.createCredentials(session, role)
-      ctx.body = {
-        time,
-        position: session.serverPosition,
-        ...credentials
-      }
-    },
+    auth(lambda, opts),
     post('/auth')
   ])
+}
+
+export const auth = (lambda:Lambda, opts?:any) => {
+  const { tradle, bot } = lambda
+  return async (ctx, next) => {
+    const time = Date.now()
+    ctx.session = await tradle.auth.handleChallengeResponse(ctx.request.body)
+    ctx.userId = ctx.session.permalink
+    await bot.hooks.fire('user:authenticated', ctx.userId)
+    await next()
+    if (ctx.body) {
+       // allow full customization of authentication
+      return
+    }
+
+    const {
+      session,
+      role=tradle.serviceMap.Role.IotClient
+    } = ctx
+
+    const credentials = await tradle.auth.createCredentials(session, role)
+    ctx.body = {
+      time,
+      position: session.serverPosition,
+      ...credentials
+    }
+  }
 }

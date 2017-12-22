@@ -26,7 +26,8 @@ import {
   defineGetter,
   wait,
   timeoutIn,
-  parseArn
+  parseArn,
+  isPromise
 } from './utils'
 
 import {
@@ -140,10 +141,14 @@ export class Lambda {
     })
   }
 
-  public use = (fn):Lambda => {
+  public use = (fn:Function|Promise<Function>):Lambda => {
     if (this._gotHandler) {
       console.warn('adding middleware after exporting the lambda handler ' +
         'can result in unexpected behavior')
+    }
+
+    if (isPromise(fn)) {
+      fn = promiseMiddleware(fn)
     }
 
     if (typeof fn !== 'function') {
@@ -488,4 +493,13 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
   }
 
   return ctx
+}
+
+const promiseMiddleware = promise => {
+  let middleware
+  return async (ctx, next) => {
+    if (!middleware) middleware = await promise
+
+    await middleware(ctx, next)
+  }
 }
