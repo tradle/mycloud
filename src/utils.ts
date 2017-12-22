@@ -156,6 +156,17 @@ export function groupBy (items, prop) {
   return groups
 }
 
+// function cachifyPromiser (fn) {
+//   let promise
+//   return function (...args) {
+//     if (!promise) {
+//       promise = fn(...args)
+//     }
+
+//     return promise
+//   }
+// }
+
 export function cachifyPromiser (fn, opts={}) {
   let promise
   const cachified = (...args) => {

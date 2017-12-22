@@ -33,9 +33,9 @@ if (!/^[a-zA-Z-_]+$/.test(stage)) {
 
 let command = `sls deploy --stage=${stage}`
 
-co(function* () {
+;(async () => {
   try {
-    const pathToNtfy = yield proc.exec('which ntfy', {
+    const pathToNtfy = await proc.exec('which ntfy', {
       cwd: process.cwd(),
       stdio: 'inherit'
     })
@@ -50,7 +50,7 @@ co(function* () {
     cwd: process.cwd(),
     stdio: 'inherit'
   })
-})
+})()
 .catch(err => {
   console.error(err)
   process.exitCode = 1

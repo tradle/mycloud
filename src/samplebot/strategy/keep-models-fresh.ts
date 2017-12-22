@@ -15,7 +15,11 @@ const modelsToArray = (models) => {
     .map(id => models[id])
 }
 
-const compareAlphabetical = (a, b) => a < b ? -1 : a > b ? 1 : 0
+const compareAlphabetical = (a, b) => {
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
+}
 
 const objToArray = new Map()
 const arrToHash = new Map()
