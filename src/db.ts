@@ -34,7 +34,7 @@ export = function createDB (opts: {
     maxItemSize: constants.MAX_DB_ITEM_SIZE,
     forbidScan: true,
     defaultReadOptions: {
-      ConsistentRead: false
+      ConsistentRead: true
     }
   }
 
