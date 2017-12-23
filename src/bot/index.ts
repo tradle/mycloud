@@ -78,7 +78,6 @@ export const createBot = (opts={}) => {
  * bot engine factory
  * @param  {Object}             opts
  * @param  {Tradle}             opts.tradle
- * @param  {Boolean}            opts.autosave if false, will not autosave user after every message receipt
  * @param  {Object}             opts.models
  * @return {BotEngine}
  */
@@ -86,14 +85,12 @@ function _createBot (opts: {
   tradle: Tradle,
   users?: any,
   models?: any,
-  autosave?: boolean,
   ready?:boolean
 }) {
   let {
     tradle,
     users,
     models,
-    autosave=true,
     ready=true
   } = opts
 

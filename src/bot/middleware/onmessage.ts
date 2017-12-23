@@ -93,12 +93,14 @@ export const onmessage = (lambda, opts) => {
         await bot.hooks.fire('message', botMessageEvent)
       }
 
-      user = botMessageEvent.user
-      if (isEqual(user, userPre)) {
-        logger.debug('user state was not changed by onmessage handler')
-      } else {
-        logger.debug('merging changes to user state')
-        await bot.users.merge(user)
+      if (autosave) {
+        user = botMessageEvent.user
+        if (isEqual(user, userPre)) {
+          logger.debug('user state was not changed by onmessage handler')
+        } else {
+          logger.debug('merging changes to user state')
+          await bot.users.merge(user)
+        }
       }
     } finally {
       await unlock(userId)
