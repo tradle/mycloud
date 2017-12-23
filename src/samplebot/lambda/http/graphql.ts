@@ -12,11 +12,9 @@ const promiseCustomize = customize({
     delayReady: true,
     event: 'graphql'
   })
-  .then(components => {
-    return {
-      ...components,
-      middleware: createMiddleware(lambda, components)
-    }
+  .then(components => ({
+    ...components,
+    middleware: createMiddleware(lambda, components)
   })
 
 const lambda = bot.createLambda({
