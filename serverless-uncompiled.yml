@@ -31,9 +31,16 @@ package:
     - conf
     - serverless-interpolated.yml
   exclude:
-    - src
+    - src/**
     - secrets.yml
     - vars.yml
+    - lib/test/**
+    - node_modules/**/*.ts
+    - node_modules/**/*.d.ts
+    - node_modules/**/test/*
+    - node_modules/**/tests/*
+    - npm-shrinkwrap.json
+    - "node_modules/@tradle/gen-samples/**"
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
