@@ -1,3 +1,4 @@
+import yn = require('yn')
 import _zlib = require('zlib')
 import { EventEmitter } from 'events'
 import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, promisify } from './utils'
@@ -30,7 +31,8 @@ export default class Delivery extends EventEmitter implements IDelivery {
     const endpoint = `${friend.url}/inbox`
     const headers = {}
     let payload = JSON.stringify({ messages })
-    if (!this.env.IS_OFFLINE && payload.length > COMPRESSION_THRESHOLD) {
+    if (!this.env.IS_OFFLINE && this.env.GZIP_POST_BODY && payload.length > COMPRESSION_THRESHOLD) {
+      this.logger.debug('gzipping payload')
       payload = await zlib.gzip(payload)
       headers['Content-Encoding'] = 'gzip'
     }
