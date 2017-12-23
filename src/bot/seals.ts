@@ -1,13 +1,12 @@
-const { co } = require('../utils')
 
 export = function createSealsAPI ({ provider, seals }) {
-  const createSeal = co(function* (opts) {
-    const chainKey = yield provider.getMyChainKey()
-    yield seals.create({
+  const createSeal = async (opts) => {
+    const chainKey = await provider.getMyChainKey()
+    await seals.create({
       ...opts,
       key: chainKey
     })
-  })
+  }
 
   return {
     create: createSeal,

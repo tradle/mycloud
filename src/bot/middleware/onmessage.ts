@@ -22,11 +22,6 @@ export const preProcessIotMessage = (lambda, opts) => {
   const { logger, tradle, tasks, isUsingServerlessOffline } = lambda
   const { user } = tradle
 
-  tasks.add({
-    name: 'getiotendpoint',
-    promiser: tradle.iot.getEndpoint
-  })
-
   return async (ctx, next) => {
     const { event, context } = ctx
     let { topic, clientId, data } = event
