@@ -15,7 +15,7 @@ const promiseCustomize = customize({
   .then(components => ({
     ...components,
     middleware: createMiddleware(lambda, components)
-  })
+  }))
 
 const lambda = bot.createLambda({
   source: EventSource.HTTP,

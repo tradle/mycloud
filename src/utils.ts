@@ -639,7 +639,7 @@ export async function post (url, data, opts={}) {
       // 'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(data)
+    body: Buffer.isBuffer(data) ? data : JSON.stringify(data)
   }, opts))
 
   debug(`processing response from POST to ${url}`)
