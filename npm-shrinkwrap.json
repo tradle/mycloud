@@ -1672,7 +1672,7 @@
     },
     "caseless": {
       "version": "0.12.0",
-      "from": "caseless@>=0.12.0 <0.13.0",
+      "from": "caseless@0.12.0",
       "resolved": "https://registry.npmjs.org/caseless/-/caseless-0.12.0.tgz"
     },
     "catbox": {

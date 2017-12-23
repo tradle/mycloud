@@ -1,5 +1,4 @@
 import { createBot } from '../../../bot'
-import { EventSource } from '../../../lambda'
 import { customize } from '../../customize'
 
 const bot = createBot({ ready: false })

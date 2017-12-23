@@ -14,6 +14,7 @@ import {
 // @ts-ignore
 import Promise = require('bluebird')
 import compose = require('koa-compose')
+import caseless = require('caseless')
 import randomName = require('random-name')
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
@@ -309,7 +310,17 @@ export class Lambda {
     if (!this.done) this.exit()
   }
 
-  private preProcess = async (event, context, callback?) => {
+  private preProcess = async ({
+    event,
+    context,
+    request,
+    callback
+  }: {
+    event,
+    context,
+    request,
+    callback?
+  }) => {
     if (!this.accountId) {
       const { invokedFunctionArn } = context
       if (invokedFunctionArn) {
@@ -332,6 +343,20 @@ export class Lambda {
       // to propagate request context
       this.reqCtx = event.requestContext
       event = event.payload
+    }
+
+    if (this.source === EventSource.HTTP) {
+      if (typeof event.body === 'string') {
+        const enc = event.isBase64Encoded ? 'base64' : 'utf8'
+        event.body = new Buffer(event.body, enc)
+      }
+
+      const headers = caseless(request.headers)
+      if (!this.isUsingServerlessOffline && headers.get('content-encoding') === 'gzip') {
+        this.logger.info('stripping content-encoding header as APIGateway already gunzipped')
+        headers.set('content-encoding', 'identity')
+        event.headers = request.headers
+      }
     }
 
     this.setExecutionContext({ event, context, callback })
@@ -417,13 +442,13 @@ export class Lambda {
       const { createHandler } = require('./http-request-handler')
       return createHandler({
         lambda: this,
-        preProcess: (request, event, context) => this.preProcess(event, context),
+        preProcess: (request, event, context) => this.preProcess({ request, event, context }),
         postProcess: (response, event, context) => {}
       })
     }
 
     return async (event, context, callback) => {
-      await this.preProcess(event, context, callback)
+      await this.preProcess({ event, context, callback })
       await this.run()
     }
   }
