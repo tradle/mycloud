@@ -6,7 +6,7 @@ import { customize } from '../../customize'
 
 const bot = createBot({ ready: false })
 const lambda = bot.createLambda({ source: EventSource.HTTP })
-const promiseCustomize = customize({ bot, event: 'onfido:webhook' })
+const promiseCustomize = customize({ lambda, event: 'onfido:webhook' })
 lambda.tasks.add({
   name: 'init',
   promise: promiseCustomize

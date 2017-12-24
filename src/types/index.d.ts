@@ -183,3 +183,8 @@ export type CacheContainer = {
   cache: any
   logger: Logger
 }
+
+export type DatedValue = {
+  lastModified: number
+  value: any
+}

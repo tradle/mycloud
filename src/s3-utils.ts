@@ -114,6 +114,7 @@ export = function createUtils ({ s3, logger }) {
   }) => {
     if (!key) throw new Error('expected "key"')
     if (!bucket) throw new Error('expected "bucket"')
+    if (!ttl) throw new Error('expected "ttl"')
 
     let cached
     let type

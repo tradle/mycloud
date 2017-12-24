@@ -1,24 +1,36 @@
-
+import { omit } from 'lodash'
 import { Bucket } from './bucket'
+import { DatedValue } from './types'
 
 const identity = a => a
 
 export class CacheableBucketItem {
   private value: any
   private parse: Function
+  private lastModified?: number
   constructor(opts: {
     bucket:Bucket,
     key:string,
     ttl?: number
     parse?: Function
   }) {
-    this.value = opts.bucket.getCacheable(opts)
-    this.parse = identity
+    this.value = opts.bucket.getCacheable(omit(opts, ['parse']))
+    this.parse = opts.parse || identity
+    this.lastModified = null
   }
 
-  public get = async (opts?) => {
-    const value = await this.value.get(opts)
-    return this.parse(value)
+  public getDatedValue = async ():Promise<DatedValue> => {
+    const value = await this.get()
+    return {
+      value,
+      lastModified: this.lastModified
+    }
+  }
+
+  public get = async (opts?):Promise<any> => {
+    const { Body, LastModified } = await this.value.get(opts)
+    this.lastModified = new Date(LastModified).getTime()
+    return this.parse(Body)
   }
 
   public put = async (value:any, opts={}) => {

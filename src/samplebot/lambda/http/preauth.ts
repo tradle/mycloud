@@ -5,6 +5,6 @@ import { EventSource } from '../../../lambda'
 
 const bot = createBot()
 const lambda = bot.lambdas.preauth()
-// const promiseCustomize = customize({ bot, event: 'preauth' })
+// const promiseCustomize = customize({ lambda, event: 'preauth' })
 
 export const handler = lambda.handler

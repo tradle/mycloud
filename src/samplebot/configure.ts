@@ -35,31 +35,49 @@ export const LENSES_KEY = 'conf/lenses.json'
 export const STYLE_KEY = 'conf/style.json'
 export const ORG_KEY = 'org/org.json'
 export const INFO_KEY = 'info/info.json'
+export const TERMS_AND_CONDITIONS_KEY = 'conf/terms-and-conditions.md'
+
+const MINUTE = 3600000
+const HALF_HOUR = MINUTE * 30
+const HOUR = HALF_HOUR * 2
+const DEFAULT_TTL = HALF_HOUR
 
 const parts = {
   org: {
     bucket: 'PrivateConf',
-    key: ORG_KEY
+    key: ORG_KEY,
+    ttl: DEFAULT_TTL
   },
   style: {
     bucket: 'PrivateConf',
-    key: STYLE_KEY
+    key: STYLE_KEY,
+    ttl: DEFAULT_TTL
   },
   info: {
     bucket: 'PrivateConf',
-    key: INFO_KEY
+    key: INFO_KEY,
+    ttl: DEFAULT_TTL
   },
   botConf: {
     bucket: 'PrivateConf',
-    key: BOT_CONF_KEY
+    key: BOT_CONF_KEY,
+    ttl: DEFAULT_TTL
   },
   models: {
     bucket: 'PrivateConf',
-    key: MODELS_KEY
+    key: MODELS_KEY,
+    ttl: DEFAULT_TTL
   },
   lenses: {
     bucket: 'PrivateConf',
-    key: LENSES_KEY
+    key: LENSES_KEY,
+    ttl: DEFAULT_TTL
+  },
+  termsAndConditions: {
+    bucket: 'PrivateConf',
+    key: TERMS_AND_CONDITIONS_KEY,
+    ttl: DEFAULT_TTL,
+    parse: value => value.toString()
   }
 }
 
@@ -73,6 +91,7 @@ export class Conf {
   public style: CacheableBucketItem
   public org: CacheableBucketItem
   public info: CacheableBucketItem
+  public termsAndConditions: CacheableBucketItem
   constructor({ bot, logger }: {
     bot,
     logger?

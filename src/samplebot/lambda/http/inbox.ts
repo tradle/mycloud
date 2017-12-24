@@ -2,6 +2,6 @@ import { createBot } from '../../../bot'
 import { customize } from '../../customize'
 
 const bot = createBot({ ready: false })
-customize({ bot, event: 'message' })
 const lambda = bot.lambdas.inbox()
+customize({ lambda, event: 'message' })
 export const handler = lambda.handler

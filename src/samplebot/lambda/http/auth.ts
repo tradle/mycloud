@@ -3,7 +3,7 @@ import { customize } from '../../customize'
 
 const bot = createBot()
 const lambda = bot.lambdas.auth()
-// const promiseCustomize = customize({ bot })
+// const promiseCustomize = customize({ lambda })
 // lambda.use(async (ctx) => {
 //   const { employeeManager } = await promiseCustomize
 //   const { userId } = ctx.userId

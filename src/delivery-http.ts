@@ -9,7 +9,7 @@ import Env from './env'
 import Errors = require('./errors')
 
 const zlib = promisify(_zlib)
-const COMPRESSION_THRESHOLD = 2000
+const COMPRESSION_THRESHOLD = 0//2000
 const FETCH_TIMEOUT = 10000
 
 export default class Delivery extends EventEmitter implements IDelivery {

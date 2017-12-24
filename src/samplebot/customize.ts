@@ -10,15 +10,22 @@ import Errors = require('../errors')
 const ONFIDO_PLUGIN_PATH = 'products.plugins.onfido'
 
 export async function customize (opts) {
-  const { bot, delayReady, event } = opts
+  let { lambda, bot, delayReady, event } = opts
+  if (!bot) bot = lambda.bot
+
+  const { logger } = lambda || bot
   const confy = createConf({ bot })
-  let [org, conf, customModels, style] = await Promise.all([
+  let [org, conf, customModels, style, termsAndConditions] = await Promise.all([
     confy.org.get(),
     confy.botConf.get(),
     confy.models.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
     }),
     confy.style.get().catch(err => {
+      Errors.ignore(err, Errors.NotFound)
+    }),
+    confy.termsAndConditions.getDatedValue().catch(err => {
+      // TODO: maybe store in local fs instead of in memory
       Errors.ignore(err, Errors.NotFound)
     })
   ])
@@ -37,8 +44,10 @@ export async function customize (opts) {
 
   const components = createProductsStrategy({
     bot,
+    logger,
     namespace,
     conf,
+    termsAndConditions,
     customModels,
     style,
     event

@@ -16,8 +16,11 @@ import {
 import { createGraphQLAuth } from './graphql-auth'
 // import { tradle as defaultTradleInstance } from '../../'
 import createBot = require('../../bot')
+import { DatedValue } from '../../types'
 import createDeploymentModels from '../deployment-models'
 import createBankModels from '../bank-models'
+import * as TermsAndConditions from './ts-and-cs'
+import Logger from '../../logger'
 
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
@@ -39,11 +42,22 @@ const willHandleMessages = event => event === 'message'
 
 export default function createProductsBot ({
   bot,
+  logger,
   namespace,
   conf,
+  termsAndConditions,
   customModels,
   style,
   event
+}: {
+  bot: any,
+  logger: Logger,
+  namespace: string,
+  conf: any,
+  customModels: any,
+  style?: any,
+  termsAndConditions?: DatedValue,
+  event?: string
 }) {
   const {
     enabled,
@@ -55,7 +69,7 @@ export default function createProductsBot ({
     graphqlRequiresAuth
   } = conf.products
 
-  bot.logger.debug('setting up products strategy')
+  logger.debug('setting up products strategy')
 
   const deploymentModels = createDeploymentModels(namespace)
   const DEPLOYMENT = deploymentModels.deployment.id
@@ -103,7 +117,6 @@ export default function createProductsBot ({
     productsAPI.emit('bot', bot)
   }
 
-  // prepend
   let commands
   if (handleMessages) {
     const { Commander } = require('./commander')
@@ -155,6 +168,17 @@ export default function createProductsBot ({
     }), true))
 
     // prepend
+
+    if (termsAndConditions) {
+      const tcPlugin = TermsAndConditions.createPlugin({
+        termsAndConditions,
+        productsAPI,
+        logger
+      })
+
+      productsAPI.plugins.use(tcPlugin, true) // prepend
+    }
+
     productsAPI.plugins.use({ onmessage: keepModelsFresh }, true)
     productsAPI.plugins.use({
       // 'onmessage:tradle.Form': async (req) => {
@@ -272,7 +296,7 @@ export default function createProductsBot ({
     productsAPI.plugins.use(customizeMessage({
       models: productsAPI.models.all,
       conf: customizeMessageOpts,
-      logger: bot.logger
+      logger
     }))
   }
 
