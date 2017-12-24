@@ -625,28 +625,35 @@ export async function seriesMap (arr, fn) {
   return results
 }
 
-export async function get (url, opts?) {
+export async function get (url:string, opts:any={}) {
   debug(`GET ${url}`)
   const res = await fetch(url, opts)
   return processResponse(res)
 }
 
-export async function post (url, data, opts={}) {
+export async function post (url:string, data:Buffer|string|any, opts:any={}) {
   debug(`POST to ${url}`)
+  let body
+  if (typeof data === 'string' || Buffer.isBuffer(data)) {
+    body = data
+  } else {
+    body = JSON.stringify(data)
+  }
+
   const res = await fetch(url, merge({
     method: 'POST',
     headers: {
       // 'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    body: Buffer.isBuffer(data) ? data : JSON.stringify(data)
+    body
   }, opts))
 
   debug(`processing response from POST to ${url}`)
   return processResponse(res)
 }
 
-export async function download ({ url }) {
+export async function download ({ url }: { url:string }) {
   debug(`downloading from ${url}`)
   const res = await fetch(url)
   if (res.status > 300) {

@@ -13,8 +13,7 @@ import {
   createGetIdentifierFromReq,
   createGetModelsForUser
 } from './keep-models-fresh'
-import { createGraphQLAuth } from './graphql-auth'
-// import { tradle as defaultTradleInstance } from '../../'
+
 import createBot = require('../../bot')
 import { DatedValue } from '../../types'
 import createDeploymentModels from '../deployment-models'

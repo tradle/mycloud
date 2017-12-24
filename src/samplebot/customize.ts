@@ -20,13 +20,16 @@ export async function customize (opts) {
     confy.botConf.get(),
     confy.models.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
+      return undefined
     }),
     confy.style.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
+      return undefined
     }),
     confy.termsAndConditions.getDatedValue().catch(err => {
       // TODO: maybe store in local fs instead of in memory
       Errors.ignore(err, Errors.NotFound)
+      return undefined
     })
   ])
 

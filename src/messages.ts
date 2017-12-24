@@ -4,7 +4,7 @@ import Objects from './objects'
 import Env from './env'
 import { IDebug, ITradleMessage, ITradleObject, IECMiniPubKey } from './types'
 import { utils as tradleUtils } from '@tradle/engine'
-import * as Errors from './errors'
+import Errors, { ErrorWithLink } from './errors'
 import {
   pick,
   omit,

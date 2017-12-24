@@ -1,6 +1,6 @@
 import { omit, cloneDeep } from 'lodash'
 import mergeSorted = require('merge-sorted')
-import { createTable, utils, constants } from '@tradle/dynamodb'
+import { Table, createTable, utils, constants } from '@tradle/dynamodb'
 
 const { getQueryInfo } = utils
 const definitions = require('./definitions')
@@ -13,7 +13,7 @@ type InAndOut = {
 export function createMessagesTable ({ models, getMyIdentity }: {
   models:any,
   getMyIdentity:() => Promise<any>
-}) {
+}):Table {
   const model = models['tradle.Message']
   const inbox = createTable({
     models,
@@ -262,7 +262,7 @@ export function createMessagesTable ({ models, getMyIdentity }: {
     }
   })
 
-  return table
+  return table as Table
 }
 
 const equalsIgnoreOrder = (a, b) => {

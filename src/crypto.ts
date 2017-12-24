@@ -300,7 +300,7 @@ function getEncoder (curve) {
   return encoders[curve]
 }
 
-function sha256 (data, enc='base64') {
+function sha256 (data:string|Buffer, enc?:HexBase64Latin1Encoding='base64') {
   return crypto.createHash('sha256').update(data).digest(enc)
 }
 

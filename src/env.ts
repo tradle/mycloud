@@ -51,6 +51,7 @@ export default class Env {
   public accountId: string
 
   public PUSH_SERVER_URL:string
+  public GZIP_POST_BODY?:boolean
 
   private nick:string
   constructor(props:any) {

@@ -61,7 +61,7 @@ const HOOKABLE = [
   { name: 'info' }
 ]
 
-export const createBot = (opts={}) => {
+export const createBot = (opts:any={}) => {
   return _createBot({
     ...opts,
     tradle: opts.tradle || require('../').tradle

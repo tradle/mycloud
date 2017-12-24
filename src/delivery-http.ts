@@ -30,10 +30,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
     const { recipient, friend, messages, timeout } = opts
     const endpoint = `${friend.url}/inbox`
     const headers = {}
-    let payload = { messages }
+    let payload = stringify({ messages })
     if (!this.env.IS_OFFLINE && this.env.GZIP_POST_BODY && payload.length > COMPRESSION_THRESHOLD) {
       this.logger.debug('gzipping payload')
-      payload = await zlib.gzip(stringify(payload))
+      payload = await zlib.gzip(payload)
       headers['Content-Encoding'] = 'gzip'
     }
 

@@ -245,7 +245,11 @@ export class Lambda {
       throw new Error('exit can only be called once per lambda invocation!')
     }
 
-    this.logger.debug('exiting', { requestTime: this.executionTime })
+    this.logger.debug('preparing for exit', {
+      requestTime: this.executionTime,
+      timeLeft: this.timeLeft
+    })
+
     const ctx = this.execCtx
     ctx.done = true
 
@@ -281,6 +285,9 @@ export class Lambda {
     }
 
     this.isVirgin = false
+    this.logger.debug('exiting')
+
+    // http exits via koa
     if (this.source !== EventSource.HTTP) {
       if (!ctx.callback) {
         throw new Error('lambda already exited')

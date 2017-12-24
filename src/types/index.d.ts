@@ -67,7 +67,7 @@ export interface ILambdaAWSExecutionContext {
 }
 
 export interface ITradleObject {
-  _sigPubKey: string
+  _sigPubKey?: string
   _link?: string
   _permalink?: string
   _author?: string

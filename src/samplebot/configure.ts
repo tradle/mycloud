@@ -11,10 +11,10 @@ import Errors = require('../errors')
 import { allSettled, RESOLVED_PROMISE } from '../utils'
 import { Bucket } from '../bucket'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
-import DEFAULT_CONF = require('./conf/provider')
-import { LOGO_UNKNOWN } from './media'
 import Logger from '../logger'
 
+const { LOGO_UNKNOWN } = require('./media')
+const DEFAULT_CONF = require('./conf/provider')
 const { reinitializeOnConfChanged } = serverlessYml.custom
 const parseJSON = JSON.parse.bind(JSON)
 const getHandleFromName = (name:string) => {

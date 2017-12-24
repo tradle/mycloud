@@ -3,13 +3,14 @@ import readline = require('readline')
 import yn = require('yn')
 import Logger, { Writer } from '../logger'
 import Env from '../env'
-import remoteServiceMap = require('./remote-service-map')
 import testServiceMap = require('../test/service-map')
 import { customize } from '../samplebot/customize'
 import { createBot } from '../bot'
-import providerConf = require('../../conf/provider')
 import { list as listCommands, get as getCommand } from './registrar'
 import Command from './command'
+
+const remoteServiceMap = require('./remote-service-map')
+const providerConf = require('../../conf/provider')
 
 export type CliOpts = {
   remote?: boolean
