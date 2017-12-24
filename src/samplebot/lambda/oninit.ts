@@ -22,8 +22,6 @@ lambda.use(async (ctx, next) => {
     // }
 
     await init.update(payload)
-  } else if (type === 'updateconf') {
-    await init.recalcPublicInfo()
   }
 })
 

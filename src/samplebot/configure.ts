@@ -53,11 +53,11 @@ const parts = {
     key: STYLE_KEY,
     ttl: DEFAULT_TTL
   },
-  info: {
-    bucket: 'PrivateConf',
-    key: INFO_KEY,
-    ttl: DEFAULT_TTL
-  },
+  // info: {
+  //   bucket: 'PrivateConf',
+  //   key: INFO_KEY,
+  //   ttl: DEFAULT_TTL
+  // },
   botConf: {
     bucket: 'PrivateConf',
     key: BOT_CONF_KEY,
@@ -90,7 +90,7 @@ export class Conf {
   public lenses: CacheableBucketItem
   public style: CacheableBucketItem
   public org: CacheableBucketItem
-  public info: CacheableBucketItem
+  // public info: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
   constructor({ bot, logger }: {
     bot,
@@ -157,31 +157,23 @@ export class Conf {
   }
 
   public setStyle = async (style:any, reinitializeContainers:boolean=true) => {
-    await this.bot.promiseReady()
     validateResource({
       models: this.bot.models,
       model: 'tradle.StylesPack',
       resource: style
     })
 
-    await this.savePublicInfo({ style })
+    await this.style.put(style)
   }
 
-  public savePublicInfo = async ({ identity, org, style }: {
-    identity?: any
-    org?: any
-    style?: any
-  }={}) => {
-    const getIdentity = identity ? Promise.resolve(identity) : this.bot.getMyIdentity()
-    const getOrg = org ? Promise.resolve(org) : this.org.get()
-    const getStyle = style ? Promise.resolve(style) : this.style.get()
-    const info = this.calcPublicInfo({
-      identity: await getIdentity,
-      org: await getOrg,
-      style: await getStyle
-    })
+  public getPublicInfo = async () => {
+    const [org, style, identity] = await Promise.all([
+      this.org.get(),
+      this.style.get(),
+      this.bot.getMyIdentity()
+    ])
 
-    await this.info.put(info)
+    return this.calcPublicInfo({ identity, org, style })
   }
 
   public calcPublicInfo = ({ identity, org, style }) => {
@@ -266,25 +258,7 @@ export class Conf {
       style ? this.style.put(style) : RESOLVED_PROMISE,
       org ? this.org.put(org) : RESOLVED_PROMISE,
       bot ? this.botConf.put(bot) : RESOLVED_PROMISE,
-      // this.savePublicConf(),
-      (identity || style || org)
-        ? this.savePublicInfo({ identity, style, org })
-        : RESOLVED_PROMISE
     ])
-  }
-
-  public recalcPublicInfo = async () => {
-    const [
-      identity,
-      org,
-      style
-    ] = await Promise.all([
-      this.bot.getMyIdentity(),
-      this.org.get(),
-      this.style.get()
-    ])
-
-    await this.savePublicInfo({ identity, org, style })
   }
 
   public getLogo = async (conf) => {

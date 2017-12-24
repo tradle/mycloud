@@ -41,8 +41,4 @@ export class Init {
   public update = async (conf) => {
     await this.confManager.update(conf)
   }
-
-  public recalcPublicInfo = async () => {
-    await this.confManager.recalcPublicInfo()
-  }
 }
