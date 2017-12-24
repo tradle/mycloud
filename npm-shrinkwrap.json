@@ -61,7 +61,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#9f98c3ffa0cb80a5a2ab7ed504128a6af41b2ffd",
+      "resolved": "git://github.com/tradle/bot-products.git#cf983491912c1edc7fa10857510e894698195b8c",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -230,7 +230,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#3f7e37d16c7093254c621bf929cb3699ee0f20e7"
+      "resolved": "git://github.com/tradle/models.git#96aa67da0524de8a473e32b327994cf5e95d340a"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -1991,6 +1991,28 @@
           "from": "isarray@>=1.0.0 <1.1.0",
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
         },
+        "level-change-processor": {
+          "version": "1.0.0",
+          "from": "mvayngrib/level-change-processor#7100404",
+          "resolved": "git://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b",
+          "dependencies": {
+            "isarray": {
+              "version": "0.0.1",
+              "from": "isarray@0.0.1",
+              "resolved": "https://registry.npmjs.org/isarray/-/isarray-0.0.1.tgz"
+            },
+            "readable-stream": {
+              "version": "1.1.14",
+              "from": "readable-stream@>=1.0.33 <2.0.0",
+              "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-1.1.14.tgz"
+            },
+            "string_decoder": {
+              "version": "0.10.31",
+              "from": "string_decoder@>=0.10.0 <0.11.0",
+              "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-0.10.31.tgz"
+            }
+          }
+        },
         "readable-stream": {
           "version": "2.3.3",
           "from": "readable-stream@>=2.1.4 <3.0.0",
@@ -2704,11 +2726,6 @@
       "from": "lcid@>=1.0.0 <2.0.0",
       "resolved": "https://registry.npmjs.org/lcid/-/lcid-1.0.0.tgz"
     },
-    "level-change-processor": {
-      "version": "1.0.0",
-      "from": "git+https://github.com/mvayngrib/level-change-processor.git#7100404",
-      "resolved": "git+https://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b"
-    },
     "level-codec": {
       "version": "6.1.0",
       "from": "level-codec@>=6.1.0 <6.2.0",
@@ -2971,11 +2988,6 @@
           "version": "1.0.0",
           "from": "isarray@>=1.0.0 <1.1.0",
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
-        },
-        "merkle-tree-stream": {
-          "version": "3.0.3",
-          "from": "git+https://github.com/mvayngrib/merkle-tree-stream.git#finalize",
-          "resolved": "git+https://github.com/mvayngrib/merkle-tree-stream.git#ef1abd6b566a410f8cdc7190f0966b97f403e290"
         },
         "readable-stream": {
           "version": "2.3.3",
