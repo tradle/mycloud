@@ -267,7 +267,7 @@ function _createBot (opts: {
     get inbox() { return require('./lambda/inbox') },
     // get graphql() { return require('./lambda/graphql') },
     get warmup() { return require('./lambda/warmup') },
-    get reinitializeContainers() { return require('./lambda/reinitializeContainers') },
+    get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
   }
 
   bot.middleware = {
