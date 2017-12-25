@@ -211,9 +211,9 @@
       "resolved": "git://github.com/tradle/gen-samples.git#cea03b95296f484af2cb66145650f268d0144162"
     },
     "@tradle/iot-message": {
-      "version": "1.0.0",
-      "from": "@tradle/iot-message@>=1.0.0 <2.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/iot-message/-/iot-message-1.0.0.tgz",
+      "version": "1.2.0",
+      "from": "@tradle/iot-message@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/iot-message/-/iot-message-1.2.0.tgz",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
