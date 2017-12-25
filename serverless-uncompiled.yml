@@ -943,17 +943,17 @@ functions:
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
-  samples:
-    handler: lib/samplebot/lambda/samples.handler
-    memorySize: 1024
+  # samples:
+  #   handler: lib/samplebot/lambda/samples.handler
+  #   memorySize: 1024
 
-  samples_dev:
-    handler: lib/samplebot/lambda/samples.handler
-    memorySize: 1024
-    events:
-      - http:
-          path: samples
-          method: post
+  # samples_dev:
+  #   handler: lib/samplebot/lambda/samples.handler
+  #   memorySize: 1024
+  #   events:
+  #     - http:
+  #         path: samples
+  #         method: post
 
   onfido:
     handler: lib/samplebot/lambda/http/onfido-webhook.handler
