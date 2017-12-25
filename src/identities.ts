@@ -21,7 +21,7 @@ import Logger from './logger'
 const { PREVLINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
-const CACHE_MAX_AGE = 2000
+const CACHE_MAX_AGE = 5000
 
 export default class Identities {
   public objects: any

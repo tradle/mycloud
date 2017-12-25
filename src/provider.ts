@@ -210,7 +210,7 @@ export default class Provider {
   }
 
   public createReceiveMessageEvent = async ({ message }):Promise<ITradleMessage> => {
-    message = await this.messages.parseInbound(message)
+    message = await this.messages.processInbound(message)
 
     const tasks = [
       this.objects.put(message.object),

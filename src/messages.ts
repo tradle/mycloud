@@ -421,7 +421,7 @@ export default class Messages {
     }
   }
 
-  public parseInbound = async (message: ITradleMessage):Promise<ITradleMessage> => {
+  public processInbound = async (message: ITradleMessage):Promise<ITradleMessage> => {
     // TODO: uncomment below, check that message is for us
     // await ensureMessageIsForMe({ message })
     const min = message
