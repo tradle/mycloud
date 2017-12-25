@@ -17,6 +17,8 @@ export class Lambda extends BaseLambda {
     if (!bot.isReady()) {
       const now = Date.now()
       const interval = setInterval(() => {
+        if (bot.isReady()) return clearInterval(interval)
+
         const time = Date.now() - now
         this.logger.warn(`${time}ms passed. Did you forget to call bot.ready()?`)
       }, 5000)
@@ -30,7 +32,6 @@ export class Lambda extends BaseLambda {
       promise: this.promiseReady()
     })
 
-
     this.on('run', () => {
       if (!this.isVirgin && !bot.isReady()) {
         console.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
@@ -38,7 +39,7 @@ export class Lambda extends BaseLambda {
     })
 
     this.on('done', () => {
-      if (this.isVirgin && !bot.isReady()) {
+      if (!bot.isReady()) {
         console.error('2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
       }
     })
