@@ -166,17 +166,23 @@ export class Conf {
     await this.style.put(style)
   }
 
-  public getPublicInfo = async () => {
-    const [org, style, identity] = await Promise.all([
-      this.org.get(),
-      this.style.get(),
-      this.bot.getMyIdentity()
-    ])
-
-    return this.calcPublicInfo({ identity, org, style })
+  public getIntroTour = async () => {
+    const conf = await this.botConf.get()
+    return dotProp.get(conf, 'tours.intro')
   }
 
-  public calcPublicInfo = ({ identity, org, style }) => {
+  public getPublicInfo = async () => {
+    const [org, style, identity, tour] = await Promise.all([
+      this.org.get(),
+      this.style.get(),
+      this.bot.getMyIdentity(),
+      this.getIntroTour()
+    ])
+
+    return this.calcPublicInfo({ identity, org, style, tour })
+  }
+
+  public calcPublicInfo = ({ identity, org, style, tour }) => {
     return {
       bot: {
         profile: {
@@ -189,7 +195,8 @@ export class Conf {
       id: getHandleFromName(org.name),
       org: buildResource.omitVirtual(org),
       // publicConfig: publicConf.publicConfig,
-      style
+      style,
+      tour
     }
   }
 
@@ -216,6 +223,9 @@ export class Conf {
       Errors.ignore(err, Errors.Exists)
       identity = await bot.getMyIdentity()
     }
+
+    const existing = await this.get()
+    if (existing.org) return // don't reinit
 
     const logo = await this.getLogo(conf)
     if (!orgTemplate.logo) {
