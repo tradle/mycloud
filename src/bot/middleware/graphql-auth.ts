@@ -7,7 +7,7 @@ import { pick, isPromise } from '../../utils'
 const debug = require('debug')('tradle:sls:graphql-auth')
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
 
-export const createAuth = ({ bot }, { allowGuest, canUserRunQuery }) => {
+export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
   const { identities } = bot
   return async (ctx, next) => {
     const method = ctx.method.toLowerCase()

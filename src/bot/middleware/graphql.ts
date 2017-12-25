@@ -1,4 +1,5 @@
-import Router = require('koa-router')
+// import Router = require('koa-router')
+import compose = require('koa-compose')
 import { graphql, formatError } from 'graphql'
 import { print } from 'graphql/language/printer'
 import { parse } from 'graphql/language/parser'
@@ -13,7 +14,7 @@ import { ITradleObject } from '../../types'
 const { MESSAGE } = TYPES
 const prettifyQuery = query => print(parse(query))
 
-export const createRouter = (opts) => {
+export const createHandler = (opts) => {
   const { bot, logger } = opts
 
   // allow models to be set asynchronously
@@ -45,11 +46,15 @@ export const createRouter = (opts) => {
     }
   })
 
-  const router = new Router()
-  // router.setGraphQLAuth = authImpl => auth = authImpl
-  router.setGraphiqlOptions = options => graphiqlOptions = options
-  router.getGraphqlAPI = () => getGraphqlAPI(opts)
+  const middleware = [
+    handler
+  ]
 
+  if (logger.level >= Level.SILLY) {
+    middleware.push(logResponseBody(logger))
+  }
+
+  // router.setGraphQLAuth = authImpl => auth = authImpl
   // router.use(cors())
   // router.use(bodyParser({ jsonLimit: '10mb' }))
 
@@ -63,14 +68,11 @@ export const createRouter = (opts) => {
   //   }
   // })
 
-  if (logger.level >= Level.SILLY) {
-    router.use(logResponseBody(logger))
-  }
 
-  router.get('/graphql', handler)
-  router.post('/graphql', handler)
-
-  return router
+  const stack = compose(middleware)
+  stack.setGraphiqlOptions = options => graphiqlOptions = options
+  stack.getGraphqlAPI = () => getGraphqlAPI(opts)
+  return stack
 }
 
 export const getGraphqlAPI = (opts) => {

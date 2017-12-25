@@ -1,7 +1,6 @@
 import compose = require('koa-compose')
 import cors = require('kcors')
 import { EventSource, Lambda, fromHTTP } from '../lambda'
-import { get } from '../middleware/noop-route'
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)
@@ -18,7 +17,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       if (!ctx.body) ctx.body = {}
       Object.assign(ctx.body, bot.endpointInfo)
       await next()
-    },
-    get('/info')
+    }
   ])
 }

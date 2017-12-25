@@ -1,5 +1,4 @@
 import { EventSource } from '../../../lambda'
-import Router = require('koa-router')
 import cors = require('kcors')
 import { createBot } from '../../../bot'
 import { customize } from '../../customize'
@@ -12,16 +11,13 @@ lambda.tasks.add({
   promise: promiseCustomize
 })
 
-const onfidoRouter = new Router()
-onfidoRouter.use(cors())
-onfidoRouter.post('/onfido', async (ctx) => {
+lambda.use(cors())
+lambda.use(async (ctx) => {
   const { onfidoPlugin } = await promiseCustomize
   await onfidoPlugin.processWebhookEvent({
-    req: ctx.req,
-    res: ctx.res
+    req: ctx.request,
+    res: ctx.response
   })
 })
-
-lambda.use(onfidoRouter.routes())
 
 export const handler = lambda.handler

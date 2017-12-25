@@ -1,7 +1,6 @@
 import cors = require('kcors')
 import compose = require('koa-compose')
 import { bodyParser } from '../middleware/body-parser'
-import { post } from '../middleware/noop-route'
 import { Lambda, fromHTTP } from '../lambda'
 import { getRequestIps } from '../../utils'
 
@@ -22,7 +21,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       ctx.session = await auth.createSession({ clientId, identity, ips })
       await next()
       if (!ctx.body) ctx.body = ctx.session
-    },
-    post('/preauth')
+    }
   ])
 }

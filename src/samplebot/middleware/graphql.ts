@@ -45,7 +45,7 @@ export const keepModelsFresh = (lambda:Lambda, components) => {
 export const createAuth = (lambda: Lambda, components) => {
   const allowGuest = lambda.stage === 'dev'
   const { employeeManager } = components
-  return lambda.bot.middleware.graphql.createAuth(lambda, {
+  return lambda.bot.middleware.graphql.auth(lambda, {
     allowGuest,
     canUserRunQuery: ({ user, query }) => {
       return allowGuest || (user && employeeManager.isEmployee(user))
@@ -53,21 +53,17 @@ export const createAuth = (lambda: Lambda, components) => {
   })
 }
 
-export const createRouter = (lambda: Lambda, components) => {
-  return lambda.bot.middleware.graphql.createRouter(lambda, components)
-}
-
 export const createMiddleware = (lambda:Lambda, components) => {
-  const router = createRouter(lambda, components)
+  const graphqlHandler = lambda.bot.middleware.graphql.queryHandler(lambda, components)
   const middleware = compose([
     cors(),
     bodyParser({ jsonLimit: '10mb' }),
     createAuth(lambda, components),
     keepModelsFresh(lambda, components),
-    router.routes()
+    graphqlHandler
   ])
 
-  defineGetter(middleware, 'setGraphiqlOptions', () => router.setGraphiqlOptions)
-  defineGetter(middleware, 'getGraphiqlAPI', () => router.getGraphiqlAPI)
+  defineGetter(middleware, 'setGraphiqlOptions', () => graphqlHandler.setGraphiqlOptions)
+  defineGetter(middleware, 'getGraphiqlAPI', () => graphqlHandler.getGraphiqlAPI)
   return middleware
 }
