@@ -6,6 +6,7 @@ require('source-map-support').install()
 // require('time-require')
 import './globals'
 
+import { EventEmitter } from 'events'
 import fs = require('fs')
 import {
   pick
@@ -23,9 +24,7 @@ import Tradle from './tradle'
 import Logger from './logger'
 import Errors = require('./errors')
 import {
-  RESOLVED_PROMISE,
   defineGetter,
-  wait,
   timeoutIn,
   parseArn,
   isPromise
@@ -37,7 +36,6 @@ import {
 
 import { warmup } from './middleware/warmup'
 
-const isPromise = obj => obj && typeof obj.then === 'function'
 const NOT_FOUND = new Error('nothing here')
 
 export enum EventSource {
@@ -86,7 +84,7 @@ export const fromCloudFormation = (opts={}) => new Lambda({ ...opts, source: Eve
 export const fromLambda = (opts={}) => new Lambda({ ...opts, source: EventSource.LAMBDA })
 export const fromS3 = (opts={}) => new Lambda({ ...opts, source: EventSource.S3 })
 
-export class Lambda {
+export class Lambda extends EventEmitter {
   // initialization
   public source: EventSource
   public opts: any
@@ -107,6 +105,7 @@ export class Lambda {
   private requestCounter: number
   private _gotHandler: boolean
   constructor(opts:ILambdaOpts={}) {
+    super()
     const {
       tradle=require('./').tradle,
       source
@@ -254,10 +253,13 @@ export class Lambda {
     ctx.done = true
 
     // leave a tiny bit of breathing room for after the timeout
+    const { shortName } = this
+    const start = Date.now()
     const timeout = timeoutIn({
       millis: Math.max(this.timeLeft - 200, 0),
       get error() {
-        return new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out`)
+        const time = Date.now() - start
+        return new Errors.ExecutionTimeout(`lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`)
       }
     })
 
@@ -290,6 +292,7 @@ export class Lambda {
       ctx.body = result
     }
 
+    this.emit('done')
     this.isVirgin = false
     this.logger.debug('exiting')
 
@@ -306,6 +309,7 @@ export class Lambda {
   }
 
   public run = async () => {
+    this.emit('run')
     const exec = compose(this.middleware)
     const ctx = this.execCtx
     if (!ctx) throw new Error('missing execution context')
@@ -410,6 +414,7 @@ export class Lambda {
 
       Object.assign(this.execCtx, execCtx)
 
+      this.emit('run')
       if (!this.done) {
         try {
           await next()

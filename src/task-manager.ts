@@ -1,5 +1,6 @@
 // @ts-ignore
 import Promise = require('bluebird')
+import { omit } from 'lodash'
 import { settle } from 'settle-promise'
 import Logger from './logger'
 import Errors = require('./errors')
@@ -15,6 +16,7 @@ export type Task = {
   name: string
   promiser?: (...any) => Promise<void|any>
   promise?: Promise<any|void>
+  retryOnFail?: boolean
 }
 
 const RESOLVED = Promise.resolve()
@@ -30,6 +32,10 @@ export class TaskManager {
 
   public add = (task: Task) => {
     this.logger.debug('add', { name: task.name })
+
+    if (task.retryOnFail && !task.promiser) {
+      throw new Error('expected "promiser"')
+    }
 
     const promise = task.promise || RESOLVED.then(() => task.promiser())
     task = { ...task, promise }
@@ -76,6 +82,10 @@ export class TaskManager {
         name: task.name,
         stack: err.stack
       })
+
+      if (task.retryOnFail) {
+        this.add(omit(task, ['promise']))
+      }
     } finally {
       this.tasks.splice(this.tasks.indexOf(task), 1)
     }

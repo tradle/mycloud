@@ -27,9 +27,23 @@ export class Lambda extends BaseLambda {
 
     this.tasks.add({
       name: 'bot:ready',
-      promiser: () => this.promiseReady()
+      promise: this.promiseReady()
     })
 
+
+    this.on('run', () => {
+      if (!this.isVirgin && !bot.isReady()) {
+        console.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+      }
+    })
+
+    this.on('done', () => {
+      if (this.isVirgin && !bot.isReady()) {
+        console.error('2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+      }
+    })
+
+    // preware, effectively
     if (middleware) this.use(middleware)
   }
 }
