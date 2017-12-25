@@ -254,7 +254,13 @@ export class Lambda {
     ctx.done = true
 
     // leave a tiny bit of breathing room for after the timeout
-    const timeout = timeoutIn(Math.max(this.timeLeft - 200, 0))
+    const timeout = timeoutIn({
+      millis: Math.max(this.timeLeft - 200, 0),
+      get error() {
+        return new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out`)
+      }
+    })
+
     try {
       await Promise.race([
         // always resolves, but may stall

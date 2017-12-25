@@ -33,7 +33,7 @@ import buildResource = require('@tradle/build-resource')
 import fetch = require('node-fetch')
 import { prettify, stableStringify } from './string-utils'
 import { SIG, TYPE, TYPES, WARMUP_SLEEP } from './constants'
-import { HttpError, ExecutionTimeout } from './errors'
+import Errors = require('./errors')
 import { CacheContainer } from './types'
 import Logger from './logger'
 import Env from './env'
@@ -67,12 +67,15 @@ export const wait = (millis=0, unref?) => {
   })
 }
 
-export const timeoutIn = (millis=0, unref?) => {
+export const timeoutIn = ({ millis=0, error, unref }: {
+  millis?: number,
+  error?: Error,
+  unref?: boolean
+}) => {
   let timeout
-  const { stack } = new Error()
   const promise = new Promise((resolve, reject) => {
     timeout = createTimeout(() => {
-      reject(new Error('timed out'))
+      reject(error || new Errors.Timeout('timed out'))
     }, millis, unref)
   })
 
@@ -593,7 +596,7 @@ export async function tryUntilTimeRunsOut (fn:()=>Promise, opts:RetryOpts) {
     try {
       return await Promise.race([
         Promise.resolve(fn()),
-        timeoutIn(timeout, true) // unref
+        timeoutIn({ millis: timeout, unref: true }) // unref
       ])
     } catch (e) {
       err = e
@@ -607,7 +610,7 @@ export async function tryUntilTimeRunsOut (fn:()=>Promise, opts:RetryOpts) {
       if (err) throw err
 
       if (timeLeft < GIVE_UP_TIME) {
-        throw new ExecutionTimeout(`aborting with ${timeLeft}ms execution time left`)
+        throw new Errors.ExecutionTimeout(`aborting with ${timeLeft}ms execution time left`)
       }
     }
 
@@ -672,7 +675,7 @@ export async function processResponse (res) {
       message = await res.text()
     }
 
-    throw new HttpError(res.status, message)
+    throw new Errors.HttpError(res.status, message)
   }
 
   const text = await res.text()

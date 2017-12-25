@@ -557,12 +557,12 @@ test('sign/verify', loudAsync(async (t) => {
 test('first success', loudAsync(async (t) => {
   const pending = [
     wait(200).then(() => 200),
-    timeoutIn(150)
+    timeoutIn({ millis:150 })
   ]
 
   const failed = [
-    timeoutIn(0),
-    timeoutIn(50)
+    timeoutIn({ millis:0 }),
+    timeoutIn({ millis:50 })
   ]
 
   const resolved = [
@@ -577,9 +577,9 @@ test('first success', loudAsync(async (t) => {
 
   try {
     await firstSuccess([
-      timeoutIn(0),
-      timeoutIn(50),
-      timeoutIn(100)
+      timeoutIn({ millis:0 }),
+      timeoutIn({ millis:50 }),
+      timeoutIn({ millis:100 })
     ])
 
     t.fail('expected error')

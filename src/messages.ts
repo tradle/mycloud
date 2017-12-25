@@ -4,7 +4,7 @@ import Objects from './objects'
 import Env from './env'
 import { IDebug, ITradleMessage, ITradleObject, IECMiniPubKey } from './types'
 import { utils as tradleUtils } from '@tradle/engine'
-import Errors, { ErrorWithLink } from './errors'
+import Errors = require('./errors')
 import {
   pick,
   omit,
@@ -143,7 +143,7 @@ export default class Messages {
 
   public getMessageStub = (opts: {
     message: ITradleMessage,
-    error?: ErrorWithLink
+    error?: Errors.ErrorWithLink
   }):IMessageStub => {
     const { message, error } = opts
     const stub = {

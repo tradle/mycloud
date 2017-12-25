@@ -7,7 +7,7 @@ import pify = require('pify')
 import { protocol, utils, constants } from '@tradle/engine'
 import {
   toBuffer,
-  loudCo,
+  loudAsync,
   extend,
   omit,
   omitVirtual,
@@ -233,11 +233,11 @@ function getChainKey (keys, props={}) {
   })
 }
 
-const sign = loudCo(function* ({ key, object }) {
+const sign = loudAsync(async ({ key, object }) => {
   const author = key instanceof ECKey ? key : new ECKey(key)
   /* { object, merkleRoot } */
 
-  const result = yield doSign({
+  const result = await doSign({
     object: omitVirtual(object),
     author
   })
