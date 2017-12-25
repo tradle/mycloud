@@ -10,6 +10,7 @@ plugins:
   - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes
   - serverless-dynamodb-autoscaling
+  - serverless-s3-encryption
   # - serverless-plugin-split-stacks
   # - serverless-plugin-warmup
   # - serverless-plugin-typescript
@@ -256,6 +257,11 @@ custom:
     cors: false
     # use dockerized s3 from localstack
     noStart: true
+
+  s3-encryption:
+    buckets:
+      SecretsBucket:
+        SSEAlgorithm: AES256
 
 #   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
