@@ -167,7 +167,6 @@ export default class Provider {
     // can probably move this to lamdba
     // as it's normalizing transport-mangled inputs
     try {
-      message = this.messages.normalizeInbound(message)
       message = await this.messages.preProcessInbound(message)
     } catch (err) {
       err.progress = message

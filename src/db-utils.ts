@@ -150,7 +150,7 @@ function createDBUtils ({ aws, logger }) {
 
     tableAPI.clear = () => clear(TableName)
     tableAPI.getTableDefinition = () => getTableDefinition(TableName)
-    return timeMethods(tableAPI, logger)
+    return tableAPI// timeMethods(tableAPI, logger)
   }
 
   const execWhile = async (method, params, filter) => {
@@ -402,7 +402,7 @@ function createDBUtils ({ aws, logger }) {
     }
   }
 
-  return timeMethods({
+  const dbUtils = {
     batchProcess,
     listTables,
     createTable,
@@ -423,7 +423,10 @@ function createDBUtils ({ aws, logger }) {
     getTableBuckets,
     getModelMap,
     getTableDefinition
-  }, logger)
+  }
+
+  return dbUtils
+  // return timeMethods(dbUtils, logger)
 }
 
 function jitter (val, percent) {
