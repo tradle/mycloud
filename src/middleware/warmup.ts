@@ -12,7 +12,7 @@ export const warmup = (lambda, opts:WarmUpOpts={}) => {
   const { logger } = lambda
   return async (ctx, next) => {
     const { event, context } = ctx
-    if (event.source !== source) {
+    if (!(event && event.source === source)) {
       await next()
       return
     }
