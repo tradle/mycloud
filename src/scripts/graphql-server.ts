@@ -35,7 +35,10 @@ dynogels.log = {
 }
 
 import lambda = require('../samplebot/lambda/http/graphql')
-lambda.execCtx = {}
+// lambda.execCtx = {
+//   event: {}
+// }
+
 lambda.koa.listen(port)
 
 console.log(`GraphiQL is at http://localhost:${port}`)

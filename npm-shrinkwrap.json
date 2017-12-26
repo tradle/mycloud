@@ -230,12 +230,17 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#5facd9cc83a6e144c2f64947d61efb353f37b375"
+      "resolved": "git://github.com/tradle/models.git#4fc902b89ae717050d2a978edf23aa4a74e9561c"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
       "resolved": "git://github.com/tradle/models-corporate-onboarding.git#941b9092ddec05ce50ef40301078c0c6f820bfbe"
+    },
+    "@tradle/models-pack": {
+      "version": "1.0.0",
+      "from": "tradle/models-pack",
+      "resolved": "git://github.com/tradle/models-pack.git#079b38c42c2edf0222e61c371b26457619fbe488"
     },
     "@tradle/onfido-api": {
       "version": "1.0.0",
@@ -279,7 +284,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#ef5e94a0fb41b6d4c2f8a5ab8afe960149766b03"
+      "resolved": "git://github.com/tradle/schema-graphql.git#78dfe36f9f1a93664a3b26688bf3d4cd4d57e2db"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",

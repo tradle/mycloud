@@ -7,6 +7,7 @@ import graphqlHTTP = require('koa-graphql')
 import { createResolvers } from '@tradle/dynamodb'
 import { createSchema } from '@tradle/schema-graphql'
 import { TYPE, TYPES } from '@tradle/constants'
+import ModelsPack = require('@tradle/models-pack')
 import { Level } from '../../logger'
 import { uniqueStrict, logResponseBody } from '../../utils'
 import { ITradleObject } from '../../types'
@@ -22,18 +23,34 @@ export const createHandler = (opts) => {
   // let auth
   let graphiqlOptions = {}
   let api
+  let modelsVersionId:string
+  let { models } = bot
+
+  const updateVersionId = (models) => {
+    modelsVersionId = ModelsPack.versionId(models)
+  }
 
   bot.promiseReady().then(() => {
     api = getGraphqlAPI(opts)
   })
 
+  if (models) updateVersionId(models)
+
+  bot.on('models', updateVersionId)
+
   const handler = graphqlHTTP(async (req) => {
     logger.debug(`hit graphql query route, ready: ${bot.isReady()}`)
     await bot.promiseReady()
-    const { query } = req.body
+    const { query, variables } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
       logger.debug('received query:')
       logger.debug(prettifyQuery(req.body.query))
+    }
+
+    if (variables && variables.modelsVersionId) {
+      if (modelsVersionId !== variables.modelsVersionId) {
+        throw new Error(`expected models with versionId: ${modelsVersionId}`)
+      }
     }
 
     return {
