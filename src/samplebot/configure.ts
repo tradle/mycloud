@@ -166,23 +166,20 @@ export class Conf {
     await this.style.put(style)
   }
 
-  public getIntroTour = async () => {
-    const conf = await this.botConf.get()
-    return dotProp.get(conf, 'tours.intro')
-  }
-
   public getPublicInfo = async () => {
-    const [org, style, identity, tour] = await Promise.all([
+    const [org, style, identity, conf] = await Promise.all([
       this.org.get(),
       this.style.get(),
       this.bot.getMyIdentity(),
-      this.getIntroTour()
+      this.botConf.get()
     ])
 
-    return this.calcPublicInfo({ identity, org, style, tour })
+    return this.calcPublicInfo({ identity, org, style, conf })
   }
 
-  public calcPublicInfo = ({ identity, org, style, tour }) => {
+  public calcPublicInfo = ({ identity, org, style, conf }) => {
+    const tour = dotProp.get(conf, 'tours.intro')
+    const { splashscreen } = conf
     return {
       bot: {
         profile: {
@@ -196,7 +193,8 @@ export class Conf {
       org: buildResource.omitVirtual(org),
       // publicConfig: publicConf.publicConfig,
       style,
-      tour
+      tour,
+      splashscreen
     }
   }
 
