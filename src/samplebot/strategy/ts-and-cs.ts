@@ -6,7 +6,7 @@ import Logger from '../../logger'
 
 const TERMS_AND_CONDITIONS = 'tradle.TermsAndConditions'
 const DATE_PRESENTED_PROP = 'tsAndCsState.datePresented'
-const DATE_ACCEPTED_PROP = 'tsAndCsState.datePresented'
+const DATE_ACCEPTED_PROP = 'tsAndCsState.dateAccepted'
 
 export const createPlugin = ({
   logger,
