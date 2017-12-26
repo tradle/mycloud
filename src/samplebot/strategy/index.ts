@@ -127,19 +127,19 @@ export default function createProductsBot ({
     })
 
     productsAPI.removeDefaultHandler('onCommand')
-    const { tours } = conf
-    if (tours) {
-      const { intro } = tours
-      if (intro) {
-        const sendLatestTour = keepFreshPlugin({
-          object: intro,
-          propertyName: 'introTour',
-          send
-        })
+    // const { tours } = conf
+    // if (tours) {
+    //   const { intro } = tours
+    //   if (intro) {
+    //     const sendLatestTour = keepFreshPlugin({
+    //       object: intro,
+    //       propertyName: 'introTour',
+    //       send
+    //     })
 
-        productsAPI.plugins.use({ onmessage: sendLatestTour })
-      }
-    }
+    //     productsAPI.plugins.use({ onmessage: sendLatestTour })
+    //   }
+    // }
 
     if (style) {
       const keepStylesFresh = keepFreshPlugin({
