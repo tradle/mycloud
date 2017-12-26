@@ -1,28 +1,9 @@
-import crypto = require('crypto')
-import buildResource = require('@tradle/build-resource')
+import ModelsPack = require('@tradle/models-pack')
 import baseModels = require('../../models')
 import { pick, omit, isPromise, stableStringify } from '../../utils'
 
 const BASE_MODELS_IDS = Object.keys(baseModels)
-
-const hashObject = (obj) => hashString('sha256', stableStringify(obj))
-
-const hashString = (algorithm, data) => crypto.createHash(algorithm).update(data).digest('hex')
-
-const modelsToArray = (models) => {
-  return Object.keys(models)
-    .sort(compareAlphabetical)
-    .map(id => models[id])
-}
-
-const compareAlphabetical = (a, b) => {
-  if (a < b) return -1
-  if (a > b) return 1
-  return 0
-}
-
-const objToArray = new Map()
-const arrToHash = new Map()
+const mapModelsToPack = new Map()
 
 export const defaultPropertyName = 'modelsHash'
 export const getDefaultIdentifierFromUser = (user) => user.id
@@ -65,50 +46,32 @@ export const keepModelsFreshPlugin = ({
 export const sendModelsPackIfUpdated = async ({
   user,
   models,
-  propertyName=defaultPropertyName,
+  send,
   identifier,
-  send
+  propertyName=defaultPropertyName,
 }: {
   user: any,
   models: any,
-  propertyName: string,
-  identifier: string,
-  send: (pack:any) => Promise<any>
+  send: (pack:any) => Promise<any>,
+  identifier?: string,
+  propertyName?: string
 }) => {
+  if (!identifier) identifier = getDefaultIdentifierFromUser(user)
+
   if (!user[propertyName] || typeof user[propertyName] !== 'object') {
     user[propertyName] = {}
   }
 
-  const modelsHash = user[propertyName][identifier]
-  let modelsArray
-  if (Array.isArray(models)) {
-    modelsArray = models
-  } else {
-    modelsArray = objToArray.get(models)
-    if (!modelsArray) {
-      modelsArray = modelsToArray(models)
-      objToArray.set(models, modelsArray)
-    }
+  const versionId = user[propertyName][identifier]
+  let pack = mapModelsToPack.get(models)
+  if (!pack) {
+    pack = ModelsPack.pack(models)
+    mapModelsToPack.set(models, pack)
   }
 
-  let hash = arrToHash.get(modelsArray)
-  if (!hash) {
-    hash = hashObject(modelsArray)
-    arrToHash.set(modelsArray, hash)
-  }
+  if (pack.versionId === versionId) return
 
-  if (hash === modelsHash) return
-
-  user[propertyName][identifier] = hash
-  const pack = buildResource({
-    models: baseModels,
-    model: 'tradle.ModelsPack',
-    resource: {
-      models: modelsArray
-    }
-  })
-  .toJSON()
-
+  user[propertyName][identifier] = pack.versionId
   return await send(pack)
 }
 

@@ -10,6 +10,7 @@ import { setNamePlugin } from './set-name'
 import { keepFreshPlugin } from './keep-fresh'
 import {
   keepModelsFreshPlugin,
+  sendModelsPackIfUpdated,
   createGetIdentifierFromReq,
   createGetModelsForUser
 } from './keep-models-fresh'
@@ -33,6 +34,7 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
   'tradle.AssignRelationshipManager'
 ]
 
+const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const USE_ONFIDO = true
 
 // until the issue with concurrent modifications of user & application state is resolved
@@ -127,20 +129,6 @@ export default function createProductsBot ({
     })
 
     productsAPI.removeDefaultHandler('onCommand')
-    // const { tours } = conf
-    // if (tours) {
-    //   const { intro } = tours
-    //   if (intro) {
-    //     const sendLatestTour = keepFreshPlugin({
-    //       object: intro,
-    //       propertyName: 'introTour',
-    //       send
-    //     })
-
-    //     productsAPI.plugins.use({ onmessage: sendLatestTour })
-    //   }
-    // }
-
     if (style) {
       const keepStylesFresh = keepFreshPlugin({
         object: style,
@@ -151,9 +139,10 @@ export default function createProductsBot ({
       productsAPI.plugins.use({ onmessage: keepStylesFresh }, true)
     }
 
+    const getModelsForUser = createGetModelsForUser({ productsAPI, employeeManager })
     const keepModelsFresh = keepModelsFreshPlugin({
       getIdentifier: createGetIdentifierFromReq({ employeeManager }),
-      getModelsForUser: createGetModelsForUser({ productsAPI, employeeManager }),
+      getModelsForUser,
       send
     })
 
@@ -262,8 +251,17 @@ export default function createProductsBot ({
       },
       onCommand: async ({ req, command }) => {
         await commands.exec({ req, command })
+      },
+      didApproveApplication: async ({ req }) => {
+        const { application, user } = req
+        if (application.requestFor === EMPLOYEE_ONBOARDING) {
+          await sendModelsPackIfUpdated({
+            user,
+            models: getModelsForUser(user),
+            send: object => send({ req, object })
+          })
+        }
       }
-
     }) // append
 
     if (productsAPI.products.includes(DEPLOYMENT)) {
