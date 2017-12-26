@@ -270,8 +270,11 @@ export class Lambda extends EventEmitter {
         timeout
       ])
     } catch (err) {
-      Errors.ignore(err, Errors.Timeout)
-      this.logger.error('async tasks timed out', err)
+      if (Errors.matches(err, Errors.ExecutionTimeout)) {
+        this.logger.error('async tasks timed out', Errors.export(err))
+      } else {
+        this.logger.error('async tasks failed', Errors.export(err))
+      }
     }
 
     timeout.cancel()

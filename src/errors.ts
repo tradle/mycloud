@@ -132,6 +132,7 @@ const errors = {
   InvalidInput: createError('InvalidInput'),
   ClockDrift: createError('ClockDrift'),
   BatchPutFailed: createError('BatchPutFailed'),
+  ErrorWithLink,
   Duplicate,
   TimeTravel,
   ExecutionTimeout: createError('ExecutionTimeout'),
