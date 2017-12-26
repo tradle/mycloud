@@ -84,7 +84,7 @@ export class TaskManager {
       })
 
       if (task.retryOnFail) {
-        this.add(omit(task, ['promise']))
+        this.add(omit(task, ['promise']) as Task)
       }
     } finally {
       this.tasks.splice(this.tasks.indexOf(task), 1)
