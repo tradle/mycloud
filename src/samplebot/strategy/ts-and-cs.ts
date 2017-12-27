@@ -69,6 +69,7 @@ export const ensureAccepted = async ({
       req: req || productsAPI.state.newRequestState({ user }),
       item: {
         form: 'tradle.TermsAndConditions',
+        message: 'Hi! Before we begin this beautiful friendship, please review our **Terms and Conditions**',
         prefill: {
           [TYPE]: 'tradle.TermsAndConditions',
           termsAndConditions: termsAndConditions.value

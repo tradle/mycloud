@@ -5,6 +5,8 @@ import { DatedValue } from './types'
 const identity = a => a
 
 export class CacheableBucketItem {
+  private bucket:Bucket
+  private key: string
   private value: any
   private parse: Function
   private lastModified?: number
@@ -14,6 +16,8 @@ export class CacheableBucketItem {
     ttl?: number
     parse?: Function
   }) {
+    this.bucket = opts.bucket
+    this.key = opts.key
     this.value = opts.bucket.getCacheable(omit(opts, ['parse']))
     this.parse = opts.parse || identity
     this.lastModified = null
@@ -35,5 +39,9 @@ export class CacheableBucketItem {
 
   public put = async (value:any, opts={}) => {
     return await this.value.put({ value, ...opts })
+  }
+
+  public putIfDifferent = async (value:any, opts={}) => {
+    return await this.bucket.putIfDifferent(this.key, this.value)
   }
 }

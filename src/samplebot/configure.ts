@@ -5,6 +5,8 @@ import dotProp = require('dot-prop')
 import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
+import mergeModels = require('@tradle/merge-models')
+import baseModels = require('../models')
 import { createBot } from '../bot'
 import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
@@ -53,11 +55,11 @@ const parts = {
     key: STYLE_KEY,
     ttl: DEFAULT_TTL
   },
-  // info: {
-  //   bucket: 'PrivateConf',
-  //   key: INFO_KEY,
-  //   ttl: DEFAULT_TTL
-  // },
+  info: {
+    bucket: 'PrivateConf',
+    key: INFO_KEY,
+    ttl: DEFAULT_TTL
+  },
   botConf: {
     bucket: 'PrivateConf',
     key: BOT_CONF_KEY,
@@ -90,7 +92,7 @@ export class Conf {
   public lenses: CacheableBucketItem
   public style: CacheableBucketItem
   public org: CacheableBucketItem
-  // public info: CacheableBucketItem
+  public info: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
   constructor({ bot, logger }: {
     bot,
@@ -145,39 +147,53 @@ export class Conf {
     return await Promise.props(promises)
   }
 
-  public saveBotConf = async (value:any, reinitializeContainers:boolean=true) => {
-    await this.botConf.put(value)
-    if (reinitializeContainers) {
-      await this.forceReinitializeContainers()
-    }
+  public setBotConf = async (value:any):Promise<boolean> => {
+    // TODO: validate
+    return await this.botConf.putIfDifferent(value)
+  }
+
+  public setStyle = async (value:any):Promise<boolean> => {
+    validateResource({
+      models: this.bot.models,
+      model: 'tradle.StylesPack',
+      resource: value
+    })
+
+    await this.style.putIfDifferent(value)
+  }
+
+  public setModels = async (value:any):Promise<boolean> => {
+    // validate
+    mergeModels()
+      .add(baseModels, { validate: false })
+      .add(value)
+
+    return await this.models.putIfDifferent(value)
+  }
+
+  public setTermsAndConditions = async (value:string|Buffer):Promise<boolean> => {
+    return await this.termsAndConditions.putIfDifferent(value)
   }
 
   public forceReinitializeContainers = async () => {
     return await this.bot.forceReinitializeContainers(reinitializeOnConfChanged)
   }
 
-  public setStyle = async (style:any, reinitializeContainers:boolean=true) => {
-    validateResource({
-      models: this.bot.models,
-      model: 'tradle.StylesPack',
-      resource: style
-    })
-
-    await this.style.put(style)
-  }
-
-  public getPublicInfo = async () => {
-    const [org, style, identity, conf] = await Promise.all([
+  public recalcPublicInfo = async ():Promise<boolean>  => {
+    const [org, style, identity, conf, currentInfo] = await Promise.all([
       this.org.get(),
       this.style.get(),
       this.bot.getMyIdentity(),
-      this.botConf.get()
+      this.botConf.get(),
+      this.info.get()
     ])
 
-    return this.calcPublicInfo({ identity, org, style, conf })
+    const info = this.assemblePublicInfo({ identity, org, style, conf })
+    await this.info.putIfDifferent(info)
+    return info
   }
 
-  public calcPublicInfo = ({ identity, org, style, conf }) => {
+  public assemblePublicInfo = ({ identity, org, style, conf }) => {
     const tour = dotProp.get(conf, 'tours.intro')
     // const { splashscreen } = conf
     return {

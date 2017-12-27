@@ -1,5 +1,6 @@
 
 import AWS = require('aws-sdk')
+import { isEqual } from 'lodash'
 import createS3Utils = require('./s3-utils')
 import Logger from './logger'
 import { cachify } from './utils'
@@ -55,4 +56,13 @@ export class Bucket {
   public toString = () => this.name
   public urlForKey = (key:string) => this.utils.urlForKey({ key, bucket: this.name })
   public forEach = (opts) => this.utils.forEachItemInBucket({ bucket: this.name, ...opts })
+  public putIfDifferent = async (key, value):Promise<boolean> => {
+    const current = await this.get(key)
+    if (!isEqual(current, value)) {
+      this.put(key, value)
+      return true
+    }
+
+    return false
+  }
 }

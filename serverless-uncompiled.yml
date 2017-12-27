@@ -926,9 +926,13 @@ functions:
       - functionThrottles
       - functionInvocations
 
-  setstyle:
-    handler: lib/samplebot/lambda/set-style.handler
-    memorySize: 128
+  # setstyle:
+  #   handler: lib/samplebot/lambda/set-style.handler
+  #   memorySize: 128
+
+  setconf:
+    handler: lib/samplebot/lambda/set-conf.handler
+    memorySize: 1024
 
   addfriend:
     handler: lib/samplebot/lambda/add-friend.handler

@@ -207,7 +207,7 @@ export class Lambda extends EventEmitter {
       }
 
       const { context } = this.execCtx
-      if (context.getRemainingTimeInMillis) {
+      if (context && context.getRemainingTimeInMillis) {
         return Math.max(context.getRemainingTimeInMillis(), 0)
       }
     }
