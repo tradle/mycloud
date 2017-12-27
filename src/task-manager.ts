@@ -52,7 +52,10 @@ export class TaskManager {
   }
 
   public awaitAllSettled = async ():Promise<ITaskResult> => {
-    if (!this.tasks.length) return []
+    if (!this.tasks.length) {
+      this.logger.debug(`no async tasks!`)
+      return []
+    }
 
     this.logger.debug(`waiting for ${this.tasks.length} tasks to complete or fail`)
     const names = this.tasks.map(task => task.name)
