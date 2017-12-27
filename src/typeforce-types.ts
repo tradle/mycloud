@@ -1,7 +1,8 @@
 
 import { types, typeforce } from '@tradle/engine'
-import { TYPE, PREV_TO_RECIPIENT, SEQ, SIG } from './constants'
+import { TYPES, TYPE, PREV_TO_RECIPIENT, SEQ, SIG } from './constants'
 
+const { MESSAGE } = TYPES
 const { identity } = types
 const link = val => typeof val === 'string' && val.length === 64
 const permalink = link
@@ -57,6 +58,7 @@ export const unsignedObject = function unsignedObject (obj) {
 // })
 
 export const message = typeforce.compile({
+  [TYPE]: typeforce.value(MESSAGE),
   [SEQ]: typeforce.Number,
   [SIG]: typeforce.String,
   object: types.signedObject,

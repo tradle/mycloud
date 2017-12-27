@@ -48,10 +48,6 @@ const unserializeMessage = message => {
 
 const {
   MESSAGE,
-  IDENTITY,
-  SELF_INTRODUCTION,
-  INTRODUCTION,
-  IDENTITY_PUBLISH_REQUEST
 } = TYPES
 
 interface IMessageStub {
@@ -492,25 +488,6 @@ export default class Messages {
     return message
   }
 
-  public preProcessInbound = async (event):Promise<ITradleMessage> => {
-    const message = this.normalizeInbound(event)
-    if (message[TYPE] !== MESSAGE) {
-      throw new Errors.InvalidMessageFormat('expected message, got: ' + message[TYPE])
-    }
-
-    // assertNoDrift(message)
-
-    // validateResource({ models, resource: message })
-
-    const { object } = message
-    const identity = getIntroducedIdentity(object)
-    if (identity) {
-      await this.identities.addContact(identity)
-    }
-
-    return message
-  }
-
   private get = async (table, Key):Promise<ITradleMessage> => {
     const event = await table.get({ Key })
     return this.messageFromEventPayload(event)
@@ -662,14 +639,5 @@ const validateInbound = (message) => {
     typeforce(types.message, message)
   } catch (err) {
     throw new Errors.InvalidMessageFormat(err.message)
-  }
-}
-
-const getIntroducedIdentity = (payload) => {
-  const type = payload[TYPE]
-  if (type === IDENTITY) return payload
-
-  if (type === SELF_INTRODUCTION || type === INTRODUCTION || type === IDENTITY_PUBLISH_REQUEST) {
-    return payload.identity
   }
 }

@@ -136,18 +136,18 @@ export default class User {
     //   return
     // }
 
-    let ensureLiveSession = RESOLVED_PROMISE
-    if (clientId) {
-      ensureLiveSession = this.tasks.add({
-        name: 'checklivesession',
-        promiser: () => this.ensureLiveSession({ clientId })
-      })
-    }
+    // let ensureLiveSession = RESOLVED_PROMISE
+    // if (clientId) {
+    //   ensureLiveSession = this.tasks.add({
+    //     name: 'checklivesession',
+    //     promiser: () => this.ensureLiveSession({ clientId })
+    //   })
+    // }
 
     let err
     let processed
     try {
-      processed = await this.provider.receiveMessage({ message })
+      processed = await this.provider.receiveMessage({ clientId, message })
     } catch (e) {
       // delivery http
       err = e
@@ -157,97 +157,94 @@ export default class User {
       }
     }
 
-    if (!err) {
-      // SUCCESS!
-      this.logger.debug('received valid message from user')
+    await this._postProcessMessage({
+      clientId,
+      message: processed || message,
+      error: err
+    })
 
+    return err ? null : processed
+  }
+
+  private _postProcessMessage = async ({ clientId, message, error }: {
+    clientId,
+    message,
+    error?
+  }):Promise<any|void> => {
+    const progress = error && error.progress
+    const ack = () => {
       this.tasks.add({
         name: 'delivery:ack',
         promiser: async () => {
-          await ensureLiveSession
-          await this.delivery.ack({
-            clientId,
-            message: processed
-          })
+          await this.delivery.ack({ clientId, message: message || progress })
         }
       })
-
-      return processed
     }
 
-    this.logger.debug(`processing error in receive: ${err.name}`)
-    processed = err.progress
-    if (err instanceof Errors.Duplicate) {
-      this.logger.info('ignoring but acking duplicate message', {
-        link: processed._link,
-        author: processed._author
-      })
-
-      // HTTP
-      if (!clientId) return
-
-      this.tasks.add({
-        name: 'delivery:ack',
-        promiser: async () => {
-          await ensureLiveSession
-          await this.delivery.ack({
-            clientId,
-            message: processed
-          })
-        }
-      })
-
+    if (!error) {
+      // SUCCESS!
+      this.logger.debug('received valid message from user')
+      ack()
       return
     }
 
-    if (err instanceof Errors.TimeTravel ||
-      err instanceof Errors.NotFound ||
-      err instanceof Errors.InvalidSignature ||
-      err instanceof Errors.InvalidMessageFormat) {
+    const reject = () => {
+      this.tasks.add({
+        name: 'delivery:reject',
+        promiser: async () => {
+          await this.delivery.reject({
+            clientId,
+            message: progress,
+            error
+          })
+        }
+      })
+    }
+
+    this.logger.debug(`processing error in receive: ${error.name}`)
+    if (error instanceof Errors.Duplicate) {
+      this.logger.info('ignoring but acking duplicate message', {
+        link: progress._link,
+        author: progress._author
+      })
+
+      ack()
+      return
+    }
+
+    if (error instanceof Errors.TimeTravel ||
+      error instanceof Errors.NotFound ||
+      error instanceof Errors.InvalidSignature ||
+      error instanceof Errors.InvalidMessageFormat) {
       // HTTP
       let logMsg
-      if (err instanceof Errors.TimeTravel) {
+      if (error instanceof Errors.TimeTravel) {
         logMsg = 'rejecting message with lower timestamp than previous'
         // @ts-ignore
-      } else if (err instanceof Errors.NotFound) {
+      } else if (error instanceof Errors.NotFound) {
         logMsg = 'rejecting message, either sender or payload identity was not found'
         // @ts-ignore
-      } else if (err instanceof Errors.InvalidMessageFormat) {
+      } else if (error instanceof Errors.InvalidMessageFormat) {
         logMsg = 'rejecting message, invalid message format'
       } else {
         logMsg = 'rejecting message, invalid signature'
       }
 
       this.logger.warn(logMsg, {
-        message: processed,
-        error: err.stack
+        message: progress,
+        error: error.stack
       })
 
-      if (!clientId) {
-        throw new Errors.HttpError(400, err.message)
-      }
-
-      this.tasks.add({
-        name: 'delivery:reject',
-        promiser: async () => {
-          await ensureLiveSession
-          await this.delivery.reject({
-            clientId,
-            message: processed,
-            error: err
-          })
-        }
-      })
-
+      reject()
       return
     }
 
     this.logger.error('unexpected error in pre-processing inbound message', {
-      message: processed || message,
-      error: err.stack
+      message: progress || message,
+      error: error.stack
     })
 
-    throw err
+    throw error
   }
 
   public onDisconnected = async ({ clientId }):Promise<ISession|void> => {

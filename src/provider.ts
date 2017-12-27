@@ -2,7 +2,8 @@ import Debug from 'debug'
 import dotProp = require('dot-prop')
 import { utils } from '@tradle/engine'
 import Embed = require('@tradle/embed')
-import { ECKey, sign, getSigningKey, getChainKey, getPermalink } from './crypto'
+import buildResource = require('@tradle/build-resource')
+import { ECKey, sign, getSigningKey, getChainKey, getPermalink, addLinks } from './crypto'
 import {
   cachifyPromiser,
   extend,
@@ -26,7 +27,8 @@ import {
   TYPE,
   TYPES,
   SIG,
-  PUBLIC_CONF_BUCKET
+  PUBLIC_CONF_BUCKET,
+  PERMALINK
 } from './constants'
 
 import Tradle from './tradle'
@@ -34,7 +36,6 @@ import Auth from './auth'
 import Identities from './identities'
 import Messages from './messages'
 import Objects from './objects'
-import Env from './env'
 import {
   ISession,
   ITradleMessage,
@@ -48,7 +49,13 @@ import {
 } from './types'
 import Logger from './logger'
 
-const { MESSAGE } = TYPES
+const {
+  MESSAGE,
+  IDENTITY,
+  SELF_INTRODUCTION,
+  INTRODUCTION,
+  IDENTITY_PUBLISH_REQUEST
+} = TYPES
 
 export default class Provider {
   private tradle: Tradle
@@ -163,11 +170,17 @@ export default class Provider {
     return await this._createSendMessageEvent(opts)
   }
 
-  public receiveMessage = async ({ message }):Promise<ITradleMessage> => {
+  public receiveMessage = async ({
+    message,
+    clientId
+  }: {
+    message: any,
+    clientId?:string
+  }):Promise<ITradleMessage> => {
     // can probably move this to lamdba
     // as it's normalizing transport-mangled inputs
     try {
-      message = await this.messages.preProcessInbound(message)
+      message = await this.messages.normalizeInbound(message)
     } catch (err) {
       err.progress = message
       this.logger.error('unexpected error in pre-processing inbound message:', {
@@ -176,6 +189,23 @@ export default class Provider {
       })
 
       throw err
+    }
+
+    if (clientId) {
+      const { object } = message
+      const identity = getIntroducedIdentity(object)
+      if (identity) {
+        // small optimization to avoid validating the same identity
+        // we just validated during auth
+        const link = buildResource.link(identity)
+        const alreadyHaveContact = clientId &&
+          !identity[PERMALINK] &&
+          link === this.auth.getPermalinkFromClientId(clientId)
+
+        if (!alreadyHaveContact) {
+          await this.identities.addContact(identity)
+        }
+      }
     }
 
     try {
@@ -412,5 +442,14 @@ export default class Provider {
     const err = new Errors.PutFailed('failing after 3 retries')
     err.retryable = true
     throw err
+  }
+}
+
+const getIntroducedIdentity = (payload) => {
+  const type = payload[TYPE]
+  if (type === IDENTITY) return payload
+
+  if (type === SELF_INTRODUCTION || type === INTRODUCTION || type === IDENTITY_PUBLISH_REQUEST) {
+    return payload.identity
   }
 }
