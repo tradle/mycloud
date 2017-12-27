@@ -152,7 +152,6 @@ export default class Logger {
       params = { value: params }
     }
 
-    params = { msg, ...params }
     if (this.outputFormat === 'json') {
       const logMsg = {
         namespace: this.namespace,
@@ -167,7 +166,7 @@ export default class Logger {
       return stringifySafe(logMsg)
     }
 
-    const stringifiedParams = params ? stringifySafe(params) : ''
+    const stringifiedParams = params ? stringifySafe({ msg, ...params }) : ''
     let part1 = this.namespace
     if (part1) part1 += ':'
 

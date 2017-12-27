@@ -20,7 +20,7 @@ import {
 } from './utils'
 import { prettify, alphabetical } from './string-utils'
 import { sha256 } from './crypto'
-import * as Errors from './errors'
+import Errors = require('./errors')
 import Env from './env'
 
 const definitions = require('./definitions')

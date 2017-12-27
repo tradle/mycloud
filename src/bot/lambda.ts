@@ -28,7 +28,6 @@ export class Lambda extends BaseLambda {
     }
 
     bot.promiseReady().then(() => {
-      debugger
       this.logger.debug('bot is ready!')
     })
 

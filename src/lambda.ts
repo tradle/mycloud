@@ -526,6 +526,10 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
     start: Date.now()
   }
 
+  if (lambda.bot) {
+    defineGetter(ctx, 'botReady', () => lambda.bot.isReady())
+  }
+
   if (lambda.env._X_AMZN_TRACE_ID) {
     ctx['trace-id'] = lambda.env._X_AMZN_TRACE_ID
   }
