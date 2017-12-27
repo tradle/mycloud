@@ -6,8 +6,7 @@ import path = require('path')
 import loadDockerEnv = require('node-env-file')
 loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
 
-import { loadCredentials } from '../cli/utils'
-import { createRemoteTradle, createTestTradle } from '../'
+import { loadCredentials, loadRemoteEnv } from '../cli/utils'
 import dynogels = require('dynogels')
 // import { createBot } from '../samplebot/bot'
 // import sampleQueries from '../samplebot/sample-queries'
@@ -17,6 +16,7 @@ if (TESTING) {
   require('../test/env').install()
 } else {
   loadCredentials()
+  loadRemoteEnv()
   console.log('WARNING: querying remote server')
 }
 
