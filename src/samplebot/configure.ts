@@ -179,7 +179,7 @@ export class Conf {
 
   public calcPublicInfo = ({ identity, org, style, conf }) => {
     const tour = dotProp.get(conf, 'tours.intro')
-    const { splashscreen } = conf
+    // const { splashscreen } = conf
     return {
       bot: {
         profile: {
@@ -194,7 +194,7 @@ export class Conf {
       // publicConfig: publicConf.publicConfig,
       style,
       tour,
-      splashscreen
+      // splashscreen
     }
   }
 

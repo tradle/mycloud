@@ -129,16 +129,6 @@ export default function createProductsBot ({
     })
 
     productsAPI.removeDefaultHandler('onCommand')
-    if (style) {
-      const keepStylesFresh = keepFreshPlugin({
-        object: style,
-        propertyName: 'stylesHash',
-        send
-      })
-
-      productsAPI.plugins.use({ onmessage: keepStylesFresh }, true)
-    }
-
     const getModelsForUser = createGetModelsForUser({ productsAPI, employeeManager })
     const keepModelsFresh = keepModelsFreshPlugin({
       getIdentifier: createGetIdentifierFromReq({ employeeManager }),
@@ -153,9 +143,7 @@ export default function createProductsBot ({
         return productsAPI.models.all
       },
       productsAPI
-    }), true))
-
-    // prepend
+    }), true)) // prepend
 
     if (termsAndConditions) {
       const tcPlugin = TermsAndConditions.createPlugin({
@@ -167,7 +155,17 @@ export default function createProductsBot ({
       productsAPI.plugins.use(tcPlugin, true) // prepend
     }
 
-    productsAPI.plugins.use({ onmessage: keepModelsFresh }, true)
+    if (style) {
+      const keepStylesFresh = keepFreshPlugin({
+        object: style,
+        propertyName: 'stylesHash',
+        send
+      })
+
+      productsAPI.plugins.use({ onmessage: keepStylesFresh }, true) // prepend
+    }
+
+    productsAPI.plugins.use({ onmessage: keepModelsFresh }, true) // prepend
     productsAPI.plugins.use({
       // 'onmessage:tradle.Form': async (req) => {
       //   let { type, application } = req
