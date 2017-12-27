@@ -63,11 +63,6 @@ export const onmessage = (lambda, opts) => {
 
   const lock = id => locker.lock(id)
   const unlock = id => locker.unlock(id)
-  tasks.add({
-    name: 'getiotendpoint',
-    promiser: tradle.iot.getEndpoint
-  })
-
   return async (ctx, next) => {
     const { messages } = ctx
     if (!messages) return
