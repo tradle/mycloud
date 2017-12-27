@@ -56,7 +56,8 @@ export const ensureAccepted = async ({
 }) => {
   const dateAccepted = dotProp.get(user, DATE_ACCEPTED_PROP)
   if (dateAccepted && dateAccepted > termsAndConditions.lastModified) {
-    return true
+    await productsAPI.sendProductList(req)
+    return
   }
 
   const datePresented = dotProp.get(user, DATE_PRESENTED_PROP)
