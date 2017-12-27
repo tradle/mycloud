@@ -27,6 +27,11 @@ export class Lambda extends BaseLambda {
       this.promiseReady().then(() => clearInterval(interval))
     }
 
+    bot.promiseReady().then(() => {
+      debugger
+      this.logger.debug('bot is ready!')
+    })
+
     this.tasks.add({
       name: 'bot:ready',
       promise: this.promiseReady()
