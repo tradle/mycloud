@@ -14,18 +14,18 @@ export class Lambda extends BaseLambda {
     this.bot = bot
     this.promiseReady = bot.promiseReady
 
-    if (!bot.isReady()) {
-      const now = Date.now()
-      const interval = setInterval(() => {
-        if (bot.isReady()) return clearInterval(interval)
+    // if (!bot.isReady()) {
+    //   const now = Date.now()
+    //   const interval = setInterval(() => {
+    //     if (bot.isReady()) return clearInterval(interval)
 
-        const time = Date.now() - now
-        this.logger.warn(`${time}ms passed. Did you forget to call bot.ready()?`)
-      }, 5000)
+    //     const time = Date.now() - now
+    //     this.logger.warn(`${time}ms passed. Did you forget to call bot.ready()?`)
+    //   }, 5000)
 
-      interval.unref()
-      this.promiseReady().then(() => clearInterval(interval))
-    }
+    //   interval.unref()
+    //   this.promiseReady().then(() => clearInterval(interval))
+    // }
 
     bot.promiseReady().then(() => {
       this.logger.debug('bot is ready!')

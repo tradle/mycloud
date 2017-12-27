@@ -51,6 +51,10 @@ export class TaskManager {
     return await Promise.all(this.tasks.map(task => task.promise))
   }
 
+  public describe = ():string[] => {
+    return this.tasks.map(({ name }) => name)
+  }
+
   public awaitAllSettled = async ():Promise<ITaskResult> => {
     if (!this.tasks.length) {
       this.logger.debug(`no async tasks!`)
@@ -61,8 +65,12 @@ export class TaskManager {
     const names = this.tasks.map(task => task.name)
     const results:ISettledPromise[] = await settle(this.tasks.map(task => task.promise))
     results.forEach(({ reason }) => {
-      if (reason && Errors.isDeveloperError(reason)) {
-        this.logger.warn('developer error', Errors.export(reason))
+      if (!reason) return
+
+      if (Errors.isDeveloperError(reason)) {
+        this.logger.error('developer error', Errors.export(reason))
+      } else {
+        this.logger.warn('error', Errors.export(reason))
       }
     })
 

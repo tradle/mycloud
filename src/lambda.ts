@@ -9,7 +9,8 @@ import './globals'
 import { EventEmitter } from 'events'
 import fs = require('fs')
 import {
-  pick
+  pick,
+  cloneDeep
 } from 'lodash'
 
 // @ts-ignore
@@ -101,6 +102,7 @@ export class Lambda extends EventEmitter {
   public isVirgin: boolean
   public containerId: string
   public accountId: string
+  private breakingContext: any
   private middleware:Function[]
   private requestCounter: number
   private _gotHandler: boolean
@@ -270,14 +272,29 @@ export class Lambda extends EventEmitter {
         timeout
       ])
     } catch (err) {
+      const tasks = this.tasks.describe()
       if (Errors.matches(err, Errors.ExecutionTimeout)) {
-        this.logger.error('async tasks timed out', Errors.export(err))
+        this.logger.error('async tasks timed out', { tasks })
       } else {
-        this.logger.error('async tasks failed', Errors.export(err))
+        this.logger.error('async tasks failed', {
+          tasks,
+          ...Errors.export(err)
+        })
       }
     }
 
     timeout.cancel()
+
+    if (this.bot && !this.bot.isReady()) {
+      this.breakingContext = {
+        execCtx: cloneDeep(this.execCtx),
+        reqCtx: cloneDeep(this.reqCtx),
+        tasks: this.tasks.describe()
+      }
+
+      this._ensureNotBroken()
+    }
+
     if (err) {
       ctx.error = err
     } else {
@@ -341,6 +358,7 @@ export class Lambda extends EventEmitter {
     request,
     callback?
   }) => {
+    this._ensureNotBroken()
     if (!this.accountId) {
       const { invokedFunctionArn } = context
       if (invokedFunctionArn) {
@@ -498,6 +516,12 @@ export class Lambda extends EventEmitter {
 
     return {
       message: 'execution failed'
+    }
+  }
+
+  private _ensureNotBroken = () => {
+    if (this.breakingContext) {
+      throw new Error('I am broken!: ' + JSON.stringify(this.breakingContext, null, 2))
     }
   }
 }
