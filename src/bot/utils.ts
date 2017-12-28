@@ -14,12 +14,18 @@ import types = require('../typeforce-types')
 
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 
-const IGNORED_PAYLOAD_TYPES = [
-  'tradle.Message',
-  'tradle.CustomerWaiting',
-  'tradle.ModelsPack',
-  'tradle.StylesPack'
-]
+const IGNORE_PAYLOAD_TYPES = {
+  inbound: [
+    'tradle.Message',
+    'tradle.CustomerWaiting'
+  ],
+  outbound: [
+    'tradle.Message',
+    'tradle.CustomerWaiting',
+    'tradle.ModelsPack',
+    'tradle.StylesPack'
+  ]
+}
 
 const getMessagePayload = async ({ bot, message }) => {
   if (message.object[SIG]) {
@@ -117,7 +123,8 @@ const normalizeRecipient = to => to.id || to
 const savePayloadToDB = async ({ bot, message }) => {
   const type = message._payloadType
   const { logger } = bot
-  if (IGNORED_PAYLOAD_TYPES.includes(type)) {
+  const ignored = message._inbound ? IGNORE_PAYLOAD_TYPES.inbound : IGNORE_PAYLOAD_TYPES.outbound
+  if (ignored.includes(type)) {
     logger.debug(`not saving ${type} to type-differentiated table`)
     return false
   }
