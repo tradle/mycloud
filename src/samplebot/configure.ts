@@ -180,12 +180,11 @@ export class Conf {
   }
 
   public getPublicInfo = async ():Promise<any> => {
-    const [org, style, identity, conf, currentInfo] = await Promise.all([
+    const [org, style, identity, conf] = await Promise.all([
       this.org.get(),
       this.style.get(),
       this.bot.getMyIdentity(),
-      this.botConf.get(),
-      this.info.get()
+      this.botConf.get()
     ])
 
     return this.assemblePublicInfo({ identity, org, style, conf })
