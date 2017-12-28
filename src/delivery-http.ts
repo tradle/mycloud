@@ -9,7 +9,7 @@ import Env from './env'
 import Errors = require('./errors')
 
 const zlib = promisify(_zlib)
-const COMPRESSION_THRESHOLD = 0//2000
+const COMPRESSION_THRESHOLD = 1024
 const FETCH_TIMEOUT = 10000
 
 export default class Delivery extends EventEmitter implements IDelivery {
@@ -31,7 +31,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     const endpoint = `${friend.url}/inbox`
     const headers = {}
     let payload = JSON.stringify({ messages })
-    if (!this.env.IS_OFFLINE && this.env.GZIP_POST_BODY && payload.length > COMPRESSION_THRESHOLD) {
+    if (!this.env.IS_OFFLINE && payload.length > COMPRESSION_THRESHOLD) {
       this.logger.debug('gzipping payload')
       payload = await zlib.gzip(payload)
       headers['Content-Encoding'] = 'gzip'
