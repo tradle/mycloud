@@ -179,7 +179,7 @@ export class Conf {
     return await this.bot.forceReinitializeContainers(reinitializeOnConfChanged)
   }
 
-  public recalcPublicInfo = async ():Promise<boolean>  => {
+  public getPublicInfo = async ():Promise<any> => {
     const [org, style, identity, conf, currentInfo] = await Promise.all([
       this.org.get(),
       this.style.get(),
@@ -188,7 +188,11 @@ export class Conf {
       this.info.get()
     ])
 
-    const info = this.assemblePublicInfo({ identity, org, style, conf })
+    return this.assemblePublicInfo({ identity, org, style, conf })
+  }
+
+  public recalcPublicInfo = async ():Promise<boolean>  => {
+    const info = await this.getPublicInfo()
     await this.info.putIfDifferent(info)
     return info
   }

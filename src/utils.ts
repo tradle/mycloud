@@ -381,6 +381,9 @@ export function cachify ({ get, put, del, logger, cache }: {
       const keyStr = stableStringify(key)
       if (logger && cache.has(keyStr)) {
         logger.warn(`cache already has value for ${key}, put may not be necessary`)
+        // if (isEqual(cache.get(keyStr), value)) {
+        //   return
+        // }
       }
 
       cache.del(keyStr)
