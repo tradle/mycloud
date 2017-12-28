@@ -32,11 +32,12 @@ import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
 import buildResource = require('@tradle/build-resource')
 import fetch = require('node-fetch')
 import { prettify, stableStringify } from './string-utils'
-import { SIG, TYPE, TYPES, WARMUP_SLEEP } from './constants'
+import { SIG, TYPE, TYPES, WARMUP_SLEEP, PUBLIC_CONF_BUCKET } from './constants'
 import Errors = require('./errors')
 import { CacheContainer } from './types'
 import Logger from './logger'
 import Env from './env'
+import Tradle from './tradle'
 
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
@@ -956,4 +957,14 @@ export const timeMethods = (obj, logger) => {
   })
 
   return obj
+}
+
+export const syncClock = async (tradle:Tradle) => {
+  const { aws, buckets } = tradle
+  const { PublicConf } = buckets
+  // a cheap request that will trigger clock sync
+  // as long as
+  await PublicConf.head(PUBLIC_CONF_BUCKET.identity).catch(err => {
+    Errors.ignore(err, Errors.NotFound)
+  })
 }

@@ -28,7 +28,8 @@ import {
   defineGetter,
   timeoutIn,
   parseArn,
-  isPromise
+  isPromise,
+  syncClock
 } from './utils'
 
 import {
@@ -105,6 +106,7 @@ export class Lambda extends EventEmitter {
   private breakingContext: any
   private middleware:Function[]
   private requestCounter: number
+  private initPromise: Promise<void>
   private _gotHandler: boolean
   constructor(opts:ILambdaOpts={}) {
     super()
@@ -136,6 +138,7 @@ export class Lambda extends EventEmitter {
       promiser: () => tradle.warmUpCaches()
     })
 
+    this.init()
     process.nextTick(() => {
       if (!this._gotHandler) {
         console.warn(`did you forget to export "${this.shortName}" lambda's handler?`)
@@ -358,6 +361,7 @@ export class Lambda extends EventEmitter {
     request,
     callback?
   }) => {
+    await this.initPromise
     this._ensureNotBroken()
     if (!this.accountId) {
       const { invokedFunctionArn } = context
@@ -507,6 +511,10 @@ export class Lambda extends EventEmitter {
     }
 
     return this.execCtx
+  }
+
+  private init = () => {
+    this.initPromise = syncClock(this.tradle)
   }
 
   private _exportError = (err) => {

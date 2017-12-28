@@ -190,11 +190,17 @@ export = function createUtils ({ s3, logger }) {
     return get({ key, bucket }).then(({ Body }) => JSON.parse(Body))
   }
 
-  const head = ({ key, bucket }) => {
-    return s3.headObject({
-      Bucket: bucket,
-      Key: key
-    }).promise()
+  const head = async ({ key, bucket }) => {
+    try {
+      await s3.headObject({
+        Bucket: bucket,
+        Key: key
+      }).promise()
+    } catch (err) {
+      if (err.code === 'NoSuchKey' || err.code === 'NotFound') {
+        throw new Errors.NotFound(`${bucket}/${key}`)
+      }
+    }
   }
 
   const exists = ({ key, bucket }) => {

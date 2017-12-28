@@ -15,13 +15,6 @@ lambda.use(async (ctx, next) => {
   const { type, payload } = ctx.event
   if (type === 'init') {
     await init.init(payload)
-  } else if (type === 'setconf') {
-    // artificial event, not CloudFormation
-    // if (typeof payload === 'string') {
-    //   const payload =
-    // }
-
-    await init.update(payload)
   }
 })
 

@@ -22,11 +22,13 @@ export type AwsApis = {
   trace: any
 }
 
-export default function createAWSWrapper ({ env }) {
+export default function createAWSWrapper ({ env, logger }) {
   const useXRay = env._X_AMZN_TRACE_ID
   const AWS = useXRay
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
+
+  AWS.config.correctClockSkew = true
 
   const cacheServices = true
   const services = createConfig({ env })
@@ -43,6 +45,22 @@ export default function createAWSWrapper ({ env }) {
     lambda: 'Lambda',
     iotData: 'Iot',
     cloudformation: 'CloudFormation'
+  }
+
+  const useGlobalConfigClock = service => {
+    if (service instanceof AWS.DynamoDB.DocumentClient) {
+      service = service.service
+    }
+
+    Object.defineProperty(service.config, 'systemClockOffset', {
+      get() {
+        return AWS.config.systemClockOffset
+      },
+      set(value) {
+        logger.warn(`setting systemClockOffset: ${value}`)
+        AWS.config.systemClockOffset = value
+      }
+    })
   }
 
   const api:AwsApis = (function () {
@@ -70,6 +88,7 @@ export default function createAWSWrapper ({ env }) {
             }
           }
 
+          useGlobalConfigClock(service)
           return service
         }
       })
