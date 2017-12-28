@@ -58,7 +58,7 @@ export const ensureAccepted = async ({
 }) => {
   const dateAccepted = dotProp.get(user, DATE_ACCEPTED_PROP)
   if (dateAccepted && dateAccepted > termsAndConditions.lastModified) {
-    return
+    return true
   }
 
   const datePresented = dotProp.get(user, DATE_PRESENTED_PROP)

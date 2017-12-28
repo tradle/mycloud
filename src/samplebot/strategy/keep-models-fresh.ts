@@ -84,16 +84,9 @@ export const createGetIdentifierFromReq = ({ employeeManager }) => {
       identifier += ':' + originalSender
     }
 
-    // return adjustIdentifierForUser({ employeeManager, user, identifier })
     return identifier
   }
 }
-
-// export const adjustIdentifierForUser = ({ employeeManager, user, identifier }) => {
-//   if (!identifier) identifier = getDefaultIdentifierFromUser(user)
-
-//   return employeeManager.isEmployee(user) ? 'e:' + identifier : identifier
-// }
 
 export const createGetModelsForUser = ({ productsAPI, employeeManager }) => {
   const employeeModels = omit(productsAPI.models.all, BASE_MODELS_IDS)
