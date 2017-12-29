@@ -230,7 +230,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#a255330b00b43da471a9efb168a6ecf79910c0f6"
+      "resolved": "git://github.com/tradle/models.git#1556e9ac9010ab1f52ed1798b30046e62c71c7be"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
