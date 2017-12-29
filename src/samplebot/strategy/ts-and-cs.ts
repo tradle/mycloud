@@ -7,6 +7,9 @@ import Logger from '../../logger'
 const TERMS_AND_CONDITIONS = 'tradle.TermsAndConditions'
 const DATE_PRESENTED_PROP = 'tsAndCsState.datePresented'
 const DATE_ACCEPTED_PROP = 'tsAndCsState.dateAccepted'
+const CUSTOMER_WAITING = 'tradle.CustomerWaiting'
+const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
+const YOU_HAVENT_ACCEPTED = `Please accept our Terms and Conditions before we continue :-)`
 
 export const createPlugin = ({
   logger,
@@ -35,7 +38,19 @@ export const createPlugin = ({
       logger
     })
 
-    if (!accepted) return false // exit middleware
+    if (accepted) return
+
+    if (type === SIMPLE_MESSAGE) {
+      await productsAPI.send({
+        req,
+        object: {
+          [TYPE]: SIMPLE_MESSAGE,
+          message: YOU_HAVENT_ACCEPTED
+        }
+      })
+    }
+
+    return false // exit middleware
   }
 
   return {
