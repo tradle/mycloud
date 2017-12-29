@@ -973,6 +973,9 @@ functions:
           path: onfido
           method: post
 
+  # bash:
+  #   handler: lib/samplebot/lambda/bash.handler
+
 resources:
   Resources:
     # servless-framework-generated API Gateway
@@ -999,11 +1002,13 @@ resources:
       Type: "AWS::S3::Bucket"
       Description: stuff
       DeletionPolicy: Retain
+      VersioningConfiguration: Enabled
 
     PrivateConfBucket:
       Type: "AWS::S3::Bucket"
       Description: private configuration files
       DeletionPolicy: Retain
+      VersioningConfiguration: Enabled
 
     # stores the provider's public config
     # e.g. styles, currency, etc.
@@ -1011,6 +1016,7 @@ resources:
       Type: "AWS::S3::Bucket"
       Description: public configuration, e.g. identity, styles, logo, etc.
       DeletionPolicy: Retain
+      VersioningConfiguration: Enabled
       # Properties:
       #   AccessControl: PublicRead
 
