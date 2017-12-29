@@ -22,8 +22,8 @@ const IGNORE_PAYLOAD_TYPES = {
   outbound: [
     'tradle.Message',
     'tradle.CustomerWaiting',
-    'tradle.ModelsPack',
-    'tradle.StylesPack'
+    // 'tradle.ModelsPack',
+    // 'tradle.StylesPack'
   ]
 }
 
@@ -146,6 +146,5 @@ export {
   summarize,
   normalizeSendOpts,
   normalizeRecipient,
-  savePayloadToDB,
-  IGNORED_PAYLOAD_TYPES
+  savePayloadToDB
 }
