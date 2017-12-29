@@ -12,9 +12,11 @@ const alice = require('./fixtures/alice/object')
 const bob = require('./fixtures/bob/object')
 
 test('friends', loudAsync(async (t) => {
+  const domain = 'friend.local'
   const friendOpts = {
     name: 'testfriend',
-    url: 'http://localhost/friend',
+    url: `http://${domain}`,
+    domain,
     identity: alice.object,
     org: fakeResource({
       models,
@@ -25,9 +27,14 @@ test('friends', loudAsync(async (t) => {
 
   await friends.removeByIdentityPermalink(alice.link)
   await friends.add(friendOpts)
-  const friend = await friends.getByIdentityPermalink(alice.permalink)
 
+  const friend = await friends.getByIdentityPermalink(alice.permalink)
   t.equal(friend.name, friendOpts.name)
   t.equal(friend.url, friendOpts.url)
+
+  t.same(await friends.getByDomain(domain), friend)
+  friendOpts.url = 'blah'
+  await friends.add(friendOpts)
+  t.equal((await friends.getByDomain(domain)).url, friendOpts.url)
   t.end()
 }))

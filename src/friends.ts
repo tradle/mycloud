@@ -1,6 +1,7 @@
 const debug = require("debug")("tradle:sls:friends")
 import Cache = require('lru-cache')
 import fetch = require('node-fetch')
+import { isEqual } from 'lodash'
 import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { addLinks } from './crypto'
@@ -33,8 +34,8 @@ export default class Friends {
     this.getByIdentityPermalink = cachifyFunction(this, 'getByIdentityPermalink')
   }
 
-  public load = async (opts: { url: string }): Promise<any> => {
-    let { url } = opts
+  public load = async (opts: { url: string, domain: string }): Promise<any> => {
+    let { url, domain } = opts
     url = url.replace(/[/]+$/, "")
 
     const infoUrl = getInfoEndpoint(url)
@@ -45,6 +46,7 @@ export default class Friends {
     return await this.add({
       name,
       url,
+      domain,
       org,
       identity: pub
     })
@@ -52,12 +54,13 @@ export default class Friends {
 
   public add = async (props: {
     name: string
+    domain: string
     url: string
     org: any
     identity: any
   }): Promise<any> => {
     const { models, model } = this
-    const { name, identity } = props
+    const { name, domain, identity } = props
     addLinks(identity)
 
     let existing
@@ -75,6 +78,15 @@ export default class Friends {
         _identityPermalink: identity._permalink
       })
       .toJSON()
+
+    const isSame = Object.keys(object).every(prop => {
+      return isEqual(object[prop], existing[prop])
+    })
+
+    if (isSame) {
+      this.cache.set(identity._permalink, existing)
+      return existing
+    }
 
     if (Object.keys(existing).length) {
       object[PREVLINK] = buildResource.link(existing)
@@ -97,7 +109,16 @@ export default class Friends {
 
     await promiseAddContact
     debug(`saving friend: ${name}`)
-    await this.db.update(signed)
+    await this.db.update(signed, {
+      ConditionExpression: `attribute_not_exists(#domain) OR #identityPermalink = :identityPermalink`,
+      ExpressionAttributeNames: {
+        '#domain': 'domain',
+        '#identityPermalink': '_identityPermalink'
+      },
+      ExpressionAttributeValues: {
+        ':identityPermalink': permalink
+      }
+    })
 
     // debug(`sending self introduction to friend "${name}"`)
     // await this.provider.sendMessage({
@@ -114,6 +135,17 @@ export default class Friends {
 
     this.cache.set(identity._permalink, signed)
     return signed
+  }
+
+  public getByDomain = async (domain:string) => {
+    return await this.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: FRIEND_TYPE,
+          domain
+        }
+      }
+    })
   }
 
   public getByIdentityPermalink = async (permalink:string) => {
@@ -138,6 +170,11 @@ export default class Friends {
       [TYPE]: FRIEND_TYPE,
       _identityPermalink: permalink
     })
+  }
+
+  public removeByDomain = async (domain:string) => {
+    const friend = await this.getByDomain(domain)
+    await this.removeByIdentityPermalink(friend._identityPermalink)
   }
 }
 

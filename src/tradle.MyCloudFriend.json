@@ -9,6 +9,9 @@
     "url": {
       "type": "string"
     },
+    "domain": {
+      "type": "string"
+    },
     "identity": {
       "type": "object",
       "ref": "tradle.Identity"
@@ -26,7 +29,8 @@
     "identity",
     "_identityPermalink",
     "name",
-    "url"
+    "url",
+    "domain"
   ],
   "primaryKeys": {
     "hashKey": "_identityPermalink"

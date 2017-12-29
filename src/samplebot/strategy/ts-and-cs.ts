@@ -22,6 +22,8 @@ export const createPlugin = ({
 }) => {
   const onmessage = async (req) => {
     const { user, payload, type } = req
+    if (user.isFriend) return
+
     if (type === TERMS_AND_CONDITIONS &&
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
       logger.debug(`updating ${user.id}.${DATE_ACCEPTED_PROP}`)

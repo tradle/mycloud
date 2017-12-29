@@ -115,8 +115,8 @@ function _createBot (opts: {
   readyMixin(bot)
   // make sure bot is ready before lambda exits
 
-  defineGetter(bot, 'conf', () => tradle.conf.sub(':bot'))
   defineGetter(bot, 'kv', () => tradle.kv.sub(':bot'))
+  defineGetter(bot, 'conf', () => tradle.kv.sub(':bot:conf'))
   defineGetter(bot, 'models', () => models)
 
   bot.isTesting = TESTING

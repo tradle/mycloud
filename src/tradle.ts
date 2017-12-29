@@ -103,11 +103,11 @@ export default class Tradle {
       })
     })
 
-    this.define('conf', './key-value-table', ctor => {
-      return new ctor({
-        table: this.tables.Conf
-      })
-    })
+    // this.define('conf', './key-value-table', ctor => {
+    //   return new ctor({
+    //     table: this.tables.Conf
+    //   })
+    // })
 
     this.define('kv', './key-value-table', ctor => {
       return new ctor({
@@ -149,7 +149,7 @@ export default class Tradle {
       return new ctor({
         logger: this.env.sublogger('push'),
         serverUrl: this.env.PUSH_SERVER_URL,
-        conf: this.conf,
+        conf: this.kv.sub(':push'),
         provider: this.provider
       })
     })

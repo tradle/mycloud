@@ -38,9 +38,8 @@ export default class Push {
     conf:KeyValueTable
     logger:Logger
   }) {
-    const pushConf = conf.sub(':push')
-    this.registration = pushConf.sub(':reg')
-    this.subscribers = pushConf.sub(':sub')
+    this.registration = conf.sub(':reg')
+    this.subscribers = conf.sub(':sub')
     this.serverUrl = serverUrl
     this.cache = new Cache({ max: 1 })
     this.logger = logger

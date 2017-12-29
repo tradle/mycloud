@@ -48,7 +48,7 @@ test('push', loudAsync(async (t) => {
   const tradle = new Tradle()
   const push = new Push({
     serverUrl,
-    conf: tradle.conf.sub(namespace),
+    conf: tradle.kv.sub(namespace),
     logger: tradle.env.sublogger(':push')
   })
 

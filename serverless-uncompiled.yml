@@ -1002,13 +1002,17 @@ resources:
       Type: "AWS::S3::Bucket"
       Description: stuff
       DeletionPolicy: Retain
-      VersioningConfiguration: Enabled
+      Properties:
+        VersioningConfiguration:
+          Status: Enabled
 
     PrivateConfBucket:
       Type: "AWS::S3::Bucket"
       Description: private configuration files
       DeletionPolicy: Retain
-      VersioningConfiguration: Enabled
+      Properties:
+        VersioningConfiguration:
+          Status: Enabled
 
     # stores the provider's public config
     # e.g. styles, currency, etc.
@@ -1016,9 +1020,9 @@ resources:
       Type: "AWS::S3::Bucket"
       Description: public configuration, e.g. identity, styles, logo, etc.
       DeletionPolicy: Retain
-      VersioningConfiguration: Enabled
-      # Properties:
-      #   AccessControl: PublicRead
+      Properties:
+        VersioningConfiguration:
+          Status: Enabled
 
     ContentAddressedBucket:
       Type: "AWS::S3::Bucket"
@@ -1341,12 +1345,28 @@ resources:
           #   AttributeType: S
           - AttributeName: _identityPermalink
             AttributeType: S
+          - AttributeName: domain
+            AttributeType: S
+          - AttributeName: _time
+            AttributeType: S
         KeySchema:
           - AttributeName: _identityPermalink
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: domain
+            KeySchema:
+              - AttributeName: domain
+                KeyType: HASH
+              - AttributeName: _time
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
 
     KVTable:
       Type: AWS::DynamoDB::Table
@@ -1363,20 +1383,20 @@ resources:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
 
-    ConfTable:
-      Type: AWS::DynamoDB::Table
-      Description: freeform configuration values
-      Properties:
-        TableName: ${{self:custom.tables.conf}}
-        AttributeDefinitions:
-          - AttributeName: key
-            AttributeType: S
-        KeySchema:
-          - AttributeName: key
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+    # ConfTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: freeform configuration values
+    #   Properties:
+    #     TableName: ${{self:custom.tables.conf}}
+    #     AttributeDefinitions:
+    #       - AttributeName: key
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: key
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
 
     # PushSubcribersTable:
     #   Type: AWS::DynamoDB::Table
