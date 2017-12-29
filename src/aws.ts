@@ -52,6 +52,8 @@ export default function createAWSWrapper ({ env, logger }) {
       service = service.service
     }
 
+    if (!service.config) return
+
     Object.defineProperty(service.config, 'systemClockOffset', {
       get() {
         return AWS.config.systemClockOffset
