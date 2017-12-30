@@ -1,6 +1,4 @@
-import dotProp = require('dot-prop')
-import clone = require('clone')
-import deepEqual = require('deep-equal')
+import _ = require('lodash')
 import { isPromise } from '../../utils'
 import { Conf } from '../configure'
 import Errors = require('../../errors')
@@ -24,11 +22,11 @@ export const CUSTOMER_COMMANDS = [
 
 export const createEditConfOp = edit => async (opts) => {
   const { bot, conf } = opts.context
-  const current = clone(conf)
+  const current = _.cloneDeep(conf)
   let makeEdit = edit(opts)
   if (isPromise(makeEdit)) makeEdit = await makeEdit
 
-  if (deepEqual(conf, current)) {
+  if (_.isEqual(conf, current)) {
     throw new Error('you changed...nothing')
   } else {
     const confManager = new Conf({ bot })
@@ -37,17 +35,17 @@ export const createEditConfOp = edit => async (opts) => {
 }
 
 export const setProperty = createEditConfOp(({ context, req, path, value }) => {
-  dotProp.set(context.conf, path, value)
+  _.set(context.conf, path, value)
 })
 
 // export const toggleFlag = createEditConfOp(({ context, req, flag, value }) => {
 //   const { conf } = context
 //   const path = `products.${flag}`
-//   if (dotProp.get(conf, path) === value) {
+//   if (_.get(conf, path) === value) {
 //     throw new Error('you changed...nothing')
 //   }
 
-//   dotProp.set(conf, path, value)
+//   _.set(conf, path, value)
 // })
 
 export const toggleProduct = createEditConfOp(async ({ context, req, product, enable }: {

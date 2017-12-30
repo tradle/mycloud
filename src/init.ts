@@ -1,3 +1,4 @@
+import _ = require('lodash')
 import { utils as tradleUtils } from '@tradle/engine'
 import crypto = require('./crypto')
 import utils = require('./utils')
@@ -11,7 +12,7 @@ import {
 
 const debug = require('debug')('tradle:sls:init')
 const { getLink, addLinks, getIdentitySpecs, getChainKey } = crypto
-const { omitVirtual, setVirtual, omit, deepEqual, bindAll, promisify, co } = utils
+const { omitVirtual, setVirtual, bindAll, promisify, co } = utils
 const { exportKeys } = require('./crypto')
 
 function Initializer ({
@@ -90,7 +91,7 @@ proto.write = co(function* (opts) {
   if (!force) {
     try {
       const existing = yield this.secrets.get(IDENTITY_KEYS_KEY)
-      if (!deepEqual(existing, priv)) {
+      if (!_.isEqual(existing, priv)) {
         throw new Errors.Exists('refusing to overwrite identity keys. ' +
           'If you\'re absolutely sure you want to do this, use the "force" flag')
       }

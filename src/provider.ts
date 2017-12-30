@@ -1,21 +1,17 @@
+import _ = require('lodash')
 import Debug from 'debug'
-import dotProp = require('dot-prop')
 import { utils } from '@tradle/engine'
 import Embed = require('@tradle/embed')
 import buildResource = require('@tradle/build-resource')
 import { ECKey, sign, getSigningKey, getChainKey, getPermalink, addLinks } from './crypto'
 import {
   cachifyPromiser,
-  extend,
-  clone,
   setVirtual,
   pickVirtual,
   typeforce,
   summarizeObject,
   series,
-  flatten,
-  ensureTimestamped,
-  groupBy
+  ensureTimestamped
 } from './utils'
 
 import Errors = require('./errors')
@@ -177,20 +173,6 @@ export default class Provider {
     message: any,
     clientId?:string
   }):Promise<ITradleMessage> => {
-    // can probably move this to lamdba
-    // as it's normalizing transport-mangled inputs
-    try {
-      message = await this.messages.normalizeInbound(message)
-    } catch (err) {
-      err.progress = message
-      this.logger.error('unexpected error in pre-processing inbound message:', {
-        message,
-        error: err.stack
-      })
-
-      throw err
-    }
-
     if (clientId) {
       const { object } = message
       const identity = getIntroducedIdentity(object)
@@ -269,12 +251,12 @@ export default class Provider {
   // })
 
   public sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
-    const byRecipient = groupBy(batch, 'recipient')
+    const byRecipient = _.groupBy(batch, 'recipient')
     const results = await Promise.all(Object.keys(byRecipient).map(recipient => {
       return this._sendMessageBatch(byRecipient[recipient])
     }))
 
-    return flatten(results)
+    return _.flatten(results)
   }
 
   public _sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
@@ -390,7 +372,7 @@ export default class Provider {
     // media embeded as data urls
     await this.objects.resolveEmbeds(payload)
     const payloadVirtual = pickVirtual(payload)
-    const unsignedMessage = clone(other, {
+    const unsignedMessage = _.extend({}, other, {
       [TYPE]: MESSAGE,
       recipientPubKey: utils.sigPubKey(recipientObj),
       object: payload,
@@ -406,7 +388,7 @@ export default class Provider {
     let seq
     let signedMessage
     while (attemptsToGo--) {
-      extend(unsignedMessage, this.messages.getPropsDerivedFromLast(prev))
+      _.extend(unsignedMessage, this.messages.getPropsDerivedFromLast(prev))
 
       seq = unsignedMessage[SEQ]
       this.logger.debug(`signing message ${seq} to ${recipient}`)
@@ -421,7 +403,7 @@ export default class Provider {
         await this.messages.putMessage(signedMessage)
         // restore embed links
         for (let embed of embeds) {
-          dotProp.set(signedMessage.object, embed.path, embed.value)
+          _.set(signedMessage.object, embed.path, embed.value)
         }
 
         return signedMessage

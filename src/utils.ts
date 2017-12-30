@@ -6,6 +6,7 @@ import {
   pick,
   omit,
   merge,
+  clone,
   cloneDeep as deepClone,
   extend,
   isEqual as deepEqual
@@ -19,7 +20,7 @@ import microtime = require('./microtime')
 import typeforce = require('typeforce')
 import bindAll = require('bindall')
 import flatten = require('flatten')
-import clone = require('xtend')
+// import clone = require('xtend')
 import traverse = require('traverse')
 import dotProp = require('dot-prop')
 import { v4 as uuid } from 'uuid'
@@ -96,8 +97,6 @@ export {
  traverse,
  dotProp,
  co,
- omit,
- pick,
  typeforce,
  isGenerator,
  uuid,
@@ -144,20 +143,6 @@ export function toBuffer (data) {
 
 export function now () {
   return Date.now()
-}
-
-export function groupBy (items, prop) {
-  const groups = {}
-  for (const item of items) {
-    const val = item[prop]
-    if (!groups[val]) {
-      groups[val] = []
-    }
-
-    groups[val].push(item)
-  }
-
-  return groups
 }
 
 // function cachifyPromiser (fn) {
@@ -897,6 +882,14 @@ export const ensureTimestamped = (resource) => {
 
   return resource
 }
+
+// export const memoize = ({ fn, cache, logger }: {
+//   fn: Function,
+//   logger: Logger,
+//   cache: any
+// }) => {
+//   return cachifyFunction({ fn, cache, logger }, 'fn')
+// }
 
 export const cachifyFunction = (
   container:CacheContainer,

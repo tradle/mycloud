@@ -1,4 +1,4 @@
-import { omit, cloneDeep } from 'lodash'
+import _ = require('lodash')
 import mergeSorted = require('merge-sorted')
 import { Table, createTable, utils, constants } from '@tradle/dynamodb'
 
@@ -44,7 +44,7 @@ export function createMessagesTable ({ models, getMyIdentity }: {
   }
 
   const sanitizeQuery = (query) => {
-    query = cloneDeep(query)
+    query = _.cloneDeep(query)
     delete query.filter.EQ._inbound
     return query
   }
@@ -99,8 +99,8 @@ export function createMessagesTable ({ models, getMyIdentity }: {
       counterparty = _author.find(permalink => permalink !== identity._permalink)
     }
 
-    IN = omit(IN, ['_author', '_recipient'])
-    EQ = omit(EQ, ['_counterparty'])
+    IN = _.omit(IN, ['_author', '_recipient'])
+    EQ = _.omit(EQ, ['_counterparty'])
     const inboundFilter = {
       ...filter,
       IN,

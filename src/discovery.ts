@@ -1,8 +1,8 @@
-import * as path from 'path'
-import { promisify } from './utils'
-import * as fs from 'fs'
-import * as mkdirp from 'mkdirp'
+import path = require('path')
+import fs = require('fs')
+import mkdirp = require('mkdirp')
 import { Lambda } from 'aws-sdk'
+import { promisify } from './utils'
 import Logger from './logger'
 import Env from './env'
 

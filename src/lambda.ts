@@ -8,10 +8,7 @@ import './globals'
 
 import { EventEmitter } from 'events'
 import fs = require('fs')
-import {
-  pick,
-  cloneDeep
-} from 'lodash'
+import _ = require('lodash')
 
 // @ts-ignore
 import Promise = require('bluebird')
@@ -290,8 +287,8 @@ export class Lambda extends EventEmitter {
 
     if (this.bot && !this.bot.isReady()) {
       this.breakingContext = {
-        execCtx: cloneDeep(this.execCtx),
-        reqCtx: cloneDeep(this.reqCtx),
+        execCtx: _.cloneDeep(this.execCtx),
+        reqCtx: _.cloneDeep(this.reqCtx),
         tasks: this.tasks.describe()
       }
 
@@ -432,7 +429,7 @@ export class Lambda extends EventEmitter {
       // pretty hacky!
       const { execCtx } = this
       this.execCtx = ctx
-      const overwritten = pick(execCtx, Object.keys(ctx))
+      const overwritten = _.pick(execCtx, Object.keys(ctx))
       if (Object.keys(overwritten).length) {
         this.logger.warn('overwriting these properties on execution context', overwritten)
       }

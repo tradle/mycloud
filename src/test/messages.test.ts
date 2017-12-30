@@ -1,6 +1,7 @@
 require('./env').install()
 
 // const awsMock = require('aws-sdk-mock')
+import _ = require('lodash')
 import AWS = require('aws-sdk')
 AWS.config.paramValidation = false
 
@@ -19,7 +20,7 @@ import {
   withLinks
 } from '../crypto'
 
-import { loudAsync, omit, clone, co, typeforce, pickVirtual, omitVirtual } from '../utils'
+import { loudAsync, co, typeforce, pickVirtual, omitVirtual } from '../utils'
 import Errors = require('../errors')
 import {
   SIG,

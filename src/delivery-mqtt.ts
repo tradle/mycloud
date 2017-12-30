@@ -1,7 +1,8 @@
 import { EventEmitter } from 'events'
+import _ = require('lodash')
 import { SEQ } from '@tradle/constants'
 import Errors = require('./errors')
-import { pick, typeforce, omitVirtual, batchByByteLength, bindAll } from './utils'
+import { typeforce, omitVirtual, batchByByteLength, bindAll } from './utils'
 import { getLink } from './crypto'
 import { IDelivery, ILiveDeliveryOpts } from './types'
 import Messages from './messages'
@@ -55,7 +56,7 @@ export default class DeliveryIot extends EventEmitter implements IDelivery {
 
   public deliverBatch = async ({ session, recipient, messages }:ILiveDeliveryOpts) => {
     if (!(session.authenticated && session.connected)) {
-      const status = JSON.stringify(pick(session, ['authenticated', 'connected']))
+      const status = JSON.stringify(_.pick(session, ['authenticated', 'connected']))
       throw new Errors.ClientUnreachable(`Client is ${status} but must be both`)
     }
 

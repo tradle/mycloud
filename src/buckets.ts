@@ -1,9 +1,8 @@
 
 import Cache = require('lru-cache')
 import { Bucket } from './bucket'
-import { cachify, extend, isPromise } from './utils'
+import { cachify, isPromise } from './utils'
 import { toCamelCase } from './string-utils'
-import { Bucket } from './bucket'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
@@ -49,11 +48,11 @@ const cacheConfig = {
   }
 }
 
-type Buckets = {
+export type Buckets = {
   [name:string]: Bucket
 }
 
-export = function getBuckets ({ env, logger, aws, serviceMap }):Buckets {
+export const getBuckets = ({ env, logger, aws, serviceMap }):Buckets => {
 
   const { MEMORY_SIZE } = env
 

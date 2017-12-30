@@ -1,11 +1,14 @@
+// @ts-ignore
+import Promise = require('bluebird')
+import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import Errors = require('../../errors')
 import { getRecordsFromEvent } from '../../db-utils'
 import { getMessagePayload } from '../utils'
-import { pick, batchProcess, ensureTimestamped, promiseNoop } from '../../utils'
+import { batchProcess, ensureTimestamped, promiseNoop } from '../../utils'
 import { savePayloadToDB } from '../utils'
 import { Lambda, fromDynamoDB } from '../lambda'
-import { onmessage as createOnMessageMiddleware } from '../middleware/onmessage'
+import { onMessagesSaved } from '../middleware/onmessagessaved'
 
 export const createLambda = (opts) => {
   const lambda = fromDynamoDB(opts)
@@ -18,7 +21,7 @@ export const createLambda = (opts) => {
 }
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { bot, logger } = lambda
+  const { tradle, bot, logger } = lambda
   const logAndThrow = (results) => {
     const failed = results.map(({ reason }) => reason)
       .filter(reason => reason)
@@ -29,6 +32,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     }
   }
 
+  const preProcess = preProcessOne(lambda, opts)
+  const postProcess = postProcessOne(lambda, opts)
   return async (ctx, next) => {
     const { event } = ctx
     event.bot = bot
@@ -37,25 +42,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     ctx.results = await batchProcess({
       data: messages,
       batchSize: 20,
-      processOne: async (message) => {
-        const payload = message.object
-        const type = message._payloadType
-        try {
-          await savePayloadToDB({ bot, message })
-          logger.debug('saved', pick(payload, [TYPE, '_permalink']))
-        } catch (err) {
-          // TODO: to DLQ
-          logger.debug('failed to put to db', {
-            type,
-            link: payload._link,
-            error: err.stack
-          })
-
-          throw err
-        }
-
-        return message
-      },
+      processOne: preProcess,
       settle: true
     })
 
@@ -63,24 +50,60 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       .filter(result => result.value)
       .map(result => result.value)
 
-    const middleware = createOnMessageMiddleware(lambda, opts)
     await batchProcess({
       data: successes,
       batchSize: 20,
-      processOne: async (message) => {
-        const subCtx = { ...lambda.execCtx, event: message }
-        try {
-          await middleware(subCtx, promiseNoop)
-        } catch (err) {
-          logger.debug('failure in custom onmessagestream middleware', {
-            message: message,
-            error: Errors.export(err)
-          })
-        }
-      }
+      processOne: postProcess
     })
 
     logAndThrow(ctx.results)
     await next()
+  }
+}
+
+export const preProcessOne = (lambda, opts) => {
+  const { bot, logger } = lambda
+  return async (message) => {
+    const payload = message.object
+    const type = message._payloadType
+    const todo = [
+      () => savePayloadToDB({ bot, message })
+    ]
+
+    if (type === MODELS_PACK) {
+      todo.push(() => tradle.modelStore)
+    }
+
+    try {
+      await savePayloadToDB({ bot, message })
+      logger.debug('saved', _.pick(payload, [TYPE, '_permalink']))
+    } catch (err) {
+      // TODO: to DLQ
+      logger.debug('failed to put to db', {
+        type,
+        link: payload._link,
+        error: err.stack
+      })
+
+      throw err
+    }
+
+    return message
+  }
+}
+
+export const postProcessOne = (lambda, opts) => {
+  const { logger } = lambda
+  const businessLogicMiddleware = onMessagesSaved(lambda, opts)
+  return async (message) => {
+    const subCtx = { ...lambda.execCtx, event: message }
+    try {
+      await businessLogicMiddleware(subCtx, promiseNoop)
+    } catch (err) {
+      logger.debug('failure in custom onmessagestream middleware', {
+        message: message,
+        error: Errors.export(err)
+      })
+    }
   }
 }

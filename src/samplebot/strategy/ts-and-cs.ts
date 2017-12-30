@@ -1,5 +1,5 @@
 import crypto = require('crypto')
-import dotProp = require('dot-prop')
+import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import { DatedValue } from '../../types'
 import Logger from '../../logger'
@@ -27,7 +27,7 @@ export const createPlugin = ({
     if (type === TERMS_AND_CONDITIONS &&
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
       logger.debug(`updating ${user.id}.${DATE_ACCEPTED_PROP}`)
-      dotProp.set(user, DATE_ACCEPTED_PROP, Date.now())
+      _.set(user, DATE_ACCEPTED_PROP, Date.now())
       await productsAPI.sendProductList(req)
       return
     }
@@ -73,14 +73,14 @@ export const ensureAccepted = async ({
   productsAPI: any,
   logger: Logger
 }) => {
-  const dateAccepted = dotProp.get(user, DATE_ACCEPTED_PROP)
+  const dateAccepted = _.get(user, DATE_ACCEPTED_PROP)
   if (dateAccepted && dateAccepted > termsAndConditions.lastModified) {
     return true
   }
 
-  const datePresented = dotProp.get(user, DATE_PRESENTED_PROP)
+  const datePresented = _.get(user, DATE_PRESENTED_PROP)
   if (!(datePresented && datePresented > termsAndConditions.lastModified)) {
-    dotProp.set(user, DATE_PRESENTED_PROP, Date.now())
+    _.set(user, DATE_PRESENTED_PROP, Date.now())
     logger.debug(`requesting ${user.id} to accept T's and C's`)
     if (!req) {
       req = productsAPI.state.newRequestState({ user })

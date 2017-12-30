@@ -1,15 +1,18 @@
 require('./env').install()
 
+import crypto = require('crypto')
+import _ = require('lodash')
 import test = require('tape')
 import sinon = require('sinon')
 import cfnResponse = require('cfn-response')
+import { TYPE, SEQ, SIG } from '@tradle/constants'
 import IotMessage = require('@tradle/iot-message')
 import { utils as tradleUtils } from '@tradle/engine'
 import { createTestTradle } from '../'
 import { createBot as createRealBot } from '../bot'
 import { getGraphqlAPI } from '../bot/middleware/graphql'
 import createFakeBot = require('./mock/bot')
-import { loudAsync, clone, pick, wait } from '../utils'
+import { loudAsync, wait } from '../utils'
 import { toStreamItems, recreateTable } from './utils'
 import Errors = require('../errors')
 const aliceKeys = require('./fixtures/alice/keys')
@@ -165,11 +168,19 @@ const rethrow = err => {
     }
 
     const message = {
+      [TYPE]: 'tradle.Message',
+      [SEQ]: 0,
+      [SIG]: crypto.randomBytes(128).toString('base64'),
       time: 123,
-      _author: 'bob',
-      _recipient: 'alice',
-      _link: 'a',
+      _payloadType: payload[TYPE],
+      _author: crypto.randomBytes(32).toString('hex'),
+      _recipient: crypto.randomBytes(32).toString('hex'),
+      _link: crypto.randomBytes(32).toString('hex'),
       object: payload,
+      recipientPubKey: JSON.parse(JSON.stringify({
+        curve: 'p256',
+        pub: crypto.randomBytes(64)
+      })),
       _virtual: ['_author', '_recipient', '_link']
     }
 
@@ -349,7 +360,7 @@ test('onmessagestream', loudAsync(async (t) => {
     tradle
   })
 
-  const table = bot.db.tables['tradle.Ping']
+  const table = await bot.db.getTableForModel('tradle.Ping')
   // #1
   t.ok(table, 'table created per model')
 

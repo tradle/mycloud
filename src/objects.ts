@@ -1,3 +1,4 @@
+import _ = require('lodash')
 import Embed = require('@tradle/embed')
 import { protocol } from '@tradle/engine'
 import { IDebug, ITradleObject } from './types'
@@ -5,11 +6,9 @@ import types = require('./typeforce-types')
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
 import { TYPE, PREVLINK, PERMALINK } from './constants'
 import {
-  deepClone,
   typeforce,
   setVirtual,
   download,
-  pick,
   summarizeObject,
   ensureTimestamped,
   RESOLVED_PROMISE,
@@ -107,7 +106,7 @@ export default class Objects {
     typeforce(types.signedObject, object)
     ensureTimestamped(object)
     this.addMetadata(object)
-    object = deepClone(object)
+    object = _.cloneDeep(object)
     await this.replaceEmbeds(object)
     this.logger.debug('putting', summarizeObject(object))
     return await this.bucket.putJSON(object._link, object)

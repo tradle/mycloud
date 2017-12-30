@@ -1,4 +1,5 @@
 const debug = require('debug')('tradle:sls:db-utils')
+import _ = require('lodash')
 import {
   marshalItem as marshalDBItem,
   unmarshalItem as unmarshalDBItem
@@ -9,12 +10,10 @@ import { utils as vrUtils } from '@tradle/validate-resource'
 import { Level } from './logger'
 import { NotFound } from './errors'
 import {
-  pick,
   logify,
   timestamp,
   wait,
   waitImmediate,
-  clone,
   batchify,
   timeMethods
 } from './utils'
@@ -175,6 +174,11 @@ function createDBUtils ({ aws, logger }) {
         throw new Errors.InvalidInput(err.message)
       }
 
+      // if (err.code === 'ConditionalCheckFailedException') {
+      //   console.log(params)
+      //   debugger
+      // }
+
       throw err
     }
   }
@@ -243,7 +247,7 @@ function createDBUtils ({ aws, logger }) {
       processOne: async (item) => {
         await execWhile('delete', {
           TableName,
-          Key: pick(item, keyProps)
+          Key: _.pick(item, keyProps)
         }, err => err.name === 'LimitExceededException' || err.name === 'ResourceNotFoundException')
 
         count++
@@ -277,7 +281,7 @@ function createDBUtils ({ aws, logger }) {
     maybeForceConsistentRead(params)
     const result = await exec('get', params)
     if (!result.Item) {
-      throw new NotFound(JSON.stringify(pick(params, ['TableName', 'Key'])))
+      throw new NotFound(JSON.stringify(_.pick(params, ['TableName', 'Key'])))
     }
 
     // debug(`got item from ${params.TableName}: ${prettify(result)}`)
@@ -353,7 +357,7 @@ function createDBUtils ({ aws, logger }) {
   // })
 
   const batchPut = async (params:AWS.DynamoDB.BatchWriteItemInput, backoffOptions={}) => {
-    params = clone(params)
+    params = { ...params }
 
     const {
       backoff=defaultBackoffFunction,

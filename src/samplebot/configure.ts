@@ -1,7 +1,6 @@
 // @ts-ignore
 import Promise = require('bluebird')
-import { omit, isEqual } from 'lodash'
-import dotProp = require('dot-prop')
+import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
@@ -197,7 +196,7 @@ export class Conf {
   }
 
   public assemblePublicInfo = ({ identity, org, style, conf }) => {
-    const tour = dotProp.get(conf, 'tours.intro')
+    const tour = _.get(conf, 'tours.intro')
     // const { splashscreen } = conf
     return {
       bot: {
@@ -289,7 +288,7 @@ export class Conf {
   }
 
   public getLogo = async (conf) => {
-    const defaultLogo = dotProp.get(conf, 'style.logo.url')
+    const defaultLogo = _.get(conf, 'style.logo.url')
     let { name, domain, logo=defaultLogo } = conf.org
     if (!(name && domain)) {
       throw new Error('org "name" and "domain" are required')
@@ -314,7 +313,7 @@ export const createConf = (opts):Conf => new Conf(opts)
 const hasDifferentValue = async ({ bucket, key, value }) => {
   try {
     const current = await bucket.get(key)
-    return !isEqual(current, value)
+    return !_.isEqual(current, value)
   } catch (err) {
     Errors.ignore(err, Errors.NotFound)
     return true

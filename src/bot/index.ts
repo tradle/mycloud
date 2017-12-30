@@ -1,19 +1,12 @@
 import { EventEmitter } from 'events'
+import _ = require('lodash')
 // @ts-ignore
 import Promise = require('bluebird')
-import mergeModels = require('@tradle/merge-models')
 import createHooks = require('event-hooks')
-import BaseModels = require('../models')
 import { readyMixin } from './ready-mixin'
 import {
-  pick,
   defineGetter,
-  extend,
-  deepClone,
-  deepEqual,
   ensureTimestamped,
-  groupBy,
-  flatten
 } from '../utils'
 
 import { addLinks } from '../crypto'
@@ -41,7 +34,7 @@ const promisePassThrough = data => Promise.resolve(data)
 
 const PROXY_TO_TRADLE = [
   'aws', 'objects', 'db', 'dbUtils', 'contentAddressedStore',
-  'lambdaUtils', 'iot', 'seals',
+  'lambdaUtils', 'iot', 'seals', 'modelStore',
   'identities', 'history', 'messages', 'friends',
   'resources', 'env', 'router', 'buckets', 'tables',
   'serviceMap', 'version', 'apiBaseUrl', 'tasks'
@@ -78,19 +71,16 @@ export const createBot = (opts:any={}) => {
  * bot engine factory
  * @param  {Object}             opts
  * @param  {Tradle}             opts.tradle
- * @param  {Object}             opts.models
  * @return {BotEngine}
  */
 function _createBot (opts: {
   tradle: Tradle,
   users?: any,
-  models?: any,
   ready?:boolean
 }) {
   let {
     tradle,
     users,
-    models,
     ready=true
   } = opts
 
@@ -117,7 +107,8 @@ function _createBot (opts: {
 
   defineGetter(bot, 'kv', () => tradle.kv.sub(':bot'))
   defineGetter(bot, 'conf', () => tradle.kv.sub(':bot:conf'))
-  defineGetter(bot, 'models', () => models)
+  defineGetter(bot, 'models', () => bot.modelStore.models)
+  bot.setCustomModels = customModels => bot.modelStore.setCustomModels(customModels)
 
   bot.isTesting = TESTING
   bot.init = () => tradle.init.init(opts)
@@ -130,20 +121,6 @@ function _createBot (opts: {
       permalink,
       key: chainKey
     })
-  }
-
-  bot.setCustomModels = customModels => {
-    const merger = mergeModels()
-      .add(BaseModels, { validate: false })
-      .add(customModels, { validate: env.TESTING })
-
-    models = merger.get()
-    bot.db.addModels(merger.rest())
-    bot.emit('models', models)
-  }
-
-  if (models) {
-    bot.setCustomModels(models)
   }
 
   bot.forceReinitializeContainers = async (functions?:string[]) => {
@@ -181,7 +158,7 @@ function _createBot (opts: {
       await bot.promiseReady()
     }
 
-    resource = deepClone(resource)
+    resource = _.cloneDeep(resource)
     await bot.objects.replaceEmbeds(resource)
     await bot.db[method](ensureTimestamped(resource))
     return resource
@@ -193,7 +170,7 @@ function _createBot (opts: {
     const batch = await Promise.all([].concat(opts)
        .map(oneOpts => normalizeSendOpts(bot, oneOpts)))
 
-    const byRecipient = groupBy(batch, 'recipient')
+    const byRecipient = _.groupBy(batch, 'recipient')
     const recipients = Object.keys(byRecipient)
     logger.debug(`queueing messages to ${recipients.length} recipients`, { recipients })
     const results = await Promise.all(recipients.map(async (recipient) => {
@@ -215,14 +192,14 @@ function _createBot (opts: {
 
       if (TESTING && messages) {
         await Promise.all(messages.map(message => {
-          return savePayloadToDB({ bot, message: deepClone(message) })
+          return savePayloadToDB({ bot, message: _.cloneDeep(message) })
         }))
       }
 
       return messages
     }))
 
-    const messages = flatten(results)
+    const messages = _.flatten(results)
     if (messages) {
       return Array.isArray(opts) ? messages : messages[0]
     }

@@ -21,7 +21,8 @@
     "types": [
       "node",
       "aws-sdk",
-      "sinon"
+      "sinon",
+      "lodash"
     ]
   },
   "include": ["src/**/*.ts"],

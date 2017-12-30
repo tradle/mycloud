@@ -1,5 +1,4 @@
 
-import extend = require('xtend/mutable')
 const curve = 'secp256k1'
 const networks = {
   bitcoin: {

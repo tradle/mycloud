@@ -1,4 +1,6 @@
 // import Router = require('koa-router')
+// @ts-ignore
+import Promise = require('bluebird')
 import compose = require('koa-compose')
 import { graphql, formatError } from 'graphql'
 import { print } from 'graphql/language/printer'
@@ -24,7 +26,7 @@ export const createHandler = (opts) => {
   let graphiqlOptions = {}
   let api
   let modelsVersionId:string
-  let { models } = bot
+  const { modelStore } = bot
 
   const updateVersionId = (models) => {
     modelsVersionId = ModelsPack.versionId(models)
@@ -34,9 +36,9 @@ export const createHandler = (opts) => {
     api = getGraphqlAPI(opts)
   })
 
-  if (models) updateVersionId(models)
+  if (modelStore.models) updateVersionId(modelStore.models)
 
-  bot.on('models', updateVersionId)
+  modelStore.on('update', updateVersionId)
 
   const handler = graphqlHTTP(async (req) => {
     logger.debug(`hit graphql query route, ready: ${bot.isReady()}`)
@@ -161,10 +163,7 @@ export const getGraphqlAPI = (opts) => {
     messages = [].concat(messages)
 
     // maybe better just pre-sign urls
-    const payloads = await Promise.all(messages.map(
-      msg => objects.get(msg.object._link)
-    ))
-
+    const payloads = await Promise.map(messages, msg => objects.get(msg.object._link))
     payloads.forEach((payload, i) => {
       const neutered = messages[i].object
       const virtual = uniqueStrict((neutered._virtual || []).concat(payload._virtual || []))
@@ -181,7 +180,10 @@ export const getGraphqlAPI = (opts) => {
     schema = getSchema()
   }
 
-  bot.on('models', setModels)
+  bot.modelStore.on('update', () => {
+    debugger
+    setModels(bot.modelStore.allCustomModels)
+  })
 
   const presignEmbeddedMediaLinks = (items) => {
     if (!items) return items

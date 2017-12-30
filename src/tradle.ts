@@ -19,7 +19,9 @@ import { TaskManager } from './task-manager'
 import { requireDefault } from './require-default'
 import Push from './push'
 import User from './user'
+import { Buckets, getBuckets } from './buckets'
 import { applyFunction } from './utils'
+import { ModelStore, createModelStore } from './model-store'
 
 let instanceCount = 0
 
@@ -28,7 +30,7 @@ export default class Tradle {
   public aws: any
   // public router: any
   public serviceMap: any
-  public buckets: any
+  public buckets: Buckets
   public tables: any
   public dbUtils: any
   public secrets: any
@@ -54,6 +56,7 @@ export default class Tradle {
   public iot: any
   public lambdaUtils: any
   public tasks:TaskManager
+  public modelStore: ModelStore
   public prefix: string
 
   constructor(env=new Env(process.env)) {
@@ -89,7 +92,7 @@ export default class Tradle {
 
     this.define('serviceMap', './service-map', this.construct)
     this.define('tables', './tables', this.construct)
-    this.define('buckets', './buckets', this.construct)
+    this.define('buckets', './buckets', () => getBuckets(this))
     this.define('db', './db', initialize => initialize(this))
     this.define('s3Utils', './s3-utils', initialize => initialize({
       s3: this.aws.s3,
@@ -158,6 +161,7 @@ export default class Tradle {
       logger: this.logger.sub('async-tasks')
     })
 
+    this.modelStore = createModelStore(this)
     // this.bot = this.require('bot', './bot')
   }
 

@@ -1,6 +1,7 @@
+import _ = require('lodash')
 // @ts-ignore
 import Promise = require('bluebird')
-import { pick, omitVirtual, bindAll, RESOLVED_PROMISE } from './utils'
+import { omitVirtual, bindAll, RESOLVED_PROMISE } from './utils'
 import { prettify } from './string-utils'
 import { PUBLIC_CONF_BUCKET, SEQ } from './constants'
 import Errors = require('./errors')
@@ -127,7 +128,10 @@ export default class User {
     return processed.filter(notNull)
   }
 
-  public onSentMessage = async ({ clientId, message }) => {
+  public onSentMessage = async ({ clientId, message }: {
+    clientId?:string,
+    message:any
+  }) => {
     const { TESTING } = this.env
 
     // if (Math.random() < 0.5) {
@@ -144,107 +148,7 @@ export default class User {
     //   })
     // }
 
-    let err
-    let processed
-    try {
-      processed = await this.provider.receiveMessage({ clientId, message })
-    } catch (e) {
-      // delivery http
-      err = e
-      if (!clientId) {
-        Errors.ignore(err, Errors.Duplicate)
-        return
-      }
-    }
-
-    await this._postProcessMessage({
-      clientId,
-      message: processed || message,
-      error: err
-    })
-
-    return err ? null : processed
-  }
-
-  private _postProcessMessage = async ({ clientId, message, error }: {
-    clientId,
-    message,
-    error?
-  }):Promise<any|void> => {
-    const progress = error && error.progress
-    const ack = () => {
-      this.tasks.add({
-        name: 'delivery:ack',
-        promiser: async () => {
-          await this.delivery.ack({ clientId, message: message || progress })
-        }
-      })
-    }
-
-    if (!error) {
-      // SUCCESS!
-      this.logger.debug('received valid message from user')
-      ack()
-      return
-    }
-
-    const reject = () => {
-      this.tasks.add({
-        name: 'delivery:reject',
-        promiser: async () => {
-          await this.delivery.reject({
-            clientId,
-            message: progress,
-            error
-          })
-        }
-      })
-    }
-
-    this.logger.debug(`processing error in receive: ${error.name}`)
-    if (error instanceof Errors.Duplicate) {
-      this.logger.info('ignoring but acking duplicate message', {
-        link: progress._link,
-        author: progress._author
-      })
-
-      ack()
-      return
-    }
-
-    if (error instanceof Errors.TimeTravel ||
-      error instanceof Errors.NotFound ||
-      error instanceof Errors.InvalidSignature ||
-      error instanceof Errors.InvalidMessageFormat) {
-      // HTTP
-      let logMsg
-      if (error instanceof Errors.TimeTravel) {
-        logMsg = 'rejecting message with lower timestamp than previous'
-        // @ts-ignore
-      } else if (error instanceof Errors.NotFound) {
-        logMsg = 'rejecting message, either sender or payload identity was not found'
-        // @ts-ignore
-      } else if (error instanceof Errors.InvalidMessageFormat) {
-        logMsg = 'rejecting message, invalid message format'
-      } else {
-        logMsg = 'rejecting message, invalid signature'
-      }
-
-      this.logger.warn(logMsg, {
-        message: progress,
-        error: error.stack
-      })
-
-      reject()
-      return
-    }
-
-    this.logger.error('unexpected error in pre-processing inbound message', {
-      message: progress || message,
-      error: error.stack
-    })
-
-    throw error
+    return await this.provider.receiveMessage({ clientId, message })
   }
 
   public onDisconnected = async ({ clientId }):Promise<ISession|void> => {
@@ -343,5 +247,5 @@ export default class User {
 }
 
 const getDeliveryReadiness = session => {
-  return prettify(pick(session, ['connected', 'subscribed']))
+  return prettify(_.pick(session, ['connected', 'subscribed']))
 }

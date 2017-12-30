@@ -1,6 +1,7 @@
 // const Cache = require('lru-cache')
+import _ = require('lodash')
 import { EventEmitter } from 'events'
-import { co, pick, omit, extend } from '../utils'
+import { co } from '../utils'
 import { getUpdateParams } from '../db-utils'
 import Errors = require('../errors')
 const PRIMARY_KEY = 'id'
@@ -16,7 +17,7 @@ export = function createUsers ({ table, oncreate }) {
   })
 
   const merge = function merge (user) {
-    return table.update(extend({
+    return table.update(_.extend({
       Key: getKey(user),
       ReturnValues: 'ALL_NEW',
     }, getUpdateParams(getProps(user))))
@@ -42,7 +43,7 @@ export = function createUsers ({ table, oncreate }) {
     ConsistentRead: true
   })
 
-  return extend(ee, {
+  return _.extend(ee, {
     get,
     createIfNotExists,
     save,
@@ -53,9 +54,9 @@ export = function createUsers ({ table, oncreate }) {
 }
 
 function getKey (user) {
-  return pick(user, PRIMARY_KEY)
+  return _.pick(user, PRIMARY_KEY)
 }
 
 function getProps (user) {
-  return omit(user, PRIMARY_KEY)
+  return _.omit(user, PRIMARY_KEY)
 }

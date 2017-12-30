@@ -1,6 +1,7 @@
 require('source-map-support').install()
 
 import crypto = require('crypto')
+import _ = require('lodash')
 import stringify = require('json-stable-stringify')
 import KeyEncoder = require('key-encoder')
 import pify = require('pify')
@@ -8,12 +9,9 @@ import { protocol, utils, constants } from '@tradle/engine'
 import {
   toBuffer,
   loudAsync,
-  extend,
-  omit,
   omitVirtual,
   setVirtual,
-  wrap,
-  deepClone
+  wrap
 } from './utils'
 
 import { InvalidSignature } from './errors'
@@ -63,7 +61,7 @@ export class ECKey {
   }
 
   public toJSON = (exportPrivate?:boolean):object => {
-    const json = deepClone(this.keyJSON)
+    const json = _.cloneDeep(this.keyJSON)
     if (!exportPrivate) {
       delete json.priv
       delete json.encoded.pem.priv

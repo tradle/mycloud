@@ -1,5 +1,4 @@
 import crypto = require('crypto')
-import { omit } from 'lodash'
 import createProductsStrategy = require('@tradle/bot-products')
 import createEmployeeManager = require('@tradle/bot-employee-manager')
 import validateResource = require('@tradle/validate-resource')

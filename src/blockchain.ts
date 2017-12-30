@@ -1,9 +1,8 @@
 import Tradle from './tradle'
 import Logger from './logger'
-
-const { utils, protocol } = require('@tradle/engine')
-const { promisify, typeforce } = require('./utils')
-const { prettify } = require('./string-utils')
+import { utils, protocol } from '@tradle/engine'
+import { promisify, typeforce } from './utils'
+import { prettify } from './string-utils'
 import adapters from './blockchain-adapter'
 import { IDebug } from './types'
 

@@ -1,7 +1,8 @@
 import path = require('path')
+import _ = require('lodash')
 import sinon = require('sinon')
 import serverlessYml = require('../cli/serverless-yml')
-import { pick, extend, promisify } from '../utils'
+import { promisify } from '../utils'
 
 interface Sandbox extends sinon.SinonSandbox {
   httpOnly?: (permalink:string) => void

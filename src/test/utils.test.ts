@@ -3,6 +3,7 @@ require('./env').install()
 import test = require('tape')
 import Cache = require('lru-cache')
 import sinon = require('sinon')
+import ModelsPack = require('@tradle/models-pack')
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
 // import { getFavicon } from '../samplebot/image-utils'
@@ -22,9 +23,10 @@ import {
   batchProcess
 } from '../utils'
 import Errors = require('../errors')
-import { Tradle } from '../'
+import { Tradle, createTestTradle } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
+import { createModelStore } from '../model-store'
 
 const { KVTable } = require('../definitions')
 const aliceKeys = require('./fixtures/alice/keys')
@@ -663,6 +665,49 @@ test('batchProcess', loudAsync(async (t) => {
   t.end()
 }))
 
+test('ModelStore', loudAsync(async (t) => {
+  const friend = {
+    _identityPermalink: Date.now() + '123',
+    domain: `${Date.now()}.example.com`
+  }
+
+  const tradle = createTestTradle()
+  const store = createModelStore(tradle)
+  sinon.stub(tradle.friends, 'getByDomain').resolves(friend)
+  try {
+    await store.getModelsPackByDomain(friend.domain)
+    t.fail('expected error')
+  } catch (err) {
+    t.equal(Errors.matches(err, Errors.NotFound), true)
+  }
+
+  const pack = ModelsPack.pack([
+    {
+      type: 'tradle.Model',
+      id: `${domainToNamespace(friend.domain)}.Name`,
+      title: 'Custom Name',
+      properties: {
+        name: {
+          type: 'string'
+        }
+      }
+    }
+  ])
+
+  pack._author = 'abc'
+  try {
+    await store.saveModelsPack(pack)
+    t.fail('expected error')
+  } catch (err) {
+    t.ok(/domain/i.test(err.message))
+  }
+
+  pack._author = friend._identityPermalink
+  await store.saveModelsPack(pack)
+  t.same(await store.getModelsPackByDomain(friend.domain), pack)
+  t.end()
+}))
+
 // test.only('favicon', loudAsync(async (t) => {
 //   const favicon = await getFavicon('bankofamerica.com')
 //   console.log(favicon)
@@ -675,3 +720,5 @@ function values (obj) {
 function sum (arr) {
   return arr.reduce((total, one) => total + one, 0)
 }
+
+const domainToNamespace = domain => domain.split('.').reverse().join('.')

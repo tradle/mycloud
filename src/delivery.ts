@@ -1,3 +1,4 @@
+import _ = require('lodash')
 import { EventEmitter } from 'events'
 import DeliveryIot from './delivery-mqtt'
 import DeliveryHTTP from './delivery-http'
@@ -11,7 +12,6 @@ import {
   IDebug,
   ISession
 } from './types'
-import { pick } from './utils'
 import { ClientUnreachable } from './errors'
 import Env from './env'
 import Logger from './logger'
@@ -109,7 +109,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
       await this.deliverBatch({ recipient, messages, session, friend })
       let last = messages[messages.length - 1]
-      afterMessage = pick(last, ['_recipient', 'time'])
+      afterMessage = _.pick(last, ['_recipient', 'time'])
       result.range.afterMessage = afterMessage
       delete result.range.after
     }

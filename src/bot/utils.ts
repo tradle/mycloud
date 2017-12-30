@@ -1,8 +1,4 @@
-import {
-  pick,
-  omit
-} from 'lodash'
-
+import _ = require('lodash')
 import typeforce = require('typeforce')
 import { TYPE, SIG } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
@@ -51,7 +47,7 @@ const summarize = (payload:any):string => {
 }
 
 const getMessageGist = (message):any => {
-  const base = pick(message, ['context', 'forward', 'originalSender'])
+  const base = _.pick(message, ['context', 'forward', 'originalSender'])
   const payload = message.object
   return {
     ...base,
@@ -90,7 +86,7 @@ const normalizeSendOpts = async (bot, opts) => {
   }
 
   bot.objects.presignEmbeddedMediaLinks(object)
-  opts = omit(opts, 'to')
+  opts = _.omit(opts, 'to')
   opts.recipient = normalizeRecipient(to)
   // if (typeof opts.object === 'string') {
   //   opts.object = {
@@ -129,15 +125,29 @@ const savePayloadToDB = async ({ bot, message }) => {
     return false
   }
 
-  const table = bot.db.tables[type]
-  if (!table) {
+  let table
+  try {
+    table = await bot.db.getTableForModel(type)
+  } catch (err) {
     logger.debug(`not saving "${type}", don't have a table for it`)
     return
   }
 
-  const payload = await getMessagePayload({ bot, message })
-  Object.assign(message.object, payload)
-  await bot.save(message.object)
+  let payload
+  try {
+    payload = await getMessagePayload({ bot, message })
+    Object.assign(message.object, payload)
+    await bot.save(message.object)
+    logger.debug('saved', _.pick(payload, [TYPE, '_permalink']))
+  } catch (err) {
+    logger.debug('failed to put to db', {
+      type,
+      link: message.object._link,
+      error: err.stack
+    })
+
+    throw err
+  }
 }
 
 export {

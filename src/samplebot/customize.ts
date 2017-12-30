@@ -1,5 +1,4 @@
-import { omit } from 'lodash'
-import dotProp = require('dot-prop')
+import _ = require('lodash')
 import { models } from '@tradle/models'
 import validateResource = require('@tradle/validate-resource')
 import createProductsStrategy from './strategy'
@@ -38,7 +37,7 @@ export async function customize (opts) {
 
   const { domain } = org
   const namespace = domain.split('.').reverse().join('.')
-  const onfido = dotProp.get(conf, ONFIDO_PLUGIN_PATH)
+  const onfido = _.get(conf, ONFIDO_PLUGIN_PATH)
   if (style) {
     try {
       validateResource({ models, resource: style })

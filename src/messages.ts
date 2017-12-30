@@ -1,3 +1,4 @@
+import _ = require('lodash')
 import AWS = require('aws-sdk')
 import Identities from './identities'
 import Objects from './objects'
@@ -7,12 +8,9 @@ import { utils as tradleUtils } from '@tradle/engine'
 import Errors = require('./errors')
 import { ErrorWithLink } from './errors'
 import {
-  pick,
-  omit,
   typeforce,
   pickVirtual,
   setVirtual,
-  extend,
   bindAll,
   RESOLVED_PROMISE
 } from './utils'
@@ -215,7 +213,7 @@ export default class Messages {
 
   public loadMessage = async (message: ITradleMessage):Promise<ITradleMessage> => {
     const body = await this.objects.get(getLink(message.object))
-    message.object = extend(message.object || {}, body)
+    message.object = _.extend(message.object || {}, body)
     return message
   }
 

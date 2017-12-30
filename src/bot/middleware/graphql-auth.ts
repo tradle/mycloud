@@ -2,7 +2,7 @@ import { utils as tradleUtils } from '@tradle/engine'
 import validateResource = require('@tradle/validate-resource')
 import { constants, Errors } from '../../'
 import { ITradleObject } from '../../types'
-import { pick, isPromise } from '../../utils'
+import { isPromise } from '../../utils'
 
 const debug = require('debug')('tradle:sls:graphql-auth')
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants

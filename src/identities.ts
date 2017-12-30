@@ -1,6 +1,6 @@
 import Cache = require('lru-cache')
-import * as constants from './constants'
-import * as Errors from './errors'
+import constants = require('./constants')
+import Errors = require('./errors')
 import {
   firstSuccess,
   logify,
@@ -13,7 +13,7 @@ import {
 } from './utils'
 
 import { addLinks, getLink } from './crypto'
-import * as types from './typeforce-types'
+import types = require('./typeforce-types')
 import { IIdentity, ITradleObject } from './types'
 import Env from './env'
 import Logger from './logger'

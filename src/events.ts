@@ -1,5 +1,6 @@
-const { omit, extend } = require('./utils')
-const { randomString } = require('./crypto')
+import _ = require('lodash')
+import { randomString } from './crypto'
+
 const notNull = obj => !!obj
 const SEPARATOR = ':'
 

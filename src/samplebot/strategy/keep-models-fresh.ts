@@ -1,6 +1,7 @@
+import _ = require('lodash')
 import ModelsPack = require('@tradle/models-pack')
 import baseModels = require('../../models')
-import { pick, omit, isPromise, stableStringify } from '../../utils'
+import { isPromise, stableStringify } from '../../utils'
 
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const mapModelsToPack = new Map()
@@ -89,8 +90,8 @@ export const createGetIdentifierFromReq = ({ employeeManager }) => {
 }
 
 export const createGetModelsForUser = ({ productsAPI, employeeManager }) => {
-  const employeeModels = omit(productsAPI.models.all, BASE_MODELS_IDS)
-  const customerModels = omit(
+  const employeeModels = _.omit(productsAPI.models.all, BASE_MODELS_IDS)
+  const customerModels = _.omit(
     productsAPI.models.all,
     Object.keys(productsAPI.models.private.all)
       .concat(BASE_MODELS_IDS)

@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-const YAML = require('js-yaml')
-const dotProp = require('dot-prop')
+import _ = require('lodash')
+import YAML = require('js-yaml')
+import { interpolateTemplate } from '../cli/utils'
 const [path, ...args] = process.argv.slice(2)
-const { interpolateTemplate } = require('../cli/utils')
 
 interpolateTemplate({ arg: args.join(' ') })
   .then(result => {
     const yml = YAML.load(result)
-    const val = dotProp.get(yml, path)
+    const val = _.get(yml, path)
     if (typeof val === 'undefined') {
       throw new Error(`property path ${path} not found in yml`)
     }

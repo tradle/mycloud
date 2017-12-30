@@ -1,11 +1,11 @@
 const debug = require("debug")("tradle:sls:friends")
+import _ = require('lodash')
 import Cache = require('lru-cache')
 import fetch = require('node-fetch')
-import { isEqual } from 'lodash'
 import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { addLinks } from './crypto'
-import { pick, get, cachifyFunction } from './utils'
+import { get, cachifyFunction } from './utils'
 import Identities from './identities'
 import Tradle from './tradle'
 import Logger from './logger'
@@ -73,14 +73,14 @@ export default class Friends {
     const keys = Object.keys(model.properties)
     const object = buildResource({ models, model })
       .set({
-        ...pick(existing, keys),
-        ...pick(props, keys),
+        ..._.pick(existing, keys),
+        ..._.pick(props, keys),
         _identityPermalink: identity._permalink
       })
       .toJSON()
 
     const isSame = Object.keys(object).every(prop => {
-      return isEqual(object[prop], existing[prop])
+      return _.isEqual(object[prop], existing[prop])
     })
 
     if (isSame) {

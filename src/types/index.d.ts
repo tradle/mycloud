@@ -182,6 +182,7 @@ export type ParsedResourceStub = {
 export type CacheContainer = {
   cache: any
   logger: Logger
+  [x:string]: any
 }
 
 export type DatedValue = {

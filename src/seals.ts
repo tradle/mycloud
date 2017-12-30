@@ -1,3 +1,4 @@
+import _ = require('lodash')
 import AWS = require('aws-sdk')
 import { DB } from '@tradle/dynamodb'
 import { utils, protocol } from '@tradle/engine'
@@ -7,22 +8,18 @@ import Blockchain from './blockchain'
 import Provider from './provider'
 import Env from './env'
 import {
-  clone,
   timestamp,
   typeforce,
   uuid,
   isPromise,
   seriesMap,
   bindAll,
-  deepEqual,
-  pick,
-  omit,
   summarizeObject
 } from './utils'
 import { prettify } from './string-utils'
-import * as dbUtils from './db-utils'
-import * as types from './typeforce-types'
-import * as Errors from './errors'
+import dbUtils = require('./db-utils')
+import types = require('./typeforce-types')
+import Errors = require('./errors')
 import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'
@@ -388,12 +385,12 @@ export default class Seals {
   private _requeueWrites = async (seals:Seal[]):Promise<Seal[]> => {
     if (!seals.length) return
 
-    this.logger.debug('failed writes', seals.map(seal => pick(seal, ['timeSealed', 'txId'])))
+    this.logger.debug('failed writes', seals.map(seal => _.pick(seal, ['timeSealed', 'txId'])))
 
     const now = timestamp()
     const puts = seals.map(seal => {
       return {
-        ...omit(seal, ['unconfirmed', 'txId']),
+        ..._.omit(seal, ['unconfirmed', 'txId']),
         unsealed: String(now),
         txId: null
       }
@@ -406,12 +403,12 @@ export default class Seals {
   private _cancelReads = async (seals:Seal[]):Promise<Seal[]> => {
     if (!seals.length) return
 
-    this.logger.debug('failed reads', seals.map(seal => pick(seal, ['address', 'link'])))
+    this.logger.debug('failed reads', seals.map(seal => _.pick(seal, ['address', 'link'])))
 
     const now = timestamp()
     const puts = seals.map(seal => {
       return {
-        ...omit(seal, 'unconfirmed'),
+        ..._.omit(seal, 'unconfirmed'),
         unwatched: String(now)
       }
     })
@@ -487,26 +484,26 @@ export default class Seals {
         return
       }
 
-      const sealResource = pick(seal, Object.keys(SealModel.properties))
+      const sealResource = _.pick(seal, Object.keys(SealModel.properties))
       sealResource[TYPE] = SEAL_MODEL_ID
-      if (deepEqual(object._seal, sealResource)) return
+      if (_.isEqual(object._seal, sealResource)) return
 
       buildResource.setVirtual(object, {
         _seal: sealResource
       })
 
       this.logger.debug(`updating resource with seal`, summarizeObject(object))
-      // const before = await this.db.get(pick(object, [TYPE, '_permalink']))
+      // const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
       await Promise.all([
         this.db.update({
-          ...pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
+          ..._.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
           // needed to pinpoint the resource to (conditionally) update
           _seal: sealResource
         }),
         this.objects.put(object)
       ])
 
-      // const saved = await this.db.get(pick(object, [TYPE, '_permalink']))
+      // const saved = await this.db.get(_.pick(object, [TYPE, '_permalink']))
       // const lost = Object.keys(object).filter(p => !(p in saved))
       // if (lost.length) {
       //   this.logger.debug(`lost properties ${lost.join(', ')}`)

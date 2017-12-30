@@ -3,7 +3,7 @@ require('./env').install()
 import test = require('tape')
 import { models } from '@tradle/models'
 import buildResource = require('@tradle/build-resource')
-import { loudAsync, pick, clone, co, wait } from '../utils'
+import { loudAsync, co, wait } from '../utils'
 import { createTestTradle } from '../'
 
 const fakeResource = require('@tradle/build-resource/fake')
