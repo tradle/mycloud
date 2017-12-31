@@ -32,7 +32,7 @@ export const createEditConfOp = edit => async (opts) => {
     throw new Error('you changed...nothing')
   } else {
     const confManager = new Conf({ bot })
-    await confManager.saveBotConf(conf)
+    await confManager.setBotConf(conf)
   }
 }
 
