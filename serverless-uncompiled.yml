@@ -9,6 +9,7 @@ plugins:
   - serverless-apigw-binary
   - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes
+  - serverless-plugin-log-retention
   - serverless-dynamodb-autoscaling
   - serverless-s3-encryption
   # - serverless-plugin-split-stacks
@@ -262,6 +263,8 @@ custom:
     buckets:
       SecretsBucket:
         SSEAlgorithm: AES256
+
+  logRetentionInDays: 7
 
 #   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
