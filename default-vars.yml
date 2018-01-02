@@ -32,5 +32,5 @@ reinitializeOnConfChanged:
   - bot_setstyle
   - bot_onfido
 debug:
-  format: text
+  format: json
   level: 4
