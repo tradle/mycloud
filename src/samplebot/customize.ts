@@ -8,6 +8,7 @@ import { createConf } from './configure'
 import Errors = require('../errors')
 
 const ONFIDO_PLUGIN_PATH = 'products.plugins.onfido'
+const emptyStringToUndefined = val => val === "" ? undefined : val
 
 export async function customize (opts) {
   let { lambda, bot, delayReady, event } = opts
@@ -31,6 +32,7 @@ export async function customize (opts) {
       Errors.ignore(err, Errors.NotFound)
       return undefined
     })
+    .then(emptyStringToUndefined)
   ])
 
   const { domain } = org
