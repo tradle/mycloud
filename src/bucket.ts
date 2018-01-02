@@ -1,6 +1,6 @@
 
 import AWS = require('aws-sdk')
-import _ from 'lodash'
+import _ = require('lodash')
 import createS3Utils = require('./s3-utils')
 import Logger from './logger'
 import { cachify } from './utils'

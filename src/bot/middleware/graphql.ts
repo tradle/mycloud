@@ -181,7 +181,6 @@ export const getGraphqlAPI = (opts) => {
   }
 
   bot.modelStore.on('update', () => {
-    debugger
     setModels(bot.modelStore.allCustomModels)
   })
 

@@ -40,7 +40,7 @@ export const createSuccessHandler = (lambda, opts) => {
     tasks.add({
       name: 'delivery:ack',
       promiser: async () => {
-        await delivery.ack({ clientId, message })
+        await delivery.mqtt.ack({ clientId, message })
       }
     })
 
@@ -61,7 +61,7 @@ export const createErrorHandler = (lambda, opts) => {
       tasks.add({
         name: 'delivery:ack',
         promiser: async () => {
-          await delivery.ack({ clientId, message: message || progress })
+          await delivery.mqtt.ack({ clientId, message: message || progress })
         }
       })
     }
@@ -70,7 +70,7 @@ export const createErrorHandler = (lambda, opts) => {
       tasks.add({
         name: 'delivery:reject',
         promiser: async () => {
-          await delivery.reject({
+          await delivery.mqtt.reject({
             clientId,
             message: progress,
             error

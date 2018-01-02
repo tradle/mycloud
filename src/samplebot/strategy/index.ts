@@ -1,10 +1,11 @@
 import crypto = require('crypto')
+import _ = require('lodash')
 import createProductsStrategy = require('@tradle/bot-products')
 import createEmployeeManager = require('@tradle/bot-employee-manager')
 import validateResource = require('@tradle/validate-resource')
 import mergeModels = require('@tradle/merge-models')
 import { TYPE } from '@tradle/constants'
-import { models as onfidoModels } from '@tradle/plugin-onfido'
+// import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { setNamePlugin } from './set-name'
 import { keepFreshPlugin } from './keep-fresh'
 import {
@@ -16,14 +17,14 @@ import {
 
 import createBot = require('../../bot')
 import { DatedValue } from '../../types'
-import createDeploymentModels from '../deployment-models'
-import createBankModels from '../bank-models'
-import * as TermsAndConditions from './ts-and-cs'
+// import createDeploymentModels from '../deployment-models'
+// import createBankModels from '../bank-models'
+import TermsAndConditions = require('./ts-and-cs')
 import Logger from '../../logger'
+import baseModels = require('../../models')
 
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
-const baseModels = require('../../models')
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DEFAULT_PRODUCTS = ['tradle.CurrentAccount']
 const DONT_FORWARD_FROM_EMPLOYEE = [
@@ -71,10 +72,10 @@ export default function createProductsBot ({
 
   logger.debug('setting up products strategy')
 
-  const deploymentModels = createDeploymentModels(namespace)
-  const DEPLOYMENT = deploymentModels.deployment.id
-  const bankModels = createBankModels(namespace)
-  const models = { ...deploymentModels.all, ...bankModels }
+  // const deploymentModels = createDeploymentModels(namespace)
+  // const DEPLOYMENT = deploymentModels.deployment.id
+  // const bankModels = createBankModels(namespace)
+  // const models = { ...deploymentModels.all, ...bankModels }
   const handleMessages = willHandleMessages(event)
   const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
@@ -82,8 +83,8 @@ export default function createProductsBot ({
     models: {
       all: mergeModels()
         .add(baseModels, { validate: false })
-        .add(models, mergeModelsOpts)
-        .add(USE_ONFIDO ? onfidoModels.all : {}, mergeModelsOpts)
+        // .add(models, mergeModelsOpts)
+        // .add(USE_ONFIDO ? onfidoModels.all : {}, mergeModelsOpts)
         .add(customModels || {}, mergeModelsOpts)
         .get()
     },
@@ -109,7 +110,7 @@ export default function createProductsBot ({
   // console.log('base models', BASE_MODELS_IDS.join(', '))
   // console.log('all models', Object.keys(productsAPI.models.all).join(', '))
 
-  bot.setCustomModels(productsAPI.models.all)
+  bot.setMyCustomModels(_.omit(productsAPI.models.all, BASE_MODELS_IDS))
   if (handleMessages) {
     productsAPI.install(bot)
   } else {
@@ -261,10 +262,10 @@ export default function createProductsBot ({
       }
     }) // append
 
-    if (productsAPI.products.includes(DEPLOYMENT)) {
+    if (productsAPI.products.includes('tradle.deploy.Deployment')) {
       // productsAPI.plugins.clear('onFormsCollected')
       const { createDeploymentHandlers } = require('../deployment-handlers')
-      productsAPI.plugins.use(createDeploymentHandlers({ bot, deploymentModels }))
+      productsAPI.plugins.use(createDeploymentHandlers({ bot }))
     }
 
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))

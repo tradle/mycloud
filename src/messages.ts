@@ -109,7 +109,7 @@ export default class Messages {
     return props
   }
 
-  public messageToEventPayload = (message: ITradleMessage) => {
+  public formatForDB = (message: ITradleMessage) => {
     const neutered = this.stripData(message)
     return {
       ...neutered,
@@ -165,7 +165,7 @@ export default class Messages {
       // _seqToRecipient: `${message._recipient}:${message[SEQ]}`
     })
 
-    const item = this.messageToEventPayload(message)
+    const item = this.formatForDB(message)
     if (message._inbound) {
       await this.putInboundMessage({ message, item })
     } else {

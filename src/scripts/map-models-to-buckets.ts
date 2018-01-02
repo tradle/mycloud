@@ -2,15 +2,23 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-const crypto = require('crypto')
-const path = require('path')
-const fs = require('fs')
-const { loadCredentials, getTableDefinitions } = require('../cli/utils')
+import crypto = require('crypto')
+import path = require('path')
+import fs = require('fs')
+import { loadRemoteEnv, loadCredentials, getTableDefinitions } from '../cli/utils'
 
 loadCredentials()
+loadRemoteEnv()
 
-const { dbUtils } = require('../').createRemoteTradle()
-const { models } = require('../samplebot')
-const outputPath = path.join(__dirname, '../modelmap.json')
-const output = dbUtils.getModelMap({ models })
-fs.writeFileSync(outputPath, JSON.stringify(output, null, 2))
+import { createRemoteTradle } from '../'
+import lambda = require('../samplebot/lambda/mqtt/onmessage')
+lambda.bot.promiseReady().then(() => {
+  const { dbUtils } = lambda.tradle
+  const outputPath = path.join(__dirname, '../modelmap.json')
+  const output = dbUtils.getModelMap({ models: lambda.bot.models })
+  fs.writeFileSync(outputPath, JSON.stringify(output, null, 2))
+})
+.catch(err => {
+  console.error(err.stack)
+  process.exitCode = 1
+})

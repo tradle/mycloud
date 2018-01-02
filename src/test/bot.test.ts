@@ -15,6 +15,7 @@ import createFakeBot = require('./mock/bot')
 import { loudAsync, wait } from '../utils'
 import { toStreamItems, recreateTable } from './utils'
 import Errors = require('../errors')
+import PingPongModels = require('../bot/ping-pong-models')
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
@@ -324,7 +325,7 @@ test('onmessagestream', loudAsync(async (t) => {
     "_s": "CkkKBHAyNTYSQQSra+ZW0NbpXhWzsrPJ3jaSmzL4LelVpqFr5ZC+VElHxcOD+8zlS+PuhtQrHB6LJ7KF+d8XtQzgYhVX1FXEBYYREkcwRQIgcF+hp6e5KnVj9VapsvnVkaJ6d3DL84DmJ3UueEHGiQMCIQDr0w0RJXIrLk7O1AgeEeLQfloFslsDzWVcHs4AhOFcrg==",
     "_sigPubKey": "04ab6be656d0d6e95e15b3b2b3c9de36929b32f82de955a6a16be590be544947c5c383fbcce54be3ee86d42b1c1e8b27b285f9df17b50ce0621557d455c4058611",
     "_t": "tradle.Message",
-    "_payloadType": "tradle.Ping",
+    "_payloadType": "ping.pong.Ping",
     "_virtual": [
       "_sigPubKey",
       "_link",
@@ -349,18 +350,16 @@ test('onmessagestream', loudAsync(async (t) => {
   }
 
   const payload = {
-    _t: 'tradle.Ping',
+    _t: 'ping.pong.Ping',
     _s: 'abc',
     _time: Date.now()
   }
 
   const tradle = createTestTradle()
-  const bot = createRealBot({
-    models: require('../bot/ping-pong-models'),
-    tradle
-  })
+  const bot = createRealBot({ tradle })
+  bot.setMyCustomModels(PingPongModels)
 
-  const table = await bot.db.getTableForModel('tradle.Ping')
+  const table = await bot.db.getTableForModel('ping.pong.Ping')
   // #1
   t.ok(table, 'table created per model')
 
@@ -409,7 +408,7 @@ test('onmessagestream', loudAsync(async (t) => {
   const gql = getGraphqlAPI({ bot })
   const result = await gql.executeQuery(`
     {
-      rl_tradle_Ping(orderBy:{
+      rl_ping_pong_Ping(orderBy:{
         property: _time
       }) {
         edges {
@@ -424,7 +423,7 @@ test('onmessagestream', loudAsync(async (t) => {
   // #7
   t.same(result, {
     "data": {
-      "rl_tradle_Ping": {
+      "rl_ping_pong_Ping": {
         "edges": [
           {
             "node": {
@@ -467,7 +466,8 @@ test('validate send', loudAsync(async (t) => {
     }
   }
 
-  const bot = createRealBot({ tradle, models })
+  const bot = createRealBot({ tradle })
+  bot.setMyCustomModels(models)
   try {
     await bot.send({
       to: bob.permalink,

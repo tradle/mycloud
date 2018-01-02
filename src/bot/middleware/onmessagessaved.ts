@@ -1,11 +1,7 @@
 // @ts-ignore
 import Promise = require('bluebird')
 import compose = require('koa-compose')
-import {
-  cloneDeep,
-  isEqual
-} from 'lodash'
-
+import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import Errors = require('../../errors')
 import { addLinks } from '../../crypto'
@@ -17,12 +13,25 @@ import {
   savePayloadToDB
 } from '../utils'
 
-import { EventSource } from '../../lambda'
+import { EventSource, Lambda } from '../../lambda'
+
+export const createMiddleware = (lambda:Lambda, opts?:any) => {
+  const stack = [
+    onMessagesSaved(lambda, opts)
+  ]
+
+  if (lambda.isUsingServerlessOffline) {
+    // fake process stream
+    stack.push(toStreamAndProcess(lambda, opts))
+  }
+
+  return compose(stack)
+}
 
 /**
  * runs after the inbound message has been written to inbox
  */
-export const onMessagesSaved = (lambda, opts) => {
+export const onMessagesSaved = (lambda:Lambda, opts={}) => {
   const { autosave=true } = opts
   const { bot, tradle, tasks, logger, isTesting } = lambda
   const locker = createLocker({
@@ -48,11 +57,11 @@ export const onMessagesSaved = (lambda, opts) => {
     try {
       ctx.user = await bot.users.createIfNotExists({ id: userId })
       let { user } = ctx
-      let userPre = cloneDeep(user)
+      let userPre = _.cloneDeep(user)
       for (const message of messages) {
-        if (bot.isTesting) {
-          await savePayloadToDB({ bot, message })
-        }
+        // if (bot.isTesting) {
+        //   await savePayloadToDB({ bot, message })
+        // }
 
         botMessageEvent = toBotMessageEvent({ bot, user, message })
         await bot.hooks.fire('message', botMessageEvent)
@@ -60,7 +69,7 @@ export const onMessagesSaved = (lambda, opts) => {
 
       if (autosave) {
         user = botMessageEvent.user
-        if (isEqual(user, userPre)) {
+        if (_.isEqual(user, userPre)) {
           logger.debug('user state was not changed by onmessage handler')
         } else {
           logger.debug('merging changes to user state')
@@ -75,6 +84,14 @@ export const onMessagesSaved = (lambda, opts) => {
   }
 }
 
+export const toStreamAndProcess = (lambda:Lambda, opts?: any) => {
+  const onMessageStream = require('./onmessagestream')
+  return compose([
+    toStream(lambda, opts),
+    onMessageStream.createMiddleware(lambda, opts)
+  ])
+}
+
 const toBotMessageEvent = ({ bot, user, message }):any => {
   // identity permalink serves as user id
   const payload = message.object
@@ -87,5 +104,19 @@ const toBotMessageEvent = ({ bot, user, message }):any => {
     type,
     link: payload._link,
     permalink: payload._permalink,
+  }
+}
+
+const toStream = (lambda:Lambda, opts?:any) => {
+  const { toStreamItems } = require('../../test/utils')
+  const { tradle } = lambda
+  return async (ctx, next) => {
+    ctx.event = toStreamItems(ctx.event.messages.map(m => {
+      const change = {}
+      change.new = tradle.messages.formatForDB(m)
+      return change
+    }))
+
+    await next()
   }
 }

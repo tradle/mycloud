@@ -12,6 +12,8 @@ export class Lambda extends BaseLambda {
   constructor ({ bot, middleware, ...lambdaOpts }: any) {
     super(lambdaOpts)
     this.bot = bot
+    bot.lambda = this
+
     this.promiseReady = bot.promiseReady
 
     // if (!bot.isReady()) {

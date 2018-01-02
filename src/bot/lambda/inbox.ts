@@ -6,11 +6,20 @@ import { onMessage as onMessageInInbox, createSuccessHandler, createErrorHandler
 import { onMessage } from '../middleware/onmessage'
 import { onMessagesSaved } from '../middleware/onmessagessaved'
 
+const MODELS_PACK = 'tradle.ModelsPack'
+
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)
+  const { bot } = lambda
   lambda.tasks.add({
     name: 'getiotendpoint',
-    promiser: lambda.bot.iot.getEndpoint
+    promiser: bot.iot.getEndpoint
+  })
+
+  bot.hook('message', async ({ type, payload }) => {
+    if (type === MODELS_PACK) {
+      await bot.modelStore.saveModelsPack(payload)
+    }
   })
 
   return lambda.use(createMiddleware(lambda, opts))

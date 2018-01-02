@@ -10,8 +10,10 @@ const utils = require('../utils')
 const templateFileName = 'compiled-cloudformation-template.json'
 const MIN_SCALE = 1
 const MAX_SCALE = 1
+const CONFIG_FORM = 'tradle.deploy.Configuration'
+const DEPLOYMENT_PRODUCT = 'tradle.deploy.Deployment'
 
-export const createDeploymentHandlers = ({ bot, deploymentModels }) => {
+export const createDeploymentHandlers = ({ bot }) => {
   const {
     // SERVERLESS_STAGE='dev',
     // SERVERLESS_SERVICE_NAME='tradle',
@@ -20,9 +22,6 @@ export const createDeploymentHandlers = ({ bot, deploymentModels }) => {
   } = bot.env
 
   const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
-  const CONFIG_FORM = deploymentModels.configuration.id
-  const DEPLOYMENT_PRODUCT = deploymentModels.deployment.id
-
   const getBaseTemplate = (function () {
     let baseTemplate
     if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {

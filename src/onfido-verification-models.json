@@ -1,0 +1,52 @@
+{
+  "tradle.OnfidoVerification": {
+    "id": "tradle.OnfidoVerification",
+    "type": "tradle.Model",
+    "forms": [
+      "tradle.PhotoID",
+      "tradle.Selfie",
+      "tradle.OnfidoApplicant"
+    ],
+    "subClassOf": "tradle.FinancialProduct",
+    "properties": {
+      "_t": {
+        "type": "string",
+        "readOnly": true
+      },
+      "from": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "to": {
+        "type": "object",
+        "readOnly": true,
+        "ref": "tradle.Identity"
+      },
+      "productType": {
+        "type": "string",
+        "readOnly": true,
+        "displayName": true
+      }
+    },
+    "title": "Onfido Verification"
+  },
+  "tradle.MyOnfidoVerification": {
+    "id": "tradle.MyOnfidoVerification",
+    "title": "My Onfido Verification",
+    "subClassOf": "tradle.MyProduct",
+    "type": "tradle.Model",
+    "properties": {
+      "myProductId": {
+        "title": "ID",
+        "type": "string"
+      }
+    },
+    "required": [
+      "myProductId"
+    ],
+    "viewCols": [
+      "myProductId"
+    ]
+  }
+}

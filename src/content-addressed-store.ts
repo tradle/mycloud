@@ -1,5 +1,4 @@
 
-import { ContentAddressed } from './buckets'
 import promisify = require('pify')
 import collect = require('stream-collector')
 import { aws } from './'

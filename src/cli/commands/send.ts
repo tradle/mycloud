@@ -1,4 +1,4 @@
-import { CommandOpts, ICommand, Cli } from '../'
+import Cli, { CommandOpts, ICommand } from '../'
 import Command from '../command'
 
 export default class Send extends Command implements ICommand {

@@ -1,7 +1,7 @@
 import Tradle from '../../tradle'
 import Env from '../../env'
 import Logger from '../../logger'
-import { CommandOpts, ICommand, Cli } from '../'
+import Cli, { CommandOpts, ICommand } from '../'
 import Command from '../command'
 import { prettify } from '../../string-utils'
 

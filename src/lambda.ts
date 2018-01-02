@@ -525,7 +525,7 @@ export class Lambda extends EventEmitter {
   }
 
   private _ensureNotBroken = () => {
-    if (this.breakingContext) {
+    if (!this.isTesting && this.breakingContext) {
       throw new Error('I am broken!: ' + JSON.stringify(this.breakingContext, null, 2))
     }
   }

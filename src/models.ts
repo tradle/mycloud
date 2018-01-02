@@ -1,8 +1,13 @@
 
 import mergeModels = require('@tradle/merge-models')
-import { models as base } from '@tradle/models'
-import custom = require('@tradle/custom-models')
+import { models as onfidoModels } from '@tradle/plugin-onfido'
 
+const base = require('@tradle/models').models
+const custom = require('@tradle/custom-models')
+const corporate = require('@tradle/models-corporate-onboarding')
+const nz = require('@tradle/models-nz')
+const deploymentModels = require('./deployment-models.json')
+const onfidoVerificationModels = require('./onfido-verification-models.json')
 const mergeOpts = { validate: false }
 const baseMessageModel = base['tradle.Message']
 baseMessageModel.properties._counterparty = {
@@ -25,6 +30,8 @@ if (!baseMessageModel.properties._deliveryStatus) {
 }
 
 const cloud = {
+  ...deploymentModels,
+  ...onfidoVerificationModels,
   // 'tradle.OutboxQuery': {
   //   type: 'tradle.Model',
   //   id: 'tradle.OutboxQuery',
@@ -41,11 +48,13 @@ const cloud = {
   'tradle.MyCloudFriend': require('./tradle.MyCloudFriend.json'),
   'tradle.GraphQLQuery': require('./tradle.GraphQLQuery.json'),
   'tradle.IotSession': require('./tradle.IotSession.json'),
-  'tradle.OnfidoVerification': require('./tradle.OnfidoVerification.json')
 }
 
 export = mergeModels()
   .add(base, mergeOpts)
   .add(custom, mergeOpts)
+  .add(onfidoModels.all, mergeOpts)
+  .add(corporate, mergeOpts)
+  .add(nz, mergeOpts)
   .add(cloud, mergeOpts)
   .get()

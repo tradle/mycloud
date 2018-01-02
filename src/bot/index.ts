@@ -89,6 +89,7 @@ function _createBot (opts: {
   } = tradle
 
   const {
+    IS_OFFLINE,
     TESTING,
     FUNCTION_NAME
   } = env
@@ -108,8 +109,7 @@ function _createBot (opts: {
   defineGetter(bot, 'kv', () => tradle.kv.sub(':bot'))
   defineGetter(bot, 'conf', () => tradle.kv.sub(':bot:conf'))
   defineGetter(bot, 'models', () => bot.modelStore.models)
-  bot.setCustomModels = customModels => bot.modelStore.setCustomModels(customModels)
-
+  bot.setMyCustomModels = customModels => bot.modelStore.setMyCustomModels(customModels)
   bot.isTesting = TESTING
   bot.init = () => tradle.init.init(opts)
   bot.getMyIdentity = () => tradle.provider.getMyPublicIdentity()
@@ -190,10 +190,18 @@ function _createBot (opts: {
         outboundMessageLocker.unlock(recipient)
       }
 
-      if (TESTING && messages) {
-        await Promise.all(messages.map(message => {
-          return savePayloadToDB({ bot, message: _.cloneDeep(message) })
-        }))
+      if (IS_OFFLINE && messages) {
+        const onSavedMiddleware = require('./middleware/onmessagessaved')
+        const processStream = onSavedMiddleware.toStreamAndProcess(bot.lambda)
+        await processStream({
+          event: {
+            messages: _.cloneDeep(messages)
+          }
+        })
+
+        // await Promise.all(messages.map(message => {
+        //   return savePayloadToDB({ bot, message: _.cloneDeep(message) })
+        // }))
       }
 
       return messages

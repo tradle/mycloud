@@ -1,6 +1,6 @@
 export = {
-  'tradle.Ping': {
-    id: 'tradle.Ping',
+  'ping.pong.Ping': {
+    id: 'ping.pong.Ping',
     title: 'Ping',
     type: 'tradle.Model',
     properties: {
@@ -10,8 +10,8 @@ export = {
       }
     }
   },
-  'tradle.Pong': {
-    id: 'tradle.Pong',
+  'ping.pong.Pong': {
+    id: 'ping.pong.Pong',
     title: 'Pong',
     type: 'tradle.Model',
     properties: {
