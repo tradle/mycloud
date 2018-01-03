@@ -221,7 +221,7 @@ export class Conf {
     const { bot } = this
     if (bot.isTesting) {
       const { org } = conf
-      org.domain += '.local'
+      // org.domain += '.local'
       org.name += '-local'
     }
 
