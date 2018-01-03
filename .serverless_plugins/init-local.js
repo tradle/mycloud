@@ -27,8 +27,8 @@ module.exports = class InitLocal {
   }
 
   startHandler() {
-    require('../lib/test/env').install()
     process.env.IS_OFFLINE = true
+    require('../lib/test/env').install()
     const { initializeProvider } = require('../lib/cli/utils')
     return initializeProvider()
   }
