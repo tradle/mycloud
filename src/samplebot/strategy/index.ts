@@ -151,6 +151,7 @@ export default function createProductsBot ({
       const tcPlugin = TermsAndConditions.createPlugin({
         termsAndConditions,
         productsAPI,
+        employeeManager,
         logger
       })
 

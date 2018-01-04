@@ -14,15 +14,17 @@ const YOU_HAVENT_ACCEPTED = `Please accept our Terms and Conditions before we co
 export const createPlugin = ({
   logger,
   productsAPI,
+  employeeManager,
   termsAndConditions
 }: {
   logger: Logger,
   productsAPI: any,
+  employeeManager: any,
   termsAndConditions: DatedValue
 }) => {
   const onmessage = async (req) => {
     const { user, payload, type } = req
-    if (user.friend) return
+    if (user.friend || employeeManager.isEmployee(user)) return
 
     if (type === TERMS_AND_CONDITIONS &&
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {

@@ -57,6 +57,8 @@ export const sendModelsPackIfUpdated = async ({
   identifier?: string,
   propertyName?: string
 }) => {
+  if (!Object.keys(models).length) return
+
   if (!identifier) identifier = getDefaultIdentifierFromUser(user)
 
   if (!user[propertyName] || typeof user[propertyName] !== 'object') {
