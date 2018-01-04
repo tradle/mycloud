@@ -47,7 +47,7 @@ export default function createProductsBot ({
   namespace,
   conf,
   termsAndConditions,
-  customModels,
+  customModels={},
   style,
   event
 }: {
@@ -55,11 +55,12 @@ export default function createProductsBot ({
   logger: Logger,
   namespace: string,
   conf: any,
-  customModels: any,
+  customModels?: any,
   style?: any,
   termsAndConditions?: DatedValue,
   event?: string
 }) {
+  if (!conf.products) debugger
   const {
     enabled,
     plugins={},
@@ -85,7 +86,7 @@ export default function createProductsBot ({
         .add(baseModels, { validate: false })
         // .add(models, mergeModelsOpts)
         // .add(USE_ONFIDO ? onfidoModels.all : {}, mergeModelsOpts)
-        .add(customModels || {}, mergeModelsOpts)
+        .add(customModels, mergeModelsOpts)
         .get()
     },
     products: enabled,
@@ -110,7 +111,8 @@ export default function createProductsBot ({
   // console.log('base models', BASE_MODELS_IDS.join(', '))
   // console.log('all models', Object.keys(productsAPI.models.all).join(', '))
 
-  bot.setMyCustomModels(_.omit(productsAPI.models.all, BASE_MODELS_IDS))
+  bot.setMyCustomModels(customModels)
+  // bot.setMyCustomModels(_.omit(productsAPI.models.all, BASE_MODELS_IDS))
   if (handleMessages) {
     productsAPI.install(bot)
   } else {

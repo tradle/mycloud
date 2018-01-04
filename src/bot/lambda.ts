@@ -50,7 +50,13 @@ export class Lambda extends BaseLambda {
       }
     })
 
-    // preware, effectively
+    // preware really
+
+    this.use(async (ctx, next) => {
+      await bot.promiseReady()
+      await next()
+    })
+
     if (middleware) this.use(middleware)
   }
 }

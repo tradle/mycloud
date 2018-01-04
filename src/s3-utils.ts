@@ -120,6 +120,13 @@ export = function createUtils ({ s3, logger }) {
     let type
     let etag
     let cachedTime = 0
+    const invalidateCache = () => {
+      cached = undefined
+      type = undefined
+      etag = undefined
+      cachedTime = 0
+    }
+
     const maybeGet = async (opts={}) => {
       let summary = { key, bucket, type }
       if (!opts.force) {
@@ -180,7 +187,8 @@ export = function createUtils ({ s3, logger }) {
 
     return {
       get: maybeGet,
-      put: putAndCache
+      put: putAndCache,
+      invalidateCache
     }
   }
 

@@ -10,27 +10,24 @@ export const onMessage = (lambda, { onSuccess, onError }) => {
   const { logger, tradle, tasks, isUsingServerlessOffline } = lambda
   const { user } = tradle
   return async (ctx, next) => {
-    ctx.event.messages = await Promise.mapSeries(ctx.event.messages, async (message, i) => {
+    const { clientId, friend, event } = ctx
+    event.messages = await Promise.mapSeries(event.messages, async (message, i) => {
       try {
         message = tradle.messages.normalizeInbound(message)
-        message = await user.onSentMessage({
-          message,
-          clientId: ctx.clientId,
-          friend: ctx.friend
-        })
-
+        message = await user.onSentMessage({ message, clientId, friend })
       } catch (error) {
-        await onError({ clientId: ctx.clientId, error, message })
+        await onError({ clientId, message, error })
         return
       }
 
-      await onSuccess(message)
+      await onSuccess({ clientId, message })
       return message
     })
 
-    ctx.event.messages = ctx.event.messages.filter(notNull)
-    if (ctx.event.messages.length) {
-      logger.debug('preprocessed messages')
+    event.messages = event.messages.filter(notNull)
+    const count = event.messages.length
+    if (count) {
+      logger.debug(`preprocessed ${count} messages`)
       await next()
     }
   }

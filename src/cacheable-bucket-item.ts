@@ -42,6 +42,8 @@ export class CacheableBucketItem {
   }
 
   public putIfDifferent = async (value:any, opts={}) => {
-    return await this.bucket.putIfDifferent(this.key, this.value)
+    const updated = await this.bucket.putIfDifferent(this.key, value)
+    if (updated) this.value.invalidateCache()
+    return updated
   }
 }

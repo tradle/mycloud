@@ -8,7 +8,7 @@ process.stdin
     str += data.toString()
   })
   .on('end', function () {
-    const { Items } = JSON.parse(str)
-    const unmarshalled = Items.map(unmarshalDBItem)
+    const { Item, Items } = JSON.parse(str)
+    const unmarshalled = Item ? unmarshalDBItem(Item) : Items.map(unmarshalDBItem)
     process.stdout.write(JSON.stringify(unmarshalled, null, 2))
   })

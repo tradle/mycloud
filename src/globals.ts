@@ -1,11 +1,11 @@
-import AWS = require('aws-sdk')
 // @ts-ignore
-import Promise = require('bluebird')
+const Promise = global.Promise = require('bluebird')
+
+import AWS = require('aws-sdk')
 import { install as installSourceMapSupport } from 'source-map-support'
 
 installSourceMapSupport()
 
-global.Promise = Promise
 AWS.config.setPromisesDependency(Promise)
 
 // process.on('unhandledRejection', function (reason, promise) {

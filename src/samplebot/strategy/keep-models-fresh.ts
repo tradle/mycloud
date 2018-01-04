@@ -97,8 +97,8 @@ export const createGetModelsForUser = ({ productsAPI, employeeManager }) => {
       .concat(BASE_MODELS_IDS)
   )
 
-  employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
-  customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
+  // employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
+  // customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
 
   return user => {
     if (employeeManager.isEmployee(user)) {

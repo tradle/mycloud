@@ -2,7 +2,6 @@
 import Promise = require('bluebird')
 import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
-import ModelsPack = require('@tradle/models-pack')
 import Errors = require('../../errors')
 import { getRecordsFromEvent } from '../../db-utils'
 import { getMessagePayload } from '../utils'

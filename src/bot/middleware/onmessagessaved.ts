@@ -58,11 +58,8 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
       ctx.user = await bot.users.createIfNotExists({ id: userId })
       let { user } = ctx
       let userPre = _.cloneDeep(user)
+      console.log('INBOUND MESSAGES', messages.map(m => m.object._t).join(', '))
       for (const message of messages) {
-        // if (bot.isTesting) {
-        //   await savePayloadToDB({ bot, message })
-        // }
-
         botMessageEvent = toBotMessageEvent({ bot, user, message })
         await bot.hooks.fire('message', botMessageEvent)
       }

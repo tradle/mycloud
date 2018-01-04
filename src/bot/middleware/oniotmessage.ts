@@ -35,7 +35,7 @@ export const onMessage = (lambda, opts) => {
 
 export const createSuccessHandler = (lambda, opts) => {
   const { tasks, logger, tradle } = lambda
-  return async ({ clientId, message, error }) => {
+  return async ({ clientId, message }) => {
     const { delivery } = tradle
     tasks.add({
       name: 'delivery:ack',

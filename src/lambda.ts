@@ -15,6 +15,7 @@ import Promise = require('bluebird')
 import compose = require('koa-compose')
 import caseless = require('caseless')
 import randomName = require('random-name')
+import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
 import Env from './env'
@@ -100,7 +101,7 @@ export class Lambda extends EventEmitter {
   public isVirgin: boolean
   public containerId: string
   public accountId: string
-  private breakingContext: any
+  private breakingContext: string
   private middleware:Function[]
   private requestCounter: number
   private initPromise: Promise<void>
@@ -286,11 +287,11 @@ export class Lambda extends EventEmitter {
     timeout.cancel()
 
     if (this.bot && !this.bot.isReady()) {
-      this.breakingContext = {
-        execCtx: _.cloneDeep(this.execCtx),
-        reqCtx: _.cloneDeep(this.reqCtx),
+      this.breakingContext = safeStringify({
+        execCtx: this.execCtx,
+        reqCtx: this.reqCtx,
         tasks: this.tasks.describe()
-      }
+      })
 
       this._ensureNotBroken()
     }
@@ -526,7 +527,7 @@ export class Lambda extends EventEmitter {
 
   private _ensureNotBroken = () => {
     if (!this.isTesting && this.breakingContext) {
-      throw new Error('I am broken!: ' + JSON.stringify(this.breakingContext, null, 2))
+      throw new Error('I am broken!: ' + this.breakingContext)
     }
   }
 }

@@ -175,6 +175,9 @@ function _createBot (opts: {
     logger.debug(`queueing messages to ${recipients.length} recipients`, { recipients })
     const results = await Promise.all(recipients.map(async (recipient) => {
       const subBatch = byRecipient[recipient]
+      const types = subBatch.map(m => m[TYPE]).join(', ')
+      bot.logger.debug(`sending to ${recipient}: ${types}`)
+
       await outboundMessageLocker.lock(recipient)
       let messages
       try {
@@ -198,10 +201,6 @@ function _createBot (opts: {
             messages: _.cloneDeep(messages)
           }
         })
-
-        // await Promise.all(messages.map(message => {
-        //   return savePayloadToDB({ bot, message: _.cloneDeep(message) })
-        // }))
       }
 
       return messages
