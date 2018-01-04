@@ -123,6 +123,7 @@ const errors = {
   NotFound: createError('NotFound'),
   InvalidSignature: createError('InvalidSignature'),
   InvalidAuthor: createError('InvalidAuthor'),
+  UnknownAuthor: createError('UnknownAuthor'),
   InvalidVersion: createError('InvalidVersion'),
   InvalidMessageFormat: createError('InvalidMessageFormat'),
   PutFailed: createError('PutFailed'),

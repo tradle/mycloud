@@ -44,10 +44,15 @@ export default class Identities {
 
   public metaByPub = async (pub:string) => {
     this.logger.debug('get identity metadata by pub', pub)
-    return this.pubKeys.get({
-      Key: { pub },
-      ConsistentRead: true
-    })
+    try {
+      return await this.pubKeys.get({
+        Key: { pub },
+        ConsistentRead: true
+      })
+    } catch (err) {
+      Errors.ignore(err, Errors.NotFound)
+      throw new Errors.UnknownAuthor(`with pub: ${pub}`)
+    }
   }
 
   public byPub = async (pub:string):Promise<IIdentity> => {
@@ -60,7 +65,7 @@ export default class Identities {
         error: err.stack
       })
 
-      throw new NotFound('identity with pub: ' + pub)
+      throw new Errors.UnknownAuthor('with pub: ' + pub)
     }
   }
 

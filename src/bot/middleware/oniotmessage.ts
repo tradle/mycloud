@@ -99,7 +99,7 @@ export const createErrorHandler = (lambda, opts) => {
       if (error instanceof Errors.TimeTravel) {
         logMsg = 'rejecting message with lower timestamp than previous'
         // @ts-ignore
-      } else if (error instanceof Errors.NotFound) {
+      } else if (error instanceof Errors.NotFound || error instanceof Errors.UnknownAuthor) {
         logMsg = 'rejecting message, either sender or payload identity was not found'
         // @ts-ignore
       } else if (error instanceof Errors.InvalidMessageFormat) {
