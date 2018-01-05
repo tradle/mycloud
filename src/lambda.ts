@@ -356,7 +356,7 @@ export class Lambda extends EventEmitter {
   }: {
     event,
     context,
-    request,
+    request?,
     callback?
   }) => {
     await this.initPromise

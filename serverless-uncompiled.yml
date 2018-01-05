@@ -1350,6 +1350,7 @@ resources:
             AttributeType: S
           - AttributeName: domain
             AttributeType: S
+          # should be N, but too late
           - AttributeName: _time
             AttributeType: S
         KeySchema:

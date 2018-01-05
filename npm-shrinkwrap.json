@@ -267,7 +267,7 @@
     "@tradle/models-pack": {
       "version": "1.0.0",
       "from": "tradle/models-pack",
-      "resolved": "git://github.com/tradle/models-pack.git#d0e63115e9dec6a91ea373f67582880a49a7ca45",
+      "resolved": "git://github.com/tradle/models-pack.git#5475430183ad3897190a2545a1f553173da5eacf",
       "dependencies": {
         "@tradle/validate-model": {
           "version": "4.3.0",
@@ -2875,7 +2875,7 @@
     },
     "lexicographic-integer": {
       "version": "1.1.0",
-      "from": "lexicographic-integer@>=1.1.0 <2.0.0",
+      "from": "https://registry.npmjs.org/lexicographic-integer/-/lexicographic-integer-1.1.0.tgz",
       "resolved": "https://registry.npmjs.org/lexicographic-integer/-/lexicographic-integer-1.1.0.tgz"
     },
     "load-json-file": {

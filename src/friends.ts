@@ -1,5 +1,6 @@
 const debug = require("debug")("tradle:sls:friends")
 import _ = require('lodash')
+import lexint = require('lexicographic-integer')
 import Cache = require('lru-cache')
 import fetch = require('node-fetch')
 import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
@@ -9,6 +10,12 @@ import { get, cachifyFunction } from './utils'
 import Identities from './identities'
 import Tradle from './tradle'
 import Logger from './logger'
+
+const definitions = require('./definitions')
+const tableDef = definitions.FriendsTable
+const timeIsString = tableDef.Properties.AttributeDefinitions.find(({ AttributeName }) => {
+  return AttributeName === '_time'
+}).AttributeType === 'S'
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
 const TEN_MINUTES = 10 * 60 * 60000
@@ -102,10 +109,16 @@ export default class Friends {
     const promiseAddContact = this.identities.addContact(identity)
     const signed = await this.provider.signObject({ object })
     const permalink = buildResource.permalink(identity)
+
+
     buildResource.setVirtual(signed, {
       _time: Date.now(),
       _identityPermalink: permalink
     })
+
+    if (timeIsString) {
+      signed._time = lexint.pack(signed._time, 'hex')
+    }
 
     await promiseAddContact
     debug(`saving friend: ${name}`)

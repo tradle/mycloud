@@ -16,8 +16,9 @@ const {
 } = require(pathToFriendsFile)
 
 Promise.all(
-  friends.map(({ subdomain }) => {
+  friends.map(({ domain, subdomain }) => {
   const payload = JSON.stringify({
+    domain,
     url: `https://${subdomain}.execute-api.us-east-1.amazonaws.com/dev/`
   })
 
