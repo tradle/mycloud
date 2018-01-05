@@ -91,8 +91,8 @@ export const createGetIdentifierFromReq = ({ employeeManager }) => {
   }
 }
 
-export const createGetModelsForUser = ({ productsAPI, employeeManager }) => {
-  const employeeModels = _.omit(productsAPI.models.all, BASE_MODELS_IDS)
+export const createGetModelsForUser = ({ bot, productsAPI, employeeManager }) => {
+  const employeeModels = _.omit(bot.models, BASE_MODELS_IDS)
   const customerModels = _.omit(
     productsAPI.models.all,
     Object.keys(productsAPI.models.private.all)

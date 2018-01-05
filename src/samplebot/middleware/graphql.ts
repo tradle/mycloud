@@ -19,7 +19,7 @@ export const keepModelsFresh = (lambda:Lambda, components) => {
     employeeManager,
   } = components
 
-  const getModelsForUser = createGetModelsForUser(components)
+  const getModelsForUser = createGetModelsForUser({ bot, ...components })
   return async (ctx, next) => {
     const { user } = ctx
     if (user) {

@@ -12,19 +12,19 @@ export const createLambda = (opts) => {
     promiser: bot.iot.getEndpoint
   })
 
-  const { modelStore } = tradle
-  bot.hook('message', async ({ user, payload }) => {
-    if (user.friend && payload[TYPE] === MODELS_PACK) {
-      const modelsPack = payload
-      try {
-        await modelStore.addModelsPack({ modelsPack })
-        return
-      } catch (err) {
-        logger.error(err.message, { modelsPack })
-        return false
-      }
-    }
-  })
+  // const { modelStore } = tradle
+  // bot.hook('message', async ({ user, payload }) => {
+  //   if (user.friend && payload[TYPE] === MODELS_PACK) {
+  //     const modelsPack = payload
+  //     try {
+  //       await modelStore.addModelsPack({ modelsPack })
+  //       return
+  //     } catch (err) {
+  //       logger.error(err.message, { modelsPack })
+  //       return false
+  //     }
+  //   }
+  // })
 
   return lambda.use(createMiddleware(lambda, opts))
 }

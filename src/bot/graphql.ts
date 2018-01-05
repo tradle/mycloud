@@ -99,7 +99,7 @@ export const getGraphqlAPI = (opts) => {
   }
 
   bot.modelStore.on('update', () => {
-    setModels(bot.modelStore.allCustomModels)
+    setModels(bot.modelStore.models)
   })
 
   const presignEmbeddedMediaLinks = (items) => {

@@ -111,7 +111,7 @@ export default function createProductsBot ({
   // console.log('base models', BASE_MODELS_IDS.join(', '))
   // console.log('all models', Object.keys(productsAPI.models.all).join(', '))
 
-  bot.setMyCustomModels(customModels)
+  bot.setMyCustomModels(_.omit(productsAPI.models.all, BASE_MODELS_IDS))
   // bot.setMyCustomModels(_.omit(productsAPI.models.all, BASE_MODELS_IDS))
   if (handleMessages) {
     productsAPI.install(bot)
@@ -131,7 +131,7 @@ export default function createProductsBot ({
     })
 
     productsAPI.removeDefaultHandler('onCommand')
-    const getModelsForUser = createGetModelsForUser({ productsAPI, employeeManager })
+    const getModelsForUser = createGetModelsForUser({ bot, productsAPI, employeeManager })
     const keepModelsFresh = keepModelsFreshPlugin({
       getIdentifier: createGetIdentifierFromReq({ employeeManager }),
       getModelsForUser,
