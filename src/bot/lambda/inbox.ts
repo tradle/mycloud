@@ -10,15 +10,20 @@ const MODELS_PACK = 'tradle.ModelsPack'
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)
-  const { bot } = lambda
+  const { bot, logger } = lambda
   lambda.tasks.add({
     name: 'getiotendpoint',
     promiser: bot.iot.getEndpoint
   })
 
   bot.hook('message', async ({ type, payload }) => {
-    if (type === MODELS_PACK) {
+    if (type !== MODELS_PACK) return
+
+    try {
       await bot.modelStore.saveModelsPack(payload)
+    } catch (err) {
+      logger.error(err.message, { pack: payload })
+      return false
     }
   })
 

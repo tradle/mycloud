@@ -68,7 +68,7 @@ export const sendModelsPackIfUpdated = async ({
   const versionId = user[propertyName][identifier]
   let pack = mapModelsToPack.get(models)
   if (!pack) {
-    pack = ModelsPack.pack(models)
+    pack = ModelsPack.pack({ models })
     mapModelsToPack.set(models, pack)
   }
 

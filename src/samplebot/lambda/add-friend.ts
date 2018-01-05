@@ -1,14 +1,15 @@
+import typeforce = require('typeforce')
 import { createBot } from '../../bot'
 
 const bot = createBot()
 const lambda = bot.createLambda()
 lambda.use(async ({ event }) => {
-  const { url } = event
-  if (!url) {
-    throw new Error('"url" is required')
-  }
+  typeforce({
+    url: 'String',
+    domain: 'String'
+  }, event)
 
-  await bot.friends.load({ url })
+  await bot.friends.load(event)
 })
 
 export const handler = lambda.handler

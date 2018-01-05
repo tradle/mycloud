@@ -13,14 +13,14 @@ import {
   savePayloadToDB
 } from '../utils'
 
-import { EventSource, Lambda } from '../../lambda'
+import { EventSource, Lambda } from '../lambda'
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const stack = [
     onMessagesSaved(lambda, opts)
   ]
 
-  if (lambda.isUsingServerlessOffline) {
+  if (lambda.source !== EventSource.DYNAMODB && lambda.isUsingServerlessOffline) {
     // fake process stream
     stack.push(toStreamAndProcess(lambda, opts))
   }
