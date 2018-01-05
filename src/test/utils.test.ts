@@ -1,6 +1,7 @@
 require('./env').install()
 
 import test = require('tape')
+import _ = require('lodash')
 import Cache = require('lru-cache')
 import sinon = require('sinon')
 import ModelsPack = require('@tradle/models-pack')
@@ -26,7 +27,7 @@ import Errors = require('../errors')
 import { Tradle, createTestTradle } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
-import { createModelStore } from '../model-store'
+import { ModelStore, createModelStore } from '../model-store'
 
 const { KVTable } = require('../definitions')
 const aliceKeys = require('./fixtures/alice/keys')
@@ -323,6 +324,10 @@ test('Bucket', loudAsync(async (t) => {
     { method: 'exists', args: ['abc'], result: false },
     { method: 'exists', args: ['abcd'], result: false },
     { method: 'del', args: ['abcd'], result: {} },
+    { method: 'getJSON', args: ['abc'], error: 'NotFound' },
+    { method: 'gzipAndPut', args: ['abc', { cba: 1 }] },
+    { method: 'getJSON', args: ['abc'], result: { cba: 1 } },
+    { method: 'del', args: ['abc'], result: {} },
   ]
 
   for (const op of ops) {
@@ -666,23 +671,35 @@ test('batchProcess', loudAsync(async (t) => {
 }))
 
 test('ModelStore', loudAsync(async (t) => {
-  const friend = {
-    _identityPermalink: Date.now() + '123',
-    domain: `${Date.now()}.example.com`
+  const friend1 = {
+    _identityPermalink: Date.now() + '1',
+    domain: `${Date.now()}.example1.com`
+  }
+
+  const friend2 = {
+    _identityPermalink: Date.now() + '2',
+    domain: `${Date.now()}.example2.com`
   }
 
   const tradle = createTestTradle()
   const store = createModelStore(tradle)
-  sinon.stub(tradle.friends, 'getByDomain').resolves(friend)
+  sinon.stub(tradle.friends, 'getByDomain').callsFake(async (domain) => {
+    if (domain === friend1.domain) return friend1
+    if (domain === friend2.domain) return friend2
+
+    throw new Errors.NotFound(`friend for domain: ${domain}`)
+  })
+
   try {
-    await store.getModelsPackByDomain(friend.domain)
+    await store.getModelsPackByDomain(friend1.domain)
     t.fail('expected error')
   } catch (err) {
+    // 1
     t.equal(Errors.matches(err, Errors.NotFound), true)
   }
 
-  const namespace = domainToNamespace(friend.domain)
-  const pack = ModelsPack.pack({
+  const namespace = domainToNamespace(friend1.domain)
+  const modelsPack = ModelsPack.pack({
     models: [
       {
         type: 'tradle.Model',
@@ -697,25 +714,91 @@ test('ModelStore', loudAsync(async (t) => {
     ]
   })
 
+  let memBucket = {}
+  sinon.stub(store.bucket, 'gzipAndPut').callsFake(async (key, value) => {
+    memBucket[key] = value
+  })
+
+  sinon.stub(store.bucket, 'getJSON').callsFake(async (key) => {
+    if (!(key in memBucket)) {
+      throw new Errors.NotFound(key)
+    }
+
+    return memBucket[key]
+  })
+
   try {
-    await store.saveModelsPack(pack)
+    await store.saveModelsPack({ modelsPack })
     t.fail('expected error')
   } catch (err) {
+    // 2
     t.ok(/namespace/.test(err.message))
   }
 
-  pack.namespace = namespace
-  pack._author = 'abc'
+  modelsPack.namespace = namespace
+  modelsPack._author = 'abc'
   try {
-    await store.saveModelsPack(pack)
+    await store.saveModelsPack({ modelsPack })
     t.fail('expected error')
   } catch (err) {
+    // 3
     t.ok(/domain/i.test(err.message))
   }
 
-  pack._author = friend._identityPermalink
-  await store.saveModelsPack(pack)
-  t.same(await store.getModelsPackByDomain(friend.domain), pack)
+  modelsPack._author = friend1._identityPermalink
+  await store.saveModelsPack({ modelsPack })
+  // 4
+  t.same(await store.getModelsPackByDomain(friend1.domain), modelsPack)
+
+  // 5
+  t.equal(await store.getCumulativeForeignModelsPack(), null)
+  console.log('patience...')
+  await store.addModelsPack({ modelsPack })
+  // 6
+  t.same(await store.getCumulativeForeignModelsPack(), modelsPack)
+
+  const namespace2 = domainToNamespace(friend2.domain)
+  const modelsPack2 = ModelsPack.pack({
+    namespace: namespace2,
+    models: [
+      {
+        type: 'tradle.Model',
+        id: `${namespace2}.Name`,
+        title: 'Custom Name1',
+        properties: {
+          name: {
+            type: 'string'
+          }
+        }
+      }
+    ]
+  })
+
+  modelsPack2._author = friend2._identityPermalink
+  console.log('patience...')
+  await store.addModelsPack({ modelsPack: modelsPack2 })
+  const allForeign = await store.getCumulativeForeignModelsPack()
+  let isCumulative = modelsPack.models.concat(modelsPack2.models).every(model => {
+    return allForeign.models.find(m => m.id === model.id)
+  })
+
+  // 7
+  t.equal(isCumulative, true)
+
+  const cumulative = await store.getCumulativeModelsPack()
+  isCumulative = modelsPack.models
+    .concat(modelsPack2.models)
+    .concat(_.values(store.getMyCustomModels())).every(model => {
+      return cumulative.models.find(m => m.id === model.id)
+    })
+
+  // 8
+  t.equal(isCumulative, true)
+
+  // console.log('patience...')
+  const schema = await store.getSavedGraphqlSchema()
+  // 9
+  t.ok(schema)
   t.end()
 }))
 

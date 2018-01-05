@@ -43,7 +43,8 @@ const constants = {
     identity: prefix + 'identity.json',
   },
   PRIVATE_CONF_BUCKET: {
-    modelsPack: 'derived/cumulative-models-pack.json'
+    modelsPack: 'derived/cumulative-models-pack.json',
+    graphqlSchema: 'derived/cumulative-graphql-schema.json'
   },
   HANDSHAKE_TIMEOUT: 30000,
   PUSH_SERVER_URL: 'https://push1.tradle.io',

@@ -2,27 +2,39 @@ import { omit } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Logger from './logger'
-import { timeMethods, isPromise, batchify, batchProcess } from './utils'
+import { timeMethods, isPromise, batchify, batchProcess, gzip } from './utils'
 
-export = function createUtils ({ s3, logger }) {
-  const put = async ({ key, value, bucket, contentType }: {
-    key:string,
-    value:any,
-    bucket:string,
-    contentType?:string
-  }):Promise<AWS.S3.Types.PutObjectOutput> => {
+export type PutOpts = {
+  key:string,
+  value:any,
+  bucket:string,
+  headers?:any
+}
+
+export default function createUtils ({ s3, logger }) {
+  const put = async ({ key, value, bucket, headers={} }: PutOpts)
+    :Promise<AWS.S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts:AWS.S3.Types.PutObjectRequest = {
+      ...headers,
       Bucket: bucket,
       Key: key,
       Body: toStringOrBuf(value)
     }
 
-    if (contentType) {
-      opts.ContentType = contentType
-    }
-
     return await s3.putObject(opts).promise()
+  }
+
+  const gzipAndPut = async (opts) => {
+    const { value, headers={} } = opts
+    return await put({
+      ...opts,
+      value: await gzip(toStringOrBuf(value)),
+      headers: {
+        ...{},
+        ContentEncoding: 'gzip'
+      }
+    })
   }
 
   const get = async ({ key, bucket, ...opts }: {
@@ -255,6 +267,7 @@ export = function createUtils ({ s3, logger }) {
     clearBucket,
     put,
     putJSON,
+    gzipAndPut,
     head,
     del,
     exists,
@@ -265,6 +278,8 @@ export = function createUtils ({ s3, logger }) {
     forEachItemInBucket
   }, logger)
 }
+
+export { createUtils }
 
 const toStringOrBuf = (value) => {
   if (typeof value === 'string') return value

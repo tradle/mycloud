@@ -10,7 +10,7 @@ import IotMessage = require('@tradle/iot-message')
 import { utils as tradleUtils } from '@tradle/engine'
 import { createTestTradle } from '../'
 import { createBot as createRealBot } from '../bot'
-import { getGraphqlAPI } from '../bot/middleware/graphql'
+import { getGraphqlAPI } from '../bot/graphql'
 import createFakeBot = require('./mock/bot')
 import { loudAsync, wait } from '../utils'
 import { toStreamItems, recreateTable } from './utils'

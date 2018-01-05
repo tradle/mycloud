@@ -1,4 +1,5 @@
 import fs = require('fs')
+import zlib = require('zlib')
 // allow override promise
 // @ts-ignore
 import Promise = require('bluebird')
@@ -111,6 +112,10 @@ export {
  noop,
  stableStringify
 }
+
+export const pzlib = promisify(zlib)
+export const gzip = (data):Promise<Buffer> => pzlib.gzip(data)
+export const gunzip = (data):Promise<Buffer> => pzlib.gunzip(data)
 
 export function loudCo (gen) {
   return co(function* (...args) {

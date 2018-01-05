@@ -1,14 +1,12 @@
 import yn = require('yn')
-import _zlib = require('zlib')
 import { EventEmitter } from 'events'
-import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, promisify } from './utils'
+import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip } from './utils'
 import { IDelivery, IDeliverBatchRequest } from "./types"
 import { IDebug } from './types'
 import Logger from './logger'
 import Env from './env'
 import Errors = require('./errors')
 
-const zlib = promisify(_zlib)
 const COMPRESSION_THRESHOLD = 1024
 const FETCH_TIMEOUT = 10000
 
@@ -33,7 +31,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     let payload = JSON.stringify({ messages })
     if (!this.env.IS_OFFLINE && payload.length > COMPRESSION_THRESHOLD) {
       this.logger.debug('gzipping payload')
-      payload = await zlib.gzip(payload)
+      payload = await gzip(payload)
       headers['Content-Encoding'] = 'gzip'
     }
 

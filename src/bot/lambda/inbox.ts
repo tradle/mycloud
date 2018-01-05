@@ -20,9 +20,9 @@ export const createLambda = (opts) => {
     if (type !== MODELS_PACK) return
 
     try {
-      await bot.modelStore.saveModelsPack(payload)
+      await bot.modelStore.saveModelsPack({ modelsPack: payload })
     } catch (err) {
-      logger.error(err.message, { pack: payload })
+      logger.error(err.message, { modelsPack: payload })
       return false
     }
   })

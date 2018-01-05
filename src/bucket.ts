@@ -1,7 +1,7 @@
 
 import AWS = require('aws-sdk')
 import _ = require('lodash')
-import createS3Utils = require('./s3-utils')
+import createS3Utils from './s3-utils'
 import Logger from './logger'
 import { cachify } from './utils'
 
@@ -46,6 +46,12 @@ export class Bucket {
   public list = () => this.utils.listBucket({ bucket: this.name })
   public put = (key, value) => this.utils.put({ key, value, bucket: this.name })
   public putJSON = (key, value) => this.put(key, value)
+  public gzipAndPut = (key, value) => this.utils.gzipAndPut({
+    key,
+    value,
+    bucket: this.name
+  })
+
   public head = key => this.utils.head({ key, bucket: this.name })
   public exists = key => this.utils.exists({ key, bucket: this.name })
   public del = key => this.utils.del({ key, bucket: this.name })
