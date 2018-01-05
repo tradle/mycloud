@@ -15,6 +15,7 @@ export = function createIotUtils ({ aws, env, prefix='' }) {
     if (!('qos' in params)) params.qos = DEFAULT_QOS
 
     params.payload = await IotMessage.encode({
+      type: 'messages',
       payload: params.payload,
       encoding: 'gzip'
     })

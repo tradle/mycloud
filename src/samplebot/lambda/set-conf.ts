@@ -20,7 +20,7 @@ lambda.use(async (ctx) => {
   }
 
   if (models) {
-    promises.push(conf.setModels(models))
+    promises.push(conf.saveModelsPack(models))
   }
 
   if (terms) {

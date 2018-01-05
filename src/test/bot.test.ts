@@ -218,7 +218,8 @@ const rethrow = err => {
 
     // #5
     const data = await IotMessage.encode({
-      payload: { messages: [message] }
+      type: 'messages',
+      payload: [message]
     })
 
     await bot.lambdas.onmessage().handler({

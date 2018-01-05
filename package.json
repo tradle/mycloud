@@ -131,7 +131,7 @@
     "@tradle/engine": "^5.5.0",
     "@tradle/ethereum-adapter": "github:tradle/ethereum-adapter",
     "@tradle/gen-samples": "github:tradle/gen-samples",
-    "@tradle/iot-message": "^1.2.0",
+    "@tradle/iot-message": "^3.0.0",
     "@tradle/merge-models": "^2.1.0",
     "@tradle/models": "github:tradle/models",
     "@tradle/models-corporate-onboarding": "github:tradle/models-corporate-onboarding",

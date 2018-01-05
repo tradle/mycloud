@@ -178,7 +178,12 @@ export class Conf {
     return await this.bot.forceReinitializeContainers(reinitializeOnConfChanged)
   }
 
-  public getPublicInfo = async ():Promise<any> => {
+  public getPublicInfo = async () => {
+    // TODO: get via info.get()
+    return await this.calcPublicInfo()
+  }
+
+  public calcPublicInfo = async ():Promise<any> => {
     const [org, style, identity, conf] = await Promise.all([
       this.org.get(),
       this.style.get(),

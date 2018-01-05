@@ -14,7 +14,7 @@ import Delivery from './delivery'
 import { TaskManager } from './task-manager'
 import Messages from './messages'
 import Tradle from './tradle'
-import { ISession } from './types'
+import { ISession, IPositionPair } from './types'
 
 const notNull = val => !!val
 const ClientErrors = {
@@ -94,6 +94,41 @@ export default class User {
     await this.maybeDeliverMessagesToClient(session)
   }
 
+  public onAnnouncePosition = async ({
+    clientId,
+    session,
+    position
+  }: {
+    clientId?:string,
+    session?:ISession,
+    position: IPositionPair
+  }) => {
+    if (!session) session = await this.ensureLiveSession({ clientId })
+
+    const { clientPosition} = session
+    if (!clientPosition) {
+      this.logger.error('expected session to have clientPosition', { session })
+      await this.requestIotClientReconnect({ clientId })
+      return
+    }
+
+    const { received=clientPosition.received } = position
+    if (received.time < clientPosition.received.time) {
+      const message = 'position requested cannot be less than advertised during auth'
+      this.logger.error(message, { session, position })
+      await this.requestIotClientReconnect({ clientId, message })
+      return
+    }
+
+    await this.maybeDeliverMessagesToClient({
+      ...session,
+      clientPosition: {
+        ...clientPosition,
+        received
+      }
+    })
+  }
+
   public maybeDeliverMessagesToClient = async (session:ISession) => {
     if (!(session.connected && session.authenticated)) {
       this.logger.debug(`can't deliver messages, client is, ${getDeliveryReadiness(session)}`)
@@ -163,9 +198,9 @@ export default class User {
     }
   }
 
-  public ensureLiveSession = async ({ clientId }) => {
+  public ensureLiveSession = async ({ clientId }):Promise<ISession|void> => {
     try {
-      await this.auth.getMostRecentSessionByClientId(clientId)
+      return await this.auth.getMostRecentSessionByClientId(clientId)
     } catch (error) {
       Errors.ignore(error, Errors.NotFound)
       this.logger.debug('iot session not found', { clientId })
@@ -213,6 +248,10 @@ export default class User {
     clientId,
     error,
     message=ClientErrors.reconnect_required
+  }: {
+    clientId: string,
+    error?: Error,
+    message?: string
   }) => {
     this.logger.debug('requesting iot client reconnect', error && {
       stack: error.stack

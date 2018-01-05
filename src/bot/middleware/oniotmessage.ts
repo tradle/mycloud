@@ -20,16 +20,30 @@ export const onMessage = (lambda, opts) => {
     ctx.clientId = clientId
     const buf = typeof data === 'string' ? new Buffer(data, 'base64') : data
     let messages
+    let type
+    let payload
+    let decoded
     try {
-      const payload = await IotMessage.decode(buf)
-      ctx.event.messages = JSON.parse(payload.toString()).messages
+      decoded = await IotMessage.decode(buf)
+      type = decoded.type
+      payload = JSON.parse(decoded.body.toString())
     } catch (err) {
       logger.error('client sent invalid MQTT payload', err.stack)
       await user.onIncompatibleClient({ clientId })
       return
     }
 
-    await next()
+    if (type === 'announcePosition') {
+      await user.onAnnouncePosition({
+        clientId,
+        position: payload
+      })
+    } else if (type === 'messages') {
+      ctx.event.messages = payload
+      await next()
+    } else {
+      this.logger.error('unsupported iot message type', decoded)
+    }
   }
 }
 
