@@ -238,7 +238,7 @@ function createDBUtils ({ aws, logger }) {
     return Table
   }
 
-  const clear = async (TableName:string):number => {
+  const clear = async (TableName:string):Promise<number> => {
     const { KeySchema } = await getTableDefinition(TableName)
     const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
     let count = 0

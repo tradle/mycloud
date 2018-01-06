@@ -447,8 +447,8 @@ test('onmessagestream', loudAsync(async (t) => {
 
 test('validate send', loudAsync(async (t) => {
   const tradle = createTestTradle()
-  tradle.provider.sendMessage = () => Promise.resolve()
-  tradle.provider.sendMessageBatch = () => Promise.resolve()
+  sinon.stub(tradle.provider, 'sendMessage').resolves()
+  sinon.stub(tradle.provider, 'sendMessageBatch').resolves()
 
   const models = {
     'ding.bling': {
