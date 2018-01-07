@@ -31,8 +31,7 @@ const definitions = require('../definitions')
 const readline = require('readline')
 
 const deleteApplications = async () => {
-  const { productsAPI } = await customize({ bot })
-  const models = productsAPI.models.all
+  const { models } = await customize({ bot })
   console.log('finding victims...')
   const modelsToDelete = Object.keys(models).filter(id => {
     const model = models[id]

@@ -140,17 +140,17 @@ const rethrow = err => {
   }))
 
   test(`onmessage (${mode})`, loudAsync(async (t) => {
-    t.plan(6)
+    t.plan(5)
 
     const tradle = createTestTradle()
     const { objects, messages, identities } = tradle
     const bot = createBot({ tradle })
     const { users } = bot
 
-    let updatedUser
-    users.merge = async () => {
-      updatedUser = true
-    }
+    // let updatedUser
+    // users.merge = async () => {
+    //   updatedUser = true
+    // }
 
     users.createIfNotExists = async (user) => {
       // #1
@@ -231,7 +231,7 @@ const rethrow = err => {
 
     // await bot.trigger('message', message)
     // #6
-    t.equal(updatedUser, true)
+    // t.equal(updatedUser, true)
     // identities.byPermalink = byPermalink
   }))
 

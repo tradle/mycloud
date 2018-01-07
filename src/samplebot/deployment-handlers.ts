@@ -10,8 +10,8 @@ const utils = require('../utils')
 const templateFileName = 'compiled-cloudformation-template.json'
 const MIN_SCALE = 1
 const MAX_SCALE = 1
-const CONFIG_FORM = 'tradle.deploy.Configuration'
-const DEPLOYMENT_PRODUCT = 'tradle.deploy.Deployment'
+const CONFIG_FORM = 'tradle.cloud.Configuration'
+const DEPLOYMENT_PRODUCT = 'tradle.cloud.Deployment'
 
 export const createDeploymentHandlers = ({ bot }) => {
   const {

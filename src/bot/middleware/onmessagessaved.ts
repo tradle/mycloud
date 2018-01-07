@@ -32,7 +32,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
  * runs after the inbound message has been written to inbox
  */
 export const onMessagesSaved = (lambda:Lambda, opts={}) => {
-  const { autosave=true } = opts
   const { bot, tradle, tasks, logger, isTesting } = lambda
   const locker = createLocker({
     name: 'inbound message lock',
@@ -52,25 +51,13 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     }
 
     const userId = authors[0]
-    let botMessageEvent
     await lock(userId)
     try {
       ctx.user = await bot.users.createIfNotExists({ id: userId })
-      let { user } = ctx
-      let userPre = _.cloneDeep(user)
+      const { user } = ctx
       for (const message of messages) {
-        botMessageEvent = toBotMessageEvent({ bot, user, message })
+        const botMessageEvent = toBotMessageEvent({ bot, user, message })
         await bot.hooks.fire('message', botMessageEvent)
-      }
-
-      if (autosave) {
-        user = botMessageEvent.user
-        if (_.isEqual(user, userPre)) {
-          logger.debug('user state was not changed by onmessage handler')
-        } else {
-          logger.debug('merging changes to user state')
-          await bot.users.merge(user)
-        }
       }
     } finally {
       await unlock(userId)

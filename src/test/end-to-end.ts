@@ -43,6 +43,7 @@ const nextUserIdentity = (function () {
 const baseModels = require('../models')
 const defaultProducts = ['tradle.CorporateBankAccount']
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
+const APPLICATION = 'tradle.Application'
 
 function E2ETest ({
   tradle=defaultTradleInstance,
@@ -139,7 +140,7 @@ proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
 proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
   yield this._ready
   const { bot, productsAPI } = this
-  const allModels = productsAPI.models.all
+  const allModels = bot.modelStore.models
   const employee = createUser({ bot, name: 'employee' })
   yield this.onboardEmployee({ user: employee })
 
@@ -255,8 +256,9 @@ proto.judge = co(function* ({
 
   // if (!employee) return
 
+  const { models } = this.bot.modelStore
   const approval = buildResource({
-      models: productsAPI.models.all,
+      models,
       model: 'tradle.ApplicationApproval',
     })
     .set({
@@ -266,7 +268,7 @@ proto.judge = co(function* ({
     .toJSON()
 
   const denial = buildResource({
-      models: productsAPI.models.all,
+      models,
       model: 'tradle.ApplicationDenial',
     })
     .set({
@@ -289,7 +291,7 @@ proto.judge = co(function* ({
 
 proto.assignEmployee = co(function* ({ user, employee, context }) {
   const application = yield this.getApplicationByContext({ context })
-  const allModels = this.productsAPI.models.all
+  const allModels = this.bot.modelStore.models
   const assign = employee.send({
     other: { context },
     object: buildResource({
@@ -324,9 +326,8 @@ proto.runThroughApplication = co(function* ({
   } = this
 
   yield user.sendSelfIntroduction()
-  const allModels = productsAPI.models.all
+  const allModels = this.bot.modelStore.models
   const bizModels = productsAPI.models.biz
-  const privateModels = productsAPI.models.private
   user.send({ object: createProductRequest(product) })
 
   let assignedEmployee
@@ -346,8 +347,8 @@ proto.runThroughApplication = co(function* ({
     let type = object[TYPE]
     if (type === 'tradle.FormRequest') {
       let form = genSample({
-        models: productsAPI.models.all,
-        model: productsAPI.models.all[object.form]
+        models: allModels,
+        model: allModels[object.form]
       })
       .value
 
@@ -400,7 +401,7 @@ proto.getApplicationByContext = function ({ context }) {
   return bot.db.findOne({
     filter: {
       EQ: {
-        [TYPE]: productsAPI.models.private.application.id,
+        [TYPE]: APPLICATION,
         context
       }
     }
@@ -571,16 +572,7 @@ function recordTypes (user, types) {
 function wrapWithIntercept (fn) {
   return co(function* (...args) {
     const { bot, tradle } = this
-    this.interceptor = intercept({
-      bot,
-      tradle,
-      // onmessage: function ({ permalink, messages }) {
-      //   if (permalink === employee.permalink) {
-      //     debugger
-      //     // yield
-      //   }
-      // }
-    })
+    this.interceptor = intercept({ bot, tradle })
 
     try {
       yield fn.apply(this, args)

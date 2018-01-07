@@ -148,9 +148,7 @@ const errors = {
     return exportError(err)
   },
   isDeveloperError: (err:Error): boolean => {
-    const is = matches(err, 'developer')
-    if (is) debugger
-    return is
+    return matches(err, 'developer')
   },
   isCustomError: (err:Error): boolean => {
     return err.name in errors

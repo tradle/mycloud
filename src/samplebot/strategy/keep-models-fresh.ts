@@ -19,7 +19,7 @@ export const keepModelsFreshPlugin = ({
   getIdentifier=getDefaultIdentifierFromReq,
   send
 }: {
-  getModelsForUser: Function,
+  getModelsForUser: (user) => any,
   send: ({ req, object }) => Promise<any>
   getIdentifier?: (req:any) => string,
   propertyName?: string,
@@ -93,11 +93,12 @@ export const createGetIdentifierFromReq = ({ employeeManager }) => {
 
 export const createGetModelsForUser = ({ bot, productsAPI, employeeManager }) => {
   const employeeModels = _.omit(bot.models, BASE_MODELS_IDS)
-  const customerModels = _.omit(
-    productsAPI.models.all,
-    Object.keys(productsAPI.models.private.all)
-      .concat(BASE_MODELS_IDS)
-  )
+  const customerModels = employeeModels
+  // const customerModels = _.omit(
+  //   productsAPI.models.all,
+  //   Object.keys(productsAPI.models.private.all)
+  //     .concat(BASE_MODELS_IDS)
+  // )
 
   // employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
   // customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']

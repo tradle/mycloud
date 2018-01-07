@@ -60,7 +60,6 @@ export default function createProductsBot ({
   termsAndConditions?: DatedValue,
   event?: string
 }) {
-  if (!conf.products) debugger
   const {
     enabled,
     plugins={},
@@ -80,6 +79,7 @@ export default function createProductsBot ({
   const handleMessages = willHandleMessages(event)
   const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
+    bot,
     namespace,
     models: {
       all: mergeModels()
@@ -94,8 +94,9 @@ export default function createProductsBot ({
     // queueSends: bot.env.TESTING ? true : queueSends
   })
 
-  const send = (...args) => productsAPI.send(...args)
+  const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
+    bot,
     productsAPI,
     approveAll: approveAllEmployees,
     wrapForEmployee: true,
@@ -111,14 +112,20 @@ export default function createProductsBot ({
   // console.log('base models', BASE_MODELS_IDS.join(', '))
   // console.log('all models', Object.keys(productsAPI.models.all).join(', '))
 
-  bot.setMyCustomModels(_.omit(productsAPI.models.all, BASE_MODELS_IDS))
+  bot.setMyCustomModels(customModels)
   // bot.setMyCustomModels(_.omit(productsAPI.models.all, BASE_MODELS_IDS))
+  // if (handleMessages) {
+  //   productsAPI.install(bot)
+  // } else {
+  //   productsAPI.bot = bot
+  //   productsAPI.emit('bot', bot)
+  // }
+
   if (handleMessages) {
-    productsAPI.install(bot)
-  } else {
-    productsAPI.bot = bot
-    productsAPI.emit('bot', bot)
+    bot.hook('message', productsAPI.onmessage)
   }
+
+  const myIdentityPromise = bot.getMyIdentity()
 
   let commands
   if (handleMessages) {
@@ -142,7 +149,7 @@ export default function createProductsBot ({
     bizPlugins.forEach(plugin => productsAPI.plugins.use(plugin({
       bot,
       get models() {
-        return productsAPI.models.all
+        return bot.modelStore.models
       },
       productsAPI
     }), true)) // prepend
@@ -247,6 +254,7 @@ export default function createProductsBot ({
 
         if (!approved) {
           await productsAPI.approveApplication({ req })
+          // verify unverified
           await productsAPI.issueVerifications({ req, user, application, send: true })
         }
       },
@@ -254,11 +262,15 @@ export default function createProductsBot ({
         await commands.exec({ req, command })
       },
       didApproveApplication: async ({ req }) => {
-        const { application, user } = req
+        const { applicant, application, user } = req
+        if (employeeManager.isEmployee(user) && user.id !== applicant.id) {
+          await productsAPI.issueVerifications({ req, user: applicant, application, send: true })
+        }
+
         if (application.requestFor === EMPLOYEE_ONBOARDING) {
           await sendModelsPackIfUpdated({
-            user,
-            models: getModelsForUser(user),
+            user: applicant,
+            models: getModelsForUser(applicant),
             send: object => send({ req, object })
           })
         }
@@ -292,7 +304,9 @@ export default function createProductsBot ({
   if (customizeMessageOpts) {
     const customizeMessage = require('@tradle/plugin-customize-message')
     productsAPI.plugins.use(customizeMessage({
-      models: productsAPI.models.all,
+      get models() {
+        return bot.modelStore.models
+      },
       conf: customizeMessageOpts,
       logger
     }))
@@ -303,6 +317,7 @@ export default function createProductsBot ({
     productsAPI,
     employeeManager,
     onfidoPlugin,
-    commands
+    commands,
+    models: bot.modelStore.models
   }
 }

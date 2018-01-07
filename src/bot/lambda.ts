@@ -62,10 +62,10 @@ export class Lambda extends BaseLambda {
 }
 
 export const createLambda = (opts):Lambda => new Lambda(opts)
-export const fromHTTP = (opts={}) => new Lambda({ ...opts, source: EventSource.HTTP })
-export const fromDynamoDB = (opts={}) => new Lambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts={}) => new Lambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts={}) => new Lambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts={}) => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts={}) => new Lambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts={}) => new Lambda({ ...opts, source: EventSource.S3 })
+export const fromHTTP = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.HTTP })
+export const fromDynamoDB = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.S3 })
