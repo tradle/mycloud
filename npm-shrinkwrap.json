@@ -50,7 +50,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager#cloud",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#ea36d07653e930ddcd286ea44d803f072b25c631"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#381eda2c94b7ed42023cc326458173c495183fed"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
