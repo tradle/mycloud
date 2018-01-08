@@ -148,7 +148,7 @@
     "@tradle/schema-joi": "github:tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",
     "@tradle/validate-model": "^5.0.0",
-    "@tradle/validate-resource": "^2.16.0",
+    "@tradle/validate-resource": "^2.16.1",
     "aws-xray-sdk": "^1.1.4",
     "bluebird": "^3.5.0",
     "bluebird-q": "^2.1.1",
