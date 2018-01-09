@@ -69,3 +69,4 @@ export const fromSchedule = (opts={}):Lambda => new Lambda({ ...opts, source: Ev
 export const fromCloudFormation = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
 export const fromLambda = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.LAMBDA })
 export const fromS3 = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.S3 })
+export const fromCli = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.CLI })

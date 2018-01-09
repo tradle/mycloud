@@ -8,9 +8,11 @@ export const EMPLOYEE_COMMANDS = [
   'listproducts',
   'forgetme',
   'setproductenabled',
-  'setautoverify',
+  // 'setautoverify',
+  'setautoapprove',
   'addfriend',
-  'tours'
+  'tours',
+  'message'
 ]
 
 export const CUSTOMER_COMMANDS = [
@@ -87,9 +89,8 @@ export const toggleProduct = createEditConfOp(async ({ context, req, product, en
   conf.products.enabled = newProductsList
 })
 
-export const getAvailableCommands = ({ context, req }) => {
-  const isEmployee = context.employeeManager.isEmployee(req.user)
-  return isEmployee ? EMPLOYEE_COMMANDS : CUSTOMER_COMMANDS
+export const getAvailableCommands = (ctx) => {
+  return ctx.employee ? EMPLOYEE_COMMANDS : CUSTOMER_COMMANDS
 }
 
 export const getCommandByName = commandName => {

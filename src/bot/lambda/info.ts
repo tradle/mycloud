@@ -1,5 +1,6 @@
 import compose = require('koa-compose')
 import cors = require('kcors')
+import { get } from '../middleware/noop-route'
 import { EventSource, Lambda, fromHTTP } from '../lambda'
 
 export const createLambda = (opts) => {
@@ -11,6 +12,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { bot, logger } = lambda
 
   return compose([
+    get(),
     cors(),
     async (ctx, next) => {
       logger.debug('setting bot endpoint info')

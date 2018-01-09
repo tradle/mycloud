@@ -1,16 +1,23 @@
 import parse = require('yargs-parser')
 import { TYPE } from '@tradle/constants'
 
-export default {
+import { ICommand } from '../../../types'
+
+export const command:ICommand = {
   name: 'tours',
   examples: [
     '/tours',
     '/tours intro'
   ],
   description: 'list tours or view a tour',
-  exec: async function ({ context, req, command }) {
+  parse: (argsStr:string) => {
     const args = parse(command)
-    const name = args._[0]
+    return {
+      name: args._[0]
+    }
+  },
+  exec: async function ({ context, req, args }) {
+    const { name } = args
     const { tours } = context.conf
     if (!name) {
       const list = Object.keys(tours).join('\n')

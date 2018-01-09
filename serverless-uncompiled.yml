@@ -976,6 +976,17 @@ functions:
           path: onfido
           method: post
 
+  cli:
+    handler: lib/samplebot/lambda/cli.handler
+
+  cli_dev:
+    handler: lib/samplebot/lambda/cli.handler
+    # dev mode only
+    events:
+      - http:
+          path: cli
+          method: post
+
   # bash:
   #   handler: lib/samplebot/lambda/bash.handler
 

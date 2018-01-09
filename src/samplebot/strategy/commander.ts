@@ -32,6 +32,20 @@ type Args = {
   [key: string]: any
 }
 
+type CommandContext = {
+  commandName: string
+  allowed?: boolean
+  employee?: boolean
+  sudo?: boolean
+  argsStr: string
+  [x:string]: any
+}
+
+const SUDO = {
+  employee: true,
+  allowed: true
+}
+
 export class Commander {
   private bot:any
   private productsAPI:any
@@ -46,51 +60,79 @@ export class Commander {
     this.logger = bot.logger.sub('cli')
   }
 
-  public exec = async ({ req, command }) => {
-    this.logger.debug(`processing command: ${command}`)
-    const isEmployee = this.employeeManager.isEmployee(req.user)
-    const [commandName, argsStr=''] = command.match(COMMAND_REGEX).slice(1)
-    const commandNames = getAvailableCommands({ context: this, req })
-    if (!commandNames.includes(commandName)) {
-      const message = isEmployee
-        ? `command not found: ${commandName}`
-        : DEFAULT_ERROR_MESSAGE
-
-      await this.sendSimpleMessage({ req, message })
+  private auth = async (ctx:CommandContext):Promise<void> => {
+    if (ctx.sudo) {
+      ctx.allowed = true
       return
     }
 
-    try {
-      const matchingCommand = getCommandByName(commandName)
-      await matchingCommand.exec({
-        context: this,
-        req,
-        command: argsStr
-      })
-    } catch (err) {
-      this.logger.debug(`failed to process command: ${command}`, err.stack)
-      const message = isEmployee
-        ? err.message
+    const { req, commandName } = ctx
+    if (!req.user) {
+      throw new Error(`cannot authenticate, don't know user`)
+    }
+
+    const { user } = req
+    ctx.employee = this.employeeManager.isEmployee(user)
+    const commandNames = getAvailableCommands(ctx)
+    ctx.allowed = commandNames.includes(commandName)
+    if (!ctx.allowed) {
+      const message = ctx.employee
+        ? `command not found: ${commandName}`
         : DEFAULT_ERROR_MESSAGE
 
-      await this.sendSimpleMessage({ req, message })
+      await this.sendSimpleMessage({ to: user, message })
     }
   }
 
-  public send = async (...args) => {
-    return await this.productsAPI.send(...args)
+  public exec = async ({ req, command, sudo=false }) => {
+    this.logger.debug(`processing command: ${command}`)
+    if (!req) req = this.productsAPI.state.newRequestState({})
+
+    const { user } = req
+    const [commandName, argsStr=''] = command.match(COMMAND_REGEX).slice(1)
+    const ctx:CommandContext = {
+      commandName,
+      argsStr,
+      sudo,
+      allowed: sudo,
+      req
+    }
+
+    await this.auth(ctx)
+    if (!ctx.allowed) return
+
+    try {
+      const matchingCommand = getCommandByName(commandName)
+      const args = matchingCommand.parse ? matchingCommand.parse(argsStr) : null
+      await matchingCommand.exec({
+        context: this,
+        req,
+        args
+      })
+    } catch (err) {
+      this.logger.debug(`failed to process command: ${command}`, err.stack)
+      if (user) {
+        const message = ctx.employee
+          ? err.message
+          : DEFAULT_ERROR_MESSAGE
+
+        await this.sendSimpleMessage({ req, to: user, message })
+      }
+    }
+  }
+
+  public send = async (opts) => {
+    return await this.productsAPI.send(opts)
   }
 
   public sendSimpleMessage = async ({ req, to, message }: {
-    req: any
-    to?: any
+    req?: any,
+    to: any
     message: string
   }) => {
-    if (!to) to = req.user
-
-    await this.productsAPI.send({
+    return await this.send({
       req,
-      to,
+      to: to || req.user,
       object: {
         [TYPE]: 'tradle.SimpleMessage',
         message

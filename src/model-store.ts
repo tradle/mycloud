@@ -149,7 +149,10 @@ export class ModelStore extends EventEmitter {
 
   public setMyCustomModels = (models) => {
     // ModelsPack.validate(ModelsPack.pack({ models }))
-    this.setMyNamespace(ModelsPack.getNamespace(firstValue(models)))
+    const first = firstValue(models)
+    if (!first) return
+
+    this.setMyNamespace(ModelsPack.getNamespace(first))
     this.cache.removeModels(this._myCustomModels)
     this.addModels(models)
     this._myCustomModels = _.clone(models)

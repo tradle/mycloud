@@ -97,7 +97,7 @@ export const createDeploymentHandlers = ({ bot }) => {
       const message = `couldn't process your logo!`
       await bot.requestEdit({
         user,
-        object,
+        item: object,
         message,
         errors: [
           {

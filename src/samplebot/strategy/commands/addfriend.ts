@@ -7,6 +7,7 @@ import validateResource = require('@tradle/validate-resource')
 import models = require('../../../models')
 import { toggleProduct } from '../utils'
 import Errors = require('../../../errors')
+import { ICommand } from '../../../types'
 
 const { parseStub } = validateResource.utils
 const description = `add a known provider by url.
@@ -18,15 +19,15 @@ ${EXAMPLE}
 
 Keep in mind that "domain" will be used to validate the namespace of foreign models.`
 
-export default {
+export const command:ICommand = {
   name: 'addfriend',
   description,
   examples: [
     '/addfriend tradle.example.com --domain tradle.example.com',
     '/addfriend https://tradle.example.com --domain tradle.example.com',
   ],
-  exec: async function ({ context, req, command }) {
-    const args = parse(command)
+  parse: (argsStr:string) => {
+    const args = parse(argsStr)
     const { domain } = args
     let url = args._[0]
     if (!url.startsWith('http')) {
@@ -38,6 +39,10 @@ export default {
       throw new Error(`expected "--domain", for example: ${USAGE}`)
     }
 
+    return { url, domain }
+  },
+  exec: async function ({ context, req, args }) {
+    const { url, domain } = args
     const friend = await context.bot.friends.load({ domain, url })
     const friendStub = buildResource.stub({
       models,

@@ -96,6 +96,7 @@ export default function createProductsBot ({
 
   const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
+    logger: logger.sub('employees'),
     bot,
     productsAPI,
     approveAll: approveAllEmployees,
@@ -223,7 +224,7 @@ export default function createProductsBot ({
       //   })
       // },
       'onmessage:tradle.SimpleMessage': async (req) => {
-        const { application, object } = req
+        const { user, application, object } = req
         const { message } = object
         bot.debug(`processing simple message: ${message}`)
         if (message[0] === '/') return
@@ -232,7 +233,7 @@ export default function createProductsBot ({
         const lowercase = message.toLowerCase()
         if (/^hey|hi|hello$/.test(message)) {
           await send({
-            req,
+            to: user,
             object: {
               [TYPE]: 'tradle.SimpleMessage',
               message: `${message} yourself!`
@@ -253,25 +254,24 @@ export default function createProductsBot ({
         })
 
         if (!approved) {
-          await productsAPI.approveApplication({ req })
+          await productsAPI.approveApplication({ user, application })
           // verify unverified
-          await productsAPI.issueVerifications({ req, user, application, send: true })
+          await productsAPI.issueVerifications({ user, application, send: true })
         }
       },
       onCommand: async ({ req, command }) => {
         await commands.exec({ req, command })
       },
-      didApproveApplication: async ({ req }) => {
-        const { applicant, application, user } = req
-        if (employeeManager.isEmployee(user) && user.id !== applicant.id) {
-          await productsAPI.issueVerifications({ req, user: applicant, application, send: true })
+      didApproveApplication: async ({ req, user, application, approvedBy }) => {
+        if (approvedBy) {
+          await productsAPI.issueVerifications({ req, user, application, send: true })
         }
 
         if (application.requestFor === EMPLOYEE_ONBOARDING) {
           await sendModelsPackIfUpdated({
-            user: applicant,
-            models: getModelsForUser(applicant),
-            send: object => send({ req, object })
+            user,
+            models: getModelsForUser(user),
+            send: object => send({ req, to: user, application, object })
           })
         }
       }

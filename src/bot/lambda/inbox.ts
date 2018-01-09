@@ -1,6 +1,7 @@
 import compose = require('koa-compose')
 import cors = require('kcors')
 import { bodyParser } from '../middleware/body-parser'
+import { route } from '../middleware/noop-route'
 import { Lambda, fromHTTP } from '../lambda'
 import { onMessage as onMessageInInbox, createSuccessHandler, createErrorHandler } from '../middleware/inbox'
 import { onMessage } from '../middleware/onmessage'
@@ -32,6 +33,7 @@ export const createLambda = (opts) => {
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   return compose([
+    route(['post', 'put']),
     cors(),
     bodyParser({ jsonLimit: '10mb' }),
     onMessageInInbox(lambda, opts),

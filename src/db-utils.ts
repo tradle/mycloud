@@ -22,6 +22,7 @@ import { sha256 } from './crypto'
 import Errors = require('./errors')
 import Env from './env'
 
+const alwaysTrue = (...any) => true
 const definitions = require('./definitions')
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
@@ -238,13 +239,15 @@ function createDBUtils ({ aws, logger }) {
     return Table
   }
 
-  const clear = async (TableName:string):Promise<number> => {
+  const clear = async (TableName:string, filter:Function=alwaysTrue):Promise<number> => {
     const { KeySchema } = await getTableDefinition(TableName)
     const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
     let count = 0
     await batchProcess({
       params: { TableName },
       processOne: async (item) => {
+        if (!filter(item)) return
+
         await execWhile('delete', {
           TableName,
           Key: _.pick(item, keyProps)

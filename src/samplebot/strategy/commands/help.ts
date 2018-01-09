@@ -4,16 +4,23 @@ import {
   getCommandByName
 } from '../utils'
 
-export default {
+import { ICommand } from '../../../types'
+
+export const command:ICommand = {
   name: 'help',
   description: 'see this menu, or the help for a particular command',
   examples: [
     '/help',
     '/help listproducts'
   ],
-  exec: async function ({ context, req, command }) {
+  parse: (argsStr:string) => {
+    return {
+      commandName: parse(argsStr)._[0]
+    }
+  },
+  exec: async function ({ context, req, args }) {
+    const { commandName } = args
     const { employeeManager } = context
-    const commandName = parse(command)._[0]
     let message
     if (commandName) {
       const c = getCommandByName(commandName)

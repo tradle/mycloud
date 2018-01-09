@@ -30,12 +30,11 @@ export const createPlugin = ({
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
       logger.debug(`updating ${user.id}.${DATE_ACCEPTED_PROP}`)
       _.set(user, DATE_ACCEPTED_PROP, Date.now())
-      await productsAPI.sendProductList(req)
+      await productsAPI.sendProductList({ to: user })
       return
     }
 
     const accepted = await ensureAccepted({
-      req,
       termsAndConditions,
       user,
       productsAPI,
@@ -46,7 +45,7 @@ export const createPlugin = ({
 
     if (type === SIMPLE_MESSAGE) {
       await productsAPI.send({
-        req,
+        to: user,
         object: {
           [TYPE]: SIMPLE_MESSAGE,
           message: YOU_HAVENT_ACCEPTED
@@ -63,13 +62,11 @@ export const createPlugin = ({
 }
 
 export const ensureAccepted = async ({
-  req,
   termsAndConditions,
   user,
   productsAPI,
   logger
 }: {
-  req?: any,
   termsAndConditions: DatedValue,
   user: any,
   productsAPI: any,
@@ -84,12 +81,8 @@ export const ensureAccepted = async ({
   if (!(datePresented && datePresented > termsAndConditions.lastModified)) {
     _.set(user, DATE_PRESENTED_PROP, Date.now())
     logger.debug(`requesting ${user.id} to accept T's and C's`)
-    if (!req) {
-      req = productsAPI.state.newRequestState({ user })
-    }
-
     await productsAPI.requestItem({
-      req,
+      user,
       item: {
         form: 'tradle.TermsAndConditions',
         message: 'Hi! Before we begin this beautiful friendship, please review our **Terms and Conditions**',

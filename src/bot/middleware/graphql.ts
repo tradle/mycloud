@@ -5,6 +5,7 @@ import compose = require('koa-compose')
 import graphqlHTTP = require('koa-graphql')
 import { formatError } from 'graphql'
 import ModelsPack = require('@tradle/models-pack')
+import { route } from './noop-route'
 import { Level } from '../../logger'
 import { logResponseBody } from '../../utils'
 import { getGraphqlAPI, prettifyQuery } from '../graphql'
@@ -58,6 +59,7 @@ export const createHandler = (opts) => {
   })
 
   const middleware = [
+    route(['get', 'post']),
     handler
   ]
 

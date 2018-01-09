@@ -1,6 +1,6 @@
 import Router = require('koa-router')
 
-export const route = (methods:string|string[], path:string) => {
+export const route = (methods:string|string[], path:string='/') => {
   const router = new Router()
   ;[].concat(methods).forEach(method => {
     router[method](path, async (ctx, next) => {

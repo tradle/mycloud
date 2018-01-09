@@ -5,10 +5,10 @@ import { setProperty } from '../utils'
 import { ICommand } from '../../../types'
 
 export const command:ICommand = {
-  name: 'setautoverify',
+  name: 'setautoapprove',
   examples: [
-    '/setautoverify',
-    '/setautoverify false'
+    '/setautoapprove',
+    '/setautoapprove false'
   ],
   description: 'toggle whether verifications are issued automatically for forms',
   parse: (argsStr:string) => {
@@ -19,7 +19,7 @@ export const command:ICommand = {
   },
   exec: async function ({ context, req, args }) {
     const { value } = args
-    const path = 'products.autoVerify'
+    const path = 'products.autoApprove'
     await setProperty({ context, req, path, value })
     context.logger.debug(`set ${path} to ${value}`)
     await context.sendSimpleMessage({

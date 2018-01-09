@@ -369,7 +369,9 @@ const clearTypes = async ({ tradle, types }) => {
           break
         } catch (err) {
           const { name } = err
-          if (!(name === 'ResourceNotFoundException' || name === 'LimitExceededException')) {
+          if (!(name === 'ResourceNotFoundException' ||
+            name === 'LimitExceededException' ||
+            name === 'ProvisionedThroughputExceededException')) {
             throw err
           }
 

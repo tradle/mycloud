@@ -8,24 +8,10 @@ import { customize } from '../samplebot/customize'
 import { createBot } from '../bot'
 import { list as listCommands, get as getCommand } from './registrar'
 import Command from './command'
+import { ICommand, CommandOpts, CliOpts } from '../types'
 
 const remoteServiceMap = require('./remote-service-map')
 const providerConf = require('../../conf/provider')
-
-export type CliOpts = {
-  remote?: boolean
-  console?: any
-}
-
-export type CommandOpts = {
-  requiresConfirmation: boolean
-  description: string
-  exec: (any) => Promise<any>
-}
-
-export interface ICommand {
-  exec: (any) => Promise<any>
-}
 
 let instance
 

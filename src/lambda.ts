@@ -45,7 +45,8 @@ export enum EventSource {
   IOT='iot',
   CLOUDFORMATION='cloudformation',
   SCHEDULE='schedule',
-  S3='s3'
+  S3='s3',
+  CLI='cli'
 }
 
 export interface IRequestContext {
@@ -71,6 +72,7 @@ export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, call
   => any|void
 
 export interface ILambdaOpts {
+  devModeOnly?: boolean
   source?: EventSource
   tradle?: Tradle
   [x:string]: any
@@ -83,6 +85,7 @@ export const fromSchedule = (opts={}) => new Lambda({ ...opts, source: EventSour
 export const fromCloudFormation = (opts={}) => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
 export const fromLambda = (opts={}) => new Lambda({ ...opts, source: EventSource.LAMBDA })
 export const fromS3 = (opts={}) => new Lambda({ ...opts, source: EventSource.S3 })
+export const fromCli = (opts={}) => new Lambda({ ...opts, source: EventSource.CLI })
 
 export class Lambda extends EventEmitter {
   // initialization
@@ -130,6 +133,14 @@ export class Lambda extends EventEmitter {
     this.exit = this.exit.bind(this)
     this.reset()
     this._gotHandler = false
+    if (opts.devModeOnly) {
+      this.use(async (ctx, next) => {
+        if (!this.isTesting) throw new Error('forbidden')
+
+        await next()
+      })
+    }
+
     this.use(warmup(this))
     this.tasks.add({
       name: 'warmup:cache',

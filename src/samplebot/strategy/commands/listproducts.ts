@@ -1,4 +1,6 @@
-export default {
+import { ICommand } from '../../../types'
+
+export const command:ICommand = {
   name: 'listproducts',
   examples: [
     '/listproducts'
@@ -8,8 +10,9 @@ export default {
     '/ls-products'
   ],
   description: 'see a list of products',
-  exec: async function ({ context, req, command }) {
-    const { productsAPI } = context
-    await productsAPI.sendProductList(req)
+  exec: async ({ context, req }) => {
+    // const { conf } = context
+    // return conf.bot.products.enabled.slice()
+    await context.productsAPI.sendProductList({ to: req.user })
   }
 }

@@ -189,3 +189,23 @@ export type DatedValue = {
   lastModified: number
   value: any
 }
+
+
+export type CliOpts = {
+  remote?: boolean
+  console?: any
+}
+
+export type CommandOpts = {
+  requiresConfirmation: boolean
+  description: string
+  exec: (any) => Promise<any>
+}
+
+export interface ICommand {
+  name: string
+  description: string
+  examples: string[]
+  parse?: (args:string) => any
+  exec: (any) => Promise<any>
+}

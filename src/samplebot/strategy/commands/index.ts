@@ -1,11 +1,13 @@
 
-import help from './help'
-import listproducts from './listproducts'
-import forgetme from './forgetme'
-import setproductenabled from './setproductenabled'
-import setautoverify from './setautoverify'
-import addfriend from './addfriend'
-import tours from './tours'
+import { command as help } from './help'
+import { command as listproducts } from './listproducts'
+import { command as forgetme } from './forgetme'
+import { command as setproductenabled } from './setproductenabled'
+import { command as setautoverify } from './setautoverify'
+import { command as setautoapprove } from './setautoapprove'
+import { command as addfriend } from './addfriend'
+import { command as tours } from './tours'
+import { command as message } from './message'
 
 export {
   help,
@@ -13,7 +15,9 @@ export {
   forgetme,
   setproductenabled,
   setautoverify,
+  setautoapprove,
   addfriend,
-  tours
+  tours,
+  message
   // autoApprove
 }

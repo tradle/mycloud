@@ -49,7 +49,13 @@ const deleteApplications = async () => {
     }
   })
 
-  const tablesToClear = [definitions.UsersTable.Properties.TableName]
+  const tablesToClear = [
+    {
+      name: definitions.UsersTable.Properties.TableName,
+      filter: user => !user.friend
+    }
+  ]
+
   console.log(`1. will delete the following types: ${JSON.stringify(modelsToDelete, null, 2)}`)
   console.log('2. will also clear the following tables\n', tablesToClear)
 
@@ -74,9 +80,9 @@ const deleteApplications = async () => {
 
   console.log(`deleted items count: ${JSON.stringify(deleteCounts, null, 2)}`)
 
-  for (const table of tablesToClear) {
-    console.log('clearing', table)
-    const numDeleted = await clear(table)
+  for (const { name, filter } of tablesToClear) {
+    console.log('clearing', name)
+    const numDeleted = await clear(name, filter)
     console.log(`deleted ${numDeleted} items from ${table}`)
   }
 }

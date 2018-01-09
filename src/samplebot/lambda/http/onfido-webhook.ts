@@ -2,6 +2,7 @@ import { EventSource } from '../../../lambda'
 import cors = require('kcors')
 import { createBot } from '../../../bot'
 import { customize } from '../../customize'
+import { post } from '../../../bot/middleware/noop-route'
 
 const bot = createBot({ ready: false })
 const lambda = bot.createLambda({ source: EventSource.HTTP })
@@ -11,6 +12,7 @@ lambda.tasks.add({
   promise: promiseCustomize
 })
 
+lambda.use(post())
 lambda.use(cors())
 lambda.use(async (ctx) => {
   const { onfidoPlugin } = await promiseCustomize

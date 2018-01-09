@@ -20,7 +20,7 @@ export const keepModelsFreshPlugin = ({
   send
 }: {
   getModelsForUser: (user) => any,
-  send: ({ req, object }) => Promise<any>
+  send: ({ req, to, object }) => Promise<any>
   getIdentifier?: (req:any) => string,
   propertyName?: string,
 }) => {
@@ -39,7 +39,7 @@ export const keepModelsFreshPlugin = ({
       models: getModelsForUser(user),
       propertyName,
       identifier,
-      send: object => send({ req, object })
+      send: object => send({ req, to: user, object })
     })
   }
 }

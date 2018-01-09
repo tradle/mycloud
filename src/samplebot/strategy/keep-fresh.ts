@@ -35,6 +35,6 @@ export const keepFreshPlugin = ({
     if (hash === savedHash) return
 
     container[identifier] = hash
-    await send({ req, object })
+    await send({ req, to: user, object })
   }
 }
