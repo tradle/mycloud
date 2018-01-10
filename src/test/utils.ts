@@ -1,5 +1,6 @@
 require('./env').install()
 
+import randomName = require('random-name')
 import { co } from '../utils'
 import { createTestTradle } from '../'
 import Errors = require('../errors')
@@ -93,6 +94,18 @@ function scanner (map) {
   })
 }
 
+const createTestProfile = () => {
+  const first = randomName.first()
+  const last = randomName.last()
+  return {
+    name: {
+      firstName: first,
+      lastName: last,
+      formatted: first + ' ' + last
+    }
+  }
+}
+
 export {
   getSchema,
   recreateTable,
@@ -101,5 +114,6 @@ export {
   putter,
   deleter,
   scanner,
-  createSilentLogger
+  createSilentLogger,
+  createTestProfile
 }

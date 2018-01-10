@@ -228,11 +228,14 @@ export default function createProductsBot ({
         const { message } = object
         bot.debug(`processing simple message: ${message}`)
         if (message[0] === '/') return
-        if (application && application.relationshipManager) return
+        if (application &&
+          application.relationshipManagers &&
+          application.relationshipManagers.length) return
 
         const lowercase = message.toLowerCase()
         if (/^hey|hi|hello$/.test(message)) {
           await send({
+            req,
             to: user,
             object: {
               [TYPE]: 'tradle.SimpleMessage',
@@ -321,3 +324,5 @@ export default function createProductsBot ({
     models: bot.modelStore.models
   }
 }
+
+export { createProductsBot }

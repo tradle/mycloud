@@ -11,7 +11,7 @@ import {
 } from './constants'
 
 const debug = require('debug')('tradle:sls:init')
-const { getLink, addLinks, getIdentitySpecs, getChainKey } = crypto
+const { getLink, addLinks, getIdentitySpecs, getChainKey, genIdentity } = crypto
 const { omitVirtual, setVirtual, bindAll, promisify, co } = utils
 const { exportKeys } = require('./crypto')
 
@@ -53,7 +53,7 @@ proto.ensureInitialized = co(function* (opts) {
 })
 
 proto.init = co(function* (opts={}) {
-  const result = yield this.createProvider()
+  const result = yield this.genIdentity()
   yield this.write({
     ...result,
     ...opts
@@ -73,8 +73,8 @@ proto.isInitialized = (function () {
   })
 }())
 
-proto.createProvider = co(function* () {
-  const priv = yield createIdentity(getIdentitySpecs({
+proto.genIdentity = co(function* () {
+  const priv = yield genIdentity(getIdentitySpecs({
     networks: this.networks
   }))
 
@@ -157,23 +157,5 @@ proto.clear = co(function* () {
 //   addLinks(object)
 //   return { identity: object, keys }
 // }
-
-const _createIdentity = promisify(tradleUtils.newIdentity)
-const createIdentity = co(function* (opts) {
-  // if (process.env.NODE_ENV === 'test') {
-  //   return getTestIdentity()
-  // }
-
-  const { link, identity, keys } = yield _createIdentity(opts)
-  setVirtual({
-    _link: link,
-    _permalink: link
-  })
-
-  return {
-    identity,
-    keys: exportKeys(keys)
-  }
-})
 
 export = Initializer

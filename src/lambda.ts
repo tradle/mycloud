@@ -27,7 +27,8 @@ import {
   timeoutIn,
   parseArn,
   isPromise,
-  syncClock
+  syncClock,
+  createLambdaContext
 } from './utils'
 
 import {
@@ -482,6 +483,21 @@ export class Lambda extends EventEmitter {
 
     defineGetter(this, 'params', () => {
       return this.execCtx.event.pathParameters || {}
+    })
+  }
+
+  public invoke = async (event) => {
+    return new Promise((resolve, reject) => {
+      const callback = (err, result) => {
+        if (err) return reject(err)
+        resolve(resolve)
+      }
+
+      const context = createLambdaContext({
+        name: this.shortName,
+      }, callback)
+
+      this.handler(event, context, callback)
     })
   }
 

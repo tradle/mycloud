@@ -17,14 +17,14 @@ import { customize } from '../samplebot/customize'
 (async () => {
   let tradle = createTestTradle()
   const { debug } = tradle.logger
-  await clear({ tradle })
-  debug('cleared stored data')
+  // await clear({ tradle })
+  // debug('cleared stored data')
   // await wait(2000)
   // await genLocalResources({ tradle })
   // await wait(2000)
 
   tradle = createTestTradle()
-  await initializeProvider({ bot: createBot({ tradle }) })
+  // await initializeProvider({ bot: createBot({ tradle }) })
   debug('initialized provider')
 
   tradle.logger.debug('setting up bot')

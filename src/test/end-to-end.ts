@@ -1,6 +1,10 @@
 require('./env').install()
-const nock = require('nock')
 
+// @ts-ignore
+import Promise = require('bluebird')
+import _ = require('lodash')
+import IotMessage = require('@tradle/iot-message')
+const nock = require('nock')
 const assert = require('assert')
 const nodeCrypto = require('crypto')
 const inherits = require('inherits')
@@ -19,25 +23,33 @@ const { replaceDataUrls } = require('@tradle/embed')
 // const dbUtils = require('../db-utils')
 // const Delivery = require('../delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
-const { createTestTradle } = require('../')
+import { createTestTradle } from '../'
+import { Tradle } from '../tradle'
+import { Logger } from '../logger'
+import * as onmessage from '../samplebot/lambda/mqtt/onmessage'
+
 const { genLocalResources } = require('../cli/utils')
 const { wrap, utils, crypto } = require('../')
-const { extend, clone, pick, omit, batchify } = utils
+const { batchify } = utils
 // const botFixture = require('./fixtures/bot')
-const userIdentities = require('./fixtures/users-pem')
+// const userIdentities = require('./fixtures/users-pem')
 const intercept = require('./interceptor')
 const Errors = require('../errors')
+const { createTestProfile } = require('./utils')
 const defaultTradleInstance = require('../').tradle
-const nextUserIdentity = (function () {
-  let i = 0
-  return function () {
-    return userIdentities[i++]
+
+const genIdentity = async (tradle:Tradle) => {
+  const { identity, keys } = (await tradle.init.genIdentity()).priv
+  return {
+    identity,
+    keys,
+    profile: createTestProfile()
   }
-}())
+}
 
 // const credentials = (function () {
 //   const { credentials } = aws.AWS.config
-//   return pick(credentials, ['accessKeyId', 'secretAccessKey'])
+//   return _.pick(credentials, ['accessKeyId', 'secretAccessKey'])
 // }())
 
 const baseModels = require('../models')
@@ -45,507 +57,597 @@ const defaultProducts = ['tradle.CorporateBankAccount']
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const APPLICATION = 'tradle.Application'
 
-function E2ETest ({
-  tradle=defaultTradleInstance,
-  models,
-  products,
-  bot,
-  productsAPI,
-  employeeManager
-}) {
-  // const {
-  //   models=defaultModels,
-  //   products=defaultProducts,
-  //   tradle=createTestTradle()
-  // } = opts
+export class Test {
+  private bot: any
+  private tradle: Tradle
+  private productsAPI: any
+  private employeeManager: any
+  private products: string[]
+  private _ready: Promise<void>
+  private logger: Logger
+  private debug: Function
+  private interceptor: any
+  constructor ({
+    tradle=defaultTradleInstance,
+    products,
+    bot,
+    productsAPI,
+    employeeManager
+  }) {
+    this.bot = bot
+    this.tradle = tradle
+    this.productsAPI = productsAPI
+    this.employeeManager = employeeManager
+    this.products = productsAPI.products.filter(p => p !== 'tradle.EmployeeOnboarding')
+    this._ready = this._init()
+    this.logger = bot.env.sublogger('e2e')
+    this.debug = this.logger.debug
+  }
 
-  // const {
-  //   bot,
-  //   productsAPI,
-  //   employeeManager
-  // } = createProductsBot(tradle)
-  //   // autoPrompt: true,
-  //   autoVerify: true,
-  //   autoApprove: true,
-  //   approveAllEmployees: false
-  // })
+  private _init = async () => {
+    await this.tradle.init.ensureInitialized()
+    this.bot.identity = await this.bot.getMyIdentity()
+    await this.bot.addressBook.addContact(this.bot.identity)
+    this.bot.ready()
+    this.debug('bot permalink', crypto.getPermalink(this.bot.identity))
+  }
 
-  // extend(bot, botFixture)
+  public get models () {
+    return this.bot.modelStore.models
+  }
 
-  this.bot = bot
-  this.tradle = tradle
-  this.productsAPI = productsAPI
-  this.employeeManager = employeeManager
-  this.products = productsAPI.products
-  this._ready = this._init()
-  this.logger = bot.env.sublogger('e2e')
-  this.debug = this.logger.debug
-}
+  public runEmployeeAndCustomer = wrapWithIntercept(async (opts={}) => {
+    await this._ready
 
-const proto = E2ETest.prototype
+    const { product=this.products[0] } = opts
+    const { tradle, bot } = this
+    const [
+      employee,
+      customer
+    ] = await Promise.all([
+      createUser({ bot, tradle, name: 'employee' }),
+      createUser({ bot, tradle, name: 'customer' })
+    ])
 
-proto._init = co(function* () {
-  yield this.tradle.init.ensureInitialized()
-  this.bot.identity = yield this.bot.getMyIdentity()
-  yield this.bot.addressBook.addContact(this.bot.identity)
-  this.bot.ready()
-  this.debug('bot permalink', crypto.getPermalink(this.bot.identity))
-})
+    const employeeApp = await this.onboardEmployee({ user: employee })
+    employee.on('message', async (message) => {
+      if (message.object[TYPE] === MESSAGE) {
+        message = message.object
+      } else {
+        return
+      }
 
-proto.runEmployeeAndCustomer = wrapWithIntercept(co(function* () {
-  yield this._ready
+      const hey = {
+        [TYPE]: SIMPLE_MESSAGE,
+        message: 'hey'
+      }
 
-  const { tradle, bot } = this
-  const employee = createUser({ bot, tradle, name: 'employee' })
-  const customer = createUser({ bot, tradle, name: 'customer' })
-  const employeeApp = yield this.onboardEmployee({ user: employee })
-  employee.on('message', co(function* (message) {
-    if (message.object[TYPE] === MESSAGE) {
-      message = message.object
-    } else {
-      return
+      await employee.send({
+        other: {
+          forward: message._author
+        },
+        object: hey
+      })
+    })
+
+    const application = await this.onboardCustomer({
+      user: customer,
+      relationshipManager: employee,
+      product
+    })
+
+    // customer.send({
+    //   object: {
+    //     [TYPE]: 'tradle.ForgetMe',
+    //     message: 'please forget me'
+    //   }
+    // })
+
+    // while (true) {
+    //   let received = await customer.awaitMessage()
+    //   if (received.object[TYPE] === 'tradle.ForgotMe') break
+    // }
+  })
+
+  public genIdentity = async () => {
+    return await genIdentity(this.tradle)
+  }
+
+  public runEmployeeAndFriend = wrapWithIntercept(async () => {
+    await this._ready
+    const { bot, tradle, productsAPI } = this
+    const employee = await createUser({ bot, tradle, name: 'employee' })
+    await this.onboardEmployee({ user: employee })
+
+    const { friends } = bot
+    const url = 'http://localhost:12345'
+    const { identity } = await this.genIdentity()
+    const friend = {
+      name: 'friendly bank',
+      identity,
+      url
     }
 
+    await friends.add(friend)
     const hey = {
       [TYPE]: SIMPLE_MESSAGE,
       message: 'hey'
     }
 
-    yield employee.send({
+    const identityPermalink = buildResource.permalink(friend.identity)
+    this.interceptor.httpOnly(identityPermalink)
+    nock(url)
+      .post('/inbox')
+      .reply(function (uri, body) {
+        const { messages } = body
+        assert.equal(messages.length, 1)
+        const msg = messages[0]
+        assert.equal(msg.object[TYPE], SIMPLE_MESSAGE)
+        assert.deepEqual(_.pick(msg.object, Object.keys(hey)), hey)
+        return [
+          201
+        ]
+      })
+
+    await employee.send({
       other: {
-        forward: message._author
+        forward: identityPermalink
       },
       object: hey
     })
-  }))
-
-  const application = yield this.onboardCustomer({
-    user: customer,
-    relationshipManager: employee
   })
 
-  // customer.send({
-  //   object: {
-  //     [TYPE]: 'tradle.ForgetMe',
-  //     message: 'please forget me'
-  //   }
-  // })
-
-  // while (true) {
-  //   let received = yield customer.awaitMessage()
-  //   if (received.object[TYPE] === 'tradle.ForgotMe') break
-  // }
-}))
-
-proto.runEmployeeAndFriend = wrapWithIntercept(co(function* () {
-  yield this._ready
-  const { bot, productsAPI } = this
-  const allModels = bot.modelStore.models
-  const employee = createUser({ bot, name: 'employee' })
-  yield this.onboardEmployee({ user: employee })
-
-  const { friends } = bot
-  const url = 'http://localhost:12345'
-  const friend = {
-    name: 'friendly bank',
-    identity: nextUserIdentity().identity,
-    url
-  }
-
-  yield friends.add(friend)
-  const hey = {
-    [TYPE]: SIMPLE_MESSAGE,
-    message: 'hey'
-  }
-
-  const identityPermalink = buildResource.permalink(friend.identity)
-  this.interceptor.httpOnly(identityPermalink)
-  nock(url)
-    .post('/inbox')
-    .reply(function (uri, body) {
-      const { messages } = body
-      assert.equal(messages.length, 1)
-      const msg = messages[0]
-      assert.equal(msg.object[TYPE], SIMPLE_MESSAGE)
-      assert.deepEqual(pick(msg.object, Object.keys(hey)), hey)
-      return [
-        201
-      ]
+  public onboardEmployee = async ({ user }) => {
+    return await this.runThroughApplication({
+      user,
+      awaitCertificate: true,
+      product: 'tradle.EmployeeOnboarding'
     })
-
-  yield employee.send({
-    other: {
-      forward: identityPermalink
-    },
-    object: hey
-  })
-}))
-
-proto.onboardEmployee = co(function* ({ user }) {
-  return yield this.runThroughApplication({
-    user,
-    awaitCertificate: true,
-    product: 'tradle.EmployeeOnboarding'
-  })
-})
-
-proto.onboardCustomer = co(function* ({
-  user,
-  relationshipManager,
-  product
-}) {
-  const { bot } = this
-
-  if (relationshipManager) {
-    let context
-    relationshipManager.on('message', co(function* (message) {
-      if (message.object.object) message = message.object
-      if (message.context) context = message.context
-
-      const payload = message.object
-
-      // pre-signed urls don't work in localstack yet
-      // so resolve with root credentials
-      // if (payload[TYPE] === 'tradle.PhotoID') {
-      //   console.log(payload.scan.url)
-      // }
-
-      yield bot.objects.resolveEmbeds(payload)
-
-      // console.log('EMPLOYEE RECEIVED', payload[TYPE])
-      // const type = payload[TYPE]
-      // if (productsAPI.models.all[type].subClassOf === 'tradle.Form') {
-      //   yield bot.addressBook.addAuthorInfo(message)
-      // }
-    }))
   }
 
-  const application = yield this.runThroughApplication({
+  public onboardCustomer = async ({
     user,
     relationshipManager,
-    product: product || this.products[0],
-    awaitCertificate: true
-  })
+    product
+  }: {
+    user:User,
+    relationshipManager?:User,
+    product?:string
+  }) => {
+    const { bot, models } = this
 
-  return application
-})
+    if (relationshipManager) {
+      let context
+      relationshipManager.on('message', async (message) => {
+        if (message.object.object) message = message.object
+        if (message.context) context = message.context
 
-proto.approve = function (opts) {
-  opts.approve = true
-  return this.judge(opts)
-}
+        const payload = message.object
 
-proto.reject = function (opts) {
-  opts.approve = false
-  return this.judge(opts)
-}
+        // pre-signed urls don't work in localstack yet
+        // so resolve with root credentials
+        // if (payload[TYPE] === 'tradle.PhotoID') {
+        //   console.log(payload.scan.url)
+        // }
 
-proto.judge = co(function* ({
-  employee,
-  user,
-  application,
-  context,
-  approve=true
-}) {
-  const { bot, productsAPI } = this
-  if (application) {
-    context = application.context
-  } else {
-    application = yield this.getApplicationByContext({ context })
+        await bot.objects.resolveEmbeds(payload)
+        const type = payload[TYPE]
+        const model = models[type]
+        if (model.subClassOf === 'tradle.Form') {
+          await relationshipManager.send({
+            other: { context },
+            object: buildResource({
+                models,
+                model: 'tradle.Verification'
+              })
+              .set({
+                [TYPE]: 'tradle.Verification',
+                document: payload,
+                dateVerified: Date.now()
+              })
+              .toJSON()
+          })
+        }
+
+        if (context) {
+          const application = await this.getApplicationByContext({ context })
+          if (application.status === 'completed') {
+            await this.approve({
+              user,
+              relationshipManager,
+              application,
+              context
+            })
+          }
+        }
+
+        // console.log('EMPLOYEE RECEIVED', payload[TYPE])
+        // const type = payload[TYPE]
+        // if (productsAPI.models.all[type].subClassOf === 'tradle.Form') {
+        //   await bot.addressBook.addAuthorInfo(message)
+        // }
+      })
+    }
+
+    const application = await this.runThroughApplication({
+      user,
+      relationshipManager,
+      product: product || this.products[0],
+      awaitCertificate: true
+    })
+
+    return application
   }
 
-  // if (!employee) return
-
-  const { models } = this.bot.modelStore
-  const approval = buildResource({
-      models,
-      model: 'tradle.ApplicationApproval',
-    })
-    .set({
-      application,
-      message: 'approved!'
-    })
-    .toJSON()
-
-  const denial = buildResource({
-      models,
-      model: 'tradle.ApplicationDenial',
-    })
-    .set({
-      application,
-      message: 'denied!'
-    })
-    .toJSON()
-
-  const judgment = approve ? approval : denial
-  yield (employee || bot).send({
-    object: judgment,
-    other: { context }
-  })
-
-  // TODO: check approval received
-  yield wait(4000)
-  // uncomment to dump dbs to screen
-  // yield dumpDB({ bot, types })
-})
-
-proto.assignEmployee = co(function* ({ user, employee, context }) {
-  const application = yield this.getApplicationByContext({ context })
-  const allModels = this.bot.modelStore.models
-  const assign = employee.send({
-    other: { context },
-    object: buildResource({
-      models: allModels,
-      model: 'tradle.AssignRelationshipManager',
-      resource: {
-        employee: buildResource.stub({
-          models: allModels,
-          resource: employee.identity
-        }),
-        application: buildResource.stub({
-          models: allModels,
-          resource: application
-        })
-      }
-    }).toJSON()
-  })
-
-  const getIntroduced = user.awaitMessage()
-  yield [getIntroduced, assign]
-})
-
-proto.runThroughApplication = co(function* ({
-  user,
-  awaitCertificate,
-  product,
-  relationshipManager
-}) {
-  const {
-    productsAPI,
-    employeeManager
-  } = this
-
-  yield user.sendSelfIntroduction()
-  const allModels = this.bot.modelStore.models
-  const bizModels = productsAPI.models.biz
-  user.send({ object: createProductRequest(product) })
-
-  let assignedEmployee
-  let context
-  while (true) {
-    let message = yield user.awaitMessage()
-    let { object } = message
-    if (!context) {
-      context = message.context
-    }
-
-    if (relationshipManager && !assignedEmployee) {
-      yield this.assignEmployee({ user, context, employee: relationshipManager })
-      assignedEmployee = true
-    }
-
-    let type = object[TYPE]
-    if (type === 'tradle.FormRequest') {
-      let form = genSample({
-        models: allModels,
-        model: allModels[object.form]
-      })
-      .value
-
-      // if (assignedEmployee) {
-      //   yield wait(1000)
-      // }
-
-      user.send({
-        object: form,
-        other: { context }
-      })
-
-    } else if (type === 'tradle.ModelsPack') {
-      continue
-    } else if (allModels[type].subClassOf === 'tradle.MyProduct') {
-      break
-    // } else if (type === 'tradle.Message') {
-    //   // console.log('..from employee')
-    } else if (!awaitCertificate) {
-      break
-    }
+  public approve = function (opts) {
+    opts.approve = true
+    return this.judge(opts)
   }
 
-  return this.getApplicationByContext({ context })
+  public reject = function (opts) {
+    opts.approve = false
+    return this.judge(opts)
+  }
 
-  function createProductRequest (product) {
-    return buildResource({
-        models: allModels,
-        model: 'tradle.ProductRequest',
+  public judge = async ({
+    relationshipManager,
+    user,
+    application,
+    context,
+    approve=true
+  }) => {
+    const { bot, productsAPI, models } = this
+    if (application) {
+      context = application.context
+    } else {
+      application = await this.getApplicationByContext({ context })
+    }
+
+    // if (!relationshipManager) return
+
+    const approval = buildResource({
+        models,
+        model: 'tradle.ApplicationApproval',
       })
       .set({
-        requestFor: product,
-        contextId: nodeCrypto.randomBytes(32).toString('hex')
+        application,
+        message: 'approved!'
       })
       .toJSON()
 
+    const denial = buildResource({
+        models,
+        model: 'tradle.ApplicationDenial',
+      })
+      .set({
+        application,
+        message: 'denied!'
+      })
+      .toJSON()
+
+    const judgment = approve ? approval : denial
+    await (relationshipManager || bot).send({
+      object: judgment,
+      other: { context }
+    })
+
+    // TODO: check approval received
+    await wait(4000)
+    // uncomment to dump dbs to screen
+    // await dumpDB({ bot, types })
   }
-})
 
-proto.dumpDB = co(function* ({ types }) {
-  const results = yield types.map(type => this.bot.db.search({ type }))
-  types.forEach((type, i) => {
-    console.log(type)
-    console.log(JSON.stringify(results[i].items, null, 2))
-  })
-})
+  public assignEmployee = async ({ user, employee, context }) => {
+    const application = await this.getApplicationByContext({ context })
+    const { models } = this
+    const assign = employee.send({
+      other: { context },
+      object: buildResource({
+        models,
+        model: 'tradle.AssignRelationshipManager',
+        resource: {
+          employee: buildResource.stub({
+            models,
+            resource: employee.identity
+          }),
+          application: buildResource.stub({
+            models,
+            resource: application
+          })
+        }
+      }).toJSON()
+    })
 
-proto.getApplicationByContext = function ({ context }) {
-  const { bot, productsAPI } = this
-  return bot.db.findOne({
-    filter: {
-      EQ: {
-        [TYPE]: APPLICATION,
-        context
+    const getIntroduced = user.awaitMessage()
+    await Promise.all([getIntroduced, assign])
+  }
+
+  public runThroughApplication = async ({
+    user,
+    awaitCertificate,
+    product,
+    relationshipManager
+  }: {
+    user: User,
+    product:string,
+    awaitCertificate?:boolean,
+    relationshipManager?:User
+  }) => {
+    const {
+      productsAPI,
+      employeeManager,
+      models
+    } = this
+
+    user.sendSelfIntroduction()
+    await user.waitFor(message => {
+      const { object } = message
+      return object[TYPE] === 'tradle.FormRequest' &&
+        object.form !== 'tradle.TermsAndConditions'
+    })
+
+    const bizModels = productsAPI.models.biz
+    user.send({ object: createProductRequest(product) })
+
+    let assignedEmployee
+    let context
+    while (true) {
+      let message = await user.awaitMessage()
+      let { object } = message
+      if (!context) {
+        context = message.context
+      }
+
+      if (relationshipManager && !assignedEmployee) {
+        await this.assignEmployee({ user, context, employee: relationshipManager })
+        assignedEmployee = true
+      }
+
+      let type = object[TYPE]
+      if (type === 'tradle.FormRequest') {
+        let form = genSample({
+          models,
+          model: models[object.form]
+        })
+        .value
+
+        // if (assignedEmployee) {
+        //   await wait(1000)
+        // }
+
+        user.send({
+          object: form,
+          other: { context }
+        })
+
+      } else if (models[type].subClassOf === 'tradle.MyProduct') {
+        break
+      // } else if (type === 'tradle.Message') {
+      //   // console.log('..from employee')
+      } else if (!awaitCertificate) {
+        break
       }
     }
-  })
+
+    return this.getApplicationByContext({ context })
+
+    function createProductRequest (product) {
+      return buildResource({
+          models,
+          model: 'tradle.ProductRequest',
+        })
+        .set({
+          requestFor: product,
+          contextId: nodeCrypto.randomBytes(32).toString('hex')
+        })
+        .toJSON()
+
+    }
+  }
+
+  public dumpDB = async ({ types }) => {
+    const results = await types.map(type => this.bot.db.search({ type }))
+    types.forEach((type, i) => {
+      console.log(type)
+      console.log(JSON.stringify(results[i].items, null, 2))
+    })
+  }
+
+  public getApplicationByContext = async ({ context }) => {
+    const { bot } = this
+    return await bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: APPLICATION,
+          context
+        }
+      }
+    })
+  }
 }
 
-function createUser ({ tradle, bot, onmessage, name }) {
-  // bot.users = require('../../test/mock/users')()
-  // bot.keys = botFixture.keys
-  const { identity, keys, profile } = nextUserIdentity()
+const createUser = async ({
+  tradle,
+  bot,
+  name
+}: {
+  tradle:Tradle,
+  bot:any,
+  name?:string
+}):Promise<User> => {
+  const { identity, keys, profile } = await genIdentity(tradle)
   return new User({
     tradle,
     identity,
     keys,
     bot,
     profile,
-    name: name || profile.name.formatted,
-    onmessage
+    name: name || profile.name.formatted
   })
 }
 
-function User ({ tradle, identity, keys, profile, name, bot, onmessage }) {
-  EventEmitter.call(this)
+class User extends EventEmitter {
+  constructor ({ tradle, identity, keys, profile, name, bot }) {
+    super()
 
-  const self = this
-  this.tradle = tradle
-  this.env = tradle.env
-  this.logger = this.env.sublogger('e2e:user')
-  this.debug = this.logger.debug
-  this.name = name
-  this.identity = identity
-  this.permalink = crypto.getPermalink(this.identity)
-  this.clientId = this.permalink.repeat(2)
-  this.keys = keys
-  this.profile = profile
-  this.bot = bot
-  this.userPubKey = tradleUtils.sigPubKey(this.identity)
-  this.botPubKey = tradleUtils.sigPubKey(bot.identity)
-  this._userSeq = 0
-  this._botSeq = 0
+    this.tradle = tradle
+    this.env = tradle.env
+    this.logger = this.env.sublogger('e2e:user')
+    this.debug = this.logger.debug
+    this.name = name
+    this.identity = identity
+    this.permalink = crypto.getPermalink(this.identity)
+    this.clientId = this.permalink.repeat(2)
+    this.keys = keys
+    this.profile = profile
+    this.bot = bot
+    this.userPubKey = tradleUtils.sigPubKey(this.identity)
+    this.botPubKey = tradleUtils.sigPubKey(bot.identity)
+    this._userSeq = 0
+    this._botSeq = 0
 
-  // const { send } = bot
-  this.on('message', message => {
-    const types = []
-    let envelope = message
-    while (envelope.object) {
-      types.push(envelope.object[TYPE])
-      envelope = envelope.object
-    }
+    // const { send } = bot
+    this.on('message', message => {
+      const types = []
+      let payload = message
+      while (payload.object) {
+        types.push(payload.object[TYPE])
+        payload = payload.object
+      }
 
-    this.debug('received', types.join(' -> '))
-  })
-
-  tradle.delivery.mqtt.on('message', ({ recipient, message }) => {
-    if (recipient === this.permalink) {
-      this.emit('message', message)
-    }
-  })
-
-  this._types = []
-  recordTypes(this, this._types)
-  this.debug('permalink', this.permalink)
-  this._ready = tradle.identities.addContact(this.identity)
-}
-
-inherits(User, EventEmitter)
-
-User.prototype.awaitMessage = function () {
-  return new Promise(resolve => this.once('message', resolve))
-}
-
-User.prototype.sign = function (object) {
-  return this.bot.sign(object, this)
-}
-
-User.prototype.send = co(function* ({ object, other }) {
-  yield this._ready
-
-  this.debug('sending', object[TYPE])
-  const message = yield this._createMessage({ object, other })
-  yield this.tradle.user.onSentMessage({
-    clientId: this.clientId,
-    message
-  })
-
-  // return yield this.bot.process.message.handler(message)
-  // return yield this.bot.trigger('message', message)
-})
-
-User.prototype._createMessage = co(function* ({ object, other={} }) {
-  if (!object[SIG]) {
-    object = yield this.sign(object)
-  }
-
-  const unsigned = extend({
-    [TYPE]: 'tradle.Message',
-    [SEQ]: this._userSeq++,
-    time: Date.now(),
-    recipientPubKey: this.botPubKey,
-    object: utils.omitVirtual(object)
-  }, other)
-
-  const message = yield this.sign(unsigned)
-  message.object = object // with virtual props
-  const replacements = replaceDataUrls({
-    endpoint: this.tradle.aws.s3.endpoint.host,
-    // region,
-    object,
-    bucket: this.tradle.buckets.FileUpload.name,
-    keyPrefix: `test-${this.permalink}`
-  })
-
-  if (replacements.length) {
-    yield replacements.map(({ key, bucket, body, mimetype }) => {
-      return this.tradle.s3Utils.put({ key, bucket, value: body, headers: { ContentType: mimetype } })
+      this.debug('received', types.join(' -> '))
+      if (payload[TYPE] === 'tradle.FormRequest') {
+        if (payload.form === 'tradle.TermsAndConditions') {
+          this.debug('accepting T&Cs')
+          this.send({
+            object: payload.prefill
+          })
+        }
+      }
     })
 
-    this.debug('uploaded embedded media')
+    tradle.delivery.mqtt.on('message', ({ recipient, message }) => {
+      if (recipient === this.permalink) {
+        this.emit('message', message)
+      }
+    })
+
+    this._types = []
+    recordTypes(this, this._types)
+    this.debug('permalink', this.permalink)
+    this._ready = tradle.identities.addContact(this.identity)
   }
 
-  yield this.bot.save(object)
-  // const uploaded = yield extractAndUploadEmbeds({
-  //   host: s3Host,
-  //   object,
-  //   credentials,
-  //   bucket: buckets.FileUpload.name,
-  //   keyPrefix: `test-${this.permalink}`
-  // })
+  public get models () {
+    return this.bot.modelStore.models
+  }
 
-  return message
-})
+  public awaitType = async (type) => {
+    return this.waitFor(message => {
+      return message.object[TYPE] === type
+    })
+  }
 
-User.prototype.sendSelfIntroduction = function () {
-  const selfIntro = buildResource({
-    models: this.bot.models,
-    model: this.bot.models['tradle.SelfIntroduction'],
-    resource: {
-      identity: this.identity,
-      name: this.profile.name.formatted
+  public waitFor = async (filter) => {
+    return new Promise(resolve => {
+      const handler = (message) => {
+        if (filter(message)) {
+          this.removeListener('message', handler)
+          resolve()
+        }
+      }
+
+      this.on('message', handler)
+    })
+  }
+
+  public awaitMessage = function () {
+    return new Promise(resolve => this.once('message', resolve))
+  }
+
+  public sign = function (object) {
+    return this.bot.sign(object, this)
+  }
+
+  public send = async ({ object, other }: { object: any, other?: any }) => {
+    await this._ready
+
+    this.debug('sending', object[TYPE])
+    const message = await this._createMessage({ object, other })
+    await onmessage.invoke({
+      clientId: this.clientId,
+      data: await IotMessage.encode({
+        type: 'messages',
+        payload: [message]
+      })
+    })
+
+    // await this.tradle.user.onSentMessage({
+    //   clientId: this.clientId,
+    //   message
+    // })
+
+    // return await this.bot.process.message.handler(message)
+    // return await this.bot.trigger('message', message)
+  }
+
+  public _createMessage = async ({ object, other={} }) => {
+    if (!object[SIG]) {
+      object = await this.sign(object)
     }
-  })
-  .toJSON()
 
-  return this.send({ object: selfIntro })
+    const unsigned = _.extend({
+      [TYPE]: 'tradle.Message',
+      [SEQ]: this._userSeq++,
+      time: Date.now(),
+      recipientPubKey: this.botPubKey,
+      object: utils.omitVirtual(object)
+    }, other)
+
+    const message = await this.sign(unsigned)
+    message.object = object // with virtual props
+    const replacements = replaceDataUrls({
+      endpoint: this.tradle.aws.s3.endpoint.host,
+      // region,
+      object,
+      bucket: this.tradle.buckets.FileUpload.name,
+      keyPrefix: `test-${this.permalink}`
+    })
+
+    if (replacements.length) {
+      await replacements.map(({ key, bucket, body, mimetype }) => {
+        return this.tradle.s3Utils.put({ key, bucket, value: body, headers: { ContentType: mimetype } })
+      })
+
+      this.debug('uploaded embedded media')
+    }
+
+    await this.bot.save(object)
+    // const uploaded = await extractAndUploadEmbeds({
+    //   host: s3Host,
+    //   object,
+    //   credentials,
+    //   bucket: buckets.FileUpload.name,
+    //   keyPrefix: `test-${this.permalink}`
+    // })
+
+    return message
+  }
+
+  public sendSelfIntroduction = function () {
+    const { models, identity, profile } = this
+    const selfIntro = buildResource({
+      models,
+      model: 'tradle.SelfIntroduction',
+      resource: {
+        identity,
+        name: profile.name.formatted
+      }
+    })
+    .toJSON()
+
+    return this.send({ object: selfIntro })
+  }
 }
 
 function wait (millis) {
@@ -570,17 +672,17 @@ function recordTypes (user, types) {
 }
 
 function wrapWithIntercept (fn) {
-  return co(function* (...args) {
+  return async function (...args) {
     const { bot, tradle } = this
     this.interceptor = intercept({ bot, tradle })
 
     try {
-      yield fn.apply(this, args)
+      await fn.apply(this, args)
     } finally {
-      yield wait(2000)
+      await wait(2000)
       this.interceptor.restore()
     }
-  })
+  }
 }
 
 // function createTradleInstance ({ service='tradle', stage='test' }) {
@@ -664,10 +766,9 @@ const clear = async ({ tradle }) => {
   ])
 }
 
-export = {
+export {
   createUser,
   // createProductsBot,
-  Test: E2ETest,
-  // endToEndTest: opts => new E2ETest(opts).run(),
+  // endToEndTest: opts => new Test(opts).run(),
   clear
 }

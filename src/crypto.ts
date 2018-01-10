@@ -4,7 +4,7 @@ import crypto = require('crypto')
 import _ = require('lodash')
 import stringify = require('json-stable-stringify')
 import KeyEncoder = require('key-encoder')
-import pify = require('pify')
+import promisify = require('pify')
 import { protocol, utils, constants } from '@tradle/engine'
 import {
   toBuffer,
@@ -18,7 +18,7 @@ import { InvalidSignature } from './errors'
 import { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } from './constants'
 import { IECMiniPubKey } from './types'
 
-const doSign = pify(protocol.sign.bind(protocol))
+const doSign = promisify(protocol.sign.bind(protocol))
 const { SIG, TYPE, TYPES } = constants
 const { IDENTITY } = TYPES
 const SIGN_WITH_HASH = 'sha256'
@@ -358,6 +358,20 @@ function getIdentitySpecs ({ networks }) {
   return { networks: nets }
 }
 
+const _genIdentity = promisify(utils.newIdentity)
+const genIdentity = async (opts) => {
+  const { link, identity, keys } = await _genIdentity(opts)
+  setVirtual({
+    _link: link,
+    _permalink: link
+  })
+
+  return {
+    identity,
+    keys: exportKeys(keys)
+  }
+}
+
 export {
   checkAuthentic,
   extractSigPubKey,
@@ -380,5 +394,6 @@ export {
   randomString,
   getIdentitySpecs,
   rawSign,
-  rawVerify
+  rawVerify,
+  genIdentity
 }

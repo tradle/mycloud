@@ -843,11 +843,13 @@ export const createLambdaContext = (fun, cb?) => {
     memoryLimitInMB:    fun.memorySize,
     functionVersion:    `offline_functionVersion_for_${functionName}`,
     invokedFunctionArn: `offline_invokedFunctionArn_for_${functionName}`,
+    invokeid:           `offline_invokeid_for_${functionName}`,
     awsRequestId:       `offline_awsRequestId_${Math.random().toString(10).slice(2)}`,
     logGroupName:       `offline_logGroupName_for_${functionName}`,
     logStreamName:      `offline_logStreamName_for_${functionName}`,
     identity:           {},
-    clientContext:      {}
+    clientContext:      {},
+    callbackWaitsForEmptyEventLoop: true
   }
 }
 

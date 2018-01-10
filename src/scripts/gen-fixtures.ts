@@ -3,7 +3,6 @@ require('../test/env').install()
 
 const fs = require('fs')
 const path = require('path')
-const randomName = require('random-name')
 const mkdirp = require('mkdirp')
 const co = require('co')
 const promisify = require('pify')
@@ -13,12 +12,13 @@ const { setVirtual } = require('@tradle/validate-resource').utils
 const { exportKeys } = require('../crypto')
 const { getIdentitySpecs } = require('../crypto')
 const networks = require('../networks')
+const { createTestProfile } = require('../test/utils')
 const identityOpts = getIdentitySpecs({ networks })
 const genUser = promisify(utils.newIdentity)
 const genUsers = n => new Array(n).fill(0).map(() => {
   return genUser(identityOpts)
     .then(user => {
-      user.profile = newProfile()
+      user.profile = createTestProfile()
       return user
     })
 })
@@ -154,16 +154,4 @@ function prettify (object) {
 
 function rethrow (err) {
   if (err) throw err
-}
-
-function newProfile () {
-  const first = randomName.first()
-  const last = randomName.last()
-  return {
-    name: {
-      firstName: first,
-      lastName: last,
-      formatted: first + ' ' + last
-    }
-  }
 }
