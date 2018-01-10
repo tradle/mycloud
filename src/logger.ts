@@ -173,3 +173,5 @@ export default class Logger {
     return `${part1}${level}: ${stringifiedParams}`
   }
 }
+
+export { Logger }

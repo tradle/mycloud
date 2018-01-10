@@ -33,6 +33,8 @@ export default class ContentAddressedStore {
   }
 }
 
+export { ContentAddressedStore }
+
 const serialize = data => {
   if (typeof data === 'string' || Buffer.isBuffer(data)) {
     return data

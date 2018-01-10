@@ -482,6 +482,8 @@ export default class Utils {
   }
 }
 
+export { Utils }
+
 const getDateUpdatedEnvironmentVariables = () => ({
   DATE_UPDATED: String(Date.now())
 })

@@ -112,3 +112,5 @@ export default function createEvents ({ logger, tables, dbUtils }) {
     fromStreamEvent
   }
 }
+
+export { createEvents }

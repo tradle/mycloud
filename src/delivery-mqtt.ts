@@ -123,3 +123,5 @@ export default class DeliveryIot extends EventEmitter implements IDelivery {
 }
 
 const stringify = msg => JSON.stringify(omitVirtual(msg))
+
+export { DeliveryIot }

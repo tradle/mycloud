@@ -427,6 +427,7 @@ export default class Provider {
   }
 }
 
+export { Provider }
 const getIntroducedIdentity = (payload) => {
   const type = payload[TYPE]
   if (type === IDENTITY) return payload

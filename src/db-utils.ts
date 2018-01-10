@@ -38,6 +38,7 @@ type ItemWorker = (item:any) => Promise<boolean|void>
 
 export default createDBUtils
 export {
+  createDBUtils,
   getRecordsFromEvent,
   getUpdateParams,
   marshalDBItem,

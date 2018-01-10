@@ -609,6 +609,8 @@ export default class Messages {
 
 }
 
+export { Messages }
+
 // private static methods
 
 

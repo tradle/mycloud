@@ -424,7 +424,10 @@ export default class Seals {
     blockchain.start()
 
     const unconfirmed = await getUnconfirmed(opts)
-    if (!unconfirmed.length) return
+    if (!unconfirmed.length) {
+      this.logger.info(`no unconfirmed transactions`)
+      return
+    }
 
     const addresses = unconfirmed.map(({ address }) => address)
     const txInfos:ITxInfo[] = await blockchain.getTxsForAddresses(addresses)
@@ -572,6 +575,8 @@ export default class Seals {
     return params
   }
 }
+
+export { Seals }
 
 function addError (errors: IErrorRecord[] = [], error) {
   errors = errors.concat({

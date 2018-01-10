@@ -40,6 +40,14 @@ export default class Objects {
     this.logger = logger.sub('objects')
   }
 
+  public validate = (object:ITradleObject) => {
+    try {
+      extractSigPubKey(object)
+    } catch (err) {
+      throw new InvalidSignature(`for ${object[TYPE]}`)
+    }
+  }
+
   public addMetadata = (object:ITradleObject):ITradleObject => {
     typeforce(types.signedObject, object)
 
@@ -178,3 +186,5 @@ export default class Objects {
     }
   }
 }
+
+export { Objects }

@@ -164,3 +164,5 @@ export default class Env {
     }
   }
 }
+
+export { Env }

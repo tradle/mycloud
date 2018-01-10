@@ -130,6 +130,8 @@ export default class Discovery {
   }
 }
 
+export { Discovery }
+
 // function getFunctionNameFromArn (arn) {
 //   return arn.slice(arn.lastIndexOf('/') + 1)
 // }

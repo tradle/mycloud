@@ -115,3 +115,5 @@ export default function createAWSWrapper ({ env, logger }) {
 
   return api
 }
+
+export { createAWSWrapper }

@@ -280,6 +280,7 @@ export default function createUtils ({ s3, logger }) {
 }
 
 export { createUtils }
+export { createUtils }
 
 const toStringOrBuf = (value) => {
   if (typeof value === 'string') return value

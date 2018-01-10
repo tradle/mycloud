@@ -78,3 +78,5 @@ export default class KeyValueTable {
     }
   }
 }
+
+export { KeyValueTable }

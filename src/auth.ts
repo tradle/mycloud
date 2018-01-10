@@ -370,6 +370,7 @@ export default class Auth {
   }
 }
 
+export { Auth }
 // const isMostRecentSession = co(function* ({ clientId }) {
 //   try {
 //     const session = await getLiveSessionByPermalink(getPermalinkFromClientId(clientId))

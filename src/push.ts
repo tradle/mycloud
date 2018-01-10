@@ -146,3 +146,5 @@ export default class Push {
     }
   }
 }
+
+export { Push }

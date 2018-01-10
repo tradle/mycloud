@@ -62,3 +62,5 @@ export default class Delivery extends EventEmitter implements IDelivery {
     // }
   }
 }
+
+export { Delivery }

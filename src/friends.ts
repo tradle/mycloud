@@ -191,6 +191,8 @@ export default class Friends {
   }
 }
 
+export { Friends }
+
 function getInfoEndpoint(url) {
   if (!url.endsWith("/info")) {
     url += "/info"

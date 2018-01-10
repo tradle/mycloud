@@ -245,6 +245,8 @@ export default class Tradle {
   }
 }
 
+export { Tradle }
+
 function defineGetter (obj, property, get) {
   Object.defineProperty(obj, property, { get })
 }

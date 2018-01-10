@@ -220,3 +220,5 @@ export default class Blockchain {
     return this.addressesAPI.balance(address)
   }
 }
+
+export { Blockchain }

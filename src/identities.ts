@@ -256,6 +256,7 @@ export default class Identities {
   }
 }
 
+export { Identities }
 
 // function addContactPubKeys ({ link, permalink, identity }) {
 //   const RequestItems = {
