@@ -1,7 +1,16 @@
-
+import _ = require('lodash')
 // import mergeModels = require('@tradle/merge-models')
-const base = require('@tradle/models').models
-const shared = require('@tradle/models-shared')
+
+const base = _.extend(
+  {},
+  require('@tradle/models').models,
+  require('@tradle/custom-models'),
+  require('@tradle/models-corporate-onboarding'),
+  require('@tradle/models-products-bot'),
+  require('@tradle/models-onfido'),
+  require('@tradle/models-nz')
+)
+
 const cloud = require('@tradle/models-cloud')
 // const onfidoVerificationModels = require('./onfido-verification-models.json')
 // const mergeOpts = { validate: false }
@@ -55,7 +64,4 @@ if (!baseMessageModel.properties._deliveryStatus) {
 //   .add(cloud, mergeOpts)
 //   .get()
 
-export = {
-  ...shared,
-  ...cloud
-}
+export = _.extend(base, cloud)

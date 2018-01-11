@@ -2,9 +2,8 @@ import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 import Errors = require('../../errors')
 
-export const createOnfidoPlugin = ({ bot, productsAPI, apiKey }) => {
+export const createOnfidoPlugin = ({ bot, logger, productsAPI, apiKey }) => {
   const onfidoAPI = new OnfidoAPI({ token: apiKey })
-  const logger = bot.logger.sub('onfido')
   const onfidoPlugin = new Onfido({
     bot,
     logger,
@@ -20,30 +19,32 @@ export const createOnfidoPlugin = ({ bot, productsAPI, apiKey }) => {
     formsToRequestCorrectionsFor: ['tradle.OnfidoApplicant', 'tradle.Selfie']
   })
 
-  ;(async () => {
-    if (/^https?:\/\/localhost/.test(bot.apiBaseUrl)) {
-      logger.warn(`can't register webhook for localhost. ` +
-        `Run: ngrok http ${bot.env.SERVERLESS_OFFLINE_PORT} ` +
-        `and set the SERVERLESS_OFFLINE_APIGW environment variable`)
-
-      return
-    }
-
-    const url = `${bot.apiBaseUrl}/onfido`
-    try {
-      const webhook = await onfidoPlugin.getWebhook()
-      if (webhook.url === url) return
-
-      await onfidoPlugin.unregisterWebhook({ url: webhook.url })
-    } catch (err) {
-      Errors.rethrow(err, 'system')
-    }
-
-    // ideally get the path from the cloudformation
-    logger.info(`registering webhook for url: ${url}`)
-    await onfidoPlugin.registerWebhook({ url })
-  })()
-
   productsAPI.plugins.use(onfidoPlugin)
   return onfidoPlugin
+}
+
+export const registerWebhook = async ({ bot, onfidoPlugin }) => {
+  const fakeApiGW = require('../../test/fake-service-map')['R_RESTAPI_ApiGateway']
+  if (bot.env['R_RESTAPI_ApiGateway'] === fakeApiGW ||
+    /^https?:\/\/localhost/.test(bot.apiBaseUrl)) {
+    onfidoPlugin.logger.warn(`can't register webhook for localhost. ` +
+      `Run: ngrok http ${bot.env.SERVERLESS_OFFLINE_PORT} ` +
+      `and set the SERVERLESS_OFFLINE_APIGW environment variable`)
+
+    return
+  }
+
+  const url = `${bot.apiBaseUrl}/onfido`
+  try {
+    const webhook = await onfidoPlugin.getWebhook()
+    if (webhook.url === url) return
+
+    await onfidoPlugin.unregisterWebhook({ url: webhook.url })
+  } catch (err) {
+    Errors.rethrow(err, 'system')
+  }
+
+  // ideally get the path from the cloudformation
+  onfidoPlugin.logger.info(`registering webhook for url: ${url}`)
+  await onfidoPlugin.registerWebhook({ url })
 }

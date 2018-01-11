@@ -22,6 +22,7 @@ import { DatedValue } from '../../types'
 import TermsAndConditions = require('./ts-and-cs')
 import Logger from '../../logger'
 import baseModels = require('../../models')
+import Errors = require('../../errors')
 
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
@@ -295,11 +296,17 @@ export default function createProductsBot ({
   //   (event === 'onfido:webhook' || !!onfido.async === (event === 'messagestream'))
 
   if (USE_ONFIDO && onfido.apiKey) {
-    const { createOnfidoPlugin } = require('./onfido')
+    const { createOnfidoPlugin, registerWebhook } = require('./onfido')
     onfidoPlugin = createOnfidoPlugin({
       bot,
+      logger: logger.sub('onfido'),
       productsAPI,
       apiKey: onfido.apiKey
+    })
+
+    // should put this on separate lambda
+    registerWebhook({ bot, onfidoPlugin }).catch(err => {
+      onfidoPlugin.logger.error('failed to register webhook', Errors.export(err))
     })
   }
 
