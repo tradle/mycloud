@@ -104,6 +104,7 @@ export default class User {
     position: IPositionPair
   }) => {
     if (!session) session = await this.ensureLiveSession({ clientId })
+    if (!session) return
 
     const { clientPosition} = session
     if (!clientPosition) {

@@ -13,8 +13,7 @@ lambda.use(cors())
 lambda.use(async (ctx) => {
   const { onfidoPlugin } = await promiseCustomize
   await onfidoPlugin.processWebhookEvent({
-    req: ctx.request,
-    res: ctx.response
+    req: ctx.request.req
   })
 })
 
