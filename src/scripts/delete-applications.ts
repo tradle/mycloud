@@ -83,7 +83,7 @@ const deleteApplications = async () => {
   for (const { name, filter } of tablesToClear) {
     console.log('clearing', name)
     const numDeleted = await clear(name, filter)
-    console.log(`deleted ${numDeleted} items from ${table}`)
+    console.log(`deleted ${numDeleted} items from ${name}`)
   }
 }
 
