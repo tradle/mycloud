@@ -49,7 +49,7 @@ test('push', loudAsync(async (t) => {
   const push = new Push({
     serverUrl,
     conf: tradle.kv.sub(namespace),
-    logger: tradle.env.sublogger(':push')
+    logger: tradle.env.sublogger('push:')
   })
 
   t.equal(await push.isRegistered(), false)

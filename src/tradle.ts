@@ -152,7 +152,7 @@ export default class Tradle {
       return new ctor({
         logger: this.env.sublogger('push'),
         serverUrl: this.env.PUSH_SERVER_URL,
-        conf: this.kv.sub(':push'),
+        conf: this.kv.sub('push:'),
         provider: this.provider
       })
     })

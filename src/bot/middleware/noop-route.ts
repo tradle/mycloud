@@ -11,8 +11,8 @@ export const route = (methods:string|string[], path:string='/') => {
   return router.routes()
 }
 
-export const get = path => route('get', path)
-export const put = path => route('put', path)
-export const post = path => route('post', path)
-export const del = path => route('del', path)
-export const head = path => route('head', path)
+export const get = (path?:string) => route('get', path)
+export const put = (path?:string) => route('put', path)
+export const post = (path?:string) => route('post', path)
+export const del = (path?:string) => route('del', path)
+export const head = (path?:string) => route('head', path)
