@@ -10,7 +10,7 @@ export const onMessage = (lambda:Lambda, opts?:any) => {
   const { logger, tradle } = lambda
   const { user } = tradle
   return async (ctx, next) => {
-    let { messages } = ctx.event
+    const { messages } = ctx.event
     if (!messages) {
       ctx.body = {
         message: 'invalid payload, expected {"messages":[]}'
