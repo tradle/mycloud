@@ -61,9 +61,15 @@ export const toggleProduct = createEditConfOp(async ({ context, req, product, en
 
   // allow to use title
   const byTitle = Object.keys(models.all)
-    .find(id => models.all[id].title.toLowerCase() === product.toLowerCase())
+    .filter(id => models.all[id].title.toLowerCase() === product.toLowerCase())
 
-  if (byTitle) product = byTitle
+  if (byTitle.length > 2) {
+    const choices = byTitle.join('\n')
+    const message = `multiple products with title "${product}" found. Re-run using the model id:\n${choices}`
+    await context.sendSimpleMessage({ req, message })
+  }
+
+  if (byTitle) product = byTitle[0]
 
   if (enable && products.includes(product)) {
     throw new Error(`product ${product} is already enabled!`)
