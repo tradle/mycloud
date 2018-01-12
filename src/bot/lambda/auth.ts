@@ -1,5 +1,6 @@
 import compose = require('koa-compose')
 import cors = require('kcors')
+import Errors from '../../errors'
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
 import { EventSource, Lambda, fromHTTP } from '../lambda'
@@ -22,7 +23,24 @@ export const auth = (lambda:Lambda, opts?:any) => {
   const { tradle, bot } = lambda
   return async (ctx, next) => {
     const time = Date.now()
-    ctx.session = await tradle.auth.handleChallengeResponse(ctx.request.body)
+    try {
+      ctx.session = await tradle.auth.handleChallengeResponse(ctx.request.body)
+    } catch (err) {
+      Errors.rethrow(err, 'system')
+      ctx.status = 400
+      if (Errors.matches(err, Errors.HandshakeFailed)) {
+        ctx.body = {
+          message: err.message
+        }
+      } else {
+        ctx.body = {
+          message: 'failed, please retry'
+        }
+      }
+
+      return
+    }
+
     ctx.userId = ctx.session.permalink
     await bot.hooks.fire('user:authenticated', ctx.userId)
     await next()

@@ -1,6 +1,7 @@
 import { utils as tradleUtils } from '@tradle/engine'
 import validateResource = require('@tradle/validate-resource')
-import { constants, Errors } from '../../'
+import constants = require('../../constants')
+import Errors = require('../../errors')
 import { ITradleObject } from '../../types'
 import { isPromise } from '../../utils'
 
@@ -59,8 +60,25 @@ export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
     let { user } = ctx
     if (sig && !user) {
       debug('looking up query author')
-      await identities.addAuthorInfo(queryObj)
-      ctx.user = user = await bot.users.get(queryObj._author)
+      try {
+        await identities.addAuthorInfo(queryObj)
+        ctx.user = user = await bot.users.get(queryObj._author)
+      } catch (err) {
+        Errors.rethrow(err, 'system')
+        if (Errors.matches(err, [Errors.NotFound, Errors.UnknownAuthor])) {
+          ctx.status = 403
+          ctx.body = {
+            message: 'not allowed'
+          }
+        } else {
+          ctx.status = 500
+          ctx.body = {
+            message: 'something went wrong'
+          }
+        }
+
+        return
+      }
     }
 
     let allowed = canUserRunQuery({ user, query: queryObj })
