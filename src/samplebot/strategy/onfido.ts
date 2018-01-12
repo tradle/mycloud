@@ -18,7 +18,7 @@ export const createPlugin = ({ bot, logger, productsAPI, apiKey }) => {
     productsAPI,
     onfidoAPI,
     padApplicantName: true,
-    formsToRequestCorrectionsFor: ['tradle.OnfidoApplicant', 'tradle.Selfie']
+    formsToRequestCorrectionsFor: ['tradle.onfido.Applicant', 'tradle.Selfie']
   })
 
   productsAPI.plugins.use(onfidoPlugin)

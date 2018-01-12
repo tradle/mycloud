@@ -56,7 +56,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#f4b581c60ee49ae06a6dd32763a2a6e06d16ad74",
+      "resolved": "git://github.com/tradle/bot-products.git#a08defe4bad0d05c2e4b3959420bbd2ffcca6e11",
       "dependencies": {
         "@tradle/build-resource": {
           "version": "2.13.1",
@@ -311,14 +311,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#91720dcdac78ff0fb46c39783997cc7f69a17355",
-      "dependencies": {
-        "@tradle/validate-model": {
-          "version": "4.3.0",
-          "from": "@tradle/validate-model@>=4.0.0 <5.0.0",
-          "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-4.3.0.tgz"
-        }
-      }
+      "resolved": "git://github.com/tradle/plugin-onfido.git#bce70b4833236ad8762f2c08a441dd4f0a6dde30"
     },
     "@tradle/protocol": {
       "version": "3.0.0",
