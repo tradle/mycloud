@@ -968,6 +968,9 @@ functions:
   #         path: samples
   #         method: post
 
+  onfido_register:
+    handler: lib/samplebot/lambda/onfido-register.handler
+
   onfido:
     handler: lib/samplebot/lambda/http/onfido-webhook.handler
     memorySize: 1024

@@ -36,7 +36,7 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 ]
 
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
-const USE_ONFIDO = true
+const ONFIDO_ENABLED = true
 
 // until the issue with concurrent modifications of user & application state is resolved
 // then some handlers can migrate to 'messagestream'
@@ -86,7 +86,7 @@ export default function createProductsBot ({
       all: mergeModels()
         .add(baseModels, { validate: false })
         // .add(models, mergeModelsOpts)
-        // .add(USE_ONFIDO ? onfidoModels.all : {}, mergeModelsOpts)
+        // .add(ONFIDO_ENABLED ? onfidoModels.all : {}, mergeModelsOpts)
         .add(customModels, mergeModelsOpts)
         .get()
     },
@@ -292,21 +292,17 @@ export default function createProductsBot ({
 
   let onfidoPlugin
   const { onfido={} } = plugins
-  // const useOnfido = USE_ONFIDO &&
-  //   (event === 'onfido:webhook' || !!onfido.async === (event === 'messagestream'))
+  const willUseOnfido = ONFIDO_ENABLED &&
+    onfido.apiKey &&
+    (handleMessages || /onfido/.test(event))
 
-  if (USE_ONFIDO && onfido.apiKey) {
-    const { createOnfidoPlugin, registerWebhook } = require('./onfido')
-    onfidoPlugin = createOnfidoPlugin({
+  if (willUseOnfido) {
+    const { createPlugin, registerWebhook } = require('./onfido')
+    onfidoPlugin = createPlugin({
       bot,
       logger: logger.sub('onfido'),
       productsAPI,
       apiKey: onfido.apiKey
-    })
-
-    // should put this on separate lambda
-    registerWebhook({ bot, onfidoPlugin }).catch(err => {
-      onfidoPlugin.logger.error('failed to register webhook', Errors.export(err))
     })
   }
 
