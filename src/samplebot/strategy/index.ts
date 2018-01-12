@@ -245,8 +245,7 @@ export default function createProductsBot ({
           })
         }
       },
-      onFormsCollected: async (req) => {
-        const { user, application } = req
+      onFormsCollected: async ({ req, user, application }) => {
         if (!autoApprove) {
           const goodToGo = productsAPI.haveAllSubmittedFormsBeenVerified({ application })
           if (!goodToGo) return
@@ -258,9 +257,9 @@ export default function createProductsBot ({
         })
 
         if (!approved) {
-          await productsAPI.approveApplication({ user, application })
+          await productsAPI.approveApplication({ req, user, application })
           // verify unverified
-          await productsAPI.issueVerifications({ user, application, send: true })
+          await productsAPI.issueVerifications({ req, user, application, send: true })
         }
       },
       onCommand: async ({ req, command }) => {
