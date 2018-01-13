@@ -917,7 +917,7 @@ export const cachifyFunction = (
       return cached
     }
 
-    logger.debug('cache miss', str)
+    logger.debug('cache miss', str.slice(0, 10) + '...')
     const result = original.apply(container, args)
     if (isPromise(result)) {
       result.catch(err => cache.del(str))

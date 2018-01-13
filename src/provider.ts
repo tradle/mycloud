@@ -308,7 +308,7 @@ export default class Provider {
           try {
             await this.sendPushNotification(recipient)
           } catch (pushErr) {
-            this.logger.error('failed to send push notification', pushErr)
+            this.logger.error('failed to send push notification', { message: err.message })
           }
         }
       } else {
