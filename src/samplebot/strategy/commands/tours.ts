@@ -11,7 +11,7 @@ export const command:ICommand = {
   ],
   description: 'list tours or view a tour',
   parse: (argsStr:string) => {
-    const args = parse(command)
+    const args = parse(argsStr)
     return {
       name: args._[0]
     }
