@@ -133,21 +133,10 @@ const savePayloadToDB = async ({ bot, message }) => {
     return
   }
 
-  let payload
-  try {
-    payload = await getMessagePayload({ bot, message })
-    Object.assign(message.object, payload)
-    await bot.save(message.object)
-    logger.debug('saved', _.pick(payload, [TYPE, '_permalink']))
-  } catch (err) {
-    logger.debug('failed to put to db', {
-      type,
-      link: message.object._link,
-      error: err.stack
-    })
-
-    throw err
-  }
+  const payload = await getMessagePayload({ bot, message })
+  Object.assign(message.object, payload)
+  await bot.save(message.object)
+  logger.debug('saved', _.pick(payload, [TYPE, '_permalink']))
 }
 
 export {

@@ -160,7 +160,17 @@ function _createBot (opts: {
 
     resource = _.cloneDeep(resource)
     await bot.objects.replaceEmbeds(resource)
-    await bot.db[method](ensureTimestamped(resource))
+    try {
+      await bot.db[method](ensureTimestamped(resource))
+    } catch (err) {
+      logger.debug(`db.${method} failed`, {
+        type: resource[TYPE],
+        link: resource._link,
+        input: err.input,
+        error: err.stack
+      })
+    }
+
     return resource
   }
 
