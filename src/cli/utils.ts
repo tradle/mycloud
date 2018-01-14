@@ -15,6 +15,7 @@ import validateResource = require('@tradle/validate-resource')
 import { TYPE } from '@tradle/constants'
 import { Bucket } from '../bucket'
 import Errors = require('../errors')
+import { wait } from '../utils'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
@@ -375,6 +376,7 @@ const clearTypes = async ({ tradle, types }) => {
             throw err
           }
 
+          await wait(1000)
           console.log('failed to delete item, will retry', err.name)
         }
       }
