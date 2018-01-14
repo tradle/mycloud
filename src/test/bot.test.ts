@@ -4,7 +4,7 @@ import crypto = require('crypto')
 import _ = require('lodash')
 import test = require('tape')
 import sinon = require('sinon')
-import cfnResponse = require('cfn-response')
+import * as cfnResponse from '../cfn-response'
 import { TYPE, SEQ, SIG } from '@tradle/constants'
 import IotMessage = require('@tradle/iot-message')
 import { utils as tradleUtils } from '@tradle/engine'
@@ -115,7 +115,8 @@ const rethrow = err => {
       t.same(opts, expectedEvent.payload)
     })
 
-    let { callCount } = cfnResponse.send
+    const cfnResponseStub = sinon.stub(cfnResponse, 'send').resolves()
+    let { callCount } = cfnResponseStub
 
     bot.oninit(async (event) => {
       t.same(event, expectedEvent)
@@ -125,7 +126,7 @@ const rethrow = err => {
       done: t.error
     })
 
-    t.equal(cfnResponse.send.getCall(callCount++).args[2], cfnResponse.SUCCESS)
+    t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
 
     bot.oninit(async (event) => {
       throw new Error('test error')
@@ -135,7 +136,9 @@ const rethrow = err => {
       done: (err) => t.equal(err.message, 'test error')
     })
 
-    t.equal(cfnResponse.send.getCall(callCount++).args[2], cfnResponse.FAILED)
+    t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.FAILED)
+
+    cfnResponseStub.restore()
     t.end()
   }))
 

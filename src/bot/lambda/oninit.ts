@@ -1,5 +1,5 @@
 import _ = require('lodash')
-import cfnResponse = require('cfn-response')
+import { sendSuccess, sendError } from '../../cfn-response'
 import { EventSource, fromCloudFormation, Lambda } from '../lambda'
 
 export const createLambda = (opts) => {
@@ -23,17 +23,18 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     let err
     try {
       await bot.hooks.fire('init', ctx.event)
-      await next()
     } catch (e) {
       err = e
     }
 
     if (ResponseURL) {
-      const type = err ? cfnResponse.FAILED : cfnResponse.SUCCESS
-      const props = err ? _.pick(err, ['message', 'stack']) : {}
-      cfnResponse.send(event, context, type, props)
-    } else {
-      context.done(err)
+      const respond = err ? sendError : sendSuccess
+      const data = err ? _.pick(err, ['message', 'stack']) : {}
+      await respond(event, context, data)
     }
+
+    if (err) throw err
+
+    await next()
   }
 }

@@ -153,7 +153,6 @@
     "bluebird-q": "^2.1.1",
     "bn.js": "^4.11.8",
     "caseless": "^0.12.0",
-    "cfn-response": "^1.0.1",
     "clone": "^2.1.1",
     "co": "^4.6.0",
     "data-uri-to-file": "^0.1.8",
