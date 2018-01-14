@@ -5,7 +5,7 @@ process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 require('source-map-support').install()
 
 import yn = require('yn')
-import { pick } from 'lodash'
+import _ = require('lodash')
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
@@ -26,7 +26,7 @@ const tradle = createRemoteTradle()
 const bot = require('../bot').createBot({ tradle })
 const { db, dbUtils, env } = tradle
 const { SERVERLESS_PREFIX } = env
-const { clear } = dbUtils
+// const { clear } = dbUtils
 const definitions = require('../definitions')
 const readline = require('readline')
 
@@ -49,15 +49,16 @@ const deleteApplications = async () => {
     }
   })
 
-  const tablesToClear = [
-    {
-      name: definitions.UsersTable.Properties.TableName,
-      filter: user => !user.friend
-    }
-  ]
+  // const tablesToClear = [
+  //   {
+  //     name: definitions.UsersTable.Properties.TableName,
+  //     filter: user => !user.friend
+  //   }
+  // ]
 
   console.log(`1. will delete the following types: ${JSON.stringify(modelsToDelete, null, 2)}`)
-  console.log('2. will also clear the following tables\n', tablesToClear)
+  console.log('2. will also clear users table')
+  // console.log('2. will also clear the following tables\n', tablesToClear)
 
   if (!argv.force) {
     const rl = readline.createInterface(process.stdin, process.stdout)
@@ -80,11 +81,36 @@ const deleteApplications = async () => {
 
   console.log(`deleted items count: ${JSON.stringify(deleteCounts, null, 2)}`)
 
-  for (const { name, filter } of tablesToClear) {
-    console.log('clearing', name)
-    const numDeleted = await clear(name, filter)
-    console.log(`deleted ${numDeleted} items from ${name}`)
-  }
+  const { TableName } = definitions.UsersTable.Properties
+  const { KeySchema } = await dbUtils.getTableDefinition(TableName)
+  const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
+  await dbUtils.batchProcess({
+    params: {
+      TableName
+    },
+    processOne: async (item) => {
+      if (item.friend) {
+        await dbUtils.put({
+          TableName,
+          Item: _.pick(item, keyProps.concat(['friend', 'identity']))
+        })
+      } else {
+        await dbUtils.del({
+          TableName,
+          Key: _.pick(item, keyProps)
+        })
+      }
+    }
+  })
+
+  // const tableName = definitions.UsersTable.Properties.TableName
+
+
+  // for (const { name, filter } of tablesToClear) {
+  //   console.log('clearing', name)
+  //   const numDeleted = await clear(name, filter)
+  //   console.log(`deleted ${numDeleted} items from ${name}`)
+  // }
 }
 
 deleteApplications().catch(err => {
