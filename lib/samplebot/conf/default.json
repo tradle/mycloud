@@ -6,7 +6,7 @@
         "tradle.CorporateBankAccount",
         "tradle.LifeInsurance",
         "tradle.MortgageProduct",
-        "tradle.OnfidoVerification"
+        "tradle.onfido.CustomerVerification"
       ],
       "queueSends": false,
       "autoApprove": true,
