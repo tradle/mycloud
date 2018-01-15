@@ -25,6 +25,8 @@ const rethrow = err => {
   if (err) throw err
 }
 
+const fakeLink = () => crypto.randomBytes(32).toString('hex')
+
 ;[/*createFakeBot,*/ createRealBot].forEach((createBot, i) => {
   const mode = createBot === createFakeBot ? 'mock' : 'real'
   // test('await ready', loudAsync(async (t) => {
@@ -318,6 +320,7 @@ const rethrow = err => {
 })
 
 test('onmessagestream', loudAsync(async (t) => {
+  const _link = fakeLink()
   const message = {
     "_author": "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
     "_inbound": true,
@@ -339,8 +342,8 @@ test('onmessagestream', loudAsync(async (t) => {
     ],
     "object": {
       "_author": "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
-      "_link": "e886aba619b76982a6eb3ed6e70065d324eddcd9fe1968bf33ea0e59662925c4",
-      "_permalink": "e886aba619b76982a6eb3ed6e70065d324eddcd9fe1968bf33ea0e59662925c4",
+      "_link": _link,
+      "_permalink": _link,
       "_sigPubKey": "04ab6be656d0d6e95e15b3b2b3c9de36929b32f82de955a6a16be590be544947c5c383fbcce54be3ee86d42b1c1e8b27b285f9df17b50ce0621557d455c4058611",
       "_virtual": [
         "_sigPubKey",
@@ -379,13 +382,16 @@ test('onmessagestream', loudAsync(async (t) => {
   const stubPreSign = sinon.stub(bot.objects, 'presignEmbeddedMediaLinks')
     .callsFake(object => object)
 
+  let createdUser
   users.createIfNotExists = async (user) => {
     // #3
     t.equal(user.id, message._author)
+    createdUser = true
     return user
   }
 
   bot.hook('message', async (data) => {
+    debugger
     // #4, 5
     const { user } = data
     user.bill = 'ted'
@@ -398,11 +404,6 @@ test('onmessagestream', loudAsync(async (t) => {
     })
   })
 
-  let updatedUser
-  users.merge = async () => {
-    updatedUser = true
-  }
-
   await bot.lambdas.onmessagestream().handler(toStreamItems([
     { new: message }
   ]), {
@@ -410,39 +411,40 @@ test('onmessagestream', loudAsync(async (t) => {
     done: t.error
   })
 
-  const gql = getGraphqlAPI({ bot })
-  const result = await gql.executeQuery(`
-    {
-      rl_ping_pong_Ping(orderBy:{
-        property: _time
-      }) {
-        edges {
-          node {
-            _link
-          }
-        }
-      }
-    }
-  `)
+  // const gql = getGraphqlAPI({ bot })
+  // const result = await gql.executeQuery(`
+  //   {
+  //     rl_ping_pong_Ping(orderBy:{
+  //       property: _time
+  //     }) {
+  //       edges {
+  //         node {
+  //           _link
+  //         }
+  //       }
+  //     }
+  //   }
+  // `)
 
-  // #7
-  t.same(result, {
-    "data": {
-      "rl_ping_pong_Ping": {
-        "edges": [
-          {
-            "node": {
-              "_link": message.object._link
-            }
-          }
-        ]
-      }
-    }
-  })
+  // // #7
+  // t.same(result, {
+  //   "data": {
+  //     "rl_ping_pong_Ping": {
+  //       "edges": [
+  //         {
+  //           "node": {
+  //             "_link": message.object._link
+  //           }
+  //         }
+  //       ]
+  //     }
+  //   }
+  // })
 
   // const introspection = await bot.trigger('graphql', require('./introspection-query'))
   // console.log('introspection length', JSON.stringify(introspection).length)
 
+  t.equal(createdUser, true)
   stubGet.restore()
   stubPreSign.restore()
 

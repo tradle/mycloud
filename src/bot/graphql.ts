@@ -71,7 +71,7 @@ export const getGraphqlAPI = (opts) => {
     }
   })()
 
-  const executeQuery = async (query, variables) => {
+  const executeQuery = async (query, variables?) => {
     await bot.promiseReady()
     return graphql(getSchema(), query, null, {}, variables)
   }

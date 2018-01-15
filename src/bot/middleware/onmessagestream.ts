@@ -4,7 +4,14 @@ import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import Errors = require('../../errors')
 import { getRecordsFromEvent } from '../../db-utils'
-import { batchProcess, ensureTimestamped, promiseNoop, wait } from '../../utils'
+import {
+  batchProcess,
+  ensureTimestamped,
+  promiseNoop,
+  wait,
+  uniqueStrict
+} from '../../utils'
+
 import { Lambda, fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from './onmessagessaved'
 
@@ -24,7 +31,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   }
 
   const preProcess = preProcessOne(lambda, opts)
-  const postProcess = postProcessOne(lambda, opts)
+  const postProcess = postProcessBatch(lambda, opts)
   return async (ctx, next) => {
     const { event } = ctx
     event.bot = bot
@@ -41,11 +48,13 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       .filter(result => result.value)
       .map(result => result.value)
 
-    const postResults = await batchProcess({
-      data: successes,
-      batchSize: 20,
-      processOne: postProcess
-    })
+    const postResults = await postProcess(messages)
+
+    // const postResults = await batchProcess({
+    //   data: successes,
+    //   batchSize: 20,
+    //   processOne: postProcess
+    // })
 
     logAndThrow(preResults)
     await next()
@@ -61,7 +70,8 @@ export const preProcessOne = (lambda:Lambda, opts) => {
     let delay = S3_FAILED_GET_INITIAL_RETRY_DELAY
     while (maxAttempts--) {
       try {
-        message.object = await bot.objects.get(message.object._link)
+        const body = await bot.objects.get(payload._link)
+        extendTradleObject(payload, body)
       } catch (err) {
         Errors.ignore(err, Errors.NotFound)
         await wait(delay)
@@ -73,18 +83,30 @@ export const preProcessOne = (lambda:Lambda, opts) => {
   }
 }
 
-export const postProcessOne = (lambda, opts) => {
+export const postProcessBatch = (lambda, opts) => {
   const { logger } = lambda
   const businessLogicMiddleware = onMessagesSaved(lambda, opts)
-  return async (message) => {
-    const subCtx = { ...lambda.execCtx, event: message }
+  return async (messages) => {
+    const subCtx = {
+      ...lambda.execCtx,
+      event: { messages }
+    }
+
     try {
       await businessLogicMiddleware(subCtx, promiseNoop)
     } catch (err) {
       logger.debug('failure in custom onmessagestream middleware', {
-        message: message,
+        messages,
         error: Errors.export(err)
       })
     }
   }
+}
+
+const extendTradleObject = (a, b) => {
+  const virtual = uniqueStrict((a._virtual || []).concat(b._virtual || []))
+  _.extend(a, b)
+  if (virtual.length) a._virtual = virtual
+
+  return a
 }
