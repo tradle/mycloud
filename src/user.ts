@@ -177,12 +177,12 @@ export default class User {
     // }
 
     // let ensureLiveSession = RESOLVED_PROMISE
-    // if (clientId) {
-    //   ensureLiveSession = this.tasks.add({
-    //     name: 'checklivesession',
-    //     promiser: () => this.ensureLiveSession({ clientId })
-    //   })
-    // }
+    if (clientId) {
+      this.tasks.add({
+        name: 'checklivesession',
+        promiser: () => this.ensureLiveSession({ clientId })
+      })
+    }
 
     return await this.provider.receiveMessage({ clientId, message })
   }

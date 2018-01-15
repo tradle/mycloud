@@ -306,7 +306,7 @@ export default class Provider {
       if (err instanceof Errors.NotFound) {
         this.logger.debug('live delivery canceled', error)
       } else if (err instanceof Errors.ClientUnreachable) {
-        this.logger.debug('live delivery failed, client unreachable', error)
+        this.logger.debug('live delivery failed, client unreachable', { recipient })
         if (this.tradle.pushNotifications) {
           try {
             await this.sendPushNotification(recipient)
