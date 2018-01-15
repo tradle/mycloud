@@ -73,6 +73,7 @@ export const preProcessOne = (lambda:Lambda, opts) => {
         const body = await bot.objects.get(payload._link)
         extendTradleObject(payload, body)
       } catch (err) {
+        // TODO: implement retry/fallback policy
         Errors.ignore(err, Errors.NotFound)
         await wait(delay)
         delay *= 2
@@ -95,6 +96,7 @@ export const postProcessBatch = (lambda, opts) => {
     try {
       await businessLogicMiddleware(subCtx, promiseNoop)
     } catch (err) {
+      // TODO: implement retry/fallback policy
       logger.debug('failure in custom onmessagestream middleware', {
         messages,
         error: Errors.export(err)

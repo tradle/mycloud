@@ -21,7 +21,6 @@ import crypto = require('crypto')
 import microtime = require('./microtime')
 import typeforce = require('typeforce')
 import bindAll = require('bindall')
-import flatten = require('flatten')
 // import clone = require('xtend')
 import traverse = require('traverse')
 import dotProp = require('dot-prop')
@@ -95,7 +94,6 @@ export {
  clone,
  extend,
  deepEqual,
- flatten,
  traverse,
  dotProp,
  co,
@@ -492,7 +490,7 @@ export const batchProcess = async ({
   series?: boolean
   settle?: boolean
 }) => {
-  const batches = batchify(data, batchSize)
+  const batches = _.chunk(data, batchSize)
   let batchResolver
   if (series) {
     if (!processOne) {
@@ -512,7 +510,7 @@ export const batchProcess = async ({
     return batchResolver(batch, one => processOne(one))
   })
 
-  return flatten(results)
+  return _.flatten(results)
 }
 
 export const settleMap = (data, fn):Promise => {
@@ -524,16 +522,6 @@ export const settleSeries = (data, fn):Promise => {
     const results = await allSettled(RESOLVED_PROMISE.then(() => fn(item)))
     return results[0]
   })
-}
-
-export function batchify (arr, batchSize) {
-  const batches = []
-  while (arr.length) {
-    batches.push(arr.slice(0, batchSize))
-    arr = arr.slice(batchSize)
-  }
-
-  return batches
 }
 
 export async function runWithBackoffWhile (fn, opts) {

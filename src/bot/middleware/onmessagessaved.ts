@@ -89,9 +89,9 @@ const toStream = (lambda:Lambda, opts?:any) => {
   const { tradle } = lambda
   return async (ctx, next) => {
     ctx.event = toStreamItems(ctx.event.messages.map(m => {
-      const change = {}
-      change.new = tradle.messages.formatForDB(m)
-      return change
+      return {
+        new: tradle.messages.formatForDB(m)
+      }
     }))
 
     await next()

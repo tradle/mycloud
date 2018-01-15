@@ -2,7 +2,7 @@ import { omit } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Logger from './logger'
-import { timeMethods, isPromise, batchify, batchProcess, gzip } from './utils'
+import { timeMethods, isPromise, batchProcess, gzip } from './utils'
 
 export type PutOpts = {
   key:string,

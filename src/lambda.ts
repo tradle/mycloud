@@ -105,9 +105,10 @@ export class Lambda extends EventEmitter {
   public isVirgin: boolean
   public containerId: string
   public accountId: string
+  public requestCounter: number
+  public bot?: any
   private breakingContext: string
   private middleware:Function[]
-  private requestCounter: number
   private initPromise: Promise<void>
   private _gotHandler: boolean
   constructor(opts:ILambdaOpts={}) {

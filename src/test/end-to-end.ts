@@ -30,7 +30,6 @@ import * as onmessage from '../samplebot/lambda/mqtt/onmessage'
 
 const { genLocalResources } = require('../cli/utils')
 const { wrap, utils, crypto } = require('../')
-const { batchify } = utils
 // const botFixture = require('./fixtures/bot')
 // const userIdentities = require('./fixtures/users-pem')
 const intercept = require('./interceptor')
@@ -763,7 +762,7 @@ const clearTables = async ({ tradle }) => {
 
   debug('clearing tables', toDelete)
 
-  const batches = batchify(toDelete, 5)
+  const batches = _.chunk(toDelete, 5)
   await Promise.all(batches.map(async (batch) => {
     await Promise.all(batch.map(clearTable))
     debug('cleared tables', batch)

@@ -14,7 +14,6 @@ import {
   timestamp,
   wait,
   waitImmediate,
-  batchify,
   timeMethods
 } from './utils'
 import { prettify, alphabetical } from './string-utils'
@@ -22,19 +21,33 @@ import { sha256 } from './crypto'
 import Errors = require('./errors')
 import Env from './env'
 
-const alwaysTrue = (...any) => true
-const definitions = require('./definitions')
-const MAX_BATCH_SIZE = 25
-const CONSISTENT_READ_EVERYTHING = true
-const TABLE_BUCKET_REGEX = /-bucket-\d+$/
-
 type Batch = {
   Items: any[]
   LastEvaluatedKey?: any
 }
 
+type BackoffOptions = {
+  backoff: (tries:number) => number
+  maxTries: number
+}
+
 type BatchWorker = (batch:Batch) => Promise<boolean|void>
 type ItemWorker = (item:any) => Promise<boolean|void>
+
+const alwaysTrue = (...any) => true
+const definitions = require('./definitions')
+const MAX_BATCH_SIZE = 25
+const CONSISTENT_READ_EVERYTHING = true
+const TABLE_BUCKET_REGEX = /-bucket-\d+$/
+const defaultBackoffFunction = (retryCount:number) => {
+  const delay = Math.pow(2, retryCount) * 500
+  return Math.min(jitter(delay, 0.1), 10000)
+}
+
+const DEFAULT_BACKOFF_OPTS = {
+  backoff: defaultBackoffFunction,
+  maxTries: 6
+}
 
 export default createDBUtils
 export {
@@ -83,7 +96,7 @@ function createDBUtils ({ aws, logger }) {
         }
       })
 
-      const batches = batchify(ops, MAX_BATCH_SIZE)
+      const batches = _.chunk(ops, MAX_BATCH_SIZE)
       for (const batch of batches) {
         debug(`writing batch of ${batch.length} to ${TableName}`)
         await batchPut({
@@ -360,13 +373,16 @@ function createDBUtils ({ aws, logger }) {
   //   }
   // })
 
-  const batchPut = async (params:AWS.DynamoDB.BatchWriteItemInput, backoffOptions={}) => {
+  const batchPut = async (
+    params:AWS.DynamoDB.BatchWriteItemInput,
+    backoffOptions:BackoffOptions
+  ) => {
     params = { ...params }
 
     const {
-      backoff=defaultBackoffFunction,
-      maxTries=6
-    } = backoffOptions
+      backoff,
+      maxTries
+    } = _.defaults(backoffOptions, DEFAULT_BACKOFF_OPTS)
 
     let tries = 0
     let failed
@@ -379,7 +395,7 @@ function createDBUtils ({ aws, logger }) {
       await wait(backoff(tries++))
     }
 
-    const err = new Errors.BatchPutFailed()
+    const err:any = new Errors.BatchPutFailed()
     err.failed = failed
     err.attempts = tries
     throw err
@@ -441,11 +457,6 @@ function jitter (val, percent) {
   // jitter by val * percent
   // eslint-disable-next-line no-mixed-operators
   return val * (1 + 2 * percent * Math.random() - percent)
-}
-
-function defaultBackoffFunction (retryCount) {
-  const delay = Math.pow(2, retryCount) * 500
-  return Math.min(jitter(delay, 0.1), 10000)
 }
 
 function getRecordsFromEvent (event, oldAndNew?) {

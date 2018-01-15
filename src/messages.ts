@@ -8,7 +8,6 @@ import Objects from './objects'
 import Env from './env'
 import { IDebug, ITradleMessage, ITradleObject, IECMiniPubKey } from './types'
 import Errors = require('./errors')
-import { ErrorWithLink } from './errors'
 import {
   typeforce,
   pickVirtual,
@@ -20,6 +19,7 @@ import { getLink } from './crypto'
 import { prettify } from './string-utils'
 import * as types from './typeforce-types'
 import Logger from './logger'
+import { Tradle } from './tradle'
 import {
   TYPES,
   MAX_CLOCK_DRIFT,
@@ -140,7 +140,7 @@ export default class Messages {
 
   public getMessageStub = (opts: {
     message: ITradleMessage,
-    error?: ErrorWithLink
+    error?: ErrorConstructor
   }):IMessageStub => {
     const { message, error } = opts
     const stub = {

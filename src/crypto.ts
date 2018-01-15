@@ -28,6 +28,14 @@ const KEY_BYTES = 32
 const SALT_BYTES = 32
 const encoders = {}
 
+type HexOrBase64 = "hex" | "base64"
+type EncryptedStruct = {
+  ciphertext: Buffer
+  salt: Buffer
+  tag: Buffer
+  iv: Buffer
+}
+
 export class ECKey {
   public pub: string
   public curve: string
@@ -78,7 +86,7 @@ export class ECKey {
 //   .then(data => data.Plaintext)
 // }
 
-function decryptKey ({ aws, encryptedKey }) {
+const decryptKey = ({ aws, encryptedKey }) => {
   return aws.kms.decrypt({
     CiphertextBlob: encryptedKey
   })
@@ -120,7 +128,7 @@ function decryptKey ({ aws, encryptedKey }) {
 //   })
 // }
 
-function encrypt ({ data, key, salt }) {
+const encrypt = ({ data, key, salt }) => {
   if (key.length !== KEY_BYTES) throw new Error(`expected key length: ${KEY_BYTES} bytes`)
 
   if (salt && salt.length !== SALT_BYTES) {
@@ -133,13 +141,13 @@ function encrypt ({ data, key, salt }) {
   const cipher = crypto.createCipheriv(ENC_ALGORITHM, key, iv)
   const ciphertext = Buffer.concat([cipher.update(data), cipher.final()])
   const tag = cipher.getAuthTag()
-  return serialize(ciphertext, salt, tag, iv)
+  return serializeEncrypted([ciphertext, salt, tag, iv])
 }
 
-function serialize (...buffers) {
+const serializeEncrypted = (buffers) => {
   const parts = []
   let idx = 0
-  buffers.forEach(function (part) {
+  buffers.forEach(part => {
     const len = new Buffer(4)
     if (typeof part === 'string') part = new Buffer(part)
     len.writeUInt32BE(part.length, 0)
@@ -152,7 +160,7 @@ function serialize (...buffers) {
   return Buffer.concat(parts)
 }
 
-function unserialize (buf) {
+const unserializeEncrypted = (buf:Buffer):Buffer[] => {
   const parts = []
   const l = buf.length
   let idx = 0
@@ -166,17 +174,11 @@ function unserialize (buf) {
     idx += part.length
   }
 
-  const [ciphertext, salt, tag, iv] = parts
-  return {
-    ciphertext,
-    salt,
-    tag,
-    iv
-  }
+  return parts
 }
 
-function decrypt ({ key, data }) {
-  const [ciphertext, salt, tag, iv] = unserialize(data)
+const decrypt = ({ key, data }) => {
+  const [ciphertext, salt, tag, iv] = unserializeEncrypted(data)
   const decipher = crypto.createDecipheriv(ENC_ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
   return Buffer.concat([
@@ -185,14 +187,14 @@ function decrypt ({ key, data }) {
   ])
 }
 
-function rawSign (key, data):string {
+const rawSign = (key, data):string => {
   return crypto
     .createSign(SIGN_WITH_HASH)
     .update(toBuffer(data))
     .sign(key, 'hex')
 }
 
-function rawVerify (key, data, sig):boolean {
+const rawVerify = (key, data, sig):boolean => {
   if (typeof sig === 'string') {
     sig = new Buffer(sig, 'hex')
   }
@@ -214,12 +216,12 @@ function rawVerify (key, data, sig):boolean {
 //   }
 // }
 
-function getSigningKey (keys):ECKey {
+const getSigningKey = (keys):ECKey => {
   const key = keys.find(key => key.type === 'ec' && key.purpose === 'sign')
   return new ECKey(key)
 }
 
-function getChainKey (keys, props={}) {
+const getChainKey = (keys, props={}) => {
   return keys.find(key => {
     if (key.purpose !== 'messaging' || !key.networkName) return
 
@@ -245,7 +247,7 @@ const sign = loudAsync(async ({ key, object }) => {
   })
 })
 
-function extractSigPubKey (object) {
+const extractSigPubKey = (object) => {
   const pubKey = utils.extractSigPubKey(omitVirtual(object))
   if (pubKey) {
     return {
@@ -258,7 +260,7 @@ function extractSigPubKey (object) {
   throw new InvalidSignature('unable to extract pub key from object')
 }
 
-function checkAuthentic (wrapper) {
+const checkAuthentic = (wrapper) => {
   const { object, link, author, sigPubKey } = wrapper
   const expectedPurpose = object[TYPE] === IDENTITY ? 'update' : 'sign'
   if (sigPubKey.purpose !== expectedPurpose) {
@@ -270,11 +272,11 @@ function checkAuthentic (wrapper) {
   }
 }
 
-function exportKeys (keys) {
+const exportKeys = (keys) => {
   return keys.map(exportKey)
 }
 
-function exportKey (key) {
+const exportKey = (key) => {
   key = key.toJSON(true)
   if (key.type !== 'ec' || key.curve === 'curve25519') return key
 
@@ -290,7 +292,7 @@ function exportKey (key) {
   return key
 }
 
-function getEncoder (curve) {
+const getEncoder = (curve) => {
   if (!encoders[curve]) {
     encoders[curve] = new KeyEncoder(curve)
   }
@@ -298,23 +300,23 @@ function getEncoder (curve) {
   return encoders[curve]
 }
 
-function sha256 (data:string|Buffer, enc?:HexBase64Latin1Encoding='base64') {
+const sha256 = (data:string|Buffer, enc:HexOrBase64='base64') => {
   return crypto.createHash('sha256').update(data).digest(enc)
 }
 
-function randomString (bytes, enc='hex') {
+const randomString = (bytes, enc='hex') => {
   return crypto.randomBytes(bytes).toString('hex')
 }
 
-function calcLink (object) {
+const calcLink = (object) => {
   return utils.hexLink(omitVirtual(object))
 }
 
-function getLink (object) {
+const getLink = (object) => {
   return object._link || calcLink(object)
 }
 
-function getLinks (object) {
+const getLinks = (object) => {
   const link = getLink(object)
   return {
     link,
@@ -323,11 +325,11 @@ function getLinks (object) {
   }
 }
 
-function getPermalink (object) {
+const getPermalink = (object) => {
   return object[PERMALINK] || getLink(object)
 }
 
-function addLinks (object) {
+const addLinks = (object) => {
   const links = getLinks(object)
   setVirtual(object, {
     _link: links.link,
@@ -337,12 +339,12 @@ function addLinks (object) {
   return links
 }
 
-function withLinks (object) {
+const withLinks = (object) => {
   addLinks(object)
   return object
 }
 
-function getIdentitySpecs ({ networks }) {
+const getIdentitySpecs = ({ networks }) => {
   const nets = {}
   for (let flavor in networks) {
     if (!nets[flavor]) {
