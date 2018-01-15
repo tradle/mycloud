@@ -36,7 +36,8 @@ const constants = {
   TYPES: {
     ...TYPES,
     INTRODUCTION: 'tradle.Introduction',
-    IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest'
+    IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest',
+    SIMPLE_MESSAGE: 'tradle.SimpleMessage'
   },
   IDENTITY_KEYS_KEY: prefix + 'keys.json',
   PUBLIC_CONF_BUCKET: {
@@ -60,7 +61,19 @@ const constants = {
   WARMUP_SOURCE_NAME: 'warmup',
   WARMUP_SLEEP: 40,
   UNDELIVERED_STATUS: 'u',
-  unitToMillis
+  unitToMillis,
+  DB_IGNORE_PAYLOAD_TYPES: {
+    inbound: [
+      // double-wrapped messages
+      'tradle.Message',
+      'tradle.CustomerWaiting'
+    ],
+    outbound: [
+      // double-wrapped messages
+      'tradle.Message',
+      'tradle.CustomerWaiting'
+    ]
+  }
 }
 
 export = constants

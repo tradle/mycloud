@@ -132,6 +132,7 @@
     "@tradle/ethereum-adapter": "github:tradle/ethereum-adapter",
     "@tradle/gen-samples": "github:tradle/gen-samples",
     "@tradle/iot-message": "^3.0.0",
+    "@tradle/lens": "^1.1.0",
     "@tradle/merge-models": "^2.1.0",
     "@tradle/models": "github:tradle/models",
     "@tradle/models-cloud": "github:tradle/models-cloud",

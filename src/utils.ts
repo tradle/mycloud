@@ -1,5 +1,6 @@
 import fs = require('fs')
 import zlib = require('zlib')
+import _ = require('lodash')
 // allow override promise
 // @ts-ignore
 import Promise = require('bluebird')
@@ -46,7 +47,7 @@ const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
 const { omitVirtual, setVirtual, pickVirtual } = buildResource
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
-const { MESSAGE } = TYPES
+const { MESSAGE, SIMPLE_MESSAGE } = TYPES
 const noop = () => {}
 const unrefdTimeout = (callback, ms, ...args) => {
   const handle = setTimeout(callback, ms, ...args)
@@ -968,3 +969,30 @@ export const syncClock = async (tradle:Tradle) => {
     Errors.ignore(err, Errors.NotFound)
   })
 }
+
+export const summarize = (payload:any):string => {
+  switch (payload[TYPE]) {
+  case SIMPLE_MESSAGE:
+    return payload.message
+  case 'tradle.ProductRequest':
+    return `for ${payload.requestFor}`
+  case 'tradle.Verification':
+    return `for ${payload.document.id}`
+  case 'tradle.FormRequest':
+    return `for ${payload.form}`
+  default:
+    return JSON.stringify(payload).slice(0, 200) + '...'
+  }
+}
+
+export const getMessageGist = (message):any => {
+  const base = _.pick(message, ['context', 'forward', 'originalSender'])
+  const payload = message.object
+  return {
+    ...base,
+    type: payload[TYPE],
+    permalink: payload._permalink,
+    summary: summarize(payload)
+  }
+}
+

@@ -7,56 +7,9 @@ import crypto = require('../crypto')
 import Errors = require('../errors')
 import { prettify } from '../string-utils'
 import types = require('../typeforce-types')
+import { DB_IGNORE_PAYLOAD_TYPES } from '../constants'
 
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
-
-const IGNORE_PAYLOAD_TYPES = {
-  inbound: [
-    'tradle.Message',
-    'tradle.CustomerWaiting'
-  ],
-  outbound: [
-    'tradle.Message',
-    'tradle.CustomerWaiting',
-    // 'tradle.ModelsPack',
-    // 'tradle.StylesPack'
-  ]
-}
-
-const getMessagePayload = async ({ bot, message }) => {
-  if (message.object[SIG]) {
-    return message.object
-  }
-
-  return bot.objects.get(buildResource.link(message.object))
-}
-
-const summarize = (payload:any):string => {
-  switch (payload[TYPE]) {
-  case SIMPLE_MESSAGE:
-    return payload.message
-  case 'tradle.ProductRequest':
-    return `for ${payload.requestFor}`
-  case 'tradle.Verification':
-    return `for ${payload.document.id}`
-  case 'tradle.FormRequest':
-    return `for ${payload.form}`
-  default:
-    return JSON.stringify(payload).slice(0, 200) + '...'
-  }
-}
-
-const getMessageGist = (message):any => {
-  const base = _.pick(message, ['context', 'forward', 'originalSender'])
-  const payload = message.object
-  return {
-    ...base,
-    type: payload[TYPE],
-    permalink: payload._permalink,
-    summary: summarize(payload)
-  }
-}
-
 const normalizeSendOpts = async (bot, opts) => {
   let { link, object, to } = opts
   if (typeof object === 'string') {
@@ -116,34 +69,7 @@ const normalizeSendOpts = async (bot, opts) => {
 
 const normalizeRecipient = to => to.id || to
 
-const savePayloadToDB = async ({ bot, message }) => {
-  const type = message._payloadType
-  const { logger } = bot
-  const ignored = message._inbound ? IGNORE_PAYLOAD_TYPES.inbound : IGNORE_PAYLOAD_TYPES.outbound
-  if (ignored.includes(type)) {
-    logger.debug(`not saving ${type} to type-differentiated table`)
-    return false
-  }
-
-  let table
-  try {
-    table = await bot.db.getTableForModel(type)
-  } catch (err) {
-    logger.debug(`not saving "${type}", don't have a table for it`)
-    return
-  }
-
-  const payload = await getMessagePayload({ bot, message })
-  Object.assign(message.object, payload)
-  await bot.save(message.object)
-  logger.debug('saved', _.pick(payload, [TYPE, '_permalink']))
-}
-
 export {
-  getMessagePayload,
-  getMessageGist,
-  summarize,
   normalizeSendOpts,
-  normalizeRecipient,
-  savePayloadToDB
+  normalizeRecipient
 }

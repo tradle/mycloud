@@ -1,6 +1,7 @@
 import _ = require('lodash')
 import Debug from 'debug'
 import { utils } from '@tradle/engine'
+import { DB } from '@tradle/dynamodb'
 import Embed = require('@tradle/embed')
 import buildResource = require('@tradle/build-resource')
 import { ECKey, sign, getSigningKey, getChainKey, getPermalink, addLinks } from './crypto'
@@ -24,7 +25,8 @@ import {
   TYPES,
   SIG,
   PUBLIC_CONF_BUCKET,
-  PERMALINK
+  PERMALINK,
+  DB_IGNORE_PAYLOAD_TYPES
 } from './constants'
 
 import Tradle from './tradle'
@@ -56,7 +58,6 @@ const {
 export default class Provider {
   private tradle: Tradle
   private env: Env
-  private logger:Logger
   private objects: Objects
   private messages: Messages
   private secrets: any
@@ -64,6 +65,8 @@ export default class Provider {
   private buckets: any
   private auth: Auth
   private network: any
+  public db: DB
+  public logger:Logger
   constructor (tradle: Tradle) {
     this.tradle = tradle
     this.env = tradle.env
@@ -225,8 +228,8 @@ export default class Provider {
     message = await this.messages.processInbound(message)
 
     const tasks = [
-      this.objects.put(message.object),
-      this.messages.putMessage(message)
+      this.messages.putMessage(message),
+      this.objects.put(message.object)
     ]
 
     if (message.seal) {
@@ -428,6 +431,7 @@ export default class Provider {
 }
 
 export { Provider }
+
 const getIntroducedIdentity = (payload) => {
   const type = payload[TYPE]
   if (type === IDENTITY) return payload

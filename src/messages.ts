@@ -1,10 +1,12 @@
 import _ = require('lodash')
 import AWS = require('aws-sdk')
+import { TYPE, SIG } from '@tradle/constants'
+import { utils as tradleUtils } from '@tradle/engine'
+import { DB } from '@tradle/dynamodb'
 import Identities from './identities'
 import Objects from './objects'
 import Env from './env'
 import { IDebug, ITradleMessage, ITradleObject, IECMiniPubKey } from './types'
-import { utils as tradleUtils } from '@tradle/engine'
 import Errors = require('./errors')
 import { ErrorWithLink } from './errors'
 import {
@@ -19,12 +21,12 @@ import { prettify } from './string-utils'
 import * as types from './typeforce-types'
 import Logger from './logger'
 import {
-  TYPE,
   TYPES,
   MAX_CLOCK_DRIFT,
   SEQ,
   PREV_TO_RECIPIENT,
-  PREVLINK
+  PREVLINK,
+  DB_IGNORE_PAYLOAD_TYPES
 } from './constants'
 
 const unserializeMessage = message => {
@@ -64,17 +66,13 @@ export default class Messages {
   private identities: Identities
   private objects: Objects
   private tables: any
+  private tradle: Tradle
   public inbox: any
   public outbox: any
 
-  constructor (opts: {
-    env: Env,
-    identities: Identities,
-    objects: Objects,
-    tables: any
-    logger: Logger
-  }) {
-    const { env, identities, objects, tables, logger } = opts
+  constructor (tradle: Tradle) {
+    const { env, identities, objects, tables, logger } = tradle
+    this.tradle = tradle
     this.env = env
     this.logger = logger.sub('messages')
     this.identities = identities
@@ -82,6 +80,10 @@ export default class Messages {
     this.tables = tables
     this.outbox = tables.Outbox
     this.inbox = tables.Inbox
+  }
+
+  get db() {
+    return this.tradle.db
   }
 
   public normalizeInbound = (message:any):ITradleMessage => {
@@ -165,12 +167,16 @@ export default class Messages {
       // _seqToRecipient: `${message._recipient}:${message[SEQ]}`
     })
 
+    const promiseSavePayload = this.savePayloadToDB(message)
     const item = this.formatForDB(message)
-    if (message._inbound) {
-      await this.putInboundMessage({ message, item })
-    } else {
-      await this.putOutboundMessage({ message, item })
-    }
+    const promiseSaveEnvelope = message._inbound
+      ? this.putInboundMessage({ message, item })
+      : this.putOutboundMessage({ message, item })
+
+    await Promise.all([
+      promiseSaveEnvelope,
+      promiseSavePayload
+    ])
   }
 
   public putOutboundMessage = async (opts: {
@@ -484,6 +490,37 @@ export default class Messages {
     })
 
     return message
+  }
+
+  public getMessagePayload = async ({ bot, message }) => {
+    if (message.object[SIG]) {
+      return message.object
+    }
+
+    return await this.objects.get(getLink(message.object))
+  }
+
+  public savePayloadToDB = async (message: ITradleMessage):Promise<boolean> => {
+    const type = message.object[TYPE]
+    const ignored = message._inbound
+      ? DB_IGNORE_PAYLOAD_TYPES.inbound
+      : DB_IGNORE_PAYLOAD_TYPES.outbound
+
+    if (ignored.includes(type)) {
+      this.logger.debug(`not saving ${type} to type-differentiated table`)
+      return false
+    }
+
+    try {
+      await this.db.getTableForModel(type)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.debug(`not saving "${type}", don't have a table for it`, Errors.export(err))
+      return false
+    }
+
+    await this.db.put(message.object)
+    return true
   }
 
   private get = async (table, Key):Promise<ITradleMessage> => {

@@ -22,7 +22,7 @@ export const createHandler = (opts) => {
   const { modelStore } = bot
 
   const updateVersionId = (models) => {
-    modelsVersionId = ModelsPack.versionId(models)
+    modelsVersionId = ModelsPack.versionId({ models })
   }
 
   bot.promiseReady().then(() => {

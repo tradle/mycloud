@@ -356,7 +356,8 @@ test('onmessagestream', loudAsync(async (t) => {
   const payload = {
     _t: 'ping.pong.Ping',
     _s: 'abc',
-    _time: Date.now()
+    _time: Date.now(),
+    _link: message.object._link
   }
 
   const tradle = createTestTradle()

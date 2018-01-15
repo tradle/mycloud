@@ -7,12 +7,6 @@ import Errors = require('../../errors')
 import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
 import { allSettled, uniqueStrict } from '../../utils'
-import {
-  getMessagePayload,
-  getMessageGist,
-  savePayloadToDB
-} from '../utils'
-
 import { EventSource, Lambda } from '../lambda'
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {

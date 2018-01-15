@@ -391,41 +391,44 @@ export class Test {
 
     let assignedEmployee
     let context
-    while (true) {
-      let message = await user.awaitMessage()
-      let { object } = message
-      if (!context) {
-        context = message.context
-      }
+    let stop
+    while (!stop) {
+      let messages = await user.awaitMessages()
+      for (let message of messages) {
+        let { object } = message
+        if (!context) {
+          context = message.context
+        }
 
-      if (relationshipManager && !assignedEmployee) {
-        await this.assignEmployee({ user, context, employee: relationshipManager })
-        assignedEmployee = true
-      }
+        if (relationshipManager && !assignedEmployee) {
+          await this.assignEmployee({ user, context, employee: relationshipManager })
+          assignedEmployee = true
+        }
 
-      let type = object[TYPE]
-      if (type === 'tradle.FormRequest') {
-        let form = genSample({
-          models,
-          model: models[object.form]
-        })
-        .value
+        let type = object[TYPE]
+        if (type === 'tradle.FormRequest') {
+          let form = genSample({
+            models,
+            model: models[object.form]
+          })
+          .value
 
-        // if (assignedEmployee) {
-        //   await wait(1000)
-        // }
+          // if (assignedEmployee) {
+          //   await wait(1000)
+          // }
 
-        user.send({
-          object: form,
-          other: { context }
-        })
+          user.send({
+            object: form,
+            other: { context }
+          })
 
-      } else if (models[type].subClassOf === 'tradle.MyProduct') {
-        break
-      // } else if (type === 'tradle.Message') {
-      //   // console.log('..from employee')
-      } else if (!awaitCertificate) {
-        break
+        } else if (models[type].subClassOf === 'tradle.MyProduct') {
+          stop = true
+        // } else if (type === 'tradle.Message') {
+        //   // console.log('..from employee')
+        } else if (!awaitCertificate) {
+          stop = true
+        }
       }
     }
 
@@ -526,6 +529,12 @@ class User extends EventEmitter {
       }
     })
 
+    tradle.delivery.mqtt.on('messages', ({ recipient, messages }) => {
+      if (recipient === this.permalink) {
+        this.emit('messages', messages)
+      }
+    })
+
     tradle.delivery.mqtt.on('message', ({ recipient, message }) => {
       if (recipient === this.permalink) {
         this.emit('message', message)
@@ -559,6 +568,10 @@ class User extends EventEmitter {
 
       this.on('message', handler)
     })
+  }
+
+  public awaitMessages = function () {
+    return new Promise(resolve => this.once('messages', resolve))
   }
 
   public awaitMessage = function () {

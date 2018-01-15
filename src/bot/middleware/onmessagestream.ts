@@ -4,11 +4,12 @@ import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import Errors = require('../../errors')
 import { getRecordsFromEvent } from '../../db-utils'
-import { getMessagePayload } from '../utils'
-import { batchProcess, ensureTimestamped, promiseNoop } from '../../utils'
-import { savePayloadToDB } from '../utils'
+import { batchProcess, ensureTimestamped, promiseNoop, wait } from '../../utils'
 import { Lambda, fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from './onmessagessaved'
+
+const S3_GET_ATTEMPTS = 3
+const S3_FAILED_GET_INITIAL_RETRY_DELAY = 1000
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { tradle, bot, logger } = lambda
@@ -56,18 +57,16 @@ export const preProcessOne = (lambda:Lambda, opts) => {
   return async (message) => {
     const payload = message.object
     const type = message._payloadType
-    try {
-      await savePayloadToDB({ bot, message })
-      logger.debug('saved', _.pick(payload, [TYPE, '_permalink']))
-    } catch (err) {
-      // TODO: to DLQ
-      logger.debug('failed to put to db', {
-        type,
-        link: payload._link,
-        error: err.stack
-      })
-
-      throw err
+    let maxAttempts = S3_GET_ATTEMPTS
+    let delay = S3_FAILED_GET_INITIAL_RETRY_DELAY
+    while (maxAttempts--) {
+      try {
+        message.object = await bot.objects.get(message.object._link)
+      } catch (err) {
+        Errors.ignore(err, Errors.NotFound)
+        await wait(delay)
+        delay *= 2
+      }
     }
 
     return message

@@ -11,11 +11,8 @@ import {
 
 import { addLinks } from '../crypto'
 import {
-  getMessagePayload,
-  getMessageGist,
   normalizeSendOpts,
-  normalizeRecipient,
-  savePayloadToDB
+  normalizeRecipient
 } from './utils'
 
 import constants = require('../constants')
@@ -27,6 +24,7 @@ import Objects from '../objects'
 import Messages from '../messages'
 import Identities from '../identities'
 import Auth from '../auth'
+import Errors = require('../errors')
 import addConvenienceMethods from './convenience'
 // const RESOLVED = Promise.resolve()
 const { TYPE, SIG } = constants
@@ -116,11 +114,16 @@ function _createBot (opts: {
   bot.sign = (object, author) => tradle.provider.signObject({ object, author })
   bot.seal = async ({ link, permalink }) => {
     const chainKey = await tradle.provider.getMyChainKey()
-    await bot.seals.create({
-      link,
-      permalink,
-      key: chainKey
-    })
+    try {
+      return await bot.seals.create({
+        link,
+        permalink,
+        key: chainKey
+      })
+    } catch (err) {
+      Errors.ignore(err, Errors.Duplicate)
+      return await bot.seals.get({ link })
+    }
   }
 
   bot.forceReinitializeContainers = async (functions?:string[]) => {
