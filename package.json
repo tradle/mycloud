@@ -12,7 +12,7 @@
     "@types/lodash": "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.91.tgz",
     "@types/node": "^8.0.30",
     "@types/sinon": "^4.1.2",
-    "aws-sdk": "^2.60.0",
+    "aws-sdk": "2.161.0",
     "aws-sdk-mock": "^1.7.0",
     "bindall": "^2.0.1",
     "commitizen": "^2.9.6",
