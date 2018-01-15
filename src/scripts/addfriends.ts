@@ -16,12 +16,8 @@ const {
 } = require(pathToFriendsFile)
 
 Promise.all(
-  friends.map(({ domain, subdomain }) => {
-  const payload = JSON.stringify({
-    domain,
-    url: `https://${subdomain}.execute-api.us-east-1.amazonaws.com/dev/`
-  })
-
+  friends.map(({ domain, url }) => {
+  const payload = JSON.stringify({ domain, url })
   const command = `echo '${payload}' | sls invoke --stage=${stage} -f addfriend`
   console.log(`executing: ${command}`)
   return proc.exec(command, {
