@@ -178,6 +178,7 @@ const fakeLink = () => crypto.randomBytes(32).toString('hex')
       [SEQ]: 0,
       [SIG]: crypto.randomBytes(128).toString('base64'),
       time: 123,
+      _inbound: true,
       _payloadType: payload[TYPE],
       _author: crypto.randomBytes(32).toString('hex'),
       _recipient: crypto.randomBytes(32).toString('hex'),
@@ -391,7 +392,6 @@ test('onmessagestream', loudAsync(async (t) => {
   }
 
   bot.hook('message', async (data) => {
-    debugger
     // #4, 5
     const { user } = data
     user.bill = 'ted'
