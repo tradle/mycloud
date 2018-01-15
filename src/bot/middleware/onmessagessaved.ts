@@ -14,10 +14,10 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     onMessagesSaved(lambda, opts)
   ]
 
-  if (lambda.source !== EventSource.DYNAMODB && lambda.isUsingServerlessOffline) {
-    // fake process stream
-    stack.push(toStreamAndProcess(lambda, opts))
-  }
+  // if (lambda.source !== EventSource.DYNAMODB && lambda.isUsingServerlessOffline) {
+  //   // fake process stream
+  //   stack.push(toStreamAndProcess(lambda, opts))
+  // }
 
   return compose(stack)
 }
@@ -39,7 +39,10 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     const { messages } = ctx.event
     if (!messages) return
 
-    const authors = uniqueStrict(messages.map(({ _author }) => _author))
+    const inbound = messages.filter(({ _inbound }) => _inbound)
+    if (!inbound.length) return
+
+    const authors = uniqueStrict(inbound.map(({ _author }) => _author))
     if (authors.length > 1) {
       throw new Error('only messages from a single author allowed')
     }
@@ -49,7 +52,7 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     try {
       ctx.user = await bot.users.createIfNotExists({ id: userId })
       const { user } = ctx
-      for (const message of messages) {
+      for (const message of inbound) {
         const botMessageEvent = toBotMessageEvent({ bot, user, message })
         await bot.hooks.fire('message', botMessageEvent)
       }

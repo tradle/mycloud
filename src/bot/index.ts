@@ -206,15 +206,15 @@ function _createBot (opts: {
         outboundMessageLocker.unlock(recipient)
       }
 
-      if (IS_OFFLINE && messages) {
-        const onSavedMiddleware = require('./middleware/onmessagessaved')
-        const processStream = onSavedMiddleware.toStreamAndProcess(bot.lambda)
-        await processStream({
-          event: {
-            messages: _.cloneDeep(messages)
-          }
-        })
-      }
+      // if (IS_OFFLINE && messages) {
+      //   const onSavedMiddleware = require('./middleware/onmessagessaved')
+      //   const processStream = onSavedMiddleware.toStreamAndProcess(bot.lambda)
+      //   await processStream({
+      //     event: {
+      //       messages: _.cloneDeep(messages)
+      //     }
+      //   })
+      // }
 
       return messages
     }))

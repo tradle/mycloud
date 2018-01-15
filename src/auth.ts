@@ -3,8 +3,8 @@ import { getUpdateParams } from './db-utils'
 import { typeforce, defineGetter } from './utils'
 import { prettify } from './string-utils'
 import { randomString, getPermalink } from './crypto'
-import * as Errors from './errors'
-import * as types from './typeforce-types'
+import Errors = require('./errors')
+import types = require('./typeforce-types')
 import Tradle from './tradle'
 import Env from './env'
 import Identities from './identities'

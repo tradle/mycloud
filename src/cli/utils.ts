@@ -171,7 +171,7 @@ const makePublic = async (Bucket) => {
   // }).promise()
 }
 
-const interpolateTemplate = (opts={}) => {
+const interpolateTemplate = (opts:{ arg?:string, sync?:boolean }={}) => {
   const { arg='', sync } = opts
   const command = `sls print ${arg}`
   if (sync) {
@@ -401,7 +401,7 @@ const clearTypes = async ({ tradle, types }) => {
   return deleteCounts
 }
 
-const initializeProvider = async (opts={}) => {
+const initializeProvider = async (opts:{ bot?:any, force?: boolean }={}) => {
   let { bot, force } = opts
   if (!bot) {
     const { createBot } = require('../bot')
