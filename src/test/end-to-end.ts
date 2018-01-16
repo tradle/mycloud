@@ -129,7 +129,7 @@ export class Test {
       })
     })
 
-    const application = await this.onboardCustomer({
+    return await this.onboardCustomer({
       user: customer,
       relationshipManager: employee,
       product
@@ -268,14 +268,39 @@ export class Test {
       })
     }
 
-    const application = await this.runThroughApplication({
+    const start = Date.now()
+    const result = await this.runThroughApplication({
       user,
       relationshipManager,
       product: product || this.products[0],
       awaitCertificate: true
     })
 
-    return application
+    const { application, conversation } = result
+    const storedConversation = await this.bot.db.find({
+      orderBy: {
+        property: 'time',
+        desc: false
+      },
+      filter: {
+        GT: {
+          time: start - 1
+        },
+        EQ: {
+          [TYPE]: 'tradle.Message',
+          _counterparty: user.permalink
+        }
+      }
+    })
+
+    conversation.forEach((item, i) => {
+      if (!_.isEqual(item, storedConversation.items[i])) {
+        debugger
+      }
+    })
+
+    // assert.deepEqual(conversation, storedConversation.items)
+    return result
   }
 
   public approve = function (opts) {
@@ -372,6 +397,7 @@ export class Test {
     awaitCertificate?:boolean,
     relationshipManager?:User
   }) => {
+    const conversation = []
     const {
       productsAPI,
       employeeManager,
@@ -379,6 +405,9 @@ export class Test {
     } = this
 
     user.sendSelfIntroduction()
+    user.on('messages', messages => conversation.push(...messages))
+    user.on('send', message => conversation.push(message))
+
     await user.waitFor(message => {
       const { object } = message
       return object[TYPE] === 'tradle.FormRequest' &&
@@ -431,7 +460,10 @@ export class Test {
       }
     }
 
-    return this.getApplicationByContext({ context })
+    return {
+      application: await this.getApplicationByContext({ context }),
+      conversation
+    }
 
     function createProductRequest (product) {
       return buildResource({
@@ -586,6 +618,7 @@ class User extends EventEmitter {
 
     this.debug('sending', object[TYPE])
     const message = await this._createMessage({ object, other })
+    this.emit('send', message)
     await onmessage.invoke({
       clientId: this.clientId,
       data: await IotMessage.encode({

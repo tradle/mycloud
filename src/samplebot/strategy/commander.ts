@@ -24,6 +24,7 @@ import {
 
 import Logger from '../../logger'
 
+const prettify = obj => JSON.stringify(obj, null, 2)
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?$/
 const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
 
@@ -101,10 +102,13 @@ export class Commander {
     await this.auth(ctx)
     if (!ctx.allowed) return
 
+    let result
+    let matchingCommand
+    let args
     try {
-      const matchingCommand = getCommandByName(commandName)
-      const args = matchingCommand.parse ? matchingCommand.parse(argsStr) : null
-      await matchingCommand.exec({
+      matchingCommand = getCommandByName(commandName)
+      args = matchingCommand.parse ? matchingCommand.parse(argsStr) : null
+      result = await matchingCommand.exec({
         context: this,
         req,
         args
@@ -119,6 +123,23 @@ export class Commander {
         await this.sendSimpleMessage({ req, to: user, message })
       }
     }
+
+    if (!user) return
+
+    const opts = { context: this, req, to: user, result, args, argsStr }
+    if (matchingCommand.sendResult) {
+      await matchingCommand.sendResult(opts)
+    } else {
+      await this.sendResult(opts)
+    }
+  }
+
+  public sendResult = async ({ req, to, result }) => {
+    // const message = typeof result === 'string' ? result : json2yaml(result)
+    if (!result) return
+
+    const message = typeof result === 'string' ? result : prettify(result)
+    await this.sendSimpleMessage({ req, to, message })
   }
 
   public send = async (opts) => {

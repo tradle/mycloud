@@ -8,6 +8,7 @@ import { command as setautoapprove } from './setautoapprove'
 import { command as addfriend } from './addfriend'
 import { command as tours } from './tours'
 import { command as message } from './message'
+import { command as getconf } from './getconf'
 
 export {
   help,
@@ -18,6 +19,6 @@ export {
   setautoapprove,
   addfriend,
   tours,
-  message
-  // autoApprove
+  message,
+  getconf
 }

@@ -206,6 +206,8 @@ export interface ICommand {
   name: string
   description: string
   examples: string[]
-  parse?: (args:string) => any
   exec: (any) => Promise<any>
+  parse?: (args:string) => any
+  sendResult?: (any) => Promise<any>
+  aliases?: string[]
 }

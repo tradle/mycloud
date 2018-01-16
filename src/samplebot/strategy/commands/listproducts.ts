@@ -11,8 +11,9 @@ export const command:ICommand = {
   ],
   description: 'see a list of products',
   exec: async ({ context, req }) => {
-    // const { conf } = context
-    // return conf.bot.products.enabled.slice()
+    return context.conf.products.enabled.slice()
+  },
+  sendResult: async ({ context, req, result }) => {
     await context.productsAPI.sendProductList({ to: req.user })
   }
 }

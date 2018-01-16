@@ -12,7 +12,8 @@ export const EMPLOYEE_COMMANDS = [
   'setautoapprove',
   'addfriend',
   'tours',
-  'message'
+  'message',
+  'getconf'
 ]
 
 export const CUSTOMER_COMMANDS = [
@@ -69,7 +70,7 @@ export const toggleProduct = createEditConfOp(async ({ context, req, product, en
     await context.sendSimpleMessage({ req, message })
   }
 
-  if (byTitle) product = byTitle[0]
+  if (byTitle.length) product = byTitle[0]
 
   if (enable && products.includes(product)) {
     throw new Error(`product ${product} is already enabled!`)
