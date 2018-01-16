@@ -167,7 +167,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#6798b501a5c084df30e94e3c2deba9f2394d1a52",
+      "resolved": "git://github.com/tradle/dynamodb.git#282f8552edbbd7d414d567b6755d221a069f6ca1",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -2084,7 +2084,7 @@
     },
     "flatten": {
       "version": "1.0.2",
-      "from": "https://registry.npmjs.org/flatten/-/flatten-1.0.2.tgz",
+      "from": "flatten@>=1.0.2 <2.0.0",
       "resolved": "https://registry.npmjs.org/flatten/-/flatten-1.0.2.tgz"
     },
     "for-each": {

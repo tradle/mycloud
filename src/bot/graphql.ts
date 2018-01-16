@@ -20,10 +20,14 @@ export const getGraphqlAPI = (opts) => {
     db
   } = bot
 
-  const postProcess = async (result, op) => {
+  const postProcess = async (result, op, opts:any={}) => {
     if (!result) return result
 
     if (Array.isArray(result) && !result.length) {
+      return result
+    }
+
+    if (opts.select && !opts.select.includes('object')) {
       return result
     }
 
