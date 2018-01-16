@@ -57,6 +57,10 @@ export function createMessagesTable ({ models, getMyIdentity }: {
 
     // only allow queries for messages
     // paged in reverse time order
+    //
+    // and only provided either of the following is provided:
+    //   a: _author+_recipient (or _counterparty)
+    //   b: context
 
     let {
       checkpoint,
@@ -81,42 +85,37 @@ export function createMessagesTable ({ models, getMyIdentity }: {
     // }
 
     let counterparty = EQ._counterparty
+    const { context } = EQ
     if (!counterparty) {
       const { _author, _recipient } = IN
-      if (!(_author && _recipient)) {
+      if (_author && _recipient) {
+        if (!equalsIgnoreOrder(_author, _recipient)) {
+          throw new Error('expected IN._author and IN._recipient to be the same')
+        }
+
+        const identity = await getMyIdentity()
+        if (!_author.includes(identity._permalink)) {
+          throw new Error(`expected one of the parties to be this bot: "${identity._permalink}"`)
+        }
+
+        counterparty = _author.find(permalink => permalink !== identity._permalink)
+      } else if (!context) {
         throw new Error('expected IN._author and IN._recipient')
       }
-
-      if (!equalsIgnoreOrder(_author, _recipient)) {
-        throw new Error('expected IN._author and IN._recipient to be the same')
-      }
-
-      const identity = await getMyIdentity()
-      if (!_author.includes(identity._permalink)) {
-        throw new Error(`expected one of the parties to be this bot: "${identity._permalink}"`)
-      }
-
-      counterparty = _author.find(permalink => permalink !== identity._permalink)
     }
 
     IN = _.omit(IN, ['_author', '_recipient'])
     EQ = _.omit(EQ, ['_counterparty'])
-    const inboundFilter = {
-      ...filter,
-      IN,
-      EQ: {
-        ...EQ,
-        _author: counterparty
-      }
+    const inboundFilter = { ...filter, IN, EQ: _.clone(EQ) }
+    const outboundFilter = { ...filter, IN, EQ: _.clone(EQ) }
+
+    if (counterparty) {
+      inboundFilter.EQ._author = counterparty
+      outboundFilter.EQ._recipient = counterparty
     }
 
-    const outboundFilter = {
-      ...filter,
-      IN,
-      EQ: {
-        ...EQ,
-        _recipient: counterparty
-      }
+    if (context) {
+      inboundFilter.EQ.context = context
     }
 
     filter.EQ = EQ
