@@ -111,20 +111,25 @@ export default class Auth {
 
   public setConnected = async ({ clientId, connected }): Promise<any> => {
     if (!connected) {
-      return await this.updateSession({ clientId }, { connected: false, subscribed: false })
+      return await this.updateSession({ clientId }, {
+        connected: false,
+        subscribed: false
+      })
     }
 
     return await this.tables.Presence.update({
       Key: getKeyFromClientId(clientId),
-      UpdateExpression: 'SET #connected = :connected',
+      UpdateExpression: 'SET #connected = :connected, #dateConnected = :dateConnected',
       ConditionExpression: '#authenticated = :authenticated',
       ExpressionAttributeNames: {
         '#connected': 'connected',
-        '#authenticated': 'authenticated'
+        '#authenticated': 'authenticated',
+        '#dateConnected': 'dateConnected'
       },
       ExpressionAttributeValues: {
         ':connected': true,
-        ':authenticated': true
+        ':authenticated': true,
+        ':dateConnected': Date.now()
       },
       ReturnValues: 'ALL_NEW'
     })
@@ -138,15 +143,17 @@ export default class Auth {
 
     return await this.tables.Presence.update({
       Key: getKeyFromClientId(clientId),
-      UpdateExpression: 'SET #subscribed = :subscribed',
+      UpdateExpression: 'SET #subscribed = :subscribed, #dateSubscribed = :dateSubscribed',
       ConditionExpression: '#authenticated = :authenticated',
       ExpressionAttributeNames: {
         '#subscribed': 'subscribed',
-        '#authenticated': 'authenticated'
+        '#authenticated': 'authenticated',
+        '#dateSubscribed': 'dateSubscribed'
       },
       ExpressionAttributeValues: {
         ':subscribed': true,
-        ':authenticated': true
+        ':authenticated': true,
+        ':dateSubscribed': Date.now()
       },
       ReturnValues: 'ALL_NEW'
     })
@@ -253,12 +260,15 @@ export default class Auth {
         throw err
       })
 
-    session.clientPosition = position
-    session.serverPosition = {
-      sent: await getLastSent
-    }
+    Object.assign(session, {
+      clientPosition: position,
+      serverPosition: {
+        sent: await getLastSent
+      },
+      authenticated: true,
+      dateAuthenticated: Date.now()
+    })
 
-    session.authenticated = true
     this.tasks.add({
       name: 'savesession',
       promise: this.putSession(session)
