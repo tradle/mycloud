@@ -48,11 +48,11 @@ const SUDO = {
 }
 
 export class Commander {
-  private bot:any
-  private productsAPI:any
-  private employeeManager:any
-  private conf: any
-  private logger: Logger
+  public bot:any
+  public productsAPI:any
+  public employeeManager:any
+  public conf: any
+  public logger: Logger
   constructor ({ bot, productsAPI, employeeManager, conf }) {
     this.bot = bot
     this.productsAPI = productsAPI
