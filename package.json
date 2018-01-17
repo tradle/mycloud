@@ -32,7 +32,7 @@
     "serverless-apigw-binary": "github:mvayngrib/serverless-apigw-binary#tradle",
     "serverless-dynamodb-autoscaling": "^0.6.2",
     "serverless-dynamodb-local": "github:mvayngrib/serverless-dynamodb-local",
-    "serverless-iot-local": "github:tradle/serverless-iot-local",
+    "serverless-iot-local": "^1.1.0",
     "serverless-offline": "github:tradle/serverless-offline",
     "serverless-offline-scheduler": "^0.3.3",
     "serverless-plugin-aws-alerts": "^1.2.4",

@@ -11,9 +11,11 @@ thresholdInvocationsAlarm: 50 # invocations
 thresholdDurationAlarm: 60 # seconds
 versionFunctions: false
 serverless-offline:
+  host: 0.0.0.0
   port: 21012
 
 serverless-iot-local:
+  host: 0.0.0.0
   port: 1883
   httpPort: 1884
 
