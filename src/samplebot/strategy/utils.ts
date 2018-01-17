@@ -34,6 +34,7 @@ export const createEditConfOp = edit => async (opts) => {
   } else {
     const confManager = new Conf({ bot })
     await confManager.setBotConf(conf)
+    await bot.forceReinitializeContainers()
   }
 }
 
