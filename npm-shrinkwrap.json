@@ -56,17 +56,12 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#7fcfd04b7aaac40822d78426a39ef244c14ad79c",
+      "resolved": "git://github.com/tradle/bot-products.git#588fcb4456a315e9119d5337de21c0113352d39d",
       "dependencies": {
         "@tradle/build-resource": {
           "version": "2.13.1",
           "from": "@tradle/build-resource@2.13.1",
           "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-2.13.1.tgz"
-        },
-        "@tradle/validate-model": {
-          "version": "5.1.0",
-          "from": "@tradle/validate-model@5.1.0",
-          "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-5.1.0.tgz"
         },
         "@tradle/validate-resource": {
           "version": "2.15.1",
@@ -262,7 +257,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#5545448aac8a7e7516833417b41ff431b2a8880e"
+      "resolved": "git://github.com/tradle/models.git#e69ce33ccb9b9f6726317b634bbb1c2948babaef"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
