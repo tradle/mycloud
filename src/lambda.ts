@@ -321,7 +321,7 @@ export class Lambda extends EventEmitter {
       }
 
       ctx.body = this._exportError(err)
-      this.logger.debug('lambda execution failed', { stack: err.stack })
+      this.logger.debug('lambda execution hit an error', { stack: err.stack })
     } else if (result) {
       ctx.body = result
     }
