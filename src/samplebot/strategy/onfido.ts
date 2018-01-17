@@ -2,7 +2,7 @@ import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 import Errors = require('../../errors')
 
-const TEST_APIGW = require('../../test/fixtures/fake-service-map')['R_RESTAPI_ApiGateway']
+// const TEST_APIGW = require('../../test/fixtures/fake-service-map')['R_RESTAPI_ApiGateway']
 
 export const createPlugin = ({ bot, logger, productsAPI, apiKey }) => {
   const onfidoAPI = new OnfidoAPI({ token: apiKey })
@@ -31,7 +31,8 @@ export const registerWebhook = async ({ bot, onfidoPlugin }) => {
     webhook: null
   }
 
-  if (bot.apiBaseUrl.includes(TEST_APIGW) ||
+  // if (bot.apiBaseUrl.includes(TEST_APIGW) ||
+  if (bot.isTesting ||
     /^https?:\/\/localhost/.test(bot.apiBaseUrl)) {
     onfidoPlugin.logger.warn(`can't register webhook for localhost. ` +
       `Run: ngrok http ${bot.env.SERVERLESS_OFFLINE_PORT} ` +
