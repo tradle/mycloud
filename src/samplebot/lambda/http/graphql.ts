@@ -26,24 +26,29 @@ const { logger, handler } = lambda
 const init = async () => {
   const components = await promiseCustomize
   const {
-    org,
+    style,
     middleware
   } = components
 
   logger.debug('finished setting up bot graphql middleware')
-  middleware.setGraphiqlOptions({
-    logo: {
-      src: org.logo,
-      width: 32,
-      height: 32
-    },
+  const opts = {
     bookmarks: {
       // not supported
       // autorun: true,
       title: 'Samples',
       items: sampleQueries
     }
-  })
+  }
+
+  if (style && style.logo) {
+    opts.logo = {
+      src: style.logo.url,
+      width: 32,
+      height: 32
+    }
+  }
+
+  middleware.setGraphiqlOptions(opts)
 
   // lambda.use(graphqlMiddleware(lambda, components))
   bot.ready()
