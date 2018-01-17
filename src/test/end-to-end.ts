@@ -52,7 +52,7 @@ const genIdentity = async (tradle:Tradle) => {
 // }())
 
 const baseModels = require('../models')
-const defaultProducts = ['tradle.CorporateBankAccount']
+const DEFAULT_PRODUCT = 'nl.tradle.DigitalPassport'
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const APPLICATION = 'tradle.Application'
 
@@ -98,7 +98,7 @@ export class Test {
   public runEmployeeAndCustomer = wrapWithIntercept(async (opts={}) => {
     await this._ready
 
-    const { product=this.products[0] } = opts
+    const { product=DEFAULT_PRODUCT } = opts
     const { tradle, bot } = this
     const [
       employee,
@@ -211,7 +211,7 @@ export class Test {
   }: {
     user:User,
     relationshipManager?:User,
-    product?:string
+    product:string
   }) => {
     const { bot, models } = this
 
@@ -272,7 +272,7 @@ export class Test {
     const result = await this.runThroughApplication({
       user,
       relationshipManager,
-      product: product || this.products[0],
+      product,
       awaitCertificate: true
     })
 
@@ -293,11 +293,11 @@ export class Test {
       }
     })
 
-    conversation.forEach((item, i) => {
-      if (!_.isEqual(item, storedConversation.items[i])) {
-        debugger
-      }
-    })
+    // conversation.forEach((item, i) => {
+    //   if (!_.isEqual(item, storedConversation.items[i])) {
+    //     debugger
+    //   }
+    // })
 
     // assert.deepEqual(conversation, storedConversation.items)
     return result
