@@ -1,4 +1,5 @@
 import _ = require('lodash')
+import validateResource = require('@tradle/validate-resource')
 import { EventEmitter } from 'events'
 import DeliveryIot from './delivery-mqtt'
 import DeliveryHTTP from './delivery-http'
@@ -64,9 +65,13 @@ export default class Delivery extends EventEmitter implements IDelivery {
   }
 
   public deliverBatch = async (opts:IDeliverBatchRequest) => {
-    const { messages } = opts
-    messages.forEach(object => this.objects.presignEmbeddedMediaLinks({ object }))
-    return this._deliverBatch(opts)
+    const messages = opts.messages.map(message => {
+      message = validateResource.utils.omitVirtualDeep(message)
+      this.objects.presignEmbeddedMediaLinks({ object: message })
+      return message
+    })
+
+    return await this._deliverBatch({ ...opts, messages })
   }
 
   public deliverMessages = async ({

@@ -27,11 +27,12 @@ export default function createUtils ({ s3, logger }) {
 
   const gzipAndPut = async (opts) => {
     const { value, headers={} } = opts
+    const compressed = await gzip(toStringOrBuf(value))
     return await put({
       ...opts,
-      value: await gzip(toStringOrBuf(value)),
+      value: compressed,
       headers: {
-        ...{},
+        ...headers,
         ContentEncoding: 'gzip'
       }
     })

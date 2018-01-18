@@ -87,9 +87,14 @@ export default class Messages {
   }
 
   public normalizeInbound = (message:any):ITradleMessage => {
-    const { recipientPubKey } = message
+    let { recipientPubKey } = message
     if (!recipientPubKey) {
       throw new Errors.InvalidMessageFormat('unexpected format')
+    }
+
+    if (typeof recipientPubKey === 'string') {
+      recipientPubKey = this.unserializePubKey(recipientPubKey)
+      message.recipientPubKey = recipientPubKey
     }
 
     const { pub } = recipientPubKey

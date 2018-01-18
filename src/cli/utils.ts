@@ -393,6 +393,7 @@ const clearTypes = async ({ tradle, types }) => {
     }
 
     await dbUtils.batchProcess({
+      batchSize: 20,
       params: { TableName },
       processOne
     })
