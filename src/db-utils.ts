@@ -505,6 +505,7 @@ function getUpdateParams (item) {
   }
 
   if (toRemove.length) {
+    debug(`removing properties: ${toRemove.join(', ')}`)
     const ops = toRemove.map(key => `#${key}`).join(', ')
     UpdateExpression += `REMOVE ${ops} `
   }
