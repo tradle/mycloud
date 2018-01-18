@@ -465,6 +465,7 @@ Previous exit stack: ${this.lastExitStack}`)
           await next()
         } catch (err) {
           ctx.error = err
+          ctx.status = 500
         }
       }
 
