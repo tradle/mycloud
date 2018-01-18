@@ -111,6 +111,7 @@ export class Lambda extends EventEmitter {
   private middleware:Function[]
   private initPromise: Promise<void>
   private _gotHandler: boolean
+  private lastExitStack: string
   constructor(opts:ILambdaOpts={}) {
     super()
     const {
@@ -144,10 +145,15 @@ export class Lambda extends EventEmitter {
     }
 
     this.use(warmup(this))
-    this.tasks.add({
-      name: 'warmup:cache',
-      promiser: () => tradle.warmUpCaches()
-    })
+
+    // no point in warming up as these events
+    // are once in a lifetime
+    if (source !== EventSource.CLOUDFORMATION) {
+      this.tasks.add({
+        name: 'warmup:cache',
+        promiser: () => tradle.warmUpCaches()
+      })
+    }
 
     this.init()
     process.nextTick(() => {
@@ -257,9 +263,11 @@ export class Lambda extends EventEmitter {
 
   public exit = async (err?, result?) => {
     if (this.done) {
-      throw new Error('exit can only be called once per lambda invocation!')
+      throw new Error(`exit can only be called once per lambda invocation!
+Previous exit stack: ${this.lastExitStack}`)
     }
 
+    this.lastExitStack = new Error('exit').stack
     this.logger.debug('preparing for exit', {
       requestTime: this.executionTime,
       timeLeft: this.timeLeft
@@ -430,6 +438,7 @@ export class Lambda extends EventEmitter {
   private reset () {
     this.reqCtx = null
     this.execCtx = null
+    this.lastExitStack = null
     this.logger = this.tradle.logger.sub({
       namespace: this.env.FUNCTION_NAME,
       writer: console
