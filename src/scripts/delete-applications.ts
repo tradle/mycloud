@@ -85,6 +85,7 @@ const deleteApplications = async () => {
   const { KeySchema } = await dbUtils.getTableDefinition(TableName)
   const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
   await dbUtils.batchProcess({
+    batchSize: 20,
     params: {
       TableName
     },
