@@ -64,9 +64,12 @@ export const command:ICommand = {
       await users.merge({ id: userId, friend: friendStub })
     }
 
+    return friend
+  },
+  sendResult: async ({ context, req, args, result }) => {
     await context.sendSimpleMessage({
       req,
-      message: `added friend ${friend.name} from ${url}`
+      message: `added friend ${result.name} from ${args.url}`
     })
   }
 }
