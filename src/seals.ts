@@ -124,7 +124,7 @@ interface IErrorRecord {
 }
 
 export default class Seals {
-  public syncUnconfirmed: (opts?: ILimitOpts) => Promise<any>
+  public syncUnconfirmed: (opts?: ILimitOpts) => Promise<Seal[]>
   public sealPending: (opts?:any) => Promise<any>
   public table: any
   public blockchain: Blockchain
@@ -417,7 +417,8 @@ export default class Seals {
     return seals
   }
 
-  private _syncUnconfirmed = async (opts: ILimitOpts = {}):Promise<void> => {
+  private _syncUnconfirmed = async (opts: ILimitOpts = {}):Promise<Seal[]> => {
+    const changed:Seal[] = []
     const { blockchain, getUnconfirmed, network, table } = this
     // start making whatever connections
     // are necessary
@@ -426,12 +427,12 @@ export default class Seals {
     const unconfirmed = await getUnconfirmed(opts)
     if (!unconfirmed.length) {
       this.logger.info(`no unconfirmed transactions`)
-      return
+      return changed
     }
 
     const addresses = unconfirmed.map(({ address }) => address)
     const txInfos:ITxInfo[] = await blockchain.getTxsForAddresses(addresses)
-    if (!txInfos.length) return
+    if (!txInfos.length) return changed
 
     const addrToSeal:SealMap = {}
     const linkToSeal:SealMap = {}
@@ -442,8 +443,6 @@ export default class Seals {
     })
 
     const updates:ISealUpdates = {}
-
-    const changed:Seal[] = []
     for (const txInfo of txInfos) {
       const { txId } = txInfo
       const to = txInfo.to.addresses
@@ -465,7 +464,7 @@ export default class Seals {
 
     if (!changed.length) {
       this.logger.info(`blockchain has nothing new for ${addresses.length} synced addresses`)
-      return
+      return changed
     }
 
     const updateSeals = this.table.batchPut(changed)
@@ -496,7 +495,7 @@ export default class Seals {
       })
 
       this.logger.debug(`updating resource with seal`, summarizeObject(object))
-      // const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
+      const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
       await Promise.all([
         this.db.update({
           ..._.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
@@ -506,12 +505,12 @@ export default class Seals {
         this.objects.put(object)
       ])
 
-      // const saved = await this.db.get(_.pick(object, [TYPE, '_permalink']))
-      // const lost = Object.keys(object).filter(p => !(p in saved))
-      // if (lost.length) {
-      //   this.logger.debug(`lost properties ${lost.join(', ')}`)
-      //   this.logger.debug(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
-      // }
+      const saved = await this.db.get(_.pick(object, [TYPE, '_permalink']))
+      const lost = Object.keys(object).filter(p => !(p in saved))
+      if (lost.length) {
+        this.logger.debug(`lost properties ${lost.join(', ')}`)
+        this.logger.debug(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
+      }
     }))
 
     await Promise.all([

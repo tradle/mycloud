@@ -11,6 +11,7 @@ import { addLinks } from '../crypto'
 import adapters from '../blockchain-adapter'
 import { recreateTable } from './utils'
 import Tradle from '../tradle'
+import Errors = require('../errors')
 const aliceKeys = require('./fixtures/alice/keys')
 const bobKeys = require('./fixtures/bob/keys')
 const aliceIdentity = require('./fixtures/alice/identity')
@@ -149,6 +150,15 @@ test('queue seal', async (t) => {
       t.equal(props._permalink, permalink)
       t.equal(props._seal.link, link)
       t.equal(props._seal.txId, txId)
+    })
+
+  const stubDBGet = sinon.stub(tradle.db, 'get')
+    .callsFake(async (props) => {
+      if (props._permalink === permalink) {
+        return sealedObj
+      }
+
+      throw new Errors.NotFound(permalink)
     })
 
   await seals.create({ key, link, permalink })
