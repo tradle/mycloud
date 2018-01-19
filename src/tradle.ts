@@ -157,11 +157,11 @@ export default class Tradle {
       })
     })
 
+    this.define('modelStore', './model-store', MS => MS.createModelStore(this))
     this.tasks = new TaskManager({
       logger: this.logger.sub('async-tasks')
     })
 
-    this.modelStore = createModelStore(this)
     // this.bot = this.require('bot', './bot')
   }
 
