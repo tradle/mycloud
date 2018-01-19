@@ -17,7 +17,7 @@ export const createLambda = (opts) => {
   //   if (user.friend && payload[TYPE] === MODELS_PACK) {
   //     const modelsPack = payload
   //     try {
-  //       await modelStore.addModelsPack({ modelsPack })
+  //       await modelStore.updateGraphqlSchema()
   //       return
   //     } catch (err) {
   //       logger.error(err.message, { modelsPack })

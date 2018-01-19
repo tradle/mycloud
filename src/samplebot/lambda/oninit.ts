@@ -1,9 +1,3 @@
-import {
-  PRIVATE_CONF_KEY,
-  CUSTOM_MODELS_KEY,
-  STYLES_KEY
-} from '../constants'
-
 import { Init } from '../init'
 import { createBot } from '../../bot'
 

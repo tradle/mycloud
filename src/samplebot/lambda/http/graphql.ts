@@ -7,15 +7,18 @@ import { createMiddleware } from '../../middleware/graphql'
 const bot = createBot({ ready: false })
 
 // mute the warning about not attaching handler
+const loadModelsPacks = bot.modelStore.loadModelsPacks()
 const promiseCustomize = customize({
     bot,
     delayReady: true,
     event: 'graphql'
   })
-  .then(components => ({
-    ...components,
-    middleware: createMiddleware(lambda, components)
-  }))
+  .then(components => {
+    return {
+      ...components,
+      middleware: createMiddleware(lambda, components)
+    }
+  })
 
 const lambda = bot.createLambda({
   source: EventSource.HTTP,
@@ -49,6 +52,7 @@ const init = async () => {
   }
 
   middleware.setGraphiqlOptions(opts)
+  await loadModelsPacks
 
   // lambda.use(graphqlMiddleware(lambda, components))
   bot.ready()

@@ -5,12 +5,11 @@ import { bodyParser } from '../../bot/middleware/body-parser'
 import { Lambda } from '../../bot/lambda'
 import {
   sendModelsPackIfUpdated,
-  createGetModelsForUser,
-  defaultPropertyName,
-  getDefaultIdentifierFromUser
+  createModelsPackGetter
 } from '../strategy/keep-models-fresh'
 
 import { defineGetter } from '../../utils'
+import { MODELS_HASH_PROPERTY } from '../constants'
 
 export const keepModelsFresh = (lambda:Lambda, components) => {
   const { bot } = lambda
@@ -19,23 +18,29 @@ export const keepModelsFresh = (lambda:Lambda, components) => {
     employeeManager,
   } = components
 
-  const getModelsForUser = createGetModelsForUser({ bot, ...components })
+  const getModelsPackForUser = createModelsPackGetter({ bot, ...components })
+  const sendModelsPackToUser = async (user) => {
+    const modelsPack = await getModelsPackForUser(user)
+    if (!modelsPack) return
+
+    const sent = await sendModelsPackIfUpdated({
+      user,
+      modelsPack,
+      send: object => bot.send({ to: user, object })
+    })
+
+    if (sent) {
+      lambda.tasks.add({
+        name: 'saveuser',
+        promise: bot.users.merge(pick(user, ['id', MODELS_HASH_PROPERTY]))
+      })
+    }
+  }
+
   return async (ctx, next) => {
     const { user } = ctx
     if (user) {
-      const sent = await sendModelsPackIfUpdated({
-        user,
-        models: getModelsForUser(user),
-        identifier: getDefaultIdentifierFromUser(user),
-        send: object => bot.send({ to: user, object })
-      })
-
-      if (sent) {
-        lambda.tasks.add({
-          name: 'saveuser',
-          promise: bot.users.merge(pick(user, ['id', defaultPropertyName]))
-        })
-      }
+      await sendModelsPackToUser(user)
     }
 
     await next()
@@ -64,6 +69,6 @@ export const createMiddleware = (lambda:Lambda, components) => {
   ])
 
   defineGetter(middleware, 'setGraphiqlOptions', () => graphqlHandler.setGraphiqlOptions)
-  defineGetter(middleware, 'getGraphiqlAPI', () => graphqlHandler.getGraphiqlAPI)
+  defineGetter(middleware, 'getGraphqlAPI', () => graphqlHandler.getGraphqlAPI)
   return middleware
 }

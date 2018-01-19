@@ -366,7 +366,7 @@ test('onmessagestream', loudAsync(async (t) => {
 
   const tradle = createTestTradle()
   const bot = createRealBot({ tradle })
-  bot.setMyCustomModels(PingPongModels)
+  bot.setCustomModels({ models: PingPongModels })
 
   const table = await bot.db.getTableForModel('ping.pong.Ping')
   // #1
@@ -458,7 +458,7 @@ test('validate send', loudAsync(async (t) => {
 
   const models = {
     'ding.bling': {
-      id: 'ding.bling',
+      id: 'ding.bling.Ding',
       title: 'Ding Bling',
       type: 'tradle.Model',
       properties: {
@@ -474,7 +474,7 @@ test('validate send', loudAsync(async (t) => {
   }
 
   const bot = createRealBot({ tradle })
-  bot.setMyCustomModels(models)
+  bot.setCustomModels({ models })
   try {
     await bot.send({
       to: bob.permalink,
@@ -499,7 +499,7 @@ test('validate send', loudAsync(async (t) => {
     await bot.send({
       to: bob.permalink,
       object: {
-        _t: 'ding.bling',
+        _t: 'ding.bling.Ding',
       }
     })
 

@@ -1,6 +1,6 @@
 // @ts-ignore
 import Promise = require('bluebird')
-import { graphql, introspectionQuery } from 'graphql'
+import { graphql, introspectionQuery, buildClientSchema } from 'graphql'
 import { print } from 'graphql/language/printer'
 import { parse } from 'graphql/language/parser'
 import { TYPE, TYPES } from '@tradle/constants'
@@ -16,10 +16,11 @@ export const getGraphqlAPI = (opts) => {
   const { bot, logger } = opts
   let {
     objects,
-    models,
+    modelStore,
     db
   } = bot
 
+  let models
   const postProcess = async (result, op, opts:any={}) => {
     if (!result) return result
 
@@ -97,15 +98,6 @@ export const getGraphqlAPI = (opts) => {
     logger.debug(`loading message payloads took: ${time}ms`)
   }
 
-  const setModels = (_models) => {
-    models = _models
-    schema = getSchema()
-  }
-
-  bot.modelStore.on('update', () => {
-    setModels(bot.modelStore.models)
-  })
-
   const presignEmbeddedMediaLinks = (items) => {
     if (!items) return items
 
@@ -119,7 +111,16 @@ export const getGraphqlAPI = (opts) => {
     return items
   }
 
-  if (models) setModels(models)
+  const setModels = (_models) => {
+    models = _models
+    schema = getSchema()
+  }
+
+  if (modelStore.cumulativeModelsPack) {
+    setModels(modelStore.models)
+  }
+
+  modelStore.on('update:cumulative', () => setModels(modelStore.models))
 
   return {
     setModels,
@@ -135,6 +136,8 @@ export const getGraphqlAPI = (opts) => {
     executeQuery
   }
 }
+
+export const importSchema = buildClientSchema
 
 export const exportSchema = async ({ models }) => {
   const { schema } = createSchema({ models })

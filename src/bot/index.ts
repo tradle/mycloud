@@ -107,7 +107,7 @@ function _createBot (opts: {
   defineGetter(bot, 'kv', () => tradle.kv.sub('bot:'))
   defineGetter(bot, 'conf', () => tradle.kv.sub('bot:conf:'))
   defineGetter(bot, 'models', () => bot.modelStore.models)
-  bot.setMyCustomModels = customModels => bot.modelStore.setMyCustomModels(customModels)
+  bot.setCustomModels = (...args) => bot.modelStore.setCustomModels(...args)
   bot.isTesting = TESTING
   bot.init = () => tradle.init.init(opts)
   bot.getMyIdentity = () => tradle.provider.getMyPublicIdentity()

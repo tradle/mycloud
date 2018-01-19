@@ -52,7 +52,7 @@ export type Buckets = {
   [name:string]: Bucket
 }
 
-export const getBuckets = ({ env, logger, aws, serviceMap }):Buckets => {
+export const getBuckets = ({ env, logger, aws, serviceMap, s3Utils }):Buckets => {
 
   const { MEMORY_SIZE } = env
 
@@ -66,7 +66,8 @@ export const getBuckets = ({ env, logger, aws, serviceMap }):Buckets => {
       name: physicalId,
       s3: aws.s3,
       cache: cacheConfig[name] && new Cache(cacheConfig[name]),
-      logger: logger.sub(`bucket:${name}`)
+      logger: logger.sub(`bucket:${name}`),
+      s3Utils
     })
   }
 

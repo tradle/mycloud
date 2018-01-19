@@ -12,6 +12,8 @@ export type PutOpts = {
 }
 
 export default function createUtils ({ s3, logger }) {
+  let utils
+
   const put = async ({ key, value, bucket, headers={} }: PutOpts)
     :Promise<AWS.S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
@@ -28,7 +30,7 @@ export default function createUtils ({ s3, logger }) {
   const gzipAndPut = async (opts) => {
     const { value, headers={} } = opts
     const compressed = await gzip(toStringOrBuf(value))
-    return await put({
+    return await utils.put({
       ...opts,
       value: compressed,
       headers: {
@@ -165,7 +167,7 @@ export default function createUtils ({ s3, logger }) {
       }
 
       try {
-        cached = await get({ key, bucket, ...opts })
+        cached = await utils.get({ key, bucket, ...opts })
       } catch (err) {
         if (err.code === 'NotModified') {
           logger.debug('304, returning cached item', summary)
@@ -192,7 +194,7 @@ export default function createUtils ({ s3, logger }) {
     const putAndCache = async ({ value, ...opts }) => {
       if (value == null) throw new Error('expected "value"')
 
-      const result = await put({ bucket, key, value, ...defaultOpts, ...opts })
+      const result = await utils.put({ bucket, key, value, ...defaultOpts, ...opts })
       cached = parse ? value : result
       cachedTime = Date.now()
       etag = result.ETag
@@ -208,7 +210,7 @@ export default function createUtils ({ s3, logger }) {
   const putJSON = put
 
   const getJSON = ({ key, bucket }) => {
-    return get({ key, bucket }).then(({ Body }) => JSON.parse(Body))
+    return utils.get({ key, bucket }).then(({ Body }) => JSON.parse(Body))
   }
 
   const head = async ({ key, bucket }) => {
@@ -260,7 +262,7 @@ export default function createUtils ({ s3, logger }) {
     return `https://${bucket}.s3.amazonaws.com/${key}`
   }
 
-  return timeMethods({
+  return utils = timeMethods({
     get,
     getJSON,
     getCacheable,

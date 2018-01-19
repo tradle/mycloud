@@ -12,7 +12,8 @@ import {
   typeforce,
   summarizeObject,
   series,
-  ensureTimestamped
+  ensureTimestamped,
+  ensureNoVirtualProps
 } from './utils'
 
 import Errors = require('./errors')
@@ -176,6 +177,8 @@ export default class Provider {
     message: any,
     clientId?:string
   }):Promise<ITradleMessage> => {
+    ensureNoVirtualProps(message)
+
     if (clientId) {
       const { object } = message
       const identity = getIntroducedIdentity(object)

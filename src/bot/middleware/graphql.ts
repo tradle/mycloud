@@ -9,9 +9,10 @@ import { route } from './noop-route'
 import { Level } from '../../logger'
 import { logResponseBody } from '../../utils'
 import { getGraphqlAPI, prettifyQuery } from '../graphql'
+import { Lambda } from '../lambda'
 
-export const createHandler = (opts) => {
-  const { bot, logger } = opts
+export const createHandler = (lambda:Lambda, opts:any={}) => {
+  const { bot, logger } = lambda
 
   // allow models to be set asynchronously
 
@@ -21,21 +22,19 @@ export const createHandler = (opts) => {
   let modelsVersionId:string
   const { modelStore } = bot
 
-  const updateVersionId = (models) => {
-    modelsVersionId = ModelsPack.versionId({ models })
+  const updateVersionId = modelsPack => {
+    modelsVersionId = modelsPack.versionId
   }
 
-  bot.promiseReady().then(() => {
-    api = getGraphqlAPI(opts)
-  })
+  if (modelStore.cumulativeModelsPack) {
+    updateVersionId(modelStore.cumulativeModelsPack)
+  }
 
-  if (modelStore.models) updateVersionId(modelStore.models)
-
-  modelStore.on('update', updateVersionId)
+  modelStore.on('update:cumulative', updateVersionId)
 
   const handler = graphqlHTTP(async (req) => {
     logger.debug(`hit graphql query route, ready: ${bot.isReady()}`)
-    await bot.promiseReady()
+    await promiseAPI
     const { query, variables } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
       logger.debug('received query:')
@@ -84,6 +83,11 @@ export const createHandler = (opts) => {
 
   const stack = compose(middleware)
   stack.setGraphiqlOptions = options => graphiqlOptions = options
-  stack.getGraphqlAPI = () => getGraphqlAPI(opts)
+  stack.getGraphqlAPI = () => getGraphqlAPI(lambda)
+
+  const promiseAPI = bot.promiseReady().then(() => {
+    api = stack.getGraphqlAPI()
+  })
+
   return stack
 }

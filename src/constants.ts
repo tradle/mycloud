@@ -45,7 +45,9 @@ const constants = {
   },
   PRIVATE_CONF_BUCKET: {
     modelsPack: 'derived/cumulative-models-pack.json',
-    graphqlSchema: 'derived/cumulative-graphql-schema.json'
+    graphqlSchema: 'derived/cumulative-graphql-schema.json',
+    assetsFolder: 'assets',
+    myModelsPack: 'conf/models-pack.json'
   },
   HANDSHAKE_TIMEOUT: 30000,
   PUSH_SERVER_URL: 'https://push1.tradle.io',

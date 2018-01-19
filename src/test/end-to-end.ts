@@ -14,6 +14,7 @@ const co = require('co').wrap
 const { TYPE, TYPES, SIG, SEQ } = require('@tradle/constants')
 const { MESSAGE } = TYPES
 const buildResource = require('@tradle/build-resource')
+import validateResource = require('@tradle/validate-resource')
 const mergeModels = require('@tradle/merge-models')
 const tradleUtils = require('@tradle/engine').utils
 const createProductsStrategy = require('@tradle/bot-products')
@@ -121,6 +122,8 @@ export class Test {
         message: 'hey'
       }
 
+      message = _.cloneDeep(message)
+      await bot.identities.addAuthorInfo(message)
       await employee.send({
         other: {
           forward: message._author
@@ -623,7 +626,7 @@ class User extends EventEmitter {
       clientId: this.clientId,
       data: await IotMessage.encode({
         type: 'messages',
-        payload: [message]
+        payload: [message].map(item => validateResource.utils.omitVirtualDeep(item))
       })
     })
 
@@ -676,7 +679,7 @@ class User extends EventEmitter {
     //   keyPrefix: `test-${this.permalink}`
     // })
 
-    return message
+    return message //omitVirtualRecursive(message)
   }
 
   public sendSelfIntroduction = function () {

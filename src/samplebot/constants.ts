@@ -1,6 +1,16 @@
 
-export const PRIVATE_CONF_KEY = 'conf/bot.json'
-export const CUSTOM_MODELS_KEY = 'conf/models.json'
-export const STYLES_KEY = 'conf/style.json'
-export const ORG_KEY = 'org/org.json'
-export const INFO_KEY = 'info/info.json'
+import {
+  PRIVATE_CONF_BUCKET as defaults
+} from '../constants'
+
+export const PRIVATE_CONF_BUCKET = {
+  ...defaults,
+  bot: 'conf/bot.json',
+  style: 'conf/style.json',
+  termsAndConditions: 'conf/terms-and-conditions.md',
+  org: 'org/org.json',
+  info: 'info/info.json'
+}
+
+export const MODELS_HASH_PROPERTY = 'modelsHash'
+export const STYLES_HASH_PROPERTY = 'stylesHash'

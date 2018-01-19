@@ -41,6 +41,10 @@ export class CacheableBucketItem {
     return await this.value.put({ value, ...opts })
   }
 
+  // public gzipAndPut = async (value:any, opts) => {
+  //   return await this.value.gzipAndPut
+  // }
+
   public putIfDifferent = async (value:any, opts={}) => {
     const updated = await this.bucket.putIfDifferent(this.key, value)
     if (updated) this.value.invalidateCache()

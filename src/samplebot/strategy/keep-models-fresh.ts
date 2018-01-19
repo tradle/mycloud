@@ -2,42 +2,40 @@ import _ = require('lodash')
 import ModelsPack = require('@tradle/models-pack')
 import baseModels = require('../../models')
 import { isPromise, stableStringify } from '../../utils'
+import { MODELS_HASH_PROPERTY as PROPERTY } from '../constants'
 
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const mapModelsToPack = new Map()
 
-export const defaultPropertyName = 'modelsHash'
-export const getDefaultIdentifierFromUser = (user) => user.id
-export const getDefaultIdentifierFromReq = ({ user }) => getDefaultIdentifierFromUser(user)
+export const getDefaultIdentifierFromReq = ({ user }) => user.id
 
 export const keepModelsFreshPlugin = ({
-  getModelsForUser,
-  propertyName=defaultPropertyName,
+  getModelsPackForUser,
   // unique identifier for counterparty
   // which will be used to track freshness.
   // defaults to user.id
   getIdentifier=getDefaultIdentifierFromReq,
   send
 }: {
-  getModelsForUser: (user) => any,
+  getModelsPackForUser: (user) => any,
   send: ({ req, to, object }) => Promise<any>
-  getIdentifier?: (req:any) => string,
-  propertyName?: string,
+  getIdentifier?: (req:any) => string
 }) => {
   // modelsObject => modelsArray
   // modelsArray => modelsHash
   return async (req) => {
     const identifier = getIdentifier(req)
     const { user } = req
-    let models = getModelsForUser(user)
-    if (isPromise(models)) {
-      models = await models
+    let modelsPack = getModelsPackForUser(user)
+    if (isPromise(modelsPack)) {
+      modelsPack = await modelsPack
     }
+
+    if (!modelsPack) return
 
     await sendModelsPackIfUpdated({
       user,
-      models: getModelsForUser(user),
-      propertyName,
+      modelsPack,
       identifier,
       send: object => send({ req, to: user, object })
     })
@@ -46,43 +44,36 @@ export const keepModelsFreshPlugin = ({
 
 export const sendModelsPackIfUpdated = async ({
   user,
-  models,
+  modelsPack,
   send,
-  identifier,
-  propertyName=defaultPropertyName,
+  identifier
 }: {
   user: any,
-  models: any,
+  modelsPack: any,
   send: (pack:any) => Promise<any>,
-  identifier?: string,
-  propertyName?: string
-}) => {
-  if (!Object.keys(models).length) return
+  identifier?: string
+}):Promise<boolean> => {
+  if (!identifier) identifier = user.id
 
-  if (!identifier) identifier = getDefaultIdentifierFromUser(user)
-
-  if (!user[propertyName] || typeof user[propertyName] !== 'object') {
-    user[propertyName] = {}
+  if (!user[PROPERTY] || typeof user[PROPERTY] !== 'object') {
+    user[PROPERTY] = {}
   }
 
-  const versionId = user[propertyName][identifier]
-  let pack = mapModelsToPack.get(models)
-  if (!pack) {
-    pack = ModelsPack.pack({ models })
-    mapModelsToPack.set(models, pack)
+  const versionId = user[PROPERTY][identifier]
+  if (modelsPack.versionId === versionId) {
+    return false
   }
 
-  if (pack.versionId === versionId) return
-
-  user[propertyName][identifier] = pack.versionId
-  return await send(pack)
+  user[PROPERTY][identifier] = modelsPack.versionId
+  await send(modelsPack)
+  return true
 }
 
 export const createGetIdentifierFromReq = ({ employeeManager }) => {
   return req => {
     const { user, message } = req
     const { originalSender } = message
-    let identifier = getDefaultIdentifierFromUser(user)
+    let identifier = user.id
     if (originalSender) {
       identifier += ':' + originalSender
     }
@@ -91,23 +82,12 @@ export const createGetIdentifierFromReq = ({ employeeManager }) => {
   }
 }
 
-export const createGetModelsForUser = ({ bot, productsAPI, employeeManager }) => {
-  const employeeModels = _.omit(bot.models, BASE_MODELS_IDS)
-  const customerModels = employeeModels
-  // const customerModels = _.omit(
-  //   productsAPI.models.all,
-  //   Object.keys(productsAPI.models.private.all)
-  //     .concat(BASE_MODELS_IDS)
-  // )
-
-  // employeeModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
-  // customerModels['tradle.OnfidoVerification'] = baseModels['tradle.OnfidoVerification']
-
-  return user => {
+export const createModelsPackGetter = ({ bot, productsAPI, employeeManager }) => {
+  return async (user) => {
     if (employeeManager.isEmployee(user)) {
-      return employeeModels
+      return await bot.modelStore.getCumulativeModelsPack()
     }
 
-    return customerModels
+    return bot.modelStore.myModelsPack
   }
 }

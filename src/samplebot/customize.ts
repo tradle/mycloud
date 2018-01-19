@@ -14,10 +14,16 @@ export async function customize (opts) {
 
   const { logger } = lambda || bot
   const confy = createConf({ bot })
-  let [org, conf, customModels, style, termsAndConditions] = await Promise.all([
-    confy.org.get(),
+  let [
+    // org,
+    conf,
+    customModelsPack,
+    style,
+    termsAndConditions
+  ] = await Promise.all([
+    // confy.org.get(),
     confy.botConf.get(),
-    confy.models.get().catch(err => {
+    confy.modelsPack.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
       return undefined
     }),
@@ -35,8 +41,11 @@ export async function customize (opts) {
       })
   ])
 
-  const { domain } = org
-  const namespace = domain.split('.').reverse().join('.')
+  // const { domain } = org
+  if (customModelsPack) {
+    bot.modelStore.setCustomModels(customModelsPack)
+  }
+
   const onfido = _.get(conf, ONFIDO_PLUGIN_PATH)
   if (style) {
     try {
@@ -50,10 +59,10 @@ export async function customize (opts) {
   const components = createProductsStrategy({
     bot,
     logger,
-    namespace,
+    // namespace,
     conf,
     termsAndConditions,
-    customModels,
+    customModelsPack,
     style,
     event
   })
@@ -63,7 +72,6 @@ export async function customize (opts) {
   return {
     ...components,
     conf,
-    style,
-    org
+    style
   }
 }

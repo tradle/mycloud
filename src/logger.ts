@@ -131,6 +131,20 @@ export default class Logger {
     return sublogger
   }
 
+  public time = (level:string, msg?:string, params?:any) => {
+    const start = Date.now()
+    return () => {
+      const time = Date.now() - start
+      this.log(level, `${msg} (${time}ms)`, params)
+    }
+  }
+
+  public timeSilly = (msg:string, params?:any) => this.time('SILLY', msg, params)
+  public timeDebug = (msg:string, params?:any) => this.time('DEBUG', msg, params)
+  public timeInfo = (msg:string, params?:any) => this.time('INFO', msg, params)
+  public timeWarn = (msg:string, params?:any) => this.time('WARN', msg, params)
+  public timeError = (msg:string, params?:any) => this.time('ERROR', msg, params)
+
   public log (level:string, msg:string, params?:any) {
     if (this.level < Level[level]) {
       // ignore

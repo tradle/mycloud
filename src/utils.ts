@@ -31,16 +31,19 @@ import { settle as allSettled } from 'settle-promise'
 import isGenerator = require('is-generator-function')
 import { encode as encodeDataURI, decode as decodeDataURI } from 'strong-data-uri'
 import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
+import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import fetch = require('node-fetch')
-import { prettify, stableStringify } from './string-utils'
+import { prettify, stableStringify, safeStringify } from './string-utils'
 import { SIG, TYPE, TYPES, WARMUP_SLEEP, PUBLIC_CONF_BUCKET } from './constants'
 import Errors = require('./errors')
 import { CacheContainer } from './types'
 import Logger from './logger'
 import Env from './env'
 import Tradle from './tradle'
+import models = require('./models')
 
+const BaseObjectModel = models['tradle.Object']
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
@@ -984,3 +987,24 @@ export const getMessageGist = (message):any => {
   }
 }
 
+export const toModelsMap = models => _.transform(models, (result, model:any) => {
+  result[model.id] = model
+}, {})
+
+export const ensureNoVirtualProps = resource => {
+  if (validateResource.utils.hasVirtualDeep(resource)) {
+    throw new Errors.InvalidObjectFormat(`virtual properties not allowed: ${safeStringify(resource)}`)
+  }
+}
+
+// export const omitVirtualRecursive = resource => {
+//   if (!resource[SIG]) return _.clone(resource)
+
+//   return _.transform(resource, (result, value, key) => {
+//     if (value && typeof value === 'object') {
+//       result[key] = omitVirtualRecursive(value)
+//     } else if (!FORBIDDEN_PROPS.includes(key)) {
+//       result[key] = value
+//     }
+//   })
+// }
