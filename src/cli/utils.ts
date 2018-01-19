@@ -1,4 +1,5 @@
 import path = require('path')
+import _ = require('lodash')
 import promisify = require('pify')
 import proc = require('child_process')
 import { parseSync as parseEnv } from 'env-file-parser'
@@ -227,8 +228,9 @@ function getRemoteEnv () {
 }
 
 function loadRemoteEnv () {
-  const { env } = require('../').tradle
-  env.set(getRemoteEnv())
+  _.extend(process.env, getRemoteEnv())
+  // const { env } = require('../env').tradle
+  // env.set(getRemoteEnv())
 }
 
 // borrowed gratefully from https://github.com/juliangruber/native-modules

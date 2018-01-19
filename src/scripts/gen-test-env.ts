@@ -8,16 +8,18 @@ const promisify = require('pify')
 const { exec } = promisify(require('child_process'))
 const fs = promisify(require('fs'))
 const { prettify } = require('../string-utils')
-const tradle = require('../').createRemoteTradle({})
-const { lambdaUtils } = tradle
 const serviceMapPath = path.resolve(__dirname, '../cli/remote-service-map.json')
 const latestTemplatePath = path.resolve(__dirname, '../cli/cloudformation-template.json')
-const { loadCredentials, downloadDeploymentTemplate } = require('../cli/utils')
+const { loadCredentials, loadRemoteEnv, downloadDeploymentTemplate } = require('../cli/utils')
 const serverlessYml = require('../cli/serverless-yml')
 const { service, custom } = serverlessYml
 const prefix = `${service}-${custom.stage}-`
 
 loadCredentials()
+loadRemoteEnv()
+
+const tradle = require('../').createRemoteTradle()
+const { lambdaUtils } = tradle
 
 const getEnv = co.wrap(function* () {
   const setEnvFnName = `${prefix}onmessage`
