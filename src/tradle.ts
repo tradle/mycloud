@@ -95,6 +95,7 @@ export default class Tradle {
     this.define('buckets', './buckets', () => getBuckets(this))
     this.define('db', './db', initialize => initialize(this))
     this.define('s3Utils', './s3-utils', initialize => initialize({
+      env: this.env,
       s3: this.aws.s3,
       logger: this.logger.sub('s3-utils')
     }))

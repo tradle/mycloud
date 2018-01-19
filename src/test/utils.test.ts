@@ -311,10 +311,10 @@ test('getCacheable', loudAsync(async (t) => {
 }))
 
 test('Bucket', loudAsync(async (t) => {
-  const { aws } = tradle
+  const { aws, env } = tradle
   const { s3 } = aws
   const bucketName = `test-${Date.now()}-${randomString(10)}`
-  const bucket = new Bucket({ name: bucketName, s3 })
+  const bucket = new Bucket({ name: bucketName, s3, env })
   await bucket.create()
 
   const ops:any[] = [

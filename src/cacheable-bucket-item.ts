@@ -32,7 +32,8 @@ export class CacheableBucketItem {
   }
 
   public get = async (opts?):Promise<any> => {
-    const { Body, LastModified } = await this.value.get(opts)
+    const result = await this.value.get(opts)
+    const { Body, LastModified } = result
     this.lastModified = new Date(LastModified).getTime()
     return this.parse(Body)
   }

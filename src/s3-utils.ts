@@ -2,7 +2,7 @@ import { omit } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Logger from './logger'
-import { timeMethods, isPromise, batchProcess, gzip } from './utils'
+import { timeMethods, isPromise, batchProcess, gzip, gunzip } from './utils'
 
 export type PutOpts = {
   key:string,
@@ -11,7 +11,7 @@ export type PutOpts = {
   headers?:any
 }
 
-export default function createUtils ({ s3, logger }) {
+export default function createUtils ({ s3, logger, env }) {
   let utils
 
   const put = async ({ key, value, bucket, headers={} }: PutOpts)
@@ -54,6 +54,14 @@ export default function createUtils ({ s3, logger }) {
     try {
       const result = await s3.getObject(params).promise()
       // logger.debug('got', { key, bucket, type: result[TYPE] })
+      if (result.ContentEncoding === 'gzip') {
+        // localstack gunzips but leaves ContentEncoding header
+        if (!(env && env.TESTING)) {
+          result.Body = await gunzip(result.Body)
+          delete result.ContentEncoding
+        }
+      }
+
       return result
     } catch(err) {
       if (err.code === 'NoSuchKey') {

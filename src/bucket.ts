@@ -5,15 +5,18 @@ import createS3Utils from './s3-utils'
 import Logger from './logger'
 import { cachify } from './utils'
 import Errors = require('./errors')
+import Env from './env'
 
 export class Bucket {
   public id:string // alias
   public name:string
+  // public env:Env
   public logger:Logger
   public cache?: any
   private utils: any
-  constructor ({ name, s3, cache, logger, s3Utils }: {
+  constructor ({ name, env, s3, cache, logger, s3Utils }: {
     name:string,
+    env:Env,
     s3:AWS.S3,
     cache?:any
     logger?:Logger,
@@ -26,7 +29,7 @@ export class Bucket {
     this.name = name
     this.id = name // alias
     this.logger = logger || new Logger(`bucket:${name}`)
-    this.utils = s3Utils || createS3Utils({ s3, logger: this.logger })
+    this.utils = s3Utils || createS3Utils({ env, s3, logger: this.logger })
     if (cache) {
       this.cache = cache
       const cachified = cachify({
