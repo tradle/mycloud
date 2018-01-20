@@ -267,11 +267,13 @@ export default function createProductsBot ({
 
         if (application.requestFor === EMPLOYEE_ONBOARDING) {
           const modelsPack = await getModelsPackForUser(user)
-          await sendModelsPackIfUpdated({
-            user,
-            modelsPack,
-            send: object => send({ req, to: user, application, object })
-          })
+          if (modelsPack) {
+            await sendModelsPackIfUpdated({
+              user,
+              modelsPack,
+              send: object => send({ req, to: user, application, object })
+            })
+          }
         }
       }
     }) // append
