@@ -25,7 +25,7 @@ import {
 import Logger from '../../logger'
 
 const prettify = obj => JSON.stringify(obj, null, 2)
-const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?$/
+const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?\s*$/
 const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
 
 type Args = {
@@ -40,6 +40,11 @@ type CommandContext = {
   sudo?: boolean
   argsStr: string
   [x:string]: any
+}
+
+type CommandOutput = {
+  result?:any
+  error?:any
 }
 
 const SUDO = {
@@ -85,12 +90,18 @@ export class Commander {
     }
   }
 
-  public exec = async ({ req, command, sudo=false }) => {
+  public exec = async ({ req, command, sudo=false }):Promise<CommandOutput> => {
+    const ret:CommandOutput = {}
     this.logger.debug(`processing command: ${command}`)
     if (!req) req = this.productsAPI.state.newRequestState({})
 
     const { user } = req
-    const [commandName, argsStr=''] = command.match(COMMAND_REGEX).slice(1)
+    const match = command.match(COMMAND_REGEX)
+    if (!match) {
+      throw new Error(`received malformed command: ${command}`)
+    }
+
+    const [commandName, argsStr=''] = match.slice(1)
     const ctx:CommandContext = {
       commandName,
       argsStr,
@@ -100,7 +111,7 @@ export class Commander {
     }
 
     await this.auth(ctx)
-    if (!ctx.allowed) return
+    if (!ctx.allowed) return ret
 
     let result
     let matchingCommand
@@ -111,10 +122,15 @@ export class Commander {
       result = await matchingCommand.exec({
         context: this,
         req,
-        args
+        args,
+        argsStr
       })
     } catch (err) {
       this.logger.debug(`failed to process command: ${command}`, err.stack)
+      ret.error = {
+        message: err.message
+      }
+
       if (user) {
         const message = ctx.employee
           ? err.message
@@ -122,16 +138,21 @@ export class Commander {
 
         await this.sendSimpleMessage({ req, to: user, message })
       }
+
+      return ret
     }
 
-    if (!user) return
-
-    const opts = { context: this, req, to: user, result, args, argsStr }
-    if (matchingCommand.sendResult) {
-      await matchingCommand.sendResult(opts)
-    } else {
-      await this.sendResult(opts)
+    if (user) {
+      const opts = { context: this, req, to: user, result, args, argsStr }
+      if (matchingCommand.sendResult) {
+        await matchingCommand.sendResult(opts)
+      } else {
+        await this.sendResult(opts)
+      }
     }
+
+    ret.result = result
+    return ret
   }
 
   public sendResult = async ({ req, to, result }) => {

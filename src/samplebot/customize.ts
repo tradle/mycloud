@@ -16,8 +16,8 @@ export async function customize (opts) {
   const confy = createConf({ bot })
   let [
     // org,
-    conf,
-    customModelsPack,
+    botConf,
+    modelsPack,
     style,
     termsAndConditions
   ] = await Promise.all([
@@ -42,11 +42,11 @@ export async function customize (opts) {
   ])
 
   // const { domain } = org
-  if (customModelsPack) {
-    bot.modelStore.setCustomModels(customModelsPack)
+  if (modelsPack) {
+    bot.modelStore.setCustomModels(modelsPack)
   }
 
-  const onfido = _.get(conf, ONFIDO_PLUGIN_PATH)
+  const onfido = _.get(botConf, ONFIDO_PLUGIN_PATH)
   if (style) {
     try {
       validateResource({ models, resource: style })
@@ -56,14 +56,18 @@ export async function customize (opts) {
     }
   }
 
+  const conf = {
+    bot: botConf,
+    style,
+    termsAndConditions,
+    modelsPack
+  }
+
   const components = createProductsStrategy({
     bot,
     logger,
     // namespace,
     conf,
-    termsAndConditions,
-    customModelsPack,
-    style,
     event
   })
 

@@ -11,7 +11,7 @@ export const command:ICommand = {
   ],
   description: 'see a list of products',
   exec: async ({ context, req }) => {
-    return context.conf.products.enabled.slice()
+    return context.conf.bot.products.enabled.slice()
       .map(id => {
         const model = context.bot.modelStore.models[id]
         const title = model ? model.title : ''

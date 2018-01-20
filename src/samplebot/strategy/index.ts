@@ -46,17 +46,11 @@ export default function createProductsBot ({
   bot,
   logger,
   conf,
-  termsAndConditions,
-  customModelsPack,
-  style,
   event
 }: {
   bot: any,
   logger: Logger,
   conf: any,
-  customModelsPack?: any,
-  style?: any,
-  termsAndConditions?: DatedValue,
   event?: string
 }) {
   const {
@@ -67,7 +61,7 @@ export default function createProductsBot ({
     approveAllEmployees,
     // queueSends,
     graphqlRequiresAuth
-  } = conf.products
+  } = conf.bot.products
 
   logger.debug('setting up products strategy')
 
@@ -84,7 +78,7 @@ export default function createProductsBot ({
         .add(baseModels, { validate: false })
         // .add(models, mergeModelsOpts)
         // .add(ONFIDO_ENABLED ? onfidoModels.all : {}, mergeModelsOpts)
-        .add(customModelsPack ? customModelsPack.models : {}, mergeModelsOpts)
+        .add(conf.modelsPack ? conf.modelsPack.models : {}, mergeModelsOpts)
         .get()
     },
     products: enabled,
@@ -151,9 +145,9 @@ export default function createProductsBot ({
       productsAPI
     }), true)) // prepend
 
-    if (termsAndConditions) {
+    if (conf.termsAndConditions) {
       const tcPlugin = TermsAndConditions.createPlugin({
-        termsAndConditions,
+        termsAndConditions: conf.termsAndConditions,
         productsAPI,
         employeeManager,
         logger
@@ -162,9 +156,9 @@ export default function createProductsBot ({
       productsAPI.plugins.use(tcPlugin, true) // prepend
     }
 
-    if (style) {
+    if (conf.style) {
       const keepStylesFresh = keepFreshPlugin({
-        object: style,
+        object: conf.style,
         propertyName: 'stylesHash',
         send
       })

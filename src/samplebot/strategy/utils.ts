@@ -24,22 +24,23 @@ export const CUSTOMER_COMMANDS = [
 ]
 
 export const createEditConfOp = edit => async (opts) => {
-  const { bot, conf } = opts.context
-  const current = _.cloneDeep(conf)
+  const { bot } = opts.context
+  const botConf = opts.context.conf.bot
+  const current = _.cloneDeep(botConf)
   let makeEdit = edit(opts)
   if (isPromise(makeEdit)) makeEdit = await makeEdit
 
-  if (_.isEqual(conf, current)) {
+  if (_.isEqual(botConf, current)) {
     throw new Error('you changed...nothing')
   } else {
     const confManager = new Conf({ bot })
-    await confManager.setBotConf(conf)
+    await confManager.setBotConf(botConf)
     await bot.forceReinitializeContainers()
   }
 }
 
 export const setProperty = createEditConfOp(({ context, req, path, value }) => {
-  _.set(context.conf, path, value)
+  _.set(context.conf.bot, path, value)
 })
 
 // export const toggleFlag = createEditConfOp(({ context, req, flag, value }) => {
@@ -94,7 +95,7 @@ export const toggleProduct = createEditConfOp(async ({ context, req, product, en
     ? products.concat(product)
     : products.filter(id => id !== product)
 
-  conf.products.enabled = newProductsList
+  conf.bot.products.enabled = newProductsList
 })
 
 export const getAvailableCommands = (ctx) => {
