@@ -147,11 +147,13 @@ export class Conf {
   }
 
   public setBotConf = async (value:any):Promise<boolean> => {
+    this.logger.debug('setting bot configuration')
     // TODO: validate
     return await this.botConf.putIfDifferent(value)
   }
 
   public setStyle = async (value:any):Promise<boolean> => {
+    this.logger.debug('setting style')
     validateResource({
       models: this.bot.models,
       model: 'tradle.StylesPack',
@@ -162,6 +164,7 @@ export class Conf {
   }
 
   public setCustomModels = async (modelsPack):Promise<boolean> => {
+    this.logger.debug('setting custom models pack')
     const { domain } = await this.org.get()
     const namespace = toggleDomainVsNamespace(domain)
     if (namespace !== modelsPack.namespace) {
@@ -177,6 +180,7 @@ export class Conf {
   }
 
   public setTermsAndConditions = async (value:string|Buffer):Promise<boolean> => {
+    this.logger.debug('setting terms and conditions')
     return await this.termsAndConditions.putIfDifferent(value)
   }
 
@@ -276,22 +280,27 @@ export class Conf {
 
   public update = async (update:UpdateConfInput) => {
     const { style, modelsPack, bot, terms } = update
+    const updated:UpdateConfInput = {}
     if (style) {
       await this.setStyle(style)
       await this.recalcPublicInfo()
+      updated.style = true
     }
 
     if (modelsPack) {
       await this.setCustomModels(modelsPack)
+      updated.modelsPack = true
     }
 
     if (bot) {
       await this.setBotConf(bot)
       await this.recalcPublicInfo()
+      updated.bot = true
     }
 
     if (terms) {
       await this.setTermsAndConditions(terms)
+      updated.terms = true
     }
 
     // await this.save({
@@ -302,6 +311,8 @@ export class Conf {
     // if (conf.bot) {
     //   await this.forceReinitializeContainers()
     // }
+
+    return updated
   }
 
   public save = async ({ identity, org, style, bot }: {
