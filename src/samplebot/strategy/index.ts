@@ -72,6 +72,7 @@ export default function createProductsBot ({
   const handleMessages = willHandleMessages(event)
   const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
+    logger: logger.sub('products'),
     bot,
     models: {
       all: mergeModels()
