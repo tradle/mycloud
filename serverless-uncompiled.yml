@@ -941,13 +941,13 @@ functions:
     handler: lib/samplebot/lambda/add-friend.handler
     memorySize: 256
 
-  addfriend_dev:
-    handler: lib/samplebot/lambda/add-friend.handlerHttp
-    # dev mode only
-    events:
-      - http:
-          path: /addfriend
-          method: post
+  # addfriend_dev:
+  #   handler: lib/samplebot/lambda/add-friend.handlerHttp
+  #   # dev mode only
+  #   events:
+  #     - http:
+  #         path: /addfriend
+  #         method: post
 
   # addcontact:
   #   handler: lib/samplebot/lambda/add-contact.handler
@@ -982,13 +982,13 @@ functions:
   cli:
     handler: lib/samplebot/lambda/cli.handler
 
-  cli_dev:
-    handler: lib/samplebot/lambda/cli.handler
-    # dev mode only
-    events:
-      - http:
-          path: cli
-          method: post
+  # cli_dev:
+  #   handler: lib/samplebot/lambda/cli.handler
+  #   # dev mode only
+  #   events:
+  #     - http:
+  #         path: cli
+  #         method: post
 
   # bash:
   #   handler: lib/samplebot/lambda/bash.handler
