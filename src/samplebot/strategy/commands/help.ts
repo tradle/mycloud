@@ -21,20 +21,22 @@ export const command:ICommand = {
   exec: async function ({ commander, req, ctx, args }) {
     const { commandName } = args
     const { employeeManager } = commander
-    let message
     if (commandName) {
       const c = getCommandByName(commandName)
-      message = c.description
+      let message = c.description
       if (c.examples) {
         message = `${message}\n\nExamples:\n${c.examples.join('\n')}`
       }
-    } else {
-      const availableCommands = getAvailableCommands(ctx)
-        .map(command => `/${command}`)
 
-      message = `These are the available commands:\n${availableCommands.join('\n')}`
+      return message
     }
 
-    await commander.sendSimpleMessage({ req, message })
+    const availableCommands = getAvailableCommands(ctx)
+      .map(command => `/${command}`)
+
+    return `These are the available commands:\n${availableCommands.join('\n')}`
+  },
+  sendResult: async ({ commander, req, to, result }) => {
+    await commander.sendSimpleMessage({ req, message: result })
   }
 }
