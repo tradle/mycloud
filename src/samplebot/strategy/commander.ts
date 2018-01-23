@@ -144,7 +144,7 @@ export class Commander {
     }
 
     if (user) {
-      const opts = { context: this, req, to: user, result, args, argsStr }
+      const opts = { commander: this, req, to: user, result, args, argsStr }
       if (matchingCommand.sendResult) {
         await matchingCommand.sendResult(opts)
       } else {
