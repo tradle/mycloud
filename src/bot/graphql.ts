@@ -28,13 +28,10 @@ export const getGraphqlAPI = (opts) => {
       return result
     }
 
-    if (opts.select && !opts.select.includes('object')) {
-      return result
-    }
-
+    const { select=[] } = opts
     switch (op) {
     case 'get':
-      if (result[TYPE] === MESSAGE) {
+      if (result[TYPE] === MESSAGE && select.includes('object')) {
         await loadPayloads(result)
       }
 
@@ -42,7 +39,7 @@ export const getGraphqlAPI = (opts) => {
       break
     case 'list':
       if (result.items && result.items.length) {
-        if (result.items[0][TYPE] === MESSAGE) {
+        if (result.items[0][TYPE] === MESSAGE && select.includes('object')) {
           await loadPayloads(result.items)
         }
       }
