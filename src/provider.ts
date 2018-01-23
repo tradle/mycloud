@@ -139,7 +139,7 @@ export default class Provider {
     const key = getSigningKey(author.keys)
     const signed = await sign({
       key,
-      object: validateResource.utils.omitVirtualDeep(object)
+      object: validateResource.utils.omitVirtual(object)
     })
 
     this.objects.addMetadata(signed)
