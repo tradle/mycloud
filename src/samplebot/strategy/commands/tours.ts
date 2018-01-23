@@ -16,9 +16,9 @@ export const command:ICommand = {
       name: args._[0]
     }
   },
-  exec: async ({ context, req, args }) => {
+  exec: async ({ commander, req, args }) => {
     const { name } = args
-    const { tours } = context.conf
+    const { tours } = commander.conf
     if (!name) {
       return Object.keys(tours)
     }
@@ -30,15 +30,15 @@ export const command:ICommand = {
 
     return tour
   },
-  sendResult: async ({ context, req, result }) => {
+  sendResult: async ({ commander, req, result }) => {
     if (Array.isArray(result)) {
       const list = result.join('\n')
-      await context.sendSimpleMessage({
+      await commander.sendSimpleMessage({
         req,
         message: `Available Tours:\n\n${list}`
       })
     } else {
-      await context.send({
+      await commander.send({
         req,
         object: result
       })

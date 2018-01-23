@@ -18,9 +18,9 @@ export const command:ICommand = {
       commandName: parse(argsStr)._[0]
     }
   },
-  exec: async function ({ context, req, args }) {
+  exec: async function ({ commander, req, ctx, args }) {
     const { commandName } = args
-    const { employeeManager } = context
+    const { employeeManager } = commander
     let message
     if (commandName) {
       const c = getCommandByName(commandName)
@@ -29,12 +29,12 @@ export const command:ICommand = {
         message = `${message}\n\nExamples:\n${c.examples.join('\n')}`
       }
     } else {
-      const availableCommands = getAvailableCommands({ context, req })
+      const availableCommands = getAvailableCommands(ctx)
         .map(command => `/${command}`)
 
       message = `These are the available commands:\n${availableCommands.join('\n')}`
     }
 
-    await context.sendSimpleMessage({ req, message })
+    await commander.sendSimpleMessage({ req, message })
   }
 }

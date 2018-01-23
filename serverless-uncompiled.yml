@@ -1233,6 +1233,8 @@ resources:
             KeySchema:
               - AttributeName: _payloadLink
                 KeyType: HASH
+              # - AttributeName: time
+              #   KeyType: RANGE
             Projection:
               ProjectionType: KEYS_ONLY
             ProvisionedThroughput:

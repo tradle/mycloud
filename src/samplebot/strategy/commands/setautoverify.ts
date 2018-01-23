@@ -17,12 +17,12 @@ export const command:ICommand = {
       value: yn(args._[0] || true)
     }
   },
-  exec: async function ({ context, req, args }) {
+  exec: async function ({ commander, req, args }) {
     const { value } = args
     const path = 'products.autoVerify'
-    await setProperty({ context, req, path, value })
-    context.logger.debug(`set ${path} to ${value}`)
-    await context.sendSimpleMessage({
+    await setProperty({ commander, req, path, value })
+    commander.logger.debug(`set ${path} to ${value}`)
+    await commander.sendSimpleMessage({
       req,
       message: `Done. Give me ~30 seconds to process this doozy.`
     })

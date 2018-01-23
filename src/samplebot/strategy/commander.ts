@@ -120,10 +120,11 @@ export class Commander {
       matchingCommand = getCommandByName(commandName)
       args = matchingCommand.parse ? matchingCommand.parse(argsStr) : null
       result = await matchingCommand.exec({
-        context: this,
+        commander: this,
         req,
         args,
-        argsStr
+        argsStr,
+        ctx
       })
     } catch (err) {
       this.logger.debug(`failed to process command: ${command}`, err.stack)

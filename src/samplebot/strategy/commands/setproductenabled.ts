@@ -18,20 +18,20 @@ export const command:ICommand = {
       enable: yn(args._[1] || true)
     }
   },
-  exec: async function ({ context, req, args }) {
+  exec: async function ({ commander, req, args }) {
     const { product, enable } = args
-    const { bot } = context
-    await toggleProduct({ context, req, product, enable })
+    const { bot } = commander
+    await toggleProduct({ commander, req, product, enable })
     return {
       product,
       enabled: enable
     }
   },
-  sendResult: async ({ context, req, result }) => {
+  sendResult: async ({ commander, req, result }) => {
     const { enabled, product } = result
     const verb = enabled ? 'enabled' : 'disabled'
     const message = `${verb} product ${product}. Give me ~30 seconds to process this doozy.`
-    context.bot.debug(message)
-    await context.sendSimpleMessage({ req, message })
+    commander.bot.debug(message)
+    await commander.sendSimpleMessage({ req, message })
   }
 }

@@ -21,5 +21,5 @@ export const command:ICommand = {
     }
   },
 
-  exec: ({ context, args }) => context.bot.send(args)
+  exec: ({ commander, args }) => commander.bot.send(args)
 }

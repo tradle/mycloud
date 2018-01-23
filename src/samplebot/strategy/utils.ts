@@ -24,8 +24,8 @@ export const CUSTOMER_COMMANDS = [
 ]
 
 export const createEditConfOp = edit => async (opts) => {
-  const { bot } = opts.context
-  const botConf = opts.context.conf.bot
+  const { bot } = opts.commander
+  const botConf = opts.commander.conf.bot
   const current = _.cloneDeep(botConf)
   let makeEdit = edit(opts)
   if (isPromise(makeEdit)) makeEdit = await makeEdit
@@ -39,12 +39,12 @@ export const createEditConfOp = edit => async (opts) => {
   }
 }
 
-export const setProperty = createEditConfOp(({ context, req, path, value }) => {
-  _.set(context.conf.bot, path, value)
+export const setProperty = createEditConfOp(({ commander, req, path, value }) => {
+  _.set(commander.conf.bot, path, value)
 })
 
-// export const toggleFlag = createEditConfOp(({ context, req, flag, value }) => {
-//   const { conf } = context
+// export const toggleFlag = createEditConfOp(({ commander, req, flag, value }) => {
+//   const { conf } = commander
 //   const path = `products.${flag}`
 //   if (_.get(conf, path) === value) {
 //     throw new Error('you changed...nothing')
@@ -53,13 +53,13 @@ export const setProperty = createEditConfOp(({ context, req, path, value }) => {
 //   _.set(conf, path, value)
 // })
 
-export const toggleProduct = createEditConfOp(async ({ context, req, product, enable }: {
-  context,
+export const toggleProduct = createEditConfOp(async ({ commander, req, product, enable }: {
+  commander,
   req: any,
   product:string,
   enable:boolean
 }) => {
-  const { bot, productsAPI, conf } = context
+  const { bot, productsAPI, conf } = commander
   const { products, models } = productsAPI
 
   // allow to use title
@@ -69,7 +69,7 @@ export const toggleProduct = createEditConfOp(async ({ context, req, product, en
   if (byTitle.length > 2) {
     const choices = byTitle.join('\n')
     const message = `multiple products with title "${product}" found. Re-run using the model id:\n${choices}`
-    await context.sendSimpleMessage({ req, message })
+    await commander.sendSimpleMessage({ req, message })
   }
 
   if (byTitle.length) product = byTitle[0]

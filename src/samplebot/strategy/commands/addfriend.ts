@@ -41,16 +41,16 @@ export const command:ICommand = {
 
     return { url, domain }
   },
-  exec: async function ({ context, req, args }) {
+  exec: async function ({ commander, req, args }) {
     const { url, domain } = args
-    const friend = await context.bot.friends.load({ domain, url })
+    const friend = await commander.bot.friends.load({ domain, url })
     const friendStub = buildResource.stub({
       models,
       resource: friend
     })
 
     const userId = friend._identityPermalink
-    const { users } = context.bot
+    const { users } = commander.bot
     let user
     try {
       user = await users.get(userId)
@@ -66,8 +66,8 @@ export const command:ICommand = {
 
     return friend
   },
-  sendResult: async ({ context, req, args, result }) => {
-    await context.sendSimpleMessage({
+  sendResult: async ({ commander, req, args, result }) => {
+    await commander.sendSimpleMessage({
       req,
       message: `added friend ${result.name} from ${args.url}`
     })

@@ -17,8 +17,8 @@ export const command:ICommand = {
     const args = parse(argsStr)
     return args
   },
-  exec: async ({ context, req, args, argsStr }) => {
-    const { conf } = context
+  exec: async ({ commander, req, args, argsStr }) => {
+    const { conf } = commander
     if (args.bot) {
       return conf.bot
     }
