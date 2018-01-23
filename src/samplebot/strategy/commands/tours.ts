@@ -18,7 +18,7 @@ export const command:ICommand = {
   },
   exec: async ({ commander, req, args }) => {
     const { name } = args
-    const { tours } = commander.conf
+    const { tours } = commander.conf.bot
     if (!name) {
       return Object.keys(tours)
     }
