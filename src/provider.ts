@@ -3,6 +3,7 @@ import Debug from 'debug'
 import { utils } from '@tradle/engine'
 import { DB } from '@tradle/dynamodb'
 import Embed = require('@tradle/embed')
+import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import { ECKey, sign, getSigningKey, getChainKey, getPermalink, addLinks } from './crypto'
 import {
@@ -136,7 +137,10 @@ export default class Provider {
     if (!author) author = await this.getMyPrivateIdentity()
 
     const key = getSigningKey(author.keys)
-    const signed = await sign({ key, object })
+    const signed = await sign({
+      key,
+      object: validateResource.utils.omitVirtualDeep(object)
+    })
 
     this.objects.addMetadata(signed)
     this.logger.debug(`signed`, summarizeObject(signed))

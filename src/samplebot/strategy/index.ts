@@ -250,7 +250,11 @@ export default function createProductsBot ({
         if (!approved) {
           await productsAPI.approveApplication({ req, user, application })
           // verify unverified
-          await productsAPI.issueVerifications({ req, user, application, send: true })
+          const issued = await productsAPI.issueVerifications({
+            req, user, application, send: true
+          })
+
+          console.log('1. ISSUED VERIFICATIONS', JSON.stringify(issued, null, 2))
         }
       },
       onCommand: async ({ req, command }) => {
@@ -258,7 +262,8 @@ export default function createProductsBot ({
       },
       didApproveApplication: async ({ req, user, application, approvedBy }) => {
         if (approvedBy) {
-          await productsAPI.issueVerifications({ req, user, application, send: true })
+          const issued = await productsAPI.issueVerifications({ req, user, application, send: true })
+          console.log('2. ISSUED VERIFICATIONS', JSON.stringify(issued, null, 2))
         }
 
         if (application.requestFor === EMPLOYEE_ONBOARDING) {
