@@ -43,6 +43,7 @@ export const createPlugin = ({
 
     if (accepted) return
 
+    logger.debug(`preventing further processing, T&C's have not been accepted`)
     if (type === SIMPLE_MESSAGE) {
       await productsAPI.send({
         to: user,
