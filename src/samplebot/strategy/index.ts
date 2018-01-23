@@ -8,6 +8,7 @@ import { TYPE } from '@tradle/constants'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { setNamePlugin } from './set-name'
 import { keepFreshPlugin } from './keep-fresh'
+import { createPlugin as createPrefillPlugin } from './prefill-form'
 import {
   keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
@@ -309,6 +310,11 @@ export default function createProductsBot ({
       logger
     }))
   }
+
+  productsAPI.plugins.use(createPrefillPlugin({
+    conf: plugins['prefill-form'],
+    logger: logger.sub('plugin-prefill-form')
+  }))
 
   return {
     bot,
