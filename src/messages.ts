@@ -524,7 +524,9 @@ export default class Messages {
       return false
     }
 
-    await this.db.put(message.object)
+    const copy = _.cloneDeep(message.object)
+    await this.objects.replaceEmbeds(copy)
+    await this.db.put(copy)
     return true
   }
 
