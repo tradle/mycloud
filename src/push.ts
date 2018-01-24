@@ -8,7 +8,7 @@ import { cachifyFunction, post } from './utils'
 import Logger from './logger'
 import Provider from './provider'
 import KeyValueTable from './key-value-table'
-import { ignore, rethrow } from './errors'
+import Errors = require('./errors')
 import { IIdentity } from './types'
 
 export type Subscriber = {
@@ -79,10 +79,7 @@ export default class Push {
     try {
       return await this.subscribers.get(subscriber)
     } catch (err) {
-      ignore(err, {
-        name: 'NotFound'
-      })
-
+      Errors.ignore(err, Errors.NotFound)
       return createSubscriberInfo()
     }
   }
@@ -102,7 +99,7 @@ export default class Push {
         ReturnValues: 'ALL_NEW'
       })
     } catch (err) {
-      rethrow(err, 'system')
+      Errors.ignore(err, Errors.InvalidInput)
       const info = createSubscriberInfo()
       info.seq++
       await this.subscribers.put(subscriber, info)

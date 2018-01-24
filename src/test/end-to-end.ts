@@ -123,6 +123,7 @@ export class Test {
       }
 
       message = _.cloneDeep(message)
+      await bot.objects.resolveEmbeds(message)
       await bot.identities.addAuthorInfo(message)
       await employee.send({
         other: {
