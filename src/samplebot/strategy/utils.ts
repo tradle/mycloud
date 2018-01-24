@@ -13,7 +13,9 @@ export const EMPLOYEE_COMMANDS = [
   'addfriend',
   'tours',
   'message',
-  'getconf'
+  'getconf',
+  'approve',
+  'deny'
 ]
 
 export const CUSTOMER_COMMANDS = [

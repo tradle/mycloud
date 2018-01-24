@@ -1,10 +1,13 @@
-import parse = require('minimist')
+import parse = require('yargs-parser')
 import { TYPE } from '@tradle/constants'
+import { Errors as ProductBotErrors } from '@tradle/bot-products'
 import {
   Command,
   ExecCommandFunction
 } from './types'
 
+import { parseStub } from '../../utils'
+import Errors = require('../../errors')
 import * as commands from './commands'
 
 // import {
@@ -118,7 +121,7 @@ export class Commander {
     let args
     try {
       matchingCommand = getCommandByName(commandName)
-      args = matchingCommand.parse ? matchingCommand.parse(argsStr) : null
+      args = matchingCommand.parse ? matchingCommand.parse(argsStr) : parse(argsStr)
       result = await matchingCommand.exec({
         commander: this,
         req,
@@ -128,15 +131,15 @@ export class Commander {
       })
     } catch (err) {
       this.logger.debug(`failed to process command: ${command}`, err.stack)
-      ret.error = {
-        message: err.message
+      let message
+      if (ctx.employee) {
+        message = err.name ? `${err.name}: ${err.message}` : err.message
+      } else {
+        message = DEFAULT_ERROR_MESSAGE
       }
 
+      ret.error = { message }
       if (user) {
-        const message = ctx.employee
-          ? err.message
-          : DEFAULT_ERROR_MESSAGE
-
         await this.sendSimpleMessage({ req, to: user, message })
       }
 
@@ -181,5 +184,22 @@ export class Commander {
         message
       }
     })
+  }
+
+  public judgeApplication = async ({ req, application, approve }) => {
+    const { bot, productsAPI } = this
+    const judge = req && req.user
+    application = await productsAPI.getApplication(application)
+    const user = await bot.users.get(parseStub(application.applicant).permalink)
+    const method = approve ? 'approveApplication' : 'denyApplication'
+    try {
+      await productsAPI[method]({ req, judge, user, application })
+    } catch (err) {
+      Errors.ignore(err, ProductBotErrors.Duplicate)
+      throw new Error(`application already has status: ${application.status}`)
+    }
+
+    await productsAPI.saveNewVersionOfApplication({ user, application })
+    await bot.users.merge(user)
   }
 }

@@ -9,6 +9,8 @@ import { command as addfriend } from './addfriend'
 import { command as tours } from './tours'
 import { command as message } from './message'
 import { command as getconf } from './getconf'
+import { command as approve } from './approve'
+import { command as deny } from './deny'
 
 export {
   help,
@@ -20,5 +22,7 @@ export {
   addfriend,
   tours,
   message,
-  getconf
+  getconf,
+  approve,
+  deny
 }
