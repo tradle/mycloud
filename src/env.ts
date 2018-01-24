@@ -79,8 +79,9 @@ export default class Env {
 
     const namespace = `λ:${this.FUNCTION_NAME}`
     this.logger = new Logger({
-      namespace: this.TESTING ? '' : namespace,
-      writer: this.TESTING ? { log: debug(`λ:${this.FUNCTION_NAME}`) } : global.console,
+      namespace,//: this.TESTING ? '' : namespace,
+      writer: global.console,
+      // writer: this.TESTING ? { log: debug(`λ:${this.FUNCTION_NAME}`) } : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,

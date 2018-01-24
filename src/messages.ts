@@ -25,8 +25,7 @@ import {
   MAX_CLOCK_DRIFT,
   SEQ,
   PREV_TO_RECIPIENT,
-  PREVLINK,
-  DB_IGNORE_PAYLOAD_TYPES
+  PREVLINK
 } from './constants'
 
 const unserializeMessage = message => {
@@ -172,16 +171,18 @@ export default class Messages {
       // _seqToRecipient: `${message._recipient}:${message[SEQ]}`
     })
 
-    const promiseSavePayload = this.savePayloadToDB(message)
+    // const promiseSavePayload = this.savePayloadToDB(message)
     const item = this.formatForDB(message)
-    const promiseSaveEnvelope = message._inbound
-      ? this.putInboundMessage({ message, item })
-      : this.putOutboundMessage({ message, item })
+    if (message._inbound) {
+      await this.putInboundMessage({ message, item })
+    } else {
+      await this.putOutboundMessage({ message, item })
+    }
 
-    await Promise.all([
-      promiseSaveEnvelope,
-      promiseSavePayload
-    ])
+    // await Promise.all([
+    //   promiseSaveEnvelope,
+    //   promiseSavePayload
+    // ])
   }
 
   public putOutboundMessage = async (opts: {
@@ -503,31 +504,6 @@ export default class Messages {
     }
 
     return await this.objects.get(getLink(message.object))
-  }
-
-  public savePayloadToDB = async (message: ITradleMessage):Promise<boolean> => {
-    const type = message.object[TYPE]
-    const ignored = message._inbound
-      ? DB_IGNORE_PAYLOAD_TYPES.inbound
-      : DB_IGNORE_PAYLOAD_TYPES.outbound
-
-    if (ignored.includes(type)) {
-      this.logger.debug(`not saving ${type} to type-differentiated table`)
-      return false
-    }
-
-    try {
-      await this.db.getTableForModel(type)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.debug(`not saving "${type}", don't have a table for it`, Errors.export(err))
-      return false
-    }
-
-    const copy = _.cloneDeep(message.object)
-    await this.objects.replaceEmbeds(copy)
-    await this.db.put(copy)
-    return true
   }
 
   private get = async (table, Key):Promise<ITradleMessage> => {

@@ -3,18 +3,21 @@ import Debug from 'debug'
 import { utils } from '@tradle/engine'
 import { DB } from '@tradle/dynamodb'
 import Embed = require('@tradle/embed')
-import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import { ECKey, sign, getSigningKey, getChainKey, getPermalink, addLinks } from './crypto'
 import {
   cachifyPromiser,
   setVirtual,
   pickVirtual,
+  omitVirtual,
+  hasVirtualDeep,
+  omitVirtualDeep,
   typeforce,
   summarizeObject,
   series,
   ensureTimestamped,
-  ensureNoVirtualProps
+  ensureNoVirtualProps,
+  copyVirtual
 } from './utils'
 
 import Errors = require('./errors')
@@ -57,6 +60,12 @@ const {
   IDENTITY_PUBLISH_REQUEST
 } = TYPES
 
+type PayloadWrapper = {
+  new: boolean
+  asStored: ITradleObject
+  asSigned: ITradleObject
+}
+
 export default class Provider {
   private tradle: Tradle
   private env: Env
@@ -80,6 +89,7 @@ export default class Provider {
     this.buckets = tradle.buckets
     this.auth = tradle.auth
     this.network = tradle.network
+    this.db = tradle.db
   }
 
   // get objects() { return this.tradle.objects }
@@ -139,7 +149,7 @@ export default class Provider {
     const key = getSigningKey(author.keys)
     const signed = await sign({
       key,
-      object: validateResource.utils.omitVirtual(object)
+      object: omitVirtual(object)
     })
 
     this.objects.addMetadata(signed)
@@ -148,30 +158,30 @@ export default class Provider {
     return signed
   }
 
-  public findOrCreate = async ({ link, object, author }):Promise<ITradleObject> => {
-    if (!object) {
-      return this.objects.get(link)
+  public getOrCreatePayload = async ({ link, object, author }):Promise<PayloadWrapper> => {
+    const ret = {
+      new: object && !object[SIG],
+      asStored: null,
+      asSigned: null
     }
 
-    if (!object[SIG]) {
-      object = await this.signObject({ author, object })
+    if (object) {
+      if (ret.new) {
+        object = await this.signObject({ author, object })
+        ret.asSigned = object
+      }
+
+      ret.asStored = await this.putPayload({ payload: object, inbound: false })
+    } else {
+      ret.asStored = await this.objects.get(link)
     }
 
-    await this.objects.put(object)
-    this.objects.addMetadata(object)
-    return object
-  }
-
-  public createSendMessageEvent = async (opts):Promise<ITradleMessage> => {
-    if (!opts.time) {
-      opts.time = Date.now()
+    if (!ret.asSigned) {
+      ret.asSigned = await this.objects.resolveEmbeds(_.cloneDeep(ret.asStored))
     }
 
-    if (!opts.author) {
-      opts.author = await this.getMyPrivateIdentity()
-    }
-
-    return await this._createSendMessageEvent(opts)
+    copyVirtual(ret.asSigned, ret.asStored)
+    return ret
   }
 
   public receiveMessage = async ({
@@ -201,7 +211,7 @@ export default class Provider {
     }
 
     try {
-      return await this.createReceiveMessageEvent({ message })
+      return await this._doReceiveMessage({ message })
     } catch (err) {
       err.progress = message
       throw err
@@ -231,19 +241,21 @@ export default class Provider {
     }
   }
 
-  public createReceiveMessageEvent = async ({ message }):Promise<ITradleMessage> => {
+  // public only for testing purposes
+  public _doReceiveMessage = async ({ message }):Promise<ITradleMessage> => {
     message = await this.messages.processInbound(message)
 
-    const tasks = [
-      this.messages.putMessage(message),
-      this.objects.put(message.object)
+    const tasks:Promise<any>[] = [
+      this.putPayload({ payload: message.object, inbound: true }),
+      this.messages.putMessage(message)
     ]
 
     if (message.seal) {
       tasks.push(this.watchSealedPayload(message))
     }
 
-    await Promise.all(tasks)
+    const [payload] = await Promise.all(tasks)
+    message.object = payload
     return message
   }
 
@@ -273,7 +285,7 @@ export default class Provider {
     const { recipient } = batch[0]
     this.logger.debug(`sending batch of ${batch.length} messages to ${recipient}`)
     const messages = await series(batch.map(
-      sendOpts => () => this.createSendMessageEvent(sendOpts))
+      sendOpts => () => this._doSendMessage(sendOpts))
     )
 
     return messages
@@ -359,17 +371,26 @@ export default class Provider {
   public getMyPublicIdentity:() => Promise<IIdentity> =
     cachifyPromiser(this.lookupMyPublicIdentity)
 
-  private _createSendMessageEvent = async (opts):Promise<ITradleMessage> => {
-    const { author, recipient, link, object, other={} } = opts
-
+  // public for testing purposes
+  public _doSendMessage = async (opts):Promise<ITradleMessage> => {
     typeforce({
       recipient: types.link,
       object: typeforce.maybe(typeforce.Object),
       other: typeforce.maybe(typeforce.Object),
     }, opts)
 
+    if (!opts.time) {
+      opts.time = Date.now()
+    }
+
+    if (!opts.author) {
+      opts.author = await this.getMyPrivateIdentity()
+    }
+
+    const { author, recipient, link, object, other={} } = opts
+
     // run in parallel
-    const promisePayload = this.findOrCreate({ link, object, author })
+    const promisePayload = this.getOrCreatePayload({ link, object, author })
     const promisePrev = this.messages.getLastSeqAndLink({ recipient })
     const promiseRecipient = this.identities.byPermalink(recipient)
     const [payload, recipientObj] = await Promise.all([
@@ -377,21 +398,19 @@ export default class Provider {
       promiseRecipient
     ])
 
-    const embeds = Embed.getEmbeds(payload)
     // the signature will be validated against the object with
     // media embeded as data urls
-    await this.objects.resolveEmbeds(payload)
-    const payloadVirtual = pickVirtual(payload)
+    const payloadVirtual = pickVirtual(payload.asSigned)
     const unsignedMessage = _.extend({}, other, {
       [TYPE]: MESSAGE,
       recipientPubKey: utils.sigPubKey(recipientObj),
-      object: payload,
+      object: omitVirtual(payload.asSigned),
       time: opts.time
     })
 
     // TODO:
     // efficiency can be improved
-    // message signing can be done in parallel with putObject in findOrCreate
+    // message signing can be done in parallel with putObject in getOrCreatePayload
 
     let attemptsToGo = 3
     let prev = await promisePrev
@@ -411,11 +430,7 @@ export default class Provider {
       setVirtual(signedMessage.object, payloadVirtual)
       try {
         await this.messages.putMessage(signedMessage)
-        // restore embed links
-        for (let embed of embeds) {
-          _.set(signedMessage.object, embed.path, embed.value)
-        }
-
+        signedMessage.object = payload.asStored
         return signedMessage
       } catch (err) {
         if (err.code !== 'ConditionalCheckFailedException') {
@@ -431,9 +446,67 @@ export default class Provider {
       }
     }
 
-    const err = new Errors.PutFailed('failing after 3 retries')
-    err.retryable = true
-    throw err
+    throw new Errors.CloudServiceError({
+      service: 'dynamodb',
+      message: 'failed to create outbound message after 3 retries',
+      retryable: true
+    })
+  }
+
+  private putPayload = async ({ payload, inbound }: {
+    payload:ITradleObject,
+    inbound:boolean
+  }) => {
+    payload = _.cloneDeep(payload)
+    this.objects.addMetadata(payload)
+    ensureTimestamped(payload)
+    await this.objects.replaceEmbeds(payload)
+    await Promise.all([
+      this.objects.put(payload),
+      this.putInDB({ payload, inbound })
+    ])
+
+    return payload
+  }
+
+  public getMyIdentityPermalink = async ():Promise<string> => {
+    const { _author } = await this.getMyPublicIdentity()
+    return _author
+  }
+
+  private isAuthoredByMe = async (object:ITradleObject) => {
+    const promiseMyPermalink = this.getMyIdentityPermalink()
+    let { _author } = object
+    if (!_author) {
+      ({ _author } = await this.identities.getAuthorInfo(object))
+    }
+
+    const myPermalink = await promiseMyPermalink
+    return _author === myPermalink
+  }
+
+  private putInDB = async ({ payload, inbound }) => {
+    // const inbound = await this.isAuthoredByMe(payload)
+    const type = payload[TYPE]
+    const ignored = inbound
+      ? DB_IGNORE_PAYLOAD_TYPES.inbound
+      : DB_IGNORE_PAYLOAD_TYPES.outbound
+
+    if (ignored.includes(type)) {
+      this.logger.debug(`not saving ${type} to type-differentiated table`)
+      return false
+    }
+
+    try {
+      await this.db.getTableForModel(type)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.debug(`not saving "${type}", don't have a table for it`, Errors.export(err))
+      return false
+    }
+
+    await this.db.put(payload)
+    return true
   }
 }
 

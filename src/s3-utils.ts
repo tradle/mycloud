@@ -1,6 +1,7 @@
 import { omit } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
+import Env from './env'
 import Logger from './logger'
 import { timeMethods, isPromise, batchProcess, gzip, gunzip } from './utils'
 
@@ -11,7 +12,11 @@ export type PutOpts = {
   headers?:any
 }
 
-export default function createUtils ({ s3, logger, env }) {
+export default function createUtils ({ s3, logger, env }: {
+  s3: AWS.S3,
+  logger: Logger,
+  env?: Env
+}) {
   let utils
 
   const put = async ({ key, value, bucket, headers={} }: PutOpts)
@@ -150,7 +155,7 @@ export default function createUtils ({ s3, logger, env }) {
       cachedTime = 0
     }
 
-    const maybeGet = async (opts={}) => {
+    const maybeGet = async (opts:any={}) => {
       let summary = { key, bucket, type }
       if (!opts.force) {
         const age = Date.now() - cachedTime
@@ -290,7 +295,6 @@ export default function createUtils ({ s3, logger, env }) {
   }, logger)
 }
 
-export { createUtils }
 export { createUtils }
 
 const toStringOrBuf = (value) => {

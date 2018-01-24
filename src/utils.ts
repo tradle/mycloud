@@ -47,7 +47,16 @@ const BaseObjectModel = models['tradle.Object']
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
-const { omitVirtual, setVirtual, pickVirtual } = buildResource
+const {
+  parseStub,
+  omitVirtual,
+  setVirtual,
+  pickVirtual,
+  stripVirtual,
+  omitVirtualDeep,
+  hasVirtualDeep
+} = validateResource.utils
+
 const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
 const noop = () => {}
@@ -109,6 +118,10 @@ export {
  setVirtual,
  omitVirtual,
  pickVirtual,
+ stripVirtual,
+ omitVirtualDeep,
+ hasVirtualDeep,
+ parseStub,
  encodeDataURI,
  decodeDataURI,
  noop,
@@ -492,7 +505,7 @@ export const batchProcess = async ({
   processBatch?:Function
   series?: boolean
   settle?: boolean
-}) => {
+}):Promise<any[]> => {
   const batches = _.chunk(data, batchSize)
   let batchResolver
   if (series) {
@@ -992,9 +1005,14 @@ export const toModelsMap = models => _.transform(models, (result, model:any) => 
 }, {})
 
 export const ensureNoVirtualProps = resource => {
-  if (validateResource.utils.hasVirtualDeep(resource)) {
+  if (hasVirtualDeep(resource)) {
     throw new Errors.InvalidObjectFormat(`virtual properties not allowed: ${safeStringify(resource)}`)
   }
+}
+
+export const copyVirtual = (target, source) => {
+  stripVirtual(target)
+  return _.extend(target, pickVirtual(source))
 }
 
 // export const omitVirtualRecursive = resource => {

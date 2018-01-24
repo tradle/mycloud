@@ -63,6 +63,7 @@ export const getBuckets = ({ env, logger, aws, serviceMap, s3Utils }):Buckets =>
     if (!physicalId) throw new Error('bucket not found')
 
     buckets[name] = new Bucket({
+      env,
       name: physicalId,
       s3: aws.s3,
       cache: cacheConfig[name] && new Cache(cacheConfig[name]),

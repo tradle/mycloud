@@ -10,7 +10,7 @@ import Logger from './logger'
 import Tradle from './tradle'
 
 export = function createDB (tradle:Tradle) {
-  const { modelStore, objects, tables, provider, aws, constants, env, dbUtils } = tradle
+  const { modelStore, objects, tables, aws, constants, env, dbUtils } = tradle
 
   dynogels.dynamoDriver(aws.dynamodb)
 
@@ -59,7 +59,7 @@ export = function createDB (tradle:Tradle) {
   if (!messageModel.isInterface) {
     const messagesTable = createMessagesTable({
       models: modelStore.models,
-      getMyIdentity: () => provider.getMyPublicIdentity()
+      getMyIdentity: () => tradle.provider.getMyPublicIdentity()
     })
 
     db.setExclusive({

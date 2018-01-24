@@ -16,11 +16,11 @@ export class Bucket {
   private utils: any
   constructor ({ name, env, s3, cache, logger, s3Utils }: {
     name:string,
-    env:Env,
     s3:AWS.S3,
     cache?:any
     logger?:Logger,
     s3Utils?:any
+    env?:Env
   }) {
     if (typeof name !== 'string') {
       throw new Error('expected string "name"')

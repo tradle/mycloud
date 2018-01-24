@@ -1,8 +1,5 @@
 // const debug = require('debug')('tradle:sls:errors')
-import {
-  pick,
-  isEqual
-} from 'lodash'
+import _ = require('lodash')
 
 import ex = require('error-ex')
 import { AssertionError } from 'assert'
@@ -47,8 +44,9 @@ const matches = (err, type) => {
     throw new Error('expected error and match parameters')
   }
 
-  if (type === 'system') {
-    return isSystemError(err)
+  if (type in types) {
+    // resolve alias
+    return matches(err, types[type])
   }
 
   if (Array.isArray(type)) {
@@ -67,7 +65,7 @@ const matches = (err, type) => {
       if (!expected.test(actual)) {
         return false
       }
-    } else if (!isEqual(expected, actual)) {
+    } else if (!_.isEqual(expected, actual)) {
       return false
     }
   }
@@ -113,10 +111,24 @@ class ErrorWithLink extends ExportableError {
   public toJSON = () => ({ ...exportError(this), link: this.link })
 }
 
+class CloudServiceError extends Error {
+  public service: string
+  public retryable: boolean
+  constructor (opts: {
+    message:string,
+    service:string,
+    retryable: boolean,
+    [x:string]: any
+  }) {
+    super(opts.message)
+    _.extend(this, opts)
+  }
+}
+
 class Duplicate extends ErrorWithLink {}
 class TimeTravel extends ErrorWithLink {}
 
-const exportError = (err:Error) => pick(err, ['message', 'stack', 'name', 'type'])
+const exportError = (err:Error) => _.pick(err, ['message', 'stack', 'name', 'type'])
 
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
@@ -137,6 +149,7 @@ const errors = {
   ErrorWithLink,
   Duplicate,
   TimeTravel,
+  CloudServiceError,
   ExecutionTimeout: createError('ExecutionTimeout'),
   Exists: createError('Exists'),
   HttpError,

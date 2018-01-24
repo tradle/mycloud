@@ -14,6 +14,7 @@ import {
 
 import { Lambda, fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from './onmessagessaved'
+import { ISettledPromise } from '../../types'
 
 const S3_GET_ATTEMPTS = 3
 const S3_FAILED_GET_INITIAL_RETRY_DELAY = 1000
@@ -37,7 +38,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     event.bot = bot
     // unmarshalling is prob a waste of time
     const messages = getRecordsFromEvent(event)
-    const preResults = await batchProcess({
+    const preResults:ISettledPromise[] = await batchProcess({
       data: messages,
       batchSize: 20,
       processOne: preProcess,

@@ -44,7 +44,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager#cloud",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#1d0aeb7f6d63a200bb07923481578a4bde41bd24",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#4b8d9c3234bca377ed51348fcb38ac3eb6e9f9d7",
       "dependencies": {
         "bluebird": {
           "version": "2.11.0",
@@ -56,7 +56,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#61571ef6b3a7a1c42ce86f1ebbb9026b6436c8bf",
+      "resolved": "git://github.com/tradle/bot-products.git#435e83f1e7ea937e67d7f5a9ebb32ad41d3eb320",
       "dependencies": {
         "@tradle/build-resource": {
           "version": "2.13.1",
@@ -359,9 +359,9 @@
       "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-5.1.1.tgz"
     },
     "@tradle/validate-resource": {
-      "version": "2.18.1",
+      "version": "2.19.0",
       "from": "@tradle/validate-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.18.1.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.19.0.tgz",
       "dependencies": {
         "debug": {
           "version": "3.1.0",

@@ -250,20 +250,17 @@ export default function createProductsBot ({
         if (!approved) {
           await productsAPI.approveApplication({ req, user, application })
           // verify unverified
-          const issued = await productsAPI.issueVerifications({
+          await productsAPI.issueVerifications({
             req, user, application, send: true
           })
-
-          console.log('1. ISSUED VERIFICATIONS', JSON.stringify(issued, null, 2))
         }
       },
       onCommand: async ({ req, command }) => {
         await commands.exec({ req, command })
       },
-      didApproveApplication: async ({ req, user, application, approvedBy }) => {
-        if (approvedBy) {
-          const issued = await productsAPI.issueVerifications({ req, user, application, send: true })
-          console.log('2. ISSUED VERIFICATIONS', JSON.stringify(issued, null, 2))
+      didApproveApplication: async ({ req, user, application, judge }) => {
+        if (judge) {
+          await productsAPI.issueVerifications({ req, user, application, send: true })
         }
 
         if (application.requestFor === EMPLOYEE_ONBOARDING) {

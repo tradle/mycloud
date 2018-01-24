@@ -23,6 +23,11 @@ const { MESSAGE } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
 
+type AuthorInfo = {
+  _author: string
+  _recipient?: string
+}
+
 export default class Identities {
   public objects: any
   public pubKeys: any
@@ -226,25 +231,28 @@ export default class Identities {
    * Add author metadata, including designated recipient, if object is a message
    * @param {String} object._sigPubKey author sigPubKey
    */
-  public addAuthorInfo = async (object: ITradleObject) => {
-    if (!object._sigPubKey) {
-      this.objects.addMetadata(object)
-    }
-
+  public getAuthorInfo = async (object: ITradleObject):Promise<AuthorInfo> => {
+    const { _sigPubKey } = this.objects.getMetadata(object)
     const type = object[TYPE]
     const isMessage = type === MESSAGE
     const pub = isMessage && object.recipientPubKey.pub.toString('hex')
     const { author, recipient } = {
-      author: await this.metaByPub(object._sigPubKey),
+      author: await this.metaByPub(_sigPubKey),
       recipient: await (pub ? this.metaByPub(pub) : RESOLVED_PROMISE)
     }
 
-    setVirtual(object, { _author: author.permalink })
-    if (recipient) {
-      setVirtual(object, { _recipient: recipient.permalink })
-    }
+    const ret = {
+      _author: author.permalink
+    } as AuthorInfo
 
-    return object
+    if (recipient) ret._recipient = recipient.permalink
+
+    return ret
+  }
+
+  public addAuthorInfo = async (object: ITradleObject):Promise<ITradleObject> => {
+    const info = await this.getAuthorInfo(object)
+    return setVirtual(object, info)
   }
 
   public addContact = async (identity:IIdentity):Promise<void> => {

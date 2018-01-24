@@ -176,7 +176,7 @@ const interpolateTemplate = (opts:{ arg?:string, sync?:boolean }={}) => {
   const { arg='', sync } = opts
   const command = `sls print ${arg}`
   if (sync) {
-    return proc.execSync(command).toString()
+    return Promise.resolve(proc.execSync(command).toString())
   }
 
   return new Promise((resolve, reject) => {
@@ -472,6 +472,7 @@ const cloneRemoteBucket = async ({ source, destination, filter=alwaysTrue }) => 
 
   const AWS = require('aws-sdk')
   const sourceBucket = new Bucket({
+    env,
     name: source,
     s3: new AWS.S3()
   })

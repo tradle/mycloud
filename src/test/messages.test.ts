@@ -36,7 +36,7 @@ import types = require('../typeforce-types')
 const { newIdentity } = tradle.utils
 const { MESSAGE } = TYPES
 const { identities, messages, objects, provider } = createTestTradle()
-const { createSendMessageEvent, createReceiveMessageEvent } = provider
+const { _doSendMessage, _doReceiveMessage } = provider
 const fromBobToAlice = require('./fixtures/alice/receive.json')
   .map(messages.normalizeInbound)
 
@@ -77,7 +77,7 @@ test('extract pub key', function (t) {
   t.end()
 })
 
-test('createSendMessageEvent', loudAsync(async (t) => {
+test('_doSendMessage', loudAsync(async (t) => {
   // t.plan(3)
 
   const payload = {
@@ -129,7 +129,7 @@ test('createSendMessageEvent', loudAsync(async (t) => {
     t.end()
   }))
 
-  const event = await createSendMessageEvent({
+  const event = await _doSendMessage({
     time: Date.now(),
     author: alice,
     recipient: bob.identity._permalink,
@@ -149,7 +149,7 @@ test('createSendMessageEvent', loudAsync(async (t) => {
   // t.end()
 }))
 
-test('createReceiveMessageEvent', loudAsync(async (t) => {
+test('_doReceiveMessage', loudAsync(async (t) => {
   const message = fromBobToAlice[0]
   const stub = stubber()
   const stubGetIdentity = stub(
@@ -181,7 +181,7 @@ test('createReceiveMessageEvent', loudAsync(async (t) => {
     return Promise.resolve()
   })
 
-  await createReceiveMessageEvent({ message })
+  await _doReceiveMessage({ message })
   t.equal(stubPutMessage.callCount, 1)
   t.equal(stubPutObject.callCount, 1)
   t.equal(stubGetIdentity.callCount, 2)

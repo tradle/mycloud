@@ -7,17 +7,26 @@ import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './err
 import { TYPE, PREVLINK, PERMALINK } from './constants'
 import {
   typeforce,
+  omitVirtual,
   setVirtual,
   download,
   summarizeObject,
   ensureTimestamped,
   RESOLVED_PROMISE,
 } from './utils'
-import { extractSigPubKey, addLinks } from './crypto'
+import { extractSigPubKey, getLinks } from './crypto'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
 import Env from './env'
 import Tradle from './tradle'
 import Logger from './logger'
+import { prettify } from './string-utils'
+
+type ObjectMetadata = {
+  _sigPubKey: string
+  _link: string
+  _permalink: string
+  _prevlink?: string
+}
 
 export default class Objects {
   private tradle: Tradle
@@ -48,8 +57,12 @@ export default class Objects {
     }
   }
 
-  public addMetadata = (object:ITradleObject):ITradleObject => {
+  public getMetadata = (object:ITradleObject, forceRecalc?:boolean):ObjectMetadata => {
     typeforce(types.signedObject, object)
+
+    if (this.env.TESTING) {
+      this._ensureNoS3Urls(object)
+    }
 
     const type = object[TYPE]
     // if (object._sigPubKey) {
@@ -58,10 +71,10 @@ export default class Objects {
     //     stack: new Error().stack
     //   })
     // } else {
-    if (!object._sigPubKey) {
-      let pubKey
+    let _sigPubKey = forceRecalc ? null : object._sigPubKey
+    if (!_sigPubKey) {
       try {
-        pubKey = extractSigPubKey(object)
+        _sigPubKey = extractSigPubKey(object).pub
       } catch (err) {
         this.logger.error('invalid object', {
           object,
@@ -70,51 +83,69 @@ export default class Objects {
 
         throw new InvalidSignature(`for ${type}`)
       }
-
-      setVirtual(object, { _sigPubKey: pubKey.pub })
     }
 
-    addLinks(object)
-    return object
+    const { link, permalink, prevlink } = getLinks(object)
+    const ret = {
+      _sigPubKey,
+      _link: link,
+      _permalink: permalink
+    } as ObjectMetadata
+
+    if (prevlink) ret._prevlink = prevlink
+
+    return ret
   }
 
-  public replaceEmbeds = async (object: ITradleObject) => {
-    const replacements = Embed.replaceDataUrls({
+  public addMetadata = (object:ITradleObject, forceRecalc?:boolean):ITradleObject => {
+    if (!forceRecalc && object._sigPubKey && object._link && object._permalink) {
+      return object
+    }
+
+    return setVirtual(object, this.getMetadata(object))
+  }
+
+  private _replaceDataUrls = (object:ITradleObject):any[] => {
+    return Embed.replaceDataUrls({
       region: this.region,
       bucket: this.fileUploadBucketName,
       keyPrefix: '',
       object
     })
-
-    if (replacements.length) {
-      this.logger.debug(`replaced ${replacements.length} embedded media`)
-      await Promise.all(replacements.map(replacement => {
-        const { bucket, key, body, mimetype } = replacement
-        return this.s3Utils.put({
-          bucket,
-          key,
-          value: body,
-          headers: {
-            ContentType: mimetype
-          }
-        })
-      }))
-    }
   }
 
-  public resolveEmbed = (embed):Promise<any> => {
+  public replaceEmbeds = async (object:ITradleObject) => {
+    const replacements = this._replaceDataUrls(object)
+    if (!replacements.length) return
+
+    this.logger.debug(`replaced ${replacements.length} embedded media`)
+    await Promise.all(replacements.map(replacement => {
+      const { bucket, key, body, mimetype } = replacement
+      return this.s3Utils.put({
+        bucket,
+        key,
+        value: body,
+        headers: {
+          ContentType: mimetype
+        }
+      })
+    }))
+  }
+
+  public resolveEmbed = async (embed):Promise<any> => {
     this.logger.debug(`resolving embedded media: ${embed.url}`)
     const { presigned, key, bucket } = embed
-    return embed.presigned
-      ? download(embed)
-      : this.s3Utils.get({ key, bucket }).then(({ Body, ContentType }) => {
-          Body.mimetype = ContentType
-          return Body
-        })
+    if (embed.presigned) {
+      return await download(embed)
+    }
+
+    const { Body, ContentType } = await this.s3Utils.get({ key, bucket })
+    Body.mimetype = ContentType
+    return Body
   }
 
-  public resolveEmbeds = (object:ITradleObject):Promise<ITradleObject> => {
-    return Embed.resolveEmbeds({ object, resolve: this.resolveEmbed })
+  public resolveEmbeds = async (object:ITradleObject):Promise<ITradleObject> => {
+    return await Embed.resolveEmbeds({ object, resolve: this.resolveEmbed })
   }
 
   public get = async (link: string):Promise<ITradleObject> => {
@@ -123,12 +154,29 @@ export default class Objects {
     return await this.bucket.getJSON(link)
   }
 
+  private _ensureNoDataUrls = object => {
+    const replacements = this._replaceDataUrls(_.cloneDeep(object))
+    if (replacements.length) {
+      throw new Error(`expected no data urls: ${prettify(object)}`)
+    }
+  }
+
+  private _ensureNoS3Urls = object => {
+    const embeds = Embed.getEmbeds(object)
+    if (embeds.length) {
+      throw new Error(`expected raw embeds, instead have linked: ${prettify(object)}`)
+    }
+  }
+
   public put = async (object: ITradleObject) => {
     typeforce(types.signedObject, object)
+    object = _.clone(object)
     ensureTimestamped(object)
     this.addMetadata(object)
-    object = _.cloneDeep(object)
-    await this.replaceEmbeds(object)
+    if (this.env.TESTING) {
+      this._ensureNoDataUrls(object)
+    }
+
     this.logger.debug('putting', summarizeObject(object))
     return await this.bucket.putJSON(object._link, object)
   }
