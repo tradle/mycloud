@@ -31,6 +31,7 @@ export const getGraphqlAPI = (opts) => {
     const { select=[] } = opts
     switch (op) {
     case 'get':
+    case 'getByLink':
       if (result[TYPE] === MESSAGE && select.includes('object')) {
         await loadPayloads(result)
       }
