@@ -9,6 +9,7 @@ import { TYPE } from '@tradle/constants'
 import { setNamePlugin } from './set-name'
 import { keepFreshPlugin } from './keep-fresh'
 import { createPlugin as createPrefillPlugin } from './prefill-form'
+import { createPlugin as createLensPlugin } from './set-lens'
 import {
   keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
@@ -313,10 +314,19 @@ export default function createProductsBot ({
     }))
   }
 
-  productsAPI.plugins.use(createPrefillPlugin({
-    conf: plugins['prefill-form'],
-    logger: logger.sub('plugin-prefill-form')
-  }))
+  if (plugins['prefill-form']) {
+    productsAPI.plugins.use(createPrefillPlugin({
+      conf: plugins['prefill-form'],
+      logger: logger.sub('plugin-prefill-form')
+    }))
+  }
+
+  if (plugins['lens']) {
+    productsAPI.plugins.use(createLensPlugin({
+      conf: plugins['lens'],
+      logger: logger.sub('plugin-lens')
+    }))
+  }
 
   return {
     bot,
