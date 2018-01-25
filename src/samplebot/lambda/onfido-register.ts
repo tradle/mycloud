@@ -2,7 +2,7 @@
 import { createBot } from '../../bot'
 import { fromCli } from '../../bot/lambda'
 import { customize } from '../customize'
-import { registerWebhook } from '../strategy/onfido'
+import { registerWebhook } from '../plugins/onfido'
 // import Errors = require('../../errors')
 
 const bot = createBot({ ready: false })

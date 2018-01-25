@@ -6,7 +6,7 @@ import { Lambda } from '../../bot/lambda'
 import {
   sendModelsPackIfUpdated,
   createModelsPackGetter
-} from '../strategy/keep-models-fresh'
+} from '../plugins/keep-models-fresh'
 
 import { defineGetter } from '../../utils'
 import { MODELS_HASH_PROPERTY } from '../constants'

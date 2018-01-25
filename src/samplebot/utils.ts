@@ -1,7 +1,7 @@
 import _ = require('lodash')
-import { isPromise } from '../../utils'
-import { Conf } from '../configure'
-import Errors = require('../../errors')
+import { isPromise } from '../utils'
+import { Conf } from './configure'
+import Errors = require('../errors')
 
 export const EMPLOYEE_COMMANDS = [
   'help',

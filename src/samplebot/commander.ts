@@ -6,8 +6,8 @@ import {
   ExecCommandFunction
 } from './types'
 
-import { parseStub } from '../../utils'
-import Errors = require('../../errors')
+import { parseStub } from '../utils'
+import Errors = require('../errors')
 import * as commands from './commands'
 
 // import {
@@ -25,7 +25,7 @@ import {
   getCommandByName
 } from './utils'
 
-import Logger from '../../logger'
+import Logger from '../logger'
 
 const prettify = obj => JSON.stringify(obj, null, 2)
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?\s*$/

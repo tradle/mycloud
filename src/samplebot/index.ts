@@ -6,25 +6,25 @@ import validateResource = require('@tradle/validate-resource')
 import mergeModels = require('@tradle/merge-models')
 import { TYPE } from '@tradle/constants'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
-import { setNamePlugin } from './set-name'
-import { keepFreshPlugin } from './keep-fresh'
-import { createPlugin as createPrefillPlugin } from './prefill-form'
-import { createPlugin as createLensPlugin } from './set-lens'
+import { setNamePlugin } from './plugins/set-name'
+import { keepFreshPlugin } from './plugins/keep-fresh'
+import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
+import { createPlugin as createLensPlugin } from './plugins/set-lens'
 import {
   keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
   createGetIdentifierFromReq,
   createModelsPackGetter
-} from './keep-models-fresh'
+} from './plugins/keep-models-fresh'
 
-import createBot = require('../../bot')
-import { DatedValue } from '../../types'
+import createBot = require('../bot')
+import { DatedValue } from '../types'
 // import createDeploymentModels from '../deployment-models'
 // import createBankModels from '../bank-models'
-import TermsAndConditions = require('./ts-and-cs')
-import Logger from '../../logger'
-import baseModels = require('../../models')
-import Errors = require('../../errors')
+import TermsAndConditions = require('./plugins/ts-and-cs')
+import Logger from '../logger'
+import baseModels = require('../models')
+import Errors = require('../errors')
 
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
