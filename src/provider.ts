@@ -322,9 +322,9 @@ export default class Provider {
       })
     } catch (err) {
       const error = { error: err.stack }
-      if (err instanceof Errors.NotFound) {
+      if (Errors.matches(err, Errors.NotFound)) {
         this.logger.debug('live delivery canceled', error)
-      } else if (err instanceof Errors.ClientUnreachable) {
+      } else if (Errors.matches(err, Errors.ClientUnreachable)) {
         this.logger.debug('live delivery failed, client unreachable', { recipient })
         if (this.tradle.pushNotifications) {
           try {
@@ -339,6 +339,8 @@ export default class Provider {
           messages,
           ...error
         })
+
+        throw err
       }
     }
   }

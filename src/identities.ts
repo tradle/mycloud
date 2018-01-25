@@ -206,7 +206,7 @@ export default class Identities {
 
     const { link, permalink } = addLinks(object)
     const putPubKeys = object.pubkeys
-      .map(props => this.putPubKey({ ...props, link, permalink }))
+      .map(({ pub }) => this.putPubKey({ pub, link, permalink }))
 
     this.logger.info('adding contact', { permalink })
     await Promise.all(putPubKeys.concat(

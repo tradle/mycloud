@@ -2,7 +2,7 @@
 
 // get the 'link' of an object
 
-const { utils } = require('@tradle/engine')
+import { utils } from '@tradle/engine'
 
 let str = ''
 process.stdin

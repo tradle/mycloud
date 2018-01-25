@@ -1,11 +1,12 @@
 import Env from './env'
+import { IAWSServiceConfig } from './types'
 
-export const createConfig = ({ env } : { env: Env }) => {
+export const createConfig = ({ env } : { env: Env }):IAWSServiceConfig => {
   const { IS_LOCAL, IS_OFFLINE } = env
   const services = {
     maxRetries: 6,
     region: process.env.AWS_REGION || 'us-east-1'
-  }
+  } as IAWSServiceConfig
 
   if (IS_LOCAL || IS_OFFLINE) {
     const localstackEndpoints = require('./test/localstack')

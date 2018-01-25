@@ -2,16 +2,16 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-const path = require('path')
-const co = require('co')
-const promisify = require('pify')
-const { exec } = promisify(require('child_process'))
-const fs = promisify(require('fs'))
-const { prettify } = require('../string-utils')
+import path = require('path')
+import promisify = require('pify')
+import _fs = require('fs')
+import { prettify } from '../string-utils'
+import { loadCredentials, loadRemoteEnv, downloadDeploymentTemplate } from '../cli/utils'
+
+const serverlessYml = require('../cli/serverless-yml')
+const fs = promisify(_fs)
 const serviceMapPath = path.resolve(__dirname, '../cli/remote-service-map.json')
 const latestTemplatePath = path.resolve(__dirname, '../cli/cloudformation-template.json')
-const { loadCredentials, loadRemoteEnv, downloadDeploymentTemplate } = require('../cli/utils')
-const serverlessYml = require('../cli/serverless-yml')
 const { service, custom } = serverlessYml
 const prefix = `${service}-${custom.stage}-`
 
@@ -21,16 +21,16 @@ loadRemoteEnv()
 const tradle = require('../').createRemoteTradle()
 const { lambdaUtils } = tradle
 
-const getEnv = co.wrap(function* () {
+const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
-  const { Environment } = yield lambdaUtils.getConfiguration(setEnvFnName)
-  yield fs.writeFile(serviceMapPath, prettify(Environment.Variables))
-})
+  const { Environment } = await lambdaUtils.getConfiguration(setEnvFnName)
+  await fs.writeFile(serviceMapPath, prettify(Environment.Variables))
+}
 
-const getTemplate = co.wrap(function* () {
-  const template = yield downloadDeploymentTemplate(tradle)
-  yield fs.writeFile(latestTemplatePath, prettify(template))
-})
+const getTemplate = async () => {
+  const template = await downloadDeploymentTemplate(tradle)
+  await fs.writeFile(latestTemplatePath, prettify(template))
+}
 
 Promise.all([
   getEnv(),

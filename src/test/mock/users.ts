@@ -26,7 +26,7 @@ export = function fakeUsers (opts:any={}) {
     createIfNotExists: async (user) => {
       if (!users[user.id]) {
         users[user.id] = user
-        yield oncreate(user)
+        await oncreate(user)
       }
 
       return users[user.id]

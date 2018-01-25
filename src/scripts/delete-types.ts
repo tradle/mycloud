@@ -2,9 +2,8 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-const co = require('co')
-const yn = require('yn')
-const readline = require('readline')
+import yn = require('yn')
+import readline = require('readline')
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'force',
@@ -12,13 +11,15 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { loadCredentials, clearTypes } = require('../cli/utils')
+import { loadCredentials, clearTypes } from '../cli/utils'
 
 loadCredentials()
 
-const tradle = require('../').createRemoteTradle()
+import { createRemoteTradle } from '../'
 
-co(function* () {
+const tradle = createRemoteTradle()
+
+;(async () => {
   const types = (argv.types || '').split(',').map(str => str.trim())
   if (!types.length) {
     throw new Error('expected "types" comma-separated list')
@@ -27,7 +28,7 @@ co(function* () {
   console.log('will delete types:', types.join(','))
   if (!argv.force) {
     const rl = readline.createInterface(process.stdin, process.stdout)
-    const answer = yield new Promise(resolve => {
+    const answer = await new Promise(resolve => {
       rl.question('continue? y/[n]:', resolve)
     })
 
@@ -39,7 +40,7 @@ co(function* () {
   }
 
   clearTypes({ tradle, types })
-})
+})()
 .catch(err => {
   console.error(err)
   process.exitCode = 1

@@ -2,15 +2,16 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-const { loadCredentials } = require('../cli/utils')
+import { loadCredentials } from '../cli/utils'
 
 loadCredentials()
 
-const co = require('co')
-const yn = require('yn')
-const { aws, env, dbUtils } = require('../').tradle
+import yn = require('yn')
+import readline = require('readline')
+import { tradle } from '../'
+
+const { aws, env, dbUtils } = tradle
 const { listTables, clear } = dbUtils
-const readline = require('readline')
 const tableToClear = process.argv.slice(2)
 const skip = [
   'pubkeys',
@@ -21,13 +22,13 @@ const skip = [
 ]
 
 const { href } = aws.dynamodb.endpoint
-const getTablesToClear = co.wrap(function* (tables=process.argv.slice(2)) {
+const getTablesToClear = async (tables=process.argv.slice(2)) => {
   if (tables.length) {
     tables = tables.map(name => {
       return name.startsWith(env.SERVERLESS_PREFIX) ? name : env.SERVERLESS_PREFIX + name
     })
   } else {
-    tables = yield listTables(env)
+    tables = await listTables(env)
     tables = tables.filter(name => {
       return !skip.find(skippable => env.SERVERLESS_PREFIX + skippable === name)
     })
@@ -35,7 +36,7 @@ const getTablesToClear = co.wrap(function* (tables=process.argv.slice(2)) {
 
   console.log(`will empty the following tables at endpoint ${href}\n`, tables)
   const rl = readline.createInterface(process.stdin, process.stdout)
-  const answer = yield new Promise(resolve => {
+  const answer = await new Promise(resolve => {
     rl.question('continue? y/[n]:', resolve)
   })
 
@@ -46,22 +47,22 @@ const getTablesToClear = co.wrap(function* (tables=process.argv.slice(2)) {
   }
 
   return tables
-})
+}
 
-const clearTables = co.wrap(function* () {
-  const tables = yield getTablesToClear()
+const clearTables = async () => {
+  const tables = await getTablesToClear()
   if (!(tables && tables.length)) return
 
   console.log(`will empty the following tables at endpoint ${href}\n`, tables)
   console.log('let the games begin!')
   for (const table of tables) {
     console.log('clearing', table)
-    const numDeleted = yield clear(table)
+    const numDeleted = await clear(table)
     console.log(`deleted ${numDeleted} items from ${table}`)
   }
 
   console.log('done!')
-})
+}
 
 clearTables().catch(err => {
   console.error(err)

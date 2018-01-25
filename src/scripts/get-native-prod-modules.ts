@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
-const co = require('co')
-const path = require('path')
-const { getNativeModules, getProductionModules } = require('../cli/utils')
+import path = require('path')
+import { getNativeModules, getProductionModules } from '../cli/utils'
 
-co(function* () {
-  const [modules, prod] = yield Promise.all([
+(async () => {
+  const [modules, prod] = await Promise.all([
     getNativeModules(),
     getProductionModules()
   ])
@@ -15,7 +14,7 @@ co(function* () {
   })
 
   process.stdout.write(prodOnly.join(' '))
-})
+})()
 .catch(err => {
   process.exitCode = 1
   console.error(err.stack)

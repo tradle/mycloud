@@ -17,10 +17,10 @@ export = function createUsers ({ table, oncreate }) {
   })
 
   const merge = function merge (user) {
-    return table.update(_.extend({
+    return table.update(_.extend(getUpdateParams(getProps(user)), {
       Key: getKey(user),
       ReturnValues: 'ALL_NEW',
-    }, getUpdateParams(getProps(user))))
+    }))
   }
 
   const list = table.scan

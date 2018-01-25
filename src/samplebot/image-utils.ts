@@ -112,7 +112,7 @@ const predicates = [
   (f, s) => f.name === 'favicon.ico'
 ]
 
-const chooseIcon = function chooseIcon (favicons, minSize) {
+const chooseIcon = (favicons, minSize?) => {
   for (let i = 0; i < predicates.length; i++) {
     let result = favicons.find(favicon => predicates[i](favicon, minSize))
     if (result) return result.href

@@ -1,6 +1,6 @@
 import compose = require('koa-compose')
 import cors = require('kcors')
-import Errors from '../../errors'
+import Errors = require('../../errors')
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
 import { EventSource, Lambda, fromHTTP } from '../lambda'

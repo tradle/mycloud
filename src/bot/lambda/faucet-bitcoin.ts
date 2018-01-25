@@ -9,7 +9,7 @@ export const createLambda = (opts) => {
 
 export const createMiddleware = (lambda:Lambda, opts:any={}) => {
   const { logger, tradle } = lambda
-  const { faucet } = tradle
+  const faucet = tradle['faucet']
   const { maxWithdrawal=MAX_WITHDRAWAL_SATOSHIS } = opts
   return async (ctx, next) => {
     const { to, fee } = ctx.event

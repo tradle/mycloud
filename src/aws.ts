@@ -65,7 +65,7 @@ export default function createAWSWrapper ({ env, logger }) {
     })
   }
 
-  const api:AwsApis = (function () {
+  const api:any = (function () {
     const cachedServices = {}
     Object.keys(instanceNameToServiceName).forEach(instanceName => {
       const serviceName = instanceNameToServiceName[instanceName]
@@ -76,17 +76,19 @@ export default function createAWSWrapper ({ env, logger }) {
         },
         get: function () {
           if (!service || !cacheServices) {
+            const lServiceName = serviceName.toLowerCase()
+            const conf = services[lServiceName] || {}
             if (instanceName === 'docClient') {
-              service = new AWS.DynamoDB.DocumentClient(services.DynamoDB)
+              service = new AWS.DynamoDB.DocumentClient(services.dynamodb)
             } else if (instanceName === 'iotData') {
               // may be set dynamically
               const { IOT_ENDPOINT } = env
               service = new AWS.IotData({
                 endpoint: IOT_ENDPOINT,
-                ...(services[serviceName] || {})
+                ...conf
               })
             } else {
-              service = new AWS[serviceName](services[serviceName])
+              service = new AWS[serviceName](conf)
             }
           }
 
@@ -113,7 +115,7 @@ export default function createAWSWrapper ({ env, logger }) {
     }
   }())
 
-  return api
+  return api as AwsApis
 }
 
 export { createAWSWrapper }

@@ -65,7 +65,7 @@ Object.keys(networks).forEach(flavor => {
       }
     })
 
-    function getReadOnlyAdapter (opts={}) {
+    function getReadOnlyAdapter (opts:any={}) {
       if (!readOnlyAdapter) {
         opts.networkName = networkName
         readOnlyAdapter = getAdapter(flavor)(opts)

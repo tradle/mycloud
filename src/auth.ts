@@ -373,9 +373,9 @@ export default class Auth {
 
   private updateSession = async ({ clientId }, update):Promise<ISession> => {
     return await this.tables.Presence.update({
+      ...getUpdateParams(update),
       Key: getKeyFromClientId(clientId),
-      ReturnValues: 'ALL_NEW',
-      ...getUpdateParams(update)
+      ReturnValues: 'ALL_NEW'
     })
   }
 }

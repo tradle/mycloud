@@ -2,10 +2,11 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-const path = require('path')
-const co = require('co')
-const { loadCredentials } = require('../cli/utils')
-const { lambdaUtils } = require('../').createRemoteTradle()
+import path = require('path')
+import { loadCredentials } from '../cli/utils'
+import { createRemoteTradle } from '../'
+
+const { lambdaUtils } = createRemoteTradle()
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'functions',
@@ -13,7 +14,8 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { custom, provider } = require('../cli/serverless-yml')
+const yml = require('../cli/serverless-yml')
+const { custom, provider } = yml
 const env = argv.path
   ? require(path.resolve(process.cwd(), argv.path))
   : minusObjectValues(provider.environment)
@@ -26,9 +28,9 @@ if (!(env && Object.keys(env).length)) {
 
 console.log('setting env', JSON.stringify(env, null, 2))
 
-co(function* () {
+;(async () => {
   const functions = argv.functions && argv.functions.split(',').map(f => f.trim())
-  yield lambdaUtils.updateEnvironments(function ({ FunctionName }) {
+  await lambdaUtils.updateEnvironments(function ({ FunctionName }) {
     if (functions && !functions.includes(FunctionName.slice(custom.prefix.length))) {
       console.log('not updating', FunctionName)
       return null
@@ -37,7 +39,7 @@ co(function* () {
     console.log('updating', FunctionName)
     return env
   })
-})
+})()
 .catch(err => {
   console.error(err)
   process.exit(1)

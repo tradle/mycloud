@@ -25,7 +25,7 @@ function parseCursorRecords (records) {
   })
 
   const queueId = changes[0].old.queue
-  const parsed = parseQueueId(queueId)
+  const parsed:any = parseQueueId(queueId)
   if (!parsed) {
     throw new Error(`failed to parse queue id: ${queueId}`)
   }

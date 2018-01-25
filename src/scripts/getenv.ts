@@ -1,13 +1,16 @@
 #!/usr/bin/env node
-const co = require('co').wrap
-const { aws } = require('../').createRemoteTradle()
-// const Bucket = 'io.tradle.dev.deploys'
-co(getEnv)().catch(console.error)
 
-function* getEnv () {
-  const { Environment } = yield aws.lambda.getFunctionConfiguration({
+import { createRemoteTradle } from '../'
+
+const { aws } = createRemoteTradle()
+// const Bucket = 'io.tradle.dev.deploys'
+
+const getEnv = async () => {
+  const { Environment } = await aws.lambda.getFunctionConfiguration({
     FunctionName: 'tradle-dev-onmessage'
   }).promise()
 
   process.stdout.write(JSON.stringify(Environment.Variables, null, 2))
 }
+
+getEnv().catch(console.error)

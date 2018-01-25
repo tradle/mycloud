@@ -192,10 +192,10 @@ export default class Blockchain {
     .then(({ fingerprint }) => fingerprint)
 
   public recharge = async (opts: {
-    address:string,
-    minBalance: string,
+    address?:string,
+    minBalance?: string,
     force?: boolean
-  }) => {
+  }={}) => {
     let { address, minBalance, force } = opts
     if (!address) {
       address = await this.getMyChainAddress()

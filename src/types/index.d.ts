@@ -135,14 +135,6 @@ export interface IDelivery {
   reject: (opts: any) => Promise<any>
 }
 
-export interface IDeliverBatchRequest {
-  timeout: number
-  recipient: string
-  messages: ITradleMessage[]
-  friend?: any
-  session?: ISession
-}
-
 export interface IDeliveryResult {
   finished: boolean
   range: IDeliveryMessageRange
@@ -210,4 +202,19 @@ export interface ICommand {
   parse?: (args:string) => any
   sendResult?: (any) => Promise<any>
   aliases?: string[]
+}
+
+export interface IAWSServiceConfig {
+  maxRetries?: number
+  region: string
+  s3: any
+  dynamodb: any
+  iot: any
+  iotdata: any
+  sts: any
+  sns: any
+  kms: any
+  lambda: any
+  cloudformation: any
+  xray: any
 }

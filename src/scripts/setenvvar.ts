@@ -19,11 +19,10 @@ if (!key) {
   throw new Error('"key" is required')
 }
 
-const {
-  service,
-  custom: { stage, prefix }
-} = require('../cli/serverless-yml')
+import * as yml from '../cli/serverless-yml'
 
+const { service, custom } = yml
+const { stage, prefix } = custom
 loadCredentials()
 
 co(function* () {

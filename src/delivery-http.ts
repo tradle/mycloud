@@ -1,7 +1,7 @@
 import yn = require('yn')
 import { EventEmitter } from 'events'
 import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip } from './utils'
-import { IDelivery, IDeliverBatchRequest } from "./types"
+import { IDelivery, ILiveDeliveryOpts } from "./types"
 import { IDebug } from './types'
 import Logger from './logger'
 import Env from './env'
@@ -24,7 +24,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
   public ack = promiseNoop
   public reject = (opts: { reason: Error }) => Promise.reject(opts.reason)
-  public deliverBatch = async (opts:IDeliverBatchRequest) => {
+  public deliverBatch = async (opts:ILiveDeliveryOpts) => {
     const { recipient, friend, messages, timeout } = opts
     const endpoint = `${friend.url}/inbox`
     const headers = {}

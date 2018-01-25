@@ -34,6 +34,10 @@ const baseStylePackObj = {
   [TYPE]: 'tradle.StylesPack'
 }
 
+export type InitOpts = {
+  forceRecreateIdentity?: boolean
+}
+
 export type UpdateConfInput = {
   style?: any
   modelsPack?: any
@@ -231,7 +235,7 @@ export class Conf {
     }
   }
 
-  public init = async (conf, opts={}) => {
+  public init = async (conf, opts:InitOpts={}) => {
     conf = { ...DEFAULT_CONF, ...conf }
     const { bot } = this
     if (bot.isTesting) {

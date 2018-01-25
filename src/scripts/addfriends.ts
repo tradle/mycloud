@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
-const path = require('path')
-const promisify = require('pify')
-const proc = promisify(require('child_process'))
-const pathToFriendsFile = process.argv[2] || path.join(__dirname, '../samplebot/conf/friends.js')
-const { loadRemoteEnv, loadCredentials } = require('../cli/utils')
+import path = require('path')
+import promisify = require('pify')
+
+import { loadRemoteEnv, loadCredentials } from '../cli/utils'
 
 loadRemoteEnv()
 loadCredentials()
 
+const proc = promisify(require('child_process'))
 const yml = require('../cli/serverless-yml')
+const pathToFriendsFile = process.argv[2] || path.join(__dirname, '../samplebot/conf/friends.js')
 const {
   stage=yml.custom.stage,
   friends

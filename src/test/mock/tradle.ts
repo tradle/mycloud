@@ -25,7 +25,7 @@ export = function fakeTradle ({ env, conf, kv, objects, identities, messages, se
       seals
     }),
     db,
-    router: tradle.router,
+    // router: tradle.router,
     // router: {
     //   use: noop,
     //   get: noop,

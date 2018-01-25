@@ -2,7 +2,7 @@ import yn = require('yn')
 import parse = require('yargs-parser')
 import { setProperty } from '../utils'
 
-import { ICommand } from '../../../types'
+import { ICommand } from '../../types'
 
 export const command:ICommand = {
   name: 'setautoapprove',

@@ -2,13 +2,15 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-const path = require('path')
-const co = require('co')
-const { loadCredentials } = require('../cli/utils')
+import path = require('path')
+import co = require('co')
+import { loadCredentials } from '../cli/utils'
 
 loadCredentials()
 
-const { buckets, s3Utils } = require('../').createRemoteTradle()
+import { createRemoteTradle } from '../'
+
+const { buckets, s3Utils } = createRemoteTradle()
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     c: 'conf'
@@ -18,7 +20,8 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { custom } = require('../cli/serverless-yml')
+const yml = require('../cli/serverless-yml')
+const { custom } = yml
 const confPath = path.resolve(process.cwd(), argv.conf)
 const conf = require(confPath)
 

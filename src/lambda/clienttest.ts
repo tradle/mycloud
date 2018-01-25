@@ -31,7 +31,9 @@ const allUsers = require('../test/fixtures/users').slice(4)
 
 const lambda = new Lambda({ tradle, source: EventSource.LAMBDA })
 
-lambda.use(async ({ event={}, context }) => {
+lambda.use(async ({ event }: {
+  event: any
+}) => {
   const {
     // table,
     concurrency=1,
@@ -117,7 +119,7 @@ function awaitEvent (node, event, filter=acceptAll) {
   })
 }
 
-function acceptAll () {
+function acceptAll (item:any) {
   return true
 }
 

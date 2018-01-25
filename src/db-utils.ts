@@ -101,10 +101,10 @@ function createDBUtils ({ aws, logger }) {
         debug(`writing batch of ${batch.length} to ${TableName}`)
         await batchPut({
           RequestItems: {
-            [TableName]: batch.map(op => {
-              const reqType = op.type === 'put' ? 'PutRequest' : 'DeleteRequest'
+            [TableName]: batch.map(({ type, value }) => {
+              const reqType = type === 'put' ? 'PutRequest' : 'DeleteRequest'
               return {
-                [reqType]: { Item: op.value }
+                [reqType]: { Item: value }
               }
             })
           }
@@ -122,7 +122,7 @@ function createDBUtils ({ aws, logger }) {
       return batchWriteToTable(ops)
     }
 
-    const tableAPI = {
+    const tableAPI:any = {
       toString: () => TableName,
       batchWrite: batchWriteToTable,
       batchPut: batchPutToTable,
@@ -147,7 +147,7 @@ function createDBUtils ({ aws, logger }) {
 
     // aliases
     Object.keys(api).forEach(method => {
-      tableAPI[method] = (params={}) => {
+      tableAPI[method] = (params:any={}) => {
         params.TableName = TableName
         return api[method](params)
       }
@@ -375,7 +375,7 @@ function createDBUtils ({ aws, logger }) {
 
   const batchPut = async (
     params:AWS.DynamoDB.BatchWriteItemInput,
-    backoffOptions:BackoffOptions
+    backoffOptions?:BackoffOptions
   ) => {
     params = { ...params }
 
@@ -493,7 +493,7 @@ function logCapacityConsumption (method, result) {
   }
 }
 
-function getUpdateParams (item) {
+const getUpdateParams = (item):any => {
   const keys = Object.keys(item)
   const toSet = keys.filter(key => item[key] != null)
   const toRemove = keys.filter(key => item[key] == null)

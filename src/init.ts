@@ -140,8 +140,7 @@ proto.clear = co(function* () {
     link ? this.objects.del(link) : Promise.resolve(),
     this.secrets.del(IDENTITY_KEYS_KEY),
     // public
-    PublicConf.del(PUBLIC_CONF_BUCKET.identity),
-    PublicConf.del(PUBLIC_CONF_BUCKET.info)
+    PublicConf.del(PUBLIC_CONF_BUCKET.identity)
   ]
 
   debug(`terminated provider ${link}`)

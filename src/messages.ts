@@ -144,7 +144,7 @@ export default class Messages {
 
   public getMessageStub = (opts: {
     message: ITradleMessage,
-    error?: ErrorConstructor
+    error?: any
   }):IMessageStub => {
     const { message, error } = opts
     const stub = {

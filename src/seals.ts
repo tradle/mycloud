@@ -95,7 +95,7 @@ interface ILimitOpts {
   limit?: number
 }
 
-interface IFailureQueryOpts extends ILimitOpts {
+export interface IFailureQueryOpts extends ILimitOpts {
   gracePeriod?: number
 }
 

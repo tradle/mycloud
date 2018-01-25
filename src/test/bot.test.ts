@@ -9,9 +9,8 @@ import { TYPE, SEQ, SIG } from '@tradle/constants'
 import IotMessage = require('@tradle/iot-message')
 import { utils as tradleUtils } from '@tradle/engine'
 import { createTestTradle } from '../'
-import { createBot as createRealBot } from '../bot'
+import { createBot } from '../bot'
 import { getGraphqlAPI } from '../bot/graphql'
-import createFakeBot = require('./mock/bot')
 import { loudAsync, wait } from '../utils'
 import { toStreamItems, recreateTable } from './utils'
 import Errors = require('../errors')
@@ -26,299 +25,292 @@ const rethrow = err => {
 }
 
 const fakeLink = () => crypto.randomBytes(32).toString('hex')
+// test('await ready', loudAsync(async (t) => {
+//   const bot = createBot({ tradle: createTestTradle() })
+//   const expectedEvent = toStreamItems([
+//     {
+//       old: {
+//         link: 'a',
+//         unsealed: 'x'
+//       },
+//       new: {
+//         link: 'b'
+//       }
+//     }
+//   ])
 
-;[/*createFakeBot,*/ createRealBot].forEach((createBot, i) => {
-  const mode = createBot === createFakeBot ? 'mock' : 'real'
-  // test('await ready', loudAsync(async (t) => {
-  //   const bot = createBot({ tradle: createTestTradle() })
-  //   const expectedEvent = toStreamItems([
-  //     {
-  //       old: {
-  //         link: 'a',
-  //         unsealed: 'x'
-  //       },
-  //       new: {
-  //         link: 'b'
-  //       }
-  //     }
-  //   ])
+//   let waited
+//   bot.hook('seal', async (event) => {
+//     t.equal(waited, true)
+//     t.equal(event, expectedEvent)
+//     t.end()
+//   })
 
-  //   let waited
-  //   bot.hook('seal', async (event) => {
-  //     t.equal(waited, true)
-  //     t.equal(event, expectedEvent)
-  //     t.end()
-  //   })
+//   bot.trigger('seal', expectedEvent).catch(t.error)
 
-  //   bot.trigger('seal', expectedEvent).catch(t.error)
+//   await wait(100)
+//   waited = true
+//   bot.ready()
+// }))
 
-  //   await wait(100)
-  //   waited = true
-  //   bot.ready()
-  // }))
+test(`users `, loudAsync(async (t) => {
+  await recreateTable(UsersTableLogicalId)
+  const bot = createBot({ tradle: createTestTradle() })
+  const { users } = bot
+  // const user : Object = {
+  const user:any = {
+    id: bob.permalink,
+    identity: bob.object
+  }
 
-  test(`users (${mode})`, loudAsync(async (t) => {
-    if (mode === 'real') {
-      await recreateTable(UsersTableLogicalId)
+  const promiseOnCreate = new Promise(resolve => {
+    bot.hook('usercreate', resolve)
+  })
+
+  t.same(await users.createIfNotExists(user), user, 'create if not exists')
+  t.same(await users.get(user.id), user, 'get by primary key')
+
+  // doesn't overwrite
+  await users.createIfNotExists({
+    id: user.id
+  })
+
+  t.same(await promiseOnCreate, user)
+  t.same(await users.get(user.id), user, '2nd create does not clobber')
+  t.same(await users.list(), [user], 'list')
+
+  user.name = 'bob'
+  t.same(await users.merge(user), user, 'merge')
+  t.same(await users.get(user.id), user, 'get after merge')
+  t.same(await users.del(user.id), user, 'delete')
+  t.same(await users.list(), [], 'list')
+  t.end()
+}))
+
+test('init', loudAsync(async (t) => {
+  const tradle = createTestTradle()
+  const bot = createBot({ tradle })
+  const originalEvent = {
+    RequestType: 'Create',
+    ResponseURL: 'some-s3-url',
+    ResourceProperties: {
+      some: 'prop'
+    }
+  }
+
+  const expectedEvent = {
+    type: 'init',
+    payload: {
+      some: 'prop'
+    }
+  }
+
+  const originalContext = {}
+  sinon.stub(tradle.init, 'init').callsFake(async (opts) => {
+    t.same(opts, expectedEvent.payload)
+  })
+
+  const cfnResponseStub = sinon.stub(cfnResponse, 'send').resolves()
+  let { callCount } = cfnResponseStub
+
+  bot.oninit(async (event) => {
+    t.same(event, expectedEvent)
+  })
+
+  await bot.lambdas.oninit().handler(originalEvent, {
+    done: t.error
+  })
+
+  t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
+
+  bot.oninit(async (event) => {
+    throw new Error('test error')
+  })
+
+  await bot.lambdas.oninit().handler(originalEvent, {
+    done: (err) => t.equal(err.message, 'test error')
+  })
+
+  t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.FAILED)
+
+  cfnResponseStub.restore()
+  t.end()
+}))
+
+test(`onmessage`, loudAsync(async (t) => {
+  t.plan(5)
+
+  const tradle = createTestTradle()
+  const { objects, messages, identities } = tradle
+  const bot = createBot({ tradle })
+  const { users } = bot
+
+  // let updatedUser
+  // users.merge = async () => {
+  //   updatedUser = true
+  // }
+
+  users.createIfNotExists = async (user) => {
+    // #1
+    t.equal(user.id, message._author)
+    return user
+  }
+
+  // const { byPermalink } = identities
+  const payload = {
+    _link: 'b',
+    _permalink: 'b',
+    _t: 'a',
+    _s: 'sig',
+    _author: 'carol',
+    _virtual: ['_author', '_link', '_permalink']
+  }
+
+  const message = {
+    [TYPE]: 'tradle.Message',
+    [SEQ]: 0,
+    [SIG]: crypto.randomBytes(128).toString('base64'),
+    time: 123,
+    _inbound: true,
+    _payloadType: payload[TYPE],
+    _author: crypto.randomBytes(32).toString('hex'),
+    _recipient: crypto.randomBytes(32).toString('hex'),
+    _link: crypto.randomBytes(32).toString('hex'),
+    object: payload,
+    recipientPubKey: JSON.parse(JSON.stringify({
+      curve: 'p256',
+      pub: crypto.randomBytes(64)
+    })),
+    _virtual: ['_author', '_recipient', '_link']
+  }
+
+  sinon.stub(objects, 'get').callsFake(async (link) => {
+    if (link === message._link) {
+      return message.object
+    } else if (link === payload._link) {
+      return payload
     }
 
-    const bot = createBot({ tradle: createTestTradle() })
-    const { users } = bot
-    // const user : Object = {
-    const user = {
-      id: bob.permalink,
-      identity: bob.object
-    }
+    throw new Errors.NotFound(link)
+  })
 
-    const promiseOnCreate = new Promise(resolve => {
-      bot.hook('usercreate', resolve)
-    })
+  sinon.stub(tradle.user, 'onSentMessage').callsFake(async () => {
+    return message
+  })
 
-    t.same(await users.createIfNotExists(user), user, 'create if not exists')
-    t.same(await users.get(user.id), user, 'get by primary key')
+  // identities.byPermalink = async (permalink) => {
+ //   t.equal(permalink, message.author)
+  //   return bob.object
+  // })
 
-    // doesn't overwrite
-    await users.createIfNotExists({
-      id: user.id
-    })
+  bot.hook('message', async (data) => {
+    const { user } = data
+    user.bill = 'ted'
+    // 2, 3, 4
+    t.equal(user.id, message._author)
+    t.same(data.message, message)
+    t.same(data.payload, payload)
+  })
 
-    t.same(await promiseOnCreate, user)
-    t.same(await users.get(user.id), user, '2nd create does not clobber')
-    t.same(await users.list(), [user], 'list')
+  // const conversation = await bot.users.history('bob')
+  // console.log(conversation)
 
-    user.name = 'bob'
-    t.same(await users.merge(user), user, 'merge')
-    t.same(await users.get(user.id), user, 'get after merge')
-    t.same(await users.del(user.id), user, 'delete')
-    t.same(await users.list(), [], 'list')
-    t.end()
-  }))
+  // #5
+  const data = await IotMessage.encode({
+    type: 'messages',
+    payload: [message]
+  })
 
-  test('init', loudAsync(async (t) => {
-    const tradle = createTestTradle()
-    const bot = createBot({ tradle })
-    const originalEvent = {
-      RequestType: 'Create',
-      ResponseURL: 'some-s3-url',
-      ResourceProperties: {
-        some: 'prop'
-      }
-    }
+  await bot.lambdas.onmessage().handler({
+    // clientId: 'ted',
+    data
+  }, {
+    done: t.error
+  })
 
-    const expectedEvent = {
-      type: 'init',
-      payload: {
-        some: 'prop'
-      }
-    }
+  // await bot.trigger('message', message)
+  // #6
+  // t.equal(updatedUser, true)
+  // identities.byPermalink = byPermalink
+}))
 
-    const originalContext = {}
-    sinon.stub(tradle.init, 'init').callsFake(async (opts) => {
-      t.same(opts, expectedEvent.payload)
-    })
+test(`readseal`, loudAsync(async (t) => {
+  const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
 
-    const cfnResponseStub = sinon.stub(cfnResponse, 'send').resolves()
-    let { callCount } = cfnResponseStub
+  let read
+  let wrote
+  const tradle = createTestTradle()
+  const { seals, provider } = tradle
+  const { getMyKeys } = provider
+  provider.getMyKeys = () => Promise.resolve(aliceKeys)
 
-    bot.oninit(async (event) => {
-      t.same(event, expectedEvent)
-    })
+  const bot = createBot({ tradle })
+  bot.hook('readseal', async (event) => {
+    read = true
+    t.equal(event.link, link)
+  })
 
-    await bot.lambdas.oninit().handler(originalEvent, {
-      done: t.error
-    })
+  bot.hook('wroteseal', async (event) => {
+    wrote = true
+    t.equal(event.link, link)
+  })
 
-    t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
-
-    bot.oninit(async (event) => {
-      throw new Error('test error')
-    })
-
-    await bot.lambdas.oninit().handler(originalEvent, {
-      done: (err) => t.equal(err.message, 'test error')
-    })
-
-    t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.FAILED)
-
-    cfnResponseStub.restore()
-    t.end()
-  }))
-
-  test(`onmessage (${mode})`, loudAsync(async (t) => {
-    t.plan(5)
-
-    const tradle = createTestTradle()
-    const { objects, messages, identities } = tradle
-    const bot = createBot({ tradle })
-    const { users } = bot
-
-    // let updatedUser
-    // users.merge = async () => {
-    //   updatedUser = true
-    // }
-
-    users.createIfNotExists = async (user) => {
-      // #1
-      t.equal(user.id, message._author)
-      return user
-    }
-
-    // const { byPermalink } = identities
-    const payload = {
-      _link: 'b',
-      _permalink: 'b',
-      _t: 'a',
-      _s: 'sig',
-      _author: 'carol',
-      _virtual: ['_author', '_link', '_permalink']
-    }
-
-    const message = {
-      [TYPE]: 'tradle.Message',
-      [SEQ]: 0,
-      [SIG]: crypto.randomBytes(128).toString('base64'),
-      time: 123,
-      _inbound: true,
-      _payloadType: payload[TYPE],
-      _author: crypto.randomBytes(32).toString('hex'),
-      _recipient: crypto.randomBytes(32).toString('hex'),
-      _link: crypto.randomBytes(32).toString('hex'),
-      object: payload,
-      recipientPubKey: JSON.parse(JSON.stringify({
-        curve: 'p256',
-        pub: crypto.randomBytes(64)
-      })),
-      _virtual: ['_author', '_recipient', '_link']
-    }
-
-    sinon.stub(objects, 'get').callsFake(async (link) => {
-      if (link === message._link) {
-        return message.object
-      } else if (link === payload._link) {
-        return payload
-      }
-
-      throw new Errors.NotFound(link)
-    })
-
-    sinon.stub(tradle.user, 'onSentMessage').callsFake(async () => {
-      return message
-    })
-
-    // identities.byPermalink = async (permalink) => {
-   //   t.equal(permalink, message.author)
-    //   return bob.object
-    // })
-
-    bot.hook('message', async (data) => {
-      const { user } = data
-      user.bill = 'ted'
-      // 2, 3, 4
-      t.equal(user.id, message._author)
-      t.same(data.message, message)
-      t.same(data.payload, payload)
-    })
-
-    // const conversation = await bot.users.history('bob')
-    // console.log(conversation)
-
-    // #5
-    const data = await IotMessage.encode({
-      type: 'messages',
-      payload: [message]
-    })
-
-    await bot.lambdas.onmessage().handler({
-      // clientId: 'ted',
-      data
-    }, {
-      done: t.error
-    })
-
-    // await bot.trigger('message', message)
-    // #6
-    // t.equal(updatedUser, true)
-    // identities.byPermalink = byPermalink
-  }))
-
-  test(`readseal (${mode})`, loudAsync(async (t) => {
-    const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
-
-    let read
-    let wrote
-    const tradle = createTestTradle()
-    const { seals, provider } = tradle
-    const { getMyKeys } = provider
-    provider.getMyKeys = () => Promise.resolve(aliceKeys)
-
-    const bot = createBot({ tradle })
-    bot.hook('readseal', async (event) => {
-      read = true
-      t.equal(event.link, link)
-    })
-
-    bot.hook('wroteseal', async (event) => {
-      wrote = true
-      t.equal(event.link, link)
-    })
-
-    await bot.lambdas.onsealstream().handler(toStreamItems([
-      {
-        old: {
-          link,
-          unsealed: 'x'
-        },
-        new: {
-          link
-        }
+  await bot.lambdas.onsealstream().handler(toStreamItems([
+    {
+      old: {
+        link,
+        unsealed: 'x'
       },
-      {
-        old: {
-          link,
-          unconfirmed: 'x'
-        },
-        new: {
-          link
-        }
+      new: {
+        link
       }
-    ]), {
-      done: t.error
-    })
-
-    t.equal(read, true)
-    t.equal(wrote, true)
-
-    provider.getMyKeys = getMyKeys
-    t.end()
-  }))
-
-  test(`use() (${mode})`, loudAsync(async (t) => {
-    const expectedArg = {}
-    const called = {
-      usercreate: false,
-      useronline: false,
-      readseal: false,
-      wroteseal: false
+    },
+    {
+      old: {
+        link,
+        unconfirmed: 'x'
+      },
+      new: {
+        link
+      }
     }
+  ]), {
+    done: t.error
+  })
 
-    const bot = createBot({ tradle: createTestTradle() })
-    bot.use(() => {
-      Object.keys(called).forEach(event => {
-        bot.hook(event, async (arg) => {
-          t.equal(arg, expectedArg)
-          called[event] = true
-        })
+  t.equal(read, true)
+  t.equal(wrote, true)
+
+  provider.getMyKeys = getMyKeys
+  t.end()
+}))
+
+test(`use()`, loudAsync(async (t) => {
+  const expectedArg = {}
+  const called = {
+    usercreate: false,
+    useronline: false,
+    readseal: false,
+    wroteseal: false
+  }
+
+  const bot = createBot({ tradle: createTestTradle() })
+  bot.use(() => {
+    Object.keys(called).forEach(event => {
+      bot.hook(event, async (arg) => {
+        t.equal(arg, expectedArg)
+        called[event] = true
       })
     })
+  })
 
-    for (let event in called) {
-      await bot.trigger(event, expectedArg)
-      t.equal(called[event], true)
-    }
+  for (let event in called) {
+    await bot.trigger(event, expectedArg)
+    t.equal(called[event], true)
+  }
 
-    t.end()
-  }))
-})
+  t.end()
+}))
 
 test('onmessagestream', loudAsync(async (t) => {
   const _link = fakeLink()
@@ -365,7 +357,7 @@ test('onmessagestream', loudAsync(async (t) => {
   }
 
   const tradle = createTestTradle()
-  const bot = createRealBot({ tradle })
+  const bot = createBot({ tradle })
   bot.setCustomModels({ models: PingPongModels })
 
   const table = await bot.db.getTableForModel('ping.pong.Ping')
@@ -453,8 +445,8 @@ test('onmessagestream', loudAsync(async (t) => {
 
 test('validate send', loudAsync(async (t) => {
   const tradle = createTestTradle()
-  sinon.stub(tradle.provider, 'sendMessage').resolves()
-  sinon.stub(tradle.provider, 'sendMessageBatch').resolves()
+  sinon.stub(tradle.provider, 'sendMessage').resolves({})
+  sinon.stub(tradle.provider, 'sendMessageBatch').resolves([])
 
   const models = {
     'ding.bling': {
@@ -473,7 +465,7 @@ test('validate send', loudAsync(async (t) => {
     }
   }
 
-  const bot = createRealBot({ tradle })
+  const bot = createBot({ tradle })
   bot.setCustomModels({ models })
   try {
     await bot.send({

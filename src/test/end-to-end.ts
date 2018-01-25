@@ -4,39 +4,36 @@ require('./env').install()
 import Promise = require('bluebird')
 import _ = require('lodash')
 import IotMessage = require('@tradle/iot-message')
-const nock = require('nock')
-const assert = require('assert')
-const nodeCrypto = require('crypto')
-const inherits = require('inherits')
-const { EventEmitter } = require('events')
-const coexec = require('co')
-const co = require('co').wrap
-const { TYPE, TYPES, SIG, SEQ } = require('@tradle/constants')
-const { MESSAGE } = TYPES
-const buildResource = require('@tradle/build-resource')
+import { EventEmitter } from 'events'
+import nock = require('nock')
+import assert = require('assert')
+import nodeCrypto = require('crypto')
+import { TYPE, TYPES, SIG, SEQ } from '@tradle/constants'
+import buildResource = require('@tradle/build-resource')
 import validateResource = require('@tradle/validate-resource')
-const mergeModels = require('@tradle/merge-models')
-const tradleUtils = require('@tradle/engine').utils
-const createProductsStrategy = require('@tradle/bot-products')
-const createEmployeeManager = require('@tradle/bot-employee-manager')
-const genSample = require('@tradle/gen-samples').fake
-const { replaceDataUrls } = require('@tradle/embed')
+import mergeModels = require('@tradle/merge-models')
+import { utils as tradleUtils } from '@tradle/engine'
+import createProductsStrategy = require('@tradle/bot-products')
+import createEmployeeManager = require('@tradle/bot-employee-manager')
+import { fake as genSample } from '@tradle/gen-samples'
+import { replaceDataUrls } from '@tradle/embed'
 // const dbUtils = require('../db-utils')
 // const Delivery = require('../delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
 import { createTestTradle } from '../'
 import { Tradle } from '../tradle'
 import { Logger } from '../logger'
+import Env from '../env'
 import * as onmessage from '../samplebot/lambda/mqtt/onmessage'
-
-const { genLocalResources } = require('../cli/utils')
-const { wrap, utils, crypto } = require('../')
+import { genLocalResources } from '../cli/utils'
+import { utils, crypto } from '../'
 // const botFixture = require('./fixtures/bot')
 // const userIdentities = require('./fixtures/users-pem')
-const intercept = require('./interceptor')
-const Errors = require('../errors')
+import intercept = require('./interceptor')
+import Errors = require('../errors')
 const { createTestProfile } = require('./utils')
 const defaultTradleInstance = require('../').tradle
+const { MESSAGE } = TYPES
 
 const genIdentity = async (tradle:Tradle) => {
   const { identity, keys } = (await tradle.init.genIdentity()).priv
@@ -96,7 +93,7 @@ export class Test {
     return this.bot.modelStore.models
   }
 
-  public runEmployeeAndCustomer = wrapWithIntercept(async (opts={}) => {
+  public runEmployeeAndCustomer = wrapWithIntercept(async (opts:any={}) => {
     await this._ready
 
     const { product=DEFAULT_PRODUCT } = opts
@@ -525,6 +522,23 @@ const createUser = async ({
 }
 
 class User extends EventEmitter {
+  public name: string
+  public identity: any
+  public permalink: string
+  public clientId: string
+  public keys: any
+  public profile: any
+  public bot: any
+  public env: Env
+  public userPubKey: any
+  public botPubKey: any
+  public tradle: Tradle
+  public logger: Logger
+  public debug: Function
+  private _userSeq: number
+  private _botSeq: number
+  private _ready: Promise
+  private _types: string[]
   constructor ({ tradle, identity, keys, profile, name, bot }) {
     super()
 

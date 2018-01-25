@@ -72,10 +72,12 @@ export = function createDB (tradle:Tradle) {
     {
       type: 'tradle.PubKey',
       definition: tables.PubKeys.definition,
+      opts: {}
     },
     {
       type: 'tradle.MyCloudFriend',
       definition: tables.Friends.definition,
+      opts: {}
     },
     {
       type: 'tradle.IotSession',
@@ -84,7 +86,8 @@ export = function createDB (tradle:Tradle) {
         forbidScan: false
       }
     }
-  ].forEach(({ type, definition, opts={} }) => {
+  ].forEach(typeConf => {
+    const { type, definition, opts } = typeConf
     const model = modelStore.models[type]
     db.setExclusive({
       model,

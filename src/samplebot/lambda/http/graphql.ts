@@ -40,7 +40,8 @@ const init = async () => {
       // autorun: true,
       title: 'Samples',
       items: sampleQueries
-    }
+    },
+    logo: null
   }
 
   if (style && style.logo) {

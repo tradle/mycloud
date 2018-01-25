@@ -111,23 +111,23 @@ export default class Discovery {
         })
       }))
 
-      if (process.env.IS_LOCAL) {
-        await this.saveToLocalFS(env)
-      }
+      // if (process.env.IS_LOCAL) {
+      //   await this.saveToLocalFS(env)
+      // }
     }
 
     return env
   }
 
-  private saveToLocalFS = async (vars) => {
-    const { RESOURCES_ENV_PATH } = this.env
-    try {
-      await pmkdirp(path.dirname(RESOURCES_ENV_PATH))
-      await pfs.writeFile(RESOURCES_ENV_PATH, JSON.stringify(vars, null, 2))
-    } catch (err) {
-      this.logger.error('failed to write environment', { error: err.stack })
-    }
-  }
+  // private saveToLocalFS = async (vars) => {
+  //   const { RESOURCES_ENV_PATH } = this.env
+  //   try {
+  //     await pmkdirp(path.dirname(RESOURCES_ENV_PATH))
+  //     await pfs.writeFile(RESOURCES_ENV_PATH, JSON.stringify(vars, null, 2))
+  //   } catch (err) {
+  //     this.logger.error('failed to write environment', { error: err.stack })
+  //   }
+  // }
 }
 
 export { Discovery }

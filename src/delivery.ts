@@ -8,7 +8,7 @@ import {
   IDelivery,
   IDeliveryRequest,
   IDeliveryResult,
-  IDeliverBatchRequest,
+  ILiveDeliveryOpts,
   IDeliveryMessageRange,
   IDebug,
   ISession
@@ -64,7 +64,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.logger = this.env.sublogger('delivery')
   }
 
-  public deliverBatch = async (opts:IDeliverBatchRequest) => {
+  public deliverBatch = async (opts:ILiveDeliveryOpts) => {
     const messages = opts.messages.map(message => {
       message = validateResource.utils.omitVirtualDeep(message)
       this.objects.presignEmbeddedMediaLinks({ object: message })
@@ -114,7 +114,11 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
       await this.deliverBatch({ recipient, messages, session, friend })
       let last = messages[messages.length - 1]
-      afterMessage = _.pick(last, ['_recipient', 'time'])
+      afterMessage = {
+        time: last.time,
+        _recipient: last._recipient
+      }
+
       result.range.afterMessage = afterMessage
       delete result.range.after
     }

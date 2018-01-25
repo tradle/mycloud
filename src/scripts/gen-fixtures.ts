@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 require('../test/env').install()
 
-const fs = require('fs')
-const path = require('path')
-const mkdirp = require('mkdirp')
-const co = require('co')
-const promisify = require('pify')
-const { utils } = require('@tradle/engine')
+import fs = require('fs')
+import path = require('path')
+import mkdirp = require('mkdirp')
+import promisify = require('pify')
+import { utils } from '@tradle/engine'
+import { exportKeys } from '../crypto'
+import { getIdentitySpecs } from '../crypto'
+import { createTestProfile } from '../test/utils'
+import { setVirtual } from '../utils'
 const helpers = require('@tradle/engine/test/helpers')
-const { setVirtual } = require('@tradle/validate-resource').utils
-const { exportKeys } = require('../crypto')
-const { getIdentitySpecs } = require('../crypto')
 const networks = require('../networks')
-const { createTestProfile } = require('../test/utils')
 const identityOpts = getIdentitySpecs({ networks })
 const genUser = promisify(utils.newIdentity)
 const genUsers = n => new Array(n).fill(0).map(() => {
@@ -35,14 +34,14 @@ const genUsers = n => new Array(n).fill(0).map(() => {
 // }
 
 // co(function* () {
-//   const [me, them] = yield [createIdentity(), createIdentity()]
+//   const [me, them] = await [createIdentity(), createIdentity()]
 //   const permalink = link
 //   const fromMe = me.createMessage({
 //     author: meObject,
 //     to:
 //   })
 
-//   yield Promise.all([
+//   await Promise.all([
 //     writeFile('me.json', extend(me, { keys: me.keys.map(key => key.toJSON(true)) } }),
 //     writeFile('messageFromMe.json', messageFromMe),
 //     writeFile('messageToMe.json', messageToMe),
@@ -61,8 +60,8 @@ const genUsers = n => new Array(n).fill(0).map(() => {
 //     })
 // }
 
-co(function* () {
-  const users = yield genUsers(10)
+;(async () => {
+  const users = await genUsers(10)
   users.forEach(user => {
     user.keys = exportKeys(user.keys.map(key => {
       return utils.importKey(key)
@@ -70,16 +69,16 @@ co(function* () {
   })
 
   fs.writeFileSync(`./test/fixtures/users-pem.json`, prettify(users))
-})
+})()
 
-co(function* () {
-  const users = yield genUsers(2)
+;(async () => {
+  const users = await genUsers(2)
   const friends = users
     .map((user, i) => helpers.userToOpts(user, i ? 'alice' : 'bob'))
     .map(helpers.createNode)
     .map(node => utils.promisifyNode(node))
 
-  yield promisify(helpers.meet)(friends)
+  await promisify(helpers.meet)(friends)
 
   const [ alice, bob ] = friends
   helpers.connect(friends)
@@ -142,7 +141,7 @@ co(function* () {
   function nextTimestamp () {
     return firstTimestamp++
   }
-})
+})()
 .catch(err => {
   console.error(err)
   process.exit(1)
