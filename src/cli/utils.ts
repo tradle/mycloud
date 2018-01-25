@@ -472,7 +472,6 @@ const cloneRemoteBucket = async ({ source, destination, filter=alwaysTrue }) => 
 
   const AWS = require('aws-sdk')
   const sourceBucket = new Bucket({
-    env,
     name: source,
     s3: new AWS.S3()
   })
