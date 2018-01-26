@@ -1,4 +1,4 @@
-import { omit } from 'lodash'
+import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Env from './env'
@@ -172,7 +172,7 @@ export default function createUtils ({ s3, logger, env }: {
 
       opts = {
         ...defaultOpts,
-        ...omit(opts, ['force'])
+        ..._.omit(opts, ['force'])
       }
 
       if (etag) {
@@ -275,6 +275,24 @@ export default function createUtils ({ s3, logger, env }: {
     return `https://${bucket}.s3.amazonaws.com/${key}`
   }
 
+  const disableEncryption = async ({ bucket }) => {
+    logger.info(`disabling server-side encryption from bucket ${bucket}`)
+    await s3.deleteBucketEncryption({ Bucket: bucket }).promise()
+  }
+
+  const enableEncryption = async ({ bucket, kmsKeyId }: {
+    bucket:string,
+    kmsKeyId?:string
+  }) => {
+    logger.info(`enabling server-side encryption for bucket ${bucket}`)
+    const params = toEncryptionParams({ bucket, kmsKeyId })
+    await s3.putBucketEncryption(params).promise()
+  }
+
+  const getEncryption = async ({ bucket }) => {
+    return await s3.getBucketEncryption({ Bucket: bucket }).promise()
+  }
+
   return utils = timeMethods({
     get,
     getJSON,
@@ -291,7 +309,10 @@ export default function createUtils ({ s3, logger, env }: {
     createBucket,
     destroyBucket,
     urlForKey,
-    forEachItemInBucket
+    forEachItemInBucket,
+    enableEncryption,
+    disableEncryption,
+    getEncryption
   }, logger)
 }
 
@@ -303,4 +324,25 @@ const toStringOrBuf = (value) => {
   if (!value) throw new Error('expected string, Buffer, or stringifiable object')
 
   return JSON.stringify(value)
+}
+
+const toEncryptionParams = ({ bucket, kmsKeyId }):AWS.S3.PutBucketEncryptionRequest => {
+  const ApplyServerSideEncryptionByDefault:AWS.S3.ServerSideEncryptionByDefault = {
+    SSEAlgorithm: kmsKeyId ? 'aws:kms' : 'AES256'
+  }
+
+  if (kmsKeyId) {
+    ApplyServerSideEncryptionByDefault.KMSMasterKeyID = kmsKeyId
+  }
+
+  return {
+    Bucket: bucket,
+    ServerSideEncryptionConfiguration: {
+      Rules: [
+        {
+          ApplyServerSideEncryptionByDefault
+        }
+      ]
+    }
+  }
 }

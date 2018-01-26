@@ -53,6 +53,15 @@ proto.ensureInitialized = co(function* (opts) {
 })
 
 proto.init = co(function* (opts={}) {
+  const [result] = yield Promise.all([
+    this.initIdentity(),
+    this.enableBucketEncryption()
+  ])
+
+  return result
+})
+
+proto.initIdentity = co(function* (opts) {
   const result = yield this.genIdentity()
   yield this.write({
     ...result,
@@ -72,6 +81,10 @@ proto.isInitialized = (function () {
     return initialized
   })
 }())
+
+proto.enableBucketEncryption = co(function* () {
+  yield this.buckets.Secrets.enableEncryption()
+})
 
 proto.genIdentity = co(function* () {
   const priv = yield genIdentity(getIdentitySpecs({

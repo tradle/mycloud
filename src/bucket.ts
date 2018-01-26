@@ -67,6 +67,10 @@ export class Bucket {
   public toString = () => this.name
   public urlForKey = (key:string) => this.utils.urlForKey({ key, bucket: this.name })
   public forEach = (opts) => this.utils.forEachItemInBucket({ bucket: this.name, ...opts })
+  public enableEncryption = (opts:any={}) => this.utils.enableEncryption({ bucket: this.name, ...opts })
+  public disableEncryption = (opts:any={}) => this.utils.disableEncryption({ bucket: this.name, ...opts })
+  public getEncryption = (opts:any={}) => this.utils.getEncryption({ bucket: this.name, ...opts })
+  // TODO: use head (to get ETag), and compare MD5
   public putIfDifferent = async (key, value):Promise<boolean> => {
     let current
     try {
