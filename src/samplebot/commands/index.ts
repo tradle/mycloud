@@ -11,6 +11,7 @@ import { command as message } from './message'
 import { command as getconf } from './getconf'
 import { command as approve } from './approve'
 import { command as deny } from './deny'
+import { command as encryptbucket } from './encryptbucket'
 
 export {
   help,
@@ -24,5 +25,6 @@ export {
   message,
   getconf,
   approve,
-  deny
+  deny,
+  encryptbucket
 }

@@ -1,5 +1,6 @@
 import crypto = require('crypto')
 import _ = require('lodash')
+import { utils as dynamoUtils, createTable } from '@tradle/dynamodb'
 import createProductsStrategy = require('@tradle/bot-products')
 import createEmployeeManager = require('@tradle/bot-employee-manager')
 import validateResource = require('@tradle/validate-resource')
@@ -25,6 +26,7 @@ import TermsAndConditions = require('./plugins/ts-and-cs')
 import Logger from '../logger'
 import baseModels = require('../models')
 import Errors = require('../errors')
+import { MAX_DB_ITEM_SIZE } from '../constants'
 
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
@@ -114,6 +116,30 @@ export default function createProductsBot ({
   //   productsAPI.bot = bot
   //   productsAPI.emit('bot', bot)
   // }
+
+  // const customerModel = bot.modelStore.models['tradle.products.Customer']
+  // bot.db.setExclusive({
+  //   model: customerModel,
+  //   table: createTable({
+  //     get models() {
+  //       return bot.modelStore.models
+  //     },
+  //     objects: bot.objects,
+  //     docClient: bot.aws.docClient,
+  //     maxItemSize: MAX_DB_ITEM_SIZE,
+  //     forbidScan: true,
+  //     defaultReadOptions: {
+  //       ConsistentRead: true
+  //     },
+  //     exclusive: true,
+  //     model: customerModel,
+  //     tableDefinition: dynamoUtils.toDynogelTableDefinition(bot.tables.Users.definition)
+  //   })
+  // })
+
+  // const usersTable = bot.db.tables[customerModel.id]
+  // const getUser = usersTable.get
+  // usersTable.get = ({ _permalink }) => getUser({ id: _permalink })
 
   if (handleMessages) {
     bot.hook('message', productsAPI.onmessage)

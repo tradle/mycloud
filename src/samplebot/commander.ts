@@ -132,7 +132,7 @@ export class Commander {
     } catch (err) {
       this.logger.debug(`failed to process command: ${command}`, err.stack)
       let message
-      if (ctx.employee) {
+      if (ctx.sudo || ctx.employee) {
         message = err.name ? `${err.name}: ${err.message}` : err.message
       } else {
         message = DEFAULT_ERROR_MESSAGE

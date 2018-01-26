@@ -25,6 +25,12 @@ export const CUSTOMER_COMMANDS = [
   'tours'
 ]
 
+export const SUDO_ONLY_COMMANDS = [
+  'encryptbucket'
+]
+
+export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
+
 export const createEditConfOp = edit => async (opts) => {
   const { bot } = opts.commander
   const botConf = opts.commander.conf.bot
@@ -101,7 +107,9 @@ export const toggleProduct = createEditConfOp(async ({ commander, req, product, 
 })
 
 export const getAvailableCommands = (ctx) => {
-  return ctx.employee ? EMPLOYEE_COMMANDS : CUSTOMER_COMMANDS
+  if (ctx.sudo) return SUDO_COMMANDS
+  if (ctx.employee) return EMPLOYEE_COMMANDS
+  return CUSTOMER_COMMANDS
 }
 
 export const getCommandByName = commandName => {
