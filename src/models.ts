@@ -1,5 +1,4 @@
 import _ = require('lodash')
-// import mergeModels = require('@tradle/merge-models')
 
 const base = _.extend(
   {},
@@ -8,12 +7,10 @@ const base = _.extend(
   require('@tradle/models-corporate-onboarding'),
   require('@tradle/models-products-bot'),
   require('@tradle/models-onfido'),
-  require('@tradle/models-nz')
+  require('@tradle/models-nz'),
+  require('@tradle/models-cloud')
 )
 
-const cloud = require('@tradle/models-cloud')
-// const onfidoVerificationModels = require('./onfido-verification-models.json')
-// const mergeOpts = { validate: false }
 const baseMessageModel = base['tradle.Message']
 baseMessageModel.properties._counterparty = {
   type: 'string',
@@ -34,34 +31,4 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
-// const cloud = {
-//   ...deploymentModels,
-//   ...onfidoVerificationModels,
-//   // 'tradle.OutboxQuery': {
-//   //   type: 'tradle.Model',
-//   //   id: 'tradle.OutboxQuery',
-//   //   title: 'Outbox Query',
-//   //   properties: {
-//   //     gt: {
-//   //       type: 'date'
-//   //     }
-//   //   },
-//   //   required: [
-//   //     'gt'
-//   //   ]
-//   // },
-//   'tradle.MyCloudFriend': require('./tradle.MyCloudFriend.json'),
-//   'tradle.GraphQLQuery': require('./tradle.GraphQLQuery.json'),
-//   'tradle.IotSession': require('./tradle.IotSession.json'),
-// }
-
-// export = mergeModels()
-//   .add(base, mergeOpts)
-//   .add(custom, mergeOpts)
-//   .add(onfidoModels.all, mergeOpts)
-//   .add(corporate, mergeOpts)
-//   .add(nz, mergeOpts)
-//   .add(cloud, mergeOpts)
-//   .get()
-
-export = _.extend(base, cloud)
+export = base
