@@ -968,6 +968,18 @@ functions:
   #         path: samples
   #         method: post
 
+  import_data_utils:
+    handler: lib/samplebot/lambda/import-data-utils.handler
+
+  # import_data_bundle:
+  #   handler: lib/samplebot/lambda/import-data-bundle.handler
+
+  # create_data_claim:
+  #   handler: lib/samplebot/lambda/create-data-claim.handler
+
+  # get_data_bundle:
+  #   handler: lib/samplebot/lambda/get-data-bundle.handler
+
   onfido_register:
     handler: lib/samplebot/lambda/onfido-register.handler
 

@@ -194,7 +194,8 @@ export class Conf {
 
   public getPublicInfo = async () => {
     // TODO: get via info.get()
-    return await this.calcPublicInfo()
+    // return await this.calcPublicInfo()
+    return await this.info.get()
   }
 
   public calcPublicInfo = async ():Promise<any> => {

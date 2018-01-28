@@ -329,6 +329,7 @@ Previous exit stack: ${this.lastExitStack}`)
       }
 
       ctx.body = this._exportError(err)
+      ctx.error = ctx.body
       this.logger.debug('lambda execution hit an error', { stack: err.stack })
     } else if (result) {
       ctx.body = result

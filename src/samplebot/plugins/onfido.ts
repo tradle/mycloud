@@ -60,3 +60,5 @@ export const registerWebhook = async ({ bot, onfidoPlugin }) => {
   ret.created = true
   return ret
 }
+
+export { Onfido }

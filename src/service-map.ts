@@ -39,9 +39,11 @@ export = function resourcesForEnv ({ env }) {
 
     let value
     if (type === 'RestApi') {
-      value = env.IS_OFFLINE
-        ? env.SERVERLESS_OFFLINE_APIGW || `http://localhost:${env.SERVERLESS_OFFLINE_PORT}`
-        : `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}`
+      if (env.IS_OFFLINE) {
+        value = require('./cli/utils').getOfflineHost(env)
+      } else {
+        value = `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}`
+      }
 
     } else {
       value = env[key]

@@ -7,13 +7,21 @@ import { Bucket } from './bucket'
 type Hasher = (any) => string
 
 const defaultHasher = data => sha256(data, 'hex')
+const sha256AndTrunc = (data, length) => sha256(data, 'hex').slice(0, length)
+
+export const Hashers = {
+  default: defaultHasher,
+  sha256: defaultHasher,
+  sha256Head: data => defaultHasher(data).slice(0, 7),
+  sha256TruncatedTo: (length:number) => data => sha256AndTrunc(data, length)
+}
 
 export default class ContentAddressedStore {
   private bucket:Bucket
   private hasher:Hasher
   constructor ({ bucket, hasher=defaultHasher }: {
     bucket: any,
-    hasher: Hasher
+    hasher?: Hasher
   }) {
     this.bucket = bucket
     this.hasher = hasher

@@ -16,6 +16,7 @@ import validateResource = require('@tradle/validate-resource')
 import { TYPE } from '@tradle/constants'
 import { Bucket } from '../bucket'
 import Errors = require('../errors')
+import Env from '../env'
 import { wait } from '../utils'
 
 const Localstack = require('../test/localstack')
@@ -496,6 +497,24 @@ const cloneRemoteBucket = async ({ source, destination, filter=alwaysTrue }) => 
       }))
     }
   })
+}
+
+export const getOfflinePort = (env?:Env) => {
+  if (env && env.SERVERLESS_OFFLINE_PORT) {
+    return env.SERVERLESS_OFFLINE_PORT
+  }
+
+  const yml = require('./serverless-yml')
+  return yml.custom['serverless-offline'].port
+}
+
+export const getOfflineHost = (env?:Env) => {
+  if (env && env.SERVERLESS_OFFLINE_APIGW) {
+    return env.SERVERLESS_OFFLINE_APIGW
+  }
+
+  const port = getOfflinePort(env)
+  return `http://localhost:${port}`
 }
 
 export {

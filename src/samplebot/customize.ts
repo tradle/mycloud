@@ -1,14 +1,14 @@
 import _ = require('lodash')
 import { models } from '@tradle/models'
 import validateResource = require('@tradle/validate-resource')
-import createProductsStrategy from './'
+import createProductsStrategy, { BotComponents } from './'
 import { createBot } from '../bot'
 import { createConf } from './configure'
 import Errors = require('../errors')
 
 const ONFIDO_PLUGIN_PATH = 'products.plugins.onfido'
 
-export async function customize (opts) {
+export async function customize (opts):Promise<BotComponents> {
   let { lambda, bot, delayReady, event } = opts
   if (!bot) bot = lambda.bot
 

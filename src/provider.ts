@@ -473,8 +473,8 @@ export default class Provider {
   }
 
   public getMyIdentityPermalink = async ():Promise<string> => {
-    const { _author } = await this.getMyPublicIdentity()
-    return _author
+    const { _permalink } = await this.getMyPublicIdentity()
+    return _permalink
   }
 
   private isAuthoredByMe = async (object:ITradleObject) => {

@@ -111,6 +111,7 @@ function _createBot (opts: {
   bot.isTesting = TESTING
   bot.init = () => tradle.init.init(opts)
   bot.getMyIdentity = () => tradle.provider.getMyPublicIdentity()
+  bot.getMyIdentityPermalink = () => tradle.provider.getMyIdentityPermalink()
   bot.sign = (object, author) => tradle.provider.signObject({ object, author })
   bot.seal = async ({ link, permalink }) => {
     const chainKey = await tradle.provider.getMyChainKey()

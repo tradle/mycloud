@@ -25,6 +25,8 @@ export default class Env {
   public IS_LOCAL:boolean
   // is running in serverless-offline
   public IS_OFFLINE:boolean
+  public SERVERLESS_OFFLINE_PORT: number
+  public SERVERLESS_OFFLINE_APIGW: string
   public DISABLED:boolean
 
   public AWS_REGION:string

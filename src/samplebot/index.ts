@@ -11,6 +11,9 @@ import { setNamePlugin } from './plugins/set-name'
 import { keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
 import { createPlugin as createLensPlugin } from './plugins/set-lens'
+import { Onfido, createPlugin, registerWebhook } from './plugins/onfido'
+import { Commander } from './commander'
+import { createRemediator, Remediator } from './remediation'
 import {
   keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
@@ -46,17 +49,28 @@ const ONFIDO_ENABLED = true
 // then some handlers can migrate to 'messagestream'
 const willHandleMessages = event => event === 'message'
 
+export type BotComponents = {
+  bot: any
+  models: any
+  productsAPI?: any
+  employeeManager?: any
+  remediator?: Remediator
+  onfidoPlugin?: Onfido
+  commands?: Commander
+  [x:string]: any
+}
+
 export default function createProductsBot ({
   bot,
   logger,
   conf,
-  event
+  event=''
 }: {
   bot: any,
   logger: Logger,
   conf: any,
   event?: string
-}) {
+}):BotComponents {
   const {
     enabled,
     plugins={},
@@ -149,7 +163,6 @@ export default function createProductsBot ({
 
   let commands
   if (handleMessages) {
-    const { Commander } = require('./commander')
     commands = new Commander({
       conf,
       bot,
@@ -319,7 +332,6 @@ export default function createProductsBot ({
     (handleMessages || /onfido/.test(event))
 
   if (willUseOnfido) {
-    const { createPlugin, registerWebhook } = require('./onfido')
     onfidoPlugin = createPlugin({
       bot,
       logger: logger.sub('onfido'),
@@ -354,13 +366,29 @@ export default function createProductsBot ({
     }))
   }
 
+  let remediator:Remediator
+  if (handleMessages || event.startsWith('remediation:')) {
+    remediator = createRemediator({
+      bot,
+      productsAPI,
+      logger: logger.sub('remediation:')
+    })
+
+    if (handleMessages) {
+      productsAPI.plugins.use(remediator.plugin)
+    }
+  }
+
   return {
     bot,
     productsAPI,
     employeeManager,
     onfidoPlugin,
+    remediator,
     commands,
-    models: bot.modelStore.models
+    get models() {
+      return bot.modelStore.models
+    }
   }
 }
 
