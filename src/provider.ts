@@ -455,9 +455,10 @@ export default class Provider {
     })
   }
 
-  private putPayload = async ({ payload, inbound }: {
+  public putPayload = async ({ payload, inbound, merge }: {
     payload:ITradleObject,
-    inbound:boolean
+    inbound?:boolean,
+    merge?:boolean
   }) => {
     payload = _.cloneDeep(payload)
     this.objects.addMetadata(payload)
@@ -465,7 +466,7 @@ export default class Provider {
     await this.objects.replaceEmbeds(payload)
     await Promise.all([
       this.objects.put(payload),
-      this.putInDB({ payload, inbound })
+      this.putInDB({ payload, inbound, merge })
     ])
 
     return payload
@@ -487,7 +488,11 @@ export default class Provider {
     return _author === myPermalink
   }
 
-  private putInDB = async ({ payload, inbound }) => {
+  private putInDB = async ({ payload, inbound, merge }: {
+    payload: ITradleObject,
+    inbound?:boolean,
+    merge?:boolean
+  }) => {
     // const inbound = await this.isAuthoredByMe(payload)
     const type = payload[TYPE]
     const ignored = inbound
@@ -507,7 +512,8 @@ export default class Provider {
       return false
     }
 
-    await this.db.put(payload)
+    const method = merge ? 'update' : 'put'
+    await this.db[method](payload)
     return true
   }
 }

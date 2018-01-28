@@ -161,10 +161,14 @@ function _createBot (opts: {
       await bot.promiseReady()
     }
 
-    resource = _.cloneDeep(resource)
-    await bot.objects.replaceEmbeds(resource)
+    // await bot.objects.replaceEmbeds(resource)
+    // try {
+    //   await bot.db[method](ensureTimestamped(resource))
     try {
-      await bot.db[method](ensureTimestamped(resource))
+      await tradle.provider.putPayload({
+        payload: resource,
+        merge: method === 'update'
+      })
     } catch (err) {
       logger.debug(`db.${method} failed`, {
         type: resource[TYPE],
