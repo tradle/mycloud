@@ -1,6 +1,5 @@
 import { EventEmitter} from 'events'
 import _ = require('lodash')
-import mergeModels = require('@tradle/merge-models')
 import Pack = require('@tradle/models-pack')
 import { TYPE } from '@tradle/constants'
 import {
@@ -413,8 +412,10 @@ const omitNamespace = ({ modelsPack, namespace }) => {
 
 const extendModelsPack = (modelsPack, ...sourcePacks) => {
   sourcePacks.forEach(source => {
-    modelsPack.models = (modelsPack.models || []).concat(source.models || [])
-    modelsPack.lenses = (modelsPack.lenses || []).concat(source.lenses || [])
+    const models = (modelsPack.models || []).concat(source.models || [])
+    const lenses = (modelsPack.lenses || []).concat(source.lenses || [])
+    modelsPack.models = _.uniqBy(models, 'id')
+    modelsPack.lenses = _.uniqBy(lenses, 'id')
   })
 
   return modelsPack
