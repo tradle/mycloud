@@ -363,7 +363,7 @@ const getIdentitySpecs = ({ networks }) => {
 const _genIdentity = promisify(utils.newIdentity)
 const genIdentity = async (opts) => {
   const { link, identity, keys } = await _genIdentity(opts)
-  setVirtual({
+  setVirtual(identity, {
     _link: link,
     _permalink: link
   })

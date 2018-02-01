@@ -198,6 +198,7 @@ custom:
     - table: OutboxTable
       index:
         - _payloadLink
+        - _payloadType
         - context
       read:
         minimum: 10       # Minimum read capacity
@@ -1228,6 +1229,8 @@ resources:
             AttributeType: N
           - AttributeName: _payloadLink
             AttributeType: S
+          - AttributeName: _payloadType
+            AttributeType: S
           - AttributeName: context
             AttributeType: S
         KeySchema:
@@ -1241,6 +1244,17 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
         GlobalSecondaryIndexes:
+          - IndexName: _payloadType
+            KeySchema:
+              - AttributeName: _payloadType
+                KeyType: HASH
+              - AttributeName: time
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
           - IndexName: _payloadLink
             KeySchema:
               - AttributeName: _payloadLink
