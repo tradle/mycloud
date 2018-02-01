@@ -114,10 +114,6 @@ export function createMessagesTable ({ models, getMyIdentity }: {
       outboundFilter.EQ._recipient = counterparty
     }
 
-    if (context) {
-      inboundFilter.EQ.context = context
-    }
-
     filter.EQ = EQ
     filter.IN = IN
     const [
