@@ -85,6 +85,10 @@ export = function createDB (tradle:Tradle) {
       opts: {
         forbidScan: false
       }
+    },
+    {
+      type: 'tradle.Seal',
+      definition: tables.Seals.definition
     }
   ].forEach(typeConf => {
     const { type, definition, opts } = typeConf
