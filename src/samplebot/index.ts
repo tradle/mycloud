@@ -101,7 +101,8 @@ export default function createProductsBot ({
         .get()
     },
     products: enabled,
-    validateModels: bot.isTesting
+    validateModels: bot.isTesting,
+    nullifyToDeleteProperty: true
     // queueSends: bot.env.TESTING ? true : queueSends
   })
 

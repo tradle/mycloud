@@ -43,6 +43,8 @@ export default class Env {
   public SERVERLESS_ALIAS?:string
 
   public BLOCKCHAIN:any
+  public CORDA_API_URL?:string
+  public CORDA_API_KEY?:string
   public NO_TIME_TRAVEL:boolean
   public IOT_PARENT_TOPIC:string
   public IOT_ENDPOINT:string

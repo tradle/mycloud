@@ -13,7 +13,7 @@ import buildResource = require('@tradle/build-resource')
 import validateResource = require('@tradle/validate-resource')
 import mergeModels = require('@tradle/merge-models')
 import { utils as tradleUtils } from '@tradle/engine'
-import createProductsStrategy = require('@tradle/bot-products')
+// import createProductsStrategy = require('@tradle/bot-products')
 import createEmployeeManager = require('@tradle/bot-employee-manager')
 import { fake as genSample } from '@tradle/gen-samples'
 import { replaceDataUrls } from '@tradle/embed'
@@ -66,7 +66,6 @@ export class Test {
   private interceptor: any
   constructor ({
     tradle=defaultTradleInstance,
-    products,
     bot,
     productsAPI,
     employeeManager

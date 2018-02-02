@@ -116,6 +116,8 @@ export const getGraphqlAPI = (opts) => {
 
   if (modelStore.cumulativeModelsPack) {
     setModels(modelStore.models)
+  } else {
+    setModels(modelStore.models)
   }
 
   modelStore.on('update:cumulative', () => setModels(modelStore.models))

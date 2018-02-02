@@ -109,24 +109,11 @@ function _createBot (opts: {
   defineGetter(bot, 'models', () => bot.modelStore.models)
   bot.setCustomModels = (...args) => bot.modelStore.setCustomModels(...args)
   bot.isTesting = TESTING
-  bot.init = () => tradle.init.init(opts)
+  bot.init = opts => tradle.init.init(opts)
   bot.getMyIdentity = () => tradle.provider.getMyPublicIdentity()
   bot.getMyIdentityPermalink = () => tradle.provider.getMyIdentityPermalink()
   bot.sign = (object, author) => tradle.provider.signObject({ object, author })
-  bot.seal = async ({ link, permalink }) => {
-    const chainKey = await tradle.provider.getMyChainKey()
-    try {
-      return await bot.seals.create({
-        link,
-        permalink,
-        key: chainKey
-      })
-    } catch (err) {
-      Errors.ignore(err, Errors.Duplicate)
-      return await bot.seals.get({ link })
-    }
-  }
-
+  bot.seal = opts => bot.seals.create(opts)
   bot.forceReinitializeContainers = async (functions?:string[]) => {
     if (env.TESTING) return
 

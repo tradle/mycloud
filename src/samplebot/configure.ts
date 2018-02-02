@@ -9,7 +9,7 @@ import baseModels = require('../models')
 import { createBot } from '../bot'
 import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
-import { allSettled, RESOLVED_PROMISE } from '../utils'
+import { allSettled, RESOLVED_PROMISE, omitVirtual } from '../utils'
 import { Bucket } from '../bucket'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Logger from '../logger'
@@ -195,14 +195,19 @@ export class Conf {
   public getPublicInfo = async () => {
     // TODO: get via info.get()
     // return await this.calcPublicInfo()
-    return await this.info.get()
+    try {
+      return await this.info.get()
+    } catch (err) {
+      Errors.ignore(err, Errors.NotFound)
+      return await this.calcPublicInfo()
+    }
   }
 
   public calcPublicInfo = async ():Promise<any> => {
     const [org, style, identity, conf] = await Promise.all([
       this.org.get(),
       this.style.get().catch(err => Errors.ignore(err, Errors.NotFound)),
-      this.bot.getMyIdentity(),
+      this.bot.getMyIdentity().then(identity => omitVirtual(identity)),
       this.botConf.get()
     ])
 
@@ -210,7 +215,7 @@ export class Conf {
   }
 
   public recalcPublicInfo = async ():Promise<boolean>  => {
-    const info = await this.getPublicInfo()
+    const info = await this.calcPublicInfo()
     await this.info.putIfDifferent(info)
     return info
   }
@@ -261,12 +266,15 @@ export class Conf {
     }
 
     const existing = await this.get()
-    if (existing.org) return // don't reinit
+    if (existing.org) {
+      // don't reinit
+      return await this.recalcPublicInfo()
+    }
 
     const logo = await this.getLogo(conf)
-    if (!orgTemplate.logo) {
-      orgTemplate.logo = logo
-    }
+    // if (!orgTemplate.logo) {
+    //   orgTemplate.logo = logo
+    // }
 
     let { style } = conf
     if (!style) {
@@ -280,7 +288,10 @@ export class Conf {
     }
 
     const org = await bot.signAndSave(buildOrg(orgTemplate))
-    await this.save({ identity, org, bot: conf.bot, style })
+    await Promise.all([
+      this.save({ identity, org, bot: conf.bot, style }),
+      this.recalcPublicInfo()
+    ])
   }
 
   public update = async (update:UpdateConfInput) => {
@@ -370,11 +381,11 @@ const buildOrg = ({ name, domain, logo }) => ({
   ...baseOrgObj,
   name,
   domain,
-  photos: [
-    {
-      url: logo
-    }
-  ]
+  // photos: [
+  //   {
+  //     url: logo
+  //   }
+  // ]
 })
 
 const validateOrgUpdate = ({ current, update }) => {

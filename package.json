@@ -139,7 +139,7 @@
     "@tradle/models-corporate-onboarding": "github:tradle/models-corporate-onboarding",
     "@tradle/models-nz": "github:tradle/models-nz",
     "@tradle/models-onfido": "github:tradle/models-onfido",
-    "@tradle/models-pack": "^1.1.0",
+    "@tradle/models-pack": "^1.2.1",
     "@tradle/models-products-bot": "github:tradle/models-products-bot",
     "@tradle/onfido-api": "github:tradle/onfido-api",
     "@tradle/plugin-customize-message": "github:tradle/plugin-customize-message",

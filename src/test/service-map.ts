@@ -6,6 +6,7 @@ const {
   provider,
   resources
 } = serverlessYml
+
 const { prefix } = custom
 const { environment } = provider
 const { Resources } = resources

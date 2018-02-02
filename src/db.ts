@@ -12,7 +12,8 @@ import Tradle from './tradle'
 export = function createDB (tradle:Tradle) {
   const { modelStore, objects, tables, aws, constants, env, dbUtils } = tradle
 
-  dynogels.dynamoDriver(aws.dynamodb)
+  const { docClient, dynamodb } = aws
+  dynogels.dynamoDriver(dynamodb)
 
   const tableBuckets = dbUtils.getTableBuckets()
   const commonOpts = {
@@ -20,11 +21,11 @@ export = function createDB (tradle:Tradle) {
       return modelStore.models
     },
     objects,
-    docClient: aws.docClient,
+    docClient,
     maxItemSize: constants.MAX_DB_ITEM_SIZE,
     forbidScan: true,
     defaultReadOptions: {
-      ConsistentRead: true
+      consistentRead: true
     }
   }
 
@@ -56,17 +57,16 @@ export = function createDB (tradle:Tradle) {
   })
 
   const messageModel = modelStore.models['tradle.Message']
-  if (!messageModel.isInterface) {
-    const messagesTable = createMessagesTable({
-      models: modelStore.models,
-      getMyIdentity: () => tradle.provider.getMyPublicIdentity()
-    })
+  const messagesTable = createMessagesTable({
+    docClient,
+    models: modelStore.models,
+    getMyIdentity: () => tradle.provider.getMyPublicIdentity()
+  })
 
-    db.setExclusive({
-      model: messageModel,
-      table: messagesTable
-    })
-  }
+  db.setExclusive({
+    model: messageModel,
+    table: messagesTable
+  })
 
   ;[
     {

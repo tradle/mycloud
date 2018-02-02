@@ -208,7 +208,11 @@ export default function createUtils ({ s3, logger, env }: {
       if (value == null) throw new Error('expected "value"')
 
       const result = await utils.put({ bucket, key, value, ...defaultOpts, ...opts })
-      cached = parse ? value : result
+      cached = parse ? value : {
+        Body: result.Body || JSON.stringify(value),
+        ...result
+      }
+
       cachedTime = Date.now()
       etag = result.ETag
     }

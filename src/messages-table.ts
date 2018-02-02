@@ -10,12 +10,14 @@ type InAndOut = {
   outbound?: any
 }
 
-export function createMessagesTable ({ models, getMyIdentity }: {
+export function createMessagesTable ({ docClient, models, getMyIdentity }: {
+  docClient: AWS.DynamoDB.DocumentClient,
   models:any,
   getMyIdentity:() => Promise<any>
 }):Table {
   const model = models['tradle.Message']
   const inbox = createTable({
+    docClient,
     models,
     model,
     exclusive: true,
@@ -25,6 +27,7 @@ export function createMessagesTable ({ models, getMyIdentity }: {
   })
 
   const outbox = createTable({
+    docClient,
     models,
     model,
     exclusive: true,

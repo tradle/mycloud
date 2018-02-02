@@ -1,18 +1,19 @@
 import _ = require('lodash')
 import { utils as tradleUtils } from '@tradle/engine'
 import crypto = require('./crypto')
-import utils = require('./utils')
+import { bindAll, co, setVirtual, ensureTimestamped } from './utils'
 import Errors = require('./errors')
 import models = require('./models')
 import {
   TYPE,
+  TYPES,
   PUBLIC_CONF_BUCKET,
   IDENTITY_KEYS_KEY
 } from './constants'
 
+const { IDENTITY } = TYPES
 const debug = require('debug')('tradle:sls:init')
 const { getLink, addLinks, getIdentitySpecs, getChainKey, genIdentity } = crypto
-const { omitVirtual, setVirtual, bindAll, promisify, co } = utils
 const { exportKeys } = require('./crypto')
 
 function Initializer ({
@@ -54,7 +55,7 @@ proto.ensureInitialized = co(function* (opts) {
 
 proto.init = co(function* (opts={}) {
   const [result] = yield Promise.all([
-    this.initIdentity(),
+    this.initIdentity(opts),
     this.enableBucketEncryption()
   ])
 
@@ -92,6 +93,10 @@ proto.genIdentity = co(function* () {
   }))
 
   const pub = priv.identity
+  ensureTimestamped(pub)
+  this.objects.addMetadata(pub)
+  setVirtual(pub, { _author: pub._permalink })
+
   debug('created identity', JSON.stringify(pub))
   return {
     pub,
@@ -120,7 +125,8 @@ proto.write = co(function* (opts) {
     this.secrets.put(IDENTITY_KEYS_KEY, priv),
     // public
     this.objects.put(pub),
-    PublicConf.putJSON(PUBLIC_CONF_BUCKET.identity, pub)
+    PublicConf.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
+    this.db.put(pub)
   ];
 
   const { network } = this
@@ -132,6 +138,8 @@ proto.write = co(function* (opts) {
   yield Promise.all([
     this.identities.addContact(pub),
     this.seals.create({
+      type: IDENTITY,
+      counterparty: null,
       key: chainKey,
       link: pub._link
     })

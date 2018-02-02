@@ -6,11 +6,11 @@ import { prettify } from './string-utils'
 import adapters from './blockchain-adapter'
 import { IDebug } from './types'
 
-interface IBlockchainIdentifier {
-  flavor: string,
-  networkName: string,
-  minBalance: string
-}
+// interface IBlockchainIdentifier {
+//   flavor: string,
+//   networkName: string,
+//   minBalance: string
+// }
 
 interface IKey {
   fingerprint: string
@@ -24,13 +24,13 @@ interface ISealable {
 }
 
 export default class Blockchain {
-  public blockchainIdentifier: IBlockchainIdentifier
+  public flavor: string
+  public networkName: string
+  public minBalance: string
+
   private reader: any
   private network: any
   private writers = {}
-  private flavor: string
-  private networkName: string
-  private minBalance: string
   private getTxAmount = () => this.network.minOutputAmount
   private debug:IDebug
   private logger:Logger
@@ -143,7 +143,7 @@ export default class Blockchain {
   //   return getTxsForAddresses(addresses)
   // })
 
-  public seal = async ({ key, link, addresses }) => {
+  public seal = async ({ key, link, addresses, counterparty }) => {
     const writer = this.getWriter(key)
     this.start()
     this.logger.debug(`sealing ${link}`)

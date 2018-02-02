@@ -347,6 +347,8 @@ const withLinks = (object) => {
 const getIdentitySpecs = ({ networks }) => {
   const nets = {}
   for (let flavor in networks) {
+    if (flavor === 'corda') continue
+
     if (!nets[flavor]) {
       nets[flavor] = []
     }

@@ -109,6 +109,8 @@ export default class Provider {
 
   public getMyChainKey = async ():Promise<any> => {
     const { network } = this
+    if (network.flavor === 'corda') return
+
     const keys = await this.getMyKeys()
     const chainKey = getChainKey(keys, {
       type: network.flavor,
@@ -218,6 +220,7 @@ export default class Provider {
     }
   }
 
+  // TODO: run this on message stream
   public watchSealedPayload = async ({ seal, object }) => {
     this.logger.debug('message has seal identifier for payload', seal)
 

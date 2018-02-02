@@ -39,7 +39,7 @@
     "@tradle/biz-plugins": {
       "version": "1.0.0",
       "from": "tradle/biz-plugins#cloud",
-      "resolved": "git://github.com/tradle/biz-plugins.git#08ea9735e92165ac67066a8fd9ed777b70b38b79"
+      "resolved": "git://github.com/tradle/biz-plugins.git#2448eaae90096537d062ec433a3a33294674e500"
     },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
@@ -56,7 +56,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#modeled",
-      "resolved": "git://github.com/tradle/bot-products.git#39d2b087c2784a64f3ed4d17cb74772657bab7a0",
+      "resolved": "git://github.com/tradle/bot-products.git#6c14390e3f6390897f01149b193e2f6a1009c463",
       "dependencies": {
         "@tradle/build-resource": {
           "version": "2.13.1",
@@ -157,7 +157,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#282f8552edbbd7d414d567b6755d221a069f6ca1",
+      "resolved": "git://github.com/tradle/dynamodb.git#eeadfc3285a9e67479ce215092364952aa672900",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -252,7 +252,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#b3529f89ee25a154b4f52bfea69ca0b37f6931cf"
+      "resolved": "git://github.com/tradle/models.git#c9ef713f3fb7912225bc8e685762d8b8a69aed64"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -262,7 +262,7 @@
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#95fc025d6be4d4e17c227958a73a3e1c5dbf67ce"
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#a43fab8f2fc9b1b3d13c9db60df18a41c02238d3"
     },
     "@tradle/models-nz": {
       "version": "1.0.0",
@@ -275,9 +275,9 @@
       "resolved": "git://github.com/tradle/models-onfido.git#f46226cd48d8dd2890924287328e16b643b506af"
     },
     "@tradle/models-pack": {
-      "version": "1.1.0",
+      "version": "1.2.1",
       "from": "@tradle/models-pack@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/models-pack/-/models-pack-1.1.0.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/models-pack/-/models-pack-1.2.1.tgz",
       "dependencies": {
         "@tradle/validate-model": {
           "version": "5.2.0",

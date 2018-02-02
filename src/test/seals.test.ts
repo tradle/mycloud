@@ -3,14 +3,17 @@ const nock = require('nock')
 require('./env').install()
 
 // const AWS = require('aws-sdk')
+import QS = require('querystring')
+import _ = require('lodash')
 import test = require('tape')
 import sinon = require('sinon')
-import { TYPE } from '@tradle/constants'
+import { TYPE, SIG } from '@tradle/constants'
 import { wait, deepClone } from '../utils'
 import { addLinks } from '../crypto'
 import adapters from '../blockchain-adapter'
 import { recreateTable } from './utils'
 import Tradle from '../tradle'
+import { Env } from '../env'
 import Errors = require('../errors')
 const aliceKeys = require('./fixtures/alice/keys')
 const bobKeys = require('./fixtures/bob/keys')
@@ -40,9 +43,13 @@ rejectEtherscanCalls()
 
 test('handle failed reads/writes', async (t) => {
   const { flavor, networkName } = blockchainOpts
+  const env = new Env(process.env)
+  env.BLOCKCHAIN = blockchainOpts
+
+  const tradle = new Tradle(env)
   const table = await recreateTable(SealsTableLogicalId)
   const txId = 'sometxid'
-  const tradle = new Tradle()
+
   const { blockchain, seals } = tradle
   const aliceKey = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const bobKey = bobKeys.find(key => key.type === flavor && key.networkName === networkName)
@@ -93,6 +100,10 @@ test('handle failed reads/writes', async (t) => {
 })
 
 test('queue seal', async (t) => {
+  const env = new Env(process.env)
+  env.BLOCKCHAIN = blockchainOpts
+
+  const tradle = new Tradle(env)
   const { flavor, networkName } = blockchainOpts
   const table = await recreateTable(SealsTableLogicalId)
   const sealedObj = aliceIdentity
@@ -100,7 +111,6 @@ test('queue seal', async (t) => {
   const permalink = sealedObj._permalink
   const txId = 'sometxid'
   // const blockchain = createBlockchainAPI({ flavor, networkName })
-  const tradle = new Tradle()
   const { blockchain, seals } = tradle
   const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const address = blockchain.sealAddress({
@@ -200,5 +210,105 @@ test('queue seal', async (t) => {
   stubGetTxs.restore()
   stubObjectsGet.restore()
   stubDBUpdate.restore()
+  t.end()
+})
+
+test('corda seals', async (t) => {
+  const table = await recreateTable(SealsTableLogicalId)
+  const env = new Env(process.env)
+  const blockchainOpts = env.BLOCKCHAIN = {
+    flavor: 'corda',
+    networkName: 'private'
+  }
+
+  const { seals, objects, db } = new Tradle(env)
+  const endpoint = {
+    apiKey: 'myApiKey',
+    apiUrl: 'http://localhost:12345'
+  }
+
+  seals.setEndpoint(endpoint)
+
+  const txId = 'sometxid'
+  const link = 'abc'
+  nock(endpoint.apiUrl)
+    .post(uri => uri.startsWith('/link'))
+    .reply(function (url, body) {
+      body = QS.parse(body)
+      t.same(body, {
+        link: sealOpts.link,
+        partyTmpId: sealOpts.counterparty
+      })
+
+      return { txId }
+    })
+
+  const sealOpts = {
+    link,
+    counterparty: aliceIdentity._link
+  }
+
+  const obj = {
+    [TYPE]: 'tradle.SimpleMessage',
+    [SIG]: 'somesig',
+    message: 'some message',
+    _link: link,
+    _permalink: link
+  }
+
+  sinon.stub(objects, 'get').callsFake(async (link) => {
+    if (link === 'abc') {
+      return obj
+    }
+
+    throw new Errors.NotFound(link)
+  })
+
+  sinon.stub(db, 'get').callsFake(async (opts) => {
+    if (opts._permalink === obj._permalink) {
+      return obj
+    }
+
+    throw new Errors.NotFound(link)
+  })
+
+  const expectedSealResource = {
+    [TYPE]: 'tradle.Seal',
+    txId,
+    blockchain: blockchainOpts.flavor,
+    network: blockchainOpts.networkName,
+    ...sealOpts,
+  }
+
+  const fakePut = async (obj) => {
+    t.same(_.pick(obj._seal, Object.keys(expectedSealResource)), expectedSealResource)
+  }
+
+  sinon.stub(db, 'put').callsFake(fakePut)
+  sinon.stub(objects, 'put').callsFake(fakePut)
+
+  await seals.create(sealOpts)
+  const result = await seals.sealPending()
+  t.same(result, [{ txId, link: sealOpts.link }])
+
+  t.same(await seals.getUnconfirmed(), [])
+  t.same(await seals.getLongUnconfirmed(), [])
+  t.same(await seals.getUnsealed(), [])
+  t.same(await seals.getFailedReads(), [])
+  t.same(await seals.getFailedWrites(), [])
+
+  const saved = await seals.get(sealOpts)
+  const expected = {
+    errors: [],
+    counterparty: 'dcd023c77d5894699a317381696be028ae11a715d5f9ad78b92b2168dd226711',
+    network: env.BLOCKCHAIN.networkName,
+    blockchain: env.BLOCKCHAIN.flavor,
+    txId,
+    write: true,
+    confirmations: 0,
+    link: 'abc',
+  }
+
+  t.same(_.pick(saved, Object.keys(expected)), expected)
   t.end()
 })

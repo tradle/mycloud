@@ -22,7 +22,7 @@ const rethrow = (err) => {
   if (err) throw err
 }
 
-initializeProvider().catch(err => {
+initializeProvider({ force }).catch(err => {
   console.error(err)
   process.exitCode = 1
 })

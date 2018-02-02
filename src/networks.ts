@@ -21,6 +21,11 @@ const networks = {
       minBalance: '2000000000000000000',
       confirmations: 12
     }
+  },
+  corda: {
+    private: {
+      confirmations: 0
+    }
   }
 }
 

@@ -296,6 +296,8 @@ provider:
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
     IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
     BLOCKCHAIN: ${{self:custom.blockchain}}
+    CORDA_API_URL: ${{self:custom.providerConf.corda.apiUrl}}
+    CORDA_API_KEY: ${{self:custom.providerConf.corda.apiKey}}
     DEBUG: 'λ*,*tradle*'
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}

@@ -51,5 +51,6 @@
   "org": {
     "name": "Easy Bank",
     "domain": "easybank.io"
-  }
+  },
+  "corda": {}
 }

@@ -82,8 +82,13 @@ export default class Tradle {
     // singletons
 
     // instances
-    this.define('blockchain', './blockchain', this.construct)
-    this.define('seals', './seals', this.construct)
+    if (this.env.BLOCKCHAIN.flavor === 'corda') {
+      this.define('seals', './corda-seals', ({ Seals }) => new Seals(this))
+      this.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain(this))
+    } else {
+      this.define('seals', './seals', this.construct)
+      this.define('blockchain', './blockchain', this.construct)
+    }
 
     // this.define('faucet', './faucet', createFaucet => createFaucet({
     //   networkName: BLOCKCHAIN.networkName,
@@ -249,5 +254,15 @@ export default class Tradle {
 export { Tradle }
 
 function defineGetter (obj, property, get) {
-  Object.defineProperty(obj, property, { get })
+  let value
+  Object.defineProperty(obj, property, {
+    enumerable: true,
+    get: () => {
+      if (!value) value = get()
+      return value
+    },
+    set(val) {
+      value = val
+    }
+  })
 }

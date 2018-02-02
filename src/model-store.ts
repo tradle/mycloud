@@ -58,6 +58,7 @@ export class ModelStore extends EventEmitter {
   public cumulativeGraphqlSchemaItem: CacheableBucketItem
   public myModelsPack: ModelsPack
   public cumulativeModelsPack: ModelsPack
+  public bucket: Bucket
   private tradle: Tradle
   private logger: Logger
   private cache: DBModelStore
@@ -80,6 +81,7 @@ export class ModelStore extends EventEmitter {
     })
 
     this.cache.on('update', () => this.emit('update'))
+    this.bucket = this.tradle.buckets.PrivateConf
     this.cumulativePackKey = PRIVATE_CONF_BUCKET.modelsPack
     this.cumulativeGraphqlSchemaKey = PRIVATE_CONF_BUCKET.graphqlSchema
     this.cumulativePackItem = new CacheableBucketItem({
@@ -100,10 +102,6 @@ export class ModelStore extends EventEmitter {
       this.cumulativeModelsPack = pack
       this.addModels(pack.models)
     })
-  }
-
-  public get bucket():Bucket {
-    return this.tradle.buckets.PrivateConf
   }
 
   public get = async (id) => {
@@ -281,9 +279,8 @@ export class ModelStore extends EventEmitter {
   //   return Pack.pack({ namespace, models })
   // }
 
-  public addModels = (models) => {
-    this.cache.addModels(models)
-  }
+  public addModel = model => this.cache.addModel(model)
+  public addModels = models => this.cache.addModels(models)
 
   public getModelsPackByDomain = async (domain) => {
     return await this.bucket.getJSON(getModelsPackConfKey(domain))

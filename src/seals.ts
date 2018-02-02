@@ -24,7 +24,7 @@ import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'
 import { models as BaseModels } from '@tradle/models'
-import { IECMiniPubKey } from './types'
+import { IECMiniPubKey, ITradleObject } from './types'
 
 const SealModel = BaseModels['tradle.Seal']
 const SEAL_MODEL_ID = 'tradle.Seal'
@@ -39,8 +39,10 @@ const DEFAULT_WRITE_GRACE_PERIOD = 6 * 3600 * 1000
 const TIMESTAMP_MULTIPLIER = 1e3 // milli -> micro
 
 type SealRecordOpts = {
-  key: IECMiniPubKey
+  key?: IECMiniPubKey
   link: string
+  counterparty?: string
+  object?: ITradleObject
   permalink?: string
   watchType?: string
   write?: boolean
@@ -64,6 +66,7 @@ type Seal = {
   id: string
   link: string
   permalink?: string
+  counterparty?: string
   blockchain: string
   network: string
   address: string
@@ -190,17 +193,35 @@ export default class Seals {
     typeforce(typeforce.String, txId)
     this.logger.info(`sealed ${seal.link} with tx ${txId}`)
 
-    const update = {
+    const update:any = {
       txId,
       confirmations: 0,
       timeSealed: timestamp(),
       unsealed: null
     }
 
+    const confirmed = this.network.confirmations == 0
+    if (confirmed) {
+      // clear field
+      update.unconfirmed = null
+    }
+
     const params = dbUtils.getUpdateParams(update)
     params.Key = getKey(seal)
-    await this.table.update(params)
-    return { ...seal, ...update }
+    const tasks = [
+      this.table.update(params)
+    ]
+
+    const updated = { ...seal, ...update }
+    if (confirmed) {
+      tasks.push((async () => {
+        const object = await this.objects.get(updated.link)
+        await this._updateWithSeal({ seal: updated, object })
+      })())
+    }
+
+    await Promise.all(tasks)
+    return updated
   }
 
   private recordWriteError = async ({ seal, error })
@@ -235,14 +256,14 @@ export default class Seals {
     const pending = await this.getUnsealed({ limit })
     this.logger.info(`found ${pending.length} pending seals`)
     let aborted
-    const results = await seriesMap(pending, async (sealInfo: ISealInfo) => {
+    const results = await seriesMap(pending, async (sealInfo: Seal) => {
       if (aborted) return
 
-      const { link, address } = sealInfo
+      const { link, address, counterparty } = sealInfo
       const addresses = [address]
       let result
       try {
-        result = await this.blockchain.seal({ addresses, link, key })
+        result = await this.blockchain.seal({ addresses, link, key, counterparty })
       } catch (error) {
         if (/insufficient/i.test(error.message)) {
           this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
@@ -486,31 +507,7 @@ export default class Seals {
         return
       }
 
-      const sealResource = _.pick(seal, Object.keys(SealModel.properties))
-      sealResource[TYPE] = SEAL_MODEL_ID
-      if (_.isEqual(object._seal, sealResource)) return
-
-      buildResource.setVirtual(object, {
-        _seal: sealResource
-      })
-
-      this.logger.debug(`updating resource with seal`, summarizeObject(object))
-      const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
-      await Promise.all([
-        this.db.update({
-          ..._.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
-          // needed to pinpoint the resource to (conditionally) update
-          _seal: sealResource
-        }),
-        this.objects.put(object)
-      ])
-
-      const saved = await this.db.get(_.pick(object, [TYPE, '_permalink']))
-      const lost = Object.keys(object).filter(p => !(p in saved))
-      if (lost.length) {
-        this.logger.debug(`lost properties ${lost.join(', ')}`)
-        this.logger.debug(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
-      }
+      await this._updateWithSeal({ object, seal })
     }))
 
     await Promise.all([
@@ -523,10 +520,40 @@ export default class Seals {
     // make this more robust
   }
 
+  private _updateWithSeal = async ({ seal, object }) => {
+    const sealResource = _.pick(seal, Object.keys(SealModel.properties))
+    sealResource[TYPE] = SEAL_MODEL_ID
+    if (_.isEqual(object._seal, sealResource)) return
+
+    buildResource.setVirtual(object, {
+      _seal: sealResource
+    })
+
+    this.logger.debug(`updating resource with seal`, summarizeObject(object))
+    const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
+    await Promise.all([
+      this.db.update({
+        ..._.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
+        // needed to pinpoint the resource to (conditionally) update
+        _seal: sealResource
+      }),
+      this.objects.put(object)
+    ])
+
+    // TODO remove this after catching the bug that causes lost properties
+    const saved = await this.db.get(_.pick(object, [TYPE, '_permalink']))
+    const lost = Object.keys(object).filter(p => !(p in saved))
+    if (lost.length) {
+      this.logger.error(`lost properties ${lost.join(', ')}`)
+      this.logger.error(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
+    }
+  }
+
   private getNewSealParams = ({
     key,
     link,
     permalink,
+    counterparty,
     watchType=WATCH_TYPE.this,
     write
   }:SealRecordOpts) => {
@@ -551,6 +578,7 @@ export default class Seals {
       link,
       address,
       pubKey,
+      counterparty,
       watchType,
       write: true,
       time,
