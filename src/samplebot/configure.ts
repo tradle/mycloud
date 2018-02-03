@@ -5,6 +5,7 @@ import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import mergeModels = require('@tradle/merge-models')
+import Plugins = require('./plugins')
 import baseModels = require('../models')
 import { createBot } from '../bot'
 import serverlessYml = require('../cli/serverless-yml')
@@ -151,9 +152,31 @@ export class Conf {
   }
 
   public setBotConf = async (value:any):Promise<boolean> => {
+    const { products={} } = value
+    const { plugins={} } = products
+    if (_.size(plugins)) {
+      await this.validatePluginConf(plugins)
+    }
+
     this.logger.debug('setting bot configuration')
     // TODO: validate
     return await this.botConf.putIfDifferent(value)
+  }
+
+  public validatePluginConf = async (plugins:any) => {
+    await Promise.all(Object.keys(plugins).map(async (name) => {
+      const plugin = Plugins[name]
+      if (!plugin) throw new Error(`plugin not found: ${name}`)
+
+      const pluginConf = plugins[name]
+      if (plugin.validateConf) {
+        await plugin.validateConf({
+          bot: this.bot,
+          conf: this,
+          pluginConf
+        })
+      }
+    }))
   }
 
   public setStyle = async (value:any):Promise<boolean> => {
