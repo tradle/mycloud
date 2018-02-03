@@ -232,7 +232,7 @@ test('corda seals', async (t) => {
   const txId = 'sometxid'
   const link = 'abc'
   nock(endpoint.apiUrl)
-    .post(uri => uri.startsWith('/link'))
+    .post(uri => uri.startsWith('/item'))
     .reply(function (url, body) {
       body = QS.parse(body)
       t.same(body, {
