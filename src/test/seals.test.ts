@@ -289,7 +289,7 @@ test('corda seals', async (t) => {
 
   await seals.create(sealOpts)
   const result = await seals.sealPending()
-  t.same(result, [{ txId, link: sealOpts.link }])
+  t.same(result.map(r => _.pick(r, ['txId', 'link'])), [{ txId, link: sealOpts.link }])
 
   t.same(await seals.getUnconfirmed(), [])
   t.same(await seals.getLongUnconfirmed(), [])
