@@ -274,13 +274,10 @@ export default class Seals {
         return
       }
 
-      const { txId } = result
-      await this.recordWriteSuccess({
+      return await this.recordWriteSuccess({
         seal: sealInfo,
-        txId
+        txId: result.txId
       })
-
-      return { txId, link }
     })
 
     return results.filter(notNull)
@@ -532,11 +529,7 @@ export default class Seals {
     this.logger.debug(`updating resource with seal`, summarizeObject(object))
     const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
     await Promise.all([
-      this.db.update({
-        ..._.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
-        // needed to pinpoint the resource to (conditionally) update
-        _seal: sealResource
-      }),
+      this._updateDBWithSeal({ sealResource, object }),
       this.objects.put(object)
     ])
 
@@ -546,6 +539,25 @@ export default class Seals {
     if (lost.length) {
       this.logger.error(`lost properties ${lost.join(', ')}`)
       this.logger.error(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
+    }
+  }
+
+  private _updateDBWithSeal = async ({ sealResource, object }) => {
+    // don't update _time as we're only updating a virtual property (_seal)
+    // props needed to pinpoint the resource to (conditionally) update
+    const props = _.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual'])
+    try {
+      await this.db.update({
+        ...props,
+        _seal: sealResource
+      })
+    } catch (err) {
+      Errors.ignore(err, { name: 'ConditionalCheckFailedException' })
+      this.logger.warn(
+        `failed to update resource ${buildResource.id(object)} in db with seal.
+        This is most likely because a newer version of the resource exists and the db
+        only keeps the latest version.`
+      )
     }
   }
 
