@@ -281,6 +281,7 @@ export class ModelStore extends EventEmitter {
 
   public addModel = model => this.cache.addModel(model)
   public addModels = models => this.cache.addModels(models)
+  public removeModels = models => this.cache.removeModels(models)
 
   public getModelsPackByDomain = async (domain) => {
     return await this.bucket.getJSON(getModelsPackConfKey(domain))
