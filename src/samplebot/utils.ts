@@ -129,6 +129,8 @@ export const getCommandByName = commandName => {
   return command
 }
 
+// TODO: this really belongs in some middleware, e.g.
+// bot.hook('readseals', sendConfirmedSeals)
 export const sendConfirmedSeals = async (bot, seals) => {
   const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
   if (!confirmed.length) return
