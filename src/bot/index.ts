@@ -149,9 +149,6 @@ function _createBot (opts: {
       await bot.promiseReady()
     }
 
-    // await bot.objects.replaceEmbeds(resource)
-    // try {
-    //   await bot.db[method](ensureTimestamped(resource))
     try {
       await tradle.provider.putPayload({
         payload: resource,
