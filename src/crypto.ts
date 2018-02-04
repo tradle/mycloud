@@ -11,7 +11,8 @@ import {
   loudAsync,
   omitVirtual,
   setVirtual,
-  wrap
+  wrap,
+  ensureNoVirtualProps
 } from './utils'
 
 import { InvalidSignature } from './errors'
@@ -234,14 +235,12 @@ const getChainKey = (keys, props={}) => {
 }
 
 const sign = loudAsync(async ({ key, object }) => {
+  ensureNoVirtualProps(object)
+
   const author = key instanceof ECKey ? key : new ECKey(key)
   /* { object, merkleRoot } */
 
-  const result = await doSign({
-    object: omitVirtual(object),
-    author
-  })
-
+  const result = await doSign({ object, author })
   return setVirtual(result.object, {
     _sigPubKey: author.sigPubKey.pub.toString('hex')
   })
@@ -257,6 +256,7 @@ const extractSigPubKey = (object) => {
     }
   }
 
+  debugger
   throw new InvalidSignature('unable to extract pub key from object')
 }
 

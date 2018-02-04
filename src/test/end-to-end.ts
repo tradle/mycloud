@@ -38,7 +38,7 @@ const { MESSAGE } = TYPES
 const genIdentity = async (tradle:Tradle) => {
   const { identity, keys } = (await tradle.init.genIdentity()).priv
   return {
-    identity,
+    identity: utils.omitVirtual(identity),
     keys,
     profile: createTestProfile()
   }
