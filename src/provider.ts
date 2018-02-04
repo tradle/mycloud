@@ -48,7 +48,8 @@ import {
   IDebug,
   ILiveDeliveryOpts,
   ISendOpts,
-  IBatchSendOpts
+  IBatchSendOpts,
+  IECMiniPubKey
 } from './types'
 import Logger from './logger'
 
@@ -107,7 +108,7 @@ export default class Provider {
     return keys
   }
 
-  public getMyChainKey = async ():Promise<any> => {
+  public getMyChainKey = async ():Promise<IECMiniPubKey> => {
     const { network } = this
     if (network.flavor === 'corda') return
 

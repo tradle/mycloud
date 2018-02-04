@@ -16,6 +16,7 @@ import {
   bindAll,
   summarizeObject
 } from './utils'
+import { getLinks } from './crypto'
 import { prettify } from './string-utils'
 import dbUtils = require('./db-utils')
 import types = require('./typeforce-types')
@@ -284,6 +285,13 @@ export default class Seals {
   }
 
   private createSealRecord = async (opts:SealRecordOpts):Promise<void> => {
+    if (!opts.key && opts.write) {
+      opts = {
+        ...opts,
+        key: await this.provider.getMyChainKey()
+      }
+    }
+
     const seal = this.getNewSealParams(opts)
     try {
       await this.table.put({
@@ -563,12 +571,17 @@ export default class Seals {
 
   private getNewSealParams = ({
     key,
+    object,
     link,
     permalink,
     counterparty,
     watchType=WATCH_TYPE.this,
     write
   }:SealRecordOpts) => {
+    if (!(link && permalink) && object) {
+      ({ link, permalink } = getLinks(object))
+    }
+
     const { blockchain, network } = this
     // the next version's previous is the current version
     // the tx for next version will have a predictable seal based on the current version's link
