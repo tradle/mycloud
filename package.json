@@ -148,7 +148,7 @@
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "github:tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",
-    "@tradle/validate-model": "^5.1.1",
+    "@tradle/validate-model": "^5.3.0",
     "@tradle/validate-resource": "^2.19.0",
     "aws-xray-sdk": "^1.1.4",
     "bluebird": "^3.5.0",
