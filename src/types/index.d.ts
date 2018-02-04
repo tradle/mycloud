@@ -299,3 +299,5 @@ export interface ILambdaImpl {
 export type Lambdas = {
   [name:string]: ILambdaImpl
 }
+
+export type BotStrategyInstallFn = (bot:Bot, opts?:any) => any|void

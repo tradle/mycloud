@@ -38,6 +38,7 @@ export = function createDB (tradle:Tradle) {
   }
 
   const tableNames = tableBuckets.map(({ TableName }) => TableName)
+  // @ts-ignore
   const db = new DB({
     modelStore,
     tableNames,

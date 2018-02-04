@@ -22,12 +22,14 @@ import constants = require('../constants')
 import createUsers = require('./users')
 import {
   EndpointInfo,
+  ILambdaImpl,
   LambdaCreator,
   Hooks,
   HooksHookFn,
   HooksFireFn,
   ResourceStub,
-  ParsedResourceStub
+  ParsedResourceStub,
+  BotStrategyInstallFn
 } from '../types'
 
 import { createLambda, Lambda } from './lambda'
@@ -42,6 +44,10 @@ import Auth from '../auth'
 import { AwsApis } from '../aws'
 import Errors = require('../errors')
 import addConvenienceMethods from './convenience'
+
+type LambdaImplMap = {
+  [name:string]: ILambdaImpl
+}
 
 type LambdaMap = {
   [name:string]: LambdaCreator
@@ -87,7 +93,7 @@ export const createBot = (opts:any={}):Bot => {
 //   messages: Messages
 // }
 
-const lambdaCreators:Lambdas = {
+const lambdaCreators:LambdaImplMap = {
   get onmessage() { return require('./lambda/onmessage') },
   get onmessagestream() { return require('./lambda/onmessagestream') },
   get onsealstream() { return require('./lambda/onsealstream') },
@@ -305,7 +311,6 @@ export class Bot extends EventEmitter implements IReady {
 
   public save = createWriteMethod('put')
   public update = createWriteMethod('update')
-  public use = (strategy, opts) => strategy(this, opts)
   public createLambda = (opts={}) => createLambda({
     ...opts,
     tradle: this.tradle,

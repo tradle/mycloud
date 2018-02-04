@@ -67,7 +67,8 @@ export default class Identities {
   public byPub = async (pub:string):Promise<IIdentity> => {
     const { link } = await this.metaByPub(pub)
     try {
-      return await this.objects.get(link)
+      const identity = await this.objects.get(link)
+      return identity as IIdentity
     } catch(err) {
       this.logger.debug('unknown identity', {
         pub,
@@ -116,7 +117,8 @@ export default class Identities {
     this.logger.debug('get identity by permalink')
     const { link } = await this.pubKeys.findOne(params)
     try {
-      return await this.objects.get(link)
+      const identity = await this.objects.get(link)
+      return identity as IIdentity
     } catch(err) {
       this.logger.debug('unknown identity', { permalink })
       throw new NotFound('identity with permalink: ' + permalink)
@@ -205,7 +207,7 @@ export default class Identities {
     if (object) {
       typeforce(types.identity, object)
     } else {
-      object = await this.objects.get(getLink(object))
+      object = (await this.objects.get(getLink(object)) as IIdentity)
     }
 
     const { link, permalink } = addLinks(object)

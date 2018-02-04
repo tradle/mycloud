@@ -130,8 +130,9 @@ test('init', loudAsync(async (t) => {
     throw new Error('test error')
   })
 
+  // @ts-ignore
   await bot.lambdas.oninit().handler(originalEvent, {
-    done: (err) => t.equal(err.message, 'test error')
+    done: err => t.equal(err.message, 'test error')
   } as ILambdaAWSExecutionContext)
 
   t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.FAILED)
@@ -285,33 +286,6 @@ test(`readseal`, loudAsync(async (t) => {
   t.equal(wrote, true)
 
   provider.getMyKeys = getMyKeys
-  t.end()
-}))
-
-test(`use()`, loudAsync(async (t) => {
-  const expectedArg = {}
-  const called = {
-    usercreate: false,
-    useronline: false,
-    readseal: false,
-    wroteseal: false
-  }
-
-  const bot = createBot({ tradle: createTestTradle() })
-  bot.use(() => {
-    Object.keys(called).forEach(event => {
-      bot.hook(event, async (arg) => {
-        t.equal(arg, expectedArg)
-        called[event] = true
-      })
-    })
-  })
-
-  for (let event in called) {
-    await bot.trigger(event, expectedArg)
-    t.equal(called[event], true)
-  }
-
   t.end()
 }))
 

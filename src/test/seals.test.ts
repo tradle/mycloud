@@ -227,6 +227,7 @@ test('corda seals', async (t) => {
     apiUrl: 'http://localhost:12345'
   }
 
+  // @ts-ignore
   seals.setEndpoint(endpoint)
 
   const txId = 'sometxid'

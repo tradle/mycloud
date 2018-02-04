@@ -1,4 +1,4 @@
-import { omit } from 'lodash'
+import _ = require('lodash')
 import { Bucket, DatedValue } from './types'
 
 export class CacheableBucketItem {
@@ -15,7 +15,7 @@ export class CacheableBucketItem {
   }) {
     this.bucket = opts.bucket
     this.key = opts.key
-    this.value = opts.bucket.getCacheable(omit(opts, ['parse']))
+    this.value = opts.bucket.getCacheable(_.omit(opts, ['parse']))
     this.parse = opts.parse || _.identity
     this.lastModified = null
   }
