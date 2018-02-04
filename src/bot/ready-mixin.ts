@@ -1,7 +1,14 @@
 // @ts-ignore
 import Promise = require('bluebird')
+import { EventEmitter } from 'events'
 
-export function readyMixin (emitter) {
+export interface IReady {
+  ready: () => void
+  isReady: () => boolean
+  promiseReady: () => Promise<void>
+}
+
+export function readyMixin (emitter:EventEmitter) {
   let resolveReady
   const promise = new Promise(resolve => {
       resolveReady = resolve
@@ -9,7 +16,11 @@ export function readyMixin (emitter) {
     })
     .then(() => emitter.emit('ready'))
 
-  emitter.ready = ():void => resolveReady()
-  emitter.isReady = ():boolean => promise.isFulfilled()
-  emitter.promiseReady = ():Promise<void> => promise
+  Object.assign(emitter, {
+    ready: ():void => resolveReady(),
+    isReady: ():boolean => promise.isFulfilled(),
+    promiseReady: ():Promise<void> => promise
+  })
+
+  return emitter
 }

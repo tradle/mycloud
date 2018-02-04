@@ -3,13 +3,18 @@ import { IDebug } from '../types'
 
 const noop:IDebug = (...any) => {}
 
+export type Locker = {
+  lock: (id:string) => Promise<void>
+  unlock: (id:string) => boolean
+}
+
 export type LockerOpts = {
   name?: string
   debug?: IDebug
   timeout?: number
 }
 
-export function createLocker (opts:LockerOpts={}) {
+export function createLocker (opts:LockerOpts={}):Locker {
   const { name='', debug=noop } = opts
   const lock = locker(opts)
   const unlocks = {}
@@ -33,6 +38,8 @@ export function createLocker (opts:LockerOpts={}) {
         unlocks[id]()
         return true
       }
+
+      return false
     }
   }
 }

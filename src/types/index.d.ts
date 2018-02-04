@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 import Logger from '../logger'
+import { Lambda } from '../lambda'
 
 export interface ISettledPromise {
   isFulfilled: boolean
@@ -217,4 +218,29 @@ export interface IAWSServiceConfig {
   lambda: any
   cloudformation: any
   xray: any
+}
+
+export type EndpointInfo = {
+  aws: boolean
+  iotParentTopic: string
+  version: string
+}
+
+export type HooksHookFn = (event:string, handler:Function) => void
+export type HooksFireFn = (event:string, ...args:any[]) => any|void
+
+export type Hooks = {
+  hook: HooksHookFn
+  fire: HooksFireFn
+}
+
+export type LambdaCreator = (opts?:any) => Lambda
+
+export interface ILambdaImpl {
+  createLambda: LambdaCreator
+  createMiddleware?: (lambda: Lambda, opts?: any) => Function
+}
+
+export type Lambdas = {
+  [name:string]: ILambdaImpl
 }

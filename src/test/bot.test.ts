@@ -8,6 +8,9 @@ import * as cfnResponse from '../cfn-response'
 import { TYPE, SEQ, SIG } from '@tradle/constants'
 import IotMessage = require('@tradle/iot-message')
 import { utils as tradleUtils } from '@tradle/engine'
+import {
+  ILambdaAWSExecutionContext
+} from '../types'
 import { createTestTradle } from '../'
 import { createBot } from '../bot'
 import { getGraphqlAPI } from '../bot/graphql'
@@ -119,7 +122,7 @@ test('init', loudAsync(async (t) => {
 
   await bot.lambdas.oninit().handler(originalEvent, {
     done: t.error
-  })
+  } as ILambdaAWSExecutionContext)
 
   t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
 
@@ -129,7 +132,7 @@ test('init', loudAsync(async (t) => {
 
   await bot.lambdas.oninit().handler(originalEvent, {
     done: (err) => t.equal(err.message, 'test error')
-  })
+  } as ILambdaAWSExecutionContext)
 
   t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.FAILED)
 
@@ -226,7 +229,7 @@ test(`onmessage`, loudAsync(async (t) => {
     data
   }, {
     done: t.error
-  })
+  } as ILambdaAWSExecutionContext)
 
   // await bot.trigger('message', message)
   // #6
@@ -276,7 +279,7 @@ test(`readseal`, loudAsync(async (t) => {
     }
   ]), {
     done: t.error
-  })
+  } as ILambdaAWSExecutionContext)
 
   t.equal(read, true)
   t.equal(wrote, true)
@@ -401,7 +404,7 @@ test('onmessagestream', loudAsync(async (t) => {
   ]), {
     // #6
     done: t.error
-  })
+  } as ILambdaAWSExecutionContext)
 
   // const gql = getGraphqlAPI({ bot })
   // const result = await gql.executeQuery(`
