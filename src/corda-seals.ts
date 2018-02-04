@@ -99,6 +99,7 @@ class CordaSeals {
       }
     })
 
+    // @ts-ignore
     this.blockchain = tradle.blockchain
   }
 

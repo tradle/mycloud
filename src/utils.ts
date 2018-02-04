@@ -885,11 +885,17 @@ export const logResponseBody = (logger) => (req, res, next) => {
   next()
 }
 
+export const updateTimestamp = (resource:any, time:number=Date.now()) => {
+  setVirtual(resource, { _time: time })
+}
+
 export const ensureTimestamped = (resource) => {
   if (!resource._time) {
-    setVirtual(resource, {
-      _time: resource.time || Date.now()
-    })
+    if (resource.time) {
+      setVirtual(resource, { _time: resource.time })
+    } else {
+      updateTimestamp(resource)
+    }
   }
 
   return resource

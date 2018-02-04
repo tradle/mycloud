@@ -5,13 +5,15 @@ import { prettify } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors = require('./errors')
 import types = require('./typeforce-types')
-import Tradle from './tradle'
-import Env from './env'
-import Identities from './identities'
-import Messages from './messages'
-import Objects from './objects'
 import * as constants from './constants'
 import {
+  Tradle,
+  Env,
+  AwsApis,
+  Logger,
+  Identities,
+  Messages,
+  Objects,
   IDebug,
   ISession,
   IIotClientResponse,
@@ -19,8 +21,8 @@ import {
   IAuthResponse,
   IIdentity,
   ITradleObject
-} from './types/index.d'
-import Logger from './logger'
+} from './types'
+
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
 
@@ -57,7 +59,7 @@ interface IChallengeResponse extends ITradleObject {
 
 export default class Auth {
   private env: Env
-  private aws: any
+  private aws: AwsApis
   private serviceMap: any
   private tables: any
   private identities: Identities

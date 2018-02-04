@@ -7,9 +7,11 @@ import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
 import { addLinks } from './crypto'
 import { get, cachifyFunction } from './utils'
-import Identities from './identities'
-import Tradle from './tradle'
-import Logger from './logger'
+import {
+  Identities,
+  Tradle,
+  Logger
+} from './types'
 
 const definitions = require('./definitions')
 const tableDef = definitions.FriendsTable

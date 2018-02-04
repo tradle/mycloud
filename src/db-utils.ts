@@ -19,7 +19,7 @@ import {
 import { prettify, alphabetical } from './string-utils'
 import { sha256 } from './crypto'
 import Errors = require('./errors')
-import Env from './env'
+import { Env } from './types'
 
 type Batch = {
   Items: any[]

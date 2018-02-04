@@ -7,9 +7,9 @@ import { MODELS_HASH_PROPERTY as PROPERTY } from '../constants'
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const mapModelsToPack = new Map()
 
+export const name = 'keepModelsFresh'
 export const getDefaultIdentifierFromReq = ({ user }) => user.id
-
-export const keepModelsFreshPlugin = ({
+export const createPlugin = ({
   getModelsPackForUser,
   // unique identifier for counterparty
   // which will be used to track freshness.

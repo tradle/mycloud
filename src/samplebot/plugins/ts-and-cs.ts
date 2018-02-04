@@ -11,6 +11,7 @@ const CUSTOMER_WAITING = 'tradle.CustomerWaiting'
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const YOU_HAVENT_ACCEPTED = `Please accept our Terms and Conditions before we continue :-)`
 
+export const name = 'termsAndConditions'
 export const createPlugin = ({
   logger,
   productsAPI,

@@ -1,10 +1,12 @@
-import Tradle from './tradle'
-import Logger from './logger'
 import { utils, protocol } from '@tradle/engine'
 import { promisify, typeforce } from './utils'
 import { prettify } from './string-utils'
 import adapters from './blockchain-adapter'
-import { IDebug } from './types'
+import {
+  IDebug,
+  Logger,
+  Tradle
+} from './types'
 
 // interface IBlockchainIdentifier {
 //   flavor: string,

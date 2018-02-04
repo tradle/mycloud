@@ -16,6 +16,7 @@ import {
   bindAll,
   summarizeObject
 } from './utils'
+import { getLinks } from './crypto'
 import { prettify } from './string-utils'
 import dbUtils = require('./db-utils')
 import types = require('./typeforce-types')
@@ -274,19 +275,23 @@ export default class Seals {
         return
       }
 
-      const { txId } = result
-      await this.recordWriteSuccess({
+      return await this.recordWriteSuccess({
         seal: sealInfo,
-        txId
+        txId: result.txId
       })
-
-      return { txId, link }
     })
 
     return results.filter(notNull)
   }
 
   private createSealRecord = async (opts:SealRecordOpts):Promise<void> => {
+    if (!opts.key && opts.write) {
+      opts = {
+        ...opts,
+        key: await this.provider.getMyChainKey()
+      }
+    }
+
     const seal = this.getNewSealParams(opts)
     try {
       await this.table.put({
@@ -532,11 +537,7 @@ export default class Seals {
     this.logger.debug(`updating resource with seal`, summarizeObject(object))
     const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
     await Promise.all([
-      this.db.update({
-        ..._.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual']),
-        // needed to pinpoint the resource to (conditionally) update
-        _seal: sealResource
-      }),
+      this._updateDBWithSeal({ sealResource, object }),
       this.objects.put(object)
     ])
 
@@ -549,14 +550,38 @@ export default class Seals {
     }
   }
 
+  private _updateDBWithSeal = async ({ sealResource, object }) => {
+    // don't update _time as we're only updating a virtual property (_seal)
+    // props needed to pinpoint the resource to (conditionally) update
+    const props = _.pick(object, [TYPE, '_time', '_link', '_permalink', '_virtual'])
+    try {
+      await this.db.update({
+        ...props,
+        _seal: sealResource
+      })
+    } catch (err) {
+      Errors.ignore(err, { name: 'ConditionalCheckFailedException' })
+      this.logger.warn(
+        `failed to update resource ${buildResource.id(object)} in db with seal.
+        This is most likely because a newer version of the resource exists and the db
+        only keeps the latest version.`
+      )
+    }
+  }
+
   private getNewSealParams = ({
     key,
+    object,
     link,
     permalink,
     counterparty,
     watchType=WATCH_TYPE.this,
     write
   }:SealRecordOpts) => {
+    if (!(link && permalink) && object) {
+      ({ link, permalink } = getLinks(object))
+    }
+
     const { blockchain, network } = this
     // the next version's previous is the current version
     // the tx for next version will have a predictable seal based on the current version's link

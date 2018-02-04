@@ -140,6 +140,10 @@ export default class Objects {
     }
 
     const { Body, ContentType } = await this.s3Utils.get({ key, bucket })
+    if (ContentType === 'binary/octet-stream') {
+      throw new Error(`received embed with incorrect mime type: ${ContentType}`)
+    }
+
     Body.mimetype = ContentType
     return Body
   }

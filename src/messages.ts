@@ -2,11 +2,19 @@ import _ = require('lodash')
 import AWS = require('aws-sdk')
 import { TYPE, SIG } from '@tradle/constants'
 import { utils as tradleUtils } from '@tradle/engine'
-import { DB } from '@tradle/dynamodb'
-import Identities from './identities'
-import Objects from './objects'
-import Env from './env'
-import { IDebug, ITradleMessage, ITradleObject, IECMiniPubKey } from './types'
+import {
+  IDebug,
+  ITradleMessage,
+  ITradleObject,
+  IECMiniPubKey,
+  Env,
+  Identities,
+  Objects,
+  Logger,
+  Tradle,
+  DB
+} from './types'
+
 import Errors = require('./errors')
 import {
   typeforce,
@@ -18,8 +26,6 @@ import {
 import { getLink } from './crypto'
 import { prettify } from './string-utils'
 import * as types from './typeforce-types'
-import Logger from './logger'
-import { Tradle } from './tradle'
 import {
   TYPES,
   MAX_CLOCK_DRIFT,

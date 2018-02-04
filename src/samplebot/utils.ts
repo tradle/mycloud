@@ -1,7 +1,11 @@
 import _ = require('lodash')
+import { TYPE } from '@tradle/constants'
 import { isPromise } from '../utils'
 import { Conf } from './configure'
 import Errors = require('../errors')
+import models = require('../models')
+
+const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 
 export const EMPLOYEE_COMMANDS = [
   'help',
@@ -123,4 +127,19 @@ export const getCommandByName = commandName => {
   }
 
   return command
+}
+
+// TODO: this really belongs in some middleware, e.g.
+// bot.hook('readseals', sendConfirmedSeals)
+export const sendConfirmedSeals = async (bot, seals) => {
+  const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
+  if (!confirmed.length) return
+
+  await bot.send(seals.map(seal => ({
+    to: seal.counterparty,
+    object: {
+      [TYPE]: 'tradle.Seal',
+      ..._.pick(seal, SEAL_MODEL_PROPS)
+    }
+  })))
 }

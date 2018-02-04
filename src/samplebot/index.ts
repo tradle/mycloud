@@ -7,26 +7,26 @@ import validateResource = require('@tradle/validate-resource')
 import mergeModels = require('@tradle/merge-models')
 import { TYPE } from '@tradle/constants'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
-import { setNamePlugin } from './plugins/set-name'
-import { keepFreshPlugin } from './plugins/keep-fresh'
+import { createPlugin as setNamePlugin } from './plugins/set-name'
+import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
-import { createPlugin as createLensPlugin } from './plugins/set-lens'
 import { createPlugin as createSanctionsPlugin } from './plugins/sanctions'
+import { createPlugin as createLensPlugin } from './plugins/lens'
 import { Onfido, createPlugin, registerWebhook } from './plugins/onfido'
 import { Commander } from './commander'
 import { createRemediator, Remediator } from './remediation'
 import {
-  keepModelsFreshPlugin,
+  createPlugin as keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
   createGetIdentifierFromReq,
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
-import createBot = require('../bot')
+import { Bot } from '../bot'
 import { DatedValue } from '../types'
 // import createDeploymentModels from '../deployment-models'
 // import createBankModels from '../bank-models'
-import TermsAndConditions = require('./plugins/ts-and-cs')
+import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import Logger from '../logger'
 import baseModels = require('../models')
 import Errors = require('../errors')
@@ -51,7 +51,7 @@ const ONFIDO_ENABLED = true
 const willHandleMessages = event => event === 'message'
 
 export type BotComponents = {
-  bot: any
+  bot: Bot
   models: any
   productsAPI?: any
   employeeManager?: any
@@ -190,7 +190,7 @@ export default function createProductsBot ({
     }), true)) // prepend
 
     if (conf.termsAndConditions) {
-      const tcPlugin = TermsAndConditions.createPlugin({
+      const tcPlugin = createTsAndCsPlugin({
         termsAndConditions: conf.termsAndConditions,
         productsAPI,
         employeeManager,

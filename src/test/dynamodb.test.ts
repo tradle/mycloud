@@ -1,5 +1,6 @@
 require('./env').install()
 
+import sinon = require('sinon')
 import AWS = require('aws-sdk')
 AWS.config.update({
   maxRetries: 0,
@@ -51,32 +52,28 @@ const schema = {
 
 test('batch put', loudAsync(async (t) => {
   // const table = await recreateTable(schema)
-  let timesCalled = 0
   const { docClient } = aws
-  aws.docClient = {
-    batchWrite: function ({ RequestItems }) {
-      let promise
-      timesCalled++
-      for (let TableName in RequestItems) {
-        const items = RequestItems[TableName]
-        if (items.length > 15) {
-          promise = Promise.resolve({
-            UnprocessedItems: {
-              [TableName]: items.slice(15)
-            }
-          })
-        } else {
-          promise = Promise.resolve({})
-        }
-
-        break
+  const stub = sinon.stub(aws.docClient, 'batchWrite').callsFake(({ RequestItems }) => {
+    let promise
+    for (let TableName in RequestItems) {
+      const items = RequestItems[TableName]
+      if (items.length > 15) {
+        promise = Promise.resolve({
+          UnprocessedItems: {
+            [TableName]: items.slice(15)
+          }
+        })
+      } else {
+        promise = Promise.resolve({})
       }
 
-      return {
-        promise: () => promise
-      }
+      break
     }
-  }
+
+    return {
+      promise: () => promise
+    }
+  })
 
   const batch = {
     RequestItems: {
@@ -89,8 +86,8 @@ test('batch put', loudAsync(async (t) => {
   }
 
   await batchPut(batch)
-  t.equal(timesCalled, 2)
-  aws.docClient = docClient
+  t.equal(stub.callCount, 2)
+  stub.restore()
 
   // const batches = new Array(25).fill(null).map((blah) => {
   //   return new Array(25).fill(null).map((ignore, i) => {

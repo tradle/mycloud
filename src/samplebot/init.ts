@@ -3,14 +3,14 @@ import { omit } from 'lodash'
 import dotProp = require('dot-prop')
 import { TYPE } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
-import { createBot } from '../bot'
+import { createBot, Bot } from '../bot'
 import { Conf } from './configure'
 import Errors = require('../errors')
 import Logger from '../logger'
 import { RESOLVED_PROMISE } from '../utils'
 
 export class Init {
-  private bot: any
+  private bot: Bot
   private forceRecreateIdentity: boolean
   private conf: any
   private confManager: Conf

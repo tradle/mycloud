@@ -52,5 +52,8 @@
     "name": "Easy Bank",
     "domain": "easybank.io"
   },
-  "corda": {}
+  "corda": {
+    "apiKey": "<placeholder>",
+    "apiUrl": "<placeholder>"
+  }
 }

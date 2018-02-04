@@ -1,10 +1,7 @@
 import yn = require('yn')
 import { EventEmitter } from 'events'
 import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip } from './utils'
-import { IDelivery, ILiveDeliveryOpts } from "./types"
-import { IDebug } from './types'
-import Logger from './logger'
-import Env from './env'
+import { IDelivery, ILiveDeliveryOpts, Logger, Env } from "./types"
 import Errors = require('./errors')
 
 const COMPRESSION_THRESHOLD = 1024

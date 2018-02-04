@@ -2,12 +2,7 @@ import dynogels = require('dynogels')
 import { createTable, DB, utils } from '@tradle/dynamodb'
 import AWS = require('aws-sdk')
 import { createMessagesTable } from './messages-table'
-import Provider from './provider'
-import Friends from './friends'
-import { Buckets } from './buckets'
-import Env from './env'
-import Logger from './logger'
-import Tradle from './tradle'
+import { Provider, Friends, Buckets, Env, Logger, Tradle } from './types'
 
 export = function createDB (tradle:Tradle) {
   const { modelStore, objects, tables, aws, constants, env, dbUtils } = tradle
@@ -43,6 +38,7 @@ export = function createDB (tradle:Tradle) {
   }
 
   const tableNames = tableBuckets.map(({ TableName }) => TableName)
+  // @ts-ignore
   const db = new DB({
     modelStore,
     tableNames,
@@ -86,10 +82,10 @@ export = function createDB (tradle:Tradle) {
         forbidScan: false
       }
     },
-    {
-      type: 'tradle.Seal',
-      definition: tables.Seals.definition
-    }
+    // {
+    //   type: 'tradle.Seal',
+    //   definition: tables.Seals.definition
+    // }
   ].forEach(typeConf => {
     const { type, definition, opts } = typeConf
     const model = modelStore.models[type]

@@ -227,12 +227,13 @@ test('corda seals', async (t) => {
     apiUrl: 'http://localhost:12345'
   }
 
+  // @ts-ignore
   seals.setEndpoint(endpoint)
 
   const txId = 'sometxid'
   const link = 'abc'
   nock(endpoint.apiUrl)
-    .post(uri => uri.startsWith('/link'))
+    .post(uri => uri.startsWith('/item'))
     .reply(function (url, body) {
       body = QS.parse(body)
       t.same(body, {
@@ -289,7 +290,7 @@ test('corda seals', async (t) => {
 
   await seals.create(sealOpts)
   const result = await seals.sealPending()
-  t.same(result, [{ txId, link: sealOpts.link }])
+  t.same(result.map(r => _.pick(r, ['txId', 'link'])), [{ txId, link: sealOpts.link }])
 
   t.same(await seals.getUnconfirmed(), [])
   t.same(await seals.getLongUnconfirmed(), [])

@@ -1,5 +1,61 @@
 import { EventEmitter } from 'events'
-import Logger from '../logger'
+import { DB } from '@tradle/dynamodb'
+import { Logger } from '../logger'
+import { Lambda } from '../lambda'
+import { Bot } from '../bot'
+import { Tradle } from '../tradle'
+import { Env } from '../env'
+import { Identities } from '../identities'
+import { Messages } from '../messages'
+import { Provider } from '../provider'
+import { Objects } from '../objects'
+import { Auth } from '../auth'
+// import { Init } from '../init'
+import { AwsApis } from '../aws'
+import { Buckets } from '../buckets'
+import { Bucket } from '../bucket'
+import { Seals } from '../seals'
+import { Blockchain } from '../blockchain'
+import { ModelStore } from '../model-store'
+import { Task, TaskManager } from '../task-manager'
+// import { ModelStore } from '../model-store'
+import { Delivery } from '../delivery'
+import { ContentAddressedStore } from '../content-addressed-store'
+import { KeyValueTable } from '../key-value-table'
+import { CacheableBucketItem } from '../cacheable-bucket-item'
+import { Friends } from '../friends'
+import { Push } from '../push'
+import { User } from '../user'
+import { Discovery } from '../discovery'
+
+export {
+  DB,
+  Bot,
+  Tradle,
+  Env,
+  Identities,
+  Messages,
+  Provider,
+  Objects,
+  Auth,
+  AwsApis,
+  Buckets,
+  Bucket,
+  Seals,
+  Blockchain,
+  ModelStore,
+  Task,
+  TaskManager,
+  Delivery,
+  ContentAddressedStore,
+  KeyValueTable,
+  Logger,
+  CacheableBucketItem,
+  Friends,
+  Push,
+  User,
+  Discovery
+}
 
 export interface ISettledPromise {
   isFulfilled: boolean
@@ -218,3 +274,30 @@ export interface IAWSServiceConfig {
   cloudformation: any
   xray: any
 }
+
+export type EndpointInfo = {
+  aws: boolean
+  iotParentTopic: string
+  version: string
+}
+
+export type HooksHookFn = (event:string, handler:Function) => void
+export type HooksFireFn = (event:string, ...args:any[]) => any|void
+
+export type Hooks = {
+  hook: HooksHookFn
+  fire: HooksFireFn
+}
+
+export type LambdaCreator = (opts?:any) => Lambda
+
+export interface ILambdaImpl {
+  createLambda: LambdaCreator
+  createMiddleware?: (lambda: Lambda, opts?: any) => Function
+}
+
+export type Lambdas = {
+  [name:string]: ILambdaImpl
+}
+
+export type BotStrategyInstallFn = (bot:Bot, opts?:any) => any|void
