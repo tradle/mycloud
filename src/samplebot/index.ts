@@ -11,6 +11,7 @@ import { setNamePlugin } from './plugins/set-name'
 import { keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
 import { createPlugin as createLensPlugin } from './plugins/set-lens'
+import { createPlugin as createSanctionsPlugin } from './plugins/sanctions'
 import { Onfido, createPlugin, registerWebhook } from './plugins/onfido'
 import { Commander } from './commander'
 import { createRemediator, Remediator } from './remediation'
@@ -364,6 +365,14 @@ export default function createProductsBot ({
     productsAPI.plugins.use(createLensPlugin({
       conf: plugins['lens'],
       logger: logger.sub('plugin-lens')
+    }))
+  }
+  if (plugins['sanctions']) {
+    productsAPI.plugins.use(createSanctionsPlugin({
+      conf: plugins['sanctions'],
+      bot,
+      productsAPI,
+      logger: logger.sub('plugin-sanctions')
     }))
   }
 
