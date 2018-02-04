@@ -5,16 +5,14 @@ import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import mergeModels = require('@tradle/merge-models')
-import Plugins = require('./plugins')
+import { Plugins } from './plugins'
 import baseModels = require('../models')
-import { createBot } from '../bot'
+import { Bot, ModelStore, Logger, Bucket } from '../types'
+import { CacheableBucketItem } from '../cacheable-bucket-item'
 import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
 import { allSettled, RESOLVED_PROMISE, omitVirtual } from '../utils'
-import { Bucket } from '../bucket'
-import { CacheableBucketItem } from '../cacheable-bucket-item'
-import Logger from '../logger'
-import { ModelStore, toggleDomainVsNamespace } from '../model-store'
+import { toggleDomainVsNamespace } from '../model-store'
 import {
   PRIVATE_CONF_BUCKET
 } from './constants'
@@ -86,7 +84,7 @@ const parts = {
 }
 
 export class Conf {
-  public bot: any
+  public bot: Bot
   public modelStore: ModelStore
   public logger: Logger
   public privateConfBucket: Bucket

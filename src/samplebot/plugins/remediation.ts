@@ -6,7 +6,7 @@ import buildResource = require('@tradle/build-resource')
 import baseModels = require('../../models')
 import { TYPES } from '../constants'
 import Errors = require('../../errors')
-import { Logger } from '../../logger'
+import { Logger, Bot } from '../../types'
 
 const {
   DATA_CLAIM,
@@ -29,7 +29,7 @@ export { CustomErrors as Errors }
 
 export class Remediation {
   private models: any
-  private bot: any
+  private bot: Bot
   private productsAPI: any
   private logger: Logger
   private getBundleByClaimId: Function
@@ -41,7 +41,7 @@ export class Remediation {
     getBundleByClaimId,
     onClaimRedeemed
   }: {
-    bot: any,
+    bot: Bot,
     productsAPI: any,
     logger: Logger,
     getBundleByClaimId: Function

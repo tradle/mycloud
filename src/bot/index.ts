@@ -349,7 +349,6 @@ export class Bot extends EventEmitter implements IReady {
 }
 
 const createWriteMethod = (method:string) => async function (resource) {
-  debugger
   if (!this.isReady()) {
     this.logger.debug('waiting for this.ready()')
     await this.promiseReady()

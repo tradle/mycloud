@@ -3,6 +3,7 @@ import Promise = require('bluebird')
 import _ = require('lodash')
 import { SIG } from '@tradle/constants'
 import engine = require('@tradle/engine')
+import { Bot } from '../../bot'
 
 type ValuesFilterInput = {
   message: any
@@ -26,12 +27,12 @@ export const createPlugin = opts => {
 }
 
 export class Partials {
-  private bot: any
+  private bot: Bot
   private productsAPI: any
   private models: any
   private conf: any
   constructor({ bot, productsAPI, models, conf }: {
-    bot: any,
+    bot: Bot,
     productsAPI: any,
     models: any,
     conf: PartialsConf

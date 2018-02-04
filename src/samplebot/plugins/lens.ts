@@ -1,6 +1,7 @@
 import _ = require('lodash')
 import { Conf } from '../configure'
 
+export const name = 'lens'
 export const createPlugin = ({ conf, logger }) => {
 
   const willRequestForm = ({ to, application, formRequest }) => {

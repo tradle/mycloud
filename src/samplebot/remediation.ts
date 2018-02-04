@@ -2,6 +2,7 @@
 import Promise = require('bluebird')
 import crypto = require('crypto')
 import QR = require('@tradle/qr-schema')
+import { Bot } from '../bot'
 import { createPlugin as createProductsPlugin, Remediation } from './plugins/remediation'
 import Errors = require('../errors')
 import { Logger } from '../logger'
@@ -12,7 +13,7 @@ const NONCE_LENGTH = 16
 const CLAIM_ID_ENCODING = 'hex'
 
 export type RemediatorOpts = {
-  bot: any
+  bot: Bot
   productsAPI: any
   logger: Logger
 }
@@ -29,7 +30,7 @@ type KeyContainer = {
 }
 
 export class Remediator {
-  public bot: any
+  public bot: Bot
   public productsAPI: any
   public plugin: any
   public remediation: Remediation

@@ -3,6 +3,7 @@ import { TYPE } from '@tradle/constants'
 
 const DEFAULT_CONF = require('./form-prefills.json')
 
+export const name = 'prefillForm'
 export function createPlugin ({ conf=DEFAULT_CONF, logger }) {
 
   const willRequestForm = ({ to, application, formRequest }) => {

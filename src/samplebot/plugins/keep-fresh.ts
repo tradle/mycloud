@@ -13,7 +13,8 @@ function hashString (algorithm, data) {
   return crypto.createHash(algorithm).update(data).digest('hex')
 }
 
-export const keepFreshPlugin = ({
+export const name = 'keepFresh'
+export const createPlugin = ({
   object,
   propertyName,
   // unique identifier for counterparty
