@@ -14,9 +14,13 @@ import {
 
 import { addLinks, getLink } from './crypto'
 import types = require('./typeforce-types')
-import { IIdentity, ITradleObject } from './types'
-import Env from './env'
-import Logger from './logger'
+import {
+  IIdentity,
+  ITradleObject,
+  Env,
+  Logger,
+  Objects
+} from './types'
 
 const { PREVLINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
@@ -29,7 +33,7 @@ type AuthorInfo = {
 }
 
 export default class Identities {
-  public objects: any
+  public objects: Objects
   public pubKeys: any
   public env: Env
   public logger: Logger

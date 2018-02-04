@@ -6,13 +6,18 @@ import {
   createModelStore as createStore,
   ModelStore as DBModelStore
 } from '@tradle/dynamodb'
-import Logger, { Level } from './logger'
-import Friends from './friends'
-import { Buckets } from './buckets'
+
+import { Level } from './logger'
 import { CacheableBucketItem } from './cacheable-bucket-item'
 import Errors = require('./errors')
-import Tradle from './tradle'
-import { Bucket } from './bucket'
+import {
+  Tradle,
+  Bucket,
+  Buckets,
+  Friends,
+  Logger
+} from './types'
+
 import {
   PRIVATE_CONF_BUCKET
 } from './constants'

@@ -4,12 +4,15 @@ import { SEQ } from '@tradle/constants'
 import Errors = require('./errors')
 import { typeforce, omitVirtual, batchByByteLength, bindAll } from './utils'
 import { getLink } from './crypto'
-import { IDelivery, ILiveDeliveryOpts } from './types'
-import Messages from './messages'
-import Objects from './objects'
-import Env from './env'
-import Auth from './auth'
-import Logger from './logger'
+import {
+  IDelivery,
+  ILiveDeliveryOpts,
+  Messages,
+  Objects,
+  Env,
+  Auth,
+  Logger
+} from './types'
 
 // 128KB, but who knows what overhead MQTT adds, so leave a buffer
 // would be good to test it and know the hard limit
@@ -17,7 +20,7 @@ import Logger from './logger'
 const MAX_PAYLOAD_SIZE = 120000 * 5
 
 // eventemitter makes testing easier
-export default class DeliveryIot extends EventEmitter implements IDelivery {
+export default class Delivery extends EventEmitter implements IDelivery {
   private iot: any
   private messages: Messages
   private objects: Objects
@@ -124,4 +127,4 @@ export default class DeliveryIot extends EventEmitter implements IDelivery {
 
 const stringify = msg => JSON.stringify(omitVirtual(msg))
 
-export { DeliveryIot }
+export { Delivery }

@@ -4,10 +4,12 @@ import {
 } from '../lambda'
 
 import { isPromise } from '../utils'
+import { Bot } from './'
 
 export { EventSource }
+
 export class Lambda extends BaseLambda {
-  public bot: any
+  public bot: Bot
   public promiseReady: () => Promise<void>
   constructor ({ bot, middleware, ...lambdaOpts }: any) {
     super(lambdaOpts)

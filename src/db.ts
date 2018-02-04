@@ -2,12 +2,7 @@ import dynogels = require('dynogels')
 import { createTable, DB, utils } from '@tradle/dynamodb'
 import AWS = require('aws-sdk')
 import { createMessagesTable } from './messages-table'
-import Provider from './provider'
-import Friends from './friends'
-import { Buckets } from './buckets'
-import Env from './env'
-import Logger from './logger'
-import Tradle from './tradle'
+import { Provider, Friends, Buckets, Env, Logger, Tradle } from './types'
 
 export = function createDB (tradle:Tradle) {
   const { modelStore, objects, tables, aws, constants, env, dbUtils } = tradle

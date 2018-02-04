@@ -1,10 +1,13 @@
 import _ = require('lodash')
 import validateResource = require('@tradle/validate-resource')
 import { EventEmitter } from 'events'
-import DeliveryIot from './delivery-mqtt'
-import DeliveryHTTP from './delivery-http'
-import Messages from './messages'
+import { Delivery as DeliveryIot } from './delivery-mqtt'
+import { Delivery as DeliveryHTTP } from './delivery-http'
 import {
+  Messages,
+  Env,
+  Logger,
+  Tradle,
   IDelivery,
   IDeliveryRequest,
   IDeliveryResult,
@@ -13,10 +16,8 @@ import {
   IDebug,
   ISession
 } from './types'
+
 import { ClientUnreachable } from './errors'
-import Env from './env'
-import Logger from './logger'
-import Tradle from './tradle'
 
 const MIN_BATCH_DELIVERY_TIME = 2000
 const MAX_BATCH_SIZE = 5
@@ -151,3 +152,5 @@ export default class Delivery extends EventEmitter implements IDelivery {
     }
   }
 }
+
+export { Delivery }

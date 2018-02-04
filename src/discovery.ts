@@ -1,13 +1,12 @@
-import path = require('path')
-import fs = require('fs')
-import mkdirp = require('mkdirp')
+// import path = require('path')
+// import fs = require('fs')
+// import mkdirp = require('mkdirp')
 import { Lambda } from 'aws-sdk'
 import { promisify } from './utils'
-import Logger from './logger'
-import Env from './env'
+import { Logger, Env } from './types'
 
-const pfs = promisify(fs)
-const pmkdirp = promisify(mkdirp)
+// const pfs = promisify(fs)
+// const pmkdirp = promisify(mkdirp)
 
 export default class Discovery {
   private env: Env

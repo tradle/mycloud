@@ -1,25 +1,29 @@
 import { DB } from '@tradle/dynamodb'
-import Env from './env'
+import { Env } from './env'
 import { toCamelCase, splitCamelCase } from './string-utils'
-// import { Identities, Auth, Delivery, Discovery } from './types'
-
-import Provider from './provider'
-import Identities from './identities'
-import Objects from './objects'
-import Auth from './auth'
-import Delivery from './delivery'
-import Discovery from './discovery'
-import Blockchain from './blockchain'
-import Messages from './messages'
-import Seals from './seals'
-import Friends from './friends'
-import KeyValueTable from './key-value-table'
-import ContentAddressedStore from './content-addressed-store'
+import { Seals } from './seals'
+import { Blockchain } from './blockchain'
 import { TaskManager } from './task-manager'
+
+import {
+  Provider,
+  Identities,
+  Objects,
+  Auth,
+  Delivery,
+  Discovery,
+  Messages,
+  Friends,
+  KeyValueTable,
+  ContentAddressedStore,
+  Push,
+  User,
+  Buckets,
+  AwsApis
+} from './types'
+
 import { requireDefault } from './require-default'
-import Push from './push'
-import User from './user'
-import { Buckets, getBuckets } from './buckets'
+import { getBuckets } from './buckets'
 import { applyFunction } from './utils'
 import { ModelStore, createModelStore } from './model-store'
 
@@ -27,7 +31,7 @@ let instanceCount = 0
 
 export default class Tradle {
   public env: Env
-  public aws: any
+  public aws: AwsApis
   // public router: any
   public serviceMap: any
   public buckets: Buckets
