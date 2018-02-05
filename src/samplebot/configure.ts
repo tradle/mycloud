@@ -286,8 +286,8 @@ export class Conf {
       identity = await bot.getMyIdentity()
     }
 
-    const existing = await this.get()
-    if (existing.org) {
+    const existingOrg = await this.org.get({ force: true })
+    if (existingOrg) {
       // don't reinit
       return await this.recalcPublicInfo()
     }
