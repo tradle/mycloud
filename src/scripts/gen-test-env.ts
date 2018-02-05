@@ -6,6 +6,11 @@ import path = require('path')
 import promisify = require('pify')
 import _fs = require('fs')
 import { prettify } from '../string-utils'
+import { Utils as LambdaUtils } from '../lambda-utils'
+import { Env } from '../env'
+import { createAWSWrapper } from '../aws'
+import { Logger } from '../logger'
+import { createRemoteTradle } from '../'
 import { loadCredentials, loadRemoteEnv, downloadDeploymentTemplate } from '../cli/utils'
 
 const serverlessYml = require('../cli/serverless-yml')
@@ -16,10 +21,13 @@ const { service, custom } = serverlessYml
 const prefix = `${service}-${custom.stage}-`
 
 loadCredentials()
-loadRemoteEnv()
 
-const tradle = require('../').createRemoteTradle()
-const { lambdaUtils } = tradle
+const env = new Env(process.env)
+const logger = new Logger('gen:testenv')
+const lambdaUtils = new LambdaUtils({
+  env,
+  aws: createAWSWrapper({ logger, env })
+})
 
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
@@ -28,15 +36,14 @@ const getEnv = async () => {
 }
 
 const getTemplate = async () => {
-  const template = await downloadDeploymentTemplate(tradle)
+  const template = await downloadDeploymentTemplate(createRemoteTradle())
   await fs.writeFile(latestTemplatePath, prettify(template))
 }
 
-Promise.all([
-  getEnv(),
-  getTemplate()
-])
-.catch(err => {
-  console.error(err)
-  process.exit(1)
-})
+getEnv()
+  .then(() => loadRemoteEnv())
+  .then(() => getTemplate())
+  .catch(err => {
+    console.error(err)
+    process.exit(1)
+  })
