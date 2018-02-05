@@ -144,9 +144,16 @@ export class Remediator {
     bundle?:any,
     key?:string
   }):Promise<ClaimStub> => {
-    const nonce = crypto.randomBytes(NONCE_LENGTH)
+    try {
+      if (!bundle) await this.getBundle({ key })
+    } catch (err) {
+      Errors.ignore(err, Errors.NotFound);
+      throw new Errors.NotFound(`bundle not found with key: ${key}`)
+    }
+
     if (!key) key = this.store.getKey(bundle)
 
+    const nonce = crypto.randomBytes(NONCE_LENGTH)
     return this.toClaimStub({ key, nonce })
   }
 
