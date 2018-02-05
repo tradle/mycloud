@@ -56,6 +56,7 @@ export class Remediation {
   }
 
   public handleDataClaim = async (opts) => {
+    this.logger.debug('processing tradle.DataClaim')
     const { req, user, claim } = opts
     try {
       await this.sendDataBundleForClaim(opts)
@@ -85,6 +86,7 @@ export class Remediation {
     try {
       unsigned = await this.getBundleByClaimId(claimId)
     } catch (err) {
+      this.logger.debug(`claim with id ${claimId} not found`)
       throw new CustomErrors.ClaimNotFound(claimId)
     }
 

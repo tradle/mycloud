@@ -334,6 +334,7 @@ export default function createProductsBot ({
     (handleMessages || /onfido/.test(event))
 
   if (willUseOnfido) {
+    logger.debug('using plugin: onfido')
     onfidoPlugin = createPlugin({
       bot,
       logger: logger.sub('onfido'),
@@ -344,6 +345,7 @@ export default function createProductsBot ({
 
   const customizeMessageOpts = plugins['customize-message']
   if (customizeMessageOpts) {
+    logger.debug('using plugin: customize-message')
     const customizeMessage = require('@tradle/plugin-customize-message')
     productsAPI.plugins.use(customizeMessage({
       get models() {
@@ -355,6 +357,7 @@ export default function createProductsBot ({
   }
 
   if (plugins['prefill-form']) {
+    logger.debug('using plugin: prefill-form')
     productsAPI.plugins.use(createPrefillPlugin({
       conf: plugins['prefill-form'],
       logger: logger.sub('plugin-prefill-form')
@@ -362,12 +365,15 @@ export default function createProductsBot ({
   }
 
   if (plugins['lens']) {
+    logger.debug('using plugin: lens')
     productsAPI.plugins.use(createLensPlugin({
       conf: plugins['lens'],
       logger: logger.sub('plugin-lens')
     }))
   }
+
   if (plugins['sanctions']) {
+    logger.debug('using plugin: sanctions')
     productsAPI.plugins.use(createSanctionsPlugin({
       conf: plugins['sanctions'],
       bot,
@@ -385,6 +391,7 @@ export default function createProductsBot ({
     })
 
     if (handleMessages) {
+      logger.debug('using plugin: remediation')
       productsAPI.plugins.use(remediator.plugin)
     }
   }

@@ -161,6 +161,7 @@ export class Remediator {
     .toString(CLAIM_ID_ENCODING)
 
     const provider = await this.bot.getMyIdentityPermalink()
+    debugger
     const qrData = QR.toHex({
       schema: 'ImportData',
       data: {
