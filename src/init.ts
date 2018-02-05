@@ -56,7 +56,7 @@ proto.ensureInitialized = co(function* (opts) {
 proto.init = co(function* (opts={}) {
   const [result] = yield Promise.all([
     this.initIdentity(opts),
-    this.enableBucketEncryption()
+    // this.enableBucketEncryption()
   ])
 
   return result
