@@ -8,6 +8,7 @@ const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
 const FORM_ID = 'tradle.BusinessInformation'
+const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 
 class ComplyAdvantageAPI {
   private bot:any
@@ -57,9 +58,9 @@ class ComplyAdvantageAPI {
     return hits && { resource, rawData, hits }
   }
 
-  async createSanctionsCheck({ application, rawData, user }) {
+  async createSanctionsCheck({ application, rawData }) {
     let resource:any = {
-      [TYPE]: 'tradle.SanctionsCheck',
+      [TYPE]: SANCTIONS_CHECK,
       status: rawData.hits.length ? 'Fail' : 'Success',
       provider: 'Comply Advantage',
       reason: rawData,
@@ -132,7 +133,7 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
         let { resource, rawData, hits} = r
         if (hits  &&  hits.length) {
           logger.debug(`found sanctions for: ${resource.companyName}`);
-          return complyAdvantage.createSanctionsCheck({application, user, rawData: rawData})
+          return complyAdvantage.createSanctionsCheck({application, rawData: rawData})
         }
 
         logger.debug(`creating verification for: ${resource.companyName}`);
