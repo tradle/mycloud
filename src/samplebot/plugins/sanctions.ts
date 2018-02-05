@@ -134,10 +134,9 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
           logger.debug(`found sanctions for: ${resource.companyName}`);
           return complyAdvantage.createSanctionsCheck({application, user, rawData: rawData})
         }
-        else {
-          logger.debug(`creating verification for: ${resource.companyName}`);
-          return complyAdvantage.createVerification({user, application, form: resource, rawData})
-        }
+
+        logger.debug(`creating verification for: ${resource.companyName}`);
+        return complyAdvantage.createVerification({user, application, form: resource, rawData})
       })
       let checksAndVerifications = await Promise.all(pchecks)
     }
