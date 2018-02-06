@@ -26,7 +26,7 @@ export interface IPlugins {
   [name:string]: IPlugin
 }
 
-export const Plugins:IPlugins = {}
+const Plugins:IPlugins = {}
 
 fs.readdirSync(__dirname).forEach(file => {
   if (file !== 'index.js' && file.endsWith('.js')) {
@@ -41,3 +41,5 @@ Plugins['customize-message'] = {
 }
 
 Plugins.onfido = Onfido
+
+export { Plugins }
