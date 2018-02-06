@@ -23,7 +23,8 @@ import { replaceDataUrls } from '@tradle/embed'
 import { createTestTradle } from '../'
 import { Tradle } from '../tradle'
 import { Logger } from '../logger'
-import Env from '../env'
+import { Env } from '../env'
+import { Bot } from '../bot'
 import * as onmessage from '../samplebot/lambda/mqtt/onmessage'
 import { genLocalResources } from '../cli/utils'
 import { utils, crypto } from '../'
@@ -54,8 +55,12 @@ const DEFAULT_PRODUCT = 'nl.tradle.DigitalPassport'
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const APPLICATION = 'tradle.Application'
 
+class TestBot extends Bot {
+  public identity: any
+}
+
 export class Test {
-  private bot: any
+  private bot: TestBot
   private tradle: Tradle
   private productsAPI: any
   private employeeManager: any
@@ -163,6 +168,8 @@ export class Test {
     const { identity } = await this.genIdentity()
     const friend = {
       name: 'friendly bank',
+      domain: 'friendly.io',
+      org: {},
       identity,
       url
     }

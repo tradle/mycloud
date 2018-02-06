@@ -22,8 +22,8 @@ import {
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
-import { Bot } from '../bot'
-import { DatedValue } from '../types'
+import { Bot, DatedValue } from '../types'
+import { IConf, BotComponents } from './types'
 // import createDeploymentModels from '../deployment-models'
 // import createBankModels from '../bank-models'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
@@ -50,26 +50,15 @@ const ONFIDO_ENABLED = true
 // then some handlers can migrate to 'messagestream'
 const willHandleMessages = event => event === 'message'
 
-export type BotComponents = {
-  bot: Bot
-  models: any
-  productsAPI?: any
-  employeeManager?: any
-  remediator?: Remediator
-  onfidoPlugin?: Onfido
-  commands?: Commander
-  [x:string]: any
-}
-
 export default function createProductsBot ({
   bot,
   logger,
   conf,
   event=''
 }: {
-  bot: any,
+  bot: Bot,
   logger: Logger,
-  conf: any,
+  conf: IConf,
   event?: string
 }):BotComponents {
   const {
@@ -79,7 +68,7 @@ export default function createProductsBot ({
     // autoVerify,
     approveAllEmployees,
     // queueSends,
-    graphqlRequiresAuth
+    // graphqlRequiresAuth
   } = conf.bot.products
 
   logger.debug('setting up products strategy')
@@ -403,6 +392,7 @@ export default function createProductsBot ({
     onfidoPlugin,
     remediator,
     commands,
+    conf,
     get models() {
       return bot.modelStore.models
     }

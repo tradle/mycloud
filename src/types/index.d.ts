@@ -301,3 +301,9 @@ export type Lambdas = {
 }
 
 export type BotStrategyInstallFn = (bot:Bot, opts?:any) => any|void
+
+export type ModelsPack = {
+  models?: any
+  lenses?: any
+  namespace?: string
+}

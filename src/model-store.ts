@@ -15,7 +15,8 @@ import {
   Bucket,
   Buckets,
   Friends,
-  Logger
+  Logger,
+  ModelsPack
 } from './types'
 
 import {
@@ -49,12 +50,6 @@ const getNamespace = pack => {
 // type CacheablePacks = {
 //   [domain:string]: CacheableBucketItem
 // }
-
-export type ModelsPack = {
-  models?: any
-  lenses?: any
-  namespace?: string
-}
 
 export class ModelStore extends EventEmitter {
   public cumulativePackKey: string

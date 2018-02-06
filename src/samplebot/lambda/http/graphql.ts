@@ -29,7 +29,7 @@ const { logger, handler } = lambda
 const init = async () => {
   const components = await promiseCustomize
   const {
-    style,
+    conf,
     middleware
   } = components
 
@@ -44,6 +44,7 @@ const init = async () => {
     logo: null
   }
 
+  const { style } = conf
   if (style && style.logo) {
     opts.logo = {
       src: style.logo.url,
