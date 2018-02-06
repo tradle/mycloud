@@ -29,16 +29,26 @@ import { customize } from '../samplebot/customize'
 
   tradle.logger.debug('setting up bot')
 
+  const product = 'nl.tradle.DigitalPassport'
   const bot = createBot()
   const customStuff = await customize({
     bot,
-    conf: {}
+    // conf: {
+    //   bot: {
+    //     products: {
+    //       approveAllEmployees: true,
+    //       enabled: [
+    //         product
+    //       ]
+    //     }
+    //   }
+    // }
   })
 
   tradle.logger.debug('running test')
   const test = new Test(customStuff)
   // await test.runEmployeeAndFriend()
-  await test.runEmployeeAndCustomer()
+  await test.runEmployeeAndCustomer({ product })
 })()
 .catch(err => {
   console.error(err)

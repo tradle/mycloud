@@ -5,7 +5,12 @@ import createProductsStrategy from './'
 import { createBot } from '../bot'
 import { createConf } from './configure'
 import Errors = require('../errors')
-import { BotComponents, CustomizeBotOpts } from './types'
+import { BotComponents, CustomizeBotOpts, CacheableBucketItem } from './types'
+
+const allowNotFound = err => {
+  Errors.ignore(err, Errors.NotFound)
+  return undefined
+}
 
 export async function customize (opts:CustomizeBotOpts):Promise<BotComponents> {
   let { lambda, bot, delayReady, event, conf } = opts
@@ -21,23 +26,15 @@ export async function customize (opts:CustomizeBotOpts):Promise<BotComponents> {
     termsAndConditions
   ] = await Promise.all([
     // confy.org.get(),
-    (conf && conf.bot) ? Promise.resolve(conf.bot) : confy.botConf.get(),
-    (conf && conf.modelsPack) ? Promise.resolve(conf.modelsPack) : confy.modelsPack.get().catch(err => {
-      Errors.ignore(err, Errors.NotFound)
-      return undefined
-    }),
-    (conf && conf.style) ? Promise.resolve(conf.style) : confy.style.get().catch(err => {
-      Errors.ignore(err, Errors.NotFound)
-      return undefined
-    }),
-    (conf && conf.termsAndConditions) ? Promise.resolve(conf.termsAndConditions) : confy.termsAndConditions.getDatedValue()
-      // ignore empty values
-      .then(datedValue => datedValue.value && datedValue)
-      .catch(err => {
-        // TODO: maybe store in local fs instead of in memory
-        Errors.ignore(err, Errors.NotFound)
-        return undefined
-      })
+    (conf && conf.bot) ? Promise.resolve(conf.bot) : confy.botConf.get().catch(allowNotFound),
+    (conf && conf.modelsPack) ? Promise.resolve(conf.modelsPack) : confy.modelsPack.get().catch(allowNotFound),
+    (conf && conf.style) ? Promise.resolve(conf.style) : confy.style.get().catch(allowNotFound),
+    (conf && conf.termsAndConditions)
+      ? Promise.resolve({ value: conf.termsAndConditions })
+      : confy.termsAndConditions.getDatedValue()
+        // ignore empty values
+        .then(datedValue => datedValue.value && datedValue)
+        .catch(allowNotFound)
   ])
 
   // const { domain } = org

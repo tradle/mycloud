@@ -51,7 +51,6 @@ const genIdentity = async (tradle:Tradle) => {
 // }())
 
 const baseModels = require('../models')
-const DEFAULT_PRODUCT = 'nl.tradle.DigitalPassport'
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const APPLICATION = 'tradle.Application'
 
@@ -97,10 +96,9 @@ export class Test {
     return this.bot.modelStore.models
   }
 
-  public runEmployeeAndCustomer = wrapWithIntercept(async (opts:any={}) => {
+  public runEmployeeAndCustomer = wrapWithIntercept(async ({ product }) => {
     await this._ready
 
-    const { product=DEFAULT_PRODUCT } = opts
     const { tradle, bot } = this
     const [
       employee,

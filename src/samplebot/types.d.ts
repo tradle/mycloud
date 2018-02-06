@@ -1,12 +1,11 @@
-import { Bot, ModelsPack, DatedValue } from '../types'
-import { Lambda } from '../lambda'
+import { Bot, ModelsPack, DatedValue, Lambda } from '../types'
 import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediator } from './remediation'
 
+export * from '../types'
+
 export {
-  Bot,
-  Lambda,
   Commander,
   Onfido,
   Remediator
