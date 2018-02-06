@@ -48,6 +48,7 @@ const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
 const {
+  parseId,
   parseStub,
   omitVirtual,
   setVirtual,
@@ -121,6 +122,7 @@ export {
  stripVirtual,
  omitVirtualDeep,
  hasVirtualDeep,
+ parseId,
  parseStub,
  encodeDataURI,
  decodeDataURI,

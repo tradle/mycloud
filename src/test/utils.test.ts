@@ -31,7 +31,7 @@ import { Tradle, createTestTradle } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
 import { ModelStore, createModelStore } from '../model-store'
-import PingPongModels = require('../bot/ping-pong-models')
+import { models as PingPongModels } from '../bot/ping-pong-models'
 import constants = require('../constants')
 
 const { KVTable } = require('../definitions')
@@ -776,7 +776,10 @@ test('ModelStore', loudAsync(async (t) => {
   )
 
   await store.saveCustomModels({
-    modelsPack: { namespace: 'ping.pong', models: PingPongModels }
+    modelsPack: {
+      namespace: 'ping.pong',
+      models: _.values(PingPongModels)
+    }
   })
 
   let cumulative = await store.getCumulativeModelsPack()

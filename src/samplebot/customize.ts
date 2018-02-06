@@ -44,7 +44,7 @@ export async function customize (opts:CustomizeBotOpts):Promise<BotComponents> {
 
   if (style) {
     try {
-      validateResource({ models, resource: style })
+      validateResource.resource({ models, resource: style })
     } catch (err) {
       bot.logger.error('invalid style', err.stack)
       style = null

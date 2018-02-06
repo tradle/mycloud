@@ -12,7 +12,6 @@ import _ = require('lodash')
 
 // @ts-ignore
 import Promise = require('bluebird')
-import { Middleware, Context as KoaContext } from 'koa'
 import compose = require('koa-compose')
 import caseless = require('caseless')
 import randomName = require('random-name')
@@ -23,7 +22,12 @@ import {
   Env,
   Tradle,
   Logger,
-  Bot
+  Bot,
+  Middleware,
+  IRequestContext,
+  ILambdaExecutionContext,
+  LambdaHandler,
+  ILambdaOpts
 } from './types'
 
 import Errors = require('./errors')
@@ -53,35 +57,6 @@ export enum EventSource {
   SCHEDULE='schedule',
   S3='s3',
   CLI='cli'
-}
-
-export interface IRequestContext {
-  requestId: string
-  correlationId: string
-  containerId: string
-  seq: number
-  virgin?: boolean
-  start: number
-}
-
-export interface ILambdaExecutionContext {
-  // requestNumber: number
-  event: any
-  context: ILambdaAWSExecutionContext
-  callback?: Function
-  error?: Error
-  body?: any
-  done: boolean
-}
-
-export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
-  => any|void
-
-export interface ILambdaOpts {
-  devModeOnly?: boolean
-  source?: EventSource
-  tradle?: Tradle
-  [x:string]: any
 }
 
 export const fromHTTP = (opts={}) => new Lambda({ ...opts, source: EventSource.HTTP })
@@ -359,7 +334,7 @@ Previous exit stack: ${this.lastExitStack}`)
   public run = async () => {
     this.emit('run')
     const exec = compose(this.middleware)
-    const ctx:any = this.execCtx
+    const ctx = this.execCtx
     if (!ctx) throw new Error('missing execution context')
 
     try {

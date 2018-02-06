@@ -1,4 +1,4 @@
-export = {
+export const models = {
   'ping.pong.Ping': {
     id: 'ping.pong.Ping',
     title: 'Ping',

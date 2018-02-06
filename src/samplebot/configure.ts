@@ -179,7 +179,7 @@ export class Conf {
 
   public setStyle = async (value:any):Promise<boolean> => {
     this.logger.debug('setting style')
-    validateResource({
+    validateResource.resource({
       models: this.bot.models,
       model: 'tradle.StylesPack',
       resource: value

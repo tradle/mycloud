@@ -1,7 +1,8 @@
 import { EventEmitter } from 'events'
-import { DB } from '@tradle/dynamodb'
+import { Middleware as ComposeMiddleware } from 'koa-compose'
+import { DB, Models, Model } from '@tradle/dynamodb'
 import { Logger } from '../logger'
-import { Lambda } from '../lambda'
+import { Lambda, EventSource } from '../lambda'
 import { Bot } from '../bot'
 import { Tradle } from '../tradle'
 import { Env } from '../env'
@@ -27,9 +28,21 @@ import { Friends } from '../friends'
 import { Push } from '../push'
 import { User } from '../user'
 import { Discovery } from '../discovery'
+import { Backlinks } from '../backlinks'
+import {
+  ResourceStub,
+  ParsedResourceStub
+} from '@tradle/validate-resource'
 
 export {
+  // re-export from @tradle/validate-resource
+  ResourceStub,
+  ParsedResourceStub,
+  // re-export from @tradle/dynamodb
   DB,
+  Models,
+  Model,
+  // export
   Bot,
   Tradle,
   Env,
@@ -55,7 +68,8 @@ export {
   Push,
   User,
   Discovery,
-  Lambda
+  Lambda,
+  Backlinks
 }
 
 export interface ISettledPromise {
@@ -122,6 +136,37 @@ export interface ILambdaAWSExecutionContext {
   succeed:                        Function
   fail:                           Function
 }
+
+export interface IRequestContext {
+  requestId: string
+  correlationId: string
+  containerId: string
+  seq: number
+  virgin?: boolean
+  start: number
+}
+
+export interface ILambdaExecutionContext {
+  // requestNumber: number
+  event: any
+  context: ILambdaAWSExecutionContext
+  callback?: Function
+  error?: Error
+  body?: any
+  done: boolean
+}
+
+export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
+  => any|void
+
+export interface ILambdaOpts {
+  devModeOnly?: boolean
+  source?: EventSource
+  tradle?: Tradle
+  [x:string]: any
+}
+
+export type Middleware = ComposeMiddleware<ILambdaExecutionContext>
 
 export interface ITradleObject {
   _sigPubKey?: string
@@ -216,18 +261,6 @@ export interface IDeliveryMessageRange {
   afterMessage?: IOutboundMessagePointer
 }
 
-export type ResourceStub = {
-  id: string
-  title?: string
-}
-
-export type ParsedResourceStub = {
-  type: string
-  link: string
-  permalink: string
-  title?: string
-}
-
 export type CacheContainer = {
   cache: any
   logger: Logger
@@ -304,7 +337,8 @@ export type Lambdas = {
 export type BotStrategyInstallFn = (bot:Bot, opts?:any) => any|void
 
 export type ModelsPack = {
-  models?: any
+  models?: Model[]
   lenses?: any
   namespace?: string
 }
+

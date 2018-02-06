@@ -293,7 +293,7 @@ const getTableDefinitions = () => {
 const validateProviderConf = conf => {
   const { style } = conf
   if (style) {
-    validateResource({
+    validateResource.resource({
       models,
       resource: style
     })

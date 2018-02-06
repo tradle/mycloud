@@ -46,7 +46,7 @@ export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
     if (sig) queryObj[SIG] = sig
 
     try {
-      validateResource({
+      validateResource.resource({
         models: bot.models,
         model: bot.models['tradle.GraphQLQuery'],
         resource: queryObj

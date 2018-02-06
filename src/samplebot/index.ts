@@ -380,7 +380,7 @@ export default function createProductsBot ({
     })
 
     if (handleMessages) {
-      logger.debug('using plugin: remediation')
+      logger.sub('remediation:').debug('testing...')
       productsAPI.plugins.use(remediator.plugin)
     }
   }

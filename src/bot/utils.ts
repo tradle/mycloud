@@ -53,7 +53,7 @@ const normalizeSendOpts = async (bot, opts) => {
   const model = models[payload[TYPE]]
   if (model) {
     try {
-      validateResource({ models, model, resource: payload })
+      validateResource.resource({ models, model, resource: payload })
     } catch (err) {
       bot.logger.error('failed to validate resource', {
         resource: payload,

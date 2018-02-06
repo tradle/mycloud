@@ -163,7 +163,7 @@ export class Remediation {
     }, item))
 
     items = items.map(item => this.resolvePointers({ items, item }))
-    items.forEach(resource => validateResource({ models, resource }))
+    items.forEach(resource => validateResource.resource({ models, resource }))
   }
 
   private resolvePointers = ({ items, item }) => {

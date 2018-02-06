@@ -7,10 +7,9 @@ import debug = require('debug')
 import randomName = require('random-name')
 import { allSettled, RESOLVED_PROMISE } from './utils'
 import { randomString } from './crypto'
-import { IDebug, ILambdaAWSExecutionContext } from './types'
+import { IDebug, ILambdaAWSExecutionContext, Lambda, IRequestContext } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
 import Logger, { Level } from './logger'
-import { Lambda, IRequestContext } from './lambda'
 
 export default class Env {
   public lambda:Lambda

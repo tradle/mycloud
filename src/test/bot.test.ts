@@ -17,7 +17,7 @@ import { getGraphqlAPI } from '../bot/graphql'
 import { loudAsync, wait } from '../utils'
 import { toStreamItems, recreateTable } from './utils'
 import Errors = require('../errors')
-import PingPongModels = require('../bot/ping-pong-models')
+import { models as PingPongModels } from '../bot/ping-pong-models'
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')

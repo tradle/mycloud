@@ -22,7 +22,7 @@ const promiseCustomize = customize({
 
 const lambda = bot.createLambda({
   source: EventSource.HTTP,
-  middleware: promiseCustomize.then(({ middleware }) => middleware)
+  middleware: promiseCustomize.then(({ middleware }) => middleware.middleware)
 })
 
 const { logger, handler } = lambda
