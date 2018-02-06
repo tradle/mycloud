@@ -108,7 +108,7 @@ export class Remediator {
     claimId: string
   }) => {
     this.logger.debug(`claim processed, deleting claim stubs`, { claimId, user: user.id })
-    await this.deleteClaimsForBundle({ claimId })
+    // await this.deleteClaimsForBundle({ claimId })
   }
 
   public getBundle = async ({ key, claimId }: {
@@ -144,23 +144,26 @@ export class Remediator {
     bundle?:any,
     key?:string
   }):Promise<ClaimStub> => {
-    try {
-      if (!bundle) await this.getBundle({ key })
-    } catch (err) {
-      Errors.ignore(err, Errors.NotFound);
-      throw new Errors.NotFound(`bundle not found with key: ${key}`)
-    }
-
     if (!key) key = this.store.getKey(bundle)
 
     const nonce = crypto.randomBytes(NONCE_LENGTH)
-    return this.toClaimStub({ key, nonce })
+    return this.toClaimStub({ key, nonce, bundle })
   }
 
-  public toClaimStub = async ({ key, nonce }: {
+  public toClaimStub = async ({ key, nonce, bundle }: {
     key: string,
-    nonce: string|Buffer
+    nonce: string|Buffer,
+    bundle?: any
   }):Promise<ClaimStub> => {
+    if (!bundle) {
+      try {
+        await this.getBundle({ key })
+      } catch (err) {
+        Errors.ignore(err, Errors.NotFound);
+        throw new Errors.NotFound(`bundle not found with key: ${key}`)
+      }
+    }
+
     const claimId = Buffer.concat([
       typeof nonce === 'string' ? new Buffer(nonce, 'hex') : nonce,
       new Buffer(key, 'hex')
@@ -168,7 +171,6 @@ export class Remediator {
     .toString(CLAIM_ID_ENCODING)
 
     const provider = await this.bot.getMyIdentityPermalink()
-    debugger
     const qrData = QR.toHex({
       schema: 'ImportData',
       data: {
