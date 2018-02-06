@@ -12,9 +12,9 @@ import {
   uniqueStrict
 } from '../../utils'
 
-import { Lambda, fromDynamoDB } from '../lambda'
+import { fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from './onmessagessaved'
-import { ISettledPromise } from '../../types'
+import { Lambda, ISettledPromise } from '../../types'
 
 const S3_GET_ATTEMPTS = 3
 const S3_FAILED_GET_INITIAL_RETRY_DELAY = 1000

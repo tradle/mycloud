@@ -7,7 +7,8 @@ import Errors = require('../../errors')
 import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
 import { allSettled, uniqueStrict } from '../../utils'
-import { EventSource, Lambda } from '../lambda'
+import { Lambda } from '../../types'
+import { EventSource } from '../lambda'
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const stack = [

@@ -2,7 +2,8 @@ import cors = require('kcors')
 import compose = require('koa-compose')
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
-import { Lambda, fromHTTP } from '../lambda'
+import { Lambda } from '../../types'
+import { fromHTTP } from '../lambda'
 import { getRequestIps } from '../../utils'
 
 export const createLambda = (opts) => {

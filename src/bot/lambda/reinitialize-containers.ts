@@ -1,5 +1,6 @@
 import serverlessYml = require('../../cli/serverless-yml')
-import { Lambda, fromLambda } from '../lambda'
+import { Lambda } from '../../types'
+import { fromLambda } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromLambda(opts)

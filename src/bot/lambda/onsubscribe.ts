@@ -1,4 +1,5 @@
-import { Lambda, fromIot } from '../lambda'
+import { Lambda } from '../../types'
+import { fromIot } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromIot(opts)

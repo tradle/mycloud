@@ -1,5 +1,6 @@
 import querystring = require('querystring')
-import { Lambda, fromSchedule } from '../lambda'
+import { Lambda } from '../../types'
+import { fromSchedule } from '../lambda'
 import { get } from '../../utils'
 
 const FAUCET_URL = `https://tbtcfaucet.tradle.io/withdraw`

@@ -9,7 +9,7 @@ import { route } from './noop-route'
 import { Level } from '../../logger'
 import { logResponseBody } from '../../utils'
 import { getGraphqlAPI, prettifyQuery } from '../graphql'
-import { Lambda } from '../lambda'
+import { Lambda } from '../../types'
 
 export const createHandler = (lambda:Lambda, opts:any={}) => {
   const { bot, logger } = lambda

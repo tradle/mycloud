@@ -1,4 +1,5 @@
-import { Lambda, EventSource, fromSchedule } from '../lambda'
+import { Lambda } from '../../types'
+import { EventSource, fromSchedule } from '../lambda'
 import { IFailureQueryOpts } from '../../seals'
 
 const SIX_HOURS = 6 * 3600 * 1000

@@ -1,5 +1,6 @@
 import { TYPE } from '@tradle/constants'
-import { Lambda, fromDynamoDB } from '../lambda'
+import { Lambda } from '../../types'
+import { fromDynamoDB } from '../lambda'
 import { createMiddleware } from '../middleware/onmessagestream'
 
 const MODELS_PACK = 'tradle.ModelsPack'

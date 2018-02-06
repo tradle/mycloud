@@ -1,6 +1,6 @@
 import {
   EventSource,
-  Lambda as BaseLambda
+  Lambda
 } from '../lambda'
 
 import { isPromise } from '../utils'
@@ -8,67 +8,61 @@ import { Bot } from './'
 
 export { EventSource }
 
-export class Lambda extends BaseLambda {
-  public bot: Bot
-  public promiseReady: () => Promise<void>
-  constructor ({ bot, middleware, ...lambdaOpts }: any) {
-    super(lambdaOpts)
-    this.bot = bot
-    bot.lambda = this
+export const createLambda = ({ bot, middleware, ...lambdaOpts }: any):Lambda => {
+  const lambda = new Lambda(lambdaOpts)
+  lambda.bot = bot
 
-    this.promiseReady = bot.promiseReady
+  // if (!bot.isReady()) {
+  //   const now = Date.now()
+  //   const interval = setInterval(() => {
+  //     if (bot.isReady()) return clearInterval(interval)
 
-    // if (!bot.isReady()) {
-    //   const now = Date.now()
-    //   const interval = setInterval(() => {
-    //     if (bot.isReady()) return clearInterval(interval)
+  //     const time = Date.now() - now
+  //     this.logger.warn(`${time}ms passed. Did you forget to call bot.ready()?`)
+  //   }, 5000)
 
-    //     const time = Date.now() - now
-    //     this.logger.warn(`${time}ms passed. Did you forget to call bot.ready()?`)
-    //   }, 5000)
+  //   interval.unref()
+  //   this.promiseReady().then(() => clearInterval(interval))
+  // }
 
-    //   interval.unref()
-    //   this.promiseReady().then(() => clearInterval(interval))
-    // }
+  bot.promiseReady().then(() => {
+    lambda.logger.debug('bot is ready!')
+  })
 
-    bot.promiseReady().then(() => {
-      this.logger.debug('bot is ready!')
-    })
+  lambda.tasks.add({
+    name: 'bot:ready',
+    promise: bot.promiseReady()
+  })
 
-    this.tasks.add({
-      name: 'bot:ready',
-      promise: this.promiseReady()
-    })
+  lambda.on('run', () => {
+    if (!lambda.isVirgin && !bot.isReady()) {
+      console.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+    }
+  })
 
-    this.on('run', () => {
-      if (!this.isVirgin && !bot.isReady()) {
-        console.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
-      }
-    })
+  lambda.on('done', () => {
+    if (!bot.isReady()) {
+      console.error('2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+    }
+  })
 
-    this.on('done', () => {
-      if (!bot.isReady()) {
-        console.error('2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
-      }
-    })
+  // preware really
 
-    // preware really
+  lambda.use(async (ctx, next) => {
+    await bot.promiseReady()
+    await next()
+  })
 
-    this.use(async (ctx, next) => {
-      await bot.promiseReady()
-      await next()
-    })
+  if (middleware) lambda.use(middleware)
 
-    if (middleware) this.use(middleware)
-  }
+  return lambda
 }
 
-export const createLambda = (opts):Lambda => new Lambda(opts)
-export const fromHTTP = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.HTTP })
-export const fromDynamoDB = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.S3 })
-export const fromCli = (opts={}):Lambda => new Lambda({ ...opts, source: EventSource.CLI })
+export const fromHTTP = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.HTTP })
+export const fromDynamoDB = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.S3 })
+export const fromCli = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.CLI })

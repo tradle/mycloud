@@ -1,7 +1,8 @@
 import compose = require('koa-compose')
 import cors = require('kcors')
 import { get } from '../middleware/noop-route'
-import { EventSource, Lambda, fromHTTP } from '../lambda'
+import { Lambda } from '../../types'
+import { EventSource, fromHTTP } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)

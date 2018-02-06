@@ -1,12 +1,9 @@
-import {
-  EventSource,
-  Lambda
-} from '../bot/lambda'
-
+import { Lambda, EventSource } from '../lambda'
 import { createBot } from '../bot'
 import { customize } from './customize'
 
 export {
+  Lambda,
   EventSource
 }
 

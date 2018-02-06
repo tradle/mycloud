@@ -23,6 +23,7 @@ import createUsers = require('./users')
 import {
   EndpointInfo,
   ILambdaImpl,
+  Lambda,
   LambdaCreator,
   Hooks,
   HooksHookFn,
@@ -32,7 +33,7 @@ import {
   BotStrategyInstallFn
 } from '../types'
 
-import { createLambda, Lambda } from './lambda'
+import { createLambda } from './lambda'
 import { createLocker, Locker } from './locker'
 import { Logger } from '../logger'
 import { KeyValueTable } from '../key-value-table'

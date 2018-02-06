@@ -1,4 +1,5 @@
-import { Lambda, fromDynamoDB } from '../lambda'
+import { Lambda } from '../../types'
+import { fromDynamoDB } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromDynamoDB(opts)

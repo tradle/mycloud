@@ -3,7 +3,8 @@ import cors = require('kcors')
 import Errors = require('../../errors')
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
-import { EventSource, Lambda, fromHTTP } from '../lambda'
+import { Lambda } from '../../types'
+import { EventSource, fromHTTP } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)

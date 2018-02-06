@@ -54,7 +54,8 @@ export {
   Friends,
   Push,
   User,
-  Discovery
+  Discovery,
+  Lambda
 }
 
 export interface ISettledPromise {

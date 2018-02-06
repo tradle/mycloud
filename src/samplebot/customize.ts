@@ -5,12 +5,10 @@ import createProductsStrategy from './'
 import { createBot } from '../bot'
 import { createConf } from './configure'
 import Errors = require('../errors')
-import { BotComponents } from './types'
+import { BotComponents, CustomizeBotOpts } from './types'
 
-const ONFIDO_PLUGIN_PATH = 'products.plugins.onfido'
-
-export async function customize (opts):Promise<BotComponents> {
-  let { lambda, bot, delayReady, event } = opts
+export async function customize (opts:CustomizeBotOpts):Promise<BotComponents> {
+  let { lambda, bot, delayReady, event, conf } = opts
   if (!bot) bot = lambda.bot
 
   const { logger } = lambda || bot
@@ -23,16 +21,16 @@ export async function customize (opts):Promise<BotComponents> {
     termsAndConditions
   ] = await Promise.all([
     // confy.org.get(),
-    confy.botConf.get(),
-    confy.modelsPack.get().catch(err => {
+    (conf && conf.bot) ? Promise.resolve(conf.bot) : confy.botConf.get(),
+    (conf && conf.modelsPack) ? Promise.resolve(conf.modelsPack) : confy.modelsPack.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
       return undefined
     }),
-    confy.style.get().catch(err => {
+    (conf && conf.style) ? Promise.resolve(conf.style) : confy.style.get().catch(err => {
       Errors.ignore(err, Errors.NotFound)
       return undefined
     }),
-    confy.termsAndConditions.getDatedValue()
+    (conf && conf.termsAndConditions) ? Promise.resolve(conf.termsAndConditions) : confy.termsAndConditions.getDatedValue()
       // ignore empty values
       .then(datedValue => datedValue.value && datedValue)
       .catch(err => {
@@ -47,7 +45,6 @@ export async function customize (opts):Promise<BotComponents> {
     bot.modelStore.setCustomModels(modelsPack)
   }
 
-  const onfido = _.get(botConf, ONFIDO_PLUGIN_PATH)
   if (style) {
     try {
       validateResource({ models, resource: style })
@@ -57,7 +54,7 @@ export async function customize (opts):Promise<BotComponents> {
     }
   }
 
-  const conf = {
+  conf = {
     bot: botConf,
     style,
     termsAndConditions,

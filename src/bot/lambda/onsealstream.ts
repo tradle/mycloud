@@ -1,7 +1,8 @@
 import _ = require('lodash')
 import { getRecordsFromEvent } from '../../db-utils'
 import { batchProcess } from '../../utils'
-import { Lambda, fromDynamoDB } from '../lambda'
+import { Lambda } from '../../types'
+import { fromDynamoDB } from '../lambda'
 
 const Read = {
   one: 'readseal',

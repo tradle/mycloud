@@ -1,6 +1,7 @@
 import _ = require('lodash')
 import { sendSuccess, sendError } from '../../cfn-response'
-import { EventSource, fromCloudFormation, Lambda } from '../lambda'
+import { Lambda } from '../../types'
+import { EventSource, fromCloudFormation } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromCloudFormation(opts)

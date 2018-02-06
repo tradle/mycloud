@@ -2,7 +2,7 @@ import compose = require('koa-compose')
 import cors = require('kcors')
 import { pick } from 'lodash'
 import { bodyParser } from '../../bot/middleware/body-parser'
-import { Lambda } from '../../bot/lambda'
+import { Lambda } from '../../lambda'
 import {
   sendModelsPackIfUpdated,
   createModelsPackGetter

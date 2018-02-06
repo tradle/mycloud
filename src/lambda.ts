@@ -18,9 +18,13 @@ import randomName = require('random-name')
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
-import Env from './env'
-import Tradle from './tradle'
-import Logger from './logger'
+import {
+  Env,
+  Tradle,
+  Logger,
+  Bot
+} from './types'
+
 import Errors = require('./errors')
 import {
   defineGetter,
@@ -106,7 +110,7 @@ export class Lambda extends EventEmitter {
   public containerId: string
   public accountId: string
   public requestCounter: number
-  public bot?: any
+  public bot?: Bot
   private breakingContext: string
   private middleware:Function[]
   private initPromise: Promise<void>

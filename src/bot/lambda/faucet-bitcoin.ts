@@ -1,4 +1,5 @@
-import { Lambda, fromSchedule } from '../lambda'
+import { Lambda } from '../../types'
+import { fromSchedule } from '../lambda'
 
 const MAX_WITHDRAWAL_SATOSHIS = 1e7
 

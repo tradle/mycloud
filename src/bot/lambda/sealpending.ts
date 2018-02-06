@@ -1,4 +1,5 @@
-import { Lambda, fromSchedule } from '../lambda'
+import { Lambda } from '../../types'
+import { fromSchedule } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromSchedule(opts)

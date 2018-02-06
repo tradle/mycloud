@@ -30,7 +30,11 @@ import { customize } from '../samplebot/customize'
   tradle.logger.debug('setting up bot')
 
   const bot = createBot()
-  const customStuff = await customize({ bot })
+  const customStuff = await customize({
+    bot,
+    conf: {}
+  })
+
   tradle.logger.debug('running test')
   const test = new Test(customStuff)
   // await test.runEmployeeAndFriend()

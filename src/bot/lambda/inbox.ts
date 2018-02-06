@@ -2,7 +2,8 @@ import compose = require('koa-compose')
 import cors = require('kcors')
 import { bodyParser } from '../middleware/body-parser'
 import { route } from '../middleware/noop-route'
-import { Lambda, fromHTTP } from '../lambda'
+import { Lambda } from '../../types'
+import { fromHTTP } from '../lambda'
 import { onMessage as onMessageInInbox, createSuccessHandler, createErrorHandler } from '../middleware/inbox'
 import { onMessage } from '../middleware/onmessage'
 import { onMessagesSaved } from '../middleware/onmessagessaved'

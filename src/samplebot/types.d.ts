@@ -1,9 +1,12 @@
 import { Bot, ModelsPack, DatedValue } from '../types'
+import { Lambda } from '../lambda'
 import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediator } from './remediation'
 
 export {
+  Bot,
+  Lambda,
   Commander,
   Onfido,
   Remediator
@@ -48,4 +51,12 @@ export type BotComponents = {
   onfidoPlugin?: Onfido
   commands?: Commander
   [x:string]: any
+}
+
+export type CustomizeBotOpts = {
+  lambda?: Lambda
+  bot?: Bot
+  delayReady?: boolean
+  event?: string
+  conf?: IConf
 }
