@@ -13,6 +13,7 @@ serverless-compiled.yml
 serverless-interpolated.yml
 vars.yml
 secrets.yml
+lib/
 **/conf/**
 !conf/default.json
 lib/modelmap.json
