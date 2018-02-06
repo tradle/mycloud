@@ -5,6 +5,7 @@ import proc = require('child_process')
 import { parseSync as parseEnv } from 'env-file-parser'
 import _fs = require('fs')
 import YAML = require('js-yaml')
+import getLocalIP = require('localip')
 import isNative = require('is-native-module')
 import {
   pick,
@@ -514,7 +515,7 @@ export const getOfflineHost = (env?:Env) => {
   }
 
   const port = getOfflinePort(env)
-  return `http://localhost:${port}`
+  return `http://${getLocalIP()}:${port}`
 }
 
 export {
