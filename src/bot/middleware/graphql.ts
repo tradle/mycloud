@@ -81,13 +81,14 @@ export const createHandler = (lambda:Lambda, opts:any={}) => {
   // })
 
 
-  const stack = compose(middleware)
-  stack.setGraphiqlOptions = options => graphiqlOptions = options
-  stack.getGraphqlAPI = () => getGraphqlAPI(lambda)
-
+  const setGraphiqlOptions = options => graphiqlOptions = options
   const promiseAPI = bot.promiseReady().then(() => {
-    api = stack.getGraphqlAPI()
+    api = getGraphqlAPI(lambda)
   })
 
-  return stack
+  return {
+    handler: compose(middleware),
+    setGraphiqlOptions,
+    getGraphqlAPI: () => getGraphqlAPI(lambda)
+  }
 }

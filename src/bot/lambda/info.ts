@@ -15,7 +15,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   return compose([
     get(),
     cors(),
-    async (ctx, next) => {
+    async (ctx:any, next) => {
       logger.debug('setting bot endpoint info')
       if (!ctx.body) ctx.body = {}
       Object.assign(ctx.body, bot.endpointInfo)

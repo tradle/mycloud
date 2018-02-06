@@ -12,6 +12,7 @@ import _ = require('lodash')
 
 // @ts-ignore
 import Promise = require('bluebird')
+import { Middleware, Context as KoaContext } from 'koa'
 import compose = require('koa-compose')
 import caseless = require('caseless')
 import randomName = require('random-name')
@@ -110,9 +111,9 @@ export class Lambda extends EventEmitter {
   public containerId: string
   public accountId: string
   public requestCounter: number
-  public bot?: Bot
+  public bot: Bot
   private breakingContext: string
-  private middleware:Function[]
+  private middleware:Middleware[]
   private initPromise: Promise<void>
   private _gotHandler: boolean
   private lastExitStack: string
@@ -358,7 +359,7 @@ Previous exit stack: ${this.lastExitStack}`)
   public run = async () => {
     this.emit('run')
     const exec = compose(this.middleware)
-    const ctx = this.execCtx
+    const ctx:any = this.execCtx
     if (!ctx) throw new Error('missing execution context')
 
     try {

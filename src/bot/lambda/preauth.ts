@@ -18,7 +18,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     post(),
     cors(),
     bodyParser(),
-    async (ctx, next) => {
+    async (ctx:any, next) => {
       const ips = getRequestIps(ctx.request)
       const { clientId, identity } = ctx.event
       ctx.session = await auth.createSession({ clientId, identity, ips })

@@ -94,6 +94,8 @@ export const createBot = (opts:any={}):Bot => {
 //   messages: Messages
 // }
 
+// this is not good TypeScript,
+// we lose all type checking when exporting like this
 const lambdaCreators:LambdaImplMap = {
   get onmessage() { return require('./lambda/onmessage') },
   get onmessagestream() { return require('./lambda/onmessagestream') },
@@ -168,17 +170,6 @@ export class Bot extends EventEmitter implements IReady {
   public onwroteseal = handler => this.hooks.hook('wroteseal', handler)
 
   public lambdas: LambdaMap
-
-  public get middleware () {
-    return {
-      get graphql() {
-        return {
-          queryHandler: require('./middleware/graphql').createHandler,
-          auth: require('./middleware/graphql-auth').createHandler
-        }
-      }
-    }
-  }
 
   // PRIVATE
   private tradle: Tradle

@@ -9,6 +9,8 @@
   "devDependencies": {
     "@tradle/aws-client": "github:tradle/aws-client",
     "@types/aws-sdk": "^2.7.0",
+    "@types/graphql": "^0.12.3",
+    "@types/koa": "^2.0.44",
     "@types/lodash": "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.91.tgz",
     "@types/node": "^8.0.30",
     "@types/sinon": "^4.1.2",
@@ -48,7 +50,7 @@
   },
   "scripts": {
     "init": "npm i && npm run build:yml",
-    "precommit": "lint-staged",
+    "precommit": "tsc && lint-staged",
     "package": "serverless package",
     "gen:testenv": "./lib/scripts/gen-test-env.js",
     "gen:fixtures": "./lib/scripts/gen-fixtures.js",

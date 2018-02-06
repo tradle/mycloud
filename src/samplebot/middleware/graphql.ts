@@ -2,6 +2,8 @@ import compose = require('koa-compose')
 import cors = require('kcors')
 import { pick } from 'lodash'
 import { bodyParser } from '../../bot/middleware/body-parser'
+import { createHandler as createGraphqlHandler } from '../../bot/middleware/graphql'
+import { createHandler as createGraphqlAuthHandler } from '../../bot/middleware/graphql-auth'
 import { Lambda } from '../../lambda'
 import {
   sendModelsPackIfUpdated,
@@ -50,7 +52,7 @@ export const keepModelsFresh = (lambda:Lambda, components) => {
 export const createAuth = (lambda: Lambda, components) => {
   const allowGuest = lambda.stage === 'dev'
   const { employeeManager } = components
-  return lambda.bot.middleware.graphql.auth(lambda, {
+  return createGraphqlAuthHandler(lambda, {
     allowGuest,
     canUserRunQuery: ({ user, query }) => {
       return allowGuest || (user && employeeManager.isEmployee(user))
@@ -59,16 +61,23 @@ export const createAuth = (lambda: Lambda, components) => {
 }
 
 export const createMiddleware = (lambda:Lambda, components) => {
-  const graphqlHandler = lambda.bot.middleware.graphql.queryHandler(lambda, components)
+  const {
+    handler,
+    setGraphiqlOptions,
+    getGraphqlAPI
+  } = createGraphqlHandler(lambda, components)
+
   const middleware = compose([
     cors(),
     bodyParser({ jsonLimit: '10mb' }),
     createAuth(lambda, components),
     keepModelsFresh(lambda, components),
-    graphqlHandler
+    handler
   ])
 
-  defineGetter(middleware, 'setGraphiqlOptions', () => graphqlHandler.setGraphiqlOptions)
-  defineGetter(middleware, 'getGraphqlAPI', () => graphqlHandler.getGraphqlAPI)
-  return middleware
+  return {
+    middleware,
+    setGraphiqlOptions,
+    getGraphqlAPI
+  }
 }
