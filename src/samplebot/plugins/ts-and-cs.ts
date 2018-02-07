@@ -9,7 +9,9 @@ const DATE_PRESENTED_PROP = 'tsAndCsState.datePresented'
 const DATE_ACCEPTED_PROP = 'tsAndCsState.dateAccepted'
 const CUSTOMER_WAITING = 'tradle.CustomerWaiting'
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
+const DATA_CLAIM = 'tradle.DataClaim'
 const YOU_HAVENT_ACCEPTED = `Please accept our Terms and Conditions before we continue :-)`
+const ALLOW_WITHOUT_ACCEPTING = [DATA_CLAIM]
 
 export const name = 'termsAndConditions'
 export const createPlugin = ({
@@ -26,6 +28,10 @@ export const createPlugin = ({
   const onmessage = async (req) => {
     const { user, payload, type } = req
     if (user.friend || employeeManager.isEmployee(user)) return
+
+    if (ALLOW_WITHOUT_ACCEPTING.includes(type)) {
+      return
+    }
 
     if (type === TERMS_AND_CONDITIONS &&
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
