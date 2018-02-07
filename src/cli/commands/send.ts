@@ -1,8 +1,9 @@
 import { TYPE } from '@tradle/constants'
-import Cli, { CommandOpts, ICommand } from '../'
+import Cli from '../'
 import Command from '../command'
+import { CommandOpts, ICommand } from '../../types'
 
-export default class Send extends Command implements ICommand {
+export default class Send extends Command {
   public static description = 'sends a message'
   public parse = message => {
     return {

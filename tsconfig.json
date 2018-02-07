@@ -29,6 +29,6 @@
     ]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "**/*.js", "src/test/mock/", "src/cli/"],
+  "exclude": ["node_modules", "**/*.js", "src/test/mock/"],
   "compileOnSave": false
 }

@@ -1,9 +1,10 @@
 import Tradle from '../../tradle'
 import Env from '../../env'
 import Logger from '../../logger'
-import Cli, { CommandOpts, ICommand } from '../'
+import Cli from '../'
 import Command from '../command'
 import { prettify } from '../../string-utils'
+import { CommandOpts, ICommand } from '../../types'
 
 const skip = [
   'pubkeys',
@@ -13,7 +14,7 @@ const skip = [
   'tradle_MyCloudFriend'
 ]
 
-export default class ClearTables extends Command implements ICommand {
+export default class ClearTables extends Command {
   public static requiresConfirmation = true
   public static description = 'this will clear tables in the REMOTE DynamoDB'
   private logger: Logger

@@ -1,5 +1,5 @@
 import { Tradle, Env, Bot } from '../types'
-import Cli from '../'
+import Cli from './'
 
 export default class Command {
   protected cli: Cli

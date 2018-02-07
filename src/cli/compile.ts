@@ -226,7 +226,7 @@ function addHTTPMethodsToEnvironment (conf) {
   }
 }
 
-function addResourcesToOutputs (yaml) {
+function addResourcesToOutputs (yaml:any) {
   const { resources } = yaml
   if (!resources.Outputs) resources.Outputs = {}
 
@@ -236,7 +236,7 @@ function addResourcesToOutputs (yaml) {
       throw new Error(`refusing to overwrite Outputs.${id}`)
     }
 
-    const output = Outputs[id] = {}
+    const output:any = Outputs[id] = {}
     if (resource.Description) {
       output.Description = resource.Description
     }
