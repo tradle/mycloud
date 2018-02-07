@@ -163,7 +163,7 @@ export class Conf {
 
   public validatePluginConf = async (plugins:any) => {
     await Promise.all(Object.keys(plugins).map(async (name) => {
-      const plugin = Plugins[name]
+      const plugin = Plugins.get(name)
       if (!plugin) throw new Error(`plugin not found: ${name}`)
 
       const pluginConf = plugins[name]
