@@ -286,10 +286,12 @@ export class Conf {
       identity = await bot.getMyIdentity()
     }
 
-    const existingOrg = await this.org.get({ force: true })
-    if (existingOrg) {
-      // don't reinit
+    try {
+      // if org exists, we have less to do
+      await this.org.get({ force: true })
       return await this.recalcPublicInfo()
+    } catch (err) {
+      Errors.ignore(err, Errors.NotFound)
     }
 
     const logo = await this.getLogo(conf)
