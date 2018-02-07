@@ -20,5 +20,6 @@ if [ ! -e "serverless.yml" ]; then
   cp serverless-uncompiled.yml serverless.yml
 fi
 
+tsc
 npm run copy-static-assets
 npm run build:yml
