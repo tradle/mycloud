@@ -256,7 +256,6 @@ const extractSigPubKey = (object) => {
     }
   }
 
-  debugger
   throw new InvalidSignature('unable to extract pub key from object')
 }
 
