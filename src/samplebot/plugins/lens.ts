@@ -13,7 +13,7 @@ export const createPlugin = ({ conf, logger }) => {
     const form = getForm(object)
     if (!form) return
 
-    if (!application) application = req.application
+    if (!application && req) application = req.application
 
     const lens = getLens({ form, application })
     if (lens) {

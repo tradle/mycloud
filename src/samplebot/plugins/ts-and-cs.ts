@@ -37,7 +37,7 @@ export const createPlugin = ({
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
       logger.debug(`updating ${user.id}.${DATE_ACCEPTED_PROP}`)
       _.set(user, DATE_ACCEPTED_PROP, Date.now())
-      await productsAPI.sendProductList({ to: user })
+      await productsAPI.sendProductList({ req, to: user })
       return
     }
 
@@ -53,6 +53,7 @@ export const createPlugin = ({
     logger.debug(`preventing further processing, T&C's have not been accepted`)
     if (type === SIMPLE_MESSAGE) {
       await productsAPI.send({
+        req,
         to: user,
         object: {
           [TYPE]: SIMPLE_MESSAGE,
