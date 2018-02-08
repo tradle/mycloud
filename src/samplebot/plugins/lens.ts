@@ -1,26 +1,49 @@
 import _ = require('lodash')
+import { TYPE } from '@tradle/constants'
 import { Conf } from '../configure'
+import { IPBApp, IPBReq, WillRequestForm } from '../types'
 
 export const name = 'lens'
 export const createPlugin = ({ conf, logger }) => {
 
-  const willRequestForm = ({ to, application, formRequest }) => {
-    const appSpecific = application && conf[application.requestFor]
-    const { form } = formRequest
+  const willRequestEdit = ({ req, user, application, item, details }) => {
+    if (!item) {
+      logger.error('expected "item"', {
+        details
+      })
 
+      return
+    }
+
+    const form = item[TYPE]
+    const lens = getLens({ form, application })
+    if (lens) {
+      debugger
+      details.lens = lens
+    }
+  }
+
+  const willRequestForm:WillRequestForm = ({ to, application, formRequest }) => {
+    const { form } = formRequest
+    const lens = getLens({ form, application })
+    if (lens) {
+      debugger
+      logger.debug(`updated lens on form request for: ${form}`)
+      formRequest.lens = lens
+    }
+  }
+
+  const getLens = ({ form, application }: {
+    form:string,
+    application: IPBApp
+  }) => {
+    const appSpecific = application && conf[application.requestFor]
     let lens
     if (appSpecific) {
       lens = appSpecific[form]
     }
 
-    if (!lens) {
-      lens = conf[form]
-    }
-
-    if (lens) {
-      logger.debug(`updated lens on form request for: ${form}`)
-      formRequest.lens = lens
-    }
+    return lens || conf[form]
   }
 
   return {

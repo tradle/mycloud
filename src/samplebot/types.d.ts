@@ -5,7 +5,8 @@ import { Remediator } from './remediation'
 import {
   ITradleObject,
   IIdentity,
-  ITradleMessage
+  ITradleMessage,
+  ResourceStub
 } from '../types'
 
 export * from '../types'
@@ -73,7 +74,7 @@ export interface IUser {
   [key:string]: any
 }
 
-export interface PBReq {
+export interface IPBReq {
   user: any
   message: ITradleMessage
   payload: ITradleObject
@@ -81,6 +82,36 @@ export interface PBReq {
   object: ITradleObject
   type: string
 }
+
+export type VerifiedItem = {
+  item: ResourceStub
+  verification: ResourceStub
+}
+
+export interface IPBApp {
+  applicant: ResourceStub
+  requestFor: string
+  forms?: ResourceStub[]
+  verificationsImported?: VerifiedItem[]
+  verificationsIssued?: VerifiedItem[]
+  relationshipManagers?: ResourceStub[]
+  status: string
+  dateStarted: number
+  dateModified: number
+  dateCompleted?: number
+}
+
+export interface IFormRequest extends ITradleObject {
+  form: string
+}
+
+export interface IWillRequestFormOpts {
+  to: string | IUser
+  application?: IPBApp
+  formRequest: IFormRequest
+}
+
+export type WillRequestForm = (opts:IWillRequestFormOpts) => void | Promise<void>
 
 export interface ICommandContext {
   commandName: string
@@ -98,7 +129,7 @@ export type CommandOutput = {
 
 export interface ICommandExecOpts {
   commander: Commander
-  req: PBReq
+  req: IPBReq
   args: Yargs
   argsStr: string
   ctx: ICommandContext
