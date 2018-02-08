@@ -1,35 +1,41 @@
 import _ = require('lodash')
-import { TYPE } from '@tradle/constants'
+import { TYPE, SIG } from '@tradle/constants'
 import { Conf } from '../configure'
-import { IPBApp, IPBReq, WillRequestForm } from '../types'
+import { parseId } from '../../utils'
+import { IPBApp, IPBReq } from '../types'
 
 export const name = 'lens'
 export const createPlugin = ({ conf, logger }) => {
 
-  const willRequestEdit = ({ req, user, application, item, details }) => {
-    if (!item) {
-      logger.error('expected "item"', {
-        details
-      })
+  const willSend = ({ req, to, object, application }) => {
+    if (!object || object[SIG]) return
 
-      return
-    }
+    const form = getForm(object)
+    if (!form) return
 
-    const form = item[TYPE]
+    if (!application) application = req.application
+
     const lens = getLens({ form, application })
     if (lens) {
-      debugger
-      details.lens = lens
+      object.lens = lens
     }
   }
 
-  const willRequestForm:WillRequestForm = ({ to, application, formRequest }) => {
-    const { form } = formRequest
-    const lens = getLens({ form, application })
-    if (lens) {
-      debugger
-      logger.debug(`updated lens on form request for: ${form}`)
-      formRequest.lens = lens
+  const getForm = (object:any):string|void => {
+    const type = object[TYPE]
+    let form:string
+    if (type === 'tradle.FormRequest') {
+      return object.form
+    }
+
+    if (type === 'tradle.FormError') {
+      const { prefill } = object
+      if (!prefill) return
+
+      const type = prefill[TYPE]
+      if (type) return type
+
+      if (prefill.id) return parseId(prefill.id).type
     }
   }
 
@@ -47,7 +53,7 @@ export const createPlugin = ({ conf, logger }) => {
   }
 
   return {
-    willRequestForm
+    willSend
   }
 }
 
