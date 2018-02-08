@@ -147,8 +147,10 @@ export default class Provider {
   }
 
   public signObject = async ({ author, object }):Promise<ITradleObject> => {
+    const resolveEmbeds = this.objects.resolveEmbeds(object)
     if (!author) author = await this.getMyPrivateIdentity()
 
+    await resolveEmbeds
     const key = getSigningKey(author.keys)
     const signed = await sign({
       key,
