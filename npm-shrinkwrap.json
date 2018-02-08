@@ -44,7 +44,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#c6fd126abd246940c40dc7a6ee21cfae97e8094a",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#ee903b465a2a649c2757bfe13a36eb7ab3b1e8da",
       "dependencies": {
         "bluebird": {
           "version": "2.11.0",
@@ -3791,11 +3791,6 @@
       "version": "1.0.3",
       "from": "setprototypeof@1.0.3",
       "resolved": "https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.0.3.tgz"
-    },
-    "settle-promise": {
-      "version": "1.0.0",
-      "from": "settle-promise@>=1.0.0 <2.0.0",
-      "resolved": "https://registry.npmjs.org/settle-promise/-/settle-promise-1.0.0.tgz"
     },
     "sha.js": {
       "version": "2.4.9",

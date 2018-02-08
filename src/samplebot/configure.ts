@@ -7,7 +7,7 @@ import buildResource = require('@tradle/build-resource')
 import mergeModels = require('@tradle/merge-models')
 import { Plugins } from './plugins'
 import baseModels = require('../models')
-import { Bot, ModelStore, Logger, Bucket } from '../types'
+import { Bot, ModelStore, Logger, Bucket } from './types'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
@@ -151,9 +151,18 @@ export class Conf {
 
   public setBotConf = async (value:any):Promise<boolean> => {
     const { products={} } = value
-    const { plugins={} } = products
+    const { plugins={}, enabled=[] } = products
     if (_.size(plugins)) {
       await this.validatePluginConf(plugins)
+    }
+
+    const results = await allSettled(enabled.map(product => this.modelStore.get(product)))
+    const missing = results
+      .map((result, i) => result.isRejected && enabled[i])
+      .filter(_.identity)
+
+    if (missing.length) {
+      throw new Error(`missing models: ${missing.join(', ')}`)
     }
 
     this.logger.debug('setting bot configuration')

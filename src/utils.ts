@@ -27,7 +27,6 @@ import dotProp = require('dot-prop')
 import { v4 as uuid } from 'uuid'
 import { wrap as co } from 'co'
 import promisify = require('pify')
-import { settle as allSettled } from 'settle-promise'
 import isGenerator = require('is-generator-function')
 import { encode as encodeDataURI, decode as decodeDataURI } from 'strong-data-uri'
 import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
@@ -37,7 +36,7 @@ import fetch = require('node-fetch')
 import { prettify, stableStringify, safeStringify } from './string-utils'
 import { SIG, TYPE, TYPES, WARMUP_SLEEP, PUBLIC_CONF_BUCKET } from './constants'
 import Errors = require('./errors')
-import { CacheContainer } from './types'
+import { CacheContainer, ISettledPromise } from './types'
 import Logger from './logger'
 import Env from './env'
 import Tradle from './tradle'
@@ -99,6 +98,23 @@ export const timeoutIn = ({ millis=0, error, unref }: {
   return promise
 }
 
+export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
+  return promise.then(value => ({
+    isFulfilled: true,
+    isRejected: false,
+    value
+  }))
+  .catch(reason => ({
+    isFulfilled: false,
+    isRejected: true,
+    reason
+  }))
+}
+
+export const allSettled = <T>(promises:Promise<T>[]):ISettledPromise<T>[] => {
+  return Promise.all(promises.map(promise => settle(promise)))
+}
+
 export {
  format,
  fetch,
@@ -115,7 +131,6 @@ export {
  uuid,
  promisify,
  isPromise,
- allSettled,
  setVirtual,
  omitVirtual,
  pickVirtual,
@@ -535,10 +550,9 @@ export const settleMap = (data, fn):Promise => {
   return RESOLVED_PROMISE.then(() => allSettled(data.map(item => fn(item))))
 }
 
-export const settleSeries = (data, fn):Promise => {
-  return Promise.mapSeries(data, async (item) => {
-    const results = await allSettled(RESOLVED_PROMISE.then(() => fn(item)))
-    return results[0]
+export const settleSeries = <T>(data, fn:(item:any)=>T|Promise<T>):ISettledPromise<T> => {
+  return Promise.mapSeries(data, (item:any) => {
+    return settle(RESOLVED_PROMISE.then(() => fn(item)))
   })
 }
 

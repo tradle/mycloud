@@ -72,13 +72,6 @@ export {
   Backlinks
 }
 
-export interface ISettledPromise {
-  isFulfilled: boolean
-  isRejected: boolean
-  value?: any
-  reason?: Error
-}
-
 export interface IPositionPair {
   sent?: IPosition
   received?: IPosition
@@ -320,3 +313,9 @@ export type ModelsPack = {
   namespace?: string
 }
 
+export interface ISettledPromise<T> {
+  isFulfilled: boolean
+  isRejected: boolean
+  value?: T
+  reason?: Error
+}

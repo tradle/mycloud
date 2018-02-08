@@ -1,14 +1,14 @@
 // @ts-ignore
 import Promise = require('bluebird')
 import { omit } from 'lodash'
-import { settle } from 'settle-promise'
+import { allSettled } from './utils'
 import Logger from './logger'
 import Errors = require('./errors')
 import {
   ISettledPromise
 } from './types'
 
-export interface ITaskResult extends ISettledPromise {
+export interface ITaskResult<T> extends ISettledPromise<T> {
   name: string
 }
 
@@ -55,7 +55,7 @@ export class TaskManager {
     return this.tasks.map(({ name }) => name)
   }
 
-  public awaitAllSettled = async ():Promise<ITaskResult> => {
+  public awaitAllSettled = async ():Promise<ITaskResult<any>> => {
     if (!this.tasks.length) {
       this.logger.debug(`no async tasks!`)
       return []
@@ -63,7 +63,7 @@ export class TaskManager {
 
     this.logger.debug(`waiting for ${this.tasks.length} tasks to complete or fail`)
     const names = this.tasks.map(task => task.name)
-    const results:ISettledPromise[] = await settle(this.tasks.map(task => task.promise))
+    const results:ISettledPromise<any>[] = await allSettled(this.tasks.map(task => task.promise))
     results.forEach(({ reason }) => {
       if (!reason) return
 
