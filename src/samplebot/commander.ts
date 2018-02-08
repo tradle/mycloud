@@ -2,8 +2,11 @@ import parse = require('yargs-parser')
 import { TYPE } from '@tradle/constants'
 import { Errors as ProductBotErrors } from '@tradle/bot-products'
 import {
-  Command,
-  ExecCommandFunction
+  IConf,
+  ICommand,
+  ICommandContext,
+  CommandOutput,
+  ICommandExecOpts
 } from './types'
 
 import { parseStub } from '../utils'
@@ -31,25 +34,6 @@ const prettify = obj => JSON.stringify(obj, null, 2)
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?\s*$/
 const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
 
-type Args = {
-  _: string[],
-  [key: string]: any
-}
-
-type CommandContext = {
-  commandName: string
-  allowed?: boolean
-  employee?: boolean
-  sudo?: boolean
-  argsStr: string
-  [x:string]: any
-}
-
-type CommandOutput = {
-  result?:any
-  error?:any
-}
-
 const SUDO = {
   employee: true,
   allowed: true
@@ -59,7 +43,7 @@ export class Commander {
   public bot:any
   public productsAPI:any
   public employeeManager:any
-  public conf: any
+  public conf: IConf
   public logger: Logger
   constructor ({ bot, productsAPI, employeeManager, conf }) {
     this.bot = bot
@@ -69,7 +53,7 @@ export class Commander {
     this.logger = bot.logger.sub('cli')
   }
 
-  private auth = async (ctx:CommandContext):Promise<void> => {
+  private auth = async (ctx:ICommandContext):Promise<void> => {
     if (ctx.sudo) {
       ctx.allowed = true
       return
@@ -105,7 +89,7 @@ export class Commander {
     }
 
     const [commandName, argsStr=''] = match.slice(1)
-    const ctx:CommandContext = {
+    const ctx:ICommandContext = {
       commandName,
       argsStr,
       sudo,
@@ -117,18 +101,21 @@ export class Commander {
     if (!ctx.allowed) return ret
 
     let result
-    let matchingCommand
+    let matchingCommand:ICommand
     let args
+    let execOpts:ICommandExecOpts
     try {
       matchingCommand = getCommandByName(commandName)
       args = matchingCommand.parse ? matchingCommand.parse(argsStr) : parse(argsStr)
-      result = await matchingCommand.exec({
+      execOpts = {
         commander: this,
         req,
         args,
         argsStr,
         ctx
-      })
+      }
+
+      result = await matchingCommand.exec(execOpts)
     } catch (err) {
       this.logger.debug(`failed to process command: ${command}`, err.stack)
       let message
@@ -147,7 +134,12 @@ export class Commander {
     }
 
     if (user) {
-      const opts = { commander: this, req, to: user, result, args, argsStr }
+      const opts = {
+        ...execOpts,
+        to: user,
+        result
+      }
+
       if (matchingCommand.sendResult) {
         await matchingCommand.sendResult(opts)
       } else {

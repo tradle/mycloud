@@ -1,8 +1,7 @@
 import yn = require('yn')
 import parse = require('yargs-parser')
 import { toggleProduct } from '../utils'
-
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'setproductenabled',
@@ -32,6 +31,6 @@ export const command:ICommand = {
     const verb = enabled ? 'enabled' : 'disabled'
     const message = `${verb} product ${product}. Give me ~30 seconds to process this doozy.`
     commander.bot.debug(message)
-    await commander.sendSimpleMessage({ req, message })
+    await commander.sendSimpleMessage({ req, message, to: req.user })
   }
 }

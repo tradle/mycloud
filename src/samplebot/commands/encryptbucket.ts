@@ -2,9 +2,9 @@ import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import yn = require('yn')
 import parse = require('yargs-parser')
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
-const ADDITIONAL_OPTS = ['kmsKeyId']
+const ENC_OPTS = ['kmsKeyId']
 
 export const command:ICommand = {
   name: 'encryptbucket',
@@ -25,16 +25,16 @@ export const command:ICommand = {
 
     if (!bucketInstance) throw new Error(`bucket ${bucket} not found`)
 
-    opts = _.pick(opts, ADDITIONAL_OPTS)
+    const encOpts = _.pick(opts, ENC_OPTS)
     if (enable) {
-      await bucketInstance.enableEncryption(opts)
+      await bucketInstance.enableEncryption(encOpts)
     } else {
-      await bucketInstance.disableEncryption(opts)
+      await bucketInstance.disableEncryption(encOpts)
     }
 
     return {
       bucket: bucketInstance.name,
-      encryption: _.extend({ enabled: enable }, opts)
+      encryption: _.extend({ enabled: enable }, encOpts)
     }
   },
   sendResult: async ({ commander, req, result, to, args }) => {

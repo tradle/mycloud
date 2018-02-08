@@ -1,7 +1,6 @@
 import parse = require('yargs-parser')
 import { TYPE } from '@tradle/constants'
-
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'tours',
@@ -35,6 +34,7 @@ export const command:ICommand = {
       const list = result.join('\n')
       await commander.sendSimpleMessage({
         req,
+        to: req.user,
         message: `Available Tours:\n\n${list}`
       })
     } else {

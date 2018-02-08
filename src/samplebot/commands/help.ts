@@ -4,7 +4,7 @@ import {
   getCommandByName
 } from '../utils'
 
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'help',
@@ -37,6 +37,6 @@ export const command:ICommand = {
     return `These are the available commands:\n${availableCommands.join('\n')}`
   },
   sendResult: async ({ commander, req, to, result }) => {
-    await commander.sendSimpleMessage({ req, message: result })
+    await commander.sendSimpleMessage({ req, message: result, to: req.user })
   }
 }

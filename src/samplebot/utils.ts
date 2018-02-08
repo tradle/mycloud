@@ -4,6 +4,7 @@ import { isPromise } from '../utils'
 import { Conf } from './configure'
 import Errors = require('../errors')
 import models = require('../models')
+import { ICommand } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 
@@ -116,7 +117,7 @@ export const getAvailableCommands = (ctx) => {
   return CUSTOMER_COMMANDS
 }
 
-export const getCommandByName = commandName => {
+export const getCommandByName = (commandName:string):ICommand => {
   let command
   try {
     command = require('./commands')[commandName.toLowerCase()]

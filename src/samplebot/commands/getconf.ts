@@ -2,8 +2,7 @@ import _ = require('lodash')
 import yn = require('yn')
 import parse = require('yargs-parser')
 import { toggleProduct } from '../utils'
-
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'getconf',
@@ -36,7 +35,7 @@ export const command:ICommand = {
     }
 
     if (args.terms) {
-      return conf.termsAndConditions
+      return (conf.termsAndConditions && conf.termsAndConditions.value)
     }
 
     if (args.models) {

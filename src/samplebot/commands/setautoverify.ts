@@ -1,8 +1,7 @@
 import yn = require('yn')
 import parse = require('yargs-parser')
 import { setProperty } from '../utils'
-
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'setautoverify',
@@ -24,6 +23,7 @@ export const command:ICommand = {
     commander.logger.debug(`set ${path} to ${value}`)
     await commander.sendSimpleMessage({
       req,
+      to: req.user,
       message: `Done. Give me ~30 seconds to process this doozy.`
     })
   }

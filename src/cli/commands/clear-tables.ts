@@ -4,7 +4,7 @@ import Logger from '../../logger'
 import Cli from '../'
 import Command from '../command'
 import { prettify } from '../../string-utils'
-import { CommandOpts, ICommand } from '../../types'
+import { ICommand } from '../../samplebot/types'
 
 const skip = [
   'pubkeys',

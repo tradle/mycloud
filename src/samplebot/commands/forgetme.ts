@@ -1,4 +1,4 @@
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'forgetme',

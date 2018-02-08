@@ -272,28 +272,6 @@ export type DatedValue = {
   value: any
 }
 
-
-export type CliOpts = {
-  remote?: boolean
-  console?: any
-}
-
-export type CommandOpts = {
-  requiresConfirmation: boolean
-  description: string
-  exec: (any) => Promise<any>
-}
-
-export interface ICommand {
-  name: string
-  description: string
-  examples: string[]
-  exec: (any) => Promise<any>
-  parse?: (args:string) => any
-  sendResult?: (any) => Promise<any>
-  aliases?: string[]
-}
-
 export interface IAWSServiceConfig {
   maxRetries?: number
   region: string

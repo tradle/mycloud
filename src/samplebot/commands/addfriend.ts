@@ -7,7 +7,7 @@ import validateResource = require('@tradle/validate-resource')
 import models = require('../../models')
 import { toggleProduct } from '../utils'
 import Errors = require('../../errors')
-import { ICommand } from '../../types'
+import { ICommand } from '../types'
 
 const { parseStub } = validateResource.utils
 const description = `add a known provider by url.
@@ -69,6 +69,7 @@ export const command:ICommand = {
   sendResult: async ({ commander, req, args, result }) => {
     await commander.sendSimpleMessage({
       req,
+      to: req.user,
       message: `added friend ${result.name} from ${args.url}`
     })
   }

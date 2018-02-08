@@ -8,7 +8,7 @@ import { customize } from '../samplebot/customize'
 import { createBot } from '../bot'
 import { list as listCommands, get as getCommand } from './registrar'
 import Command from './command'
-import { ICommand, CommandOpts, CliOpts } from '../types'
+import { ICommand, CliOpts } from '../samplebot/types'
 
 const remoteServiceMap = require('./remote-service-map')
 const providerConf = require('../../conf/provider')

@@ -1,7 +1,7 @@
 import { TYPE } from '@tradle/constants'
 import Cli from '../'
 import Command from '../command'
-import { CommandOpts, ICommand } from '../../types'
+import { ICommand } from '../../samplebot/types'
 
 export default class Send extends Command {
   public static description = 'sends a message'
