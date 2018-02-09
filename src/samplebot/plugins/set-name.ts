@@ -1,5 +1,7 @@
 import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
+import { Name } from '../types'
+import { getNameFromForm } from '../utils'
 
 const { parseStub } = validateResource.utils
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
@@ -47,43 +49,4 @@ export const createPlugin = ({ bot, productsAPI }) => {
   return {
     'onmessage:tradle.Form': trySetName
   }
-}
-
-type Name = {
-  firstName?:string
-  lastName?:string
-  formatted:string
-}
-
-const getNameFromForm = (form:any):Name|null => {
-  let firstName, lastName, formatted
-  const type = form[TYPE]
-  if (type === 'tradle.BasicContactInfo' || type === 'tradle.PersonalInfo') {
-    ({ firstName, lastName } = form)
-  } else if (type === 'tradle.Name' || type === 'tradle.OnfidoApplicant') {
-    firstName = form.givenName
-    lastName = form.surname
-  } else if (type === 'tradle.PhotoID') {
-    let { scanJson } = form
-    if (scanJson) {
-      if (typeof scanJson === 'string') {
-        scanJson = JSON.parse(scanJson)
-      }
-
-      const { personal={} } = scanJson
-      if (personal) {
-        ({ firstName, lastName } = personal)
-      }
-    }
-  } else {
-    return null
-  }
-
-  if ((firstName || lastName) && !formatted) {
-    formatted = (firstName && lastName)
-      ? `${firstName} ${lastName}`
-      : firstName || lastName
-  }
-
-  return formatted && { firstName, lastName, formatted }
 }
