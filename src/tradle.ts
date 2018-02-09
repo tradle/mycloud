@@ -19,7 +19,9 @@ import {
   Push,
   User,
   Buckets,
-  AwsApis
+  AwsApis,
+  StackUtils,
+  LambdaUtils
 } from './types'
 
 import { requireDefault } from './require-default'
@@ -58,7 +60,8 @@ export default class Tradle {
   public pushNotifications: Push
   public s3Utils: any
   public iot: any
-  public lambdaUtils: any
+  public lambdaUtils: LambdaUtils
+  public stackUtils: StackUtils
   public tasks:TaskManager
   public modelStore: ModelStore
   public prefix: string
@@ -129,6 +132,7 @@ export default class Tradle {
     })
 
     this.define('lambdaUtils', './lambda-utils', this.construct)
+    this.define('stackUtils', './stack-utils', this.construct)
     this.define('iot', './iot-utils', initialize => initialize(this))
 
     this.define('identities', './identities', this.construct)

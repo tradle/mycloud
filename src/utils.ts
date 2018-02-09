@@ -34,7 +34,15 @@ import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import fetch = require('node-fetch')
 import { prettify, stableStringify, safeStringify } from './string-utils'
-import { SIG, TYPE, TYPES, WARMUP_SLEEP, PUBLIC_CONF_BUCKET } from './constants'
+import {
+  SIG,
+  TYPE,
+  TYPES,
+  WARMUP_SLEEP,
+  PUBLIC_CONF_BUCKET,
+  LAUNCH_STACK_BASE_URL
+} from './constants'
+
 import Errors = require('./errors')
 import { CacheContainer, ISettledPromise } from './types'
 import Logger from './logger'
@@ -57,7 +65,6 @@ const {
   hasVirtualDeep
 } = validateResource.utils
 
-const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/home'
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
 const noop = () => {}
 const unrefdTimeout = (callback, ms, ...args) => {

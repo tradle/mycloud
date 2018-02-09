@@ -6,7 +6,8 @@ import path = require('path')
 import promisify = require('pify')
 import _fs = require('fs')
 import { prettify } from '../string-utils'
-import { Utils as LambdaUtils } from '../lambda-utils'
+import { LambdaUtils } from '../lambda-utils'
+import { StackUtils } from '../stack-utils'
 import { Env } from '../env'
 import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
@@ -24,9 +25,14 @@ loadCredentials()
 
 const env = new Env(process.env)
 const logger = new Logger('gen:testenv')
+const aws = createAWSWrapper({ logger, env })
 const lambdaUtils = new LambdaUtils({
   env,
-  aws: createAWSWrapper({ logger, env })
+  aws,
+  stackUtils: new StackUtils({
+    env,
+    aws
+  })
 })
 
 const getEnv = async () => {

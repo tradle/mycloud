@@ -17,7 +17,11 @@ import validateResource = require('@tradle/validate-resource')
 import { TYPE } from '@tradle/constants'
 import { Bucket } from '../bucket'
 import Errors = require('../errors')
-import Env from '../env'
+import {
+  Tradle,
+  Env
+} from '../types'
+
 import { wait } from '../utils'
 
 const Localstack = require('../test/localstack')
@@ -45,8 +49,11 @@ const getStackName = () => {
   return `${service}-${stage}`
 }
 
-const getStackResources = ({ tradle, stackName }) => {
-  return tradle.lambdaUtils.getStackResources(stackName || getStackName())
+const getStackResources = ({ tradle, stackName }: {
+  tradle: Tradle
+  stackName: string
+}) => {
+  return tradle.stackUtils.getStackResources(stackName || getStackName())
 }
 
 const getPhysicalId = async ({ tradle, logicalId }) => {

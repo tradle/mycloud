@@ -29,6 +29,8 @@ import { Push } from '../push'
 import { User } from '../user'
 import { Discovery } from '../discovery'
 import { Backlinks } from '../backlinks'
+import { StackUtils } from '../stack-utils'
+import { LambdaUtils } from '../lambda-utils'
 import {
   ResourceStub,
   ParsedResourceStub
@@ -69,7 +71,9 @@ export {
   User,
   Discovery,
   Lambda,
-  Backlinks
+  Backlinks,
+  StackUtils,
+  LambdaUtils
 }
 
 export interface IPositionPair {
