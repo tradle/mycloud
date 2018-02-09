@@ -79,7 +79,7 @@ class ComplyAdvantageAPI {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
-        name: 'complyadvantage'
+        name: 'Comply advantage'
       },
       aspect: 'sanctions check',
       reference: [{ queryId: 'report:' + rawData.id }],
@@ -101,14 +101,16 @@ class ComplyAdvantageAPI {
   }
 }
 export function createPlugin({conf, bot, productsAPI, logger}) {
-  const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.apiKey, productsAPI, logger })
+  const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
   return {
     [`onmessage:${FORM_ID}`]: async function(req) {
       debugger
       const { user, application, applicant, payload } = req
-      let productId = application.requestFor
+      if (!application) return
 
-      if (!conf[productId]  ||  !conf[productId][FORM_ID])
+      let productId = application.requestFor
+      let { products } = conf
+      if (!products  ||  !products[productId]  ||  !products[productId][FORM_ID])
         return
 
       //
@@ -125,7 +127,7 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
       // if (!forms  ||  !forms.length)
       //   return
       let forms = [payload]
-      let pforms = forms.map((f) => complyAdvantage._fetch(f, conf[application.requestFor][FORM_ID], application))
+      let pforms = forms.map((f) => complyAdvantage._fetch(f, products[productId][FORM_ID], application))
 
       let result = await Promise.all(pforms)
 

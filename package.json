@@ -127,6 +127,7 @@
     "@tradle/bot-products": "github:tradle/bot-products",
     "@tradle/build-resource": "^2.14.3",
     "@tradle/cb-blockr": "^3.2.1",
+    "@tradle/centrix": "github:mvayngrib/centrix",
     "@tradle/constants": "^2.1.0",
     "@tradle/custom-models": "github:tradle/custom-models",
     "@tradle/dynamodb": "github:tradle/dynamodb",

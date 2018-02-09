@@ -10,9 +10,12 @@ import { TYPE } from '@tradle/constants'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
-import { createPlugin as createSanctionsPlugin } from './plugins/sanctions'
 import { createPlugin as createLensPlugin } from './plugins/lens'
 import { Onfido, createPlugin, registerWebhook } from './plugins/onfido'
+import { createPlugin as createSanctionsPlugin } from './plugins/complyAdvantage'
+import { createPlugin as createOpencorporatesPlugin } from './plugins/openCorporates'
+import { createPlugin as createCentrixPlugin} from './plugins/centrix'
+
 import { Commander } from './commander'
 import { createRemediator, Remediator } from './remediation'
 import {
@@ -360,14 +363,29 @@ export default function createProductsBot ({
       logger: logger.sub('plugin-lens')
     }))
   }
-
-  if (plugins['sanctions']) {
-    logger.debug('using plugin: sanctions')
+  if (plugins['openCorporates']) {
+    productsAPI.plugins.use(createOpencorporatesPlugin({
+      conf: plugins['openCorporates'],
+      bot,
+      productsAPI,
+      logger: logger.sub('plugin-opencorporates')
+    }))
+  }
+  if (plugins['complyAdvantage']) {
+    logger.debug('using plugin: complyAdvantage')
     productsAPI.plugins.use(createSanctionsPlugin({
-      conf: plugins['sanctions'],
+      conf: plugins['complyAdvantage'],
       bot,
       productsAPI,
       logger: logger.sub('plugin-sanctions')
+    }))
+  }
+  if (plugins['centrix']) {
+    productsAPI.plugins.use(createCentrixPlugin({
+      conf: plugins['centrix'],
+      bot,
+      productsAPI,
+      logger: logger.sub('plugin-centrix')
     }))
   }
 
