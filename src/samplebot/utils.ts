@@ -5,6 +5,7 @@ import { Conf } from './configure'
 import Errors = require('../errors')
 import models = require('../models')
 import { ICommand } from './types'
+import { Name } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 
@@ -143,4 +144,37 @@ export const sendConfirmedSeals = async (bot, seals) => {
       ..._.pick(seal, SEAL_MODEL_PROPS)
     }
   })))
+}
+
+export const getNameFromForm = (form:any):Name|null => {
+  let firstName, lastName, formatted
+  const type = form[TYPE]
+  if (type === 'tradle.BasicContactInfo' || type === 'tradle.PersonalInfo') {
+    ({ firstName, lastName } = form)
+  } else if (type === 'tradle.Name' || type === 'tradle.OnfidoApplicant') {
+    firstName = form.givenName
+    lastName = form.surname
+  } else if (type === 'tradle.PhotoID') {
+    let { scanJson } = form
+    if (scanJson) {
+      if (typeof scanJson === 'string') {
+        scanJson = JSON.parse(scanJson)
+      }
+
+      const { personal={} } = scanJson
+      if (personal) {
+        ({ firstName, lastName } = personal)
+      }
+    }
+  } else {
+    return null
+  }
+
+  if ((firstName || lastName) && !formatted) {
+    formatted = (firstName && lastName)
+      ? `${firstName} ${lastName}`
+      : firstName || lastName
+  }
+
+  return formatted && { firstName, lastName, formatted }
 }
