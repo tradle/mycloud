@@ -320,10 +320,8 @@ export class Conf {
     }
 
     const org = await bot.signAndSave(buildOrg(orgTemplate))
-    await Promise.all([
-      this.save({ identity, org, bot: conf.bot, style }),
-      this.recalcPublicInfo()
-    ])
+    await this.save({ identity, org, bot: conf.bot, style })
+    await this.recalcPublicInfo()
   }
 
   public update = async (update:UpdateConfInput) => {
