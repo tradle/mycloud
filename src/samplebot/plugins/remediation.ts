@@ -90,18 +90,21 @@ export class Remediation {
       throw new CustomErrors.ClaimNotFound(claimId)
     }
 
-    const bundle = await this.prepareDataBundle({ user, claimId, items: unsigned.items })
-    await bundle.items.map(item => this.bot.save(item))
-    await this.productsAPI.send({
+    const items = await this.prepareBundleItems({ user, claimId, items: unsigned.items })
+    await Promise.all(items.map(item => this.bot.save(item)))
+    return await this.productsAPI.send({
       req,
       to: user,
-      object: bundle
+      object: buildResource({
+          models: this.models,
+          model: DATA_BUNDLE,
+        })
+        .set({ items, message })
+        .toJSON()
     })
-
-    return bundle
   }
 
-  public prepareDataBundle = async ({ user, items, claimId }) => {
+  public prepareBundleItems = async ({ user, items, claimId }) => {
     this.logger.debug(`creating data bundle`)
     const { bot, models } = this
     const owner = user.id
@@ -146,14 +149,7 @@ export class Remediation {
       return item
     }))
 
-    const unsigned = buildResource({
-      models,
-      model: DATA_BUNDLE
-    })
-    .set({ items })
-    .toJSON()
-
-    return await this.bot.sign(unsigned)
+    return items
   }
 
   public validateBundle = (bundle) => {
