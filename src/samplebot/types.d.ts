@@ -149,3 +149,8 @@ export interface ICommand {
   sendResult?: (opts:ICommandSendResultOpts) => Promise<any>
   aliases?: string[]
 }
+export type Name = {
+  firstName?:string
+  lastName?:string
+  formatted:string
+}
