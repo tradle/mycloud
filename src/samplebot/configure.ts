@@ -259,7 +259,7 @@ export class Conf {
     const tour = _.get(conf, 'tours.intro')
     // const { splashscreen } = conf
     return {
-      // sandbox: conf.sandbox,
+      sandbox: conf.sandbox,
       bot: {
         profile: {
           name: {
