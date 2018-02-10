@@ -9,6 +9,32 @@ const VERIFICATION = 'tradle.Verification'
 const FORM_ID = 'tradle.BusinessInformation'
 
 const BASE_URL = 'https://api.opencorporates.com/'
+const test = {
+  "api_version": "0.4.7",
+  "results": {
+    "companies": [
+      {
+        "company": {
+          "name": "TRADLE LTD",
+          "company_number": "5524712",
+          "jurisdiction_code": "us_nj",
+          "incorporation_date": "2014-04-29",
+          "inactive": false,
+          "opencorporates_url": "https://opencorporates.com/companies/gb/09829129",
+        }
+      },
+      {
+        "company": {
+          "name": "TRADLE, INC.",
+          "company_number": "5524712",
+          "jurisdiction_code": "us_de",
+          "incorporation_date": "2014-04-29",
+          "opencorporates_url": "https://opencorporates.com/companies/us_de/5524712",
+        }
+      }
+    ]
+  }
+}
 
 class OpenCorporatesAPI {
   private bot:any
@@ -21,7 +47,8 @@ class OpenCorporatesAPI {
   }
   async _fetch(resource, application) {
     let { registrationNumber, registrationDate, region, country } = resource
-    let url = '${BASE_URL}companies/search?q=' + resource.companyName.replace(' ', '+')
+    let url = `${BASE_URL}companies/search?q=` + resource.companyName.replace(' ', '+')
+    // let json = test
     let json
     try {
       let res = await fetch(url)
@@ -32,37 +59,45 @@ class OpenCorporatesAPI {
     if (!json || !json.results)
       return { resource, rawData: {}, hits: [], url }
     let companies = json.results.companies.filter((c) => {
-      if (c.inactive)
+      if (c.company.inactive)
         return false
-      if (c.company_number !== registrationNumber)
+      if (c.company.company_number !== registrationNumber)
         return false
-      if (registrationDate  &&  new Date(c.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear())
+      if (registrationDate  &&  new Date(c.company.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear())
         return false
       let countryCode = country.id.split('_')[1]
-      if (c.registered_address  &&  c.registered_address.country) {
-        if (countryCode !== c.registered_address.country)
-          return false
-      }
-      else if (c.jurisdiction.indexOf(countryCode.toLowerCase()) === -1)
+      // if (c.company.registered_address  &&  c.company.registered_address.country) {
+      //   if (countryCode !== c.company.registered_address.country)
+      //     return false
+      // }
+      // else
+      if (c.company.jurisdiction_code.indexOf(countryCode.toLowerCase()) === -1)
         return false
 
       return true
     })
     if (companies.length && companies.length === 1)
-      url = companies[0].opencorporates_url
+      url = companies[0].company.opencorporates_url
     return { resource, rawData: json.results, hits: companies, url }
   }
 
-  async createCorporateCheck({ application, rawData, url }) {
+  async createCorporateCheck({ application, rawData, hits, url }) {
+    let status
+    if (hits.length)
+      status = hits.length + ' companies were found with this registration number'
+    else
+      status = 'Company not found'
     let resource:any = {
       [TYPE]: 'tradle.CorporationExistsCheck',
-      status: rawData.hits.length ? 'Fail' : 'Success',
+      status: status,
       provider: 'Open Corporates',
-      reason: rawData,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime(),
       sharedUrl: url
     }
+    if (hits.length)
+      resource.rawData = hits
+
 
     if (!application.checks) application.checks = []
     const check = await this.bot.signAndSave(resource)
@@ -74,10 +109,10 @@ class OpenCorporatesAPI {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
-        name: 'Open corporates'
+        name: 'Open Corporates'
       },
-      aspect: 'company status',
-      reference: [{ queryId: 'report:' + rawData.id }],
+      aspect: 'company existence',
+      reference: [{ queryId: 'report:' + rawData.company_number }],
       rawData: rawData
     }
 
@@ -98,14 +133,14 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
   const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, logger })
   return {
     [`onmessage:${FORM_ID}`]: async function(req) {
-      debugger
       const { user, application, payload } = req
       if (!application) return
 
       let productId = application.requestFor
       let { products } = conf
-      if (!products  ||  !products[productId]  ||  !products[productId][FORM_ID])
+      if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
         return
+      debugger
 
       //
       // let formStubs = application.forms && application.forms.filter((f) => {
@@ -129,18 +164,18 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
         let { resource, rawData, hits, url } = r
         if (!hits  ||  (!hits.length || hits.length > 1)) {
           logger.debug(`found sanctions for: ${resource.companyName}`);
-          return openCorporates.createCorporateCheck({application, rawData: rawData, url})
+          return openCorporates.createCorporateCheck({application, rawData: rawData, hits, url})
         }
         else  {
           logger.debug(`creating verification for: ${resource.companyName}`);
-          return openCorporates.createVerification({user, application, form: resource, rawData})
+          return openCorporates.createVerification({user, application, form: resource, rawData: hits[0].company})
         }
       })
       let checksAndVerifications = await Promise.all(pchecks)
     }
   }
 }
-
+  // Search for jurisdiction and the by company number
   // async _fetch(resource, conf, application) {
   //   let country = resource.country
   //   let jurisdiction
