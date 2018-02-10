@@ -377,7 +377,7 @@ export default function createProductsBot ({
       conf: plugins['complyAdvantage'],
       bot,
       productsAPI,
-      logger: logger.sub('plugin-sanctions')
+      logger: logger.sub('plugin-complyAdvantage')
     }))
   }
   if (plugins['centrix']) {
