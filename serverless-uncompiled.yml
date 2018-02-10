@@ -997,6 +997,13 @@ functions:
   cli:
     handler: lib/samplebot/lambda/cli.handler
 
+  qr:
+    handler: lib/samplebot/lambda/http/qr.handler
+    events:
+      - http:
+          path: qr
+          method: get
+
   # cli_dev:
   #   handler: lib/samplebot/lambda/cli.handler
   #   # dev mode only

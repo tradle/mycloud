@@ -13,6 +13,7 @@ import _ = require('lodash')
 // @ts-ignore
 import Promise = require('bluebird')
 import compose = require('koa-compose')
+import * as Koa from 'koa'
 import caseless = require('caseless')
 import randomName = require('random-name')
 import { safeStringify } from './string-utils'
@@ -71,10 +72,10 @@ export const fromCli = (opts={}) => new Lambda({ ...opts, source: EventSource.CL
 export class Lambda extends EventEmitter {
   // initialization
   public source: EventSource
-  public opts: any
+  public opts: ILambdaOpts
   public tradle: Tradle
   public env: Env
-  public koa?: any
+  public koa: Koa
   public tasks: TaskManager
 
   // runtime

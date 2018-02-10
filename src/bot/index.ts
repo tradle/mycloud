@@ -30,7 +30,8 @@ import {
   HooksFireFn,
   ResourceStub,
   ParsedResourceStub,
-  BotStrategyInstallFn
+  BotStrategyInstallFn,
+  ILambdaOpts
 } from '../types'
 
 import { createLambda } from './lambda'
@@ -304,7 +305,7 @@ export class Bot extends EventEmitter implements IReady {
 
   public save = createWriteMethod('put')
   public update = createWriteMethod('update')
-  public createLambda = (opts={}) => createLambda({
+  public createLambda = (opts:ILambdaOpts={}):Lambda => createLambda({
     ...opts,
     tradle: this.tradle,
     bot: this
