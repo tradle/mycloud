@@ -7,12 +7,12 @@ import buildResource = require('@tradle/build-resource')
 import mergeModels = require('@tradle/merge-models')
 import { Plugins } from './plugins'
 import baseModels = require('../models')
-import { Bot, ModelStore, Logger, Bucket } from './types'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
 import { allSettled, RESOLVED_PROMISE, omitVirtual } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
+import { Bot, ModelStore, Logger, Bucket, IIdentity, ITradleObject, IBotConf } from './types'
 import {
   PRIVATE_CONF_BUCKET
 } from './constants'
@@ -21,7 +21,7 @@ const { LOGO_UNKNOWN } = require('./media')
 const DEFAULT_CONF = require('./conf/provider')
 const { reinitializeOnConfChanged } = serverlessYml.custom
 const parseJSON = JSON.parse.bind(JSON)
-const getHandleFromName = (name:string) => {
+const getHandleFromName = (name: string) => {
   return name.replace(/[^A-Za-z]/g, '').toLowerCase()
 }
 
@@ -149,9 +149,9 @@ export class Conf {
     return await Promise.props(promises)
   }
 
-  public setBotConf = async (value:any):Promise<boolean> => {
-    const { products={} } = value
-    const { plugins={}, enabled=[] } = products
+  public setBotConf = async (value: any): Promise<boolean> => {
+    const { products = {} } = value
+    const { plugins = {}, enabled = [] } = products
     if (_.size(plugins)) {
       await this.validatePluginConf(plugins)
     }
@@ -170,7 +170,7 @@ export class Conf {
     return await this.botConf.putIfDifferent(value)
   }
 
-  public validatePluginConf = async (plugins:any) => {
+  public validatePluginConf = async (plugins: any) => {
     await Promise.all(Object.keys(plugins).map(async (name) => {
       const plugin = Plugins.get(name)
       if (!plugin) throw new Error(`plugin not found: ${name}`)
@@ -186,7 +186,7 @@ export class Conf {
     }))
   }
 
-  public setStyle = async (value:any):Promise<boolean> => {
+  public setStyle = async (value: any): Promise<boolean> => {
     this.logger.debug('setting style')
     validateResource.resource({
       models: this.bot.models,
@@ -197,7 +197,7 @@ export class Conf {
     await this.style.putIfDifferent(value)
   }
 
-  public setCustomModels = async (modelsPack):Promise<boolean> => {
+  public setCustomModels = async (modelsPack): Promise<boolean> => {
     this.logger.debug('setting custom models pack')
     const { domain } = await this.org.get()
     const namespace = toggleDomainVsNamespace(domain)
@@ -213,7 +213,7 @@ export class Conf {
     await this.modelsPack.putIfDifferent(modelsPack)
   }
 
-  public setTermsAndConditions = async (value:string|Buffer):Promise<boolean> => {
+  public setTermsAndConditions = async (value: string | Buffer): Promise<boolean> => {
     this.logger.debug('setting terms and conditions')
     return await this.termsAndConditions.putIfDifferent(value)
   }
@@ -233,7 +233,7 @@ export class Conf {
     }
   }
 
-  public calcPublicInfo = async ():Promise<any> => {
+  public calcPublicInfo = async (): Promise<any> => {
     const [org, style, identity, conf] = await Promise.all([
       this.org.get(),
       this.style.get().catch(err => Errors.ignore(err, Errors.NotFound)),
@@ -244,16 +244,22 @@ export class Conf {
     return this.assemblePublicInfo({ identity, org, style, conf })
   }
 
-  public recalcPublicInfo = async ():Promise<boolean>  => {
+  public recalcPublicInfo = async (): Promise<boolean> => {
     const info = await this.calcPublicInfo()
     await this.info.putIfDifferent(info)
     return info
   }
 
-  public assemblePublicInfo = ({ identity, org, style, conf }) => {
+  public assemblePublicInfo = ({ identity, org, style, conf }: {
+    identity: IIdentity
+    org: ITradleObject
+    style: ITradleObject
+    conf: IBotConf
+  }) => {
     const tour = _.get(conf, 'tours.intro')
     // const { splashscreen } = conf
     return {
+      sandbox: conf.sandbox,
       bot: {
         profile: {
           name: {
@@ -264,14 +270,13 @@ export class Conf {
       },
       id: getHandleFromName(org.name),
       org: buildResource.omitVirtual(org),
-      // publicConfig: publicConf.publicConfig,
       style,
       tour,
       // splashscreen
     }
   }
 
-  public init = async (conf, opts:InitOpts={}) => {
+  public init = async (conf, opts: InitOpts = {}) => {
     conf = { ...DEFAULT_CONF, ...conf }
     const { bot } = this
     if (bot.isTesting) {
@@ -320,15 +325,13 @@ export class Conf {
     }
 
     const org = await bot.signAndSave(buildOrg(orgTemplate))
-    await Promise.all([
-      this.save({ identity, org, bot: conf.bot, style }),
-      this.recalcPublicInfo()
-    ])
+    await this.save({ identity, org, bot: conf.bot, style })
+    await this.recalcPublicInfo()
   }
 
-  public update = async (update:UpdateConfInput) => {
+  public update = async (update: UpdateConfInput) => {
     const { style, modelsPack, bot, terms } = update
-    const updated:UpdateConfInput = {}
+    const updated: UpdateConfInput = {}
     if (style) {
       await this.setStyle(style)
       await this.recalcPublicInfo()
@@ -378,7 +381,7 @@ export class Conf {
 
   public getLogo = async (conf) => {
     const defaultLogo = _.get(conf, 'style.logo.url')
-    let { name, domain, logo=defaultLogo } = conf.org
+    let { name, domain, logo = defaultLogo } = conf.org
     if (!(name && domain)) {
       throw new Error('org "name" and "domain" are required')
     }
@@ -397,7 +400,7 @@ export class Conf {
   }
 }
 
-export const createConf = (opts):Conf => new Conf(opts)
+export const createConf = (opts): Conf => new Conf(opts)
 
 const hasDifferentValue = async ({ bucket, key, value }) => {
   try {

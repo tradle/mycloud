@@ -72,7 +72,7 @@
     "test:graphqlserver:debug": "NODE_ENV=test node --debug --inspect ./lib/scripts/graphql-server",
     "graphqlserver": "node ./lib/scripts/graphql-server",
     "graphqlserver:debug": "node --debug --inspect ./lib/scripts/graphql-server",
-    "deploy:prepare": "npm run eslint && npm run build:yml && npm run clean:node_modules",
+    "deploy:prepare": "tsc && npm run eslint && npm run build:yml && npm run clean:node_modules",
     "deploy:local": "npm run deploy:prepare && SLS_DEBUG=* IS_LOCAL=1 ./lib/scripts/deploy.js",
     "deploy:base": "SLS_DEBUG=* IS_LOCAL= ./lib/scripts/deploy.js && npm run deploy:postprocess",
     "deploy": "npm run deploy:prepare && npm run deploy:base",

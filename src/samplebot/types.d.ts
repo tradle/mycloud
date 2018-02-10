@@ -28,11 +28,16 @@ export interface ITours {
   [name:string]: ITradleObject
 }
 
+export interface IBotConf {
+  products: IProductsConf
+  tours: ITours
+  sandbox?: boolean
+  // exposed directly in /info
+  // publicConfig: any
+}
+
 export interface IConf {
-  bot: {
-    products: IProductsConf,
-    tours: ITours
-  },
+  bot: IBotConf
   modelsPack?: ModelsPack
   style?: any
   termsAndConditions?: DatedValue

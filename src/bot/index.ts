@@ -130,6 +130,7 @@ export class Bot extends EventEmitter implements IReady {
   public get dbUtils () { return this.tradle.dbUtils }
   public get contentAddressedStore () { return this.tradle.contentAddressedStore }
   public get lambdaUtils () { return this.tradle.lambdaUtils }
+  public get stackUtils () { return this.tradle.stackUtils }
   public get iot () { return this.tradle.iot }
   public get seals () { return this.tradle.seals }
   public get modelStore () { return this.tradle.modelStore }

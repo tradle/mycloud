@@ -1,8 +1,13 @@
 import path = require('path')
 import { Lambda } from 'aws-sdk'
 import { promisify, createLambdaContext } from './utils'
-import Logger from './logger'
-import Env from './env'
+import {
+  Logger,
+  Env,
+  AwsApis,
+  StackUtils
+} from './types'
+
 import {
   WARMUP_SOURCE_NAME,
   WARMUP_SLEEP,
@@ -28,18 +33,20 @@ export type WarmUpOpts = {
 export const WARMUP_FUNCTION_SHORT_NAME = 'warmup'
 export const WARMUP_FUNCTION_DURATION = 5000
 
-export default class Utils {
+export default class LambdaUtils {
   private env: any
-  private aws: any
+  private aws: AwsApis
   private logger: Logger
+  private stackUtils: StackUtils
   public get thisFunctionName () {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
 
-  constructor ({ env, aws }) {
+  constructor ({ env, aws, stackUtils }) {
     this.env = env
     this.aws = aws
     this.logger = env.sublogger('lambda-utils')
+    this.stackUtils = stackUtils
   }
 
   public getShortName = (name: string):string => {
@@ -119,87 +126,13 @@ export default class Utils {
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
-  public getStackResources = async (StackName?: string)
-    :Promise<AWS.CloudFormation.StackResourceSummaries> => {
-    if (!StackName) {
-      StackName = this.getStackName()
-    }
-
-    let resources = []
-    const opts:AWS.CloudFormation.ListStackResourcesInput = { StackName }
-    while (true) {
-      let {
-        StackResourceSummaries,
-        NextToken
-      } = await this.aws.cloudformation.listStackResources(opts).promise()
-
-      resources = resources.concat(StackResourceSummaries)
-      opts.NextToken = NextToken
-      if (!opts.NextToken) break
-    }
-
-    return resources
-  }
-
-  public getStackName ():string {
-    return this.env.STACK_ID
-  }
-
-  public listFunctions = async (StackName?:string):Promise<Lambda.Types.FunctionConfiguration[]> => {
-    if (!StackName) {
-      StackName = this.getStackName()
-    }
-
-    let all = []
-    let Marker
-    let opts:Lambda.Types.ListFunctionsRequest = {}
-    while (true) {
-      let { NextMarker, Functions } = await this.aws.lambda.listFunctions(opts).promise()
-      all = all.concat(Functions)
-      if (!NextMarker) break
-
-      opts.Marker = NextMarker
-    }
-
-    return all
-  }
-
-  public listStackFunctions = async (StackName?:string)
-    :Promise<string[]> => {
-    const resources = await this.getStackResources(StackName)
-    const lambdaNames:string[] = []
-    for (const { ResourceType, PhysicalResourceId } of resources) {
-      if (ResourceType === 'AWS::Lambda::Function' && PhysicalResourceId) {
-        lambdaNames.push(PhysicalResourceId)
-      }
-    }
-
-    return lambdaNames
-  }
-
-  // public getStackFunctionConfigurations = async (StackName?:string)
-  //   :Promise<Lambda.Types.FunctionConfiguration[]> => {
-  //   const names = await this.listStackFunctions()
-  //   return Promise.all(names.map(name => this.getConfiguration(name)))
-  // }
-
-  public getStackFunctionConfigurations = async (StackName?:string)
-    :Promise<Lambda.Types.FunctionConfiguration[]> => {
-    const [names, configs] = await Promise.all([
-      this.listStackFunctions(),
-      this.listFunctions()
-    ])
-
-    return configs.filter(({ FunctionName }) => names.includes(FunctionName))
-  }
-
   public updateEnvironments = async(map:(conf:Lambda.Types.FunctionConfiguration) => any) => {
     if (this.env.TESTING) {
       this.logger.debug(`updateEnvironments is skipped in test mode`)
       return
     }
 
-    const functions = await this.getStackFunctionConfigurations()
+    const functions = await this.stackUtils.getStackFunctionConfigurations()
     if (!functions) return
 
     const writes = functions.map(current => {
@@ -482,7 +415,8 @@ export default class Utils {
   }
 }
 
-export { Utils }
+export { LambdaUtils }
+export const create = opts => new LambdaUtils(opts)
 
 const getDateUpdatedEnvironmentVariables = () => ({
   DATE_UPDATED: String(Date.now())
