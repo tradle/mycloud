@@ -34,7 +34,7 @@ class CentrixAPI {
     this.centrix = centrix
     this.logger = logger
   }
-  callCentrix = co(function* ({ req, photoID, props, type }) {
+  async callCentrix({ req, photoID, props, type }) {
     const method = type === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
 
     // ask centrix to verify it
@@ -44,7 +44,7 @@ class CentrixAPI {
     let result
     try {
       this.logger.debug(`running ${centrixOpName} with Centrix`)
-      result = yield this.centrix[method](props)
+      result = await this.centrix[method](props)
     } catch (err) {
       this.logger.debug(`Centrix ${centrixOpName} verification failed`, err.stack)
       return
@@ -52,8 +52,8 @@ class CentrixAPI {
 
     this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${result.ResponseDetails.EnquiryNumber}`)
     const { user, application } = req
-    const verification = yield this.createCentrixVerification({ req, photoID, result })
-    yield this.productsAPI.importVerification({
+    const verification = await this.createCentrixVerification({ req, photoID, result })
+    await this.productsAPI.importVerification({
       user,
       application,
       verification
@@ -61,49 +61,52 @@ class CentrixAPI {
 
     // artificial timeout till we figure out why updating state
     // twice in a row sometimes loses the first change
-    yield new Promise(resolve => setTimeout(resolve, 2000))
-  })
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  }
 
-  createCentrixVerification = co(function* ({ req, photoID, result }) {
-    const { object } = photoID
-    const aspect = 'validity'
-    const models = this.bot.models
-    const method = {
+  async createCentrixVerification({ req, photoID, result }) {
+    // const { object } = photoID
+    const object = photoID.object || photoID
+        // provider: {
+        //   id: 'tradle.Organization_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4',
+        //   title: 'Centrix'
+        // }
+
+    this.cleanJson(result)
+    const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
-        name: CENTRIX_API_NAME,
-        provider: {
-          id: 'tradle.Organization_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4',
-          title: 'Centrix'
-        }
+        name: CENTRIX_API_NAME
       },
       reference: [{
         queryId: result.ResponseDetails.EnquiryNumber
       }],
-      aspect,
+      aspect: 'validity',
       rawData: result
     }
 
-    const v = {
-      [TYPE]: VERIFICATION,
-      document: buildResource.stub({
-        models,
-        model: models[PHOTO_ID],
-        resource: object
-      }),
-      documentOwner: {
-        id: IDENTITY + '_' + req.customer
-      },
-      method
+    let verification = buildResource({
+                           models: this.bot.models,
+                           model: VERIFICATION
+                         })
+                         .set({
+                           document: object,
+                           method
+                           // documentOwner: applicant
+                         })
+                         .toJSON()
+
+    return await this.bot.signAndSave(verification)
+  }
+  cleanJson(json) {
+    for (let p in json) {
+      if (!json[p])
+        delete json[p]
+      else if (typeof json[p] === 'object')
+        this.cleanJson(json[p])
     }
-
-    const signed = yield this.bot.sign({
-      object: v
-    })
-
-    return signed.object
-  })
+  }
 }
 export function createPlugin({ conf, bot, productsAPI, logger }) {
   let { httpCredentials, requestCredentials } = conf.credentials
@@ -111,7 +114,6 @@ export function createPlugin({ conf, bot, productsAPI, logger }) {
   const centrixAPI = new CentrixAPI({ bot, productsAPI, centrix, logger })
   return {
     onFormsCollected: async function ({ req }) {
-      debugger
       // don't `return` to avoid slowing down message processing
       const { application } = req
       if (!application) return
@@ -121,6 +123,7 @@ export function createPlugin({ conf, bot, productsAPI, logger }) {
       if (!products  ||  !products[productId])
         return
 
+      debugger
       if (hasCentrixVerification({ application })) return
 
       const centrixData:any = await getCentrixData({ application, bot })
