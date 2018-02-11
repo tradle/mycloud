@@ -5,12 +5,8 @@ import createProductsStrategy from './'
 import { createBot } from '../bot'
 import { createConf } from './configure'
 import Errors = require('../errors')
+import { toPromise } from '../utils'
 import { BotComponents, CustomizeBotOpts, CacheableBucketItem } from './types'
-
-const allowNotFound = err => {
-  Errors.ignore(err, Errors.NotFound)
-  return undefined
-}
 
 export async function customize (opts:CustomizeBotOpts):Promise<BotComponents> {
   let { lambda, bot, delayReady, event, conf } = opts
@@ -26,16 +22,16 @@ export async function customize (opts:CustomizeBotOpts):Promise<BotComponents> {
     termsAndConditions
   ] = await Promise.all([
     // confy.org.get(),
-    (conf && conf.bot) ? Promise.resolve(conf.bot) : confy.botConf.get().catch(allowNotFound),
-    (conf && conf.modelsPack) ? Promise.resolve(conf.modelsPack) : confy.modelsPack.get().catch(allowNotFound),
-    (conf && conf.style) ? Promise.resolve(conf.style) : confy.style.get().catch(allowNotFound),
+    (conf && conf.bot) || confy.botConf.get().catch(Errors.ignoreNotFound),
+    (conf && conf.modelsPack) || confy.modelsPack.get().catch(Errors.ignoreNotFound),
+    (conf && conf.style) || confy.style.get().catch(Errors.ignoreNotFound),
     (conf && conf.termsAndConditions)
       ? Promise.resolve({ value: conf.termsAndConditions })
       : confy.termsAndConditions.getDatedValue()
         // ignore empty values
         .then(datedValue => datedValue.value && datedValue)
-        .catch(allowNotFound)
-  ])
+        .catch(Errors.ignoreNotFound)
+  ].map(toPromise))
 
   // const { domain } = org
   if (modelsPack) {

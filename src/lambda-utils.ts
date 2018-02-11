@@ -4,8 +4,7 @@ import { promisify, createLambdaContext } from './utils'
 import {
   Logger,
   Env,
-  AwsApis,
-  StackUtils
+  AwsApis
 } from './types'
 
 import {
@@ -37,16 +36,14 @@ export default class LambdaUtils {
   private env: any
   private aws: AwsApis
   private logger: Logger
-  private stackUtils: StackUtils
   public get thisFunctionName () {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
 
-  constructor ({ env, aws, stackUtils }) {
+  constructor ({ env, aws }) {
     this.env = env
     this.aws = aws
     this.logger = env.sublogger('lambda-utils')
-    this.stackUtils = stackUtils
   }
 
   public getShortName = (name: string):string => {
@@ -126,92 +123,6 @@ export default class LambdaUtils {
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
-  public updateEnvironments = async(map:(conf:Lambda.Types.FunctionConfiguration) => any) => {
-    if (this.env.TESTING) {
-      this.logger.debug(`updateEnvironments is skipped in test mode`)
-      return
-    }
-
-    const functions = await this.stackUtils.getStackFunctionConfigurations()
-    if (!functions) return
-
-    const writes = functions.map(current => {
-      const update = map(current)
-      return update && {
-        current,
-        update
-      }
-    })
-    .filter(notNull)
-    .map(this.updateEnvironment)
-
-    await Promise.all(writes)
-  }
-
-  public updateEnvironment = async (opts: {
-    functionName?: string,
-    current?: any,
-    update: any
-  }) => {
-    if (this.env.TESTING) {
-      this.logger.debug(`updateEnvironment is skipped in test mode`)
-      return
-    }
-
-    let { functionName, update } = opts
-    let { current } = opts
-    if (!current) {
-      if (!functionName) throw new Error('expected "functionName"')
-
-      current = await this.getConfiguration(functionName)
-    }
-
-    functionName = current.FunctionName
-    const updated = {}
-    const { Variables } = current.Environment
-    for (let key in update) {
-      // allow null == undefined
-      if (Variables[key] != update[key]) {
-        updated[key] = update[key]
-      }
-    }
-
-    if (!Object.keys(updated).length) {
-      this.logger.debug(`not updating "${functionName}", no new environment variables`)
-      return
-    }
-
-    this.logger.debug(`updating "${functionName}" with new environment variables`)
-    for (let key in updated) {
-      let val = updated[key]
-      if (val == null) {
-        delete Variables[key]
-      } else {
-        Variables[key] = val
-      }
-    }
-
-    await this.aws.lambda.updateFunctionConfiguration({
-      FunctionName: functionName,
-      Environment: { Variables }
-    }).promise()
-  }
-
-  public forceReinitializeContainers = async (functions?:string[]) => {
-    await this.updateEnvironments(({ FunctionName }) => {
-      if (!functions || functions.includes(FunctionName)) {
-        return getDateUpdatedEnvironmentVariables()
-      }
-    })
-  }
-
-  public forceReinitializeContainer = async (functionName:string) => {
-    await this.updateEnvironment({
-      functionName,
-      update: getDateUpdatedEnvironmentVariables()
-    })
-  }
-
   private requireLambdaByName = (shortName:string) => {
     const { functions } = serverlessYml
     const handlerExportPath = functions[shortName].handler
@@ -286,7 +197,7 @@ export default class LambdaUtils {
   }
 
   public getWarmUpInfo = (yml) => {
-    const { service, functions, provider } = yml
+    const { functions } = yml
     const event = functions[WARMUP_FUNCTION_SHORT_NAME].events.find(event => event.schedule)
     const { rate, input } = event.schedule
     const period = this.parseRateExpression(rate)
@@ -417,10 +328,6 @@ export default class LambdaUtils {
 
 export { LambdaUtils }
 export const create = opts => new LambdaUtils(opts)
-
-const getDateUpdatedEnvironmentVariables = () => ({
-  DATE_UPDATED: String(Date.now())
-})
 
 const getMemorySize = (conf, provider) => {
   return conf.memorySize || provider.memorySize || 128

@@ -66,7 +66,11 @@ export class Bucket {
     bucket: this.name
   })
 
+  public maybeGet = key => this.get(key).catch(Errors.ignoreNotFound)
+
   public getJSON = key => this.get(key).then(({ Body }) => JSON.parse(Body))
+  public maybeGetJSON = key => this.getJSON(key).catch(Errors.ignoreNotFound)
+
   public list = () => this.utils.listBucket({ bucket: this.name })
   public put = (key, value) => this.utils.put({
     key: this._getKey(key),

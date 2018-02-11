@@ -130,6 +130,10 @@ class TimeTravel extends ErrorWithLink {}
 const exportError = (err:Error) => _.pick(err, ['message', 'stack', 'name', 'type'])
 
 const errors = {
+  ignoreNotFound: err => {
+    ignore(err, errors.NotFound)
+    return undefined
+  },
   ClientUnreachable: createError('ClientUnreachable'),
   NotFound: createError('NotFound'),
   InvalidSignature: createError('InvalidSignature'),

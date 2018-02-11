@@ -26,15 +26,7 @@ loadCredentials()
 const env = new Env(process.env)
 const logger = new Logger('gen:testenv')
 const aws = createAWSWrapper({ logger, env })
-const lambdaUtils = new LambdaUtils({
-  env,
-  aws,
-  stackUtils: new StackUtils({
-    env,
-    aws
-  })
-})
-
+const lambdaUtils = new LambdaUtils({ env, aws })
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
   const { Environment } = await lambdaUtils.getConfiguration(setEnvFnName)

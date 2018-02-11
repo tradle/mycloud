@@ -54,6 +54,7 @@ const BaseObjectModel = models['tradle.Object']
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
+const toPromise = <T>(obj:T|Promise<T>):Promise<T> => isPromise(obj) ? obj : Promise.resolve(obj)
 const {
   parseId,
   parseStub,
@@ -138,6 +139,7 @@ export {
  uuid,
  promisify,
  isPromise,
+ toPromise,
  setVirtual,
  omitVirtual,
  pickVirtual,

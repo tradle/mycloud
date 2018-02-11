@@ -10,7 +10,7 @@ import baseModels = require('../models')
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
-import { allSettled, RESOLVED_PROMISE, omitVirtual } from '../utils'
+import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
 import { Bot, ModelStore, Logger, Bucket, IIdentity, ITradleObject, IBotConf } from './types'
 import {
@@ -42,6 +42,20 @@ export type UpdateConfInput = {
   modelsPack?: any
   bot?: any
   terms?: any
+}
+
+interface IInfoInput {
+  bot: IBotConf
+  org: ITradleObject
+  style: ITradleObject
+  identity: IIdentity
+}
+
+interface IInfoInputPartial {
+  bot?: IBotConf
+  org?: ITradleObject
+  style?: any
+  identity?: IIdentity
 }
 
 const MINUTE = 3600000
@@ -233,35 +247,35 @@ export class Conf {
     }
   }
 
-  public calcPublicInfo = async (): Promise<any> => {
-    const [org, style, identity, conf] = await Promise.all([
-      this.org.get(),
-      this.style.get().catch(err => Errors.ignore(err, Errors.NotFound)),
-      this.bot.getMyIdentity().then(identity => omitVirtual(identity)),
-      this.botConf.get()
-    ])
+  public calcPublicInfo = async (infoInput:IInfoInputPartial={}): Promise<any> => {
+    const [org, style, identity, bot] = await Promise.all([
+      infoInput.org || this.org.get(),
+      infoInput.style || this.style.get().catch(Errors.ignoreNotFound),
+      infoInput.identity || this.bot.getMyIdentity(),
+      infoInput.bot || this.botConf.get()
+    ].map(toPromise))
 
-    return this.assemblePublicInfo({ identity, org, style, conf })
+    return this.assemblePublicInfo({
+      identity: omitVirtual(identity),
+      org,
+      style,
+      bot
+    })
   }
 
-  public recalcPublicInfo = async (): Promise<boolean> => {
+  public recalcPublicInfo = async (infoInput:IInfoInputPartial={}): Promise<boolean> => {
     this.logger.debug('recalculating public info')
-    const info = await this.calcPublicInfo()
+    const info = await this.calcPublicInfo(infoInput)
     const updated = await this.info.putIfDifferent(info)
     this.logger.debug('recalculated public info', { updated })
     return info
   }
 
-  public assemblePublicInfo = ({ identity, org, style, conf }: {
-    identity: IIdentity
-    org: ITradleObject
-    style: ITradleObject
-    conf: IBotConf
-  }) => {
-    const tour = _.get(conf, 'tours.intro')
-    // const { splashscreen } = conf
+  public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput) => {
+    const tour = _.get(bot, 'tours.intro')
+    // const { splashscreen } = bot
     return {
-      sandbox: conf.sandbox,
+      sandbox: bot.sandbox,
       bot: {
         profile: {
           name: {
@@ -305,7 +319,7 @@ export class Conf {
     try {
       // if org exists, we have less to do
       await this.org.get({ force: true })
-      return await this.recalcPublicInfo()
+      return await this.recalcPublicInfo({ identity })
     } catch (err) {
       Errors.ignore(err, Errors.NotFound)
     }
@@ -328,7 +342,7 @@ export class Conf {
 
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
-    await this.recalcPublicInfo()
+    await this.recalcPublicInfo({ identity })
   }
 
   public update = async (update: UpdateConfInput) => {
@@ -336,7 +350,7 @@ export class Conf {
     const updated: UpdateConfInput = {}
     if (style) {
       await this.setStyle(style)
-      await this.recalcPublicInfo()
+      await this.recalcPublicInfo({ style })
       updated.style = true
     }
 
@@ -347,7 +361,7 @@ export class Conf {
 
     if (bot) {
       await this.setBotConf(bot)
-      await this.recalcPublicInfo()
+      await this.recalcPublicInfo({ bot })
       updated.bot = true
     }
 
