@@ -245,8 +245,10 @@ export class Conf {
   }
 
   public recalcPublicInfo = async (): Promise<boolean> => {
+    this.logger.debug('recalculating public info')
     const info = await this.calcPublicInfo()
-    await this.info.putIfDifferent(info)
+    const updated = await this.info.putIfDifferent(info)
+    this.logger.debug('recalculated public info', { updated })
     return info
   }
 
