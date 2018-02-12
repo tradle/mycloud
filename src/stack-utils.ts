@@ -5,7 +5,9 @@ import {
   Env,
   Logger,
   AwsApis,
-  LambdaUtils
+  LambdaUtils,
+  Bucket,
+  Buckets
 } from './types'
 
 import Errors = require('./errors')
@@ -19,16 +21,21 @@ export default class StackUtils {
   private env: Env
   private logger: Logger
   private lambdaUtils: LambdaUtils
-  constructor({ aws, env, logger, lambdaUtils }: {
+  private buckets: Buckets
+  private deploymentBucket: Bucket
+  constructor({ aws, env, logger, lambdaUtils, buckets }: {
     aws: AwsApis
     env: Env
     logger?: Logger
     lambdaUtils: LambdaUtils
+    buckets: Buckets
   }) {
     this.aws = aws
     this.env = env
     this.logger = logger || env.sublogger('stack-utils')
     this.lambdaUtils = lambdaUtils
+    this.buckets = buckets
+    this.deploymentBucket = this.buckets.ServerlessDeployment
   }
 
   public get thisStackName() {
@@ -215,6 +222,30 @@ export default class StackUtils {
     return configs.filter(({ FunctionName }) => names.includes(FunctionName))
   }
 
+  public getStackTemplate = async () => {
+    const { buckets } = this
+    const { SERVERLESS_STAGE, SERVERLESS_SERVICE_NAME } = this.env
+    const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
+    const templateFileName = 'compiled-cloudformation-template.json'
+    const objects = await this.deploymentBucket.list({ Prefix: artifactDirectoryPrefix })
+    const templates = objects.filter(object => object.Key.endsWith(templateFileName))
+    const metadata = this.deploymentBucket.utils.getLatest(templates)
+    if (!metadata) {
+      this.logger.debug('base template not found')
+      return
+    }
+
+    this.logger.debug('base template', this.deploymentBucket.getUrlForKey(metadata.Key))
+    return await this.deploymentBucket.getJSON(metadata.Key)
+  }
+
+  public createPublicTemplate = async ():Promise<string> => {
+    const template = await this.getStackTemplate()
+    const key = `cloudformation/template.json`
+    const pubConf = this.buckets.PublicConf
+    await pubConf.utils.putJSON({ key, value: template, bucket: pubConf.id, publicRead: true })
+    return pubConf.getUrlForKey(key)
+  }
 }
 
 export { StackUtils }

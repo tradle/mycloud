@@ -147,12 +147,12 @@ function forEachResource (yaml, fn) {
     })
   }
 
-  // fn({
-  //   id: 'ServerlessDeploymentBucket',
-  //   resource: {
-  //     Type: 'AWS::S3::Bucket'
-  //   }
-  // })
+  fn({
+    id: 'ServerlessDeploymentBucket',
+    resource: {
+      Type: 'AWS::S3::Bucket'
+    }
+  })
 
   // fn({
   //   id: 'ApiGatewayRestApi',
