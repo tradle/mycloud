@@ -309,8 +309,8 @@ Previous exit stack: ${this.lastExitStack}`)
         this.logger.warn('likely developer error', Errors.export(err))
       }
 
-      ctx.body = this._exportError(err)
-      ctx.error = ctx.body
+      // ctx.body = this._exportError(err)
+      ctx.error = new Error(err.message)
       this.logger.debug('lambda execution hit an error', { stack: err.stack })
     } else if (result) {
       ctx.body = result

@@ -13,8 +13,7 @@ lambda.use(async (ctx) => {
     ctx.event = JSON.parse(ctx.event)
   }
 
-  const { style, bot, modelsPack, terms } = ctx.event
-  ctx.body = await conf.update({ style, bot, modelsPack, terms })
+  ctx.body = await conf.update(ctx.event)
   await bot.forceReinitializeContainers()
 })
 
