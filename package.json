@@ -204,6 +204,7 @@
     "string-format": "^0.5.0",
     "superagent": "^3.5.2",
     "time-require": "^0.1.2",
+    "tslib": "^1.9.0",
     "typeforce": "^1.11.1",
     "uuid": "^3.1.0",
     "xtend": "^4.0.1",
