@@ -8,12 +8,12 @@ export const createLambda = (opts) => {
 }
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { logger, tradle } = lambda
-  const { lambdaUtils } = tradle
+  const { logger, bot } = lambda
+  const { lambdaUtils, stackUtils } = bot
   return async (ctx, next) => {
     const { event } = ctx
     logger.debug('reinitializing lambda containers', event)
-    await lambda.bot.forceReinitializeContainers(event.functions)
+    await stackUtils.forceReinitializeContainers(event.functions)
     await lambdaUtils.warmUp(lambdaUtils.getWarmUpInfo(serverlessYml).input)
     await next()
   }
