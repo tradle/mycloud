@@ -16,8 +16,8 @@ import { loadCredentials, loadRemoteEnv, downloadDeploymentTemplate } from '../c
 
 const serverlessYml = require('../cli/serverless-yml')
 const fs = promisify(_fs)
-const serviceMapPath = path.resolve(__dirname, '../cli/remote-service-map.json')
-const latestTemplatePath = path.resolve(__dirname, '../cli/cloudformation-template.json')
+const serviceMapPath = path.resolve(__dirname, '../../src/cli/remote-service-map.json')
+const latestTemplatePath = path.resolve(__dirname, '../../src/cli/cloudformation-template.json')
 const { service, custom } = serverlessYml
 const prefix = `${service}-${custom.stage}-`
 

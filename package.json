@@ -52,7 +52,7 @@
     "init": "npm i && npm run build:yml",
     "precommit": "tsc && lint-staged",
     "package": "serverless package",
-    "gen:testenv": "./lib/scripts/gen-test-env.js",
+    "gen:testenv": "./lib/scripts/gen-test-env.js && npm run copy-static-assets",
     "gen:fixtures": "./lib/scripts/gen-fixtures.js",
     "gen:samples": "./lib/scripts/gen-samples.js",
     "gen:localsamples": "./lib/scripts/gen-samples.js --local",

@@ -2,7 +2,7 @@
 
 const co = require('co')
 const { loadCredentials } = require('../cli/utils')
-const { lambdaUtils } = require('../').createRemoteTradle()
+const { stackUtils } = require('../').createRemoteTradle()
 let {
   functions,
   key,
@@ -35,7 +35,7 @@ co(function* () {
   }
 
   console.log('setting', update)
-  yield lambdaUtils.updateEnvironments(function ({ FunctionName }) {
+  yield stackUtils.updateEnvironments(function ({ FunctionName }) {
     if (functions && !functions.includes(FunctionName.slice(prefix.length))) return null
 
     return update
