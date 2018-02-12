@@ -21,3 +21,4 @@ lib/definitions.json
 lib/cli/cloudformation-template.json
 lib/serverless-interpolated.json
 **/version.json
+*.sublime-*
