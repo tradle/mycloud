@@ -37,9 +37,9 @@ package:
     - secrets.yml
     - vars.yml
     - logs/**
-    - *.log
-    - *.rdb
-    - .*
+    - "*.log"
+    - "*.rdb"
+    - ".*"
     - loadtesting/**
     - myswagger.json
     - myidentity.json
