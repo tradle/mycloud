@@ -164,7 +164,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#fa689e2d5c2af0ff2b703047be7fc9b167a1ca69"
+      "resolved": "git://github.com/tradle/custom-models.git#b67d520b6c26f5e53683662f76c3ef215a19446c"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -257,7 +257,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#52eae8c0004d3f6be4adccfb098fe028432ab0d9"
+      "resolved": "git://github.com/tradle/models.git#ec5a3b31502ec64e40fca2699cc5859960130daa"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -370,7 +370,7 @@
     },
     "@tradle/validate-model": {
       "version": "5.7.0",
-      "from": "@tradle/validate-model@>=5.7.0 <6.0.0",
+      "from": "@tradle/validate-model@latest",
       "resolved": "http://registry.npmjs.org/@tradle/validate-model/-/validate-model-5.7.0.tgz"
     },
     "@tradle/validate-resource": {

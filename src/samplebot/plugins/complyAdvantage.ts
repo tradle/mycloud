@@ -59,13 +59,19 @@ class ComplyAdvantageAPI {
   }
 
   async createSanctionsCheck({ application, rawData }) {
+    let status
+    if (rawData.hits.length)
+      status = {id: 'tradle.Status_fail', title: 'Fail'}
+    else
+      status = {id: 'tradle.Status_pass', title: 'Pass'}
+      // status = hits.length + ' companies were found with this registration number'
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
-      status: rawData.hits.length ? 'Fail' : 'Success',
+      status,
+      rawData,
       provider: 'Comply Advantage',
-      reason: rawData,
       application: buildResourceStub({resource: application, models: this.bot.models}),
-      dateChecked: rawData.updated_at,
+      dateChecked: rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       sharedUrl: rawData.share_url
     }
 
@@ -104,7 +110,6 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
   const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
   return {
     [`onmessage:${FORM_ID}`]: async function(req) {
-      debugger
       const { user, application, applicant, payload } = req
       if (!application) return
 
@@ -113,6 +118,7 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
       if (!products  ||  !products[productId]  ||  !products[productId][FORM_ID])
         return
 
+      debugger
       //
       // let formStubs = application.forms && application.forms.filter((f) => {
       //   return f.id.indexOf(FORM_ID) !== -1
@@ -130,16 +136,21 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
       let pforms = forms.map((f) => complyAdvantage._fetch(f, products[productId][FORM_ID], application))
 
       let result = await Promise.all(pforms)
-
-      let pchecks = result.map((r: {resource:any, rawData:object, hits: any}) => {
+      let pchecks = []
+      result.forEach((r: {resource:any, rawData:object, hits: any}) => {
         let { resource, rawData, hits} = r
+        let hasVerification
         if (hits  &&  hits.length) {
           logger.debug(`found sanctions for: ${resource.companyName}`);
-          return complyAdvantage.createSanctionsCheck({application, rawData: rawData})
+          // return complyAdvantage.createSanctionsCheck({application, rawData: rawData})
         }
-
-        logger.debug(`creating verification for: ${resource.companyName}`);
-        return complyAdvantage.createVerification({user, application, form: resource, rawData})
+        else {
+          hasVerification = true
+          logger.debug(`creating verification for: ${resource.companyName}`);
+        }
+        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData}))
+        if (hasVerification)
+          pchecks.push(complyAdvantage.createVerification({user, application, form: resource, rawData}))
       })
       let checksAndVerifications = await Promise.all(pchecks)
     }

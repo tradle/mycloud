@@ -3,10 +3,13 @@ import fetch = require('node-fetch')
 import buildResource = require('@tradle/build-resource')
 import { buildResourceStub } from '@tradle/build-resource'
 import constants = require('@tradle/constants')
+import { Bot, Logger } from '../types'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
 const FORM_ID = 'tradle.BusinessInformation'
+const OPEN_CORPORATES = 'Open Corporates'
+const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 
 const BASE_URL = 'https://api.opencorporates.com/'
 const test = {
@@ -29,6 +32,7 @@ const test = {
           "company_number": "5524712",
           "jurisdiction_code": "us_de",
           "incorporation_date": "2014-04-29",
+          "inactive": false,
           "opencorporates_url": "https://opencorporates.com/companies/us_de/5524712",
         }
       }
@@ -37,9 +41,9 @@ const test = {
 }
 
 class OpenCorporatesAPI {
-  private bot:any
+  private bot:Bot
   private productsAPI:any
-  private logger:any
+  private logger:Logger
   constructor({ bot, productsAPI, logger }) {
     this.bot = bot
     this.productsAPI = productsAPI
@@ -83,14 +87,16 @@ class OpenCorporatesAPI {
 
   async createCorporateCheck({ application, rawData, hits, url }) {
     let status
-    if (hits.length)
-      status = hits.length + ' companies were found with this registration number'
+    if (hits.length === 1)
+      status = {id: 'tradle.Status_pass', title: 'Pass'}
+      // status = hits.length + ' companies were found with this registration number'
     else
-      status = 'Company not found'
+      status = {id: 'tradle.Status_fail', title: 'Fail'}
+      // status = 'Company not found'
     let resource:any = {
-      [TYPE]: 'tradle.CorporationExistsCheck',
+      [TYPE]: CORPORATION_EXISTS,
       status: status,
-      provider: 'Open Corporates',
+      provider: OPEN_CORPORATES,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime(),
       sharedUrl: url
@@ -109,7 +115,7 @@ class OpenCorporatesAPI {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
-        name: 'Open Corporates'
+        name: OPEN_CORPORATES
       },
       aspect: 'company existence',
       reference: [{ queryId: 'report:' + rawData.company_number }],
@@ -127,6 +133,19 @@ class OpenCorporatesAPI {
                          .toJSON()
     const signedVerification = await this.bot.signAndSave(verification)
     this.productsAPI.importVerification({ user, application, verification: signedVerification })
+    if (!application.checks)
+      return
+
+    let checks = await Promise.all(application.checks.map((r) => this.bot.objects.get(r.id.split('_')[2])))
+    let ocChecks = []
+    checks.forEach((r:any) => {
+      if (r.provider !== OPEN_CORPORATES  ||  !r.isActive)
+        return
+      r.isActive = false
+      ocChecks.push(this.bot.versionAndSave(r))
+    })
+    if (ocChecks.length)
+      await Promise.all(ocChecks)
   }
 }
 export function createPlugin({conf, bot, productsAPI, logger}) {
@@ -142,7 +161,6 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
         return
       debugger
 
-      //
       // let formStubs = application.forms && application.forms.filter((f) => {
       //   return f.id.indexOf(FORM_ID) !== -1
       // })
@@ -160,16 +178,19 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
 
       let result = await Promise.all(pforms)
 
-      let pchecks = result.map((r: {resource:any, rawData:object, hits: any, url:string}) => {
+      let pchecks = []
+      result.forEach((r: {resource:any, rawData:object, hits: any, url:string}) => {
         let { resource, rawData, hits, url } = r
-        if (!hits  ||  (!hits.length || hits.length > 1)) {
+        let hasVerification
+        if (!hits  ||  (!hits.length || hits.length > 1))
           logger.debug(`found sanctions for: ${resource.companyName}`);
-          return openCorporates.createCorporateCheck({application, rawData: rawData, hits, url})
-        }
         else  {
+          hasVerification = true
           logger.debug(`creating verification for: ${resource.companyName}`);
-          return openCorporates.createVerification({user, application, form: resource, rawData: hits[0].company})
         }
+        pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, hits, url}))
+        if (hasVerification)
+          pchecks.push(openCorporates.createVerification({user, application, form: resource, rawData: hits[0].company}))
       })
       let checksAndVerifications = await Promise.all(pchecks)
     }

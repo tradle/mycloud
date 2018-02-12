@@ -5,6 +5,7 @@ const { TYPE } = constants
 const { VERIFICATION, IDENTITY } = constants.TYPES
 
 const buildResource = require('@tradle/build-resource')
+import { buildResourceStub } from '@tradle/build-resource'
 
 import createCentrixClient = require('@tradle/centrix')
 
@@ -12,7 +13,9 @@ import { Name } from '../types'
 import { getNameFromForm } from '../utils'
 
 const PHOTO_ID = 'tradle.PhotoID'
-const CENTRIX_API_NAME = 'Centrix'
+const CENTRIX_CHECK = 'tradle.CentrixCheck'
+const CENTRIX_NAME = 'Centrix'
+
 const DOCUMENT_TYPES = {
   license: 'driving_licence',
   passport: 'passport'
@@ -37,23 +40,38 @@ class CentrixAPI {
   async callCentrix({ req, photoID, props, type }) {
     const method = type === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
 
-    // ask centrix to verify it
-    props.success = true
+    const { user, application } = req
 
+    // ask centrix to verify it
+    props.success = false
     const centrixOpName = OPERATION[type]
-    let result
+    let rawData
     try {
       this.logger.debug(`running ${centrixOpName} with Centrix`)
-      result = await this.centrix[method](props)
+      rawData = await this.centrix[method](props)
     } catch (err) {
       this.logger.debug(`Centrix ${centrixOpName} verification failed`, err.stack)
       return
     }
 
-    this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${result.ResponseDetails.EnquiryNumber}`)
-    const { user, application } = req
-    const verification = await this.createCentrixVerification({ req, photoID, result })
-    await this.productsAPI.importVerification({
+    let checkFailed
+    if (type === DOCUMENT_TYPES.passport) {
+      if (!rawData.DataSets.DIAPassport.IsSuccess  ||
+          !rawData.DataSets.DIAPassport.DIAPassportVerified)
+        checkFailed = true
+    }
+    else {
+      let { IsDriverLicenceVerifiedAndMatched, IsDriverLicenceVerified } = rawData.DataSets.DriverLicenceVerification
+      if (!IsDriverLicenceVerified          ||
+          !IsDriverLicenceVerifiedAndMatched)
+      checkFailed = true
+    }
+    await this.createCentrixCheck({ application, rawData, success: !checkFailed })
+    if (checkFailed)
+      return
+    this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
+    const verification = await this.createCentrixVerification({ req, photoID, rawData })
+    this.productsAPI.importVerification({
       user,
       application,
       verification
@@ -64,7 +82,29 @@ class CentrixAPI {
     await new Promise(resolve => setTimeout(resolve, 2000))
   }
 
-  async createCentrixVerification({ req, photoID, result }) {
+  async createCentrixCheck({ application, rawData, success }) {
+    this.cleanJson(rawData)
+    let status
+    if (success)
+      status = {id: 'tradle.Status_fail', title: 'Fail'}
+    else
+      status = {id: 'tradle.Status_pass', title: 'Pass'}
+
+    let resource:any = {
+      [TYPE]: CENTRIX_CHECK,
+      provider: CENTRIX_NAME,
+      isActive: true,
+      rawData,
+      application: buildResourceStub({resource: application, models: this.bot.models}),
+      dateChecked: new Date().getTime()
+    }
+
+    if (!application.checks) application.checks = []
+    const check = await this.bot.signAndSave(resource)
+    application.checks.push(buildResourceStub({resource: check, models: this.bot.models}))
+  }
+
+  async createCentrixVerification({ req, photoID, rawData }) {
     // const { object } = photoID
     const object = photoID.object || photoID
         // provider: {
@@ -72,18 +112,18 @@ class CentrixAPI {
         //   title: 'Centrix'
         // }
 
-    this.cleanJson(result)
+    this.cleanJson(rawData)
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
-        name: CENTRIX_API_NAME
+        name: CENTRIX_NAME
       },
       reference: [{
-        queryId: result.ResponseDetails.EnquiryNumber
+        queryId: rawData.ResponseDetails.EnquiryNumber
       }],
       aspect: 'validity',
-      rawData: result
+      rawData
     }
 
     let verification = buildResource({
@@ -211,7 +251,7 @@ function hasCentrixVerification ({ application }) {
     return form.issuedVerifications.find(v => {
       const { method={} } = v.object
       const { api={} } = method
-      return api.name === CENTRIX_API_NAME
+      return api.name === CENTRIX_NAME
     })
   })
 }
