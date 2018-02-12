@@ -8,7 +8,7 @@ const conf = createConf({ bot })
 
 lambda.use(async (ctx) => {
   await this.conf.setStyle(ctx.event)
-  await this.conf.forceReinitializeContainers()
+  await bot.forceReinitializeContainers()
 })
 
 export const handler = lambda.handler

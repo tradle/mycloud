@@ -8,7 +8,6 @@ import mergeModels = require('@tradle/merge-models')
 import { Plugins } from './plugins'
 import baseModels = require('../models')
 import { CacheableBucketItem } from '../cacheable-bucket-item'
-import serverlessYml = require('../cli/serverless-yml')
 import Errors = require('../errors')
 import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
@@ -19,7 +18,6 @@ import {
 
 const { LOGO_UNKNOWN } = require('./media')
 const DEFAULT_CONF = require('./conf/provider')
-const { reinitializeOnConfChanged } = serverlessYml.custom
 const parseJSON = JSON.parse.bind(JSON)
 const getHandleFromName = (name: string) => {
   return name.replace(/[^A-Za-z]/g, '').toLowerCase()
@@ -49,13 +47,6 @@ interface IInfoInput {
   org: ITradleObject
   style: ITradleObject
   identity: IIdentity
-}
-
-interface IInfoInputPartial {
-  bot?: IBotConf
-  org?: ITradleObject
-  style?: any
-  identity?: IIdentity
 }
 
 const MINUTE = 3600000
@@ -233,7 +224,7 @@ export class Conf {
   }
 
   public forceReinitializeContainers = async () => {
-    return await this.bot.forceReinitializeContainers(reinitializeOnConfChanged)
+    return await this.bot.forceReinitializeContainers()
   }
 
   public getPublicInfo = async () => {
@@ -247,7 +238,7 @@ export class Conf {
     }
   }
 
-  public calcPublicInfo = async (infoInput:IInfoInputPartial={}): Promise<any> => {
+  public calcPublicInfo = async (infoInput:Partial<IInfoInput>={}): Promise<any> => {
     const [org, style, identity, bot] = await Promise.all([
       infoInput.org || this.org.get(),
       infoInput.style || this.style.get().catch(Errors.ignoreNotFound),
@@ -263,7 +254,7 @@ export class Conf {
     })
   }
 
-  public recalcPublicInfo = async (infoInput:IInfoInputPartial={}): Promise<boolean> => {
+  public recalcPublicInfo = async (infoInput:Partial<IInfoInput>={}): Promise<boolean> => {
     this.logger.debug('recalculating public info')
     const info = await this.calcPublicInfo(infoInput)
     const updated = await this.info.putIfDifferent(info)

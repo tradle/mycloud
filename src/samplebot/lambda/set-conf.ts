@@ -15,7 +15,7 @@ lambda.use(async (ctx) => {
 
   const { style, bot, modelsPack, terms } = ctx.event
   ctx.body = await conf.update({ style, bot, modelsPack, terms })
-  await conf.forceReinitializeContainers()
+  await bot.forceReinitializeContainers()
 })
 
 export const handler = lambda.handler

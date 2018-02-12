@@ -36,7 +36,20 @@ package:
     - src/**
     - secrets.yml
     - vars.yml
+    - logs/**
+    - *.log
+    - *.rdb
+    - .*
+    - loadtesting/**
+    - myswagger.json
+    - myidentity.json
     - lib/test/**
+    - lib/scripts/**
+    - certs/**
+    - org/**
+    - docker/**
+    - docs/**
+    - codebuild/**
     - node_modules/**/*.ts
     - node_modules/**/*.d.ts
     - node_modules/**/test/*
@@ -233,7 +246,7 @@ custom:
 
   serverless-offline: ${{self:custom.vars.serverless-offline, self:custom.defaults.serverless-offline}}
   serverless-iot-local: ${{self:custom.vars.serverless-iot-local, self:custom.defaults.serverless-iot-local}}
-  reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
+  # reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
 
   # serverless-dynamodb-local settings
   dynamodb:
