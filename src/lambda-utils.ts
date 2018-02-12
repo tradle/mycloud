@@ -286,8 +286,15 @@ export default class LambdaUtils {
     const fnResults = await Promise.all(new Array(concurrency).fill(0).map(async () => {
       try {
         const resp = await this.invoke(opts)
-        const body = resp.headers && resp.body && resp.isBase64Encoded
-          ? JSON.parse(new Buffer(resp.body, 'base64').toString())
+        if (!resp) {
+          return {
+            error: 'received empty response'
+          }
+        }
+
+        let { headers, body, isBase64Encoded } = resp
+        body = headers && body && isBase64Encoded
+          ? JSON.parse(new Buffer(body, 'base64').toString())
           : resp
 
         this.logger.info(`Warm Up Invoke Success: ${functionName}`, body)
