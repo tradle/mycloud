@@ -107,8 +107,8 @@ export class Remediator {
     user: any,
     claimId: string
   }) => {
-    this.logger.debug(`claim processed, deleting claim stubs`, { claimId, user: user.id })
-    await this.deleteClaimsForBundle({ claimId })
+    // this.logger.debug(`claim processed, deleting claim stubs`, { claimId, user: user.id })
+    // await this.deleteClaimsForBundle({ claimId })
   }
 
   public getBundle = async ({ key, claimId }: {
