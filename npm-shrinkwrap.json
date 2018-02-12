@@ -61,13 +61,8 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#1b2153e919162060d1a40bc20848855094bb98f8",
+      "resolved": "git://github.com/tradle/bot-products.git#ff2979fdba50493a5508efa428ec70e9137bf1ab",
       "dependencies": {
-        "@tradle/build-resource": {
-          "version": "2.13.1",
-          "from": "@tradle/build-resource@2.13.1",
-          "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-2.13.1.tgz"
-        },
         "debug": {
           "version": "3.1.0",
           "from": "debug@3.1.0",
@@ -230,7 +225,14 @@
     "@tradle/gen-samples": {
       "version": "1.0.1",
       "from": "tradle/gen-samples",
-      "resolved": "git://github.com/tradle/gen-samples.git#cea03b95296f484af2cb66145650f268d0144162"
+      "resolved": "git://github.com/tradle/gen-samples.git#cea03b95296f484af2cb66145650f268d0144162",
+      "dependencies": {
+        "@tradle/validate-model": {
+          "version": "4.3.0",
+          "from": "@tradle/validate-model@>=4.1.0 <5.0.0",
+          "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-4.3.0.tgz"
+        }
+      }
     },
     "@tradle/iot-message": {
       "version": "3.0.0",
