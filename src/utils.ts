@@ -966,7 +966,7 @@ export const cachifyFunction = (
   return cachified
 }
 
-export const timeMethods = (obj, logger) => {
+export const timeMethods = <T>(obj:T, logger:Logger):T => {
   logger = logger.sub('timer')
   Object.keys(obj).forEach(key => {
     const val = obj[key]
@@ -975,7 +975,7 @@ export const timeMethods = (obj, logger) => {
     obj[key] = (...args) => {
       const start = Date.now()
       const log = () => {
-        logger.debug({
+        logger.debug(`timed method`, {
           fn: key,
           args: JSON.stringify(args).slice(0, 100),
           time: Date.now() - start

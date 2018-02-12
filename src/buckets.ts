@@ -1,6 +1,7 @@
 
 import Cache = require('lru-cache')
 import { Bucket } from './bucket'
+import { IBucketsInfo, Buckets } from './types'
 import { cachify, isPromise } from './utils'
 import { toCamelCase } from './string-utils'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
@@ -16,7 +17,7 @@ const byteLengthFn = val => {
   return Buffer.byteLength(JSON.stringify(val))
 }
 
-const cacheConfig = {
+const cacheConfig:IBucketsInfo = {
   Objects: {
     length: byteLengthFn,
     max: 50 * MEG,
@@ -45,11 +46,11 @@ const cacheConfig = {
     length: byteLengthFn,
     max: 50 * MEG,
     maxAge: 10 * MINUTE
+  },
+  ServerlessDeployment: {
+    max: 100 * MEG,
+    maxAge: Infinity
   }
-}
-
-export type Buckets = {
-  [name:string]: Bucket
 }
 
 export const getBuckets = ({ env, logger, aws, serviceMap, s3Utils }):Buckets => {
@@ -72,7 +73,7 @@ export const getBuckets = ({ env, logger, aws, serviceMap, s3Utils }):Buckets =>
     })
   }
 
-  const buckets:Buckets = {}
+  const buckets = {} as Buckets
   Object.keys(serviceMap.Bucket).forEach(loadBucket)
   return buckets
 }

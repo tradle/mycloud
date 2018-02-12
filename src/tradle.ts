@@ -21,7 +21,8 @@ import {
   Buckets,
   AwsApis,
   StackUtils,
-  LambdaUtils
+  LambdaUtils,
+  S3Utils
 } from './types'
 
 import { requireDefault } from './require-default'
@@ -58,7 +59,7 @@ export default class Tradle {
   public friends: Friends
   public provider: Provider
   public pushNotifications: Push
-  public s3Utils: any
+  public s3Utils: S3Utils
   public iot: any
   public lambdaUtils: LambdaUtils
   public stackUtils: StackUtils
@@ -106,7 +107,7 @@ export default class Tradle {
     this.define('tables', './tables', this.construct)
     this.define('buckets', './buckets', () => getBuckets(this))
     this.define('db', './db', initialize => initialize(this))
-    this.define('s3Utils', './s3-utils', initialize => initialize({
+    this.define('s3Utils', './s3-utils', S3Utils => new S3Utils({
       env: this.env,
       s3: this.aws.s3,
       logger: this.logger.sub('s3-utils')

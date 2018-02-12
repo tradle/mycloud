@@ -13,7 +13,6 @@ import { Objects } from '../objects'
 import { Auth } from '../auth'
 // import { Init } from '../init'
 import { AwsApis } from '../aws'
-import { Buckets } from '../buckets'
 import { Bucket } from '../bucket'
 import { Seals } from '../seals'
 import { Blockchain } from '../blockchain'
@@ -31,6 +30,7 @@ import { Discovery } from '../discovery'
 import { Backlinks } from '../backlinks'
 import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
+import { S3Utils } from '../s3-utils'
 import {
   ResourceStub,
   ParsedResourceStub
@@ -54,7 +54,6 @@ export {
   Objects,
   Auth,
   AwsApis,
-  Buckets,
   Bucket,
   Seals,
   Blockchain,
@@ -73,7 +72,8 @@ export {
   Lambda,
   Backlinks,
   StackUtils,
-  LambdaUtils
+  LambdaUtils,
+  S3Utils
 }
 
 export interface IPositionPair {
@@ -322,4 +322,24 @@ export interface ISettledPromise<T> {
   isRejected: boolean
   value?: T
   reason?: Error
+}
+
+export interface IBucketInfo {
+  length?: (obj:any) => number
+  max: number
+  maxAge: number
+}
+
+export interface IBucketsInfo {
+  Objects: IBucketInfo
+  Secrets: IBucketInfo
+  ContentAddressed: IBucketInfo
+  PublicConf: IBucketInfo
+  PrivateConf: IBucketInfo
+  FileUpload: IBucketInfo
+  ServerlessDeployment: IBucketInfo
+}
+
+export type Buckets = {
+  [P in keyof IBucketsInfo]: Bucket
 }

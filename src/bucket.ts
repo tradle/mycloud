@@ -1,7 +1,7 @@
 import path = require('path')
 import AWS = require('aws-sdk')
 import _ = require('lodash')
-import createS3Utils from './s3-utils'
+import { S3Utils, createUtils } from './s3-utils'
 import Logger from './logger'
 import { cachify } from './utils'
 import Errors = require('./errors')
@@ -12,7 +12,7 @@ type BucketOpts = {
   s3:AWS.S3
   cache?:any
   logger?:Logger
-  s3Utils?:any
+  s3Utils?:S3Utils
   env?:Env
   prefix?:string
 }
@@ -24,8 +24,8 @@ export class Bucket {
   // public env:Env
   public logger:Logger
   public cache?: any
+  public utils: S3Utils
   private opts?: BucketOpts
-  private utils: any
   constructor (opts: BucketOpts) {
     const { name, env, s3, cache, logger, s3Utils, prefix='' } = opts
     this.opts = opts
@@ -36,7 +36,7 @@ export class Bucket {
     this.name = name
     this.id = name // alias
     this.logger = logger || new Logger(`bucket:${name}`)
-    this.utils = s3Utils || createS3Utils({ env, s3, logger: this.logger })
+    this.utils = s3Utils || createUtils({ env, s3, logger: this.logger })
     this.prefix = prefix
     if (cache) {
       this.cache = cache
@@ -68,17 +68,18 @@ export class Bucket {
 
   public maybeGet = key => this.get(key).catch(Errors.ignoreNotFound)
 
-  public getJSON = key => this.get(key).then(({ Body }) => JSON.parse(Body))
+  public getJSON = key => this.get(key).then(({ Body }) => JSON.parse(Body.toString()))
   public maybeGetJSON = key => this.getJSON(key).catch(Errors.ignoreNotFound)
 
-  public list = () => this.utils.listBucket({ bucket: this.name })
-  public put = (key, value) => this.utils.put({
+  public list = (opts) => this.utils.listBucket({ bucket: this.name, ...opts })
+  public put = (key, value, opts?) => this.utils.put({
     key: this._getKey(key),
     value,
-    bucket: this.name
+    bucket: this.name,
+    ...opts
   })
 
-  public putJSON = (key, value) => this.put(key, value)
+  public putJSON = (key, value, opts?) => this.put(key, value, opts)
   public gzipAndPut = (key, value) => this.utils.gzipAndPut({
     key: this._getKey(key),
     value,
@@ -124,6 +125,11 @@ export class Bucket {
 
     return false
   }
+
+  public getUrlForKey = key => this.utils.getUrlForKey({
+    bucket: this.name,
+    key: this._getKey(key)
+  })
 
   private _getKey = key => this.prefix + key
 }

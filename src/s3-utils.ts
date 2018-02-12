@@ -3,39 +3,49 @@ import { TYPE } from '@tradle/constants'
 import Errors = require('./errors')
 import Env from './env'
 import Logger from './logger'
+import { S3 } from 'aws-sdk'
 import { timeMethods, isPromise, batchProcess, gzip, gunzip } from './utils'
 
 export type PutOpts = {
-  key:string,
-  value:any,
-  bucket:string,
+  key:string
+  value:any
+  bucket:string
   headers?:any
+  publicRead?: boolean
 }
 
-export default function createUtils ({ s3, logger, env }: {
-  s3: AWS.S3,
-  logger: Logger,
-  env?: Env
-}) {
-  let utils
+export default class S3Utils {
+  public s3: S3
+  public logger: Logger
+  public env: Env
+  constructor({ s3, logger, env }: {
+    s3: S3,
+    logger: Logger,
+    env?: Env
+  }) {
+    this.s3 = s3
+    this.logger = logger
+    this.env = env
+  }
 
-  const put = async ({ key, value, bucket, headers={} }: PutOpts)
-    :Promise<AWS.S3.Types.PutObjectOutput> => {
+  public put = async ({ key, value, bucket, headers = {}, publicRead }: PutOpts): Promise<S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
-    const opts:AWS.S3.Types.PutObjectRequest = {
+    const opts: S3.Types.PutObjectRequest = {
       ...headers,
       Bucket: bucket,
       Key: key,
       Body: toStringOrBuf(value)
     }
 
-    return await s3.putObject(opts).promise()
+    if (publicRead) opts.ACL = 'public-read'
+
+    return await this.s3.putObject(opts).promise()
   }
 
-  const gzipAndPut = async (opts) => {
-    const { value, headers={} } = opts
+  public gzipAndPut = async (opts) => {
+    const { value, headers = {} } = opts
     const compressed = await gzip(toStringOrBuf(value))
-    return await utils.put({
+    return await this.put({
       ...opts,
       value: compressed,
       headers: {
@@ -45,30 +55,30 @@ export default function createUtils ({ s3, logger, env }: {
     })
   }
 
-  const get = async ({ key, bucket, ...opts }: {
-    key:string,
-    bucket:string,
-    [x:string]: any
-  }):Promise<AWS.S3.Types.GetObjectOutput> => {
-    const params:AWS.S3.Types.GetObjectRequest = {
+  public get = async ({ key, bucket, ...opts }: {
+    key: string,
+    bucket: string,
+    [x: string]: any
+  }): Promise<S3.Types.GetObjectOutput> => {
+    const params: S3.Types.GetObjectRequest = {
       Bucket: bucket,
       Key: key,
       ...opts
     }
 
     try {
-      const result = await s3.getObject(params).promise()
+      const result = await this.s3.getObject(params).promise()
       // logger.debug('got', { key, bucket, type: result[TYPE] })
       if (result.ContentEncoding === 'gzip') {
         // localstack gunzips but leaves ContentEncoding header
-        if (!(env && env.TESTING)) {
+        if (!(this.env && this.env.TESTING)) {
           result.Body = await gunzip(result.Body)
           delete result.ContentEncoding
         }
       }
 
       return result
-    } catch(err) {
+    } catch (err) {
       if (err.code === 'NoSuchKey') {
         throw new Errors.NotFound(`${bucket}/${key}`)
       }
@@ -77,26 +87,26 @@ export default function createUtils ({ s3, logger, env }: {
     }
   }
 
-  const forEachItemInBucket = async ({ bucket, getBody, map, ...opts }: {
+  public forEachItemInBucket = async ({ bucket, getBody, map, ...opts }: {
     bucket: string,
     getBody?: boolean,
     map: Function,
-    [x:string]: any
+    [x: string]: any
   }) => {
-    const params:AWS.S3.Types.ListObjectsRequest = {
+    const params: S3.Types.ListObjectsRequest = {
       Bucket: bucket,
       ...opts
     }
 
     let Marker
     while (true) {
-      let { NextMarker, Contents } = await s3.listObjects(params).promise()
+      let { NextMarker, Contents } = await this.s3.listObjects(params).promise()
       if (getBody) {
         await batchProcess({
           data: Contents,
           batchSize: 20,
           processOne: async (item) => {
-            const withBody = await s3.getObject({ Bucket: bucket, Key: item.Key }).promise()
+            const withBody = await this.s3.getObject({ Bucket: bucket, Key: item.Key }).promise()
             let result = map({ ...item, ...withBody })
             if (isPromise(result)) await result
           }
@@ -114,10 +124,10 @@ export default function createUtils ({ s3, logger, env }: {
     }
   }
 
-  const listBucket = async ({ bucket, ...opts })
-    :Promise<AWS.S3.Object[]> => {
+  public listBucket = async ({ bucket, ...opts })
+    : Promise<S3.Object[]> => {
     const all = []
-    await forEachItemInBucket({
+    await this.forEachItemInBucket({
       ...opts,
       bucket,
       map: item => all.push(item)
@@ -126,19 +136,19 @@ export default function createUtils ({ s3, logger, env }: {
     return all
   }
 
-  const clearBucket = async ({ bucket }) => {
-    await forEachItemInBucket({
+  public clearBucket = async ({ bucket }) => {
+    await this.forEachItemInBucket({
       bucket,
-      map: ({ Key }) => del({ bucket, key: Key })
+      map: ({ Key }) => this.del({ bucket, key: Key })
     })
   }
 
-  const getCacheable = ({ key, bucket, ttl, parse, ...defaultOpts }: {
-    key:string,
-    bucket:string,
-    ttl:number,
-    parse?:(any) => any,
-    [x:string]: any
+  public getCacheable = ({ key, bucket, ttl, parse, ...defaultOpts }: {
+    key: string,
+    bucket: string,
+    ttl: number,
+    parse?: (any) => any,
+    [x: string]: any
   }) => {
     if (!key) throw new Error('expected "key"')
     if (!bucket) throw new Error('expected "bucket"')
@@ -155,12 +165,12 @@ export default function createUtils ({ s3, logger, env }: {
       cachedTime = 0
     }
 
-    const maybeGet = async (opts:any={}) => {
+    const maybeGet = async (opts: any = {}) => {
       let summary = { key, bucket, type }
       if (!opts.force) {
         const age = Date.now() - cachedTime
         if (etag && age < ttl) {
-          logger.debug('returning cached item', {
+          this.logger.debug('returning cached item', {
             ...summary,
             age,
             ttl: (ttl - age)
@@ -180,10 +190,10 @@ export default function createUtils ({ s3, logger, env }: {
       }
 
       try {
-        cached = await utils.get({ key, bucket, ...opts })
+        cached = await this.get({ key, bucket, ...opts })
       } catch (err) {
         if (err.code === 'NotModified') {
-          logger.debug('304, returning cached item', summary)
+          this.logger.debug('304, returning cached item', summary)
           return cached
         }
 
@@ -199,7 +209,7 @@ export default function createUtils ({ s3, logger, env }: {
       }
 
       cachedTime = Date.now()
-      logger.debug('fetched and cached item', summary)
+      this.logger.debug('fetched and cached item', summary)
 
       return cached
     }
@@ -207,9 +217,9 @@ export default function createUtils ({ s3, logger, env }: {
     const putAndCache = async ({ value, ...opts }) => {
       if (value == null) throw new Error('expected "value"')
 
-      const result = await utils.put({ bucket, key, value, ...defaultOpts, ...opts })
+      const result = await this.put({ bucket, key, value, ...defaultOpts, ...opts })
       cached = parse ? value : {
-        Body: result.Body || JSON.stringify(value),
+        Body: JSON.stringify(value),
         ...result
       }
 
@@ -224,15 +234,15 @@ export default function createUtils ({ s3, logger, env }: {
     }
   }
 
-  const putJSON = put
+  public putJSON = this.put
 
-  const getJSON = ({ key, bucket }) => {
-    return utils.get({ key, bucket }).then(({ Body }) => JSON.parse(Body))
+  public getJSON = ({ key, bucket }) => {
+    return this.get({ key, bucket }).then(({ Body }) => JSON.parse(Body.toString()))
   }
 
-  const head = async ({ key, bucket }) => {
+  public head = async ({ key, bucket }) => {
     try {
-      await s3.headObject({
+      await this.s3.headObject({
         Bucket: bucket,
         Key: key
       }).promise()
@@ -243,35 +253,35 @@ export default function createUtils ({ s3, logger, env }: {
     }
   }
 
-  const exists = ({ key, bucket }) => {
-    return head({ key, bucket })
+  public exists = ({ key, bucket }) => {
+    return this.head({ key, bucket })
       .then(() => true, err => false)
   }
 
-  const del = ({ key, bucket }) => {
-    return s3.deleteObject({
+  public del = ({ key, bucket }) => {
+    return this.s3.deleteObject({
       Bucket: bucket,
       Key: key
     }).promise()
   }
 
-  const createPresignedUrl = ({ bucket, key }) => {
-    return s3.getSignedUrl('getObject', {
+  public createPresignedUrl = ({ bucket, key }) => {
+    return this.s3.getSignedUrl('getObject', {
       Bucket: bucket,
       Key: key
     })
   }
 
-  const createBucket = ({ bucket }) => {
-    return s3.createBucket({ Bucket: bucket }).promise()
+  public createBucket = ({ bucket }) => {
+    return this.s3.createBucket({ Bucket: bucket }).promise()
   }
 
-  const destroyBucket = ({ bucket }) => {
-    return s3.deleteBucket({ Bucket: bucket }).promise()
+  public destroyBucket = ({ bucket }) => {
+    return this.s3.deleteBucket({ Bucket: bucket }).promise()
   }
 
-  const urlForKey = ({ bucket, key }) => {
-    const { host } = s3.endpoint
+  public urlForKey = ({ bucket, key }) => {
+    const { host } = this.s3.endpoint
     if (host.startsWith('localhost')) {
       return `http://${host}/${bucket}${key}`
     }
@@ -279,48 +289,46 @@ export default function createUtils ({ s3, logger, env }: {
     return `https://${bucket}.s3.amazonaws.com/${key}`
   }
 
-  const disableEncryption = async ({ bucket }) => {
-    logger.info(`disabling server-side encryption from bucket ${bucket}`)
-    await s3.deleteBucketEncryption({ Bucket: bucket }).promise()
+  public disableEncryption = async ({ bucket }) => {
+    this.logger.info(`disabling server-side encryption from bucket ${bucket}`)
+    await this.s3.deleteBucketEncryption({ Bucket: bucket }).promise()
   }
 
-  const enableEncryption = async ({ bucket, kmsKeyId }: {
-    bucket:string,
-    kmsKeyId?:string
+  public enableEncryption = async ({ bucket, kmsKeyId }: {
+    bucket: string,
+    kmsKeyId?: string
   }) => {
-    logger.info(`enabling server-side encryption for bucket ${bucket}`)
+    this.logger.info(`enabling server-side encryption for bucket ${bucket}`)
     const params = toEncryptionParams({ bucket, kmsKeyId })
-    await s3.putBucketEncryption(params).promise()
+    await this.s3.putBucketEncryption(params).promise()
   }
 
-  const getEncryption = async ({ bucket }) => {
-    return await s3.getBucketEncryption({ Bucket: bucket }).promise()
+  public getEncryption = async ({ bucket }) => {
+    return await this.s3.getBucketEncryption({ Bucket: bucket }).promise()
   }
 
-  return utils = timeMethods({
-    get,
-    getJSON,
-    getCacheable,
-    listBucket,
-    clearBucket,
-    put,
-    putJSON,
-    gzipAndPut,
-    head,
-    del,
-    exists,
-    createPresignedUrl,
-    createBucket,
-    destroyBucket,
-    urlForKey,
-    forEachItemInBucket,
-    enableEncryption,
-    disableEncryption,
-    getEncryption
-  }, logger)
+  public getLatest = (list:S3.Object[]):S3.Object => {
+    let max = 0
+    let latest
+    for (let metadata of list) {
+      let date = new Date(metadata.LastModified).getTime()
+      if (date > max) latest = metadata
+    }
+
+    return latest
+  }
+
+  public getUrlForKey = ({ bucket, key }) => {
+    if (this.s3.config.s3ForcePathStyle) {
+      return ``
+    }
+
+    return `https://${bucket}.s3.amazonaws.com/${key}`
+  }
 }
 
-export { createUtils }
+export { S3Utils }
+export const createUtils = opts => new S3Utils(opts)
 
 const toStringOrBuf = (value) => {
   if (typeof value === 'string') return value
@@ -330,8 +338,8 @@ const toStringOrBuf = (value) => {
   return JSON.stringify(value)
 }
 
-const toEncryptionParams = ({ bucket, kmsKeyId }):AWS.S3.PutBucketEncryptionRequest => {
-  const ApplyServerSideEncryptionByDefault:AWS.S3.ServerSideEncryptionByDefault = {
+const toEncryptionParams = ({ bucket, kmsKeyId }):S3.PutBucketEncryptionRequest => {
+  const ApplyServerSideEncryptionByDefault:S3.ServerSideEncryptionByDefault = {
     SSEAlgorithm: kmsKeyId ? 'aws:kms' : 'AES256'
   }
 
