@@ -3,7 +3,7 @@
 // import mkdirp = require('mkdirp')
 import { Lambda } from 'aws-sdk'
 import { promisify } from './utils'
-import { Logger, Env } from './types'
+import { Logger, Env, LambdaUtils, StackUtils } from './types'
 
 // const pfs = promisify(fs)
 // const pmkdirp = promisify(mkdirp)
@@ -11,7 +11,8 @@ import { Logger, Env } from './types'
 export default class Discovery {
   private env: Env
   private aws: any
-  private lambdaUtils: any
+  private lambdaUtils: LambdaUtils
+  private stackUtils: StackUtils
   private iot: any
   private logger: Logger
   public get thisFunctionName () {
@@ -21,7 +22,8 @@ export default class Discovery {
   constructor (opts: {
     env: Env,
     aws: any,
-    lambdaUtils: any,
+    lambdaUtils: LambdaUtils,
+    stackUtils: StackUtils,
     iot: any,
     logger: Logger
   }) {
@@ -75,7 +77,7 @@ export default class Discovery {
       }
     }
 
-    const resources = await this.lambdaUtils.getStackResources(StackName)
+    const resources = await this.stackUtils.getStackResources(StackName)
     const env = {
       IOT_ENDPOINT: await promiseIotEndpoint
     }
@@ -103,7 +105,7 @@ export default class Discovery {
         }
 
         this.logger.debug(`updating environment variables for: ${PhysicalResourceId}`)
-        return this.lambdaUtils.updateEnvironment({
+        return this.stackUtils.updateEnvironment({
           functionName: PhysicalResourceId,
           update: env,
           current
