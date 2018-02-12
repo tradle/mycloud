@@ -883,7 +883,7 @@ export const createLambdaContext = (fun, cb?) => {
   }
 }
 
-export const logResponseBody = (logger) => (req, res, next) => {
+export const logResponseBody = (logger:Logger) => (req, res, next) => {
   const oldWrite = res.write
   const oldEnd = res.end
   const chunks = []

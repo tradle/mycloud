@@ -58,29 +58,6 @@ type LambdaMap = {
 // const RESOLVED = Promise.resolve()
 const { TYPE, SIG } = constants
 const { parseStub } = validateResource.utils
-const promisePassThrough = data => Promise.resolve(data)
-
-const PROXY_TO_TRADLE = [
-  'aws', 'objects', 'db', 'dbUtils', 'contentAddressedStore',
-  'lambdaUtils', 'iot', 'seals', 'modelStore',
-  'identities', 'history', 'messages', 'friends',
-  'resources', 'env', 'router', 'buckets', 'tables',
-  'serviceMap', 'version', 'apiBaseUrl', 'tasks'
-]
-
-// const HOOKABLE = [
-//   { name: 'init' },
-//   { name: 'message' },
-//   { name: 'seal' },
-//   { name: 'readseal' },
-//   { name: 'wroteseal' },
-//   { name: 'user:create' },
-//   { name: 'user:online' },
-//   { name: 'user:offline' },
-//   { name: 'user:authenticated' },
-//   { name: 'messagestream' },
-//   { name: 'info' }
-// ]
 
 export const createBot = (opts:any={}):Bot => {
   return new Bot({

@@ -1,6 +1,11 @@
 import { requireDefault } from './require-default'
 import Tradle from './tradle'
 import Env from './env'
+import {
+  LambdaUtils,
+  StackUtils,
+  AwsApis
+} from './types'
 
 let tradle
 
@@ -80,7 +85,7 @@ const exp = {
   get Init() {
     return requireDefault('./init')
   },
-  get aws() {
+  get aws():AwsApis {
     return requireDefault('./aws')
   },
   get awsConfig() {
@@ -119,8 +124,11 @@ const exp = {
   get S3() {
     return requireDefault('./s3-utils')
   },
-  get lambdaUtils() {
+  get lambdaUtils():LambdaUtils {
     return requireDefault('./lambda-utils')
+  },
+  get stackUtils():StackUtils {
+    return requireDefault('./stack-utils')
   },
   get dbUtils() {
     return requireDefault('./db-utils')

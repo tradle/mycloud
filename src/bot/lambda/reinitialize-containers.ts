@@ -13,7 +13,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   return async (ctx, next) => {
     const { event } = ctx
     logger.debug('reinitializing lambda containers', event)
-    await lambdaUtils.forceReinitializeContainers(event.functions)
+    await lambda.bot.forceReinitializeContainers(event.functions)
     await lambdaUtils.warmUp(lambdaUtils.getWarmUpInfo(serverlessYml).input)
     await next()
   }

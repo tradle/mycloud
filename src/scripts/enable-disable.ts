@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { loadCredentials, genLocalResources } from '../cli/utils'
-import { lambdaUtils } from '../'
+import { stackUtils } from '../'
 
 const {
   enable
@@ -26,7 +26,7 @@ const action = enable ? 'enable' : 'disable'
 console.log(`will ${action} all functions starting with prefix ${prefix}`)
 
 ;(async () => {
-  await lambdaUtils.updateEnvironments(function ({ FunctionName }) {
+  await stackUtils.updateEnvironments(function ({ FunctionName }) {
     if (FunctionName.startsWith(prefix)) {
       return {
         DISABLED: enable ? null : 'y'

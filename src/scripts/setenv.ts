@@ -6,7 +6,7 @@ import path = require('path')
 import { loadCredentials } from '../cli/utils'
 import { createRemoteTradle } from '../'
 
-const { lambdaUtils } = createRemoteTradle()
+const { stackUtils } = createRemoteTradle()
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'functions',
@@ -30,7 +30,7 @@ console.log('setting env', JSON.stringify(env, null, 2))
 
 ;(async () => {
   const functions = argv.functions && argv.functions.split(',').map(f => f.trim())
-  await lambdaUtils.updateEnvironments(function ({ FunctionName }) {
+  await stackUtils.updateEnvironments(function ({ FunctionName }) {
     if (functions && !functions.includes(FunctionName.slice(custom.prefix.length))) {
       console.log('not updating', FunctionName)
       return null
