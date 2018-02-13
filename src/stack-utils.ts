@@ -222,21 +222,21 @@ export default class StackUtils {
     return configs.filter(({ FunctionName }) => names.includes(FunctionName))
   }
 
-  public getStackTemplate = async () => {
+  public getStackTemplate = async (deploymentBucket:Bucket=this.deploymentBucket) => {
     const { buckets } = this
     const { SERVERLESS_STAGE, SERVERLESS_SERVICE_NAME } = this.env
     const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
     const templateFileName = 'compiled-cloudformation-template.json'
-    const objects = await this.deploymentBucket.list({ Prefix: artifactDirectoryPrefix })
+    const objects = await deploymentBucket.list({ Prefix: artifactDirectoryPrefix })
     const templates = objects.filter(object => object.Key.endsWith(templateFileName))
-    const metadata = this.deploymentBucket.utils.getLatest(templates)
+    const metadata = deploymentBucket.utils.getLatest(templates)
     if (!metadata) {
       this.logger.debug('base template not found')
       return
     }
 
-    this.logger.debug('base template', this.deploymentBucket.getUrlForKey(metadata.Key))
-    return await this.deploymentBucket.getJSON(metadata.Key)
+    this.logger.debug('base template', deploymentBucket.getUrlForKey(metadata.Key))
+    return await deploymentBucket.getJSON(metadata.Key)
   }
 
   public createPublicTemplate = async ():Promise<string> => {

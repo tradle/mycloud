@@ -99,7 +99,7 @@ export class Bucket {
   public destroy = () => this.utils.destroyBucket({ bucket: this.name })
   public clear = () => this.utils.clearBucket({ bucket: this.name })
   public toString = () => this.name
-  public urlForKey = (key:string) => this.utils.urlForKey({
+  public getUrlForKey = (key:string) => this.utils.getUrlForKey({
     key: this._getKey(key),
     bucket: this.name
   })
@@ -125,11 +125,6 @@ export class Bucket {
 
     return false
   }
-
-  public getUrlForKey = key => this.utils.getUrlForKey({
-    bucket: this.name,
-    key: this._getKey(key)
-  })
 
   private _getKey = key => this.prefix + key
 }

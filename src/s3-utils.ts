@@ -280,7 +280,7 @@ export default class S3Utils {
     return this.s3.deleteBucket({ Bucket: bucket }).promise()
   }
 
-  public urlForKey = ({ bucket, key }) => {
+  public getUrlForKey = ({ bucket, key }) => {
     const { host } = this.s3.endpoint
     if (host.startsWith('localhost')) {
       return `http://${host}/${bucket}${key}`
@@ -316,14 +316,6 @@ export default class S3Utils {
     }
 
     return latest
-  }
-
-  public getUrlForKey = ({ bucket, key }) => {
-    if (this.s3.config.s3ForcePathStyle) {
-      return ``
-    }
-
-    return `https://${bucket}.s3.amazonaws.com/${key}`
   }
 }
 

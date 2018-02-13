@@ -12,6 +12,7 @@ import { command as getconf } from './getconf'
 import { command as approve } from './approve'
 import { command as deny } from './deny'
 import { command as encryptbucket } from './encryptbucket'
+import { command as getlaunchlink } from './getlaunchlink'
 
 export {
   help,
@@ -26,5 +27,6 @@ export {
   getconf,
   approve,
   deny,
-  encryptbucket
+  encryptbucket,
+  getlaunchlink
 }

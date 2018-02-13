@@ -307,37 +307,19 @@ const validateProviderConf = conf => {
   }
 }
 
-const downloadDeploymentTemplate = async (tradle) => {
+const downloadDeploymentTemplate = async (tradle:Tradle) => {
   loadCredentials()
 
-  const { aws, s3Utils } = tradle
-  const { service, provider: { stage } } = require('./serverless-yml')
-  const artifactDirectoryPrefix = `serverless/${service}/${stage}`
-  const templateFileName = 'compiled-cloudformation-template.json'
+  const { aws, stackUtils } = tradle
   const physicalId = await getPhysicalId({
     tradle,
     logicalId: 'ServerlessDeploymentBucket'
   })
 
-  const objects = await aws.s3.listObjects({
-    Bucket: physicalId,
-    Prefix: artifactDirectoryPrefix
-  }).promise()
-
-  const templates = objects.Contents
-    .filter(object => object.Key.endsWith(templateFileName))
-
-  const metadata = getLatestS3Object(templates)
-  if (!metadata) {
-    debug('base template not found', prettify(objects))
-    return
-  }
-
-  debug('base template', `https://${physicalId}.s3.amazonaws.com/${metadata.Key}`)
-  return await s3Utils.getJSON({
-    bucket: physicalId,
-    key: metadata.Key
-  })
+  return await stackUtils.getStackTemplate(new Bucket({
+    name: physicalId,
+    s3: aws.s3
+  }))
 }
 
 function getLatestS3Object (list) {

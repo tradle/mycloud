@@ -6,7 +6,8 @@ import {
   ICommand,
   ICommandContext,
   CommandOutput,
-  ICommandExecOpts
+  ICommandExecOpts,
+  Bot
 } from './types'
 
 import { parseStub } from '../utils'
@@ -40,7 +41,7 @@ const SUDO = {
 }
 
 export class Commander {
-  public bot:any
+  public bot: Bot
   public productsAPI:any
   public employeeManager:any
   public conf: IConf

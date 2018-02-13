@@ -21,7 +21,8 @@ export const EMPLOYEE_COMMANDS = [
   'message',
   'getconf',
   'approve',
-  'deny'
+  'deny',
+  'getlaunchlink'
 ]
 
 export const CUSTOMER_COMMANDS = [
