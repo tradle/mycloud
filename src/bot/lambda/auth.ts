@@ -1,3 +1,4 @@
+import * as Koa from 'koa'
 import compose = require('koa-compose')
 import cors = require('kcors')
 import Errors = require('../../errors')
@@ -22,7 +23,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 
 export const auth = (lambda:Lambda, opts?:any) => {
   const { tradle, bot } = lambda
-  return async (ctx, next) => {
+  return async (ctx:Koa.Context, next) => {
     const time = Date.now()
     try {
       ctx.session = await tradle.auth.handleChallengeResponse(ctx.request.body)

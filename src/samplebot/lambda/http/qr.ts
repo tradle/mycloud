@@ -13,7 +13,7 @@ const descriptions = {
   AddProvider: (data: any) => `scan this QR code with the Tradle app to add this provider to your Conversations screen`
 }
 
-lambda.use(async (ctx:Koa.Request, next) => {
+lambda.use(async (ctx:Koa.Context, next) => {
   const { query={} } = ctx
   const { claimId } = query
   const provider = await getPermalink
