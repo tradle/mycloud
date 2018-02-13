@@ -9,13 +9,15 @@ export const createConfig = ({ env } : { env: Env }):IAWSServiceConfig => {
   } as IAWSServiceConfig
 
   if (IS_LOCAL || IS_OFFLINE) {
+    const localIP = require('localip')()
     const localstackEndpoints = require('./test/localstack')
 
     for (let name in localstackEndpoints) {
       let lname = name.toLowerCase()
       if (!services[lname]) services[lname] = {}
 
-      services[lname].endpoint = localstackEndpoints[name]
+      let endpoint = localstackEndpoints[name]
+      services[lname].endpoint = endpoint.replace(/localhost/, localIP)
     }
 
     services.s3.s3ForcePathStyle = true
