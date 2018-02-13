@@ -76,7 +76,10 @@ class ComplyAdvantageAPI {
     }
 
     if (!application.checks) application.checks = []
+
+    this.logger.debug(`Creating SanctionsCheck for: ${rawData.submitted_term}`);
     const check = await this.bot.signAndSave(resource)
+    this.logger.debug(`Created SanctionsCheck for: ${rawData.submitted_term}`);
     application.checks.push(buildResourceStub({resource: check, models: this.bot.models}))
   }
 
@@ -110,7 +113,9 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
   const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
   return {
     [`onmessage:${FORM_ID}`]: async function(req) {
+
       const { user, application, applicant, payload } = req
+logger.debug(`running sanctions plugin for: ${payload.companyName}`);
       if (!application) return
 
       let productId = application.requestFor
@@ -118,7 +123,7 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
       if (!products  ||  !products[productId]  ||  !products[productId][FORM_ID])
         return
 
-      debugger
+      // debugger
       //
       // let formStubs = application.forms && application.forms.filter((f) => {
       //   return f.id.indexOf(FORM_ID) !== -1

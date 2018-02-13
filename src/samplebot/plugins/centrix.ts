@@ -163,7 +163,7 @@ export function createPlugin({ conf, bot, productsAPI, logger }) {
       if (!products  ||  !products[productId])
         return
 
-      debugger
+      // debugger
       if (hasCentrixVerification({ application })) return
 
       const centrixData:any = await getCentrixData({ application, bot })

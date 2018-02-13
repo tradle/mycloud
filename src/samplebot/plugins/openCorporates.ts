@@ -159,7 +159,7 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
       let { products } = conf
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
         return
-      debugger
+      // debugger
 
       // let formStubs = application.forms && application.forms.filter((f) => {
       //   return f.id.indexOf(FORM_ID) !== -1
