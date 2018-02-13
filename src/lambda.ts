@@ -317,8 +317,10 @@ Previous exit stack: ${this.lastExitStack}`)
         this.logger.warn('likely developer error', Errors.export(err))
       }
 
-      // ctx.body = this._exportError(err)
-      ctx.error = new Error(err.message)
+      if (this.source !== EventSource.HTTP) {
+        ctx.error = new Error(err.message)
+      }
+
       this.logger.debug('lambda execution hit an error', { stack: err.stack })
     } else if (result) {
       ctx.body = result
@@ -334,7 +336,7 @@ Previous exit stack: ${this.lastExitStack}`)
         throw new Error('lambda already exited')
       }
 
-      ctx.callback(ctx.error, ctx.body)
+      ctx.callback(ctx.error, ctx.error ? null : ctx.body)
     }
 
     this.reset()
@@ -455,7 +457,11 @@ Previous exit stack: ${this.lastExitStack}`)
           await next()
         } catch (err) {
           ctx.error = err
-          ctx.status = 500
+          if (!ctx.status || ctx.status <= 300) {
+            ctx.status = 500
+          }
+
+          ctx.body = this._exportError(ctx.error)
         }
       }
 
