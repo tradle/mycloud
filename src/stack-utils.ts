@@ -16,30 +16,39 @@ import {
   LAUNCH_STACK_BASE_URL
 } from './constants'
 
+type StackInfo = {
+  id: string
+  name: string
+}
+
 export default class StackUtils {
   private aws: AwsApis
+  private serviceMap: any
   private env: Env
   private logger: Logger
   private lambdaUtils: LambdaUtils
   private buckets: Buckets
   private deploymentBucket: Bucket
-  constructor({ aws, env, logger, lambdaUtils, buckets }: {
+  private stack: StackInfo
+  constructor({ aws, env, serviceMap, logger, lambdaUtils, buckets }: {
     aws: AwsApis
     env: Env
+    serviceMap: any
     logger?: Logger
     lambdaUtils: LambdaUtils
     buckets: Buckets
   }) {
     this.aws = aws
     this.env = env
+    this.serviceMap = serviceMap
     this.logger = logger || env.sublogger('stack-utils')
     this.lambdaUtils = lambdaUtils
     this.buckets = buckets
     this.deploymentBucket = this.buckets.ServerlessDeployment
-  }
 
-  public get thisStackName() {
-    return this.env.STACK_ID
+    const longId = utils.parseArn(this.serviceMap.Stack).id
+    const [name, id] = longId.split('/')
+    this.stack = { name, id }
   }
 
   public listStacks = async ():Promise<AWS.CloudFormation.StackSummaries> => {
@@ -62,20 +71,30 @@ export default class StackUtils {
 
   public getUpdateStackUrl = async ({
     region=this.env.AWS_REGION,
-    stackName,
+    stackName=this.stack.name,
+    stackId=this.stack.id,
     templateURL
+  }: {
+    region?: string
+    stackName?: string
+    stackId?: string
+    templateURL: string
   }) => {
-    const stacks = await this.listStacks()
-    const stack = stacks.find(({ StackName }) => StackName === stackName)
-    if (!stack) {
-      throw new Errors.NotFound(`stack with name: ${stackName}`)
+    if (!stackId) {
+      const stacks = await this.listStacks()
+      const stack = stacks.find(({ StackName }) => StackName === stackName)
+      if (!stack) {
+        throw new Errors.NotFound(`stack with name: ${stackName}`)
+      }
+
+      stackId = stack.StackId
     }
 
-    const qs = querystring.stringify({ stackId: stack.StackId, templateURL })
+    const qs = querystring.stringify({ stackId, templateURL })
     return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/update?${qs}`
   }
 
-  public getStackResources = async (StackName: string=this.thisStackName):Promise<AWS.CloudFormation.StackResourceSummaries> => {
+  public getStackResources = async (StackName: string=this.stack.name):Promise<AWS.CloudFormation.StackResourceSummaries> => {
     let resources = []
     const opts:AWS.CloudFormation.ListStackResourcesInput = { StackName }
     while (true) {
@@ -178,7 +197,7 @@ export default class StackUtils {
     })
   }
 
-  public listFunctions = async (StackName:string=this.thisStackName):Promise<Lambda.Types.FunctionConfiguration[]> => {
+  public listFunctions = async (StackName:string=this.stack.name):Promise<Lambda.Types.FunctionConfiguration[]> => {
     let all = []
     let Marker
     let opts:Lambda.Types.ListFunctionsRequest = {}

@@ -1,8 +1,9 @@
+import { Env } from './types'
 
 const { ENV_RESOURCE_PREFIX } = require('./constants')
-const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)_(.*)$`)
+const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)(?:_(.*))?$`)
 
-export = function resourcesForEnv ({ env }) {
+export = function resourcesForEnv ({ env }: { env: Env }) {
   const { logger } = env
   const {
     SERVERLESS_SERVICE_NAME,
@@ -26,7 +27,7 @@ export = function resourcesForEnv ({ env }) {
       return {
         key,
         type,
-        name: match[2]
+        name: match[2] || ''
       }
     })
     .filter(truthy)
@@ -47,10 +48,18 @@ export = function resourcesForEnv ({ env }) {
 
     } else {
       value = env[key]
+      if (value && value.Ref && env.IS_OFFLINE) {
+        value = value.Ref
+      }
     }
 
     logger.silly(`registered ${type} ${name} -> ${value}`)
-    resources[type][name] = value
+    if (name) {
+      resources[type][name] = value
+    } else {
+      // only Stack really
+      resources[type] = value
+    }
   }
 
   function truthy (obj) {

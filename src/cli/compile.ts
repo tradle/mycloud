@@ -196,7 +196,7 @@ function addResourcesToEnvironment (yaml) {
     }
   })
 
-  environment.STACK_ID = {
+  environment.R_STACK = {
     Ref: 'AWS::StackId'
   }
 
