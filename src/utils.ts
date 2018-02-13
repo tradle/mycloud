@@ -44,7 +44,7 @@ import {
 } from './constants'
 
 import Errors = require('./errors')
-import { CacheContainer, ISettledPromise } from './types'
+import { CacheContainer, ISettledPromise, ILaunchStackUrlOpts } from './types'
 import Logger from './logger'
 import Env from './env'
 import Tradle from './tradle'
@@ -373,7 +373,7 @@ export function logify (obj, opts:LogifyOpts={}) {
 
 export function cachify ({ get, put, del, logger, cache }: {
   get:(key:any) => Promise<any>
-  put:(key:any, value:any) => Promise<any|void>
+  put:(key:any, value:any, ...opts:any[]) => Promise<any|void>
   del:(key:any) => Promise<any|void>
   cache: any
   logger?: Logger
@@ -405,7 +405,7 @@ export function cachify ({ get, put, del, logger, cache }: {
 
   return {
     get: cachifiedGet,
-    put: co(function* (key, value) {
+    put: co(function* (key, value, ...rest) {
       // TODO (if actually needed):
       // get cached value, skip put if identical
       if (logger) logger.debug('cache set', { key })
@@ -419,7 +419,7 @@ export function cachify ({ get, put, del, logger, cache }: {
       }
 
       cache.del(keyStr)
-      const ret = yield put(key, value)
+      const ret = yield put(key, value, ...rest)
       cache.set(keyStr, value)
       return ret
     }),
@@ -500,7 +500,7 @@ export function launchStackUrl ({
   region=process.env.AWS_REGION,
   stackName,
   templateURL
-}) {
+}: ILaunchStackUrlOpts) {
   const qs = querystring.stringify({ stackName, templateURL })
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/new?${qs}`
 }
@@ -742,6 +742,7 @@ export function batchByByteLength (arr:Array<string|Buffer>, max) {
 
 export const RESOLVED_PROMISE = Promise.resolve()
 export const promiseNoop = () => RESOLVED_PROMISE
+export const identityPromise:<T>(val:T) => Promise<T> = val => Promise.resolve(val)
 
 export function defineGetter (obj, property, get) {
   Object.defineProperty(obj, property, {

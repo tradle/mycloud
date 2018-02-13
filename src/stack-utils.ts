@@ -7,7 +7,9 @@ import {
   AwsApis,
   LambdaUtils,
   Bucket,
-  Buckets
+  Buckets,
+  ILaunchStackUrlOpts,
+  IUpdateStackUrlOpts
 } from './types'
 
 import Errors = require('./errors')
@@ -17,7 +19,7 @@ import {
 } from './constants'
 
 type StackInfo = {
-  id: string
+  arn: string
   name: string
 }
 
@@ -46,9 +48,11 @@ export default class StackUtils {
     this.buckets = buckets
     this.deploymentBucket = this.buckets.ServerlessDeployment
 
-    const longId = utils.parseArn(this.serviceMap.Stack).id
-    const [name, id] = longId.split('/')
-    this.stack = { name, id }
+    const arn = this.serviceMap.Stack
+    this.stack = {
+      name: utils.parseArn(arn).id.split('/')[0],
+      arn
+    }
   }
 
   public listStacks = async ():Promise<AWS.CloudFormation.StackSummaries> => {
@@ -67,30 +71,35 @@ export default class StackUtils {
     return stacks
   }
 
-  public getLaunchStackUrl = opts => utils.launchStackUrl(opts)
+  public getLaunchStackUrl = (opts: Partial<ILaunchStackUrlOpts>) => {
+    const { templateURL, ...rest } = opts
+    if (!templateURL) throw new Errors.InvalidInput('expected "templateURL"')
+
+    return utils.launchStackUrl({
+      region: this.env.AWS_REGION,
+      stackName: this.stack.name,
+      templateURL,
+      ...rest
+    })
+  }
 
   public getUpdateStackUrl = async ({
     region=this.env.AWS_REGION,
     stackName=this.stack.name,
-    stackId=this.stack.id,
+    stackArn=this.stack.arn,
     templateURL
-  }: {
-    region?: string
-    stackName?: string
-    stackId?: string
-    templateURL: string
-  }) => {
-    if (!stackId) {
+  }: IUpdateStackUrlOpts) => {
+    if (!stackArn) {
       const stacks = await this.listStacks()
       const stack = stacks.find(({ StackName }) => StackName === stackName)
       if (!stack) {
         throw new Errors.NotFound(`stack with name: ${stackName}`)
       }
 
-      stackId = stack.StackId
+      stackArn = stack.StackId
     }
 
-    const qs = querystring.stringify({ stackId, templateURL })
+    const qs = querystring.stringify({ stackId: stackArn, templateURL })
     return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/update?${qs}`
   }
 
@@ -242,11 +251,14 @@ export default class StackUtils {
   }
 
   public getStackTemplate = async (deploymentBucket:Bucket=this.deploymentBucket) => {
+    if (this.env.TESTING) {
+      return _.cloneDeep(require('../.serverless/cloudformation-template-update-stack'))
+    }
+
     const { buckets } = this
-    const { SERVERLESS_STAGE, SERVERLESS_SERVICE_NAME } = this.env
-    const artifactDirectoryPrefix = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
+    const { SERVERLESS_ARTIFACTS_PATH } = this.env
     const templateFileName = 'compiled-cloudformation-template.json'
-    const objects = await deploymentBucket.list({ Prefix: artifactDirectoryPrefix })
+    const objects = await deploymentBucket.list({ Prefix: SERVERLESS_ARTIFACTS_PATH })
     const templates = objects.filter(object => object.Key.endsWith(templateFileName))
     const metadata = deploymentBucket.utils.getLatest(templates)
     if (!metadata) {
@@ -258,11 +270,12 @@ export default class StackUtils {
     return await deploymentBucket.getJSON(metadata.Key)
   }
 
-  public createPublicTemplate = async ():Promise<string> => {
+  public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise):Promise<string> => {
     const template = await this.getStackTemplate()
+    const customized = await transform(template)
     const key = `cloudformation/template.json`
     const pubConf = this.buckets.PublicConf
-    await pubConf.utils.putJSON({ key, value: template, bucket: pubConf.id, publicRead: true })
+    await pubConf.putJSON(key, template, { publicRead: true })
     return pubConf.getUrlForKey(key)
   }
 }

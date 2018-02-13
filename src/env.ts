@@ -40,6 +40,7 @@ export default class Env {
   public SERVERLESS_STAGE:string
   public SERVERLESS_SERVICE_NAME:string
   public SERVERLESS_ALIAS?:string
+  public SERVERLESS_ARTIFACTS_PATH: string
 
   public BLOCKCHAIN:any
   public CORDA_API_URL?:string
@@ -60,6 +61,7 @@ export default class Env {
     const {
       SERVERLESS_PREFIX,
       SERVERLESS_STAGE,
+      SERVERLESS_SERVICE_NAME,
       NODE_ENV,
       IS_LOCAL,
       IS_OFFLINE,
@@ -78,6 +80,8 @@ export default class Env {
     this.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
       ? 512
       : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
+
+    this.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 
     const namespace = `λ:${this.FUNCTION_NAME}`
     this.logger = new Logger({

@@ -1,7 +1,7 @@
 import path = require('path')
 import AWS = require('aws-sdk')
 import _ = require('lodash')
-import { S3Utils, createUtils } from './s3-utils'
+import { S3Utils, createUtils, PutOpts } from './s3-utils'
 import Logger from './logger'
 import { cachify } from './utils'
 import Errors = require('./errors')
@@ -72,14 +72,14 @@ export class Bucket {
   public maybeGetJSON = key => this.getJSON(key).catch(Errors.ignoreNotFound)
 
   public list = (opts) => this.utils.listBucket({ bucket: this.name, ...opts })
-  public put = (key, value, opts?) => this.utils.put({
+  public put = (key, value, opts?:Partial<PutOpts>) => this.utils.put({
     key: this._getKey(key),
     value,
     bucket: this.name,
     ...opts
   })
 
-  public putJSON = (key, value, opts?) => this.put(key, value, opts)
+  public putJSON = (key, value, opts?:Partial<PutOpts>) => this.put(key, value, opts)
   public gzipAndPut = (key, value) => this.utils.gzipAndPut({
     key: this._getKey(key),
     value,

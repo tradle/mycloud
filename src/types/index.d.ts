@@ -343,3 +343,16 @@ export interface IBucketsInfo {
 export type Buckets = {
   [P in keyof IBucketsInfo]: Bucket
 }
+
+export interface ILaunchStackUrlOpts {
+  region: string
+  stackName: string
+  templateURL: string
+}
+
+export interface IUpdateStackUrlOpts {
+  region?: string
+  stackName?: string
+  stackId?: string
+  templateURL: string
+}
