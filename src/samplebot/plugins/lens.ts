@@ -2,10 +2,10 @@ import _ = require('lodash')
 import { TYPE, SIG } from '@tradle/constants'
 import { Conf } from '../configure'
 import { parseId } from '../../utils'
-import { IPBApp, IPBReq } from '../types'
+import { IPBApp, IPBReq, IPluginOpts } from '../types'
 
 export const name = 'lens'
-export const createPlugin = ({ conf, logger }) => {
+export const createPlugin = ({ conf, logger }: IPluginOpts) => {
 
   const willSend = ({ req, to, object, application }) => {
     if (!object || object[SIG]) return

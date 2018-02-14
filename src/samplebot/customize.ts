@@ -6,9 +6,9 @@ import { createBot } from '../bot'
 import { createConf } from './configure'
 import Errors = require('../errors')
 import { toPromise } from '../utils'
-import { BotComponents, CustomizeBotOpts, CacheableBucketItem } from './types'
+import { IBotComponents, CustomizeBotOpts, CacheableBucketItem } from './types'
 
-export async function customize (opts:CustomizeBotOpts):Promise<BotComponents> {
+export async function customize (opts:CustomizeBotOpts):Promise<IBotComponents> {
   let { lambda, bot, delayReady, event, conf } = opts
   if (!bot) bot = lambda.bot
 

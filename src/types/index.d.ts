@@ -353,6 +353,6 @@ export interface ILaunchStackUrlOpts {
 export interface IUpdateStackUrlOpts {
   region?: string
   stackName?: string
-  stackId?: string
+  stackArn?: string
   templateURL: string
 }

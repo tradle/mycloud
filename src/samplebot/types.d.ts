@@ -1,20 +1,25 @@
 import { Bot, ModelsPack, DatedValue, Lambda } from '../types'
+import { Conf } from './configure'
 import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediator } from './remediation'
+import { Deployment } from './deployment'
 import {
   ITradleObject,
   IIdentity,
   ITradleMessage,
-  ResourceStub
+  ResourceStub,
+  Logger
 } from '../types'
 
 export * from '../types'
 
 export {
+  Conf,
   Commander,
   Onfido,
-  Remediator
+  Remediator,
+  Deployment
 }
 
 export interface IProductsConf {
@@ -43,14 +48,15 @@ export interface IConf {
   termsAndConditions?: DatedValue
 }
 
-export type BotComponents = {
+export interface IBotComponents {
   bot: Bot
   models: any
   conf?: IConf
   productsAPI: any
   employeeManager: any
   remediator?: Remediator
-  onfidoPlugin?: Onfido
+  onfido?: Onfido
+  deployment?: Deployment
   commands?: Commander
   [x:string]: any
 }
@@ -68,9 +74,9 @@ export type CliOpts = {
   console?: any
 }
 
-export interface Yargs {
+export interface IYargs {
   _: string[]
-  [option: string]: any
+  [x: string]: any
 }
 
 export interface IUser {
@@ -135,7 +141,7 @@ export type CommandOutput = {
 export interface ICommandExecOpts {
   commander: Commander
   req: IPBReq
-  args: Yargs
+  args: IYargs
   argsStr: string
   ctx: ICommandContext
 }
@@ -154,8 +160,53 @@ export interface ICommand {
   sendResult?: (opts:ICommandSendResultOpts) => Promise<any>
   aliases?: string[]
 }
+
 export type Name = {
   firstName?:string
   lastName?:string
   formatted:string
+}
+
+export type ValidatePluginConfOpts = {
+  bot: Bot
+  conf: Conf
+  pluginConf: any
+  [other:string]: any
+}
+
+export interface IPluginParts {
+  plugin: any
+  api?: any
+}
+
+export interface IPlugin {
+  name?: string
+  createPlugin: (opts:any) => IPluginParts
+  validateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
+}
+
+export interface IPlugins {
+  get: (name:string) => IPlugin
+  set: (name:string, IPlugin) => void
+}
+
+export interface IPluginOpts {
+  bot: Bot
+  productsAPI: any
+  logger: Logger
+  conf?: any // plugin conf
+  [other:string]: any
+}
+
+export type ClaimStub = {
+  key: string
+  nonce: string
+  claimId: string
+  qrData: string
+}
+
+export interface IDeploymentOpts {
+  name: string
+  domain: string
+  scale?: number
 }

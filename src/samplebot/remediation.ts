@@ -8,22 +8,10 @@ import Errors = require('../errors')
 import { Logger } from '../logger'
 import { KeyValueTable } from '../key-value-table'
 import { ContentAddressedStore, Hashers } from '../content-addressed-store'
+import { IPluginOpts, ClaimStub } from './types'
 
 const NONCE_LENGTH = 16
 const CLAIM_ID_ENCODING = 'hex'
-
-export type RemediatorOpts = {
-  bot: Bot
-  productsAPI: any
-  logger: Logger
-}
-
-export type ClaimStub = {
-  key: string
-  nonce: string
-  claimId: string
-  qrData: string
-}
 
 type KeyContainer = {
   key: string
@@ -42,7 +30,7 @@ export class Remediator {
     bot,
     productsAPI,
     logger
-  }: RemediatorOpts) {
+  }: IPluginOpts) {
     this.bot = bot
     this.productsAPI = productsAPI
     this.logger = logger
@@ -198,8 +186,8 @@ export class Remediator {
   }
 }
 
-export const createRemediator = (opts:RemediatorOpts) => new Remediator(opts)
-export const createPlugin = opts => new Remediator(opts).plugin
+export const createRemediator = (opts: IPluginOpts) => new Remediator(opts)
+export const createPlugin = (opts: IPluginOpts) => new Remediator(opts).plugin
 export const parseClaimId = (claimId:string) => {
   const hex = new Buffer(claimId, CLAIM_ID_ENCODING).toString('hex')
   return {

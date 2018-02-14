@@ -11,13 +11,14 @@ import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
 import { createPlugin as createLensPlugin } from './plugins/lens'
-import { Onfido, createPlugin, registerWebhook } from './plugins/onfido'
+import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
 import { createPlugin as createSanctionsPlugin } from './plugins/complyAdvantage'
 import { createPlugin as createOpencorporatesPlugin } from './plugins/openCorporates'
 import { createPlugin as createCentrixPlugin} from './plugins/centrix'
-
-import { Commander } from './commander'
-import { createRemediator, Remediator } from './remediation'
+import {
+  createPlugin as createDeploymentPlugin
+} from './plugins/deployment'
+import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import {
   createPlugin as keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
@@ -25,11 +26,19 @@ import {
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
-import { Bot, DatedValue } from '../types'
-import { IConf, BotComponents } from './types'
-// import createDeploymentModels from '../deployment-models'
-// import createBankModels from '../bank-models'
-import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
+import { Commander } from './commander'
+import { createRemediator } from './remediation'
+
+import {
+  Bot,
+  IBotComponents,
+  DatedValue,
+  IConf,
+  Remediator,
+  Deployment,
+  IPluginOpts
+} from './types'
+
 import Logger from '../logger'
 import baseModels = require('../models')
 import Errors = require('../errors')
@@ -63,7 +72,7 @@ export default function createProductsBot ({
   logger: Logger,
   conf: IConf,
   event?: string
-}):BotComponents {
+}):IBotComponents {
   const {
     enabled,
     plugins={},
@@ -76,10 +85,6 @@ export default function createProductsBot ({
 
   logger.debug('setting up products strategy')
 
-  // const deploymentModels = createDeploymentModels(namespace)
-  // const DEPLOYMENT = deploymentModels.deployment.id
-  // const bankModels = createBankModels(namespace)
-  // const models = { ...deploymentModels.all, ...bankModels }
   const handleMessages = willHandleMessages(event)
   const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
@@ -98,6 +103,11 @@ export default function createProductsBot ({
     nullifyToDeleteProperty: true
     // queueSends: bot.env.TESTING ? true : queueSends
   })
+
+  const commonPluginOpts = {
+    bot,
+    productsAPI
+  }
 
   const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
@@ -155,15 +165,17 @@ export default function createProductsBot ({
 
   const myIdentityPromise = bot.getMyIdentity()
 
-  let commands
-  if (handleMessages) {
-    commands = new Commander({
-      conf,
-      bot,
-      productsAPI,
-      employeeManager
-    })
+  const components = {
+    bot,
+    conf,
+    productsAPI,
+    employeeManager,
+    get models() {
+      return bot.modelStore.models
+    }
+  } as IBotComponents
 
+  if (handleMessages) {
     productsAPI.removeDefaultHandler('onCommand')
     const getModelsPackForUser = createModelsPackGetter({ bot, productsAPI, employeeManager })
     const keepModelsFresh = keepModelsFreshPlugin({
@@ -186,7 +198,7 @@ export default function createProductsBot ({
         termsAndConditions: conf.termsAndConditions,
         productsAPI,
         employeeManager,
-        logger
+        logger: logger.sub('plugin-ts-and-cs')
       })
 
       productsAPI.plugins.use(tcPlugin, true) // prepend
@@ -290,7 +302,7 @@ export default function createProductsBot ({
         }
       },
       onCommand: async ({ req, command }) => {
-        await commands.exec({ req, command })
+        await components.commands.exec({ req, command })
       },
       didApproveApplication: async ({ req, user, application, judge }) => {
         if (judge) {
@@ -310,29 +322,24 @@ export default function createProductsBot ({
       }
     }) // append
 
-    if (productsAPI.products.includes('tradle.deploy.Deployment')) {
-      // productsAPI.plugins.clear('onFormsCollected')
-      const { createDeploymentHandlers } = require('../deployment-handlers')
-      productsAPI.plugins.use(createDeploymentHandlers({ bot }))
-    }
-
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
   }
 
-  let onfidoPlugin
-  const { onfido={} } = plugins
+  const onfidoConf = plugins.onfido || {}
   const willUseOnfido = ONFIDO_ENABLED &&
-    onfido.apiKey &&
+    onfidoConf.apiKey &&
     (handleMessages || /onfido/.test(event))
 
   if (willUseOnfido) {
     logger.debug('using plugin: onfido')
-    onfidoPlugin = createPlugin({
-      bot,
+    const result = createOnfidoPlugin({
+      ...commonPluginOpts,
       logger: logger.sub('onfido'),
-      productsAPI,
-      apiKey: onfido.apiKey
+      conf: onfidoConf
     })
+
+    productsAPI.plugins.use(result.plugin)
+    components.onfido = result.onfido
   }
 
   const customizeMessageOpts = plugins['customize-message']
@@ -351,6 +358,7 @@ export default function createProductsBot ({
   if (plugins['prefill-form']) {
     logger.debug('using plugin: prefill-form')
     productsAPI.plugins.use(createPrefillPlugin({
+      ...commonPluginOpts,
       conf: plugins['prefill-form'],
       logger: logger.sub('plugin-prefill-form')
     }))
@@ -359,61 +367,71 @@ export default function createProductsBot ({
   if (plugins['lens']) {
     logger.debug('using plugin: lens')
     productsAPI.plugins.use(createLensPlugin({
+      ...commonPluginOpts,
       conf: plugins['lens'],
       logger: logger.sub('plugin-lens')
     }))
   }
-  if (plugins['openCorporates']) {
-    productsAPI.plugins.use(createOpencorporatesPlugin({
-      conf: plugins['openCorporates'],
-      bot,
-      productsAPI,
-      logger: logger.sub('plugin-opencorporates')
-    }))
-  }
-  if (plugins['complyAdvantage']) {
-    logger.debug('using plugin: complyAdvantage')
-    productsAPI.plugins.use(createSanctionsPlugin({
-      conf: plugins['complyAdvantage'],
-      bot,
-      productsAPI,
-      logger: logger.sub('plugin-complyAdvantage')
-    }))
-  }
-  if (plugins['centrix']) {
-    productsAPI.plugins.use(createCentrixPlugin({
-      conf: plugins['centrix'],
-      bot,
-      productsAPI,
-      logger: logger.sub('plugin-centrix')
-    }))
+
+  if (handleMessages) {
+    if (plugins['openCorporates']) {
+      productsAPI.plugins.use(createOpencorporatesPlugin({
+        ...commonPluginOpts,
+        conf: plugins['openCorporates'],
+        logger: logger.sub('plugin-opencorporates')
+      }))
+    }
+
+    if (plugins['complyAdvantage']) {
+      logger.debug('using plugin: complyAdvantage')
+      productsAPI.plugins.use(createSanctionsPlugin({
+        ...commonPluginOpts,
+        conf: plugins['complyAdvantage'],
+        logger: logger.sub('plugin-complyAdvantage')
+      }))
+    }
+
+    if (plugins['centrix']) {
+      productsAPI.plugins.use(createCentrixPlugin({
+        ...commonPluginOpts,
+        conf: plugins['centrix'],
+        logger: logger.sub('plugin-centrix')
+      }))
+    }
+
+    if (plugins['deployment']) {
+      const result = createDeploymentPlugin({
+        ...commonPluginOpts,
+        conf: plugins['deployment'],
+        logger: logger.sub('plugin-deployment')
+      })
+
+      components.deployment = result.deployment
+      productsAPI.plugins.use(result.plugin)
+    }
   }
 
-  let remediator:Remediator
   if (handleMessages || event.startsWith('remediation:')) {
-    remediator = createRemediator({
-      bot,
-      productsAPI,
+    const remediator = createRemediator({
+      ...commonPluginOpts,
       logger: logger.sub('remediation:')
     })
 
     if (handleMessages) {
       productsAPI.plugins.use(remediator.plugin)
     }
+
+    components.remediator = remediator
   }
 
-  return {
-    bot,
-    productsAPI,
-    employeeManager,
-    onfidoPlugin,
-    remediator,
-    commands,
-    conf,
-    get models() {
-      return bot.modelStore.models
-    }
+  if (handleMessages) {
+    components.commands = new Commander({
+      ...components,
+      logger: logger.sub('commander')
+    })
   }
+
+  return components
 }
 
 export { createProductsBot }

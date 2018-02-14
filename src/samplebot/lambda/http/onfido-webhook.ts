@@ -12,12 +12,12 @@ const promiseCustomize = customize({ lambda, event: 'onfido:webhook' })
 lambda.use(post())
 lambda.use(cors())
 lambda.use(async (ctx) => {
-  const { onfidoPlugin } = await promiseCustomize
-  if (!onfidoPlugin) {
+  const { onfido } = await promiseCustomize
+  if (!onfido) {
     throw new Errors.HttpError(404, 'not found')
   }
 
-  await onfidoPlugin.processWebhookEvent({
+  await onfido.processWebhookEvent({
     req: ctx.request.req
   })
 })

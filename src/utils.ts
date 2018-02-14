@@ -27,6 +27,7 @@ import dotProp = require('dot-prop')
 import { v4 as uuid } from 'uuid'
 import { wrap as co } from 'co'
 import promisify = require('pify')
+import IP = require('ip')
 import isGenerator = require('is-generator-function')
 import { encode as encodeDataURI, decode as decodeDataURI } from 'strong-data-uri'
 import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
@@ -1049,6 +1050,12 @@ export const ensureNoVirtualProps = resource => {
 export const copyVirtual = (target, source) => {
   stripVirtual(target)
   return _.extend(target, pickVirtual(source))
+}
+
+export const isPrivateHost = (host:string):boolean => {
+  if (host.startsWith('localhost')) return true
+
+  return IP.isPrivate(host.split(':')[0])
 }
 
 // export const omitVirtualRecursive = resource => {

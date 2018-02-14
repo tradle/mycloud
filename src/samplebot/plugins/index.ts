@@ -4,29 +4,7 @@ import fs = require('fs')
 import caseless = require('caseless')
 import { Conf } from '../configure'
 import * as Onfido from '@tradle/plugin-onfido'
-
-type ValidateConfOpts = {
-  bot: any
-  conf: Conf
-  pluginConf: any
-  [other:string]: any
-}
-
-export interface IPluginParts {
-  plugin: any
-  api?: any
-}
-
-export interface IPlugin {
-  name?: string
-  createPlugin: (opts:any) => IPluginParts
-  validateConf?: (opts:ValidateConfOpts) => Promise<void>
-}
-
-export interface IPlugins {
-  get: (name:string) => IPlugin
-  set: (name:string, IPlugin) => void
-}
+import { IPlugin, IPlugins } from '../types'
 
 const Plugins:IPlugins = caseless({})
 

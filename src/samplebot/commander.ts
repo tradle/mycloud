@@ -7,7 +7,9 @@ import {
   ICommandContext,
   CommandOutput,
   ICommandExecOpts,
-  Bot
+  Bot,
+  IBotComponents,
+  Deployment
 } from './types'
 
 import { parseStub } from '../utils'
@@ -40,18 +42,36 @@ const SUDO = {
   allowed: true
 }
 
+interface ICommanderComponents extends IBotComponents {
+  logger: Logger
+}
+
 export class Commander {
   public bot: Bot
   public productsAPI:any
   public employeeManager:any
+  public deployment?: Deployment
   public conf: IConf
   public logger: Logger
-  constructor ({ bot, productsAPI, employeeManager, conf }) {
+  private components: ICommanderComponents
+  constructor (components: ICommanderComponents) {
+    this.components = components
+
+    const {
+      bot,
+      productsAPI,
+      employeeManager,
+      deployment,
+      conf,
+      logger
+    } = components
+
     this.bot = bot
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
     this.conf = conf
-    this.logger = bot.logger.sub('cli')
+    this.logger = logger
+    this.deployment = deployment
   }
 
   private auth = async (ctx:ICommandContext):Promise<void> => {
