@@ -343,7 +343,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#3661c93e252f6915bba47179996e7d8f159d10f9"
+      "resolved": "git://github.com/tradle/schema-graphql.git#cca6c28c28755d4af4f167b24aea3f76932b086e"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
@@ -2568,7 +2568,7 @@
     },
     "ip": {
       "version": "1.1.5",
-      "from": "ip@>=1.1.5 <1.2.0",
+      "from": "https://registry.npmjs.org/ip/-/ip-1.1.5.tgz",
       "resolved": "https://registry.npmjs.org/ip/-/ip-1.1.5.tgz"
     },
     "is-arrayish": {
@@ -4058,6 +4058,11 @@
       "version": "1.0.3",
       "from": "setprototypeof@1.0.3",
       "resolved": "https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.0.3.tgz"
+    },
+    "settle-promise": {
+      "version": "1.0.0",
+      "from": "settle-promise@>=1.0.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/settle-promise/-/settle-promise-1.0.0.tgz"
     },
     "sha.js": {
       "version": "2.4.10",
