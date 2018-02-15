@@ -43,7 +43,7 @@ class CentrixAPI {
     const { user, application } = req
 
     // ask centrix to verify it
-    props.success = false
+    // props.success = false
     const centrixOpName = OPERATION[type]
     let rawData
     try {
