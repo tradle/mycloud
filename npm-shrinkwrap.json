@@ -8,9 +8,9 @@
       "resolved": "https://registry.npmjs.org/@meltwater/fetch-favicon/-/fetch-favicon-1.0.4.tgz"
     },
     "@tradle/aws-client": {
-      "version": "1.1.0",
+      "version": "1.2.1",
       "from": "tradle/aws-client",
-      "resolved": "git://github.com/tradle/aws-client.git#d98bf43c7e4d85d7e193eb3719ed8dc1ca44f9d4",
+      "resolved": "git://github.com/tradle/aws-client.git#31e410b95c2eb2be4f198051adc6f2190d5e5df3",
       "dependencies": {
         "bluebird": {
           "version": "2.11.0",
@@ -159,7 +159,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#b67d520b6c26f5e53683662f76c3ef215a19446c"
+      "resolved": "git://github.com/tradle/custom-models.git#5440bfc85677ade37fde22f45c96c57df22c9918"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -259,7 +259,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#ec5a3b31502ec64e40fca2699cc5859960130daa"
+      "resolved": "git://github.com/tradle/models.git#25d537b5d37ad68ebad78093b76f9a1259574471"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -2568,7 +2568,7 @@
     },
     "ip": {
       "version": "1.1.5",
-      "from": "https://registry.npmjs.org/ip/-/ip-1.1.5.tgz",
+      "from": "ip@>=1.1.5 <2.0.0",
       "resolved": "https://registry.npmjs.org/ip/-/ip-1.1.5.tgz"
     },
     "is-arrayish": {
@@ -2940,8 +2940,8 @@
     },
     "level-change-processor": {
       "version": "1.0.0",
-      "from": "mvayngrib/level-change-processor#7100404",
-      "resolved": "git://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b"
+      "from": "git+https://github.com/mvayngrib/level-change-processor.git#7100404",
+      "resolved": "git+https://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b"
     },
     "level-codec": {
       "version": "6.1.0",
@@ -3217,6 +3217,11 @@
           "version": "1.0.0",
           "from": "isarray@>=1.0.0 <1.1.0",
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
+        },
+        "merkle-tree-stream": {
+          "version": "3.0.3",
+          "from": "git+https://github.com/mvayngrib/merkle-tree-stream.git#finalize",
+          "resolved": "git+https://github.com/mvayngrib/merkle-tree-stream.git#ef1abd6b566a410f8cdc7190f0966b97f403e290"
         },
         "readable-stream": {
           "version": "2.3.3",
@@ -3956,6 +3961,11 @@
       "version": "2.0.0",
       "from": "rlp@>=2.0.0 <3.0.0",
       "resolved": "https://registry.npmjs.org/rlp/-/rlp-2.0.0.tgz"
+    },
+    "rn-fetch": {
+      "version": "1.0.0",
+      "from": "rn-fetch@>=1.0.0 <2.0.0",
+      "resolved": "http://registry.npmjs.org/rn-fetch/-/rn-fetch-1.0.0.tgz"
     },
     "run-parallel": {
       "version": "1.1.6",
