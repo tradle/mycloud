@@ -49,7 +49,8 @@ import {
   ILiveDeliveryOpts,
   ISendOpts,
   IBatchSendOpts,
-  IECMiniPubKey
+  IECMiniPubKey,
+  ISaveObjectOpts
 } from './types'
 import Logger from './logger'
 
@@ -176,7 +177,7 @@ export default class Provider {
         ret.asSigned = object
       }
 
-      ret.asStored = await this.putPayload({ payload: object, inbound: false })
+      ret.asStored = await this.saveObject({ object, inbound: false })
     } else {
       ret.asStored = await this.objects.get(link)
     }
@@ -252,7 +253,7 @@ export default class Provider {
     message = await this.messages.processInbound(message)
 
     const tasks:Promise<any>[] = [
-      this.putPayload({ payload: message.object, inbound: true }),
+      this.saveObject({ object: message.object, inbound: true }),
       this.messages.putMessage(message)
     ]
 
@@ -461,21 +462,17 @@ export default class Provider {
     })
   }
 
-  public putPayload = async ({ payload, inbound, merge }: {
-    payload:ITradleObject,
-    inbound?:boolean,
-    merge?:boolean
-  }) => {
-    payload = _.cloneDeep(payload)
-    this.objects.addMetadata(payload)
-    ensureTimestamped(payload)
-    await this.objects.replaceEmbeds(payload)
+  public saveObject = async ({ object, inbound, merge }: ISaveObjectOpts) => {
+    object = _.cloneDeep(object)
+    this.objects.addMetadata(object)
+    ensureTimestamped(object)
+    await this.objects.replaceEmbeds(object)
     await Promise.all([
-      this.objects.put(payload),
-      this.putInDB({ payload, inbound, merge })
+      this.objects.put(object),
+      this.putInDB({ object, inbound, merge })
     ])
 
-    return payload
+    return object
   }
 
   public getMyIdentityPermalink = async ():Promise<string> => {
@@ -494,13 +491,9 @@ export default class Provider {
     return _author === myPermalink
   }
 
-  private putInDB = async ({ payload, inbound, merge }: {
-    payload: ITradleObject,
-    inbound?:boolean,
-    merge?:boolean
-  }) => {
-    // const inbound = await this.isAuthoredByMe(payload)
-    const type = payload[TYPE]
+  private putInDB = async ({ object, inbound, merge }: ISaveObjectOpts) => {
+    // const inbound = await this.isAuthoredByMe(object)
+    const type = object[TYPE]
     const ignored = inbound
       ? DB_IGNORE_PAYLOAD_TYPES.inbound
       : DB_IGNORE_PAYLOAD_TYPES.outbound
@@ -519,7 +512,7 @@ export default class Provider {
     }
 
     const method = merge ? 'update' : 'put'
-    await this.db[method](payload)
+    await this.db[method](object)
     return true
   }
 }
