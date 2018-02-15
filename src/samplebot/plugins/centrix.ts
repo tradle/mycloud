@@ -20,6 +20,9 @@ const DOCUMENT_TYPES = {
   license: 'driving_licence',
   passport: 'passport'
 }
+const PASS = 'Pass'
+const FAIL = 'Fail'
+const ERROR = 'Error'
 
 const OPERATION = {
   driving_licence: 'DriverLicenceVerification',
@@ -42,32 +45,49 @@ class CentrixAPI {
 
     const { user, application } = req
 
-    // ask centrix to verify it
-    // props.success = false
     const centrixOpName = OPERATION[type]
+    // ask centrix to verify it
+    props.success = type === DOCUMENT_TYPES.passport ? false : true
+    this.logger.debug(`running ${centrixOpName} with Centrix with uccess set to ${props.success}`)
     let rawData
+    let status
     try {
       this.logger.debug(`running ${centrixOpName} with Centrix`)
       rawData = await this.centrix[method](props)
     } catch (err) {
       this.logger.debug(`Centrix ${centrixOpName} verification failed`, err.stack)
+      rawData = {}
+      if (err.response) {
+        let { statusCode, body } = err.response
+        if (body)
+          rawData.body = body
+        if (statusCode)
+          rawData.statusCode = statusCode
+      }
+      else
+        rawData.error = err.message
+      status = this.makeStatus(ERROR)
+      this.logger.debug(`creating error check for ${centrixOpName} with Centrix`)
+      await this.createCentrixCheck({ application, rawData, status })
       return
     }
-
-    let checkFailed
     if (type === DOCUMENT_TYPES.passport) {
       if (!rawData.DataSets.DIAPassport.IsSuccess  ||
           !rawData.DataSets.DIAPassport.DIAPassportVerified)
-        checkFailed = true
+        status = this.makeStatus(FAIL)
     }
     else {
       let { IsDriverLicenceVerifiedAndMatched, IsDriverLicenceVerified } = rawData.DataSets.DriverLicenceVerification
       if (!IsDriverLicenceVerified          ||
           !IsDriverLicenceVerifiedAndMatched)
-      checkFailed = true
+        status = this.makeStatus(FAIL)
     }
-    await this.createCentrixCheck({ application, rawData, success: !checkFailed })
-    if (checkFailed)
+    if (!status)
+      status = this.makeStatus(PASS)
+
+    this.logger.debug(`creating ${status.title} check for ${centrixOpName} with Centrix`)
+    await this.createCentrixCheck({ application, rawData, status })
+    if (status.title !== PASS)
       return
     this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
     const verification = await this.createCentrixVerification({ req, photoID, rawData })
@@ -81,23 +101,20 @@ class CentrixAPI {
     // twice in a row sometimes loses the first change
     await new Promise(resolve => setTimeout(resolve, 2000))
   }
-
-  async createCentrixCheck({ application, rawData, success }) {
+  makeStatus(status) {
+    return {id: 'tradle.Status_' + status.toLowerCase(), title: status}
+  }
+  async createCentrixCheck({ application, rawData, status }) {
     this.cleanJson(rawData)
-    let status
-    if (success)
-      status = {id: 'tradle.Status_fail', title: 'Fail'}
-    else
-      status = {id: 'tradle.Status_pass', title: 'Pass'}
-
     let resource:any = {
       [TYPE]: CENTRIX_CHECK,
       provider: CENTRIX_NAME,
-      rawData,
       status,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime()
     }
+    if (rawData)
+      resource.rawData = rawData
 
     if (!application.checks) application.checks = []
     const check = await this.bot.signAndSave(resource)
