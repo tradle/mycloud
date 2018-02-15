@@ -17,9 +17,12 @@ import validateResource = require('@tradle/validate-resource')
 import { TYPE } from '@tradle/constants'
 import { Bucket } from '../bucket'
 import Errors = require('../errors')
+import { createAWSWrapper } from '../aws'
+import { Logger } from '../logger'
+import { Env } from '../env'
+import { createRemoteTradle } from '../'
 import {
-  Tradle,
-  Env
+  Tradle
 } from '../types'
 
 import { wait } from '../utils'
@@ -143,42 +146,8 @@ const genLocalResources = async ({ tradle }) => {
 }
 
 const makeDeploymentBucketPublic = async () => {
-  loadCredentials()
-
-  const { s3 } = require('../').tradle.aws
-  const serverlessYml = require('./serverless-yml')
-  const { service, custom } = serverlessYml
-  const { Buckets } = await s3.listBuckets().promise()
-  const Bucket = Buckets.find(bucket => {
-    return new RegExp(`${service}-${custom.stage}-serverlessdeploymentbucket`)
-      .test(bucket.Name)
-  }).Name
-
-  await makePublic(Bucket)
-}
-
-const makePublic = async (Bucket) => {
-  loadCredentials()
-
-  const { s3 } = require('../').tradle.aws
-  await s3.putBucketPolicy({
-    Bucket,
-    Policy: `{
-      "Version": "2012-10-17",
-      "Statement": [{
-        "Sid": "MakeItPublic",
-        "Effect": "Allow",
-        "Principal": "*",
-        "Action": "s3:GetObject",
-        "Resource": "arn:aws:s3:::${Bucket}/*"
-      }]
-    }`
-  }).promise()
-
-  // await s3.putBucketAcl({
-  //   Bucket,
-  //   ACL: 'public-read'
-  // }).promise()
+  const { buckets } = createRemoteTradle()
+  await buckets.ServerlessDeployment.makePublic()
 }
 
 const interpolateTemplate = (opts:{ arg?:string, sync?:boolean }={}) => {
@@ -308,8 +277,6 @@ const validateProviderConf = conf => {
 }
 
 const downloadDeploymentTemplate = async (tradle:Tradle) => {
-  loadCredentials()
-
   const { aws, stackUtils } = tradle
   const physicalId = await getPhysicalId({
     tradle,

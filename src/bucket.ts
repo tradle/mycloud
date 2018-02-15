@@ -126,6 +126,7 @@ export class Bucket {
     return false
   }
 
+  public makePublic = () => this.utils.makePublic(this.name)
   private _getKey = key => this.prefix + key
 }
 

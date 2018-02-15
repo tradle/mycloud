@@ -317,6 +317,23 @@ export default class S3Utils {
 
     return latest
   }
+
+  public makePublic = async (bucket: string) => {
+    this.logger.warn(`making bucket public: ${bucket}`)
+    await this.s3.putBucketPolicy({
+      Bucket: bucket,
+      Policy: `{
+        "Version": "2012-10-17",
+        "Statement": [{
+          "Sid": "MakeItPublic",
+          "Effect": "Allow",
+          "Principal": "*",
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::${bucket}/*"
+        }]
+      }`
+    }).promise()
+  }
 }
 
 export { S3Utils }
