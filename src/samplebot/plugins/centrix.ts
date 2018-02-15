@@ -93,8 +93,8 @@ class CentrixAPI {
     let resource:any = {
       [TYPE]: CENTRIX_CHECK,
       provider: CENTRIX_NAME,
-      isActive: true,
       rawData,
+      status,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime()
     }
