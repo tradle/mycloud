@@ -378,6 +378,8 @@ provider:
         # needed to get NoSuchKey error instead of AccessDenied for non-existent items
         # https://forums.aws.amazon.com/thread.jspa?threadID=56531
         - s3:ListBucket
+        # needed to enable bucket encryption
+        - s3:PutEncryptionConfiguration
       Resource:
         # - arn:aws:s3:::${{self:provider.deploymentBucket}}
         - Fn::Join:
