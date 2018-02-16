@@ -27,6 +27,7 @@ export {
   getconf,
   approve,
   deny,
-  encryptbucket,
-  getlaunchlink
+  getlaunchlink,
+  // sudo only
+  encryptbucket
 }

@@ -5,7 +5,6 @@ import parse = require('yargs-parser')
 import buildResource = require('@tradle/build-resource')
 import validateResource = require('@tradle/validate-resource')
 import models = require('../../models')
-import { toggleProduct } from '../utils'
 import Errors = require('../../errors')
 import { ICommand } from '../types'
 

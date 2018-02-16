@@ -1,9 +1,4 @@
 import parse = require('yargs-parser')
-import {
-  getAvailableCommands,
-  getCommandByName
-} from '../utils'
-
 import { ICommand } from '../types'
 
 export const command:ICommand = {
@@ -22,7 +17,7 @@ export const command:ICommand = {
     const { commandName } = args
     const { employeeManager } = commander
     if (commandName) {
-      const c = getCommandByName(commandName)
+      const c = commander.getCommandByName(commandName)
       let message = c.description
       if (c.examples) {
         message = `${message}\n\nExamples:\n${c.examples.join('\n')}`
@@ -31,7 +26,7 @@ export const command:ICommand = {
       return message
     }
 
-    const availableCommands = getAvailableCommands(ctx)
+    const availableCommands = commander.getAvailableCommands(ctx)
       .map(command => `/${command}`)
 
     return `These are the available commands:\n${availableCommands.join('\n')}`

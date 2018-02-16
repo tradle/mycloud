@@ -1,42 +1,13 @@
 import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import { isPromise } from '../utils'
-import { Conf } from './configure'
+import { createConf } from './configure'
 import Errors = require('../errors')
 import models = require('../models')
 import { ICommand } from './types'
 import { Name } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
-
-export const EMPLOYEE_COMMANDS = [
-  'help',
-  'listproducts',
-  'forgetme',
-  'setproductenabled',
-  // 'setautoverify',
-  'setautoapprove',
-  'addfriend',
-  'tours',
-  'message',
-  'getconf',
-  'approve',
-  'deny',
-  'getlaunchlink'
-]
-
-export const CUSTOMER_COMMANDS = [
-  'help',
-  'listproducts',
-  'forgetme',
-  'tours'
-]
-
-export const SUDO_ONLY_COMMANDS = [
-  'encryptbucket'
-]
-
-export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
 
 export const createEditConfOp = edit => async (opts) => {
   const { bot } = opts.commander
@@ -48,7 +19,7 @@ export const createEditConfOp = edit => async (opts) => {
   if (_.isEqual(botConf, current)) {
     throw new Error('you changed...nothing')
   } else {
-    const confManager = new Conf({ bot })
+    const confManager = createConf({ bot })
     await confManager.setBotConf(botConf)
     await bot.forceReinitializeContainers()
   }
@@ -112,25 +83,6 @@ export const toggleProduct = createEditConfOp(async ({ commander, req, product, 
 
   conf.bot.products.enabled = newProductsList
 })
-
-export const getAvailableCommands = (ctx) => {
-  if (ctx.sudo) return SUDO_COMMANDS
-  if (ctx.employee) return EMPLOYEE_COMMANDS
-  return CUSTOMER_COMMANDS
-}
-
-export const getCommandByName = (commandName:string):ICommand => {
-  let command
-  try {
-    command = require('./commands')[commandName.toLowerCase()]
-  } catch (err) {}
-
-  if (!command) {
-    throw new Errors.NotFound(`command not found: ${commandName}`)
-  }
-
-  return command
-}
 
 // TODO: this really belongs in some middleware, e.g.
 // bot.hook('readseals', sendConfirmedSeals)

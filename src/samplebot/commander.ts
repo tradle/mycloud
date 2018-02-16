@@ -15,22 +15,6 @@ import {
 import { parseStub } from '../utils'
 import Errors = require('../errors')
 import * as commands from './commands'
-
-// import {
-//   help,
-//   listProducts,
-//   forgetMe,
-//   setProductEnabled,
-//   setAutoVerify,
-//   setAutoApprove,
-//   // setAutoPrompt
-// } from './commands'
-
-import {
-  getAvailableCommands,
-  getCommandByName
-} from './utils'
-
 import Logger from '../logger'
 
 const prettify = obj => JSON.stringify(obj, null, 2)
@@ -45,6 +29,36 @@ const SUDO = {
 interface ICommanderComponents extends IBotComponents {
   logger: Logger
 }
+
+export const EMPLOYEE_COMMANDS = [
+  'help',
+  'listproducts',
+  'forgetme',
+  'setproductenabled',
+  // 'setautoverify',
+  'setautoapprove',
+  'addfriend',
+  'tours',
+  'message',
+  'getconf',
+  'approve',
+  'deny',
+  'getlaunchlink'
+]
+
+export const CUSTOMER_COMMANDS = [
+  'help',
+  'listproducts',
+  'forgetme',
+  'tours'
+]
+
+export const SUDO_ONLY_COMMANDS = [
+  'encryptbucket',
+  'enablebinary'
+]
+
+export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
 
 export class Commander {
   public bot: Bot
@@ -87,7 +101,7 @@ export class Commander {
 
     const { user } = req
     ctx.employee = this.employeeManager.isEmployee(user)
-    const commandNames = getAvailableCommands(ctx)
+    const commandNames = this.getAvailableCommands(ctx)
     ctx.allowed = commandNames.includes(commandName)
     if (!ctx.allowed) {
       const message = ctx.employee
@@ -96,6 +110,25 @@ export class Commander {
 
       await this.sendSimpleMessage({ to: user, message })
     }
+  }
+
+  public getAvailableCommands = (ctx) => {
+    if (ctx.sudo) return SUDO_COMMANDS
+    if (ctx.employee) return EMPLOYEE_COMMANDS
+    return CUSTOMER_COMMANDS
+  }
+
+  public getCommandByName = (commandName:string):ICommand => {
+    let command
+    try {
+      command = commands[commandName.toLowerCase()]
+    } catch (err) {}
+
+    if (!command) {
+      throw new Errors.NotFound(`command not found: ${commandName}`)
+    }
+
+    return command
   }
 
   public exec = async ({ req, command, sudo=false }):Promise<CommandOutput> => {
@@ -126,7 +159,7 @@ export class Commander {
     let args
     let execOpts:ICommandExecOpts
     try {
-      matchingCommand = getCommandByName(commandName)
+      matchingCommand = this.getCommandByName(commandName)
       args = matchingCommand.parse ? matchingCommand.parse(argsStr) : parse(argsStr)
       execOpts = {
         commander: this,

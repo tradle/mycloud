@@ -1,7 +1,6 @@
 import _ = require('lodash')
 import yn = require('yn')
 import parse = require('yargs-parser')
-import { toggleProduct } from '../utils'
 import { ICommand } from '../types'
 
 export const command:ICommand = {
