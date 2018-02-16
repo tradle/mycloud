@@ -279,9 +279,9 @@ export class Bot extends EventEmitter implements IReady {
     })
   }
 
+  public save = resource => this._write('put', resource)
+  public update = resource => this._write('update', resource)
 
-  public save = createWriteMethod('put')
-  public update = createWriteMethod('update')
   public createLambda = (opts:ILambdaOpts={}):Lambda => createLambda({
     ...opts,
     tradle: this.tradle,
@@ -322,27 +322,27 @@ export class Bot extends EventEmitter implements IReady {
   }
 
   public reSign = object => this.sign(_.omit(object, [SIG]))
-}
 
-const createWriteMethod = (method:string) => async function (resource) {
-  if (!this.isReady()) {
-    this.logger.debug('waiting for this.ready()')
-    await this.promiseReady()
+  private _write = async (method:string, resource) => {
+    if (!this.isReady()) {
+      this.logger.debug('waiting for this.ready()')
+      await this.promiseReady()
+    }
+
+    try {
+      await this.provider.saveObject({
+        object: resource,
+        merge: method === 'update'
+      })
+    } catch (err) {
+      this.logger.debug(`db.${method} failed`, {
+        type: resource[TYPE],
+        link: resource._link,
+        input: err.input,
+        error: err.stack
+      })
+    }
+
+    return resource
   }
-
-  try {
-    await this.provider.putPayload({
-      payload: resource,
-      merge: method === 'update'
-    })
-  } catch (err) {
-    this.logger.debug(`db.${method} failed`, {
-      type: resource[TYPE],
-      link: resource._link,
-      input: err.input,
-      error: err.stack
-    })
-  }
-
-  return resource
 }

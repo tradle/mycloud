@@ -9,7 +9,8 @@ import {
   IIdentity,
   ITradleMessage,
   ResourceStub,
-  Logger
+  Logger,
+  IBotLambdaOpts
 } from '../types'
 
 export * from '../types'
@@ -209,4 +210,9 @@ export interface IDeploymentOpts {
   name: string
   domain: string
   scale?: number
+}
+
+export interface IPBotLambdaOpts extends IBotLambdaOpts {
+  event: string
+  [x:string]: any
 }

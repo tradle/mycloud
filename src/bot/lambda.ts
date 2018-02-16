@@ -3,12 +3,17 @@ import {
   Lambda
 } from '../lambda'
 
+import { createBot } from './'
 import { isPromise } from '../utils'
-import { Bot } from './'
+import { Bot, Middleware, IBotLambdaOpts } from '../types'
 
 export { EventSource }
 
-export const createLambda = ({ bot, middleware, ...lambdaOpts }: any):Lambda => {
+export const createLambda = ({
+  bot=createBot(),
+  middleware,
+  ...lambdaOpts
+}: IBotLambdaOpts):Lambda => {
   const lambda = new Lambda(lambdaOpts)
   lambda.bot = bot
 
@@ -58,11 +63,11 @@ export const createLambda = ({ bot, middleware, ...lambdaOpts }: any):Lambda => 
   return lambda
 }
 
-export const fromHTTP = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.HTTP })
-export const fromDynamoDB = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.S3 })
-export const fromCli = (opts={}):Lambda => createLambda({ ...opts, source: EventSource.CLI })
+export const fromHTTP = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.HTTP })
+export const fromDynamoDB = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.S3 })
+export const fromCli = (opts: IBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.CLI })

@@ -9,6 +9,10 @@ export const command:ICommand = {
     // '/getlaunchlink --update'
   ],
   exec: async ({ commander, req, ctx, args }) => {
+    if (!commander.deployment) {
+      throw new Error('"deployment" plugin not configured. Please add to plugins in bot.json')
+    }
+
     return await commander.deployment.getLaunchUrl(args as any)// as IDeploymentOpts)
   },
   sendResult: async ({ commander, req, to, args, result }) => {

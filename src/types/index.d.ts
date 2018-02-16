@@ -163,6 +163,12 @@ export interface ILambdaOpts {
   [x:string]: any
 }
 
+export interface IBotLambdaOpts extends ILambdaOpts {
+  bot?: Bot
+  middleware?: Middleware
+  [x:string]: any
+}
+
 export type Middleware = ComposeMiddleware<ILambdaExecutionContext>
 
 export interface ITradleObject {
@@ -355,4 +361,10 @@ export interface IUpdateStackUrlOpts {
   stackName?: string
   stackArn?: string
   templateURL: string
+}
+
+export interface ISaveObjectOpts {
+  object: ITradleObject
+  merge?: boolean
+  inbound?: boolean
 }
