@@ -142,7 +142,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "from": "mvayngrib/centrix",
-      "resolved": "git://github.com/mvayngrib/centrix.git#ec40269e2fc6e45fa65a1cde2f10db211ef91a06",
+      "resolved": "git://github.com/mvayngrib/centrix.git#7d2e97832c9278016a8c519c2cc913d3afac3636",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
