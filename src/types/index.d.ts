@@ -11,7 +11,7 @@ import { Messages } from '../messages'
 import { Provider } from '../provider'
 import { Objects } from '../objects'
 import { Auth } from '../auth'
-// import { Init } from '../init'
+import { Init } from '../init'
 import { AwsApis } from '../aws'
 import { Bucket } from '../bucket'
 import { Seals } from '../seals'
@@ -53,6 +53,7 @@ export {
   Provider,
   Objects,
   Auth,
+  Init,
   AwsApis,
   Bucket,
   Seals,
@@ -205,6 +206,18 @@ export interface IPubKey {
   fingerprint: string
   networkName?: string
   curve?: string
+}
+
+export interface IEncodedPriv {
+  pem: {
+    priv: string
+    pub: string
+  }
+}
+
+export interface IPrivKey extends IPubKey {
+  priv: string
+  encoded: IEncodedPriv
 }
 
 export interface IIdentity extends ITradleObject {

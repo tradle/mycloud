@@ -40,6 +40,7 @@ import Identities from './identities'
 import Messages from './messages'
 import Objects from './objects'
 import {
+  Bucket,
   ISession,
   ITradleMessage,
   ITradleObject,
@@ -73,7 +74,7 @@ export default class Provider {
   private env: Env
   private objects: Objects
   private messages: Messages
-  private secrets: any
+  private secrets: Bucket
   private identities: Identities
   private buckets: any
   private auth: Auth
@@ -368,11 +369,12 @@ export default class Provider {
   }
 
   public lookupMyIdentity = ():Promise<any> => {
-    return this.secrets.get(IDENTITY_KEYS_KEY)
+    return this.secrets.getJSON(IDENTITY_KEYS_KEY)
   }
 
-  public lookupMyPublicIdentity = ():Promise<IIdentity> => {
-    return this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
+  public lookupMyPublicIdentity = async ():Promise<IIdentity> => {
+    const val = await this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
+    return val as IIdentity
   }
 
   public getMyPrivateIdentity = cachifyPromiser(this.lookupMyIdentity)

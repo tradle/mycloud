@@ -109,7 +109,7 @@ test('init', loudAsync(async (t) => {
   }
 
   const originalContext = {}
-  sinon.stub(tradle.init, 'init').callsFake(async (opts) => {
+  sinon.stub(tradle.init, 'initInfra').callsFake(async (opts) => {
     t.same(opts, expectedEvent.payload)
   })
 

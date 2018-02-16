@@ -101,8 +101,8 @@ export class Conf {
   public info: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
   constructor({ bot, logger }: {
-    bot,
-    logger?
+    bot: Bot
+    logger?: Logger
   }) {
     this.bot = bot
     this.modelStore = bot.modelStore
@@ -283,7 +283,7 @@ export class Conf {
     }
   }
 
-  public init = async (conf, opts: InitOpts = {}) => {
+  public initStack = async (conf, opts: InitOpts = {}) => {
     conf = { ...DEFAULT_CONF, ...conf }
     const { bot } = this
     if (bot.isTesting) {
@@ -295,9 +295,9 @@ export class Conf {
     const orgTemplate = conf.org
     this.logger.info(`initializing provider ${orgTemplate.name}`)
 
-    let identity
+    let identity:IIdentity
     try {
-      const identityInfo = await bot.init({
+      const identityInfo = await bot.initInfra({
         force: opts.forceRecreateIdentity
       })
 
@@ -334,6 +334,10 @@ export class Conf {
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
+  }
+
+  public updateStack = async (conf, opts: InitOpts = {}) => {
+    await this.bot.updateInfra()
   }
 
   public update = async (update: UpdateConfInput) => {

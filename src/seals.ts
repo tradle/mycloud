@@ -41,7 +41,7 @@ const TIMESTAMP_MULTIPLIER = 1e3 // milli -> micro
 
 type SealRecordOpts = {
   key?: IECMiniPubKey
-  link: string
+  link?: string
   counterparty?: string
   object?: ITradleObject
   permalink?: string
@@ -171,7 +171,7 @@ export default class Seals {
     return this.createSealRecord({ ...opts, watchType: WATCH_TYPE.next, write: false })
   }
 
-  public create = async (opts:SealRecordOpts) => {
+  public create = async (opts: SealRecordOpts) => {
     return this.createSealRecord({ ...opts, write: true })
   }
 
@@ -577,7 +577,7 @@ export default class Seals {
     counterparty,
     watchType=WATCH_TYPE.this,
     write
-  }:SealRecordOpts) => {
+  }: SealRecordOpts) => {
     if (!(link && permalink) && object) {
       ({ link, permalink } = getLinks(object))
     }

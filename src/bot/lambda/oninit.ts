@@ -16,14 +16,15 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     lambda.logger.debug(`received stack event: ${RequestType}`)
 
     let type = RequestType.toLowerCase()
+    type = type === 'create' ? 'init' : type
     ctx.event = {
-      type: type === 'create' ? 'init' : type,
+      type,
       payload: ResourceProperties
     }
 
     let err
     try {
-      await bot.hooks.fire('init', ctx.event)
+      await bot.hooks.fire(type, ctx.event)
     } catch (e) {
       err = e
     }

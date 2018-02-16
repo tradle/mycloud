@@ -45,6 +45,8 @@ export default function createAWSWrapper ({ env, logger }) {
     kms: 'KMS',
     lambda: 'Lambda',
     iotData: 'Iot',
+    xray: 'XRay',
+    apigateway: 'APIGateway',
     cloudformation: 'CloudFormation'
   }
 

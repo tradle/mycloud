@@ -21,11 +21,20 @@ import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
 import { Env } from '../env'
 import { createRemoteTradle } from '../'
+import { createConf } from '../samplebot/configure'
 import {
-  Tradle
+  Tradle,
+  Bot
 } from '../types'
 
 import { wait } from '../utils'
+import {
+  addResourcesToEnvironment,
+  addResourcesToOutputs,
+  removeResourcesThatDontWorkLocally,
+  addBucketTables,
+  stripDevFunctions
+} from './compile'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
@@ -34,14 +43,6 @@ const copy = promisify(require('copy-dynamodb-table').copy)
 
 const pexec = promisify(proc.exec.bind(proc))
 const fs = promisify(_fs)
-
-const {
-  addResourcesToEnvironment,
-  addResourcesToOutputs,
-  removeResourcesThatDontWorkLocally,
-  addBucketTables,
-  stripDevFunctions
-} = require('./compile')
 
 const getStackName = () => {
   const {
@@ -362,15 +363,14 @@ const clearTypes = async ({ tradle, types }) => {
   return deleteCounts
 }
 
-const initializeProvider = async (opts:{ bot?:any, force?: boolean }={}) => {
+const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
   let { bot, force } = opts
   if (!bot) {
     const { createBot } = require('../bot')
     bot = createBot()
   }
 
-  const { Conf } = require('../samplebot/configure')
-  const conf = new Conf({ bot })
+  const conf = createConf({ bot })
   if (!force) {
     try {
       const current = await conf.get()
@@ -384,7 +384,7 @@ const initializeProvider = async (opts:{ bot?:any, force?: boolean }={}) => {
 
   const providerConf = require('../samplebot/conf/provider')
   try {
-    await conf.init(providerConf, {
+    await conf.initStack(providerConf, {
       forceRecreateIdentity: force
     })
   } catch (err) {
@@ -490,7 +490,7 @@ export {
   getTableDefinitions,
   downloadDeploymentTemplate,
   clearTypes,
-  initializeProvider,
+  initStack,
   cloneRemoteTable,
   cloneRemoteBucket
 }

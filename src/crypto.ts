@@ -17,7 +17,7 @@ import {
 
 import { InvalidSignature } from './errors'
 import { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } from './constants'
-import { IECMiniPubKey } from './types'
+import { IECMiniPubKey, IPrivKey, IIdentity } from './types'
 
 const doSign = promisify(protocol.sign.bind(protocol))
 const { SIG, TYPE, TYPES } = constants
@@ -372,6 +372,9 @@ const genIdentity = async (opts) => {
   return {
     identity,
     keys: exportKeys(keys)
+  } as {
+    identity: IIdentity,
+    keys: IPrivKey[]
   }
 }
 

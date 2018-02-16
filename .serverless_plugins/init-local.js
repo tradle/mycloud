@@ -22,14 +22,14 @@ module.exports = class InitLocal {
 
   forceReinit() {
     require('../lib/test/env').install()
-    const { initializeProvider } = require('../lib/cli/utils')
-    return initializeProvider({ force: true })
+    const { initStack } = require('../lib/cli/utils')
+    return initStack({ force: true })
   }
 
   startHandler() {
     process.env.IS_OFFLINE = true
     require('../lib/test/env').install()
-    const { initializeProvider } = require('../lib/cli/utils')
-    return initializeProvider()
+    const { initStack } = require('../lib/cli/utils')
+    return initStack()
   }
 }

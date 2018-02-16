@@ -298,10 +298,14 @@ export default class StackUtils {
 
   public enableBinaryAPIResponses = async () => {
     const swagger = await this.getSwagger()
-    await this.addBinarySupportToSwagger(swagger)
+    return await this.addBinarySupportToSwagger(swagger)
   }
 
   public getSwagger = async () => {
+    if (this.env.TESTING) {
+      return {}
+    }
+
     const { body } = await this.aws.apigateway.getExport({
       restApiId: this.apiId,
       exportType: 'swagger',
@@ -316,7 +320,11 @@ export default class StackUtils {
     return JSON.parse(body.toString())
   }
 
-  public addBinarySupportToSwagger = async (swagger) => {
+  public addBinarySupportToSwagger = async (swagger):Promise<boolean> => {
+    if (this.env.TESTING) {
+      return false
+    }
+
     const original = _.cloneDeep(swagger)
     this.logger.debug('setting binary mime types')
     swagger['x-amazon-apigateway-binary-media-types'] = '*/*'
@@ -347,10 +355,11 @@ export default class StackUtils {
 
     if (_.isEqual(original, swagger)) {
       this.logger.debug('skipping update, remote swagger is already up to date')
-      return
+      return false
     }
 
-    return await this.pushSwagger(swagger)
+    await this.pushSwagger(swagger)
+    return true
   }
 
   public pushSwagger = async (swagger) => {

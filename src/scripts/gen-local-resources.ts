@@ -15,14 +15,14 @@ const { force } = require('minimist')(process.argv.slice(2), {
 
 import promisify = require('pify')
 import { tradle } from '../'
-import { genLocalResources, initializeProvider } from '../cli/utils'
+import { genLocalResources, initStack } from '../cli/utils'
 import Errors = require('../errors')
 
 const rethrow = (err) => {
   if (err) throw err
 }
 
-initializeProvider({ force }).catch(err => {
+initStack({ force }).catch(err => {
   console.error(err)
   process.exitCode = 1
 })

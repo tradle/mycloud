@@ -264,7 +264,8 @@ export class Bot extends EventEmitter implements IReady {
   // make sure bot is ready before lambda exits
 
   public setCustomModels = pack => this.modelStore.setCustomModels(pack)
-  public init = opts => this.tradle.init.init(opts)
+  public initInfra = (opts?) => this.tradle.init.initInfra(opts)
+  public updateInfra = (opts?) => this.tradle.init.updateInfra(opts)
   public getMyIdentity = () => this.tradle.provider.getMyPublicIdentity()
   public getMyIdentityPermalink = () => this.tradle.provider.getMyIdentityPermalink()
   public sign = (object, author?) => this.tradle.provider.signObject({ object, author })

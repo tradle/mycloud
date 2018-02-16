@@ -19,10 +19,12 @@ import {
   Push,
   User,
   Buckets,
+  Bucket,
   AwsApis,
   StackUtils,
   LambdaUtils,
-  S3Utils
+  S3Utils,
+  Init
 } from './types'
 
 import { requireDefault } from './require-default'
@@ -40,7 +42,6 @@ export default class Tradle {
   public buckets: Buckets
   public tables: any
   public dbUtils: any
-  public secrets: any
   public objects: Objects
   public events: any
   public identities: Identities
@@ -54,7 +55,7 @@ export default class Tradle {
   public discovery: Discovery
   public seals: Seals
   public blockchain: Blockchain
-  public init: any
+  public init: Init
   public user: User
   public friends: Friends
   public provider: Provider
@@ -66,6 +67,9 @@ export default class Tradle {
   public tasks:TaskManager
   public modelStore: ModelStore
   public prefix: string
+  public get secrets(): Bucket {
+    return this.buckets.Secrets
+  }
 
   constructor(env=new Env(process.env)) {
     // if (++instanceCount > 1) {
@@ -143,10 +147,6 @@ export default class Tradle {
     this.define('provider', './provider', this.construct)
     this.define('auth', './auth', this.construct)
     this.define('objects', './objects', this.construct)
-    this.define('secrets', './secrets', initialize => initialize({
-      bucket: this.buckets.Secrets
-    }))
-
     this.define('init', './init', this.construct)
     this.define('discovery', './discovery', this.construct)
     this.define('user', './user', this.construct)

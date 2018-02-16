@@ -1,7 +1,15 @@
 import _ = require('lodash')
 import { utils as tradleUtils } from '@tradle/engine'
-import crypto = require('./crypto')
-import { bindAll, co, setVirtual, ensureTimestamped } from './utils'
+import {
+  getLink,
+  addLinks,
+  getIdentitySpecs,
+  getChainKey,
+  genIdentity,
+  exportKeys
+} from './crypto'
+
+import { setVirtual, ensureTimestamped } from './utils'
 import Errors = require('./errors')
 import models = require('./models')
 import {
@@ -11,161 +19,180 @@ import {
   IDENTITY_KEYS_KEY
 } from './constants'
 
+import {
+  Tradle,
+  Objects,
+  Identities,
+  StackUtils,
+  Provider,
+  Seals,
+  DB,
+  Buckets,
+  Bucket,
+  Logger,
+  IIdentity,
+  IPrivKey
+} from './types'
+
 const { IDENTITY } = TYPES
-const debug = require('debug')('tradle:sls:init')
-const { getLink, addLinks, getIdentitySpecs, getChainKey, genIdentity } = crypto
-const { exportKeys } = require('./crypto')
 
-function Initializer ({
-  env,
-  networks,
-  network,
-  secrets,
-  provider,
-  buckets,
-  objects,
-  identities,
-  seals,
-  models,
-  db
-}) {
-  bindAll(this)
-
-  this.env = env
-  this.secrets = secrets
-  this.networks = networks
-  this.network = network
-  this.provider = provider
-  this.buckets = buckets
-  this.objects = objects
-  this.identities = identities
-  this.seals = seals
-  this.models = models
-  this.db = db
+interface IInitOpts {
+  force?: boolean
 }
 
-const proto = Initializer.prototype
-
-proto.ensureInitialized = co(function* (opts) {
-  const initialized = yield this.isInitialized()
-  if (!initialized) {
-    yield this.init(opts)
+interface IInitWriteOpts extends IInitOpts {
+  pub: IIdentity
+  priv: {
+    identity: IIdentity
+    keys: IPrivKey[]
   }
-})
+}
 
-proto.init = co(function* (opts={}) {
-  const [result] = yield Promise.all([
-    this.initIdentity(opts),
-    // this.enableBucketEncryption()
-  ])
+export default class Init {
+  private secrets: Bucket
+  private buckets: Buckets
+  private networks: any
+  private network: any
+  private provider: Provider
+  private objects: Objects
+  private identities: Identities
+  private stackUtils: StackUtils
+  private db: DB
+  private seals: Seals
+  private logger: Logger
+  constructor ({
+    secrets,
+    buckets,
+    networks,
+    network,
+    provider,
+    objects,
+    identities,
+    stackUtils,
+    seals,
+    db,
+    logger
+  }: Tradle) {
+    this.secrets = secrets
+    this.buckets = buckets
+    this.networks = networks
+    this.network = network
+    this.provider = provider
+    this.objects = objects
+    this.identities = identities
+    this.stackUtils = stackUtils
+    this.seals = seals
+    this.db = db
+    this.logger = logger.sub('init')
+  }
 
-  return result
-})
-
-proto.initIdentity = co(function* (opts) {
-  const result = yield this.genIdentity()
-  yield this.write({
-    ...result,
-    ...opts
-  })
-
-  return result
-})
-
-proto.isInitialized = (function () {
-  let initialized
-  return co(function* () {
+  public ensureInitialized = async (opts?:IInitOpts) => {
+    const initialized = await this.isInitialized()
     if (!initialized) {
-      initialized = yield this.secrets.exists(IDENTITY_KEYS_KEY)
+      await this.initInfra(opts)
     }
-
-    return initialized
-  })
-}())
-
-// proto.enableBucketEncryption = co(function* () {
-//   yield this.buckets.Secrets.enableEncryption()
-// })
-
-proto.genIdentity = co(function* () {
-  const priv = yield genIdentity(getIdentitySpecs({
-    networks: this.networks
-  }))
-
-  const pub = priv.identity
-  ensureTimestamped(pub)
-  this.objects.addMetadata(pub)
-  setVirtual(pub, { _author: pub._permalink })
-
-  debug('created identity', JSON.stringify(pub))
-  return {
-    pub,
-    priv
   }
-})
 
-proto.write = co(function* (opts) {
-  const { priv, pub, force } = opts
-  if (!force) {
-    try {
-      const existing = yield this.secrets.get(IDENTITY_KEYS_KEY)
-      if (!_.isEqual(existing, priv)) {
+  public initInfra = async (opts?:IInitOpts) => {
+    const [result] = await Promise.all([
+      await this.initIdentity(opts),
+      await this.fixAPIGateway()
+    ])
+
+    return result
+  }
+
+  public updateInfra = async (opts?:any) => {
+    return await this.fixAPIGateway()
+  }
+
+  private fixAPIGateway = async() => {
+    await this.stackUtils.enableBinaryAPIResponses()
+  }
+
+  public initIdentity = async (opts?:IInitOpts) => {
+    const result = await this.genIdentity()
+    await this.write({
+      ...result,
+      ...opts
+    })
+
+    return result
+  }
+
+  public isInitialized = async () => {
+    return await this.secrets.exists(IDENTITY_KEYS_KEY)
+  }
+
+  public genIdentity = async () => {
+    const priv = await genIdentity(getIdentitySpecs({
+      networks: this.networks
+    }))
+
+    const pub = priv.identity
+    ensureTimestamped(pub)
+    this.objects.addMetadata(pub)
+    setVirtual(pub, { _author: pub._permalink })
+
+    this.logger.info('created identity', JSON.stringify(pub))
+    return {
+      pub,
+      priv
+    }
+  }
+
+  public write = async (opts:IInitWriteOpts) => {
+    const { priv, pub, force } = opts
+    if (!force) {
+      const existing = await this.secrets.maybeGetJSON(IDENTITY_KEYS_KEY)
+      if (existing && !_.isEqual(existing, priv)) {
         throw new Errors.Exists('refusing to overwrite identity keys. ' +
           'If you\'re absolutely sure you want to do this, use the "force" flag')
       }
-    } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
     }
-  }
 
-  const { PublicConf } = this.buckets
-  yield [
-    // TODO: encrypt
-    // private
-    this.secrets.put(IDENTITY_KEYS_KEY, priv),
-    // public
-    this.objects.put(pub),
-    PublicConf.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
-    this.db.put(pub)
-  ];
+    const { PublicConf } = this.buckets
+    await Promise.all([
+      // private
+      this.secrets.putJSON(IDENTITY_KEYS_KEY, priv),
+      // public
+      this.objects.put(pub),
+      PublicConf.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
+      this.db.put(pub)
+    ]);
 
-  const { network } = this
-  const chainKey = getChainKey(priv.keys, {
-    type: network.flavor,
-    networkName: network.networkName
-  })
-
-  yield Promise.all([
-    this.identities.addContact(pub),
-    this.seals.create({
-      type: IDENTITY,
-      counterparty: null,
-      key: chainKey,
-      link: pub._link
+    const { network } = this
+    const chainKey = getChainKey(priv.keys, {
+      type: network.flavor,
+      networkName: network.networkName
     })
-  ])
-})
 
-proto.clear = co(function* () {
-  let priv
-  try {
-    priv = yield this.secrets.get(IDENTITY_KEYS_KEY)
-  } catch (err) {
-    Errors.ignore(err, Errors.NotFound)
+    await Promise.all([
+      this.identities.addContact(pub),
+      this.seals.create({
+        counterparty: null,
+        key: chainKey,
+        object: pub,
+        link: pub._link
+      })
+    ])
   }
 
-  const link = priv && getLink(priv.identity)
-  debug(`terminating provider ${link}`)
-  const { PublicConf } = this.buckets
-  yield [
-    link ? this.objects.del(link) : Promise.resolve(),
-    this.secrets.del(IDENTITY_KEYS_KEY),
-    // public
-    PublicConf.del(PUBLIC_CONF_BUCKET.identity)
-  ]
+  public clear = async () => {
+    const priv = await this.secrets.maybeGetJSON(IDENTITY_KEYS_KEY)
+    const link = priv && getLink(priv.identity)
+    this.logger.info(`terminating provider ${link}`)
+    const { PublicConf } = this.buckets
+    await [
+      link ? this.objects.del(link) : Promise.resolve(),
+      this.secrets.del(IDENTITY_KEYS_KEY),
+      // public
+      PublicConf.del(PUBLIC_CONF_BUCKET.identity)
+    ]
 
-  debug(`terminated provider ${link}`)
-})
+    this.logger.info(`terminated provider ${link}`)
+  }
+}
 
 // function getTestIdentity () {
 //   const object = require('./test/fixtures/alice/identity.json')
@@ -178,4 +205,4 @@ proto.clear = co(function* () {
 //   return { identity: object, keys }
 // }
 
-export = Initializer
+export { Init }
