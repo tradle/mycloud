@@ -1059,9 +1059,10 @@ resources:
       Properties:
         VersioningConfiguration:
           Status: Enabled
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
 
     PrivateConfBucket:
       Type: "AWS::S3::Bucket"
