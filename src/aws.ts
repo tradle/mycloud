@@ -18,6 +18,7 @@ export type AwsApis = {
   lambda: AWS.Lambda,
   cloudformation: AWS.CloudFormation,
   xray: AWS.XRay,
+  apigateway: AWS.APIGateway,
   AWS: any,
   trace: any
 }

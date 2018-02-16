@@ -7,7 +7,7 @@ import debug = require('debug')
 import randomName = require('random-name')
 import { allSettled, RESOLVED_PROMISE } from './utils'
 import { randomString } from './crypto'
-import { IDebug, ILambdaAWSExecutionContext, Lambda, IRequestContext } from './types'
+import { IDebug, ILambdaAWSExecutionContext, Lambda, IRequestContext, CloudName } from './types'
 import { WARMUP_SOURCE_NAME } from './constants'
 import Logger, { Level } from './logger'
 
@@ -28,6 +28,7 @@ export default class Env {
   public SERVERLESS_OFFLINE_APIGW: string
   public DISABLED:boolean
 
+  public CLOUD: CloudName
   public AWS_REGION:string
   public REGION:string
   public AWS_LAMBDA_FUNCTION_NAME:string
@@ -41,6 +42,17 @@ export default class Env {
   public SERVERLESS_SERVICE_NAME:string
   public SERVERLESS_ALIAS?:string
   public SERVERLESS_ARTIFACTS_PATH: string
+  public get STAGE() {
+    return this.SERVERLESS_STAGE
+  }
+
+  public get SERVICE_NAME() {
+    return this.SERVERLESS_SERVICE_NAME
+  }
+
+  public get ALIAS() {
+    return this.SERVERLESS_ALIAS
+  }
 
   public BLOCKCHAIN:any
   public CORDA_API_URL?:string
@@ -71,6 +83,10 @@ export default class Env {
       NO_TIME_TRAVEL,
       BLOCKCHAIN
     } = props
+
+    if (AWS_LAMBDA_FUNCTION_NAME) {
+      this.CLOUD = 'aws'
+    }
 
     this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
     this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME

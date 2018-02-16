@@ -18,13 +18,26 @@ import {
   LAUNCH_STACK_BASE_URL
 } from './constants'
 
+import { genOptionsBlock } from './gen-cors-options-block'
+
 type StackInfo = {
   arn: string
   name: string
 }
 
+const X_INTEGRATION = 'x-amazon-apigateway-integration'
+const ALLOW_HEADERS = 'method.response.header.Access-Control-Allow-Headers'
+const METHODS = [
+  'GET',
+  'HEAD',
+  'DELETE',
+  'POST',
+  'PUT',
+  'PATCH'
+]
+
 export default class StackUtils {
-  private aws: AwsApis
+  private aws?: AwsApis
   private serviceMap: any
   private env: Env
   private logger: Logger
@@ -32,6 +45,10 @@ export default class StackUtils {
   private buckets: Buckets
   private deploymentBucket: Bucket
   private stack: StackInfo
+  private get apiId() {
+    return this.serviceMap.RestApi.ApiGateway
+  }
+
   constructor({ aws, env, serviceMap, logger, lambdaUtils, buckets }: {
     aws: AwsApis
     env: Env
@@ -277,6 +294,78 @@ export default class StackUtils {
     const pubConf = this.buckets.PublicConf
     await pubConf.putJSON(key, template, { publicRead: true })
     return pubConf.getUrlForKey(key)
+  }
+
+  public enableBinaryAPIResponses = async () => {
+    const swagger = await this.getSwagger()
+    await this.addBinarySupportToSwagger(swagger)
+  }
+
+  public getSwagger = async () => {
+    const { body } = await this.aws.apigateway.getExport({
+      restApiId: this.apiId,
+      exportType: 'swagger',
+      accepts: 'application/json',
+      parameters: {
+        extensions: 'integrations'
+      },
+      stageName: this.env.STAGE
+    })
+    .promise()
+
+    return JSON.parse(body.toString())
+  }
+
+  public addBinarySupportToSwagger = async (swagger) => {
+    const original = _.cloneDeep(swagger)
+    this.logger.debug('setting binary mime types')
+    swagger['x-amazon-apigateway-binary-media-types'] = '*/*'
+    for (let path in swagger.paths) {
+      let pathConf = swagger.paths[path]
+      // TODO: check methods against serveress.yml
+      let methods = METHODS
+      let defaultOptionsBlock = genOptionsBlock({ methods })
+      if (pathConf.options) {
+        this.logger.debug(`updating existing OPTIONS integration for path: ${path}`)
+        let integrationOpts = pathConf.options[X_INTEGRATION]
+        if (integrationOpts) {
+          if (!integrationOpts.contentHandling) {
+            // THE SKELETON KEY
+            integrationOpts.contentHandling = 'CONVERT_TO_TEXT'
+          }
+
+          integrationOpts.responses.default.responseParameters[ALLOW_HEADERS]
+            = defaultOptionsBlock[X_INTEGRATION].responses.default.responseParameters[ALLOW_HEADERS]
+        } else {
+          pathConf.options[X_INTEGRATION] = defaultOptionsBlock[X_INTEGRATION]
+        }
+      } else {
+        this.logger.debug(`setting default OPTIONS integration for path ${path}`)
+        pathConf.options = defaultOptionsBlock
+      }
+    }
+
+    if (_.isEqual(original, swagger)) {
+      this.logger.debug('skipping update, remote swagger is already up to date')
+      return
+    }
+
+    return await this.pushSwagger(swagger)
+  }
+
+  public pushSwagger = async (swagger) => {
+    const body = JSON.stringify(swagger)
+    await this.aws.apigateway.putRestApi({
+      restApiId: this.apiId,
+      mode: 'merge',
+      body
+    }).promise()
+
+    await this.aws.apigateway.putRestApi({
+      restApiId: this.apiId,
+      mode: 'merge',
+      body
+    }).promise()
   }
 }
 

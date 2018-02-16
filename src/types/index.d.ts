@@ -368,3 +368,5 @@ export interface ISaveObjectOpts {
   merge?: boolean
   inbound?: boolean
 }
+
+export type CloudName = 'aws'
