@@ -6,9 +6,11 @@ import { createBot } from '../../../bot'
 import { EventSource } from '../../../lambda'
 
 const createDataURL = promisify(QR.toDataURL)
-const bot = createBot()
-const lambda = bot.createLambda({ source: EventSource.HTTP })
+const bot = createBot({ ready: false })
 const getPermalink = bot.getMyIdentityPermalink()
+getPermalink.then(() => bot.ready())
+
+const lambda = bot.createLambda({ source: EventSource.HTTP })
 const descriptions = {
   ImportData: ({ dataHash }: any) => `scan this QR code with the Tradle app to claim the bundle with claimId: ${dataHash}`,
   AddProvider: (data: any) => `scan this QR code with the Tradle app or open <a href="${getChatLink(data)}">this link</a> on your mobile device to add this provider to your Conversations screen`
