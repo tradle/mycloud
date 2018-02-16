@@ -11,7 +11,7 @@ plugins:
   - serverless-plugin-common-excludes
   - serverless-plugin-log-retention
   - serverless-dynamodb-autoscaling
-  - serverless-s3-encryption
+  # - serverless-s3-encryption
   # - serverless-plugin-split-stacks
   # - serverless-plugin-warmup
   # - serverless-plugin-typescript
