@@ -1,6 +1,4 @@
 import AWS = require('aws-sdk')
-AWS.config.logger = process.stdout
-
 import { createConf } from '../configure'
 import { createBot } from '../../bot'
 

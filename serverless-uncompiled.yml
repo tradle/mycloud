@@ -273,10 +273,10 @@ custom:
     # use dockerized s3 from localstack
     noStart: true
 
-  s3-encryption:
-    buckets:
-      SecretsBucket:
-        SSEAlgorithm: AES256
+  # s3-encryption:
+  #   buckets:
+  #     SecretsBucket:
+  #       SSEAlgorithm: AES256
 
   logRetentionInDays: 7
 
@@ -512,6 +512,7 @@ provider:
     - Effect: Allow
       Action:
         - apigateway:PUT
+        - apigateway:POST
       Resource:
         Fn::Join:
           - ""
@@ -1057,6 +1058,8 @@ functions:
   #   handler: lib/samplebot/lambda/bash.handler
 
 resources:
+  Parameters:
+
   Resources:
     # servless-framework-generated API Gateway
     # ApiGatewayStage:

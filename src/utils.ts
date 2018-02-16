@@ -503,7 +503,7 @@ export function launchStackUrl ({
   templateURL
 }: ILaunchStackUrlOpts) {
   const qs = querystring.stringify({ stackName, templateURL })
-  return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/new?${qs}`
+  return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/create/review?${qs}`
 }
 
 export function domainToUrl (domain) {
@@ -572,13 +572,15 @@ export async function runWithBackoffWhile (fn, {
   maxTime=60000,
   maxDelay,
   factor=2,
-  shouldTryAgain
+  shouldTryAgain,
+  logger
 }: {
   initialDelay?: number
   maxAttempts?: number
   maxTime?: number
   maxDelay?: number
   factor?: number
+  logger?: Logger
   shouldTryAgain: (err) => boolean
 }) {
   if (typeof maxDelay !== 'number') maxDelay = maxTime / 2
@@ -592,6 +594,10 @@ export async function runWithBackoffWhile (fn, {
     } catch (err) {
       if (!shouldTryAgain(err)) {
         throw err
+      }
+
+      if (logger) {
+        logger.debug(`backing off ${millisToWait}`)
       }
 
       await wait(millisToWait)
