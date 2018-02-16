@@ -18,7 +18,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Install local playground tools](#install-local-playground-tools)
   - [Install development tools](#install-development-tools)
 - [Local Playground](#local-playground)
-  - [Start docker, redis](#start-docker-redis)
+  - [Start docker](#start-docker)
   - [Start the Playground](#start-the-playground)
   - [Explore the API](#explore-the-api)
   - [AWS cli (local)](#aws-cli-local)
@@ -101,7 +101,6 @@ npm install
 
 ### Install local playground tools
 
-- [redis](https://redis.io/topics/quickstart) - a key value store used by the local simulator of AWS's IoT broker. (On OS X, you can `brew install redis`)
 - [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
 
 ### Install development tools
@@ -116,16 +115,11 @@ npm install
 
 Goal: set up an environment where we can talk to the chatbot that comes in the box, and see how we can develop our own.
 
-### Start docker, redis
+### Start docker
 
 ```sh
 # make sure you have docker running
 docker ps
-```
-
-```sh
-# run redis
-redis-server
 ```
 
 ### Start the Playground

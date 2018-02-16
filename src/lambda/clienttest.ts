@@ -54,7 +54,7 @@ const pingPong = co(function* (node, i) {
   const client = new Client({
     node,
     counterparty: permalink,
-    endpoint: RestAPI.ApiGateway,
+    endpoint: RestAPI.ApiGateway.url,
     clientId: `${node.permalink}${node.permalink}`
   })
 

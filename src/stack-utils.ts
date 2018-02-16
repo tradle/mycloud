@@ -1,5 +1,7 @@
 import querystring = require('querystring')
 import _ = require('lodash')
+// @ts-ignore
+import Promise = require('bluebird')
 import { Lambda } from 'aws-sdk'
 import {
   Env,
@@ -9,7 +11,8 @@ import {
   Bucket,
   Buckets,
   ILaunchStackUrlOpts,
-  IUpdateStackUrlOpts
+  IUpdateStackUrlOpts,
+  IServiceMap
 } from './types'
 
 import Errors = require('./errors')
@@ -19,6 +22,7 @@ import {
 } from './constants'
 
 import { genOptionsBlock } from './gen-cors-options-block'
+import { RetryableTask } from './retryable-task'
 
 type StackInfo = {
   arn: string
@@ -38,21 +42,19 @@ const METHODS = [
 
 export default class StackUtils {
   private aws?: AwsApis
-  private serviceMap: any
+  private serviceMap: IServiceMap
   private env: Env
   private logger: Logger
   private lambdaUtils: LambdaUtils
   private buckets: Buckets
   private deploymentBucket: Bucket
   private stack: StackInfo
-  private get apiId() {
-    return this.serviceMap.RestApi.ApiGateway
-  }
+  private apiId: string
 
   constructor({ aws, env, serviceMap, logger, lambdaUtils, buckets }: {
     aws: AwsApis
     env: Env
-    serviceMap: any
+    serviceMap: IServiceMap
     logger?: Logger
     lambdaUtils: LambdaUtils
     buckets: Buckets
@@ -70,6 +72,8 @@ export default class StackUtils {
       name: utils.parseArn(arn).id.split('/')[0],
       arn
     }
+
+    this.apiId = this.serviceMap.RestApi.ApiGateway.id
   }
 
   public listStacks = async ():Promise<AWS.CloudFormation.StackSummaries> => {
@@ -327,7 +331,7 @@ export default class StackUtils {
 
     const original = _.cloneDeep(swagger)
     this.logger.debug('setting binary mime types')
-    swagger['x-amazon-apigateway-binary-media-types'] = '*/*'
+    swagger['x-amazon-apigateway-binary-media-types'] = ['*/*']
     for (let path in swagger.paths) {
       let pathConf = swagger.paths[path]
       // TODO: check methods against serveress.yml
@@ -364,16 +368,36 @@ export default class StackUtils {
 
   public pushSwagger = async (swagger) => {
     const body = JSON.stringify(swagger)
-    await this.aws.apigateway.putRestApi({
-      restApiId: this.apiId,
-      mode: 'merge',
-      body
-    }).promise()
+    const opts = {
+      initialDelay: 5000,
+      shouldTryAgain: err => err.code === 'TooManyRequestsException',
+      // don't back off
+      factor: 1,
+    }
 
-    await this.aws.apigateway.putRestApi({
+    const putRestApiTask = new RetryableTask({
+      ...opts,
+      logger: this.logger.sub('task:putRestApi')
+    })
+
+    await putRestApiTask.run(() => this.aws.apigateway.putRestApi({
       restApiId: this.apiId,
       mode: 'merge',
       body
+    }).promise())
+
+    const createDeploymentTask = new RetryableTask({
+      ...opts,
+      logger: this.logger.sub('task:createDeployment')
+    })
+
+    await createDeploymentTask.run(this.createDeployment.bind(this))
+  }
+
+  private createDeployment = async () => {
+    await this.aws.apigateway.createDeployment({
+      restApiId: this.apiId,
+      stageName: this.env.STAGE
     }).promise()
   }
 }

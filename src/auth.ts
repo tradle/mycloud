@@ -20,7 +20,8 @@ import {
   IRoleCredentials,
   IAuthResponse,
   IIdentity,
-  ITradleObject
+  ITradleObject,
+  IServiceMap
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
@@ -60,7 +61,7 @@ interface IChallengeResponse extends ITradleObject {
 export default class Auth {
   private env: Env
   private aws: AwsApis
-  private serviceMap: any
+  private serviceMap: IServiceMap
   private tables: any
   private identities: Identities
   private objects: Objects
@@ -71,7 +72,7 @@ export default class Auth {
   constructor (opts: {
     env: Env,
     aws: any,
-    serviceMap: any,
+    serviceMap: IServiceMap,
     tables: any,
     identities: Identities,
     objects: Objects,

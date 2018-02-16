@@ -15,7 +15,7 @@ const { force } = require('minimist')(process.argv.slice(2), {
 
 import promisify = require('pify')
 import { tradle } from '../'
-import { genLocalResources, initStack } from '../cli/utils'
+import { initStack } from '../cli/utils'
 import Errors = require('../errors')
 
 const rethrow = (err) => {

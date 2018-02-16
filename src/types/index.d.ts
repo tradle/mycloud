@@ -36,6 +36,7 @@ import {
   ParsedResourceStub
 } from '@tradle/validate-resource'
 
+export * from '../retryable-task'
 export {
   // re-export from @tradle/validate-resource
   ResourceStub,
@@ -361,6 +362,26 @@ export interface IBucketsInfo {
 
 export type Buckets = {
   [P in keyof IBucketsInfo]: Bucket
+}
+
+// TODO: generate this from serverless.yml
+export type IServiceMap = {
+  Table: {
+    [name: string]: string
+  },
+  Bucket: {
+    [P in keyof IBucketsInfo]: string
+  },
+  RestApi: {
+    [name: string]: {
+      url: string
+      id: string
+    }
+  },
+  Role: {
+    [name: string]: string
+  },
+  Stack: string
 }
 
 export interface ILaunchStackUrlOpts {

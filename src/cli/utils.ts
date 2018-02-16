@@ -384,7 +384,7 @@ const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
 
   const providerConf = require('../samplebot/conf/provider')
   try {
-    await conf.initStack(providerConf, {
+    await conf.initInfra(providerConf, {
       forceRecreateIdentity: force
     })
   } catch (err) {

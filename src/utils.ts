@@ -566,16 +566,23 @@ export const settleSeries = <T>(data, fn:(item:any)=>T|Promise<T>):ISettledPromi
   })
 }
 
-export async function runWithBackoffWhile (fn, opts) {
-  const {
-    initialDelay=1000,
-    maxAttempts=10,
-    maxTime=60000,
-    factor=2,
-    shouldTryAgain
-  } = opts
+export async function runWithBackoffWhile (fn, {
+  initialDelay=1000,
+  maxAttempts=10,
+  maxTime=60000,
+  maxDelay,
+  factor=2,
+  shouldTryAgain
+}: {
+  initialDelay?: number
+  maxAttempts?: number
+  maxTime?: number
+  maxDelay?: number
+  factor?: number
+  shouldTryAgain: (err) => boolean
+}) {
+  if (typeof maxDelay !== 'number') maxDelay = maxTime / 2
 
-  const { maxDelay=maxTime/2 } = opts
   const start = Date.now()
   let millisToWait = initialDelay
   let attempts = 0

@@ -1,9 +1,9 @@
-import { Env } from './types'
+import { Env, IBucketsInfo, IServiceMap } from './types'
 
 const { ENV_RESOURCE_PREFIX } = require('./constants')
 const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)(?:_(.*))?$`)
 
-export = function resourcesForEnv ({ env }: { env: Env }) {
+export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
   const { logger } = env
   const {
     SERVERLESS_SERVICE_NAME,
@@ -12,7 +12,7 @@ export = function resourcesForEnv ({ env }: { env: Env }) {
   } = env
 
   const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)
-  const resources = {}
+  const resources = {} as IServiceMap
 
   Object.keys(env)
     .map(key => {
@@ -43,9 +43,11 @@ export = function resourcesForEnv ({ env }: { env: Env }) {
       if (env.IS_OFFLINE) {
         value = require('./cli/utils').getOfflineHost(env)
       } else {
-        value = `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}`
+        value = {
+          id: env[key],
+          url: `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}`
+        }
       }
-
     } else {
       value = env[key]
       if (value && value.Ref && env.IS_OFFLINE) {

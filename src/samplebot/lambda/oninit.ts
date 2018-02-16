@@ -1,3 +1,6 @@
+import AWS = require('aws-sdk')
+AWS.config.logger = process.stdout
+
 import { createConf } from '../configure'
 import { createBot } from '../../bot'
 
@@ -8,9 +11,9 @@ const conf = createConf({ bot })
 lambda.use(async (ctx, next) => {
   const { type, payload } = ctx.event
   if (type === 'init') {
-    await conf.initStack(payload)
+    await conf.initInfra(payload)
   } else if (type === 'update') {
-    await conf.updateStack(payload)
+    await conf.updateInfra(payload)
   }
 })
 

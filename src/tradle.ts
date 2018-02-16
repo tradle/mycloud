@@ -24,7 +24,8 @@ import {
   StackUtils,
   LambdaUtils,
   S3Utils,
-  Init
+  Init,
+  IServiceMap
 } from './types'
 
 import { requireDefault } from './require-default'
@@ -38,7 +39,7 @@ export default class Tradle {
   public env: Env
   public aws: AwsApis
   // public router: any
-  public serviceMap: any
+  public serviceMap: IServiceMap
   public buckets: Buckets
   public tables: any
   public dbUtils: any
@@ -107,7 +108,10 @@ export default class Tradle {
     //   privateKey: FAUCET_PRIVATE_KEY
     // }))
 
-    this.define('serviceMap', './service-map', this.construct)
+    this.define('serviceMap', './service-map', ({ createServiceMap }) => createServiceMap({
+      env: this.env
+    }))
+
     this.define('tables', './tables', this.construct)
     this.define('buckets', './buckets', () => getBuckets(this))
     this.define('db', './db', initialize => initialize(this))
@@ -181,7 +185,7 @@ export default class Tradle {
   }
 
   get apiBaseUrl () {
-    return this.serviceMap.RestApi.ApiGateway
+    return this.serviceMap.RestApi.ApiGateway.url
   }
 
   get version () {

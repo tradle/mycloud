@@ -33,7 +33,42 @@
         "_t": "tradle.Tour",
         "message": "Take a quick tour of this chat bot?",
         "pages": [
-          "https://tradle.io"
+          {
+            "title": "Ready?",
+            "description": "Finally, you will be in control of your own private information!",
+            "img": "https://s3.amazonaws.com/tradle-public-images/easy.png",
+            "imgStyle": {
+              "height": 200,
+              "width": 200
+            },
+            "backgroundColor": "#4CB0CA",
+            "fontColor": "#fff",
+            "level": 10
+          },
+          {
+            "title": "Get set",
+            "description": "Before we start you'll need a valid passport, identity card or driving license",
+            "img": "https://s3.amazonaws.com/tradle-public-images/easy.png",
+            "imgStyle": {
+              "height": 200,
+              "width": 200
+            },
+            "backgroundColor": "#FBB825",
+            "fontColor": "#fff",
+            "level": 10
+          },
+          {
+            "title": "Go!",
+            "description": "We'll ask you questions in the chat and you simply fill the forms or follow the requests",
+            "img": "https://s3.amazonaws.com/tradle-public-images/easy.png",
+            "imgStyle": {
+              "height": 200,
+              "width": 200
+            },
+            "backgroundColor": "#3AC9C1",
+            "fontColor": "#fff",
+            "level": 10
+          }
         ]
       }
     }

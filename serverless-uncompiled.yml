@@ -378,8 +378,8 @@ provider:
         # needed to get NoSuchKey error instead of AccessDenied for non-existent items
         # https://forums.aws.amazon.com/thread.jspa?threadID=56531
         - s3:ListBucket
-        # needed to enable bucket encryption
-        - s3:PutEncryptionConfiguration
+        # # needed to enable bucket encryption
+        # - s3:PutEncryptionConfiguration
       Resource:
         # - arn:aws:s3:::${{self:provider.deploymentBucket}}
         - Fn::Join:
@@ -496,6 +496,32 @@ provider:
       Action:
         - cloudfront:updateDistribution
       Resource: ["*"]
+
+    - Effect: Allow
+      Action:
+        - apigateway:GET
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:apigateway:"
+            - Ref: AWS::Region
+            - "::/restapis/"
+            - Ref: ApiGatewayRestApi
+            - "/*"
+
+    - Effect: Allow
+      Action:
+        - apigateway:PUT
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:apigateway:"
+            - Ref: AWS::Region
+            - "::/restapis/"
+            - Ref: ApiGatewayRestApi
+            # - "/*"
+
+        # - Fn::Join: 'arn:aws:apigateway:${AWS::Region}::/restapis/*'
 
     # - Effect: Allow
     #   Action:

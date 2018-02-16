@@ -283,7 +283,7 @@ export class Conf {
     }
   }
 
-  public initStack = async (conf, opts: InitOpts = {}) => {
+  public initInfra = async (conf, opts: InitOpts = {}) => {
     conf = { ...DEFAULT_CONF, ...conf }
     const { bot } = this
     if (bot.isTesting) {
@@ -334,10 +334,12 @@ export class Conf {
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
+    await bot.forceReinitializeContainers()
   }
 
-  public updateStack = async (conf, opts: InitOpts = {}) => {
+  public updateInfra = async (conf, opts: InitOpts = {}) => {
     await this.bot.updateInfra()
+    await this.bot.forceReinitializeContainers()
   }
 
   public update = async (update: UpdateConfInput) => {
