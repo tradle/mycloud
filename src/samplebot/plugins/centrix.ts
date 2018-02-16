@@ -24,6 +24,7 @@ const PASS = 'Pass'
 const FAIL = 'Fail'
 const ERROR = 'Error'
 
+const months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ]
 const OPERATION = {
   driving_licence: 'DriverLicenceVerification',
   passport: 'DIAPassportVerification'
@@ -40,15 +41,16 @@ class CentrixAPI {
     this.centrix = centrix
     this.logger = logger
   }
-  async callCentrix({ req, photoID, props, type }) {
-    const method = type === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
-
+  async callCentrix({ req, photoID, props }) {
+    const idType = getDocumentType(photoID)
+    const method = idType === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
+    this.logger.debug(`Centrix type ${idType}`)
     const { user, application } = req
 
-    const centrixOpName = OPERATION[type]
+    const centrixOpName = OPERATION[idType]
     // ask centrix to verify it
-    props.success = type === DOCUMENT_TYPES.passport ? false : true
-    this.logger.debug(`running ${centrixOpName} with Centrix with uccess set to ${props.success}`)
+    props.success = idType === DOCUMENT_TYPES.passport ? false : true
+    this.logger.debug(`running ${centrixOpName} with Centrix with success set to ${props.success}`)
     let rawData
     let status
     try {
@@ -71,7 +73,7 @@ class CentrixAPI {
       await this.createCentrixCheck({ application, rawData, status })
       return
     }
-    if (type === DOCUMENT_TYPES.passport) {
+    if (idType === DOCUMENT_TYPES.passport) {
       if (!rawData.DataSets.DIAPassport.IsSuccess  ||
           !rawData.DataSets.DIAPassport.DIAPassportVerified)
         status = this.makeStatus(FAIL)
@@ -214,18 +216,20 @@ async function getCentrixData ({ application, bot }) {
   const { personal={}, document } = scanJson
   if (!document) return
 
-  const type = getDocumentType(form)
+  const docType = getDocumentType(form)
   let { firstName, lastName, birthData, dateOfBirth, sex } = personal
   let { dateOfExpiry, documentNumber } = document
-  if (dateOfExpiry) {
+  if (dateOfExpiry)
     dateOfExpiry = toISODate(dateOfExpiry)
-  }
 
   // let address
-  if (type === DOCUMENT_TYPES.license) {
+  if (docType === DOCUMENT_TYPES.license  &&  birthData) {
     dateOfBirth = birthData.split(' ')[0]
     dateOfBirth = toISODate(dateOfBirth)
   }
+  else if (dateOfBirth)
+    dateOfBirth = toISODate(dateOfBirth)
+
 
   if (!(firstName && lastName)) {
     const name = getNameFromForm({ application });
@@ -236,12 +240,12 @@ async function getCentrixData ({ application, bot }) {
     firstName &&
     lastName &&
     dateOfBirth &&
-    (type === DOCUMENT_TYPES.license || dateOfExpiry)
+    (docType === DOCUMENT_TYPES.license || dateOfExpiry)
 
   if (!haveAll) return
 
   let centrixData:any = {
-    type,
+    type: docType,
     photoID: form,
     props: {
       documentNumber,
@@ -256,7 +260,7 @@ async function getCentrixData ({ application, bot }) {
 }
 
 function getDocumentType (doc) {
-  return doc.documentType.title === 'Passport'
+  return doc.documentType.title.indexOf('Passport') !== -1
     ? DOCUMENT_TYPES.passport
     : DOCUMENT_TYPES.license
 }
@@ -292,6 +296,18 @@ function toISODate (str) {
 
     return `${year}-${month}-${day}`
   }
+  // Date in UK looks like this: Jan 16th, 2020
+  if (/\w{3}?\s\d{1,2}\w{2},\s\d{4}/.test(str)) {
+    let idx = str.indexOf(',')
+    let parts = str.split(' ')
+    let month = months.indexOf(parts[0]) + 1
+    let monthStr = month < 10 ? `0${month}` : month
+    let year = parts[2]
+    let day = parts[1].match(/\d+/)[0]
+    let dayStr = day < 10 ? `0${day}` : day
+    return `${year}-${monthStr}-${dayStr}`
+  }
+
 
   debugger
 }
