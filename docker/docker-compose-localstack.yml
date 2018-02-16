@@ -10,6 +10,13 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - DYNAMO_ENDPOINT=http://localstack:4569
+
+  # needed for mosca (local MQTT server)
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+
   localstack:
     image: localstack/localstack
     ports:

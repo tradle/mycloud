@@ -120,7 +120,6 @@
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
-    "@tradle/aws-client": "^1.3.0",
     "@tradle/bitcoin-adapter": "tradle/bitcoin-adapter",
     "@tradle/biz-plugins": "github:tradle/biz-plugins#cloud",
     "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager",
