@@ -367,31 +367,13 @@ export default class StackUtils {
   }
 
   public pushSwagger = async (swagger) => {
-    const body = JSON.stringify(swagger)
-    const opts = {
-      initialDelay: 5000,
-      shouldTryAgain: err => err.code === 'TooManyRequestsException',
-      // don't back off
-      factor: 1,
-    }
-
-    const putRestApiTask = new RetryableTask({
-      ...opts,
-      logger: this.logger.sub('task:putRestApi')
-    })
-
-    await putRestApiTask.run(() => this.aws.apigateway.putRestApi({
+    await this.aws.apigateway.putRestApi({
       restApiId: this.apiId,
       mode: 'merge',
-      body
-    }).promise())
+      body: JSON.stringify(swagger)
+    }).promise()
 
-    const createDeploymentTask = new RetryableTask({
-      ...opts,
-      logger: this.logger.sub('task:createDeployment')
-    })
-
-    await createDeploymentTask.run(this.createDeployment.bind(this))
+    await this.createDeployment()
   }
 
   private createDeployment = async () => {
