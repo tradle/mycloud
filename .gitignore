@@ -19,6 +19,7 @@ lib/
 lib/modelmap.json
 lib/definitions.json
 lib/cli/cloudformation-template.json
+src/serverless-interpolated.json
 lib/serverless-interpolated.json
 **/version.json
 *.sublime-*
