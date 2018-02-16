@@ -83,9 +83,9 @@ proto.isInitialized = (function () {
   })
 }())
 
-proto.enableBucketEncryption = co(function* () {
-  yield this.buckets.Secrets.enableEncryption()
-})
+// proto.enableBucketEncryption = co(function* () {
+//   yield this.buckets.Secrets.enableEncryption()
+// })
 
 proto.genIdentity = co(function* () {
   const priv = yield genIdentity(getIdentitySpecs({
