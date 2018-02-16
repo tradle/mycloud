@@ -30,7 +30,10 @@ const lambdaUtils = new LambdaUtils({ env, aws })
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
   const { Environment } = await lambdaUtils.getConfiguration(setEnvFnName)
-  await fs.writeFile(serviceMapPath, prettify(Environment.Variables))
+  await Promise.all([
+    fs.writeFile(serviceMapPath, prettify(Environment.Variables)),
+    fs.writeFile(serviceMapPath.replace(/\/src\//, '/lib/'), prettify(Environment.Variables))
+  ])
 }
 
 const getTemplate = async () => {
