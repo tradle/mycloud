@@ -116,7 +116,8 @@
     "warmup": "serverless warmup run",
     "postinstall": "./src/scripts/postinstall.sh",
     "remove": "npm run build:yml && serverless remove",
-    "reinitializecontainers": "sls invoke -f reinitialize-containers"
+    "reinitializecontainers": "sls invoke -f reinitialize-containers",
+    "stacksize": "./src/scripts/count-resources.sh"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
