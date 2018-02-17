@@ -566,9 +566,7 @@ functions:
             concurrency: 5
             functions:
               # - http_catchall
-              - onconnect
-              - ondisconnect
-              - onsubscribe
+              - oniotlifecycle
               - onmessage
               - graphql
               - info
@@ -723,44 +721,34 @@ functions:
 
   # handles IoT (MQTT) connections post-authentication
   # updates presence in PresenceTable
-  onconnect:
-    handler: lib/samplebot/lambda/mqtt/onconnect.handler
+
+  oniotlifecycle:
+    handler: lib/samplebot/lambda/mqtt/oniotlifecycle.handler
     events:
       - iot:
-          sql: "SELECT * FROM '$aws/events/presence/connected/#'"
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/connected/#'"
+          sqlVersion: ${{self:custom.versionSQL}}
+      - iot:
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#'"
+          sqlVersion: ${{self:custom.versionSQL}}
+      - iot:
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#'"
           sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors
       - functionThrottles
       - functionInvocations
 
-  # updates presence in PresenceTable
-  ondisconnect:
-    handler: lib/samplebot/lambda/mqtt/ondisconnect.handler
-    events:
-      - iot:
-          sql: "SELECT * FROM '$aws/events/presence/disconnected/#'"
-          sqlVersion: ${{self:custom.versionSQL}}
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
-
-  # triggered when a client subscribes to an MQTT topic
-  # sends the client any queued up messages
-  onsubscribe:
-    handler: lib/samplebot/lambda/mqtt/onsubscribe.handler
-    memorySize: 1024
-    # give enough time to deliver backed-up message
-    timeout: 60
-    events:
-      - iot:
-          sql: "SELECT * FROM '$aws/events/subscriptions/subscribed/#'"
-          sqlVersion: ${{self:custom.versionSQL}}
-    alarms:
-      - functionErrors
-      - functionThrottles
-      - functionInvocations
+  # onconnect:
+  #   handler: lib/samplebot/lambda/mqtt/onconnect.handler
+  #   events:
+  #     - iot:
+  #         sql: "SELECT * FROM '$aws/events/presence/connected/#'"
+  #         sqlVersion: ${{self:custom.versionSQL}}
+  #   alarms:
+  #     - functionErrors
+  #     - functionThrottles
+  #     - functionInvocations
 
   # triggered when a client sends a message
   #

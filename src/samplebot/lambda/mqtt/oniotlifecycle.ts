@@ -2,5 +2,5 @@
 import { createBot } from '../../../bot'
 
 const bot = createBot()
-const lambda = bot.lambdas.ondisconnect()
+const lambda = bot.lambdas.oniotlifecycle()
 export const handler = lambda.handler
