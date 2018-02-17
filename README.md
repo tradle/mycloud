@@ -179,7 +179,7 @@ If you want to play with the API, you'll first need some data. Let's generate sa
 echo '{"users":1,"products":["tradle.CurrentAccount"]}' | serverless invoke -f bot_samples
 ```
 
-## Deploy
+## Deploy to AWS
 
 First, make sure Docker is running
 
@@ -194,7 +194,7 @@ npm run deploy:safe
 
 Deployment can take ~5-10 minutes.
 
-Once everything's deployed, open your browser to [http://localhost:55555](http://localhost:55555). On the Conversations page, click the red button, and choose Add Server URL. Paste in your API endpoint (it looks like https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/)
+Once everything's deployed, open your browser to [https://app.tradle.io](https://app.tradle.io). On the Conversations page, click the red button, and choose Add Server URL. Paste in your API endpoint (it looks like https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/)
 
 ### Configure
 
