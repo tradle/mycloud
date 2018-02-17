@@ -15,6 +15,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Node.js](#nodejs)
   - [Docker & Docker Compose](#docker-&-docker-compose)
   - [AWS cli](#aws-cli)
+  - [Clone this project](#clone-this-project)
   - [Install dependencies](#install-dependencies)
   - [Install local playground tools](#install-local-playground-tools)
   - [Install development tools](#install-development-tools)
@@ -94,6 +95,10 @@ You'll be deploying to AWS, so you'll need an account and a command line client:
 1. [Install](http://docs.aws.amazon.com/cli/latest/userguide/installing.html). On OS X, I have it installed with brew: `brew install awscli`
 2. create a new IAM user with AdministratorAccess
 3. Configure your settings: `aws configure`. This will set up your AWS credentials in `~/.aws/`
+
+### Clone this project
+
+Clone this project. The rest of setup below takes place in the cloned repository's root folder.
 
 ### Install dependencies
 
