@@ -72,7 +72,6 @@
     "graphqlserver": "node ./lib/scripts/graphql-server",
     "graphqlserver:debug": "node --debug --inspect ./lib/scripts/graphql-server",
     "deploy:prepare": "set -euo pipefail; tsc && npm run eslint && npm run build:yml && npm run clean:node_modules",
-    "deploy:local": "npm run deploy:prepare && SLS_DEBUG=* IS_LOCAL=1 ./lib/scripts/deploy.js",
     "deploy:base": "set -euo pipefail; SLS_DEBUG=* IS_LOCAL= ./lib/scripts/deploy.js && npm run deploy:postprocess",
     "deploy": "npm run deploy:prepare && npm run deploy:base",
     "deploy:safe": "npm run deploy:prepare && npm run gen:localresources && npm test && npm run rebuild:lambda && npm run deploy:base",
