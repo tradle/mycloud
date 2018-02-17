@@ -76,7 +76,7 @@ You can set up a local playground, with most of the functionality of the cloud o
 
 Docker is used during the build process, as well as in the local playground. Docker Compose is used for container orchestration and networking
 
-1. Docker 
+1. Docker  
   a. [OS X](https://docs.docker.com/docker-for-mac/install/)  
   b. [Window](https://docs.docker.com/docker-for-windows/install/)  
   c. [Linux](https://docs.docker.com/engine/installation/#server)  
@@ -200,7 +200,7 @@ Once everything's deployed, open your browser to [http://localhost:55555](http:/
 
 There's configuration and configuration. 
 
-- To configure the built-in bot, edit `./conf/provider.json`
+- To change the name/domain/logo of your bot, edit `./vars.yml`. Then run `npm run build:yml`
 - If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./samplebot/index.js](./samplebot/index.js).
 
 ### Explore the Architecture
