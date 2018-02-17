@@ -24,8 +24,9 @@ import { createRemoteTradle } from '../'
 import { createConf } from '../samplebot/configure'
 import {
   Tradle,
-  Bot
-} from '../types'
+  Bot,
+  IConf
+} from '../samplebot/types'
 
 import { wait } from '../utils'
 import {
@@ -181,7 +182,7 @@ const compileTemplate = async (path) => {
 
   const interpolatedStr = await interpolateTemplate()
   const interpolated = YAML.safeLoad(interpolatedStr)
-  validateProviderConf(interpolated.custom.providerConf)
+  // validateProviderConf(interpolated.custom.providerConf)
   addBucketTables({ yml, prefix: interpolated.custom.prefix })
   stripDevFunctions(yml)
 
@@ -267,15 +268,15 @@ const getTableDefinitions = () => {
   return map
 }
 
-const validateProviderConf = conf => {
-  const { style } = conf
-  if (style) {
-    validateResource.resource({
-      models,
-      resource: style
-    })
-  }
-}
+// const validateProviderConf = conf => {
+//   const { style } = conf
+//   if (style) {
+//     validateResource.resource({
+//       models,
+//       resource: style
+//     })
+//   }
+// }
 
 const downloadDeploymentTemplate = async (tradle:Tradle) => {
   const { aws, stackUtils } = tradle
@@ -382,7 +383,9 @@ const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
     } catch (err) {}
   }
 
-  const providerConf = require('../samplebot/conf/provider')
+  // const providerConf = require('../samplebot/conf/provider')
+  const yml = require('./serverless-yml')
+  const providerConf = yml.custom.org
   try {
     await conf.initInfra(providerConf, {
       forceRecreateIdentity: force

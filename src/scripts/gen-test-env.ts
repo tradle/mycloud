@@ -30,9 +30,11 @@ const lambdaUtils = new LambdaUtils({ env, aws })
 const getEnv = async () => {
   const setEnvFnName = `${prefix}onmessage`
   const { Environment } = await lambdaUtils.getConfiguration(setEnvFnName)
+  const vars = Environment.Variables
+  vars.AWS_REGION = serverlessYml.provider.region
   await Promise.all([
-    fs.writeFile(serviceMapPath, prettify(Environment.Variables)),
-    fs.writeFile(serviceMapPath.replace(/\/src\//, '/lib/'), prettify(Environment.Variables))
+    fs.writeFile(serviceMapPath, prettify(vars)),
+    fs.writeFile(serviceMapPath.replace(/\/src\//, '/lib/'), prettify(vars))
   ])
 }
 

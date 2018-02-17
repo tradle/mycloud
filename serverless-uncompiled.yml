@@ -70,9 +70,11 @@ custom:
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
+  corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
   invokeBotLambdasDirectly: ${{self:custom.vars.invokeBotLambdasDirectly, self:custom.defaults.invokeBotLambdasDirectly}}
-  providerConf: &providerConf
-    ${{file(./src/samplebot/conf/provider.json)}}
+  # providerConf: &providerConf
+  #   ${{file(./src/samplebot/conf/provider.json)}}
+  org: ${{self:custom.vars.org, self:custom.defaults.org}}
 
   # logging: ${{self:custom.vars.logging, self:custom.defaults.logging}}
 
@@ -309,8 +311,8 @@ provider:
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
     IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
     BLOCKCHAIN: ${{self:custom.blockchain}}
-    CORDA_API_URL: ${{self:custom.providerConf.corda.apiUrl}}
-    CORDA_API_KEY: ${{self:custom.providerConf.corda.apiKey}}
+    CORDA_API_URL: ${{self:custom.corda.apiUrl}}
+    CORDA_API_KEY: ${{self:custom.corda.apiKey}}
     DEBUG: 'λ*,*tradle*'
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
@@ -1059,6 +1061,20 @@ functions:
 
 resources:
   Parameters:
+    OrgName:
+      Type: String
+      Description: the name of your organization as it will appear in chat
+      Default: ${{self:custom.org.name}}
+
+    OrgDomain:
+      Type: String
+      Description: a domain your organization provably owns
+      Default: ${{self:custom.org.domain}}
+
+    OrgLogo:
+      Type: String
+      Description: (optional) your organization's publically accessible logo image url
+      Default: ${{self:custom.org.logo}}
 
   Resources:
     # servless-framework-generated API Gateway
@@ -1609,5 +1625,11 @@ resources:
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
-        ProviderConf:
-          <<: *providerConf
+        name:
+          Ref: OrgName
+        domain:
+          Ref: OrgDomain
+        logo:
+          Ref: OrgLogo
+
+          # <<: *providerConf

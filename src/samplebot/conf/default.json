@@ -6,89 +6,21 @@
         "tradle.CorporateBankAccount",
         "tradle.LifeInsurance",
         "tradle.MortgageProduct",
-        "tradle.onfido.CustomerVerification"
+        "tradle.crs.Selection"
       ],
-      "queueSends": false,
-      "autoApprove": true,
-      "autoVerify": false,
+      "autoApprove": false,
       "approveAllEmployees": true,
-      "plugins": {
-        "customize-message": {
-          "tradle.FormRequest": {
-            "tradle.PhotoID": "Please click to scan your **ID document**",
-            "tradle.Selfie": "Thank you. Now take a '**selfie**' photo of yourself that I can match against your ID document",
-            "tradle.Residence": {
-              "first": "Thank you. Now I need you to provide your **residence** information",
-              "nth": "Thank you. Do you have another **residence**? If yes, tap Add, otherwise tap Next"
-            }
-          },
-          "tradle.Confirmation": {
-            "tradle.Remediation": "Thanks for importing your data!"
-          }
-        }
-      }
-    },
-    "tours": {
-      "intro": {
-        "_t": "tradle.Tour",
-        "message": "Take a quick tour of this chat bot?",
-        "pages": [
-          {
-            "title": "Ready?",
-            "description": "Finally, you will be in control of your own private information!",
-            "img": "https://s3.amazonaws.com/tradle-public-images/easy.png",
-            "imgStyle": {
-              "height": 200,
-              "width": 200
-            },
-            "backgroundColor": "#4CB0CA",
-            "fontColor": "#fff",
-            "level": 10
-          },
-          {
-            "title": "Get set",
-            "description": "Before we start you'll need a valid passport, identity card or driving license",
-            "img": "https://s3.amazonaws.com/tradle-public-images/easy.png",
-            "imgStyle": {
-              "height": 200,
-              "width": 200
-            },
-            "backgroundColor": "#FBB825",
-            "fontColor": "#fff",
-            "level": 10
-          },
-          {
-            "title": "Go!",
-            "description": "We'll ask you questions in the chat and you simply fill the forms or follow the requests",
-            "img": "https://s3.amazonaws.com/tradle-public-images/easy.png",
-            "imgStyle": {
-              "height": 200,
-              "width": 200
-            },
-            "backgroundColor": "#3AC9C1",
-            "fontColor": "#fff",
-            "level": 10
-          }
-        ]
-      }
+      "plugins": {}
     }
   },
   "style": {
     "_t": "tradle.StylesPack",
     "backgroundImage": {
-      "url": "https://s3.amazonaws.com/tradle-public-images/bg-rainbow-fuzz-opacity-50.png"
+      "url": "https://s3.amazonaws.com/tradle-public-images/blue-underwater-gradient-opacity-15.png"
     },
     "logo": {
-      "url": "https://s3.amazonaws.com/tradle-public-images/easy.png"
+      "url": "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png"
     },
     "logoNeedsText": true
-  },
-  "org": {
-    "name": "Easy Bank",
-    "domain": "easybank.io"
-  },
-  "corda": {
-    "apiKey": "<placeholder>",
-    "apiUrl": "<placeholder>"
   }
 }

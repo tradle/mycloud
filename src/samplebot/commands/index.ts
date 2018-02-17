@@ -3,7 +3,7 @@ import { command as help } from './help'
 import { command as listproducts } from './listproducts'
 import { command as forgetme } from './forgetme'
 import { command as setproductenabled } from './setproductenabled'
-import { command as setautoverify } from './setautoverify'
+// import { command as setautoverify } from './setautoverify'
 import { command as setautoapprove } from './setautoapprove'
 import { command as addfriend } from './addfriend'
 import { command as tours } from './tours'
@@ -20,7 +20,7 @@ export {
   listproducts,
   forgetme,
   setproductenabled,
-  setautoverify,
+  // setautoverify,
   setautoapprove,
   addfriend,
   tours,

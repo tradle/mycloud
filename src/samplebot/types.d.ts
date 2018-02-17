@@ -36,7 +36,7 @@ export interface ITours {
 
 export interface IBotConf {
   products: IProductsConf
-  tours: ITours
+  tours?: ITours
   sandbox?: boolean
   // exposed directly in /info
   // publicConfig: any
@@ -209,7 +209,8 @@ export type ClaimStub = {
 export interface IDeploymentOpts {
   name: string
   domain: string
-  scale?: number
+  logo?: string
+  // scale?: number
 }
 
 export interface IPBotLambdaOpts extends IBotLambdaOpts {

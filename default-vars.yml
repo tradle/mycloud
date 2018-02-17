@@ -33,3 +33,12 @@ invokeBotLambdasDirectly: 1
 debug:
   format: json
   level: 4
+
+org:
+  name: Super Awesome Org
+  domain: superawesome.org
+  logo: "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png"
+
+corda:
+  apiKey: abc
+  apiUrl: http://localhost:10007/api/share

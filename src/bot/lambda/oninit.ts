@@ -24,7 +24,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 
     let err
     try {
-      await bot.hooks.fire(type, ctx.event)
+      // await bot.hooks.fire(type, ctx.event)
+      await next()
     } catch (e) {
       err = e
     }
@@ -33,10 +34,10 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       const respond = err ? sendError : sendSuccess
       const data = err ? _.pick(err, ['message', 'stack']) : {}
       await respond(event, context, data)
+      return
     }
 
+    // test mode
     if (err) throw err
-
-    await next()
   }
 }

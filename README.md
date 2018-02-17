@@ -425,14 +425,14 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 - to-events: replicates streams from `inbox`/`outbox`/`seals` tables to the `events` table
 - addfriend: add a known MyCloud to the `friends` table, so outbound messages can be delivered to them
 - info (HTTP): get the public information about this MyCloud - the identity, style, logo, country, currency, etc.
-- init: initialize the MyCloud node - generate an identity and keys, save secrets and default configuration files to respective buckets
+- bot_oninit: initialize the MyCloud node - generate an identity and keys, save secrets and default configuration files to respective buckets
 - sealpending (scheduled): write queued seals to the blockchain
 - pollchain (scheduled): query unconfirmed seals
 - setstyle: update the style
-- bot_onmessage: where your bot (business logic) processes inbound messages
-- bot_onsealevent: where your bot (business logic) processes seal events (reads/writes)
-- bot_onmessagestream: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
-- bot_graphql: your bot's built-in graphql API
-- bot_samples: generates a bunch of sample data
+- onmessage: where your bot (business logic) processes inbound messages
+- onsealevent: where your bot (business logic) processes seal events (reads/writes)
+- onmessagestream: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
+- graphql: your bot's built-in graphql API
+- samples: generates a bunch of sample data
 
 \* Note: the purpose of authentication is to know whether to send the user messages from the `outbox` table. Inbound messages don't require pre-authentication, as they are all signed.

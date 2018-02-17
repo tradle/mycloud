@@ -51,7 +51,7 @@ export class Deployment {
   }
 
   public customizeTemplate = ({ template, parameters }) => {
-    let { name, domain, scale } = parameters
+    let { name, domain, logo } = parameters
 
     if (!(name && domain)) throw new Error('expected "name" and "domain"')
 
@@ -59,8 +59,12 @@ export class Deployment {
     domain = normalizeDomain(domain)
 
     const namespace = domain.split('.').reverse().join('.')
-    const { Resources } = template
-    Resources.Initialize.Properties.ProviderConf.org = { name, domain }
+    const { Resources, Parameters } = template
+    Parameters.OrgName.Default = name
+    Parameters.OrgDomain.Default = domain
+    if (logo) {
+      Parameters.OrgLogo.Default = logo
+    }
 
     const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id
     for (let key in Resources) {
@@ -91,6 +95,15 @@ const scaleTable = ({ table, scale }) => {
   GlobalSecondaryIndexes.forEach(index => scaleTable({ table: index, scale }))
 }
 
+const isValidDomain = domain => {
+  return domain.includes('.') && /^(?:[a-zA-Z0-9-_.]+)$/.test(domain)
+}
+
 const normalizeDomain = (domain:string) => {
-  return domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
+  domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
+  if (!isValidDomain(domain)) {
+    throw new Error('invalid domain')
+  }
+
+  return domain
 }

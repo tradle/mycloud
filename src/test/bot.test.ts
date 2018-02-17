@@ -116,22 +116,28 @@ test('init', loudAsync(async (t) => {
   const cfnResponseStub = sinon.stub(cfnResponse, 'send').resolves()
   let { callCount } = cfnResponseStub
 
-  bot.oninit(async (event) => {
+  // bot.oninit(async (event) => {
+  //   t.same(event, expectedEvent)
+  // })
+
+  let initLambda = bot.lambdas.oninit()
+  initLambda.use(async ({ event }) => {
     t.same(event, expectedEvent)
   })
 
-  await bot.lambdas.oninit().handler(originalEvent, {
+  await initLambda.handler(originalEvent, {
     done: t.error
   } as ILambdaAWSExecutionContext)
 
   t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
 
-  bot.oninit(async (event) => {
+  initLambda = bot.lambdas.oninit()
+  initLambda.use(async ({ event }) => {
     throw new Error('test error')
   })
 
   // @ts-ignore
-  await bot.lambdas.oninit().handler(originalEvent, {
+  await initLambda.handler(originalEvent, {
     done: err => t.equal(err.message, 'test error')
   } as ILambdaAWSExecutionContext)
 

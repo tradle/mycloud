@@ -11,13 +11,25 @@ import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors = require('../errors')
 import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
-import { Bot, ModelStore, Logger, Bucket, IIdentity, ITradleObject, IBotConf } from './types'
+import {
+  Bot,
+  ModelStore,
+  Logger,
+  Bucket,
+  IIdentity,
+  ITradleObject,
+  IConf,
+  IBotConf,
+  IDeploymentOpts
+} from './types'
+
 import {
   PRIVATE_CONF_BUCKET
 } from './constants'
 
 const { LOGO_UNKNOWN } = require('./media')
-const DEFAULT_CONF = require('./conf/provider')
+const DEFAULT_CONF:IConf = require('./conf/default')
+
 const parseJSON = JSON.parse.bind(JSON)
 const getHandleFromName = (name: string) => {
   return name.replace(/[^A-Za-z]/g, '').toLowerCase()
@@ -264,7 +276,6 @@ export class Conf {
 
   public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput) => {
     const tour = _.get(bot, 'tours.intro')
-    // const { splashscreen } = bot
     return {
       sandbox: bot.sandbox,
       bot: {
@@ -278,21 +289,22 @@ export class Conf {
       id: getHandleFromName(org.name),
       org: buildResource.omitVirtual(org),
       style,
-      tour,
-      // splashscreen
+      tour
     }
   }
 
-  public initInfra = async (conf, opts: InitOpts = {}) => {
-    conf = { ...DEFAULT_CONF, ...conf }
+  public initInfra = async (deploymentOpts: IDeploymentOpts, opts: InitOpts = {}) => {
     const { bot } = this
+    const orgTemplate = _.clone(deploymentOpts)
     if (bot.isTesting) {
-      const { org } = conf
-      // org.domain += '.local'
-      org.name += '-local'
+      orgTemplate.name += '-local'
     }
 
-    const orgTemplate = conf.org
+    const conf = {
+      ...DEFAULT_CONF,
+      org: orgTemplate
+    }
+
     this.logger.info(`initializing provider ${orgTemplate.name}`)
 
     let identity:IIdentity
@@ -316,15 +328,7 @@ export class Conf {
     }
 
     const logo = await this.getLogo(conf)
-    // if (!orgTemplate.logo) {
-    //   orgTemplate.logo = logo
-    // }
-
-    let { style } = conf
-    if (!style) {
-      style = conf.style = { ...baseStylePackObj }
-    }
-
+    const { style } = conf
     if (!style.logo) {
       style.logo = {
         url: logo
@@ -393,23 +397,23 @@ export class Conf {
   }
 
   public getLogo = async (conf) => {
-    const defaultLogo = _.get(conf, 'style.logo.url')
-    let { name, domain, logo = defaultLogo } = conf.org
+    const logo = _.get(conf, 'style.logo.url') || _.get(conf, 'org.logo')
+    let { name, domain } = conf.org
     if (!(name && domain)) {
       throw new Error('org "name" and "domain" are required')
     }
 
-    if (!(logo && /^data:/.test(logo))) {
-      const ImageUtils = require('./image-utils')
-      try {
-        return await ImageUtils.getLogo({ logo, domain })
-      } catch (err) {
-        this.logger.debug(`unable to load logo for domain: ${domain}`)
-        return LOGO_UNKNOWN
-      }
+    if (!logo && /^data:/.test(logo)) {
+      return logo
     }
 
-    return logo
+    const ImageUtils = require('./image-utils')
+    try {
+      return await ImageUtils.getLogo({ logo, domain })
+    } catch (err) {
+      this.logger.debug(`unable to load logo for domain: ${domain}`)
+      return LOGO_UNKNOWN
+    }
   }
 }
 
@@ -425,15 +429,10 @@ const hasDifferentValue = async ({ bucket, key, value }) => {
   }
 }
 
-const buildOrg = ({ name, domain, logo }) => ({
+const buildOrg = ({ name, domain }) => ({
   ...baseOrgObj,
   name,
-  domain,
-  // photos: [
-  //   {
-  //     url: logo
-  //   }
-  // ]
+  domain
 })
 
 const validateOrgUpdate = ({ current, update }) => {
