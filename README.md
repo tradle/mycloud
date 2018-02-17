@@ -12,6 +12,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Digital Identity Intro](#digital-identity-intro)
   - [Serverless](#serverless)
 - [Setup](#setup)
+  - [Node.js](#nodejs)
   - [Docker & Docker Compose](#docker-&-docker-compose)
   - [AWS cli](#aws-cli)
   - [Install dependencies](#install-dependencies)
@@ -23,7 +24,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Explore the API](#explore-the-api)
   - [AWS cli (local)](#aws-cli-local)
   - [Generate sample data](#generate-sample-data)
-- [Deploy](#deploy)
+- [Deploy to AWS](#deploy-to-aws)
   - [Configure](#configure)
   - [Explore the Architecture](#explore-the-architecture)
     - [List deployed resources, API endpoints, ...](#list-deployed-resources-api-endpoints-)
@@ -71,6 +72,10 @@ This project uses the [Serverless](https://github.com/serverless/serverless) fra
 You can set up a local playground, with most of the functionality of the cloud one right on your machine. To make this possible, this project uses [localstack](https://github.com/localstack/localstack) for simulating DynamoDB and S3 locally, and [serverless-offline](https://github.com/dherault/serverless-offline) + [mosca](https://github.com/mcollina/mosca) for simulating AWS's APIGateway and IoT broker, respectively.
 
 ## Setup
+
+### Node.js
+
+You'll need [Node.js](https://nodejs.org/en/download/releases/) both to build the project and develop bots. We suggest you use the same version of Node.js that runs in the Amazon Linux Container that is used for Lambda (6.10.3)
 
 ### Docker & Docker Compose
 
