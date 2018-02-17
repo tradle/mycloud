@@ -322,6 +322,9 @@ provider:
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
     NO_TIME_TRAVEL: false # allow time-travel messages for now
 
+  apiKeys:
+    - issue2233WorkaroundKey
+
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -502,6 +505,7 @@ provider:
     - Effect: Allow
       Action:
         - apigateway:GET
+        - apigateway:PUT
       Resource:
         Fn::Join:
           - ""
@@ -513,7 +517,6 @@ provider:
 
     - Effect: Allow
       Action:
-        - apigateway:PUT
         - apigateway:POST
       Resource:
         Fn::Join:
@@ -931,7 +934,7 @@ functions:
               - SealsTable
               - StreamArn
     alarms:
-    - functionErrors
+      - functionErrors
 
   onmessagestream:
     handler: lib/samplebot/lambda/onmessagestream.handler
@@ -1622,6 +1625,7 @@ resources:
 
     Initialize:
       Type: "Custom::InitializeDeployment"
+      DependsOn: ApiGatewayApiKey1
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
