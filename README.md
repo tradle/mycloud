@@ -10,7 +10,6 @@ If you're developer, you'll also see how to set up your local environment, deplo
 
 - [Orientation](#orientation)
   - [Digital Identity Intro](#digital-identity-intro)
-  - [Serverless](#serverless)
 - [Setup](#setup)
   - [Tools](#tools)
     - [Git](#git)
@@ -54,6 +53,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [npm run setconf](#npm-run-setconf)
   - [warmup](#warmup)
 - [Project Architecture](#project-architecture)
+  - [Tools](#tools-1)
   - [Directory Structure](#directory-structure)
   - [Main Components](#main-components)
     - [Core Tables](#core-tables)
@@ -67,12 +67,6 @@ If you're developer, you'll also see how to set up your local environment, deplo
 ### Digital Identity Intro
 
 Jump down the [rabbit hole](./docs/mythos.md)
-
-### Serverless
-
-This project uses the [Serverless](https://github.com/serverless/serverless) framework. `serverless.yml` file is thus the main configuration file for the cloud architecture you'll be deploying: tables, buckets, IaM roles, lambda functions, logs, alarms, pictures of kittens, etc.
-
-You can set up a local playground, with most of the functionality of the cloud one right on your machine. To make this possible, this project uses [localstack](https://github.com/localstack/localstack) for simulating DynamoDB and S3 locally, and [serverless-offline](https://github.com/dherault/serverless-offline) + [mosca](https://github.com/mcollina/mosca) for simulating AWS's APIGateway and IoT broker, respectively.
 
 ## Setup
 
@@ -116,7 +110,7 @@ You'll be deploying to AWS, so you'll need an account and a command line client:
 
 - [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
 - [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript`)  
-- The [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
+- [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
 
 ### Clone this project
 
@@ -385,6 +379,12 @@ Update the style and/or bot configuration of your provider
 
 ## Project Architecture
 
+### Tools
+
+This project uses the [Serverless](https://github.com/serverless/serverless) framework. `serverless.yml` file is thus the main configuration file for the cloud architecture you'll be deploying: tables, buckets, IaM roles, lambda functions, logs, alarms, pictures of kittens, etc.
+
+You can set up a local playground, with most of the functionality of the cloud one right on your machine. To make this possible, this project uses [localstack](https://github.com/localstack/localstack) for simulating DynamoDB and S3 locally, and [serverless-offline](https://github.com/dherault/serverless-offline) + [mosca](https://github.com/mcollina/mosca) for simulating AWS's APIGateway and IoT broker, respectively.
+
 ### Directory Structure
 
 ```sh
@@ -393,8 +393,7 @@ Update the style and/or bot configuration of your provider
                             #   -> serverless-interpolated.yml 
                             #   -> serverless-compiled.yml
                             #   -> serverless.yml
-  conf/                     # configuration for your instance
-    provider.json           # main customization file
+  vars.yml                  # your provider's name/domain/logo, as well as dev env opts
   src/                      # typescript code, some shell scripts
     *.ts
     scripts/                # command line scripts, and utils
