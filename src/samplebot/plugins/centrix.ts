@@ -7,7 +7,10 @@ const { VERIFICATION, IDENTITY } = constants.TYPES
 const buildResource = require('@tradle/build-resource')
 import { buildResourceStub } from '@tradle/build-resource'
 
-import createCentrixClient = require('@tradle/centrix')
+let createCentrixClient
+try {
+  createCentrixClient = require('@tradle/centrix')
+} catch (err) {}
 
 import { Name } from '../types'
 import { getNameFromForm } from '../utils'
@@ -169,6 +172,10 @@ class CentrixAPI {
 }
 export function createPlugin({ conf, bot, productsAPI, logger }) {
   let { httpCredentials, requestCredentials } = conf.credentials
+  if (typeof createCentrixClient !== 'function') {
+    throw new Error('centrix client not available')
+  }
+
   const centrix = createCentrixClient({ httpCredentials, requestCredentials })
   const centrixAPI = new CentrixAPI({ bot, productsAPI, centrix, logger })
   return {
