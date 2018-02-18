@@ -12,7 +12,12 @@ try {
   createCentrixClient = require('@tradle/centrix')
 } catch (err) {}
 
-import { Name } from '../types'
+import {
+  Name,
+  Bot,
+  Logger
+} from '../types'
+
 import { getNameFromForm, parseScannedDate } from '../utils'
 
 const PHOTO_ID = 'tradle.PhotoID'
@@ -33,10 +38,10 @@ const OPERATION = {
 }
 
 class CentrixAPI {
-  private bot:any
+  private bot: Bot
   private productsAPI:any
   private centrix:any
-  private logger:any
+  private logger: Logger
   constructor({ bot, productsAPI, centrix, logger }) {
     this.bot = bot
     this.productsAPI = productsAPI
