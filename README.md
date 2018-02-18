@@ -12,13 +12,15 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Digital Identity Intro](#digital-identity-intro)
   - [Serverless](#serverless)
 - [Setup](#setup)
-  - [Node.js](#nodejs)
-  - [Docker & Docker Compose](#docker-&-docker-compose)
-  - [AWS cli](#aws-cli)
+  - [Tools](#tools)
+    - [Git](#git)
+    - [Node.js](#nodejs)
+    - [Docker & Docker Compose](#docker-&-docker-compose)
+    - [AWS cli](#aws-cli)
+    - [JQ](#jq)
+  - [Development Tools](#development-tools)
   - [Clone this project](#clone-this-project)
   - [Install dependencies](#install-dependencies)
-  - [Install local playground tools](#install-local-playground-tools)
-  - [Install development tools](#install-development-tools)
 - [Local Playground](#local-playground)
   - [Start docker](#start-docker)
   - [Start the Playground](#start-the-playground)
@@ -74,11 +76,19 @@ You can set up a local playground, with most of the functionality of the cloud o
 
 ## Setup
 
-### Node.js
+First, install some tools
+
+### Tools
+
+#### Git
+
+Make sure you have `git` installed. If you're on `OS X`, you already have it.
+
+#### Node.js
 
 You'll need [Node.js](https://nodejs.org/en/download/releases/) both to build the project and develop bots. We suggest you use the same version of Node.js that runs in the Amazon Linux Container that is used for Lambda (6.10.3)
 
-### Docker & Docker Compose
+#### Docker & Docker Compose
 
 Docker is used during the build process, as well as in the local playground. Docker Compose is used for container orchestration and networking
 
@@ -88,13 +98,25 @@ Docker is used during the build process, as well as in the local playground. Doc
   c. [Linux](https://docs.docker.com/engine/installation/#server)  
 2. [Docker Compose](https://docs.docker.com/compose/install/)
 
-### AWS cli
+#### AWS cli
 
 You'll be deploying to AWS, so you'll need an account and a command line client:
 
 1. [Install](http://docs.aws.amazon.com/cli/latest/userguide/installing.html). On OS X, I have it installed with brew: `brew install awscli`
 2. create a new IAM user with AdministratorAccess
 3. Configure your settings: `aws configure`. This will set up your AWS credentials in `~/.aws/`
+
+#### JQ 
+
+[jq](https://stedolan.github.io/jq/download/) is a great command line JSON parser (On OS X, you can `brew install jq`)
+
+### Development Tools
+
+*Note: if you don't care about playing locally and want to skip ahead to deploying Tradle MyCloud to the cloud, skip this section*
+
+- [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
+- [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript`)  
+- The [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
 
 ### Clone this project
 
@@ -108,16 +130,6 @@ Install the project dependencies, and build your `serverless.yml`:
 # install dependencies
 npm install
 ```
-
-### Install local playground tools
-
-- [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
-
-### Install development tools
-
-- [jq](https://stedolan.github.io/jq/download/) - a great command line JSON parser (On OS X, you can `brew install jq`)
-- [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript`)  
-- The [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
 
 ## Local Playground
 
