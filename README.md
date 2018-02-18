@@ -80,7 +80,10 @@ Make sure you have `git` installed. If you're on `OS X`, you already have it.
 
 #### Node.js
 
-You'll need [Node.js](https://nodejs.org/en/download/releases/) both to build the project and develop bots. We suggest you use the same version of Node.js that runs in the Amazon Linux Container that is used for Lambda (6.10.3)
+The following are the versions used by the Tradle dev team:
+
+- Node.js@[6.10.3](https://nodejs.org/download/release/v6.10.3/) - this is the version used by Amazon for AWS Lambda. Yes, you can use the latest Node.js instead, but keep this in mind if you hit errors.  
+- npm@3.10.10
 
 #### Docker & Docker Compose
 
