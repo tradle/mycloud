@@ -236,6 +236,8 @@ export default class Objects {
     }
 
     const getOldAuthor = previous._author ? Promise.resolve(previous) : identities.getAuthorInfo(previous)
+    // ignore error: Property '_author' is optional in type 'ITradleObject' but required in type 'AuthorInfo'
+    // @ts-ignore
     const [newInfo, oldInfo] = await Promise.all([getNewAuthorInfo, getOldAuthor])
     if (newInfo._author !== oldInfo._author) {
       throw new InvalidAuthor(`expected ${oldInfo._author}, got ${newInfo._author}`)

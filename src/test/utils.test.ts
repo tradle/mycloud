@@ -40,6 +40,16 @@ const aliceKeys = require('./fixtures/alice/keys')
 const tradle = new Tradle()
 const { dbUtils } = tradle
 
+interface IErrorMatch {
+  type: any
+  result: boolean
+}
+
+interface IErrorMatchTest {
+  error: any
+  matches: IErrorMatch[]
+}
+
 test('cachify', loudAsync(async (t) => {
   const data = {
     a: 1
@@ -102,7 +112,7 @@ test('cachifyFunction', loudAsync(async (t) => {
     cache: new Cache({ max: 100 }),
     logger: createSilentLogger(),
     fn: async (...args) => {
-      return await actions[i++](...args)
+      return await actions[i++]()
     }
   }
 
@@ -493,8 +503,8 @@ test('key-value table', loudAsync(async (t) => {
   t.end()
 }))
 
-test('errors', function (t) {
-  ;[
+test('errors', t => {
+  const tests:IErrorMatchTest[] = [
     {
       error: new TypeError('bad type'),
       matches: [
@@ -531,8 +541,10 @@ test('errors', function (t) {
         },
         { type: {}, result: true }
       ]
-    },
-  ].forEach(({ error, matches }) => {
+    }
+  ]
+
+  tests.forEach(({ error, matches }) => {
     matches.forEach(({ type, result }) => {
       t.equal(Errors.matches(error, type), result)
     })
