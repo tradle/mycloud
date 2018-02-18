@@ -121,8 +121,6 @@ Clone this project. The rest of setup below takes place in the cloned repository
 
 ### Install dependencies
 
-Install the project dependencies, and build your `serverless.yml`:
-
 ```sh
 # install dependencies
 npm install
