@@ -13,7 +13,7 @@ try {
 } catch (err) {}
 
 import { Name } from '../types'
-import { getNameFromForm } from '../utils'
+import { getNameFromForm, parseScannedDate } from '../utils'
 
 const PHOTO_ID = 'tradle.PhotoID'
 const CENTRIX_CHECK = 'tradle.CentrixCheck'
@@ -27,7 +27,6 @@ const PASS = 'Pass'
 const FAIL = 'Fail'
 const ERROR = 'Error'
 
-const months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ]
 const OPERATION = {
   driving_licence: 'DriverLicenceVerification',
   passport: 'DIAPassportVerification'
@@ -227,20 +226,20 @@ async function getCentrixData ({ application, bot }) {
   let { firstName, lastName, birthData, dateOfBirth, sex } = personal
   let { dateOfExpiry, documentNumber } = document
   if (dateOfExpiry)
-    dateOfExpiry = toISODate(dateOfExpiry)
+    dateOfExpiry = parseScannedDate(dateOfExpiry)
 
   // let address
   if (docType === DOCUMENT_TYPES.license  &&  birthData) {
     dateOfBirth = birthData.split(' ')[0]
-    dateOfBirth = toISODate(dateOfBirth)
+    dateOfBirth = parseScannedDate(dateOfBirth)
   }
   else if (dateOfBirth)
-    dateOfBirth = toISODate(dateOfBirth)
+    dateOfBirth = parseScannedDate(dateOfBirth)
 
 
   if (!(firstName && lastName)) {
     const name = getNameFromForm({ application });
-    ({ firstName, lastName } = name)
+    if (name) ({ firstName, lastName } = name)
   }
 
   const haveAll = documentNumber &&
@@ -282,41 +281,6 @@ function hasCentrixVerification ({ application }) {
       return api.name === CENTRIX_NAME
     })
   })
-}
-
-function toISODate (str) {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    return str
-  }
-
-  const match = str.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/)
-  if (match) {
-    let [day, month, year] = match.slice(1)
-    if (Number(month) > 12) {
-      // oof, guesswork
-      [day, month] = [month, day]
-    }
-
-    if (year < 100) {
-      year = '19' + year
-    }
-
-    return `${year}-${month}-${day}`
-  }
-  // Date in UK looks like this: Jan 16th, 2020
-  if (/\w{3}?\s\d{1,2}\w{2},\s\d{4}/.test(str)) {
-    let idx = str.indexOf(',')
-    let parts = str.split(' ')
-    let month = months.indexOf(parts[0]) + 1
-    let monthStr = month < 10 ? `0${month}` : month
-    let year = parts[2]
-    let day = parts[1].match(/\d+/)[0]
-    let dayStr = day < 10 ? `0${day}` : day
-    return `${year}-${monthStr}-${dayStr}`
-  }
-
-
-  debugger
 }
 
 // Driver Licence

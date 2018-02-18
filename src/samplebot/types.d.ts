@@ -121,6 +121,7 @@ export interface IWillRequestFormOpts {
   to: string | IUser
   application?: IPBApp
   formRequest: IFormRequest
+  requestFor: string
 }
 
 export type WillRequestForm = (opts:IWillRequestFormOpts) => void | Promise<void>
@@ -163,9 +164,9 @@ export interface ICommand {
 }
 
 export type Name = {
-  firstName?:string
-  lastName?:string
-  formatted:string
+  firstName:string
+  lastName:string
+  formatted?:string
 }
 
 export type ValidatePluginConfOpts = {

@@ -8,6 +8,12 @@ import { ICommand } from './types'
 import { Name } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
+const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const PHOTO_ID = 'tradle.PhotoID'
+const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
+const BASIC_CONTACT_INFO = 'tradle.BasicContactInfo'
+const PERSONAL_INFO = 'tradle.PersonalInfo'
 
 export const createEditConfOp = edit => async (opts) => {
   const { bot } = opts.commander
@@ -99,12 +105,36 @@ export const sendConfirmedSeals = async (bot, seals) => {
   })))
 }
 
-export const getNameFromForm = (form:any):Name|null => {
-  let firstName, lastName, formatted
+export const getDateOfBirthFromForm = (form:any):number|void => {
   const type = form[TYPE]
-  if (type === 'tradle.BasicContactInfo' || type === 'tradle.PersonalInfo') {
+  if (type === PHOTO_ID) {
+    const { scanJson={} } = form
+    const { personal={} } = scanJson
+    let { dateOfBirth } = personal
+    if (typeof dateOfBirth === 'number') {
+      return dateOfBirth
+    }
+
+    if (form.documentType.id.endsWith('license')) {
+      // "birthData": "03/11/1976 UNITED KINGOOM"
+      const { birthData } = personal
+      if (!birthData) return
+
+      dateOfBirth = birthData.split(' ')[0]
+    }
+
+    if (typeof dateOfBirth === 'string') {
+      return parseScannedDate(dateOfBirth)
+    }
+  }
+}
+
+export const getNameFromForm = (form:any):Name|void => {
+  let firstName, lastName
+  const type = form[TYPE]
+  if (type === BASIC_CONTACT_INFO || type === PERSONAL_INFO) {
     ({ firstName, lastName } = form)
-  } else if (type === 'tradle.Name' || type === 'tradle.OnfidoApplicant') {
+  } else if (type === 'tradle.Name' || type === ONFIDO_APPLICANT) {
     firstName = form.givenName
     lastName = form.surname
   } else if (type === 'tradle.PhotoID') {
@@ -120,14 +150,60 @@ export const getNameFromForm = (form:any):Name|null => {
       }
     }
   } else {
-    return null
+    return
   }
 
-  if ((firstName || lastName) && !formatted) {
-    formatted = (firstName && lastName)
-      ? `${firstName} ${lastName}`
-      : firstName || lastName
+  if (firstName && lastName) {
+    return { firstName, lastName }
+  }
+}
+
+export const parseScannedDate = str => {
+  const parts = getDateParts(str)
+  if (parts) {
+    const { year, month, day } = parts
+    return Date.UTC(year, month, day)
+  }
+}
+
+const getDateParts = str => {
+  if (ISO_DATE.test(str)) {
+    const [year, month, day] = str.split('-').map(str => Number(str))
+    return {
+      year,
+      month: month - 1,
+      day
+    }
   }
 
-  return formatted && { firstName, lastName, formatted }
+  // dd/mm/yyyy
+  const euType1 = str.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/)
+  if (euType1) {
+    let [day, month, year] = euType1.slice(1)
+    if (Number(month) > 12) {
+      // oof, guesswork
+      [day, month] = [month, day]
+    }
+
+    if (year < 100) {
+      year = '19' + year
+    }
+
+    return {
+      year: Number(year),
+      month: Number(month) - 1,
+      day: Number(day)
+    }
+  }
+
+  // Date in UK looks like this: Jan 16th, 2020
+  const euType2 = str.match(/(\w{3})?\s(\d{1,2})\w{2},\s(\d{4})/)
+  if (euType2) {
+    const [monthAbbr, day, year] = euType2.slice(1)
+    return {
+      year: Number(year),
+      month: MONTHS.indexOf(monthAbbr.toLowerCase()),
+      day: Number(day)
+    }
+  }
 }

@@ -66,7 +66,7 @@ test('remediation plugin', loudAsync(async (t) => {
   t.end()
 }))
 
-test.only('remediation api', loudAsync(async (t) => {
+test('remediation api', loudAsync(async (t) => {
   const bundle = {
     items: [
       {
