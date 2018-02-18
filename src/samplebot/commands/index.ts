@@ -11,9 +11,10 @@ import { command as message } from './message'
 import { command as getconf } from './getconf'
 import { command as approve } from './approve'
 import { command as deny } from './deny'
-import { command as encryptbucket } from './encryptbucket'
+// import { command as encryptbucket } from './encryptbucket'
 import { command as getlaunchlink } from './getlaunchlink'
-import { command as enablebinary } from './enable-binary'
+// import { command as enablebinary } from './enable-binary'
+import { command as model } from './model'
 
 export {
   help,
@@ -29,7 +30,8 @@ export {
   approve,
   deny,
   getlaunchlink,
+  model,
   // sudo only
-  encryptbucket,
-  enablebinary
+  // encryptbucket,
+  // enablebinary,
 }

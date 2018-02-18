@@ -43,7 +43,8 @@ export const EMPLOYEE_COMMANDS = [
   'getconf',
   'approve',
   'deny',
-  'getlaunchlink'
+  'getlaunchlink',
+  'model'
 ]
 
 export const CUSTOMER_COMMANDS = [
@@ -54,8 +55,8 @@ export const CUSTOMER_COMMANDS = [
 ]
 
 export const SUDO_ONLY_COMMANDS = [
-  'encryptbucket',
-  'enablebinary'
+  // 'encryptbucket',
+  // 'enablebinary'
 ]
 
 export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
