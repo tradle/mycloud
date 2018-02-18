@@ -10,6 +10,7 @@ import { TYPE } from '@tradle/constants'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
+import { createPlugin as createSmartPrefillPlugin } from './plugins/smart-prefill'
 import { createPlugin as createLensPlugin } from './plugins/lens'
 import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
 import { createPlugin as createSanctionsPlugin } from './plugins/complyAdvantage'
@@ -361,6 +362,15 @@ export default function createProductsBot ({
       ...commonPluginOpts,
       conf: plugins['prefill-form'],
       logger: logger.sub('plugin-prefill-form')
+    }))
+  }
+
+  if (plugins['smart-prefill']) {
+    logger.debug('using plugin: smart-prefill')
+    productsAPI.plugins.use(createSmartPrefillPlugin({
+      ...commonPluginOpts,
+      conf: plugins['smart-prefill'],
+      logger: logger.sub('plugin-smart-prefill')
     }))
   }
 

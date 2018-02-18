@@ -86,6 +86,8 @@ export class SmartPrefill {
   }
 
   public prefill = async ({ application, formRequest }) => {
+    if (!application) return
+
     const { requestFor } = application
     const { form, prefill={} } = formRequest
     const productConf = this.conf[requestFor] || {}
