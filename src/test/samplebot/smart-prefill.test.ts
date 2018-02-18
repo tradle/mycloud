@@ -1,5 +1,6 @@
 require('../env').install()
 
+import _ = require('lodash')
 import test = require('tape')
 import sinon = require('sinon')
 import { TYPE, SIG, OWNER } from '@tradle/constants'
@@ -63,6 +64,10 @@ test('smart-prefill plugin', loudAsync(async (t) => {
     }
   })
 
+  const country = {
+    id: 'tradle.Country_UK'
+  }
+
   const scans = [passportScan, licenseScan]
   sinon.stub(bot, 'getResource').callsFake(async ({ type, permalink }) => {
     if (type === PHOTO_ID) {
@@ -74,6 +79,7 @@ test('smart-prefill plugin', loudAsync(async (t) => {
             ? 'tradle.IDCardType_passport'
             : 'tradle.IDCardType_license'
         },
+        country,
         scanJson
       }
     }
@@ -99,9 +105,10 @@ test('smart-prefill plugin', loudAsync(async (t) => {
     form: 'tradle.onfido.Applicant',
     prefill: {
       _t: 'tradle.onfido.Applicant',
-      givenName: passportScan.personal.firstName,
-      surname: passportScan.personal.lastName,
-      dateOfBirth: new Date(passportScan.personal.dateOfBirth).getTime()
+      givenName: _.capitalize(passportScan.personal.firstName),
+      surname: _.capitalize(passportScan.personal.lastName),
+      dateOfBirth: new Date(passportScan.personal.dateOfBirth).getTime(),
+      country
     }
   })
 
@@ -120,9 +127,10 @@ test('smart-prefill plugin', loudAsync(async (t) => {
     form: 'tradle.onfido.Applicant',
     prefill: {
       _t: 'tradle.onfido.Applicant',
-      givenName: licenseScan.personal.firstName,
-      surname: licenseScan.personal.lastName,
-      dateOfBirth: new Date('1960-11-03').getTime()
+      givenName: _.capitalize(licenseScan.personal.firstName),
+      surname: _.capitalize(licenseScan.personal.lastName),
+      dateOfBirth: new Date('1960-11-03').getTime(),
+      country
     }
   })
 
