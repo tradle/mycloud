@@ -5,7 +5,7 @@ import { createConf } from './configure'
 import Errors = require('../errors')
 import models = require('../models')
 import { ICommand } from './types'
-import { Name } from './types'
+import { Name, ResourceStub } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
@@ -14,6 +14,7 @@ const PHOTO_ID = 'tradle.PhotoID'
 const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
 const BASIC_CONTACT_INFO = 'tradle.BasicContactInfo'
 const PERSONAL_INFO = 'tradle.PersonalInfo'
+const ADDRESS = 'tradle.Address'
 
 export const createEditConfOp = edit => async (opts) => {
   const { bot } = opts.commander
@@ -158,6 +159,16 @@ export const getNameFromForm = (form:any):Name|void => {
       firstName: maybeCapitalizeWords(firstName),
       lastName: maybeCapitalizeWords(lastName)
     }
+  }
+}
+
+export const getCountryFromForm = (form:any):ResourceStub => {
+  const type = form[TYPE]
+  switch (type) {
+  case PHOTO_ID:
+  case PERSONAL_INFO:
+  case ADDRESS:
+    return form.country
   }
 }
 

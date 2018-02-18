@@ -5,6 +5,7 @@ import { Conf } from '../configure'
 import {
   getNameFromForm,
   getDateOfBirthFromForm,
+  getCountryFromForm,
   parseScannedDate
 } from '../utils'
 import { Bot, IPBApp, ResourceStub, Name, IPluginOpts } from '../types'
@@ -55,6 +56,9 @@ export const extractors = {
     const dateOfBirth = getDateOfBirthFromForm(form)
     if (dateOfBirth) props.dateOfBirth = dateOfBirth
 
+    const country = getCountryFromForm(form)
+    if (country) props.country = country
+
     return props
   }
 }
@@ -65,8 +69,8 @@ export const transformers = {
       const props:any = {}
       if (source.firstName) props.givenName = source.firstName
       if (source.lastName) props.surname = source.lastName
-      if (source.dateOfBirth) props.dateOfBirth = source.dateOfBirth
 
+      _.extend(props, _.pick(source, ['dateOfBirth', 'country']))
       return props
     }
   }
