@@ -13,6 +13,8 @@ serverless-compiled.yml
 serverless-interpolated.yml
 vars.yml
 secrets.yml
+!templates/vars.yml
+!templates/secrets.yml
 lib/
 **/conf/**
 !conf/default.json

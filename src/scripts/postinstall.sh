@@ -4,9 +4,9 @@ files=( "vars" "secrets" )
 
 for file in "${files[@]}"
 do
-  if [ ! -e "$file.yml" ] && [ -e "$file-template.yml" ]; then
+  if [ ! -e "$file.yml" ] && [ -e "templates/$file.yml" ]; then
     echo "creating $file.yml"
-    cp "$file-template.yml" "$file.yml"
+    cp "templates/$file.yml" "$file.yml"
   fi
 done
 
