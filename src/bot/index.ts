@@ -31,7 +31,8 @@ import {
   ResourceStub,
   ParsedResourceStub,
   BotStrategyInstallFn,
-  ILambdaOpts
+  ILambdaOpts,
+  ITradleObject
 } from '../types'
 
 import { createLambda } from './lambda'
@@ -45,7 +46,6 @@ import Identities from '../identities'
 import Auth from '../auth'
 import { AwsApis } from '../aws'
 import Errors = require('../errors')
-import addConvenienceMethods from './convenience'
 
 type LambdaImplMap = {
   [name:string]: ILambdaImpl
@@ -297,7 +297,7 @@ export class Bot extends EventEmitter implements IReady {
     })
   }
 
-  public getResourceByStub = async (stub:ResourceStub) => {
+  public getResourceByStub = async (stub:ResourceStub):Promise<ITradleObject> => {
     return await this.getResource(parseStub(stub))
   }
 
