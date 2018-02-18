@@ -154,8 +154,19 @@ export const getNameFromForm = (form:any):Name|void => {
   }
 
   if (firstName && lastName) {
-    return { firstName, lastName }
+    return {
+      firstName: maybeCapitalizeWords(firstName),
+      lastName: maybeCapitalizeWords(lastName)
+    }
   }
+}
+
+const maybeCapitalizeWords = str => {
+  if (str.toUpperCase() === str || str.toLowerCase() === str) {
+    return str.split(/\s+/).map(str => _.capitalize(str)).join(' ')
+  }
+
+  return str
 }
 
 export const parseScannedDate = str => {
