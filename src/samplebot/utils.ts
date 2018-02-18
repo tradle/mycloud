@@ -24,11 +24,11 @@ export const createEditConfOp = edit => async (opts) => {
 
   if (_.isEqual(botConf, current)) {
     throw new Error('you changed...nothing')
-  } else {
-    const confManager = createConf({ bot })
-    await confManager.setBotConf(botConf)
-    await bot.forceReinitializeContainers()
   }
+
+  const confManager = createConf({ bot })
+  await confManager.setBotConf(botConf)
+  await bot.forceReinitializeContainers()
 }
 
 export const setProperty = createEditConfOp(({ commander, req, path, value }) => {
