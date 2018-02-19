@@ -192,7 +192,7 @@ export const toISODateString = str => {
   if (ISO_DATE.test(str)) return str
 
   const date = parseScannedDate(str)
-  if (date) return new Date(date).toISOString().slice(10)
+  if (date) return new Date(date).toISOString().slice(0, 10)
 }
 
 const getDateParts = str => {
@@ -208,20 +208,20 @@ const getDateParts = str => {
   // dd/mm/yyyy
   const euType1 = str.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/)
   if (euType1) {
-    let [day, month, year] = euType1.slice(1)
-    if (Number(month) > 12) {
+    let [day, month, year] = euType1.slice(1).map(n => Number(n))
+    if (month > 12) {
       // oof, guesswork
       [day, month] = [month, day]
     }
 
     if (year < 100) {
-      year = '19' + year
+      year = Number('19' + year)
     }
 
     return {
-      year: Number(year),
-      month: Number(month) - 1,
-      day: Number(day)
+      year,
+      month: month - 1,
+      day
     }
   }
 
