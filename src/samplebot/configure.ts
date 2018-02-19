@@ -27,8 +27,8 @@ import {
   PRIVATE_CONF_BUCKET
 } from './constants'
 
-const { LOGO_UNKNOWN } = require('./media')
-const DEFAULT_CONF:IConf = require('./conf/default')
+import { defaultConf } from './default-conf'
+import { media } from './media'
 
 const parseJSON = JSON.parse.bind(JSON)
 const getHandleFromName = (name: string) => {
@@ -294,7 +294,6 @@ export class Conf {
   }
 
   public initInfra = async (deploymentOpts: IDeploymentOpts, opts: InitOpts = {}) => {
-    debugger
     const { bot } = this
     const orgTemplate = _.clone(deploymentOpts)
     if (bot.isTesting) {
@@ -302,7 +301,7 @@ export class Conf {
     }
 
     const conf = {
-      ...DEFAULT_CONF,
+      ...defaultConf,
       org: orgTemplate
     }
 
@@ -413,7 +412,7 @@ export class Conf {
       return await ImageUtils.getLogo({ logo, domain })
     } catch (err) {
       this.logger.debug(`unable to load logo for domain: ${domain}`)
-      return LOGO_UNKNOWN
+      return media.LOGO_UNKNOWN
     }
   }
 }

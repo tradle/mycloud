@@ -1,4 +1,6 @@
-{
+import { IConf } from './types'
+
+export const defaultConf:IConf = {
   "bot": {
     "products": {
       "enabled": [
@@ -17,9 +19,6 @@
     "_t": "tradle.StylesPack",
     "backgroundImage": {
       "url": "https://s3.amazonaws.com/tradle-public-images/blue-underwater-gradient-opacity-15.png"
-    },
-    "logo": {
-      "url": "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png"
     },
     "logoNeedsText": true
   }
