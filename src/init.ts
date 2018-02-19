@@ -94,12 +94,12 @@ export default class Init {
   }
 
   public initInfra = async (opts?:IInitOpts) => {
-    await this.fixAPIGateway()
+    // await this.fixAPIGateway()
     return await this.initIdentity(opts)
   }
 
   public updateInfra = async (opts?:any) => {
-    return await this.fixAPIGateway()
+    // return await this.fixAPIGateway()
   }
 
   private fixAPIGateway = async() => {
