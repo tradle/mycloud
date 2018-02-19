@@ -562,7 +562,7 @@ export default class Seals {
     } catch (err) {
       Errors.ignore(err, { name: 'ConditionalCheckFailedException' })
       this.logger.warn(
-        `failed to update resource ${buildResource.id(object)} in db with seal.
+        `failed to update resource ${buildResource.id({ resource: object })} in db with seal.
         This is most likely because a newer version of the resource exists and the db
         only keeps the latest version.`
       )
