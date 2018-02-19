@@ -1,4 +1,5 @@
 import querystring = require('querystring')
+import _ = require('lodash')
 import QR = require('@tradle/qr')
 import promisify = require('pify')
 import * as Koa from 'koa'
@@ -13,25 +14,52 @@ getPermalink.then(() => bot.ready())
 const lambda = bot.createLambda({ source: EventSource.HTTP })
 const descriptions = {
   ImportData: ({ dataHash }: any) => `scan this QR code with the Tradle app to claim the bundle with claimId: ${dataHash}`,
-  AddProvider: (data: any) => `scan this QR code with the Tradle app or open <a href="${getChatLink(data)}">this link</a> on your mobile device to add this provider to your Conversations screen`
+  AddProvider: (data: any) => `scan this QR code with the Tradle app or open <a href="${getChatLink(data)}">this link</a> on your mobile device to add this provider to your Conversations screen`,
+  ApplyForProduct: (data: any) => `scan this QR code with the Tradle app or open <a href="${getChatLink(data)}">this link</a> on your mobile device to add this provider to your Conversations screen, and apply for ${data.product}`,
 }
 
-const getChatLink = ({ provider, host }) => {
-  const qs = querystring.stringify({
+const getChatLink = ({ provider, host, product }) => {
+  const query = {
     permalink: provider,
-    url: host
-  })
+    url: host,
+    product
+  }
 
+  const qs = querystring.stringify(_.pickBy(query, value => value != null))
   return `https://link.tradle.io/chat?${qs}`
+}
+
+const inferSchemaAndData = ({ provider, host, data }) => {
+  const { claimId, product } = data
+  if (claimId) {
+    return {
+      schema: 'ImportData',
+      data: { provider, host, dataHash: claimId }
+    }
+  }
+
+  if (product) {
+    return {
+      schema: 'ApplyForProduct',
+      data: { provider, host, product }
+    }
+  }
+
+  return {
+    schema: 'AddProvider',
+    data: { provider, host }
+  }
 }
 
 lambda.use(async (ctx:Koa.Context, next) => {
   const { query={} } = ctx
-  const { claimId } = query
+  let { schema, ...data } = query
   const provider = await getPermalink
   const host = bot.apiBaseUrl
-  const schema = claimId ? 'ImportData' : 'AddProvider'
-  const data = { provider, host, dataHash: claimId }
+  if (!schema) {
+    ({ schema, data } = inferSchemaAndData({ provider, host, data }))
+  }
+
   const dataUrl = await createDataURL({ schema, data })
   const description = descriptions[schema](data)
 

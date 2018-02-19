@@ -321,9 +321,9 @@
       }
     },
     "@tradle/qr-schema": {
-      "version": "1.3.0",
-      "from": "@tradle/qr-schema@>=1.3.0 <2.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.3.0.tgz"
+      "version": "1.4.0",
+      "from": "@tradle/qr-schema@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.4.0.tgz"
     },
     "@tradle/schema-graphql": {
       "version": "1.0.0",

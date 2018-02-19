@@ -41,7 +41,10 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
     let value
     if (type === 'RestApi') {
       if (env.IS_OFFLINE) {
-        value = require('./cli/utils').getOfflineHost(env)
+        value = {
+          id: '',
+          url: require('./cli/utils').getOfflineHost(env)
+        }
       } else {
         value = {
           id: env[key],
