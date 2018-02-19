@@ -117,7 +117,9 @@ export class Lambda extends EventEmitter {
     this.exit = this.exit.bind(this)
     this.reset()
     this._gotHandler = false
+
     this.use(async (ctx, next) => {
+      this.logger.debug('received event', { containerAge: this.containerAge })
       if (this.env.DISABLED) {
         this.logger.debug('I have been disabled :(')
       } else {
