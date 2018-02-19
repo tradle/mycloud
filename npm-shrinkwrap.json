@@ -259,7 +259,7 @@
     "@tradle/models-nz": {
       "version": "1.0.0",
       "from": "tradle/models-nz",
-      "resolved": "git://github.com/tradle/models-nz.git#8ac4ad99ca595ebfe5ed09a8cef930310ffcd804"
+      "resolved": "git://github.com/tradle/models-nz.git#87cc433beda2ac4b58f7d1169db009596a2fecca"
     },
     "@tradle/models-onfido": {
       "version": "1.0.0",
