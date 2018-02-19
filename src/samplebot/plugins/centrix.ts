@@ -18,7 +18,7 @@ import {
   Logger
 } from '../types'
 
-import { getNameFromForm, parseScannedDate } from '../utils'
+import { getNameFromForm, parseScannedDate, toISODateString } from '../utils'
 
 const PHOTO_ID = 'tradle.PhotoID'
 const CENTRIX_CHECK = 'tradle.CentrixCheck'
@@ -231,15 +231,15 @@ async function getCentrixData ({ application, bot }) {
   let { firstName, lastName, birthData, dateOfBirth, sex } = personal
   let { dateOfExpiry, documentNumber } = document
   if (dateOfExpiry)
-    dateOfExpiry = parseScannedDate(dateOfExpiry)
+    dateOfExpiry = toISODateString(dateOfExpiry)
 
   // let address
   if (docType === DOCUMENT_TYPES.license  &&  birthData) {
     dateOfBirth = birthData.split(' ')[0]
-    dateOfBirth = parseScannedDate(dateOfBirth)
+    dateOfBirth = toISODateString(dateOfBirth)
   }
   else if (dateOfBirth)
-    dateOfBirth = parseScannedDate(dateOfBirth)
+    dateOfBirth = toISODateString(dateOfBirth)
 
 
   if (!(firstName && lastName)) {

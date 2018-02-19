@@ -188,6 +188,13 @@ export const parseScannedDate = str => {
   }
 }
 
+export const toISODateString = str => {
+  if (ISO_DATE.test(str)) return str
+
+  const date = parseScannedDate(str)
+  if (date) return new Date(date).toISOString().slice(10)
+}
+
 const getDateParts = str => {
   if (ISO_DATE.test(str)) {
     const [year, month, day] = str.split('-').map(str => Number(str))
