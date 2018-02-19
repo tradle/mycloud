@@ -294,6 +294,7 @@ export class Conf {
   }
 
   public initInfra = async (deploymentOpts: IDeploymentOpts, opts: InitOpts = {}) => {
+    debugger
     const { bot } = this
     const orgTemplate = _.clone(deploymentOpts)
     if (bot.isTesting) {
@@ -403,7 +404,7 @@ export class Conf {
       throw new Error('org "name" and "domain" are required')
     }
 
-    if (!logo && /^data:/.test(logo)) {
+    if (logo && /^data:/.test(logo)) {
       return logo
     }
 
