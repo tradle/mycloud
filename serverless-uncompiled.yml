@@ -6,7 +6,7 @@ plugins:
   - serverless-plugin-tracing
   # - serverless-pseudo-parameters
   # - serverless-sam
-  - serverless-apigw-binary
+  # - serverless-apigw-binary
   - serverless-plugin-aws-alerts
   - serverless-plugin-common-excludes
   - serverless-plugin-log-retention
@@ -69,6 +69,8 @@ custom:
   region: ${{opt:region, self:custom.vars.region, self:custom.defaults.region}}
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
+
+
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
   invokeBotLambdasDirectly: ${{self:custom.vars.invokeBotLambdasDirectly, self:custom.defaults.invokeBotLambdasDirectly}}
@@ -98,6 +100,9 @@ custom:
   iotParentTopic: ${{self:service}}-${{self:custom.stage}}
   prefixSNSTopic: ${{self:custom.prefix}}
   prefixSQS: ${{self:custom.prefix}}
+  prefixAlphaNum: ${{self:service}}${{self:custom.stage}}
+  # apigateway
+  apiGateway: ${{self:custom.prefixAlphaNum}}
 
   # versions
   versionSQL: "2016-03-23"
@@ -230,21 +235,18 @@ custom:
         maximum: 20       # Maximum write capacity
         usage: 0.5        # Targeted usage percentage
 
-  apigwBinary:
-    cors:
-      origin: '*'
-      headers:
-        - Content-Type
-        - X-Amz-Date
-        - Authorization
-        - X-Api-Key
-        - X-Amz-Security-Token
-        - X-Amz-User-Agent
-        - X-Tradle-Sig
-        - cache
-      allowCredentials: false
-    types:
-      - '*/*'
+  cors:
+    origin: '*'
+    headers:
+      - Content-Type
+      - X-Amz-Date
+      - Authorization
+      - X-Api-Key
+      - X-Amz-Security-Token
+      - X-Amz-User-Agent
+      - X-Tradle-Sig
+      - cache
+    allowCredentials: false
 
   serverless-offline: ${{self:custom.vars.serverless-offline, self:custom.defaults.serverless-offline}}
   serverless-iot-local: ${{self:custom.vars.serverless-iot-local, self:custom.defaults.serverless-iot-local}}
@@ -323,8 +325,8 @@ provider:
     PUSH_SERVER_URL: ${{self:custom.pushServer}}
     NO_TIME_TRAVEL: false # allow time-travel messages for now
 
-  apiKeys:
-    - ${{self:custom.issue2233WorkaroundKey}}
+  # apiKeys:
+  #   - ${{self:custom.issue2233WorkaroundKey}}
 
   iamRoleStatements:
     - Effect: Allow
@@ -621,6 +623,7 @@ functions:
       - http:
           path: preauth
           method: post
+          cors: ${{self:custom.cors}}
 
   # 1. validates the challenge response
   # 2. marks the session as authenticated
@@ -631,6 +634,7 @@ functions:
       - http:
           path: auth
           method: post
+          cors: ${{self:custom.cors}}
 
   # createevent:
   #   handler: lib/lambda/createevent.handler
@@ -704,9 +708,11 @@ functions:
       - http:
           path: inbox
           method: put
+          cors: ${{self:custom.cors}}
       - http:
           path: inbox
           method: post
+          cors: ${{self:custom.cors}}
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
@@ -910,6 +916,7 @@ functions:
       - http:
           path: info
           method: get
+          cors: ${{self:custom.cors}}
 
   # rename later, temporarily can't rename, get AWS error:
   #   "Modifying service token is not allowed..""
@@ -967,9 +974,11 @@ functions:
       - http:
           path: graphql
           method: get
+          cors: ${{self:custom.cors}}
       - http:
           path: graphql
           method: post
+          cors: ${{self:custom.cors}}
     alarms:
       - functionErrors
       - functionThrottles
@@ -1036,6 +1045,7 @@ functions:
       - http:
           path: onfido
           method: post
+          cors: ${{self:custom.cors}}
 
   cli:
     handler: lib/samplebot/lambda/cli.handler
@@ -1046,6 +1056,7 @@ functions:
       - http:
           path: qr
           method: get
+          cors: ${{self:custom.cors}}
 
   # cli_dev:
   #   handler: lib/samplebot/lambda/cli.handler
@@ -1076,6 +1087,25 @@ resources:
       Default: ${{self:custom.org.logo}}
 
   Resources:
+    ApiGatewayRestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: ${{self:custom.apiGateway}}
+        BinaryMediaTypes:
+          - "*/*"
+
+  #   cors:
+  #     origin: '*'
+  #     headers:
+  #       - Content-Type
+  #       - X-Amz-Date
+  #       - Authorization
+  #       - X-Api-Key
+  #       - X-Amz-Security-Token
+  #       - X-Amz-User-Agent
+  #       - X-Tradle-Sig
+  #       - cache
+
     # servless-framework-generated API Gateway
     # ApiGatewayStage:
     #   Type: AWS::ApiGateway::Stage
@@ -1621,7 +1651,7 @@ resources:
 
     Initialize:
       Type: "Custom::InitializeDeployment"
-      DependsOn: ApiGatewayApiKey1
+      # DependsOn: ApiGatewayApiKey1
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]

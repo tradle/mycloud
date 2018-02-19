@@ -172,6 +172,8 @@ const interpolateTemplate = (opts:{ arg?:string, sync?:boolean }={}) => {
   })
 }
 
+const isAlphaNumeric = str => /^[a-zA-Z][a-zA-Z0-9]+$/.test(str)
+
 const compileTemplate = async (path) => {
   const file = await fs.readFile(path, { encoding: 'utf8' })
   const yml = YAML.safeLoad(file)
@@ -182,6 +184,14 @@ const compileTemplate = async (path) => {
 
   const interpolatedStr = await interpolateTemplate()
   const interpolated = YAML.safeLoad(interpolatedStr)
+  if (!isAlphaNumeric(interpolated.service)) {
+    throw new Error(`"service" name "${interpolated.service}" is not alphanumeric`)
+  }
+
+  if (!isAlphaNumeric(interpolated.provider.stage)) {
+    throw new Error(`stage "${interpolated.provider.stage}" is not alphanumeric`)
+  }
+
   // validateProviderConf(interpolated.custom.providerConf)
   addBucketTables({ yml, prefix: interpolated.custom.prefix })
   stripDevFunctions(yml)

@@ -32,7 +32,6 @@
     "nock": "^9.0.19",
     "node-env-file": "^0.1.8",
     "serverless": "github:mvayngrib/serverless",
-    "serverless-apigw-binary": "github:mvayngrib/serverless-apigw-binary#tradle",
     "serverless-dynamodb-autoscaling": "^0.6.2",
     "serverless-dynamodb-local": "github:mvayngrib/serverless-dynamodb-local",
     "serverless-iot-local": "^1.1.1",
