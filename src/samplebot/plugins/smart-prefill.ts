@@ -13,6 +13,7 @@ import { Bot, IPBApp, ResourceStub, Name, IPluginOpts } from '../types'
 const { parseStub } = validateResource.utils
 const PHOTO_ID = 'tradle.PhotoID'
 const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
+const PG_PERSONAL_DETAILS = 'tradle.pg.PersonalDetails'
 
 // const canPrefillFromPhotoID = ({ application, formRequest }) => {
 //   if (!doesApplicationHavePhotoID(application)) return false
@@ -72,6 +73,9 @@ export const transformers = {
 
       _.extend(props, _.pick(source, ['dateOfBirth', 'country']))
       return props
+    },
+    [PG_PERSONAL_DETAILS]: (source: IPersonalInfo) => {
+      return _.pick(source, ['firstName', 'lastName', 'dateOfBirth'])
     }
   }
 }
