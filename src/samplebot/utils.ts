@@ -97,7 +97,7 @@ export const sendConfirmedSeals = async (bot, seals) => {
   const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
   if (!confirmed.length) return
 
-  await bot.send(seals.map(seal => ({
+  await bot.send(confirmed.map(seal => ({
     to: seal.counterparty,
     object: {
       [TYPE]: 'tradle.Seal',
