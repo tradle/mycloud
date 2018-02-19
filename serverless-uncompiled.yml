@@ -282,6 +282,7 @@ custom:
 
   logRetentionInDays: 7
 
+  issue2233WorkaroundKey: issue2233WorkaroundKey-${{self:service}}${{self:provider.stage}}
 #   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
   #   start:
@@ -323,7 +324,7 @@ provider:
     NO_TIME_TRAVEL: false # allow time-travel messages for now
 
   apiKeys:
-    - issue2233WorkaroundKey
+    - ${{self:custom.issue2233WorkaroundKey}}
 
   iamRoleStatements:
     - Effect: Allow
