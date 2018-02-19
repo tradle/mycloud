@@ -196,7 +196,6 @@ export default class StackUtils {
       return
     }
 
-    this.logger.debug(`updating "${functionName}" with new environment variables`)
     for (let key in updated) {
       let val = updated[key]
       if (val == null) {
@@ -206,6 +205,7 @@ export default class StackUtils {
       }
     }
 
+    this.logger.debug(`updating "${functionName}" with new environment variables`, Variables)
     await this.aws.lambda.updateFunctionConfiguration({
       FunctionName: functionName,
       Environment: { Variables }
@@ -215,12 +215,16 @@ export default class StackUtils {
   public forceReinitializeContainers = async (functions?:string[]) => {
     await this.updateEnvironments(({ FunctionName }) => {
       if (!functions || functions.includes(FunctionName)) {
+        this.logger.debug(`reinitializing container for lambda: ${FunctionName}`)
         return getDateUpdatedEnvironmentVariables()
+      } else {
+        this.logger.debug(`not reinitializing container for lambda: ${FunctionName}`)
       }
     })
   }
 
   public forceReinitializeContainer = async (functionName:string) => {
+    this.logger.debug(`reinitializing container for lambda: ${functionName}`)
     await this.updateEnvironment({
       functionName,
       update: getDateUpdatedEnvironmentVariables()
