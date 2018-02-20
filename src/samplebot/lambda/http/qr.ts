@@ -25,8 +25,9 @@ const getChatLink = ({ provider, host, product }) => {
     product
   }
 
+  const path = product ? 'applyForProduct' : 'chat'
   const qs = querystring.stringify(_.pickBy(query, value => value != null))
-  return `https://link.tradle.io/chat?${qs}`
+  return `https://link.tradle.io/${path}?${qs}`
 }
 
 const inferSchemaAndData = ({ provider, host, data }) => {
