@@ -9,7 +9,7 @@ import { Plugins } from './plugins'
 import baseModels = require('../models')
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors = require('../errors')
-import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from '../utils'
+import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise, post } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
 import {
   Bot,
@@ -295,7 +295,7 @@ export class Conf {
 
   public initInfra = async (deploymentOpts: IDeploymentOpts, opts: InitOpts = {}) => {
     const { bot } = this
-    const orgTemplate = _.clone(deploymentOpts)
+    const { pingbackUrl, ...orgTemplate } = deploymentOpts
     if (bot.isTesting) {
       orgTemplate.name += '-local'
     }
@@ -339,6 +339,20 @@ export class Conf {
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
     await bot.forceReinitializeContainers()
+    if (!pingbackUrl) return
+
+    try {
+      await Promise.race([
+        post(pingbackUrl, {
+          ...orgTemplate,
+          myCloudUrl: this.bot.apiBaseUrl
+        }),
+        Promise.delay(10000)
+      ])
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.error(`failed to ping back to ${pingbackUrl}`)
+    }
   }
 
   public updateInfra = async (conf, opts: InitOpts = {}) => {

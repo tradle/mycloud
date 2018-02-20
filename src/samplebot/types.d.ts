@@ -211,6 +211,7 @@ export interface IDeploymentOpts {
   name: string
   domain: string
   logo?: string
+  pingbackUrl?: string
   // scale?: number
 }
 
