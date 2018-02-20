@@ -30,23 +30,30 @@ interface ICommanderComponents extends IBotComponents {
   logger: Logger
 }
 
-export const EMPLOYEE_COMMANDS = [
-  'help',
-  'listproducts',
-  'forgetme',
-  'setproductenabled',
-  // 'setautoverify',
-  'setautoapprove',
-  'addfriend',
-  'tours',
-  'message',
-  'getconf',
-  'approve',
-  'deny',
-  'getlaunchlink',
-  'model'
+// export const EMPLOYEE_COMMANDS = [
+//   'help',
+//   'listproducts',
+//   'forgetme',
+//   'setproductenabled',
+//   // 'setautoverify',
+//   'setautoapprove',
+//   'addfriend',
+//   'tours',
+//   'message',
+//   'getconf',
+//   'approve',
+//   'deny',
+//   'getlaunchlink',
+//   'model'
+// ]
+
+export const COMMANDS = Object.keys(commands).map(key => commands[key].name || key)
+export const SUDO_ONLY_COMMANDS = [
+  // 'encryptbucket',
+  // 'enablebinary'
 ]
 
+export const EMPLOYEE_COMMANDS = COMMANDS.filter(name => !SUDO_ONLY_COMMANDS.includes(name))
 export const CUSTOMER_COMMANDS = [
   'help',
   'listproducts',
@@ -54,12 +61,7 @@ export const CUSTOMER_COMMANDS = [
   'tours'
 ]
 
-export const SUDO_ONLY_COMMANDS = [
-  // 'encryptbucket',
-  // 'enablebinary'
-]
-
-export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
+// export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
 
 export class Commander {
   public bot: Bot
@@ -114,15 +116,20 @@ export class Commander {
   }
 
   public getAvailableCommands = (ctx) => {
-    if (ctx.sudo) return SUDO_COMMANDS
+    if (ctx.sudo) return COMMANDS
     if (ctx.employee) return EMPLOYEE_COMMANDS
     return CUSTOMER_COMMANDS
   }
 
   public getCommandByName = (commandName:string):ICommand => {
+    let lower = commandName.toLowerCase()
     let command
     try {
-      command = commands[commandName.toLowerCase()]
+      command = commands[lower]
+      if (!command) {
+        const name = Object.keys(commands).find(key => commands[key].name === lower)
+        command = name && commands[name]
+      }
     } catch (err) {}
 
     if (!command) {
