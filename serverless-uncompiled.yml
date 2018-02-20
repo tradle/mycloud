@@ -530,6 +530,12 @@ provider:
 
         # - Fn::Join: 'arn:aws:apigateway:${AWS::Region}::/restapis/*'
 
+    - Effect: Allow
+      Action:
+        - ses:SendEmail
+        - ses:SendRawEmail
+        - ses:GetIdentityVerificationAttributes
+
     # - Effect: Allow
     #   Action:
     #     - sqs:SendMessage

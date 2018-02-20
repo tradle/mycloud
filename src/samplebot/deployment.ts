@@ -6,6 +6,8 @@ import {
   IDeploymentOpts
 } from './types'
 
+import { Errors } from '../'
+
 export class Deployment {
   private bot: Bot
   private env: Env
@@ -53,7 +55,9 @@ export class Deployment {
   public customizeTemplate = ({ template, parameters }) => {
     let { name, domain, logo } = parameters
 
-    if (!(name && domain)) throw new Error('expected "name" and "domain"')
+    if (!(name && domain)) {
+      throw new Errors.InvalidInput('expected "name" and "domain"')
+    }
 
     template.Description = `MyCloud, by Tradle`
     domain = normalizeDomain(domain)
@@ -102,7 +106,7 @@ const isValidDomain = domain => {
 const normalizeDomain = (domain:string) => {
   domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
   if (!isValidDomain(domain)) {
-    throw new Error('invalid domain')
+    throw new Errors.InvalidInput('invalid domain')
   }
 
   return domain

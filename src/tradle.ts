@@ -25,6 +25,7 @@ import {
   LambdaUtils,
   S3Utils,
   Init,
+  Mailer,
   IServiceMap
 } from './types'
 
@@ -68,6 +69,7 @@ export default class Tradle {
   public tasks:TaskManager
   public modelStore: ModelStore
   public prefix: string
+  public mailer: Mailer
   public get secrets(): Bucket {
     return this.buckets.Secrets
   }
@@ -182,6 +184,7 @@ export default class Tradle {
     })
 
     // this.bot = this.require('bot', './bot')
+    this.define('mailer', './mailer', this.construct)
   }
 
   get apiBaseUrl () {

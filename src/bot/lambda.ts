@@ -16,6 +16,7 @@ export const createLambda = ({
 }: IBotLambdaOpts):Lambda => {
   const lambda = new Lambda(lambdaOpts)
   lambda.bot = bot
+  bot.logger = lambda.logger
 
   // if (!bot.isReady()) {
   //   const now = Date.now()

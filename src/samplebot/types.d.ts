@@ -218,3 +218,7 @@ export interface IPBotLambdaOpts extends IBotLambdaOpts {
   event: string
   [x:string]: any
 }
+
+export interface IDeploymentPluginConf {
+  senderEmail: string
+}

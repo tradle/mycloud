@@ -113,6 +113,8 @@
     "addfriends": "npm run copy-static-assets && ./lib/scripts/addfriends.js",
     "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
     "start": "./src/scripts/start.sh",
+    "debug": "node --debug --inspect ./node_modules/.bin/sls offline start",
+    "debug-brk": "node --debug-brk --inspect ./node_modules/.bin/sls offline start",
     "warmup": "serverless warmup run",
     "postinstall": "./src/scripts/postinstall.sh",
     "remove": "npm run build:yml && serverless remove",

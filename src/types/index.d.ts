@@ -31,6 +31,7 @@ import { Backlinks } from '../backlinks'
 import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
+import { Mailer } from '../mailer'
 import {
   ResourceStub,
   ParsedResourceStub
@@ -75,7 +76,8 @@ export {
   Backlinks,
   StackUtils,
   LambdaUtils,
-  S3Utils
+  S3Utils,
+  Mailer
 }
 
 export interface IPositionPair {
@@ -404,3 +406,24 @@ export interface ISaveObjectOpts {
 }
 
 export type CloudName = 'aws'
+
+
+export interface ISendEmailResult {
+  id: string
+}
+
+export interface IMailer {
+  send: (opts: ISendEmailOpts) => Promise<ISendEmailResult>
+  canSendFrom: (address: string) => Promise<boolean>
+}
+
+export interface ISendEmailOpts {
+  from: string
+  to?: string|string[]
+  cc?: string|string[]
+  bcc?: string|string[]
+  subject: string
+  body: string
+  format?: 'text' | 'html'
+  replyTo?: string|string[]
+}

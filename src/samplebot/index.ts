@@ -445,3 +445,4 @@ export default function createProductsBot ({
 }
 
 export { createProductsBot }
+export { Errors }

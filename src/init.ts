@@ -179,12 +179,12 @@ export default class Init {
     const link = priv && getLink(priv.identity)
     this.logger.info(`terminating provider ${link}`)
     const { PublicConf } = this.buckets
-    await [
+    await Promise.all([
       link ? this.objects.del(link) : Promise.resolve(),
       this.secrets.del(IDENTITY_KEYS_KEY),
       // public
       PublicConf.del(PUBLIC_CONF_BUCKET.identity)
-    ]
+    ])
 
     this.logger.info(`terminated provider ${link}`)
   }

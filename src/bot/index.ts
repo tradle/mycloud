@@ -127,6 +127,7 @@ export class Bot extends EventEmitter implements IReady {
   public get tasks () { return this.tradle.tasks }
   public get isTesting () { return this.tradle.env.TESTING }
   public get models () { return this.modelStore.models }
+  public get mailer () { return this.tradle.mailer }
   public logger: Logger
   public kv: KeyValueTable
   public conf: KeyValueTable

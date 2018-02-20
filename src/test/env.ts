@@ -46,6 +46,24 @@ export const install = (target=process.env):void => {
       }
     })
   })
+
+  AWS.mock('SES', 'getIdentityVerificationAttributes', ({ Identities }, callback) => {
+    callback(null, {
+      VerificationAttributes: Identities.reduce((map, identity) => {
+        map[identity] = {
+          VerificationStatus: 'Success'
+        }
+
+        return map
+      }, {})
+    })
+  })
+
+  AWS.mock('SES', 'sendEmail', (params, callback) => {
+    callback(null, {
+      MessageId: `test msg id: ${crypto.randomBytes(12).toString('hex')}`
+    })
+  })
 }
 
 export const get = () => ({ ...props })
