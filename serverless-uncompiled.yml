@@ -535,6 +535,7 @@ provider:
         - ses:SendEmail
         - ses:SendRawEmail
         - ses:GetIdentityVerificationAttributes
+      Resource: "*"
 
     # - Effect: Allow
     #   Action:
