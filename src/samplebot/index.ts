@@ -445,8 +445,4 @@ export default function createProductsBot ({
   return components
 }
 
-export {
-  createProductsBot,
-  Errors,
-  constants
-}
+export { createProductsBot }

@@ -14,7 +14,8 @@ import {
   Conf
 } from '../types'
 
-import { Errors, constants } from '../'
+import Errors = require('../../errors')
+import constants = require('../../constants')
 import { createDeployment } from '../deployment'
 
 const { WEB_APP_URL } = constants

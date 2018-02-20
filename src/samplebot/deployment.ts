@@ -6,7 +6,7 @@ import {
   IDeploymentOpts
 } from './types'
 
-import { Errors } from '../'
+import Errors = require('../errors')
 
 export class Deployment {
   private bot: Bot
