@@ -188,10 +188,13 @@ export const parseScannedDate = str => {
   }
 }
 
-export const toISODateString = str => {
-  if (ISO_DATE.test(str)) return str
+export const toISODateString = (date:number|string) => {
+  if (typeof date !== 'number') {
+    if (ISO_DATE.test(date)) return date
 
-  const date = parseScannedDate(str)
+    date = parseScannedDate(date)
+  }
+
   if (date) return new Date(date).toISOString().slice(0, 10)
 }
 

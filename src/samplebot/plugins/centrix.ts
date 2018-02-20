@@ -247,7 +247,6 @@ async function getCentrixData ({ application, bot }) {
   else if (dateOfBirth)
     dateOfBirth = toISODateString(dateOfBirth)
 
-
   if (!(firstName && lastName)) {
     const name = getNameFromForm({ application });
     if (name) ({ firstName, lastName } = name)
