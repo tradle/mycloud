@@ -9,6 +9,7 @@ import {
 
 import Errors = require('../errors')
 import { getFaviconUrl } from './image-utils'
+import * as utils from '../utils'
 
 export class Deployment {
   private bot: Bot
@@ -51,17 +52,17 @@ export class Deployment {
   //   }
   // }
 
-  public getLaunchUrl = async (parameters: IDeploymentOpts) => {
-    this.logger.debug('generating cloudformation template with parameters', parameters)
+  public getLaunchUrl = async (opts: IDeploymentOpts) => {
+    this.logger.debug('generating cloudformation template with opts', opts)
     const templateURL = await this.bot.stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplate({ template, parameters })
+      return this.customizeTemplate({ template, opts })
     })
 
     return this.bot.stackUtils.getLaunchStackUrl({ templateURL })
   }
 
-  public customizeTemplate = async ({ template, parameters }) => {
-    let { name, domain, logo } = parameters
+  public customizeTemplate = async ({ template, opts }) => {
+    let { name, domain, logo } = opts
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
@@ -71,21 +72,20 @@ export class Deployment {
     domain = normalizeDomain(domain)
 
     const namespace = domain.split('.').reverse().join('.')
-    const { Resources, Parameters } = template
-    Parameters.OrgName.Default = name
-    Parameters.OrgDomain.Default = domain
-    if (logo) {
-      Parameters.OrgLogo.Default = logo
-    } else {
-      // Parameters.OrgLogo.Default = ''
-      try {
-        Parameters.OrgLogo.Default = await getFaviconUrl(domain)
-      } catch (err) {
-        Errors.rethrow(err, 'developer')
-        this.logger.info('failed to get favicon from url', {
-          url: domain
-        })
-      }
+    const { Resources, Mappings } = template
+    const { org, deployment } = Mappings
+    const logoPromise = this.getLogo(logo)
+
+    deployment.init = {
+      uuid: utils.uuid(),
+      referrerIdentity: await this.bot.getMyIdentityPermalink(),
+      referrerUrl: this.bot.apiBaseUrl
+    }
+
+    org.init = {
+      name,
+      domain,
+      logo: await logoPromise
     }
 
     const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id
@@ -104,6 +104,20 @@ export class Deployment {
 
     // write template to s3, return link
     return template
+  }
+
+  private getLogo = async (opts: IDeploymentOpts):Promise<string|void> => {
+    const { logo, domain } = opts
+    if (logo) return logo
+
+    try {
+      return await getFaviconUrl(domain)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.info('failed to get favicon from url', {
+        url: domain
+      })
+    }
   }
 }
 

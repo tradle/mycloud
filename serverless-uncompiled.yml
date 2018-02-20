@@ -1070,21 +1070,14 @@ functions:
   #   handler: lib/samplebot/lambda/bash.handler
 
 resources:
-  Parameters:
-    OrgName:
-      Type: String
-      Description: the name of your organization as it will appear in chat
-      Default: ${{self:custom.org.name}}
+  Mappings:
+    org:
+      init: ${{self:custom.org}}
 
-    OrgDomain:
-      Type: String
-      Description: a domain your organization provably owns
-      Default: ${{self:custom.org.domain}}
-
-    OrgLogo:
-      Type: String
-      Description: (optional) your organization's publically accessible logo image url
-      Default: ${{self:custom.org.logo}}
+    deployment:
+      init:
+        referrer:
+        uuid:
 
   Resources:
     ApiGatewayRestApi:
@@ -1656,10 +1649,10 @@ resources:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
         name:
-          Ref: OrgName
+          Fn::FindInMap: ["org", "init", "name"]
         domain:
-          Ref: OrgDomain
+          Fn::FindInMap: ["org", "init", "domain"]
         logo:
-          Ref: OrgLogo
+          Fn::FindInMap: ["org", "init", "logo"]
 
           # <<: *providerConf
