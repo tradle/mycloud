@@ -2,20 +2,27 @@ import {
   Env,
   Bot,
   Bucket,
+  Logger,
   IPluginOpts,
   IDeploymentOpts
 } from './types'
 
 import Errors = require('../errors')
+import { getFaviconUrl } from './image-utils'
 
 export class Deployment {
   private bot: Bot
   private env: Env
   private pubConfBucket: Bucket
   private deploymentBucket: Bucket
-  constructor({ bot }: { bot: Bot }) {
+  private logger: Logger
+  constructor({ bot, logger }: {
+    bot: Bot
+    logger: Logger
+  }) {
     this.bot = bot
     this.env = bot.env
+    this.logger = logger
     this.pubConfBucket = bot.buckets.PublicConf
     this.deploymentBucket = bot.buckets.ServerlessDeployment
   }
@@ -45,6 +52,7 @@ export class Deployment {
   // }
 
   public getLaunchUrl = async (parameters: IDeploymentOpts) => {
+    this.logger.debug('generating cloudformation template with parameters', parameters)
     const templateURL = await this.bot.stackUtils.createPublicTemplate(template => {
       return this.customizeTemplate({ template, parameters })
     })
@@ -52,7 +60,7 @@ export class Deployment {
     return this.bot.stackUtils.getLaunchStackUrl({ templateURL })
   }
 
-  public customizeTemplate = ({ template, parameters }) => {
+  public customizeTemplate = async ({ template, parameters }) => {
     let { name, domain, logo } = parameters
 
     if (!(name && domain)) {
@@ -68,6 +76,16 @@ export class Deployment {
     Parameters.OrgDomain.Default = domain
     if (logo) {
       Parameters.OrgLogo.Default = logo
+    } else {
+      // Parameters.OrgLogo.Default = ''
+      try {
+        Parameters.OrgLogo.Default = await getFaviconUrl(domain)
+      } catch (err) {
+        Errors.rethrow(err, 'developer')
+        this.logger.info('failed to get favicon from url', {
+          url: domain
+        })
+      }
     }
 
     const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id

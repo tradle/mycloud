@@ -3,7 +3,6 @@ import _ = require('lodash')
 import { parseStub } from '../../utils'
 import { TYPE } from '@tradle/constants'
 import { prettify } from '../../string-utils'
-import { getFaviconURL, getLogo } from '../image-utils'
 import { getApplyForProductLink } from '../app-links'
 import {
   Env,
@@ -98,7 +97,7 @@ export const createPlugin = (opts:IPluginOpts) => {
     try {
       await bot.mailer.send({
         from: conf.senderEmail,
-        to: deploymentOpts.adminEmail,
+        to: deploymentOpts.hrEmail,
         subject: LAUNCH_MESSAGE,
         body: templates.hr({
           employeeOnboardingUrl

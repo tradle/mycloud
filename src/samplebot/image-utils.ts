@@ -1,54 +1,78 @@
-const parseURL = require('url').parse
-const formatURL = require('url').format
-const co = require('co').wrap
-// const Jimp = promisify(require('jimp'))
-const promisify = require('pify')
-const DataURI = require('datauri')
-const request = require('superagent')
-const { fetchFavicons } = require('@meltwater/fetch-favicon')
-const { domainToUrl } = require('../utils')
-const getFaviconURL = co(function* (siteURL) {
-  const icons = yield fetchFavicons(siteURL)
-  const icon = chooseIcon(icons)
-  return getAbsoluteURL(siteURL, icon)
-})
+import { parse as parseURL, format as formatURL } from 'url'
+// import Jimp = promisify(require('jimp'))
+import promisify = require('pify')
+import DataURI = require('datauri')
+import fetch = require('node-fetch')
+// import request = require('superagent')
+import { fetchFavicons } from '@meltwater/fetch-favicon'
+import { domainToUrl } from '../utils'
 
-const getFavicon = co(function* (siteURL) {
-  const faviconURL = yield getFaviconURL(siteURL)
-  return {
-    url: faviconURL,
-    image: yield downloadImage(faviconURL)
+export type Favicon = {
+  url: string
+  image: {
+    mimeType: string
+    data: Buffer
   }
-})
+}
 
-const downloadImage = co(function* (url) {
-  const { ok, body, text, header } = yield request(url)
-    .set('Accept', 'application/octet-stream')
+export const getFaviconUrl = async (siteUrl: string):Promise<string> => {
+  const icons = await fetchFavicons(domainToUrl(siteUrl))
+  const icon = chooseIcon(icons)
+  return getAbsoluteURL(siteUrl, icon)
+}
 
-  if (!ok) {
+export const getFavicon = async (siteUrl: string):Promise<Favicon> => {
+  const faviconUrl = await getFaviconUrl(siteUrl)
+  return {
+    url: faviconUrl,
+    image: await downloadImage(faviconUrl)
+  }
+}
+
+export const downloadImage = async (url: string) => {
+  const res = await fetch(url)
+  if (res.status > 300) {
+    const text = await res.text()
     throw new Error(text)
   }
 
+  const arrayBuffer = await res.arrayBuffer()
+  const data = new Buffer(arrayBuffer)
+  const mimeType = res.headers.get('content-type').split(';')[0]
   return {
-    type: header['content-type'],
-    data: body
+    data,
+    mimeType
   }
-})
+}
 
-// const getDataURI = co(function* (url) {
+// export const downloadImage = async (url) => {
+//   const { ok, body, text, header } = await request(url)
+//     .set('Accept', 'application/octet-stream')
+
+//   if (!ok) {
+//     throw new Error(text)
+//   }
+
+//   return {
+//     type: header['content-type'],
+//     data: body
+//   }
+// }
+
+// const getDataURI = async (url) => {
 //   if (/^\".*\"$/.test(url)) {
 //     url = url.slice(1, url.length - 1)
 //   }
 
 //   if (/^data:/.test(url)) return url
 
-//   const image = yield Jimp.read(url)
+//   const image = await Jimp.read(url)
 //   const width = image.bitmap.width
 //   const height = image.bitmap.height
 //   const biggest = Math.max(width, height)
 //   const scale = (100 / biggest).toFixed(2)
 //   image.scale(Number(scale))
-//   const buf = yield promisify(image.getBuffer.bind(image))(Jimp.MIME_PNG)
+//   const buf = await promisify(image.getBuffer.bind(image))(Jimp.MIME_PNG)
 //   const dataURI = new DataURI()
 //   dataURI.format('.png', buf)
 //   return dataURI.content
@@ -70,26 +94,26 @@ function getAbsoluteURL (base, url) {
   return url
 }
 
-const getDataURI = co(function* (image, ext) {
+export const getDataURI = async (image, ext) => {
   // const ext = url.split('.').pop()
   const uri = new DataURI()
   uri.format(`.${ext}`, image)
   return uri.content
-})
+}
 
-const getLogo = co(function* ({ logo, domain }) {
+export const getLogo = async ({ logo, domain }) => {
   if (!logo) {
-    logo = yield getFaviconURL(domainToUrl(domain))
+    logo = await getFaviconUrl(domain)
   }
 
   if (!/^data:image/.test(logo)) {
-    const ext = logo.slice(logo.lastIndexOf('.'))
-    const { data, type } = yield downloadImage(logo)
-    logo = yield getDataURI(data, ext)
+    const { data, mimeType } = await downloadImage(logo)
+    const ext = mimeType ? mimeType.split('/')[1] : logo.slice(logo.lastIndexOf('.'))
+    logo = await getDataURI(data, ext)
   }
 
   return logo
-})
+}
 
 // copied and adapted from @meltwater/fetch-favicon/source/markActiveFavicon.js
 const predicates = [
@@ -117,12 +141,4 @@ const chooseIcon = (favicons, minSize?) => {
     let result = favicons.find(favicon => predicates[i](favicon, minSize))
     if (result) return result.href
   }
-}
-
-export {
-  getDataURI,
-  downloadImage,
-  getFavicon,
-  getFaviconURL,
-  getLogo
 }

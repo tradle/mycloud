@@ -17,6 +17,7 @@ import {
 
 import Errors = require('./errors')
 import * as utils from './utils'
+import { randomString } from './crypto'
 import {
   LAUNCH_STACK_BASE_URL
 } from './constants'
@@ -298,7 +299,7 @@ export default class StackUtils {
   public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise):Promise<string> => {
     const template = await this.getStackTemplate()
     const customized = await transform(template)
-    const key = `cloudformation/template.json`
+    const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
     const pubConf = this.buckets.PublicConf
     await pubConf.putJSON(key, template, { publicRead: true })
     return pubConf.getUrlForKey(key)
