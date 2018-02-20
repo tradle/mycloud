@@ -38,6 +38,7 @@ const WATCH_TYPE = {
 const RESEAL_ENABLED = false
 const DEFAULT_WRITE_GRACE_PERIOD = 6 * 3600 * 1000
 const TIMESTAMP_MULTIPLIER = 1e3 // milli -> micro
+const acceptAll = val => true
 
 type SealRecordOpts = {
   key?: IECMiniPubKey
@@ -84,6 +85,7 @@ type Seal = {
   txId?: string
   // nanoseconds
   timeSealed?: number
+  canceledWrite?: string
 }
 
 type SealMap = {
@@ -242,12 +244,8 @@ export default class Seals {
 
     const {
       blockchain,
-      provider,
-      getUnsealed,
-      recordWriteSuccess,
-      recordWriteError
+      provider
     } = this
-
 
     let { limit=Infinity, key } = opts
     if (!key) {
@@ -257,6 +255,8 @@ export default class Seals {
     const pending = await this.getUnsealed({ limit })
     this.logger.info(`found ${pending.length} pending seals`)
     let aborted
+    // TODO: update balance after every tx
+    const balance = this.blockchain.balance ? await this.blockchain.balance() : undefined
     const results = await seriesMap(pending, async (sealInfo: Seal) => {
       if (aborted) return
 
@@ -264,9 +264,9 @@ export default class Seals {
       const addresses = [address]
       let result
       try {
-        result = await this.blockchain.seal({ addresses, link, key, counterparty })
+        result = await this.blockchain.seal({ addresses, link, key, counterparty, balance })
       } catch (error) {
-        if (/insufficient/i.test(error.message)) {
+        if (Errors.matches(error, Errors.LowFunds)) {
           this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
           aborted = true
         }
@@ -408,19 +408,38 @@ export default class Seals {
     await this._requeueWrites(unconfirmed)
   }
 
+  public cancelPending = async (opts?:any):Promise<Seal[]> => {
+    let { limit=Infinity, filter=acceptAll } = opts
+    let seals = await this.getUnsealed({ limit })
+    if (!seals.length) return
+
+    seals = seals.filter(filter)
+    if (!seals.length) return
+
+    this.logger.debug('canceling writes', seals.map(seal => _.pick(seal, ['blockchain', 'network', 'address', 'link'])))
+
+    const now = timestamp()
+    const puts = seals.map(seal => ({
+      ...seal,
+      canceledWrite: String(now),
+      unsealed: null
+    }))
+
+    await this.table.batchPut(puts)
+    return seals
+  }
+
   private _requeueWrites = async (seals:Seal[]):Promise<Seal[]> => {
     if (!seals.length) return
 
     this.logger.debug('failed writes', seals.map(seal => _.pick(seal, ['timeSealed', 'txId'])))
 
     const now = timestamp()
-    const puts = seals.map(seal => {
-      return {
-        ..._.omit(seal, ['unconfirmed', 'txId']),
-        unsealed: String(now),
-        txId: null
-      }
-    })
+    const puts = seals.map(seal => ({
+      ..._.omit(seal, ['unconfirmed']),
+      unsealed: String(now),
+      txId: null
+    }))
 
     await this.table.batchPut(puts)
     return seals
@@ -432,12 +451,10 @@ export default class Seals {
     this.logger.debug('failed reads', seals.map(seal => _.pick(seal, ['address', 'link'])))
 
     const now = timestamp()
-    const puts = seals.map(seal => {
-      return {
-        ..._.omit(seal, 'unconfirmed'),
-        unwatched: String(now)
-      }
-    })
+    const puts = seals.map(seal => ({
+      ..._.omit(seal, 'unconfirmed'),
+      unwatched: String(now)
+    }))
 
     await this.table.batchPut(puts)
     return seals

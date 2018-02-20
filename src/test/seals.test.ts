@@ -15,6 +15,7 @@ import { recreateTable } from './utils'
 import Tradle from '../tradle'
 import { Env } from '../env'
 import Errors = require('../errors')
+import { loudAsync } from '../utils'
 const aliceKeys = require('./fixtures/alice/keys')
 const bobKeys = require('./fixtures/bob/keys')
 const aliceIdentity = require('./fixtures/alice/identity')
@@ -41,7 +42,7 @@ const rejectEtherscanCalls = () => {
 
 rejectEtherscanCalls()
 
-test('handle failed reads/writes', async (t) => {
+test('handle failed reads/writes', loudAsync(async (t) => {
   const { flavor, networkName } = blockchainOpts
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
@@ -65,8 +66,8 @@ test('handle failed reads/writes', async (t) => {
   t.equal(failedReads.length, 1)
 
   const stubSeal = sinon.stub(seals.blockchain, 'seal').resolves({ txId: 'sometxid' })
+  const stubBalance = sinon.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
   await seals.sealPending()
-
   let failedWrites = await seals.getFailedWrites({ gracePeriod: 1 }) // 1ms
   t.equal(failedWrites.length, 1)
 
@@ -97,9 +98,9 @@ test('handle failed reads/writes', async (t) => {
   t.equal(stubSeal.callCount, 2)
 
   t.end()
-})
+}))
 
-test('queue seal', async (t) => {
+test('queue seal', loudAsync(async (t) => {
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
 
@@ -125,6 +126,8 @@ test('queue seal', async (t) => {
       sealed = true
       return { txId }
     })
+
+  const stubBalance = sinon.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
 
   const stubGetTxs = sinon.stub(blockchain, 'getTxsForAddresses')
     .callsFake(function (addresses, blockHeight) {
@@ -211,9 +214,9 @@ test('queue seal', async (t) => {
   stubObjectsGet.restore()
   stubDBUpdate.restore()
   t.end()
-})
+}))
 
-test('corda seals', async (t) => {
+test('corda seals', loudAsync(async (t) => {
   const table = await recreateTable(SealsTableLogicalId)
   const env = new Env(process.env)
   const blockchainOpts = env.BLOCKCHAIN = {
@@ -312,4 +315,4 @@ test('corda seals', async (t) => {
 
   t.same(_.pick(saved, Object.keys(expected)), expected)
   t.end()
-})
+}))

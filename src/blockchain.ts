@@ -8,11 +8,15 @@ import {
   Tradle
 } from './types'
 
+import Errors = require('./errors')
+
 // interface IBlockchainIdentifier {
 //   flavor: string,
 //   networkName: string,
 //   minBalance: string
 // }
+
+type BalanceValue = string | number
 
 interface IKey {
   fingerprint: string
@@ -23,6 +27,43 @@ interface ISealable {
   link?: string
   prevLink?: string
   basePubKey: any
+}
+
+interface ISealOpts {
+  key: IKey
+  link: string
+  addresses: string[]
+  balance?: BalanceValue
+  [x: string]: any
+}
+
+const compareNums = (a, b) => a < b ? -1 : a === b ? 0 : 1
+const compareBalance = (a, b) => {
+  if (typeof a === 'number' && typeof b === 'number') {
+    return compareNums(a, b)
+  }
+
+  if (typeof a === 'number') {
+    a = a.toString(16)
+  }
+
+  if (typeof b === 'number') {
+    b = b.toString(16)
+  }
+
+  if (typeof a !== 'string' || typeof b !== 'string') {
+    throw new Error('expected numbers or hex strings')
+  }
+
+  const padLength = a.length - b.length
+  if (padLength > 0) {
+    b = '0'.repeat(padLength) + b
+  } else if (padLength > 0) {
+    a = '0'.repeat(padLength) + a
+  }
+
+  // can compare like nums
+  return compareNums(a, b)
 }
 
 export default class Blockchain {
@@ -145,18 +186,30 @@ export default class Blockchain {
   //   return getTxsForAddresses(addresses)
   // })
 
-  public seal = async ({ key, link, addresses, counterparty }) => {
+  public seal = async ({ key, link, addresses, balance }: ISealOpts) => {
     const writer = this.getWriter(key)
     this.start()
     this.logger.debug(`sealing ${link}`)
-    return await writer.send({
-      to: addresses.map(address => {
-        return {
-          address,
-          amount: this.getTxAmount()
-        }
+    if (typeof balance === 'undefined') {
+      balance = await this.balance()
+    }
+
+    const amount = this.getTxAmount()
+    if (compareBalance(balance, amount) === -1) {
+      throw new Errors.LowFunds(`have ${balance}, need at least ${amount}`)
+    }
+
+    try {
+      return await writer.send({
+        to: addresses.map(address => ({ address, amount }))
       })
-    })
+    } catch (err) {
+      if (Errors.matches(err, { message: /insufficient/i })) {
+        throw new Errors.LowFunds(err.message)
+      }
+
+      throw err
+    }
   }
 
   public sealPubKey = (opts: ISealable) => {
@@ -213,13 +266,15 @@ export default class Blockchain {
 
   public balance = async (opts: {
     address?: string
-  }={}) => {
+  }={}):Promise<BalanceValue> => {
     let { address } = opts
     if (!address) {
       address = await this.getMyChainAddress()
     }
 
-    return this.addressesAPI.balance(address)
+    const balance = await this.addressesAPI.balance(address)
+    this.logger.debug(`balance: ${balance}`)
+    return balance
   }
 }
 
