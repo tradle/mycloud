@@ -214,6 +214,7 @@ function getType(stub) {
 function getLink(stub) {
   return stub.id.split('_')[2]
 }
+
 async function getCentrixData ({ application, bot }) {
   if (!application) return
 
@@ -230,6 +231,11 @@ async function getCentrixData ({ application, bot }) {
   const docType = getDocumentType(form)
   let { firstName, lastName, birthData, dateOfBirth, sex } = personal
   let { dateOfExpiry, documentNumber } = document
+  if (docType === DOCUMENT_TYPES.passport) {
+    // trim trailing angle brackets
+    documentNumber = documentNumber.replace(/[<]+$/g, '')
+  }
+
   if (dateOfExpiry)
     dateOfExpiry = toISODateString(dateOfExpiry)
 
