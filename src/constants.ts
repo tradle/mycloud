@@ -79,7 +79,8 @@ const constants = {
     ]
   },
   LAUNCH_STACK_BASE_URL: 'https://console.aws.amazon.com/cloudformation/home',
-  WEB_APP_URL: 'https://app.tradle.io/chat'
+  WEB_APP_URL: 'https://app.tradle.io',
+  MOBILE_APP_URL: 'https://link.tradle.io'
 }
 
 export = constants

@@ -4,6 +4,7 @@ import { parseStub } from '../../utils'
 import { TYPE } from '@tradle/constants'
 import { prettify } from '../../string-utils'
 import { getFaviconURL, getLogo } from '../image-utils'
+import { getApplyForProductLink } from '../app-links'
 import {
   Env,
   Bot,
@@ -60,11 +61,12 @@ export const createPlugin = (opts:IPluginOpts) => {
     }
 
     const botPermalink = await getBotPermalink
-    const employeeOnboardingUrl = `${WEB_APP_URL}?${querystring.stringify({
-      permalink: botPermalink,
-      url: bot.apiBaseUrl,
-      product: 'tradle.EmployeeOnboarding'
-    })}`
+    const employeeOnboardingUrl = getApplyForProductLink({
+      provider: botPermalink,
+      host: bot.apiBaseUrl,
+      product: 'tradle.EmployeeOnboarding',
+      platform: 'web'
+    })
 
     const emailed = {
       admin: false,

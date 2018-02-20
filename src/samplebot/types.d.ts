@@ -223,3 +223,17 @@ export interface IPBotLambdaOpts extends IBotLambdaOpts {
 export interface IDeploymentPluginConf {
   senderEmail: string
 }
+
+export interface IDeepLink {
+  provider: string
+  host: string
+  platform: 'mobile' | 'web'
+}
+
+export interface IApplyForProductDeepLink extends IDeepLink {
+  product: string
+}
+
+export interface IImportDataDeepLink extends IDeepLink {
+  dataHash: string
+}

@@ -1073,6 +1073,8 @@ export const isPrivateHost = (host:string):boolean => {
   return IP.isPrivate(host.split(':')[0])
 }
 
+export const pickNonNull = obj => _.pickBy(obj, val => val != null)
+
 // export const omitVirtualRecursive = resource => {
 //   if (!resource[SIG]) return _.clone(resource)
 
