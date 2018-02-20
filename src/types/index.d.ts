@@ -390,6 +390,7 @@ export interface ILaunchStackUrlOpts {
   region: string
   stackName: string
   templateURL: string
+  quickLink?: boolean
 }
 
 export interface IUpdateStackUrlOpts {

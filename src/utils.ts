@@ -497,13 +497,15 @@ export async function waterfall (fns, ...args) {
   return result
 }
 
-export function launchStackUrl ({
+export function getLaunchStackUrl ({
   region=process.env.AWS_REGION,
   stackName,
-  templateURL
+  templateURL,
+  quickLink=true
 }: ILaunchStackUrlOpts) {
   const qs = querystring.stringify({ stackName, templateURL })
-  return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/create/review?${qs}`
+  const path = quickLink ? 'stacks/create/review' : 'stacks/new'
+  return `${LAUNCH_STACK_BASE_URL}?region=${region}#/${path}?${qs}`
 }
 
 export function domainToUrl (domain) {

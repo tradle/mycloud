@@ -43,8 +43,9 @@ import {
 import Logger from '../logger'
 import baseModels = require('../models')
 import Errors = require('../errors')
-import { MAX_DB_ITEM_SIZE } from '../constants'
+import constants = require('../constants')
 
+const { MAX_DB_ITEM_SIZE } = constants
 const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
 const BASE_MODELS_IDS = Object.keys(baseModels)
@@ -444,5 +445,8 @@ export default function createProductsBot ({
   return components
 }
 
-export { createProductsBot }
-export { Errors }
+export {
+  createProductsBot,
+  Errors,
+  constants
+}

@@ -96,7 +96,7 @@ export default class StackUtils {
     const { templateURL, ...rest } = opts
     if (!templateURL) throw new Errors.InvalidInput('expected "templateURL"')
 
-    return utils.launchStackUrl({
+    return utils.getLaunchStackUrl({
       region: this.env.AWS_REGION,
       stackName: this.stack.name,
       templateURL,

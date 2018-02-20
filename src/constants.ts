@@ -78,7 +78,8 @@ const constants = {
       'tradle.CustomerWaiting'
     ]
   },
-  LAUNCH_STACK_BASE_URL: 'https://console.aws.amazon.com/cloudformation/home'
+  LAUNCH_STACK_BASE_URL: 'https://console.aws.amazon.com/cloudformation/home',
+  WEB_APP_URL: 'https://app.tradle.io/chat'
 }
 
 export = constants

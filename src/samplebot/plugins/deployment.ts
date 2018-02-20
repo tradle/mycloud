@@ -14,9 +14,10 @@ import {
   Conf
 } from '../types'
 
-import { Errors } from '../'
+import { Errors, constants } from '../'
 import { createDeployment } from '../deployment'
 
+const { WEB_APP_URL } = constants
 const templateFileName = 'compiled-cloudformation-template.json'
 const CONFIG_FORM = 'tradle.cloud.Configuration'
 const DEPLOYMENT_PRODUCT = 'tradle.cloud.Deployment'
@@ -58,7 +59,7 @@ export const createPlugin = (opts:IPluginOpts) => {
     }
 
     const botPermalink = await getBotPermalink
-    const employeeOnboardingUrl = `https://app.tradle.io/chat?${querystring.stringify({
+    const employeeOnboardingUrl = `${WEB_APP_URL}?${querystring.stringify({
       permalink: botPermalink,
       url: bot.apiBaseUrl,
       product: 'tradle.EmployeeOnboarding'
