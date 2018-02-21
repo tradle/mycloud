@@ -93,6 +93,8 @@ export interface IPBReq {
   // alias for "payload"
   object: ITradleObject
   type: string
+  application?: IPBApp
+  applicant?: ResourceStub
 }
 
 export type VerifiedItem = {
@@ -107,6 +109,7 @@ export interface IPBApp {
   verificationsImported?: VerifiedItem[]
   verificationsIssued?: VerifiedItem[]
   relationshipManagers?: ResourceStub[]
+  checks?:ResourceStub[]
   status: string
   dateStarted: number
   dateModified: number
