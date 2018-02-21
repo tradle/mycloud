@@ -1,13 +1,14 @@
 require('./env').install()
 
 import test = require('tape')
+import sinon = require('sinon')
 import { models } from '@tradle/models'
 import buildResource = require('@tradle/build-resource')
 import { loudAsync, co, wait } from '../utils'
 import { createTestTradle } from '../'
 
 const fakeResource = require('@tradle/build-resource/fake')
-const { friends } = createTestTradle()
+const { provider, friends } = createTestTradle()
 const alice = require('./fixtures/alice/object')
 const bob = require('./fixtures/bob/object')
 
@@ -24,6 +25,8 @@ test('friends', loudAsync(async (t) => {
       signed: true
     })
   }
+
+  sinon.stub(provider, 'saveObject').resolves()
 
   await friends.removeByIdentityPermalink(alice.link)
   await friends.add(friendOpts)

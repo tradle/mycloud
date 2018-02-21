@@ -162,7 +162,9 @@ export default class Logger {
       params = {}
     }
 
-    if (typeof params !== 'object') {
+    if (params instanceof Error) {
+      params = { stack: params.stack || params.message }
+    } else if (typeof params !== 'object') {
       params = { value: params }
     }
 

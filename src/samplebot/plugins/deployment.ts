@@ -23,21 +23,20 @@ const templateFileName = 'compiled-cloudformation-template.json'
 const CONFIG_FORM = 'tradle.cloud.Configuration'
 const DEPLOYMENT_PRODUCT = 'tradle.cloud.Deployment'
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
-const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
-
-const templateOpts = { interpolate: /{{([\s\S]+?)}}/g }
-const templates = {
-  admin: _.template(`${LAUNCH_MESSAGE}: {{launchUrl}}`, templateOpts),
-  hr: _.template(`Link to give employees for onboarding: {{employeeOnboardingUrl}}`, templateOpts),
-}
 
 export interface IDeploymentPluginOpts extends IPluginOpts {
+  conf: IDeploymentPluginConf
   linker: AppLinks
 }
 
 export const createPlugin = (opts:IDeploymentPluginOpts) => {
-  const deployment = createDeployment(opts)
   const { bot, productsAPI, linker, conf, logger } = opts
+  const deployment = createDeployment({
+    bot,
+    logger,
+    senderEmail: conf.senderEmail
+  })
+
   const getBotPermalink = bot.getMyIdentityPermalink()
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return
@@ -66,12 +65,12 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
       return
     }
 
-    const employeeOnboardingUrl = linker.getApplyForProductLink({
-      provider: botPermalink,
-      host: bot.apiBaseUrl,
-      product: 'tradle.EmployeeOnboarding',
-      platform: 'web'
-    })
+    // const employeeOnboardingUrl = linker.getApplyForProductLink({
+    //   provider: botPermalink,
+    //   host: bot.apiBaseUrl,
+    //   product: 'tradle.EmployeeOnboarding',
+    //   platform: 'web'
+    // })
 
     const emailed = {
       admin: false,
@@ -81,15 +80,15 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
     await productsAPI.sendSimpleMessage({
       req,
       to: user,
-      message: `🚀 Launch MyCloud using this link: ${launchUrl}\n\nInvite employees using this link: ${employeeOnboardingUrl}`
+      message: `🚀 Launch MyCloud using this link: ${launchUrl}`
+      // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
 
     try {
       await bot.mailer.send({
         from: conf.senderEmail,
         to: form.adminEmail,
-        subject: LAUNCH_MESSAGE,
-        body: templates.admin({ launchUrl })
+        ...deployment.genLaunchEmail({ launchUrl })
       })
 
       emailed.admin = true
@@ -100,26 +99,26 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
       })
     }
 
-    try {
-      await bot.mailer.send({
-        from: conf.senderEmail,
-        to: form.hrEmail,
-        subject: LAUNCH_MESSAGE,
-        body: templates.hr({
-          employeeOnboardingUrl
-        })
-      })
+    // try {
+    //   await bot.mailer.send({
+    //     from: conf.senderEmail,
+    //     to: form.hrEmail,
+    //     subject: LAUNCH_MESSAGE,
+    //     body: templates.hr({
+    //       employeeOnboardingUrl
+    //     })
+    //   })
 
-      emailed.hr = true
-    } catch (err) {
-      logger.error(`failed to send email to HR`, {
-        deploymentOpts,
-        error: err.stack
-      })
-    }
+    //   emailed.hr = true
+    // } catch (err) {
+    //   logger.error(`failed to send email to HR`, {
+    //     deploymentOpts,
+    //     error: err.stack
+    //   })
+    // }
 
     const alertedParties = []
-    if (emailed.hr) alertedParties.push('HR')
+    // if (emailed.hr) alertedParties.push('HR')
     if (emailed.admin) alertedParties.push('AWS Admin')
 
     if (alertedParties.length) {

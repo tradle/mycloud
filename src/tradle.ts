@@ -186,7 +186,11 @@ export default class Tradle {
     })
 
     // this.bot = this.require('bot', './bot')
-    this.define('mailer', './mailer', this.construct)
+    this.define('mailer', './mailer', Mailer => new Mailer({
+      aws: this.aws,
+      logger: this.logger.sub('mailer')
+    }))
+
     this.define('appLinks', './app-links', Linker => new Linker())
   }
 

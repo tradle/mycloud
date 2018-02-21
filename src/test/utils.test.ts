@@ -8,7 +8,7 @@ import { SIG } from '@tradle/constants'
 import ModelsPack = require('@tradle/models-pack')
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
-// import { getFaviconUrl } from '../samplebot/image-utils'
+import { getFaviconUrl } from '../samplebot/image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
 import {
   loudAsync,
@@ -857,7 +857,7 @@ test('ModelStore', loudAsync(async (t) => {
 }))
 
 // test.only('favicon', loudAsync(async (t) => {
-//   const favicon = await getFaviconUrl('bankofamerica.com')
+//   const favicon = await getFaviconUrl('tradle.io')
 //   console.log(favicon)
 //   t.end()
 // }))

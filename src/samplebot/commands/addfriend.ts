@@ -34,15 +34,15 @@ export const command:ICommand = {
     }
 
     const { hostname } = parseURL(url)
-    if (!domain) {
-      throw new Error(`expected "--domain", for example: ${USAGE}`)
-    }
+    // if (!domain) {
+    //   throw new Error(`expected "--domain", for example: ${USAGE}`)
+    // }
 
     return { url, domain }
   },
   exec: async function ({ commander, req, args }) {
     const { url, domain } = args
-    const friend = await commander.bot.friends.load({ domain, url })
+    const friend = await commander.bot.friends.load({ url, domain })
     const friendStub = buildResource.stub({
       models,
       resource: friend

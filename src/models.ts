@@ -31,4 +31,15 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
+// const deferredAction = {
+//   id: 'tradle.DeferredAction',
+//   properties: {
+
+//     arg: {
+//       type: 'object',
+//       range: 'json'
+//     }
+//   }
+// }
+
 export = base

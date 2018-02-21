@@ -5,17 +5,35 @@ import _ = require('lodash')
 import test = require('tape')
 import sinon = require('sinon')
 import { TYPE, SIG, OWNER } from '@tradle/constants'
+import fake = require('@tradle/build-resource/fake')
+import buildResource = require('@tradle/build-resource')
 import { Deployment } from '../../samplebot/deployment'
 import * as utils from '../../utils'
 import Errors = require('../../errors')
 import { createBot } from '../../bot'
 import { createTestTradle } from '../../'
-import { TYPES } from '../../samplebot/constants'
+import { TYPES, PRIVATE_CONF_BUCKET } from '../../samplebot/constants'
 import models = require('../../models')
+import { IMyDeploymentConf, IBotConf, ILaunchReportPayload } from '../../samplebot/types'
 
 const { loudAsync } = utils
 
 test('deployment by referral', loudAsync(async (t) => {
+  const senderEmail = 'sender@example.com'
+  const conf = {
+    ...fake({
+      models,
+      model: models['tradle.cloud.Configuration'],
+      signed: true
+    }),
+    name: 'myorg',
+    domain: 'example.com',
+    adminEmail: 'admin@example.com',
+    hrEmail: 'hr@example.com',
+  }
+
+  conf._author = 'somedude'
+
   const parent = createBot()
   const childTradle = createTestTradle()
   const childUrl = 'childurl'
@@ -23,7 +41,8 @@ test('deployment by referral', loudAsync(async (t) => {
   const child = createBot({ tradle: childTradle })
   const parentDeployment = new Deployment({
     bot: parent,
-    logger: parent.logger.sub('deployment:test:parent')
+    logger: parent.logger.sub('deployment:test:parent'),
+    senderEmail
   })
 
   const childDeployment = new Deployment({
@@ -31,14 +50,13 @@ test('deployment by referral', loudAsync(async (t) => {
     logger: child.logger.sub('deployment:test:child')
   })
 
+  const childIdentity = await child.getMyIdentity()
   const kv = {}
-  const applicantLink = 'applicantlink'
-  const configurationLink = 'conflink'
   sinon.stub(parent, 'getMyIdentityPermalink').resolves('abc')
   const sendStub = sinon.stub(parent, 'send').resolves({})
 
   sinon.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {
-    t.equal(value, configurationLink)
+    t.equal(value, conf._link)
     kv[key] = value
   })
 
@@ -48,19 +66,46 @@ test('deployment by referral', loudAsync(async (t) => {
     throw new Errors.NotFound(key)
   })
 
-  let deploymentConf
+  let deploymentConf: IMyDeploymentConf
+  let expectedLaunchReport
   sinon.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, val) => {
-    deploymentConf = val.Mappings.deployment.init
+    deploymentConf = {
+      stackId: child.stackUtils.getThisStackId(),
+      ...val.Mappings.deployment.init,
+      ...val.Mappings.org.init,
+      name: 'myorg',
+      domain: 'mydomain',
+      identity: childIdentity,
+      apiUrl: childUrl
+    }
+
+    expectedLaunchReport = {
+      ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'logo']),
+      org: _.pick(deploymentConf, ['name', 'domain'])
+    }
   })
 
-  const conf = {
-    _author: applicantLink,
-    adminEmail: 'admin@example.com',
-    hrEmail: 'hr@example.com',
-  }
+  const getTemplate = sinon.stub(parent.stackUtils, 'getStackTemplate').resolves({
+    "Mappings": {
+      "org": {
+        "init": {
+          "name": "Tradle",
+          "domain": "tradle.io",
+          "logo": "https://tradle.io/images/logo256x.png"
+        }
+      },
+      "deployment": {
+        "init": {
+          "referrerUrl": "",
+          "referrerIdentity": "",
+          "deploymentUUID": ""
+        }
+      }
+    }
+  })
 
   const getStub = sinon.stub(parent.objects, 'get').callsFake(async link => {
-    if (link === configurationLink) {
+    if (link === conf._link) {
       return conf
     }
 
@@ -75,22 +120,26 @@ test('deployment by referral', loudAsync(async (t) => {
   // })
 
   const postStub = sinon.stub(utils, 'post').callsFake(async (url, data) => {
-    t.equal(url, deploymentConf.referrerUrl)
-    t.same(data, {
-      uuid: deploymentConf.deploymentUUID,
-      // in real life this will be the newly deployed bot's url
-      url: childUrl
-    })
+    t.equal(url, parentDeployment.getReportLaunchUrl())
+    t.equal(url, parentDeployment.getReportLaunchUrl(deploymentConf.referrerUrl))
+    t.same(data, expectedLaunchReport)
+    await parentDeployment.receiveLaunchReport(data)
+  })
 
-    await parentDeployment.receiveCallHome({
-      ...data,
-      senderEmail: 'sender@example.com'
-    })
+  const childLoadFriendStub = sinon.stub(child.friends, 'load').callsFake(async ({ url }) => {
+    t.equal(url, parent.apiBaseUrl)
+  })
+
+  const parentAddFriendStub = sinon.stub(parent.friends, 'add').callsFake(async ({ url }) => {
+    t.equal(url, childUrl)
+    return {
+      identity: buildResource.stub({ resource: childIdentity })
+    }
   })
 
   const sentEmails = []
   const emailStub = sinon.stub(parent.mailer, 'send').callsFake(async (opts) => {
-    t.equal(opts.from, 'sender@example.com')
+    t.equal(opts.from, senderEmail)
     sentEmails.push(...opts.to)
   })
 
@@ -98,13 +147,49 @@ test('deployment by referral', loudAsync(async (t) => {
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
-    configurationLink
+    configurationLink: conf._link
   })
 
-  await childDeployment.callHome(deploymentConf)
+  const spySaveChildDeployment = sinon.spy(parent.db, 'put')
+  await childDeployment.reportLaunch({
+    org: _.pick(deploymentConf, ['name', 'domain']),
+    identity: childIdentity,
+    referrerUrl: deploymentConf.referrerUrl,
+    deploymentUUID: deploymentConf.deploymentUUID
+  })
+
+  // const { getObject } = parent.aws.s3
+  // sinon.stub(parent.aws.s3, 'getObject').callsFake(params => {
+  //   const val = getObject.call(parent.aws.s3, params)
+  //   if (params.Key === PRIVATE_CONF_BUCKET.bot) {
+  //     const promise = val.promise()
+  //     sinon.stub(val, 'promise').callsFake(async () => {
+  //       return promise.then((conf: any) => {
+  //         conf.products.plugins.deployment = { senderEmail }
+  //         return conf
+  //       })
+  //     })
+  //   }
+
+  //   debugger
+  //   return val
+  // })
+
+  await require('../../samplebot/lambda/http/deployment-pingback').handler({
+    event: {
+      url: child.apiBaseUrl,
+      uuid: deploymentConf.deploymentUUID
+    }
+  }, {
+    done: t.error
+  }, t.error)
 
   t.equal(postStub.callCount, 1)
   t.same(sentEmails.sort(), [conf.adminEmail, conf.hrEmail].sort())
-  t.equal(sendStub.getCall(0).args[0].to, applicantLink)
+  t.equal(sendStub.getCall(0).args[0].to, conf._author)
+  t.equal(parentAddFriendStub.callCount, 1)
+  t.equal(childLoadFriendStub.callCount, 1)
+  t.equal(spySaveChildDeployment.callCount, 1)
+  t.equal(spySaveChildDeployment.getCall(0).args[0].deploymentUUID, deploymentConf.deploymentUUID)
   t.end()
 }))

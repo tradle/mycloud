@@ -411,6 +411,17 @@ export default function createProductsBot ({
       }))
     }
 
+    if (plugins['hand-sig']) {
+      const result = createHandSigPlugin({
+        ...commonPluginOpts,
+        linker,
+        conf: plugins['hand-sig'],
+        logger: logger.sub('plugin-hand-sig')
+      })
+    }
+  }
+
+  if (handleMessages || event.startsWith('deployment:')) {
     if (plugins['deployment']) {
       const result = createDeploymentPlugin({
         ...commonPluginOpts,
@@ -421,15 +432,6 @@ export default function createProductsBot ({
 
       components.deployment = result.deployment
       productsAPI.plugins.use(result.plugin)
-    }
-
-    if (plugins['hand-sig']) {
-      const result = createHandSigPlugin({
-        ...commonPluginOpts,
-        linker,
-        conf: plugins['hand-sig'],
-        logger: logger.sub('plugin-hand-sig')
-      })
     }
   }
 

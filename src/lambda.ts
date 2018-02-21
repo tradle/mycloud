@@ -122,6 +122,7 @@ export class Lambda extends EventEmitter {
       this.logger.debug('received event', { containerAge: this.containerAge })
       if (this.env.DISABLED) {
         this.logger.debug('I have been disabled :(')
+        ctx.body = {}
       } else {
         await next()
       }
@@ -315,15 +316,10 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     if (err) {
-      if (Errors.isDeveloperError(err)) {
-        this.logger.warn('likely developer error', Errors.export(err))
-      }
-
+      this.logger.error('lambda execution hit an error', err)
       if (this.source !== EventSource.HTTP) {
         ctx.error = new Error(err.message)
       }
-
-      this.logger.debug('lambda execution hit an error', { stack: err.stack })
     } else if (result) {
       ctx.body = result
     }

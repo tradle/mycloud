@@ -12,6 +12,7 @@ import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors = require('../errors')
 import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise, post } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
+import { createLinker } from './app-links'
 import {
   Bot,
   ModelStore,
@@ -22,7 +23,8 @@ import {
   IConf,
   IBotConf,
   IDeploymentOpts,
-  IMyDeploymentConf
+  IMyDeploymentConf,
+  AppLinks
 } from './types'
 
 import {
@@ -114,6 +116,7 @@ export class Conf {
   public org: CacheableBucketItem
   public info: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
+  public appLinks: AppLinks
   constructor({ bot, logger }: {
     bot: Bot
     logger?: Logger
@@ -124,6 +127,8 @@ export class Conf {
     const { buckets } = bot
     this.privateConfBucket = buckets.PrivateConf
     // this.publicConfBucket = buckets.PublicConf
+
+    this.appLinks = createLinker()
 
     for (let name in parts) {
       let part = parts[name]
@@ -195,15 +200,21 @@ export class Conf {
   public validatePluginConf = async (plugins: any) => {
     await Promise.all(Object.keys(plugins).map(async (name) => {
       const plugin = Plugins.get(name)
-      if (!plugin) throw new Error(`plugin not found: ${name}`)
+      if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
 
       const pluginConf = plugins[name]
-      if (plugin.validateConf) {
+      if (!plugin.validateConf) return
+
+      try {
         await plugin.validateConf({
           bot: this.bot,
           conf: this,
           pluginConf
         })
+      } catch (err) {
+        Errors.rethrow(err, 'developer')
+        this.logger.debug('plugin "${name}" is misconfigured', err)
+        throw new Errors.InvalidInput(`plugin "${name}" is misconfigured: ${err.message}`)
       }
     }))
   }
@@ -299,11 +310,11 @@ export class Conf {
   }
 
   public initInfra = async (deploymentConf: IMyDeploymentConf, opts: InitOpts = {}) => {
-    const { bot, logger } = this
+    const { bot, logger, appLinks } = this
 
     this.logger.info(`initializing provider`, deploymentConf)
 
-    const orgTemplate = _.pick(deploymentConf, ['name', 'domain', 'logo'])
+    const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
     if (bot.isTesting) {
       orgTemplate.name += '-local'
     }
@@ -333,11 +344,14 @@ export class Conf {
       Errors.ignore(err, Errors.NotFound)
     }
 
-    const logo = await this.getLogo(conf)
+    const deployment = new Deployment({ bot, logger, appLinks })
     const { style } = conf
-    if (logo && !style.logo) {
-      style.logo = {
-        url: logo
+    if (!style.logo) {
+      const logo = await deployment.getLogo(deploymentConf)
+      if (logo) {
+        style.logo = {
+          url: logo
+        }
       }
     }
 
@@ -349,10 +363,15 @@ export class Conf {
     if (!(referrerUrl && deploymentUUID)) return
 
     try {
-      const deployment = new Deployment({ bot, logger })
-      await deployment.callHome({ referrerUrl, deploymentUUID })
+      await deployment.reportLaunch({
+        identity: omitVirtual(identity),
+        org: omitVirtual(org),
+        referrerUrl,
+        deploymentUUID
+      })
+
     } catch (err) {
-      this.logger.error('failed to call home', { stack: err.stack })
+      this.logger.error('failed to call home', err)
     }
   }
 
@@ -410,26 +429,6 @@ export class Conf {
       bot ? this.botConf.put(bot) : RESOLVED_PROMISE,
     ])
   }
-
-  public getLogo = async (conf) => {
-    const logo = _.get(conf, 'style.logo.url') || _.get(conf, 'org.logo')
-    let { name, domain } = conf.org
-    if (!(name && domain)) {
-      throw new Error('org "name" and "domain" are required')
-    }
-
-    if (logo && /^data:/.test(logo)) {
-      return logo
-    }
-
-    const ImageUtils = require('./image-utils')
-    try {
-      return await ImageUtils.getLogo({ logo, domain })
-    } catch (err) {
-      this.logger.debug(`unable to load logo for domain: ${domain}`)
-      return media.LOGO_UNKNOWN
-    }
-  }
 }
 
 export const createConf = (opts): Conf => new Conf(opts)
@@ -449,17 +448,3 @@ const buildOrg = ({ name, domain }) => ({
   name,
   domain
 })
-
-const validateOrgUpdate = ({ current, update }) => {
-  if (update.domain !== current.domain) {
-    throw new Error('cannot change org "domain" at this time')
-  }
-
-  if (update.name !== current.name) {
-    throw new Error('cannot change org "domain" at this time')
-  }
-
-  if (update.logo && update.logo !== current.logo) {
-    throw new Error('cannot change org "logo" at this time')
-  }
-}

@@ -6,7 +6,14 @@ if [ -z "$TABLE" ]; then
   exit 1
 fi
 
-ENDPOINT="--endpoint-url http://localhost:4569"
+PREFIX=$(cat ./src/serverless-interpolated.json | jq .custom.prefix --raw-output -c)
+TABLE="$PREFIX$TABLE"
+
+if [ "$IS_LOCAL" ]; then
+  ENDPOINT="--endpoint-url http://localhost:4569"
+else
+  ENDPOINT=""
+fi
 
 while getopts remote: opt; do
   case $opt in

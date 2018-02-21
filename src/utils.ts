@@ -466,7 +466,7 @@ export function promiseCall (fn, ...args) {
   })
 }
 
-export async function series (fns, ...args) {
+export const series = async (fns, ...args) => {
   const results = []
   for (const fn of fns) {
     let result = fn.apply(this, args)
@@ -480,7 +480,7 @@ export async function series (fns, ...args) {
   return results
 }
 
-export async function seriesWithExit (fns, ...args) {
+export const seriesWithExit = async (fns, ...args) => {
   for (let fn of fns) {
     let keepGoing = fn.apply(this, args)
     if (isPromise(keepGoing)) {
@@ -492,7 +492,7 @@ export async function seriesWithExit (fns, ...args) {
   }
 }
 
-export async function waterfall (fns, ...args) {
+export const waterfall = async (fns, ...args) => {
   let result
   for (let fn of fns) {
     result = fn.apply(this, args)
@@ -586,7 +586,7 @@ export const settleSeries = <T>(data, fn:(item:any)=>T|Promise<T>):ISettledPromi
   })
 }
 
-export async function runWithBackoffWhile (fn, {
+export const runWithBackoffWhile = async (fn, {
   initialDelay=1000,
   maxAttempts=10,
   maxTime=60000,
@@ -602,7 +602,7 @@ export async function runWithBackoffWhile (fn, {
   factor?: number
   logger?: Logger
   shouldTryAgain: (err) => boolean
-}) {
+}) => {
   if (typeof maxDelay !== 'number') maxDelay = maxTime / 2
 
   const start = Date.now()
@@ -640,7 +640,7 @@ type RetryOpts = {
   env: Env
 }
 
-export async function tryUntilTimeRunsOut (fn:()=>Promise, opts:RetryOpts) {
+export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
   const {
     attemptTimeout,
     onError=noop,
@@ -676,7 +676,7 @@ export async function tryUntilTimeRunsOut (fn:()=>Promise, opts:RetryOpts) {
   }
 }
 
-export async function seriesMap (arr, fn) {
+export const seriesMap = async (arr, fn) => {
   const results:any[] = []
   for (const item of arr) {
     const result = await fn(item)
@@ -686,13 +686,13 @@ export async function seriesMap (arr, fn) {
   return results
 }
 
-export async function get (url:string, opts:any={}) {
+export const get = async (url:string, opts:any={}) => {
   debug(`GET ${url}`)
   const res = await fetch(url, opts)
   return processResponse(res)
 }
 
-export async function post (url:string, data:Buffer|string|any, opts:any={}) {
+export const post = async (url:string, data:Buffer|string|any, opts:any={}) => {
   debug(`POST to ${url}`)
   let body
   if (typeof data === 'string' || Buffer.isBuffer(data)) {
@@ -714,7 +714,7 @@ export async function post (url:string, data:Buffer|string|any, opts:any={}) {
   return processResponse(res)
 }
 
-export async function download ({ url }: { url:string }) {
+export const download = async ({ url }: { url:string }) => {
   debug(`downloading from ${url}`)
   const res = await fetch(url)
   if (res.status > 300) {
@@ -726,7 +726,7 @@ export async function download ({ url }: { url:string }) {
   return buf
 }
 
-export async function processResponse (res) {
+export const processResponse = async (res) => {
   if (!res.ok || res.status > 300) {
     let message = res.statusText
     if (!message) {

@@ -3,15 +3,18 @@
  * AWS Mailer
  */
 
+import _ = require('lodash')
 import { SES } from 'aws-sdk'
 import {
   AwsApis,
+  Logger,
   IMailer,
   ISendEmailOpts,
   ISendEmailResult
 } from './types'
 
 type MailerOpts = {
+  logger: Logger
   aws: AwsApis
 }
 
@@ -41,11 +44,14 @@ export const interpetSendOpts = (opts: ISendEmailOpts): SES.SendEmailRequest => 
 
 export default class Mailer implements IMailer {
   private ses: SES
-  constructor({ aws }: MailerOpts) {
+  private logger: Logger
+  constructor({ aws, logger }: MailerOpts) {
     this.ses = aws.ses
+    this.logger = logger
   }
 
   public send = async (opts: ISendEmailOpts):Promise<ISendEmailResult> => {
+    this.logger.debug('sending email', _.omit(opts, 'body'))
     const res = await this.ses.sendEmail(interpetSendOpts(opts)).promise()
     return {
       id: res.MessageId

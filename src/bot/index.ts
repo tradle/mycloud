@@ -33,7 +33,8 @@ import {
   BotStrategyInstallFn,
   ILambdaOpts,
   ITradleObject,
-  IDeepLink
+  IDeepLink,
+  IBotOpts
 } from '../types'
 
 import { createLambda } from './lambda'
@@ -60,7 +61,7 @@ type LambdaMap = {
 const { TYPE, SIG } = constants
 const { parseStub } = validateResource.utils
 
-export const createBot = (opts:any={}):Bot => {
+export const createBot = (opts:Partial<IBotOpts>={}):Bot => {
   return new Bot({
     ...opts,
     tradle: opts.tradle || require('../').tradle
@@ -96,6 +97,10 @@ const lambdaCreators:LambdaImplMap = {
   get warmup() { return require('./lambda/warmup') },
   get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
 }
+
+// const middlewareCreators:MiddlewareMap = {
+//   get bodyParser() { return require('./middleware/body-parser') }
+// }
 
 /**
  * bot engine factory
@@ -158,11 +163,7 @@ export class Bot extends EventEmitter implements IReady {
   private tradle: Tradle
   private get provider() { return this.tradle.provider }
   private outboundMessageLocker: Locker
-  constructor (opts: {
-    tradle: Tradle,
-    users?: any,
-    ready?:boolean
-  }) {
+  constructor (opts: IBotOpts) {
     super()
 
     let {

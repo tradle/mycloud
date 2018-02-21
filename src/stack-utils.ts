@@ -77,6 +77,10 @@ export default class StackUtils {
     this.apiId = this.serviceMap.RestApi.ApiGateway.id
   }
 
+  public getThisStackId = () => {
+    return this.stack.arn
+  }
+
   public listStacks = async ():Promise<AWS.CloudFormation.StackSummaries> => {
     let stacks = []
     const opts:AWS.CloudFormation.ListStacksInput = {}

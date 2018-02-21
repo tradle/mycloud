@@ -1,23 +1,55 @@
+import _ = require('lodash')
 // @ts-ignore
 import Promise = require('bluebird')
+import { TYPE } from '@tradle/constants'
+import buildResource = require('@tradle/build-resource')
 import {
   Env,
   Bot,
   Bucket,
   Logger,
   ITradleObject,
+  IIdentity,
   IPluginOpts,
   IDeploymentOpts,
   IMyDeploymentConf,
   IDeploymentConfForm,
-  ICallHomePayload,
-  KeyValueTable
+  ILaunchReportPayload,
+  KeyValueTable,
+  AppLinks,
+  ResourceStub,
+  IOrganization,
+  IDeploymentPluginConf
 } from './types'
 
+import { media } from './media'
 import Errors = require('../errors')
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
-// import { getChatLink } from './app-links'
+import { createLinker } from './app-links'
+
+const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
+const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
+
+interface ISaveChildDeploymentOpts {
+  apiUrl: string
+  deploymentUUID: string
+  identity: ResourceStub
+  configuration: ITradleObject
+}
+
+interface INotifyCreatorsOpts {
+  configuration: ITradleObject
+  apiUrl: string
+  identity: ResourceStub
+}
+
+interface DeploymentCtorOpts {
+  bot: Bot
+  logger: Logger
+  appLinks?: AppLinks
+  senderEmail?: string
+}
 
 export class Deployment {
   // exposed for testing
@@ -27,16 +59,17 @@ export class Deployment {
   private pubConfBucket: Bucket
   private deploymentBucket: Bucket
   private logger: Logger
-  constructor({ bot, logger }: {
-    bot: Bot
-    logger: Logger
-  }) {
+  private appLinks: AppLinks
+  private senderEmail: string
+  constructor({ bot, logger, appLinks=createLinker(), senderEmail }: DeploymentCtorOpts) {
     this.bot = bot
     this.env = bot.env
     this.logger = logger
     this.pubConfBucket = bot.buckets.PublicConf
     this.deploymentBucket = bot.buckets.ServerlessDeployment
+    this.appLinks = appLinks
     this.kv = this.bot.kv.sub('deployment:')
+    this.senderEmail = senderEmail
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -81,87 +114,186 @@ export class Deployment {
     await this.kv.put(deploymentUUID, link)
   }
 
-  public callHome = async ({ referrerUrl, deploymentUUID }: {
+  public reportLaunch = async ({ org, identity, referrerUrl, deploymentUUID }: {
+    org: IOrganization
+    identity: IIdentity
     referrerUrl: string
     deploymentUUID: string
   }) => {
     try {
-      await utils.runWithTimeout(() => utils.post(referrerUrl, {
-        uuid: deploymentUUID,
-        url: this.bot.apiBaseUrl
-      }), { millis: 10000, unref: true })
+      await utils.runWithTimeout(() => this.bot.friends.load({ url: referrerUrl }), { millis: 10000 })
+    } catch (err) {
+      this.logger.error('failed to add referring MyCloud as friend', err)
+    }
+
+    const reportLaunchUrl = this.getReportLaunchUrl(referrerUrl)
+    const launchData = {
+      deploymentUUID,
+      apiUrl: this.bot.apiBaseUrl,
+      org,
+      identity,
+      stackId: this.bot.stackUtils.getThisStackId()
+    }
+
+    try {
+      await utils.runWithTimeout(() => utils.post(reportLaunchUrl, launchData), { millis: 10000 })
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error(`failed to notify referrer at: ${referrerUrl}`, { stack: err.stack })
+      this.logger.error(`failed to notify referrer at: ${referrerUrl}`, err)
     }
   }
 
-  public receiveCallHome = async ({ uuid, url, senderEmail }: {
-    uuid: string
-    url: string
-    senderEmail: string
-  }) => {
+  public receiveLaunchReport = async (report: ILaunchReportPayload) => {
+    const { deploymentUUID, apiUrl, org, identity, stackId } = report
     let link
     try {
-      link = await this.kv.get(uuid)
+      link = await this.kv.get(deploymentUUID)
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error('deployment configuration mapping not found', { url, uuid })
+      this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
       return false
     }
 
-    let configuration
+    let configuration:IDeploymentOpts
     try {
-      configuration = await this.bot.objects.get(link)
+      configuration = await this.bot.objects.get(link) as IDeploymentOpts
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error('deployment configuration not found', { url, uuid, link })
+      this.logger.error('deployment configuration not found', { apiUrl, deploymentUUID, link })
       return false
     }
 
-    await this.notifyCreators({ configuration, senderEmail })
+    const friend = await this.bot.friends.add({
+      url: apiUrl,
+      org,
+      identity,
+      name: org.name,
+      domain: org.domain
+    })
+
+    const promiseNotifyCreators = this.notifyCreators({
+      apiUrl,
+      configuration,
+      identity: friend.identity
+    })
+
+    const promiseSaveDeployment = this.bot.signAndSave(this.buildChildDeploymentResource({
+      apiUrl,
+      deploymentUUID,
+      configuration,
+      identity: friend.identity
+    }))
+
+    await Promise.all([
+      promiseNotifyCreators,
+      promiseSaveDeployment
+    ])
+
+    // await this.productsAPI.approveApplication({
+    //   user: await this.bot.users.get(configuration._author),
+    //   application: await this.productsAPI.
+    // })
+
+    await this.kv.del(deploymentUUID)
     return true
   }
 
-  public notifyCreators = async ({ configuration, senderEmail }: {
-    configuration: ITradleObject
-    senderEmail: string
-  }) => {
-    const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
-
-    const chatLink = await this.bot.getChatLink({
-      host: this.bot.apiBaseUrl,
-      platform: 'mobile'
+  public buildChildDeploymentResource = ({ apiUrl, deploymentUUID, configuration, identity }: ISaveChildDeploymentOpts) => {
+    const builder = buildResource({
+      models: this.bot.models,
+      model: 'tradle.cloud.ChildDeployment',
+    })
+    .set({
+      deploymentUUID,
+      apiUrl,
+      configuration,
+      identity
     })
 
+    return builder.toJSON()
+  }
+
+  public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
+    const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
+
+    const botPermalink = utils.parseStub(identity).permalink
+    const links = this.getAppLinks({ url: apiUrl, permalink: botPermalink })
     const notifyConfigurationCreator = this.bot.sendSimpleMessage({
       to: _author,
-      message: `Your Tradle MyCloud is online. Tap [here](${chatLink}) to talk to it`
+      message: `${ONLINE_MESSAGE}
+${this.genUsageInstructions(links)}`
     })
 
     try {
       await this.bot.mailer.send({
-        from: senderEmail,
+        from: this.senderEmail,
         to: [hrEmail, adminEmail],
         format: 'text',
-        subject: 'Your Tradle MyCloud is online!',
-        body: await this.generateMyCloudLaunchedEmailBody()
+        ...this.genLaunchedEmail({
+          url: apiUrl,
+          ...links
+        })
       })
     } catch (err) {
-      this.logger.error('failed to notify creators', { stack: err.stack })
+      this.logger.error('failed to email creators', err)
     }
 
     await notifyConfigurationCreator
   }
 
-  public generateMyCloudLaunchedEmailBody = async () => {
+  public getAppLinks = ({ url, permalink }) => {
+    const mobile = this.appLinks.getChatLink({
+      provider: permalink,
+      host: url,
+      platform: 'mobile'
+    })
+
+    const web = this.appLinks.getChatLink({
+      provider: permalink,
+      host: url,
+      platform: 'web'
+    })
+
+    const employeeOnboarding = this.appLinks.getApplyForProductLink({
+      provider: permalink,
+      host: url,
+      product: 'tradle.EmployeeOnboarding',
+      platform: 'web'
+    })
+
+    return {
+      mobile,
+      web,
+      employeeOnboarding
+    }
+  }
+
+  public genLaunchEmailBody = ({ launchUrl }) => {
+    return `Launch your Tradle MyCloud: ${launchUrl}`
+  }
+
+  public genLaunchEmail = ({ launchUrl }) => ({
+    subject: LAUNCH_MESSAGE,
+    body: this.genLaunchEmailBody({ launchUrl })
+  })
+
+  public genLaunchedEmailBody = ({ url, mobile, web, employeeOnboarding }) => {
     const host = this.bot.apiBaseUrl
-    const link = await this.bot.getChatLink({ host, platform: 'web' })
-    return `hey there,
+    return `Hi there,
 
-Your Tradle MyCloud is online!
+${ONLINE_MESSAGE}
+${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
+  }
 
-Please play with it soon before it gets lonely. Here's a link to add it to your Tradle app: ${link}`
+  public genLaunchedEmail = opts => ({
+    subject: ONLINE_MESSAGE,
+    body: this.genLaunchedEmailBody(opts)
+  })
+
+  public genUsageInstructions = ({ mobile, web, employeeOnboarding }) => {
+    return `- Add it to your Tradle mobile app using this link: ${mobile}
+- Add it to your Tradle web app using this link: ${web}
+- Invite employees using this link: ${employeeOnboarding}`
   }
 
   public customizeTemplate = async ({ template, opts }: {
@@ -190,7 +322,7 @@ Please play with it soon before it gets lonely. Here's a link to add it to your 
     org.init = {
       name,
       domain,
-      logo: await logoPromise
+      logo: await logoPromise || media.LOGO_UNKNOWN
     }
 
     const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id
@@ -211,8 +343,12 @@ Please play with it soon before it gets lonely. Here's a link to add it to your 
     return template
   }
 
-  private getLogo = async (opts: IDeploymentOpts):Promise<string|void> => {
-    const { logo, domain } = opts
+  public getReportLaunchUrl = (referrerUrl:string=this.bot.apiBaseUrl) => {
+    return `${referrerUrl}/deployment-pingback`
+  }
+
+  public getLogo = async (opts: { domain: string, logo?: string }):Promise<string|void> => {
+    const { domain, logo } = opts
     if (logo) return logo
 
     try {
@@ -226,7 +362,7 @@ Please play with it soon before it gets lonely. Here's a link to add it to your 
   }
 }
 
-export const createDeployment = (opts:IPluginOpts) => new Deployment(opts)
+export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
 
 const scaleTable = ({ table, scale }) => {
   let { ProvisionedThroughput } = table.Properties

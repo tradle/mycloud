@@ -306,24 +306,37 @@ npm run nuke
 
 ## Troubleshooting
 
-If you see errors like the one below, it means `localstack` is not up. Launch `localstack` with `npm run localstack:start`
+Symptom:
 
 ```sh
 # Error: connect ECONNREFUSED 127.0.0.1:4569
 # ...
 ```
 
-If tests are failing with errors like the one below, it means you need to generate local resources on `localstack`. Run `npm run gen:localresources`
+Cause: `localstack` is not up. 
+Fix: `npm run localstack:start`  
+
+Symptom:
 
 ```sh
 # ResourceNotFoundException: Cannot do operations on a non-existent table
 # ...
 ```
 
-If tests are failing for some other reason, you may want to run
+Cause: you haven't generated local resources (tables, buckets, etc.)  
+Fix: run `npm run gen:localresources`  
+
+Symptom: tests fail, you don't know why
+Cause: to be determined
+Fix: `npm run reset:local # delete + regen local resources (tables, buckets, etc.)`
+
+Symptom: 
+
 ```sh
-npm run reset:local # delete + regen local dbs, buckets, etc.
+Serverless command "<some command>" not found
 ```
+
+Cause: your `serverless.yml` is corrupted. `build:yml` probably failed the last time you ran it. Fix: fix `serverless-uncompiled.yml`, make sure `build:yml` completes successfully before retrying
 
 ## Scripts
 
@@ -433,41 +446,47 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 - `users`: user state objects
 - `friends`: known Tradle/MyCloud nodes
 - `events`: master log, which due to performance issues, is ironically written to post-fact
-- `bucket`-x: tables that store resources created from Tradle models, e.g. tradle.Application, tradle.PhotoID, tradle.MyLifeInsurance, tradle.FormRequest. Each table stores multiple types, and types are mapped deterministically to a table "bucket". Anything that gets put in inbox/outbox also ends up stored and indexed here. The GraphQL API reads from here.
-- `conf`: undifferentiated key/value store where you can store application and system-level configuration values. Currently stored push notification subscription information. 
-- `kv`: undifferentiated key/value store. This might be going away in favor of the `conf` table. Currently it's used by the Onfido plugin to store intermediate application/check state.
+- `bucket-[x]`: tables that store resources created from Tradle models, e.g. tradle.Application, tradle.PhotoID, tradle.MyLifeInsurance, tradle.FormRequest. Each table stores multiple types, and types are mapped deterministically to a table "bucket". Anything that gets put in inbox/outbox also ends up stored and indexed here. The GraphQL API reads from here.
+- `kv`: undifferentiated key/value store where you can store application and system-level configuration values. Currently stores push notification subscription information, and various temporary values.
 
 #### Buckets
 
-- ObjectsBucket: stores all objects send/received to/from users
-- SecretsBucket: if I told you, I'd have to kill you. It stores the private keys for your MyCloud's identity.
-- PublicConfBucket: won't be around much longer, but currently stores the pulic identity file
-- PrivateConfBucket: may be renamed to ConfBucket soon. It stores public/private configuration like: identity, styles, and bot plugin configuration files
-- ContentAddressedBucket: content-addressed storage, usable by bots. Use via `bot.contentAddressedStorage`
-- FileUploadBucket: because Lambda and IoT message-size limits, any media embedded in objects sent by users is first uploaded here
+- `ObjectsBucket`: stores all objects send/received to/from users
+- `SecretsBucket`: if I told you, I'd have to kill you. It stores the private keys for your MyCloud's identity.
+- `PublicConfBucket`: probably won't be around much longer, but currently stores the pulic identity file
+- `PrivateConfBucket`: may be renamed to ConfBucket soon. It stores public/private configuration like: identity, styles, and bot plugin configuration files
+- `ContentAddressedBucket`: content-addressed storage, usable by bots. Use via `bot.contentAddressedStorage`. Not used much so far, may go away in favor of a path in `PrivateConfBucket`
+- `FileUploadBucket`: because Lambda and IoT message-size limits, any media embedded in objects sent by users is first uploaded here
 
 #### Functions
 
-- warmup: keeps lambda containers warm to prevent cold start. Concurrency is configurable
-- preauth (HTTP): generates temporary credentials (STS) for new connections from users, attaches the IotClientRole to them, creates a new session in the `presence` table (still `unauthenticated`). Generates a challenge to be signed (verified in `auth`) \*
-- auth (HTTP): verifies the challenge, marks the session as authenticated \*
-- onconnect (IoT): updates the user's session. If the user is already subscribed to the right MQTT topics, attempts to deliver queued up messages depending on the user's announced send/receive position
-- ondisconnect (IoT): updates the user's session, marks the user as disconnected
-- onsubscribe (IoT): updates the user's session. If the user is already connected, attempts to deliver messages depending on the user's announced send/receive position
-- onmessage (IoT): processes inbound messages from the user. Pending validation, stores the object in `ObjectsBucket` and passes the message off to the `bot_onmessage` lambda. *Note: currently the bot_onmessage lambda is run in-process, rather than invoked through AWS Lambda*
-- onmessage_http (HTTP): (DEPRECATED in favor of `inbox`) same as `onmessage`, but HTTP, so it has a higher maximum payload size.
-- inbox (HTTP): receives batches of inbound messages (typically from other MyCloud's)
-- to-events: replicates streams from `inbox`/`outbox`/`seals` tables to the `events` table
-- addfriend: add a known MyCloud to the `friends` table, so outbound messages can be delivered to them
-- info (HTTP): get the public information about this MyCloud - the identity, style, logo, country, currency, etc.
-- bot_oninit: initialize the MyCloud node - generate an identity and keys, save secrets and default configuration files to respective buckets
-- sealpending (scheduled): write queued seals to the blockchain
-- pollchain (scheduled): query unconfirmed seals
-- setstyle: update the style
-- onmessage: where your bot (business logic) processes inbound messages
-- onsealevent: where your bot (business logic) processes seal events (reads/writes)
-- onmessagestream: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
-- graphql: your bot's built-in graphql API
-- samples: generates a bunch of sample data
+- `warmup`: keeps lambda containers warm to prevent cold start. Concurrency is configurable
+- `preauth` (HTTP): generates temporary credentials (STS) for new connections from users, attaches the IotClientRole to them, creates a new session in the `presence` table (still `unauthenticated`). Generates a challenge to be signed (verified in `auth`) \*
+- `auth` (HTTP): verifies the challenge, marks the session as authenticated \*
+- `onconnect` (IoT): updates the user's session. If the user is already subscribed to the right MQTT topics, attempts to deliver queued up messages depending on the user's announced send/receive position
+- `ondisconnect` (IoT): updates the user's session, marks the user as disconnected
+- `onsubscribe` (IoT): updates the user's session. If the user is already connected, attempts to deliver messages depending on the user's announced send/receive position
+- `onmessage` (IoT): processes inbound messages from the user. Pending validation, stores the object in `ObjectsBucket` and passes the message off to the `bot_onmessage` lambda. *Note: currently the bot_onmessage lambda is run in-process, rather than invoked through AWS Lambda*
+- `onmessage_http` (HTTP): (DEPRECATED in favor of `inbox`) same as `onmessage`, but HTTP, so it has a higher maximum payload size.
+- `inbox` (HTTP): receives batches of inbound messages (typically from other MyCloud's)
+- `to-events`: replicates streams from `inbox`/`outbox`/`seals` tables to the `events` table
+- `addfriend`: add a known MyCloud to the `friends` table, so outbound messages can be delivered to them
+- `info` (HTTP): get the public information about this MyCloud - the identity, style, logo, country, currency, etc.
+- `bot_oninit`: initialize the MyCloud node - generate an identity and keys, save secrets and default configuration files to respective buckets. Should really be named `init` or `oninit`, but good luck getting AWS to rename something.
+- `sealpending` (scheduled): write queued seals to the blockchain
+- `pollchain` (scheduled): query unconfirmed seals
+- `setstyle`: update the style
+- `onmessage`: where your bot (business logic) processes inbound messages
+- `onsealevent`: where your bot (business logic) processes seal events (reads/writes)
+- `onmessagestream`: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
+- `graphql`: your bot's built-in graphql API that supports existing Tradle models and custom ones you add.
+- `samples`: generates a bunch of sample data. Hasn't been tested in a looooong time, so use it if you want to fix it.
 
 \* Note: the purpose of authentication is to know whether to send the user messages from the `outbox` table. Inbound messages don't require pre-authentication, as they are all signed.
+
+#### Network communication flow
+
+1. client (Tradle mobile/web app) calls `/preauth` (`preauth` lambda) and gets a temporary identity via AWS STS. It also gets a challenge to sign.
+1. client calls `/auth` with the signed challenge. At this point MyCloud deems it safe to send the client any queued up messages, and will start doing so.
+1. client subscribes to AWS Iot topics restricted to its temporary identity's namespace. This allows it to receive messages, acks and errors from MyCloud. MyCloud receives these Iot lifecycle events (connect, disconnect, subscribe) in Lambda, and updates the client's session information (`iotlifecycle` lambda).
+1. the client and MyCloud can send each other messages via AWS Iot.

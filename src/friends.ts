@@ -1,4 +1,3 @@
-const debug = require("debug")("tradle:sls:friends")
 import _ = require('lodash')
 import lexint = require('lexicographic-integer')
 import Cache = require('lru-cache')
@@ -10,9 +9,15 @@ import { get, cachifyFunction } from './utils'
 import {
   Identities,
   Tradle,
-  Logger
+  Logger,
+  ILoadFriendOpts,
+  Provider,
+  DB,
+  Model,
+  Models
 } from './types'
 
+import Errors = require('./errors')
 const definitions = require('./definitions')
 const tableDef = definitions.FriendsTable
 const timeIsString = tableDef.Properties.AttributeDefinitions.find(({ AttributeName }) => {
@@ -24,11 +29,11 @@ const TEN_MINUTES = 10 * 60 * 60000
 const createCache = () => new Cache({ max: 100, maxAge: TEN_MINUTES })
 
 export default class Friends {
-  public models: any
-  public model: any
-  public db: any
+  public models: Models
+  public model: Model
+  public db: DB
   public identities: Identities
-  public provider: any
+  public provider: Provider
   public cache: any
   public logger: Logger
   constructor(tradle:Tradle) {
@@ -43,15 +48,23 @@ export default class Friends {
     this.getByIdentityPermalink = cachifyFunction(this, 'getByIdentityPermalink')
   }
 
-  public load = async (opts: { url: string, domain: string }): Promise<any> => {
-    let { url, domain } = opts
+  public load = async (opts: ILoadFriendOpts): Promise<any> => {
+    let { url } = opts
+    if (!url) throw new Error(`expected "url" of friend's MyCloud`)
+
     url = url.replace(/[/]+$/, "")
+
+    this.logger.debug('loading friend', opts)
 
     const infoUrl = getInfoEndpoint(url)
     const info = await get(infoUrl)
     const { bot: { pub }, org } = info
 
-    const { name } = org
+    const { name, domain } = org
+    if (opts.domain && domain !== opts.domain) {
+      throw new Errors.InvalidInput(`expected domain "${opts.domain}", got ${domain}`)
+    }
+
     return await this.add({
       name,
       url,
@@ -69,7 +82,7 @@ export default class Friends {
     identity: any
   }): Promise<any> => {
     const { models, model } = this
-    const { name, domain, identity } = props
+    const { name, domain, identity, org } = props
     addLinks(identity)
 
     let existing
@@ -92,11 +105,15 @@ export default class Friends {
       return _.isEqual(object[prop], existing[prop])
     })
 
+    if (org) await this.provider.saveObject({ object: org })
+
     if (isSame) {
       this.cache.set(identity._permalink, existing)
+      this.logger.debug('already have friend', object)
       return existing
     }
 
+    this.logger.debug('adding friend', object)
     if (Object.keys(existing).length) {
       object[PREVLINK] = buildResource.link(existing)
       object[PERMALINK] = buildResource.permalink(existing)
@@ -112,7 +129,6 @@ export default class Friends {
     const signed = await this.provider.signObject({ object })
     const permalink = buildResource.permalink(identity)
 
-
     buildResource.setVirtual(signed, {
       _time: Date.now(),
       _identityPermalink: permalink
@@ -123,7 +139,6 @@ export default class Friends {
     }
 
     await promiseAddContact
-    debug(`saving friend: ${name}`)
     await this.db.update(signed, {
       ConditionExpression: `attribute_not_exists(#domain) OR #identityPermalink = :identityPermalink`,
       ExpressionAttributeNames: {

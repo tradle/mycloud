@@ -36,7 +36,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       env: this.env,
       attemptTimeout: FETCH_TIMEOUT,
       onError: (err:Error) => {
-        this.logger.error('failed to deliver messages', { stack: err.stack })
+        this.logger.error('failed to deliver messages', err)
       }
     })
 
@@ -53,7 +53,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     //       timeoutIn(FETCH_TIMEOUT)
     //     ])
     //   } catch (err) {
-    //     this.logger.error('failed to deliver messages', { stack: err.stack })
+    //     this.logger.error('failed to deliver messages', err)
     //     Errors.ignore(err, Errors.Timeout)
     //   }
     // }

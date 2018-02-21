@@ -441,3 +441,14 @@ export interface ITimeoutOpts {
   error?: Error
   unref?: boolean
 }
+
+export interface ILoadFriendOpts {
+  url: string
+  domain?: string
+}
+
+export interface IBotOpts {
+  tradle: Tradle
+  users?: any
+  ready?:boolean
+}

@@ -256,7 +256,7 @@ custom:
   dynamodb:
     start:
       port: 4569
-      migrate: true
+      # migrate: true
       inMemory: true
       # use dockerized dynamodb from localstack
       noStart: true
@@ -276,6 +276,7 @@ custom:
     cors: false
     # use dockerized s3 from localstack
     noStart: true
+    create: false
 
   # s3-encryption:
   #   buckets:
@@ -1058,6 +1059,14 @@ functions:
           method: get
           cors: ${{self:custom.cors}}
 
+  deployment_pingback:
+    handler: lib/samplebot/lambda/http/deployment-pingback.handler
+    events:
+      - http:
+          path: deployment-pingback
+          method: post
+          cors: ${{self:custom.cors}}
+
   # cli_dev:
   #   handler: lib/samplebot/lambda/cli.handler
   #   # dev mode only
@@ -1078,7 +1087,6 @@ resources:
       init:
         # which MyCloud generated the template
         referrerUrl: ''
-        referrerIdentity: ''
         deploymentUUID: ''
 
   Resources:
@@ -1128,10 +1136,11 @@ resources:
       Properties:
         VersioningConfiguration:
           Status: Enabled
-        BucketEncryption:
-          ServerSideEncryptionConfiguration:
-            - ServerSideEncryptionByDefault:
-                SSEAlgorithm: AES256
+        # Uncomment when the CloudFormation issues with BucketEncryption are resolved
+        # BucketEncryption:
+        #   ServerSideEncryptionConfiguration:
+        #     - ServerSideEncryptionByDefault:
+        #         SSEAlgorithm: AES256
 
     PrivateConfBucket:
       Type: "AWS::S3::Bucket"
@@ -1660,7 +1669,5 @@ resources:
           Fn::FindInMap: ["deployment", "init", "deploymentUUID"]
         referrerUrl:
           Fn::FindInMap: ["deployment", "init", "referrerUrl"]
-        referrerIdentity:
-          Fn::FindInMap: ["deployment", "init", "referrerIdentity"]
 
           # <<: *providerConf

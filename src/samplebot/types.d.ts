@@ -1,3 +1,4 @@
+import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { Bot, ModelsPack, DatedValue, Lambda } from '../types'
 import { Conf } from './configure'
 import { Commander } from './commander'
@@ -12,7 +13,8 @@ import {
   ResourceStub,
   Logger,
   IBotLambdaOpts,
-  IDeepLink
+  IDeepLink,
+  ILambdaExecutionContext
 } from '../types'
 
 export * from '../types'
@@ -222,22 +224,36 @@ export interface IDeploymentOpts {
 }
 
 // conf used by MyCloud for initialization
-export interface IMyDeploymentConf {
+export interface IOrganization extends ITradleObject {
   name: string
   domain: string
-  logo?: string
+}
+
+export interface ILaunchReportPayload {
+  org: IOrganization
+  identity: IIdentity
   deploymentUUID: string
+  apiUrl: string
+  stackId: string
+  logo?: string
+}
+
+export interface IMyDeploymentConf {
+  // become "org"
+  name: string
+  domain: string
+  // same as ILaunchReportPayload
+  identity: IIdentity
+  deploymentUUID: string
+  apiUrl: string
+  stackId: string
   referrerUrl: string
+  logo?: string
 }
 
 export interface IDeploymentConfForm extends ITradleObject {
   adminEmail: string
   hrEmail: string
-}
-
-export interface ICallHomePayload {
-  uuid: string
-  url: string
 }
 
 export interface IPBotLambdaOpts extends IBotLambdaOpts {
@@ -256,3 +272,9 @@ export interface IApplyForProductDeepLink extends IDeepLink {
 export interface IImportDataDeepLink extends IDeepLink {
   dataHash: string
 }
+
+export interface IPBMiddlewareContext extends ILambdaExecutionContext {
+  components: IBotComponents
+}
+
+export type IPBMiddleware = ComposeMiddleware<IPBMiddlewareContext>

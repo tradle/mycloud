@@ -254,6 +254,8 @@ export default class Seals {
 
     const pending = await this.getUnsealed({ limit })
     this.logger.info(`found ${pending.length} pending seals`)
+    if (!pending.length) return
+
     let aborted
     // TODO: update balance after every tx
     let balance
