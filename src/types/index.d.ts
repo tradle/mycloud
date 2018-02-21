@@ -32,6 +32,7 @@ import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
 import { Mailer } from '../mailer'
+import { AppLinks } from '../app-links'
 import {
   ResourceStub,
   ParsedResourceStub
@@ -77,7 +78,8 @@ export {
   StackUtils,
   LambdaUtils,
   S3Utils,
-  Mailer
+  Mailer,
+  AppLinks
 }
 
 export interface IPositionPair {
@@ -408,6 +410,11 @@ export interface ISaveObjectOpts {
 
 export type CloudName = 'aws'
 
+export interface IDeepLink {
+  provider: string
+  host: string
+  platform: 'mobile' | 'web'
+}
 
 export interface ISendEmailResult {
   id: string
@@ -427,4 +434,10 @@ export interface ISendEmailOpts {
   body: string
   format?: 'text' | 'html'
   replyTo?: string|string[]
+}
+
+export interface ITimeoutOpts {
+  millis?: number
+  error?: Error
+  unref?: boolean
 }

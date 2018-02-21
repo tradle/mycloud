@@ -1,17 +1,27 @@
+// @ts-ignore
+import Promise = require('bluebird')
 import {
   Env,
   Bot,
   Bucket,
   Logger,
+  ITradleObject,
   IPluginOpts,
-  IDeploymentOpts
+  IDeploymentOpts,
+  IMyDeploymentConf,
+  IDeploymentConfForm,
+  ICallHomePayload,
+  KeyValueTable
 } from './types'
 
 import Errors = require('../errors')
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
+// import { getChatLink } from './app-links'
 
 export class Deployment {
+  // exposed for testing
+  public kv: KeyValueTable
   private bot: Bot
   private env: Env
   private pubConfBucket: Bucket
@@ -26,6 +36,7 @@ export class Deployment {
     this.logger = logger
     this.pubConfBucket = bot.buckets.PublicConf
     this.deploymentBucket = bot.buckets.ServerlessDeployment
+    this.kv = this.bot.kv.sub('deployment:')
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -54,14 +65,109 @@ export class Deployment {
 
   public getLaunchUrl = async (opts: IDeploymentOpts) => {
     this.logger.debug('generating cloudformation template with opts', opts)
-    const templateURL = await this.bot.stackUtils.createPublicTemplate(template => {
+    const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
       return this.customizeTemplate({ template, opts })
     })
 
-    return this.bot.stackUtils.getLaunchStackUrl({ templateURL })
+    await this.saveDeploymentTracker({ template, link: opts.configurationLink })
+    return this.bot.stackUtils.getLaunchStackUrl({ templateURL: url })
   }
 
-  public customizeTemplate = async ({ template, opts }) => {
+  public saveDeploymentTracker = async ({ template, link }: {
+    template: any
+    link: string
+  }) => {
+    const { deploymentUUID } = template.Mappings.deployment.init as IMyDeploymentConf
+    await this.kv.put(deploymentUUID, link)
+  }
+
+  public callHome = async ({ referrerUrl, deploymentUUID }: {
+    referrerUrl: string
+    deploymentUUID: string
+  }) => {
+    try {
+      await utils.runWithTimeout(() => utils.post(referrerUrl, {
+        uuid: deploymentUUID,
+        url: this.bot.apiBaseUrl
+      }), { millis: 10000, unref: true })
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.error(`failed to notify referrer at: ${referrerUrl}`, { stack: err.stack })
+    }
+  }
+
+  public receiveCallHome = async ({ uuid, url, senderEmail }: {
+    uuid: string
+    url: string
+    senderEmail: string
+  }) => {
+    let link
+    try {
+      link = await this.kv.get(uuid)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.error('deployment configuration mapping not found', { url, uuid })
+      return false
+    }
+
+    let configuration
+    try {
+      configuration = await this.bot.objects.get(link)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.error('deployment configuration not found', { url, uuid, link })
+      return false
+    }
+
+    await this.notifyCreators({ configuration, senderEmail })
+    return true
+  }
+
+  public notifyCreators = async ({ configuration, senderEmail }: {
+    configuration: ITradleObject
+    senderEmail: string
+  }) => {
+    const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
+
+    const chatLink = await this.bot.getChatLink({
+      host: this.bot.apiBaseUrl,
+      platform: 'mobile'
+    })
+
+    const notifyConfigurationCreator = this.bot.sendSimpleMessage({
+      to: _author,
+      message: `Your Tradle MyCloud is online. Tap [here](${chatLink}) to talk to it`
+    })
+
+    try {
+      await this.bot.mailer.send({
+        from: senderEmail,
+        to: [hrEmail, adminEmail],
+        format: 'text',
+        subject: 'Your Tradle MyCloud is online!',
+        body: await this.generateMyCloudLaunchedEmailBody()
+      })
+    } catch (err) {
+      this.logger.error('failed to notify creators', { stack: err.stack })
+    }
+
+    await notifyConfigurationCreator
+  }
+
+  public generateMyCloudLaunchedEmailBody = async () => {
+    const host = this.bot.apiBaseUrl
+    const link = await this.bot.getChatLink({ host, platform: 'web' })
+    return `hey there,
+
+Your Tradle MyCloud is online!
+
+Please play with it soon before it gets lonely. Here's a link to add it to your Tradle app: ${link}`
+  }
+
+  public customizeTemplate = async ({ template, opts }: {
+    template: any
+    opts: IDeploymentOpts
+  }) => {
     let { name, domain, logo } = opts
 
     if (!(name && domain)) {
@@ -74,14 +180,13 @@ export class Deployment {
     const namespace = domain.split('.').reverse().join('.')
     const { Resources, Mappings } = template
     const { org, deployment } = Mappings
-    const logoPromise = this.getLogo(logo)
-
-    deployment.init = {
-      uuid: utils.uuid(),
-      referrerIdentity: await this.bot.getMyIdentityPermalink(),
+    const logoPromise = this.getLogo(opts)
+    const dInit: Partial<IMyDeploymentConf> = {
+      deploymentUUID: utils.uuid(),
       referrerUrl: this.bot.apiBaseUrl
     }
 
+    deployment.init = dInit
     org.init = {
       name,
       domain,

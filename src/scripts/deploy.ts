@@ -31,27 +31,35 @@ if (!/^[a-zA-Z-_]+$/.test(stage)) {
   throw new Error('invalid stage: ' + stage)
 }
 
-let command = `sls deploy --stage=${stage}`
+const command = `sls deploy --stage=${stage}`
+let pathToNtfy
+try {
+  pathToNtfy = proc.execSync('command -v ntfy', {
+    cwd: process.cwd(),
+    stdio: 'inherit'
+  })
+} catch (err) {}
+
+const stackName = yml.custom.prefix
+const notify = (msg: string) => {
+  if (pathToNtfy) {
+    try {
+      proc.execSync(`ntfy send "${msg}"`)
+    } catch (err) {}
+  }
+}
 
 ;(async () => {
-  try {
-    const pathToNtfy = await proc.exec('which ntfy', {
-      cwd: process.cwd(),
-      stdio: 'inherit'
-    })
-
-    if (pathToNtfy) {
-      command = 'ntfy done ' + command
-    }
-  } catch (err) {}
-
   console.log(command)
   proc.execSync(command, {
     cwd: process.cwd(),
     stdio: 'inherit'
   })
+
+  notify(`deployed ${stackName}`)
 })()
-.catch(err => {
+.catch(async (err) => {
   console.error(err)
+  notify(`failed to deploy ${stackName}`)
   process.exitCode = 1
 })

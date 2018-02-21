@@ -1,4 +1,6 @@
 import fs = require('fs')
+import querystring = require('querystring')
+import crypto = require('crypto')
 import zlib = require('zlib')
 import { parse as parseURL } from 'url'
 import _ = require('lodash')
@@ -16,9 +18,7 @@ import {
 } from 'lodash'
 
 import Cache = require('lru-cache')
-import querystring = require('querystring')
 import format = require('string-format')
-import crypto = require('crypto')
 import microtime = require('./microtime')
 import typeforce = require('typeforce')
 import bindAll = require('bindall')
@@ -46,7 +46,7 @@ import {
 } from './constants'
 
 import Errors = require('./errors')
-import { CacheContainer, ISettledPromise, ILaunchStackUrlOpts } from './types'
+import { CacheContainer, ISettledPromise, ILaunchStackUrlOpts, ITimeoutOpts } from './types'
 import Logger from './logger'
 import Env from './env'
 import Tradle from './tradle'
@@ -92,11 +92,7 @@ export const wait = (millis=0, unref?) => {
   })
 }
 
-export const timeoutIn = ({ millis=0, error, unref }: {
-  millis?: number,
-  error?: Error,
-  unref?: boolean
-}) => {
+export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
   let timeout
   const promise = new Promise((resolve, reject) => {
     timeout = createTimeout(() => {
@@ -106,6 +102,18 @@ export const timeoutIn = ({ millis=0, error, unref }: {
 
   promise.cancel = () => clearTimeout(timeout)
   return promise
+}
+
+export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
+  const timeoutPromise = timeoutIn(opts)
+  const taskPromise = fn()
+  const result = await Promise.race([
+    taskPromise,
+    timeoutPromise
+  ])
+
+  timeoutPromise.cancel()
+  return taskPromise
 }
 
 export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
@@ -509,6 +517,13 @@ export function getLaunchStackUrl ({
   const qs = querystring.stringify({ stackName, templateURL })
   const path = quickLink ? 'stacks/create/review' : 'stacks/new'
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/${path}?${qs}`
+}
+
+export const parseLaunchStackUrl = (url: string) => {
+  const [main, hash] = url.split('#')
+  const q1 = querystring.parse(main.split('?')[1])
+  const q2 = querystring.parse(hash.split('?')[1])
+  return { ...q1, ...q2 }
 }
 
 export function domainToUrl (domain) {

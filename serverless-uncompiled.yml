@@ -1076,8 +1076,10 @@ resources:
 
     deployment:
       init:
-        referrer:
-        uuid:
+        # which MyCloud generated the template
+        referrerUrl: ''
+        referrerIdentity: ''
+        deploymentUUID: ''
 
   Resources:
     ApiGatewayRestApi:
@@ -1654,5 +1656,11 @@ resources:
           Fn::FindInMap: ["org", "init", "domain"]
         logo:
           Fn::FindInMap: ["org", "init", "logo"]
+        deploymentUUID:
+          Fn::FindInMap: ["deployment", "init", "deploymentUUID"]
+        referrerUrl:
+          Fn::FindInMap: ["deployment", "init", "referrerUrl"]
+        referrerIdentity:
+          Fn::FindInMap: ["deployment", "init", "referrerIdentity"]
 
           # <<: *providerConf

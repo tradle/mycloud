@@ -137,7 +137,7 @@ export const createPlugin = (opts: IPluginOpts) => {
       try {
         return await smarty.prefill({ application, formRequest })
       } catch (err) {
-        console.error('failed to smart-prefill form', {
+        opts.logger.error('failed to smart-prefill form', {
           stack: err.stack
         })
       }

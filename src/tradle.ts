@@ -26,6 +26,7 @@ import {
   S3Utils,
   Init,
   Mailer,
+  AppLinks,
   IServiceMap
 } from './types'
 
@@ -70,6 +71,7 @@ export default class Tradle {
   public modelStore: ModelStore
   public prefix: string
   public mailer: Mailer
+  public appLinks: AppLinks
   public get secrets(): Bucket {
     return this.buckets.Secrets
   }
@@ -185,6 +187,7 @@ export default class Tradle {
 
     // this.bot = this.require('bot', './bot')
     this.define('mailer', './mailer', this.construct)
+    this.define('appLinks', './app-links', Linker => new Linker())
   }
 
   get apiBaseUrl () {

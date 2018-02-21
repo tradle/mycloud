@@ -4,13 +4,15 @@ import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediator } from './remediation'
 import { Deployment } from './deployment'
+import { AppLinks } from './app-links'
 import {
   ITradleObject,
   IIdentity,
   ITradleMessage,
   ResourceStub,
   Logger,
-  IBotLambdaOpts
+  IBotLambdaOpts,
+  IDeepLink
 } from '../types'
 
 export * from '../types'
@@ -20,7 +22,8 @@ export {
   Commander,
   Onfido,
   Remediator,
-  Deployment
+  Deployment,
+  AppLinks
 }
 
 export interface IProductsConf {
@@ -55,6 +58,7 @@ export interface IBotComponents {
   conf?: IConf
   productsAPI: any
   employeeManager: any
+  linker: AppLinks
   remediator?: Remediator
   onfido?: Onfido
   deployment?: Deployment
@@ -87,14 +91,14 @@ export interface IUser {
 }
 
 export interface IPBReq {
-  user: any
+  user: IUser
   message: ITradleMessage
   payload: ITradleObject
   // alias for "payload"
   object: ITradleObject
   type: string
   application?: IPBApp
-  applicant?: ResourceStub
+  applicant?: IUser
 }
 
 export type VerifiedItem = {
@@ -214,8 +218,26 @@ export interface IDeploymentOpts {
   name: string
   domain: string
   logo?: string
-  pingbackUrl?: string
-  // scale?: number
+  configurationLink?: string
+}
+
+// conf used by MyCloud for initialization
+export interface IMyDeploymentConf {
+  name: string
+  domain: string
+  logo?: string
+  deploymentUUID: string
+  referrerUrl: string
+}
+
+export interface IDeploymentConfForm extends ITradleObject {
+  adminEmail: string
+  hrEmail: string
+}
+
+export interface ICallHomePayload {
+  uuid: string
+  url: string
 }
 
 export interface IPBotLambdaOpts extends IBotLambdaOpts {
@@ -225,12 +247,6 @@ export interface IPBotLambdaOpts extends IBotLambdaOpts {
 
 export interface IDeploymentPluginConf {
   senderEmail: string
-}
-
-export interface IDeepLink {
-  provider: string
-  host: string
-  platform: 'mobile' | 'web'
 }
 
 export interface IApplyForProductDeepLink extends IDeepLink {

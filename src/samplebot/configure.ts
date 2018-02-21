@@ -6,6 +6,7 @@ import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import mergeModels = require('@tradle/merge-models')
 import { Plugins } from './plugins'
+import { Deployment } from './deployment'
 import baseModels = require('../models')
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors = require('../errors')
@@ -20,7 +21,8 @@ import {
   ITradleObject,
   IConf,
   IBotConf,
-  IDeploymentOpts
+  IDeploymentOpts,
+  IMyDeploymentConf
 } from './types'
 
 import {
@@ -296,9 +298,12 @@ export class Conf {
     }
   }
 
-  public initInfra = async (deploymentOpts: IDeploymentOpts, opts: InitOpts = {}) => {
-    const { bot } = this
-    const { pingbackUrl, ...orgTemplate } = deploymentOpts
+  public initInfra = async (deploymentConf: IMyDeploymentConf, opts: InitOpts = {}) => {
+    const { bot, logger } = this
+
+    this.logger.info(`initializing provider`, deploymentConf)
+
+    const orgTemplate = _.pick(deploymentConf, ['name', 'domain', 'logo'])
     if (bot.isTesting) {
       orgTemplate.name += '-local'
     }
@@ -307,8 +312,6 @@ export class Conf {
       ...defaultConf,
       org: orgTemplate
     }
-
-    this.logger.info(`initializing provider ${orgTemplate.name}`)
 
     let identity:IIdentity
     try {
@@ -342,19 +345,14 @@ export class Conf {
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
     await bot.forceReinitializeContainers()
-    if (!pingbackUrl) return
+    const { referrerUrl, deploymentUUID } = deploymentConf
+    if (!(referrerUrl && deploymentUUID)) return
 
     try {
-      await Promise.race([
-        post(pingbackUrl, {
-          ...orgTemplate,
-          myCloudUrl: this.bot.apiBaseUrl
-        }),
-        Promise.delay(10000)
-      ])
+      const deployment = new Deployment({ bot, logger })
+      await deployment.callHome({ referrerUrl, deploymentUUID })
     } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.error(`failed to ping back to ${pingbackUrl}`)
+      this.logger.error('failed to call home', { stack: err.stack })
     }
   }
 

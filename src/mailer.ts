@@ -58,7 +58,7 @@ export default class Mailer implements IMailer {
     }).promise()
 
     const atts = res.VerificationAttributes[address]
-    return atts && atts.VerificationStatus === 'Success'
+    return atts ? atts.VerificationStatus === 'Success' : false
   }
 }
 

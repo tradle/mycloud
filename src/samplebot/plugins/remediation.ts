@@ -6,7 +6,7 @@ import buildResource = require('@tradle/build-resource')
 import baseModels = require('../../models')
 import { TYPES } from '../constants'
 import Errors = require('../../errors')
-import { Logger, Bot } from '../../types'
+import { Logger, Bot, IUser, ITradleObject } from '../types'
 
 const {
   DATA_CLAIM,
@@ -104,7 +104,11 @@ export class Remediation {
     })
   }
 
-  public prepareBundleItems = async ({ user, items, claimId }) => {
+  public prepareBundleItems = async ({ user, items, claimId }: {
+    user: IUser
+    items: ITradleObject[]
+    claimId: string
+  }) => {
     this.logger.debug(`creating data bundle`)
     const { bot, models } = this
     const owner = user.id

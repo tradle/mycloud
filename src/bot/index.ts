@@ -32,7 +32,8 @@ import {
   ParsedResourceStub,
   BotStrategyInstallFn,
   ILambdaOpts,
-  ITradleObject
+  ITradleObject,
+  IDeepLink
 } from '../types'
 
 import { createLambda } from './lambda'
@@ -128,6 +129,7 @@ export class Bot extends EventEmitter implements IReady {
   public get isTesting () { return this.tradle.env.TESTING }
   public get models () { return this.modelStore.models }
   public get mailer () { return this.tradle.mailer }
+  public get appLinks () { return this.tradle.appLinks }
   public logger: Logger
   public kv: KeyValueTable
   public conf: KeyValueTable
@@ -261,6 +263,25 @@ export class Bot extends EventEmitter implements IReady {
     if (messages) {
       return Array.isArray(opts) ? messages : messages[0]
     }
+  }
+
+  public getChatLink = async (opts: Partial<IDeepLink>) => {
+    return this.appLinks.getChatLink({
+      provider: opts.provider || await this.getMyIdentityPermalink(),
+      host: this.apiBaseUrl,
+      platform: opts.platform,
+      ...opts
+    })
+  }
+
+  public sendSimpleMessage = async ({ to, message }) => {
+    return await this.send({
+      to,
+      object: {
+        [TYPE]: 'tradle.SimpleMessage',
+        message
+      }
+    })
   }
 
   // make sure bot is ready before lambda exits

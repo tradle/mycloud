@@ -296,13 +296,17 @@ export default class StackUtils {
     return await deploymentBucket.getJSON(metadata.Key)
   }
 
-  public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise):Promise<string> => {
+  public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise) => {
     const template = await this.getStackTemplate()
     const customized = await transform(template)
     const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
     const pubConf = this.buckets.PublicConf
     await pubConf.putJSON(key, template, { publicRead: true })
-    return pubConf.getUrlForKey(key)
+    return {
+      template: customized,
+      key,
+      url: pubConf.getUrlForKey(key)
+    }
   }
 
   public enableBinaryAPIResponses = async () => {

@@ -3,7 +3,6 @@ import _ = require('lodash')
 import { parseStub } from '../../utils'
 import { TYPE } from '@tradle/constants'
 import { prettify } from '../../string-utils'
-import { getApplyForProductLink } from '../app-links'
 import {
   Env,
   Bot,
@@ -11,7 +10,8 @@ import {
   IPluginOpts,
   IDeploymentOpts,
   IDeploymentPluginConf,
-  Conf
+  Conf,
+  AppLinks
 } from '../types'
 
 import Errors = require('../../errors')
@@ -31,9 +31,13 @@ const templates = {
   hr: _.template(`Link to give employees for onboarding: {{employeeOnboardingUrl}}`, templateOpts),
 }
 
-export const createPlugin = (opts:IPluginOpts) => {
+export interface IDeploymentPluginOpts extends IPluginOpts {
+  linker: AppLinks
+}
+
+export const createPlugin = (opts:IDeploymentPluginOpts) => {
   const deployment = createDeployment(opts)
-  const { bot, productsAPI, conf, logger } = opts
+  const { bot, productsAPI, linker, conf, logger } = opts
   const getBotPermalink = bot.getMyIdentityPermalink()
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return
@@ -42,10 +46,13 @@ export const createPlugin = (opts:IPluginOpts) => {
       return parseStub(stub).type === CONFIG_FORM
     })
 
-    const deploymentOpts = await bot.objects.get(parseStub(latest).link)
+    const { link } = parseStub(latest)
+    const form = await bot.objects.get(link)
+    const botPermalink = await getBotPermalink
+    const deploymentOpts = { ...form, configurationLink: link } as IDeploymentOpts
     let launchUrl
     try {
-      launchUrl = await deployment.getLaunchUrl(deploymentOpts as IDeploymentOpts)
+      launchUrl = await deployment.getLaunchUrl(deploymentOpts)
     } catch (err) {
       Errors.ignore(err, Errors.InvalidInput)
       await this.productsAPI.requestEdit({
@@ -59,8 +66,7 @@ export const createPlugin = (opts:IPluginOpts) => {
       return
     }
 
-    const botPermalink = await getBotPermalink
-    const employeeOnboardingUrl = getApplyForProductLink({
+    const employeeOnboardingUrl = linker.getApplyForProductLink({
       provider: botPermalink,
       host: bot.apiBaseUrl,
       product: 'tradle.EmployeeOnboarding',
@@ -81,7 +87,7 @@ export const createPlugin = (opts:IPluginOpts) => {
     try {
       await bot.mailer.send({
         from: conf.senderEmail,
-        to: deploymentOpts.adminEmail,
+        to: form.adminEmail,
         subject: LAUNCH_MESSAGE,
         body: templates.admin({ launchUrl })
       })
@@ -97,7 +103,7 @@ export const createPlugin = (opts:IPluginOpts) => {
     try {
       await bot.mailer.send({
         from: conf.senderEmail,
-        to: deploymentOpts.hrEmail,
+        to: form.hrEmail,
         subject: LAUNCH_MESSAGE,
         body: templates.hr({
           employeeOnboardingUrl

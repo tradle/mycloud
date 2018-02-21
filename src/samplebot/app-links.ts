@@ -1,69 +1,53 @@
-import querystring = require('querystring')
-import { WEB_APP_URL, MOBILE_APP_URL } from '../constants'
+import { AppLinks as Base } from '../app-links'
 import { IDeepLink, IApplyForProductDeepLink, IImportDataDeepLink } from './types'
 
-export const getAppLink = ({ path, query, platform }) => {
-  const qs = querystring.stringify(query)
-  if (platform === 'mobile') {
-    return `${MOBILE_APP_URL}/${path}?${qs}`
+export default class AppLinks extends Base {
+  public getImportDataLink = ({ provider, host, platform, dataHash }: IImportDataDeepLink) => {
+    return this.getAppLink({
+      path: 'chat',
+      query: {
+        permalink: provider,
+        url: host,
+        dataHash
+      },
+      platform
+    })
   }
 
-  return `${WEB_APP_URL}/#/${path}?${qs}`
-}
+  public getApplyForProductLink = ({ provider, host, product, platform }: IApplyForProductDeepLink) => {
+    return this.getAppLink({
+      path: 'applyForProduct',
+      query: {
+        permalink: provider,
+        url: host,
+        product
+      },
+      platform
+    })
+  }
 
-export const getImportDataLink = ({ provider, host, platform, dataHash }: IImportDataDeepLink) => {
-  return getAppLink({
-    path: 'chat',
-    query: {
-      permalink: provider,
-      url: host,
-      dataHash
-    },
-    platform
-  })
-}
+  public inferSchemaAndData = ({ provider, host, data }) => {
+    const { claimId, product } = data
+    if (claimId) {
+      return {
+        schema: 'ImportData',
+        data: { provider, host, dataHash: claimId }
+      }
+    }
 
-export const getChatLink = ({ provider, host, platform }: IDeepLink) => {
-  return getAppLink({
-    path: 'chat',
-    query: {
-      permalink: provider,
-      url: host
-    },
-    platform
-  })
-}
+    if (product) {
+      return {
+        schema: 'ApplyForProduct',
+        data: { provider, host, product }
+      }
+    }
 
-export const getApplyForProductLink = ({ provider, host, product, platform }: IApplyForProductDeepLink) => {
-  return getAppLink({
-    path: 'applyForProduct',
-    query: {
-      permalink: provider,
-      url: host,
-      product
-    },
-    platform
-  })
-}
-
-export const inferSchemaAndData = ({ provider, host, data }) => {
-  const { claimId, product } = data
-  if (claimId) {
     return {
-      schema: 'ImportData',
-      data: { provider, host, dataHash: claimId }
+      schema: 'AddProvider',
+      data: { provider, host }
     }
   }
-
-  if (product) {
-    return {
-      schema: 'ApplyForProduct',
-      data: { provider, host, product }
-    }
-  }
-
-  return {
-    schema: 'AddProvider',
-    data: { provider, host }
-  }
 }
+
+export { AppLinks }
+export const createLinker = (opts?) => new AppLinks(opts)
