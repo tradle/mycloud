@@ -3,6 +3,13 @@ import fetch = require('node-fetch')
 import buildResource = require('@tradle/build-resource')
 import { buildResourceStub } from '@tradle/build-resource'
 import constants = require('@tradle/constants')
+import {
+  Bot,
+  Logger,
+  IPBApp,
+  IPBReq,
+  IPluginOpts
+} from '../types'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -10,31 +17,53 @@ const BASE_URL = 'https://api.complyadvantage.com/searches'
 const FORM_ID = 'tradle.BusinessInformation'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 
+interface IComplyAdvantageCredentials {
+  apiKey: string
+}
+
+interface IComplyAdvantageConf {
+  search_term?: string
+  fuzziness?: number
+  filter?: IComplyAdvantageFilter
+  entity_type?: string
+  credentials: IComplyAdvantageCredentials
+}
+interface IComplyAdvantageFilter {
+  types?: string[]
+}
+interface IResource {
+  companyName: string
+  registrationDate: string
+}
+interface IComplyCheck {
+  application: IPBApp
+  rawData: any
+}
 class ComplyAdvantageAPI {
-  private bot:any
-  private apiKey:string
+  private bot:Bot
+  private conf:IComplyAdvantageConf
   private productsAPI:any
-  private logger:any
-  constructor({ bot, apiKey, productsAPI, logger }) {
+  private logger:Logger
+  constructor({ bot, conf, productsAPI, logger }: IPluginOpts) {
     this.bot = bot
-    this.apiKey = apiKey
+    this.conf = conf
     this.productsAPI = productsAPI
     this.logger = logger
   }
-  async _fetch(resource, conf, application) {
+  async getData(resource, conf, application) {
     let body:any = {
       search_term: conf.search_term || resource.companyName,
       fuzziness: conf.fuzziness  ||  1,
       share_url: 1,
       filters: {
-        types: conf.types || ['sanction'],
+        types: conf.filter  &&  conf.filter.types || ['sanction'],
         birth_year: new Date(resource.registrationDate).getFullYear()
       }
     }
 
     body = JSON.stringify(body)
 
-    let url = `${BASE_URL}?api_key=${this.apiKey}`
+    let url = `${BASE_URL}?api_key=${this.conf.credentials.apiKey}`
     let json // = undetermined
     // if (!json) {
     try {
@@ -58,7 +87,7 @@ class ComplyAdvantageAPI {
     return hits && { resource, rawData, hits }
   }
 
-  async createSanctionsCheck({ application, rawData }) {
+  async createSanctionsCheck({ application, rawData }: IComplyCheck) {
     let status
     if (rawData.hits.length)
       status = {id: 'tradle.Status_fail', title: 'Fail'}
@@ -109,13 +138,15 @@ class ComplyAdvantageAPI {
     this.productsAPI.importVerification({ user, application, verification: signedVerification })
   }
 }
-export function createPlugin({conf, bot, productsAPI, logger}) {
-  const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
+// {conf, bot, productsAPI, logger}
+export function createPlugin(opts: IPluginOpts) {
+  // const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
+  const complyAdvantage = new ComplyAdvantageAPI(opts)
   return {
-    [`onmessage:${FORM_ID}`]: async function(req) {
-
+    [`onmessage:${FORM_ID}`]: async function(req: IPBReq) {
+      let { bot, logger, conf, productAPI} = opts
       const { user, application, applicant, payload } = req
-logger.debug(`running sanctions plugin for: ${payload.companyName}`);
+      logger.debug(`running sanctions plugin for: ${payload.companyName}`);
       if (!application) return
 
       let productId = application.requestFor
@@ -138,7 +169,7 @@ logger.debug(`running sanctions plugin for: ${payload.companyName}`);
       // if (!forms  ||  !forms.length)
       //   return
       let forms = [payload]
-      let pforms = forms.map((f) => complyAdvantage._fetch(f, products[productId][FORM_ID], application))
+      let pforms = forms.map((f) => complyAdvantage.getData(f, products[productId][FORM_ID], application))
 
       let result = await Promise.all(pforms)
       let pchecks = []
