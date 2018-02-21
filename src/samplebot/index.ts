@@ -16,9 +16,8 @@ import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './p
 import { createPlugin as createSanctionsPlugin } from './plugins/complyAdvantage'
 import { createPlugin as createOpencorporatesPlugin } from './plugins/openCorporates'
 import { createPlugin as createCentrixPlugin} from './plugins/centrix'
-import {
-  createPlugin as createDeploymentPlugin
-} from './plugins/deployment'
+import { createPlugin as createDeploymentPlugin } from './plugins/deployment'
+import { createPlugin as createHandSigPlugin } from './plugins/hand-sig'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import {
   createPlugin as keepModelsFreshPlugin,
@@ -422,6 +421,15 @@ export default function createProductsBot ({
 
       components.deployment = result.deployment
       productsAPI.plugins.use(result.plugin)
+    }
+
+    if (plugins['hand-sig']) {
+      const result = createHandSigPlugin({
+        ...commonPluginOpts,
+        linker,
+        conf: plugins['hand-sig'],
+        logger: logger.sub('plugin-hand-sig')
+      })
     }
   }
 
