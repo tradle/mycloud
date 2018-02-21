@@ -51,6 +51,7 @@ class OpenCorporatesAPI {
   }
   async _fetch(resource, application) {
     let { registrationNumber, registrationDate, region, country } = resource
+    debugger
     let url = `${BASE_URL}companies/search?q=` + resource.companyName.replace(' ', '+')
     // let json = test
     let json
@@ -89,10 +90,8 @@ class OpenCorporatesAPI {
     let status
     if (hits.length === 1)
       status = {id: 'tradle.Status_pass', title: 'Pass'}
-      // status = hits.length + ' companies were found with this registration number'
     else
       status = {id: 'tradle.Status_fail', title: 'Fail'}
-      // status = 'Company not found'
     let resource:any = {
       [TYPE]: CORPORATION_EXISTS,
       status: status,
@@ -182,8 +181,10 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
       result.forEach((r: {resource:any, rawData:object, hits: any, url:string}) => {
         let { resource, rawData, hits, url } = r
         let hasVerification
-        if (!hits  ||  (!hits.length || hits.length > 1))
-          logger.debug(`found sanctions for: ${resource.companyName}`);
+        if (!hits  ||  !hits.length)
+          logger.debug(`found no corporates for: ${resource.companyName}`);
+        else if (hits.length > 1)
+          logger.debug(`found ${hits.length} corporates for: ${resource.companyName}`);
         else  {
           hasVerification = true
           logger.debug(`creating verification for: ${resource.companyName}`);
@@ -196,6 +197,7 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
     }
   }
 }
+
   // Search for jurisdiction and the by company number
   // async _fetch(resource, conf, application) {
   //   let country = resource.country
