@@ -1,22 +1,30 @@
 import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 import Errors = require('../../errors')
-import { Bot, IPluginOpts } from '../types'
+import { Bot, IPluginOpts, Conf } from '../types'
 
 // const TEST_APIGW = require('../../test/fixtures/fake-service-map')['R_RESTAPI_ApiGateway']
 
+const DEFAULT_PRODUCTS = [
+  'tradle.onfido.CustomerVerification'
+]
+
 export const createPlugin = ({ bot, logger, productsAPI, conf }: IPluginOpts) => {
-  const { apiKey } = conf
+  const {
+    apiKey,
+    products=DEFAULT_PRODUCTS
+  } = conf
+
   const onfidoAPI = new OnfidoAPI({ token: apiKey })
   const plugin = new Onfido({
     bot,
     logger,
-    products: [{
-      product: 'tradle.onfido.CustomerVerification',
+    products: products.map(product => ({
+      product,
       reports: onfidoAPI.mode === 'test'
         ? ['document', 'identity']
         : ['document', 'identity', 'facialsimilarity']
-    }],
+    })),
     productsAPI,
     onfidoAPI,
     padApplicantName: true,
@@ -67,3 +75,20 @@ export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfid
 }
 
 export { Onfido }
+
+export const validateConf = async ({ conf, pluginConf }: {
+  conf: Conf,
+  pluginConf: any
+}) => {
+  const { models } = conf.bot
+  const { apiKey, products=[] } = pluginConf
+  if (!apiKey) throw new Error('expected "apiKey"')
+
+  products.forEach(product => {
+    const model = models[product]
+    if (!model) throw new Error(`missing product model: ${product}`)
+    if (model.subClassOf !== 'tradle.FinancialProduct') {
+      throw new Error(`"${product}" is not subClassOf tradle.FinancialProduct`)
+    }
+  })
+}
