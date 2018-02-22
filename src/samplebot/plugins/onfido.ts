@@ -17,7 +17,7 @@ const DEFAULT_PRODUCTS = [
 
 const normalizePluginConf = conf => ({
   ...conf,
-  products: conf.products.map(pConf => {
+  products: (conf.products || DEFAULT_PRODUCTS).map(pConf => {
     return typeof pConf === 'string' ? { product: pConf } : pConf
   })
 })
@@ -25,7 +25,7 @@ const normalizePluginConf = conf => ({
 export const createPlugin = ({ bot, logger, productsAPI, conf }: IPluginOpts) => {
   const {
     apiKey,
-    products=DEFAULT_PRODUCTS
+    products
   } = normalizePluginConf(conf)
 
   const onfidoAPI = new OnfidoAPI({ token: apiKey })
