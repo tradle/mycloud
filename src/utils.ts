@@ -1,5 +1,6 @@
 import fs = require('fs')
 import zlib = require('zlib')
+import { parse as parseURL } from 'url'
 import _ = require('lodash')
 // allow override promise
 // @ts-ignore
@@ -1071,6 +1072,19 @@ export const isPrivateHost = (host:string):boolean => {
   if (host.startsWith('localhost')) return true
 
   return IP.isPrivate(host.split(':')[0])
+}
+
+export const isLocalUrl = (url:string) => {
+  const { hostname } = parseURL(url)
+  return isLocalHost(hostname)
+}
+
+export const isLocalHost = (host:string) => {
+  host = host.split(':')[0]
+  if (host === 'localhost') return true
+
+  const isIP = IP.isV4Format(host) || IP.isV6Format(host)
+  return isIP && IP.isPrivate(host)
 }
 
 export const pickNonNull = obj => _.pickBy(obj, val => val != null)

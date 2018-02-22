@@ -2,29 +2,40 @@ import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 import Errors = require('../../errors')
 import { Bot, IPluginOpts, Conf } from '../types'
+import { isLocalUrl } from '../../utils'
 
-// const TEST_APIGW = require('../../test/fixtures/fake-service-map')['R_RESTAPI_ApiGateway']
+const TEST_APIGW = require('../../test/fixtures/fake-service-map')['R_RESTAPI_ApiGateway']
 
 const DEFAULT_PRODUCTS = [
   'tradle.onfido.CustomerVerification'
 ]
 
+const normalizePluginConf = conf => ({
+  ...conf,
+  products: conf.products.map(pConf => {
+    return typeof pConf === 'string' ? { product: pConf } : pConf
+  })
+})
+
 export const createPlugin = ({ bot, logger, productsAPI, conf }: IPluginOpts) => {
   const {
     apiKey,
     products=DEFAULT_PRODUCTS
-  } = conf
+  } = normalizePluginConf(conf)
 
   const onfidoAPI = new OnfidoAPI({ token: apiKey })
   const plugin = new Onfido({
     bot,
     logger,
-    products: products.map(product => ({
-      product,
-      reports: onfidoAPI.mode === 'test'
-        ? ['document', 'identity']
-        : ['document', 'identity', 'facialsimilarity']
-    })),
+    products: products.map(({ product, reports }) => {
+      if (!reports) {
+        reports = onfidoAPI.mode === 'test'
+          ? ['document', 'identity']
+          : ['document', 'identity', 'facialsimilarity']
+      }
+
+      return { product, reports }
+    }),
     productsAPI,
     onfidoAPI,
     padApplicantName: true,
@@ -44,12 +55,10 @@ export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfid
     webhook: null
   }
 
-  // if (bot.apiBaseUrl.includes(TEST_APIGW) ||
-  if (bot.isTesting ||
-    /^https?:\/\/localhost/.test(bot.apiBaseUrl)) {
-    onfido.logger.warn(`can't register webhook for localhost. ` +
-      `Run: ngrok http ${bot.env.SERVERLESS_OFFLINE_PORT} ` +
-      `and set the SERVERLESS_OFFLINE_APIGW environment variable`)
+  if (bot.apiBaseUrl.includes(TEST_APIGW) || isLocalUrl(bot.apiBaseUrl)) {
+    onfido.logger.warn(`can't register webhook for localhost.
+Run: ngrok http <port>
+and set the SERVERLESS_OFFLINE_APIGW environment variable`)
 
     return ret
   }
@@ -76,19 +85,33 @@ export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfid
 
 export { Onfido }
 
+const REPORTS = ['identity', 'facialsimilarity', 'document']
+
 export const validateConf = async ({ conf, pluginConf }: {
   conf: Conf,
   pluginConf: any
 }) => {
+  pluginConf = normalizePluginConf(pluginConf)
   const { models } = conf.bot
   const { apiKey, products=[] } = pluginConf
   if (!apiKey) throw new Error('expected "apiKey"')
 
-  products.forEach(product => {
+  // crap. This is duplication of onfido plugin's job
+  products.forEach(({ product, reports }) => {
     const model = models[product]
     if (!model) throw new Error(`missing product model: ${product}`)
     if (model.subClassOf !== 'tradle.FinancialProduct') {
       throw new Error(`"${product}" is not subClassOf tradle.FinancialProduct`)
     }
+
+    if (!Array.isArray(reports)) {
+      throw new Error('expected array of Onfido reports')
+    }
+
+    reports.forEach(report => {
+      if (!REPORTS.includes(report)) {
+        throw new Error(`invalid report ${report}. Valid reports are: ${REPORTS.join(', ')}`)
+      }
+    })
   })
 }

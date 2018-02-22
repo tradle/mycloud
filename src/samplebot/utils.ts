@@ -10,6 +10,7 @@ import { Name, ResourceStub } from './types'
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const NAME = 'tradle.Name'
 const PHOTO_ID = 'tradle.PhotoID'
 const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
 const BASIC_CONTACT_INFO = 'tradle.BasicContactInfo'
@@ -135,10 +136,10 @@ export const getNameFromForm = (form:any):Name|void => {
   const type = form[TYPE]
   if (type === BASIC_CONTACT_INFO || type === PERSONAL_INFO) {
     ({ firstName, lastName } = form)
-  } else if (type === 'tradle.Name' || type === ONFIDO_APPLICANT) {
+  } else if (type === NAME || type === ONFIDO_APPLICANT) {
     firstName = form.givenName
     lastName = form.surname
-  } else if (type === 'tradle.PhotoID') {
+  } else if (type === PHOTO_ID) {
     let { scanJson } = form
     if (scanJson) {
       if (typeof scanJson === 'string') {
