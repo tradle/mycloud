@@ -164,13 +164,18 @@ export class ModelStore extends EventEmitter {
     }
 
     this.logger.debug(`added ${modelsPack.namespace} models pack`)
-    if (!key) key = getModelsPackConfKey(modelsPack)
 
-    await Promise.all([
-      this.bucket.gzipAndPut(key, modelsPack),
+    const assetKey = getModelsPackConfKey(modelsPack)
+    const puts = [
+      this.bucket.gzipAndPut(assetKey, modelsPack),
       this.bucket.gzipAndPut(this.cumulativePackKey, cumulative),
-      // this.updateGraphqlSchema({ cumulativeModelsPack: cumulative })
-    ])
+    ]
+
+    if (key && key !== assetKey) {
+      puts.push(this.bucket.gzipAndPut(key, modelsPack))
+    }
+
+    await Promise.all(puts)
 
     this.emit('update:cumulative', cumulative)
     return cumulative

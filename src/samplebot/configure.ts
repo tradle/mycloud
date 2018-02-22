@@ -167,6 +167,9 @@ export class Conf {
   }
 
   public setBotConf = async (value: any): Promise<boolean> => {
+    // load all models
+    await this.modelStore.loadModelsPacks()
+
     const { products = {} } = value
     const { plugins = {}, enabled = [] } = products
     if (_.size(plugins)) {
