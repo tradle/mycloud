@@ -4541,7 +4541,7 @@
     "web3-provider-engine": {
       "version": "13.2.9",
       "from": "mvayngrib/provider-engine",
-      "resolved": "git://github.com/mvayngrib/provider-engine.git#da70337cb57eecd7a2ce519c35d5b3cdaae66fbe",
+      "resolved": "git://github.com/mvayngrib/provider-engine.git#918c7c880598993be5719fccbebdec20b7566452",
       "dependencies": {
         "async": {
           "version": "2.6.0",
