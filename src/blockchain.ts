@@ -191,12 +191,18 @@ export default class Blockchain {
     this.start()
     this.logger.debug(`sealing ${link}`)
     if (typeof balance === 'undefined') {
-      balance = await this.balance()
+      try {
+        balance = await this.balance()
+      } catch (err) {
+        this.logger.error('failed to get balance', err)
+      }
     }
 
     const amount = this.getTxAmount()
-    if (compareBalance(balance, amount) === -1) {
-      throw new Errors.LowFunds(`have ${balance}, need at least ${amount}`)
+    if (typeof balance !== 'undefined') {
+      if (compareBalance(balance, amount) === -1) {
+        throw new Errors.LowFunds(`have ${balance}, need at least ${amount}`)
+      }
     }
 
     try {

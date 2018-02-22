@@ -256,7 +256,15 @@ export default class Seals {
     this.logger.info(`found ${pending.length} pending seals`)
     let aborted
     // TODO: update balance after every tx
-    const balance = this.blockchain.balance ? await this.blockchain.balance() : undefined
+    let balance
+    if (this.blockchain.balance) {
+      try {
+        balance = await this.blockchain.balance()
+      } catch (err) {
+        this.logger.error('failed to get balance', err)
+      }
+    }
+
     const results = await seriesMap(pending, async (sealInfo: Seal) => {
       if (aborted) return
 

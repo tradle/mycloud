@@ -188,7 +188,7 @@
     "@tradle/ethereum-adapter": {
       "version": "1.0.0",
       "from": "tradle/ethereum-adapter",
-      "resolved": "git://github.com/tradle/ethereum-adapter.git#b92a4410363075ae481c2dc47de866f108fd9978",
+      "resolved": "git://github.com/tradle/ethereum-adapter.git#df66424a70fdc7ab5eb0d1687d92ac585577375c",
       "dependencies": {
         "async": {
           "version": "2.6.0",
@@ -1130,9 +1130,9 @@
       "resolved": "https://registry.npmjs.org/camelcase/-/camelcase-3.0.0.tgz"
     },
     "caniuse-lite": {
-      "version": "1.0.30000805",
+      "version": "1.0.30000810",
       "from": "caniuse-lite@>=1.0.30000792 <2.0.0",
-      "resolved": "http://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30000805.tgz"
+      "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30000810.tgz"
     },
     "caseless": {
       "version": "0.12.0",
@@ -1955,9 +1955,9 @@
       }
     },
     "ethereumjs-block": {
-      "version": "1.7.0",
+      "version": "1.7.1",
       "from": "ethereumjs-block@>=1.0.4 <2.0.0",
-      "resolved": "https://registry.npmjs.org/ethereumjs-block/-/ethereumjs-block-1.7.0.tgz",
+      "resolved": "https://registry.npmjs.org/ethereumjs-block/-/ethereumjs-block-1.7.1.tgz",
       "dependencies": {
         "async": {
           "version": "2.6.0",
@@ -3127,10 +3127,15 @@
           "from": "isarray@>=1.0.0 <1.1.0",
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
         },
+        "process-nextick-args": {
+          "version": "2.0.0",
+          "from": "process-nextick-args@>=2.0.0 <2.1.0",
+          "resolved": "https://registry.npmjs.org/process-nextick-args/-/process-nextick-args-2.0.0.tgz"
+        },
         "readable-stream": {
-          "version": "2.3.3",
+          "version": "2.3.4",
           "from": "readable-stream@>=2.0.0 <3.0.0",
-          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.3.tgz"
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.4.tgz"
         },
         "string_decoder": {
           "version": "1.0.3",
@@ -4019,9 +4024,9 @@
       }
     },
     "solc": {
-      "version": "0.4.19",
+      "version": "0.4.20",
       "from": "solc@>=0.4.2 <0.5.0",
-      "resolved": "https://registry.npmjs.org/solc/-/solc-0.4.19.tgz",
+      "resolved": "https://registry.npmjs.org/solc/-/solc-0.4.20.tgz",
       "dependencies": {
         "semver": {
           "version": "5.5.0",
@@ -4066,9 +4071,9 @@
       "resolved": "https://registry.npmjs.org/sshpk/-/sshpk-1.13.1.tgz"
     },
     "ssl-root-cas": {
-      "version": "1.2.4",
+      "version": "1.2.5",
       "from": "ssl-root-cas@>=1.1.10 <2.0.0",
-      "resolved": "https://registry.npmjs.org/ssl-root-cas/-/ssl-root-cas-1.2.4.tgz"
+      "resolved": "https://registry.npmjs.org/ssl-root-cas/-/ssl-root-cas-1.2.5.tgz"
     },
     "stack-trace": {
       "version": "0.0.10",
@@ -4582,10 +4587,15 @@
           "from": "isarray@>=1.0.0 <1.1.0",
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
         },
+        "process-nextick-args": {
+          "version": "2.0.0",
+          "from": "process-nextick-args@~2.0.0",
+          "resolved": "https://registry.npmjs.org/process-nextick-args/-/process-nextick-args-2.0.0.tgz"
+        },
         "readable-stream": {
-          "version": "2.3.3",
-          "from": "readable-stream@>=2.2.9 <3.0.0",
-          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.3.tgz"
+          "version": "2.3.4",
+          "from": "readable-stream@^2.2.9",
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.4.tgz"
         },
         "string_decoder": {
           "version": "1.0.3",
