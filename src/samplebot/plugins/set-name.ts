@@ -14,15 +14,15 @@ export const createPlugin = ({ bot, productsAPI }) => {
     'tradle.onfido.CustomerVerification': 'tradle.PhotoID',
     'tradle.pg.CustomerOnboarding': 'tradle.PhotoID',
     'tradle.CurrentAccount': 'tradle.PersonalInfo',
-    'tradle.EmployeeOnboaring': 'tradle.Name'
+    'tradle.EmployeeOnboarding': 'tradle.Name'
   }
 
   const trySetName = async (req) => {
     const { type, payload, application } = req
     if (!(payload && application)) return
+    if (type === PRODUCT_REQUEST) return
 
     const { requestFor, applicantName, forms=[] } = application
-    if (type === PRODUCT_REQUEST) return
 
     // if (applicantName) {
     //   logger.debug('applicantName is already set, bye')
