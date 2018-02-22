@@ -16,6 +16,7 @@ const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
 const BASIC_CONTACT_INFO = 'tradle.BasicContactInfo'
 const PERSONAL_INFO = 'tradle.PersonalInfo'
 const ADDRESS = 'tradle.Address'
+const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
 
 export const createEditConfOp = edit => async (opts) => {
   const { bot } = opts.commander
@@ -128,6 +129,20 @@ export const getDateOfBirthFromForm = (form:any):number|void => {
     if (typeof dateOfBirth === 'string') {
       return parseScannedDate(dateOfBirth)
     }
+  }
+}
+
+export const getFormattedNameFromForm = (form: any):string|void => {
+  const personal = getNameFromForm(form)
+  if (personal) {
+    return [personal.firstName, personal.lastName].filter(str => str).join(' ')
+  }
+
+  switch (form[TYPE]) {
+    case BUSINESS_INFORMATION:
+      return form.companyName
+    default:
+      return
   }
 }
 

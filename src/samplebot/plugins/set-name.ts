@@ -1,7 +1,8 @@
 import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
+import buildResource = require('@tradle/build-resource')
 import { Name } from '../types'
-import { getNameFromForm } from '../utils'
+import { getFormattedNameFromForm } from '../utils'
 
 const { parseStub } = validateResource.utils
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
@@ -14,7 +15,8 @@ export const createPlugin = ({ bot, productsAPI }) => {
     'tradle.onfido.CustomerVerification': 'tradle.PhotoID',
     'tradle.pg.CustomerOnboarding': 'tradle.PhotoID',
     'tradle.CurrentAccount': 'tradle.PersonalInfo',
-    'tradle.EmployeeOnboarding': 'tradle.Name'
+    'tradle.EmployeeOnboarding': 'tradle.Name',
+    'tradle.CordaKYC': 'tradle.BusinessAccount'
   }
 
   const trySetName = async (req) => {
@@ -42,11 +44,23 @@ export const createPlugin = ({ bot, productsAPI }) => {
       form = await bot.getResource(parsedStub)
     }
 
-    const name = getNameFromForm(form)
+    let name = getFormattedNameFromForm(form)
     if (name) {
-      const formatted = [name.firstName, name.lastName].filter(str => str).join(' ')
-      application.applicantName = formatted
+      application.applicantName = name
+      return
     }
+
+    try {
+      name = buildResource.title({
+        models: bot.models,
+        resource: form
+      })
+    } catch (err) {
+      logger.error('failed to calc applicantName', err)
+      return
+    }
+
+    application.applicantName = name
   }
 
   return {
