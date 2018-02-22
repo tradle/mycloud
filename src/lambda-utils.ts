@@ -293,9 +293,13 @@ export default class LambdaUtils {
         }
 
         let { headers, body, isBase64Encoded } = resp
-        body = headers && body && isBase64Encoded
-          ? JSON.parse(new Buffer(body, 'base64').toString())
-          : resp
+        try {
+          body = headers && body && isBase64Encoded
+            ? JSON.parse(new Buffer(body, 'base64').toString())
+            : resp
+        } catch (err) {
+          this.logger.error('failed to parse body', resp)
+        }
 
         this.logger.info(`Warm Up Invoke Success: ${functionName}`, body)
         return body
