@@ -11,8 +11,10 @@ export const createPlugin = ({ bot, productsAPI }) => {
   const logger = bot.logger.sub('plugin-set-name')
   const productToNameForm = {
     'nl.tradle.DigitalPassport': 'tradle.PhotoID',
-    'tradle.OnfidoVerification': 'tradle.PhotoID',
-    'tradle.CurrentAccount': 'tradle.PersonalInfo'
+    'tradle.onfido.CustomerVerification': 'tradle.PhotoID',
+    'tradle.pg.CustomerOnboarding': 'tradle.PhotoID',
+    'tradle.CurrentAccount': 'tradle.PersonalInfo',
+    'tradle.EmployeeOnboaring': 'tradle.Name'
   }
 
   const trySetName = async (req) => {
