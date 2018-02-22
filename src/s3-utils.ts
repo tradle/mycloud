@@ -4,7 +4,7 @@ import Errors = require('./errors')
 import Env from './env'
 import Logger from './logger'
 import { S3 } from 'aws-sdk'
-import { timeMethods, isPromise, batchProcess, gzip, gunzip, isLocalUrl } from './utils'
+import { timeMethods, isPromise, batchProcess, gzip, gunzip, isLocalHost } from './utils'
 
 export type PutOpts = {
   key:string
@@ -282,7 +282,7 @@ export default class S3Utils {
 
   public getUrlForKey = ({ bucket, key }) => {
     const { host } = this.s3.endpoint
-    if (isLocalUrl(host)) {
+    if (isLocalHost(host)) {
       return `http://${host}/${bucket}${key}`
     }
 

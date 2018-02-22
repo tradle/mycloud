@@ -1068,12 +1068,6 @@ export const copyVirtual = (target, source) => {
   return _.extend(target, pickVirtual(source))
 }
 
-export const isPrivateHost = (host:string):boolean => {
-  if (host.startsWith('localhost')) return true
-
-  return IP.isPrivate(host.split(':')[0])
-}
-
 export const isLocalUrl = (url:string) => {
   const { hostname } = parseURL(url)
   return isLocalHost(hostname)
