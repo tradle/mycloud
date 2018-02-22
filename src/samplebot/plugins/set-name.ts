@@ -43,8 +43,9 @@ export const createPlugin = ({ bot, productsAPI }) => {
     }
 
     const name = getNameFromForm(form)
-    if (name && name.formatted) {
-      application.applicantName = name.formatted
+    if (name) {
+      const formatted = [name.firstName, name.lastName].filter(str => str).join(' ')
+      application.applicantName = formatted
     }
   }
 
