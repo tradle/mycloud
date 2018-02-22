@@ -4,7 +4,12 @@ import Errors = require('../../errors')
 import { Bot, IPluginOpts, Conf } from '../types'
 import { isLocalUrl } from '../../utils'
 
-const TEST_APIGW = require('../../test/fixtures/fake-service-map')['R_RESTAPI_ApiGateway']
+let TEST_APIGW
+try {
+  TEST_APIGW = require('../../test/fixtures/fake-service-map')['R_RESTAPI_ApiGateway']
+} catch (err) {
+  // unavailable in prod
+}
 
 const DEFAULT_PRODUCTS = [
   'tradle.onfido.CustomerVerification'
@@ -55,12 +60,14 @@ export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfid
     webhook: null
   }
 
-  if (bot.apiBaseUrl.includes(TEST_APIGW) || isLocalUrl(bot.apiBaseUrl)) {
-    onfido.logger.warn(`can't register webhook for localhost.
-Run: ngrok http <port>
-and set the SERVERLESS_OFFLINE_APIGW environment variable`)
+  if (bot.isTesting) {
+    if (bot.apiBaseUrl.includes(TEST_APIGW) || isLocalUrl(bot.apiBaseUrl)) {
+      onfido.logger.warn(`can't register webhook for localhost.
+  Run: ngrok http <port>
+  and set the SERVERLESS_OFFLINE_APIGW environment variable`)
 
-    return ret
+      return ret
+    }
   }
 
   const url = `${bot.apiBaseUrl}/onfido`
