@@ -1,4 +1,5 @@
-const { TYPE } = require('@tradle/constants')
+import _ = require('lodash')
+import { TYPE } from '@tradle/constants'
 
 const LOCALLY_AVAILABLE = [
   'AWS::DynamoDB::Table',
@@ -15,7 +16,31 @@ export {
   addResourcesToEnvironment,
   removeResourcesThatDontWorkLocally,
   addBucketTables,
-  stripDevFunctions
+  stripDevFunctions,
+  setBucketEncryption
+}
+
+function setBucketEncryption ({ target, interpolated }) {
+  const { encryption=[] } = interpolated.custom.vars
+  if (!encryption.length) return
+
+  encryption.forEach(bucketName => {
+    target.resources.Resources[bucketName].BucketEncryption = {
+      ServerSideEncryptionConfiguration: [
+        {
+          ServerSideEncryptionByDefault: {
+            SSEAlgorithm: 'AES256'
+          }
+        }
+      ]
+    }
+  })
+
+  // yml.resources.Resources = _.transform(yml.resources.Resources, (result, res, key) => {
+  //   if (res.Type !== 'AWS::S3::Bucket') {
+  //     result[key] = res
+  //   }
+  // })
 }
 
 function addBucketTables ({ yml, prefix }) {

@@ -34,7 +34,8 @@ import {
   addResourcesToOutputs,
   removeResourcesThatDontWorkLocally,
   addBucketTables,
-  stripDevFunctions
+  stripDevFunctions,
+  setBucketEncryption
 } from './compile'
 
 const Localstack = require('../test/localstack')
@@ -194,6 +195,7 @@ const compileTemplate = async (path) => {
 
   // validateProviderConf(interpolated.custom.providerConf)
   addBucketTables({ yml, prefix: interpolated.custom.prefix })
+  setBucketEncryption({ target: yml, interpolated })
   stripDevFunctions(yml)
 
   const isLocal = process.env.IS_LOCAL
