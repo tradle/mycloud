@@ -51,8 +51,7 @@ export default class Push {
     if (!registered) await this.register({ identity, key })
   }
 
-  public isRegistered = () =>
-    this.registration.exists(this.serverUrl)
+  public isRegistered = () => this.registration.exists(this.serverUrl)
 
   public setRegistered = async ():Promise<void> => {
     await this.registration.put(this.serverUrl, {

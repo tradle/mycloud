@@ -15,6 +15,7 @@ import { command as deny } from './deny'
 import { command as getlaunchlink } from './getlaunchlink'
 // import { command as enablebinary } from './enable-binary'
 import { command as model } from './model'
+import { command as push } from './push'
 
 export {
   help,
@@ -34,4 +35,5 @@ export {
   // sudo only
   // encryptbucket,
   // enablebinary,
+  push
 }

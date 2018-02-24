@@ -371,6 +371,14 @@ export default class Provider {
     })
   }
 
+  public registerWithPushNotificationsServer = async ():Promise<void> => {
+    const { identity, keys } = await this.tradle.provider.getMyPrivateIdentity()
+    await this.tradle.pushNotifications.ensureRegistered({
+      key: getSigningKey(keys),
+      identity
+    })
+  }
+
   public lookupMyIdentity = ():Promise<any> => {
     return this.secrets.getJSON(IDENTITY_KEYS_KEY)
   }

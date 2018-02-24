@@ -135,6 +135,7 @@ export class Bot extends EventEmitter implements IReady {
   public get models () { return this.modelStore.models }
   public get mailer () { return this.tradle.mailer }
   public get appLinks () { return this.tradle.appLinks }
+  public get pushNotifications () { return this.tradle.pushNotifications }
   public logger: Logger
   public kv: KeyValueTable
   public conf: KeyValueTable
@@ -264,6 +265,14 @@ export class Bot extends EventEmitter implements IReady {
     if (messages) {
       return Array.isArray(opts) ? messages : messages[0]
     }
+  }
+
+  public sendPushNotification = async (recipient: string) => {
+    return await this.provider.sendPushNotification(recipient)
+  }
+
+  public registerWithPushNotificationsServer = async () => {
+    return await this.provider.registerWithPushNotificationsServer()
   }
 
   public getChatLink = async (opts: Partial<IDeepLink>) => {
