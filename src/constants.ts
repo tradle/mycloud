@@ -75,7 +75,8 @@ const constants = {
   WEB_APP_URL: 'https://app.tradle.io',
   MOBILE_APP_URL: 'https://link.tradle.io',
   PUSH_SERVER_URL: {
-    dev: 'https://push1.tradle.io',
+    // dev: 'https://push1.tradle.io',
+    dev: 'https://push1-prod.tradle.io',
     prod: 'https://push1-prod.tradle.io'
   }
 }

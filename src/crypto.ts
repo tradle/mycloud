@@ -78,6 +78,10 @@ export class ECKey {
 
     return json
   }
+
+  public toJSONUnencoded = (exportPrivate?: boolean) => {
+    return _.omit(this.toJSON(exportPrivate), 'encoded')
+  }
 }
 
 // function encryptKey (key) {

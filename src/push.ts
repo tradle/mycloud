@@ -4,7 +4,7 @@ import Cache = require('lru-cache')
 import { protocol } from '@tradle/engine'
 import buildResource = require('@tradle/build-resource')
 import { ECKey, sha256, randomString } from './crypto'
-import { cachifyFunction, post } from './utils'
+import { cachifyFunction, post, omitVirtual } from './utils'
 import Logger from './logger'
 import Provider from './provider'
 import KeyValueTable from './key-value-table'
@@ -64,8 +64,8 @@ export default class Push {
     key: ECKey
   }) => {
     const nonce = await post(`${this.serverUrl}/publisher`, {
-      identity,
-      key: key.toJSON()
+      identity: omitVirtual(identity),
+      key: key.toJSONUnencoded()
     })
 
     const salt = randomString(32, 'base64')

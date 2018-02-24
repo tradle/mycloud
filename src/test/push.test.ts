@@ -28,7 +28,7 @@ test('push', loudAsync(async (t) => {
       preregistered = true
       t.same(body, {
         identity: alice,
-        key: key.toJSON()
+        key: key.toJSONUnencoded()
       })
 
       return nonce

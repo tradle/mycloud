@@ -267,14 +267,8 @@ export class Bot extends EventEmitter implements IReady {
     }
   }
 
-  public sendPushNotification = async (recipient: string) => {
-    return await this.provider.sendPushNotification(recipient)
-  }
-
-  public registerWithPushNotificationsServer = async () => {
-    return await this.provider.registerWithPushNotificationsServer()
-  }
-
+  public sendPushNotification = (recipient: string) => this.provider.sendPushNotification(recipient)
+  public registerWithPushNotificationsServer = () => this.provider.registerWithPushNotificationsServer()
   public getChatLink = async (opts: Partial<IDeepLink>) => {
     return this.appLinks.getChatLink({
       provider: opts.provider || await this.getMyIdentityPermalink(),
