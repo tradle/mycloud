@@ -12,6 +12,9 @@ import { IPluginOpts, ClaimStub } from './types'
 
 const NONCE_LENGTH = 16
 const CLAIM_ID_ENCODING = 'hex'
+const DEFAULT_CONF = {
+  deleteRedeemedClaims: true
+}
 
 type KeyContainer = {
   key: string
@@ -23,18 +26,21 @@ export class Remediator {
   public plugin: any
   public remediation: Remediation
   public logger: Logger
-  public conf: KeyValueTable
+  public keyToNonces: KeyValueTable
   public store: ContentAddressedStore
+  public conf: any
   private _removeHandler: Function
   constructor ({
     bot,
     productsAPI,
-    logger
+    logger,
+    conf=DEFAULT_CONF
   }: IPluginOpts) {
     this.bot = bot
     this.productsAPI = productsAPI
     this.logger = logger
-    this.conf = bot.conf.sub('remediation:')
+    this.conf = conf
+    this.keyToNonces = bot.conf.sub('remediation:')
     this.store = new ContentAddressedStore({
       bucket: bot.buckets.PrivateConf.folder('remediation'),
       // hasher: Hashers.sha256TruncatedTo(16)
@@ -75,7 +81,7 @@ export class Remediator {
     const { nonce, claimId } = claimStub
     const nonces = await this.getNonces({ key })
     nonces.push(nonce)
-    await this.conf.put(key, nonces)
+    await this.keyToNonces.put(key, nonces)
     return claimStub
   }
 
@@ -86,7 +92,7 @@ export class Remediator {
     if (!key) key = parseClaimId(claimId).key
 
     await Promise.all([
-      this.conf.del(key),
+      this.keyToNonces.del(key),
       this.store.del(key)
     ])
   }
@@ -95,8 +101,10 @@ export class Remediator {
     user: any,
     claimId: string
   }) => {
-    // this.logger.debug(`claim processed, deleting claim stubs`, { claimId, user: user.id })
-    // await this.deleteClaimsForBundle({ claimId })
+    if (this.conf.deleteRedeemedClaims) {
+      this.logger.debug(`claim processed, deleting claim stubs`, { claimId, user: user.id })
+      await this.deleteClaimsForBundle({ claimId })
+    }
   }
 
   public getBundle = async ({ key, claimId }: {
@@ -178,7 +186,7 @@ export class Remediator {
 
   private getNonces = async ({ key }: KeyContainer) => {
     try {
-      return await this.conf.get(key)
+      return await this.keyToNonces.get(key)
     } catch (err) {
       Errors.ignore(err, Errors.NotFound)
       return []
