@@ -60,6 +60,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
     - [Core Tables](#core-tables)
     - [Buckets](#buckets)
     - [Functions](#functions)
+    - [Network communication flow](#network-communication-flow)
+    - [Plugins](#plugins)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -490,3 +492,7 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 1. client calls `/auth` with the signed challenge. At this point MyCloud deems it safe to send the client any queued up messages, and will start doing so.
 1. client subscribes to AWS Iot topics restricted to its temporary identity's namespace. This allows it to receive messages, acks and errors from MyCloud. MyCloud receives these Iot lifecycle events (connect, disconnect, subscribe) in Lambda, and updates the client's session information (`iotlifecycle` lambda).
 1. the client and MyCloud can send each other messages via AWS Iot.
+
+#### Plugins
+
+See [./docs/plugins.md](./docs/plugins.md)
