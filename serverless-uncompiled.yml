@@ -155,10 +155,6 @@ custom:
   # sqs
   deadLetterQueueName: ${{self:custom.prefixSQS}}dead-letter-queue
 
-  # hostedZoneName: tradle.io
-  # domainName: lambda1.tradle.io
-  pushServer: https://push1.tradle.io
-
   tables:
     presence: ${{self:custom.prefix}}presence
     seals: ${{self:custom.prefix}}seals
@@ -323,7 +319,6 @@ provider:
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
-    PUSH_SERVER_URL: ${{self:custom.pushServer}}
     NO_TIME_TRAVEL: false # allow time-travel messages for now
 
   # apiKeys:

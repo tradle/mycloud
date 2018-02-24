@@ -4,6 +4,7 @@ import { toCamelCase, splitCamelCase } from './string-utils'
 import { Seals } from './seals'
 import { Blockchain } from './blockchain'
 import { TaskManager } from './task-manager'
+import constants = require('./constants')
 
 import {
   Provider,
@@ -166,19 +167,12 @@ export default class Tradle {
       logger: this.logger.sub('db-utils')
     }))
 
-    this.define('pushNotifications', './push', ctor => {
-      if (!this.env.PUSH_SERVER_URL) {
-        this.logger.warn('missing PUSH_SERVER_URL, push notifications not available')
-        return
-      }
-
-      return new ctor({
-        logger: this.env.sublogger('push'),
-        serverUrl: this.env.PUSH_SERVER_URL,
-        conf: this.kv.sub('push:'),
-        provider: this.provider
-      })
-    })
+    this.define('pushNotifications', './push', ctor => new ctor({
+      logger: this.env.sublogger('push'),
+      serverUrl: constants.PUSH_SERVER_URL[this.env.STAGE],
+      conf: this.kv.sub('push:'),
+      provider: this.provider
+    }))
 
     this.define('modelStore', './model-store', MS => MS.createModelStore(this))
     this.tasks = new TaskManager({
