@@ -112,21 +112,23 @@ export default class StackUtils {
   public getUpdateStackUrl = async ({
     region=this.env.AWS_REGION,
     stackName=this.stack.name,
-    stackArn=this.stack.arn,
+    stackId=this.stack.arn,
     templateURL
   }: IUpdateStackUrlOpts) => {
-    if (!stackArn) {
+    if (!stackId) {
       const stacks = await this.listStacks()
       const stack = stacks.find(({ StackName }) => StackName === stackName)
       if (!stack) {
         throw new Errors.NotFound(`stack with name: ${stackName}`)
       }
 
-      stackArn = stack.StackId
+      stackId = stack.StackId
     }
 
-    const qs = querystring.stringify({ stackId: stackArn, templateURL })
-    return `${LAUNCH_STACK_BASE_URL}?region=${region}#/stacks/update?${qs}`
+    return utils.getUpdateStackUrl({
+      stackId,
+      templateURL
+    })
   }
 
   public getStackResources = async (StackName: string=this.stack.name):Promise<AWS.CloudFormation.StackResourceSummaries> => {
@@ -305,7 +307,7 @@ export default class StackUtils {
     const customized = await transform(template)
     const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
     const pubConf = this.buckets.PublicConf
-    await pubConf.putJSON(key, template, { publicRead: true })
+    await pubConf.putJSON(key, customized, { publicRead: true })
     return {
       template: customized,
       key,

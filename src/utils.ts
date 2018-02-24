@@ -46,7 +46,14 @@ import {
 } from './constants'
 
 import Errors = require('./errors')
-import { CacheContainer, ISettledPromise, ILaunchStackUrlOpts, ITimeoutOpts } from './types'
+import {
+  CacheContainer,
+  ISettledPromise,
+  ILaunchStackUrlOpts,
+  ITimeoutOpts,
+  IUpdateStackUrlOpts
+} from './types'
+
 import Logger from './logger'
 import Env from './env'
 import Tradle from './tradle'
@@ -508,13 +515,13 @@ export const waterfall = async (fns, ...args) => {
 
 export const getTodayISO = () => new Date().toISOString().slice(0, 10)
 
-export function getLaunchStackUrl ({
+export const getLaunchStackUrl = ({
   region=process.env.AWS_REGION,
   stackName,
   templateURL,
   quickLink=true
-}: ILaunchStackUrlOpts) {
-  const qs = querystring.stringify({ stackName, templateURL })
+}: ILaunchStackUrlOpts) => {
+  const qs = querystring.stringify(pickNonNull({ stackName, templateURL }))
   const path = quickLink ? 'stacks/create/review' : 'stacks/new'
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/${path}?${qs}`
 }
@@ -524,6 +531,15 @@ export const parseLaunchStackUrl = (url: string) => {
   const q1 = querystring.parse(main.split('?')[1])
   const q2 = querystring.parse(hash.split('?')[1])
   return { ...q1, ...q2 }
+}
+
+export const getUpdateStackUrl = ({
+  stackId,
+  templateURL
+}: IUpdateStackUrlOpts) => {
+  const qs = querystring.stringify(pickNonNull({ stackId, templateURL }))
+  const path = 'stack/update'
+  return `${LAUNCH_STACK_BASE_URL}#/${path}?${qs}`
 }
 
 export function domainToUrl (domain) {

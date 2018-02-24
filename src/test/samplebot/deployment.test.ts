@@ -16,9 +16,11 @@ import { TYPES, PRIVATE_CONF_BUCKET } from '../../samplebot/constants'
 import models = require('../../models')
 import { IMyDeploymentConf, IBotConf, ILaunchReportPayload } from '../../samplebot/types'
 
+const users = require('../fixtures/users.json')
 const { loudAsync } = utils
 
 test('deployment by referral', loudAsync(async (t) => {
+  const configuredBy = users[0].identity
   const senderEmail = 'sender@example.com'
   const conf = {
     ...fake({
@@ -32,7 +34,7 @@ test('deployment by referral', loudAsync(async (t) => {
     hrEmail: 'hr@example.com',
   }
 
-  conf._author = 'somedude'
+  conf._author = configuredBy.link
 
   const parent = createBot()
   const childTradle = createTestTradle()
@@ -68,7 +70,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  sinon.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, val) => {
+  let pubConfStub = sinon.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, val) => {
     deploymentConf = {
       stackId: child.stackUtils.getThisStackId(),
       ...val.Mappings.deployment.init,
@@ -150,7 +152,20 @@ test('deployment by referral', loudAsync(async (t) => {
     configurationLink: conf._link
   })
 
-  const spySaveChildDeployment = sinon.spy(parent.db, 'put')
+
+  let childDeploymentResource
+  const saveChildDeploymentStub = sinon.stub(parent.db, 'put').callsFake(async (res) => {
+    childDeploymentResource = res
+  })
+
+  const getConfAuthorStub = sinon.stub(parent.identities, 'byPermalink').callsFake(async (permalink) => {
+    if (permalink === conf._author) {
+      return configuredBy
+    }
+
+    throw new Errors.NotFound(permalink)
+  })
+
   await childDeployment.reportLaunch({
     org: _.pick(deploymentConf, ['name', 'domain']),
     identity: childIdentity,
@@ -189,7 +204,20 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(sendStub.getCall(0).args[0].to, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
-  t.equal(spySaveChildDeployment.callCount, 1)
-  t.equal(spySaveChildDeployment.getCall(0).args[0].deploymentUUID, deploymentConf.deploymentUUID)
+  t.equal(saveChildDeploymentStub.callCount, 1)
+  t.equal(childDeploymentResource.deploymentUUID, deploymentConf.deploymentUUID)
+
+  sinon.stub(parent.db, 'find').resolves(childDeploymentResource)
+
+  pubConfStub.restore()
+  pubConfStub = sinon.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, template) => {
+    t.equal(template.Mappings, undefined)
+  })
+
+  const updateUrl = await parentDeployment.getUpdateUrl({
+    createdBy: childIdentity._permalink
+  })
+
+  t.equal(pubConfStub.callCount, 1)
   t.end()
 }))

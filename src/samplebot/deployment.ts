@@ -30,6 +30,8 @@ import { createLinker } from './app-links'
 
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
+const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
+const CONFIGURATION = 'tradle.cloud.Configuration'
 
 interface ISaveChildDeploymentOpts {
   apiUrl: string
@@ -99,11 +101,73 @@ export class Deployment {
   public getLaunchUrl = async (opts: IDeploymentOpts) => {
     this.logger.debug('generating cloudformation template with opts', opts)
     const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplate({ template, opts })
+      return this.customizeTemplateForLaunch({ template, opts })
     })
 
     await this.saveDeploymentTracker({ template, link: opts.configurationLink })
     return this.bot.stackUtils.getLaunchStackUrl({ templateURL: url })
+  }
+
+  public getUpdateUrl = async ({ createdBy, configuredBy, childDeploymentLink }: {
+    childDeploymentLink?: string
+    createdBy?:string
+    configuredBy?: string
+  }) => {
+    let childDeployment
+    if (childDeploymentLink) {
+      childDeployment = await this.bot.objects.get(childDeploymentLink)
+    } else if (createdBy) {
+      childDeployment = await this.getChildDeploymentCreatedBy(createdBy)
+    } else if (configuredBy) {
+      childDeployment = await this.getChildDeploymentConfiguredBy(configuredBy)
+    } else {
+      throw new Error('expected "createdBy", "configuredBy" or "childDeploymentLink')
+    }
+
+    const { stackId } = childDeployment
+    const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
+      return this.customizeTemplateForUpdate({ template })
+    })
+
+    return utils.getUpdateStackUrl({ stackId, templateURL: url })
+  }
+
+  public getChildDeploymentCreatedBy = async (createdBy: string) => {
+    try {
+      return await this.bot.db.findOne({
+        orderBy: {
+          property: '_time',
+          desc: true
+        },
+        filter: {
+          EQ: {
+            [TYPE]: CHILD_DEPLOYMENT
+          },
+          STARTS_WITH: {
+            ['identity.id']: `tradle.Identity_${createdBy}`
+          }
+        }
+      })
+    } catch (err) {
+      Errors.ignore(err, { name: 'NotFound' })
+    }
+  }
+
+  public getChildDeploymentConfiguredBy = async (configuredBy: string) => {
+    return await this.bot.db.findOne({
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: CONFIGURATION
+        },
+        STARTS_WITH: {
+          ['configuredBy.id']: `tradle.Identity_${configuredBy}`
+        }
+      }
+    })
   }
 
   public saveDeploymentTracker = async ({ template, link }: {
@@ -177,13 +241,14 @@ export class Deployment {
       identity: friend.identity
     })
 
-    const promiseSaveDeployment = this.bot.signAndSave(this.buildChildDeploymentResource({
+    const depResource = await this.buildChildDeploymentResource({
       apiUrl,
       deploymentUUID,
       configuration,
       identity: friend.identity
-    }))
+    })
 
+    const promiseSaveDeployment = this.bot.signAndSave(depResource)
     await Promise.all([
       promiseNotifyCreators,
       promiseSaveDeployment
@@ -198,15 +263,17 @@ export class Deployment {
     return true
   }
 
-  public buildChildDeploymentResource = ({ apiUrl, deploymentUUID, configuration, identity }: ISaveChildDeploymentOpts) => {
+  public buildChildDeploymentResource = async ({ apiUrl, deploymentUUID, configuration, identity }: ISaveChildDeploymentOpts) => {
+    const configuredBy = await this.bot.identities.byPermalink(configuration._author)
     const builder = buildResource({
       models: this.bot.models,
-      model: 'tradle.cloud.ChildDeployment',
+      model: CHILD_DEPLOYMENT,
     })
     .set({
       deploymentUUID,
       apiUrl,
       configuration,
+      configuredBy: utils.omitVirtual(configuredBy),
       identity
     })
 
@@ -296,7 +363,7 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
 - Invite employees using this link: ${employeeOnboarding}`
   }
 
-  public customizeTemplate = async ({ template, opts }: {
+  public customizeTemplateForLaunch = async ({ template, opts }: {
     template: any
     opts: IDeploymentOpts
   }) => {
@@ -306,6 +373,7 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
       throw new Errors.InvalidInput('expected "name" and "domain"')
     }
 
+    template = _.cloneDeep(template)
     template.Description = `MyCloud, by Tradle`
     domain = normalizeDomain(domain)
 
@@ -341,6 +409,12 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
 
     // write template to s3, return link
     return template
+  }
+
+  public customizeTemplateForUpdate = async ({ template }: {
+    template: any
+  }) => {
+    return _.omit(template, 'Mappings')
   }
 
   public getReportLaunchUrl = (referrerUrl:string=this.bot.apiBaseUrl) => {
