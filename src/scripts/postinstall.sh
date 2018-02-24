@@ -10,9 +10,9 @@ do
   fi
 done
 
-# if [ ! -e "src/samplebot/conf/provider.json" ]; then
-#   echo "creating src/samplebot/conf/provider.json"
-#   cp "src/samplebot/conf/default.json" "src/samplebot/conf/provider.json"
+# if [ ! -e "src/in-house-bot/conf/provider.json" ]; then
+#   echo "creating src/in-house-bot/conf/provider.json"
+#   cp "src/in-house-bot/conf/default.json" "src/in-house-bot/conf/provider.json"
 # fi
 
 if [ ! -e "serverless.yml" ]; then

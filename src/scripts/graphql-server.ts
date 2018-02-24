@@ -8,8 +8,8 @@ loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
 
 import { loadCredentials, loadRemoteEnv } from '../cli/utils'
 import dynogels = require('dynogels')
-// import { createBot } from '../samplebot/bot'
-// import sampleQueries from '../samplebot/sample-queries'
+// import { createBot } from '../in-house-bot/bot'
+// import sampleQueries from '../in-house-bot/sample-queries'
 
 const TESTING = process.env.NODE_ENV === 'test'
 if (TESTING) {
@@ -34,7 +34,7 @@ dynogels.log = {
   level: 'info'
 }
 
-import lambda = require('../samplebot/lambda/http/graphql')
+import lambda = require('../in-house-bot/lambda/http/graphql')
 // lambda.execCtx = {
 //   event: {}
 // }

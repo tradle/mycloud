@@ -4,11 +4,11 @@ import _ = require('lodash')
 import test = require('tape')
 import sinon = require('sinon')
 import { TYPE, SIG, OWNER } from '@tradle/constants'
-import { SmartPrefill } from '../../samplebot/plugins/smart-prefill'
+import { SmartPrefill } from '../../in-house-bot/plugins/smart-prefill'
 import { loudAsync } from '../../utils'
 import Errors = require('../../errors')
 import { createBot } from '../../bot'
-import { TYPES } from '../../samplebot/constants'
+import { TYPES } from '../../in-house-bot/constants'
 import models = require('../../models')
 
 const PHOTO_ID = 'tradle.PhotoID'

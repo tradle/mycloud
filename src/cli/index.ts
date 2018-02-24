@@ -4,11 +4,11 @@ import yn = require('yn')
 import Logger, { Writer } from '../logger'
 import Env from '../env'
 import testServiceMap = require('../test/service-map')
-import { customize } from '../samplebot/customize'
+import { customize } from '../in-house-bot/customize'
 import { createBot } from '../bot'
 import { list as listCommands, get as getCommand } from './registrar'
 import Command from './command'
-import { ICommand, CliOpts } from '../samplebot/types'
+import { ICommand, CliOpts } from '../in-house-bot/types'
 
 const remoteServiceMap = require('./remote-service-map')
 const providerConf = require('../../conf/provider')

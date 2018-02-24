@@ -25,7 +25,7 @@ import { Tradle } from '../tradle'
 import { Logger } from '../logger'
 import { Env } from '../env'
 import { Bot } from '../bot'
-import * as onmessage from '../samplebot/lambda/mqtt/onmessage'
+import * as onmessage from '../in-house-bot/lambda/mqtt/onmessage'
 import { genLocalResources } from '../cli/utils'
 import { utils, crypto } from '../'
 // const botFixture = require('./fixtures/bot')

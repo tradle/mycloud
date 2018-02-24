@@ -75,7 +75,7 @@ custom:
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
   invokeBotLambdasDirectly: ${{self:custom.vars.invokeBotLambdasDirectly, self:custom.defaults.invokeBotLambdasDirectly}}
   # providerConf: &providerConf
-  #   ${{file(./src/samplebot/conf/provider.json)}}
+  #   ${{file(./src/in-house-bot/conf/provider.json)}}
   org: ${{self:custom.vars.org, self:custom.defaults.org}}
 
   # logging: ${{self:custom.vars.logging, self:custom.defaults.logging}}
@@ -567,7 +567,7 @@ provider:
 functions:
   # warm up other functions
   warmup:
-    handler: lib/samplebot/lambda/warmup.handler
+    handler: lib/in-house-bot/lambda/warmup.handler
     memorySize: 128
     events:
       - schedule:
@@ -618,7 +618,7 @@ functions:
   # 2. creates an unauthenticated session,
   #    generates a challenge to be signed (verified in /auth)
   preauth:
-    handler: lib/samplebot/lambda/http/preauth.handler
+    handler: lib/in-house-bot/lambda/http/preauth.handler
     memorySize: 1024
     events:
       - http:
@@ -629,7 +629,7 @@ functions:
   # 1. validates the challenge response
   # 2. marks the session as authenticated
   auth:
-    handler: lib/samplebot/lambda/http/auth.handler
+    handler: lib/in-house-bot/lambda/http/auth.handler
     memorySize: 1024
     events:
       - http:
@@ -643,7 +643,7 @@ functions:
 
   # replicates InboxTable to EventsTable
   to-events:
-    handler: lib/samplebot/lambda/to-events.handler
+    handler: lib/in-house-bot/lambda/to-events.handler
     memorySize: 256
     events:
       - stream:
@@ -703,7 +703,7 @@ functions:
   #         method: any
 
   inbox:
-    handler: lib/samplebot/lambda/http/inbox.handler
+    handler: lib/in-house-bot/lambda/http/inbox.handler
     memorySize: 1024
     events:
       - http:
@@ -738,7 +738,7 @@ functions:
   # updates presence in PresenceTable
 
   oniotlifecycle:
-    handler: lib/samplebot/lambda/mqtt/oniotlifecycle.handler
+    handler: lib/in-house-bot/lambda/mqtt/oniotlifecycle.handler
     events:
       - iot:
           sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/connected/#'"
@@ -755,7 +755,7 @@ functions:
       - functionInvocations
 
   # onconnect:
-  #   handler: lib/samplebot/lambda/mqtt/onconnect.handler
+  #   handler: lib/in-house-bot/lambda/mqtt/onconnect.handler
   #   events:
   #     - iot:
   #         sql: "SELECT * FROM '$aws/events/presence/connected/#'"
@@ -770,7 +770,7 @@ functions:
   # validates, stores in OutboxTable, in ObjectsBucker (for now),
   # and passes off to bot engine
   onmessage:
-    handler: lib/samplebot/lambda/mqtt/onmessage.handler
+    handler: lib/in-house-bot/lambda/mqtt/onmessage.handler
     memorySize: 1024
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
     #   SERVERLESS_STAGE: ${{self:custom.stage}}
@@ -787,7 +787,7 @@ functions:
   # same as onmessage, but can handle larger payloads
   # MQTT is limited to 128KB, HTTP to 6MB
   # onmessage_http:
-  #   handler: lib/samplebot/lambda/http/onmessage.handler
+  #   handler: lib/in-house-bot/lambda/http/onmessage.handler
   #   memorySize: 1024
   #   events:
   #     - http:
@@ -859,7 +859,7 @@ functions:
 
   # writes pending transactions to the blockchain
   sealpending:
-    handler: lib/samplebot/lambda/sealpending.handler
+    handler: lib/in-house-bot/lambda/sealpending.handler
     memorySize: 256
     timeout: 60
     events:
@@ -873,7 +873,7 @@ functions:
 
   # polls the status of unconfirmed blockchain transactions
   pollchain:
-    handler: lib/samplebot/lambda/pollchain.handler
+    handler: lib/in-house-bot/lambda/pollchain.handler
     memorySize: 256
     timeout: 60
     events:
@@ -890,7 +890,7 @@ functions:
     #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
   check-failed-seals:
-    handler: lib/samplebot/lambda/check-failed-seals.handler
+    handler: lib/in-house-bot/lambda/check-failed-seals.handler
     memorySize: 256
     timeout: 60
     events:
@@ -902,16 +902,16 @@ functions:
 
   # force reinitialize lambda containers
   reinitialize-containers:
-    handler: lib/samplebot/lambda/reinitialize-containers.handler
+    handler: lib/in-house-bot/lambda/reinitialize-containers.handler
 
   # useful during development
   # trigger a message to be queued/sent to a user
   send:
-    handler: lib/samplebot/lambda/send.handler
+    handler: lib/in-house-bot/lambda/send.handler
     memorySize: 256
 
   info:
-    handler: lib/samplebot/lambda/http/info.handler
+    handler: lib/in-house-bot/lambda/http/info.handler
     memorySize: 256
     events:
       - http:
@@ -922,11 +922,11 @@ functions:
   # rename later, temporarily can't rename, get AWS error:
   #   "Modifying service token is not allowed..""
   bot_oninit:
-    handler: lib/samplebot/lambda/oninit.handler
+    handler: lib/in-house-bot/lambda/oninit.handler
     memorySize: 1024
 
   onsealstream:
-    handler: lib/samplebot/lambda/onsealstream.handler
+    handler: lib/in-house-bot/lambda/onsealstream.handler
     memorySize: 256
     events:
       - stream:
@@ -941,7 +941,7 @@ functions:
       - functionErrors
 
   onmessagestream:
-    handler: lib/samplebot/lambda/onmessagestream.handler
+    handler: lib/in-house-bot/lambda/onmessagestream.handler
     memorySize: 256
     events:
       - stream:
@@ -969,7 +969,7 @@ functions:
 
   graphql:
     # make sure graphql route gets loaded
-    handler: lib/samplebot/lambda/http/graphql.handler
+    handler: lib/in-house-bot/lambda/http/graphql.handler
     memorySize: 1024
     events:
       - http:
@@ -986,19 +986,19 @@ functions:
       - functionInvocations
 
   # setstyle:
-  #   handler: lib/samplebot/lambda/set-style.handler
+  #   handler: lib/in-house-bot/lambda/set-style.handler
   #   memorySize: 128
 
   setconf:
-    handler: lib/samplebot/lambda/set-conf.handler
+    handler: lib/in-house-bot/lambda/set-conf.handler
     memorySize: 1024
 
   addfriend:
-    handler: lib/samplebot/lambda/add-friend.handler
+    handler: lib/in-house-bot/lambda/add-friend.handler
     memorySize: 256
 
   # addfriend_dev:
-  #   handler: lib/samplebot/lambda/add-friend.handlerHttp
+  #   handler: lib/in-house-bot/lambda/add-friend.handlerHttp
   #   # dev mode only
   #   events:
   #     - http:
@@ -1006,18 +1006,18 @@ functions:
   #         method: post
 
   # addcontact:
-  #   handler: lib/samplebot/lambda/add-contact.handler
+  #   handler: lib/in-house-bot/lambda/add-contact.handler
   #   environment:
   #     DEBUG: tradle:*
 
   # bot-serviced lambda
   # generates sample data for browsing with GraphQL
   # samples:
-  #   handler: lib/samplebot/lambda/samples.handler
+  #   handler: lib/in-house-bot/lambda/samples.handler
   #   memorySize: 1024
 
   # samples_dev:
-  #   handler: lib/samplebot/lambda/samples.handler
+  #   handler: lib/in-house-bot/lambda/samples.handler
   #   memorySize: 1024
   #   events:
   #     - http:
@@ -1025,22 +1025,22 @@ functions:
   #         method: post
 
   import_data_utils:
-    handler: lib/samplebot/lambda/import-data-utils.handler
+    handler: lib/in-house-bot/lambda/import-data-utils.handler
 
   # import_data_bundle:
-  #   handler: lib/samplebot/lambda/import-data-bundle.handler
+  #   handler: lib/in-house-bot/lambda/import-data-bundle.handler
 
   # create_data_claim:
-  #   handler: lib/samplebot/lambda/create-data-claim.handler
+  #   handler: lib/in-house-bot/lambda/create-data-claim.handler
 
   # get_data_bundle:
-  #   handler: lib/samplebot/lambda/get-data-bundle.handler
+  #   handler: lib/in-house-bot/lambda/get-data-bundle.handler
 
   onfido_register:
-    handler: lib/samplebot/lambda/onfido-register.handler
+    handler: lib/in-house-bot/lambda/onfido-register.handler
 
   onfido:
-    handler: lib/samplebot/lambda/http/onfido-webhook.handler
+    handler: lib/in-house-bot/lambda/http/onfido-webhook.handler
     memorySize: 1024
     events:
       - http:
@@ -1049,10 +1049,10 @@ functions:
           cors: ${{self:custom.cors}}
 
   cli:
-    handler: lib/samplebot/lambda/cli.handler
+    handler: lib/in-house-bot/lambda/cli.handler
 
   qr:
-    handler: lib/samplebot/lambda/http/qr.handler
+    handler: lib/in-house-bot/lambda/http/qr.handler
     events:
       - http:
           path: qr
@@ -1060,7 +1060,7 @@ functions:
           cors: ${{self:custom.cors}}
 
   deployment_pingback:
-    handler: lib/samplebot/lambda/http/deployment-pingback.handler
+    handler: lib/in-house-bot/lambda/http/deployment-pingback.handler
     events:
       - http:
           path: deployment-pingback
@@ -1068,7 +1068,7 @@ functions:
           cors: ${{self:custom.cors}}
 
   # cli_dev:
-  #   handler: lib/samplebot/lambda/cli.handler
+  #   handler: lib/in-house-bot/lambda/cli.handler
   #   # dev mode only
   #   events:
   #     - http:
@@ -1076,7 +1076,7 @@ functions:
   #         method: post
 
   # bash:
-  #   handler: lib/samplebot/lambda/bash.handler
+  #   handler: lib/in-house-bot/lambda/bash.handler
 
 resources:
   Mappings:

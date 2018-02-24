@@ -7,14 +7,14 @@ import sinon = require('sinon')
 import { TYPE, SIG, OWNER } from '@tradle/constants'
 import fake = require('@tradle/build-resource/fake')
 import buildResource = require('@tradle/build-resource')
-import { Deployment } from '../../samplebot/deployment'
+import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
 import Errors = require('../../errors')
 import { createBot } from '../../bot'
 import { createTestTradle } from '../../'
-import { TYPES, PRIVATE_CONF_BUCKET } from '../../samplebot/constants'
+import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models = require('../../models')
-import { IMyDeploymentConf, IBotConf, ILaunchReportPayload } from '../../samplebot/types'
+import { IMyDeploymentConf, IBotConf, ILaunchReportPayload } from '../../in-house-bot/types'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
@@ -190,7 +190,7 @@ test('deployment by referral', loudAsync(async (t) => {
   //   return val
   // })
 
-  await require('../../samplebot/lambda/http/deployment-pingback').handler({
+  await require('../../in-house-bot/lambda/http/deployment-pingback').handler({
     event: {
       url: child.apiBaseUrl,
       uuid: deploymentConf.deploymentUUID

@@ -11,7 +11,7 @@ loadCredentials()
 loadRemoteEnv()
 
 import { createRemoteTradle } from '../'
-import lambda = require('../samplebot/lambda/mqtt/onmessage')
+import lambda = require('../in-house-bot/lambda/mqtt/onmessage')
 lambda.bot.promiseReady().then(() => {
   const { dbUtils } = lambda.tradle
   const outputPath = path.join(__dirname, '../modelmap.json')

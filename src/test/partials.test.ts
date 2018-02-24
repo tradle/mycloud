@@ -2,7 +2,7 @@ import test = require('tape')
 import sinon = require('sinon')
 import engine = require('@tradle/engine')
 import { TYPE, SIG } from '@tradle/constants'
-import { createPlugin } from '../samplebot/plugins/partials'
+import { createPlugin } from '../in-house-bot/plugins/partials'
 import { loudAsync } from '../utils'
 
 test('partials', async t => {

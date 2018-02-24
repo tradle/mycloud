@@ -10,7 +10,7 @@ loadCredentials()
 
 const proc = promisify(require('child_process'))
 const yml = require('../cli/serverless-yml')
-const pathToFriendsFile = process.argv[2] || path.join(__dirname, '../samplebot/conf/friends.js')
+const pathToFriendsFile = process.argv[2] || path.join(__dirname, '../in-house-bot/conf/friends.js')
 const {
   stage=yml.custom.stage,
   friends

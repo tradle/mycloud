@@ -21,9 +21,9 @@ There are two components to plugins, code and configuration. If the code says "c
 
 ## Code
 
-When developing a plugin, it's currently easiest to develop it inside this project itself. Later, you can always export it to a separate npm module. See some example plugins in `../src/samplebot/plugins/`
+When developing a plugin, it's currently easiest to develop it inside this project itself. Later, you can always export it to a separate npm module. See some example plugins in `../src/in-house-bot/plugins/`
 
-Plugins are attached to the in-house bot in [samplebot/index.ts](../src/samplebot/index.ts). Some day soon they will be attached automatically based on some configuration object, but today you need to add something like this:
+Plugins are attached to the in-house bot in [in-house-bot/index.ts](../src/in-house-bot/index.ts). Some day soon they will be attached automatically based on some configuration object, but today you need to add something like this:
 
 ```ts
 // if we have a configuration for the lens plugin (see Configuration below)
@@ -74,7 +74,7 @@ For example, the configuration for the lens plugin in Safe-Re (a default Tradle 
   }
 ```
 
-The format of your configuration object is up to you. To make sure someone doesn't deploy invalid configuration, you should provide a `validateConf` export in your plugin. For example, see the [validateConf](https://github.com/tradle/serverless/blob/master/src/samplebot/plugins/lens.ts#L60) export in the Lens plugin.
+The format of your configuration object is up to you. To make sure someone doesn't deploy invalid configuration, you should provide a `validateConf` export in your plugin. For example, see the [validateConf](https://github.com/tradle/serverless/blob/master/src/in-house-bot/plugins/lens.ts#L60) export in the Lens plugin.
 
 ## Example
 
@@ -139,7 +139,7 @@ export const validateConf = async ({ conf, pluginConf }: {
 
 ```
 
-See some simple examples in `src/samplebot/plugins`: `set-name`, `ts-and-cs`, `keep-fresh`, `lens`, `form-prefill`
+See some simple examples in `src/in-house-bot/plugins`: `set-name`, `ts-and-cs`, `keep-fresh`, `lens`, `form-prefill`
 
 See more complex examples: `centrix`, `complyAdvantage`, `onfido`, `deployment`, `remediation`
 

@@ -20,7 +20,7 @@ loadCredentials()
 // const toDelete = ['tradle.Application']
 import { TYPE } from '@tradle/constants'
 import { createRemoteTradle } from '../'
-import { customize } from '../samplebot/customize'
+import { customize } from '../in-house-bot/customize'
 
 const tradle = createRemoteTradle()
 const bot = require('../bot').createBot({ tradle })

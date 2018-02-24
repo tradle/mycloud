@@ -21,12 +21,12 @@ import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
 import { Env } from '../env'
 import { createRemoteTradle } from '../'
-import { createConf } from '../samplebot/configure'
+import { createConf } from '../in-house-bot/configure'
 import {
   Tradle,
   Bot,
   IConf
-} from '../samplebot/types'
+} from '../in-house-bot/types'
 
 import { wait } from '../utils'
 import {
@@ -395,7 +395,7 @@ const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
     } catch (err) {}
   }
 
-  // const providerConf = require('../samplebot/conf/provider')
+  // const providerConf = require('../in-house-bot/conf/provider')
   const yml = require('./serverless-yml')
   const providerConf = yml.custom.org
   try {

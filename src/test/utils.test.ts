@@ -8,7 +8,7 @@ import { SIG } from '@tradle/constants'
 import ModelsPack = require('@tradle/models-pack')
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
-import { getFaviconUrl } from '../samplebot/image-utils'
+import { getFaviconUrl } from '../in-house-bot/image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
 import {
   loudAsync,

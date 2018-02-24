@@ -233,7 +233,7 @@ Once everything's deployed, open your browser to [https://app.tradle.io](https:/
 There's configuration and configuration. 
 
 - To change the name/domain/logo of your bot, edit `./vars.yml`. Then run `npm run build:yml`
-- If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./samplebot/index.js](./samplebot/index.js).
+- If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./in-house-bot/index.js](./in-house-bot/index.js).
 
 ### Explore the Architecture
 
@@ -427,7 +427,7 @@ You can set up a local playground, with most of the functionality of the cloud o
     *.ts
     scripts/                # command line scripts, and utils
     bot/                    # bot engine
-    samplebot/              # currently co-located sample bot  tradle/bot-products#modeled
+    in-house-bot/              # currently co-located sample bot  tradle/bot-products#modeled
     test/
   lib/                      # transpiled JS code
 ```

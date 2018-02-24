@@ -10,7 +10,7 @@ import {
 
 import { createTestTradle } from '../'
 import { createBot } from '../bot'
-import { customize } from '../samplebot/customize'
+import { customize } from '../in-house-bot/customize'
 
 (async () => {
   let tradle = createTestTradle()

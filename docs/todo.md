@@ -98,7 +98,7 @@ Lambda Tests:
 fix /inbox, rm /message route
 
 Bot / Bot Engine / Tradle Engine co-location
-  - how will people develop bots? Will they clone tradle/serverless, and develop inside the cloned repo? Currently samplebot/ is in this repo, but it can sit outside just fine. Need some conf file for the engine to know where to find the bot code and initialize it, e.g. in conf/tradle.json, the dev can add: "bot": "my-bot-module", and the predeploy script can install it
+  - how will people develop bots? Will they clone tradle/serverless, and develop inside the cloned repo? Currently in-house-bot/ is in this repo, but it can sit outside just fine. Need some conf file for the engine to know where to find the bot code and initialize it, e.g. in conf/tradle.json, the dev can add: "bot": "my-bot-module", and the predeploy script can install it
     - maybe there should be two stacks
     - 1. you deploy the tradle stack
     - 2. you deploy the bot stack, and somehow give the tradle stack the bot stack's coordinates...and models, and everything else

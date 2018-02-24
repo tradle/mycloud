@@ -3,16 +3,16 @@ require('../env').install()
 import test = require('tape')
 import sinon = require('sinon')
 import { TYPE, SIG, OWNER } from '@tradle/constants'
-import { Remediator, parseClaimId } from '../../samplebot/remediation'
+import { Remediator, parseClaimId } from '../../in-house-bot/remediation'
 import {
   Remediation,
   createPlugin as createProductsPlugin
-} from '../../samplebot/plugins/remediation'
+} from '../../in-house-bot/plugins/remediation'
 import { loudAsync } from '../../utils'
 import Errors = require('../../errors')
 import { Logger } from '../../logger'
 import { createBot } from '../../bot'
-import { TYPES } from '../../samplebot/constants'
+import { TYPES } from '../../in-house-bot/constants'
 import models = require('../../models')
 
 const dataBundle = require('../fixtures/data-bundle.json')
