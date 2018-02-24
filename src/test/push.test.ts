@@ -7,11 +7,11 @@ import sinon = require('sinon')
 import buildResource = require('@tradle/build-resource')
 import Push, { getChallenge, getNotificationData } from '../push'
 import Logger from '../logger'
-import { loudAsync } from '../utils'
+import { loudAsync, omitVirtual } from '../utils'
 import { getSigningKey, sha256 } from '../crypto'
 import { Tradle } from '../'
 
-const alice = require('./fixtures/alice/identity')
+const alice = omitVirtual(require('./fixtures/alice/identity'))
 const aliceKeys = require('./fixtures/alice/keys')
 
 test('push', loudAsync(async (t) => {
