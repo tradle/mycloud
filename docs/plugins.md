@@ -55,7 +55,7 @@ Plugins can implement (export) the following lifecycle methods:
 
 ## Configuration
 
-The configuration for plugins is kept separate and managed and deployed with [tradleconf](https://github.com/tradle/conf). Configuration is deployed separately, and more rapidly than code.
+The configuration for plugins is kept separate and managed and deployed with [tradleconf](https://github.com/tradle/configure-tradle). Configuration is deployed separately, and more rapidly than code.
 
 For example, the configuration for the lens plugin in Safe-Re (a default Tradle Sandbox provider, see https://app.tradle.io) looks like this:
 
