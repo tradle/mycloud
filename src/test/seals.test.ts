@@ -100,7 +100,8 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   t.end()
 }))
 
-test('queue seal', loudAsync(async (t) => {
+test.only('queue seal', loudAsync(async (t) => {
+  const clock = sinon.useFakeTimers()
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
 
@@ -189,6 +190,7 @@ test('queue seal', loudAsync(async (t) => {
   unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 1)
 
+  clock.tick(2)
   let longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1 }) // 1ms
   t.equal(longUnconfirmed.length, 1)
 
@@ -213,6 +215,7 @@ test('queue seal', loudAsync(async (t) => {
   stubGetTxs.restore()
   stubObjectsGet.restore()
   stubDBUpdate.restore()
+  clock.restore()
   t.end()
 }))
 
