@@ -100,7 +100,7 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   t.end()
 }))
 
-test.only('queue seal', loudAsync(async (t) => {
+test('queue seal', loudAsync(async (t) => {
   const clock = sinon.useFakeTimers()
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
