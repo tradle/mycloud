@@ -100,9 +100,9 @@ custom:
   iotParentTopic: ${{self:service}}-${{self:custom.stage}}
   prefixSNSTopic: ${{self:custom.prefix}}
   prefixSQS: ${{self:custom.prefix}}
-  prefixAlphaNum: ${{self:service}}${{self:custom.stage}}
   # apigateway
-  apiGateway: ${{self:custom.prefixAlphaNum}}
+  # adhere to serverless framework format
+  apiGateway: ${{self:custom.stage}}-${{self:service}}
 
   # versions
   versionSQL: "2016-03-23"
