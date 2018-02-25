@@ -1,14 +1,15 @@
 import { cloneDeep } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
-import { IPluginOpts, WillRequestForm, Conf } from '../types'
+import { IPluginOpts, IPluginExports, IPluginLifecycleMethods, Conf } from '../types'
 import { parseStub } from '../../utils'
 
 const MESSAGE = 'Please provide your **digital hand signature**'
 
-export const createPlugin = ({ bot, productsAPI, logger, conf }: IPluginOpts) => {
+export const createPlugin = ({ bot, productsAPI, logger, conf }: IPluginOpts):IPluginExports => {
   const { models } = bot
-  const willRequestForm:WillRequestForm = ({ application, formRequest }) => {
+  const plugin:IPluginLifecycleMethods = {}
+  plugin.willRequestForm = ({ application, formRequest }) => {
     const { form } = formRequest
     if (form !== 'tradle.HandSignature' || formRequest.signatureFor) {
       return
@@ -30,7 +31,7 @@ export const createPlugin = ({ bot, productsAPI, logger, conf }: IPluginOpts) =>
   }
 
   return {
-    willRequestForm
+    plugin
   }
 }
 

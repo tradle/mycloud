@@ -3,10 +3,9 @@ require('../env').install()
 import test = require('tape')
 import sinon = require('sinon')
 import { TYPE, SIG, OWNER } from '@tradle/constants'
-import { Remediator, parseClaimId } from '../../in-house-bot/remediation'
+import { Remediation, parseClaimId } from '../../in-house-bot/remediation'
 import {
-  Remediation,
-  createPlugin as createProductsPlugin
+  createPlugin as createRemediationPlugin
 } from '../../in-house-bot/plugins/remediation'
 import { loudAsync } from '../../utils'
 import Errors = require('../../errors')
@@ -32,6 +31,7 @@ test('remediation plugin', loudAsync(async (t) => {
   const user = { id: 'bob' }
   const bot = createBot()
   const productsAPI = {
+    sendSimpleMessage: sinon.stub().resolves(),
     send: sinon.stub().callsFake(async ({ to, object }) => {
       const { items } = object
       t.equal(items.length, dataBundle.items.length)
@@ -42,21 +42,22 @@ test('remediation plugin', loudAsync(async (t) => {
     })
   }
 
-  const remediation = new Remediation({
+  const { api, plugin } = createRemediationPlugin({
     bot,
     productsAPI,
-    logger: new Logger('test:remediation1'),
-    getBundleByClaimId: async (id) => {
-      t.equal(id, claim.claimId)
-      return dataBundle
-    },
-    onClaimRedeemed: async ({ user, claimId }) => {
-      t.equal(claimId, claim.claimId)
-    }
+    logger: new Logger('test:remediation1')
   })
 
-  t.doesNotThrow(() => remediation.validateBundle(dataBundle))
-  const plugin = createProductsPlugin({ remediation })
+  sinon.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
+    t.equal(id, claim.claimId)
+    return dataBundle
+  })
+
+  sinon.stub(api, 'onClaimRedeemed').callsFake(async ({ user, claimId }) => {
+    t.equal(claimId, claim.claimId)
+  })
+
+  t.doesNotThrow(() => api.validateBundle(dataBundle))
   await plugin[`onmessage:${DATA_CLAIM}`]({
     user,
     payload: claim
@@ -83,7 +84,7 @@ test('remediation api', loudAsync(async (t) => {
 
   const user = { id: 'b5da273e0254479d5e611a1ded1effecf751e6e6588dc6648fc21f5e036961c0' }
   const bot = createBot()
-  const remediator = new Remediator({
+  const remediation = new Remediation({
     bot,
     productsAPI: {
       plugins: {
@@ -93,19 +94,19 @@ test('remediation api', loudAsync(async (t) => {
     logger: new Logger('test:remediation')
   })
 
-  const stub = await remediator.genClaimStub({ bundle })
+  const stub = await remediation.genClaimStub({ bundle })
   t.same(parseClaimId(stub.claimId), {
     key: stub.key,
     nonce: stub.nonce
   })
 
-  const key = await remediator.saveUnsignedDataBundle(bundle)
-  const { claimId } = await remediator.createClaim({ key })
-  const saved = await remediator.getBundleByClaimId({ claimId })
+  const key = await remediation.saveUnsignedDataBundle(bundle)
+  const { claimId } = await remediation.createClaim({ key })
+  const saved = await remediation.getBundleByClaimId(claimId)
   t.same(saved, bundle)
-  await remediator.onClaimRedeemed({ user, claimId })
+  await remediation.onClaimRedeemed({ user, claimId })
   try {
-    await remediator.getBundleByClaimId({ claimId })
+    await remediation.getBundleByClaimId(claimId)
     t.fail('expected claim to have been deleted')
   } catch (err) {
     t.ok(Errors.matches(err, Errors.NotFound))

@@ -3,7 +3,7 @@ import { Bot, ModelsPack, DatedValue, Lambda } from '../types'
 import { Conf } from './configure'
 import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
-import { Remediator } from './remediation'
+import { Remediation } from './remediation'
 import { Deployment } from './deployment'
 import { AppLinks } from './app-links'
 import {
@@ -23,7 +23,7 @@ export {
   Conf,
   Commander,
   Onfido,
-  Remediator,
+  Remediation,
   Deployment,
   AppLinks
 }
@@ -61,7 +61,7 @@ export interface IBotComponents {
   productsAPI: any
   employeeManager: any
   linker: AppLinks
-  remediator?: Remediator
+  remediation?: Remediation
   onfido?: Onfido
   deployment?: Deployment
   commands?: Commander
@@ -101,6 +101,8 @@ export interface IPBReq {
   type: string
   application?: IPBApp
   applicant?: IUser
+  isFromEmployee?: boolean
+  skipChecks?: boolean
 }
 
 export type VerifiedItem = {
@@ -120,20 +122,25 @@ export interface IPBApp {
   dateStarted: number
   dateModified: number
   dateCompleted?: number
+  draft?: boolean
 }
 
 export interface IFormRequest extends ITradleObject {
   form: string
 }
 
-export interface IWillRequestFormOpts {
+export interface IWillRequestFormArg {
   to: string | IUser
   application?: IPBApp
   formRequest: IFormRequest
   requestFor: string
 }
 
-export type WillRequestForm = (opts:IWillRequestFormOpts) => void | Promise<void>
+export interface IOnFormsCollectedArg {
+  req: IPBReq
+  user: IUser
+  application: IPBApp
+}
 
 export interface ICommandContext {
   commandName: string
@@ -185,14 +192,22 @@ export type ValidatePluginConfOpts = {
   [other:string]: any
 }
 
-export interface IPluginParts {
-  plugin: any
+export interface IPluginLifecycleMethods {
+  onmessage?: (req:IPBReq) => boolean|void | Promise<boolean|void>
+  willRequestForm?: (opts:IWillRequestFormArg) => void | Promise<void>
+  onFormsCollected?: (opts:IOnFormsCollectedArg) => void | Promise<void>
+  [toBeDefined: string]: Function
+}
+
+export interface IPluginExports {
+  plugin: IPluginLifecycleMethods
   api?: any
+  [customExport: string]: any
 }
 
 export interface IPlugin {
   name?: string
-  createPlugin: (opts:any) => IPluginParts
+  createPlugin: (opts:any) => IPluginExports
   validateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 

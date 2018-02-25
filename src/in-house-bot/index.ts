@@ -27,16 +27,18 @@ import {
 } from './plugins/keep-models-fresh'
 
 import { Commander } from './commander'
-import { createRemediator } from './remediation'
+import { createRemediation } from './remediation'
+import { createPlugin as createRemediationPlugin } from './plugins/remediation'
 
 import {
   Bot,
   IBotComponents,
   DatedValue,
   IConf,
-  Remediator,
+  Remediation,
   Deployment,
-  IPluginOpts
+  IPluginOpts,
+  IPluginLifecycleMethods
 } from './types'
 
 import { createLinker } from './app-links'
@@ -326,6 +328,19 @@ export default function createProductsBot ({
     }) // append
 
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
+    productsAPI.plugins.use(<IPluginLifecycleMethods>{
+      onmessage: req => {
+        req.isFromEmployee = employeeManager.isEmployee(req.user)
+        if (!req.isFromEmployee) return
+        if (req.message.forward) return
+
+        logger.debug('setting req.skipChecks, as this is an employee applying on behalf of a customer')
+        req.skipChecks = true
+        if (req.application) {
+          req.application.draft = true
+        }
+      }
+    })
   }
 
   const onfidoConf = plugins.onfido || {}
@@ -342,7 +357,7 @@ export default function createProductsBot ({
     })
 
     productsAPI.plugins.use(result.plugin)
-    components.onfido = result.onfido
+    components.onfido = result.api
   }
 
   const customizeMessageOpts = plugins['customize-message']
@@ -436,16 +451,16 @@ export default function createProductsBot ({
   }
 
   if (handleMessages || event.startsWith('remediation:')) {
-    const remediator = createRemediator({
+    const { api, plugin } = createRemediationPlugin({
       ...commonPluginOpts,
       logger: logger.sub('remediation:')
     })
 
     if (handleMessages) {
-      productsAPI.plugins.use(remediator.plugin)
+      productsAPI.plugins.use(plugin)
     }
 
-    components.remediator = remediator
+    components.remediation = api
   }
 
   if (handleMessages) {

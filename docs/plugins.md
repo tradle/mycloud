@@ -144,3 +144,25 @@ See some simple examples in `src/in-house-bot/plugins`: `set-name`, `ts-and-cs`,
 See more complex examples: `centrix`, `complyAdvantage`, `onfido`, `deployment`, `remediation`
 
 `productsAPI` doesn't have typescript typings yet, but once it does, you'll have auto-completion for your plugin coding.
+
+## Template
+
+To take advantage of static type checking as it becomes more available, use the template below for building your plugin in `src/in-house-bot/plugins/`.
+
+```ts
+import { IPluginOpts, IPluginExports } from '../types'
+import { MyApi } from 'my-api'
+
+export const createPlugin = (opts:IPluginOpts):IPluginExports => {
+  const api = new MyApi(opts)
+  return {
+    api,
+    plugin: {
+      ['onmessage:tradle.Form']: async (req) => {
+        const { user, payload } = req
+        await api.runSomeQuery({ user, payload })
+      }
+    }
+  }
+}
+```

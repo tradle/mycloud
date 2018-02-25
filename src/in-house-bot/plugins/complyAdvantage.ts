@@ -144,6 +144,8 @@ export function createPlugin(opts: IPluginOpts) {
   const complyAdvantage = new ComplyAdvantageAPI(opts)
   return {
     [`onmessage:${FORM_ID}`]: async function(req: IPBReq) {
+      if (req.skipChecks) return
+
       let { bot, logger, conf, productAPI} = opts
       const { user, application, applicant, payload } = req
       logger.debug(`running sanctions plugin for: ${payload.companyName}`);

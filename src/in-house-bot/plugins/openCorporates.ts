@@ -151,6 +151,8 @@ export function createPlugin({conf, bot, productsAPI, logger}) {
   const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, logger })
   return {
     [`onmessage:${FORM_ID}`]: async function(req) {
+      if (req.skipChecks) return
+
       const { user, application, payload } = req
       if (!application) return
 

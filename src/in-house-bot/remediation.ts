@@ -1,14 +1,45 @@
+import _ = require('lodash')
+import createError = require('error-ex')
 // @ts-ignore
 import Promise = require('bluebird')
 import crypto = require('crypto')
 import QR = require('@tradle/qr-schema')
-import { Bot } from '../bot'
-import { createPlugin as createProductsPlugin, Remediation } from './plugins/remediation'
+// import { createPlugin as createRemediationPlugin, Remediation } from './plugins/remediation'
+import { TYPE, SIG, OWNER } from '@tradle/constants'
+import validateResource = require('@tradle/validate-resource')
+import buildResource = require('@tradle/build-resource')
+import baseModels = require('../models')
 import Errors = require('../errors')
-import { Logger } from '../logger'
-import { KeyValueTable } from '../key-value-table'
-import { ContentAddressedStore, Hashers } from '../content-addressed-store'
-import { IPluginOpts, ClaimStub } from './types'
+import { TYPES } from './constants'
+import { ContentAddressedStore } from '../content-addressed-store'
+import {
+  Logger,
+  Bot,
+  KeyValueTable,
+  ClaimStub,
+  IUser,
+  ITradleObject,
+  IPluginOpts
+} from './types'
+
+const {
+  DATA_CLAIM,
+  DATA_BUNDLE,
+  VERIFICATION,
+  FORM,
+  MY_PRODUCT
+} = TYPES
+
+const notNull = val => !!val
+const DEFAULT_CLAIM_NOT_FOUND_MESSAGE = 'Claim not found'
+const DEFAULT_BUNDLE_MESSAGE = 'Please see your data and verifications'
+const CustomErrors = {
+  ClaimNotFound: createError('ClaimNotFound'),
+  InvalidBundleItem: createError('InvalidBundleItem'),
+  InvalidBundlePointer: createError('InvalidBundlePointer')
+}
+
+export { CustomErrors as Errors }
 
 const NONCE_LENGTH = 16
 const CLAIM_ID_ENCODING = 'hex'
@@ -20,11 +51,9 @@ type KeyContainer = {
   key: string
 }
 
-export class Remediator {
+export class Remediation {
   public bot: Bot
   public productsAPI: any
-  public plugin: any
-  public remediation: Remediation
   public logger: Logger
   public keyToNonces: KeyValueTable
   public store: ContentAddressedStore
@@ -43,36 +72,11 @@ export class Remediator {
     this.keyToNonces = bot.conf.sub('remediation:')
     this.store = new ContentAddressedStore({
       bucket: bot.buckets.PrivateConf.folder('remediation'),
-      // hasher: Hashers.sha256TruncatedTo(16)
     })
-
-    this.remediation = new Remediation({
-      bot,
-      productsAPI,
-      logger,
-      getBundleByClaimId: claimId => this.getBundleByClaimId({ claimId }),
-      onClaimRedeemed: this.onClaimRedeemed.bind(this)
-    })
-
-    this.plugin = createProductsPlugin(this)
-  }
-
-  public handleMessages = () => {
-    if (!this._removeHandler) {
-      this._removeHandler = this.productsAPI.use(this.plugin)
-    }
-  }
-
-  public stopHandlingMessages = () => {
-    const { _removeHandler } = this
-    if (_removeHandler) {
-      this._removeHandler = null
-      _removeHandler()
-    }
   }
 
   public saveUnsignedDataBundle = async (bundle) => {
-    this.remediation.validateBundle(bundle)
+    this.validateBundle(bundle)
     return await this.store.put(bundle)
   }
 
@@ -119,9 +123,7 @@ export class Remediator {
     return await this.store.getJSON(key)
   }
 
-  public getBundleByClaimId = async ({ claimId }: {
-    claimId:string
-  }) => {
+  public getBundleByClaimId = async (claimId: string) => {
     const { nonce, key } = parseClaimId(claimId)
     const nonces = await this.getNonces({ key })
     if (nonces.includes(nonce)) {
@@ -184,6 +186,155 @@ export class Remediator {
     }
   }
 
+  public handleDataClaim = async (opts) => {
+    this.logger.debug('processing tradle.DataClaim')
+    const { req, user, claim } = opts
+    try {
+      await this.sendDataBundleForClaim(opts)
+    } catch (err) {
+      Errors.ignore(err, CustomErrors.ClaimNotFound)
+      await this.productsAPI.sendSimpleMessage({
+        req,
+        to: user,
+        message: DEFAULT_CLAIM_NOT_FOUND_MESSAGE
+      })
+
+      return
+    }
+
+    const { claimId } = claim
+    await this.onClaimRedeemed({ claimId, user })
+  }
+
+  public sendDataBundleForClaim = async ({
+    req,
+    user,
+    claim,
+    message=DEFAULT_BUNDLE_MESSAGE
+  }) => {
+    const { claimId } = claim
+    let unsigned
+    try {
+      unsigned = await this.getBundleByClaimId(claimId)
+    } catch (err) {
+      this.logger.debug(`claim with id ${claimId} not found`)
+      throw new CustomErrors.ClaimNotFound(claimId)
+    }
+
+    const items = await this.prepareBundleItems({ user, claimId, items: unsigned.items })
+    await Promise.all(items.map(item => this.bot.save(item)))
+    return await this.productsAPI.send({
+      req,
+      to: user,
+      object: buildResource({
+          models: this.bot.models,
+          model: DATA_BUNDLE,
+        })
+        .set({ items, message })
+        .toJSON()
+    })
+  }
+
+  public prepareBundleItems = async ({ user, items, claimId }: {
+    user: IUser
+    items: ITradleObject[]
+    claimId: string
+  }) => {
+    this.logger.debug(`creating data bundle`)
+    const { bot } = this
+    const { models } = bot
+    const owner = user.id
+    items.forEach((item, i) => {
+      const model = models[item[TYPE]]
+      if (!model) {
+        throw new CustomErrors.InvalidBundleItem(`missing model for item at index: ${i}`)
+      }
+
+      if (model.id !== VERIFICATION &&
+        model.subClassOf !== FORM &&
+        model.subClassOf !== MY_PRODUCT) {
+        debugger
+        throw new CustomErrors.InvalidBundleItem(`invalid item at index ${i}, expected form, verification or MyProduct`)
+      }
+    })
+
+    items = items.map(item => _.clone(item))
+    items = await Promise.all(items.map(async (item) => {
+      if (models[item[TYPE]].subClassOf === FORM) {
+        item[OWNER] = owner
+        return await bot.sign(item)
+      }
+
+      return item
+    }))
+
+    items = await Promise.all(items.map(async (item) => {
+      if (item[TYPE] === VERIFICATION) {
+        item = this.resolvePointers({ items, item })
+        return await bot.sign(item)
+      }
+
+      return item
+    }))
+
+    items = await Promise.all(items.map(async (item) => {
+      if (models[item[TYPE]].subClassOf === MY_PRODUCT) {
+        item = this.resolvePointers({ items, item })
+        return await bot.sign(item)
+      }
+
+      return item
+    }))
+
+    return items
+  }
+
+  public validateBundle = (bundle) => {
+    const { models } = this.bot
+    let items = bundle.items.map(item => _.extend({
+      [SIG]: 'sigplaceholder'
+    }, item))
+
+    items = items.map(item => this.resolvePointers({ items, item }))
+    items.forEach(resource => validateResource.resource({ models, resource }))
+  }
+
+  private resolvePointers = ({ items, item }) => {
+    const { models } = this.bot
+    const model = models[item[TYPE]]
+    item = _.clone(item)
+    if (model.id === VERIFICATION) {
+      if (item.document == null) {
+        throw new CustomErrors.InvalidBundlePointer('expected verification.document to point to a form or index in bundle')
+      }
+
+      item.document = this.getFormStub({ items, ref: item.document })
+      if (item.sources) {
+        item.sources = item.sources.map(
+          source => this.resolvePointers({ items, item: source })
+        )
+      }
+    } else if (model.subClassOf === MY_PRODUCT) {
+      if (item.forms) {
+        item.forms = item.forms.map(ref => this.getFormStub({ items, ref }))
+      }
+    }
+
+    return item
+  }
+
+  private getFormStub = ({ items, ref }) => {
+    const { models } = this.bot
+    if (buildResource.isProbablyResourceStub(ref)) return ref
+
+    const resource = items[ref]
+    if (!(resource && models[resource[TYPE]].subClassOf === FORM)) {
+      throw new CustomErrors.InvalidBundlePointer(`expected form at index: ${ref}`)
+    }
+
+    return buildResource.stub({ models, resource })
+  }
+
   private getNonces = async ({ key }: KeyContainer) => {
     try {
       return await this.keyToNonces.get(key)
@@ -194,8 +345,7 @@ export class Remediator {
   }
 }
 
-export const createRemediator = (opts: IPluginOpts) => new Remediator(opts)
-export const createPlugin = (opts: IPluginOpts) => new Remediator(opts).plugin
+export const createRemediation = (opts: IPluginOpts) => new Remediation(opts)
 export const parseClaimId = (claimId:string) => {
   const hex = new Buffer(claimId, CLAIM_ID_ENCODING).toString('hex')
   return {

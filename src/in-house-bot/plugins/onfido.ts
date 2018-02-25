@@ -1,7 +1,7 @@
 import OnfidoAPI = require('@tradle/onfido-api')
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 import Errors = require('../../errors')
-import { Bot, IPluginOpts, Conf } from '../types'
+import { Bot, IPluginOpts, IPluginExports, IPBReq, Conf } from '../types'
 import { isLocalUrl } from '../../utils'
 
 let TEST_APIGW
@@ -22,7 +22,7 @@ const normalizePluginConf = conf => ({
   })
 })
 
-export const createPlugin = ({ bot, logger, productsAPI, conf }: IPluginOpts) => {
+export const createPlugin = ({ bot, logger, productsAPI, conf }: IPluginOpts):IPluginExports => {
   const {
     apiKey,
     products
@@ -48,9 +48,17 @@ export const createPlugin = ({ bot, logger, productsAPI, conf }: IPluginOpts) =>
   })
 
   // currently the api and plugin are the same thing
+  const proxy = {
+    ['onmessage:tradle.Form']: async (req:IPBReq) => {
+      if (!req.skipChecks) {
+        return await plugin['onmessage:tradle.Form'](req)
+      }
+    }
+  }
+
   return {
-    plugin,
-    onfido: plugin
+    plugin: proxy,
+    api: plugin
   }
 }
 

@@ -184,6 +184,8 @@ export function createPlugin({ conf, bot, productsAPI, logger }) {
   const centrixAPI = new CentrixAPI({ bot, productsAPI, centrix, logger })
   return {
     onFormsCollected: async function ({ req }) {
+      if (req.skipChecks) return
+
       // don't `return` to avoid slowing down message processing
       const { application } = req
       if (!application) return

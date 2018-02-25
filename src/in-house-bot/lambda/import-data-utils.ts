@@ -1,43 +1,43 @@
 import { createBot } from '../../bot'
 import { fromCli } from '../../bot/lambda'
 import { customize } from '../customize'
-import { Remediator } from '../remediation'
+import { Remediation } from '../remediation'
 
 const bot = createBot({ ready: false })
 const lambda = fromCli({ bot })
 const promiseComponents = customize({ lambda, event: 'remediation:utils' })
 
 lambda.use(async (ctx, next) => {
-  const { remediator } = await promiseComponents
+  const { remediation } = await promiseComponents
   const { method, data } = ctx.event
-  ctx.body = await run({ method, data, remediator })
+  ctx.body = await run({ method, data, remediation })
 })
 
-const run = async ({ method, data, remediator }: {
+const run = async ({ method, data, remediation }: {
   method: string
   data: any
-  remediator: Remediator
+  remediation: Remediation
 }) => {
   if (method === 'createbundle') {
     return {
-      key: await remediator.saveUnsignedDataBundle(data)
+      key: await remediation.saveUnsignedDataBundle(data)
     }
   }
 
   if (method === 'createclaim') {
-    return await remediator.createClaim(data)
+    return await remediation.createClaim(data)
   }
 
   if (method === 'listclaims') {
-    return await remediator.listClaimsForBundle(data)
+    return await remediation.listClaimsForBundle(data)
   }
 
   if (method === 'getbundle') {
-    return await remediator.getBundle(data)
+    return await remediation.getBundle(data)
   }
 
   if (method === 'clearclaims') {
-    return await remediator.deleteClaimsForBundle(data)
+    return await remediation.deleteClaimsForBundle(data)
   }
 
   throw new Error(`unknown method "${method}"`)
