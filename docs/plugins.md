@@ -15,7 +15,7 @@ See below how to develop plugins for the in-house bot. This is a lightweight alt
 
 ## How Plugins Work
 
-The in-house bot has a number of lifecycle methods that can be implemented by plugins. The bot will call your implementation at the appropriate time, with the predetermined (but not yet well-documented) arguments. (If you're familiar with React, think `componentWillMount`, `componentWillReceiveProps`, `render`. When they're called is up to the engine. What they do is up to you.)
+The in-house bot has a number of lifecycle methods that can be implemented by plugins. The bot will call your implementation at the appropriate time, with the predetermined (but not yet well-documented) arguments.
 
 There are two components to plugins, code and configuration. If the code says "call the FBI and check if the applicant's kids eat their vegetables," the configuration says when to make this call, the API key to the FBI's Veggie Spy API, etc. The code and configuration are deployed and managed separately.
 
@@ -150,7 +150,7 @@ See more complex examples: `centrix`, `complyAdvantage`, `onfido`, `deployment`,
 To take advantage of static type checking as it becomes more available, use the template below for building your plugin in `src/in-house-bot/plugins/`.
 
 ```ts
-import { IPluginOpts, IPluginExports } from '../types'
+import { Conf, IPluginOpts, IPluginExports } from '../types'
 import { MyApi } from 'my-api'
 
 export const createPlugin = (opts:IPluginOpts):IPluginExports => {
@@ -164,5 +164,12 @@ export const createPlugin = (opts:IPluginOpts):IPluginExports => {
       }
     }
   }
+}
+
+export const validateConf = ({
+  conf: Conf
+  pluginConf: any
+}) => {
+  // validate pluginConf
 }
 ```
