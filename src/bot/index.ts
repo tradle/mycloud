@@ -325,7 +325,8 @@ export class Bot extends EventEmitter implements IReady {
   }
 
   public getResourceByStub = async (stub:ResourceStub):Promise<ITradleObject> => {
-    return await this.getResource(parseStub(stub))
+    const { link } = parseStub(stub)
+    return await this.objects.get(link)
   }
 
   public resolveEmbeds = object => this.objects.resolveEmbeds(object)
