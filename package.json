@@ -56,7 +56,7 @@
     "gen:fixtures": "./lib/scripts/gen-fixtures.js",
     "gen:samples": "./lib/scripts/gen-samples.js",
     "gen:localsamples": "./lib/scripts/gen-samples.js --local",
-    "gen:localresources": "npm run gen:localstack && wait 6 && ./src/scripts/init-local.sh",
+    "gen:localresources": "npm run gen:localstack && sleep 6 && ./src/scripts/init-local.sh",
     "gen:localstack": "sls dynamodb migrate & sls s3 create",
     "gen:resourcedefs": "./lib/scripts/gen-resource-defs.js",
     "gen:modelmap": "./lib/scripts/map-models-to-buckets.js",
