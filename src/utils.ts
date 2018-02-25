@@ -51,7 +51,8 @@ import {
   ISettledPromise,
   ILaunchStackUrlOpts,
   ITimeoutOpts,
-  IUpdateStackUrlOpts
+  IUpdateStackUrlOpts,
+  ITradleObject
 } from './types'
 
 import Logger from './logger'
@@ -79,12 +80,14 @@ const { MESSAGE, SIMPLE_MESSAGE } = TYPES
 const noop = () => {}
 const unrefdTimeout = (callback, ms, ...args) => {
   const handle = setTimeout(callback, ms, ...args)
+  // @ts-ignore
   if (handle.unref) handle.unref()
   return handle
 }
 
 const createTimeout = (fn, millis, unref?) => {
   const timeout = setTimeout(fn, millis)
+  // @ts-ignore
   if (unref && timeout.unref) timeout.unref()
   return timeout
 }
@@ -1115,6 +1118,7 @@ export const isLocalHost = (host:string) => {
 }
 
 export const pickNonNull = obj => _.pickBy(obj, val => val != null)
+export const toUnsigned = (obj:ITradleObject) => _.omit(omitVirtual(obj), [SIG])
 
 // export const omitVirtualRecursive = resource => {
 //   if (!resource[SIG]) return _.clone(resource)

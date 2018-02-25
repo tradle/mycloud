@@ -1,16 +1,24 @@
 import { TYPES } from '../constants'
 import { IPluginOpts, IPluginExports } from '../types'
-import { createRemediation } from '../remediation'
+import { Remediation } from '../remediation'
 const { DATA_CLAIM } = TYPES
 
-export const createPlugin = (opts:IPluginOpts):IPluginExports => {
-  const remediation = createRemediation(opts)
+interface IRemediationPluginExports extends IPluginExports {
+  api: Remediation
+}
+
+export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
+  const remediation = new Remediation(opts)
   return {
     api: remediation,
     plugin: {
       [`onmessage:${DATA_CLAIM}`]: req => {
         const { user, payload } = req
-        return remediation.handleDataClaim({ req, user, claim: payload })
+        return remediation.handleDataClaim({
+          req,
+          user,
+          claimId: payload.claimId
+        })
       }
     }
   }

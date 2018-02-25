@@ -379,7 +379,7 @@ export default function createProductsBot ({
       ...commonPluginOpts,
       conf: plugins['prefill-form'],
       logger: logger.sub('plugin-prefill-form')
-    }))
+    }).plugin)
   }
 
   if (plugins['smart-prefill']) {

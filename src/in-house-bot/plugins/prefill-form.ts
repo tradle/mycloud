@@ -1,13 +1,14 @@
 import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
-import { IPluginOpts } from '../types'
+import { IPluginOpts, IPluginExports, IPluginLifecycleMethods } from '../types'
 
 const DEFAULT_CONF = require('./form-prefills.json')
 
 export const name = 'prefillForm'
-export function createPlugin ({ conf=DEFAULT_CONF, logger }: IPluginOpts) {
+export function createPlugin ({ conf=DEFAULT_CONF, logger }: IPluginOpts):IPluginExports {
 
-  const willRequestForm = ({ to, application, formRequest }) => {
+  const plugin:IPluginLifecycleMethods = {}
+  plugin.willRequestForm = ({ to, application, formRequest }) => {
     const appSpecific = application && conf[application.requestFor]
     const { form, prefill } = formRequest
     if (prefill) return
@@ -30,7 +31,7 @@ export function createPlugin ({ conf=DEFAULT_CONF, logger }: IPluginOpts) {
   }
 
   return {
-    willRequestForm
+    plugin
   }
 }
 

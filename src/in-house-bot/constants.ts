@@ -20,5 +20,7 @@ export const TYPES = {
   DATA_BUNDLE: 'tradle.DataBundle',
   FORM: 'tradle.Form',
   VERIFICATION: 'tradle.Verification',
-  MY_PRODUCT: 'tradle.MyProduct'
+  MY_PRODUCT: 'tradle.MyProduct',
+  APPLICATION: 'tradle.Application',
+  PRODUCT_REQUEST: 'tradle.ProductRequest'
 }

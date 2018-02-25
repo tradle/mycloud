@@ -12,14 +12,19 @@ import baseModels = require('../models')
 import Errors = require('../errors')
 import { TYPES } from './constants'
 import { ContentAddressedStore } from '../content-addressed-store'
+import { stubToId, idToStub } from './data-claim'
 import {
   Logger,
   Bot,
   KeyValueTable,
+  ClaimType,
   ClaimStub,
   IUser,
   ITradleObject,
-  IPluginOpts
+  IPluginOpts,
+  IPBApp,
+  IPBReq,
+  IDataBundle
 } from './types'
 
 const {
@@ -39,10 +44,11 @@ const CustomErrors = {
   InvalidBundlePointer: createError('InvalidBundlePointer')
 }
 
+const DEFAULT_CLAIM_TYPE:ClaimType = 'dump'
+
 export { CustomErrors as Errors }
 
 const NONCE_LENGTH = 16
-const CLAIM_ID_ENCODING = 'hex'
 const DEFAULT_CONF = {
   deleteRedeemedClaims: true
 }
@@ -51,11 +57,22 @@ type KeyContainer = {
   key: string
 }
 
+interface IHandleClaimOpts {
+  req: IPBReq
+  user: IUser
+  claimId: string
+}
+
+export {
+  idToStub,
+  stubToId
+}
+
 export class Remediation {
   public bot: Bot
   public productsAPI: any
   public logger: Logger
-  public keyToNonces: KeyValueTable
+  public keyToClaimIds: KeyValueTable
   public store: ContentAddressedStore
   public conf: any
   private _removeHandler: Function
@@ -69,7 +86,7 @@ export class Remediation {
     this.productsAPI = productsAPI
     this.logger = logger
     this.conf = conf
-    this.keyToNonces = bot.conf.sub('remediation:')
+    this.keyToClaimIds = bot.conf.sub('remediation:')
     this.store = new ContentAddressedStore({
       bucket: bot.buckets.PrivateConf.folder('remediation'),
     })
@@ -80,12 +97,14 @@ export class Remediation {
     return await this.store.put(bundle)
   }
 
-  public createClaim = async ({ key }: KeyContainer):Promise<ClaimStub> => {
-    const claimStub = await this.genClaimStub({ key })
-    const { nonce, claimId } = claimStub
-    const nonces = await this.getNonces({ key })
-    nonces.push(nonce)
-    await this.keyToNonces.put(key, nonces)
+  public createClaim = async ({ key, claimType }: {
+    key: string
+    claimType: ClaimType
+  }):Promise<ClaimStub> => {
+    const claimStub = await this.genClaimStub({ key, claimType })
+    const claimIds = await this.getClaimIdsForKey({ key })
+    claimIds.push(stubToId(claimStub))
+    await this.keyToClaimIds.put(key, claimIds)
     return claimStub
   }
 
@@ -93,10 +112,10 @@ export class Remediation {
     key?: string
     claimId?: string
   }) => {
-    if (!key) key = parseClaimId(claimId).key
+    if (!key) key = idToStub(claimId).key
 
     await Promise.all([
-      this.keyToNonces.del(key),
+      this.keyToClaimIds.del(key),
       this.store.del(key)
     ])
   }
@@ -114,60 +133,57 @@ export class Remediation {
   public getBundle = async ({ key, claimId }: {
     key?:string,
     claimId?:string
-  }) => {
-    if (!key) key = parseClaimId(claimId).key
+  }):Promise<IDataBundle> => {
+    if (!key) key = idToStub(claimId).key
     return this.getBundleByKey({ key })
   }
 
-  public getBundleByKey = async ({ key }: KeyContainer) => {
+  public getBundleByKey = async ({ key }: KeyContainer):Promise<IDataBundle> => {
     return await this.store.getJSON(key)
   }
 
-  public getBundleByClaimId = async (claimId: string) => {
-    const { nonce, key } = parseClaimId(claimId)
-    const nonces = await this.getNonces({ key })
-    if (nonces.includes(nonce)) {
+  public getBundleByClaimId = async (claimId: string):Promise<IDataBundle> => {
+    const { key } = idToStub(claimId)
+    const claimIds = await this.getClaimIdsForKey({ key })
+    if (claimIds.includes(claimId)) {
       return await this.getBundleByKey({ key })
     }
 
-    throw new Errors.NotFound('claim not found')
+    throw new Errors.NotFound(`claim not found with claimId: ${claimId}`)
   }
 
   public listClaimsForBundle = async ({ key }: KeyContainer):Promise<ClaimStub[]> => {
-    const nonces = await this.getNonces({ key })
-    return await Promise.all(nonces.map(nonce => this.toClaimStub({ key, nonce })))
+    const ids = await this.getClaimIdsForKey({ key })
+    return await Promise.all(ids.map(id => this.toClaimStub(idToStub(id))))
   }
 
-  public genClaimStub = async ({ key, bundle }: {
-    bundle?:any,
+  public genClaimStub = async ({ key, bundle, claimType }: {
+    bundle?:any
     key?:string
+    claimType?: ClaimType
   }):Promise<ClaimStub> => {
     if (!key) key = this.store.getKey(bundle)
 
     const nonce = crypto.randomBytes(NONCE_LENGTH)
-    return this.toClaimStub({ key, nonce, bundle })
+    return await this.toClaimStub({ key, nonce, bundle, claimType })
   }
 
-  public toClaimStub = async ({ key, nonce, bundle }: {
-    key: string,
-    nonce: string|Buffer,
+  public toClaimStub = async ({ key, nonce, bundle, claimType }: {
+    key: string
+    nonce: string|Buffer
+    claimType: ClaimType
     bundle?: any
   }):Promise<ClaimStub> => {
     if (!bundle) {
       try {
         await this.getBundle({ key })
       } catch (err) {
-        Errors.ignore(err, Errors.NotFound);
+        Errors.ignore(err, Errors.NotFound)
         throw new Errors.NotFound(`bundle not found with key: ${key}`)
       }
     }
 
-    const claimId = Buffer.concat([
-      typeof nonce === 'string' ? new Buffer(nonce, 'hex') : nonce,
-      new Buffer(key, 'hex')
-    ])
-    .toString(CLAIM_ID_ENCODING)
-
+    const claimId = stubToId({ claimType, key, nonce })
     const provider = await this.bot.getMyIdentityPermalink()
     const qrData = QR.toHex({
       schema: 'ImportData',
@@ -182,13 +198,36 @@ export class Remediation {
       key,
       nonce: typeof nonce === 'string' ? nonce : nonce.toString('hex'),
       claimId,
+      claimType,
       qrData
     }
   }
 
-  public handleDataClaim = async (opts) => {
+  public handleDataClaim = async (opts: IHandleClaimOpts) => {
     this.logger.debug('processing tradle.DataClaim')
-    const { req, user, claim } = opts
+    const { req, user, claimId } = opts
+    const { claimType } = idToStub(claimId)
+    if (claimType === 'dump') {
+      return await this.handleDumpClaim({ req, user, claimId })
+    }
+
+    if (claimType === 'prefill') {
+      return await this.handlePrefillClaim({ req, user, claimId })
+    }
+  }
+
+  public handlePrefillClaim = async (opts: IHandleClaimOpts) => {
+    const { req, user, claimId } = opts
+    const bundle = await this.getBundleByClaimId(claimId)
+    const request = bundle.items[0]
+    const application = this.productsAPI.state.createApplication({ user, object: request })
+    application.requestFor = request.requestFor
+    application.prefillFrom = idToStub(claimId).key
+    req.application = <IPBApp>(await this.bot.sign(application))
+  }
+
+  public handleDumpClaim = async (opts: IHandleClaimOpts) => {
+    const { req, user, claimId } = opts
     try {
       await this.sendDataBundleForClaim(opts)
     } catch (err) {
@@ -202,17 +241,15 @@ export class Remediation {
       return
     }
 
-    const { claimId } = claim
     await this.onClaimRedeemed({ claimId, user })
   }
 
   public sendDataBundleForClaim = async ({
     req,
     user,
-    claim,
+    claimId,
     message=DEFAULT_BUNDLE_MESSAGE
   }) => {
-    const { claimId } = claim
     let unsigned
     try {
       unsigned = await this.getBundleByClaimId(claimId)
@@ -253,7 +290,6 @@ export class Remediation {
       if (model.id !== VERIFICATION &&
         model.subClassOf !== FORM &&
         model.subClassOf !== MY_PRODUCT) {
-        debugger
         throw new CustomErrors.InvalidBundleItem(`invalid item at index ${i}, expected form, verification or MyProduct`)
       }
     })
@@ -323,6 +359,34 @@ export class Remediation {
     return item
   }
 
+  public createBundleFromApplication = async (application:IPBApp):Promise<ITradleObject> => {
+    const stubs = application.forms.slice()
+    stubs.unshift(application.request)
+
+    const items = await Promise.all(stubs.map(stub => this.bot.getResourceByStub(stub)))
+    // TODO: verifications
+    return buildResource({
+      models: baseModels,
+      model: DATA_BUNDLE
+    })
+    .set({ items })
+    .toJSON()
+  }
+
+  public createClaimForApplication = async ({ application, claimType }: {
+    application: IPBApp,
+    claimType?: ClaimType
+  }):Promise<ClaimStub> => {
+    if (!application.draft) {
+      throw new Errors.InvalidInput(`can't create claim for non-draft application: ${application._link}`)
+    }
+
+    const bundle = await this.createBundleFromApplication(application)
+    const key = await this.saveUnsignedDataBundle(bundle)
+    // delete application?
+    return await this.createClaim({ key, claimType })
+  }
+
   private getFormStub = ({ items, ref }) => {
     const { models } = this.bot
     if (buildResource.isProbablyResourceStub(ref)) return ref
@@ -335,9 +399,9 @@ export class Remediation {
     return buildResource.stub({ models, resource })
   }
 
-  private getNonces = async ({ key }: KeyContainer) => {
+  private getClaimIdsForKey = async ({ key }: KeyContainer) => {
     try {
-      return await this.keyToNonces.get(key)
+      return await this.keyToClaimIds.get(key)
     } catch (err) {
       Errors.ignore(err, Errors.NotFound)
       return []
@@ -346,10 +410,3 @@ export class Remediation {
 }
 
 export const createRemediation = (opts: IPluginOpts) => new Remediation(opts)
-export const parseClaimId = (claimId:string) => {
-  const hex = new Buffer(claimId, CLAIM_ID_ENCODING).toString('hex')
-  return {
-    nonce: hex.slice(0, NONCE_LENGTH * 2),
-    key: hex.slice(NONCE_LENGTH * 2)
-  }
-}

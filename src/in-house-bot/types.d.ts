@@ -110,8 +110,9 @@ export type VerifiedItem = {
   verification: ResourceStub
 }
 
-export interface IPBApp {
+export interface IPBApp extends ITradleObject {
   applicant: ResourceStub
+  request?: ResourceStub
   requestFor: string
   forms?: ResourceStub[]
   verificationsImported?: VerifiedItem[]
@@ -127,13 +128,13 @@ export interface IPBApp {
 
 export interface IFormRequest extends ITradleObject {
   form: string
+  prefill?: any
 }
 
 export interface IWillRequestFormArg {
   to: string | IUser
   application?: IPBApp
   formRequest: IFormRequest
-  requestFor: string
 }
 
 export interface IOnFormsCollectedArg {
@@ -224,11 +225,18 @@ export interface IPluginOpts {
   [other:string]: any
 }
 
+export type ClaimType = 'dump' | 'prefill'
+
 export type ClaimStub = {
   key: string
   nonce: string
+  claimType: ClaimType
   claimId: string
-  qrData: string
+  qrData?: string
+}
+
+export interface IDataBundle extends ITradleObject {
+  items: ITradleObject[]
 }
 
 export interface IDeploymentOpts {
