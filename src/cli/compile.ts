@@ -25,7 +25,7 @@ function setBucketEncryption ({ target, interpolated }) {
   if (!encryption.length) return
 
   encryption.forEach(bucketName => {
-    target.resources.Resources[bucketName].BucketEncryption = {
+    target.resources.Resources[bucketName].Properties.BucketEncryption = {
       ServerSideEncryptionConfiguration: [
         {
           ServerSideEncryptionByDefault: {
