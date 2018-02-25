@@ -34,7 +34,7 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
   const deployment = createDeployment({
     bot,
     logger,
-    senderEmail: conf.senderEmail
+    conf
   })
 
   const getBotPermalink = bot.getMyIdentityPermalink()

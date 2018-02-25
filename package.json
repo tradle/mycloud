@@ -26,6 +26,7 @@
     "husky": "^0.14.3",
     "is-native-module": "^1.1.0",
     "js-yaml": "^3.10.0",
+    "juice": "^4.2.2",
     "lint-staged": "^4.2.3",
     "localip": "^1.0.0",
     "minimist": "^1.2.0",
@@ -115,7 +116,8 @@
     "remove": "npm run build:yml && serverless remove",
     "reinitializecontainers": "sls invoke -f reinitialize-containers",
     "stacksize": "./src/scripts/count-resources.sh",
-    "scan": "./src/scripts/scan.sh"
+    "scan": "./src/scripts/scan.sh",
+    "templates:prerender": "node ./lib/scripts/prerender-templates.js && npm run copy-static-assets"
   },
   "dependencies": {
     "@meltwater/fetch-favicon": "^1.0.4",
@@ -194,6 +196,7 @@
     "nkey-ecdsa": "^1.1.0",
     "nkey-ethereum": "github:tradle/nkey-ethereum",
     "node-fetch": "^1.7.3",
+    "nunjucks": "^3.1.2",
     "pify": "^2.3.0",
     "promise-locker": "^1.0.0",
     "random-name": "^0.1.2",

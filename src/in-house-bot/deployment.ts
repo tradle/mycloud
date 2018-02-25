@@ -27,11 +27,27 @@ import Errors = require('../errors')
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
 import { createLinker } from './app-links'
+import * as Templates from './templates'
 
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const CONFIGURATION = 'tradle.cloud.Configuration'
+const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
+  template: 'action',
+  data: {
+    action: {
+      text: 'Launch MyCloud',
+      href: '{{launchUrl}}'
+    },
+    blocks: [
+      { body: 'Hi there,' },
+      { body: 'Click below to launch your Tradle MyCloud' }
+    ],
+    signature: 'Tradle Team',
+    twitter: 'tradles'
+  }
+}
 
 interface ISaveChildDeploymentOpts {
   apiUrl: string
@@ -51,7 +67,7 @@ interface DeploymentCtorOpts {
   bot: Bot
   logger: Logger
   appLinks?: AppLinks
-  senderEmail?: string
+  conf?: IDeploymentPluginConf
 }
 
 const getServiceNameFromTemplate = template => template.Mappings.deployment.init.service
@@ -66,8 +82,8 @@ export class Deployment {
   private deploymentBucket: Bucket
   private logger: Logger
   private appLinks: AppLinks
-  private senderEmail: string
-  constructor({ bot, logger, appLinks=createLinker(), senderEmail }: DeploymentCtorOpts) {
+  private conf?: IDeploymentPluginConf
+  constructor({ bot, logger, appLinks=createLinker(), conf }: DeploymentCtorOpts) {
     this.bot = bot
     this.env = bot.env
     this.logger = logger
@@ -75,7 +91,7 @@ export class Deployment {
     this.deploymentBucket = bot.buckets.ServerlessDeployment
     this.appLinks = appLinks
     this.kv = this.bot.kv.sub('deployment:')
-    this.senderEmail = senderEmail
+    this.conf = conf
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -310,9 +326,9 @@ ${this.genUsageInstructions(links)}`
 
     try {
       await this.bot.mailer.send({
-        from: this.senderEmail,
+        from: this.conf.senderEmail,
         to: [hrEmail, adminEmail],
-        format: 'text',
+        format: 'html',
         ...this.genLaunchedEmail({
           url: apiUrl,
           ...links
@@ -352,8 +368,24 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public genLaunchEmailBody = ({ launchUrl }) => {
-    return `Launch your Tradle MyCloud: ${launchUrl}`
+  public genLaunchEmailBody = (values: {
+    launchUrl: string
+  }) => {
+    const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
+    const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
+    const { template, data } = opts
+    if (!(template in Templates.email)) {
+      throw new Error(`template "${template}" does not exist`)
+    }
+
+    let renderedData
+    try {
+      renderedData = renderData(data, values)
+    } catch (err) {
+      throw new Error('invalid values in data template')
+    }
+
+    return Templates.email[template](renderedData)
   }
 
   public genLaunchEmail = ({ launchUrl }) => ({
@@ -489,4 +521,10 @@ const normalizeDomain = (domain:string) => {
   }
 
   return domain
+}
+
+const renderData = (dataTemplate, data) => {
+  // prevent double autoescape (once for render data, once for render html)
+  const rendered = Templates.renderStringNoAutoEscape(JSON.stringify(dataTemplate), data)
+  return JSON.parse(rendered)
 }

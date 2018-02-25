@@ -9,6 +9,7 @@
     "removeComments": true,
     "outDir": "lib",
     "lib": [
+      "dom",
       "es6",
       "es2017",
       "esnext.asynciterable"

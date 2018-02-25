@@ -21,3 +21,9 @@ lambda.use(async (ctx, next) => {
 })
 
 export const handler = lambda.handler
+
+// lambda.handler({
+//   event: '/getlaunchlink --update --provider'
+// }, {
+//   done: (err, result) => console.log(err||result)
+// })

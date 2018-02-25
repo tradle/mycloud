@@ -7,11 +7,32 @@ export const command:ICommand = {
   examples: [
     '/getlaunchlink --name EasyBank --domain easybank.io',
     '/getlaunchlink --name EasyBank --domain easybank.io --logo "https://s3.amazonaws.com/tradle-public-images/easy.png"',
-    // '/getlaunchlink --update'
+    '/getlaunchlink --update --provider'
   ],
   exec: async ({ commander, req, ctx, args }) => {
     if (!commander.deployment) {
       throw new Error('"deployment" plugin not configured. Please add to plugins in bot.json')
+    }
+
+    if (args.update) {
+      let { provider } = args
+      if (req) {
+        if (provider) {
+          if (!commander.employeeManager.isEmployee(req.user)) {
+            throw new Error(`oops, you don't have the security clearance`)
+          }
+        } else {
+          if (req.user.friend) {
+            provider = req.user.id
+          } else {
+            throw new Error(`hm, this operation isn't for you`)
+          }
+        }
+      }
+
+      return await commander.deployment.getUpdateUrl({
+        createdBy: provider
+      })
     }
 
     // const isPublic = await commander.bot.buckets.ServerlessDeployment.isPublic()

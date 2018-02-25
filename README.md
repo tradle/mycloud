@@ -62,6 +62,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
     - [Functions](#functions)
     - [Network communication flow](#network-communication-flow)
     - [Plugins](#plugins)
+    - [Email templates](#email-templates)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -496,3 +497,7 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 #### Plugins
 
 See [./docs/plugins.md](./docs/plugins.md)
+
+#### Email templates
+
+To prerender templates (primarily to inline css), run `npm run prerender:templates`

@@ -44,7 +44,7 @@ test('deployment by referral', loudAsync(async (t) => {
   const parentDeployment = new Deployment({
     bot: parent,
     logger: parent.logger.sub('deployment:test:parent'),
-    senderEmail
+    conf: { senderEmail }
   })
 
   const childDeployment = new Deployment({
@@ -225,6 +225,10 @@ test('deployment by referral', loudAsync(async (t) => {
     createdBy: childIdentity._permalink
   })
 
+// console.time('render and juice')
+//   const launchEmail = parentDeployment.genLaunchEmailBody({ launchUrl })
+//   console.log(launchEmail)
+// console.timeEnd('render and juice')
   t.equal(pubConfStub.callCount, 1)
   t.end()
 }))

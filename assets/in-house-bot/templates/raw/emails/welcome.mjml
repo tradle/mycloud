@@ -1,0 +1,37 @@
+<mjml version="3.3.3">
+  <mj-body>
+    <mj-container background-color="#FFFFFF" color="#55575d" font-family="sans-serif">
+      <mj-section background-color="#4F87B3" background-repeat="repeat" padding="20px 0" text-align="center" vertical-align="top">
+        <mj-column>
+          <mj-image align="center" padding="10px 25px" src="https://app.tradle.io/img/logo-white256x256.png" width="128px"></mj-image>
+        </mj-column>
+      </mj-section>
+      <mj-section background-color="#ffffff" background-repeat="repeat" padding="20px 0" text-align="center" vertical-align="top">
+        <mj-column>
+          <mj-text color="#55575d">Hi there,</mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section background-color="#ffffff" background-repeat="repeat" background-size="auto" padding="20px 0px 20px 0px" text-align="center" vertical-align="top">
+        <mj-column>
+          <mj-text color="#55575d" font-family="sans-serif" padding="0px 25px 0px 25px">
+            Click this and this
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section background-color="#4F87B3" background-repeat="repeat" padding="20px 0" text-align="center" vertical-align="top">
+        <mj-column>
+          <mj-text align="center" color="#ffffff" font-family="Arial, sans-serif" font-size="13px" line-height="22px" padding="10px 25px">
+            Visit us at <a style="color:#ffffff" href="https://tradle.io"><b>tradle.io</b></a>
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section background-repeat="repeat" background-size="auto" padding="20px 0px 20px 0px" text-align="center" vertical-align="top">
+        <mj-column>
+          <mj-text align="center" color="#55575d" font-family="Arial, sans-serif" font-size="11px" line-height="22px" padding="0px 20px">
+            [[DELIVERY_INFO]]
+          </mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-container>
+  </mj-body>
+</mjml>
