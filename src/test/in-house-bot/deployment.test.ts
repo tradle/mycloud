@@ -207,7 +207,7 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(saveChildDeploymentStub.callCount, 1)
   t.equal(childDeploymentResource.deploymentUUID, deploymentConf.deploymentUUID)
 
-  sinon.stub(parent.db, 'find').resolves(childDeploymentResource)
+  sinon.stub(parent.db, 'findOne').resolves(childDeploymentResource)
 
   pubConfStub.restore()
   pubConfStub = sinon.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, template) => {
