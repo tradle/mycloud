@@ -4,7 +4,9 @@ import promisify = require('pify')
 import proc = require('child_process')
 import { parseSync as parseEnv } from 'env-file-parser'
 import _fs = require('fs')
+import readline = require('readline')
 import YAML = require('js-yaml')
+import yn = require('yn')
 import getLocalIP = require('localip')
 import isNative = require('is-native-module')
 import {
@@ -488,6 +490,18 @@ export const getOfflineHost = (env?:Env) => {
 
   const port = getOfflinePort(env)
   return `http://${getLocalIP()}:${port}`
+}
+
+export const confirm = async (question?: string) => {
+  if (question) console.warn(question)
+
+  const rl = readline.createInterface(process.stdin, process.stdout)
+  const answer = await new Promise(resolve => {
+    rl.question('continue? y/[n]:', resolve)
+  })
+
+  rl.close()
+  return yn(answer)
 }
 
 export {

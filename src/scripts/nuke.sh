@@ -1,4 +1,10 @@
-#!/bin/sh
+#!/bin/bash
+
+breakout () {
+  printf "canceled"
+}
+
+trap breakout SIGINT
 
 SERVICE=$1
 STAGE=$2
@@ -49,22 +55,21 @@ ask() {
 
         # Check if the reply is valid
         case "$REPLY" in
-            Y*|y*) return 0 ;;
-            N*|n*) return 1 ;;
+            Y*|y*)
+              return 0 ;;
+            N*|n*)
+              return 1 ;;
+            *)
+              echo "canceled"
+              exit 1
         esac
 
     done
 }
 
-remove_buckets() {
-    # do dangerous stuff
-  # set -o xtrace
-  # todo: respect actual service name and stage!
-  aws --profile="$PROFILE" s3 ls | awk '{print $3;}' | grep "$SERVICE-$STAGE" | grep -v "$SERVICE-$STAGE-serverless" | while read line; do
-    ask "delete bucket ${line}?" && aws --profile="$PROFILE" s3 rb "s3://$line" --force
-  done
-}
+echo "This will empty and delete all buckets, tables, lambdas, etc. for"
+echo "service: $SERVICE"
+echo "stage: $STAGE"
 
-echo "This will empty and delete all buckets, tables, lambdas, etc. for \nservice: $SERVICE \nstage: $STAGE"
-ask && remove_buckets
+ask && ./lib/scripts/delete-remote-buckets.js
 ask "delete resources stack" && sls remove --stage="$STAGE"

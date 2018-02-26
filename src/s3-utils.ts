@@ -272,12 +272,23 @@ export default class S3Utils {
     })
   }
 
-  public createBucket = ({ bucket }) => {
-    return this.s3.createBucket({ Bucket: bucket }).promise()
+  public createBucket = async ({ bucket }) => {
+    return await this.s3.createBucket({ Bucket: bucket }).promise()
   }
 
-  public destroyBucket = ({ bucket }) => {
-    return this.s3.deleteBucket({ Bucket: bucket }).promise()
+  public destroyBucket = async ({ bucket }) => {
+    const tasks = [
+      () => this.emptyBucket({ bucket }),
+      () => this.s3.deleteBucket({ Bucket: bucket }).promise()
+    ]
+
+    for (const task of tasks) {
+      try {
+        await task()
+      } catch (err) {
+        Errors.ignore(err, { code: 'NoSuchBucket' })
+      }
+    }
   }
 
   public getUrlForKey = ({ bucket, key }) => {
@@ -318,7 +329,9 @@ export default class S3Utils {
     return latest
   }
 
-  public makePublic = async (bucket: string) => {
+  public makePublic = async ({ bucket }: {
+    bucket: string
+  }) => {
     this.logger.warn(`making bucket public: ${bucket}`)
     await this.s3.putBucketPolicy({
       Bucket: bucket,
@@ -333,6 +346,53 @@ export default class S3Utils {
         }]
       }`
     }).promise()
+  }
+
+  public deleteVersions = async ({ bucket, versions }: {
+    bucket: string
+    versions:AWS.S3.ObjectVersionList
+  }) => {
+    await this.s3.deleteObjects({
+      Bucket: bucket,
+      Delete: {
+        Objects: versions.map(({ Key, VersionId }) => ({ Key, VersionId }))
+      }
+    }).promise()
+  }
+
+  // copied from empty-aws-bucket
+  public emptyBucket = async ({ bucket }: {
+    bucket: string
+  }) => {
+    const { s3, logger } = this
+    const Bucket = bucket
+    const deleteVersions = versions => this.deleteVersions({ bucket, versions })
+    // get the list of all objects in the bucket
+    const { Versions } = await s3.listObjectVersions({ Bucket }).promise()
+
+    // before we can delete the bucket, we must delete all versions of all objects
+    if (Versions.length > 0) {
+      logger.debug(`deleting ${Versions.length} object versions`)
+      await deleteVersions(Versions)
+    }
+
+    // check for any files marked as deleted previously
+    const { DeleteMarkers } = await s3.listObjectVersions({ Bucket }).promise()
+
+    // if the bucket contains delete markers, delete them
+    if (DeleteMarkers.length > 0) {
+      logger.debug(`deleting ${DeleteMarkers.length} object delete markers`)
+      await deleteVersions(DeleteMarkers)
+    }
+
+    // if there are any non-versioned contents, delete them too
+    const { Contents } = await s3.listObjectsV2({ Bucket }).promise()
+
+    // if the bucket contains delete markers, delete them
+    if (Contents.length > 0) {
+      logger.debug(`deleting ${Contents.length} objects`)
+      await deleteVersions(Contents)
+    }
   }
 }
 
