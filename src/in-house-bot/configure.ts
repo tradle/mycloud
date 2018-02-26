@@ -5,6 +5,7 @@ import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
 import mergeModels = require('@tradle/merge-models')
+import ModelsPack = require('@tradle/models-pack')
 import { Plugins } from './plugins'
 import { Deployment } from './deployment'
 import baseModels = require('../models')
@@ -390,6 +391,11 @@ export class Conf {
     }
 
     if (modelsPack) {
+      ModelsPack.validate({
+        builtInModels: baseModels,
+        modelsPack
+      })
+
       await this.setCustomModels(modelsPack)
       updated.modelsPack = true
     }
