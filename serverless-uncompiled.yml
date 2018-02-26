@@ -1082,6 +1082,7 @@ resources:
 
     deployment:
       init:
+        service: ${{self:custom.service}}
         # which MyCloud generated the template
         referrerUrl: ''
         deploymentUUID: ''

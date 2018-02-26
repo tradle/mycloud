@@ -235,6 +235,7 @@ export interface IDeploymentOpts {
   name: string
   domain: string
   logo?: string
+  stackPrefix: string
   configurationLink?: string
 }
 
@@ -261,6 +262,7 @@ export interface IMyDeploymentConf {
   identity: IIdentity
   deploymentUUID: string
   apiUrl: string
+  service: string
   stackId: string
   referrerUrl: string
   logo?: string

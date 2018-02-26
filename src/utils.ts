@@ -804,7 +804,7 @@ export function defineGetter (obj, property, get) {
 export const race = Promise.race
 
 export function parseArn (arn) {
-  // e.g. arn:aws:lambda:us-east-1:210041114155:function:tradle-dev-http_catchall
+  // e.g. arn:aws:lambda:us-east-1:0123456789:function:tradle-dev-http_catchall
   const parts = arn.split(':')
   const relativeId = parts.slice(5).join(':')
   const idParts = relativeId.split('/')

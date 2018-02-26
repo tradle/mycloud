@@ -38,6 +38,7 @@ interface ISaveChildDeploymentOpts {
   deploymentUUID: string
   identity: ResourceStub
   configuration: ITradleObject
+  stackId: string
 }
 
 interface INotifyCreatorsOpts {
@@ -52,6 +53,9 @@ interface DeploymentCtorOpts {
   appLinks?: AppLinks
   senderEmail?: string
 }
+
+const getServiceNameFromTemplate = template => template.Mappings.deployment.init.service
+const getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
 
 export class Deployment {
   // exposed for testing
@@ -124,9 +128,14 @@ export class Deployment {
       throw new Error('expected "createdBy", "configuredBy" or "childDeploymentLink')
     }
 
+    const configuration = await this.bot.getResourceByStub(childDeployment.configuration)
     const { stackId } = childDeployment
     const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplateForUpdate({ template })
+      return this.customizeTemplateForUpdate({
+        template,
+        childDeployment,
+        configuration
+      })
     })
 
     return utils.getUpdateStackUrl({ stackId, templateURL: url })
@@ -245,7 +254,8 @@ export class Deployment {
       apiUrl,
       deploymentUUID,
       configuration,
-      identity: friend.identity
+      identity: friend.identity,
+      stackId
     })
 
     const promiseSaveDeployment = this.bot.signAndSave(depResource)
@@ -263,7 +273,13 @@ export class Deployment {
     return true
   }
 
-  public buildChildDeploymentResource = async ({ apiUrl, deploymentUUID, configuration, identity }: ISaveChildDeploymentOpts) => {
+  public buildChildDeploymentResource = async ({
+    apiUrl,
+    deploymentUUID,
+    configuration,
+    identity,
+    stackId
+  }: ISaveChildDeploymentOpts) => {
     const configuredBy = await this.bot.identities.byPermalink(configuration._author)
     const builder = buildResource({
       models: this.bot.models,
@@ -274,7 +290,8 @@ export class Deployment {
       apiUrl,
       configuration,
       configuredBy: utils.omitVirtual(configuredBy),
-      identity
+      identity,
+      stackId
     })
 
     return builder.toJSON()
@@ -367,12 +384,13 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
     template: any
     opts: IDeploymentOpts
   }) => {
-    let { name, domain, logo } = opts
+    let { name, domain, logo, stackPrefix } = opts
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
     }
 
+    const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
     template.Description = `MyCloud, by Tradle`
     domain = normalizeDomain(domain)
@@ -383,7 +401,8 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
     const logoPromise = this.getLogo(opts)
     const dInit: Partial<IMyDeploymentConf> = {
       deploymentUUID: utils.uuid(),
-      referrerUrl: this.bot.apiBaseUrl
+      referrerUrl: this.bot.apiBaseUrl,
+      service: stackPrefix || getServiceNameFromDomain(domain)
     }
 
     deployment.init = dInit
@@ -407,14 +426,27 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
       }
     }
 
-    // write template to s3, return link
-    return template
+    return this.bot.stackUtils.replaceServiceName({
+      template,
+      placeholder: previousServiceName,
+      replacement: stackPrefix
+    })
   }
 
-  public customizeTemplateForUpdate = async ({ template }: {
+  public customizeTemplateForUpdate = async ({ template, childDeployment, configuration }: {
     template: any
+    childDeployment: any
+    configuration: any
   }) => {
-    return _.omit(template, 'Mappings')
+    const { service, stage } = this.bot.stackUtils.parseStackArn(childDeployment.stackId)
+    const previousServiceName = getServiceNameFromTemplate(template)
+    template = _.cloneDeep(template)
+    template = _.omit(template, 'Mappings')
+    return this.bot.stackUtils.replaceServiceName({
+      template,
+      placeholder: previousServiceName,
+      replacement: service
+    })
   }
 
   public getReportLaunchUrl = (referrerUrl:string=this.bot.apiBaseUrl) => {

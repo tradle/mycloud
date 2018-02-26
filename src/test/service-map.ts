@@ -2,19 +2,20 @@ import format = require('string-format')
 import Logger from '../logger'
 import serverlessYml = require('../cli/serverless-yml')
 const {
+  service,
   custom,
   provider,
   resources
 } = serverlessYml
 
 const { prefix } = custom
-const { environment } = provider
+const { stage, environment } = provider
 const { Resources } = resources
 const map = require('./fixtures/fake-service-map')
 const logger = new Logger('service-map')
 
 for (let logicalId in map) {
-  map[logicalId] = format(map[logicalId], { prefix })
+  map[logicalId] = format(map[logicalId], { service, stage, prefix })
 }
 
 for (let key in environment) {

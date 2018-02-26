@@ -82,7 +82,7 @@ test('deployment by referral', loudAsync(async (t) => {
     }
 
     expectedLaunchReport = {
-      ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'logo']),
+      ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'service', 'logo']),
       org: _.pick(deploymentConf, ['name', 'domain'])
     }
   })
@@ -100,15 +100,21 @@ test('deployment by referral', loudAsync(async (t) => {
         "init": {
           "referrerUrl": "",
           "referrerIdentity": "",
-          "deploymentUUID": ""
+          "deploymentUUID": "",
+          "service": "tdl-xxxx-tdl"
         }
       }
     }
   })
 
+
   const getStub = sinon.stub(parent.objects, 'get').callsFake(async link => {
     if (link === conf._link) {
       return conf
+    }
+
+    if (link === childDeploymentResource._link) {
+      return childDeploymentResource
     }
 
     throw new Errors.NotFound(link)
@@ -149,7 +155,8 @@ test('deployment by referral', loudAsync(async (t) => {
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
-    configurationLink: conf._link
+    configurationLink: conf._link,
+    stackPrefix: conf.stackPrefix
   })
 
 

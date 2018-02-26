@@ -69,13 +69,28 @@ export default class StackUtils {
     this.deploymentBucket = this.buckets.ServerlessDeployment
 
     const arn = this.serviceMap.Stack
-    this.stack = {
-      name: utils.parseArn(arn).id.split('/')[0],
-      arn
-    }
-
+    this.stack = StackUtils.parseStackArn(arn)
     this.apiId = this.serviceMap.RestApi.ApiGateway.id
   }
+
+  public static parseStackName = (name: string) => {
+    const [service, stage] = name.match(/^(.*?)-([^-]+)$/).slice(1)
+    return { service, stage }
+  }
+
+  public static parseStackArn = (arn: string) => {
+    const name = utils.parseArn(arn).id.split('/')[0]
+    const { service, stage } = StackUtils.parseStackName(name)
+    return {
+      name,
+      service,
+      stage,
+      arn
+    }
+  }
+
+  public parseStackArn = StackUtils.parseStackArn
+  public parseStackName = StackUtils.parseStackName
 
   public getThisStackId = () => {
     return this.stack.arn
@@ -392,6 +407,10 @@ export default class StackUtils {
   }
 
   public static replaceServiceName = ({ template, placeholder, replacement }) => {
+    if (!(template && placeholder && replacement)) {
+      throw new Error('expected "template", "placeholder", and "replacement"')
+    }
+
     const s3Keys = utils.traverse(template).reduce(function (s3Keys, value) {
       if (this.key === 'S3Key') {
         s3Keys.push({
