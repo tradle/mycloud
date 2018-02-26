@@ -501,32 +501,29 @@ provider:
         - cloudfront:updateDistribution
       Resource: ["*"]
 
-    - Effect: Allow
-      Action:
-        - apigateway:GET
-        - apigateway:PUT
-      Resource:
-        Fn::Join:
-          - ""
-          - - "arn:aws:apigateway:"
-            - Ref: AWS::Region
-            - "::/restapis/"
-            - Ref: ApiGatewayRestApi
-            - "/*"
+    # - Effect: Allow
+    #   Action:
+    #     - apigateway:GET
+    #     - apigateway:PUT
+    #   Resource:
+    #     Fn::Join:
+    #       - ""
+    #       - - "arn:aws:apigateway:"
+    #         - Ref: AWS::Region
+    #         - "::/restapis/"
+    #         - Ref: ApiGatewayRestApi
+    #         - "/*"
 
-    - Effect: Allow
-      Action:
-        - apigateway:POST
-      Resource:
-        Fn::Join:
-          - ""
-          - - "arn:aws:apigateway:"
-            - Ref: AWS::Region
-            - "::/restapis/"
-            - Ref: ApiGatewayRestApi
-            # - "/*"
-
-        # - Fn::Join: 'arn:aws:apigateway:${AWS::Region}::/restapis/*'
+    # - Effect: Allow
+    #   Action:
+    #     - apigateway:POST
+    #   Resource:
+    #     Fn::Join:
+    #       - ""
+    #       - - "arn:aws:apigateway:"
+    #         - Ref: AWS::Region
+    #         - "::/restapis/"
+    #         - Ref: ApiGatewayRestApi
 
     - Effect: Allow
       Action:
