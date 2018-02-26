@@ -391,6 +391,29 @@ export default class StackUtils {
     await this.createDeployment()
   }
 
+  public static replaceServiceName = ({ template, placeholder, replacement }) => {
+    const s3Keys = utils.traverse(template).reduce(function (s3Keys, value) {
+      if (this.key === 'S3Key') {
+        s3Keys.push({
+          path: this.path,
+          value
+        })
+      }
+
+      return s3Keys
+    }, [])
+
+    const placeholderRegex = new RegExp(placeholder, 'g')
+    const replacementRegex = new RegExp(replacement, 'g')
+    const resultStr = JSON.stringify(template)
+      .replace(placeholderRegex, replacement)
+
+    const result = JSON.parse(resultStr)
+    s3Keys.forEach(({ path, value }) => _.set(result, path, value))
+    return result
+  }
+
+  public replaceServiceName = StackUtils.replaceServiceName
   private createDeployment = async () => {
     await this.aws.apigateway.createDeployment({
       restApiId: this.apiId,

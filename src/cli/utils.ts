@@ -173,7 +173,8 @@ const interpolateTemplate = (opts:{ arg?:string, sync?:boolean }={}) => {
   })
 }
 
-const isAlphaNumeric = str => /^[a-zA-Z][a-zA-Z0-9]+$/.test(str)
+const alphaNumRegex = /^[a-zA-Z][a-zA-Z0-9]+$/
+const stackNameRegex = /^tdl-[a-zA-Z0-9-]+-ltd$/
 
 const compileTemplate = async (path) => {
   const file = await fs.readFile(path, { encoding: 'utf8' })
@@ -185,12 +186,12 @@ const compileTemplate = async (path) => {
 
   const interpolatedStr = await interpolateTemplate()
   const interpolated = YAML.safeLoad(interpolatedStr)
-  if (!isAlphaNumeric(interpolated.service)) {
-    throw new Error(`"service" name "${interpolated.service}" is not alphanumeric`)
+  if (!stackNameRegex.test(interpolated.service)) {
+    throw new Error(`invalid "service" name "${interpolated.service}", adhere to regex: ${stackNameRegex}`)
   }
 
-  if (!isAlphaNumeric(interpolated.provider.stage)) {
-    throw new Error(`stage "${interpolated.provider.stage}" is not alphanumeric`)
+  if (!alphaNumRegex.test(interpolated.provider.stage)) {
+    throw new Error(`invalid stage "${interpolated.provider.stage}", adhere to regex: ${alphaNumRegex}`)
   }
 
   // validateProviderConf(interpolated.custom.providerConf)
