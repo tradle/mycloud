@@ -1,27 +1,113 @@
 import _ = require('lodash')
-import { TYPE, SIG } from '@tradle/constants'
+import { TYPE, SIG, PERMALINK } from '@tradle/constants'
+import Lens = require('@tradle/lens')
+import buildResource = require('@tradle/build-resource')
+import validateResource = require('@tradle/validate-resource')
 import { Conf } from '../configure'
 import { parseId } from '../../utils'
-import { IPBApp, IPBReq, IPluginOpts } from '../types'
+import { Bot, Logger, IPBApp, IPBReq, IPluginOpts } from '../types'
 
+const ValidationErrors = validateResource.Errors
 export const name = 'lens'
-export const createPlugin = ({ conf, logger }: IPluginOpts) => {
+export class LensPlugin {
+  private bot: Bot
+  private conf: any
+  private logger: Logger
+  constructor({ bot, conf, logger }: IPluginOpts) {
+    this.bot = bot
+    this.conf = conf
+    this.logger = logger
+  }
 
-  const willSend = ({ req, to, object, application }) => {
+  public willSend = ({ req, to, object, application }) => {
     if (!object || object[SIG]) return
 
-    const form = getForm(object)
+    const form = this._getForm(object)
     if (!form) return
 
     if (!application && req) application = req.application
 
-    const lens = getLens({ form, application })
+    const lens = this._getLens({ form, application })
     if (lens) {
       object.lens = lens
     }
   }
 
-  const getForm = (object:any):string|void => {
+  public validateForm = ({ application, form }) => {
+    const type = form[TYPE]
+    const lensId = this._getLens({ application, form: type })
+    if (!lensId) return
+
+    const { models, lenses } = this.bot
+    const lens = lenses[lensId]
+    if (!lens) {
+      this.logger.error(`missing lens ${lensId}`)
+      return
+    }
+
+    const originalModel = models[type]
+    let model
+    try {
+      model = Lens.merge({ models, model: originalModel, lens })
+    } catch (err) {
+      this.logger.error(`failed to merge model with lens`, err)
+      return
+    }
+
+    let err:any
+    try {
+      validateResource.resource({
+        models,
+        model,
+        resource: form
+      })
+
+      return
+    } catch (e) {
+      err = e
+    }
+
+    const ret = {}
+    const prefill = _.cloneDeep(form)
+    if (!prefill[PERMALINK] && prefill[SIG]) {
+      prefill[PERMALINK] = buildResource.link(prefill)
+    }
+
+    if (err instanceof ValidationErrors.Required) {
+      return {
+        message: 'Please fill out these additional properties',
+        requestedProperties: err.properties.map(name => ({ name }))
+      }
+    }
+
+    if (err instanceof ValidationErrors.InvalidPropertyValue) {
+      return {
+        message: 'Please correct the highlighted property',
+        errors: [{
+          name: err.property,
+          // this is a terrible message!
+          message: 'invalid value'
+        }]
+      }
+    }
+
+    this.logger.error(`don't know how to report validation error to user`, err)
+  }
+
+  private _getLens = ({ form, application }: {
+    form:string,
+    application: IPBApp
+  }) => {
+    const appSpecific = application && this.conf[application.requestFor]
+    let lens
+    if (appSpecific) {
+      lens = appSpecific[form]
+    }
+
+    return lens || this.conf[form]
+  }
+
+  private _getForm = (object:any):string|void => {
     const type = object[TYPE]
     let form:string
     if (type === 'tradle.FormRequest') {
@@ -38,25 +124,9 @@ export const createPlugin = ({ conf, logger }: IPluginOpts) => {
       if (prefill.id) return parseId(prefill.id).type
     }
   }
-
-  const getLens = ({ form, application }: {
-    form:string,
-    application: IPBApp
-  }) => {
-    const appSpecific = application && conf[application.requestFor]
-    let lens
-    if (appSpecific) {
-      lens = appSpecific[form]
-    }
-
-    return lens || conf[form]
-  }
-
-  return {
-    willSend
-  }
 }
 
+export const createPlugin = (opts: IPluginOpts) => new LensPlugin(opts)
 export const validateConf = async ({ conf, pluginConf }: {
   conf: Conf,
   pluginConf: any

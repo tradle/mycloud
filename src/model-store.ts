@@ -51,6 +51,10 @@ const getNamespace = pack => {
 //   [domain:string]: CacheableBucketItem
 // }
 
+type Lenses = {
+  [id: string]: any
+}
+
 export class ModelStore extends EventEmitter {
   public cumulativePackKey: string
   public cumulativeGraphqlSchemaKey: string
@@ -59,6 +63,7 @@ export class ModelStore extends EventEmitter {
   public myModelsPack: ModelsPack
   public cumulativeModelsPack: ModelsPack
   public bucket: Bucket
+  public lenses: any
   private tradle: Tradle
   private logger: Logger
   private cache: DBModelStore
@@ -75,6 +80,7 @@ export class ModelStore extends EventEmitter {
     this.baseModels = tradle.models
     this.baseModelsIds = Object.keys(this.baseModels)
     this.myCustomModels = {}
+    this.lenses = {}
     this.cache = createStore({
       models: this.baseModels,
       onMissingModel: this.onMissingModel.bind(this)
@@ -266,6 +272,10 @@ export class ModelStore extends EventEmitter {
     this.myModelsPack = modelsPack
     this.myNamespace = namespace
     this.myCustomModels = _.clone(models)
+    this.lenses = (modelsPack.lenses || []).reduce((byId, lens) => {
+      byId[lens.id] = lens
+      return byId
+    }, {})
   }
 
   public setMyNamespace = (namespace:string) => {

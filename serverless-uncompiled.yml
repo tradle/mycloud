@@ -25,6 +25,7 @@ plugins:
   - serverless-s3-local
   - serverless-iot-local
   - init-local
+  # - make-cloneable-template
   - serverless-offline
 
 package:
@@ -290,6 +291,10 @@ custom:
   #     migration: true
   #   migration:
   #     dir: offline/migrations
+
+  make-cloneable-template:
+    placeholder: ${{self:service}}
+    service: tradle
 
 provider:
   # avoid some bugs in serverless

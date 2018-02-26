@@ -32,7 +32,29 @@ declare module '@tradle/validate-resource' {
     isInstantiable(obj:any): boolean
   }
 
+  class RequiredError extends Error {
+    properties: string[]
+  }
+
+  type RequiredErrorCtor = {
+    new(): RequiredError
+  }
+
+  class InvalidPropertyValueError extends Error {
+    property: string
+  }
+
+  type InvalidPropertyValueErrorCtor = {
+    new(): InvalidPropertyValueError
+  }
+
+  type ValidationErrors = {
+    Required: RequiredErrorCtor
+    InvalidPropertyValue: InvalidPropertyValueErrorCtor
+  }
+
   const utils: Utils
   const resource: ValidateResource
-  export { utils, resource }
+  const Errors: ValidationErrors
+  export { utils, resource, Errors }
 }
