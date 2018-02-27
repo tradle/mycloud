@@ -638,7 +638,7 @@ test('batchProcess', loudAsync(async (t) => {
     processOne: wait
   })
 
-  t.ok(Math.abs(Date.now() - time - 100) < 50)
+  t.ok(Math.abs(Date.now() - time - 100) < 100)
   time = Date.now()
 
   // parallel, limited batch size
@@ -648,7 +648,7 @@ test('batchProcess', loudAsync(async (t) => {
     processOne: wait
   })
 
-  t.ok(Math.abs(Date.now() - time - 300) < 50)
+  t.ok(Math.abs(Date.now() - time - 300) < 100)
 
   // parallel, limited batch size
   let results = await batchProcess({
@@ -672,7 +672,7 @@ test('batchProcess', loudAsync(async (t) => {
     settle: true
   })
 
-  t.ok(Math.abs(Date.now() - time - 400) < 50)
+  t.ok(Math.abs(Date.now() - time - 400) < 100)
 
   time = Date.now()
   // series, process batch
@@ -684,7 +684,7 @@ test('batchProcess', loudAsync(async (t) => {
     settle: true
   })
 
-  t.ok(Math.abs(Date.now() - time - 400) < 50)
+  t.ok(Math.abs(Date.now() - time - 400) < 100)
 
   t.end()
 }))
