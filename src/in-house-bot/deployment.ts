@@ -71,6 +71,8 @@ interface DeploymentCtorOpts {
 }
 
 const getServiceNameFromTemplate = template => template.Mappings.deployment.init.service
+const getStageFromTemplate = template => template.Mappings.deployment.init.stage
+const getStackNameFromTemplate = template => template.Mappings.deployment.init.stackName
 const getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
 
 export class Deployment {
@@ -119,13 +121,17 @@ export class Deployment {
   // }
 
   public getLaunchUrl = async (opts: IDeploymentOpts) => {
+    const { stackUtils } = this.bot
     this.logger.debug('generating cloudformation template with opts', opts)
-    const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
+    const { template, url } = await stackUtils.createPublicTemplate(template => {
       return this.customizeTemplateForLaunch({ template, opts })
     })
 
     await this.saveDeploymentTracker({ template, link: opts.configurationLink })
-    return this.bot.stackUtils.getLaunchStackUrl({ templateURL: url })
+    return stackUtils.getLaunchStackUrl({
+      stackName: getStackNameFromTemplate(template),
+      templateURL: url
+    })
   }
 
   public getUpdateUrl = async ({ createdBy, configuredBy, childDeploymentLink }: {
@@ -431,10 +437,15 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
     const { Resources, Mappings } = template
     const { org, deployment } = Mappings
     const logoPromise = this.getLogo(opts)
+    const stage = getStageFromTemplate(template)
     const dInit: Partial<IMyDeploymentConf> = {
       deploymentUUID: utils.uuid(),
       referrerUrl: this.bot.apiBaseUrl,
-      service: stackPrefix || getServiceNameFromDomain(domain)
+      service: stackPrefix,
+      stackName: this.bot.stackUtils.genStackName({
+        service: stackPrefix,
+        stage
+      })
     }
 
     deployment.init = dInit

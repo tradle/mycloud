@@ -271,6 +271,8 @@ export interface IMyDeploymentConf {
   deploymentUUID: string
   apiUrl: string
   service: string
+  stage: string
+  stackName: string
   stackId: string
   referrerUrl: string
   logo?: string

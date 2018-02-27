@@ -146,6 +146,17 @@ export default class StackUtils {
     })
   }
 
+  public static genStackName = ({ service, stage }: {
+    service: string
+    stage: string
+  }) => {
+    if (!(service && stage)) throw new Error('expected "service" and "stage"')
+
+    return `${service}-${stage}`
+  }
+
+  public genStackName = StackUtils.genStackName
+
   public getStackResources = async (StackName: string=this.stack.name):Promise<AWS.CloudFormation.StackResourceSummaries> => {
     let resources = []
     const opts:AWS.CloudFormation.ListStackResourcesInput = { StackName }
