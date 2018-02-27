@@ -455,25 +455,20 @@ ${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
       logo: await logoPromise || media.LOGO_UNKNOWN
     }
 
-    const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id
-    for (let key in Resources) {
-      let Resource = Resources[key]
-      let { Type } = Resource
-      switch (Type) {
-      case 'AWS::Lambda::Function':
-        // resolve Code bucket
-        Resource.Properties.Code.S3Bucket = deploymentBucketId
-        break
-      default:
-        break
-      }
-    }
-
-    return this.bot.stackUtils.replaceServiceName({
+    template = this.bot.stackUtils.replaceServiceName({
       template,
       placeholder: previousServiceName,
       replacement: stackPrefix
     })
+
+    const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id
+    _.forEach(template.Resources, resource => {
+      if (resource.Type === 'AWS::Lambda::Function') {
+        resource.Properties.Code.S3Bucket = deploymentBucketId
+      }
+    })
+
+    return template
   }
 
   public customizeTemplateForUpdate = async ({ template, childDeployment, configuration }: {

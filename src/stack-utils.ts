@@ -41,6 +41,8 @@ const METHODS = [
   'PATCH'
 ]
 
+const stripDashes = str => str.replace(/[-]/g, '')
+
 export default class StackUtils {
   private aws?: AwsApis
   private serviceMap: IServiceMap
@@ -434,9 +436,11 @@ export default class StackUtils {
     }, [])
 
     const placeholderRegex = new RegExp(placeholder, 'g')
+    const placeholderNoDashRegex = new RegExp(stripDashes(placeholder), 'g')
     const replacementRegex = new RegExp(replacement, 'g')
     const resultStr = JSON.stringify(template)
       .replace(placeholderRegex, replacement)
+      .replace(placeholderNoDashRegex, stripDashes(replacement))
 
     const result = JSON.parse(resultStr)
     s3Keys.forEach(({ path, value }) => _.set(result, path, value))

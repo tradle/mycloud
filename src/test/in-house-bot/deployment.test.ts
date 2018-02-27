@@ -110,6 +110,8 @@ test('deployment by referral', loudAsync(async (t) => {
     }
   })
 
+  // const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate')
+  //   .resolves(require('../../../.serverless/cloudformation-template-update-stack'))
 
   const getStub = sandbox.stub(parent.objects, 'get').callsFake(async link => {
     if (link === conf._link) {
@@ -161,7 +163,6 @@ test('deployment by referral', loudAsync(async (t) => {
     configurationLink: conf._link,
     stackPrefix: conf.stackPrefix
   })
-
 
   let childDeploymentResource
   const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
