@@ -6,7 +6,6 @@ import createHooks = require('event-hooks')
 import { DB } from '@tradle/dynamodb'
 import buildResource = require('@tradle/build-resource')
 import validateResource = require('@tradle/validate-resource')
-import { links as appLinks } from '@tradle/qr-schema'
 import { readyMixin, IReady } from './ready-mixin'
 import {
   defineGetter,
@@ -35,9 +34,11 @@ import {
   ILambdaOpts,
   ITradleObject,
   IDeepLink,
-  IBotOpts
+  IBotOpts,
+  AppLinks
 } from '../types'
 
+import { appLinks } from '../app-links'
 import { createLambda } from './lambda'
 import { createLocker, Locker } from './locker'
 import { Logger } from '../logger'
@@ -137,6 +138,7 @@ export class Bot extends EventEmitter implements IReady {
   public get lenses () { return this.modelStore.lenses }
   public get mailer () { return this.tradle.mailer }
   public get pushNotifications () { return this.tradle.pushNotifications }
+  // public appLinks: AppLinks
   public logger: Logger
   public kv: KeyValueTable
   public conf: KeyValueTable
@@ -216,6 +218,15 @@ export class Bot extends EventEmitter implements IReady {
       this.trigger = (event, ...args) => this.hooks.fire(event, ...args)
     }
 
+    // this.appLinks = _.reduce(appLinks, (result:AppLinks, fn:Function, key:string) => {
+    //   result[key] = opts => fn({
+    //     baseUrl: this.isTesting ? this.apiBaseUrl : null,
+    //     ...opts
+    //   })
+
+    //   return result
+    // }, <AppLinks>{})
+
     if (ready) this.ready()
   }
 
@@ -272,6 +283,7 @@ export class Bot extends EventEmitter implements IReady {
   public registerWithPushNotificationsServer = () => this.provider.registerWithPushNotificationsServer()
   public getChatLink = async (opts: Partial<IDeepLink>) => {
     return appLinks.getChatLink({
+      // baseUrl: this.isTesting ? this.apiBaseUrl : null,
       provider: opts.provider || await this.getMyIdentityPermalink(),
       host: this.apiBaseUrl,
       platform: opts.platform,

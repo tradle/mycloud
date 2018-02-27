@@ -216,7 +216,7 @@ export class Remediation {
     }
   }
 
-  public isPrefillClaim = (claimId:string):boolean => {
+  public isPrefillClaimId = (claimId:string):boolean => {
     if (claimId.length <= 64) return false
 
     try {

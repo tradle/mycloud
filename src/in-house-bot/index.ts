@@ -1,5 +1,7 @@
 import crypto = require('crypto')
 import _ = require('lodash')
+// @ts-ignore
+import Promise = require('bluebird')
 import { utils as dynamoUtils, createTable } from '@tradle/dynamodb'
 import createProductsStrategy = require('@tradle/bot-products')
 import createEmployeeManager = require('@tradle/bot-employee-manager')
@@ -29,6 +31,7 @@ import {
 import { Commander } from './commander'
 import { createRemediation } from './remediation'
 import { createPlugin as createRemediationPlugin } from './plugins/remediation'
+import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
 
 import {
   Bot,
@@ -326,7 +329,7 @@ export default function createProductsBot ({
 
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
-      onmessage: req => {
+      onmessage: async (req) => {
         req.isFromEmployee = employeeManager.isEmployee(req.user)
         if (!req.isFromEmployee) return
         if (req.message.forward) return
@@ -336,8 +339,34 @@ export default function createProductsBot ({
         if (req.application) {
           req.application.draft = true
         }
+
+        if (req.type === 'tradle.ProductRequest') {
+          await productsAPI.sendSimpleMessage({
+            req,
+            to: req.user,
+            message: `Note: this is a draft application. When you finish you will be given a set of links that can be used to import`
+          })
+        }
       }
     })
+
+    // this is pretty bad...
+    // the goal: allow employees to create multiple pending applications for the same product
+    // as they are actually drafts of customer applications
+    // however, for non-employees, possibly restrict to one pending app for the same product (default behavior of bot-products)
+    const defaultHandlers = [].concat(productsAPI.removeDefaultHandler('onPendingApplicationCollision'))
+    productsAPI.plugins.use(<IPluginLifecycleMethods>{
+      onPendingApplicationCollision: async (input) => {
+        const { req, pending } = input
+        if (employeeManager.isEmployee(req.user)) {
+          // allow it
+          await productsAPI.addApplication({ req })
+          return
+        }
+
+        await Promise.each(defaultHandlers, handler => handler(input))
+      }
+    }, true) // prepend
   }
 
   const onfidoConf = plugins.onfido || {}
@@ -456,6 +485,12 @@ export default function createProductsBot ({
     }
 
     components.remediation = api
+
+    productsAPI.plugins.use(createPrefillFromDraftPlugin({
+      ...commonPluginOpts,
+      remediation: api,
+      logger: logger.sub('plugin-prefill-from-draft:')
+    }).plugin)
   }
 
   if (handleMessages) {

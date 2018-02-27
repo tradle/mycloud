@@ -364,16 +364,9 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getAppLinks = ({ url, permalink }) => {
-    const mobile = appLinks.getChatLink({
+    const { mobile, web } = appLinks.getChatLinks({
       provider: permalink,
-      host: url,
-      platform: 'mobile'
-    })
-
-    const web = appLinks.getChatLink({
-      provider: permalink,
-      host: url,
-      platform: 'web'
+      host: url
     })
 
     const employeeOnboarding = appLinks.getApplyForProductLink({

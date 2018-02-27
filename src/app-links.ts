@@ -8,7 +8,7 @@ import {
 
 const getBaseUrl = platform => platform === 'mobile' ? MOBILE_APP_URL : WEB_APP_URL
 
-const appLinks:AppLinks = reduce(links, (result:AppLinks, fn:Function, key) => {
+const appLinks:AppLinks = reduce(links, (result:AppLinks, fn:Function, key:string) => {
   result[key] = opts => fn({
     ...opts,
     baseUrl: opts.baseUrl || getBaseUrl(opts.platform)

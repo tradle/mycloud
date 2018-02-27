@@ -4,25 +4,19 @@ import {
   IPluginOpts,
   IPluginExports,
   IPluginLifecycleMethods,
-  Remediation,
   IDataBundle
 } from '../types'
 
 import { parseStub, omitVirtual, toUnsigned } from '../../utils'
 import Errors = require('../../errors')
 
-interface IPrefillFromDraftOpts extends IPluginOpts {
-  remediation: Remediation
-}
-
 export const name = 'prefillFromDraft'
 export function createPlugin ({
   bot,
   productsAPI,
   conf,
-  logger,
-  remediation
-}: IPrefillFromDraftOpts):IPluginExports {
+  logger
+}: IPluginOpts):IPluginExports {
 
   const plugin:IPluginLifecycleMethods = {}
   plugin.willRequestForm = async ({ user, application, formRequest }) => {
@@ -39,7 +33,7 @@ export function createPlugin ({
 
     // TODO: be smart about multi-entry
     const { form } = formRequest
-    const filledAlready = application.forms
+    const filledAlready = (application.forms || [])
       .map(parseStub)
       .filter(({ type }) => type === form)
 

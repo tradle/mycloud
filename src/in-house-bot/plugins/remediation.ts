@@ -1,5 +1,5 @@
 import { TYPES } from '../constants'
-import { IPluginOpts, IPluginExports, IPluginLifecycleMethods } from '../types'
+import { IPluginOpts, IPluginExports, IPluginLifecycleMethods, IPBReq } from '../types'
 import { Remediation } from '../remediation'
 import { appLinks } from '../../app-links'
 const { DATA_CLAIM, PRODUCT_REQUEST } = TYPES
@@ -21,10 +21,11 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
     })
   }
 
-  plugin[`onmessage:${PRODUCT_REQUEST}`] = async (req) => {
-    if (remediation.isPrefillClaim(req.payload.contextId)) {
+  plugin[`onmessage:${PRODUCT_REQUEST}`] = async ({ user, application, payload }: IPBReq) => {
+    const claimId = payload.contextId
+    if (application && remediation.isPrefillClaimId(claimId)) {
       try {
-        await remediation.handlePrefillClaim(req)
+        await remediation.handlePrefillClaim({ user, application, claimId })
       } catch (err) {
         logger.error('failed to process prefill claim', err)
       }
@@ -35,21 +36,25 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
     if (!application.draft) return
 
     const provider = await bot.getMyIdentityPermalink()
-    const [mobile, web] = ['mobile', 'web'].map(platform => appLinks.getApplyForProductLink({
+    const { claimId } = await remediation.createClaimForApplication({
+      application,
+      claimType: 'prefill'
+    })
+
+    const { mobile, web } = appLinks.getApplyForProductLinks({
       provider,
       host: bot.apiBaseUrl,
-      platform,
       product: application.requestFor,
-      contextId: application.context
-    }))
+      contextId: claimId
+    })
 
     await productsAPI.sendSimpleMessage({
       req,
       to: user,
       message: `This application can be imported via the following single-use links:
 
-[${mobile}](Mobile)
-[${web}](Web)
+Mobile: ${mobile}\n
+Web: ${web}
       `
     })
   }
