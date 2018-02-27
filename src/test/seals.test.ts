@@ -43,6 +43,7 @@ const rejectEtherscanCalls = () => {
 rejectEtherscanCalls()
 
 test('handle failed reads/writes', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const { flavor, networkName } = blockchainOpts
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
@@ -54,7 +55,7 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   const { blockchain, seals } = tradle
   const aliceKey = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const bobKey = bobKeys.find(key => key.type === flavor && key.networkName === networkName)
-  const stubGetTxs = sinon.stub(blockchain, 'getTxsForAddresses').resolves([])
+  const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses').resolves([])
 
   await seals.create({ key: aliceKey, link: aliceIdentity._link })
   await seals.watch({ key: bobKey, link: bobIdentity._link })
@@ -65,8 +66,8 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   let failedReads = await seals.getFailedReads({ gracePeriod: 1 }) // 1ms
   t.equal(failedReads.length, 1)
 
-  const stubSeal = sinon.stub(seals.blockchain, 'seal').resolves({ txId: 'sometxid' })
-  const stubBalance = sinon.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
+  const stubSeal = sandbox.stub(seals.blockchain, 'seal').resolves({ txId: 'sometxid' })
+  const stubBalance = sandbox.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
   await seals.sealPending()
   let failedWrites = await seals.getFailedWrites({ gracePeriod: 1 }) // 1ms
   t.equal(failedWrites.length, 1)
@@ -96,11 +97,12 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   await seals.sealPending()
 
   t.equal(stubSeal.callCount, 2)
-
+  sandbox.restore()
   t.end()
 }))
 
 test('queue seal', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const clock = sinon.useFakeTimers()
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
@@ -121,16 +123,16 @@ test('queue seal', loudAsync(async (t) => {
   })
 
   let sealed
-  const stubSeal = sinon.stub(blockchain, 'seal')
+  const stubSeal = sandbox.stub(blockchain, 'seal')
     .callsFake(async (sealInfo) => {
       t.same(sealInfo.addresses, [address])
       sealed = true
       return { txId }
     })
 
-  const stubBalance = sinon.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
+  const stubBalance = sandbox.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
 
-  const stubGetTxs = sinon.stub(blockchain, 'getTxsForAddresses')
+  const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses')
     .callsFake(function (addresses, blockHeight) {
       return Promise.resolve([
         {
@@ -143,7 +145,7 @@ test('queue seal', loudAsync(async (t) => {
       ])
     })
 
-  const stubObjectsGet = sinon.stub(tradle.objects, 'get')
+  const stubObjectsGet = sandbox.stub(tradle.objects, 'get')
     .callsFake(async (_link) => {
       if (_link === link) {
         return sealedObj
@@ -152,13 +154,13 @@ test('queue seal', loudAsync(async (t) => {
       throw new Error('NotFound')
     })
 
-  const stubObjectsPut = sinon.stub(tradle.objects, 'put')
+  const stubObjectsPut = sandbox.stub(tradle.objects, 'put')
     .callsFake(async (object) => {
       t.equal(object._seal.link, link)
       t.equal(object._seal.txId, txId)
     })
 
-  const stubDBUpdate = sinon.stub(tradle.db, 'update')
+  const stubDBUpdate = sandbox.stub(tradle.db, 'update')
     .callsFake(async (props) => {
       t.equal(props[TYPE], sealedObj[TYPE])
       t.equal(props._permalink, permalink)
@@ -166,7 +168,7 @@ test('queue seal', loudAsync(async (t) => {
       t.equal(props._seal.txId, txId)
     })
 
-  const stubDBGet = sinon.stub(tradle.db, 'get')
+  const stubDBGet = sandbox.stub(tradle.db, 'get')
     .callsFake(async (props) => {
       if (props._permalink === permalink) {
         return sealedObj
@@ -211,15 +213,13 @@ test('queue seal', loudAsync(async (t) => {
   t.equal(stubObjectsPut.callCount, 1)
   t.equal(stubDBUpdate.callCount, 1)
 
-  stubSeal.restore()
-  stubGetTxs.restore()
-  stubObjectsGet.restore()
-  stubDBUpdate.restore()
+  sandbox.restore()
   clock.restore()
   t.end()
 }))
 
 test('corda seals', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const table = await recreateTable(SealsTableLogicalId)
   const env = new Env(process.env)
   const blockchainOpts = env.BLOCKCHAIN = {
@@ -263,7 +263,7 @@ test('corda seals', loudAsync(async (t) => {
     _permalink: link
   }
 
-  sinon.stub(objects, 'get').callsFake(async (link) => {
+  sandbox.stub(objects, 'get').callsFake(async (link) => {
     if (link === 'abc') {
       return obj
     }
@@ -271,7 +271,7 @@ test('corda seals', loudAsync(async (t) => {
     throw new Errors.NotFound(link)
   })
 
-  sinon.stub(db, 'get').callsFake(async (opts) => {
+  sandbox.stub(db, 'get').callsFake(async (opts) => {
     if (opts._permalink === obj._permalink) {
       return obj
     }
@@ -291,8 +291,8 @@ test('corda seals', loudAsync(async (t) => {
     t.same(_.pick(obj._seal, Object.keys(expectedSealResource)), expectedSealResource)
   }
 
-  sinon.stub(db, 'put').callsFake(fakePut)
-  sinon.stub(objects, 'put').callsFake(fakePut)
+  sandbox.stub(db, 'put').callsFake(fakePut)
+  sandbox.stub(objects, 'put').callsFake(fakePut)
 
   await seals.create(sealOpts)
   const result = await seals.sealPending()
@@ -317,5 +317,6 @@ test('corda seals', loudAsync(async (t) => {
   }
 
   t.same(_.pick(saved, Object.keys(expected)), expected)
+  sandbox.restore()
   t.end()
 }))

@@ -91,6 +91,7 @@ test(`users `, loudAsync(async (t) => {
 }))
 
 test('init', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
   const bot = createBot({ tradle })
   const originalEvent = {
@@ -109,11 +110,11 @@ test('init', loudAsync(async (t) => {
   }
 
   const originalContext = {}
-  sinon.stub(tradle.init, 'initInfra').callsFake(async (opts) => {
+  sandbox.stub(tradle.init, 'initInfra').callsFake(async (opts) => {
     t.same(opts, expectedEvent.payload)
   })
 
-  const cfnResponseStub = sinon.stub(cfnResponse, 'send').resolves()
+  const cfnResponseStub = sandbox.stub(cfnResponse, 'send').resolves()
   let { callCount } = cfnResponseStub
 
   // bot.oninit(async (event) => {
@@ -146,13 +147,14 @@ test('init', loudAsync(async (t) => {
 
   // t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.FAILED)
 
-  cfnResponseStub.restore()
+  sandbox.restore()
   t.end()
 }))
 
 test(`onmessage`, loudAsync(async (t) => {
   t.plan(5)
 
+  const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
   const { objects, messages, identities } = tradle
   const bot = createBot({ tradle })
@@ -197,7 +199,7 @@ test(`onmessage`, loudAsync(async (t) => {
     _virtual: ['_author', '_recipient', '_link']
   }
 
-  sinon.stub(objects, 'get').callsFake(async (link) => {
+  sandbox.stub(objects, 'get').callsFake(async (link) => {
     if (link === message._link) {
       return message.object
     } else if (link === payload._link) {
@@ -207,7 +209,7 @@ test(`onmessage`, loudAsync(async (t) => {
     throw new Errors.NotFound(link)
   })
 
-  sinon.stub(tradle.user, 'onSentMessage').callsFake(async () => {
+  sandbox.stub(tradle.user, 'onSentMessage').callsFake(async () => {
     return message
   })
 
@@ -241,6 +243,7 @@ test(`onmessage`, loudAsync(async (t) => {
     done: t.error
   } as ILambdaAWSExecutionContext)
 
+  sandbox.restore()
   // await bot.trigger('message', message)
   // #6
   // t.equal(updatedUser, true)
@@ -299,6 +302,7 @@ test(`readseal`, loudAsync(async (t) => {
 }))
 
 test('onmessagestream', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const _link = fakeLink()
   const message = {
     "_author": "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
@@ -352,13 +356,13 @@ test('onmessagestream', loudAsync(async (t) => {
 
   const { users } = bot
 
-  const stubGet = sinon.stub(bot.objects, 'get').callsFake(async (link) => {
+  const stubGet = sandbox.stub(bot.objects, 'get').callsFake(async (link) => {
     // #2
     t.equal(link, message.object._link)
     return payload
   })
 
-  const stubPreSign = sinon.stub(bot.objects, 'presignEmbeddedMediaLinks')
+  const stubPreSign = sandbox.stub(bot.objects, 'presignEmbeddedMediaLinks')
     .callsFake(object => object)
 
   let createdUser
@@ -423,16 +427,16 @@ test('onmessagestream', loudAsync(async (t) => {
   // console.log('introspection length', JSON.stringify(introspection).length)
 
   t.equal(createdUser, true)
-  stubGet.restore()
-  stubPreSign.restore()
+  sandbox.restore()
 
   t.end()
 }))
 
 test('validate send', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
-  sinon.stub(tradle.provider, 'sendMessage').resolves({})
-  sinon.stub(tradle.provider, 'sendMessageBatch').resolves([])
+  sandbox.stub(tradle.provider, 'sendMessage').resolves({})
+  sandbox.stub(tradle.provider, 'sendMessageBatch').resolves([])
 
   const models = {
     'ding.bling': {
@@ -494,5 +498,6 @@ test('validate send', loudAsync(async (t) => {
     }
   })
 
+  sandbox.restore()
   t.end()
 }))

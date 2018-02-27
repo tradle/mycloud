@@ -13,6 +13,7 @@ import { IIdentity } from '../types'
 import { createTestTradle } from '../'
 
 test('update backlink', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const permalink = 'abc'
   const link = 'efg'
   const type = 'tradle.PhotoID'
@@ -23,7 +24,7 @@ test('update backlink', loudAsync(async (t) => {
   const expectedBacklinkValue = []
   let lastBacklinkValue
   const backlinkKey = `${type}_${permalink}.verifications`
-  const getStub = sinon.stub(store, 'get').callsFake(async (key) => {
+  const getStub = sandbox.stub(store, 'get').callsFake(async (key) => {
     if (key === backlinkKey && lastBacklinkValue) {
       return _.cloneDeep(lastBacklinkValue)
     }
@@ -31,7 +32,7 @@ test('update backlink', loudAsync(async (t) => {
     throw new Errors.NotFound(key)
   })
 
-  const putStub = sinon.stub(store, 'put').callsFake(async (key, value) => {
+  const putStub = sandbox.stub(store, 'put').callsFake(async (key, value) => {
     t.equal(key, backlinkKey)
     t.same(value, expectedBacklinkValue)
     lastBacklinkValue = value
@@ -74,5 +75,6 @@ test('update backlink', loudAsync(async (t) => {
   await backlinks.updateBacklinks(verification3)
 
   t.equal(putStub.callCount, 3)
+  sandbox.restore()
   t.end()
 }))

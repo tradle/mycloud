@@ -52,8 +52,9 @@ const schema = {
 
 test('batch put', loudAsync(async (t) => {
   // const table = await recreateTable(schema)
+  const sandbox = sinon.createSandbox()
   const { docClient } = aws
-  const stub = sinon.stub(aws.docClient, 'batchWrite').callsFake(({ RequestItems }) => {
+  const stub = sandbox.stub(aws.docClient, 'batchWrite').callsFake(({ RequestItems }) => {
     let promise
     for (let TableName in RequestItems) {
       const items = RequestItems[TableName]
@@ -99,6 +100,7 @@ test('batch put', loudAsync(async (t) => {
 
   // await Promise.all(batches.map(batch => table.batchPut(batch)))
 
+  sandbox.restore()
   t.end()
 }))
 

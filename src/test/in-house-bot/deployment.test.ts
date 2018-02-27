@@ -20,6 +20,7 @@ const users = require('../fixtures/users.json')
 const { loudAsync } = utils
 
 test('deployment by referral', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const configuredBy = users[0].identity
   const senderEmail = 'sender@example.com'
   const conf = {
@@ -54,15 +55,15 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const childIdentity = await child.getMyIdentity()
   const kv = {}
-  sinon.stub(parent, 'getMyIdentityPermalink').resolves('abc')
-  const sendStub = sinon.stub(parent, 'send').resolves({})
+  sandbox.stub(parent, 'getMyIdentityPermalink').resolves('abc')
+  const sendStub = sandbox.stub(parent, 'send').resolves({})
 
-  sinon.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {
+  sandbox.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {
     t.equal(value, conf._link)
     kv[key] = value
   })
 
-  sinon.stub(parentDeployment.kv, 'get').callsFake(async (key) => {
+  sandbox.stub(parentDeployment.kv, 'get').callsFake(async (key) => {
     if (kv[key]) return kv[key]
 
     throw new Errors.NotFound(key)
@@ -70,7 +71,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  let pubConfStub = sinon.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, val) => {
+  let pubConfStub = sandbox.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, val) => {
     deploymentConf = {
       stackId: child.stackUtils.getThisStackId(),
       ...val.Mappings.deployment.init,
@@ -87,7 +88,7 @@ test('deployment by referral', loudAsync(async (t) => {
     }
   })
 
-  const getTemplate = sinon.stub(parent.stackUtils, 'getStackTemplate').resolves({
+  const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate').resolves({
     "Mappings": {
       "org": {
         "init": {
@@ -108,7 +109,7 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
 
-  const getStub = sinon.stub(parent.objects, 'get').callsFake(async link => {
+  const getStub = sandbox.stub(parent.objects, 'get').callsFake(async link => {
     if (link === conf._link) {
       return conf
     }
@@ -120,25 +121,25 @@ test('deployment by referral', loudAsync(async (t) => {
     throw new Errors.NotFound(link)
   })
 
-  // sinon.stub(bot.stackUtils, 'getStackTemplate').resolves({
+  // sandbox.stub(bot.stackUtils, 'getStackTemplate').resolves({
   //   Mappings: {
   //     deployment: {},
   //     org: {}
   //   }
   // })
 
-  const postStub = sinon.stub(utils, 'post').callsFake(async (url, data) => {
+  const postStub = sandbox.stub(utils, 'post').callsFake(async (url, data) => {
     t.equal(url, parentDeployment.getReportLaunchUrl())
     t.equal(url, parentDeployment.getReportLaunchUrl(deploymentConf.referrerUrl))
     t.same(data, expectedLaunchReport)
     await parentDeployment.receiveLaunchReport(data)
   })
 
-  const childLoadFriendStub = sinon.stub(child.friends, 'load').callsFake(async ({ url }) => {
+  const childLoadFriendStub = sandbox.stub(child.friends, 'load').callsFake(async ({ url }) => {
     t.equal(url, parent.apiBaseUrl)
   })
 
-  const parentAddFriendStub = sinon.stub(parent.friends, 'add').callsFake(async ({ url }) => {
+  const parentAddFriendStub = sandbox.stub(parent.friends, 'add').callsFake(async ({ url }) => {
     t.equal(url, childUrl)
     return {
       identity: buildResource.stub({ resource: childIdentity })
@@ -146,7 +147,7 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   const sentEmails = []
-  const emailStub = sinon.stub(parent.mailer, 'send').callsFake(async (opts) => {
+  const emailStub = sandbox.stub(parent.mailer, 'send').callsFake(async (opts) => {
     t.equal(opts.from, senderEmail)
     sentEmails.push(...opts.to)
   })
@@ -161,11 +162,11 @@ test('deployment by referral', loudAsync(async (t) => {
 
 
   let childDeploymentResource
-  const saveChildDeploymentStub = sinon.stub(parent.db, 'put').callsFake(async (res) => {
+  const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
     childDeploymentResource = res
   })
 
-  const getConfAuthorStub = sinon.stub(parent.identities, 'byPermalink').callsFake(async (permalink) => {
+  const getConfAuthorStub = sandbox.stub(parent.identities, 'byPermalink').callsFake(async (permalink) => {
     if (permalink === conf._author) {
       return configuredBy
     }
@@ -181,11 +182,11 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   // const { getObject } = parent.aws.s3
-  // sinon.stub(parent.aws.s3, 'getObject').callsFake(params => {
+  // sandbox.stub(parent.aws.s3, 'getObject').callsFake(params => {
   //   const val = getObject.call(parent.aws.s3, params)
   //   if (params.Key === PRIVATE_CONF_BUCKET.bot) {
   //     const promise = val.promise()
-  //     sinon.stub(val, 'promise').callsFake(async () => {
+  //     sandbox.stub(val, 'promise').callsFake(async () => {
   //       return promise.then((conf: any) => {
   //         conf.products.plugins.deployment = { senderEmail }
   //         return conf
@@ -214,10 +215,10 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(saveChildDeploymentStub.callCount, 1)
   t.equal(childDeploymentResource.deploymentUUID, deploymentConf.deploymentUUID)
 
-  sinon.stub(parent.db, 'findOne').resolves(childDeploymentResource)
+  sandbox.stub(parent.db, 'findOne').resolves(childDeploymentResource)
 
   pubConfStub.restore()
-  pubConfStub = sinon.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, template) => {
+  pubConfStub = sandbox.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, template) => {
     t.equal(template.Mappings, undefined)
   })
 
@@ -230,5 +231,6 @@ test('deployment by referral', loudAsync(async (t) => {
 //   console.log(launchEmail)
 // console.timeEnd('render and juice')
   t.equal(pubConfStub.callCount, 1)
+  sandbox.restore()
   t.end()
 }))

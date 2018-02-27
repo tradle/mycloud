@@ -6,8 +6,9 @@ import { createPlugin } from '../in-house-bot/plugins/partials'
 import { loudAsync } from '../utils'
 
 test('partials', async t => {
+  const sandbox = sinon.createSandbox()
   const productsAPI = {
-    send: sinon.stub()
+    send: sandbox.stub()
   }
 
   const { onmessage } = createPlugin({

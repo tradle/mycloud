@@ -366,6 +366,7 @@ test('Bucket', loudAsync(async (t) => {
 }))
 
 test('Bucket with cache', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const { aws } = tradle
   const { s3 } = aws
   const bucketName = `test-${Date.now()}-${randomString(10)}`
@@ -395,7 +396,7 @@ test('Bucket with cache', loudAsync(async (t) => {
     const { method, args, result, body, cached, error } = op
     let getObjStub
     if (cached) {
-      getObjStub = sinon.stub(s3, 'getObject').callsFake(() => {
+      getObjStub = sandbox.stub(s3, 'getObject').callsFake(() => {
         t.fail('expected object to be cached')
       })
     }
@@ -419,6 +420,7 @@ test('Bucket with cache', loudAsync(async (t) => {
   }
 
   await bucket.destroy()
+  sandbox.restore()
   t.end()
 }))
 
@@ -688,6 +690,7 @@ test('batchProcess', loudAsync(async (t) => {
 }))
 
 test('ModelStore', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const testPrefix = 'test'
   const friend1 = {
     _identityPermalink: testPrefix + '1',
@@ -714,20 +717,20 @@ test('ModelStore', loudAsync(async (t) => {
     return memBucket[key]
   }
 
-  // sinon.stub(tradle.s3Utils, 'put').callsFake(fakePut)
-  // sinon.stub(tradle.s3Utils, 'gzipAndPut').callsFake(fakePut)
-  sinon.stub(tradle.s3Utils, 'get').callsFake(async ({ key }) => {
+  // sandbox.stub(tradle.s3Utils, 'put').callsFake(fakePut)
+  // sandbox.stub(tradle.s3Utils, 'gzipAndPut').callsFake(fakePut)
+  sandbox.stub(tradle.s3Utils, 'get').callsFake(async ({ key }) => {
     const Body = await fakeGet({ key })
     return {
       Body: new Buffer(JSON.stringify(Body))
     }
   })
 
-  // sinon.stub(tradle.s3Utils, 'getJSON').callsFake(fakeGet)
-  sinon.stub(store.bucket, 'get').callsFake(key => fakeGet({ key }))
-  sinon.stub(store.bucket, 'getJSON').callsFake(key => fakeGet({ key }))
-  sinon.stub(store.bucket, 'gzipAndPut').callsFake((key, value) => fakePut({ key, value }))
-  sinon.stub(tradle.friends, 'getByDomain').callsFake(async (domain) => {
+  // sandbox.stub(tradle.s3Utils, 'getJSON').callsFake(fakeGet)
+  sandbox.stub(store.bucket, 'get').callsFake(key => fakeGet({ key }))
+  sandbox.stub(store.bucket, 'getJSON').callsFake(key => fakeGet({ key }))
+  sandbox.stub(store.bucket, 'gzipAndPut').callsFake((key, value) => fakePut({ key, value }))
+  sandbox.stub(tradle.friends, 'getByDomain').callsFake(async (domain) => {
     if (domain === friend1.domain) return friend1
     if (domain === friend2.domain) return friend2
 
@@ -853,6 +856,7 @@ test('ModelStore', loudAsync(async (t) => {
   // 9
   // t.ok(schema)
 
+  sandbox.restore()
   t.end()
 }))
 

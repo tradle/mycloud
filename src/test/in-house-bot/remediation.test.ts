@@ -33,6 +33,7 @@ const {
 } = TYPES
 
 test('remediation plugin', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const claim = {
     [TYPE]: DATA_CLAIM,
     [SIG]: 'somesig',
@@ -46,8 +47,8 @@ test('remediation plugin', loudAsync(async (t) => {
   const user = { id: 'bob' }
   const bot = createBot()
   const productsAPI = {
-    sendSimpleMessage: sinon.stub().resolves(),
-    send: sinon.stub().callsFake(async ({ to, object }) => {
+    sendSimpleMessage: sandbox.stub().resolves(),
+    send: sandbox.stub().callsFake(async ({ to, object }) => {
       const { items } = object
       t.equal(items.length, dataBundle.items.length)
       t.ok(items.every(item => {
@@ -63,12 +64,12 @@ test('remediation plugin', loudAsync(async (t) => {
     logger: new Logger('test:remediation1')
   })
 
-  sinon.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
+  sandbox.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
     t.equal(id, claim.claimId)
     return dataBundle
   })
 
-  sinon.stub(api, 'onClaimRedeemed').callsFake(async ({ user, claimId }) => {
+  sandbox.stub(api, 'onClaimRedeemed').callsFake(async ({ user, claimId }) => {
     t.equal(claimId, claim.claimId)
   })
 
@@ -79,10 +80,12 @@ test('remediation plugin', loudAsync(async (t) => {
   })
 
   t.equal(productsAPI.send.callCount, 1)
+  sandbox.restore()
   t.end()
 }))
 
 test('remediation api', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const bundle = {
     items: [
       {
@@ -129,10 +132,12 @@ test('remediation api', loudAsync(async (t) => {
     t.ok(Errors.matches(err, Errors.NotFound))
   }
 
+  sandbox.restore()
   t.end()
 }))
 
 test('prefill-based', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const userFixture = users[0]
   const user = {
     id: userFixture.link,
@@ -171,7 +176,7 @@ test('prefill-based', loudAsync(async (t) => {
 
   //     }
   //   },
-  //   send: sinon.stub().callsFake(async ({ to, object }) => {
+  //   send: sandbox.stub().callsFake(async ({ to, object }) => {
   //   })
   // }
 
@@ -181,27 +186,27 @@ test('prefill-based', loudAsync(async (t) => {
     logger: new Logger('test:remediation1')
   })
 
-  sinon.stub(bot.objects, 'get').callsFake(async (link) => {
+  sandbox.stub(bot.objects, 'get').callsFake(async (link) => {
     if (objects[link]) return objects[link]
 
     throw new Errors.NotFound(link)
   })
 
   // let bundle
-  // sinon.stub(api.store.bucket, 'put').callsFake(async (key, val) => {
+  // sandbox.stub(api.store.bucket, 'put').callsFake(async (key, val) => {
   //   bundle = val
   // })
 
-  // sinon.stub(api.store, 'get').callsFake(async (key) => {
+  // sandbox.stub(api.store, 'get').callsFake(async (key) => {
   //   return bundle
   // })
 
   let keyToClaimIds = {}
-  sinon.stub(api.keyToClaimIds, 'put').callsFake(async (key, val) => {
+  sandbox.stub(api.keyToClaimIds, 'put').callsFake(async (key, val) => {
     keyToClaimIds[key] = val
   })
 
-  sinon.stub(api.keyToClaimIds, 'get').callsFake(async (key) => {
+  sandbox.stub(api.keyToClaimIds, 'get').callsFake(async (key) => {
     if (keyToClaimIds[key]) return keyToClaimIds[key]
 
     throw new Errors.NotFound(key)
@@ -246,14 +251,15 @@ test('prefill-based', loudAsync(async (t) => {
 
   t.same(formRequest.prefill, unsignedForms[0])
 
-  // sinon.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
+  // sandbox.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
   //   t.equal(id, claim.claimId)
   //   return dataBundle
   // })
 
-  // sinon.stub(api, 'onClaimRedeemed').callsFake(async ({ user, claimId }) => {
+  // sandbox.stub(api, 'onClaimRedeemed').callsFake(async ({ user, claimId }) => {
   //   t.equal(claimId, claim.claimId)
   // })
 
+  sandbox.restore()
   t.end()
 }))

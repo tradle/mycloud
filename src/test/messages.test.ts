@@ -80,18 +80,19 @@ test('extract pub key', function (t) {
 test('_doSendMessage', loudAsync(async (t) => {
   // t.plan(3)
 
+  const sandbox = sinon.createSandbox()
   const payload = {
     [TYPE]: 'tradle.SimpleMessage',
     message: 'hey bob',
     // embed: 'data:image/jpeg;base64,somebase64'
   }
 
-  const stub = stubber()
+  const stub = stubber(sandbox)
   stub(identities, 'byPermalink', mocks.byPermalink)
 
   let nextSeq = 0
   let prevMsgLink = 'abc'
-  const stubLastSeqAndLink = sinon.stub(messages, 'getLastSeqAndLink')
+  const stubLastSeqAndLink = sandbox.stub(messages, 'getLastSeqAndLink')
     .callsFake(() => Promise.resolve({
       seq: nextSeq - 1,
       link: prevMsgLink
@@ -150,8 +151,9 @@ test('_doSendMessage', loudAsync(async (t) => {
 }))
 
 test('_doReceiveMessage', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const message = fromBobToAlice[0]
-  const stub = stubber()
+  const stub = stubber(sandbox)
   const stubGetIdentity = stub(
     identities,
     'metaByPub',
@@ -187,9 +189,9 @@ test('_doReceiveMessage', loudAsync(async (t) => {
   t.equal(stubGetIdentity.callCount, 2)
   t.equal(stubGetInbound.callCount, 0)
   t.equal(stubTimestampInc.callCount, yn(process.env.NO_TIME_TRAVEL) ? 1 : 0)
-  stub.restore()
   // TODO: compare
 
+  sandbox.restore()
   t.end()
 }))
 
@@ -340,10 +342,10 @@ const mocks = {
   })
 }
 
-function stubber () {
+function stubber (sandbox) {
   const stubs = []
   const stub:any = (obj, prop, fn) => {
-    const thisStub = sinon.stub(obj, prop).callsFake(fn)
+    const thisStub = sandbox.stub(obj, prop).callsFake(fn)
     stubs.push(thisStub)
     return thisStub
   }

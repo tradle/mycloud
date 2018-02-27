@@ -13,6 +13,7 @@ const alice = require('./fixtures/alice/object')
 const bob = require('./fixtures/bob/object')
 
 test('friends', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
   const domain = 'friend.local'
   const friendOpts = {
     name: 'testfriend',
@@ -26,7 +27,7 @@ test('friends', loudAsync(async (t) => {
     })
   }
 
-  sinon.stub(provider, 'saveObject').resolves()
+  sandbox.stub(provider, 'saveObject').resolves()
 
   await friends.removeByIdentityPermalink(alice.link)
   await friends.add(friendOpts)
@@ -39,5 +40,6 @@ test('friends', loudAsync(async (t) => {
   friendOpts.url = 'blah'
   await friends.add(friendOpts)
   t.equal((await friends.getByDomain(domain)).url, friendOpts.url)
+  sandbox.restore()
   t.end()
 }))
