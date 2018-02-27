@@ -41,7 +41,6 @@ import {
   IPluginLifecycleMethods
 } from './types'
 
-import { createLinker } from './app-links'
 import Logger from '../logger'
 import baseModels = require('../models')
 import Errors = require('../errors')
@@ -168,13 +167,11 @@ export default function createProductsBot ({
   }
 
   const myIdentityPromise = bot.getMyIdentity()
-  const linker = createLinker()
   const components = {
     bot,
     conf,
     productsAPI,
     employeeManager,
-    linker,
     get models() {
       return bot.modelStore.models
     }
@@ -429,7 +426,6 @@ export default function createProductsBot ({
     if (plugins['hand-sig']) {
       const result = createHandSigPlugin({
         ...commonPluginOpts,
-        linker,
         conf: plugins['hand-sig'],
         logger: logger.sub('plugin-hand-sig')
       })
@@ -440,7 +436,6 @@ export default function createProductsBot ({
     if (plugins['deployment']) {
       const result = createDeploymentPlugin({
         ...commonPluginOpts,
-        linker,
         conf: plugins['deployment'],
         logger: logger.sub('plugin-deployment')
       })

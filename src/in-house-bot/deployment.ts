@@ -3,6 +3,7 @@ import _ = require('lodash')
 import Promise = require('bluebird')
 import { TYPE } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
+import { appLinks } from '../app-links'
 import {
   Env,
   Bot,
@@ -16,7 +17,6 @@ import {
   IDeploymentConfForm,
   ILaunchReportPayload,
   KeyValueTable,
-  AppLinks,
   ResourceStub,
   IOrganization,
   IDeploymentPluginConf
@@ -26,7 +26,6 @@ import { media } from './media'
 import Errors = require('../errors')
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
-import { createLinker } from './app-links'
 import * as Templates from './templates'
 
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
@@ -58,7 +57,7 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
     blocks: [
       { body: ONLINE_MESSAGE },
       { body: 'Use <a href="{{mobile}}">this link</a> to add it to your Tradle mobile app' },
-      { body: 'Use <a href="{{web}}">this link</a> to add it to your Tradle mobile app' },
+      { body: 'Use <a href="{{web}}">this link</a> to add it to your Tradle web app' },
       { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' },
     ],
     signature: 'Tradle Team',
@@ -83,7 +82,6 @@ interface INotifyCreatorsOpts {
 interface DeploymentCtorOpts {
   bot: Bot
   logger: Logger
-  appLinks?: AppLinks
   conf?: IDeploymentPluginConf
 }
 
@@ -100,15 +98,13 @@ export class Deployment {
   private pubConfBucket: Bucket
   private deploymentBucket: Bucket
   private logger: Logger
-  private appLinks: AppLinks
   private conf?: IDeploymentPluginConf
-  constructor({ bot, logger, appLinks=createLinker(), conf }: DeploymentCtorOpts) {
+  constructor({ bot, logger, conf }: DeploymentCtorOpts) {
     this.bot = bot
     this.env = bot.env
     this.logger = logger
     this.pubConfBucket = bot.buckets.PublicConf
     this.deploymentBucket = bot.buckets.ServerlessDeployment
-    this.appLinks = appLinks
     this.kv = this.bot.kv.sub('deployment:')
     this.conf = conf
   }
@@ -368,19 +364,19 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getAppLinks = ({ url, permalink }) => {
-    const mobile = this.appLinks.getChatLink({
+    const mobile = appLinks.getChatLink({
       provider: permalink,
       host: url,
       platform: 'mobile'
     })
 
-    const web = this.appLinks.getChatLink({
+    const web = appLinks.getChatLink({
       provider: permalink,
       host: url,
       platform: 'web'
     })
 
-    const employeeOnboarding = this.appLinks.getApplyForProductLink({
+    const employeeOnboarding = appLinks.getApplyForProductLink({
       provider: permalink,
       host: url,
       product: 'tradle.EmployeeOnboarding',

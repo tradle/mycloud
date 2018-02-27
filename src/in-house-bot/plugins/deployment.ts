@@ -17,6 +17,7 @@ import {
 import Errors = require('../../errors')
 import constants = require('../../constants')
 import { createDeployment } from '../deployment'
+import { appLinks } from '../../app-links'
 
 const { WEB_APP_URL } = constants
 const templateFileName = 'compiled-cloudformation-template.json'
@@ -26,11 +27,10 @@ const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 
 export interface IDeploymentPluginOpts extends IPluginOpts {
   conf: IDeploymentPluginConf
-  linker: AppLinks
 }
 
 export const createPlugin = (opts:IDeploymentPluginOpts) => {
-  const { bot, productsAPI, linker, conf, logger } = opts
+  const { bot, productsAPI, conf, logger } = opts
   const deployment = createDeployment({
     bot,
     logger,
@@ -73,7 +73,7 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
       return
     }
 
-    // const employeeOnboardingUrl = linker.getApplyForProductLink({
+    // const employeeOnboardingUrl = appLinks.getApplyForProductLink({
     //   provider: botPermalink,
     //   host: bot.apiBaseUrl,
     //   product: 'tradle.EmployeeOnboarding',

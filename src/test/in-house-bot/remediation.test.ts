@@ -5,6 +5,7 @@ import test = require('tape')
 import sinon = require('sinon')
 import { TYPE, SIG, OWNER } from '@tradle/constants'
 import buildResource = require('@tradle/build-resource')
+import fakeResource = require('@tradle/build-resource/fake')
 import createProductsStrategy = require('@tradle/bot-products')
 import { Remediation, idToStub, stubToId } from '../../in-house-bot/remediation'
 import {
@@ -14,6 +15,7 @@ import {
   createPlugin as createPrefillFromDraftPlugin
 } from '../../in-house-bot/plugins/prefill-from-draft'
 import { loudAsync, parseStub } from '../../utils'
+import { addLinks } from '../../crypto'
 import Errors = require('../../errors')
 import { Logger } from '../../logger'
 import { createBot } from '../../bot'
@@ -147,11 +149,13 @@ test('prefill-based', loudAsync(async (t) => {
   const bot = createBot()
   const unsignedForms = dataBundle.items.filter(item => models[item[TYPE]].subClassOf === FORM)
   const product = 'tradle.WealthManagementAccount'
-  const productRequest = await bot.sign({
+  const unsignedProductRequest = {
     [TYPE]: PRODUCT_REQUEST,
     requestFor: product,
     contextId: 'abc'
-  })
+  }
+
+  const productRequest = await bot.sign(unsignedProductRequest)
 
   const forms = await Promise.all(unsignedForms.map(form => bot.sign(form)))
   const formStubs = forms.map(resource => buildResource.stub({ resource }))
@@ -201,6 +205,18 @@ test('prefill-based', loudAsync(async (t) => {
   //   return bundle
   // })
 
+  const draft = <IPBApp>{
+    [SIG]: 'appsig',
+    [TYPE]: APPLICATION,
+    requestFor: productRequest.requestFor,
+    request: buildResource.stub({ resource: productRequest }),
+    forms: formStubs,
+    draft: true
+  }
+
+  addLinks(draft)
+  const draftStub = buildResource.stub({ resource: draft })
+
   let keyToClaimIds = {}
   sandbox.stub(api.keyToClaimIds, 'put').callsFake(async (key, val) => {
     keyToClaimIds[key] = val
@@ -212,12 +228,21 @@ test('prefill-based', loudAsync(async (t) => {
     throw new Errors.NotFound(key)
   })
 
-  const draft = <IPBApp>{
-    [TYPE]: APPLICATION,
-    request: buildResource.stub({ resource: productRequest }),
-    forms: formStubs,
-    draft: true
-  }
+  sandbox.stub(bot, 'getResource').callsFake(async ({ type, permalink }) => {
+    if (permalink === draft._permalink) {
+      return draft
+    }
+
+    throw new Errors.NotFound(type + permalink)
+  })
+
+  sandbox.stub(bot, 'getResourceByStub').callsFake(async ({ id }) => {
+    if (id === draftStub.id) {
+      return draft
+    }
+
+    throw new Errors.NotFound(id)
+  })
 
   const stub = await api.createClaimForApplication({
     claimType: 'prefill',
@@ -232,24 +257,41 @@ test('prefill-based', loudAsync(async (t) => {
   })
 
   const req = <IPBReq>{}
-  await api.handleDataClaim({
-    req,
+  const application = productsAPI.state.createApplication({
     user,
+    object: {
+      ...unsignedProductRequest,
+      contextId: stub.claimId,
+      [SIG]: 'somesig'
+    }
+  })
+
+  await api.handlePrefillClaim({
+    user,
+    application,
     claimId: stub.claimId
   })
 
-  const { application } = req
+  t.equal(application.prefillFromApplication.id, draftStub.id)
+
   const formRequest = <IFormRequest>{
     form: forms[0][TYPE]
   }
 
   await prefillFromDraft.plugin.willRequestForm({
-    to: user.id,
+    user,
     application,
     formRequest
   })
 
   t.same(formRequest.prefill, unsignedForms[0])
+
+  const stub2 = await api.createClaimForApplication({
+    claimType: 'prefill',
+    application: draft
+  })
+
+  // plugin.onFormsCollected
 
   // sandbox.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
   //   t.equal(id, claim.claimId)

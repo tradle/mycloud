@@ -6,6 +6,7 @@ import createHooks = require('event-hooks')
 import { DB } from '@tradle/dynamodb'
 import buildResource = require('@tradle/build-resource')
 import validateResource = require('@tradle/validate-resource')
+import { links as appLinks } from '@tradle/qr-schema'
 import { readyMixin, IReady } from './ready-mixin'
 import {
   defineGetter,
@@ -135,7 +136,6 @@ export class Bot extends EventEmitter implements IReady {
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
   public get mailer () { return this.tradle.mailer }
-  public get appLinks () { return this.tradle.appLinks }
   public get pushNotifications () { return this.tradle.pushNotifications }
   public logger: Logger
   public kv: KeyValueTable
@@ -271,7 +271,7 @@ export class Bot extends EventEmitter implements IReady {
   public sendPushNotification = (recipient: string) => this.provider.sendPushNotification(recipient)
   public registerWithPushNotificationsServer = () => this.provider.registerWithPushNotificationsServer()
   public getChatLink = async (opts: Partial<IDeepLink>) => {
-    return this.appLinks.getChatLink({
+    return appLinks.getChatLink({
       provider: opts.provider || await this.getMyIdentityPermalink(),
       host: this.apiBaseUrl,
       platform: opts.platform,
@@ -317,7 +317,10 @@ export class Bot extends EventEmitter implements IReady {
     bot: this
   })
 
-  public getResource = async ({ type, permalink }: ParsedResourceStub) => {
+  public getResource = async ({ type, permalink }: {
+    type: string
+    permalink: string
+  }) => {
     return await this.db.get({
       [TYPE]: type,
       _permalink: permalink

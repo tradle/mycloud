@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { DB, Models, Model } from '@tradle/dynamodb'
+import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
 import { Lambda, EventSource } from '../lambda'
 import { Bot } from '../bot'
@@ -32,7 +33,6 @@ import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
 import { Mailer } from '../mailer'
-import { AppLinks } from '../app-links'
 import {
   ResourceStub,
   ParsedResourceStub

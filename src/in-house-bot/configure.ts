@@ -13,7 +13,7 @@ import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors = require('../errors')
 import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise, post } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
-import { createLinker } from './app-links'
+import { appLinks } from '../app-links'
 import {
   Bot,
   ModelStore,
@@ -24,8 +24,7 @@ import {
   IConf,
   IBotConf,
   IDeploymentOpts,
-  IMyDeploymentConf,
-  AppLinks
+  IMyDeploymentConf
 } from './types'
 
 import {
@@ -117,7 +116,6 @@ export class Conf {
   public org: CacheableBucketItem
   public info: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
-  public appLinks: AppLinks
   constructor({ bot, logger }: {
     bot: Bot
     logger?: Logger
@@ -128,8 +126,6 @@ export class Conf {
     const { buckets } = bot
     this.privateConfBucket = buckets.PrivateConf
     // this.publicConfBucket = buckets.PublicConf
-
-    this.appLinks = createLinker()
 
     for (let name in parts) {
       let part = parts[name]
@@ -311,7 +307,7 @@ export class Conf {
   }
 
   public initInfra = async (deploymentConf: IMyDeploymentConf, opts: InitOpts = {}) => {
-    const { bot, logger, appLinks } = this
+    const { bot, logger } = this
 
     this.logger.info(`initializing provider`, deploymentConf)
 
@@ -345,7 +341,7 @@ export class Conf {
       Errors.ignore(err, Errors.NotFound)
     }
 
-    const deployment = new Deployment({ bot, logger, appLinks })
+    const deployment = new Deployment({ bot, logger })
     const { style } = conf
     if (!style.logo) {
       const logo = await deployment.getLogo(deploymentConf)

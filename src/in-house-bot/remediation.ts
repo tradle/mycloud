@@ -36,6 +36,8 @@ const {
 } = TYPES
 
 const notNull = val => !!val
+const getApplicationPermalinkFromStub = (stub: ClaimStub) => stub.key
+
 const DEFAULT_CLAIM_NOT_FOUND_MESSAGE = 'Claim not found'
 const DEFAULT_BUNDLE_MESSAGE = 'Please see your data and verifications'
 const CustomErrors = {
@@ -57,9 +59,20 @@ type KeyContainer = {
   key: string
 }
 
-interface IHandleClaimOpts {
+type ClaimIdentifier = {
+  key: string
+  claimId: string
+}
+
+interface IHandleBulkClaimOpts {
   req: IPBReq
   user: IUser
+  claimId: string
+}
+
+interface IHandlePrefillClaimOpts {
+  user: IUser
+  application: IPBApp
   claimId: string
 }
 
@@ -103,7 +116,7 @@ export class Remediation {
   }):Promise<ClaimStub> => {
     const claimStub = await this.genClaimStub({ key, claimType })
     const claimIds = await this.getClaimIdsForKey({ key })
-    claimIds.push(stubToId(claimStub))
+    claimIds.push(claimStub.claimId)
     await this.keyToClaimIds.put(key, claimIds)
     return claimStub
   }
@@ -174,7 +187,7 @@ export class Remediation {
     claimType: ClaimType
     bundle?: any
   }):Promise<ClaimStub> => {
-    if (!bundle) {
+    if (claimType === 'bulk' && !bundle) {
       try {
         await this.getBundle({ key })
       } catch (err) {
@@ -203,30 +216,35 @@ export class Remediation {
     }
   }
 
-  public handleDataClaim = async (opts: IHandleClaimOpts) => {
-    this.logger.debug('processing tradle.DataClaim')
-    const { req, user, claimId } = opts
-    const { claimType } = idToStub(claimId)
-    if (claimType === 'bulk') {
-      return await this.handleDumpClaim({ req, user, claimId })
-    }
+  public isPrefillClaim = (claimId:string):boolean => {
+    if (claimId.length <= 64) return false
 
-    if (claimType === 'prefill') {
-      return await this.handlePrefillClaim({ req, user, claimId })
+    try {
+      idToStub(claimId)
+      return true
+    } catch (err) {
+      return false
     }
   }
 
-  public handlePrefillClaim = async (opts: IHandleClaimOpts) => {
-    const { req, user, claimId } = opts
-    const bundle = await this.getBundleByClaimId(claimId)
-    const request = bundle.items[0]
-    const application = this.productsAPI.state.createApplication({ user, object: request })
-    application.requestFor = request.requestFor
-    application.prefillFrom = idToStub(claimId).key
-    req.application = <IPBApp>(await this.bot.sign(application))
+  public handlePrefillClaim = async (opts: IHandlePrefillClaimOpts) => {
+    const { user, application, claimId } = opts
+    const { key } = idToStub(claimId)
+    const claim = await this.getClaim({ key, claimId })
+    const draft = await this.bot.getResource({
+      type: 'tradle.Application',
+      permalink: getApplicationPermalinkFromStub(claim)
+    })
+
+    application.prefillFromApplication = buildResource.stub({
+      models: baseModels,
+      resource: draft
+    })
+
+    await this.onClaimRedeemed({ claimId, user })
   }
 
-  public handleDumpClaim = async (opts: IHandleClaimOpts) => {
+  public handleBulkClaim = async (opts: IHandleBulkClaimOpts) => {
     const { req, user, claimId } = opts
     try {
       await this.sendDataBundleForClaim(opts)
@@ -359,19 +377,19 @@ export class Remediation {
     return item
   }
 
-  public createBundleFromApplication = async (application:IPBApp):Promise<ITradleObject> => {
-    const stubs = application.forms.slice()
-    stubs.unshift(application.request)
+  // public createBundleFromApplication = async (application:IPBApp):Promise<ITradleObject> => {
+  //   const stubs = application.forms.slice()
+  //   stubs.unshift(application.request)
 
-    const items = await Promise.all(stubs.map(stub => this.bot.getResourceByStub(stub)))
-    // TODO: verifications
-    return buildResource({
-      models: baseModels,
-      model: DATA_BUNDLE
-    })
-    .set({ items })
-    .toJSON()
-  }
+  //   const items = await Promise.all(stubs.map(stub => this.bot.getResourceByStub(stub)))
+  //   // TODO: verifications
+  //   return buildResource({
+  //     models: baseModels,
+  //     model: DATA_BUNDLE
+  //   })
+  //   .set({ items })
+  //   .toJSON()
+  // }
 
   public createClaimForApplication = async ({ application, claimType }: {
     application: IPBApp,
@@ -381,10 +399,13 @@ export class Remediation {
       throw new Errors.InvalidInput(`can't create claim for non-draft application: ${application._link}`)
     }
 
-    const bundle = await this.createBundleFromApplication(application)
-    const key = await this.saveUnsignedDataBundle(bundle)
+    // const bundle = await this.createBundleFromApplication(application)
+    // const key = await this.saveUnsignedDataBundle(bundle)
     // delete application?
-    return await this.createClaim({ key, claimType })
+    return await this.createClaim({
+      key: application._permalink,
+      claimType
+    })
   }
 
   private getFormStub = ({ items, ref }) => {
@@ -399,7 +420,20 @@ export class Remediation {
     return buildResource.stub({ models, resource })
   }
 
-  private getClaimIdsForKey = async ({ key }: KeyContainer) => {
+  private getClaim = async ({ key, claimId }: ClaimIdentifier):Promise<ClaimStub> => {
+    const stub = idToStub(claimId)
+    if (!key) key = stub.key
+
+    const ids = await this.getClaimIdsForKey({ key })
+    const claim = ids.find(id => id == claimId)
+    if (!claim) {
+      throw new Errors.NotFound(`claim with id: ${claimId}`)
+    }
+
+    return stub
+  }
+
+  private getClaimIdsForKey = async ({ key }: KeyContainer):Promise<ClaimStub[]> => {
     try {
       return await this.keyToClaimIds.get(key)
     } catch (err) {

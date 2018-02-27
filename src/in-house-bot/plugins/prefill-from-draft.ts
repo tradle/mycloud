@@ -25,15 +25,15 @@ export function createPlugin ({
 }: IPrefillFromDraftOpts):IPluginExports {
 
   const plugin:IPluginLifecycleMethods = {}
-  plugin.willRequestForm = async ({ to, application, formRequest }) => {
-    if (!(application && application.prefillFrom)) return
+  plugin.willRequestForm = async ({ user, application, formRequest }) => {
+    if (!(application && application.prefillFromApplication)) return
 
-    let bundle:IDataBundle
+    let draft
     try {
-      bundle = await remediation.getBundleByKey({ key: application.prefillFrom })
+      draft = await bot.getResourceByStub(application.prefillFromApplication)
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      logger.error('failed to prefill from draft', err)
+      logger.error(`application draft not found`, err)
       return
     }
 
@@ -44,10 +44,26 @@ export function createPlugin ({
       .filter(({ type }) => type === form)
 
     const idx = filledAlready.length
-    const item = bundle.items.filter(item => item[TYPE] === form)[idx]
-    if (item) {
-      formRequest.prefill = toUnsigned(item)
+    const draftStubs = draft.forms.map(parseStub)
+    const match = draftStubs.filter(({ type }) => type === form)[idx]
+    if (!match) return
+
+    let prefill
+    try {
+      prefill = await bot.objects.get(match.link)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      logger.error(`form draft not found`, err)
+      return
     }
+
+    logger.debug('setting prefill from draft application', {
+      form,
+      user: user.id,
+      application: application._permalink
+    })
+
+    formRequest.prefill = toUnsigned(prefill)
   }
 
   return {

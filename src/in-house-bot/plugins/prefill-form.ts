@@ -8,7 +8,7 @@ export const name = 'prefillForm'
 export function createPlugin ({ conf=DEFAULT_CONF, logger }: IPluginOpts):IPluginExports {
 
   const plugin:IPluginLifecycleMethods = {}
-  plugin.willRequestForm = ({ to, application, formRequest }) => {
+  plugin.willRequestForm = ({ user, application, formRequest }) => {
     const appSpecific = application && conf[application.requestFor]
     const { form, prefill } = formRequest
     if (prefill) return

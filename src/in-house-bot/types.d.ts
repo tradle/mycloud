@@ -5,7 +5,6 @@ import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediation } from './remediation'
 import { Deployment } from './deployment'
-import { AppLinks } from './app-links'
 import {
   ITradleObject,
   IIdentity,
@@ -24,8 +23,7 @@ export {
   Commander,
   Onfido,
   Remediation,
-  Deployment,
-  AppLinks
+  Deployment
 }
 
 export interface IProductsConf {
@@ -60,7 +58,6 @@ export interface IBotComponents {
   conf?: IConf
   productsAPI: any
   employeeManager: any
-  linker: AppLinks
   remediation?: Remediation
   onfido?: Onfido
   deployment?: Deployment
@@ -114,6 +111,7 @@ export interface IPBApp extends ITradleObject {
   applicant: ResourceStub
   request?: ResourceStub
   requestFor: string
+  context: string
   forms?: ResourceStub[]
   verificationsImported?: VerifiedItem[]
   verificationsIssued?: VerifiedItem[]
@@ -132,7 +130,7 @@ export interface IFormRequest extends ITradleObject {
 }
 
 export interface IWillRequestFormArg {
-  to: string | IUser
+  user: IUser
   application?: IPBApp
   formRequest: IFormRequest
 }
@@ -197,7 +195,7 @@ export interface IPluginLifecycleMethods {
   onmessage?: (req:IPBReq) => boolean|void | Promise<boolean|void>
   willRequestForm?: (opts:IWillRequestFormArg) => void | Promise<void>
   onFormsCollected?: (opts:IOnFormsCollectedArg) => void | Promise<void>
-  [toBeDefined: string]: Function
+  [toBeDefined: string]: any
 }
 
 export interface IPluginExports {
@@ -294,6 +292,7 @@ export interface IDeploymentPluginConf {
 
 export interface IApplyForProductDeepLink extends IDeepLink {
   product: string
+  contextId?: string
 }
 
 export interface IImportDataDeepLink extends IDeepLink {

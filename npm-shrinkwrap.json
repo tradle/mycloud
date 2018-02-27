@@ -144,7 +144,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#345fa113a9b3dbafc5ca7d3ea3441fc2303fb2f5"
+      "resolved": "git://github.com/tradle/custom-models.git#b95accf29fe8469479ae4045fe1baf65cd1cad61"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -244,7 +244,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#25d537b5d37ad68ebad78093b76f9a1259574471"
+      "resolved": "git://github.com/tradle/models.git#871220462467ffdeff90c19d0367efeb0e0147ae"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -259,7 +259,7 @@
     "@tradle/models-nz": {
       "version": "1.0.0",
       "from": "tradle/models-nz",
-      "resolved": "git://github.com/tradle/models-nz.git#87cc433beda2ac4b58f7d1169db009596a2fecca"
+      "resolved": "git://github.com/tradle/models-nz.git#3d35e1cce18132e1037136e2f871a6c87f195f7a"
     },
     "@tradle/models-onfido": {
       "version": "1.0.0",
@@ -321,9 +321,21 @@
       }
     },
     "@tradle/qr-schema": {
-      "version": "1.4.0",
+      "version": "1.6.0",
       "from": "@tradle/qr-schema@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.4.0.tgz"
+      "resolved": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.6.0.tgz",
+      "dependencies": {
+        "is-extendable": {
+          "version": "1.0.1",
+          "from": "is-extendable@>=1.0.0 <2.0.0",
+          "resolved": "https://registry.npmjs.org/is-extendable/-/is-extendable-1.0.1.tgz"
+        },
+        "object.omit": {
+          "version": "3.0.0",
+          "from": "object.omit@>=3.0.0 <4.0.0",
+          "resolved": "https://registry.npmjs.org/object.omit/-/object.omit-3.0.0.tgz"
+        }
+      }
     },
     "@tradle/schema-graphql": {
       "version": "1.0.0",
@@ -2782,6 +2794,18 @@
       "version": "1.0.1",
       "from": "is-obj@>=1.0.0 <2.0.0",
       "resolved": "https://registry.npmjs.org/is-obj/-/is-obj-1.0.1.tgz"
+    },
+    "is-plain-object": {
+      "version": "2.0.4",
+      "from": "is-plain-object@>=2.0.4 <3.0.0",
+      "resolved": "https://registry.npmjs.org/is-plain-object/-/is-plain-object-2.0.4.tgz",
+      "dependencies": {
+        "isobject": {
+          "version": "3.0.1",
+          "from": "isobject@>=3.0.1 <4.0.0",
+          "resolved": "https://registry.npmjs.org/isobject/-/isobject-3.0.1.tgz"
+        }
+      }
     },
     "is-posix-bracket": {
       "version": "0.1.1",
