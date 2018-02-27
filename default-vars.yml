@@ -42,6 +42,3 @@ org:
 corda:
   apiKey: abc
   apiUrl: http://localhost:10007/api/share
-
-binaryMediaTypes:
-  - "*/*"

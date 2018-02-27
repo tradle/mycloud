@@ -1090,7 +1090,9 @@ resources:
       Type: AWS::ApiGateway::RestApi
       Properties:
         Name: ${{self:custom.apiGateway}}
-        BinaryMediaTypes: ${{self:custom.vars.binaryMediaTypes, self:custom.defaults.binaryMediaTypes}}
+        BinaryMediaTypes:
+          - "*/*"
+        # BinaryMediaTypes: ${{self:custom.vars.binaryMediaTypes, self:custom.defaults.binaryMediaTypes}}
 
   #   cors:
   #     origin: '*'
