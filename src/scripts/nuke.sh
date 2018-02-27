@@ -71,5 +71,5 @@ echo "This will empty and delete all buckets, tables, lambdas, etc. for"
 echo "service: $SERVICE"
 echo "stage: $STAGE"
 
-ask && ./lib/scripts/delete-remote-buckets.js
 ask "delete resources stack" && sls remove --stage="$STAGE"
+ask && ./lib/scripts/delete-remote-buckets.js
