@@ -36,13 +36,29 @@ const CONFIGURATION = 'tradle.cloud.Configuration'
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
   template: 'action',
   data: {
-    action: {
-      text: 'Launch MyCloud',
-      href: '{{launchUrl}}'
-    },
     blocks: [
       { body: 'Hi there,' },
-      { body: 'Click below to launch your Tradle MyCloud' }
+      { body: 'Click below to launch your Tradle MyCloud' },
+      {
+        action: {
+          text: 'Launch MyCloud',
+          href: '{{launchUrl}}'
+        }
+      }
+    ],
+    signature: 'Tradle Team',
+    twitter: 'tradles'
+  }
+}
+
+const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
+  template: 'action',
+  data: {
+    blocks: [
+      { body: ONLINE_MESSAGE },
+      { body: 'Use <a href="{{mobile}}">this link</a> to add it to your Tradle mobile app' },
+      { body: 'Use <a href="{{web}}">this link</a> to add it to your Tradle mobile app' },
+      { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' },
     ],
     signature: 'Tradle Team',
     twitter: 'tradles'
@@ -379,7 +395,18 @@ ${this.genUsageInstructions(links)}`
   }) => {
     const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
     const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
-    const { template, data } = opts
+    return this.genEmailBody({ ...opts, values })
+  }
+
+  public genLaunchedEmailBody = (values: {
+    launchUrl: string
+  }) => {
+    const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
+    const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
+    return this.genEmailBody({ ...opts, values })
+  }
+
+  public genEmailBody = ({ template, data, values }) => {
     if (!(template in Templates.email)) {
       throw new Error(`template "${template}" does not exist`)
     }
@@ -398,14 +425,6 @@ ${this.genUsageInstructions(links)}`
     subject: LAUNCH_MESSAGE,
     body: this.genLaunchEmailBody({ launchUrl })
   })
-
-  public genLaunchedEmailBody = ({ url, mobile, web, employeeOnboarding }) => {
-    const host = this.bot.apiBaseUrl
-    return `Hi there,
-
-${ONLINE_MESSAGE}
-${this.genUsageInstructions({ mobile, web, employeeOnboarding })}`
-  }
 
   public genLaunchedEmail = opts => ({
     subject: ONLINE_MESSAGE,
@@ -530,7 +549,6 @@ const normalizeDomain = (domain:string) => {
 }
 
 const renderData = (dataTemplate, data) => {
-  // prevent double autoescape (once for render data, once for render html)
-  const rendered = Templates.renderStringNoAutoEscape(JSON.stringify(dataTemplate), data)
+  const rendered = Templates.renderString(JSON.stringify(dataTemplate), data)
   return JSON.parse(rendered)
 }

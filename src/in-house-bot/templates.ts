@@ -30,7 +30,7 @@ type AllTemplates = {
 }
 
 const nunjucksConf = {
-  autoescape: true,
+  autoescape: false,
   cache: true
 }
 
@@ -53,19 +53,3 @@ export const email:Templates = {
 
 export const renderString = withAutoEscape.renderString.bind(withAutoEscape)
 export const renderStringNoAutoEscape = withoutAutoEscape.renderString.bind(withoutAutoEscape)
-
-// console.time('render')
-// const html = email.action({
-//   action: {
-//     text: 'Launch MyCloud',
-//     href: 'launchUrl'
-//   },
-//   blocks: [
-//     { body: 'Hi there,' },
-//     { body: 'Click below to launch your Tradle MyCloud' }
-//   ],
-//   signature: 'Tradle Team',
-//   twitter: 'tradles'
-// })
-
-// console.timeEnd('render')
