@@ -32,7 +32,7 @@ test('deployment by referral', loudAsync(async (t) => {
     name: 'myorg',
     domain: 'example.com',
     adminEmail: 'admin@example.com',
-    hrEmail: 'hr@example.com',
+    hrEmail: 'hr@example.com'
   }
 
   conf._author = configuredBy.link
@@ -83,7 +83,7 @@ test('deployment by referral', loudAsync(async (t) => {
     }
 
     expectedLaunchReport = {
-      ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'service', 'logo']),
+      ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'stage', 'service', 'stackName', 'logo']),
       org: _.pick(deploymentConf, ['name', 'domain'])
     }
   })
@@ -102,7 +102,9 @@ test('deployment by referral', loudAsync(async (t) => {
           "referrerUrl": "",
           "referrerIdentity": "",
           "deploymentUUID": "",
-          "service": "tdl-xxxx-tdl"
+          "service": "tdl-xxxx-tdl",
+          "stage": "dev",
+          "stackName": "tdl-xxxx-tdl-dev"
         }
       }
     }
