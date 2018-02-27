@@ -38,7 +38,7 @@ test('remediation plugin', loudAsync(async (t) => {
     [TYPE]: DATA_CLAIM,
     [SIG]: 'somesig',
     claimId: stubToId({
-      claimType: 'dump',
+      claimType: 'bulk',
       key: 'abcd',
       nonce: '1234'
     })
@@ -112,16 +112,16 @@ test('remediation api', loudAsync(async (t) => {
     logger: new Logger('test:remediation')
   })
 
-  const stub = await remediation.genClaimStub({ bundle, claimType: 'dump' })
+  const stub = await remediation.genClaimStub({ bundle, claimType: 'bulk' })
   t.same(idToStub(stub.claimId), {
     key: stub.key,
     nonce: stub.nonce,
-    claimType: 'dump',
+    claimType: 'bulk',
     claimId: stub.claimId
   })
 
   const key = await remediation.saveUnsignedDataBundle(bundle)
-  const { claimId } = await remediation.createClaim({ key, claimType: 'dump' })
+  const { claimId } = await remediation.createClaim({ key, claimType: 'bulk' })
   const saved = await remediation.getBundleByClaimId(claimId)
   t.same(saved, bundle)
   await remediation.onClaimRedeemed({ user, claimId })

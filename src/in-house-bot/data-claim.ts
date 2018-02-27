@@ -8,7 +8,7 @@ import {
 const ENCODING = 'hex'
 const schema = protobuf(`
   enum ClaimType {
-    dump = 1;
+    bulk = 1;
     prefill = 2;
   }
 

@@ -44,7 +44,7 @@ const CustomErrors = {
   InvalidBundlePointer: createError('InvalidBundlePointer')
 }
 
-const DEFAULT_CLAIM_TYPE:ClaimType = 'dump'
+const DEFAULT_CLAIM_TYPE:ClaimType = 'bulk'
 
 export { CustomErrors as Errors }
 
@@ -207,7 +207,7 @@ export class Remediation {
     this.logger.debug('processing tradle.DataClaim')
     const { req, user, claimId } = opts
     const { claimType } = idToStub(claimId)
-    if (claimType === 'dump') {
+    if (claimType === 'bulk') {
       return await this.handleDumpClaim({ req, user, claimId })
     }
 

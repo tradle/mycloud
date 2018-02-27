@@ -225,7 +225,7 @@ export interface IPluginOpts {
   [other:string]: any
 }
 
-export type ClaimType = 'dump' | 'prefill'
+export type ClaimType = 'bulk' | 'prefill'
 
 export type ClaimStub = {
   key: string
