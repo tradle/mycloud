@@ -3,17 +3,17 @@ import mergeSorted = require('merge-sorted')
 import { Table, createTable, utils, constants } from '@tradle/dynamodb'
 
 const { getQueryInfo } = utils
-const definitions = require('./definitions')
 
 type InAndOut = {
   inbound?: any
   outbound?: any
 }
 
-export function createMessagesTable ({ docClient, models, getMyIdentity }: {
+export function createMessagesTable ({ definitions, docClient, models, getMyIdentity }: {
   docClient: AWS.DynamoDB.DocumentClient,
   models:any,
   getMyIdentity:() => Promise<any>
+  definitions: any
 }):Table {
   const model = models['tradle.Message']
   const inbox = createTable({

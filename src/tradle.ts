@@ -164,7 +164,8 @@ export default class Tradle {
     this.define('aws', './aws', initialize => initialize(this))
     this.define('dbUtils', './db-utils', initialize => initialize({
       aws: this.aws,
-      logger: this.logger.sub('db-utils')
+      logger: this.logger.sub('db-utils'),
+      env: this.env
     }))
 
     this.define('pushNotifications', './push', ctor => new ctor({

@@ -16,7 +16,8 @@ import {
   waitImmediate,
   timeMethods
 } from './utils'
-import { prettify, alphabetical } from './string-utils'
+
+import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
 import Errors = require('./errors')
 import { Env } from './types'
@@ -35,7 +36,7 @@ type BatchWorker = (batch:Batch) => Promise<boolean|void>
 type ItemWorker = (item:any) => Promise<boolean|void>
 
 const alwaysTrue = (...any) => true
-const definitions = require('./definitions')
+const DEFINITIONS = require('./definitions')
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 const TABLE_BUCKET_REGEX = /-bucket-\d+$/
@@ -58,7 +59,33 @@ export {
   unmarshalDBItem
 }
 
-function createDBUtils ({ aws, logger }) {
+const renderDefinitions = ({ definitions, stackName }) => {
+  definitions = _.cloneDeep(definitions)
+  _.forEach(definitions, resource => {
+    if (resource.Type === 'AWS::DynamoDB::Table') {
+      resource.Properties.TableName = format(resource.Properties.TableName, {
+        stackName
+      })
+    }
+  })
+
+  return definitions
+}
+
+function createDBUtils ({ aws, logger, env }) {
+  const definitions = renderDefinitions({
+    definitions: DEFINITIONS,
+    stackName: env.STACK_NAME
+  })
+
+  const getDefinition = tableName => {
+    const logicalId = Object.keys(definitions).find(logicalId => {
+      return definitions[logicalId].Properties.TableName === tableName
+    })
+
+    return logicalId && definitions[logicalId].Properties
+  }
+
   const { debug } = logger
   const dynogelsLogger = logger.sub('dynogels')
   if (logger.level >= Level.WARN) {
@@ -446,7 +473,10 @@ function createDBUtils ({ aws, logger }) {
     getRecordsFromEvent,
     getTableBuckets,
     getModelMap,
-    getTableDefinition
+    getTableDefinition,
+    get definitions() {
+      return definitions
+    }
   }
 
   return dbUtils
@@ -529,12 +559,4 @@ const getUpdateParams = (item):any => {
     ExpressionAttributeValues,
     UpdateExpression
   }
-}
-
-const getDefinition = tableName => {
-  const logicalId = Object.keys(definitions).find(logicalId => {
-    return definitions[logicalId].Properties.TableName === tableName
-  })
-
-  return logicalId && definitions[logicalId].Properties
 }

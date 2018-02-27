@@ -27,12 +27,12 @@ const bot = require('../bot').createBot({ tradle })
 const { db, dbUtils, env } = tradle
 const { SERVERLESS_PREFIX } = env
 // const { clear } = dbUtils
-const definitions = require('../definitions')
 const readline = require('readline')
 
 const deleteApplications = async () => {
   const { models } = await customize({ bot })
   console.log('finding victims...')
+  const { definitions } = bot.dbUtils
   const modelsToDelete = Object.keys(models).filter(id => {
     const model = models[id]
     if (id === 'tradle.Application' ||

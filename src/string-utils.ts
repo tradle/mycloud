@@ -4,7 +4,7 @@
 
 export const stableStringify = require('json-stable-stringify')
 export const safeStringify = require('json-stringify-safe')
-
+export const format = require('string-format')
 export const toCamelCase = (str, delimiter, upperFirst) => {
   return str
     .split(delimiter)

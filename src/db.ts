@@ -56,7 +56,8 @@ export = function createDB (tradle:Tradle) {
   const messagesTable = createMessagesTable({
     docClient,
     models: modelStore.models,
-    getMyIdentity: () => tradle.provider.getMyPublicIdentity()
+    getMyIdentity: () => tradle.provider.getMyPublicIdentity(),
+    definitions: dbUtils.definitions
   })
 
   db.setExclusive({

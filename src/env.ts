@@ -54,6 +54,10 @@ export default class Env {
     return this.SERVERLESS_ALIAS
   }
 
+  public get STACK_NAME() {
+    return `${this.SERVERLESS_SERVICE_NAME}-${this.STAGE}`
+  }
+
   public BLOCKCHAIN:any
   public CORDA_API_URL?:string
   public CORDA_API_KEY?:string
