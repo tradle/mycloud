@@ -49,10 +49,18 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
     const form = await bot.objects.get(link)
     const botPermalink = await getBotPermalink
     const deploymentOpts = { ...form, configurationLink: link } as IDeploymentOpts
+
+    // async
+    bot.sendSimpleMessage({
+      to: user,
+      message: `Generating the template for your MyCloud...`
+    })
+
     let launchUrl
     try {
       launchUrl = await deployment.getLaunchUrl(deploymentOpts)
     } catch (err) {
+      logger.debug('failed to generate launch url', err)
       Errors.ignore(err, Errors.InvalidInput)
       await this.productsAPI.requestEdit({
         req,
@@ -77,6 +85,7 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
       hr: false
     }
 
+    logger.debug('generated launch url', { launchUrl })
     await productsAPI.sendSimpleMessage({
       req,
       to: user,

@@ -39,6 +39,7 @@ const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
     blocks: [
       { body: 'Hi there,' },
       { body: 'Click below to launch your Tradle MyCloud' },
+      { body: `Note: You will be shown a form with a field "Stack Name". Don't edit it as it will break your template.` },
       {
         action: {
           text: 'Launch MyCloud',
@@ -143,7 +144,9 @@ export class Deployment {
       return this.customizeTemplateForLaunch({ template, opts })
     })
 
-    await this.saveDeploymentTracker({ template, link: opts.configurationLink })
+    this.logger.debug('generated cloudformation template for child deployment')
+    const uuid = await this.saveDeploymentTracker({ template, link: opts.configurationLink })
+    this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return stackUtils.getLaunchStackUrl({
       stackName: getStackNameFromTemplate(template),
       templateURL: url
@@ -223,6 +226,7 @@ export class Deployment {
   }) => {
     const { deploymentUUID } = template.Mappings.deployment.init as IMyDeploymentConf
     await this.kv.put(deploymentUUID, link)
+    return deploymentUUID
   }
 
   public reportLaunch = async ({ org, identity, referrerUrl, deploymentUUID }: {
@@ -515,7 +519,10 @@ ${this.genUsageInstructions(links)}`
     if (logo) return logo
 
     try {
-      return await getFaviconUrl(domain)
+      return await Promise.race([
+        getFaviconUrl(domain),
+        utils.timeoutIn({ millis: 5000 })
+      ])
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.info('failed to get favicon from url', {
