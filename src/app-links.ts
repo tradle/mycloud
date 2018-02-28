@@ -6,15 +6,30 @@ import {
   MOBILE_APP_URL
 } from './constants'
 
-const getBaseUrl = platform => platform === 'mobile' ? MOBILE_APP_URL : WEB_APP_URL
+type BaseUrls = {
+  mobile: string
+  web: string
+}
 
-const appLinks:AppLinks = reduce(links, (result:AppLinks, fn:Function, key:string) => {
-  result[key] = opts => fn({
-    ...opts,
-    baseUrl: opts.baseUrl || getBaseUrl(opts.platform)
-  })
+const defaultBaseUrls:BaseUrls = {
+  mobile: MOBILE_APP_URL,
+  web: WEB_APP_URL
+}
 
-  return result
-}, <AppLinks>{})
+export const createLinker = (baseUrls:Partial<BaseUrls>):AppLinks => {
+  return reduce(links, (result:AppLinks, fn:Function, key:string) => {
+    result[key] = opts => {
+      return fn({
+        ...opts,
+        baseUrl: opts.baseUrl || baseUrls[opts.platform] || defaultBaseUrls[opts.platform]
+      })
+    }
 
-export { appLinks }
+    return result
+  }, <AppLinks>{})
+}
+
+export const appLinks = createLinker({
+  mobile: MOBILE_APP_URL,
+  web: WEB_APP_URL
+})

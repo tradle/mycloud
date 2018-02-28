@@ -38,7 +38,7 @@ import {
   AppLinks
 } from '../types'
 
-import { appLinks } from '../app-links'
+import { createLinker, appLinks as defaultAppLinks } from '../app-links'
 import { createLambda } from './lambda'
 import { createLocker, Locker } from './locker'
 import { Logger } from '../logger'
@@ -138,7 +138,7 @@ export class Bot extends EventEmitter implements IReady {
   public get lenses () { return this.modelStore.lenses }
   public get mailer () { return this.tradle.mailer }
   public get pushNotifications () { return this.tradle.pushNotifications }
-  // public appLinks: AppLinks
+  public appLinks: AppLinks
   public logger: Logger
   public kv: KeyValueTable
   public conf: KeyValueTable
@@ -218,14 +218,14 @@ export class Bot extends EventEmitter implements IReady {
       this.trigger = (event, ...args) => this.hooks.fire(event, ...args)
     }
 
-    // this.appLinks = _.reduce(appLinks, (result:AppLinks, fn:Function, key:string) => {
-    //   result[key] = opts => fn({
-    //     baseUrl: this.isTesting ? this.apiBaseUrl : null,
-    //     ...opts
-    //   })
-
-    //   return result
-    // }, <AppLinks>{})
+    if (this.isTesting) {
+      this.appLinks = createLinker({
+        // web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, 'http://localhost:55555')
+        web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, 'http://localhost:3001')
+      })
+    } else {
+      this.appLinks = defaultAppLinks
+    }
 
     if (ready) this.ready()
   }
@@ -281,16 +281,6 @@ export class Bot extends EventEmitter implements IReady {
 
   public sendPushNotification = (recipient: string) => this.provider.sendPushNotification(recipient)
   public registerWithPushNotificationsServer = () => this.provider.registerWithPushNotificationsServer()
-  public getChatLink = async (opts: Partial<IDeepLink>) => {
-    return appLinks.getChatLink({
-      // baseUrl: this.isTesting ? this.apiBaseUrl : null,
-      provider: opts.provider || await this.getMyIdentityPermalink(),
-      host: this.apiBaseUrl,
-      platform: opts.platform,
-      ...opts
-    })
-  }
-
   public sendSimpleMessage = async ({ to, message }) => {
     return await this.send({
       to,

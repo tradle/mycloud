@@ -10,14 +10,12 @@ import {
   IPluginOpts,
   IDeploymentOpts,
   IDeploymentPluginConf,
-  Conf,
-  AppLinks
+  Conf
 } from '../types'
 
 import Errors = require('../../errors')
 import constants = require('../../constants')
 import { createDeployment } from '../deployment'
-import { appLinks } from '../../app-links'
 
 const { WEB_APP_URL } = constants
 const templateFileName = 'compiled-cloudformation-template.json'
@@ -72,13 +70,6 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
 
       return
     }
-
-    // const employeeOnboardingUrl = appLinks.getApplyForProductLink({
-    //   provider: botPermalink,
-    //   host: bot.apiBaseUrl,
-    //   product: 'tradle.EmployeeOnboarding',
-    //   platform: 'web'
-    // })
 
     const emailed = {
       admin: false,

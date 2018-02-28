@@ -377,13 +377,13 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getAppLinks = ({ url, permalink }) => {
-    const [mobile, web] = ['mobile', 'web'].map(platform => appLinks.getChatLink({
+    const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getChatLink({
       provider: permalink,
       host: url,
       platform
     }))
 
-    const employeeOnboarding = appLinks.getApplyForProductLink({
+    const employeeOnboarding = this.bot.appLinks.getApplyForProductLink({
       provider: permalink,
       host: url,
       product: 'tradle.EmployeeOnboarding',
