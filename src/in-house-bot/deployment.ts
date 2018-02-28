@@ -89,6 +89,7 @@ const getServiceNameFromTemplate = template => template.Mappings.deployment.init
 const getStageFromTemplate = template => template.Mappings.deployment.init.stage
 const getStackNameFromTemplate = template => template.Mappings.deployment.init.stackName
 const getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
+const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
 
 export class Deployment {
   // exposed for testing
@@ -366,7 +367,8 @@ ${this.genUsageInstructions(links)}`
   public getAppLinks = ({ url, permalink }) => {
     const [mobile, web] = ['mobile', 'web'].map(platform => appLinks.getChatLink({
       provider: permalink,
-      host: url
+      host: url,
+      platform
     }))
 
     const employeeOnboarding = appLinks.getApplyForProductLink({
@@ -449,14 +451,12 @@ ${this.genUsageInstructions(links)}`
     const { org, deployment } = Mappings
     const logoPromise = this.getLogo(opts)
     const stage = getStageFromTemplate(template)
+    const service = normalizeStackName(stackPrefix)
     const dInit: Partial<IMyDeploymentConf> = {
       deploymentUUID: utils.uuid(),
       referrerUrl: this.bot.apiBaseUrl,
       service: stackPrefix,
-      stackName: this.bot.stackUtils.genStackName({
-        service: stackPrefix,
-        stage
-      })
+      stackName: this.bot.stackUtils.genStackName({ service, stage })
     }
 
     deployment.init = dInit

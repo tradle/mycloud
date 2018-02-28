@@ -32,7 +32,8 @@ test('deployment by referral', loudAsync(async (t) => {
     name: 'myorg',
     domain: 'example.com',
     adminEmail: 'admin@example.com',
-    hrEmail: 'hr@example.com'
+    hrEmail: 'hr@example.com',
+    stackPrefix: 'mytradle'
   }
 
   conf._author = configuredBy.link
@@ -106,6 +107,11 @@ test('deployment by referral', loudAsync(async (t) => {
           "stage": "dev",
           "stackName": "tdl-xxxx-tdl-dev"
         }
+      }
+    },
+    "Resources": {
+      "Initialize": {
+        "Properties": {}
       }
     }
   })
