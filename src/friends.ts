@@ -85,6 +85,12 @@ export default class Friends {
     const { name, domain, identity, org } = props
     addLinks(identity)
 
+    const myIdentity = await this.provider.getMyPublicIdentity()
+    if (myIdentity._permalink === identity._permalink ||
+      myIdentity._link === identity._link) {
+      throw new Error('refusing to add self as friend')
+    }
+
     let existing
     try {
       existing = await this.getByIdentityPermalink(identity._permalink)
@@ -117,12 +123,6 @@ export default class Friends {
     if (Object.keys(existing).length) {
       object[PREVLINK] = buildResource.link(existing)
       object[PERMALINK] = buildResource.permalink(existing)
-    }
-
-    const myIdentity = await this.provider.getMyPublicIdentity()
-    if (myIdentity._permalink === identity._permalink ||
-      myIdentity._link === identity._link) {
-      throw new Error('refusing to add self as friend')
     }
 
     const promiseAddContact = this.identities.addContact(identity)
