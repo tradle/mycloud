@@ -22,6 +22,9 @@ export function createPlugin ({
   plugin.willRequestForm = async ({ user, application, formRequest }) => {
     if (!(application && application.prefillFromApplication)) return
 
+    const model = bot.models[formRequest.form]
+    if (model && model.notShareable) return
+
     let draft
     try {
       draft = await bot.getResourceByStub(application.prefillFromApplication)
