@@ -330,22 +330,26 @@ export default function createProductsBot ({
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
       onmessage: async (req) => {
-        req.isFromEmployee = employeeManager.isEmployee(req.user)
-        if (!req.isFromEmployee) return
+        const { application } = req
+        if (!application) return
+
         if (req.message.forward) return
 
-        logger.debug('setting req.skipChecks, as this is an employee applying on behalf of a customer')
-        req.skipChecks = true
-        if (req.application) {
-          req.application.draft = true
-        }
+        req.isFromEmployee = employeeManager.isEmployee(req.user)
+        if (!req.isFromEmployee) return
 
         if (req.type === 'tradle.ProductRequest') {
+          logger.debug('setting application.draft, as this is an employee applying on behalf of a customer')
+          application.draft = true
           await productsAPI.sendSimpleMessage({
             req,
             to: req.user,
             message: `Note: this is a draft application. When you finish you will be given a set of links that can be used to import`
           })
+        }
+
+        if (application.draft) {
+          req.skipChecks = true
         }
       }
     })
