@@ -59,7 +59,7 @@ export const CUSTOMER_COMMANDS = [
   'listproducts',
   'forgetme',
   'tours',
-  'getlaunchlink'
+  'updatemycloud'
 ]
 
 // export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)

@@ -12,7 +12,7 @@ import { command as getconf } from './getconf'
 import { command as approve } from './approve'
 import { command as deny } from './deny'
 // import { command as encryptbucket } from './encryptbucket'
-import { command as getlaunchlink } from './getlaunchlink'
+import { command as updatemycloud } from './updatemycloud'
 // import { command as enablebinary } from './enable-binary'
 import { command as model } from './model'
 import { command as push } from './push'
@@ -30,7 +30,7 @@ export {
   getconf,
   approve,
   deny,
-  getlaunchlink,
+  updatemycloud,
   model,
   // sudo only
   // encryptbucket,

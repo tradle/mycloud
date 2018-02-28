@@ -231,7 +231,7 @@ test('deployment by referral', loudAsync(async (t) => {
     t.equal(template.Mappings, undefined)
   })
 
-  const updateUrl = await parentDeployment.getUpdateUrl({
+  const { updateUrl } = await parentDeployment.createUpdate({
     createdBy: childIdentity._permalink
   })
 

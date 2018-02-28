@@ -150,7 +150,7 @@ export class Deployment {
     })
   }
 
-  public getUpdateUrl = async ({ createdBy, configuredBy, childDeploymentLink }: {
+  public createUpdate = async ({ createdBy, configuredBy, childDeploymentLink }: {
     childDeploymentLink?: string
     createdBy?:string
     configuredBy?: string
@@ -167,6 +167,18 @@ export class Deployment {
     }
 
     const configuration = await this.bot.getResourceByStub(childDeployment.configuration)
+    const updateUrl = await this.getUpdateUrl({ childDeployment, configuration })
+    return {
+      configuration,
+      childDeployment,
+      updateUrl
+    }
+  }
+
+  public getUpdateUrl = async ({ childDeployment, configuration }: {
+    childDeployment: any
+    configuration: any
+  }) => {
     const { stackId } = childDeployment
     const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
       return this.customizeTemplateForUpdate({
