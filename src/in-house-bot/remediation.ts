@@ -32,7 +32,8 @@ const {
   DATA_BUNDLE,
   VERIFICATION,
   FORM,
-  MY_PRODUCT
+  MY_PRODUCT,
+  PRODUCT_REQUEST
 } = TYPES
 
 const notNull = val => !!val
@@ -73,7 +74,8 @@ interface IHandleBulkClaimOpts {
 interface IHandlePrefillClaimOpts {
   user: IUser
   application: IPBApp
-  claimId: string
+  payload?: ITradleObject
+  claimId?: string
 }
 
 export {
@@ -216,6 +218,20 @@ export class Remediation {
     }
   }
 
+  public getClaimIdFromPayload = (payload:ITradleObject) => {
+    const { contextId } = payload
+    if (payload[TYPE] === PRODUCT_REQUEST && this.isPrefillClaimId(contextId)) {
+      return contextId
+    }
+  }
+
+  public isPrefillClaim = (payload:ITradleObject) => {
+    if (payload[TYPE] === PRODUCT_REQUEST) {
+      const claimId = this.getClaimIdFromPayload(payload)
+      return !!claimId
+    }
+  }
+
   public isPrefillClaimId = (claimId:string):boolean => {
     if (claimId.length <= 64) return false
 
@@ -228,7 +244,10 @@ export class Remediation {
   }
 
   public handlePrefillClaim = async (opts: IHandlePrefillClaimOpts) => {
-    const { user, application, claimId } = opts
+    let { user, application, payload, claimId } = opts
+    if (!claimId) claimId = this.getClaimIdFromPayload(payload)
+    if (!claimId) throw new Errors.InvalidInput(`expected a claim-prefill product request`)
+
     const { key } = idToStub(claimId)
     const claim = await this.getClaim({ key, claimId })
     const draft = await this.bot.getResource({

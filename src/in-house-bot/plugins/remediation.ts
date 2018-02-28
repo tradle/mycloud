@@ -21,10 +21,10 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
   const tryClaim = async ({ req, user, application }) => {
     if (!application) return
 
-    const claimId = req.payload.contextId
-    if (remediation.isPrefillClaimId(claimId)) {
+    const { payload } = req
+    if (remediation.isPrefillClaim(payload)) {
       try {
-        await remediation.handlePrefillClaim({ user, application, claimId })
+        await remediation.handlePrefillClaim({ user, application, payload })
       } catch (err) {
         logger.error('failed to process prefill claim', err)
       }

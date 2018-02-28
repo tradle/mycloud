@@ -37,7 +37,7 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
 
   const getBotPermalink = bot.getMyIdentityPermalink()
   const onFormsCollected = async ({ req, user, application }) => {
-    if (application.requestFor !== DEPLOYMENT_PRODUCT) return
+    if (application.draft || application.requestFor !== DEPLOYMENT_PRODUCT) return
 
     const latest = application.forms.slice().reverse().find(stub => {
       return parseStub(stub).type === CONFIG_FORM

@@ -215,6 +215,9 @@ export default function createProductsBot ({
         termsAndConditions: conf.termsAndConditions,
         productsAPI,
         employeeManager,
+        get remediation() {
+          return components.remediation
+        },
         logger: logger.sub('plugin-ts-and-cs')
       })
 
@@ -300,6 +303,8 @@ export default function createProductsBot ({
         }
       },
       onFormsCollected: async ({ req, user, application }) => {
+        if (application.draft) return
+
         if (!autoApprove) {
           const goodToGo = productsAPI.haveAllSubmittedFormsBeenVerified({ application })
           if (!goodToGo) return

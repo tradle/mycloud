@@ -3,6 +3,7 @@ import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import { DatedValue } from '../../types'
 import Logger from '../../logger'
+import { Remediation } from '../remediation'
 
 const TERMS_AND_CONDITIONS = 'tradle.TermsAndConditions'
 const DATE_PRESENTED_PROP = 'tsAndCsState.datePresented'
@@ -12,26 +13,44 @@ const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const DATA_CLAIM = 'tradle.DataClaim'
 const YOU_HAVENT_ACCEPTED = `Please accept our Terms and Conditions before we continue :-)`
 const ALLOW_WITHOUT_ACCEPTING = [DATA_CLAIM]
+const PRODUCT_REQUEST = 'tradle.ProductRequest'
 
 export const name = 'termsAndConditions'
-export const createPlugin = ({
-  logger,
-  productsAPI,
-  employeeManager,
-  termsAndConditions
-}: {
+export const createPlugin = (components: {
   logger: Logger,
   productsAPI: any,
   employeeManager: any,
+  remediation?: Remediation,
   termsAndConditions: DatedValue
 }) => {
   const onmessage = async (req) => {
-    const { user, payload, type } = req
+    // destructure here, because some may be defined late
+    const {
+      logger,
+      productsAPI,
+      employeeManager,
+      remediation,
+      termsAndConditions
+    } = components
+
+    const { user, payload, type, application } = req
     if (user.friend || employeeManager.isEmployee(user)) return
 
     if (ALLOW_WITHOUT_ACCEPTING.includes(type)) {
       return
     }
+
+    // // HACKERONI START
+    // if (type === PRODUCT_REQUEST && remediation.isPrefillClaim(payload)) {
+    //   logger.debug('allowing claim through')
+    //   return
+    // }
+
+    // if (application && application.prefillFromApplication) {
+    //   return
+    // }
+
+    // HACKERONI END
 
     if (type === TERMS_AND_CONDITIONS &&
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
