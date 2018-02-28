@@ -44,6 +44,8 @@ Plugins can implement (export) the following lifecycle methods:
 
 - `willSend` / `didSend` - called before/after a message is sent to a user
 - `willRequestForm` - called before a user is asked to fill out a form. If you want to prefill the form for the user, this is where to do it.
+- `willCreateApplication` / `didCreateApplication` - called before/after a new application is created for a user
+- `willDenyApplication` / `didDenyApplication` - called before/after an application is denied
 - `willApproveApplication` / `didApproveApplication` - called before/after an application is approved
 - `willDenyApplication` / `didDenyApplication` - called before/after an application is denied
 - `getRequiredForms` - called to determine which forms are required from a user for a product
