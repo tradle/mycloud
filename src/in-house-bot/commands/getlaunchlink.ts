@@ -7,7 +7,7 @@ export const command:ICommand = {
   examples: [
     '/getlaunchlink --name EasyBank --domain easybank.io',
     '/getlaunchlink --name EasyBank --domain easybank.io --logo "https://s3.amazonaws.com/tradle-public-images/easy.png"',
-    '/getlaunchlink --update --provider'
+    '/getlaunchlink --update --provider <identityPermalink>'
   ],
   exec: async ({ commander, req, ctx, args }) => {
     if (!commander.deployment) {
@@ -16,7 +16,7 @@ export const command:ICommand = {
 
     if (args.update) {
       let { provider } = args
-      if (req) {
+      if (req.payload) { // incoming message
         if (provider) {
           if (!commander.employeeManager.isEmployee(req.user)) {
             throw new Error(`oops, you don't have the security clearance`)

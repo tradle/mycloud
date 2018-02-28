@@ -445,7 +445,6 @@ ${this.genUsageInstructions(links)}`
     template.Description = `MyCloud, by Tradle`
     domain = normalizeDomain(domain)
 
-    const namespace = domain.split('.').reverse().join('.')
     const { Resources, Mappings } = template
     const { org, deployment } = Mappings
     const logoPromise = this.getLogo(opts)
@@ -467,12 +466,15 @@ ${this.genUsageInstructions(links)}`
       logo: await logoPromise || media.LOGO_UNKNOWN
     }
 
-    template = this.bot.stackUtils.replaceServiceName({
+    return this.finalizeCustomTemplate({
       template,
       placeholder: previousServiceName,
       replacement: stackPrefix
     })
+  }
 
+  public finalizeCustomTemplate = ({ template, placeholder, replacement }) => {
+    template = this.bot.stackUtils.replaceServiceName({ template, placeholder, replacement })
     const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id
     _.forEach(template.Resources, resource => {
       if (resource.Type === 'AWS::Lambda::Function') {
@@ -492,7 +494,15 @@ ${this.genUsageInstructions(links)}`
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
     template = _.omit(template, 'Mappings')
-    return this.bot.stackUtils.replaceServiceName({
+    const initProps = template.Resources.Initialize.Properties
+
+    Object.keys(initProps).forEach(key => {
+      if (key !== 'ServiceToken') {
+        delete initProps[key]
+      }
+    })
+
+    return this.finalizeCustomTemplate({
       template,
       placeholder: previousServiceName,
       replacement: service
