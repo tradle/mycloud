@@ -182,6 +182,14 @@ export function createPlugin({ conf, bot, productsAPI, logger }) {
 
   const centrix = createCentrixClient({ httpCredentials, requestCredentials })
   const centrixAPI = new CentrixAPI({ bot, productsAPI, centrix, logger })
+  const getDataAndCallCentrix = async ({ req, application }) => {
+    const centrixData:any = await getCentrixData({ application, bot })
+    if (!centrixData) return
+
+    centrixData.req = req
+    await centrixAPI.callCentrix(centrixData)
+  }
+
   return {
     onFormsCollected: async function ({ req }) {
       if (req.skipChecks) return
@@ -197,15 +205,10 @@ export function createPlugin({ conf, bot, productsAPI, logger }) {
 
       // debugger
       // if (hasCentrixVerification({ application })) return
-
-      const centrixData:any = await getCentrixData({ application, bot })
-      if (centrixData) {
-        centrixData.req = req
-        try {
-          await centrixAPI.callCentrix(centrixData)
-        } catch(err) {
-          logger.debug('Centrix operation failed', err)
-        }
+      try {
+        await getDataAndCallCentrix({ req, application })
+      } catch (err) {
+        logger.debug('Centrix operation failed', err)
       }
     }
   }
