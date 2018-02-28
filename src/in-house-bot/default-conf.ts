@@ -11,7 +11,6 @@ export const defaultConf:IConf = {
         "tradle.crs.Selection"
       ],
       "autoApprove": false,
-      "approveAllEmployees": true,
       "plugins": {}
     }
   },
