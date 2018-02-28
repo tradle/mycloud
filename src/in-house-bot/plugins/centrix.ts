@@ -1,4 +1,3 @@
-const co = require('co').wrap
 // const debug = require('debug')('@tradle/server-cli:plugin:centrix')
 import constants = require('@tradle/constants')
 const { TYPE } = constants
@@ -15,7 +14,8 @@ try {
 import {
   Name,
   Bot,
-  Logger
+  Logger,
+  IPluginOpts
 } from '../types'
 
 import { getNameFromForm, parseScannedDate, toISODateString } from '../utils'
@@ -174,7 +174,7 @@ class CentrixAPI {
     }
   }
 }
-export function createPlugin({ conf, bot, productsAPI, logger }) {
+export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
   let { httpCredentials, requestCredentials } = conf.credentials
   if (typeof createCentrixClient !== 'function') {
     throw new Error('centrix client not available')

@@ -27,6 +27,7 @@ import Errors = require('../errors')
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'
+import { getAppLinks, getAppLinksInstructions } from './utils'
 
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
@@ -373,26 +374,11 @@ ${this.genUsageInstructions(links)}`
     await notifyConfigurationCreator
   }
 
-  public getAppLinks = ({ host, permalink }) => {
-    const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getChatLink({
-      provider: permalink,
-      host,
-      platform
-    }))
-
-    const employeeOnboarding = this.bot.appLinks.getApplyForProductLink({
-      provider: permalink,
-      host,
-      product: 'tradle.EmployeeOnboarding',
-      platform: 'web'
-    })
-
-    return {
-      mobile,
-      web,
-      employeeOnboarding
-    }
-  }
+  public getAppLinks = ({ host, permalink }) => getAppLinks({
+    bot: this.bot,
+    host,
+    permalink
+  })
 
   public genLaunchEmailBody = (values) => {
     const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
@@ -431,11 +417,7 @@ ${this.genUsageInstructions(links)}`
     body: this.genLaunchedEmailBody(opts)
   })
 
-  public genUsageInstructions = ({ mobile, web, employeeOnboarding }) => {
-    return `- Add it to your Tradle mobile app using this link: ${mobile}
-- Add it to your Tradle web app using this link: ${web}
-- Invite employees using this link: ${employeeOnboarding}`
-  }
+  public genUsageInstructions = getAppLinksInstructions
 
   public customizeTemplateForLaunch = async ({ template, opts }: {
     template: any

@@ -218,6 +218,7 @@ export interface IPlugins {
 export interface IPluginOpts {
   bot: Bot
   productsAPI: any
+  employeeManager: any
   logger: Logger
   conf?: any // plugin conf
   [other:string]: any

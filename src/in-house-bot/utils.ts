@@ -4,8 +4,7 @@ import { isPromise } from '../utils'
 import { createConf } from './configure'
 import Errors = require('../errors')
 import models = require('../models')
-import { ICommand } from './types'
-import { Name, ResourceStub } from './types'
+import { Name, ResourceStub, ICommand, Bot } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
@@ -254,4 +253,37 @@ const getDateParts = str => {
       day: Number(day)
     }
   }
+}
+
+export const getAppLinks = ({ bot, host, permalink }: {
+  bot: Bot
+  host?: string
+  permalink: string
+}) => {
+  if (!host) host = bot.apiBaseUrl
+
+  const [mobile, web] = ['mobile', 'web'].map(platform => bot.appLinks.getChatLink({
+    provider: permalink,
+    host,
+    platform
+  }))
+
+  const employeeOnboarding = bot.appLinks.getApplyForProductLink({
+    provider: permalink,
+    host,
+    product: 'tradle.EmployeeOnboarding',
+    platform: 'web'
+  })
+
+  return {
+    mobile,
+    web,
+    employeeOnboarding
+  }
+}
+
+export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }) => {
+  return `- Add it to your Tradle mobile app using this link: ${mobile}
+- Add it to your Tradle web app using this link: ${web}
+- Invite employees using this link: ${employeeOnboarding}`
 }

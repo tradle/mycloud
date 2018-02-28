@@ -16,7 +16,7 @@ import { createPlugin as createSmartPrefillPlugin } from './plugins/smart-prefil
 import { createPlugin as createLensPlugin } from './plugins/lens'
 import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
 import { createPlugin as createSanctionsPlugin } from './plugins/complyAdvantage'
-import { createPlugin as createOpencorporatesPlugin } from './plugins/openCorporates'
+import { createPlugin as createOpenCorporatesPlugin } from './plugins/openCorporates'
 import { createPlugin as createCentrixPlugin} from './plugins/centrix'
 import { createPlugin as createDeploymentPlugin } from './plugins/deployment'
 import { createPlugin as createHandSigPlugin } from './plugins/hand-sig'
@@ -62,7 +62,9 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 ]
 
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
+const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const ONFIDO_ENABLED = true
+const HIDDEN_PRODUCTS = [EMPLOYEE_ONBOARDING]
 
 // until the issue with concurrent modifications of user & application state is resolved
 // then some handlers can migrate to 'messagestream'
@@ -104,16 +106,11 @@ export default function createProductsBot ({
         .add(conf.modelsPack ? conf.modelsPack.models : {}, mergeModelsOpts)
         .get()
     },
-    products: enabled,
+    products: _.uniq(enabled.concat('tradle.EmployeeOnboarding')),
     validateModels: bot.isTesting,
     nullifyToDeleteProperty: true
     // queueSends: bot.env.TESTING ? true : queueSends
   })
-
-  const commonPluginOpts = {
-    bot,
-    productsAPI
-  }
 
   const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
@@ -126,6 +123,12 @@ export default function createProductsBot ({
       !DONT_FORWARD_FROM_EMPLOYEE.includes(req.type),
     handleMessages
   })
+
+  const commonPluginOpts = <IPluginOpts>{
+    bot,
+    productsAPI,
+    employeeManager
+  }
 
   // employeeManager.hasEmployees = () => Promise.resolve(true)
 
@@ -181,6 +184,15 @@ export default function createProductsBot ({
   } as IBotComponents
 
   if (handleMessages) {
+    productsAPI.plugins.use(<IPluginLifecycleMethods>{
+      willRequestForm: ({ formRequest }) => {
+        if (formRequest.form === PRODUCT_REQUEST) {
+          formRequest.chooser.oneOf = formRequest.chooser.oneOf
+            .filter(product => !HIDDEN_PRODUCTS.includes(product))
+        }
+      }
+    })
+
     productsAPI.removeDefaultHandler('onCommand')
     const getModelsPackForUser = createModelsPackGetter({ bot, productsAPI, employeeManager })
     const keepModelsFresh = keepModelsFreshPlugin({
@@ -432,7 +444,7 @@ export default function createProductsBot ({
 
   if (handleMessages) {
     if (plugins['openCorporates']) {
-      productsAPI.plugins.use(createOpencorporatesPlugin({
+      productsAPI.plugins.use(createOpenCorporatesPlugin({
         ...commonPluginOpts,
         conf: plugins['openCorporates'],
         logger: logger.sub('plugin-opencorporates')

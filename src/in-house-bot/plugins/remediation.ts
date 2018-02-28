@@ -16,8 +16,21 @@ interface IRemediationPluginExports extends IPluginExports {
 }
 
 export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
-  const { bot, productsAPI, logger } = opts
+  const { bot, productsAPI, employeeManager, logger } = opts
   const remediation = new Remediation(opts)
+  const tryClaim = async ({ req, user, application }) => {
+    if (!application) return
+
+    const claimId = req.payload.contextId
+    if (remediation.isPrefillClaimId(claimId)) {
+      try {
+        await remediation.handlePrefillClaim({ user, application, claimId })
+      } catch (err) {
+        logger.error('failed to process prefill claim', err)
+      }
+    }
+  }
+
   const plugin:IPluginLifecycleMethods = {}
   plugin[`onmessage:${DATA_CLAIM}`] = req => {
     const { user, payload } = req
@@ -28,19 +41,20 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
     })
   }
 
+  plugin.onPendingApplicationCollision = async ({ req, pending }) => {
+    const { user } = req
+    if (!employeeManager.isEmployee(user)) {
+      debugger
+      await tryClaim({ req, user, application: pending })
+    }
+  }
+
   plugin.willCreateApplication = async ({ req, user, application }: {
     req: IPBReq
     user: IUser
     application: IPBApp
   }) => {
-    const claimId = req.payload.contextId
-    if (remediation.isPrefillClaimId(claimId)) {
-      try {
-        await remediation.handlePrefillClaim({ user, application, claimId })
-      } catch (err) {
-        logger.error('failed to process prefill claim', err)
-      }
-    }
+    await tryClaim({ req, user, application })
   }
 
   plugin.onFormsCollected = async ({ req, user, application }) => {

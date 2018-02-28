@@ -63,6 +63,7 @@ test('remediation plugin', loudAsync(async (t) => {
   const { api, plugin } = createRemediationPlugin({
     bot,
     productsAPI,
+    employeeManager: {},
     logger: new Logger('test:remediation1')
   })
 
@@ -111,6 +112,7 @@ test('remediation api', loudAsync(async (t) => {
         use: ({ onmessage }) => {}
       }
     },
+    employeeManager: {},
     logger: new Logger('test:remediation')
   })
 
@@ -187,6 +189,7 @@ test('prefill-based', loudAsync(async (t) => {
   const { api, plugin } = createRemediationPlugin({
     bot,
     productsAPI,
+    employeeManager: {},
     logger: new Logger('test:remediation1')
   })
 
@@ -252,6 +255,7 @@ test('prefill-based', loudAsync(async (t) => {
   const prefillFromDraft = createPrefillFromDraftPlugin({
     bot,
     productsAPI,
+    employeeManager: {},
     logger: new Logger('test:prefill-from-draft'),
     remediation: api
   })

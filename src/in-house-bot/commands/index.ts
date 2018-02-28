@@ -16,6 +16,7 @@ import { command as updatemycloud } from './updatemycloud'
 // import { command as enablebinary } from './enable-binary'
 import { command as model } from './model'
 import { command as push } from './push'
+import { command as links } from './links'
 
 export {
   help,
@@ -32,6 +33,7 @@ export {
   deny,
   updatemycloud,
   model,
+  links,
   // sudo only
   // encryptbucket,
   // enablebinary,

@@ -3,7 +3,7 @@ import fetch = require('node-fetch')
 import buildResource = require('@tradle/build-resource')
 import { buildResourceStub } from '@tradle/build-resource'
 import constants = require('@tradle/constants')
-import { Bot, Logger } from '../types'
+import { Bot, Logger, IPluginOpts } from '../types'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -147,7 +147,7 @@ class OpenCorporatesAPI {
       await Promise.all(ocChecks)
   }
 }
-export function createPlugin({conf, bot, productsAPI, logger}) {
+export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
   const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, logger })
   return {
     [`onmessage:${FORM_ID}`]: async function(req) {

@@ -219,9 +219,10 @@ export class Bot extends EventEmitter implements IReady {
     }
 
     if (this.isTesting) {
+      const yml = require('../cli/serverless-yml')
+      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
       this.appLinks = createLinker({
-        // web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, 'http://localhost:55555')
-        web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, 'http://localhost:3001')
+        web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, `http://localhost:${webPort}`)
       })
     } else {
       this.appLinks = defaultAppLinks
