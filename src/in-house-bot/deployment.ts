@@ -352,7 +352,7 @@ export class Deployment {
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
     const botPermalink = utils.parseStub(identity).permalink
-    const links = this.getAppLinks({ url: apiUrl, permalink: botPermalink })
+    const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
     const notifyConfigurationCreator = this.bot.sendSimpleMessage({
       to: _author,
       message: `${ONLINE_MESSAGE}
@@ -364,10 +364,7 @@ ${this.genUsageInstructions(links)}`
         from: this.conf.senderEmail,
         to: [hrEmail, adminEmail],
         format: 'html',
-        ...this.genLaunchedEmail({
-          url: apiUrl,
-          ...links
-        })
+        ...this.genLaunchedEmail(links)
       })
     } catch (err) {
       this.logger.error('failed to email creators', err)
@@ -376,16 +373,16 @@ ${this.genUsageInstructions(links)}`
     await notifyConfigurationCreator
   }
 
-  public getAppLinks = ({ url, permalink }) => {
+  public getAppLinks = ({ host, permalink }) => {
     const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getChatLink({
       provider: permalink,
-      host: url,
+      host,
       platform
     }))
 
     const employeeOnboarding = this.bot.appLinks.getApplyForProductLink({
       provider: permalink,
-      host: url,
+      host,
       product: 'tradle.EmployeeOnboarding',
       platform: 'web'
     })
@@ -397,17 +394,13 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public genLaunchEmailBody = (values: {
-    launchUrl: string
-  }) => {
+  public genLaunchEmailBody = (values) => {
     const renderConf = _.get(this.conf || {}, 'templates.launch') || {}
     const opts = _.defaults(renderConf, DEFAULT_LAUNCH_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
   }
 
-  public genLaunchedEmailBody = (values: {
-    launchUrl: string
-  }) => {
+  public genLaunchedEmailBody = (values) => {
     const renderConf = _.get(this.conf || {}, 'templates.launched') || {}
     const opts = _.defaults(renderConf, DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS)
     return this.genEmailBody({ ...opts, values })
