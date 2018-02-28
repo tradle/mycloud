@@ -41,12 +41,13 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
       claimType: 'prefill'
     })
 
-    const { mobile, web } = appLinks.getApplyForProductLinks({
+    const [mobile, web] = ['mobile', 'web'].map(platform => appLinks.getApplyForProductLink({
       provider,
       host: bot.apiBaseUrl,
       product: application.requestFor,
-      contextId: claimId
-    })
+      contextId: claimId,
+      platform
+    }))
 
     await productsAPI.sendSimpleMessage({
       req,
