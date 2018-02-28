@@ -196,7 +196,7 @@ export function createPlugin({ conf, bot, productsAPI, logger }) {
         return
 
       // debugger
-      if (hasCentrixVerification({ application })) return
+      // if (hasCentrixVerification({ application })) return
 
       const centrixData:any = await getCentrixData({ application, bot })
       if (centrixData) {
@@ -283,17 +283,19 @@ function getDocumentType (doc) {
     : DOCUMENT_TYPES.license
 }
 
-function hasCentrixVerification ({ application }) {
-  if (!application.verificationsIssued)
-    return
-  return application.verifications.find(form => {
-    return form.issuedVerifications.find(v => {
-      const { method={} } = v.object
-      const { api={} } = method
-      return api.name === CENTRIX_NAME
-    })
-  })
-}
+// const hasCentrixVerification = async ({ application }) => {
+//   if (!application.verificationsImported)
+//     return
+
+//   const verifications = // fetch all first
+//   return application.verificationsImported.find(verifiedItem => {
+//     return verifiedItem.verification.find(v => {
+//       const { method={} } = v.object
+//       const { api={} } = method
+//       return api.name === CENTRIX_NAME
+//     })
+//   })
+// }
 
 // Driver Licence
 //
