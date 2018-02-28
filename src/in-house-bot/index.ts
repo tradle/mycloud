@@ -330,6 +330,11 @@ export default function createProductsBot ({
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
       onmessage: async (req) => {
+        if (req.application && req.application.draft) {
+          req.skipChecks = true
+        }
+      },
+      ['onmessage:tradle.ProductRequest']: async (req) => {
         const { application } = req
         if (!application) return
 
@@ -338,19 +343,14 @@ export default function createProductsBot ({
         req.isFromEmployee = employeeManager.isEmployee(req.user)
         if (!req.isFromEmployee) return
 
-        if (req.type === 'tradle.ProductRequest') {
-          logger.debug('setting application.draft, as this is an employee applying on behalf of a customer')
-          application.draft = true
-          await productsAPI.sendSimpleMessage({
-            req,
-            to: req.user,
-            message: `Note: this is a draft application. When you finish you will be given a set of links that can be used to import`
-          })
-        }
-
-        if (application.draft) {
-          req.skipChecks = true
-        }
+        logger.debug('setting application.draft, as this is an employee applying on behalf of a customer')
+        application.draft = true
+        req.skipChecks = true
+        await productsAPI.sendSimpleMessage({
+          req,
+          to: req.user,
+          message: `Note: this is a draft application. When you finish you will be given a set of links that can be used to import`
+        })
       }
     })
 

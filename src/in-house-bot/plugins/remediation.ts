@@ -1,5 +1,12 @@
 import { TYPES } from '../constants'
-import { IPluginOpts, IPluginExports, IPluginLifecycleMethods, IPBReq } from '../types'
+import {
+  IPluginOpts,
+  IPluginExports,
+  IPluginLifecycleMethods,
+  IPBReq,
+  IUser,
+  IPBApp
+} from '../types'
 import { Remediation } from '../remediation'
 import { appLinks } from '../../app-links'
 const { DATA_CLAIM, PRODUCT_REQUEST } = TYPES
@@ -21,9 +28,13 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
     })
   }
 
-  plugin[`onmessage:${PRODUCT_REQUEST}`] = async ({ user, application, payload }: IPBReq) => {
-    const claimId = payload.contextId
-    if (application && remediation.isPrefillClaimId(claimId)) {
+  plugin.willCreateApplication = async ({ req, user, application }: {
+    req: IPBReq
+    user: IUser
+    application: IPBApp
+  }) => {
+    const claimId = req.payload.contextId
+    if (remediation.isPrefillClaimId(claimId)) {
       try {
         await remediation.handlePrefillClaim({ user, application, claimId })
       } catch (err) {
@@ -41,7 +52,7 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
       claimType: 'prefill'
     })
 
-    const [mobile, web] = ['mobile', 'web'].map(platform => appLinks.getApplyForProductLink({
+    const [mobile, web] = ['mobile', 'web'].map(platform => bot.appLinks.getApplyForProductLink({
       provider,
       host: bot.apiBaseUrl,
       product: application.requestFor,
