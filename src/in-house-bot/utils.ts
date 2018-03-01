@@ -16,6 +16,8 @@ const BASIC_CONTACT_INFO = 'tradle.BasicContactInfo'
 const PERSONAL_INFO = 'tradle.PersonalInfo'
 const ADDRESS = 'tradle.Address'
 const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
+const IDENTIFICATION_OF_BENEFICIAL_OWNER = 'tradle.W8BENE1'
+const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
 
 export const createEditConfOp = edit => async (opts) => {
   const { bot } = opts.commander
@@ -140,6 +142,9 @@ export const getFormattedNameFromForm = (form: any):string|void => {
   switch (form[TYPE]) {
     case BUSINESS_INFORMATION:
       return form.companyName
+    case IDENTIFICATION_OF_BENEFICIAL_OWNER:
+    case DEPLOYMENT_CONFIGURATION:
+      return form.name
     default:
       return
   }

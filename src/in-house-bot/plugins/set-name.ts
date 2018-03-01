@@ -15,8 +15,12 @@ export const createPlugin = ({ bot, productsAPI }) => {
     'tradle.onfido.CustomerVerification': 'tradle.PhotoID',
     'tradle.pg.CustomerOnboarding': 'tradle.PhotoID',
     'tradle.CurrentAccount': 'tradle.PersonalInfo',
+    'tradle.LifeInsurance': 'tradle.PersonalInfo',
+    'tradle.MortgageProduct': 'tradle.PersonalInfo',
     'tradle.EmployeeOnboarding': 'tradle.Name',
-    'tradle.CordaKYC': 'tradle.BusinessInformation'
+    'tradle.CordaKYC': 'tradle.BusinessInformation',
+    'tradle.CorporateBankAccount': 'tradle.W8BENE1',
+    'tradle.cloud.Deployment': 'tradle.cloud.Configuration',
   }
 
   const trySetName = async (req) => {
