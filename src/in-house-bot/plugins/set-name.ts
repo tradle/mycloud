@@ -16,7 +16,7 @@ export const createPlugin = ({ bot, productsAPI }) => {
     'tradle.pg.CustomerOnboarding': 'tradle.PhotoID',
     'tradle.CurrentAccount': 'tradle.PersonalInfo',
     'tradle.EmployeeOnboarding': 'tradle.Name',
-    'tradle.CordaKYC': 'tradle.BusinessAccount'
+    'tradle.CordaKYC': 'tradle.BusinessInformation'
   }
 
   const trySetName = async (req) => {
