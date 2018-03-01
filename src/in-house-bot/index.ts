@@ -65,10 +65,15 @@ const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const ONFIDO_ENABLED = true
 const DEPLOYMENT = 'tradle.cloud.Deployment'
-const HIDDEN_PRODUCTS = [
+const ALL_HIDDEN_PRODUCTS = [
   DEPLOYMENT,
   EMPLOYEE_ONBOARDING
 ]
+
+const HIDDEN_PRODUCTS = {
+  employee: [EMPLOYEE_ONBOARDING],
+  customer: ALL_HIDDEN_PRODUCTS
+}
 
 // until the issue with concurrent modifications of user & application state is resolved
 // then some handlers can migrate to 'messagestream'
@@ -110,7 +115,7 @@ export default function createProductsBot ({
         .add(conf.modelsPack ? conf.modelsPack.models : {}, mergeModelsOpts)
         .get()
     },
-    products: _.uniq(enabled.concat(HIDDEN_PRODUCTS)),
+    products: _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS)),
     validateModels: bot.isTesting,
     nullifyToDeleteProperty: true
     // queueSends: bot.env.TESTING ? true : queueSends
@@ -190,13 +195,14 @@ export default function createProductsBot ({
 
   if (handleMessages) {
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
-      willRequestForm: ({ formRequest }) => {
+      willRequestForm: ({ user, formRequest }) => {
         if (formRequest.form === PRODUCT_REQUEST) {
+          const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
           formRequest.chooser.oneOf = formRequest.chooser.oneOf
             .filter(product => {
               // allow showing hidden products explicitly by listing them in conf
               // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
-              return enabled.includes(product) || !HIDDEN_PRODUCTS.includes(product)
+              return enabled.includes(product) || !hidden.includes(product)
             })
         }
       }
