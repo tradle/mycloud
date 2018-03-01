@@ -28,11 +28,12 @@ export interface IDeploymentPluginOpts extends IPluginOpts {
 }
 
 export const createPlugin = (opts:IDeploymentPluginOpts) => {
-  const { bot, productsAPI, employeeManager, conf, logger } = opts
+  const { bot, productsAPI, employeeManager, conf, orgConf, logger } = opts
   const deployment = createDeployment({
     bot,
     logger,
-    conf
+    conf,
+    orgConf
   })
 
   const getBotPermalink = bot.getMyIdentityPermalink()
@@ -84,7 +85,10 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
       await bot.mailer.send({
         from: conf.senderEmail,
         to: adminEmail,
-        ...deployment.genLaunchEmail({ launchUrl })
+        ...deployment.genLaunchEmail({
+          launchUrl,
+          fromOrg: orgConf.org
+        })
       })
     } catch (err) {
       logger.error(`failed to send email to admin`, {

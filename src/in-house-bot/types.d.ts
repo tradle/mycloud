@@ -47,6 +47,7 @@ export interface IBotConf {
 
 export interface IConf {
   bot: IBotConf
+  org: IOrganization
   modelsPack?: ModelsPack
   style?: any
   termsAndConditions?: DatedValue
@@ -221,6 +222,7 @@ export interface IPluginOpts {
   employeeManager: any
   logger: Logger
   conf?: any // plugin conf
+  orgConf: IConf
   [other:string]: any
 }
 

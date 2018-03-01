@@ -19,7 +19,8 @@ import {
   KeyValueTable,
   ResourceStub,
   IOrganization,
-  IDeploymentPluginConf
+  IDeploymentPluginConf,
+  IConf
 } from './types'
 
 import { media } from './media'
@@ -47,8 +48,8 @@ const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
         }
       }
     ],
-    signature: 'Tradle Team',
-    twitter: 'tradles'
+    signature: '${{fromOrg.name}} Team',
+    // twitter: 'tradles'
   }
 }
 
@@ -61,8 +62,8 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
       { body: 'Use <a href="{{web}}">this link</a> to add it to your Tradle web app' },
       { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' },
     ],
-    signature: 'Tradle Team',
-    twitter: 'tradles'
+    signature: '{{fromOrg.name}} Team',
+    // twitter: 'tradles'
   }
 }
 
@@ -84,6 +85,7 @@ interface DeploymentCtorOpts {
   bot: Bot
   logger: Logger
   conf?: IDeploymentPluginConf
+  orgConf?: IConf
 }
 
 const getServiceNameFromTemplate = template => template.Mappings.deployment.init.service
@@ -101,7 +103,8 @@ export class Deployment {
   private deploymentBucket: Bucket
   private logger: Logger
   private conf?: IDeploymentPluginConf
-  constructor({ bot, logger, conf }: DeploymentCtorOpts) {
+  private orgConf?: IConf
+  constructor({ bot, logger, conf, orgConf }: DeploymentCtorOpts) {
     this.bot = bot
     this.env = bot.env
     this.logger = logger
@@ -109,6 +112,7 @@ export class Deployment {
     this.deploymentBucket = bot.buckets.ServerlessDeployment
     this.kv = this.bot.kv.sub('deployment:')
     this.conf = conf
+    this.orgConf = orgConf
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -365,7 +369,7 @@ ${this.genUsageInstructions(links)}`
         from: this.conf.senderEmail,
         to: _.uniq([hrEmail, adminEmail]),
         format: 'html',
-        ...this.genLaunchedEmail(links)
+        ...this.genLaunchedEmail({ ...links, fromOrg: this.orgConf.org })
       })
     } catch (err) {
       this.logger.error('failed to email creators', err)
@@ -407,9 +411,9 @@ ${this.genUsageInstructions(links)}`
     return Templates.email[template](renderedData)
   }
 
-  public genLaunchEmail = ({ launchUrl }) => ({
+  public genLaunchEmail = opts => ({
     subject: LAUNCH_MESSAGE,
-    body: this.genLaunchEmailBody({ launchUrl })
+    body: this.genLaunchEmailBody(opts)
   })
 
   public genLaunchedEmail = opts => ({

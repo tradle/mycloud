@@ -1,6 +1,6 @@
 import { IConf } from './types'
 
-export const defaultConf:IConf = {
+export const defaultConf:Partial<IConf> = {
   "bot": {
     "products": {
       "enabled": [

@@ -316,7 +316,7 @@ export class Conf {
       orgTemplate.name += '-local'
     }
 
-    const conf = {
+    const conf = <IConf>{
       ...defaultConf,
       org: orgTemplate
     }
@@ -341,7 +341,12 @@ export class Conf {
       Errors.ignore(err, Errors.NotFound)
     }
 
-    const deployment = new Deployment({ bot, logger })
+    const deployment = new Deployment({
+      bot,
+      logger,
+      orgConf: conf
+    })
+
     const { style } = conf
     if (!style.logo) {
       const logo = await deployment.getLogo(deploymentConf)

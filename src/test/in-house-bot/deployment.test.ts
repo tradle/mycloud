@@ -14,7 +14,7 @@ import { createBot } from '../../bot'
 import { createTestTradle } from '../../'
 import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models = require('../../models')
-import { IMyDeploymentConf, IBotConf, ILaunchReportPayload } from '../../in-house-bot/types'
+import { IMyDeploymentConf, IBotConf, ILaunchReportPayload, IConf } from '../../in-house-bot/types'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
@@ -46,7 +46,13 @@ test('deployment by referral', loudAsync(async (t) => {
   const parentDeployment = new Deployment({
     bot: parent,
     logger: parent.logger.sub('deployment:test:parent'),
-    conf: { senderEmail }
+    conf: { senderEmail },
+    orgConf: <IConf>{
+      org: {
+        name: 'parent',
+        domain: 'parent.io'
+      }
+    }
   })
 
   const childDeployment = new Deployment({
@@ -235,8 +241,9 @@ test('deployment by referral', loudAsync(async (t) => {
     createdBy: childIdentity._permalink
   })
 
-  // parentDeployment.genLaunchEmailBody({ launchUrl })
-  // parentDeployment.genLaunchedEmailBody({ launchUrl })
+  // console.log(parentDeployment.genLaunchEmailBody({ launchUrl }))
+  // console.log('OIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIO')
+  // console.log(parentDeployment.genLaunchedEmailBody({ launchUrl }))
 
   t.equal(pubConfStub.callCount, 1)
   sandbox.restore()

@@ -15,13 +15,13 @@ export async function customize (opts:CustomizeBotOpts):Promise<IBotComponents> 
   const { logger } = lambda || bot
   const confy = createConf({ bot })
   let [
-    // org,
+    org,
     botConf,
     modelsPack,
     style,
     termsAndConditions
   ] = await Promise.all([
-    // confy.org.get(),
+    (conf && conf.org) || confy.org.get(),
     (conf && conf.bot) || confy.botConf.get().catch(Errors.ignoreNotFound),
     (conf && conf.modelsPack) || confy.modelsPack.get().catch(Errors.ignoreNotFound),
     (conf && conf.style) || confy.style.get().catch(Errors.ignoreNotFound),
@@ -49,6 +49,7 @@ export async function customize (opts:CustomizeBotOpts):Promise<IBotComponents> 
 
   conf = {
     bot: botConf,
+    org,
     style,
     termsAndConditions,
     modelsPack
