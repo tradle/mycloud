@@ -76,7 +76,7 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
     await productsAPI.sendSimpleMessage({
       req,
       to: user,
-      message: `🚀 Launch MyCloud using this link: ${launchUrl}`
+      message: `🚀 [Click to launch your MyCloud](${launchUrl})`
       // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
 
