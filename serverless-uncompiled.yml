@@ -303,6 +303,7 @@ provider:
   profile: ${{self:custom.profile}}
   stage: ${{self:custom.stage}}
   region: ${{self:custom.region}}
+  removeOldDeployments: false
   memorySize: 512
   timeout: 60
   # deploymentBucket: io.tradle.${{self:custom.stage}}.deploys
