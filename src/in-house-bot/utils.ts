@@ -1,5 +1,6 @@
 import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
+import { isEmployee } from '@tradle/bot-employee-manager'
 import { isPromise } from '../utils'
 import { createConf } from './configure'
 import Errors = require('../errors')
@@ -18,6 +19,10 @@ const ADDRESS = 'tradle.Address'
 const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
 const IDENTIFICATION_OF_BENEFICIAL_OWNER = 'tradle.W8BENE1'
 const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
+
+export {
+  isEmployee
+}
 
 export const createEditConfOp = edit => async (opts) => {
   const { bot } = opts.commander

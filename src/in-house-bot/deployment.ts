@@ -28,7 +28,7 @@ import Errors = require('../errors')
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'
-import { getAppLinks, getAppLinksInstructions } from './utils'
+import { getAppLinks, getAppLinksInstructions, isEmployee } from './utils'
 
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
@@ -358,11 +358,20 @@ export class Deployment {
 
     const botPermalink = utils.parseStub(identity).permalink
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
-    const notifyConfigurationCreator = this.bot.sendSimpleMessage({
-      to: _author,
-      message: `${ONLINE_MESSAGE}
+    try {
+      const creator = await this.bot.users.get(_author)
+      if (!isEmployee(creator)) {
+        await this.bot.sendSimpleMessage({
+          to: _author,
+          message: `${ONLINE_MESSAGE}
+
 ${this.genUsageInstructions(links)}`
-    })
+        })
+      }
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.error('failed to send message to creator', err)
+    }
 
     try {
       await this.bot.mailer.send({
@@ -372,10 +381,9 @@ ${this.genUsageInstructions(links)}`
         ...this.genLaunchedEmail({ ...links, fromOrg: this.orgConf.org })
       })
     } catch (err) {
+      Errors.rethrow(err, 'developer')
       this.logger.error('failed to email creators', err)
     }
-
-    await notifyConfigurationCreator
   }
 
   public getAppLinks = ({ host, permalink }) => getAppLinks({
@@ -446,7 +454,7 @@ ${this.genUsageInstructions(links)}`
     const dInit: Partial<IMyDeploymentConf> = {
       deploymentUUID: utils.uuid(),
       referrerUrl: this.bot.apiBaseUrl,
-      service: stackPrefix,
+      service,
       stackName: this.bot.stackUtils.genStackName({ service, stage })
     }
 
@@ -460,7 +468,7 @@ ${this.genUsageInstructions(links)}`
     return this.finalizeCustomTemplate({
       template,
       placeholder: previousServiceName,
-      replacement: stackPrefix
+      replacement: service
     })
   }
 
