@@ -307,3 +307,9 @@ export interface IPBMiddlewareContext extends ILambdaExecutionContext {
 }
 
 export type IPBMiddleware = ComposeMiddleware<IPBMiddlewareContext>
+
+export interface IAppLinkSet {
+  mobile?: string
+  web?: string
+  employeeOnboarding?: string
+}

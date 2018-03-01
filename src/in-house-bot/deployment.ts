@@ -20,7 +20,8 @@ import {
   ResourceStub,
   IOrganization,
   IDeploymentPluginConf,
-  IConf
+  IConf,
+  IAppLinkSet
 } from './types'
 
 import { media } from './media'
@@ -353,21 +354,40 @@ export class Deployment {
     return builder.toJSON()
   }
 
+  public notifyConfigurer = async ({ configurer, links }: {
+    links: IAppLinkSet
+    configurer: string
+  }) => {
+    configurer = await this.bot.users.get(configurer)
+
+    let message
+    if (isEmployee(configurer)) {
+      const someLinks = _.omit(links, 'employeeOnboarding')
+      message = `The MyCloud you drafted has been launched
+
+${this.genUsageInstructions(someLinks)}`
+    } else {
+      message = `${ONLINE_MESSAGE}
+
+${this.genUsageInstructions(links)}`
+    }
+
+    await this.bot.sendSimpleMessage({
+      to: configurer,
+      message
+    })
+  }
+
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
     const botPermalink = utils.parseStub(identity).permalink
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
     try {
-      const creator = await this.bot.users.get(_author)
-      if (!isEmployee(creator)) {
-        await this.bot.sendSimpleMessage({
-          to: _author,
-          message: `${ONLINE_MESSAGE}
-
-${this.genUsageInstructions(links)}`
-        })
-      }
+      await this.notifyConfigurer({
+        configurer: _author,
+        links
+      })
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.error('failed to send message to creator', err)

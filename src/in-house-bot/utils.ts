@@ -292,10 +292,23 @@ export const getAppLinks = ({ bot, host, permalink }: {
   }
 }
 
-export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }) => {
-  return `Add it to your Tradle mobile app using [this link](${mobile})
+export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
+  mobile?: string
+  web?: string
+  employeeOnboarding?: string
+}) => {
+  const lines = []
+  if (mobile) {
+    lines.push(`Add it to your Tradle mobile app using [this link](${mobile})`)
+  }
 
-Add it to your Tradle web app using [this link](${web})
+  if (web) {
+    lines.push(`Add it to your Tradle web app using [this link](${web})`)
+  }
 
-Invite employees using [this link](${employeeOnboarding})`
+  if (employeeOnboarding) {
+    lines.push(`Invite employees using [this link](${employeeOnboarding})`)
+  }
+
+  return lines.join('\n\n')
 }

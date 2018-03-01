@@ -36,7 +36,7 @@ test('deployment by referral', loudAsync(async (t) => {
     stackPrefix: 'mytradle'
   }
 
-  conf._author = configuredBy.link
+  conf._author = users[0].link
 
   const parent = createBot()
   const childTradle = createTestTradle()
@@ -124,6 +124,17 @@ test('deployment by referral', loudAsync(async (t) => {
 
   // const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate')
   //   .resolves(require('../../../.serverless/cloudformation-template-update-stack'))
+
+  const getUserStub = sandbox.stub(parent.users, 'get').callsFake(async permalink => {
+    if (permalink === conf._author) {
+      return {
+        id: conf._author,
+        identity: configuredBy
+      }
+    }
+
+    throw new Errors.NotFound(permalink)
+  })
 
   const getStub = sandbox.stub(parent.objects, 'get').callsFake(async link => {
     if (link === conf._link) {
@@ -224,7 +235,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   t.equal(postStub.callCount, 1)
   t.same(sentEmails.sort(), [conf.adminEmail, conf.hrEmail].sort())
-  t.equal(sendStub.getCall(0).args[0].to, conf._author)
+  t.equal(sendStub.getCall(0).args[0].to.id, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
   t.equal(saveChildDeploymentStub.callCount, 1)
