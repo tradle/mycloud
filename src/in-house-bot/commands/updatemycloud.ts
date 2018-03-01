@@ -49,9 +49,7 @@ export const command:ICommand = {
     await commander.sendSimpleMessage({
       req,
       to,
-      // rocket emoji: &#x1f680;
-      // message: `🚀 [Click to ${verb} your MyCloud](${result})`
-      message: `🚀 Update your MyCloud using the following link: ${updateUrl}`
+      message: `🚀 [Click to update your MyCloud](${updateUrl})`
     })
 
     // try {
