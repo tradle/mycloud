@@ -79,8 +79,9 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
       to: user,
       message: `This application can be imported via the following single-use links:
 
-Mobile: ${mobile}\n
-Web: ${web}
+[Mobile](${mobile})
+
+[Web](${web})
       `
     })
   }
