@@ -49,7 +49,7 @@ const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
         }
       }
     ],
-    signature: '${{fromOrg.name}} Team',
+    signature: '{{fromOrg.name}} Team',
     // twitter: 'tradles'
   }
 }
