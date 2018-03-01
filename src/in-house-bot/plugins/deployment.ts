@@ -28,7 +28,7 @@ export interface IDeploymentPluginOpts extends IPluginOpts {
 }
 
 export const createPlugin = (opts:IDeploymentPluginOpts) => {
-  const { bot, productsAPI, conf, logger } = opts
+  const { bot, productsAPI, employeeManager, conf, logger } = opts
   const deployment = createDeployment({
     bot,
     logger,
@@ -71,11 +71,6 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
       return
     }
 
-    const emailed = {
-      admin: false,
-      hr: false
-    }
-
     logger.debug('generated launch url', { launchUrl })
     await productsAPI.sendSimpleMessage({
       req,
@@ -84,50 +79,27 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
       // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
 
+    const { adminEmail } = form
     try {
       await bot.mailer.send({
         from: conf.senderEmail,
-        to: form.adminEmail,
+        to: adminEmail,
         ...deployment.genLaunchEmail({ launchUrl })
       })
-
-      emailed.admin = true
     } catch (err) {
       logger.error(`failed to send email to admin`, {
         deploymentOpts,
         error: err.stack
       })
+
+      return
     }
 
-    // try {
-    //   await bot.mailer.send({
-    //     from: conf.senderEmail,
-    //     to: form.hrEmail,
-    //     subject: LAUNCH_MESSAGE,
-    //     body: templates.hr({
-    //       employeeOnboardingUrl
-    //     })
-    //   })
-
-    //   emailed.hr = true
-    // } catch (err) {
-    //   logger.error(`failed to send email to HR`, {
-    //     deploymentOpts,
-    //     error: err.stack
-    //   })
-    // }
-
-    const alertedParties = []
-    // if (emailed.hr) alertedParties.push('HR')
-    if (emailed.admin) alertedParties.push('AWS Admin')
-
-    if (alertedParties.length) {
-      productsAPI.sendSimpleMessage({
-        req,
-        to: user,
-        message: `We've sent the respective link(s) to your ${alertedParties.join(' and ')}`
-      })
-    }
+    productsAPI.sendSimpleMessage({
+      req,
+      to: user,
+      message: `We've sent the respective link(s) to the designated AWS Admin (${adminEmail})`
+    })
   }
 
   return {

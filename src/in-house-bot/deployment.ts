@@ -363,7 +363,7 @@ ${this.genUsageInstructions(links)}`
     try {
       await this.bot.mailer.send({
         from: this.conf.senderEmail,
-        to: [hrEmail, adminEmail],
+        to: _.uniq([hrEmail, adminEmail]),
         format: 'html',
         ...this.genLaunchedEmail(links)
       })

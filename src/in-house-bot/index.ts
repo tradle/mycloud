@@ -64,7 +64,11 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const ONFIDO_ENABLED = true
-const HIDDEN_PRODUCTS = [EMPLOYEE_ONBOARDING]
+const DEPLOYMENT = 'tradle.cloud.Deployment'
+const HIDDEN_PRODUCTS = [
+  DEPLOYMENT,
+  EMPLOYEE_ONBOARDING
+]
 
 // until the issue with concurrent modifications of user & application state is resolved
 // then some handlers can migrate to 'messagestream'
@@ -106,7 +110,7 @@ export default function createProductsBot ({
         .add(conf.modelsPack ? conf.modelsPack.models : {}, mergeModelsOpts)
         .get()
     },
-    products: _.uniq(enabled.concat('tradle.EmployeeOnboarding')),
+    products: _.uniq(enabled.concat(HIDDEN_PRODUCTS)),
     validateModels: bot.isTesting,
     nullifyToDeleteProperty: true
     // queueSends: bot.env.TESTING ? true : queueSends
@@ -188,7 +192,11 @@ export default function createProductsBot ({
       willRequestForm: ({ formRequest }) => {
         if (formRequest.form === PRODUCT_REQUEST) {
           formRequest.chooser.oneOf = formRequest.chooser.oneOf
-            .filter(product => !HIDDEN_PRODUCTS.includes(product))
+            .filter(product => {
+              // allow showing hidden products explicitly by listing them in conf
+              // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
+              return enabled.includes(product) || !HIDDEN_PRODUCTS.includes(product)
+            })
         }
       }
     })
@@ -359,6 +367,9 @@ export default function createProductsBot ({
 
         req.isFromEmployee = employeeManager.isEmployee(req.user)
         if (!req.isFromEmployee) return
+
+        // HACK
+        if (application.requestFor === DEPLOYMENT) return
 
         logger.debug('setting application.draft, as this is an employee applying on behalf of a customer')
         application.draft = true
