@@ -283,7 +283,9 @@ export const getAppLinks = ({ bot, host, permalink }: {
 }
 
 export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }) => {
-  return `- Add it to your Tradle mobile app using [this link](${mobile})
-- Add it to your Tradle web app using [this link](${web})
-- Invite employees using [this link](${employeeOnboarding})`
+  return `Add it to your Tradle mobile app using [this link](${mobile})
+
+Add it to your Tradle web app using [this link](${web})
+
+Invite employees using [this link](${employeeOnboarding})`
 }
