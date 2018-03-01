@@ -131,7 +131,8 @@ export default function createProductsBot ({
   const commonPluginOpts = <IPluginOpts>{
     bot,
     productsAPI,
-    employeeManager
+    employeeManager,
+    orgConf: conf
   }
 
   // employeeManager.hasEmployees = () => Promise.resolve(true)
