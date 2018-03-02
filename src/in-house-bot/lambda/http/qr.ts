@@ -27,6 +27,8 @@ lambda.use(async (ctx:Koa.Context, next) => {
     ({ schema, data } = bot.appLinks.inferSchemaAndData({ provider, host, data }))
   }
 
+  if (!data.platform) data.platform = 'mobile'
+
   const dataUrl = await createDataURL({ schema, data })
   const description = descriptions[schema](data)
 
