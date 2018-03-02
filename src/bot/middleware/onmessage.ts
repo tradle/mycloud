@@ -12,6 +12,7 @@ export const onMessage = (lambda, { onSuccess, onError }) => {
   const { user } = tradle
   return async (ctx, next) => {
     const { clientId, friend, event } = ctx
+    logger.debug(`preprocessing ${event.messages.length} messages`)
     event.messages = await Promise.mapSeries(event.messages, async (message, i) => {
       try {
         message = tradle.messages.normalizeInbound(message)
