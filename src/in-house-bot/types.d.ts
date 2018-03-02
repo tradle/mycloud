@@ -192,10 +192,16 @@ export type ValidatePluginConfOpts = {
   [other:string]: any
 }
 
+interface IOnPendingApplicationCollisionArg {
+  req: IPBReq
+  pending: ResourceStub[]
+}
+
 export interface IPluginLifecycleMethods {
   onmessage?: (req:IPBReq) => boolean|void | Promise<boolean|void>
   willRequestForm?: (opts:IWillRequestFormArg) => void | Promise<void>
   onFormsCollected?: (opts:IOnFormsCollectedArg) => void | Promise<void>
+  onPendingApplicationCollision?: (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
   [toBeDefined: string]: any
 }
 

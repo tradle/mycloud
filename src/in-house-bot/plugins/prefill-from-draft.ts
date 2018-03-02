@@ -20,10 +20,17 @@ export function createPlugin ({
 
   const plugin:IPluginLifecycleMethods = {}
   plugin.willRequestForm = async ({ user, application, formRequest }) => {
+    logger.debug('testing123')
     if (!(application && application.prefillFromApplication)) return
 
     const model = bot.models[formRequest.form]
-    if (model && model.notShareable) return
+    if (model && model.notShareable) {
+      logger.debug(`ignoring not prefillable form`, {
+        form: formRequest.form
+      })
+
+      return
+    }
 
     let draft
     try {
