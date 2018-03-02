@@ -44,8 +44,7 @@ export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
   plugin.onPendingApplicationCollision = async ({ req, pending }) => {
     const { user } = req
     if (!employeeManager.isEmployee(user)) {
-      debugger
-      await tryClaim({ req, user, application: pending })
+      await tryClaim({ req, user, application: pending[0] })
     }
   }
 
