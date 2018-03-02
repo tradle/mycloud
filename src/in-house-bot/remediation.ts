@@ -53,7 +53,7 @@ export { CustomErrors as Errors }
 
 const NONCE_LENGTH = 16
 const DEFAULT_CONF = {
-  deleteRedeemedClaims: true
+  deleteRedeemedClaims: false
 }
 
 type KeyContainer = {
