@@ -28,9 +28,15 @@ export class LensPlugin {
     if (!application && req) application = req.application
 
     const lens = this._getLens({ form, application })
-    if (lens) {
-      object.lens = lens
-    }
+    if (!lens) return
+
+    this.logger.debug('setting lens on form request', {
+      form: form[TYPE],
+      lens,
+      product: application && application.requestFor
+    })
+
+    object.lens = lens
   }
 
   public validateForm = ({ application, form }) => {
