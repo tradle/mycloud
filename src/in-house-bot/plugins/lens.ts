@@ -80,6 +80,7 @@ export class LensPlugin {
     }
 
     if (err instanceof ValidationErrors.Required) {
+      this.logger.debug('requesting additional properties', err)
       return {
         message: 'Please fill out these additional properties',
         requestedProperties: err.properties.map(name => ({ name }))
@@ -87,6 +88,7 @@ export class LensPlugin {
     }
 
     if (err instanceof ValidationErrors.InvalidPropertyValue) {
+      this.logger.debug('requesting corrections', err)
       return {
         message: 'Please correct the highlighted property',
         errors: [{
