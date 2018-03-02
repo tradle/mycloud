@@ -176,6 +176,8 @@ export function createPlugin(opts: IPluginOpts) {
       let result = await Promise.all(pforms)
       let pchecks = []
       result.forEach((r: {resource:any, rawData:object, hits: any}) => {
+        if (!r) return
+
         let { resource, rawData, hits} = r
         let hasVerification
         if (hits  &&  hits.length) {
