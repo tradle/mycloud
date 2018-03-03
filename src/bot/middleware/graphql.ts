@@ -8,16 +8,15 @@ import ModelsPack = require('@tradle/models-pack')
 import { route } from './noop-route'
 import { Level } from '../../logger'
 import { logResponseBody } from '../../utils'
-import { getGraphqlAPI, prettifyQuery } from '../graphql'
-import { Lambda } from '../../types'
+import { createGraphqlAPI, prettifyQuery } from '../graphql'
+import { Lambda, Middleware } from '../../types'
 
-export const createHandler = (lambda:Lambda, opts:any={}) => {
+export const createHandler = (lambda:Lambda, opts:any={}):Middleware => {
   const { bot, logger } = lambda
 
   // allow models to be set asynchronously
 
   // let auth
-  let graphiqlOptions = {}
   let api
   let modelsVersionId:string
   const { modelStore } = bot
@@ -34,7 +33,8 @@ export const createHandler = (lambda:Lambda, opts:any={}) => {
 
   const handler = graphqlHTTP(async (req) => {
     logger.debug(`hit graphql query route, ready: ${bot.isReady()}`)
-    await promiseAPI
+    await bot.promiseReady()
+    const api = bot.graphql
     const { query, variables } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
       logger.debug('received query:')
@@ -49,7 +49,7 @@ export const createHandler = (lambda:Lambda, opts:any={}) => {
 
     return {
       get schema() { return api.schema },
-      graphiql: graphiqlOptions,
+      graphiql: api.graphiqlOptions,
       formatError: err => {
         console.error('experienced error executing GraphQL query', err.stack)
         return formatError(err)
@@ -80,15 +80,5 @@ export const createHandler = (lambda:Lambda, opts:any={}) => {
   //   }
   // })
 
-
-  const setGraphiqlOptions = options => graphiqlOptions = options
-  const promiseAPI = bot.promiseReady().then(() => {
-    api = getGraphqlAPI(lambda)
-  })
-
-  return {
-    handler: compose(middleware),
-    setGraphiqlOptions,
-    getGraphqlAPI: () => getGraphqlAPI(lambda)
-  }
+  return compose(middleware)
 }

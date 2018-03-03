@@ -12,6 +12,7 @@ import {
 
 import { defineGetter } from '../../utils'
 import { MODELS_HASH_PROPERTY } from '../constants'
+import { Middleware } from '../types'
 
 export const keepModelsFresh = (lambda:Lambda, components) => {
   const { bot } = lambda
@@ -60,24 +61,12 @@ export const createAuth = (lambda: Lambda, components) => {
   })
 }
 
-export const createMiddleware = (lambda:Lambda, components) => {
-  const {
-    handler,
-    setGraphiqlOptions,
-    getGraphqlAPI
-  } = createGraphqlHandler(lambda, components)
-
-  const middleware = compose([
+export const createMiddleware = (lambda:Lambda, components):Middleware => {
+  return compose([
     cors(),
     bodyParser({ jsonLimit: '10mb' }),
     createAuth(lambda, components),
     keepModelsFresh(lambda, components),
-    handler
+    createGraphqlHandler(lambda, components)
   ])
-
-  return {
-    middleware,
-    setGraphiqlOptions,
-    getGraphqlAPI
-  }
 }

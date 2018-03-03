@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
+import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
 import { DB, Models, Model } from '@tradle/dynamodb'
 import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
@@ -451,4 +452,30 @@ export interface IBotOpts {
   tradle: Tradle
   users?: any
   ready?:boolean
+}
+
+export interface IGraphiqlBookmark {
+  title: string
+  query: string
+}
+
+export interface IGraphiqlOptions {
+  jwt?: boolean
+  bookmarks?: {
+    title: string
+    items: IGraphiqlBookmark[]
+  },
+  logo?: {
+    src: string
+    width: number
+    height: number
+  }
+}
+
+export interface IGraphqlAPI {
+  schema: GraphQLSchema
+  exportSchema: () => any
+  resolvers: any
+  execute: (query: string, variables?: any) => Promise<GraphqlExecutionResult>
+  graphiqlOptions: IGraphiqlOptions
 }
