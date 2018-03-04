@@ -90,7 +90,8 @@ const constants = {
       'auth',
       'inbox'
     ]
-  }
+  },
+  ROOT_LOGGING_NAMESPACE: 'tradle'
 }
 
 export = constants

@@ -382,7 +382,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     context.callbackWaitsForEmptyEventLoop = false
     this.logger = this.tradle.logger.sub({
-      namespace: `λ:${this.shortName}`,
+      namespace: `lambda:${this.shortName}`,
       context: this.reqCtx,
       writer: console
     })
