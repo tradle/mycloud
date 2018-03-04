@@ -193,44 +193,46 @@ custom:
       - _t
     <<: *defaultCapacity
 
-  capacities:
-    - table: PubKeysTable
-      index:
-        - permalink
-      <<: *defaultCapacity
+  dynamodb-autoscaling:
+    role: AutoScalingDynamoDBRole
+    capacities:
+      - table: PubKeysTable
+        index:
+          - permalink
+        <<: *defaultCapacity
 
-    - table: InboxTable
-      index:
-        - _link
-        - context
-      read:
-        minimum: 10       # Minimum read capacity
-        maximum: 100      # Maximum read capacity
-        usage: 0.70       # Targeted usage percentage
-      write:
-        minimum: 5        # Minimum write capacity
-        maximum: 100      # Maximum write capacity
-        usage: 0.5        # Targeted usage percentage
+      - table: InboxTable
+        index:
+          - _link
+          - context
+        read:
+          minimum: 10       # Minimum read capacity
+          maximum: 100      # Maximum read capacity
+          usage: 0.70       # Targeted usage percentage
+        write:
+          minimum: 5        # Minimum write capacity
+          maximum: 100      # Maximum write capacity
+          usage: 0.5        # Targeted usage percentage
 
-    - table: OutboxTable
-      index:
-        - _payloadLink
-        - _payloadType
-        - context
-      read:
-        minimum: 10       # Minimum read capacity
-        maximum: 100      # Maximum read capacity
-        usage: 0.70       # Targeted usage percentage
-      write:
-        minimum: 5        # Minimum write capacity
-        maximum: 100      # Maximum write capacity
-        usage: 0.5        # Targeted usage percentage
+      - table: OutboxTable
+        index:
+          - _payloadLink
+          - _payloadType
+          - context
+        read:
+          minimum: 10       # Minimum read capacity
+          maximum: 100      # Maximum read capacity
+          usage: 0.70       # Targeted usage percentage
+        write:
+          minimum: 5        # Minimum write capacity
+          maximum: 100      # Maximum write capacity
+          usage: 0.5        # Targeted usage percentage
 
-    - table: EventsTable
-      write:
-        minimum: 5        # Minimum write capacity
-        maximum: 20       # Maximum write capacity
-        usage: 0.5        # Targeted usage percentage
+      - table: EventsTable
+        write:
+          minimum: 5        # Minimum write capacity
+          maximum: 20       # Maximum write capacity
+          usage: 0.5        # Targeted usage percentage
 
   cors:
     origin: '*'
@@ -900,9 +902,9 @@ functions:
 
   # useful during development
   # trigger a message to be queued/sent to a user
-  send:
-    handler: lib/in-house-bot/lambda/send.handler
-    memorySize: 256
+  # send:
+  #   handler: lib/in-house-bot/lambda/send.handler
+  #   memorySize: 256
 
   info:
     handler: lib/in-house-bot/lambda/http/info.handler
@@ -987,9 +989,9 @@ functions:
     handler: lib/in-house-bot/lambda/set-conf.handler
     memorySize: 1024
 
-  addfriend:
-    handler: lib/in-house-bot/lambda/add-friend.handler
-    memorySize: 256
+  # addfriend:
+  #   handler: lib/in-house-bot/lambda/add-friend.handler
+  #   memorySize: 256
 
   # addfriend_dev:
   #   handler: lib/in-house-bot/lambda/add-friend.handlerHttp
@@ -1650,6 +1652,41 @@ resources:
                         - Ref: AWS::Region
                         - Ref: AWS::AccountId
                         - 'topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
+
+    AutoScalingDynamoDBRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - application-autoscaling.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Path: "/"
+        Policies:
+          - PolicyName: AutoScalingDynamoDBPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - dynamodb:DescribeTable
+                    - dynamodb:UpdateTable
+                  Resource:
+                    - Fn::Join:
+                        - ""
+                        - - "arn:aws:dynamodb:"
+                          - Ref: AWS::Region
+                          - ":*:table/${{self:custom.prefix}}*"
+                - Effect: Allow
+                  Action:
+                    - cloudwatch:DescribeAlarms
+                    - cloudwatch:PutMetricAlarm
+                    - cloudwatch:DeleteAlarms
+                  Resource: "*"
 
     Initialize:
       Type: "Custom::InitializeDeployment"
