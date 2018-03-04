@@ -359,10 +359,12 @@ provider:
         # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}'
         # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}/index/*'
 
-    # so lambdas can list resources in their stack
     - Effect: Allow
       Action:
+        # so lambdas can list resources in their stack
         - cloudformation:ListStackResources
+        # need to get own template to generate a child deployment template
+        - cloudformation:GetTemplate
       Resource: ["*"]
 
     # allow lambdas to update themselves
