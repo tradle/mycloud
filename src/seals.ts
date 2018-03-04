@@ -131,7 +131,7 @@ interface IErrorRecord {
 
 export default class Seals {
   public syncUnconfirmed: (opts?: ILimitOpts) => Promise<Seal[]>
-  public sealPending: (opts?:any) => Promise<any>
+  public sealPending: (opts?:any) => Promise<Seal[]>
   public table: any
   public blockchain: Blockchain
   private provider: Provider
@@ -236,7 +236,7 @@ export default class Seals {
     return this.table.update(params)
   }
 
-  private _sealPending = async (opts: { limit?: number, key?: any } = {}) => {
+  private _sealPending = async (opts: { limit?: number, key?: any } = {}):Promise<Seal[]> => {
     typeforce({
       limit: typeforce.maybe(typeforce.Number),
       key: typeforce.maybe(types.privateKey)
@@ -254,7 +254,7 @@ export default class Seals {
 
     const pending = await this.getUnsealed({ limit })
     this.logger.info(`found ${pending.length} pending seals`)
-    if (!pending.length) return
+    if (!pending.length) return []
 
     let aborted
     // TODO: update balance after every tx
