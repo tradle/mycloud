@@ -16,7 +16,12 @@ const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
 const FORM_ID = 'tradle.BusinessInformation'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
-
+// const formPropsMap = {
+//   'tradle.BusinessInformation': {
+//     companyName: 'companyName',
+//     registrationDate: 'registrationDate'
+//   }
+// }
 interface IComplyAdvantageCredentials {
   apiKey: string
 }
@@ -39,6 +44,10 @@ interface IComplyCheck {
   application: IPBApp
   rawData: any
 }
+interface IApiOpts extends IPluginOpts {
+  searchProperties: IResource,
+  criteria: any
+}
 class ComplyAdvantageAPI {
   private bot:Bot
   private conf:IComplyAdvantageConf
@@ -50,14 +59,15 @@ class ComplyAdvantageAPI {
     this.productsAPI = productsAPI
     this.logger = logger
   }
-  async getData(resource, conf, application) {
+  async getData(resource, conf, searchProperties, criteria, application) {
+    let { companyName, registrationDate} = searchProperties //conf.propertyMap //[resource[TYPE]]
     let body:any = {
-      search_term: conf.search_term || resource.companyName,
-      fuzziness: conf.fuzziness  ||  1,
+      search_term: criteria  &&  criteria.search_term || companyName,
+      fuzziness: criteria  &&  criteria.fuzziness  ||  1,
       share_url: 1,
       filters: {
-        types: conf.filter  &&  conf.filter.types || ['sanction'],
-        birth_year: new Date(resource.registrationDate).getFullYear()
+        types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction'],
+        birth_year: new Date(registrationDate).getFullYear()
       }
     }
 
@@ -75,21 +85,23 @@ class ComplyAdvantageAPI {
       json = await res.json()
     } catch (err) {
       this.logger.debug('something went wrong', err)
+      json = {status: 'failure', message: `Check was not completed for "${body.search_term}": ${err.message}`}
     }
-    // }
-    if (!json || json.status !== 'success') {
+    if (json.status !== 'success') {
       // need to request again
-      return
+      return {resource, rawData: json, hits: []} //, error: `Check failed for "${body.search_term}": ${json.status}: ${json.message}`}
     }
     let rawData = json  &&  json.content.data
-    let entityType = conf.entity_type || 'company'
+    let entityType = criteria.entity_type || 'company'
     let hits = rawData.hits.filter((hit) => hit.doc.entity_type === entityType)
     return hits && { resource, rawData, hits }
   }
 
   async createSanctionsCheck({ application, rawData }: IComplyCheck) {
     let status
-    if (rawData.hits.length)
+    if (rawData.status === 'failure')
+      status = {id: 'tradle.Status_error', title: 'Error'}
+    else if (rawData.hits.length)
       status = {id: 'tradle.Status_fail', title: 'Fail'}
     else
       status = {id: 'tradle.Status_pass', title: 'Pass'}
@@ -97,11 +109,11 @@ class ComplyAdvantageAPI {
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status,
-      rawData,
       provider: 'Comply Advantage',
       application: buildResourceStub({resource: application, models: this.bot.models}),
+      rawData,
       dateChecked: rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      sharedUrl: rawData.share_url
+      sharedUrl: rawData  &&  rawData.share_url
     }
 
     if (!application.checks) application.checks = []
@@ -148,13 +160,52 @@ export function createPlugin(opts: IPluginOpts) {
 
       let { bot, logger, conf, productAPI} = opts
       const { user, application, applicant, payload } = req
-      logger.debug(`running sanctions plugin for: ${payload.companyName}`);
+
       if (!application) return
 
       let productId = application.requestFor
       let { products } = conf
-      if (!products  ||  !products[productId]  ||  !products[productId][FORM_ID])
+      if (!products  ||  !products[productId]  ||  !products[productId].propertyMap)
         return
+
+      let propertyMap = products[productId].propertyMap
+      let criteria = products[productId].filter
+      let companyName, registrationDate
+      let resource = payload
+      for (let formId in propertyMap) {
+        let map = propertyMap[formId]
+        if (formId !== FORM_ID) {
+          let formStubs = application.forms && application.forms.filter((f) =>  f.id.indexOf(FORM_ID) !== -1)
+          if (!formStubs.length) {
+            logger.debug(`No form ${formId} was found for ${productId}`)
+            return
+          }
+          let link = formStubs[0].id.split('_')[2]
+          resource = bot.objects.get(link)
+        }
+        let companyNameProp = map.companyName
+        if (companyNameProp)
+          companyName = resource[companyNameProp]
+        let registrationDateProp = map.registrationDate
+        if (registrationDateProp)
+          registrationDate = resource[registrationDateProp]
+      }
+      logger.debug(`running sanctions plugin for: ${companyName}`);
+
+      // let { companyName='companyName', registrationDate='registrationDate'} = formConf.propertyMap
+      // if (!companyName  ||  !registrationDate) {
+      //   companyName = 'companyName'
+      //   registrationDate = 'registrationDate'
+      //   products[productId][FORM_ID] = {companyName, registrationDate}
+      //   // logger.debug(`running sanctions plugin. No property map was found for: ${payload[TYPE]}`);
+      //   // return
+      // }
+
+      if (!companyName  ||  !registrationDate) {
+        logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        return
+      }
+
 
       // debugger
       //
@@ -171,22 +222,26 @@ export function createPlugin(opts: IPluginOpts) {
       // if (!forms  ||  !forms.length)
       //   return
       let forms = [payload]
-      let pforms = forms.map((f) => complyAdvantage.getData(f, products[productId][FORM_ID], application))
+      let pforms = forms.map((f) => complyAdvantage.getData(f, conf, {companyName, registrationDate}, criteria, application))
 
       let result = await Promise.all(pforms)
       let pchecks = []
-      result.forEach((r: {resource:any, rawData:object, hits: any}) => {
-        if (!r) return
+      result.forEach((r: {resource:any, rawData:any, hits: any}) => {
+        // if (!r) return
 
-        let { resource, rawData, hits} = r
+        let { resource, rawData, hits } = r
+        if (rawData.status === 'failure') {
+          pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData}))
+          return
+        }
         let hasVerification
         if (hits  &&  hits.length) {
-          logger.debug(`found sanctions for: ${resource.companyName}`);
+          logger.debug(`found sanctions for: ${companyName}`);
           // return complyAdvantage.createSanctionsCheck({application, rawData: rawData})
         }
         else {
           hasVerification = true
-          logger.debug(`creating verification for: ${resource.companyName}`);
+          logger.debug(`creating verification for: ${companyName}`);
         }
         pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData}))
         if (hasVerification)
