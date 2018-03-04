@@ -299,16 +299,7 @@ const getTableDefinitions = () => {
 // }
 
 const downloadDeploymentTemplate = async (tradle:Tradle) => {
-  const { aws, stackUtils } = tradle
-  const physicalId = await getPhysicalId({
-    tradle,
-    logicalId: 'ServerlessDeploymentBucket'
-  })
-
-  return await stackUtils.getStackTemplate(new Bucket({
-    name: physicalId,
-    s3: aws.s3
-  }))
+  return await tradle.stackUtils.getStackTemplate()
 }
 
 function getLatestS3Object (list) {
