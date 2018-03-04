@@ -28,6 +28,10 @@ import {
 } from './types'
 
 import {
+  DEFAULT_WARMUP_EVENT
+} from '../constants'
+
+import {
   PRIVATE_CONF_BUCKET
 } from './constants'
 
@@ -360,7 +364,8 @@ export class Conf {
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
-    await bot.forceReinitializeContainers()
+    await bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
+    // await bot.forceReinitializeContainers()
     const { referrerUrl, deploymentUUID } = deploymentConf
     if (!(referrerUrl && deploymentUUID)) return
 
