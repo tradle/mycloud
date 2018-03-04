@@ -108,6 +108,9 @@ test('remediation api', loudAsync(async (t) => {
   const bot = createBot()
   const remediation = new Remediation({
     bot,
+    conf: {
+      deleteRedeemedClaims: true,
+    },
     productsAPI: {
       plugins: {
         use: ({ onmessage }) => {}

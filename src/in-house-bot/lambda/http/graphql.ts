@@ -22,7 +22,7 @@ const promiseCustomize = customize({
 
 const lambda = bot.createLambda({
   source: EventSource.HTTP,
-  middleware: promiseCustomize.then(({ middleware }) => middleware.middleware)
+  middleware: promiseCustomize.then(({ middleware }) => middleware)
 })
 
 const { logger, handler } = lambda
@@ -35,6 +35,7 @@ const init = async () => {
 
   logger.debug('finished setting up bot graphql middleware')
   const opts = {
+    jwt: true,
     bookmarks: {
       // not supported
       // autorun: true,
@@ -53,7 +54,7 @@ const init = async () => {
     }
   }
 
-  middleware.setGraphiqlOptions(opts)
+  bot.graphql.graphiqlOptions = opts
   await loadModelsPacks
 
   // lambda.use(graphqlMiddleware(lambda, components))

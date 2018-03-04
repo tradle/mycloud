@@ -50,7 +50,6 @@ export default class StackUtils {
   private logger: Logger
   private lambdaUtils: LambdaUtils
   private buckets: Buckets
-  private deploymentBucket: Bucket
   private stack: StackInfo
   private apiId: string
 
@@ -68,7 +67,6 @@ export default class StackUtils {
     this.logger = logger || env.sublogger('stack-utils')
     this.lambdaUtils = lambdaUtils
     this.buckets = buckets
-    this.deploymentBucket = this.buckets.ServerlessDeployment
 
     const arn = this.serviceMap.Stack
     this.stack = StackUtils.parseStackArn(arn)
@@ -310,24 +308,16 @@ export default class StackUtils {
     return configs.filter(({ FunctionName }) => names.includes(FunctionName))
   }
 
-  public getStackTemplate = async (deploymentBucket:Bucket=this.deploymentBucket) => {
+  public getStackTemplate = async () => {
     if (this.env.TESTING) {
       return _.cloneDeep(require('../.serverless/cloudformation-template-update-stack'))
     }
 
-    const { buckets } = this
-    const { SERVERLESS_ARTIFACTS_PATH } = this.env
-    const templateFileName = 'compiled-cloudformation-template.json'
-    const objects = await deploymentBucket.list({ Prefix: SERVERLESS_ARTIFACTS_PATH })
-    const templates = objects.filter(object => object.Key.endsWith(templateFileName))
-    const metadata = deploymentBucket.utils.getLatest(templates)
-    if (!metadata) {
-      this.logger.debug('base template not found')
-      return
-    }
+    const { TemplateBody } = await this.aws.cloudformation
+      .getTemplate({ StackName: this.stack.name })
+      .promise()
 
-    this.logger.debug('base template', deploymentBucket.getUrlForKey(metadata.Key))
-    return await deploymentBucket.getJSON(metadata.Key)
+    return JSON.parse(TemplateBody)
   }
 
   public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise) => {

@@ -11,6 +11,8 @@ const { HTTP_METHODS, ENV_RESOURCE_PREFIX } = require('../constants')
 
 export {
   forEachResource,
+  forEachResourceOfType,
+  addCustomResourceDependencies,
   addResourcesToOutputs,
   addHTTPMethodsToEnvironment,
   addResourcesToEnvironment,
@@ -18,6 +20,17 @@ export {
   addBucketTables,
   stripDevFunctions,
   setBucketEncryption
+}
+
+function addCustomResourceDependencies (yml, interpolated) {
+  const { prefix } = interpolated.custom
+  const naming = require('serverless/lib/plugins/aws/lib/naming')
+  const lambdas = Object.keys(interpolated.functions).map(shortName => {
+    return naming.getLambdaLogicalId(`${prefix}${shortName}`)
+  })
+
+  const { Initialize } = yml.resources.Resources
+  Initialize.DependsOn = _.uniq(lambdas.concat(Initialize.DependsOn || []))
 }
 
 function setBucketEncryption ({ target, interpolated }) {
@@ -185,6 +198,18 @@ function forEachResource (yaml, fn) {
   //     Type: 'AWS::ApiGateway::RestApi'
   //   }
   // })
+}
+
+function forEachLambda (yaml, fn) {
+  return forEachResourceOfType(yaml, fn, 'AWS::Lambda::Function')
+}
+
+function forEachResourceOfType (yaml, fn, type) {
+  forEachResource(yaml, resource => {
+    if (resource.Type === type) {
+      fn(resource)
+    }
+  })
 }
 
 function stripDevFunctions (yml) {

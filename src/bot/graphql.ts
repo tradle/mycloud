@@ -7,12 +7,13 @@ import { TYPE, TYPES } from '@tradle/constants'
 import { createSchema } from '@tradle/schema-graphql'
 import { createResolvers } from '@tradle/dynamodb'
 import { uniqueStrict } from '../utils'
+import { IGraphqlAPI } from '../types'
 
 const { MESSAGE } = TYPES
 
 export const prettifyQuery = query => print(parse(query))
 
-export const getGraphqlAPI = (opts) => {
+export const createGraphqlAPI = (opts):IGraphqlAPI => {
   const { bot, logger } = opts
   let {
     objects,
@@ -74,7 +75,7 @@ export const getGraphqlAPI = (opts) => {
     }
   })()
 
-  const executeQuery = async (query, variables?) => {
+  const execute = async (query, variables?) => {
     await bot.promiseReady()
     return graphql(getSchema(), query, null, {}, variables)
   }
@@ -123,7 +124,7 @@ export const getGraphqlAPI = (opts) => {
   modelStore.on('update:cumulative', () => setModels(modelStore.models))
 
   return {
-    setModels,
+    graphiqlOptions: {},
     get schema () {
       return getSchema()
     },
@@ -132,8 +133,7 @@ export const getGraphqlAPI = (opts) => {
       getSchema()
       return resolvers
     },
-    db,
-    executeQuery
+    execute
   }
 }
 

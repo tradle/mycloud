@@ -20,6 +20,7 @@ import {
 
 import constants = require('../constants')
 import createUsers = require('./users')
+import { createGraphqlAPI } from './graphql'
 import {
   EndpointInfo,
   ILambdaImpl,
@@ -35,7 +36,8 @@ import {
   ITradleObject,
   IDeepLink,
   IBotOpts,
-  AppLinks
+  AppLinks,
+  IGraphqlAPI
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -148,6 +150,7 @@ export class Bot extends EventEmitter implements IReady {
   public hook: HooksHookFn
   public trigger?: HooksFireFn
   public users: any
+  public graphql: IGraphqlAPI
 
   // IReady
   public ready: () => void
@@ -227,6 +230,20 @@ export class Bot extends EventEmitter implements IReady {
     } else {
       this.appLinks = defaultAppLinks
     }
+
+    let graphql
+    Object.defineProperty(this, 'graphql', {
+      get() {
+        if (!graphql) {
+          graphql = createGraphqlAPI({
+            bot: this,
+            logger: this.logger.sub('graphql')
+          })
+        }
+
+        return graphql
+      }
+    })
 
     if (ready) this.ready()
   }

@@ -78,6 +78,18 @@ const constants = {
     // dev: 'https://push1.tradle.io',
     dev: 'https://push1-prod.tradle.io',
     prod: 'https://push1-prod.tradle.io'
+  },
+  DEFAULT_WARMUP_EVENT: {
+    concurrency: 5,
+    functions: [
+      'oniotlifecycle',
+      'onmessage',
+      'graphql',
+      'info',
+      'preauth',
+      'auth',
+      'inbox'
+    ]
   }
 }
 

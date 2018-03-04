@@ -13,7 +13,7 @@ import {
 } from '../types'
 import { createTestTradle } from '../'
 import { createBot } from '../bot'
-import { getGraphqlAPI } from '../bot/graphql'
+import { createGraphqlAPI } from '../bot/graphql'
 import { loudAsync, wait } from '../utils'
 import { toStreamItems, recreateTable } from './utils'
 import Errors = require('../errors')
@@ -393,8 +393,7 @@ test('onmessagestream', loudAsync(async (t) => {
     done: t.error
   } as ILambdaAWSExecutionContext)
 
-  // const gql = getGraphqlAPI({ bot })
-  // const result = await gql.executeQuery(`
+  // const result = await bot.graphql.execute(`
   //   {
   //     rl_ping_pong_Ping(orderBy:{
   //       property: _time

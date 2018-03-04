@@ -53,6 +53,7 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     try {
       ctx.user = await bot.users.createIfNotExists({ id: userId })
       const { user } = ctx
+      logger.debug(`feeding ${inbound.length} messages to business logic`)
       for (const message of inbound) {
         const botMessageEvent = toBotMessageEvent({ bot, user, message })
         await bot.hooks.fire('message', botMessageEvent)

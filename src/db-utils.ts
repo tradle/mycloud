@@ -205,14 +205,16 @@ function createDBUtils ({ aws, logger, env }) {
   }
 
   const exec = async (method, params) => {
-    params.ReturnConsumedCapacity = 'TOTAL'
+    // params.ReturnConsumedCapacity = 'TOTAL'
     try {
       const result = await aws.docClient[method](params).promise()
-      logCapacityConsumption(method, result)
+      // logCapacityConsumption(method, result)
       return result
     } catch (err) {
       Errors.rethrow(err, 'system')
       if (err.code === 'ValidationException') {
+        debugger
+        console.log(params)
         throw new Errors.InvalidInput(err.message)
       }
 

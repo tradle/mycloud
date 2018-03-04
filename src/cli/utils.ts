@@ -37,7 +37,8 @@ import {
   removeResourcesThatDontWorkLocally,
   addBucketTables,
   stripDevFunctions,
-  setBucketEncryption
+  setBucketEncryption,
+  addCustomResourceDependencies
 } from './compile'
 
 const Localstack = require('../test/localstack')
@@ -200,6 +201,7 @@ const compileTemplate = async (path) => {
   addBucketTables({ yml, prefix: interpolated.custom.prefix })
   // setBucketEncryption({ target: yml, interpolated })
   stripDevFunctions(yml)
+  // addCustomResourceDependencies(yml, interpolated)
 
   const isLocal = process.env.IS_LOCAL
   if (isLocal) {
@@ -297,16 +299,7 @@ const getTableDefinitions = () => {
 // }
 
 const downloadDeploymentTemplate = async (tradle:Tradle) => {
-  const { aws, stackUtils } = tradle
-  const physicalId = await getPhysicalId({
-    tradle,
-    logicalId: 'ServerlessDeploymentBucket'
-  })
-
-  return await stackUtils.getStackTemplate(new Bucket({
-    name: physicalId,
-    s3: aws.s3
-  }))
+  return await tradle.stackUtils.getStackTemplate()
 }
 
 function getLatestS3Object (list) {

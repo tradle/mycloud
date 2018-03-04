@@ -5,10 +5,9 @@ import Errors = require('../../errors')
 import { ITradleObject } from '../../types'
 import { isPromise } from '../../utils'
 
-const debug = require('debug')('tradle:sls:graphql-auth')
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
 
-export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
+export const createHandler = ({ bot, logger }, { allowGuest, canUserRunQuery }) => {
   const { identities } = bot
   return async (ctx, next) => {
     const method = ctx.method.toLowerCase()
@@ -26,7 +25,7 @@ export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
       return
     }
 
-    debug('authenticating')
+    logger.debug('authenticating')
     const sig = ctx.headers['x-tradle-sig']
     if (!allowGuest && sig == null) {
       ctx.status = 403
@@ -34,7 +33,7 @@ export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
         message: `expected header "x-tradle-sig"`
       }
 
-      debug('expected sig')
+      logger.debug('expected sig')
       return
     }
 
@@ -59,7 +58,7 @@ export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
 
     let { user } = ctx
     if (sig && !user) {
-      debug('looking up query author')
+      logger.debug('looking up query author')
       try {
         await identities.addAuthorInfo(queryObj)
         ctx.user = user = await bot.users.get(queryObj._author)
@@ -92,7 +91,7 @@ export const createHandler = ({ bot }, { allowGuest, canUserRunQuery }) => {
       return
     }
 
-    debug('allowing')
+    logger.debug('allowing')
     await next()
   }
 }
