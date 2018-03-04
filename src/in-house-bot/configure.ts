@@ -384,7 +384,11 @@ export class Conf {
       this.logger.error('failed to call home', err)
     }
 
-    await promiseWarmup
+    try {
+      await promiseWarmup
+    } catch (err) {
+      logger.error('failed to warm up functions', err)
+    }
   }
 
   public updateInfra = async (conf, opts: InitOpts = {}) => {
