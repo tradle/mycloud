@@ -364,10 +364,13 @@ export class Conf {
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
-    await bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
+    const promiseWarmup = bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
     // await bot.forceReinitializeContainers()
     const { referrerUrl, deploymentUUID } = deploymentConf
-    if (!(referrerUrl && deploymentUUID)) return
+    if (!(referrerUrl && deploymentUUID)) {
+      await promiseWarmup
+      return
+    }
 
     try {
       await deployment.reportLaunch({
@@ -380,6 +383,8 @@ export class Conf {
     } catch (err) {
       this.logger.error('failed to call home', err)
     }
+
+    await promiseWarmup
   }
 
   public updateInfra = async (conf, opts: InitOpts = {}) => {

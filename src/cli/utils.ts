@@ -201,7 +201,7 @@ const compileTemplate = async (path) => {
   addBucketTables({ yml, prefix: interpolated.custom.prefix })
   // setBucketEncryption({ target: yml, interpolated })
   stripDevFunctions(yml)
-  addCustomResourceDependencies(yml, interpolated)
+  // addCustomResourceDependencies(yml, interpolated)
 
   const isLocal = process.env.IS_LOCAL
   if (isLocal) {
