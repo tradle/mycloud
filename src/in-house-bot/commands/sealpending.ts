@@ -8,6 +8,12 @@ export const command:ICommand = {
   ],
   exec: async ({ commander, req, ctx, args }) => {
     try {
+      // fire off async
+      commander.bot.sendSimpleMessage({
+        to: req.user,
+        message: `yea yea...give me a minute`
+      })
+
       return await commander.bot.lambdaUtils.invoke({
         name: 'sealpending',
         sync: true,
