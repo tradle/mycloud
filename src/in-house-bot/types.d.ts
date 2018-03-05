@@ -252,6 +252,7 @@ export interface IDeploymentOpts {
   domain: string
   logo?: string
   stackPrefix: string
+  region: string
   configurationLink?: string
 }
 

@@ -91,7 +91,8 @@ const constants = {
       'inbox'
     ]
   },
-  ROOT_LOGGING_NAMESPACE: 'tradle'
+  ROOT_LOGGING_NAMESPACE: 'tradle',
+  DEFAULT_REGION: 'us-east-1'
 }
 
 export = constants

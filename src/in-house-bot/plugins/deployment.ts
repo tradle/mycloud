@@ -10,6 +10,7 @@ import {
   IPluginOpts,
   IDeploymentOpts,
   IDeploymentPluginConf,
+  ITradleObject,
   Conf
 } from '../types'
 
@@ -46,8 +47,9 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
 
     const { link } = parseStub(latest)
     const form = await bot.objects.get(link)
+    const configuration = deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink
-    const deploymentOpts = { ...form, configurationLink: link } as IDeploymentOpts
+    const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentOpts
 
     // async
     bot.sendSimpleMessage({

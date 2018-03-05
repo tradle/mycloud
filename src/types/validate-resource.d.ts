@@ -19,9 +19,15 @@ declare module '@tradle/validate-resource' {
     title?: string
   }
 
+  interface IParseEnumValueOpts {
+    model: any
+    value: string | ResourceStub
+  }
+
   export interface Utils {
     parseId(id:string): ParsedResourceStub
     parseStub(stub:ResourceStub): ParsedResourceStub
+    parseEnumValue(IParseEnumValueOpts):ResourceStub
     omitVirtual(obj:any): any
     omitVirtualDeep(obj:any): any
     hasVirtualDeep(obj:any): boolean

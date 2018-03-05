@@ -35,6 +35,7 @@ const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const CONFIGURATION = 'tradle.cloud.Configuration'
+const AWS_REGION = 'tradle.cloud.AWSRegion'
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
   template: 'action',
   data: {
@@ -117,7 +118,7 @@ export class Deployment {
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
-  //   if (type !== CONFIG_FORM) return
+  //   if (type !== CONFIGURATION) return
   //   if (!currentApplication || currentApplication.requestFor !== DEPLOYMENT_PRODUCT) return
 
   //   const { object } = wrapper.payload
@@ -152,7 +153,8 @@ export class Deployment {
     this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return stackUtils.getLaunchStackUrl({
       stackName: getStackNameFromTemplate(template),
-      templateURL: url
+      templateURL: url,
+      region: opts.region
     })
   }
 
@@ -455,7 +457,7 @@ ${this.genUsageInstructions(links)}`
     template: any
     opts: IDeploymentOpts
   }) => {
-    let { name, domain, logo, stackPrefix } = opts
+    let { name, domain, logo, region, stackPrefix } = opts
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
@@ -488,14 +490,27 @@ ${this.genUsageInstructions(links)}`
 
     return this.finalizeCustomTemplate({
       template,
-      placeholder: previousServiceName,
-      replacement: service
+      oldServiceName: previousServiceName,
+      newServiceName: service,
+      region
     })
   }
 
-  public finalizeCustomTemplate = ({ template, placeholder, replacement }) => {
-    template = this.bot.stackUtils.replaceServiceName({ template, placeholder, replacement })
-    const deploymentBucketId = this.bot.buckets.ServerlessDeployment.id
+  public finalizeCustomTemplate = ({ template, region, oldServiceName, newServiceName }) => {
+    const { stackUtils, buckets } = this.bot
+    template = stackUtils.changeServiceName({
+      template,
+      from: oldServiceName,
+      to: newServiceName
+    })
+
+    template = stackUtils.changeRegion({
+      template,
+      from: 'us-east-1',
+      to: region
+    })
+
+    const deploymentBucketId = buckets.ServerlessDeployment.id
     _.forEach(template.Resources, resource => {
       if (resource.Type === 'AWS::Lambda::Function') {
         resource.Properties.Code.S3Bucket = deploymentBucketId
@@ -510,7 +525,7 @@ ${this.genUsageInstructions(links)}`
     childDeployment: any
     configuration: any
   }) => {
-    const { service, stage } = this.bot.stackUtils.parseStackArn(childDeployment.stackId)
+    const { service, stage, region } = this.bot.stackUtils.parseStackArn(childDeployment.stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
     template = _.omit(template, 'Mappings')
@@ -524,8 +539,9 @@ ${this.genUsageInstructions(links)}`
 
     return this.finalizeCustomTemplate({
       template,
-      placeholder: previousServiceName,
-      replacement: service
+      oldServiceName: previousServiceName,
+      newServiceName: service,
+      region
     })
   }
 
@@ -547,6 +563,18 @@ ${this.genUsageInstructions(links)}`
       this.logger.info('failed to get favicon from url', {
         url: domain
       })
+    }
+  }
+
+  public parseConfigurationForm = (form:ITradleObject):IDeploymentOpts => {
+    const region = utils.getEnumValueId({
+      model: this.bot.models[AWS_REGION],
+      value: form.region
+    }).replace(/[.]/g, '-')
+
+    return <IDeploymentOpts>{
+      ...form,
+      region
     }
   }
 }

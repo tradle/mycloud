@@ -1119,6 +1119,7 @@ export const isLocalHost = (host:string) => {
 
 export const pickNonNull = obj => _.pickBy(obj, val => val != null)
 export const toUnsigned = (obj:ITradleObject) => _.omit(omitVirtual(obj), [SIG])
+export const getEnumValueId = val => validateResource.utils.parseEnumValue(val).id
 
 // export const omitVirtualRecursive = resource => {
 //   if (!resource[SIG]) return _.clone(resource)

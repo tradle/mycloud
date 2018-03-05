@@ -79,9 +79,11 @@ export default class StackUtils {
   }
 
   public static parseStackArn = (arn: string) => {
-    const name = utils.parseArn(arn).id.split('/')[0]
+    const parsed = utils.parseArn(arn)
+    const name = parsed.id.split('/')[0]
     const { service, stage } = StackUtils.parseStackName(name)
     return {
+      ...parsed,
       name,
       service,
       stage,
@@ -409,9 +411,9 @@ export default class StackUtils {
     await this.createDeployment()
   }
 
-  public static replaceServiceName = ({ template, placeholder, replacement }) => {
-    if (!(template && placeholder && replacement)) {
-      throw new Error('expected "template", "placeholder", and "replacement"')
+  public static changeServiceName = ({ template, from, to }) => {
+    if (!(template && from && to)) {
+      throw new Error('expected "template", "from", and "to"')
     }
 
     const s3Keys = utils.traverse(template).reduce(function (s3Keys, value) {
@@ -425,19 +427,27 @@ export default class StackUtils {
       return s3Keys
     }, [])
 
-    const placeholderRegex = new RegExp(placeholder, 'g')
-    const placeholderNoDashRegex = new RegExp(stripDashes(placeholder), 'g')
-    const replacementRegex = new RegExp(replacement, 'g')
+    const fromRegex = new RegExp(from, 'g')
+    const fromNoDashRegex = new RegExp(stripDashes(from), 'g')
+    const toRegex = new RegExp(to, 'g')
     const resultStr = JSON.stringify(template)
-      .replace(placeholderRegex, replacement)
-      .replace(placeholderNoDashRegex, stripDashes(replacement))
+      .replace(fromRegex, to)
+      .replace(fromNoDashRegex, stripDashes(to))
 
     const result = JSON.parse(resultStr)
     s3Keys.forEach(({ path, value }) => _.set(result, path, value))
     return result
   }
 
-  public replaceServiceName = StackUtils.replaceServiceName
+  public static changeRegion = ({ template, from, to }) => {
+    const str = JSON.stringify(template)
+      .replace(new RegExp(from, 'ig'), to)
+
+    return JSON.parse(str)
+  }
+
+  public changeServiceName = StackUtils.changeServiceName
+  public changeRegion = StackUtils.changeRegion
   private createDeployment = async () => {
     await this.aws.apigateway.createDeployment({
       restApiId: this.apiId,

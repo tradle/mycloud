@@ -183,6 +183,7 @@ test('deployment by referral', loudAsync(async (t) => {
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
+    region: 'ap-southeast-2',
     configurationLink: conf._link,
     stackPrefix: conf.stackPrefix
   })

@@ -347,19 +347,7 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.events}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.presence}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}/index/*'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.outbox}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}/index/*'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}/index/*'
-        # # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pushsubscribers}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
 
     - Effect: Allow
       Action:
@@ -381,7 +369,7 @@ provider:
       Action:
         - lambda:GetFunctionConfiguration
       Resource:
-        - Fn::Sub: 'arn:aws:lambda:${{self:custom.region}}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
+        - Fn::Sub: 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
