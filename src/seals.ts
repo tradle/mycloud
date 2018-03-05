@@ -25,7 +25,7 @@ import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'
 import { models as BaseModels } from '@tradle/models'
-import { IECMiniPubKey, ITradleObject } from './types'
+import { IECMiniPubKey, ITradleObject, ResourceStub } from './types'
 
 const SealModel = BaseModels['tradle.Seal']
 const SEAL_MODEL_ID = 'tradle.Seal'
@@ -61,6 +61,7 @@ type ErrorSummary = {
 type WatchOpts = {
   key: IECMiniPubKey
   link: string
+  object?: ITradleObject
   write?: boolean
 }
 
@@ -68,6 +69,7 @@ type Seal = {
   id: string
   link: string
   permalink?: string
+  forResource?: ResourceStub
   counterparty?: string
   blockchain: string
   network: string
@@ -643,6 +645,10 @@ export default class Seals {
 
     if (permalink) {
       params.permalink = permalink
+    }
+
+    if (object) {
+      params.forResource = buildResource.stub({ resource: object })
     }
 
     if (write) {
