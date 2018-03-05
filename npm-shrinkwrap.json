@@ -373,9 +373,9 @@
       "resolved": "http://registry.npmjs.org/@tradle/validate-model/-/validate-model-5.7.0.tgz"
     },
     "@tradle/validate-resource": {
-      "version": "2.21.1",
+      "version": "2.21.2",
       "from": "@tradle/validate-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.21.1.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.21.2.tgz",
       "dependencies": {
         "debug": {
           "version": "3.1.0",

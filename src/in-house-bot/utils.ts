@@ -1,7 +1,7 @@
 import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
-import { isPromise } from '../utils'
+import { isPromise, pickNonNull } from '../utils'
 import { createConf } from './configure'
 import Errors = require('../errors')
 import models = require('../models')
@@ -108,7 +108,7 @@ export const sendConfirmedSeals = async (bot, seals) => {
   await bot.send(confirmed.map(seal => ({
     to: seal.counterparty,
     object: {
-      ..._.pick(seal, SEAL_MODEL_PROPS),
+      ...pickNonNull(_.pick(seal, SEAL_MODEL_PROPS)),
       [TYPE]: 'tradle.Seal',
       time: seal.time / 1000
     }
