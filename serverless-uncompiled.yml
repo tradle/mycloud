@@ -54,8 +54,10 @@ package:
     - node_modules/**/*.d.ts
     - node_modules/**/test/*
     - node_modules/**/tests/*
-    - npm-shrinkwrap.json
+    - node_modules/chokidar/**
+    - node_modules/fsevents/**
     - "node_modules/@tradle/gen-samples/**"
+    - npm-shrinkwrap.json
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
