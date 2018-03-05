@@ -108,8 +108,9 @@ export const sendConfirmedSeals = async (bot, seals) => {
   await bot.send(confirmed.map(seal => ({
     to: seal.counterparty,
     object: {
+      ..._.pick(seal, SEAL_MODEL_PROPS),
       [TYPE]: 'tradle.Seal',
-      ..._.pick(seal, SEAL_MODEL_PROPS)
+      time: seal.time / 1000
     }
   })))
 }
