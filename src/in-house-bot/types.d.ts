@@ -41,6 +41,7 @@ export interface IBotConf {
   products: IProductsConf
   tours?: ITours
   sandbox?: boolean
+  graphqlAuth?: boolean
   // exposed directly in /info
   // publicConfig: any
 }

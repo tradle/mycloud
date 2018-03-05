@@ -12,7 +12,7 @@ import {
 
 import { defineGetter } from '../../utils'
 import { MODELS_HASH_PROPERTY } from '../constants'
-import { Middleware } from '../types'
+import { Middleware, IBotComponents } from '../types'
 
 export const keepModelsFresh = (lambda:Lambda, components) => {
   const { bot } = lambda
@@ -50,8 +50,8 @@ export const keepModelsFresh = (lambda:Lambda, components) => {
   }
 }
 
-export const createAuth = (lambda: Lambda, components) => {
-  const allowGuest = lambda.stage === 'dev'
+export const createAuth = (lambda: Lambda, components:IBotComponents) => {
+  const allowGuest = components.conf.bot.graphqlAuth == false
   const { employeeManager } = components
   return createGraphqlAuthHandler(lambda, {
     allowGuest,
