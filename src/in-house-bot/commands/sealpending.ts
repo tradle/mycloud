@@ -16,10 +16,10 @@ export const command:ICommand = {
   },
   sendResult: async ({ commander, req, to, result }) => {
     // TODO: link to application
-    await commander.sendSimpleMessage({
-      req,
-      to,
-      message: `sealed ${result.length} pending seals`
-    })
+    const message = result.length
+      ? `wrote ${result.length} pending seals`
+      : 'no seals pending'
+
+    await commander.sendSimpleMessage({ req, to, message })
   }
 }
