@@ -472,10 +472,11 @@ ${this.genUsageInstructions(links)}`
     const stage = getStageFromTemplate(template)
     const service = normalizeStackName(stackPrefix)
     const dInit: Partial<IMyDeploymentConf> = {
-      deploymentUUID: utils.uuid(),
-      referrerUrl: this.bot.apiBaseUrl,
       service,
-      stackName: this.bot.stackUtils.genStackName({ service, stage })
+      stage,
+      stackName: this.bot.stackUtils.genStackName({ service, stage }),
+      referrerUrl: this.bot.apiBaseUrl,
+      deploymentUUID: utils.uuid()
     }
 
     deployment.init = dInit
