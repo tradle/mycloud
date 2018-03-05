@@ -225,7 +225,9 @@ export default function createProductsBot ({
       productsAPI
     }), true)) // prepend
 
-    if (conf.termsAndConditions) {
+    if (plugins.termsAndConditions &&
+      plugins.termsAndConditions.enabled &&
+      conf.termsAndConditions) {
       const tcPlugin = createTsAndCsPlugin({
         termsAndConditions: conf.termsAndConditions,
         productsAPI,

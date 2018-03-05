@@ -1,7 +1,7 @@
 import crypto = require('crypto')
 import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
-import { DatedValue } from '../../types'
+import { DatedValue, Conf } from '../types'
 import Logger from '../../logger'
 import { Remediation } from '../remediation'
 
@@ -124,4 +124,15 @@ export const ensureAccepted = async ({
 
   logger.debug(`${user.id} has still not accepted T's and C's!`)
   return false
+}
+
+export const validateConf = async ({ conf, pluginConf }: {
+  conf: Conf,
+  pluginConf: any
+}) => {
+  if ('enabled' in pluginConf) {
+    if (typeof pluginConf.enabled !== 'boolean') {
+      throw new Error('expected boolean "enabled"')
+    }
+  }
 }
