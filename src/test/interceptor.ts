@@ -1,7 +1,7 @@
-import path = require('path')
-import _ = require('lodash')
-import sinon = require('sinon')
-import serverlessYml = require('../cli/serverless-yml')
+import path from 'path'
+import _ from 'lodash'
+import sinon from 'sinon'
+import serverlessYml from '../cli/serverless-yml'
 import { promisify } from '../utils'
 
 interface Sandbox extends sinon.SinonSandbox {

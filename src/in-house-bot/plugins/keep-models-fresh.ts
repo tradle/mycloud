@@ -1,6 +1,6 @@
-import _ = require('lodash')
-import ModelsPack = require('@tradle/models-pack')
-import baseModels = require('../../models')
+import _ from 'lodash'
+import ModelsPack from '@tradle/models-pack'
+import baseModels from '../../models'
 import { isPromise, stableStringify } from '../../utils'
 import { MODELS_HASH_PROPERTY as PROPERTY } from '../constants'
 

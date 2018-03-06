@@ -1,4 +1,4 @@
-import parse = require('yargs-parser')
+import parse from 'yargs-parser'
 import { ICommand } from '../types'
 
 export const command:ICommand = {

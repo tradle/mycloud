@@ -2,8 +2,8 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import path = require('path')
-import fs = require('fs')
+import path from 'path'
+import fs from 'fs'
 import { getTableDefinitions } from '../cli/utils'
 
 const defFilePath = path.resolve(__dirname, '../definitions.json')

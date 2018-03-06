@@ -1,5 +1,5 @@
-import _ = require('lodash')
-import buildResource = require('@tradle/build-resource')
+import _ from 'lodash'
+import buildResource from '@tradle/build-resource'
 import { TYPE } from '@tradle/constants'
 import {
   parseId,
@@ -19,7 +19,7 @@ import {
 } from './types'
 
 import { getRecordsFromEvent } from './db-utils'
-import Errors = require('./errors')
+import Errors from './errors'
 
 interface ResourceProperty extends ParsedResourceStub {
   property: string

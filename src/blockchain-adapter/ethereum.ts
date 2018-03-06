@@ -1,9 +1,9 @@
 
-import Wallet = require('ethereumjs-wallet')
-import BN = require('bn.js')
-import promisify = require('pify')
-import fetch = require('node-fetch')
-import Network = require('@tradle/ethereum-adapter')
+import Wallet from 'ethereumjs-wallet'
+import BN from 'bn.js'
+import promisify from 'pify'
+import fetch from 'node-fetch'
+import Network from '@tradle/ethereum-adapter'
 import { processResponse } from '../utils'
 
 const debug = require('debug')('tradle:sls:ethereum-adapter')

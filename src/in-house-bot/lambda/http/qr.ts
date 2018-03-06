@@ -1,6 +1,6 @@
-import _ = require('lodash')
-import QR = require('@tradle/qr')
-import promisify = require('pify')
+import _ from 'lodash'
+import QR from '@tradle/qr'
+import promisify from 'pify'
 import * as Koa from 'koa'
 import { createBot } from '../../../bot'
 import { EventSource } from '../../../lambda'

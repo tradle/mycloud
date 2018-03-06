@@ -1,6 +1,6 @@
-// import path = require('path')
-// import fs = require('fs')
-// import mkdirp = require('mkdirp')
+// import path from 'path'
+// import fs from 'fs'
+// import mkdirp from 'mkdirp'
 import { Lambda } from 'aws-sdk'
 import { promisify } from './utils'
 import { Logger, Env, LambdaUtils, StackUtils } from './types'

@@ -6,8 +6,8 @@ import { loadCredentials } from '../cli/utils'
 
 loadCredentials()
 
-import yn = require('yn')
-import readline = require('readline')
+import yn from 'yn'
+import readline from 'readline'
 import { createRemoteTradle } from '../'
 
 const { aws, env, dbUtils } = createRemoteTradle()

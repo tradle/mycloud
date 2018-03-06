@@ -1,5 +1,5 @@
-import QS = require('querystring')
-import _ = require('lodash')
+import QS from 'querystring'
+import _ from 'lodash'
 import { Env } from './env'
 import { Seals } from './seals'
 import { Tradle } from './tradle'

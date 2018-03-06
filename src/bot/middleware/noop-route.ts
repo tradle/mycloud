@@ -1,4 +1,4 @@
-import Router = require('koa-router')
+import Router from 'koa-router'
 
 export const route = (methods:string|string[], path:string='/') => {
   const router = new Router()

@@ -1,16 +1,16 @@
 require('./env').install()
 
 // const awsMock = require('aws-sdk-mock')
-import _ = require('lodash')
-import AWS = require('aws-sdk')
+import _ from 'lodash'
+import AWS from 'aws-sdk'
 AWS.config.paramValidation = false
 
-import yn = require('yn')
-import test = require('tape')
-import pify = require('pify')
-import ecdsa = require('nkey-ecdsa')
-import sinon = require('sinon')
-import tradle = require('@tradle/engine')
+import yn from 'yn'
+import test from 'tape'
+import pify from 'pify'
+import ecdsa from 'nkey-ecdsa'
+import sinon from 'sinon'
+import tradle from '@tradle/engine'
 import {
   extractSigPubKey,
   exportKeys,
@@ -21,7 +21,7 @@ import {
 } from '../crypto'
 
 import { loudAsync, co, typeforce, pickVirtual, omitVirtual } from '../utils'
-import Errors = require('../errors')
+import Errors from '../errors'
 import {
   SIG,
   SEQ,
@@ -31,7 +31,7 @@ import {
 } from '../constants'
 
 import { createTestTradle } from '../'
-import types = require('../typeforce-types')
+import * as types from '../typeforce-types'
 
 const { newIdentity } = tradle.utils
 const { MESSAGE } = TYPES

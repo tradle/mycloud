@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { TYPE, SIG } from '@tradle/constants'
 import {
   IPluginOpts,
@@ -8,7 +8,7 @@ import {
 } from '../types'
 
 import { parseStub, omitVirtual, toUnsigned } from '../../utils'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 
 export const name = 'prefillFromDraft'
 export function createPlugin ({

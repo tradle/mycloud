@@ -1,4 +1,4 @@
-import parse = require('yargs-parser')
+import parse from 'yargs-parser'
 import { TYPE } from '@tradle/constants'
 import { ICommand } from '../types'
 

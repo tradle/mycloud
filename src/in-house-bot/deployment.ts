@@ -1,8 +1,8 @@
-import _ = require('lodash')
+import _ from 'lodash'
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { TYPE } from '@tradle/constants'
-import buildResource = require('@tradle/build-resource')
+import buildResource from '@tradle/build-resource'
 import { appLinks } from '../app-links'
 import {
   Env,
@@ -25,7 +25,7 @@ import {
 } from './types'
 
 import { media } from './media'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'

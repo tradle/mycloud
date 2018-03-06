@@ -1,4 +1,4 @@
-import YAML = require('js-yaml')
+import YAML from 'js-yaml'
 
 const serverlessYml = require('../serverless-interpolated')
 const { Resources } = serverlessYml.resources

@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { sendSuccess, sendError } from '../../cfn-response'
 import { Lambda } from '../../types'
 import { EventSource, fromCloudFormation } from '../lambda'

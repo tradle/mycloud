@@ -1,6 +1,6 @@
 
-import promisify = require('pify')
-import IotMessage = require('@tradle/iot-message')
+import promisify from 'pify'
+import IotMessage from '@tradle/iot-message'
 import { cachifyPromiser } from './utils'
 const DEFAULT_QOS = 1
 

@@ -7,15 +7,15 @@ require('source-map-support').install()
 import './globals'
 
 import { EventEmitter } from 'events'
-import fs = require('fs')
-import _ = require('lodash')
+import fs from 'fs'
+import _ from 'lodash'
 
 // @ts-ignore
-import Promise = require('bluebird')
-import compose = require('koa-compose')
+import Promise from 'bluebird'
+import compose from 'koa-compose'
 import * as Koa from 'koa'
-import caseless = require('caseless')
-import randomName = require('random-name')
+import caseless from 'caseless'
+import randomName from 'random-name'
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
@@ -31,7 +31,7 @@ import {
   ILambdaOpts
 } from './types'
 
-import Errors = require('./errors')
+import Errors from './errors'
 import {
   defineGetter,
   timeoutIn,

@@ -1,6 +1,6 @@
-import os = require('os')
-import path = require('path')
-import fs = require('fs')
+import os from 'os'
+import path from 'path'
+import fs from 'fs'
 
 /**
  * Save a repl's history

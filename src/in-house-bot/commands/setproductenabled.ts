@@ -1,5 +1,5 @@
-import yn = require('yn')
-import parse = require('yargs-parser')
+import yn from 'yn'
+import parse from 'yargs-parser'
 import { toggleProduct } from '../utils'
 import { ICommand } from '../types'
 

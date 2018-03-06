@@ -1,5 +1,5 @@
-import path = require('path')
-import fs = require('fs')
+import path from 'path'
+import fs from 'fs'
 
 fs.readdirSync(__dirname).forEach(file => {
   if (file.endsWith('.test.js')) {

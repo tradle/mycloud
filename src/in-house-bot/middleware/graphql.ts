@@ -1,5 +1,5 @@
-import compose = require('koa-compose')
-import cors = require('kcors')
+import compose from 'koa-compose'
+import cors from 'kcors'
 import { pick } from 'lodash'
 import { bodyParser } from '../../bot/middleware/body-parser'
 import { createHandler as createGraphqlHandler } from '../../bot/middleware/graphql'

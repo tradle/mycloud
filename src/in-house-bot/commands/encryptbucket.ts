@@ -1,7 +1,7 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import yn = require('yn')
-import parse = require('yargs-parser')
+import yn from 'yn'
+import parse from 'yargs-parser'
 import { ICommand } from '../types'
 
 const ENC_OPTS = ['kmsKeyId']

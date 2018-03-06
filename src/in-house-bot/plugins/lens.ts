@@ -1,8 +1,8 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { TYPE, SIG, PERMALINK } from '@tradle/constants'
-import Lens = require('@tradle/lens')
-import buildResource = require('@tradle/build-resource')
-import validateResource = require('@tradle/validate-resource')
+import Lens from '@tradle/lens'
+import buildResource from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
 import { Conf } from '../configure'
 import { parseId } from '../../utils'
 import { Bot, Logger, IPBApp, IPBReq, IPluginOpts } from '../types'

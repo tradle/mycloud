@@ -1,5 +1,5 @@
-import querystring = require('querystring')
-import _ = require('lodash')
+import querystring from 'querystring'
+import _ from 'lodash'
 import { parseStub } from '../../utils'
 import { TYPE } from '@tradle/constants'
 import { prettify } from '../../string-utils'
@@ -14,8 +14,8 @@ import {
   Conf
 } from '../types'
 
-import Errors = require('../../errors')
-import constants = require('../../constants')
+import Errors from '../../errors'
+import constants from '../../constants'
 import { createDeployment } from '../deployment'
 
 const { WEB_APP_URL } = constants

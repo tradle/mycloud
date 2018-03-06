@@ -1,8 +1,8 @@
 // @ts-ignore
-import Promise = require('bluebird')
-import _ = require('lodash')
+import Promise from 'bluebird'
+import _ from 'lodash'
 import { SIG } from '@tradle/constants'
-import engine = require('@tradle/engine')
+import engine from '@tradle/engine'
 import { Bot } from '../../bot'
 
 type ValuesFilterInput = {

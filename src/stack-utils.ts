@@ -1,7 +1,7 @@
-import querystring = require('querystring')
-import _ = require('lodash')
+import querystring from 'querystring'
+import _ from 'lodash'
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { Lambda } from 'aws-sdk'
 import {
   Env,
@@ -15,7 +15,7 @@ import {
   IServiceMap
 } from './types'
 
-import Errors = require('./errors')
+import Errors from './errors'
 import * as utils from './utils'
 import { randomString } from './crypto'
 import {

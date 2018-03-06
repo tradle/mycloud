@@ -3,7 +3,7 @@
  * AWS Mailer
  */
 
-import _ = require('lodash')
+import _ from 'lodash'
 import { SES } from 'aws-sdk'
 import {
   AwsApis,

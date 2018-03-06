@@ -1,6 +1,6 @@
 // @ts-ignore
-import Promise = require('bluebird')
-import compose = require('koa-compose')
+import Promise from 'bluebird'
+import compose from 'koa-compose'
 import { Lambda } from '../../types'
 import { fromLambda } from '../lambda'
 import { onMessage as onIotMessage, createSuccessHandler, createErrorHandler } from '../middleware/oniotmessage'

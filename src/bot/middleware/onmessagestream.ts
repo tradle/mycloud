@@ -1,8 +1,8 @@
 // @ts-ignore
-import Promise = require('bluebird')
-import _ = require('lodash')
+import Promise from 'bluebird'
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 import { getRecordsFromEvent } from '../../db-utils'
 import {
   batchProcess,

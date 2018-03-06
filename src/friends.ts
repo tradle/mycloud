@@ -1,9 +1,9 @@
-import _ = require('lodash')
-import lexint = require('lexicographic-integer')
-import Cache = require('lru-cache')
-import fetch = require('node-fetch')
+import _ from 'lodash'
+import lexint from 'lexicographic-integer'
+import Cache from 'lru-cache'
+import fetch from 'node-fetch'
 import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
-import buildResource = require('@tradle/build-resource')
+import buildResource from '@tradle/build-resource'
 import { addLinks } from './crypto'
 import { get, cachifyFunction } from './utils'
 import {
@@ -17,7 +17,7 @@ import {
   Models
 } from './types'
 
-import Errors = require('./errors')
+import Errors from './errors'
 const definitions = require('./definitions')
 const tableDef = definitions.FriendsTable
 const timeIsString = tableDef.Properties.AttributeDefinitions.find(({ AttributeName }) => {

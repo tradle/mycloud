@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { Bucket, DatedValue } from './types'
 
 export class CacheableBucketItem {

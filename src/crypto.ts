@@ -1,10 +1,10 @@
 require('source-map-support').install()
 
-import crypto = require('crypto')
-import _ = require('lodash')
-import stringify = require('json-stable-stringify')
-import KeyEncoder = require('key-encoder')
-import promisify = require('pify')
+import crypto from 'crypto'
+import _ from 'lodash'
+import stringify from 'json-stable-stringify'
+import KeyEncoder from 'key-encoder'
+import promisify from 'pify'
 import { protocol, utils, constants } from '@tradle/engine'
 import {
   toBuffer,

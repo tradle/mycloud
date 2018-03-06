@@ -1,11 +1,11 @@
 const debug = require('debug')('tradle:sls:db-utils')
-import _ = require('lodash')
+import _ from 'lodash'
 import {
   marshalItem as marshalDBItem,
   unmarshalItem as unmarshalDBItem
 } from 'dynamodb-marshaler'
 
-import dynogels = require('dynogels')
+import dynogels from 'dynogels'
 import { utils as vrUtils } from '@tradle/validate-resource'
 import { Level } from './logger'
 import { NotFound } from './errors'
@@ -19,7 +19,7 @@ import {
 
 import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
-import Errors = require('./errors')
+import Errors from './errors'
 import { Env } from './types'
 
 type Batch = {

@@ -4,7 +4,7 @@ import { toCamelCase, splitCamelCase } from './string-utils'
 import { Seals } from './seals'
 import { Blockchain } from './blockchain'
 import { TaskManager } from './task-manager'
-import constants = require('./constants')
+import constants from './constants'
 
 import {
   Provider,

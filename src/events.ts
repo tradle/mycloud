@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { randomString } from './crypto'
 
 const notNull = obj => !!obj

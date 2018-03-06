@@ -1,4 +1,4 @@
-import querystring = require('querystring')
+import querystring from 'querystring'
 import { Lambda } from '../../types'
 import { fromSchedule } from '../lambda'
 import { get } from '../../utils'

@@ -1,7 +1,7 @@
 // const debug = require('debug')('tradle:sls:errors')
-import _ = require('lodash')
+import _ from 'lodash'
 
-import ex = require('error-ex')
+import ex from 'error-ex'
 import { AssertionError } from 'assert'
 import { TfTypeError, TfPropertyTypeError } from 'typeforce'
 

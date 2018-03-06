@@ -1,9 +1,9 @@
 // const Cache = require('lru-cache')
-import _ = require('lodash')
+import _ from 'lodash'
 import { EventEmitter } from 'events'
 import { co } from '../utils'
 import { getUpdateParams } from '../db-utils'
-import Errors = require('../errors')
+import Errors from '../errors'
 const PRIMARY_KEY = 'id'
 
 export = function createUsers ({ table, oncreate }) {

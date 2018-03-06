@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import path = require('path')
-import fs = require('fs')
+import path from 'path'
+import fs from 'fs'
 if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
   throw new Error('expected vars.yml file')
 }
 
-import promisify = require('pify')
-import _proc = require('child_process')
+import promisify from 'pify'
+import _proc from 'child_process'
 import { omit } from 'lodash'
 
 const proc = promisify(_proc)

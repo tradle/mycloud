@@ -1,5 +1,5 @@
-import _ = require('lodash')
-import mergeSorted = require('merge-sorted')
+import _ from 'lodash'
+import mergeSorted from 'merge-sorted'
 import { Table, createTable, utils, constants } from '@tradle/dynamodb'
 
 const { getQueryInfo } = utils

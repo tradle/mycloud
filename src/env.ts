@@ -2,9 +2,9 @@
 import './globals'
 // import './console'
 
-import yn = require('yn')
-import debug = require('debug')
-import randomName = require('random-name')
+import yn from 'yn'
+import debug from 'debug'
+import randomName from 'random-name'
 import { allSettled, RESOLVED_PROMISE } from './utils'
 import { randomString } from './crypto'
 import {

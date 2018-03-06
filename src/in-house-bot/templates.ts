@@ -1,6 +1,6 @@
-import fs = require('fs')
-import path = require('path')
-import nunjucks = require('nunjucks')
+import fs from 'fs'
+import path from 'path'
+import nunjucks from 'nunjucks'
 
 type Render = (args:any) => string
 

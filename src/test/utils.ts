@@ -1,10 +1,10 @@
 require('./env').install()
 
-import randomName = require('random-name')
+import randomName from 'random-name'
 import { co } from '../utils'
 import { createTestTradle } from '../'
-import Errors = require('../errors')
-import yml = require('../cli/serverless-yml')
+import Errors from '../errors'
+import yml from '../cli/serverless-yml'
 import Logger from '../logger'
 
 const tradle = createTestTradle()

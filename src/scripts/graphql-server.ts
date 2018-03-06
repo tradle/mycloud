@@ -2,12 +2,12 @@
 
 require('source-map-support').install()
 
-import path = require('path')
-import loadDockerEnv = require('node-env-file')
+import path from 'path'
+import loadDockerEnv from 'node-env-file'
 loadDockerEnv(path.resolve(__dirname, '../../docker/.env'))
 
 import { loadCredentials, loadRemoteEnv } from '../cli/utils'
-import dynogels = require('dynogels')
+import dynogels from 'dynogels'
 // import { createBot } from '../in-house-bot/bot'
 // import sampleQueries from '../in-house-bot/sample-queries'
 
@@ -34,7 +34,7 @@ dynogels.log = {
   level: 'info'
 }
 
-import lambda = require('../in-house-bot/lambda/http/graphql')
+import lambda from '../in-house-bot/lambda/http/graphql'
 // lambda.execCtx = {
 //   event: {}
 // }

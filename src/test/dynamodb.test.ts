@@ -1,7 +1,7 @@
 require('./env').install()
 
-import sinon = require('sinon')
-import AWS = require('aws-sdk')
+import sinon from 'sinon'
+import AWS from 'aws-sdk'
 AWS.config.update({
   maxRetries: 0,
   retryDelayOptions: {
@@ -17,7 +17,7 @@ AWS.config.update({
   }
 })
 
-import test = require('tape')
+import test from 'tape'
 import { createTestTradle  } from '../'
 import { loudAsync } from '../utils'
 

@@ -1,9 +1,9 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import Debug from 'debug'
 import { utils } from '@tradle/engine'
 import { DB } from '@tradle/dynamodb'
-import Embed = require('@tradle/embed')
-import buildResource = require('@tradle/build-resource')
+import Embed from '@tradle/embed'
+import buildResource from '@tradle/build-resource'
 import { ECKey, sign, getSigningKey, getChainKey, getPermalink, addLinks } from './crypto'
 import {
   cachifyPromiser,
@@ -20,8 +20,8 @@ import {
   copyVirtual
 } from './utils'
 
-import Errors = require('./errors')
-import types = require('./typeforce-types')
+import Errors from './errors'
+import * as types from './typeforce-types'
 import Env from './env'
 import {
   IDENTITY_KEYS_KEY,

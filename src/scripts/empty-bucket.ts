@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import path = require('path')
-import promisify = require('pify')
-import minimist = require('minimist')
-import AWS = require('aws-sdk')
+import path from 'path'
+import promisify from 'pify'
+import minimist from 'minimist'
+import AWS from 'aws-sdk'
 import { Logger } from '../logger'
 import { createAWSWrapper } from '../aws'
 import { Env } from '../env'

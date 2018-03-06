@@ -1,9 +1,9 @@
 import { EventSource } from '../../../lambda'
-import cors = require('kcors')
+import cors from 'kcors'
 import { createBot } from '../../../bot'
 import { customize } from '../../customize'
 import { post } from '../../../bot/middleware/noop-route'
-import Errors = require('../../../errors')
+import Errors from '../../../errors'
 
 const bot = createBot({ ready: false })
 const lambda = bot.createLambda({ source: EventSource.HTTP })

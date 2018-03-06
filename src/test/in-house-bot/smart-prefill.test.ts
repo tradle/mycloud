@@ -1,15 +1,15 @@
 require('../env').install()
 
-import _ = require('lodash')
-import test = require('tape')
-import sinon = require('sinon')
+import _ from 'lodash'
+import test from 'tape'
+import sinon from 'sinon'
 import { TYPE, SIG, OWNER } from '@tradle/constants'
 import { SmartPrefill } from '../../in-house-bot/plugins/smart-prefill'
 import { loudAsync } from '../../utils'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 import { createBot } from '../../bot'
 import { TYPES } from '../../in-house-bot/constants'
-import models = require('../../models')
+import models from '../../models'
 
 const PHOTO_ID = 'tradle.PhotoID'
 const passportScan = {

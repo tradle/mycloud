@@ -1,4 +1,4 @@
-import AWS = require('aws-sdk')
+import AWS from 'aws-sdk'
 import { createConf } from '../configure'
 import { createBot } from '../../bot'
 

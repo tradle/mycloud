@@ -1,10 +1,10 @@
-import path = require('path')
-import AWS = require('aws-sdk')
-import _ = require('lodash')
+import path from 'path'
+import AWS from 'aws-sdk'
+import _ from 'lodash'
 import { S3Utils, createUtils, PutOpts } from './s3-utils'
 import Logger from './logger'
 import { cachify } from './utils'
-import Errors = require('./errors')
+import Errors from './errors'
 import Env from './env'
 
 type BucketOpts = {

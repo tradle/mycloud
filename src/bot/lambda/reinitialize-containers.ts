@@ -1,4 +1,4 @@
-import serverlessYml = require('../../cli/serverless-yml')
+import serverlessYml from '../../cli/serverless-yml'
 import { Lambda } from '../../types'
 import { fromLambda } from '../lambda'
 

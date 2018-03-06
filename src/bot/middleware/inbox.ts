@@ -1,8 +1,8 @@
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { Lambda } from '../../types'
 import { fromDynamoDB } from '../lambda'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 
 const notNull = val => !!val
 const promiseNoop = async () => {}

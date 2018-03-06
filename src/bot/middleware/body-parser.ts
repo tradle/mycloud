@@ -1,5 +1,5 @@
-import compose = require('koa-compose')
-import koaBody = require('koa-body')
+import compose from 'koa-compose'
+import koaBody from 'koa-body'
 
 export const bodyParser = (opts?:any) => {
   const parser = koaBody(opts)

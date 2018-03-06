@@ -1,12 +1,12 @@
 require('./env').install()
 
-import crypto = require('crypto')
-import _ = require('lodash')
-import test = require('tape')
-import sinon = require('sinon')
+import crypto from 'crypto'
+import _ from 'lodash'
+import test from 'tape'
+import sinon from 'sinon'
 import * as cfnResponse from '../cfn-response'
 import { TYPE, SEQ, SIG } from '@tradle/constants'
-import IotMessage = require('@tradle/iot-message')
+import IotMessage from '@tradle/iot-message'
 import { utils as tradleUtils } from '@tradle/engine'
 import {
   ILambdaAWSExecutionContext
@@ -16,7 +16,7 @@ import { createBot } from '../bot'
 import { createGraphqlAPI } from '../bot/graphql'
 import { loudAsync, wait } from '../utils'
 import { toStreamItems, recreateTable } from './utils'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { models as PingPongModels } from '../bot/ping-pong-models'
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')

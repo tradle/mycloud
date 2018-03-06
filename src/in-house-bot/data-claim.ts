@@ -1,5 +1,5 @@
 import { findKey } from 'lodash'
-import protobuf = require('protocol-buffers')
+import protobuf from 'protocol-buffers'
 import {
   ClaimType,
   ClaimStub

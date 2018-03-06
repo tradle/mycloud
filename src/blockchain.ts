@@ -8,7 +8,7 @@ import {
   Tradle
 } from './types'
 
-import Errors = require('./errors')
+import Errors from './errors'
 
 // interface IBlockchainIdentifier {
 //   flavor: string,

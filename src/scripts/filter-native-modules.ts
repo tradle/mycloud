@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import path = require('path')
+import path from 'path'
 import { getNativeModules } from '../cli/utils'
 import { uniqueStrict } from '../utils'
 

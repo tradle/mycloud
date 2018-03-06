@@ -7,9 +7,9 @@
    See the License for the specific language governing permissions and limitations under the License. */
 
 // @ts-ignore
-import Promise = require('bluebird')
-import https = require('https')
-import url = require('url')
+import Promise from 'bluebird'
+import https from 'https'
+import url from 'url'
 
 export const SUCCESS = 'SUCCESS'
 export const FAILED = 'FAILED'

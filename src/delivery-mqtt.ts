@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
-import _ = require('lodash')
+import _ from 'lodash'
 import { SEQ } from '@tradle/constants'
-import Errors = require('./errors')
+import Errors from './errors'
 import { typeforce, omitVirtual, batchByByteLength, bindAll } from './utils'
 import { getLink } from './crypto'
 import {

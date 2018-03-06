@@ -1,4 +1,4 @@
-import fs = require('fs')
+import fs from 'fs'
 import { wait } from '../utils'
 import { WARMUP_SOURCE_NAME, WARMUP_SLEEP } from '../constants'
 

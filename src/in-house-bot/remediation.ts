@@ -1,15 +1,15 @@
-import _ = require('lodash')
-import createError = require('error-ex')
+import _ from 'lodash'
+import createError from 'error-ex'
 // @ts-ignore
-import Promise = require('bluebird')
-import crypto = require('crypto')
-import QR = require('@tradle/qr-schema')
+import Promise from 'bluebird'
+import crypto from 'crypto'
+import QR from '@tradle/qr-schema'
 // import { createPlugin as createRemediationPlugin, Remediation } from './plugins/remediation'
 import { TYPE, SIG, OWNER } from '@tradle/constants'
-import validateResource = require('@tradle/validate-resource')
-import buildResource = require('@tradle/build-resource')
-import baseModels = require('../models')
-import Errors = require('../errors')
+import validateResource from '@tradle/validate-resource'
+import buildResource from '@tradle/build-resource'
+import baseModels from '../models'
+import Errors from '../errors'
 import { TYPES } from './constants'
 import { ContentAddressedStore } from '../content-addressed-store'
 import { stubToId, idToStub } from './data-claim'

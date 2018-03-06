@@ -1,9 +1,9 @@
 
-import readline = require('readline')
-import yn = require('yn')
+import readline from 'readline'
+import yn from 'yn'
 import Logger, { Writer } from '../logger'
 import Env from '../env'
-import testServiceMap = require('../test/service-map')
+import testServiceMap from '../test/service-map'
 import { customize } from '../in-house-bot/customize'
 import { createBot } from '../bot'
 import { list as listCommands, get as getCommand } from './registrar'

@@ -1,8 +1,8 @@
 // @ts-ignore
-import Promise = require('bluebird')
-import _ = require('lodash')
+import Promise from 'bluebird'
+import _ from 'lodash'
 import { Logger } from './types'
-import Errors = require('./errors')
+import Errors from './errors'
 
 type ShouldRetry = (err) => boolean
 

@@ -1,4 +1,4 @@
-import proc = require('child_process')
+import proc from 'child_process'
 const pkg = require('../../package.json')
 const modules = process.argv.slice(2)
 

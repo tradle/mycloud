@@ -1,11 +1,11 @@
-import _ = require('lodash')
+import _ from 'lodash'
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { omitVirtual, bindAll, RESOLVED_PROMISE } from './utils'
 import { prettify } from './string-utils'
 import { PUBLIC_CONF_BUCKET, SEQ } from './constants'
-import Errors = require('./errors')
-import types = require('./typeforce-types')
+import Errors from './errors'
+import * as types from './typeforce-types'
 import Env from './env'
 import Logger from './logger'
 import Auth from './auth'

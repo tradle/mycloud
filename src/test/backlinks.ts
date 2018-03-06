@@ -1,13 +1,13 @@
 require('./env').install()
 
-import test = require('tape')
-import _ = require('lodash')
-import sinon = require('sinon')
+import test from 'tape'
+import _ from 'lodash'
+import sinon from 'sinon'
 import { TYPE, SIG, PREVLINK, PERMALINK } from '@tradle/constants'
-import buildResource = require('@tradle/build-resource')
-import models = require('../models')
+import buildResource from '@tradle/build-resource'
+import models from '../models'
 import { Backlinks } from '../backlinks'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { loudAsync, setVirtual, parseId } from '../utils'
 import { IIdentity } from '../types'
 import { createTestTradle } from '../'

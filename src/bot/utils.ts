@@ -1,12 +1,12 @@
-import _ = require('lodash')
-import typeforce = require('typeforce')
+import _ from 'lodash'
+import typeforce from 'typeforce'
 import { TYPE, SIG } from '@tradle/constants'
-import buildResource = require('@tradle/build-resource')
-import validateResource = require('@tradle/validate-resource')
-import crypto = require('../crypto')
-import Errors = require('../errors')
+import buildResource from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+import * as crypto from '../crypto'
+import Errors from '../errors'
 import { prettify } from '../string-utils'
-import types = require('../typeforce-types')
+import * as types from '../typeforce-types'
 import { DB_IGNORE_PAYLOAD_TYPES } from '../constants'
 
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'

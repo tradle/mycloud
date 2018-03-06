@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 
 const base = _.extend(
   {},

@@ -13,11 +13,11 @@
 
 require('source-map-support').install()
 
-import proc = require('child_process')
-import fetch = require('node-fetch')
-import YAML = require('js-yaml')
-import co = require('co')
-import buildResource = require('@tradle/build-resource')
+import proc from 'child_process'
+import fetch from 'node-fetch'
+import YAML from 'js-yaml'
+import co from 'co'
+import buildResource from '@tradle/build-resource'
 import { PERMALINK } from '@tradle/constants'
 
 const info = proc.execSync('sls info', {

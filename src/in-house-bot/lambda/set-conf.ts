@@ -1,5 +1,5 @@
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { EventSource } from '../../lambda'
 import { Conf, createConf } from '../configure'
 import { createBot } from '../../bot'

@@ -1,5 +1,5 @@
 
-import Cache = require('lru-cache')
+import Cache from 'lru-cache'
 import { Bucket } from './bucket'
 import { IBucketsInfo, Buckets } from './types'
 import { cachify, isPromise } from './utils'

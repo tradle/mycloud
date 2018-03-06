@@ -1,5 +1,5 @@
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { graphql, introspectionQuery, buildClientSchema } from 'graphql'
 import { print } from 'graphql/language/printer'
 import { parse } from 'graphql/language/parser'

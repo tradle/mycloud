@@ -1,20 +1,20 @@
 require('./env').install()
 
 // @ts-ignore
-import Promise = require('bluebird')
-import _ = require('lodash')
-import IotMessage = require('@tradle/iot-message')
+import Promise from 'bluebird'
+import _ from 'lodash'
+import IotMessage from '@tradle/iot-message'
 import { EventEmitter } from 'events'
-import nock = require('nock')
-import assert = require('assert')
-import nodeCrypto = require('crypto')
+import nock from 'nock'
+import assert from 'assert'
+import nodeCrypto from 'crypto'
 import { TYPE, TYPES, SIG, SEQ } from '@tradle/constants'
-import buildResource = require('@tradle/build-resource')
-import validateResource = require('@tradle/validate-resource')
-import mergeModels = require('@tradle/merge-models')
+import buildResource from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+import mergeModels from '@tradle/merge-models'
 import { utils as tradleUtils } from '@tradle/engine'
-// import createProductsStrategy = require('@tradle/bot-products')
-import createEmployeeManager = require('@tradle/bot-employee-manager')
+// import createProductsStrategy from '@tradle/bot-products'
+import createEmployeeManager from '@tradle/bot-employee-manager'
 import { fake as genSample } from '@tradle/gen-samples'
 import { replaceDataUrls } from '@tradle/embed'
 // const dbUtils = require('../db-utils')
@@ -30,8 +30,8 @@ import { genLocalResources } from '../cli/utils'
 import { utils, crypto } from '../'
 // const botFixture = require('./fixtures/bot')
 // const userIdentities = require('./fixtures/users-pem')
-import intercept = require('./interceptor')
-import Errors = require('../errors')
+import intercept from './interceptor'
+import Errors from '../errors'
 const { createTestProfile } = require('./utils')
 const defaultTradleInstance = require('../').tradle
 const { MESSAGE } = TYPES

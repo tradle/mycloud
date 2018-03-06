@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { IPluginOpts, IPluginExports, IPluginLifecycleMethods } from '../types'
 

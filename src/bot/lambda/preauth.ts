@@ -1,5 +1,5 @@
-import cors = require('kcors')
-import compose = require('koa-compose')
+import cors from 'kcors'
+import compose from 'koa-compose'
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
 import { Lambda } from '../../types'

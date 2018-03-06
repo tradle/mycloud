@@ -1,14 +1,14 @@
 
-import superagent = require('superagent')
-import Cache = require('lru-cache')
+import superagent from 'superagent'
+import Cache from 'lru-cache'
 import { protocol } from '@tradle/engine'
-import buildResource = require('@tradle/build-resource')
+import buildResource from '@tradle/build-resource'
 import { ECKey, sha256, randomString } from './crypto'
 import { cachifyFunction, post, omitVirtual } from './utils'
 import Logger from './logger'
 import Provider from './provider'
 import KeyValueTable from './key-value-table'
-import Errors = require('./errors')
+import Errors from './errors'
 import { IIdentity } from './types'
 
 export type Subscriber = {

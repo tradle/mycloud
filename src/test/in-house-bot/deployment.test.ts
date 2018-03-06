@@ -1,19 +1,19 @@
 require('../env').install()
 
-import querystring = require('querystring')
-import _ = require('lodash')
-import test = require('tape')
-import sinon = require('sinon')
+import querystring from 'querystring'
+import _ from 'lodash'
+import test from 'tape'
+import sinon from 'sinon'
 import { TYPE, SIG, OWNER } from '@tradle/constants'
-import fake = require('@tradle/build-resource/fake')
-import buildResource = require('@tradle/build-resource')
+import fake from '@tradle/build-resource/fake'
+import buildResource from '@tradle/build-resource'
 import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 import { createBot } from '../../bot'
 import { createTestTradle } from '../../'
 import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
-import models = require('../../models')
+import models from '../../models'
 import { IMyDeploymentConf, IBotConf, ILaunchReportPayload, IConf } from '../../in-house-bot/types'
 
 const users = require('../fixtures/users.json')

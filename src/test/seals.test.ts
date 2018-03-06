@@ -3,10 +3,10 @@ const nock = require('nock')
 require('./env').install()
 
 // const AWS = require('aws-sdk')
-import QS = require('querystring')
-import _ = require('lodash')
-import test = require('tape')
-import sinon = require('sinon')
+import QS from 'querystring'
+import _ from 'lodash'
+import test from 'tape'
+import sinon from 'sinon'
 import { TYPE, SIG } from '@tradle/constants'
 import { wait, deepClone } from '../utils'
 import { addLinks } from '../crypto'
@@ -14,7 +14,7 @@ import adapters from '../blockchain-adapter'
 import { recreateTable } from './utils'
 import Tradle from '../tradle'
 import { Env } from '../env'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { loudAsync } from '../utils'
 const aliceKeys = require('./fixtures/alice/keys')
 const bobKeys = require('./fixtures/bob/keys')

@@ -1,7 +1,7 @@
-import fs = require('fs')
-import path = require('path')
-import mkdirp = require('mkdirp')
-import minimist = require('minimist')
+import fs from 'fs'
+import path from 'path'
+import mkdirp from 'mkdirp'
+import minimist from 'minimist'
 import Cli from './'
 import createRepl from './repl'
 import { list as listCommands } from './registrar'

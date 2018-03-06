@@ -1,4 +1,4 @@
-import test = require('tape')
+import test from 'tape'
 import { tradle } from '../'
 import { loudCo } from '../utils'
 

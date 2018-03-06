@@ -1,6 +1,6 @@
 import { EventEmitter} from 'events'
-import _ = require('lodash')
-import Pack = require('@tradle/models-pack')
+import _ from 'lodash'
+import Pack from '@tradle/models-pack'
 import { TYPE } from '@tradle/constants'
 import {
   createModelStore as createStore,
@@ -9,7 +9,7 @@ import {
 
 import { Level } from './logger'
 import { CacheableBucketItem } from './cacheable-bucket-item'
-import Errors = require('./errors')
+import Errors from './errors'
 import {
   Tradle,
   Bucket,

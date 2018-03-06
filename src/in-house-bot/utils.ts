@@ -1,10 +1,10 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import { isPromise, pickNonNull, getEnumValueId } from '../utils'
 import { createConf } from './configure'
-import Errors = require('../errors')
-import models = require('../models')
+import Errors from '../errors'
+import models from '../models'
 import { Name, ResourceStub, ICommand, Bot, IPBApp } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)

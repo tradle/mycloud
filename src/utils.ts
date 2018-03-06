@@ -1,12 +1,12 @@
-import fs = require('fs')
-import querystring = require('querystring')
-import crypto = require('crypto')
-import zlib = require('zlib')
+import fs from 'fs'
+import querystring from 'querystring'
+import crypto from 'crypto'
+import zlib from 'zlib'
 import { parse as parseURL } from 'url'
-import _ = require('lodash')
+import _ from 'lodash'
 // allow override promise
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import {
   pick,
   omit,
@@ -17,24 +17,24 @@ import {
   isEqual as deepEqual
 } from 'lodash'
 
-import Cache = require('lru-cache')
-import format = require('string-format')
-import microtime = require('./microtime')
-import typeforce = require('typeforce')
-import bindAll = require('bindall')
-// import clone = require('xtend')
-import traverse = require('traverse')
-import dotProp = require('dot-prop')
+import Cache from 'lru-cache'
+import format from 'string-format'
+import microtime from './microtime'
+import typeforce from 'typeforce'
+import bindAll from 'bindall'
+// import clone from 'xtend'
+import traverse from 'traverse'
+import dotProp from 'dot-prop'
 import { v4 as uuid } from 'uuid'
 import { wrap as co } from 'co'
-import promisify = require('pify')
-import IP = require('ip')
-import isGenerator = require('is-generator-function')
+import promisify from 'pify'
+import IP from 'ip'
+import isGenerator from 'is-generator-function'
 import { encode as encodeDataURI, decode as decodeDataURI } from 'strong-data-uri'
 import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
-import validateResource = require('@tradle/validate-resource')
-import buildResource = require('@tradle/build-resource')
-import fetch = require('node-fetch')
+import validateResource from '@tradle/validate-resource'
+import buildResource from '@tradle/build-resource'
+import fetch from 'node-fetch'
 import { prettify, stableStringify, safeStringify } from './string-utils'
 import {
   SIG,
@@ -45,7 +45,7 @@ import {
   LAUNCH_STACK_BASE_URL
 } from './constants'
 
-import Errors = require('./errors')
+import Errors from './errors'
 import {
   CacheContainer,
   ISettledPromise,
@@ -58,7 +58,7 @@ import {
 import Logger from './logger'
 import Env from './env'
 import Tradle from './tradle'
-import models = require('./models')
+import models from './models'
 
 const BaseObjectModel = models['tradle.Object']
 const debug = require('debug')('tradle:sls:utils')

@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash'
 import { TYPE } from '@tradle/constants'
-import buildResource = require('@tradle/build-resource')
+import buildResource from '@tradle/build-resource'
 import { IPluginOpts, IPluginExports, IPluginLifecycleMethods, Conf } from '../types'
 import { parseStub } from '../../utils'
 

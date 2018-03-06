@@ -1,7 +1,7 @@
 // inspired by
 // http://theburningmonk.com/2017/09/capture-and-forward-correlation-ids-through-different-lambda-event-sources/
 
-import stringifySafe = require('json-stringify-safe')
+import stringifySafe from 'json-stringify-safe'
 
 export const Level = {
   ERROR: 0,

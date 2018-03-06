@@ -1,4 +1,4 @@
-import clone = require('clone')
+import clone from 'clone'
 import { getter, putter, deleter, scanner } from '../utils'
 
 const promiseNoop = async () => {}

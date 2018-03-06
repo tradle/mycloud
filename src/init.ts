@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { utils as tradleUtils } from '@tradle/engine'
 import {
   getLink,
@@ -10,8 +10,8 @@ import {
 } from './crypto'
 
 import { setVirtual, ensureTimestamped } from './utils'
-import Errors = require('./errors')
-import models = require('./models')
+import Errors from './errors'
+import models from './models'
 import {
   TYPE,
   TYPES,

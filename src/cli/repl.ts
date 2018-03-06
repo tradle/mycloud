@@ -1,7 +1,7 @@
-import fs = require('fs')
-import path = require('path')
-import repl = require('repl')
-import co = require('co')
+import fs from 'fs'
+import path from 'path'
+import repl from 'repl'
+import co from 'co'
 import { pick } from 'lodash'
 import installHistory from './repl-history'
 import { isPromise } from '../utils'

@@ -1,5 +1,5 @@
-import _ = require('lodash')
-import AWS = require('aws-sdk')
+import _ from 'lodash'
+import AWS from 'aws-sdk'
 import { TYPE, SIG } from '@tradle/constants'
 import { utils as tradleUtils } from '@tradle/engine'
 import {
@@ -15,7 +15,7 @@ import {
   DB
 } from './types'
 
-import Errors = require('./errors')
+import Errors from './errors'
 import {
   typeforce,
   pickVirtual,

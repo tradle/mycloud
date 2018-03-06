@@ -1,16 +1,16 @@
 // @ts-ignore
-import Promise = require('bluebird')
-import _ = require('lodash')
+import Promise from 'bluebird'
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import validateResource = require('@tradle/validate-resource')
-import buildResource = require('@tradle/build-resource')
-import mergeModels = require('@tradle/merge-models')
-import ModelsPack = require('@tradle/models-pack')
+import validateResource from '@tradle/validate-resource'
+import buildResource from '@tradle/build-resource'
+import mergeModels from '@tradle/merge-models'
+import ModelsPack from '@tradle/models-pack'
 import { Plugins } from './plugins'
 import { Deployment } from './deployment'
-import baseModels = require('../models')
+import baseModels from '../models'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise, post } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
 import { appLinks } from '../app-links'

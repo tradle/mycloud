@@ -1,6 +1,6 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import Errors = require('./errors')
+import Errors from './errors'
 import Env from './env'
 import Logger from './logger'
 import { S3 } from 'aws-sdk'

@@ -1,9 +1,9 @@
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { omit } from 'lodash'
 import { allSettled } from './utils'
 import Logger from './logger'
-import Errors = require('./errors')
+import Errors from './errors'
 import {
   ISettledPromise
 } from './types'

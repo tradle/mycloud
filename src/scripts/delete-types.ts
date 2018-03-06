@@ -2,8 +2,8 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import yn = require('yn')
-import readline = require('readline')
+import yn from 'yn'
+import readline from 'readline'
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'force',

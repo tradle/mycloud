@@ -1,11 +1,11 @@
 require('./env').install()
 
-import test = require('tape')
-import _ = require('lodash')
-import Cache = require('lru-cache')
-import sinon = require('sinon')
+import test from 'tape'
+import _ from 'lodash'
+import Cache from 'lru-cache'
+import sinon from 'sinon'
 import { SIG } from '@tradle/constants'
-import ModelsPack = require('@tradle/models-pack')
+import ModelsPack from '@tradle/models-pack'
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
 import { getFaviconUrl } from '../in-house-bot/image-utils'
@@ -26,13 +26,13 @@ import {
   toModelsMap,
   stableStringify
 } from '../utils'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { Tradle, createTestTradle } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
 import { ModelStore, createModelStore } from '../model-store'
 import { models as PingPongModels } from '../bot/ping-pong-models'
-import constants = require('../constants')
+import constants from '../constants'
 
 const { KVTable } = require('../definitions')
 const aliceKeys = require('./fixtures/alice/keys')

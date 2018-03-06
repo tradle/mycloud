@@ -1,8 +1,8 @@
-import fs = require('fs')
-import path = require('path')
-import juice = require('juice')
-import mkdirp = require('mkdirp')
-import nunjucks = require('nunjucks')
+import fs from 'fs'
+import path from 'path'
+import juice from 'juice'
+import mkdirp from 'mkdirp'
+import nunjucks from 'nunjucks'
 
 const baseDir = path.join(__dirname, '../../assets/in-house-bot/templates')
 const emailsSourceDir = path.join(baseDir, 'raw/emails')
@@ -29,7 +29,7 @@ fs.readdirSync(emailsSourceDir)
     fs.writeFileSync(filePath, template, { encoding: 'utf8' })
   })
 
-// import nunjucks = require('nunjucks')
+// import nunjucks from 'nunjucks'
 
 // // nunjucks.configure(path.join(__dirname, '../../assets/in-house-bot/templates/emails'), {
 // //   autoescape: true,

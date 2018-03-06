@@ -1,10 +1,10 @@
 require('./env').install()
 
-import crypto = require('crypto')
-import test = require('tape')
-import nock = require('nock')
-import sinon = require('sinon')
-import buildResource = require('@tradle/build-resource')
+import crypto from 'crypto'
+import test from 'tape'
+import nock from 'nock'
+import sinon from 'sinon'
+import buildResource from '@tradle/build-resource'
 import Push, { getChallenge, getNotificationData } from '../push'
 import Logger from '../logger'
 import { loudAsync, omitVirtual } from '../utils'

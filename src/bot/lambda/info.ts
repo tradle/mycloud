@@ -1,5 +1,5 @@
-import compose = require('koa-compose')
-import cors = require('kcors')
+import compose from 'koa-compose'
+import cors from 'kcors'
 import { get } from '../middleware/noop-route'
 import { Lambda } from '../../types'
 import { EventSource, fromHTTP } from '../lambda'

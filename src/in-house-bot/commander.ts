@@ -1,4 +1,4 @@
-import parse = require('yargs-parser')
+import parse from 'yargs-parser'
 import { TYPE } from '@tradle/constants'
 import { Errors as ProductBotErrors } from '@tradle/bot-products'
 import {
@@ -13,7 +13,7 @@ import {
 } from './types'
 
 import { parseStub } from '../utils'
-import Errors = require('../errors')
+import Errors from '../errors'
 import * as commands from './commands'
 import Logger from '../logger'
 

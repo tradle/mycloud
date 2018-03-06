@@ -1,7 +1,7 @@
 import { utils as tradleUtils } from '@tradle/engine'
-import validateResource = require('@tradle/validate-resource')
-import constants = require('../../constants')
-import Errors = require('../../errors')
+import validateResource from '@tradle/validate-resource'
+import constants from '../../constants'
+import Errors from '../../errors'
 import { ITradleObject } from '../../types'
 import { isPromise } from '../../utils'
 

@@ -1,4 +1,4 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { getRecordsFromEvent } from '../../db-utils'
 import { batchProcess } from '../../utils'
 import { Lambda } from '../../types'

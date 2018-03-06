@@ -1,6 +1,6 @@
-import dynogels = require('dynogels')
+import dynogels from 'dynogels'
 import { createTable, DB, utils } from '@tradle/dynamodb'
-import AWS = require('aws-sdk')
+import AWS from 'aws-sdk'
 import { createMessagesTable } from './messages-table'
 import { Provider, Friends, Buckets, Env, Logger, Tradle } from './types'
 

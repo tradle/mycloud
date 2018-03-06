@@ -1,5 +1,5 @@
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { EventEmitter } from 'events'
 
 export interface IReady {

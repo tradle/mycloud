@@ -1,5 +1,5 @@
-import rawAWS = require('aws-sdk')
-import AWSXRay = require('aws-xray-sdk')
+import rawAWS from 'aws-sdk'
+import AWSXRay from 'aws-xray-sdk'
 import { createConfig } from './aws-config'
 if (process.env._X_AMZN_TRACE_ID) {
   console.warn('capturing all http requests with AWSXRay')

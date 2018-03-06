@@ -1,6 +1,6 @@
-import OnfidoAPI = require('@tradle/onfido-api')
+import OnfidoAPI from '@tradle/onfido-api'
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 import { Bot, IPluginOpts, IPluginExports, IPBReq, Conf } from '../types'
 import { isLocalUrl } from '../../utils'
 

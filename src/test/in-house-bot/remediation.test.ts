@@ -1,12 +1,12 @@
 require('../env').install()
 
-import _ = require('lodash')
-import test = require('tape')
-import sinon = require('sinon')
+import _ from 'lodash'
+import test from 'tape'
+import sinon from 'sinon'
 import { TYPE, SIG, OWNER } from '@tradle/constants'
-import buildResource = require('@tradle/build-resource')
-import fakeResource = require('@tradle/build-resource/fake')
-import createProductsStrategy = require('@tradle/bot-products')
+import buildResource from '@tradle/build-resource'
+import fakeResource from '@tradle/build-resource/fake'
+import createProductsStrategy from '@tradle/bot-products'
 import { Remediation, idToStub, stubToId } from '../../in-house-bot/remediation'
 import {
   createPlugin as createRemediationPlugin
@@ -16,11 +16,11 @@ import {
 } from '../../in-house-bot/plugins/prefill-from-draft'
 import { loudAsync, parseStub } from '../../utils'
 import { addLinks } from '../../crypto'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 import { Logger } from '../../logger'
 import { createBot } from '../../bot'
 import { TYPES } from '../../in-house-bot/constants'
-import models = require('../../models')
+import models from '../../models'
 import { IPBApp, IPBReq, IFormRequest } from '../../in-house-bot/types'
 
 const users = require('../fixtures/users.json')

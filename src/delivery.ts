@@ -1,5 +1,5 @@
-import _ = require('lodash')
-import validateResource = require('@tradle/validate-resource')
+import _ from 'lodash'
+import validateResource from '@tradle/validate-resource'
 import { EventEmitter } from 'events'
 import { Delivery as DeliveryIot } from './delivery-mqtt'
 import { Delivery as DeliveryHTTP } from './delivery-http'

@@ -1,7 +1,7 @@
 
-import path = require('path')
-import fs = require('fs')
-import caseless = require('caseless')
+import path from 'path'
+import fs from 'fs'
+import caseless from 'caseless'
 import { Conf } from '../configure'
 import * as Onfido from '@tradle/plugin-onfido'
 import { IPlugin, IPlugins } from '../types'

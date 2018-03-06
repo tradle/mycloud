@@ -1,9 +1,9 @@
 import { parse as parseURL, format as formatURL } from 'url'
 // import Jimp = promisify(require('jimp'))
-import promisify = require('pify')
-import DataURI = require('datauri')
-import fetch = require('node-fetch')
-// import request = require('superagent')
+import promisify from 'pify'
+import DataURI from 'datauri'
+import fetch from 'node-fetch'
+// import request from 'superagent'
 import { fetchFavicons } from '@meltwater/fetch-favicon'
 import { domainToUrl } from '../utils'
 

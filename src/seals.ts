@@ -1,8 +1,8 @@
-import _ = require('lodash')
-import AWS = require('aws-sdk')
+import _ from 'lodash'
+import AWS from 'aws-sdk'
 import { DB } from '@tradle/dynamodb'
 import { utils, protocol } from '@tradle/engine'
-import buildResource = require('@tradle/build-resource')
+import buildResource from '@tradle/build-resource'
 import { TYPE } from '@tradle/constants'
 import Blockchain from './blockchain'
 import Provider from './provider'
@@ -18,9 +18,9 @@ import {
 } from './utils'
 import { getLinks } from './crypto'
 import { prettify } from './string-utils'
-import dbUtils = require('./db-utils')
-import types = require('./typeforce-types')
-import Errors = require('./errors')
+import * as dbUtils from './db-utils'
+import * as types from './typeforce-types'
+import Errors from './errors'
 import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'

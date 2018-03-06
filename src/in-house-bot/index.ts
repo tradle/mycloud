@@ -1,12 +1,12 @@
-import crypto = require('crypto')
-import _ = require('lodash')
+import crypto from 'crypto'
+import _ from 'lodash'
 // @ts-ignore
-import Promise = require('bluebird')
+import Promise from 'bluebird'
 import { utils as dynamoUtils, createTable } from '@tradle/dynamodb'
-import createProductsStrategy = require('@tradle/bot-products')
-import createEmployeeManager = require('@tradle/bot-employee-manager')
-import validateResource = require('@tradle/validate-resource')
-import mergeModels = require('@tradle/merge-models')
+import createProductsStrategy from '@tradle/bot-products'
+import createEmployeeManager from '@tradle/bot-employee-manager'
+import validateResource from '@tradle/validate-resource'
+import mergeModels from '@tradle/merge-models'
 import { TYPE } from '@tradle/constants'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
@@ -45,9 +45,9 @@ import {
 } from './types'
 
 import Logger from '../logger'
-import baseModels = require('../models')
-import Errors = require('../errors')
-import constants = require('../constants')
+import baseModels from '../models'
+import Errors from '../errors'
+import constants from '../constants'
 
 const { MAX_DB_ITEM_SIZE } = constants
 const debug = require('debug')('tradle:sls:products')

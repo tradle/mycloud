@@ -2,7 +2,7 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import path = require('path')
+import path from 'path'
 import { loadCredentials } from '../cli/utils'
 import { createRemoteTradle } from '../'
 

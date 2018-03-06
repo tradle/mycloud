@@ -1,5 +1,5 @@
-import _ = require('lodash')
-import validateResource = require('@tradle/validate-resource')
+import _ from 'lodash'
+import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { Conf } from '../configure'
 import {

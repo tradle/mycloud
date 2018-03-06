@@ -1,6 +1,6 @@
-import _ = require('lodash')
-import cors = require('kcors')
-import compose = require('koa-compose')
+import _ from 'lodash'
+import cors from 'kcors'
+import compose from 'koa-compose'
 import { post } from '../../bot/middleware/noop-route'
 import { bodyParser } from '../../bot/middleware/body-parser'
 import { fromHTTP, Lambda } from '../lambda'

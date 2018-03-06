@@ -1,10 +1,10 @@
-// import Router = require('koa-router')
+// import Router from 'koa-router'
 // @ts-ignore
-import Promise = require('bluebird')
-import compose = require('koa-compose')
-import graphqlHTTP = require('koa-graphql')
+import Promise from 'bluebird'
+import compose from 'koa-compose'
+import graphqlHTTP from 'koa-graphql'
 import { formatError } from 'graphql'
-import ModelsPack = require('@tradle/models-pack')
+import ModelsPack from '@tradle/models-pack'
 import { route } from './noop-route'
 import { Level } from '../../logger'
 import { logResponseBody } from '../../utils'

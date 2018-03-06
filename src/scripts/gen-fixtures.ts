@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 require('../test/env').install()
 
-import fs = require('fs')
-import path = require('path')
-import mkdirp = require('mkdirp')
-import promisify = require('pify')
+import fs from 'fs'
+import path from 'path'
+import mkdirp from 'mkdirp'
+import promisify from 'pify'
 import { utils } from '@tradle/engine'
 import { exportKeys } from '../crypto'
 import { getIdentitySpecs } from '../crypto'

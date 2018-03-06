@@ -1,8 +1,8 @@
-import yn = require('yn')
+import yn from 'yn'
 import { EventEmitter } from 'events'
 import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip } from './utils'
 import { IDelivery, ILiveDeliveryOpts, Logger, Env } from "./types"
-import Errors = require('./errors')
+import Errors from './errors'
 
 const COMPRESSION_THRESHOLD = 1024
 const FETCH_TIMEOUT = 10000

@@ -1,6 +1,6 @@
 import { TYPE } from '@tradle/constants'
-import validateResource = require('@tradle/validate-resource')
-import buildResource = require('@tradle/build-resource')
+import validateResource from '@tradle/validate-resource'
+import buildResource from '@tradle/build-resource'
 import { Name } from '../types'
 import { getFormattedNameFromForm } from '../utils'
 

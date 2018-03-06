@@ -1,5 +1,5 @@
-import crypto = require('crypto')
-import _ = require('lodash')
+import crypto from 'crypto'
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { DatedValue, Conf } from '../types'
 import Logger from '../../logger'

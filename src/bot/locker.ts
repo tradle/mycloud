@@ -1,4 +1,4 @@
-import locker = require('promise-locker')
+import locker from 'promise-locker'
 import { IDebug } from '../types'
 
 const noop:IDebug = (...any) => {}

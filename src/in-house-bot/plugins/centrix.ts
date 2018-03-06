@@ -1,5 +1,5 @@
 // const debug = require('debug')('@tradle/server-cli:plugin:centrix')
-import constants = require('@tradle/constants')
+import constants from '@tradle/constants'
 const { TYPE } = constants
 const { VERIFICATION, IDENTITY } = constants.TYPES
 

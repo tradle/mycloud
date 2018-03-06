@@ -13,10 +13,10 @@ const { force } = require('minimist')(process.argv.slice(2), {
   boolean: ['force']
 })
 
-import promisify = require('pify')
+import promisify from 'pify'
 import { tradle } from '../'
 import { initStack } from '../cli/utils'
-import Errors = require('../errors')
+import Errors from '../errors'
 
 const rethrow = (err) => {
   if (err) throw err

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { pick } from 'lodash'
-import request = require('superagent')
+import request from 'superagent'
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {

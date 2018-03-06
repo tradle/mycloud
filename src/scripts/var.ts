@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import _ = require('lodash')
-import YAML = require('js-yaml')
+import _ from 'lodash'
+import YAML from 'js-yaml'
 import { interpolateTemplate } from '../cli/utils'
 const [path, ...args] = process.argv.slice(2)
 

@@ -1,8 +1,8 @@
-import _ = require('lodash')
-import Embed = require('@tradle/embed')
+import _ from 'lodash'
+import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
 import { IDebug, ITradleObject } from './types'
-import types = require('./typeforce-types')
+import * as types from './typeforce-types'
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
 import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
 import {

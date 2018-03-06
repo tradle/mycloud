@@ -1,10 +1,10 @@
-import _ = require('lodash')
+import _ from 'lodash'
 import { models } from '@tradle/models'
-import validateResource = require('@tradle/validate-resource')
+import validateResource from '@tradle/validate-resource'
 import createProductsStrategy from './'
 import { createBot } from '../bot'
 import { createConf } from './configure'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { toPromise } from '../utils'
 import { IBotComponents, CustomizeBotOpts, CacheableBucketItem } from './types'
 

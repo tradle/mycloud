@@ -1,5 +1,5 @@
-import crypto = require('crypto')
-import stableStringify = require('json-stable-stringify')
+import crypto from 'crypto'
+import stableStringify from 'json-stable-stringify'
 
 function defaultGetIdentifier (req) {
   return req.user.id

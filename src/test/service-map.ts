@@ -1,6 +1,6 @@
-import format = require('string-format')
+import format from 'string-format'
 import Logger from '../logger'
-import serverlessYml = require('../cli/serverless-yml')
+import serverlessYml from '../cli/serverless-yml'
 const {
   service,
   custom,

@@ -1,9 +1,9 @@
 // @ts-ignore
-import Promise = require('bluebird')
-import compose = require('koa-compose')
-import _ = require('lodash')
+import Promise from 'bluebird'
+import compose from 'koa-compose'
+import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
 import { allSettled, uniqueStrict } from '../../utils'

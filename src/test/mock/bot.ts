@@ -1,6 +1,6 @@
 import { createBot } from '../../bot'
-import fakeTradle = require('./tradle')
-import fakeUsers = require('./users')
+import fakeTradle from './tradle'
+import fakeUsers from './users'
 
 const promiseNoop = async () => {}
 // const defaultUserModel = {

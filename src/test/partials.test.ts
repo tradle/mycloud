@@ -1,6 +1,6 @@
-import test = require('tape')
-import sinon = require('sinon')
-import engine = require('@tradle/engine')
+import test from 'tape'
+import sinon from 'sinon'
+import engine from '@tradle/engine'
 import { TYPE, SIG } from '@tradle/constants'
 import { createPlugin } from '../in-house-bot/plugins/partials'
 import { loudAsync } from '../utils'

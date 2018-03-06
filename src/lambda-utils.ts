@@ -1,4 +1,4 @@
-import path = require('path')
+import path from 'path'
 import { Lambda } from 'aws-sdk'
 import { promisify, createLambdaContext } from './utils'
 import {
@@ -13,8 +13,8 @@ import {
   unitToMillis
 } from './constants'
 
-import serverlessYml = require('./cli/serverless-yml')
-import PRICING = require('./lambda-pricing')
+import serverlessYml from './cli/serverless-yml'
+import PRICING from './lambda-pricing'
 
 const defaultConcurrency = 1
 const notNull = (val:any):boolean => !!val

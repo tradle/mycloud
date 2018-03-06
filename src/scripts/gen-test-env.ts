@@ -2,9 +2,9 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import path = require('path')
-import promisify = require('pify')
-import _fs = require('fs')
+import path from 'path'
+import promisify from 'pify'
+import _fs from 'fs'
 import { prettify } from '../string-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { StackUtils } from '../stack-utils'

@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events'
-import _ = require('lodash')
+import _ from 'lodash'
 // @ts-ignore
-import Promise = require('bluebird')
-import createHooks = require('event-hooks')
+import Promise from 'bluebird'
+import createHooks from 'event-hooks'
 import { DB } from '@tradle/dynamodb'
-import buildResource = require('@tradle/build-resource')
-import validateResource = require('@tradle/validate-resource')
+import buildResource from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
 import { readyMixin, IReady } from './ready-mixin'
 import {
   defineGetter,
@@ -18,8 +18,8 @@ import {
   normalizeRecipient
 } from './utils'
 
-import constants = require('../constants')
-import createUsers = require('./users')
+import constants from '../constants'
+import createUsers from './users'
 import { createGraphqlAPI } from './graphql'
 import {
   EndpointInfo,
@@ -51,7 +51,7 @@ import Messages from '../messages'
 import Identities from '../identities'
 import Auth from '../auth'
 import { AwsApis } from '../aws'
-import Errors = require('../errors')
+import Errors from '../errors'
 
 type LambdaImplMap = {
   [name:string]: ILambdaImpl

@@ -1,24 +1,24 @@
-import path = require('path')
-import _ = require('lodash')
-import promisify = require('pify')
-import proc = require('child_process')
+import path from 'path'
+import _ from 'lodash'
+import promisify from 'pify'
+import proc from 'child_process'
 import { parseSync as parseEnv } from 'env-file-parser'
-import _fs = require('fs')
-import readline = require('readline')
-import YAML = require('js-yaml')
-import yn = require('yn')
-import getLocalIP = require('localip')
-import isNative = require('is-native-module')
+import _fs from 'fs'
+import readline from 'readline'
+import YAML from 'js-yaml'
+import yn from 'yn'
+import getLocalIP from 'localip'
+import isNative from 'is-native-module'
 import {
   pick,
   extend
 } from 'lodash'
 
 import { models } from '@tradle/models'
-import validateResource = require('@tradle/validate-resource')
+import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { Bucket } from '../bucket'
-import Errors = require('../errors')
+import Errors from '../errors'
 import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
 import { Env } from '../env'

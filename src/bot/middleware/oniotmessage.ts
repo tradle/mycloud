@@ -1,9 +1,9 @@
 // @ts-ignore
-import Promise = require('bluebird')
-import IotMessage = require('@tradle/iot-message')
+import Promise from 'bluebird'
+import IotMessage from '@tradle/iot-message'
 import { Lambda } from '../../types'
 import { fromDynamoDB } from '../lambda'
-import Errors = require('../../errors')
+import Errors from '../../errors'
 
 const notNull = val => !!val
 

@@ -2,16 +2,16 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import crypto = require('crypto')
-import path = require('path')
-import fs = require('fs')
+import crypto from 'crypto'
+import path from 'path'
+import fs from 'fs'
 import { loadRemoteEnv, loadCredentials, getTableDefinitions } from '../cli/utils'
 
 loadCredentials()
 loadRemoteEnv()
 
 import { createRemoteTradle } from '../'
-import lambda = require('../in-house-bot/lambda/mqtt/onmessage')
+import lambda from '../in-house-bot/lambda/mqtt/onmessage'
 lambda.bot.promiseReady().then(() => {
   const { dbUtils } = lambda.tradle
   const outputPath = path.join(__dirname, '../modelmap.json')

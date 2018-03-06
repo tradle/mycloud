@@ -1,4 +1,4 @@
-import Gen = require('@tradle/gen-samples')
+import Gen from '@tradle/gen-samples'
 import { TYPE } from '@tradle/constants'
 
 export = async function genSamples ({ bot, event }) {

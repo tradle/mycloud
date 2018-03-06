@@ -1,4 +1,4 @@
-import Router = require('koa-router')
+import Router from 'koa-router'
 import { createBot } from '../../../bot'
 import { EventSource } from '../../../lambda'
 // import { customize } from '../../customize'

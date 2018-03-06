@@ -1,9 +1,9 @@
 require('./env').install()
 
-import test = require('tape')
-import sinon = require('sinon')
+import test from 'tape'
+import sinon from 'sinon'
 import { models } from '@tradle/models'
-import buildResource = require('@tradle/build-resource')
+import buildResource from '@tradle/build-resource'
 import { loudAsync, co, wait } from '../utils'
 import { createTestTradle } from '../'
 

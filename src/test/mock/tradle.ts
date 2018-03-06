@@ -1,6 +1,6 @@
 import { createTestTradle } from '../../'
 import { getter } from '../utils'
-import fakeSeals = require('./seals')
+import fakeSeals from './seals'
 import Env from '../../env'
 
 const tradle = createTestTradle()

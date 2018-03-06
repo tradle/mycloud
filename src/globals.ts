@@ -1,7 +1,7 @@
 // @ts-ignore
 const Promise = global.Promise = require('bluebird')
 
-import AWS = require('aws-sdk')
+import AWS from 'aws-sdk'
 import { install as installSourceMapSupport } from 'source-map-support'
 
 installSourceMapSupport()

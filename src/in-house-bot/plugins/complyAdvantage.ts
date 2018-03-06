@@ -1,8 +1,8 @@
-import fetch = require('node-fetch')
+import fetch from 'node-fetch'
 
-import buildResource = require('@tradle/build-resource')
+import buildResource from '@tradle/build-resource'
 import { buildResourceStub } from '@tradle/build-resource'
-import constants = require('@tradle/constants')
+import constants from '@tradle/constants'
 import {
   Bot,
   Logger,

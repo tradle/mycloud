@@ -4,8 +4,8 @@ process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 require('source-map-support').install()
 
-import yn = require('yn')
-import _ = require('lodash')
+import yn from 'yn'
+import _ from 'lodash'
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {

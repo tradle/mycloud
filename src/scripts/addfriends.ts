@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import path = require('path')
-import promisify = require('pify')
+import path from 'path'
+import promisify from 'pify'
 
 import { loadRemoteEnv, loadCredentials } from '../cli/utils'
 
