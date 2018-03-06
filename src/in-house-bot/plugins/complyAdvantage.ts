@@ -92,8 +92,9 @@ class ComplyAdvantageAPI {
       return {resource, rawData: json, hits: []} //, error: `Check failed for "${body.search_term}": ${json.status}: ${json.message}`}
     }
     let rawData = json  &&  json.content.data
-    let entityType = criteria.entity_type || 'company'
-    let hits = rawData.hits.filter((hit) => hit.doc.entity_type === entityType)
+    let entityType = criteria.entity_type ? [criteria.entity_type] : ['company', 'organisation', 'organization'];
+    let hits = rawData.hits.filter((hit) => entityType.includes(hit.doc.entity_type));
+    rawData.hits = hits
     return hits && { resource, rawData, hits }
   }
 
