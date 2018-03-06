@@ -25,7 +25,7 @@ import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'
 import { models as BaseModels } from '@tradle/models'
-import { IECMiniPubKey, ITradleObject } from './types'
+import { IECMiniPubKey, ITradleObject, ResourceStub } from './types'
 
 const SealModel = BaseModels['tradle.Seal']
 const SEAL_MODEL_ID = 'tradle.Seal'
@@ -61,6 +61,7 @@ type ErrorSummary = {
 type WatchOpts = {
   key: IECMiniPubKey
   link: string
+  object?: ITradleObject
   write?: boolean
 }
 
@@ -68,6 +69,7 @@ type Seal = {
   id: string
   link: string
   permalink?: string
+  forResource?: ResourceStub
   counterparty?: string
   blockchain: string
   network: string
@@ -131,7 +133,7 @@ interface IErrorRecord {
 
 export default class Seals {
   public syncUnconfirmed: (opts?: ILimitOpts) => Promise<Seal[]>
-  public sealPending: (opts?:any) => Promise<any>
+  public sealPending: (opts?:any) => Promise<Seal[]>
   public table: any
   public blockchain: Blockchain
   private provider: Provider
@@ -236,7 +238,7 @@ export default class Seals {
     return this.table.update(params)
   }
 
-  private _sealPending = async (opts: { limit?: number, key?: any } = {}) => {
+  private _sealPending = async (opts: { limit?: number, key?: any } = {}):Promise<Seal[]> => {
     typeforce({
       limit: typeforce.maybe(typeforce.Number),
       key: typeforce.maybe(types.privateKey)
@@ -254,7 +256,7 @@ export default class Seals {
 
     const pending = await this.getUnsealed({ limit })
     this.logger.info(`found ${pending.length} pending seals`)
-    if (!pending.length) return
+    if (!pending.length) return []
 
     let aborted
     // TODO: update balance after every tx
@@ -270,28 +272,43 @@ export default class Seals {
     const results = await seriesMap(pending, async (sealInfo: Seal) => {
       if (aborted) return
 
-      const { link, address, counterparty } = sealInfo
-      const addresses = [address]
-      let result
       try {
-        result = await this.blockchain.seal({ addresses, link, key, counterparty, balance })
-      } catch (error) {
-        if (Errors.matches(error, Errors.LowFunds)) {
+        return await this.writePendingSeal({ seal: sealInfo, key, balance })
+      } catch (err) {
+        Errors.rethrow(err, 'developer')
+        if (Errors.matches(err, Errors.LowFunds)) {
           this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
           aborted = true
         }
-
-        await this.recordWriteError({ seal: sealInfo, error })
-        return
       }
-
-      return await this.recordWriteSuccess({
-        seal: sealInfo,
-        txId: result.txId
-      })
     })
 
     return results.filter(notNull)
+  }
+
+  public writePendingSeal = async ({ seal, key, balance }: {
+    seal: Seal
+    key?: any
+    balance?: number
+  }):Promise<Seal> => {
+    if (!key) {
+      key = await this.provider.getMyChainKey()
+    }
+
+    const { link, address, counterparty } = seal
+    const addresses = [address]
+    let result
+    try {
+      result = await this.blockchain.seal({ addresses, link, key, counterparty, balance })
+    } catch (error) {
+      await this.recordWriteError({ seal, error })
+      throw error
+    }
+
+    return await this.recordWriteSuccess({
+      seal,
+      txId: result.txId
+    })
   }
 
   private createSealRecord = async (opts:SealRecordOpts):Promise<void> => {
@@ -643,6 +660,10 @@ export default class Seals {
 
     if (permalink) {
       params.permalink = permalink
+    }
+
+    if (object) {
+      params.forResource = buildResource.stub({ resource: object })
     }
 
     if (write) {

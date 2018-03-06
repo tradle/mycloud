@@ -17,6 +17,7 @@ import { command as updatemycloud } from './updatemycloud'
 import { command as model } from './model'
 import { command as push } from './push'
 import { command as links } from './links'
+import { command as sealpending } from './sealpending'
 
 export {
   help,
@@ -37,5 +38,6 @@ export {
   // sudo only
   // encryptbucket,
   // enablebinary,
-  push
+  push,
+  sealpending
 }

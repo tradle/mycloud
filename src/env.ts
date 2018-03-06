@@ -7,8 +7,15 @@ import debug = require('debug')
 import randomName = require('random-name')
 import { allSettled, RESOLVED_PROMISE } from './utils'
 import { randomString } from './crypto'
-import { IDebug, ILambdaAWSExecutionContext, Lambda, IRequestContext, CloudName } from './types'
-import { WARMUP_SOURCE_NAME } from './constants'
+import {
+  IDebug,
+  ILambdaAWSExecutionContext,
+  Lambda,
+  IRequestContext,
+  CloudName,
+  IBlockchainIdentifier
+} from './types'
+import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
 
 export default class Env {
@@ -58,7 +65,7 @@ export default class Env {
     return `${this.SERVERLESS_SERVICE_NAME}-${this.STAGE}`
   }
 
-  public BLOCKCHAIN:any
+  public BLOCKCHAIN: IBlockchainIdentifier
   public CORDA_API_URL?:string
   public CORDA_API_KEY?:string
   public NO_TIME_TRAVEL:boolean
@@ -100,11 +107,10 @@ export default class Env {
 
     this.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 
-    const namespace = `λ:${this.FUNCTION_NAME}`
     this.logger = new Logger({
-      namespace,//: this.TESTING ? '' : namespace,
+      namespace: ROOT_LOGGING_NAMESPACE,
       writer: global.console,
-      // writer: this.TESTING ? { log: debug(`λ:${this.FUNCTION_NAME}`) } : global.console,
+      // writer: this.TESTING ? { log: debug(`lambda:${this.FUNCTION_NAME}`) } : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,

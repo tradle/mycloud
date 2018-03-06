@@ -62,7 +62,7 @@ export default function createEvents ({ logger, tables, dbUtils }) {
       }
 
       if (change.new.confirmations > 0) {
-        return 'seal:confirm'
+        return 'seal:confirmed'
       }
 
       return 'seal:read'

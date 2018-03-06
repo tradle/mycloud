@@ -1,11 +1,11 @@
 import _ = require('lodash')
 import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
-import { isPromise } from '../utils'
+import { isPromise, pickNonNull, getEnumValueId } from '../utils'
 import { createConf } from './configure'
 import Errors = require('../errors')
 import models = require('../models')
-import { Name, ResourceStub, ICommand, Bot } from './types'
+import { Name, ResourceStub, ICommand, Bot, IPBApp } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
@@ -19,6 +19,7 @@ const ADDRESS = 'tradle.Address'
 const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
 const IDENTIFICATION_OF_BENEFICIAL_OWNER = 'tradle.W8BENE1'
 const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
+const CHECK_STATUS = 'tradle.Status'
 
 export {
   isEmployee
@@ -108,8 +109,9 @@ export const sendConfirmedSeals = async (bot, seals) => {
   await bot.send(confirmed.map(seal => ({
     to: seal.counterparty,
     object: {
+      ...pickNonNull(_.pick(seal, SEAL_MODEL_PROPS)),
       [TYPE]: 'tradle.Seal',
-      ..._.pick(seal, SEAL_MODEL_PROPS)
+      time: seal.time / 1000
     }
   })))
 }
@@ -311,4 +313,28 @@ export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
   }
 
   return lines.join('\n\n')
+}
+
+export const haveAllChecksPassed = async ({ bot, application }: {
+  bot: Bot
+  application: IPBApp
+}) => {
+  const { checks=[] } = application
+  if (!checks.length) return true
+
+  const checkResources = await Promise.all(checks.map(stub => bot.getResourceByStub(stub)))
+  const byAPI = _.groupBy(checkResources, 'provider')
+  return Object.keys(byAPI).every(provider => {
+    const last = byAPI[provider].pop()
+    return isPassedCheck(last)
+  })
+}
+
+export const isPassedCheck = ({ status }) => {
+  const id = getEnumValueId({
+    model: models[CHECK_STATUS],
+    value: status
+  })
+
+  return id === 'pass'
 }

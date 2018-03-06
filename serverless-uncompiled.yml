@@ -54,8 +54,10 @@ package:
     - node_modules/**/*.d.ts
     - node_modules/**/test/*
     - node_modules/**/tests/*
-    - npm-shrinkwrap.json
+    - node_modules/chokidar/**
+    - node_modules/fsevents/**
     - "node_modules/@tradle/gen-samples/**"
+    - npm-shrinkwrap.json
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
@@ -317,7 +319,7 @@ provider:
     BLOCKCHAIN: ${{self:custom.blockchain}}
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
     CORDA_API_KEY: ${{self:custom.corda.apiKey}}
-    DEBUG: 'λ*,*tradle*'
+    DEBUG: 'lambda*,*tradle*'
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
     SERVERLESS_PREFIX: ${{self:custom.prefix}}
@@ -345,24 +347,14 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.events}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.presence}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.inbox}}/index/*'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.outbox}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pubkeys}}/index/*'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.seals}}/index/*'
-        # # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.pushsubscribers}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}'
-        # - Fn::Sub: 'arn:aws:dynamodb:${{self:custom.region}}:${AWS::AccountId}:table/${{self:custom.tables.users}}/index/*'
+        - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
 
-    # so lambdas can list resources in their stack
     - Effect: Allow
       Action:
+        # so lambdas can list resources in their stack
         - cloudformation:ListStackResources
+        # need to get own template to generate a child deployment template
+        - cloudformation:GetTemplate
       Resource: ["*"]
 
     # allow lambdas to update themselves
@@ -377,7 +369,7 @@ provider:
       Action:
         - lambda:GetFunctionConfiguration
       Resource:
-        - Fn::Sub: 'arn:aws:lambda:${{self:custom.region}}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
+        - Fn::Sub: 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it

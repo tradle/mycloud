@@ -44,7 +44,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#54f4a1cce93cb68b8bcb9275d36255c1dde29c23",
+      "resolved": "git://github.com/tradle/bot-products.git#bcf3fced4e2b6bb1d503787bef4621a96b89fbc4",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -144,7 +144,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#edf862e531859b5938c77bc3fb48211905bcbab7"
+      "resolved": "git://github.com/tradle/custom-models.git#9fbda336ecc6374e5e134ef64fde029872af6230"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -244,7 +244,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#871220462467ffdeff90c19d0367efeb0e0147ae"
+      "resolved": "git://github.com/tradle/models.git#7419d4e4ea0b558fdfe242a73b583cd7ebcd3c91"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -373,9 +373,9 @@
       "resolved": "http://registry.npmjs.org/@tradle/validate-model/-/validate-model-5.7.0.tgz"
     },
     "@tradle/validate-resource": {
-      "version": "2.21.1",
+      "version": "2.21.2",
       "from": "@tradle/validate-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.21.1.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.21.2.tgz",
       "dependencies": {
         "debug": {
           "version": "3.1.0",

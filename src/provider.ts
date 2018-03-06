@@ -237,6 +237,7 @@ export default class Provider {
       this.logger.info('placing watch on seal', seal)
       try {
         await this.tradle.seals.watch({
+          object,
           link: seal.link,
           key: {
             type: this.network.flavor,

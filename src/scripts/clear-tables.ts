@@ -8,9 +8,9 @@ loadCredentials()
 
 import yn = require('yn')
 import readline = require('readline')
-import { tradle } from '../'
+import { createRemoteTradle } from '../'
 
-const { aws, env, dbUtils } = tradle
+const { aws, env, dbUtils } = createRemoteTradle()
 const { listTables, clear } = dbUtils
 const tableToClear = process.argv.slice(2)
 const skip = [
@@ -18,7 +18,7 @@ const skip = [
   'presence',
   'events',
   'seals',
-  'tradle_MyCloudFriend'
+  'friends'
 ]
 
 const { href } = aws.dynamodb.endpoint

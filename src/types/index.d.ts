@@ -479,3 +479,8 @@ export interface IGraphqlAPI {
   execute: (query: string, variables?: any) => Promise<GraphqlExecutionResult>
   graphiqlOptions: IGraphiqlOptions
 }
+
+export interface IBlockchainIdentifier {
+  flavor: string
+  networkName: string
+}

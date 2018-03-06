@@ -41,6 +41,7 @@ export interface IBotConf {
   products: IProductsConf
   tours?: ITours
   sandbox?: boolean
+  graphqlAuth?: boolean
   // exposed directly in /info
   // publicConfig: any
 }
@@ -251,6 +252,7 @@ export interface IDeploymentOpts {
   domain: string
   logo?: string
   stackPrefix: string
+  region: string
   configurationLink?: string
 }
 
