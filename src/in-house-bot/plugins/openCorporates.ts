@@ -4,6 +4,7 @@ import buildResource = require('@tradle/build-resource')
 import { buildResourceStub } from '@tradle/build-resource'
 import constants = require('@tradle/constants')
 import { Bot, Logger, IPluginOpts } from '../types'
+const utils_1 = require("../utils");
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -50,44 +51,82 @@ class OpenCorporatesAPI {
     this.logger = logger
   }
   async _fetch(resource, application) {
-    let { registrationNumber, registrationDate, region, country } = resource
-    let url = `${BASE_URL}companies/search?q=` + resource.companyName.replace(' ', '+')
+    let { registrationNumber, registrationDate, region, country, companyName } = resource
+    let url = `${BASE_URL}companies/search?q=` + companyName.replace(' ', '+')
     // let json = test
     let json
     try {
       let res = await fetch(url)
       json = await res.json()
     } catch (err) {
+      let message = `Check was not completed for "${companyName}": ${err.message}`
       this.logger.debug('Search by company name', err)
+      return { resource, rawData: {}, message, hits: [], url }
     }
-    if (!json || !json.results)
-      return { resource, rawData: {}, hits: [], url }
+    if (!json.results) {
+      let message = `No matches for company name "${companyName}" were found`
+      return { resource, rawData: json, hits: [], message, url }
+    }
+    let hasHits = json.results.companies.length
+    let wrongNumber
+    let foundNumber
+    let wrongCountry
+    let foundCountry
+    let wrongDate
+    let foundDate
+    let message
     let companies = json.results.companies.filter((c) => {
       if (c.company.inactive)
         return false
-      if (c.company.company_number !== registrationNumber)
+      if (c.company.company_number !== registrationNumber) {
+        wrongNumber = true
         return false
-      if (registrationDate  &&  new Date(c.company.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear())
-        return false
+      }
+      foundNumber = true
+      if (registrationDate) {
+        // &&  new Date(c.company.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear()) {
+        if (utils_1.toISODateString(registrationDate) !== c.company.incorporation_date) {
+          if (!foundDate)
+            wrongDate = true
+          return false
+        }
+      }
+      foundDate = true
+
       let countryCode = country.id.split('_')[1]
       // if (c.company.registered_address  &&  c.company.registered_address.country) {
       //   if (countryCode !== c.company.registered_address.country)
       //     return false
       // }
       // else
-      if (c.company.jurisdiction_code.indexOf(countryCode.toLowerCase()) === -1)
+      if (c.company.jurisdiction_code.indexOf(countryCode.toLowerCase()) === -1) {
+        wrongCountry = true
         return false
-
+      }
+      foundCountry = true
       return true
     })
-    if (companies.length && companies.length === 1)
+
+// no matches for company name XYZ with registration number ABC. Either or both may contain an error
+
+    if (!companies.length) {
+      if (!foundNumber  &&  wrongNumber)
+        message = `No matches for company name "${companyName}" with the registration number "${registrationNumber}" were found`
+      else if (!foundDate  &&  wrongDate)
+        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" has a different registration date`
+      else if (!foundCountry && wrongCountry)
+        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" registered on ${utils_1.toISODateString(registrationDate)} was not found in "${country}"`
+    }
+    if (companies.length === 1)
       url = companies[0].company.opencorporates_url
-    return { resource, rawData: companies.length  &&  json.results || json, hits: companies, url }
+    return { resource, rawData: companies.length  &&  json.results || json, message: message, hits: companies, url }
   }
 
-  async createCorporateCheck({ application, rawData, hits, url }) {
+  async createCorporateCheck({ application, rawData, message, hits, url }) {
     let status
-    if (hits.length === 1)
+    if (message)
+      status = {id: 'tradle.Status_fail', title: 'Fail'}
+    else if (hits.length === 1)
       status = {id: 'tradle.Status_pass', title: 'Pass'}
     else
       status = {id: 'tradle.Status_fail', title: 'Fail'}
@@ -98,11 +137,13 @@ class OpenCorporatesAPI {
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime(),
       sharedUrl: url,
-      rawData
     }
+    if (message)
+      resource.message = message
     if (hits.length)
       resource.rawData = hits
-
+    else if (rawData)
+      resource.rawData = rawData
 
     if (!application.checks) application.checks = []
     const check = await this.bot.signAndSave(resource)
@@ -184,8 +225,8 @@ export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
       let result = await Promise.all(pforms)
 
       let pchecks = []
-      result.forEach((r: {resource:any, rawData:object, hits: any, url:string}) => {
-        let { resource, rawData, hits, url } = r
+      result.forEach((r: {resource:any, rawData:object, message?: string, hits: any, url:string}) => {
+        let { resource, rawData, message, hits, url } = r
         let hasVerification
         if (!hits  ||  !hits.length)
           logger.debug(`found no corporates for: ${resource.companyName}`);
@@ -195,7 +236,7 @@ export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
           hasVerification = true
           logger.debug(`creating verification for: ${resource.companyName}`);
         }
-        pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, hits, url}))
+        pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, message, hits, url}))
         if (hasVerification)
           pchecks.push(openCorporates.createVerification({user, application, form: resource, rawData: hits[0].company}))
       })
