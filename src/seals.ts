@@ -272,28 +272,43 @@ export default class Seals {
     const results = await seriesMap(pending, async (sealInfo: Seal) => {
       if (aborted) return
 
-      const { link, address, counterparty } = sealInfo
-      const addresses = [address]
-      let result
       try {
-        result = await this.blockchain.seal({ addresses, link, key, counterparty, balance })
-      } catch (error) {
-        if (Errors.matches(error, Errors.LowFunds)) {
+        return await this.writePendingSeal({ seal: sealInfo, key, balance })
+      } catch (err) {
+        Errors.rethrow(err, 'developer')
+        if (Errors.matches(err, Errors.LowFunds)) {
           this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
           aborted = true
         }
-
-        await this.recordWriteError({ seal: sealInfo, error })
-        return
       }
-
-      return await this.recordWriteSuccess({
-        seal: sealInfo,
-        txId: result.txId
-      })
     })
 
     return results.filter(notNull)
+  }
+
+  public writePendingSeal = async ({ seal, key, balance }: {
+    seal: Seal
+    key?: any
+    balance?: number
+  }):Promise<Seal> => {
+    if (!key) {
+      key = await this.provider.getMyChainKey()
+    }
+
+    const { link, address, counterparty } = seal
+    const addresses = [address]
+    let result
+    try {
+      result = await this.blockchain.seal({ addresses, link, key, counterparty, balance })
+    } catch (error) {
+      await this.recordWriteError({ seal, error })
+      throw error
+    }
+
+    return await this.recordWriteSuccess({
+      seal,
+      txId: result.txId
+    })
   }
 
   private createSealRecord = async (opts:SealRecordOpts):Promise<void> => {

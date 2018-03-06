@@ -115,6 +115,16 @@ class CordaSeals {
     })
   }
 
+  public writePendingSeal = (opts) => {
+    return this.seals.writePendingSeal({
+      ...opts,
+      key: {
+        priv: PLACEHOLDER,
+        pub: PLACEHOLDER
+      }
+    })
+  }
+
   public watch = promiseNoop
   public watchNextVersion = promiseNoop
   public syncUnconfirmed = opts => promiseNoop

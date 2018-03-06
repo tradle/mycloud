@@ -387,6 +387,8 @@ export class Bot extends EventEmitter implements IReady {
         object: resource,
         merge: method === 'update'
       })
+
+      // await this.bot.hooks.fire(`save:${method}`, resource)
     } catch (err) {
       this.logger.debug(`db.${method} failed`, {
         type: resource[TYPE],

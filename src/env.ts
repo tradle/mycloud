@@ -7,7 +7,14 @@ import debug = require('debug')
 import randomName = require('random-name')
 import { allSettled, RESOLVED_PROMISE } from './utils'
 import { randomString } from './crypto'
-import { IDebug, ILambdaAWSExecutionContext, Lambda, IRequestContext, CloudName } from './types'
+import {
+  IDebug,
+  ILambdaAWSExecutionContext,
+  Lambda,
+  IRequestContext,
+  CloudName,
+  IBlockchainIdentifier
+} from './types'
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
 
@@ -58,7 +65,7 @@ export default class Env {
     return `${this.SERVERLESS_SERVICE_NAME}-${this.STAGE}`
   }
 
-  public BLOCKCHAIN:any
+  public BLOCKCHAIN: IBlockchainIdentifier
   public CORDA_API_URL?:string
   public CORDA_API_KEY?:string
   public NO_TIME_TRAVEL:boolean

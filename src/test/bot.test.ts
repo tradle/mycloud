@@ -254,15 +254,18 @@ test(`readseal`, loudAsync(async (t) => {
   const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
 
   let read
+  let queuedWrite
   let wrote
+  let watch
   const tradle = createTestTradle()
   const { seals, provider } = tradle
   const { getMyKeys } = provider
   provider.getMyKeys = () => Promise.resolve(aliceKeys)
 
   const bot = createBot({ tradle })
-  bot.hook('readseal', async (event) => {
-    read = true
+
+  bot.hook('queueseal', async (event) => {
+    queuedWrite = true
     t.equal(event.link, link)
   })
 
@@ -271,7 +274,25 @@ test(`readseal`, loudAsync(async (t) => {
     t.equal(event.link, link)
   })
 
+  bot.hook('readseal', async (event) => {
+    read = true
+    t.equal(event.link, link)
+  })
+
+  bot.hook('watchseal', async (event) => {
+    watch = true
+    t.equal(event.link, link)
+  })
+
   await bot.lambdas.onsealstream().handler(toStreamItems([
+    // queueseal
+    {
+      new: {
+        link,
+        unsealed: 'x'
+      }
+    },
+    // wroteseal
     {
       old: {
         link,
@@ -281,6 +302,7 @@ test(`readseal`, loudAsync(async (t) => {
         link
       }
     },
+    // readseal
     {
       old: {
         link,
@@ -289,6 +311,13 @@ test(`readseal`, loudAsync(async (t) => {
       new: {
         link
       }
+    },
+    // watchseal
+    {
+      new: {
+        link,
+        unconfirmed: 'x'
+      }
     }
   ]), {
     done: t.error
@@ -296,6 +325,8 @@ test(`readseal`, loudAsync(async (t) => {
 
   t.equal(read, true)
   t.equal(wrote, true)
+  t.equal(watch, true)
+  t.equal(queuedWrite, true)
 
   provider.getMyKeys = getMyKeys
   t.end()
