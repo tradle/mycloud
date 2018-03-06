@@ -245,6 +245,8 @@ export class Bot extends EventEmitter implements IReady {
       }
     })
 
+    // this.hook('save', this._defaultSave)
+
     if (ready) this.ready()
   }
 
@@ -328,8 +330,8 @@ export class Bot extends EventEmitter implements IReady {
     })
   }
 
-  public save = resource => this._write('put', resource)
-  public update = resource => this._write('update', resource)
+  public save = resource => this._save('put', resource)
+  public update = resource => this._save('update', resource)
 
   public createLambda = (opts:ILambdaOpts={}):Lambda => createLambda({
     ...opts,
@@ -376,7 +378,12 @@ export class Bot extends EventEmitter implements IReady {
 
   public reSign = object => this.sign(_.omit(object, [SIG]))
 
-  private _write = async (method:string, resource) => {
+  private _save = async (method:string, resource:any) => {
+  //   await this.hooks.fire(`save`, { method, resource })
+  //   await this.hooks.fire(`save:${method}`, resource)
+  // }
+
+  // private _defaultSave = async ({ method, resource }) => {
     if (!this.isReady()) {
       this.logger.debug('waiting for this.ready()')
       await this.promiseReady()
