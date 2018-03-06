@@ -213,8 +213,6 @@ function createDBUtils ({ aws, logger, env }) {
     } catch (err) {
       Errors.rethrow(err, 'system')
       if (err.code === 'ValidationException') {
-        debugger
-        console.log(params)
         throw new Errors.InvalidInput(err.message)
       }
 
