@@ -83,7 +83,7 @@ class OpenCorporatesAPI {
     })
     if (companies.length && companies.length === 1)
       url = companies[0].company.opencorporates_url
-    return { resource, rawData: json.results, hits: companies, url }
+    return { resource, rawData: companies.length  &&  json.results || json, hits: companies, url }
   }
 
   async createCorporateCheck({ application, rawData, hits, url }) {
@@ -98,7 +98,8 @@ class OpenCorporatesAPI {
       provider: OPEN_CORPORATES,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime(),
-      sharedUrl: url
+      sharedUrl: url,
+      rawData
     }
     if (hits.length)
       resource.rawData = hits
@@ -151,6 +152,9 @@ export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
   const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, logger })
   return {
     [`onmessage:${FORM_ID}`]: async function(req) {
+      // let doReturn = true
+      // if (doReturn)
+      //   return
       if (req.skipChecks) return
 
       const { user, application, payload } = req
@@ -160,6 +164,7 @@ export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
       let { products } = conf
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
         return
+
       // debugger
 
       // let formStubs = application.forms && application.forms.filter((f) => {
