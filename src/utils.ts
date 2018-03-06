@@ -52,7 +52,7 @@ import {
   ILaunchStackUrlOpts,
   ITimeoutOpts,
   IUpdateStackUrlOpts,
-  ITradleObject
+  ITradleObject,
 } from './types'
 
 import Logger from './logger'

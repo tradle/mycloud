@@ -51,7 +51,6 @@ class OpenCorporatesAPI {
   }
   async _fetch(resource, application) {
     let { registrationNumber, registrationDate, region, country } = resource
-    debugger
     let url = `${BASE_URL}companies/search?q=` + resource.companyName.replace(' ', '+')
     // let json = test
     let json

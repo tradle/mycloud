@@ -32,7 +32,7 @@ import { Commander } from './commander'
 import { createRemediation } from './remediation'
 import { createPlugin as createRemediationPlugin } from './plugins/remediation'
 import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
-
+import { haveAllChecksPassed } from './utils'
 import {
   Bot,
   IBotComponents,
@@ -323,8 +323,21 @@ export default function createProductsBot ({
         if (application.draft) return
 
         if (!autoApprove) {
-          const goodToGo = productsAPI.haveAllSubmittedFormsBeenVerified({ application })
-          if (!goodToGo) return
+          const results = await Promise.all([
+            haveAllChecksPassed({ bot, application }),
+            productsAPI.haveAllSubmittedFormsBeenVerified({ application })
+          ])
+
+          const [mostRecentChecksPassed, formsHaveBeenVerified] = results
+          if (!mostRecentChecksPassed) {
+            logger.debug('not all checks passed, not approving')
+          }
+
+          if (!formsHaveBeenVerified) {
+            logger.debug('not all forms have been verified, not approving')
+          }
+
+          if (!results.every(_.identity)) return
         }
 
         const approved = productsAPI.state.hasApplication({
