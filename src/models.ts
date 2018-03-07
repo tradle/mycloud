@@ -17,6 +17,11 @@ baseMessageModel.properties._counterparty = {
   virtual: true
 }
 
+baseMessageModel.properties._dcounterparty = {
+  type: 'string',
+  virtual: true
+}
+
 if (!baseMessageModel.properties._inbound) {
   baseMessageModel.properties._inbound = {
     type: 'boolean',

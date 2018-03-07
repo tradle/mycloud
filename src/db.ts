@@ -111,19 +111,28 @@ export = function createDB (tradle:Tradle) {
     })
   })
 
-  // let botPermalink
-  // const fixMessageFilter = async ({ filter }) => {
-  //   if (!(filter && filter.EQ)) return
+  const fixMessageFilter = async ({ filter }) => {
+    if (!(filter && filter.EQ)) return
 
-  //   const { EQ } = filter
-  //   if (EQ[TYPE] === MESSAGE && EQ._author) {
-  //     const botPermalink = await tradle.provider.getMyIdentityPermalink()
-  //     if (EQ._author === botPermalink)
-  //   }
-  // }
+    const { EQ } = filter
+    if (EQ[TYPE] !== MESSAGE) return
+    if (EQ._dcounterparty) return
 
-  // db.hook('find', fixMessageFilter)
-  // db.hook('findOne', fixMessageFilter)
+    const _counterparty = EQ._author || EQ._recipient || EQ._counterparty
+    if (!(_counterparty && '_inbound' in EQ)) return
+
+    EQ._dcounterparty = tradle.messages.getDCounterpartyKey({
+      _counterparty,
+      _inbound: EQ._inbound
+    })
+
+    delete EQ._author
+    delete EQ._recipient
+    delete EQ._inbound
+  }
+
+  db.hook('find', fixMessageFilter)
+  db.hook('findOne', fixMessageFilter)
 
   return db
 }

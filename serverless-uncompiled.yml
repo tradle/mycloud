@@ -204,7 +204,7 @@ custom:
 
       - table: MessagesTable
         index:
-          - _recipient
+          - _dcounterparty
           - _link
           - _payloadLink
           - _payloadType
@@ -221,7 +221,7 @@ custom:
       - table: EventsTable
         write:
           minimum: 5        # Minimum write capacity
-          maximum: 20       # Maximum write capacity
+          maximum: 100      # Maximum write capacity
           usage: 0.5        # Targeted usage percentage
 
   cors:
@@ -1270,12 +1270,10 @@ resources:
       Properties:
         TableName: ${{self:custom.tables.messages}}
         AttributeDefinitions:
-          - AttributeName: _author
+          - AttributeName: _counterparty
             AttributeType: S
-          - AttributeName: _recipient
+          - AttributeName: _dcounterparty
             AttributeType: S
-          # - AttributeName: ${{self:custom.props.seq}}
-          #   AttributeType: N
           - AttributeName: time
             AttributeType: N
           - AttributeName: _link
@@ -1287,7 +1285,7 @@ resources:
           - AttributeName: _payloadType
             AttributeType: S
         KeySchema:
-          - AttributeName: _author
+          - AttributeName: _counterparty
             KeyType: HASH
           - AttributeName: time
             KeyType: RANGE
@@ -1299,9 +1297,10 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
         GlobalSecondaryIndexes:
-          - IndexName: _recipient
+          # direction (inbound/outound) + counterparty
+          - IndexName: _dcounterparty
             KeySchema:
-              - AttributeName: _recipient
+              - AttributeName: _dcounterparty
                 KeyType: HASH
               - AttributeName: time
                 KeyType: RANGE

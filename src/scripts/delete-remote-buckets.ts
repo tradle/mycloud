@@ -4,8 +4,9 @@
 
 import yn from 'yn'
 import readline from 'readline'
-import { loadRemoteEnv, confirm } from '../cli/utils'
+import { loadCredentials, loadRemoteEnv, confirm } from '../cli/utils'
 
+loadCredentials()
 loadRemoteEnv()
 
 import { tradle } from '../'

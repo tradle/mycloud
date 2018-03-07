@@ -204,6 +204,8 @@ export interface ITradleMessage extends ITradleObject {
   forward?: string
   _recipient?: string
   _inbound?: boolean
+  _counterparty?: string
+  _dcounterparty?: string
   [x: string]: any
 }
 

@@ -169,18 +169,16 @@ export default class Messages {
     }
   }
 
-  public static getFromTo = message => `${message._author}:${message._recipient}`
-  public static parseFromTo = fromTo => {
-    const [_author, _recipient] = fromTo.split(':')
-    return { _author, _recipient }
-  }
-
   public putMessage = async (message: ITradleMessage) => {
+    const _counterparty = message._inbound ? message._author : message._recipient
     setVirtual(message, {
+      // make sure _inbound is set
+      _inbound: !!message._inbound,
       _payloadType: message.object[TYPE],
       _payloadLink: message.object._link,
       _payloadAuthor: message.object._author,
-      _fromTo: Messages.getFromTo(message)
+      _counterparty,
+      _dcounterparty: this.getDCounterpartyKey({ _counterparty, _inbound: message._inbound })
       // _seqToRecipient: `${message._recipient}:${message[SEQ]}`
     })
 
@@ -238,7 +236,8 @@ export default class Messages {
   }):Promise<ITradleMessage> => {
     const opts = getBaseFindOpts({
       match: {
-        _author: author
+        _counterparty: author,
+        _inbound: true
       },
       limit: 1,
       orderBy: 'time',
@@ -265,7 +264,10 @@ export default class Messages {
     this.logger.debug(`looking up last message to ${recipient}`)
 
     const opts = getBaseFindOpts({
-      match: { _recipient: recipient },
+      match: {
+        _counterparty: recipient,
+        _inbound: false
+      },
       orderBy: 'time',
       reverse: true,
       select: [SEQ, '_link']
@@ -302,7 +304,10 @@ export default class Messages {
   }):Promise<ITradleMessage[]> => {
     const opts = getBaseFindOpts({
       limit,
-      match: { _recipient: recipient },
+      match: {
+        _counterparty: recipient,
+        _inbound: false
+      },
       orderBy: 'time'
     })
 
@@ -319,7 +324,10 @@ export default class Messages {
     body?: boolean
   }):Promise<ITradleMessage> => {
     const opts = getBaseFindOpts({
-      match: { _recipient: recipient },
+      match: {
+        _counterparty: recipient,
+        _inbound: false
+      },
       orderBy: 'time',
       reverse: true
     })
@@ -492,6 +500,16 @@ export default class Messages {
     return await this.objects.get(getLink(message.object))
   }
 
+  public static getDCounterpartyKey = ({ _counterparty, _inbound }: {
+    _counterparty: string
+    _inbound?: boolean
+  }) => {
+    const dir = _inbound ? 'i' : 'o'
+    return `${dir}:${_counterparty}`
+  }
+
+  public getDCounterpartyKey = Messages.getDCounterpartyKey
+
 // private assertNoDrift = (message) => {
 //   const drift = message.time - Date.now()
 //   const side = drift > 0 ? 'ahead' : 'behind'
@@ -543,6 +561,13 @@ const getBaseFindOpts = ({ match={}, limit, orderBy, reverse, select }: {
   reverse?: boolean
   select?: string[]
 }) => {
+  const { _counterparty, _inbound } = match
+  if (_counterparty) {
+    match._dcounterparty = Messages.getDCounterpartyKey({ _counterparty, _inbound })
+    delete match._counterparty
+    delete match._inbound
+  }
+
   const opts:any = {
     limit,
     filter: {
