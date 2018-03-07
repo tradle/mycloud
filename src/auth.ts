@@ -288,9 +288,10 @@ export default class Auth {
 
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)
     this.logger.info('assuming role', role)
-    const params = {
+    const params:AWS.STS.AssumeRoleRequest = {
       RoleArn: role,
       RoleSessionName: randomString(16),
+      DurationSeconds: 900
     }
 
     // assume role returns temporary keys

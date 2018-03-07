@@ -82,13 +82,13 @@ export default class Delivery extends EventEmitter implements IDelivery {
     range,
     batchSize=MAX_BATCH_SIZE
   }:IDeliveryRequest):Promise<IDeliveryResult> => {
-    let { afterMessage } = range
-    const { before, after } = range
+    range = _.clone(range)
+    let { before, after } = range
 
     this.logger.debug(`looking up messages for ${recipient} > ${after}`)
     const result:IDeliveryResult = {
       finished: false,
-      range: { ...range }
+      range
     }
 
     while (true) {
@@ -115,7 +115,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
       await this.deliverBatch({ recipient, messages, session, friend })
       let last = messages[messages.length - 1]
-      result.range.after = last.time
+      after = result.range.after = last.time
     }
 
     return result

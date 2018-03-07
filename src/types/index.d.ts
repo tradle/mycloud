@@ -282,9 +282,10 @@ export interface IOutboundMessagePointer {
 }
 
 export interface IDeliveryMessageRange {
+  // timestamps
   after?: number
   before?: number
-  afterMessage?: IOutboundMessagePointer
+  // afterMessage?: IOutboundMessagePointer
 }
 
 export type CacheContainer = {

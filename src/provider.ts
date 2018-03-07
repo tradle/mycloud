@@ -360,7 +360,10 @@ export default class Provider {
   private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
     const { messages, recipient } = opts
     this.logger.debug(`attempting to deliver batch of ${messages.length} messages to ${recipient}`)
-    await this.tradle.delivery.deliverBatch(opts)
+    await this.tradle.delivery.deliverBatch({
+      ...opts,
+      messages: messages.map(this.messages.formatForDelivery)
+    })
   }
 
   public sendPushNotification = async (recipient:string):Promise<void> => {

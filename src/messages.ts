@@ -129,7 +129,7 @@ export default class Messages {
     }
   }
 
-  public messageFromEventPayload = (event):ITradleMessage => {
+  public formatForDelivery = (event):ITradleMessage => {
     return {
       ...event,
       recipientPubKey: this.unserializePubKey(event.recipientPubKey)
@@ -141,6 +141,8 @@ export default class Messages {
   }
 
   public unserializePubKey = (key:string):IECMiniPubKey => {
+    if (typeof key !== 'string') return key
+
     const [curve, pub] = key.split(':')
     return {
       curve,
@@ -316,7 +318,8 @@ export default class Messages {
     }
 
     const { items } = await this.db.find(opts)
-    return body ? Promise.all(items.map(this.loadMessage)) : items
+    const messages = items.map(this.formatForDelivery)
+    return body ? Promise.all(messages.map(this.loadMessage)) : messages
   }
 
   public getLastMessageTo = async ({ recipient, body = true }: {
