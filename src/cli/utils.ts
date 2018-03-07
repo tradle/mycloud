@@ -152,6 +152,8 @@ const genLocalResources = async ({ tradle }) => {
 }
 
 const makeDeploymentBucketPublic = async () => {
+  loadCredentials()
+
   const { buckets } = createRemoteTradle()
   await buckets.ServerlessDeployment.makePublic()
 }
