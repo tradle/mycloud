@@ -37,6 +37,8 @@ export = function createDB (tradle:Tradle) {
   updateModelMap()
 
   const chooseTable = ({ tables, type }) => {
+    if (tables.length === 1) return tables[0]
+
     const tableName = modelMap.models[type]
     return tables.find(table => table.name === tableName)
   }

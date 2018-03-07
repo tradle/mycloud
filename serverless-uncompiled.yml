@@ -188,7 +188,7 @@ custom:
     <<: *defaultCapacityWrite
 
   tableBuckets:
-    count: 4
+    count: 1
     index:
       - _author
       - _t
@@ -622,14 +622,6 @@ functions:
     handler: lib/in-house-bot/lambda/to-events.handler
     memorySize: 256
     events:
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - MessagesTable
-              - StreamArn
       - stream:
           type: dynamodb
           batchSize: 100
