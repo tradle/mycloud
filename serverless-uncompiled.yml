@@ -618,30 +618,30 @@ functions:
   #   memorySize: 512
 
   # replicates MessagesTable to EventsTable
-  to-events:
-    handler: lib/in-house-bot/lambda/to-events.handler
-    memorySize: 256
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - MessagesTable
-              - StreamArn
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - SealsTable
-              - StreamArn
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
+  # to-events:
+  #   handler: lib/in-house-bot/lambda/to-events.handler
+  #   memorySize: 256
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 100
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - MessagesTable
+  #             - StreamArn
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 100
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - SealsTable
+  #             - StreamArn
+  #   alarms:
+  #     - functionErrors
+  #     # - functionThrottles
+  #     # - functionInvocations
 
   # log:
   #   handler: lib/lambda/log.handler
@@ -1026,6 +1026,36 @@ functions:
           path: deployment-pingback
           method: post
           cors: ${{self:custom.cors}}
+
+  # webhooks:
+  #   handler: lib/in-house-bot/lambda/webhooks.handler
+  #   memorySize: 256
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 100
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - MessagesTable
+  #             - StreamArn
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 100
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - SealsTable
+  #             - StreamArn
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 100
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - UsersTable
+  #             - StreamArn
+  #     # + streams from bucket tables
 
   # cli_dev:
   #   handler: lib/in-house-bot/lambda/cli.handler

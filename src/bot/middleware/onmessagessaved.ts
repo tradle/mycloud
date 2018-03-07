@@ -93,7 +93,7 @@ const toStream = (lambda:Lambda, opts?:any) => {
   const { toStreamItems } = require('../../test/utils')
   const { tradle } = lambda
   return async (ctx, next) => {
-    ctx.event = toStreamItems(ctx.event.messages.map(m => {
+    ctx.event = toStreamItems(tradle.tables.Messages.name, ctx.event.messages.map(m => {
       return {
         new: tradle.messages.formatForDB(m)
       }

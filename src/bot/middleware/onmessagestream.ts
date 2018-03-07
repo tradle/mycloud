@@ -1,5 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
+import compose from 'koa-compose'
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import Errors from '../../errors'
@@ -14,6 +15,7 @@ import {
 
 import { fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from './onmessagessaved'
+import { createMiddleware as createSaveEvents } from './events'
 import { Lambda, ISettledPromise, ITradleMessage } from '../../types'
 
 const S3_GET_ATTEMPTS = 3
@@ -21,6 +23,7 @@ const S3_FAILED_GET_INITIAL_RETRY_DELAY = 1000
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { tradle, bot, logger } = lambda
+  const { events } = tradle
   const logAndThrow = (results) => {
     const failed = results.map(({ reason }) => reason)
       .filter(reason => reason)
@@ -33,10 +36,11 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 
   const preProcess = preProcessOne(lambda, opts)
   const postProcess = postProcessBatch(lambda, opts)
-  return async (ctx, next) => {
+  const saveEvents = createSaveEvents(events)
+  const processStream = async (ctx, next) => {
     const { event } = ctx
     event.bot = bot
-    // unmarshalling is prob a waste of time
+
     const messages = getRecordsFromEvent(event)
     const preResults:ISettledPromise<ITradleMessage>[] = await batchProcess({
       data: messages,
@@ -60,6 +64,11 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     logAndThrow(preResults)
     await next()
   }
+
+  return compose([
+    saveEvents,
+    processStream
+  ])
 }
 
 export const preProcessOne = (lambda:Lambda, opts) => {

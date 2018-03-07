@@ -51,13 +51,14 @@ const recreateTable = co(function* (schema) {
   return table
 })
 
-function toStreamItems (changes) {
+function toStreamItems (tableName, changes) {
   return {
     Records: [].concat(changes).map(change => {
       return {
+        eventSourceARN: `arn:aws:dynamodb:us-east-1:11111111111:table/${tableName}`,
         dynamodb: {
           NewImage: marshalDBItem(change.new),
-          OldImage: change.old && marshalDBItem(change.old)
+          OldImage: change.old && marshalDBItem(change.old),
         }
       }
     })

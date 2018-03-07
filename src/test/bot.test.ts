@@ -284,7 +284,7 @@ test(`readseal`, loudAsync(async (t) => {
     t.equal(event.link, link)
   })
 
-  await bot.lambdas.onsealstream().handler(toStreamItems([
+  await bot.lambdas.onsealstream().handler(toStreamItems(bot.tables.Seals.name, [
     // queueseal
     {
       new: {
@@ -378,6 +378,10 @@ test('onmessagestream', loudAsync(async (t) => {
   }
 
   const tradle = createTestTradle()
+  sinon.stub(tradle.events, 'putEvents').callsFake(async (events) => {
+    t.ok(events)
+  })
+
   const bot = createBot({ tradle })
   bot.setCustomModels({ models: PingPongModels })
 
@@ -417,7 +421,7 @@ test('onmessagestream', loudAsync(async (t) => {
     })
   })
 
-  await bot.lambdas.onmessagestream().handler(toStreamItems([
+  await bot.lambdas.onmessagestream().handler(toStreamItems(bot.tables.Messages.name, [
     { new: message }
   ]), {
     // #6

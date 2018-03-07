@@ -1,8 +1,10 @@
 import _ from 'lodash'
+import compose from 'koa-compose'
 import { getRecordsFromEvent } from '../../db-utils'
 import { batchProcess } from '../../utils'
 import { Lambda } from '../../types'
 import { fromDynamoDB } from '../lambda'
+import { createMiddleware as createSaveEvents } from '../middleware/events'
 
 const Watch = {
   one: 'watchseal',
@@ -33,7 +35,8 @@ export const createLambda = (opts) => {
 }
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { bot } = lambda
+  const { bot, tradle } = lambda
+  const { events } = tradle
   const { batchSize=10 } = opts
   const processBatch = async (records) => {
     const events = records.map(recordToEvent)
@@ -53,11 +56,17 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     }))
   }
 
-  return async (ctx, next) => {
+  const saveEvents = createSaveEvents(events)
+  const processStream = async (ctx, next) => {
     const data = getRecordsFromEvent(ctx.event, true) // new + old image
     await batchProcess({ data, batchSize, processBatch })
     await next()
   }
+
+  return compose([
+    saveEvents,
+    processStream
+  ])
 }
 
 const recordToEvent = record => ({

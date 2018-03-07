@@ -54,6 +54,7 @@ export default createDBUtils
 export {
   createDBUtils,
   getRecordsFromEvent,
+  getTableNameFromStreamEvent,
   getUpdateParams,
   marshalDBItem,
   unmarshalDBItem
@@ -471,6 +472,7 @@ function createDBUtils ({ aws, logger, env }) {
     unmarshalDBItem,
     getTable,
     getRecordsFromEvent,
+    getTableNameFromStreamEvent,
     getTableBuckets,
     getModelMap,
     getTableDefinition,
@@ -502,6 +504,12 @@ function getRecordsFromEvent (event, oldAndNew?) {
     return NewImage && unmarshalDBItem(NewImage)
   })
   .filter(data => data)
+}
+
+const EVENT_SOURCE_ARN_TABLE_NAME_REGEX = /:table\/([^/]+)/
+
+function getTableNameFromStreamEvent (event) {
+  return event.Records[0].eventSourceARN.match(EVENT_SOURCE_ARN_TABLE_NAME_REGEX)[1]
 }
 
 function logCapacityConsumption (method, result) {

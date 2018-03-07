@@ -21,10 +21,12 @@ import {
   User,
   Buckets,
   Bucket,
+  Tables,
   AwsApis,
   StackUtils,
   LambdaUtils,
   S3Utils,
+  Events,
   Init,
   Mailer,
   AppLinks,
@@ -44,10 +46,10 @@ export default class Tradle {
   // public router: any
   public serviceMap: IServiceMap
   public buckets: Buckets
-  public tables: any
+  public tables: Tables
   public dbUtils: any
   public objects: Objects
-  public events: any
+  public events: Events
   public identities: Identities
   public messages: Messages
   public db: DB
@@ -152,7 +154,12 @@ export default class Tradle {
     this.define('identities', './identities', this.construct)
     this.define('friends', './friends', this.construct)
     this.define('messages', './messages', this.construct)
-    this.define('events', './events', initialize => initialize(this))
+    this.define('events', './events', Events => new Events({
+      tables: this.tables,
+      dbUtils: this.dbUtils,
+      logger: this.logger.sub('events')
+    }))
+
     this.define('provider', './provider', this.construct)
     this.define('auth', './auth', this.construct)
     this.define('objects', './objects', this.construct)

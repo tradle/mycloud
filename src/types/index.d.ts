@@ -33,6 +33,7 @@ import { Backlinks } from '../backlinks'
 import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
+import { Events } from '../events'
 import { Mailer } from '../mailer'
 import {
   ResourceStub,
@@ -79,6 +80,7 @@ export {
   StackUtils,
   LambdaUtils,
   S3Utils,
+  Events,
   Mailer,
   AppLinks
 }
@@ -368,6 +370,27 @@ export interface IBucketsInfo {
 export type Buckets = {
   [P in keyof IBucketsInfo]: Bucket
 }
+
+export interface ITable {
+  // placeholder
+  // TODO: export api from db-utils
+  // or switch to using @tradle/dynamodb
+  name: string
+  [key: string]: any
+}
+
+export type Tables = {
+  PubKeys: ITable
+  Messages: ITable
+  Seals: ITable
+  Bucket0: ITable
+  KV: ITable
+  Events: ITable
+  Users: ITable
+  Presence: ITable
+  Friends: ITable
+}
+
 
 // TODO: generate this from serverless.yml
 export type IServiceMap = {
