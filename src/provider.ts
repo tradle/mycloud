@@ -334,7 +334,7 @@ export default class Provider {
       })
     } catch (err) {
       const error = { error: err.stack }
-      if (Errors.matches(err, Errors.NotFound)) {
+      if (Errors.isNotFound(err)) {
         this.logger.debug('live delivery canceled', error)
       } else if (Errors.matches(err, Errors.ClientUnreachable)) {
         this.logger.debug('live delivery failed, client unreachable', { recipient })

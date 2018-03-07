@@ -64,7 +64,7 @@ export const createHandler = ({ bot, logger }, { allowGuest, canUserRunQuery }) 
         ctx.user = user = await bot.users.get(queryObj._author)
       } catch (err) {
         Errors.rethrow(err, 'system')
-        if (Errors.matches(err, [Errors.NotFound, Errors.UnknownAuthor])) {
+        if (Errors.isNotFound(err) || Errors.matches(err, Errors.UnknownAuthor)) {
           ctx.status = 403
           ctx.body = {
             message: 'not allowed'

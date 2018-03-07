@@ -112,7 +112,7 @@ export class Backlinks {
     try {
       current = await this.store.get(key)
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       current = []
     }
 

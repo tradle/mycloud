@@ -162,8 +162,7 @@ custom:
     presence: ${{self:custom.prefix}}presence
     seals: ${{self:custom.prefix}}seals
     pubkeys: ${{self:custom.prefix}}pubkeys
-    inbox: ${{self:custom.prefix}}inbox
-    outbox: ${{self:custom.prefix}}outbox
+    messages: ${{self:custom.prefix}}messages
     events: ${{self:custom.prefix}}events
     # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
     users: ${{self:custom.prefix}}users
@@ -203,21 +202,10 @@ custom:
           - permalink
         <<: *defaultCapacity
 
-      - table: InboxTable
+      - table: MessagesTable
         index:
+          - _recipient
           - _link
-          - context
-        read:
-          minimum: 10       # Minimum read capacity
-          maximum: 100      # Maximum read capacity
-          usage: 0.70       # Targeted usage percentage
-        write:
-          minimum: 5        # Minimum write capacity
-          maximum: 100      # Maximum write capacity
-          usage: 0.5        # Targeted usage percentage
-
-      - table: OutboxTable
-        index:
           - _payloadLink
           - _payloadType
           - context
@@ -629,7 +617,7 @@ functions:
   #   handler: lib/lambda/createevent.handler
   #   memorySize: 512
 
-  # replicates InboxTable to EventsTable
+  # replicates MessagesTable to EventsTable
   to-events:
     handler: lib/in-house-bot/lambda/to-events.handler
     memorySize: 256
@@ -640,7 +628,7 @@ functions:
           startingPosition: TRIM_HORIZON
           arn:
             Fn::GetAtt:
-              - InboxTable
+              - MessagesTable
               - StreamArn
       - stream:
           type: dynamodb
@@ -648,7 +636,7 @@ functions:
           startingPosition: TRIM_HORIZON
           arn:
             Fn::GetAtt:
-              - OutboxTable
+              - MessagesTable
               - StreamArn
       - stream:
           type: dynamodb
@@ -755,7 +743,7 @@ functions:
 
   # triggered when a client sends a message
   #
-  # validates, stores in OutboxTable, in ObjectsBucker (for now),
+  # validates, stores in MessagesTable, in ObjectsBucker (for now),
   # and passes off to bot engine
   onmessage:
     handler: lib/in-house-bot/lambda/mqtt/onmessage.handler
@@ -938,15 +926,7 @@ functions:
           startingPosition: TRIM_HORIZON
           arn:
             Fn::GetAtt:
-              - InboxTable
-              - StreamArn
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - OutboxTable
+              - MessagesTable
               - StreamArn
     alarms:
       - functionErrors
@@ -1259,16 +1239,18 @@ resources:
               WriteCapacityUnits: 5
 
     # bodies rot in s3
-    # InboxTable: ${{file(./conf/table/inbox.yml)}}
+    # MessagesTable: ${{file(./conf/table/inbox.yml)}}
 
     # stores received messages (minus their payloads)
-    InboxTable:
+    MessagesTable:
       Type: AWS::DynamoDB::Table
-      Description: inbound messages from users
+      Description: message envelopes
       Properties:
-        TableName: ${{self:custom.tables.inbox}}
+        TableName: ${{self:custom.tables.messages}}
         AttributeDefinitions:
           - AttributeName: _author
+            AttributeType: S
+          - AttributeName: _recipient
             AttributeType: S
           # - AttributeName: ${{self:custom.props.seq}}
           #   AttributeType: N
@@ -1277,6 +1259,10 @@ resources:
           - AttributeName: _link
             AttributeType: S
           - AttributeName: context
+            AttributeType: S
+          - AttributeName: _payloadLink
+            AttributeType: S
+          - AttributeName: _payloadType
             AttributeType: S
         KeySchema:
           - AttributeName: _author
@@ -1291,6 +1277,17 @@ resources:
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
         GlobalSecondaryIndexes:
+          - IndexName: _recipient
+            KeySchema:
+              - AttributeName: _recipient
+                KeyType: HASH
+              - AttributeName: time
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
           - IndexName: _link
             KeySchema:
               - AttributeName: _link
@@ -1311,37 +1308,6 @@ resources:
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
-
-    # OutboxTable: ${{file(./conf/table/outbox.yml)}}
-
-    # stores received messages (minus their payloads)
-    OutboxTable:
-      Type: AWS::DynamoDB::Table
-      Description: outbound messages to users
-      Properties:
-        TableName: ${{self:custom.tables.outbox}}
-        AttributeDefinitions:
-          - AttributeName: _recipient
-            AttributeType: S
-          - AttributeName: time
-            AttributeType: N
-          - AttributeName: _payloadLink
-            AttributeType: S
-          - AttributeName: _payloadType
-            AttributeType: S
-          - AttributeName: context
-            AttributeType: S
-        KeySchema:
-          - AttributeName: _recipient
-            KeyType: HASH
-          - AttributeName: time
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
-        GlobalSecondaryIndexes:
           - IndexName: _payloadType
             KeySchema:
               - AttributeName: _payloadType
@@ -1361,17 +1327,6 @@ resources:
               #   KeyType: RANGE
             Projection:
               ProjectionType: KEYS_ONLY
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: context
-            KeySchema:
-              - AttributeName: context
-                KeyType: HASH
-              - AttributeName: time
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5

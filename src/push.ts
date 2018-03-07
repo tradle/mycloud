@@ -78,7 +78,7 @@ export default class Push {
     try {
       return await this.subscribers.get(subscriber)
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       return createSubscriberInfo()
     }
   }

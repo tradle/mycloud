@@ -742,7 +742,7 @@ test('ModelStore', loudAsync(async (t) => {
     t.fail('expected error')
   } catch (err) {
     // 1
-    t.equal(Errors.matches(err, Errors.NotFound), true)
+    t.equal(Errors.isNotFound(err), true)
   }
 
   const namespace = domainToNamespace(friend1.domain)

@@ -258,7 +258,7 @@ export default class Auth {
     const getLastSent = this.messages.getLastMessageTo({ recipient: permalink, body: false })
       .then(message => this.messages.getMessageStub({ message }))
       .catch(err => {
-        if (err instanceof NotFound) return null
+        if (Errors.isNotFound(err)) return null
 
         throw err
       })

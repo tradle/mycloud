@@ -203,7 +203,7 @@ export default class User {
     try {
       return await this.auth.getMostRecentSessionByClientId(clientId)
     } catch (error) {
-      Errors.ignore(error, Errors.NotFound)
+      Errors.ignoreNotFound(error)
       this.logger.debug('iot session not found', { clientId })
       await this.requestIotClientReconnect({ clientId, error })
     }

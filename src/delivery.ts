@@ -96,7 +96,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
         recipient,
         gt: after,
         // lt: before,
-        afterMessage,
+        // afterMessage,
         limit: batchSize,
         body: true,
       })
@@ -115,13 +115,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
       await this.deliverBatch({ recipient, messages, session, friend })
       let last = messages[messages.length - 1]
-      afterMessage = {
-        time: last.time,
-        _recipient: last._recipient
-      }
-
-      result.range.afterMessage = afterMessage
-      delete result.range.after
+      result.range.after = last.time
     }
 
     return result

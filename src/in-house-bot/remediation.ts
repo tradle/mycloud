@@ -193,7 +193,7 @@ export class Remediation {
       try {
         await this.getBundle({ key })
       } catch (err) {
-        Errors.ignore(err, Errors.NotFound)
+        Errors.ignoreNotFound(err)
         throw new Errors.NotFound(`bundle not found with key: ${key}`)
       }
     }
@@ -456,7 +456,7 @@ export class Remediation {
     try {
       return await this.keyToClaimIds.get(key)
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       return []
     }
   }

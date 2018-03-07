@@ -1,8 +1,12 @@
+import _ from 'lodash'
 import dynogels from 'dynogels'
+import { TYPE } from '@tradle/constants'
 import { createTable, DB, utils } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
-import { createMessagesTable } from './messages-table'
+// import { createMessagesTable } from './messages-table'
 import { Provider, Friends, Buckets, Env, Logger, Tradle } from './types'
+
+const MESSAGE = 'tradle.Message'
 
 export = function createDB (tradle:Tradle) {
   const { modelStore, objects, tables, aws, constants, env, dbUtils } = tradle
@@ -53,19 +57,21 @@ export = function createDB (tradle:Tradle) {
   })
 
   const messageModel = modelStore.models['tradle.Message']
-  const messagesTable = createMessagesTable({
-    docClient,
-    models: modelStore.models,
-    getMyIdentity: () => tradle.provider.getMyPublicIdentity(),
-    definitions: dbUtils.definitions
-  })
-
-  db.setExclusive({
-    model: messageModel,
-    table: messagesTable
-  })
+  // const messagesTable = createMessagesTable({
+  //   docClient,
+  //   models: modelStore.models,
+  //   getMyIdentity: () => tradle.provider.getMyPublicIdentity(),
+  //   definitions: dbUtils.definitions
+  // })
 
   ;[
+    {
+      type: 'tradle.Message',
+      definition: tables.Messages.definition,
+      opts: {
+        forbidScan: true
+      }
+    },
     {
       type: 'tradle.PubKey',
       definition: tables.PubKeys.definition,
@@ -102,6 +108,20 @@ export = function createDB (tradle:Tradle) {
       })
     })
   })
+
+  // let botPermalink
+  // const fixMessageFilter = async ({ filter }) => {
+  //   if (!(filter && filter.EQ)) return
+
+  //   const { EQ } = filter
+  //   if (EQ[TYPE] === MESSAGE && EQ._author) {
+  //     const botPermalink = await tradle.provider.getMyIdentityPermalink()
+  //     if (EQ._author === botPermalink)
+  //   }
+  // }
+
+  // db.hook('find', fixMessageFilter)
+  // db.hook('findOne', fixMessageFilter)
 
   return db
 }

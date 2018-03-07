@@ -75,7 +75,7 @@ export const preProcessOne = (lambda:Lambda, opts) => {
         extendTradleObject(payload, body)
       } catch (err) {
         // TODO: implement retry/fallback policy
-        Errors.ignore(err, Errors.NotFound)
+        Errors.ignoreNotFound(err)
         await wait(delay)
         delay *= 2
       }

@@ -1059,7 +1059,7 @@ export const syncClock = async (tradle:Tradle) => {
   // a cheap request that will trigger clock sync
   // as long as
   await PublicConf.head(PUBLIC_CONF_BUCKET.identity).catch(err => {
-    Errors.ignore(err, Errors.NotFound)
+    Errors.ignoreNotFound(err)
   })
 }
 

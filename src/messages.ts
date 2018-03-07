@@ -51,6 +51,12 @@ const unserializeMessage = message => {
   return message
 }
 
+// const proxyNotFound = err => {
+//   if (Errors.matches(err, { name: 'NotFound' })) {
+//     throw new Errors.NotFound(err.message)
+//   }
+// }
+
 const {
   MESSAGE,
 } = TYPES
@@ -70,21 +76,15 @@ export default class Messages {
   private logger: Logger
   private identities: Identities
   private objects: Objects
-  private tables: any
   private tradle: Tradle
-  public inbox: any
-  public outbox: any
 
   constructor (tradle: Tradle) {
-    const { env, identities, objects, tables, logger } = tradle
+    const { env, identities, objects, logger } = tradle
     this.tradle = tradle
     this.env = env
     this.logger = logger.sub('messages')
     this.identities = identities
     this.objects = objects
-    this.tables = tables
-    this.outbox = tables.Outbox
-    this.inbox = tables.Inbox
   }
 
   get db() {
@@ -169,11 +169,18 @@ export default class Messages {
     }
   }
 
+  public static getFromTo = message => `${message._author}:${message._recipient}`
+  public static parseFromTo = fromTo => {
+    const [_author, _recipient] = fromTo.split(':')
+    return { _author, _recipient }
+  }
+
   public putMessage = async (message: ITradleMessage) => {
     setVirtual(message, {
       _payloadType: message.object[TYPE],
       _payloadLink: message.object._link,
       _payloadAuthor: message.object._author,
+      _fromTo: Messages.getFromTo(message)
       // _seqToRecipient: `${message._recipient}:${message[SEQ]}`
     })
 
@@ -195,14 +202,7 @@ export default class Messages {
     message: ITradleMessage,
     item
   }):Promise<void> => {
-    const { item } = opts
-    await this.outbox.put({
-      Item: item,
-      // ConditionExpression: 'attribute_not_exists(#seqToRecipient)',
-      // ExpressionAttributeNames: {
-      //   '#seqToRecipient': '_seqToRecipient'
-      // }
-    })
+    await this.db.put(opts.item)
   }
 
   public putInboundMessage = async (opts: {
@@ -210,16 +210,13 @@ export default class Messages {
     item
   }):Promise<void> => {
     const { item, message } = opts
-    const params = {
-      Item: item,
-      ConditionExpression: 'attribute_not_exists(#link)',
-      ExpressionAttributeNames: {
-        '#link': '_link'
-      }
-    }
-
     try {
-      await this.inbox.put(params)
+      await this.db.put(item, {
+        ConditionExpression: 'attribute_not_exists(#link)',
+        ExpressionAttributeNames: {
+          '#link': '_link'
+        }
+      })
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
         throw new Errors.Duplicate('duplicate inbound message', getLink(message))
@@ -235,48 +232,21 @@ export default class Messages {
     return message
   }
 
-  public getMessageFrom = async (opts: {
+  public getLastMessageFrom = async ({ author, body }: {
     author: string,
-    time: number,
-    link?: string,
-    body?:boolean
+    body: boolean
   }):Promise<ITradleMessage> => {
-    const { author, time, link, body=true } = opts
-    if (body && link) {
-      // prime cache
-      this.objects.prefetch(link)
-    }
-
-    return await this.maybeAddBody({
-      message: await this.get(this.inbox, {
-        _author: author,
-        time
-      }),
-      body
+    const opts = getBaseFindOpts({
+      match: {
+        _author: author
+      },
+      limit: 1,
+      orderBy: 'time',
+      reverse: true
     })
-  }
 
-  public getMessagesFrom = async (opts: {
-    author: string,
-    gt: number,
-    limit: number,
-    body: boolean
-  }):Promise<ITradleMessage[]> => {
-    const { author, gt, limit, body=true } = opts
-    this.logger.debug(`looking up inbound messages from ${author}, > ${gt}`)
-    const params = this.getMessagesFromQuery({ author, gt, limit })
-    const messages = await this.find(this.inbox, params)
-    return body ? Promise.all(messages.map(this.loadMessage)) : messages
-  }
-
-  public getLastMessageFrom = async (opts: {
-    author: string,
-    body: boolean
-  }):Promise<ITradleMessage> => {
-    const { author, body=true } = opts
-    const params = this.getLastMessageFromQuery({ author })
     return this.maybeAddBody({
-      message: await this.findOne(this.inbox, params),
+      message: await this.db.findOne(opts),
       body
     })
   }
@@ -289,25 +259,28 @@ export default class Messages {
     return body ? this.loadMessage(message) : message
   }
 
-  public getLastSeqAndLink = async (opts: { recipient: string }):Promise<ISeqAndLink|null> => {
-    const { recipient } = opts
+  public getLastSeqAndLink = async ({ recipient }: {
+    recipient: string
+  }):Promise<ISeqAndLink|null> => {
     this.logger.debug(`looking up last message to ${recipient}`)
 
-    const query = this.getLastMessageToQuery({ recipient })
-    query.ExpressionAttributeNames!['#link'] = '_link'
-    query.ExpressionAttributeNames![`#${SEQ}`] = SEQ
-    query.ProjectionExpression = `#${SEQ}, #link`
+    const opts = getBaseFindOpts({
+      match: { _recipient: recipient },
+      orderBy: 'time',
+      reverse: true,
+      select: [SEQ, '_link']
+    })
 
     let last
     try {
-      last = await this.outbox.findOne(query)
+      last = await this.db.findOne(opts)
       this.logger.debug('last message', last)
       return {
         seq: last[SEQ],
         link: last._link
       }
     } catch (err) {
-      if (err instanceof Errors.NotFound) {
+      if (Errors.isNotFound(err)) {
         return null
       }
 
@@ -321,33 +294,38 @@ export default class Messages {
   //   return last + 1
   // })
 
-  public getMessagesTo = async (opts: {
+  public getMessagesTo = async ({ recipient, gt=0, limit, body=true }: {
     recipient: string,
     gt?: number,
-    afterMessage?: any,
     limit?:number,
     body?:boolean
   }):Promise<ITradleMessage[]> => {
-    const { recipient, gt=0, afterMessage, limit, body=true } = opts
-    if (afterMessage) {
-      this.logger.debug(`looking up outbound messages for ${recipient}, after ${afterMessage}`)
-    } else {
-      this.logger.debug(`looking up outbound messages for ${recipient}, time > ${gt}`)
+    const opts = getBaseFindOpts({
+      limit,
+      match: { _recipient: recipient },
+      orderBy: 'time'
+    })
+
+    opts.filter.GT = {
+      time: gt
     }
 
-    const params = this.getMessagesToQuery({ recipient, gt, afterMessage, limit })
-    const messages = await this.find(this.outbox, params)
-    return body ? Promise.all(messages.map(this.loadMessage)) : messages
+    const { items } = await this.db.find(opts)
+    return body ? Promise.all(items.map(this.loadMessage)) : items
   }
 
-  public getLastMessageTo = async (opts: {
+  public getLastMessageTo = async ({ recipient, body = true }: {
     recipient: string,
-    body: boolean
+    body?: boolean
   }):Promise<ITradleMessage> => {
-    const { recipient, body=true } = opts
-    const params = this.getLastMessageToQuery({ recipient })
+    const opts = getBaseFindOpts({
+      match: { _recipient: recipient },
+      orderBy: 'time',
+      reverse: true
+    })
+
     return this.maybeAddBody({
-      message: await this.findOne(this.outbox, params),
+      message: await this.db.findOne(opts),
       body
     })
   }
@@ -365,33 +343,37 @@ export default class Messages {
     limit: number
     reverse?: boolean
   }) => {
-    const box = inbound ? this.inbox : this.outbox
-    return await box.find({
-      IndexName: 'context',
-      KeyConditionExpression: '#context = :context',
-      ExpressionAttributeNames: {
-        '#context': 'context'
-      },
-      ExpressionAttributeValues: {
-        ':context': context
-      },
-      ScanIndexForward: !reverse,
-      Limit: limit
+
+    const filter:any = {
+      EQ: {
+        [TYPE]: MESSAGE,
+        context
+      }
+    }
+
+    if (typeof inbound === 'boolean') {
+      filter.EQ._inbound = inbound
+    }
+
+    const { items } = await this.db.find({
+      limit,
+      filter,
+      orderBy: {
+        property: 'time',
+        desc: reverse
+      }
     })
+
+    return items
   }
 
   public getInboundByLink = async (link:string) => {
-    return await this.findOne(this.inbox, {
-      IndexName: '_link',
-      KeyConditionExpression: '#link = :link',
-      ExpressionAttributeNames: {
-        '#link': '_link'
-      },
-      ExpressionAttributeValues: {
-        ':link': link
-      },
-      ScanIndexForward: true,
-      Limit: 1
+    return await this.db.findOne({
+      filter: {
+        EQ: {
+          _link: link
+        }
+      }
     })
   }
 
@@ -428,9 +410,7 @@ export default class Messages {
         throw new Errors.TimeTravel(msg, link)
       }
     } catch (err) {
-      if (!(err instanceof Errors.NotFound)) {
-        throw err
-      }
+      Errors.ignoreNotFound(err)
     }
   }
 
@@ -512,118 +492,6 @@ export default class Messages {
     return await this.objects.get(getLink(message.object))
   }
 
-  private get = async (table, Key):Promise<ITradleMessage> => {
-    const event = await table.get({ Key })
-    return this.messageFromEventPayload(event)
-  }
-
-  private findOne = async (table, params):Promise<ITradleMessage> => {
-    const event = await table.findOne(params)
-    return this.messageFromEventPayload(event)
-  }
-
-  private find = async (table, params):Promise<ITradleMessage[]> => {
-    const events = await table.find(params)
-    return events.map(this.messageFromEventPayload)
-  }
-
-  private getMessagesFromQuery = ({
-    author,
-    gt,
-    limit
-  }):AWS.DynamoDB.DocumentClient.QueryInput => {
-    const params:AWS.DynamoDB.DocumentClient.QueryInput = {
-      TableName: this.inbox.name,
-      KeyConditionExpression: '#author = :author AND #time > :time',
-      ExpressionAttributeNames: {
-        '#author': '_author',
-        '#time': 'time'
-      },
-      ExpressionAttributeValues: {
-        ':author': author,
-        ':time': gt
-      },
-      ScanIndexForward: true
-    }
-
-    if (limit) {
-      params.Limit = limit
-    }
-
-    return params
-  }
-
-  private getLastMessageFromQuery = (opts: {
-    author: string
-  }):AWS.DynamoDB.DocumentClient.QueryInput => {
-    const { author } = opts
-    return {
-      TableName: this.inbox.name,
-      KeyConditionExpression: '#author = :author AND #time > :time',
-      ExpressionAttributeNames: {
-        '#author': '_author',
-        '#time': 'time'
-      },
-      ExpressionAttributeValues: {
-        ':author': author,
-        ':time': 0
-      },
-      ScanIndexForward: false,
-      Limit: 1
-    }
-  }
-
-  private getMessagesToQuery = (opts: {
-    recipient: string,
-    gt?: number,
-    afterMessage?: any,
-    limit?: number
-  }):AWS.DynamoDB.DocumentClient.QueryInput => {
-    const { recipient, gt, afterMessage, limit } = opts
-    const params:AWS.DynamoDB.DocumentClient.QueryInput = {
-      TableName: this.outbox.name,
-      KeyConditionExpression: `#recipient = :recipient AND #time > :time`,
-      ExpressionAttributeNames: {
-        '#recipient': '_recipient',
-        '#time': 'time'
-      },
-      ExpressionAttributeValues: {
-        ':recipient': recipient,
-        ':time': gt
-      },
-      ScanIndexForward: true
-    }
-
-    if (afterMessage) {
-      params.ExclusiveStartKey = afterMessage
-    }
-
-    if (limit) {
-      params.Limit = limit
-    }
-
-    return params
-  }
-
-  private getLastMessageToQuery = (opts: {
-    recipient: string
-  }):AWS.DynamoDB.DocumentClient.QueryInput => {
-    const { recipient } = opts
-    return {
-      TableName: this.outbox.name,
-      KeyConditionExpression: `#recipient = :recipient AND #time > :time`,
-      ExpressionAttributeNames: {
-        '#recipient': '_recipient',
-        '#time': 'time'
-      },
-      ExpressionAttributeValues: {
-        ':recipient': recipient,
-        ':time': 0
-      },
-      ScanIndexForward: false,
-      Limit: 1
-    }
-  }
 // private assertNoDrift = (message) => {
 //   const drift = message.time - Date.now()
 //   const side = drift > 0 ? 'ahead' : 'behind'
@@ -666,4 +534,35 @@ const validateInbound = (message) => {
   } catch (err) {
     throw new Errors.InvalidMessageFormat(err.message)
   }
+}
+
+const getBaseFindOpts = ({ match={}, limit, orderBy, reverse, select }: {
+  match?: Partial<ITradleMessage>
+  limit?: number
+  orderBy?: string
+  reverse?: boolean
+  select?: string[]
+}) => {
+  const opts:any = {
+    limit,
+    filter: {
+      EQ: {
+        [TYPE]: MESSAGE,
+        ...match
+      }
+    }
+  }
+
+  if (orderBy) {
+    opts.orderBy = {
+      property: orderBy,
+      desc: !!reverse
+    }
+  }
+
+  if (select) {
+    opts.select = select
+  }
+
+  return opts
 }

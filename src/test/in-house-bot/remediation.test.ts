@@ -138,7 +138,7 @@ test('remediation api', loudAsync(async (t) => {
     await remediation.getBundleByClaimId(claimId)
     t.fail('expected claim to have been deleted')
   } catch (err) {
-    t.ok(Errors.matches(err, Errors.NotFound))
+    t.ok(Errors.isNotFound(err))
   }
 
   sandbox.restore()

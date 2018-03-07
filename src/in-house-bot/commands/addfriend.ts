@@ -54,7 +54,7 @@ export const command:ICommand = {
     try {
       user = await users.get(userId)
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       await users.save({ id: userId, friend: friendStub })
     }
 

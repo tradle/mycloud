@@ -115,7 +115,7 @@ export class Bucket {
     try {
       current = await this.get(key)
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
     }
 
     if (!_.isEqual(current, value)) {

@@ -209,7 +209,7 @@ export class ModelStore extends EventEmitter {
     try {
       return await this.cumulativePackItem.get(opts)
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       return null
     }
   }
@@ -223,7 +223,7 @@ export class ModelStore extends EventEmitter {
     try {
       return await this.getSavedGraphqlSchema()
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       return require('./bot/graphql').exportSchema({
         models: this.models
       })
@@ -330,7 +330,7 @@ Domain ${domain} (and namespace ${pack.namespace}) belongs to ${friend._identity
       validateUpdate(current, pack)
       ret.changed = current.versionId !== pack.versionId
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
     }
 
     return ret

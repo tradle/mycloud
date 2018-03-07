@@ -262,7 +262,7 @@ export class Conf {
     try {
       return await this.info.get()
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       return await this.calcPublicInfo()
     }
   }
@@ -342,7 +342,7 @@ export class Conf {
       await this.org.get({ force: true })
       return await this.recalcPublicInfo({ identity })
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
     }
 
     const deployment = new Deployment({
@@ -364,7 +364,9 @@ export class Conf {
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
-    const promiseWarmup = bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
+    const promiseWarmup = bot.isTesting
+      ? Promise.resolve()
+      : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
     // await bot.forceReinitializeContainers()
     const { referrerUrl, deploymentUUID } = deploymentConf
     if (!(referrerUrl && deploymentUUID)) {
@@ -459,7 +461,7 @@ const hasDifferentValue = async ({ bucket, key, value }) => {
     const current = await bucket.get(key)
     return !_.isEqual(current, value)
   } catch (err) {
-    Errors.ignore(err, Errors.NotFound)
+    Errors.ignoreNotFound(err)
     return true
   }
 }

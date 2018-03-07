@@ -59,7 +59,7 @@ export default class Identities {
         ConsistentRead: true
       })
     } catch (err) {
-      Errors.ignore(err, Errors.NotFound)
+      Errors.ignoreNotFound(err)
       throw new Errors.UnknownAuthor(`with pub: ${pub}`)
     }
   }

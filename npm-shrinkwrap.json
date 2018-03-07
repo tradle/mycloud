@@ -44,7 +44,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#bcf3fced4e2b6bb1d503787bef4621a96b89fbc4",
+      "resolved": "git://github.com/tradle/bot-products.git#54f4a1cce93cb68b8bcb9275d36255c1dde29c23",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -149,7 +149,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#fafe35de5dd74bbcefdee76d61b2eb6a52891f66",
+      "resolved": "git://github.com/tradle/dynamodb.git#8985e4c75d242e4e3ed2952a361733c4ef3d2ad3",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -249,7 +249,7 @@
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#6606a388e2848b526e840c80c1cdd614d687bf46"
+      "resolved": "git://github.com/tradle/models-cloud.git#443671d8f93d33f17b166a5a97e21875ec09f18f"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -322,7 +322,7 @@
     },
     "@tradle/qr-schema": {
       "version": "1.8.0",
-      "from": "@tradle/qr-schema@latest",
+      "from": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.8.0.tgz",
       "resolved": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.8.0.tgz",
       "dependencies": {
         "is-extendable": {
