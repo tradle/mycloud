@@ -111,7 +111,8 @@ export = function createDB (tradle:Tradle) {
     })
   })
 
-  const fixMessageFilter = async ({ filter }) => {
+  const fixMessageFilter = async ({ args }) => {
+    const { filter } = args[0]
     if (!(filter && filter.EQ)) return
 
     const { EQ } = filter
@@ -131,8 +132,24 @@ export = function createDB (tradle:Tradle) {
     delete EQ._inbound
   }
 
-  db.hook('find', fixMessageFilter)
-  db.hook('findOne', fixMessageFilter)
+  const addPayloads = async ({ args, result }) => {
+    let messages = result.items
+    if (!(messages && messages.length)) return
+
+    messages = messages.map(tradle.messages.formatForDelivery)
+    const { select=[] } = args[0]
+    if (select.includes('object')) {
+      const payloads = await Promise.all(messages.map(msg => objects.get(msg.object._link)))
+      payloads.forEach((payload, i) => {
+        messages[i].object = payload
+      })
+    }
+
+    result.items = messages
+  }
+
+  db.hook('find:pre', fixMessageFilter)
+  db.hook('find:post', addPayloads)
 
   return db
 }

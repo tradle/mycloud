@@ -33,19 +33,9 @@ export const createGraphqlAPI = (opts):IGraphqlAPI => {
     switch (op) {
     case 'get':
     case 'getByLink':
-      if (result[TYPE] === MESSAGE && select.includes('object')) {
-        await loadPayloads(result)
-      }
-
       presignEmbeddedMediaLinks(result)
       break
     case 'list':
-      if (result.items && result.items.length) {
-        if (result.items[0][TYPE] === MESSAGE && select.includes('object')) {
-          await loadPayloads(result.items)
-        }
-      }
-
       result.items = presignEmbeddedMediaLinks(result.items)
       break
     default:
@@ -78,23 +68,6 @@ export const createGraphqlAPI = (opts):IGraphqlAPI => {
   const execute = async (query, variables?) => {
     await bot.promiseReady()
     return graphql(getSchema(), query, null, {}, variables)
-  }
-
-  const loadPayloads = async (messages) => {
-    const now = Date.now()
-    messages = [].concat(messages)
-
-    // maybe better just pre-sign urls
-    const payloads = await Promise.map(messages, msg => objects.get(msg.object._link))
-    payloads.forEach((payload, i) => {
-      const neutered = messages[i].object
-      const virtual = uniqueStrict((neutered._virtual || []).concat(payload._virtual || []))
-      Object.assign(neutered, payload)
-      neutered._virtual = virtual
-    })
-
-    const time = Date.now() - now
-    logger.debug(`loading message payloads took: ${time}ms`)
   }
 
   const presignEmbeddedMediaLinks = (items) => {

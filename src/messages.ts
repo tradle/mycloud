@@ -34,6 +34,15 @@ import {
   PREVLINK
 } from './constants'
 
+const { MESSAGE } = TYPES
+
+import baseModels from './models'
+
+const MessageModel = baseModels[MESSAGE]
+const MESSAGE_PROPS = Object.keys(MessageModel.properties)
+const MESSAGE_PROPS_MINUS_PAYLOAD = MESSAGE_PROPS.slice().filter(p => p !== 'object')
+const getSelect = (body?: boolean) => body ? MESSAGE_PROPS : MESSAGE_PROPS_MINUS_PAYLOAD
+
 const unserializeMessage = message => {
   if (Buffer.isBuffer(message)) {
     try {
@@ -56,10 +65,6 @@ const unserializeMessage = message => {
 //     throw new Errors.NotFound(err.message)
 //   }
 // }
-
-const {
-  MESSAGE,
-} = TYPES
 
 interface IMessageStub {
   time: number
@@ -237,6 +242,7 @@ export default class Messages {
     body: boolean
   }):Promise<ITradleMessage> => {
     const opts = getBaseFindOpts({
+      select: getSelect(body),
       match: {
         _counterparty: author,
         _inbound: true
@@ -246,18 +252,7 @@ export default class Messages {
       reverse: true
     })
 
-    return this.maybeAddBody({
-      message: await this.db.findOne(opts),
-      body
-    })
-  }
-
-  public maybeAddBody = async (opts: {
-    message:any,
-    body: boolean
-  }):Promise<ITradleMessage> => {
-    const { message, body } = opts
-    return body ? this.loadMessage(message) : message
+    return await this.db.findOne(opts)
   }
 
   public getLastSeqAndLink = async ({ recipient }: {
@@ -310,7 +305,8 @@ export default class Messages {
         _counterparty: recipient,
         _inbound: false
       },
-      orderBy: 'time'
+      orderBy: 'time',
+      select: getSelect(body)
     })
 
     opts.filter.GT = {
@@ -332,13 +328,11 @@ export default class Messages {
         _inbound: false
       },
       orderBy: 'time',
-      reverse: true
+      reverse: true,
+      select: getSelect(body),
     })
 
-    return this.maybeAddBody({
-      message: await this.db.findOne(opts),
-      body
-    })
+    return await this.db.findOne(opts)
   }
 
   public getLastMessageByContext = async ({ inbound, context } : {
