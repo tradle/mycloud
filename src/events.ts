@@ -89,11 +89,12 @@ export const getSealEventTopic = (change) => {
   return 'seal:watch'
 }
 
-const setIds = (events) => {
-  events.sort((a, b) => {
-    return a.data.time - b.data.time
-  })
+const sortEventsByTimeAsc = (a, b) => {
+  return a.data.time - b.data.time
+}
 
+const setIds = (events) => {
+  events.sort(sortEventsByTimeAsc)
   events.forEach((event, i) => {
     let id = getEventId(event)
     if (i === 0) {

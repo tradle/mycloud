@@ -89,8 +89,3 @@ const recordToEventType = record => {
 
   return Read.one
 }
-
-const splitReadWrite = events => _.partition(
-  events,
-  ({ event }) => event === Read.one
-)

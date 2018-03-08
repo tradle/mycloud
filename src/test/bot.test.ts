@@ -250,7 +250,7 @@ test(`onmessage`, loudAsync(async (t) => {
   // identities.byPermalink = byPermalink
 }))
 
-test(`readseal`, loudAsync(async (t) => {
+test(`seal events stream`, loudAsync(async (t) => {
   const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
 
   let read
@@ -259,10 +259,13 @@ test(`readseal`, loudAsync(async (t) => {
   let watch
   const tradle = createTestTradle()
   const { seals, provider } = tradle
-  const { getMyKeys } = provider
-  provider.getMyKeys = () => Promise.resolve(aliceKeys)
+  const sandbox = sinon.createSandbox()
+
+  sandbox.stub(provider, 'getMyKeys').resolves(aliceKeys)
 
   const bot = createBot({ tradle })
+
+  const putEvents = sandbox.spy(tradle.events, 'putEvents')
 
   bot.hook('queueseal', async (event) => {
     queuedWrite = true
@@ -289,34 +292,40 @@ test(`readseal`, loudAsync(async (t) => {
     {
       new: {
         link,
-        unsealed: 'x'
+        unsealed: 'x',
+        time: 1
       }
     },
     // wroteseal
     {
       old: {
         link,
-        unsealed: 'x'
+        unsealed: 'x',
+        time: 1
       },
       new: {
-        link
+        link,
+        time: 1
       }
     },
     // readseal
     {
       old: {
         link,
-        unconfirmed: 'x'
+        unconfirmed: 'x',
+        time: 1
       },
       new: {
-        link
+        link,
+        time: 1
       }
     },
     // watchseal
     {
       new: {
         link,
-        unconfirmed: 'x'
+        unconfirmed: 'x',
+        time: 1
       }
     }
   ]), {
@@ -327,8 +336,10 @@ test(`readseal`, loudAsync(async (t) => {
   t.equal(wrote, true)
   t.equal(watch, true)
   t.equal(queuedWrite, true)
+  t.equal(putEvents.callCount, 1)
+  t.equal(putEvents.getCall(0).args[0].length, 4)
 
-  provider.getMyKeys = getMyKeys
+  sandbox.restore()
   t.end()
 }))
 
