@@ -8,6 +8,7 @@ import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
 import { allSettled, uniqueStrict } from '../../utils'
 import { Lambda } from '../../types'
+import { topics as EventTopics } from '../../events'
 import { EventSource } from '../lambda'
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
@@ -56,6 +57,8 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
       logger.debug(`feeding ${inbound.length} messages to business logic`)
       for (const message of inbound) {
         const botMessageEvent = toBotMessageEvent({ bot, user, message })
+        await bot.hooks.fire(EventTopics.message.inbound, botMessageEvent)
+        // backwards compat
         await bot.hooks.fire('message', botMessageEvent)
       }
     } finally {

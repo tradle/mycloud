@@ -17,7 +17,7 @@ export const createMiddleware = (lambda: Lambda, opts?: any):Middleware => {
   })
 
   return async (ctx, next) => {
-    const resources = getRecordsFromEvent(ctx.event)
+    const resources = getRecordsFromEvent(ctx.event).map(record => record.new)
     await Promise.all(resources.map(resource => backLinkMan.updateBacklinks(resource)))
   }
 }

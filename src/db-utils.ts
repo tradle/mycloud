@@ -20,7 +20,7 @@ import {
 import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
 import Errors from './errors'
-import { Env } from './types'
+import { Env, StreamRecordType, IStreamRecord } from './types'
 
 type Batch = {
   Items: any[]
@@ -491,20 +491,37 @@ function jitter (val, percent) {
   return val * (1 + 2 * percent * Math.random() - percent)
 }
 
-function getRecordsFromEvent (event, oldAndNew?) {
+function getRecordsFromEvent (event:any):IStreamRecord[] {
   return event.Records.map(record => {
-    const { NewImage, OldImage } = record.dynamodb
-    if (oldAndNew) {
-      return {
-        old: OldImage && unmarshalDBItem(OldImage),
-        new: NewImage && unmarshalDBItem(NewImage)
-      }
+    const { eventName, eventID, eventSourceARN, dynamodb } = record
+    const { NewImage, OldImage } = dynamodb
+    return {
+      id: eventID,
+      type: getEventType(eventName),
+      service: 'dynamodb',
+      source: getTableNameFromStreamEvent(event),
+      old: OldImage && unmarshalDBItem(OldImage),
+      new: NewImage && unmarshalDBItem(NewImage)
     }
-
-    return NewImage && unmarshalDBItem(NewImage)
   })
-  .filter(data => data)
 }
+
+const getEventType = (eventName: AWS.DynamoDBStreams.OperationType):StreamRecordType => {
+  if (eventName === 'INSERT') {
+    return 'create'
+  }
+
+  if (eventName === 'MODIFY') {
+    return 'update'
+  }
+
+  if (eventName === 'REMOVE') {
+    return 'delete'
+  }
+
+  return 'unknown:' + eventName
+}
+
 
 const EVENT_SOURCE_ARN_TABLE_NAME_REGEX = /:table\/([^/]+)/
 

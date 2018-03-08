@@ -510,3 +510,33 @@ export interface IBlockchainIdentifier {
   flavor: string
   networkName: string
 }
+
+export type StreamRecordType = 'create'|'update'|'delete'|string
+export type StreamService = 'dynamodb'
+
+export interface IStreamRecord {
+  id: string
+  time: number
+  seq: string
+  type: StreamRecordType
+  source: string
+  service: StreamService
+  new?: any
+  old?: any
+}
+
+export interface IStreamEventRecord {
+  id: string
+  timeish: string
+  topic: string
+  source: string
+  data: any
+}
+
+export interface IStreamEvent {
+  id: string
+  time: number
+  topic: string
+  source: string
+  data: any
+}

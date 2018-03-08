@@ -1,7 +1,7 @@
 require('./env').install()
 
+import { randomString } from '../crypto'
 import randomName from 'random-name'
-import { co } from '../utils'
 import { createTestTradle } from '../'
 import Errors from '../errors'
 import yml from '../cli/serverless-yml'
@@ -37,24 +37,25 @@ function getSchema (logicalName) {
   return Properties
 }
 
-const recreateTable = co(function* (schema) {
+const recreateTable = async (schema) => {
   if (typeof schema === 'string') {
     schema = getSchema(schema)
   }
 
   const table = getTable(schema.TableName)
   try {
-    yield table.destroy()
+    await table.destroy()
   } catch (err) {}
 
-  yield table.create(schema)
+  await table.create(schema)
   return table
-})
+}
 
 function toStreamItems (tableName, changes) {
   return {
     Records: [].concat(changes).map(change => {
       return {
+        eventID: randomString(16),
         eventSourceARN: `arn:aws:dynamodb:us-east-1:11111111111:table/${tableName}`,
         dynamodb: {
           NewImage: marshalDBItem(change.new),
@@ -66,33 +67,33 @@ function toStreamItems (tableName, changes) {
 }
 
 function getter (map) {
-  return co(function* (key) {
+  return async (key) => {
     if (key in map) {
       return map[key]
     }
 
     throw new Errors.NotFound(key)
-  })
+  }
 }
 
 function putter (map) {
-  return co(function* (key, value) {
+  return async (key, value) => {
     map[key] = value
-  })
+  }
 }
 
 function deleter (map) {
-  return co(function* (key) {
+  return async (key) => {
     const val = map[key]
     delete map[key]
     return val
-  })
+  }
 }
 
 function scanner (map) {
-  return co(function* () {
+  return async () => {
     return Object.keys(map).map(key => map[key])
-  })
+  }
 }
 
 const createTestProfile = () => {

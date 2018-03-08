@@ -15,6 +15,7 @@ import { createTestTradle } from '../'
 import { createBot } from '../bot'
 import { createGraphqlAPI } from '../bot/graphql'
 import { loudAsync, wait } from '../utils'
+import { topics as EventTopics } from '../events'
 import { toStreamItems, recreateTable } from './utils'
 import Errors from '../errors'
 import { models as PingPongModels } from '../bot/ping-pong-models'
@@ -267,22 +268,22 @@ test(`seal events stream`, loudAsync(async (t) => {
 
   const putEvents = sandbox.spy(tradle.events, 'putEvents')
 
-  bot.hook('queueseal', async (event) => {
+  bot.hook(EventTopics.seal.queuewrite, async (event) => {
     queuedWrite = true
     t.equal(event.link, link)
   })
 
-  bot.hook('wroteseal', async (event) => {
+  bot.hook(EventTopics.seal.wrote, async (event) => {
     wrote = true
     t.equal(event.link, link)
   })
 
-  bot.hook('readseal', async (event) => {
+  bot.hook(EventTopics.seal.read, async (event) => {
     read = true
     t.equal(event.link, link)
   })
 
-  bot.hook('watchseal', async (event) => {
+  bot.hook(EventTopics.seal.watch, async (event) => {
     watch = true
     t.equal(event.link, link)
   })
@@ -419,7 +420,7 @@ test('onmessagestream', loudAsync(async (t) => {
     return user
   }
 
-  bot.hook('message', async (data) => {
+  bot.hook(EventTopics.message.inbound, async (data) => {
     // #4, 5
     const { user } = data
     user.bill = 'ted'

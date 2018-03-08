@@ -5,28 +5,8 @@ import { batchProcess } from '../../utils'
 import { Lambda } from '../../types'
 import { fromDynamoDB } from '../lambda'
 import { createMiddleware as createSaveEvents } from '../middleware/events'
-
-const Watch = {
-  one: 'watchseal',
-  batch: 'watchseals'
-}
-
-const QueueWrite = {
-  one: 'queueseal',
-  batch: 'queueseals'
-}
-
-const Read = {
-  one: 'readseal',
-  batch: 'readseals'
-}
-
-const Write = {
-  one: 'wroteseal',
-  batch: 'wroteseals'
-}
-
-const toBatchEvent = event => event + 's'
+import { getSealEventTopic } from '../../events'
+const toBatchEvent = event => event + ':batch'
 const pluckData = ({ data }) => data
 
 export const createLambda = (opts) => {
@@ -36,7 +16,6 @@ export const createLambda = (opts) => {
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { bot, tradle } = lambda
-  const { events } = tradle
   const { batchSize=10 } = opts
   const processBatch = async (records) => {
     const events = records.map(recordToEvent)
@@ -56,9 +35,9 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     }))
   }
 
-  const saveEvents = createSaveEvents(events)
+  const saveEvents = createSaveEvents(tradle.events)
   const processStream = async (ctx, next) => {
-    const data = getRecordsFromEvent(ctx.event, true) // new + old image
+    const data = getRecordsFromEvent(ctx.event).filter(record => record.new)
     await batchProcess({ data, batchSize, processBatch })
     await next()
   }
@@ -70,22 +49,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 }
 
 const recordToEvent = record => ({
-  event: recordToEventType(record),
+  event: getSealEventTopic(record),
   data: record.new
 })
-
-const recordToEventType = record => {
-  // when a seal is queued for a write, unsealed is set to 'y'
-  // when a seal is written, unsealed is set to null
-  const wasJustSealed = record.old && record.old.unsealed && !record.new.unsealed
-  if (wasJustSealed) return Write.one
-  if (record.new.unsealed) return QueueWrite.one
-
-  // do we care about distinguishing between # of confirmations
-  // in terms of the event type?
-  if (!record.old && record.new.unconfirmed && !record.new.unsealed) {
-    return Watch.one
-  }
-
-  return Read.one
-}

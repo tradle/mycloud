@@ -20,6 +20,7 @@ import { Lambda, ISettledPromise, ITradleMessage } from '../../types'
 
 const S3_GET_ATTEMPTS = 3
 const S3_FAILED_GET_INITIAL_RETRY_DELAY = 1000
+const notNull = x => x
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { tradle, bot, logger } = lambda
@@ -42,6 +43,9 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     event.bot = bot
 
     const messages = getRecordsFromEvent(event)
+      .map(record => record.new)
+      .filter(notNull)
+
     const preResults:ISettledPromise<ITradleMessage>[] = await batchProcess({
       data: messages,
       batchSize: 20,

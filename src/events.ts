@@ -1,14 +1,16 @@
 import _ from 'lodash'
+import lexint from 'lexicographic-integer'
 import { randomString } from './crypto'
-import { Logger, Tables } from './types'
+import {
+  Logger,
+  Tables,
+  IStreamRecord,
+  IStreamEventRecord,
+  IStreamEvent
+} from './types'
 
 const notNull = obj => !!obj
 const SEPARATOR = ':'
-
-type StreamItem = {
-  new: any
-  old?: any
-}
 
 export default class Events {
   private tables: Tables
@@ -38,55 +40,77 @@ export default class Events {
     }
   }
 
-  private transform = (tableName: string, change: StreamItem) => {
-    const { Events, Seals, Messages } = this.tables
-    const item = change.new
-    switch (tableName) {
-      case Seals.name:
-        return {
-          topic: getSealEventTopic(change),
-          data: change.new
-        }
-      case Messages.name:
-        return {
-          topic: change.new._inbound ? 'receive' : 'send',
-          data: item
-        }
-      default:
-        this.logger.debug(`received unexpected stream event from table ${tableName}`, change)
-        break
+  // private transform = (tableName: string, record: IStreamRecord):IStreamEventRecord => {
+  private transform = (tableName: string, record: IStreamRecord) => {
+    const { id, type, old, seq, time, source } = record
+    const item = record.new
+    const topic = this.getEventTopic(record)
+    if (!topic) return
+
+    return {
+      id,
+      topic,
+      data: item,
+      // timeish: `${time}:${id}`,
+      // source
     }
+
   }
 
-  public fromStreamEvent = (event) => {
-    const changes = this.dbUtils.getRecordsFromEvent(event, true)
+  public fromStreamEvent = (event:AWS.DynamoDBStreams.GetRecordsOutput) => {
+    const changes = this.dbUtils.getRecordsFromEvent(event)
     const tableName = this.dbUtils.getTableNameFromStreamEvent(event)
     return changes
       .map(change => this.transform(tableName, change))
       .filter(notNull)
   }
+
+
+  public getEventTopic = (record: IStreamRecord):string => {
+    const { Events, Seals, Messages } = this.tables
+    const { service, source } = record
+    if (record.service !== 'dynamodb') {
+      throw new Error(`stream event not supported yet: ${record.service}`)
+    }
+
+    switch (record.source) {
+      case Seals.name:
+        return getSealEventTopic(record)
+      case Messages.name:
+        return getMessageEventTopic(record)
+      default:
+        this.logger.debug(`received unexpected stream event from table ${source}`, record)
+        break
+    }
+  }
+
+  // public getEventById = (id: string) => {
+  // }
+
+  // public getEvent = () => {
+  // }
 }
 
 export { Events }
 export const createEvents = opts => new Events(opts)
-export const getSealEventTopic = (change) => {
-  if (change.old) {
-    if (change.old.unsealed) {
-      return 'seal:wrote'
-    }
+export const getSealEventTopic = (record: IStreamRecord) => {
+  // when a seal is queued for a write, unsealed is set to 'y'
+  // when a seal is written, unsealed is set to null
+  const wasJustSealed = record.old && record.old.unsealed && !record.new.unsealed
+  if (wasJustSealed) return topics.seal.wrote
+  if (record.new.unsealed) return topics.seal.queuewrite
 
-    if (change.new.confirmations > 0) {
-      return 'seal:confirmed'
-    }
-
-    return 'seal:read'
+  // do we care about distinguishing between # of confirmations
+  // in terms of the event type?
+  if (!record.old && record.new.unconfirmed && !record.new.unsealed) {
+    return topics.seal.watch
   }
 
-  if (change.new.unsealed) {
-    return 'seal:write'
-  }
+  return topics.seal.read
+}
 
-  return 'seal:watch'
+export const getMessageEventTopic = (record: IStreamRecord) => {
+  return record.new._inbound ? topics.message.inbound : topics.message.outbound
 }
 
 const sortEventsByTimeAsc = (a, b) => {
@@ -110,7 +134,11 @@ const setIds = (events) => {
 }
 
 const getEventId = event => {
-  return event.data.time + SEPARATOR + event.topic + SEPARATOR + randomString(8)
+  return [
+    event.topic,
+    lexint.pack(event.data.time, 'hex'),
+    randomString(8)
+  ].join(SEPARATOR)
 }
 
 const getNextUniqueId = (prev, next) => {
@@ -122,4 +150,17 @@ const bumpSuffix = (id) => {
   const main = id.slice(0, lastSepIdx)
   const suffix = id.slice(lastSepIdx + SEPARATOR.length)
   return main + SEPARATOR + (Number(suffix) + 1)
+}
+
+export const topics = {
+  seal: {
+    wrote: 'seal:wrote',
+    queuewrite: 'seal:queuewrite',
+    watch: 'seal:watch',
+    read: 'seal:read'
+  },
+  message: {
+    inbound: 'msg:i',
+    outbound: 'msg:o'
+  }
 }

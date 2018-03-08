@@ -1,12 +1,13 @@
 
 import { createBot } from '../../bot'
 import { sendConfirmedSeals } from '../utils'
+import { topics as EventTopics } from '../../events'
 
 const bot = createBot()
 const lambda = bot.lambdas.onsealstream()
 const { logger, env } = lambda
 if (env.BLOCKCHAIN.flavor === 'corda') {
-  bot.hook('queueseal', async (seal) => {
+  bot.hook(EventTopics.seal.queuewrite, async (seal) => {
     logger.debug('attempting to write seal immediately')
     try {
       const result = await bot.seals.writePendingSeal({ seal })
