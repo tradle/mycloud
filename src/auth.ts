@@ -291,7 +291,7 @@ export default class Auth {
     const params:AWS.STS.AssumeRoleRequest = {
       RoleArn: role,
       RoleSessionName: randomString(16),
-      DurationSeconds: 900
+      DurationSeconds: 3600
     }
 
     // assume role returns temporary keys
