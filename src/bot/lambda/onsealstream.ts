@@ -25,13 +25,13 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     await Promise.all(Object.keys(byType).map(async (event) => {
       const subset = byType[event]
       if (subset) {
-        await bot.hooks.fire(toBatchEvent(event), subset.map(pluckData))
+        await bot.fire(toBatchEvent(event), subset.map(pluckData))
       }
     }))
 
     // trigger per-seal-event processors
     await Promise.all(events.map(({ event, data }) => {
-      return bot.hooks.fire(event, data)
+      return bot.fire(event, data)
     }))
   }
 

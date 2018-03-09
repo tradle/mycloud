@@ -584,12 +584,12 @@ export const batchProcess = async ({
     batchResolver = settle ? settleMap : Promise.map
   }
 
-  const results = await Promise.mapSeries(batches, batch => {
+  const results = await Promise.mapSeries(batches, (batch, i) => {
     if (processBatch) {
-      return processBatch(batch)
+      return processBatch(batch, i)
     }
 
-    return batchResolver(batch, one => processOne(one))
+    return batchResolver(batch, (one, j) => processOne(one, i * batchSize + j))
   })
 
   return _.flatten(results)

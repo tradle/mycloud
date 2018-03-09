@@ -57,9 +57,9 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
       logger.debug(`feeding ${inbound.length} messages to business logic`)
       for (const message of inbound) {
         const botMessageEvent = toBotMessageEvent({ bot, user, message })
-        await bot.hooks.fire(EventTopics.message.inbound, botMessageEvent)
+        await bot.fire(EventTopics.message.inbound, botMessageEvent)
         // backwards compat
-        await bot.hooks.fire('message', botMessageEvent)
+        await bot.fire('message', botMessageEvent)
       }
     } finally {
       await unlock(userId)

@@ -44,7 +44,7 @@ export const auth = (lambda:Lambda, opts?:any) => {
     }
 
     ctx.userId = ctx.session.permalink
-    await bot.hooks.fire('user:authenticated', ctx.userId)
+    await bot.fire('user:authenticated', ctx.userId)
     await next()
     if (ctx.body) {
        // allow full customization of authentication

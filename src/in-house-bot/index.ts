@@ -179,7 +179,7 @@ export default function createProductsBot ({
   // usersTable.get = ({ _permalink }) => getUser({ id: _permalink })
 
   if (handleMessages) {
-    bot.hook('message', productsAPI.onmessage)
+    bot.onmessage(productsAPI.onmessage)
   }
 
   const myIdentityPromise = bot.getMyIdentity()

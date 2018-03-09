@@ -624,7 +624,8 @@ test('batchProcess', loudAsync(async (t) => {
     data: [0, 1, 2],
     batchSize: 10,
     series: true,
-    processOne: (num) => {
+    processOne: (num, idx) => {
+      t.equal(idx, i)
       t.equal(num, i++)
       return wait(10)
     }
@@ -635,7 +636,7 @@ test('batchProcess', loudAsync(async (t) => {
   await batchProcess({
     data: [100, 100, 100],
     batchSize: 10,
-    processOne: wait
+    processOne: millis => wait(millis)
   })
 
   t.ok(Math.abs(Date.now() - time - 100) < 100)
@@ -645,7 +646,7 @@ test('batchProcess', loudAsync(async (t) => {
   await batchProcess({
     data: [100, 100, 100],
     batchSize: 1,
-    processOne: wait
+    processOne: millis => wait(millis)
   })
 
   t.ok(Math.abs(Date.now() - time - 300) < 100)
@@ -654,7 +655,7 @@ test('batchProcess', loudAsync(async (t) => {
   let results = await batchProcess({
     data: [100, 100, 100],
     batchSize: 1,
-    processOne: timeoutIn,
+    processOne: millis => timeoutIn({ millis }),
     settle: true
   })
 
@@ -679,7 +680,7 @@ test('batchProcess', loudAsync(async (t) => {
   results = await batchProcess({
     data: [100, 100, 100, 100],
     batchSize: 2,
-    processOne: wait,
+    processOne: millis => wait(millis),
     series: true,
     settle: true
   })

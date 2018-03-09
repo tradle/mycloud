@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import createHooks from 'event-hooks'
+import compose from 'koa-compose'
 import { DB } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
@@ -26,9 +26,6 @@ import {
   ILambdaImpl,
   Lambda,
   LambdaCreator,
-  Hooks,
-  HooksHookFn,
-  HooksFireFn,
   ResourceStub,
   ParsedResourceStub,
   BotStrategyInstallFn,
@@ -37,7 +34,8 @@ import {
   IDeepLink,
   IBotOpts,
   AppLinks,
-  IGraphqlAPI
+  IGraphqlAPI,
+  BotMiddleware
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -100,6 +98,7 @@ const lambdaCreators:LambdaImplMap = {
   // get graphql() { return require('./lambda/graphql') },
   get warmup() { return require('./lambda/warmup') },
   get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
+  // get oneventstream() { return require('./lambda/oneventstream') },
 }
 
 // const middlewareCreators:MiddlewareMap = {
@@ -122,6 +121,7 @@ export class Bot extends EventEmitter implements IReady {
   public get stackUtils () { return this.tradle.stackUtils }
   public get iot () { return this.tradle.iot }
   public get seals () { return this.tradle.seals }
+  public get events () { return this.tradle.events }
   public get modelStore () { return this.tradle.modelStore }
   public get identities () { return this.tradle.identities }
   public get addressBook () { return this.tradle.identities }
@@ -146,9 +146,6 @@ export class Bot extends EventEmitter implements IReady {
   public conf: KeyValueTable
   public debug: Function
   public endpointInfo: EndpointInfo
-  public hooks: Hooks
-  public hook: HooksHookFn
-  public trigger?: HooksFireFn
   public users: any
   public graphql: IGraphqlAPI
 
@@ -158,11 +155,11 @@ export class Bot extends EventEmitter implements IReady {
   public promiseReady: () => Promise<void>
 
   // shortcuts
-  public onmessage = handler => this.hooks.hook('message', handler)
-  public oninit = handler => this.hooks.hook('init', handler)
-  public onseal = handler => this.hooks.hook('seal', handler)
-  public onreadseal = handler => this.hooks.hook('readseal', handler)
-  public onwroteseal = handler => this.hooks.hook('wroteseal', handler)
+  public onmessage = handler => this._addSimpleMiddleware('message', handler)
+  public oninit = handler => this._addSimpleMiddleware('init', handler)
+  public onseal = handler => this._addSimpleMiddleware('seal', handler)
+  public onreadseal = handler => this._addSimpleMiddleware('readseal', handler)
+  public onwroteseal = handler => this._addSimpleMiddleware('wroteseal', handler)
 
   public lambdas: LambdaMap
 
@@ -170,6 +167,7 @@ export class Bot extends EventEmitter implements IReady {
   private tradle: Tradle
   private get provider() { return this.tradle.provider }
   private outboundMessageLocker: Locker
+  private middleware: { [event:string]: BotMiddleware[] }
   constructor (opts: IBotOpts) {
     super()
 
@@ -183,7 +181,7 @@ export class Bot extends EventEmitter implements IReady {
     this.tradle = tradle
     this.users = users || createUsers({
       table: tradle.tables.Users,
-      oncreate: user => this.hooks.fire('usercreate', user)
+      oncreate: user => this.fire('usercreate', user)
     })
 
     this.logger = logger.sub('bot')
@@ -205,8 +203,6 @@ export class Bot extends EventEmitter implements IReady {
       version: this.version
     }
 
-    this.hooks = createHooks()
-    this.hook = this.hooks.hook
     this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
       map[name] = opts => lambdaCreators[name].createLambda({
         ...opts,
@@ -216,10 +212,6 @@ export class Bot extends EventEmitter implements IReady {
 
       return map
     }, {})
-
-    if (this.isTesting) {
-      this.trigger = (event, ...args) => this.hooks.fire(event, ...args)
-    }
 
     if (this.isTesting) {
       const yml = require('../cli/serverless-yml')
@@ -245,7 +237,8 @@ export class Bot extends EventEmitter implements IReady {
       }
     })
 
-    // this.hook('save', this._defaultSave)
+    this.middleware = {}
+    this.hook('save', this._defaultSave)
 
     if (ready) this.ready()
   }
@@ -378,12 +371,32 @@ export class Bot extends EventEmitter implements IReady {
 
   public reSign = object => this.sign(_.omit(object, [SIG]))
 
-  private _save = async (method:string, resource:any) => {
-  //   await this.hooks.fire(`save`, { method, resource })
-  //   await this.hooks.fire(`save:${method}`, resource)
-  // }
+  public fire = async (event, payload) => {
+    const middleware = this.middleware[event]
+    if (!(middleware && middleware.length)) return
 
-  // private _defaultSave = async ({ method, resource }) => {
+    const ctx = {
+      bot: this,
+      event: payload
+    }
+
+    await compose(middleware)(ctx)
+    return ctx
+  }
+
+  public use = (event, middleware) => {
+    this._getMiddleware(event).push(middleware)
+  }
+
+  public hook = (event, middleware) => this.use(event, middleware)
+
+  private _save = async (method:string, resource:any) => {
+    await this.fire('save', { method, resource })
+    await this.fire(`save:${method}`, resource)
+  }
+
+  private _defaultSave = async (ctx, next) => {
+    const { method, resource } = ctx.event
     if (!this.isReady()) {
       this.logger.debug('waiting for this.ready()')
       await this.promiseReady()
@@ -403,8 +416,27 @@ export class Bot extends EventEmitter implements IReady {
         input: err.input,
         error: err.stack
       })
+
+      return // prevent further processing
     }
 
-    return resource
+    await next()
   }
+
+  private _addSimpleMiddleware = (event, handler) => {
+    this.use(event, toSimpleMiddleware(handler))
+  }
+
+  private _getMiddleware = event => {
+    if (!this.middleware[event]) {
+      this.middleware[event] = []
+    }
+
+    return this.middleware[event]
+  }
+}
+
+const toSimpleMiddleware = handler => async (ctx, next) => {
+  await handler(ctx.event)
+  await next()
 }

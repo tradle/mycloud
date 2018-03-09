@@ -320,13 +320,13 @@ export type EndpointInfo = {
   version: string
 }
 
-export type HooksHookFn = (event:string, handler:Function) => void
-export type HooksFireFn = (event:string, ...args:any[]) => any|void
+// export type HooksHookFn = (event:string, handler:Function) => void
+// export type HooksFireFn = (event:string, ...args:any[]) => any|void
 
-export type Hooks = {
-  hook: HooksHookFn
-  fire: HooksFireFn
-}
+// export type Hooks = {
+//   hook: HooksHookFn
+//   fire: HooksFireFn
+// }
 
 export type LambdaCreator = (opts?:any) => Lambda
 
@@ -540,3 +540,10 @@ export interface IStreamEvent {
   source: string
   data: any
 }
+
+export type IBotMiddlewareContext = {
+  bot: Bot
+  event: any
+}
+
+export type BotMiddleware = ComposeMiddleware<IBotMiddlewareContext>

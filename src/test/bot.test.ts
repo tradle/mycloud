@@ -68,7 +68,7 @@ test(`users `, loudAsync(async (t) => {
   }
 
   const promiseOnCreate = new Promise(resolve => {
-    bot.hook('usercreate', resolve)
+    bot.hook('usercreate', ({ event }) => resolve(event))
   })
 
   t.same(await users.createIfNotExists(user), user, 'create if not exists')
@@ -219,16 +219,16 @@ test(`onmessage`, loudAsync(async (t) => {
   //   return bob.object
   // })
 
-  bot.hook('message', async (data) => {
-    const { user } = data
+  bot.hook('message', async ({ event }) => {
+    const { user } = event
     user.bill = 'ted'
     // 2, 3, 4
     t.equal(user.id, message._author)
-    t.same(data.message, message)
-    t.same(data.payload, payload)
+    t.same(event.message, message)
+    t.same(event.payload, payload)
   })
 
-  // const conversation = await bot.users.history('bob')
+  // const conversation = await bot.hookrs.history('bob')
   // console.log(conversation)
 
   // #5
@@ -268,22 +268,22 @@ test(`seal events stream`, loudAsync(async (t) => {
 
   const putEvents = sandbox.spy(tradle.events, 'putEvents')
 
-  bot.hook(EventTopics.seal.queuewrite, async (event) => {
+  bot.hook(EventTopics.seal.queuewrite, async ({ event }) => {
     queuedWrite = true
     t.equal(event.link, link)
   })
 
-  bot.hook(EventTopics.seal.wrote, async (event) => {
+  bot.hook(EventTopics.seal.wrote, async ({ event }) => {
     wrote = true
     t.equal(event.link, link)
   })
 
-  bot.hook(EventTopics.seal.read, async (event) => {
+  bot.hook(EventTopics.seal.read, async ({ event }) => {
     read = true
     t.equal(event.link, link)
   })
 
-  bot.hook(EventTopics.seal.watch, async (event) => {
+  bot.hook(EventTopics.seal.watch, async ({ event }) => {
     watch = true
     t.equal(event.link, link)
   })
@@ -420,12 +420,12 @@ test('onmessagestream', loudAsync(async (t) => {
     return user
   }
 
-  bot.hook(EventTopics.message.inbound, async (data) => {
+  bot.hook(EventTopics.message.inbound, async ({ event }) => {
     // #4, 5
-    const { user } = data
+    const { user } = event
     user.bill = 'ted'
     t.equal(user.id, message._author)
-    t.same(data.message, {
+    t.same(event.message, {
       ...message, object: {
         ...message.object,
         ...payload

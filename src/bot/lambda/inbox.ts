@@ -18,15 +18,18 @@ export const createLambda = (opts) => {
     promiser: bot.iot.getEndpoint
   })
 
-  bot.hook('message', async ({ type, payload }) => {
-    if (type !== MODELS_PACK) return
-
-    try {
-      await bot.modelStore.addModelsPack({ modelsPack: payload })
-    } catch (err) {
-      logger.error(err.message, { modelsPack: payload })
-      return false
+  bot.hook('message', async (ctx, next) => {
+    const { type, payload } = ctx.event
+    if (type === MODELS_PACK) {
+      try {
+        await bot.modelStore.addModelsPack({ modelsPack: payload })
+      } catch (err) {
+        logger.error(err.message, { modelsPack: payload })
+        return // prevent further processing
+      }
     }
+
+    await next()
   })
 
   return lambda.use(createMiddleware(lambda, opts))

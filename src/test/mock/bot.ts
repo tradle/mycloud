@@ -23,7 +23,7 @@ function fakeBot (opts:any={}) {
   const models = {}
   const inputs = fakeBot.inputs({ models, tradle })
   inputs.users = fakeUsers({
-    oncreate: user => bot.trigger('usercreate', user)
+    oncreate: user => bot.fire('usercreate', user)
   })
 
   const bot = createBot(inputs)

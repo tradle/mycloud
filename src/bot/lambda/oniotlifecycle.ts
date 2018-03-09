@@ -43,7 +43,7 @@ export const onConnected = (lambda: Lambda, opts) => {
     const { clientId } = ctx.event.data
     const session = await user.onConnected({ clientId })
     if (session) {
-      await bot.hooks.fire('user:online', session.permalink)
+      await bot.fire('user:online', session.permalink)
       await next()
     }
   }
@@ -55,7 +55,7 @@ export const onDisconnected = (lambda: Lambda, opts) => {
   return async (ctx, next) => {
     const { clientId } = ctx.event.data
     await user.onDisconnected({ clientId })
-    await bot.hooks.fire('user:offline', auth.getPermalinkFromClientId(clientId))
+    await bot.fire('user:offline', auth.getPermalinkFromClientId(clientId))
     await next()
   }
 }
