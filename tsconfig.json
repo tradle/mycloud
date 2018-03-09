@@ -28,7 +28,9 @@
       "sinon",
       "lodash",
       "graphql",
-      "koa"
+      "koa",
+      "superagent",
+      "@tradle/dynamodb"
     ]
   },
   "include": ["src/**/*.ts"],

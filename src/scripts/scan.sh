@@ -25,10 +25,10 @@ while getopts remote: opt; do
   esac
 done
 
-# if [ "$ENDPOINT" == "" ]; then
-#   echo "scanning remote table: $TABLE"
-# else
-#   echo "scanning local table: $TABLE"
-# fi
+if [ "$ENDPOINT" == "" ]; then
+  echo "scanning remote table: $TABLE"
+else
+  echo "scanning local table: $TABLE"
+fi
 
 eval "aws dynamodb scan --table-name $TABLE $ENDPOINT" | ./lib/scripts/unmarshal.js

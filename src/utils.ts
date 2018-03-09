@@ -42,7 +42,8 @@ import {
   TYPES,
   WARMUP_SLEEP,
   PUBLIC_CONF_BUCKET,
-  LAUNCH_STACK_BASE_URL
+  LAUNCH_STACK_BASE_URL,
+  DATE_ZERO
 } from './constants'
 
 import Errors from './errors'
@@ -122,6 +123,7 @@ export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts)
     timeoutPromise
   ])
 
+  // only need to cancel if task was successful
   timeoutPromise.cancel()
   return taskPromise
 }
@@ -516,7 +518,28 @@ export const waterfall = async (fns, ...args) => {
   return result
 }
 
-export const getTodayISO = () => new Date().toISOString().slice(0, 10)
+export const getTodayISO = (utc?:boolean) => {
+  return toISODateString(new Date(), utc)
+}
+
+export const getDateParts = (date:Date, utc=true) => {
+  return {
+    year: utc ? date.getUTCFullYear() : date.getFullYear(),
+    month: (utc ? date.getUTCMonth() : date.getMonth()) + 1,
+    date: utc ? date.getUTCDate() : date.getDate()
+  }
+}
+
+export const toISODateString = (dateObj:Date, utc?:boolean) => {
+  const { year, month, date } = getDateParts(dateObj, utc)
+  return `${year}-${zeroPad(month, 2)}-${zeroPad(date, 2)}`
+}
+
+const zeroPad = (n, digits) => {
+  const nStr = String(n)
+  const padLength = digits - nStr.length
+  return padLength > 0 ? '0'.repeat(padLength) + nStr : nStr
+}
 
 export const getLaunchStackUrl = ({
   region=process.env.AWS_REGION,
@@ -1132,3 +1155,30 @@ export const getEnumValueId = val => validateResource.utils.parseEnumValue(val).
 //     }
 //   })
 // }
+
+const TIME_BLOCK_SIZE = {
+  HOUR: 3600000,
+  DAY: 86400000,
+  WEEK: 604800000,
+  QUAD_WEEK: 2419200000
+}
+
+export const getHourNumber = (time) => {
+  return getTimeblockNumber(TIME_BLOCK_SIZE.HOUR, time)
+}
+
+export const getDayNumber = (time) => {
+  return getTimeblockNumber(TIME_BLOCK_SIZE.DAY, time)
+}
+
+export const getWeekNumber = (time) => {
+  return getTimeblockNumber(TIME_BLOCK_SIZE.WEEK, time)
+}
+
+export const getQuadWeekNumber = (time) => {
+  return getTimeblockNumber(TIME_BLOCK_SIZE.QUAD_WEEK, time)
+}
+
+export const getTimeblockNumber = (size, time) => {
+  return Math.floor((time - DATE_ZERO) / size)
+}

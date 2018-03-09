@@ -12,7 +12,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { events } = lambda.tradle
   return async (ctx, next) => {
     const { event } = ctx
-    const results = events.fromStreamEvent(event)
+    const results = events.fromRawEvent(event)
     if (results.length) {
       ctx.events = await events.putEvents(results)
     } else {

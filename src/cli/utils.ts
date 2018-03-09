@@ -502,6 +502,32 @@ export const confirm = async (question?: string) => {
   return yn(answer)
 }
 
+export const clearUsersTable = async (dbUtils) => {
+  const { definitions } = dbUtils
+  const { TableName } = definitions.UsersTable.Properties
+  const { KeySchema } = await dbUtils.getTableDefinition(TableName)
+  const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
+  await dbUtils.batchProcess({
+    batchSize: 20,
+    params: {
+      TableName
+    },
+    processOne: async (item) => {
+      if (item.friend) {
+        await dbUtils.put({
+          TableName,
+          Item: _.pick(item, keyProps.concat(['friend', 'identity']))
+        })
+      } else {
+        await dbUtils.del({
+          TableName,
+          Key: _.pick(item, keyProps)
+        })
+      }
+    }
+  })
+}
+
 export {
   getRemoteEnv,
   loadRemoteEnv,

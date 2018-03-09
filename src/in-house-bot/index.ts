@@ -32,6 +32,7 @@ import { Commander } from './commander'
 import { createRemediation } from './remediation'
 import { createPlugin as createRemediationPlugin } from './plugins/remediation'
 import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
+import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
 import { haveAllChecksPassed, isPendingApplication } from './utils'
 import {
   Bot,
@@ -50,7 +51,6 @@ import Errors from '../errors'
 import constants from '../constants'
 
 const { MAX_DB_ITEM_SIZE } = constants
-const debug = require('debug')('tradle:sls:products')
 const { parseStub } = validateResource.utils
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DEFAULT_PRODUCTS = ['tradle.CurrentAccount']
@@ -554,6 +554,16 @@ export default function createProductsBot ({
       ...components,
       logger: logger.sub('commander')
     })
+  }
+
+  if (plugins.webhooks) {
+    if ((bot.isTesting && handleMessages) || event === 'messagestream') {
+      const { api, plugin } = createWebhooksPlugin({
+        ...commonPluginOpts,
+        conf: plugins.webhooks,
+        logger: logger.sub('webhooks')
+      })
+    }
   }
 
   return components

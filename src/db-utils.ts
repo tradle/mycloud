@@ -1,4 +1,6 @@
 const debug = require('debug')('tradle:sls:db-utils')
+// @ts-ignore
+import Promise from 'bluebird'
 import _ from 'lodash'
 import {
   marshalItem as marshalDBItem,
@@ -194,6 +196,46 @@ function createDBUtils ({ aws, logger, env }) {
     tableAPI.getTableDefinition = () => getTableDefinition(TableName)
     return tableAPI// timeMethods(tableAPI, logger)
   }
+
+  /**
+   * @param {Array} items [{ tableName, key }]
+   * @param {Object?} opts
+   */
+  // const batchGet = async (items, opts={}) => {
+  //   const {
+  //     backoff,
+  //     maxTries
+  //   } = _.defaults(opts.backoffOptions || {}, DEFAULT_BACKOFF_OPTS)
+
+  //   const batches = _.chunk(items, 100)
+  //   const params:AWS.DynamoDB.DocumentClient.BatchGetItemInput = {
+  //     RequestItems: {}
+  //   }
+
+  //   return await Promise.mapSeries(batches, async (batch:any[]) => {
+  //     let lastEvaluatedKey = true
+  //     let retry = true
+  //     let result
+  //     params.RequestItems = batch.reduce((ri, item) => {
+  //       const { tableName, key } = item
+  //       if (!ri[tableName]) {
+  //         ri[tableName] = { Keys: [] }
+  //       }
+
+  //       ri[tableName].Keys.push({ Name: key })
+  //       return ri
+  //     }, {})
+
+  //     while (lastEvaluatedKey || retry) {
+  //       result = await exec('batchGet', params)
+  //       failed = result.UnprocessedItems
+  //       if (!(failed && Object.keys(failed).length > 0)) return
+
+  //       params.RequestItems = failed
+  //       await wait(backoff(tries++))
+  //     }
+  //   })
+  // }
 
   const execWhile = async (method, params, filter) => {
     while (true) {
@@ -403,7 +445,8 @@ function createDBUtils ({ aws, logger, env }) {
 
   const batchPut = async (
     params:AWS.DynamoDB.BatchWriteItemInput,
-    backoffOptions?:BackoffOptions
+    backoffOptions?:BackoffOptions,
+    processFailedItems=_.identity
   ) => {
     params = { ...params }
 
@@ -419,7 +462,7 @@ function createDBUtils ({ aws, logger, env }) {
       failed = result.UnprocessedItems
       if (!(failed && Object.keys(failed).length > 0)) return
 
-      params.RequestItems = failed
+      params.RequestItems = processFailedItems(failed)
       await wait(backoff(tries++))
     }
 
@@ -494,10 +537,17 @@ function jitter (val, percent) {
 function getRecordsFromEvent (event:any):IStreamRecord[] {
   return event.Records.map(record => {
     const { eventName, eventID, eventSourceARN, dynamodb } = record
-    const { NewImage, OldImage } = dynamodb
+    const {
+      Keys,
+      NewImage,
+      OldImage,
+      ApproximateCreationDateTime
+    } = <AWS.DynamoDBStreams.StreamRecord>dynamodb
+
     return {
       id: eventID,
       type: getEventType(eventName),
+      time: ApproximateCreationDateTime,
       service: 'dynamodb',
       source: getTableNameFromStreamEvent(event),
       old: OldImage && unmarshalDBItem(OldImage),

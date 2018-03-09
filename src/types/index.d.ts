@@ -525,11 +525,13 @@ export interface IStreamRecord {
   old?: any
 }
 
-export interface IStreamEventRecord {
+export interface IStreamEventDBRecord {
   id: string
-  timeish: string
   topic: string
-  source: string
+  time: number
+  // dateN: string
+  // timeR: string
+  // source: string
   data: any
 }
 

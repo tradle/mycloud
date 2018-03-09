@@ -13,7 +13,7 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-const { loadCredentials, clearTypes } = require('../cli/utils')
+import { loadCredentials, clearTypes, clearUsersTable } from '../cli/utils'
 
 loadCredentials()
 
@@ -81,28 +81,7 @@ const deleteApplications = async () => {
 
   console.log(`deleted items count: ${JSON.stringify(deleteCounts, null, 2)}`)
 
-  const { TableName } = definitions.UsersTable.Properties
-  const { KeySchema } = await dbUtils.getTableDefinition(TableName)
-  const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
-  await dbUtils.batchProcess({
-    batchSize: 20,
-    params: {
-      TableName
-    },
-    processOne: async (item) => {
-      if (item.friend) {
-        await dbUtils.put({
-          TableName,
-          Item: _.pick(item, keyProps.concat(['friend', 'identity']))
-        })
-      } else {
-        await dbUtils.del({
-          TableName,
-          Key: _.pick(item, keyProps)
-        })
-      }
-    }
-  })
+  await clearUsersTable(tradle)
 
   // const tableName = definitions.UsersTable.Properties.TableName
 

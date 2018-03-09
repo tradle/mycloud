@@ -92,7 +92,8 @@ const constants = {
     ]
   },
   ROOT_LOGGING_NAMESPACE: 'tradle',
-  DEFAULT_REGION: 'us-east-1'
+  DEFAULT_REGION: 'us-east-1',
+  DATE_ZERO: 0 // 1514764800000 // 2018-01-01 UTC
 }
 
 export = constants

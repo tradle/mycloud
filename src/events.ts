@@ -1,37 +1,56 @@
 import _ from 'lodash'
 import lexint from 'lexicographic-integer'
+import { TYPE } from '@tradle/constants'
 import { randomString } from './crypto'
+import { toISODateString } from './utils'
 import {
+  DB,
   Logger,
   Tables,
   IStreamRecord,
-  IStreamEventRecord,
+  IStreamEventDBRecord,
   IStreamEvent
 } from './types'
 
 const notNull = obj => !!obj
 const SEPARATOR = ':'
+const PARTITION_FACTOR = 100
+
+interface IEventsQuery {
+  topic: string
+  start?: number
+  limit?: number
+  reverse?: boolean
+}
+
+type EventPartial = {
+  topic: string
+  data: any
+  time: number
+}
 
 export default class Events {
+  private db: DB
   private tables: Tables
   private dbUtils: any
   private logger: Logger
-  constructor ({ tables, dbUtils, logger }: {
+  constructor ({ tables, dbUtils, logger, db }: {
     tables: any
     dbUtils: any
     logger: Logger
+    db: DB
   }) {
     this.tables = tables
     this.dbUtils = dbUtils
     this.logger = logger
+    this.db = db
   }
 
-  public putEvents = async (events) => {
-    if (!events.length) return
+  public putEvents = async (withoutIds:EventPartial[]) => {
+    if (!withoutIds.length) return
 
-    events = setIds(events)
+    const events = withIds(withoutIds)
     this.logger.debug('putting events', events.map(({ topic, id }) => ({ id, topic })))
-
     try {
       await this.tables.Events.batchPut(events)
     } catch (err) {
@@ -40,24 +59,21 @@ export default class Events {
     }
   }
 
-  // private transform = (tableName: string, record: IStreamRecord):IStreamEventRecord => {
-  private transform = (tableName: string, record: IStreamRecord) => {
+  private transform = (tableName: string, record: IStreamRecord):EventPartial => {
+  // private transform = (tableName: string, record: IStreamRecord) => {
     const { id, type, old, seq, time, source } = record
     const item = record.new
     const topic = this.getEventTopic(record)
     if (!topic) return
 
     return {
-      id,
       topic,
       data: item,
-      // timeish: `${time}:${id}`,
-      // source
+      time
     }
-
   }
 
-  public fromStreamEvent = (event:AWS.DynamoDBStreams.GetRecordsOutput) => {
+  public fromRawEvent = (event:AWS.DynamoDBStreams.GetRecordsOutput):IStreamEventDBRecord[] => {
     const changes = this.dbUtils.getRecordsFromEvent(event)
     const tableName = this.dbUtils.getTableNameFromStreamEvent(event)
     return changes
@@ -65,6 +81,12 @@ export default class Events {
       .filter(notNull)
   }
 
+  // public toStreamEvent = (record:IStreamEventDBRecord):IStreamEvent => {
+  //   return <IStreamEvent>{
+  //     ..._.omit(record, ['timeR', 'dateN']),
+  //     time: parseTimeR(record.timeR)
+  //   }
+  // }
 
   public getEventTopic = (record: IStreamRecord):string => {
     const { Events, Seals, Messages } = this.tables
@@ -83,12 +105,6 @@ export default class Events {
         break
     }
   }
-
-  // public getEventById = (id: string) => {
-  // }
-
-  // public getEvent = () => {
-  // }
 }
 
 export { Events }
@@ -117,8 +133,8 @@ const sortEventsByTimeAsc = (a, b) => {
   return a.data.time - b.data.time
 }
 
-const setIds = (events) => {
-  events.sort(sortEventsByTimeAsc)
+const withIds = (withoutIds:EventPartial[]):IStreamEventDBRecord[] => {
+  const events = withoutIds.slice().sort(sortEventsByTimeAsc) as IStreamEventDBRecord[]
   events.forEach((event, i) => {
     let id = getEventId(event)
     if (i === 0) {
@@ -133,13 +149,11 @@ const setIds = (events) => {
   return events
 }
 
-const getEventId = event => {
-  return [
-    event.topic,
-    lexint.pack(event.data.time, 'hex'),
-    randomString(8)
-  ].join(SEPARATOR)
-}
+const getEventId = event => [
+  event.data.time,
+  event.topic,
+  randomString(8)
+].join(SEPARATOR)
 
 const getNextUniqueId = (prev, next) => {
   return prev === next ? bumpSuffix(prev) : next
@@ -151,6 +165,9 @@ const bumpSuffix = (id) => {
   const suffix = id.slice(lastSepIdx + SEPARATOR.length)
   return main + SEPARATOR + (Number(suffix) + 1)
 }
+
+const parseTimeR = timeR => Number(timeR.split(SEPARATOR)[0])
+const parseDateN = dateN => dateN.split(SEPARATOR)[0]
 
 export const topics = {
   seal: {

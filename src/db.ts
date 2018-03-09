@@ -92,6 +92,13 @@ export = function createDB (tradle:Tradle) {
         forbidScan: false
       }
     },
+    {
+      type: 'tradle.cloud.Event',
+      definition: tables.Events.definition,
+      opts: {
+        forbidScan: true
+      }
+    }
     // {
     //   type: 'tradle.Seal',
     //   definition: tables.Seals.definition

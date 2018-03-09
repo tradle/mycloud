@@ -21,6 +21,7 @@ import {
   pickVirtual,
   setVirtual,
   bindAll,
+  getHourNumber,
   RESOLVED_PROMISE
 } from './utils'
 import { getLink } from './crypto'

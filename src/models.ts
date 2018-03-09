@@ -17,6 +17,11 @@ baseMessageModel.properties._counterparty = {
   virtual: true
 }
 
+// baseMessageModel.properties._dcounterpartyh = {
+//   type: 'string',
+//   virtual: true
+// }
+
 baseMessageModel.properties._dcounterparty = {
   type: 'string',
   virtual: true
@@ -46,5 +51,38 @@ if (!baseMessageModel.properties._deliveryStatus) {
 //     }
 //   }
 // }
+
+const cloudEventModel = {
+  type: 'tradle.Model',
+  id: 'tradle.cloud.Event',
+  title: 'Event',
+  properties: {
+    topic: {
+      type: 'string'
+    },
+    timeR: {
+      type: 'string'
+    },
+    dateN: {
+      type: 'string'
+    },
+    data: {
+      type: 'object',
+      range: 'json'
+    }
+  },
+  primaryKeys: {
+    hashKey: 'topic',
+    rangeKey: 'timeR',
+  },
+  required: [
+    'topic',
+    'timeR',
+    'dateN',
+    'data'
+  ]
+}
+
+base[cloudEventModel.id] = cloudEventModel
 
 export = base

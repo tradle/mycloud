@@ -2,7 +2,7 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import { loadCredentials } from '../cli/utils'
+import { loadCredentials, clearUsersTable } from '../cli/utils'
 
 loadCredentials()
 
@@ -56,6 +56,10 @@ const clearTables = async () => {
   console.log(`will empty the following tables at endpoint ${href}\n`, tables)
   console.log('let the games begin!')
   for (const table of tables) {
+    if (/-users/.test(table)) {
+      await clearUsersTable(dbUtils)
+    }
+
     console.log('clearing', table)
     const numDeleted = await clear(table)
     console.log(`deleted ${numDeleted} items from ${table}`)
