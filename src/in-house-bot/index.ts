@@ -32,7 +32,7 @@ import { Commander } from './commander'
 import { createRemediation } from './remediation'
 import { createPlugin as createRemediationPlugin } from './plugins/remediation'
 import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
-import { haveAllChecksPassed } from './utils'
+import { haveAllChecksPassed, isPendingApplication } from './utils'
 import {
   Bot,
   IBotComponents,
@@ -321,6 +321,8 @@ export default function createProductsBot ({
       },
       onFormsCollected: async ({ req, user, application }) => {
         if (application.draft) return
+
+        if (!isPendingApplication({ user, application })) return
 
         if (!autoApprove) {
           const results = await Promise.all([

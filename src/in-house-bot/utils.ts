@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
-import { isPromise, pickNonNull, getEnumValueId } from '../utils'
+import { isPromise, pickNonNull, getEnumValueId, parseStub } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
 import models from '../models'
@@ -313,6 +313,21 @@ export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
   }
 
   return lines.join('\n\n')
+}
+
+const hasApplication = (stubs, application) => {
+  return stubs.find(stub => parseStub(stub).permalink === application._permalink)
+}
+
+export const isPendingApplication = ({ user, application }) => {
+  return hasApplication(user.applications || [], application)
+}
+
+export const getApplicationStatus = ({ user, application }) => {
+  if (hasApplication(user.applicationsApproved || [], application)) return 'approved'
+  if (hasApplication(user.applicationsDenied || [], application)) return 'denied'
+
+  return 'pending'
 }
 
 export const haveAllChecksPassed = async ({ bot, application }: {

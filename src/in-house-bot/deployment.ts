@@ -323,11 +323,6 @@ export class Deployment {
       promiseSaveDeployment
     ])
 
-    // await this.productsAPI.approveApplication({
-    //   user: await this.bot.users.get(configuration._author),
-    //   application: await this.productsAPI.
-    // })
-
     await this.kv.del(deploymentUUID)
     return true
   }
