@@ -76,16 +76,17 @@ export const toStreamAndProcess = (lambda:Lambda, opts?: any) => {
 
 const toBotMessageEvent = ({ bot, user, message }):any => {
   // identity permalink serves as user id
-  const payload = message.object
-  const type = payload[TYPE]
+  const { object } = message
+  const type = object[TYPE]
   return {
     bot,
     user,
     message,
-    payload,
+    payload: object,
+    object,
     type,
-    link: payload._link,
-    permalink: payload._permalink,
+    link: object._link,
+    permalink: object._permalink,
   }
 }
 
