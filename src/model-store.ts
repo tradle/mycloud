@@ -202,6 +202,8 @@ export class ModelStore extends EventEmitter {
     if (cumulative) {
       this.logger.debug('loaded cumulative models pack')
       this.emit('update:cumulative', cumulative)
+    } else {
+      this.logger.debug('no cumulative models pack found')
     }
   }
 

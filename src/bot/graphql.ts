@@ -7,13 +7,16 @@ import { TYPE, TYPES } from '@tradle/constants'
 import { createSchema } from '@tradle/schema-graphql'
 import { createResolvers } from '@tradle/dynamodb'
 import { uniqueStrict } from '../utils'
-import { IGraphqlAPI } from '../types'
+import { Bot, Logger, IGraphqlAPI } from '../types'
 
 const { MESSAGE } = TYPES
 
 export const prettifyQuery = query => print(parse(query))
 
-export const createGraphqlAPI = (opts):IGraphqlAPI => {
+export const createGraphqlAPI = (opts: {
+  bot: Bot
+  logger: Logger
+}):IGraphqlAPI => {
   const { bot, logger } = opts
   let {
     objects,
@@ -50,6 +53,8 @@ export const createGraphqlAPI = (opts):IGraphqlAPI => {
   let schema
   const getSchema = (() => {
     return () => {
+      if (!bot.isReady()) throw new Error('bot is not ready')
+
       if (!schema) {
         resolvers = createResolvers({
           objects,
@@ -84,16 +89,19 @@ export const createGraphqlAPI = (opts):IGraphqlAPI => {
   }
 
   const setModels = (_models) => {
+    logger.debug('setting models, regenerating schema')
     models = _models
+    schema = null
     schema = getSchema()
   }
 
-  logger.debug(`have cumulative models pack: ${!!modelStore.cumulativeModelsPack}`)
-
-  setModels(modelStore.models)
-  modelStore.on('update:cumulative', () => {
-    logger.debug(`loaded cumulative models pack`)
+  bot.promiseReady().then(() => {
+    logger.debug(`have cumulative models pack: ${!!modelStore.cumulativeModelsPack}`)
     setModels(modelStore.models)
+    modelStore.on('update:cumulative', () => {
+      logger.debug(`cumulative models pack was updated`)
+      setModels(modelStore.models)
+    })
   })
 
   return {
