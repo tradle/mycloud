@@ -379,7 +379,12 @@ Domain ${domain} (and namespace ${pack.namespace}) belongs to ${friend._identity
 
   private onMissingModel = async (id):Promise<void> => {
     const modelsPack = await this.getModelsPackByDomain(getDomain(id))
-    this.cache.addModels(modelsPack.models)
+    if (modelsPack) {
+      this.cache.addModels(modelsPack.models)
+    }
+
+    const found = !!this.cache.models[id]
+    this.logger.debug(`found missing model: ${found}`, { id })
   }
 }
 
