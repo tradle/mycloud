@@ -1182,3 +1182,11 @@ export const getQuadWeekNumber = (time) => {
 export const getTimeblockNumber = (size, time) => {
   return Math.floor((time - DATE_ZERO) / size)
 }
+
+export const extendTradleObject = (a, b) => {
+  const virtual = uniqueStrict((a._virtual || []).concat(b._virtual || []))
+  Object.assign(a, b)
+  if (virtual.length) a._virtual = virtual
+
+  return a
+}

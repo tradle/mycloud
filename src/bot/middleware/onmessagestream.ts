@@ -10,13 +10,20 @@ import {
   ensureTimestamped,
   promiseNoop,
   wait,
-  uniqueStrict
+  uniqueStrict,
+  extendTradleObject
 } from '../../utils'
 
 import { fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from './onmessagessaved'
 import { createMiddleware as createSaveEvents } from './events'
-import { Lambda, ISettledPromise, ITradleMessage } from '../../types'
+import {
+  Lambda,
+  ISettledPromise,
+  ITradleMessage,
+  Bot,
+  Logger
+} from '../../types'
 
 const S3_GET_ATTEMPTS = 3
 const S3_FAILED_GET_INITIAL_RETRY_DELAY = 1000
@@ -75,8 +82,10 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   ])
 }
 
-export const preProcessOne = (lambda:Lambda, opts) => {
-  const { bot, logger } = lambda
+export const preProcessOne = ({ bot, logger }: {
+  bot: Bot
+  logger: Logger
+}, opts) => {
   return async (message) => {
     const payload = message.object
     const type = message._payloadType
@@ -117,12 +126,4 @@ export const postProcessBatch = (lambda, opts) => {
       })
     }
   }
-}
-
-const extendTradleObject = (a, b) => {
-  const virtual = uniqueStrict((a._virtual || []).concat(b._virtual || []))
-  _.extend(a, b)
-  if (virtual.length) a._virtual = virtual
-
-  return a
 }
