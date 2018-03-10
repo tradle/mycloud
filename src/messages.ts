@@ -442,7 +442,8 @@ export default class Messages {
 
     if (payload[PREVLINK]) {
       // prime cache
-      this.objects.prefetch(payload[PREVLINK])
+      this.logger.debug('TODO: validate against previous version')
+      // this.objects.prefetch(payload[PREVLINK])
     }
 
     const addMessageAuthor = this.identities.addAuthorInfo(message)
