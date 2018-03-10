@@ -88,13 +88,13 @@ export const createGraphqlAPI = (opts):IGraphqlAPI => {
     schema = getSchema()
   }
 
-  if (modelStore.cumulativeModelsPack) {
-    setModels(modelStore.models)
-  } else {
-    setModels(modelStore.models)
-  }
+  logger.debug(`have cumulative models pack: ${!!modelStore.cumulativeModelsPack}`)
 
-  modelStore.on('update:cumulative', () => setModels(modelStore.models))
+  setModels(modelStore.models)
+  modelStore.on('update:cumulative', () => {
+    logger.debug(`loaded cumulative models pack`)
+    setModels(modelStore.models)
+  })
 
   return {
     graphiqlOptions: {},
