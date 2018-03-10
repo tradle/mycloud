@@ -4,7 +4,8 @@ import { TYPE } from '@tradle/constants'
 import { createTable, DB, utils } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
-import { Provider, Friends, Buckets, Env, Logger, Tradle } from './types'
+import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from './types'
+import { uniqueStrict } from './utils'
 
 const MESSAGE = 'tradle.Message'
 
@@ -139,9 +140,12 @@ export = function createDB (tradle:Tradle) {
     messages = messages.map(tradle.messages.formatForDelivery)
     const { select=[] } = args[0]
     if (select.includes('object')) {
-      const payloads = await Promise.all(messages.map(msg => objects.get(msg.object._link)))
+      const payloads:ITradleObject[] = await Promise.all(messages.map(msg => objects.get(msg.object._link)))
       payloads.forEach((payload, i) => {
-        messages[i].object = payload
+        const neutered = messages[i].object
+        const virtual = uniqueStrict((neutered._virtual || []).concat(payload._virtual || []))
+        Object.assign(neutered, payload)
+        neutered._virtual = virtual
       })
     }
 
