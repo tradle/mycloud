@@ -206,7 +206,7 @@ custom:
         index:
           - _dcounterparty
           - _link
-          - _payloadLink
+          # - _payloadLink
           - _payloadType
           - context
         read:
@@ -1276,14 +1276,14 @@ resources:
             AttributeType: S
           - AttributeName: time
             AttributeType: N
-          - AttributeName: _link
-            AttributeType: S
           - AttributeName: context
-            AttributeType: S
-          - AttributeName: _payloadLink
             AttributeType: S
           - AttributeName: _payloadType
             AttributeType: S
+          - AttributeName: _link
+            AttributeType: S
+          # - AttributeName: _payloadLink
+          #   AttributeType: S
         KeySchema:
           - AttributeName: _counterparty
             KeyType: HASH
@@ -1304,15 +1304,6 @@ resources:
                 KeyType: HASH
               - AttributeName: time
                 KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: _link
-            KeySchema:
-              - AttributeName: _link
-                KeyType: HASH
             Projection:
               ProjectionType: ALL
             ProvisionedThroughput:
@@ -1340,17 +1331,24 @@ resources:
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
-          - IndexName: _payloadLink
+          - IndexName: _link
             KeySchema:
-              - AttributeName: _payloadLink
+              - AttributeName: _link
                 KeyType: HASH
-              # - AttributeName: time
-              #   KeyType: RANGE
             Projection:
-              ProjectionType: KEYS_ONLY
+              ProjectionType: ALL
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5
+          # - IndexName: _payloadLink
+          #   KeySchema:
+          #     - AttributeName: _payloadLink
+          #       KeyType: HASH
+          #   Projection:
+          #     ProjectionType: KEYS_ONLY
+          #   ProvisionedThroughput:
+          #     ReadCapacityUnits: 5
+          #     WriteCapacityUnits: 5
 
     # SealsTable: ${{file(./conf/table/seals.yml)}}
 
