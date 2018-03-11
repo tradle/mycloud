@@ -7,7 +7,8 @@ export const command:ICommand = {
   examples: [
     // '/getlaunchlink --name EasyBank --domain easybank.io',
     // '/getlaunchlink --name EasyBank --domain easybank.io --logo "https://s3.amazonaws.com/tradle-public-images/easy.png"',
-    '/updatemycloud --provider <identityPermalink>'
+    '/updatemycloud --provider <identityPermalink>',
+    '/updatemycloud --stack-id <stackId>'
   ],
   exec: async ({ commander, req, ctx, args }) => {
     const { deployment, productsAPI, employeeManager, logger } = commander
@@ -20,7 +21,7 @@ export const command:ICommand = {
     //   throw new Error('deployment bucket is not public. No one will be able to use your template except you')
     // }
 
-    let { provider } = args
+    let { provider, stackId } = args
     if (req.payload) { // incoming message
       if (provider) {
         if (!employeeManager.isEmployee(req.user)) {
@@ -35,21 +36,29 @@ export const command:ICommand = {
       }
     }
 
-    const update = await deployment.createUpdate({
-      createdBy: provider
-    })
+    if (!(provider || stackId)) {
+      throw new Error('expected "provider" or "stack-id"')
+    }
 
-    logger.debug('generated mycloud update link', { updateUrl: update.updateUrl })
-    return update
+    if (provider) {
+      const update = await deployment.createUpdate({
+        createdBy: provider
+      })
+
+      logger.debug('generated mycloud update link', { url: update.url })
+      return update
+    }
+
+    return deployment.genUpdateTemplate({ stackId })
   },
   sendResult: async ({ commander, req, to, args, result }) => {
     const { bot, logger } = this
-    const { updateUrl, childDeployment, configuration } = result
+    const { url, template, childDeployment, configuration } = result
     // const { hrEmail, adminEmail } = configuration
     await commander.sendSimpleMessage({
       req,
       to,
-      message: `🚀 [Click to update your MyCloud](${updateUrl})`
+      message: `🚀 [Click to update your MyCloud](${url})`
     })
 
     // try {

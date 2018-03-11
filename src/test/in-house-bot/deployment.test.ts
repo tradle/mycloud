@@ -179,14 +179,14 @@ test('deployment by referral', loudAsync(async (t) => {
     sentEmails.push(...opts.to)
   })
 
-  const launchUrl = await parentDeployment.getLaunchUrl({
+  const launchUrl = (await parentDeployment.genLaunchTemplate({
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
     region: 'ap-southeast-2',
     configurationLink: conf._link,
     stackPrefix: conf.stackPrefix
-  })
+  })).url
 
   let childDeploymentResource
   const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
@@ -249,7 +249,7 @@ test('deployment by referral', loudAsync(async (t) => {
     t.equal(template.Mappings, undefined)
   })
 
-  const { updateUrl } = await parentDeployment.createUpdate({
+  const { url } = await parentDeployment.createUpdate({
     createdBy: childIdentity._permalink
   })
 

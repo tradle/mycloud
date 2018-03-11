@@ -59,7 +59,7 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
 
     let launchUrl
     try {
-      launchUrl = await deployment.getLaunchUrl(deploymentOpts)
+      launchUrl = (await deployment.genLaunchTemplate(deploymentOpts)).url
     } catch (err) {
       logger.debug('failed to generate launch url', err)
       Errors.ignore(err, Errors.InvalidInput)

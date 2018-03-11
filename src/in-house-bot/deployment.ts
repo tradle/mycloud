@@ -141,7 +141,7 @@ export class Deployment {
   //   }
   // }
 
-  public getLaunchUrl = async (opts: IDeploymentOpts) => {
+  public genLaunchTemplate = async (opts: IDeploymentOpts) => {
     const { stackUtils } = this.bot
     this.logger.debug('generating cloudformation template with opts', opts)
     const { template, url } = await stackUtils.createPublicTemplate(template => {
@@ -151,17 +151,21 @@ export class Deployment {
     this.logger.debug('generated cloudformation template for child deployment')
     const uuid = await this.saveDeploymentTracker({ template, link: opts.configurationLink })
     this.logger.debug('generated deployment tracker for child deployment', { uuid })
-    return stackUtils.getLaunchStackUrl({
-      stackName: getStackNameFromTemplate(template),
-      templateURL: url,
-      region: opts.region
-    })
+    return {
+      template,
+      url: stackUtils.getLaunchStackUrl({
+        stackName: getStackNameFromTemplate(template),
+        templateURL: url,
+        region: opts.region
+      })
+    }
   }
 
-  public createUpdate = async ({ createdBy, configuredBy, childDeploymentLink }: {
+  public createUpdate = async ({ createdBy, configuredBy, childDeploymentLink, stackId }: {
     childDeploymentLink?: string
     createdBy?:string
     configuredBy?: string
+    stackId?: string
   }) => {
     let childDeployment
     if (childDeploymentLink) {
@@ -175,28 +179,25 @@ export class Deployment {
     }
 
     const configuration = await this.bot.getResourceByStub(childDeployment.configuration)
-    const updateUrl = await this.getUpdateUrl({ childDeployment, configuration })
+    const result = await this.genUpdateTemplate({ stackId: stackId || childDeployment.stackId })
     return {
       configuration,
       childDeployment,
-      updateUrl
+      ...result
     }
   }
 
-  public getUpdateUrl = async ({ childDeployment, configuration }: {
-    childDeployment: any
-    configuration: any
+  public genUpdateTemplate = async ({ stackId }: {
+    stackId: string
   }) => {
-    const { stackId } = childDeployment
     const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplateForUpdate({
-        template,
-        childDeployment,
-        configuration
-      })
+      return this.customizeTemplateForUpdate({ template, stackId })
     })
 
-    return utils.getUpdateStackUrl({ stackId, templateURL: url })
+    return {
+      template,
+      url: utils.getUpdateStackUrl({ stackId, templateURL: url })
+    }
   }
 
   public getChildDeploymentCreatedBy = async (createdBy: string) => {
@@ -515,12 +516,11 @@ ${this.genUsageInstructions(links)}`
     return template
   }
 
-  public customizeTemplateForUpdate = async ({ template, childDeployment, configuration }: {
+  public customizeTemplateForUpdate = async ({ template, stackId }: {
     template: any
-    childDeployment: any
-    configuration: any
+    stackId: string
   }) => {
-    const { service, stage, region } = this.bot.stackUtils.parseStackArn(childDeployment.stackId)
+    const { service, stage, region } = this.bot.stackUtils.parseStackArn(stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
     template = _.omit(template, 'Mappings')
