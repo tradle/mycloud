@@ -4,7 +4,7 @@ import Promise from 'bluebird'
 import _ from 'lodash'
 import request, { SuperAgentRequest } from 'superagent'
 import { TYPE } from '@tradle/constants'
-import { Bot, Logger, IStreamEvent } from './types'
+import { Bot, Logger, IStreamEvent, IBackoffOptions } from './types'
 import Errors from '../errors'
 import { runWithTimeout, runWithBackoffWhile, batchProcess, allSettled } from '../utils'
 import { topics as EventTopics } from '../events'
@@ -33,12 +33,6 @@ export interface IWebhookCursor {
   retries: number
   lastEventTime: number
   errors?: string[]
-}
-
-export interface IBackoffOptions {
-  maxAttempts?: number
-  maxTime?: number
-  factor?: number
 }
 
 export interface IWebhookInvocation {

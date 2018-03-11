@@ -10,6 +10,7 @@ import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
 import { getFaviconUrl } from '../in-house-bot/image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
+import * as utils from '../utils'
 import {
   loudAsync,
   firstSuccess,
@@ -24,7 +25,8 @@ import {
   timeoutIn,
   batchProcess,
   toModelsMap,
-  stableStringify
+  stableStringify,
+  runWithBackoffWhile
 } from '../utils'
 import Errors from '../errors'
 import { Tradle, createTestTradle } from '../'
@@ -49,6 +51,94 @@ interface IErrorMatchTest {
   error: any
   matches: IErrorMatch[]
 }
+
+test('run with backoff while', loudAsync(async (t) => {
+  const clock = sinon.useFakeTimers()
+  const sandbox = sinon.createSandbox()
+  const waitStub = sandbox.stub(utils, 'wait').callsFake(async (millis) => {
+    clock.tick(millis)
+  })
+
+  const opts = {
+    // test 1
+    shouldTryAgain: err => false,
+    // test 2
+    maxAttempts: 3,
+    // test 3
+    factor: 1.5,
+    initialDelay: 100,
+    // test 4
+    maxDelay: 1000,
+    // test 5
+    maxTime: 60000,
+    logger: new Logger('test:runWithBackoffWhile')
+  }
+
+  const task = () => {
+    throw new Error('' + i++)
+  }
+
+  let i = 0
+  try {
+    await runWithBackoffWhile(task, opts)
+    t.fail('expected error')
+  } catch (err) {
+    t.equal(err.message, '0', 'last error is propagated on failure')
+  }
+
+  t.equal(i, 1, 'shouldTryAgain respected')
+
+  i = 0
+  opts.shouldTryAgain = err => true
+  clock.setSystemTime(0)
+
+  try {
+    await runWithBackoffWhile(task, opts)
+    t.fail('expected error')
+  } catch (err) {
+    t.ok(Errors.matches(err, Errors.Timeout))
+  }
+
+  t.equal(i, 3, 'fail after maxAttempts')
+  const delays = waitStub.getCalls().map(call => call.args[0])
+  t.ok(delays.every((delay, i) => {
+    if (i === 0) return delay === opts.initialDelay
+
+    return delay === delays[i - 1] * opts.factor
+  }), 'initialDelay, factor respected')
+
+  i = 0
+  opts.maxDelay = 200
+  clock.setSystemTime(0)
+  sandbox.resetHistory()
+
+  try {
+    await runWithBackoffWhile(task, opts)
+    t.fail('expected error')
+  } catch (err) {
+    t.ok(Errors.matches(err, Errors.Timeout))
+  }
+
+  t.equal(i, 3)
+  t.ok(waitStub.getCalls().every(call => call.args[0] <= 200), 'maxDelay respected')
+
+  i = 0
+  opts.maxTime = 200
+  clock.setSystemTime(0)
+
+  try {
+    await runWithBackoffWhile(task, opts)
+    t.fail('expected error')
+  } catch (err) {
+    t.ok(Errors.matches(err, Errors.Timeout))
+  }
+
+  t.equal(i, 2, 'maxTime respected')
+
+  clock.restore()
+  sandbox.restore()
+  t.end()
+}))
 
 test('cachify', loudAsync(async (t) => {
   const data = {

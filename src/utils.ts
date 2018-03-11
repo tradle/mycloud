@@ -54,6 +54,7 @@ import {
   ITimeoutOpts,
   IUpdateStackUrlOpts,
   ITradleObject,
+  IBackoffOptions
 } from './types'
 
 import Logger from './logger'
@@ -632,19 +633,11 @@ export const runWithBackoffWhile = async (fn, {
   initialDelay=1000,
   maxAttempts=10,
   maxTime=60000,
-  maxDelay,
   factor=2,
-  shouldTryAgain,
+  shouldTryAgain=_.stubTrue,
+  maxDelay,
   logger
-}: {
-  initialDelay?: number
-  maxAttempts?: number
-  maxTime?: number
-  maxDelay?: number
-  factor?: number
-  logger?: Logger
-  shouldTryAgain: (err) => boolean
-}) => {
+}: IBackoffOptions) => {
   if (typeof maxDelay !== 'number') maxDelay = maxTime / 2
 
   const start = Date.now()
@@ -669,11 +662,14 @@ export const runWithBackoffWhile = async (fn, {
         maxTime - (Date.now() - start)
       )
 
-      if (millisToWait < 0) break
+      if (millisToWait < 0) {
+        logger.debug('giving up')
+        break
+      }
     }
   }
 
-  throw new Error('timed out')
+  throw new Errors.Timeout('timed out')
 }
 
 const GIVE_UP_TIME = 2000

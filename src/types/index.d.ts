@@ -549,3 +549,13 @@ export type IBotMiddlewareContext = {
 }
 
 export type BotMiddleware = ComposeMiddleware<IBotMiddlewareContext>
+
+export interface IBackoffOptions {
+  initialDelay?: number
+  maxAttempts?: number
+  maxTime?: number
+  maxDelay?: number
+  factor?: number
+  logger?: Logger
+  shouldTryAgain?: (err?:Error) => boolean
+}
