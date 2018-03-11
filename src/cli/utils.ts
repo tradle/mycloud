@@ -315,68 +315,6 @@ function getLatestS3Object (list) {
   return latest
 }
 
-const clearTypes = async ({ tradle, types }) => {
-  const { dbUtils } = tradle
-  const { getModelMap, clear } = dbUtils
-  const modelMap = getModelMap({ types })
-
-  let deleteCounts = {}
-  const buckets = []
-  types.forEach(id => {
-    const bucketName = modelMap.models[id]
-    if (!buckets.includes(bucketName)) {
-      buckets.push(bucketName)
-    }
-  })
-
-  console.log('deleting items from buckets:', buckets.join(', '))
-  await Promise.all(buckets.map(async (TableName) => {
-    const { KeySchema } = await dbUtils.getTableDefinition(TableName)
-    const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
-    const processOne = async (item) => {
-      const type = item[TYPE]
-      if (!types.includes(item[TYPE])) return
-
-      const Key = pick(item, keyProps)
-      while (true) {
-        try {
-          console.log('deleting item', Key, 'from', TableName)
-          await dbUtils.del({ TableName, Key })
-          break
-        } catch (err) {
-          const { name } = err
-          if (!(name === 'ResourceNotFoundException' ||
-            name === 'LimitExceededException' ||
-            name === 'ProvisionedThroughputExceededException')) {
-            throw err
-          }
-
-          await wait(1000)
-          console.log('failed to delete item, will retry', err.name)
-        }
-      }
-
-      if (!deleteCounts[TableName]) {
-        deleteCounts[TableName] = {}
-      }
-
-      if (deleteCounts[TableName][type]) {
-        deleteCounts[TableName][type]++
-      } else {
-        deleteCounts[TableName][type] = 1
-      }
-    }
-
-    await dbUtils.batchProcess({
-      batchSize: 20,
-      params: { TableName },
-      processOne
-    })
-  }))
-
-  return deleteCounts
-}
-
 const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
   let { bot, force } = opts
   if (!bot) {
@@ -502,32 +440,6 @@ export const confirm = async (question?: string) => {
   return yn(answer)
 }
 
-export const clearUsersTable = async (dbUtils) => {
-  const { definitions } = dbUtils
-  const { TableName } = definitions.UsersTable.Properties
-  const { KeySchema } = await dbUtils.getTableDefinition(TableName)
-  const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
-  await dbUtils.batchProcess({
-    batchSize: 20,
-    params: {
-      TableName
-    },
-    processOne: async (item) => {
-      if (item.friend) {
-        await dbUtils.put({
-          TableName,
-          Item: _.pick(item, keyProps.concat(['friend', 'identity']))
-        })
-      } else {
-        await dbUtils.del({
-          TableName,
-          Key: _.pick(item, keyProps)
-        })
-      }
-    }
-  })
-}
-
 export {
   getRemoteEnv,
   loadRemoteEnv,
@@ -543,7 +455,6 @@ export {
   getProductionModules,
   getTableDefinitions,
   downloadDeploymentTemplate,
-  clearTypes,
   initStack,
   cloneRemoteTable,
   cloneRemoteBucket

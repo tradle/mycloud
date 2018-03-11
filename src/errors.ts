@@ -154,6 +154,7 @@ const errors = {
   HttpError,
   Timeout: createError('Timeout'),
   LowFunds: createError('LowFunds'),
+  DevStageOnly: createError('DevStageOnly'),
   export: (err:Error):any => {
     if (err instanceof ExportableError) {
       return (err as ExportableError).toJSON()

@@ -49,6 +49,8 @@ interface ICommanderComponents extends IBotComponents {
 
 export const COMMANDS = Object.keys(commands).map(key => commands[key].name || key)
 export const SUDO_ONLY_COMMANDS = [
+  'delete-forever-with-no-undo',
+  'clear'
   // 'encryptbucket',
   // 'enablebinary'
 ]
@@ -107,13 +109,10 @@ export class Commander {
     ctx.employee = this.employeeManager.isEmployee(user)
     const commandNames = this.getAvailableCommands(ctx)
     ctx.allowed = commandNames.includes(commandName)
-    if (!ctx.allowed) {
-      const message = ctx.employee
-        ? `command not found: ${commandName}`
-        : DEFAULT_ERROR_MESSAGE
+    if (ctx.allowed) return
 
-      await this.sendSimpleMessage({ to: user, message })
-    }
+    const message = getNotAllowedMessage(ctx)
+    await this.sendSimpleMessage({ to: user, message })
   }
 
   public getAvailableCommands = (ctx) => {
@@ -169,7 +168,10 @@ export class Commander {
     let execOpts:ICommandExecOpts
     try {
       matchingCommand = this.getCommandByName(commandName)
-      args = matchingCommand.parse ? matchingCommand.parse(argsStr) : parse(argsStr)
+      args = matchingCommand.parse
+        ? matchingCommand.parse(argsStr, matchingCommand.parseOpts)
+        : parse(argsStr, matchingCommand.parseOpts)
+
       execOpts = {
         commander: this,
         req,
@@ -257,4 +259,15 @@ export class Commander {
     await productsAPI.saveNewVersionOfApplication({ user, application })
     await bot.users.merge(user)
   }
+}
+
+const getNotAllowedMessage = (ctx:ICommandContext) => {
+  const { employee, commandName } = ctx
+  if (!employee) return DEFAULT_ERROR_MESSAGE
+
+  if (SUDO_ONLY_COMMANDS.includes(commandName)) {
+    return 'Who do you think you are, the admin? This attempt will be logged.'
+  }
+
+  return `command not found: ${commandName}`
 }

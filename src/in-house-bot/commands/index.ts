@@ -18,6 +18,7 @@ import { command as model } from './model'
 import { command as push } from './push'
 import { command as links } from './links'
 import { command as sealpending } from './sealpending'
+import { command as clear } from './clear'
 
 export {
   help,
@@ -39,5 +40,6 @@ export {
   // encryptbucket,
   // enablebinary,
   push,
-  sealpending
+  sealpending,
+  clear
 }

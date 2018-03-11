@@ -136,6 +136,9 @@ export class Bot extends EventEmitter implements IReady {
   public get apiBaseUrl () { return this.tradle.apiBaseUrl }
   public get tasks () { return this.tradle.tasks }
   public get isTesting () { return this.tradle.env.TESTING }
+  public get isDev () { return this.tradle.env.STAGE === 'dev' }
+  public get isStaging () { return this.tradle.env.STAGE === 'staging' }
+  public get isProd () { return this.tradle.env.STAGE === 'prod' }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
   public get mailer () { return this.tradle.mailer }
@@ -389,6 +392,10 @@ export class Bot extends EventEmitter implements IReady {
   }
 
   public hook = (event, middleware) => this.use(event, middleware)
+
+  public ensureDevStage = (msg?: string) => {
+    if (!this.isDev) throw new Errors.DevStageOnly(msg || 'forbidden')
+  }
 
   private _save = async (method:string, resource:any) => {
     await this.fire('save', { method, resource })

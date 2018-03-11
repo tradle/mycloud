@@ -11,13 +11,15 @@ const argv = require('minimist')(process.argv.slice(2), {
   }
 })
 
-import { loadCredentials, clearTypes } from '../cli/utils'
+import { loadCredentials } from '../cli/utils'
 
 loadCredentials()
 
+import { clearTypes } from '../in-house-bot/murder'
 import { createRemoteTradle } from '../'
 
 const tradle = createRemoteTradle()
+const bot = require('../bot').createBot({ tradle })
 
 ;(async () => {
   const types = (argv.types || '').split(',').map(str => str.trim())
@@ -39,7 +41,7 @@ const tradle = createRemoteTradle()
     }
   }
 
-  clearTypes({ tradle, types })
+  await clearTypes({ bot, types })
 })()
 .catch(err => {
   console.error(err)

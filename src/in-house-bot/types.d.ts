@@ -175,7 +175,8 @@ export interface ICommand {
   description: string
   examples: string[]
   exec: (opts:ICommandExecOpts) => Promise<any>
-  parse?: (args:string) => any
+  parse?: (args:string, opts?:any) => any
+  parseOpts?: any
   sendResult?: (opts:ICommandSendResultOpts) => Promise<any>
   aliases?: string[]
 }
