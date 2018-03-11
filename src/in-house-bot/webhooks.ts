@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import Promise from 'bluebird'
 import _ from 'lodash'
 import request, { SuperAgentRequest } from 'superagent'
+import { TYPE } from '@tradle/constants'
 import { Bot, Logger, IStreamEvent } from './types'
 import Errors from '../errors'
 import { runWithTimeout, runWithBackoffWhile, batchProcess, allSettled } from '../utils'
@@ -112,6 +113,34 @@ export class Webhooks {
       event,
       backoff: opts.backoff
     })))
+  }
+
+  public static expandEvents = (events:IWebhookEvent|IWebhookEvent[]) => {
+    return _.flatMap([].concat(events), Webhooks.getDerivedEvents)
+  }
+
+  public static getDerivedEvents = event => {
+    const { topic, data } = event
+    switch (topic) {
+    case 'msg:i':
+    case 'msg:o':
+      return [
+        {
+          ...event,
+          topic: `${topic}:${data.object[TYPE]}`
+        }
+      ]
+    case 'save':
+      return [
+        {
+          ...event,
+          topic: `${topic}:${data[TYPE]}`
+        }
+      ]
+
+    default:
+      return []
+    }
   }
 
   public getSubscriptionsForEvent = (eventTopic: string):IWebhookSubscription[] => {

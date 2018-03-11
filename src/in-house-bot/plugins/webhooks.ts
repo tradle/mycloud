@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { Conf, IPluginOpts, IPluginExports, IPluginLifecycleMethods } from '../types'
-import { Webhooks, IWebhooksConf } from '../webhooks'
+import { Webhooks, IWebhooksConf, IWebhookEvent } from '../webhooks'
 import { randomString } from '../../crypto'
 
 const DEFAULT_CONF = require('./form-prefills.json')
@@ -34,55 +34,62 @@ export const createPlugin = ({ bot, conf, logger }: IWebhooksPluginOpts):IPlugin
   }
 
   bot.hook('message', async (ctx, next) => {
-    let { type, message } = ctx.event
-
-    message = prepareForDelivery(message)
-    const payload = message.object
-    const messageEvents = [
-      'msg:i',
-      `msg:i:${type}`
-    ].map(topic => ({
-      id: randomString(10),
-      time: Date.now(),
-      topic,
-      data: message
-    })).concat()
-
-    const payloadEvents = [
-      `save:${type}`
-    ].map(topic => ({
-      id: randomString(10),
-      time: Date.now(),
-      topic,
-      data: payload
-    }))
-
-    const events = messageEvents.concat(payloadEvents)
-    const opts = getFireOpts()
-    await Promise.all(events.map(event => webhooks.fire(event, opts)))
+    const { message } = ctx.event
+    await plugin.deliverMessageEvent(message)
     await next()
   })
 
   bot.hook('save', async (ctx, next) => {
-    let { method, resource } = ctx.event
-    const subTopics = [
-      'save',
-      `save:${resource[TYPE]}`
-    ]
-
-    resource = prepareForDelivery(resource)
-    const opts = getFireOpts()
-    await Promise.all(subTopics.map(topic => webhooks.fire({
-      id: randomString(10),
-      time: Date.now(),
-      topic,
-      data: resource
-    }, opts)))
-
+    const { method, resource } = ctx.event
+    await plugin.deliverSaveEvent({ method, resource })
     await next()
   })
 
-  const plugin:IPluginLifecycleMethods = {}
+  const fireAll = async (events:IWebhookEvent[]) => {
+    const opts = getFireOpts()
+    return await Promise.all(events.map(event => webhooks.fire(event, opts)))
+  }
+
+  const deliverSaveEvent = async ({ method, resource }) => {
+    resource = prepareForDelivery(resource)
+    const events = Webhooks.expandEvents({
+      id: randomString(10),
+      time: Date.now(),
+      topic: 'save',
+      data: resource
+    })
+
+    await fireAll(events)
+  }
+
+  const deliverMessageEvent = async (message) => {
+    message = prepareForDelivery(message)
+
+    const time = Date.now()
+    const payload = message.object
+    const messageEvents = Webhooks.expandEvents({
+      id: randomString(10),
+      time,
+      topic: 'msg:i',
+      data: message
+    })
+
+    const payloadEvents = Webhooks.expandEvents({
+      id: randomString(10),
+      time,
+      topic: 'save',
+      data: payload
+    })
+
+    const events = messageEvents.concat(payloadEvents)
+    await fireAll(events)
+  }
+
+  const plugin = {
+    deliverMessageEvent,
+    deliverSaveEvent
+  }
+
   return {
     api: webhooks,
     plugin
