@@ -238,8 +238,9 @@ export class Webhooks {
     let retry = 0
     await runWithBackoffWhile(() => this.tryInvoke(opts), {
       ..._.defaults(backoff, DEFAULT_BACKOFF_OPTS),
+      logger: this.logger,
       shouldTryAgain: err => {
-        this.logger.debug('retrying webhook invocation', {
+        this.logger.debug('will retry webhook invocation', {
           retry: ++retry
         })
 
@@ -271,6 +272,10 @@ export class Webhooks {
     } = sub
 
     event = prepareEventForDelivery(event)
+    this.logger.debug('invoking webhook', {
+      endpoint,
+      topic: event.topic
+    })
 
     const data = new Buffer(JSON.stringify(event))
     let hash
