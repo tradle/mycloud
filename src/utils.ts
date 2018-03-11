@@ -666,8 +666,10 @@ export const runWithBackoffWhile = async (fn, {
       millisToWait = Math.min(
         maxDelay,
         millisToWait * factor,
-        maxTime - Date.now()
+        maxTime - (Date.now() - start)
       )
+
+      if (millisToWait < 0) break
     }
   }
 
