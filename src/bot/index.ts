@@ -139,6 +139,7 @@ export class Bot extends EventEmitter implements IReady {
   public get isDev () { return this.tradle.env.STAGE === 'dev' }
   public get isStaging () { return this.tradle.env.STAGE === 'staging' }
   public get isProd () { return this.tradle.env.STAGE === 'prod' }
+  public get resourcePrefix() { return this.tradle.env.SERVERLESS_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
   public get mailer () { return this.tradle.mailer }
@@ -395,6 +396,10 @@ export class Bot extends EventEmitter implements IReady {
 
   public ensureDevStage = (msg?: string) => {
     if (!this.isDev) throw new Errors.DevStageOnly(msg || 'forbidden')
+  }
+
+  public getStackResourceName = (shortName:string) => {
+    return this.env.getStackResourceName(shortName)
   }
 
   private _save = async (method:string, resource:any) => {

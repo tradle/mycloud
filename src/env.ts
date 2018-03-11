@@ -172,6 +172,17 @@ export default class Env {
     return { ...this.reqCtx }
   }
 
+  public getStackResourceShortName = (name: string):string => {
+    return name.slice(this.SERVERLESS_PREFIX.length)
+  }
+
+  public getStackResourceName = (name: string):string => {
+    const { SERVERLESS_PREFIX='' } = this
+    return name.startsWith(SERVERLESS_PREFIX)
+      ? name
+      : `${SERVERLESS_PREFIX}${name}`
+  }
+
   private _recalc = (props:any):void => {
     if ('SERVERLESS_STAGE' in props) {
       this.DEV = !this.SERVERLESS_STAGE.startsWith('prod')

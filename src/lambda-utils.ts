@@ -33,7 +33,7 @@ export const WARMUP_FUNCTION_SHORT_NAME = 'warmup'
 export const WARMUP_FUNCTION_DURATION = 5000
 
 export default class LambdaUtils {
-  private env: any
+  private env: Env
   private aws: AwsApis
   private logger: Logger
   public get thisFunctionName () {
@@ -44,17 +44,6 @@ export default class LambdaUtils {
     this.env = env
     this.aws = aws
     this.logger = env.sublogger('lambda-utils')
-  }
-
-  public getShortName = (name: string):string => {
-    return name.slice(this.env.SERVERLESS_PREFIX.length)
-  }
-
-  public getFullName = (name: string):string => {
-    const { SERVERLESS_PREFIX='' } = this.env
-    return name.startsWith(SERVERLESS_PREFIX)
-      ? name
-      : `${SERVERLESS_PREFIX}${name}`
   }
 
   public invoke = async (opts: {
@@ -76,7 +65,7 @@ export default class LambdaUtils {
       wrapPayload
     } = opts
 
-    const FunctionName = this.getFullName(name)
+    const FunctionName = this.env.getStackResourceName(name)
     if (wrapPayload !== false) {
       arg = {
         requestContext: this.env.getRequestContext(),
@@ -139,7 +128,7 @@ export default class LambdaUtils {
     :Promise<AWS.Lambda.InvocationResponse> => {
     const { FunctionName, InvocationType, Payload } = params
     this.logger.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
-    const shortName = this.getShortName(FunctionName)
+    const shortName = this.env.getStackResourceShortName(FunctionName)
     const lambdaExports = this.requireLambdaByName(shortName)
     const { functions } = serverlessYml
     const handlerExportPath = functions[shortName].handler

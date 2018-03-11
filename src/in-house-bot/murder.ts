@@ -174,6 +174,8 @@ export const clearTables = async ({ bot, tables }: {
   }
 
   const counts:any = {}
+  tables = tables.map(bot.getStackResourceName)
+
   for (const table of tables) {
     if (/-users$/.test(table)) {
       counts.users = await clearUsersTable({ bot })
