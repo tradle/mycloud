@@ -81,7 +81,7 @@ const deleteApplications = async () => {
 
   console.log(`deleted items count: ${JSON.stringify(deleteCounts, null, 2)}`)
 
-  await clearUsersTable(tradle)
+  await clearUsersTable(tradle.dbUtils)
 
   // const tableName = definitions.UsersTable.Properties.TableName
 
