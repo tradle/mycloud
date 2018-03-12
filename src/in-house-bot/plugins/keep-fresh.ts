@@ -24,7 +24,7 @@ export const createPlugin = ({
   send
 }) => {
   const hash = hashObject(object)
-  return async (req) => {
+  const onmessage = async (req) => {
     const identifier = getIdentifier(req)
     const { user } = req
     if (!user[propertyName]) {
@@ -37,5 +37,9 @@ export const createPlugin = ({
 
     container[identifier] = hash
     await send({ req, to: user, object })
+  }
+
+  return {
+    onmessage
   }
 }

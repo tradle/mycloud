@@ -26,10 +26,14 @@ export const command:ICommand = {
       return message
     }
 
-    const availableCommands = commander.getAvailableCommands(ctx)
-      .map(command => `/${command}`)
+    const availableCommands = commander
+      .getAvailableCommands(ctx)
+      .map(name => {
+        const { description } = commander.getCommandByName(name)
+        return `/${name}\n\n${description}\n\n`
+      })
 
-    return `These are the available commands:\n${availableCommands.join('\n')}`
+    return `These are the available commands:\n\n${availableCommands.join('\n')}`
   },
   sendResult: async ({ commander, req, to, result }) => {
     await commander.sendSimpleMessage({ req, message: result, to: req.user })

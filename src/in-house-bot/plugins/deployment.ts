@@ -28,8 +28,10 @@ export interface IDeploymentPluginOpts extends IPluginOpts {
   conf: IDeploymentPluginConf
 }
 
-export const createPlugin = (opts:IDeploymentPluginOpts) => {
-  const { bot, productsAPI, employeeManager, conf, orgConf, logger } = opts
+export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts) => {
+  const { bot, productsAPI, employeeManager } = components
+  const orgConf = components.conf
+  const { org } = orgConf
   const deployment = createDeployment({
     bot,
     logger,
@@ -89,7 +91,7 @@ export const createPlugin = (opts:IDeploymentPluginOpts) => {
         to: adminEmail,
         ...deployment.genLaunchEmail({
           launchUrl,
-          fromOrg: orgConf.org
+          fromOrg: org
         })
       })
     } catch (err) {

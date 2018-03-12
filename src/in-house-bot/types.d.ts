@@ -26,10 +26,15 @@ export {
   Deployment
 }
 
+export type StringToNumMap = {
+  [key: string]: number
+}
+
 export interface IProductsConf {
   enabled: string[]
   autoApprove?: boolean
   approveAllEmployees?: boolean
+  maximumApplications?: StringToNumMap
   plugins?: any
 }
 
@@ -56,10 +61,10 @@ export interface IConf {
 
 export interface IBotComponents {
   bot: Bot
-  models: any
-  conf?: IConf
+  logger: Logger
   productsAPI: any
   employeeManager: any
+  conf?: IConf
   remediation?: Remediation
   onfido?: Onfido
   deployment?: Deployment
@@ -88,6 +93,11 @@ export interface IYargs {
 export interface IUser {
   id: string
   identity?: IIdentity
+  applications?: IPBAppStub[]
+  applicationsApproved?: IPBAppStub[]
+  applicationsDenied?: IPBAppStub[]
+  verificationsImported?: VerifiedItem[]
+  verificationsIssued?: VerifiedItem[]
   [key:string]: any
 }
 
@@ -124,6 +134,14 @@ export interface IPBApp extends ITradleObject {
   dateModified: number
   dateCompleted?: number
   draft?: boolean
+}
+
+export interface IPBAppStub {
+  dateModified: number
+  requestFor: string
+  statePermalink: string
+  context: string
+  status: string
 }
 
 export interface IFormRequest extends ITradleObject {
@@ -204,6 +222,8 @@ export interface IPluginLifecycleMethods {
   willRequestForm?: (opts:IWillRequestFormArg) => void | Promise<void>
   onFormsCollected?: (opts:IOnFormsCollectedArg) => void | Promise<void>
   onPendingApplicationCollision?: (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
+  onRequestForExistingProduct?: (req:IPBReq) => void | Promise<void>
+  onCommand?: ({ req: IPBReq, command: string }) => void | Promise<void>
   [toBeDefined: string]: any
 }
 
@@ -213,25 +233,22 @@ export interface IPluginExports {
   [customExport: string]: any
 }
 
+export interface IPluginOpts {
+  logger: Logger
+  conf?: any
+}
+
+export type CreatePlugin = (components:IBotComponents, opts:IPluginOpts) => IPluginExports
+
 export interface IPlugin {
   name?: string
-  createPlugin: (opts:any) => IPluginExports
+  createPlugin: CreatePlugin
   validateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 
 export interface IPlugins {
   get: (name:string) => IPlugin
   set: (name:string, IPlugin) => void
-}
-
-export interface IPluginOpts {
-  bot: Bot
-  productsAPI: any
-  employeeManager: any
-  logger: Logger
-  conf?: any // plugin conf
-  orgConf: IConf
-  [other:string]: any
 }
 
 export type ClaimType = 'bulk' | 'prefill'

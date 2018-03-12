@@ -8,7 +8,7 @@ import {
   Logger,
   IPBApp,
   IPBReq,
-  IPluginOpts
+  CreatePlugin
 } from '../types'
 
 const {TYPE} = constants
@@ -44,16 +44,13 @@ interface IComplyCheck {
   application: IPBApp
   rawData: any
 }
-interface IApiOpts extends IPluginOpts {
-  searchProperties: IResource,
-  criteria: any
-}
+
 class ComplyAdvantageAPI {
   private bot:Bot
   private conf:IComplyAdvantageConf
   private productsAPI:any
   private logger:Logger
-  constructor({ bot, conf, productsAPI, logger }: IPluginOpts) {
+  constructor({ bot, productsAPI, conf, logger }) {
     this.bot = bot
     this.conf = conf
     this.productsAPI = productsAPI
@@ -152,14 +149,13 @@ class ComplyAdvantageAPI {
   }
 }
 // {conf, bot, productsAPI, logger}
-export function createPlugin(opts: IPluginOpts) {
+export const createPlugin:CreatePlugin = ({ bot, productsAPI }, { conf, logger }) => {
   // const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
-  const complyAdvantage = new ComplyAdvantageAPI(opts)
-  return {
+  const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, conf, logger })
+  const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req: IPBReq) {
       if (req.skipChecks) return
 
-      let { bot, logger, conf, productAPI} = opts
       const { user, application, applicant, payload } = req
 
       if (!application) return
@@ -250,6 +246,10 @@ export function createPlugin(opts: IPluginOpts) {
       })
       let checksAndVerifications = await Promise.all(pchecks)
     }
+  }
+
+  return {
+    plugin
   }
 }
 

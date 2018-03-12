@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import buildResource from '@tradle/build-resource'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
-import { Bot, Logger, IPluginOpts } from '../types'
+import { Bot, Logger, CreatePlugin } from '../types'
 const utils_1 = require("../utils");
 
 const {TYPE} = constants
@@ -188,9 +188,9 @@ class OpenCorporatesAPI {
       await Promise.all(ocChecks)
   }
 }
-export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
+export const createPlugin: CreatePlugin = ({ bot, productsAPI }, { logger, conf }) => {
   const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, logger })
-  return {
+  const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req) {
       // let doReturn = true
       // if (doReturn)
@@ -242,6 +242,10 @@ export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
       })
       let checksAndVerifications = await Promise.all(pchecks)
     }
+  }
+
+  return {
+    plugin
   }
 }
 
