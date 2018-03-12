@@ -39,18 +39,22 @@ export const createPlugin = ({ bot, conf, logger }: IWebhooksPluginOpts):IPlugin
     await next()
   })
 
-  bot.hook('save', async (ctx, next) => {
-    const { method, resource } = ctx.event
-    await plugin.deliverSaveEvent({ method, resource })
+  bot.objects.hook('put', async (ctx, next) => {
+    const { object } = ctx.event
+    await plugin.deliverSaveEvent(object)
     await next()
   })
 
   const fireAll = async (events:IWebhookEvent[]) => {
+    logger.debug('firing events', {
+      events: events.map(({ topic }) => topic)
+    })
+
     const opts = getFireOpts()
     return await Promise.all(events.map(event => webhooks.fire(event, opts)))
   }
 
-  const deliverSaveEvent = async ({ method, resource }) => {
+  const deliverSaveEvent = async (resource) => {
     resource = prepareForDelivery(resource)
     const events = Webhooks.expandEvents({
       id: randomString(10),

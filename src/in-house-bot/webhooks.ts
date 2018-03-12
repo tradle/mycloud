@@ -110,7 +110,8 @@ export class Webhooks {
   }
 
   public static expandEvents = (events:IWebhookEvent|IWebhookEvent[]) => {
-    return _.flatMap([].concat(events), Webhooks.getDerivedEvents)
+    events = [].concat(events)
+    return events.concat(_.flatMap(events, Webhooks.getDerivedEvents))
   }
 
   public static getDerivedEvents = event => {

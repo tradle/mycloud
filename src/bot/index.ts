@@ -35,7 +35,7 @@ import {
   IBotOpts,
   AppLinks,
   IGraphqlAPI,
-  BotMiddleware
+  IBotMiddlewareContext
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -50,6 +50,7 @@ import Identities from '../identities'
 import Auth from '../auth'
 import { AwsApis } from '../aws'
 import Errors from '../errors'
+import { MiddlewareContainer } from '../middleware-container'
 
 type LambdaImplMap = {
   [name:string]: ILambdaImpl
@@ -158,12 +159,15 @@ export class Bot extends EventEmitter implements IReady {
   public isReady: () => boolean
   public promiseReady: () => Promise<void>
 
+  public get hook() { return this.middleware.hook }
+  public get fire() { return this.middleware.fire }
+
   // shortcuts
-  public onmessage = handler => this._addSimpleMiddleware('message', handler)
-  public oninit = handler => this._addSimpleMiddleware('init', handler)
-  public onseal = handler => this._addSimpleMiddleware('seal', handler)
-  public onreadseal = handler => this._addSimpleMiddleware('readseal', handler)
-  public onwroteseal = handler => this._addSimpleMiddleware('wroteseal', handler)
+  public onmessage = handler => this.middleware.useSimple('message', handler)
+  public oninit = handler => this.middleware.useSimple('init', handler)
+  public onseal = handler => this.middleware.useSimple('seal', handler)
+  public onreadseal = handler => this.middleware.useSimple('readseal', handler)
+  public onwroteseal = handler => this.middleware.useSimple('wroteseal', handler)
 
   public lambdas: LambdaMap
 
@@ -171,7 +175,7 @@ export class Bot extends EventEmitter implements IReady {
   private tradle: Tradle
   private get provider() { return this.tradle.provider }
   private outboundMessageLocker: Locker
-  private middleware: { [event:string]: BotMiddleware[] }
+  private middleware: MiddlewareContainer<IBotMiddlewareContext>
   constructor (opts: IBotOpts) {
     super()
 
@@ -241,8 +245,12 @@ export class Bot extends EventEmitter implements IReady {
       }
     })
 
-    this.middleware = {}
-    this.hook('save', this._defaultSave)
+    this.middleware = new MiddlewareContainer({
+      getContextForEvent: (event, payload) => ({
+        bot: this,
+        event: payload
+      })
+    })
 
     if (ready) this.ready()
   }
@@ -374,25 +382,9 @@ export class Bot extends EventEmitter implements IReady {
   }
 
   public reSign = object => this.sign(_.omit(object, [SIG]))
-
-  public fire = async (event, payload) => {
-    const middleware = this.middleware[event]
-    if (!(middleware && middleware.length)) return
-
-    const ctx = {
-      bot: this,
-      event: payload
-    }
-
-    await compose(middleware)(ctx)
-    return ctx
-  }
-
-  public use = (event, middleware) => {
-    this._getMiddleware(event).push(middleware)
-  }
-
-  public hook = (event, middleware) => this.use(event, middleware)
+  // public fire = async (event, payload) => {
+  //   return await this.middleware.fire(event, payload)
+  // }
 
   public ensureDevStage = (msg?: string) => {
     if (!this.isDev) throw new Errors.DevStageOnly(msg || 'forbidden')
@@ -403,12 +395,6 @@ export class Bot extends EventEmitter implements IReady {
   }
 
   private _save = async (method:string, resource:any) => {
-    await this.fire('save', { method, resource })
-    await this.fire(`save:${method}`, resource)
-  }
-
-  private _defaultSave = async (ctx, next) => {
-    const { method, resource } = ctx.event
     if (!this.isReady()) {
       this.logger.debug('waiting for this.ready()')
       await this.promiseReady()
@@ -431,20 +417,6 @@ export class Bot extends EventEmitter implements IReady {
 
       return // prevent further processing
     }
-
-    await next()
-  }
-
-  private _addSimpleMiddleware = (event, handler) => {
-    this.use(event, toSimpleMiddleware(handler))
-  }
-
-  private _getMiddleware = event => {
-    if (!this.middleware[event]) {
-      this.middleware[event] = []
-    }
-
-    return this.middleware[event]
   }
 }
 

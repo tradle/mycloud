@@ -35,10 +35,13 @@ import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
 import { Events } from '../events'
 import { Mailer } from '../mailer'
+import { MiddlewareContainer } from '../middleware-container'
 import {
   ResourceStub,
   ParsedResourceStub
 } from '@tradle/validate-resource'
+
+export type Constructor<T = {}> = new (...args: any[]) => T
 
 export * from '../retryable-task'
 export {
@@ -82,7 +85,8 @@ export {
   S3Utils,
   Events,
   Mailer,
-  AppLinks
+  AppLinks,
+  MiddlewareContainer
 }
 
 export interface IPositionPair {
