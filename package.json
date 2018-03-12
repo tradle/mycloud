@@ -48,7 +48,6 @@
     "serverless-s3-local": "github:mvayngrib/serverless-s3-local",
     "sinon": "^3.3.0",
     "tape": "^4.6.3",
-    "tslint-eslint-rules": "^5.1.0",
     "validate-commit-msg": "^2.14.0"
   },
   "scripts": {

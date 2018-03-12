@@ -792,11 +792,11 @@ const clearTables = async ({ tradle }) => {
         debug(`cleared table: ${TableName}`)
         break
       } catch (err) {
-        if (err.name === 'ResourceNotFoundException') {
+        if (err.code === 'ResourceNotFoundException') {
           break
         }
 
-        if (err.name !== 'LimitExceededException') {
+        if (err.code !== 'LimitExceededException') {
           throw err
         }
 

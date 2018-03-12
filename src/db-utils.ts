@@ -335,7 +335,7 @@ function createDBUtils ({ aws, logger, env }) {
         await execWhile('delete', {
           TableName,
           Key: _.pick(item, keyProps)
-        }, err => err.name === 'LimitExceededException' || err.name === 'ResourceNotFoundException')
+        }, err => err.code === 'LimitExceededException' || err.code === 'ResourceNotFoundException')
 
         count++
       }
