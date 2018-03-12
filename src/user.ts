@@ -85,8 +85,7 @@ export default class User {
       session = await this.auth.setSubscribed({ clientId, subscribed: true })
       this.logger.debug(`client subscribed`, session)
     } catch (error) {
-      this.logger.error('failed to update presence information', error)
-      await this.requestIotClientReconnect({ clientId, error })
+      await this.requestIotClientReconnect({ event: 'subscribe', clientId, error })
       Errors.rethrow(error, 'system')
       return
     }
@@ -109,7 +108,7 @@ export default class User {
     const { clientPosition} = session
     if (!clientPosition) {
       this.logger.error('expected session to have clientPosition', { session })
-      await this.requestIotClientReconnect({ clientId })
+      await this.requestIotClientReconnect({ event: 'announcePosition', clientId })
       return
     }
 
@@ -117,7 +116,7 @@ export default class User {
     if (received.time < clientPosition.received.time) {
       const message = 'position requested cannot be less than advertised during auth'
       this.logger.error(message, { session, position })
-      await this.requestIotClientReconnect({ clientId, message })
+      await this.requestIotClientReconnect({ event: 'announcePosition', clientId, message })
       return
     }
 
@@ -193,8 +192,12 @@ export default class User {
       this.logger.debug(`client disconnected`, session)
       return session
     } catch (error) {
-      this.logger.error('failed to update presence information', error)
-      await this.requestIotClientReconnect({ clientId, error })
+      this.logger.error('ondisconnected: failed to update presence information', {
+        error: error.message,
+        clientId
+      })
+
+      await this.requestIotClientReconnect({ event: 'disconnect', clientId, error })
       Errors.rethrow(error, 'system')
     }
   }
@@ -221,8 +224,12 @@ export default class User {
       session = await this.auth.setConnected({ clientId, connected: true })
       this.logger.debug(`client connected`, session)
     } catch (error) {
-      this.logger.error('failed to update presence information', error)
-      await this.requestIotClientReconnect({ clientId, error })
+      this.logger.error('onconnected: failed to update presence information', {
+        error: error.message,
+        clientId
+      })
+
+      await this.requestIotClientReconnect({ event: 'connect', clientId, error })
       Errors.rethrow(error, 'system')
       return
     }
@@ -248,14 +255,18 @@ export default class User {
   public requestIotClientReconnect = async ({
     clientId,
     error,
-    message=ClientErrors.reconnect_required
+    message=ClientErrors.reconnect_required,
+    event
   }: {
-    clientId: string,
-    error?: Error,
+    clientId: string
+    error?: Error
     message?: string
+    event?: string
   }) => {
-    this.logger.debug('requesting iot client reconnect', error && {
-      stack: error.stack
+    this.logger.debug('requesting iot client reconnect', {
+      error: error && error.message,
+      clientId,
+      event
     })
 
     await this.sendError({ clientId, message })
