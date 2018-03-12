@@ -1,14 +1,17 @@
 import { TYPE } from '@tradle/constants'
-import validateResource from '@tradle/validate-resource'
-import buildResource from '@tradle/build-resource'
-import { Name } from '../types'
+import validateResource = require('@tradle/validate-resource')
+import buildResource = require('@tradle/build-resource')
+import { Name, Bot } from '../types'
 import { getFormattedNameFromForm } from '../utils'
 
 const { parseStub } = validateResource.utils
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 
 export const name = 'setName'
-export const createPlugin = ({ bot, productsAPI }) => {
+export const createPlugin = ({ bot, productsAPI }: {
+  bot: Bot
+  productsAPI: any
+}) => {
   const logger = bot.logger.sub('plugin-set-name')
   const productToNameForm = {
     'nl.tradle.DigitalPassport': 'tradle.PhotoID',
@@ -24,7 +27,14 @@ export const createPlugin = ({ bot, productsAPI }) => {
   }
 
   const trySetName = async (req) => {
-    const { type, payload, application } = req
+    const name = await getName(req)
+    if (name) {
+      req.application.applicantName = name
+    }
+  }
+
+  const getName = async (req) => {
+    const { user, type, payload, application } = req
     if (!(payload && application)) return
     if (type === PRODUCT_REQUEST) return
 
@@ -36,7 +46,17 @@ export const createPlugin = ({ bot, productsAPI }) => {
     // }
 
     const nameFormType = productToNameForm[requestFor]
-    if (!nameFormType) return
+    if (!nameFormType) {
+      const { friend } = user
+      if (!friend) return
+
+      const fRes = await bot.getResource({
+        type: 'tradle.MyCloudFriend',
+        permalink: friend
+      })
+
+      return fRes.name
+    }
 
     let form
     if (payload[TYPE] === nameFormType) {
@@ -49,22 +69,16 @@ export const createPlugin = ({ bot, productsAPI }) => {
     }
 
     let name = getFormattedNameFromForm(form)
-    if (name) {
-      application.applicantName = name
-      return
-    }
+    if (name) return name
 
     try {
-      name = buildResource.title({
+      return buildResource.title({
         models: bot.models,
         resource: form
       })
     } catch (err) {
       logger.error('failed to calc applicantName', err)
-      return
     }
-
-    application.applicantName = name
   }
 
   return {
