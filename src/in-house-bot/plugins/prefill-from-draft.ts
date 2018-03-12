@@ -1,8 +1,7 @@
 import _ from 'lodash'
 import { TYPE, SIG } from '@tradle/constants'
 import {
-  IPluginOpts,
-  IPluginExports,
+  CreatePlugin,
   IPluginLifecycleMethods,
   IDataBundle
 } from '../types'
@@ -11,12 +10,13 @@ import { parseStub, omitVirtual, toUnsigned } from '../../utils'
 import Errors from '../../errors'
 
 export const name = 'prefillFromDraft'
-export function createPlugin ({
+export const createPlugin: CreatePlugin = ({
   bot,
-  productsAPI,
+  productsAPI
+}, {
   conf,
   logger
-}: IPluginOpts):IPluginExports {
+}) => {
 
   const plugin:IPluginLifecycleMethods = {}
   plugin.willRequestForm = async ({ user, application, formRequest }) => {

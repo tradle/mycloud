@@ -64,7 +64,8 @@ test('remediation plugin', loudAsync(async (t) => {
     bot,
     productsAPI,
     employeeManager: null,
-    orgConf: null,
+    conf: null
+  }, {
     logger: new Logger('test:remediation1')
   })
 
@@ -108,16 +109,14 @@ test('remediation api', loudAsync(async (t) => {
   const bot = createBot()
   const remediation = new Remediation({
     bot,
+    productsAPI: {
+      plugins: {
+        use: ({ onmessage }) => { }
+      }
+    },
     conf: {
       deleteRedeemedClaims: true,
     },
-    productsAPI: {
-      plugins: {
-        use: ({ onmessage }) => {}
-      }
-    },
-    employeeManager: null,
-    orgConf: null,
     logger: new Logger('test:remediation')
   })
 
@@ -194,8 +193,8 @@ test('prefill-based', loudAsync(async (t) => {
   const { api, plugin } = createRemediationPlugin({
     bot,
     productsAPI,
-    employeeManager: null,
-    orgConf: null,
+    employeeManager: null
+  }, {
     logger: new Logger('test:remediation1')
   })
 
@@ -261,10 +260,11 @@ test('prefill-based', loudAsync(async (t) => {
   const prefillFromDraft = createPrefillFromDraftPlugin({
     bot,
     productsAPI,
+    remediation: api,
     employeeManager: null,
-    orgConf: null,
+    logger: new Logger('test:bot-logger')
+  }, {
     logger: new Logger('test:prefill-from-draft'),
-    remediation: api
   })
 
   const req = <IPBReq>{}

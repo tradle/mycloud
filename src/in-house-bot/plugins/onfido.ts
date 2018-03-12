@@ -1,7 +1,7 @@
 import OnfidoAPI from '@tradle/onfido-api'
 import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
 import Errors from '../../errors'
-import { Bot, IPluginOpts, IPluginExports, IPBReq, Conf } from '../types'
+import { Bot, CreatePlugin, IPBReq, Conf } from '../types'
 import { isLocalUrl } from '../../utils'
 
 let TEST_APIGW
@@ -22,7 +22,7 @@ const normalizePluginConf = conf => ({
   })
 })
 
-export const createPlugin = ({ bot, logger, productsAPI, conf }: IPluginOpts):IPluginExports => {
+export const createPlugin:CreatePlugin = ({ bot, productsAPI }, { logger, conf }) => {
   const {
     apiKey,
     products

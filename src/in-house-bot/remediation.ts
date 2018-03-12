@@ -83,6 +83,13 @@ export {
   stubToId
 }
 
+export type RemediationOpts = {
+  bot: Bot
+  productsAPI: any
+  logger: Logger
+  conf?: any
+}
+
 export class Remediation {
   public bot: Bot
   public productsAPI: any
@@ -96,7 +103,7 @@ export class Remediation {
     productsAPI,
     logger,
     conf=DEFAULT_CONF
-  }: IPluginOpts) {
+  }: RemediationOpts) {
     this.bot = bot
     this.productsAPI = productsAPI
     this.logger = logger
@@ -462,4 +469,4 @@ export class Remediation {
   }
 }
 
-export const createRemediation = (opts: IPluginOpts) => new Remediation(opts)
+export const createRemediation = (opts: RemediationOpts) => new Remediation(opts)

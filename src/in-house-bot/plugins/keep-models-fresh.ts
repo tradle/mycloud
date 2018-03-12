@@ -23,7 +23,7 @@ export const createPlugin = ({
 }) => {
   // modelsObject => modelsArray
   // modelsArray => modelsHash
-  return async (req) => {
+  const onmessage = async (req) => {
     const identifier = getIdentifier(req)
     const { user } = req
     let modelsPack = getModelsPackForUser(user)
@@ -39,6 +39,10 @@ export const createPlugin = ({
       identifier,
       send: object => send({ req, to: user, object })
     })
+  }
+
+  return {
+    onmessage
   }
 }
 
