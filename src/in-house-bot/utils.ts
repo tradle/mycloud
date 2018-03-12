@@ -316,7 +316,7 @@ export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
 }
 
 const hasApplication = (stubs, application) => {
-  return stubs.find(stub => parseStub(stub).permalink === application._permalink)
+  return stubs.find(stub => stub.statePermalink === application._permalink)
 }
 
 export const isPendingApplication = ({ user, application }) => {
