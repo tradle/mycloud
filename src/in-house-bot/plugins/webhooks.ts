@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { Conf, IPluginOpts, IPluginExports, IPluginLifecycleMethods } from '../types'
+import { Conf, IPluginOpts, IPluginLifecycleMethods, CreatePlugin } from '../types'
 import { Webhooks, IWebhooksConf, IWebhookEvent } from '../webhooks'
 import { randomString } from '../../crypto'
 import { topics as EventTopics } from '../../events'
@@ -15,8 +15,8 @@ export interface IWebhooksPluginOpts extends IPluginOpts {
 }
 
 export const name = 'webhooks'
-export const createPlugin = ({ bot, conf, logger }: IWebhooksPluginOpts):IPluginExports => {
-  const webhooks = new Webhooks({ bot, conf, logger })
+export const createPlugin: CreatePlugin = ({ bot }, { conf, logger }: IWebhooksPluginOpts) => {
+  const webhooks = new Webhooks({ bot, logger, conf })
   const getFireOpts = () => ({
     backoff: {
       ...DEFAULT_BACKOFF_OPTS,

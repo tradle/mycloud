@@ -15,7 +15,7 @@ import {
   Name,
   Bot,
   Logger,
-  IPluginOpts
+  CreatePlugin
 } from '../types'
 
 import { getNameFromForm, parseScannedDate, toISODateString } from '../utils'
@@ -174,7 +174,7 @@ class CentrixAPI {
     }
   }
 }
-export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
+export const createPlugin: CreatePlugin = ({ bot, productsAPI }, { conf, logger }) => {
   let { httpCredentials, requestCredentials } = conf.credentials
   if (typeof createCentrixClient !== 'function') {
     throw new Error('centrix client not available')
@@ -190,27 +190,29 @@ export function createPlugin({ conf, bot, productsAPI, logger }: IPluginOpts) {
     await centrixAPI.callCentrix(centrixData)
   }
 
-  return {
-    onFormsCollected: async function ({ req }) {
-      if (req.skipChecks) return
+  const onFormsCollected = async function ({ req }) {
+    if (req.skipChecks) return
 
-      // don't `return` to avoid slowing down message processing
-      const { application } = req
-      if (!application) return
+    // don't `return` to avoid slowing down message processing
+    const { application } = req
+    if (!application) return
 
-      let productId = application.requestFor
-      let { products } = conf
-      if (!products  ||  !products[productId])
-        return
+    let productId = application.requestFor
+    let { products } = conf
+    if (!products  ||  !products[productId])
+      return
 
-      // debugger
-      // if (hasCentrixVerification({ application })) return
-      try {
-        await getDataAndCallCentrix({ req, application })
-      } catch (err) {
-        logger.debug('Centrix operation failed', err)
-      }
+    // debugger
+    // if (hasCentrixVerification({ application })) return
+    try {
+      await getDataAndCallCentrix({ req, application })
+    } catch (err) {
+      logger.debug('Centrix operation failed', err)
     }
+  }
+
+  return {
+    plugin: { onFormsCollected }
   }
 }
 function getType(stub) {

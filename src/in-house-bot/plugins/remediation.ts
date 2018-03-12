@@ -16,9 +16,10 @@ interface IRemediationPluginExports extends IPluginExports {
   api: Remediation
 }
 
-export const createPlugin = (opts:IPluginOpts):IRemediationPluginExports => {
-  const { bot, productsAPI, employeeManager, logger } = opts
-  const remediation = new Remediation(opts)
+export const createPlugin = (components, pluginOpts):IRemediationPluginExports => {
+  const { bot, productsAPI, employeeManager } = components
+  const remediation = new Remediation({ ...components, ...pluginOpts })
+  const { logger } = pluginOpts
   const tryClaim = async ({ req, user, application }) => {
     if (!application) return
 

@@ -8,7 +8,7 @@ import {
   getCountryFromForm,
   parseScannedDate
 } from '../utils'
-import { Bot, IPBApp, ResourceStub, Name, IPluginOpts } from '../types'
+import { Bot, IPBApp, ResourceStub, Name, CreatePlugin, IPluginLifecycleMethods } from '../types'
 
 const { parseStub } = validateResource.utils
 const PHOTO_ID = 'tradle.PhotoID'
@@ -130,19 +130,21 @@ export class SmartPrefill {
   }
 }
 
-export const createPlugin = (opts: IPluginOpts) => {
-  const smarty = new SmartPrefill(opts as SmartPrefillOpts)
-  return {
+export const createPlugin: CreatePlugin = ({ bot }, { conf, logger }) => {
+  const smarty = new SmartPrefill({ bot, conf })
+  const plugin: IPluginLifecycleMethods = {
     willRequestForm: async ({ application, formRequest }) => {
       try {
         return await smarty.prefill({ application, formRequest })
       } catch (err) {
-        opts.logger.error('failed to smart-prefill form', {
+        logger.error('failed to smart-prefill form', {
           stack: err.stack
         })
       }
     }
   }
+
+  return { plugin }
 }
 
 export const validateConf = async ({ conf, pluginConf }: {

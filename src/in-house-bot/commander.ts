@@ -9,7 +9,8 @@ import {
   ICommandExecOpts,
   Bot,
   IBotComponents,
-  Deployment
+  Deployment,
+  IPBReq
 } from './types'
 
 import { parseStub } from '../utils'
@@ -24,10 +25,6 @@ const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of sup
 const SUDO = {
   employee: true,
   allowed: true
-}
-
-interface ICommanderComponents extends IBotComponents {
-  logger: Logger
 }
 
 // export const EMPLOYEE_COMMANDS = [
@@ -73,8 +70,8 @@ export class Commander {
   public deployment?: Deployment
   public conf: IConf
   public logger: Logger
-  private components: ICommanderComponents
-  constructor (components: ICommanderComponents) {
+  private components: IBotComponents
+  constructor (components: IBotComponents) {
     this.components = components
 
     const {
@@ -139,7 +136,11 @@ export class Commander {
     return command
   }
 
-  public exec = async ({ req, command, sudo=false }):Promise<CommandOutput> => {
+  public exec = async ({ req, command, sudo=false }: {
+    req: IPBReq
+    command: string
+    sudo?: boolean
+  }):Promise<CommandOutput> => {
     const ret:CommandOutput = {}
     this.logger.debug(`processing command: ${command}`)
     if (!req) req = this.productsAPI.state.newRequestState({})

@@ -2,7 +2,7 @@ import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { Conf } from '../configure'
 import { parseId, parseStub } from '../../utils'
-import { Bot, Logger, IPBApp, IPBReq, IPluginOpts } from '../types'
+import { Bot, Logger, IPBApp, IPBReq, CreatePlugin } from '../types'
 import baseModels from '../../models'
 
 const objModelProps = baseModels['tradle.Object'].properties
@@ -24,7 +24,11 @@ export class FillMyProductPlugin {
   private bot: Bot
   private conf: any
   private logger: Logger
-  constructor({ bot, conf, logger }: IPluginOpts) {
+  constructor({ bot, conf, logger }: {
+    bot: Bot
+    conf: any
+    logger: Logger
+  }) {
     this.bot = bot
     this.conf = conf
     this.logger = logger
@@ -68,7 +72,9 @@ export class FillMyProductPlugin {
   }
 }
 
-export const createPlugin = (opts: IPluginOpts) => new FillMyProductPlugin(opts)
+export const createPlugin:CreatePlugin = ({ bot }, { conf, logger }) => ({
+  plugin: new FillMyProductPlugin({ bot, conf, logger })
+})
 
 // export const validateConf = async ({ conf, pluginConf }: {
 //   conf: Conf,

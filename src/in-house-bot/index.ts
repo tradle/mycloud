@@ -8,6 +8,8 @@ import createEmployeeManager from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
 import mergeModels from '@tradle/merge-models'
 import { TYPE } from '@tradle/constants'
+import * as StringUtils from '../string-utils'
+import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
@@ -28,12 +30,11 @@ import {
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
-import { Commander } from './commander'
 import { createRemediation } from './remediation'
 import { createPlugin as createRemediationPlugin } from './plugins/remediation'
 import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
 import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
-import { haveAllChecksPassed, isPendingApplication } from './utils'
+import { haveAllChecksPassed, isPendingApplication, getNonPendingApplications } from './utils'
 import {
   Bot,
   IBotComponents,
@@ -42,7 +43,8 @@ import {
   Remediation,
   Deployment,
   IPluginOpts,
-  IPluginLifecycleMethods
+  IPluginLifecycleMethods,
+  IPBReq
 } from './types'
 
 import Logger from '../logger'
@@ -79,20 +81,21 @@ const HIDDEN_PRODUCTS = {
 // then some handlers can migrate to 'messagestream'
 const willHandleMessages = event => event === 'message'
 
-export default function createProductsBot ({
+export default function createProductsBot({
   bot,
   logger,
   conf,
-  event=''
+  event = ''
 }: {
-  bot: Bot,
-  logger: Logger,
-  conf: IConf,
-  event?: string
-}):IBotComponents {
+    bot: Bot,
+    logger: Logger,
+    conf: IConf,
+    event?: string
+  }): IBotComponents {
   const {
     enabled,
-    plugins={},
+    maximumApplications,
+    plugins = {},
     autoApprove,
     // autoVerify,
     approveAllEmployees,
@@ -132,13 +135,6 @@ export default function createProductsBot ({
       !DONT_FORWARD_FROM_EMPLOYEE.includes(req.type),
     handleMessages
   })
-
-  const commonPluginOpts = <IPluginOpts>{
-    bot,
-    productsAPI,
-    employeeManager,
-    orgConf: conf
-  }
 
   // employeeManager.hasEmployees = () => Promise.resolve(true)
 
@@ -188,31 +184,16 @@ export default function createProductsBot ({
     conf,
     productsAPI,
     employeeManager,
-    get models() {
-      return bot.modelStore.models
-    }
+    logger
   } as IBotComponents
 
   if (handleMessages) {
-    productsAPI.plugins.use(<IPluginLifecycleMethods>{
-      willRequestForm: ({ user, formRequest }) => {
-        if (formRequest.form === PRODUCT_REQUEST) {
-          const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
-          formRequest.chooser.oneOf = formRequest.chooser.oneOf
-            .filter(product => {
-              // allow showing hidden products explicitly by listing them in conf
-              // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
-              return enabled.includes(product) || !hidden.includes(product)
-            })
-        }
-      }
-    })
+    tweakProductListPerRecipient(components)
 
     productsAPI.removeDefaultHandler('onCommand')
-    const getModelsPackForUser = createModelsPackGetter({ bot, productsAPI, employeeManager })
     const keepModelsFresh = keepModelsFreshPlugin({
       getIdentifier: createGetIdentifierFromReq({ employeeManager }),
-      getModelsPackForUser,
+      getModelsPackForUser: createModelsPackGetter({ bot, productsAPI, employeeManager }),
       send
     })
 
@@ -248,134 +229,13 @@ export default function createProductsBot ({
         send
       })
 
-      productsAPI.plugins.use({ onmessage: keepStylesFresh }, true) // prepend
+      productsAPI.plugins.use(keepStylesFresh, true) // prepend
     }
 
-    productsAPI.plugins.use({ onmessage: keepModelsFresh }, true) // prepend
-    productsAPI.plugins.use({
-      // 'onmessage:tradle.Form': async (req) => {
-      //   let { type, application } = req
-      //   if (type === 'tradle.ProductRequest') {
-      //     debug(`deferring to default handler for ${type}`)
-      //     return
-      //   }
-
-      //   if (!autoVerify) {
-      //     debug(`not auto-verifying ${type}`)
-      //     return
-      //   }
-
-      //   if (application && application.requestFor === DEPLOYMENT) {
-      //     debug(`not autoverifying MyCloud config form: ${type}`)
-      //     return
-      //   }
-
-      //   if (!application) {
-      //     // normal for tradle.AssignRelationshipManager
-      //     // because the user is the employee, but the application is the customer's
-      //     debug(`not auto-verifying ${type} (unknown application)`)
-      //     return
-      //   }
-
-      //   debug(`auto-verifying ${type}`)
-      //   await productsAPI.verify({
-      //     req,
-      //     application,
-      //     send: false,
-      //     verification: {
-      //       [TYPE]: 'tradle.Verification',
-      //       method: {
-      //         aspect: 'validity',
-      //         reference: [{
-      //           queryId: crypto.randomBytes(8).toString('hex')
-      //         }],
-      //         [TYPE]: 'tradle.APIBasedVerificationMethod',
-      //         api: {
-      //           [TYPE]: 'tradle.API',
-      //           name: 'tradle-internal'
-      //         }
-      //       }
-      //     }
-      //   })
-      // },
-      'onmessage:tradle.SimpleMessage': async (req) => {
-        const { user, application, object } = req
-        const { message } = object
-        bot.debug(`processing simple message: ${message}`)
-        if (message[0] === '/') return
-        if (application &&
-          application.relationshipManagers &&
-          application.relationshipManagers.length) return
-
-        const lowercase = message.toLowerCase()
-        if (/^hey|hi|hello$/.test(message)) {
-          await send({
-            req,
-            to: user,
-            object: {
-              [TYPE]: 'tradle.SimpleMessage',
-              message: `${message} yourself!`
-            }
-          })
-        }
-      },
-      onFormsCollected: async ({ req, user, application }) => {
-        if (application.draft) return
-
-        if (!isPendingApplication({ user, application })) return
-
-        if (!autoApprove) {
-          const results = await Promise.all([
-            haveAllChecksPassed({ bot, application }),
-            productsAPI.haveAllSubmittedFormsBeenVerified({ application })
-          ])
-
-          const [mostRecentChecksPassed, formsHaveBeenVerified] = results
-          if (!mostRecentChecksPassed) {
-            logger.debug('not all checks passed, not approving')
-          }
-
-          if (!formsHaveBeenVerified) {
-            logger.debug('not all forms have been verified, not approving')
-          }
-
-          if (!results.every(_.identity)) return
-        }
-
-        const approved = productsAPI.state.hasApplication({
-          applications: user.applicationsApproved || [],
-          application
-        })
-
-        if (!approved) {
-          await productsAPI.approveApplication({ req, user, application })
-          // verify unverified
-          await productsAPI.issueVerifications({
-            req, user, application, send: true
-          })
-        }
-      },
-      onCommand: async ({ req, command }) => {
-        await components.commands.exec({ req, command })
-      },
-      didApproveApplication: async ({ req, user, application, judge }) => {
-        if (judge) {
-          await productsAPI.issueVerifications({ req, user, application, send: true })
-        }
-
-        if (application.requestFor === EMPLOYEE_ONBOARDING) {
-          const modelsPack = await getModelsPackForUser(user)
-          if (modelsPack) {
-            await sendModelsPackIfUpdated({
-              user,
-              modelsPack,
-              send: object => send({ req, to: user, application, object })
-            })
-          }
-        }
-      }
-    }) // append
-
+    productsAPI.plugins.use(keepModelsFresh, true) // prepend
+    productsAPI.plugins.use(approveWhenTheTimeComes(components))
+    productsAPI.plugins.use(banter(components))
+    productsAPI.plugins.use(sendModelsPackToNewEmployees(components))
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
       onmessage: async (req) => {
@@ -432,8 +292,7 @@ export default function createProductsBot ({
 
   if (willUseOnfido) {
     logger.debug('using plugin: onfido')
-    const result = createOnfidoPlugin({
-      ...commonPluginOpts,
+    const result = createOnfidoPlugin(components, {
       logger: logger.sub('onfido'),
       conf: onfidoConf
     })
@@ -455,72 +314,35 @@ export default function createProductsBot ({
     }))
   }
 
-  if (plugins['prefill-form']) {
-    logger.debug('using plugin: prefill-form')
-    productsAPI.plugins.use(createPrefillPlugin({
-      ...commonPluginOpts,
-      conf: plugins['prefill-form'],
-      logger: logger.sub('plugin-prefill-form')
-    }).plugin)
-  }
-
-  if (plugins['smart-prefill']) {
-    logger.debug('using plugin: smart-prefill')
-    productsAPI.plugins.use(createSmartPrefillPlugin({
-      ...commonPluginOpts,
-      conf: plugins['smart-prefill'],
-      logger: logger.sub('plugin-smart-prefill')
-    }))
-  }
-
-  if (plugins['lens']) {
-    logger.debug('using plugin: lens')
-    productsAPI.plugins.use(createLensPlugin({
-      ...commonPluginOpts,
-      conf: plugins['lens'],
-      logger: logger.sub('plugin-lens')
-    }))
-  }
-
   if (handleMessages) {
-    if (plugins['openCorporates']) {
-      productsAPI.plugins.use(createOpenCorporatesPlugin({
-        ...commonPluginOpts,
-        conf: plugins['openCorporates'],
-        logger: logger.sub('plugin-opencorporates')
-      }))
-    }
+    ;[
+      'prefill-form',
+      'smart-prefill',
+      'lens',
+      'openCorporates',
+      'complyAdvantage',
+      'centrix'
+    ].forEach(name => {
+      const pConf = plugins[name]
+      if (!pConf || pConf.enabled === false) return
 
-    if (plugins['complyAdvantage']) {
-      logger.debug('using plugin: complyAdvantage')
-      productsAPI.plugins.use(createSanctionsPlugin({
-        ...commonPluginOpts,
-        conf: plugins['complyAdvantage'],
-        logger: logger.sub('plugin-complyAdvantage')
-      }))
-    }
-
-    if (plugins['centrix']) {
-      productsAPI.plugins.use(createCentrixPlugin({
-        ...commonPluginOpts,
-        conf: plugins['centrix'],
-        logger: logger.sub('plugin-centrix')
-      }))
-    }
-
-    if (plugins['hand-sig']) {
-      const result = createHandSigPlugin({
-        ...commonPluginOpts,
-        conf: plugins['hand-sig'],
-        logger: logger.sub('plugin-hand-sig')
+      logger.debug(`using plugin: ${name}`)
+      const { api, plugin } = Plugins.get(name).createPlugin(components, {
+        conf: pConf,
+        logger: logger.sub(`plugin-${name}`)
       })
-    }
+
+      if (api) {
+        components[name] = api
+      }
+
+      productsAPI.plugins.use(plugin)
+    })
   }
 
   if (handleMessages || event.startsWith('deployment:')) {
     if (plugins['deployment']) {
-      const result = createDeploymentPlugin({
-        ...commonPluginOpts,
+      const result = createDeploymentPlugin(components, {
         conf: plugins['deployment'],
         logger: logger.sub('plugin-deployment')
       })
@@ -531,9 +353,8 @@ export default function createProductsBot ({
   }
 
   if (handleMessages || event.startsWith('remediation:')) {
-    const { api, plugin } = createRemediationPlugin({
-      ...commonPluginOpts,
-      logger: logger.sub('remediation:')
+    const { api, plugin } = createRemediationPlugin(components, {
+      logger: logger.sub('remediation')
     })
 
     if (handleMessages) {
@@ -542,33 +363,184 @@ export default function createProductsBot ({
 
     components.remediation = api
 
-    productsAPI.plugins.use(createPrefillFromDraftPlugin({
-      ...commonPluginOpts,
-      remediation: api,
-      logger: logger.sub('plugin-prefill-from-draft:')
+    productsAPI.plugins.use(createPrefillFromDraftPlugin(components, {
+      logger: logger.sub('plugin-prefill-from-draft')
     }).plugin)
-  }
-
-  if (handleMessages) {
-    components.commands = new Commander({
-      ...components,
-      logger: logger.sub('commander')
-    })
   }
 
   if (plugins.webhooks) {
     if ((bot.isTesting && handleMessages) ||
       event === 'messagestream' ||
       event === 'resourcestream') {
-      const { api, plugin } = createWebhooksPlugin({
-        ...commonPluginOpts,
+      const { api, plugin } = createWebhooksPlugin(components, {
         conf: plugins.webhooks,
         logger: logger.sub('webhooks')
       })
     }
   }
 
+  if (handleMessages) {
+    const { plugin } = Plugins.get('commands').createPlugin(components, {
+      logger: logger.sub('commands')
+    })
+
+    productsAPI.plugins.use(plugin)
+  }
+
   return components
 }
 
 export { createProductsBot }
+
+const limitApplications = (components: IBotComponents) => {
+  const { bot, conf, productsAPI, employeeManager } = components
+  const { maximumApplications={} } = conf.bot.products
+  if (_.isEmpty(maximumApplications)) return
+
+  productsAPI.removeDefaultHandler('onRequestForExistingProduct')
+  const onRequestForExistingProduct = async (req: IPBReq) => {
+    const { user, payload } = req
+    const type = payload.requestFor
+    const max = maximumApplications[type] || 1
+    const existing = getNonPendingApplications(user)
+      .filter(({ requestFor }) => requestFor === type)
+
+    if (existing.length < max) {
+      await productsAPI.addApplication({ req })
+      return
+    }
+
+    const model = bot.models[type]
+    await productsAPI.send({
+      req,
+      user,
+      object: `You already have a ${model.title}!`
+    })
+  }
+
+  productsAPI.plugins.use(<IPluginLifecycleMethods>{
+    onRequestForExistingProduct
+  })
+}
+
+const tweakProductListPerRecipient = (components: IBotComponents) => {
+  const { conf, productsAPI, employeeManager } = components
+  const {
+    enabled
+  } = conf.bot.products
+
+  const willRequestForm = ({ user, formRequest }) => {
+    if (formRequest.form === PRODUCT_REQUEST) {
+      const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
+      formRequest.chooser.oneOf = formRequest.chooser.oneOf
+        .filter(product => {
+          // allow showing hidden products explicitly by listing them in conf
+          // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
+          return enabled.includes(product) || !hidden.includes(product)
+        })
+    }
+  }
+
+  productsAPI.plugins.use(<IPluginLifecycleMethods>{
+    willRequestForm
+  })
+}
+
+const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMethods => {
+  const { bot, logger, conf, productsAPI, employeeManager } = components
+  const { autoApprove } = conf.bot.products
+  const onFormsCollected = async ({ req, user, application }) => {
+    if (application.draft) return
+
+    if (!isPendingApplication({ user, application })) return
+
+    if (!autoApprove) {
+      const results = await Promise.all([
+        haveAllChecksPassed({ bot, application }),
+        productsAPI.haveAllSubmittedFormsBeenVerified({ application })
+      ])
+
+      const [mostRecentChecksPassed, formsHaveBeenVerified] = results
+      if (!mostRecentChecksPassed) {
+        logger.debug('not all checks passed, not approving')
+      }
+
+      if (!formsHaveBeenVerified) {
+        logger.debug('not all forms have been verified, not approving')
+      }
+
+      if (!results.every(_.identity)) return
+    }
+
+    const approved = productsAPI.state.hasApplication({
+      applications: user.applicationsApproved || [],
+      application
+    })
+
+    if (!approved) {
+      await productsAPI.approveApplication({ req, user, application })
+      // verify unverified
+      await productsAPI.issueVerifications({
+        req, user, application, send: true
+      })
+    }
+  }
+
+  return {
+    onFormsCollected
+  }
+}
+
+const banter = (components: IBotComponents) => {
+  const { bot, productsAPI } = components
+  const handleSimpleMessage = async (req) => {
+    const { user, application, object } = req
+    const { message } = object
+    bot.debug(`processing simple message: ${message}`)
+    if (message[0] === '/') return
+    if (application &&
+      application.relationshipManagers &&
+      application.relationshipManagers.length) return
+
+    const lowercase = message.toLowerCase()
+    if (/^hey|hi|hello$/.test(message)) {
+      await productsAPI.send({
+        req,
+        to: user,
+        object: {
+          [TYPE]: 'tradle.SimpleMessage',
+          message: `${message} yourself!`
+        }
+      })
+    }
+  }
+
+  return {
+    'onmessage:tradle.SimpleMessage': handleSimpleMessage
+  }
+}
+
+const sendModelsPackToNewEmployees = (components: IBotComponents) => {
+  const { bot, productsAPI } = components
+  const getPack = createModelsPackGetter(components)
+  const didApproveApplication = async ({ req, user, application, judge }) => {
+    if (judge) {
+      await productsAPI.issueVerifications({ req, user, application, send: true })
+    }
+
+    if (application.requestFor === EMPLOYEE_ONBOARDING) {
+      const modelsPack = await getPack(user)
+      if (modelsPack) {
+        await sendModelsPackIfUpdated({
+          user,
+          modelsPack,
+          send: object => productsAPI.send({ req, to: user, application, object })
+        })
+      }
+    }
+  }
+
+  return {
+    didApproveApplication
+  }
+}
