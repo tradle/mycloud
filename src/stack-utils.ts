@@ -312,7 +312,7 @@ export default class StackUtils {
 
   public getStackTemplate = async () => {
     if (this.env.TESTING) {
-      return _.cloneDeep(require('../.serverless/cloudformation-template-update-stack'))
+      return _.cloneDeep(require('./cli/cloudformation-template.json'))
     }
 
     const { TemplateBody } = await this.aws.cloudformation
