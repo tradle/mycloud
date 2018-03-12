@@ -135,6 +135,9 @@ function getTableBucketDefinition ({
         ReadCapacityUnits: read.minimum,
         WriteCapacityUnits: write.minimum
       },
+      StreamSpecification: {
+        StreamViewType: 'NEW_IMAGE'
+      },
       GlobalSecondaryIndexes: indexes.map(index => ({
         IndexName: index === '_t' ? 'type': index,
         KeySchema: [

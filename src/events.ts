@@ -179,5 +179,9 @@ export const topics = {
   message: {
     inbound: 'msg:i',
     outbound: 'msg:o'
+  },
+  resource: {
+    save: 'save',
+    batchSave: 'batch:save'
   }
 }

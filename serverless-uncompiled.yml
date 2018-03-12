@@ -927,6 +927,21 @@ functions:
     # onError:
       # Ref: DeadLetterQueue
 
+  onresourcestream:
+    handler: lib/in-house-bot/lambda/onresourcestream.handler
+    memorySize: 256
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          startingPosition: TRIM_HORIZON
+          arn:
+            Fn::GetAtt:
+              - BucketTable0
+              - StreamArn
+    alarms:
+      - functionErrors
+
   graphql:
     # make sure graphql route gets loaded
     handler: lib/in-house-bot/lambda/http/graphql.handler

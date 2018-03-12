@@ -557,7 +557,9 @@ export default function createProductsBot ({
   }
 
   if (plugins.webhooks) {
-    if ((bot.isTesting && handleMessages) || event === 'messagestream') {
+    if ((bot.isTesting && handleMessages) ||
+      event === 'messagestream' ||
+      event === 'resourcestream') {
       const { api, plugin } = createWebhooksPlugin({
         ...commonPluginOpts,
         conf: plugins.webhooks,

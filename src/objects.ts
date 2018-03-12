@@ -16,7 +16,6 @@ import {
   RESOLVED_PROMISE,
 } from './utils'
 import { extractSigPubKey, getLinks } from './crypto'
-import { MiddlewareContainer } from './middleware-container'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
 import Env from './env'
 import Tradle from './tradle'
@@ -39,9 +38,6 @@ export default class Objects {
   private bucket: any
   private s3Utils: any
   private fileUploadBucketName: string
-  private middleware: MiddlewareContainer
-  public get hook() { return this.middleware.hook }
-  public get fire() { return this.middleware.fire }
   constructor (tradle: Tradle) {
     const { env, buckets, s3Utils, logger } = tradle
     this.tradle = tradle
@@ -52,16 +48,6 @@ export default class Objects {
     this.s3Utils = s3Utils
     this.fileUploadBucketName = buckets.FileUpload.name
     this.logger = logger.sub('objects')
-    this.middleware = new MiddlewareContainer({
-      getContextForEvent: (event, payload) => ({
-        event: payload
-      })
-    })
-
-    this.middleware.use('put', async (ctx, next) => {
-      await this._put(ctx.event.object)
-      await next()
-    })
   }
 
   public validate = (object:ITradleObject) => {
@@ -188,10 +174,6 @@ export default class Objects {
   }
 
   public put = async (object: ITradleObject) => {
-    await this.fire('put', { object })
-  }
-
-  private _put = async (object: ITradleObject) => {
     typeforce(types.signedObject, object)
     object = _.clone(object)
     ensureTimestamped(object)

@@ -3,6 +3,7 @@ import { TYPE } from '@tradle/constants'
 import { Conf, IPluginOpts, IPluginExports, IPluginLifecycleMethods } from '../types'
 import { Webhooks, IWebhooksConf, IWebhookEvent } from '../webhooks'
 import { randomString } from '../../crypto'
+import { topics as EventTopics } from '../../events'
 
 const DEFAULT_CONF = require('./form-prefills.json')
 const DEFAULT_BACKOFF_OPTS = {
@@ -39,13 +40,15 @@ export const createPlugin = ({ bot, conf, logger }: IWebhooksPluginOpts):IPlugin
     await next()
   })
 
-  bot.objects.hook('put', async (ctx, next) => {
-    const { object } = ctx.event
-    await plugin.deliverSaveEvent(object)
+  bot.hook('save', async (ctx, next) => {
+    await plugin.deliverSaveEvent(ctx.event.object)
     await next()
   })
 
-  const fireAll = async (events:IWebhookEvent[]) => {
+  const fireAll = async (events:IWebhookEvent|IWebhookEvent[], expand) => {
+    events = [].concat(events)
+    if (expand) events = Webhooks.expandEvents(events)
+
     logger.debug('firing events', {
       events: events.map(({ topic }) => topic)
     })
@@ -55,38 +58,21 @@ export const createPlugin = ({ bot, conf, logger }: IWebhooksPluginOpts):IPlugin
   }
 
   const deliverSaveEvent = async (resource) => {
-    resource = prepareForDelivery(resource)
-    const events = Webhooks.expandEvents({
+    await fireAll({
       id: randomString(10),
       time: Date.now(),
       topic: 'save',
-      data: resource
-    })
-
-    await fireAll(events)
+      data: prepareForDelivery(resource)
+    }, true)
   }
 
   const deliverMessageEvent = async (message) => {
-    message = prepareForDelivery(message)
-
-    const time = Date.now()
-    const payload = message.object
-    const messageEvents = Webhooks.expandEvents({
+    await fireAll({
       id: randomString(10),
-      time,
-      topic: 'msg:i',
-      data: message
-    })
-
-    const payloadEvents = Webhooks.expandEvents({
-      id: randomString(10),
-      time,
-      topic: 'save',
-      data: payload
-    })
-
-    const events = messageEvents.concat(payloadEvents)
-    await fireAll(events)
+      time: Date.now(),
+      topic: EventTopics.message.inbound,
+      data: prepareForDelivery(message)
+    }, true)
   }
 
   const plugin = {

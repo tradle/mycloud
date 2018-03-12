@@ -83,6 +83,7 @@ const lambdaCreators:LambdaImplMap = {
   get onmessage() { return require('./lambda/onmessage') },
   get onmessagestream() { return require('./lambda/onmessagestream') },
   get onsealstream() { return require('./lambda/onsealstream') },
+  get onresourcestream() { return require('./lambda/onresourcestream') },
   get oninit() { return require('./lambda/oninit') },
   // get onsubscribe() { return require('./lambda/onsubscribe') },
   // get onconnect() { return require('./lambda/onconnect') },
@@ -251,6 +252,12 @@ export class Bot extends EventEmitter implements IReady {
         event: payload
       })
     })
+
+    // this.objects.hook('put', async (ctx, next) => {
+    //   debugger
+    //   await this.middleware.fire('save', ctx.event)
+    //   await next()
+    // })
 
     if (ready) this.ready()
   }
