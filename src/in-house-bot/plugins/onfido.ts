@@ -22,7 +22,7 @@ const normalizePluginConf = conf => ({
   })
 })
 
-export const createPlugin:CreatePlugin = ({ bot, productsAPI }, { logger, conf }) => {
+export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI }, { logger, conf }) => {
   const {
     apiKey,
     products

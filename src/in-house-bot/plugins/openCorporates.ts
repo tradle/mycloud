@@ -188,7 +188,7 @@ class OpenCorporatesAPI {
       await Promise.all(ocChecks)
   }
 }
-export const createPlugin: CreatePlugin = ({ bot, productsAPI }, { logger, conf }) => {
+export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger, conf }) => {
   const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, logger })
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req) {

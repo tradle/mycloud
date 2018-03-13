@@ -72,7 +72,7 @@ export class FillMyProductPlugin {
   }
 }
 
-export const createPlugin:CreatePlugin = ({ bot }, { conf, logger }) => ({
+export const createPlugin:CreatePlugin<void> = ({ bot }, { conf, logger }) => ({
   plugin: new FillMyProductPlugin({ bot, conf, logger })
 })
 

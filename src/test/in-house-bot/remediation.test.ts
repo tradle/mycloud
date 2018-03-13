@@ -64,9 +64,10 @@ test('remediation plugin', loudAsync(async (t) => {
     bot,
     productsAPI,
     employeeManager: null,
-    conf: null
+    conf: null,
+    logger: new Logger('test:remediation1.0')
   }, {
-    logger: new Logger('test:remediation1')
+    logger: new Logger('test:remediation1.1')
   })
 
   sandbox.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
@@ -193,9 +194,10 @@ test('prefill-based', loudAsync(async (t) => {
   const { api, plugin } = createRemediationPlugin({
     bot,
     productsAPI,
-    employeeManager: null
+    employeeManager: null,
+    logger: new Logger('test:remediation1.2')
   }, {
-    logger: new Logger('test:remediation1')
+    logger: new Logger('test:remediation1.3')
   })
 
   sandbox.stub(bot.objects, 'get').callsFake(async (link) => {

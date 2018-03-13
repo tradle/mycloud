@@ -88,6 +88,7 @@ export type RemediationOpts = {
   productsAPI: any
   logger: Logger
   conf?: any
+  [x: string]: any
 }
 
 export class Remediation {

@@ -15,7 +15,7 @@ export interface IWebhooksPluginOpts extends IPluginOpts {
 }
 
 export const name = 'webhooks'
-export const createPlugin: CreatePlugin = ({ bot }, { conf, logger }: IWebhooksPluginOpts) => {
+export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: IWebhooksPluginOpts) => {
   const webhooks = new Webhooks({ bot, logger, conf })
   const getFireOpts = () => ({
     backoff: {

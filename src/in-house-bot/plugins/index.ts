@@ -10,7 +10,7 @@ const Plugins:IPlugins = caseless({})
 
 fs.readdirSync(__dirname).forEach(file => {
   if (file !== 'index.js' && file.endsWith('.js')) {
-    const plugin:IPlugin = require(path.resolve(__dirname, file))
+    const plugin:IPlugin<any> = require(path.resolve(__dirname, file))
     const name = plugin.name || path.parse(file).name
     Plugins.set(name, plugin)
   }

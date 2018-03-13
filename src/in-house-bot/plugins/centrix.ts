@@ -174,7 +174,7 @@ class CentrixAPI {
     }
   }
 }
-export const createPlugin: CreatePlugin = ({ bot, productsAPI }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI }, { conf, logger }) => {
   let { httpCredentials, requestCredentials } = conf.credentials
   if (typeof createCentrixClient !== 'function') {
     throw new Error('centrix client not available')

@@ -167,7 +167,7 @@ debugger
   }
 }
 // {conf, bot, productsAPI, logger}
-export const createPlugin:CreatePlugin = ({ bot, productsAPI }, { conf, logger }) => {
+export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI }, { conf, logger }) => {
   // const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
   const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, conf, logger })
   const plugin = {

@@ -34,6 +34,8 @@ import { createRemediation } from './remediation'
 import { createPlugin as createRemediationPlugin } from './plugins/remediation'
 import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
 import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
+import { createPlugin as createCommandsPlugin } from './plugins/commands'
+import { createPlugin as createEBVPlugin } from './plugins/email-based-verification'
 import { haveAllChecksPassed, isPendingApplication, getNonPendingApplications } from './utils'
 import {
   Bot,
@@ -380,11 +382,21 @@ export default function createProductsBot({
   }
 
   if (handleMessages) {
-    const { plugin } = Plugins.get('commands').createPlugin(components, {
+    // const { api, plugin } = Plugins.get('commands').createPlugin(components, {
+    //   logger: logger.sub('commands')
+    // })
+
+    const { api, plugin } = createCommandsPlugin(components, {
       logger: logger.sub('commands')
     })
 
+    components.commands = api
     productsAPI.plugins.use(plugin)
+  }
+
+  if (plugins.emailBasedVerification && (handleMessages || event === 'confirmation')) {
+    const { api, plugin } = createEBVPlugin(components, plugins.emailBasedVerification)
+    components.emailBasedVerifier = api
   }
 
   return components
