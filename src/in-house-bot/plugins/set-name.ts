@@ -27,9 +27,13 @@ export const createPlugin = ({ bot, productsAPI }: {
   }
 
   const trySetName = async (req) => {
-    const name = await getName(req)
-    if (name) {
-      req.application.applicantName = name
+    try {
+      const name = await getName(req)
+      if (name) {
+        req.application.applicantName = name
+      }
+    } catch (err) {
+      logger.error('failed to get applicant name', err)
     }
   }
 
@@ -50,12 +54,7 @@ export const createPlugin = ({ bot, productsAPI }: {
       const { friend } = user
       if (!friend) return
 
-      const fRes = await bot.getResource({
-        type: 'tradle.MyCloudFriend',
-        permalink: friend
-      })
-
-      return fRes.name
+      return (await bot.getResourceByStub(friend)).name
     }
 
     let form

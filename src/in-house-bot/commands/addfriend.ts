@@ -58,8 +58,8 @@ export const command:ICommand = {
       await users.save({ id: userId, friend: friendStub })
     }
 
-    if (user && user.friend !== friend.permalink) {
-      user.friend = friend.permalink
+    if (user && !isEqual(user.friend, friendStub)) {
+      user.friend = friendStub
       await users.merge({ id: userId, friend: friendStub })
     }
 
