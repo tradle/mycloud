@@ -6,7 +6,7 @@ import { parseStub } from '../../utils'
 
 const MESSAGE = 'Please provide your **digital hand signature**'
 
-export const createPlugin: CreatePlugin = ({ bot, productsAPI }, { logger, conf }) => {
+export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger, conf }) => {
   const { models } = bot
   const plugin:IPluginLifecycleMethods = {}
   plugin.willRequestForm = ({ application, formRequest }) => {

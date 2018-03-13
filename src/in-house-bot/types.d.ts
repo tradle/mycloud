@@ -237,9 +237,9 @@ export interface IPluginLifecycleMethods {
   [toBeDefined: string]: any
 }
 
-export interface IPluginExports {
+export interface IPluginExports<BotComponent> {
   plugin: IPluginLifecycleMethods
-  api?: any
+  api?: BotComponent
   [customExport: string]: any
 }
 
@@ -248,16 +248,16 @@ export interface IPluginOpts {
   conf?: any
 }
 
-export type CreatePlugin = (components:IBotComponents, opts:IPluginOpts) => IPluginExports
+export type CreatePlugin<BotComponent> = (components:IBotComponents, opts:IPluginOpts) => IPluginExports<BotComponent>
 
-export interface IPlugin {
+export interface IPlugin<BotComponent> {
   name?: string
-  createPlugin: CreatePlugin
+  createPlugin: CreatePlugin<BotComponent>
   validateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 
 export interface IPlugins {
-  get: (name:string) => IPlugin
+  get: <T>(name:string) => IPlugin<T>
   set: (name:string, IPlugin) => void
 }
 

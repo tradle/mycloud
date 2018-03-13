@@ -3,7 +3,7 @@ import { Conf } from '../configure'
 import { CreatePlugin, ICommandContext, CommandOutput, IPBReq } from '../types'
 
 export const name = 'commands'
-export const createPlugin:CreatePlugin = (components, { logger, conf }) => {
+export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf }) => {
   const { bot, productsAPI } = components
   const commands = new Commander({
     ...components,

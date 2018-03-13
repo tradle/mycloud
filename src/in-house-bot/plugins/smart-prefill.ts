@@ -130,7 +130,7 @@ export class SmartPrefill {
   }
 }
 
-export const createPlugin: CreatePlugin = ({ bot }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   const smarty = new SmartPrefill({ bot, conf })
   const plugin: IPluginLifecycleMethods = {
     willRequestForm: async ({ application, formRequest }) => {

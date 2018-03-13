@@ -1,22 +1,17 @@
 import { TYPES } from '../constants'
 import {
-  IPluginOpts,
-  IPluginExports,
   IPluginLifecycleMethods,
   IPBReq,
   IUser,
-  IPBApp
+  IPBApp,
+  CreatePlugin
 } from '../types'
 import { Remediation } from '../remediation'
 import { appLinks } from '../../app-links'
 import { parseStub } from '../../utils'
 const { DATA_CLAIM, PRODUCT_REQUEST } = TYPES
 
-interface IRemediationPluginExports extends IPluginExports {
-  api: Remediation
-}
-
-export const createPlugin = (components, pluginOpts):IRemediationPluginExports => {
+export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) => {
   const { bot, productsAPI, employeeManager } = components
   const remediation = new Remediation({ ...components, ...pluginOpts })
   const { logger } = pluginOpts
