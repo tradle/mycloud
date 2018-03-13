@@ -1,19 +1,19 @@
 import { pick } from 'lodash'
 import Koa from 'koa'
 import { Lambda } from '../../lambda'
-import { IBotComponents } from '../types'
-import { fromDynamoDB } from '../lambda'
+import { IPBHttpMiddlewareContext } from '../types'
+import { fromHTTP } from '../lambda'
 
 export const createLambda = (opts):Lambda => {
-  const lambda = fromDynamoDB(opts)
+  const lambda = fromHTTP(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
 export const createMiddleware = (lambda:Lambda, opts:any={}) => {
-  return async (ctx:Koa.Context, next) => {
+  return async (ctx:IPBHttpMiddlewareContext, next) => {
     const { components, query={} } = ctx
     const { code } = query
-    const { emailBasedVerifier } = <IBotComponents>components
+    const { emailBasedVerifier } = components
     await emailBasedVerifier.processConfirmationCode(Array.isArray(code) ? code[0] : code)
   }
 }

@@ -133,6 +133,7 @@ const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
   NotFound: createError('NotFound'),
   Forbidden: createError('Forbidden'),
+  Expired: createError('Expired'),
   InvalidSignature: createError('InvalidSignature'),
   InvalidAuthor: createError('InvalidAuthor'),
   UnknownAuthor: createError('UnknownAuthor'),

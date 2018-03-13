@@ -563,3 +563,12 @@ export interface IBackoffOptions {
   logger?: Logger
   shouldTryAgain?: (err?:Error) => boolean
 }
+
+export interface IKeyValueStore {
+  exists: (key: string) => Promise<boolean>
+  get: (key: string, opts?:any) => Promise<any>
+  put: (key: string, value:any) => Promise<void|any>
+  del: (key: string, opts?:any) => Promise<void>
+  update?: (key: string, opts?:any) => Promise<void>
+  sub?: (prefix: string) => IKeyValueStore
+}

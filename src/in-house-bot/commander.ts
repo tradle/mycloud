@@ -12,12 +12,13 @@ import {
   ICommandContext,
   ICommandInput,
   IDeferredCommandInput,
-  CommandOutput,
+  ICommandOutput,
+  IDeferredCommandOutput,
   Bot,
   IBotComponents,
   Deployment,
   IPBReq,
-  KeyValueTable
+  IKeyValueStore
 } from './types'
 
 import { parseStub } from '../utils'
@@ -35,11 +36,12 @@ const SUDO = {
 }
 
 interface IConfirmationState {
-  code: string
   command: string
   dateCreated: number
-  ttl: number // seconds
+  dateExpires?: number
+  ttl?: number // seconds
   confirmed?: boolean
+  extra?: any
 }
 
 // export const EMPLOYEE_COMMANDS = [
@@ -80,7 +82,7 @@ export const CUSTOMER_COMMANDS = [
 // export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
 
 export interface CommanderOpts extends IBotComponents {
-  store: KeyValueTable
+  store: IKeyValueStore
 }
 
 export class Commander {
@@ -91,8 +93,8 @@ export class Commander {
   public conf: IConf
   public logger: Logger
   private components: IBotComponents
-  private store: KeyValueTable
-  constructor (components: IBotComponents) {
+  private store: IKeyValueStore
+  constructor (components: CommanderOpts) {
     this.components = components
 
     const {
@@ -112,16 +114,6 @@ export class Commander {
     this.logger = logger
     this.deployment = deployment
     this.store = store
-  }
-
-  private ensureAuthorized = (ctx:ICommandContext) => {
-    const { req, commandName } = ctx
-    const { user } = req
-    if (user) {
-      ctx.employee = this.employeeManager.isEmployee(user)
-    }
-
-    this.ensureHasCommand(ctx)
   }
 
   public getAvailableCommands = (ctx: ICommandContext) => {
@@ -149,9 +141,9 @@ export class Commander {
     return command
   }
 
-  public exec = async (opts: ICommandInput):Promise<CommandOutput> => {
+  public exec = async (opts: ICommandInput):Promise<ICommandOutput> => {
     const ctx = this._createCommandContext(opts)
-    const ret:CommandOutput = { ctx }
+    const ret:ICommandOutput = { ctx }
     try {
       ret.result = await this._exec(ctx)
     } catch (err) {
@@ -233,42 +225,46 @@ export class Commander {
   }
 
   public defer = async (opts: IDeferredCommandInput):Promise<string> => {
-    const { command, ttl } = opts
+    const { command, ttl, dateExpires, extra={} } = opts
+    if (!(ttl || dateExpires)) {
+      throw new Errors.InvalidInput('expected "ttl" or "dateExpires')
+    }
+
     const ctx = this._createCommandContext(opts)
     this.ensureAuthorized(ctx)
     const code = genConfirmationCode(command)
-    await this._saveConfirmationCode({
-      code,
+    const dateCreated = Date.now()
+    await this.store.put(code, {
       command,
-      dateCreated: Date.now(),
-      ttl
+      dateCreated,
+      dateExpires: dateExpires || (dateCreated + ttl * 1000),
+      extra
     })
 
     return code
   }
 
-  public execDeferred = async (code: string):Promise<CommandOutput> => {
-    const state = await this.store.get(code)
+  public execDeferred = async (code: string):Promise<IDeferredCommandOutput> => {
+    const state:IConfirmationState = await this.store.get(code)
     if (state.confirmed) {
       throw new Error(`confirmation code has already been used: ${code}`)
     }
 
-    if (isConfirmationCodeExpired(state)) {
-      throw new Error(`confirmation code expired: ${code}`)
+    if (Date.now() > state.dateExpires) {
+      throw new Errors.Expired(`confirmation code expired: ${code}`)
     }
 
     // authorization is checked on defer()
-    const res = await this.exec({ sudo: true, command: state.command })
-    await this._saveConfirmationCode({
+    const res = await this.exec({ confirmed: true, sudo: true, command: state.command })
+    await this.store.put(code, {
       ...state,
       confirmed: true
     })
 
-    return res
-  }
-
-  private _saveConfirmationCode = async (state: IConfirmationState) => {
-    return await this.store.put(state.code, omit(state, 'code'))
+    return {
+      ...res,
+      extra: state.extra
+    }
   }
 
   private _createCommandContext = (opts:ICommandInput):ICommandContext => {
@@ -287,6 +283,16 @@ export class Commander {
       req
     }
   }
+
+  private ensureAuthorized = (ctx:ICommandContext) => {
+    const { req, commandName } = ctx
+    const { user } = req
+    if (user) {
+      ctx.employee = this.employeeManager.isEmployee(user)
+    }
+
+    this.ensureHasCommand(ctx)
+  }
 }
 
 const preParseCommand = (command: string) => {
@@ -300,7 +306,3 @@ const preParseCommand = (command: string) => {
 }
 
 const genConfirmationCode = (command: string) => randomString(20)
-
-const isConfirmationCodeExpired = ({ dateCreated, ttl }) => {
-  return (Date.now() - dateCreated) / 1000 > ttl
-}
