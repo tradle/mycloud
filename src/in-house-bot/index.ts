@@ -37,6 +37,7 @@ import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
 import { createPlugin as createCommandsPlugin } from './plugins/commands'
 import { createPlugin as createEBVPlugin } from './plugins/email-based-verification'
 import { haveAllChecksPassed, isPendingApplication, getNonPendingApplications } from './utils'
+import { Applications } from './applications'
 import {
   Bot,
   IBotComponents,
@@ -188,6 +189,8 @@ export default function createProductsBot({
     employeeManager,
     logger
   } as IBotComponents
+
+  components.applications = new Applications(components)
 
   if (handleMessages) {
     tweakProductListPerRecipient(components)
