@@ -132,6 +132,7 @@ const exportError = (err:Error) => _.pick(err, ['message', 'stack', 'name', 'typ
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
   NotFound: createError('NotFound'),
+  Forbidden: createError('Forbidden'),
   InvalidSignature: createError('InvalidSignature'),
   InvalidAuthor: createError('InvalidAuthor'),
   UnknownAuthor: createError('UnknownAuthor'),

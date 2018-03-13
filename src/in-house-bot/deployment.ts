@@ -423,18 +423,11 @@ ${this.genUsageInstructions(links)}`
   }
 
   public genEmailBody = ({ template, data, values }) => {
-    if (!(template in Templates.email)) {
-      throw new Error(`template "${template}" does not exist`)
-    }
-
-    let renderedData
-    try {
-      renderedData = renderData(data, values)
-    } catch (err) {
-      throw new Error('invalid values in data template')
-    }
-
-    return Templates.email[template](renderedData)
+    return Templates.email[template]({
+      type: 'email',
+      name: template,
+      data: Templates.renderData(data, values)
+    })
   }
 
   public genLaunchEmail = opts => ({
@@ -595,9 +588,4 @@ const normalizeDomain = (domain:string) => {
   }
 
   return domain
-}
-
-const renderData = (dataTemplate, data) => {
-  const rendered = Templates.renderString(JSON.stringify(dataTemplate), data)
-  return JSON.parse(rendered)
 }

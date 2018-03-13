@@ -1,21 +1,47 @@
-import { Commander } from '../commander'
+import { Commander, DEFAULT_ERROR_MESSAGE } from '../commander'
 import { Conf } from '../configure'
-import { CreatePlugin } from '../types'
+import { CreatePlugin, ICommandContext, CommandOutput, IPBReq } from '../types'
 
 export const name = 'commands'
 export const createPlugin:CreatePlugin = (components, { logger, conf }) => {
   const { bot, productsAPI } = components
   const commands = new Commander({
     ...components,
-    logger
+    logger,
+    store: bot.kv.sub('cmd:')
   })
+
+  const sendResponse = async ({ req, res }: {
+    req: IPBReq
+    res: CommandOutput
+  }) => {
+    const to = req.user
+    const { ctx, result, error } = res
+    let message
+    if (error) {
+      let { message } = error
+      if (!(ctx.sudo || ctx.employee)) {
+        message = DEFAULT_ERROR_MESSAGE
+      }
+
+      await this.sendSimpleMessage({ req, to, message })
+      return
+    }
+
+    const { command } = ctx
+    const sendResult = command.sendResult || commands.sendResult
+    await sendResult({ ...ctx, to })
+  }
+
+  const onCommand = async ({ req, command }) => {
+    const res = await commands.exec({ req, command })
+    await sendResponse({ req, res })
+  }
 
   return {
     api: commands,
     plugin: {
-      onCommand: async ({ req, command }) => {
-        await commands.exec({ req, command })
-      }
+      onCommand
     }
   }
 }

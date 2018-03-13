@@ -1,16 +1,23 @@
+import { omit } from 'lodash'
 import parse from 'yargs-parser'
 import { TYPE } from '@tradle/constants'
 import { Errors as ProductBotErrors } from '@tradle/bot-products'
 import {
+  randomString
+} from '../crypto'
+
+import {
   IConf,
   ICommand,
   ICommandContext,
+  ICommandInput,
+  IDeferredCommandInput,
   CommandOutput,
-  ICommandExecOpts,
   Bot,
   IBotComponents,
   Deployment,
-  IPBReq
+  IPBReq,
+  KeyValueTable
 } from './types'
 
 import { parseStub } from '../utils'
@@ -20,11 +27,19 @@ import Logger from '../logger'
 
 const prettify = obj => JSON.stringify(obj, null, 2)
 const COMMAND_REGEX = /^\/?([^\s]+)\s*(.*)?\s*$/
-const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
-
+const FORBIDDEN_MESSAGE = 'Who do you think you are, the admin? This attempt will be logged.'
+const NOT_FOUND_MESSAGE = 'command not found'
 const SUDO = {
   employee: true,
   allowed: true
+}
+
+interface IConfirmationState {
+  code: string
+  command: string
+  dateCreated: number
+  ttl: number // seconds
+  confirmed?: boolean
 }
 
 // export const EMPLOYEE_COMMANDS = [
@@ -44,6 +59,7 @@ const SUDO = {
 //   'model'
 // ]
 
+export const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
 export const COMMANDS = Object.keys(commands).map(key => commands[key].name || key)
 export const SUDO_ONLY_COMMANDS = [
   'delete-forever-with-no-undo',
@@ -63,6 +79,10 @@ export const CUSTOMER_COMMANDS = [
 
 // export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
 
+export interface CommanderOpts extends IBotComponents {
+  store: KeyValueTable
+}
+
 export class Commander {
   public bot: Bot
   public productsAPI:any
@@ -71,6 +91,7 @@ export class Commander {
   public conf: IConf
   public logger: Logger
   private components: IBotComponents
+  private store: KeyValueTable
   constructor (components: IBotComponents) {
     this.components = components
 
@@ -80,7 +101,8 @@ export class Commander {
       employeeManager,
       deployment,
       conf,
-      logger
+      logger,
+      store
     } = components
 
     this.bot = bot
@@ -89,32 +111,23 @@ export class Commander {
     this.conf = conf
     this.logger = logger
     this.deployment = deployment
+    this.store = store
   }
 
-  private auth = async (ctx:ICommandContext):Promise<void> => {
-    if (ctx.sudo) {
-      ctx.allowed = true
-      return
-    }
-
+  private ensureAuthorized = (ctx:ICommandContext) => {
     const { req, commandName } = ctx
-    if (!req.user) {
-      throw new Error(`cannot authenticate, don't know user`)
+    const { user } = req
+    if (user) {
+      ctx.employee = this.employeeManager.isEmployee(user)
     }
 
-    const { user } = req
-    ctx.employee = this.employeeManager.isEmployee(user)
-    const commandNames = this.getAvailableCommands(ctx)
-    ctx.allowed = commandNames.includes(commandName)
-    if (ctx.allowed) return
-
-    const message = getNotAllowedMessage(ctx)
-    await this.sendSimpleMessage({ to: user, message })
+    this.ensureHasCommand(ctx)
   }
 
-  public getAvailableCommands = (ctx) => {
-    if (ctx.sudo) return COMMANDS
-    if (ctx.employee) return EMPLOYEE_COMMANDS
+  public getAvailableCommands = (ctx: ICommandContext) => {
+    const { sudo, employee } = ctx
+    if (sudo) return COMMANDS
+    if (employee) return EMPLOYEE_COMMANDS
     return CUSTOMER_COMMANDS
   }
 
@@ -136,85 +149,29 @@ export class Commander {
     return command
   }
 
-  public exec = async ({ req, command, sudo=false }: {
-    req: IPBReq
-    command: string
-    sudo?: boolean
-  }):Promise<CommandOutput> => {
-    const ret:CommandOutput = {}
-    this.logger.debug(`processing command: ${command}`)
-    if (!req) req = this.productsAPI.state.newRequestState({})
-
-    const { user } = req
-    const match = command.match(COMMAND_REGEX)
-    if (!match) {
-      throw new Error(`received malformed command: ${command}`)
-    }
-
-    const [commandName, argsStr=''] = match.slice(1)
-    const ctx:ICommandContext = {
-      commandName,
-      argsStr,
-      sudo,
-      allowed: sudo,
-      req
-    }
-
-    await this.auth(ctx)
-    if (!ctx.allowed) return ret
-
-    let result
-    let matchingCommand:ICommand
-    let args
-    let execOpts:ICommandExecOpts
+  public exec = async (opts: ICommandInput):Promise<CommandOutput> => {
+    const ctx = this._createCommandContext(opts)
+    const ret:CommandOutput = { ctx }
     try {
-      matchingCommand = this.getCommandByName(commandName)
-      args = matchingCommand.parse
-        ? matchingCommand.parse(argsStr, matchingCommand.parseOpts)
-        : parse(argsStr, matchingCommand.parseOpts)
-
-      execOpts = {
-        commander: this,
-        req,
-        args,
-        argsStr,
-        ctx
-      }
-
-      result = await matchingCommand.exec(execOpts)
+      ret.result = await this._exec(ctx)
     } catch (err) {
-      this.logger.debug(`failed to process command: ${command}`, err.stack)
-      let message
-      if (ctx.sudo || ctx.employee) {
-        message = err.name ? `${err.name}: ${err.message}` : err.message
-      } else {
-        message = DEFAULT_ERROR_MESSAGE
-      }
-
-      ret.error = { message }
-      if (user) {
-        await this.sendSimpleMessage({ req, to: user, message })
-      }
-
-      return ret
+      this.logger.debug(`failed to process command: ${ctx.commandName}`, err.stack)
+      ret.error = err
     }
 
-    if (user) {
-      const opts = {
-        ...execOpts,
-        to: user,
-        result
-      }
-
-      if (matchingCommand.sendResult) {
-        await matchingCommand.sendResult(opts)
-      } else {
-        await this.sendResult(opts)
-      }
-    }
-
-    ret.result = result
     return ret
+  }
+
+  private _exec = async (ctx: ICommandContext) => {
+    const { commandName, argsStr } = ctx
+    this.logger.debug(`processing command: ${commandName}`)
+    this.ensureAuthorized(ctx)
+    const command = ctx.command = this.getCommandByName(commandName)
+    ctx.args = command.parse
+      ? command.parse(argsStr, command.parseOpts)
+      : parse(argsStr, command.parseOpts)
+
+    return await command.exec(ctx)
   }
 
   public sendResult = async ({ req, to, result }) => {
@@ -260,15 +217,90 @@ export class Commander {
     await productsAPI.saveNewVersionOfApplication({ user, application })
     await bot.users.merge(user)
   }
-}
 
-const getNotAllowedMessage = (ctx:ICommandContext) => {
-  const { employee, commandName } = ctx
-  if (!employee) return DEFAULT_ERROR_MESSAGE
-
-  if (SUDO_ONLY_COMMANDS.includes(commandName)) {
-    return 'Who do you think you are, the admin? This attempt will be logged.'
+  public hasCommand = (ctx:ICommandContext):boolean => {
+    return this.getAvailableCommands(ctx).includes(ctx.commandName)
   }
 
-  return `command not found: ${commandName}`
+  public ensureHasCommand = (ctx:ICommandContext) => {
+    if (this.hasCommand(ctx)) return
+
+    if (ctx.employee && this.hasCommand({ ...ctx, sudo: true })) {
+      throw new Errors.Forbidden(FORBIDDEN_MESSAGE)
+    }
+
+    throw new Errors.NotFound(NOT_FOUND_MESSAGE)
+  }
+
+  public defer = async (opts: IDeferredCommandInput):Promise<string> => {
+    const { command, ttl } = opts
+    const ctx = this._createCommandContext(opts)
+    this.ensureAuthorized(ctx)
+    const code = genConfirmationCode(command)
+    await this._saveConfirmationCode({
+      code,
+      command,
+      dateCreated: Date.now(),
+      ttl
+    })
+
+    return code
+  }
+
+  public execDeferred = async (code: string):Promise<CommandOutput> => {
+    const state = await this.store.get(code)
+    if (state.confirmed) {
+      throw new Error(`confirmation code has already been used: ${code}`)
+    }
+
+    if (isConfirmationCodeExpired(state)) {
+      throw new Error(`confirmation code expired: ${code}`)
+    }
+
+    // authorization is checked on defer()
+    const res = await this.exec({ sudo: true, command: state.command })
+    await this._saveConfirmationCode({
+      ...state,
+      confirmed: true
+    })
+
+    return res
+  }
+
+  private _saveConfirmationCode = async (state: IConfirmationState) => {
+    return await this.store.put(state.code, omit(state, 'code'))
+  }
+
+  private _createCommandContext = (opts:ICommandInput):ICommandContext => {
+    let { req } = opts
+    if (!req) req = this.productsAPI.state.newRequestState({})
+
+    const { command, sudo } = opts
+    const { user } = req
+    const { commandName, argsStr } = preParseCommand(command)
+    return {
+      commander: this,
+      commandName,
+      commandString: command,
+      argsStr,
+      sudo,
+      req
+    }
+  }
+}
+
+const preParseCommand = (command: string) => {
+  const match = command.match(COMMAND_REGEX)
+  if (!match) {
+    throw new Error(`received malformed command: ${command}`)
+  }
+
+  const [commandName, argsStr=''] = match.slice(1)
+  return { commandName, argsStr }
+}
+
+const genConfirmationCode = (command: string) => randomString(20)
+
+const isConfirmationCodeExpired = ({ dateCreated, ttl }) => {
+  return (Date.now() - dateCreated) / 1000 > ttl
 }
