@@ -1,5 +1,8 @@
+import {
+  IKeyValueStore
+} from './types'
 
-export default class KeyValueTable {
+export default class KeyValueTable implements IKeyValueStore {
   private table:any
   private prefix:string
   constructor ({ table, prefix='' }) {

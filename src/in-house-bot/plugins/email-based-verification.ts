@@ -1,14 +1,16 @@
 import { Commander, DEFAULT_ERROR_MESSAGE } from '../commander'
 import { Conf } from '../configure'
-import { CreatePlugin, IPluginExports, CommandOutput, IPBReq } from '../types'
+import { CreatePlugin, IPluginExports, IPBReq } from '../types'
 import { EmailBasedVerifier } from '../email-based-verifier'
 
 export const name = 'commands'
-export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({ bot, commands }, { logger, conf }) => {
+export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({ bot, commands, conf }, pluginOpts) => {
   const ebv = new EmailBasedVerifier({
     bot,
     commands,
-    senderEmail: conf.senderEmail
+    orgConf: conf,
+    logger: pluginOpts.logger,
+    senderEmail: pluginOpts.conf.senderEmail
   })
 
   const plugin = {}

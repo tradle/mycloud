@@ -1,6 +1,6 @@
 import { Commander, DEFAULT_ERROR_MESSAGE } from '../commander'
 import { Conf } from '../configure'
-import { CreatePlugin, ICommandContext, CommandOutput, IPBReq } from '../types'
+import { CreatePlugin, ICommandContext, ICommandOutput, IPBReq } from '../types'
 
 export const name = 'commands'
 export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf }) => {
@@ -13,7 +13,7 @@ export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf 
 
   const sendResponse = async ({ req, res }: {
     req: IPBReq
-    res: CommandOutput
+    res: ICommandOutput
   }) => {
     const to = req.user
     const { ctx, result, error } = res

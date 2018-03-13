@@ -1,3 +1,4 @@
+import { Context as KoaContext } from 'koa'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { Bot, ModelsPack, DatedValue, Lambda } from '../types'
 import { Conf } from './configure'
@@ -168,10 +169,13 @@ export interface ICommandInput {
   command: string
   req?: IPBReq
   sudo?: boolean
+  confirmed?: boolean
 }
 
 export interface IDeferredCommandInput extends ICommandInput {
-  ttl: number
+  ttl?: number
+  dateExpires?: number
+  extra?: any
 }
 
 export interface ICommandContext {
@@ -183,14 +187,19 @@ export interface ICommandContext {
   args?: IYargs
   employee?: boolean
   sudo?: boolean
+  confirmed?: boolean
   [x:string]: any
 }
 
-export type CommandOutput = {
+export interface ICommandOutput {
   ctx: ICommandContext
   command?: ICommand
   result?:any
   error?:any
+}
+
+export interface IDeferredCommandOutput extends ICommandOutput {
+  extra?: any
 }
 
 export interface ICommandSendResultOpts extends ICommandContext {
@@ -340,6 +349,10 @@ export interface IImportDataDeepLink extends IDeepLink {
 
 export interface IPBMiddlewareContext extends ILambdaExecutionContext {
   components: IBotComponents
+}
+
+export interface IPBHttpMiddlewareContext extends IPBMiddlewareContext, KoaContext {
+  body: any
 }
 
 export type IPBMiddleware = ComposeMiddleware<IPBMiddlewareContext>

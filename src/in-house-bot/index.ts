@@ -246,12 +246,30 @@ export default function createProductsBot({
         }
       },
       ['onmessage:tradle.ProductRequest']: async (req) => {
+        const { user, payload, message } = req
+        const { requestFor } = payload
+        req.isFromEmployee = employeeManager.isEmployee(req.user)
+        if (req.isFromEmployee &&
+          requestFor === EMPLOYEE_ONBOARDING &&
+          message.forward) {
+          logger.warn(`refusing to allow application for employee onboarding from own employee to another organization`, {
+            employee: user.id,
+            toOrg: message.forward
+          })
+
+          await productsAPI.sendSimpleMessage({
+            req,
+            to: user,
+            message: `You're already an employee of someone else!`
+          })
+
+          return false
+        }
+
         const { application } = req
         if (!application) return
 
         if (req.message.forward) return
-
-        req.isFromEmployee = employeeManager.isEmployee(req.user)
         if (!req.isFromEmployee) return
 
         // HACK
