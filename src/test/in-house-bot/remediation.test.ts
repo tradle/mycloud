@@ -63,6 +63,7 @@ test('remediation plugin', loudAsync(async (t) => {
   const { api, plugin } = createRemediationPlugin({
     bot,
     productsAPI,
+    friends: null,
     employeeManager: null,
     applications: null,
     conf: null,
@@ -195,6 +196,7 @@ test('prefill-based', loudAsync(async (t) => {
   const { api, plugin } = createRemediationPlugin({
     bot,
     productsAPI,
+    friends: null,
     employeeManager: null,
     applications: null,
     logger: new Logger('test:remediation1.2')
@@ -265,6 +267,7 @@ test('prefill-based', loudAsync(async (t) => {
     bot,
     productsAPI,
     remediation: api,
+    friends: null,
     employeeManager: null,
     applications: null,
     logger: new Logger('test:bot-logger')

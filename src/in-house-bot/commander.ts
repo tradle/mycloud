@@ -19,7 +19,8 @@ import {
   Deployment,
   IPBReq,
   IKeyValueStore,
-  Applications
+  Applications,
+  Friends
 } from './types'
 
 import { parseStub } from '../utils'
@@ -88,6 +89,7 @@ export interface CommanderOpts extends IBotComponents {
 
 export class Commander {
   public bot: Bot
+  public friends: Friends
   public productsAPI:any
   public employeeManager:any
   public applications:Applications
@@ -96,6 +98,7 @@ export class Commander {
   public logger: Logger
   private components: IBotComponents
   private store: IKeyValueStore
+
   constructor (components: CommanderOpts) {
     this.components = components
 
@@ -104,6 +107,7 @@ export class Commander {
       productsAPI,
       employeeManager,
       applications,
+      friends,
       deployment,
       conf,
       logger,
@@ -114,6 +118,7 @@ export class Commander {
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
     this.applications = applications
+    this.friends = friends
     this.conf = conf
     this.logger = logger
     this.deployment = deployment
