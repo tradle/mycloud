@@ -66,22 +66,35 @@ test('email-based-verification', loudAsync(async (t) => {
     t.equal(email.to, emailAddress)
   })
 
-  const execStub = sandbox.stub(commands, 'exec').callsFake(async (opts) => {
-    t.same(opts, {
-      sudo: true,
-      confirmed: true,
-      command
-    })
-
+  const execStub = sandbox.stub(commands, 'exec1').callsFake(async (opts) => {
+    t.same(opts, command)
     return {
       result: {},
       // error
     }
   })
 
-  const command = 'listproducts'
-  const emailOpts = {
-    email: {
+  const sendPLStub = sandbox.stub(components.productsAPI, 'sendProductList').callsFake(async ({ to }) => {
+    t.equal(to.id, 'bob')
+  })
+
+
+  const command = {
+    component: 'productsAPI',
+    method: 'sendProductList',
+    params: {
+      to: {
+        id: 'bob'
+      }
+    }
+  }
+
+  const opts = {
+    deferredCommand: {
+      ttl: 1000,
+      command
+    },
+    confirmationEmail: {
       emailAddress,
       subject: 'Email Verification',
       confirmationText: 'Please confirm by clicking below',
@@ -93,7 +106,7 @@ test('email-based-verification', loudAsync(async (t) => {
     }
   }
 
-  const code = await ebv.confirmAndExec({ command, ttl: 1000 }, emailOpts)
+  const code = await ebv.confirmAndExec(opts)
   const { success, html } = await ebv.processConfirmationCode(code)
 
   t.equal(success, true)
@@ -107,7 +120,7 @@ test('email-based-verification', loudAsync(async (t) => {
     t.ok(/used/.test(err.message))
   }
 
-  const code2 = await ebv.confirmAndExec({ command, ttl: 1000 }, emailOpts)
+  const code2 = await ebv.confirmAndExec(opts)
   clock.tick(1001 * 1000) // ttl is in seconds
 
   try {

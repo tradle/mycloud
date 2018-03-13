@@ -11,9 +11,10 @@ import {
   ICommand,
   ICommandContext,
   ICommandInput,
-  IDeferredCommandInput,
   ICommandOutput,
-  IDeferredCommandOutput,
+  ICommandOutput1,
+  ICommandParams,
+  IDeferredCommandParams,
   Bot,
   IBotComponents,
   Deployment,
@@ -38,12 +39,17 @@ const SUDO = {
 }
 
 interface IConfirmationState {
-  command: string
+  command: ICommandParams
   dateCreated: number
   dateExpires?: number
   ttl?: number // seconds
   confirmed?: boolean
   extra?: any
+}
+
+interface IExecCredentials {
+  sudo?: boolean
+  employee?: boolean
 }
 
 // export const EMPLOYEE_COMMANDS = [
@@ -175,6 +181,19 @@ export class Commander {
     return await command.exec(ctx)
   }
 
+  public exec1 = async (opts: {
+    // credentials: IExecCredentials
+    component: string
+    method: string
+    params: any
+    req?: IPBReq
+  }) => {
+    this._ensureCommandExists(opts)
+    // TODO: auth
+    const { component, method, params, req } = opts
+    return await this[component][method](params)
+  }
+
   public sendResult = async ({ req, to, result }) => {
     // const message = typeof result === 'string' ? result : json2yaml(result)
     if (!result) return
@@ -216,38 +235,69 @@ export class Commander {
     throw new Errors.NotFound(NOT_FOUND_MESSAGE)
   }
 
-  public defer = async (opts: IDeferredCommandInput):Promise<string> => {
-    const { command, ttl, dateExpires, extra={} } = opts
+  public defer = async (opts: IDeferredCommandParams):Promise<string> => {
+    const { command, extra, ttl, dateExpires } = opts
+
+    this._ensureCommandExists(command)
     if (!(ttl || dateExpires)) {
       throw new Errors.InvalidInput('expected "ttl" or "dateExpires')
     }
 
-    const ctx = this._createCommandContext(opts)
-    this.ensureAuthorized(ctx)
-    const code = genConfirmationCode(command)
+    const code = genConfirmationCode()
     const dateCreated = Date.now()
     await this.store.put(code, {
       command,
+      extra,
       dateCreated,
-      dateExpires: dateExpires || (dateCreated + ttl * 1000),
-      extra
+      dateExpires: dateExpires || (dateCreated + ttl * 1000)
     })
 
     return code
   }
 
-  public execDeferred = async (code: string):Promise<IDeferredCommandOutput> => {
-    const state:IConfirmationState = await this.store.get(code)
-    if (state.confirmed) {
-      throw new Error(`confirmation code has already been used: ${code}`)
-    }
+  // public defer = async (opts: IDeferredCommandInput):Promise<string> => {
+  //   const { command, ttl, dateExpires, extra={} } = opts
+  //   if (!(ttl || dateExpires)) {
+  //     throw new Errors.InvalidInput('expected "ttl" or "dateExpires')
+  //   }
 
-    if (Date.now() > state.dateExpires) {
-      throw new Errors.Expired(`confirmation code expired: ${code}`)
-    }
+  //   const ctx = this._createCommandContext(opts)
+  //   this.ensureAuthorized(ctx)
+  //   const code = genConfirmationCode(command)
+  //   const dateCreated = Date.now()
+  //   await this.store.put(code, {
+  //     command,
+  //     dateCreated,
+  //     dateExpires: dateExpires || (dateCreated + ttl * 1000),
+  //     extra
+  //   })
+
+  //   return code
+  // }
+
+  public execDeferred = async (code: string):Promise<ICommandOutput1> => {
+    const state = await this.store.get(code) as IConfirmationState
+    const {
+      confirmed,
+      dateExpires,
+      command,
+      extra
+    } = state
+
+    const ret:ICommandOutput1 = { command, extra }
+    // if (confirmed) {
+    //   ret.error = new Error(`confirmation code has already been used: ${code}`)
+    //   return ret
+    // }
+
+    // if (Date.now() > dateExpires) {
+    //   ret.error = new Errors.Expired(`confirmation code expired: ${code}`)
+    //   return ret
+    // }
 
     // authorization is checked on defer()
-    const res = await this.exec({ confirmed: true, sudo: true, command: state.command })
+    // const res = await this.exec({ confirmed: true, sudo: true, command: state.command })
+    const res = await this.exec1(command)
     await this.store.put(code, {
       ...state,
       confirmed: true
@@ -255,7 +305,7 @@ export class Commander {
 
     return {
       ...res,
-      extra: state.extra
+      ...ret
     }
   }
 
@@ -285,6 +335,12 @@ export class Commander {
 
     this.ensureHasCommand(ctx)
   }
+
+  private _ensureCommandExists = ({ component, method, params }: ICommandParams) => {
+    const c = this.components[component]
+    if (!c) throw new Errors.InvalidInput(`component not found: ${c}`)
+    if (!c[method]) throw new Errors.InvalidInput(`component has no method: ${method}`)
+  }
 }
 
 const preParseCommand = (command: string) => {
@@ -297,4 +353,4 @@ const preParseCommand = (command: string) => {
   return { commandName, argsStr }
 }
 
-const genConfirmationCode = (command: string) => randomString(20)
+const genConfirmationCode = () => randomString(32)

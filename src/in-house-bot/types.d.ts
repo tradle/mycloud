@@ -171,6 +171,7 @@ export interface IOnFormsCollectedArg {
   application: IPBApp
 }
 
+// deprecated
 export interface ICommandInput {
   command: string
   req?: IPBReq
@@ -178,7 +179,21 @@ export interface ICommandInput {
   confirmed?: boolean
 }
 
-export interface IDeferredCommandInput extends ICommandInput {
+export interface ICommandParams {
+  component: string
+  method: string
+  params: any
+}
+
+export interface ICommandOutput1 {
+  command: ICommandParams
+  result?: any
+  error?: any
+  extra?: any
+}
+
+export interface IDeferredCommandParams {
+  command: ICommandParams
   ttl?: number
   dateExpires?: number
   extra?: any
@@ -204,9 +219,9 @@ export interface ICommandOutput {
   error?:any
 }
 
-export interface IDeferredCommandOutput extends ICommandOutput {
-  extra?: any
-}
+// export interface IDeferredCommandOutput extends ICommandOutput {
+//   extra?: any
+// }
 
 export interface ICommandSendResultOpts extends ICommandContext {
   to: IUser | string

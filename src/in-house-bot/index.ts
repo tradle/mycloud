@@ -403,7 +403,7 @@ export default function createProductsBot({
     }
   }
 
-  if (handleMessages) {
+  if (handleMessages || event === 'confirmation') {
     // const { api, plugin } = Plugins.get('commands').createPlugin(components, {
     //   logger: logger.sub('commands')
     // })
@@ -416,9 +416,14 @@ export default function createProductsBot({
     productsAPI.plugins.use(plugin)
   }
 
-  if (plugins.emailBasedVerification && (handleMessages || event === 'confirmation')) {
-    const { api, plugin } = createEBVPlugin(components, plugins.emailBasedVerification)
+  if (plugins['email-based-verification'] && (handleMessages || event === 'confirmation')) {
+    const { api, plugin } = createEBVPlugin(components, {
+      conf: plugins['email-based-verification'],
+      logger: logger.sub('email-based-verification')
+    })
+
     components.emailBasedVerifier = api
+    productsAPI.plugins.use(plugin)
   }
 
   return components

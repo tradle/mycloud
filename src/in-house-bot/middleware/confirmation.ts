@@ -14,6 +14,7 @@ export const createMiddleware = (lambda:Lambda, opts:any={}) => {
     const { components, query={} } = ctx
     const { code } = query
     const { emailBasedVerifier } = components
-    await emailBasedVerifier.processConfirmationCode(Array.isArray(code) ? code[0] : code)
+    const result = await emailBasedVerifier.processConfirmationCode(Array.isArray(code) ? code[0] : code)
+    ctx.body = result.html
   }
 }
