@@ -5,8 +5,10 @@ import {
   IMailer,
   KeyValueTable,
   Commander,
-  IDeferredCommandInput,
-  IDeferredCommandOutput,
+  ICommandOutput1,
+  IDeferredCommandParams,
+  // IDeferredCommandInput,
+  // IDeferredCommandOutput,
   ISendEmailOpts,
   IConf,
   Logger
@@ -28,6 +30,7 @@ type EmailBasedVerifierOpts = {
 interface IConfirmationPageOpts {
   title: string
   body: string
+  signature?: string
 }
 
 interface IVerificationEmailOpts {
@@ -79,51 +82,35 @@ export class EmailBasedVerifier {
     this.orgConf = orgConf
     this.logger = logger
     this.senderEmail = senderEmail
-
-    // bot.hook(`save:${EMAIL_CHECK}`, async (ctx, next) => {
-    //   this.confirmAndExec({
-    //     cmd: {
-    //       component: 'checks',
-    //       method: 'update',
-    //       arg: {
-    //         status: 'passed',
-    //       }
-    //     }
-    //   })
-    // })
   }
 
-  public confirmAndExec = async (
-    cmd: IDeferredCommandInput,
-    emailOpts: IEmailVerificationOpts
-  ) => {
+  public confirmAndExec = async ({ deferredCommand, confirmationEmail, confirmationPage }: {
+    deferredCommand: IDeferredCommandParams
+    confirmationEmail: IVerificationEmailOpts
+    confirmationPage: IConfirmationPageOpts
+  }) => {
     const {
       senderEmail=this.senderEmail,
       subject,
       emailAddress
-    } = emailOpts.email
+    } = confirmationEmail
 
     const code = await this.commands.defer({
-      ...cmd,
-      extra: {
-        confirmationPage: emailOpts.confirmationPage
-      }
+      ...deferredCommand,
+      extra: { confirmationPage }
     })
 
     const confirmationUrl = this.genVerificationUrl(code)
     const dataValues = _.extend(
       { fromOrg: this.orgConf.org },
       DEFAULT_EMAIL_DATA,
-      emailOpts,
+      confirmationEmail,
       { confirmationUrl }
     )
 
     const data = Templates.renderData(DATA_TEMPLATE, dataValues)
     const body = Templates.email.action(data)
-    this.logger.debug('sending email to confirm command', {
-      command: cmd
-    })
-
+    this.logger.debug('sending email to confirm command', { command: deferredCommand })
     await this.mailer.send({
       subject,
       from: senderEmail,
@@ -150,14 +137,14 @@ export class EmailBasedVerifier {
     }
   }
 
-  public genConfirmationPage = ({ result, extra }: IDeferredCommandOutput) => {
+  public genConfirmationPage = ({ result, extra }: ICommandOutput1) => {
     const confirmationPage: IConfirmationPageOpts = extra.confirmationPage
     return Templates.page.confirmation({
       title: confirmationPage.title,
       blocks: confirmationPage.body
         .split('\n')
-        .filter(str => str.trim().length)
-        .map(body => ({ body }))
+        .map(body => ({ body })),
+      signature: `${this.orgConf.org.name} Team`
     })
 
     // return Templates.page.confirmation({
@@ -169,7 +156,7 @@ export class EmailBasedVerifier {
     // })
   }
 
-  public genErrorPage = (opts: IDeferredCommandOutput) => {
+  public genErrorPage = (opts: ICommandOutput1) => {
     const { error } = opts
     if (Errors.matches(error, Errors.Exists)) {
       return this.genConfirmationPage(opts)

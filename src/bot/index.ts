@@ -361,9 +361,10 @@ export class Bot extends EventEmitter implements IReady {
       throw new Errors.InvalidInput(`expected "type" and "permalink"`)
     }
 
-    const check = this.getResource({ type, permalink })
+    const check = await this.getResource({ type, permalink })
     const updated = buildResource({
       models: this.models,
+      model: check[TYPE],
       resource: check
     })
     .set(props)

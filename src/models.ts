@@ -105,12 +105,18 @@ const emailCheckModel = {
       type: 'string',
       range: 'email',
       readOnly: true
+    },
+    application: {
+      type: 'object',
+      ref: 'tradle.Application'
     }
   },
   required: [
-    'status',
-    'email'
+    'provider',
+    'emailAddress'
   ]
 }
+
+base[emailCheckModel.id] = emailCheckModel
 
 export = base

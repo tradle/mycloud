@@ -1,21 +1,18 @@
-import { fromCli, fromHTTP } from '../../bot/lambda'
+import { fromCli, fromHTTP } from '../../lambda'
 import { createBot } from '../../bot'
-import { customize } from '../customize'
 
 const bot = createBot({ ready: false })
-const lambda = fromCli({ bot })
-const promiseComponents = customize({ lambda, event: 'message' })
-
+const lambda = fromCli({ bot, event: 'message' })
 lambda.use(async (ctx, next) => {
-  const command = ctx.event
-  if (typeof command !== 'string') {
+  const { event, components } = ctx
+  if (typeof event !== 'string') {
     throw new Error('expected command string')
   }
 
-  const { productsAPI, commands } = await promiseComponents
+  const { productsAPI, commands } = components
   ctx.body = await commands.exec({
     req: productsAPI.state.newRequestState({}),
-    command,
+    command: event,
     sudo: true
   })
 })

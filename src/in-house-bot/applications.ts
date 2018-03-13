@@ -39,11 +39,12 @@ export class Applications {
       throw new Error('expected type and "application"')
     }
 
-    const application = await (typeof props.application === 'string'
-      ? bot.getResource({ type, permalink: props.application })
-      : bot.getResourceByStub(props.application))
-
+    const application = await this.productsAPI.getApplication(props.application)
     const resource = await bot.createResource({ ...props, application })
+    if (!application.checks) {
+      application.checks = []
+    }
+
     application.checks.push(buildResource.stub({ resource, models }))
     if (!req) {
       await productsAPI.saveNewVersionOfApplication({ application })
@@ -83,4 +84,8 @@ export class Applications {
   public deny = async (opts) => {
     return this.judgeApplication({ ...opts, approve: false })
   }
+
+  // public listProducts = () => {
+
+  // }
 }
