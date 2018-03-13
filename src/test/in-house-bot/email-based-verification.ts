@@ -6,12 +6,13 @@ import sinon from 'sinon'
 import createProductsStrategy from '@tradle/bot-products'
 import { EmailBasedVerifier } from '../../in-house-bot/email-based-verifier'
 import { Commander } from '../../in-house-bot/commander'
+import { Applications } from '../../in-house-bot/applications'
 import Errors from '../../errors'
 import { Logger } from '../../logger'
 import { createBot } from '../../bot'
 import { KeyValueMem } from '../../key-value-mem'
 import { loudAsync } from '../../utils'
-import { IConf } from '../../in-house-bot/types'
+import { IConf, IBotComponents } from '../../in-house-bot/types'
 
 test('email-based-verification', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
@@ -20,7 +21,7 @@ test('email-based-verification', loudAsync(async (t) => {
   const senderEmail = 'someone@somewhere.com'
   const emailAddress = 'unverified@somewhere.com'
   const logger = new Logger('ebv:test')
-  const commands = new Commander({
+  const components:any = {
     bot,
     employeeManager: {},
     productsAPI: createProductsStrategy({
@@ -34,7 +35,10 @@ test('email-based-verification', loudAsync(async (t) => {
     }),
     logger,
     store: new KeyValueMem()
-  })
+  }
+
+  components.applications = new Applications(components)
+  const commands = new Commander(components)
 
   const ebv = new EmailBasedVerifier({
     bot,

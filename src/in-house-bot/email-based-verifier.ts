@@ -15,6 +15,8 @@ import {
 import * as Templates from './templates'
 import Errors from '../errors'
 
+const EMAIL_CHECK = 'tradle.EmailCheck'
+
 type EmailBasedVerifierOpts = {
   bot: Bot
   commands: Commander
@@ -77,6 +79,18 @@ export class EmailBasedVerifier {
     this.orgConf = orgConf
     this.logger = logger
     this.senderEmail = senderEmail
+
+    // bot.hook(`save:${EMAIL_CHECK}`, async (ctx, next) => {
+    //   this.confirmAndExec({
+    //     cmd: {
+    //       component: 'checks',
+    //       method: 'update',
+    //       arg: {
+    //         status: 'passed',
+    //       }
+    //     }
+    //   })
+    // })
   }
 
   public confirmAndExec = async (
@@ -85,7 +99,6 @@ export class EmailBasedVerifier {
   ) => {
     const {
       senderEmail=this.senderEmail,
-      // templateName='action',
       subject,
       emailAddress
     } = emailOpts.email

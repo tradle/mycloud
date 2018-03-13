@@ -52,37 +52,65 @@ if (!baseMessageModel.properties._deliveryStatus) {
 //   }
 // }
 
-const cloudEventModel = {
+// const cloudEventModel = {
+//   type: 'tradle.Model',
+//   id: 'tradle.cloud.Event',
+//   title: 'Event',
+//   properties: {
+//     topic: {
+//       type: 'string'
+//     },
+//     timeR: {
+//       type: 'string'
+//     },
+//     dateN: {
+//       type: 'string'
+//     },
+//     data: {
+//       type: 'object',
+//       range: 'json'
+//     }
+//   },
+//   primaryKeys: {
+//     hashKey: 'topic',
+//     rangeKey: 'timeR',
+//   },
+//   required: [
+//     'topic',
+//     'timeR',
+//     'dateN',
+//     'data'
+//   ]
+// }
+
+// base[cloudEventModel.id] = cloudEventModel
+
+const emailCheckModel = {
   type: 'tradle.Model',
-  id: 'tradle.cloud.Event',
-  title: 'Event',
+  id: 'tradle.EmailCheck',
+  title: 'Email Check',
+  subClassOf: 'tradle.Check',
+  description: 'check for who controls an email address',
   properties: {
-    topic: {
-      type: 'string'
+    provider: {
+      type: 'string',
+      readOnly: true
     },
-    timeR: {
-      type: 'string'
-    },
-    dateN: {
-      type: 'string'
-    },
-    data: {
+    status: {
       type: 'object',
-      range: 'json'
+      ref: 'tradle.Status',
+      readOnly: true
+    },
+    emailAddress: {
+      type: 'string',
+      range: 'email',
+      readOnly: true
     }
   },
-  primaryKeys: {
-    hashKey: 'topic',
-    rangeKey: 'timeR',
-  },
   required: [
-    'topic',
-    'timeR',
-    'dateN',
-    'data'
+    'status',
+    'email'
   ]
 }
-
-base[cloudEventModel.id] = cloudEventModel
 
 export = base

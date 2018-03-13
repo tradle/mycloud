@@ -18,7 +18,8 @@ import {
   IBotComponents,
   Deployment,
   IPBReq,
-  IKeyValueStore
+  IKeyValueStore,
+  Applications
 } from './types'
 
 import { parseStub } from '../utils'
@@ -89,6 +90,7 @@ export class Commander {
   public bot: Bot
   public productsAPI:any
   public employeeManager:any
+  public applications:Applications
   public deployment?: Deployment
   public conf: IConf
   public logger: Logger
@@ -101,6 +103,7 @@ export class Commander {
       bot,
       productsAPI,
       employeeManager,
+      applications,
       deployment,
       conf,
       logger,
@@ -110,6 +113,7 @@ export class Commander {
     this.bot = bot
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
+    this.applications = applications
     this.conf = conf
     this.logger = logger
     this.deployment = deployment
@@ -191,23 +195,6 @@ export class Commander {
         message
       }
     })
-  }
-
-  public judgeApplication = async ({ req, application, approve }) => {
-    const { bot, productsAPI } = this
-    const judge = req && req.user
-    application = await productsAPI.getApplication(application)
-    const user = await bot.users.get(parseStub(application.applicant).permalink)
-    const method = approve ? 'approveApplication' : 'denyApplication'
-    try {
-      await productsAPI[method]({ req, judge, user, application })
-    } catch (err) {
-      Errors.ignore(err, ProductBotErrors.Duplicate)
-      throw new Error(`application already has status: ${application.status}`)
-    }
-
-    await productsAPI.saveNewVersionOfApplication({ user, application })
-    await bot.users.merge(user)
   }
 
   public hasCommand = (ctx:ICommandContext):boolean => {

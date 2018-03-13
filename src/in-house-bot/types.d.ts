@@ -6,6 +6,7 @@ import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediation } from './remediation'
 import { Deployment } from './deployment'
+import { Applications } from './applications'
 import { EmailBasedVerifier } from './email-based-verifier'
 import {
   ITradleObject,
@@ -24,6 +25,7 @@ export {
   Conf,
   Commander,
   Onfido,
+  Applications,
   Remediation,
   Deployment,
   EmailBasedVerifier
@@ -67,6 +69,7 @@ export interface IBotComponents {
   logger: Logger
   productsAPI: any
   employeeManager: any
+  applications: Applications
   conf?: IConf
   remediation?: Remediation
   onfido?: Onfido

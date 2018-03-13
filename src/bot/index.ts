@@ -345,6 +345,33 @@ export class Bot extends EventEmitter implements IReady {
   public save = resource => this._save('put', resource)
   public update = resource => this._save('update', resource)
 
+  public createResource = async (props:ITradleObject) => {
+    const resource = buildResource({
+      models: this.models,
+      model: props[TYPE]
+    })
+    .set(props)
+    .toJSON()
+
+    return await this.signAndSave(resource)
+  }
+
+  public updateResource = async ({ type, permalink, props }) => {
+    if (!(type && permalink)) {
+      throw new Errors.InvalidInput(`expected "type" and "permalink"`)
+    }
+
+    const check = this.getResource({ type, permalink })
+    const updated = buildResource({
+      models: this.models,
+      resource: check
+    })
+    .set(props)
+    .toJSON()
+
+    await this.signAndSave(updated)
+  }
+
   public createLambda = (opts:ILambdaOpts={}):Lambda => createLambda({
     ...opts,
     tradle: this.tradle,

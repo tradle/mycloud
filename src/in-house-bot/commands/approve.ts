@@ -13,7 +13,7 @@ export const command:ICommand = {
     }
   },
   exec: async ({ commander, req, ctx, args }) => {
-    await commander.judgeApplication({ req, application: args.application, approve: true })
+    await commander.applications.judgeApplication({ req, application: args.application, approve: true })
   },
   sendResult: async ({ commander, req, to }) => {
     // TODO: link to application
