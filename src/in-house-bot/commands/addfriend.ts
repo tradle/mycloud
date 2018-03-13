@@ -42,28 +42,7 @@ export const command:ICommand = {
   },
   exec: async function ({ commander, req, args }) {
     const { url, domain } = args
-    const friend = await commander.bot.friends.load({ url, domain })
-    const friendStub = buildResource.stub({
-      models,
-      resource: friend
-    })
-
-    const userId = friend._identityPermalink
-    const { users } = commander.bot
-    let user
-    try {
-      user = await users.get(userId)
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-      await users.save({ id: userId, friend: friendStub })
-    }
-
-    if (user && !isEqual(user.friend, friendStub)) {
-      user.friend = friendStub
-      await users.merge({ id: userId, friend: friendStub })
-    }
-
-    return friend
+    return await commander.friends.load({ url, domain })
   },
   sendResult: async ({ commander, req, args, result }) => {
     await commander.sendSimpleMessage({

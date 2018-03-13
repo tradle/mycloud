@@ -198,8 +198,8 @@ export class Bot extends EventEmitter implements IReady {
 
     const MESSAGE_LOCK_TIMEOUT = this.isTesting ? null : 10000
     this.outboundMessageLocker = createLocker({
-      name: 'message send lock',
-      debug: logger.sub('message-locker:send').debug,
+      // name: 'message send lock',
+      // debug: logger.sub('message-locker:send').debug,
       timeout: MESSAGE_LOCK_TIMEOUT
     })
 

@@ -38,6 +38,7 @@ import { createPlugin as createCommandsPlugin } from './plugins/commands'
 import { createPlugin as createEBVPlugin } from './plugins/email-based-verification'
 import { haveAllChecksPassed, isPendingApplication, getNonPendingApplications } from './utils'
 import { Applications } from './applications'
+import { Friends } from './friends'
 import {
   Bot,
   IBotComponents,
@@ -182,15 +183,15 @@ export default function createProductsBot({
   }
 
   const myIdentityPromise = bot.getMyIdentity()
-  const components = {
+  const components:IBotComponents = {
     bot,
     conf,
     productsAPI,
     employeeManager,
+    friends: new Friends({ bot }),
+    applications: new Applications({ bot, productsAPI }),
     logger
-  } as IBotComponents
-
-  components.applications = new Applications(components)
+  }
 
   if (handleMessages) {
     tweakProductListPerRecipient(components)

@@ -4,14 +4,9 @@ import { parseStub } from '../utils'
 import Errors from '../errors'
 import {
   Bot,
-  IBotComponents,
-  DatedValue,
-  IConf,
-  Remediation,
-  Deployment,
-  IPluginOpts,
-  IPluginLifecycleMethods,
-  IPBReq
+  ResourceStub,
+  IPBReq,
+  IPBApp
 } from './types'
 
 interface ICreateCheckOpts {
@@ -19,18 +14,25 @@ interface ICreateCheckOpts {
   req?: IPBReq
 }
 
-export class Applications {
-  private components: IBotComponents
-  private get bot() {
-    return this.components.bot
-  }
+interface IPBJudgeAppOpts {
+  req?: IPBReq
+  application: string|IPBApp|ResourceStub
+  approve?: boolean
+}
 
-  constructor(components: IBotComponents) {
-    this.components = components
+export class Applications {
+  private bot: Bot
+  private productsAPI: any
+  constructor({ bot, productsAPI }: {
+    bot: Bot
+    productsAPI: any
+  }) {
+    this.bot = bot
+    this.productsAPI = productsAPI
   }
 
   public createCheck = async ({ props, req }: ICreateCheckOpts) => {
-    const { bot, productsAPI } = this.components
+    const { bot, productsAPI } = this
     const { models } = bot
     const type = props[TYPE]
     if (!(type && props.application)) {
@@ -54,10 +56,10 @@ export class Applications {
     return await this.bot.updateResource(opts)
   }
 
-  public judgeApplication = async ({ req, application, approve }) => {
-    const { bot, productsAPI } = this.components
+  public judgeApplication = async ({ req, application, approve }: IPBJudgeAppOpts) => {
+    const { bot, productsAPI } = this
     const judge = req && req.user
-    application = await productsAPI.getApplication(application)
+    application = await productsAPI.getApplication(application) as IPBApp
 
     const user = await bot.users.get(parseStub(application.applicant).permalink)
     const method = approve ? 'approveApplication' : 'denyApplication'

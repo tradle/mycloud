@@ -14,7 +14,8 @@ import {
   Provider,
   DB,
   Model,
-  Models
+  Models,
+  Objects
 } from './types'
 
 import Errors from './errors'
@@ -34,15 +35,17 @@ export default class Friends {
   public db: DB
   public identities: Identities
   public provider: Provider
+  public objects: Objects
   public cache: any
   public logger: Logger
   constructor(tradle:Tradle) {
-    const { models, db, identities, provider, logger } = tradle
+    const { models, db, identities, provider, objects, logger } = tradle
     this.models = models
     this.model = models[FRIEND_TYPE]
     this.db = db
     this.identities = identities
     this.provider = provider
+    this.objects = objects
     this.cache = createCache()
     this.logger = logger.sub('friends')
     this.getByIdentityPermalink = cachifyFunction(this, 'getByIdentityPermalink')
@@ -149,6 +152,8 @@ export default class Friends {
         ':identityPermalink': permalink
       }
     })
+
+    await this.objects.put(signed)
 
     // debug(`sending self introduction to friend "${name}"`)
     // await this.provider.sendMessage({

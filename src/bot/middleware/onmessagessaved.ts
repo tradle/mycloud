@@ -30,8 +30,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 export const onMessagesSaved = (lambda:Lambda, opts={}) => {
   const { bot, tradle, tasks, logger, isTesting } = lambda
   const locker = createLocker({
-    name: 'inbound message lock',
-    debug: lambda.logger.sub('lock:receive').debug,
+    // name: 'inbound message lock',
+    // debug: lambda.logger.sub('lock:receive').debug,
     timeout: lambda.isTesting ? null : 10000
   })
 
