@@ -5,6 +5,7 @@ import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediation } from './remediation'
 import { Deployment } from './deployment'
+import { EmailBasedVerifier } from './email-based-verifier'
 import {
   ITradleObject,
   IIdentity,
@@ -23,7 +24,8 @@ export {
   Commander,
   Onfido,
   Remediation,
-  Deployment
+  Deployment,
+  EmailBasedVerifier
 }
 
 export type StringToNumMap = {
@@ -69,6 +71,7 @@ export interface IBotComponents {
   onfido?: Onfido
   deployment?: Deployment
   commands?: Commander
+  emailBasedVerifier?: EmailBasedVerifier
   [x:string]: any
 }
 
@@ -161,29 +164,36 @@ export interface IOnFormsCollectedArg {
   application: IPBApp
 }
 
+export interface ICommandInput {
+  command: string
+  req?: IPBReq
+  sudo?: boolean
+}
+
+export interface IDeferredCommandInput extends ICommandInput {
+  ttl: number
+}
+
 export interface ICommandContext {
+  commander: Commander
   commandName: string
-  allowed?: boolean
+  commandString: string
+  argsStr: string
+  req?: IPBReq
+  args?: IYargs
   employee?: boolean
   sudo?: boolean
-  argsStr: string
   [x:string]: any
 }
 
 export type CommandOutput = {
+  ctx: ICommandContext
+  command?: ICommand
   result?:any
   error?:any
 }
 
-export interface ICommandExecOpts {
-  commander: Commander
-  req: IPBReq
-  args: IYargs
-  argsStr: string
-  ctx: ICommandContext
-}
-
-export interface ICommandSendResultOpts extends ICommandExecOpts {
+export interface ICommandSendResultOpts extends ICommandContext {
   to: IUser | string
   result: any
 }
@@ -192,7 +202,7 @@ export interface ICommand {
   name: string
   description: string
   examples: string[]
-  exec: (opts:ICommandExecOpts) => Promise<any>
+  exec: (opts:ICommandContext) => Promise<any>
   parse?: (args:string, opts?:any) => any
   parseOpts?: any
   sendResult?: (opts:ICommandSendResultOpts) => Promise<any>

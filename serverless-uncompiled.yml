@@ -1042,6 +1042,14 @@ functions:
           method: post
           cors: ${{self:custom.cors}}
 
+  confirmation:
+    handler: lib/in-house-bot/lambda/http/confirmation.handler
+    events:
+      - http:
+          path: confirmation
+          method: get
+          cors: ${{self:custom.cors}}
+
   # webhooks:
   #   handler: lib/in-house-bot/lambda/webhooks.handler
   #   memorySize: 256

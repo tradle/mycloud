@@ -5,29 +5,33 @@ import mkdirp from 'mkdirp'
 import nunjucks from 'nunjucks'
 
 const baseDir = path.join(__dirname, '../../assets/in-house-bot/templates')
-const emailsSourceDir = path.join(baseDir, 'raw/emails')
-const emailsTargetDir = path.join(baseDir, 'prerendered/emails')
-// nunjucks.configure(emailsSourceDir, {
-//   autoescape: true
-// })
 
-mkdirp.sync(emailsTargetDir)
+;['emails', 'pages'].forEach(dir => {
+  const sourceDir = path.join(baseDir, `raw/${dir}`)
+  const targetDir = path.join(baseDir, `prerendered/${dir}`)
+  // nunjucks.configure(sourceDir, {
+  //   autoescape: true
+  // })
 
-fs.readdirSync(emailsSourceDir)
-  .filter(file => file.endsWith('.html'))
-  .map(file => {
-    const template = fs.readFileSync(path.join(emailsSourceDir, file), { encoding: 'utf8' })
-    return {
-      name: path.parse(file).name,
-      template: juice(template)
-    }
-  })
-  .forEach(({ name, template }) => {
-    const filePath = path.join(emailsTargetDir, `${name}.html`)
-    const relPath = path.relative(process.cwd(), filePath)
-    console.log(`writing: ${relPath}`)
-    fs.writeFileSync(filePath, template, { encoding: 'utf8' })
-  })
+  mkdirp.sync(targetDir)
+
+  fs.readdirSync(sourceDir)
+    .filter(file => file.endsWith('.html'))
+    .map(file => {
+      const template = fs.readFileSync(path.join(sourceDir, file), { encoding: 'utf8' })
+      return {
+        name: path.parse(file).name,
+        template: juice(template)
+      }
+    })
+    .forEach(({ name, template }) => {
+      const filePath = path.join(targetDir, `${name}.html`)
+      const relPath = path.relative(process.cwd(), filePath)
+      console.log(`writing: ${relPath}`)
+      fs.writeFileSync(filePath, template, { encoding: 'utf8' })
+    })
+})
+
 
 // import nunjucks from 'nunjucks'
 
