@@ -39,8 +39,12 @@ const { MESSAGE } = TYPES
 
 import baseModels from './models'
 
+const ObjectModel = baseModels['tradle.Object']
 const MessageModel = baseModels[MESSAGE]
-const MESSAGE_PROPS = Object.keys(MessageModel.properties)
+const MESSAGE_PROPS = _.uniq(
+  Object.keys(MessageModel.properties).concat(Object.keys(ObjectModel.properties))
+)
+
 const MESSAGE_PROPS_MINUS_PAYLOAD = MESSAGE_PROPS.slice().filter(p => p !== 'object')
 const getSelect = (body?: boolean) => body ? MESSAGE_PROPS : MESSAGE_PROPS_MINUS_PAYLOAD
 
@@ -274,11 +278,13 @@ export default class Messages {
     let last
     try {
       last = await this.db.findOne(opts)
-      this.logger.debug('last message', last)
-      return {
+      const pos = {
         seq: last[SEQ],
         link: last._link
       }
+
+      this.logger.debug('last message', pos)
+      return pos
     } catch (err) {
       if (Errors.isNotFound(err)) {
         return null

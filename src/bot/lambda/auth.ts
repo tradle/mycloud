@@ -22,12 +22,13 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 }
 
 export const auth = (lambda:Lambda, opts?:any) => {
-  const { tradle, bot } = lambda
+  const { tradle, bot, logger } = lambda
   return async (ctx:Koa.Context, next) => {
     const time = Date.now()
     try {
       ctx.session = await tradle.auth.handleChallengeResponse(ctx.request.body)
     } catch (err) {
+      logger.error('auth failed', err)
       Errors.rethrow(err, 'system')
       ctx.status = 400
       if (Errors.matches(err, Errors.HandshakeFailed)) {
