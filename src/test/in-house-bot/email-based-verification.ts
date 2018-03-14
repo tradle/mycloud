@@ -66,7 +66,7 @@ test('email-based-verification', loudAsync(async (t) => {
     t.equal(email.to, emailAddress)
   })
 
-  const execStub = sandbox.stub(commands, 'exec1').callsFake(async (opts) => {
+  const execStub = sandbox.stub(commands, 'exec').callsFake(async (opts) => {
     t.same(opts, command)
     return {
       result: {},

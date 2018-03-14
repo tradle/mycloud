@@ -16,6 +16,7 @@ import {
   RESOLVED_PROMISE,
 } from './utils'
 import { extractSigPubKey, getLinks } from './crypto'
+import { MiddlewareContainer } from './middleware-container'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
 import Env from './env'
 import Tradle from './tradle'
@@ -38,6 +39,7 @@ export default class Objects {
   private bucket: any
   private s3Utils: any
   private fileUploadBucketName: string
+  private middleware: MiddlewareContainer
   constructor (tradle: Tradle) {
     const { env, buckets, s3Utils, logger } = tradle
     this.tradle = tradle
@@ -48,6 +50,13 @@ export default class Objects {
     this.s3Utils = s3Utils
     this.fileUploadBucketName = buckets.FileUpload.name
     this.logger = logger.sub('objects')
+    this.middleware = new MiddlewareContainer({
+      getContextForEvent: (event, object) => ({
+        event: object
+      })
+    })
+
+    this.middleware.hookSimple('put', this._put)
   }
 
   public validate = (object:ITradleObject) => {
@@ -174,6 +183,10 @@ export default class Objects {
   }
 
   public put = async (object: ITradleObject) => {
+    return await this.middleware.fire('put', object)
+  }
+
+  public _put = async (object: ITradleObject) => {
     typeforce(types.signedObject, object)
     object = _.clone(object)
     ensureTimestamped(object)
@@ -185,6 +198,8 @@ export default class Objects {
     this.logger.debug('putting', summarizeObject(object))
     return await this.bucket.putJSON(object._link, object)
   }
+
+  public hook = (event, handler) => this.middleware.hook(event, handler)
 
   public prefetch = (link: string):void => {
     // prime cache

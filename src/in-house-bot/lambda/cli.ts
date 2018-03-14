@@ -1,26 +1,29 @@
-import { fromCli, fromHTTP } from '../../lambda'
+// require('../../cli/utils').loadRemoteEnv()
+// process.nextTick(() => {
+//   lambda.handler('/getconf --conf', {
+//     done: (err, result) => console.log(err||result)
+//   })
+// })
+
+import { fromCli, fromHTTP } from '../lambda'
 import { createBot } from '../../bot'
+import { IPBMiddlewareContext } from '../types'
 
 const bot = createBot({ ready: false })
 const lambda = fromCli({ bot, event: 'message' })
-lambda.use(async (ctx, next) => {
+lambda.use(async (ctx:IPBMiddlewareContext, next) => {
   const { event, components } = ctx
   if (typeof event !== 'string') {
     throw new Error('expected command string')
   }
 
   const { productsAPI, commands } = components
-  ctx.body = await commands.exec({
-    req: productsAPI.state.newRequestState({}),
+  const { result, error } = await commands.execFromString({
     command: event,
     sudo: true
   })
+
+  ctx.body = { result, error }
 })
 
 export const handler = lambda.handler
-
-// lambda.handler({
-//   event: '/getlaunchlink --update --provider'
-// }, {
-//   done: (err, result) => console.log(err||result)
-// })

@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
+import validateResource from '@tradle/validate-resource'
 import { isPromise, pickNonNull, getEnumValueId, parseStub } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
@@ -368,3 +369,6 @@ export const isPassedCheck = ({ status }) => {
 
   return id === 'pass'
 }
+
+export const getPropertyTitle = validateResource.utils.getPropertyTitle
+export { getEnumValueId }

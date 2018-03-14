@@ -7,7 +7,7 @@ import { TYPE } from '@tradle/constants'
 import { Bot, Logger, IStreamEvent, IBackoffOptions } from './types'
 import Errors from '../errors'
 import { runWithTimeout, runWithBackoffWhile, batchProcess, allSettled } from '../utils'
-import { topics as EventTopics } from '../events'
+import { topics as EventTopics, EventTopic } from '../events'
 
 export interface IWebhookSubscription {
   id: string
@@ -68,9 +68,12 @@ const DEFAULT_BACKOFF_OPTS = {
   shouldTryAgain: err => true
 }
 
+// const flatten = (all, some) => all.concat(some)
+
 const TOPIC_LIST = Object.keys(EventTopics)
-  .map(parent => _.values(EventTopics[parent]))
+  .map(parent => _.values(EventTopics[parent]) as EventTopic[])
   .reduce((all, some) => all.concat(some), [])
+  .map((topic: EventTopic) => new RegExp(`^a?sync:${topic.sync}$`, 'i'))
   // derived
   .concat([
     /^msg:i:.*/,
@@ -78,10 +81,13 @@ const TOPIC_LIST = Object.keys(EventTopics)
     /^save:.*/,
   ])
 
-const isValidTopic = topic => TOPIC_LIST.some(matcher => {
-  if (typeof matcher === 'string') return matcher === topic
-  return matcher.test(topic)
-})
+const isValidTopic = topic => {
+  topic = topic.toString()
+  return TOPIC_LIST.some(matcher => {
+    if (typeof matcher === 'string') return matcher === topic
+    return matcher.test(topic)
+  })
+}
 
 export class Webhooks {
   private bot: Bot
@@ -97,7 +103,7 @@ export class Webhooks {
   }
 
   public fire = async (event:IWebhookEvent, opts:IFireOpts={}) => {
-    const { topic } = _.clone(event)
+    const { topic } = event
     const subs = this.getSubscriptionsForEvent(topic)
     if (!subs.length) return
 

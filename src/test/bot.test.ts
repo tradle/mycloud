@@ -268,22 +268,22 @@ test(`seal events stream`, loudAsync(async (t) => {
 
   const putEvents = sandbox.spy(tradle.events, 'putEvents')
 
-  bot.hook(EventTopics.seal.queuewrite, async ({ event }) => {
+  bot.hook(EventTopics.seal.queuewrite.async, async ({ event }) => {
     queuedWrite = true
     t.equal(event.link, link)
   })
 
-  bot.hook(EventTopics.seal.wrote, async ({ event }) => {
+  bot.hook(EventTopics.seal.wrote.async, async ({ event }) => {
     wrote = true
     t.equal(event.link, link)
   })
 
-  bot.hook(EventTopics.seal.read, async ({ event }) => {
+  bot.hook(EventTopics.seal.read.async, async ({ event }) => {
     read = true
     t.equal(event.link, link)
   })
 
-  bot.hook(EventTopics.seal.watch, async ({ event }) => {
+  bot.hook(EventTopics.seal.watch.async, async ({ event }) => {
     watch = true
     t.equal(event.link, link)
   })
@@ -347,7 +347,7 @@ test(`seal events stream`, loudAsync(async (t) => {
 test('onmessagestream', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const _link = fakeLink()
-  const message = {
+  const inbound = {
     "_author": "cf9bfbd126553ce71975c00201c73a249eae05ad9030632f278b38791d74a283",
     "_inbound": true,
     "_link": "1843969525f8ecb105ba484b59bb70d3a5d0c38e465f29740fc335e95b766a09",
@@ -386,7 +386,7 @@ test('onmessagestream', loudAsync(async (t) => {
     _t: 'ping.pong.Ping',
     _s: 'abc',
     _time: Date.now(),
-    _link: message.object._link
+    _link: inbound.object._link
   }
 
   const tradle = createTestTradle()
@@ -405,7 +405,7 @@ test('onmessagestream', loudAsync(async (t) => {
 
   const stubGet = sandbox.stub(bot.objects, 'get').callsFake(async (link) => {
     // #2
-    t.equal(link, message.object._link)
+    t.equal(link, inbound.object._link)
     return payload
   })
 
@@ -415,26 +415,75 @@ test('onmessagestream', loudAsync(async (t) => {
   let createdUser
   users.createIfNotExists = async (user) => {
     // #3
-    t.equal(user.id, message._author)
-    createdUser = true
+    t.equal(user.id, inbound._author)
+    createdUser = user
     return user
   }
 
-  bot.hook(EventTopics.message.inbound, async ({ event }) => {
+  bot.hook(EventTopics.message.inbound.async, async ({ event }) => {
     // #4, 5
     const { user } = event
     user.bill = 'ted'
-    t.equal(user.id, message._author)
+    t.equal(user.id, inbound._author)
     t.same(event.message, {
-      ...message, object: {
-        ...message.object,
+      ...inbound, object: {
+        ...inbound.object,
+        ...payload
+      }
+    })
+  })
+
+  // const sent = await bot.send({
+  //   to: message._author,
+  //   object: await bot.sign({
+  //     [TYPE]: 'tradle.SimpleMessage',
+  //     message: 'hey'
+  //   })
+  //   // [TYPE]: 'tradle.Message',
+  //   // recipientPubKey: 'abc',
+  //   // object: await bot.sign({
+  //   //   [TYPE]: 'tradle.SimpleMessage',
+  //   //   message: 'hey'
+  //   // }),
+  //   // time: 123
+  // })
+
+  await bot.lambdas.onmessagestream().handler(toStreamItems(bot.tables.Messages.name, [
+    { new: inbound }
+  ]), {
+    // #6
+    done: t.error
+  } as ILambdaAWSExecutionContext)
+
+  sandbox.stub(bot.users, 'get').callsFake(async (id) => {
+    if (id === inbound._author) {
+      return createdUser
+    }
+
+    throw new Errors.NotFound(id)
+  })
+
+  const outbound = {
+    ...inbound,
+    _author: inbound._recipient,
+    _recipient: inbound._author,
+    _inbound: false
+  }
+
+  bot.hook(EventTopics.message.outbound.async, async ({ event }) => {
+    // #4, 5
+    const { user } = event
+    t.equal(user.id, outbound._recipient)
+    t.same(event.message, {
+      ...outbound, object: {
+        ...outbound.object,
         ...payload
       }
     })
   })
 
   await bot.lambdas.onmessagestream().handler(toStreamItems(bot.tables.Messages.name, [
-    { new: message }
+    { new: outbound }
   ]), {
     // #6
     done: t.error
@@ -472,7 +521,7 @@ test('onmessagestream', loudAsync(async (t) => {
   // const introspection = await bot.trigger('graphql', require('./introspection-query'))
   // console.log('introspection length', JSON.stringify(introspection).length)
 
-  t.equal(createdUser, true)
+  t.ok(createdUser)
   sandbox.restore()
 
   t.end()
@@ -502,6 +551,12 @@ test('validate send', loudAsync(async (t) => {
   }
 
   const bot = createBot({ tradle })
+  sandbox.stub(bot.users, 'get').callsFake(async (id) => {
+    if (id === bob.permalink) return { id, identity: bob.object }
+
+    throw new Errors.NotFound(id)
+  })
+
   bot.setCustomModels({ models })
   try {
     await bot.send({

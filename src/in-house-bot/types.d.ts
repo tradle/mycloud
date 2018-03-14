@@ -180,13 +180,13 @@ export interface ICommandInput {
 }
 
 export interface ICommandParams {
-  component: string
+  component: keyof IBotComponents
   method: string
   params: any
 }
 
 export interface ICommandOutput1 {
-  command: ICommandParams
+  command?: ICommandParams
   result?: any
   error?: any
   extra?: any

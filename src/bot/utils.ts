@@ -73,3 +73,19 @@ export {
   normalizeSendOpts,
   normalizeRecipient
 }
+
+export const toBotMessageEvent = ({ bot, user, message }):any => {
+  // identity permalink serves as user id
+  const { object } = message
+  const type = object[TYPE]
+  return {
+    bot,
+    user,
+    message,
+    payload: object,
+    object,
+    type,
+    link: object._link,
+    permalink: object._permalink,
+  }
+}

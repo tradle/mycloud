@@ -81,10 +81,6 @@ const HIDDEN_PRODUCTS = {
   customer: ALL_HIDDEN_PRODUCTS
 }
 
-// until the issue with concurrent modifications of user & application state is resolved
-// then some handlers can migrate to 'messagestream'
-const willHandleMessages = event => event === 'message'
-
 export default function createProductsBot({
   bot,
   logger,
@@ -109,7 +105,11 @@ export default function createProductsBot({
 
   logger.debug('setting up products strategy')
 
-  const handleMessages = willHandleMessages(event)
+  // until the issue with concurrent modifications of user & application state is resolved
+  // then some handlers can migrate to 'messagestream'
+  const handleMessages = event === 'message' ||
+    (bot.isTesting && event === 'messagestream')
+
   const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
     logger: logger.sub('products'),

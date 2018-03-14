@@ -1,4 +1,8 @@
+// @ts-ignore
+import Promise from 'bluebird'
 import compose, { Middleware } from 'koa-compose'
+import { toBatchEvent } from './events'
+import { isPromise } from './utils'
 
 interface MiddlewareMap<Context> {
   [key: string]: Middleware<Context>[]
@@ -21,25 +25,39 @@ export class MiddlewareContainer<Context=DefaultContext> {
     getContextForEvent?: GetContextForEvent<Context>
   }={}) {
     this.getContextForEvent = getContextForEvent
-    this.middleware = {}
+    this.middleware = {
+      '*': []
+    }
   }
 
-  public use = (event, middleware) => {
+  public hook = (event, middleware) => {
     this.getMiddleware(event).push(middleware)
   }
 
-  public hook = this.use
-  public fire = async (event, payload) => {
-    const middleware = this.middleware[event]
-    if (!(middleware && middleware.length)) return
+  public hookSimple = (event, handler) => {
+    this.hook(event, toSimpleMiddleware(handler))
+  }
+
+  public fire = async (event:string, payload:any) => {
+    const specific = this.middleware[event] || []
+    const wild = this.middleware['*']
+    if (!(specific.length + wild.length)) return
 
     const ctx = this.getContextForEvent(event, payload)
-    await compose(middleware)(ctx)
+    await compose(specific)(ctx)
+    // @ts-ignore
+    // hm....
+    await compose(wild)({ ctx, event })
     return ctx
   }
 
-  public useSimple = (event, handler) => {
-    this.use(event, toSimpleMiddleware(handler))
+  public fireBatch = async (event, payloads) => {
+    const batch = await this.fire(toBatchEvent(event), payloads)
+    const individual = await Promise.mapSeries(payloads, payload => this.fire(event, payload))
+    return {
+      batch,
+      individual
+    }
   }
 
   public getMiddleware = event => {

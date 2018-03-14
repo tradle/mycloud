@@ -34,15 +34,20 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
     return object
   }
 
-  bot.hook('message', async (ctx, next) => {
-    const { message } = ctx.event
-    await plugin.deliverMessageEvent(message)
-    await next()
-  })
+  const messageEventHandler = async (event) => {
+    bot.tasks.add({
+      name: `webhook:msg`,
+      promiser: () => plugin.deliverMessageEvent(event.message)
+    })
+  }
 
-  bot.hook('save', async (ctx, next) => {
-    await plugin.deliverSaveEvent(ctx.event.object)
-    await next()
+  bot.hookSimple(EventTopics.message.outbound.async, messageEventHandler)
+  bot.hookSimple(EventTopics.message.inbound.async, messageEventHandler)
+  bot.hookSimple(EventTopics.resource.save.async, async (event) => {
+    bot.tasks.add({
+      name: 'webhook:save',
+      promiser: () => plugin.deliverSaveEvent(event.object)
+    })
   })
 
   const fireAll = async (events:IWebhookEvent|IWebhookEvent[], expand) => {
@@ -61,7 +66,9 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
     await fireAll({
       id: randomString(10),
       time: Date.now(),
-      topic: 'save',
+      // it's actually async, but there's no need to force webhook subscriptions
+      // to specify async:save:...
+      topic: EventTopics.resource.save.sync,
       data: prepareForDelivery(resource)
     }, true)
   }
@@ -70,7 +77,9 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
     await fireAll({
       id: randomString(10),
       time: Date.now(),
-      topic: EventTopics.message.inbound,
+      // it's actually async, but there's no need to force webhook subscriptions
+      // to specify async:save:...
+      topic: EventTopics.message.inbound.sync,
       data: prepareForDelivery(message)
     }, true)
   }

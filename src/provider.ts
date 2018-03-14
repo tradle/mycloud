@@ -310,6 +310,8 @@ export default class Provider {
 
   public attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
     const { recipient, messages } = opts
+    if (!messages.length) return
+
     const promiseSession = opts.session
       ? Promise.resolve(opts.session)
       : this.auth.getLiveSessionByPermalink(recipient).catch(err => {
