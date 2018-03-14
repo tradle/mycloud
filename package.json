@@ -41,7 +41,6 @@
     "serverless-offline": "github:tradle/serverless-offline",
     "serverless-offline-scheduler": "^0.3.3",
     "serverless-plugin-aws-alerts": "^1.2.4",
-    "serverless-plugin-common-excludes": "^2.0.0",
     "serverless-plugin-log-retention": "^1.0.2",
     "serverless-plugin-tracing": "^1.0.6",
     "serverless-s3-encryption": "git://github.com/tradle/serverless-s3-encryption.git#e6b4ec37723f27fd3050f74f3022f990a7750f7e",

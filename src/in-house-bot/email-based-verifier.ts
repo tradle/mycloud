@@ -1,5 +1,6 @@
 import querystring from 'querystring'
 import _ from 'lodash'
+import Validation from 'freemail'
 import {
   Bot,
   IMailer,
@@ -7,8 +8,6 @@ import {
   Commander,
   ICommandOutput1,
   IDeferredCommandParams,
-  // IDeferredCommandInput,
-  // IDeferredCommandOutput,
   ISendEmailOpts,
   IConf,
   Logger
@@ -16,7 +15,6 @@ import {
 
 import * as Templates from './templates'
 import Errors from '../errors'
-import Validation from 'freemail'
 
 const EMAIL_CHECK = 'tradle.EmailCheck'
 

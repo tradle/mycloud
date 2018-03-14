@@ -79,7 +79,9 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
       time: Date.now(),
       // it's actually async, but there's no need to force webhook subscriptions
       // to specify async:save:...
-      topic: EventTopics.message.inbound.sync,
+      topic: message._inbound
+        ? EventTopics.message.inbound.sync
+        : EventTopics.message.outbound.sync,
       data: prepareForDelivery(message)
     }, true)
   }
