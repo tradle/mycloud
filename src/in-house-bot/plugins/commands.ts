@@ -34,7 +34,7 @@ export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf 
   }
 
   const onCommand = async ({ req, command }) => {
-    const res = await commands.exec({ req, command })
+    const res = await commands.execFromString({ req, command })
     await sendResponse({ req, res })
   }
 

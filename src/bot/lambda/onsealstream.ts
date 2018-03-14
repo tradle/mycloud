@@ -5,8 +5,7 @@ import { batchProcess } from '../../utils'
 import { Lambda } from '../../types'
 import { fromDynamoDB } from '../lambda'
 import { createMiddleware as createSaveEvents } from '../middleware/events'
-import { getSealEventTopic } from '../../events'
-const toBatchEvent = event => event + ':batch'
+import { getSealEventTopic, toBatchEvent } from '../../events'
 const pluckData = ({ data }) => data
 
 export const createLambda = (opts) => {
@@ -25,13 +24,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     await Promise.all(Object.keys(byType).map(async (event) => {
       const subset = byType[event]
       if (subset) {
-        await bot.fire(toBatchEvent(event), subset.map(pluckData))
+        await bot.fireBatch(event, subset.map(pluckData))
       }
-    }))
-
-    // trigger per-seal-event processors
-    await Promise.all(events.map(({ event, data }) => {
-      return bot.fire(event, data)
     }))
   }
 
@@ -49,6 +43,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 }
 
 const recordToEvent = record => ({
-  event: getSealEventTopic(record),
+  event: getSealEventTopic(record).async,
   data: record.new
 })

@@ -29,17 +29,19 @@ type EventPartial = {
   time: number
 }
 
+type EventsOpts = {
+  tables: any
+  dbUtils: any
+  logger: Logger
+  db: DB
+}
+
 export default class Events {
   private db: DB
   private tables: Tables
   private dbUtils: any
   private logger: Logger
-  constructor ({ tables, dbUtils, logger, db }: {
-    tables: any
-    dbUtils: any
-    logger: Logger
-    db: DB
-  }) {
+  constructor ({ tables, dbUtils, logger, db }: EventsOpts) {
     this.tables = tables
     this.dbUtils = dbUtils
     this.logger = logger
@@ -67,7 +69,7 @@ export default class Events {
     if (!topic) return
 
     return {
-      topic,
+      topic: topic.toString(),
       data: item,
       time
     }
@@ -88,7 +90,7 @@ export default class Events {
   //   }
   // }
 
-  public getEventTopic = (record: IStreamRecord):string => {
+  public getEventTopic = (record: IStreamRecord):EventTopic => {
     const { Events, Seals, Messages } = this.tables
     const { service, source } = record
     if (record.service !== 'dynamodb') {
@@ -108,8 +110,8 @@ export default class Events {
 }
 
 export { Events }
-export const createEvents = opts => new Events(opts)
-export const getSealEventTopic = (record: IStreamRecord) => {
+export const createEvents = (opts: EventsOpts) => new Events(opts)
+export const getSealEventTopic = (record: IStreamRecord):EventTopic => {
   // when a seal is queued for a write, unsealed is set to 'y'
   // when a seal is written, unsealed is set to null
   const wasJustSealed = record.old && record.old.unsealed && !record.new.unsealed
@@ -166,22 +168,33 @@ const bumpSuffix = (id) => {
   return main + SEPARATOR + (Number(suffix) + 1)
 }
 
-const parseTimeR = timeR => Number(timeR.split(SEPARATOR)[0])
-const parseDateN = dateN => dateN.split(SEPARATOR)[0]
+// const parseTimeR = timeR => Number(timeR.split(SEPARATOR)[0])
+// const parseDateN = dateN => dateN.split(SEPARATOR)[0]
+
+const getTopicName = (str: string) => str.match(/^(?:a?sync:)(.*)$/)[1]
+
+export class EventTopic {
+  constructor(private name: string) {}
+  get sync():string { return `${this.name}` }
+  get async():string { return `async:${this.name}` }
+  public parse = (topic:string):EventTopic => new EventTopic(getTopicName(topic))
+  public toString = () => this.sync
+}
 
 export const topics = {
   seal: {
-    wrote: 'seal:wrote',
-    queuewrite: 'seal:queuewrite',
-    watch: 'seal:watch',
-    read: 'seal:read'
+    wrote: new EventTopic('seal:wrote'),
+    queuewrite: new EventTopic('seal:queuewrite'),
+    watch: new EventTopic('seal:watch'),
+    read: new EventTopic('seal:read')
   },
   message: {
-    inbound: 'msg:i',
-    outbound: 'msg:o'
+    inbound: new EventTopic('msg:i'),
+    outbound: new EventTopic('msg:o')
   },
   resource: {
-    save: 'save',
-    batchSave: 'batch:save'
+    save: new EventTopic('save')
   }
 }
+
+export const toBatchEvent = event => event + ':batch'

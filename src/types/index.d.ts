@@ -324,13 +324,14 @@ export type EndpointInfo = {
   version: string
 }
 
-// export type HooksHookFn = (event:string, handler:Function) => void
-// export type HooksFireFn = (event:string, ...args:any[]) => any|void
+export type HooksHookFn = (event:string, handler:Function) => void
+export type HooksFireFn = (event:string, ...args:any[]) => any|void
 
-// export type Hooks = {
-//   hook: HooksHookFn
-//   fire: HooksFireFn
-// }
+export interface IHooks {
+  user: HooksHookFn
+  hook: HooksHookFn
+  fire: HooksFireFn
+}
 
 export type LambdaCreator = (opts?:any) => Lambda
 

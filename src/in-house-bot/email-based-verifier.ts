@@ -16,6 +16,7 @@ import {
 
 import * as Templates from './templates'
 import Errors from '../errors'
+import Validation from 'freemail'
 
 const EMAIL_CHECK = 'tradle.EmailCheck'
 
@@ -27,7 +28,7 @@ type EmailBasedVerifierOpts = {
   senderEmail: string
 }
 
-interface IConfirmationPageOpts {
+interface IResultPageOpts {
   title: string
   body: string
   signature?: string
@@ -46,7 +47,7 @@ interface IVerificationEmailOpts {
 
 interface IEmailVerificationOpts {
   email: IVerificationEmailOpts
-  confirmationPage: IConfirmationPageOpts
+  confirmationPage: IResultPageOpts
 }
 
 const DEFAULT_EMAIL_DATA = {
@@ -84,10 +85,11 @@ export class EmailBasedVerifier {
     this.senderEmail = senderEmail
   }
 
-  public confirmAndExec = async ({ deferredCommand, confirmationEmail, confirmationPage }: {
+  public confirmAndExec = async ({ deferredCommand, confirmationEmail, confirmationPage, expiredPage }: {
     deferredCommand: IDeferredCommandParams
     confirmationEmail: IVerificationEmailOpts
-    confirmationPage: IConfirmationPageOpts
+    confirmationPage: IResultPageOpts
+    expiredPage?: IResultPageOpts
   }) => {
     const {
       senderEmail=this.senderEmail,
@@ -97,7 +99,7 @@ export class EmailBasedVerifier {
 
     const code = await this.commands.defer({
       ...deferredCommand,
-      extra: { confirmationPage }
+      extra: { confirmationPage, expiredPage }
     })
 
     const confirmationUrl = this.genVerificationUrl(code)
@@ -138,32 +140,31 @@ export class EmailBasedVerifier {
   }
 
   public genConfirmationPage = ({ result, extra }: ICommandOutput1) => {
-    const confirmationPage: IConfirmationPageOpts = extra.confirmationPage
+    const confirmationPage: IResultPageOpts = extra.confirmationPage
     return Templates.page.confirmation({
       title: confirmationPage.title,
-      blocks: confirmationPage.body
-        .split('\n')
-        .map(body => ({ body })),
-      signature: `${this.orgConf.org.name} Team`
+      blocks: textToBlocks(confirmationPage.body),
+      // signature: `-${this.orgConf.org.name} Team`
     })
-
-    // return Templates.page.confirmation({
-    //   title: 'Confirmed!',
-    //   blocks: [
-    //     { body: 'Whatever you were confirming was confirmed' },
-    //     { body: 'Continue in your Tradle app' },
-    //   ]
-    // })
   }
 
   public genErrorPage = (opts: ICommandOutput1) => {
-    const { error } = opts
+    const { error, extra } = opts
     if (Errors.matches(error, Errors.Exists)) {
       return this.genConfirmationPage(opts)
     }
 
+    this.logger.error('email based verification failed', { error })
+    if (extra && extra.expiredPage && Errors.matches(error, Errors.Expired)) {
+      const { expiredPage } = extra
+      return Templates.page.confirmation({
+        title: expiredPage.title,
+        blocks: textToBlocks(expiredPage.body)
+      })
+    }
+
     return Templates.page.confirmation({
-      title: 'Oops!',
+      title: 'Error',
       blocks: [
         { body: 'Huh, a paradox...this page does not exist' }
       ]
@@ -174,4 +175,14 @@ export class EmailBasedVerifier {
     const qs = querystring.stringify({ code })
     return `${this.bot.apiBaseUrl}/confirmation?${qs}`
   }
+
+  public isDisposable = (emailAddress: string) => Validation.isDisposable(emailAddress)
+  public isFree = (emailAddress: string) => Validation.isFree(emailAddress)
+  public isCorporate = (emailAddress: string) => {
+    return !(this.isFree(emailAddress) || this.isDisposable(emailAddress))
+  }
 }
+
+const textToBlocks = str => str
+  .split('\n')
+  .map(body => ({ body }))

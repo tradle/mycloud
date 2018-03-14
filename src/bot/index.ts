@@ -7,15 +7,18 @@ import { DB } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { readyMixin, IReady } from './ready-mixin'
+import { topics as EventTopics } from '../events'
 import {
   defineGetter,
   ensureTimestamped,
+  wait
 } from '../utils'
 
 import { addLinks } from '../crypto'
 import {
   normalizeSendOpts,
-  normalizeRecipient
+  normalizeRecipient,
+  toBotMessageEvent
 } from './utils'
 
 import constants from '../constants'
@@ -35,7 +38,9 @@ import {
   IBotOpts,
   AppLinks,
   IGraphqlAPI,
-  IBotMiddlewareContext
+  IBotMiddlewareContext,
+  HooksFireFn,
+  HooksHookFn
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -160,15 +165,25 @@ export class Bot extends EventEmitter implements IReady {
   public isReady: () => boolean
   public promiseReady: () => Promise<void>
 
-  public get hook() { return this.middleware.hook }
-  public get fire() { return this.middleware.fire }
+  // public hook = (event:string, payload:any) => {
+  //   if (this.isTesting && event.startsWith('async:')) {
+  //     event = event.slice(6)
+  //   }
+
+  //   return this.middleware.hook(event, payload)
+  // }
+
+  public get hook():HooksHookFn { return this.middleware.hook }
+  public get hookSimple():HooksHookFn { return this.middleware.hookSimple }
+  public get fire():HooksFireFn { return this.middleware.fire }
+  public get fireBatch():HooksFireFn { return this.middleware.fireBatch }
 
   // shortcuts
-  public onmessage = handler => this.middleware.useSimple('message', handler)
-  public oninit = handler => this.middleware.useSimple('init', handler)
-  public onseal = handler => this.middleware.useSimple('seal', handler)
-  public onreadseal = handler => this.middleware.useSimple('readseal', handler)
-  public onwroteseal = handler => this.middleware.useSimple('wroteseal', handler)
+  public onmessage = handler => this.middleware.hookSimple('message', handler)
+  public oninit = handler => this.middleware.hookSimple('init', handler)
+  public onseal = handler => this.middleware.hookSimple('seal', handler)
+  public onreadseal = handler => this.middleware.hookSimple('readseal', handler)
+  public onwroteseal = handler => this.middleware.hookSimple('wroteseal', handler)
 
   public lambdas: LambdaMap
 
@@ -222,16 +237,6 @@ export class Bot extends EventEmitter implements IReady {
       return map
     }, {})
 
-    if (this.isTesting) {
-      const yml = require('../cli/serverless-yml')
-      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
-      this.appLinks = createLinker({
-        web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, `http://localhost:${webPort}`)
-      })
-    } else {
-      this.appLinks = defaultAppLinks
-    }
-
     let graphql
     Object.defineProperty(this, 'graphql', {
       get() {
@@ -247,17 +252,36 @@ export class Bot extends EventEmitter implements IReady {
     })
 
     this.middleware = new MiddlewareContainer({
-      getContextForEvent: (event, payload) => ({
+      getContextForEvent: (event, data) => ({
         bot: this,
-        event: payload
+        event: data
       })
     })
 
-    // this.objects.hook('put', async (ctx, next) => {
-    //   debugger
-    //   await this.middleware.fire('save', ctx.event)
-    //   await next()
-    // })
+    if (this.isTesting) {
+      const yml = require('../serverless-interpolated')
+      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
+      this.appLinks = createLinker({
+        web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, `http://localhost:${webPort}`)
+      })
+
+      this.objects.hook('put', async (ctx, next) => {
+        await next()
+        await wait(0)
+        await this.fire('save', { object: ctx.event })
+      })
+
+      // trigger stream stuff
+      this.hook('*', async ({ ctx, event }, next) => {
+        await next()
+        await wait(0)
+        if (!event.startsWith('async:')) {
+          await this.fire(`async:${event}`, ctx.event)
+        }
+      })
+    } else {
+      this.appLinks = defaultAppLinks
+    }
 
     if (ready) this.ready()
   }
@@ -288,19 +312,16 @@ export class Bot extends EventEmitter implements IReady {
             messages
           })
         })
+
+        const user = await this.users.get(recipient)
+        await this.fireBatch(EventTopics.message.outbound.sync, messages.map(message => toBotMessageEvent({
+          bot: this,
+          message,
+          user
+        })))
       } finally {
         this.outboundMessageLocker.unlock(recipient)
       }
-
-      // if (IS_OFFLINE && messages) {
-      //   const onSavedMiddleware = require('./middleware/onmessagessaved')
-      //   const processStream = onSavedMiddleware.toStreamAndProcess(bot.lambda)
-      //   await processStream({
-      //     event: {
-      //       messages: _.cloneDeep(messages)
-      //     }
-      //   })
-      // }
 
       return messages
     }))
@@ -361,16 +382,31 @@ export class Bot extends EventEmitter implements IReady {
       throw new Errors.InvalidInput(`expected "type" and "permalink"`)
     }
 
-    const check = await this.getResource({ type, permalink })
+    const current = await this.getResource({ type, permalink })
     const updated = buildResource({
       models: this.models,
-      model: check[TYPE],
-      resource: check
+      model: current[TYPE],
+      resource: current
     })
     .set(props)
     .toJSON()
 
-    await this.signAndSave(updated)
+    const changedProps = Object.keys(props)
+    if (_.isEqual(
+      _.pick(current, changedProps),
+      _.pick(updated, changedProps)
+    )) {
+      this.logger.debug('nothing changed, skipping updateResource')
+      return {
+        resource: current,
+        changed: false
+      }
+    }
+
+    return {
+      resource: await this.versionAndSave(updated),
+      changed: true
+    }
   }
 
   public createLambda = (opts:ILambdaOpts={}):Lambda => createLambda({
@@ -379,6 +415,9 @@ export class Bot extends EventEmitter implements IReady {
     bot: this
   })
 
+  /**
+   * Get the latest version of a resource
+   */
   public getResource = async ({ type, permalink }: {
     type: string
     permalink: string
@@ -389,6 +428,9 @@ export class Bot extends EventEmitter implements IReady {
     })
   }
 
+  /**
+   * Get an exact resource version
+   */
   public getResourceByStub = async (stub:ResourceStub):Promise<ITradleObject> => {
     const { link } = parseStub(stub)
     return await this.objects.get(link)

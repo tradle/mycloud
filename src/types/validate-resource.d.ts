@@ -36,6 +36,7 @@ declare module '@tradle/validate-resource' {
     stripVirtual(obj:any): any
     pickVirtual(obj:any): any
     isInstantiable(obj:any): boolean
+    getPropertyTitle({ model: any, propertyName: string }): string
   }
 
   class RequiredError extends Error {

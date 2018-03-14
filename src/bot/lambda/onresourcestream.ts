@@ -1,7 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import { Lambda } from '../../types'
-import { topics as EventTopics } from '../../events'
+import { topics as EventTopics, toBatchEvent } from '../../events'
 import { EventSource, fromDynamoDB } from '../lambda'
 
 export const createLambda = (opts) => {
@@ -17,9 +17,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       .filter(partial => partial)
 
     const objects = await Promise.all(partials.map(({ _link }) => bot.objects.get(_link)))
-    await bot.fire(EventTopics.resource.batchSave, objects)
-    await Promise.mapSeries(objects, async (object) => {
-      await bot.fire(EventTopics.resource.save, { object })
-    })
+    await bot.fireBatch(EventTopics.resource.save.async, objects)
   }
 }

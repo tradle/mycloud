@@ -6,7 +6,9 @@ import {
   Bot,
   ResourceStub,
   IPBReq,
-  IPBApp
+  IPBApp,
+  ITradleObject,
+  IUser
 } from './types'
 
 interface ICreateCheckOpts {
@@ -18,6 +20,11 @@ interface IPBJudgeAppOpts {
   req?: IPBReq
   application: string|IPBApp|ResourceStub
   approve?: boolean
+}
+
+interface IPropertyInfo {
+  name: string
+  message?: string
 }
 
 export class Applications {
@@ -45,16 +52,32 @@ export class Applications {
       application.checks = []
     }
 
-    application.checks.push(buildResource.stub({ resource, models }))
+    application.checks.push(this.stub(resource))
     if (!req) {
-      await productsAPI.saveNewVersionOfApplication({ application })
+      await this._commitApplicationUpdate({ application })
     }
 
     return resource
   }
 
   public updateCheck = async (opts) => {
-    return await this.bot.updateResource(opts)
+    const result = await this.bot.updateResource(opts)
+    const check = result.resource
+    if (!result.changed) return check
+    if (!check.application) return check
+
+    const application = await this.bot.getResource(parseStub(check.application))
+    const idx = application.checks.find(stub => {
+      return parseStub(stub).permalink === check._permalink
+    })
+
+    if (idx === -1) return check
+
+    application.checks[idx] = this.stub(check)
+    if (opts.req) return
+
+    await this._commitApplicationUpdate({ application })
+    return check
   }
 
   public judgeApplication = async ({ req, application, approve }: IPBJudgeAppOpts) => {
@@ -62,7 +85,7 @@ export class Applications {
     const judge = req && req.user
     application = await productsAPI.getApplication(application) as IPBApp
 
-    const user = await bot.users.get(parseStub(application.applicant).permalink)
+    const user = await this.getApplicantFromApplication(application)
     const method = approve ? 'approveApplication' : 'denyApplication'
     try {
       await productsAPI[method]({ req, judge, user, application })
@@ -73,8 +96,7 @@ export class Applications {
 
     if (req) return
 
-    await productsAPI.saveNewVersionOfApplication({ user, application })
-    await bot.users.merge(user)
+    await this._commitApplicationUpdate({ application })
   }
 
   public approve = async (opts) => {
@@ -85,6 +107,61 @@ export class Applications {
     return this.judgeApplication({ ...opts, approve: false })
   }
 
+  public requestEdit = async (opts) => {
+    return await this.productsAPI.requestEdit(opts)
+  }
+
+  private stub = (resource: ITradleObject) => {
+    return buildResource.stub({
+      models: this.bot.models,
+      resource
+    })
+  }
+
+  private getApplicantFromApplication = async (application: IPBApp) => {
+    return await this.bot.users.get(parseStub(application.applicant).permalink)
+  }
+
+  private _commitApplicationUpdate = async ({ application, user }: {
+    application: IPBApp
+    user?: IUser
+  }) => {
+    if (!user) {
+      user = await this.getApplicantFromApplication(application)
+    }
+
+    await this.productsAPI.saveNewVersionOfApplication({ user, application })
+    await this.bot.users.save(user)
+  }
+
+  // public requestEdit = async (opts: {
+  //   req?: IPBReq
+  //   user?: IUser
+  //   application?: IPBApp
+  //   item: ITradleObject
+  //   properties?: IPropertyInfo[]
+  // }) => {
+  //   const { req, properties, errors } = opts
+  //   let {
+  //     item,
+  //     user = req.user,
+  //     application = req.application,
+  //     prefill
+  //   } = opts
+
+  //   if (application && !application.context) {
+  //     application = this.productsAPI.getApplication(application)
+  //   }
+
+  //   const details = {}
+  //   if (properties) {
+
+  //   }
+
+  //   const editOpts = { req, user, item, details }
+
+  //   return await this.productsAPI.requestEdit(editOpts)
+  // }
   // public listProducts = () => {
 
   // }

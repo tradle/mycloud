@@ -52,6 +52,11 @@ interface IExecCredentials {
   employee?: boolean
 }
 
+interface IExecOpts extends ICommandParams {
+  // credentials: IExecCredentials
+  req?: IPBReq
+}
+
 // export const EMPLOYEE_COMMANDS = [
 //   'help',
 //   'listproducts',
@@ -156,7 +161,7 @@ export class Commander {
     return command
   }
 
-  public exec = async (opts: ICommandInput):Promise<ICommandOutput> => {
+  public execFromString = async (opts: ICommandInput):Promise<ICommandOutput> => {
     const ctx = this._createCommandContext(opts)
     const ret:ICommandOutput = { ctx }
     try {
@@ -181,17 +186,11 @@ export class Commander {
     return await command.exec(ctx)
   }
 
-  public exec1 = async (opts: {
-    // credentials: IExecCredentials
-    component: string
-    method: string
-    params: any
-    req?: IPBReq
-  }) => {
+  public exec = async (opts: IExecOpts) => {
     this._ensureCommandExists(opts)
-    // TODO: auth
+    // TODO: auth, whitelist of functions allowed
     const { component, method, params, req } = opts
-    return await this[component][method](params)
+    return await this.components[component][method](params)
   }
 
   public sendResult = async ({ req, to, result }) => {
@@ -276,7 +275,14 @@ export class Commander {
   // }
 
   public execDeferred = async (code: string):Promise<ICommandOutput1> => {
-    const state = await this.store.get(code) as IConfirmationState
+    let state
+    try {
+      state = await this.store.get(code) as IConfirmationState
+    } catch (error) {
+      Errors.ignoreNotFound(error)
+      return { error }
+    }
+
     const {
       confirmed,
       dateExpires,
@@ -285,19 +291,20 @@ export class Commander {
     } = state
 
     const ret:ICommandOutput1 = { command, extra }
-    // if (confirmed) {
-    //   ret.error = new Error(`confirmation code has already been used: ${code}`)
-    //   return ret
-    // }
+    if (confirmed) {
+      // Exists might not be the right error
+      ret.error = new Errors.Exists(`confirmation code has already been used: ${code}`)
+      return ret
+    }
 
-    // if (Date.now() > dateExpires) {
-    //   ret.error = new Errors.Expired(`confirmation code expired: ${code}`)
-    //   return ret
-    // }
+    if (Date.now() > dateExpires) {
+      ret.error = new Errors.Expired(`confirmation code expired: ${code}`)
+      return ret
+    }
 
     // authorization is checked on defer()
     // const res = await this.exec({ confirmed: true, sudo: true, command: state.command })
-    const res = await this.exec1(command)
+    const res = await this.exec(command)
     await this.store.put(code, {
       ...state,
       confirmed: true

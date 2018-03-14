@@ -7,6 +7,7 @@ import { fromHTTP } from '../lambda'
 import { onMessage as onMessageInInbox, createSuccessHandler, createErrorHandler } from '../middleware/inbox'
 import { onMessage } from '../middleware/onmessage'
 import { onMessagesSaved } from '../middleware/onmessagessaved'
+import { topics as EventTopics } from '../../events'
 
 const MODELS_PACK = 'tradle.ModelsPack'
 
@@ -18,7 +19,7 @@ export const createLambda = (opts) => {
     promiser: bot.iot.getEndpoint
   })
 
-  bot.hook('message', async (ctx, next) => {
+  bot.hook(EventTopics.message.inbound.sync, async (ctx, next) => {
     const { type, payload } = ctx.event
     if (type === MODELS_PACK) {
       try {

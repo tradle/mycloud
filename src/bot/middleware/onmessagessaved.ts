@@ -7,8 +7,9 @@ import Errors from '../../errors'
 import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
 import { allSettled, uniqueStrict } from '../../utils'
+import { toBotMessageEvent } from '../utils'
 import { Lambda } from '../../types'
-import { topics as EventTopics } from '../../events'
+import { topics as EventTopics, toBatchEvent } from '../../events'
 import { EventSource } from '../lambda'
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
@@ -37,14 +38,27 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
 
   const lock = id => locker.lock(id)
   const unlock = id => locker.unlock(id)
-  return async (ctx, next) => {
-    const { messages } = ctx.event
-    if (!messages) return
+  const triggerOutbound = async (messages, eventType) => {
+    if (!messages.length) return
 
-    const inbound = messages.filter(({ _inbound }) => _inbound)
-    if (!inbound.length) return
+    const recipientPermalinks = uniqueStrict(messages.map(({ _recipient }) => _recipient))
+    const recipients = await Promise.map(recipientPermalinks, permalink => bot.users.get(permalink))
+    const events = messages.map(message => toBotMessageEvent({
+      bot,
+      user: recipients.find(user => user.id === message._recipient),
+      message
+    }))
 
-    const authors = uniqueStrict(inbound.map(({ _author }) => _author))
+    const byRecipient = _.groupBy(events, event => event.user.id)
+    return await Promise.map(_.values(byRecipient), async (batch) => {
+      await bot.fireBatch(EventTopics.message.outbound[eventType], batch)
+    })
+  }
+
+  const triggerInbound = async (messages, eventType) => {
+    if (!messages.length) return
+
+    const authors = uniqueStrict(messages.map(({ _author }) => _author))
     if (authors.length > 1) {
       throw new Error('only messages from a single author allowed')
     }
@@ -52,18 +66,31 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     const userId = authors[0]
     await lock(userId)
     try {
-      ctx.user = await bot.users.createIfNotExists({ id: userId })
-      const { user } = ctx
-      logger.debug(`feeding ${inbound.length} messages to business logic`)
-      for (const message of inbound) {
-        const botMessageEvent = toBotMessageEvent({ bot, user, message })
-        await bot.fire(EventTopics.message.inbound, botMessageEvent)
+      const user = await bot.users.createIfNotExists({ id: userId })
+      const events = messages.map(message => toBotMessageEvent({ bot, user, message }))
+      logger.debug(`feeding ${messages.length} messages to business logic`)
+      await bot.fireBatch(EventTopics.message.inbound[eventType], events)
+      for (const event of events) {
+        // const botMessageEvent = toBotMessageEvent({ bot, user, message })
+        // await bot.fire(EventTopics.message.inbound[eventType], botMessageEvent)
         // backwards compat
-        await bot.fire('message', botMessageEvent)
+        await bot.fire('message', event)
       }
     } finally {
       await unlock(userId)
     }
+  }
+
+  return async (ctx, next) => {
+    const { messages } = ctx.event
+    if (!messages) return
+
+    const [inbound, outbound] = _.partition(messages, ({ _inbound }) => _inbound)
+    const eventType = lambda.source === EventSource.DYNAMODB ? 'async' : 'sync'
+    await Promise.all([
+      triggerInbound(inbound, eventType),
+      triggerOutbound(outbound, eventType)
+    ])
 
     await next()
   }
@@ -75,22 +102,6 @@ export const toStreamAndProcess = (lambda:Lambda, opts?: any) => {
     toStream(lambda, opts),
     onMessageStream.createMiddleware(lambda, opts)
   ])
-}
-
-const toBotMessageEvent = ({ bot, user, message }):any => {
-  // identity permalink serves as user id
-  const { object } = message
-  const type = object[TYPE]
-  return {
-    bot,
-    user,
-    message,
-    payload: object,
-    object,
-    type,
-    link: object._link,
-    permalink: object._permalink,
-  }
 }
 
 const toStream = (lambda:Lambda, opts?:any) => {
