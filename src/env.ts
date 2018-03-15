@@ -70,6 +70,7 @@ export default class Env {
   public CORDA_API_KEY?:string
   public NO_TIME_TRAVEL:boolean
   public IOT_PARENT_TOPIC:string
+  public IOT_CLIENT_ID_PREFIX:string
   public IOT_ENDPOINT:string
   public logger:Logger
   public debug:IDebug

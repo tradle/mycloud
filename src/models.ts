@@ -41,17 +41,6 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
-// const deferredAction = {
-//   id: 'tradle.DeferredAction',
-//   properties: {
-
-//     arg: {
-//       type: 'object',
-//       range: 'json'
-//     }
-//   }
-// }
-
 // const cloudEventModel = {
 //   type: 'tradle.Model',
 //   id: 'tradle.cloud.Event',
@@ -84,39 +73,5 @@ if (!baseMessageModel.properties._deliveryStatus) {
 // }
 
 // base[cloudEventModel.id] = cloudEventModel
-
-const emailCheckModel = {
-  type: 'tradle.Model',
-  id: 'tradle.EmailCheck',
-  title: 'Email Check',
-  subClassOf: 'tradle.Check',
-  description: 'check for who controls an email address',
-  properties: {
-    provider: {
-      type: 'string',
-      readOnly: true
-    },
-    status: {
-      type: 'object',
-      ref: 'tradle.Status',
-      readOnly: true
-    },
-    emailAddress: {
-      type: 'string',
-      range: 'email',
-      readOnly: true
-    },
-    application: {
-      type: 'object',
-      ref: 'tradle.Application'
-    }
-  },
-  required: [
-    'provider',
-    'emailAddress'
-  ]
-}
-
-base[emailCheckModel.id] = emailCheckModel
 
 export = base

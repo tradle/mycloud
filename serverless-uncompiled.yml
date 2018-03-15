@@ -101,6 +101,7 @@ custom:
   # maybe during info/auth, the server can send back the prefix
   # prefixIOTTopic: ${{self:service}}-
   iotParentTopic: ${{self:custom.stackName}}
+  iotClientIdPrefix: ${{self:custom.stackName}}-
   prefixSNSTopic: ${{self:custom.prefix}}
   prefixSQS: ${{self:custom.prefix}}
   # apigateway
@@ -304,6 +305,7 @@ provider:
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
     IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
+    IOT_CLIENT_ID_PREFIX: ${{self:custom.iotClientIdPrefix}}
     BLOCKCHAIN: ${{self:custom.blockchain}}
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
     CORDA_API_KEY: ${{self:custom.corda.apiKey}}
@@ -709,13 +711,13 @@ functions:
     handler: lib/in-house-bot/lambda/mqtt/oniotlifecycle.handler
     events:
       - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/connected/#'"
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/connected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
           sqlVersion: ${{self:custom.versionSQL}}
       - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#'"
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
           sqlVersion: ${{self:custom.versionSQL}}
       - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#'"
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
           sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors

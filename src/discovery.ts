@@ -3,7 +3,7 @@
 // import mkdirp from 'mkdirp'
 import { Lambda } from 'aws-sdk'
 import { promisify } from './utils'
-import { Logger, Env, LambdaUtils, StackUtils } from './types'
+import { Logger, Env, LambdaUtils, StackUtils, Iot } from './types'
 
 // const pfs = promisify(fs)
 // const pmkdirp = promisify(mkdirp)
@@ -13,7 +13,7 @@ export default class Discovery {
   private aws: any
   private lambdaUtils: LambdaUtils
   private stackUtils: StackUtils
-  private iot: any
+  private iot: Iot
   private logger: Logger
   public get thisFunctionName () {
     return this.lambdaUtils.thisFunctionName
@@ -24,7 +24,7 @@ export default class Discovery {
     aws: any,
     lambdaUtils: LambdaUtils,
     stackUtils: StackUtils,
-    iot: any,
+    iot: Iot,
     logger: Logger
   }) {
     const { env, aws, lambdaUtils, iot, logger } = opts

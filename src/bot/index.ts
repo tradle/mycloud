@@ -25,7 +25,7 @@ import constants from '../constants'
 import createUsers from './users'
 import { createGraphqlAPI } from './graphql'
 import {
-  EndpointInfo,
+  IEndpointInfo,
   ILambdaImpl,
   Lambda,
   LambdaCreator,
@@ -158,7 +158,6 @@ export class Bot extends EventEmitter implements IReady {
   public kv: KeyValueTable
   public conf: KeyValueTable
   public debug: Function
-  public endpointInfo: EndpointInfo
   public users: any
   public graphql: IGraphqlAPI
 
@@ -193,6 +192,7 @@ export class Bot extends EventEmitter implements IReady {
   private tradle: Tradle
   private get provider() { return this.tradle.provider }
   private outboundMessageLocker: Locker
+  private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
   constructor (opts: IBotOpts) {
     super()
@@ -225,8 +225,8 @@ export class Bot extends EventEmitter implements IReady {
     this.conf = tradle.kv.sub('bot:conf:')
     this.endpointInfo = {
       aws: true,
-      iotParentTopic: env.IOT_PARENT_TOPIC,
-      version: this.version
+      version: this.version,
+      ...this.iot.endpointInfo
     }
 
     this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
@@ -289,6 +289,13 @@ export class Bot extends EventEmitter implements IReady {
     this.hookSimple('msg:i', event => this.fire('message', event))
 
     if (ready) this.ready()
+  }
+
+  public getEndpointInfo = async ():Promise<IEndpointInfo> => {
+    return {
+      ...this.endpointInfo,
+      endpoint: await this.iot.getEndpoint()
+    }
   }
 
   public send = async (opts) => {
