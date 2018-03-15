@@ -182,6 +182,7 @@ export class EventTopic {
 }
 
 export const topics = {
+  init: new EventTopic('init'),
   seal: {
     wrote: new EventTopic('seal:wrote'),
     queuewrite: new EventTopic('seal:queuewrite'),
@@ -197,4 +198,10 @@ export const topics = {
   }
 }
 
-export const toBatchEvent = event => event + ':batch'
+export const toBatchEvent = topic => {
+  return topic.endsWith(':batch') ? topic : `${topic}:batch`
+}
+
+export const toAsyncEvent = topic => {
+  return topic.startsWith('async:') ? topic : `async:${topic}`
+}

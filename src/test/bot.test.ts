@@ -270,22 +270,22 @@ test(`seal events stream`, loudAsync(async (t) => {
 
   bot.hook(EventTopics.seal.queuewrite.async, async ({ event }) => {
     queuedWrite = true
-    t.equal(event.link, link)
+    t.equal(event.seal.link, link)
   })
 
   bot.hook(EventTopics.seal.wrote.async, async ({ event }) => {
     wrote = true
-    t.equal(event.link, link)
+    t.equal(event.seal.link, link)
   })
 
   bot.hook(EventTopics.seal.read.async, async ({ event }) => {
     read = true
-    t.equal(event.link, link)
+    t.equal(event.seal.link, link)
   })
 
   bot.hook(EventTopics.seal.watch.async, async ({ event }) => {
     watch = true
-    t.equal(event.link, link)
+    t.equal(event.seal.link, link)
   })
 
   await bot.lambdas.onsealstream().handler(toStreamItems(bot.tables.Seals.name, [

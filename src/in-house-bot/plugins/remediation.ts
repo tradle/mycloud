@@ -2,7 +2,7 @@ import { TYPES } from '../constants'
 import {
   IPluginLifecycleMethods,
   IPBReq,
-  IUser,
+  IPBUser,
   IPBApp,
   CreatePlugin
 } from '../types'
@@ -66,7 +66,7 @@ export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) =
 
   plugin.willCreateApplication = async ({ req, user, application }: {
     req: IPBReq
-    user: IUser
+    user: IPBUser
     application: IPBApp
   }) => {
     await tryClaim({ req, user, application })

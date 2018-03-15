@@ -19,7 +19,7 @@ import {
   KeyValueTable,
   ClaimType,
   ClaimStub,
-  IUser,
+  IPBUser,
   ITradleObject,
   IPluginOpts,
   IPBApp,
@@ -67,12 +67,12 @@ type ClaimIdentifier = {
 
 interface IHandleBulkClaimOpts {
   req: IPBReq
-  user: IUser
+  user: IPBUser
   claimId: string
 }
 
 interface IHandlePrefillClaimOpts {
-  user: IUser
+  user: IPBUser
   application: IPBApp
   payload?: ITradleObject
   claimId?: string
@@ -318,7 +318,7 @@ export class Remediation {
   }
 
   public prepareBundleItems = async ({ user, items, claimId }: {
-    user: IUser
+    user: IPBUser
     items: ITradleObject[]
     claimId: string
   }) => {

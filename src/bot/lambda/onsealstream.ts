@@ -23,9 +23,13 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     // trigger batch processors
     await Promise.all(Object.keys(byType).map(async (event) => {
       const subset = byType[event]
-      if (subset) {
-        await bot.fireBatch(event, subset.map(pluckData))
-      }
+      if (!subset) return
+
+      await bot._fireSealBatchEvent({
+        event,
+        seals: subset.map(pluckData),
+        async: true
+      })
     }))
   }
 

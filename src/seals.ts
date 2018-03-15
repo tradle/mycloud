@@ -65,7 +65,7 @@ type WatchOpts = {
   write?: boolean
 }
 
-type Seal = {
+export type Seal = {
   id: string
   link: string
   permalink?: string

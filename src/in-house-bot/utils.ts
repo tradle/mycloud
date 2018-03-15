@@ -6,7 +6,7 @@ import { isPromise, pickNonNull, getEnumValueId, parseStub } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
 import models from '../models'
-import { Name, ResourceStub, ICommand, Bot, IPBApp, IPBAppStub, IUser } from './types'
+import { Name, ResourceStub, ICommand, Bot, IPBApp, IPBAppStub, IPBUser } from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
@@ -331,12 +331,12 @@ export const getApplicationStatus = ({ user, application }) => {
   return 'pending'
 }
 
-export const getNonPendingApplications = (user: IUser) => {
+export const getNonPendingApplications = (user: IPBUser) => {
   return getApplications({ user, pending: false })
 }
 
 export const getApplications = ({ user, pending=true, approved=true, denied=true }: {
-  user: IUser,
+  user: IPBUser,
   pending?: boolean
   approved?: boolean
   denied?: boolean

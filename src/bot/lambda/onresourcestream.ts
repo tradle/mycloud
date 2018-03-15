@@ -17,6 +17,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       .filter(partial => partial)
 
     const objects = await Promise.all(partials.map(({ _link }) => bot.objects.get(_link)))
-    await bot.fireBatch(EventTopics.resource.save.async, objects)
+    // match the sync event format
+    await bot._fireSaveBatchEvent({ objects, async: true })
   }
 }

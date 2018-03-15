@@ -7,7 +7,7 @@ const bot = createBot()
 const lambda = bot.lambdas.onsealstream()
 const { logger, env } = lambda
 if (env.BLOCKCHAIN.flavor === 'corda') {
-  bot.hookSimple(EventTopics.seal.queuewrite.async, async (seal) => {
+  bot.hookSimple(EventTopics.seal.queuewrite.async, async ({ seal }) => {
     logger.debug('attempting to write seal immediately')
     try {
       const result = await bot.seals.writePendingSeal({ seal })

@@ -1,6 +1,6 @@
 import { Context as KoaContext } from 'koa'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
-import { Bot, ModelsPack, DatedValue, Lambda } from '../types'
+import { Bot, ModelsPack, DatedValue, Lambda, IUser } from '../types'
 import { Conf } from './configure'
 import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
@@ -100,26 +100,24 @@ export interface IYargs {
   [x: string]: any
 }
 
-export interface IUser {
-  id: string
+export interface IPBUser extends IUser {
   identity?: IIdentity
   applications?: IPBAppStub[]
   applicationsApproved?: IPBAppStub[]
   applicationsDenied?: IPBAppStub[]
   verificationsImported?: VerifiedItem[]
   verificationsIssued?: VerifiedItem[]
-  [key:string]: any
 }
 
 export interface IPBReq {
-  user: IUser
+  user: IPBUser
   message: ITradleMessage
   payload: ITradleObject
   // alias for "payload"
   object: ITradleObject
   type: string
   application?: IPBApp
-  applicant?: IUser
+  applicant?: IPBUser
   isFromEmployee?: boolean
   skipChecks?: boolean
 }
@@ -160,14 +158,14 @@ export interface IFormRequest extends ITradleObject {
 }
 
 export interface IWillRequestFormArg {
-  user: IUser
+  user: IPBUser
   application?: IPBApp
   formRequest: IFormRequest
 }
 
 export interface IOnFormsCollectedArg {
   req: IPBReq
-  user: IUser
+  user: IPBUser
   application: IPBApp
 }
 
@@ -224,7 +222,7 @@ export interface ICommandOutput {
 // }
 
 export interface ICommandSendResultOpts extends ICommandContext {
-  to: IUser | string
+  to: IPBUser | string
   result: any
 }
 
