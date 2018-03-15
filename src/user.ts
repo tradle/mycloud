@@ -6,15 +6,19 @@ import { prettify } from './string-utils'
 import { PUBLIC_CONF_BUCKET, SEQ } from './constants'
 import Errors from './errors'
 import * as types from './typeforce-types'
-import Env from './env'
-import Logger from './logger'
-import Auth from './auth'
-import Provider from './provider'
-import Delivery from './delivery'
-import { TaskManager } from './task-manager'
-import Messages from './messages'
-import Tradle from './tradle'
-import { ISession, IPositionPair } from './types'
+import {
+  Env,
+  Logger,
+  Auth,
+  Provider,
+  Iot,
+  Delivery,
+  TaskManager,
+  Messages,
+  Tradle,
+  ISession,
+  IPositionPair
+} from './types'
 
 const notNull = val => !!val
 const ClientErrors = {
@@ -32,7 +36,7 @@ export default class User {
   private env: Env
   private logger: Logger
   private auth: Auth
-  private iot: any
+  private iot: Iot
   private provider: Provider
   private delivery: Delivery
   private buckets: any

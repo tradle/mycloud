@@ -220,7 +220,7 @@ export default class Identities {
 
   public putPubKey = (props: { link: string, permalink: string, pub: string }):Promise<any> => {
     const { pub, link } = props
-    this.logger.debug(`adding mapping"`, {
+    this.logger.debug('adding mapping', {
       pub,
       link
     })

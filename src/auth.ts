@@ -1,7 +1,7 @@
 import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
 import { typeforce, defineGetter } from './utils'
-import { prettify } from './string-utils'
+import { prettify, isHex } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors from './errors'
 import * as types from './typeforce-types'
@@ -16,12 +16,13 @@ import {
   Objects,
   IDebug,
   ISession,
-  IIotClientResponse,
+  IIotClientChallenge,
   IRoleCredentials,
   IAuthResponse,
   IIdentity,
   ITradleObject,
-  IServiceMap
+  IServiceMap,
+  Iot
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
@@ -66,9 +67,10 @@ export default class Auth {
   private identities: Identities
   private objects: Objects
   private messages: Messages
-  private iot: any
+  private iot: Iot
   private logger: Logger
   private tasks: TaskManager
+
   constructor (opts: {
     env: Env,
     aws: any,
@@ -77,7 +79,7 @@ export default class Auth {
     identities: Identities,
     objects: Objects,
     messages: Messages,
-    iot: any,
+    iot: Iot,
     logger: Logger,
     tasks: TaskManager
   }) {
@@ -93,10 +95,6 @@ export default class Auth {
     this.logger = opts.logger.sub('auth')
     this.tasks = opts.tasks
   }
-
-
-  static getPermalinkFromClientId = getPermalinkFromClientId
-  public getPermalinkFromClientId = getPermalinkFromClientId
 
   get accountId () {
     return this.env.accountId
@@ -121,7 +119,7 @@ export default class Auth {
     }
 
     return await this.tables.Presence.update({
-      Key: getKeyFromClientId(clientId),
+      Key: this.getKeyFromClientId(clientId),
       UpdateExpression: 'SET #connected = :connected, #dateConnected = :dateConnected',
       ConditionExpression: '#authenticated = :authenticated',
       ExpressionAttributeNames: {
@@ -139,13 +137,13 @@ export default class Auth {
   }
 
   public setSubscribed = async ({ clientId, subscribed }): Promise<any> => {
-    // params.Key = getKeyFromClientId(clientId)
+    // params.Key = this.getKeyFromClientId(clientId)
     if (!subscribed) {
       return await this.updateSession({ clientId }, { subscribed: false })
     }
 
     return await this.tables.Presence.update({
-      Key: getKeyFromClientId(clientId),
+      Key: this.getKeyFromClientId(clientId),
       UpdateExpression: 'SET #subscribed = :subscribed, #dateSubscribed = :dateSubscribed',
       ConditionExpression: '#authenticated = :authenticated',
       ExpressionAttributeNames: {
@@ -163,16 +161,16 @@ export default class Auth {
   }
 
   public deleteSession = (clientId: string): Promise<any> => {
-    const Key = getKeyFromClientId(clientId)
+    const Key = this.getKeyFromClientId(clientId)
     return this.tables.Presence.del({ Key })
   }
 
   public deleteSessionsByPermalink = (permalink: string): Promise<any> => {
-    return this.tables.Presence.del(getSessionsByPermalinkQuery)
+    return this.tables.Presence.del(this.getSessionsByPermalinkQuery(permalink))
   }
 
   public getSessionsByPermalink = (permalink: string): Promise<ISession[]> => {
-    return this.tables.Presence.find(getSessionsByPermalinkQuery(permalink))
+    return this.tables.Presence.find(this.getSessionsByPermalinkQuery(permalink))
   }
 
   public getLiveSessionByPermalink = async (permalink: string): Promise<ISession> => {
@@ -198,7 +196,7 @@ export default class Auth {
       KeyConditionExpression: 'permalink = :permalink AND clientId = :clientId',
       ExpressionAttributeValues: {
         ':clientId': clientId,
-        ':permalink': getPermalinkFromClientId(clientId),
+        ':permalink': this.getPermalinkFromClientId(clientId),
         // ':authenticated': true
       }
     })
@@ -222,13 +220,14 @@ export default class Auth {
         position: types.position
       }, challengeResponse)
     } catch (err) {
+      debugger
       this.logger.error('received invalid input', err.stack)
       throw new InvalidInput(err.message)
     }
 
     const { clientId, permalink, challenge, position } = challengeResponse
 
-    // const permalink = getPermalinkFromClientId(clientId)
+    // const permalink = this.getPermalinkFromClientId(clientId)
     const session = await this.tables.Presence.get({
       Key: { clientId, permalink }
     })
@@ -314,7 +313,7 @@ export default class Auth {
     clientId: string,
     identity: IIdentity,
     ips?: string[]
-  }): Promise<IIotClientResponse> => {
+  }): Promise<IIotClientChallenge> => {
     try {
       typeforce({
         clientId: typeforce.String,
@@ -327,7 +326,7 @@ export default class Auth {
 
     const { clientId, identity } = opts
     const permalink = getPermalink(identity)
-    if (permalink !== getPermalinkFromClientId(clientId)) {
+    if (permalink !== this.getPermalinkFromClientId(clientId)) {
       throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
     }
 
@@ -350,16 +349,9 @@ export default class Auth {
       maybeAddContact
     ])
 
-    const resp:IIotClientResponse = {
-      iotEndpoint: await getIotEndpoint,
-      iotParentTopic: this.env.IOT_PARENT_TOPIC,
-      region: this.env.AWS_REGION,
+    const resp:IIotClientChallenge = {
       time: Date.now(),
       challenge
-    }
-
-    if (this.env.IS_OFFLINE) {
-      resp.s3Endpoint = this.aws.s3.endpoint.host
     }
 
     return resp
@@ -372,15 +364,46 @@ export default class Auth {
   }
 
   public getMostRecentSessionByClientId = (clientId): Promise<any> => {
-    return this.getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
+    return this.getLiveSessionByPermalink(this.getPermalinkFromClientId(clientId))
+  }
+
+  public getKeyFromClientId = (clientId) => {
+    return {
+      clientId,
+      permalink: this.getPermalinkFromClientId(clientId)
+    }
+  }
+
+  public getPermalinkFromClientId = (clientId:string):string => {
+    // split off stackName prefix if it's there
+    const { clientIdPrefix } = this.iot
+    if (clientIdPrefix && clientId.startsWith(clientIdPrefix)) {
+      clientId = clientId.slice(clientIdPrefix.length)
+    }
+
+    if (!isHex(clientId)) {
+      clientId = new Buffer(clientId, 'base64').toString('hex')
+    }
+
+    return clientId.slice(0, 64)
   }
 
   private updateSession = async ({ clientId }, update):Promise<ISession> => {
     return await this.tables.Presence.update({
       ...getUpdateParams(update),
-      Key: getKeyFromClientId(clientId),
+      Key: this.getKeyFromClientId(clientId),
       ReturnValues: 'ALL_NEW'
     })
+  }
+
+  private getSessionsByPermalinkQuery = (permalink) => {
+    return {
+      KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :prefix)',
+      ExpressionAttributeValues: {
+        ':permalink': permalink,
+        ':prefix': this.iot.clientIdPrefix + permalink
+      }
+    }
   }
 }
 
@@ -391,26 +414,6 @@ export { Auth }
 //     return session.clientId === clientId
 //   } catch (err) {}
 // })
-
-function getKeyFromClientId (clientId) {
-  return {
-    clientId,
-    permalink: getPermalinkFromClientId(clientId)
-  }
-}
-
-function getPermalinkFromClientId (clientId:string):string {
-  return clientId.slice(0, 64)
-}
-
-function getSessionsByPermalinkQuery (permalink) {
-  return {
-    KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :permalink)',
-    ExpressionAttributeValues: {
-      ':permalink': permalink
-    }
-  }
-}
 
 // module.exports = {
 //   // onEnter,

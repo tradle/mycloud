@@ -18,7 +18,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     async (ctx:any, next) => {
       logger.debug('setting bot endpoint info')
       if (!ctx.body) ctx.body = {}
-      Object.assign(ctx.body, bot.endpointInfo)
+      ctx.body.connectEndpoint = await bot.getEndpointInfo()
       await next()
     }
   ])

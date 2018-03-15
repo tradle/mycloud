@@ -11,7 +11,8 @@ import {
   Objects,
   Env,
   Auth,
-  Logger
+  Logger,
+  Iot
 } from './types'
 
 // 128KB, but who knows what overhead MQTT adds, so leave a buffer
@@ -21,7 +22,7 @@ const MAX_PAYLOAD_SIZE = 120000 * 5
 
 // eventemitter makes testing easier
 export default class Delivery extends EventEmitter implements IDelivery {
-  private iot: any
+  private iot: Iot
   private messages: Messages
   private objects: Objects
   private auth: Auth

@@ -26,6 +26,7 @@ import {
   StackUtils,
   LambdaUtils,
   S3Utils,
+  Iot,
   Events,
   Init,
   Mailer,
@@ -67,7 +68,7 @@ export default class Tradle {
   public provider: Provider
   public pushNotifications: Push
   public s3Utils: S3Utils
-  public iot: any
+  public iot: Iot
   public lambdaUtils: LambdaUtils
   public stackUtils: StackUtils
   public tasks:TaskManager
@@ -149,7 +150,10 @@ export default class Tradle {
 
     this.define('lambdaUtils', './lambda-utils', this.construct)
     this.define('stackUtils', './stack-utils', this.construct)
-    this.define('iot', './iot-utils', initialize => initialize(this))
+    this.define('iot', './iot-utils', ({ createUtils }) => createUtils({
+      services: this.aws,
+      env: this.env
+    }))
 
     this.define('identities', './identities', this.construct)
     this.define('friends', './friends', this.construct)

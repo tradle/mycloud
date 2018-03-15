@@ -39,6 +39,9 @@ export const alphabetical = (a, b) => {
   return 1
 }
 
+const HEX_REGEX = /^[0-9A-F]+$/i
+export const isHex = str => HEX_REGEX.test(str)
+
 function upperCaseFirstCharacter (str) {
   return str[0].toUpperCase() + str.slice(1).toLowerCase()
 }
