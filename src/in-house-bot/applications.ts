@@ -8,7 +8,7 @@ import {
   IPBReq,
   IPBApp,
   ITradleObject,
-  IUser
+  IPBUser
 } from './types'
 
 interface ICreateCheckOpts {
@@ -124,7 +124,7 @@ export class Applications {
 
   private _commitApplicationUpdate = async ({ application, user }: {
     application: IPBApp
-    user?: IUser
+    user?: IPBUser
   }) => {
     if (!user) {
       user = await this.getApplicantFromApplication(application)
@@ -136,7 +136,7 @@ export class Applications {
 
   // public requestEdit = async (opts: {
   //   req?: IPBReq
-  //   user?: IUser
+  //   user?: IPBUser
   //   application?: IPBApp
   //   item: ITradleObject
   //   properties?: IPropertyInfo[]

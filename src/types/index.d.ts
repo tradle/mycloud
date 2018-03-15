@@ -16,7 +16,7 @@ import { Auth } from '../auth'
 import { Init } from '../init'
 import { AwsApis } from '../aws'
 import { Bucket } from '../bucket'
-import { Seals } from '../seals'
+import { Seals, Seal } from '../seals'
 import { Blockchain } from '../blockchain'
 import { ModelStore } from '../model-store'
 import { Task, TaskManager } from '../task-manager'
@@ -64,6 +64,7 @@ export {
   Init,
   AwsApis,
   Bucket,
+  Seal,
   Seals,
   Blockchain,
   ModelStore,
@@ -572,4 +573,20 @@ export interface IKeyValueStore {
   del: (key: string, opts?:any) => Promise<void>
   update?: (key: string, opts?:any) => Promise<void>
   sub?: (prefix: string) => IKeyValueStore
+}
+
+export interface IUser {
+  id: string
+  [key:string]: any
+}
+
+export interface IBotMessageEvent {
+  bot: Bot
+  user: IUser
+  message: ITradleMessage
+  payload: ITradleObject
+  object: ITradleObject
+  type: string
+  link: string
+  permalink: string
 }

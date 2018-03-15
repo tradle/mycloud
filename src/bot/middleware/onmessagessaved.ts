@@ -38,7 +38,7 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
 
   const lock = id => locker.lock(id)
   const unlock = id => locker.unlock(id)
-  const triggerOutbound = async (messages, eventType) => {
+  const fireOutbound = async (messages, async) => {
     if (!messages.length) return
 
     const recipientPermalinks = uniqueStrict(messages.map(({ _recipient }) => _recipient))
@@ -51,11 +51,11 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
 
     const byRecipient = _.groupBy(events, event => event.user.id)
     return await Promise.map(_.values(byRecipient), async (batch) => {
-      await bot.fireBatch(EventTopics.message.outbound[eventType], batch)
+      await bot._fireMessageBatchEvent({ batch, async })
     })
   }
 
-  const triggerInbound = async (messages, eventType) => {
+  const fireInbound = async (messages, async) => {
     if (!messages.length) return
 
     const authors = uniqueStrict(messages.map(({ _author }) => _author))
@@ -67,15 +67,9 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     await lock(userId)
     try {
       const user = await bot.users.createIfNotExists({ id: userId })
-      const events = messages.map(message => toBotMessageEvent({ bot, user, message }))
+      const batch = messages.map(message => toBotMessageEvent({ bot, user, message }))
       logger.debug(`feeding ${messages.length} messages to business logic`)
-      await bot.fireBatch(EventTopics.message.inbound[eventType], events)
-      for (const event of events) {
-        // const botMessageEvent = toBotMessageEvent({ bot, user, message })
-        // await bot.fire(EventTopics.message.inbound[eventType], botMessageEvent)
-        // backwards compat
-        await bot.fire('message', event)
-      }
+      await bot._fireMessageBatchEvent({ inbound: true, batch, async })
     } finally {
       await unlock(userId)
     }
@@ -86,10 +80,10 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     if (!messages) return
 
     const [inbound, outbound] = _.partition(messages, ({ _inbound }) => _inbound)
-    const eventType = lambda.source === EventSource.DYNAMODB ? 'async' : 'sync'
+    const async = lambda.source === EventSource.DYNAMODB
     await Promise.all([
-      triggerInbound(inbound, eventType),
-      triggerOutbound(outbound, eventType)
+      fireInbound(inbound, async),
+      fireOutbound(outbound, async)
     ])
 
     await next()

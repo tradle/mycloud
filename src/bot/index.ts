@@ -7,7 +7,7 @@ import { DB } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { readyMixin, IReady } from './ready-mixin'
-import { topics as EventTopics } from '../events'
+import { topics as EventTopics, toAsyncEvent } from '../events'
 import {
   defineGetter,
   ensureTimestamped,
@@ -40,7 +40,9 @@ import {
   IGraphqlAPI,
   IBotMiddlewareContext,
   HooksFireFn,
-  HooksHookFn
+  HooksHookFn,
+  Seal,
+  IBotMessageEvent
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -179,11 +181,11 @@ export class Bot extends EventEmitter implements IReady {
   public get fireBatch():HooksFireFn { return this.middleware.fireBatch }
 
   // shortcuts
-  public onmessage = handler => this.middleware.hookSimple('message', handler)
-  public oninit = handler => this.middleware.hookSimple('init', handler)
-  public onseal = handler => this.middleware.hookSimple('seal', handler)
-  public onreadseal = handler => this.middleware.hookSimple('readseal', handler)
-  public onwroteseal = handler => this.middleware.hookSimple('wroteseal', handler)
+  public onmessage = handler => this.middleware.hookSimple(EventTopics.message.inbound.sync, handler)
+  public oninit = handler => this.middleware.hookSimple(EventTopics.init.sync, handler)
+  public onseal = handler => this.middleware.hookSimple(EventTopics.seal.read.sync, handler)
+  public onreadseal = handler => this.middleware.hookSimple(EventTopics.seal.read.sync, handler)
+  public onwroteseal = handler => this.middleware.hookSimple(EventTopics.seal.wrote.sync, handler)
 
   public lambdas: LambdaMap
 
@@ -283,6 +285,9 @@ export class Bot extends EventEmitter implements IReady {
       this.appLinks = defaultAppLinks
     }
 
+    // backwards compat
+    this.hookSimple('msg:i', event => this.fire('message', event))
+
     if (ready) this.ready()
   }
 
@@ -314,11 +319,13 @@ export class Bot extends EventEmitter implements IReady {
         })
 
         const user = await this.users.get(recipient)
-        await this.fireBatch(EventTopics.message.outbound.sync, messages.map(message => toBotMessageEvent({
-          bot: this,
-          message,
-          user
-        })))
+        await this._fireMessageBatchEvent({
+          batch: messages.map(message => toBotMessageEvent({
+            bot: this,
+            message,
+            user
+          }))
+        })
       } finally {
         this.outboundMessageLocker.unlock(recipient)
       }
@@ -494,6 +501,66 @@ export class Bot extends EventEmitter implements IReady {
 
       return // prevent further processing
     }
+  }
+
+  // public _fireSealBatchEvent = async (event: string, seals: Seal[]) => {
+  //   return await this.fireBatch(toAsyncEvent(event), seals)
+  // }
+
+  public _fireSealBatchEvent = async (opts: {
+    async?: boolean
+    event: string
+    seals: Seal[]
+  }) => {
+    const event = opts.async ? toAsyncEvent(opts.event) : opts.event
+    return await this.fireBatch(event, opts.seals.map(seal => ({ seal })))
+  }
+
+  public _fireSealEvent = async (opts: {
+    async?: boolean
+    event: string
+    seal: Seal
+  }) => {
+    const event = opts.async ? toAsyncEvent(opts.event) : opts.event
+    return await this.fire(event, { seal: opts.seal })
+  }
+
+  public _fireSaveBatchEvent = async (opts: {
+    async?: boolean
+    objects: ITradleObject[]
+  }) => {
+    const base = EventTopics.resource.save
+    const topic = opts.async ? base.async : base.sync
+    return await this.fireBatch(topic, opts.objects.map(object => ({ object })))
+  }
+
+  public _fireSaveEvent = async(opts: {
+    async?: boolean
+    object: ITradleObject
+  }) => {
+    const base = EventTopics.resource.save
+    const topic = opts.async ? base.async : base.sync
+    return await this.fire(topic, { object: opts.object })
+  }
+
+  public _fireMessageBatchEvent = async (opts: {
+    async?: boolean
+    inbound?: boolean
+    batch: IBotMessageEvent[]
+  }) => {
+    const topic = opts.inbound ? EventTopics.message.inbound : EventTopics.message.outbound
+    const event = opts.async ? topic.async : topic.sync
+    return await this.fireBatch(event, opts.batch)
+  }
+
+  public _fireMessageEvent = async (opts: {
+    async?: boolean
+    inbound?: boolean
+    data: IBotMessageEvent
+  }) => {
+    const topic = opts.inbound ? EventTopics.message.inbound : EventTopics.message.outbound
+    const event = opts.async ? topic.async : topic.sync
+    await this.fire(event, opts.data)
   }
 }
 
