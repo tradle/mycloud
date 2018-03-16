@@ -43,6 +43,7 @@ interface IResource {
 interface IComplyCheck {
   application: IPBApp
   rawData: any
+  status: any
 }
 interface IApiOpts extends IPluginOpts {
   searchProperties: IResource,
@@ -61,8 +62,9 @@ class ComplyAdvantageAPI {
   }
   async getData(resource, conf, searchProperties, criteria, application) {
     let { companyName, registrationDate} = searchProperties //conf.propertyMap //[resource[TYPE]]
+    let search_term = criteria  &&  criteria.search_term || companyName
     let body:any = {
-      search_term: criteria  &&  criteria.search_term || companyName,
+      search_term,
       fuzziness: criteria  &&  criteria.fuzziness  ||  1,
       share_url: 1,
       filters: {
@@ -70,11 +72,12 @@ class ComplyAdvantageAPI {
         birth_year: new Date(registrationDate).getFullYear()
       }
     }
-
     body = JSON.stringify(body)
 
     let url = `${BASE_URL}?api_key=${this.conf.credentials.apiKey}`
     let json // = undetermined
+    let message
+    let status:any
     // if (!json) {
     try {
       let res = await fetch(url, {
@@ -85,38 +88,53 @@ class ComplyAdvantageAPI {
       json = await res.json()
     } catch (err) {
       this.logger.debug('something went wrong', err)
-      json = {status: 'failure', message: `Check was not completed for "${body.search_term}": ${err.message}`}
+      json = {status: 'failure', message: `Check was not completed for "${search_term}": ${err.message}`}
+      status = {
+        status: {id: 'tradle.Status_error', title: 'Error'},
+        message: `Check was not completed for "${search_term}": ${err.message}`,
+      }
+
+      return { resource, status, rawData: {}, hits: [] };
     }
-    if (json.status !== 'success') {
-      // need to request again
-      return {resource, rawData: json, hits: []} //, error: `Check failed for "${body.search_term}": ${json.status}: ${json.message}`}
-    }
+debugger
+
+    // if (json.status !== 'success') {
+    //   // need to request again
+    //   return {resource, rawData: json, hits: []} //, error: `Check failed for "${search_term}": ${json.status}: ${json.message}`}
+    // }
     let rawData = json  &&  json.content.data
     let entityType = criteria.entity_type ? [criteria.entity_type] : ['company', 'organisation', 'organization'];
     let hits = rawData.hits.filter((hit) => entityType.includes(hit.doc.entity_type));
     rawData.hits = hits
-    return hits && { resource, rawData, hits }
+    if (hits  &&  hits.length) {
+      status = {
+        status: {id: 'tradle.Status_fail', title: 'Fail'},
+        message: `Sanctions check for "${search_term}" failed`
+      }
+    }
+    else {
+      status = {
+        status: {id: 'tradle.Status_pass', title: 'Pass'},
+        message: `Sanctions check for "${search_term}" passed`
+      }
+    }
+    return hits && { resource, rawData, status, hits }
   }
 
-  async createSanctionsCheck({ application, rawData }: IComplyCheck) {
-    let status
-    if (rawData.status === 'failure')
-      status = {id: 'tradle.Status_error', title: 'Error'}
-    else if (rawData.hits.length)
-      status = {id: 'tradle.Status_fail', title: 'Fail'}
-    else
-      status = {id: 'tradle.Status_pass', title: 'Pass'}
-      // status = hits.length + ' companies were found with this registration number'
+  async createSanctionsCheck({ application, rawData, status }: IComplyCheck) {
+    debugger
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
-      status,
+      status: status.status,
       provider: 'Comply Advantage',
       application: buildResourceStub({resource: application, models: this.bot.models}),
-      rawData,
       dateChecked: rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      sharedUrl: rawData  &&  rawData.share_url
+      message: status.message
     }
-
+    if (rawData  &&  rawData.share_url) {
+      resource.rawData = rawData
+      resource.sharedUrl = rawData.share_url
+    }
     if (!application.checks) application.checks = []
 
     this.logger.debug(`Creating SanctionsCheck for: ${rawData.submitted_term}`);
@@ -157,6 +175,7 @@ export function createPlugin(opts: IPluginOpts) {
   const complyAdvantage = new ComplyAdvantageAPI(opts)
   return {
     [`onmessage:${FORM_ID}`]: async function(req: IPBReq) {
+      debugger
       if (req.skipChecks) return
 
       let { bot, logger, conf, productAPI} = opts
@@ -227,12 +246,12 @@ export function createPlugin(opts: IPluginOpts) {
 
       let result = await Promise.all(pforms)
       let pchecks = []
-      result.forEach((r: {resource:any, rawData:any, hits: any}) => {
+      result.forEach((r: {resource:any, rawData:any, hits: any, status: any}) => {
         // if (!r) return
 
-        let { resource, rawData, hits } = r
+        let { resource, rawData, hits, status } = r
         if (rawData.status === 'failure') {
-          pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData}))
+          pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status}))
           return
         }
         let hasVerification
@@ -244,7 +263,7 @@ export function createPlugin(opts: IPluginOpts) {
           hasVerification = true
           logger.debug(`creating verification for: ${companyName}`);
         }
-        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData}))
+        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status}))
         if (hasVerification)
           pchecks.push(complyAdvantage.createVerification({user, application, form: resource, rawData}))
       })
