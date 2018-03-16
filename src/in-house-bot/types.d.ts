@@ -101,7 +101,7 @@ export interface IYargs {
 }
 
 export interface IPBUser extends IUser {
-  identity?: IIdentity
+  identity?: ResourceStub
   applications?: IPBAppStub[]
   applicationsApproved?: IPBAppStub[]
   applicationsDenied?: IPBAppStub[]

@@ -1,10 +1,24 @@
+import get from 'lodash/get'
 import { TYPE } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
-import { Commander, DEFAULT_ERROR_MESSAGE } from '../commander'
+import { DEFAULT_ERROR_MESSAGE } from '../commander'
 import { Conf } from '../configure'
-import { CreatePlugin, ITradleObject, IPBReq } from '../types'
-import { EmailBasedVerifier } from '../email-based-verifier'
-import { getPropertyTitle, getEnumValueId } from '../utils'
+import {
+  CreatePlugin,
+  ITradleObject,
+  IPBReq,
+  IPBApp,
+  IPluginOpts,
+  IBotComponents,
+  Logger,
+  Bot,
+  Commander,
+  Applications
+} from '../types'
+import { EmailBasedVerifier, TTL } from '../email-based-verifier'
+import { getPropertyTitle } from '../utils'
+import { getStubsByType } from '../../utils'
+import Errors from '../../errors'
 
 const EMAIL_CHECK = 'tradle.EmailCheck'
 const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
@@ -16,35 +30,80 @@ const EXPIRED_PAGE_TEXT = `This confirmation link has expired!
 
 Please request another`
 
-const EMAIL_PROP = {
-  'tradle.BusinessInformation': {
-    property: 'companyEmail',
-    corporate: true
-  },
-  'tradle.PersonalInfo': {
-    property: 'emailAddress'
-  }
+interface IEBVForm {
+  property: string
+  corporate?: boolean
 }
+
+interface IEBVProduct {
+  [form: string]: IEBVForm
+}
+
+interface IEBVProducts {
+  [product: string]: IEBVProduct
+}
+
+interface IEBVPluginConf {
+  senderEmail: string
+  products: IEBVProducts
+}
+
+interface IEBVPluginOpts extends IPluginOpts {
+  conf: IEBVPluginConf
+}
+
+// interface IEBVPluginOpts extends IBotComponents {
+//   logger: Logger
+//   pluginConf: IEBVPluginConf
+// }
+
+// class EBVPlugin {
+//   private bot: Bot
+//   private commands: Commander
+//   private ebv: EmailBasedVerifier
+//   private applications: Applications
+//   private conf: IEBVPluginConf
+//   private logger: Logger
+//   constructor({
+//     bot,
+//     commands,
+//     emailBasedVerifier,
+//     applications,
+//     pluginConf,
+//     logger
+//   }: IEBVPluginOpts) {
+//     this.bot = bot
+//     this.commands = commands
+//     this.ebv = emailBasedVerifier
+//     this.applications = applications
+//     this.conf = pluginConf
+//     this.logger = logger
+//   }
+// }
 
 export const name = 'email-based-verification'
 export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
   bot,
   commands,
+  emailBasedVerifier,
   conf,
   applications
-}, pluginOpts) => {
+}, pluginOpts: IEBVPluginOpts) => {
   const { logger } = pluginOpts
-  const pluginConf = pluginOpts.conf
-  const ebv = new EmailBasedVerifier({
-    bot,
-    commands,
-    orgConf: conf,
-    logger: pluginOpts.logger,
-    senderEmail: pluginConf.senderEmail
-  })
+  const pluginConf = <IEBVPluginConf>pluginOpts.conf
+  const { senderEmail, products } = pluginConf
+  if (!emailBasedVerifier) {
+    emailBasedVerifier = new EmailBasedVerifier({
+      bot,
+      commands,
+      orgConf: conf,
+      logger: pluginOpts.logger,
+      senderEmail
+    })
+  }
 
-  const getEmail = (form: ITradleObject) => {
-    const pConf = EMAIL_PROP[form[TYPE]]
+  const getEmail = (application: IPBApp, form: ITradleObject) => {
+    const pConf = <any>get(pluginConf.products, [application.requestFor, form[TYPE]])
     if (!pConf) return
 
     const value = form[pConf.property]
@@ -53,13 +112,28 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
     return { ...pConf, value }
   }
 
+  const shouldCreateCheck = async ({ user, emailAddress }) => {
+    let latest
+    try {
+      latest = await emailBasedVerifier.getLatestCheck({ user, emailAddress })
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return true
+    }
+
+    return latest.failed || latest.errored || latest.expired
+  }
+
   const plugin = {
     validateForm: async ({ req, application, form }) => {
-      const emailAddress = getEmail(form)
+      const emailAddress = getEmail(application, form)
       if (!emailAddress) return
 
       const { property, value, corporate } = emailAddress
-      const ok = corporate ? ebv.isCorporate(value) : !ebv.isDisposable(value)
+      const ok = corporate
+        ? emailBasedVerifier.isCorporate(value)
+        : !emailBasedVerifier.isDisposable(value)
+
       if (ok) return
 
       const title = getPropertyTitle({
@@ -77,22 +151,48 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
       }
     },
     ['onmessage:tradle.Form']: async (req) => {
-      const { application, payload } = req
-      const emailAddress = getEmail(payload)
+      const { user, application, payload } = req
+      const emailAddress = getEmail(application, payload)
       if (!emailAddress) return
 
       const { property, value } = emailAddress
+      const keepGoing = await shouldCreateCheck({
+        user,
+        emailAddress: value
+      })
+
+      if (!keepGoing) {
+        logger.debug('not creating email check, already verified or pending', {
+          user: user.id,
+          emailAddress: value
+        })
+
+        return
+      }
+
       logger.debug(`created ${EMAIL_CHECK}`, { emailAddress: value })
-      await applications.createCheck({
+      const createCheck = applications.createCheck({
         req,
         props: {
           [TYPE]: EMAIL_CHECK,
           application,
           emailAddress: value,
           // this org
-          provider: conf.org.name
+          provider: conf.org.name,
+          user: user.identity,
+          dateExpires: Date.now() + TTL.ms
         }
       })
+
+      const alertUser = await bot.sendSimpleMessage({
+        to: user,
+        message: `Please check ${value} for a confirmation link`
+      })
+
+      await Promise.all([
+        createCheck,
+        alertUser
+      ])
     }
   }
 
@@ -104,9 +204,9 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
     const botPermalink = await bot.getMyIdentityPermalink()
     if (object._author !== botPermalink) return
 
-    await ebv.confirmAndExec({
+    await emailBasedVerifier.confirmAndExec({
       deferredCommand: {
-        ttl: 3600, // 1 hr
+        dateExpires: object.dateExpires,
         // ttl: 1, // 1 second
         command: {
           component: 'applications',
@@ -138,16 +238,16 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
   })
 
   return {
-    api: ebv,
+    api: emailBasedVerifier,
     plugin
   }
 }
 
 export const validateConf = async ({ conf, pluginConf }: {
   conf: Conf,
-  pluginConf: any
+  pluginConf: IEBVPluginConf
 }) => {
-  const { senderEmail } = pluginConf
+  const { senderEmail, products={} } = pluginConf
   if (!senderEmail) {
     throw new Error('expected "senderEmail"')
   }
@@ -156,5 +256,29 @@ export const validateConf = async ({ conf, pluginConf }: {
   if (!canSend) {
     throw new Error(`cannot send emails from "${senderEmail}".
 Check your AWS Account controlled addresses at: https://console.aws.amazon.com/ses/home`)
+  }
+
+  for (let product in products) {
+    let pConf = products[product]
+    for (let form in pConf) {
+      let formModel = conf.bot.models[form]
+      if (!formModel) {
+        throw new Errors.InvalidInput(`model not found: ${form}`)
+      }
+
+      let fConf = pConf[form]
+      let { property, corporate } = fConf
+      if (!property) {
+        throw new Errors.InvalidInput(`expected property name at products['${product}']['${form}'].property`)
+      }
+
+      if (!formModel.properties[property]) {
+        throw new Errors.InvalidInput(`model ${form} has no property: ${property}`)
+      }
+
+      if (typeof corporate !== 'undefined' && typeof corporate !== 'boolean') {
+        throw new Errors.InvalidInput(`expected boolean "corporate" at products['${product}']['${form}']`)
+      }
+    }
   }
 }

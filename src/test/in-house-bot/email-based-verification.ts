@@ -5,6 +5,7 @@ import test from 'tape'
 import sinon from 'sinon'
 import createProductsStrategy from '@tradle/bot-products'
 import { EmailBasedVerifier } from '../../in-house-bot/email-based-verifier'
+import { createPlugin } from '../../in-house-bot/plugins/email-based-verification'
 import { Commander } from '../../in-house-bot/commander'
 import { Applications } from '../../in-house-bot/applications'
 import Errors from '../../errors'
@@ -129,6 +130,28 @@ test('email-based-verification', loudAsync(async (t) => {
   } catch (err) {
     t.ok(/expired/.test(err.message))
   }
+
+  // const plugin = createPlugin(components, {
+  //   logger,
+  //   conf: {
+  //     senderEmail: 'someone@somewhere.com'
+  //   }
+  // })
+
+  // const createCheckStub = sandbox.stub(bot.mailer, 'send').callsFake(async ({ props }) => {
+  //   application.checks.push()
+  // })
+
+  // const application = {}
+  // await plugin['onmessage:tradle.PersonalInfo']({
+  //   user: {
+  //     id: 'bob'
+  //   },
+  //   application: {},
+  //   payload: {
+  //     emailAddress: 'bob@bob.bob'
+  //   }
+  // })
 
   clock.restore()
   sandbox.restore()

@@ -102,13 +102,18 @@ export interface IPosition {
   link?: string
 }
 
+// time < dateAuthenticated < dateConnected < dateSubscribed
 export interface ISession {
   clientId: string
   permalink: string
   challenge: string
+  time: number // date created (before authenticated)
   authenticated: boolean
-  time: number
+  dateAuthenticated?: number
   connected: boolean
+  dateConnected?: number
+  subscribed: boolean
+  dateSubscribed?: number
   clientPosition?: IPositionPair
   serverPosition?: IPositionPair
 }
@@ -327,7 +332,6 @@ export type HooksHookFn = (event:string, handler:Function) => void
 export type HooksFireFn = (event:string, ...args:any[]) => any|void
 
 export interface IHooks {
-  user: HooksHookFn
   hook: HooksHookFn
   fire: HooksFireFn
 }

@@ -403,7 +403,7 @@ export default function createProductsBot({
     }
   }
 
-  if (handleMessages || event === 'confirmation') {
+  // if (handleMessages || event === 'confirmation') {
     // const { api, plugin } = Plugins.get('commands').createPlugin(components, {
     //   logger: logger.sub('commands')
     // })
@@ -414,16 +414,18 @@ export default function createProductsBot({
 
     components.commands = api
     productsAPI.plugins.use(plugin)
-  }
+  // }
 
-  if (plugins['email-based-verification'] && (handleMessages || event === 'confirmation')) {
-    const { api, plugin } = createEBVPlugin(components, {
-      conf: plugins['email-based-verification'],
-      logger: logger.sub('email-based-verification')
-    })
+  if (plugins['email-based-verification']) {
+    if (handleMessages || event === 'confirmation' || event === 'resourcestream') {
+      const { api, plugin } = createEBVPlugin(components, {
+        conf: plugins['email-based-verification'],
+        logger: logger.sub('email-based-verification')
+      })
 
-    components.emailBasedVerifier = api
-    productsAPI.plugins.use(plugin)
+      components.emailBasedVerifier = api
+      productsAPI.plugins.use(plugin)
+    }
   }
 
   return components

@@ -54,7 +54,9 @@ import {
   ITimeoutOpts,
   IUpdateStackUrlOpts,
   ITradleObject,
-  IBackoffOptions
+  IBackoffOptions,
+  ResourceStub,
+  ParsedResourceStub
 } from './types'
 
 import Logger from './logger'
@@ -1187,4 +1189,10 @@ export const extendTradleObject = (a, b) => {
   if (virtual.length) a._virtual = virtual
 
   return a
+}
+
+export const getStubsByType = (stubs: ResourceStub[], type: string):ParsedResourceStub[] => {
+  return stubs
+    .map(parseStub)
+    .filter(parsed => parsed.type === type)
 }

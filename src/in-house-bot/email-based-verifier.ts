@@ -1,6 +1,8 @@
 import querystring from 'querystring'
 import _ from 'lodash'
 import Validation from 'freemail'
+import buildResource from '@tradle/build-resource'
+import { TYPE } from '@tradle/constants'
 import {
   Bot,
   IMailer,
@@ -10,13 +12,19 @@ import {
   IDeferredCommandParams,
   ISendEmailOpts,
   IConf,
+  IPBUser,
   Logger
 } from './types'
 
 import * as Templates from './templates'
 import Errors from '../errors'
+import { getEnumValueId } from '../utils'
+import baseModels from '../models'
 
+const STATUS = 'tradle.Status'
 const EMAIL_CHECK = 'tradle.EmailCheck'
+const STATUS_MODEL = baseModels[STATUS]
+const EMAIL_CHECK_MODEL = baseModels[EMAIL_CHECK]
 
 type EmailBasedVerifierOpts = {
   bot: Bot
@@ -67,6 +75,11 @@ const DATA_TEMPLATE = {
   signature: '{{fromOrg.name}} Team',
 }
 
+export const TTL = {
+  s: 3600,
+  ms: 3600 * 1000
+}
+
 export class EmailBasedVerifier {
   private bot: Bot
   private mailer: IMailer
@@ -75,6 +88,10 @@ export class EmailBasedVerifier {
   private logger: Logger
   private senderEmail: string
   constructor({ bot, commands, orgConf, logger, senderEmail }: EmailBasedVerifierOpts) {
+    if (!commands) {
+      throw new Errors.InvalidInput('expected "commands"')
+    }
+
     this.bot = bot
     this.mailer = bot.mailer
     this.commands = commands
@@ -179,8 +196,91 @@ export class EmailBasedVerifier {
   public isCorporate = (emailAddress: string) => {
     return !(this.isFree(emailAddress) || this.isDisposable(emailAddress))
   }
+
+  public hasUserVerifiedEmailAddress = async ({ user, emailAddress }: {
+    user: IPBUser
+    emailAddress: string
+  }) => {
+    try {
+      await this.getLatestCheck({ user, emailAddress, statuses: ['pass'] })
+      return true
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
+  }
+
+  public isCheckPending = async ({
+    user,
+    emailAddress
+  }: {
+    user: IPBUser
+    emailAddress: string
+  }) => {
+    try {
+      const { pending } = await this.getLatestCheck({ user, emailAddress })
+      return pending
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
+  }
+
+  public getLatestCheck = async ({ user, emailAddress, statuses }: {
+    emailAddress: string
+    user: IPBUser
+    statuses?: string[]
+  }) => {
+    if (!(user || emailAddress)) {
+      throw new Error('expected "user" or "emailAddress"')
+    }
+
+    const filter:any = {
+      EQ: {
+        [TYPE]: EMAIL_CHECK
+      },
+      IN: {},
+      STARTS_WITH: {}
+    }
+
+    if (user) {
+      filter.STARTS_WITH['user.id'] = user.identity.id
+    }
+
+    if (emailAddress) {
+      filter.EQ.emailAddress = emailAddress
+    }
+
+    if (statuses) {
+      filter.IN['status.id'] = statuses.map(getStatusId)
+    }
+
+    const check = await this.bot.db.findOne({
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
+      filter
+    })
+
+    const { status, dateExpires } = check
+    const expired = Date.now() > dateExpires
+    return {
+      check,
+      pending: !status && !expired,
+      passed: status && status.id.endsWith('pass'),
+      failed: status && status.id.endsWith('fail'),
+      errored: status && status.id.endsWith('error'),
+      expired
+    }
+  }
 }
 
 const textToBlocks = str => str
   .split('\n')
   .map(body => ({ body }))
+
+const getStatusId = value => buildResource.enumValue({
+  model: STATUS_MODEL,
+  value
+}).id
