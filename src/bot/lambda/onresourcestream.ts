@@ -14,6 +14,17 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   return async (ctx, next) => {
     const partials = bot.dbUtils.getRecordsFromEvent(ctx.event)
       .map(record => record.new)
+      // .map(record => {
+      //   if (record.new) {
+      //     if (record.old) {
+      //       return {
+      //         type: 'update',
+      //         previous: record.new,
+      //         current: record.old
+      //       }
+      //     }
+      //   }
+      // })
       .filter(partial => partial)
 
     const objects = await Promise.all(partials.map(({ _link }) => bot.objects.get(_link)))
