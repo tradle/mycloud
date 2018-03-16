@@ -36,7 +36,7 @@ import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-
 import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
 import { createPlugin as createCommandsPlugin } from './plugins/commands'
 import { createPlugin as createEBVPlugin } from './plugins/email-based-verification'
-import { haveAllChecksPassed, isPendingApplication, getNonPendingApplications } from './utils'
+import { isPendingApplication, getNonPendingApplications } from './utils'
 import { Applications } from './applications'
 import { Friends } from './friends'
 import {
@@ -488,7 +488,7 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
 }
 
 const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMethods => {
-  const { bot, logger, conf, productsAPI, employeeManager } = components
+  const { bot, logger, conf, productsAPI, employeeManager, applications } = components
   const { autoApprove } = conf.bot.products
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.draft) return
@@ -497,8 +497,8 @@ const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMeth
 
     if (!autoApprove) {
       const results = await Promise.all([
-        haveAllChecksPassed({ bot, application }),
-        productsAPI.haveAllSubmittedFormsBeenVerified({ application })
+        applications.haveAllChecksPassed({ application }),
+        applications.haveAllFormsBeenVerified({ application })
       ])
 
       const [mostRecentChecksPassed, formsHaveBeenVerified] = results
@@ -519,11 +519,7 @@ const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMeth
     })
 
     if (!approved) {
-      await productsAPI.approveApplication({ req, user, application })
-      // verify unverified
-      await productsAPI.issueVerifications({
-        req, user, application, send: true
-      })
+      await applications.approve({ req, user, application })
     }
   }
 
@@ -562,11 +558,11 @@ const banter = (components: IBotComponents) => {
 }
 
 const sendModelsPackToNewEmployees = (components: IBotComponents) => {
-  const { bot, productsAPI } = components
+  const { bot, productsAPI, applications } = components
   const getPack = createModelsPackGetter(components)
   const didApproveApplication = async ({ req, user, application, judge }) => {
     if (judge) {
-      await productsAPI.issueVerifications({ req, user, application, send: true })
+      await applications.issueVerifications({ req, user, application, send: true })
     }
 
     if (application.requestFor === EMPLOYEE_ONBOARDING) {

@@ -1,6 +1,8 @@
+import groupBy from 'lodash/groupBy'
 import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { parseStub } from '../utils'
+import { isPassedCheck } from './utils'
 import Errors from '../errors'
 import {
   Bot,
@@ -94,6 +96,12 @@ export class Applications {
       throw new Error(`application already has status: ${application.status}`)
     }
 
+    if (approve) {
+      // maybe this should be done asynchronously on resource stream
+      // verify unverified
+      await this.issueVerifications({ req, user, application, send: true })
+    }
+
     if (req) return
 
     await this._commitApplicationUpdate({ application })
@@ -107,8 +115,41 @@ export class Applications {
     return this.judgeApplication({ ...opts, approve: false })
   }
 
+  public issueVerifications = async ({ req, user, application, send }: {
+    req?: IPBReq
+    user: IPBUser
+    application: IPBApp
+    send?: boolean
+  }) => {
+    await this.productsAPI.issueVerifications({ req, user, application, send })
+  }
+
   public requestEdit = async (opts) => {
     return await this.productsAPI.requestEdit(opts)
+  }
+
+  public haveAllFormsBeenVerified = async ({ application }: {
+    application: IPBApp
+  }) => {
+    return await this.productsAPI.haveAllSubmittedFormsBeenVerified({ application })
+  }
+
+  public haveAllChecksPassed = async ({ application }: {
+    application: IPBApp
+  }) => {
+    const { checks=[] } = application
+    if (!checks.length) return true
+
+    // get latest version of those checks
+    const checkResources = await Promise.all(checks
+      .map(parseStub)
+      .map(stub => this.bot.getResource(stub)))
+
+    const byAPI = groupBy(checkResources, 'provider')
+    return Object.keys(byAPI).every(provider => {
+      const last = byAPI[provider].pop()
+      return isPassedCheck(last)
+    })
   }
 
   private stub = (resource: ITradleObject) => {

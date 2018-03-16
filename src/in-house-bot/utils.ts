@@ -346,21 +346,6 @@ export const getApplications = ({ user, pending=true, approved=true, denied=true
     .concat((denied && user.applicationsDenied || []))
 }
 
-export const haveAllChecksPassed = async ({ bot, application }: {
-  bot: Bot
-  application: IPBApp
-}) => {
-  const { checks=[] } = application
-  if (!checks.length) return true
-
-  const checkResources = await Promise.all(checks.map(stub => bot.getResourceByStub(stub)))
-  const byAPI = _.groupBy(checkResources, 'provider')
-  return Object.keys(byAPI).every(provider => {
-    const last = byAPI[provider].pop()
-    return isPassedCheck(last)
-  })
-}
-
 export const isPassedCheck = ({ status }) => {
   const id = getEnumValueId({
     model: models[CHECK_STATUS],
