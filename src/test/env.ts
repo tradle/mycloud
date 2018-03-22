@@ -47,23 +47,23 @@ export const install = (target=process.env):void => {
     })
   })
 
-  // AWS.mock('SES', 'getIdentityVerificationAttributes', ({ Identities }, callback) => {
-  //   callback(null, {
-  //     VerificationAttributes: Identities.reduce((map, identity) => {
-  //       map[identity] = {
-  //         VerificationStatus: 'Success'
-  //       }
+  AWS.mock('SES', 'getIdentityVerificationAttributes', ({ Identities }, callback) => {
+    callback(null, {
+      VerificationAttributes: Identities.reduce((map, identity) => {
+        map[identity] = {
+          VerificationStatus: 'Success'
+        }
 
-  //       return map
-  //     }, {})
-  //   })
-  // })
+        return map
+      }, {})
+    })
+  })
 
-  // AWS.mock('SES', 'sendEmail', (params, callback) => {
-  //   callback(null, {
-  //     MessageId: `test msg id: ${crypto.randomBytes(12).toString('hex')}`
-  //   })
-  // })
+  AWS.mock('SES', 'sendEmail', (params, callback) => {
+    callback(null, {
+      MessageId: `test msg id: ${crypto.randomBytes(12).toString('hex')}`
+    })
+  })
 }
 
 export const get = () => ({ ...props })
