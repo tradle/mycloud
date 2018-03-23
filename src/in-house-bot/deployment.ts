@@ -178,7 +178,15 @@ export class Deployment {
       throw new Error('expected "createdBy", "configuredBy" or "childDeploymentLink')
     }
 
-    const configuration = await this.bot.getResourceByStub(childDeployment.configuration)
+    let configuration
+    if (childDeployment) {
+      try {
+        configuration = await this.bot.getResourceByStub(childDeployment.configuration)
+      } catch (err) {
+        Errors.ignoreNotFound(err)
+      }
+    }
+
     const result = await this.genUpdateTemplate({ stackId: stackId || childDeployment.stackId })
     return {
       configuration,
