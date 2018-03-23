@@ -17,6 +17,7 @@ secrets.yml
 !templates/secrets.yml
 lib/
 **/conf/**
+conf/
 !conf/default.json
 lib/modelmap.json
 lib/definitions.json

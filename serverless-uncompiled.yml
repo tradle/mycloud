@@ -45,6 +45,7 @@ package:
     - myidentity.json
     - lib/test/**
     - lib/scripts/**
+    - conf/**
     - certs/**
     - org/**
     - docker/**
