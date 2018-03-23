@@ -155,8 +155,8 @@ To take advantage of static type checking as it becomes more available, use the 
 import { Conf, IPluginOpts, IPluginExports } from '../types'
 import { MyApi } from 'my-api'
 
-export const createPlugin = (opts:IPluginOpts):IPluginExports => {
-  const api = new MyApi(opts)
+export const createPlugin = (components:IBotComponents, opts:IPluginOpts):IPluginExports<MyApi> => {
+  const api = new MyApi(myApiOpts)
   return {
     api,
     plugin: {
