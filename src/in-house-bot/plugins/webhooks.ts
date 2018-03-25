@@ -46,7 +46,7 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
   bot.hookSimple(EventTopics.resource.save.async, async (event) => {
     bot.tasks.add({
       name: 'webhook:save',
-      promiser: () => plugin.deliverSaveEvent(event.object)
+      promiser: () => plugin.deliverSaveEvent(event.value)
     })
   })
 

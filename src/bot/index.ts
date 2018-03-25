@@ -42,14 +42,16 @@ import {
   HooksFireFn,
   HooksHookFn,
   Seal,
-  IBotMessageEvent
+  IBotMessageEvent,
+  KeyValueTable,
+  KV,
+  ISaveEventPayload
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
 import { createLambda } from './lambda'
 import { createLocker, Locker } from './locker'
 import { Logger } from '../logger'
-import { KeyValueTable } from '../key-value-table'
 import Tradle from '../tradle'
 import Objects from '../objects'
 import Messages from '../messages'
@@ -157,6 +159,7 @@ export class Bot extends EventEmitter implements IReady {
   public appLinks: AppLinks
   public logger: Logger
   public kv: KeyValueTable
+  public kv1: KV
   public conf: KeyValueTable
   public debug: Function
   public users: any
@@ -223,6 +226,7 @@ export class Bot extends EventEmitter implements IReady {
 
     readyMixin(this)
     this.kv = tradle.kv.sub('bot:kv:')
+    this.kv1 = tradle.kv1.sub('bot:kv:')
     this.conf = tradle.kv.sub('bot:conf:')
     this.endpointInfo = {
       aws: true,
@@ -271,14 +275,21 @@ export class Bot extends EventEmitter implements IReady {
       this.objects.hook('put', async (ctx, next) => {
         await next()
         await wait(0)
-        await this.fire('save', { object: ctx.event })
+        await this.fire('save', { value: ctx.event })
       })
 
       // trigger stream stuff
       this.hook('*', async ({ ctx, event }, next) => {
         await next()
         await wait(0)
-        if (!event.startsWith('async:')) {
+        if (event.startsWith('async:')) return
+
+        if (event.startsWith('save')) {
+          this._fireSaveEvent({
+            async: true,
+            change: ctx.event
+          })
+        } else {
           await this.fire(`async:${event}`, ctx.event)
         }
       })
@@ -535,20 +546,24 @@ export class Bot extends EventEmitter implements IReady {
 
   public _fireSaveBatchEvent = async (opts: {
     async?: boolean
-    objects: ITradleObject[]
+    changes: ISaveEventPayload[]
   }) => {
+    const { changes, async } = opts
     const base = EventTopics.resource.save
-    const topic = opts.async ? base.async : base.sync
-    return await this.fireBatch(topic, opts.objects.map(object => ({ object })))
+    const topic = async ? base.async : base.sync
+    const payloads = await Promise.all(changes.map(change => maybeAddOld(this, change, async)))
+    return await this.fireBatch(topic, payloads)
   }
 
-  public _fireSaveEvent = async(opts: {
+  public _fireSaveEvent = async (opts: {
+    change: ISaveEventPayload
     async?: boolean
-    object: ITradleObject
   }) => {
+    const { change, async } = opts
     const base = EventTopics.resource.save
-    const topic = opts.async ? base.async : base.sync
-    return await this.fire(topic, { object: opts.object })
+    const topic = async ? base.async : base.sync
+    const payload = await maybeAddOld(this, change, async)
+    return await this.fire(topic, payload)
   }
 
   public _fireMessageBatchEvent = async (opts: {
@@ -575,4 +590,18 @@ export class Bot extends EventEmitter implements IReady {
 const toSimpleMiddleware = handler => async (ctx, next) => {
   await handler(ctx.event)
   await next()
+}
+
+const maybeAddOld = (bot: Bot, change: ISaveEventPayload, async: boolean):ISaveEventPayload|Promise<ISaveEventPayload> => {
+  if (async && !change.old && change.value && change.value._prevlink) {
+    return addOld(this, change)
+  }
+
+  return change
+}
+
+const addOld = (bot: Bot, target: ISaveEventPayload): Promise<ISaveEventPayload> => {
+  return bot.objects.get(target.value._prevlink)
+    .then(old => target.old = old, Errors.ignoreNotFound)
+    .then(() => target)
 }

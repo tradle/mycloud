@@ -1,11 +1,12 @@
 const debug = require('debug')('tradle:sls:db-utils')
 // @ts-ignore
 import Promise from 'bluebird'
+import AWS from 'aws-sdk'
 import _ from 'lodash'
-import {
-  marshalItem as marshalDBItem,
-  unmarshalItem as unmarshalDBItem
-} from 'dynamodb-marshaler'
+// import {
+//   marshalItem as marshallDBItem,
+//   unmarshalItem as unmarshallDBItem
+// } from 'dynamodb-marshaler'
 
 import dynogels from 'dynogels'
 import { utils as vrUtils } from '@tradle/validate-resource'
@@ -16,13 +17,29 @@ import {
   timestamp,
   wait,
   waitImmediate,
-  timeMethods
+  timeMethods,
+  traverse
 } from './utils'
 
 import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
 import Errors from './errors'
 import { Env, StreamRecordType, IStreamRecord } from './types'
+
+const { marshall, unmarshall } = AWS.DynamoDB.Converter
+const marshallDBItem = item => marshall(item)
+const unmarshallDBItem = item => fixUnmarshallItem(unmarshall(item))
+const fixUnmarshallItem = item => traverse(item).map(function (value) {
+  // unwrap Set instances
+  if (value &&
+    value.values &&
+    value.constructor !== Object) {
+    this.update(value.values)
+  }
+})
+
+// const marshallDBItem = marshall
+// const unmarshallDBItem = unmarshall
 
 type Batch = {
   Items: any[]
@@ -58,8 +75,8 @@ export {
   getRecordsFromEvent,
   getTableNameFromStreamEvent,
   getUpdateParams,
-  marshalDBItem,
-  unmarshalDBItem
+  marshallDBItem,
+  unmarshallDBItem
 }
 
 export const getTableHashKey = table => table.definition.KeySchema
@@ -187,6 +204,8 @@ function createDBUtils ({ aws, logger, env }) {
       }
     })
 
+    tableAPI.client = aws.docClient
+    tableAPI.rawClient = aws.dynamodb
     tableAPI.name = TableName
     tableAPI.definition = getDefinition(TableName)
     tableAPI.batchProcess = ({ params={}, ...opts }) => {
@@ -376,7 +395,7 @@ function createDBUtils ({ aws, logger, env }) {
     }
 
     // debug(`got item from ${params.TableName}: ${prettify(result)}`)
-    return result.Item
+    return fixUnmarshallItem(result.Item)
   }
 
   const put = async (params:AWS.DynamoDB.PutItemInput) => {
@@ -392,7 +411,7 @@ function createDBUtils ({ aws, logger, env }) {
   const find = async (params:AWS.DynamoDB.QueryInput) => {
     maybeForceConsistentRead(params)
     const result = await exec('query', params)
-    return result.Items
+    return result.Items.map(fixUnmarshallItem)
   }
 
   const findOne = async (params:AWS.DynamoDB.QueryInput) => {
@@ -515,8 +534,8 @@ function createDBUtils ({ aws, logger, env }) {
     findOne,
     batchPut,
     getUpdateParams,
-    marshalDBItem,
-    unmarshalDBItem,
+    marshallDBItem,
+    unmarshallDBItem,
     getTable,
     getRecordsFromEvent,
     getTableNameFromStreamEvent,
@@ -554,8 +573,8 @@ function getRecordsFromEvent (event:any):IStreamRecord[] {
       time: ApproximateCreationDateTime,
       service: 'dynamodb',
       source: getTableNameFromStreamEvent(event),
-      old: OldImage && unmarshalDBItem(OldImage),
-      new: NewImage && unmarshalDBItem(NewImage)
+      old: OldImage && unmarshallDBItem(OldImage),
+      new: NewImage && unmarshallDBItem(NewImage)
     }
   })
 }

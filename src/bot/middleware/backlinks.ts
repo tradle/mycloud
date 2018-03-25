@@ -10,14 +10,21 @@ import {
 } from '../../types'
 
 export const createMiddleware = (lambda: Lambda, opts?: any):Middleware => {
-  const { bot } = lambda
-  const backLinkMan = new Backlinks({
-    store: bot.kv.sub('bl:'),
-    modelStore: bot.modelStore
-  })
+  throw new Error('not implemented')
 
-  return async (ctx, next) => {
-    const resources = getRecordsFromEvent(ctx.event).map(record => record.new)
-    await Promise.all(resources.map(resource => backLinkMan.updateBacklinks(resource)))
-  }
+  // const { bot } = lambda
+  // const backLinkMan = new Backlinks({
+  //   store: bot.kv1.sub('bl:'),
+  //   modelStore: bot.modelStore
+  // })
+
+  // return async (ctx, next) => {
+  //   const changes = getRecordsFromEvent(ctx.event)
+
+  //   // await Promise.all(changes.map(change => backLinkMan.updateBacklinksFromChange({
+  //   //   model: bot.models[(change.new || change.old)]
+  //   //   before: change.old,
+  //   //   after: change.new
+  //   // })))
+  // }
 }

@@ -136,7 +136,7 @@ function getTableBucketDefinition ({
         WriteCapacityUnits: write.minimum
       },
       StreamSpecification: {
-        StreamViewType: 'NEW_IMAGE'
+        StreamViewType: 'NEW_AND_OLD_IMAGES'
       },
       GlobalSecondaryIndexes: indexes.map(index => ({
         IndexName: index === '_t' ? 'type': index,

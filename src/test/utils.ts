@@ -9,7 +9,7 @@ import Logger from '../logger'
 
 const tradle = createTestTradle()
 const {
-  dbUtils: { getTable, marshalDBItem }
+  dbUtils: { getTable, marshallDBItem }
 } = tradle
 
 const createSilentLogger = () => {
@@ -58,8 +58,8 @@ function toStreamItems (tableName, changes) {
         eventID: randomString(16),
         eventSourceARN: `arn:aws:dynamodb:us-east-1:11111111111:table/${tableName}`,
         dynamodb: {
-          NewImage: marshalDBItem(change.new),
-          OldImage: change.old && marshalDBItem(change.old),
+          NewImage: marshallDBItem(change.new),
+          OldImage: change.old && marshallDBItem(change.old),
         }
       }
     })

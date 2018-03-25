@@ -171,6 +171,7 @@ custom:
     friends: ${{self:custom.prefix}}friends
     conf: ${{self:custom.prefix}}conf
     kv: ${{self:custom.prefix}}kv
+    # backlinks: ${{self:custom.prefix}}backlinks
 
   # auto-scaled tables that serve as buckets for multiple models each
   defaultCapacityRead: &defaultCapacityRead
@@ -1530,6 +1531,21 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+
+    # BacklinksTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: backlinks
+    #   Properties:
+    #     TableName: ${{self:custom.tables.backlinks}}
+    #     AttributeDefinitions:
+    #       - AttributeName: key
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: key
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
 
     # ConfTable:
     #   Type: AWS::DynamoDB::Table

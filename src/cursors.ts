@@ -1,4 +1,4 @@
-const { unmarshalDBItem } = require('./utils')
+const { unmarshallDBItem } = require('./utils')
 
 const prefixToEvent = {
   s_: 'seal',
@@ -19,8 +19,8 @@ function parseQueueId (id) {
 function parseCursorRecords (records) {
   const changes = records.map(record => {
     return {
-      old: unmarshalDBItem(record.dynamodb.OldImage),
-      new: unmarshalDBItem(record.dynamodb.NewImage)
+      old: unmarshallDBItem(record.dynamodb.OldImage),
+      new: unmarshallDBItem(record.dynamodb.NewImage)
     }
   })
 
