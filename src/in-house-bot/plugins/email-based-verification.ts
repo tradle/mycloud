@@ -197,23 +197,23 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
   }
 
   bot.hookSimple('async:save', async (event) => {
-    const { object } = event
-    if (object[TYPE] !== EMAIL_CHECK) return
-    if (object.status) return
+    const { value, old } = event
+    if (value[TYPE] !== EMAIL_CHECK) return
+    if (value.status) return
 
     const botPermalink = await bot.getMyIdentityPermalink()
-    if (object._author !== botPermalink) return
+    if (value._author !== botPermalink) return
 
     await emailBasedVerifier.confirmAndExec({
       deferredCommand: {
-        dateExpires: object.dateExpires,
+        dateExpires: value.dateExpires,
         // ttl: 1, // 1 second
         command: {
           component: 'applications',
           method: 'updateCheck',
           params: {
             type: EMAIL_CHECK,
-            permalink: object._permalink,
+            permalink: value._permalink,
             props: {
               status: 'pass'
             }
@@ -222,7 +222,7 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
       },
       confirmationEmail: {
         subject: 'Confirm email address',
-        emailAddress: object.emailAddress,
+        emailAddress: value.emailAddress,
         confirmationText: 'Please click below to confirm your corporate email',
         buttonText: 'Confirm Email'
       },

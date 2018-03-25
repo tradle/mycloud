@@ -82,6 +82,9 @@ const {
 
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
 const noop = () => {}
+
+export const pluck = <T>(arr:T[], key:keyof T) => arr.map(item => item[key])
+
 const unrefdTimeout = (callback, ms, ...args) => {
   const handle = setTimeout(callback, ms, ...args)
   // @ts-ignore
@@ -146,6 +149,17 @@ export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
 
 export const allSettled = <T>(promises:Promise<T>[]):ISettledPromise<T>[] => {
   return Promise.all(promises.map(promise => settle(promise)))
+}
+
+export const toPathValuePairs = obj => {
+  if (_.isEmpty(obj)) return []
+  return traverse(obj).reduce(function(pairs, val) {
+    if (this.isLeaf) {
+      pairs.push([this.path, val])
+    }
+
+    return pairs
+  }, [])
 }
 
 export {
@@ -859,8 +873,8 @@ export const getRecordsFromEvent = (event, oldAndNew) => {
   .filter(data => data)
 }
 
-export const marshalDBItem = marshalItem
-export const unmarshalDBItem = unmarshalItem
+export const marshallDBItem = marshalItem
+export const unmarshallDBItem = unmarshalItem
 
 export const applyFunction = (fn, context, args) => {
   if (!context) context = this

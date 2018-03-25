@@ -1,4 +1,5 @@
 declare module '@tradle/validate-resource' {
+
   type ValidateResourceOpts = {
     resource: any
     models: any
@@ -24,6 +25,17 @@ declare module '@tradle/validate-resource' {
     value: string | ResourceStub
   }
 
+  type IsDescendantOfInput = {
+    models: any
+    a: string
+    b: string
+  }
+
+  type GetPropertyTitleInput = {
+    model: any
+    propertyName: string
+  }
+
   export interface Utils {
     parseId(id:string): ParsedResourceStub
     parseStub(stub:ResourceStub): ParsedResourceStub
@@ -36,7 +48,8 @@ declare module '@tradle/validate-resource' {
     stripVirtual(obj:any): any
     pickVirtual(obj:any): any
     isInstantiable(obj:any): boolean
-    getPropertyTitle({ model: any, propertyName: string }): string
+    isDescendantOf(opts: IsDescendantOfInput): boolean
+    getPropertyTitle(opts: GetPropertyTitleInput): string
   }
 
   class RequiredError extends Error {

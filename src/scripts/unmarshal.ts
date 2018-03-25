@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { unmarshalDBItem } from '../db-utils'
+import { unmarshallDBItem } from '../db-utils'
+// import { unmarshalItem } from 'dynamodb-marshaler'
 
 let str = ''
 process.stdin
@@ -9,6 +10,7 @@ process.stdin
   })
   .on('end', function () {
     const { Item, Items } = JSON.parse(str)
-    const unmarshalled = Item ? unmarshalDBItem(Item) : Items.map(unmarshalDBItem)
+    const unmarshalled = Item ? unmarshallDBItem(Item) : Items.map(unmarshallDBItem)
+    // const unmarshalled = Item ? unmarshalItem(Item) : Items.map(unmarshalItem)
     process.stdout.write(JSON.stringify(unmarshalled, null, 2))
   })

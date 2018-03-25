@@ -24,6 +24,7 @@ import { Task, TaskManager } from '../task-manager'
 import { Delivery } from '../delivery'
 import { ContentAddressedStore } from '../content-addressed-store'
 import { KeyValueTable } from '../key-value-table'
+import { KV } from '../kv'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import { Friends } from '../friends'
 import { Push } from '../push'
@@ -74,6 +75,7 @@ export {
   Delivery,
   ContentAddressedStore,
   KeyValueTable,
+  KV,
   Logger,
   CacheableBucketItem,
   Friends,
@@ -591,4 +593,9 @@ export interface IBotMessageEvent {
   type: string
   link: string
   permalink: string
+}
+
+export interface ISaveEventPayload {
+  value: any
+  old?: any
 }

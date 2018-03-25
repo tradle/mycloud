@@ -121,6 +121,7 @@
     "templates:prerender": "node ./lib/scripts/prerender-templates.js && npm run copy-static-assets"
   },
   "dependencies": {
+    "@aws/dynamodb-expressions": "^0.4.0",
     "@meltwater/fetch-favicon": "^1.0.4",
     "@tradle/bitcoin-adapter": "tradle/bitcoin-adapter",
     "@tradle/biz-plugins": "github:tradle/biz-plugins#cloud",
