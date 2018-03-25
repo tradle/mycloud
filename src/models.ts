@@ -41,6 +41,44 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
+const backlinkModel = {
+  "type": "tradle.Model",
+  "id": "tradle.ResourceLink",
+  "title": "Resource Link",
+  "properties": {
+    "sourceType": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "description": "{type}_{permalink}"
+    },
+    "sourceLink": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string",
+      "description": "{type}_{permalink}"
+    },
+    "targetLink": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sourceType",
+    "source",
+    "sourceLink",
+    "target",
+    "targetLink"
+  ],
+  "primaryKeys": {
+    "hashKey": "target",      // e.g. 'tradle.PhotoID_abc'
+    "rangeKey": "sourceType"  // e.g. 'tradle.Verification'
+  }
+}
+
+base[backlinkModel.id] = backlinkModel
+
 // const cloudEventModel = {
 //   type: 'tradle.Model',
 //   id: 'tradle.cloud.Event',

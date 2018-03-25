@@ -8,6 +8,7 @@ import { SIG } from '@tradle/constants'
 import ModelsPack from '@tradle/models-pack'
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
+import KV from '../kv'
 import { getFaviconUrl } from '../in-house-bot/image-utils'
 import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
 import * as utils from '../utils'
@@ -35,6 +36,9 @@ import { createSilentLogger } from './utils'
 import { ModelStore, createModelStore } from '../model-store'
 import { models as PingPongModels } from '../bot/ping-pong-models'
 import constants from '../constants'
+import {
+  IKeyValueStore
+} from '../types'
 
 const { KVTable } = require('../definitions')
 const aliceKeys = require('./fixtures/alice/keys')
@@ -521,79 +525,90 @@ test('content-addressed-storage', loudAsync(async (t) => {
   t.end()
 }))
 
-test('key-value table', loudAsync(async (t) => {
-  const newTableName = 'kvTable' + Date.now()
-  const { aws } = tradle
+type KVConstructor<T = {}> = new (...args: any[]) => T
 
-  await aws.dynamodb.createTable({
-    ...KVTable.Properties,
-    TableName: newTableName
-  }).promise()
+;[
+  KeyValueTable,
+  KV
+].forEach((Impl:KVConstructor<IKeyValueStore>, i) => {
+  test(`key-value table (${i})`, loudAsync(async (t) => {
+    const { aws, tables } = tradle
+    const conf = new Impl({ table: tables.KV, prefix: Date.now() })
 
-  const table = dbUtils.getTable(newTableName)
-  const conf = new KeyValueTable({ table })
-  t.equal(await conf.exists('a'), false)
+    t.equal(await conf.exists('a'), false)
+    await conf.put('a', {
+      b: 'c',
+      age: 75
+    })
 
-  await conf.put('a', {
-    b: 'c',
-    age: 75
-  })
+    t.equal(await conf.exists('a'), true)
+    t.same(await conf.get('a'), {
+      b: 'c',
+      age: 75
+    })
 
-  t.equal(await conf.exists('a'), true)
-  t.same(await conf.get('a'), {
-    b: 'c',
-    age: 75
-  })
+    if (conf instanceof KV) {
+      await conf.update('a', {
+        UpdateExpression: 'SET #age = #age + :incr',
+        ExpressionAttributeNames: {
+          '#age': 'age'
+        },
+        ExpressionAttributeValues: {
+          ':incr': 1
+        },
+        ReturnValues: 'UPDATED_NEW'
+      })
+    } else {
+      await conf.update('a', {
+        UpdateExpression: 'SET #value.#age = #value.#age + :incr',
+        ExpressionAttributeNames: {
+          '#value': 'value',
+          '#age': 'age'
+        },
+        ExpressionAttributeValues: {
+          ':incr': 1
+        },
+        ReturnValues: 'UPDATED_NEW'
+      })
+    }
 
-  const update = await conf.update('a', {
-    UpdateExpression: 'SET #value.#age = #value.#age + :incr',
-    ExpressionAttributeNames: {
-      '#value': 'value',
-      '#age': 'age'
-    },
-    ExpressionAttributeValues: {
-      ':incr': 1
-    },
-    ReturnValues: 'UPDATED_NEW'
-  })
+    t.same((await conf.get('a')).age, 76)
 
-  t.same(update.age, 76)
+    const sub = conf.sub('mynamespace:')
+    t.equal(await sub.exists('a'), false)
+    try {
+      await sub.get('mynamespace:a')
+      t.fail('sub should not have value')
+    } catch (err) {
+      t.ok(err)
+    }
 
-  const sub = conf.sub('mynamespace:')
-  t.equal(await sub.exists('a'), false)
-  try {
-    await sub.get('mynamespace:a')
-    t.fail('sub should not have value')
-  } catch (err) {
-    t.ok(err)
-  }
+    await sub.put('a', {
+      d: 'e'
+    })
 
-  await sub.put('a', {
-    d: 'e'
-  })
+    t.equal(await sub.exists('a'), true)
+    t.same(await sub.get('a'), {
+      d: 'e'
+    })
 
-  t.equal(await sub.exists('a'), true)
-  t.same(await sub.get('a'), {
-    d: 'e'
-  })
+    t.equal(await conf.exists('mynamespace:a'), true)
+    t.same(await conf.get('mynamespace:a'), {
+      d: 'e'
+    })
 
-  t.equal(await conf.exists('mynamespace:a'), true)
-  t.same(await conf.get('mynamespace:a'), {
-    d: 'e'
-  })
+    await sub.del('a')
+    t.equal(await sub.exists('a'), false)
+    try {
+      await sub.get('a')
+      t.fail('sub should not have value')
+    } catch (err) {
+      t.ok(err)
+    }
 
-  await sub.del('a')
-  t.equal(await sub.exists('a'), false)
-  try {
-    await sub.get('a')
-    t.fail('sub should not have value')
-  } catch (err) {
-    t.ok(err)
-  }
-
-  await table.destroy()
-  t.end()
-}))
+    t.end()
+  }))
+})
 
 test('errors', t => {
   const tests:IErrorMatchTest[] = [
