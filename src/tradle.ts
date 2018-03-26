@@ -32,6 +32,7 @@ import {
   Init,
   Mailer,
   AppLinks,
+  Backlinks,
   IServiceMap
 } from './types'
 
@@ -78,6 +79,7 @@ export default class Tradle {
   public prefix: string
   public mailer: Mailer
   public appLinks: AppLinks
+  public backlinks: Backlinks
   public get secrets(): Bucket {
     return this.buckets.Secrets
   }
@@ -206,6 +208,10 @@ export default class Tradle {
     }))
 
     this.define('appLinks', './app-links', Linker => new Linker())
+    this.define('backlinks', './backlinks', Backlinks => new Backlinks({
+      store: this.kv1,
+      modelStore: this.modelStore
+    }))
   }
 
   get apiBaseUrl () {

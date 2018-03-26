@@ -156,6 +156,7 @@ export class Bot extends EventEmitter implements IReady {
   public get mailer () { return this.tradle.mailer }
   public get pushNotifications () { return this.tradle.pushNotifications }
   public get delivery () { return this.tradle.delivery }
+  public get backlinks () { return this.tradle.backlinks }
   public appLinks: AppLinks
   public logger: Logger
   public kv: KeyValueTable
@@ -272,33 +273,21 @@ export class Bot extends EventEmitter implements IReady {
         web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, `http://localhost:${webPort}`)
       })
 
-      this.objects.hook('put', async (ctx, next) => {
-        await next()
-        await wait(0)
-        await this.fire('save', { value: ctx.event })
-      })
-
-      // trigger stream stuff
-      this.hook('*', async ({ ctx, event }, next) => {
-        await next()
-        await wait(0)
-        if (event.startsWith('async:')) return
-
-        if (event.startsWith('save')) {
-          this._fireSaveEvent({
-            async: true,
-            change: ctx.event
-          })
-        } else {
-          await this.fire(`async:${event}`, ctx.event)
-        }
-      })
+      require('./test-eventstream').simulateEventStream(this)
     } else {
       this.appLinks = defaultAppLinks
     }
 
     // backwards compat
     this.hookSimple('msg:i', event => this.fire('message', event))
+
+    this.hookSimple('async:save:batch', async (changes) => {
+      try {
+        await this.backlinks.processChanges(changes)
+      } catch (err) {
+        debugger
+      }
+    })
 
     if (ready) this.ready()
   }
@@ -545,14 +534,17 @@ export class Bot extends EventEmitter implements IReady {
   }
 
   public _fireSaveBatchEvent = async (opts: {
-    async?: boolean
     changes: ISaveEventPayload[]
+    async?: boolean
+    spread?: boolean
   }) => {
-    const { changes, async } = opts
+    const { changes, async, spread } = opts
     const base = EventTopics.resource.save
     const topic = async ? base.async : base.sync
     const payloads = await Promise.all(changes.map(change => maybeAddOld(this, change, async)))
-    return await this.fireBatch(topic, payloads)
+    return spread
+      ? await this.fireBatch(topic, payloads)
+      : await this.fire(this.events.toBatchEvent(topic), payloads)
   }
 
   public _fireSaveEvent = async (opts: {
@@ -567,13 +559,17 @@ export class Bot extends EventEmitter implements IReady {
   }
 
   public _fireMessageBatchEvent = async (opts: {
-    async?: boolean
-    inbound?: boolean
     batch: IBotMessageEvent[]
+    async?: boolean
+    spread?: boolean
+    inbound?: boolean
   }) => {
-    const topic = opts.inbound ? EventTopics.message.inbound : EventTopics.message.outbound
-    const event = opts.async ? topic.async : topic.sync
-    return await this.fireBatch(event, opts.batch)
+    const { batch, async, spread, inbound } = opts
+    const topic = inbound ? EventTopics.message.inbound : EventTopics.message.outbound
+    const event = async ? topic.async : topic.sync
+    return spread
+      ? await this.fireBatch(event, batch)
+      : await this.fire(this.events.toBatchEvent(event), batch)
   }
 
   public _fireMessageEvent = async (opts: {

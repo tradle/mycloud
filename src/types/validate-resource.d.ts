@@ -36,6 +36,11 @@ declare module '@tradle/validate-resource' {
     propertyName: string
   }
 
+  type IsInlinedPropertyInput = {
+    models: any
+    property: any
+  }
+
   export interface Utils {
     parseId(id:string): ParsedResourceStub
     parseStub(stub:ResourceStub): ParsedResourceStub
@@ -50,6 +55,7 @@ declare module '@tradle/validate-resource' {
     isInstantiable(obj:any): boolean
     isDescendantOf(opts: IsDescendantOfInput): boolean
     getPropertyTitle(opts: GetPropertyTitleInput): string
+    isInlinedProperty(opts: IsInlinedPropertyInput): string
   }
 
   class RequiredError extends Error {

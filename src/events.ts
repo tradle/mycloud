@@ -107,6 +107,12 @@ export default class Events {
         break
     }
   }
+
+  public toBatchEvent = toBatchEvent
+  public toAsyncEvent = toAsyncEvent
+  public isBatchEvent = isBatchEvent
+  public isAsyncEvent = isAsyncEvent
+  public parseTopic = parseTopic
 }
 
 export { Events }
@@ -204,4 +210,20 @@ export const toBatchEvent = topic => {
 
 export const toAsyncEvent = topic => {
   return topic.startsWith('async:') ? topic : `async:${topic}`
+}
+
+export const isBatchEvent = topic => topic.endsWith(':batch')
+
+export const isAsyncEvent = topic => topic.startsWith('async:')
+
+export const parseTopic = topic => {
+  const info = {
+    batch: isBatchEvent(topic),
+    async: isAsyncEvent(topic),
+    original: topic
+      .replace(/^async:/, '')
+      .replace(/:batch$/, '')
+  }
+
+  return info
 }
