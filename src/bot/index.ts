@@ -153,6 +153,7 @@ export class Bot extends EventEmitter implements IReady {
   public get lenses () { return this.modelStore.lenses }
   public get mailer () { return this.tradle.mailer }
   public get pushNotifications () { return this.tradle.pushNotifications }
+  public get delivery () { return this.tradle.delivery }
   public appLinks: AppLinks
   public logger: Logger
   public kv: KeyValueTable

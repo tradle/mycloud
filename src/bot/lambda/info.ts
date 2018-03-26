@@ -1,5 +1,6 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
+import { extend } from 'lodash'
 import { get } from '../middleware/noop-route'
 import { Lambda } from '../../types'
 import { EventSource, fromHTTP } from '../lambda'
@@ -18,7 +19,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     async (ctx:any, next) => {
       logger.debug('setting bot endpoint info')
       if (!ctx.body) ctx.body = {}
-      ctx.body.connectEndpoint = await bot.getEndpointInfo()
+      const { version, ...connectEndpoint } = await bot.getEndpointInfo()
+      extend(ctx.body, { connectEndpoint, version })
       await next()
     }
   ])

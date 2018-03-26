@@ -1,5 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
+import _ from 'lodash'
 import IotMessage from '@tradle/iot-message'
 import { Lambda } from '../../types'
 import { fromDynamoDB } from '../lambda'
@@ -13,24 +14,25 @@ export const onMessage = (lambda, { onSuccess, onError }) => {
   return async (ctx, next) => {
     const { clientId, friend, event } = ctx
     logger.debug(`preprocessing ${event.messages.length} messages`)
-    event.messages = await Promise.mapSeries(event.messages, async (message, i) => {
+    const results = await Promise.mapSeries(event.messages, async (message, i) => {
       try {
         message = tradle.messages.normalizeInbound(message)
         message = await user.onSentMessage({ message, clientId, friend })
       } catch (error) {
-        await onError({ clientId, message, error })
-        return
+        return { message, error }
       }
 
-      await onSuccess({ clientId, message })
-      return message
+      return { message }
     })
 
-    event.messages = event.messages.filter(notNull)
+    const [failures, successes] = _.partition(results, 'error')
+    const handleErrors = Promise.mapSeries(failures, failure => onError({ ...failure, clientId }))
+    event.messages = successes.map(s => s.message)
     const count = event.messages.length
-    if (count) {
-      logger.debug(`preprocessed ${count} messages`)
-      await next()
-    }
+    if (!count) return
+
+    logger.debug(`preprocessed ${count} messages`)
+    await next()
+    await Promise.mapSeries(successes, success => onSuccess({ ...success, clientId }))
   }
 }

@@ -461,10 +461,7 @@ export default class Provider {
         signedMessage.object = payload.asStored
         return signedMessage
       } catch (err) {
-        if (err.code !== 'ConditionalCheckFailedException') {
-          throw err
-        }
-
+        Errors.ignore(err, Errors.Duplicate)
         this.logger.info(`seq was taken by another message, retrying`, {
           seq,
           recipient

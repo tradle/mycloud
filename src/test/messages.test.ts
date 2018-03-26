@@ -122,9 +122,7 @@ test('_doSendMessage', loudAsync(async (t) => {
     if (!stoleSeq) {
       nextSeq++
       stoleSeq = true
-      const err:any = new Error()
-      err.code = 'ConditionalCheckFailedException'
-      throw err
+      throw new Errors.Duplicate('stolen seq', prevMsgLink)
     }
 
     t.end()

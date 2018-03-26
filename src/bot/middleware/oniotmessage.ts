@@ -8,7 +8,7 @@ import Errors from '../../errors'
 const notNull = val => !!val
 
 export const onMessage = (lambda, opts) => {
-  const { logger, tradle, tasks, isUsingServerlessOffline } = lambda
+  const { logger, tradle, isUsingServerlessOffline } = lambda
   const { user } = tradle
   return async (ctx, next) => {
     const { event, context } = ctx
@@ -48,51 +48,28 @@ export const onMessage = (lambda, opts) => {
   }
 }
 
-export const createSuccessHandler = (lambda, opts) => {
-  const { tasks, logger, tradle } = lambda
+export const createSuccessHandler = (lambda:Lambda, opts) => {
+  const { logger, delivery } = lambda.bot
   return async ({ clientId, message }) => {
-    const { delivery } = tradle
-    tasks.add({
-      name: 'delivery:ack',
-      promiser: async () => {
-        await delivery.mqtt.ack({ clientId, message })
-      }
-    })
-
+    await delivery.mqtt.ack({ clientId, message })
     logger.debug('received valid message from user')
   }
 }
 
-export const createErrorHandler = (lambda, opts) => {
-  const { tasks, logger, tradle } = lambda
-  const { delivery } = tradle
+export const createErrorHandler = (lambda:Lambda, opts) => {
+  const { logger, delivery } = lambda.bot
   return async ({ clientId, message, error }: {
     clientId,
     message,
     error?
   }):Promise<any|void> => {
     const progress = error && error.progress
-    const ack = () => {
-      tasks.add({
-        name: 'delivery:ack',
-        promiser: async () => {
-          await delivery.mqtt.ack({ clientId, message: message || progress })
-        }
-      })
-    }
-
-    const reject = () => {
-      tasks.add({
-        name: 'delivery:reject',
-        promiser: async () => {
-          await delivery.mqtt.reject({
-            clientId,
-            message: progress,
-            error
-          })
-        }
-      })
-    }
+    const ack = () => delivery.mqtt.ack({ clientId, message: message || progress })
+    const reject = () => delivery.mqtt.reject({
+      clientId,
+      message: progress,
+      error
+    })
 
     logger.debug(`processing error in receive: ${error.name}`)
     if (error instanceof Errors.Duplicate) {
