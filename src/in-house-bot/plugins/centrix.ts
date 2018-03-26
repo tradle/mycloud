@@ -184,23 +184,34 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI }, { c
   const centrixAPI = new CentrixAPI({ bot, productsAPI, centrix, logger })
   const getDataAndCallCentrix = async ({ req, application }) => {
     const centrixData:any = await getCentrixData({ application, bot })
-    if (!centrixData) return
+    if (!centrixData) {
+      logger.debug(`don't have all the inputs yet`)
+      return
+    }
 
     centrixData.req = req
+    logger.debug(`calling Centrix...`)
     await centrixAPI.callCentrix(centrixData)
   }
 
   const onFormsCollected = async function ({ req }) {
-    if (req.skipChecks) return
+    if (req.skipChecks) {
+      logger.debug('skipped, skipChecks=true')
+      return
+    }
 
-    // don't `return` to avoid slowing down message processing
     const { application } = req
-    if (!application) return
+    if (!application) {
+      logger.debug('skipped, no application')
+      return
+    }
 
     let productId = application.requestFor
     let { products } = conf
-    if (!products  ||  !products[productId])
+    if (!products  ||  !products[productId]) {
+      logger.debug(`skipped, not configured for product: ${productId}`)
       return
+    }
 
     // debugger
     // if (hasCentrixVerification({ application })) return
