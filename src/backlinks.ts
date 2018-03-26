@@ -7,7 +7,8 @@ import {
   parseStub,
   uniqueStrict,
   pluck,
-  toPathValuePairs
+  toPathValuePairs,
+  RESOLVED_PROMISE
 } from './utils'
 
 import {
@@ -25,7 +26,7 @@ import {
 import { getRecordsFromEvent } from './db-utils'
 import Errors from './errors'
 
-const { isDescendantOf } = validateResource.utils
+const { isDescendantOf, isInlinedProperty } = validateResource.utils
 
 interface ResourceProperty extends ParsedResourceStub {
   property: string
@@ -53,17 +54,23 @@ export type LatestToLink = {
   [latestId: string]: string
 }
 
-export type ResourceBacklinks = {
+export type StoredResourceBacklinks = {
   [backlinkProperty: string]: LatestToLink
+}
+
+export type ResourceBacklinks = {
+  [backlinkProperty: string]: ResourceStub[]
 }
 
 export type RemoveBacklinks = {
   [backlinkProperty: string]: string[]
 }
 
+// export type ExportedBacklinks
+
 export type BacklinksContainer = {
   targetId: string
-  backlinks: ResourceBacklinks
+  backlinks: StoredResourceBacklinks
 }
 
 export type BacklinksContainers = {
@@ -72,19 +79,21 @@ export type BacklinksContainers = {
 
 export type BacklinksChange = {
   targetId: string
-  set: ResourceBacklinks
+  set: StoredResourceBacklinks
   remove: RemoveBacklinks
 }
 
 // export type Backlink = string[]
 
-export class Backlinks {
+type BacklinksOpts = {
+  store: KV
+  modelStore: ModelStore
+}
+
+export default class Backlinks {
   private store: KV
   private modelStore: ModelStore
-  constructor ({ store, modelStore }: {
-    store: KV
-    modelStore: ModelStore
-  }) {
+  constructor ({ store, modelStore }: BacklinksOpts) {
     this.store = store
     this.modelStore = modelStore
   }
@@ -100,27 +109,43 @@ export class Backlinks {
   public getBacklinks = async ({ type, permalink }: {
     type: string
     permalink: string
-  }) => {
+  }):Promise<ResourceBacklinks> => {
     const key = getBacklinkKey(getLatestVersionId({ type, permalink }))
-    return await this.store.get(key)
+    const backlinks = await this.store.get(key)
+    return exportBacklinksContainer(backlinks)
   }
+
+  // public processMessages = async (messages: ITradleMessage[]) => {
+  //   messages = messages.filter(m => m.context)
+  //   if (!messages.length) return
+
+  //   const payloads = messages.map()
+  // }
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
     const backlinkChanges = this.getBacklinksChanges(resourceChanges)
-    const [toPut, toUpdate] = _.partition(backlinkChanges, 'isNew')
-    const savePuts = this.store.batchPut(toPut.map(({ targetId, set }) => ({
-      key: getBacklinkKey(targetId),
-      value: set
-    })))
+    if (!backlinkChanges.length) return
 
-    const saveUpdates = Promise.all(toUpdate.map(async (update) => {
-      try {
-        return await this.store.updateMap(getUpdateForBacklinkChange(update))
-      } catch (err) {
-        Errors.ignore(err, { name: 'ValidationException' })
-        await this.store.put(getBacklinkKey(update.targetId), update.set)
-      }
-    }))
+    const [toPut, toUpdate] = _.partition(backlinkChanges, 'isNew')
+    let savePuts = RESOLVED_PROMISE
+    let saveUpdates = RESOLVED_PROMISE
+    if (toPut.length) {
+      savePuts = this.store.batchPut(toPut.map(({ targetId, set }) => ({
+        key: getBacklinkKey(targetId),
+        value: set
+      })))
+    }
+
+    if (toUpdate.length) {
+      saveUpdates = Promise.all(toUpdate.map(async (update) => {
+        try {
+          return await this.store.updateMap(getUpdateForBacklinkChange(update))
+        } catch (err) {
+          Errors.ignore(err, { name: 'ValidationException' })
+          await this.store.put(getBacklinkKey(update.targetId), update.set)
+        }
+      }))
+    }
 
     await Promise.all([savePuts, saveUpdates])
   }
@@ -235,7 +260,9 @@ export const getForwardLinks = ({ models, resource }: {
   return Object.keys(resource)
     .map(linkPropertyName => {
       const property = properties[linkPropertyName]
-      if (!property) return
+      if (!property || isInlinedProperty({ models, property })) {
+        return
+      }
 
       const { ref } = property
       if (!ref) return
@@ -291,9 +318,12 @@ export const getBacklinkForForwardLink = ({
   targetModel: Model
   linkPropertyName: string
 }) => {
-  const { properties } = targetModel
-  return Object.keys(properties)
-    .find(propertyName => {
+  const targetModels = [targetModel].concat(getAncestors({ models, model: targetModel }))
+
+  let prop
+  const model = targetModels.find(targetModel => {
+    const { properties } = targetModel
+    prop = Object.keys(properties).find(propertyName => {
       const property = properties[propertyName]
       const { items } = property
       if (!items) return
@@ -308,6 +338,23 @@ export const getBacklinkForForwardLink = ({
       // check: is tradle.PhotoID a descendant of tradle.Form?
       return isDescendantOf({ models, a: sourceModel.id, b: ref })
     })
+
+    return !!prop
+  })
+
+  return prop
+}
+
+const getAncestors = ({ models, model }) => {
+  let cur = model
+  const ancestors = []
+  while (cur.subClassOf) {
+    let parent = models[cur.subClassOf]
+    ancestors.push(parent)
+    cur = parent
+  }
+
+  return ancestors
 }
 
 // const updateBacklink = (ids:Backlink, id:string):Backlink => {
@@ -382,7 +429,7 @@ export const getBacklinkChanges = ({ before, after }: {
   }
 
   const { targetId } = before || after
-  const set:ResourceBacklinks = {}
+  const set:StoredResourceBacklinks = {}
   const remove:RemoveBacklinks = {}
   concatKeysUniq(
     before && before.backlinks,
@@ -490,9 +537,18 @@ export const getBacklinkChangesForChanges = ({ models, changes }: {
     .filter(_.identity)
 }
 
-// const getUpdateForChange = (change:ISaveEventPayload) => {
+export { Backlinks }
+export const createBacklinks = (opts: BacklinksOpts) => new Backlinks(opts)
 
-// }
+export const exportBacklinksContainer = (backlinks: StoredResourceBacklinks):ResourceBacklinks => {
+  return _.transform(backlinks, (result, backlink, key) => {
+    result[key] = Object.keys(backlink).map(versionId => ({
+      id: toId({ versionId, link: backlink[versionId] })
+    }))
+  }, {})
+}
+
+const toId = ({ versionId, link }) => `${versionId}_${link}`
 
 // MAP:
 //   [

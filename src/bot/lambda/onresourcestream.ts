@@ -39,6 +39,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     }))
 
     // match the sync event format
-    await bot._fireSaveBatchEvent({ changes, async: true })
+    await bot._fireSaveBatchEvent({ changes, async: true, spread: true })
   }
 }

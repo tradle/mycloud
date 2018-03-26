@@ -152,9 +152,9 @@ test('update backlinks', loudAsync(async (t) => {
 
   const bls = await b.getBacklinks(parseStub(v.document))
   t.same(bls, {
-    verifications: {
-      [getTargetId(vStub)]: vStub.link
-    }
+    verifications: [
+      { id: buildResource.id({ resource: v }) }
+    ]
   })
 
   const bls2 = await b.getBacklinks(parseStub(old.document))
