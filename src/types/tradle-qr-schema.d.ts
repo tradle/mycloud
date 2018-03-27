@@ -10,14 +10,30 @@ declare module '@tradle/qr-schema' {
     data: any
   }
 
+  type GetResourceLinkOpts = {
+    platform: string
+    baseUrl?: string
+    type: string
+    permalink?: string
+    link?: string
+  }
+
+  type GetAppLinkOpts = {
+    platform: string
+    baseUrl?: string
+    path: string
+    query?: any
+  }
+
   export type AppLinks = {
-    getAppLink: (opts:any) => string
+    getAppLink: (opts:GetAppLinkOpts) => string
     // getAppLinks: (opts:any) => LinksPerPlatform
     getChatLink: (opts:any) => string
     // getChatLinks: (opts:any) => LinksPerPlatform
     getImportDataLink: (opts:any) => string
     // getImportDataLinks: (opts:any) => LinksPerPlatform
     getApplyForProductLink: (opts:any) => string
+    getResourceLink: (opts:GetResourceLinkOpts) => string
     // getApplyForProductLinks: (opts:any) => LinksPerPlatform
     inferSchemaAndData: (opts: any) => QRInput
   }
