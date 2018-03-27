@@ -451,6 +451,11 @@ export class Bot extends EventEmitter implements IReady {
     return await this.objects.get(link)
   }
 
+  public buildResource = model => buildResource({
+    models: this.models,
+    model
+  })
+
   public resolveEmbeds = object => this.objects.resolveEmbeds(object)
   public presignEmbeddedMediaLinks = object => this.objects.presignEmbeddedMediaLinks(object)
   public createNewVersion = async (resource) => {
@@ -460,14 +465,14 @@ export class Bot extends EventEmitter implements IReady {
     return signed
   }
 
-  public signAndSave = async (resource) => {
+  public signAndSave = async <T>(resource):Promise<T> => {
     const signed = await this.sign(resource)
     addLinks(signed)
     await this.save(signed)
     return signed
   }
 
-  public versionAndSave = async (resource) => {
+  public versionAndSave = async <T>(resource):Promise<T> => {
     const newVersion = await this.createNewVersion(resource)
     await this.save(newVersion)
     return newVersion

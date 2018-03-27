@@ -32,6 +32,7 @@ import {
 
 import { createRemediation } from './remediation'
 import { createPlugin as createRemediationPlugin } from './plugins/remediation'
+import { createPlugin as createDraftApplicationPlugin } from './plugins/draft-application'
 import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
 import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
 import { createPlugin as createCommandsPlugin } from './plugins/commands'
@@ -245,50 +246,16 @@ export default function createProductsBot({
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
       onmessage: async (req) => {
-        if (req.application && req.application.draft) {
-          req.skipChecks = true
-        }
-      },
-      ['onmessage:tradle.ProductRequest']: async (req) => {
-        const { user, payload, message } = req
-        const { requestFor } = payload
-        req.isFromEmployee = employeeManager.isEmployee(req.user)
-        if (req.isFromEmployee &&
-          requestFor === EMPLOYEE_ONBOARDING &&
-          message.forward) {
-          logger.warn(`refusing to allow application for employee onboarding from own employee to another organization`, {
-            employee: user.id,
-            toOrg: message.forward
-          })
-
-          await productsAPI.sendSimpleMessage({
-            req,
-            to: user,
-            message: `You're already an employee of someone else!`
-          })
-
-          return false
-        }
-
-        const { application } = req
-        if (!application) return
-
-        if (req.message.forward) return
-        if (!req.isFromEmployee) return
-
-        // HACK
-        if (application.requestFor === DEPLOYMENT) return
-
-        logger.debug('setting application.draft, as this is an employee applying on behalf of a customer')
-        application.draft = true
-        req.skipChecks = true
-        await productsAPI.sendSimpleMessage({
-          req,
-          to: req.user,
-          message: `Note: this is a draft application. When you finish you will be given a set of links that can be used to import`
-        })
+        if (req.draftApplication) return
+        // if (req.application && req.application.draft) {
+        //   req.skipChecks = true
+        // }
       }
     })
+
+    productsAPI.plugins.use(createDraftApplicationPlugin(components, {
+      logger: logger.sub('draft-app')
+    }).plugin, true) // prepend
 
     // this is pretty bad...
     // the goal: allow employees to create multiple pending applications for the same product

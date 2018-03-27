@@ -116,7 +116,9 @@ export interface IPBReq {
   // alias for "payload"
   object: ITradleObject
   type: string
+  context?: string
   application?: IPBApp
+  draftApplication?: IPBAppDraft
   applicant?: IPBUser
   isFromEmployee?: boolean
   skipChecks?: boolean
@@ -142,6 +144,15 @@ export interface IPBApp extends ITradleObject {
   dateModified: number
   dateCompleted?: number
   draft?: boolean
+}
+
+export interface IPBAppDraft extends ITradleObject {
+  applicant: ResourceStub
+  request?: ResourceStub
+  requestFor: string
+  dateStarted?: number
+  dateModified?: number
+  dateCompleted?: number
 }
 
 export interface IPBAppStub {
