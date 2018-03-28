@@ -371,9 +371,9 @@
       }
     },
     "@tradle/qr-schema": {
-      "version": "1.8.0",
-      "from": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.8.0.tgz",
-      "resolved": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.8.0.tgz",
+      "version": "1.9.0",
+      "from": "@tradle/qr-schema@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/qr-schema/-/qr-schema-1.9.0.tgz",
       "dependencies": {
         "is-extendable": {
           "version": "1.0.1",
