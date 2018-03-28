@@ -146,7 +146,7 @@
     "@tradle/plugin-customize-message": "github:tradle/plugin-customize-message",
     "@tradle/plugin-onfido": "github:tradle/plugin-onfido",
     "@tradle/qr": "^2.0.0",
-    "@tradle/qr-schema": "^1.8.0",
+    "@tradle/qr-schema": "^1.9.0",
     "@tradle/schema-graphql": "github:tradle/schema-graphql",
     "@tradle/schema-joi": "github:tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",
