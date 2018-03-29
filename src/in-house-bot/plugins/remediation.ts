@@ -72,34 +72,34 @@ export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) =
     await tryClaim({ req, user, application })
   }
 
-  plugin.onFormsCollected = async ({ req, user, application }) => {
-    if (!application.draft) return
+//   plugin.onFormsCollected = async ({ req, user, application }) => {
+//     if (!application.draft) return
 
-    const provider = await bot.getMyIdentityPermalink()
-    const { claimId } = await remediation.createClaimForApplication({
-      application,
-      claimType: 'prefill'
-    })
+//     const provider = await bot.getMyIdentityPermalink()
+//     const { claimId } = await remediation.createClaimForApplication({
+//       application,
+//       claimType: 'prefill'
+//     })
 
-    const [mobile, web] = ['mobile', 'web'].map(platform => bot.appLinks.getApplyForProductLink({
-      provider,
-      host: bot.apiBaseUrl,
-      product: application.requestFor,
-      contextId: claimId,
-      platform
-    }))
+//     const [mobile, web] = ['mobile', 'web'].map(platform => bot.appLinks.getApplyForProductLink({
+//       provider,
+//       host: bot.apiBaseUrl,
+//       product: application.requestFor,
+//       contextId: claimId,
+//       platform
+//     }))
 
-    await productsAPI.sendSimpleMessage({
-      req,
-      to: user,
-      message: `This application can be imported via the following single-use links:
+//     await productsAPI.sendSimpleMessage({
+//       req,
+//       to: user,
+//       message: `This application can be imported via the following single-use links:
 
-[Mobile](${mobile})
+// [Mobile](${mobile})
 
-[Web](${web})
-      `
-    })
-  }
+// [Web](${web})
+//       `
+//     })
+//   }
 
   return {
     api: remediation,

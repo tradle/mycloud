@@ -156,6 +156,7 @@ export default class Backlinks {
     }
 
     await Promise.all([savePuts, saveUpdates])
+    return backlinkChanges
   }
 
   public getBacklinksChanges = (rChanges: ISaveEventPayload[]):BacklinksChange[] => {

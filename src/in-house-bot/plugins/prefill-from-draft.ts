@@ -6,7 +6,7 @@ import {
   IDataBundle
 } from '../types'
 
-import { parseStub, omitVirtual, toUnsigned } from '../../utils'
+import { parseStub, omitVirtual, toUnsigned, allSettled } from '../../utils'
 import Errors from '../../errors'
 
 export const name = 'prefillFromDraft'
@@ -33,7 +33,7 @@ export const createPlugin: CreatePlugin<void> = ({
 
     let draft
     try {
-      draft = await bot.getResource(application.prefillFromApplication)
+      draft = await bot.getResource(application.prefillFromApplication, { backlinks: true })
     } catch (err) {
       Errors.rethrow(err, 'developer')
       logger.error(`application draft not found`, err)
@@ -46,19 +46,21 @@ export const createPlugin: CreatePlugin<void> = ({
       .map(parseStub)
       .filter(({ type }) => type === form)
 
-    const idx = filledAlready.length
-    const draftStubs = draft.forms.map(parseStub)
-    const match = draftStubs.filter(({ type }) => type === form)[idx]
-    if (!match) return
+    if (!(draft.formPrefills && draft.formPrefills.length)) return
 
-    let prefill
-    try {
-      prefill = await bot.objects.get(match.link)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      logger.error(`form draft not found`, err)
-      return
+    const results = await allSettled(draft.formPrefills.map(bot.getResource))
+    const errors = results.map(({ reason }) => reason).filter(_.identity)
+    if (errors.length) {
+      logger.error('failed to find prefills', errors)
     }
+
+    const formPrefills:any[] = results.map(({ value }) => value)
+      .filter(_.identity)
+      .filter(({ prefill }) => prefill[TYPE] === form)
+
+    const idx = filledAlready.length
+    const match = formPrefills[idx]
+    if (!match) return
 
     logger.debug('setting prefill from draft application', {
       form,
@@ -66,7 +68,7 @@ export const createPlugin: CreatePlugin<void> = ({
       application: application._permalink
     })
 
-    formRequest.prefill = toUnsigned(prefill)
+    formRequest.prefill = toUnsigned(match.prefill)
   }
 
   return {

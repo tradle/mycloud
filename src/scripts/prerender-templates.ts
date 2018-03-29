@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import juice from 'juice'
 import mkdirp from 'mkdirp'
-import nunjucks from 'nunjucks'
+// import nunjucks from 'nunjucks'
 
 const baseDir = path.join(__dirname, '../../assets/in-house-bot/templates')
 

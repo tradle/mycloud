@@ -22,5 +22,7 @@ export const TYPES = {
   VERIFICATION: 'tradle.Verification',
   MY_PRODUCT: 'tradle.MyProduct',
   APPLICATION: 'tradle.Application',
-  PRODUCT_REQUEST: 'tradle.ProductRequest'
+  PRODUCT_REQUEST: 'tradle.ProductRequest',
+  DRAFT_APPLICATION: 'tradle.DraftApplication',
+  FORM_PREFILL: 'tradle.FormPrefill'
 }

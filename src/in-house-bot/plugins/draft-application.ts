@@ -42,11 +42,7 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
     }
 
     const { application } = req
-    if (application) {
-      debugger
-      return
-    }
-
+    if (application) return
     if (req.message.forward) return
 
     // HACK
@@ -73,10 +69,11 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
       permalink: draft._permalink
     })
 
+    const productModel = bot.models[requestFor]
     await productsAPI.sendSimpleMessage({
       req,
       to: req.user,
-      message: `You have created a draft application. [Edit it here](${draftLink})`
+      message: `You have created a draft application for **${productModel.title}**. [Edit it here](${draftLink})`
     })
 
     req.skipChecks = true
