@@ -31,7 +31,9 @@ const {
   DATA_BUNDLE,
   FORM,
   APPLICATION,
-  PRODUCT_REQUEST
+  PRODUCT_REQUEST,
+  DRAFT_APPLICATION,
+  FORM_PREFILL
 } = TYPES
 
 test('remediation plugin', loudAsync(async (t) => {
@@ -165,11 +167,18 @@ test('prefill-based', loudAsync(async (t) => {
   }
 
   const productRequest = await bot.sign(unsignedProductRequest)
+  const draft = await bot.createResource({
+    [TYPE]: DRAFT_APPLICATION,
+    requestFor: productRequest.requestFor,
+    request: buildResource.stub({ resource: productRequest })
+  })
 
-  const forms = await Promise.all(unsignedForms.map(form => bot.sign(form)))
-  const formStubs = forms.map(resource => buildResource.stub({ resource }))
+  const draftStub = buildResource.stub({ resource: draft })
+  const unsignedPrefills = unsignedForms.map(prefill => toPrefill({ prefill, draft }))
+  const prefills = await Promise.all(unsignedPrefills.map(bot.createResource))
+  const prefillStubs = prefills.map(resource => buildResource.stub({ resource }))
   const objects = {}
-  forms.concat(productRequest).forEach(res => {
+  prefills.concat(productRequest).forEach(res => {
     objects[buildResource.link(res)] = res
   })
 
@@ -219,17 +228,6 @@ test('prefill-based', loudAsync(async (t) => {
   //   return bundle
   // })
 
-  const draft = <IPBApp>{
-    [SIG]: 'appsig',
-    [TYPE]: APPLICATION,
-    requestFor: productRequest.requestFor,
-    request: buildResource.stub({ resource: productRequest }),
-    forms: formStubs,
-    draft: true
-  }
-
-  addLinks(draft)
-  const draftStub = buildResource.stub({ resource: draft })
 
   let keyToClaimIds = {}
   sandbox.stub(api.keyToClaimIds, 'put').callsFake(async (key, val) => {
@@ -242,13 +240,14 @@ test('prefill-based', loudAsync(async (t) => {
     throw new Errors.NotFound(key)
   })
 
-  sandbox.stub(bot, 'getResource').callsFake(async ({ type, permalink, id }) => {
-    if (permalink === draft._permalink) {
-      return draft
+  sandbox.stub(bot, 'getResource').callsFake(async ({ type, permalink, id }, opts={}) => {
+    if (permalink === draft._permalink || id === draftStub.id) {
+      return opts.backlinks ? { ...draft, formPrefills: prefillStubs } : draft
     }
 
-    if (id === draftStub.id) {
-      return draft
+    const idx = prefillStubs.findIndex(stub => stub.id === id)
+    if (idx !== -1) {
+      return prefills[idx]
     }
 
     throw new Errors.NotFound(type + permalink)
@@ -256,7 +255,7 @@ test('prefill-based', loudAsync(async (t) => {
 
   const stub = await api.createClaimForApplication({
     claimType: 'prefill',
-    application: draft
+    draft
   })
 
   const prefillFromDraft = createPrefillFromDraftPlugin({
@@ -290,7 +289,7 @@ test('prefill-based', loudAsync(async (t) => {
   t.equal(application.prefillFromApplication.id, draftStub.id)
 
   const formRequest = <IFormRequest>{
-    form: forms[0][TYPE]
+    form: unsignedPrefills[0].prefill[TYPE]
   }
 
   await prefillFromDraft.plugin.willRequestForm({
@@ -303,7 +302,7 @@ test('prefill-based', loudAsync(async (t) => {
 
   const stub2 = await api.createClaimForApplication({
     claimType: 'prefill',
-    application: draft
+    draft
   })
 
   // plugin.onFormsCollected
@@ -320,3 +319,9 @@ test('prefill-based', loudAsync(async (t) => {
   sandbox.restore()
   t.end()
 }))
+
+const toPrefill = ({ draft, prefill }) => ({
+  [TYPE]: FORM_PREFILL,
+  draft,
+  prefill
+})

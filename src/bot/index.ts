@@ -126,33 +126,33 @@ const lambdaCreators:LambdaImplMap = {
  * @return {BotEngine}
  */
 export class Bot extends EventEmitter implements IReady {
-  public get aws () { return this.tradle.aws }
-  public get objects () { return this.tradle.objects }
-  public get db () { return this.tradle.db }
-  public get dbUtils () { return this.tradle.dbUtils }
-  public get contentAddressedStore () { return this.tradle.contentAddressedStore }
-  public get lambdaUtils () { return this.tradle.lambdaUtils }
-  public get stackUtils () { return this.tradle.stackUtils }
-  public get iot () { return this.tradle.iot }
-  public get seals () { return this.tradle.seals }
-  public get events () { return this.tradle.events }
-  public get modelStore () { return this.tradle.modelStore }
-  public get identities () { return this.tradle.identities }
-  public get addressBook () { return this.tradle.identities }
+  public get aws() { return this.tradle.aws }
+  public get objects() { return this.tradle.objects }
+  public get db() { return this.tradle.db }
+  public get dbUtils() { return this.tradle.dbUtils }
+  public get contentAddressedStore() { return this.tradle.contentAddressedStore }
+  public get lambdaUtils() { return this.tradle.lambdaUtils }
+  public get stackUtils() { return this.tradle.stackUtils }
+  public get iot() { return this.tradle.iot }
+  public get seals() { return this.tradle.seals }
+  public get events() { return this.tradle.events }
+  public get modelStore() { return this.tradle.modelStore }
+  public get identities() { return this.tradle.identities }
+  public get addressBook() { return this.tradle.identities }
   // public get history () { return this.tradle.history }
-  public get messages () { return this.tradle.messages }
-  public get friends () { return this.tradle.friends }
-  public get env () { return this.tradle.env }
-  public get buckets () { return this.tradle.buckets }
-  public get tables () { return this.tradle.tables }
-  public get serviceMap () { return this.tradle.serviceMap }
-  public get version () { return this.tradle.version }
-  public get apiBaseUrl () { return this.tradle.apiBaseUrl }
-  public get tasks () { return this.tradle.tasks }
-  public get isTesting () { return this.tradle.env.TESTING }
-  public get isDev () { return this.tradle.env.STAGE === 'dev' }
-  public get isStaging () { return this.tradle.env.STAGE === 'staging' }
-  public get isProd () { return this.tradle.env.STAGE === 'prod' }
+  public get messages() { return this.tradle.messages }
+  public get friends() { return this.tradle.friends }
+  public get env() { return this.tradle.env }
+  public get buckets() { return this.tradle.buckets }
+  public get tables() { return this.tradle.tables }
+  public get serviceMap() { return this.tradle.serviceMap }
+  public get version() { return this.tradle.version }
+  public get apiBaseUrl() { return this.tradle.apiBaseUrl }
+  public get tasks() { return this.tradle.tasks }
+  public get isTesting() { return this.tradle.env.TESTING }
+  public get isDev() { return this.tradle.env.STAGE === 'dev' }
+  public get isStaging() { return this.tradle.env.STAGE === 'staging' }
+  public get isProd() { return this.tradle.env.STAGE === 'prod' }
   public get resourcePrefix() { return this.tradle.env.SERVERLESS_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
@@ -182,10 +182,10 @@ export class Bot extends EventEmitter implements IReady {
   //   return this.middleware.hook(event, payload)
   // }
 
-  public get hook():HooksHookFn { return this.middleware.hook }
-  public get hookSimple():HooksHookFn { return this.middleware.hookSimple }
-  public get fire():HooksFireFn { return this.middleware.fire }
-  public get fireBatch():HooksFireFn { return this.middleware.fireBatch }
+  public get hook(): HooksHookFn { return this.middleware.hook }
+  public get hookSimple(): HooksHookFn { return this.middleware.hookSimple }
+  public get fire(): HooksFireFn { return this.middleware.fire }
+  public get fireBatch(): HooksFireFn { return this.middleware.fireBatch }
 
   // shortcuts
   public onmessage = handler => this.middleware.hookSimple(EventTopics.message.inbound.sync, handler)
@@ -202,13 +202,13 @@ export class Bot extends EventEmitter implements IReady {
   private outboundMessageLocker: Locker
   private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
-  constructor (opts: IBotOpts) {
+  constructor(opts: IBotOpts) {
     super()
 
     let {
       tradle,
       users,
-      ready=true
+      ready = true
     } = opts
 
     const { env, logger, tables } = tradle
@@ -295,7 +295,7 @@ export class Bot extends EventEmitter implements IReady {
     if (ready) this.ready()
   }
 
-  public getEndpointInfo = async ():Promise<IEndpointInfo> => {
+  public getEndpointInfo = async (): Promise<IEndpointInfo> => {
     return {
       ...this.endpointInfo,
       endpoint: await this.iot.getEndpoint()
@@ -304,7 +304,7 @@ export class Bot extends EventEmitter implements IReady {
 
   public send = async (opts) => {
     const batch = await Promise.all([].concat(opts)
-       .map(oneOpts => normalizeSendOpts(this, oneOpts)))
+      .map(oneOpts => normalizeSendOpts(this, oneOpts)))
 
     const byRecipient = _.groupBy(batch, 'recipient')
     const recipients = Object.keys(byRecipient)
@@ -369,9 +369,10 @@ export class Bot extends EventEmitter implements IReady {
   public updateInfra = (opts?) => this.tradle.init.updateInfra(opts)
   public getMyIdentity = () => this.tradle.provider.getMyPublicIdentity()
   public getMyIdentityPermalink = () => this.tradle.provider.getMyIdentityPermalink()
+
   public sign = (object, author?) => this.tradle.provider.signObject({ object, author })
   public seal = opts => this.seals.create(opts)
-  public forceReinitializeContainers = async (functions?:string[]) => {
+  public forceReinitializeContainers = async (functions?: string[]) => {
     if (this.isTesting) return
 
     await this.lambdaUtils.invoke({
@@ -384,16 +385,30 @@ export class Bot extends EventEmitter implements IReady {
   public save = resource => this._save('put', resource)
   public update = resource => this._save('update', resource)
 
-  public createResource = async (props:ITradleObject) => {
+  /**
+   * Sign and save an object
+   * Unlike signAndSave, this triggers the 'create' hook, allowing the object to be modified
+   * before it's signed and saved
+   */
+  public createResource = async (props: ITradleObject) => {
     const resource = buildResource({
-      models: this.models,
-      model: props[TYPE]
-    })
-    .set(props)
-    .toJSON()
+        models: this.models,
+        model: props[TYPE]
+      })
+      .set(props)
+      .toJSON()
 
-    return await this.signAndSave(resource)
+    const payload = { object: resource }
+    await this.fire('create', payload)
+
+    this.validateResource(payload.object)
+    return await this.signAndSave(payload.object)
   }
+
+  public validateResource = (resource: ITradleObject) => validateResource.resource({
+    models: this.models,
+    resource
+  })
 
   public updateResource = async ({ type, permalink, props }) => {
     if (!(type && permalink)) {

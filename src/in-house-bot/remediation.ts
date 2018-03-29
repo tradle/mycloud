@@ -23,6 +23,7 @@ import {
   ITradleObject,
   IPluginOpts,
   IPBApp,
+  IPBAppDraft,
   IPBReq,
   IDataBundle
 } from './types'
@@ -33,11 +34,12 @@ const {
   VERIFICATION,
   FORM,
   MY_PRODUCT,
-  PRODUCT_REQUEST
+  PRODUCT_REQUEST,
+  DRAFT_APPLICATION
 } = TYPES
 
 const notNull = val => !!val
-const getApplicationPermalinkFromStub = (stub: ClaimStub) => stub.key
+const getDraftPermalinkFromStub = (stub: ClaimStub) => stub.key
 
 const DEFAULT_CLAIM_NOT_FOUND_MESSAGE = 'Claim not found'
 const DEFAULT_BUNDLE_MESSAGE = 'Please see your data and verifications'
@@ -259,8 +261,8 @@ export class Remediation {
     const { key } = idToStub(claimId)
     const claim = await this.getClaim({ key, claimId })
     const draft = await this.bot.getResource({
-      type: 'tradle.Application',
-      permalink: getApplicationPermalinkFromStub(claim)
+      type: DRAFT_APPLICATION,
+      permalink: getDraftPermalinkFromStub(claim)
     })
 
     application.prefillFromApplication = buildResource.stub({
@@ -418,19 +420,12 @@ export class Remediation {
   //   .toJSON()
   // }
 
-  public createClaimForApplication = async ({ application, claimType }: {
-    application: IPBApp,
+  public createClaimForApplication = async ({ draft, claimType }: {
+    draft: IPBAppDraft,
     claimType?: ClaimType
   }):Promise<ClaimStub> => {
-    if (!application.draft) {
-      throw new Errors.InvalidInput(`can't create claim for non-draft application: ${application._link}`)
-    }
-
-    // const bundle = await this.createBundleFromApplication(application)
-    // const key = await this.saveUnsignedDataBundle(bundle)
-    // delete application?
     return await this.createClaim({
-      key: application._permalink,
+      key: draft._permalink,
       claimType
     })
   }
