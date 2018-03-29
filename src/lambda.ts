@@ -417,7 +417,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
   private finishAsyncTasks = async () => {
     const results = await this.tasks.awaitAllSettled()
-    const failed = results.filter(r => r.reason)
+    const failed = results.filter(r => r.isRejected)
     if (failed.length) {
       this.logger.warn(`${failed.length} async tasks failed`, {
         failed: failed.map(({ reason, task }) => ({ reason, task }))

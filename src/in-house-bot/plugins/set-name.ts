@@ -54,7 +54,7 @@ export const createPlugin = ({ bot, productsAPI }: {
       const { friend } = user
       if (!friend) return
 
-      return (await bot.getResourceByStub(friend)).name
+      return (await bot.getResource(friend)).name
     }
 
     let form

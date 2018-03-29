@@ -147,7 +147,6 @@ class OpenCorporatesAPI {
 
     if (!application.checks) application.checks = []
     const check = await this.bot.signAndSave(resource)
-    application.checks.push(buildResourceStub({resource: check, models: this.bot.models}))
   }
 
   async createVerification({ user, application, form, rawData }) {

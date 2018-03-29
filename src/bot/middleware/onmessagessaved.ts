@@ -51,7 +51,7 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
 
     const byRecipient = _.groupBy(events, event => event.user.id)
     return await Promise.map(_.values(byRecipient), async (batch) => {
-      await bot._fireMessageBatchEvent({ batch, async })
+      await bot._fireMessageBatchEvent({ batch, async, spread: true })
     })
   }
 
@@ -69,7 +69,7 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
       const user = await bot.users.createIfNotExists({ id: userId })
       const batch = messages.map(message => toBotMessageEvent({ bot, user, message }))
       logger.debug(`feeding ${messages.length} messages to business logic`)
-      await bot._fireMessageBatchEvent({ inbound: true, batch, async })
+      await bot._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
     } finally {
       await unlock(userId)
     }

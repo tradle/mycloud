@@ -51,7 +51,7 @@ export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) =
     }
 
     if (!application) {
-      application = await bot.getResourceByStub(pending[0])
+      application = await bot.getResource(pending[0])
     }
 
     logger.debug('attempting to process prefill-claim with pending application', {

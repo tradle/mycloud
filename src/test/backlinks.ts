@@ -11,12 +11,11 @@ import {
   Backlinks,
   getForwardLinks,
   toBacklinks,
-  getLatestVersionId,
   getBacklinkChangesForChanges,
   getUpdateForBacklinkChange
 } from '../backlinks'
 import Errors from '../errors'
-import { loudAsync, setVirtual, parseId, parseStub } from '../utils'
+import { loudAsync, setVirtual, parseId, parseStub, getPermId } from '../utils'
 import { IIdentity } from '../types'
 import { createTestTradle } from '../'
 
@@ -50,7 +49,7 @@ test('update backlinks', loudAsync(async (t) => {
   const vStub = parseStub(buildResource.stub({ resource: v }))
   const getTargetId = stub => {
     if (!stub.type) stub = parseStub(stub)
-    return getLatestVersionId(stub)
+    return getPermId(stub)
   }
 
   t.same(backlinks, [
@@ -58,15 +57,15 @@ test('update backlinks', loudAsync(async (t) => {
       targetId: getTargetId(v.document),
       backlinks: {
         verifications: {
-          [getLatestVersionId(vStub)]: vStub.link
+          [getPermId(vStub)]: vStub.link
         }
       }
     },
     // {
-    //   key: getLatestVersionId(parseStub(v.organization)),
+    //   key: getPermId(parseStub(v.organization)),
     //   update: {
     //     verifications: {
-    //       [getLatestVersionId(vStub)]: vStub.link
+    //       [getPermId(vStub)]: vStub.link
     //     }
     //   }
     // }

@@ -242,20 +242,16 @@ test('prefill-based', loudAsync(async (t) => {
     throw new Errors.NotFound(key)
   })
 
-  sandbox.stub(bot, 'getResource').callsFake(async ({ type, permalink }) => {
+  sandbox.stub(bot, 'getResource').callsFake(async ({ type, permalink, id }) => {
     if (permalink === draft._permalink) {
       return draft
     }
 
-    throw new Errors.NotFound(type + permalink)
-  })
-
-  sandbox.stub(bot, 'getResourceByStub').callsFake(async ({ id }) => {
     if (id === draftStub.id) {
       return draft
     }
 
-    throw new Errors.NotFound(id)
+    throw new Errors.NotFound(type + permalink)
   })
 
   const stub = await api.createClaimForApplication({

@@ -53,6 +53,9 @@ if (!formModel.properties.verifications) {
   }
 }
 
+const appModel = base['tradle.Application']
+appModel.properties.checks.items.backlink = 'application'
+
 // const backlinkModel = {
 //   "type": "tradle.Model",
 //   "id": "tradle.ResourceLink",

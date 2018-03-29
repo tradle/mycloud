@@ -5,7 +5,8 @@ import { print } from 'graphql/language/printer'
 import { parse } from 'graphql/language/parser'
 import { TYPE, TYPES } from '@tradle/constants'
 import { createSchema } from '@tradle/schema-graphql'
-import { createResolvers } from '@tradle/dynamodb'
+// import { createResolvers } from '@tradle/dynamodb'
+import { createResolvers } from '../resolvers'
 import { uniqueStrict } from '../utils'
 import { Bot, Logger, IGraphqlAPI } from '../types'
 
@@ -60,6 +61,7 @@ export const createGraphqlAPI = (opts: {
           objects,
           models,
           db,
+          backlinks: bot.backlinks,
           postProcess
         })
 

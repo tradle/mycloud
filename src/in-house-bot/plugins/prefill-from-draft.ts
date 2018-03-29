@@ -33,7 +33,7 @@ export const createPlugin: CreatePlugin<void> = ({
 
     let draft
     try {
-      draft = await bot.getResourceByStub(application.prefillFromApplication)
+      draft = await bot.getResource(application.prefillFromApplication)
     } catch (err) {
       Errors.rethrow(err, 'developer')
       logger.error(`application draft not found`, err)
