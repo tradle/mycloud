@@ -137,7 +137,6 @@ debugger
     this.logger.debug(`Creating SanctionsCheck for: ${rawData.submitted_term}`);
     const check = await this.bot.signAndSave(resource)
     this.logger.debug(`Created SanctionsCheck for: ${rawData.submitted_term}`);
-    application.checks.push(buildResourceStub({resource: check, models: this.bot.models}))
   }
 
   async createVerification({ user, application, form, rawData }) {

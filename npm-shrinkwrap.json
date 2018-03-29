@@ -9,8 +9,8 @@
     },
     "@aws/dynamodb-expressions": {
       "version": "0.4.0",
-      "from": "@aws/dynamodb-expressions@latest",
-      "resolved": "https://registry.npmjs.org/@aws/dynamodb-expressions/-/dynamodb-expressions-0.4.0.tgz"
+      "from": "../../dynamodb-data-mapper-js/packages/dynamodb-expressions",
+      "resolved": "file:../../dynamodb-data-mapper-js/packages/dynamodb-expressions"
     },
     "@meltwater/fetch-favicon": {
       "version": "1.0.4",
@@ -94,7 +94,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#d9e2d3baaa399814b117282c9d1fa2827d0c9a07",
+      "resolved": "git://github.com/tradle/bot-products.git#dbcd650b18a22edfe0c474ce9ac92097c02019d3",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -294,7 +294,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#0d367550f467fd25ef96bab5b977f096349fd73e"
+      "resolved": "git://github.com/tradle/models.git#5764f8c9e6cfe5578c82bb2a351f020a7be31906"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",

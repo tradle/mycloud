@@ -54,7 +54,7 @@ export class Applications {
       application.checks = []
     }
 
-    application.checks.push(this.stub(resource))
+    debugger
     if (!req) {
       await this._commitApplicationUpdate({ application })
     }

@@ -41,7 +41,7 @@ export class MiddlewareContainer<Context=DefaultContext> {
   public fire = async (event:string, payload:any) => {
     const specific = this.middleware[event] || []
     const wild = this.middleware['*']
-    if (!(specific.length + wild.length)) return
+    if (!(specific.length || wild.length)) return
 
     const ctx = this.getContextForEvent(event, payload)
     await compose(specific)(ctx)

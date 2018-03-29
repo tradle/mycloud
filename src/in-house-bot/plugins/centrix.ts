@@ -125,9 +125,7 @@ class CentrixAPI {
     if (rawData)
       resource.rawData = rawData
 
-    if (!application.checks) application.checks = []
-    const check = await this.bot.signAndSave(resource)
-    application.checks.push(buildResourceStub({resource: check, models: this.bot.models}))
+    await this.bot.signAndSave(resource)
   }
 
   async createCentrixVerification({ req, photoID, rawData }) {

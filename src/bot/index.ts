@@ -3,6 +3,7 @@ import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
 import compose from 'koa-compose'
+import { TYPE, SIG } from '@tradle/constants'
 import { DB } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
@@ -11,7 +12,9 @@ import { topics as EventTopics, toAsyncEvent } from '../events'
 import {
   defineGetter,
   ensureTimestamped,
-  wait
+  wait,
+  parseStub,
+  parseId
 } from '../utils'
 
 import { addLinks } from '../crypto'
@@ -21,7 +24,6 @@ import {
   toBotMessageEvent
 } from './utils'
 
-import constants from '../constants'
 import createUsers from './users'
 import { createGraphqlAPI } from './graphql'
 import {
@@ -69,9 +71,16 @@ type LambdaMap = {
   [name:string]: LambdaCreator
 }
 
-// const RESOLVED = Promise.resolve()
-const { TYPE, SIG } = constants
-const { parseStub } = validateResource.utils
+type GetResourceParams = {
+  type?: string
+  permalink?: string
+  id?: string
+  [key: string]: any
+}
+
+type GetResourceOpts = {
+  backlinks?: boolean
+}
 
 export const createBot = (opts:Partial<IBotOpts>={}):Bot => {
   return new Bot({
@@ -79,12 +88,6 @@ export const createBot = (opts:Partial<IBotOpts>={}):Bot => {
     tradle: opts.tradle || require('../').tradle
   })
 }
-
-// type Bot = {
-//   objects: Objects
-//   identities: Identities
-//   messages: Messages
-// }
 
 // this is not good TypeScript,
 // we lose all type checking when exporting like this
@@ -433,22 +436,39 @@ export class Bot extends EventEmitter implements IReady {
   /**
    * Get the latest version of a resource
    */
-  public getResource = async ({ type, permalink }: {
-    type: string
-    permalink: string
-  }) => {
-    return await this.db.get({
-      [TYPE]: type,
-      _permalink: permalink
-    })
+  public getResource = async (props: GetResourceParams, opts: GetResourceOpts={}):Promise<ITradleObject> => {
+    const { type, permalink, link } = getResourceIdentifier(props)
+    const promiseResource = link
+      ? this.objects.get(link)
+      : this.db.get({
+          [TYPE]: type,
+          _permalink: permalink
+        })
+
+    if (!opts.backlinks) {
+      return await promiseResource
+    }
+
+    const [resource, backlinks] = await Promise.all([
+      promiseResource,
+      this.backlinks.getBacklinks({ type, permalink })
+    ])
+
+    return {
+      ...resource,
+      ...backlinks
+    }
   }
 
-  /**
-   * Get an exact resource version
-   */
-  public getResourceByStub = async (stub:ResourceStub):Promise<ITradleObject> => {
-    const { link } = parseStub(stub)
-    return await this.objects.get(link)
+  public getResourceByStub = this.getResource
+
+  public addBacklinks = async (resource: ITradleObject) => {
+    const backlinks = await this.backlinks.getBacklinks({
+      type: resource[TYPE],
+      permalink: buildResource.permalink(resource)
+    })
+
+    return _.extend(resource, backlinks)
   }
 
   public resolveEmbeds = object => this.objects.resolveEmbeds(object)
@@ -600,4 +620,19 @@ const addOld = (bot: Bot, target: ISaveEventPayload): Promise<ISaveEventPayload>
   return bot.objects.get(target.value._prevlink)
     .then(old => target.old = old, Errors.ignoreNotFound)
     .then(() => target)
+}
+
+const getResourceIdentifier = (props: GetResourceParams) => {
+  if (TYPE in props) {
+    return _.pick(props, [TYPE, '_permalink'])
+  }
+
+  let { type, permalink, link, id } = props
+  if (id) return parseId(id)
+
+  if (!(type && permalink)) {
+    throw new Errors.InvalidInput('not enough data to look up resource')
+  }
+
+  return { type, permalink, link }
 }

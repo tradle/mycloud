@@ -181,7 +181,7 @@ export class Deployment {
     let configuration
     if (childDeployment) {
       try {
-        configuration = await this.bot.getResourceByStub(childDeployment.configuration)
+        configuration = await this.bot.getResource(childDeployment.configuration)
       } catch (err) {
         Errors.ignoreNotFound(err)
       }
