@@ -437,18 +437,12 @@ export class Bot extends EventEmitter implements IReady {
    * Get the latest version of a resource
    */
   public getResource = async (props: GetResourceParams, opts: GetResourceOpts={}):Promise<ITradleObject> => {
-    const { type, permalink, link } = getResourceIdentifier(props)
-    const promiseResource = link
-      ? this.objects.get(link)
-      : this.db.get({
-          [TYPE]: type,
-          _permalink: permalink
-        })
-
+    const promiseResource = this._getResource(props)
     if (!opts.backlinks) {
       return await promiseResource
     }
 
+    const { type, permalink, link } = getResourceIdentifier(props)
     const [resource, backlinks] = await Promise.all([
       promiseResource,
       this.backlinks.getBacklinks({ type, permalink })
@@ -458,6 +452,18 @@ export class Bot extends EventEmitter implements IReady {
       ...resource,
       ...backlinks
     }
+  }
+
+  private _getResource = async (props: GetResourceParams) => {
+    if (props[SIG]) return props
+
+    const { type, permalink, link } = getResourceIdentifier(props)
+    if (link) return await this.objects.get(link)
+
+    return await this.db.get({
+      [TYPE]: type,
+      _permalink: permalink
+    })
   }
 
   public getResourceByStub = this.getResource
