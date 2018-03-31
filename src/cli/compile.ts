@@ -1,5 +1,6 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
+import { pluck } from '../utils'
 
 const LOCALLY_AVAILABLE = [
   'AWS::DynamoDB::Table',
@@ -8,6 +9,7 @@ const LOCALLY_AVAILABLE = [
 ]
 
 const { HTTP_METHODS, ENV_RESOURCE_PREFIX } = require('../constants')
+const NUM_INDEXES = 5
 
 export {
   forEachResource,
@@ -62,7 +64,7 @@ function addBucketTables ({ yml, prefix }) {
   if (!tableBuckets) return
 
   const { Resources } = resources
-  const { count, read, write, index } = tableBuckets
+  const { count, read, write } = tableBuckets
   if (!custom.capacities) custom.capacities = []
 
   const tables = Object.keys(Resources).filter(name => {
@@ -71,10 +73,10 @@ function addBucketTables ({ yml, prefix }) {
 
   for (let i = 0; i < count; i++) {
     let name = `${prefix}bucket-${i}`
-    let def = getTableBucketDefinition({
+    let def = getBucketTableDefinition({
       read,
       write,
-      indexes: index,
+      indexes: NUM_INDEXES,
       name,
       dependencies: tables
     })
@@ -92,13 +94,55 @@ function addBucketTables ({ yml, prefix }) {
   return yml
 }
 
-function getTableBucketDefinition ({
+function getBucketTableDefinition ({
   name,
   read,
   write,
   indexes,
   dependencies
 }) {
+  const GlobalSecondaryIndexes = _.range(0, indexes).map(i => ({
+    IndexName: `idx${i}`,
+    KeySchema: [
+      {
+        AttributeName: `__x${i}h__`,
+        KeyType: 'HASH'
+      },
+      {
+        AttributeName: `__x${i}r__`,
+        KeyType: 'RANGE'
+      }
+    ],
+    Projection: {
+      ProjectionType: 'ALL'
+      // ProjectionType: 'INCLUDE',
+      // NonKeyAttributes: [
+      //   TYPE, '_link'
+      // ]
+    },
+    ProvisionedThroughput: {
+      ReadCapacityUnits: read.minimum,
+      WriteCapacityUnits: write.minimum
+    }
+  }))
+
+  const KeySchema = [
+    {
+      AttributeName: '__h__',
+      KeyType: 'HASH'
+    },
+    {
+      AttributeName: '__r__',
+      KeyType: 'RANGE'
+    }
+  ]
+
+  const KeySchemas = KeySchema.concat(_.flatMap(GlobalSecondaryIndexes, i => i.KeySchema))
+  const AttributeDefinitions = KeySchemas.map(({ AttributeName }) => ({
+    AttributeName,
+    AttributeType: 'S'
+  }))
+
   return {
     Type: 'AWS::DynamoDB::Table',
     Description: `table that stores multiple models`,
@@ -107,30 +151,8 @@ function getTableBucketDefinition ({
     DependsOn: dependencies,
     Properties: {
       TableName: name,
-      AttributeDefinitions: [
-        {
-          AttributeName: '_tpermalink',
-          AttributeType: 'S'
-        },
-        {
-          AttributeName: '_t',
-          AttributeType: 'S'
-        },
-        {
-          AttributeName: '_author',
-          AttributeType: 'S'
-        },
-        {
-          AttributeName: '_time',
-          AttributeType: 'N'
-        }
-      ],
-      KeySchema: [
-        {
-          AttributeName: '_tpermalink',
-          KeyType: 'HASH'
-        }
-      ],
+      AttributeDefinitions,
+      KeySchema,
       ProvisionedThroughput: {
         ReadCapacityUnits: read.minimum,
         WriteCapacityUnits: write.minimum
@@ -138,30 +160,7 @@ function getTableBucketDefinition ({
       StreamSpecification: {
         StreamViewType: 'NEW_AND_OLD_IMAGES'
       },
-      GlobalSecondaryIndexes: indexes.map(index => ({
-        IndexName: index === '_t' ? 'type': index,
-        KeySchema: [
-          {
-            AttributeName: index,
-            KeyType: 'HASH'
-          },
-          {
-            AttributeName: '_time',
-            KeyType: 'RANGE'
-          }
-        ],
-        Projection: {
-          ProjectionType: 'ALL'
-          // ProjectionType: 'INCLUDE',
-          // NonKeyAttributes: [
-          //   TYPE, '_link'
-          // ]
-        },
-        ProvisionedThroughput: {
-          ReadCapacityUnits: read.minimum,
-          WriteCapacityUnits: write.minimum
-        }
-      }))
+      GlobalSecondaryIndexes
     }
   }
 }

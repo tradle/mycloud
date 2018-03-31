@@ -192,9 +192,6 @@ custom:
 
   tableBuckets:
     count: 1
-    index:
-      - _author
-      - _t
     <<: *defaultCapacity
 
   dynamodb-autoscaling:
@@ -1483,39 +1480,39 @@ resources:
         #   AttributeName: dateExpires
         #   Enabled: 'TRUE'
 
-    FriendsTable:
-      Type: AWS::DynamoDB::Table
-      Description: store friends (other providers)
-      Properties:
-        TableName: ${{self:custom.tables.friends}}
-        AttributeDefinitions:
-          # - AttributeName: url
-          #   AttributeType: S
-          - AttributeName: _identityPermalink
-            AttributeType: S
-          - AttributeName: domain
-            AttributeType: S
-          # should be N, but too late
-          - AttributeName: _time
-            AttributeType: S
-        KeySchema:
-          - AttributeName: _identityPermalink
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        GlobalSecondaryIndexes:
-          - IndexName: domain
-            KeySchema:
-              - AttributeName: domain
-                KeyType: HASH
-              - AttributeName: _time
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
+    # FriendsTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: store friends (other providers)
+    #   Properties:
+    #     TableName: ${{self:custom.tables.friends}}
+    #     AttributeDefinitions:
+    #       # - AttributeName: url
+    #       #   AttributeType: S
+    #       - AttributeName: _identityPermalink
+    #         AttributeType: S
+    #       - AttributeName: domain
+    #         AttributeType: S
+    #       # should be N, but too late
+    #       - AttributeName: _time
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: _identityPermalink
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     GlobalSecondaryIndexes:
+    #       - IndexName: domain
+    #         KeySchema:
+    #           - AttributeName: domain
+    #             KeyType: HASH
+    #           - AttributeName: _time
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
 
     KVTable:
       Type: AWS::DynamoDB::Table

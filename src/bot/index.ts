@@ -448,9 +448,6 @@ export class Bot extends EventEmitter implements IReady {
     bot: this
   })
 
-  /**
-   * Get the latest version of a resource
-   */
   public getResource = async (props: GetResourceParams, opts: GetResourceOpts={}):Promise<ITradleObject> => {
     const promiseResource = this._getResource(props)
     if (!opts.backlinks) {

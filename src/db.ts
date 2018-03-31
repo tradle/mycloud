@@ -1,11 +1,11 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
 import { TYPE } from '@tradle/constants'
-import { createTable, DB, utils } from '@tradle/dynamodb'
+import { createTable, DB, utils, defaults, hooks } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from './types'
-import { extendTradleObject } from './utils'
+import { extendTradleObject, pluck } from './utils'
 
 const MESSAGE = 'tradle.Message'
 
@@ -16,17 +16,36 @@ export = function createDB (tradle:Tradle) {
   dynogels.dynamoDriver(dynamodb)
 
   const tableBuckets = dbUtils.getTableBuckets()
+
+  // const commonOpts = {
+  //   get models() {
+  //     return modelStore.models
+  //   },
+  //   objects,
+  //   docClient,
+  //   maxItemSize: constants.MAX_DB_ITEM_SIZE,
+  //   forbidScan: true,
+  //   defaultReadOptions: {
+  //     consistentRead: true
+  //   }
+  // }
+
   const commonOpts = {
-    get models() {
-      return modelStore.models
-    },
-    objects,
     docClient,
-    maxItemSize: constants.MAX_DB_ITEM_SIZE,
+    get models() { return modelStore.models },
+    get modelsStored() { return modelStore.models },
+    objects,
     forbidScan: true,
-    defaultReadOptions: {
-      consistentRead: true
+    // derivedProperties: tableKeys,
+  }
+
+  const getIndexesForModel = ({ table, model }) => {
+    if (model.id in modelStore.models) {
+      return defaults.indexes.concat(model.indexes)
     }
+
+    debugger
+    throw new Error('BLAAAAAAAAAAAAAAAAAAH!')
   }
 
   let modelMap
@@ -50,11 +69,30 @@ export = function createDB (tradle:Tradle) {
     modelStore,
     tableNames,
     defineTable: name => {
-      const cloudformation = tableBuckets[tableNames.indexOf(name)]
-      return createTable({
+      const cloudformation:AWS.DynamoDB.CreateTableInput = tableBuckets[tableNames.indexOf(name)]
+      const table = createTable({
         ...commonOpts,
-        tableDefinition: utils.toDynogelTableDefinition(cloudformation)
+        tableDefinition: cloudformation,
+        // all key props are derived
+        derivedProperties: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
+        deriveProperties: defaults.deriveProperties,
+        resolveOrderBy: defaults.resolveOrderBy,
+        getPrimaryKeysForModel: defaults.getPrimaryKeysForModel,
+        getIndexesForModel: defaults.getIndexesForModel,
       })
+
+      const controlLatestHooks = method => async ({ args }) => {
+        let [resource, options] = args
+        if (!options) {
+          args[1] = hooks.getControlLatestOptions(table, method, resource)
+        }
+      }
+
+      ;['put', 'update'].forEach(method => {
+        table.hook(`${method}:pre`, controlLatestHooks(method))
+      })
+
+      return table
     },
     chooseTable
   })
@@ -80,11 +118,11 @@ export = function createDB (tradle:Tradle) {
       definition: tables.PubKeys.definition,
       opts: {}
     },
-    {
-      type: 'tradle.MyCloudFriend',
-      definition: tables.Friends.definition,
-      opts: {}
-    },
+    // {
+    //   type: 'tradle.MyCloudFriend',
+    //   definition: tables.Friends.definition,
+    //   opts: {}
+    // },
     {
       type: 'tradle.IotSession',
       definition: tables.Presence.definition,
@@ -113,7 +151,7 @@ export = function createDB (tradle:Tradle) {
         exclusive: true,
         // readOnly: !env.TESTING,
         model,
-        tableDefinition: utils.toDynogelTableDefinition(definition),
+        tableDefinition: definition,
         ...opts
       })
     })

@@ -21,9 +21,9 @@ import {
 import Errors from './errors'
 const definitions = require('./definitions')
 const tableDef = definitions.FriendsTable
-const timeIsString = tableDef.Properties.AttributeDefinitions.find(({ AttributeName }) => {
-  return AttributeName === '_time'
-}).AttributeType === 'S'
+// const timeIsString = tableDef.Properties.AttributeDefinitions.find(({ AttributeName }) => {
+//   return AttributeName === '_time'
+// }).AttributeType === 'S'
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
 const TEN_MINUTES = 10 * 60 * 60000
@@ -137,9 +137,9 @@ export default class Friends {
       _identityPermalink: permalink
     })
 
-    if (timeIsString) {
-      signed._time = lexint.pack(signed._time, 'hex')
-    }
+    // if (timeIsString) {
+    //   signed._time = lexint.pack(signed._time, 'hex')
+    // }
 
     await promiseAddContact
     await this.db.update(signed, {
