@@ -303,6 +303,7 @@ export default class User {
 
 export { User }
 
-const getDeliveryReadiness = session => {
-  return prettify(_.pick(session, ['connected', 'subscribed']))
-}
+const getDeliveryReadiness = session => prettify({
+  connected: !!session.connected,
+  subscribed: !!session.subscribed
+})

@@ -1,3 +1,4 @@
+import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
 import { typeforce, defineGetter } from './utils'
@@ -22,11 +23,13 @@ import {
   IIdentity,
   ITradleObject,
   IServiceMap,
-  Iot
+  Iot,
+  DB
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
 const { HandshakeFailed, InvalidInput, NotFound } = Errors
+const SESSION = 'tradle.IotSession'
 
 interface IChallengeResponse extends ITradleObject {
   clientId: string
@@ -63,10 +66,11 @@ export default class Auth {
   private env: Env
   private aws: AwsApis
   private serviceMap: IServiceMap
-  private tables: any
+  // private tables: any
   private identities: Identities
   private objects: Objects
   private messages: Messages
+  private db: DB
   private iot: Iot
   private logger: Logger
   private tasks: TaskManager
@@ -75,10 +79,11 @@ export default class Auth {
     env: Env,
     aws: any,
     serviceMap: IServiceMap,
-    tables: any,
+    // tables: any,
     identities: Identities,
     objects: Objects,
     messages: Messages,
+    db: DB,
     iot: Iot,
     logger: Logger,
     tasks: TaskManager
@@ -87,10 +92,11 @@ export default class Auth {
     this.env = opts.env
     this.aws = opts.aws
     this.serviceMap = opts.serviceMap
-    this.tables = opts.tables
+    // this.tables = opts.tables
     this.identities = opts.identities
     this.objects = opts.objects
     this.messages = opts.messages
+    this.db = opts.db
     this.iot = opts.iot
     this.logger = opts.logger.sub('auth')
     this.tasks = opts.tasks
@@ -105,9 +111,11 @@ export default class Auth {
 
     // allow multiple sessions for the same user?
     // await deleteSessionsByPermalink(permalink)
-    return await this.tables.Presence.put({
-      Item: session
-    })
+    // return await this.tables.Presence.put({
+    //   Item: session
+    // })
+    await this.db.put(session)
+    return session
   }
 
   public setConnected = async ({ clientId, connected }): Promise<any> => {
@@ -118,20 +126,12 @@ export default class Auth {
       })
     }
 
-    return await this.tables.Presence.update({
-      Key: this.getKeyFromClientId(clientId),
-      UpdateExpression: 'SET #connected = :connected, #dateConnected = :dateConnected',
-      ConditionExpression: '#authenticated = :authenticated',
-      ExpressionAttributeNames: {
-        '#connected': 'connected',
-        '#authenticated': 'authenticated',
-        '#dateConnected': 'dateConnected'
-      },
-      ExpressionAttributeValues: {
-        ':connected': true,
-        ':authenticated': true,
-        ':dateConnected': Date.now()
-      },
+    return await this.db.update({
+      ...this.getKeyFromClientId(clientId),
+      connected: true,
+      dateConnected: Date.now()
+    }, {
+      expected: { authenticated: true },
       ReturnValues: 'ALL_NEW'
     })
   }
@@ -142,35 +142,31 @@ export default class Auth {
       return await this.updateSession({ clientId }, { subscribed: false })
     }
 
-    return await this.tables.Presence.update({
-      Key: this.getKeyFromClientId(clientId),
-      UpdateExpression: 'SET #subscribed = :subscribed, #dateSubscribed = :dateSubscribed',
-      ConditionExpression: '#authenticated = :authenticated',
-      ExpressionAttributeNames: {
-        '#subscribed': 'subscribed',
-        '#authenticated': 'authenticated',
-        '#dateSubscribed': 'dateSubscribed'
-      },
-      ExpressionAttributeValues: {
-        ':subscribed': true,
-        ':authenticated': true,
-        ':dateSubscribed': Date.now()
-      },
+    return await this.db.update({
+      ...this.getKeyFromClientId(clientId),
+      subscribed: true,
+      dateSubscribed: Date.now()
+    }, {
+      expected: { authenticated: true } ,
       ReturnValues: 'ALL_NEW'
     })
   }
 
   public deleteSession = (clientId: string): Promise<any> => {
-    const Key = this.getKeyFromClientId(clientId)
-    return this.tables.Presence.del({ Key })
+    return this.db.del(this.getKeyFromClientId(clientId))
   }
 
-  public deleteSessionsByPermalink = (permalink: string): Promise<any> => {
-    return this.tables.Presence.del(this.getSessionsByPermalinkQuery(permalink))
-  }
+  public getSessionsByPermalink = async (permalink: string): Promise<ISession[]> => {
+    const { items } = await this.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: SESSION,
+          permalink
+        }
+      }
+    })
 
-  public getSessionsByPermalink = (permalink: string): Promise<ISession[]> => {
-    return this.tables.Presence.find(this.getSessionsByPermalinkQuery(permalink))
+    return items
   }
 
   public getLiveSessionByPermalink = async (permalink: string): Promise<ISession> => {
@@ -190,16 +186,8 @@ export default class Auth {
     return latest
   }
 
-  public getSession = (opts: { clientId: string }): Promise<any> => {
-    const { clientId } = opts
-    return this.tables.Presence.findOne({
-      KeyConditionExpression: 'permalink = :permalink AND clientId = :clientId',
-      ExpressionAttributeValues: {
-        ':clientId': clientId,
-        ':permalink': this.getPermalinkFromClientId(clientId),
-        // ':authenticated': true
-      }
-    })
+  public getSession = async (opts: { clientId: string }): Promise<any> => {
+    return await this.db.get(this.getKeyFromClientId(opts.clientId))
   }
 
   public createChallenge = () => randomString(32)
@@ -228,9 +216,7 @@ export default class Auth {
     const { clientId, permalink, challenge, position } = challengeResponse
 
     // const permalink = this.getPermalinkFromClientId(clientId)
-    const session = await this.tables.Presence.get({
-      Key: { clientId, permalink }
-    })
+    const session = await this.getSession({ clientId })
 
     if (challenge !== session.challenge) {
       throw new HandshakeFailed('stored challenge does not match response')
@@ -333,15 +319,25 @@ export default class Auth {
     const maybeAddContact = this.identities.addContact(identity)
     const challenge = this.createChallenge()
     const getIotEndpoint = this.iot.getEndpoint()
-    const saveSession = this.tables.Presence.put({
-      Item: {
-        clientId,
-        permalink,
-        challenge,
-        time: Date.now(),
-        authenticated: false,
-        connected: false
-      }
+    // const saveSession = this.tables.Presence.put({
+    //   Item: {
+    //     clientId,
+    //     permalink,
+    //     challenge,
+    //     time: Date.now(),
+    //     authenticated: false,
+    //     connected: false
+    //   }
+    // })
+
+    const saveSession = this.db.put({
+      [TYPE]: SESSION,
+      clientId,
+      permalink,
+      challenge,
+      time: Date.now(),
+      authenticated: false,
+      connected: false
     })
 
     await Promise.all([
@@ -369,6 +365,7 @@ export default class Auth {
 
   public getKeyFromClientId = (clientId) => {
     return {
+      [TYPE]: SESSION,
       clientId,
       permalink: this.getPermalinkFromClientId(clientId)
     }
@@ -389,11 +386,18 @@ export default class Auth {
   }
 
   private updateSession = async ({ clientId }, update):Promise<ISession> => {
-    return await this.tables.Presence.update({
-      ...getUpdateParams(update),
-      Key: this.getKeyFromClientId(clientId),
+    return await this.db.update({
+      ...this.getKeyFromClientId(clientId),
+      ...update
+    }, {
       ReturnValues: 'ALL_NEW'
     })
+
+    // return await this.tables.Presence.update({
+    //   ...getUpdateParams(update),
+    //   Key: this.getKeyFromClientId(clientId),
+    //   ReturnValues: 'ALL_NEW'
+    // })
   }
 
   private getSessionsByPermalinkQuery = (permalink) => {

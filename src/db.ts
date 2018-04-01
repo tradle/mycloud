@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
 import { TYPE } from '@tradle/constants'
-import { createTable, DB, utils, defaults, hooks } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from './types'
@@ -84,7 +84,7 @@ export = function createDB (tradle:Tradle) {
       const controlLatestHooks = method => async ({ args }) => {
         let [resource, options] = args
         if (!options) {
-          args[1] = hooks.getControlLatestOptions(table, method, resource)
+          args[1] = getControlLatestOptions(table, method, resource)
         }
       }
 
@@ -123,13 +123,13 @@ export = function createDB (tradle:Tradle) {
     //   definition: tables.Friends.definition,
     //   opts: {}
     // },
-    {
-      type: 'tradle.IotSession',
-      definition: tables.Presence.definition,
-      opts: {
-        forbidScan: false
-      }
-    },
+    // {
+    //   type: 'tradle.IotSession',
+    //   definition: tables.Presence.definition,
+    //   opts: {
+    //     forbidScan: false
+    //   }
+    // },
     // {
     //   type: 'tradle.cloud.Event',
     //   definition: tables.Events.definition,
@@ -196,4 +196,45 @@ export = function createDB (tradle:Tradle) {
   db.hook('find:post', addPayloads)
 
   return db
+}
+
+const UNSIGNED = [
+  'tradle.IotSession',
+  'tradle.MyCloudFriend',
+]
+
+const getControlLatestOptions = (table: Table, method: string, resource: any) => {
+  if (UNSIGNED.includes(resource[TYPE])) return
+
+  if (!resource._link) {
+    throw new Error('expected "_link"')
+  }
+
+  if (method === 'create' && !resource._time) {
+    throw new Error('expected "_time"')
+  }
+
+  const options = {
+    ConditionExpression: Object.keys(table.primaryKeys)
+      .map(keyType => `attribute_not_exists(#${keyType})`)
+      .join(' and '),
+    ExpressionAttributeNames: Object.keys(table.primaryKeys)
+      .reduce((names, keyType) => {
+        names[`#${keyType}`] = table.primaryKeys[keyType]
+        return names
+      }, {}),
+    ExpressionAttributeValues: {
+      ':link': resource._link
+    }
+  }
+
+  options.ConditionExpression = `(${options.ConditionExpression}) OR #link = :link`
+  options.ExpressionAttributeNames['#link'] = '_link'
+  if (resource._time) {
+    options.ConditionExpression += ' OR #time < :time'
+    options.ExpressionAttributeNames['#time'] = '_time'
+    options.ExpressionAttributeValues[':time'] = resource._time
+  }
+
+  return options
 }

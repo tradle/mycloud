@@ -1458,27 +1458,27 @@ resources:
 
     # stores mappings between identity permalinks and ephemeral clientIds
     # mappings are created after initial handshake and destroyed on disconnect
-    PresenceTable:
-      Type: AWS::DynamoDB::Table
-      Description: maps ephemeral mqtt client ids to identity permalinks
-      Properties:
-        TableName: ${{self:custom.tables.presence}}
-        AttributeDefinitions:
-          - AttributeName: clientId
-            AttributeType: S
-          - AttributeName: permalink
-            AttributeType: S
-        KeySchema:
-          - AttributeName: permalink
-            KeyType: HASH
-          - AttributeName: clientId
-            KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        # TimeToLiveSpecification:
-        #   AttributeName: dateExpires
-        #   Enabled: 'TRUE'
+    # PresenceTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: maps ephemeral mqtt client ids to identity permalinks
+    #   Properties:
+    #     TableName: ${{self:custom.tables.presence}}
+    #     AttributeDefinitions:
+    #       - AttributeName: clientId
+    #         AttributeType: S
+    #       - AttributeName: permalink
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: permalink
+    #         KeyType: HASH
+    #       - AttributeName: clientId
+    #         KeyType: RANGE
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     # TimeToLiveSpecification:
+    #     #   AttributeName: dateExpires
+    #     #   Enabled: 'TRUE'
 
     # FriendsTable:
     #   Type: AWS::DynamoDB::Table
