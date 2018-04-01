@@ -1,7 +1,7 @@
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
-import { typeforce, defineGetter } from './utils'
+import { typeforce, defineGetter, ensureNoVirtualProps } from './utils'
 import { prettify, isHex } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors from './errors'
@@ -311,6 +311,8 @@ export default class Auth {
     }
 
     const { clientId, identity } = opts
+
+    ensureNoVirtualProps(identity)
     const permalink = getPermalink(identity)
     if (permalink !== this.getPermalinkFromClientId(clientId)) {
       throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')

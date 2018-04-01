@@ -161,15 +161,15 @@ custom:
   deadLetterQueueName: ${{self:custom.prefixSQS}}dead-letter-queue
 
   tables:
-    presence: ${{self:custom.prefix}}presence
+    # presence: ${{self:custom.prefix}}presence
     seals: ${{self:custom.prefix}}seals
-    pubkeys: ${{self:custom.prefix}}pubkeys
+    # pubkeys: ${{self:custom.prefix}}pubkeys
     messages: ${{self:custom.prefix}}messages
     events: ${{self:custom.prefix}}events
     # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
     users: ${{self:custom.prefix}}users
-    friends: ${{self:custom.prefix}}friends
-    conf: ${{self:custom.prefix}}conf
+    # friends: ${{self:custom.prefix}}friends
+    # conf: ${{self:custom.prefix}}conf
     kv: ${{self:custom.prefix}}kv
     # backlinks: ${{self:custom.prefix}}backlinks
 
@@ -197,10 +197,10 @@ custom:
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
     capacities:
-      - table: PubKeysTable
-        index:
-          - permalink
-        <<: *defaultCapacity
+      # - table: PubKeysTable
+      #   index:
+      #     - permalink
+      #   <<: *defaultCapacity
 
       - table: MessagesTable
         index:
@@ -1256,34 +1256,34 @@ resources:
 
     # address book
     # maps public keys to identities that control them
-    PubKeysTable:
-      Type: AWS::DynamoDB::Table
-      Description: maps pub keys to identities
-      Properties:
-        TableName: ${{self:custom.tables.pubkeys}}
-        AttributeDefinitions:
-          - AttributeName: pub
-            AttributeType: S
-          - AttributeName: permalink
-            AttributeType: S
-        KeySchema:
-          - AttributeName: pub
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        GlobalSecondaryIndexes:
-          - IndexName: permalink
-            KeySchema:
-              - AttributeName: permalink
-                KeyType: HASH
-            Projection:
-              ProjectionType: INCLUDE
-              NonKeyAttributes:
-                - link
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
+    # PubKeysTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: maps pub keys to identities
+    #   Properties:
+    #     TableName: ${{self:custom.tables.pubkeys}}
+    #     AttributeDefinitions:
+    #       - AttributeName: pub
+    #         AttributeType: S
+    #       - AttributeName: permalink
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: pub
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     GlobalSecondaryIndexes:
+    #       - IndexName: permalink
+    #         KeySchema:
+    #           - AttributeName: permalink
+    #             KeyType: HASH
+    #         Projection:
+    #           ProjectionType: INCLUDE
+    #           NonKeyAttributes:
+    #             - link
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
 
     # bodies rot in s3
     # MessagesTable: ${{file(./conf/table/inbox.yml)}}
@@ -1605,7 +1605,7 @@ resources:
                   Action:
                     - dynamodb:*
                   Resource:
-                    - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/PresenceTable'
+                    - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BucketTable0'
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup

@@ -1,3 +1,4 @@
+import { extend } from 'lodash'
 import Cache from 'lru-cache'
 import constants from './constants'
 import Errors from './errors'
@@ -12,24 +13,31 @@ import {
   RESOLVED_PROMISE
 } from './utils'
 
-import { addLinks, getLink } from './crypto'
+import { addLinks, getLink, getPermalink, extractSigPubKey } from './crypto'
 import * as types from './typeforce-types'
 import {
   IIdentity,
   ITradleObject,
   Env,
   Logger,
-  Objects
+  Objects,
+  DB
 } from './types'
 
 const { PREVLINK, TYPE, TYPES } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
+const PUB_KEY = 'tradle.PubKey'
 
 type AuthorInfo = {
   _author: string
   _recipient?: string
+}
+
+type PubKeyMapping = {
+  link: string
+  pub: string
 }
 
 export default class Identities {
@@ -38,13 +46,14 @@ export default class Identities {
   public env: Env
   public logger: Logger
   public cache: any
-  constructor (opts: { tables: any, objects: any, logger: Logger }) {
+  public db: DB
+  constructor (opts: { db: DB, objects: any, logger: Logger }) {
     logify(this)
     bindAll(this)
 
-    const { tables, objects, logger } = opts
+    const { db, objects, logger } = opts
     this.objects = objects
-    this.pubKeys = tables.PubKeys
+    this.db = db
     this.logger = logger.sub('identities')
     this.cache = new Cache({ maxAge: CACHE_MAX_AGE })
     this.metaByPub = cachifyFunction(this, 'metaByPub')
@@ -54,9 +63,9 @@ export default class Identities {
   public metaByPub = async (pub:string) => {
     this.logger.debug('get identity metadata by pub', pub)
     try {
-      return await this.pubKeys.get({
-        Key: { pub },
-        ConsistentRead: true
+      return await this.db.get({
+        [TYPE]: PUB_KEY,
+        pub
       })
     } catch (err) {
       Errors.ignoreNotFound(err)
@@ -106,16 +115,16 @@ export default class Identities {
   // }
 
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
-    const params = {
-      IndexName: 'permalink',
-      KeyConditionExpression: 'permalink = :permalinkValue',
-      ExpressionAttributeValues: {
-        ':permalinkValue': permalink
-      }
-    }
-
     this.logger.debug('get identity by permalink')
-    const { link } = await this.pubKeys.findOne(params)
+    const { link } = await this.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: PUB_KEY,
+          permalink
+        }
+      }
+    })
+
     try {
       const identity = await this.objects.get(link)
       return identity as IIdentity
@@ -142,7 +151,7 @@ export default class Identities {
 //     .then(this.objects.get)
 // }
 
-  public getExistingIdentityMapping = (identity):Promise<object> => {
+  public getExistingIdentityMapping = async (identity):Promise<PubKeyMapping> => {
     this.logger.debug('checking existing mappings for pub keys')
     const lookups = identity.pubkeys.map(obj => this.metaByPub(obj.pub))
     return firstSuccess(lookups)
@@ -181,13 +190,20 @@ export default class Identities {
 
   public validateNewContact = async (identity) => {
     identity = omitVirtual(identity)
-
-    let existing
-    try {
-      existing = await this.getExistingIdentityMapping(identity)
-    } catch (err) {}
+    if (identity._link || identity._permalink) {
+      throw new Errors.InvalidInput(`evil identity has non-virtual _link, _permalink`)
+    }
 
     const { link, permalink } = addLinks(identity)
+    let existing
+    try {
+      // existing = await this.byPermalink(permalink)
+      // if (!existing) {
+      const { link } = await this.getExistingIdentityMapping(identity)
+      existing = await this.objects.get(link)
+      // }
+    } catch (err) {}
+
     if (existing) {
       if (existing.link === link) {
         this.logger.debug(`mapping is already up to date for identity ${permalink}`)
@@ -195,6 +211,15 @@ export default class Identities {
         this.logger.warn('identity mapping collision. Refusing to add contact:', identity)
         throw new Error(`refusing to add identity with link: "${link}"`)
       }
+    }
+
+    const sigPubKey = extractSigPubKey(identity)
+    const hasSigPubKey = (existing || identity).pubkeys
+      .filter(isUpdateKey)
+      .find(({ pub }) => pub === sigPubKey.pub)
+
+    if (!hasSigPubKey) {
+      throw new Errors.InvalidVersion(`expected identity version to be signed with an 'update' key from the previous version`)
     }
 
     return {
@@ -226,9 +251,10 @@ export default class Identities {
     })
 
     this.cache.set(pub, props)
-    return this.pubKeys.put({
-      Item: props
-    })
+    return this.db.put(extend({
+      [TYPE]: PUB_KEY,
+      _time: Date.now(),
+    }, props))
   }
 
   /**
@@ -269,6 +295,8 @@ export default class Identities {
 }
 
 export { Identities }
+
+const isUpdateKey = key => key.type === 'ec' && key.purpose === 'update'
 
 // function addContactPubKeys ({ link, permalink, identity }) {
 //   const RequestItems = {

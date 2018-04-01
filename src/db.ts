@@ -40,8 +40,12 @@ export = function createDB (tradle:Tradle) {
   }
 
   const getIndexesForModel = ({ table, model }) => {
+    if (UNSIGNED.includes(model.id)) {
+      return model.indexes
+    }
+
     if (model.id in modelStore.models) {
-      return defaults.indexes.concat(model.indexes)
+      return defaults.indexes.concat(model.indexes || [])
     }
 
     debugger
@@ -78,7 +82,7 @@ export = function createDB (tradle:Tradle) {
         deriveProperties: defaults.deriveProperties,
         resolveOrderBy: defaults.resolveOrderBy,
         getPrimaryKeysForModel: defaults.getPrimaryKeysForModel,
-        getIndexesForModel: defaults.getIndexesForModel,
+        getIndexesForModel
       })
 
       const controlLatestHooks = method => async ({ args }) => {
@@ -113,11 +117,11 @@ export = function createDB (tradle:Tradle) {
         forbidScan: true
       }
     },
-    {
-      type: 'tradle.PubKey',
-      definition: tables.PubKeys.definition,
-      opts: {}
-    },
+    // {
+    //   type: 'tradle.PubKey',
+    //   definition: tables.PubKeys.definition,
+    //   opts: {}
+    // },
     // {
     //   type: 'tradle.MyCloudFriend',
     //   definition: tables.Friends.definition,
@@ -201,6 +205,7 @@ export = function createDB (tradle:Tradle) {
 const UNSIGNED = [
   'tradle.IotSession',
   'tradle.MyCloudFriend',
+  'tradle.PubKey'
 ]
 
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {

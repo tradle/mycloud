@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
-import { DB, Models, Model } from '@tradle/dynamodb'
+import { Table, DB, Models, Model } from '@tradle/dynamodb'
 import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
 import { Lambda, EventSource } from '../lambda'
@@ -52,6 +52,7 @@ export {
   ParsedResourceStub,
   // re-export from @tradle/dynamodb
   DB,
+  Table,
   Models,
   Model,
   // export

@@ -263,17 +263,17 @@ const extractSigPubKey = (object) => {
   throw new InvalidSignature('unable to extract pub key from object')
 }
 
-const checkAuthentic = (wrapper) => {
-  const { object, link, author, sigPubKey } = wrapper
-  const expectedPurpose = object[TYPE] === IDENTITY ? 'update' : 'sign'
-  if (sigPubKey.purpose !== expectedPurpose) {
-    throw new InvalidSignature(`expected key with purpose "${expectedPurpose}", got "${sigPubKey.purpose}"`)
-  }
+// const checkAuthentic = (wrapper) => {
+//   const { object, link, author, sigPubKey } = wrapper
+//   const expectedPurpose = object[TYPE] === IDENTITY ? 'update' : 'sign'
+//   if (sigPubKey.purpose !== expectedPurpose) {
+//     throw new InvalidSignature(`expected key with purpose "${expectedPurpose}", got "${sigPubKey.purpose}"`)
+//   }
 
-  if (!utils.findPubKey(author.object, sigPubKey)) {
-    throw new InvalidSignature(`identity doesn't contain signing key`)
-  }
-}
+//   if (!utils.findPubKey(author.object, sigPubKey)) {
+//     throw new InvalidSignature(`identity doesn't contain signing key`)
+//   }
+// }
 
 const exportKeys = (keys) => {
   return keys.map(exportKey)
@@ -383,7 +383,6 @@ const genIdentity = async (opts) => {
 }
 
 export {
-  checkAuthentic,
   extractSigPubKey,
   sign,
   getSigningKey,
