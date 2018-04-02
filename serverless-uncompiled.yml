@@ -162,7 +162,7 @@ custom:
 
   tables:
     # presence: ${{self:custom.prefix}}presence
-    seals: ${{self:custom.prefix}}seals
+    # seals: ${{self:custom.prefix}}seals
     # pubkeys: ${{self:custom.prefix}}pubkeys
     messages: ${{self:custom.prefix}}messages
     events: ${{self:custom.prefix}}events
@@ -894,20 +894,20 @@ functions:
     handler: lib/in-house-bot/lambda/oninit.handler
     memorySize: 1024
 
-  onsealstream:
-    handler: lib/in-house-bot/lambda/onsealstream.handler
-    memorySize: 256
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 1
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - SealsTable
-              - StreamArn
-    alarms:
-      - functionErrors
+  # onsealstream:
+  #   handler: lib/in-house-bot/lambda/onsealstream.handler
+  #   memorySize: 256
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 1
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - SealsTable
+  #             - StreamArn
+  #   alarms:
+  #     - functionErrors
 
   onmessagestream:
     handler: lib/in-house-bot/lambda/onmessagestream.handler
@@ -938,7 +938,7 @@ functions:
           startingPosition: TRIM_HORIZON
           arn:
             Fn::GetAtt:
-              - BucketTable0
+              - Bucket0Table
               - StreamArn
     alarms:
       - functionErrors
@@ -1379,63 +1379,63 @@ resources:
 
     # stores pending and confirmed seals
     # i.e. object links and corresponding blockchain transaction links
-    SealsTable:
-      Type: AWS::DynamoDB::Table
-      Description: blockchain seals for objects
-      Properties:
-        TableName: ${{self:custom.tables.seals}}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-          - AttributeName: address
-            AttributeType: S
-          # 'y' vs null
-          - AttributeName: unconfirmed
-            AttributeType: S
-          - AttributeName: unsealed
-            AttributeType: S
-          - AttributeName: link
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
-        GlobalSecondaryIndexes:
-          - IndexName: unconfirmed
-            KeySchema:
-              - AttributeName: unconfirmed
-                KeyType: HASH
-              - AttributeName: address
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: unsealed
-            KeySchema:
-              - AttributeName: unsealed
-                KeyType: HASH
-              - AttributeName: address
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: link
-            KeySchema:
-              - AttributeName: link
-                KeyType: HASH
-            Projection:
-              ProjectionType: KEYS_ONLY
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
+    # SealsTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: blockchain seals for objects
+    #   Properties:
+    #     TableName: ${{self:custom.tables.seals}}
+    #     AttributeDefinitions:
+    #       - AttributeName: id
+    #         AttributeType: S
+    #       - AttributeName: address
+    #         AttributeType: S
+    #       # 'y' vs null
+    #       - AttributeName: unconfirmed
+    #         AttributeType: S
+    #       - AttributeName: unsealed
+    #         AttributeType: S
+    #       - AttributeName: link
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: id
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     StreamSpecification:
+    #       StreamViewType: NEW_AND_OLD_IMAGES
+    #     GlobalSecondaryIndexes:
+    #       - IndexName: unconfirmed
+    #         KeySchema:
+    #           - AttributeName: unconfirmed
+    #             KeyType: HASH
+    #           - AttributeName: address
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: unsealed
+    #         KeySchema:
+    #           - AttributeName: unsealed
+    #             KeyType: HASH
+    #           - AttributeName: address
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: link
+    #         KeySchema:
+    #           - AttributeName: link
+    #             KeyType: HASH
+    #         Projection:
+    #           ProjectionType: KEYS_ONLY
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
 
     # UsersTable: ${{file(./conf/table/users.yml)}}
 
@@ -1605,7 +1605,7 @@ resources:
                 #   Action:
                 #     - dynamodb:*
                 #   Resource:
-                #     - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BucketTable0'
+                #     - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Bucket0Table'
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup

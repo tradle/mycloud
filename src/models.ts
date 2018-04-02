@@ -94,6 +94,102 @@ appModel.properties.checks.items.backlink = 'application'
 
 // base[backlinkModel.id] = backlinkModel
 
+// const kvPair = {
+//   type: 'tradle.Model',
+//   id: 'tradle.KV',
+//   title: 'Key Value Pair',
+//   properties: {
+//     key: {
+//       type: 'string'
+//     }
+//     // additional properties are not covered by schema
+//   },
+//   required: ['key']
+// }
+
+const sealState = {
+  type: 'tradle.Model',
+  id: 'tradle.SealState',
+  title: 'Seal State',
+  properties: {
+    sealId: {
+      type: 'string'
+    },
+    link: {
+      type: 'string'
+    },
+    permalink: {
+      type: 'string'
+    },
+    forResource: {
+      type: 'object',
+      ref: 'tradle.Object'
+    },
+    counterparty: {
+      type: 'string'
+    },
+    blockchain: {
+      type: 'string'
+    },
+    network: {
+      type: 'string'
+    },
+    address: {
+      type: 'string'
+    },
+    pubKey: {
+      type: 'object',
+      range: 'json'
+    },
+    watchType: {
+      type: 'string',
+      // oneOf: ['this', 'next']
+    },
+    confirmations: {
+      type: 'number'
+    },
+    write: {
+      type: 'boolean'
+    },
+    errors: {
+      type: 'object',
+      range: 'json'
+    },
+    unconfirmed: {
+      type: 'boolean'
+    },
+    unsealed: {
+      type: 'boolean'
+    },
+    txId: {
+      type: 'string'
+    },
+    // nanoseconds
+    dateSealed: {
+      type: 'number'
+    },
+    dateWriteCanceled: {
+      type: 'date'
+    }
+  },
+  primaryKeys: ['link'],
+  indexes: [
+    {
+      hashKey: 'unsealed',
+      rangeKey: '_time'
+    },
+    {
+      hashKey: 'unconfirmed',
+      rangeKey: '_time'
+    }
+  ],
+  required: [
+    'link'
+  ]
+}
+
+base[sealState.id] = sealState
+
 // const cloudEventModel = {
 //   type: 'tradle.Model',
 //   id: 'tradle.cloud.Event',

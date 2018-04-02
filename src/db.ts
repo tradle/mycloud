@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { TYPE } from '@tradle/constants'
+import { TYPE, SIG } from '@tradle/constants'
 import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
@@ -8,6 +8,53 @@ import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from '
 import { extendTradleObject, pluck } from './utils'
 
 const MESSAGE = 'tradle.Message'
+const ALLOW_SCAN = [
+  'tradle.SealState'
+]
+
+const UNSIGNED = [
+  'tradle.IotSession',
+  'tradle.MyCloudFriend',
+  'tradle.PubKey',
+  'tradle.products.Customer',
+  'tradle.SealState'
+]
+
+const getControlLatestOptions = (table: Table, method: string, resource: any) => {
+  if (UNSIGNED.includes(resource[TYPE])) return
+
+  if (!resource._link) {
+    throw new Error('expected "_link"')
+  }
+
+  if (method === 'create' && !resource._time) {
+    throw new Error('expected "_time"')
+  }
+
+  const options = {
+    ConditionExpression: Object.keys(table.primaryKeys)
+      .map(keyType => `attribute_not_exists(#${keyType})`)
+      .join(' and '),
+    ExpressionAttributeNames: Object.keys(table.primaryKeys)
+      .reduce((names, keyType) => {
+        names[`#${keyType}`] = table.primaryKeys[keyType]
+        return names
+      }, {}),
+    ExpressionAttributeValues: {
+      ':link': resource._link
+    }
+  }
+
+  options.ConditionExpression = `(${options.ConditionExpression}) OR #link = :link`
+  options.ExpressionAttributeNames['#link'] = '_link'
+  if (resource._time) {
+    options.ConditionExpression += ' OR #time < :time'
+    options.ExpressionAttributeNames['#time'] = '_time'
+    options.ExpressionAttributeValues[':time'] = resource._time
+  }
+
+  return options
+}
 
 export = function createDB (tradle:Tradle) {
   const { modelStore, objects, tables, aws, constants, env, dbUtils } = tradle
@@ -24,7 +71,7 @@ export = function createDB (tradle:Tradle) {
   //   objects,
   //   docClient,
   //   maxItemSize: constants.MAX_DB_ITEM_SIZE,
-  //   forbidScan: true,
+  //   allowScan: false,
   //   defaultReadOptions: {
   //     consistentRead: true
   //   }
@@ -35,7 +82,8 @@ export = function createDB (tradle:Tradle) {
     get models() { return modelStore.models },
     get modelsStored() { return modelStore.models },
     objects,
-    forbidScan: true,
+    allowScan: filterOp => ALLOW_SCAN.includes(filterOp.type),
+    shouldMinify: item => !UNSIGNED.includes(item[TYPE])
     // derivedProperties: tableKeys,
   }
 
@@ -49,7 +97,7 @@ export = function createDB (tradle:Tradle) {
     }
 
     debugger
-    throw new Error('BLAAAAAAAAAAAAAAAAAAH!')
+    throw new Error(`failed to get indexes for model: ${model.id}`)
   }
 
   let modelMap
@@ -114,7 +162,7 @@ export = function createDB (tradle:Tradle) {
       type: 'tradle.Message',
       definition: tables.Messages.definition,
       opts: {
-        forbidScan: true
+        allowScan: false
       }
     },
     // {
@@ -131,14 +179,14 @@ export = function createDB (tradle:Tradle) {
     //   type: 'tradle.IotSession',
     //   definition: tables.Presence.definition,
     //   opts: {
-    //     forbidScan: false
+    //     allowScan: true
     //   }
     // },
     // {
     //   type: 'tradle.cloud.Event',
     //   definition: tables.Events.definition,
     //   opts: {
-    //     forbidScan: true
+    //     allowScan: false
     //   }
     // }
     // {
@@ -198,49 +246,14 @@ export = function createDB (tradle:Tradle) {
 
   db.hook('find:pre', fixMessageFilter)
   db.hook('find:post', addPayloads)
+  db.hook('batchPut:pre', ({ args }) => args[0].forEach(checkSigned))
+  db.hook('put:pre', ({ args }) => checkSigned(args[0]))
 
-  return db
-}
-
-const UNSIGNED = [
-  'tradle.IotSession',
-  'tradle.MyCloudFriend',
-  'tradle.PubKey',
-  'tradle.products.Customer'
-]
-
-const getControlLatestOptions = (table: Table, method: string, resource: any) => {
-  if (UNSIGNED.includes(resource[TYPE])) return
-
-  if (!resource._link) {
-    throw new Error('expected "_link"')
-  }
-
-  if (method === 'create' && !resource._time) {
-    throw new Error('expected "_time"')
-  }
-
-  const options = {
-    ConditionExpression: Object.keys(table.primaryKeys)
-      .map(keyType => `attribute_not_exists(#${keyType})`)
-      .join(' and '),
-    ExpressionAttributeNames: Object.keys(table.primaryKeys)
-      .reduce((names, keyType) => {
-        names[`#${keyType}`] = table.primaryKeys[keyType]
-        return names
-      }, {}),
-    ExpressionAttributeValues: {
-      ':link': resource._link
+  const checkSigned = resource => {
+    if (!resource[SIG] && !UNSIGNED.includes(resource[TYPE])) {
+      throw new Error(`expected resource to be signed: ${resource._link}`)
     }
   }
 
-  options.ConditionExpression = `(${options.ConditionExpression}) OR #link = :link`
-  options.ExpressionAttributeNames['#link'] = '_link'
-  if (resource._time) {
-    options.ConditionExpression += ' OR #time < :time'
-    options.ExpressionAttributeNames['#time'] = '_time'
-    options.ExpressionAttributeValues[':time'] = resource._time
-  }
-
-  return options
+  return db
 }

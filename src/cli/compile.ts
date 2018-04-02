@@ -81,7 +81,7 @@ function addBucketTables ({ yml, prefix }) {
       dependencies: tables
     })
 
-    let logicalId = `BucketTable${i}`
+    let logicalId = `Bucket${i}Table`
     Resources[logicalId] = def
     // custom.capacities.push({
     //   table: logicalId,

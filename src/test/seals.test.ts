@@ -28,6 +28,8 @@ const blockchainOpts = {
 }
 
 const SealsTableLogicalId = 'SealsTable'
+const BucketTableLogicalId = 'BucketTable0'
+
 const rejectEtherscanCalls = () => {
   nock('http://rinkeby.etherscan.io/')
     .get(uri => uri.startsWith('/api'))
@@ -49,13 +51,21 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   env.BLOCKCHAIN = blockchainOpts
 
   const tradle = new Tradle(env)
-  const table = await recreateTable(SealsTableLogicalId)
+  // const table = await recreateTable(SealsTableLogicalId)
   const txId = 'sometxid'
 
-  const { blockchain, seals } = tradle
+  const { blockchain, seals, db } = tradle
   const aliceKey = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const bobKey = bobKeys.find(key => key.type === flavor && key.networkName === networkName)
   const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses').resolves([])
+
+  await wipeDB(db)
+
+  // clean up
+  // await Promise.all([aliceIdentity._link, bobIdentity._link].map(link => db.del({
+  //   [TYPE]: 'tradle.SealState',
+  //   link
+  // })))
 
   await seals.create({ key: aliceKey, link: aliceIdentity._link })
   await seals.watch({ key: bobKey, link: bobIdentity._link })
@@ -75,7 +85,7 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   let longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1 }) // 1ms
   t.equal(longUnconfirmed.length, 2)
 
-  const spyBatchPut = sinon.spy(seals.table, 'batchPut')
+  const spyBatchPut = sinon.spy(db, 'batchPut')
   await seals.handleFailures({ gracePeriod: 1 })
 
   t.equal(spyBatchPut.callCount, 2)
@@ -103,14 +113,24 @@ test('handle failed reads/writes', loudAsync(async (t) => {
 
 test('queue seal', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const clock = sinon.useFakeTimers()
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
+  // await recreateTable(BucketTableLogicalId)
 
   const tradle = new Tradle(env)
+  const { db, provider } = tradle
+
+  await wipeDB(db)
+
   const { flavor, networkName } = blockchainOpts
-  const table = await recreateTable(SealsTableLogicalId)
-  const sealedObj = aliceIdentity
+  // const table = await recreateTable(SealsTableLogicalId)
+  const sealedObj:any = await provider.signObject({
+    object: {
+      [TYPE]: 'tradle.SimpleMessage',
+      message: 'hey ho'
+    }
+  })
+
   const link = sealedObj._link
   const permalink = sealedObj._permalink
   const txId = 'sometxid'
@@ -160,23 +180,28 @@ test('queue seal', loudAsync(async (t) => {
       t.equal(object._seal.txId, txId)
     })
 
-  const stubDBUpdate = sandbox.stub(tradle.db, 'update')
-    .callsFake(async (props) => {
-      t.equal(props[TYPE], sealedObj[TYPE])
-      t.equal(props._permalink, permalink)
-      t.equal(props._seal.link, link)
-      t.equal(props._seal.txId, txId)
-    })
+  // const spyDBUpdate = sandbox.stub(tradle.db, 'update')
+  //   .callsFake(async (props) => {
+  //     if (props[TYPE] !== 'tradle.SealState') {
+  //       t.equal(props[TYPE], sealedObj[TYPE])
+  //       t.equal(props._permalink, permalink)
+  //       t.equal(props._seal.link, link)
+  //       t.equal(props._seal.txId, txId)
+  //     }
+  //   })
 
-  const stubDBGet = sandbox.stub(tradle.db, 'get')
+  const { get } = db
+  const stubDBGet = sandbox.stub(db, 'get')
     .callsFake(async (props) => {
       if (props._permalink === permalink) {
         return sealedObj
       }
 
-      throw new Errors.NotFound(permalink)
+      return get.call(db, props)
+      // throw new Errors.NotFound(permalink)
     })
 
+  // const clock = sinon.useFakeTimers()
   await seals.create({ key, link, permalink })
   let unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
@@ -192,11 +217,11 @@ test('queue seal', loudAsync(async (t) => {
   unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 1)
 
-  clock.tick(2)
+  // clock.tick(2)
   let longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1 }) // 1ms
   t.equal(longUnconfirmed.length, 1)
 
-  longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1000 }) // 1s
+  longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 10000 }) // 1s
   t.equal(longUnconfirmed.length, 0)
 
   await seals.syncUnconfirmed()
@@ -211,23 +236,25 @@ test('queue seal', loudAsync(async (t) => {
 
   t.equal(stubObjectsGet.callCount, 1)
   t.equal(stubObjectsPut.callCount, 1)
-  t.equal(stubDBUpdate.callCount, 1)
 
   sandbox.restore()
-  clock.restore()
+  // clock.restore()
   t.end()
 }))
 
 test('corda seals', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const table = await recreateTable(SealsTableLogicalId)
+  // const table = await recreateTable(SealsTableLogicalId)
   const env = new Env(process.env)
   const blockchainOpts = env.BLOCKCHAIN = {
     flavor: 'corda',
     networkName: 'private'
   }
 
-  const { seals, objects, db } = new Tradle(env)
+  const { seals, objects, db, provider } = new Tradle(env)
+
+  await wipeDB(db)
+
   const endpoint = {
     apiKey: 'myApiKey',
     apiUrl: 'http://localhost:12345'
@@ -237,7 +264,6 @@ test('corda seals', loudAsync(async (t) => {
   seals.setEndpoint(endpoint)
 
   const txId = 'sometxid'
-  const link = 'abc'
   nock(endpoint.apiUrl)
     .post(uri => uri.startsWith('/item'))
     .reply(function (url, body) {
@@ -250,33 +276,38 @@ test('corda seals', loudAsync(async (t) => {
       return { txId }
     })
 
+
+  const obj = await provider.signObject({
+    object: {
+      [TYPE]: 'tradle.SimpleMessage',
+      message: 'some message',
+    }
+  })
+
+  const link = obj._link
+  const permalink = obj._permalink
   const sealOpts = {
     link,
     counterparty: aliceIdentity._link
   }
 
-  const obj = {
-    [TYPE]: 'tradle.SimpleMessage',
-    [SIG]: 'somesig',
-    message: 'some message',
-    _link: link,
-    _permalink: link
-  }
 
   sandbox.stub(objects, 'get').callsFake(async (link) => {
-    if (link === 'abc') {
+    if (link === obj._link) {
       return obj
     }
 
     throw new Errors.NotFound(link)
   })
 
+  const { get } = db
   sandbox.stub(db, 'get').callsFake(async (opts) => {
     if (opts._permalink === obj._permalink) {
       return obj
     }
 
-    throw new Errors.NotFound(link)
+    return get.call(db, opts)
+    // throw new Errors.NotFound(link)
   })
 
   const expectedSealResource = {
@@ -291,13 +322,17 @@ test('corda seals', loudAsync(async (t) => {
     t.same(_.pick(obj._seal, Object.keys(expectedSealResource)), expectedSealResource)
   }
 
-  sandbox.stub(db, 'put').callsFake(fakePut)
-  sandbox.stub(objects, 'put').callsFake(fakePut)
+  const spyDB = sandbox.spy(db, 'put')//.callsFake(fakePut)
+  const stubObjects = sandbox.stub(objects, 'put').callsFake(fakePut)
 
   await seals.create(sealOpts)
-  const result = await seals.sealPending()
-  t.same(result.map(r => _.pick(r, ['txId', 'link'])), [{ txId, link: sealOpts.link }])
 
+  t.equal(spyDB.callCount, 1)
+  t.equal(stubObjects.callCount, 0)
+
+  const result = await seals.sealPending()
+
+  t.same(result.map(r => _.pick(r, ['txId', 'link'])), [{ txId, link: sealOpts.link }])
   t.same(await seals.getUnconfirmed(), [])
   t.same(await seals.getLongUnconfirmed(), [])
   t.same(await seals.getUnsealed(), [])
@@ -306,17 +341,21 @@ test('corda seals', loudAsync(async (t) => {
 
   const saved = await seals.get(sealOpts)
   const expected = {
-    errors: [],
     counterparty: 'dcd023c77d5894699a317381696be028ae11a715d5f9ad78b92b2168dd226711',
     network: env.BLOCKCHAIN.networkName,
     blockchain: env.BLOCKCHAIN.flavor,
     txId,
     write: true,
     confirmations: 0,
-    link: 'abc',
+    link
   }
 
   t.same(_.pick(saved, Object.keys(expected)), expected)
   sandbox.restore()
   t.end()
 }))
+
+const wipeDB = async (db) => {
+  await db.destroyTables()
+  await db.createTables()
+}

@@ -1,5 +1,10 @@
 import _ from 'lodash'
 import AWS from 'aws-sdk'
+import {
+  ExpressionAttributes,
+  ConditionExpression,
+  UpdateExpression
+} from '@aws/dynamodb-expressions'
 import { DB } from '@tradle/dynamodb'
 import { utils, protocol } from '@tradle/engine'
 import buildResource from '@tradle/build-resource'
@@ -8,7 +13,7 @@ import Blockchain from './blockchain'
 import Provider from './provider'
 import Env from './env'
 import {
-  timestamp,
+  // timestamp,
   typeforce,
   uuid,
   isPromise,
@@ -24,10 +29,11 @@ import Errors from './errors'
 import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'
-import { models as BaseModels } from '@tradle/models'
+import models from './models'
 import { IECMiniPubKey, ITradleObject, ResourceStub } from './types'
 
-const SealModel = BaseModels['tradle.Seal']
+const SealModel = models['tradle.Seal']
+const SealStateModel = models['tradle.SealState']
 const SEAL_MODEL_ID = 'tradle.Seal'
 const MAX_ERRORS_RECORDED = 10
 const WATCH_TYPE = {
@@ -35,10 +41,12 @@ const WATCH_TYPE = {
   next: 'n'
 }
 
+const SEAL_STATE_TYPE = 'tradle.SealState'
 const RESEAL_ENABLED = false
 const DEFAULT_WRITE_GRACE_PERIOD = 6 * 3600 * 1000
-const TIMESTAMP_MULTIPLIER = 1e3 // milli -> micro
+const TIMESTAMP_MULTIPLIER = 1 // 1e3 // milli -> micro
 const acceptAll = val => true
+const timestamp = () => Date.now()
 
 type SealRecordOpts = {
   key?: IECMiniPubKey
@@ -66,7 +74,9 @@ type WatchOpts = {
 }
 
 export type Seal = {
-  id: string
+  _t: string
+  _time: number
+  // sealId: string
   link: string
   permalink?: string
   forResource?: ResourceStub
@@ -76,18 +86,17 @@ export type Seal = {
   address: string
   pubKey: Buffer
   watchType: string
-  time: number
   confirmations: number
   write?: boolean
   errors?: ErrorSummary[],
   // unconfirmed, unsealed are index hashKeys,
   // this makes for a better partition key than YES
-  unconfirmed?: string
-  unsealed?: string
+  unconfirmed?: boolean
+  unsealed?: boolean
   txId?: string
   // nanoseconds
-  timeSealed?: number
-  canceledWrite?: string
+  dateSealed?: number
+  dateWriteCanceled?: number
 }
 
 type SealMap = {
@@ -157,7 +166,7 @@ export default class Seals {
 
     this.provider = provider
     this.blockchain = blockchain
-    this.table = tables.Seals
+    // this.table = tables.Seals
     this.network = network
     this.objects = objects
     this.db = db
@@ -180,28 +189,30 @@ export default class Seals {
   }
 
   public get = async (seal: { link: string }) => {
-    const { link } = seal
-    const { id } = await this.table.findOne({
-      IndexName: 'link',
-      KeyConditionExpression: 'link = :link',
-      ExpressionAttributeValues: {
-        ':link': link
-      }
-    })
+    return this.db.get(getRequiredProps(seal))
 
-    return this.table.get({
-      Key: { id }
-    })
+    // const { id } = await this.table.findOne({
+    //   IndexName: 'link',
+    //   KeyConditionExpression: 'link = :link',
+    //   ExpressionAttributeValues: {
+    //     ':link': link
+    //   }
+    // })
+
+    // return this.table.get({
+    //   Key: { id }
+    // })
   }
 
   private recordWriteSuccess = async ({ seal, txId }) => {
     typeforce(typeforce.String, txId)
     this.logger.info(`sealed ${seal.link} with tx ${txId}`)
 
-    const update:any = {
+    const update:Partial<Seal> = {
+      ...getRequiredProps(seal),
       txId,
       confirmations: 0,
-      timeSealed: timestamp(),
+      dateSealed: timestamp(),
       unsealed: null
     }
 
@@ -211,10 +222,10 @@ export default class Seals {
       update.unconfirmed = null
     }
 
-    const params = dbUtils.getUpdateParams(update)
-    params.Key = getKey(seal)
+    // const params = dbUtils.getUpdateParams(update)
+    // params.Key = getKey(seal)
     const tasks = [
-      this.table.update(params)
+      this.db.update(update)
     ]
 
     const updated = { ...seal, ...update }
@@ -229,13 +240,13 @@ export default class Seals {
     return updated
   }
 
-  private recordWriteError = async ({ seal, error })
-    :Promise<AWS.DynamoDB.Types.UpdateItemOutput> => {
+  private recordWriteError = async ({ seal, error }):Promise<AWS.DynamoDB.Types.UpdateItemOutput> => {
     this.logger.error(`failed to seal ${seal.link}`, { error: error.stack })
     const errors = addError(seal.errors, error)
-    const params = dbUtils.getUpdateParams({ errors })
-    params.Key = getKey(seal)
-    return this.table.update(params)
+    return this.db.update({
+      ...getRequiredProps(seal),
+      errors
+    })
   }
 
   private _sealPending = async (opts: { limit?: number, key?: any } = {}):Promise<Seal[]> => {
@@ -321,9 +332,8 @@ export default class Seals {
 
     const seal = this.getNewSealParams(opts)
     try {
-      await this.table.put({
-        Item: seal,
-        ConditionExpression: 'attribute_not_exists(link)',
+      await this.db.put(seal, {
+        overwrite: false
       })
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
@@ -334,39 +344,82 @@ export default class Seals {
     }
   }
 
-  public getUnsealed = async (opts?: ILimitOpts): Promise<Seal[]> => {
-    return await this.table.scan(maybeLimit({
-      IndexName: 'unsealed'
-    }, opts))
+  public getUnsealed = async (opts: ILimitOpts={}): Promise<Seal[]> => {
+    const { items } = await this.db.find({
+      limit: opts.limit,
+      filter: {
+        EQ: {
+          [TYPE]: SEAL_STATE_TYPE,
+          unsealed: true
+        }
+      }
+    })
+
+    return items
+
+    // return await this.table.scan(maybeLimit({
+    //   IndexName: 'unsealed'
+    // }, opts))
   }
 
   public getUnconfirmed = async (opts:IFailureQueryOpts={}):Promise<Seal[]> => {
-    return await this.table.scan(maybeLimit({
-      IndexName: 'unconfirmed',
-      FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_not_exists(#unwatched)',
-      ExpressionAttributeNames: {
-        '#unsealed': 'unsealed',
-        '#unwatched': 'unwatched'
+    // return await this.table.scan(maybeLimit({
+    //   IndexName: 'unconfirmed',
+    //   FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_not_exists(#unwatched)',
+    //   ExpressionAttributeNames: {
+    //     '#unsealed': 'unsealed',
+    //     '#unwatched': 'unwatched'
+    //   }
+    // }, opts))
+
+    const { items } = await this.db.find({
+      limit: opts.limit,
+      filter: {
+        EQ: {
+          [TYPE]: SEAL_STATE_TYPE,
+          unconfirmed: true
+        },
+        NULL: {
+          unsealed: true,
+          unwatched: true
+        }
       }
-    }, opts))
+    })
+
+    return items
   }
 
   public getLongUnconfirmed = async (opts:IFailureQueryOpts={}):Promise<Seal[]> => {
     const { gracePeriod=DEFAULT_WRITE_GRACE_PERIOD } = opts
     const longAgo = timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
-    return await this.table.scan(maybeLimit({
-      IndexName: 'unconfirmed',
-      FilterExpression: '#confirmations < :confirmations AND #time < :longAgo',
-      ExpressionAttributeNames: {
-        '#confirmations': 'confirmations',
-        '#time': 'time'
-      },
-      ExpressionAttributeValues: {
-        ':confirmations': this.network.confirmations,
-        // timestamp is in nanoseconds
-        ':longAgo': longAgo
+
+    const { items } = await this.db.find({
+      limit: opts.limit,
+      filter: {
+        EQ: {
+          [TYPE]: SEAL_STATE_TYPE,
+          unconfirmed: true
+        },
+        LT: {
+          confirmations: this.network.confirmations,
+          _time: longAgo
+        }
       }
-    }, opts))
+    })
+
+    return items
+
+    //   FilterExpression: '#confirmations < :confirmations AND #time < :longAgo',
+    //   ExpressionAttributeNames: {
+    //     '#confirmations': 'confirmations',
+    //     '#time': 'time'
+    //   },
+    //   ExpressionAttributeValues: {
+    //     ':confirmations': this.network.confirmations,
+    //     // timestamp is in nanoseconds
+    //     ':longAgo': longAgo
+    //   }
+    // })
   }
 
   public handleFailures = async (opts:IFailureQueryOpts={}):Promise<any> => {
@@ -396,38 +449,75 @@ export default class Seals {
     }
   }
 
-  public getFailedReads = async (opts:IFailureQueryOpts={}) => {
-    const { gracePeriod=DEFAULT_WRITE_GRACE_PERIOD } = opts
-    return await this.table.scan(maybeLimit({
-      IndexName: 'unconfirmed',
-      FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_exists(#unconfirmed) AND #time < :longAgo',
-      ExpressionAttributeNames: {
-        '#unsealed': 'unsealed',
-        '#unconfirmed': 'unconfirmed',
-        '#time': 'time'
-      },
-      ExpressionAttributeValues: {
-        // timestamp is in nanoseconds
-        ':longAgo': timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
+  public getFailedReads = async (opts: IFailureQueryOpts = {}) => {
+    const { gracePeriod = DEFAULT_WRITE_GRACE_PERIOD } = opts
+    const longAgo = timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
+    const { items } = await this.db.find({
+      limit: opts.limit,
+      filter: {
+        EQ: {
+          [TYPE]: SEAL_STATE_TYPE,
+          unconfirmed: true
+        },
+        NULL: {
+          unsealed: true
+        },
+        LT: {
+          _time: longAgo
+        }
       }
-    }, opts))
+    })
+
+    return items
+
+    //   IndexName: 'unconfirmed',
+    //   FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_exists(#unconfirmed) AND #time < :longAgo',
+    //   ExpressionAttributeNames: {
+    //     '#unsealed': 'unsealed',
+    //     '#unconfirmed': 'unconfirmed',
+    //     '#time': 'time'
+    //   },
+    //   ExpressionAttributeValues: {
+    //     // timestamp is in nanoseconds
+    //     ':longAgo': timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
+    //   }
+    // }, opts))
   }
 
   public getFailedWrites = async (opts:IFailureQueryOpts={}) => {
     const { gracePeriod=DEFAULT_WRITE_GRACE_PERIOD } = opts
-    return await this.table.scan(maybeLimit({
-      IndexName: 'unconfirmed',
-      FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_exists(#txId) AND #timeSealed < :longAgo',
-      ExpressionAttributeNames: {
-        '#unsealed': 'unsealed',
-        '#txId': 'txId',
-        '#timeSealed': 'timeSealed'
-      },
-      ExpressionAttributeValues: {
-        // timestamp is in nanoseconds
-        ':longAgo': timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
+    const longAgo = timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
+    const { items } = await this.db.find({
+      limit: opts.limit,
+      filter: {
+        EQ: {
+          [TYPE]: SEAL_STATE_TYPE,
+          unconfirmed: true
+        },
+        NULL: {
+          unsealed: true,
+          txId: false
+        },
+        LT: {
+          dateSealed: longAgo
+        }
       }
-    }, opts))
+    })
+
+    //   IndexName: 'unconfirmed',
+    //   FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_exists(#txId) AND #dateSealed < :longAgo',
+    //   ExpressionAttributeNames: {
+    //     '#unsealed': 'unsealed',
+    //     '#txId': 'txId',
+    //     '#dateSealed': 'dateSealed'
+    //   },
+    //   ExpressionAttributeValues: {
+    //     // timestamp is in nanoseconds
+    //     ':longAgo': timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
+    //   }
+    // }, opts))
+
+    return items
   }
 
   public requeueFailedWrites = async (opts) => {
@@ -446,29 +536,29 @@ export default class Seals {
     this.logger.debug('canceling writes', seals.map(seal => _.pick(seal, ['blockchain', 'network', 'address', 'link'])))
 
     const now = timestamp()
-    const puts = seals.map(seal => ({
-      ...seal,
-      canceledWrite: String(now),
-      unsealed: null
-    }))
+    await Promise.all(seals.map(seal => this.cancelPendingSeal(seal)))
+  }
 
-    await this.table.batchPut(puts)
-    return seals
+  public cancelPendingSeal = async (seal: Seal) => {
+    return await this.db.update({
+      ...getRequiredProps(seal),
+      dateWriteCanceled: Date.now(),
+      unsealed: null
+    })
   }
 
   private _requeueWrites = async (seals:Seal[]):Promise<Seal[]> => {
     if (!seals.length) return
 
-    this.logger.debug('failed writes', seals.map(seal => _.pick(seal, ['timeSealed', 'txId'])))
+    this.logger.debug('failed writes', seals.map(seal => _.pick(seal, ['dateSealed', 'txId'])))
 
     const now = timestamp()
     const puts = seals.map(seal => ({
-      ..._.omit(seal, ['unconfirmed']),
-      unsealed: String(now),
-      txId: null
+      ..._.omit(seal, ['unconfirmed', 'txId']),
+      unsealed: true
     }))
 
-    await this.table.batchPut(puts)
+    await this.db.batchPut(puts)
     return seals
   }
 
@@ -480,10 +570,10 @@ export default class Seals {
     const now = timestamp()
     const puts = seals.map(seal => ({
       ..._.omit(seal, 'unconfirmed'),
-      unwatched: String(now)
+      unwatched: true
     }))
 
-    await this.table.batchPut(puts)
+    await this.db.batchPut(puts)
     return seals
   }
 
@@ -537,7 +627,7 @@ export default class Seals {
       return changed
     }
 
-    const updateSeals = this.table.batchPut(changed)
+    const updateSeals = this.db.batchPut(changed)
     const links = Object.keys(linkToSeal)
 
     // should probably be batched for robustness
@@ -549,7 +639,7 @@ export default class Seals {
       } catch (err) {
         this.logger.error(`object not found, skipping objects+db update with confirmed seal`, {
           link,
-          seal: seal.id,
+          seal: seal.link,
           error: err.stack
         })
 
@@ -641,7 +731,9 @@ export default class Seals {
     const address = blockchain.pubKeyToAddress(pubKey.pub)
     const time = timestamp()
     const params:Seal = {
-      id: uuid(),
+      // id: uuid(),
+      _t: SEAL_STATE_TYPE,
+      _time: time,
       blockchain: network.flavor,
       network: network.networkName,
       link,
@@ -650,12 +742,9 @@ export default class Seals {
       counterparty,
       watchType,
       write: true,
-      time,
       confirmations: -1,
       errors: [],
-      // unconfirmed is an index hashKey,
-      // this makes for a better partition key than YES
-      unconfirmed: String(time)
+      unconfirmed: true
     }
 
     if (permalink) {
@@ -667,9 +756,7 @@ export default class Seals {
     }
 
     if (write) {
-      // unconfirmed is an index hashKey,
-      // this makes for a better partition key than YES
-      params.unsealed = String(time)
+      params.unsealed = true
     }
 
     return params
@@ -691,13 +778,13 @@ function addError (errors: IErrorRecord[] = [], error) {
   return errors
 }
 
-function getKey (sealInfo) {
-  return { id: sealInfo.id }
-}
+// function getKey (sealInfo) {
+//   return { id: sealInfo.id }
+// }
 
 function isFailedWrite ({ seal, gracePeriod=DEFAULT_WRITE_GRACE_PERIOD }) {
   if (seal.txId) {
-    const deadline = seal.timeSealed + gracePeriod * TIMESTAMP_MULTIPLIER
+    const deadline = seal.dateSealed + gracePeriod * TIMESTAMP_MULTIPLIER
     return timestamp() > deadline
   }
 }
@@ -709,3 +796,11 @@ function maybeLimit (params, opts?:ILimitOpts) {
 
   return params
 }
+
+const getRequiredProps = seal => {
+  const props = _.pick(seal, _.values(SealStateModel.primaryKeys))
+  props[TYPE] = SEAL_STATE_TYPE
+  return props
+}
+
+// const toDBFormat = seal => seal[TYPE] ? seal : { ...seal, [TYPE]: SEAL_STATE_TYPE }

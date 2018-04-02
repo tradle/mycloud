@@ -13,6 +13,7 @@ export const createLambda = (opts) => {
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { bot } = lambda
+  const getBody = partial => partial._link ? bot.objects.get(partial._link) : partial
   return async (ctx, next) => {
     const records = bot.dbUtils.getRecordsFromEvent(ctx.event)
       // .map(record => record.new)
@@ -31,8 +32,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 
     const changes = await Promise.all(records.map(async (record) => {
       const [value, old] = await Promise.all([
-        record.new ? bot.objects.get(record.new._link) : promiseUndefined,
-        record.old ? bot.objects.get(record.old._link) : promiseUndefined
+        record.new ? getBody(record.new) : promiseUndefined,
+        record.old ? getBody(record.old) : promiseUndefined
       ])
 
       return { value, old }

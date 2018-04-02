@@ -258,7 +258,7 @@ test(`onmessage`, loudAsync(async (t) => {
   // identities.byPermalink = byPermalink
 }))
 
-test(`seal events stream`, loudAsync(async (t) => {
+test.only(`seal events stream`, loudAsync(async (t) => {
   const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
 
   let read
@@ -295,10 +295,11 @@ test(`seal events stream`, loudAsync(async (t) => {
     t.equal(event.seal.link, link)
   })
 
-  await bot.lambdas.onsealstream().handler(toStreamItems(bot.tables.Seals.name, [
+  await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
     // queueseal
     {
       new: {
+        [TYPE]: 'tradle.SealState',
         link,
         unsealed: 'x',
         time: 1
@@ -307,11 +308,13 @@ test(`seal events stream`, loudAsync(async (t) => {
     // wroteseal
     {
       old: {
+        [TYPE]: 'tradle.SealState',
         link,
         unsealed: 'x',
         time: 1
       },
       new: {
+        [TYPE]: 'tradle.SealState',
         link,
         time: 1
       }
@@ -319,11 +322,13 @@ test(`seal events stream`, loudAsync(async (t) => {
     // readseal
     {
       old: {
+        [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
         time: 1
       },
       new: {
+        [TYPE]: 'tradle.SealState',
         link,
         time: 1
       }
@@ -331,6 +336,7 @@ test(`seal events stream`, loudAsync(async (t) => {
     // watchseal
     {
       new: {
+        [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
         time: 1

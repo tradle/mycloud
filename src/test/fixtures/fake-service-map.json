@@ -27,6 +27,7 @@
   "R_TABLE_Users": "{prefix}users",
   "R_TABLE_Conf": "{prefix}conf",
   "R_TABLE_KV": "{prefix}kv",
+  "R_TABLE_Bucket0": "{prefix}bucket-0",
   "R_STACK": "arn:aws:cloudformation:us-east-1:xxxxx:stack/{service}-{stage}/xxxxx",
   "SERVERLESS_PREFIX": "{prefix}",
   "SERVERLESS_SERVICE_NAME": "tradle",

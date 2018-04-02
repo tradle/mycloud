@@ -9,12 +9,18 @@ import {
   Tables,
   IStreamRecord,
   IStreamEventDBRecord,
-  IStreamEvent
+  IStreamEvent,
+  ISaveEventPayload
 } from './types'
 
 const notNull = obj => !!obj
 const SEPARATOR = ':'
 const PARTITION_FACTOR = 100
+
+type OldAndNew = {
+  ['new']?: any
+  old?: any
+}
 
 interface IEventsQuery {
   topic: string
@@ -61,6 +67,17 @@ export default class Events {
     }
   }
 
+  public fromSaveBatch = (changes: ISaveEventPayload[]):EventPartial[] => {
+    return changes.map(({ value, old}) => {
+      const topic = value ? topics.resource.save : topics.resource.delete
+      return {
+        topic: topic.toString(),
+        data: value || old,
+        time: value ? value._time : Date.now()
+      }
+    })
+  }
+
   private transform = (tableName: string, record: IStreamRecord):EventPartial => {
   // private transform = (tableName: string, record: IStreamRecord) => {
     const { id, type, old, seq, time, source } = record
@@ -91,17 +108,19 @@ export default class Events {
   // }
 
   public getEventTopic = (record: IStreamRecord):EventTopic => {
-    const { Events, Seals, Messages } = this.tables
+    const { Events, Seals, Messages, Bucket0 } = this.tables
     const { service, source } = record
     if (record.service !== 'dynamodb') {
       throw new Error(`stream event not supported yet: ${record.service}`)
     }
 
     switch (record.source) {
-      case Seals.name:
-        return getSealEventTopic(record)
+      // case Seals.name:
+      //   return getSealEventTopic(record)
       case Messages.name:
         return getMessageEventTopic(record)
+      case Bucket0.name:
+        return getResourceEventTopic(record)
       default:
         this.logger.debug(`received unexpected stream event from table ${source}`, record)
         break
@@ -117,7 +136,7 @@ export default class Events {
 
 export { Events }
 export const createEvents = (opts: EventsOpts) => new Events(opts)
-export const getSealEventTopic = (record: IStreamRecord):EventTopic => {
+export const getSealEventTopic = (record: OldAndNew):EventTopic => {
   // when a seal is queued for a write, unsealed is set to 'y'
   // when a seal is written, unsealed is set to null
   const wasJustSealed = record.old && record.old.unsealed && !record.new.unsealed
@@ -135,6 +154,10 @@ export const getSealEventTopic = (record: IStreamRecord):EventTopic => {
 
 export const getMessageEventTopic = (record: IStreamRecord) => {
   return record.new._inbound ? topics.message.inbound : topics.message.outbound
+}
+
+export const getResourceEventTopic = (record: IStreamRecord) => {
+  return record.new ? topics.resource.save : topics.resource.delete
 }
 
 const sortEventsByTimeAsc = (a, b) => {
@@ -200,7 +223,8 @@ export const topics = {
     outbound: new EventTopic('msg:o')
   },
   resource: {
-    save: new EventTopic('save')
+    save: new EventTopic('save'),
+    delete: new EventTopic('delete')
   },
   user: {
     create: new EventTopic('user:create'),

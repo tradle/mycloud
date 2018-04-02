@@ -8,20 +8,22 @@ import { DB } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { readyMixin, IReady } from './ready-mixin'
-import { topics as EventTopics, toAsyncEvent } from '../events'
+import { topics as EventTopics, toAsyncEvent, toBatchEvent, getSealEventTopic } from '../events'
 import {
   defineGetter,
   ensureTimestamped,
   wait,
   parseStub,
-  parseId
+  parseId,
+  RESOLVED_PROMISE,
+  batchProcess
 } from '../utils'
 
 import { addLinks } from '../crypto'
 import {
   normalizeSendOpts,
   normalizeRecipient,
-  toBotMessageEvent
+  toBotMessageEvent,
 } from './utils'
 
 import createUsers from './users'
@@ -62,6 +64,7 @@ import Auth from '../auth'
 import { AwsApis } from '../aws'
 import Errors from '../errors'
 import { MiddlewareContainer } from '../middleware-container'
+import { hookUp as setupDefaultHooks } from './hooks'
 
 type LambdaImplMap = {
   [name:string]: ILambdaImpl
@@ -277,17 +280,7 @@ export class Bot extends EventEmitter implements IReady {
       this.appLinks = defaultAppLinks
     }
 
-    // backwards compat
-    this.hookSimple('msg:i', event => this.fire('message', event))
-
-    this.hookSimple('async:save:batch', async (changes) => {
-      try {
-        await this.backlinks.processChanges(changes)
-      } catch (err) {
-        debugger
-      }
-    })
-
+    setupDefaultHooks(this)
     if (ready) this.ready()
   }
 
@@ -556,11 +549,16 @@ export class Bot extends EventEmitter implements IReady {
 
   public _fireSealBatchEvent = async (opts: {
     async?: boolean
+    spread?: boolean
     event: string
     seals: Seal[]
   }) => {
-    const event = opts.async ? toAsyncEvent(opts.event) : opts.event
-    return await this.fireBatch(event, opts.seals.map(seal => ({ seal })))
+    const { async, spread, seals } = opts
+    const event = async ? toAsyncEvent(opts.event) : opts.event
+    const payloads = seals.map(seal => ({ seal }))
+    return spread
+      ? await this.fireBatch(event, payloads)
+      : await this.fire(toBatchEvent(event), payloads)
   }
 
   public _fireSealEvent = async (opts: {
