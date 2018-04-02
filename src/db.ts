@@ -205,7 +205,8 @@ export = function createDB (tradle:Tradle) {
 const UNSIGNED = [
   'tradle.IotSession',
   'tradle.MyCloudFriend',
-  'tradle.PubKey'
+  'tradle.PubKey',
+  'tradle.products.Customer'
 ]
 
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {

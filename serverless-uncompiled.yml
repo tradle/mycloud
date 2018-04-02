@@ -1441,20 +1441,20 @@ resources:
 
     # used by the bot
     # stores schema-free user state objects
-    UsersTable:
-      Type: AWS::DynamoDB::Table
-      Description: per-user state objects
-      Properties:
-        TableName: ${{self:custom.tables.users}}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+    # UsersTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: per-user state objects
+    #   Properties:
+    #     TableName: ${{self:custom.tables.users}}
+    #     AttributeDefinitions:
+    #       - AttributeName: id
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: id
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
 
     # stores mappings between identity permalinks and ephemeral clientIds
     # mappings are created after initial handshake and destroyed on disconnect
@@ -1601,11 +1601,11 @@ resources:
             PolicyDocument:
               Version: "2012-10-17"
               Statement:
-                - Effect: Allow
-                  Action:
-                    - dynamodb:*
-                  Resource:
-                    - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BucketTable0'
+                # - Effect: Allow
+                #   Action:
+                #     - dynamodb:*
+                #   Resource:
+                #     - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BucketTable0'
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup

@@ -1,62 +1,80 @@
 // const Cache = require('lru-cache')
-import _ from 'lodash'
 import { EventEmitter } from 'events'
-import { co } from '../utils'
+import { omit, extend, pick } from 'lodash'
+import { TYPE } from '@tradle/constants'
 import { getUpdateParams } from '../db-utils'
 import Errors from '../errors'
-const PRIMARY_KEY = 'id'
+import { Bot } from '../types'
+import { topics } from '../events'
 
-export = function createUsers ({ table, oncreate }) {
+const PRIMARY_KEY = 'uid'
+const MAPPED_PRIMARY_KEY = 'id'
+const USER = 'tradle.products.Customer'
+
+export = function createUsers ({ bot }: { bot: Bot }) {
   const ee = new EventEmitter()
+  const { db } = bot
 
   // const cache = new Cache({ max: 200 })
-  const save = user => table.put({ Item: user }).then(() => user)
-  const del = primaryKey => table.del({
-    Key: { [PRIMARY_KEY]: primaryKey },
-    ReturnValues: 'ALL_OLD'
+  const fromDBFormat = user => ({
+    ...omit(user, [PRIMARY_KEY, TYPE]),
+    id: user[PRIMARY_KEY]
   })
 
-  const merge = function merge (user) {
-    return table.update(_.extend(getUpdateParams(getProps(user)), {
-      Key: getKey(user),
-      ReturnValues: 'ALL_NEW',
-    }))
+  const toDBFormat = user => ({
+    ...omit(user, MAPPED_PRIMARY_KEY),
+    [TYPE]: USER,
+    uid: user[MAPPED_PRIMARY_KEY]
+  })
+
+  const save = async (user) => {
+    await db.put(toDBFormat(user))
+    return user
   }
 
-  const list = table.scan
-  const createIfNotExists = co(function* (user) {
+  const del = async (primaryKey) => {
+    const user = await db.del({
+      [TYPE]: USER,
+      [PRIMARY_KEY]: primaryKey
+    }, {
+      ReturnValues: 'ALL_OLD'
+    })
+
+    return fromDBFormat(user)
+  }
+
+  const merge = async (user) => {
+    const stored = await db.update(toDBFormat(user), { ReturnValues: 'ALL_NEW' })
+    return fromDBFormat(stored)
+  }
+
+  const createIfNotExists = async (user) => {
     try {
-      return yield get(user[PRIMARY_KEY])
+      return await get(user[MAPPED_PRIMARY_KEY])
     } catch (err) {
-      if (err instanceof Errors.NotFound) {
-        yield save(user)
-        yield oncreate(user)
-        return user
-      }
-
-      throw err
+      Errors.ignoreNotFound(err)
+      await save(user)
+      await bot.fire(topics.user.create, { user })
+      return user
     }
-  })
+  }
 
-  const get = primaryKey => table.get({
-    Key: { [PRIMARY_KEY]: primaryKey },
-    ConsistentRead: true
-  })
+  const get = async (primaryKey) => {
+    const stored = await db.get({
+      [TYPE]: USER,
+      [PRIMARY_KEY]: primaryKey
+    }, {
+      ConsistentRead: true
+    })
 
-  return _.extend(ee, {
+    return fromDBFormat(stored)
+  }
+
+  return extend(ee, {
     get,
     createIfNotExists,
     save,
     del,
-    merge,
-    list
+    merge
   })
-}
-
-function getKey (user) {
-  return _.pick(user, PRIMARY_KEY)
-}
-
-function getProps (user) {
-  return _.omit(user, PRIMARY_KEY)
 }

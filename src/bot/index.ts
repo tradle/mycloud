@@ -213,11 +213,7 @@ export class Bot extends EventEmitter implements IReady {
 
     const { env, logger, tables } = tradle
     this.tradle = tradle
-    this.users = users || createUsers({
-      table: tradle.tables.Users,
-      oncreate: user => this.fire('usercreate', user)
-    })
-
+    this.users = users || createUsers({ bot: this })
     this.logger = logger.sub('bot')
     this.debug = this.logger.debug
 

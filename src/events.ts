@@ -201,6 +201,11 @@ export const topics = {
   },
   resource: {
     save: new EventTopic('save')
+  },
+  user: {
+    create: new EventTopic('user:create'),
+    online: new EventTopic('user:online'),
+    offline: new EventTopic('user:offline'),
   }
 }
 

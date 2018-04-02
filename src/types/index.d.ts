@@ -35,7 +35,7 @@ import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
 import { Iot, IIotEndpointInfo } from '../iot-utils'
-import { Events } from '../events'
+import { Events, EventTopic } from '../events'
 import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
 import {
@@ -331,8 +331,9 @@ export interface IEndpointInfo extends IIotEndpointInfo {
   version: string
 }
 
-export type HooksHookFn = (event:string, handler:Function) => void
-export type HooksFireFn = (event:string, ...args:any[]) => any|void
+export type TopicOrString = string|EventTopic
+export type HooksHookFn = (event:TopicOrString, handler:Function) => void
+export type HooksFireFn = (event:TopicOrString, ...args:any[]) => any|void
 
 export interface IHooks {
   hook: HooksHookFn
