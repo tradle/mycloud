@@ -183,6 +183,7 @@ export class Commander {
       ? command.parse(argsStr, command.parseOpts)
       : parse(argsStr, command.parseOpts)
 
+    ctx.ctx = ctx
     return await command.exec(ctx)
   }
 
