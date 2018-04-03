@@ -21,7 +21,7 @@ import {
   bindAll,
   summarizeObject
 } from './utils'
-import { getLinks } from './crypto'
+import { getLinks, randomString } from './crypto'
 import { prettify } from './string-utils'
 import * as dbUtils from './db-utils'
 import * as types from './typeforce-types'
@@ -76,7 +76,7 @@ type WatchOpts = {
 export type Seal = {
   _t: string
   _time: number
-  // sealId: string
+  sealId: string
   link: string
   permalink?: string
   forResource?: ResourceStub
@@ -188,20 +188,16 @@ export default class Seals {
     return this.createSealRecord({ ...opts, write: true })
   }
 
-  public get = async (seal: { link: string }) => {
-    return this.db.get(getRequiredProps(seal))
-
-    // const { id } = await this.table.findOne({
-    //   IndexName: 'link',
-    //   KeyConditionExpression: 'link = :link',
-    //   ExpressionAttributeValues: {
-    //     ':link': link
-    //   }
-    // })
-
-    // return this.table.get({
-    //   Key: { id }
-    // })
+  public get = async (seal) => {
+    // use findOne instead of get() in case non-primary key props are provided
+    return this.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: SEAL_STATE_TYPE,
+          ...seal
+        }
+      }
+    })
   }
 
   private recordWriteSuccess = async ({ seal, txId }) => {
@@ -731,7 +727,7 @@ export default class Seals {
     const address = blockchain.pubKeyToAddress(pubKey.pub)
     const time = timestamp()
     const params:Seal = {
-      // id: uuid(),
+      sealId: time + ':' + randomString(8),
       _t: SEAL_STATE_TYPE,
       _time: time,
       blockchain: network.flavor,
