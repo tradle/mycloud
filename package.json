@@ -114,7 +114,7 @@
     "remove": "npm run build:yml && serverless remove",
     "reinitializecontainers": "sls invoke -f reinitialize-containers",
     "stacksize": "./src/scripts/count-resources.sh",
-    "scan": "./src/scripts/scan.sh",
+    "scan": "./src/scripts/scan.sh $@",
     "templates:prerender": "node ./lib/scripts/prerender-templates.js && npm run copy-static-assets"
   },
   "dependencies": {
