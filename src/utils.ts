@@ -1211,7 +1211,14 @@ export const getStubsByType = (stubs: ResourceStub[], type: string):ParsedResour
     .filter(parsed => parsed.type === type)
 }
 
-export const getPermId = ({ type, permalink }: {
-  type: string
-  permalink: string
-}) => `${type}_${permalink}`
+export const getPermId = ({ type, permalink, id }: {
+  type?: string
+  permalink?: string
+  id?: string
+}) => {
+  if (!(type && permalink)) {
+    ({ type, permalink} = parseId(id))
+  }
+
+  return `${type}_${permalink}`
+}

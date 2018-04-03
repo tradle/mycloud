@@ -627,7 +627,7 @@ const toSimpleMiddleware = handler => async (ctx, next) => {
 
 const maybeAddOld = (bot: Bot, change: ISaveEventPayload, async: boolean):ISaveEventPayload|Promise<ISaveEventPayload> => {
   if (async && !change.old && change.value && change.value._prevlink) {
-    return addOld(this, change)
+    return addOld(bot, change)
   }
 
   return change
@@ -640,16 +640,26 @@ const addOld = (bot: Bot, target: ISaveEventPayload): Promise<ISaveEventPayload>
 }
 
 const getResourceIdentifier = (props: GetResourceParams) => {
-  if (TYPE in props) {
-    return _.pick(props, [TYPE, '_permalink'])
-  }
-
-  let { type, permalink, link, id } = props
-  if (id) return parseId(id)
-
+  const parts = _getResourceIdentifier(props)
+  const { type, permalink } = parts
   if (!(type && permalink)) {
+    console.error('BAD!', JSON.stringify(props, null, 2))
     throw new Errors.InvalidInput('not enough data to look up resource')
   }
+
+  return parts
+}
+
+const _getResourceIdentifier = (props: GetResourceParams) => {
+  if (TYPE in props) {
+    return {
+      type: props[TYPE],
+      permalink: props._permalink
+    }
+  }
+
+  const { type, permalink, link, id } = props
+  if (id) return parseId(id)
 
   return { type, permalink, link }
 }

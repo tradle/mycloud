@@ -209,8 +209,9 @@ export default class Tradle {
 
     this.define('appLinks', './app-links', Linker => new Linker())
     this.define('backlinks', './backlinks', Backlinks => new Backlinks({
-      store: this.kv1,
-      modelStore: this.modelStore
+      db: this.db,
+      modelStore: this.modelStore,
+      logger: this.logger.sub('backlinks')
     }))
   }
 

@@ -6,10 +6,11 @@ import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from './types'
 import { extendTradleObject, pluck } from './utils'
+import { TYPES } from './constants'
 
-const MESSAGE = 'tradle.Message'
+const { MESSAGE, SEAL_STATE, BACKLINK_ITEM } = TYPES
 const ALLOW_SCAN = [
-  'tradle.SealState'
+  SEAL_STATE
 ]
 
 const UNSIGNED = [
@@ -17,7 +18,8 @@ const UNSIGNED = [
   'tradle.MyCloudFriend',
   'tradle.PubKey',
   'tradle.products.Customer',
-  'tradle.SealState'
+  SEAL_STATE,
+  BACKLINK_ITEM
 ]
 
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {
@@ -89,7 +91,7 @@ export = function createDB (tradle:Tradle) {
 
   const getIndexesForModel = ({ table, model }) => {
     if (UNSIGNED.includes(model.id)) {
-      return model.indexes
+      return model.indexes || []
     }
 
     if (model.id in modelStore.models) {

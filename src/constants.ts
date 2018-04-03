@@ -33,7 +33,9 @@ const constants = {
     ...TYPES,
     INTRODUCTION: 'tradle.Introduction',
     IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest',
-    SIMPLE_MESSAGE: 'tradle.SimpleMessage'
+    SIMPLE_MESSAGE: 'tradle.SimpleMessage',
+    BACKLINK_ITEM: 'tradle.BacklinkItem',
+    SEAL_STATE: 'tradle.SealState'
   },
   IDENTITY_KEYS_KEY: 'keys.json',
   PUBLIC_CONF_BUCKET: {

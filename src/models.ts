@@ -56,44 +56,6 @@ if (!formModel.properties.verifications) {
 const appModel = base['tradle.Application']
 appModel.properties.checks.items.backlink = 'application'
 
-// const backlinkModel = {
-//   "type": "tradle.Model",
-//   "id": "tradle.ResourceLink",
-//   "title": "Resource Link",
-//   "properties": {
-//     "sourceType": {
-//       "type": "string"
-//     },
-//     "source": {
-//       "type": "string",
-//       "description": "{type}_{permalink}"
-//     },
-//     "sourceLink": {
-//       "type": "string"
-//     },
-//     "target": {
-//       "type": "string",
-//       "description": "{type}_{permalink}"
-//     },
-//     "targetLink": {
-//       "type": "string"
-//     }
-//   },
-//   "required": [
-//     "sourceType",
-//     "source",
-//     "sourceLink",
-//     "target",
-//     "targetLink"
-//   ],
-//   "primaryKeys": {
-//     "hashKey": "target",      // e.g. 'tradle.PhotoID_abc'
-//     "rangeKey": "sourceType"  // e.g. 'tradle.Verification'
-//   }
-// }
-
-// base[backlinkModel.id] = backlinkModel
-
 // const kvPair = {
 //   type: 'tradle.Model',
 //   id: 'tradle.KV',

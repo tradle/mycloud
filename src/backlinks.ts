@@ -18,38 +18,41 @@ import {
   Models,
   Model,
   Middleware,
-  KV,
+  DB,
   ResourceStub,
   ParsedResourceStub,
-  ISaveEventPayload
+  ISaveEventPayload,
+  Logger
 } from './types'
 
 import { getRecordsFromEvent } from './db-utils'
 import Errors from './errors'
+import { TYPES } from './constants'
+const { BACKLINK_ITEM } = TYPES
 
 const { isDescendantOf, isInlinedProperty } = validateResource.utils
+const SEPARATOR = ':'
 
 interface ResourceProperty extends ParsedResourceStub {
   property: string
 }
 
-export type ForwardLink = {
-  source: ITradleObject
-  sourceStub: ResourceStub
-  sourceParsedStub: ParsedResourceStub
-  sourcePermId: string
-  forward: string
+export type BacklinkItem = {
+  // sourceRes: ITradleObject
+  // sourceStub: ResourceStub
+  // sourceParsedStub: ParsedResourceStub
+  source: string
+  sourceLink: string
+  // linkProp: string
+  backlinkProp: string
   // backlinkModel: Model
-  back: string
-  targetModel: Model
-  targetStub: ResourceStub
-  targetParsedStub: ParsedResourceStub
-  targetPermId: string
+  // back: string
+  // targetModel: Model
+  // targetStub: ResourceStub
+  // targetParsedStub: ParsedResourceStub
+  target: string
+  targetLink: string
 }
-
-// export type ForwardLinks = {
-//   [propertyName:string]: ForwardLink
-// }
 
 export type LatestToLink = {
   [latestId: string]: string
@@ -79,48 +82,60 @@ export type BacklinksContainers = {
 }
 
 export type BacklinksChange = {
-  targetId: string
-  set: StoredResourceBacklinks
-  remove: RemoveBacklinks
+  add: BacklinkItem[]
+  del: BacklinkItem[]
 }
 
 // export type Backlink = string[]
 
 type BacklinksOpts = {
-  store: KV
+  db: DB
   modelStore: ModelStore
+  logger: Logger
 }
 
 export default class Backlinks {
-  private store: KV
+  private db: DB
   private modelStore: ModelStore
-  constructor ({ store, modelStore }: BacklinksOpts) {
-    this.store = store
+  private logger: Logger
+  constructor ({ db, modelStore, logger }: BacklinksOpts) {
+    this.db = db
     this.modelStore = modelStore
+    this.logger = logger
   }
 
   private get models() {
     return this.modelStore.models
   }
 
-  private getForwardLinks = (resource):ForwardLink[] => {
-    return getForwardLinks({ models: this.models, resource })
+  private getBacklinkItems = (resource):BacklinkItem[] => {
+    return getBacklinkItems({ models: this.models, resource })
   }
 
-  public getBacklinks = async ({ type, permalink }: {
+  public getBacklinks = async ({ type, permalink, properties }: {
     type: string
     permalink: string
+    properties?: string[]
   }):Promise<ResourceBacklinks> => {
-    const key = getBacklinkKey(getPermId({ type, permalink }))
-    let backlinks
-    try {
-      backlinks = await this.store.get(key)
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-      return {}
+    const filter = {
+      IN: {},
+      EQ: {
+        [TYPE]: BACKLINK_ITEM,
+        target: getPermId({ type, permalink })
+      }
     }
 
-    return exportBacklinksContainer(backlinks)
+    if (properties) {
+      filter.IN = {
+        backlinkProp: properties
+      }
+    }
+
+    const { items } = await this.db.find({ filter })
+    return toResourceFormat({
+      models: this.models,
+      backlinkItems: items
+    })
   }
 
   // public processMessages = async (messages: ITradleMessage[]) => {
@@ -132,34 +147,17 @@ export default class Backlinks {
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
     const backlinkChanges = this.getBacklinksChanges(resourceChanges)
-    if (!backlinkChanges.length) return
+    const { add, del } = backlinkChanges
+    if (add.length) this.logger.debug(`creating ${add.length} backlink items`)
+    if (del.length) this.logger.debug(`deleting ${del.length} backlink items`)
 
-    const [toPut, toUpdate] = _.partition(backlinkChanges, 'isNew')
-    let savePuts = RESOLVED_PROMISE
-    let saveUpdates = RESOLVED_PROMISE
-    if (toPut.length) {
-      savePuts = this.store.batchPut(toPut.map(({ targetId, set }) => ({
-        key: getBacklinkKey(targetId),
-        value: set
-      })))
-    }
-
-    if (toUpdate.length) {
-      saveUpdates = Promise.all(toUpdate.map(async (update) => {
-        try {
-          return await this.store.updateMap(getUpdateForBacklinkChange(update))
-        } catch (err) {
-          Errors.ignore(err, { name: 'ValidationException' })
-          await this.store.put(getBacklinkKey(update.targetId), update.set)
-        }
-      }))
-    }
-
-    await Promise.all([savePuts, saveUpdates])
+    const promiseAdd = add.length ? this.db.batchPut(add) : RESOLVED_PROMISE
+    const promiseDel = del.length ? Promise.all(del.map(item => this.db.del(item))) : RESOLVED_PROMISE
+    await Promise.all([promiseAdd, promiseDel])
     return backlinkChanges
   }
 
-  public getBacklinksChanges = (rChanges: ISaveEventPayload[]):BacklinksChange[] => {
+  public getBacklinksChanges = (rChanges: ISaveEventPayload[]):BacklinksChange => {
     return getBacklinkChangesForChanges({
       models: this.models,
       changes: rChanges
@@ -167,20 +165,10 @@ export default class Backlinks {
   }
 }
 
-export const getBacklinkKeyFromStub = (stub: ResourceStub) => {
-  return getBacklinkKey(getPermId(parseStub(stub)))
-}
-
-export const getBacklinkKey = (permId: string) => permId
-
-// export const getBacklinkKey = ({ type, permalink, property }: ResourceProperty) => {
-//   return `${type}_${permalink}.${property}`
-// }
-
-export const getForwardLinks = ({ models, resource }: {
+export const getBacklinkItems = ({ models, resource }: {
   models: Models
   resource: ITradleObject
-}):ForwardLink[] => {
+}):BacklinkItem[] => {
   const type = resource[TYPE]
   const model = models[type]
   if (!model) throw new Errors.InvalidInput(`missing model: ${type}`)
@@ -203,27 +191,34 @@ export const getForwardLinks = ({ models, resource }: {
       const targetParsedStub = parseStub(targetStub)
       const { type } = targetParsedStub
       const targetModel = models[type]
-      const backlinkPropertyName = getBacklinkForForwardLink({
+      const backlinkPropertyName = getBacklinkProperty({
         models,
         sourceModel: model,
         targetModel,
-        linkPropertyName: linkPropertyName
+        forward: linkPropertyName
       })
 
       if (!backlinkPropertyName) return
 
       const sourceParsedStub = parseStub(sourceStub)
       return {
-        source: resource,
-        sourceStub,
-        sourceParsedStub,
-        sourcePermId: getPermId(sourceParsedStub),
-        forward: linkPropertyName,
-        targetModel,
-        back: backlinkPropertyName,
-        targetStub,
-        targetParsedStub,
-        targetPermId: getPermId(targetParsedStub)
+        [TYPE]: BACKLINK_ITEM,
+        source: serializeSource({
+          type: sourceParsedStub.type,
+          permalink: sourceParsedStub.permalink,
+          property: linkPropertyName
+        }),
+        sourceLink: sourceParsedStub.link,
+        // sourceRes: resource,
+        // sourceStub,
+        // sourceParsedStub,
+        // linkProp: linkPropertyName,
+        backlinkProp: backlinkPropertyName,
+        target: getPermId(targetParsedStub),
+        targetLink: targetParsedStub.link
+        // targetStub,
+        // targetParsedStub,
+        // targetModel,
       }
     })
     .filter(_.identity)
@@ -233,20 +228,20 @@ export const getForwardLinks = ({ models, resource }: {
     // }, {})
 }
 
-export const getBacklinkForForwardLink = ({
+export const getBacklinkProperty = ({
   models,
   sourceModel,
   targetModel,
-  linkPropertyName
+  forward
 }: {
   models: Models
   // e.g.
   //   sourceModel: tradle.Verification
   //   targetModel: tradle.PhotoID
-  //   linkPropertyName: "document"
+  //   forward: "document"
   sourceModel: Model
   targetModel: Model
-  linkPropertyName: string
+  forward: string
 }) => {
   const targetModels = [targetModel].concat(getAncestors({ models, model: targetModel }))
 
@@ -259,7 +254,7 @@ export const getBacklinkForForwardLink = ({
       if (!items) return
 
       const { ref, backlink } = items
-      if (backlink !== linkPropertyName) return
+      if (backlink !== forward) return
 
       if (ref === sourceModel.id) return true
 
@@ -300,34 +295,25 @@ const getAncestors = ({ models, model }) => {
 //   return ids.map((oldId, i) => i === idx ? id : oldId)
 // }
 
-export const toBacklinks = (forwardLinks: ForwardLink[]):BacklinksContainer[] => {
-  const byTargetId = _.groupBy(forwardLinks, f => f.targetPermId)
-  return Object.keys(byTargetId).map(vId => {
-    const backlinks = {}
-    const byBacklinkProp = _.groupBy(byTargetId[vId], 'back')
-    for (let backlinkProp in byBacklinkProp) {
-      let backlink = backlinks[backlinkProp] = {}
-      let fLinks = byBacklinkProp[backlinkProp]
-      for (const fl of fLinks) {
-        backlink[fl.sourcePermId] = fl.sourceParsedStub.link
-      }
-    }
-
-    return {
-      // forwardLinks: byTargetId[vId],
-      targetId: vId,
-      backlinks
-    }
-  })
-}
-
-// export const mergeBacklinkChanges = (backlinks:BacklinksContainer[]):BacklinksContainers => {
-//   return _.transform(_.groupBy(backlinks, 'targetId'), (byTargetId, blsForTarget, targetId) => {
-//     byTargetId[targetId] = {
-//       targetId,
-//       backlinks: blsForTarget.reduce((res, bl) => _.extend(res, bl.backlinks), {})
+// export const toBacklinks = (forwardLinks: BacklinkItem[]):BacklinksContainer[] => {
+//   const byTargetId = _.groupBy(forwardLinks, f => f.targetPermId)
+//   return Object.keys(byTargetId).map(vId => {
+//     const backlinks = {}
+//     const byBacklinkProp = _.groupBy(byTargetId[vId], 'back')
+//     for (let backlinkProp in byBacklinkProp) {
+//       let backlink = backlinks[backlinkProp] = {}
+//       let fLinks = byBacklinkProp[backlinkProp]
+//       for (const fl of fLinks) {
+//         backlink[fl.sourcePermId] = fl.sourceParsedStub.link
+//       }
 //     }
-//   }, {})
+
+//     return {
+//       // forwardLinks: byTargetId[vId],
+//       targetId: vId,
+//       backlinks
+//     }
+//   })
 // }
 
 export const mergeBacklinkChanges = (backlinks:BacklinksContainer[]):BacklinksContainer => {
@@ -347,67 +333,64 @@ export const mergeBacklinkChanges = (backlinks:BacklinksContainer[]):BacklinksCo
   }
 }
 
-// const mergeWithArrayConcat =  (objValue=[], srcValue=[]) => objValue.concat(srcValue)
-// const mergeBacklink = (a, b) => _.mergeWith(a, b, mergeWithArrayConcat)
+// export const getBacklinkChanges = ({ before, after }: {
+//   before?: BacklinksContainer
+//   after?: BacklinksContainer
+// }):BacklinksChange => {
+//   if (!(before || after)) {
+//     throw new Errors.InvalidInput('expected "before" and/or "after"')
+//   }
 
-export const getBacklinkChanges = ({ before, after }: {
-  before?: BacklinksContainer
-  after?: BacklinksContainer
-}):BacklinksChange => {
-  if (!(before || after)) {
-    throw new Errors.InvalidInput('expected "before" and/or "after"')
-  }
+//   const { targetId } = before || after
+//   const set:StoredResourceBacklinks = {}
+//   const remove:RemoveBacklinks = {}
+//   concatKeysUniq(
+//     before && before.backlinks,
+//     after && after.backlinks
+//   ).forEach(backlink => {
+//     const toSet = {}
+//     const toRemove = []
+//     const pre = before && before.backlinks[backlink]
+//     const post = after && after.backlinks[backlink]
+//     if (pre && post) {
+//       concatKeysUniq(pre, post).forEach(latestId => {
+//         if (post[latestId] === pre[latestId]) return
+//         if (post[latestId]) {
+//           if (post[latestId] !== pre[latestId]) {
+//             toSet[latestId] = post[latestId]
+//           }
+//         } else {
+//           toRemove.push(latestId)
+//         }
+//       })
+//     } else if (pre) {
+//       toRemove.push(...Object.keys(pre))
+//     } else if (post) {
+//       _.extend(toSet, post)
+//     }
 
-  const { targetId } = before || after
-  const set:StoredResourceBacklinks = {}
-  const remove:RemoveBacklinks = {}
-  concatKeysUniq(
-    before && before.backlinks,
-    after && after.backlinks
-  ).forEach(backlink => {
-    const toSet = {}
-    const toRemove = []
-    const pre = before && before.backlinks[backlink]
-    const post = after && after.backlinks[backlink]
-    if (pre && post) {
-      concatKeysUniq(pre, post).forEach(latestId => {
-        if (post[latestId] === pre[latestId]) return
-        if (post[latestId]) {
-          if (post[latestId] !== pre[latestId]) {
-            toSet[latestId] = post[latestId]
-          }
-        } else {
-          toRemove.push(latestId)
-        }
-      })
-    } else if (pre) {
-      toRemove.push(...Object.keys(pre))
-    } else if (post) {
-      _.extend(toSet, post)
-    }
+//     if (!_.isEmpty(toSet)) set[backlink] = toSet
+//     if (!_.isEmpty(toRemove)) remove[backlink] = toRemove
+//   })
 
-    if (!_.isEmpty(toSet)) set[backlink] = toSet
-    if (!_.isEmpty(toRemove)) remove[backlink] = toRemove
-  })
+//   if (_.isEmpty(set) && _.isEmpty(remove)) return
 
-  if (_.isEmpty(set) && _.isEmpty(remove)) return
+//   return {
+//     targetId,
+//     set,
+//     remove
+//   }
+// }
 
-  return {
-    targetId,
-    set,
-    remove
-  }
-}
+// const removeBacklinksToPaths = (backlinks: RemoveBacklinks):string[][] => {
+//   const paths = []
+//   Object.keys(backlinks).map(backlink => {
+//     const path = backlinks[backlink].map(latestId => [backlink, latestId])
+//     paths.push(path)
+//   })
 
-const removeBacklinksToPaths = (backlinks: RemoveBacklinks):string[][] => {
-  const paths = []
-  Object.keys(backlinks).map(backlink => {
-    const path = backlinks[backlink].map(latestId => [backlink, latestId])
-    paths.push(path)
-  })
-
-  return _.flatten(paths)
-}
+//   return _.flatten(paths)
+// }
 
 const concatKeysUniq = (...objs): string[] => {
   const keyMap = {}
@@ -420,46 +403,27 @@ const concatKeysUniq = (...objs): string[] => {
   return Object.keys(keyMap)
 }
 
-export const getUpdateForBacklinkChange = ({ targetId, set, remove }: BacklinksChange) => ({
-  key: getBacklinkKey(targetId),
-  set: _.isEmpty(set) ? null : toPathValuePairs(set),
-  unset: _.isEmpty(remove) ? null : removeBacklinksToPaths(remove)
-})
-
 export const getBacklinkChangesForChanges = ({ models, changes }: {
   models: Models
   changes: ISaveEventPayload[]
 }) => {
   const forwardBefore = _.flatMap(changes, ({ value, old }) => {
-    return old ? getForwardLinks({ models, resource: old }) : []
+    return old ? getBacklinkItems({ models, resource: old }) : []
   })
 
   const forwardAfter = _.flatMap(changes, ({ value, old }) => {
-    return value ? getForwardLinks({ models, resource: value }) : []
+    return value ? getBacklinkItems({ models, resource: value }) : []
   })
 
-  const backlinksBefore = toBacklinks(forwardBefore)
-  const backlinksAfter = toBacklinks(forwardAfter)
-  const beforeByTarget = _.groupBy(backlinksBefore, 'targetId')
-  const afterByTarget = _.groupBy(backlinksAfter, 'targetId')
-  return concatKeysUniq(beforeByTarget, afterByTarget)
-    .map(targetId => {
-      const before = beforeByTarget[targetId] && mergeBacklinkChanges(beforeByTarget[targetId])
-      const after = afterByTarget[targetId] && mergeBacklinkChanges(afterByTarget[targetId])
-      const result = getBacklinkChanges({ before, after })
-      if (!result) return
+  const fBeforeUids = forwardBefore.map(toUid)
+  const fAfterUids = forwardAfter.map(toUid)
+  const del = forwardBefore.filter(fl => !fAfterUids.includes(toUid(fl)))
+  const add = forwardAfter.filter(fl => !fBeforeUids.includes(toUid(fl)))
 
-      const isNew = _.isEmpty(result.remove) && forwardBefore.concat(forwardAfter).some(fl => {
-        const { link, permalink } = fl.targetParsedStub
-        return link !== permalink
-      })
-
-      return {
-        ...result,
-        isNew
-      }
-    })
-    .filter(_.identity)
+  return {
+    add,
+    del
+  }
 }
 
 export { Backlinks }
@@ -474,6 +438,46 @@ export const exportBacklinksContainer = (backlinks: StoredResourceBacklinks):Res
 }
 
 const toId = ({ permId, link }) => `${permId}_${link}`
+const toUid = (fl:BacklinkItem) => fl.source + fl.target
+const toResourceFormat = ({ models, backlinkItems }: {
+  models: Models
+  backlinkItems: BacklinkItem[]
+}):ResourceBacklinks => {
+  const byProp = _.groupBy(backlinkItems, 'backlinkProp')
+  return _.transform(byProp, (bls, vals, prop) => {
+    bls[prop] = vals.map(({ source, sourceLink }) => {
+      const parsedSource = parseSource(source)
+      const sourcePermId = getPermId(parsedSource)
+      return {
+        id: `${sourcePermId}_${sourceLink}`
+      }
+    })
+  }, {})
+}
+
+const TARGET_REGEX = new RegExp('^(.*)?_([0-9a-fA-F]+)$')
+const SOURCE_REGEX = new RegExp('^(.*)?_([0-9a-fA-F]+)' + SEPARATOR + '([^:]+)$')
+
+const parseTarget = target => {
+  const [type, permalink] = target.match(TARGET_REGEX).slice(1)
+  return { type, permalink }
+}
+
+const parseSource = source => {
+  const [type, permalink, property] = source.match(SOURCE_REGEX).slice(1)
+  return { type, permalink, property }
+}
+
+const serializeSource = ({ type, permalink, property }: {
+  type: string
+  permalink: string
+  property: string
+}) => {
+  return [
+    getPermId({ type, permalink }),
+    property
+  ].join(SEPARATOR)
+}
 
 // MAP:
 //   [
