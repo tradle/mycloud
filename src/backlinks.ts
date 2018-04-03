@@ -37,14 +37,15 @@ interface ResourceProperty extends ParsedResourceStub {
   property: string
 }
 
-export type BacklinkItem = {
+type KVPairArr = [string, any]
+
+export interface IBacklinkItem {
   // sourceRes: ITradleObject
   // sourceStub: ResourceStub
   // sourceParsedStub: ParsedResourceStub
   source: string
   sourceLink: string
-  // linkProp: string
-  backlinkProp: string
+  linkProp: string
   // backlinkModel: Model
   // back: string
   // targetModel: Model
@@ -52,6 +53,10 @@ export type BacklinkItem = {
   // targetParsedStub: ParsedResourceStub
   target: string
   targetLink: string
+}
+
+export interface IResolvedBacklinkItem extends IBacklinkItem {
+  backlinkProp: string
 }
 
 export type LatestToLink = {
@@ -82,8 +87,8 @@ export type BacklinksContainers = {
 }
 
 export type BacklinksChange = {
-  add: BacklinkItem[]
-  del: BacklinkItem[]
+  add: IBacklinkItem[]
+  del: IBacklinkItem[]
 }
 
 // export type Backlink = string[]
@@ -108,7 +113,7 @@ export default class Backlinks {
     return this.modelStore.models
   }
 
-  private getBacklinkItems = (resource):BacklinkItem[] => {
+  private getBacklinkItems = (resource):IBacklinkItem[] => {
     return getBacklinkItems({ models: this.models, resource })
   }
 
@@ -126,8 +131,14 @@ export default class Backlinks {
     }
 
     if (properties) {
+      const targetModel = this.models[type]
+      const sourceProps = properties.map(prop => {
+        const { ref, backlink } = targetModel.properties[prop].items
+        return backlink
+      })
+
       filter.IN = {
-        backlinkProp: properties
+        linkProp: sourceProps
       }
     }
 
@@ -168,106 +179,101 @@ export default class Backlinks {
 export const getBacklinkItems = ({ models, resource }: {
   models: Models
   resource: ITradleObject
-}):BacklinkItem[] => {
+}):IBacklinkItem[] => {
   const type = resource[TYPE]
   const model = models[type]
   if (!model) throw new Errors.InvalidInput(`missing model: ${type}`)
 
   const sourceStub = buildResource.stub({ models, resource })
   const { properties } = model
-  return Object.keys(resource)
-    .map(linkPropertyName => {
-      const property = properties[linkPropertyName]
-      if (!property || isInlinedProperty({ models, property })) {
-        return
-      }
+  return Object.keys(resource).map(linkProp => {
+    const property = properties[linkProp]
+    if (!property || isInlinedProperty({ models, property })) {
+      return
+    }
 
-      const { ref } = property
-      if (!ref) return
+    const { ref } = property
+    if (!ref) return
 
-      const targetStub = resource[linkPropertyName]
-      if (!targetStub) return
+    const targetStub = resource[linkProp]
+    if (!targetStub) return
 
-      const targetParsedStub = parseStub(targetStub)
-      const { type } = targetParsedStub
-      const targetModel = models[type]
-      const backlinkPropertyName = getBacklinkProperty({
-        models,
-        sourceModel: model,
-        targetModel,
-        forward: linkPropertyName
-      })
-
-      if (!backlinkPropertyName) return
-
-      const sourceParsedStub = parseStub(sourceStub)
-      return {
-        [TYPE]: BACKLINK_ITEM,
-        source: serializeSource({
-          type: sourceParsedStub.type,
-          permalink: sourceParsedStub.permalink,
-          property: linkPropertyName
-        }),
-        sourceLink: sourceParsedStub.link,
-        // sourceRes: resource,
-        // sourceStub,
-        // sourceParsedStub,
-        // linkProp: linkPropertyName,
-        backlinkProp: backlinkPropertyName,
-        target: getPermId(targetParsedStub),
-        targetLink: targetParsedStub.link
-        // targetStub,
-        // targetParsedStub,
-        // targetModel,
-      }
+    const targetParsedStub = parseStub(targetStub)
+    const { type } = targetParsedStub
+    const targetModel = models[type]
+    const backlinkProps = getBacklinkProperties({
+      models,
+      sourceModel: model,
+      targetModel,
+      linkProp
     })
-    .filter(_.identity)
-    // .reduce((byProp, value) => {
-    //   byProp[value.forward] = value
-    //   return byProp
-    // }, {})
+
+    if (!backlinkProps.length) return
+
+    const sourceParsedStub = parseStub(sourceStub)
+    return {
+      [TYPE]: BACKLINK_ITEM,
+      source: serializeSource({
+        type: sourceParsedStub.type,
+        permalink: sourceParsedStub.permalink,
+        property: linkProp
+      }),
+      sourceLink: sourceParsedStub.link,
+      // sourceRes: resource,
+      // sourceStub,
+      // sourceParsedStub,
+      linkProp: linkProp,
+      target: getPermId(targetParsedStub),
+      targetLink: targetParsedStub.link
+      // targetStub,
+      // targetParsedStub,
+      // targetModel,
+    }
+  })
+  .filter(_.identity)
+  // .reduce((byProp, value) => {
+  //   byProp[value.forward] = value
+  //   return byProp
+  // }, {})
 }
 
-export const getBacklinkProperty = ({
+export const getBacklinkProperties = ({
   models,
   sourceModel,
   targetModel,
-  forward
+  linkProp
 }: {
   models: Models
   // e.g.
   //   sourceModel: tradle.Verification
   //   targetModel: tradle.PhotoID
-  //   forward: "document"
+  //   linkProp: "document"
   sourceModel: Model
   targetModel: Model
-  forward: string
-}) => {
+  linkProp: string
+}):string[] => {
   const targetModels = [targetModel].concat(getAncestors({ models, model: targetModel }))
+  return _.chain(targetModels)
+    .flatMap(targetModel => {
+      const { properties } = targetModel
+      return Object.keys(properties).filter(propertyName => {
+        const property = properties[propertyName]
+        const { items } = property
+        if (!items) return
 
-  let prop
-  const model = targetModels.find(targetModel => {
-    const { properties } = targetModel
-    prop = Object.keys(properties).find(propertyName => {
-      const property = properties[propertyName]
-      const { items } = property
-      if (!items) return
+        const { ref, backlink } = items
+        if (backlink !== linkProp) return
 
-      const { ref, backlink } = items
-      if (backlink !== forward) return
+        if (ref === sourceModel.id) return true
 
-      if (ref === sourceModel.id) return true
-
-      // e.g. a forms backlink might have ref "tradle.Form"
-      // forward link might be "tradle.PhotoID"
-      // check: is tradle.PhotoID a descendant of tradle.Form?
-      return isDescendantOf({ models, a: sourceModel.id, b: ref })
+        // e.g. a forms backlink might have ref "tradle.Form"
+        // linkProp might be "tradle.PhotoID"
+        // check: is tradle.PhotoID a descendant of tradle.Form?
+        return isDescendantOf({ models, a: sourceModel.id, b: ref })
+      })
     })
-
-    return !!prop
-  })
-
-  return prop
+    .uniq()
+    .value()
 }
 
 const getAncestors = ({ models, model }) => {
@@ -295,7 +301,7 @@ const getAncestors = ({ models, model }) => {
 //   return ids.map((oldId, i) => i === idx ? id : oldId)
 // }
 
-// export const toBacklinks = (forwardLinks: BacklinkItem[]):BacklinksContainer[] => {
+// export const toBacklinks = (forwardLinks: IBacklinkItem[]):BacklinksContainer[] => {
 //   const byTargetId = _.groupBy(forwardLinks, f => f.targetPermId)
 //   return Object.keys(byTargetId).map(vId => {
 //     const backlinks = {}
@@ -438,44 +444,63 @@ export const exportBacklinksContainer = (backlinks: StoredResourceBacklinks):Res
 }
 
 const toId = ({ permId, link }) => `${permId}_${link}`
-const toUid = (fl:BacklinkItem) => fl.source + fl.target
+const toUid = (fl:IBacklinkItem) => fl.source + fl.target
 const toResourceFormat = ({ models, backlinkItems }: {
   models: Models
-  backlinkItems: BacklinkItem[]
+  backlinkItems: IBacklinkItem[]
 }):ResourceBacklinks => {
-  const byProp = _.groupBy(backlinkItems, 'backlinkProp')
-  return _.transform(byProp, (bls, vals, prop) => {
-    bls[prop] = vals.map(({ source, sourceLink }) => {
-      const parsedSource = parseSource(source)
-      const sourcePermId = getPermId(parsedSource)
-      return {
-        id: `${sourcePermId}_${sourceLink}`
-      }
+  const resolved = <KVPairArr>_.flatMap(backlinkItems, bl => {
+    const { linkProp, source, sourceLink, target } = bl
+    const parsedSource = parseSource(source)
+    const parsedTarget = parseTarget(target)
+    const sourceModel = models[parsedSource.type]
+    const targetModel = models[parsedTarget.type]
+    const backlinkProps = getBacklinkProperties({
+      models,
+      sourceModel,
+      targetModel,
+      linkProp
     })
-  }, {})
+
+    const sourcePermId = getPermId(parsedSource)
+    const bItemVal = {
+      id: `${sourcePermId}_${sourceLink}`
+    }
+
+    return backlinkProps.map(backlinkProp => [backlinkProp, bItemVal])
+  })
+
+  return resolved.reduce((backlinks, [backlinkProp, value]) => {
+    if (!backlinks[backlinkProp]) {
+      backlinks[backlinkProp] = []
+    }
+
+    backlinks[backlinkProp].push(value)
+    return backlinks
+  }, <ResourceBacklinks>{})
 }
 
 const TARGET_REGEX = new RegExp('^(.*)?_([0-9a-fA-F]+)$')
-const SOURCE_REGEX = new RegExp('^(.*)?_([0-9a-fA-F]+)' + SEPARATOR + '([^:]+)$')
+const SOURCE_REGEX = new RegExp(`^([^${SEPARATOR}]+)${SEPARATOR}(.*)?_([0-9a-fA-F]+)`)
 
-const parseTarget = target => {
+export const parseTarget = target => {
   const [type, permalink] = target.match(TARGET_REGEX).slice(1)
   return { type, permalink }
 }
 
-const parseSource = source => {
-  const [type, permalink, property] = source.match(SOURCE_REGEX).slice(1)
+export const parseSource = source => {
+  const [property, type, permalink] = source.match(SOURCE_REGEX).slice(1)
   return { type, permalink, property }
 }
 
-const serializeSource = ({ type, permalink, property }: {
+export const serializeSource = ({ type, permalink, property }: {
   type: string
   permalink: string
   property: string
 }) => {
   return [
-    getPermId({ type, permalink }),
-    property
+    property,
+    getPermId({ type, permalink })
   ].join(SEPARATOR)
 }
 

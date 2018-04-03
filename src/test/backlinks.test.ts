@@ -12,6 +12,7 @@ import {
   getBacklinkItems,
   // toBacklinks,
   getBacklinkChangesForChanges,
+  serializeSource,
   // getUpdateForBacklinkChange
 } from '../backlinks'
 import Errors from '../errors'
@@ -72,9 +73,13 @@ test('update backlinks', loudAsync(async (t) => {
     "add": [
       {
         "_t": "tradle.BacklinkItem",
-        "source": getPermId(vStub) + ':document',
+        "source": serializeSource({
+          type: vStub.type,
+          permalink: vStub.permalink,
+          property: 'document'
+        }),
         "sourceLink": vStub.link,
-        "backlinkProp": "verifications",
+        "linkProp": "document",
         "target": getPermId(v.document),
         "targetLink": parseStub(v.document).link
       }
@@ -82,9 +87,13 @@ test('update backlinks', loudAsync(async (t) => {
     "del": [
       {
         "_t": "tradle.BacklinkItem",
-        "source": getPermId(oldVStub) + ':document',
+        "source": serializeSource({
+          type: oldVStub.type,
+          permalink: oldVStub.permalink,
+          property: 'document'
+        }),
         "sourceLink": oldVStub.link,
-        "backlinkProp": "verifications",
+        "linkProp": "document",
         "target": getPermId(old.document),
         "targetLink": parseStub(old.document).link
       }
