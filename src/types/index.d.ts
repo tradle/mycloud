@@ -601,3 +601,10 @@ export interface ISaveEventPayload {
   value: any
   old?: any
 }
+
+export type GetResourceParams = {
+  type?: string
+  permalink?: string
+  id?: string
+  [key: string]: any
+}

@@ -19,7 +19,8 @@ const UNSIGNED = [
   'tradle.PubKey',
   'tradle.products.Customer',
   SEAL_STATE,
-  BACKLINK_ITEM
+  BACKLINK_ITEM,
+  'tradle.ApplicationSubmission'
 ]
 
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {
@@ -233,10 +234,11 @@ export = function createDB (tradle:Tradle) {
   }
 
   const addPayloads = async ({ args, result }) => {
-    let messages = result.items
-    if (!(messages && messages.length)) return
+    const { items } = result
+    if (!(items && items.length)) return
+    if (items[0][TYPE] !== MESSAGE) return
 
-    messages = messages.map(tradle.messages.formatForDelivery)
+    const messages = items.map(tradle.messages.formatForDelivery)
     const { select=[] } = args[0]
     if (select.includes('object')) {
       const payloads:ITradleObject[] = await Promise.all(messages.map(msg => objects.get(msg.object._link)))

@@ -3,6 +3,7 @@ import {
   wait
 } from '../utils'
 
+import { EventTopic, topics as EventTopics } from '../events'
 
 export const simulateEventStream = (bot: Bot) => {
   bot.objects.hook('put', async (ctx, next) => {
@@ -14,7 +15,11 @@ export const simulateEventStream = (bot: Bot) => {
   const { events } = bot
   const fire = async (event, data, batch) => {
     if (!event.startsWith('save')) {
-      await bot.fire(events.toAsyncEvent(events.toBatchEvent(event)), data)
+      const { async, batch } = events.parseTopic(event)
+      if (!(batch && async)) {
+        await bot.fire(EventTopic.parse(event).batch.async, batch ? data : [data])
+      }
+
       return
     }
 

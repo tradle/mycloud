@@ -1,8 +1,9 @@
 import _ from 'lodash'
 
-const base = _.extend(
+const core = require('@tradle/models').models
+const models = _.extend(
   {},
-  require('@tradle/models').models,
+  core,
   require('@tradle/custom-models'),
   require('@tradle/models-corporate-onboarding'),
   require('@tradle/models-products-bot'),
@@ -11,7 +12,7 @@ const base = _.extend(
   require('@tradle/models-cloud')
 )
 
-const baseMessageModel = base['tradle.Message']
+const baseMessageModel = models['tradle.Message']
 baseMessageModel.properties._counterparty = {
   type: 'string',
   virtual: true
@@ -41,7 +42,7 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
-const formModel = base['tradle.Form']
+const formModel = models['tradle.Form']
 if (!formModel.properties.verifications) {
   formModel.properties.verifications = {
     type: 'array',
@@ -53,8 +54,66 @@ if (!formModel.properties.verifications) {
   }
 }
 
-const appModel = base['tradle.Application']
+const appSubModel = {
+  type: 'tradle.Model',
+  id: 'tradle.ApplicationSubmission',
+  title: 'Application Submission',
+  properties: {
+    // application: {
+    //   type: 'object',
+    //   ref: 'tradle.Application'
+    // },
+    // submission: {
+    //   type: 'object',
+    //   ref: 'tradle.Object'
+    // },
+    app: {
+      type: 'string'
+    },
+    sub: {
+      type: 'string'
+    },
+    subType: {
+      type: 'string'
+    },
+    context: {
+      type: 'string'
+    }
+  },
+  required: [
+    'app',
+    'sub',
+    'subType',
+  ],
+  primaryKeys: {
+    hashKey: 'app',
+    rangeKey: 'sub'
+  },
+  indexes: ['context']
+}
+
+core[appSubModel.id] = appSubModel
+
+const appModel = models['tradle.Application']
 appModel.properties.checks.items.backlink = 'application'
+appModel.properties.submissions = {
+  type: 'array',
+  items: {
+    ref: 'tradle.ApplicationSubmission',
+    backlink: 'application'
+  }
+}
+
+if (!appModel.indexes) {
+  appModel.indexes = []
+}
+
+if (!appModel.indexes.find(i => i.hashKey === 'context')) {
+  appModel.indexes.push({
+    hashKey: 'context',
+    rangeKey: '_time'
+  })
+}
 
 // const kvPair = {
 //   type: 'tradle.Model',
@@ -100,6 +159,6 @@ appModel.properties.checks.items.backlink = 'application'
 //   ]
 // }
 
-// base[cloudEventModel.id] = cloudEventModel
+// models[cloudEventModel.id] = cloudEventModel
 
-export = base
+export = models

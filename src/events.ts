@@ -200,14 +200,17 @@ const bumpSuffix = (id) => {
 // const parseTimeR = timeR => Number(timeR.split(SEPARATOR)[0])
 // const parseDateN = dateN => dateN.split(SEPARATOR)[0]
 
-const getTopicName = (str: string) => str.match(/^(?:a?sync:)(.*)$/)[1]
+const getTopicName = (str: string) => parseTopic(str).original
 
 export class EventTopic {
   constructor(private name: string) {}
-  get sync():string { return `${this.name}` }
-  get async():string { return `async:${this.name}` }
-  public parse = (topic:string):EventTopic => new EventTopic(getTopicName(topic))
-  public toString = () => this.sync
+  get sync():EventTopic { return new EventTopic(toSyncEvent(this.name)) }
+  get async():EventTopic { return new EventTopic(toAsyncEvent(this.name)) }
+  get batch():EventTopic { return new EventTopic(toBatchEvent(this.name)) }
+  get single():EventTopic { return new EventTopic(toSingleEvent(this.name)) }
+  public static parse = (topic:string):EventTopic => new EventTopic(getTopicName(topic))
+  public toString = () => this.name
+  public toJSON = () => this.name
 }
 
 export const topics = {
@@ -233,25 +236,40 @@ export const topics = {
   }
 }
 
+const BATCH_SUFFIX = ':batch'
+const BATCH_REGEX = new RegExp(`${BATCH_SUFFIX}$`)
+const ASYNC_PREFIX = 'async:'
+const ASYNC_REGEX = new RegExp(`^${ASYNC_PREFIX}`)
+
 export const toBatchEvent = topic => {
-  return topic.endsWith(':batch') ? topic : `${topic}:batch`
+  if (!topic.endsWith) debugger
+  return topic.endsWith(BATCH_SUFFIX) ? topic : `${topic}${BATCH_SUFFIX}`
+}
+
+export const toSingleEvent = topic => {
+  if (!topic.endsWith) debugger
+  return topic.replace(BATCH_REGEX, '')
 }
 
 export const toAsyncEvent = topic => {
-  return topic.startsWith('async:') ? topic : `async:${topic}`
+  if (!topic.endsWith) debugger
+  return topic.startsWith(ASYNC_PREFIX) ? topic : `${ASYNC_PREFIX}${topic}`
 }
 
-export const isBatchEvent = topic => topic.endsWith(':batch')
+export const toSyncEvent = topic => {
+  if (!topic.endsWith) debugger
+  return topic.replace(ASYNC_REGEX, '')
+}
 
-export const isAsyncEvent = topic => topic.startsWith('async:')
+export const isBatchEvent = topic => topic.endsWith(BATCH_SUFFIX)
+
+export const isAsyncEvent = topic => topic.startsWith(ASYNC_PREFIX)
 
 export const parseTopic = topic => {
   const info = {
     batch: isBatchEvent(topic),
     async: isAsyncEvent(topic),
-    original: topic
-      .replace(/^async:/, '')
-      .replace(/:batch$/, '')
+    original: toSingleEvent(toSyncEvent(topic))
   }
 
   return info

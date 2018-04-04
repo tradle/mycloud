@@ -78,7 +78,7 @@ export const createErrorHandler = (lambda:Lambda, opts) => {
         author: progress._author
       })
 
-      ack()
+      await ack()
       return
     }
 
@@ -105,7 +105,7 @@ export const createErrorHandler = (lambda:Lambda, opts) => {
         error: error.stack
       })
 
-      reject()
+      await reject()
       return
     }
 

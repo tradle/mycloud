@@ -1,7 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import compose, { Middleware } from 'koa-compose'
-import { toBatchEvent, EventTopic } from './events'
+import { isBatchEvent, toBatchEvent, EventTopic } from './events'
 import { isPromise } from './utils'
 import { TopicOrString, IHooks } from './types'
 
@@ -43,6 +43,8 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
 
   public fire = async (event:TopicOrString, payload:any) => {
     event = eventToString(event)
+    if (!isBatchEvent(event) && Array.isArray(payload)) debugger
+
     const specific = this.middleware[event] || []
     const wild = this.middleware['*']
     if (!(specific.length || wild.length)) return

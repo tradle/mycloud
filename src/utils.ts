@@ -56,7 +56,8 @@ import {
   ITradleObject,
   IBackoffOptions,
   ResourceStub,
-  ParsedResourceStub
+  ParsedResourceStub,
+  GetResourceParams
 } from './types'
 
 import Logger from './logger'
@@ -1211,14 +1212,31 @@ export const getStubsByType = (stubs: ResourceStub[], type: string):ParsedResour
     .filter(parsed => parsed.type === type)
 }
 
-export const getPermId = ({ type, permalink, id }: {
-  type?: string
-  permalink?: string
-  id?: string
-}) => {
+export const getPermId = (opts: GetResourceParams) => {
+  const { type, permalink } = getResourceIdentifier(opts)
+  return `${type}_${permalink}`
+}
+
+export const getResourceIdentifier = (props: GetResourceParams) => {
+  const parts = _getResourceIdentifier(props)
+  const { type, permalink } = parts
   if (!(type && permalink)) {
-    ({ type, permalink} = parseId(id))
+    throw new Errors.InvalidInput('not enough data to look up resource')
   }
 
-  return `${type}_${permalink}`
+  return parts
+}
+
+const _getResourceIdentifier = (props: GetResourceParams) => {
+  if (TYPE in props) {
+    return {
+      type: props[TYPE],
+      permalink: props._permalink
+    }
+  }
+
+  const { type, permalink, link, id } = props
+  if (id) return parseId(id)
+
+  return { type, permalink, link }
 }

@@ -9,11 +9,13 @@ import {
   pluck,
   toPathValuePairs,
   getPermId,
+  getResourceIdentifier,
   RESOLVED_PROMISE
 } from './utils'
 
 import {
   ITradleObject,
+  ITradleMessage,
   ModelStore,
   Models,
   Model,
@@ -22,13 +24,13 @@ import {
   ResourceStub,
   ParsedResourceStub,
   ISaveEventPayload,
-  Logger
+  Logger,
 } from './types'
 
 import { getRecordsFromEvent } from './db-utils'
 import Errors from './errors'
 import { TYPES } from './constants'
-const { BACKLINK_ITEM } = TYPES
+const { MESSAGE, BACKLINK_ITEM } = TYPES
 
 const { isDescendantOf, isInlinedProperty } = validateResource.utils
 const SEPARATOR = ':'
@@ -149,12 +151,47 @@ export default class Backlinks {
     })
   }
 
-  // public processMessages = async (messages: ITradleMessage[]) => {
-  //   messages = messages.filter(m => m.context)
-  //   if (!messages.length) return
+  public processMessages = async (messages: ITradleMessage[]) => {
+    messages = messages.filter(m => m.context)
+    if (!messages.length) return
 
-  //   const payloads = messages.map()
-  // }
+    const contexts = uniqueStrict(pluck(messages, 'context'))
+    const applications = await this._getApplicationsWithContexts(contexts)
+    const appByContext = applications.reduce((result, app) => {
+      result[app.context] = app
+      return result
+    }, {})
+
+    const submissions = messages.map(m => m.object)
+    const applicationSubmissions = submissions.map((submission, i) => {
+      const { context } = messages[i]
+      const application = appByContext[context]
+      if (!application) {
+        this.logger.debug('application with context not found', { context })
+        return
+      }
+
+      return buildResource({
+          models: this.models,
+          model: 'tradle.ApplicationSubmission'
+        })
+        .set({
+          app: application._permalink,
+          sub: submission._permalink,
+          subType: submission[TYPE],
+          context
+        })
+        .setVirtual({
+          _time: submission._time
+        })
+        .toJSON()
+    })
+    .filter(_.identity)
+
+    if (!applicationSubmissions.length) return []
+
+    return await Promise.all(applicationSubmissions.map(appSub => this.db.put(appSub)))
+  }
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
     const backlinkChanges = this.getBacklinksChanges(resourceChanges)
@@ -173,6 +210,26 @@ export default class Backlinks {
       models: this.models,
       changes: rChanges
     })
+  }
+
+  private _getPayload = async (message:ITradleMessage) => {
+    return await this.db.get(message._payloadLink)
+  }
+
+  private _getApplicationsWithContexts = async (contexts:string[]) => {
+    const { items } = await this.db.find({
+      // select: ['_link', '_permalink', 'context'],
+      filter: {
+        EQ: {
+          [TYPE]: 'tradle.Application'
+        },
+        IN: {
+          context: contexts
+        }
+      }
+    })
+
+    return items
   }
 }
 

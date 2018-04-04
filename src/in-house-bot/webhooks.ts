@@ -4,7 +4,7 @@ import Promise from 'bluebird'
 import _ from 'lodash'
 import request, { SuperAgentRequest } from 'superagent'
 import { TYPE } from '@tradle/constants'
-import { Bot, Logger, IStreamEvent, IBackoffOptions } from './types'
+import { Bot, Logger, IStreamEvent, IBackoffOptions, TopicOrString } from './types'
 import Errors from '../errors'
 import { runWithTimeout, runWithBackoffWhile, batchProcess, allSettled } from '../utils'
 import { topics as EventTopics, EventTopic } from '../events'
@@ -46,7 +46,7 @@ export interface IWebhookInvocation {
 export interface IWebhookEvent {
   id: string
   time: number
-  topic: string
+  topic: EventTopic
   data: any
 }
 
@@ -144,11 +144,11 @@ export class Webhooks {
     }
   }
 
-  public getSubscriptionsForEvent = (eventTopic: string):IWebhookSubscription[] => {
+  public getSubscriptionsForEvent = (eventTopic: TopicOrString):IWebhookSubscription[] => {
     return this.conf.subscriptions.filter(({ topic }) => topic === eventTopic)
   }
 
-  public hasSubscriptionsForEvent = (eventTopic: string):boolean => {
+  public hasSubscriptionsForEvent = (eventTopic: TopicOrString):boolean => {
     return this.getSubscriptionsForEvent(eventTopic).length > 0
   }
 

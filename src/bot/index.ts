@@ -16,7 +16,8 @@ import {
   parseStub,
   parseId,
   RESOLVED_PROMISE,
-  batchProcess
+  batchProcess,
+  getResourceIdentifier
 } from '../utils'
 
 import { addLinks } from '../crypto'
@@ -49,7 +50,8 @@ import {
   IBotMessageEvent,
   KeyValueTable,
   KV,
-  ISaveEventPayload
+  ISaveEventPayload,
+  GetResourceParams
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -72,13 +74,6 @@ type LambdaImplMap = {
 
 type LambdaMap = {
   [name:string]: LambdaCreator
-}
-
-type GetResourceParams = {
-  type?: string
-  permalink?: string
-  id?: string
-  [key: string]: any
 }
 
 type GetResourceOpts = {
@@ -581,7 +576,7 @@ export class Bot extends EventEmitter implements IReady {
     const payloads = await Promise.all(changes.map(change => maybeAddOld(this, change, async)))
     return spread
       ? await this.fireBatch(topic, payloads)
-      : await this.fire(this.events.toBatchEvent(topic), payloads)
+      : await this.fire(topic.batch, payloads)
   }
 
   public _fireSaveEvent = async (opts: {
@@ -606,7 +601,7 @@ export class Bot extends EventEmitter implements IReady {
     const event = async ? topic.async : topic.sync
     return spread
       ? await this.fireBatch(event, batch)
-      : await this.fire(this.events.toBatchEvent(event), batch)
+      : await this.fire(event.batch, batch)
   }
 
   public _fireMessageEvent = async (opts: {
@@ -637,29 +632,4 @@ const addOld = (bot: Bot, target: ISaveEventPayload): Promise<ISaveEventPayload>
   return bot.objects.get(target.value._prevlink)
     .then(old => target.old = old, Errors.ignoreNotFound)
     .then(() => target)
-}
-
-const getResourceIdentifier = (props: GetResourceParams) => {
-  const parts = _getResourceIdentifier(props)
-  const { type, permalink } = parts
-  if (!(type && permalink)) {
-    console.error('BAD!', JSON.stringify(props, null, 2))
-    throw new Errors.InvalidInput('not enough data to look up resource')
-  }
-
-  return parts
-}
-
-const _getResourceIdentifier = (props: GetResourceParams) => {
-  if (TYPE in props) {
-    return {
-      type: props[TYPE],
-      permalink: props._permalink
-    }
-  }
-
-  const { type, permalink, link, id } = props
-  if (id) return parseId(id)
-
-  return { type, permalink, link }
 }

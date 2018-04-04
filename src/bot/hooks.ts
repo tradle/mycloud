@@ -5,10 +5,11 @@ import { TYPE } from '@tradle/constants'
 import { Bot, Seal } from '../types'
 import {
   batchProcess,
+  pluck,
   RESOLVED_PROMISE
 } from '../utils'
 
-import { getSealEventTopic } from '../events'
+import { getSealEventTopic, topics as EventTopics } from '../events'
 
 const SEAL_STATE = 'tradle.SealState'
 
@@ -16,7 +17,7 @@ export const hookUp = (bot: Bot) => {
   // backwards compat
   bot.hookSimple('msg:i', event => bot.fire('message', event))
 
-  bot.hookSimple('async:save:batch', async (changes) => {
+  bot.hookSimple(EventTopics.resource.save.async.batch, async (changes) => {
     await bot.events.putEvents(bot.events.fromSaveBatch(changes))
 
     const sealChanges = changes.filter(change => {
@@ -31,6 +32,14 @@ export const hookUp = (bot: Bot) => {
     } catch (err) {
       debugger
     }
+  })
+
+  bot.hookSimple(EventTopics.message.inbound.async.batch, async (msgs) => {
+    await bot.backlinks.processMessages(pluck(msgs, 'message'))
+  })
+
+  bot.hookSimple(EventTopics.message.outbound.async.batch, async (msgs) => {
+    await bot.backlinks.processMessages(pluck(msgs, 'message'))
   })
 
   const reemitSealEvents = async (changes) => {
