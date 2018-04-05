@@ -176,9 +176,8 @@ export default class Backlinks {
           model: 'tradle.ApplicationSubmission'
         })
         .set({
-          app: application._permalink,
-          sub: submission._permalink,
-          subType: submission[TYPE],
+          a: getPermId(application),
+          b: getPermId(submission),
           context
         })
         .setVirtual({

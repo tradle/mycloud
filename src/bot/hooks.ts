@@ -34,13 +34,13 @@ export const hookUp = (bot: Bot) => {
     }
   })
 
-  bot.hookSimple(EventTopics.message.inbound.async.batch, async (msgs) => {
-    await bot.backlinks.processMessages(pluck(msgs, 'message'))
-  })
+  // bot.hookSimple(EventTopics.message.inbound.async.batch, async (msgs) => {
+  //   await bot.backlinks.processMessages(pluck(msgs, 'message'))
+  // })
 
-  bot.hookSimple(EventTopics.message.outbound.async.batch, async (msgs) => {
-    await bot.backlinks.processMessages(pluck(msgs, 'message'))
-  })
+  // bot.hookSimple(EventTopics.message.outbound.async.batch, async (msgs) => {
+  //   await bot.backlinks.processMessages(pluck(msgs, 'message'))
+  // })
 
   const reemitSealEvents = async (changes) => {
     const events = changes.map(toSealEvent)

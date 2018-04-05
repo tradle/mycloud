@@ -192,16 +192,18 @@ custom:
 
   tableBuckets:
     count: 1
-    <<: *defaultCapacity
+    read:
+      minimum: 10       # Minimum read capacity
+      maximum: 500      # Maximum read capacity
+      usage: 0.70       # Targeted usage percentage
+    write:
+      minimum: 10       # Minimum read capacity
+      maximum: 500      # Maximum write capacity
+      usage: 0.5        # Targeted usage percentage
 
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
     capacities:
-      # - table: PubKeysTable
-      #   index:
-      #     - permalink
-      #   <<: *defaultCapacity
-
       - table: MessagesTable
         index:
           - _dcounterparty

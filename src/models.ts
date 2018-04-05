@@ -1,18 +1,8 @@
 import _ from 'lodash'
 
 const core = require('@tradle/models').models
-const models = _.extend(
-  {},
-  core,
-  require('@tradle/custom-models'),
-  require('@tradle/models-corporate-onboarding'),
-  require('@tradle/models-products-bot'),
-  require('@tradle/models-onfido'),
-  require('@tradle/models-nz'),
-  require('@tradle/models-cloud')
-)
 
-const baseMessageModel = models['tradle.Message']
+const baseMessageModel = core['tradle.Message']
 baseMessageModel.properties._counterparty = {
   type: 'string',
   virtual: true
@@ -42,7 +32,7 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
-const formModel = models['tradle.Form']
+const formModel = core['tradle.Form']
 if (!formModel.properties.verifications) {
   formModel.properties.verifications = {
     type: 'array',
@@ -67,13 +57,10 @@ const appSubModel = {
     //   type: 'object',
     //   ref: 'tradle.Object'
     // },
-    app: {
+    a: {
       type: 'string'
     },
-    sub: {
-      type: 'string'
-    },
-    subType: {
+    b: {
       type: 'string'
     },
     context: {
@@ -81,20 +68,25 @@ const appSubModel = {
     }
   },
   required: [
-    'app',
-    'sub',
-    'subType',
+    'a',
+    'b',
+    // 'bType',
   ],
   primaryKeys: {
-    hashKey: 'app',
-    rangeKey: 'sub'
+    hashKey: 'a',
+    rangeKey: 'b'
   },
-  indexes: ['context']
+  indexes: [
+    {
+      hashKey: 'context',
+      rangeKey: '_time'
+    }
+  ]
 }
 
 core[appSubModel.id] = appSubModel
 
-const appModel = models['tradle.Application']
+const appModel = core['tradle.Application']
 appModel.properties.checks.items.backlink = 'application'
 appModel.properties.submissions = {
   type: 'array',
@@ -160,5 +152,16 @@ if (!appModel.indexes.find(i => i.hashKey === 'context')) {
 // }
 
 // models[cloudEventModel.id] = cloudEventModel
+
+const models = _.extend(
+  {},
+  core,
+  require('@tradle/custom-models'),
+  require('@tradle/models-corporate-onboarding'),
+  require('@tradle/models-products-bot'),
+  require('@tradle/models-onfido'),
+  require('@tradle/models-nz'),
+  require('@tradle/models-cloud')
+)
 
 export = models

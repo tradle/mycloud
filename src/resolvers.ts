@@ -1,24 +1,22 @@
 import { difference } from 'lodash'
 import { TYPE } from '@tradle/constants'
-import {
-  utils,
-  DB
-} from '@tradle/dynamodb'
-
-const {
-  resultsToJson
-} = utils
 
 import {
   Model,
   Models,
   Objects,
   Filter,
-  OrderBy
+  OrderBy,
+  utils,
+  DB
 } from '@tradle/dynamodb'
 
 import { ParsedResourceStub, Backlinks } from './types'
 import { parseStub, allSettled } from './utils'
+
+const {
+  resultsToJson
+} = utils
 
 type PropertyInfo = {
   propertyName: string

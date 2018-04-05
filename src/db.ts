@@ -10,7 +10,8 @@ import { TYPES } from './constants'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM } = TYPES
 const ALLOW_SCAN = [
-  SEAL_STATE
+  SEAL_STATE,
+  'tradle.ApplicationSubmission'
 ]
 
 const UNSIGNED = [
@@ -85,7 +86,9 @@ export = function createDB (tradle:Tradle) {
     get models() { return modelStore.models },
     get modelsStored() { return modelStore.models },
     objects,
-    allowScan: filterOp => ALLOW_SCAN.includes(filterOp.type),
+    allowScan: filterOp => {
+      return ALLOW_SCAN.includes(filterOp.type) && filterOp.opType === 'query'
+    },
     shouldMinify: item => !UNSIGNED.includes(item[TYPE])
     // derivedProperties: tableKeys,
   }
@@ -236,7 +239,9 @@ export = function createDB (tradle:Tradle) {
   const addPayloads = async ({ args, result }) => {
     const { items } = result
     if (!(items && items.length)) return
-    if (items[0][TYPE] !== MESSAGE) return
+
+    const { EQ={} } = args && args[0] && args[0].filter
+    if (EQ[TYPE] !== MESSAGE) return
 
     const messages = items.map(tradle.messages.formatForDelivery)
     const { select=[] } = args[0]

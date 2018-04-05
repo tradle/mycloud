@@ -258,7 +258,7 @@ test(`onmessage`, loudAsync(async (t) => {
   // identities.byPermalink = byPermalink
 }))
 
-test.only(`seal events stream`, loudAsync(async (t) => {
+test(`seal events stream`, loudAsync(async (t) => {
   const link = '7f358ce8842a2a0a1689ea42003c651cd99c9a618d843a1a51442886e3779411'
 
   let read
