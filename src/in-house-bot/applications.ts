@@ -48,8 +48,8 @@ export class Applications {
       throw new Error('expected type and "application"')
     }
 
-    const application = await this.productsAPI.getApplication(props.application)
-    const resource = await bot.createResource({ ...props, application })
+    // const application = await this.productsAPI.getApplication(props.application)
+    const resource = await bot.createResource(props)
     // if (!application.checks) {
     //   application.checks = []
     // }

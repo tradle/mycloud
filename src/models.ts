@@ -114,11 +114,19 @@ const appSubModel = {
 core[appSubModel.id] = appSubModel
 
 const appModel = core['tradle.Application']
-appModel.properties.checks.items.backlink = 'application'
+// appModel.properties.checks.items.backlink = 'application'
 // appModel.properties.submissions = {
 //   type: 'array',
 //   items: {
 //     ref: 'tradle.ApplicationSubmission',
+//     backlink: 'application'
+//   }
+// }
+
+// appModel.properties.emailChecks = {
+//   type: 'array',
+//   items: {
+//     ref: 'tradle.EmailCheck',
 //     backlink: 'application'
 //   }
 // }

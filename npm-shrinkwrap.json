@@ -259,7 +259,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#8fbf5ba839b15ed68b7c47125389595953ce5657"
+      "resolved": "git://github.com/tradle/models.git#d70019b9aac1ff6789eb592f4bde55f5ba89f6b5"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -342,8 +342,8 @@
     },
     "@tradle/schema-graphql": {
       "version": "1.0.0",
-      "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#cca6c28c28755d4af4f167b24aea3f76932b086e"
+      "from": "tradle/schema-graphql#backlinks",
+      "resolved": "git://github.com/tradle/schema-graphql.git#9846be492fe441fdcf27e14c47ba3e14cc47f5d5"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
@@ -3195,8 +3195,8 @@
     },
     "level-change-processor": {
       "version": "1.0.0",
-      "from": "git+https://github.com/mvayngrib/level-change-processor.git#7100404",
-      "resolved": "git+https://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b"
+      "from": "mvayngrib/level-change-processor#7100404",
+      "resolved": "git://github.com/mvayngrib/level-change-processor.git#7100404cfc465fd2428cf5f7e11f03fe241bd56b"
     },
     "level-codec": {
       "version": "6.1.0",
@@ -3479,11 +3479,6 @@
           "version": "1.0.0",
           "from": "isarray@>=1.0.0 <1.1.0",
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
-        },
-        "merkle-tree-stream": {
-          "version": "3.0.3",
-          "from": "git+https://github.com/mvayngrib/merkle-tree-stream.git#finalize",
-          "resolved": "git+https://github.com/mvayngrib/merkle-tree-stream.git#ef1abd6b566a410f8cdc7190f0966b97f403e290"
         },
         "readable-stream": {
           "version": "2.3.5",
