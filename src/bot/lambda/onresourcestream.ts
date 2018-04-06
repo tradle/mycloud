@@ -30,7 +30,7 @@ export const processResources = async (bot: Bot, resources) => {
 }
 
 export const preProcessResourceRecord = async (bot: Bot, record) => {
-  const getBody = partial => partial._link ? bot.objects.get(partial) : partial
+  const getBody = partial => partial._link ? bot.objects.get(partial._link) : partial
   const [value, old] = await Promise.all([
     record.new ? getBody(record.new) : promiseUndefined,
     record.old ? getBody(record.old) : promiseUndefined
