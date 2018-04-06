@@ -204,21 +204,21 @@ custom:
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
     capacities:
-      - table: MessagesTable
-        index:
-          - _dcounterparty
-          - _link
-          # - _payloadLink
-          - _payloadType
-          - context
-        read:
-          minimum: 10       # Minimum read capacity
-          maximum: 100      # Maximum read capacity
-          usage: 0.70       # Targeted usage percentage
-        write:
-          minimum: 5        # Minimum write capacity
-          maximum: 100      # Maximum write capacity
-          usage: 0.5        # Targeted usage percentage
+      # - table: MessagesTable
+      #   index:
+      #     - _dcounterparty
+      #     - _link
+      #     # - _payloadLink
+      #     - _payloadType
+      #     - context
+      #   read:
+      #     minimum: 10       # Minimum read capacity
+      #     maximum: 100      # Maximum read capacity
+      #     usage: 0.70       # Targeted usage percentage
+      #   write:
+      #     minimum: 5        # Minimum write capacity
+      #     maximum: 100      # Maximum write capacity
+      #     usage: 0.5        # Targeted usage percentage
 
       - table: EventsTable
         write:
@@ -911,24 +911,24 @@ functions:
   #   alarms:
   #     - functionErrors
 
-  onmessagestream:
-    handler: lib/in-house-bot/lambda/onmessagestream.handler
-    memorySize: 256
-    events:
-      - stream:
-          type: dynamodb
-          batchSize: 100
-          startingPosition: TRIM_HORIZON
-          arn:
-            Fn::GetAtt:
-              - MessagesTable
-              - StreamArn
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
-    # onError:
-      # Ref: DeadLetterQueue
+  # onmessagestream:
+  #   handler: lib/in-house-bot/lambda/onmessagestream.handler
+  #   memorySize: 256
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         batchSize: 100
+  #         startingPosition: TRIM_HORIZON
+  #         arn:
+  #           Fn::GetAtt:
+  #             - MessagesTable
+  #             - StreamArn
+  #   alarms:
+  #     - functionErrors
+  #     # - functionThrottles
+  #     # - functionInvocations
+  #   # onError:
+  #     # Ref: DeadLetterQueue
 
   onresourcestream:
     handler: lib/in-house-bot/lambda/onresourcestream.handler
@@ -1291,91 +1291,91 @@ resources:
     # MessagesTable: ${{file(./conf/table/inbox.yml)}}
 
     # stores received messages (minus their payloads)
-    MessagesTable:
-      Type: AWS::DynamoDB::Table
-      Description: message envelopes
-      Properties:
-        TableName: ${{self:custom.tables.messages}}
-        AttributeDefinitions:
-          - AttributeName: _counterparty
-            AttributeType: S
-          - AttributeName: _dcounterparty
-            AttributeType: S
-          - AttributeName: time
-            AttributeType: N
-          - AttributeName: context
-            AttributeType: S
-          - AttributeName: _payloadType
-            AttributeType: S
-          - AttributeName: _link
-            AttributeType: S
-          # - AttributeName: _payloadLink
-          #   AttributeType: S
-        KeySchema:
-          - AttributeName: _counterparty
-            KeyType: HASH
-          - AttributeName: time
-            KeyType: RANGE
-          # - AttributeName: seq
-          #   KeyType: RANGE
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
-        GlobalSecondaryIndexes:
-          # direction (inbound/outound) + counterparty
-          - IndexName: _dcounterparty
-            KeySchema:
-              - AttributeName: _dcounterparty
-                KeyType: HASH
-              - AttributeName: time
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: context
-            KeySchema:
-              - AttributeName: context
-                KeyType: HASH
-              - AttributeName: time
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: _payloadType
-            KeySchema:
-              - AttributeName: _payloadType
-                KeyType: HASH
-              - AttributeName: time
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          - IndexName: _link
-            KeySchema:
-              - AttributeName: _link
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
-          # - IndexName: _payloadLink
-          #   KeySchema:
-          #     - AttributeName: _payloadLink
-          #       KeyType: HASH
-          #   Projection:
-          #     ProjectionType: KEYS_ONLY
-          #   ProvisionedThroughput:
-          #     ReadCapacityUnits: 5
-          #     WriteCapacityUnits: 5
+    # MessagesTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: message envelopes
+    #   Properties:
+    #     TableName: ${{self:custom.tables.messages}}
+    #     AttributeDefinitions:
+    #       - AttributeName: _counterparty
+    #         AttributeType: S
+    #       - AttributeName: _dcounterparty
+    #         AttributeType: S
+    #       - AttributeName: time
+    #         AttributeType: N
+    #       - AttributeName: context
+    #         AttributeType: S
+    #       - AttributeName: _payloadType
+    #         AttributeType: S
+    #       - AttributeName: _link
+    #         AttributeType: S
+    #       # - AttributeName: _payloadLink
+    #       #   AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: _counterparty
+    #         KeyType: HASH
+    #       - AttributeName: time
+    #         KeyType: RANGE
+    #       # - AttributeName: seq
+    #       #   KeyType: RANGE
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
+    #     StreamSpecification:
+    #       StreamViewType: NEW_AND_OLD_IMAGES
+    #     GlobalSecondaryIndexes:
+    #       # direction (inbound/outound) + counterparty
+    #       - IndexName: _dcounterparty
+    #         KeySchema:
+    #           - AttributeName: _dcounterparty
+    #             KeyType: HASH
+    #           - AttributeName: time
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: context
+    #         KeySchema:
+    #           - AttributeName: context
+    #             KeyType: HASH
+    #           - AttributeName: time
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: _payloadType
+    #         KeySchema:
+    #           - AttributeName: _payloadType
+    #             KeyType: HASH
+    #           - AttributeName: time
+    #             KeyType: RANGE
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       - IndexName: _link
+    #         KeySchema:
+    #           - AttributeName: _link
+    #             KeyType: HASH
+    #         Projection:
+    #           ProjectionType: ALL
+    #         ProvisionedThroughput:
+    #           ReadCapacityUnits: 5
+    #           WriteCapacityUnits: 5
+    #       # - IndexName: _payloadLink
+    #       #   KeySchema:
+    #       #     - AttributeName: _payloadLink
+    #       #       KeyType: HASH
+    #       #   Projection:
+    #       #     ProjectionType: KEYS_ONLY
+    #       #   ProvisionedThroughput:
+    #       #     ReadCapacityUnits: 5
+    #       #     WriteCapacityUnits: 5
 
     # SealsTable: ${{file(./conf/table/seals.yml)}}
 

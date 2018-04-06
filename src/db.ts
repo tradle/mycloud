@@ -6,7 +6,7 @@ import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from './types'
 import { extendTradleObject, pluck } from './utils'
-import { TYPES } from './constants'
+import { TYPES, UNSIGNED_TYPES } from './constants'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM } = TYPES
 const ALLOW_SCAN = [
@@ -14,18 +14,8 @@ const ALLOW_SCAN = [
   'tradle.ApplicationSubmission'
 ]
 
-const UNSIGNED = [
-  'tradle.IotSession',
-  'tradle.MyCloudFriend',
-  'tradle.PubKey',
-  'tradle.products.Customer',
-  SEAL_STATE,
-  BACKLINK_ITEM,
-  'tradle.ApplicationSubmission'
-]
-
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {
-  if (UNSIGNED.includes(resource[TYPE])) return
+  if (UNSIGNED_TYPES.includes(resource[TYPE])) return
 
   if (!resource._link) {
     throw new Error('expected "_link"')
@@ -67,20 +57,6 @@ export = function createDB (tradle:Tradle) {
   dynogels.dynamoDriver(dynamodb)
 
   const tableBuckets = dbUtils.getTableBuckets()
-
-  // const commonOpts = {
-  //   get models() {
-  //     return modelStore.models
-  //   },
-  //   objects,
-  //   docClient,
-  //   maxItemSize: constants.MAX_DB_ITEM_SIZE,
-  //   allowScan: false,
-  //   defaultReadOptions: {
-  //     consistentRead: true
-  //   }
-  // }
-
   const commonOpts = {
     docClient,
     get models() { return modelStore.models },
@@ -89,20 +65,23 @@ export = function createDB (tradle:Tradle) {
     allowScan: filterOp => {
       return ALLOW_SCAN.includes(filterOp.type) && filterOp.opType === 'query'
     },
-    shouldMinify: item => !UNSIGNED.includes(item[TYPE])
-    // derivedProperties: tableKeys,
+    shouldMinify: item => !UNSIGNED_TYPES.includes(item[TYPE])
+    // derivedProps: tableKeys,
   }
 
   const getIndexesForModel = ({ table, model }) => {
-    if (UNSIGNED.includes(model.id)) {
+    if (UNSIGNED_TYPES.includes(model.id)) {
       return model.indexes || []
+    }
+
+    if (model.id === MESSAGE) {
+      return model.indexes
     }
 
     if (model.id in modelStore.models) {
       return defaults.indexes.concat(model.indexes || [])
     }
 
-    debugger
     throw new Error(`failed to get indexes for model: ${model.id}`)
   }
 
@@ -132,11 +111,12 @@ export = function createDB (tradle:Tradle) {
         ...commonOpts,
         tableDefinition: cloudformation,
         // all key props are derived
-        derivedProperties: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
-        deriveProperties: defaults.deriveProperties,
+        derivedProps: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
+        deriveProps: defaults.deriveProps,
         resolveOrderBy: defaults.resolveOrderBy,
+        parseDerivedProps: defaults.parseDerivedProps,
         getPrimaryKeysForModel: defaults.getPrimaryKeysForModel,
-        getIndexesForModel
+        getIndexesForModel,
       })
 
       const controlLatestHooks = method => async ({ args }) => {
@@ -155,65 +135,6 @@ export = function createDB (tradle:Tradle) {
     chooseTable
   })
 
-  const messageModel = modelStore.models['tradle.Message']
-  // const messagesTable = createMessagesTable({
-  //   docClient,
-  //   models: modelStore.models,
-  //   getMyIdentity: () => tradle.provider.getMyPublicIdentity(),
-  //   definitions: dbUtils.definitions
-  // })
-
-  ;[
-    {
-      type: 'tradle.Message',
-      definition: tables.Messages.definition,
-      opts: {
-        allowScan: false
-      }
-    },
-    // {
-    //   type: 'tradle.PubKey',
-    //   definition: tables.PubKeys.definition,
-    //   opts: {}
-    // },
-    // {
-    //   type: 'tradle.MyCloudFriend',
-    //   definition: tables.Friends.definition,
-    //   opts: {}
-    // },
-    // {
-    //   type: 'tradle.IotSession',
-    //   definition: tables.Presence.definition,
-    //   opts: {
-    //     allowScan: true
-    //   }
-    // },
-    // {
-    //   type: 'tradle.cloud.Event',
-    //   definition: tables.Events.definition,
-    //   opts: {
-    //     allowScan: false
-    //   }
-    // }
-    // {
-    //   type: 'tradle.Seal',
-    //   definition: tables.Seals.definition
-    // }
-  ].forEach(typeConf => {
-    const { type, definition, opts } = typeConf
-    const model = modelStore.models[type]
-    db.setExclusive({
-      model,
-      table: createTable({
-        ...commonOpts,
-        exclusive: true,
-        // readOnly: !env.TESTING,
-        model,
-        tableDefinition: definition,
-        ...opts
-      })
-    })
-  })
 
   const fixMessageFilter = async ({ args }) => {
     const { filter } = args[0]
@@ -259,7 +180,7 @@ export = function createDB (tradle:Tradle) {
   db.hook('put:pre', ({ args }) => checkSigned(args[0]))
 
   const checkSigned = resource => {
-    if (!resource[SIG] && !UNSIGNED.includes(resource[TYPE])) {
+    if (!resource[SIG] && !UNSIGNED_TYPES.includes(resource[TYPE])) {
       throw new Error(`expected resource to be signed: ${resource._link}`)
     }
   }

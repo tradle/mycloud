@@ -349,9 +349,9 @@ Previous exit stack: ${this.lastExitStack}`)
     try {
       await exec(ctx)
     } catch (err) {
-      if (ctx.error) {
-        this.logger.error('error in execution', err.stack)
-      } else {
+      debugger
+      this.logger.error('error in execution', err.stack)
+      if (!ctx.error) {
         ctx.error = err
       }
     }

@@ -10,7 +10,8 @@ import {
   toPathValuePairs,
   getPermId,
   getResourceIdentifier,
-  RESOLVED_PROMISE
+  RESOLVED_PROMISE,
+  isUnsignedType
 } from './utils'
 
 import {
@@ -195,8 +196,8 @@ export default class Backlinks {
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
     const backlinkChanges = this.getBacklinksChanges(resourceChanges)
     const { add, del } = backlinkChanges
-    if (add.length) this.logger.debug(`creating ${add.length} backlink items`)
-    if (del.length) this.logger.debug(`deleting ${del.length} backlink items`)
+    if (add.length) this.logger.debug(`creating ${add.length} backlink items`)//, pluck(add, 'source'))
+    if (del.length) this.logger.debug(`deleting ${del.length} backlink items`)//, pluck(del, 'source'))
 
     const promiseAdd = add.length ? this.db.batchPut(add) : RESOLVED_PROMISE
     const promiseDel = del.length ? Promise.all(del.map(item => this.db.del(item))) : RESOLVED_PROMISE
@@ -237,6 +238,8 @@ export const getBacklinkItems = ({ models, resource }: {
   resource: ITradleObject
 }):IBacklinkItem[] => {
   const type = resource[TYPE]
+  if (isUnsignedType(type)) return []
+
   const model = models[type]
   if (!model) throw new Errors.InvalidInput(`missing model: ${type}`)
 

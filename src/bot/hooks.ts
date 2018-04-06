@@ -10,12 +10,15 @@ import {
 } from '../utils'
 
 import { getSealEventTopic, topics as EventTopics } from '../events'
+import { TYPES } from '../constants'
 
-const SEAL_STATE = 'tradle.SealState'
+const { SEAL_STATE } = TYPES
 
 export const hookUp = (bot: Bot) => {
   // backwards compat
-  bot.hookSimple('msg:i', event => bot.fire('message', event))
+  bot.hookSimple(EventTopics.message.inbound.sync, event => bot.fire('message', event))
+
+  // bot.hook(EventTopics.message.mixed.batch, )
 
   bot.hookSimple(EventTopics.resource.save.async.batch, async (changes) => {
     await bot.events.putEvents(bot.events.fromSaveBatch(changes))

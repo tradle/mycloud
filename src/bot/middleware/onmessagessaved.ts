@@ -8,32 +8,23 @@ import { addLinks } from '../../crypto'
 import { createLocker } from '../locker'
 import { allSettled, uniqueStrict } from '../../utils'
 import { toBotMessageEvent } from '../utils'
-import { Lambda } from '../../types'
+import { Bot, Lambda } from '../../types'
 import { topics as EventTopics, toBatchEvent } from '../../events'
 import { EventSource } from '../lambda'
 
-export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const stack = [
-    onMessagesSaved(lambda, opts)
-  ]
-
-  // if (lambda.source !== EventSource.DYNAMODB && lambda.isUsingServerlessOffline) {
-  //   // fake process stream
-  //   stack.push(toStreamAndProcess(lambda, opts))
-  // }
-
-  return compose(stack)
+export const createMiddleware = (bot:Bot, { async }) => {
+  return onMessagesSaved(bot, { async })
 }
 
 /**
  * runs after the inbound message has been written to inbox
  */
-export const onMessagesSaved = (lambda:Lambda, opts={}) => {
-  const { bot, tradle, tasks, logger, isTesting } = lambda
+export const onMessagesSaved = (bot:Bot, { async }: { async?: boolean }={}) => {
+  const { tasks, logger, isTesting } = bot
   const locker = createLocker({
     // name: 'inbound message lock',
     // debug: lambda.logger.sub('lock:receive').debug,
-    timeout: lambda.isTesting ? null : 10000
+    timeout: bot.isTesting ? null : 10000
   })
 
   const lock = id => locker.lock(id)
@@ -50,8 +41,14 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     }))
 
     const byRecipient = _.groupBy(events, event => event.user.id)
+    if (async) {
+      return await Promise.map(_.values(byRecipient), async (batch) => {
+        await bot._fireMessageBatchEvent({ batch, async, spread: true })
+      })
+    }
+
     return await Promise.map(_.values(byRecipient), async (batch) => {
-      await bot._fireMessageBatchEvent({ batch, async, spread: true })
+      return await Promise.mapSeries(batch, data => bot._fireMessageEvent({ data, async }))
     })
   }
 
@@ -69,7 +66,11 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
       const user = await bot.users.createIfNotExists({ id: userId })
       const batch = messages.map(message => toBotMessageEvent({ bot, user, message }))
       logger.debug(`feeding ${messages.length} messages to business logic`)
-      await bot._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
+      if (async) {
+        await bot._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
+      } else {
+        await Promise.mapSeries(batch, data => bot._fireMessageEvent({ data, async, inbound: true }))
+      }
     } finally {
       await unlock(userId)
     }
@@ -80,33 +81,10 @@ export const onMessagesSaved = (lambda:Lambda, opts={}) => {
     if (!messages) return
 
     const [inbound, outbound] = _.partition(messages, ({ _inbound }) => _inbound)
-    const async = lambda.source === EventSource.DYNAMODB
     await Promise.all([
       fireInbound(inbound, async),
       fireOutbound(outbound, async)
     ])
-
-    await next()
-  }
-}
-
-export const toStreamAndProcess = (lambda:Lambda, opts?: any) => {
-  const onMessageStream = require('./onmessagestream')
-  return compose([
-    toStream(lambda, opts),
-    onMessageStream.createMiddleware(lambda, opts)
-  ])
-}
-
-const toStream = (lambda:Lambda, opts?:any) => {
-  const { toStreamItems } = require('../../test/utils')
-  const { tradle } = lambda
-  return async (ctx, next) => {
-    ctx.event = toStreamItems(tradle.tables.Messages.name, ctx.event.messages.map(m => {
-      return {
-        new: tradle.messages.formatForDB(m)
-      }
-    }))
 
     await next()
   }

@@ -117,6 +117,7 @@ export default class Identities {
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
     this.logger.debug('get identity by permalink')
     const { link } = await this.db.findOne({
+      select: ['link'],
       filter: {
         EQ: {
           [TYPE]: PUB_KEY,

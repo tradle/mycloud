@@ -32,6 +32,33 @@ if (!baseMessageModel.properties._deliveryStatus) {
   }
 }
 
+if (!baseMessageModel.primaryKeys) {
+  baseMessageModel.primaryKeys = {
+    hashKey: '_counterparty',
+    rangeKey: 'time'
+  }
+}
+
+if (!baseMessageModel.indexes) {
+  baseMessageModel.indexes = [
+    {
+      hashKey: '_dcounterparty',
+      rangeKey: 'time'
+    },
+    {
+      hashKey: 'context',
+      rangeKey: 'time'
+    },
+    {
+      hashKey: '_payloadType',
+      rangeKey: 'time'
+    },
+    {
+      hashKey: '_link'
+    }
+  ]
+}
+
 const formModel = core['tradle.Form']
 if (!formModel.properties.verifications) {
   formModel.properties.verifications = {
@@ -88,13 +115,13 @@ core[appSubModel.id] = appSubModel
 
 const appModel = core['tradle.Application']
 appModel.properties.checks.items.backlink = 'application'
-appModel.properties.submissions = {
-  type: 'array',
-  items: {
-    ref: 'tradle.ApplicationSubmission',
-    backlink: 'application'
-  }
-}
+// appModel.properties.submissions = {
+//   type: 'array',
+//   items: {
+//     ref: 'tradle.ApplicationSubmission',
+//     backlink: 'application'
+//   }
+// }
 
 if (!appModel.indexes) {
   appModel.indexes = []

@@ -18,7 +18,8 @@ import {
   wait,
   waitImmediate,
   timeMethods,
-  traverse
+  traverse,
+  pluck
 } from './utils'
 
 import { prettify, alphabetical, format } from './string-utils'
@@ -82,6 +83,8 @@ export {
 export const getTableHashKey = table => table.definition.KeySchema
   .find(({ KeyType }) => KeyType === 'HASH')
   .AttributeName
+
+export const getTableKeys = table => pluck(table.definition.KeySchema, 'AttributeName')
 
 const renderDefinitions = ({ definitions, stackName }) => {
   definitions = _.cloneDeep(definitions)

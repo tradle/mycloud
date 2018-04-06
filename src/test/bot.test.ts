@@ -160,7 +160,7 @@ test('init', loudAsync(async (t) => {
 }))
 
 test(`onmessage`, loudAsync(async (t) => {
-  t.plan(5)
+  t.plan(6)
 
   const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
@@ -173,9 +173,16 @@ test(`onmessage`, loudAsync(async (t) => {
   //   updatedUser = true
   // }
 
+  let creates = 0
+  let resolveCreate
+  const promiseCreates = new Promise(resolve => {
+    resolveCreate = resolve
+  })
+
   users.createIfNotExists = async (user) => {
-    // #1
+    // #1, #2 (sync, stream)
     t.equal(user.id, message._author)
+    if (++creates === 2) resolveCreate()
     return user
   }
 
@@ -251,6 +258,7 @@ test(`onmessage`, loudAsync(async (t) => {
     done: t.error
   } as ILambdaAWSExecutionContext)
 
+  await promiseCreates
   sandbox.restore()
   // await bot.trigger('message', message)
   // #6
@@ -461,7 +469,7 @@ test('onmessagestream', loudAsync(async (t) => {
   //   // time: 123
   // })
 
-  await bot.lambdas.onmessagestream().handler(toStreamItems(bot.tables.Messages.name, [
+  await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
     { new: inbound }
   ]), {
     // #6
@@ -495,7 +503,7 @@ test('onmessagestream', loudAsync(async (t) => {
     })
   })
 
-  await bot.lambdas.onmessagestream().handler(toStreamItems(bot.tables.Messages.name, [
+  await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
     { new: outbound }
   ]), {
     // #6

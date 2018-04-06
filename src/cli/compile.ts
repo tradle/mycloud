@@ -114,10 +114,11 @@ function getBucketTableDefinition ({
       }
     ],
     Projection: {
-      ProjectionType: 'ALL'
+      // ProjectionType: 'ALL'
+      ProjectionType: 'KEYS_ONLY',
       // ProjectionType: 'INCLUDE',
       // NonKeyAttributes: [
-      //   TYPE, '_link'
+      //   TYPE, '_link', '_permalink', '_author',
       // ]
     },
     ProvisionedThroughput: {

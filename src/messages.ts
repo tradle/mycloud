@@ -147,6 +147,8 @@ export default class Messages {
   }
 
   public serializePubKey = (key:IECMiniPubKey):string => {
+    if (typeof key === 'string') return key
+
     return `${key.curve}:${key.pub.toString('hex')}`
   }
 

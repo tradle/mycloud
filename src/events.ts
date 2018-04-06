@@ -223,7 +223,9 @@ export const topics = {
   },
   message: {
     inbound: new EventTopic('msg:i'),
-    outbound: new EventTopic('msg:o')
+    outbound: new EventTopic('msg:o'),
+    mixed: new EventTopic('msg'),
+    stream: new EventTopic('msg:stream')
   },
   resource: {
     save: new EventTopic('save'),

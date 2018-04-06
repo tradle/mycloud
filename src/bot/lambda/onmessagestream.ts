@@ -27,5 +27,5 @@ export const createLambda = (opts) => {
   //   }
   // })
 
-  return lambda.use(createMiddleware(lambda, opts))
+  return lambda.use(createMiddleware(lambda.bot, { ...opts, async: true }))
 }

@@ -43,7 +43,8 @@ import {
   WARMUP_SLEEP,
   PUBLIC_CONF_BUCKET,
   LAUNCH_STACK_BASE_URL,
-  DATE_ZERO
+  DATE_ZERO,
+  UNSIGNED_TYPES
 } from './constants'
 
 import Errors from './errors'
@@ -1240,3 +1241,5 @@ const _getResourceIdentifier = (props: GetResourceParams) => {
 
   return { type, permalink, link }
 }
+
+export const isUnsignedType = modelId => UNSIGNED_TYPES.includes(modelId)

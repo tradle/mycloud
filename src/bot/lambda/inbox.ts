@@ -46,6 +46,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       onSuccess: createSuccessHandler(lambda, opts),
       onError: createErrorHandler(lambda, opts)
     }),
-    onMessagesSaved(lambda, opts)
+    onMessagesSaved(lambda.bot, opts)
   ])
 }

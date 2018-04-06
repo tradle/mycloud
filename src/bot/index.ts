@@ -315,6 +315,7 @@ export class Bot extends EventEmitter implements IReady {
 
         const user = await this.users.get(recipient)
         await this._fireMessageBatchEvent({
+          spread: true,
           batch: messages.map(message => toBotMessageEvent({
             bot: this,
             message,

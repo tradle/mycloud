@@ -8,7 +8,7 @@ import {
   SIG,
   PREV_TO_RECIPIENT,
   NONCE,
-  TYPES
+  TYPES as BASE_TYPES
 } from '@tradle/constants'
 
 const unitToMillis = {
@@ -17,6 +17,15 @@ const unitToMillis = {
   day: 24 * 60 * 60000,
   month: 30 * 24 * 60 * 60000,
   year: 365 * 24 * 60 * 60000,
+}
+
+const TYPES = {
+  ...BASE_TYPES,
+  INTRODUCTION: 'tradle.Introduction',
+  IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest',
+  SIMPLE_MESSAGE: 'tradle.SimpleMessage',
+  BACKLINK_ITEM: 'tradle.BacklinkItem',
+  SEAL_STATE: 'tradle.SealState'
 }
 
 const constants = {
@@ -29,14 +38,7 @@ const constants = {
   SIG,
   PREV_TO_RECIPIENT,
   NONCE,
-  TYPES: {
-    ...TYPES,
-    INTRODUCTION: 'tradle.Introduction',
-    IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest',
-    SIMPLE_MESSAGE: 'tradle.SimpleMessage',
-    BACKLINK_ITEM: 'tradle.BacklinkItem',
-    SEAL_STATE: 'tradle.SealState'
-  },
+  TYPES,
   IDENTITY_KEYS_KEY: 'keys.json',
   PUBLIC_CONF_BUCKET: {
     identity: 'identity.json',
@@ -95,7 +97,16 @@ const constants = {
   },
   ROOT_LOGGING_NAMESPACE: 'tradle',
   DEFAULT_REGION: 'us-east-1',
-  DATE_ZERO: 0 // 1514764800000 // 2018-01-01 UTC
+  DATE_ZERO: 0, // 1514764800000 // 2018-01-01 UTC
+  UNSIGNED_TYPES: [
+    'tradle.IotSession',
+    'tradle.MyCloudFriend',
+    'tradle.PubKey',
+    'tradle.products.Customer',
+    TYPES.SEAL_STATE,
+    TYPES.BACKLINK_ITEM,
+    'tradle.ApplicationSubmission'
+  ]
 }
 
 export = constants
