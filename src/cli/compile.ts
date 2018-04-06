@@ -65,12 +65,12 @@ function addBucketTables ({ yml, prefix }) {
 
   const { Resources } = resources
   const { count, read, write } = tableBuckets
-  if (!custom.capacities) custom.capacities = []
 
   const tables = Object.keys(Resources).filter(name => {
     return Resources[name].Type === 'AWS::DynamoDB::Table'
   })
 
+  const { capacities } = custom['dynamodb-autoscaling']
   for (let i = 0; i < count; i++) {
     let name = `${prefix}bucket-${i}`
     let def = getBucketTableDefinition({
@@ -83,16 +83,18 @@ function addBucketTables ({ yml, prefix }) {
 
     let logicalId = `Bucket${i}Table`
     Resources[logicalId] = def
-    // custom.capacities.push({
-    //   table: logicalId,
-    //   read,
-    //   write,
-    //   index
-    // })
+    capacities.push({
+      table: logicalId,
+      read,
+      write,
+      index: _.range(0, NUM_INDEXES).map(getIndexName)
+    })
   }
 
   return yml
 }
+
+const getIndexName = i => `idx${i}`
 
 function getBucketTableDefinition ({
   name,
@@ -102,7 +104,7 @@ function getBucketTableDefinition ({
   dependencies
 }) {
   const GlobalSecondaryIndexes = _.range(0, indexes).map(i => ({
-    IndexName: `idx${i}`,
+    IndexName: getIndexName(i),
     KeySchema: [
       {
         AttributeName: `__x${i}h__`,

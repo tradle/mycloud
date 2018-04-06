@@ -204,7 +204,7 @@ custom:
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
     capacities:
-      # - table: MessagesTable
+      # - table: Bucket0Table
       #   index:
       #     - _dcounterparty
       #     - _link
