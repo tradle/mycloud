@@ -50,14 +50,13 @@ export class Applications {
 
     const application = await this.productsAPI.getApplication(props.application)
     const resource = await bot.createResource({ ...props, application })
-    if (!application.checks) {
-      application.checks = []
-    }
+    // if (!application.checks) {
+    //   application.checks = []
+    // }
 
-    debugger
-    if (!req) {
-      await this._commitApplicationUpdate({ application })
-    }
+    // if (!req) {
+    //   await this._commitApplicationUpdate({ application })
+    // }
 
     return resource
   }
@@ -65,20 +64,20 @@ export class Applications {
   public updateCheck = async (opts) => {
     const result = await this.bot.updateResource(opts)
     const check = result.resource
-    if (!result.changed) return check
-    if (!check.application) return check
+    // if (!result.changed) return check
+    // if (!check.application) return check
 
-    const application = await this.bot.getResource(parseStub(check.application))
-    const idx = application.checks.find(stub => {
-      return parseStub(stub).permalink === check._permalink
-    })
+    // const application = await this.bot.getResource(parseStub(check.application))
+    // const idx = application.checks.find(stub => {
+    //   return parseStub(stub).permalink === check._permalink
+    // })
 
-    if (idx === -1) return check
+    // if (idx === -1) return check
 
-    application.checks[idx] = this.stub(check)
-    if (opts.req) return
+    // application.checks[idx] = this.stub(check)
+    // if (opts.req) return
 
-    await this._commitApplicationUpdate({ application })
+    // await this._commitApplicationUpdate({ application })
     return check
   }
 

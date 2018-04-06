@@ -109,7 +109,7 @@ export default function createProductsBot({
   // until the issue with concurrent modifications of user & application state is resolved
   // then some handlers can migrate to 'messagestream'
   const handleMessages = event === 'message' ||
-    (bot.isTesting && event === 'messagestream')
+    (bot.isTesting && event === 'resourcestream')
 
   const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
@@ -361,7 +361,6 @@ export default function createProductsBot({
 
   if (plugins.webhooks) {
     if ((bot.isTesting && handleMessages) ||
-      event === 'messagestream' ||
       event === 'resourcestream') {
       const { api, plugin } = createWebhooksPlugin(components, {
         conf: plugins.webhooks,

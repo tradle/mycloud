@@ -257,6 +257,7 @@ export class Bot extends EventEmitter implements IReady {
     })
 
     this.middleware = new MiddlewareContainer({
+      logger: this.logger.sub('mid'),
       getContextForEvent: (event, data) => ({
         bot: this,
         event: data

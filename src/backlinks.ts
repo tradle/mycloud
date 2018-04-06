@@ -196,6 +196,8 @@ export default class Backlinks {
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
     const backlinkChanges = this.getBacklinksChanges(resourceChanges)
     const { add, del } = backlinkChanges
+    if (!(add.length || del.length)) return backlinkChanges
+
     if (add.length) this.logger.debug(`creating ${add.length} backlink items`)//, pluck(add, 'source'))
     if (del.length) this.logger.debug(`deleting ${del.length} backlink items`)//, pluck(del, 'source'))
 

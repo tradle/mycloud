@@ -51,6 +51,7 @@ export default class Objects {
     this.fileUploadBucketName = buckets.FileUpload.name
     this.logger = logger.sub('objects')
     this.middleware = new MiddlewareContainer({
+      logger: this.logger.sub('mid'),
       getContextForEvent: (event, object) => ({
         event: object
       })

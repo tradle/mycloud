@@ -19,10 +19,12 @@ export const createLambda = (opts) => {
 }
 
 export const processMessages = async (bot: Bot, messages) => {
+  bot.logger.debug(`processing ${messages.length} messages from stream`)
   await bot.fireBatch(EventTopics.message.stream.async, messages)
 }
 
 export const processResources = async (bot: Bot, resources) => {
+  bot.logger.debug(`processing ${resources.length} resource changes from stream`)
   const changes = await Promise.all(resources.map(r => preProcessResourceRecord(bot, r)))
   await bot._fireSaveBatchEvent({ changes, async: true, spread: true })
 }

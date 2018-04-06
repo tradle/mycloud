@@ -43,6 +43,12 @@ export const createMiddleware = (bot:Bot, opts?:any) => {
   const postProcess = createBatchPostProcessor(bot, opts)
   const processStream = async (ctx, next) => {
     const messages = ctx.event
+    if (!(messages && messages.length)) {
+      await next()
+      return
+    }
+
+    logger.debug(`putting ${messages.length} message events`)
     await events.putEvents(messages.map(toMessageEvent))
     // event.bot = bot
 

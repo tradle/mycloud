@@ -87,8 +87,7 @@ test('_doSendMessage', loudAsync(async (t) => {
     // embed: 'data:image/jpeg;base64,somebase64'
   }
 
-  const stub = stubber(sandbox)
-  stub(identities, 'byPermalink', mocks.byPermalink)
+  sandbox.stub(identities, 'byPermalink').callsFake(mocks.byPermalink)
 
   let nextSeq = 0
   let prevMsgLink = 'abc'
@@ -98,14 +97,14 @@ test('_doSendMessage', loudAsync(async (t) => {
       link: prevMsgLink
     }))
 
-  const stubPutObject = stub(objects, 'put', function (object) {
+  const stubPutObject = sandbox.stub(objects, 'put').callsFake(function (object) {
     t.ok(object[SIG])
     payload[SIG] = object[SIG]
     t.same(omitVirtual(object), payload)
     return Promise.resolve()
   })
 
-  // const stubReplaceEmbeds = stub(objects, 'replaceEmbeds', promiseNoop)
+  // const stubReplaceEmbeds = sandbox.stub(objects, 'replaceEmbeds', promiseNoop)
 
   // Events.putEvent = function (event) {
   //   t.equal(event.topic, 'send')
@@ -114,7 +113,7 @@ test('_doSendMessage', loudAsync(async (t) => {
   // }
 
   let stoleSeq
-  const stubPutMessage = stub(messages, 'putMessage', co(function* (message) {
+  const stubPutMessage = sandbox.stub(messages, 'putMessage').callsFake(async (message) => {
     typeforce(types.message, message)
     t.notOk(message._inbound)
     t.equal(message[SEQ], nextSeq)
@@ -126,7 +125,7 @@ test('_doSendMessage', loudAsync(async (t) => {
     }
 
     t.end()
-  }))
+  })
 
   const event = await _doSendMessage({
     time: Date.now(),
@@ -139,7 +138,7 @@ test('_doSendMessage', loudAsync(async (t) => {
   // t.equal(stubReplaceEmbeds.callCount, 1)
   t.equal(stubPutMessage.callCount, 2)
   t.equal(stubLastSeqAndLink.callCount, 2)
-  stub.restore()
+  sandbox.restore()
 
   // Events.putEvent = putEvent
 
@@ -151,30 +150,19 @@ test('_doSendMessage', loudAsync(async (t) => {
 test('_doReceiveMessage', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const message = fromBobToAlice[0]
-  const stub = stubber(sandbox)
-  const stubGetIdentity = stub(
-    identities,
-    'metaByPub',
-    mocks.metaByPub
-  )
-
-  const stubPutObject = stub(objects, 'put', function (object) {
+  const stubGetIdentity = sandbox.stub(identities, 'metaByPub').callsFake(mocks.metaByPub)
+  const stubPutObject = sandbox.stub(objects, 'put').callsFake(function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
     return Promise.resolve()
   })
 
-  const stubTimestampInc = stub(
-    messages,
-    'assertTimestampIncreased',
-    promiseNoop
-  )
-
-  const stubGetInbound = stub(messages, 'getInboundByLink', function (link) {
+  const stubTimestampInc = sandbox.stub(messages,'assertTimestampIncreased').callsFake(promiseNoop)
+  const stubGetInbound = sandbox.stub(messages, 'getInboundByLink').callsFake(function (link) {
     throw new Errors.NotFound()
   })
 
-  const stubPutMessage = stub(messages, 'putMessage', function (message) {
+  const stubPutMessage = sandbox.stub(messages, 'putMessage').callsFake(function (message) {
     t.equal(message._inbound, true)
     typeforce(types.message, message)
     // console.log(event)
@@ -338,16 +326,4 @@ const mocks = {
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
   })
-}
-
-function stubber (sandbox) {
-  const stubs = []
-  const stub:any = (obj, prop, fn) => {
-    const thisStub = sandbox.stub(obj, prop).callsFake(fn)
-    stubs.push(thisStub)
-    return thisStub
-  }
-
-  stub.restore = () => stubs.forEach(stub => stub.restore())
-  return stub
 }

@@ -3,7 +3,7 @@ import Promise from 'bluebird'
 import compose, { Middleware } from 'koa-compose'
 import { isBatchEvent, toBatchEvent, EventTopic } from './events'
 import { isPromise } from './utils'
-import { TopicOrString, IHooks } from './types'
+import { TopicOrString, IHooks, Logger } from './types'
 
 interface MiddlewareMap<Context> {
   [key: string]: Middleware<Context>[]
@@ -22,10 +22,13 @@ const defaultGetContextForEvent:GetContextForEvent<any> = (event, payload) => ({
 export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
   private middleware: MiddlewareMap<Context>
   private getContextForEvent: GetContextForEvent<Context>
-  constructor ({ getContextForEvent=defaultGetContextForEvent } : {
+  private logger: Logger
+  constructor ({ getContextForEvent=defaultGetContextForEvent, logger }: {
     getContextForEvent?: GetContextForEvent<Context>
-  }={}) {
+    logger: Logger
+  }) {
     this.getContextForEvent = getContextForEvent
+    this.logger = logger
     this.middleware = {
       '*': []
     }
@@ -43,12 +46,12 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
 
   public fire = async (event:TopicOrString, payload:any) => {
     event = eventToString(event)
-    if (!isBatchEvent(event) && Array.isArray(payload)) debugger
 
     const specific = this.middleware[event] || []
     const wild = this.middleware['*']
     if (!(specific.length || wild.length)) return
 
+    this.logger.debug('firing', { event })
     const ctx = this.getContextForEvent(event, payload)
     await compose(specific)(ctx)
     // @ts-ignore
@@ -59,7 +62,8 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
 
   public fireBatch = async (event:TopicOrString, payloads) => {
     event = eventToString(event)
-    const batch = await this.fire(toBatchEvent(event), payloads)
+    const batchEvent = toBatchEvent(event)
+    const batch = await this.fire(batchEvent, payloads)
     const individual = await Promise.mapSeries(payloads, payload => this.fire(event, payload))
     return {
       batch,

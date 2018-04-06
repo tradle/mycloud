@@ -17,9 +17,6 @@ const { SEAL_STATE } = TYPES
 export const hookUp = (bot: Bot) => {
   // backwards compat
   bot.hookSimple(EventTopics.message.inbound.sync, event => bot.fire('message', event))
-
-  // bot.hook(EventTopics.message.mixed.batch, )
-
   bot.hookSimple(EventTopics.resource.save.async.batch, async (changes) => {
     await bot.events.putEvents(bot.events.fromSaveBatch(changes))
 
