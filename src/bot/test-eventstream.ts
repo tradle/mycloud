@@ -11,11 +11,24 @@ import { createMiddleware as createMessageMiddleware } from './middleware/onmess
  * Re-emit various events as 'async' and/or 'batch'
  */
 export const simulateEventStream = (bot: Bot) => {
-  bot.objects.hook('put', async (ctx, next) => {
-    await next()
-    await wait(0)
-    await bot.fire('save', { value: ctx.event })
-  })
+  // bot.objects.hook('put', async (ctx, next) => {
+  //   await next()
+  //   await wait(0)
+  //   await bot.fire('save', { value: ctx.event })
+  // })
+
+  const reemitSave = async ({ args, result }) => {
+    // await next()
+    // await wait(0)
+    // await bot.fire('save', { value: ctx.event })
+    const value = result || await bot.db.get(args[0])
+    await bot.fire('save', { value })
+  }
+
+  bot.db.hook('put:post', reemitSave)
+  bot.db.hook('update:post', reemitSave)
+  // alias for update
+  bot.db.hook('merge:post', reemitSave)
 
   bot.hook(EventTopics.message.stream.batch.async, createMessageMiddleware(bot))
 

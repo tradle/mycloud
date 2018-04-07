@@ -8,7 +8,8 @@ import {
   Filter,
   OrderBy,
   utils,
-  DB
+  DB,
+  filterResults
 } from '@tradle/dynamodb'
 
 import { ParsedResourceStub, Backlinks } from './types'
@@ -39,7 +40,7 @@ type ListOpts = {
   backlink?: BacklinkInfo
 }
 
-const STUB_PROPS = [TYPE, '_link', '_permalink']
+const PROPS_KNOWN_FROM_STUB = [TYPE, '_link', '_permalink']
 
 export const createResolvers = ({ db, backlinks, objects, models, postProcess }: {
   db: DB
@@ -75,37 +76,33 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
     return result ? resultsToJson(result) : null
   }
 
+  const normalizeBacklinkResults = async (opts) => {
+    const { select, results } = opts
+    if (!(results && results.length)) {
+      return []
+    }
+
+    const parsedStubs = results.map(parseStub)
+    if (select && !difference(select, PROPS_KNOWN_FROM_STUB).length) {
+      return parsedStubs.map(({ type, link, permalink }) => ({
+        [TYPE]: type,
+        _link: link,
+        _permalink: permalink
+      }))
+    }
+
+    return (await allSettled(parsedStubs.map(({ link }) => objects.get(link))))
+      .filter(r => r.isFulfilled)
+      .map(r => r.value)
+  }
+
   const listBacklink = async (opts: ListOpts) => {
-    const { backlink } = opts
+    const { backlink, filter } = opts
     const container = await backlinks.getBacklinks(backlink.target)
-    const values = container[backlink.back.propertyName]
-    if (!(values && values.length)) {
-      return {
-        items: []
-      }
-    }
-
-    const { select } = opts
-    const parsedStubs = values.map(parseStub)
-    if (select && !difference(select, STUB_PROPS).length) {
-      return {
-        items: parsedStubs.map(({ type, link, permalink }) => ({
-          [TYPE]: type,
-          _link: link,
-          _permalink: permalink
-        }))
-      }
-    }
-
-    // return {
-    //   items: values
-    // }
-
-    const results = await allSettled(parsedStubs.map(({ link }) => objects.get(link)))
+    const results = container[backlink.back.propertyName]
+    const items = results ? await normalizeBacklinkResults({ ...opts, results }) : []
     return {
-      items: results
-        .filter(r => r.isFulfilled)
-        .map(r => r.value)
+      items: filterResults({ models, filter, results: items })
     }
   }
 

@@ -76,32 +76,32 @@ const appSubModel = {
   id: 'tradle.ApplicationSubmission',
   title: 'Application Submission',
   properties: {
-    // application: {
-    //   type: 'object',
-    //   ref: 'tradle.Application'
-    // },
-    // submission: {
-    //   type: 'object',
-    //   ref: 'tradle.Object'
-    // },
-    a: {
-      type: 'string'
+    application: {
+      type: 'object',
+      ref: 'tradle.Application'
     },
-    b: {
-      type: 'string'
+    submission: {
+      type: 'object',
+      ref: 'tradle.Object'
     },
+    // a: {
+    //   type: 'string'
+    // },
+    // b: {
+    //   type: 'string'
+    // },
     context: {
       type: 'string'
     }
   },
   required: [
-    'a',
-    'b',
+    'application',
+    'submission',
     // 'bType',
   ],
   primaryKeys: {
-    hashKey: 'a',
-    rangeKey: 'b'
+    hashKey: 'application.permalink',
+    rangeKey: 'submission.permalink'
   },
   indexes: [
     {
@@ -115,13 +115,13 @@ core[appSubModel.id] = appSubModel
 
 const appModel = core['tradle.Application']
 // appModel.properties.checks.items.backlink = 'application'
-// appModel.properties.submissions = {
-//   type: 'array',
-//   items: {
-//     ref: 'tradle.ApplicationSubmission',
-//     backlink: 'application'
-//   }
-// }
+appModel.properties.submissions = {
+  type: 'array',
+  items: {
+    ref: 'tradle.ApplicationSubmission',
+    backlink: 'application'
+  }
+}
 
 // appModel.properties.emailChecks = {
 //   type: 'array',

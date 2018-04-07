@@ -26,13 +26,15 @@ import {
   ParsedResourceStub,
   ISaveEventPayload,
   Logger,
+  Provider
 } from './types'
 
 import { getRecordsFromEvent } from './db-utils'
 import Errors from './errors'
 import { TYPES } from './constants'
 const { MESSAGE, BACKLINK_ITEM } = TYPES
-
+const APPLICATION = 'tradle.Application'
+const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
 const { isDescendantOf, isInlinedProperty } = validateResource.utils
 const SEPARATOR = ':'
 
@@ -97,6 +99,7 @@ export type BacklinksChange = {
 // export type Backlink = string[]
 
 type BacklinksOpts = {
+  provider: Provider
   db: DB
   modelStore: ModelStore
   logger: Logger
@@ -106,7 +109,9 @@ export default class Backlinks {
   private db: DB
   private modelStore: ModelStore
   private logger: Logger
-  constructor ({ db, modelStore, logger }: BacklinksOpts) {
+  private provider: Provider
+  constructor ({ provider, db, modelStore, logger }: BacklinksOpts) {
+    this.provider = provider
     this.db = db
     this.modelStore = modelStore
     this.logger = logger
@@ -174,11 +179,11 @@ export default class Backlinks {
 
       return buildResource({
           models: this.models,
-          model: 'tradle.ApplicationSubmission'
+          model: APPLICATION_SUBMISSION
         })
         .set({
-          a: getPermId(application),
-          b: getPermId(submission),
+          application,
+          submission,
           context
         })
         .setVirtual({
@@ -190,7 +195,10 @@ export default class Backlinks {
 
     if (!applicationSubmissions.length) return []
 
-    return await Promise.all(applicationSubmissions.map(appSub => this.db.put(appSub)))
+    return await Promise.all(applicationSubmissions.map(async (object) => {
+      object = await this.provider.signObject({ object })
+      return await this.provider.saveObject({ object })
+    }))
   }
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
@@ -223,7 +231,7 @@ export default class Backlinks {
       // select: ['_link', '_permalink', 'context'],
       filter: {
         EQ: {
-          [TYPE]: 'tradle.Application'
+          [TYPE]: APPLICATION
         },
         IN: {
           context: contexts

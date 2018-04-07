@@ -75,8 +75,8 @@
     },
     "@tradle/build-resource": {
       "version": "2.15.0",
-      "from": "@tradle/build-resource@>=2.15.0 <3.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-2.15.0.tgz"
+      "from": "tradle/build-resource#stubs",
+      "resolved": "git://github.com/tradle/build-resource.git#7d77a21a1c4c936e433291c986d6aaed538d338f"
     },
     "@tradle/cb-blockr": {
       "version": "3.2.1",
@@ -159,7 +159,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb#overload",
-      "resolved": "git://github.com/tradle/dynamodb.git#b69b02a4b5c450cff5f907bcb5b84a0ff36d6a4b",
+      "resolved": "git://github.com/tradle/dynamodb.git#a874b69287880c484ec702c31493e5005078957a",
       "dependencies": {
         "koa-compose": {
           "version": "4.0.0",
@@ -343,7 +343,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql#backlinks",
-      "resolved": "git://github.com/tradle/schema-graphql.git#9846be492fe441fdcf27e14c47ba3e14cc47f5d5"
+      "resolved": "git://github.com/tradle/schema-graphql.git#d01f32b0718b43d14092e0360d9b2a63a18764ba"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
@@ -377,8 +377,8 @@
     },
     "@tradle/validate-resource": {
       "version": "2.21.5",
-      "from": "@tradle/validate-resource@>=2.21.4 <3.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-2.21.5.tgz",
+      "from": "tradle/validate-resource#stubs",
+      "resolved": "git://github.com/tradle/validate-resource.git#bb5c139d3007f74484fcb9ce18f69b5d83d492ff",
       "dependencies": {
         "debug": {
           "version": "3.1.0",

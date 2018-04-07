@@ -104,8 +104,7 @@ const constants = {
     'tradle.PubKey',
     'tradle.products.Customer',
     TYPES.SEAL_STATE,
-    TYPES.BACKLINK_ITEM,
-    'tradle.ApplicationSubmission'
+    TYPES.BACKLINK_ITEM
   ]
 }
 
