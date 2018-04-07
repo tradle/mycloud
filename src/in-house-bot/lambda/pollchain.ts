@@ -1,4 +1,3 @@
-
 import { createBot } from '../../bot'
 import { sendConfirmedSeals } from '../utils'
 

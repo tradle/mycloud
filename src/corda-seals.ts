@@ -127,7 +127,7 @@ class CordaSeals {
 
   public watch = promiseNoop
   public watchNextVersion = promiseNoop
-  public syncUnconfirmed = opts => promiseNoop
+  public syncUnconfirmed = promiseNoop
   public getUnconfirmed = opts => this.seals.getUnconfirmed(opts)
   public getLongUnconfirmed = opts => this.seals.getLongUnconfirmed(opts)
   public getUnsealed = opts => this.seals.getUnsealed(opts)
