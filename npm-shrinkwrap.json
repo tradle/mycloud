@@ -159,7 +159,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb#overload",
-      "resolved": "git://github.com/tradle/dynamodb.git#a874b69287880c484ec702c31493e5005078957a",
+      "resolved": "git://github.com/tradle/dynamodb.git#450d513ed3b92892288951f61900a01a207877be",
       "dependencies": {
         "koa-compose": {
           "version": "4.0.0",
@@ -258,8 +258,8 @@
     },
     "@tradle/models": {
       "version": "4.10.10",
-      "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#d70019b9aac1ff6789eb592f4bde55f5ba89f6b5"
+      "from": "tradle/models#backlinks",
+      "resolved": "git://github.com/tradle/models.git#a2361ee176d44df55240b5e633c85cbe3a022aa8"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -343,7 +343,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql#backlinks",
-      "resolved": "git://github.com/tradle/schema-graphql.git#d01f32b0718b43d14092e0360d9b2a63a18764ba"
+      "resolved": "git://github.com/tradle/schema-graphql.git#5f3cf654300f1f7f479b29c4a8eca3dc57f06161"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
