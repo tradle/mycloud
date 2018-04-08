@@ -8,7 +8,7 @@ export interface IReady {
   promiseReady: () => Promise<void>
 }
 
-export function readyMixin (emitter:EventEmitter) {
+export const mixin = (emitter:EventEmitter) => {
   let resolveReady
   const promise = new Promise(resolve => {
       resolveReady = resolve

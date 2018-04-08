@@ -40,7 +40,9 @@ import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
 import {
   ResourceStub,
-  ParsedResourceStub
+  ParsedResourceStub,
+  GetResourceIdentifierInput,
+  GetResourceIdentifierOutput
 } from '@tradle/validate-resource'
 
 export type Constructor<T = {}> = new (...args: any[]) => T
@@ -50,6 +52,8 @@ export {
   // re-export from @tradle/validate-resource
   ResourceStub,
   ParsedResourceStub,
+  GetResourceIdentifierInput,
+  GetResourceIdentifierOutput,
   // re-export from @tradle/dynamodb
   DB,
   Table,
@@ -602,9 +606,12 @@ export interface ISaveEventPayload {
   old?: any
 }
 
-export type GetResourceParams = {
-  type?: string
-  permalink?: string
-  id?: string
+export interface IModelsMixinTarget {
+  models: Models
   [key: string]: any
+}
+
+export interface IHasModels {
+  buildResource: (model: string|Model) => any
+  buildStub: (resource: ITradleObject) => any
 }

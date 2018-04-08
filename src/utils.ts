@@ -58,7 +58,7 @@ import {
   IBackoffOptions,
   ResourceStub,
   ParsedResourceStub,
-  GetResourceParams
+  GetResourceIdentifierInput
 } from './types'
 
 import Logger from './logger'
@@ -79,7 +79,11 @@ const {
   pickVirtual,
   stripVirtual,
   omitVirtualDeep,
-  hasVirtualDeep
+  hasVirtualDeep,
+  getResourceIdentifier,
+  getPermId,
+  omitBacklinks,
+  pickBacklinks
 } = validateResource.utils
 
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
@@ -187,6 +191,10 @@ export {
  stripVirtual,
  omitVirtualDeep,
  hasVirtualDeep,
+ getResourceIdentifier,
+ getPermId,
+ omitBacklinks,
+ pickBacklinks,
  parseId,
  parseStub,
  encodeDataURI,
@@ -1211,35 +1219,6 @@ export const getStubsByType = (stubs: ResourceStub[], type: string):ParsedResour
   return stubs
     .map(parseStub)
     .filter(parsed => parsed.type === type)
-}
-
-export const getPermId = (opts: GetResourceParams) => {
-  const { type, permalink } = getResourceIdentifier(opts)
-  return `${type}_${permalink}`
-}
-
-export const getResourceIdentifier = (props: GetResourceParams) => {
-  const parts = _getResourceIdentifier(props)
-  const { type, permalink } = parts
-  if (!(type && permalink)) {
-    throw new Errors.InvalidInput('not enough data to look up resource')
-  }
-
-  return parts
-}
-
-const _getResourceIdentifier = (props: GetResourceParams) => {
-  if (TYPE in props) {
-    return {
-      type: props[TYPE],
-      permalink: props._permalink
-    }
-  }
-
-  const { type, permalink, link, id } = props
-  if (id) return parseId(id)
-
-  return { type, permalink, link }
 }
 
 export const isUnsignedType = modelId => UNSIGNED_TYPES.includes(modelId)

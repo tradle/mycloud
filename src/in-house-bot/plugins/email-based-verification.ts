@@ -19,6 +19,7 @@ import { EmailBasedVerifier, TTL } from '../email-based-verifier'
 import { getPropertyTitle } from '../utils'
 import { getStubsByType } from '../../utils'
 import Errors from '../../errors'
+import { topics as EventTopics } from '../../events'
 
 const EMAIL_CHECK = 'tradle.EmailCheck'
 const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
@@ -196,8 +197,9 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
     }
   }
 
-  bot.hookSimple('async:save', async (event) => {
+  bot.hookSimple(EventTopics.resource.save.async, async (event) => {
     const { value, old } = event
+    if (!value) return // this is a 'delete' op
     if (value[TYPE] !== EMAIL_CHECK) return
     if (value.status) return
 

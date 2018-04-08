@@ -8,7 +8,8 @@ import {
   Logger,
   IPBApp,
   IPBReq,
-  CreatePlugin
+  CreatePlugin,
+  Applications
 } from '../types'
 
 const {TYPE} = constants
@@ -51,10 +52,12 @@ class ComplyAdvantageAPI {
   private conf:IComplyAdvantageConf
   private productsAPI:any
   private logger:Logger
-  constructor({ bot, productsAPI, conf, logger }) {
+  private applications: Applications
+  constructor({ bot, productsAPI, applications, conf, logger }) {
     this.bot = bot
     this.conf = conf
     this.productsAPI = productsAPI
+    this.applications = applications
     this.logger = logger
   }
   async getData(resource, conf, searchProperties, criteria, application) {
@@ -161,14 +164,14 @@ debugger
                            // documentOwner: applicant
                          })
                          .toJSON()
-    const signedVerification = await this.bot.signAndSave(verification)
-    this.productsAPI.importVerification({ user, application, verification: signedVerification })
+
+    await this.applications.createVerification({ application, verification })
   }
 }
 // {conf, bot, productsAPI, logger}
-export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI }, { conf, logger }) => {
+export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications }, { conf, logger }) => {
   // const complyAdvantage = new ComplyAdvantageAPI({ bot, apiKey: conf.credentials.apiKey, productsAPI, logger })
-  const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, conf, logger })
+  const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, applications, conf, logger })
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req: IPBReq) {
       debugger

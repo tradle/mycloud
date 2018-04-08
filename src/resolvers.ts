@@ -1,4 +1,4 @@
-import { difference } from 'lodash'
+import { difference, defaultsDeep } from 'lodash'
 import { TYPE } from '@tradle/constants'
 
 import {
@@ -64,7 +64,14 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
   const get = async ({ model, key }: { model: Model, key: any }) => {
     let result
     try {
-      result = await db.get(key)
+      result = await db.findOne({
+        filter: {
+          EQ: {
+            [TYPE]: model.id,
+            ...key
+          }
+        }
+      })
     } catch (err) {
       if (err.name && err.name.toLowerCase() === 'notfound') {
         return null
@@ -99,10 +106,16 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
   const listBacklink = async (opts: ListOpts) => {
     const { backlink, filter } = opts
     const container = await backlinks.getBacklinks(backlink.target)
-    const results = container[backlink.back.propertyName]
+    const { model, propertyName } = backlink.back
+    const results = container[propertyName]
     const items = results ? await normalizeBacklinkResults({ ...opts, results }) : []
+    const property = model.properties[propertyName]
     return {
-      items: filterResults({ models, filter, results: items })
+      items: filterResults({
+        models,
+        filter: defaultsDeep(filter || {}, property.items.filter || {}),
+        results: items
+      })
     }
   }
 

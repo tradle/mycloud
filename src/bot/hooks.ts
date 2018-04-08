@@ -30,7 +30,8 @@ export const hookUp = (bot: Bot) => {
         sealChanges.length ? reemitSealEvents(sealChanges) : RESOLVED_PROMISE
       ])
     } catch (err) {
-      debugger
+      bot.logger.error('failed to process resource changes batch', err)
+      throw err
     }
   })
 

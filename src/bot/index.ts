@@ -4,10 +4,11 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import compose from 'koa-compose'
 import { TYPE, SIG } from '@tradle/constants'
-import { DB } from '@tradle/dynamodb'
+import { DB, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
-import { readyMixin, IReady } from './ready-mixin'
+import { mixin as readyMixin, IReady } from './ready-mixin'
+import { mixin as modelsMixin } from './models-mixin'
 import { topics as EventTopics, toAsyncEvent, toBatchEvent, getSealEventTopic } from '../events'
 import {
   defineGetter,
@@ -17,7 +18,9 @@ import {
   parseId,
   RESOLVED_PROMISE,
   batchProcess,
-  getResourceIdentifier
+  getResourceIdentifier,
+  pickBacklinks,
+  omitBacklinks
 } from '../utils'
 
 import { addLinks } from '../crypto'
@@ -51,7 +54,9 @@ import {
   KeyValueTable,
   KV,
   ISaveEventPayload,
-  GetResourceParams
+  GetResourceIdentifierInput,
+  IHasModels,
+  Model,
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -78,6 +83,12 @@ type LambdaMap = {
 
 type GetResourceOpts = {
   backlinks?: boolean
+}
+
+type SendInput = {
+  to: string | { id: string }
+  object?: any
+  link?: string
 }
 
 export const createBot = (opts:Partial<IBotOpts>={}):Bot => {
@@ -123,7 +134,7 @@ const lambdaCreators:LambdaImplMap = {
  * @param  {Tradle}             opts.tradle
  * @return {BotEngine}
  */
-export class Bot extends EventEmitter implements IReady {
+export class Bot extends EventEmitter implements IReady, IHasModels {
   public get aws() { return this.tradle.aws }
   public get objects() { return this.tradle.objects }
   public get db() { return this.tradle.db }
@@ -172,6 +183,10 @@ export class Bot extends EventEmitter implements IReady {
   public isReady: () => boolean
   public promiseReady: () => Promise<void>
 
+  // IHasModels
+  public buildResource: (model: string|Model) => any
+  public buildStub: (resource: ITradleObject) => any
+
   // public hook = (event:string, payload:any) => {
   //   if (this.isTesting && event.startsWith('async:')) {
   //     event = event.slice(6)
@@ -203,6 +218,9 @@ export class Bot extends EventEmitter implements IReady {
   constructor(opts: IBotOpts) {
     super()
 
+    readyMixin(this)
+    modelsMixin(this)
+
     let {
       tradle,
       users,
@@ -222,7 +240,6 @@ export class Bot extends EventEmitter implements IReady {
       timeout: MESSAGE_LOCK_TIMEOUT
     })
 
-    readyMixin(this)
     this.kv = tradle.kv.sub('bot:kv:')
     this.kv1 = tradle.kv1.sub('bot:kv:')
     this.conf = tradle.kv.sub('bot:conf:')
@@ -356,7 +373,29 @@ export class Bot extends EventEmitter implements IReady {
   public getMyIdentity = () => this.tradle.provider.getMyPublicIdentity()
   public getMyIdentityPermalink = () => this.tradle.provider.getMyIdentityPermalink()
 
-  public sign = (object, author?) => this.tradle.provider.signObject({ object, author })
+  public sign = async (resource, author?) => {
+    const model = this.models[resource[TYPE]]
+    if (model) {
+      const backlinks = this._pickBacklinks(resource)
+      if (_.some(backlinks, arr => arr.length)) {
+        debugger
+        throw new Errors.InvalidInput(`remove backlinks before signing!`)
+      }
+    }
+
+    return await this.tradle.provider.signObject({ object: resource, author })
+  }
+
+  private _pickBacklinks = resource => pickBacklinks({
+    model: this.models[resource[TYPE]],
+    resource
+  })
+
+  private _omitBacklinks = resource => omitBacklinks({
+    model: this.models[resource[TYPE]],
+    resource
+  })
+
   public seal = opts => this.seals.create(opts)
   public forceReinitializeContainers = async (functions?: string[]) => {
     if (this.isTesting) return
@@ -434,7 +473,59 @@ export class Bot extends EventEmitter implements IReady {
     bot: this
   })
 
-  public getResource = async (props: GetResourceParams, opts: GetResourceOpts={}):Promise<ITradleObject> => {
+  public sendIfUnsent = async (opts:SendInput) => {
+    const { link, object, to } = opts
+    if (!to) throw new Errors.InvalidInput('expected "to"')
+
+    if (!link && !object[SIG]) {
+      throw new Errors.InvalidInput(`expected "link" or signed "object"`)
+    }
+
+    try {
+      return this.getMessageWithPayload({
+        inbound: false,
+        link: link || buildResource.link(object),
+        recipient: normalizeRecipient(to)
+      })
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
+    return this.send(opts)
+  }
+
+  public getMessageWithPayload = async ({ link, author, recipient, inbound, select }: {
+    link: string
+    author?: string
+    recipient?: string
+    inbound?: boolean
+    select?: string[]
+  }) => {
+    const filter:Filter = {
+      EQ: {
+        [TYPE]: 'tradle.Message',
+        _payloadLink: link
+      }
+    }
+
+    if (typeof inbound === 'boolean') {
+      filter.EQ._inbound = inbound
+    }
+
+    if (author) filter.EQ._author = author
+    if (recipient) filter.EQ._recipient = recipient
+
+    return await this.db.findOne({
+      select,
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
+      filter
+    })
+  }
+
+  public getResource = async (props: GetResourceIdentifierInput, opts: GetResourceOpts={}):Promise<ITradleObject> => {
     const promiseResource = this._getResource(props)
     if (!opts.backlinks) {
       return await promiseResource
@@ -452,7 +543,7 @@ export class Bot extends EventEmitter implements IReady {
     }
   }
 
-  private _getResource = async (props: GetResourceParams) => {
+  private _getResource = async (props: GetResourceIdentifierInput) => {
     if (props[SIG]) return props
 
     const { type, permalink, link } = getResourceIdentifier(props)
@@ -474,11 +565,6 @@ export class Bot extends EventEmitter implements IReady {
 
     return _.extend(resource, backlinks)
   }
-
-  public buildResource = model => buildResource({
-    models: this.models,
-    model
-  })
 
   public resolveEmbeds = object => this.objects.resolveEmbeds(object)
   public presignEmbeddedMediaLinks = object => this.objects.presignEmbeddedMediaLinks(object)

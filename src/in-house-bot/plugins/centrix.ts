@@ -15,7 +15,8 @@ import {
   Name,
   Bot,
   Logger,
-  CreatePlugin
+  CreatePlugin,
+  Applications
 } from '../types'
 
 import { getNameFromForm, parseScannedDate, toISODateString } from '../utils'
@@ -42,9 +43,11 @@ class CentrixAPI {
   private productsAPI:any
   private centrix:any
   private logger: Logger
-  constructor({ bot, productsAPI, centrix, logger }) {
+  private applications: Applications
+  constructor({ bot, productsAPI, applications, centrix, logger }) {
     this.bot = bot
     this.productsAPI = productsAPI
+    this.applications = applications
     this.centrix = centrix
     this.logger = logger
   }
@@ -99,12 +102,7 @@ class CentrixAPI {
     if (status.title !== PASS)
       return
     this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
-    const verification = await this.createCentrixVerification({ req, photoID, rawData })
-    this.productsAPI.importVerification({
-      user,
-      application,
-      verification
-    })
+    await this.createCentrixVerification({ req, photoID, rawData })
 
     // artificial timeout till we figure out why updating state
     // twice in a row sometimes loses the first change
@@ -161,7 +159,10 @@ class CentrixAPI {
                          })
                          .toJSON()
 
-    return await this.bot.signAndSave(verification)
+    return await this.applications.createVerification({
+      application: req.application,
+      verification
+    })
   }
   cleanJson(json) {
     for (let p in json) {
@@ -172,14 +173,14 @@ class CentrixAPI {
     }
   }
 }
-export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI }, { conf, logger }) => {
+export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, applications }, { conf, logger }) => {
   let { httpCredentials, requestCredentials } = conf.credentials
   if (typeof createCentrixClient !== 'function') {
     throw new Error('centrix client not available')
   }
 
   const centrix = createCentrixClient({ httpCredentials, requestCredentials })
-  const centrixAPI = new CentrixAPI({ bot, productsAPI, centrix, logger })
+  const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger })
   const getDataAndCallCentrix = async ({ req, application }) => {
     const centrixData:any = await getCentrixData({ application, bot })
     if (!centrixData) {

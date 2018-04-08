@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import buildResource from '@tradle/build-resource'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
-import { Bot, Logger, CreatePlugin } from '../types'
+import { Bot, Logger, CreatePlugin, Applications } from '../types'
 const utils_1 = require("../utils");
 
 const {TYPE} = constants
@@ -45,9 +45,11 @@ class OpenCorporatesAPI {
   private bot:Bot
   private productsAPI:any
   private logger:Logger
-  constructor({ bot, productsAPI, logger }) {
+  private applications: Applications
+  constructor({ bot, productsAPI, applications, logger }) {
     this.bot = bot
     this.productsAPI = productsAPI
+    this.applications = applications
     this.logger = logger
   }
   async _fetch(resource, application) {
@@ -170,12 +172,16 @@ class OpenCorporatesAPI {
                            method
                          })
                          .toJSON()
-    const signedVerification = await this.bot.signAndSave(verification)
-    this.productsAPI.importVerification({ user, application, verification: signedVerification })
+
+    const signedVerification = await this.applications.createVerification({
+      application,
+      verification
+    })
+
     if (!application.checks)
       return
 
-    let checks = await Promise.all(application.checks.map((r) => this.bot.objects.get(r.id.split('_')[2])))
+    let checks = await Promise.all(application.checks.map(appSub => this.bot.getResource(appSub.submission)))
     let ocChecks = []
     checks.forEach((r:any) => {
       if (r.provider !== OPEN_CORPORATES  ||  !r.isActive)
@@ -187,8 +193,8 @@ class OpenCorporatesAPI {
       await Promise.all(ocChecks)
   }
 }
-export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger, conf }) => {
-  const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, logger })
+export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, applications }, { logger, conf }) => {
+  const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, applications, logger })
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req) {
       // let doReturn = true

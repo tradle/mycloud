@@ -41,6 +41,24 @@ declare module '@tradle/validate-resource' {
     property: any
   }
 
+  export type GetResourceIdentifierInput = {
+    type?: string
+    permalink?: string
+    id?: string
+    [key: string]: any
+  }
+
+  export type GetResourceIdentifierOutput = {
+    type: string
+    permalink: string
+    link?: string
+  }
+
+  export type OmitBacklinksInput = {
+    model: any
+    resource: any
+  }
+
   export interface Utils {
     parseId(id:string): ParsedResourceStub
     parseStub(stub:ResourceStub): ParsedResourceStub
@@ -56,6 +74,11 @@ declare module '@tradle/validate-resource' {
     isDescendantOf(opts: IsDescendantOfInput): boolean
     getPropertyTitle(opts: GetPropertyTitleInput): string
     isInlinedProperty(opts: IsInlinedPropertyInput): string
+    getResourceIdentifier(opts: GetResourceIdentifierInput): GetResourceIdentifierOutput
+    getPermId(opts: GetResourceIdentifierInput): string
+    omitBacklinks(opts: OmitBacklinksInput): any
+    pickBacklinks(opts: OmitBacklinksInput): any
+    isBacklinkProperty(prop: any): any
   }
 
   class RequiredError extends Error {

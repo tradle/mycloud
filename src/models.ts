@@ -59,69 +59,69 @@ if (!baseMessageModel.indexes) {
   ]
 }
 
-const formModel = core['tradle.Form']
-if (!formModel.properties.verifications) {
-  formModel.properties.verifications = {
-    type: 'array',
-    readOnly: true,
-    items: {
-      backlink: 'document',
-      ref: 'tradle.Verification'
-    }
-  }
-}
+// const formModel = core['tradle.Form']
+// if (!formModel.properties.verifications) {
+//   formModel.properties.verifications = {
+//     type: 'array',
+//     readOnly: true,
+//     items: {
+//       backlink: 'document',
+//       ref: 'tradle.Verification'
+//     }
+//   }
+// }
 
-const appSubModel = {
-  type: 'tradle.Model',
-  id: 'tradle.ApplicationSubmission',
-  title: 'Application Submission',
-  properties: {
-    application: {
-      type: 'object',
-      ref: 'tradle.Application'
-    },
-    submission: {
-      type: 'object',
-      ref: 'tradle.Object'
-    },
-    // a: {
-    //   type: 'string'
-    // },
-    // b: {
-    //   type: 'string'
-    // },
-    context: {
-      type: 'string'
-    }
-  },
-  required: [
-    'application',
-    'submission',
-    // 'bType',
-  ],
-  primaryKeys: {
-    hashKey: 'application.permalink',
-    rangeKey: 'submission.permalink'
-  },
-  indexes: [
-    {
-      hashKey: 'context',
-      rangeKey: '_time'
-    }
-  ]
-}
+// const appSubModel = {
+//   type: 'tradle.Model',
+//   id: 'tradle.ApplicationSubmission',
+//   title: 'Application Submission',
+//   properties: {
+//     application: {
+//       type: 'object',
+//       ref: 'tradle.Application'
+//     },
+//     submission: {
+//       type: 'object',
+//       ref: 'tradle.Object'
+//     },
+//     // a: {
+//     //   type: 'string'
+//     // },
+//     // b: {
+//     //   type: 'string'
+//     // },
+//     context: {
+//       type: 'string'
+//     }
+//   },
+//   required: [
+//     'application',
+//     'submission',
+//     // 'bType',
+//   ],
+//   primaryKeys: {
+//     hashKey: 'application.permalink',
+//     rangeKey: 'submission.permalink'
+//   },
+//   indexes: [
+//     {
+//       hashKey: 'context',
+//       rangeKey: '_time'
+//     }
+//   ]
+// }
 
-core[appSubModel.id] = appSubModel
+// core[appSubModel.id] = appSubModel
 
 const appModel = core['tradle.Application']
 // appModel.properties.checks.items.backlink = 'application'
-appModel.properties.submissions = {
-  type: 'array',
-  items: {
-    ref: 'tradle.ApplicationSubmission',
-    backlink: 'application'
-  }
-}
+// appModel.properties.submissions = {
+//   type: 'array',
+//   items: {
+//     ref: 'tradle.ApplicationSubmission',
+//     backlink: 'application'
+//   }
+// }
 
 // appModel.properties.emailChecks = {
 //   type: 'array',

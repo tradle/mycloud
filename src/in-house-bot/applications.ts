@@ -10,7 +10,8 @@ import {
   IPBReq,
   IPBApp,
   ITradleObject,
-  IPBUser
+  IPBUser,
+  Models
 } from './types'
 
 interface ICreateCheckOpts {
@@ -29,9 +30,15 @@ interface IPropertyInfo {
   message?: string
 }
 
+const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
+
 export class Applications {
   private bot: Bot
   private productsAPI: any
+  private get models() {
+    return this.bot.models
+  }
+
   constructor({ bot, productsAPI }: {
     bot: Bot
     productsAPI: any
@@ -114,13 +121,17 @@ export class Applications {
     return this.judgeApplication({ ...opts, approve: false })
   }
 
+  public verify = async (opts) => {
+    return await this.productsAPI.verify(opts)
+  }
+
   public issueVerifications = async ({ req, user, application, send }: {
     req?: IPBReq
     user: IPBUser
     application: IPBApp
     send?: boolean
   }) => {
-    await this.productsAPI.issueVerifications({ req, user, application, send })
+    return await this.productsAPI.issueVerifications({ req, user, application, send })
   }
 
   public requestEdit = async (opts) => {
@@ -151,12 +162,60 @@ export class Applications {
     })
   }
 
+  public createVerification = async ({ req, application, verification }: {
+    verification: ITradleObject
+    application?: IPBApp
+    req?: IPBReq
+  }) => {
+    // this.productsAPI.verify({
+    //   req,
+    //   user: req && req.user,
+    //   application,
+    //   verification
+    // })
+
+    verification = await this.bot.sign(verification)
+    const promiseSave = this.bot.save(verification)
+    if (application) {
+      // we're not sending this verification yet,
+      // so we need to create the ApplicationSubmission manually
+      await this.createApplicationSubmission({ application, submission: verification })
+    }
+
+    await promiseSave
+    return verification
+  }
+
+  public createApplicationSubmission = async ({ application, submission }: {
+    application: IPBApp
+    submission: ITradleObject
+  }) => {
+    const appSub = this.bot.buildResource(APPLICATION_SUBMISSION)
+      .set({
+        application,
+        submission,
+        context: application.context
+      })
+      .toJSON()
+
+    const signed = await this.bot.createResource(appSub)
+    this.productsAPI.state.addSubmission({ application, submission: signed })
+    return signed
+  }
+
+  // public getChecks = async (application:IPBApp) => {
+  //   const stubs = (application.checks || application.submissions || []).map(appSub => appSub.submission)
+  //   return Promise.all(stubs.map(this.bot.getResource))
+  // }
+
   private stub = (resource: ITradleObject) => {
     return buildResource.stub({
       models: this.bot.models,
       resource
     })
   }
+
+  private buildResource = () => buildResource({ models: this.models })
 
   private getApplicantFromApplication = async (application: IPBApp) => {
     return await this.bot.users.get(parseStub(application.applicant).permalink)
