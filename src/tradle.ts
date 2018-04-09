@@ -15,7 +15,7 @@ import {
   Discovery,
   Messages,
   Friends,
-  KeyValueTable,
+  // KeyValueTable,
   KV,
   ContentAddressedStore,
   Push,
@@ -57,9 +57,8 @@ export default class Tradle {
   public messages: Messages
   public db: DB
   public contentAddressedStore:ContentAddressedStore
-  public conf:KeyValueTable
-  public kv:KeyValueTable
-  public kv1:KV
+  public conf:KV
+  public kv:KV
   public auth: Auth
   public delivery: Delivery
   public discovery: Discovery
@@ -146,15 +145,15 @@ export default class Tradle {
     //   })
     // })
 
-    this.define('kv', './key-value-table', ctor => {
-      return new ctor({
-        table: this.tables.KV
-      })
-    })
+    // this.define('kv', './key-value-table', ctor => {
+    //   return new ctor({
+    //     table: this.tables.KV
+    //   })
+    // })
 
-    this.define('kv1', './kv', ctor => {
+    this.define('kv', './kv', ctor => {
       return new ctor({
-        table: this.tables.KV
+        db: this.db
       })
     })
 

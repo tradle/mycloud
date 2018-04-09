@@ -7,9 +7,8 @@ import { ECKey, sha256, randomString } from './crypto'
 import { cachifyFunction, post, omitVirtual } from './utils'
 import Logger from './logger'
 import Provider from './provider'
-import KeyValueTable from './key-value-table'
 import Errors from './errors'
-import { IIdentity } from './types'
+import { IIdentity, IKeyValueStore } from './types'
 
 export type Subscriber = {
   seq: number
@@ -25,17 +24,17 @@ export const getNotificationData = ({ nonce, seq }: {
   seq: number
 }):string => sha256(seq + nonce)
 
-export const createSubscriberInfo = () => ({ seq: -1 })
+export const createSubscriberInfo = () => ({ seq: 0 })
 
 export default class Push {
   private serverUrl: string
-  private registration: KeyValueTable
-  private subscribers: KeyValueTable
+  private registration: IKeyValueStore
+  private subscribers: IKeyValueStore
   public cache: any
   public logger: Logger
   constructor ({ serverUrl, conf, logger }:{
     serverUrl:string
-    conf:KeyValueTable
+    conf: IKeyValueStore
     logger:Logger
   }) {
     this.registration = conf.sub(':reg')
@@ -85,33 +84,23 @@ export default class Push {
 
   public incrementSubscriberNotificationCount = async (subscriber:string)
     :Promise<Subscriber> => {
-    try {
-      return await this.subscribers.update(subscriber, {
-        UpdateExpression: 'ADD #value.#seq :incr',
-        ExpressionAttributeNames: {
-          '#value': 'value',
-          '#seq': 'seq'
-        },
-        ExpressionAttributeValues: {
-          ':incr': 1
-        },
-        ReturnValues: 'ALL_NEW'
-      })
-    } catch (err) {
-      Errors.ignore(err, Errors.InvalidInput)
-      const info = createSubscriberInfo()
-      info.seq++
-      await this.subscribers.put(subscriber, info)
-      return info
-    }
+    return await this.subscribers.update(subscriber, {
+      UpdateExpression: 'ADD #seq :incr',
+      ExpressionAttributeNames: {
+        '#seq': 'seq'
+      },
+      ExpressionAttributeValues: {
+        ':incr': 1
+      },
+      ReturnValues: 'ALL_NEW'
+    })
   }
 
   public saveError = async ({ error, subscriber }) => {
     // TBD: whether to save last X err messages/stacks
     return await this.subscribers.update(subscriber, {
-      UpdateExpression: 'ADD #value.#errorCount :incr',
+      UpdateExpression: 'ADD #errorCount :incr',
       ExpressionAttributeNames: {
-        '#value': 'value',
         '#errorCount': 'errorCount'
       },
       ExpressionAttributeValues: {
@@ -124,7 +113,7 @@ export default class Push {
   public push = async ({ identity, key, subscriber }) => {
     await this.ensureRegistered({ identity, key })
     const info = await this.incrementSubscriberNotificationCount(subscriber)
-    const { seq } = info
+    const seq = info.seq - 1
     const nonce = randomString(8, 'base64')
     const sig = await key.promiseSign(getNotificationData({ seq, nonce }))
     const publisher = buildResource.permalink(identity)

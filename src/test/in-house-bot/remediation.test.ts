@@ -74,6 +74,7 @@ test('remediation plugin', loudAsync(async (t) => {
     logger: new Logger('test:remediation1.1')
   })
 
+  api.keyToClaimIds = api.keyToClaimIds.sub('test-' + Date.now())
   sandbox.stub(api, 'getBundleByClaimId').callsFake(async (id) => {
     t.equal(id, claim.claimId)
     return dataBundle
@@ -125,6 +126,7 @@ test('remediation api', loudAsync(async (t) => {
     logger: new Logger('test:remediation')
   })
 
+  remediation.keyToClaimIds = remediation.keyToClaimIds.sub('test-' + Date.now())
   const stub = await remediation.genClaimStub({ bundle, claimType: 'bulk' })
   t.same(idToStub(stub.claimId), {
     key: stub.key,

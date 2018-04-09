@@ -164,13 +164,13 @@ custom:
     # presence: ${{self:custom.prefix}}presence
     # seals: ${{self:custom.prefix}}seals
     # pubkeys: ${{self:custom.prefix}}pubkeys
-    messages: ${{self:custom.prefix}}messages
+    # messages: ${{self:custom.prefix}}messages
     events: ${{self:custom.prefix}}events
     # pushsubscribers: ${{self:custom.prefix}}pushsubscribers
-    users: ${{self:custom.prefix}}users
+    # users: ${{self:custom.prefix}}users
     # friends: ${{self:custom.prefix}}friends
     # conf: ${{self:custom.prefix}}conf
-    kv: ${{self:custom.prefix}}kv
+    # kv: ${{self:custom.prefix}}kv
     # backlinks: ${{self:custom.prefix}}backlinks
 
   # auto-scaled tables that serve as buckets for multiple models each
@@ -1516,20 +1516,20 @@ resources:
     #           ReadCapacityUnits: 5
     #           WriteCapacityUnits: 5
 
-    KVTable:
-      Type: AWS::DynamoDB::Table
-      Description: freeform key-value store
-      Properties:
-        TableName: ${{self:custom.tables.kv}}
-        AttributeDefinitions:
-          - AttributeName: key
-            AttributeType: S
-        KeySchema:
-          - AttributeName: key
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
+    # KVTable:
+    #   Type: AWS::DynamoDB::Table
+    #   Description: freeform key-value store
+    #   Properties:
+    #     TableName: ${{self:custom.tables.kv}}
+    #     AttributeDefinitions:
+    #       - AttributeName: key
+    #         AttributeType: S
+    #     KeySchema:
+    #       - AttributeName: key
+    #         KeyType: HASH
+    #     ProvisionedThroughput:
+    #       ReadCapacityUnits: 5
+    #       WriteCapacityUnits: 5
 
     # BacklinksTable:
     #   Type: AWS::DynamoDB::Table

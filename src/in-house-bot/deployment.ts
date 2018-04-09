@@ -16,7 +16,7 @@ import {
   IMyDeploymentConf,
   IDeploymentConfForm,
   ILaunchReportPayload,
-  KeyValueTable,
+  IKeyValueStore,
   ResourceStub,
   IOrganization,
   IDeploymentPluginConf,
@@ -98,7 +98,7 @@ const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `
 
 export class Deployment {
   // exposed for testing
-  public kv: KeyValueTable
+  public kv: IKeyValueStore
   private bot: Bot
   private env: Env
   private pubConfBucket: Bucket
@@ -251,7 +251,7 @@ export class Deployment {
     link: string
   }) => {
     const { deploymentUUID } = template.Mappings.deployment.init as IMyDeploymentConf
-    await this.kv.put(deploymentUUID, link)
+    await this.kv.put(deploymentUUID, { link })
     return deploymentUUID
   }
 
@@ -288,7 +288,7 @@ export class Deployment {
     const { deploymentUUID, apiUrl, org, identity, stackId } = report
     let link
     try {
-      link = await this.kv.get(deploymentUUID)
+      ({ link } = await this.kv.get(deploymentUUID))
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })

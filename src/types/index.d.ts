@@ -581,7 +581,7 @@ export interface IKeyValueStore {
   get: (key: string, opts?:any) => Promise<any>
   put: (key: string, value:any) => Promise<void|any>
   del: (key: string, opts?:any) => Promise<void>
-  update?: (key: string, opts?:any) => Promise<void>
+  update?: (key: string, opts?:any) => Promise<void|any>
   sub?: (prefix: string) => IKeyValueStore
 }
 

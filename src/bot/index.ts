@@ -51,8 +51,7 @@ import {
   HooksHookFn,
   Seal,
   IBotMessageEvent,
-  KeyValueTable,
-  KV,
+  IKeyValueStore,
   ISaveEventPayload,
   GetResourceIdentifierInput,
   IHasModels,
@@ -171,9 +170,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get backlinks () { return this.tradle.backlinks }
   public appLinks: AppLinks
   public logger: Logger
-  public kv: KeyValueTable
-  public kv1: KV
-  public conf: KeyValueTable
+  public kv: IKeyValueStore
+  public conf: IKeyValueStore
   public debug: Function
   public users: any
   public graphql: IGraphqlAPI
@@ -241,7 +239,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
 
     this.kv = tradle.kv.sub('bot:kv:')
-    this.kv1 = tradle.kv1.sub('bot:kv:')
     this.conf = tradle.kv.sub('bot:conf:')
     this.endpointInfo = {
       aws: true,

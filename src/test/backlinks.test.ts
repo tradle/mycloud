@@ -28,7 +28,7 @@ import { createTestTradle } from '../'
 
 test('update backlinks', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const { kv1, modelStore, db, backlinks } = createTestTradle()
+  const { modelStore, db, backlinks } = createTestTradle()
   const models = modelStore.models
   const model = {
     ...models['tradle.Verification'],

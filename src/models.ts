@@ -142,18 +142,21 @@ if (!appModel.indexes.find(i => i.hashKey === 'context')) {
   })
 }
 
-// const kvPair = {
-//   type: 'tradle.Model',
-//   id: 'tradle.KV',
-//   title: 'Key Value Pair',
-//   properties: {
-//     key: {
-//       type: 'string'
-//     }
-//     // additional properties are not covered by schema
-//   },
-//   required: ['key']
-// }
+const jsonItem = {
+  type: 'tradle.Model',
+  id: 'tradle.POJO',
+  title: 'JSON item',
+  properties: {
+    key: {
+      type: 'string'
+    }
+    // additional properties are not covered by schema
+  },
+  required: ['key'],
+  primaryKeys: ['key']
+}
+
+core[jsonItem.id] = jsonItem
 
 // const cloudEventModel = {
 //   type: 'tradle.Model',

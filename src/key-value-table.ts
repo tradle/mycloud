@@ -1,3 +1,5 @@
+// DEPRECATED, not currently used
+
 import {
   IKeyValueStore
 } from './types'

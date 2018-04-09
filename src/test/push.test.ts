@@ -76,7 +76,7 @@ test('push', loudAsync(async (t) => {
     .post('/notification')
     .reply(getNotificationRequest)
 
-  t.same(await push.getSubscriber(subscriber), { seq: -1 })
+  t.same(await push.getSubscriber(subscriber), { seq: 0 })
 
   await push.push({
     identity: alice,
@@ -85,7 +85,7 @@ test('push', loudAsync(async (t) => {
   })
 
   t.equal(pushed, true)
-  t.same(await push.getSubscriber(subscriber), { seq: 0 })
+  t.same(await push.getSubscriber(subscriber), { seq: 1 })
 
   nock(serverUrl)
     .post('/notification')
@@ -97,7 +97,7 @@ test('push', loudAsync(async (t) => {
     subscriber
   })
 
-  t.same(await push.getSubscriber(subscriber), { seq: 1 })
+  t.same(await push.getSubscriber(subscriber), { seq: 2 })
 
   nock(serverUrl)
     .post('/notification')
@@ -120,7 +120,7 @@ test('push', loudAsync(async (t) => {
     t.ok(err)
   }
 
-  t.same(await push.getSubscriber(subscriber), { seq: 2, errorCount: 1 })
+  t.same(await push.getSubscriber(subscriber), { seq: 3, errorCount: 1 })
 
   t.end()
 }))

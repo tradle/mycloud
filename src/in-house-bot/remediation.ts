@@ -16,7 +16,7 @@ import { stubToId, idToStub } from './data-claim'
 import {
   Logger,
   Bot,
-  KeyValueTable,
+  IKeyValueStore,
   ClaimType,
   ClaimStub,
   IPBUser,
@@ -97,7 +97,7 @@ export class Remediation {
   public bot: Bot
   public productsAPI: any
   public logger: Logger
-  public keyToClaimIds: KeyValueTable
+  public keyToClaimIds: IKeyValueStore
   public store: ContentAddressedStore
   public conf: any
   private _removeHandler: Function
@@ -129,7 +129,7 @@ export class Remediation {
     const claimStub = await this.genClaimStub({ key, claimType })
     const claimIds = await this.getClaimIdsForKey({ key })
     claimIds.push(claimStub.claimId)
-    await this.keyToClaimIds.put(key, claimIds)
+    await this.keyToClaimIds.put(key, { claimIds })
     return claimStub
   }
 
@@ -170,6 +170,7 @@ export class Remediation {
   public getBundleByClaimId = async (claimId: string):Promise<IDataBundle> => {
     const { key } = idToStub(claimId)
     const claimIds = await this.getClaimIdsForKey({ key })
+    debugger
     if (claimIds.includes(claimId)) {
       return await this.getBundleByKey({ key })
     }
@@ -457,7 +458,8 @@ export class Remediation {
 
   private getClaimIdsForKey = async ({ key }: KeyContainer):Promise<ClaimStub[]> => {
     try {
-      return await this.keyToClaimIds.get(key)
+      const { claimIds } = await this.keyToClaimIds.get(key)
+      return claimIds
     } catch (err) {
       Errors.ignoreNotFound(err)
       return []
