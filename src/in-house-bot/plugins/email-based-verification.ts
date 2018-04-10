@@ -104,6 +104,8 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
   }
 
   const getEmail = (application: IPBApp, form: ITradleObject) => {
+    if (!application) return
+
     const pConf = <any>get(pluginConf.products, [application.requestFor, form[TYPE]])
     if (!pConf) return
 

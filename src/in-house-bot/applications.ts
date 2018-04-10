@@ -138,6 +138,10 @@ export class Applications {
     return await this.productsAPI.requestEdit(opts)
   }
 
+  public requestItem = async (opts) => {
+    return await this.productsAPI.requestItem(opts)
+  }
+
   public haveAllFormsBeenVerified = async ({ application }: {
     application: IPBApp
   }) => {
@@ -181,6 +185,8 @@ export class Applications {
       // so we need to create the ApplicationSubmission manually
       await this.createApplicationSubmission({ application, submission: verification })
     }
+
+    this.productsAPI.importVerification({ application, verification })
 
     await promiseSave
     return verification

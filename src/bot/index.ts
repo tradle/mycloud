@@ -82,6 +82,7 @@ type LambdaMap = {
 
 type GetResourceOpts = {
   backlinks?: boolean
+  resolveEmbeds?: boolean
 }
 
 type SendInput = {
@@ -523,20 +524,25 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public getResource = async (props: GetResourceIdentifierInput, opts: GetResourceOpts={}):Promise<ITradleObject> => {
-    const promiseResource = this._getResource(props)
-    if (!opts.backlinks) {
+    const { backlinks, resolveEmbeds } = opts
+    let promiseResource = this._getResource(props)
+    if (resolveEmbeds) {
+      promiseResource = promiseResource.then(this.resolveEmbeds)
+    }
+
+    if (!backlinks) {
       return await promiseResource
     }
 
     const { type, permalink, link } = getResourceIdentifier(props)
-    const [resource, backlinks] = await Promise.all([
+    const [resource, backlinksObj] = await Promise.all([
       promiseResource,
       this.backlinks.getBacklinks({ type, permalink })
     ])
 
     return {
       ...resource,
-      ...backlinks
+      ...backlinksObj
     }
   }
 

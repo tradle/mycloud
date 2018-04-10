@@ -145,7 +145,7 @@
     "@tradle/models-products-bot": "github:tradle/models-products-bot#customeruid",
     "@tradle/onfido-api": "github:tradle/onfido-api",
     "@tradle/plugin-customize-message": "github:tradle/plugin-customize-message",
-    "@tradle/plugin-onfido": "github:tradle/plugin-onfido",
+    "@tradle/plugin-onfido": "github:tradle/plugin-onfido#backlinks",
     "@tradle/qr": "^2.0.0",
     "@tradle/qr-schema": "^1.9.0",
     "@tradle/schema-graphql": "github:tradle/schema-graphql#backlinks",

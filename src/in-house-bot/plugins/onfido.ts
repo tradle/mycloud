@@ -22,7 +22,7 @@ const normalizePluginConf = conf => ({
   })
 })
 
-export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI }, { logger, conf }) => {
+export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI, applications }, { logger, conf }) => {
   const {
     apiKey,
     products
@@ -42,6 +42,7 @@ export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI }, { logger
       return { product, reports }
     }),
     productsAPI,
+    applications,
     onfidoAPI,
     padApplicantName: true,
     formsToRequestCorrectionsFor: ['tradle.onfido.Applicant', 'tradle.Selfie']
