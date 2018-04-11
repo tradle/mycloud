@@ -36,8 +36,10 @@ import { createSilentLogger } from './utils'
 import { ModelStore, createModelStore } from '../model-store'
 import { models as PingPongModels } from '../bot/ping-pong-models'
 import constants from '../constants'
+import models from '../models'
 import {
-  IKeyValueStore
+  IKeyValueStore,
+  Bot
 } from '../types'
 
 const { KVTable } = require('../definitions')
@@ -1054,6 +1056,22 @@ test('ModelStore', loudAsync(async (t) => {
   sandbox.restore()
   t.end()
 }))
+
+// import * as DBKey from '../db-key'
+// test.only('db-key', t => {
+//   const schema = {
+//     hashKey: 'a',
+//     rangeKey: 'b'
+//   }
+
+//   const resource = { _t: 'test""blah', a: 1, b: 1 }
+//   const keyObj = DBKey.getKey(resource, schema)
+//   const str = DBKey.serialize(resource, schema)
+//   const reversed = DBKey.unserialize(str, schema)
+//   t.same(reversed, resource)
+//   t.end()
+// })
+
 
 // test.only('favicon', loudAsync(async (t) => {
 //   const favicon = await getFaviconUrl('tradle.io')

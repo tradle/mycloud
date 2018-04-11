@@ -185,6 +185,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   // IHasModels
   public buildResource: (model: string|Model) => any
   public buildStub: (resource: ITradleObject) => any
+  public validate: (resource: ITradleObject) => any
 
   // public hook = (event:string, payload:any) => {
   //   if (this.isTesting && event.startsWith('async:')) {
@@ -537,7 +538,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const { type, permalink, link } = getResourceIdentifier(props)
     const [resource, backlinksObj] = await Promise.all([
       promiseResource,
-      this.backlinks.getBacklinks({ type, permalink })
+      this.backlinks.fetchBacklinks({ type, permalink })
     ])
 
     return {
@@ -561,7 +562,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public getResourceByStub = this.getResource
 
   public addBacklinks = async (resource: ITradleObject) => {
-    const backlinks = await this.backlinks.getBacklinks({
+    const backlinks = await this.backlinks.fetchBacklinks({
       type: resource[TYPE],
       permalink: buildResource.permalink(resource)
     })

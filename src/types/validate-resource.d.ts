@@ -13,10 +13,13 @@ declare module '@tradle/validate-resource' {
     title?: string
   }
 
-  export interface ParsedResourceStub {
+  export interface ParsedPermId {
     type: string
-    link: string
     permalink: string
+  }
+
+  export interface ParsedResourceStub extends ParsedPermId {
+    link: string
     title?: string
   }
 
@@ -76,6 +79,7 @@ declare module '@tradle/validate-resource' {
     isInlinedProperty(opts: IsInlinedPropertyInput): string
     getResourceIdentifier(opts: GetResourceIdentifierInput): GetResourceIdentifierOutput
     getPermId(opts: GetResourceIdentifierInput): string
+    parsePermId(permid: string): ParsedPermId
     omitBacklinks(opts: OmitBacklinksInput): any
     pickBacklinks(opts: OmitBacklinksInput): any
     isBacklinkProperty(prop: any): any

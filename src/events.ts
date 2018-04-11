@@ -132,6 +132,7 @@ export default class Events {
   public isBatchEvent = isBatchEvent
   public isAsyncEvent = isAsyncEvent
   public parseTopic = parseTopic
+  public topics = topics
 }
 
 export { Events }

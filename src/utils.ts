@@ -82,6 +82,7 @@ const {
   hasVirtualDeep,
   getResourceIdentifier,
   getPermId,
+  parsePermId,
   omitBacklinks,
   pickBacklinks
 } = validateResource.utils
@@ -193,6 +194,7 @@ export {
  hasVirtualDeep,
  getResourceIdentifier,
  getPermId,
+ parsePermId,
  omitBacklinks,
  pickBacklinks,
  parseId,

@@ -614,4 +614,5 @@ export interface IModelsMixinTarget {
 export interface IHasModels {
   buildResource: (model: string|Model) => any
   buildStub: (resource: ITradleObject) => any
+  validate: (resource: ITradleObject) => void
 }

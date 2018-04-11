@@ -9,7 +9,7 @@ import fakeResource from '@tradle/build-resource/fake'
 import models from '../models'
 import {
   Backlinks,
-  getBacklinkItems,
+  getForwardLinks,
   // toBacklinks,
   getBacklinkChangesForChanges,
   serializeSource,
@@ -47,7 +47,7 @@ test('update backlinks', loudAsync(async (t) => {
   }
 
   const v = createFakeVerification()
-  const blItems = getBacklinkItems({
+  const blItems = getForwardLinks({
     models,
     resource: v
   })
@@ -80,8 +80,10 @@ test('update backlinks', loudAsync(async (t) => {
         }),
         "sourceLink": vStub.link,
         "linkProp": "document",
+        "backlinkProps": ["verifications"],
         "target": getPermId(v.document),
-        "targetLink": parseStub(v.document).link
+        "targetLink": parseStub(v.document).link,
+        "targetParsedStub": parseStub(v.document)
       }
     ],
     "del": [
@@ -94,8 +96,10 @@ test('update backlinks', loudAsync(async (t) => {
         }),
         "sourceLink": oldVStub.link,
         "linkProp": "document",
+        "backlinkProps": ["verifications"],
         "target": getPermId(old.document),
-        "targetLink": parseStub(old.document).link
+        "targetLink": parseStub(old.document).link,
+        "targetParsedStub": parseStub(old.document),
       }
     ]
   })
@@ -111,7 +115,7 @@ test('update backlinks', loudAsync(async (t) => {
   ])
 
   const docStub = parseStub(v.document)
-  const bls = await backlinks.getBacklinks(docStub)
+  const bls = await backlinks.fetchBacklinks(docStub)
   const vBls = {
     verifications: [
       { id: buildResource.id({ resource: v }) }
@@ -120,7 +124,7 @@ test('update backlinks', loudAsync(async (t) => {
 
   t.same(bls, vBls)
 
-  const bls1 = await backlinks.getBacklinks({
+  const bls1 = await backlinks.fetchBacklinks({
     type: docStub.type,
     permalink: docStub.permalink,
     properties: ['verifications']
@@ -128,7 +132,7 @@ test('update backlinks', loudAsync(async (t) => {
 
   t.same(bls1, vBls)
 
-  const bls2 = await backlinks.getBacklinks(parseStub(old.document))
+  const bls2 = await backlinks.fetchBacklinks(parseStub(old.document))
   t.same(bls2, {})
   t.end()
 }))

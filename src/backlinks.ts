@@ -5,6 +5,7 @@ import { TYPE } from '@tradle/constants'
 import {
   parseId,
   parseStub,
+  parsePermId,
   uniqueStrict,
   pluck,
   toPathValuePairs,
@@ -51,11 +52,12 @@ export interface IBacklinkItem {
   source: string
   sourceLink: string
   linkProp: string
+  backlinkProps: string[]
   // backlinkModel: Model
   // back: string
   // targetModel: Model
   // targetStub: ResourceStub
-  // targetParsedStub: ParsedResourceStub
+  targetParsedStub: ParsedResourceStub
   target: string
   targetLink: string
 }
@@ -121,11 +123,11 @@ export default class Backlinks {
     return this.modelStore.models
   }
 
-  private getBacklinkItems = (resource):IBacklinkItem[] => {
-    return getBacklinkItems({ models: this.models, resource })
+  public getForwardLinks = (resource):IBacklinkItem[] => {
+    return getForwardLinks({ models: this.models, resource })
   }
 
-  public getBacklinks = async ({ type, permalink, properties }: {
+  public fetchBacklinks = async ({ type, permalink, properties }: {
     type: string
     permalink: string
     properties?: string[]
@@ -209,11 +211,20 @@ export default class Backlinks {
     if (add.length) this.logger.debug(`creating ${add.length} backlink items`)//, pluck(add, 'source'))
     if (del.length) this.logger.debug(`deleting ${del.length} backlink items`)//, pluck(del, 'source'))
 
-    const promiseAdd = add.length ? this.db.batchPut(add) : RESOLVED_PROMISE
+    const promiseAdd = add.length ? this.db.batchPut(add.map(this.toDBFormat)) : RESOLVED_PROMISE
     const promiseDel = del.length ? Promise.all(del.map(item => this.db.del(item))) : RESOLVED_PROMISE
     await Promise.all([promiseAdd, promiseDel])
     return backlinkChanges
   }
+
+  private toDBFormat = (blItem:IBacklinkItem):any => _.omit(blItem, ['targetParsedStub', 'backlinkProp'])
+  private fromDBFormat = (blItem:any):IBacklinkItem => ({
+    ...blItem,
+    targetParsedStub: {
+      ...parsePermId(blItem.target),
+      link: blItem.targetLink
+    }
+  })
 
   public getBacklinksChanges = (rChanges: ISaveEventPayload[]):BacklinksChange => {
     return getBacklinkChangesForChanges({
@@ -243,7 +254,7 @@ export default class Backlinks {
   }
 }
 
-export const getBacklinkItems = ({ models, resource }: {
+export const getForwardLinks = ({ models, resource }: {
   models: Models
   resource: ITradleObject
 }):IBacklinkItem[] => {
@@ -292,9 +303,10 @@ export const getBacklinkItems = ({ models, resource }: {
       // sourceStub,
       // sourceParsedStub,
       linkProp: linkProp,
+      backlinkProps,
       target: getPermId(targetParsedStub),
-      targetLink: targetParsedStub.link
-      // targetStub,
+      targetLink: targetParsedStub.link,
+      targetParsedStub,
       // targetParsedStub,
       // targetModel,
     }
@@ -483,11 +495,11 @@ export const getBacklinkChangesForChanges = ({ models, changes }: {
   changes: ISaveEventPayload[]
 }) => {
   const forwardBefore = _.flatMap(changes, ({ value, old }) => {
-    return old ? getBacklinkItems({ models, resource: old }) : []
+    return old ? getForwardLinks({ models, resource: old }) : []
   })
 
   const forwardAfter = _.flatMap(changes, ({ value, old }) => {
-    return value ? getBacklinkItems({ models, resource: value }) : []
+    return value ? getForwardLinks({ models, resource: value }) : []
   })
 
   const fBeforeUids = forwardBefore.map(toUid)

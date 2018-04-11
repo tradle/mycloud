@@ -105,7 +105,7 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
 
   const listBacklink = async (opts: ListOpts) => {
     const { backlink, filter } = opts
-    const container = await backlinks.getBacklinks(backlink.target)
+    const container = await backlinks.fetchBacklinks(backlink.target)
     const { model, propertyName } = backlink.back
     const results = container[propertyName]
     const items = results ? await normalizeBacklinkResults({ ...opts, results }) : []
