@@ -4,7 +4,6 @@ import Lens from '@tradle/lens'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { Conf } from '../configure'
-import { parseId } from '../../utils'
 import { Bot, Logger, IPBApp, IPBReq, IBotComponents, CreatePlugin } from '../types'
 
 const ValidationErrors = validateResource.Errors
@@ -128,8 +127,6 @@ export class LensPlugin {
 
       const type = prefill[TYPE]
       if (type) return type
-
-      if (prefill.id) return parseId(prefill.id).type
     }
   }
 }

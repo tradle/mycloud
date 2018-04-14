@@ -109,6 +109,7 @@ export default class Objects {
   }
 
   public addMetadata = (object:ITradleObject, forceRecalc?:boolean):ITradleObject => {
+    if (!object) debugger
     if (!forceRecalc && object._sigPubKey && object._link && object._permalink) {
       return object
     }

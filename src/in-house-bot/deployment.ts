@@ -387,7 +387,7 @@ ${this.genUsageInstructions(links)}`
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
-    const botPermalink = utils.parseStub(identity).permalink
+    const botPermalink = buildResource.permalink(identity)
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
     try {
       await this.notifyConfigurer({

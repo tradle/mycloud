@@ -156,7 +156,7 @@ export class Applications {
 
     // get latest version of those checks
     const checkResources = await Promise.all(checks
-      .map(parseStub)
+      .map(appStub => parseStub(appStub.submission))
       .map(stub => this.bot.getResource(stub)))
 
     const byAPI = groupBy(checkResources, 'provider')
@@ -224,7 +224,7 @@ export class Applications {
   private buildResource = () => buildResource({ models: this.models })
 
   private getApplicantFromApplication = async (application: IPBApp) => {
-    return await this.bot.users.get(parseStub(application.applicant).permalink)
+    return await this.bot.users.get(application.applicant._permalink)
   }
 
   private _commitApplicationUpdate = async ({ application, user }: {

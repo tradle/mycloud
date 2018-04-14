@@ -3,9 +3,11 @@ import _ from 'lodash'
 const core = require('@tradle/models').models
 
 const baseMessageModel = core['tradle.Message']
-baseMessageModel.properties._counterparty = {
-  type: 'string',
-  virtual: true
+if (!baseMessageModel.properties._counterparty) {
+  baseMessageModel.properties._counterparty = {
+    type: 'string',
+    virtual: true
+  }
 }
 
 // baseMessageModel.properties._dcounterpartyh = {
@@ -13,9 +15,11 @@ baseMessageModel.properties._counterparty = {
 //   virtual: true
 // }
 
-baseMessageModel.properties._dcounterparty = {
-  type: 'string',
-  virtual: true
+if (!baseMessageModel.properties._dcounterparty) {
+  baseMessageModel.properties._dcounterparty = {
+    type: 'string',
+    virtual: true
+  }
 }
 
 if (!baseMessageModel.properties._inbound) {

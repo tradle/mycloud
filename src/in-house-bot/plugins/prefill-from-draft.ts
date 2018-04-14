@@ -43,7 +43,7 @@ export const createPlugin: CreatePlugin<void> = ({
     // TODO: be smart about multi-entry
     const { form } = formRequest
     const filledAlready = (application.forms || [])
-      .map(parseStub)
+      .map(appSub => parseStub(appSub.submission))
       .filter(({ type }) => type === form)
 
     if (!(draft.formPrefills && draft.formPrefills.length)) return

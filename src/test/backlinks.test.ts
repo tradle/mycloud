@@ -9,7 +9,7 @@ import fakeResource from '@tradle/build-resource/fake'
 import models from '../models'
 import {
   Backlinks,
-  getForwardLinks,
+  // getForwardLinks,
   // toBacklinks,
   getBacklinkChangesForChanges,
   serializeSource,
@@ -19,7 +19,6 @@ import Errors from '../errors'
 import {
   loudAsync,
   setVirtual,
-  parseId,
   parseStub,
   getPermId
 } from '../utils'
@@ -42,23 +41,19 @@ test('update backlinks', loudAsync(async (t) => {
       signed: true
     })
 
-    v.document.id = v.document.id.replace('tradle.Form', 'tradle.PhotoID')
+    v.document._t = 'tradle.PhotoID'
     return v
   }
 
   const v = createFakeVerification()
-  const blItems = getForwardLinks({
-    models,
-    resource: v
-  })
-
-  const vStub = parseStub(buildResource.stub({ resource: v }))
+  const blItems = backlinks.getForwardLinks(v)
+  const vStub = buildResource.stub({ resource: v })
   const old = {
     ...createFakeVerification(),
     _permalink: v._permalink
   }
 
-  const oldVStub = parseStub(buildResource.stub({ resource: old }))
+  const oldVStub = buildResource.stub({ resource: old })
   const blChanges = getBacklinkChangesForChanges({
     models,
     changes: [
@@ -73,33 +68,19 @@ test('update backlinks', loudAsync(async (t) => {
     "add": [
       {
         "_t": "tradle.BacklinkItem",
-        "source": serializeSource({
-          type: vStub.type,
-          permalink: vStub.permalink,
-          property: 'document'
-        }),
-        "sourceLink": vStub.link,
+        "source": vStub,
         "linkProp": "document",
         "backlinkProps": ["verifications"],
-        "target": getPermId(v.document),
-        "targetLink": parseStub(v.document).link,
-        "targetParsedStub": parseStub(v.document)
+        "target": v.document
       }
     ],
     "del": [
       {
         "_t": "tradle.BacklinkItem",
-        "source": serializeSource({
-          type: oldVStub.type,
-          permalink: oldVStub.permalink,
-          property: 'document'
-        }),
-        "sourceLink": oldVStub.link,
+        "source": oldVStub,
         "linkProp": "document",
         "backlinkProps": ["verifications"],
-        "target": getPermId(old.document),
-        "targetLink": parseStub(old.document).link,
-        "targetParsedStub": parseStub(old.document),
+        "target": old.document
       }
     ]
   })
@@ -118,7 +99,7 @@ test('update backlinks', loudAsync(async (t) => {
   const bls = await backlinks.fetchBacklinks(docStub)
   const vBls = {
     verifications: [
-      { id: buildResource.id({ resource: v }) }
+      vStub
     ]
   }
 

@@ -357,3 +357,7 @@ export const isPassedCheck = ({ status }) => {
 
 export const getPropertyTitle = validateResource.utils.getPropertyTitle
 export { getEnumValueId }
+
+export const getAppFormStubs = (application:IPBApp) => (application.forms || [])
+  .map(appSub => appSub.submission)
+  .map(parseStub)

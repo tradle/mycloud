@@ -159,7 +159,10 @@ export default class Provider {
     const key = getSigningKey(author.keys)
     const signed = await sign({
       key,
-      object: omitVirtual(object)
+      object: omitVirtualDeep({
+        models: this.tradle.modelStore.models,
+        resource: object
+      })
     })
 
     this.objects.addMetadata(signed)
@@ -201,7 +204,10 @@ export default class Provider {
     message: any,
     clientId?:string
   }):Promise<ITradleMessage> => {
-    ensureNoVirtualProps(message)
+    ensureNoVirtualProps({
+      models: this.tradle.modelStore.models,
+      resource: message
+    })
 
     if (clientId) {
       const { object } = message

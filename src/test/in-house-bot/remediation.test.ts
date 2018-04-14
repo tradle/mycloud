@@ -14,7 +14,7 @@ import {
 import {
   createPlugin as createPrefillFromDraftPlugin
 } from '../../in-house-bot/plugins/prefill-from-draft'
-import { loudAsync, parseStub } from '../../utils'
+import { loudAsync, parseStub, getResourceIdentifier } from '../../utils'
 import { addLinks } from '../../crypto'
 import Errors from '../../errors'
 import { Logger } from '../../logger'
@@ -57,7 +57,9 @@ test('remediation plugin', loudAsync(async (t) => {
       t.equal(items.length, dataBundle.items.length)
       t.ok(items.every(item => {
         const isForm = models[item[TYPE]].subClassOf === FORM
-        return item[SIG] && (!isForm || item[OWNER] === user.id)
+        const ok = item[SIG] && (!isForm || item[OWNER] === user.id)
+        if (!ok) debugger
+        return ok
       }))
     })
   }
@@ -242,12 +244,13 @@ test('prefill-based', loudAsync(async (t) => {
     throw new Errors.NotFound(key)
   })
 
-  sandbox.stub(bot, 'getResource').callsFake(async ({ type, permalink, id }, opts={}) => {
-    if (permalink === draft._permalink || id === draftStub.id) {
+  sandbox.stub(bot, 'getResource').callsFake(async (stub, opts={}) => {
+    const { type, permalink, link } = getResourceIdentifier(stub)
+    if (permalink === draft._permalink || link === draftStub._link) {
       return opts.backlinks ? { ...draft, formPrefills: prefillStubs } : draft
     }
 
-    const idx = prefillStubs.findIndex(stub => stub.id === id)
+    const idx = prefillStubs.findIndex(stub => stub._permalink === permalink)
     if (idx !== -1) {
       return prefills[idx]
     }

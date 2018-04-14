@@ -645,7 +645,10 @@ class User extends EventEmitter {
       clientId: this.clientId,
       data: await IotMessage.encode({
         type: 'messages',
-        payload: [message].map(item => validateResource.utils.omitVirtualDeep(item))
+        payload: [message].map(item => validateResource.utils.omitVirtualDeep({
+          models: this.models,
+          resource: item
+        }))
       })
     })
 

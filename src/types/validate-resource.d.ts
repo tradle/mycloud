@@ -9,8 +9,14 @@ declare module '@tradle/validate-resource' {
   export type ValidateResource = (opts:ValidateResourceOpts) => void
 
   export interface ResourceStub {
-    id: string
-    title?: string
+    _t: string
+    _link: string
+    _permalink: string
+  }
+
+  export interface ExtendedResourceStub extends ResourceStub {
+    _displayName?: string
+    [x: string]: any
   }
 
   export interface ParsedPermId {
@@ -39,9 +45,14 @@ declare module '@tradle/validate-resource' {
     propertyName: string
   }
 
-  type IsInlinedPropertyInput = {
+  type TransformPropertyInput = {
     models: any
     property: any
+  }
+
+  type TransformResourceInput = {
+    models: any
+    resource: any
   }
 
   export type GetResourceIdentifierInput = {
@@ -62,12 +73,17 @@ declare module '@tradle/validate-resource' {
     resource: any
   }
 
+  export type EnumStub = {
+    id: string
+    title?: string
+  }
+
   export interface Utils {
-    parseId(id:string): ParsedResourceStub
+    // parseId(id:string): ParsedResourceStub
     parseStub(stub:ResourceStub): ParsedResourceStub
-    parseEnumValue(IParseEnumValueOpts):ResourceStub
+    parseEnumValue(IParseEnumValueOpts):EnumStub
     omitVirtual(obj:any): any
-    omitVirtualDeep(obj:any): any
+    omitVirtualDeep(obj:TransformResourceInput): any
     hasVirtualDeep(obj:any): boolean
     setVirtual(obj:any, props:any): any
     pickVirtual(obj:any): any
@@ -76,7 +92,8 @@ declare module '@tradle/validate-resource' {
     isInstantiable(obj:any): boolean
     isDescendantOf(opts: IsDescendantOfInput): boolean
     getPropertyTitle(opts: GetPropertyTitleInput): string
-    isInlinedProperty(opts: IsInlinedPropertyInput): string
+    isInlinedProperty(opts: TransformPropertyInput): string
+    isEnumProperty(opts: TransformPropertyInput): string
     getResourceIdentifier(opts: GetResourceIdentifierInput): GetResourceIdentifierOutput
     getPermId(opts: GetResourceIdentifierInput): string
     parsePermId(permid: string): ParsedPermId

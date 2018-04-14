@@ -239,8 +239,6 @@ const getChainKey = (keys, props={}) => {
 }
 
 const sign = loudAsync(async ({ key, object }) => {
-  ensureNoVirtualProps(object)
-
   const author = key instanceof ECKey ? key : new ECKey(key)
   /* { object, merkleRoot } */
 

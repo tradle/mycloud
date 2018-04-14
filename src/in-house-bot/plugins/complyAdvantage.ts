@@ -12,6 +12,8 @@ import {
   Applications
 } from '../types'
 
+import { parseStub } from '../../utils'
+
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
@@ -193,13 +195,16 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       for (let formId in propertyMap) {
         let map = propertyMap[formId]
         if (formId !== FORM_ID) {
-          let formStubs = application.forms && application.forms.filter((f) =>  f.id.indexOf(FORM_ID) !== -1)
+          let formStubs = application.forms && application.forms
+            .map(appStub => parseStub(appStub.submission))
+            .filter(f => f.type === FORM_ID)
+
           if (!formStubs.length) {
             logger.debug(`No form ${formId} was found for ${productId}`)
             return
           }
-          let link = formStubs[0].id.split('_')[2]
-          resource = bot.objects.get(link)
+          let { link } = formStubs[0]
+          resource = await bot.objects.get(link)
         }
         let companyNameProp = map.companyName
         if (companyNameProp)

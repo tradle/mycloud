@@ -616,3 +616,10 @@ export interface IHasModels {
   buildStub: (resource: ITradleObject) => any
   validate: (resource: ITradleObject) => void
 }
+
+export interface IBacklinkItem {
+  target: ResourceStub
+  source: ResourceStub
+  linkProp: string
+  backlinkProps: string[]
+}

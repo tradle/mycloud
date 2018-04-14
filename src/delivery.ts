@@ -67,7 +67,11 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
   public deliverBatch = async (opts:ILiveDeliveryOpts) => {
     const messages = opts.messages.map(message => {
-      message = validateResource.utils.omitVirtualDeep(message)
+      message = validateResource.utils.omitVirtualDeep({
+        models: this.tradle.modelStore.models,
+        resource: message
+      })
+
       this.objects.presignEmbeddedMediaLinks({ object: message })
       return message
     })

@@ -42,12 +42,14 @@ const listApplications = `{
         _t
         _s
         applicant {
-          id
-          title
+          _t
+          _link
+          _permalink
         }
-        relationshipManager {
-          id
-          title
+        relationshipManagers {
+          _t
+          _permalink
+          _link
         }
         status
         dateStarted
@@ -56,37 +58,26 @@ const listApplications = `{
         dateModified
         context
         request {
-          id
-          title
+          _t
+          _permalink
+          _link
         }
         requestFor
         forms {
-          id
-          title
+          _t
+          _permalink
+          _link
         }
-        verificationsImported {
-          item {
-            id
-            title
-          }
-          verification {
-            id
-            title
-          }
-        }
-        verificationsIssued {
-          item {
-            id
-            title
-          }
-          verification {
-            id
-            title
-          }
+        verifications {
+          _t
+          _permalink
+          _link
+          submission
         }
         certificate {
-          id
-          title
+          _t
+          _permalink
+          _link
         }
         archived
       }

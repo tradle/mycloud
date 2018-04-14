@@ -129,16 +129,20 @@ export type VerifiedItem = {
   verification: ResourceStub
 }
 
+export type ApplicationSubmission = {
+  application: ResourceStub
+  submission: ResourceStub
+}
+
 export interface IPBApp extends ITradleObject {
   applicant: ResourceStub
   request?: ResourceStub
   requestFor: string
   context: string
-  forms?: ResourceStub[]
-  verificationsImported?: VerifiedItem[]
-  verificationsIssued?: VerifiedItem[]
+  forms?: ApplicationSubmission[]
+  verifications?: ApplicationSubmission[]
   relationshipManagers?: ResourceStub[]
-  checks?:ResourceStub[]
+  checks?:ApplicationSubmission[]
   status: string
   dateStarted: number
   dateModified: number

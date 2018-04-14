@@ -24,7 +24,8 @@ import {
   ITradleObject,
   IServiceMap,
   Iot,
-  DB
+  DB,
+  ModelStore
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
@@ -74,6 +75,7 @@ export default class Auth {
   private iot: Iot
   private logger: Logger
   private tasks: TaskManager
+  private modelStore: ModelStore
 
   constructor (opts: {
     env: Env,
@@ -86,7 +88,8 @@ export default class Auth {
     db: DB,
     iot: Iot,
     logger: Logger,
-    tasks: TaskManager
+    tasks: TaskManager,
+    modelStore: ModelStore
   }) {
     // lazy define
     this.env = opts.env
@@ -100,6 +103,7 @@ export default class Auth {
     this.iot = opts.iot
     this.logger = opts.logger.sub('auth')
     this.tasks = opts.tasks
+    this.modelStore = opts.modelStore
   }
 
   get accountId () {
@@ -242,11 +246,7 @@ export default class Auth {
     // const promiseCredentials = this.createCredentials(session)
     const getLastSent = this.messages.getLastMessageTo({ recipient: permalink, body: false })
       .then(message => this.messages.getMessageStub({ message }))
-      .catch(err => {
-        if (Errors.isNotFound(err)) return null
-
-        throw err
-      })
+      .catch(Errors.ignoreNotFound)
 
     Object.assign(session, {
       clientPosition: position,
@@ -312,7 +312,11 @@ export default class Auth {
 
     const { clientId, identity } = opts
 
-    ensureNoVirtualProps(identity)
+    ensureNoVirtualProps({
+      models: this.modelStore.models,
+      resource: identity
+    })
+
     const permalink = getPermalink(identity)
     if (permalink !== this.getPermalinkFromClientId(clientId)) {
       throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')

@@ -66,7 +66,7 @@ test('deployment by referral', loudAsync(async (t) => {
   const sendStub = sandbox.stub(parent, 'send').resolves({})
 
   sandbox.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {
-    t.equal(value, conf._link)
+    t.equal(value.link, conf._link)
     kv[key] = value
   })
 

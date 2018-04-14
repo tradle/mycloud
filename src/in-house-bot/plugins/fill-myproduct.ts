@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { Conf } from '../configure'
-import { parseId, parseStub } from '../../utils'
+import { parseStub } from '../../utils'
 import { Bot, Logger, IPBApp, IPBReq, CreatePlugin } from '../types'
 import baseModels from '../../models'
 

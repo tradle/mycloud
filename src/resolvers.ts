@@ -1,5 +1,7 @@
+import _ from 'lodash'
 import { difference, defaultsDeep } from 'lodash'
 import { TYPE } from '@tradle/constants'
+import buildResource from '@tradle/build-resource'
 
 import {
   Model,
@@ -12,7 +14,7 @@ import {
   filterResults
 } from '@tradle/dynamodb'
 
-import { ParsedResourceStub, Backlinks } from './types'
+import { ResourceStub, Backlinks } from './types'
 import { parseStub, allSettled } from './utils'
 
 const {
@@ -25,7 +27,7 @@ type PropertyInfo = {
 }
 
 type BacklinkInfo = {
-  target: ParsedResourceStub
+  target: ResourceStub
   forward: PropertyInfo
   back: PropertyInfo
 }
@@ -89,23 +91,27 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
       return []
     }
 
-    const parsedStubs = results.map(parseStub)
-    if (select && !difference(select, PROPS_KNOWN_FROM_STUB).length) {
-      return parsedStubs.map(({ type, link, permalink }) => ({
+    const props = _.chain(results)
+      .flatMap(r => Object.keys(r))
+      .uniq()
+      .value()
+
+    if (select && !difference(select, props).length) {
+      return results.map(({ type, link, permalink }) => ({
         [TYPE]: type,
         _link: link,
         _permalink: permalink
       }))
     }
 
-    return (await allSettled(parsedStubs.map(({ link }) => objects.get(link))))
+    return (await allSettled(results.map(({ _link }) => objects.get(_link))))
       .filter(r => r.isFulfilled)
       .map(r => r.value)
   }
 
   const listBacklink = async (opts: ListOpts) => {
     const { backlink, filter } = opts
-    const container = await backlinks.fetchBacklinks(backlink.target)
+    const container = await backlinks.fetchBacklinks(parseStub(backlink.target))
     const { model, propertyName } = backlink.back
     const results = container[propertyName]
     const items = results ? await normalizeBacklinkResults({ ...opts, results }) : []

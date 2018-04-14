@@ -5,6 +5,7 @@ import { cloneDeep } from 'lodash'
 import { TYPE, SIG } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
+import validateModels from '@tradle/validate-model'
 import Errors from '../errors'
 import {
   Bot,
@@ -12,20 +13,46 @@ import {
   Models,
   ITradleObject,
   ResourceStub,
-  Backlinks
+  Backlinks,
+  IBacklinkItem
 } from '../types'
 
 import {
   pickBacklinks,
   omitBacklinks,
   omitVirtual,
-  parseStub
+  parseStub,
+  getPermId
 } from '../utils'
 
-import { mixin as modelsMixin } from './models-mixin'
+const {
+  isInlinedProperty,
+  isEnumProperty,
+  isDescendantOf,
+  getAncestors
+} = validateModels.utils
+
+const {
+  omitVirtualDeep
+} = validateResource.utils
+
 
 type ExportResourceInput = {
   validate?: boolean
+}
+
+interface GetBacklinkPropertiesMinInput {
+  // e.g.
+  //   sourceModel: tradle.Verification
+  //   targetModel: tradle.PhotoID
+  //   linkProp: "document"
+  sourceModel: Model
+  targetModel: Model
+  linkProp: string
+}
+
+interface GetBacklinkPropertiesInput extends GetBacklinkPropertiesMinInput {
+  models: Models
 }
 
 export interface IDBKey {
@@ -42,13 +69,13 @@ const QUOTE = '"'
 
 
 export class Resource extends EventEmitter {
-  public diff: any
   public model: Model
   public models: Models
   public type: string
+  public resource: any
+  public diff: any
 
   private bot: Bot
-  private resource: any
   private originalResource: any
 
   constructor({ models, model, type, resource={}, bot }: {
@@ -73,11 +100,11 @@ export class Resource extends EventEmitter {
     }
 
     if (!(model || type || resource[TYPE])) {
+      debugger
       throw new Errors.InvalidInput(`expected "model" or "type" or "resource.${TYPE}"`)
     }
 
     this.bot = bot
-    modelsMixin(this)
 
     if (model) {
       if (!model.id) throw new Errors.InvalidInput('invalid "model" option')
@@ -114,47 +141,25 @@ export class Resource extends EventEmitter {
   }
 
   public get key() {
-    return getPrimaryKey({
-      model: this.model,
-      resource: this.resource
-    })
+    return getPrimaryKeys(this)
   }
 
   public get keyString() {
-    return serializePrimaryKey(this.resource, this.primaryKeysSchema)
+    return serializePrimaryKeyWithSchema(this.resource, this.primaryKeysSchema)
   }
 
   public get stub() {
-    return this.key
-  }
-
-  public get props() {
-    // danger!
-    return this.resource
+    return buildResource.stub({
+      models: this.models,
+      resource: this.resource
+    })
   }
 
   public get primaryKeysSchema() {
     return getPrimaryKeySchema(this.model)
   }
 
-  public parseKeyString = (key: string) => parsePrimaryKeyString({ key, schema: this.primaryKeysSchema })
-  public static parseKeyString = ({ key, models }: {
-    key: string
-    models: Models
-  }) => parsePrimaryKeyString({ key, models })
-
-  public static serializeKey = ({ key, model, models }: {
-    key: any
-    model?: Model
-    models?: Models
-  }) => {
-    if (!model) {
-      model = models[key[TYPE]]
-    }
-
-    return serializePrimaryKey(key, getPrimaryKeySchema(model))
-  }
-
+  public parseKeyString = (key: string) => parseKeyString({ key, schema: this.primaryKeysSchema })
   public isSigned = () => !!this.resource[SIG]
   public save = async (opts?) => {
     this._ensureHaveBot()
@@ -219,11 +224,12 @@ export class Resource extends EventEmitter {
 
   public toJSON = (opts:ExportResourceInput={}) => {
     const { models, model, resource } = this
-    if (opts.validate === false) {
-      return cloneDeep(resource)
+    const exported = omitVirtualDeep({ models, resource })
+    if (opts.validate !== false) {
+      this.validate()
     }
 
-    return cloneDeep(resource)
+    return exported
   }
 
   public validate = () => validateResource.resource({
@@ -231,11 +237,11 @@ export class Resource extends EventEmitter {
     resource: this.resource
   })
 
-  public getForwardLinks = (backlinks?: Backlinks) => {
-    if (!backlinks) backlinks = this.bot.backlinks
+  // public getForwardLinks = (backlinks?: Backlinks) => {
+  //   if (!backlinks) backlinks = this.bot.backlinks
 
-    return backlinks.getForwardLinks(this.resource)
-  }
+  //   return backlinks.getForwardLinks(this.resource)
+  // }
 
   public getBacklinks = (resource=this.resource) => pickBacklinks({
     model: this.model,
@@ -254,6 +260,57 @@ export class Resource extends EventEmitter {
     arr.push(stub)
     this.set(backlink, arr)
     return this
+  }
+
+  public getBacklinkProperties = (opts: GetBacklinkPropertiesMinInput) => getBacklinkProperties({
+    models: this.models,
+    ...opts
+  })
+
+  public getForwardLinks = ():IBacklinkItem[] => {
+    const { type, model, models, resource } = this
+    // if (isUnsignedType(type)) return []
+
+    const sourceStub = this.key
+    const { properties } = model
+    return Object.keys(resource).map(linkProp => {
+      const property = properties[linkProp]
+      if (!property || isInlinedProperty({ models, property })) {
+        return
+      }
+
+      const { ref } = property
+      if (!ref) return
+
+      if (isEnumProperty({ models, property })) return
+
+      const targetStub = resource[linkProp]
+      if (!targetStub) return
+
+      const targetModel = models[targetStub[TYPE]]
+      const backlinkProps = this.getBacklinkProperties({
+        sourceModel: model,
+        targetModel,
+        linkProp
+      })
+
+      if (!backlinkProps.length) return
+
+      // const sourceParsedStub = parseStub(sourceStub)
+      // const targetParsedStub = parseStub(targetStub)
+      return {
+        [TYPE]: 'tradle.BacklinkItem',
+        source: this.stub,
+        target: targetStub,
+        linkProp,
+        backlinkProps,
+      }
+    })
+    .filter(_.identity)
+    // .reduce((byProp, value) => {
+    //   byProp[value.forward] = value
+    //   return byProp
+    // }, {})
   }
 
   private _assertDiff = () => {
@@ -292,7 +349,13 @@ export const normalizeIndexedProperty = schema => {
   return schema
 }
 
-export const getPrimaryKey = ({ model, resource }) => {
+export const getPrimaryKeys = ({ models, model, resource }: {
+  models?: Models
+  model?: Model
+  resource: any
+}) => {
+  if (!model) model = models[resource[TYPE]]
+
   return _.pick(resource, _.values(getPrimaryKeySchema(model)).concat(TYPE))
 }
 
@@ -309,7 +372,7 @@ export const getKey = (resource: any, schema: IDBKey) => {
   return _.pick(resource, getKeyProps(schema))
 }
 
-export const serializePrimaryKey = (resource: any, schema: IDBKey):string => {
+export const serializePrimaryKeyWithSchema = (resource: any, schema: IDBKey):string => {
   const keys = getKeyProps(schema)
   const values = keys.map(prop => {
     const v = _.get(resource, prop)
@@ -345,7 +408,7 @@ export const unserializePrimaryKey = (key: string):string[] => {
   return values.map(v => JSON.parse(`${QUOTE}${v}${QUOTE}`))
 }
 
-export const parsePrimaryKeyString = ({ key, schema, models, model }: {
+export const parseKeyString = ({ key, schema, models, model }: {
   key: string
   schema?: IDBKey
   model?: Model
@@ -360,3 +423,49 @@ export const parsePrimaryKeyString = ({ key, schema, models, model }: {
 }
 
 export const toStableStub = stub => _.omit(stub, ['title', 'id', '_link'])
+
+export const serializeKey = ({ key, model, models }: {
+  key: any
+  model?: Model
+  models?: Models
+}) => {
+  if (!model) {
+    model = models[key[TYPE]]
+  }
+
+  return serializePrimaryKeyWithSchema(key, getPrimaryKeySchema(model))
+}
+
+// TODO: move to validate-model
+export const getBacklinkProperties = ({
+  models,
+  sourceModel,
+  targetModel,
+  linkProp
+}: GetBacklinkPropertiesInput):string[] => {
+  const targetAncestors = getAncestors({ models, model: targetModel })
+  const targetModels = [targetModel].concat(targetAncestors)
+  return _.chain(targetModels)
+    .flatMap(targetModel => {
+      const { properties } = targetModel
+      return Object.keys(properties).filter(propertyName => {
+        const property = properties[propertyName]
+        const { items } = property
+        if (!items) return
+
+        const { ref, backlink } = items
+        if (backlink !== linkProp) return
+
+        if (ref === sourceModel.id) return true
+
+        // e.g. a forms backlink might have ref "tradle.Form"
+        // linkProp might be "tradle.PhotoID"
+        // check: is tradle.PhotoID a descendant of tradle.Form?
+        return isDescendantOf({ models, a: sourceModel.id, b: ref })
+      })
+    })
+    .uniq()
+    .value()
+}
+
+export const getForwardLinks = ({ models, resource }) => new Resource({ models, resource }).getForwardLinks()

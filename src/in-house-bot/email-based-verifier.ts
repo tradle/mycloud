@@ -244,7 +244,7 @@ export class EmailBasedVerifier {
     }
 
     if (user) {
-      filter.STARTS_WITH['user.id'] = user.identity.id
+      filter.STARTS_WITH['user.id'] = user.identity._permalink
     }
 
     if (emailAddress) {

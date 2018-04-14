@@ -16,11 +16,11 @@ import {
   parseStub
 } from '../utils'
 
-import { Resource } from './resource'
+import { Resource, serializeKey } from './resource'
 
 export class RCache implements IHasModels {
   public bot: Bot
-  public byPK: Map<String, Resource>
+  private byPermalink: Map<String, Resource>
   // public byLink: Map<String, Resource>
 
   get models() { return this.bot.models }
@@ -37,7 +37,11 @@ export class RCache implements IHasModels {
     modelsMixin(this)
 
     this.bot = bot
-    this.byPK = new Map<String, Resource>()
+    this.byPermalink = new Map<String, Resource>()
+  }
+
+  public get = (permalink: string) => {
+    return this.byPermalink.get(permalink)
   }
 
   public create = (type: string) => {
@@ -56,7 +60,7 @@ export class RCache implements IHasModels {
     // }
 
     if (resource.isSigned()) {
-      this.byPK.set(resource.keyString, resource)
+      this.byPermalink.set(resource.permalink, resource)
       this._connect(resource)
     } else {
       this._subscribe(resource)
@@ -69,21 +73,17 @@ export class RCache implements IHasModels {
 
   private _connect = (resource: Resource) => {
     const { model, stub } = resource
-    const forwardLinks = resource.getForwardLinks(this.backlinks)
+    const forwardLinks = resource.getForwardLinks()
     if (!forwardLinks.length) return
 
     forwardLinks.forEach(blItem => {
-      const { targetStub, backlinkProps } = blItem
-      const target = this.byPK.get(Resource.serializeKey({
-        key: targetStub,
-        models: this.models
-      }))
+      const { source, target, backlinkProps } = blItem
+      const resource = this.byPermalink.get(target._permalink)
+      if (!resource) return
 
-      if (!target) return
-
-      backlinkProps.forEach(backlink => target.updateBacklink({
+      backlinkProps.forEach(backlink => resource.updateBacklink({
         backlink,
-        stub: resource.stub
+        stub: source
       }))
     })
   }

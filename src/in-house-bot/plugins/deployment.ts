@@ -43,8 +43,8 @@ export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts)
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return
 
-    const latest = application.forms.slice().reverse().find(stub => {
-      return parseStub(stub).type === CONFIG_FORM
+    const latest = application.forms.slice().reverse().find(appSub => {
+      return parseStub(appSub.submission).type === CONFIG_FORM
     })
 
     const { link } = parseStub(latest)

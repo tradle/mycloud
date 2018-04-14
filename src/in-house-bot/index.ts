@@ -72,6 +72,8 @@ const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const ONFIDO_ENABLED = true
 const DEPLOYMENT = 'tradle.cloud.Deployment'
+const APPLICATION = 'tradle.Application'
+const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
 const ALL_HIDDEN_PRODUCTS = [
   DEPLOYMENT,
   EMPLOYEE_ONBOARDING
@@ -184,7 +186,7 @@ export default function createProductsBot({
   }
 
   const myIdentityPromise = bot.getMyIdentity()
-  const components:IBotComponents = {
+  const components: IBotComponents = {
     bot,
     conf,
     productsAPI,
@@ -370,16 +372,16 @@ export default function createProductsBot({
   }
 
   // if (handleMessages || event === 'confirmation') {
-    // const { api, plugin } = Plugins.get('commands').createPlugin(components, {
-    //   logger: logger.sub('commands')
-    // })
+  // const { api, plugin } = Plugins.get('commands').createPlugin(components, {
+  //   logger: logger.sub('commands')
+  // })
 
-    const { api, plugin } = createCommandsPlugin(components, {
-      logger: logger.sub('commands')
-    })
+  const { api, plugin } = createCommandsPlugin(components, {
+    logger: logger.sub('commands')
+  })
 
-    components.commands = api
-    productsAPI.plugins.use(plugin)
+  components.commands = api
+  productsAPI.plugins.use(plugin)
   // }
 
   if (plugins['email-based-verification']) {
@@ -393,6 +395,30 @@ export default function createProductsBot({
       productsAPI.plugins.use(plugin)
     }
   }
+
+  // if (bot.isTesting || event === 'resourcestream') {
+  //   const createCustomerApplication = async (app) => {
+  //     const resource = bot.buildResource('tradle.products.CustomerApplication')
+  //       .set({
+  //         application: app,
+  //         customer: app.applicant,
+  //         context: app.context
+  //       })
+  //       .toJSON()
+
+  //     return await bot.createResource(resource)
+  //   }
+
+  //   bot.hookSimple(bot.events.topics.resource.save.async.batch, async (batch) => {
+  //     const appCreates = batch
+  //       .filter(change => !change.old && change.value[TYPE] === APPLICATION)
+  //       .map(change => change.new)
+
+  //     if (appCreates.length) {
+  //       await Promise.all(appCreates.map(createCustomerApplication))
+  //     }
+  //   })
+  // }
 
   return components
 }

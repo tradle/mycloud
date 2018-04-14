@@ -19,7 +19,7 @@ const alice = {
   identity: require('./fixtures/alice/object').object
 }
 
-test('resource cache', loudAsync(async (t) => {
+test('resource wrapper', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
   const bot = createBot({ tradle })
@@ -51,8 +51,14 @@ test('resource cache', loudAsync(async (t) => {
     _permalink: photoId.permalink
   })
 
-  t.same(photoId.keyString, 'tradle.PhotoID"' + photoId.permalink)
+  t.equal(photoId.keyString, 'tradle.PhotoID"' + photoId.permalink)
   t.same(photoId.parseKeyString('tradle.PhotoID"' + photoId.permalink), photoId.key)
+
+  photoId.set({
+    firstName: 'Bob'
+  })
+
+  t.equal(photoId.isSigned(), false)
   t.end()
 }))
 
@@ -78,7 +84,7 @@ test('resource cache', loudAsync(async (t) => {
   })
 
   await photoId.signAndSave()
-  t.ok(rcache.byPK.get(photoId.keyString))
+  t.ok(rcache.get(photoId.permalink))
 
   const v = rcache.create('tradle.Verification')
   v.set({

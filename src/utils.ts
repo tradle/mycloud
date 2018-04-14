@@ -72,7 +72,7 @@ const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
 const toPromise = <T>(obj:T|Promise<T>):Promise<T> => isPromise(obj) ? obj : Promise.resolve(obj)
 const {
-  parseId,
+  // parseId,
   parseStub,
   omitVirtual,
   setVirtual,
@@ -197,7 +197,7 @@ export {
  parsePermId,
  omitBacklinks,
  pickBacklinks,
- parseId,
+ // parseId,
  parseStub,
  encodeDataURI,
  decodeDataURI,
@@ -1142,8 +1142,8 @@ export const toModelsMap = models => _.transform(models, (result, model:any) => 
   result[model.id] = model
 }, {})
 
-export const ensureNoVirtualProps = resource => {
-  if (hasVirtualDeep(resource)) {
+export const ensureNoVirtualProps = ({ models, resource }) => {
+  if (hasVirtualDeep({ models, resource })) {
     throw new Errors.InvalidObjectFormat(`virtual properties not allowed: ${safeStringify(resource)}`)
   }
 }

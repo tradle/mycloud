@@ -170,7 +170,6 @@ export class Remediation {
   public getBundleByClaimId = async (claimId: string):Promise<IDataBundle> => {
     const { key } = idToStub(claimId)
     const claimIds = await this.getClaimIdsForKey({ key })
-    debugger
     if (claimIds.includes(claimId)) {
       return await this.getBundleByKey({ key })
     }
