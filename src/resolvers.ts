@@ -14,8 +14,13 @@ import {
   filterResults
 } from '@tradle/dynamodb'
 
+import validateModels from '@tradle/validate-model'
+import validateResource from '@tradle/validate-resource'
 import { ResourceStub, Backlinks } from './types'
 import { parseStub, allSettled } from './utils'
+
+const { getRef } = validateModels.utils
+const { isInstantiable } = validateResource.utils
 
 const {
   resultsToJson
@@ -110,12 +115,30 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
   }
 
   const listBacklink = async (opts: ListOpts) => {
-    const { backlink, filter } = opts
-    const container = await backlinks.fetchBacklinks(parseStub(backlink.target))
+    const { backlink, ...listOpts } = opts
+    const { filter } = listOpts
+    // const type = filter[TYPE]
+    // const model = models[type]
+    // const iner
+    // if (model && (model.interfaces.includes())
+
     const { model, propertyName } = backlink.back
+    const property = model.properties[propertyName]
+    const ref = getRef(property)
+    const refModel = models[ref]
+    if (isInstantiable(refModel)) {
+      const { interfaces = [] } = refModel
+      if (interfaces.includes('tradle.Intersection')) {
+        // intersections are pre-indexed
+        // so no need to go via tradle.BacklinkItem
+        filter.EQ[TYPE] = ref
+        return list(listOpts)
+      }
+    }
+
+    const container = await backlinks.fetchBacklinks(parseStub(backlink.target))
     const results = container[propertyName]
     const items = results ? await normalizeBacklinkResults({ ...opts, results }) : []
-    const property = model.properties[propertyName]
     return {
       items: filterResults({
         models,
