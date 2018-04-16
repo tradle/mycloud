@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
-import compose from 'koa-compose'
 import { IDebug, ITradleObject } from './types'
 import * as types from './typeforce-types'
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
@@ -109,7 +108,6 @@ export default class Objects {
   }
 
   public addMetadata = (object:ITradleObject, forceRecalc?:boolean):ITradleObject => {
-    if (!object) debugger
     if (!forceRecalc && object._sigPubKey && object._link && object._permalink) {
       return object
     }

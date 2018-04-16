@@ -30,7 +30,7 @@ import Logger from './logger'
 import Tradle from './tradle'
 import Objects from './objects'
 import models from './models'
-import { IECMiniPubKey, ITradleObject, ResourceStub } from './types'
+import { IECMiniPubKey, ITradleObject, ResourceStub, ModelStore } from './types'
 
 const SealModel = models['tradle.Seal']
 const SealStateModel = models['tradle.SealState']
@@ -152,7 +152,9 @@ export default class Seals {
   private model: any
   private env:Env
   private logger:Logger
+  private modelStore: ModelStore
   constructor ({
+    modelStore,
     provider,
     blockchain,
     network,
@@ -164,6 +166,7 @@ export default class Seals {
     typeforce(types.blockchain, blockchain)
     bindAll(this)
 
+    this.modelStore = modelStore
     this.provider = provider
     this.blockchain = blockchain
     // this.table = tables.Seals
@@ -174,6 +177,10 @@ export default class Seals {
     this.logger = env.sublogger('seals')
     this.sealPending = blockchain.wrapOperation(this._sealPending)
     this.syncUnconfirmed = blockchain.wrapOperation(this._syncUnconfirmed)
+  }
+
+  public get models() {
+    return this.modelStore.models
   }
 
   public watch = (opts:WatchOpts) => {
@@ -692,7 +699,7 @@ export default class Seals {
     } catch (err) {
       Errors.ignore(err, { name: 'ConditionalCheckFailedException' })
       this.logger.warn(
-        `failed to update resource ${buildResource.id({ resource: object })} in db with seal.
+        `failed to update resource ${buildResource.stub({ resource: object })} in db with seal.
         This is most likely because a newer version of the resource exists and the db
         only keeps the latest version.`
       )
@@ -748,7 +755,10 @@ export default class Seals {
     }
 
     if (object) {
-      params.forResource = buildResource.stub({ resource: object })
+      params.forResource = buildResource.stub({
+        models: this.models,
+        resource: object
+      })
     }
 
     if (write) {
