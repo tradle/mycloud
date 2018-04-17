@@ -9,6 +9,7 @@ const listPhotoIds = `{
     edges {
       node {
         documentType {
+          id
           title
         }
         scan {
@@ -63,16 +64,31 @@ const listApplications = `{
           _link
         }
         requestFor
-        forms {
-          _t
-          _permalink
-          _link
+        checks {
+          edges {
+            node {
+              provider
+              status {
+                id
+                title
+              }
+            }
+          }
         }
-        verifications {
-          _t
-          _permalink
-          _link
-          submission
+        submissions {
+          edges {
+            node {
+              _t
+              _link
+              _permalink
+              submission {
+                _t
+                _link
+                _permalink
+                _displayName
+              }
+            }
+          }
         }
         certificate {
           _t
@@ -111,8 +127,10 @@ const listVerifications = `{
       node {
         _link
         document {
-          id
-          title
+          _t
+          _link
+          _permalink
+          _displayName
         }
         method
         dateVerified
