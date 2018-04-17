@@ -94,7 +94,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#backlinks",
-      "resolved": "git://github.com/tradle/bot-products.git#d9f767b56016b8a0bfbe31ce5f0cdd94cbe4ec5c",
+      "resolved": "git://github.com/tradle/bot-products.git#259c1deecf53fdc1e70cc573a66a04ef0fac7b00",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -199,7 +199,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb#overload",
-      "resolved": "git://github.com/tradle/dynamodb.git#802073d1d082b213a1cab81e9e152288e71207ca",
+      "resolved": "git://github.com/tradle/dynamodb.git#6d505b255f260048f650ba69ef51e392fdcc1a92",
       "dependencies": {
         "koa-compose": {
           "version": "4.0.0",
