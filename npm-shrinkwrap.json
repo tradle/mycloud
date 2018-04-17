@@ -413,7 +413,7 @@
     "@tradle/validate-model": {
       "version": "5.9.0",
       "from": "tradle/validate-model",
-      "resolved": "git://github.com/tradle/validate-model.git#6f42ae167e80aa5bd18ea5348c2c829d372c1eed"
+      "resolved": "git://github.com/tradle/validate-model.git#fd32572e97e9004a5d105d5cd64a4fd1751849f3"
     },
     "@tradle/validate-resource": {
       "version": "2.22.0",
