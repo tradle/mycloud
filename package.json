@@ -92,7 +92,7 @@
     "reinstall": "rm -rf node_modules && npm install",
     "localstack:start": "./src/scripts/localstack.sh up -d",
     "localstack:stop": "./src/scripts/localstack.sh down",
-    "localstack:restart": "./src/scripts/localstack.sh down && ./src/scripts/localstack.sh up",
+    "localstack:restart": "./src/scripts/localstack.sh down && ./src/scripts/localstack.sh up -d",
     "localstack:update": "./src/scripts/localstack.sh pull tradle_web",
     "models:update": "node ./lib/scripts/update-models.js",
     "redis:stop": "redis-cli shutdown",
