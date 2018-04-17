@@ -112,11 +112,7 @@ export = function createDB (tradle:Tradle) {
         tableDefinition: cloudformation,
         // all key props are derived
         derivedProps: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
-        deriveProps: defaults.deriveProps,
-        resolveOrderBy: defaults.resolveOrderBy,
-        parseDerivedProps: defaults.parseDerivedProps,
-        getPrimaryKeysForModel: defaults.getPrimaryKeysForModel,
-        getIndexesForModel,
+        getIndexesForModel
       })
 
       const controlLatestHooks = method => async ({ args }) => {

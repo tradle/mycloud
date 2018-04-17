@@ -199,7 +199,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb#overload",
-      "resolved": "git://github.com/tradle/dynamodb.git#6d505b255f260048f650ba69ef51e392fdcc1a92",
+      "resolved": "git://github.com/tradle/dynamodb.git#333b5d0196bb9745316a40d8e703ce303340b03a",
       "dependencies": {
         "koa-compose": {
           "version": "4.0.0",
@@ -413,7 +413,7 @@
     "@tradle/validate-model": {
       "version": "5.9.0",
       "from": "tradle/validate-model",
-      "resolved": "git://github.com/tradle/validate-model.git#fd32572e97e9004a5d105d5cd64a4fd1751849f3"
+      "resolved": "git://github.com/tradle/validate-model.git#6d67d9d06698fe4d661a1b8865eeab9b29134550"
     },
     "@tradle/validate-resource": {
       "version": "2.22.0",

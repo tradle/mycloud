@@ -80,7 +80,7 @@ type LambdaMap = {
 }
 
 type GetResourceOpts = {
-  backlinks?: boolean
+  backlinks?: boolean|string[]
   resolveEmbeds?: boolean
 }
 
@@ -523,6 +523,19 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
+  public getBacklink = async (props: GetResourceIdentifierInput, backlink: string) => {
+    return await this.getBacklinks(props, [backlink])
+  }
+
+  public getBacklinks = async (props: GetResourceIdentifierInput, backlinks?: string[]) => {
+    const { type, permalink } = getResourceIdentifier(props)
+    return await this.backlinks.fetchBacklinks({
+      type,
+      permalink,
+      properties: backlinks
+    })
+  }
+
   public getResource = async (props: GetResourceIdentifierInput, opts: GetResourceOpts={}):Promise<ITradleObject> => {
     const { backlinks, resolveEmbeds } = opts
     let promiseResource = this._getResource(props)
@@ -537,7 +550,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const { type, permalink, link } = getResourceIdentifier(props)
     const [resource, backlinksObj] = await Promise.all([
       promiseResource,
-      this.backlinks.fetchBacklinks({ type, permalink })
+      this.getBacklinks({ type, permalink }, typeof backlinks === 'boolean' ? null : backlinks)
     ])
 
     return {
@@ -561,11 +574,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public getResourceByStub = this.getResource
 
   public addBacklinks = async (resource: ITradleObject) => {
-    const backlinks = await this.backlinks.fetchBacklinks({
-      type: resource[TYPE],
-      permalink: buildResource.permalink(resource)
-    })
-
+    const backlinks = await this.getBacklinks(resource)
     return _.extend(resource, backlinks)
   }
 
