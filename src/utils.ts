@@ -1224,3 +1224,16 @@ export const getStubsByType = (stubs: ResourceStub[], type: string):ParsedResour
 }
 
 export const isUnsignedType = modelId => UNSIGNED_TYPES.includes(modelId)
+
+export const isPlainObject = obj => traverse(obj).reduce(function (isPlain, val) {
+  if (isPlain === false) {
+    this.update(val, true) // stop here
+    return false
+  }
+
+  if (val && typeof val === 'object' && !Array.isArray(val)) {
+    return _.isPlainObject(val)
+  }
+
+  return isPlain
+}, true)

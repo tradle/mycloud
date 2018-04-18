@@ -12,6 +12,7 @@ declare module '@tradle/validate-resource' {
     _t: string
     _link: string
     _permalink: string
+    _displayName?: string
   }
 
   export interface ExtendedResourceStub extends ResourceStub {

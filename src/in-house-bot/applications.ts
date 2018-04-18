@@ -14,6 +14,8 @@ import {
   Models
 } from './types'
 
+import { Resource } from '../bot/resource'
+
 interface ICreateCheckOpts {
   props: any
   req?: IPBReq
@@ -56,7 +58,10 @@ export class Applications {
     }
 
     // const application = await this.productsAPI.getApplication(props.application)
-    const resource = await bot.createResource(props)
+    return await new Resource({ bot, type })
+      .set(props)
+      .signAndSave()
+
     // if (!application.checks) {
     //   application.checks = []
     // }
@@ -64,8 +69,6 @@ export class Applications {
     // if (!req) {
     //   await this._commitApplicationUpdate({ application })
     // }
-
-    return resource
   }
 
   public updateCheck = async (opts) => {
@@ -196,15 +199,18 @@ export class Applications {
     application: IPBApp
     submission: ITradleObject
   }) => {
-    const appSub = this.bot.buildResource(APPLICATION_SUBMISSION)
-      .set({
+    const resource = await new Resource({
+      bot: this.bot,
+      type: APPLICATION_SUBMISSION,
+      resource: {
         application,
         submission,
         context: application.context
-      })
-      .toJSON()
+      }
+    })
+    .sign()
 
-    const signed = await this.bot.createResource(appSub)
+    const signed = resource.toJSON()
     this.productsAPI.state.addSubmission({ application, submission: signed })
     return signed
   }

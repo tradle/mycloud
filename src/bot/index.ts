@@ -70,6 +70,7 @@ import { AwsApis } from '../aws'
 import Errors from '../errors'
 import { MiddlewareContainer } from '../middleware-container'
 import { hookUp as setupDefaultHooks } from './hooks'
+import { Resource, ResourceInput } from './resource'
 
 type LambdaImplMap = {
   [name:string]: ILambdaImpl
@@ -372,6 +373,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public getMyIdentityPermalink = () => this.tradle.provider.getMyIdentityPermalink()
 
   public sign = async (resource, author?) => {
+    const payload = { object: resource }
+
+    // allow middleware to modify
+    await this.fire(EventTopics.resource.sign, payload)
+
+    resource = payload.object
+    this.validateResource(resource)
+
     const model = this.models[resource[TYPE]]
     if (model) {
       const backlinks = this._pickBacklinks(resource)
@@ -407,26 +416,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public save = resource => this._save('put', resource)
   public update = resource => this._save('update', resource)
-
-  /**
-   * Sign and save an object
-   * Unlike signAndSave, this triggers the 'create' hook, allowing the object to be modified
-   * before it's signed and saved
-   */
-  public createResource = async (props: ITradleObject) => {
-    const resource = buildResource({
-        models: this.models,
-        model: props[TYPE]
-      })
-      .set(props)
-      .toJSON()
-
-    const payload = { object: resource }
-    await this.fire('create', payload)
-
-    this.validateResource(payload.object)
-    return await this.signAndSave(payload.object)
-  }
 
   public validateResource = (resource: ITradleObject) => validateResource.resource({
     models: this.models,
@@ -586,6 +575,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     addLinks(signed)
     return signed
   }
+
+  public draft = (opts:Partial<ResourceInput>) => new Resource({ bot: this, ...opts })
 
   public signAndSave = async <T>(resource):Promise<T> => {
     const signed = await this.sign(resource)

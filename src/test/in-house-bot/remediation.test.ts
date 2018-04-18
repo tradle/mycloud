@@ -1,6 +1,8 @@
 require('../env').install()
 
 import _ from 'lodash'
+// @ts-ignore
+import Promise from 'bluebird'
 import test from 'tape'
 import sinon from 'sinon'
 import { TYPE, SIG, OWNER } from '@tradle/constants'
@@ -22,6 +24,7 @@ import { createBot } from '../../bot'
 import { TYPES } from '../../in-house-bot/constants'
 import models from '../../models'
 import { IPBApp, IPBReq, IFormRequest } from '../../in-house-bot/types'
+import { Resource } from '../../bot/resource'
 
 const users = require('../fixtures/users.json')
 const dataBundle = require('../fixtures/data-bundle.json')
@@ -164,26 +167,39 @@ test('prefill-based', loudAsync(async (t) => {
   const bot = createBot()
   const unsignedForms = dataBundle.items.filter(item => models[item[TYPE]].subClassOf === FORM)
   const product = 'tradle.WealthManagementAccount'
-  const unsignedProductRequest = {
-    [TYPE]: PRODUCT_REQUEST,
+  const productRequest = new Resource({
+    bot,
+    type: PRODUCT_REQUEST
+  })
+  .set({
     requestFor: product,
     contextId: 'abc'
-  }
-
-  const productRequest = await bot.sign(unsignedProductRequest)
-  const draft = await bot.createResource({
-    [TYPE]: DRAFT_APPLICATION,
-    requestFor: productRequest.requestFor,
-    request: buildResource.stub({ resource: productRequest })
   })
 
-  const draftStub = buildResource.stub({ resource: draft })
+  await productRequest.sign()
+  const draft = await new Resource({
+    bot,
+    type: DRAFT_APPLICATION,
+  })
+  .set({
+    requestFor: productRequest.get('requestFor'),
+    request: productRequest.stub
+  })
+  .signAndSave()
+
+  const draftStub = draft.stub
   const unsignedPrefills = unsignedForms.map(prefill => toPrefill({ prefill, draft }))
-  const prefills = await Promise.all(unsignedPrefills.map(bot.createResource))
-  const prefillStubs = prefills.map(resource => buildResource.stub({ resource }))
+  const prefills = await Promise.mapSeries(unsignedPrefills, resource => new Resource({
+    bot,
+    resource
+  }).signAndSave())
+
+  // const prefills = await Promise.all(unsignedPrefills.map(bot.createResource))
+
+  const prefillStubs = prefills.map(resource => resource.stub)
   const objects = {}
   prefills.concat(productRequest).forEach(res => {
-    objects[buildResource.link(res)] = res
+    objects[res.link] = res.toJSON()
   })
 
   const productsAPI = createProductsStrategy({
@@ -244,15 +260,16 @@ test('prefill-based', loudAsync(async (t) => {
     throw new Errors.NotFound(key)
   })
 
+  const draftRes = draft.toJSON({ virtual: true })
   sandbox.stub(bot, 'getResource').callsFake(async (stub, opts={}) => {
     const { type, permalink, link } = getResourceIdentifier(stub)
-    if (permalink === draft._permalink || link === draftStub._link) {
-      return opts.backlinks ? { ...draft, formPrefills: prefillStubs } : draft
+    if (permalink === draft.permalink || link === draftStub._link) {
+      return opts.backlinks ? { ...draftRes, formPrefills: prefillStubs } : draftRes
     }
 
     const idx = prefillStubs.findIndex(stub => stub._permalink === permalink)
     if (idx !== -1) {
-      return prefills[idx]
+      return prefills[idx].toJSON({ virtual: true })
     }
 
     throw new Errors.NotFound(type + permalink)
@@ -260,7 +277,7 @@ test('prefill-based', loudAsync(async (t) => {
 
   const stub = await api.createClaimForApplication({
     claimType: 'prefill',
-    draft
+    draft: draftRes
   })
 
   const prefillFromDraft = createPrefillFromDraftPlugin({
@@ -279,7 +296,7 @@ test('prefill-based', loudAsync(async (t) => {
   const application = productsAPI.state.createApplication({
     user,
     object: {
-      ...unsignedProductRequest,
+      ..._.omit(productRequest.toJSON(), SIG),
       contextId: stub.claimId,
       [SIG]: 'somesig'
     }
@@ -307,7 +324,7 @@ test('prefill-based', loudAsync(async (t) => {
 
   const stub2 = await api.createClaimForApplication({
     claimType: 'prefill',
-    draft
+    draft: draftRes
   })
 
   // plugin.onFormsCollected
@@ -327,6 +344,6 @@ test('prefill-based', loudAsync(async (t) => {
 
 const toPrefill = ({ draft, prefill }) => ({
   [TYPE]: FORM_PREFILL,
-  draft,
+  draft: draft.stub,
   prefill
 })

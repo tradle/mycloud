@@ -44,10 +44,8 @@ export const simulateEventStream = (bot: Bot) => {
     if (parsed.batch === batch) {
       payload = data
     } else if (batch) {
-      if (!Array.isArray(data)) debugger
       payload = [].concat(data)
     } else {
-      if (Array.isArray(data)) debugger
       payload = data[0]
     }
 

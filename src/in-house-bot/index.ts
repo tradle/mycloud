@@ -56,6 +56,7 @@ import Logger from '../logger'
 import baseModels from '../models'
 import Errors from '../errors'
 import constants from '../constants'
+import { Resource } from '../bot/resource'
 
 const { MAX_DB_ITEM_SIZE } = constants
 const { parseStub } = validateResource.utils
@@ -398,15 +399,13 @@ export default function createProductsBot({
 
   // if (bot.isTesting || event === 'resourcestream') {
   //   const createCustomerApplication = async (app) => {
-  //     const resource = bot.buildResource('tradle.products.CustomerApplication')
+  //     return await new Resource({ bot, type: CUSTOMER_APPLICATION })
   //       .set({
   //         application: app,
   //         customer: app.applicant,
   //         context: app.context
   //       })
-  //       .toJSON()
-
-  //     return await bot.createResource(resource)
+  //       .signAndSave()
   //   }
 
   //   bot.hookSimple(bot.events.topics.resource.save.async.batch, async (batch) => {

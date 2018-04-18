@@ -229,6 +229,7 @@ export const topics = {
     stream: new EventTopic('msg:stream')
   },
   resource: {
+    sign: new EventTopic('sign'),
     save: new EventTopic('save'),
     delete: new EventTopic('delete')
   },

@@ -22,7 +22,7 @@ import {
   parseStub,
   getPermId
 } from '../utils'
-import { IIdentity } from '../types'
+import { IIdentity, IBacklinkItem } from '../types'
 import { createTestTradle } from '../'
 
 test('update backlinks', loudAsync(async (t) => {
@@ -184,3 +184,14 @@ test('update backlinks', loudAsync(async (t) => {
 //   sandbox.restore()
 //   t.end()
 // }))
+
+// const adjust = ({ add, del }) => ({
+//   add: add.map(removeDisplayNames),
+//   del: del.map(removeDisplayNames)
+// })
+
+// const removeDisplayNames = (item: IBacklinkItem) => ({
+//   ...item,
+//   target: _.omit(item.target, ['_displayName']),
+//   source: _.omit(item.source, ['_displayName']),
+// })

@@ -22,7 +22,8 @@ import {
   omitBacklinks,
   omitVirtual,
   parseStub,
-  getPermId
+  getPermId,
+  isPlainObject
 } from '../utils'
 
 const {
@@ -39,6 +40,7 @@ const {
 
 type ExportResourceInput = {
   validate?: boolean
+  virtual?: boolean
 }
 
 interface GetBacklinkPropertiesMinInput {
@@ -67,6 +69,13 @@ const SET_OPTS = {
 
 const QUOTE = '"'
 
+export interface ResourceInput {
+  models?: any
+  model?: any
+  type?: string
+  resource?: any
+  bot?: Bot
+}
 
 export class Resource extends EventEmitter {
   public model: Model
@@ -78,13 +87,7 @@ export class Resource extends EventEmitter {
   private bot: Bot
   private originalResource: any
 
-  constructor({ models, model, type, resource={}, bot }: {
-    models?: any
-    model?: any
-    type?: string
-    resource?: any
-    bot?: Bot
-  }) {
+  constructor({ models, model, type, resource={}, bot }: ResourceInput) {
     super()
 
     if (bot) {
@@ -119,6 +122,10 @@ export class Resource extends EventEmitter {
     }
 
     this.type = this.model.id
+    if (resource) {
+      ensurePlainObject(resource)
+    }
+
     this.resource = {
       [TYPE]: resource[TYPE] || this.model.id,
       ...resource
@@ -172,7 +179,9 @@ export class Resource extends EventEmitter {
 
   public sign = async (opts?) => {
     this._ensureHaveBot()
-    this._assertDiff()
+    if (this.isSigned()) {
+      this._assertDiff()
+    }
 
     const signed = await this.bot.sign(this.toJSON(opts))
     this.bot.objects.addMetadata(signed)
@@ -199,6 +208,10 @@ export class Resource extends EventEmitter {
   public set = (...args:any[]) => {
     const { models, model } = this
     // don't validate because we might still have a partial resource
+    args.forEach(arg => {
+      if (typeof arg === 'object') ensurePlainObject(arg)
+    })
+
     const updated = buildResource({ models, model })
       .set(...args)
       .toJSON(SET_OPTS)
@@ -223,11 +236,10 @@ export class Resource extends EventEmitter {
   }
 
   public toJSON = (opts:ExportResourceInput={}) => {
+    const { virtual, validate } = opts
     const { models, model, resource } = this
-    const exported = omitVirtualDeep({ models, resource })
-    if (opts.validate !== false) {
-      this.validate()
-    }
+    const exported = virtual ? _.cloneDeep(resource) : omitVirtualDeep({ models, resource })
+    if (validate !== false) this.validate()
 
     return exported
   }
@@ -469,3 +481,9 @@ export const getBacklinkProperties = ({
 }
 
 export const getForwardLinks = ({ models, resource }) => new Resource({ models, resource }).getForwardLinks()
+
+const ensurePlainObject = obj => {
+  if (!isPlainObject(obj)) {
+    throw new Errors.InvalidInput(`expected plain object`)
+  }
+}
