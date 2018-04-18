@@ -206,7 +206,7 @@ export default class Tradle {
       logger: this.logger.sub('mailer')
     }))
 
-    this.define('appLinks', './app-links', Linker => new Linker())
+    this.define('appLinks', './app-links', ({ createLinker }) => createLinker())
     this.define('backlinks', './backlinks', Backlinks => new Backlinks({
       db: this.db,
       modelStore: this.modelStore,
