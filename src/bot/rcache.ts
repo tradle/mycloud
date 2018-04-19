@@ -6,8 +6,7 @@ import {
   Models,
   IHasModels,
   ITradleObject,
-  ResourceStub,
-  Backlinks
+  ResourceStub
 } from '../types'
 
 import { UNSIGNED_TYPES } from '../constants'
@@ -16,27 +15,26 @@ import {
   parseStub
 } from '../utils'
 
-import { Resource, serializeKey } from './resource'
+import { Resource, IResourcePersister, serializeKey } from './resource'
 
 export class RCache implements IHasModels {
-  public bot: Bot
+  public store: IResourcePersister
   private byPermalink: Map<String, Resource>
   // public byLink: Map<String, Resource>
 
-  get models() { return this.bot.models }
-  get backlinks() { return this.bot.backlinks }
+  get models() { return this.store.models }
 
   // IHasModels
   buildResource: (model: string|Model) => any
   buildStub: (resource: ITradleObject) => any
   validate: (resource: ITradleObject) => any
 
-  constructor({ bot }: {
-    bot: Bot
+  constructor({ store }: {
+    store: IResourcePersister
   }) {
     modelsMixin(this)
 
-    this.bot = bot
+    this.store = store
     this.byPermalink = new Map<String, Resource>()
   }
 
@@ -46,7 +44,7 @@ export class RCache implements IHasModels {
 
   public create = (type: string) => {
     const r = new Resource({
-      bot: this.bot,
+      store: this.store,
       model: this.models[type]
     })
 

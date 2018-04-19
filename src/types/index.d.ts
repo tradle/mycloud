@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
-import { Table, DB, Models, Model } from '@tradle/dynamodb'
+import { Table, DB, Models, Model, Diff } from '@tradle/dynamodb'
 import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
 import { Lambda, EventSource } from '../lambda'
@@ -48,6 +48,7 @@ import {
 export type Constructor<T = {}> = new (...args: any[]) => T
 
 export * from '../retryable-task'
+
 export {
   // re-export from @tradle/validate-resource
   ResourceStub,
@@ -59,6 +60,7 @@ export {
   Table,
   Models,
   Model,
+  Diff,
   // export
   Bot,
   Tradle,
@@ -447,7 +449,7 @@ export interface IUpdateStackUrlOpts {
 
 export interface ISaveObjectOpts {
   object: ITradleObject
-  merge?: boolean
+  diff?: Diff
   inbound?: boolean
 }
 

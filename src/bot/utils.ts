@@ -8,7 +8,7 @@ import Errors from '../errors'
 import { prettify } from '../string-utils'
 import * as types from '../typeforce-types'
 import { DB_IGNORE_PAYLOAD_TYPES } from '../constants'
-import { IBotMessageEvent } from '../types'
+import { IBotMessageEvent, Bot } from '../types'
 
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const normalizeSendOpts = async (bot, opts) => {
@@ -90,3 +90,15 @@ export const toBotMessageEvent = ({ bot, user, message }):IBotMessageEvent => {
     permalink: object._permalink,
   }
 }
+
+export const getResourceModuleStore = (bot: Bot) => ({
+  get models() { return bot.models },
+  sign: resource => bot.sign(resource),
+  save: resource => {
+    if (resource.link === resource.permalink) {
+      return bot.save(resource.toJSON(), resource.diff)
+    }
+
+    return bot.save(resource.toJSON())
+  }
+})

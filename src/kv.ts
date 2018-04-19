@@ -12,7 +12,9 @@ import { TYPE } from '@tradle/constants'
 import {
   getTableHashKey,
   unmarshallDBItem,
-  marshallDBItem
+  marshallDBItem,
+  toAttributePath,
+  PropPath
 } from './db-utils'
 
 import {
@@ -28,18 +30,6 @@ import models from './models'
 const KVModel = models['tradle.POJO']
 
 type SetItem = string | number
-
-export type PropPath = string|string[]
-export type PathAndValuePair = [PropPath, any]
-
-const toAttributePath = (path: PropPath) => {
-  const parts = [].concat(path).map(name => ({
-    type: 'AttributeName',
-    name
-  })) as PathElement[]
-
-  return new AttributePath(parts)
-}
 
 type KVPair = {
   key: string

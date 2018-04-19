@@ -19,6 +19,7 @@ import { topics as EventTopics } from '../events'
 import { toStreamItems, recreateTable } from './utils'
 import Errors from '../errors'
 import { models as PingPongModels } from '../bot/ping-pong-models'
+import { Resource } from '../bot/resource'
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
@@ -623,3 +624,10 @@ test('validate send', loudAsync(async (t) => {
   sandbox.restore()
   t.end()
 }))
+
+// test.only('sign / save / version', loudAsync(async (t) => {
+//   const sandbox = sinon.createSandbox()
+//   const tradle = createTestTradle()
+//   const bot = createBot({ tradle })
+//   const v1 = bot.signAndSave()
+// }))

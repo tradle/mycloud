@@ -1,11 +1,24 @@
 import { EventEmitter } from 'events'
 import _ from 'lodash'
-import { diff } from 'just-diff'
+import { diff as getDiff } from 'just-diff'
 import { cloneDeep } from 'lodash'
-import { TYPE, SIG } from '@tradle/constants'
+import {
+  AttributePath,
+  PathElement,
+  UpdateExpression,
+  ConditionExpression,
+  ExpressionAttributes
+} from '@aws/dynamodb-expressions'
+import { utils as DynamoUtils } from '@tradle/dynamodb'
+import { TYPE, SIG, PREVLINK, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import validateModels from '@tradle/validate-model'
+import {
+  toAttributePath,
+  unmarshallDBItem
+} from '../db-utils'
+
 import Errors from '../errors'
 import {
   Bot,
@@ -14,7 +27,8 @@ import {
   ITradleObject,
   ResourceStub,
   Backlinks,
-  IBacklinkItem
+  IBacklinkItem,
+  Diff
 } from '../types'
 
 import {
@@ -37,6 +51,11 @@ const {
   omitVirtualDeep
 } = validateResource.utils
 
+export interface IResourcePersister {
+  models: Models
+  save: (resource: Resource) => Promise<any|void>
+  sign: <T>(resource: T) => Promise<T>
+}
 
 type ExportResourceInput = {
   validate?: boolean
@@ -74,7 +93,7 @@ export interface ResourceInput {
   model?: any
   type?: string
   resource?: any
-  bot?: Bot
+  store?: IResourcePersister
 }
 
 export class Resource extends EventEmitter {
@@ -82,24 +101,25 @@ export class Resource extends EventEmitter {
   public models: Models
   public type: string
   public resource: any
-  public diff: any
+  public diff: Diff
 
-  private bot: Bot
+  private store?: IResourcePersister
   private originalResource: any
+  private _dirty: boolean
 
-  constructor({ models, model, type, resource={}, bot }: ResourceInput) {
+  constructor({ models, model, type, resource={}, store }: ResourceInput) {
     super()
 
-    if (bot) {
+    if (store) {
       Object.defineProperty(this, 'models', {
-        get() { return bot.models }
+        get() { return store.models }
       })
     } else {
       this.models = models
     }
 
     if (!this.models) {
-      throw new Errors.InvalidInput('expected "models" or "bot"')
+      throw new Errors.InvalidInput('expected "models" or "store"')
     }
 
     if (!(model || type || resource[TYPE])) {
@@ -107,7 +127,7 @@ export class Resource extends EventEmitter {
       throw new Errors.InvalidInput(`expected "model" or "type" or "resource.${TYPE}"`)
     }
 
-    this.bot = bot
+    this.store = store
 
     if (model) {
       if (!model.id) throw new Errors.InvalidInput('invalid "model" option')
@@ -132,19 +152,36 @@ export class Resource extends EventEmitter {
     }
 
     this.originalResource = cloneDeep(this.omitBacklinks())
-    this.diff = []
+
+    let diff
+    Object.defineProperty(this, 'diff', {
+      set(value) {
+        diff = value
+      },
+      get() {
+        if (this._dirty) {
+          diff = getDiff(this.originalResource, this.omitBacklinks())
+        }
+
+        return diff
+      }
+    })
   }
 
   public get modified() {
-    return this.diff.length
+    return this.diff.length > 0
   }
 
   public get link() {
-    return buildResource.link(this.resource)
+    return buildResource.links(this.resource).link
   }
 
   public get permalink() {
-    return buildResource.permalink(this.resource)
+    return buildResource.links(this.resource).permalink
+  }
+
+  public get prevlink() {
+    return buildResource.links(this.resource).prevlink
   }
 
   public get key() {
@@ -169,22 +206,23 @@ export class Resource extends EventEmitter {
   public parseKeyString = (key: string) => parseKeyString({ key, schema: this.primaryKeysSchema })
   public isSigned = () => !!this.resource[SIG]
   public save = async (opts?) => {
-    this._ensureHaveBot()
+    this._ensureHaveStore()
     this._assertDiff()
-    await this.bot.save(this.resource)
+
+    await this.store.save(this)
+
     this.diff = []
     this.emit('save')
     return this
   }
 
   public sign = async (opts?) => {
-    this._ensureHaveBot()
+    this._ensureHaveStore()
     if (this.isSigned()) {
       this._assertDiff()
     }
 
-    const signed = await this.bot.sign(this.toJSON(opts))
-    this.bot.objects.addMetadata(signed)
+    const signed = await this.store.sign(this.toJSON(opts))
 
     this.set(signed)
     this.emit('sign')
@@ -192,7 +230,7 @@ export class Resource extends EventEmitter {
   }
 
   public signAndSave = async (opts?) => {
-    this._ensureHaveBot()
+    this._ensureHaveStore()
     await this.sign()
     await this.save()
     return this
@@ -200,8 +238,13 @@ export class Resource extends EventEmitter {
 
   public get = key => this.resource[key]
 
-  public unset = key => {
-    delete this.resource[key]
+  public unset = (keys:string|string[]) => {
+    keys = [].concat(keys)
+    for (const key of keys) {
+      delete this.resource[key]
+    }
+
+    this._dirty = true
     return this
   }
 
@@ -222,7 +265,7 @@ export class Resource extends EventEmitter {
       this.unset(SIG)
     }
 
-    this.diff = diff(this.omitBacklinks(), this.originalResource)
+    this._dirty = true
     return this
   }
 
@@ -325,15 +368,26 @@ export class Resource extends EventEmitter {
     // }, {})
   }
 
+  public toDynamoUpdate = () => DynamoUtils.createUpdateOptionsFromDiff(this.diff)
+  public static toDynamoUpdate = diff => DynamoUtils.createUpdateOptionsFromDiff(diff)
+
+  public version = () => {
+    const { link, permalink } = this
+    return this.set({
+      [PREVLINK]: link,
+      [PERMALINK]: permalink
+    })
+  }
+
   private _assertDiff = () => {
     if (!this.diff.length) {
       throw new Error('no changes to save!')
     }
   }
 
-  private _ensureHaveBot = () => {
-    if (!this.bot) {
-      throw new Errors.InvalidInput(`provide "bot" in constructor if you want to run this operation'`)
+  private _ensureHaveStore = () => {
+    if (!this.store) {
+      throw new Errors.InvalidInput(`provide "store" in constructor if you want to run this operation'`)
     }
   }
 

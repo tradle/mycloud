@@ -57,38 +57,14 @@ export class Applications {
       throw new Error('expected type and "application"')
     }
 
-    // const application = await this.productsAPI.getApplication(props.application)
-    return await new Resource({ bot, type })
+    return await bot.draft({ type })
       .set(props)
       .signAndSave()
-
-    // if (!application.checks) {
-    //   application.checks = []
-    // }
-
-    // if (!req) {
-    //   await this._commitApplicationUpdate({ application })
-    // }
   }
 
   public updateCheck = async (opts) => {
     const result = await this.bot.updateResource(opts)
-    const check = result.resource
-    // if (!result.changed) return check
-    // if (!check.application) return check
-
-    // const application = await this.bot.getResource(parseStub(check.application))
-    // const idx = application.checks.find(stub => {
-    //   return parseStub(stub).permalink === check._permalink
-    // })
-
-    // if (idx === -1) return check
-
-    // application.checks[idx] = this.stub(check)
-    // if (opts.req) return
-
-    // await this._commitApplicationUpdate({ application })
-    return check
+    return result.resource
   }
 
   public judgeApplication = async ({ req, application, approve }: IPBJudgeAppOpts) => {
@@ -199,16 +175,13 @@ export class Applications {
     application: IPBApp
     submission: ITradleObject
   }) => {
-    const resource = await new Resource({
-      bot: this.bot,
-      type: APPLICATION_SUBMISSION,
-      resource: {
+    const resource = await this.bot.draft({ type: APPLICATION_SUBMISSION })
+      .set({
         application,
         submission,
         context: application.context
-      }
-    })
-    .sign()
+      })
+      .sign()
 
     const signed = resource.toJSON()
     this.productsAPI.state.addSubmission({ application, submission: signed })

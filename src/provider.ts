@@ -484,14 +484,14 @@ export default class Provider {
     })
   }
 
-  public saveObject = async ({ object, inbound, merge }: ISaveObjectOpts) => {
+  public saveObject = async ({ object, inbound, diff }: ISaveObjectOpts) => {
     object = _.cloneDeep(object)
     this.objects.addMetadata(object)
     ensureTimestamped(object)
     await this.objects.replaceEmbeds(object)
     await Promise.all([
       this.objects.put(object),
-      this.putInDB({ object, inbound, merge })
+      this.putInDB({ object, inbound, diff })
     ])
 
     return object
@@ -513,7 +513,7 @@ export default class Provider {
     return _author === myPermalink
   }
 
-  private putInDB = async ({ object, inbound, merge }: ISaveObjectOpts) => {
+  private putInDB = async ({ object, inbound, diff }: ISaveObjectOpts) => {
     // const inbound = await this.isAuthoredByMe(object)
     const type = object[TYPE]
     const ignored = inbound
@@ -525,16 +525,22 @@ export default class Provider {
       return false
     }
 
+    let table
     try {
-      await this.db.getTableForModel(type)
+      table = await this.db.getTableForModel(type)
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.debug(`not saving "${type}", don't have a table for it`, Errors.export(err))
       return false
     }
 
-    const method = merge ? 'update' : 'put'
-    await this.db[method](object)
+    if (diff) {
+      throw new Errors.Unsupported('update via "diff" is not supported at this time')
+      // await this.db.update(object, { diff })
+    } else {
+      await this.db.put(object)
+    }
+
     return true
   }
 }

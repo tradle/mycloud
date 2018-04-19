@@ -7,10 +7,14 @@ import {
   loudAsync,
 } from '../utils'
 
+import {
+  prettify
+} from '../string-utils'
 import { randomString } from '../crypto'
 import models from '../models'
 import { createTestTradle } from '../'
 import { createBot } from '../bot'
+import { getResourceModuleStore } from '../bot/utils'
 import { RCache } from '../bot/rcache'
 import { Resource } from '../bot/resource'
 
@@ -28,9 +32,7 @@ test('resource wrapper', loudAsync(async (t) => {
     author: alice
   }))
 
-  const photoId = new Resource({
-    bot,
-    models,
+  const photoId = bot.draft({
     type: 'tradle.PhotoID'
   })
 
@@ -46,10 +48,32 @@ test('resource wrapper', loudAsync(async (t) => {
   await photoId.sign()
 
   t.equal(photoId.isSigned(), true)
+
+  const { link, permalink, prevlink } = photoId
+  t.equal(prevlink, undefined)
+
   t.same(photoId.key, {
     [TYPE]: photoId.type,
     _permalink: photoId.permalink
   })
+
+  photoId.version()
+  await photoId.sign()
+
+  const v2link = photoId.link
+  t.equal(photoId.prevlink, link)
+  t.equal(photoId.permalink, permalink)
+  t.notEqual(photoId.link, link)
+
+  photoId.version()
+  await photoId.sign()
+
+  t.equal(photoId.prevlink, v2link)
+  t.equal(photoId.permalink, permalink)
+  t.notEqual(photoId.link, link)
+  t.notEqual(photoId.link, v2link)
+
+  await photoId.save()
 
   t.equal(photoId.keyString, 'tradle.PhotoID"' + photoId.permalink)
   t.same(photoId.parseKeyString('tradle.PhotoID"' + photoId.permalink), photoId.key)
@@ -73,7 +97,7 @@ test('resource cache', loudAsync(async (t) => {
 
   sandbox.stub(bot, 'save').callsFake(async (r) => r)
 
-  const rcache = new RCache({ bot })
+  const rcache = new RCache({ store: getResourceModuleStore(bot) })
   const photoId = rcache.create('tradle.PhotoID')
   photoId.set({
     documentType: 'passport',

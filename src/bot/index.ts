@@ -27,6 +27,7 @@ import {
   normalizeSendOpts,
   normalizeRecipient,
   toBotMessageEvent,
+  getResourceModuleStore
 } from './utils'
 
 import createUsers from './users'
@@ -55,6 +56,7 @@ import {
   GetResourceIdentifierInput,
   IHasModels,
   Model,
+  Diff
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -70,7 +72,7 @@ import { AwsApis } from '../aws'
 import Errors from '../errors'
 import { MiddlewareContainer } from '../middleware-container'
 import { hookUp as setupDefaultHooks } from './hooks'
-import { Resource, ResourceInput } from './resource'
+import { Resource, ResourceInput, IResourcePersister } from './resource'
 
 type LambdaImplMap = {
   [name:string]: ILambdaImpl
@@ -215,6 +217,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   private outboundMessageLocker: Locker
   private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
+  private _resourceModuleStore: IResourcePersister
   constructor(opts: IBotOpts) {
     super()
 
@@ -242,6 +245,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     this.kv = tradle.kv.sub('bot:kv:')
     this.conf = tradle.kv.sub('bot:conf:')
+    this._resourceModuleStore = getResourceModuleStore(this)
+
     this.endpointInfo = {
       aws: true,
       version: this.version,
@@ -372,7 +377,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public getMyIdentity = () => this.tradle.provider.getMyPublicIdentity()
   public getMyIdentityPermalink = () => this.tradle.provider.getMyIdentityPermalink()
 
-  public sign = async (resource, author?) => {
+  public sign = async (resource:ITradleObject, author?):Promise<ITradleObject> => {
     const payload = { object: resource }
 
     // allow middleware to modify
@@ -414,9 +419,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
-  public save = resource => this._save('put', resource)
-  public update = resource => this._save('update', resource)
-
   public validateResource = (resource: ITradleObject) => validateResource.resource({
     models: this.models,
     resource
@@ -428,19 +430,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
 
     const current = await this.getResource({ type, permalink })
-    const updated = buildResource({
-      models: this.models,
-      model: current[TYPE],
-      resource: current
-    })
-    .set(props)
-    .toJSON()
+    const resource = this.draft({ resource: current })
+      .set(props)
 
-    const changedProps = Object.keys(props)
-    if (_.isEqual(
-      _.pick(current, changedProps),
-      _.pick(updated, changedProps)
-    )) {
+    if (!resource.modified) {
       this.logger.debug('nothing changed, skipping updateResource')
       return {
         resource: current,
@@ -448,8 +441,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       }
     }
 
+    resource.version()
+    await resource.signAndSave()
     return {
-      resource: await this.versionAndSave(updated),
+      resource: resource.toJSON({ virtual: true }),
       changed: true
     }
   }
@@ -576,16 +571,21 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return signed
   }
 
-  public draft = (opts:Partial<ResourceInput>) => new Resource({ bot: this, ...opts })
+  public draft = (opts: Partial<ResourceInput>) => {
+    return new Resource({
+      store: this._resourceModuleStore,
+      ...opts
+    })
+  }
 
-  public signAndSave = async <T>(resource):Promise<T> => {
+  public signAndSave = async <T>(resource:T):Promise<T> => {
     const signed = await this.sign(resource)
     addLinks(signed)
     await this.save(signed)
     return signed
   }
 
-  public versionAndSave = async <T>(resource):Promise<T> => {
+  public versionAndSave = async <T>(resource:T):Promise<T> => {
     const newVersion = await this.createNewVersion(resource)
     await this.save(newVersion)
     return newVersion
@@ -604,7 +604,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.env.getStackResourceName(shortName)
   }
 
-  private _save = async (method:string, resource:any) => {
+  public save = async (resource:ITradleObject, diff?:Diff) => {
     if (!this.isReady()) {
       this.logger.debug('waiting for this.ready()')
       await this.promiseReady()
@@ -613,12 +613,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     try {
       await this.provider.saveObject({
         object: resource,
-        merge: method === 'update'
+        diff
       })
 
       // await this.bot.hooks.fire(`save:${method}`, resource)
     } catch (err) {
-      this.logger.debug(`db.${method} failed`, {
+      this.logger.debug(`save failed`, {
         type: resource[TYPE],
         link: resource._link,
         input: err.input,

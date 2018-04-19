@@ -2,6 +2,7 @@ const debug = require('debug')('tradle:sls:db-utils')
 // @ts-ignore
 import Promise from 'bluebird'
 import AWS from 'aws-sdk'
+import { AttributePath, PathElement } from '@aws/dynamodb-expressions'
 import _ from 'lodash'
 // import {
 //   marshalItem as marshallDBItem,
@@ -26,6 +27,9 @@ import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
 import Errors from './errors'
 import { Env, StreamRecordType, IStreamRecord } from './types'
+
+export type PropPath = string|string[]
+export type PathAndValuePair = [PropPath, any]
 
 const { marshall, unmarshall } = AWS.DynamoDB.Converter
 const marshallDBItem = item => marshall(item)
@@ -660,4 +664,13 @@ const getUpdateParams = (item):any => {
     ExpressionAttributeValues,
     UpdateExpression
   }
+}
+
+export const toAttributePath = (path: PropPath) => {
+  const parts = [].concat(path).map(name => ({
+    type: 'AttributeName',
+    name
+  })) as PathElement[]
+
+  return new AttributePath(parts)
 }

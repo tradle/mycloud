@@ -167,8 +167,7 @@ test('prefill-based', loudAsync(async (t) => {
   const bot = createBot()
   const unsignedForms = dataBundle.items.filter(item => models[item[TYPE]].subClassOf === FORM)
   const product = 'tradle.WealthManagementAccount'
-  const productRequest = new Resource({
-    bot,
+  const productRequest = bot.draft({
     type: PRODUCT_REQUEST
   })
   .set({
@@ -177,8 +176,7 @@ test('prefill-based', loudAsync(async (t) => {
   })
 
   await productRequest.sign()
-  const draft = await new Resource({
-    bot,
+  const draft = await bot.draft({
     type: DRAFT_APPLICATION,
   })
   .set({
@@ -189,8 +187,7 @@ test('prefill-based', loudAsync(async (t) => {
 
   const draftStub = draft.stub
   const unsignedPrefills = unsignedForms.map(prefill => toPrefill({ prefill, draft }))
-  const prefills = await Promise.mapSeries(unsignedPrefills, resource => new Resource({
-    bot,
+  const prefills = await Promise.mapSeries(unsignedPrefills, resource => bot.draft({
     resource
   }).signAndSave())
 
