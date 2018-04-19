@@ -114,22 +114,14 @@ test('email-based-verification', loudAsync(async (t) => {
   t.equal(execStub.callCount, 1)
   t.equal(mailStub.callCount, 1)
 
-  try {
-    await ebv.processConfirmationCode(code)
-    t.fail('expected error')
-  } catch (err) {
-    t.ok(/used/.test(err.message))
-  }
+  const dup = await ebv.processConfirmationCode(code)
+  t.equal(dup.success, false)
 
   const code2 = await ebv.confirmAndExec(opts)
   clock.tick(1001 * 1000) // ttl is in seconds
 
-  try {
-    await ebv.processConfirmationCode(code2)
-    t.fail('expected error')
-  } catch (err) {
-    t.ok(/expired/.test(err.message))
-  }
+  const expired = await ebv.processConfirmationCode(code2)
+  t.equal(expired.success, false)
 
   // const plugin = createPlugin(components, {
   //   logger,
