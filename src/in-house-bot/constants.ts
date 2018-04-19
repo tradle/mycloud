@@ -1,6 +1,7 @@
 
 import {
-  PRIVATE_CONF_BUCKET as defaults
+  PRIVATE_CONF_BUCKET as defaults,
+  TYPES as BASE_TYPES
 } from '../constants'
 
 export const PRIVATE_CONF_BUCKET = {
@@ -16,6 +17,7 @@ export const MODELS_HASH_PROPERTY = 'modelsHash'
 export const STYLES_HASH_PROPERTY = 'stylesHash'
 
 export const TYPES = {
+  ...BASE_TYPES,
   DATA_CLAIM: 'tradle.DataClaim',
   DATA_BUNDLE: 'tradle.DataBundle',
   FORM: 'tradle.Form',
@@ -24,5 +26,9 @@ export const TYPES = {
   APPLICATION: 'tradle.Application',
   PRODUCT_REQUEST: 'tradle.ProductRequest',
   DRAFT_APPLICATION: 'tradle.DraftApplication',
-  FORM_PREFILL: 'tradle.FormPrefill'
+  FORM_PREFILL: 'tradle.FormPrefill',
+  DEPLOYMENT_PRODUCT: 'tradle.cloud.Deployment',
+  DEPLOYMENT_CONFIG_FORM: 'tradle.cloud.Configuration',
+  ORGANIZATION: 'tradle.Organization',
+  STYLES_PACK: 'tradle.StylesPack',
 }

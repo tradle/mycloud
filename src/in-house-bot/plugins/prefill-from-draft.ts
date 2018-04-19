@@ -8,6 +8,7 @@ import {
 
 import { parseStub, omitVirtual, toUnsigned, allSettled } from '../../utils'
 import Errors from '../../errors'
+import { getParsedFormStubs } from '../utils'
 
 export const name = 'prefillFromDraft'
 export const createPlugin: CreatePlugin<void> = ({
@@ -42,8 +43,7 @@ export const createPlugin: CreatePlugin<void> = ({
 
     // TODO: be smart about multi-entry
     const { form } = formRequest
-    const filledAlready = (application.forms || [])
-      .map(appSub => parseStub(appSub.submission))
+    const filledAlready = getParsedFormStubs(application)
       .filter(({ type }) => type === form)
 
     if (!(draft.formPrefills && draft.formPrefills.length)) return

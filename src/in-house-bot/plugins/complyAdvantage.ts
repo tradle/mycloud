@@ -13,6 +13,7 @@ import {
 } from '../types'
 
 import { parseStub } from '../../utils'
+import { getParsedFormStubs } from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -195,8 +196,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       for (let formId in propertyMap) {
         let map = propertyMap[formId]
         if (formId !== FORM_ID) {
-          let formStubs = application.forms && application.forms
-            .map(appStub => parseStub(appStub.submission))
+          let formStubs = getParsedFormStubs(application)
             .filter(f => f.type === FORM_ID)
 
           if (!formStubs.length) {

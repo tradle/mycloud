@@ -2,7 +2,7 @@ import { cloneDeep } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { CreatePlugin, IPluginLifecycleMethods, Conf } from '../types'
-import { parseStub } from '../../utils'
+import { getFormStubs } from '../utils'
 
 const MESSAGE = 'Please provide your **digital hand signature**'
 
@@ -27,7 +27,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger,
       formRequest.message = MESSAGE
     }
 
-    formRequest.prefill.signatureFor = cloneDeep(application.forms)
+    const formStubs = getFormStubs(application).map(resource => buildResource.stub({ resource }))
+    formRequest.prefill.signatureFor = formStubs
   }
 
   return {

@@ -17,12 +17,12 @@ import {
 import Errors from '../../errors'
 import constants from '../../constants'
 import { createDeployment } from '../deployment'
+import { TYPES } from '../constants'
+import { getParsedFormStubs } from '../utils'
 
 const { WEB_APP_URL } = constants
 const templateFileName = 'compiled-cloudformation-template.json'
-const CONFIG_FORM = 'tradle.cloud.Configuration'
-const DEPLOYMENT_PRODUCT = 'tradle.cloud.Deployment'
-const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
+const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM, SIMPLE_MESSAGE } = TYPES
 
 export interface IDeploymentPluginOpts extends IPluginOpts {
   conf: IDeploymentPluginConf
@@ -43,11 +43,10 @@ export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts)
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return
 
-    const latest = application.forms.slice().reverse().find(appSub => {
-      return parseStub(appSub.submission).type === CONFIG_FORM
-    })
+    const latest = getParsedFormStubs(application).reverse()
+      .find(({ type }) => type === DEPLOYMENT_CONFIG_FORM)
 
-    const { link } = parseStub(latest)
+    const { link } = latest
     const form = await bot.objects.get(link)
     const configuration = deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink

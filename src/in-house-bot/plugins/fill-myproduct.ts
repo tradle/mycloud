@@ -4,20 +4,11 @@ import { Conf } from '../configure'
 import { parseStub } from '../../utils'
 import { Bot, Logger, IPBApp, IPBReq, CreatePlugin } from '../types'
 import baseModels from '../../models'
+import { getParsedFormStubs, getLatestForms } from '../utils'
 
 const objModelProps = baseModels['tradle.Object'].properties
 const myProductProps = baseModels['tradle.MyProduct'].properties
 const IGNORE_PROPS = Object.keys(objModelProps).concat(Object.keys(myProductProps))
-const getLatestForms = forms => {
-  const stubs = forms.map(parseStub)
-  return stubs.reverse().reduce((uniq, stub) => {
-    if (!uniq[stub.type]) {
-      uniq[stub.type] = stub
-    }
-
-    return uniq
-  }, {})
-}
 
 export const name = 'fill-myproduct'
 export class FillMyProductPlugin {
@@ -45,7 +36,7 @@ export class FillMyProductPlugin {
     const propsToFill = _.difference(Object.keys(model.properties), IGNORE_PROPS)
     if (!propsToFill.length) return
 
-    const stubs = getLatestForms(application.forms)
+    const stubs = getLatestForms(application)
     const propToModel = {}
     const modelToProps = {}
     const stubsNeeded = stubs.filter(({ type }) => {
@@ -64,7 +55,7 @@ export class FillMyProductPlugin {
       })
     })
 
-    const forms = await Promise.all(stubsNeeded.map(stub => this.bot.objects.get(stub)))
+    const forms = await Promise.all(stubsNeeded.map(stub => this.bot.objects.get(stub.link)))
     for (const form of forms) {
       const props = modelToProps[form[TYPE]]
       _.extend(certificate, _.pick(form, props))

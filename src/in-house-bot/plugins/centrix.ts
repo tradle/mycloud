@@ -11,6 +11,7 @@ try {
   createCentrixClient = require('@tradle/centrix')
 } catch (err) {}
 
+import { getParsedFormStubs } from '../utils'
 import {
   Name,
   Bot,
@@ -235,10 +236,12 @@ function getLink(stub) {
 async function getCentrixData ({ application, bot }) {
   if (!application) return
 
-  const formStub = application.forms.find(form => getType(form) === PHOTO_ID)
+  const formStub = getParsedFormStubs(application)
+    .find(form => form.type === PHOTO_ID)
+
   if (!formStub) return
 
-  const form = await bot.objects.get(getLink(formStub))
+  const form = await bot.objects.get(formStub.link)
   const { scanJson } = form
   if (!scanJson) return
 

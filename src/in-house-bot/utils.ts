@@ -6,7 +6,16 @@ import { isPromise, pickNonNull, getEnumValueId, parseStub } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
 import models from '../models'
-import { Name, ResourceStub, ICommand, Bot, IPBApp, IPBAppStub, IPBUser } from './types'
+import {
+  Name,
+  ResourceStub,
+  ICommand,
+  Bot,
+  IPBApp,
+  IPBAppStub,
+  IPBUser,
+  ApplicationSubmission
+} from './types'
 
 const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
 const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
@@ -358,6 +367,19 @@ export const isPassedCheck = ({ status }) => {
 export const getPropertyTitle = validateResource.utils.getPropertyTitle
 export { getEnumValueId }
 
-export const getAppFormStubs = (application:IPBApp) => (application.forms || [])
-  .map(appSub => appSub.submission)
-  .map(parseStub)
+export const getFormStubs = ({ forms }: {
+  forms?: ApplicationSubmission[]
+}) => (forms || []).map(appSub => appSub.submission)
+
+export const getParsedFormStubs = ({ forms }: {
+  forms?: ApplicationSubmission[]
+}) => getFormStubs({ forms }).map(parseStub)
+
+export const getLatestForms = ({ forms }: {
+  forms?: ApplicationSubmission[]
+}) => {
+  return _.chain(getParsedFormStubs({ forms }))
+    .reverse()
+    .uniqBy('type')
+    .value()
+}

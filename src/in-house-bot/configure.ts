@@ -32,23 +32,25 @@ import {
 } from '../constants'
 
 import {
-  PRIVATE_CONF_BUCKET
+  PRIVATE_CONF_BUCKET,
+  TYPES
 } from './constants'
 
 import { defaultConf } from './default-conf'
 import { media } from './media'
 
+const { DEPLOYMENT_PRODUCT, ORGANIZATION, STYLES_PACK } = TYPES
 const parseJSON = JSON.parse.bind(JSON)
 const getHandleFromName = (name: string) => {
   return name.replace(/[^A-Za-z]/g, '').toLowerCase()
 }
 
 const baseOrgObj = {
-  [TYPE]: 'tradle.Organization'
+  [TYPE]: ORGANIZATION
 }
 
 const baseStylePackObj = {
-  [TYPE]: 'tradle.StylesPack'
+  [TYPE]: STYLES_PACK
 }
 
 export type InitOpts = {
@@ -184,13 +186,17 @@ export class Conf {
       await this.validatePluginConf(plugins)
     }
 
+    if (enabled.includes(DEPLOYMENT_PRODUCT) && !plugins.deployment) {
+      throw new Errors.InvalidInput(`product ${DEPLOYMENT_PRODUCT} is enabled. Expected a configuration for the "deployment" plugin`)
+    }
+
     const results = await allSettled(enabled.map(product => this.modelStore.get(product)))
     const missing = results
       .map((result, i) => result.isRejected && enabled[i])
       .filter(_.identity)
 
     if (missing.length) {
-      throw new Error(`missing models: ${missing.join(', ')}`)
+      throw new Errors.InvalidInput(`missing models: ${missing.join(', ')}`)
     }
 
     this.logger.debug('setting bot configuration')
@@ -224,7 +230,7 @@ export class Conf {
     this.logger.debug('setting style')
     validateResource.resource({
       models: this.bot.models,
-      model: 'tradle.StylesPack',
+      model: STYLES_PACK,
       resource: value
     })
 

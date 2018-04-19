@@ -6,7 +6,8 @@ import {
   getNameFromForm,
   getDateOfBirthFromForm,
   getCountryFromForm,
-  parseScannedDate
+  parseScannedDate,
+  getParsedFormStubs
 } from '../utils'
 import { Bot, IPBApp, ResourceStub, Name, CreatePlugin, IPluginLifecycleMethods } from '../types'
 
@@ -102,7 +103,7 @@ export class SmartPrefill {
     const sources = productConf[form] || []
     if (!sources.length) return
 
-    const inputs = application.forms.map(parseStub)
+    const inputs = getParsedFormStubs(application)
       .filter(stub => sources.includes(stub.type))
       .map(stub => {
         const transformInput = transformers[stub.type]

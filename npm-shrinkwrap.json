@@ -77,7 +77,7 @@
     "@tradle/biz-plugins": {
       "version": "1.0.0",
       "from": "tradle/biz-plugins#cloud",
-      "resolved": "git://github.com/tradle/biz-plugins.git#a5262cc0b57fa21c85b8ffff64cf204db1906a4a"
+      "resolved": "git://github.com/tradle/biz-plugins.git#9b606e85610e4412412a48212b5bebf3df00df34"
     },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
@@ -94,7 +94,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#backlinks",
-      "resolved": "git://github.com/tradle/bot-products.git#b252e9071582a713373022fa571bd34c88a4bde5",
+      "resolved": "git://github.com/tradle/bot-products.git#18536509421337190c0f2fc9929bf53938ddaf1a",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
