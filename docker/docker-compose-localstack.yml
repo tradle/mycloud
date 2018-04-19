@@ -3,6 +3,7 @@ version: '2.1'
 services:
   dynamo:
     image: aaronshaf/dynamodb-admin
+    restart: always
     # dummy credentials
     ports:
       - ${DYNAMO_ADMIN_PORT}:8001
@@ -14,11 +15,13 @@ services:
   # needed for mosca (local MQTT server)
   redis:
     image: redis:alpine
+    restart: always
     ports:
       - 6379:6379
 
   localstack:
     image: localstack/localstack
+    restart: always
     ports:
       - "4567-4582:4567-4582"
       - "8080:8080"
@@ -34,6 +37,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
   tradle_web:
     image: tradle/web-app:cloud
+    restart: always
     container_name: tradle-web-app
     restart: always
     ports:
