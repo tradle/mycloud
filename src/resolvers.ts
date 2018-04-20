@@ -19,7 +19,7 @@ import validateResource from '@tradle/validate-resource'
 import { ResourceStub, Backlinks } from './types'
 import { parseStub, allSettled } from './utils'
 
-const { getRef } = validateModels.utils
+const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
 
 const {
@@ -126,6 +126,15 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
     const property = model.properties[propertyName]
     const ref = getRef(property)
     const refModel = models[ref]
+    const typeCondition = filter.EQ[TYPE]
+    if (typeCondition) {
+      try {
+        ensureInstantiableDescendant(typeCondition, ref)
+      } catch (err) {
+        throw new Error(`invalid filter condition for ${TYPE}: ${typeCondition}. ${err.message}`)
+      }
+    }
+
     if (isInstantiable(refModel)) {
       const { interfaces = [] } = refModel
       if (interfaces.includes('tradle.Intersection')) {
@@ -149,6 +158,29 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
         filter: defaultsDeep(filter || {}, property.items.filter || {}),
         results: items
       })
+    }
+  }
+
+  // Note: could generate more specific schema instead
+  const ensureInstantiableDescendant = (a, b) => {
+    const bModel = models[b]
+    if (a && a !== b) {
+      if (isInstantiable(bModel)) {
+        throw new Error(`expected ${b} or its descendant`)
+      }
+
+      const model = models[a]
+      if (!model) {
+        throw new Error(`model not found: ${a}`)
+      }
+
+      if (!isInstantiable(model)) {
+        throw new Error(`invalid filter condition for ${TYPE}: ${a}. ${a} is not instantiable`)
+      }
+
+      if (!isDescendantOf({ models, a, b })) {
+        throw new Error(`invalid filter condition for ${TYPE}: ${a}. ${a} is not a descendant of ${b}`)
+      }
     }
   }
 
