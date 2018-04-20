@@ -110,8 +110,8 @@ export default class User {
     if (!session) return
 
     const { clientPosition} = session
-    if (!clientPosition) {
-      this.logger.error('expected session to have clientPosition', { session })
+    if (!(clientPosition && clientPosition.received)) {
+      this.logger.error('expected session to have clientPosition.received', { session })
       await this.requestIotClientReconnect({ event: 'announcePosition', clientId })
       return
     }
