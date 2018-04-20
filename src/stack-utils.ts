@@ -446,8 +446,27 @@ export default class StackUtils {
     return JSON.parse(str)
   }
 
+  // public static changeAdminEmail = ({ template, to }) => {
+  //   return {
+  //     ...template,
+  //     Resources: _.transform(<any>template.Resources, (updated:any, value:any, logicalId:string) => {
+  //       const { Type } = value
+  //       if (Type === 'AWS::SNS::Topic' && logicalId.toLowerCase().endsWith('alarm')) {
+  //         value = _.cloneDeep(value)
+  //         const { Subscription = [] } = value.Properties
+  //         Subscription.forEach(item => {
+  //           if (item.Protocol === 'email') item.Endpoint = to
+  //         })
+  //       }
+
+  //       updated[logicalId] = value
+  //     }, {})
+  //   }
+  // }
+
   public changeServiceName = StackUtils.changeServiceName
   public changeRegion = StackUtils.changeRegion
+  // public changeAdminEmail = StackUtils.changeAdminEmail
   private createDeployment = async () => {
     await this.aws.apigateway.createDeployment({
       restApiId: this.apiId,

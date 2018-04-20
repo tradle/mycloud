@@ -90,10 +90,17 @@ interface DeploymentCtorOpts {
   orgConf?: IConf
 }
 
-const getServiceNameFromTemplate = template => template.Mappings.deployment.init.service
-const getStageFromTemplate = template => template.Mappings.deployment.init.stage
-const getStackNameFromTemplate = template => template.Mappings.deployment.init.stackName
+const ADMIN_MAPPING_PATH = ['org', 'contact', 'adminEmail']
+const ADMIN_EMAIL_ENDPOINT = {
+  'Fn::FindInMap': ADMIN_MAPPING_PATH
+}
+
+const getDeploymentUUIDFromTemplate = template => _.get(template, 'Mappings.deployment.init.deploymentUUID')
+const getServiceNameFromTemplate = template => _.get(template, 'Mappings.deployment.init.service')
+const getStageFromTemplate = template => _.get(template, 'Mappings.deployment.init.stage')
+const getStackNameFromTemplate = template => _.get(template, 'Mappings.deployment.init.stackName')
 const getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
+const getAdminEmailFromTemplate = template => _.get(template, ['Mappings'].concat(ADMIN_MAPPING_PATH))
 const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
 
 export class Deployment {
@@ -250,7 +257,7 @@ export class Deployment {
     template: any
     link: string
   }) => {
-    const { deploymentUUID } = template.Mappings.deployment.init as IMyDeploymentConf
+    const deploymentUUID = getDeploymentUUIDFromTemplate(template)
     await this.kv.put(deploymentUUID, { link })
     return deploymentUUID
   }
@@ -450,7 +457,7 @@ ${this.genUsageInstructions(links)}`
     template: any
     opts: IDeploymentOpts
   }) => {
-    let { name, domain, logo, region, stackPrefix } = opts
+    let { name, domain, logo, region, stackPrefix, adminEmail } = opts
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
@@ -471,7 +478,7 @@ ${this.genUsageInstructions(links)}`
       stage,
       stackName: this.bot.stackUtils.genStackName({ service, stage }),
       referrerUrl: this.bot.apiBaseUrl,
-      deploymentUUID: utils.uuid()
+      deploymentUUID: utils.uuid(),
     }
 
     deployment.init = dInit
@@ -480,6 +487,9 @@ ${this.genUsageInstructions(links)}`
       domain,
       logo: await logoPromise || media.LOGO_UNKNOWN
     }
+
+    org.contact = {}
+    org.contact.adminEmail = adminEmail
 
     return this.finalizeCustomTemplate({
       template,

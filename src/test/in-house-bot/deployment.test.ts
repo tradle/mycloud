@@ -118,6 +118,18 @@ test('deployment by referral', loudAsync(async (t) => {
     "Resources": {
       "Initialize": {
         "Properties": {}
+      },
+      "AwsAlertsAlarm": {
+        "Type": "AWS::SNS::Topic",
+        "Properties": {
+          "TopicName": "tdl-xxxx-ltd-dev-alerts-alarm",
+          "Subscription": [
+            {
+              "Protocol": "email",
+              "Endpoint": "someone@example.com"
+            }
+          ]
+        }
       }
     }
   })
@@ -179,14 +191,23 @@ test('deployment by referral', loudAsync(async (t) => {
     sentEmails.push(...opts.to)
   })
 
-  const launchUrl = (await parentDeployment.genLaunchTemplate({
+  const launchTemplate = await parentDeployment.genLaunchTemplate({
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
     region: 'ap-southeast-2',
     configurationLink: conf._link,
-    stackPrefix: conf.stackPrefix
-  })).url
+    stackPrefix: conf.stackPrefix,
+    adminEmail: conf.adminEmail
+  })
+
+  // t.equal(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
+  t.equal(launchTemplate.template.Mappings.org.contact.adminEmail, conf.adminEmail)
+  t.same(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
+    'Fn::FindInMap': ['org', 'contact', 'adminEmail']
+  })
+
+  const launchUrl = launchTemplate.url
 
   let childDeploymentResource
   const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {

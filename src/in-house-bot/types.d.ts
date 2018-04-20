@@ -324,6 +324,7 @@ export interface IDeploymentOpts {
   logo?: string
   stackPrefix: string
   region: string
+  adminEmail?: string
   configurationLink?: string
 }
 

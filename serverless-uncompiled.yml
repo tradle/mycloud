@@ -122,7 +122,8 @@ custom:
 
   alertNotifications:
     - protocol: email
-      endpoint: ${{self:custom.emailForNotifications}}
+      endpoint:
+        Fn::FindInMap: ["org", "contact", "adminEmail"]
 
   alerts:
     stages:
@@ -1098,6 +1099,8 @@ resources:
   Mappings:
     org:
       init: ${{self:custom.org}}
+      contact:
+        adminEmail: ${{self:custom.emailForNotifications}}
 
     deployment:
       init:
