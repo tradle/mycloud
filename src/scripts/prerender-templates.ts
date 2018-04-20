@@ -32,7 +32,7 @@ const baseDir = path.join(__dirname, '../../assets/in-house-bot/templates')
     })
 })
 
-
+// import * as Templates from '../in-house-bot/templates'
 // import nunjucks from 'nunjucks'
 
 // // nunjucks.configure(path.join(__dirname, '../../assets/in-house-bot/templates/emails'), {
@@ -48,7 +48,7 @@ const baseDir = path.join(__dirname, '../../assets/in-house-bot/templates')
 //   // watch: true
 // });
 
-// const template = nunjucks.render('action.html{
+// const template = Templates.email.action({
 //   action: {
 //     text: 'Launch MyCloud',
 //     href: 'launchUrl'
@@ -61,4 +61,4 @@ const baseDir = path.join(__dirname, '../../assets/in-house-bot/templates')
 //   twitter: 'tradles'
 // })
 
-// console.log(nunjucks.render('action.html'))
+// console.log(template)

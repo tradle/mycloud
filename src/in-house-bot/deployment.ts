@@ -431,11 +431,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public genEmailBody = ({ template, data, values }) => {
-    return Templates.email[template]({
-      type: 'email',
-      name: template,
-      data: Templates.renderData(data, values)
-    })
+    return Templates.email[template](Templates.renderData(data, values))
   }
 
   public genLaunchEmail = opts => ({
