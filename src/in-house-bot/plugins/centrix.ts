@@ -75,8 +75,9 @@ class CentrixAPI {
     let status
     try {
       this.logger.debug(`running ${centrixOpName} with Centrix`)
-      // rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
-      rawData = await this.centrix[method](props)
+      debugger
+      rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
+      // rawData = await this.centrix[method](props)
     } catch (err) {
       this.logger.debug(`Centrix ${centrixOpName} verification failed`, err.stack)
       rawData = {}

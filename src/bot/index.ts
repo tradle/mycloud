@@ -19,7 +19,8 @@ import {
   batchProcess,
   getResourceIdentifier,
   pickBacklinks,
-  omitBacklinks
+  omitBacklinks,
+  pluck
 } from '../utils'
 
 import { addLinks } from '../crypto'
@@ -308,53 +309,76 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
   }
 
-  public send = async (opts) => {
-    const batch = await Promise.all([].concat(opts)
-      .map(oneOpts => normalizeSendOpts(this, oneOpts)))
+  public toMessageBatch = (batch) => {
+    const recipients = pluck(batch, 'to').map(normalizeRecipient)
+    if (_.uniq(recipients).length > 1) {
+      throw new Errors.InvalidInput(`expected a single recipient`)
+    }
 
+    const n = batch.length
+    return batch.map((opts, i) => ({
+      ...opts,
+      other: {
+        ..._.clone(opts.other || {}),
+        iOfN: {
+          i: i + 1,
+          n
+        }
+      }
+    }))
+  }
+
+  public sendBatch = async (batch) => {
+    return this.send(this.toMessageBatch(batch))
+  }
+
+  public send = async (opts) => {
+    const batch = await Promise.map([].concat(opts), oneOpts => normalizeSendOpts(this, oneOpts))
     const byRecipient = _.groupBy(batch, 'recipient')
     const recipients = Object.keys(byRecipient)
     this.logger.debug(`queueing messages to ${recipients.length} recipients`, {
       recipients
     })
 
-    const results = await Promise.all(recipients.map(async (recipient) => {
-      const subBatch = byRecipient[recipient]
-      const types = subBatch.map(m => m[TYPE]).join(', ')
-      this.logger.debug(`sending to ${recipient}: ${types}`)
-
-      await this.outboundMessageLocker.lock(recipient)
-      let messages
-      try {
-        messages = await this.provider.sendMessageBatch(subBatch)
-        this.tasks.add({
-          name: 'delivery:live',
-          promiser: () => this.provider.attemptLiveDelivery({
-            recipient,
-            messages
-          })
-        })
-
-        const user = await this.users.get(recipient)
-        await this._fireMessageBatchEvent({
-          spread: true,
-          batch: messages.map(message => toBotMessageEvent({
-            bot: this,
-            message,
-            user
-          }))
-        })
-      } finally {
-        this.outboundMessageLocker.unlock(recipient)
-      }
-
-      return messages
-    }))
+    const results = await Promise.map(recipients, async (recipient) => {
+      return await this._sendBatch({ recipient, batch: byRecipient[recipient] })
+    })
 
     const messages = _.flatten(results)
     if (messages) {
       return Array.isArray(opts) ? messages : messages[0]
     }
+  }
+
+  public _sendBatch = async ({ recipient, batch }) => {
+    const types = batch.map(m => m[TYPE]).join(', ')
+    this.logger.debug(`sending to ${recipient}: ${types}`)
+    await this.outboundMessageLocker.lock(recipient)
+    let messages
+    try {
+      messages = await this.provider.sendMessageBatch(batch)
+      this.tasks.add({
+        name: 'delivery:live',
+        promiser: () => this.provider.attemptLiveDelivery({
+          recipient,
+          messages
+        })
+      })
+
+      const user = await this.users.get(recipient)
+      await this._fireMessageBatchEvent({
+        spread: true,
+        batch: messages.map(message => toBotMessageEvent({
+          bot: this,
+          message,
+          user
+        }))
+      })
+    } finally {
+      this.outboundMessageLocker.unlock(recipient)
+    }
+
+    return messages
   }
 
   public sendPushNotification = (recipient: string) => this.provider.sendPushNotification(recipient)
@@ -664,7 +688,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const { changes, async, spread } = opts
     const base = EventTopics.resource.save
     const topic = async ? base.async : base.sync
-    const payloads = await Promise.all(changes.map(change => maybeAddOld(this, change, async)))
+    const payloads = await Promise.map(changes, change => maybeAddOld(this, change, async))
     return spread
       ? await this.fireBatch(topic, payloads)
       : await this.fire(topic.batch, payloads)

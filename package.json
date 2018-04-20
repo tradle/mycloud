@@ -95,7 +95,6 @@
     "localstack:restart": "./src/scripts/localstack.sh down && ./src/scripts/localstack.sh up -d",
     "localstack:update": "./src/scripts/localstack.sh pull tradle_web",
     "models:update": "node ./lib/scripts/update-models.js",
-    "redis:stop": "redis-cli shutdown",
     "tail": "./src/scripts/tail.sh",
     "info": "serverless info",
     "tswatch": "tsc -w",

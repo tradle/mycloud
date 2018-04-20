@@ -82,7 +82,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager#backlinks",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#2ca567f41e286d24acbfccb27a1b7cc8404d8778",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#e303438aaba37ffd935da7bfd9b3d0d495f1cebd",
       "dependencies": {
         "bluebird": {
           "version": "2.11.0",
@@ -94,7 +94,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products#backlinks",
-      "resolved": "git://github.com/tradle/bot-products.git#ab99c52afc8a5969f1bb6873f30affc4a5e162a3",
+      "resolved": "git://github.com/tradle/bot-products.git#10b97220739cc88b3a40af94f8c18f706fa8d1d0",
       "dependencies": {
         "debug": {
           "version": "3.1.0",

@@ -41,6 +41,7 @@ const normalizeSendOpts = async (bot, opts) => {
 
   bot.objects.presignEmbeddedMediaLinks(object)
   opts = _.omit(opts, 'to')
+  opts.object = object
   opts.recipient = normalizeRecipient(to)
   // if (typeof opts.object === 'string') {
   //   opts.object = {
