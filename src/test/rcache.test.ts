@@ -83,6 +83,33 @@ test('resource wrapper', loudAsync(async (t) => {
   })
 
   t.equal(photoId.isSigned(), false)
+
+  const v = new Resource({
+    models,
+    type: 'tradle.Verification'
+  })
+
+  let docStub = {
+    ...photoId.stub
+  }
+
+  v.set({
+    document: docStub
+  })
+
+  t.same(v.get('document'), docStub)
+
+  docStub = {
+    ...docStub,
+    _link: 'abc'
+  }
+
+  v.set({
+    document: docStub
+  })
+
+  t.same(v.get('document'), docStub)
+
   t.end()
 }))
 

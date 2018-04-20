@@ -116,7 +116,7 @@
     "@tradle/build-resource": {
       "version": "2.15.0",
       "from": "tradle/build-resource#stubs",
-      "resolved": "git://github.com/tradle/build-resource.git#cc09c303ac148927982dc8f421d03e16065346ad"
+      "resolved": "git://github.com/tradle/build-resource.git#1d4ba378cbe7b2a4cf9057870880210122e1642a"
     },
     "@tradle/cb-blockr": {
       "version": "3.2.1",
@@ -2976,9 +2976,9 @@
       "resolved": "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz"
     },
     "ejs": {
-      "version": "2.5.8",
+      "version": "2.5.9",
       "from": "ejs@>=2.5.5 <2.6.0",
-      "resolved": "https://registry.npmjs.org/ejs/-/ejs-2.5.8.tgz",
+      "resolved": "https://registry.npmjs.org/ejs/-/ejs-2.5.9.tgz",
       "optional": true
     },
     "electron-to-chromium": {

@@ -39,6 +39,15 @@ const OPERATION = {
   passport: 'DIAPassportVerification'
 }
 
+const FIXTURES = (function() {
+  try {
+    return {
+      passport: require('@tradle/centrix/test/fixtures/success-passport').GetCreditReportProductsResult,
+      license: require('@tradle/centrix/test/fixtures/success-driver-license').GetCreditReportProductsResult,
+    }
+  } catch (err) {}
+})()
+
 class CentrixAPI {
   private bot: Bot
   private productsAPI:any
@@ -66,6 +75,7 @@ class CentrixAPI {
     let status
     try {
       this.logger.debug(`running ${centrixOpName} with Centrix`)
+      // rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
       rawData = await this.centrix[method](props)
     } catch (err) {
       this.logger.debug(`Centrix ${centrixOpName} verification failed`, err.stack)
@@ -84,6 +94,7 @@ class CentrixAPI {
       await this.createCentrixCheck({ application, rawData, status })
       return
     }
+
     if (idType === DOCUMENT_TYPES.passport) {
       if (!rawData.DataSets.DIAPassport.IsSuccess  ||
           !rawData.DataSets.DIAPassport.DIAPassportVerified)
@@ -114,17 +125,21 @@ class CentrixAPI {
   }
   async createCentrixCheck({ application, rawData, status }) {
     this.cleanJson(rawData)
-    let resource:any = {
-      [TYPE]: CENTRIX_CHECK,
+    const check = this.bot.draft({
+      type: CENTRIX_CHECK,
+    })
+    .set({
       provider: CENTRIX_NAME,
       status,
-      application: buildResourceStub({resource: application, models: this.bot.models}),
-      dateChecked: new Date().getTime()
-    }
-    if (rawData)
-      resource.rawData = rawData
+      application,
+      dateChecked: Date.now()
+    })
 
-    await this.bot.signAndSave(resource)
+    if (rawData) {
+      check.set('rawData', rawData)
+    }
+
+    await check.signAndSave()
   }
 
   async createCentrixVerification({ req, photoID, rawData }) {
@@ -225,12 +240,6 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   return {
     plugin: { onFormsCollected }
   }
-}
-function getType(stub) {
-  return stub.id.split('_')[0]
-}
-function getLink(stub) {
-  return stub.id.split('_')[2]
 }
 
 async function getCentrixData ({ application, bot }) {
