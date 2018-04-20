@@ -43,11 +43,18 @@ export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts)
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return
 
-    const latest = getParsedFormStubs(application).reverse()
-      .find(({ type }) => type === DEPLOYMENT_CONFIG_FORM)
+    let form
+    if (req && req.payload && req.payload[TYPE] === DEPLOYMENT_CONFIG_FORM) {
+      form = req.payload
+    } else {
+      const latest = getParsedFormStubs(application).reverse()
+        .find(({ type }) => type === DEPLOYMENT_CONFIG_FORM)
 
-    const { link } = latest
-    const form = await bot.objects.get(link)
+      const { link } = latest
+      form = await bot.objects.get(link)
+    }
+
+    const link = form._link
     const configuration = deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink
     const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentOpts
