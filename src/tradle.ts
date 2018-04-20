@@ -30,7 +30,7 @@ import {
   Iot,
   Events,
   Init,
-  Mailer,
+  IMailer,
   AppLinks,
   Backlinks,
   IServiceMap
@@ -76,7 +76,7 @@ export default class Tradle {
   public tasks:TaskManager
   public modelStore: ModelStore
   public prefix: string
-  public mailer: Mailer
+  public mailer: IMailer
   public appLinks: AppLinks
   public backlinks: Backlinks
   public get secrets(): Bucket {
@@ -202,7 +202,7 @@ export default class Tradle {
 
     // this.bot = this.require('bot', './bot')
     this.define('mailer', './mailer', Mailer => new Mailer({
-      aws: this.aws,
+      client: this.aws.ses,
       logger: this.logger.sub('mailer')
     }))
 

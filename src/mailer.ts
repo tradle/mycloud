@@ -5,6 +5,7 @@
 
 import _ from 'lodash'
 import { SES } from 'aws-sdk'
+import Errors from './errors'
 import {
   AwsApis,
   Logger,
@@ -13,9 +14,9 @@ import {
   ISendEmailResult
 } from './types'
 
-type MailerOpts = {
+type AWSMailerOpts = {
   logger: Logger
-  aws: AwsApis
+  client: AWS.SES
 }
 
 const toArray = val => val ? [].concat(val) : []
@@ -43,25 +44,31 @@ export const interpetSendOpts = (opts: ISendEmailOpts): SES.SendEmailRequest => 
 }
 
 export default class Mailer implements IMailer {
-  private ses: SES
+  private client: SES
   private logger: Logger
-  constructor({ aws, logger }: MailerOpts) {
-    this.ses = aws.ses
+  constructor({ client, logger }: AWSMailerOpts) {
+    this.client = client
     this.logger = logger
   }
 
   public send = async (opts: ISendEmailOpts):Promise<ISendEmailResult> => {
     this.logger.debug('sending email', _.omit(opts, 'body'))
-    const res = await this.ses.sendEmail(interpetSendOpts(opts)).promise()
+    const res = await this.client.sendEmail(interpetSendOpts(opts)).promise()
     return {
       id: res.MessageId
     }
   }
 
   public canSendFrom = async (address: string):Promise<boolean> => {
-    const res = await this.ses.getIdentityVerificationAttributes({
-      Identities: [address]
-    }).promise()
+    let res
+    try {
+      res = await this.client.getIdentityVerificationAttributes({
+        Identities: [address]
+      }).promise()
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      return false
+    }
 
     const atts = res.VerificationAttributes[address]
     return atts ? atts.VerificationStatus === 'Success' : false
