@@ -23,7 +23,7 @@ export class Friends {
       resource: friend
     })
 
-    const userId = friend._identityPermalink
+    const userId = parseStub(friend.identity).permalink
     const { users } = this.bot
     let user
     try {
