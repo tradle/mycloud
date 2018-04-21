@@ -5,6 +5,7 @@
 //   })
 // })
 
+import pick from 'lodash/pick'
 import { fromCli, fromHTTP } from '../lambda'
 import { createBot } from '../../bot'
 import { IPBMiddlewareContext } from '../types'
@@ -23,7 +24,10 @@ lambda.use(async (ctx:IPBMiddlewareContext, next) => {
     sudo: true
   })
 
-  ctx.body = { result, error }
+  ctx.body = {
+    result,
+    error: error && pick(error, ['name', 'type', 'message'])
+  }
 })
 
 export const handler = lambda.handler

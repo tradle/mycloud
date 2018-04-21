@@ -53,7 +53,7 @@ export default class Friends {
 
   public load = async (opts: ILoadFriendOpts): Promise<any> => {
     let { url } = opts
-    if (!url) throw new Error(`expected "url" of friend's MyCloud`)
+    if (!url) throw new Errors.InvalidInput(`expected "url" of friend's MyCloud`)
 
     url = url.replace(/[/]+$/, "")
 
