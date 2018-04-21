@@ -29,7 +29,7 @@ import {
   TYPE,
   TYPES,
   SIG,
-  PUBLIC_CONF_BUCKET,
+  PRIVATE_CONF_BUCKET,
   PERMALINK,
   DB_IGNORE_PAYLOAD_TYPES
 } from './constants'
@@ -396,7 +396,7 @@ export default class Provider {
   }
 
   public lookupMyPublicIdentity = async ():Promise<IIdentity> => {
-    const val = await this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
+    const val = await this.buckets.PrivateConf.getJSON(PRIVATE_CONF_BUCKET.identity)
     return val as IIdentity
   }
 

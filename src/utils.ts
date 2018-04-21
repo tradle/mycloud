@@ -41,7 +41,7 @@ import {
   TYPE,
   TYPES,
   WARMUP_SLEEP,
-  PUBLIC_CONF_BUCKET,
+  PRIVATE_CONF_BUCKET,
   LAUNCH_STACK_BASE_URL,
   DATE_ZERO,
   UNSIGNED_TYPES
@@ -1104,10 +1104,10 @@ export const timeMethods = <T>(obj:T, logger:Logger):T => {
 
 export const syncClock = async (tradle:Tradle) => {
   const { aws, buckets } = tradle
-  const { PublicConf } = buckets
+  const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
   // as long as
-  await PublicConf.head(PUBLIC_CONF_BUCKET.identity).catch(err => {
+  await PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch(err => {
     Errors.ignoreNotFound(err)
   })
 }

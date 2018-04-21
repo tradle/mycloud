@@ -108,7 +108,7 @@ export class Deployment {
   public kv: IKeyValueStore
   private bot: Bot
   private env: Env
-  private pubConfBucket: Bucket
+  private confBucket: Bucket
   private deploymentBucket: Bucket
   private logger: Logger
   private conf?: IDeploymentPluginConf
@@ -117,7 +117,7 @@ export class Deployment {
     this.bot = bot
     this.env = bot.env
     this.logger = logger
-    this.pubConfBucket = bot.buckets.PublicConf
+    this.confBucket = bot.buckets.PrivateConf
     this.deploymentBucket = bot.buckets.ServerlessDeployment
     this.kv = this.bot.kv.sub('deployment:')
     this.conf = conf

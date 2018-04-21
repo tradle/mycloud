@@ -40,10 +40,8 @@ const constants = {
   NONCE,
   TYPES,
   IDENTITY_KEYS_KEY: 'keys.json',
-  PUBLIC_CONF_BUCKET: {
-    identity: 'identity.json',
-  },
   PRIVATE_CONF_BUCKET: {
+    identity: 'identity.json',
     modelsPack: 'derived/cumulative-models-pack.json',
     graphqlSchema: 'derived/cumulative-graphql-schema.json',
     assetsFolder: 'assets',

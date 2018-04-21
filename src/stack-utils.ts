@@ -326,7 +326,7 @@ export default class StackUtils {
     const template = await this.getStackTemplate()
     const customized = await transform(template)
     const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
-    const pubConf = this.buckets.PublicConf
+    const pubConf = this.buckets.PrivateConf
     await pubConf.putJSON(key, customized, { publicRead: true })
     return {
       template: customized,

@@ -131,7 +131,6 @@ export class Conf {
     this.logger = logger || bot.logger
     const { buckets } = bot
     this.privateConfBucket = buckets.PrivateConf
-    // this.publicConfBucket = buckets.PublicConf
 
     for (let name in parts) {
       let part = parts[name]
@@ -143,29 +142,6 @@ export class Conf {
       })
     }
   }
-
-  // public get = async (forceFetch?:boolean) => {
-  //   const results = await allSettled([
-  //     this.privateConf.get(),
-  //     this.publicConf.get(),
-  //     this.style.get(),
-  //     this.models.get()
-  //   ])
-
-  //   const [
-  //     privateConf,
-  //     publicConf,
-  //     style,
-  //     models
-  //   ] = results.map(r => value)
-
-  //   return {
-  //     privateConf,
-  //     publicConf,
-  //     style,
-  //     models
-  //   }
-  // }
 
   public get = async () => {
     const promises = {}

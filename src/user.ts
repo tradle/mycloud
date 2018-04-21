@@ -3,7 +3,7 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import { omitVirtual, bindAll, RESOLVED_PROMISE } from './utils'
 import { prettify } from './string-utils'
-import { PUBLIC_CONF_BUCKET, SEQ } from './constants'
+import { PRIVATE_CONF_BUCKET, SEQ } from './constants'
 import Errors from './errors'
 import * as types from './typeforce-types'
 import {
@@ -296,7 +296,7 @@ export default class User {
   // })
 
   public getProviderIdentity = async () => {
-    const { object } = await this.buckets.PublicConf.getJSON(PUBLIC_CONF_BUCKET.identity)
+    const { object } = await this.buckets.PrivateConf.getJSON(PRIVATE_CONF_BUCKET.identity)
     return omitVirtual(object)
   }
 }

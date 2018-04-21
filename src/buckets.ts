@@ -32,11 +32,11 @@ const cacheConfig:IBucketsInfo = {
     max: 50 * MEG,
     maxAge: Infinity
   },
-  PublicConf: {
-    length: byteLengthFn,
-    max: 50 * MEG,
-    maxAge: MINUTE
-  },
+  // PublicConf: {
+  //   length: byteLengthFn,
+  //   max: 50 * MEG,
+  //   maxAge: MINUTE
+  // },
   PrivateConf: {
     length: byteLengthFn,
     max: 50 * MEG,

@@ -382,7 +382,7 @@ export interface IBucketsInfo {
   Objects: IBucketInfo
   Secrets: IBucketInfo
   ContentAddressed: IBucketInfo
-  PublicConf: IBucketInfo
+  // PublicConf: IBucketInfo
   PrivateConf: IBucketInfo
   FileUpload: IBucketInfo
   ServerlessDeployment: IBucketInfo

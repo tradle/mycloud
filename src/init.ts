@@ -15,7 +15,7 @@ import models from './models'
 import {
   TYPE,
   TYPES,
-  PUBLIC_CONF_BUCKET,
+  PRIVATE_CONF_BUCKET,
   IDENTITY_KEYS_KEY
 } from './constants'
 
@@ -147,13 +147,13 @@ export default class Init {
       }
     }
 
-    const { PublicConf } = this.buckets
+    const { PrivateConf } = this.buckets
     await Promise.all([
       // private
       this.secrets.putJSON(IDENTITY_KEYS_KEY, priv),
       // public
       this.objects.put(pub),
-      PublicConf.putJSON(PUBLIC_CONF_BUCKET.identity, pub),
+      PrivateConf.putJSON(PRIVATE_CONF_BUCKET.identity, pub),
       this.db.put(pub)
     ]);
 
@@ -178,12 +178,12 @@ export default class Init {
     const priv = await this.secrets.maybeGetJSON(IDENTITY_KEYS_KEY)
     const link = priv && getLink(priv.identity)
     this.logger.info(`terminating provider ${link}`)
-    const { PublicConf } = this.buckets
+    const { PrivateConf } = this.buckets
     await Promise.all([
       link ? this.objects.del(link) : Promise.resolve(),
       this.secrets.del(IDENTITY_KEYS_KEY),
       // public
-      PublicConf.del(PUBLIC_CONF_BUCKET.identity)
+      PrivateConf.del(PRIVATE_CONF_BUCKET.identity)
     ])
 
     this.logger.info(`terminated provider ${link}`)

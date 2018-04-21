@@ -262,7 +262,7 @@ custom:
       - ${{self:custom.prefix}}objectsbucket
       - ${{self:custom.prefix}}secretsbucket
       - ${{self:custom.prefix}}privateconfbucket
-      - ${{self:custom.prefix}}publicconfbucket
+      # - ${{self:custom.prefix}}publicconfbucket
       - ${{self:custom.prefix}}contentaddressedbucket
       - ${{self:custom.prefix}}fileuploadbucket
     cors: false
@@ -374,10 +374,10 @@ provider:
         # - s3:PutEncryptionConfiguration
       Resource:
         # - arn:aws:s3:::${{self:provider.deploymentBucket}}
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: PublicConfBucket
+        # - Fn::Join:
+        #   - ""
+        #   - - "arn:aws:s3:::"
+        #     - Ref: PublicConfBucket
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
@@ -413,11 +413,11 @@ provider:
         - s3:HeadObject
       Resource:
         # - arn:aws:s3:::${{self:provider.deploymentBucket}}/*
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: PublicConfBucket
-            - "/*"
+        # - Fn::Join:
+        #   - ""
+        #   - - "arn:aws:s3:::"
+        #     - Ref: PublicConfBucket
+        #     - "/*"
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
@@ -1175,13 +1175,13 @@ resources:
 
     # stores the provider's public config
     # e.g. styles, currency, etc.
-    PublicConfBucket:
-      Type: "AWS::S3::Bucket"
-      Description: public configuration, e.g. identity, styles, logo, etc.
-      DeletionPolicy: Retain
-      Properties:
-        VersioningConfiguration:
-          Status: Enabled
+    # PublicConfBucket:
+    #   Type: "AWS::S3::Bucket"
+    #   Description: public configuration, e.g. identity, styles, logo, etc.
+    #   DeletionPolicy: Retain
+    #   Properties:
+    #     VersioningConfiguration:
+    #       Status: Enabled
 
     ContentAddressedBucket:
       Type: "AWS::S3::Bucket"
