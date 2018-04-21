@@ -78,7 +78,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  let pubConfStub = sandbox.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, val) => {
+  let pubConfStub = sandbox.stub(parent.buckets.PrivateConf, 'putJSON').callsFake(async (key, val) => {
     deploymentConf = {
       stackId: child.stackUtils.getThisStackId(),
       ...val.Mappings.deployment.init,
@@ -119,18 +119,18 @@ test('deployment by referral', loudAsync(async (t) => {
       "Initialize": {
         "Properties": {}
       },
-      "AwsAlertsAlarm": {
-        "Type": "AWS::SNS::Topic",
-        "Properties": {
-          "TopicName": "tdl-xxxx-ltd-dev-alerts-alarm",
-          "Subscription": [
-            {
-              "Protocol": "email",
-              "Endpoint": "someone@example.com"
-            }
-          ]
-        }
-      }
+      // "AwsAlertsAlarm": {
+      //   "Type": "AWS::SNS::Topic",
+      //   "Properties": {
+      //     "TopicName": "tdl-xxxx-ltd-dev-alerts-alarm",
+      //     "Subscription": [
+      //       {
+      //         "Protocol": "email",
+      //         "Endpoint": "someone@example.com"
+      //       }
+      //     ]
+      //   }
+      // }
     }
   })
 
@@ -203,9 +203,9 @@ test('deployment by referral', loudAsync(async (t) => {
 
   // t.equal(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
   t.equal(launchTemplate.template.Mappings.org.contact.adminEmail, conf.adminEmail)
-  t.same(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
-    'Fn::FindInMap': ['org', 'contact', 'adminEmail']
-  })
+  // t.same(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
+  //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
+  // })
 
   const launchUrl = launchTemplate.url
 
@@ -232,7 +232,7 @@ test('deployment by referral', loudAsync(async (t) => {
   // const { getObject } = parent.aws.s3
   // sandbox.stub(parent.aws.s3, 'getObject').callsFake(params => {
   //   const val = getObject.call(parent.aws.s3, params)
-  //   if (params.Key === PRIVATE_CONF_BUCKET.bot) {
+  //   if (params.Key === .PrivateConf.bot) {
   //     const promise = val.promise()
   //     sandbox.stub(val, 'promise').callsFake(async () => {
   //       return promise.then((conf: any) => {
@@ -266,7 +266,7 @@ test('deployment by referral', loudAsync(async (t) => {
   sandbox.stub(parent.db, 'findOne').resolves(childDeploymentResource)
 
   pubConfStub.restore()
-  pubConfStub = sandbox.stub(parent.buckets.PublicConf, 'putJSON').callsFake(async (key, template) => {
+  pubConfStub = sandbox.stub(parent.buckets.PrivateConf, 'putJSON').callsFake(async (key, template) => {
     t.equal(template.Mappings, undefined)
   })
 
