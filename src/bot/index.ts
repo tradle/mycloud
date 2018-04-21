@@ -32,6 +32,7 @@ import {
 } from './utils'
 
 import createUsers from './users'
+// import { Friends } from './friends'
 import { createGraphqlAPI } from './graphql'
 import {
   IEndpointInfo,
@@ -172,6 +173,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get pushNotifications () { return this.tradle.pushNotifications }
   public get delivery () { return this.tradle.delivery }
   public get backlinks () { return this.tradle.backlinks }
+  // public friends: Friends
   public appLinks: AppLinks
   public logger: Logger
   public kv: IKeyValueStore
@@ -236,6 +238,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     this.users = users || createUsers({ bot: this })
     this.logger = logger.sub('bot')
     this.debug = this.logger.debug
+    // this.friends = new Friends({
+    //   bot: this,
+    //   logger: this.logger.sub('friends')
+    // })
 
     const MESSAGE_LOCK_TIMEOUT = this.isTesting ? null : 10000
     this.outboundMessageLocker = createLocker({

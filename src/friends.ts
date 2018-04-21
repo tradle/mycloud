@@ -5,7 +5,7 @@ import fetch from 'node-fetch'
 import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { addLinks } from './crypto'
-import { get, cachifyFunction } from './utils'
+import { get, cachifyFunction, parseStub } from './utils'
 import {
   Identities,
   Tradle,
@@ -46,9 +46,9 @@ export default class Friends {
     this.identities = identities
     this.provider = provider
     this.objects = objects
-    this.cache = createCache()
+    // this.cache = createCache()
     this.logger = logger.sub('friends')
-    this.getByIdentityPermalink = cachifyFunction(this, 'getByIdentityPermalink')
+    // this.getByIdentityPermalink = cachifyFunction(this, 'getByIdentityPermalink')
   }
 
   public load = async (opts: ILoadFriendOpts): Promise<any> => {
@@ -105,8 +105,7 @@ export default class Friends {
     const object = buildResource({ models, model })
       .set({
         ..._.pick(existing, keys),
-        ..._.pick(props, keys),
-        _identityPermalink: identity._permalink
+        ..._.pick(props, keys)
       })
       .toJSON()
 
@@ -117,7 +116,7 @@ export default class Friends {
     if (org) await this.provider.saveObject({ object: org })
 
     if (isSame) {
-      this.cache.set(identity._permalink, existing)
+      // this.cache.set(identity._permalink, existing)
       this.logger.debug('already have friend', object)
       return existing
     }
@@ -130,30 +129,23 @@ export default class Friends {
 
     const promiseAddContact = this.identities.addContact(identity)
     const signed = await this.provider.signObject({ object })
-    const permalink = buildResource.permalink(identity)
+    await Promise.all([
+      promiseAddContact,
+      this.provider.saveObject({ object: signed })
+    ])
 
-    buildResource.setVirtual(signed, {
-      _time: Date.now(),
-      _identityPermalink: permalink
-    })
+    // await this.db.update(signed, {
+    //   ConditionExpression: `attribute_not_exists(#domain) OR #identityPermalink = :identityPermalink`,
+    //   ExpressionAttributeNames: {
+    //     '#domain': 'domain',
+    //     '#identityPermalink': '_identityPermalink'
+    //   },
+    //   ExpressionAttributeValues: {
+    //     ':identityPermalink': permalink
+    //   }
+    // })
 
-    // if (timeIsString) {
-    //   signed._time = lexint.pack(signed._time, 'hex')
-    // }
-
-    await promiseAddContact
-    await this.db.update(signed, {
-      ConditionExpression: `attribute_not_exists(#domain) OR #identityPermalink = :identityPermalink`,
-      ExpressionAttributeNames: {
-        '#domain': 'domain',
-        '#identityPermalink': '_identityPermalink'
-      },
-      ExpressionAttributeValues: {
-        ':identityPermalink': permalink
-      }
-    })
-
-    await this.objects.put(signed)
+    // await this.objects.put(signed)
 
     // debug(`sending self introduction to friend "${name}"`)
     // await this.provider.sendMessage({
@@ -168,7 +160,7 @@ export default class Friends {
     //     .toJSON()
     // })
 
-    this.cache.set(identity._permalink, signed)
+    // this.cache.set(identity._permalink, signed)
     return signed
   }
 
@@ -184,9 +176,13 @@ export default class Friends {
   }
 
   public getByIdentityPermalink = async (permalink:string) => {
-    return await this.db.get({
-      [TYPE]: FRIEND_TYPE,
-      _identityPermalink: permalink
+    return await this.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: FRIEND_TYPE,
+          'identity._permalink': permalink
+        }
+      }
     })
   };
 
@@ -201,15 +197,26 @@ export default class Friends {
   }
 
   public removeByIdentityPermalink = async (permalink:string) => {
-    await this.db.del({
-      [TYPE]: FRIEND_TYPE,
-      _identityPermalink: permalink
-    })
+    try {
+      const friend = await this.getByIdentityPermalink(permalink)
+      await this.del(friend)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
   }
 
   public removeByDomain = async (domain:string) => {
-    const friend = await this.getByDomain(domain)
-    await this.removeByIdentityPermalink(friend._identityPermalink)
+    try {
+      const friend = await this.getByDomain(domain)
+      await this.del(friend)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+  }
+
+  private del = async (friend) => {
+    // this.cache.del(parseStub(friend.identity).permalink)
+    await this.db.del(friend)
   }
 }
 
