@@ -572,7 +572,7 @@ functions:
     alarms:
       - functionErrors
       # - functionThrottles
-      # - functionInvocations
+      - functionInvocations
 
   # http router function
   # see various commented out http-event functions below
