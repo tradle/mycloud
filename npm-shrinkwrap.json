@@ -8404,9 +8404,9 @@
       "resolved": "git://github.com/mvayngrib/serverless-http.git#843e71b4a33d263388840f7f9a8c5a501a45cd5f"
     },
     "serverless-iot-local": {
-      "version": "1.1.2",
-      "from": "serverless-iot-local@>=1.1.2 <2.0.0",
-      "resolved": "https://registry.npmjs.org/serverless-iot-local/-/serverless-iot-local-1.1.2.tgz",
+      "version": "1.2.0",
+      "from": "serverless-iot-local@latest",
+      "resolved": "https://registry.npmjs.org/serverless-iot-local/-/serverless-iot-local-1.2.0.tgz",
       "dev": true,
       "dependencies": {
         "bl": {
