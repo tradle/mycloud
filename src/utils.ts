@@ -1232,8 +1232,9 @@ export const isPlainObject = obj => traverse(obj).reduce(function (isPlain, val)
   }
 
   if (val && typeof val === 'object' && !Array.isArray(val)) {
-    return _.isPlainObject(val)
+    isPlain = _.isPlainObject(val)
   }
 
+  if (!isPlain) debugger
   return isPlain
 }, true)

@@ -4,7 +4,8 @@ import Env from './env'
 import {
   LambdaUtils,
   StackUtils,
-  AwsApis
+  AwsApis,
+  Bot
 } from './types'
 
 let tradle
@@ -27,6 +28,8 @@ const createTradle = (env?) => {
   return new Tradle()
 }
 
+const createTestBot = (env?):Bot => exp.createBot({ tradle: createTestTradle(env) })
+
 const exp = {
   // proxy to default instance props
   get tradle():Tradle {
@@ -42,6 +45,7 @@ const exp = {
   // sub-modules
   createTradle,
   createTestTradle,
+  createTestBot,
   createRemoteTradle,
   get Tradle() {
     return requireDefault('./tradle')

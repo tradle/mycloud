@@ -1,22 +1,29 @@
 import yn from 'yn'
 import { EventEmitter } from 'events'
+import { TYPE } from '@tradle/constants'
 import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip } from './utils'
-import { IDelivery, ILiveDeliveryOpts, Logger, Env } from "./types"
+import { IDelivery, ILiveDeliveryOpts, ITradleMessage, Logger, Env, DB } from "./types"
 import Errors from './errors'
+import { RetryableTask } from './retryable-task'
 
 const COMPRESSION_THRESHOLD = 1024
 const FETCH_TIMEOUT = 10000
+const INITIAL_BACKOFF = 1000
+const DELIVERY_ERROR = 'tradle.DeliveryError'
 
 export default class Delivery extends EventEmitter implements IDelivery {
   private env:Env
   private logger:Logger
-  constructor({ env, logger }: {
+  private db:DB
+  constructor({ env, logger, db }: {
     env: Env,
     logger: Logger
+    db: DB
   }) {
     super()
     this.env = env
     this.logger = logger.sub('delivery-http')
+    this.db = db
   }
 
   public ack = promiseNoop
@@ -32,13 +39,41 @@ export default class Delivery extends EventEmitter implements IDelivery {
       headers['Content-Encoding'] = 'gzip'
     }
 
-    await tryUntilTimeRunsOut(() => post(endpoint, payload, { headers }), {
-      env: this.env,
-      attemptTimeout: FETCH_TIMEOUT,
-      onError: (err:Error) => {
-        this.logger.error('failed to deliver messages', err)
-      }
+    const maxTime = this.env.getRemainingTime() - 1000
+    if (maxTime < 0) {
+      await this._onFailedToDeliver({
+        message: messages[0],
+        error: new Errors.Timeout(`didn't even have time to try`)
+      })
+
+      return
+    }
+
+    const task = new RetryableTask({
+      shouldTryAgain: err => {
+        this.logger.warn(`failed to deliver message`, { error: err.stack, message: messages[0]._link })
+        return !Errors.isDeveloperError(err)
+      },
+      initialDelay: Math.min(INITIAL_BACKOFF, maxTime),
+      attemptTimeout: Math.min(FETCH_TIMEOUT, maxTime),
+      timeout: maxTime,
+      maxAttempts: 3
     })
+
+    try {
+      await task.run(() => this._post(endpoint, payload, { headers }))
+    } catch (error) {
+      await this._onFailedToDeliver({ message: messages[0], error })
+      return
+    }
+
+    // await tryUntilTimeRunsOut(() => post(endpoint, payload, { headers }), {
+    //   env: this.env,
+    //   attemptTimeout: FETCH_TIMEOUT,
+    //   onError: (err:Error) => {
+    //     this.logger.error('failed to deliver messages', err)
+    //   }
+    // })
 
     this.logger.debug(`delivered ${messages.length} messages to ${recipient}`)
     // let timedOut
@@ -57,6 +92,63 @@ export default class Delivery extends EventEmitter implements IDelivery {
     //     Errors.ignore(err, Errors.Timeout)
     //   }
     // }
+  }
+
+  // for testing
+  public _post = post
+
+  // public for testing
+  public _onFailedToDeliver = async ({ message, error }: {
+    message: ITradleMessage
+    error: Error
+  }) => {
+    Errors.rethrow(error, 'developer')
+    const opts = {
+      counterparty: message._counterparty,
+      time: message.time
+    }
+
+    try {
+      await this.saveError(opts)
+    } catch (err) {
+      Errors.ignore(err, Errors.Exists)
+      this.logger.debug('failed to save DeliveryError, one already exists', opts)
+    }
+  }
+
+  public saveError = async ({ counterparty, time }: {
+    counterparty: string
+    time: number
+  }) => {
+    try {
+      await this.db.put({
+        [TYPE]: DELIVERY_ERROR,
+        counterparty,
+        time
+      }, {
+        // only store one per counterparty
+        expect: { counterparty: { Exists: false } }
+      })
+    } catch (err) {
+      Errors.ignore(err, { code: 'ConditionalCheckFailedException' })
+      throw new Errors.Exists(`error for counterparty ${counterparty}`)
+    }
+  }
+
+  public getErrors = async () => {
+    const { items } = await this.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: DELIVERY_ERROR
+        }
+      }
+    })
+
+    return items
+  }
+
+  public deleteError = async (deliveryErr) => {
+    await this.db.del(deliveryErr)
   }
 }
 

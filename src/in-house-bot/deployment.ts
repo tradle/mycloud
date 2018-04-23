@@ -232,7 +232,7 @@ export class Deployment {
         }
       })
     } catch (err) {
-      Errors.ignore(err, { name: 'NotFound' })
+      Errors.ignoreNotFound(err)
     }
   }
 

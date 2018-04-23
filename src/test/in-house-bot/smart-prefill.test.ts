@@ -95,7 +95,13 @@ test('smart-prefill plugin', loudAsync(async (t) => {
     application: {
       requestFor: 'tradle.onfido.CustomerVerification',
       forms: [
-        { id: `${PHOTO_ID}_abc_def` }
+        {
+          submission: {
+            [TYPE]: PHOTO_ID,
+            _link: '_abc',
+            _permalink: '_def'
+          }
+        }
       ]
     },
     formRequest
@@ -117,7 +123,13 @@ test('smart-prefill plugin', loudAsync(async (t) => {
     application: {
       requestFor: 'tradle.onfido.CustomerVerification',
       forms: [
-        { id: `${PHOTO_ID}_abc_def` }
+        {
+          submission: {
+            [TYPE]: PHOTO_ID,
+            _link: '_abc',
+            _permalink: '_def'
+          }
+        }
       ]
     },
     formRequest

@@ -84,7 +84,8 @@ export default class Delivery extends EventEmitter implements IDelivery {
     session,
     friend,
     range,
-    batchSize=MAX_BATCH_SIZE
+    batchSize=MAX_BATCH_SIZE,
+    onProgress
   }:IDeliveryRequest):Promise<IDeliveryResult> => {
     range = _.clone(range)
     let { before, after } = range
@@ -118,6 +119,8 @@ export default class Delivery extends EventEmitter implements IDelivery {
       }
 
       await this.deliverBatch({ recipient, messages, session, friend })
+      if (onProgress) await onProgress(messages)
+
       let last = messages[messages.length - 1]
       after = result.range.after = last.time
     }

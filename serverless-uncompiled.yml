@@ -687,6 +687,14 @@ functions:
           method: post
           cors: ${{self:custom.cors}}
 
+  delivery-retry:
+    handler: lib/in-house-bot/lambda/delivery-retry.handler
+    memorySize: 512
+    events:
+      - schedule:
+          rate: rate(1 minute)
+          enabled: true
+
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
   #   handler: lib/lambda/inbox.handler

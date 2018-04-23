@@ -125,6 +125,7 @@ const lambdaCreators:LambdaImplMap = {
   // get graphql() { return require('./lambda/graphql') },
   get warmup() { return require('./lambda/warmup') },
   get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
+  get retryFailedDeliveries() { return require('./lambda/retry-failed-deliveries') },
   // get oneventstream() { return require('./lambda/oneventstream') },
 }
 
@@ -733,6 +734,18 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const topic = opts.inbound ? EventTopics.message.inbound : EventTopics.message.outbound
     const event = opts.async ? topic.async : topic.sync
     await this.fire(event, opts.data)
+  }
+
+  public _fireDeliveryErrorBatchEvent = async (opts: {
+    errors: ITradleObject[]
+    async?: boolean
+    batchSize?: number
+  }) => {
+    const { async, errors, batchSize=10 } = opts
+    const batches = _.chunk(errors, batchSize)
+    const baseTopic = EventTopics.delivery.error
+    const topic = async ? baseTopic.async : baseTopic
+    await Promise.each(batches, batch => this.fireBatch(topic, batch))
   }
 }
 

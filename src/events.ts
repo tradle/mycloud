@@ -228,6 +228,10 @@ export const topics = {
     mixed: new EventTopic('msg'),
     stream: new EventTopic('msg:stream')
   },
+  delivery: {
+    error: new EventTopic('delivery:error'),
+    success: new EventTopic('delivery:success'),
+  },
   resource: {
     sign: new EventTopic('sign'),
     save: new EventTopic('save'),

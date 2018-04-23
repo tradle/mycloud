@@ -25,7 +25,8 @@ const TYPES = {
   IDENTITY_PUBLISH_REQUEST: 'tradle.IdentityPublishRequest',
   SIMPLE_MESSAGE: 'tradle.SimpleMessage',
   BACKLINK_ITEM: 'tradle.BacklinkItem',
-  SEAL_STATE: 'tradle.SealState'
+  SEAL_STATE: 'tradle.SealState',
+  DELIVERY_ERROR: 'tradle.DeliveryError',
 }
 
 const constants = {
@@ -103,6 +104,7 @@ const constants = {
     'tradle.products.Customer',
     TYPES.SEAL_STATE,
     TYPES.BACKLINK_ITEM,
+    TYPES.DELIVERY_ERROR,
     'tradle.POJO'
   ]
 }

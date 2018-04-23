@@ -8,10 +8,14 @@ import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from '
 import { extendTradleObject, pluck } from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
 
-const { MESSAGE, SEAL_STATE, BACKLINK_ITEM } = TYPES
-const ALLOW_SCAN = [
+const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
+const ALLOW_SCAN_QUERY = [
   SEAL_STATE,
   'tradle.ApplicationSubmission'
+]
+
+const ALLOW_SCAN = [
+  DELIVERY_ERROR
 ]
 
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {
@@ -63,7 +67,11 @@ export = function createDB (tradle:Tradle) {
     get modelsStored() { return modelStore.models },
     objects,
     allowScan: filterOp => {
-      return ALLOW_SCAN.includes(filterOp.type) && filterOp.opType === 'query'
+      if (filterOp.opType === 'query') {
+        return ALLOW_SCAN_QUERY.includes(filterOp.type)
+      }
+
+      return ALLOW_SCAN.includes(filterOp.type)
     },
     shouldMinify: item => !UNSIGNED_TYPES.includes(item[TYPE])
     // derivedProps: tableKeys,

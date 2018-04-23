@@ -129,6 +129,11 @@ class TimeTravel extends ErrorWithLink {}
 
 const exportError = (err:Error) => _.pick(err, ['message', 'stack', 'name', 'type'])
 
+const NOT_FOUND_MATCH = [
+  { name: 'NotFound' },
+  { code: 'ResourceNotFoundException' }
+]
+
 const errors = {
   ClientUnreachable: createError('ClientUnreachable'),
   NotFound: createError('NotFound'),
@@ -172,10 +177,10 @@ const errors = {
     return err.name in errors
   },
   isNotFound: err => {
-    return matches(err, { name: 'NotFound' })
+    return matches(err, NOT_FOUND_MATCH)
   },
   ignoreNotFound: err => {
-    ignore(err, { name: 'NotFound' })
+    ignore(err, NOT_FOUND_MATCH)
   },
   /**
    * check if error is of a certain type

@@ -697,7 +697,7 @@ export default class Seals {
         _seal: sealResource
       })
     } catch (err) {
-      Errors.ignore(err, { name: 'ConditionalCheckFailedException' })
+      Errors.ignore(err, { code: 'ConditionalCheckFailedException' })
       this.logger.warn(
         `failed to update resource ${buildResource.stub({ resource: object })} in db with seal.
         This is most likely because a newer version of the resource exists and the db

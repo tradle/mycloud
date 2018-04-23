@@ -321,7 +321,7 @@ export default class Provider {
     const promiseSession = opts.session
       ? Promise.resolve(opts.session)
       : this.auth.getLiveSessionByPermalink(recipient).catch(err => {
-          Errors.ignore(err, { name: 'NotFound' })
+          Errors.ignoreNotFound(err)
           this.logger.debug('iot session not found for counterparty', { permalink: recipient })
           return undefined
         })
@@ -329,7 +329,7 @@ export default class Provider {
     const promiseFriend = opts.friend
       ? Promise.resolve(opts.friend)
       : this.tradle.friends.getByIdentityPermalink(recipient).catch(err => {
-          Errors.ignore(err, { name: 'NotFound' })
+          Errors.ignoreNotFound(err)
           this.logger.debug('friend not found for counterparty', { permalink: recipient })
           return undefined
         })

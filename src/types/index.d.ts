@@ -291,6 +291,7 @@ export interface IDeliveryRequest {
   batchSize?: number
   session?: ISession
   friend?: any
+  onProgress?: (messages:ITradleMessage[]) => Promise<any|void>
 }
 
 export interface IOutboundMessagePointer {

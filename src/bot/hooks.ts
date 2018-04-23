@@ -1,6 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import { groupBy } from 'lodash'
+import { groupBy, chunk } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { Bot, Seal } from '../types'
 import {
@@ -12,22 +12,27 @@ import {
 import { getSealEventTopic, topics as EventTopics } from '../events'
 import { TYPES } from '../constants'
 
-const { SEAL_STATE } = TYPES
+const { SEAL_STATE, DELIVERY_ERROR } = TYPES
 
+// TODO: split these up into hooks-sync, hooks-async
 export const hookUp = (bot: Bot) => {
   // backwards compat
   bot.hookSimple(EventTopics.message.inbound.sync, event => bot.fire('message', event))
   bot.hookSimple(EventTopics.resource.save.async.batch, async (changes) => {
     await bot.events.putEvents(bot.events.fromSaveBatch(changes))
 
-    const sealChanges = changes.filter(change => {
-      return change.value && change.value[TYPE] === SEAL_STATE
-    })
+    const sealChanges = changes
+      .filter(change => change.value && change.value[TYPE] === SEAL_STATE)
+
+    const deliveryErrs = changes
+      .filter(change => change.value && change.value[TYPE] === DELIVERY_ERROR)
+      .map(change => change.value)
 
     try {
       await Promise.all([
         bot.backlinks.processChanges(changes),
-        sealChanges.length ? reemitSealEvents(sealChanges) : RESOLVED_PROMISE
+        sealChanges.length ? reemitSealEvents(sealChanges) : RESOLVED_PROMISE,
+        deliveryErrs.length ? reemitDeliveryErrorEvents(deliveryErrs) : RESOLVED_PROMISE,
       ])
     } catch (err) {
       bot.logger.error('failed to process resource changes batch', err)
@@ -42,6 +47,35 @@ export const hookUp = (bot: Bot) => {
   bot.hookSimple(EventTopics.message.outbound.async.batch, async (msgs) => {
     await bot.backlinks.processMessages(pluck(msgs, 'message'))
   })
+
+  const retryDelivery = async (deliveryErr) => {
+    const { counterparty, time } = deliveryErr
+    const friend = await bot.friends.getByIdentityPermalink(counterparty)
+    let deleted
+    const onProgress = async () => {
+      if (!deleted) {
+        await bot.delivery.http.deleteError(deliveryErr)
+        deleted = true
+      }
+    }
+
+    await bot.delivery.deliverMessages({
+      friend,
+      recipient: counterparty,
+      onProgress,
+      range: {
+        after: time - 1
+      }
+    })
+  }
+
+  bot.hookSimple(EventTopics.delivery.error.async.batch, async (deliveryErrs) => {
+    await Promise.map(deliveryErrs, retryDelivery)
+  })
+
+  const reemitDeliveryErrorEvents = async (errors) => {
+    await bot._fireDeliveryErrorBatchEvent({ errors, async: true })
+  }
 
   const reemitSealEvents = async (changes) => {
     const events = changes.map(toSealEvent)

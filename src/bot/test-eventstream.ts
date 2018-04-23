@@ -22,13 +22,19 @@ export const simulateEventStream = (bot: Bot) => {
     // await wait(0)
     // await bot.fire('save', { value: ctx.event })
     const value = result || await bot.db.get(args[0])
-    await bot.fire('save', { value })
+    await bot.fire(EventTopics.resource.save, { value })
+  }
+
+  const reemitDel = async ({ args, result }) => {
+    const value = result || args[0]
+    await bot.fire(EventTopics.resource.delete, { value })
   }
 
   bot.db.hook('put:post', reemitSave)
   bot.db.hook('update:post', reemitSave)
   // alias for update
   bot.db.hook('merge:post', reemitSave)
+  bot.db.hook('del:post', reemitDel)
 
   bot.hook(EventTopics.message.stream.batch.async, createMessageMiddleware(bot))
 

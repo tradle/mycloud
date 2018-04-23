@@ -96,9 +96,10 @@ export const getResourceModuleStore = (bot: Bot) => ({
   get models() { return bot.models },
   sign: resource => bot.sign(resource),
   save: resource => {
-    if (resource.link === resource.permalink) {
-      return bot.save(resource.toJSON(), resource.diff)
-    }
+    // not supported yet
+    // if (resource.link === resource.permalink) {
+    //   return bot.save(resource.toJSON(), resource.diff)
+    // }
 
     return bot.save(resource.toJSON())
   }
