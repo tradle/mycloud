@@ -689,7 +689,8 @@ functions:
 
   delivery-retry:
     handler: lib/in-house-bot/lambda/delivery-retry.handler
-    memorySize: 512
+    memorySize: 128
+    timeout: 60
     events:
       - schedule:
           rate: rate(1 minute)

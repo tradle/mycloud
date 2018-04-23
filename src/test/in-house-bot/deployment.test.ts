@@ -267,7 +267,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   pubConfStub.restore()
   pubConfStub = sandbox.stub(parent.buckets.PrivateConf, 'putJSON').callsFake(async (key, template) => {
-    t.equal(template.Mappings, undefined)
+    t.equal(template.Mappings.org.contact.adminEmail, conf.adminEmail)
   })
 
   const { url } = await parentDeployment.createUpdate({

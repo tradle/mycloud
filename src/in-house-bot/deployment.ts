@@ -148,22 +148,22 @@ export class Deployment {
   //   }
   // }
 
-  public genLaunchTemplate = async (opts: IDeploymentOpts) => {
+  public genLaunchTemplate = async (configuration: IDeploymentOpts) => {
     const { stackUtils } = this.bot
-    this.logger.debug('generating cloudformation template with opts', opts)
+    this.logger.debug('generating cloudformation template with configuration', configuration)
     const { template, url } = await stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplateForLaunch({ template, opts })
+      return this.customizeTemplateForLaunch({ template, configuration })
     })
 
     this.logger.debug('generated cloudformation template for child deployment')
-    const uuid = await this.saveDeploymentTracker({ template, link: opts.configurationLink })
+    const uuid = await this.saveDeploymentTracker({ template, link: configuration.configurationLink })
     this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return {
       template,
       url: stackUtils.getLaunchStackUrl({
         stackName: getStackNameFromTemplate(template),
         templateURL: url,
-        region: opts.region
+        region: configuration.region
       })
     }
   }
@@ -182,19 +182,27 @@ export class Deployment {
     } else if (configuredBy) {
       childDeployment = await this.getChildDeploymentConfiguredBy(configuredBy)
     } else {
-      throw new Error('expected "createdBy", "configuredBy" or "childDeploymentLink')
+      throw new Errors.InvalidInput('expected "createdBy", "configuredBy" or "childDeploymentLink')
+    }
+
+    if (!childDeployment) {
+      throw new Errors.NotFound('child deployment for stackId: ' + stackId)
     }
 
     let configuration
-    if (childDeployment) {
-      try {
-        configuration = await this.bot.getResource(childDeployment.configuration)
-      } catch (err) {
-        Errors.ignoreNotFound(err)
-      }
+    try {
+      configuration = await this.bot.getResource(childDeployment.configuration)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      throw new Errors.NotFound('original configuration for child deployment not found')
     }
 
-    const result = await this.genUpdateTemplate({ stackId: stackId || childDeployment.stackId })
+    const result = await this.genUpdateTemplate({
+      configuration,
+      // deployment: childDeployment,
+      stackId: stackId || childDeployment.stackId
+    })
+
     return {
       configuration,
       childDeployment,
@@ -202,11 +210,13 @@ export class Deployment {
     }
   }
 
-  public genUpdateTemplate = async ({ stackId }: {
+  public genUpdateTemplate = async ({ stackId, configuration }: {
     stackId: string
+    configuration?: IDeploymentOpts
+    // deployment:
   }) => {
     const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplateForUpdate({ template, stackId })
+      return this.customizeTemplateForUpdate({ template, stackId, configuration })
     })
 
     return {
@@ -453,11 +463,11 @@ ${this.genUsageInstructions(links)}`
 
   public genUsageInstructions = getAppLinksInstructions
 
-  public customizeTemplateForLaunch = async ({ template, opts }: {
+  public customizeTemplateForLaunch = async ({ template, configuration }: {
     template: any
-    opts: IDeploymentOpts
+    configuration: IDeploymentOpts
   }) => {
-    let { name, domain, logo, region, stackPrefix, adminEmail } = opts
+    let { name, domain, logo, region, stackPrefix, adminEmail } = configuration
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
@@ -470,7 +480,7 @@ ${this.genUsageInstructions(links)}`
 
     const { Resources, Mappings } = template
     const { org, deployment } = Mappings
-    const logoPromise = this.getLogo(opts)
+    const logoPromise = this.getLogo(configuration)
     const stage = getStageFromTemplate(template)
     const service = normalizeStackName(stackPrefix)
     const dInit: Partial<IMyDeploymentConf> = {
@@ -488,9 +498,7 @@ ${this.genUsageInstructions(links)}`
       logo: await logoPromise || media.LOGO_UNKNOWN
     }
 
-    org.contact = {}
-    org.contact.adminEmail = adminEmail
-
+    _.set(Mappings, ADMIN_MAPPING_PATH, adminEmail)
     return this.finalizeCustomTemplate({
       template,
       oldServiceName: previousServiceName,
@@ -523,22 +531,26 @@ ${this.genUsageInstructions(links)}`
     return template
   }
 
-  public customizeTemplateForUpdate = async ({ template, stackId }: {
+  public customizeTemplateForUpdate = async ({ template, stackId, configuration }: {
     template: any
     stackId: string
+    configuration?: IDeploymentOpts
   }) => {
     const { service, stage, region } = this.bot.stackUtils.parseStackArn(stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
-    template = _.omit(template, 'Mappings')
-    const initProps = template.Resources.Initialize.Properties
 
+    // scrap unneeded mappings
+    template.Mappings = {}
+
+    const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {
       if (key !== 'ServiceToken') {
         delete initProps[key]
       }
     })
 
+    _.set(template.Mappings, ADMIN_MAPPING_PATH, configuration.adminEmail)
     return this.finalizeCustomTemplate({
       template,
       oldServiceName: previousServiceName,
