@@ -125,7 +125,7 @@ const lambdaCreators:LambdaImplMap = {
   // get graphql() { return require('./lambda/graphql') },
   get warmup() { return require('./lambda/warmup') },
   get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
-  get retryFailedDeliveries() { return require('./lambda/retry-failed-deliveries') },
+  get deliveryRetry() { return require('./lambda/delivery-retry') },
   // get oneventstream() { return require('./lambda/oneventstream') },
 }
 
