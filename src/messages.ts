@@ -224,7 +224,11 @@ export default class Messages {
     const { item, message } = opts
     try {
       await this.db.put(item, {
-        expected: { time: { Exists: false }  }
+        ConditionExpression: 'attribute_not_exists(#time)',
+        ExpressionAttributeNames: {
+          '#time': 'time'
+        }
+        // expected: { time: { Exists: false }  }
       })
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
