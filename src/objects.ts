@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
-import { IDebug, ITradleObject } from './types'
+import { IDebug, ITradleObject, IRetryableTaskOpts } from './types'
 import * as types from './typeforce-types'
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
 import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
@@ -21,6 +21,7 @@ import Env from './env'
 import Tradle from './tradle'
 import Logger from './logger'
 import { prettify } from './string-utils'
+import { RetryableTask } from './retryable-task'
 
 type ObjectMetadata = {
   _sigPubKey: string
@@ -160,6 +161,11 @@ export default class Objects {
 
   public resolveEmbeds = async (object:ITradleObject):Promise<ITradleObject> => {
     return await Embed.resolveEmbeds({ object, resolve: this.resolveEmbed })
+  }
+
+  public getWithRetry = async (link: string, opts: IRetryableTaskOpts) => {
+    const task = new RetryableTask(opts)
+    return await task.run(() => this.bucket.getJSON(link))
   }
 
   public get = async (link: string):Promise<ITradleObject> => {

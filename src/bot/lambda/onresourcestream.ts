@@ -2,11 +2,12 @@
 import Promise from 'bluebird'
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { Lambda, Bot } from '../../types'
+import { Lambda, Bot, IRetryableTaskOpts } from '../../types'
 import { topics as EventTopics, toBatchEvent } from '../../events'
 import { EventSource, fromDynamoDB } from '../lambda'
 import { createMiddleware as createMessageMiddleware } from '../middleware/onmessagestream'
 import { pluck, RESOLVED_PROMISE } from '../../utils'
+import Errors from '../../errors'
 
 const promiseUndefined = Promise.resolve(undefined)
 
@@ -29,11 +30,25 @@ export const processResources = async (bot: Bot, resources) => {
   await bot._fireSaveBatchEvent({ changes, async: true, spread: true })
 }
 
+const getBody = async (bot, item) => {
+  if (!item._link) return item
+
+  return bot.objects.getWithRetry(item._link, {
+    maxAttempts: 10,
+    maxDelay: 2000,
+    timeout: 20000,
+    initialDelay: 500,
+    shouldTryAgain: err => {
+      bot.logger.warn(`can't find object with link ${item._link}`)
+      return Errors.isNotFound(err)
+    }
+  })
+}
+
 export const preProcessResourceRecord = async (bot: Bot, record) => {
-  const getBody = partial => partial._link ? bot.objects.get(partial._link) : partial
   const [value, old] = await Promise.all([
-    record.new ? getBody(record.new) : promiseUndefined,
-    record.old ? getBody(record.old) : promiseUndefined
+    record.new ? getBody(bot, record.new) : promiseUndefined,
+    record.old ? getBody(bot, record.old) : promiseUndefined
   ])
 
   return { value, old }
