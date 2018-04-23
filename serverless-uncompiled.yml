@@ -263,7 +263,7 @@ custom:
       - ${{self:custom.prefix}}secretsbucket
       - ${{self:custom.prefix}}privateconfbucket
       # - ${{self:custom.prefix}}publicconfbucket
-      - ${{self:custom.prefix}}contentaddressedbucket
+      # - ${{self:custom.prefix}}contentaddressedbucket
       - ${{self:custom.prefix}}fileuploadbucket
     cors: false
     # use dockerized s3 from localstack
@@ -382,10 +382,10 @@ provider:
           - ""
           - - "arn:aws:s3:::"
             - Ref: PrivateConfBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ContentAddressedBucket
+        # - Fn::Join:
+        #   - ""
+        #   - - "arn:aws:s3:::"
+        #     - Ref: ContentAddressedBucket
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
@@ -423,11 +423,11 @@ provider:
           - - "arn:aws:s3:::"
             - Ref: PrivateConfBucket
             - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ContentAddressedBucket
-            - "/*"
+        # - Fn::Join:
+        #   - ""
+        #   - - "arn:aws:s3:::"
+        #     - Ref: ContentAddressedBucket
+        #     - "/*"
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
@@ -1192,10 +1192,10 @@ resources:
     #     VersioningConfiguration:
     #       Status: Enabled
 
-    ContentAddressedBucket:
-      Type: "AWS::S3::Bucket"
-      Description: content-addressed storage
-      DeletionPolicy: Retain
+    # ContentAddressedBucket:
+    #   Type: "AWS::S3::Bucket"
+    #   Description: content-addressed storage
+    #   DeletionPolicy: Retain
 
     # stores media uploaded by users
     FileUploadBucket:

@@ -20,7 +20,7 @@ export default class ContentAddressedStore {
   private bucket:Bucket
   private hasher:Hasher
   constructor ({ bucket, hasher=defaultHasher }: {
-    bucket: any,
+    bucket: any
     hasher?: Hasher
   }) {
     this.bucket = bucket

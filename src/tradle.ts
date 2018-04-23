@@ -134,7 +134,7 @@ export default class Tradle {
 
     this.define('contentAddressedStore', './content-addressed-store', ctor => {
       return new ctor({
-        bucket: this.buckets.ContentAddressed,
+        bucket: this.buckets.PrivateConf.folder('content-addressed'),
         aws: this.aws
       })
     })
