@@ -158,9 +158,9 @@ test('_doReceiveMessage', loudAsync(async (t) => {
   })
 
   const stubTimestampInc = sandbox.stub(messages,'assertTimestampIncreased').callsFake(promiseNoop)
-  const stubGetInbound = sandbox.stub(messages, 'getInboundByLink').callsFake(function (link) {
-    throw new Errors.NotFound()
-  })
+  // const stubGetInbound = sandbox.stub(messages, 'getInboundByLink').callsFake(function (link) {
+  //   throw new Errors.NotFound()
+  // })
 
   const stubPutMessage = sandbox.stub(messages, 'putMessage').callsFake(function (message) {
     t.equal(message._inbound, true)
@@ -173,7 +173,7 @@ test('_doReceiveMessage', loudAsync(async (t) => {
   t.equal(stubPutMessage.callCount, 1)
   t.equal(stubPutObject.callCount, 1)
   t.equal(stubGetIdentity.callCount, 2)
-  t.equal(stubGetInbound.callCount, 0)
+  // t.equal(stubGetInbound.callCount, 0)
   t.equal(stubTimestampInc.callCount, yn(process.env.NO_TIME_TRAVEL) ? 1 : 0)
   // TODO: compare
 

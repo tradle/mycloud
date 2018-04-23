@@ -224,10 +224,7 @@ export default class Messages {
     const { item, message } = opts
     try {
       await this.db.put(item, {
-        ConditionExpression: 'attribute_not_exists(#time)',
-        ExpressionAttributeNames: {
-          '#time': 'time'
-        }
+        expected: { time: { Exists: false }  }
       })
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
@@ -381,15 +378,15 @@ export default class Messages {
     return items
   }
 
-  public getInboundByLink = async (link:string) => {
-    return await this.db.findOne({
-      filter: {
-        EQ: {
-          _link: link
-        }
-      }
-    })
-  }
+  // public getInboundByLink = async (link:string) => {
+  //   return await this.db.findOne({
+  //     filter: {
+  //       EQ: {
+  //         _link: link
+  //       }
+  //     }
+  //   })
+  // }
 
   // const assertNotDuplicate = co(function* (link) {
   //   try {
