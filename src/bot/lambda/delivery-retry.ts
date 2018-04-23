@@ -27,15 +27,12 @@ export const createMiddleware = (bot: Bot, opts?: any) => {
       }
     })
 
-    if (!failed.length) {
-      await next()
-      return
+    if (failed.length) {
+      await bot._fireDeliveryErrorBatchEvent({
+        errors: failed,
+        async: true,
+      })
     }
-
-    await bot._fireDeliveryErrorBatchEvent({
-      errors: failed,
-      async: true,
-    })
 
     await next()
   }
