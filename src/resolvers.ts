@@ -108,11 +108,7 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
       .value()
 
     if (select && !difference(select, props).length) {
-      return results.map(({ type, link, permalink }) => ({
-        [TYPE]: type,
-        _link: link,
-        _permalink: permalink
-      }))
+      return results
     }
 
     return (await allSettled(results.map(({ _link }) => objects.get(_link))))
