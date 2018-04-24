@@ -493,25 +493,34 @@ const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMeth
       ])
 
       const [mostRecentChecksPassed, formsHaveBeenVerified] = results
-      if (!mostRecentChecksPassed) {
-        logger.debug('not all checks passed, not approving')
+      if (mostRecentChecksPassed) {
+        if (_.size(application.checks)) {
+          logger.debug('all checks have passed', {
+            application: application._permalink
+          })
+        }
+      } else {
+        logger.debug('not all checks passed, not auto-approving')
       }
 
-      if (!formsHaveBeenVerified) {
-        logger.debug('not all forms have been verified, not approving')
+      if (formsHaveBeenVerified) {
+        if (_.size(application.verifications)) {
+          logger.debug('all forms have been verified', {
+            application: application._permalink
+          })
+        }
+      } else {
+        logger.debug('not all forms have been verified, not auto-approving')
       }
 
       if (!results.every(_.identity)) return
     }
 
-    const approved = productsAPI.state.hasApplication({
-      applications: user.applicationsApproved || [],
-      application
+    logger.debug('approving application', {
+      application: application._permalink
     })
 
-    if (!approved) {
-      await applications.approve({ req, user, application })
-    }
+    await applications.approve({ req, user, application })
   }
 
   return {
