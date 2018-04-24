@@ -152,19 +152,17 @@ test('queue seal', loudAsync(async (t) => {
 
   const stubBalance = sandbox.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
 
-  const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses')
-    .callsFake(function (addresses, blockHeight) {
-      return Promise.resolve([
-        {
-          txId,
-          confirmations: 10000,
-          to: {
-            addresses: [address]
-          }
-        }
-      ])
-    })
+  const txResults = [
+    {
+      txId,
+      confirmations: 10000,
+      to: {
+        addresses: [address]
+      }
+    }
+  ]
 
+  const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses').resolves(txResults)
   const stubObjectsGet = sandbox.stub(tradle.objects, 'get')
     .callsFake(async (_link) => {
       if (_link === link) {
