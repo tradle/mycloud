@@ -57,12 +57,7 @@ export class Iot implements IIotEndpointInfo {
 
     this.logger.debug(`publishing to ${params.topic}`)
     if (!this.iotData) {
-      let endpoint = this.env.IOT_ENDPOINT
-      if (!endpoint) {
-        // HACK: set for ./aws to pick up
-        this.env.IOT_ENDPOINT = await this.getEndpoint()
-      }
-
+      await this.ensureEndpoint()
       this.iotData = this.services.iotData
     }
 
@@ -70,11 +65,16 @@ export class Iot implements IIotEndpointInfo {
   }
 
   public getEndpoint = cachifyPromiser(async () => {
-    if (this.env.IOT_ENDPOINT) return this.env.IOT_ENDPOINT
-
     const { endpointAddress } = await this.services.iot.describeEndpoint().promise()
     return endpointAddress
   })
+
+  private ensureEndpoint = async () => {
+    // hack, ensure ./aws has access to this var
+    if (!this.env.IOT_ENDPOINT) {
+      this.env.IOT_ENDPOINT = await this.getEndpoint()
+    }
+  }
 }
 
 export const createUtils = (opts: IotOpts) => new Iot(opts)
