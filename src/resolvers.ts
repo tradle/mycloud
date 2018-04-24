@@ -102,12 +102,13 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
       return []
     }
 
-    const props = _.chain(results)
+    const need = getDecisionProps(opts)
+    const have = _.chain(results)
       .flatMap(r => Object.keys(r))
       .uniq()
       .value()
 
-    if (select && !difference(select, props).length) {
+    if (!difference(need, have).length) {
       return results
     }
 
@@ -243,4 +244,8 @@ const isWellBehavedIntersection = model => {
   // )
 
   // const props = vars.map()
+}
+
+const getDecisionProps = ({ filter, select }) => {
+  return (select || []).concat(dynamoUtils.getUsedProperties(filter || {}))
 }
