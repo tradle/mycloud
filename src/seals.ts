@@ -51,9 +51,10 @@ const timestamp = () => Date.now()
 type SealRecordOpts = {
   key?: IECMiniPubKey
   link?: string
+  prevlink?: string
+  permalink?: string
   counterparty?: string
   object?: ITradleObject
-  permalink?: string
   watchType?: string
   write?: boolean
 }
@@ -78,6 +79,7 @@ export type Seal = {
   _time: number
   sealId: string
   link: string
+  prevlink?: string
   permalink?: string
   forResource?: ResourceStub
   counterparty?: string
@@ -339,11 +341,12 @@ export default class Seals {
         overwrite: false
       })
     } catch (err) {
-      if (err.code === 'ConditionalCheckFailedException') {
-        throw new Errors.Duplicate('duplicate seal with link', seal.link)
-      }
+      Errors.ignore(err, { code: 'ConditionalCheckFailedException' })
+      // if (err.code === 'ConditionalCheckFailedException') {
+      //   throw new Errors.Duplicate('duplicate seal with link', seal.link)
+      // }
 
-      throw err
+      // throw err
     }
   }
 
@@ -711,15 +714,16 @@ export default class Seals {
     object,
     link,
     permalink,
+    prevlink,
     counterparty,
     watchType=WATCH_TYPE.this,
     write
   }: SealRecordOpts) => {
-    if (!(link && permalink) && object) {
-      ({ link, permalink } = getLinks(object))
+    if (object) {
+      ({ link, permalink, prevlink } = getLinks(object))
     }
 
-    const { blockchain, network } = this
+    const { blockchain, network, models } = this
     // the next version's previous is the current version
     // the tx for next version will have a predictable seal based on the current version's link
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
@@ -754,9 +758,13 @@ export default class Seals {
       params.permalink = permalink
     }
 
+    if (prevlink) {
+      params.prevlink = permalink
+    }
+
     if (object) {
       params.forResource = buildResource.stub({
-        models: this.models,
+        models,
         resource: object
       })
     }
