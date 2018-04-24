@@ -1238,3 +1238,21 @@ export const isPlainObject = obj => traverse(obj).reduce(function (isPlain, val)
   if (!isPlain) debugger
   return isPlain
 }, true)
+
+export const defaultPrimaryKeysSchema = { hashKey: '_permalink' }
+
+export const getPrimaryKeySchema = model => {
+  return normalizeIndexedProperty(model.primaryKeys || defaultPrimaryKeysSchema)
+}
+
+export const normalizeIndexedProperty = schema => {
+  if (Array.isArray(schema)) {
+    return { hashKey: schema[0], rangeKey: schema[1] }
+  }
+
+  if (typeof schema === 'string') {
+    return { hashKey: schema }
+  }
+
+  return schema
+}

@@ -37,7 +37,8 @@ import {
   omitVirtual,
   parseStub,
   getPermId,
-  isPlainObject
+  isPlainObject,
+  getPrimaryKeySchema
 } from '../utils'
 
 const {
@@ -395,24 +396,6 @@ export class Resource extends EventEmitter {
     model: this.model,
     resource
   })
-}
-
-export const defaultPrimaryKeysSchema = { hashKey: '_permalink' }
-
-export const getPrimaryKeySchema = model => {
-  return normalizeIndexedProperty(model.primaryKeys || defaultPrimaryKeysSchema)
-}
-
-export const normalizeIndexedProperty = schema => {
-  if (Array.isArray(schema)) {
-    return { hashKey: schema[0], rangeKey: schema[1] }
-  }
-
-  if (typeof schema === 'string') {
-    return { hashKey: schema }
-  }
-
-  return schema
 }
 
 export const getPrimaryKeys = ({ models, model, resource }: {
