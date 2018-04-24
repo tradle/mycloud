@@ -177,8 +177,13 @@ export default class Backlinks {
     const { add, del } = backlinkChanges
     if (!(add.length || del.length)) return backlinkChanges
 
-    if (add.length) this.logger.debug(`creating ${add.length} backlink items`)//, pluck(add, 'source'))
-    if (del.length) this.logger.debug(`deleting ${del.length} backlink items`)//, pluck(del, 'source'))
+    if (add.length) {
+      this.logger.debug(`creating ${add.length} backlink items`)//, printItems(add))
+    }
+
+    if (del.length) {
+      this.logger.debug(`deleting ${del.length} backlink items`)//, printItems(del))
+    }
 
     const promiseAdd = add.length ? this.db.batchPut(add.map(this.toDBFormat)) : RESOLVED_PROMISE
     const promiseDel = del.length ? Promise.all(del.map(item => this.db.del(item))) : RESOLVED_PROMISE
@@ -353,7 +358,6 @@ export const getBacklinkChangesForChanges = ({ models, changes }: {
 export { Backlinks }
 export const createBacklinks = (opts: BacklinksOpts) => new Backlinks(opts)
 
-const toId = ({ permId, link }) => `${permId}_${link}`
 const toUid = (fl:IBacklinkItem) => fl.source._permalink + fl.target._permalink
 const toResourceFormat = ({ models, backlinkItems }: {
   models: Models
@@ -361,8 +365,8 @@ const toResourceFormat = ({ models, backlinkItems }: {
 }):ResourceBacklinks => {
   const resolved = <KVPairArr>_.flatMap(backlinkItems, bl => {
     const { linkProp, source, target } = bl
-    const sourceModel = models[source._t]
-    const targetModel = models[target._t]
+    const sourceModel = models[source[TYPE]]
+    const targetModel = models[target[TYPE]]
     const backlinkProps = getBacklinkProperties({
       models,
       sourceModel,
@@ -383,59 +387,4 @@ const toResourceFormat = ({ models, backlinkItems }: {
   }, <ResourceBacklinks>{})
 }
 
-const TARGET_REGEX = new RegExp('^(.*)?_([0-9a-fA-F]+)$')
-const SOURCE_REGEX = new RegExp(`^([^${SEPARATOR}]+)${SEPARATOR}(.*)?_([0-9a-fA-F]+)`)
-
-export const parseTarget = target => {
-  const [type, permalink] = target.match(TARGET_REGEX).slice(1)
-  return { type, permalink }
-}
-
-export const parseSource = source => {
-  const [property, type, permalink] = source.match(SOURCE_REGEX).slice(1)
-  return { type, permalink, property }
-}
-
-export const serializeSource = ({ type, permalink, property }: {
-  type: string
-  permalink: string
-  property: string
-}) => {
-  return [
-    property,
-    getPermId({ type, permalink })
-  ].join(SEPARATOR)
-}
-
-// MAP:
-//   [
-//     {
-//       _permalink: 'aaa',
-//       _link: 'bbb',
-//       _t: 'tradle.Verification',
-//       documentOwner: {
-//         id: 'tradle.Identity_ccc'
-//       },
-//       document: {
-//         id: 'tradle.PhotoID_ddd'
-//       }
-//     },
-//   ]
-
-//   =>
-
-
-//   tradle.PhotoID_ddd: {
-//     verifications: {
-//       'tradle.Verification_aaa': 'bbb',
-//     }
-//   }
-
-//   user_ccc: {
-//     verifications: {
-//       'tradle.Verification_aaa': 'bbb',
-//     }
-//   }
-
-// REDUCE:
-//   collapse changes per target resource
+// const printItems = blItems => JSON.stringify(blItems.map(item => _.pick(item, ['source', 'target']), null, 2))

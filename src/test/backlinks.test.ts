@@ -12,7 +12,7 @@ import {
   // getForwardLinks,
   // toBacklinks,
   getBacklinkChangesForChanges,
-  serializeSource,
+  // serializeSource,
   // getUpdateForBacklinkChange
 } from '../backlinks'
 import Errors from '../errors'
