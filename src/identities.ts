@@ -56,8 +56,8 @@ export default class Identities {
     this.db = db
     this.logger = logger.sub('identities')
     this.cache = new Cache({ maxAge: CACHE_MAX_AGE })
-    this.metaByPub = cachifyFunction(this, 'metaByPub')
-    this.byPermalink = cachifyFunction(this, 'byPermalink')
+    this.metaByPub = cachifyFunction(this, 'metaByPub').call
+    this.byPermalink = cachifyFunction(this, 'byPermalink').call
   }
 
   public metaByPub = async (pub:string) => {

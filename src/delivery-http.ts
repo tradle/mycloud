@@ -2,7 +2,7 @@ import yn from 'yn'
 import { EventEmitter } from 'events'
 import { TYPE } from '@tradle/constants'
 import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip } from './utils'
-import { IDelivery, ILiveDeliveryOpts, ITradleMessage, Logger, Env, DB } from "./types"
+import { IDelivery, ILiveDeliveryOpts, ITradleMessage, Logger, Env, DB, IDeliveryMessageRange } from "./types"
 import Errors from './errors'
 import { RetryableTask } from './retryable-task'
 
@@ -66,6 +66,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
       await this._onFailedToDeliver({ message: messages[0], error })
       return
     }
+
+    // kind of shame to do this every time
+    // but otherwise we need to lookup whether we have an error or not beforehand
+    await this.deleteError(recipient)
 
     // await tryUntilTimeRunsOut(() => post(endpoint, payload, { headers }), {
     //   env: this.env,
@@ -135,6 +139,13 @@ export default class Delivery extends EventEmitter implements IDelivery {
     }
   }
 
+  public getError = async (counterparty) => {
+    return await this.db.get({
+      [TYPE]: DELIVERY_ERROR,
+      counterparty
+    })
+  }
+
   public getErrors = async () => {
     const { items } = await this.db.find({
       filter: {
@@ -150,6 +161,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
   public deleteError = async (deliveryErr) => {
     await this.db.del(deliveryErr)
   }
+
+  public getRangeFromError = ({ time }):IDeliveryMessageRange => ({
+    after: time - 1
+  })
 }
 
 export { Delivery }

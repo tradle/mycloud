@@ -42,7 +42,7 @@ export default class Push {
     this.serverUrl = serverUrl
     this.cache = new Cache({ max: 1 })
     this.logger = logger
-    this.ensureRegistered = cachifyFunction(this, 'ensureRegistered')
+    this.ensureRegistered = cachifyFunction(this, 'ensureRegistered').call
   }
 
   public ensureRegistered = async ({ identity, key }) => {

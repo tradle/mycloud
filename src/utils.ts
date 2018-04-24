@@ -1047,13 +1047,13 @@ export const cachifyFunction = (
 ) => {
   const original = container[method]
   const { cache, logger } = container
-  const cachified = async (...args) => {
+  const call = async (...args) => {
     const str = stableStringify(args)
     const cached = cache.get(str)
     if (cached) {
       if (isPromise(cached)) {
         // refetch on error
-        return cached.catch(err => cachified(...args))
+        return cached.catch(err => call(...args))
       }
 
       logger.debug('cache hit', str)
@@ -1070,7 +1070,10 @@ export const cachifyFunction = (
     return result
   }
 
-  return cachified
+  return {
+    del: (...args) => cache.del(stableStringify(args)),
+    call
+  }
 }
 
 export const timeMethods = <T>(obj:T, logger:Logger):T => {

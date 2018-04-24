@@ -38,6 +38,7 @@ export default class Friends {
   public objects: Objects
   public cache: any
   public logger: Logger
+  private _clearCacheForPermalink: (permalink: string) => void
   constructor(tradle:Tradle) {
     const { models, db, identities, provider, objects, logger } = tradle
     this.models = models
@@ -46,9 +47,12 @@ export default class Friends {
     this.identities = identities
     this.provider = provider
     this.objects = objects
-    // this.cache = createCache()
+    this.cache = createCache()
     this.logger = logger.sub('friends')
-    // this.getByIdentityPermalink = cachifyFunction(this, 'getByIdentityPermalink')
+
+    const { call, del } = cachifyFunction(this, 'getByIdentityPermalink')
+    this.getByIdentityPermalink = call
+    this._clearCacheForPermalink = del
   }
 
   public load = async (opts: ILoadFriendOpts): Promise<any> => {
@@ -215,6 +219,7 @@ export default class Friends {
   }
 
   private del = async (friend) => {
+    this._clearCacheForPermalink(parseStub(friend.identity).permalink)
     // this.cache.del(parseStub(friend.identity).permalink)
     await this.db.del(friend)
   }

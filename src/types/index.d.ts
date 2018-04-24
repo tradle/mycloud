@@ -285,6 +285,11 @@ export interface IDeliveryResult {
   range: IDeliveryMessageRange
 }
 
+export interface IDeliveryError {
+  counterparty: string
+  time: number
+}
+
 export interface IDeliveryRequest {
   recipient: string
   range: IDeliveryMessageRange

@@ -203,6 +203,9 @@ test('cachifyFunction', loudAsync(async (t) => {
     },
     async () => {
       return 'a'
+    },
+    async () => {
+      return 'a'
     }
   ]
 
@@ -215,19 +218,22 @@ test('cachifyFunction', loudAsync(async (t) => {
   }
 
   let i = 0
-  const cachified = cachifyFunction(container, 'fn')
+  const { call, del } = cachifyFunction(container, 'fn')
   try {
-    await cachified()
+    await call()
     t.fail('expected error')
   } catch (err) {
     t.equal(err.message, 'test fail a')
   }
 
   t.equal(i, 1)
-  t.equal(await cachified(), 'a')
+  t.equal(await call(), 'a')
   t.equal(i, 2)
-  t.equal(await cachified(), 'a')
+  t.equal(await call(), 'a')
   t.equal(i, 2)
+  del()
+  t.equal(await call(), 'a')
+  t.equal(i, 3)
   t.end()
 }))
 

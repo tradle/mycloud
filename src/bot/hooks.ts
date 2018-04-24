@@ -50,22 +50,9 @@ export const hookUp = (bot: Bot) => {
 
   const retryDelivery = async (deliveryErr) => {
     const { counterparty, time } = deliveryErr
-    const friend = await bot.friends.getByIdentityPermalink(counterparty)
-    let deleted
-    const onProgress = async () => {
-      if (!deleted) {
-        await bot.delivery.http.deleteError(deliveryErr)
-        deleted = true
-      }
-    }
-
     await bot.delivery.deliverMessages({
-      friend,
       recipient: counterparty,
-      onProgress,
-      range: {
-        after: time - 1
-      }
+      range: bot.delivery.http.getRangeFromError(deliveryErr),
     })
   }
 

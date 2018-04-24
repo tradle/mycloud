@@ -366,12 +366,38 @@ export default class Provider {
   }
 
   private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
-    const { messages, recipient } = opts
+    const { messages, recipient, friend } = opts
+    if (friend) {
+      const delivered = this._deliverPreviouslyUndelivered(opts)
+      if (delivered) return
+    }
+
     this.logger.debug(`attempting to deliver batch of ${messages.length} messages to ${recipient}`)
     await this.tradle.delivery.deliverBatch({
       ...opts,
       messages: messages.map(this.messages.formatForDelivery)
     })
+  }
+
+  private _deliverPreviouslyUndelivered = async (opts: ILiveDeliveryOpts):Promise<boolean> => {
+    const { messages, recipient, friend } = opts
+
+    let deliveryError
+    try {
+      deliveryError = this.tradle.delivery.http.getError(recipient)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
+
+    this.logger.debug('delivering previously undelivered messages', deliveryError)
+    await this.tradle.delivery.deliverMessages({
+      recipient,
+      friend,
+      range: this.tradle.delivery.http.getRangeFromError(deliveryError)
+    })
+
+    return true
   }
 
   public sendPushNotification = async (recipient:string):Promise<void> => {
