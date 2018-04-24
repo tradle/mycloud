@@ -159,7 +159,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#85016aafc577022923757f40fc4ed7ef92654598",
+      "resolved": "git://github.com/tradle/dynamodb.git#54d2b136788c767e47298974074c15d020e43252",
       "dependencies": {
         "koa-compose": {
           "version": "4.0.0",
