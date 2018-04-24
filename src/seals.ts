@@ -744,7 +744,7 @@ export default class Seals {
       pubKey,
       counterparty,
       watchType,
-      write: true,
+      write: !!write,
       confirmations: -1,
       errors: [],
       unconfirmed: true
