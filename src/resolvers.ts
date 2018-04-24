@@ -11,13 +11,14 @@ import {
   OrderBy,
   utils,
   DB,
-  filterResults
+  filterResults,
+  utils as dynamoUtils
 } from '@tradle/dynamodb'
 
 import validateModels from '@tradle/validate-model'
 import validateResource from '@tradle/validate-resource'
 import { ResourceStub, Backlinks } from './types'
-import { parseStub, allSettled } from './utils'
+import { parseStub, allSettled, getPrimaryKeySchema } from './utils'
 
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
@@ -71,14 +72,19 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
   const get = async ({ model, key }: { model: Model, key: any }) => {
     let result
     try {
-      result = await db.findOne({
-        filter: {
-          EQ: {
-            [TYPE]: model.id,
-            ...key
-          }
-        }
+      result = await db.get({
+        [TYPE]: model.id,
+        ...key
       })
+
+      // result = await db.findOne({
+      //   filter: {
+      //     EQ: {
+      //       [TYPE]: model.id,
+      //       ...key
+      //     }
+      //   }
+      // })
     } catch (err) {
       if (err.name && err.name.toLowerCase() === 'notfound') {
         return null
@@ -135,14 +141,9 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
       }
     }
 
-    if (isInstantiable(refModel)) {
-      const { interfaces = [] } = refModel
-      if (interfaces.includes('tradle.Intersection')) {
-        // intersections are pre-indexed
-        // so no need to go via tradle.BacklinkItem
-        filter.EQ[TYPE] = ref
-        return list(listOpts)
-      }
+    if (isWellBehavedIntersection(refModel)) {
+      filter.EQ[TYPE] = ref
+      return list(listOpts)
     }
 
     const container = await backlinks.fetchBacklinks({
@@ -226,4 +227,24 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
       return postProcess(result, op, ...args)
     }
   }
+}
+
+const isWellBehavedIntersection = model => {
+  if (!isInstantiable(model)) return
+
+  const { interfaces = [], primaryKeys, properties } = model
+  if (!interfaces.includes('tradle.Intersection')) return
+
+  // intersections are pre-indexed
+  // so no need to go via tradle.BacklinkItem
+  if (!(primaryKeys && primaryKeys.hashKey && primaryKeys.rangeKey)) return
+
+  return true
+  // const { hashKey, rangeKey } = dynamoUtils.normalizeIndexedPropertyTemplateSchema(primaryKeys)
+  // const vars = _.uniq(
+  //   dynamoUtils.getTemplateStringVariables(hashKey.template)
+  //     .concat(dynamoUtils.getTemplateStringValues(rangeKey.template))
+  // )
+
+  // const props = vars.map()
 }
