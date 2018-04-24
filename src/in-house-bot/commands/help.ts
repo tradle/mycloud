@@ -28,14 +28,23 @@ export const command:ICommand = {
 
     const availableCommands = commander
       .getAvailableCommands(ctx)
-      .map(name => {
-        const { description } = commander.getCommandByName(name)
-        return `/${name}\n\n${description}\n\n`
+      .map(command => {
+        const { description, examples, name=command } = commander.getCommandByName(command)
+        return printCommand({ name, description, examples })
       })
 
-    return `These are the available commands:\n\n${availableCommands.join('\n')}`
+    return `These are the available commands:\n\n${availableCommands.join('\n\n')}`
   },
   sendResult: async ({ commander, req, to, result }) => {
     await commander.sendSimpleMessage({ req, message: result, to: req.user })
   }
+}
+
+export const printCommand = ({ name, description, examples }) => {
+  return `/${name}
+
+\t${description}
+
+\tExamples:
+\t\t${examples.join('\n\t\t')}`
 }
