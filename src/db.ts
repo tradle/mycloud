@@ -9,14 +9,15 @@ import { extendTradleObject, pluck } from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
-const ALLOW_SCAN_QUERY = [
-  SEAL_STATE,
-  'tradle.ApplicationSubmission'
-]
 
 const ALLOW_SCAN = [
   DELIVERY_ERROR
 ]
+
+const ALLOW_SCAN_QUERY = [
+  SEAL_STATE,
+  'tradle.ApplicationSubmission'
+].concat(ALLOW_SCAN)
 
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {
   if (UNSIGNED_TYPES.includes(resource[TYPE])) return
