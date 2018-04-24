@@ -19,6 +19,14 @@ const ALLOW_SCAN_QUERY = [
   'tradle.ApplicationSubmission'
 ].concat(ALLOW_SCAN)
 
+const allowScan = filterOp => {
+  if (filterOp.opType === 'query') {
+    return ALLOW_SCAN_QUERY.includes(filterOp.type)
+  }
+
+  return ALLOW_SCAN.includes(filterOp.type)
+}
+
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {
   if (UNSIGNED_TYPES.includes(resource[TYPE])) return
 
@@ -67,13 +75,7 @@ export = function createDB (tradle:Tradle) {
     get models() { return modelStore.models },
     get modelsStored() { return modelStore.models },
     objects,
-    allowScan: filterOp => {
-      if (filterOp.opType === 'query') {
-        return ALLOW_SCAN_QUERY.includes(filterOp.type)
-      }
-
-      return ALLOW_SCAN.includes(filterOp.type)
-    },
+    allowScan,
     shouldMinify: item => !UNSIGNED_TYPES.includes(item[TYPE])
     // derivedProps: tableKeys,
   }
