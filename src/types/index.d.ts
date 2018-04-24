@@ -621,6 +621,7 @@ export interface IHasModels {
 }
 
 export interface IBacklinkItem {
+  _time: number
   target: ResourceStub
   source: ResourceStub
   linkProp: string

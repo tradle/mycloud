@@ -360,6 +360,7 @@ export class Resource extends EventEmitter {
         target: targetStub,
         linkProp,
         backlinkProps,
+        _time: resource._time,
       }
     })
     .filter(_.identity)
