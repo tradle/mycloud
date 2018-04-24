@@ -234,10 +234,8 @@ export class Deployment {
         },
         filter: {
           EQ: {
-            [TYPE]: CHILD_DEPLOYMENT
-          },
-          STARTS_WITH: {
-            ['identity.id']: `tradle.Identity_${createdBy}`
+            [TYPE]: CHILD_DEPLOYMENT,
+            'identity._permalink': createdBy
           }
         }
       })
@@ -254,10 +252,8 @@ export class Deployment {
       },
       filter: {
         EQ: {
-          [TYPE]: CONFIGURATION
-        },
-        STARTS_WITH: {
-          ['configuredBy.id']: `tradle.Identity_${configuredBy}`
+          [TYPE]: CONFIGURATION,
+          'configuredBy._permalink': configuredBy
         }
       }
     })
