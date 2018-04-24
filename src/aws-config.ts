@@ -5,7 +5,13 @@ export const createConfig = ({ env } : { env: Env }):IAWSServiceConfig => {
   const { IS_LOCAL, IS_OFFLINE } = env
   const services = {
     maxRetries: 6,
-    region: process.env.AWS_REGION || 'us-east-1'
+    region: process.env.AWS_REGION || 'us-east-1',
+    iotdata: {
+      httpOptions: {
+        connectTimeout: 10000,
+        timeout: 10000,
+      }
+    }
   } as IAWSServiceConfig
 
   if (IS_LOCAL || IS_OFFLINE) {
