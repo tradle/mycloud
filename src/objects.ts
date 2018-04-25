@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
-import { IDebug, ITradleObject, IRetryableTaskOpts, S3Utils, Buckets, Logger, Env, Identities } from './types'
+import { IDebug, ITradleObject, IRetryableTaskOpts, S3Utils, Buckets, Logger, Env } from './types'
 import * as types from './typeforce-types'
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
 import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
@@ -32,7 +32,6 @@ type ObjectsOpts = {
   buckets: Buckets
   s3Utils: S3Utils
   logger: Logger
-  identities: Identities
 }
 
 export default class Objects {
@@ -49,10 +48,6 @@ export default class Objects {
 
   private get s3Utils () {
     return this.components.s3Utils
-  }
-
-  private get identities () {
-    return this.components.identities
   }
 
   private region: string
@@ -258,40 +253,6 @@ export default class Objects {
     return object
   }
 
-  public validateNewVersion = async (opts: { object: ITradleObject }) => {
-    const { identities } = this
-    const { object } = opts
-    const previous = await this.get(object[PREVLINK])
-    const getNewAuthorInfo = object._author
-      ? Promise.resolve(object)
-      : identities.getAuthorInfo(object)
-
-    if (previous[OWNER]) {
-      const { _author } = await getNewAuthorInfo
-      // OWNER may change to an array of strings in the future
-      if (![].concat(previous[OWNER]).includes(_author)) {
-        throw new InvalidAuthor(`expected ${previous[OWNER]} as specified in the previous verison's ${OWNER} property, got ${_author}`)
-      }
-    }
-
-    const getOldAuthor = previous._author ? Promise.resolve(previous) : identities.getAuthorInfo(previous)
-    // ignore error: Property '_author' is optional in type 'ITradleObject' but required in type 'AuthorInfo'
-    // @ts-ignore
-    const [newInfo, oldInfo] = await Promise.all([getNewAuthorInfo, getOldAuthor])
-    if (newInfo._author !== oldInfo._author) {
-      throw new InvalidAuthor(`expected ${oldInfo._author}, got ${newInfo._author}`)
-    }
-
-    try {
-      protocol.validateVersioning({
-        object,
-        prev: previous,
-        orig: object[PERMALINK]
-      })
-    } catch (err) {
-      throw new InvalidVersion(err.message)
-    }
-  }
 }
 
 export { Objects }

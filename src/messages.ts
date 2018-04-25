@@ -199,7 +199,7 @@ export default class Messages {
     }
   }
 
-  public putMessage = async (message: ITradleMessage) => {
+  public save = async (message: ITradleMessage) => {
     const _counterparty = message._inbound ? message._author : message._recipient
     setVirtual(message, {
       // make sure _inbound is set
@@ -445,76 +445,6 @@ export default class Messages {
     }
   }
 
-  public processInbound = async (message: ITradleMessage):Promise<ITradleMessage> => {
-    // TODO: uncomment below, check that message is for us
-    // await ensureMessageIsForMe({ message })
-    const min = message
-    // const payload = message.object
-
-    // prereq to running validation
-    await this.objects.resolveEmbeds(message)
-
-    this.objects.addMetadata(message)
-    this.objects.addMetadata(message.object)
-
-    setVirtual(min, pickVirtual(message))
-    setVirtual(min.object, pickVirtual(message.object))
-    message = min
-    const payload = message.object
-
-    // TODO:
-    // would be nice to parallelize some of these
-    // await assertNotDuplicate(messageWrapper.link)
-
-    if (payload[PREVLINK]) {
-      // prime cache
-      this.logger.debug('TODO: validate against previous version')
-      // this.objects.prefetch(payload[PREVLINK])
-    }
-
-    const addMessageAuthor = this.identities.addAuthorInfo(message)
-    let addPayloadAuthor
-    if (payload._sigPubKey === message._sigPubKey) {
-      addPayloadAuthor = addMessageAuthor.then(() => {
-        setVirtual(payload, { _author: message._author })
-      })
-    } else {
-      addPayloadAuthor = this.identities.addAuthorInfo(payload)
-    }
-
-    await Promise.all([
-      addMessageAuthor
-        .then(() => this.logger.debug('loaded message author')),
-      addPayloadAuthor
-        .then(() => this.logger.debug('loaded payload author')),
-    ])
-
-    if (payload[PREVLINK]) {
-      this.logger.warn(`validation of new versions of objects is temporarily disabled,
-        until employees switch to command-based operation, rather than re-signing`)
-
-      // try {
-      //   await this.objects.validateNewVersion({ object: payload })
-      // } catch (err) {
-      //   if (!(err instanceof Errors.NotFound)) {
-      //     throw err
-      //   }
-
-      //   this.debug(`previous version of ${payload._link} (${payload[PREVLINK]}) was not found, skipping validation`)
-      // }
-    }
-
-    this.logger.debug('added metadata for message and wrapper')
-    if (this.env.NO_TIME_TRAVEL) {
-      await this.assertTimestampIncreased(message)
-    }
-
-    setVirtual(message, {
-      _inbound: true
-    })
-
-    return message
-  }
 
   public getMessagePayload = async ({ bot, message }) => {
     if (message.object[SIG]) {

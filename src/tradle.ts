@@ -203,8 +203,7 @@ export default class Tradle {
       env: this.env,
       buckets: this.buckets,
       logger: this.logger.sub('objects'),
-      s3Utils: this.s3Utils,
-      get identities() { return tradle.identities },
+      s3Utils: this.s3Utils
     })
 
     const identities = this.identities = new Identities({

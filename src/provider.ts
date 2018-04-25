@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import Debug from 'debug'
-import { utils } from '@tradle/engine'
+import { utils, protocol } from '@tradle/engine'
 import { DB } from '@tradle/dynamodb'
 import Embed from '@tradle/embed'
 import buildResource from '@tradle/build-resource'
@@ -26,12 +26,14 @@ import Env from './env'
 import {
   IDENTITY_KEYS_KEY,
   SEQ,
+  PREVLINK,
+  OWNER,
   TYPE,
   TYPES,
   SIG,
   PRIVATE_CONF_BUCKET,
   PERMALINK,
-  DB_IGNORE_PAYLOAD_TYPES
+  DB_IGNORE_PAYLOAD_TYPES,
 } from './constants'
 
 import {
@@ -271,11 +273,11 @@ export default class Provider {
 
   // public only for testing purposes
   public _doReceiveMessage = async ({ message }):Promise<ITradleMessage> => {
-    message = await this.messages.processInbound(message)
+    message = await this.normalizeAndValidateInboundMessage(message)
 
     const tasks:Promise<any>[] = [
       this.saveObject({ object: message.object, inbound: true }),
-      this.messages.putMessage(message)
+      this.messages.save(message)
     ]
 
     if (message.seal) {
@@ -284,6 +286,77 @@ export default class Provider {
 
     const [payload] = await Promise.all(tasks)
     message.object = payload
+    return message
+  }
+
+  public normalizeAndValidateInboundMessage = async (message: ITradleMessage):Promise<ITradleMessage> => {
+    // TODO: uncomment below, check that message is for us
+    // await ensureMessageIsForMe({ message })
+    const min = message
+    // const payload = message.object
+
+    // prereq to running validation
+    await this.objects.resolveEmbeds(message)
+
+    this.objects.addMetadata(message)
+    this.objects.addMetadata(message.object)
+
+    setVirtual(min, pickVirtual(message))
+    setVirtual(min.object, pickVirtual(message.object))
+    message = min
+    const payload = message.object
+
+    // TODO:
+    // would be nice to parallelize some of these
+    // await assertNotDuplicate(messageWrapper.link)
+
+    if (payload[PREVLINK]) {
+      // prime cache
+      this.logger.debug('TODO: validate against previous version')
+      // this.objects.prefetch(payload[PREVLINK])
+    }
+
+    const addMessageAuthor = this.identities.addAuthorInfo(message)
+    let addPayloadAuthor
+    if (payload._sigPubKey === message._sigPubKey) {
+      addPayloadAuthor = addMessageAuthor.then(() => {
+        setVirtual(payload, { _author: message._author })
+      })
+    } else {
+      addPayloadAuthor = this.identities.addAuthorInfo(payload)
+    }
+
+    await Promise.all([
+      addMessageAuthor
+        .then(() => this.logger.debug('loaded message author')),
+      addPayloadAuthor
+        .then(() => this.logger.debug('loaded payload author')),
+    ])
+
+    if (payload[PREVLINK]) {
+      this.logger.warn(`validation of new versions of objects is temporarily disabled,
+        until employees switch to command-based operation, rather than re-signing`)
+
+      // try {
+      //   await this.objects.validateNewVersion({ object: payload })
+      // } catch (err) {
+      //   if (!(err instanceof Errors.NotFound)) {
+      //     throw err
+      //   }
+
+      //   this.debug(`previous version of ${payload._link} (${payload[PREVLINK]}) was not found, skipping validation`)
+      // }
+    }
+
+    this.logger.debug('added metadata for message and wrapper')
+    if (this.env.NO_TIME_TRAVEL) {
+      await this.messages.assertTimestampIncreased(message)
+    }
+
+    setVirtual(message, {
+      _inbound: true
+    })
+
     return message
   }
 
@@ -485,7 +558,7 @@ export default class Provider {
 
       setVirtual(signedMessage.object, payloadVirtual)
       try {
-        await this.messages.putMessage(signedMessage)
+        await this.messages.save(signedMessage)
         signedMessage.object = payload.asStored
         return signedMessage
       } catch (err) {
@@ -517,6 +590,41 @@ export default class Provider {
     ])
 
     return object
+  }
+
+  public validateNewVersion = async (opts: { object: ITradleObject }) => {
+    const { identities } = this
+    const { object } = opts
+    const previous = await this.objects.get(object[PREVLINK])
+    const getNewAuthorInfo = object._author
+      ? Promise.resolve(object)
+      : identities.getAuthorInfo(object)
+
+    if (previous[OWNER]) {
+      const { _author } = await getNewAuthorInfo
+      // OWNER may change to an array of strings in the future
+      if (![].concat(previous[OWNER]).includes(_author)) {
+        throw new Errors.InvalidAuthor(`expected ${previous[OWNER]} as specified in the previous verison's ${OWNER} property, got ${_author}`)
+      }
+    }
+
+    const getOldAuthor = previous._author ? Promise.resolve(previous) : identities.getAuthorInfo(previous)
+    // ignore error: Property '_author' is optional in type 'ITradleObject' but required in type 'AuthorInfo'
+    // @ts-ignore
+    const [newInfo, oldInfo] = await Promise.all([getNewAuthorInfo, getOldAuthor])
+    if (newInfo._author !== oldInfo._author) {
+      throw new Errors.InvalidAuthor(`expected ${oldInfo._author}, got ${newInfo._author}`)
+    }
+
+    try {
+      protocol.validateVersioning({
+        object,
+        prev: previous,
+        orig: object[PERMALINK]
+      })
+    } catch (err) {
+      throw new Errors.InvalidVersion(err.message)
+    }
   }
 
   private isAuthoredByMe = async (object:ITradleObject) => {

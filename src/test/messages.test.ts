@@ -113,7 +113,7 @@ test('_doSendMessage', loudAsync(async (t) => {
   // }
 
   let stoleSeq
-  const stubPutMessage = sandbox.stub(messages, 'putMessage').callsFake(async (message) => {
+  const stubPutSave = sandbox.stub(messages, 'save').callsFake(async (message) => {
     typeforce(types.message, message)
     t.notOk(message._inbound)
     t.equal(message[SEQ], nextSeq)
@@ -136,7 +136,7 @@ test('_doSendMessage', loudAsync(async (t) => {
 
   t.equal(stubPutObject.callCount, 1)
   // t.equal(stubReplaceEmbeds.callCount, 1)
-  t.equal(stubPutMessage.callCount, 2)
+  t.equal(stubPutSave.callCount, 2)
   t.equal(stubLastSeqAndLink.callCount, 2)
   sandbox.restore()
 
@@ -162,7 +162,7 @@ test('_doReceiveMessage', loudAsync(async (t) => {
   //   throw new Errors.NotFound()
   // })
 
-  const stubPutMessage = sandbox.stub(messages, 'putMessage').callsFake(function (message) {
+  const stubPutSave = sandbox.stub(messages, 'save').callsFake(function (message) {
     t.equal(message._inbound, true)
     typeforce(types.message, message)
     // console.log(event)
@@ -170,7 +170,7 @@ test('_doReceiveMessage', loudAsync(async (t) => {
   })
 
   await _doReceiveMessage({ message })
-  t.equal(stubPutMessage.callCount, 1)
+  t.equal(stubPutSave.callCount, 1)
   t.equal(stubPutObject.callCount, 1)
   t.equal(stubGetIdentity.callCount, 2)
   // t.equal(stubGetInbound.callCount, 0)
@@ -196,7 +196,7 @@ test('_doReceiveMessage', loudAsync(async (t) => {
 //   for (let message of fromBobToAlice) {
 //     message = clone(message)
 //     message._inbound = true
-//     await messages.putMessage(message)
+//     await messages.save(message)
 //     const last = await messages.getLastMessageFrom({
 //       author: bob.identity._permalink,
 //       body: false
@@ -206,7 +206,7 @@ test('_doReceiveMessage', loudAsync(async (t) => {
 //   }
 
 //   for (let message of fromAliceToBob) {
-//     await messages.putMessage(message)
+//     await messages.save(message)
 //     const last = await messages.getLastMessageTo({
 //       recipient: bob.identity._permalink,
 //       body: false
