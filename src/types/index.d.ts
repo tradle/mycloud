@@ -10,8 +10,9 @@ import { Tradle } from '../tradle'
 import { Env } from '../env'
 import { Identities } from '../identities'
 import { Identity } from '../identity'
+import { Storage } from '../storage'
 import { Messages } from '../messages'
-import { Provider } from '../provider'
+import { Messaging } from '../messaging'
 import { Objects } from '../objects'
 import { Auth } from '../auth'
 import { Init } from '../init'
@@ -69,8 +70,9 @@ export {
   Env,
   Identities,
   Identity,
+  Storage,
   Messages,
-  Provider,
+  Messaging,
   Objects,
   Auth,
   Init,
@@ -464,7 +466,8 @@ export interface IUpdateStackUrlOpts {
 export interface ISaveObjectOpts {
   object: ITradleObject
   diff?: Diff
-  inbound?: boolean
+  saveToObjects?: boolean
+  saveToDB?: boolean
 }
 
 export type CloudName = 'aws'

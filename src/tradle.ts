@@ -12,8 +12,9 @@ import { Messages } from './messages'
 import { Friends } from './friends'
 import createDB from './db'
 import { createAWSWrapper } from './aws'
-import { Provider } from './provider'
+import { Messaging } from './messaging'
 import { Delivery } from './delivery'
+import { Storage } from './storage'
 import { Auth } from './auth'
 import { KV } from './kv'
 import { Events } from './events'
@@ -67,6 +68,7 @@ export default class Tradle {
   public events: Events
   public identities: Identities
   public identity: Identity
+  public storage: Storage
   public messages: Messages
   public db: DB
   public contentAddressedStore:ContentAddressedStore
@@ -80,7 +82,7 @@ export default class Tradle {
   public init: Init
   public user: User
   public friends: Friends
-  public provider: Provider
+  public messaging: Messaging
   public pushNotifications: Push
   public s3Utils: S3Utils
   public iot: Iot
@@ -120,16 +122,25 @@ export default class Tradle {
     this.prefix = SERVERLESS_PREFIX
 
     const logger = this.logger = env.logger
+    const { network } = this
 
     // singletons
 
     // instances
     if (env.BLOCKCHAIN.flavor === 'corda') {
       this.define('seals', './corda-seals', ({ Seals }) => new Seals(this))
-      this.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain(this))
+      this.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain({
+        env,
+        network
+      }))
+
     } else {
       this.define('seals', './seals', this.construct)
-      this.define('blockchain', './blockchain', this.construct)
+      this.define('blockchain', './blockchain', Blockchain => new Blockchain({
+        logger: logger.sub('blockchain'),
+        network,
+        identity: this.identity
+      }))
     }
 
     // this.define('faucet', './faucet', createFaucet => createFaucet({
@@ -208,10 +219,17 @@ export default class Tradle {
       get messages () { return tradle.messages }
     })
 
-    const provider = this.provider = new Provider({
+    const storage = this.storage = new Storage({
+      objects,
+      db,
+      logger: logger.sub('storage')
+    })
+
+    const messaging = this.messaging = new Messaging({
       network: this.network,
-      logger: logger.sub('provider'),
+      logger: logger.sub('messaging'),
       identity,
+      storage,
       get env () { return tradle.env },
       get objects () { return tradle.objects },
       get identities () { return tradle.identities },
@@ -226,10 +244,8 @@ export default class Tradle {
     })
 
     const friends = this.friends = new Friends({
-      get objects() { return tradle.objects },
-      get db() { return tradle.db },
       get identities() { return tradle.identities },
-      get provider() { return tradle.provider },
+      storage,
       identity,
       logger: this.logger.sub('friends'),
     })
@@ -333,10 +349,9 @@ export default class Tradle {
 
     this.define('appLinks', './app-links', ({ createLinker }) => createLinker())
     this.define('backlinks', './backlinks', Backlinks => new Backlinks({
-      db,
+      storage,
       modelStore,
       logger: logger.sub('backlinks'),
-      provider,
       identity
     }))
   }

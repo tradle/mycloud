@@ -18,6 +18,7 @@ import {
 } from './types'
 
 import { addLinks, getLink, getPermalink, extractSigPubKey, getSigningKey, getChainKey, sign } from './crypto'
+import Errors from './errors'
 
 type IdentityOpts = {
   network: any
@@ -78,7 +79,7 @@ export default class Identity {
     })
 
     if (!chainKey) {
-      throw new Error(`blockchain key not found for network: ${network}`)
+      throw new Errors.NotFound(`blockchain key not found for network: ${network}`)
     }
 
     return chainKey
@@ -94,7 +95,7 @@ export default class Identity {
     })
 
     if (!key) {
-      throw new Error(`no key found for blockchain network ${network.toString()}`)
+      throw new Errors.NotFound(`no key found for blockchain network ${network.toString()}`)
     }
 
     return key

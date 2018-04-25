@@ -35,8 +35,8 @@ import * as types from '../typeforce-types'
 
 const { newIdentity } = tradle.utils
 const { MESSAGE } = TYPES
-const { identities, messages, objects, provider } = createTestTradle()
-const { _doSendMessage, _doReceiveMessage } = provider
+const { identities, messages, objects, messaging } = createTestTradle()
+const { _doSendMessage, _doReceiveMessage } = messaging
 const fromBobToAlice = require('./fixtures/alice/receive.json')
   .map(messages.normalizeInbound)
 

@@ -10,11 +10,11 @@ import {
   Env,
   Logger,
   Auth,
-  Provider,
   Iot,
   Delivery,
   TaskManager,
   Messages,
+  Messaging,
   Tradle,
   ISession,
   IPositionPair
@@ -37,7 +37,7 @@ export default class User {
   private logger: Logger
   private auth: Auth
   private iot: Iot
-  private provider: Provider
+  private messaging: Messaging
   private delivery: Delivery
   private buckets: any
   private messages: Messages
@@ -49,7 +49,7 @@ export default class User {
       logger,
       auth,
       iot,
-      provider,
+      messaging,
       delivery,
       buckets,
       messages,
@@ -61,7 +61,7 @@ export default class User {
     this.logger = logger.sub('user')
     this.auth = auth
     this.iot = iot
-    this.provider = provider
+    this.messaging = messaging
     this.delivery = delivery
     this.buckets = buckets
     this.messages = messages
@@ -187,7 +187,7 @@ export default class User {
       })
     }
 
-    return await this.provider.receiveMessage({ clientId, message })
+    return await this.messaging.receiveMessage({ clientId, message })
   }
 
   public onDisconnected = async ({ clientId }):Promise<ISession|void> => {
@@ -294,11 +294,6 @@ export default class User {
   //     lt
   //   })
   // })
-
-  public getProviderIdentity = async () => {
-    const { object } = await this.buckets.PrivateConf.getJSON(PRIVATE_CONF_BUCKET.identity)
-    return omitVirtual(object)
-  }
 }
 
 export { User }

@@ -143,6 +143,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get aws() { return this.tradle.aws }
   public get objects() { return this.tradle.objects }
   public get db() { return this.tradle.db }
+  public get network() { return this.tradle.network }
+  public get networks() { return this.tradle.networks }
   public get dbUtils() { return this.tradle.dbUtils }
   public get contentAddressedStore() { return this.tradle.contentAddressedStore }
   public get lambdaUtils() { return this.tradle.lambdaUtils }
@@ -151,6 +153,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get seals() { return this.tradle.seals }
   public get events() { return this.tradle.events }
   public get modelStore() { return this.tradle.modelStore }
+  public get storage() { return this.tradle.storage }
+  public get identity() { return this.tradle.identity }
   public get identities() { return this.tradle.identities }
   public get addressBook() { return this.tradle.identities }
   // public get history () { return this.tradle.history }
@@ -217,7 +221,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   // PRIVATE
   private tradle: Tradle
-  private get provider() { return this.tradle.provider }
+  private get messaging() { return this.tradle.messaging }
   private outboundMessageLocker: Locker
   private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
@@ -363,10 +367,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     await this.outboundMessageLocker.lock(recipient)
     let messages
     try {
-      messages = await this.provider.sendMessageBatch(batch)
+      messages = await this.messaging.sendMessageBatch(batch)
       this.tasks.add({
         name: 'delivery:live',
-        promiser: () => this.provider.attemptLiveDelivery({
+        promiser: () => this.messaging.attemptLiveDelivery({
           recipient,
           messages
         })
@@ -388,8 +392,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return messages
   }
 
-  public sendPushNotification = (recipient: string) => this.provider.sendPushNotification(recipient)
-  public registerWithPushNotificationsServer = () => this.provider.registerWithPushNotificationsServer()
+  public sendPushNotification = (recipient: string) => this.messaging.sendPushNotification(recipient)
+  public registerWithPushNotificationsServer = () => this.messaging.registerWithPushNotificationsServer()
   public sendSimpleMessage = async ({ to, message }) => {
     return await this.send({
       to,
@@ -642,7 +646,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
 
     try {
-      await this.provider.saveObject({
+      await this.storage.save({
         object: resource,
         diff
       })

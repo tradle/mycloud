@@ -5,7 +5,7 @@ import adapters from './blockchain-adapter'
 import {
   IDebug,
   Logger,
-  Tradle
+  Identity
 } from './types'
 
 import Errors from './errors'
@@ -66,6 +66,12 @@ const compareBalance = (a, b) => {
   return compareNums(a, b)
 }
 
+type BlockchainOpts = {
+  logger: Logger
+  network: any
+  identity: Identity
+}
+
 export default class Blockchain {
   public flavor: string
   public networkName: string
@@ -77,47 +83,15 @@ export default class Blockchain {
   private getTxAmount = () => this.network.minOutputAmount
   private debug:IDebug
   private logger:Logger
-  private tradle:Tradle
-
-  private createAdapter = (opts:{ privateKey?: string }={}) => {
-    const { flavor, networkName } = this
-    const create = adapters[flavor]
-    return create({ flavor, networkName, ...opts })
-  }
-
-  private getWriter = (key: IKey) => {
-    const { fingerprint, priv } = key
-    if (!this.writers[fingerprint]) {
-      const { transactor } = this.createAdapter({
-        privateKey: priv
-      })
-
-      this.writers[fingerprint] = promisify(transactor)
-    }
-
-    return this.writers[fingerprint]
-  }
-
-  private startOrStop = async (method: string) => {
-    Object.keys(this.writers)
-      .map(key => this.writers[key])
-      .concat(this.reader.blockchain)
-      .forEach(client => {
-        if (client[method]) {
-          client[method]()
-        }
-      })
-  }
-
+  private identity:Identity
   public addressesAPI: {
     transactions: (addresses: string[], blockHeight?: number) => Promise<any>,
     balance: (address: string) => Promise<string|number>
   }
 
   public getInfo: () => Promise<any>
-  constructor(tradle:Tradle) {
-    this.tradle = tradle
-    const { logger, network } = tradle
+  constructor(components:BlockchainOpts) {
+    const { logger, network, identity } = components
     // typeforce({
     //   flavor: typeforce.String,
     //   networkName: typeforce.String,
@@ -135,7 +109,8 @@ export default class Blockchain {
     this.addressesAPI = promisify(this.reader.blockchain.addresses)
     this.getInfo = promisify(this.reader.blockchain.info)
     this.network = this.reader.network
-    this.logger = logger.sub('blockchain')
+    this.logger = logger
+    this.identity = identity
   }
 
   public toString = () => `${this.network.blockchain}:${this.network.name}`
@@ -248,7 +223,7 @@ export default class Blockchain {
   public stop = () => this.startOrStop('stop')
 
   // lazy access this.tradle.provider, to prevent circular dep
-  public getMyChainPub = () => this.tradle.identity.getChainKeyPub()
+  public getMyChainPub = () => this.identity.getChainKeyPub()
   public getMyChainAddress = ():Promise<string> => this.getMyChainPub()
     .then(({ fingerprint }) => fingerprint)
 
@@ -281,6 +256,36 @@ export default class Blockchain {
     const balance = await this.addressesAPI.balance(address)
     this.logger.debug(`balance: ${balance}`)
     return balance
+  }
+
+  private createAdapter = (opts:{ privateKey?: string }={}) => {
+    const { flavor, networkName } = this
+    const create = adapters[flavor]
+    return create({ flavor, networkName, ...opts })
+  }
+
+  private getWriter = (key: IKey) => {
+    const { fingerprint, priv } = key
+    if (!this.writers[fingerprint]) {
+      const { transactor } = this.createAdapter({
+        privateKey: priv
+      })
+
+      this.writers[fingerprint] = promisify(transactor)
+    }
+
+    return this.writers[fingerprint]
+  }
+
+  private startOrStop = async (method: string) => {
+    Object.keys(this.writers)
+      .map(key => this.writers[key])
+      .concat(this.reader.blockchain)
+      .forEach(client => {
+        if (client[method]) {
+          client[method]()
+        }
+      })
   }
 }
 

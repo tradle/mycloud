@@ -26,7 +26,7 @@ import {
   ParsedResourceStub,
   ISaveEventPayload,
   Logger,
-  Provider,
+  Storage,
   IBacklinkItem,
   Identity
 } from './types'
@@ -71,24 +71,24 @@ export type BacklinksChange = {
 // export type Backlink = string[]
 
 type BacklinksOpts = {
-  provider: Provider
-  db: DB
+  storage: Storage
   modelStore: ModelStore
   logger: Logger
   identity: Identity
 }
 
 export default class Backlinks {
+  private storage: Storage
   private db: DB
   private modelStore: ModelStore
   private logger: Logger
-  private provider: Provider
   private identity: Identity
-  constructor ({ provider, db, modelStore, logger }: BacklinksOpts) {
-    this.provider = provider
-    this.db = db
+  constructor ({ storage, modelStore, logger, identity }: BacklinksOpts) {
+    this.storage = storage
+    this.db = storage.db
     this.modelStore = modelStore
     this.logger = logger
+    this.identity = identity
   }
 
   private get models() {
@@ -171,7 +171,7 @@ export default class Backlinks {
 
     return await Promise.all(applicationSubmissions.map(async (object) => {
       object = await this.identity.sign({ object })
-      return await this.provider.saveObject({ object })
+      return await this.storage.save({ object })
     }))
   }
 

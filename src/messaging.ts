@@ -59,6 +59,7 @@ import {
   ModelStore,
   Delivery,
   Identity,
+  Storage,
 } from './types'
 
 const {
@@ -75,12 +76,13 @@ type PayloadWrapper = {
   asSigned: ITradleObject
 }
 
-type ProviderOpts = {
+type MessagingOpts = {
   env: Env
   logger: Logger
   objects: Objects
   identities: Identities
   identity: Identity
+  storage: Storage
   messages: Messages
   auth: Auth
   db: DB
@@ -92,7 +94,7 @@ type ProviderOpts = {
   network: any
 }
 
-export default class Provider {
+export default class Messaging {
   private env: Env
   private get objects() { return this.components.objects }
   private get messages() { return this.components.messages }
@@ -102,13 +104,14 @@ export default class Provider {
   private get db() { return this.components.db }
   private get delivery() { return this.components.delivery }
   private get friends() { return this.components.friends }
+  private get storage() { return this.components.storage }
   private get modelStore() { return this.components.modelStore }
   private get seals() { return this.components.seals }
   private get pushNotifications() { return this.components.pushNotifications }
   private network: any
-  private components: ProviderOpts
+  private components: MessagingOpts
   private logger:Logger
-  constructor (components: ProviderOpts) {
+  constructor (components: MessagingOpts) {
     this.components = components
     const { env, logger, network } = components
 
@@ -130,7 +133,13 @@ export default class Provider {
         ret.asSigned = object
       }
 
-      ret.asStored = await this.saveObject({ object, inbound: false })
+      const type = object[TYPE]
+      const saveToDB = !DB_IGNORE_PAYLOAD_TYPES.outbound.includes(type)
+      if (!saveToDB) {
+        this.logger.debug(`not saving ${type} to type-differentiated table`)
+      }
+
+      ret.asStored = await this.storage.save({ object, saveToDB })
     } else {
       ret.asStored = await this.objects.get(link)
     }
@@ -209,8 +218,9 @@ export default class Provider {
   public _doReceiveMessage = async ({ message }):Promise<ITradleMessage> => {
     message = await this.normalizeAndValidateInboundMessage(message)
 
+    const saveToDB = !DB_IGNORE_PAYLOAD_TYPES.inbound.includes(message.object[TYPE])
     const tasks:Promise<any>[] = [
-      this.saveObject({ object: message.object, inbound: true }),
+      this.storage.save({ object: message.object, saveToDB }),
       this.messages.save(message)
     ]
 
@@ -513,19 +523,6 @@ export default class Provider {
     })
   }
 
-  public saveObject = async ({ object, inbound, diff }: ISaveObjectOpts) => {
-    object = _.cloneDeep(object)
-    this.objects.addMetadata(object)
-    ensureTimestamped(object)
-    await this.objects.replaceEmbeds(object)
-    await Promise.all([
-      this.objects.put(object),
-      this.putInDB({ object, inbound, diff })
-    ])
-
-    return object
-  }
-
   public validateNewVersion = async (opts: { object: ITradleObject }) => {
     const { identities } = this
     const { object } = opts
@@ -561,50 +558,19 @@ export default class Provider {
     }
   }
 
-  private isAuthoredByMe = async (object:ITradleObject) => {
-    const promiseMyPermalink = this.identity.getPermalink()
-    let { _author } = object
-    if (!_author) {
-      ({ _author } = await this.identities.getAuthorInfo(object))
-    }
+  // private isAuthoredByMe = async (object:ITradleObject) => {
+  //   const promiseMyPermalink = this.identity.getPermalink()
+  //   let { _author } = object
+  //   if (!_author) {
+  //     ({ _author } = await this.identities.getAuthorInfo(object))
+  //   }
 
-    const myPermalink = await promiseMyPermalink
-    return _author === myPermalink
-  }
-
-  private putInDB = async ({ object, inbound, diff }: ISaveObjectOpts) => {
-    // const inbound = await this.isAuthoredByMe(object)
-    const type = object[TYPE]
-    const ignored = inbound
-      ? DB_IGNORE_PAYLOAD_TYPES.inbound
-      : DB_IGNORE_PAYLOAD_TYPES.outbound
-
-    if (ignored.includes(type)) {
-      this.logger.debug(`not saving ${type} to type-differentiated table`)
-      return false
-    }
-
-    let table
-    try {
-      table = await this.db.getTableForModel(type)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.debug(`not saving "${type}", don't have a table for it`, Errors.export(err))
-      return false
-    }
-
-    if (diff) {
-      throw new Errors.Unsupported('update via "diff" is not supported at this time')
-      // await this.db.update(object, { diff })
-    } else {
-      await this.db.put(object)
-    }
-
-    return true
-  }
+  //   const myPermalink = await promiseMyPermalink
+  //   return _author === myPermalink
+  // }
 }
 
-export { Provider }
+export { Messaging }
 
 const getIntroducedIdentity = (payload) => {
   const type = payload[TYPE]

@@ -24,7 +24,6 @@ import {
   Objects,
   Identities,
   StackUtils,
-  Provider,
   Seals,
   DB,
   Buckets,
@@ -53,7 +52,6 @@ export default class Init {
   private buckets: Buckets
   private networks: any
   private network: any
-  private provider: Provider
   private objects: Objects
   private identities: Identities
   private stackUtils: StackUtils
@@ -65,7 +63,6 @@ export default class Init {
     buckets,
     networks,
     network,
-    provider,
     objects,
     identities,
     stackUtils,
@@ -77,7 +74,6 @@ export default class Init {
     this.buckets = buckets
     this.networks = networks
     this.network = network
-    this.provider = provider
     this.objects = objects
     this.identities = identities
     this.stackUtils = stackUtils

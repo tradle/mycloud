@@ -5,10 +5,8 @@ import { protocol } from '@tradle/engine'
 import buildResource from '@tradle/build-resource'
 import { ECKey, sha256, randomString } from './crypto'
 import { cachifyFunction, post, omitVirtual } from './utils'
-import Logger from './logger'
-import Provider from './provider'
 import Errors from './errors'
-import { IIdentity, IKeyValueStore } from './types'
+import { IIdentity, IKeyValueStore, Logger } from './types'
 
 export type Subscriber = {
   seq: number

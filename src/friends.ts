@@ -12,11 +12,10 @@ import {
   Tradle,
   Logger,
   ILoadFriendOpts,
-  Provider,
+  Storage,
   DB,
   Model,
   Models,
-  Objects
 } from './types'
 
 import models from './models'
@@ -34,11 +33,9 @@ const TEN_MINUTES = 10 * 60 * 60000
 const createCache = () => new Cache({ max: 100, maxAge: TEN_MINUTES })
 
 type FriendsOpts = {
-  provider: Provider
+  storage: Storage
   identity: Identity
   identities: Identities
-  objects: Objects
-  db: DB
   logger: Logger
 }
 
@@ -46,17 +43,18 @@ export default class Friends {
   public cache: any
   public logger: Logger
   // lazy
-  private get db() { return this.components.db }
   private get identities() { return this.components.identities }
   private get identity() { return this.components.identity }
-  private get provider() { return this.components.provider }
-  private get objects() { return this.components.objects }
+  private storage: Storage
+  private db: DB
   private components: FriendsOpts
   private _clearCacheForPermalink: (permalink: string) => void
   constructor(components: FriendsOpts) {
     this.components = components
 
-    const { logger } = components
+    const { logger, storage } = components
+    this.storage = storage
+    this.db = storage.db
     this.cache = createCache()
     this.logger = logger
 
@@ -126,7 +124,7 @@ export default class Friends {
       return _.isEqual(object[prop], existing[prop])
     })
 
-    if (org) await this.provider.saveObject({ object: org })
+    if (org) await this.storage.save({ object: org })
 
     if (isSame) {
       // this.cache.set(identity._permalink, existing)
@@ -144,7 +142,7 @@ export default class Friends {
     const signed = await this.identity.sign({ object })
     await Promise.all([
       promiseAddContact,
-      this.provider.saveObject({ object: signed })
+      this.storage.save({ object: signed })
     ])
 
     // await this.db.update(signed, {
@@ -161,7 +159,7 @@ export default class Friends {
     // await this.objects.put(signed)
 
     // debug(`sending self introduction to friend "${name}"`)
-    // await this.provider.sendMessage({
+    // await this.messaging.sendMessage({
     //   recipient: permalink,
     //   object: buildResource({
     //       models,
