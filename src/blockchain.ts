@@ -248,7 +248,7 @@ export default class Blockchain {
   public stop = () => this.startOrStop('stop')
 
   // lazy access this.tradle.provider, to prevent circular dep
-  public getMyChainPub = () => this.tradle.provider.getMyChainKeyPub()
+  public getMyChainPub = () => this.tradle.identity.getChainKeyPub()
   public getMyChainAddress = ():Promise<string> => this.getMyChainPub()
     .then(({ fingerprint }) => fingerprint)
 

@@ -39,7 +39,7 @@ export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts)
     orgConf
   })
 
-  const getBotPermalink = bot.getMyIdentityPermalink()
+  const getBotPermalink = bot.getPermalink()
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return
 

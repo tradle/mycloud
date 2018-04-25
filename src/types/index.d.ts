@@ -9,6 +9,7 @@ import { Bot } from '../bot'
 import { Tradle } from '../tradle'
 import { Env } from '../env'
 import { Identities } from '../identities'
+import { Identity } from '../identity'
 import { Messages } from '../messages'
 import { Provider } from '../provider'
 import { Objects } from '../objects'
@@ -48,6 +49,7 @@ import {
 export type Constructor<T = {}> = new (...args: any[]) => T
 
 export * from '../retryable-task'
+export { ECKey } from '../crypto'
 
 export {
   // re-export from @tradle/validate-resource
@@ -66,6 +68,7 @@ export {
   Tradle,
   Env,
   Identities,
+  Identity,
   Messages,
   Provider,
   Objects,

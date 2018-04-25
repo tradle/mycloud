@@ -27,7 +27,7 @@ test('resource wrapper', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
   const bot = createBot({ tradle })
-  sandbox.stub(bot, 'sign').callsFake(async (object) => tradle.provider.signObject({
+  sandbox.stub(bot, 'sign').callsFake(async (object) => tradle.identity.sign({
     object,
     author: alice
   }))
@@ -117,7 +117,7 @@ test('resource cache', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
   const bot = createBot({ tradle })
-  sandbox.stub(bot, 'sign').callsFake(async (object) => tradle.provider.signObject({
+  sandbox.stub(bot, 'sign').callsFake(async (object) => tradle.identity.sign({
     object,
     author: alice
   }))

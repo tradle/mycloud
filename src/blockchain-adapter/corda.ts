@@ -3,7 +3,7 @@
 //   create = async ({ link }) => {
 //     const [{ _author }, myPermalink] = await Promise.all([
 //       this.objects.get(link),
-//       this.provider.getMyIdentityPermalink()
+//       this.provider.getPermalink()
 //     ])
 
 //     if (_author == myPermalink)

@@ -8,6 +8,7 @@ import { addLinks } from './crypto'
 import { get, cachifyFunction, parseStub } from './utils'
 import {
   Identities,
+  Identity,
   Tradle,
   Logger,
   ILoadFriendOpts,
@@ -18,7 +19,9 @@ import {
   Objects
 } from './types'
 
+import models from './models'
 import Errors from './errors'
+
 const definitions = require('./definitions')
 const tableDef = definitions.FriendsTable
 // const timeIsString = tableDef.Properties.AttributeDefinitions.find(({ AttributeName }) => {
@@ -26,14 +29,15 @@ const tableDef = definitions.FriendsTable
 // }).AttributeType === 'S'
 
 const FRIEND_TYPE = "tradle.MyCloudFriend"
+const model = models[FRIEND_TYPE]
 const TEN_MINUTES = 10 * 60 * 60000
 const createCache = () => new Cache({ max: 100, maxAge: TEN_MINUTES })
 
 type FriendsOpts = {
   provider: Provider
+  identity: Identity
   identities: Identities
   objects: Objects
-  models: Models
   db: DB
   logger: Logger
 }
@@ -41,11 +45,10 @@ type FriendsOpts = {
 export default class Friends {
   public cache: any
   public logger: Logger
-  private models: Models
-  private model: Model
   // lazy
   private get db() { return this.components.db }
   private get identities() { return this.components.identities }
+  private get identity() { return this.components.identity }
   private get provider() { return this.components.provider }
   private get objects() { return this.components.objects }
   private components: FriendsOpts
@@ -53,9 +56,7 @@ export default class Friends {
   constructor(components: FriendsOpts) {
     this.components = components
 
-    const { models, logger } = components
-    this.models = models
-    this.model = models[FRIEND_TYPE]
+    const { logger } = components
     this.cache = createCache()
     this.logger = logger
 
@@ -97,11 +98,10 @@ export default class Friends {
     org: any
     identity: any
   }): Promise<any> => {
-    const { models, model } = this
     const { name, domain, identity, org } = props
     addLinks(identity)
 
-    const myIdentity = await this.identities.getMyPublicIdentity()
+    const myIdentity = await this.identity.getPublic()
     if (myIdentity._permalink === identity._permalink ||
       myIdentity._link === identity._link) {
       throw new Error('refusing to add self as friend')
@@ -141,7 +141,7 @@ export default class Friends {
     }
 
     const promiseAddContact = this.identities.addContact(identity)
-    const signed = await this.provider.signObject({ object })
+    const signed = await this.identity.sign({ object })
     await Promise.all([
       promiseAddContact,
       this.provider.saveObject({ object: signed })

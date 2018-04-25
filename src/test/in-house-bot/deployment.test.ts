@@ -62,7 +62,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const childIdentity = await child.getMyIdentity()
   const kv = {}
-  sandbox.stub(parent, 'getMyIdentityPermalink').resolves('abc')
+  sandbox.stub(parent, 'getPermalink').resolves('abc')
   const sendStub = sandbox.stub(parent, 'send').resolves({})
 
   sandbox.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {

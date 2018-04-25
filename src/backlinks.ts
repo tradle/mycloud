@@ -27,7 +27,8 @@ import {
   ISaveEventPayload,
   Logger,
   Provider,
-  IBacklinkItem
+  IBacklinkItem,
+  Identity
 } from './types'
 
 import { getRecordsFromEvent } from './db-utils'
@@ -74,6 +75,7 @@ type BacklinksOpts = {
   db: DB
   modelStore: ModelStore
   logger: Logger
+  identity: Identity
 }
 
 export default class Backlinks {
@@ -81,6 +83,7 @@ export default class Backlinks {
   private modelStore: ModelStore
   private logger: Logger
   private provider: Provider
+  private identity: Identity
   constructor ({ provider, db, modelStore, logger }: BacklinksOpts) {
     this.provider = provider
     this.db = db
@@ -167,7 +170,7 @@ export default class Backlinks {
     if (!applicationSubmissions.length) return []
 
     return await Promise.all(applicationSubmissions.map(async (object) => {
-      object = await this.provider.signObject({ object })
+      object = await this.identity.sign({ object })
       return await this.provider.saveObject({ object })
     }))
   }

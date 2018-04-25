@@ -4,7 +4,7 @@ import { utils, protocol } from '@tradle/engine'
 import { DB } from '@tradle/dynamodb'
 import Embed from '@tradle/embed'
 import buildResource from '@tradle/build-resource'
-import { ECKey, sign, getSigningKey, getChainKey, getPermalink, addLinks } from './crypto'
+import { getChainKey, getPermalink, addLinks, getSigningKey } from './crypto'
 import {
   cachifyPromiser,
   setVirtual,
@@ -13,7 +13,6 @@ import {
   hasVirtualDeep,
   omitVirtualDeep,
   typeforce,
-  summarizeObject,
   series,
   ensureTimestamped,
   ensureNoVirtualProps,
@@ -59,6 +58,7 @@ import {
   Seals,
   ModelStore,
   Delivery,
+  Identity,
 } from './types'
 
 const {
@@ -80,6 +80,7 @@ type ProviderOpts = {
   logger: Logger
   objects: Objects
   identities: Identities
+  identity: Identity
   messages: Messages
   auth: Auth
   db: DB
@@ -96,6 +97,7 @@ export default class Provider {
   private get objects() { return this.components.objects }
   private get messages() { return this.components.messages }
   private get identities() { return this.components.identities }
+  private get identity() { return this.components.identity }
   private get auth() { return this.components.auth }
   private get db() { return this.components.db }
   private get delivery() { return this.components.delivery }
@@ -115,74 +117,6 @@ export default class Provider {
     this.network = network
   }
 
-  // TODO: how to invalidate cache on identity updates?
-  // maybe ETag on bucket item? But then we still need to request every time..
-  public getMyKeys = async ():Promise<any> => {
-    const { keys } = await this.identities.getMyIdentityAndKeys()
-    return keys
-  }
-
-  public getMyChainKey = async ():Promise<IECMiniPubKey> => {
-    const { network } = this
-    if (network.flavor === 'corda') return
-
-    const keys = await this.getMyKeys()
-    const chainKey = getChainKey(keys, {
-      type: network.flavor,
-      networkName: network.networkName
-    })
-
-    if (!chainKey) {
-      throw new Error(`blockchain key not found for network: ${network}`)
-    }
-
-    return chainKey
-  }
-
-  public getMyChainKeyPub = async ():Promise<IPubKey> => {
-    const { network } = this
-    const identity = await this.identities.getMyPublicIdentity()
-    const key = identity.pubkeys.find(pub => {
-      return pub.type === network.flavor &&
-        pub.networkName === network.networkName &&
-        pub.purpose === 'messaging'
-    })
-
-    if (!key) {
-      throw new Error(`no key found for blockchain network ${network.toString()}`)
-    }
-
-    return key
-  }
-
-  public getMySigningKey = async ():Promise<ECKey> => {
-    const { keys } = await this.identities.getMyIdentityAndKeys()
-    return getSigningKey(keys)
-  }
-
-  public signObject = async ({ object, author }: {
-    object: any
-    author?: any
-  }):Promise<ITradleObject> => {
-    const resolveEmbeds = this.objects.resolveEmbeds(object)
-    if (!author) author = await this.identities.getMyIdentityAndKeys()
-
-    await resolveEmbeds
-    const key = getSigningKey(author.keys)
-    const signed = await sign({
-      key,
-      object: omitVirtualDeep({
-        models: this.modelStore.models,
-        resource: object
-      })
-    })
-
-    this.objects.addMetadata(signed)
-    this.logger.debug(`signed`, summarizeObject(signed))
-    setVirtual(signed, { _author: getPermalink(author.identity) })
-    return signed
-  }
-
   public getOrCreatePayload = async ({ link, object, author }):Promise<PayloadWrapper> => {
     const ret = {
       new: object && !object[SIG],
@@ -192,7 +126,7 @@ export default class Provider {
 
     if (object) {
       if (ret.new) {
-        object = await this.signObject({ author, object })
+        object = await this.identity.sign({ author, object })
         ret.asSigned = object
       }
 
@@ -362,7 +296,7 @@ export default class Provider {
 
   // const ensureMessageIsForMe = co(function* ({ message }) {
   //   const toPubKey = message.recipientPubKey.pub.toString('hex')
-  //   const recipient = await getMyPublicIdentity()
+  //   const recipient = await getPublic()
   //   const myPubKey = recipient.object.pubkeys.find(pubKey => {
   //     return pubKey.pub === toPubKey
   //   })
@@ -484,7 +418,7 @@ export default class Provider {
   }
 
   public sendPushNotification = async (recipient:string):Promise<void> => {
-    const { identity, keys } = await this.identities.getMyIdentityAndKeys()
+    const { identity, keys } = await this.identity.getPrivate()
     await this.pushNotifications.push({
       key: getSigningKey(keys),
       identity,
@@ -493,7 +427,7 @@ export default class Provider {
   }
 
   public registerWithPushNotificationsServer = async ():Promise<void> => {
-    const { identity, keys } = await this.identities.getMyIdentityAndKeys()
+    const { identity, keys } = await this.identity.getPrivate()
     await this.pushNotifications.ensureRegistered({
       key: getSigningKey(keys),
       identity
@@ -513,7 +447,7 @@ export default class Provider {
     }
 
     if (!opts.author) {
-      opts.author = await this.identities.getMyIdentityAndKeys()
+      opts.author = await this.identity.getPrivate()
     }
 
     const { author, recipient, link, object, other={} } = opts
@@ -550,7 +484,7 @@ export default class Provider {
 
       seq = unsignedMessage[SEQ]
       this.logger.debug(`signing message ${seq} to ${recipient}`)
-      signedMessage = await this.signObject({ author, object: unsignedMessage })
+      signedMessage = await this.identity.sign({ author, object: unsignedMessage })
       setVirtual(signedMessage, {
         _author: getPermalink(author.identity),
         _recipient: getPermalink(recipientObj)
@@ -628,7 +562,7 @@ export default class Provider {
   }
 
   private isAuthoredByMe = async (object:ITradleObject) => {
-    const promiseMyPermalink = this.identities.getMyIdentityPermalink()
+    const promiseMyPermalink = this.identity.getPermalink()
     let { _author } = object
     if (!_author) {
       ({ _author } = await this.identities.getAuthorInfo(object))

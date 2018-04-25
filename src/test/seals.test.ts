@@ -118,13 +118,13 @@ test('queue seal', loudAsync(async (t) => {
   // await recreateTable(BucketTableLogicalId)
 
   const tradle = new Tradle({ env })
-  const { db, provider } = tradle
+  const { db, identity } = tradle
 
   await wipeDB(db)
 
   const { flavor, networkName } = blockchainOpts
   // const table = await recreateTable(SealsTableLogicalId)
-  const sealedObj:any = await provider.signObject({
+  const sealedObj:any = await identity.sign({
     object: {
       [TYPE]: 'tradle.SimpleMessage',
       message: 'hey ho'
@@ -249,7 +249,7 @@ test('corda seals', loudAsync(async (t) => {
     networkName: 'private'
   }
 
-  const { seals, objects, db, provider } = new Tradle({ env })
+  const { seals, objects, db, identity } = new Tradle({ env })
 
   await wipeDB(db)
 
@@ -275,7 +275,7 @@ test('corda seals', loudAsync(async (t) => {
     })
 
 
-  const obj = await provider.signObject({
+  const obj = await identity.sign({
     object: {
       [TYPE]: 'tradle.SimpleMessage',
       message: 'some message',

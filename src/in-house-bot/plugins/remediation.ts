@@ -75,7 +75,7 @@ export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) =
 //   plugin.onFormsCollected = async ({ req, user, application }) => {
 //     if (!application.draft) return
 
-//     const provider = await bot.getMyIdentityPermalink()
+//     const provider = await bot.getPermalink()
 //     const { claimId } = await remediation.createClaimForApplication({
 //       application,
 //       claimType: 'prefill'

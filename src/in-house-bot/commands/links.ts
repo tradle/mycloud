@@ -12,7 +12,7 @@ export const command:ICommand = {
   ],
   exec: async ({ commander, req, args }) => {
     const { bot } = commander
-    const permalink = await bot.getMyIdentityPermalink()
+    const permalink = await bot.getPermalink()
     return getAppLinks({ bot, permalink })
   },
   sendResult: async ({ commander, req, args, result }) => {

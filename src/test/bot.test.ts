@@ -275,10 +275,10 @@ test(`seal events stream`, loudAsync(async (t) => {
   let wrote
   let watch
   const tradle = createTestTradle()
-  const { seals, provider } = tradle
+  const { seals, identity } = tradle
   const sandbox = sinon.createSandbox()
 
-  sandbox.stub(provider, 'getMyKeys').resolves(aliceKeys)
+  sandbox.stub(identity, 'getKeys').resolves(aliceKeys)
 
   const bot = createBot({ tradle })
 

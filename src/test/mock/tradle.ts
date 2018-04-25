@@ -70,7 +70,7 @@ export = function fakeTradle ({ env, conf, kv, objects, identities, messages, se
 
         await send(args)
       },
-      getMyChainKey: promiseNoop
+      getChainKey: promiseNoop
     }
   }
 }

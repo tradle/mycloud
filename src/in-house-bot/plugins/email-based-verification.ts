@@ -205,7 +205,7 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
     if (value[TYPE] !== EMAIL_CHECK) return
     if (value.status) return
 
-    const botPermalink = await bot.getMyIdentityPermalink()
+    const botPermalink = await bot.getPermalink()
     if (value._author !== botPermalink) return
 
     await emailBasedVerifier.confirmAndExec({

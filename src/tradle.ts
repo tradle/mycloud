@@ -5,6 +5,7 @@ import { Seals } from './seals'
 import { Blockchain } from './blockchain'
 import { TaskManager } from './task-manager'
 import { Identities } from './identities'
+import { Identity } from './identity'
 import { Objects } from './objects'
 import { S3Utils } from './s3-utils'
 import { Messages } from './messages'
@@ -65,6 +66,7 @@ export default class Tradle {
   public objects: Objects
   public events: Events
   public identities: Identities
+  public identity: Identity
   public messages: Messages
   public db: DB
   public contentAddressedStore:ContentAddressedStore
@@ -162,31 +164,6 @@ export default class Tradle {
       s3Utils
     })
 
-    const provider = this.provider = new Provider({
-      network: this.network,
-      logger: logger.sub('provider'),
-      get env () { return tradle.env },
-      get objects () { return tradle.objects },
-      get identities () { return tradle.identities },
-      get messages () { return tradle.messages },
-      get modelStore () { return tradle.modelStore },
-      get seals () { return tradle.seals },
-      get db () { return tradle.db },
-      get friends() { return tradle.friends },
-      get delivery() { return tradle.delivery },
-      get pushNotifications() { return tradle.pushNotifications },
-      get auth() { return tradle.auth },
-    })
-
-    const friends = this.friends = new Friends({
-      get objects() { return tradle.objects },
-      get db() { return tradle.db },
-      get identities() { return tradle.identities },
-      get provider() { return tradle.provider },
-      logger: this.logger.sub('friends'),
-      models: baseModels,
-    })
-
     const modelStore = this.modelStore = createModelStore({
       models: baseModels,
       logger: logger.sub('model-store'),
@@ -206,11 +183,19 @@ export default class Tradle {
       s3Utils: this.s3Utils
     })
 
-    const identities = this.identities = new Identities({
-      logger: this.logger.sub('identities'),
-      // circular ref
+    const identity = this.identity = new Identity({
+      logger: this.logger.sub('identity'),
+      modelStore,
+      network: this.network,
+      objects,
       getIdentityAndKeys: () => this.secrets.getJSON(constants.IDENTITY_KEYS_KEY),
       getIdentity: () => this.buckets.PrivateConf.getJSON(constants.PRIVATE_CONF_BUCKET.identity),
+    })
+
+    const identities = this.identities = new Identities({
+      logger: this.logger.sub('identities'),
+      modelStore,
+      // circular ref
       get db() { return tradle.db },
       get objects() { return tradle.objects },
     })
@@ -221,6 +206,32 @@ export default class Tradle {
       get objects () { return tradle.objects },
       get dbUtils () { return tradle.dbUtils },
       get messages () { return tradle.messages }
+    })
+
+    const provider = this.provider = new Provider({
+      network: this.network,
+      logger: logger.sub('provider'),
+      identity,
+      get env () { return tradle.env },
+      get objects () { return tradle.objects },
+      get identities () { return tradle.identities },
+      get messages () { return tradle.messages },
+      get modelStore () { return tradle.modelStore },
+      get seals () { return tradle.seals },
+      get db () { return tradle.db },
+      get friends() { return tradle.friends },
+      get delivery() { return tradle.delivery },
+      get pushNotifications() { return tradle.pushNotifications },
+      get auth() { return tradle.auth },
+    })
+
+    const friends = this.friends = new Friends({
+      get objects() { return tradle.objects },
+      get db() { return tradle.db },
+      get identities() { return tradle.identities },
+      get provider() { return tradle.provider },
+      identity,
+      logger: this.logger.sub('friends'),
     })
 
     const contentAddressedStore = this.contentAddressedStore = new ContentAddressedStore({
@@ -322,10 +333,11 @@ export default class Tradle {
 
     this.define('appLinks', './app-links', ({ createLinker }) => createLinker())
     this.define('backlinks', './backlinks', Backlinks => new Backlinks({
-      db: this.db,
-      modelStore: this.modelStore,
-      logger: this.logger.sub('backlinks'),
-      provider: this.provider
+      db,
+      modelStore,
+      logger: logger.sub('backlinks'),
+      provider,
+      identity
     }))
   }
 
@@ -372,8 +384,8 @@ export default class Tradle {
 
   public warmUpCaches = async () => {
     await Promise.all([
-      this.identities.getMyIdentityPermalink(),
-      this.identities.getMyPublicIdentity()
+      this.identity.getPermalink(),
+      this.identity.getPublic()
     ])
   }
 

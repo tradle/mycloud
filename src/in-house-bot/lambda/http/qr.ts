@@ -8,7 +8,7 @@ import { IDeepLink, IApplyForProductDeepLink, IImportDataDeepLink } from '../../
 
 const createDataURL = promisify(QR.toDataURL)
 const bot = createBot({ ready: false })
-const getPermalink = bot.getMyIdentityPermalink()
+const getPermalink = bot.getPermalink()
 getPermalink.then(() => bot.ready())
 
 const lambda = bot.createLambda({ source: EventSource.HTTP })

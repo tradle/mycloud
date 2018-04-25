@@ -9,7 +9,7 @@ import { loudAsync, co, wait } from '../utils'
 import { createTestTradle } from '../'
 
 const fakeResource = require('@tradle/build-resource/fake')
-const { provider, friends } = createTestTradle()
+const { identity, friends } = createTestTradle()
 const alice = require('./fixtures/alice/object')
 const bob = require('./fixtures/bob/object')
 
@@ -20,7 +20,7 @@ test('friends', loudAsync(async (t) => {
     url: `http://${domain}`,
     domain,
     identity: alice.object,
-    org: await provider.signObject({
+    org: await identity.sign({
       object: {
         [TYPE]: 'tradle.Organization',
         name: 'alice-org'

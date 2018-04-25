@@ -5,13 +5,9 @@ import {
   ConditionExpression,
   UpdateExpression
 } from '@aws/dynamodb-expressions'
-import { DB } from '@tradle/dynamodb'
 import { utils, protocol } from '@tradle/engine'
 import buildResource from '@tradle/build-resource'
 import { TYPE } from '@tradle/constants'
-import Blockchain from './blockchain'
-import Provider from './provider'
-import Env from './env'
 import {
   // timestamp,
   typeforce,
@@ -26,11 +22,17 @@ import { prettify } from './string-utils'
 import * as dbUtils from './db-utils'
 import * as types from './typeforce-types'
 import Errors from './errors'
-import Logger from './logger'
-import Tradle from './tradle'
-import Objects from './objects'
 import models from './models'
-import { IECMiniPubKey, ITradleObject, ResourceStub, ModelStore } from './types'
+import {
+  IECMiniPubKey,
+  ITradleObject,
+  ResourceStub,
+  Identity,
+  Logger,
+  Blockchain,
+  Objects,
+  DB,
+} from './types'
 
 const SealModel = models['tradle.Seal']
 const SealStateModel = models['tradle.SealState']
@@ -142,47 +144,42 @@ interface IErrorRecord {
   stack: string
 }
 
+type SealsOpts = {
+  blockchain: Blockchain
+  identity: Identity
+  db: DB
+  objects: Objects
+  logger: Logger
+}
+
 export default class Seals {
   public syncUnconfirmed: (opts?: ILimitOpts) => Promise<Seal[]>
   public sealPending: (opts?:any) => Promise<Seal[]>
   public table: any
   public blockchain: Blockchain
-  private provider: Provider
+  private identity: Identity
   private objects: Objects
   private network: any
   private db: DB
-  private model: any
-  private env:Env
   private logger:Logger
-  private modelStore: ModelStore
   constructor ({
-    modelStore,
-    provider,
     blockchain,
-    network,
-    tables,
+    identity,
     db,
     objects,
-    env
-  }:Tradle) {
+    logger
+  }:SealsOpts) {
     typeforce(types.blockchain, blockchain)
     bindAll(this)
 
-    this.modelStore = modelStore
-    this.provider = provider
+    this.identity = identity
+    this.network = identity.network
     this.blockchain = blockchain
-    // this.table = tables.Seals
-    this.network = network
     this.objects = objects
     this.db = db
-    this.env = env
-    this.logger = env.sublogger('seals')
+    this.logger = logger
     this.sealPending = blockchain.wrapOperation(this._sealPending)
     this.syncUnconfirmed = blockchain.wrapOperation(this._syncUnconfirmed)
-  }
-
-  public get models() {
-    return this.modelStore.models
   }
 
   public watch = (opts:WatchOpts) => {
@@ -262,12 +259,12 @@ export default class Seals {
 
     const {
       blockchain,
-      provider
+      identity
     } = this
 
     let { limit=Infinity, key } = opts
     if (!key) {
-      key = await provider.getMyChainKey()
+      key = await identity.getChainKeyPriv()
     }
 
     const pending = await this.getUnsealed({ limit })
@@ -308,7 +305,7 @@ export default class Seals {
     balance?: number
   }):Promise<Seal> => {
     if (!key) {
-      key = await this.provider.getMyChainKey()
+      key = await this.identity.getChainKeyPriv()
     }
 
     const { link, address, counterparty } = seal
@@ -331,7 +328,7 @@ export default class Seals {
     if (!opts.key && opts.write) {
       opts = {
         ...opts,
-        key: await this.provider.getMyChainKey()
+        key: await this.identity.getChainKeyPriv()
       }
     }
 
@@ -723,7 +720,7 @@ export default class Seals {
       ({ link, permalink, prevlink } = getLinks(object))
     }
 
-    const { blockchain, network, models } = this
+    const { blockchain, network } = this
     // the next version's previous is the current version
     // the tx for next version will have a predictable seal based on the current version's link
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
@@ -764,7 +761,6 @@ export default class Seals {
 
     if (object) {
       params.forResource = buildResource.stub({
-        models,
         resource: object
       })
     }

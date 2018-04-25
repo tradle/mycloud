@@ -209,7 +209,7 @@ export class Remediation {
     }
 
     const claimId = stubToId({ claimType, key, nonce })
-    const provider = await this.bot.getMyIdentityPermalink()
+    const provider = await this.bot.getPermalink()
     const qrData = QR.toHex({
       schema: 'ImportData',
       data: {

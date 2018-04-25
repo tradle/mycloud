@@ -156,7 +156,6 @@ export = function createDB ({
     chooseTable
   })
 
-
   const fixMessageFilter = async ({ args }) => {
     const { filter } = args[0]
     if (!(filter && filter.EQ)) return

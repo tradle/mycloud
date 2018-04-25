@@ -11,10 +11,12 @@ import {
   bindAll,
   cachifyFunction,
   cachifyPromiser,
+  omitVirtualDeep,
+  summarizeObject,
   RESOLVED_PROMISE
 } from './utils'
 
-import { addLinks, getLink, getPermalink, extractSigPubKey } from './crypto'
+import { addLinks, getLink, getPermalink, extractSigPubKey, getSigningKey, sign } from './crypto'
 import * as types from './typeforce-types'
 import {
   IIdentity,
@@ -24,7 +26,8 @@ import {
   Logger,
   Objects,
   DB,
-  Bucket
+  Bucket,
+  ModelStore
 } from './types'
 
 const { PREVLINK, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
@@ -46,9 +49,8 @@ type PubKeyMapping = {
 type IdentitiesOpts = {
   db: DB,
   objects: Objects
+  modelStore: ModelStore
   logger: Logger
-  getIdentity():Promise<IIdentity>
-  getIdentityAndKeys():Promise<IIdentityAndKeys>
 }
 
 // this.secrets.getJSON(IDENTITY_KEYS_KEY)
@@ -56,11 +58,10 @@ type IdentitiesOpts = {
 export default class Identities {
   public logger: Logger
   public cache: any
-  public getMyPublicIdentity: () => Promise<IIdentity>
-  public getMyIdentityAndKeys: () => Promise<IIdentityAndKeys>
 
   private pubKeys: any
   private env: Env
+  private get modelStore() { return this.components.modelStore }
   private get db() { return this.components.db }
   private get objects() { return this.components.objects }
   private components: IdentitiesOpts
@@ -70,13 +71,11 @@ export default class Identities {
 
     this.components = components
 
-    const { logger, getIdentity, getIdentityAndKeys } = components
+    const { logger } = components
     this.logger = logger.sub('identities')
     this.cache = new Cache({ maxAge: CACHE_MAX_AGE })
     this.metaByPub = cachifyFunction(this, 'metaByPub').call
     this.byPermalink = cachifyFunction(this, 'byPermalink').call
-    this.getMyPublicIdentity = cachifyPromiser(getIdentity)
-    this.getMyIdentityAndKeys = cachifyPromiser(getIdentityAndKeys)
   }
 
   public metaByPub = async (pub:string) => {
@@ -153,6 +152,7 @@ export default class Identities {
       throw new NotFound('identity with permalink: ' + permalink)
     }
   }
+
 
 // function getIdentityByFingerprint ({ fingerprint }) {
 //   const params = {
@@ -311,10 +311,6 @@ export default class Identities {
     if (!result.exists) {
       await this.addContactWithoutValidating(result.identity)
     }
-  }
-
-  public getMyIdentityPermalink = async ():Promise<string> => {
-    return (await this.getMyPublicIdentity())._permalink
   }
 }
 
