@@ -7,7 +7,12 @@ import {
   Messages,
   Env,
   Logger,
-  Tradle,
+  Friends,
+  Objects,
+  Iot,
+  Auth,
+  DB,
+  ModelStore,
   IDelivery,
   IDeliveryRequest,
   IDeliveryResult,
@@ -38,37 +43,44 @@ function withTransport (method: string) {
   }
 }
 
+type DeliveryOpts = {
+  messages: Messages
+  objects: Objects
+  friends: Friends
+  auth: Auth
+  modelStore: ModelStore
+  db: DB
+  iot: Iot
+  env: Env
+  logger: Logger
+}
+
 export default class Delivery extends EventEmitter implements IDelivery {
   public ack = withTransport('ack')
   public reject = withTransport('reject')
   public mqtt: any
   public http: DeliveryHTTP
-  private friends: any
-  private messages: Messages
-  private objects: any
-  private env: Env
+  private get friends () { return this.components.friends }
+  private get messages () { return this.components.messages }
+  private get objects () { return this.components.objects }
+  private get env () { return this.components.env }
+  private components: DeliveryOpts
   private logger: Logger
-  private tradle: Tradle
   private _deliverBatch = withTransport('deliverBatch')
 
-  constructor (tradle:Tradle) {
+  constructor (components: DeliveryOpts) {
     super()
 
-    const { friends, messages, objects, env } = tradle
-    this.tradle = tradle
-    this.messages = messages
-    this.objects = objects
-    this.friends = friends
-    this.http = new DeliveryHTTP(tradle)
-    this.mqtt = new DeliveryIot(tradle)
-    this.env = env
-    this.logger = this.env.sublogger('delivery')
+    this.components = components
+    this.http = new DeliveryHTTP(components)
+    this.mqtt = new DeliveryIot(components)
+    this.logger = components.logger
   }
 
   public deliverBatch = async (opts:ILiveDeliveryOpts) => {
     const messages = opts.messages.map(message => {
       message = validateResource.utils.omitVirtualDeep({
-        models: this.tradle.modelStore.models,
+        models: this.components.modelStore.models,
         resource: message
       })
 

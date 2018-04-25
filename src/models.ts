@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import { Models } from './types'
 
 const core = require('@tradle/models').models
 
@@ -206,4 +207,4 @@ const models = _.extend(
   require('@tradle/models-cloud')
 )
 
-export = models
+export = models as Models

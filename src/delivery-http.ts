@@ -22,7 +22,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
   }) {
     super()
     this.env = env
-    this.logger = logger.sub('delivery-http')
+    this.logger = logger
     this.db = db
   }
 

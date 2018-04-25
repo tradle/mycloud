@@ -1,5 +1,7 @@
 
-export = function getTables ({ serviceMap, dbUtils }) {
+import { Tables } from './types'
+
+export const getTables = ({ serviceMap, dbUtils }) => {
   const { getTable } = dbUtils
 
   function loadTable (name) {
@@ -8,7 +10,7 @@ export = function getTables ({ serviceMap, dbUtils }) {
     }
   }
 
-  const tables = {}
+  const tables = <Tables>{}
   Object.keys(serviceMap.Table).forEach(loadTable)
   return tables
 }

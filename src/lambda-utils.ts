@@ -40,10 +40,10 @@ export default class LambdaUtils {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
 
-  constructor ({ env, aws }) {
+  constructor ({ env, aws, logger }) {
     this.env = env
     this.aws = aws
-    this.logger = env.sublogger('lambda-utils')
+    this.logger = logger
   }
 
   public invoke = async (opts: {

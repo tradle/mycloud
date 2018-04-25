@@ -16,7 +16,9 @@ import {
   Buckets,
   Friends,
   Logger,
-  ModelsPack
+  ModelsPack,
+  Models,
+  Identities
 } from './types'
 
 import {
@@ -55,6 +57,14 @@ type Lenses = {
   [id: string]: any
 }
 
+type ModelStoreOpts = {
+  friends: Friends
+  identities: Identities
+  logger: Logger
+  models: Models
+  bucket: Bucket
+}
+
 export class ModelStore extends EventEmitter {
   public cumulativePackKey: string
   public cumulativeGraphqlSchemaKey: string
@@ -72,12 +82,16 @@ export class ModelStore extends EventEmitter {
   private myCustomModels: any
   private baseModels: any
   private baseModelsIds: string[]
-  constructor (tradle:Tradle) {
+  private components: ModelStoreOpts
+  private get friends() { return this.components.friends }
+  private get identities() { return this.components.identities }
+  constructor (components:ModelStoreOpts) {
     super()
 
-    this.tradle = tradle
-    this.logger = tradle.logger.sub('modelstore')
-    this.baseModels = tradle.models
+    const { models, logger, bucket } = components
+    this.components = components
+    this.logger = logger.sub('modelstore')
+    this.baseModels = models
     this.baseModelsIds = Object.keys(this.baseModels)
     this.myCustomModels = {}
     this.lenses = {}
@@ -87,7 +101,7 @@ export class ModelStore extends EventEmitter {
     })
 
     this.cache.on('update', () => this.emit('update'))
-    this.bucket = this.tradle.buckets.PrivateConf
+    this.bucket = bucket
     this.cumulativePackKey = PRIVATE_CONF_BUCKET.modelsPack
     this.cumulativeGraphqlSchemaKey = PRIVATE_CONF_BUCKET.graphqlSchema
     this.cumulativePackItem = new CacheableBucketItem({
@@ -310,9 +324,9 @@ export class ModelStore extends EventEmitter {
     }
 
     const domain = getDomain(pack)
-    const friend = await this.tradle.friends.getByDomain(domain)
+    const friend = await this.friends.getByDomain(domain)
     if (!pack._author) {
-      await this.tradle.identities.addAuthorInfo(pack)
+      await this.identities.addAuthorInfo(pack)
     }
 
     if (friend._identityPermalink !== pack._author) {
@@ -402,7 +416,7 @@ export const getModelsPackConfKey = domainOrPack => {
   throw new Error('expected domain or ModelsPack')
 }
 
-export const createModelStore = (tradle:Tradle) => new ModelStore(tradle)
+export const createModelStore = (components:ModelStoreOpts) => new ModelStore(components)
 export const toggleDomainVsNamespace = str => str.split('.').reverse().join('.')
 export const validateUpdate = (current, updated) => {
   const lost = _.difference(current, Object.keys(updated))

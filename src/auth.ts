@@ -9,7 +9,6 @@ import * as types from './typeforce-types'
 import * as constants from './constants'
 import {
   Tradle,
-  Env,
   AwsApis,
   Logger,
   Identities,
@@ -22,7 +21,6 @@ import {
   IAuthResponse,
   IIdentity,
   ITradleObject,
-  IServiceMap,
   Iot,
   DB,
   ModelStore
@@ -63,10 +61,23 @@ interface IChallengeResponse extends ITradleObject {
 //   })
 // })
 
+type AuthOpts = {
+  accountId: string
+  uploadFolder: string
+  aws: any
+  // tables: any
+  identities: Identities
+  objects: Objects
+  messages: Messages
+  db: DB
+  iot: Iot
+  logger: Logger
+  tasks: TaskManager
+  modelStore: ModelStore
+}
+
 export default class Auth {
-  private env: Env
   private aws: AwsApis
-  private serviceMap: IServiceMap
   // private tables: any
   private identities: Identities
   private objects: Objects
@@ -76,25 +87,12 @@ export default class Auth {
   private logger: Logger
   private tasks: TaskManager
   private modelStore: ModelStore
+  private accountId: string
+  private uploadFolder: string
 
-  constructor (opts: {
-    env: Env,
-    aws: any,
-    serviceMap: IServiceMap,
-    // tables: any,
-    identities: Identities,
-    objects: Objects,
-    messages: Messages,
-    db: DB,
-    iot: Iot,
-    logger: Logger,
-    tasks: TaskManager,
-    modelStore: ModelStore
-  }) {
+  constructor (opts: AuthOpts) {
     // lazy define
-    this.env = opts.env
     this.aws = opts.aws
-    this.serviceMap = opts.serviceMap
     // this.tables = opts.tables
     this.identities = opts.identities
     this.objects = opts.objects
@@ -104,10 +102,8 @@ export default class Auth {
     this.logger = opts.logger.sub('auth')
     this.tasks = opts.tasks
     this.modelStore = opts.modelStore
-  }
-
-  get accountId () {
-    return this.env.accountId
+    this.accountId = opts.accountId
+    this.uploadFolder = opts.uploadFolder
   }
 
   public putSession = async (session:ISession): Promise<ISession> => {
@@ -362,7 +358,7 @@ export default class Auth {
   public getUploadPrefix = (AssumedRoleUser: {
     AssumedRoleId: string
   }):string => {
-    return `${this.serviceMap.Bucket.FileUpload}/${AssumedRoleUser.AssumedRoleId}/`
+    return `${this.uploadFolder}/${AssumedRoleUser.AssumedRoleId}/`
   }
 
   public getMostRecentSessionByClientId = (clientId): Promise<any> => {

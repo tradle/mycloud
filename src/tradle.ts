@@ -4,44 +4,55 @@ import { toCamelCase, splitCamelCase } from './string-utils'
 import { Seals } from './seals'
 import { Blockchain } from './blockchain'
 import { TaskManager } from './task-manager'
+import { Identities } from './identities'
+import { Objects } from './objects'
+import { S3Utils } from './s3-utils'
+import { Messages } from './messages'
+import { Friends } from './friends'
+import createDB from './db'
+import { createAWSWrapper } from './aws'
+import { Provider } from './provider'
+import { Delivery } from './delivery'
+import { Auth } from './auth'
+import { KV } from './kv'
+import { Events } from './events'
+import { Iot } from './iot-utils'
+import { ContentAddressedStore } from './content-addressed-store'
+import { createDBUtils } from './db-utils'
+import { LambdaUtils } from './lambda-utils'
+import { StackUtils } from './stack-utils'
+import { Push } from './push'
+import { getBuckets } from './buckets'
+import { getTables } from './tables'
+import { createServiceMap } from './service-map'
+import { ModelStore, createModelStore } from './model-store'
+import baseModels from './models'
 import constants from './constants'
 
 import {
-  Provider,
-  Identities,
-  Objects,
-  Auth,
-  Delivery,
   Discovery,
-  Messages,
-  Friends,
   // KeyValueTable,
-  KV,
-  ContentAddressedStore,
-  Push,
   User,
   Buckets,
   Bucket,
   Tables,
   AwsApis,
-  StackUtils,
-  LambdaUtils,
-  S3Utils,
-  Iot,
-  Events,
   Init,
   IMailer,
   AppLinks,
   Backlinks,
+  Logger,
   IServiceMap
 } from './types'
 
 import { requireDefault } from './require-default'
-import { getBuckets } from './buckets'
 import { applyFunction } from './utils'
-import { ModelStore, createModelStore } from './model-store'
 
 let instanceCount = 0
+
+type TradleOpts = {
+  env?: Env
+}
 
 export default class Tradle {
   public env: Env
@@ -79,17 +90,20 @@ export default class Tradle {
   public mailer: IMailer
   public appLinks: AppLinks
   public backlinks: Backlinks
+  public logger: Logger
   public get secrets(): Bucket {
     return this.buckets.Secrets
   }
 
-  constructor(env=new Env(process.env)) {
+  constructor(opts:TradleOpts={}) {
+    let { env=new Env(process.env) } = opts
     // if (++instanceCount > 1) {
     //   if (!env.TESTING) {
     //     throw new Error('multiple instances not allowed')
     //   }
     // }
 
+    const tradle = this
     if (!(env instanceof Env)) {
       env = new Env(env)
     }
@@ -103,10 +117,12 @@ export default class Tradle {
     this.env = env
     this.prefix = SERVERLESS_PREFIX
 
+    const logger = this.logger = env.logger
+
     // singletons
 
     // instances
-    if (this.env.BLOCKCHAIN.flavor === 'corda') {
+    if (env.BLOCKCHAIN.flavor === 'corda') {
       this.define('seals', './corda-seals', ({ Seals }) => new Seals(this))
       this.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain(this))
     } else {
@@ -119,24 +135,97 @@ export default class Tradle {
     //   privateKey: FAUCET_PRIVATE_KEY
     // }))
 
-    this.define('serviceMap', './service-map', ({ createServiceMap }) => createServiceMap({
-      env: this.env
-    }))
+    const serviceMap = this.serviceMap = createServiceMap({ env })
+    const aws = this.aws = createAWSWrapper({
+      env,
+      logger: logger.sub('aws')
+    })
 
-    this.define('tables', './tables', this.construct)
-    this.define('buckets', './buckets', () => getBuckets(this))
-    this.define('db', './db', initialize => initialize(this))
-    this.define('s3Utils', './s3-utils', S3Utils => new S3Utils({
+    const dbUtils = this.dbUtils = createDBUtils({
+      aws,
+      logger: logger.sub('db-utils'),
+      env
+    })
+
+    const tables = this.tables = getTables({ dbUtils, serviceMap })
+    const s3Utils = this.s3Utils = new S3Utils({
+      env,
+      s3: aws.s3,
+      logger: logger.sub('s3-utils')
+    })
+
+    const buckets = this.buckets = getBuckets({
+      aws,
+      env,
+      logger,
+      serviceMap,
+      s3Utils
+    })
+
+    const provider = this.provider = new Provider({
+      network: this.network,
+      logger: logger.sub('provider'),
+      get env () { return tradle.env },
+      get objects () { return tradle.objects },
+      get identities () { return tradle.identities },
+      get messages () { return tradle.messages },
+      get modelStore () { return tradle.modelStore },
+      get seals () { return tradle.seals },
+      get db () { return tradle.db },
+      get friends() { return tradle.friends },
+      get delivery() { return tradle.delivery },
+      get pushNotifications() { return tradle.pushNotifications },
+      get auth() { return tradle.auth },
+    })
+
+    const friends = this.friends = new Friends({
+      get objects() { return tradle.objects },
+      get db() { return tradle.db },
+      get identities() { return tradle.identities },
+      get provider() { return tradle.provider },
+      logger: this.logger.sub('friends'),
+      models: baseModels,
+    })
+
+    const modelStore = this.modelStore = createModelStore({
+      models: baseModels,
+      logger: logger.sub('model-store'),
+      bucket: buckets.PrivateConf,
+      get identities() { return tradle.identities },
+      get friends() { return tradle.friends },
+    })
+
+    const tasks = this.tasks = new TaskManager({
+      logger: logger.sub('async-tasks')
+    })
+
+    const objects = this.objects = new Objects({
       env: this.env,
-      s3: this.aws.s3,
-      logger: this.logger.sub('s3-utils')
-    }))
+      buckets: this.buckets,
+      logger: this.logger.sub('objects'),
+      s3Utils: this.s3Utils,
+      get identities() { return tradle.identities },
+    })
 
-    this.define('contentAddressedStore', './content-addressed-store', ctor => {
-      return new ctor({
-        bucket: this.buckets.PrivateConf.folder('content-addressed'),
-        aws: this.aws
-      })
+    const identities = this.identities = new Identities({
+      logger: this.logger.sub('identities'),
+      // circular ref
+      getIdentityAndKeys: () => this.secrets.getJSON(constants.IDENTITY_KEYS_KEY),
+      getIdentity: () => this.buckets.PrivateConf.getJSON(constants.PRIVATE_CONF_BUCKET.identity),
+      get db() { return tradle.db },
+      get objects() { return tradle.objects },
+    })
+
+    const db = this.db = createDB({
+      get aws () { return tradle.aws },
+      get modelStore () { return tradle.modelStore },
+      get objects () { return tradle.objects },
+      get dbUtils () { return tradle.dbUtils },
+      get messages () { return tradle.messages }
+    })
+
+    const contentAddressedStore = this.contentAddressedStore = new ContentAddressedStore({
+      bucket: buckets.PrivateConf.folder('content-addressed')
     })
 
     // this.define('conf', './key-value-table', ctor => {
@@ -151,53 +240,79 @@ export default class Tradle {
     //   })
     // })
 
-    this.define('kv', './kv', ctor => {
-      return new ctor({
-        db: this.db
-      })
+    const kv = this.kv = new KV({ db })
+    const lambdaUtils = this.lambdaUtils = new LambdaUtils({
+      aws,
+      env,
+      logger: logger.sub('lambda-utils')
     })
 
-    this.define('lambdaUtils', './lambda-utils', this.construct)
-    this.define('stackUtils', './stack-utils', this.construct)
-    this.define('iot', './iot-utils', ({ createUtils }) => createUtils({
-      services: this.aws,
-      env: this.env
-    }))
+    const stackUtils = this.stackUtils = new StackUtils({
+      apiId: serviceMap.RestApi.ApiGateway.id,
+      stackArn: serviceMap.Stack,
+      bucket: buckets.PrivateConf,
+      aws,
+      env,
+      lambdaUtils,
+      logger: logger.sub('stack-utils')
+    })
 
-    this.define('identities', './identities', this.construct)
-    this.define('friends', './friends', this.construct)
-    this.define('messages', './messages', this.construct)
-    this.define('events', './events', Events => new Events({
-      tables: this.tables,
-      dbUtils: this.dbUtils,
-      logger: this.logger.sub('events')
-    }))
+    const iot = this.iot = new Iot({
+      services: aws,
+      env
+    })
 
-    this.define('provider', './provider', this.construct)
-    this.define('auth', './auth', this.construct)
-    this.define('objects', './objects', this.construct)
+    const messages = this.messages = new Messages({
+      logger: logger.sub('messages'),
+      get objects () { return tradle.objects },
+      get identities () { return tradle.identities },
+      get env () { return tradle.env },
+      // circular ref
+      get db() { return tradle.db },
+    })
+
+    const events = this.events = new Events({
+      tables,
+      dbUtils,
+      logger: logger.sub('events'),
+      db
+    })
+
+    const auth = this.auth = new Auth({
+      accountId: this.env.accountId,
+      uploadFolder: this.serviceMap.Bucket.FileUpload,
+      logger: this.logger.sub('auth'),
+      get aws() { return tradle.aws },
+      get db() { return tradle.db },
+      get identities() { return tradle.identities },
+      get iot() { return tradle.iot },
+      get messages() { return tradle.messages },
+      get objects() { return tradle.objects },
+      get tasks() { return tradle.tasks },
+      get modelStore() { return tradle.modelStore },
+    })
+
     this.define('init', './init', this.construct)
     this.define('discovery', './discovery', this.construct)
     this.define('user', './user', this.construct)
-    this.define('delivery', './delivery', this.construct)
+    this.delivery = new Delivery({
+      get auth () { return tradle.auth },
+      get db () { return tradle.db },
+      get env () { return tradle.env },
+      get friends () { return tradle.friends },
+      get iot () { return tradle.iot },
+      get messages () { return tradle.messages },
+      get modelStore () { return tradle.modelStore },
+      get objects () { return tradle.objects },
+      logger: logger.sub('delivery')
+    })
+
     // this.define('router', './router', this.construct)
-    this.define('aws', './aws', initialize => initialize(this))
-    this.define('dbUtils', './db-utils', initialize => initialize({
-      aws: this.aws,
-      logger: this.logger.sub('db-utils'),
-      env: this.env
-    }))
 
-    this.define('pushNotifications', './push', ctor => new ctor({
-      logger: this.env.sublogger('push'),
+    const pushNotifications = this.pushNotifications = new Push({
+      logger: logger.sub('push'),
       serverUrl: constants.PUSH_SERVER_URL[this.env.STAGE],
-      conf: this.kv.sub('push:'),
-      provider: this.provider
-    }))
-
-    this.define('modelStore', './model-store', MS => MS.createModelStore(this))
-    this.tasks = new TaskManager({
-      logger: this.logger.sub('async-tasks')
+      conf: kv.sub('push:')
     })
 
     // this.bot = this.require('bot', './bot')
@@ -231,7 +346,7 @@ export default class Tradle {
     return this.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
   }
   get models () {
-    return requireDefault('./models')
+    return this.modelStore.models
   }
   get constants () {
     return requireDefault('./constants')
@@ -248,9 +363,6 @@ export default class Tradle {
   get stringUtils () {
     return requireDefault('./string-utils')
   }
-  get logger () {
-    return this.env.logger
-  }
   get debug () {
     return this.env.debug
   }
@@ -259,16 +371,10 @@ export default class Tradle {
     return createHandler(this)
   }
 
-  public initAllSubModules = () => {
-    for (let p in this) {
-      this[p]
-    }
-  }
-
   public warmUpCaches = async () => {
     await Promise.all([
-      this.provider.getMyPrivateIdentity(),
-      this.provider.getMyPublicIdentity()
+      this.identities.getMyIdentityPermalink(),
+      this.identities.getMyPublicIdentity()
     ])
   }
 

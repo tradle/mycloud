@@ -405,8 +405,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public setCustomModels = pack => this.modelStore.setCustomModels(pack)
   public initInfra = (opts?) => this.tradle.init.initInfra(opts)
   public updateInfra = (opts?) => this.tradle.init.updateInfra(opts)
-  public getMyIdentity = () => this.tradle.provider.getMyPublicIdentity()
-  public getMyIdentityPermalink = () => this.tradle.provider.getMyIdentityPermalink()
+  public getMyIdentity = () => this.tradle.identities.getMyPublicIdentity()
+  public getMyIdentityPermalink = () => this.tradle.identities.getMyIdentityPermalink()
 
   public sign = async (resource:ITradleObject, author?):Promise<ITradleObject> => {
     const payload = { object: resource }

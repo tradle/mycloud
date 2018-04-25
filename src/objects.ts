@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
-import { IDebug, ITradleObject, IRetryableTaskOpts } from './types'
+import { IDebug, ITradleObject, IRetryableTaskOpts, S3Utils, Buckets, Logger, Env, Identities } from './types'
 import * as types from './typeforce-types'
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
 import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
@@ -17,9 +17,6 @@ import {
 import { extractSigPubKey, getLinks } from './crypto'
 import { MiddlewareContainer } from './middleware-container'
 // const { get, put, createPresignedUrl } = require('./s3-utils')
-import Env from './env'
-import Tradle from './tradle'
-import Logger from './logger'
 import { prettify } from './string-utils'
 import { RetryableTask } from './retryable-task'
 
@@ -30,26 +27,46 @@ type ObjectMetadata = {
   _prevlink?: string
 }
 
+type ObjectsOpts = {
+  env: Env
+  buckets: Buckets
+  s3Utils: S3Utils
+  logger: Logger
+  identities: Identities
+}
+
 export default class Objects {
-  private tradle: Tradle
-  private env: Env
-  private logger: Logger
+  private components: ObjectsOpts
+
+  // lazy-load to avoid circular refs
+  private get env () {
+    return this.components.env
+  }
+
+  private get logger () {
+    return this.components.logger
+  }
+
+  private get s3Utils () {
+    return this.components.s3Utils
+  }
+
+  private get identities () {
+    return this.components.identities
+  }
+
   private region: string
   private buckets: any
   private bucket: any
-  private s3Utils: any
   private fileUploadBucketName: string
   private middleware: MiddlewareContainer
-  constructor (tradle: Tradle) {
-    const { env, buckets, s3Utils, logger } = tradle
-    this.tradle = tradle
-    this.env = env
+  constructor (components: ObjectsOpts) {
+    // lazy-load the rest to avoid circular refs
+    const { env, buckets } = components
+    this.components = components
     this.region = env.REGION
-    this.buckets = buckets
-    this.bucket = this.buckets.Objects
-    this.s3Utils = s3Utils
+    this.bucket = buckets.Objects
     this.fileUploadBucketName = buckets.FileUpload.name
-    this.logger = logger.sub('objects')
     this.middleware = new MiddlewareContainer({
       logger: this.logger.sub('mid'),
       getContextForEvent: (event, object) => ({
@@ -155,6 +172,7 @@ export default class Objects {
       throw new Error(`received embed with incorrect mime type: ${ContentType}`)
     }
 
+    // @ts-ignore
     Body.mimetype = ContentType
     return Body
   }
@@ -218,7 +236,7 @@ export default class Objects {
 
   public presignEmbeddedMediaLinks = (opts: {
     object: ITradleObject,
-    stripEmbedPrefix: boolean
+    stripEmbedPrefix?: boolean
   }):ITradleObject => {
     const { object, stripEmbedPrefix } = opts
     Embed.presignUrls({
@@ -241,8 +259,7 @@ export default class Objects {
   }
 
   public validateNewVersion = async (opts: { object: ITradleObject }) => {
-    // lazy access 'identities' property, to avoid circular reference
-    const { identities } = this.tradle
+    const { identities } = this
     const { object } = opts
     const previous = await this.get(object[PREVLINK])
     const getNewAuthorInfo = object._author

@@ -4,7 +4,7 @@ import { TYPE, SIG } from '@tradle/constants'
 import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
-import { Provider, Friends, Buckets, Env, Logger, Tradle, ITradleObject } from './types'
+import { Env, Logger, Objects, Messages, ITradleObject, ModelStore, AwsApis } from './types'
 import { extendTradleObject, pluck } from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
 
@@ -63,8 +63,22 @@ const getControlLatestOptions = (table: Table, method: string, resource: any) =>
   return options
 }
 
-export = function createDB (tradle:Tradle) {
-  const { modelStore, objects, tables, aws, constants, env, dbUtils } = tradle
+type DBOpts = {
+  modelStore: ModelStore
+  objects: Objects
+  messages: Messages
+  aws: AwsApis
+  dbUtils: any
+}
+
+export = function createDB ({
+  modelStore,
+  objects,
+  aws,
+  dbUtils,
+  messages
+}: DBOpts) {
+  let messagesModule
 
   const { docClient, dynamodb } = aws
   dynogels.dynamoDriver(dynamodb)
@@ -154,7 +168,7 @@ export = function createDB (tradle:Tradle) {
     const _counterparty = EQ._author || EQ._recipient || EQ._counterparty
     if (!(_counterparty && '_inbound' in EQ)) return
 
-    EQ._dcounterparty = tradle.messages.getDCounterpartyKey({
+    EQ._dcounterparty = messages.getDCounterpartyKey({
       _counterparty,
       _inbound: EQ._inbound
     })
@@ -171,14 +185,14 @@ export = function createDB (tradle:Tradle) {
     const { EQ={} } = args && args[0] && args[0].filter
     if (EQ[TYPE] !== MESSAGE) return
 
-    const messages = items.map(tradle.messages.formatForDelivery)
+    const msgs = items.map(messages.formatForDelivery)
     const { select=[] } = args[0]
     if (select.includes('object')) {
-      const payloads:ITradleObject[] = await Promise.all(messages.map(msg => objects.get(msg.object._link)))
-      payloads.forEach((payload, i) => extendTradleObject(messages[i].object, payload))
+      const payloads:ITradleObject[] = await Promise.all(msgs.map(msg => objects.get(msg.object._link)))
+      payloads.forEach((payload, i) => extendTradleObject(msgs[i].object, payload))
     }
 
-    result.items = messages
+    result.items = msgs
   }
 
   db.hook('find:pre', fixMessageFilter)

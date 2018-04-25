@@ -11,15 +11,19 @@ import {
 let tradle
 
 const createTestTradle = (env?) => {
-  return new Tradle(env || require('./test/env').createTestEnv())
+  return new Tradle({
+    env: env || require('./test/env').createTestEnv()
+  })
 }
 
 const createRemoteTradle = (env?) => {
-  return new Tradle(env || require('./cli/remote-service-map'))
+  return new Tradle({
+    env: env || require('./cli/remote-service-map')
+  })
 }
 
 const createTradle = (env?) => {
-  if (env) return new Tradle(env)
+  if (env) return new Tradle({ env })
   if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
     require('./test/env').install()
     return createTestTradle()

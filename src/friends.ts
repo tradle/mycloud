@@ -29,26 +29,35 @@ const FRIEND_TYPE = "tradle.MyCloudFriend"
 const TEN_MINUTES = 10 * 60 * 60000
 const createCache = () => new Cache({ max: 100, maxAge: TEN_MINUTES })
 
+type FriendsOpts = {
+  provider: Provider
+  identities: Identities
+  objects: Objects
+  models: Models
+  db: DB
+  logger: Logger
+}
+
 export default class Friends {
-  public models: Models
-  public model: Model
-  public db: DB
-  public identities: Identities
-  public provider: Provider
-  public objects: Objects
   public cache: any
   public logger: Logger
+  private models: Models
+  private model: Model
+  // lazy
+  private get db() { return this.components.db }
+  private get identities() { return this.components.identities }
+  private get provider() { return this.components.provider }
+  private get objects() { return this.components.objects }
+  private components: FriendsOpts
   private _clearCacheForPermalink: (permalink: string) => void
-  constructor(tradle:Tradle) {
-    const { models, db, identities, provider, objects, logger } = tradle
+  constructor(components: FriendsOpts) {
+    this.components = components
+
+    const { models, logger } = components
     this.models = models
     this.model = models[FRIEND_TYPE]
-    this.db = db
-    this.identities = identities
-    this.provider = provider
-    this.objects = objects
     this.cache = createCache()
-    this.logger = logger.sub('friends')
+    this.logger = logger
 
     const { call, del } = cachifyFunction(this, 'getByIdentityPermalink')
     this.getByIdentityPermalink = call
@@ -92,7 +101,7 @@ export default class Friends {
     const { name, domain, identity, org } = props
     addLinks(identity)
 
-    const myIdentity = await this.provider.getMyPublicIdentity()
+    const myIdentity = await this.identities.getMyPublicIdentity()
     if (myIdentity._permalink === identity._permalink ||
       myIdentity._link === identity._link) {
       throw new Error('refusing to add self as friend')

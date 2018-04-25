@@ -251,6 +251,11 @@ export interface IIdentity extends ITradleObject {
   pubkeys: Array<IPubKey>
 }
 
+export interface IIdentityAndKeys {
+  identity: IIdentity
+  keys: IPrivKey[]
+}
+
 export type IDebug = (...any) => void
 
 export interface IMessageOpts {

@@ -81,24 +81,40 @@ interface ISeqAndLink {
   link: string
 }
 
-export default class Messages {
-  private env: Env
-  private logger: Logger
-  private identities: Identities
-  private objects: Objects
-  private tradle: Tradle
+type MessagesOpts = {
+  env: Env
+  identities: Identities
+  objects: Objects
+  logger: Logger
+  db: DB
+}
 
-  constructor (tradle: Tradle) {
-    const { env, identities, objects, logger } = tradle
-    this.tradle = tradle
-    this.env = env
-    this.logger = logger.sub('messages')
-    this.identities = identities
-    this.objects = objects
+export default class Messages {
+  private components: MessagesOpts
+
+  constructor (components: MessagesOpts) {
+    this.components = components
+  }
+
+  // lazy load
+  get logger() {
+    return this.components.logger
+  }
+
+  get identities() {
+    return this.components.identities
+  }
+
+  get objects() {
+    return this.components.objects
+  }
+
+  get env() {
+    return this.components.env
   }
 
   get db() {
-    return this.tradle.db
+    return this.components.db
   }
 
   public normalizeInbound = (message:any):ITradleMessage => {

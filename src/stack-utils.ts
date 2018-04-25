@@ -9,10 +9,8 @@ import {
   AwsApis,
   LambdaUtils,
   Bucket,
-  Buckets,
   ILaunchStackUrlOpts,
   IUpdateStackUrlOpts,
-  IServiceMap
 } from './types'
 
 import Errors from './errors'
@@ -43,34 +41,33 @@ const METHODS = [
 
 const stripDashes = str => str.replace(/[-]/g, '')
 
+type StackUtilsOpts = {
+  aws: AwsApis
+  env: Env
+  stackArn: string
+  apiId: string
+  logger?: Logger
+  lambdaUtils: LambdaUtils
+  bucket: Bucket
+}
+
 export default class StackUtils {
   private aws?: AwsApis
-  private serviceMap: IServiceMap
   private env: Env
   private logger: Logger
   private lambdaUtils: LambdaUtils
-  private buckets: Buckets
   private stack: StackInfo
   private apiId: string
+  private bucket: Bucket
 
-  constructor({ aws, env, serviceMap, logger, lambdaUtils, buckets }: {
-    aws: AwsApis
-    env: Env
-    serviceMap: IServiceMap
-    logger?: Logger
-    lambdaUtils: LambdaUtils
-    buckets: Buckets
-  }) {
+  constructor({ aws, env, logger, lambdaUtils, bucket, stackArn, apiId }: StackUtilsOpts) {
     this.aws = aws
     this.env = env
-    this.serviceMap = serviceMap
-    this.logger = logger || env.sublogger('stack-utils')
+    this.logger = logger
     this.lambdaUtils = lambdaUtils
-    this.buckets = buckets
-
-    const arn = this.serviceMap.Stack
-    this.stack = StackUtils.parseStackArn(arn)
-    this.apiId = this.serviceMap.RestApi.ApiGateway.id
+    this.bucket = bucket
+    this.stack = StackUtils.parseStackArn(stackArn)
+    this.apiId = apiId
   }
 
   public static parseStackName = (name: string) => {
@@ -326,12 +323,11 @@ export default class StackUtils {
     const template = await this.getStackTemplate()
     const customized = await transform(template)
     const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
-    const pubConf = this.buckets.PrivateConf
-    await pubConf.putJSON(key, customized, { publicRead: true })
+    await this.bucket.putJSON(key, customized, { publicRead: true })
     return {
       template: customized,
       key,
-      url: pubConf.getUrlForKey(key)
+      url: this.bucket.getUrlForKey(key)
     }
   }
 

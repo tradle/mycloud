@@ -50,7 +50,7 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
 
-  const tradle = new Tradle(env)
+  const tradle = new Tradle({ env })
   // const table = await recreateTable(SealsTableLogicalId)
   const txId = 'sometxid'
 
@@ -117,7 +117,7 @@ test('queue seal', loudAsync(async (t) => {
   env.BLOCKCHAIN = blockchainOpts
   // await recreateTable(BucketTableLogicalId)
 
-  const tradle = new Tradle(env)
+  const tradle = new Tradle({ env })
   const { db, provider } = tradle
 
   await wipeDB(db)
@@ -249,7 +249,7 @@ test('corda seals', loudAsync(async (t) => {
     networkName: 'private'
   }
 
-  const { seals, objects, db, provider } = new Tradle(env)
+  const { seals, objects, db, provider } = new Tradle({ env })
 
   await wipeDB(db)
 

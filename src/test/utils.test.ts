@@ -908,7 +908,8 @@ test('ModelStore', loudAsync(async (t) => {
   }
 
   const tradle = createTestTradle()
-  const store = createModelStore(tradle)
+  const store = tradle.modelStore
+
   let memBucket = {}
   const fakePut = async ({ key, value }) => {
     memBucket[key] = value

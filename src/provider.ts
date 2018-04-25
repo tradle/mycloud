@@ -34,11 +34,6 @@ import {
   DB_IGNORE_PAYLOAD_TYPES
 } from './constants'
 
-import Tradle from './tradle'
-import Auth from './auth'
-import Identities from './identities'
-import Messages from './messages'
-import Objects from './objects'
 import {
   Bucket,
   ISession,
@@ -51,9 +46,18 @@ import {
   ISendOpts,
   IBatchSendOpts,
   IECMiniPubKey,
-  ISaveObjectOpts
+  ISaveObjectOpts,
+  Friends,
+  Logger,
+  Auth,
+  Identities,
+  Messages,
+  Objects,
+  Push,
+  Seals,
+  ModelStore,
+  Delivery,
 } from './types'
-import Logger from './logger'
 
 const {
   MESSAGE,
@@ -69,44 +73,50 @@ type PayloadWrapper = {
   asSigned: ITradleObject
 }
 
-export default class Provider {
-  private tradle: Tradle
-  private env: Env
-  private objects: Objects
-  private messages: Messages
-  private secrets: Bucket
-  private identities: Identities
-  private buckets: any
-  private auth: Auth
-  private network: any
-  public db: DB
-  public logger:Logger
-  constructor (tradle: Tradle) {
-    this.tradle = tradle
-    this.env = tradle.env
-    this.logger = tradle.env.sublogger('provider')
-    this.objects = tradle.objects
-    this.messages = tradle.messages
-    this.secrets = tradle.secrets
-    this.identities = tradle.identities
-    this.buckets = tradle.buckets
-    this.auth = tradle.auth
-    this.network = tradle.network
-    this.db = tradle.db
-  }
+type ProviderOpts = {
+  env: Env
+  logger: Logger
+  objects: Objects
+  identities: Identities
+  messages: Messages
+  auth: Auth
+  db: DB
+  friends: Friends
+  delivery: Delivery
+  seals: Seals
+  modelStore: ModelStore
+  pushNotifications: Push
+  network: any
+}
 
-  // get objects() { return this.tradle.objects }
-  // get messages() { return this.tradle.messages }
-  // get secrets() { return this.tradle.secrets }
-  // get identities() { return this.tradle.identities }
-  // get buckets() { return this.tradle.buckets }
-  // get auth() { return this.tradle.auth }
-  // get network() { return this.tradle.network }
+export default class Provider {
+  private env: Env
+  private get objects() { return this.components.objects }
+  private get messages() { return this.components.messages }
+  private get identities() { return this.components.identities }
+  private get auth() { return this.components.auth }
+  private get db() { return this.components.db }
+  private get delivery() { return this.components.delivery }
+  private get friends() { return this.components.friends }
+  private get modelStore() { return this.components.modelStore }
+  private get seals() { return this.components.seals }
+  private get pushNotifications() { return this.components.pushNotifications }
+  private network: any
+  private components: ProviderOpts
+  private logger:Logger
+  constructor (components: ProviderOpts) {
+    this.components = components
+    const { env, logger, network } = components
+
+    this.env = env
+    this.logger = logger
+    this.network = network
+  }
 
   // TODO: how to invalidate cache on identity updates?
   // maybe ETag on bucket item? But then we still need to request every time..
   public getMyKeys = async ():Promise<any> => {
-    const { keys } = await this.getMyPrivateIdentity()
+    const { keys } = await this.identities.getMyIdentityAndKeys()
     return keys
   }
 
@@ -129,7 +139,7 @@ export default class Provider {
 
   public getMyChainKeyPub = async ():Promise<IPubKey> => {
     const { network } = this
-    const identity = await this.getMyPublicIdentity()
+    const identity = await this.identities.getMyPublicIdentity()
     const key = identity.pubkeys.find(pub => {
       return pub.type === network.flavor &&
         pub.networkName === network.networkName &&
@@ -144,7 +154,7 @@ export default class Provider {
   }
 
   public getMySigningKey = async ():Promise<ECKey> => {
-    const { keys } = await this.getMyPrivateIdentity()
+    const { keys } = await this.identities.getMyIdentityAndKeys()
     return getSigningKey(keys)
   }
 
@@ -153,14 +163,14 @@ export default class Provider {
     author?: any
   }):Promise<ITradleObject> => {
     const resolveEmbeds = this.objects.resolveEmbeds(object)
-    if (!author) author = await this.getMyPrivateIdentity()
+    if (!author) author = await this.identities.getMyIdentityAndKeys()
 
     await resolveEmbeds
     const key = getSigningKey(author.keys)
     const signed = await sign({
       key,
       object: omitVirtualDeep({
-        models: this.tradle.modelStore.models,
+        models: this.modelStore.models,
         resource: object
       })
     })
@@ -205,7 +215,7 @@ export default class Provider {
     clientId?:string
   }):Promise<ITradleMessage> => {
     ensureNoVirtualProps({
-      models: this.tradle.modelStore.models,
+      models: this.modelStore.models,
       resource: message
     })
 
@@ -242,7 +252,7 @@ export default class Provider {
     if (seal.blockchain === flavor && seal.network === networkName) {
       this.logger.info('placing watch on seal', seal)
       try {
-        await this.tradle.seals.watch({
+        await this.seals.watch({
           object,
           link: seal.link,
           key: {
@@ -328,7 +338,7 @@ export default class Provider {
 
     const promiseFriend = opts.friend
       ? Promise.resolve(opts.friend)
-      : this.tradle.friends.getByIdentityPermalink(recipient).catch(err => {
+      : this.friends.getByIdentityPermalink(recipient).catch(err => {
           Errors.ignoreNotFound(err)
           this.logger.debug('friend not found for counterparty', { permalink: recipient })
           return undefined
@@ -346,7 +356,7 @@ export default class Provider {
         this.logger.debug('live delivery canceled', error)
       } else if (Errors.matches(err, Errors.ClientUnreachable)) {
         this.logger.debug('live delivery failed, client unreachable', { recipient })
-        if (this.tradle.pushNotifications) {
+        if (this.pushNotifications) {
           try {
             await this.sendPushNotification(recipient)
           } catch (pushErr) {
@@ -373,7 +383,7 @@ export default class Provider {
     }
 
     this.logger.debug(`attempting to deliver batch of ${messages.length} messages to ${recipient}`)
-    await this.tradle.delivery.deliverBatch({
+    await this.delivery.deliverBatch({
       ...opts,
       messages: messages.map(this.messages.formatForDelivery)
     })
@@ -384,25 +394,25 @@ export default class Provider {
 
     let deliveryError
     try {
-      deliveryError = this.tradle.delivery.http.getError(recipient)
+      deliveryError = this.delivery.http.getError(recipient)
     } catch (err) {
       Errors.ignoreNotFound(err)
       return false
     }
 
     this.logger.debug('delivering previously undelivered messages', deliveryError)
-    await this.tradle.delivery.deliverMessages({
+    await this.delivery.deliverMessages({
       recipient,
       friend,
-      range: this.tradle.delivery.http.getRangeFromError(deliveryError)
+      range: this.delivery.http.getRangeFromError(deliveryError)
     })
 
     return true
   }
 
   public sendPushNotification = async (recipient:string):Promise<void> => {
-    const { identity, keys } = await this.tradle.provider.getMyPrivateIdentity()
-    await this.tradle.pushNotifications.push({
+    const { identity, keys } = await this.identities.getMyIdentityAndKeys()
+    await this.pushNotifications.push({
       key: getSigningKey(keys),
       identity,
       subscriber: recipient
@@ -410,26 +420,12 @@ export default class Provider {
   }
 
   public registerWithPushNotificationsServer = async ():Promise<void> => {
-    const { identity, keys } = await this.tradle.provider.getMyPrivateIdentity()
-    await this.tradle.pushNotifications.ensureRegistered({
+    const { identity, keys } = await this.identities.getMyIdentityAndKeys()
+    await this.pushNotifications.ensureRegistered({
       key: getSigningKey(keys),
       identity
     })
   }
-
-  public lookupMyIdentity = ():Promise<any> => {
-    return this.secrets.getJSON(IDENTITY_KEYS_KEY)
-  }
-
-  public lookupMyPublicIdentity = async ():Promise<IIdentity> => {
-    const val = await this.buckets.PrivateConf.getJSON(PRIVATE_CONF_BUCKET.identity)
-    return val as IIdentity
-  }
-
-  public getMyPrivateIdentity = cachifyPromiser(this.lookupMyIdentity)
-
-  public getMyPublicIdentity:() => Promise<IIdentity> =
-    cachifyPromiser(this.lookupMyPublicIdentity)
 
   // public for testing purposes
   public _doSendMessage = async (opts):Promise<ITradleMessage> => {
@@ -444,7 +440,7 @@ export default class Provider {
     }
 
     if (!opts.author) {
-      opts.author = await this.getMyPrivateIdentity()
+      opts.author = await this.identities.getMyIdentityAndKeys()
     }
 
     const { author, recipient, link, object, other={} } = opts
@@ -523,13 +519,8 @@ export default class Provider {
     return object
   }
 
-  public getMyIdentityPermalink = async ():Promise<string> => {
-    const { _permalink } = await this.getMyPublicIdentity()
-    return _permalink
-  }
-
   private isAuthoredByMe = async (object:ITradleObject) => {
-    const promiseMyPermalink = this.getMyIdentityPermalink()
+    const promiseMyPermalink = this.identities.getMyIdentityPermalink()
     let { _author } = object
     if (!_author) {
       ({ _author } = await this.identities.getAuthorInfo(object))
