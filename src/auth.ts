@@ -23,7 +23,8 @@ import {
   ITradleObject,
   Iot,
   DB,
-  ModelStore
+  ModelStore,
+  Env
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
@@ -62,7 +63,7 @@ interface IChallengeResponse extends ITradleObject {
 // })
 
 type AuthOpts = {
-  accountId: string
+  env: Env
   uploadFolder: string
   aws: any
   // tables: any
@@ -87,7 +88,7 @@ export default class Auth {
   private logger: Logger
   private tasks: TaskManager
   private modelStore: ModelStore
-  private accountId: string
+  private env: Env
   private uploadFolder: string
 
   constructor (opts: AuthOpts) {
@@ -102,7 +103,7 @@ export default class Auth {
     this.logger = opts.logger.sub('auth')
     this.tasks = opts.tasks
     this.modelStore = opts.modelStore
-    this.accountId = opts.accountId
+    this.env = opts.env
     this.uploadFolder = opts.uploadFolder
   }
 
@@ -264,7 +265,7 @@ export default class Auth {
   public createCredentials = async (session:ISession, role:string):Promise<IRoleCredentials> => {
     const { clientId } = session
     if (!role.startsWith('arn:')) {
-      role = `arn:aws:iam::${this.accountId}:role/${role}`
+      role = `arn:aws:iam::${this.env.accountId}:role/${role}`
     }
 
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)

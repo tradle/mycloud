@@ -305,7 +305,7 @@ export default class Tradle {
     })
 
     const auth = this.auth = new Auth({
-      accountId: this.env.accountId,
+      env,
       uploadFolder: this.serviceMap.Bucket.FileUpload,
       logger: this.logger.sub('auth'),
       get aws() { return tradle.aws },
