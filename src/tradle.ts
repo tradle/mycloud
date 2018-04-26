@@ -175,6 +175,27 @@ export default class Tradle {
       s3Utils
     })
 
+    const lambdaUtils = this.lambdaUtils = new LambdaUtils({
+      aws,
+      env,
+      logger: logger.sub('lambda-utils')
+    })
+
+    const stackUtils = this.stackUtils = new StackUtils({
+      apiId: serviceMap.RestApi.ApiGateway.id,
+      stackArn: serviceMap.Stack,
+      bucket: buckets.PrivateConf,
+      aws,
+      env,
+      lambdaUtils,
+      logger: logger.sub('stack-utils')
+    })
+
+    const iot = this.iot = new Iot({
+      services: aws,
+      env
+    })
+
     const modelStore = this.modelStore = createModelStore({
       models: baseModels,
       logger: logger.sub('model-store'),
@@ -211,12 +232,21 @@ export default class Tradle {
       get objects() { return tradle.objects },
     })
 
-    const db = this.db = createDB({
-      get aws () { return tradle.aws },
-      get modelStore () { return tradle.modelStore },
+    const messages = this.messages = new Messages({
+      logger: logger.sub('messages'),
       get objects () { return tradle.objects },
-      get dbUtils () { return tradle.dbUtils },
-      get messages () { return tradle.messages }
+      get identities () { return tradle.identities },
+      get env () { return tradle.env },
+      // circular ref
+      get db() { return tradle.db },
+    })
+
+    const db = this.db = createDB({
+      aws,
+      modelStore,
+      objects,
+      dbUtils,
+      messages
     })
 
     const storage = this.storage = new Storage({
@@ -226,17 +256,17 @@ export default class Tradle {
     })
 
     const messaging = this.messaging = new Messaging({
-      network: this.network,
+      network,
       logger: logger.sub('messaging'),
       identity,
       storage,
-      get env () { return tradle.env },
-      get objects () { return tradle.objects },
-      get identities () { return tradle.identities },
-      get messages () { return tradle.messages },
-      get modelStore () { return tradle.modelStore },
+      env,
+      objects,
+      identities,
+      messages,
+      modelStore,
+      db,
       get seals () { return tradle.seals },
-      get db () { return tradle.db },
       get friends() { return tradle.friends },
       get delivery() { return tradle.delivery },
       get pushNotifications() { return tradle.pushNotifications },
@@ -267,34 +297,18 @@ export default class Tradle {
     // })
 
     const kv = this.kv = new KV({ db })
-    const lambdaUtils = this.lambdaUtils = new LambdaUtils({
-      aws,
+    const auth = this.auth = new Auth({
       env,
-      logger: logger.sub('lambda-utils')
-    })
-
-    const stackUtils = this.stackUtils = new StackUtils({
-      apiId: serviceMap.RestApi.ApiGateway.id,
-      stackArn: serviceMap.Stack,
-      bucket: buckets.PrivateConf,
+      uploadFolder: this.serviceMap.Bucket.FileUpload,
+      logger: this.logger.sub('auth'),
       aws,
-      env,
-      lambdaUtils,
-      logger: logger.sub('stack-utils')
-    })
-
-    const iot = this.iot = new Iot({
-      services: aws,
-      env
-    })
-
-    const messages = this.messages = new Messages({
-      logger: logger.sub('messages'),
-      get objects () { return tradle.objects },
-      get identities () { return tradle.identities },
-      get env () { return tradle.env },
-      // circular ref
-      get db() { return tradle.db },
+      db,
+      identities,
+      iot,
+      messages,
+      objects,
+      tasks,
+      modelStore,
     })
 
     const events = this.events = new Events({
@@ -302,20 +316,6 @@ export default class Tradle {
       dbUtils,
       logger: logger.sub('events'),
       db
-    })
-
-    const auth = this.auth = new Auth({
-      env,
-      uploadFolder: this.serviceMap.Bucket.FileUpload,
-      logger: this.logger.sub('auth'),
-      get aws() { return tradle.aws },
-      get db() { return tradle.db },
-      get identities() { return tradle.identities },
-      get iot() { return tradle.iot },
-      get messages() { return tradle.messages },
-      get objects() { return tradle.objects },
-      get tasks() { return tradle.tasks },
-      get modelStore() { return tradle.modelStore },
     })
 
     this.define('init', './init', this.construct)

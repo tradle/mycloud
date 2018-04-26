@@ -78,8 +78,6 @@ export = function createDB ({
   dbUtils,
   messages
 }: DBOpts) {
-  let messagesModule
-
   const { docClient, dynamodb } = aws
   dynogels.dynamoDriver(dynamodb)
 

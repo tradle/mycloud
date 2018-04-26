@@ -90,11 +90,7 @@ type MessagesOpts = {
 }
 
 export default class Messages {
-  private components: MessagesOpts
-
-  constructor (components: MessagesOpts) {
-    this.components = components
-  }
+  constructor (private components: MessagesOpts) {}
 
   // lazy load
   get logger() {
