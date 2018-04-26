@@ -69,7 +69,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
     // kind of shame to do this every time
     // but otherwise we need to lookup whether we have an error or not beforehand
-    await this.deleteError(recipient)
+    await this.deleteError({ counterparty: recipient })
 
     // await tryUntilTimeRunsOut(() => post(endpoint, payload, { headers }), {
     //   env: this.env,
@@ -159,7 +159,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
   }
 
   public deleteError = async (deliveryErr) => {
-    await this.db.del(deliveryErr)
+    await this.db.del({
+      [TYPE]: DELIVERY_ERROR,
+      ...deliveryErr
+    })
   }
 
   public getRangeFromError = ({ time }):IDeliveryMessageRange => ({
