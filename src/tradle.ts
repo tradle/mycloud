@@ -234,9 +234,9 @@ export default class Tradle {
 
     const messages = this.messages = new Messages({
       logger: logger.sub('messages'),
-      get objects () { return tradle.objects },
-      get identities () { return tradle.identities },
-      get env () { return tradle.env },
+      objects,
+      env,
+      identities,
       // circular ref
       get db() { return tradle.db },
     })
