@@ -1,6 +1,7 @@
 // const Cache = require('lru-cache')
 import { EventEmitter } from 'events'
-import { omit, extend, pick } from 'lodash'
+import _ from 'lodash'
+import { FindOpts } from '@tradle/dynamodb'
 import { TYPE } from '@tradle/constants'
 import { getUpdateParams } from '../db-utils'
 import Errors from '../errors'
@@ -17,12 +18,12 @@ export = function createUsers ({ bot }: { bot: Bot }) {
 
   // const cache = new Cache({ max: 200 })
   const fromDBFormat = user => ({
-    ...omit(user, [PRIMARY_KEY, TYPE]),
+    ..._.omit(user, [PRIMARY_KEY, TYPE]),
     id: user[PRIMARY_KEY]
   })
 
   const toDBFormat = user => ({
-    ...omit(user, MAPPED_PRIMARY_KEY),
+    ..._.omit(user, MAPPED_PRIMARY_KEY),
     [TYPE]: USER,
     uid: user[MAPPED_PRIMARY_KEY]
   })
@@ -70,11 +71,25 @@ export = function createUsers ({ bot }: { bot: Bot }) {
     return fromDBFormat(stored)
   }
 
-  return extend(ee, {
+  const list = async (opts: FindOpts) => {
+    const { items } = await db.find(_.merge({
+      allowScan: true,
+      filter: {
+        EQ: {
+          [TYPE]: USER
+        }
+      }
+    }, opts))
+
+    return items.map(fromDBFormat)
+  }
+
+  return _.extend(ee, {
     get,
     createIfNotExists,
     save,
     del,
-    merge
+    merge,
+    list
   })
 }

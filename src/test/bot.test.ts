@@ -24,7 +24,6 @@ const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
 // const apiGatewayEvent = require('./fixtures/events/api-gateway')
-const UsersTableLogicalId = 'UsersTable'
 const rethrow = err => {
   if (err) throw err
 }
@@ -89,13 +88,13 @@ test(`users `, loudAsync(async (t) => {
 
   t.same(await promiseOnCreate, { user })
   t.same(await users.get(user.id), user, '2nd create does not clobber')
-  // t.same(await users.list(), [user], 'list')
+  t.same(await users.list(), [user], 'list')
 
   user.name = 'bob'
   t.same(await users.merge(user), user, 'merge')
   t.same(await users.get(user.id), user, 'get after merge')
   t.same(await users.del(user.id), user, 'delete')
-  // t.same(await users.list(), [], 'list')
+  t.same(await users.list(), [], 'list')
   t.end()
 }))
 

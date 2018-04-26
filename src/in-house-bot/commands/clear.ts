@@ -1,9 +1,9 @@
 import parse from 'yargs-parser'
 import { ICommand } from '../types'
 import {
-  clearTables,
   clearTypes,
-  clearUsersTable,
+  // clearTables,
+  clearUsers,
   clearApplications
 } from '../murder'
 
@@ -13,7 +13,6 @@ export const command:ICommand = {
   examples: [
     '/delete-forever-with-no-undo --applications',
     '/delete-forever-with-no-undo --types "a,b,c"',
-    '/delete-forever-with-no-undo --tables "a,b,c"',
     '/delete-forever-with-no-undo --users'
   ],
   parseOpts: {
@@ -50,12 +49,12 @@ export const command:ICommand = {
       results.types = await clearTypes({ bot, types })
     }
 
-    if (tables) {
-      results.tables = await clearTables({ bot, tables })
-    }
+    // if (tables) {
+    //   results.tables = await clearTables({ bot, tables })
+    // }
 
     if (users) {
-      results.users = await clearUsersTable({ bot })
+      results.users = await clearUsers({ bot })
     }
 
     return results

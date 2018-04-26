@@ -1,3 +1,5 @@
+// @ts-ignore
+import Promise from 'bluebird'
 import _ from 'lodash'
 import AWS from 'aws-sdk'
 import {
@@ -15,7 +17,8 @@ import {
   isPromise,
   seriesMap,
   bindAll,
-  summarizeObject
+  summarizeObject,
+  promiseNoop
 } from './utils'
 import { getLinks, randomString } from './crypto'
 import { prettify } from './string-utils'
@@ -47,6 +50,7 @@ const SEAL_STATE_TYPE = 'tradle.SealState'
 const RESEAL_ENABLED = false
 const DEFAULT_WRITE_GRACE_PERIOD = 6 * 3600 * 1000
 const TIMESTAMP_MULTIPLIER = 1 // 1e3 // milli -> micro
+const SYNC_BATCH_SIZE = 10
 const acceptAll = val => true
 const timestamp = () => Date.now()
 
@@ -114,6 +118,10 @@ interface ISealInfo {
 
 interface ILimitOpts {
   limit?: number
+}
+
+interface SyncOpts extends ILimitOpts {
+  onProgress?: (seals:Seal[]) => Promise<any>
 }
 
 export interface IFailureQueryOpts extends ILimitOpts {
@@ -580,8 +588,7 @@ export default class Seals {
     return seals
   }
 
-  private _syncUnconfirmed = async (opts: ILimitOpts = {}):Promise<Seal[]> => {
-    const changed:Seal[] = []
+  private _syncUnconfirmed = async (opts: SyncOpts = {}):Promise<Seal[]> => {
     const { blockchain, getUnconfirmed, network, table } = this
     // start making whatever connections
     // are necessary
@@ -590,10 +597,19 @@ export default class Seals {
     const unconfirmed = await getUnconfirmed(opts)
     if (!unconfirmed.length) {
       this.logger.info(`no unconfirmed transactions`)
-      return changed
+      return []
     }
 
+    const batches = _.chunk(unconfirmed, SYNC_BATCH_SIZE)
+    const results = await Promise.mapSeries(batches, batch => this._syncUnconfirmedBatch(batch, opts))
+    return _.flatten(results)
+  }
+
+  private _syncUnconfirmedBatch = async (unconfirmed:Seal[], opts: SyncOpts) => {
+    const { onProgress=promiseNoop } = opts
+    const changed:Seal[] = []
     const addresses = unconfirmed.map(({ address }) => address)
+    const { blockchain, network } = this
     const txInfos:ITxInfo[] = await blockchain.getTxsForAddresses(addresses)
     if (!txInfos.length) return changed
 
@@ -654,7 +670,8 @@ export default class Seals {
 
     await Promise.all([
       updateSeals,
-      updateObjectsAndDB
+      updateObjectsAndDB,
+      onProgress(changed)
     ])
 
     return changed

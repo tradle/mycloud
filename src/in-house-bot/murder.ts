@@ -1,4 +1,6 @@
-import { pick, } from 'lodash'
+// @ts-ignore
+import Promise from 'bluebird'
+import { pick } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { wait } from '../utils'
 import {
@@ -6,13 +8,12 @@ import {
 } from './types'
 
 const accept = (...args:any[]) => Promise.resolve(true)
+
 export const NOT_CLEARABLE = [
-  'pubkeys',
-  'presence',
-  'events',
-  'seals',
-  'friends'
+  'events'
 ]
+
+const BATCH_SIZE = 50
 
 export const clearApplications = async ({ bot, confirm=accept }: {
   bot: Bot
@@ -44,49 +45,42 @@ export const clearApplications = async ({ bot, confirm=accept }: {
   if (!ok) return
 
   const deleteCounts = await clearTypes({ bot, types })
-  const users = await clearUsersTable({ bot })
+  const users = await clearUsers({ bot })
   return {
     users,
     rest: deleteCounts
   }
 }
 
-export const clearUsersTable = async ({ bot }: {
+export const clearUsers = async ({ bot }: {
   bot: Bot
 }) => {
   bot.ensureDevStage()
 
-  const { dbUtils } = bot
-  const { definitions } = dbUtils
-  const { TableName } = definitions.UsersTable.Properties
-  const { KeySchema } = await dbUtils.getTableDefinition(TableName)
-  const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
   const result = {
     deleted: [],
     cleaned: []
   }
 
-  await dbUtils.batchProcess({
-    batchSize: 20,
-    params: {
-      TableName
-    },
-    processOne: async (item) => {
-      if (item.friend) {
-        result.cleaned.push(pick(item, keyProps))
-        await dbUtils.put({
-          TableName,
-          Item: pick(item, keyProps.concat(['friend', 'identity']))
-        })
+  let users
+  do {
+    users = await bot.users.list({
+      limit: BATCH_SIZE
+    })
 
+    await Promise.map(users, async (user) => {
+      if (!user.friend) {
+        result.deleted.push(user.id)
+        await bot.users.del(user.id)
         return
       }
 
-      const Key = pick(item, keyProps)
-      await dbUtils.del({ TableName, Key })
-      result.deleted.push(Key)
-    }
-  })
+      result.cleaned.push(user.id)
+      user = pick(user, ['id', 'friend', 'identity'])
+      await bot.users.save(user)
+      return
+    })
+  } while (users.length)
 
   return result
 }
@@ -175,12 +169,7 @@ export const clearTables = async ({ bot, tables }: {
 
   const counts:any = {}
   tables = tables.map(bot.getStackResourceName)
-
   for (const table of tables) {
-    if (/-users$/.test(table)) {
-      counts.users = await clearUsersTable({ bot })
-    }
-
     counts[table] = await bot.dbUtils.clear(table)
   }
 

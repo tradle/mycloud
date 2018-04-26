@@ -14,7 +14,7 @@ const argv = require('minimist')(process.argv.slice(2), {
 })
 
 import { loadCredentials } from '../cli/utils'
-import { clearApplications, clearTypes, clearUsersTable } from '../in-house-bot/murder'
+import { clearApplications, clearTypes } from '../in-house-bot/murder'
 
 loadCredentials()
 

@@ -843,7 +843,7 @@ export function batchByByteLength (arr:Array<string|Buffer>, max) {
 }
 
 export const RESOLVED_PROMISE = Promise.resolve()
-export const promiseNoop = () => RESOLVED_PROMISE
+export const promiseNoop = (...args:any[]) => RESOLVED_PROMISE
 export const identityPromise:<T>(val:T) => Promise<T> = val => Promise.resolve(val)
 
 export function defineGetter (obj, property, get) {
