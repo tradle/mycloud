@@ -395,7 +395,7 @@ export default class Messaging {
   private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
     const { messages, recipient, friend } = opts
     if (friend) {
-      const delivered = this._deliverPreviouslyUndelivered(opts)
+      const delivered = await this._deliverPreviouslyUndelivered(opts)
       if (delivered) return
     }
 
@@ -411,7 +411,7 @@ export default class Messaging {
 
     let deliveryError
     try {
-      deliveryError = this.delivery.http.getError(recipient)
+      deliveryError = await this.delivery.http.getError(recipient)
     } catch (err) {
       Errors.ignoreNotFound(err)
       return false
