@@ -1,19 +1,31 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import { pick } from 'lodash'
+import { pick, chunk } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { wait } from '../utils'
+import Errors from '../errors'
+import { getPrimaryKeysProperties } from '../bot/resource'
 import {
   Bot
 } from './types'
 
 const accept = (...args:any[]) => Promise.resolve(true)
 
-export const NOT_CLEARABLE = [
+export const NOT_CLEARABLE_TABLES = [
   'events'
 ]
 
+export const NOT_CLEARABLE_TYPES = [
+  'tradle.PubKey',
+  'tradle.Identity',
+  'tradle.products.Customer'
+]
+
 const BATCH_SIZE = 50
+const THROTTLING_ERRORS = [
+  { code: 'LimitExceededException' },
+  { code: 'ProvisionedThroughputExceededException' }
+]
 
 export const clearApplications = async ({ bot, confirm=accept }: {
   bot: Bot
@@ -25,6 +37,8 @@ export const clearApplications = async ({ bot, confirm=accept }: {
 
   const { definitions } = dbUtils
   const modelsToDelete = Object.keys(models).filter(id => {
+    if (NOT_CLEARABLE_TYPES.includes(id)) return
+
     const model = models[id]
     if (id === 'tradle.Application' ||
         id === 'tradle.AssignRelationshipManager' ||
@@ -85,69 +99,72 @@ export const clearUsers = async ({ bot }: {
   return result
 }
 
-export const clearTypes = async({ bot, types }: {
+export const clearTypes = async ({ bot, types }: {
   bot: Bot
   types: string[]
 }) => {
   bot.ensureDevStage()
 
-  const { dbUtils } = bot
-  const { getModelMap, clear } = dbUtils
-  const modelMap = getModelMap({ types })
+  const typeBatches = chunk(types, 10)
+  const { db } = bot
+  const deleteCounts = {}
+  const deleteResource = async (item) => {
+    const type = item[TYPE]
+    while (true) {
+      try {
+        bot.logger.debug(`deleting ${type}`, item)
+        await db.del(item)
+        break
+      } catch (err) {
+        if (Errors.isNotFound(err)) {
+          return
+        }
 
-  let deleteCounts = {}
-  const buckets = []
-  types.forEach(id => {
-    const bucketName = modelMap.models[id]
-    if (!buckets.includes(bucketName)) {
-      buckets.push(bucketName)
+        if (Errors.matches(err, THROTTLING_ERRORS)) {
+          let millis = 1000
+          bot.logger.warn(`throttled on delete, will retry after ${millis}ms`, err.name)
+          await wait(millis)
+        }
+
+        throw err
+      }
     }
-  })
+  }
 
-  console.log('deleting items from buckets:', buckets.join(', '))
-  await Promise.all(buckets.map(async (TableName) => {
-    const { KeySchema } = await dbUtils.getTableDefinition(TableName)
-    const keyProps = KeySchema.map(({ AttributeName }) => AttributeName)
-    const processOne = async (item) => {
-      const type = item[TYPE]
-      if (!types.includes(item[TYPE])) return
-
-      const Key = pick(item, keyProps)
-      while (true) {
-        try {
-          console.log('deleting item', Key, 'from', TableName)
-          await dbUtils.del({ TableName, Key })
-          break
-        } catch (err) {
-          const { name } = err
-          if (!(name === 'ResourceNotFoundException' ||
-            name === 'LimitExceededException' ||
-            name === 'ProvisionedThroughputExceededException')) {
-            throw err
+  await Promise.map(types, async (type) => {
+    const model = bot.models[type]
+    const keyProps = getPrimaryKeysProperties(model)
+    let batch
+    let count = 0
+    do {
+      try {
+        batch = await db.find({
+          allowScan: true,
+          select: keyProps,
+          filter: {
+            EQ: {
+              [TYPE]: type
+            }
           }
-
-          await wait(1000)
-          console.log('failed to delete item, will retry', err.name)
+        })
+      } catch (err) {
+        if (Errors.matches(err, THROTTLING_ERRORS)) {
+          let millis = Math.floor(30000 * Math.random())
+          bot.logger.warn(`throttled, backing off ${millis}ms`)
+          await wait(millis)
+        } else {
+          throw err
         }
       }
 
-      if (!deleteCounts[TableName]) {
-        deleteCounts[TableName] = {}
-      }
+      await Promise.map(batch.items, deleteResource)
+      count += batch.items.length
+    } while (batch.items.length)
 
-      if (deleteCounts[TableName][type]) {
-        deleteCounts[TableName][type]++
-      } else {
-        deleteCounts[TableName][type] = 1
-      }
-    }
-
-    await dbUtils.batchProcess({
-      batchSize: 20,
-      params: { TableName },
-      processOne
-    })
-  }))
+    if (count) deleteCounts[type] = count
+  }, {
+    concurrency: 10
+  })
 
   return deleteCounts
 }
@@ -159,7 +176,7 @@ export const clearTables = async ({ bot, tables }: {
   bot.ensureDevStage()
   if (!(tables && tables.length)) return
 
-  const notAllowed = NOT_CLEARABLE.filter(shortName => {
+  const notAllowed = NOT_CLEARABLE_TABLES.filter(shortName => {
     return tables.find(table => table.endsWith(shortName))
   })
 

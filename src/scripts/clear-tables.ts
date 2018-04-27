@@ -3,7 +3,7 @@
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 import { loadCredentials } from '../cli/utils'
-import { NOT_CLEARABLE, clearTables } from '../in-house-bot/murder'
+import { NOT_CLEARABLE_TABLES, clearTables } from '../in-house-bot/murder'
 
 loadCredentials()
 
@@ -26,7 +26,7 @@ const getTablesToClear = async (tables=process.argv.slice(2)) => {
   } else {
     tables = await listTables(env)
     tables = tables.filter(name => {
-      return !NOT_CLEARABLE.find(skippable => env.SERVERLESS_PREFIX + skippable === name)
+      return !NOT_CLEARABLE_TABLES.find(skippable => env.SERVERLESS_PREFIX + skippable === name)
     })
   }
 

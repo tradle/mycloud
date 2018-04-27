@@ -373,6 +373,8 @@ export class Resource extends EventEmitter {
   public toDynamoUpdate = () => DynamoUtils.createUpdateOptionsFromDiff(this.diff)
   public static toDynamoUpdate = diff => DynamoUtils.createUpdateOptionsFromDiff(diff)
 
+  public static getPrimary
+
   public version = () => {
     const { link, permalink } = this
     return this.set({
@@ -406,7 +408,11 @@ export const getPrimaryKeys = ({ models, model, resource }: {
 }) => {
   if (!model) model = models[resource[TYPE]]
 
-  return _.pick(resource, _.values(getPrimaryKeySchema(model)).concat(TYPE))
+  return _.pick(resource, getPrimaryKeysProperties(model))
+}
+
+export const getPrimaryKeysProperties = (model: Model) => {
+  return _.values(getPrimaryKeySchema(model)).concat(TYPE)
 }
 
 export const getKeyProps = (schema: IDBKey) => {
