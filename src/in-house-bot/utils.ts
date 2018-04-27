@@ -329,8 +329,14 @@ const hasApplication = (stubs, application) => {
   return stubs.find(stub => stub.statePermalink === application._permalink)
 }
 
+const judgedStatuses = [
+  'approved',
+  'denied'
+]
+
 export const isPendingApplication = ({ user, application }) => {
-  return hasApplication(user.applications || [], application)
+  return !judgedStatuses.includes(application.status) &&
+    hasApplication(user.applications || [], application)
 }
 
 export const getApplicationStatus = ({ user, application }) => {

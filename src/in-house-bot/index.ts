@@ -480,11 +480,16 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
 
 const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMethods => {
   const { bot, logger, conf, productsAPI, employeeManager, applications } = components
-  const { autoApprove } = conf.bot.products
+  const { autoApprove, approveAllEmployees } = conf.bot.products
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.draft) return
 
     if (!isPendingApplication({ user, application })) return
+    if (approveAllEmployees && application.requestFor === EMPLOYEE_ONBOARDING) {
+      // handled by bot-employee-manager
+      // yes...this is a bit confusing
+      return
+    }
 
     if (!autoApprove) {
       const results = await Promise.all([
