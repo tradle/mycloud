@@ -16,7 +16,8 @@ import {
   series,
   ensureTimestamped,
   ensureNoVirtualProps,
-  copyVirtual
+  copyVirtual,
+  summarizeObject
 } from './utils'
 
 import Errors from './errors'
@@ -217,6 +218,8 @@ export default class Messaging {
   // public only for testing purposes
   public _doReceiveMessage = async ({ message }):Promise<ITradleMessage> => {
     message = await this.normalizeAndValidateInboundMessage(message)
+
+    this.logger.debug('receiving message', summarizeObject(message))
 
     const saveToDB = !DB_IGNORE_PAYLOAD_TYPES.inbound.includes(message.object[TYPE])
     const tasks:Promise<any>[] = [

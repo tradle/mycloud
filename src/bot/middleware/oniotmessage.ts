@@ -4,6 +4,7 @@ import IotMessage from '@tradle/iot-message'
 import { Lambda } from '../../types'
 import { fromDynamoDB } from '../lambda'
 import Errors from '../../errors'
+import { summarizeObject } from '../../utils'
 
 const notNull = val => !!val
 
@@ -52,7 +53,7 @@ export const createSuccessHandler = (lambda:Lambda, opts) => {
   const { logger, delivery } = lambda.bot
   return async ({ clientId, message }) => {
     await delivery.mqtt.ack({ clientId, message })
-    logger.debug('received valid message from user')
+    logger.debug('acked message', summarizeObject(message))
   }
 }
 

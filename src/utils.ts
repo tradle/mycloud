@@ -931,8 +931,13 @@ export const summarizeObject = object => {
     type: object[TYPE]
   }
 
+  if (object._author) {
+    summary.author = object._author
+  }
+
   if (object[TYPE] === 'tradle.Message') {
     summary.payload = summarizeObject(object.object)
+    delete summary.permalink // messages are not versioned
   }
 
   return summary
