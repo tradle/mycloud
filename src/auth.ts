@@ -1,3 +1,4 @@
+import pick from 'lodash/pick'
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
@@ -183,7 +184,7 @@ export default class Auth {
       throw new NotFound('no authenticated sessions found')
     }
 
-    this.logger.debug('latest authenticated session', latest)
+    this.logger.debug('latest authenticated session', { user: permalink, dateConnected: latest.dateConnected })
     return latest
   }
 

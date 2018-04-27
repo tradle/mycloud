@@ -178,12 +178,13 @@ export default class Objects {
 
   public getWithRetry = async (link: string, opts: IRetryableTaskOpts) => {
     const task = new RetryableTask(opts)
+    this.logger.silly('getting with retry', link)
     return await task.run(() => this.bucket.getJSON(link))
   }
 
   public get = async (link: string):Promise<ITradleObject> => {
     typeforce(typeforce.String, link)
-    this.logger.debug('getting', link)
+    this.logger.silly('getting', link)
     return await this.bucket.getJSON(link)
   }
 
