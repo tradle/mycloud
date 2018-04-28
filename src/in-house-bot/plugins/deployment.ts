@@ -109,7 +109,7 @@ export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts)
       return
     }
 
-    productsAPI.sendSimpleMessage({
+    await productsAPI.sendSimpleMessage({
       req,
       to: user,
       message: `We've sent the respective link(s) to the designated AWS Admin (${adminEmail})`

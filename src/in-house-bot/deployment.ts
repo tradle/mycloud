@@ -150,7 +150,7 @@ export class Deployment {
 
   public genLaunchTemplate = async (configuration: IDeploymentOpts) => {
     const { stackUtils } = this.bot
-    this.logger.debug('generating cloudformation template with configuration', configuration)
+    this.logger.silly('generating cloudformation template with configuration', configuration)
     const { template, url } = await stackUtils.createPublicTemplate(template => {
       return this.customizeTemplateForLaunch({ template, configuration })
     })
