@@ -91,6 +91,7 @@ class ExportableError extends Error {
 }
 
 class HttpError extends ExportableError {
+  public name = 'HttpError'
   public status: number
   constructor(code, message) {
     super(message)
@@ -124,8 +125,13 @@ class CloudServiceError extends Error {
   }
 }
 
-class Duplicate extends ErrorWithLink {}
-class TimeTravel extends ErrorWithLink {}
+class Duplicate extends ErrorWithLink {
+  public name = 'DuplicateError'
+}
+
+class TimeTravel extends ErrorWithLink {
+  public name = 'TimeTravelError'
+}
 
 const exportError = (err:Error) => _.pick(err, ['message', 'stack', 'name', 'type'])
 
