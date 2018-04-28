@@ -41,19 +41,21 @@ test('update backlinks', loudAsync(async (t) => {
       signed: true
     })
 
+    v._time = 12345
     v.document._t = 'tradle.PhotoID'
     return v
   }
 
   const v = createFakeVerification()
   const blItems = backlinks.getForwardLinks(v)
-  const vStub = buildResource.stub({ resource: v })
+  const vStub = buildResource.stub({ models, resource: v })
   const old = {
     ...createFakeVerification(),
-    _permalink: v._permalink
+    _permalink: v._permalink,
+    _time: v._time - 1
   }
 
-  const oldVStub = buildResource.stub({ resource: old })
+  const oldVStub = buildResource.stub({ models, resource: old })
   const blChanges = getBacklinkChangesForChanges({
     models,
     changes: [
@@ -71,7 +73,8 @@ test('update backlinks', loudAsync(async (t) => {
         "source": vStub,
         "linkProp": "document",
         "backlinkProps": ["verifications"],
-        "target": v.document
+        "target": v.document,
+        "_time": v._time
       }
     ],
     "del": [
@@ -80,7 +83,8 @@ test('update backlinks', loudAsync(async (t) => {
         "source": oldVStub,
         "linkProp": "document",
         "backlinkProps": ["verifications"],
-        "target": old.document
+        "target": old.document,
+        "_time": old._time
       }
     ]
   })

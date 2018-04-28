@@ -325,6 +325,10 @@ export class Resource extends EventEmitter {
 
   public getForwardLinks = ():IBacklinkItem[] => {
     const { type, model, models, resource } = this
+    if (!resource._time) {
+      throw new Errors.InvalidInput(`expected "_time"`)
+    }
+
     // if (isUnsignedType(type)) return []
 
     const sourceStub = this.key

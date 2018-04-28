@@ -151,19 +151,17 @@ export default class Backlinks {
         return
       }
 
-      return buildResource({
-          models: this.models,
-          model: APPLICATION_SUBMISSION
-        })
-        .set({
-          application,
-          submission,
-          context
-        })
-        .setVirtual({
-          _time: submission._time
-        })
-        .toJSON()
+      const appSub = new Resource({
+        models: this.models,
+        type: APPLICATION_SUBMISSION
+      })
+
+      appSub.set({ application, submission, context })
+      if (submission._time) {
+        appSub.set({ _time: submission._time })
+      }
+
+      return appSub.toJSON()
     })
     .filter(_.identity)
 
