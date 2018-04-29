@@ -213,6 +213,7 @@ export default class Backlinks {
   }
 
   private _getApplicationsWithContexts = async (contexts:string[]) => {
+    this.logger.silly('searching for applications with contexts', contexts)
     const { items } = await this.db.find({
       // select: ['_link', '_permalink', 'context'],
       filter: {

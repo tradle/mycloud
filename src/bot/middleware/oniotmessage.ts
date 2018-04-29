@@ -63,7 +63,7 @@ export const createErrorHandler = (lambda:Lambda, opts) => {
     clientId,
     message,
     error?
-  }):Promise<any|void> => {
+  }):Promise<any> => {
     const progress = error && error.progress
     const ack = () => delivery.mqtt.ack({ clientId, message: message || progress })
     const reject = () => delivery.mqtt.reject({
@@ -72,7 +72,7 @@ export const createErrorHandler = (lambda:Lambda, opts) => {
       error
     })
 
-    logger.debug(`processing error in receive: ${error.name}`)
+    logger.debug(`processing error in receive`, error)
     if (error instanceof Errors.Duplicate) {
       logger.info('ignoring but acking duplicate message', {
         link: progress._link,
