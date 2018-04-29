@@ -1262,8 +1262,8 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
-        StreamSpecification:
-          StreamViewType: NEW_IMAGE
+        # StreamSpecification:
+        #   StreamViewType: NEW_IMAGE
           # StreamViewType: NEW_AND_OLD_IMAGES
 
     # PubKeysTable: ${{file(./conf/table/pubkeys.yml)}}
