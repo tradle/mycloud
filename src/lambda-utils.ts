@@ -30,7 +30,7 @@ export type WarmUpOpts = {
 }
 
 export const WARMUP_FUNCTION_SHORT_NAME = 'warmup'
-export const WARMUP_FUNCTION_DURATION = 5000
+export const WARMUP_FUNCTION_DURATION = 50 // = 5 seconds (unit is 100ms)
 
 export default class LambdaUtils {
   private env: Env
