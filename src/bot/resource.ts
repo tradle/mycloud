@@ -28,7 +28,8 @@ import {
   ResourceStub,
   Backlinks,
   IBacklinkItem,
-  Diff
+  Diff,
+  Logger
 } from '../types'
 
 import {
@@ -38,7 +39,8 @@ import {
   parseStub,
   getPermId,
   isPlainObject,
-  getPrimaryKeySchema
+  getPrimaryKeySchema,
+  pickNonNull
 } from '../utils'
 
 const {
@@ -56,6 +58,7 @@ export interface IResourcePersister {
   models: Models
   save: (resource: Resource) => Promise<any|void>
   sign: <T>(resource: T) => Promise<T>
+  logger?: Logger
 }
 
 type ExportResourceInput = {
@@ -95,6 +98,7 @@ export interface ResourceInput {
   type?: string
   resource?: any
   store?: IResourcePersister
+  logger?: Logger
 }
 
 export class Resource extends EventEmitter {
@@ -105,11 +109,14 @@ export class Resource extends EventEmitter {
   public diff: Diff
 
   private store?: IResourcePersister
+  private logger?: Logger
   private originalResource: any
   private _dirty: boolean
 
-  constructor({ models, model, type, resource={}, store }: ResourceInput) {
+  constructor({ models, model, type, resource={}, store, logger }: ResourceInput) {
     super()
+
+    this.logger = logger || (store && store.logger)
 
     if (store) {
       Object.defineProperty(this, 'models', {
@@ -326,7 +333,11 @@ export class Resource extends EventEmitter {
   public getForwardLinks = ():IBacklinkItem[] => {
     const { type, model, models, resource } = this
     if (!resource._time) {
-      throw new Errors.InvalidInput(`expected "_time"`)
+      const err = `missing _time: ${JSON.stringify(resource)}`
+      if (this.logger) this.logger.warn(err)
+      else console.warn(err)
+
+      // throw new Errors.InvalidInput(`expected "_time"`)
     }
 
     // if (isUnsignedType(type)) return []
@@ -358,14 +369,19 @@ export class Resource extends EventEmitter {
 
       // const sourceParsedStub = parseStub(sourceStub)
       // const targetParsedStub = parseStub(targetStub)
-      return {
+      const blItem:IBacklinkItem = {
         [TYPE]: 'tradle.BacklinkItem',
         source: this.stub,
         target: targetStub,
         linkProp,
-        backlinkProps,
-        _time: resource._time,
+        backlinkProps
       }
+
+      if (resource._time) {
+        blItem._time = resource._time
+      }
+
+      return blItem
     })
     .filter(_.identity)
     // .reduce((byProp, value) => {
@@ -528,7 +544,7 @@ export const getBacklinkProperties = ({
     .value()
 }
 
-export const getForwardLinks = ({ models, resource }) => new Resource({ models, resource }).getForwardLinks()
+export const getForwardLinks = opts => new Resource(opts).getForwardLinks()
 
 const ensurePlainObject = obj => {
   if (!isPlainObject(obj)) {

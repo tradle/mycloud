@@ -24,7 +24,7 @@ import {
 } from './types'
 
 import Errors from './errors'
-import { toPathValuePairs } from './utils'
+import { toPathValuePairs, ensureTimestamped } from './utils'
 import models from './models'
 
 const KVModel = models['tradle.POJO']
@@ -198,7 +198,7 @@ export default class KV implements IKeyValueStore {
 
   private _toItem = (key, value) => ({
     ...this.wrapKey(key),
-    ...value
+    ...ensureTimestamped(value)
   })
 
   private _getTable = async () => {

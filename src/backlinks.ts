@@ -98,7 +98,8 @@ export default class Backlinks {
   }
 
   public getForwardLinks = (resource):IBacklinkItem[] => {
-    return getForwardLinks({ models: this.models, resource })
+    const { logger, models } = this
+    return getForwardLinks({ logger, models, resource })
   }
 
   public fetchBacklinks = async ({ type, permalink, properties }: {
@@ -161,6 +162,8 @@ export default class Backlinks {
       appSub.set({ application, submission, context })
       if (submission._time) {
         appSub.set({ _time: submission._time })
+      } else {
+        this.logger.warn('missing _time', submission)
       }
 
       return appSub.toJSON()
@@ -204,8 +207,10 @@ export default class Backlinks {
   })
 
   public getBacklinksChanges = (rChanges: ISaveEventPayload[]):BacklinksChange => {
+    const { models, logger } = this
     return getBacklinkChangesForChanges({
-      models: this.models,
+      models,
+      logger,
       changes: rChanges
     })
   }
@@ -338,16 +343,17 @@ const concatKeysUniq = (...objs): string[] => {
   return Object.keys(keyMap)
 }
 
-export const getBacklinkChangesForChanges = ({ models, changes }: {
+export const getBacklinkChangesForChanges = ({ models, logger, changes }: {
   models: Models
   changes: ISaveEventPayload[]
+  logger?: Logger
 }) => {
   const forwardBefore = _.flatMap(changes, ({ value, old }) => {
-    return old ? getForwardLinks({ models, resource: old }) : []
+    return old ? getForwardLinks({ models, logger, resource: old }) : []
   })
 
   const forwardAfter = _.flatMap(changes, ({ value, old }) => {
-    return value ? getForwardLinks({ models, resource: value }) : []
+    return value ? getForwardLinks({ models, logger, resource: value }) : []
   })
 
   const fBeforeUids = forwardBefore.map(toUid)

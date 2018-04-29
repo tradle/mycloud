@@ -102,5 +102,6 @@ export const getResourceModuleStore = (bot: Bot) => ({
     // }
 
     return bot.save(resource.toJSON())
-  }
+  },
+  logger: bot.logger
 })

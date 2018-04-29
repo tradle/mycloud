@@ -2,7 +2,7 @@ import pick from 'lodash/pick'
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
-import { typeforce, defineGetter, ensureNoVirtualProps } from './utils'
+import { typeforce, defineGetter, ensureNoVirtualProps, ensureTimestamped } from './utils'
 import { prettify, isHex } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors from './errors'
@@ -116,7 +116,7 @@ export default class Auth {
     // return await this.tables.Presence.put({
     //   Item: session
     // })
-    await this.db.put(session)
+    await this.db.put(ensureTimestamped(session))
     return session
   }
 
