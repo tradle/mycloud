@@ -10,6 +10,7 @@ import { Level } from '../../logger'
 import { logResponseBody } from '../../utils'
 import { createGraphqlAPI, prettifyQuery } from '../graphql'
 import { Lambda, Middleware } from '../../types'
+import Errors from '../../errors'
 
 export const createHandler = (lambda:Lambda, opts:any={}):Middleware => {
   const { bot, logger } = lambda
@@ -51,7 +52,7 @@ export const createHandler = (lambda:Lambda, opts:any={}):Middleware => {
       get schema() { return api.schema },
       graphiql: api.graphiqlOptions,
       formatError: err => {
-        console.error('experienced error executing GraphQL query', err.stack)
+        console.error('experienced error executing GraphQL query', Errors.export(err))
         return formatError(err)
       }
     }
