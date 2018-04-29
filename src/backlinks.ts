@@ -1,4 +1,6 @@
 import _ from 'lodash'
+// @ts-ignore
+import Promise from 'bluebird'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
@@ -213,20 +215,22 @@ export default class Backlinks {
   }
 
   private _getApplicationsWithContexts = async (contexts:string[]) => {
+    // context is indexed, so N queries by EQ (with hashKey) are more efficient
+    // than an IN query that results in a scan
     this.logger.silly('searching for applications with contexts', contexts)
-    const { items } = await this.db.find({
+    return await Promise.map(contexts, this._getApplicationWithContext)
+  }
+
+  private _getApplicationWithContext = async (context:string) => {
+    return await this.db.findOne({
       // select: ['_link', '_permalink', 'context'],
       filter: {
         EQ: {
-          [TYPE]: APPLICATION
-        },
-        IN: {
-          context: contexts
+          [TYPE]: APPLICATION,
+          context
         }
       }
     })
-
-    return items
   }
 }
 
