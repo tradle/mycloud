@@ -39,7 +39,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Hot re-loading](#hot-re-loading)
   - [Logging](#logging)
 - [Destroy](#destroy)
-- [Troubleshooting](#troubleshooting)
+  - [[Deprecated] Destroy](#deprecated-destroy)
+- [Troubleshooting local deployment](#troubleshooting-local-deployment)
 - [Scripts](#scripts)
   - [npm run localstack:start](#npm-run-localstackstart)
   - [npm run localstack:stop](#npm-run-localstackstop)
@@ -208,7 +209,7 @@ aws s3 ls --endpoint http://localhost:4572
 If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json)
 
 ```sh
-echo '{"users":1,"products":["tradle.CurrentAccount"]}' | serverless invoke -f bot_samples
+echo '{"users":1,"products":["tradle.CurrentAccount"]}' | sls invoke -f bot_samples
 ```
 
 ## Deploy to AWS
@@ -246,7 +247,7 @@ See [tradleconf](https://github.com/tradle/configure-tradle), a command line too
 #### List deployed resources, API endpoints, ...
 
 ```sh
-npm run info # or run: serverless info
+npm run info # or run: sls info
 
 # Service Information
 # service: tradle
@@ -261,21 +262,23 @@ npm run info # or run: serverless info
 
 ## Development
 
-*Note: this project is transitioning to Typescript. If you're changing any `*.ts` files, or if you run `git pull` be sure you have `tsc -w` running to transpile to Javascript on the fly.*
+This project uses TypeScript, which compiles to JavaScript. If you're changing any `*.ts` files, or if you run `git pull` be sure you have `tsc -w` running on the command line, which will watch for changes and rebuild your sources.
 
 ### serverless.yml
 
 If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
 
-To override variables in the yml without picking a fight with git, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
+To override variables in the yml without picking a fight with `git`, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
+
+After modifying `vars.yml`, run `npm run build:yml`
 
 ### Testing
+
+Note: running tests messes with your locally emulated resources. After running tests, run `npm run reset:local` before running `npm start`
 
 ```sh
 # run tests on local resources
 npm run test
-# run an end-to-end test, which creates sample business data in the process
-npm run test:e2e
 # browse that data via graphql
 npm run test:graphqlserver
 # GraphiQL is at       http://localhost:21012
@@ -284,27 +287,30 @@ npm run test:graphqlserver
 
 ### Hot re-loading
 
-Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will hot-reload, which makes development that much sweeter.
+Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will be hot-reloaded, which makes development that much sweeter...but also slower. To disable hot-reloading, add this in `vars.yml`:
+
+```yaml
+serverless-offline:
+  # disable hot-reloading
+  skipCacheInvalidation: true
+  # copy these from default-vars.yml unless you want custom ones
+  host: ...
+  port: ...
+```
 
 ### Logging
 
-You can use the serverless cli:
-
-```sh
-sls logs -f bot_graphql --tail
-```
-
-Or, for convenience, there's a `tail`-ish script:
-
-```sh
-npm run tail -- {function-name} {minutes-ago}
-# e.g log the graphql lambda starting 5 minutes ago:
-npm run tail -- bot_graphql 5
-```
+Use [tradleconf](https://github.com/tradle/configure-tradle#logging)
 
 ## Destroy
 
 Sometimes you want to wipe the slate clean and start from scratch (usually by age 25 or so). The following command will wipe out all the AWS resources created in your deployment. Obviously, use with EXTREME caution, as this command executes with your AWS credentials (best use a separate account).
+
+To destroy your remote stack, resources, data, etc., use [tradleconf](https://github.com/tradle/configure-tradle#destroy)
+
+To destroy your local resources, use `npm run nuke:local`, or `npm run reset:local` to destroy + reinit
+
+### [Deprecated] Destroy
 
 ```sh
 npm run nuke
@@ -312,7 +318,9 @@ npm run nuke
 # ensuring you're committed to the destruction of all that is holy
 ```
 
-## Troubleshooting
+## Troubleshooting local deployment
+
+Note: this is ONLY for troubleshooting your local development environment and NOT your remote deployment
 
 **Symptom**:
 
@@ -321,10 +329,10 @@ npm run nuke
 # ...
 ```
 
-**Cause**: `localstack` is not up. 
+**Cause**: `localstack` is not up.  
 **Fix**: `npm run localstack:start`  
 
-**Symptom**:
+**Symptom 1**:
 
 ```sh
 # ResourceNotFoundException: Cannot do operations on a non-existent table
@@ -334,25 +342,35 @@ npm run nuke
 **Cause**: you haven't generated local resources (tables, buckets, etc.)  
 **Fix**: run `npm run gen:localresources`  
 
-**Symptom**: tests fail, you don't know why
-**Cause**: to be determined
+**Symptom 2**:
+
+```sh
+...bucket does not exist
+```
+
+**Cause**: you probably ran tests, which f'd up your local resources
+**Fix**: `npm run reset:local`
+
+**Symptom**: tests fail, you don't know why  
+**Cause**: to be determined  
 **Fix**: `npm run reset:local # delete + regen local resources (tables, buckets, etc.)`
 
-**Symptom**: 
+**Symptom 3**:  
 
 ```sh
 Serverless command "<some command>" not found
 ```
 
-**Cause**: your `serverless.yml` is corrupted. `build:yml` probably failed the last time you ran it. Fix: fix `serverless-uncompiled.yml`, make sure `build:yml` completes successfully before retrying
+**Cause**: your `serverless.yml` is corrupted. `build:yml` probably failed the last time you ran it.  
+**Fix**: fix `serverless-uncompiled.yml`, make sure `build:yml` completes successfully before retrying
 
-**Symptom**:
+**Symptom 4**:
 
 ```sh
-still haven't connected to local Iot broker!
+still havent connected to local Iot broker!
 ```
 
-**Cause**: to be determined  
+**Cause**: something in `redis` upsets `mosca`, but what exactly is TBD
 **Fix**: `npm run fix:redis`
 
 ## Scripts
@@ -401,9 +419,9 @@ starts up GraphiQL for querying remote data
 
 ### warmup
 
-- warm up all functions with: `serverless warmup run`
-- warm up a subset of functions with `serverless warmup run -f [function1] -f [function2] -c [concurrency]`
-- estimate cost of warm ups: `serverless warmup cost`
+- warm up all functions with: `sls warmup run`
+- warm up a subset of functions with `sls warmup run -f [function1] -f [function2] -c [concurrency]`
+- estimate cost of warm ups: `sls warmup cost`
 
 ## Project Architecture
 
