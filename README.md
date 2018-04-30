@@ -309,37 +309,46 @@ npm run nuke
 
 ## Troubleshooting
 
-Symptom:
+**Symptom**:
 
 ```sh
 # Error: connect ECONNREFUSED 127.0.0.1:4569
 # ...
 ```
 
-Cause: `localstack` is not up. 
-Fix: `npm run localstack:start`  
+**Cause**: `localstack` is not up. 
+**Fix**: `npm run localstack:start`  
 
-Symptom:
+**Symptom**:
 
 ```sh
 # ResourceNotFoundException: Cannot do operations on a non-existent table
 # ...
 ```
 
-Cause: you haven't generated local resources (tables, buckets, etc.)  
-Fix: run `npm run gen:localresources`  
+**Cause**: you haven't generated local resources (tables, buckets, etc.)  
+**Fix**: run `npm run gen:localresources`  
 
-Symptom: tests fail, you don't know why
-Cause: to be determined
-Fix: `npm run reset:local # delete + regen local resources (tables, buckets, etc.)`
+**Symptom**: tests fail, you don't know why
+**Cause**: to be determined
+**Fix**: `npm run reset:local # delete + regen local resources (tables, buckets, etc.)`
 
-Symptom: 
+**Symptom**: 
 
 ```sh
 Serverless command "<some command>" not found
 ```
 
-Cause: your `serverless.yml` is corrupted. `build:yml` probably failed the last time you ran it. Fix: fix `serverless-uncompiled.yml`, make sure `build:yml` completes successfully before retrying
+**Cause**: your `serverless.yml` is corrupted. `build:yml` probably failed the last time you ran it. Fix: fix `serverless-uncompiled.yml`, make sure `build:yml` completes successfully before retrying
+
+**Symptom**:
+
+```sh
+still haven't connected to local Iot broker!
+```
+
+**Cause**: to be determined  
+**Fix**: `npm run fix:redis`
 
 ## Scripts
 
