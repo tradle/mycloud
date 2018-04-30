@@ -18,7 +18,7 @@ import { getParsedFormStubs } from '../utils'
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
-const FORM_ID = 'tradle.BusinessInformation'
+const FORM_ID = 'tradle.legal.LegalEntity'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 // const formPropsMap = {
 //   'tradle.BusinessInformation': {
@@ -35,6 +35,7 @@ interface IComplyAdvantageConf {
   fuzziness?: number
   filter?: IComplyAdvantageFilter
   entity_type?: string
+  products: any
   credentials: IComplyAdvantageCredentials
 }
 interface IComplyAdvantageFilter {
@@ -66,13 +67,15 @@ class ComplyAdvantageAPI {
   async getData(resource, conf, searchProperties, criteria, application) {
     let { companyName, registrationDate} = searchProperties //conf.propertyMap //[resource[TYPE]]
     let search_term = criteria  &&  criteria.search_term || companyName
+    let year = new Date(registrationDate).getFullYear()
     let body:any = {
       search_term,
       fuzziness: criteria  &&  criteria.fuzziness  ||  1,
       share_url: 1,
+      client_ref: search_term.replace(' ', '_') + year,
       filters: {
         types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction'],
-        birth_year: new Date(registrationDate).getFullYear()
+        birth_year: year
       }
     }
     body = JSON.stringify(body)
@@ -99,7 +102,7 @@ class ComplyAdvantageAPI {
 
       return { resource, status, rawData: {}, hits: [] };
     }
-debugger
+// debugger
 
     // if (json.status !== 'success') {
     //   // need to request again
@@ -125,7 +128,7 @@ debugger
   }
 
   async createSanctionsCheck({ application, rawData, status }: IComplyCheck) {
-    debugger
+    // debugger
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
@@ -170,6 +173,42 @@ debugger
 
     await this.applications.createVerification({ application, verification })
   }
+  async getCheckParameters (resource, productId, application) {
+    let propertyMap = this.conf.products[productId].propertyMap
+    let dbRes = resource._prevlink  &&  await this.bot.objects.get(resource._prevlink)
+    let runCheck, companyName, registrationDate
+    for (let formId in propertyMap) {
+      let map = propertyMap[formId]
+      if (formId !== FORM_ID) {
+        debugger
+        let formStubs = getParsedFormStubs(application).filter(f => f.type === FORM_ID)
+
+        if (!formStubs.length) {
+          this.logger.debug(`No form ${formId} was found for ${productId}`)
+          return
+        }
+        let { link } = formStubs[0]
+        resource = await this.bot.objects.get(link)
+      }
+      let companyNameProp = map.companyName
+      if (companyNameProp) {
+        companyName = resource[companyNameProp]
+        if (dbRes  &&  dbRes[companyNameProp] !== companyName)
+          runCheck = true
+      }
+      let registrationDateProp = map.registrationDate
+      if (registrationDateProp) {
+        registrationDate = resource[registrationDateProp]
+        if (dbRes  &&  dbRes[registrationDateProp] !== registrationDate)
+          runCheck = true
+      }
+    }
+    if (runCheck)
+      return {companyName, registrationDate}
+    else
+      this.logger.debug(`nothing changed for: ${companyName}`)
+  }
+
 }
 // {conf, bot, productsAPI, logger}
 export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications }, { conf, logger }) => {
@@ -177,7 +216,6 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
   const complyAdvantage = new ComplyAdvantageAPI({ bot, productsAPI, applications, conf, logger })
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req: IPBReq) {
-      debugger
       if (req.skipChecks) return
 
       const { user, application, applicant, payload } = req
@@ -189,61 +227,23 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       if (!products  ||  !products[productId]  ||  !products[productId].propertyMap)
         return
 
-      let propertyMap = products[productId].propertyMap
+      // let propertyMap = products[productId].propertyMap
       let criteria = products[productId].filter
-      let companyName, registrationDate
+      // let companyName, registrationDate
       let resource = payload
-      for (let formId in propertyMap) {
-        let map = propertyMap[formId]
-        if (formId !== FORM_ID) {
-          let formStubs = getParsedFormStubs(application)
-            .filter(f => f.type === FORM_ID)
 
-          if (!formStubs.length) {
-            logger.debug(`No form ${formId} was found for ${productId}`)
-            return
-          }
-          let { link } = formStubs[0]
-          resource = await bot.objects.get(link)
-        }
-        let companyNameProp = map.companyName
-        if (companyNameProp)
-          companyName = resource[companyNameProp]
-        let registrationDateProp = map.registrationDate
-        if (registrationDateProp)
-          registrationDate = resource[registrationDateProp]
-      }
+      // debugger
+      let params = await complyAdvantage.getCheckParameters(resource, productId, application)
+      if (!params)
+        return
+      let { companyName, registrationDate } = params
       logger.debug(`running sanctions plugin for: ${companyName}`);
-
-      // let { companyName='companyName', registrationDate='registrationDate'} = formConf.propertyMap
-      // if (!companyName  ||  !registrationDate) {
-      //   companyName = 'companyName'
-      //   registrationDate = 'registrationDate'
-      //   products[productId][FORM_ID] = {companyName, registrationDate}
-      //   // logger.debug(`running sanctions plugin. No property map was found for: ${payload[TYPE]}`);
-      //   // return
-      // }
 
       if (!companyName  ||  !registrationDate) {
         logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
         return
       }
 
-
-      // debugger
-      //
-      // let formStubs = application.forms && application.forms.filter((f) => {
-      //   return f.id.indexOf(FORM_ID) !== -1
-      // })
-      // if (!formStubs  ||  !formStubs.length)
-      //   return
-      // let promises = formStubs.map((f) => {
-      //   let link = f.id.split('_')[2]
-      //   return bot.objects.get(link)
-      // })
-      // let forms = await Promise.all(promises)
-      // if (!forms  ||  !forms.length)
-      //   return
       let forms = [payload]
       let pforms = forms.map((f) => complyAdvantage.getData(f, conf, {companyName, registrationDate}, criteria, application))
 

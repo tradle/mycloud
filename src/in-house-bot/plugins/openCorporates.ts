@@ -8,7 +8,7 @@ const utils_1 = require("../utils");
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
-const FORM_ID = 'tradle.BusinessInformation'
+const FORM_ID = 'tradle.legal.LegalEntity';
 const OPEN_CORPORATES = 'Open Corporates'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 
@@ -43,28 +43,26 @@ const test = {
 
 class OpenCorporatesAPI {
   private bot:Bot
-  private productsAPI:any
   private logger:Logger
   private applications: Applications
-  constructor({ bot, productsAPI, applications, logger }) {
+  constructor({ bot, applications, logger }) {
     this.bot = bot
-    this.productsAPI = productsAPI
     this.applications = applications
     this.logger = logger
   }
   async _fetch(resource, application) {
     let { registrationNumber, registrationDate, region, country, companyName } = resource
     let url = `${BASE_URL}companies/search?q=` + companyName.replace(' ', '+')
-    // let json = test
-    let json
-    try {
-      let res = await fetch(url)
-      json = await res.json()
-    } catch (err) {
-      let message = `Check was not completed for "${companyName}": ${err.message}`
-      this.logger.debug('Search by company name', err)
-      return { resource, rawData: {}, message, hits: [], url }
-    }
+    let json = test
+    // let json
+    // try {
+    //   let res = await fetch(url)
+    //   json = await res.json()
+    // } catch (err) {
+    //   let message = `Check was not completed for "${companyName}": ${err.message}`
+    //   this.logger.debug('Search by company name', err)
+    //   return { resource, rawData: {}, message, hits: [], url }
+    // }
     if (!json.results) {
       let message = `No matches for company name "${companyName}" were found`
       return { resource, rawData: json, hits: [], message, url }
@@ -147,7 +145,6 @@ class OpenCorporatesAPI {
     else if (rawData)
       resource.rawData = rawData
 
-    if (!application.checks) application.checks = []
     const check = await this.bot.signAndSave(resource)
   }
 
@@ -193,13 +190,10 @@ class OpenCorporatesAPI {
       await Promise.all(ocChecks)
   }
 }
-export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, applications }, { logger, conf }) => {
-  const openCorporates = new OpenCorporatesAPI({ bot, productsAPI, applications, logger })
+export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
+  const openCorporates = new OpenCorporatesAPI({ bot, applications, logger })
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req) {
-      // let doReturn = true
-      // if (doReturn)
-      //   return
       if (req.skipChecks) return
 
       const { user, application, payload } = req
@@ -211,23 +205,30 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI, application
         return
 
       // debugger
-
-      // let formStubs = application.forms && application.forms.filter((f) => {
-      //   return f.id.indexOf(FORM_ID) !== -1
-      // })
-      // if (!formStubs  ||  !formStubs.length)
-      //   return
-      // let promises = formStubs.map((f) => {
-      //   let link = f.id.split('_')[2]
-      //   return bot.objects.get(link)
-      // })
-      // let forms = await Promise.all(promises)
-      // if (!forms  ||  !forms.length)
-      //   return
       let forms = [payload]
-      let pforms = forms.map((f) => openCorporates._fetch(f, application))
+      let promises = []
+      for (let i=0; i<forms.length; i++) {
+        let form = forms[i]
+        let { registrationNumber, registrationDate, region, country, companyName } = form
+        if (form._prevlink) {
+          let dbRes = await bot.objects.get(payload._prevlink)
+          // debugger
+          if (dbRes.companyName !== companyName                ||
+              dbRes.registrationNumber !== registrationNumber  ||
+              dbRes.country.id !== country.id                  ||
+              dbRes.registrationDate !== registrationDate      ||
+              dbRes.region !== region)
+            promises.push(openCorporates._fetch(form, application))
+          else
+            logger.debug(`Nothing changed for ${companyName}`)
+        }
+        else
+          promises.push(openCorporates._fetch(form, application))
+      }
+      if (!promises.length)
+        return
 
-      let result = await Promise.all(pforms)
+      let result = await Promise.all(promises)
 
       let pchecks = []
       result.forEach((r: {resource:any, rawData:object, message?: string, hits: any, url:string}) => {
