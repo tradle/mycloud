@@ -29,6 +29,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Generate sample data](#generate-sample-data)
 - [Deploy to AWS](#deploy-to-aws)
   - [Configure](#configure)
+    - [Pre-deployment](#pre-deployment)
+    - [Post-deployment](#post-deployment)
   - [Explore the Architecture](#explore-the-architecture)
     - [List deployed resources, API endpoints, ...](#list-deployed-resources-api-endpoints-)
 - [Development](#development)
@@ -47,11 +49,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [npm run nuke:local](#npm-run-nukelocal)
   - [npm run reset:local](#npm-run-resetlocal)
   - [npm run deploy:safe](#npm-run-deploysafe)
-  - [npm run test:e2e](#npm-run-teste2e)
   - [npm run test:graphqlserver](#npm-run-testgraphqlserver)
   - [npm run graphqlserver](#npm-run-graphqlserver)
-  - [npm run setstyle](#npm-run-setstyle)
-  - [npm run setconf](#npm-run-setconf)
   - [warmup](#warmup)
 - [Project Architecture](#project-architecture)
   - [Tools](#tools-1)
@@ -231,10 +230,16 @@ Once everything's deployed, open your browser to [https://app.tradle.io](https:/
 
 ### Configure
 
-There's configuration and configuration. 
+There's configuration and configuration
+
+#### Pre-deployment
 
 - To change the name/domain/logo of your bot, edit `./vars.yml`. Then run `npm run build:yml`
 - If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./in-house-bot/index.js](./in-house-bot/index.js).
+
+#### Post-deployment
+
+See [tradleconf](https://github.com/tradle/configure-tradle), a command line tool for configuring styles, plugins, custom models, etc. of a deployed Tradle MyCloud.
 
 ### Explore the Architecture
 
@@ -256,7 +261,7 @@ npm run info # or run: serverless info
 
 ## Development
 
-Note: this project is transitioning to Typescript. If you're changing any `*.ts` files, be sure you have `tsc -w` running to transpile to Javascript on the fly.
+*Note: this project is transitioning to Typescript. If you're changing any `*.ts` files, be sure you have `tsc -w` running to transpile to Javascript on the fly.*
 
 ### serverless.yml
 
@@ -384,10 +389,6 @@ delete and recreate local resources (tables, buckets, identity)
 
 lint, run tests, rebuild native modules for the AWS Linux Container used by AWS Lambda, and deploy to AWS
 
-### npm run test:e2e
-
-run an end-to-end simulated interaction between a bot, customer, and employee. This is useful for later exploration of the data created in graphql (`npm run test:graphqlserver`)
-
 ### npm run test:graphqlserver
 
 start up two UIs for browsing local data:
@@ -397,18 +398,6 @@ start up two UIs for browsing local data:
 ### npm run graphqlserver
 
 starts up GraphiQL for querying remote data
-
-### npm run setstyle
-
-DEPRECATED (use https://github.com/tradle/configure-tradle)
-
-To set the style of your provider, refer to the [StylesPack](https://github.com/tradle/models/blob/master/models/tradle.StylesPack.json) model. Set it in the "style" property in `./conf/provider.json`
-
-### npm run setconf
-
-DEPRECATED (use https://github.com/tradle/configure-tradle)
-
-Update the style and/or bot configuration of your provider
 
 ### warmup
 
@@ -448,26 +437,16 @@ Below you'll find the description of the various architecture components that ge
 
 #### Core Tables
 
-you'll typically see the tables prefixed per the servless convention, [service]-[stage]-[name] e.g. the `presence` table is `tradle-dev-presence` on the `dev` stage
+you'll typically see table names formatted per a combination of the serverless and tradle convention, tdl-[service]-ltd-[stage]-[name] e.g. the `events` table is `tdl-tradle-ltd-dev-events` on the `dev` stage
 
-- `pubkeys`: maps public keys to identities that control them
-- `presence`: Iot client sessions
-- `seals`: tracks blockchain seals for objects, watches placed on expected seals, and seals queued for write
-- `inbox`: inbound messages from users
-- `outbox`: outbound messages to users
-- `users`: user state objects
-- `friends`: known Tradle/MyCloud nodes
-- `events`: master log, which due to performance issues, is ironically written to post-fact
-- `bucket-[x]`: tables that store resources created from Tradle models, e.g. tradle.Application, tradle.PhotoID, tradle.MyLifeInsurance, tradle.FormRequest. Each table stores multiple types, and types are mapped deterministically to a table "bucket". Anything that gets put in inbox/outbox also ends up stored and indexed here. The GraphQL API reads from here.
-- `kv`: undifferentiated key/value store where you can store application and system-level configuration values. Currently stores push notification subscription information, and various temporary values.
+- `events`: immutable master log
+- `bucket-0`: mutable data store for data, seals, sessions, etc.
 
 #### Buckets
 
-- `ObjectsBucket`: stores all objects send/received to/from users
+- `ObjectsBucket`: stores the payloads of all messages sent/received to/from users, as well as objects created by business logic, e.g. tradle.Application (to track application state)
 - `SecretsBucket`: if I told you, I'd have to kill you. It stores the private keys for your MyCloud's identity.
-- `PublicConfBucket`: probably won't be around much longer, but currently stores the pulic identity file
-- `PrivateConfBucket`: may be renamed to ConfBucket soon. It stores public/private configuration like: identity, styles, and bot plugin configuration files
-- `ContentAddressedBucket`: content-addressed storage, usable by bots. Use via `bot.contentAddressedStorage`. Not used much so far, may go away in favor of a path in `PrivateConfBucket`
+- `PrivateConfBucket`: public/private configuration like: identity, styles, and bot plugin configuration files
 - `FileUploadBucket`: because Lambda and IoT message-size limits, any media embedded in objects sent by users is first uploaded here
 
 #### Functions
@@ -475,26 +454,17 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 - `warmup`: keeps lambda containers warm to prevent cold start. Concurrency is configurable
 - `preauth` (HTTP): generates temporary credentials (STS) for new connections from users, attaches the IotClientRole to them, creates a new session in the `presence` table (still `unauthenticated`). Generates a challenge to be signed (verified in `auth`) \*
 - `auth` (HTTP): verifies the challenge, marks the session as authenticated \*
-- `onconnect` (IoT): updates the user's session. If the user is already subscribed to the right MQTT topics, attempts to deliver queued up messages depending on the user's announced send/receive position
-- `ondisconnect` (IoT): updates the user's session, marks the user as disconnected
-- `onsubscribe` (IoT): updates the user's session. If the user is already connected, attempts to deliver messages depending on the user's announced send/receive position
-- `onmessage` (IoT): processes inbound messages from the user. Pending validation, stores the object in `ObjectsBucket` and passes the message off to the `bot_onmessage` lambda. *Note: currently the bot_onmessage lambda is run in-process, rather than invoked through AWS Lambda*
-- `onmessage_http` (HTTP): (DEPRECATED in favor of `inbox`) same as `onmessage`, but HTTP, so it has a higher maximum payload size.
-- `inbox` (HTTP): receives batches of inbound messages (typically from other MyCloud's)
-- `to-events`: replicates streams from `inbox`/`outbox`/`seals` tables to the `events` table
-- `addfriend`: add a known MyCloud to the `friends` table, so outbound messages can be delivered to them
-- `info` (HTTP): get the public information about this MyCloud - the identity, style, logo, country, currency, etc.
-- `bot_oninit`: initialize the MyCloud node - generate an identity and keys, save secrets and default configuration files to respective buckets. Should really be named `init` or `oninit`, but good luck getting AWS to rename something.
+- `oniotlifecycle` (IoT): manages the user's Iot session, attempts to deliver queued up messages depending on the user's announced send/receive position
+- `inbox` (HTTP): receives batches of inbound messages (typically from other MyClouds)
+- `info` (HTTP): gets the public information about this MyCloud - the identity, style, logo, country, currency, etc.
+- `bot_oninit`: initializes the MyCloud node - generates an identity and keys, saves secrets and default configuration files to respective buckets. Should really be named `init` or `oninit`, but good luck getting AWS to rename something.
 - `sealpending` (scheduled): write queued seals to the blockchain
-- `pollchain` (scheduled): query unconfirmed seals
-- `setstyle`: update the style
-- `onmessage`: where your bot (business logic) processes inbound messages
-- `onsealevent`: where your bot (business logic) processes seal events (reads/writes)
-- `onmessagestream`: where the bot engine replicates sent/received data to tables (see `bucket-x` in Tables)
+- `pollchain` (scheduled): check the blockchain for unconfirmed seals
+- `onmessage`: processes inbound messages, then hands off to synchronous business logic
+- `onresourcestream`: replicates changes to immutable events table, hands off to asynchronous business logic
 - `graphql`: your bot's built-in graphql API that supports existing Tradle models and custom ones you add.
-- `samples`: generates a bunch of sample data. Hasn't been tested in a looooong time, so use it if you want to fix it.
 
-\* Note: the purpose of authentication is to know whether to send the user messages from the `outbox` table. Inbound messages don't require pre-authentication, as they are all signed.
+\* *Note: the purpose of authentication is to know whether to send the user queued up messages. Inbound messages don't require pre-authentication, as they are all signed and can be verified without the need for a session's context.*
 
 #### Network communication flow
 
@@ -508,5 +478,7 @@ you'll typically see the tables prefixed per the servless convention, [service]-
 See [./docs/plugins.md](./docs/plugins.md)
 
 #### Email templates
+
+*Note: you don't need this unless you change the templates in `in-house-bot/templates/raw`*
 
 To prerender templates (primarily to inline css), run `npm run prerender:templates`
