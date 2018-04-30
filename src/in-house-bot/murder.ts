@@ -18,7 +18,9 @@ export const NOT_CLEARABLE_TABLES = [
 export const NOT_CLEARABLE_TYPES = [
   'tradle.PubKey',
   'tradle.Identity',
-  'tradle.products.Customer'
+  'tradle.products.Customer',
+  'tradle.cloud.ChildDeployment',
+  'tradle.cloud.Configuration',
 ]
 
 const BATCH_SIZE = 50
