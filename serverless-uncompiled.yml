@@ -26,6 +26,7 @@ plugins:
   - serverless-iot-local
   - init-local
   - serverless-offline
+  # - serverless-offline-scheduler
 
 package:
   # artifactDirectoryName: serverless/${{self:service}}/${{self:provider.stage}}/artifacts
@@ -77,7 +78,6 @@ custom:
 
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
-  invokeBotLambdasDirectly: ${{self:custom.vars.invokeBotLambdasDirectly, self:custom.defaults.invokeBotLambdasDirectly}}
   # providerConf: &providerConf
   #   ${{file(./src/in-house-bot/conf/provider.json)}}
   org: ${{self:custom.vars.org, self:custom.defaults.org}}
@@ -520,30 +520,6 @@ provider:
         - ses:GetIdentityVerificationAttributes
       Resource: "*"
 
-    # - Effect: Allow
-    #   Action:
-    #     - sqs:SendMessage
-    #   # Resource: ["*"]
-    #   Resource:
-    #     - Fn::GetAtt:
-    #       - DeadLetterQueue
-    #       - Arn
-
-      # Resource: "*"
-   # - Effect: "Allow"
-   #   Action:
-   #     - "s3:GetObject"
-   #   Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-   # - Effect: "Allow"
-   #   Action:
-   #     - "s3:PutObject"
-   #   Resource:
-   #     Fn::Join:
-   #       - ""
-   #       - - "arn:aws:s3:::"
-   #         - "Ref" : "ServerlessDeploymentBucket"
-   #         - "/*"
-
 functions:
   # warm up other functions
   warmup:
@@ -556,7 +532,6 @@ functions:
           input:
             concurrency: 5
             functions:
-              # - http_catchall
               - oniotlifecycle
               - onmessage
               - graphql
@@ -564,34 +539,10 @@ functions:
               - preauth
               - auth
               - inbox
-              # - onmessage_http
-              # - to-events:
-              #     concurrency: 2
-              # - onmessagestream:
-              #     concurrency: 2
     alarms:
       - functionErrors
       # - functionThrottles
       - functionInvocations
-
-  # http router function
-  # see various commented out http-event functions below
-  # for details on what they do
-  # http_catchall:
-  #   memorySize: 1024
-  #   handler: lib/lambda/http/default.handler
-  #   events:
-  #     - http:
-  #         path: /
-  #         method: ANY
-  #     - http:
-  #         # match all paths, the token 'any' doesn't mean anything special
-  #         path: /{any+}
-  #         method: ANY
-  #   alarms:
-  #     - functionErrors
-  #     - functionThrottles
-  #     - functionInvocations
 
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
@@ -616,63 +567,6 @@ functions:
           path: auth
           method: post
           cors: ${{self:custom.cors}}
-
-  # createevent:
-  #   handler: lib/lambda/createevent.handler
-  #   memorySize: 512
-
-  # replicates MessagesTable to EventsTable
-  # to-events:
-  #   handler: lib/in-house-bot/lambda/to-events.handler
-  #   memorySize: 256
-  #   events:
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - MessagesTable
-  #             - StreamArn
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - SealsTable
-  #             - StreamArn
-  #   alarms:
-  #     - functionErrors
-  #     # - functionThrottles
-  #     # - functionInvocations
-
-  # log:
-  #   handler: lib/lambda/log.handler
-  #   # package:
-  #   #   exclude:
-  #   #     - node_modules/
-  #   environment:
-  #     DEBUG: tradle:*
-
-    # events:
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 20
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - EventsTable
-  #             - StreamArn
-
-  # POST messages here
-  # log:
-  #   handler: lib/lambda/http/default.handler
-  #   memorySize: 1024
-  #   events:
-  #     - http:
-  #         path: log
-  #         method: any
 
   inbox:
     handler: lib/in-house-bot/lambda/http/inbox.handler
