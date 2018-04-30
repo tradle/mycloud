@@ -1,6 +1,6 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
-import { extend } from 'lodash'
+import { extend, pick } from 'lodash'
 import { get } from '../middleware/noop-route'
 import { Lambda } from '../../types'
 import { getChainKey } from '../../crypto'
@@ -29,7 +29,10 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 
       const { version, ...connectEndpoint } = endpointInfo
       extend(ctx.body, { connectEndpoint, version })
-      if (chainKey) ctx.body.chainKey = chainKey
+      if (chainKey) {
+        ctx.body.chainKey = pick(chainKey, ['type', 'pub', 'fingerprint'])
+      }
+
       await next()
     }
   ])
