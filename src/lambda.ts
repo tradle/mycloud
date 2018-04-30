@@ -444,7 +444,7 @@ Previous exit stack: ${this.lastExitStack}`)
       this.execCtx = ctx
       const overwritten = _.pick(execCtx, Object.keys(ctx))
       if (Object.keys(overwritten).length) {
-        this.logger.warn('overwriting these properties on execution context', overwritten)
+        this.logger.warn('overwriting these properties on execution context', Object.keys(overwritten))
       }
 
       Object.assign(this.execCtx, execCtx)
