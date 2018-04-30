@@ -33,6 +33,7 @@ interface IPropertyInfo {
 }
 
 const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
+const APPLICATION = 'tradle.Application'
 
 export class Applications {
   private bot: Bot
@@ -192,6 +193,12 @@ export class Applications {
   //   const stubs = (application.checks || application.submissions || []).map(appSub => appSub.submission)
   //   return Promise.all(stubs.map(this.bot.getResource))
   // }
+
+  public createApplication = async (application:ITradleObject) => {
+    return await this.bot.draft({ type: APPLICATION })
+      .set(application)
+      .signAndSave()
+  }
 
   private stub = (resource: ITradleObject) => {
     return buildResource.stub({
