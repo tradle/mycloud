@@ -548,7 +548,7 @@ export const getBacklinkProperties = ({
 export const getForwardLinks = opts => new Resource(opts).getForwardLinks()
 
 const ensurePlainObject = obj => {
-  if (!isPlainObject(obj)) {
+  if (!isPlainObject(obj, { allowBuffers: true })) {
     throw new Errors.InvalidInput(`expected plain object`)
   }
 }
