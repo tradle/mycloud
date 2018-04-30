@@ -13,7 +13,6 @@ import {
   unitToMillis
 } from './constants'
 
-import serverlessYml from './cli/serverless-yml'
 import PRICING from './lambda-pricing'
 
 const defaultConcurrency = 1
@@ -112,7 +111,12 @@ export default class LambdaUtils {
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
   }
 
+  private get serverlessYml() {
+    return require('./cli/serverless-yml')
+  }
+
   private requireLambdaByName = (shortName:string) => {
+    const { serverlessYml } = this
     const { functions } = serverlessYml
     const handlerExportPath = functions[shortName].handler
     const lastDotIdx = handlerExportPath.lastIndexOf('.')
@@ -126,6 +130,7 @@ export default class LambdaUtils {
 
   private invokeLocal = async (params:AWS.Lambda.InvocationRequest)
     :Promise<AWS.Lambda.InvocationResponse> => {
+    const { serverlessYml } = this
     const { FunctionName, InvocationType, Payload } = params
     this.logger.debug(`invoking ${params.FunctionName} inside ${this.env.FUNCTION_NAME}`)
     const shortName = this.env.getStackResourceShortName(FunctionName)

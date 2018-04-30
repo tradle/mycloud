@@ -20,7 +20,8 @@ import {
   waitImmediate,
   timeMethods,
   traverse,
-  pluck
+  pluck,
+  defineGetter
 } from './utils'
 
 import { prettify, alphabetical, format } from './string-utils'
@@ -60,7 +61,6 @@ type BatchWorker = (batch:Batch) => Promise<boolean|void>
 type ItemWorker = (item:any) => Promise<boolean|void>
 
 const alwaysTrue = (...any) => true
-const DEFINITIONS = require('./definitions')
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
 const TABLE_BUCKET_REGEX = /-bucket-\d+$/
@@ -98,12 +98,22 @@ const renderDefinitions = ({ definitions, stackName }) => {
 }
 
 function createDBUtils ({ aws, logger, env }) {
-  const definitions = renderDefinitions({
-    definitions: DEFINITIONS,
-    stackName: env.STACK_NAME
-  })
+  const getDefinitions = (() => {
+    let definitions
+    return () => {
+      if (!definitions) {
+        definitions = renderDefinitions({
+          definitions: require('./definitions'),
+          stackName: env.STACK_NAME
+        })
+      }
 
-  const getDefinition = tableName => {
+      return definitions
+    }
+  })();
+
+  const getCachedDefinition = tableName => {
+    const definitions = getDefinitions()
     const logicalId = Object.keys(definitions).find(logicalId => {
       return definitions[logicalId].Properties.TableName === tableName
     })
@@ -129,6 +139,7 @@ function createDBUtils ({ aws, logger, env }) {
 
   let tableBuckets
   const getTableBuckets = () => {
+    const definitions = getDefinitions()
     if (!tableBuckets) {
       tableBuckets = Object.keys(definitions)
         .filter(logicalId => {
@@ -208,7 +219,7 @@ function createDBUtils ({ aws, logger, env }) {
     tableAPI.client = aws.docClient
     tableAPI.rawClient = aws.dynamodb
     tableAPI.name = TableName
-    tableAPI.definition = getDefinition(TableName)
+    defineGetter(tableAPI, 'definition', () => getCachedDefinition(TableName))
     tableAPI.batchProcess = ({ params={}, ...opts }) => {
       return batchProcess({
         params: { ...params, TableName },
@@ -341,6 +352,7 @@ function createDBUtils ({ aws, logger, env }) {
   }
 
   const getTableDefinition = async (TableName:string) => {
+    const definitions = getDefinitions()
     if (definitions[TableName]) return definitions[TableName]
 
     const { Table } = await aws.dynamodb.describeTable({ TableName }).promise()
@@ -544,7 +556,7 @@ function createDBUtils ({ aws, logger, env }) {
     getModelMap,
     getTableDefinition,
     get definitions() {
-      return definitions
+      return getDefinitions()
     }
   }
 
