@@ -194,10 +194,26 @@ export class Applications {
   //   return Promise.all(stubs.map(this.bot.getResource))
   // }
 
-  public createApplication = async (application:ITradleObject) => {
-    return await this.bot.draft({ type: APPLICATION })
+  public createApplication = async ({ user, application, req }: {
+    req?: IPBReq
+    user: IPBUser
+    application: ITradleObject
+  }) => {
+    const res = await this.bot.draft({ type: APPLICATION })
       .set(application)
       .signAndSave()
+
+    const signed = res.toJSON()
+    if (!user.applications) {
+      user.applications = []
+    }
+
+    user.applications.push(res.stub)
+    if (!req) {
+      await this.bot.users.save(user)
+    }
+
+    return signed
   }
 
   private stub = (resource: ITradleObject) => {
