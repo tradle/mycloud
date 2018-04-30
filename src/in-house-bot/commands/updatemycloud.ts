@@ -8,7 +8,7 @@ export const command:ICommand = {
     // '/getlaunchlink --name EasyBank --domain easybank.io',
     // '/getlaunchlink --name EasyBank --domain easybank.io --logo "https://s3.amazonaws.com/tradle-public-images/easy.png"',
     '/updatemycloud --provider <identityPermalink>',
-    '/updatemycloud --stack-id <stackId>'
+    '/updatemycloud --stack-id <stackId> --admin-email <adminEmail>'
   ],
   exec: async ({ commander, req, ctx, args }) => {
     const { deployment, productsAPI, employeeManager, logger } = commander
@@ -21,7 +21,7 @@ export const command:ICommand = {
     //   throw new Error('deployment bucket is not public. No one will be able to use your template except you')
     // }
 
-    let { provider, stackId } = args
+    let { provider, stackId, adminEmail } = args
     if (req.payload) { // incoming message
       if (provider) {
         if (!employeeManager.isEmployee(req.user)) {
@@ -36,8 +36,8 @@ export const command:ICommand = {
       }
     }
 
-    if (!(provider || stackId)) {
-      throw new Error('expected "provider" or "stack-id"')
+    if (!(provider || (stackId && adminEmail))) {
+      throw new Error('expected "--provider" or "--stack-id" + "--admin-email"')
     }
 
     if (provider) {
@@ -49,7 +49,8 @@ export const command:ICommand = {
       return update
     }
 
-    return deployment.genUpdateTemplate({ stackId })
+    const configuration = <IDeploymentOpts>{ adminEmail }
+    return deployment.genUpdateTemplate({ stackId, configuration })
   },
   sendResult: async ({ commander, req, to, args, result }) => {
     const { bot, logger } = this

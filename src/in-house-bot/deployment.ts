@@ -108,7 +108,6 @@ export class Deployment {
   public kv: IKeyValueStore
   private bot: Bot
   private env: Env
-  private confBucket: Bucket
   private deploymentBucket: Bucket
   private logger: Logger
   private conf?: IDeploymentPluginConf
@@ -117,7 +116,6 @@ export class Deployment {
     this.bot = bot
     this.env = bot.env
     this.logger = logger
-    this.confBucket = bot.buckets.PrivateConf
     this.deploymentBucket = bot.buckets.ServerlessDeployment
     this.kv = this.bot.kv.sub('deployment:')
     this.conf = conf
@@ -504,7 +502,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public finalizeCustomTemplate = ({ template, region, oldServiceName, newServiceName }) => {
-    const { stackUtils, buckets } = this.bot
+    const { stackUtils } = this.bot
     template = stackUtils.changeServiceName({
       template,
       from: oldServiceName,
@@ -517,10 +515,9 @@ ${this.genUsageInstructions(links)}`
       to: region
     })
 
-    const deploymentBucketId = buckets.ServerlessDeployment.id
     _.forEach(template.Resources, resource => {
       if (resource.Type === 'AWS::Lambda::Function') {
-        resource.Properties.Code.S3Bucket = deploymentBucketId
+        resource.Properties.Code.S3Bucket = this.deploymentBucket.id
       }
     })
 
@@ -532,6 +529,10 @@ ${this.genUsageInstructions(links)}`
     stackId: string
     configuration?: IDeploymentOpts
   }) => {
+    if (!configuration.adminEmail) {
+      throw new Errors.InvalidInput('expected "configuration" to have "adminEmail')
+    }
+
     const { service, stage, region } = this.bot.stackUtils.parseStackArn(stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)

@@ -109,11 +109,15 @@ export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts)
       return
     }
 
-    await productsAPI.sendSimpleMessage({
-      req,
-      to: user,
-      message: `We've sent the respective link(s) to the designated AWS Admin (${adminEmail})`
-    })
+    try {
+      await productsAPI.sendSimpleMessage({
+        req,
+        to: user,
+        message: `We've sent the respective link(s) to the designated AWS Admin (${adminEmail})`
+      })
+    } catch (err) {
+      logger.error('failed to send notification to chat', err)
+    }
   }
 
   return {
