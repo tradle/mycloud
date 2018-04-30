@@ -332,8 +332,9 @@ export class Resource extends EventEmitter {
 
   public getForwardLinks = ():IBacklinkItem[] => {
     const { type, model, models, resource } = this
-    if (!resource._time) {
-      const err = `missing _time: ${JSON.stringify(resource)}`
+    const time = resource._time || resource.time
+    if (!time) {
+      const err = `missing "_time" or "time": ${JSON.stringify(resource)}`
       if (this.logger) this.logger.warn(err)
       else console.warn(err)
 
@@ -377,8 +378,8 @@ export class Resource extends EventEmitter {
         backlinkProps
       }
 
-      if (resource._time) {
-        blItem._time = resource._time
+      if (time) {
+        blItem._time = time
       }
 
       return blItem

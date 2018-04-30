@@ -5,7 +5,7 @@ import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Env, Logger, Objects, Messages, ITradleObject, ModelStore, AwsApis } from './types'
-import { extendTradleObject, pluck } from './utils'
+import { extendTradleObject, pluck, ensureTimestamped } from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
@@ -196,13 +196,15 @@ export = function createDB ({
 
   db.hook('find:pre', fixMessageFilter)
   db.hook('find:post', addPayloads)
-  db.hook('batchPut:pre', ({ args }) => args[0].forEach(checkSigned))
-  db.hook('put:pre', ({ args }) => checkSigned(args[0]))
+  db.hook('batchPut:pre', ({ args }) => args[0].forEach(checkPre))
+  db.hook('put:pre', ({ args }) => checkPre(args[0]))
 
-  const checkSigned = resource => {
+  const checkPre = resource => {
     if (!resource[SIG] && !UNSIGNED_TYPES.includes(resource[TYPE])) {
       throw new Error(`expected resource to be signed: ${resource._link}`)
     }
+
+    ensureTimestamped(resource)
   }
 
   return db

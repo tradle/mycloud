@@ -1,8 +1,9 @@
 import pick from 'lodash/pick'
+import merge from 'lodash/merge'
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
-import { typeforce, defineGetter, ensureNoVirtualProps, ensureTimestamped } from './utils'
+import { typeforce, defineGetter, ensureNoVirtualProps } from './utils'
 import { prettify, isHex } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors from './errors'
@@ -116,20 +117,19 @@ export default class Auth {
     // return await this.tables.Presence.put({
     //   Item: session
     // })
-    await this.db.put(ensureTimestamped(session))
+    await this.db.put(session)
     return session
   }
 
   public setConnected = async ({ clientId, connected }): Promise<any> => {
     if (!connected) {
-      return await this.updateSession({ clientId }, {
+      return await this.updateSession(clientId, {
         connected: false,
         subscribed: false
       })
     }
 
-    return await this.db.update({
-      ...this.getKeyFromClientId(clientId),
+    return await this.updateSession(clientId, {
       connected: true,
       dateConnected: Date.now()
     }, {
@@ -141,11 +141,10 @@ export default class Auth {
   public setSubscribed = async ({ clientId, subscribed }): Promise<any> => {
     // params.Key = this.getKeyFromClientId(clientId)
     if (!subscribed) {
-      return await this.updateSession({ clientId }, { subscribed: false })
+      return await this.updateSession(clientId, { subscribed: false })
     }
 
-    return await this.db.update({
-      ...this.getKeyFromClientId(clientId),
+    return await this.updateSession(clientId, {
       subscribed: true,
       dateSubscribed: Date.now()
     }, {
@@ -334,14 +333,15 @@ export default class Auth {
     //   }
     // })
 
-    const saveSession = this.db.put({
+    const saveSession = this.putSession({
       [TYPE]: SESSION,
       clientId,
       permalink,
       challenge,
       time: Date.now(),
       authenticated: false,
-      connected: false
+      connected: false,
+      subscribed: false,
     })
 
     await Promise.all([
@@ -389,52 +389,15 @@ export default class Auth {
     return clientId.slice(0, 64)
   }
 
-  private updateSession = async ({ clientId }, update):Promise<ISession> => {
-    return await this.db.update({
+  private updateSession = async (clientId, update, opts={}):Promise<ISession> => {
+    update = {
       ...this.getKeyFromClientId(clientId),
       ...update
-    }, {
-      ReturnValues: 'ALL_NEW'
-    })
-
-    // return await this.tables.Presence.update({
-    //   ...getUpdateParams(update),
-    //   Key: this.getKeyFromClientId(clientId),
-    //   ReturnValues: 'ALL_NEW'
-    // })
-  }
-
-  private getSessionsByPermalinkQuery = (permalink) => {
-    return {
-      KeyConditionExpression: 'permalink = :permalink AND begins_with(clientId, :prefix)',
-      ExpressionAttributeValues: {
-        ':permalink': permalink,
-        ':prefix': this.iot.clientIdPrefix + permalink
-      }
     }
+
+    opts = merge({ ReturnValues: 'ALL_NEW' }, opts)
+    return await this.db.update(update, opts)
   }
 }
 
 export { Auth }
-// const isMostRecentSession = co(function* ({ clientId }) {
-//   try {
-//     const session = await getLiveSessionByPermalink(getPermalinkFromClientId(clientId))
-//     return session.clientId === clientId
-//   } catch (err) {}
-// })
-
-// module.exports = {
-//   // onEnter,
-//   // onExit,
-//   createChallenge,
-//   // sendChallenge,
-//   handleChallengeResponse,
-//   getTemporaryIdentity,
-//   getSession,
-//   getSessionsByPermalink,
-//   getLiveSessionByPermalink,
-//   getMostRecentSessionByClientId,
-//   deleteSession,
-//   updatePresence
-//   // isMostRecentSession
-// }
