@@ -19,17 +19,6 @@ serverless-iot-local:
   port: 1883
   httpPort: 1884
 
-# if true, bot lambdas will be used directly in the parent lambda
-# if false, bot lambdas will be invoked with the lambda API
-invokeBotLambdasDirectly: 1
-# reinitializeOnConfChanged:
-#   - onmessage
-#   - onmessage_http
-#   - inbox
-#   - graphql
-#   - onsealevent
-#   - onmessagestream
-#   - onfido
 debug:
   format: json
   level: 4
