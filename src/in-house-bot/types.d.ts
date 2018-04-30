@@ -105,8 +105,6 @@ export interface IPBUser extends IUser {
   applications?: IPBAppStub[]
   applicationsApproved?: IPBAppStub[]
   applicationsDenied?: IPBAppStub[]
-  verificationsImported?: VerifiedItem[]
-  verificationsIssued?: VerifiedItem[]
 }
 
 export interface IPBReq {
