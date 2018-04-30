@@ -27,6 +27,8 @@ const allowScan = filterOp => {
   return ALLOW_SCAN.includes(filterOp.type)
 }
 
+const shouldMinify = item => item[TYPE] !== 'tradle.Message' && !UNSIGNED_TYPES.includes(item[TYPE])
+
 const getControlLatestOptions = (table: Table, method: string, resource: any) => {
   if (UNSIGNED_TYPES.includes(resource[TYPE])) return
 
@@ -88,7 +90,7 @@ export = function createDB ({
     get modelsStored() { return modelStore.models },
     objects,
     allowScan,
-    shouldMinify: item => !UNSIGNED_TYPES.includes(item[TYPE])
+    shouldMinify
     // derivedProps: tableKeys,
   }
 
