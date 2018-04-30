@@ -10,7 +10,6 @@ import {
 
 import { TYPE } from '@tradle/constants'
 import {
-  getTableHashKey,
   unmarshallDBItem,
   marshallDBItem,
   toAttributePath,

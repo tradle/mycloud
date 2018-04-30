@@ -84,12 +84,6 @@ export {
   unmarshallDBItem
 }
 
-export const getTableHashKey = table => table.definition.KeySchema
-  .find(({ KeyType }) => KeyType === 'HASH')
-  .AttributeName
-
-export const getTableKeys = table => pluck(table.definition.KeySchema, 'AttributeName')
-
 const renderDefinitions = ({ definitions, stackName }) => {
   definitions = _.cloneDeep(definitions)
   _.forEach(definitions, resource => {
