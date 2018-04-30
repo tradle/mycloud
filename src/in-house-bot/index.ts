@@ -19,6 +19,7 @@ import { createPlugin as createLensPlugin } from './plugins/lens'
 import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
 import { createPlugin as createSanctionsPlugin } from './plugins/complyAdvantage'
 import { createPlugin as createOpenCorporatesPlugin } from './plugins/openCorporates'
+import { createPlugin as createControllingPersonRegistration } from './plugins/controllingPersonRegistration'
 import { createPlugin as createCentrixPlugin} from './plugins/centrix'
 import { createPlugin as createDeploymentPlugin } from './plugins/deployment'
 import { createPlugin as createHandSigPlugin } from './plugins/hand-sig'
@@ -315,6 +316,7 @@ export default function createProductsBot({
       'lens',
       'openCorporates',
       'complyAdvantage',
+      'controllingPersonRegistration',
       'centrix'
     ].forEach(name => {
       const pConf = plugins[name]
