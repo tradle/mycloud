@@ -4,4 +4,4 @@
 npm run build:yml
 npm run gen:localstack
 sleep 6
-echo "{\"RequestType\": \"Create\", \"ResourceProperties\": $(cat ./src/serverless-interpolated.json | jq .custom.org --raw-output -c)}" | sls invoke local -f bot_oninit
+echo "{\"RequestType\": \"Create\", \"ResourceProperties\": $(cat ./src/serverless-interpolated.json | jq .custom.org --raw-output -c)}" | node --debug --inspect $(which sls) invoke local -f bot_oninit

@@ -261,7 +261,7 @@ npm run info # or run: serverless info
 
 ## Development
 
-*Note: this project is transitioning to Typescript. If you're changing any `*.ts` files, be sure you have `tsc -w` running to transpile to Javascript on the fly.*
+*Note: this project is transitioning to Typescript. If you're changing any `*.ts` files, or if you run `git pull` be sure you have `tsc -w` running to transpile to Javascript on the fly.*
 
 ### serverless.yml
 
