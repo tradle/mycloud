@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import lexint from 'lexicographic-integer'
 import { TYPE } from '@tradle/constants'
-import { randomString } from './crypto'
+import { randomString, sha256 } from './crypto'
 import { toISODateString } from './utils'
 import {
   DB,
@@ -166,26 +166,26 @@ const sortEventsByTimeAsc = (a, b) => {
 }
 
 const withIds = (withoutIds:EventPartial[]):IStreamEventDBRecord[] => {
-  const events = withoutIds.slice().sort(sortEventsByTimeAsc) as IStreamEventDBRecord[]
-  events.forEach((event, i) => {
-    let id = getEventId(event)
-    if (i === 0) {
-      event.id = id
-      return
-    }
-
-    const prevId = events[i - 1].id
-    event.id = getNextUniqueId(prevId, id)
-  })
-
-  return events
+  return withoutIds
+    .slice()
+    .sort(sortEventsByTimeAsc)
+    .map(event => ({
+      ...event,
+      id: getEventId(event)
+    })) as IStreamEventDBRecord[]
 }
 
 const getEventId = event => [
   event.data.time,
   event.topic,
-  randomString(8)
+  sha256(JSON.stringify(event.data), 'base64')
 ].join(SEPARATOR)
+
+// const getEventId = event => [
+//   event.data.time,
+//   event.topic,
+//   randomString(8)
+// ].join(SEPARATOR)
 
 const getNextUniqueId = (prev, next) => {
   return prev === next ? bumpSuffix(prev) : next
