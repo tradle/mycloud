@@ -6,7 +6,7 @@ import {
   IDataBundle
 } from '../types'
 
-import { parseStub, omitVirtual, toUnsigned, allSettled } from '../../utils'
+import { parseStub, omitVirtual, toUnsigned } from '../../utils'
 import Errors from '../../errors'
 import { getParsedFormStubs } from '../utils'
 
@@ -34,7 +34,7 @@ export const createPlugin: CreatePlugin<void> = ({
 
     let draft
     try {
-      draft = await bot.getResource(application.prefillFromApplication, { backlinks: true })
+      draft = await bot.getResource(application.prefillFromApplication, { backlinks: ['forms'] })
     } catch (err) {
       Errors.rethrow(err, 'developer')
       logger.error(`application draft not found`, err)
@@ -46,21 +46,19 @@ export const createPlugin: CreatePlugin<void> = ({
     const filledAlready = getParsedFormStubs(application)
       .filter(({ type }) => type === form)
 
-    if (!(draft.formPrefills && draft.formPrefills.length)) return
-
-    const results = await allSettled(draft.formPrefills.map(bot.getResource))
-    const errors = results.map(({ reason }) => reason).filter(_.identity)
-    if (errors.length) {
-      logger.error('failed to find prefills', errors)
-    }
-
-    const formPrefills:any[] = results.map(({ value }) => value)
-      .filter(_.identity)
-      .filter(({ prefill }) => prefill[TYPE] === form)
-
     const idx = filledAlready.length
-    const match = formPrefills[idx]
+    const draftStubs = getParsedFormStubs(draft)
+    const match = draftStubs.filter(({ type }) => type === form)[idx]
     if (!match) return
+
+    let prefill
+    try {
+      prefill = await bot.objects.get(match.link)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      logger.error(`form draft not found`, err)
+      return
+    }
 
     logger.debug('setting prefill from draft application', {
       form,
@@ -68,7 +66,7 @@ export const createPlugin: CreatePlugin<void> = ({
       application: application._permalink
     })
 
-    formRequest.prefill = toUnsigned(match.prefill)
+    formRequest.prefill = toUnsigned(prefill)
   }
 
   return {
