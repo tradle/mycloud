@@ -73,7 +73,7 @@ export default class Events {
       return {
         topic: topic.toString(),
         data: value || old,
-        time: value ? value._time : Date.now()
+        time: value ? getPayloadTime(value) : Date.now()
       }
     })
   }
@@ -161,8 +161,10 @@ export const getResourceEventTopic = (record: IStreamRecord) => {
   return record.new ? topics.resource.save : topics.resource.delete
 }
 
+const getPayloadTime = data => data._time || data.time
+
 const sortEventsByTimeAsc = (a, b) => {
-  return a.data.time - b.data.time
+  return getPayloadTime(a.data) - getPayloadTime(b.data)
 }
 
 const withIds = (withoutIds:EventPartial[]):IStreamEventDBRecord[] => {
@@ -175,11 +177,14 @@ const withIds = (withoutIds:EventPartial[]):IStreamEventDBRecord[] => {
     })) as IStreamEventDBRecord[]
 }
 
-const getEventId = event => [
-  event.data.time,
-  event.topic,
-  sha256(JSON.stringify(event.data), 'base64')
-].join(SEPARATOR)
+const getEventId = (event: EventPartial) => {
+  if (!event.time) debugger
+  return [
+    event.time,
+    event.topic,
+    sha256(JSON.stringify(event.data), 'base64')
+  ].join(SEPARATOR)
+}
 
 // const getEventId = event => [
 //   event.data.time,

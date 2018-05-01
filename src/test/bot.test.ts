@@ -2,6 +2,8 @@ require('./env').install()
 
 import crypto from 'crypto'
 import _ from 'lodash'
+// @ts-ignore
+import Promise from 'bluebird'
 import test from 'tape'
 import sinon from 'sinon'
 import * as cfnResponse from '../cfn-response'
@@ -63,13 +65,14 @@ test(`users `, loudAsync(async (t) => {
 
   // clean up, just in case
   try {
-    await users.del(bob.permalink)
+    await Promise.map(await users.list(), user => users.del(user.id))
   } catch (err) {}
 
   // const user : Object = {
   const user:any = {
+    _time: 123,
     id: bob.permalink,
-    identity: bob.object
+    identity: bob.object,
   }
 
   const promiseOnCreate = new Promise(resolve => {
@@ -324,7 +327,8 @@ test(`seal events stream`, loudAsync(async (t) => {
       new: {
         [TYPE]: 'tradle.SealState',
         link,
-        time: 1
+        unconfirmed: 'x',
+        time: 2
       }
     },
     // readseal
@@ -333,12 +337,12 @@ test(`seal events stream`, loudAsync(async (t) => {
         [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
-        time: 1
+        time: 2
       },
       new: {
         [TYPE]: 'tradle.SealState',
         link,
-        time: 1
+        time: 3
       }
     },
     // watchseal
@@ -347,7 +351,7 @@ test(`seal events stream`, loudAsync(async (t) => {
         [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
-        time: 1
+        time: 4
       }
     }
   ]), {

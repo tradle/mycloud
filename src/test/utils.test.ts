@@ -548,13 +548,15 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
     t.equal(await conf.exists('a'), false)
     await conf.put('a', {
       b: 'c',
-      age: 75
+      age: 75,
+      _time: 123
     })
 
     t.equal(await conf.exists('a'), true)
     t.same(await conf.get('a'), {
       b: 'c',
-      age: 75
+      age: 75,
+      _time: 123
     })
 
     if (conf instanceof KV) {
@@ -594,17 +596,20 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
     }
 
     await sub.put('a', {
-      d: 'e'
+      d: 'e',
+      _time: 123
     })
 
     t.equal(await sub.exists('a'), true)
     t.same(await sub.get('a'), {
-      d: 'e'
+      d: 'e',
+      _time: 123
     })
 
     t.equal(await conf.exists('mynamespace:a'), true)
     t.same(await conf.get('mynamespace:a'), {
-      d: 'e'
+      d: 'e',
+      _time: 123
     })
 
     await sub.del('a')
