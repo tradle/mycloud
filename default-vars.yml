@@ -1,7 +1,7 @@
 service: tdl-tradle-ltd
 stage: dev
 region: us-east-1
-profile: serverless
+profile: default
 emailForNotifications: mark@tradle.io # support@tradle.io
 blockchain: ethereum:rinkeby
 # not used at the moment:
