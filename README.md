@@ -26,11 +26,10 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Start the Playground](#start-the-playground)
   - [Explore the API](#explore-the-api)
   - [AWS cli (local)](#aws-cli-local)
-  - [Generate sample data](#generate-sample-data)
-- [Deploy to AWS](#deploy-to-aws)
-  - [Configure](#configure)
-    - [Pre-deployment](#pre-deployment)
-    - [Post-deployment](#post-deployment)
+  - [Deployment](#deployment)
+    - [Pre-deployment configuration](#pre-deployment-configuration)
+    - [Deploy to AWS](#deploy-to-aws)
+    - [Post-deployment configuration](#post-deployment-configuration)
   - [Explore the Architecture](#explore-the-architecture)
     - [List deployed resources, API endpoints, ...](#list-deployed-resources-api-endpoints-)
 - [Development](#development)
@@ -86,7 +85,7 @@ Make sure you have `git` installed. If you're on `OS X`, you already have it.
 
 The following are the versions used by the Tradle dev team:
 
-- Node.js@[6.10.3](https://nodejs.org/download/release/v6.10.3/) - this is the version used by Amazon for AWS Lambda. Yes, you can use the latest Node.js instead, but keep this in mind if you hit errors.  
+- Node.js@[6.10.3](https://nodejs.org/download/release/v6.10.3/) - this is the version used by Amazon for AWS Lambda. Yes, you can use the latest Node.js instead, but keep this in mind if you hit errors.
 - npm@3.10.10
 
 #### Docker & Docker Compose
@@ -133,6 +132,8 @@ npm install
 ```
 
 ### Set AWS profile
+
+By default, aws cli operations will run under the profile named `default`
 
 If you ran `aws configure --profile <profileName>` and not `aws configure`, open `vars.yml` and add a line:
 
@@ -197,22 +198,21 @@ When you deploy to the cloud, GraphiQL will be available at https://xxxxxxx.exec
 
 ### AWS cli (local)
 
-The local endpoints for localstack are enumerated in their docs (or see [./src/test/localstack.json](./src/test/localstack.json)). To query them using the AWS cli, specify an additional `--endpoint` option, e.g.:
+The endpoints for localstack are enumerated in their docs (or see [./src/test/localstack.json](./src/test/localstack.json)). To query them using the AWS cli, specify an additional `--endpoint` option, e.g.:
 
 ```sh
 aws dynamodb list-tables --endpoint http://localhost:4569
 aws s3 ls --endpoint http://localhost:4572
 ```
 
-### Generate sample data
+### Deployment
 
-If you want to play with the API, you'll first need some data. Let's generate sample data for a single user going through an application for a [Current Account](https://github.com/tradle/custom-models/blob/master/models/tradle.CurrentAccount.json)
+#### Pre-deployment configuration
 
-```sh
-echo '{"users":1,"products":["tradle.CurrentAccount"]}' | sls invoke -f bot_samples
-```
+- To change the region/name/domain/logo of your deployment, edit `./vars.yml`. Then run `npm run build:yml`. See `./default-vars.yml` for a list of variables you can override.
+- If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./in-house-bot/index.js](./in-house-bot/index.js).
 
-## Deploy to AWS
+#### Deploy to AWS
 
 First, make sure Docker is running
 
@@ -229,16 +229,7 @@ Deployment can take ~5-10 minutes.
 
 Once everything's deployed, open your browser to [https://app.tradle.io](https://app.tradle.io). On the Conversations page, click the red button, and choose Add Server URL. Paste in your API endpoint (it looks like https://xxxxxxx.execute-api.us-east-1.amazonaws.com/dev/)
 
-### Configure
-
-There's configuration and configuration
-
-#### Pre-deployment
-
-- To change the name/domain/logo of your bot, edit `./vars.yml`. Then run `npm run build:yml`
-- If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./in-house-bot/index.js](./in-house-bot/index.js).
-
-#### Post-deployment
+#### Post-deployment configuration
 
 See [tradleconf](https://github.com/tradle/configure-tradle), a command line tool for configuring styles, plugins, custom models, etc. of a deployed Tradle MyCloud.
 

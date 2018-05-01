@@ -31,4 +31,4 @@ else
   echo "scanning local table: $TABLE"
 fi
 
-eval "aws dynamodb scan --table-name $TABLE $ENDPOINT" | ./lib/scripts/unmarshal.js
+eval "aws dynamodb scan --table-name $TABLE $ENDPOINT" | node ./lib/scripts/unmarshal.js

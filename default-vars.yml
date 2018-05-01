@@ -1,10 +1,11 @@
 service: tdl-tradle-ltd
 stage: dev
 region: us-east-1
-profile: serverless
+profile: default
 emailForNotifications: mark@tradle.io # support@tradle.io
 blockchain: ethereum:rinkeby
-thresholdBillingAlarm: 1 # $1 / hr
+# not used at the moment:
+# thresholdBillingAlarm: 1 # $1 / hr
 thresholdThrottlingAlarm: 10 # times throttled
 thresholdErrorsAlarm: 10 # errors
 thresholdInvocationsAlarm: 50 # invocations

@@ -22,6 +22,7 @@ const { service, custom } = serverlessYml
 const prefix = `${service}-${custom.stage}-`
 
 loadCredentials()
+process.env.AWS_REGION = serverlessYml.provider.region
 
 const env = new Env(process.env)
 const logger = new Logger('gen:testenv')
@@ -44,7 +45,6 @@ const getTemplate = async () => {
 }
 
 getEnv()
-  .then(() => loadRemoteEnv())
   .then(() => getTemplate())
   .catch(err => {
     console.error(err)
