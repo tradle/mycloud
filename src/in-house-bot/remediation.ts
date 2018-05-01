@@ -382,6 +382,30 @@ export class Remediation {
     items.forEach(resource => validateResource.resource({ models, resource }))
   }
 
+  public getInviteForDraftApp = async ({ application }: {
+    application: ITradleObject
+  }) => {
+    const { claimId } = await this.createClaimForApplication({
+      draft: application,
+      claimType: 'prefill'
+    })
+
+    const provider = await this.bot.getPermalink()
+    const context = claimId
+    const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getApplyForProductLink({
+      provider,
+      host: this.bot.apiBaseUrl,
+      product: application.requestFor,
+      contextId: context,
+      platform
+    }))
+
+    return {
+      links: { mobile, web },
+      context
+    }
+  }
+
   private resolvePointers = ({ items, item }) => {
     const { models } = this.bot
     const model = models[item[TYPE]]
@@ -421,7 +445,7 @@ export class Remediation {
   // }
 
   public createClaimForApplication = async ({ draft, claimType }: {
-    draft: IPBAppDraft,
+    draft: ITradleObject,
     claimType?: ClaimType
   }):Promise<ClaimStub> => {
     return await this.createClaim({

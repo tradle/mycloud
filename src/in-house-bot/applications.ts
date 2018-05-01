@@ -1,4 +1,5 @@
 import groupBy from 'lodash/groupBy'
+import pick from 'lodash/pick'
 import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { parseStub } from '../utils'
@@ -210,7 +211,7 @@ export class Applications {
 
     user.applications.push(res.stub)
     if (!req) {
-      await this.bot.users.save(user)
+      await this.bot.users.merge(pick(user, ['id', 'applications']))
     }
 
     return signed
