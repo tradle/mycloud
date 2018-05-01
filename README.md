@@ -235,7 +235,7 @@ There's configuration and configuration
 
 #### Pre-deployment
 
-- To change the name/domain/logo of your bot, edit `./vars.yml`. Then run `npm run build:yml`
+- To change the region/name/domain/logo of your deployment, edit `./vars.yml`. Then run `npm run build:yml`. See `./default-vars.yml` for a list of variables you can override.
 - If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./in-house-bot/index.js](./in-house-bot/index.js).
 
 #### Post-deployment

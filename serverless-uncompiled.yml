@@ -87,7 +87,7 @@ custom:
   # copied from vars.yml
   # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
   # blockchain: ${{self:custom.vars.blockchain}}
-  thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm, self:custom.defaults.thresholdBillingAlarm}}
+  # thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm, self:custom.defaults.thresholdBillingAlarm}}
   thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm, self:custom.defaults.thresholdThrottlingAlarm}}
   thresholdErrorsAlarm: ${{self:custom.vars.thresholdErrorsAlarm, self:custom.defaults.thresholdErrorsAlarm}}
   thresholdInvocationsAlarm: ${{self:custom.vars.thresholdInvocationsAlarm, self:custom.defaults.thresholdInvocationsAlarm}}
