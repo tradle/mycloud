@@ -21,7 +21,7 @@ if [ -z "$STAGE" ]; then
 fi
 
 if [ -z "$PROFILE" ]; then
-  PROFILE=$(./lib/scripts/var.js provider.profile)
+  PROFILE=$(node ./lib/scripts/var.js provider.profile)
   echo "using AWS profile $PROFILE"
 fi
 
@@ -72,4 +72,4 @@ echo "service: $SERVICE"
 echo "stage: $STAGE"
 
 ask "delete resources stack?" && sls remove --stage="$STAGE"
-ask "delete all buckets in stack?" && ./lib/scripts/delete-remote-buckets.js
+ask "delete all buckets in stack?" && node ./lib/scripts/delete-remote-buckets.js
