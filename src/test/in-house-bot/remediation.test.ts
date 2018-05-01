@@ -156,7 +156,7 @@ test('remediation api', loudAsync(async (t) => {
   t.end()
 }))
 
-test('prefill-based', loudAsync(async (t) => {
+test.skip('prefill-based', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const userFixture = users[0]
   const user = {
