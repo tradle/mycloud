@@ -204,7 +204,7 @@ export class Applications {
       .set(application)
       .signAndSave()
 
-    const signed = res.toJSON()
+    const signed = res.toJSON({virtual: true})
     if (!user.applications) {
       user.applications = []
     }
