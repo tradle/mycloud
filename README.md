@@ -219,10 +219,29 @@ First, make sure Docker is running
 ```sh
 # make sure docker is running
 docker ps
-# 1. lint & test
-# 2. rebuild native modules with AWS Linux container
-# 3. deploy to cloud
+```
+
+**Autopilot**
+
+```sh
+# 1. compile typescript -> javascript
+# 2. test
+# 3. rebuild native modules with AWS Linux container
+# 4. deploy to cloud
 npm run deploy:safe
+```
+
+**Manual**
+
+```sh
+# compile typescript -> javascript
+tsc
+# gen resources in cloud emulator and test
+npm run gen:localresources && npm test
+# rebuild native modules with AWS Linux container
+npm run rebuild:lambda
+# deploy to cloud
+npm run deploy
 ```
 
 Deployment can take ~5-10 minutes.
