@@ -1,7 +1,9 @@
 import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk'
 import { createConfig } from './aws-config'
-if (process.env._X_AMZN_TRACE_ID) {
+
+const willUseXRay = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
+if (willUseXRay) {
   console.warn('capturing all http requests with AWSXRay')
   AWSXRay.captureHTTPsGlobal(require('http'))
 }
@@ -25,8 +27,7 @@ export type AwsApis = {
 }
 
 export default function createAWSWrapper ({ env, logger }) {
-  const useXRay = env._X_AMZN_TRACE_ID
-  const AWS = useXRay
+  const AWS = willUseXRay
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
 
