@@ -35,7 +35,7 @@ const {
   FORM,
   MY_PRODUCT,
   PRODUCT_REQUEST,
-  DRAFT_APPLICATION
+  APPLICATION
 } = TYPES
 
 const notNull = val => !!val
@@ -261,7 +261,7 @@ export class Remediation {
     const { key } = idToStub(claimId)
     const claim = await this.getClaim({ key, claimId })
     const draft = await this.bot.getResource({
-      type: DRAFT_APPLICATION,
+      type: APPLICATION,
       permalink: getDraftPermalinkFromStub(claim)
     })
 
