@@ -35,7 +35,7 @@
     "serverless": "github:mvayngrib/serverless",
     "serverless-dynamodb-autoscaling": "github:mvayngrib/serverless-dynamodb-autoscaling#dist",
     "serverless-dynamodb-local": "github:mvayngrib/serverless-dynamodb-local",
-    "serverless-iot-local": "github:tradle/serverless-iot-local",
+    "serverless-iot-local": "^2.0.1",
     "serverless-offline": "github:tradle/serverless-offline",
     "serverless-offline-scheduler": "^0.3.3",
     "serverless-plugin-aws-alerts": "^1.2.4",
