@@ -36,6 +36,8 @@ const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
 const PUB_KEY = 'tradle.PubKey'
 
+let BLAH_COUNTER = 0
+
 type AuthorInfo = {
   _author: string
   _recipient?: string
@@ -173,7 +175,19 @@ export default class Identities {
 
   public getExistingIdentityMapping = async (identity):Promise<PubKeyMapping> => {
     this.logger.debug('checking existing mappings for pub keys')
-    const lookups = identity.pubkeys.map(obj => this.metaByPub(obj.pub))
+
+    const { pubkeys } = identity
+    // optimize for common case
+    try {
+      return await this.metaByPub(pubkeys[0].pub)
+    } catch (err) {
+      if (pubkeys.length === 1) throw err
+
+      Errors.ignoreNotFound(err)
+    }
+
+    this.logger.debug('uncommon case, running more lookups')
+    const lookups = pubkeys.slice(1).map(key => this.metaByPub(key.pub))
     return firstSuccess(lookups)
   }
 
