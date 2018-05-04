@@ -152,7 +152,7 @@
     "@tradle/test-helpers": "github:tradle/test-helpers",
     "@tradle/validate-model": "^6.0.1",
     "@tradle/validate-resource": "^3.0.0",
-    "aws-xray-sdk": "^1.1.4",
+    "aws-xray-sdk-core": "^1.2.0",
     "bluebird": "^3.5.0",
     "bluebird-q": "^2.1.1",
     "bn.js": "^4.11.8",

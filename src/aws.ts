@@ -1,5 +1,5 @@
 import rawAWS from 'aws-sdk'
-import AWSXRay from 'aws-xray-sdk'
+import AWSXRay from 'aws-xray-sdk-core'
 import { createConfig } from './aws-config'
 import { isXrayOn } from './utils'
 

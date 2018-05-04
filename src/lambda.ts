@@ -16,7 +16,7 @@ import compose from 'koa-compose'
 import * as Koa from 'koa'
 import caseless from 'caseless'
 import randomName from 'random-name'
-import AWSXray from 'aws-xray-sdk'
+import AWSXray from 'aws-xray-sdk-core'
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
@@ -90,6 +90,7 @@ export class Lambda extends EventEmitter {
   public accountId: string
   public requestCounter: number
   public bot: Bot
+  public xraySegment?: AWS.XRay.Segment
   private breakingContext: string
   private middleware:Middleware[]
   private initPromise: Promise<void>
@@ -414,6 +415,13 @@ Previous exit stack: ${this.lastExitStack}`)
 
     this.setExecutionContext({ event, context, callback })
     this.reqCtx = getRequestContext(this)
+    if (isXrayOn()) {
+      this.xraySegment = AWSXray.getSegment()
+      // AWSXray.captureFunc('annotations', subsegment => {
+      //   subsegment.addAnnotation("isCold", this.isCold)
+      // })
+    }
+
     this.env.setLambda(this)
   }
 
@@ -605,14 +613,6 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
   if (lambda.isCold) {
     ctx.virgin = true
   }
-
-  // if (isXrayOn()) {
-  //   console.log('ADDING COLD ANNOTATION')
-  //   const segmentName = lambda.name
-  //   const subsegment = AWSXray.getSegment().addNewSubsegment(segmentName)
-  //   subsegment.addAnnotation("isCold", lambda.isCold)
-  //   lambda.once('done', () => subsegment.close())
-  // }
 
   return ctx
 }
