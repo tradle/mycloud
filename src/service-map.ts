@@ -58,7 +58,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       }
     }
 
-    logger.silly(`registered ${type} ${name} -> ${value}`)
+    logger.ridiculous(`registered ${type} ${name} -> ${value}`)
     if (name) {
       resources[type][name] = value
     } else {

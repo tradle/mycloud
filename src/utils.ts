@@ -17,6 +17,7 @@ import {
   isEqual as deepEqual
 } from 'lodash'
 
+import AWSXray from 'aws-xray-sdk-core'
 import Cache from 'lru-cache'
 import format from 'string-format'
 import microtime from './microtime'
@@ -58,7 +59,8 @@ import {
   IBackoffOptions,
   ResourceStub,
   ParsedResourceStub,
-  GetResourceIdentifierInput
+  GetResourceIdentifierInput,
+  IHasLogger
 } from './types'
 
 import Logger from './logger'
@@ -311,8 +313,14 @@ export function uppercaseFirst (str) {
   return str[0].toUpperCase() + str.slice(1)
 }
 
-export function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
-  return co(function* (...args) {
+export const logifyFunction = ({ fn, name, logger, level='silly', logInputOutput=false }: {
+  fn: Function
+  name: string|Function
+  logger: Logger
+  level?: string
+  logInputOutput?: boolean
+}) => {
+  return async function (...args) {
     const taskName = typeof name === 'function'
       ? name.apply(this, args)
       : name
@@ -322,18 +330,13 @@ export function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
     let ret
     let err
     try {
-      ret = yield fn.apply(this, args)
+      ret = await fn.apply(this, args)
     } catch (e) {
       err = e
       throw err
     } finally {
       duration = Date.now() - start
-      const parts = [
-        taskName,
-        err ? 'failed' : 'succeeded',
-        `in ${duration}ms`
-      ]
-
+      const parts = [taskName]
       if (logInputOutput) {
         parts.push('input:', prettify(args))
         if (!err) {
@@ -342,39 +345,47 @@ export function logifyFunction ({ fn, name, log=debug, logInputOutput=false }) {
       }
 
       if (err) {
-        parts.push(err.stack)
+        parts.push(err.code || err.type || err.name)
       }
 
-      log(parts.join(' '))
+      logger[level](parts.join(' '), {
+        success: !err,
+        time: duration
+      })
     }
 
     return ret
-  })
+  }
 }
 
 type LogifyOpts = {
-  log?: Function
+  logger: Logger
+  level?: string
   logInputOutput?: boolean
 }
 
-export function logify (obj, opts:LogifyOpts={}) {
-  const { log=debug, logInputOutput } = opts
-  const logified = {}
-  for (let p in obj) {
-    let val = obj[p]
-    if (typeof val === 'function') {
-      logified[p] = logifyFunction({
-        fn: val,
-        name: p,
-        log,
-        logInputOutput
-      })
-    } else {
-      logified[p] = val
-    }
+export const logify = <T>(component: T, opts:LogifyOpts, methods?:string[]):T => {
+  const { logger, level, logInputOutput } = opts
+  if (!methods) {
+    methods = Object.keys(component)
+      .filter(k => typeof component[k] === 'function')
   }
 
-  return logified
+  const { name } = component.constructor
+  methods.forEach(method => {
+    const val = <Function>component[method]
+    if (!val) throw new Errors.InvalidInput(`component doesn't have method ${method}`)
+
+    component[method] = logifyFunction({
+      fn: val.bind(component),
+      name: name ? `${name}.${method}` : method,
+      logger,
+      level,
+      logInputOutput
+    })
+  })
+
+  return component
 }
 
 // export function timify (obj, opts={}) {
@@ -1271,3 +1282,31 @@ export const normalizeIndexedProperty = schema => {
 }
 
 export const isXrayOn = () => process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
+
+export const instrumentWithXray = (Component: any, withXrays: any) => {
+  const { name } = Component
+  console.info(`instrumenting component "${name}" with AWS XRay`)
+  Object.keys(withXrays).forEach(method => {
+    const orig = Component.prototype[method]
+    const instrument = withXrays[method]
+    Component.prototype[method] = async function (...args) {
+      if (!this.env) throw new Errors.InvalidInput('expected component to have "env"')
+
+      const { xraySegment } = this.env
+      if (!xraySegment) {
+        console.warn(`no XRay segment!`)
+        return orig.call(this, ...args)
+      }
+
+      return AWSXray.captureAsyncFunc(`${name}.${method}`, async (subsegment) => {
+        instrument(args, subsegment)
+        try {
+          return await orig.call(this, ...args)
+        } finally {
+          console.info(`closing subsegment: ${name}.${method}`)
+          subsegment.close()
+        }
+      }, xraySegment)
+    }
+  })
+}

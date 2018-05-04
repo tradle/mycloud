@@ -321,6 +321,10 @@ export interface IDeliveryMessageRange {
   // afterMessage?: IOutboundMessagePointer
 }
 
+export interface IHasLogger {
+  logger: Logger
+}
+
 export type CacheContainer = {
   cache: any
   logger: Logger
@@ -417,15 +421,15 @@ export interface ITable {
 }
 
 export type Tables = {
-  PubKeys: ITable
-  Messages: ITable
-  Seals: ITable
+  // PubKeys: ITable
+  // Messages: ITable
+  // Seals: ITable
   Bucket0: ITable
-  KV: ITable
+  // KV: ITable
   Events: ITable
-  Users: ITable
-  Presence: ITable
-  Friends: ITable
+  // Users: ITable
+  // Presence: ITable
+  // Friends: ITable
 }
 
 

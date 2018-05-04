@@ -9,7 +9,8 @@ export const Level = {
   INFO: 2,
   VERBOSE: 3,
   DEBUG: 4,
-  SILLY: 5
+  SILLY: 5,
+  RIDICULOUS: 6
 }
 
 // const getLevelName = level => {
@@ -32,6 +33,7 @@ const METHODS = {
   verbose: 'info',
   debug: 'info',
   silly: 'info',
+  ridiculous: 'info',
 }
 
 const COLORS = {
@@ -105,6 +107,7 @@ export default class Logger {
     this.subloggers.forEach(logger => logger.setContext(this.context))
   }
 
+  public ridiculous = (msg:string, params?:any) => this.log('RIDICULOUS', msg, params)
   public silly = (msg:string, params?:any) => this.log('SILLY', msg, params)
   public debug = (msg:string, params?:any) => this.log('DEBUG', msg, params)
   public info = (msg:string, params?:any) => this.log('INFO', msg, params)

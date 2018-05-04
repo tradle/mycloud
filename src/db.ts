@@ -5,7 +5,7 @@ import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Env, Logger, Objects, Messages, ITradleObject, ModelStore, AwsApis } from './types'
-import { extendTradleObject, pluck, ensureTimestamped } from './utils'
+import { extendTradleObject, pluck, ensureTimestamped, logify, logifyFunction } from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
@@ -164,7 +164,7 @@ export = function createDB ({
     chooseTable
   })
 
-  const fixMessageFilter = async ({ args }) => {
+  const fixMessageFilter = ({ args }) => {
     const { filter } = args[0]
     if (!(filter && filter.EQ)) return
 
@@ -178,6 +178,10 @@ export = function createDB ({
     EQ._dcounterparty = messages.getDCounterpartyKey({
       _counterparty,
       _inbound: EQ._inbound
+    })
+
+    this.logger.debug('querying messages', {
+      stack: new Error('test').stack
     })
 
     delete EQ._author
@@ -202,7 +206,17 @@ export = function createDB ({
     result.items = msgs
   }
 
-  db.hook('find:pre', fixMessageFilter)
+  const addSegmentAnnotation = (method, type) => {
+    require('aws-xray-sdk-core').captureFunc('dbputs', subsegment => {
+      subsegment.annotations['db:puts']
+    })
+  }
+
+  const onFindPre = async (opts) => {
+    fixMessageFilter(opts)
+  }
+
+  db.hook('find:pre', onFindPre)
   db.hook('find:post', addPayloads)
   db.hook('batchPut:pre', ({ args }) => args[0].forEach(checkPre))
   db.hook('put:pre', ({ args }) => checkPre(args[0]))
@@ -214,6 +228,33 @@ export = function createDB ({
 
     ensureTimestamped(resource)
   }
+
+  return logifyDB(db, logger)
+}
+
+const logifyDB = (db: DB, logger: Logger) => {
+  db.find = logifyFunction({
+    logger,
+    fn: db.find.bind(db),
+    level: 'silly',
+    name: opts => `DB.find ${opts.filter.EQ[TYPE]}`
+  })
+
+  db.batchPut = logifyFunction({
+    logger,
+    fn: db.batchPut.bind(db),
+    level: 'silly',
+    name: 'DB.batchPut'
+  })
+
+  ;['get', 'put', 'del', 'update', 'merge'].forEach(method => {
+    db[method] = logifyFunction({
+      logger,
+      fn: db[method].bind(db),
+      level: 'silly',
+      name: opts => opts[TYPE] ? `DB.${method} ${opts[TYPE]}` : method
+    })
+  })
 
   return db
 }

@@ -6,6 +6,7 @@ import { fromLambda } from '../lambda'
 import { onMessage as onIotMessage, createSuccessHandler, createErrorHandler } from '../middleware/oniotmessage'
 import { onMessage } from '../middleware/onmessage'
 import { createMiddleware as onMessagesSaved } from '../middleware/onmessagessaved'
+import { logifyFunction } from '../../utils'
 
 export const createLambda = (opts?:any) => {
   const lambda = fromLambda(opts)
@@ -18,12 +19,23 @@ export const createLambda = (opts?:any) => {
 }
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
+  const { logger } = lambda
   return compose([
     onIotMessage(lambda, opts),
-    onMessage(lambda, {
-      onSuccess: createSuccessHandler(lambda, opts),
-      onError: createErrorHandler(lambda, opts)
+    logifyFunction({
+      fn: onMessage(lambda, {
+        onSuccess: createSuccessHandler(lambda, opts),
+        onError: createErrorHandler(lambda, opts)
+      }),
+      name: 'preprocess message',
+      level: 'silly',
+      logger
     }),
-    onMessagesSaved(lambda.bot, opts)
+    logifyFunction({
+      fn: onMessagesSaved(lambda.bot, opts),
+      name: 'business logic',
+      level: 'silly',
+      logger
+    })
   ])
 }
