@@ -246,7 +246,8 @@ export default class Tradle {
       modelStore,
       objects,
       dbUtils,
-      messages
+      messages,
+      logger: logger.sub('db')
     })
 
     const storage = this.storage = new Storage({

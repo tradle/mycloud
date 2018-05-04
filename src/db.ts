@@ -19,7 +19,7 @@ const ALLOW_SCAN_QUERY = [
   'tradle.ApplicationSubmission'
 ].concat(ALLOW_SCAN)
 
-const allowScan = filterOp => {
+const _allowScan = filterOp => {
   if (filterOp.opType === 'query') {
     return ALLOW_SCAN_QUERY.includes(filterOp.type)
   }
@@ -71,6 +71,7 @@ type DBOpts = {
   messages: Messages
   aws: AwsApis
   dbUtils: any
+  logger: Logger
 }
 
 export = function createDB ({
@@ -78,12 +79,19 @@ export = function createDB ({
   objects,
   aws,
   dbUtils,
-  messages
+  messages,
+  logger
 }: DBOpts) {
   const { docClient, dynamodb } = aws
   dynogels.dynamoDriver(dynamodb)
 
   const tableBuckets = dbUtils.getTableBuckets()
+  const allowScan = filterOp => {
+    const allow = _allowScan(filterOp)
+    if (allow) logger.debug('allowing scan', filterOp.EQ[TYPE])
+    return allow
+  }
+
   const commonOpts = {
     docClient,
     get models() { return modelStore.models },
