@@ -257,7 +257,7 @@ export function cachifyPromiser (fn, opts={}) {
   let promise
   const cachified = (...args) => {
     if (args.length) {
-      throw new Error('functions cachified with cachifyPromiser do not accept arguments')
+      throw new Errors.InvalidInput('functions cachified with cachifyPromiser do not accept arguments')
     }
 
     if (!promise) {
@@ -1270,4 +1270,4 @@ export const normalizeIndexedProperty = schema => {
   return schema
 }
 
-export const willXray = () => process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
+export const isXrayOn = () => process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID

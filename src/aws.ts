@@ -1,9 +1,9 @@
 import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk'
 import { createConfig } from './aws-config'
-import { willXray } from './utils'
+import { isXrayOn } from './utils'
 
-const willUseXRay = willXray()
+const willUseXRay = isXrayOn()
 if (willUseXRay) {
   console.warn('capturing all http requests with AWSXRay')
   AWSXRay.captureHTTPsGlobal(require('http'))

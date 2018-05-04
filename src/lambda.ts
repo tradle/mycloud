@@ -40,7 +40,7 @@ import {
   isPromise,
   syncClock,
   createLambdaContext,
-  willXray
+  isXrayOn
 } from './utils'
 
 import {
@@ -606,9 +606,13 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
     ctx.virgin = true
   }
 
-  if (willXray()) {
-    AWSXray.getSegment().addAnnotation("isCold", lambda.isCold)
-  }
+  // if (isXrayOn()) {
+  //   console.log('ADDING COLD ANNOTATION')
+  //   const segmentName = lambda.name
+  //   const subsegment = AWSXray.getSegment().addNewSubsegment(segmentName)
+  //   subsegment.addAnnotation("isCold", lambda.isCold)
+  //   lambda.once('done', () => subsegment.close())
+  // }
 
   return ctx
 }
