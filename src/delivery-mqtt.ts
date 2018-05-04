@@ -50,13 +50,13 @@ export default class Delivery extends EventEmitter implements IDelivery {
       .find(topic => topic === messagesTopic || topic === catchAllTopic)
   }
 
-  public canReceive = async ({ clientId, session }) => {
-    if (!session) {
-      session = await this.auth.getMostRecentSessionByClientId(clientId)
-    }
+  // public canReceive = async ({ clientId, session }) => {
+  //   if (!session) {
+  //     session = await this.auth.getLiveSessionByPermalink(clientId)
+  //   }
 
-    return session.authenticated && session.connected
-  }
+  //   return session.authenticated && session.connected
+  // }
 
   public deliverBatch = async ({ session, recipient, messages }:ILiveDeliveryOpts) => {
     if (!(session.authenticated && session.connected)) {

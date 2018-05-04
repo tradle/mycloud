@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import AWS from 'aws-sdk'
 import { TYPE, SIG } from '@tradle/constants'
+import { FindOpts } from '@tradle/dynamodb'
 import { utils as tradleUtils } from '@tradle/engine'
 import {
   IDebug,
@@ -22,6 +23,7 @@ import {
   setVirtual,
   bindAll,
   getHourNumber,
+  logify,
   RESOLVED_PROMISE
 } from './utils'
 import { getLink } from './crypto'
@@ -90,7 +92,16 @@ type MessagesOpts = {
 }
 
 export default class Messages {
-  constructor (private components: MessagesOpts) {}
+  constructor (private components: MessagesOpts) {
+    logify(this, {
+      logger: components.logger,
+      level: 'silly',
+    }, [
+      'getMessagesTo',
+      'getLastMessageFrom',
+      'getLastSeqAndLink'
+    ])
+  }
 
   // lazy load
   get logger() {
@@ -287,7 +298,8 @@ export default class Messages {
       },
       orderBy: 'time',
       reverse: true,
-      select: [SEQ, '_link']
+      select: [SEQ, '_link'],
+      limit: 1
     })
 
     let last
@@ -344,14 +356,14 @@ export default class Messages {
     recipient: string,
     body?: boolean
   }):Promise<ITradleMessage> => {
-    const opts = getBaseFindOpts({
+    const opts:any = getBaseFindOpts({
       match: {
         _counterparty: recipient,
         _inbound: false
       },
       orderBy: 'time',
       reverse: true,
-      select: getSelect(body),
+      select: getSelect(body)
     })
 
     return await this.db.findOne(opts)
@@ -378,19 +390,23 @@ export default class Messages {
       }
     }
 
-    if (typeof inbound === 'boolean') {
-      filter.EQ._inbound = inbound
-    }
-
-    const { items } = await this.db.find({
+    const opts:FindOpts = {
       limit,
       filter,
       orderBy: {
         property: 'time',
         desc: reverse
       }
-    })
+    }
 
+    if (typeof inbound === 'boolean') {
+      filter.EQ._inbound = inbound
+    } else {
+      // we're not filtering, so no need to fetch in bigger batches
+      opts.batchLimit = limit
+    }
+
+    const { items } = await this.db.find(opts)
     return items
   }
 
@@ -510,7 +526,7 @@ const getBaseFindOpts = ({ match={}, limit, orderBy, reverse, select }: {
   orderBy?: string
   reverse?: boolean
   select?: string[]
-}) => {
+}):FindOpts => {
   const { _counterparty, _inbound } = match
   if (_counterparty) {
     match._dcounterparty = Messages.getDCounterpartyKey({ _counterparty, _inbound })
@@ -538,6 +554,9 @@ const getBaseFindOpts = ({ match={}, limit, orderBy, reverse, select }: {
   if (select) {
     opts.select = select
   }
+
+  // we're not filtering, so no need to fetch in bigger batches
+  if (limit) opts.batchLimit = limit
 
   return opts
 }

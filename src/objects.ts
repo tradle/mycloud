@@ -1,7 +1,9 @@
-import _ from 'lodash'
+import pick from 'lodash/pick'
+import clone from 'lodash/clone'
+import cloneDeep from 'lodash/cloneDeep'
 import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
-import { IDebug, ITradleObject, IRetryableTaskOpts, S3Utils, Buckets, Logger, Env } from './types'
+import { IDebug, ITradleObject, IRetryableTaskOpts, S3Utils, Bucket, Buckets, Logger, Env } from './types'
 import * as types from './typeforce-types'
 import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
 import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
@@ -12,6 +14,7 @@ import {
   download,
   summarizeObject,
   ensureTimestamped,
+  logifyFunction,
   RESOLVED_PROMISE,
 } from './utils'
 import { extractSigPubKey, getLinks } from './crypto'
@@ -51,25 +54,41 @@ export default class Objects {
   }
 
   private region: string
-  private buckets: any
-  private bucket: any
+  private bucket: Bucket
+  // private mediaBucket: Bucket
   private fileUploadBucketName: string
   private middleware: MiddlewareContainer
   constructor (components: ObjectsOpts) {
     // lazy-load the rest to avoid circular refs
-    const { env, buckets } = components
+    const { env, buckets, logger } = components
     this.components = components
     this.region = env.REGION
+    // this.mediaBucket = buckets.FileUpload
     this.bucket = buckets.Objects
     this.fileUploadBucketName = buckets.FileUpload.name
     this.middleware = new MiddlewareContainer({
-      logger: this.logger.sub('mid'),
+      logger: logger.sub('mid'),
       getContextForEvent: (event, object) => ({
         event: object
       })
     })
 
     this.middleware.hookSimple('put', this._put)
+
+    // logging
+    this.put = logifyFunction({
+      fn: this.put.bind(this),
+      name: obj => `Objects.put ${obj[TYPE]}`,
+      logger,
+      level: 'silly'
+    })
+
+    this.get = logifyFunction({
+      fn: this.get.bind(this),
+      name: link => `Objects.get ${link}`,
+      logger,
+      level: 'silly'
+    })
   }
 
   public validate = (object:ITradleObject) => {
@@ -120,7 +139,7 @@ export default class Objects {
     return ret
   }
 
-  public addMetadata = (object:ITradleObject, forceRecalc?:boolean):ITradleObject => {
+  public addMetadata = <T extends ITradleObject>(object:T, forceRecalc?:boolean):T => {
     if (!forceRecalc && object._sigPubKey && object._link && object._permalink) {
       return object
     }
@@ -156,7 +175,8 @@ export default class Objects {
   }
 
   public resolveEmbed = async (embed):Promise<any> => {
-    this.logger.debug(`resolving embedded media: ${embed.url}`)
+    this.logger.debug(`resolving embedded media`, pick(embed, ['url', 'key', 'bucket']))
+
     const { presigned, key, bucket } = embed
     if (embed.presigned) {
       return await download(embed)
@@ -184,12 +204,11 @@ export default class Objects {
 
   public get = async (link: string):Promise<ITradleObject> => {
     typeforce(typeforce.String, link)
-    this.logger.silly('getting', link)
     return await this.bucket.getJSON(link)
   }
 
   private _ensureNoDataUrls = object => {
-    const replacements = this._replaceDataUrls(_.cloneDeep(object))
+    const replacements = this._replaceDataUrls(cloneDeep(object))
     if (replacements.length) {
       throw new Error(`expected no data urls: ${prettify(object)}`)
     }
@@ -208,14 +227,14 @@ export default class Objects {
 
   public _put = async (object: ITradleObject) => {
     typeforce(types.signedObject, object)
-    object = _.clone(object)
+    object = clone(object)
     ensureTimestamped(object)
     this.addMetadata(object)
     if (this.env.TESTING) {
       this._ensureNoDataUrls(object)
     }
 
-    this.logger.debug('putting', summarizeObject(object))
+    // this.logger.debug('putting', summarizeObject(object))
     return await this.bucket.putJSON(object._link, object)
   }
 

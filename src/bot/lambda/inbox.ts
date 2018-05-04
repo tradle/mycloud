@@ -19,6 +19,11 @@ export const createLambda = (opts) => {
     promiser: bot.iot.getEndpoint
   })
 
+  lambda.tasks.add({
+    name: 'getkeys',
+    promiser: bot.identity.getPrivate
+  })
+
   bot.hook(EventTopics.message.inbound.sync, async (ctx, next) => {
     const { type, payload } = ctx.event
     if (type === MODELS_PACK) {

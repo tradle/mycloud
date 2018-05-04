@@ -157,31 +157,35 @@ export default class Auth {
     return this.db.del(this.getKeyFromClientId(clientId))
   }
 
-  public getSessionsByPermalink = async (permalink: string): Promise<ISession[]> => {
-    const { items } = await this.db.find({
+  // public getSessionsByPermalink = async (permalink: string): Promise<ISession[]> => {
+  //   const { items } = await this.db.find({
+  //     filter: {
+  //       EQ: {
+  //         [TYPE]: SESSION,
+  //         permalink
+  //       }
+  //     }
+  //   })
+
+  //   return items
+  // }
+
+  public getLiveSessionByPermalink = async (permalink: string): Promise<ISession> => {
+    const latest = await this.db.findOne({
+      allowScan: true,
+      orderBy: {
+        property: 'time',
+        desc: true
+      },
       filter: {
         EQ: {
           [TYPE]: SESSION,
-          permalink
+          permalink,
+          authenticated: true,
+          connected: true
         }
       }
     })
-
-    return items
-  }
-
-  public getLiveSessionByPermalink = async (permalink: string): Promise<ISession> => {
-    const sessions = await this.getSessionsByPermalink(permalink)
-    const latest = sessions
-      .filter(session => session.authenticated && session.connected)
-      .sort((a, b) => {
-        return a.time - b.time
-      })
-      .pop()
-
-    if (!latest) {
-      throw new NotFound('no authenticated sessions found')
-    }
 
     this.logger.debug('latest authenticated session', { user: permalink, dateConnected: latest.dateConnected })
     return latest
@@ -363,7 +367,7 @@ export default class Auth {
     return `${this.uploadFolder}/${AssumedRoleUser.AssumedRoleId}/`
   }
 
-  public getMostRecentSessionByClientId = (clientId): Promise<any> => {
+  public getLiveSessionByClientId = (clientId): Promise<any> => {
     return this.getLiveSessionByPermalink(this.getPermalinkFromClientId(clientId))
   }
 

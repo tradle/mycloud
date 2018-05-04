@@ -268,6 +268,7 @@ export default class Tradle {
       messages,
       modelStore,
       db,
+      tasks,
       get seals () { return tradle.seals },
       get friends() { return tradle.friends },
       get delivery() { return tradle.delivery },
@@ -314,10 +315,9 @@ export default class Tradle {
     })
 
     const events = this.events = new Events({
-      tables,
+      table: tables.Events,
       dbUtils,
-      logger: logger.sub('events'),
-      db
+      logger: logger.sub('events')
     })
 
     this.define('init', './init', this.construct)

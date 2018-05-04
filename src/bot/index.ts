@@ -367,7 +367,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     await this.outboundMessageLocker.lock(recipient)
     let messages
     try {
-      messages = await this.messaging.sendMessageBatch(batch)
+      messages = await this.messaging.queueMessageBatch(batch)
       this.tasks.add({
         name: 'delivery:live',
         promiser: () => this.messaging.attemptLiveDelivery({
@@ -376,15 +376,19 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         })
       })
 
-      const user = await this.users.get(recipient)
-      await this._fireMessageBatchEvent({
-        spread: true,
-        batch: messages.map(message => toBotMessageEvent({
-          bot: this,
-          message,
-          user
-        }))
-      })
+      if (this.middleware.hasSubscribers(EventTopics.message.outbound.sync) ||
+        this.middleware.hasSubscribers(EventTopics.message.outbound.sync.batch)) {
+        const user = await this.users.get(recipient)
+        await this._fireMessageBatchEvent({
+          async: true,
+          spread: true,
+          batch: messages.map(message => toBotMessageEvent({
+            bot: this,
+            message,
+            user
+          }))
+        })
+      }
     } finally {
       this.outboundMessageLocker.unlock(recipient)
     }

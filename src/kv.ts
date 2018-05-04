@@ -95,7 +95,7 @@ export default class KV implements IKeyValueStore {
   }
 
   public update = async (key:string, opts:any):Promise<any> => {
-    const result = await this.db.update(this.wrapKey(key), opts)
+    const result = await this.db.update(ensureTimestamped(this.wrapKey(key)), opts)
     return result && this.exportValue(result)
   }
 

@@ -555,8 +555,8 @@ test('onmessagestream', loudAsync(async (t) => {
 test('validate send', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const tradle = createTestTradle()
-  sandbox.stub(tradle.messaging, 'sendMessage').resolves({})
-  sandbox.stub(tradle.messaging, 'sendMessageBatch').resolves([])
+  sandbox.stub(tradle.messaging, 'queueMessage').resolves({})
+  sandbox.stub(tradle.messaging, 'queueMessageBatch').resolves([])
 
   const models = {
     'ding.bling': {

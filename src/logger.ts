@@ -1,6 +1,7 @@
 // inspired by
 // http://theburningmonk.com/2017/09/capture-and-forward-correlation-ids-through-different-lambda-event-sources/
 
+import isEmpty from 'lodash/isEmpty'
 import stringifySafe from 'json-stringify-safe'
 
 export const Level = {
@@ -180,7 +181,7 @@ export default class Logger {
         ...this.context
       }
 
-      if (params) logMsg.params = params
+      if (!isEmpty(params)) logMsg.params = params
 
       return stringifySafe(logMsg)
     }

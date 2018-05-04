@@ -10,9 +10,16 @@ import { logifyFunction } from '../../utils'
 
 export const createLambda = (opts?:any) => {
   const lambda = fromLambda(opts)
+  // prime caches
+
   lambda.tasks.add({
     name: 'getiotendpoint',
     promiser: lambda.bot.iot.getEndpoint
+  })
+
+  lambda.tasks.add({
+    name: 'getkeys',
+    promiser: lambda.bot.identity.getPrivate
   })
 
   return lambda.use(createMiddleware(lambda, opts))

@@ -4,7 +4,6 @@ import { TYPE } from '@tradle/constants'
 import { randomString, sha256 } from './crypto'
 import { toISODateString } from './utils'
 import {
-  DB,
   Logger,
   Tables,
   IStreamRecord,
@@ -36,22 +35,19 @@ type EventPartial = {
 }
 
 type EventsOpts = {
-  tables: any
+  table: any
   dbUtils: any
   logger: Logger
-  db: DB
 }
 
 export default class Events {
-  private db: DB
-  private tables: Tables
   private dbUtils: any
   private logger: Logger
-  constructor ({ tables, dbUtils, logger, db }: EventsOpts) {
-    this.tables = tables
+  private table: any
+  constructor ({ table, dbUtils, logger }: EventsOpts) {
+    this.table = table
     this.dbUtils = dbUtils
     this.logger = logger
-    this.db = db
   }
 
   public putEvents = async (withoutIds:EventPartial[]) => {
@@ -60,7 +56,7 @@ export default class Events {
     const events = withIds(withoutIds)
     this.logger.debug('putting events', events.map(({ topic, id }) => ({ id, topic })))
     try {
-      await this.tables.Events.batchPut(events)
+      await this.table.batchPut(events)
     } catch (err) {
       this.logger.error('failed to put events', { events, error: err.stack })
       throw err
@@ -108,22 +104,27 @@ export default class Events {
   // }
 
   public getEventTopic = (record: IStreamRecord):EventTopic => {
-    const { Events, Seals, Messages, Bucket0 } = this.tables
     const { service, source } = record
     if (record.service !== 'dynamodb') {
-      throw new Error(`stream event not supported yet: ${record.service}`)
+      throw new Error(`stream event not supported yet: ${service}`)
     }
 
-    switch (record.source) {
-      // case Seals.name:
-      //   return getSealEventTopic(record)
-      case Messages.name:
+    const data = record.new || record.old
+    if (!data[TYPE]) {
+      this.logger.debug(`received unexpected stream event from table ${source}`, data)
+      return
+    }
+
+    switch (data[TYPE]) {
+      case 'tradle.Message':
         return getMessageEventTopic(record)
-      case Bucket0.name:
-        return getResourceEventTopic(record)
+      case 'tradle.SealState':
+        return getSealEventTopic(record)
       default:
-        this.logger.debug(`received unexpected stream event from table ${source}`, record)
-        break
+        return getResourceEventTopic(record)
+      // default:
+      //   this.logger.debug(`received unexpected stream event from table ${source}`, record)
+        // break
     }
   }
 
@@ -255,22 +256,18 @@ const ASYNC_PREFIX = 'async:'
 const ASYNC_REGEX = new RegExp(`^${ASYNC_PREFIX}`)
 
 export const toBatchEvent = topic => {
-  if (!topic.endsWith) debugger
   return topic.endsWith(BATCH_SUFFIX) ? topic : `${topic}${BATCH_SUFFIX}`
 }
 
 export const toSingleEvent = topic => {
-  if (!topic.endsWith) debugger
   return topic.replace(BATCH_REGEX, '')
 }
 
 export const toAsyncEvent = topic => {
-  if (!topic.endsWith) debugger
   return topic.startsWith(ASYNC_PREFIX) ? topic : `${ASYNC_PREFIX}${topic}`
 }
 
 export const toSyncEvent = topic => {
-  if (!topic.endsWith) debugger
   return topic.replace(ASYNC_REGEX, '')
 }
 

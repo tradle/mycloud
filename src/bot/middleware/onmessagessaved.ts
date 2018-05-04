@@ -65,7 +65,7 @@ export const onMessagesSaved = (bot:Bot, { async }: { async?: boolean }={}) => {
     try {
       const user = await bot.users.createIfNotExists({ id: userId })
       const batch = messages.map(message => toBotMessageEvent({ bot, user, message }))
-      logger.debug(`feeding ${messages.length} messages to business logic`)
+      // logger.debug(`feeding ${messages.length} messages to business logic`)
       if (async) {
         await bot._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
       } else {

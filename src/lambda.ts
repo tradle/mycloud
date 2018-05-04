@@ -611,7 +611,7 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
   }
 
   if (lambda.isCold) {
-    ctx.virgin = true
+    ctx.cold = true
   }
 
   return ctx

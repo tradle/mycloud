@@ -124,6 +124,8 @@ export default class Env {
     // this.asyncTasks = []
   }
 
+  public get xraySegment() { return this.lambda.xraySegment }
+
   public set = props => {
     Object.assign(this, props)
     this._recalc(props)

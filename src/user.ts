@@ -208,7 +208,7 @@ export default class User {
 
   public ensureLiveSession = async ({ clientId }):Promise<ISession|void> => {
     try {
-      return await this.auth.getMostRecentSessionByClientId(clientId)
+      return await this.auth.getLiveSessionByClientId(clientId)
     } catch (error) {
       Errors.ignoreNotFound(error)
       this.logger.debug('iot session not found', { clientId })
@@ -279,7 +279,7 @@ export default class User {
   // public onRestoreRequest = async ({ clientId, gt, lt }) => {
  //   let session
   //   try {
-  //     session = await this.auth.getMostRecentSessionByClientId(clientId)
+  //     session = await this.auth.getLiveSessionByPermalink(clientId)
   //   } catch (err) {}
 
   //   if (!session) {

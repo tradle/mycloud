@@ -61,6 +61,11 @@ export = function createUsers ({ bot }: { bot: Bot }) {
   }
 
   const get = async (primaryKey) => {
+    // bot.logger.silly('getting user', {
+    //   stack: new Error('ignore').stack,
+    //   id: primaryKey
+    // })
+
     const stored = await db.get({
       [TYPE]: USER,
       [PRIMARY_KEY]: primaryKey

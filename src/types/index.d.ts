@@ -170,7 +170,7 @@ export interface IRequestContext {
   correlationId: string
   containerId: string
   seq: number
-  virgin?: boolean
+  cold?: boolean
   start: number
 }
 

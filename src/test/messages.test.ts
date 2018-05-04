@@ -36,7 +36,7 @@ import * as types from '../typeforce-types'
 const { newIdentity } = tradle.utils
 const { MESSAGE } = TYPES
 const { identities, messages, objects, messaging } = createTestTradle()
-const { _doSendMessage, _doReceiveMessage } = messaging
+const { _doQueueMessage, _doReceiveMessage } = messaging
 const fromBobToAlice = require('./fixtures/alice/receive.json')
   .map(messages.normalizeInbound)
 
@@ -77,7 +77,7 @@ test('extract pub key', function (t) {
   t.end()
 })
 
-test('_doSendMessage', loudAsync(async (t) => {
+test('_doQueueMessage', loudAsync(async (t) => {
   // t.plan(3)
 
   const sandbox = sinon.createSandbox()
@@ -127,7 +127,7 @@ test('_doSendMessage', loudAsync(async (t) => {
     t.end()
   })
 
-  const event = await _doSendMessage({
+  const event = await _doQueueMessage({
     time: Date.now(),
     author: alice,
     recipient: bob.identity._permalink,
@@ -150,7 +150,7 @@ test('_doSendMessage', loudAsync(async (t) => {
 test('_doReceiveMessage', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const message = fromBobToAlice[0]
-  const stubGetIdentity = sandbox.stub(identities, 'metaByPub').callsFake(mocks.metaByPub)
+  const stubGetIdentity = sandbox.stub(identities, 'getPubKey').callsFake(mocks.getPubKey)
   const stubPutObject = sandbox.stub(objects, 'put').callsFake(function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
@@ -312,7 +312,7 @@ const mocks = {
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
   }),
-  metaByPub: co(function* (pub) {
+  getPubKey: co(function* (pub) {
     const found = [alice, bob].find(info => {
       return info.identity.pubkeys.some(key => key.pub === pub)
     })

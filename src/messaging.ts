@@ -61,6 +61,7 @@ import {
   Delivery,
   Identity,
   Storage,
+  TaskManager,
 } from './types'
 
 const {
@@ -92,6 +93,7 @@ type MessagingOpts = {
   seals: Seals
   modelStore: ModelStore
   pushNotifications: Push
+  tasks: TaskManager
   network: any
 }
 
@@ -109,6 +111,7 @@ export default class Messaging {
   private get modelStore() { return this.components.modelStore }
   private get seals() { return this.components.seals }
   private get pushNotifications() { return this.components.pushNotifications }
+  private get tasks() { return this.components.tasks }
   private network: any
   private components: MessagingOpts
   private logger:Logger
@@ -231,6 +234,12 @@ export default class Messaging {
       tasks.push(this.watchSealedPayload(message))
     }
 
+    // prime cache
+    this.tasks.add({
+      name: 'getauthor',
+      promiser: () => this.identities.byPermalink(message._author).catch(Errors.ignoreNotFound)
+    })
+
     const [payload] = await Promise.all(tasks)
     message.object = payload
     return message
@@ -320,27 +329,27 @@ export default class Messaging {
   //   }
   // })
 
-  public sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
+  public queueMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
     const byRecipient = _.groupBy(batch, 'recipient')
     const results = await Promise.all(Object.keys(byRecipient).map(recipient => {
-      return this._sendMessageBatch(byRecipient[recipient])
+      return this._queueMessageBatch(byRecipient[recipient])
     }))
 
     return _.flatten(results)
   }
 
-  public _sendMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
+  public _queueMessageBatch = async (batch: IBatchSendOpts):Promise<ITradleMessage[]> => {
     const { recipient } = batch[0]
     this.logger.debug(`sending batch of ${batch.length} messages to ${recipient}`)
     const messages = await series(batch.map(
-      sendOpts => () => this._doSendMessage(sendOpts))
+      sendOpts => () => this._doQueueMessage(sendOpts))
     )
 
     return messages
   }
 
-  public sendMessage = async (opts: ISendOpts):Promise<ITradleMessage> => {
-    const results = await this.sendMessageBatch([opts])
+  public queueMessage = async (opts: ISendOpts):Promise<ITradleMessage> => {
+    const results = await this.queueMessageBatch([opts])
     return results[0]
   }
 
@@ -448,7 +457,7 @@ export default class Messaging {
   }
 
   // public for testing purposes
-  public _doSendMessage = async (opts):Promise<ITradleMessage> => {
+  public _doQueueMessage = async (opts):Promise<ITradleMessage> => {
     typeforce({
       recipient: types.link,
       object: typeforce.maybe(typeforce.Object),

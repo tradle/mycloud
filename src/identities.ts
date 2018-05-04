@@ -1,4 +1,5 @@
-import { extend } from 'lodash'
+import extend from 'lodash/extend'
+import clone from 'lodash/clone'
 import Cache from 'lru-cache'
 import constants from './constants'
 import Errors from './errors'
@@ -13,7 +14,8 @@ import {
   cachifyPromiser,
   omitVirtualDeep,
   summarizeObject,
-  RESOLVED_PROMISE
+  RESOLVED_PROMISE,
+  instrumentWithXray,
 } from './utils'
 
 import { addLinks, getLink, getPermalink, extractSigPubKey, getSigningKey, sign } from './crypto'
@@ -27,7 +29,8 @@ import {
   Objects,
   DB,
   Bucket,
-  ModelStore
+  ModelStore,
+  IHasLogger
 } from './types'
 
 const { PREVLINK, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
@@ -57,36 +60,65 @@ type IdentitiesOpts = {
 
 // this.secrets.getJSON(IDENTITY_KEYS_KEY)
 
-export default class Identities {
+export default class Identities implements IHasLogger {
   public logger: Logger
-  public cache: any
-
   private pubKeys: any
   private env: Env
   private get modelStore() { return this.components.modelStore }
   private get db() { return this.components.db }
   private get objects() { return this.components.objects }
   private components: IdentitiesOpts
+  private _cachePub: Function
+  private _cacheIdentity: Function
   constructor (components: IdentitiesOpts) {
-    logify(this)
     bindAll(this)
 
     this.components = components
 
     const { logger } = components
     this.logger = logger.sub('identities')
-    this.cache = new Cache({ maxAge: CACHE_MAX_AGE })
-    this.metaByPub = cachifyFunction(this, 'metaByPub').call
-    this.byPermalink = cachifyFunction(this, 'byPermalink').call
+
+    const getPubKeyCachified = cachifyFunction({
+      cache: new Cache({ maxAge: CACHE_MAX_AGE }),
+      getPubKey: this.getPubKey.bind(this),
+      logger
+    }, 'getPubKey')
+
+    this._cachePub = (pub, keyObj) => getPubKeyCachified.set([pub], keyObj)
+    this.getPubKey = getPubKeyCachified.call
+
+    const getIdentityCachified = cachifyFunction({
+      cache: new Cache({ maxAge: CACHE_MAX_AGE }),
+      byPermalink: this.byPermalink.bind(this),
+      logger
+    }, 'byPermalink')
+
+    this._cacheIdentity = (identity) => {
+      const permalink = identity._permalink
+      console.log('CACHING IDENTITY ' + permalink)
+      getIdentityCachified.set([permalink], identity)
+      identity.pubkeys.forEach(key => this._cachePub(key.pub, key))
+    }
+
+    this.byPermalink = getIdentityCachified.call
+
+    logify(this, { level: 'silly', logger }, [
+      'byPermalink',
+      'getPubKey',
+      'putPubKey',
+      'validateNewContact'
+    ])
   }
 
-  public metaByPub = async (pub:string) => {
-    this.logger.debug('get identity metadata by pub', pub)
+  public getPubKey = async (pub:string) => {
     try {
-      return await this.db.get({
+      const key = await this.db.get({
         [TYPE]: PUB_KEY,
         pub
       })
+
+      this._cachePub(pub, key)
+      return key
     } catch (err) {
       Errors.ignoreNotFound(err)
       throw new Errors.UnknownAuthor(`with pub: ${pub}`)
@@ -94,9 +126,10 @@ export default class Identities {
   }
 
   public byPub = async (pub:string):Promise<IIdentity> => {
-    const { link } = await this.metaByPub(pub)
+    const { link } = await this.getPubKey(pub)
     try {
       const identity = await this.objects.get(link)
+      this._cacheIdentity(identity)
       return identity as IIdentity
     } catch(err) {
       this.logger.debug('unknown identity', {
@@ -135,7 +168,7 @@ export default class Identities {
   // }
 
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
-    this.logger.debug('get identity by permalink')
+    console.log('LOOKING UP IDENTITY ' + permalink)
     const { link } = await this.db.findOne({
       select: ['link'],
       filter: {
@@ -179,7 +212,7 @@ export default class Identities {
     const { pubkeys } = identity
     // optimize for common case
     try {
-      return await this.metaByPub(pubkeys[0].pub)
+      return await this.getPubKey(pubkeys[0].pub)
     } catch (err) {
       if (pubkeys.length === 1) throw err
 
@@ -187,7 +220,7 @@ export default class Identities {
     }
 
     this.logger.debug('uncommon case, running more lookups')
-    const lookups = pubkeys.slice(1).map(key => this.metaByPub(key.pub))
+    const lookups = pubkeys.slice(1).map(key => this.getPubKey(key.pub))
     return firstSuccess(lookups)
   }
 
@@ -256,6 +289,7 @@ export default class Identities {
       throw new Errors.InvalidVersion(`expected identity version to be signed with an 'update' key from the previous version`)
     }
 
+    this._cacheIdentity(identity)
     return {
       identity: existing || identity,
       exists: !!existing
@@ -269,10 +303,15 @@ export default class Identities {
       object = (await this.objects.get(getLink(object)) as IIdentity)
     }
 
-    const { link, permalink } = addLinks(object)
+    object = clone(object)
+
+    this.objects.addMetadata(object)
+    const link = object._link
+    const permalink = object._permalink
     const putPubKeys = object.pubkeys
       .map(({ pub }) => this.putPubKey({ pub, link, permalink }))
 
+    this._cacheIdentity(object)
     this.logger.info('adding contact', { permalink })
     await Promise.all(putPubKeys.concat(this.objects.put(object)))
   }
@@ -284,7 +323,7 @@ export default class Identities {
       link
     })
 
-    this.cache.set(pub, props)
+    this._cachePub(pub, props)
     return this.db.put(extend({
       [TYPE]: PUB_KEY,
       _time: Date.now(),
@@ -301,8 +340,8 @@ export default class Identities {
     const isMessage = type === MESSAGE
     const pub = isMessage && object.recipientPubKey.pub.toString('hex')
     const { author, recipient } = {
-      author: await this.metaByPub(_sigPubKey),
-      recipient: await (pub ? this.metaByPub(pub) : RESOLVED_PROMISE)
+      author: await this.getPubKey(_sigPubKey),
+      recipient: await (pub ? this.getPubKey(pub) : RESOLVED_PROMISE)
     }
 
     const ret = {
@@ -326,11 +365,17 @@ export default class Identities {
       await this.addContactWithoutValidating(result.identity)
     }
   }
+
 }
 
 export { Identities }
 
 const isUpdateKey = key => key.type === 'ec' && key.purpose === 'update'
+
+// instrumentWithXray(Identities, {
+//   putPubKey: () => {},
+//   getPubKey: () => {}
+// })
 
 // function addContactPubKeys ({ link, permalink, identity }) {
 //   const RequestItems = {
@@ -349,7 +394,7 @@ const isUpdateKey = key => key.type === 'ec' && key.purpose === 'update'
 //   getIdentityByLink: this.objects.get,
 //   byPermalink,
 //   byPub,
-//   metaByPub,
+//   getPubKey,
 //   // getIdentityByFingerprint,
 //   // createAddContactEvent,
 //   addContact,

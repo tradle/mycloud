@@ -19,6 +19,8 @@ const defaultGetContextForEvent:GetContextForEvent<any> = (event, payload) => ({
   event: payload
 })
 
+const WILD = '*'
+
 export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
   private middleware: MiddlewareMap<Context>
   private getContextForEvent: GetContextForEvent<Context>
@@ -29,9 +31,7 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
   }) {
     this.getContextForEvent = getContextForEvent
     this.logger = logger
-    this.middleware = {
-      '*': []
-    }
+    this.middleware = {}
   }
 
   public hook = (event, middleware) => {
@@ -44,11 +44,19 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
     this.hook(event, toSimpleMiddleware(handler))
   }
 
+  public hasSubscribers = event => {
+    return this.hasDirectSubscribers(event) || this.hasDirectSubscribers(WILD)
+  }
+
+  public hasDirectSubscribers = event => {
+    return this.getMiddleware(event).length > 0
+  }
+
   public fire = async (event:TopicOrString, payload:any) => {
     event = eventToString(event)
 
-    const specific = this.middleware[event] || []
-    const wild = this.middleware['*']
+    const specific = this.getMiddleware(event)
+    const wild = this._getWildMiddleware()
     if (!(specific.length || wild.length)) return
 
     this.logger.debug('firing', { event })
@@ -79,6 +87,8 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
 
     return this.middleware[event]
   }
+
+  private _getWildMiddleware = () => this.getMiddleware(WILD)
 }
 
 const toSimpleMiddleware = handler => async (ctx, next) => {

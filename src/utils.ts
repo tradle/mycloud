@@ -349,6 +349,7 @@ export const logifyFunction = ({ fn, name, logger, level='silly', logInputOutput
       }
 
       logger[level](parts.join(' '), {
+        tags: ['perf'],
         success: !err,
         time: duration
       })
@@ -1063,8 +1064,9 @@ export const cachifyFunction = (
 ) => {
   const original = container[method]
   const { cache, logger } = container
+  const getKey = args => stableStringify(args)
   const call = async (...args) => {
-    const str = stableStringify(args)
+    const str = getKey(args)
     const cached = cache.get(str)
     if (cached) {
       if (isPromise(cached)) {
@@ -1087,7 +1089,8 @@ export const cachifyFunction = (
   }
 
   return {
-    del: (...args) => cache.del(stableStringify(args)),
+    set: (args:any[], value) => cache.set(getKey(args), value),
+    del: (...args) => cache.del(getKey(args)),
     call
   }
 }
@@ -1125,10 +1128,8 @@ export const syncClock = async (tradle:Tradle) => {
   const { aws, buckets } = tradle
   const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
-  // as long as
-  await PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch(err => {
-    Errors.ignoreNotFound(err)
-  })
+  await PrivateConf.head(PRIVATE_CONF_BUCKET.identity)
+    .catch(Errors.ignoreNotFound)
 }
 
 export const summarize = (payload:any):string => {

@@ -128,7 +128,7 @@
     "@tradle/constants": "^2.1.0",
     "@tradle/custom-models": "github:tradle/custom-models",
     "@tradle/dynamodb": "github:tradle/dynamodb",
-    "@tradle/embed": "^1.0.0",
+    "@tradle/embed": "^1.0.1",
     "@tradle/engine": "^5.5.0",
     "@tradle/ethereum-adapter": "github:tradle/ethereum-adapter",
     "@tradle/gen-samples": "github:tradle/gen-samples",
