@@ -19,14 +19,7 @@ export const createMiddleware = (bot: Bot, opts?: any) => {
   const { db, logger, events } = bot
   const { topics } = events
   return async (ctx, next) => {
-    const failed = await db.find({
-      filter: {
-        EQ: {
-          [TYPE]: DELIVERY_ERROR
-        }
-      }
-    })
-
+    const failed = await bot.delivery.http.getErrors()
     if (failed.length) {
       await bot._fireDeliveryErrorBatchEvent({
         errors: failed,

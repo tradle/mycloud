@@ -100,6 +100,7 @@ export default class Tradle {
   }
 
   constructor(opts:TradleOpts={}) {
+    const start = Date.now()
     let { env=new Env(process.env) } = opts
     // if (++instanceCount > 1) {
     //   if (!env.TESTING) {
@@ -355,6 +356,8 @@ export default class Tradle {
       logger: logger.sub('backlinks'),
       identity
     }))
+
+    logger.debug(`init tradle instance took ${(Date.now() - start)}ms`)
   }
 
   get apiBaseUrl () {
