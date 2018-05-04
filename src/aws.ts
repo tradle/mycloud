@@ -1,8 +1,9 @@
 import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk'
 import { createConfig } from './aws-config'
+import { willXray } from './utils'
 
-const willUseXRay = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
+const willUseXRay = willXray()
 if (willUseXRay) {
   console.warn('capturing all http requests with AWSXRay')
   AWSXRay.captureHTTPsGlobal(require('http'))

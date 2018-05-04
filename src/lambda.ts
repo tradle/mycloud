@@ -16,6 +16,7 @@ import compose from 'koa-compose'
 import * as Koa from 'koa'
 import caseless from 'caseless'
 import randomName from 'random-name'
+import AWSXray from 'aws-xray-sdk'
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
@@ -38,7 +39,8 @@ import {
   parseArn,
   isPromise,
   syncClock,
-  createLambdaContext
+  createLambdaContext,
+  willXray
 } from './utils'
 
 import {
@@ -83,7 +85,7 @@ export class Lambda extends EventEmitter {
   public execCtx: ILambdaExecutionContext
   public logger: Logger
 
-  public isVirgin: boolean
+  public isCold: boolean
   public containerId: string
   public accountId: string
   public requestCounter: number
@@ -106,7 +108,7 @@ export class Lambda extends EventEmitter {
     this.tasks = tradle.tasks
     this.source = opts.source
     this.middleware = []
-    this.isVirgin = true
+    this.isCold = true
     this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
 
     if (opts.source == EventSource.HTTP) {
@@ -325,7 +327,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     this.emit('done')
-    this.isVirgin = false
+    this.isCold = false
     this.logger.debug('exiting')
 
     // http exits via koa
@@ -600,8 +602,12 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
     ctx['function'] = lambda.env.FUNCTION_NAME
   }
 
-  if (lambda.isVirgin) {
+  if (lambda.isCold) {
     ctx.virgin = true
+  }
+
+  if (willXray()) {
+    AWSXray.getSegment().addAnnotation("isCold", lambda.isCold)
   }
 
   return ctx

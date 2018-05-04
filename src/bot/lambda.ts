@@ -41,7 +41,7 @@ export const createLambda = ({
   })
 
   lambda.on('run', () => {
-    if (!lambda.isVirgin && !bot.isReady()) {
+    if (!lambda.isCold && !bot.isReady()) {
       console.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
     }
   })

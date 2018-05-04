@@ -30,7 +30,7 @@ export const warmup = (lambda, opts:WarmUpOpts={}) => {
       containerId: lambda.containerId,
       uptime,
       logStreamName: context.logStreamName,
-      isVirgin: lambda.isVirgin
+      isCold: lambda.isCold
     }
   }
 }

@@ -303,13 +303,13 @@ export default class LambdaUtils {
 
     const containers = {}
     return fnResults.reduce((summary, next) => {
-      const { error, isVirgin, containerId } = next
+      const { error, isCold, containerId } = next
       if (error) {
         summary.errors++
         return summary
       }
 
-      if (isVirgin) {
+      if (isCold) {
         summary.containersCreated++
       }
 

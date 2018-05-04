@@ -1269,3 +1269,5 @@ export const normalizeIndexedProperty = schema => {
 
   return schema
 }
+
+export const willXray = () => process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
