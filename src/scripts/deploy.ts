@@ -9,9 +9,10 @@ if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
 import promisify from 'pify'
 import _proc from 'child_process'
 import { omit } from 'lodash'
+import serverlessYml from '../cli/serverless-yml'
 
 const proc = promisify(_proc)
-const expectedNodeVersion = 'v6.10.3'
+const expectedNodeVersion = serverlessYml.provider.nodeVersion
 if (process.version !== expectedNodeVersion) {
   throw new Error(`expected Node.js ${expectedNodeVersion}, you're running ${process.version}`)
 }
@@ -25,8 +26,7 @@ if (process.version !== expectedNodeVersion) {
 //   env: omit(process.env, ['SLS_DEBUG', 'DEBUG'])
 // })
 
-const yml = require('../cli/serverless-yml')
-const stage = process.argv[2] || yml.custom.stage
+const stage = process.argv[2] || serverlessYml.custom.stage
 if (!/^[a-zA-Z-_]+$/.test(stage)) {
   throw new Error('invalid stage: ' + stage)
 }
@@ -40,7 +40,7 @@ try {
   })
 } catch (err) {}
 
-const stackName = yml.custom.prefix
+const stackName = serverlessYml.custom.prefix
 const notify = (msg: string) => {
   if (pathToNtfy) {
     try {
