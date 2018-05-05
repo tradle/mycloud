@@ -134,7 +134,7 @@ export default class User {
   }
 
   public maybeDeliverMessagesToClient = async (session:ISession) => {
-    if (!(session.connected && session.authenticated)) {
+    if (!(session.authenticated && session.connected && session.subscribed)) {
       this.logger.debug(`can't deliver messages, client is, ${getDeliveryReadiness(session)}`)
       return
     }
