@@ -180,10 +180,6 @@ export = function createDB ({
       _inbound: EQ._inbound
     })
 
-    // logger.debug('querying messages', {
-    //   stack: new Error('test').stack
-    // })
-
     delete EQ._author
     delete EQ._recipient
     delete EQ._counterparty
