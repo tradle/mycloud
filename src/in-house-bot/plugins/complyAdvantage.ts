@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 
 import buildResource from '@tradle/build-resource'
-import { buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub, title } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import {
   Bot,
@@ -13,19 +13,20 @@ import {
 } from '../types'
 
 import { parseStub } from '../../utils'
-import { getParsedFormStubs } from '../utils'
+import { getParsedFormStubs, getCheckParameters } from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
 const FORM_ID = 'tradle.legal.LegalEntity'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
-// const formPropsMap = {
-//   'tradle.BusinessInformation': {
-//     companyName: 'companyName',
-//     registrationDate: 'registrationDate'
-//   }
-// }
+
+const DISPLAY_NAME = 'Comply Advantage'
+
+const defaultPropMap: any = {
+  companyName: 'companyName',
+  registrationDate: 'registrationDate'
+}
 interface IComplyAdvantageCredentials {
   apiKey: string
 }
@@ -37,6 +38,7 @@ interface IComplyAdvantageConf {
   entity_type?: string
   products: any
   credentials: IComplyAdvantageCredentials
+  propertyMap: any
 }
 interface IComplyAdvantageFilter {
   types?: string[]
@@ -64,8 +66,8 @@ class ComplyAdvantageAPI {
     this.applications = applications
     this.logger = logger
   }
-  async getData(resource, conf, searchProperties, criteria, application) {
-    let { companyName, registrationDate} = searchProperties //conf.propertyMap //[resource[TYPE]]
+  async getData(resource, criteria) {
+    let { companyName, registrationDate} = resource //conf.propertyMap //[resource[TYPE]]
     let search_term = criteria  &&  criteria.search_term || companyName
     let year = new Date(registrationDate).getFullYear()
     let body:any = {
@@ -100,7 +102,7 @@ class ComplyAdvantageAPI {
         message: `Check was not completed for "${search_term}": ${err.message}`,
       }
 
-      return { resource, status, rawData: {}, hits: [] };
+      return { status, rawData: {}, hits: [] };
     }
 // debugger
 
@@ -124,7 +126,7 @@ class ComplyAdvantageAPI {
         message: `Sanctions check for "${search_term}" passed`
       }
     }
-    return hits && { resource, rawData, status, hits }
+    return hits && { rawData, status, hits }
   }
 
   async createSanctionsCheck({ application, rawData, status }: IComplyCheck) {
@@ -173,42 +175,6 @@ class ComplyAdvantageAPI {
 
     await this.applications.createVerification({ application, verification })
   }
-  async getCheckParameters (resource, productId, application) {
-    let propertyMap = this.conf.products[productId].propertyMap
-    let dbRes = resource._prevlink  &&  await this.bot.objects.get(resource._prevlink)
-    let runCheck, companyName, registrationDate
-    for (let formId in propertyMap) {
-      let map = propertyMap[formId]
-      if (formId !== FORM_ID) {
-        debugger
-        let formStubs = getParsedFormStubs(application).filter(f => f.type === FORM_ID)
-
-        if (!formStubs.length) {
-          this.logger.debug(`No form ${formId} was found for ${productId}`)
-          return
-        }
-        let { link } = formStubs[0]
-        resource = await this.bot.objects.get(link)
-      }
-      let companyNameProp = map.companyName
-      if (companyNameProp) {
-        companyName = resource[companyNameProp]
-        if (dbRes  &&  dbRes[companyNameProp] !== companyName)
-          runCheck = true
-      }
-      let registrationDateProp = map.registrationDate
-      if (registrationDateProp) {
-        registrationDate = resource[registrationDateProp]
-        if (dbRes  &&  dbRes[registrationDateProp] !== registrationDate)
-          runCheck = true
-      }
-    }
-    if (runCheck)
-      return {companyName, registrationDate}
-    else
-      this.logger.debug(`nothing changed for: ${companyName}`)
-  }
-
 }
 // {conf, bot, productsAPI, logger}
 export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications }, { conf, logger }) => {
@@ -223,40 +189,34 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       if (!application) return
 
       let productId = application.requestFor
-      let { products } = conf
-      if (!products  ||  !products[productId]  ||  !products[productId].propertyMap)
+      let { products, propertyMap } = conf
+      if (!products  ||  !products[productId])
         return
 
       // let propertyMap = products[productId].propertyMap
       let criteria = products[productId].filter
       // let companyName, registrationDate
-      let resource = payload
+      // let resource = payload
 
       // debugger
-      let params = await complyAdvantage.getCheckParameters(resource, productId, application)
-      if (!params)
+      let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
+      if (!resource)
         return
-      let { companyName, registrationDate } = params
+      let { companyName, registrationDate } = resource
       logger.debug(`running sanctions plugin for: ${companyName}`);
 
       if (!companyName  ||  !registrationDate) {
         logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
         return
       }
+      let r: {rawData:any, hits: any, status: any} = await complyAdvantage.getData(resource, criteria)
 
-      let forms = [payload]
-      let pforms = forms.map((f) => complyAdvantage.getData(f, conf, {companyName, registrationDate}, criteria, application))
-
-      let result = await Promise.all(pforms)
       let pchecks = []
-      result.forEach((r: {resource:any, rawData:any, hits: any, status: any}) => {
-        // if (!r) return
-
-        let { resource, rawData, hits, status } = r
-        if (rawData.status === 'failure') {
-          pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status}))
-          return
-        }
+      let { rawData, hits, status } = r
+      if (rawData.status === 'failure') {
+        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status}))
+      }
+      else {
         let hasVerification
         if (hits  &&  hits.length) {
           logger.debug(`found sanctions for: ${companyName}`);
@@ -269,7 +229,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
         pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status}))
         if (hasVerification)
           pchecks.push(complyAdvantage.createVerification({user, application, form: resource, rawData}))
-      })
+      }
       let checksAndVerifications = await Promise.all(pchecks)
     }
   }
@@ -361,3 +321,54 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
 //   }
 // }
 
+  // async getCheckParameters (resource) {
+  //   let map = this.conf.propertyMap[resource[TYPE]]
+  //   let dbRes = resource._prevlink  &&  await this.bot.objects.get(resource._prevlink)
+  //   let runCheck = !dbRes
+  //   debugger
+  //   let r:any = {}
+  //   for (let prop in defaultPropMap) {
+  //     let p = map  &&  map[prop]
+  //     if (!p)
+  //       p = prop
+  //     let pValue = resource[p]
+  //     if (dbRes  &&  dbRes[p] !== pValue)
+  //       runCheck = true
+  //     r[prop] = pValue
+  //   }
+  //   debugger
+  //   if (runCheck)
+  //     return r
+  //   this.logger.debug(`nothing changed for: ${title({resource, models: this.bot.models})}`)
+
+  //   // for (let formId in propertyMap) {
+  //   //   let map = propertyMap[formId]
+  //   //   if (formId !== FORM_ID) {
+  //   //     debugger
+  //   //     let formStubs = getParsedFormStubs(application).filter(f => f.type === FORM_ID)
+
+  //   //     if (!formStubs.length) {
+  //   //       this.logger.debug(`No form ${formId} was found for ${productId}`)
+  //   //       return
+  //   //     }
+  //   //     let { link } = formStubs[0]
+  //   //     resource = await this.bot.objects.get(link)
+  //   //   }
+  //   //   let companyNameProp = map.companyName
+  //   //   if (companyNameProp) {
+  //   //     companyName = resource[companyNameProp]
+  //   //     if (dbRes  &&  dbRes[companyNameProp] !== companyName)
+  //   //       runCheck = true
+  //   //   }
+  //   //   let registrationDateProp = map.registrationDate
+  //   //   if (registrationDateProp) {
+  //   //     registrationDate = resource[registrationDateProp]
+  //   //     if (dbRes  &&  dbRes[registrationDateProp] !== registrationDate)
+  //   //       runCheck = true
+  //   //   }
+  //   // }
+  //   // if (runCheck)
+  //   //   return {companyName, registrationDate}
+  //   // else
+  //   //   this.logger.debug(`nothing changed for: ${companyName}`)
+  // }
