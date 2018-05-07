@@ -2,7 +2,6 @@ import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
-import { title } from '@tradle/build-resource'
 import { isPromise, pickNonNull, getEnumValueId, parseStub } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
@@ -419,7 +418,5 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
   debugger
   if (!Object.keys(r).length)
     throw new Error(`no criteria to run ${plugin} checks`)
-  if (runCheck)
-    return r
-  this.logger.debug(`nothing changed for: ${title({resource, models: bot.models})}`)
+  return runCheck  &&  r
 }
