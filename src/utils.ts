@@ -1035,16 +1035,14 @@ export const logResponseBody = (logger:Logger) => (req, res, next) => {
 }
 
 export const updateTimestamp = (resource:any, time:number=Date.now()) => {
-  setVirtual(resource, { _time: time })
+  resource._time = time
 }
 
 export const ensureTimestamped = (resource) => {
   if (!resource._time) {
-    if (resource.time) {
-      setVirtual(resource, { _time: resource.time })
-    } else {
-      updateTimestamp(resource)
-    }
+    if (resource[SIG]) throw new Errors.InvalidInput(`expected unsigned resource`)
+
+    resource._time = resource.time || Date.now()
   }
 
   return resource

@@ -5,7 +5,8 @@ import adapters from './blockchain-adapter'
 import {
   IDebug,
   Logger,
-  Identity
+  Identity,
+  ITradleObject
 } from './types'
 
 import Errors from './errors'
@@ -24,8 +25,11 @@ interface IKey {
 }
 
 interface ISealable {
-  link?: string
-  prevLink?: string
+  // link?: string
+  // prevLink?: string
+  headerHash?: string
+  prevHeaderHash?: string
+  object?: ITradleObject
   basePubKey: any
 }
 
@@ -161,10 +165,10 @@ export default class Blockchain {
   //   return getTxsForAddresses(addresses)
   // })
 
-  public seal = async ({ key, link, addresses, balance }: ISealOpts) => {
+  public seal = async ({ key, headerHash, addresses, balance }: ISealOpts) => {
     const writer = this.getWriter(key)
     this.start()
-    this.logger.debug(`sealing ${link}`)
+    this.logger.debug(`sealing ${headerHash}`)
     if (typeof balance === 'undefined') {
       try {
         balance = await this.balance()
@@ -194,28 +198,26 @@ export default class Blockchain {
   }
 
   public sealPubKey = (opts: ISealable) => {
-    let { link, basePubKey } = opts
-    link = utils.linkToBuf(link)
+    let { object, headerHash, basePubKey } = opts
     basePubKey = utils.toECKeyObj(basePubKey)
-    return protocol.sealPubKey({ link, basePubKey })
+    return protocol.sealPubKey({ basePubKey, object, headerHash })
   }
 
   public sealPrevPubKey = (opts: ISealable) => {
-    let { link, basePubKey } = opts
-    link = utils.linkToBuf(link)
+    let { object, prevHeaderHash, basePubKey } = opts
     basePubKey = utils.toECKeyObj(basePubKey)
-    return protocol.sealPrevPubKey({ link, basePubKey })
+    return protocol.sealPrevPubKey({ object, prevHeaderHash, basePubKey })
   }
 
   public sealAddress = (opts: ISealable) => {
-    const { link, basePubKey } = opts
-    const { pub } = this.sealPubKey({ link, basePubKey })
+    const { object, headerHash, basePubKey } = opts
+    const { pub } = this.sealPubKey({ object, headerHash, basePubKey })
     return this.network.pubKeyToAddress(pub)
   }
 
   public sealPrevAddress = (opts: ISealable ) => {
-    const { link, basePubKey } = opts
-    const { pub } = this.sealPrevPubKey({ link, basePubKey })
+    const { object, prevHeaderHash, basePubKey } = opts
+    const { pub } = this.sealPrevPubKey({ object, prevHeaderHash, basePubKey })
     return this.network.pubKeyToAddress(pub)
   }
 

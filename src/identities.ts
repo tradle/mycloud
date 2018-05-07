@@ -33,7 +33,7 @@ import {
   IHasLogger
 } from './types'
 
-const { PREVLINK, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
+const { PREVLINK, AUTHOR, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
 const { MESSAGE } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
@@ -43,7 +43,6 @@ let BLAH_COUNTER = 0
 
 type AuthorInfo = {
   _author: string
-  _recipient?: string
 }
 
 type PubKeyMapping = {
@@ -95,7 +94,6 @@ export default class Identities implements IHasLogger {
 
     this._cacheIdentity = (identity) => {
       const permalink = identity._permalink
-      console.log('CACHING IDENTITY ' + permalink)
       getIdentityCachified.set([permalink], identity)
       identity.pubkeys.forEach(key => this._cachePub(key.pub, key))
     }
@@ -331,31 +329,28 @@ export default class Identities implements IHasLogger {
   }
 
   /**
-   * Add author metadata, including designated recipient, if object is a message
+   * calc author metadata from signing key
    * @param {String} object._sigPubKey author sigPubKey
    */
-  public getAuthorInfo = async (object: ITradleObject):Promise<AuthorInfo> => {
+  public calcAuthorInfo = async (object: ITradleObject):Promise<AuthorInfo> => {
     const { _sigPubKey } = this.objects.getMetadata(object)
     const type = object[TYPE]
-    const isMessage = type === MESSAGE
-    const pub = isMessage && object.recipientPubKey.pub.toString('hex')
-    const { author, recipient } = {
-      author: await this.getPubKey(_sigPubKey),
-      recipient: await (pub ? this.getPubKey(pub) : RESOLVED_PROMISE)
-    }
-
+    const author = await this.getPubKey(_sigPubKey)
     const ret = {
       _author: author.permalink
     } as AuthorInfo
 
-    if (recipient) ret._recipient = recipient.permalink
-
     return ret
   }
 
-  public addAuthorInfo = async (object: ITradleObject):Promise<ITradleObject> => {
-    const info = await this.getAuthorInfo(object)
-    return setVirtual(object, info)
+  public verifyAuthor = async (object: ITradleObject):Promise<void> => {
+    const author = object[AUTHOR]
+    if (!author) throw new Errors.InvalidInput(`expected ${AUTHOR}`)
+
+    const info = await this.calcAuthorInfo(object)
+    if (info._author !== author) {
+      throw new Errors.InvalidInput(`_sigPubKey doesn't match specified ${AUTHOR}`)
+    }
   }
 
   public addContact = async (identity:IIdentity):Promise<void> => {

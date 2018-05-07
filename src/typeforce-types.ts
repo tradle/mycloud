@@ -1,13 +1,25 @@
 
 import { types, typeforce } from '@tradle/engine'
-import { TYPES, TYPE, PREV_TO_RECIPIENT, SEQ, SIG } from './constants'
+import {
+  TYPES,
+  TYPE,
+  PREV_TO_RECIPIENT,
+  SEQ,
+  SIG,
+  AUTHOR,
+  RECIPIENT,
+  TIMESTAMP,
+} from './constants'
 
 const { MESSAGE } = TYPES
-const { identity } = types
+const { identity, createObjectInput, signObjectInput } = types
 const link = val => typeof val === 'string' && val.length === 64
 const permalink = link
 
+
 export {
+  createObjectInput,
+  signObjectInput,
   link,
   permalink,
   identity
@@ -63,10 +75,9 @@ export const message = typeforce.compile({
   [SIG]: typeforce.String,
   object: types.signedObject,
   [PREV_TO_RECIPIENT]: typeforce.maybe(typeforce.String),
-  recipientPubKey: types.ecPubKey,
-  time: typeforce.Number,
-  _author: typeforce.maybe(link),
-  _recipient: typeforce.maybe(link),
+  [TIMESTAMP]: typeforce.Number,
+  [AUTHOR]: link,
+  [RECIPIENT]: link,
   _link: typeforce.maybe(link),
   _permalink: typeforce.maybe(link),
   _inbound: typeforce.maybe(typeforce.Boolean),

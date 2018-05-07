@@ -28,7 +28,7 @@ const normalizeSendOpts = async (bot, opts) => {
     if (object[SIG]) {
       typeforce(types.signedObject, object)
     } else {
-      typeforce(types.unsignedObject, object)
+      typeforce(types.createObjectInput, object)
     }
 
     typeforce({

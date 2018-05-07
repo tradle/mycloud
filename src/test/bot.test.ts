@@ -196,14 +196,14 @@ test(`onmessage`, loudAsync(async (t) => {
     _t: 'a',
     _s: 'sig',
     _author: 'carol',
-    _virtual: ['_author', '_link', '_permalink']
+    _time: 122
   }
 
   const message = {
     [TYPE]: 'tradle.Message',
     [SEQ]: 0,
     [SIG]: crypto.randomBytes(128).toString('base64'),
-    time: 123,
+    _time: 123,
     _inbound: true,
     _payloadType: payload[TYPE],
     _author: crypto.randomBytes(32).toString('hex'),
@@ -313,7 +313,7 @@ test(`seal events stream`, loudAsync(async (t) => {
         [TYPE]: 'tradle.SealState',
         link,
         unsealed: 'x',
-        time: 1
+        _time: 1
       }
     },
     // wroteseal
@@ -322,13 +322,13 @@ test(`seal events stream`, loudAsync(async (t) => {
         [TYPE]: 'tradle.SealState',
         link,
         unsealed: 'x',
-        time: 1
+        _time: 1
       },
       new: {
         [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
-        time: 2
+        _time: 2
       }
     },
     // readseal
@@ -337,12 +337,12 @@ test(`seal events stream`, loudAsync(async (t) => {
         [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
-        time: 2
+        _time: 2
       },
       new: {
         [TYPE]: 'tradle.SealState',
         link,
-        time: 3
+        _time: 3
       }
     },
     // watchseal
@@ -351,7 +351,7 @@ test(`seal events stream`, loudAsync(async (t) => {
         [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
-        time: 4
+        _time: 4
       }
     }
   ]), {
@@ -470,7 +470,7 @@ test('onmessagestream', loudAsync(async (t) => {
   //   //   [TYPE]: 'tradle.SimpleMessage',
   //   //   message: 'hey'
   //   // }),
-  //   // time: 123
+  //   // _time: 123
   // })
 
   await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [

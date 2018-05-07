@@ -7,9 +7,14 @@ import {
   ConditionExpression,
   UpdateExpression
 } from '@aws/dynamodb-expressions'
-import { utils, protocol } from '@tradle/engine'
+import protocol from '@tradle/protocol'
 import buildResource from '@tradle/build-resource'
-import { TYPE } from '@tradle/constants'
+import {
+  TYPE,
+  PREVHEADER,
+  // AUTHOR
+} from './constants'
+
 import {
   // timestamp,
   typeforce,
@@ -18,7 +23,8 @@ import {
   seriesMap,
   bindAll,
   summarizeObject,
-  promiseNoop
+  promiseNoop,
+  pickNonNull
 } from './utils'
 import { getLinks, randomString } from './crypto'
 import { prettify } from './string-utils'
@@ -54,11 +60,34 @@ const SYNC_BATCH_SIZE = 10
 const acceptAll = val => true
 const timestamp = () => Date.now()
 
-type SealRecordOpts = {
+interface ISealDataIdentifier {
+  link: string
+  prevlink: string
+  permalink: string
+  headerHash: string
+  prevHeaderHash: string
+}
+
+type CreateSealWithHeaderHashOpts = {
   key?: IECMiniPubKey
-  link?: string
+  link: string
   prevlink?: string
-  permalink?: string
+  permalink: string
+  headerHash: string
+  prevHeaderHash?: string
+  counterparty?: string
+}
+
+type CreateSealWithObjectOpts = {
+  key?: IECMiniPubKey
+  object: ITradleObject
+  counterparty?: string
+}
+
+type CreateSealOpts = CreateSealWithHeaderHashOpts | CreateSealWithObjectOpts
+
+interface ISealRecordOpts extends Partial<ISealDataIdentifier> {
+  key?: IECMiniPubKey
   counterparty?: string
   object?: ITradleObject
   watchType?: string
@@ -75,9 +104,9 @@ type ErrorSummary = {
 
 type WatchOpts = {
   key: IECMiniPubKey
-  link: string
+  link?: string
+  headerHash?: string
   object?: ITradleObject
-  write?: boolean
 }
 
 export type Seal = {
@@ -87,6 +116,8 @@ export type Seal = {
   link: string
   prevlink?: string
   permalink?: string
+  headerHash?: string
+  prevHeaderHash?: string
   forResource?: ResourceStub
   counterparty?: string
   blockchain: string
@@ -190,15 +221,20 @@ export default class Seals {
     this.syncUnconfirmed = blockchain.wrapOperation(this._syncUnconfirmed)
   }
 
-  public watch = (opts:WatchOpts) => {
+  public watch = (opts: WatchOpts) => {
     return this.createSealRecord({ ...opts, write: false })
   }
 
   public watchNextVersion = (opts: WatchOpts) => {
-    return this.createSealRecord({ ...opts, watchType: WATCH_TYPE.next, write: false })
+    const sealOpts = {
+      ..._.omit(opts, ['headerHash']),
+      prevHeaderHash: opts.headerHash || protocol.headerHash(opts.object),
+    }
+
+    return this.createSealRecord({ ...sealOpts, watchType: WATCH_TYPE.next, write: false })
   }
 
-  public create = async (opts: SealRecordOpts) => {
+  public create = async (opts: CreateSealOpts) => {
     return this.createSealRecord({ ...opts, write: true })
   }
 
@@ -332,7 +368,8 @@ export default class Seals {
     })
   }
 
-  private createSealRecord = async (opts:SealRecordOpts):Promise<void> => {
+  private createSealRecord = async (opts: ISealRecordOpts):Promise<void> => {
+    const { object, headerHash } = opts
     if (!opts.key && opts.write) {
       opts = {
         ...opts,
@@ -726,15 +763,25 @@ export default class Seals {
   private getNewSealParams = ({
     key,
     object,
+    headerHash,
+    prevHeaderHash,
     link,
     permalink,
     prevlink,
     counterparty,
     watchType=WATCH_TYPE.this,
     write
-  }: SealRecordOpts) => {
+  }: ISealRecordOpts) => {
     if (object) {
       ({ link, permalink, prevlink } = getLinks(object))
+      headerHash = protocol.headerHash(object)
+      prevHeaderHash = object[PREVHEADER]
+    } else if (watchType === WATCH_TYPE.this && !headerHash) {
+      debugger
+      throw new Errors.InvalidInput(`expected "object" or "headerHash"`)
+    } else if (watchType === WATCH_TYPE.next && !prevHeaderHash) {
+      debugger
+      throw new Errors.InvalidInput(`expected "object" or "prevHeaderHash"`)
     }
 
     const { blockchain, network } = this
@@ -742,11 +789,13 @@ export default class Seals {
     // the tx for next version will have a predictable seal based on the current version's link
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
 
+    const basePubKey = key
+
     let pubKey
     if (watchType === WATCH_TYPE.this) {
-      pubKey = blockchain.sealPubKey({ link, basePubKey: key })
+      pubKey = blockchain.sealPubKey({ object, headerHash, basePubKey })
     } else {
-      pubKey = blockchain.sealPrevPubKey({ prevLink: link, basePubKey: key })
+      pubKey = blockchain.sealPrevPubKey({ object, prevHeaderHash, basePubKey })
     }
 
     const address = blockchain.pubKeyToAddress(pubKey.pub)
@@ -758,6 +807,8 @@ export default class Seals {
       blockchain: network.flavor,
       network: network.networkName,
       link,
+      headerHash,
+      prevHeaderHash,
       address,
       pubKey,
       counterparty,
@@ -786,7 +837,7 @@ export default class Seals {
       params.unsealed = true
     }
 
-    return params
+    return pickNonNull(params)
   }
 }
 

@@ -8,6 +8,7 @@ import _ from 'lodash'
 import test from 'tape'
 import sinon from 'sinon'
 import { TYPE, SIG } from '@tradle/constants'
+import protocol from '@tradle/protocol'
 import { wait, deepClone } from '../utils'
 import { addLinks } from '../crypto'
 import adapters from '../blockchain-adapter'
@@ -67,8 +68,8 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   //   link
   // })))
 
-  await seals.create({ key: aliceKey, link: aliceIdentity._link })
-  await seals.watch({ key: bobKey, link: bobIdentity._link })
+  await seals.create({ key: aliceKey, object: aliceIdentity })
+  await seals.watch({ key: bobKey, object: bobIdentity })
 
   let unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 1)
@@ -138,7 +139,7 @@ test('queue seal', loudAsync(async (t) => {
   const { blockchain, seals } = tradle
   const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const address = blockchain.sealAddress({
-    link,
+    headerHash: protocol.headerHash(sealedObj),
     basePubKey: key
   })
 
@@ -200,7 +201,7 @@ test('queue seal', loudAsync(async (t) => {
     })
 
   // const clock = sinon.useFakeTimers()
-  await seals.create({ key, link, permalink })
+  await seals.create({ key, object: sealedObj })
   let unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 0)
 
@@ -285,7 +286,9 @@ test('corda seals', loudAsync(async (t) => {
   const link = obj._link
   const permalink = obj._permalink
   const sealOpts = {
+    headerHash: protocol.headerHash(obj),
     link,
+    permalink,
     counterparty: aliceIdentity._link
   }
 
@@ -339,7 +342,7 @@ test('corda seals', loudAsync(async (t) => {
 
   const saved = await seals.get(sealOpts)
   const expected = {
-    counterparty: 'dcd023c77d5894699a317381696be028ae11a715d5f9ad78b92b2168dd226711',
+    counterparty: sealOpts.counterparty,
     network: env.BLOCKCHAIN.networkName,
     blockchain: env.BLOCKCHAIN.flavor,
     txId,

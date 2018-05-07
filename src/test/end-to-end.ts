@@ -8,7 +8,7 @@ import { EventEmitter } from 'events'
 import nock from 'nock'
 import assert from 'assert'
 import nodeCrypto from 'crypto'
-import { TYPE, TYPES, SIG, SEQ } from '@tradle/constants'
+import { TYPE, TYPES, SIG, SEQ, AUTHOR } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import mergeModels from '@tradle/merge-models'
@@ -118,12 +118,13 @@ export class Test {
 
       const hey = {
         [TYPE]: SIMPLE_MESSAGE,
+        [AUTHOR]: bot.identity._permalink,
         message: 'hey'
       }
 
       message = _.cloneDeep(message)
       await bot.objects.resolveEmbeds(message)
-      await bot.identities.addAuthorInfo(message)
+      await bot.identities.verifyAuthor(message)
       await employee.send({
         other: {
           forward: message._author

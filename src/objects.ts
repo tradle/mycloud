@@ -228,7 +228,6 @@ export default class Objects {
   public _put = async (object: ITradleObject) => {
     typeforce(types.signedObject, object)
     object = clone(object)
-    ensureTimestamped(object)
     this.addMetadata(object)
     if (this.env.TESTING) {
       this._ensureNoDataUrls(object)

@@ -232,6 +232,7 @@ export class Resource extends EventEmitter {
 
     const signed = await this.store.sign(this.toJSON(opts))
 
+    debugger
     this.set(signed)
     this.emit('sign')
     return this
@@ -397,11 +398,7 @@ export class Resource extends EventEmitter {
   public static getPrimary
 
   public version = () => {
-    const { link, permalink } = this
-    return this.set({
-      [PREVLINK]: link,
-      [PERMALINK]: permalink
-    })
+    return this.set(buildResource.version(this.resource))
   }
 
   private _assertDiff = () => {

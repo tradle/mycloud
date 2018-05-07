@@ -203,12 +203,12 @@ export interface IBotLambdaOpts extends ILambdaOpts {
 export type Middleware = ComposeMiddleware<ILambdaExecutionContext>
 
 export interface ITradleObject {
+  _version?: number
   _sigPubKey?: string
   _link?: string
   _permalink?: string
   _author?: string
   _time?: number
-  _virtual?:string[]
   [x: string]: any
 }
 
@@ -219,9 +219,8 @@ export interface IECMiniPubKey {
 }
 
 export interface ITradleMessage extends ITradleObject {
-  recipientPubKey: IECMiniPubKey
   object: ITradleObject
-  time: number
+  _time: number
   context?: string
   forward?: string
   _recipient?: string

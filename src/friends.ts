@@ -2,7 +2,7 @@ import _ from 'lodash'
 import lexint from 'lexicographic-integer'
 import Cache from 'lru-cache'
 import fetch from 'node-fetch'
-import { TYPE, PERMALINK, PREVLINK } from '@tradle/constants'
+import { TYPE, PERMALINK, PREVLINK, TIMESTAMP, SIG } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { addLinks } from './crypto'
 import { get, cachifyFunction, parseStub } from './utils'
@@ -107,17 +107,15 @@ export default class Friends {
     }
 
     const keys = Object.keys(model.properties)
-    const object = buildResource({ models, model })
+    let object = buildResource({ models, model })
       .set({
         ..._.pick(existing, keys),
         ..._.pick(props, keys)
       })
       .toJSON()
 
-    const isSame = Object.keys(object).every(prop => {
-      return _.isEqual(object[prop], existing[prop])
-    })
-
+    const compareKeys = _.difference(Object.keys(object), [TIMESTAMP, SIG])
+    const isSame = _.isEqual(_.pick(object, compareKeys), _.pick(existing, compareKeys))
     if (org) await this.storage.save({ object: org })
 
     if (isSame) {
@@ -128,8 +126,10 @@ export default class Friends {
 
     this.logger.debug('adding friend', object)
     if (Object.keys(existing).length) {
-      object[PREVLINK] = buildResource.link(existing)
-      object[PERMALINK] = buildResource.permalink(existing)
+      object = buildResource({ models, model })
+        .set(buildResource.version(existing))
+        .set(_.pick(props, keys))
+        .toJSON()
     }
 
     const promiseAddContact = this.identities.addContact(identity)
@@ -139,33 +139,7 @@ export default class Friends {
       this.storage.save({ object: signed })
     ])
 
-    // await this.db.update(signed, {
-    //   ConditionExpression: `attribute_not_exists(#domain) OR #identityPermalink = :identityPermalink`,
-    //   ExpressionAttributeNames: {
-    //     '#domain': 'domain',
-    //     '#identityPermalink': '_identityPermalink'
-    //   },
-    //   ExpressionAttributeValues: {
-    //     ':identityPermalink': permalink
-    //   }
-    // })
-
-    // await this.objects.put(signed)
-
-    // debug(`sending self introduction to friend "${name}"`)
-    // await this.messaging.sendMessage({
-    //   recipient: permalink,
-    //   object: buildResource({
-    //       models,
-    //       model: 'tradle.SelfIntroduction',
-    //     })
-    //     .set({
-    //       identity: await promiseMyIdentity
-    //     })
-    //     .toJSON()
-    // })
-
-    // this.cache.set(identity._permalink, signed)
+    // console.log('ADDED FRIEND', console.log(JSON.stringify(signed, null, 2)))
     return signed
   }
 
@@ -193,6 +167,7 @@ export default class Friends {
 
   public list = async () => {
     return await this.db.find({
+      allowScan: true,
       filter: {
         EQ: {
           [TYPE]: FRIEND_TYPE
