@@ -109,7 +109,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
     Errors.rethrow(error, 'developer')
     const opts = {
       counterparty: message._counterparty,
-      time: message.time
+      time: message._time
     }
 
     try {

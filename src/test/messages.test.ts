@@ -27,7 +27,9 @@ import {
   SEQ,
   PREV_TO_RECIPIENT,
   TYPE,
-  TYPES
+  TYPES,
+  AUTHOR,
+  TIMESTAMP
 } from '../constants'
 
 import { createTestTradle } from '../'
@@ -38,11 +40,7 @@ const { MESSAGE } = TYPES
 const { identities, messages, objects, messaging } = createTestTradle()
 const { _doQueueMessage, _doReceiveMessage } = messaging
 const fromBobToAlice = require('./fixtures/alice/receive.json')
-  .map(messages.normalizeInbound)
-
 const fromAliceToBob = require('./fixtures/bob/receive.json')
-  .map(messages.normalizeInbound)
-
 const promiseNoop = () => Promise.resolve()
 
 const [alice, bob] = ['alice', 'bob'].map(name => {
@@ -100,7 +98,7 @@ test('_doQueueMessage', loudAsync(async (t) => {
   const stubPutObject = sandbox.stub(objects, 'put').callsFake(function (object) {
     t.ok(object[SIG])
     payload[SIG] = object[SIG]
-    t.same(omitVirtual(object), payload)
+    t.same(_.omit(omitVirtual(object), [AUTHOR, TIMESTAMP]), payload)
     return Promise.resolve()
   })
 
@@ -172,7 +170,7 @@ test('_doReceiveMessage', loudAsync(async (t) => {
   await _doReceiveMessage({ message })
   t.equal(stubPutSave.callCount, 1)
   t.equal(stubPutObject.callCount, 1)
-  t.equal(stubGetIdentity.callCount, 2)
+  t.equal(stubGetIdentity.callCount, 1)
   // t.equal(stubGetInbound.callCount, 0)
   t.equal(stubTimestampInc.callCount, yn(process.env.NO_TIME_TRAVEL) ? 1 : 0)
   // TODO: compare

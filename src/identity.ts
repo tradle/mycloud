@@ -1,3 +1,6 @@
+import cloneDeep from 'lodash/cloneDeep'
+import { AUTHOR } from '@tradle/constants'
+import protocol from '@tradle/protocol'
 import {
   cachifyPromiser,
   setVirtual,
@@ -101,12 +104,22 @@ export default class Identity {
     return key
   }
 
+  public draft = async (object) => {
+    object = protocol.object({ object })
+    object[AUTHOR] = await this.getPermalink()
+    return object
+  }
+
   public sign = async ({ object, author }: {
     object: any
     author?: any
   }):Promise<ITradleObject> => {
+    object = cloneDeep(object)
     const resolveEmbeds = this.objects.resolveEmbeds(object)
     if (!author) author = await this.getPrivate()
+
+    object[AUTHOR] = getPermalink(author.identity)
+    object = protocol.object({ object })
 
     await resolveEmbeds
     const key = getSigningKey(author.keys)
@@ -120,7 +133,6 @@ export default class Identity {
 
     this.objects.addMetadata(signed)
     this.logger.debug(`signed`, summarizeObject(signed))
-    setVirtual(signed, { _author: getPermalink(author.identity) })
     return signed
   }
 }

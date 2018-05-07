@@ -119,5 +119,5 @@ export const createBatchPostProcessor = (bot, opts) => {
 const toMessageEvent = message => ({
   topic: (message._inbound ? topics.message.inbound : topics.message.outbound).toString(),
   data: message,
-  time: message.time
+  time: message._time
 })

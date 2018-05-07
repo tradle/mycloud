@@ -15,7 +15,7 @@ export const onMessage = (lambda: Lambda, { onSuccess, onError }) => {
     logger.debug(`preprocessing ${event.messages.length} messages`)
     const results = await Promise.mapSeries(event.messages, async (message, i) => {
       try {
-        message = messages.normalizeInbound(message)
+        messages.validateInbound(message)
         message = await user.onSentMessage({ message, clientId })
       } catch (error) {
         return { message, error }

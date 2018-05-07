@@ -3,13 +3,13 @@
     "curve": "p256",
     "purpose": "sign",
     "type": "ec",
-    "pub": "043912b4c61f4f24445e1374fc02346fbbce2a62985dde1a45e750a592888eaa8506c9a95fcbe2419e6b3c563ef99f4b2144a54ea52c5d7738fc508c69f76a9b0b",
-    "fingerprint": "da3c250387e87f271353595c79ba4fda973723893518b2a8c3f3eadb874bae6d",
-    "priv": "2af9b7b60532b3016ed7f0142e3100f3614e75203af967fd1db1b01ba8b61060",
+    "pub": "04ee05d6a9db2fe1b7ff8dc9556af43e42957c18f12344685c15cd5b8a48be7a58db506e5f9236442cf61efcf9c7938a78c754ab69492f396284f0f499320731e3",
+    "fingerprint": "1952e3d0867cc7ff818ad4d25f5e8b674d00f62a33352423fc7f39eee99c2415",
+    "priv": "8042259894b1cddb4d16ce79ded38c5db09cb0effe9c22c445dafdc3b3ff4674",
     "encoded": {
       "pem": {
-        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEICr5t7YFMrMBbtfwFC4xAPNhTnUgOvln/R2xsBuothBgoAoGCCqGSM49\nAwEHoUQDQgAEORK0xh9PJEReE3T8AjRvu84qYphd3hpF51ClkoiOqoUGyalfy+JB\nnms8Vj75n0shRKVOpSxddzj8UIxp92qbCw==\n-----END EC PRIVATE KEY-----",
-        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEORK0xh9PJEReE3T8AjRvu84qYphd\n3hpF51ClkoiOqoUGyalfy+JBnms8Vj75n0shRKVOpSxddzj8UIxp92qbCw==\n-----END PUBLIC KEY-----"
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIBCJZiUsc3bTRbOed7TjF2wnLDv/pwixEXa/cOz/0Z0oAoGCCqGSM49\nAwEHoUQDQgAE7gXWqdsv4bf/jclVavQ+QpV8GPEjRGhcFc1biki+eljbUG5fkjZE\nLPYe/PnHk4p4x1SraUkvOWKE8PSZMgcx4w==\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7gXWqdsv4bf/jclVavQ+QpV8GPEj\nRGhcFc1biki+eljbUG5fkjZELPYe/PnHk4p4x1SraUkvOWKE8PSZMgcx4w==\n-----END PUBLIC KEY-----"
       }
     }
   },
@@ -17,13 +17,13 @@
     "curve": "p256",
     "purpose": "update",
     "type": "ec",
-    "pub": "04fe3e796846dc2b89f9c1a92d3a3eab5a434f5f1959521bdfa46166b9b7a70d5d4b817822d01ee12db26cdbb4e6da102809f45368c5724ba4755c1c845e9341b7",
-    "fingerprint": "c20d3063d0ef82c552fe3a21dd18d4b77a02bc9f39270ee94e243cdea79ee82e",
-    "priv": "47e6709381aef268a485234b1d406a6a386d231ca97979ed5f1f6746fc0fcadf",
+    "pub": "049da3dc4c69fedff6ebaeede4b242679e219f6feef1d204d7cbf8720a72885e17521af17a3ffdd069ac35389c92831e4b8f0066dbd041802b60e466ed70bbf6cd",
+    "fingerprint": "6849e1260709cbf7cab44ec32f05b9b0701de47839b7f47c66c2817f24e0dbef",
+    "priv": "0c9ad2e3ced50ed3d6e368498e598d6d12dd919aaf1888136f3d6da23de4f00d",
     "encoded": {
       "pem": {
-        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIEfmcJOBrvJopIUjSx1Aamo4bSMcqXl57V8fZ0b8D8rfoAoGCCqGSM49\nAwEHoUQDQgAE/j55aEbcK4n5waktOj6rWkNPXxlZUhvfpGFmubenDV1LgXgi0B7h\nLbJs27Tm2hAoCfRTaMVyS6R1XByEXpNBtw==\n-----END EC PRIVATE KEY-----",
-        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/j55aEbcK4n5waktOj6rWkNPXxlZ\nUhvfpGFmubenDV1LgXgi0B7hLbJs27Tm2hAoCfRTaMVyS6R1XByEXpNBtw==\n-----END PUBLIC KEY-----"
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIAya0uPO1Q7T1uNoSY5ZjW0S3ZGarxiIE289baI95PANoAoGCCqGSM49\nAwEHoUQDQgAEnaPcTGn+3/brru3kskJnniGfb+7x0gTXy/hyCnKIXhdSGvF6P/3Q\naaw1OJySgx5LjwBm29BBgCtg5GbtcLv2zQ==\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEnaPcTGn+3/brru3kskJnniGfb+7x\n0gTXy/hyCnKIXhdSGvF6P/3Qaaw1OJySgx5LjwBm29BBgCtg5GbtcLv2zQ==\n-----END PUBLIC KEY-----"
       }
     }
   },
@@ -31,76 +31,58 @@
     "purpose": "tls",
     "type": "ec",
     "curve": "curve25519",
-    "pub": "599cd1617d8f3f56b828895429f4e3d3d44de9d784d94462ed52390b541eea72",
-    "fingerprint": "4c85791b83acfb4d54c8c76cfb2c58122d97c77859c1fc357f4596debb4b8052",
-    "priv": "4c4867a495b8825150ad57c4686f86fa72cd726d9ea8a066ae932a49b430599c"
+    "pub": "a1c5bbcbdf94f56487e26d40af76debffa2136e3afdebfaf83629cd40c5b0726",
+    "fingerprint": "ae5dbf546303e53461d1f4d8561ba6dad2bc29e4f0aa493b4811b62034a828d1",
+    "priv": "f4b649fc740a14bb9fec447c3f6406d47a5ecb25980d4dfda77bfc67f0bc4635"
   },
   {
     "networkName": "testnet",
     "purpose": "payment",
     "type": "bitcoin",
-    "fingerprint": "moJeYCYsnRZYJAkWPb6CAipuyj7FaQGQU9",
-    "pub": "03847afdd5ee86309683ef234c5e320d8619fe6a868669590b09491101c7a66b1c",
-    "priv": "cTquim7fRoGJ4KBeWR5DXHi6EMMMdM6iWUGfTHsUqxxfM2jKbXJ3"
+    "fingerprint": "mmDMYG1h16hPo3Fqqxx3MVWeiHag8ngTJo",
+    "pub": "02840ae9ff1eb359537889f44c9385c36c41c350e8e528dd7064d5eb0423724792",
+    "priv": "cTp7ekdM9jhreiRCXvTAkEGqfbRpsKzVVyBhVPmQ54ZEMnqF3CdR"
   },
   {
     "networkName": "testnet",
     "purpose": "messaging",
     "type": "bitcoin",
-    "fingerprint": "mtgdnkSQx5Yw9ZgGWH4RSPi77Lq3MfTAdU",
-    "pub": "03b6ea7a32428302159d168b27c0ef6ac5d4a4d4795a407b1526d6ce4fa116e39b",
-    "priv": "cNsFHqC91a2Cj9VtCZH4Q1iRe241MGhuDJ97SpB6QA2ABmyKei53"
+    "fingerprint": "mgiHAygZtqMmjQHutbcoS7czGjG8uBdKd2",
+    "pub": "02bfe92945c746577ece53f0bd6d1ecf4b07aa2a3eb94e4a1ae9e33bf7ab53e836",
+    "priv": "cS4tvaLDJBKoPXSK9epNsum5NhDs7doriTJifHcTM3VH6gffKGfo"
   },
   {
     "networkName": "bitcoin",
     "purpose": "payment",
     "type": "bitcoin",
-    "fingerprint": "15UwWVpt2En58EpKEDjR3fxScfSzFdnsqz",
-    "pub": "0377e4f8976e080b4fd2b35ca5a5f046fd2ab225a25f61afb1148853f71b5506a3",
-    "priv": "L4zogHjoDCGQbxNPkeFJgV6pZGNN5bAQtxpqiumBaeMcgZ14J3Jn"
+    "fingerprint": "1NoBGZRiipGsiMxsgzZSjEoHvfDvJC1eH3",
+    "pub": "02a41fa93a0006e4075bb4ffb387eb449f120072ee5213a0e0f6c6768b3269a594",
+    "priv": "KyguRZLhh5kk26fTqGUbbhnM2UcvhkPYrS9rH2KLVio6AArNmKvN"
   },
   {
     "networkName": "bitcoin",
     "purpose": "messaging",
     "type": "bitcoin",
-    "fingerprint": "13iLQLaxV3NS2nWDYkJVwHLR4yLKmXEAXp",
-    "pub": "024abbab56449e8711c71d7687ec4401c5a0d150c58aab3c4e6072d56fbdad1581",
-    "priv": "L4UWAGaT11YykPqyvcazpdvjaPC1pnqk8bZrbFDjVyvrgFeXC1X1"
+    "fingerprint": "14FwUDdQgvANgptskMGJ997EJXWgpuNZTq",
+    "pub": "02e26d8b98d76fa97482f58fd56f4482280662a0495d4b83206a88d50eece6ca0d",
+    "priv": "L2qBH8y9GCCyHPZHH7JgMLryVQne4rwH2MiSszwZ5h2BGo2qatVL"
   },
   {
     "purpose": "payment",
     "type": "ethereum",
     "curve": "secp256k1",
-    "pub": "046fd6dab422e01d8ea853e5811072a01825c4b5812b80c8aaf1154632ae20c7e035e1b68956f235b77f1795cdc18a57a465a654641276046bbbdf5a4f4676aa0c",
-    "fingerprint": "00dcbbe49603739f84d571254b34afe43dec6820",
-    "networkName": "ropsten",
-    "priv": "f99784777718b21c7308126000342d26f9c9ddb09ee7ee328e0327c8fb1281fe"
+    "pub": "04e356bf2fe6da7e6bacc24e29ee8cb7db6d2523d52de071893ccd7e27500421d8ba773de44ffe4e07d89087033346117e4545f35d3c8974626060c4abbd30d1f8",
+    "fingerprint": "4c278721998c2b5ee010c8c830b45c02a0e2e46c",
+    "networkName": "rinkeby",
+    "priv": "58714e822e83beb496e1ebee947448fd2d4bad3f849216c5f858d2b4bd07ec31"
   },
   {
     "purpose": "messaging",
     "type": "ethereum",
     "curve": "secp256k1",
-    "pub": "04e38b6f5362858bb4be2b3bdcb6183b3e19be0184df1ae941853f5588d2edb5e35f084ac638a84dd78eefacea42f871284a07b233d1d8e622cc7f358bc982ba97",
-    "fingerprint": "00e385ac6dfdeadc097c5f20856ff18dfb2edf4f",
-    "networkName": "ropsten",
-    "priv": "4c759b14c7057755d51e0ce547c84399c6f6a3e66500b627fcefa49e14704db8"
-  },
-  {
-    "purpose": "payment",
-    "type": "ethereum",
-    "curve": "secp256k1",
-    "pub": "045db655fde6d823ca98fb5e9701af1db593b75e3a85d920af1c1d01e649d94ed08875d6d202ed2acd66243d4a6380c7086ee82ff5a071dbc622b2330f9b1ff172",
-    "fingerprint": "00f4aa584c939cd1d4c876e464f24de5dc93118b",
+    "pub": "040f287feeb905f478726695b833deb9927ca128ffef7f5fec5e261695bbdd866853e28ac794ffb3406440716009204f6b1079055b0cef774b7ea53d5caf078cd0",
+    "fingerprint": "2ab79c21fd5a1a9a873b4640446ac0d7dc76f9bf",
     "networkName": "rinkeby",
-    "priv": "582d7493ff5baacf9d29023ca5ae119c8b079a22b97e8b4c322cc7e79f7bedd2"
-  },
-  {
-    "purpose": "messaging",
-    "type": "ethereum",
-    "curve": "secp256k1",
-    "pub": "04ffb46bcb8023c56ddcbe576bdd5689b043d26b96e8c8e9dbe18b3adc382acd2685b86a3d4b103d018ae7759b40f442145378688a6d28ea54fc1f89625c69cf9b",
-    "fingerprint": "00664c1c1c391f0a94b69afae997af0177a551aa",
-    "networkName": "rinkeby",
-    "priv": "bfeeee382192919e4595a9254d8a898444bc34c5f5ecbd90a9280fc54760bdb7"
+    "priv": "adf3e6900c19b3aec6b2f5024eee5681f898595183c42f2555b50d6a7f396dd0"
   }
 ]

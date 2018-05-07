@@ -124,7 +124,7 @@ export default class Init {
     const pub = priv.identity
     ensureTimestamped(pub)
     this.objects.addMetadata(pub)
-    setVirtual(pub, { _author: pub._permalink })
+    // setVirtual(pub, { _author: pub._permalink })
 
     this.logger.info('created identity', JSON.stringify(pub))
     return {
@@ -164,8 +164,7 @@ export default class Init {
       this.seals.create({
         counterparty: null,
         key: chainKey,
-        object: pub,
-        link: pub._link
+        object: pub
       })
     ])
   }

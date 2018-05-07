@@ -34,7 +34,8 @@ import {
   MAX_CLOCK_DRIFT,
   SEQ,
   PREV_TO_RECIPIENT,
-  PREVLINK
+  PREVLINK,
+  TIMESTAMP
 } from './constants'
 
 const { MESSAGE } = TYPES
@@ -124,25 +125,7 @@ export default class Messages {
     return this.components.db
   }
 
-  public normalizeInbound = (message:any):ITradleMessage => {
-    let { recipientPubKey } = message
-    if (!recipientPubKey) {
-      throw new Errors.InvalidMessageFormat('unexpected format')
-    }
-
-    if (typeof recipientPubKey === 'string') {
-      recipientPubKey = this.unserializePubKey(recipientPubKey)
-      message.recipientPubKey = recipientPubKey
-    }
-
-    const { pub } = recipientPubKey
-    if (!Buffer.isBuffer(pub)) {
-      recipientPubKey.pub = new Buffer(pub.data)
-    }
-
-    validateInbound(message)
-    return message
-  }
+  public validateInbound = validateInbound
 
   public getPropsDerivedFromLast = (last) => {
     const seq = last ? last.seq + 1 : 0
@@ -155,19 +138,10 @@ export default class Messages {
   }
 
   public formatForDB = (message: ITradleMessage) => {
-    const neutered = this.stripData(message)
-    return {
-      ...neutered,
-      recipientPubKey: this.serializePubKey(message.recipientPubKey)
-    }
+    return this.stripData(message)
   }
 
-  public formatForDelivery = (event):ITradleMessage => {
-    return {
-      ...event,
-      recipientPubKey: this.unserializePubKey(event.recipientPubKey)
-    }
-  }
+  public formatForDelivery = _.identity
 
   public serializePubKey = (key:IECMiniPubKey):string => {
     if (typeof key === 'string') return key
@@ -192,7 +166,7 @@ export default class Messages {
     const { message, error } = opts
     const stub = {
       link: (error && error.link) || getLink(message),
-      time: message.time
+      time: message[TIMESTAMP]
     }
 
     typeforce(types.messageStub, stub)
@@ -249,7 +223,7 @@ export default class Messages {
       await this.db.put(item, {
         ConditionExpression: 'attribute_not_exists(#time)',
         ExpressionAttributeNames: {
-          '#time': 'time'
+          '#time': TIMESTAMP
         }
         // expected: { time: { Exists: false }  }
       })
@@ -279,7 +253,7 @@ export default class Messages {
         _inbound: true
       },
       limit: 1,
-      orderBy: 'time',
+      orderBy: TIMESTAMP,
       reverse: true
     })
 
@@ -296,7 +270,7 @@ export default class Messages {
         _counterparty: recipient,
         _inbound: false
       },
-      orderBy: 'time',
+      orderBy: TIMESTAMP,
       reverse: true,
       select: [SEQ, '_link'],
       limit: 1
@@ -339,12 +313,12 @@ export default class Messages {
         _counterparty: recipient,
         _inbound: false
       },
-      orderBy: 'time',
+      orderBy: TIMESTAMP,
       select: getSelect(body)
     })
 
     opts.filter.GT = {
-      time: gt
+      [TIMESTAMP]: gt
     }
 
     const { items } = await this.db.find(opts)
@@ -361,7 +335,7 @@ export default class Messages {
         _counterparty: recipient,
         _inbound: false
       },
-      orderBy: 'time',
+      orderBy: TIMESTAMP,
       reverse: true,
       select: getSelect(body)
     })
@@ -394,7 +368,7 @@ export default class Messages {
       limit,
       filter,
       orderBy: {
-        property: 'time',
+        property: TIMESTAMP,
         desc: reverse
       }
     }
@@ -436,7 +410,7 @@ export default class Messages {
 
   public assertTimestampIncreased = async (message) => {
     const link = getLink(message)
-    const { time=0 } = message
+    const time = message[TIMESTAMP] || 0
     try {
       const prev = await this.getLastMessageFrom({
         author: message._author,
@@ -447,7 +421,7 @@ export default class Messages {
         throw new Errors.Duplicate('duplicate inbound message', link)
       }
 
-      if (prev.time >= time) {
+      if (prev[TIMESTAMP] >= time) {
         const msg = `TimeTravel: timestamp for message ${link} is <= the previous messages's (${prev._link})`
         this.logger.debug(msg)
         throw new Errors.TimeTravel(msg, link)
@@ -477,7 +451,7 @@ export default class Messages {
   public getDCounterpartyKey = Messages.getDCounterpartyKey
 
 // private assertNoDrift = (message) => {
-//   const drift = message.time - Date.now()
+//   const drift = message[TIMESTAMP] - Date.now()
 //   const side = drift > 0 ? 'ahead' : 'behind'
 //   if (Math.abs(drift) > MAX_CLOCK_DRIFT) {
 //     this.debug(`message is more than ${MAX_CLOCK_DRIFT}ms ${side} server clock`)

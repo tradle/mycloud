@@ -5,6 +5,8 @@ import fs from 'fs'
 import path from 'path'
 import mkdirp from 'mkdirp'
 import promisify from 'pify'
+// @ts-ignore
+import Promise from 'bluebird'
 import { utils } from '@tradle/engine'
 import { exportKeys } from '../crypto'
 import { getIdentitySpecs } from '../crypto'
@@ -14,13 +16,13 @@ const helpers = require('@tradle/engine/test/helpers')
 const networks = require('../networks')
 const identityOpts = getIdentitySpecs({ networks })
 const genUser = promisify(utils.newIdentity)
-const genUsers = n => new Array(n).fill(0).map(() => {
-  return genUser(identityOpts)
-    .then(user => {
-      user.profile = createTestProfile()
-      return user
-    })
+const genUsers = n => Promise.map(new Array(n).fill(0), async () => {
+  const user = await genUser(identityOpts)
+  user.profile = createTestProfile()
+  return user
 })
+
+const base = path.resolve(process.cwd(), 'src/test/fixtures')
 
 // const genUsers = promisify(helpers.genUsers)
 
@@ -63,12 +65,10 @@ const genUsers = n => new Array(n).fill(0).map(() => {
 ;(async () => {
   const users = await genUsers(10)
   users.forEach(user => {
-    user.keys = exportKeys(user.keys.map(key => {
-      return utils.importKey(key)
-    }))
+    user.keys = exportKeys(user.keys.map(key => utils.importKey(key)))
   })
 
-  fs.writeFileSync(`./test/fixtures/users-pem.json`, prettify(users))
+  fs.writeFileSync(`${base}/users-pem.json`, prettify(users))
 })()
 
 ;(async () => {
@@ -91,35 +91,31 @@ const genUsers = n => new Array(n).fill(0).map(() => {
   friends.forEach(node => {
     received[node.name] = []
 
-    mkdirp.sync(`./test/fixtures/${node.name}`)
-    fs.writeFileSync(`./test/fixtures/${node.name}/identity.json`, prettify(node.identityInfo.object))
-    fs.writeFileSync(`./test/fixtures/${node.name}/object.json`, prettify({
+    mkdirp.sync(`${base}/${node.name}`)
+    fs.writeFileSync(`${base}/${node.name}/identity.json`, prettify(node.identityInfo.object))
+    fs.writeFileSync(`${base}/${node.name}/object.json`, prettify({
       object: node.identityInfo.object,
       link: node.link,
       permalink: node.permalink
     }))
 
-    fs.writeFileSync(`./test/fixtures/${node.name}/keys.json`, prettify(exportKeys(node.keys)))
+    fs.writeFileSync(`${base}/${node.name}/keys.json`, prettify(exportKeys(node.keys)))
     node.on('message', function ({ object, author, permalink, link, objectinfo }) {
       setVirtual(object.object, {
-        _author: objectinfo.author,
         _permalink: objectinfo.permalink,
         _link: objectinfo.link,
-        _time: object.time
       })
 
       setVirtual(object, {
-        _author: author,
         _permalink: permalink,
         _link: link,
-        _time: object.time
       })
 
       received[node.name].push(object)
       if (--togo) return
 
       friends.forEach(node => {
-        fs.writeFileSync(`./test/fixtures/${node.name}/receive.json`, prettify(received[node.name]))
+        fs.writeFileSync(`${base}/${node.name}/receive.json`, prettify(received[node.name]))
         node.destroy(rethrow)
       })
     })

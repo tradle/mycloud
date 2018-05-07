@@ -3,7 +3,7 @@ require('./env').install()
 import test from 'tape'
 import sinon from 'sinon'
 import { models } from '@tradle/models'
-import { TYPE } from '@tradle/constants'
+import { TYPE, AUTHOR, SIG, TIMESTAMP } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { loudAsync, co, wait } from '../utils'
 import { createTestTradle } from '../'
@@ -23,21 +23,24 @@ test('friends', loudAsync(async (t) => {
     org: await identity.sign({
       object: {
         [TYPE]: 'tradle.Organization',
-        name: 'alice-org'
+        name: 'alice-org',
+        [TIMESTAMP]: 123
       }
     })
   }
 
   await friends.removeByIdentityPermalink(alice.link)
-  await friends.add(friendOpts)
+  const original = await friends.add(friendOpts)
 
   const friend = await friends.getByIdentityPermalink(alice.permalink)
   t.equal(friend.name, friendOpts.name)
   t.equal(friend.url, friendOpts.url)
 
-  t.same(await friends.getByDomain(domain), friend)
+  const byDomain = await friends.getByDomain(domain)
+  t.same(byDomain, friend)
   friendOpts.url = 'blah'
-  await friends.add(friendOpts)
-  t.equal((await friends.getByDomain(domain)).url, friendOpts.url)
+  const updated = await friends.add(friendOpts)
+  const byDomain1 = await friends.getByDomain(domain)
+  t.equal(byDomain1.url, friendOpts.url)
   t.end()
 }))

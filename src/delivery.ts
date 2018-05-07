@@ -134,7 +134,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       if (onProgress) await onProgress(messages)
 
       let last = messages[messages.length - 1]
-      after = result.range.after = last.time
+      after = result.range.after = last._time
     }
 
     return result

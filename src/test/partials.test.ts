@@ -1,7 +1,8 @@
 import test from 'tape'
 import sinon from 'sinon'
 import engine from '@tradle/engine'
-import { TYPE, SIG } from '@tradle/constants'
+import { TYPE, SIG, AUTHOR } from '@tradle/constants'
+import protocol from '@tradle/protocol'
 import { createPlugin } from '../in-house-bot/plugins/partials'
 import { loudAsync } from '../utils'
 
@@ -30,9 +31,14 @@ test('partials', async t => {
       context: 'somecontext'
     },
     payload: {
+      ...protocol.object({
+        object: {
+          [TYPE]: 'tradle.SimpleMessage',
+          [AUTHOR]: 'abcd',
+          message: 'hey'
+        }
+      }),
       [SIG]: 'somesig',
-      [TYPE]: 'tradle.SimpleMessage',
-      message: 'hey'
     }
   })
 

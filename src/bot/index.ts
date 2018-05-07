@@ -416,7 +416,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public getMyIdentity = () => this.tradle.identity.getPublic()
   public getPermalink = () => this.tradle.identity.getPermalink()
 
-  public sign = async (resource:ITradleObject, author?):Promise<ITradleObject> => {
+  public sign = async <T extends ITradleObject>(resource:T, author?):Promise<T> => {
     const payload = { object: resource }
 
     // allow middleware to modify
@@ -617,7 +617,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
-  public signAndSave = async <T>(resource:T):Promise<T> => {
+  public signAndSave = async <T extends ITradleObject>(resource:T):Promise<T> => {
     const signed = await this.sign(resource)
     addLinks(signed)
     await this.save(signed)
@@ -630,7 +630,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return newVersion
   }
 
-  public reSign = object => this.sign(_.omit(object, [SIG]))
+  public reSign = (object:ITradleObject) => this.sign(<ITradleObject>_.omit(object, [SIG]))
   // public fire = async (event, payload) => {
   //   return await this.middleware.fire(event, payload)
   // }

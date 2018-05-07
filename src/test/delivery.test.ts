@@ -63,9 +63,6 @@ test('retry', loudAsync(async (t) => {
     }
   })
 
-  const recipientPubKey = bob.object.pubkeys.find(p => p.type === 'ec' && p.purpose === 'sign')
-  recipientPubKey.pub = new Buffer(recipientPubKey.pub, 'hex')
-
   let remainingTime = 1000
   sandbox.stub(bot.env, 'getRemainingTime').callsFake(() => {
     return remainingTime
@@ -91,9 +88,8 @@ test('retry', loudAsync(async (t) => {
     messages: payloads.map((payload, i) => {
       return {
         [TYPE]: 'tradle.Message',
-        recipientPubKey,
         object: payload,
-        time: i,
+        _time: i,
         _counterparty: bob.permalink,
       }
     })

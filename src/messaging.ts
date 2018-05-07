@@ -31,6 +31,7 @@ import {
   TYPE,
   TYPES,
   SIG,
+  AUTHOR,
   PRIVATE_CONF_BUCKET,
   PERMALINK,
   DB_IGNORE_PAYLOAD_TYPES,
@@ -272,20 +273,18 @@ export default class Messaging {
       // this.objects.prefetch(payload[PREVLINK])
     }
 
-    const addMessageAuthor = this.identities.addAuthorInfo(message)
-    let addPayloadAuthor
+    const verifyMessageAuthor = this.identities.verifyAuthor(message)
+    let verifyPayloadAuthor
     if (payload._sigPubKey === message._sigPubKey) {
-      addPayloadAuthor = addMessageAuthor.then(() => {
-        setVirtual(payload, { _author: message._author })
-      })
+      verifyPayloadAuthor = verifyMessageAuthor
     } else {
-      addPayloadAuthor = this.identities.addAuthorInfo(payload)
+      verifyPayloadAuthor = this.identities.verifyAuthor(payload)
     }
 
     await Promise.all([
-      addMessageAuthor
+      verifyMessageAuthor
         .then(() => this.logger.debug('loaded message author')),
-      addPayloadAuthor
+      verifyPayloadAuthor
         .then(() => this.logger.debug('loaded payload author')),
     ])
 
@@ -464,15 +463,11 @@ export default class Messaging {
       other: typeforce.maybe(typeforce.Object),
     }, opts)
 
-    if (!opts.time) {
-      opts.time = Date.now()
-    }
-
     if (!opts.author) {
       opts.author = await this.identity.getPrivate()
     }
 
-    const { author, recipient, link, object, other={} } = opts
+    const { author, recipient, link, object, other={}, time=Date.now() } = opts
 
     // run in parallel
     const promisePayload = this.getOrCreatePayload({ link, object, author })
@@ -486,12 +481,13 @@ export default class Messaging {
     // the signature will be validated against the object with
     // media embeded as data urls
     const payloadVirtual = pickVirtual(payload.asSigned)
-    const unsignedMessage = _.extend({}, other, {
+    const unsignedMessage = await this.identity.draft(_.extend({}, other, {
       [TYPE]: MESSAGE,
-      recipientPubKey: utils.sigPubKey(recipientObj),
+      // recipientPubKey: utils.sigPubKey(recipientObj),
       object: omitVirtual(payload.asSigned),
-      time: opts.time
-    })
+      _recipient: getPermalink(recipientObj),
+      _time: time
+    }))
 
     // TODO:
     // efficiency can be improved
@@ -507,11 +503,6 @@ export default class Messaging {
       seq = unsignedMessage[SEQ]
       this.logger.debug(`signing message ${seq} to ${recipient}`)
       signedMessage = await this.identity.sign({ author, object: unsignedMessage })
-      setVirtual(signedMessage, {
-        _author: getPermalink(author.identity),
-        _recipient: getPermalink(recipientObj)
-      })
-
       setVirtual(signedMessage.object, payloadVirtual)
       try {
         await this.messages.save(signedMessage)
@@ -538,32 +529,34 @@ export default class Messaging {
   public validateNewVersion = async (opts: { object: ITradleObject }) => {
     const { identities } = this
     const { object } = opts
-    const previous = await this.objects.get(object[PREVLINK])
-    const getNewAuthorInfo = object._author
-      ? Promise.resolve(object)
-      : identities.getAuthorInfo(object)
+    const link = protocol.link(object)
+    const [
+      prev,
+      orig
+    ] = await Promise.all([
+      this.objects.get(object[PREVLINK]).catch(Errors.ignoreNotFound),
+      this.objects.get(object[PERMALINK]).catch(Errors.ignoreNotFound),
+    ])
 
-    if (previous[OWNER]) {
-      const { _author } = await getNewAuthorInfo
-      // OWNER may change to an array of strings in the future
-      if (![].concat(previous[OWNER]).includes(_author)) {
-        throw new Errors.InvalidAuthor(`expected ${previous[OWNER]} as specified in the previous verison's ${OWNER} property, got ${_author}`)
+    const author = object[AUTHOR]
+    if (prev) {
+      if (prev[OWNER]) {
+        // OWNER may change to an array of strings in the future
+        if (![].concat(prev[OWNER]).includes(author)) {
+          throw new Errors.InvalidAuthor(`expected ${prev[OWNER]} as specified in the prev verison's ${OWNER} property, got ${author}`)
+        }
+      } else if (prev[AUTHOR] !== author) {
+        this.logger.warn(`object ${buildResource.permalink(object)} author changed from ${prev[AUTHOR]} to ${author} in version ${buildResource.link(object)}`)
       }
-    }
-
-    const getOldAuthor = previous._author ? Promise.resolve(previous) : identities.getAuthorInfo(previous)
-    // ignore error: Property '_author' is optional in type 'ITradleObject' but required in type 'AuthorInfo'
-    // @ts-ignore
-    const [newInfo, oldInfo] = await Promise.all([getNewAuthorInfo, getOldAuthor])
-    if (newInfo._author !== oldInfo._author) {
-      throw new Errors.InvalidAuthor(`expected ${oldInfo._author}, got ${newInfo._author}`)
+    } else {
+      this.logger.warn(`don't have prev version ${object[PREVLINK]} of object ${link}`)
     }
 
     try {
       protocol.validateVersioning({
         object,
-        prev: previous,
-        orig: object[PERMALINK]
+        prev,
+        orig: orig || object[PERMALINK]
       })
     } catch (err) {
       throw new Errors.InvalidVersion(err.message)

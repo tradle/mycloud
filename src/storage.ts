@@ -1,4 +1,5 @@
 import cloneDeep from 'lodash/cloneDeep'
+import typeforce from 'typeforce'
 import { TYPE } from '@tradle/constants'
 import Errors from './errors'
 import {
@@ -8,8 +9,9 @@ import {
   ISaveObjectOpts
 } from './types'
 
+import * as types from './typeforce-types'
+
 import {
-  ensureTimestamped,
   RESOLVED_PROMISE
 } from './utils'
 
@@ -34,9 +36,10 @@ export default class Storage {
   }
 
   public save = async ({ object, diff, saveToObjects, saveToDB }: ISaveObjectOpts) => {
+    typeforce(types.signedObject, object)
+
     object = cloneDeep(object)
     this.objects.addMetadata(object)
-    ensureTimestamped(object)
     await this.objects.replaceEmbeds(object)
     await Promise.all([
       saveToObjects === false ? RESOLVED_PROMISE : this.objects.put(object),

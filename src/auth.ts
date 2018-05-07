@@ -237,7 +237,7 @@ export default class Auth {
 
     // validate sig
     this.objects.addMetadata(challengeResponse)
-    await this.identities.addAuthorInfo(challengeResponse)
+    await this.identities.verifyAuthor(challengeResponse)
 
     // console.log(`claimed: ${permalink}, actual: ${challengeResponse._author}`)
     if (challengeResponse._author !== permalink) {
