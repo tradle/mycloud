@@ -2,6 +2,9 @@ import fetch from 'node-fetch'
 
 import buildResource from '@tradle/build-resource'
 import { buildResourceStub, title } from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications } from '../types'
 import { toISODateString, getCheckParameters, } from '../utils'
@@ -66,7 +69,6 @@ class OpenCorporatesAPI {
   }
   async _fetch(resource, application) {
     let { registrationNumber, registrationDate, region, country, companyName } = resource
-debugger
     let url = `${BASE_URL}companies/search?q=` + companyName.replace(' ', '+')
     // let json = test
     let json
@@ -82,6 +84,9 @@ debugger
       let message = `No matches for company name "${companyName}" were found`
       return { rawData: json, hits: [], message, url }
     }
+debugger
+    json = sanitize(json).sanitized
+
     let hasHits = json.results.companies.length
     let wrongNumber, foundNumber, wrongCountry, foundCountry, wrongDate, foundDate
     let message
@@ -216,8 +221,10 @@ debugger
 
       // debugger
       let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
-      if (!resource)
+      if (!resource) {
+        logger.debug(`nothing changed for: ${title({resource: payload, models: bot.models})}`)
         return
+      }
       let r: {rawData:object, message?: string, hits: any, url:string} = await openCorporates._fetch(resource, application)
 
       let pchecks = []
@@ -235,7 +242,7 @@ debugger
       }
       pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, message, hits, url}))
       if (hasVerification)
-        pchecks.push(openCorporates.createVerification({user, application, form: resource, rawData: hits[0].company}))
+        pchecks.push(openCorporates.createVerification({user, application, form: payload, rawData: hits[0].company}))
       // })
       let checksAndVerifications = await Promise.all(pchecks)
     }

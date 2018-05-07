@@ -3,6 +3,9 @@ import fetch from 'node-fetch'
 import buildResource from '@tradle/build-resource'
 import { buildResourceStub, title } from '@tradle/build-resource'
 import constants from '@tradle/constants'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 import {
   Bot,
   Logger,
@@ -114,6 +117,7 @@ class ComplyAdvantageAPI {
     let entityType = criteria.entity_type ? [criteria.entity_type] : ['company', 'organisation', 'organization'];
     let hits = rawData.hits.filter((hit) => entityType.includes(hit.doc.entity_type));
     rawData.hits = hits
+    rawData = sanitize(rawData).sanitized
     if (hits  &&  hits.length) {
       status = {
         status: {id: 'tradle.Status_fail', title: 'Fail'},
@@ -200,8 +204,10 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
 
       // debugger
       let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
-      if (!resource)
+      if (!resource) {
+        logger.debug(`nothing changed for: ${title({resource: payload, models: bot.models})}`)
         return
+      }
       let { companyName, registrationDate } = resource
       logger.debug(`running sanctions plugin for: ${companyName}`);
 
@@ -228,7 +234,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
         }
         pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status}))
         if (hasVerification)
-          pchecks.push(complyAdvantage.createVerification({user, application, form: resource, rawData}))
+          pchecks.push(complyAdvantage.createVerification({user, application, form: payload, rawData}))
       }
       let checksAndVerifications = await Promise.all(pchecks)
     }
