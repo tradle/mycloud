@@ -3,13 +3,13 @@
     "curve": "p256",
     "purpose": "sign",
     "type": "ec",
-    "pub": "04a55a39be539fca492d4e996fad7b30bea45b6c784e352902acbf6d2b2e686edf8d7d8dd9788a8e7c441ddda349cf218ca37fa956b3b31db1f3d5c57a3803cb26",
-    "fingerprint": "815f501f4622dfd687657c1e0c49ed86bd02359f41545812eee335bc2cdeab63",
-    "priv": "04833b6a5c15085a721bb164da36f3ac8a324a6ba692876aa208beabe8dc5fb2",
+    "pub": "04f79a7c9348ebcd9b7b9cf17082eb425fd4ca8ed65bc8049087c107d5ac76c711c2ea11755e9a1de6bd6b48d098f11370e39c50382280b13e7f37dfbfae99c84a",
+    "fingerprint": "03ac6499a7a998d844ba1abe2d490ed184406b58be119bdb4b00a2041c895b5e",
+    "priv": "72d18f4ce81666e14453419e39af27fef435ac6450bb711a7aa15535a806b5a3",
     "encoded": {
       "pem": {
-        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIASDO2pcFQhachuxZNo286yKMkprppKHaqIIvqvo3F+yoAoGCCqGSM49\nAwEHoUQDQgAEpVo5vlOfykktTplvrXswvqRbbHhONSkCrL9tKy5obt+NfY3ZeIqO\nfEQd3aNJzyGMo3+pVrOzHbHz1cV6OAPLJg==\n-----END EC PRIVATE KEY-----",
-        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpVo5vlOfykktTplvrXswvqRbbHhO\nNSkCrL9tKy5obt+NfY3ZeIqOfEQd3aNJzyGMo3+pVrOzHbHz1cV6OAPLJg==\n-----END PUBLIC KEY-----"
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIHLRj0zoFmbhRFNBnjmvJ/70NaxkULtxGnqhVTWoBrWjoAoGCCqGSM49\nAwEHoUQDQgAE95p8k0jrzZt7nPFwgutCX9TKjtZbyASQh8EH1ax2xxHC6hF1Xpod\n5r1rSNCY8RNw45xQOCKAsT5/N9+/rpnISg==\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE95p8k0jrzZt7nPFwgutCX9TKjtZb\nyASQh8EH1ax2xxHC6hF1Xpod5r1rSNCY8RNw45xQOCKAsT5/N9+/rpnISg==\n-----END PUBLIC KEY-----"
       }
     }
   },
@@ -17,13 +17,13 @@
     "curve": "p256",
     "purpose": "update",
     "type": "ec",
-    "pub": "04dfccf429514506af32ed849e60104ca80da525219904bbaadca579bc886a252bbd5de2fe6b81db1504165856302bd04961a03084d4c4167bbbe7a4e95695195b",
-    "fingerprint": "34b03836516e7e76f8eb8a6dd0473b46d1bf108f0cdb16cbf5f588ff90c9707e",
-    "priv": "28dcc40d9d1e878fabb7814e6498f44ab795d4b9b07f2b62dc991e3711a9d670",
+    "pub": "043e39aee0880c0dec23da20a64c54b51635c7efc5dad62edec6932b4eb73734c5466ea12bf701c897844ed75c44e5f62eab69841d871f8792eddb18f406b8f399",
+    "fingerprint": "4aa33b84cb4fd958e752a358bcc5431e9ed000340cf41018508e778f818c205e",
+    "priv": "f4a96a2e20f5c8c5e1e6b8c20f143be02ad8871cc8df1b571df78df734efbb8a",
     "encoded": {
       "pem": {
-        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEICjcxA2dHoePq7eBTmSY9Eq3ldS5sH8rYtyZHjcRqdZwoAoGCCqGSM49\nAwEHoUQDQgAE38z0KVFFBq8y7YSeYBBMqA2lJSGZBLuq3KV5vIhqJSu9XeL+a4Hb\nFQQWWFYwK9BJYaAwhNTEFnu756TpVpUZWw==\n-----END EC PRIVATE KEY-----",
-        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE38z0KVFFBq8y7YSeYBBMqA2lJSGZ\nBLuq3KV5vIhqJSu9XeL+a4HbFQQWWFYwK9BJYaAwhNTEFnu756TpVpUZWw==\n-----END PUBLIC KEY-----"
+        "priv": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIPSpai4g9cjF4ea4wg8UO+Aq2IccyN8bVx33jfc077uKoAoGCCqGSM49\nAwEHoUQDQgAEPjmu4IgMDewj2iCmTFS1FjXH78Xa1i7expMrTrc3NMVGbqEr9wHI\nl4RO11xE5fYuq2mEHYcfh5Lt2xj0BrjzmQ==\n-----END EC PRIVATE KEY-----",
+        "pub": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPjmu4IgMDewj2iCmTFS1FjXH78Xa\n1i7expMrTrc3NMVGbqEr9wHIl4RO11xE5fYuq2mEHYcfh5Lt2xj0BrjzmQ==\n-----END PUBLIC KEY-----"
       }
     }
   },
@@ -31,58 +31,58 @@
     "purpose": "tls",
     "type": "ec",
     "curve": "curve25519",
-    "pub": "2fba5fd248135508b6abd93ab5d66eeda0cf57a5723c18e8f677868d0d3bde18",
-    "fingerprint": "b80c02ead729c627a3064d4e998277d0fab0f36fe90dad3bff2e8d5ae38fbf57",
-    "priv": "182b7802fb1d0218d1b977d29f1b4d716d23a0bcbc7609f747529462a12b61f5"
+    "pub": "11406dcc561f36706052c4dc5f8f0ceaf6c38d3dafe3c17c58e8cf08adc7af19",
+    "fingerprint": "a12a2042f355c9b85d03858547a2aa6e6e84fe16915e42c8ff07f0713a007c6c",
+    "priv": "118428d8fbfff218b6564dae9a4553c2d50acd1c25aa214c98798ef656f91b12"
   },
   {
     "networkName": "testnet",
     "purpose": "payment",
     "type": "bitcoin",
-    "fingerprint": "muLTAw4yQb3PYDEzcxcPWzMye1XmhtkfNh",
-    "pub": "024457cca2e910158690acfcb50f561f92c94aa6daf157ee742dac930ebb40040d",
-    "priv": "cVBzZKyqoymzrPPE8sJ9heg1hacm6VpSnowBxhvaAaLX5aXEZheW"
+    "fingerprint": "n1JQMjkNockLZA3JQdGVhc75tkqK2Vdght",
+    "pub": "02fd661c4dd2f6a7c19cd08076df92df9aa45539f9fecd12721e5a047f351e85fb",
+    "priv": "cVFMSDzj27mKf3vz2VXXjTbj3pHdQWF38zv8RqeLzD6JLo9EgQXF"
   },
   {
     "networkName": "testnet",
     "purpose": "messaging",
     "type": "bitcoin",
-    "fingerprint": "n3zh4vzXtnyCJ5GaTNjFgar6dWGUncjyXG",
-    "pub": "035f0fdd9aceda56c2e942fd1ad66f6126231e7a7f7a3767f47d8777b5aa9927af",
-    "priv": "cU3MXxgnzqMbA911ckx16ysNhDuuSDBH8aiztgS47v8dzCck4q5d"
+    "fingerprint": "mxdNhFWocVjwPJFUAHUgc1ixAb4aTam9C5",
+    "pub": "02058f8ab53e41e93e2709e0fbee1d13bb20efd96006fe1b7b24e749cbd2b73228",
+    "priv": "cPgrD5qSvcvDb3xrDGXF8Q1FfQEpTPvFHQZRhJcyjYTeTWVemhXN"
   },
   {
     "networkName": "bitcoin",
     "purpose": "payment",
     "type": "bitcoin",
-    "fingerprint": "1Mb8JbWRcgUTNiwxcUC4qdKwW5mgx3BvPf",
-    "pub": "0392dff808485decaec11ff2c2ca2b4d082a1d0d42faaa492a5cb318ee944ab5ed",
-    "priv": "L1YXKBy4QXf5y3aQf6tf6MmHq4CNWZt2iXEkC9BVC7Z7Cs3uKP1G"
+    "fingerprint": "1jpTUBwuLq38m6xGEw5B7KXNzQm6Jwn7F",
+    "pub": "02040b293e5d778c7bf551183bcd5af64424d841a5a3f8d055b8af92f011c1b80e",
+    "priv": "L3XBdvYYu2awYSfQXXve9pHqGCPvnAmB9outbUxzKVufoUQYvfNz"
   },
   {
     "networkName": "bitcoin",
     "purpose": "messaging",
     "type": "bitcoin",
-    "fingerprint": "15t4wkzisBXysrVijkYKpxsfeDGvpgj2wB",
-    "pub": "03595aceaec902bf5de5c0f1e35d8c77e449544e0cf8a7be99e9d1c43779b143b8",
-    "priv": "L3KerSfF5ekL2d1QDx3FZ1CmeDJp5t9hBTdRbcUJR1SU5bX4v45R"
+    "fingerprint": "18eWeti2G2QAUgm9HmNK9taCgbSJbgqS1M",
+    "pub": "02ac3dce4e0322c4f8d3c6550a6dfb42bd74417f6c86883c242ad0624c0c99fde9",
+    "priv": "L5aCb1Ypor3GwiGZXKLFfbzPVbEjEp8iLQjpPNr9C7Zpxs3ku195"
   },
   {
     "purpose": "payment",
     "type": "ethereum",
     "curve": "secp256k1",
-    "pub": "04598e89a74dfe028ce413ff9a08d7c0d09031f203f4f8a1bb99a6b6f668464793c3da6bc26eea63179e522d7fd6b17e273f6bc08ef780442c2c4e9c844f837cdb",
-    "fingerprint": "899c4b1874859305e0c79f0314f84d81afdae91b",
+    "pub": "042d2954d0cfb780e580c6cc55650b10387189fafba07830a4c2b56b44d6d2a9fb128aafbba5f766774f5af3fffba04163c7959cc82c9e1f74790f8466ab751903",
+    "fingerprint": "fd84add6cf9d7875893c73c39bed513ca950bdb9",
     "networkName": "rinkeby",
-    "priv": "0586cbbd743b06aa11a80d07190d8f071e2db00d79282fbba703ecb477cbc11e"
+    "priv": "c141ffd651954756b4be26b45f28d97faa03c5febaaaa610690ab62d62e75172"
   },
   {
     "purpose": "messaging",
     "type": "ethereum",
     "curve": "secp256k1",
-    "pub": "04bf6160a209ae13f899dade17be6b0155ac14f7b3bbb384920cdc91ca87d9558e3f9da835894a5086929bfc87f464721d45588a42cd5792f6e2e1221224822762",
-    "fingerprint": "b6151e8d881cd82e157bdcfb3297b3701b34da40",
+    "pub": "0498b510f5d2cba405b4b1c2a13eb7ec9a0ad7b28faa6285d5a1779ce6c8d35578db92ad40ba866e81ee67839ac6aa9196e08d041e40e7d9691d5b68722ec9d4ae",
+    "fingerprint": "400602e4c27f2c24c561fe058717cd508a870c89",
     "networkName": "rinkeby",
-    "priv": "bda5117fb73cac630a91f5ec961c24adb8829d639ef6a68bd045514661ba06a3"
+    "priv": "c88f66598935a9283b6ad150e8c8e6c30882cd32d8f999542f896045404061c5"
   }
 ]

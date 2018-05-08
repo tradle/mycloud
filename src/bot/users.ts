@@ -18,7 +18,7 @@ export = function createUsers ({ bot }: { bot: Bot }) {
 
   // const cache = new Cache({ max: 200 })
   const fromDBFormat = user => ({
-    ..._.omit(user, [PRIMARY_KEY, TYPE]),
+    ..._.omit(user, [PRIMARY_KEY]),
     id: user[PRIMARY_KEY]
   })
 

@@ -281,6 +281,7 @@ export default class Tradle {
       storage,
       identity,
       logger: this.logger.sub('friends'),
+      isTesting: this.env.TESTING,
     })
 
     const contentAddressedStore = this.contentAddressedStore = new ContentAddressedStore({

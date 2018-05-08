@@ -83,7 +83,8 @@ export default class Identities implements IHasLogger {
       logger
     }, 'getPubKey')
 
-    this._cachePub = (pub, keyObj) => getPubKeyCachified.set([pub], keyObj)
+    this._cachePub = keyObj => getPubKeyCachified.set([keyObj.pub], normalizePub(keyObj))
+
     this.getPubKey = getPubKeyCachified.call
 
     const getIdentityCachified = cachifyFunction({
@@ -93,9 +94,15 @@ export default class Identities implements IHasLogger {
     }, 'byPermalink')
 
     this._cacheIdentity = (identity) => {
+      const link = identity._link
       const permalink = identity._permalink
       getIdentityCachified.set([permalink], identity)
-      identity.pubkeys.forEach(key => this._cachePub(key.pub, key))
+      identity.pubkeys.forEach(key => this._cachePub({
+        ...key,
+        link,
+        permalink,
+        _time: identity._time
+      }))
     }
 
     this.byPermalink = getIdentityCachified.call
@@ -115,7 +122,7 @@ export default class Identities implements IHasLogger {
         pub
       })
 
-      this._cachePub(pub, key)
+      this._cachePub(key)
       return key
     } catch (err) {
       Errors.ignoreNotFound(err)
@@ -307,25 +314,27 @@ export default class Identities implements IHasLogger {
     const link = object._link
     const permalink = object._permalink
     const putPubKeys = object.pubkeys
-      .map(({ pub }) => this.putPubKey({ pub, link, permalink }))
+      .map(({ pub }) => this.putPubKey({ pub, link, permalink, _time: object._time }))
 
     this._cacheIdentity(object)
     this.logger.info('adding contact', { permalink })
     await Promise.all(putPubKeys.concat(this.objects.put(object)))
   }
 
-  public putPubKey = (props: { link: string, permalink: string, pub: string }):Promise<any> => {
+  public putPubKey = (props: {
+    link: string,
+    permalink: string,
+    pub: string,
+    _time: number
+  }):Promise<any> => {
     const { pub, link } = props
     this.logger.debug('adding mapping', {
       pub,
       link
     })
 
-    this._cachePub(pub, props)
-    return this.db.put(extend({
-      [TYPE]: PUB_KEY,
-      _time: Date.now(),
-    }, props))
+    this._cachePub(props)
+    return this.db.put(normalizePub(props))
   }
 
   /**
@@ -367,33 +376,16 @@ export { Identities }
 
 const isUpdateKey = key => key.type === 'ec' && key.purpose === 'update'
 
-// instrumentWithXray(Identities, {
-//   putPubKey: () => {},
-//   getPubKey: () => {}
-// })
+const normalizePub = key => {
+  typeforce({
+    link: typeforce.String,
+    permalink: typeforce.String,
+    pub: typeforce.String,
+    _time: typeforce.Number
+  }, key)
 
-// function addContactPubKeys ({ link, permalink, identity }) {
-//   const RequestItems = {
-//     [PubKeys]: identity.pubkeys.map(pub => {
-//       const Item = extend({ link, permalink }, pub)
-//       return {
-//         PutRequest: { Item }
-//       }
-//     })
-//   }
-
-//   return docClient.batchWrite({ RequestItems }).promise()
-// }
-
-// const Identities = module.exports = logify({
-//   getIdentityByLink: this.objects.get,
-//   byPermalink,
-//   byPub,
-//   getPubKey,
-//   // getIdentityByFingerprint,
-//   // createAddContactEvent,
-//   addContact,
-//   validateNewContact,
-//   addContact,
-//   addAuthorInfo
-// })
+  return {
+    [TYPE]: PUB_KEY,
+    ...key,
+  }
+}

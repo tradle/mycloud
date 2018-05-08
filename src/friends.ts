@@ -1,4 +1,6 @@
 import _ from 'lodash'
+// @ts-ignore
+import Promise from 'bluebird'
 import lexint from 'lexicographic-integer'
 import Cache from 'lru-cache'
 import fetch from 'node-fetch'
@@ -16,6 +18,7 @@ import {
   DB,
   Model,
   Models,
+  Env,
 } from './types'
 
 import models from './models'
@@ -31,6 +34,7 @@ type FriendsOpts = {
   identity: Identity
   identities: Identities
   logger: Logger
+  isTesting?: boolean
 }
 
 export default class Friends {
@@ -43,10 +47,12 @@ export default class Friends {
   private db: DB
   private components: FriendsOpts
   private _clearCacheForPermalink: (permalink: string) => void
+  private isTesting
   constructor(components: FriendsOpts) {
     this.components = components
 
     const { logger, storage } = components
+    this.isTesting = components.isTesting
     this.storage = storage
     this.db = storage.db
     this.cache = createCache()
@@ -166,13 +172,24 @@ export default class Friends {
   };
 
   public list = async () => {
-    return await this.db.find({
+    const { items } = await this.db.find({
       allowScan: true,
       filter: {
         EQ: {
           [TYPE]: FRIEND_TYPE
         }
       }
+    })
+
+    return items
+  }
+
+  public clear = async () => {
+    if (!this.isTesting) throw new Errors.DevStageOnly('only allows in test mode')
+
+    const friends = await this.list()
+    await Promise.map(friends, friend => this.del(friend), {
+      concurrency: 10
     })
   }
 

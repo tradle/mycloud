@@ -29,7 +29,9 @@ test('friends', loudAsync(async (t) => {
     })
   }
 
+  // await friends.clear()
   await friends.removeByIdentityPermalink(alice.link)
+  // console.log(JSON.stringify(await friends.list(), null, 2))
   const original = await friends.add(friendOpts)
 
   const friend = await friends.getByIdentityPermalink(alice.permalink)
