@@ -86,7 +86,7 @@ Make sure you have `git` installed. If you're on `OS X`, you already have it.
 The following are the versions used by the Tradle dev team:
 
 - Node.js@[8.10.0](https://nodejs.org/download/release/v8.10.0/) - this is the version used by Amazon for AWS Lambda. Yes, you can use the latest Node.js instead, but keep this in mind if you hit errors.
-- npm@3.10.10
+- npm@3.10.10 - npm@5 sometimes has trouble with big dependency trees
 
 #### Docker & Docker Compose
 
