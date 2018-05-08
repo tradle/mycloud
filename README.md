@@ -166,6 +166,8 @@ npm start
 
 Now open your browser to [http://localhost:55555](http://localhost:55555). If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml).
 
+If you don't see your local provider, click the red menu button on the Conversations screen, choose "Add Server Url" and add `http://localhost:21012`
+
 Profile                                    | Conversations                             | Chat
 :-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
 ![](./docs/images/profile-guided-w250.png) | ![](./docs/images/conversations-guided-w250.png) | ![](./docs/images/chat1-w250.png)
