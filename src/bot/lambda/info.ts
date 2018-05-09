@@ -30,7 +30,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       const { version, ...connectEndpoint } = endpointInfo
       extend(ctx.body, { connectEndpoint, version })
       if (chainKey) {
-        ctx.body.chainKey = pick(chainKey, ['type', 'pub', 'fingerprint'])
+        ctx.body.chainKey = pick(chainKey, ['type', 'pub', 'fingerprint', 'networkName'])
       }
 
       await next()
