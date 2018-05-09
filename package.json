@@ -121,7 +121,7 @@
     "@meltwater/fetch-favicon": "^1.0.4",
     "@tradle/bitcoin-adapter": "tradle/bitcoin-adapter",
     "@tradle/biz-plugins": "github:tradle/biz-plugins",
-    "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager",
+    "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager#noresign",
     "@tradle/bot-products": "github:tradle/bot-products",
     "@tradle/build-resource": "github:tradle/build-resource",
     "@tradle/cb-blockr": "^3.2.1",

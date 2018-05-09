@@ -204,12 +204,12 @@ export default class Messaging {
       try {
         await this.seals.watch({
           object,
-          link: seal.link,
           key: {
             type: this.network.flavor,
             curve: this.network.curve,
             pub: seal.basePubKey.toString('hex')
-          }
+          },
+          ..._.pick(seal, ['headerHash', 'prevHeaderHash', 'link', 'prevlink'])
         })
       } catch (err) {
         Errors.ignore(err, Errors.Duplicate)

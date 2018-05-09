@@ -105,7 +105,9 @@ type ErrorSummary = {
 type WatchOpts = {
   key: IECMiniPubKey
   link?: string
+  prevlink?: string
   headerHash?: string
+  prevHeaderHash?: string
   object?: ITradleObject
 }
 
@@ -236,6 +238,19 @@ export default class Seals {
 
   public create = async (opts: CreateSealOpts) => {
     return this.createSealRecord({ ...opts, write: true })
+  }
+
+  public find = async (props: Partial<Seal>) => {
+    const { items } = await this.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: SEAL_STATE_TYPE,
+          ...props
+        }
+      }
+    })
+
+    return items
   }
 
   public get = async (seal) => {
@@ -777,10 +792,8 @@ export default class Seals {
       headerHash = protocol.headerHash(object)
       prevHeaderHash = object[PREVHEADER]
     } else if (watchType === WATCH_TYPE.this && !headerHash) {
-      debugger
       throw new Errors.InvalidInput(`expected "object" or "headerHash"`)
     } else if (watchType === WATCH_TYPE.next && !prevHeaderHash) {
-      debugger
       throw new Errors.InvalidInput(`expected "object" or "prevHeaderHash"`)
     }
 

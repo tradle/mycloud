@@ -41,8 +41,8 @@
     },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
-      "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#4b1d8fdde5a21fb1f7396f394aba9909ee906f65",
+      "from": "tradle/bot-employee-manager#noresign",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#04fee2430d78f3b0e7c09a5cc385d76df727b42d",
       "dependencies": {
         "bluebird": {
           "version": "2.11.0",
@@ -75,8 +75,8 @@
     },
     "@tradle/build-resource": {
       "version": "3.0.0",
-      "from": "@tradle/build-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-3.0.0.tgz"
+      "from": "tradle/build-resource",
+      "resolved": "git://github.com/tradle/build-resource.git#19bcfb82303ed46d9f5b8d1cef6d525fb11d6942"
     },
     "@tradle/cb-blockr": {
       "version": "3.2.1",
@@ -147,9 +147,9 @@
       }
     },
     "@tradle/constants": {
-      "version": "2.1.0",
-      "from": "@tradle/constants@>=2.1.0 <3.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/constants/-/constants-2.1.0.tgz"
+      "version": "2.3.2",
+      "from": "@tradle/constants@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/constants/-/constants-2.3.2.tgz"
     },
     "@tradle/custom-models": {
       "version": "4.10.10",
@@ -180,8 +180,8 @@
     },
     "@tradle/engine": {
       "version": "5.5.0",
-      "from": "@tradle/engine@>=5.5.0 <6.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/engine/-/engine-5.5.0.tgz",
+      "from": "tradle/engine#header",
+      "resolved": "git://github.com/tradle/engine.git#7ba139d5ea4bec68e89df384d2cb14cc3e87ba6e",
       "dependencies": {
         "async": {
           "version": "2.6.0",
@@ -251,8 +251,8 @@
     },
     "@tradle/models": {
       "version": "4.10.10",
-      "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#161d24373ec479175ddef5e4bc91eeb816d49125"
+      "from": "tradle/models#nonvirtual",
+      "resolved": "git://github.com/tradle/models.git#871d0aae7aa57df744372708945b4e3359602474"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -308,8 +308,8 @@
     },
     "@tradle/protocol": {
       "version": "3.0.0",
-      "from": "@tradle/protocol@>=3.0.0 <4.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/protocol/-/protocol-3.0.0.tgz"
+      "from": "tradle/protocol#header",
+      "resolved": "git://github.com/tradle/protocol.git#79b12cd88367b6cec4db249ce5137a499f27ccda"
     },
     "@tradle/qr": {
       "version": "2.0.0",
@@ -365,13 +365,13 @@
     },
     "@tradle/validate-model": {
       "version": "6.0.1",
-      "from": "@tradle/validate-model@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-6.0.1.tgz"
+      "from": "tradle/validate-model",
+      "resolved": "git://github.com/tradle/validate-model.git#0c5b04f3d296f59dd05ff77b95ff91539195cd22"
     },
     "@tradle/validate-resource": {
       "version": "3.0.0",
-      "from": "@tradle/validate-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-3.0.0.tgz",
+      "from": "tradle/validate-resource",
+      "resolved": "git://github.com/tradle/validate-resource.git#07c56dcce2bb4e2751ad61bf1fda7d20c5139a36",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -593,7 +593,7 @@
       "dependencies": {
         "semver": {
           "version": "5.5.0",
-          "from": "semver@^5.3.0",
+          "from": "semver@>=5.3.0 <6.0.0",
           "resolved": "https://registry.npmjs.org/semver/-/semver-5.5.0.tgz"
         }
       }
@@ -610,7 +610,7 @@
     },
     "aws-xray-sdk-core": {
       "version": "1.2.0",
-      "from": "aws-xray-sdk-core@latest",
+      "from": "aws-xray-sdk-core@>=1.2.0 <2.0.0",
       "resolved": "http://registry.npmjs.org/aws-xray-sdk-core/-/aws-xray-sdk-core-1.2.0.tgz",
       "dependencies": {
         "semver": {
@@ -2308,14 +2308,14 @@
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
         },
         "readable-stream": {
-          "version": "2.3.5",
-          "from": "readable-stream@>=2.1.4 <3.0.0",
-          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.5.tgz"
+          "version": "2.3.6",
+          "from": "readable-stream@^2.1.4",
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.6.tgz"
         },
         "string_decoder": {
-          "version": "1.0.3",
-          "from": "string_decoder@>=1.0.3 <1.1.0",
-          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.0.3.tgz"
+          "version": "1.1.1",
+          "from": "string_decoder@~1.1.1",
+          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz"
         }
       }
     },
@@ -3459,14 +3459,14 @@
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
         },
         "readable-stream": {
-          "version": "2.3.5",
+          "version": "2.3.6",
           "from": "readable-stream@>=2.1.0 <3.0.0",
-          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.5.tgz"
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.6.tgz"
         },
         "string_decoder": {
-          "version": "1.0.3",
-          "from": "string_decoder@>=1.0.3 <1.1.0",
-          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.0.3.tgz"
+          "version": "1.1.1",
+          "from": "string_decoder@>=1.1.1 <1.2.0",
+          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz"
         }
       }
     },
@@ -3481,14 +3481,14 @@
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
         },
         "readable-stream": {
-          "version": "2.3.5",
-          "from": "readable-stream@>=2.0.5 <3.0.0",
-          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.5.tgz"
+          "version": "2.3.6",
+          "from": "readable-stream@^2.0.5",
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.6.tgz"
         },
         "string_decoder": {
-          "version": "1.0.3",
-          "from": "string_decoder@>=1.0.3 <1.1.0",
-          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.0.3.tgz"
+          "version": "1.1.1",
+          "from": "string_decoder@~1.1.1",
+          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz"
         }
       }
     },
@@ -4131,9 +4131,9 @@
       "resolved": "https://registry.npmjs.org/pull-level/-/pull-level-1.5.2.tgz",
       "dependencies": {
         "pull-stream": {
-          "version": "3.6.7",
+          "version": "3.6.8",
           "from": "pull-stream@>=3.4.0 <4.0.0",
-          "resolved": "https://registry.npmjs.org/pull-stream/-/pull-stream-3.6.7.tgz"
+          "resolved": "https://registry.npmjs.org/pull-stream/-/pull-stream-3.6.8.tgz"
         }
       }
     },
@@ -4739,14 +4739,14 @@
           "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz"
         },
         "readable-stream": {
-          "version": "2.3.5",
-          "from": "readable-stream@>=2.0.2 <3.0.0",
-          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.5.tgz"
+          "version": "2.3.6",
+          "from": "readable-stream@^2.0.2",
+          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.6.tgz"
         },
         "string_decoder": {
-          "version": "1.0.3",
-          "from": "string_decoder@>=1.0.3 <1.1.0",
-          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.0.3.tgz"
+          "version": "1.1.1",
+          "from": "string_decoder@~1.1.1",
+          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz"
         }
       }
     },
@@ -5108,9 +5108,9 @@
       "optional": true
     },
     "underscore": {
-      "version": "1.9.0",
+      "version": "1.8.3",
       "from": "underscore@>=1.8.3 <2.0.0",
-      "resolved": "https://registry.npmjs.org/underscore/-/underscore-1.9.0.tgz"
+      "resolved": "https://registry.npmjs.org/underscore/-/underscore-1.8.3.tgz"
     },
     "uniq": {
       "version": "1.0.1",

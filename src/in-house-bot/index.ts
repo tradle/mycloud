@@ -267,6 +267,16 @@ export default function createProductsBot({
     // however, for non-employees, possibly restrict to one pending app for the same product (default behavior of bot-products)
     const defaultHandlers = [].concat(productsAPI.removeDefaultHandler('onPendingApplicationCollision'))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
+      onmessage: async (req) => {
+        const isEmployee = employeeManager.isEmployee(req.user)
+        if (!isEmployee) return
+
+        // hm, very inefficient
+        let { payload } = req
+        payload = await bot.witness(payload)
+        await bot.save(payload)
+        req.payload = req.object = req.message.object = payload
+      },
       onPendingApplicationCollision: async (input) => {
         const { req, pending } = input
         if (employeeManager.isEmployee(req.user)) {

@@ -7,6 +7,7 @@ import { TYPE, SIG } from '@tradle/constants'
 import { DB, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
+import protocol from '@tradle/protocol'
 import { mixin as readyMixin, IReady } from './ready-mixin'
 import { mixin as modelsMixin } from './models-mixin'
 import { topics as EventTopics, toAsyncEvent, toBatchEvent, getSealEventTopic } from '../events'
@@ -629,6 +630,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     await this.save(newVersion)
     return newVersion
   }
+
+  public witness = (object: ITradleObject) => this.identity.witness({ object })
 
   public reSign = (object:ITradleObject) => this.sign(<ITradleObject>_.omit(object, [SIG]))
   // public fire = async (event, payload) => {

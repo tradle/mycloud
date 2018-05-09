@@ -1,5 +1,6 @@
+import extend from 'lodash/extend'
 import cloneDeep from 'lodash/cloneDeep'
-import { AUTHOR } from '@tradle/constants'
+import { AUTHOR, WITNESSES, SIG } from '@tradle/constants'
 import protocol from '@tradle/protocol'
 import {
   cachifyPromiser,
@@ -134,6 +135,25 @@ export default class Identity {
     this.objects.addMetadata(signed)
     this.logger.debug(`signed`, summarizeObject(signed))
     return signed
+  }
+
+  public witness = async <T extends ITradleObject> ({ object }: {
+    object: T
+  }):Promise<T> => {
+    const [signed, permalink] = await Promise.all([
+      this.sign({ object: protocol.body(object) }),
+      this.getPermalink()
+    ])
+
+    const witnesses = object[WITNESSES] || []
+    const w = protocol.wrapWitnessSig({
+      author: permalink,
+      sig: signed[SIG]
+    })
+
+    return extend({}, object, {
+      [WITNESSES]: witnesses.concat(w)
+    })
   }
 }
 
