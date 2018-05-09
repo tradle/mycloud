@@ -1,4 +1,4 @@
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 import { IIdentity } from '../../types'
 
 const bot = createBot()

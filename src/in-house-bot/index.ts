@@ -57,7 +57,7 @@ import Logger from '../logger'
 import baseModels from '../models'
 import Errors from '../errors'
 import constants from '../constants'
-import { Resource } from '../bot/resource'
+import { Resource } from '../resource'
 
 const { MAX_DB_ITEM_SIZE } = constants
 const { parseStub } = validateResource.utils

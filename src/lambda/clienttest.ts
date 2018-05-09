@@ -1,6 +1,6 @@
 if (process.env.NODE_ENV === 'test') {
   // require('debug').enable('*tradle*')
-  require('xtend/mutable')(process.env, require('../../test/service-map'))
+  require('xtend/mutable')(process.env, require('../test/service-map'))
 }
 
 const mockery = require('mockery')

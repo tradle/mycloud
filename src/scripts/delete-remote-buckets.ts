@@ -9,9 +9,9 @@ import { loadCredentials, loadRemoteEnv, confirm } from '../cli/utils'
 loadCredentials()
 loadRemoteEnv()
 
-import { tradle } from '../'
+import { bot } from '../'
 
-const { buckets } = tradle
+const { buckets } = bot
 
 ;(async () => {
   const ids = Object.keys(buckets).map(name => buckets[name].id)

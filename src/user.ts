@@ -7,6 +7,7 @@ import { PRIVATE_CONF_BUCKET, SEQ } from './constants'
 import Errors from './errors'
 import * as types from './typeforce-types'
 import {
+  Bot,
   Env,
   Logger,
   Auth,
@@ -15,7 +16,6 @@ import {
   TaskManager,
   Messages,
   Messaging,
-  Tradle,
   ISession,
   IPositionPair
 } from './types'
@@ -43,7 +43,7 @@ export default class User {
   private messages: Messages
   private lambdaUtils: any
   private tasks: TaskManager
-  constructor (tradle:Tradle) {
+  constructor (bot: Bot) {
     const {
       env,
       logger,
@@ -55,7 +55,7 @@ export default class User {
       messages,
       lambdaUtils,
       tasks
-    } = tradle
+    } = bot
 
     this.env = env
     this.logger = logger.sub('user')

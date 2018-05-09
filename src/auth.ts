@@ -10,7 +10,6 @@ import Errors from './errors'
 import * as types from './typeforce-types'
 import * as constants from './constants'
 import {
-  Tradle,
   AwsApis,
   Logger,
   Identities,

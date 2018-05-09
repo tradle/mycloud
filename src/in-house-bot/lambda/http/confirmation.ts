@@ -1,4 +1,4 @@
-import { createBot } from '../../../bot'
+import { createBot } from '../../../'
 import { createLambda } from '../../../in-house-bot/middleware/confirmation'
 import { customize } from '../../../in-house-bot/customize'
 

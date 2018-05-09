@@ -18,13 +18,13 @@ AWS.config.update({
 })
 
 import test from 'tape'
-import { createTestTradle  } from '../'
+import { createTestBot } from '../'
 import { loudAsync } from '../utils'
 
 const {
   aws,
   dbUtils: { getTable, batchPut }
-} = createTestTradle()
+} = createTestBot()
 
 const schema = {
   "AttributeDefinitions": [

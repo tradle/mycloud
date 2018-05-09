@@ -10,8 +10,7 @@ import buildResource from '@tradle/build-resource'
 import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
 import Errors from '../../errors'
-import { createBot } from '../../bot'
-import { createTestTradle } from '../../'
+import { createTestBot } from '../../'
 import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models from '../../models'
 import { IMyDeploymentConf, IBotConf, ILaunchReportPayload, IConf } from '../../in-house-bot/types'
@@ -38,11 +37,11 @@ test('deployment by referral', loudAsync(async (t) => {
 
   conf._author = users[0].link
 
-  const parent = createBot()
-  const childTradle = createTestTradle()
+  const parent = createTestBot()
+  const child = createTestBot()
   const childUrl = 'childurl'
-  childTradle.serviceMap.RestApi.ApiGateway.url = childUrl
-  const child = createBot({ tradle: childTradle })
+  child.serviceMap.RestApi.ApiGateway.url = childUrl
+
   const parentDeployment = new Deployment({
     bot: parent,
     logger: parent.logger.sub('deployment:test:parent'),

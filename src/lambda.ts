@@ -20,9 +20,9 @@ import AWSXray from 'aws-xray-sdk-core'
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
+import { createBot } from './'
 import {
   Env,
-  Tradle,
   Logger,
   Bot,
   Middleware,
@@ -75,7 +75,7 @@ export class Lambda extends EventEmitter {
   // initialization
   public source: EventSource
   public opts: ILambdaOpts
-  public tradle: Tradle
+  public bot: Bot
   public env: Env
   public koa: Koa
   public tasks: TaskManager
@@ -89,7 +89,6 @@ export class Lambda extends EventEmitter {
   public containerId: string
   public accountId: string
   public requestCounter: number
-  public bot: Bot
   public xraySegment?: AWS.XRay.Segment
   private breakingContext: string
   private middleware:Middleware[]
@@ -99,14 +98,32 @@ export class Lambda extends EventEmitter {
   constructor(opts:ILambdaOpts={}) {
     super()
     const {
-      tradle=require('./').tradle,
+      bot=createBot(),
+      middleware,
       source
     } = opts
 
     this.opts = opts
-    this.tradle = tradle
-    this.env = tradle.env
-    this.tasks = tradle.tasks
+    this.bot = bot
+    this.env = bot.env
+    this.tasks = bot.tasks
+    this.tasks.add({
+      name: 'bot:ready',
+      promise: bot.promiseReady()
+    })
+
+    this.on('run', () => {
+      if (!this.isCold && !bot.isReady()) {
+        this.logger.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+      }
+    })
+
+    this.on('done', () => {
+      if (!bot.isReady()) {
+        this.logger.error('2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
+      }
+    })
+
     this.source = opts.source
     this.middleware = []
     this.isCold = true
@@ -146,11 +163,18 @@ export class Lambda extends EventEmitter {
     if (source !== EventSource.CLOUDFORMATION) {
       this.tasks.add({
         name: 'warmup:cache',
-        promiser: () => tradle.warmUpCaches()
+        promiser: () => bot.warmUpCaches()
       })
     }
 
+    this.use(async (ctx, next) => {
+      await bot.promiseReady()
+      await next()
+    })
+
     this.init()
+    if (middleware) this.use(middleware)
+
     process.nextTick(() => {
       if (!this._gotHandler) {
         console.warn(`did you forget to export "${this.shortName}" lambda's handler?`)
@@ -302,7 +326,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     timeout.cancel()
 
-    if (this.bot && !this.bot.isReady()) {
+    if (!this.bot.isReady()) {
       this.breakingContext = safeStringify({
         execCtx: this.execCtx,
         reqCtx: this.reqCtx,
@@ -384,7 +408,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     context.callbackWaitsForEmptyEventLoop = false
-    this.logger = this.tradle.logger.sub({
+    this.logger = this.bot.logger.sub({
       namespace: `lambda:${this.shortName}`,
       context: this.reqCtx,
       writer: console
@@ -439,7 +463,7 @@ Previous exit stack: ${this.lastExitStack}`)
     this.reqCtx = null
     this.execCtx = null
     this.lastExitStack = null
-    this.logger = this.tradle.logger.sub({
+    this.logger = this.bot.logger.sub({
       namespace: this.env.FUNCTION_NAME,
       writer: console
     })
@@ -554,7 +578,7 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private init = () => {
-    this.initPromise = syncClock(this.tradle)
+    this.initPromise = syncClock(this.bot)
   }
 
   private _exportError = (err) => {
@@ -573,6 +597,8 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 }
+
+export const createLambda = (opts: ILambdaOpts) => new Lambda(opts)
 
 const wrapCallback = (lambda, callback) => (err, result) => {
   if (lambda.done) {
@@ -598,10 +624,7 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
     start: Date.now()
   }
 
-  if (lambda.bot) {
-    defineGetter(ctx, 'botReady', () => lambda.bot.isReady())
-  }
-
+  defineGetter(ctx, 'botReady', () => lambda.bot.isReady())
   if (lambda.env._X_AMZN_TRACE_ID) {
     ctx['trace-id'] = lambda.env._X_AMZN_TRACE_ID
   }

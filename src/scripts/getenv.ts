@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createRemoteTradle } from '../'
+import { createRemoteBot } from '../'
 
 const yml = require('../cli/serverless-yml')
 const {
@@ -8,7 +8,7 @@ const {
   provider: { stage }
 } = yml
 
-const { aws } = createRemoteTradle()
+const { aws } = createRemoteBot()
 // const Bucket = 'io.tradle.dev.deploys'
 
 const getEnv = async () => {

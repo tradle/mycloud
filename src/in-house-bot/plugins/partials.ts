@@ -3,7 +3,7 @@ import Promise from 'bluebird'
 import _ from 'lodash'
 import { SIG } from '@tradle/constants'
 import engine from '@tradle/engine'
-import { Bot } from '../../bot'
+import { Bot } from '../../types'
 
 type ValuesFilterInput = {
   message: any

@@ -21,7 +21,7 @@ export type Task = {
 
 const RESOLVED = Promise.resolve()
 
-export class TaskManager {
+export default class TaskManager {
   private tasks:Task[]
   private logger: Logger
 
@@ -102,3 +102,5 @@ export class TaskManager {
     }
   }
 }
+
+export { TaskManager }

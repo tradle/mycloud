@@ -32,12 +32,12 @@ import {
   TIMESTAMP
 } from '../constants'
 
-import { createTestTradle } from '../'
+import { createTestBot } from '../'
 import * as types from '../typeforce-types'
 
 const { newIdentity } = tradle.utils
 const { MESSAGE } = TYPES
-const { identities, messages, objects, messaging } = createTestTradle()
+const { identities, messages, objects, messaging } = createTestBot()
 const { _doQueueMessage, _doReceiveMessage } = messaging
 const fromBobToAlice = require('./fixtures/alice/receive.json')
 const fromAliceToBob = require('./fixtures/bob/receive.json')

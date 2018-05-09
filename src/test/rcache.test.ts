@@ -12,11 +12,10 @@ import {
 } from '../string-utils'
 import { randomString } from '../crypto'
 import models from '../models'
-import { createTestTradle } from '../'
-import { createBot } from '../bot'
-import { getResourceModuleStore } from '../bot/utils'
-import { RCache } from '../bot/rcache'
-import { Resource } from '../bot/resource'
+import { createTestBot } from '../'
+import { getResourceModuleStore } from '../utils'
+import { RCache } from '../rcache'
+import { Resource } from '../resource'
 
 const alice = {
   keys: require('./fixtures/alice/keys'),
@@ -25,9 +24,8 @@ const alice = {
 
 test('resource wrapper', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const tradle = createTestTradle()
-  const bot = createBot({ tradle })
-  sandbox.stub(bot, 'sign').callsFake(async (object) => tradle.identity.sign({
+  const bot = createTestBot()
+  sandbox.stub(bot, 'sign').callsFake(async (object) => bot.identity.sign({
     object,
     author: alice
   }))
@@ -115,9 +113,8 @@ test('resource wrapper', loudAsync(async (t) => {
 
 test('resource cache', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const tradle = createTestTradle()
-  const bot = createBot({ tradle })
-  sandbox.stub(bot, 'sign').callsFake(async (object) => tradle.identity.sign({
+  const bot = createTestBot()
+  sandbox.stub(bot, 'sign').callsFake(async (object) => bot.identity.sign({
     object,
     author: alice
   }))

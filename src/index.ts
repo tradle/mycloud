@@ -1,59 +1,52 @@
 import { requireDefault } from './require-default'
-import Tradle from './tradle'
+import { createBot as _createBot } from './bot'
 import Env from './env'
 import {
   LambdaUtils,
   StackUtils,
   AwsApis,
-  Bot
+  Bot,
+  IBotOpts
 } from './types'
 
-let tradle
+let bot
 
-const createTestTradle = (env?) => {
-  return new Tradle({
-    env: env || require('./test/env').createTestEnv()
-  })
-}
+const createTestBot = (opts:Partial<IBotOpts>={}) => _createBot({
+  ...opts,
+  env: opts.env || require('./test/env').createTestEnv()
+})
 
-const createRemoteTradle = (env?) => {
-  return new Tradle({
-    env: env || require('./cli/remote-service-map')
-  })
-}
+const createRemoteBot = (opts:Partial<IBotOpts>={}) => _createBot({
+  ...opts,
+  env: opts.env || require('./cli/remote-service-map')
+})
 
-const createTradle = (env?) => {
-  if (env) return new Tradle({ env })
+const createBot = (opts:Partial<IBotOpts>={}) => {
+  if (opts.env) return _createBot(opts)
   if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
     require('./test/env').install()
-    return createTestTradle()
+    return createTestBot()
   }
 
-  return new Tradle()
+  return _createBot()
 }
-
-const createTestBot = (env?):Bot => exp.createBot({ tradle: createTestTradle(env) })
 
 const exp = {
   // proxy to default instance props
-  get tradle():Tradle {
-    if (!tradle) {
-      tradle = createTradle()
+  get bot():Bot {
+    if (!bot) {
+      bot = createBot()
     }
 
-    return tradle
+    return bot
   },
   get env():Env {
-    return exp.tradle.env
+    return exp.bot.env
   },
   // sub-modules
-  createTradle,
-  createTestTradle,
+  createBot,
   createTestBot,
-  createRemoteTradle,
-  get Tradle() {
-    return requireDefault('./tradle')
-  },
+  createRemoteBot,
   get Env() {
     return requireDefault('./env')
   },
@@ -161,9 +154,6 @@ const exp = {
   },
   get models() {
     return requireDefault('./models')
-  },
-  get createBot() {
-    return requireDefault('./bot').createBot
   }
 }
 

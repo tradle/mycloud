@@ -20,11 +20,11 @@ import { loudAsync, parseStub, getResourceIdentifier } from '../../utils'
 import { addLinks } from '../../crypto'
 import Errors from '../../errors'
 import { Logger } from '../../logger'
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 import { TYPES } from '../../in-house-bot/constants'
 import models from '../../models'
 import { IPBApp, IPBReq, IFormRequest } from '../../in-house-bot/types'
-import { Resource } from '../../bot/resource'
+import { Resource } from '../../resource'
 
 const users = require('../fixtures/users.json')
 const dataBundle = require('../fixtures/data-bundle.json')

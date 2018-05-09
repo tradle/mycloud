@@ -11,7 +11,7 @@ import { StackUtils } from '../stack-utils'
 import { Env } from '../env'
 import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
-import { createRemoteTradle } from '../'
+import { createRemoteBot } from '../'
 import { loadCredentials, loadRemoteEnv, downloadDeploymentTemplate } from '../cli/utils'
 
 const serverlessYml = require('../cli/serverless-yml')
@@ -40,7 +40,7 @@ const getEnv = async () => {
 }
 
 const getTemplate = async () => {
-  const template = await downloadDeploymentTemplate(createRemoteTradle())
+  const template = await downloadDeploymentTemplate(createRemoteBot())
   await fs.writeFile(latestTemplatePath, prettify(template))
 }
 

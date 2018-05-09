@@ -12,7 +12,6 @@ import {
   Identities,
   Objects,
   Logger,
-  Tradle,
   DB
 } from './types'
 

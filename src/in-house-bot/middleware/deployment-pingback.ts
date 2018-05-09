@@ -1,8 +1,8 @@
 import _ from 'lodash'
 import cors from 'kcors'
 import compose from 'koa-compose'
-import { post } from '../../bot/middleware/noop-route'
-import { bodyParser } from '../../bot/middleware/body-parser'
+import { post } from '../../middleware/noop-route'
+import { bodyParser } from '../../middleware/body-parser'
 import { fromHTTP, Lambda } from '../lambda'
 import { IPBMiddlewareContext, IPBMiddleware, ILaunchReportPayload } from '../types'
 
@@ -16,8 +16,8 @@ export const createLambda = (opts) => {
 }
 
 export const createMiddleware = (lambda:Lambda, opts?:any):IPBMiddleware => {
-  const { tradle, bot, logger } = lambda
-  const { auth, serviceMap } = tradle
+  const { bot, logger } = lambda
+  const { auth, serviceMap } = bot
   const handlePingback = async (ctx:IPBMiddlewareContext, next) => {
     const { event, components } = ctx
     const { apiUrl, deploymentUUID, org, identity, stackId } = event as ILaunchReportPayload

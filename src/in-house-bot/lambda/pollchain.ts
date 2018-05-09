@@ -1,4 +1,4 @@
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 import { sendConfirmedSeals } from '../utils'
 
 const bot = createBot()

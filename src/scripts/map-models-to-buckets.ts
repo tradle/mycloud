@@ -10,10 +10,9 @@ import { loadRemoteEnv, loadCredentials, getTableDefinitions } from '../cli/util
 loadCredentials()
 loadRemoteEnv()
 
-import { createRemoteTradle } from '../'
 import lambda from '../in-house-bot/lambda/mqtt/onmessage'
 lambda.bot.promiseReady().then(() => {
-  const { dbUtils } = lambda.tradle
+  const { dbUtils } = lambda.bot
   const outputPath = path.join(__dirname, '../modelmap.json')
   const output = dbUtils.getModelMap({ models: lambda.bot.models })
   fs.writeFileSync(outputPath, JSON.stringify(output, null, 2))

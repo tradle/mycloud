@@ -9,11 +9,10 @@ loadCredentials()
 
 import yn from 'yn'
 import readline from 'readline'
-import { createRemoteTradle } from '../'
+import { createRemoteBot } from '../'
 
-const tradle = createRemoteTradle()
-const { env, aws } = tradle
-const bot = require('../bot').createBot({ tradle })
+const bot = createRemoteBot()
+const { env, aws } = bot
 const { listTables, clear } = bot.dbUtils
 const tableToClear = process.argv.slice(2)
 

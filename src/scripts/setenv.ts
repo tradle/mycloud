@@ -4,9 +4,9 @@ process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 import path from 'path'
 import { loadCredentials } from '../cli/utils'
-import { createRemoteTradle } from '../'
+import { createRemoteBot } from '../'
 
-const { stackUtils } = createRemoteTradle()
+const { stackUtils } = createRemoteBot()
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     f: 'functions',

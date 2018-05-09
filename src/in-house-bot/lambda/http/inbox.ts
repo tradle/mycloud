@@ -1,4 +1,4 @@
-import { createBot } from '../../../bot'
+import { createBot } from '../../../'
 import { customize } from '../../customize'
 
 const bot = createBot({ ready: false })

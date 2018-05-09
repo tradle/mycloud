@@ -8,20 +8,17 @@ import {
   Test
 } from '../test/end-to-end'
 
-import { createTestTradle } from '../'
-import { createBot } from '../bot'
+import { createTestBot } from '../'
 import { customize } from '../in-house-bot/customize'
 
 (async () => {
-  let tradle = createTestTradle()
-  const { debug } = tradle.logger
-  tradle = createTestTradle()
+  let bot = createTestBot()
+  const { debug } = bot.logger
   debug('initialized provider')
 
-  tradle.logger.debug('setting up bot')
+  debug('setting up bot')
 
   const product = 'nl.tradle.DigitalPassport'
-  const bot = createBot()
   const customStuff = await customize({
     bot,
     // conf: {
@@ -36,7 +33,7 @@ import { customize } from '../in-house-bot/customize'
     // }
   })
 
-  tradle.logger.debug('running test')
+  debug('running test')
   const test = new Test(customStuff)
   // await test.runEmployeeAndFriend()
   await test.runEmployeeAndCustomer({ product })

@@ -1,6 +1,6 @@
 import { Lambda, EventSource } from '../lambda'
-import { createBot } from '../bot'
-import { createLambda as createBotLambda } from '../bot/lambda'
+import { createBot } from '../'
+import { createLambda as createBotLambda } from '../lambda'
 import { customize } from './customize'
 import { IPBotLambdaOpts } from './types'
 

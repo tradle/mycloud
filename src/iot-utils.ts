@@ -22,7 +22,7 @@ export interface IIotEndpointInfo {
   clientIdPrefix: string
 }
 
-export class Iot implements IIotEndpointInfo {
+export default class Iot implements IIotEndpointInfo {
   public endpointInfo: IIotEndpointInfo
   public clientIdPrefix: string
   public parentTopic: string
@@ -78,3 +78,5 @@ export class Iot implements IIotEndpointInfo {
 }
 
 export const createUtils = (opts: IotOpts) => new Iot(opts)
+
+export { Iot }

@@ -13,7 +13,7 @@ import { wait, deepClone } from '../utils'
 import { addLinks } from '../crypto'
 import adapters from '../blockchain-adapter'
 import { recreateTable } from './utils'
-import Tradle from '../tradle'
+import { createTestBot } from '../'
 import { Env } from '../env'
 import Errors from '../errors'
 import { loudAsync } from '../utils'
@@ -51,11 +51,11 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
 
-  const tradle = new Tradle({ env })
+  const bot = createTestBot({ env })
   // const table = await recreateTable(SealsTableLogicalId)
   const txId = 'sometxid'
 
-  const { blockchain, seals, db } = tradle
+  const { blockchain, seals, db } = bot
   const aliceKey = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const bobKey = bobKeys.find(key => key.type === flavor && key.networkName === networkName)
   const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses').resolves([])
@@ -118,8 +118,8 @@ test('queue seal', loudAsync(async (t) => {
   env.BLOCKCHAIN = blockchainOpts
   // await recreateTable(BucketTableLogicalId)
 
-  const tradle = new Tradle({ env })
-  const { db, identity } = tradle
+  const bot = createTestBot()
+  const { db, identity } = bot
 
   await wipeDB(db)
 
@@ -136,7 +136,7 @@ test('queue seal', loudAsync(async (t) => {
   const permalink = sealedObj._permalink
   const txId = 'sometxid'
   // const blockchain = createBlockchainAPI({ flavor, networkName })
-  const { blockchain, seals } = tradle
+  const { blockchain, seals } = bot
   const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const address = blockchain.sealAddress({
     headerHash: protocol.headerHash(sealedObj),
@@ -164,7 +164,7 @@ test('queue seal', loudAsync(async (t) => {
   ]
 
   const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses').resolves(txResults)
-  const stubObjectsGet = sandbox.stub(tradle.objects, 'get')
+  const stubObjectsGet = sandbox.stub(bot.objects, 'get')
     .callsFake(async (_link) => {
       if (_link === link) {
         return sealedObj
@@ -173,13 +173,13 @@ test('queue seal', loudAsync(async (t) => {
       throw new Error('NotFound')
     })
 
-  const stubObjectsPut = sandbox.stub(tradle.objects, 'put')
+  const stubObjectsPut = sandbox.stub(bot.objects, 'put')
     .callsFake(async (object) => {
       t.equal(object._seal.link, link)
       t.equal(object._seal.txId, txId)
     })
 
-  // const spyDBUpdate = sandbox.stub(tradle.db, 'update')
+  // const spyDBUpdate = sandbox.stub(bot.db, 'update')
   //   .callsFake(async (props) => {
   //     if (props[TYPE] !== 'tradle.SealState') {
   //       t.equal(props[TYPE], sealedObj[TYPE])
@@ -250,7 +250,7 @@ test('corda seals', loudAsync(async (t) => {
     networkName: 'private'
   }
 
-  const { seals, objects, db, identity } = new Tradle({ env })
+  const { seals, objects, db, identity } = createTestBot({ env })
 
   await wipeDB(db)
 

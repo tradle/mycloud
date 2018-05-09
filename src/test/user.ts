@@ -1,5 +1,5 @@
 import test from 'tape'
-import { tradle } from '../'
+import { bot } from '../'
 import { loudCo } from '../utils'
 
 const alice = require('./fixtures/alice/object')
@@ -8,7 +8,7 @@ const fromBob = require('./fixtures/alice/receive.json')
 
 test('onSentMessage', loudCo(function* (t) {
   try {
-    yield tradle.user.onSentMessage({
+    yield bot.userSim.onSentMessage({
       clientId: `${bob.permalink}blah`,
       message: { blah: 1 }
     })

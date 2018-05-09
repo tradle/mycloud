@@ -390,7 +390,7 @@ ${this.genUsageInstructions(links)}`
     }
 
     await this.bot.sendSimpleMessage({
-      to: configurer,
+      to: configurerUser,
       message
     })
   }

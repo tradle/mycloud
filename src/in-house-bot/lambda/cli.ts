@@ -7,7 +7,7 @@
 
 import pick from 'lodash/pick'
 import { fromCli, fromHTTP } from '../lambda'
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 import { IPBMiddlewareContext } from '../types'
 
 const bot = createBot({ ready: false })

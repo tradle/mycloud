@@ -45,7 +45,8 @@ import {
   PRIVATE_CONF_BUCKET,
   LAUNCH_STACK_BASE_URL,
   DATE_ZERO,
-  UNSIGNED_TYPES
+  UNSIGNED_TYPES,
+  DB_IGNORE_PAYLOAD_TYPES
 } from './constants'
 
 import Errors from './errors'
@@ -60,12 +61,14 @@ import {
   ResourceStub,
   ParsedResourceStub,
   GetResourceIdentifierInput,
-  IHasLogger
+  IHasLogger,
+  IBotMessageEvent,
+  Bot,
 } from './types'
 
+import * as types from './typeforce-types'
 import Logger from './logger'
 import Env from './env'
-import Tradle from './tradle'
 import models from './models'
 
 const BaseObjectModel = models['tradle.Object']
@@ -1122,8 +1125,8 @@ export const timeMethods = <T>(obj:T, logger:Logger):T => {
   return obj
 }
 
-export const syncClock = async (tradle:Tradle) => {
-  const { aws, buckets } = tradle
+export const syncClock = async (bot:Bot) => {
+  const { aws, buckets } = bot
   const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
   await PrivateConf.head(PRIVATE_CONF_BUCKET.identity)
@@ -1309,3 +1312,98 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
     }
   })
 }
+
+const normalizeSendOpts = async (bot, opts) => {
+  let { link, object, to } = opts
+  if (typeof object === 'string') {
+    object = {
+      [TYPE]: SIMPLE_MESSAGE,
+      message: object
+    }
+  }
+
+  if (!object && link) {
+    object = await bot.objects.get(link)
+  }
+
+  try {
+    if (object[SIG]) {
+      typeforce(types.signedObject, object)
+    } else {
+      typeforce(types.createObjectInput, object)
+    }
+
+    typeforce({
+      to: typeforce.oneOf(typeforce.String, typeforce.Object),
+      other: typeforce.maybe(typeforce.Object)
+    }, opts)
+  } catch (err) {
+    throw new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
+  }
+
+  bot.objects.presignEmbeddedMediaLinks(object)
+  opts = _.omit(opts, 'to')
+  opts.object = object
+  opts.recipient = normalizeRecipient(to)
+  // if (typeof opts.object === 'string') {
+  //   opts.object = {
+  //     [TYPE]: 'tradle.SimpleMessage',
+  //     message: opts.object
+  //   }
+  // }
+
+  const { models } = bot
+  const payload = opts.object
+  const model = models[payload[TYPE]]
+  if (model) {
+    try {
+      validateResource.resource({ models, model, resource: payload })
+    } catch (err) {
+      bot.logger.error('failed to validate resource', {
+        resource: payload,
+        error: err.stack
+      })
+
+      throw err
+    }
+  }
+
+  return opts
+}
+
+const normalizeRecipient = to => to.id || to
+
+export {
+  normalizeSendOpts,
+  normalizeRecipient
+}
+
+export const toBotMessageEvent = ({ bot, user, message }):IBotMessageEvent => {
+  // identity permalink serves as user id
+  const { object } = message
+  const type = object[TYPE]
+  return {
+    bot,
+    user,
+    message,
+    payload: object,
+    object,
+    type,
+    link: object._link,
+    permalink: object._permalink,
+  }
+}
+
+export const getResourceModuleStore = (bot: Bot) => ({
+  get models() { return bot.models },
+  sign: resource => bot.sign(resource),
+  save: resource => {
+    // not supported yet
+    // if (resource.link === resource.permalink) {
+    //   return bot.save(resource.toJSON(), resource.diff)
+    // }
+
+    return bot.save(resource.toJSON())
+  },
+  logger: bot.logger
+})

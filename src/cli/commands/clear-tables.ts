@@ -1,4 +1,3 @@
-import Tradle from '../../tradle'
 import Env from '../../env'
 import Logger from '../../logger'
 import Cli from '../'
@@ -29,26 +28,26 @@ export default class ClearTables extends Command {
   }
 
   private getTables = async (names) => {
-    const { tradle, env } = this
+    const { bot, env } = this
     if (names.length) {
       return names.map(name => {
         return name.startsWith(env.SERVERLESS_PREFIX) ? name : env.SERVERLESS_PREFIX + name
       })
     }
 
-    const list = await tradle.dbUtils.listTables(env)
+    const list = await bot.dbUtils.listTables(env)
     return list.filter(name => {
       return !skip.find(skippable => env.SERVERLESS_PREFIX + skippable === name)
     })
   }
 
   private clearTables = async (names) => {
-    const { href } = this.tradle.aws.dynamodb.endpoint
+    const { href } = this.bot.aws.dynamodb.endpoint
     await this.confirm(`will empty the following tables at endpoint ${href}\n${prettify(names)}`)
 
     for (const table of names) {
       this.logger.debug('clearing', table)
-      const numDeleted = await this.tradle.dbUtils.clear(table)
+      const numDeleted = await this.bot.dbUtils.clear(table)
       this.logger.debug(`deleted ${numDeleted} items from ${table}`)
     }
   }

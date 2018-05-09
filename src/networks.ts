@@ -29,7 +29,7 @@ const networks = {
   }
 }
 
-module.exports = {}
+const expanded = {}
 
 const getAdapter = name => {
   const adapters = require('./blockchain-adapter').default
@@ -37,7 +37,7 @@ const getAdapter = name => {
 }
 
 Object.keys(networks).forEach(flavor => {
-  const sub = module.exports[flavor] = {}
+  const sub = expanded[flavor] = {}
   Object.keys(networks[flavor]).forEach(networkName => {
     let readOnlyAdapter
     let cached
@@ -80,3 +80,5 @@ Object.keys(networks).forEach(flavor => {
     }
   })
 })
+
+export = expanded

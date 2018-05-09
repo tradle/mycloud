@@ -34,7 +34,7 @@ import {
 } from './types'
 
 import { getRecordsFromEvent } from './db-utils'
-import { Resource, getForwardLinks, getBacklinkProperties } from './bot/resource'
+import { Resource, getForwardLinks, getBacklinkProperties } from './resource'
 import Errors from './errors'
 import { TYPES } from './constants'
 const { MESSAGE, BACKLINK_ITEM } = TYPES

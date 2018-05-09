@@ -20,7 +20,7 @@ import {
 } from './constants'
 
 import {
-  Tradle,
+  Bot,
   Objects,
   Identities,
   StackUtils,
@@ -69,7 +69,7 @@ export default class Init {
     seals,
     db,
     logger
-  }: Tradle) {
+  }: Bot) {
     this.secrets = secrets
     this.buckets = buckets
     this.networks = networks

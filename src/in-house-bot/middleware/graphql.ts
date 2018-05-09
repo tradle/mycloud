@@ -1,9 +1,9 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
 import { pick } from 'lodash'
-import { bodyParser } from '../../bot/middleware/body-parser'
-import { createHandler as createGraphqlHandler } from '../../bot/middleware/graphql'
-import { createHandler as createGraphqlAuthHandler } from '../../bot/middleware/graphql-auth'
+import { bodyParser } from '../../middleware/body-parser'
+import { createHandler as createGraphqlHandler } from '../../middleware/graphql'
+import { createHandler as createGraphqlAuthHandler } from '../../middleware/graphql-auth'
 import { Lambda } from '../../lambda'
 import {
   sendModelsPackIfUpdated,

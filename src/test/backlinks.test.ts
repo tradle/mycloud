@@ -23,11 +23,11 @@ import {
   getPermId
 } from '../utils'
 import { IIdentity, IBacklinkItem } from '../types'
-import { createTestTradle } from '../'
+import { createTestBot } from '../'
 
 test('update backlinks', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const { modelStore, db, backlinks } = createTestTradle()
+  const { modelStore, db, backlinks } = createTestBot()
   const models = modelStore.models
   const model = {
     ...models['tradle.Verification'],
@@ -128,7 +128,7 @@ test('update backlinks', loudAsync(async (t) => {
 //   const link = 'efg'
 //   const type = 'tradle.PhotoID'
 //   const id = buildResource.id({ type, permalink, link })
-//   const { kv1, modelStore } = createTestTradle()
+//   const { kv1, modelStore } = createTestBot()
 //   const store = kv1.sub('bltest:')
 //   const backlinks = new Backlinks({ store, modelStore })
 //   const expectedBacklinkValue = []

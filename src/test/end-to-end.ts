@@ -20,8 +20,6 @@ import { replaceDataUrls } from '@tradle/embed'
 // const dbUtils = require('../db-utils')
 // const Delivery = require('../delivery')
 // const { extractAndUploadEmbeds } = require('@tradle/aws-client').utils
-import { createTestTradle } from '../'
-import { Tradle } from '../tradle'
 import { Logger } from '../logger'
 import { Env } from '../env'
 import { Bot } from '../bot'
@@ -33,11 +31,11 @@ import { utils, crypto } from '../'
 import intercept from './interceptor'
 import Errors from '../errors'
 const { createTestProfile } = require('./utils')
-const defaultTradleInstance = require('../').tradle
+const defaultBotInstance = require('../').bot
 const { MESSAGE } = TYPES
 
-const genIdentity = async (tradle:Tradle) => {
-  const { identity, keys } = (await tradle.init.genIdentity()).priv
+const genIdentity = async (bot: Bot) => {
+  const { identity, keys } = (await bot.init.genIdentity()).priv
   return {
     identity: utils.omitVirtual(identity),
     keys,
@@ -55,12 +53,11 @@ const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const APPLICATION = 'tradle.Application'
 
 class TestBot extends Bot {
-  public identity: any
+  public _identity: any
 }
 
 export class Test {
   private bot: TestBot
-  private tradle: Tradle
   private productsAPI: any
   private employeeManager: any
   private products: string[]
@@ -69,13 +66,11 @@ export class Test {
   private debug: Function
   private interceptor: any
   constructor ({
-    tradle=defaultTradleInstance,
-    bot,
+    bot=defaultBotInstance,
     productsAPI,
     employeeManager
   }) {
     this.bot = bot
-    this.tradle = tradle
     this.productsAPI = productsAPI
     this.employeeManager = employeeManager
     this.products = productsAPI.products.filter(p => p !== 'tradle.EmployeeOnboarding')
@@ -85,11 +80,11 @@ export class Test {
   }
 
   private _init = async () => {
-    await this.tradle.init.ensureInitialized()
-    this.bot.identity = await this.bot.getMyIdentity()
-    await this.bot.addressBook.addContact(this.bot.identity)
+    await this.bot.init.ensureInitialized()
+    this.bot._identity = await this.bot.getMyIdentity()
+    await this.bot.addressBook.addContact(this.bot._identity)
     this.bot.ready()
-    this.debug('bot permalink', crypto.getPermalink(this.bot.identity))
+    this.debug('bot permalink', crypto.getPermalink(this.bot._identity))
   }
 
   public get models () {
@@ -99,13 +94,13 @@ export class Test {
   public runEmployeeAndCustomer = wrapWithIntercept(async ({ product }) => {
     await this._ready
 
-    const { tradle, bot } = this
+    const { bot } = this
     const [
       employee,
       customer
     ] = await Promise.all([
-      createUser({ bot, tradle, name: 'employee' }),
-      createUser({ bot, tradle, name: 'customer' })
+      createUser({ bot, name: 'employee' }),
+      createUser({ bot, name: 'customer' })
     ])
 
     const employeeApp = await this.onboardEmployee({ user: employee })
@@ -118,7 +113,7 @@ export class Test {
 
       const hey = {
         [TYPE]: SIMPLE_MESSAGE,
-        [AUTHOR]: bot.identity._permalink,
+        [AUTHOR]: bot._identity._permalink,
         message: 'hey'
       }
 
@@ -153,13 +148,13 @@ export class Test {
   })
 
   public genIdentity = async () => {
-    return await genIdentity(this.tradle)
+    return await genIdentity(this.bot)
   }
 
   public runEmployeeAndFriend = wrapWithIntercept(async () => {
     await this._ready
-    const { bot, tradle, productsAPI } = this
-    const employee = await createUser({ bot, tradle, name: 'employee' })
+    const { bot, productsAPI } = this
+    const employee = await createUser({ bot, name: 'employee' })
     await this.onboardEmployee({ user: employee })
 
     const { friends } = bot
@@ -507,17 +502,14 @@ export class Test {
 }
 
 const createUser = async ({
-  tradle,
   bot,
   name
 }: {
-  tradle:Tradle,
-  bot:any,
-  name?:string
+  bot: Bot
+  name?: string
 }):Promise<User> => {
-  const { identity, keys, profile } = await genIdentity(tradle)
+  const { identity, keys, profile } = await genIdentity(bot)
   return new User({
-    tradle,
     identity,
     keys,
     bot,
@@ -533,22 +525,20 @@ class User extends EventEmitter {
   public clientId: string
   public keys: any
   public profile: any
-  public bot: any
+  public bot: Bot
   public env: Env
   public userPubKey: any
   public botPubKey: any
-  public tradle: Tradle
   public logger: Logger
   public debug: Function
   private _userSeq: number
   private _botSeq: number
   private _ready: Promise
   private _types: string[]
-  constructor ({ tradle, identity, keys, profile, name, bot }) {
+  constructor ({ identity, keys, profile, name, bot }) {
     super()
 
-    this.tradle = tradle
-    this.env = tradle.env
+    this.env = bot.env
     this.logger = this.env.sublogger('e2e:user')
     this.debug = this.logger.debug
     this.name = name
@@ -559,7 +549,7 @@ class User extends EventEmitter {
     this.profile = profile
     this.bot = bot
     this.userPubKey = tradleUtils.sigPubKey(this.identity)
-    this.botPubKey = tradleUtils.sigPubKey(bot.identity)
+    this.botPubKey = tradleUtils.sigPubKey(bot._identity)
     this._userSeq = 0
     this._botSeq = 0
 
@@ -583,13 +573,13 @@ class User extends EventEmitter {
       }
     })
 
-    tradle.delivery.mqtt.on('messages', ({ recipient, messages }) => {
+    bot.delivery.mqtt.on('messages', ({ recipient, messages }) => {
       if (recipient === this.permalink) {
         this.emit('messages', messages)
       }
     })
 
-    tradle.delivery.mqtt.on('message', ({ recipient, message }) => {
+    bot.delivery.mqtt.on('message', ({ recipient, message }) => {
       if (recipient === this.permalink) {
         this.emit('message', message)
       }
@@ -598,7 +588,7 @@ class User extends EventEmitter {
     this._types = []
     recordTypes(this, this._types)
     this.debug('permalink', this.permalink)
-    this._ready = tradle.identities.addContact(this.identity)
+    this._ready = bot.identities.addContact(this.identity)
   }
 
   public get models () {
@@ -653,7 +643,7 @@ class User extends EventEmitter {
       })
     })
 
-    // await this.tradle.user.onSentMessage({
+    // await this.bot.userSim.onSentMessage({
     //   clientId: this.clientId,
     //   message
     // })
@@ -678,16 +668,16 @@ class User extends EventEmitter {
     const message = await this.sign(unsigned)
     message.object = object // with virtual props
     const replacements = replaceDataUrls({
-      endpoint: this.tradle.aws.s3.endpoint.host,
+      endpoint: this.bot.aws.s3.endpoint.host,
       // region,
       object,
-      bucket: this.tradle.buckets.FileUpload.name,
+      bucket: this.bot.buckets.FileUpload.name,
       keyPrefix: `test-${this.permalink}`
     })
 
     if (replacements.length) {
       await replacements.map(({ key, bucket, body, mimetype }) => {
-        return this.tradle.s3Utils.put({ key, bucket, value: body, headers: { ContentType: mimetype } })
+        return this.bot.s3Utils.put({ key, bucket, value: body, headers: { ContentType: mimetype } })
       })
 
       this.debug('uploaded embedded media')
@@ -744,8 +734,8 @@ function recordTypes (user, types) {
 
 function wrapWithIntercept (fn) {
   return async function (...args) {
-    const { bot, tradle } = this
-    this.interceptor = intercept({ bot, tradle })
+    const { bot } = this
+    this.interceptor = intercept({ bot })
 
     try {
       await fn.apply(this, args)
@@ -766,8 +756,8 @@ function wrapWithIntercept (fn) {
 //   return defaultTradleInstance.createInstance(env)
 // }
 
-const clearBuckets = async ({ tradle }) => {
-  await Promise.all(Object.keys(tradle.buckets)
+const clearBuckets = async ({ bot }) => {
+  await Promise.all(Object.keys(bot.buckets)
     .filter(id => {
       return id !== 'PublicConf' &&
         id !== 'PrivateConf' &&
@@ -775,7 +765,7 @@ const clearBuckets = async ({ tradle }) => {
         id !== 'Objects'
     })
     .map(async (id) => {
-      const bucket = tradle.buckets[id]
+      const bucket = bot.buckets[id]
       try {
         await bucket.clear()
         // await bucket.destroy()
@@ -787,12 +777,12 @@ const clearBuckets = async ({ tradle }) => {
     }))
 }
 
-const clearTables = async ({ tradle }) => {
-  const { debug } = tradle.logger
+const clearTables = async ({ bot }) => {
+  const { debug } = bot.logger
   const clearTable = async (TableName) => {
     while (true) {
       try {
-        await tradle.dbUtils.clear(TableName)
+        await bot.dbUtils.clear(TableName)
         debug(`cleared table: ${TableName}`)
         break
       } catch (err) {
@@ -809,13 +799,13 @@ const clearTables = async ({ tradle }) => {
     }
   }
 
-  const existingTables = await tradle.dbUtils.listTables(tradle.env)
+  const existingTables = await bot.dbUtils.listTables(bot.env)
   const toDelete = existingTables.filter(name => {
-    if (!name.startsWith(tradle.prefix)) {
+    if (!name.startsWith(bot.resourcePrefix)) {
       return false
     }
 
-    name = name.slice(tradle.prefix.length)
+    name = name.slice(bot.resourcePrefix.length)
     return name !== 'pubkeys'
   })
 
@@ -830,10 +820,10 @@ const clearTables = async ({ tradle }) => {
   debug('done clearing tables')
 }
 
-const clear = async ({ tradle }) => {
+const clear = async ({ bot }) => {
   await Promise.all([
-    clearTables({ tradle }),
-    clearBuckets({ tradle })
+    clearTables({ bot }),
+    clearBuckets({ bot })
   ])
 }
 

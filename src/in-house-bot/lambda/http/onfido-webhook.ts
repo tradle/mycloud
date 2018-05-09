@@ -1,8 +1,8 @@
 import { EventSource } from '../../../lambda'
 import cors from 'kcors'
-import { createBot } from '../../../bot'
+import { createBot } from '../../../'
 import { customize } from '../../customize'
-import { post } from '../../../bot/middleware/noop-route'
+import { post } from '../../../middleware/noop-route'
 import Errors from '../../../errors'
 
 const bot = createBot({ ready: false })

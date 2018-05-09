@@ -8,8 +8,8 @@ interface Sandbox extends sinon.SinonSandbox {
   httpOnly?: (permalink:string) => void
 }
 
-export = function ({ bot, tradle }) {
-  const { env, delivery, auth, aws, prefix } = tradle
+export = function ({ bot }) {
+  const { env, delivery, auth, aws, prefix } = bot
   const { mqtt } = delivery
   const sandbox:Sandbox = sinon.sandbox.create()
   // const lambdas = createBot.lambdas(bot)

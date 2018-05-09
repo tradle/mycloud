@@ -11,7 +11,6 @@ import { get, cachifyFunction, parseStub } from './utils'
 import {
   Identities,
   Identity,
-  Tradle,
   Logger,
   ILoadFriendOpts,
   Storage,

@@ -13,15 +13,14 @@ import { utils as tradleUtils } from '@tradle/engine'
 import {
   ILambdaAWSExecutionContext
 } from '../types'
-import { createTestTradle } from '../'
-import { createBot } from '../bot'
-import { createGraphqlAPI } from '../bot/graphql'
+import { createTestBot } from '../'
+import { createGraphqlAPI } from '../graphql'
 import { loudAsync, wait } from '../utils'
 import { topics as EventTopics } from '../events'
 import { toStreamItems, recreateTable } from './utils'
 import Errors from '../errors'
-import { models as PingPongModels } from '../bot/ping-pong-models'
-import { Resource } from '../bot/resource'
+import { models as PingPongModels } from '../ping-pong-models'
+import { Resource } from '../resource'
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
@@ -60,7 +59,7 @@ const fakeLink = () => crypto.randomBytes(32).toString('hex')
 // }))
 
 test(`users `, loudAsync(async (t) => {
-  const bot = createBot({ tradle: createTestTradle() })
+  const bot = createTestBot()
   const { users } = bot
 
   // clean up, just in case
@@ -104,8 +103,7 @@ test(`users `, loudAsync(async (t) => {
 
 test('init', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const tradle = createTestTradle()
-  const bot = createBot({ tradle })
+  const bot = createTestBot()
   const originalEvent = {
     RequestType: 'Create',
     ResponseURL: 'some-s3-url',
@@ -122,7 +120,7 @@ test('init', loudAsync(async (t) => {
   }
 
   const originalContext = {}
-  sandbox.stub(tradle.init, 'initInfra').callsFake(async (opts) => {
+  sandbox.stub(bot.init, 'initInfra').callsFake(async (opts) => {
     t.same(opts, expectedEvent.payload)
   })
 
@@ -167,9 +165,8 @@ test(`onmessage`, loudAsync(async (t) => {
   t.plan(6)
 
   const sandbox = sinon.createSandbox()
-  const tradle = createTestTradle()
-  const { objects, messages, identities } = tradle
-  const bot = createBot({ tradle })
+  const bot = createTestBot()
+  const { objects, messages, identities } = bot
   const { users } = bot
 
   // let updatedUser
@@ -228,7 +225,7 @@ test(`onmessage`, loudAsync(async (t) => {
     throw new Errors.NotFound(link)
   })
 
-  sandbox.stub(tradle.user, 'onSentMessage').callsFake(async () => {
+  sandbox.stub(bot.userSim, 'onSentMessage').callsFake(async () => {
     return message
   })
 
@@ -277,15 +274,13 @@ test(`seal events stream`, loudAsync(async (t) => {
   let queuedWrite
   let wrote
   let watch
-  const tradle = createTestTradle()
-  const { seals, identity } = tradle
+  const bot = createTestBot()
+  const { seals, identity } = bot
   const sandbox = sinon.createSandbox()
 
   sandbox.stub(identity, 'getKeys').resolves(aliceKeys)
 
-  const bot = createBot({ tradle })
-
-  const putEvents = sandbox.spy(tradle.events, 'putEvents')
+  const putEvents = sandbox.spy(bot.events, 'putEvents')
 
   bot.hook(EventTopics.seal.queuewrite.async, async ({ event }) => {
     queuedWrite = true
@@ -415,12 +410,11 @@ test('onmessagestream', loudAsync(async (t) => {
     _link: inbound.object._link
   }
 
-  const tradle = createTestTradle()
-  sinon.stub(tradle.events, 'putEvents').callsFake(async (events) => {
+  const bot = createTestBot()
+  sinon.stub(bot.events, 'putEvents').callsFake(async (events) => {
     t.ok(events)
   })
 
-  const bot = createBot({ tradle })
   bot.setCustomModels({ models: PingPongModels })
 
   const table = await bot.db.getTableForModel('ping.pong.Ping')
@@ -555,9 +549,9 @@ test('onmessagestream', loudAsync(async (t) => {
 
 test('validate send', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const tradle = createTestTradle()
-  sandbox.stub(tradle.messaging, 'queueMessage').resolves({})
-  sandbox.stub(tradle.messaging, 'queueMessageBatch').resolves([])
+  const bot = createTestBot()
+  sandbox.stub(bot.messaging, 'queueMessage').resolves({})
+  sandbox.stub(bot.messaging, 'queueMessageBatch').resolves([])
 
   const models = {
     'ding.bling': {
@@ -576,7 +570,6 @@ test('validate send', loudAsync(async (t) => {
     }
   }
 
-  const bot = createBot({ tradle })
   sandbox.stub(bot.users, 'get').callsFake(async (id) => {
     if (id === bob.permalink) return { id, identity: bob.object }
 

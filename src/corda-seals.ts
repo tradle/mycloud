@@ -2,8 +2,8 @@ import QS from 'querystring'
 import _ from 'lodash'
 import { Env } from './env'
 import { Seals } from './seals'
-import { Tradle } from './tradle'
 import { fetch, processResponse } from './utils'
+import { Bot } from './types'
 
 const PLACEHOLDER = '<n/a>'
 const noop = () => {}
@@ -89,18 +89,18 @@ export class Blockchain {
 class CordaSeals {
   public blockchain: Blockchain
   public seals: Seals
-  constructor(tradle:Tradle) {
-    // this.blockchain = tradle.blockchain = new Blockchain(tradle)
+  constructor(bot:Bot) {
+    // this.blockchain = bot.blockchain = new Blockchain(bot)
     let seals
     Object.defineProperty(this, 'seals', {
       get() {
-        if (!seals) seals = new Seals(tradle)
+        if (!seals) seals = new Seals(bot)
         return seals
       }
     })
 
     // @ts-ignore
-    this.blockchain = tradle.blockchain
+    this.blockchain = bot.blockchain
   }
 
   // proxy to this.seals

@@ -1,7 +1,7 @@
 import { EventSource } from '../../../lambda'
 import { customize } from '../../customize'
 import sampleQueries from '../../sample-queries'
-import { createBot } from '../../../bot'
+import { createBot } from '../../../'
 import { createMiddleware } from '../../middleware/graphql'
 
 const bot = createBot({ ready: false })

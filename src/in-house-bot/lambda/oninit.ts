@@ -1,6 +1,6 @@
 import AWS from 'aws-sdk'
 import { createConf } from '../configure'
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 
 const bot = createBot()
 const lambda = bot.lambdas.oninit()

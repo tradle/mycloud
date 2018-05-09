@@ -1,6 +1,6 @@
 
-import { createBot } from '../../bot'
-import { fromCli } from '../../bot/lambda'
+import { createBot } from '../../'
+import { fromCli } from '../../lambda'
 import { customize } from '../customize'
 import { registerWebhook } from '../plugins/onfido'
 // import Errors from '../../errors'

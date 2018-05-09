@@ -1,5 +1,5 @@
 
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 
 const bot = createBot()
 const lambda = bot.lambdas.warmup()

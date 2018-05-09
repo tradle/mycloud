@@ -1,4 +1,4 @@
-import { createBot } from '../../../bot'
+import { createBot } from '../../../'
 import { createLambda } from '../../../in-house-bot/middleware/deployment-pingback'
 
 const bot = createBot()

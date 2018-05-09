@@ -16,10 +16,9 @@ import { loadCredentials } from '../cli/utils'
 loadCredentials()
 
 import { clearTypes } from '../in-house-bot/murder'
-import { createRemoteTradle } from '../'
+import { createRemoteBot } from '../'
 
-const tradle = createRemoteTradle()
-const bot = require('../bot').createBot({ tradle })
+const bot = createRemoteBot()
 
 ;(async () => {
   const types = (argv.types || '').split(',').map(str => str.trim())

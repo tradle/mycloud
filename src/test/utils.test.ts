@@ -32,11 +32,11 @@ import {
   runWithBackoffWhile
 } from '../utils'
 import Errors from '../errors'
-import { Tradle, createTestTradle } from '../'
+import { createTestBot } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
 import { ModelStore, createModelStore } from '../model-store'
-import { models as PingPongModels } from '../bot/ping-pong-models'
+import { models as PingPongModels } from '../ping-pong-models'
 import constants from '../constants'
 import models from '../models'
 import {
@@ -47,8 +47,8 @@ import {
 const { KVTable } = require('../definitions')
 const aliceKeys = require('./fixtures/alice/keys')
 
-const tradle = new Tradle()
-const { dbUtils } = tradle
+const bot = createTestBot()
+const { dbUtils } = bot
 
 interface IErrorMatch {
   type: any
@@ -380,7 +380,7 @@ test('batch by size', function (t) {
 })
 
 test('getCacheable', loudAsync(async (t) => {
-  const { aws } = tradle
+  const { aws } = bot
   const { s3 } = aws
   const bucketName = `test-${randomString(10)}`
   const bucket = new Bucket({ name: bucketName, s3 })
@@ -425,7 +425,7 @@ test('getCacheable', loudAsync(async (t) => {
 }))
 
 test('Bucket', loudAsync(async (t) => {
-  const { aws, env } = tradle
+  const { aws, env } = bot
   const { s3 } = aws
   const bucketName = `test-${Date.now()}-${randomString(10)}`
   const bucket = new Bucket({ name: bucketName, s3, env })
@@ -471,7 +471,7 @@ test('Bucket', loudAsync(async (t) => {
 
 test('Bucket with cache', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const { aws } = tradle
+  const { aws } = bot
   const { s3 } = aws
   const bucketName = `test-${Date.now()}-${randomString(10)}`
   const bucket = new Bucket({
@@ -529,7 +529,7 @@ test('Bucket with cache', loudAsync(async (t) => {
 }))
 
 test('content-addressed-storage', loudAsync(async (t) => {
-  const { contentAddressedStore } = tradle
+  const { contentAddressedStore } = bot
   const key = await contentAddressedStore.put('a')
   t.equal(key, sha256('a', 'hex'))
   t.end()
@@ -542,8 +542,8 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
   KV
 ].forEach((Impl:KVConstructor<IKeyValueStore>, i) => {
   test(`key-value table (${i})`, loudAsync(async (t) => {
-    const { aws, db, tables } = tradle
-    const conf = new Impl({ db, table: tables.KV, prefix: String(Date.now()) })
+    const { aws, db, tables } = bot
+    const conf = new Impl({ db, table: tables.Bucket0, prefix: String(Date.now()) })
 
     t.equal(await conf.exists('a'), false)
     await conf.put('a', {
@@ -626,7 +626,7 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
 })
 
 // test.only(`kv special`, loudAsync(async (t) => {
-//   const { aws, db } = tradle
+//   const { aws, db } = bot
 //   const conf = new KV({ db, prefix: String(Date.now()) })
 //   await conf.updateSet({
 //     key: 'person',
@@ -912,8 +912,8 @@ test('ModelStore', loudAsync(async (t) => {
     domain: `${testPrefix}.example2.com`
   }
 
-  const tradle = createTestTradle()
-  const store = tradle.modelStore
+  const bot = createTestBot()
+  const store = bot.modelStore
 
   let memBucket = {}
   const fakePut = async ({ key, value }) => {
@@ -928,20 +928,20 @@ test('ModelStore', loudAsync(async (t) => {
     return memBucket[key]
   }
 
-  // sandbox.stub(tradle.s3Utils, 'put').callsFake(fakePut)
-  // sandbox.stub(tradle.s3Utils, 'gzipAndPut').callsFake(fakePut)
-  sandbox.stub(tradle.s3Utils, 'get').callsFake(async ({ key }) => {
+  // sandbox.stub(bot.s3Utils, 'put').callsFake(fakePut)
+  // sandbox.stub(bot.s3Utils, 'gzipAndPut').callsFake(fakePut)
+  sandbox.stub(bot.s3Utils, 'get').callsFake(async ({ key }) => {
     const Body = await fakeGet({ key })
     return {
       Body: new Buffer(JSON.stringify(Body))
     }
   })
 
-  // sandbox.stub(tradle.s3Utils, 'getJSON').callsFake(fakeGet)
+  // sandbox.stub(bot.s3Utils, 'getJSON').callsFake(fakeGet)
   sandbox.stub(store.bucket, 'get').callsFake(key => fakeGet({ key }))
   sandbox.stub(store.bucket, 'getJSON').callsFake(key => fakeGet({ key }))
   sandbox.stub(store.bucket, 'gzipAndPut').callsFake((key, value) => fakePut({ key, value }))
-  sandbox.stub(tradle.friends, 'getByDomain').callsFake(async (domain) => {
+  sandbox.stub(bot.friends, 'getByDomain').callsFake(async (domain) => {
     if (domain === friend1.domain) return friend1
     if (domain === friend2.domain) return friend2
 

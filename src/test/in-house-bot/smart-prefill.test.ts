@@ -7,7 +7,7 @@ import { TYPE, SIG, OWNER } from '@tradle/constants'
 import { SmartPrefill } from '../../in-house-bot/plugins/smart-prefill'
 import { loudAsync } from '../../utils'
 import Errors from '../../errors'
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 import { TYPES } from '../../in-house-bot/constants'
 import models from '../../models'
 

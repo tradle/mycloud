@@ -4,7 +4,7 @@ import { pick, chunk } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { wait } from '../utils'
 import Errors from '../errors'
-import { getPrimaryKeysProperties } from '../bot/resource'
+import { getPrimaryKeysProperties } from '../resource'
 import {
   Bot
 } from './types'

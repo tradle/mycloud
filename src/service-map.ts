@@ -1,6 +1,6 @@
 import { Env, IBucketsInfo, IServiceMap } from './types'
+import { ENV_RESOURCE_PREFIX } from './constants'
 
-const { ENV_RESOURCE_PREFIX } = require('./constants')
 const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)(?:_(.*))?$`)
 
 export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {

@@ -6,8 +6,7 @@ import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
 import { Lambda, EventSource } from '../lambda'
 import { Bot } from '../bot'
-import { Users } from '../bot/users'
-import { Tradle } from '../tradle'
+import { Users } from '../users'
 import { Env } from '../env'
 import { Identities } from '../identities'
 import { Identity } from '../identity'
@@ -68,7 +67,6 @@ export {
   // export
   Bot,
   Users,
-  Tradle,
   Env,
   Identities,
   Identity,
@@ -192,13 +190,8 @@ export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, call
 export interface ILambdaOpts {
   devModeOnly?: boolean
   source?: EventSource
-  tradle?: Tradle
-  [x:string]: any
-}
-
-export interface IBotLambdaOpts extends ILambdaOpts {
   bot?: Bot
-  middleware?: Middleware
+  middleware?: Middleware | Promise<Middleware>
   [x:string]: any
 }
 
@@ -515,7 +508,7 @@ export interface ILoadFriendOpts {
 }
 
 export interface IBotOpts {
-  tradle: Tradle
+  env?: any
   users?: any
   ready?:boolean
 }

@@ -7,7 +7,7 @@ import { TYPE, WITNESSES } from '@tradle/constants'
 import { loudAsync } from '../utils'
 import { addLinks } from '../crypto'
 import { Identity } from '../identity'
-import { createTestTradle } from '../'
+import { createTestBot } from '../'
 
 const aliceKeys = require('./fixtures/alice/keys')
 const bobKeys = require('./fixtures/bob/keys')
@@ -31,8 +31,8 @@ test('sign/witness', loudAsync(async (t) => {
   //   })
   // })
 
-  const tradle = createTestTradle()
-  const { identity } = tradle
+  const bot = createTestBot()
+  const { identity } = bot
   const signed = await identity.sign({
     object: {
       [TYPE]: 'tradle.SimpleMessage',

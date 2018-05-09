@@ -1,5 +1,5 @@
 import Router from 'koa-router'
-import { createBot } from '../../../bot'
+import { createBot } from '../../../'
 import { EventSource } from '../../../lambda'
 // import { customize } from '../../customize'
 

@@ -15,7 +15,7 @@ import {
   ITradleMessage,
   ResourceStub,
   Logger,
-  IBotLambdaOpts,
+  ILambdaOpts,
   IDeepLink,
   ILambdaExecutionContext
 } from '../types'
@@ -362,7 +362,7 @@ export interface IDeploymentConfForm extends ITradleObject {
   hrEmail: string
 }
 
-export interface IPBotLambdaOpts extends IBotLambdaOpts {
+export interface IPBotLambdaOpts extends ILambdaOpts {
   event: string
   [x:string]: any
 }

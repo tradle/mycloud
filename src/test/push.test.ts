@@ -10,7 +10,7 @@ import Push, { getChallenge, getNotificationData } from '../push'
 import Logger from '../logger'
 import { loudAsync, omitVirtual } from '../utils'
 import { getSigningKey, sha256 } from '../crypto'
-import { Tradle } from '../'
+import { createBot } from '../'
 
 const alice = omitVirtual(require('./fixtures/alice/identity'))
 const aliceKeys = require('./fixtures/alice/keys')
@@ -46,11 +46,11 @@ test('push', loudAsync(async (t) => {
     })
 
   const namespace = 'test' + Date.now()
-  const tradle = new Tradle()
+  const bot = createBot()
   const push = new Push({
     serverUrl,
-    conf: tradle.kv.sub(namespace),
-    logger: tradle.env.sublogger('push:')
+    conf: bot.kv.sub(namespace),
+    logger: bot.env.sublogger('push:')
   })
 
   t.equal(await push.isRegistered(), false)

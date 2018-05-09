@@ -15,7 +15,7 @@ import {
   Models
 } from './types'
 
-import { Resource } from '../bot/resource'
+import { Resource } from '../resource'
 
 interface ICreateCheckOpts {
   props: any

@@ -11,7 +11,6 @@ import { Level } from './logger'
 import { CacheableBucketItem } from './cacheable-bucket-item'
 import Errors from './errors'
 import {
-  Tradle,
   Bucket,
   Buckets,
   Friends,
@@ -74,7 +73,6 @@ export class ModelStore extends EventEmitter {
   public cumulativeModelsPack: ModelsPack
   public bucket: Bucket
   public lenses: any
-  private tradle: Tradle
   private logger: Logger
   private cache: DBModelStore
   private myDomain: string
@@ -206,7 +204,7 @@ export class ModelStore extends EventEmitter {
     if (!cumulativeModelsPack) cumulativeModelsPack = await this.getCumulativeModelsPack()
 
     const models = getCumulative(this, cumulativeModelsPack, false)
-    const { exportSchema } = require('./bot/graphql')
+    const { exportSchema } = require('./graphql')
     const schema = exportSchema({ models })
     await this.bucket.gzipAndPut(this.cumulativeGraphqlSchemaKey, schema)
   }
@@ -232,7 +230,7 @@ export class ModelStore extends EventEmitter {
 
   public getSavedGraphqlSchema = async () => {
     const schema = await this.bucket.getJSON(this.cumulativeGraphqlSchemaKey)
-    return require('./bot/graphql').importSchema(schema)
+    return require('./graphql').importSchema(schema)
   }
 
   public getGraphqlSchema = async () => {
@@ -240,7 +238,7 @@ export class ModelStore extends EventEmitter {
       return await this.getSavedGraphqlSchema()
     } catch (err) {
       Errors.ignoreNotFound(err)
-      return require('./bot/graphql').exportSchema({
+      return require('./graphql').exportSchema({
         models: this.models
       })
     }

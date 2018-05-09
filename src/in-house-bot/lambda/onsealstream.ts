@@ -1,5 +1,5 @@
 
-import { createBot } from '../../bot'
+import { createBot } from '../../'
 import { sendConfirmedSeals } from '../utils'
 import { topics as EventTopics } from '../../events'
 

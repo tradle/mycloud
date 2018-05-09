@@ -22,10 +22,9 @@ import Errors from '../errors'
 import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
 import { Env } from '../env'
-import { createRemoteTradle } from '../'
+import { createRemoteBot } from '../'
 import { createConf } from '../in-house-bot/configure'
 import {
-  Tradle,
   Bot,
   IConf
 } from '../in-house-bot/types'
@@ -58,16 +57,16 @@ const getStackName = () => {
   return `${service}-${stage}`
 }
 
-const getStackResources = ({ tradle, stackName }: {
-  tradle: Tradle
+const getStackResources = ({ bot, stackName }: {
+  bot: Bot
   stackName: string
 }) => {
-  return tradle.stackUtils.getStackResources(stackName || getStackName())
+  return bot.stackUtils.getStackResources(stackName || getStackName())
 }
 
-const getPhysicalId = async ({ tradle, logicalId }) => {
+const getPhysicalId = async ({ bot, logicalId }) => {
   const resources = await getStackResources({
-    tradle,
+    bot,
     stackName: getStackName()
   })
 
@@ -80,12 +79,12 @@ const getPhysicalId = async ({ tradle, logicalId }) => {
   return match.PhysicalResourceId
 }
 
-const genLocalResources = async ({ tradle }) => {
-  if (!tradle) {
-    tradle = require('../').createTestTradle()
+const genLocalResources = async ({ bot }) => {
+  if (!bot) {
+    bot = require('../').createTestBo()
   }
 
-  const { aws } = tradle
+  const { aws } = bot
   const { s3 } = aws
   const yml = require('./serverless-yml')
   const { resources } = yml
@@ -124,7 +123,7 @@ const genLocalResources = async ({ tradle }) => {
   Object.keys(Resources)
     .filter(name => Resources[name].Type === 'AWS::S3::Bucket')
     .forEach(name => {
-      const Bucket = tradle.prefix + name.toLowerCase()
+      const Bucket = bot.resourcePrefix + name.toLowerCase()
       const exists = currentBuckets.Buckets.find(({ Name }) => {
         return Name === Bucket
       })
@@ -154,7 +153,7 @@ const genLocalResources = async ({ tradle }) => {
 const makeDeploymentBucketPublic = async () => {
   loadCredentials()
 
-  const { buckets } = createRemoteTradle()
+  const { buckets } = createRemoteBot()
   await buckets.ServerlessDeployment.makePublic()
 }
 
@@ -300,8 +299,8 @@ const getTableDefinitions = () => {
 //   }
 // }
 
-const downloadDeploymentTemplate = async (tradle:Tradle) => {
-  return await tradle.stackUtils.getStackTemplate()
+const downloadDeploymentTemplate = async (bot:Bot) => {
+  return await bot.stackUtils.getStackTemplate()
 }
 
 function getLatestS3Object (list) {
@@ -318,7 +317,7 @@ function getLatestS3Object (list) {
 const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
   let { bot, force } = opts
   if (!bot) {
-    const { createBot } = require('../bot')
+    const { createBot } = require('../')
     bot = createBot()
   }
 
