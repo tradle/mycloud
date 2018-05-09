@@ -337,12 +337,14 @@ export default class Auth {
     //   }
     // })
 
+    const dateCreated = Date.now()
     const saveSession = this.putSession({
       [TYPE]: SESSION,
+      _time: dateCreated,
+      dateCreated,
       clientId,
       permalink,
       challenge,
-      time: Date.now(),
       authenticated: false,
       connected: false,
       subscribed: false,

@@ -1,3 +1,5 @@
+import { TYPE } from '@tradle/constants'
+import isEqual from 'lodash/isEqual'
 import { Bot } from '../types'
 import {
   wait
@@ -18,6 +20,11 @@ export const simulateEventStream = (bot: Bot) => {
   // })
 
   const reemitSave = async ({ args, result }) => {
+    if (args[0][TYPE] === 'tradle.IotSession') {
+      bot.logger.debug('not re-emitting IotSession event, too taxing in dev env')
+      return
+    }
+
     // await next()
     // await wait(0)
     // await bot.fire('save', { value: ctx.event })

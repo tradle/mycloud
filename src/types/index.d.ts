@@ -117,16 +117,16 @@ export interface IPosition {
 }
 
 // time < dateAuthenticated < dateConnected < dateSubscribed
-export interface ISession {
+export interface ISession extends ITradleObject {
   clientId: string
   permalink: string
   challenge: string
-  time: number // date created (before authenticated)
   authenticated: boolean
-  dateAuthenticated?: number
   connected: boolean
-  dateConnected?: number
   subscribed: boolean
+  dateCreated?: number
+  dateAuthenticated?: number
+  dateConnected?: number
   dateSubscribed?: number
   clientPosition?: IPositionPair
   serverPosition?: IPositionPair

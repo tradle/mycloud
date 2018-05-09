@@ -135,7 +135,7 @@ export default class Backlinks {
   }
 
   public processMessages = async (messages: ITradleMessage[]) => {
-    messages = messages.filter(m => m.context)
+    messages = messages.filter(m => m.context && m.object[TYPE] !== MESSAGE)
     if (!messages.length) return
 
     const contexts = uniqueStrict(pluck(messages, 'context'))
@@ -174,7 +174,11 @@ export default class Backlinks {
 
     return await Promise.all(applicationSubmissions.map(async (object) => {
       object = await this.identity.sign({ object })
-      return await this.storage.save({ object })
+      try {
+        return await this.storage.save({ object })
+      } catch (err) {
+        Errors.ignore(err, { code: 'ConditionalCheckFailedException' })
+      }
     }))
   }
 

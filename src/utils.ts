@@ -446,7 +446,7 @@ export function cachify ({ get, put, del, logger, cache }: {
     const keyStr = stableStringify(key)
     let val = cache.get(keyStr)
     if (val != null) {
-      if (logger) logger.debug(`cache hit`, { key })
+      if (logger) logger.silly(`cache hit`, { key })
       // val might be a promise
       // the magic of co should resolve it
       // before returning
@@ -458,7 +458,7 @@ export function cachify ({ get, put, del, logger, cache }: {
       return val
     }
 
-    if (logger) logger.debug(`cache miss`, { key })
+    if (logger) logger.silly(`cache miss`, { key })
     const promise = get(key)
     promise.catch(err => cache.del(keyStr))
     cache.set(keyStr, promise)
@@ -471,7 +471,7 @@ export function cachify ({ get, put, del, logger, cache }: {
     put: co(function* (key, value, ...rest) {
       // TODO (if actually needed):
       // get cached value, skip put if identical
-      if (logger) logger.debug('cache set', { key })
+      if (logger) logger.silly('cache set', { key })
 
       const keyStr = stableStringify(key)
       if (logger && cache.has(keyStr)) {
@@ -488,7 +488,7 @@ export function cachify ({ get, put, del, logger, cache }: {
     }),
     del: co(function* (key) {
       const keyStr = stableStringify(key)
-      if (logger) logger.debug('cache unset', { key })
+      if (logger) logger.silly('cache unset', { key })
       cache.del(keyStr)
       return yield del(key)
     })
@@ -1023,7 +1023,7 @@ export const logResponseBody = (logger:Logger) => (req, res, next) => {
       chunks.push(chunk)
 
     const body = Buffer.concat(chunks).toString('utf8')
-    logger.debug('RESPONSE BODY', {
+    logger.silly('RESPONSE BODY', {
       path: req.path,
       body
     })
@@ -1072,11 +1072,11 @@ export const cachifyFunction = (
         return cached.catch(err => call(...args))
       }
 
-      logger.debug('cache hit', str)
+      logger.silly('cache hit', str)
       return cached
     }
 
-    logger.debug('cache miss', str.slice(0, 10) + '...')
+    logger.silly('cache miss', str.slice(0, 10) + '...')
     const result = original.apply(container, args)
     if (isPromise(result)) {
       result.catch(err => cache.del(str))
@@ -1102,7 +1102,7 @@ export const timeMethods = <T>(obj:T, logger:Logger):T => {
     obj[key] = (...args) => {
       const start = Date.now()
       const log = () => {
-        logger.debug(`timed method`, {
+        logger.silly(`timed method`, {
           fn: key,
           args: JSON.stringify(args).slice(0, 100),
           time: Date.now() - start
