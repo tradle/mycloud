@@ -76,7 +76,7 @@
     "@tradle/build-resource": {
       "version": "3.0.0",
       "from": "tradle/build-resource",
-      "resolved": "git://github.com/tradle/build-resource.git#19bcfb82303ed46d9f5b8d1cef6d525fb11d6942"
+      "resolved": "git://github.com/tradle/build-resource.git#fef6102a87f27444e0d195ac2d00fd39d15cc98c"
     },
     "@tradle/cb-blockr": {
       "version": "3.2.1",
