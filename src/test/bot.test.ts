@@ -70,6 +70,7 @@ test(`users `, loudAsync(async (t) => {
 
   // const user : Object = {
   const user:any = {
+    [TYPE]: users.type,
     _time: 123,
     id: bob.permalink,
     identity: bob.object,

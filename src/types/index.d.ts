@@ -6,6 +6,7 @@ import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
 import { Lambda, EventSource } from '../lambda'
 import { Bot } from '../bot'
+import { Users } from '../bot/users'
 import { Tradle } from '../tradle'
 import { Env } from '../env'
 import { Identities } from '../identities'
@@ -66,6 +67,7 @@ export {
   Diff,
   // export
   Bot,
+  Users,
   Tradle,
   Env,
   Identities,

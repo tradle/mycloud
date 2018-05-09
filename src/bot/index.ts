@@ -32,7 +32,7 @@ import {
   getResourceModuleStore
 } from './utils'
 
-import createUsers from './users'
+import { createUsers } from './users'
 // import { Friends } from './friends'
 import { createGraphqlAPI } from './graphql'
 import {
@@ -59,7 +59,8 @@ import {
   GetResourceIdentifierInput,
   IHasModels,
   Model,
-  Diff
+  Diff,
+  Users
 } from '../types'
 
 import { createLinker, appLinks as defaultAppLinks } from '../app-links'
@@ -185,7 +186,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public kv: IKeyValueStore
   public conf: IKeyValueStore
   public debug: Function
-  public users: any
+  public users: Users
   public graphql: IGraphqlAPI
 
   // IReady

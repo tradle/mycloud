@@ -7,6 +7,7 @@ import AWS from 'aws-sdk'
 import { Env, Logger, Objects, Messages, ITradleObject, ModelStore, AwsApis } from './types'
 import { extendTradleObject, pluck, ensureTimestamped, logify, logifyFunction } from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
+import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
 
@@ -33,11 +34,11 @@ const getControlLatestOptions = (table: Table, method: string, resource: any) =>
   if (UNSIGNED_TYPES.includes(resource[TYPE])) return
 
   if (!resource._link) {
-    throw new Error('expected "_link"')
+    throw new Errors.InvalidInput('expected "_link"')
   }
 
   if (method === 'create' && !resource._time) {
-    throw new Error('expected "_time"')
+    throw new Errors.InvalidInput('expected "_time"')
   }
 
   const options = {

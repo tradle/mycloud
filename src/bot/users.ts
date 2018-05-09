@@ -5,96 +5,101 @@ import { FindOpts } from '@tradle/dynamodb'
 import { TYPE } from '@tradle/constants'
 import { getUpdateParams } from '../db-utils'
 import Errors from '../errors'
-import { Bot } from '../types'
+import { Bot, DB } from '../types'
 import { topics } from '../events'
 
 const PRIMARY_KEY = 'uid'
 const MAPPED_PRIMARY_KEY = 'id'
-const USER = 'tradle.products.Customer'
+const DEFAULT_TYPE = 'tradle.products.Customer'
 
-export = function createUsers ({ bot }: { bot: Bot }) {
-  const ee = new EventEmitter()
-  const { db } = bot
+type UsersOpts = {
+  bot: Bot
+  type?: string
+}
 
-  // const cache = new Cache({ max: 200 })
-  const fromDBFormat = user => ({
-    ..._.omit(user, [PRIMARY_KEY]),
-    id: user[PRIMARY_KEY]
-  })
+export default class Users extends EventEmitter {
+  private bot: Bot
+  private db: DB
+  public type: string
+  constructor ({ bot, type=DEFAULT_TYPE }: UsersOpts) {
+    super()
+    this.db = bot.db
+    this.bot = bot
+    this.type = type
+  }
 
-  const toDBFormat = user => ({
-    ..._.omit(user, MAPPED_PRIMARY_KEY),
-    [TYPE]: USER,
-    uid: user[MAPPED_PRIMARY_KEY]
-  })
-
-  const save = async (user) => {
-    await db.put(toDBFormat(user))
+  public save = async (user) => {
+    await this.db.put(this._toDBFormat(user))
     return user
   }
 
-  const del = async (primaryKey) => {
-    const user = await db.del({
-      [TYPE]: USER,
+  public del = async (primaryKey) => {
+    const user = await this.db.del({
+      [TYPE]: this.type,
       [PRIMARY_KEY]: primaryKey
     }, {
       ReturnValues: 'ALL_OLD'
     })
 
-    return fromDBFormat(user)
+    return this._fromDBFormat(user)
   }
 
-  const merge = async (user) => {
-    const stored = await db.update(toDBFormat(user), { ReturnValues: 'ALL_NEW' })
-    return fromDBFormat(stored)
+  public merge = async (user) => {
+    const stored = await this.db.update(this._toDBFormat(user), { ReturnValues: 'ALL_NEW' })
+    return this._fromDBFormat(stored)
   }
 
-  const createIfNotExists = async (user) => {
+  public createIfNotExists = async (user) => {
     try {
-      return await get(user[MAPPED_PRIMARY_KEY])
+      return await this.get(user[MAPPED_PRIMARY_KEY])
     } catch (err) {
       Errors.ignoreNotFound(err)
-      await save(user)
-      await bot.fire(topics.user.create, { user })
+      await this.save(user)
+      await this.bot.fire(topics.user.create, { user })
       return user
     }
   }
 
-  const get = async (primaryKey) => {
+  public get = async (primaryKey) => {
     // bot.logger.silly('getting user', {
     //   stack: new Error('ignore').stack,
     //   id: primaryKey
     // })
 
-    const stored = await db.get({
-      [TYPE]: USER,
+    const stored = await this.db.get({
+      [TYPE]: this.type,
       [PRIMARY_KEY]: primaryKey
     }, {
       ConsistentRead: true
     })
 
-    return fromDBFormat(stored)
+    return this._fromDBFormat(stored)
   }
 
-  const list = async (opts: FindOpts) => {
-    const { items } = await db.find(_.merge({
+  public list = async (opts: Partial<FindOpts>={}) => {
+    const { items } = await this.db.find(_.merge({
       allowScan: true,
       filter: {
         EQ: {
-          [TYPE]: USER
+          [TYPE]: this.type
         }
       }
     }, opts))
 
-    return items.map(fromDBFormat)
+    return items.map(this._fromDBFormat)
   }
 
-  return _.extend(ee, {
-    get,
-    createIfNotExists,
-    save,
-    del,
-    merge,
-    list
+  private _fromDBFormat = user => ({
+    ..._.omit(user, [PRIMARY_KEY]),
+    id: user[PRIMARY_KEY]
+  })
+
+  private _toDBFormat = user => ({
+    ..._.omit(user, MAPPED_PRIMARY_KEY),
+    [TYPE]: this.type,
+    uid: user[MAPPED_PRIMARY_KEY]
   })
 }
+
+export { Users }
+export const createUsers = (opts: UsersOpts) => new Users(opts)
