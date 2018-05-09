@@ -375,10 +375,10 @@ export class Deployment {
     links: IAppLinkSet
     configurer: string
   }) => {
-    configurer = await this.bot.users.get(configurer)
+    const configurerUser = await this.bot.users.get(configurer)
 
     let message
-    if (isEmployee(configurer)) {
+    if (isEmployee(configurerUser)) {
       const someLinks = _.omit(links, 'employeeOnboarding')
       message = `The MyCloud you drafted has been launched
 
