@@ -28,8 +28,10 @@ const blockchainOpts = {
   networkName: 'rinkeby'
 }
 
-const SealsTableLogicalId = 'SealsTable'
-const BucketTableLogicalId = 'BucketTable0'
+const env = new Env(process.env)
+env.BLOCKCHAIN = blockchainOpts
+
+const createBot = () => createTestBot({ env })
 
 const rejectEtherscanCalls = () => {
   nock('http://rinkeby.etherscan.io/')
@@ -48,11 +50,7 @@ rejectEtherscanCalls()
 test('handle failed reads/writes', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const { flavor, networkName } = blockchainOpts
-  const env = new Env(process.env)
-  env.BLOCKCHAIN = blockchainOpts
-
-  const bot = createTestBot({ env })
-  // const table = await recreateTable(SealsTableLogicalId)
+  const bot = createBot()
   const txId = 'sometxid'
 
   const { blockchain, seals, db } = bot
@@ -116,7 +114,6 @@ test('queue seal', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const env = new Env(process.env)
   env.BLOCKCHAIN = blockchainOpts
-  // await recreateTable(BucketTableLogicalId)
 
   const bot = createTestBot()
   const { db, identity } = bot
@@ -124,7 +121,6 @@ test('queue seal', loudAsync(async (t) => {
   await wipeDB(db)
 
   const { flavor, networkName } = blockchainOpts
-  // const table = await recreateTable(SealsTableLogicalId)
   const sealedObj:any = await identity.sign({
     object: {
       [TYPE]: 'tradle.SimpleMessage',
@@ -243,14 +239,13 @@ test('queue seal', loudAsync(async (t) => {
 
 test('corda seals', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  // const table = await recreateTable(SealsTableLogicalId)
   const env = new Env(process.env)
   const blockchainOpts = env.BLOCKCHAIN = {
     flavor: 'corda',
     networkName: 'private'
   }
 
-  const { seals, objects, db, identity } = createTestBot({ env })
+  const { seals, objects, db, identity } = createBot()
 
   await wipeDB(db)
 
@@ -355,6 +350,43 @@ test('corda seals', loudAsync(async (t) => {
   sandbox.restore()
   t.end()
 }))
+
+// test.only('detect next version', loudAsync(async (t) => {
+//   const sandbox = sinon.createSandbox()
+//   const bot = createBot()
+//   const { seals, db, objects } = bot
+//   sandbox.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
+//   sandbox.stub(db, 'put').resolves()
+//   sandbox.stub(objects, 'put').resolves()
+
+//   const v0 = await bot.signAndSave({
+//     [TYPE]: 'tradle.SimpleMessage',
+//     message: 'hey'
+//   })
+
+//   const seal = await seals.create({ object: v0 })
+//   const watch = seals.watchNextVersion({ object: v0 })
+//   const { address } = watch
+
+//   const v1 = await bot.createNewVersion(v0)
+//   seals.create({ object: v1 })
+
+//   const txResults = [
+//     {
+//       txId,
+//       confirmations: 10000,
+//       to: {
+//         addresses: [address]
+//       }
+//     }
+//   ]
+
+//   const stubGetTxs = sandbox.stub(blockchain, 'getTxsForAddresses').resolves(txResults)
+
+
+//   sandbox.restore()
+//   t.end()
+// }))
 
 const wipeDB = async (db) => {
   await db.destroyTables()

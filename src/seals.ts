@@ -12,6 +12,7 @@ import buildResource from '@tradle/build-resource'
 import {
   TYPE,
   PREVHEADER,
+  PREVLINK,
   // AUTHOR
 } from './constants'
 
@@ -103,7 +104,7 @@ type ErrorSummary = {
 }
 
 type WatchOpts = {
-  key: IECMiniPubKey
+  key?: IECMiniPubKey
   link?: string
   prevlink?: string
   headerHash?: string
@@ -391,6 +392,18 @@ export default class Seals {
         key: await this.identity.getChainKeyPriv()
       }
     }
+
+    // let prev
+    // if (object[PREVHEADER]) {
+    //   try {
+    //     prev = await this.get({
+    //       link: object[PREVLINK]
+    //     })
+    //   } catch (err) {
+    //     Errors.ignoreNotFound(err)
+    //     throw new Errors.NotFound(`seal for previous version not found. Can't derive the deterministic half of this seal`)
+    //   }
+    // }
 
     const seal = this.getNewSealParams(opts)
     try {
