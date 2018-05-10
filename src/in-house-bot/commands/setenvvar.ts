@@ -28,6 +28,7 @@ export const command:ICommand = {
 
     bot.logger.warn('setting environment variables', update)
     await bot.stackUtils.updateEnvironments(function ({ FunctionName }) {
+      if (FunctionName === bot.lambdaUtils.thisFunctionName) return null
       if (functions && !functions.includes(FunctionName.slice(bot.resourcePrefix.length))) return null
 
       return update
