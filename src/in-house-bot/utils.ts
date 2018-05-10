@@ -389,3 +389,34 @@ export const getLatestForms = ({ forms }: {
     .uniqBy('type')
     .value()
 }
+
+// Checks will be executed in case of a new resource. If the resource was modified,
+// the checks will be executed only if the properties used for verification changed.
+// returns either mapped resource or undefined if no verification needed.
+export const  getCheckParameters = async({plugin, resource, bot, map, defaultPropMap}:  {
+  plugin: string,
+  resource: any,
+  bot: Bot,
+  map?: any,
+  defaultPropMap: any
+}) =>  {
+  let dbRes = resource._prevlink  &&  await bot.objects.get(resource._prevlink)
+  let runCheck = !dbRes
+  let r:any = {}
+  // Use defaultPropMap for creating mapped resource if the map was not supplied or
+  // if not all properties listed in map - that is allowed if the prop names are the same as default
+  for (let prop in defaultPropMap) {
+    let p = map  &&  map[prop]
+    if (!p)
+      p = prop
+    let pValue = resource[p]
+    if (dbRes  &&  dbRes[p] !== pValue)
+      runCheck = true
+    if (pValue)
+      r[prop] = pValue
+  }
+  debugger
+  if (!Object.keys(r).length)
+    throw new Error(`no criteria to run ${plugin} checks`)
+  return runCheck  &&  r
+}

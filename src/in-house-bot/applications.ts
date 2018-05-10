@@ -209,7 +209,7 @@ export class Applications {
       user.applications = []
     }
 
-    user.applications.push(res.stub)
+    this.productsAPI.state.addApplication({ user, application: signed })
     if (!req) {
       await this.bot.users.merge(pick(user, ['id', 'applications']))
     }

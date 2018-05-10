@@ -86,7 +86,7 @@ Make sure you have `git` installed. If you're on `OS X`, you already have it.
 The following are the versions used by the Tradle dev team:
 
 - Node.js@[8.10.0](https://nodejs.org/download/release/v8.10.0/) - this is the version used by Amazon for AWS Lambda. Yes, you can use the latest Node.js instead, but keep this in mind if you hit errors.
-- npm@3.10.10
+- npm@3.10.10 - npm@5 sometimes has trouble with big dependency trees
 
 #### Docker & Docker Compose
 
@@ -165,6 +165,8 @@ npm start
 ```
 
 Now open your browser to [http://localhost:55555](http://localhost:55555). If 55555 is already your favorite port for something else, you can change the port in [./docker/docker-compose-localstack.yml](./docker/docker-compose-localstack.yml).
+
+If you don't see your local provider, click the red menu button on the Conversations screen, choose "Add Server Url" and add `http://localhost:21012`
 
 Profile                                    | Conversations                             | Chat
 :-----------------------------------------:|:-----------------------------------------:|:-----------------------------------------:
