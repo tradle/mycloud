@@ -1,6 +1,6 @@
 
 const curve = 'secp256k1'
-const networks = {
+const constants = {
   bitcoin: {
     testnet: {
       minBalance: 1000000,
@@ -29,16 +29,16 @@ const networks = {
   }
 }
 
-const expanded = {}
+const networks = {}
 
 const getAdapter = name => {
   const adapters = require('./blockchain-adapter').default
   return adapters[name]
 }
 
-Object.keys(networks).forEach(flavor => {
-  const sub = expanded[flavor] = {}
-  Object.keys(networks[flavor]).forEach(networkName => {
+Object.keys(constants).forEach(flavor => {
+  const sub = networks[flavor] = {}
+  Object.keys(constants[flavor]).forEach(networkName => {
     let readOnlyAdapter
     let cached
     Object.defineProperty(sub, networkName, {
@@ -46,7 +46,7 @@ Object.keys(networks).forEach(flavor => {
       get() {
         if (!cached) {
           cached = {
-            ...networks[flavor][networkName],
+            ...constants[flavor][networkName],
             flavor,
             networkName,
             curve,
@@ -81,4 +81,4 @@ Object.keys(networks).forEach(flavor => {
   })
 })
 
-export = expanded
+export = networks
