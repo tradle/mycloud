@@ -78,7 +78,8 @@ export const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list
 export const COMMANDS = Object.keys(commands).map(key => commands[key].name || key)
 export const SUDO_ONLY_COMMANDS = [
   'delete-forever-with-no-undo',
-  'clear'
+  'clear',
+  'reset-identity-with-no-undo'
   // 'encryptbucket',
   // 'enablebinary'
 ]

@@ -19,6 +19,7 @@ import { command as push } from './push'
 import { command as links } from './links'
 import { command as sealpending } from './sealpending'
 import { command as clear } from './clear'
+import { command as reset } from './reset'
 
 export {
   help,
@@ -41,5 +42,6 @@ export {
   // enablebinary,
   push,
   sealpending,
-  clear
+  clear,
+  reset
 }
