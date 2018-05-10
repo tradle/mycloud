@@ -9,6 +9,7 @@ import {
 } from '@aws/dynamodb-expressions'
 import protocol from '@tradle/protocol'
 import buildResource from '@tradle/build-resource'
+import { FindOpts } from '@tradle/dynamodb'
 import {
   TYPE,
   PREVHEADER,
@@ -204,6 +205,14 @@ export default class Seals {
   private network: any
   private db: DB
   private logger:Logger
+  private get baseEQ() {
+    return {
+      [TYPE]: SEAL_STATE_TYPE,
+      blockchain: this.network.flavor,
+      network: this.network.networkName
+    }
+  }
+
   constructor ({
     blockchain,
     identity,
@@ -241,16 +250,14 @@ export default class Seals {
     return this.createSealRecord({ ...opts, write: true })
   }
 
-  public find = async (props: Partial<Seal>) => {
-    const { items } = await this.db.find({
+  public find = async (opts: Partial<FindOpts>={}) => {
+    const findOpts = <FindOpts>_.merge({
       filter: {
-        EQ: {
-          [TYPE]: SEAL_STATE_TYPE,
-          ...props
-        }
+        EQ: this.baseEQ
       }
-    })
+    }, opts)
 
+    const { items } = await this.db.find(findOpts)
     return items
   }
 
@@ -259,7 +266,7 @@ export default class Seals {
     return this.db.findOne({
       filter: {
         EQ: {
-          [TYPE]: SEAL_STATE_TYPE,
+          ...this.baseEQ,
           ...seal
         }
       }
@@ -421,21 +428,14 @@ export default class Seals {
   }
 
   public getUnsealed = async (opts: ILimitOpts={}): Promise<Seal[]> => {
-    const { items } = await this.db.find({
+    return await this.find({
       limit: opts.limit,
       filter: {
         EQ: {
-          [TYPE]: SEAL_STATE_TYPE,
           unsealed: true
         }
       }
     })
-
-    return items
-
-    // return await this.table.scan(maybeLimit({
-    //   IndexName: 'unsealed'
-    // }, opts))
   }
 
   public getUnconfirmed = async (opts:IFailureQueryOpts={}):Promise<Seal[]> => {
@@ -448,12 +448,11 @@ export default class Seals {
     //   }
     // }, opts))
 
-    const { items } = await this.db.find({
+    return await this.find({
       limit: opts.limit,
       filter: {
         EQ: {
-          [TYPE]: SEAL_STATE_TYPE,
-          unconfirmed: true
+          unconfirmed: true,
         },
         NULL: {
           unsealed: true,
@@ -461,19 +460,16 @@ export default class Seals {
         }
       }
     })
-
-    return items
   }
 
   public getLongUnconfirmed = async (opts:IFailureQueryOpts={}):Promise<Seal[]> => {
     const { gracePeriod=DEFAULT_WRITE_GRACE_PERIOD } = opts
     const longAgo = timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
 
-    const { items } = await this.db.find({
+    return await this.find({
       limit: opts.limit,
       filter: {
         EQ: {
-          [TYPE]: SEAL_STATE_TYPE,
           unconfirmed: true
         },
         LT: {
@@ -482,8 +478,6 @@ export default class Seals {
         }
       }
     })
-
-    return items
 
     //   FilterExpression: '#confirmations < :confirmations AND #time < :longAgo',
     //   ExpressionAttributeNames: {
@@ -528,11 +522,10 @@ export default class Seals {
   public getFailedReads = async (opts: IFailureQueryOpts = {}) => {
     const { gracePeriod = DEFAULT_WRITE_GRACE_PERIOD } = opts
     const longAgo = timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
-    const { items } = await this.db.find({
+    return await this.find({
       limit: opts.limit,
       filter: {
         EQ: {
-          [TYPE]: SEAL_STATE_TYPE,
           unconfirmed: true
         },
         NULL: {
@@ -543,8 +536,6 @@ export default class Seals {
         }
       }
     })
-
-    return items
 
     //   IndexName: 'unconfirmed',
     //   FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_exists(#unconfirmed) AND #time < :longAgo',
@@ -563,11 +554,10 @@ export default class Seals {
   public getFailedWrites = async (opts:IFailureQueryOpts={}) => {
     const { gracePeriod=DEFAULT_WRITE_GRACE_PERIOD } = opts
     const longAgo = timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
-    const { items } = await this.db.find({
+    return await this.find({
       limit: opts.limit,
       filter: {
         EQ: {
-          [TYPE]: SEAL_STATE_TYPE,
           unconfirmed: true
         },
         NULL: {
@@ -579,21 +569,6 @@ export default class Seals {
         }
       }
     })
-
-    //   IndexName: 'unconfirmed',
-    //   FilterExpression: 'attribute_not_exists(#unsealed) AND attribute_exists(#txId) AND #dateSealed < :longAgo',
-    //   ExpressionAttributeNames: {
-    //     '#unsealed': 'unsealed',
-    //     '#txId': 'txId',
-    //     '#dateSealed': 'dateSealed'
-    //   },
-    //   ExpressionAttributeValues: {
-    //     // timestamp is in nanoseconds
-    //     ':longAgo': timestamp() - gracePeriod * TIMESTAMP_MULTIPLIER
-    //   }
-    // }, opts))
-
-    return items
   }
 
   public requeueFailedWrites = async (opts) => {
