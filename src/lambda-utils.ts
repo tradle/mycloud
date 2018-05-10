@@ -253,6 +253,10 @@ export default class LambdaUtils {
     }
   }
 
+  public warmUpAll = async () => {
+    return await this.getWarmUpInfo(this.serverlessYml).input
+  }
+
   public warmUp = async (opts:WarmUpOpts) => {
     const { concurrency=defaultConcurrency, functions } = opts
     return await Promise.all(functions.map(conf => {

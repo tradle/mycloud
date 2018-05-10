@@ -79,7 +79,8 @@ export const COMMANDS = Object.keys(commands).map(key => commands[key].name || k
 export const SUDO_ONLY_COMMANDS = [
   'delete-forever-with-no-undo',
   'clear',
-  'reset-identity-with-no-undo'
+  'reset-identity-with-no-undo',
+  'setenvvar'
   // 'encryptbucket',
   // 'enablebinary'
 ]

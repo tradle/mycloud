@@ -20,6 +20,7 @@ import { command as links } from './links'
 import { command as sealpending } from './sealpending'
 import { command as clear } from './clear'
 import { command as reset } from './reset'
+import { command as setenvvar } from './setenvvar'
 
 export {
   help,
@@ -43,5 +44,6 @@ export {
   push,
   sealpending,
   clear,
-  reset
+  reset,
+  setenvvar
 }

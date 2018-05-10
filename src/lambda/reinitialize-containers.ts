@@ -1,4 +1,3 @@
-import serverlessYml from '../cli/serverless-yml'
 import { Lambda } from '../types'
 import { fromLambda } from '../lambda'
 
@@ -14,7 +13,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     const { event } = ctx
     logger.debug('reinitializing lambda containers', event)
     await stackUtils.forceReinitializeContainers(event.functions)
-    await lambdaUtils.warmUp(lambdaUtils.getWarmUpInfo(serverlessYml).input)
+    await lambdaUtils.warmUpAll()
     await next()
   }
 }
