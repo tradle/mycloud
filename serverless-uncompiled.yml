@@ -237,6 +237,7 @@ custom:
       - X-Amz-Security-Token
       - X-Amz-User-Agent
       - X-Tradle-Sig
+      - X-Tradle-Auth
       - cache
     allowCredentials: false
 

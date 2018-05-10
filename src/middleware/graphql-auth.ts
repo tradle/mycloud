@@ -41,82 +41,77 @@ export const createHandler = ({
       return
     }
 
+    logger.debug('authenticating')
+    const auth = ctx.headers['x-tradle-auth']
+    if (!allowGuest && auth == null) {
+      ctx.status = 403
+      ctx.body = {
+        message: `expected header "x-tradle-auth"`
+      }
+
+      logger.debug('expected auth params')
+      return
+    }
+
+    const queryObj:ITradleObject = {
+      [TYPE]: 'tradle.GraphQLQuery',
+      body: tradleUtils.stringify(ctx.event),
+      ...(auth ? JSON.parse(auth) : {})
+    }
+
+    try {
+      validateResource.resource({
+        models: bot.models,
+        model: bot.models['tradle.GraphQLQuery'],
+        resource: queryObj
+      })
+    } catch (err) {
+      throw new Errors.InvalidInput(`invalid tradle.GraphQLQuery: ${err.message}`)
+    }
+
+    checkDrift(queryObj.time)
+
+    let { user } = ctx
+    if (auth && !user) {
+      logger.debug('looking up query author')
+      try {
+        await identities.verifyAuthor(queryObj)
+        ctx.user = user = await bot.users.get(queryObj._author)
+      } catch (err) {
+        Errors.rethrow(err, 'system')
+        if (Errors.isNotFound(err) || Errors.matches(err, Errors.UnknownAuthor)) {
+          ctx.status = 403
+          ctx.body = {
+            message: 'not allowed'
+          }
+        } else {
+          ctx.status = 500
+          ctx.body = {
+            message: 'something went wrong'
+          }
+        }
+
+        return
+      }
+    }
+
+    let allowed = canUserRunQuery({ user, query: queryObj })
+    if (isPromise(allowed)) allowed = await allowed
+    if (!allowed) {
+      ctx.status = 403
+      ctx.body = {
+        message: 'not allowed'
+      }
+
+      return
+    }
+
+    logger.debug('allowing')
     await next()
-    return
-
-    // logger.debug('authenticating')
-    // const sig = ctx.headers['x-tradle-sig']
-    // if (!allowGuest && sig == null) {
-    //   ctx.status = 403
-    //   ctx.body = {
-    //     message: `expected header "x-tradle-sig"`
-    //   }
-
-    //   logger.debug('expected sig')
-    //   return
-    // }
-
-    // const queryObj:ITradleObject = {
-    //   [TYPE]: 'tradle.GraphQLQuery',
-    //   body: tradleUtils.stringify(ctx.event)
-    // }
-
-    // if (sig) queryObj[SIG] = sig
-
-    // try {
-    //   validateResource.resource({
-    //     models: bot.models,
-    //     model: bot.models['tradle.GraphQLQuery'],
-    //     resource: queryObj
-    //   })
-    // } catch (err) {
-    //   throw new Errors.InvalidInput(`invalid tradle.GraphQLQuery: ${err.message}`)
-    // }
-
-    // // checkDrift(queryObj.time)
-
-    // let { user } = ctx
-    // if (sig && !user) {
-    //   logger.debug('looking up query author')
-    //   try {
-    //     await identities.verifyAuthor(queryObj)
-    //     ctx.user = user = await bot.users.get(queryObj._author)
-    //   } catch (err) {
-    //     Errors.rethrow(err, 'system')
-    //     if (Errors.isNotFound(err) || Errors.matches(err, Errors.UnknownAuthor)) {
-    //       ctx.status = 403
-    //       ctx.body = {
-    //         message: 'not allowed'
-    //       }
-    //     } else {
-    //       ctx.status = 500
-    //       ctx.body = {
-    //         message: 'something went wrong'
-    //       }
-    //     }
-
-    //     return
-    //   }
-    // }
-
-    // let allowed = canUserRunQuery({ user, query: queryObj })
-    // if (isPromise(allowed)) allowed = await allowed
-    // if (!allowed) {
-    //   ctx.status = 403
-    //   ctx.body = {
-    //     message: 'not allowed'
-    //   }
-
-    //   return
-    // }
-
-    // logger.debug('allowing')
-    // await next()
   }
 }
 
-function checkDrift (time) {
-  time = Number(time)
+const checkDrift = (time: number) => {
   const drift = time - Date.now()
   const abs = Math.abs(drift)
   if (abs > MAX_CLOCK_DRIFT) {
