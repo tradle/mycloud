@@ -2,7 +2,7 @@
 
 const co = require('co')
 const { loadCredentials } = require('../cli/utils')
-const { stackUtils } = require('../').createRemoteTradle()
+const { stackUtils } = require('../').createRemoteBot()
 let {
   functions,
   key,

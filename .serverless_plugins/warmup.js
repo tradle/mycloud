@@ -42,7 +42,7 @@ class WarmUp {
 
   estimateCost() {
     // lazy require
-    const { logger, lambdaUtils } = require('../').createRemoteTradle()
+    const { logger, lambdaUtils } = require('../').createRemoteBot()
     const { unitToMillis } = require('../lib/constants')
     const serverlessYml = require('../lib/cli/serverless-yml')
     const { costs, costPerFunction, warmUpFunctionDuration } = lambdaUtils.estimateCost(serverlessYml)
@@ -60,7 +60,7 @@ class WarmUp {
 
   warmUp() {
     // lazy require
-    const { logger, lambdaUtils } = require('../').createRemoteTradle()
+    const { logger, lambdaUtils } = require('../').createRemoteBot()
     const { loadCredentials } = require('../lib/cli/utils')
     const serverlessYml = require('../lib/cli/serverless-yml')
 
