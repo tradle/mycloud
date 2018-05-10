@@ -13,10 +13,14 @@ const constants = {
     }
   },
   ethereum: {
-    // ropsten: {
-    //   minBalance: '2000000000000000000',
-    //   confirmations: 12
-    // },
+    mainnet: {
+      minBalance: '2000000000000000000',
+      confirmations: 12
+    },
+    ropsten: {
+      minBalance: '2000000000000000000',
+      confirmations: 12
+    },
     rinkeby: {
       minBalance: '2000000000000000000',
       confirmations: 12
