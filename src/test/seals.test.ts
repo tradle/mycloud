@@ -112,10 +112,7 @@ test('handle failed reads/writes', loudAsync(async (t) => {
 
 test('queue seal', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const env = new Env(process.env)
-  env.BLOCKCHAIN = blockchainOpts
-
-  const bot = createTestBot()
+  const bot = createBot()
   const { db, identity } = bot
 
   await wipeDB(db)
@@ -245,7 +242,7 @@ test('corda seals', loudAsync(async (t) => {
     networkName: 'private'
   }
 
-  const { seals, objects, db, identity } = createBot()
+  const { seals, objects, db, identity } = createTestBot({ env })
 
   await wipeDB(db)
 
