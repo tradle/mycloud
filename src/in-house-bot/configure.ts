@@ -314,7 +314,7 @@ export class Conf {
     try {
       const identityInfo = await bot.initInfra({
         force: opts.forceRecreateIdentity,
-        priv: _.pick(opts, ['identity', 'keys'])
+        priv: opts.identity && opts.keys && _.pick(opts, ['identity', 'keys'])
       })
 
       identity = identityInfo.identity

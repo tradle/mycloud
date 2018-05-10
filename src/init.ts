@@ -103,7 +103,12 @@ export default class Init {
 
   public initIdentity = async (opts:IInitOpts={}) => {
     let { priv, ...rest } = opts
-    if (!priv) {
+    if (priv) {
+      const { identity, keys } = priv
+      if (!(identity && keys)) {
+        throw new Errors.InvalidInput('expected "priv" to be of the form: { identity, keys }')
+      }
+    } else {
       priv = await this.genIdentity()
     }
 
