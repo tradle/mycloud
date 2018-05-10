@@ -1,18 +1,33 @@
 import fetch from 'node-fetch'
 
 import buildResource from '@tradle/build-resource'
-import { buildResourceStub } from '@tradle/build-resource'
+import { buildResourceStub, title } from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications } from '../types'
-const utils_1 = require("../utils");
+import { toISODateString, getCheckParameters, } from '../utils'
 
-const {TYPE} = constants
-const VERIFICATION = 'tradle.Verification'
+const { TYPE, TYPES } = constants
+const { VERIFICATION } = TYPES
 const FORM_ID = 'tradle.legal.LegalEntity';
 const OPEN_CORPORATES = 'Open Corporates'
 const CORPORATION_EXISTS = 'tradle.CorporationExistsCheck'
 
+interface IOpenCorporatesConf {
+  products: any
+  propertyMap: any
+}
+const defaultPropMap = {
+  companyName: 'companyName',
+  registrationDate: 'registrationDate',
+  registrationNumber: 'registrationNumber',
+  region: 'region',
+  country: 'country'
+}
 const BASE_URL = 'https://api.opencorporates.com/'
+const DISPLAY_NAME = 'Open Corporates'
 const test = {
   "api_version": "0.4.7",
   "results": {
@@ -45,35 +60,35 @@ class OpenCorporatesAPI {
   private bot:Bot
   private logger:Logger
   private applications: Applications
-  constructor({ bot, applications, logger }) {
+  private conf: IOpenCorporatesConf
+  constructor({ bot, conf, applications, logger }) {
     this.bot = bot
     this.applications = applications
     this.logger = logger
+    this.conf = conf
   }
   async _fetch(resource, application) {
     let { registrationNumber, registrationDate, region, country, companyName } = resource
     let url = `${BASE_URL}companies/search?q=` + companyName.replace(' ', '+')
-    let json = test
-    // let json
-    // try {
-    //   let res = await fetch(url)
-    //   json = await res.json()
-    // } catch (err) {
-    //   let message = `Check was not completed for "${companyName}": ${err.message}`
-    //   this.logger.debug('Search by company name', err)
-    //   return { resource, rawData: {}, message, hits: [], url }
-    // }
+    // let json = test
+    let json
+    try {
+      let res = await fetch(url)
+      json = await res.json()
+    } catch (err) {
+      let message = `Check was not completed for "${companyName}": ${err.message}`
+      this.logger.debug('Search by company name', err)
+      return { resource, rawData: {}, message, hits: [], url }
+    }
     if (!json.results) {
       let message = `No matches for company name "${companyName}" were found`
-      return { resource, rawData: json, hits: [], message, url }
+      return { rawData: json, hits: [], message, url }
     }
+debugger
+    json = sanitize(json).sanitized
+
     let hasHits = json.results.companies.length
-    let wrongNumber
-    let foundNumber
-    let wrongCountry
-    let foundCountry
-    let wrongDate
-    let foundDate
+    let wrongNumber, foundNumber, wrongCountry, foundCountry, wrongDate, foundDate
     let message
     let companies = json.results.companies.filter((c) => {
       if (c.company.inactive)
@@ -85,7 +100,7 @@ class OpenCorporatesAPI {
       foundNumber = true
       if (registrationDate) {
         // &&  new Date(c.company.incorporation_date).getFullYear() !== new Date(registrationDate).getFullYear()) {
-        if (utils_1.toISODateString(registrationDate) !== c.company.incorporation_date) {
+        if (toISODateString(registrationDate) !== c.company.incorporation_date) {
           if (!foundDate)
             wrongDate = true
           return false
@@ -115,11 +130,11 @@ class OpenCorporatesAPI {
       else if (!foundDate  &&  wrongDate)
         message = `The company with the name "${companyName}" and registration number "${registrationNumber}" has a different registration date`
       else if (!foundCountry && wrongCountry)
-        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" registered on ${utils_1.toISODateString(registrationDate)} was not found in "${country}"`
+        message = `The company with the name "${companyName}" and registration number "${registrationNumber}" registered on ${toISODateString(registrationDate)} was not found in "${country}"`
     }
     if (companies.length === 1)
       url = companies[0].company.opencorporates_url
-    return { resource, rawData: companies.length  &&  json.results || json, message: message, hits: companies, url }
+    return { rawData: companies.length  &&  json.results || json, message: message, hits: companies, url }
   }
 
   async createCorporateCheck({ application, rawData, message, hits, url }) {
@@ -191,61 +206,44 @@ class OpenCorporatesAPI {
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
-  const openCorporates = new OpenCorporatesAPI({ bot, applications, logger })
+  const openCorporates = new OpenCorporatesAPI({ bot, conf, applications, logger })
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req) {
       if (req.skipChecks) return
-
+debugger
       const { user, application, payload } = req
       if (!application) return
 
       let productId = application.requestFor
-      let { products } = conf
+      let { products, propertyMap } = conf
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
         return
 
       // debugger
-      let forms = [payload]
-      let promises = []
-      for (let i=0; i<forms.length; i++) {
-        let form = forms[i]
-        let { registrationNumber, registrationDate, region, country, companyName } = form
-        if (form._prevlink) {
-          let dbRes = await bot.objects.get(payload._prevlink)
-          // debugger
-          if (dbRes.companyName !== companyName                ||
-              dbRes.registrationNumber !== registrationNumber  ||
-              dbRes.country.id !== country.id                  ||
-              dbRes.registrationDate !== registrationDate      ||
-              dbRes.region !== region)
-            promises.push(openCorporates._fetch(form, application))
-          else
-            logger.debug(`Nothing changed for ${companyName}`)
-        }
-        else
-          promises.push(openCorporates._fetch(form, application))
-      }
-      if (!promises.length)
+      let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
+      if (!resource) {
+        logger.debug(`nothing changed for: ${title({resource: payload, models: bot.models})}`)
         return
-
-      let result = await Promise.all(promises)
+      }
+      let r: {rawData:object, message?: string, hits: any, url:string} = await openCorporates._fetch(resource, application)
 
       let pchecks = []
-      result.forEach((r: {resource:any, rawData:object, message?: string, hits: any, url:string}) => {
-        let { resource, rawData, message, hits, url } = r
-        let hasVerification
-        if (!hits  ||  !hits.length)
-          logger.debug(`found no corporates for: ${resource.companyName}`);
-        else if (hits.length > 1)
-          logger.debug(`found ${hits.length} corporates for: ${resource.companyName}`);
-        else  {
-          hasVerification = true
-          logger.debug(`creating verification for: ${resource.companyName}`);
-        }
-        pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, message, hits, url}))
-        if (hasVerification)
-          pchecks.push(openCorporates.createVerification({user, application, form: resource, rawData: hits[0].company}))
-      })
+
+      // result.forEach((r: {resource:any, rawData:object, message?: string, hits: any, url:string}) => {
+      let { rawData, message, hits, url } = r
+      let hasVerification
+      if (!hits  ||  !hits.length)
+        logger.debug(`found no corporates for: ${resource.companyName}`);
+      else if (hits.length > 1)
+        logger.debug(`found ${hits.length} corporates for: ${resource.companyName}`);
+      else  {
+        hasVerification = true
+        logger.debug(`creating verification for: ${resource.companyName}`);
+      }
+      pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, message, hits, url}))
+      if (hasVerification)
+        pchecks.push(openCorporates.createVerification({user, application, form: payload, rawData: hits[0].company}))
+      // })
       let checksAndVerifications = await Promise.all(pchecks)
     }
   }
@@ -325,4 +323,25 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   //     }
   //   }
   //   return { resource, rawData: json.results, hits: companies, url }
+  // }
+  // async getCheckParameters (resource) {
+  //   let map = this.conf.propertyMap[resource[TYPE]]
+  //   let dbRes = resource._prevlink  &&  await this.bot.objects.get(resource._prevlink)
+  //   let runCheck = !dbRes
+
+  //   let r:any = {}
+
+  //   for (let prop in defaultPropMap) {
+  //     let p = map  &&  map[prop]
+  //     if (!p)
+  //       p = prop
+  //     let pValue = resource[p]
+  //     if (dbRes  &&  dbRes[p] !== pValue)
+  //       runCheck = true
+  //     r[prop] = pValue
+  //   }
+  //   debugger
+  //   if (runCheck)
+  //     return r
+  //   this.logger.debug(`nothing changed for: ${title({resource, models: this.bot.models})}`)
   // }
