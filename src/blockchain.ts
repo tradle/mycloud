@@ -6,16 +6,11 @@ import {
   IDebug,
   Logger,
   Identity,
-  ITradleObject
+  ITradleObject,
+  IBlockchainIdentifier
 } from './types'
 
 import Errors from './errors'
-
-// interface IBlockchainIdentifier {
-//   flavor: string,
-//   networkName: string,
-//   minBalance: string
-// }
 
 type BalanceValue = string | number
 
@@ -39,6 +34,13 @@ interface ISealOpts {
   addresses: string[]
   balance?: BalanceValue
   [x: string]: any
+}
+
+interface IBlockchainAdapter {
+  blockchain: string
+  name: string
+  minOutputAmount: BalanceValue
+  pubKeyToAddress: (pub: string) => string
 }
 
 const compareNums = (a, b) => a < b ? -1 : a === b ? 0 : 1
@@ -72,7 +74,7 @@ const compareBalance = (a, b) => {
 
 type BlockchainOpts = {
   logger: Logger
-  network: any
+  network: IBlockchainIdentifier
   identity: Identity
 }
 
@@ -82,7 +84,7 @@ export default class Blockchain {
   public minBalance: string
 
   private reader: any
-  private network: any
+  private network: IBlockchainAdapter
   private writers = {}
   private getTxAmount = () => this.network.minOutputAmount
   private debug:IDebug
@@ -118,7 +120,7 @@ export default class Blockchain {
   }
 
   public toString = () => `${this.network.blockchain}:${this.network.name}`
-  public pubKeyToAddress = (...args) => this.network.pubKeyToAddress(...args)
+  public pubKeyToAddress = (pub: string) => this.network.pubKeyToAddress(pub)
 
   public wrapOperation = fn => {
     return async (...args) => {

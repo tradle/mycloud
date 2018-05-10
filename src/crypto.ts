@@ -49,20 +49,24 @@ export class ECKey {
   public verifySync: (data: any, sig: any) => boolean
   private keyJSON: any
   constructor (keyJSON) {
+    keyJSON = toEncodedKey(_.cloneDeep(keyJSON))
+
     this.keyJSON = keyJSON
 
     const { curve, pub, encoded } = keyJSON
-    if (!encoded) {
-      throw new Error('expected "encoded"')
+    const { pem } = encoded
+    if (pem.priv) {
+      this.signSync = data => signWithPemEncodedKey(pem.priv, data)
+      this.sign = wrap(this.signSync)
+      this.promiseSign = async (data) => this.signSync(data)
     }
 
-    const { pem } = encoded
-    this.signSync = data => rawSign(pem.priv, data)
-    this.sign = wrap(this.signSync)
-    this.promiseSign = async (data) => this.signSync(data)
-    this.verifySync = (data, sig) => rawVerify(pem.pub, data, sig)
-    this.verify = wrap(this.verifySync)
-    this.promiseVerify = async (data, sig) => this.verifySync(data, sig)
+    if (pem.pub) {
+      this.verifySync = (data, sig) => verifyWithPemEncodedKey(pem.pub, data, sig)
+      this.verify = wrap(this.verifySync)
+      this.promiseVerify = async (data, sig) => this.verifySync(data, sig)
+    }
+
     this.sigPubKey = {
       curve,
       pub: new Buffer(pub, 'hex')
@@ -133,7 +137,7 @@ const decryptKey = ({ aws, encryptedKey }) => {
 //   })
 // }
 
-const encrypt = ({ data, key, salt }) => {
+export const encrypt = ({ data, key, salt }) => {
   if (key.length !== KEY_BYTES) throw new Error(`expected key length: ${KEY_BYTES} bytes`)
 
   if (salt && salt.length !== SALT_BYTES) {
@@ -182,7 +186,7 @@ const unserializeEncrypted = (buf:Buffer):Buffer[] => {
   return parts
 }
 
-const decrypt = ({ key, data }) => {
+export const decrypt = ({ key, data }) => {
   const [ciphertext, salt, tag, iv] = unserializeEncrypted(data)
   const decipher = crypto.createDecipheriv(ENC_ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
@@ -192,14 +196,14 @@ const decrypt = ({ key, data }) => {
   ])
 }
 
-const rawSign = (key, data):string => {
+export const signWithPemEncodedKey = (key, data):string => {
   return crypto
     .createSign(SIGN_WITH_HASH)
     .update(toBuffer(data))
     .sign(key, 'hex')
 }
 
-const rawVerify = (key, data, sig):boolean => {
+export const verifyWithPemEncodedKey = (key, data, sig):boolean => {
   if (typeof sig === 'string') {
     sig = new Buffer(sig, 'hex')
   }
@@ -210,6 +214,27 @@ const rawVerify = (key, data, sig):boolean => {
     .verify(key, sig)
 }
 
+export const verify = async (key, data, sig): Promise<boolean> => {
+  if (!(key instanceof ECKey)) key = new ECKey(key)
+
+  return await key.promiseVerify(data, sig)
+}
+
+type ParsedSig = {
+  pubKey: ECKey
+  sig: string
+}
+
+export const parseSig = (encodedSig: string): ParsedSig => {
+  const { pubKey, sig } = protocol.utils.parseSig(encodedSig)
+  return { sig, pubKey: new ECKey(pubKey) }
+}
+
+export const verifyEncodedSig = async (data:string|Buffer, encodedSig:string): Promise<boolean> => {
+  const { pubKey, sig } = parseSig(encodedSig)
+  return await verify(pubKey, data, sig)
+}
+
 // function keyToSigner ({ curve, pub, encoded }) {
 //   const { priv } = encoded.pem
 //   return {
@@ -217,16 +242,16 @@ const rawVerify = (key, data, sig):boolean => {
 //       curve,
 //       pub: new Buffer(pub, 'hex')
 //     },
-//     sign: wrap(data => rawSign(priv, data))
+//     sign: wrap(data => signWithPemEncodedKey(priv, data))
 //   }
 // }
 
-const getSigningKey = (keys):ECKey => {
+export const getSigningKey = (keys):ECKey => {
   const key = keys.find(key => key.type === 'ec' && key.purpose === 'sign')
   return new ECKey(key)
 }
 
-const getChainKey = (keys, props={}) => {
+export const getChainKey = (keys, props={}) => {
   return keys.find(key => {
     if (key.purpose !== 'messaging' || !key.networkName) return
 
@@ -238,7 +263,7 @@ const getChainKey = (keys, props={}) => {
   })
 }
 
-const sign = loudAsync(async ({ key, object }) => {
+export const sign = loudAsync(async ({ key, object }) => {
   const author = key instanceof ECKey ? key : new ECKey(key)
   /* { object, merkleRoot } */
 
@@ -248,7 +273,7 @@ const sign = loudAsync(async ({ key, object }) => {
   })
 })
 
-const extractSigPubKey = (object) => {
+export const extractSigPubKey = (object) => {
   const pubKey = utils.extractSigPubKey(omitVirtual(object))
   if (pubKey) {
     return {
@@ -273,24 +298,29 @@ const extractSigPubKey = (object) => {
 //   }
 // }
 
-const exportKeys = (keys) => {
-  return keys.map(exportKey)
+export const exportKeys = keys => keys.map(exportKey)
+
+export const exportKey = key => {
+  if (key.toJSON) key = key.toJSON(true)
+
+  return toEncodedKey(key)
 }
 
-const exportKey = (key) => {
-  key = key.toJSON(true)
+const toEncodedKey = key => {
   if (key.type !== 'ec' || key.curve === 'curve25519') return key
 
-  const encoder = getEncoder(key.curve)
   // pre-encode to avoid wasting time importing in lambda
-  key.encoded = {
-    pem: {
-      priv: encoder.encodePrivate(new Buffer(key.priv, 'hex'), 'raw', 'pem'),
-      pub: encoder.encodePublic(new Buffer(key.pub, 'hex'), 'raw', 'pem')
-    }
-  }
-
+  key.encoded = { pem: encodeToPem(key) }
   return key
+}
+
+export const encodeToPem = (key, encoder?) => {
+  if (!encoder) encoder = getEncoder(key.curve)
+
+  return {
+    priv: key.priv && encoder.encodePrivate(new Buffer(key.priv, 'hex'), 'raw', 'pem'),
+    pub: key.pub && encoder.encodePublic(new Buffer(key.pub, 'hex'), 'raw', 'pem')
+  }
 }
 
 const getEncoder = (curve) => {
@@ -301,23 +331,19 @@ const getEncoder = (curve) => {
   return encoders[curve]
 }
 
-const sha256 = (data:string|Buffer, enc:HexOrBase64='base64') => {
+export const sha256 = (data:string|Buffer, enc:HexOrBase64='base64') => {
   return crypto.createHash('sha256').update(data).digest(enc)
 }
 
-const randomString = (bytes, enc='hex') => {
+export const randomString = (bytes, enc='hex') => {
   return crypto.randomBytes(bytes).toString('hex')
 }
 
-const calcLink = (object) => {
-  return utils.hexLink(omitVirtual(object))
-}
+export const calcLink = object => utils.hexLink(omitVirtual(object))
 
-const getLink = (object) => {
-  return object._link || calcLink(object)
-}
+export const getLink = object => object._link || calcLink(object)
 
-const getLinks = (object) => {
+export const getLinks = object => {
   const link = getLink(object)
   return {
     link,
@@ -326,11 +352,11 @@ const getLinks = (object) => {
   }
 }
 
-const getPermalink = (object) => {
+export const getPermalink = (object) => {
   return object[PERMALINK] || getLink(object)
 }
 
-const addLinks = (object) => {
+export const addLinks = (object) => {
   const links = getLinks(object)
   setVirtual(object, {
     _link: links.link,
@@ -340,12 +366,12 @@ const addLinks = (object) => {
   return links
 }
 
-const withLinks = (object) => {
+export const withLinks = (object) => {
   addLinks(object)
   return object
 }
 
-const getIdentitySpecs = ({ networks }) => {
+export const getIdentitySpecs = ({ networks }) => {
   const nets = {}
   for (let flavor in networks) {
     if (flavor === 'corda') continue
@@ -364,7 +390,7 @@ const getIdentitySpecs = ({ networks }) => {
 }
 
 const _genIdentity = promisify(utils.newIdentity)
-const genIdentity = async (opts) => {
+export const genIdentity = async (opts) => {
   const { link, identity, keys } = await _genIdentity(opts)
   setVirtual(identity, {
     _link: link,
@@ -378,29 +404,4 @@ const genIdentity = async (opts) => {
     identity: IIdentity,
     keys: IPrivKey[]
   }
-}
-
-export {
-  extractSigPubKey,
-  sign,
-  getSigningKey,
-  getChainKey,
-  encrypt,
-  decrypt,
-  // putEncryptedJSON,
-  // getEncryptedObject,
-  // getIdentityKeys,
-  exportKeys,
-  sha256,
-  getLink,
-  getPermalink,
-  getLinks,
-  addLinks,
-  withLinks,
-  // toECKeyObj: utils.toECKeyObj,
-  randomString,
-  getIdentitySpecs,
-  rawSign,
-  rawVerify,
-  genIdentity
 }

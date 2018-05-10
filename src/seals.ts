@@ -43,6 +43,7 @@ import {
   Blockchain,
   Objects,
   DB,
+  IBlockchainIdentifier,
 } from './types'
 
 const SealModel = models['tradle.Seal']
@@ -202,7 +203,7 @@ export default class Seals {
   public blockchain: Blockchain
   private identity: Identity
   private objects: Objects
-  private network: any
+  private network: IBlockchainIdentifier
   private db: DB
   private logger:Logger
   private get baseEQ() {

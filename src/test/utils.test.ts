@@ -12,7 +12,7 @@ import KeyValueTable from '../key-value-table'
 import KV from '../kv'
 import Mailer from '../mailer'
 import { getFaviconUrl } from '../in-house-bot/image-utils'
-import { randomString, sha256, rawSign, rawVerify, ECKey } from '../crypto'
+import { randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey, ECKey } from '../crypto'
 import * as utils from '../utils'
 import {
   loudAsync,
@@ -766,9 +766,9 @@ test('errors', t => {
 
 test('sign/verify', loudAsync(async (t) => {
   const key = aliceKeys.find(key => key.type === 'ec')
-  const sig = rawSign(key.encoded.pem.priv, 'a')
-  t.ok(rawVerify(key.encoded.pem.pub, 'a', new Buffer(sig, 'hex')))
-  t.notOk(rawVerify(key.encoded.pem.pub, 'a1', sig))
+  const sig = signWithPemEncodedKey(key.encoded.pem.priv, 'a')
+  t.ok(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a', new Buffer(sig, 'hex')))
+  t.notOk(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a1', sig))
 
   const ecKey = new ECKey(key)
   const sig1 = ecKey.signSync('b')

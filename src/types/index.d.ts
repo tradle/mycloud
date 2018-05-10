@@ -542,6 +542,7 @@ export interface IGraphqlAPI {
 export interface IBlockchainIdentifier {
   flavor: string
   networkName: string
+  confirmations?: number
 }
 
 export type StreamRecordType = 'create'|'update'|'delete'|string
