@@ -30,22 +30,21 @@ import {
   Bucket,
   Logger,
   IIdentity,
-  IPrivKey
+  IPrivKey,
+  IIdentityAndKeys
 } from './types'
 
 const { IDENTITY } = TYPES
 
-interface IInitOpts {
-  force?: boolean
-}
-
 interface IInitWriteOpts extends IInitOpts {
-  pub: IIdentity
+  force?: boolean
   priv: {
     identity: IIdentity
     keys: IPrivKey[]
   }
 }
+
+interface IInitOpts extends Partial<IInitWriteOpts> {}
 
 export default class Init {
   private secrets: Bucket
@@ -102,14 +101,18 @@ export default class Init {
     await this.stackUtils.enableBinaryAPIResponses()
   }
 
-  public initIdentity = async (opts?:IInitOpts) => {
-    const result = await this.genIdentity()
+  public initIdentity = async (opts:IInitOpts={}) => {
+    let { priv, ...rest } = opts
+    if (!priv) {
+      priv = await this.genIdentity()
+    }
+
     await this.write({
-      ...result,
-      ...opts
+      priv,
+      ...rest
     })
 
-    return result
+    return priv
   }
 
   public isInitialized = async () => {
@@ -127,14 +130,12 @@ export default class Init {
     // setVirtual(pub, { _author: pub._permalink })
 
     this.logger.info('created identity', JSON.stringify(pub))
-    return {
-      pub,
-      priv
-    }
+    return priv
   }
 
   public write = async (opts:IInitWriteOpts) => {
-    const { priv, pub, force } = opts
+    const { priv, force } = opts
+    const pub = priv.identity
     if (!force) {
       const existing = await this.secrets.maybeGetJSON(IDENTITY_KEYS_KEY)
       if (existing && !_.isEqual(existing, priv)) {

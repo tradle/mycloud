@@ -35,7 +35,7 @@ const defaultBotInstance = require('../').bot
 const { MESSAGE } = TYPES
 
 const genIdentity = async (bot: Bot) => {
-  const { identity, keys } = (await bot.init.genIdentity()).priv
+  const { identity, keys } = await bot.init.genIdentity()
   return {
     identity: utils.omitVirtual(identity),
     keys,

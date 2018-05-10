@@ -20,6 +20,7 @@ import {
   Logger,
   Bucket,
   IIdentity,
+  IPrivKey,
   ITradleObject,
   IConf,
   IBotConf,
@@ -55,6 +56,8 @@ const baseStylePackObj = {
 
 export type InitOpts = {
   forceRecreateIdentity?: boolean
+  identity?: IIdentity
+  keys?: IPrivKey[]
 }
 
 export type UpdateConfInput = {
@@ -310,10 +313,11 @@ export class Conf {
     let identity:IIdentity
     try {
       const identityInfo = await bot.initInfra({
-        force: opts.forceRecreateIdentity
+        force: opts.forceRecreateIdentity,
+        priv: _.pick(opts, ['identity', 'keys'])
       })
 
-      identity = identityInfo.pub
+      identity = identityInfo.identity
     } catch (err) {
       Errors.ignore(err, Errors.Exists)
       identity = await bot.getMyIdentity()
