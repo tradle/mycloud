@@ -10,6 +10,8 @@ import { pluck, RESOLVED_PROMISE } from '../utils'
 import Errors from '../errors'
 
 const promiseUndefined = Promise.resolve(undefined)
+// when to give up trying to find an object in object storage
+const GIVE_UP_AGE = 60000
 
 export const createLambda = (opts) => {
   const lambda = fromDynamoDB(opts)
@@ -26,7 +28,15 @@ export const processMessages = async (bot: Bot, messages) => {
 
 export const processResources = async (bot: Bot, resources) => {
   bot.logger.debug(`processing ${resources.length} resource changes from stream`)
-  const changes = await Promise.all(resources.map(r => preProcessResourceRecord(bot, r)))
+  const changes = await Promise.map(resources, async (r) => {
+    try {
+      return await preProcessResourceRecord(bot, r)
+    } catch (err) {
+      Errors.ignore(err, Errors.GaveUp)
+    }
+  })
+  .then(results => results.filter(_.identity))
+
   await bot._fireSaveBatchEvent({ changes, async: true, spread: true })
 }
 
@@ -43,11 +53,14 @@ const getBody = async (bot, item) => {
     shouldTryAgain: err => {
       bot.logger.warn(`can't find object with link ${item._link}`)
       bot.logger.silly(`can't find object in object storage`, item)
-      if (Errors.isNotFound(err)) {
-        return age < 60000
+
+      Errors.rethrow(err, 'developer')
+
+      if (age < GIVE_UP_AGE) {
+        throw new Errors.GaveUp(`gave up on looking up object ${item._link}`)
       }
 
-      return false
+      return Errors.isNotFound(err)
     }
   })
 }

@@ -14,6 +14,8 @@ export const Level = {
   RIDICULOUS: 6
 }
 
+const HIGHEST_LEVEL = Level.RIDICULOUS
+
 // const getLevelName = level => {
 //   for (let name in Level) {
 //     if (Level[name] === level) return name
@@ -83,8 +85,8 @@ export default class Logger {
     this.namespace = namespace
     this.context = context
     this.level = level
-    if (level < 0 || level > 5) {
-      throw new Error(`expected level >= 0 && level <=3, got ${level}`)
+    if (level < 0 || level > HIGHEST_LEVEL) {
+      throw new Error(`expected level >= 0 && level <=${HIGHEST_LEVEL}, got ${level}`)
     }
 
     this.writer = writer

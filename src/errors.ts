@@ -169,6 +169,7 @@ const errors = {
   LowFunds: createError('LowFunds'),
   DevStageOnly: createError('DevStageOnly'),
   Unsupported: createError('Unsupported'),
+  GaveUp: createError('GaveUp'),
   export: (err:Error):any => {
     if (err instanceof ExportableError) {
       return (err as ExportableError).toJSON()
