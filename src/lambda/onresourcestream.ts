@@ -43,6 +43,16 @@ export const processResources = async (bot: Bot, resources) => {
 const getBody = async (bot, item) => {
   if (!item._link) return item
 
+  if (item[TYPE] === 'tradle.Message') {
+    return {
+      ...item,
+      object: {
+        ...item.object,
+        ...(await getBody(bot, item.object))
+      }
+    }
+  }
+
   const age = item._time ? Date.now() - item._time : 0
   return await bot.objects.getWithRetry(item._link, {
     logger: bot.logger,
