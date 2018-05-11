@@ -12,6 +12,10 @@ import { Bot, Lambda } from '../types'
 import { topics as EventTopics, toBatchEvent } from '../events'
 import { EventSource } from '../lambda'
 
+const COUNTERPARTY_CONCURRENCY = { concurrency: 5 }
+
+const batchedPromiseMap = (arr, fn) => Promise.map(arr, fn, COUNTERPARTY_CONCURRENCY)
+
 export const createMiddleware = (bot:Bot, { async }) => {
   return onMessagesSaved(bot, { async })
 }
@@ -42,12 +46,12 @@ export const onMessagesSaved = (bot:Bot, { async }: { async?: boolean }={}) => {
 
     const byRecipient = _.groupBy(events, event => event.user.id)
     if (async) {
-      return await Promise.map(_.values(byRecipient), async (batch) => {
+      return await batchedPromiseMap(_.values(byRecipient), async (batch) => {
         await bot._fireMessageBatchEvent({ batch, async, spread: true })
       })
     }
 
-    return await Promise.map(_.values(byRecipient), async (batch) => {
+    return await batchedPromiseMap(_.values(byRecipient), async (batch) => {
       return await Promise.mapSeries(batch, data => bot._fireMessageEvent({ data, async }))
     })
   }
@@ -55,25 +59,23 @@ export const onMessagesSaved = (bot:Bot, { async }: { async?: boolean }={}) => {
   const fireInbound = async (messages, async) => {
     if (!messages.length) return
 
-    const authors = uniqueStrict(messages.map(({ _author }) => _author))
-    if (authors.length > 1) {
-      throw new Error('only messages from a single author allowed')
-    }
-
-    const userId = authors[0]
-    await lock(userId)
-    try {
-      const user = await bot.users.createIfNotExists({ id: userId })
-      const batch = messages.map(message => toBotMessageEvent({ bot, user, message }))
-      // logger.debug(`feeding ${messages.length} messages to business logic`)
-      if (async) {
-        await bot._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
-      } else {
-        await Promise.mapSeries(batch, data => bot._fireMessageEvent({ data, async, inbound: true }))
+    const bySender = _.groupBy(messages, '_author')
+    return await batchedPromiseMap(_.values(bySender), async (batch) => {
+      const userId = batch[0]._author
+      await lock(userId)
+      try {
+        const user = await bot.users.createIfNotExists({ id: userId })
+        const batch = messages.map(message => toBotMessageEvent({ bot, user, message }))
+        // logger.debug(`feeding ${messages.length} messages to business logic`)
+        if (async) {
+          await bot._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
+        } else {
+          await Promise.mapSeries(batch, data => bot._fireMessageEvent({ data, async, inbound: true }))
+        }
+      } finally {
+        await unlock(userId)
       }
-    } finally {
-      await unlock(userId)
-    }
+    })
   }
 
   return async (ctx, next) => {
