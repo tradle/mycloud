@@ -33,14 +33,21 @@ export const processResources = async (bot: Bot, resources) => {
 const getBody = async (bot, item) => {
   if (!item._link) return item
 
-  return bot.objects.getWithRetry(item._link, {
+  const age = item._time ? Date.now() - item._time : 0
+  return await bot.objects.getWithRetry(item._link, {
+    logger: bot.logger,
     maxAttempts: 10,
     maxDelay: 2000,
     timeout: 20000,
     initialDelay: 500,
     shouldTryAgain: err => {
       bot.logger.warn(`can't find object with link ${item._link}`)
-      return Errors.isNotFound(err)
+      bot.logger.silly(`can't find object in object storage`, item)
+      if (Errors.isNotFound(err)) {
+        return age < 60000
+      }
+
+      return false
     }
   })
 }
