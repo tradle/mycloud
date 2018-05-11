@@ -169,17 +169,18 @@ const sortEventsByTimeAsc = (a, b) => {
 }
 
 const withIds = (withoutIds:EventPartial[]):IStreamEventDBRecord[] => {
-  return withoutIds
+  return _.chain(withoutIds)
     .slice()
     .sort(sortEventsByTimeAsc)
     .map(event => ({
       ...event,
       id: getEventId(event)
-    })) as IStreamEventDBRecord[]
+    }))
+    .uniqBy('id')
+    .value() as IStreamEventDBRecord[]
 }
 
 const getEventId = (event: EventPartial) => {
-  if (!event.time) debugger
   return [
     event.time,
     event.topic,
