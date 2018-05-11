@@ -78,6 +78,8 @@ export const clearUsers = async ({ bot }: {
     cleaned: []
   }
 
+  const { deleted, cleaned } = result
+
   let users
   do {
     users = await bot.users.list({
@@ -86,12 +88,12 @@ export const clearUsers = async ({ bot }: {
 
     await Promise.map(users, async (user) => {
       if (!user.friend) {
-        result.deleted.push(user.id)
+        deleted.push(user.id)
         await bot.users.del(user.id)
         return
       }
 
-      result.cleaned.push(user.id)
+      cleaned.push(user.id)
       user = pick(user, ['id', 'friend', 'identity'])
       await bot.users.save(user)
       return
