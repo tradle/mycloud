@@ -934,6 +934,7 @@ functions:
 
   cli:
     handler: lib/in-house-bot/lambda/cli.handler
+    timeout: 300
 
   qr:
     handler: lib/in-house-bot/lambda/http/qr.handler
