@@ -14,7 +14,7 @@ export const command:ICommand = {
     bot.ensureDevStage()
 
     const conf = createConf({ bot })
-    const yml = require('../../cli/serverless-yml')
+    const yml = bot.stackUtils.serverlessYmlWithResolvedMappings
     await conf.initInfra(yml.resources.Resources.Initialize.Properties, { forceRecreateIdentity: true })
     await bot.forceReinitializeContainers()
   }

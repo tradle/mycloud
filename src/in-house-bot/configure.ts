@@ -298,6 +298,7 @@ export class Conf {
   public initInfra = async (deploymentConf: IMyDeploymentConf, opts: InitOpts = {}) => {
     const { bot, logger } = this
 
+    let { forceRecreateIdentity, identity, keys } = opts
     this.logger.info(`initializing provider`, deploymentConf)
 
     const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
@@ -310,11 +311,10 @@ export class Conf {
       org: orgTemplate
     }
 
-    let identity:IIdentity
     try {
       const identityInfo = await bot.initInfra({
-        force: opts.forceRecreateIdentity,
-        priv: opts.identity && opts.keys && _.pick(opts, ['identity', 'keys'])
+        force: forceRecreateIdentity,
+        priv: identity && keys && { identity, keys }
       })
 
       identity = identityInfo.identity
@@ -323,12 +323,14 @@ export class Conf {
       identity = await bot.getMyIdentity()
     }
 
-    try {
-      // if org exists, we have less to do
-      await this.org.get({ force: true })
-      return await this.recalcPublicInfo({ identity })
-    } catch (err) {
-      Errors.ignoreNotFound(err)
+    if (!forceRecreateIdentity) {
+      try {
+        // if org exists, we have less to do
+        await this.org.get({ force: true })
+        return await this.recalcPublicInfo({ identity })
+      } catch (err) {
+        Errors.ignoreNotFound(err)
+      }
     }
 
     const deployment = new Deployment({
@@ -353,6 +355,7 @@ export class Conf {
     const promiseWarmup = bot.isTesting
       ? Promise.resolve()
       : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
+
     // await bot.forceReinitializeContainers()
     const { referrerUrl, deploymentUUID } = deploymentConf
     if (!(referrerUrl && deploymentUUID)) {

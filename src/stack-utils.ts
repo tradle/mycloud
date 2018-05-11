@@ -70,6 +70,36 @@ export default class StackUtils {
     this.apiId = apiId
   }
 
+  public static resolveMappings = (serverlessYml) => {
+    serverlessYml = _.cloneDeep(serverlessYml)
+    const { resources } = serverlessYml
+    const { Mappings } = resources
+    const updates = []
+    utils.traverse(resources).forEach(function (value) {
+      if (this.key === 'Fn::FindInMap') {
+        updates.push({
+          path: this.path.slice(0, -1),
+          value: _.get(Mappings, value)
+        })
+      }
+    })
+
+    updates.forEach(({ path, value }) => _.set(resources, path, value))
+
+    console.log(resources.Resources.Initialize.Properties)
+    return serverlessYml
+  }
+
+  public resolveMappings = StackUtils.resolveMappings
+
+  public static get serverlessYml() { return require('./cli/serverless-yml') }
+  public static get serverlessYmlWithResolvedMappings() {
+    return StackUtils.resolveMappings(StackUtils.serverlessYml)
+  }
+
+  public get serverlessYml() { return StackUtils.serverlessYml }
+  public get serverlessYmlWithResolvedMappings() { return StackUtils.serverlessYmlWithResolvedMappings }
+
   public static parseStackName = (name: string) => {
     const [service, stage] = name.match(/^(.*?)-([^-]+)$/).slice(1)
     return { service, stage }
@@ -365,7 +395,7 @@ export default class StackUtils {
     swagger['x-amazon-apigateway-binary-media-types'] = ['*/*']
     for (let path in swagger.paths) {
       let pathConf = swagger.paths[path]
-      // TODO: check methods against serveress.yml
+      // TODO: check methods against serverless.yml
       let methods = METHODS
       let defaultOptionsBlock = genOptionsBlock({ methods })
       if (pathConf.options) {
