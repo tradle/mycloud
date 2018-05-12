@@ -207,7 +207,8 @@ export {
  encodeDataURI,
  decodeDataURI,
  noop,
- stableStringify
+ stableStringify,
+ safeStringify
 }
 
 export const pzlib = promisify(zlib)
@@ -316,12 +317,15 @@ export function uppercaseFirst (str) {
   return str[0].toUpperCase() + str.slice(1)
 }
 
-export const logifyFunction = ({ fn, name, logger, level='silly', logInputOutput=false }: {
+const getErrorIdentifier = (err: any) => String(err.code || err.type || err.name)
+
+export const logifyFunction = ({ fn, name, logger, level='silly', logInputOutput=false, printError=getErrorIdentifier }: {
   fn: Function
   name: string|Function
   logger: Logger
   level?: string
   logInputOutput?: boolean
+  printError?: (err: any, args: any[]) => string
 }) => {
   return async function (...args) {
     const taskName = typeof name === 'function'
@@ -348,7 +352,7 @@ export const logifyFunction = ({ fn, name, logger, level='silly', logInputOutput
       }
 
       if (err) {
-        parts.push(err.code || err.type || err.name)
+        parts.push(printError(err, args))
       }
 
       logger[level](parts.join(' '), {

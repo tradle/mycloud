@@ -5,7 +5,7 @@ import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Env, Logger, Objects, Messages, ITradleObject, ModelStore, AwsApis } from './types'
-import { extendTradleObject, pluck, ensureTimestamped, logify, logifyFunction } from './utils'
+import { extendTradleObject, pluck, ensureTimestamped, logify, logifyFunction, safeStringify } from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
 import Errors from './errors'
 
@@ -235,14 +235,16 @@ const logifyDB = (db: DB, logger: Logger) => {
     logger,
     fn: db.find.bind(db),
     level: 'silly',
-    name: opts => `DB.find ${opts.filter.EQ[TYPE]}`
+    name: opts => `DB.find ${opts.filter.EQ[TYPE]}`,
+    printError: verbosePrint
   })
 
   db.batchPut = logifyFunction({
     logger,
     fn: db.batchPut.bind(db),
     level: 'silly',
-    name: 'DB.batchPut'
+    name: 'DB.batchPut',
+    printError: verbosePrint
   })
 
   ;['get', 'put', 'del', 'update', 'merge'].forEach(method => {
@@ -250,9 +252,12 @@ const logifyDB = (db: DB, logger: Logger) => {
       logger,
       fn: db[method].bind(db),
       level: 'silly',
-      name: opts => opts[TYPE] ? `DB.${method} ${opts[TYPE]}` : method
+      name: opts => opts[TYPE] ? `DB.${method} ${opts[TYPE]}` : method,
+      printError: verbosePrint
     })
   })
 
   return db
 }
+
+const verbosePrint = (error, args) => safeStringify({ error, args })
