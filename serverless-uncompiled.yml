@@ -1037,6 +1037,53 @@ resources:
           - "*/*"
         # BinaryMediaTypes: ${{self:custom.vars.binaryMediaTypes, self:custom.defaults.binaryMediaTypes}}
 
+    # AdminsGroup:
+    #   Type: AWS::IAM::Group
+    #   Properties:
+    #     GroupName: ${{self:custom.regionalPrefix}}admins
+    #     Path: '/tradle/${{self:provider.region}}/${{self:provider.stage}}'
+
+    # RestrictedBucketPolicy:
+    #   Type: AWS::IAM::Policy
+    #   Properties:
+    #     PolicyName: ${{self:custom.regionalPrefix}}RestrictedBucketPolicy
+    #     Groups:
+    #       - Ref: AdminsGroup
+    #     Roles:
+    #       - Ref: IamRoleLambdaExecution
+    #       - Fn::Join:
+    #         - ""
+    #         - - "arn:aws:sts::${AWS::AccountId}:assumed-role/"
+    #           - Ref: IamRoleLambdaExecution
+    #           - "/${{self:custom.prefix}}*"
+    #     PolicyDocument:
+    #       Statement:
+    #         - Sid: 'grant admins access to private buckets'
+    #           Effect: Allow
+    #           Action:
+    #             - s3:ListBucket
+    #             - s3:GetObject
+    #             - s3:HeadObject
+    #           Resource:
+    #             - Fn::Join:
+    #               - ""
+    #               - - "arn:aws:s3:::"
+    #                 - Ref: SecretsBucket
+    #             - Fn::Join:
+    #               - ""
+    #               - - "arn:aws:s3:::"
+    #                 - Ref: SecretsBucket
+    #                 - "/*"
+    #             - Fn::Join:
+    #               - ""
+    #               - - "arn:aws:s3:::"
+    #                 - Ref: PrivateConfBucket
+    #             - Fn::Join:
+    #               - ""
+    #               - - "arn:aws:s3:::"
+    #                 - Ref: PrivateConfBucket
+    #                 - "/*"
+
   #   cors:
   #     origin: '*'
   #     headers:
@@ -1083,18 +1130,45 @@ resources:
     # stores message payloads (message minus envelope)
     # may be going away soon
     ObjectsBucket:
-      Type: "AWS::S3::Bucket"
+      Type: AWS::S3::Bucket
       Description: content-addressed storage for all objects
       DeletionPolicy: Retain
 
     # stores identity keys
     SecretsBucket:
-      Type: "AWS::S3::Bucket"
+      Type: AWS::S3::Bucket
       Description: stuff
       DeletionPolicy: Retain
       Properties:
         VersioningConfiguration:
           Status: Enabled
+        # PolicyDocument:
+        #   Id: ${{self:custom.regionalPrefix}}SecretsBucketPolicy
+        #   Version: '2012-10-17'
+        #   Statement:
+        #     - Sid: 'deny access to bucket'
+        #       Effect: Deny
+        #       Resource: '*'
+        #       Action:
+        #         - 's3:*'
+        #       Principal:
+        #         AWS: "*"
+
+              # NotPrincipal:
+              #   AWS:
+              #     - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+              #     - Fn::GetAtt:
+              #       - IamRoleLambdaExecution
+              #       - Arn
+              #     - Fn::Join:
+              #       - ''
+              #       - - "arn:aws:iam::${AWS::AccountId}:assumed-role/"
+              #         - Ref: IamRoleLambdaExecution
+              #         - "/*"
+
+        # Bucket:
+        #   Ref: SecretsBucket
+
         # Uncomment when the CloudFormation issues with BucketEncryption are resolved
         # BucketEncryption:
         #   ServerSideEncryptionConfiguration:
@@ -1102,31 +1176,16 @@ resources:
         #         SSEAlgorithm: AES256
 
     PrivateConfBucket:
-      Type: "AWS::S3::Bucket"
+      Type: AWS::S3::Bucket
       Description: private configuration files
       DeletionPolicy: Retain
       Properties:
         VersioningConfiguration:
           Status: Enabled
 
-    # stores the provider's public config
-    # e.g. styles, currency, etc.
-    # PublicConfBucket:
-    #   Type: "AWS::S3::Bucket"
-    #   Description: public configuration, e.g. identity, styles, logo, etc.
-    #   DeletionPolicy: Retain
-    #   Properties:
-    #     VersioningConfiguration:
-    #       Status: Enabled
-
-    # ContentAddressedBucket:
-    #   Type: "AWS::S3::Bucket"
-    #   Description: content-addressed storage
-    #   DeletionPolicy: Retain
-
     # stores media uploaded by users
     FileUploadBucket:
-      Type: "AWS::S3::Bucket"
+      Type: AWS::S3::Bucket
       Description: file upload destination for all users
       DeletionPolicy: Retain
       Properties:
@@ -1217,7 +1276,7 @@ resources:
               Action:
                 - sts:AssumeRole
         Policies:
-          - PolicyName: IotClientRole
+          - PolicyName: ${{self:custom.regionalPrefix}}IotClientRole
             PolicyDocument:
               Version: "2012-10-17"
               Statement:
@@ -1296,7 +1355,7 @@ resources:
                 - sts:AssumeRole
         Path: "/"
         Policies:
-          - PolicyName: AutoScalingDynamoDBPolicy
+          - PolicyName: ${{self:custom.regionalPrefix}}AutoScalingDynamoDBPolicy
             PolicyDocument:
               Version: '2012-10-17'
               Statement:
@@ -1318,7 +1377,7 @@ resources:
                   Resource: "*"
 
     Initialize:
-      Type: "Custom::InitializeDeployment"
+      Type: Custom::InitializeDeployment
       DependsOn: ApiGatewayApiKey1
       Properties:
         ServiceToken:
