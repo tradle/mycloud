@@ -98,6 +98,7 @@ custom:
 
   # prefixes
   prefix: ${{self:service}}-${{self:custom.stage}}-
+  regionalPrefix: ${{self:service}}-${{self:custom.stage}}-${{self:custom.region}}-
   prefixRole: ${{self:custom.prefix}}
   # maybe during info/auth, the server can send back the prefix
   # prefixIOTTopic: ${{self:service}}-
@@ -279,7 +280,7 @@ custom:
   logRetentionInDays: 7
 
   issue2233WorkaroundKey: issue2233WorkaroundKey-${{self:service}}-${{self:provider.stage}}
-  defaultKMSKeyId: ${{self:custom.prefix}}default-key
+  defaultKMSKeyId: ${{self:custom.regionalPrefix}}default-key
 
 #   secrets: ${{file(secrets.${opt:stage, self:provider.stage}}.yml)}
   # dynamodb:
@@ -524,12 +525,12 @@ provider:
         - ses:GetIdentityVerificationAttributes
       Resource: "*"
 
-    - Effect: Allow
-      Action:
-        - 'ssm:GetParameter*'
-        - 'ssm:PutParameter*'
-      Resource:
-        - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/tradle/${{self:custom.prefix}}*'
+    # - Effect: Allow
+    #   Action:
+    #     - 'ssm:GetParameter*'
+    #     - 'ssm:PutParameter*'
+    #   Resource:
+    #     - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/tradle/${{self:custom.prefix}}*'
 
 functions:
   # warm up other functions
@@ -1022,6 +1023,7 @@ resources:
         service: ${{self:service}}
         stage: ${{self:custom.stage}}
         stackName: ${{self:custom.stackName}}
+        # encryptionKey:
         # which MyCloud generated the template
         referrerUrl: ''
         deploymentUUID: ''
@@ -1331,6 +1333,8 @@ resources:
           Fn::FindInMap: ["deployment", "init", "deploymentUUID"]
         referrerUrl:
           Fn::FindInMap: ["deployment", "init", "referrerUrl"]
+        # encryptionKey:
+        #   Fn::FindInMap: ["deployment", "init", "encryptionKey"]
 
           # <<: *providerConf
 
@@ -1338,24 +1342,74 @@ resources:
       Type: AWS::KMS::Key
       Properties:
         Description: 'Encryption key for secrets in SSM'
-        # Enabled: True
-        # EnableKeyRotation: False
+        Enabled: True
+        EnableKeyRotation: False
+        Tags:
+          - Key: tradle
+            Value: ${{self:custom.stackName}}-${{self:provider.region}}
+
         KeyPolicy:
           Version: '2012-10-17'
           Id: ${{self:custom.defaultKMSKeyId}}-policy
           Statement:
-            - Sid: 'allowUseKMSKey'
+            - Sid: 'Allow access for Key Administrators'
               Effect: Allow
               Principal:
                 AWS:
-                  # circular dep?
+                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+              Action:
+                - 'kms:Create*'
+                - 'kms:Describe*'
+                - 'kms:Enable*'
+                - 'kms:List*'
+                - 'kms:Put*'
+                - 'kms:Update*'
+                - 'kms:Revoke*'
+                - 'kms:Disable*'
+                - 'kms:Get*'
+                - 'kms:Delete*'
+                - 'kms:TagResource'
+                - 'kms:UntagResource'
+                - 'kms:ScheduleKeyDeletion'
+                - 'kms:CancelKeyDeletion'
+              Resource: '*'
+
+            - Sid: 'Allow attachment of persistent resources'
+              Effect: Allow
+              Principal:
+                AWS:
+                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+              Action:
+                - 'kms:CreateGrant'
+                - 'kms:ListGrants'
+                - 'kms:RevokeGrant'
+
+              # Condition:
+              #   ForAllValues:StringEquals:
+              #     kms:GrantOperations:
+              #       - 'Decrypt'
+
+              # https://docs.aws.amazon.com/kms/latest/developerguide/policy-conditions.html#conditions-kms-grant-is-for-aws-resource
+              Condition:
+                Bool:
+                  "kms:GrantIsForAWSResource": true
+
+              Resource: '*'
+            - Sid: 'Allow use of the key'
+              Effect: Allow
+              Principal:
+                AWS:
                   - Fn::GetAtt:
                     - IamRoleLambdaExecution
                     - Arn
-                Resource: '*'
               Action:
-                - 'kms:Encrypt'
                 - 'kms:Decrypt'
-                - 'kms:ReEncrypt*'
-                - 'kms:GenerateDataKey*'
-                - 'kms:DescribeKey'
+                - 'kms:GenerateDataKey'
+              Resource: '*'
+
+      # DefaultEncryptionKeyAlias:
+      #   Type: AWS::KMS::Alias
+      #   Properties:
+      #     AliasName: alias/${{self:custom.defaultKMSKeyId}}
+      #     TargetKeyId:
+      #       Ref: DefaultEncryptionKey
