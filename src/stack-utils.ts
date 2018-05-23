@@ -467,6 +467,7 @@ export default class StackUtils {
   public static changeRegion = ({ template, from, to }) => {
     const str = JSON.stringify(template)
       .replace(new RegExp(from, 'ig'), to)
+      .replace(new RegExp(normalizePathPart(from), 'g'), normalizePathPart(to))
 
     return JSON.parse(str)
   }
@@ -506,3 +507,11 @@ export const create = opts => new StackUtils(opts)
 const getDateUpdatedEnvironmentVariables = () => ({
   DATE_UPDATED: String(Date.now())
 })
+
+// copied from serverless/lib/plugins/aws/lib/naming.js
+const normalizePathPart = path => _.upperFirst(
+  _.capitalize(path)
+    .replace(/-/g, 'Dash')
+    .replace(/\{(.*)\}/g, '$1Var')
+    .replace(/[^0-9A-Za-z]/g, '')
+)
