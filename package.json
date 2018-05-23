@@ -197,6 +197,7 @@
     "nkey-ecdsa": "^1.1.0",
     "nkey-ethereum": "github:tradle/nkey-ethereum",
     "node-fetch": "^1.7.3",
+    "nodecredstash": "github:tradle/credstash",
     "nunjucks": "^3.1.2",
     "pify": "^2.3.0",
     "promise-locker": "^1.0.0",

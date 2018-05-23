@@ -204,11 +204,11 @@ export = function createDB ({
     result.items = msgs
   }
 
-  const addSegmentAnnotation = (method, type) => {
-    require('aws-xray-sdk-core').captureFunc('dbputs', subsegment => {
-      subsegment.annotations['db:puts']
-    })
-  }
+  // const addSegmentAnnotation = (method, type) => {
+  //   require('aws-xray-sdk-core').captureFunc('dbputs', subsegment => {
+  //     subsegment.annotations['db:puts']
+  //   })
+  // }
 
   const onFindPre = async (opts) => {
     fixMessageFilter(opts)
@@ -236,7 +236,7 @@ const logifyDB = (db: DB, logger: Logger) => {
     fn: db.find.bind(db),
     level: 'silly',
     name: opts => `DB.find ${opts.filter.EQ[TYPE]}`,
-    printError: verbosePrint
+    // printError: verbosePrint
   })
 
   db.batchPut = logifyFunction({
@@ -244,7 +244,7 @@ const logifyDB = (db: DB, logger: Logger) => {
     fn: db.batchPut.bind(db),
     level: 'silly',
     name: 'DB.batchPut',
-    printError: verbosePrint
+    // printError: verbosePrint
   })
 
   ;['get', 'put', 'del', 'update', 'merge'].forEach(method => {
@@ -253,7 +253,7 @@ const logifyDB = (db: DB, logger: Logger) => {
       fn: db[method].bind(db),
       level: 'silly',
       name: opts => opts[TYPE] ? `DB.${method} ${opts[TYPE]}` : method,
-      printError: verbosePrint
+      // printError: verbosePrint
     })
   })
 

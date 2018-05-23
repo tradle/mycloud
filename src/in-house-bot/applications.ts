@@ -129,17 +129,25 @@ export class Applications {
     return await this.productsAPI.haveAllSubmittedFormsBeenVerified({ application })
   }
 
+  public getLatestChecks = async ({ application }: {
+    application: IPBApp
+  }) => {
+    const { checks=[] } = application
+    if (!checks.length) return []
+
+    // get latest version of those checks
+    return await Promise.all(checks
+      .map(stub => ({ type: stub[TYPE], permalink: stub[PERMALINK] }))
+      .map(stub => this.bot.getResource(stub)))
+  }
+
   public haveAllChecksPassed = async ({ application }: {
     application: IPBApp
   }) => {
     const { checks=[] } = application
     if (!checks.length) return true
 
-    // get latest version of those checks
-    const checkResources = await Promise.all(checks
-      .map(appStub => parseStub(appStub.submission))
-      .map(stub => this.bot.getResource(stub)))
-
+    const checkResources = await this.getLatestChecks({ application })
     const byAPI = groupBy(checkResources, 'provider')
     return Object.keys(byAPI).every(provider => {
       const last = byAPI[provider].pop()

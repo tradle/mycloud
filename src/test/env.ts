@@ -64,6 +64,21 @@ export const install = (target=process.env):void => {
       MessageId: `test msg id: ${crypto.randomBytes(12).toString('hex')}`
     })
   })
+
+  AWS.mock('KMS', 'generateDataKey', (params, callback) => {
+    const Plaintext = crypto.randomBytes(params.NumberOfBytes)
+    const CiphertextBlob = Plaintext
+    callback(null, {
+      Plaintext,
+      CiphertextBlob
+    })
+  })
+
+  AWS.mock('KMS', 'decrypt', (params, callback) => {
+    callback(null, {
+      Plaintext: params.CiphertextBlob
+    })
+  })
 }
 
 export const get = () => ({ ...props })

@@ -56,9 +56,9 @@ export default class StackUtils {
   private env: Env
   private logger: Logger
   private lambdaUtils: LambdaUtils
-  private stack: StackInfo
   private apiId: string
   private bucket: Bucket
+  public thisStack: StackInfo
 
   constructor({ aws, env, logger, lambdaUtils, bucket, stackArn, apiId }: StackUtilsOpts) {
     this.aws = aws
@@ -66,9 +66,12 @@ export default class StackUtils {
     this.logger = logger
     this.lambdaUtils = lambdaUtils
     this.bucket = bucket
-    this.stack = StackUtils.parseStackArn(stackArn)
+    this.thisStack = StackUtils.parseStackArn(stackArn)
     this.apiId = apiId
   }
+
+  public get thisStackId () { return this.thisStack.arn }
+  public get thisStackName () { return this.thisStack.name }
 
   public static resolveMappings = (serverlessYml) => {
     serverlessYml = _.cloneDeep(serverlessYml)
@@ -121,10 +124,6 @@ export default class StackUtils {
   public parseStackArn = StackUtils.parseStackArn
   public parseStackName = StackUtils.parseStackName
 
-  public getThisStackId = () => {
-    return this.stack.arn
-  }
-
   public listStacks = async ():Promise<AWS.CloudFormation.StackSummaries> => {
     let stacks = []
     const opts:AWS.CloudFormation.ListStacksInput = {}
@@ -147,7 +146,7 @@ export default class StackUtils {
 
     return utils.getLaunchStackUrl({
       region: this.env.AWS_REGION,
-      stackName: this.stack.name,
+      stackName: this.thisStackName,
       templateURL,
       ...rest
     })
@@ -155,8 +154,8 @@ export default class StackUtils {
 
   public getUpdateStackUrl = async ({
     region=this.env.AWS_REGION,
-    stackName=this.stack.name,
-    stackId=this.stack.arn,
+    stackName=this.thisStackName,
+    stackId=this.thisStackId,
     templateURL
   }: IUpdateStackUrlOpts) => {
     if (!stackId) {
@@ -186,7 +185,7 @@ export default class StackUtils {
 
   public genStackName = StackUtils.genStackName
 
-  public getStackResources = async (StackName: string=this.stack.name):Promise<AWS.CloudFormation.StackResourceSummaries> => {
+  public getStackResources = async (StackName: string=this.thisStack.name):Promise<AWS.CloudFormation.StackResourceSummaries> => {
     let resources = []
     const opts:AWS.CloudFormation.ListStackResourcesInput = { StackName }
     while (true) {
@@ -293,7 +292,7 @@ export default class StackUtils {
     })
   }
 
-  public listFunctions = async (StackName:string=this.stack.name):Promise<Lambda.Types.FunctionConfiguration[]> => {
+  public listFunctions = async (StackName:string=this.thisStack.name):Promise<Lambda.Types.FunctionConfiguration[]> => {
     let all = []
     let Marker
     let opts:Lambda.Types.ListFunctionsRequest = {}
@@ -343,7 +342,7 @@ export default class StackUtils {
     }
 
     const { TemplateBody } = await this.aws.cloudformation
-      .getTemplate({ StackName: this.stack.name })
+      .getTemplate({ StackName: this.thisStack.name })
       .promise()
 
     return JSON.parse(TemplateBody)

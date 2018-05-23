@@ -41,7 +41,7 @@ services:
       - "$TMPDIR/${TRADLE_LOCALSTACK_TMP_SUBDIR}:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
   tradle_web:
-    image: tradle/web-app:cloud
+    image: tradle/web-app:cloud-dev
     restart: always
     container_name: tradle-web-app
     restart: always

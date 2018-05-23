@@ -3,6 +3,7 @@ import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
 import compose from 'koa-compose'
+import createCredstash from 'nodecredstash'
 import { TYPE, SIG } from '@tradle/constants'
 import { DB, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
@@ -82,6 +83,7 @@ import { Logger } from './logger'
 import Env from './env'
 import Events from './events'
 import Identity from './identity'
+import Secrets from './secrets'
 import Objects from './objects'
 import Messages from './messages'
 import Identities from './identities'
@@ -184,6 +186,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public events: Events
   public identities: Identities
   public identity: Identity
+  public secrets: Secrets
   public storage: Storage
   public messages: Messages
   public db: DB
@@ -219,9 +222,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get resourcePrefix() { return this.env.SERVERLESS_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
-  public get secrets(): Bucket {
-    return this.buckets.Secrets
-  }
 
   public get apiBaseUrl () {
     return this.serviceMap.RestApi.ApiGateway.url
@@ -279,12 +279,16 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public onwroteseal = handler => this.middleware.hookSimple(EventTopics.seal.wrote.sync, handler)
 
   public lambdas: LambdaMap
+  public get defaultEncryptionKey():string {
+    return this.serviceMap.Key.DefaultEncryption
+  }
 
   // PRIVATE
   private outboundMessageLocker: Locker
   private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
   private _resourceModuleStore: IResourcePersister
+
   constructor(opts: IBotOpts) {
     super()
 
@@ -481,13 +485,28 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       s3Utils: bot.s3Utils
     })
 
+    const stackName = bot.stackUtils.thisStackName
+    // bot.identityKeysKMSKeyId = `alias/${stackName}-ssm-key`
+
+    const secrets = bot.secrets = new Secrets({
+      credstash: createCredstash({
+        algorithm: 'aes-256-gcm',
+        kmsKey: bot.defaultEncryptionKey,
+        store: createCredstash.store.s3({
+          client: aws.s3,
+          bucket: buckets.Secrets.name,
+          folder: constants.SECRETS_BUCKET.identityFolder
+        })
+      })
+    })
+
     const identity = bot.identity = new Identity({
-      logger: bot.logger.sub('identity'),
+      logger: logger.sub('identity'),
       modelStore,
-      network: bot.network,
+      network,
       objects,
-      getIdentityAndKeys: () => bot.secrets.getJSON(constants.IDENTITY_KEYS_KEY),
-      getIdentity: () => bot.buckets.PrivateConf.getJSON(constants.PRIVATE_CONF_BUCKET.identity),
+      getIdentityAndKeys: bot.getMyIdentityAndKeys,
+      getIdentity: bot.getMyIdentity,
     })
 
     const identities = bot.identities = new Identities({
@@ -733,7 +752,25 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public setCustomModels = pack => this.modelStore.setCustomModels(pack)
   public initInfra = (opts?) => this.init.initInfra(opts)
   public updateInfra = (opts?) => this.init.updateInfra(opts)
-  public getMyIdentity = () => this.identity.getPublic()
+  public getMyIdentity = utils.cachifyPromiser(() => {
+    return this.buckets.PrivateConf.getJSON(constants.PRIVATE_CONF_BUCKET.identity)
+  })
+
+  public getMyIdentityAndKeys = utils.cachifyPromiser(async () => {
+    const [identity, keys] = await Promise.all([
+      this.getMyIdentity(),
+      this.secrets.getIdentityKeys()
+    ])
+
+    return {
+      identity,
+      keys: keys.map(stub => crypto.exportKey({
+        ...stub,
+        ...(identity.pubkeys.find(pub => pub.fingerprint === stub.fingerprint))
+      }))
+    }
+  })
+
   public getPermalink = () => this.identity.getPermalink()
 
   public sign = async <T extends ITradleObject>(resource:T, author?):Promise<T> => {

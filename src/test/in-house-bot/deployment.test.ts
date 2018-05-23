@@ -79,7 +79,7 @@ test('deployment by referral', loudAsync(async (t) => {
   let expectedLaunchReport
   let pubConfStub = sandbox.stub(parent.buckets.PrivateConf, 'putJSON').callsFake(async (key, val) => {
     deploymentConf = {
-      stackId: child.stackUtils.getThisStackId(),
+      stackId: child.stackUtils.thisStackId,
       ...val.Mappings.deployment.init,
       ...val.Mappings.org.init,
       name: 'myorg',

@@ -1,6 +1,9 @@
+// @ts-ignore
+import Promise from 'bluebird'
 import extend from 'lodash/extend'
 import clone from 'lodash/clone'
 import Cache from 'lru-cache'
+import buildResource from '@tradle/build-resource'
 import constants from './constants'
 import Errors from './errors'
 import {
@@ -18,7 +21,7 @@ import {
   instrumentWithXray,
 } from './utils'
 
-import { addLinks, getLink, getPermalink, extractSigPubKey, getSigningKey, sign } from './crypto'
+import { addLinks, getLink, getLinks, getPermalink, extractSigPubKey, getSigningKey, sign } from './crypto'
 import * as types from './typeforce-types'
 import {
   IIdentity,
@@ -69,6 +72,8 @@ export default class Identities implements IHasLogger {
   private components: IdentitiesOpts
   private _cachePub: Function
   private _cacheIdentity: Function
+  private _uncachePub: Function
+  private _uncacheIdentity: Function
   constructor (components: IdentitiesOpts) {
     bindAll(this)
 
@@ -84,6 +89,7 @@ export default class Identities implements IHasLogger {
     }, 'getPubKey')
 
     this._cachePub = keyObj => getPubKeyCachified.set([keyObj.pub], normalizePub(keyObj))
+    this._uncachePub = keyObj => getPubKeyCachified.del([keyObj.pub])
 
     this.getPubKey = getPubKeyCachified.call
 
@@ -94,15 +100,15 @@ export default class Identities implements IHasLogger {
     }, 'byPermalink')
 
     this._cacheIdentity = (identity) => {
-      const link = identity._link
-      const permalink = identity._permalink
+      const { link, permalink } = getLinks(identity)
       getIdentityCachified.set([permalink], identity)
-      identity.pubkeys.forEach(key => this._cachePub({
-        ...key,
-        link,
-        permalink,
-        _time: identity._time
-      }))
+      getNormalizedPubKeys(identity).forEach(key => this._cachePub(key))
+    }
+
+    this._uncacheIdentity = identity => {
+      const { link, permalink } = getLinks(identity)
+      getIdentityCachified.del([permalink])
+      getNormalizedPubKeys(identity).forEach(key => this._uncachePub(key))
     }
 
     this.byPermalink = getIdentityCachified.call
@@ -370,6 +376,10 @@ export default class Identities implements IHasLogger {
     }
   }
 
+  public delContact = async (identity: IIdentity) => {
+    this._uncacheIdentity(identity)
+    await Promise.map(getNormalizedPubKeys(identity), key => this.db.del(key))
+  }
 }
 
 export { Identities }
@@ -388,4 +398,14 @@ const normalizePub = key => {
     [TYPE]: PUB_KEY,
     ...key,
   }
+}
+
+const getNormalizedPubKeys = (identity: IIdentity) => {
+  const { link, permalink } = getLinks(identity)
+  return identity.pubkeys.map(key => ({
+    ...key,
+    link,
+    permalink,
+    _time: identity._time
+  }))
 }

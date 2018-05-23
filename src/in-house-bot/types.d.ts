@@ -140,7 +140,7 @@ export interface IPBApp extends ITradleObject {
   forms?: ApplicationSubmission[]
   verifications?: ApplicationSubmission[]
   relationshipManagers?: ResourceStub[]
-  checks?:ApplicationSubmission[]
+  checks?: ResourceStub[]
   status: string
   dateStarted: number
   dateModified: number

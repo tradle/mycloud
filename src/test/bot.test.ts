@@ -7,6 +7,7 @@ import Promise from 'bluebird'
 import test from 'tape'
 import sinon from 'sinon'
 import * as cfnResponse from '../cfn-response'
+import createCredstash from 'nodecredstash'
 import { TYPE, SEQ, SIG } from '@tradle/constants'
 import IotMessage from '@tradle/iot-message'
 import { utils as tradleUtils } from '@tradle/engine'
@@ -21,6 +22,7 @@ import { toStreamItems, recreateTable } from './utils'
 import Errors from '../errors'
 import { models as PingPongModels } from '../ping-pong-models'
 import { Resource } from '../resource'
+import { Secrets } from '../secrets'
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
@@ -619,6 +621,40 @@ test('validate send', loudAsync(async (t) => {
   })
 
   sandbox.restore()
+  t.end()
+}))
+
+test('secrets', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
+  const bot = createTestBot()
+  const secrets = new Secrets({
+    credstash: createCredstash({
+      algorithm: 'aes-256-gcm',
+      kmsKey: bot.defaultEncryptionKey,
+      store: createCredstash.store.s3({
+        client: bot.aws.s3,
+        bucket: bot.buckets.Secrets.name,
+        folder: 'test-' + Date.now()
+      })
+    })
+  })
+
+  const jsonValue = { 'efg': 1 }
+
+  await secrets.putSecret({
+    key: 'a',
+    value: jsonValue
+  })
+
+  t.same(JSON.parse(await secrets.getSecret({ key: 'a' })), jsonValue)
+
+  const bufValue = new Buffer('be excellent to each other')
+  await secrets.putSecret({
+    key: 'b',
+    value: bufValue
+  })
+
+  t.same(await secrets.getSecret({ key: 'b' }), bufValue)
   t.end()
 }))
 

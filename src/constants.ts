@@ -58,6 +58,9 @@ const constants = {
     assetsFolder: 'assets',
     myModelsPack: 'conf/models-pack.json'
   },
+  SECRETS_BUCKET: {
+    identityFolder: 'identity'
+  },
   HANDSHAKE_TIMEOUT: 30000,
   WEBHOOKS: {
     initialDelay: 1000,

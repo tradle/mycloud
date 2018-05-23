@@ -284,7 +284,7 @@ export class Deployment {
       apiUrl: this.bot.apiBaseUrl,
       org,
       identity,
-      stackId: this.bot.stackUtils.getThisStackId()
+      stackId: this.bot.stackUtils.thisStackId
     }
 
     try {

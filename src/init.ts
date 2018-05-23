@@ -16,7 +16,6 @@ import {
   TYPE,
   TYPES,
   PRIVATE_CONF_BUCKET,
-  IDENTITY_KEYS_KEY
 } from './constants'
 
 import {
@@ -26,12 +25,14 @@ import {
   StackUtils,
   Seals,
   DB,
+  Storage,
   Buckets,
   Bucket,
   Logger,
   IIdentity,
   IPrivKey,
-  IIdentityAndKeys
+  IIdentityAndKeys,
+  Secrets
 } from './types'
 
 const { IDENTITY } = TYPES
@@ -47,10 +48,11 @@ interface IInitWriteOpts extends IInitOpts {
 interface IInitOpts extends Partial<IInitWriteOpts> {}
 
 export default class Init {
-  private secrets: Bucket
+  private secrets: Secrets
   private buckets: Buckets
   private networks: any
   private network: any
+  private storage: Storage
   private objects: Objects
   private identities: Identities
   private stackUtils: StackUtils
@@ -62,22 +64,22 @@ export default class Init {
     buckets,
     networks,
     network,
-    objects,
+    storage,
     identities,
     stackUtils,
     seals,
-    db,
     logger
   }: Bot) {
     this.secrets = secrets
     this.buckets = buckets
     this.networks = networks
     this.network = network
-    this.objects = objects
+    this.storage = storage
+    this.objects = storage.objects
+    this.db = storage.db
     this.identities = identities
     this.stackUtils = stackUtils
     this.seals = seals
-    this.db = db
     this.logger = logger.sub('init')
   }
 
@@ -121,7 +123,8 @@ export default class Init {
   }
 
   public isInitialized = async () => {
-    return await this.secrets.exists(IDENTITY_KEYS_KEY)
+    const keys = await this.secrets.getIdentityKeys()
+    return !!keys.length
   }
 
   public genIdentity = async () => {
@@ -140,10 +143,16 @@ export default class Init {
 
   public write = async (opts:IInitWriteOpts) => {
     const { priv, force } = opts
-    const pub = priv.identity
+    const { identity, keys } = priv
     if (!force) {
-      const existing = await this.secrets.maybeGetJSON(IDENTITY_KEYS_KEY)
-      if (existing && !_.isEqual(existing, priv)) {
+      let existing
+      try {
+        existing = await this.secrets.getIdentityKeys()
+      } catch (err) {
+        Errors.ignoreNotFound(err)
+      }
+
+      if (existing && !isSameKeySet(existing, keys)) {
         throw new Errors.Exists('refusing to overwrite identity keys. ' +
           'If you\'re absolutely sure you want to do this, use the "force" flag')
       }
@@ -152,39 +161,38 @@ export default class Init {
     const { PrivateConf } = this.buckets
     await Promise.all([
       // private
-      this.secrets.putJSON(IDENTITY_KEYS_KEY, priv),
+      this.secrets.putIdentityKeys({ keys }),
+      PrivateConf.putJSON(PRIVATE_CONF_BUCKET.identity, identity),
       // public
-      this.objects.put(pub),
-      PrivateConf.putJSON(PRIVATE_CONF_BUCKET.identity, pub),
-      this.db.put(pub)
+      this.storage.save({ object: identity }),
     ]);
 
     const { network } = this
-    const chainKey = getChainKey(priv.keys, {
+    const chainKey = getChainKey(keys, {
       type: network.flavor,
       networkName: network.networkName
     })
 
     await Promise.all([
-      this.identities.addContact(pub),
+      this.identities.addContact(identity),
       this.seals.create({
         counterparty: null,
         key: chainKey,
-        object: pub
+        object: identity
       })
     ])
   }
 
   public clear = async () => {
-    const priv = await this.secrets.maybeGetJSON(IDENTITY_KEYS_KEY)
-    const link = priv && getLink(priv.identity)
+    const bucket = this.buckets.PrivateConf
+    const identity = await bucket.maybeGetJSON(PRIVATE_CONF_BUCKET.identity)
+    const link = identity && getLink(identity)
     this.logger.info(`terminating provider ${link}`)
-    const { PrivateConf } = this.buckets
     await Promise.all([
       link ? this.objects.del(link) : Promise.resolve(),
-      this.secrets.del(IDENTITY_KEYS_KEY),
+      this.secrets.delIdentityKeys(),
       // public
-      PrivateConf.del(PRIVATE_CONF_BUCKET.identity)
+      bucket.del(PRIVATE_CONF_BUCKET.identity)
     ])
 
     this.logger.info(`terminated provider ${link}`)
@@ -203,3 +211,12 @@ export default class Init {
 // }
 
 export { Init }
+
+const isSameKeySet = (a, b) => {
+  return a.length === b.length && _.isEqual(keySetToFingerprint(a), keySetToFingerprint(b))
+}
+
+const keySetToFingerprint = set => _.chain(set)
+  .sortBy('fingerprint')
+  .map('fingerprint')
+  .value()

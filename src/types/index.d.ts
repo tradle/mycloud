@@ -10,6 +10,7 @@ import { Users } from '../users'
 import { Env } from '../env'
 import { Identities } from '../identities'
 import { Identity } from '../identity'
+import { Secrets } from '../secrets'
 import { Storage } from '../storage'
 import { Messages } from '../messages'
 import { Messaging } from '../messaging'
@@ -70,6 +71,7 @@ export {
   Env,
   Identities,
   Identity,
+  Secrets,
   Storage,
   Messages,
   Messaging,
@@ -426,24 +428,24 @@ export type Tables = {
   // Friends: ITable
 }
 
+type AttrMap = {
+  [name: string]: string
+}
 
 // TODO: generate this from serverless.yml
 export type IServiceMap = {
-  Table: {
-    [name: string]: string
-  },
+  Table: AttrMap
   Bucket: {
     [P in keyof IBucketsInfo]: string
-  },
+  }
   RestApi: {
     [name: string]: {
       url: string
       id: string
     }
-  },
-  Role: {
-    [name: string]: string
-  },
+  }
+  Role: AttrMap
+  Key: AttrMap
   Stack: string
 }
 
@@ -641,4 +643,13 @@ export interface IBacklinkItem {
   linkProp: string
   backlinkProps: string[]
   _time?: number
+}
+
+type KVPair = [string, string]
+
+export interface ISecretStore {
+  get(name: string): Promise<string>
+  multiGet(names: string[]): Promise<string[]>
+  put(name: string): Promise<void>
+  putMulti(pairs: KVPair[]): Promise<void>
 }

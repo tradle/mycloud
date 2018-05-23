@@ -23,6 +23,7 @@ export type AwsApis = {
   cloudformation: AWS.CloudFormation,
   xray: AWS.XRay,
   apigateway: AWS.APIGateway,
+  ssm: AWS.SSM,
   AWS: any,
   trace: any
 }
@@ -52,6 +53,7 @@ export default function createAWSWrapper ({ env, logger }) {
     iotData: 'Iot',
     xray: 'XRay',
     apigateway: 'APIGateway',
+    ssm: 'SSM',
     cloudformation: 'CloudFormation'
   }
 
