@@ -1,13 +1,14 @@
 
 // @ts-ignore
 import Promise from 'bluebird'
+import _ from 'lodash'
 import AWS from 'aws-sdk'
 import { IPrivKey, IIdentity } from './types'
 import * as crypto from './crypto'
 import Errors from './errors'
 import { gzip, gunzip } from './utils'
 
-const KEYS_SECRET_NAME = 'keys'
+const KEYS_SECRET_NAME = 'identity-keys'
 const KEYS_CONTEXT = {
   identityKeys: '1'
 }
@@ -58,8 +59,11 @@ interface ICredstash {
   deleteSecrets(opts:CredstashDeleteSecretsOpts)
 }
 
+type ObfuscateSecretName = (key:string) => string
+
 type SecretsOpts = {
   credstash: ICredstash
+  obfuscateSecretName?: ObfuscateSecretName
 }
 
 const encode = (buf: Buffer, gzipped?: boolean) => {
@@ -78,13 +82,15 @@ const decode = (buf: Buffer) => {
 
 export default class Secrets {
   private credstash: ICredstash
-  constructor({ credstash }: SecretsOpts) {
+  private obfuscateSecretName: ObfuscateSecretName
+  constructor({ credstash, obfuscateSecretName=_.identity }: SecretsOpts) {
     this.credstash = credstash
+    this.obfuscateSecretName = obfuscateSecretName
   }
 
   public getSecret = async ({ key, version, context = {} }: GetSecretOpts) => {
     const buf = await this.credstash.get({
-      name: key,
+      name: this.obfuscateSecretName(key),
       context
     })
 
@@ -94,7 +100,7 @@ export default class Secrets {
   public putSecret = async ({ key, value, digest=DIGEST, context = {} }: PutSecretOpts) => {
     const secret = await this._encode(value)
     return await this.credstash.putSecret({
-      name: key,
+      name: this.obfuscateSecretName(key),
       context,
       digest,
       secret

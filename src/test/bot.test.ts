@@ -627,14 +627,17 @@ test('validate send', loudAsync(async (t) => {
 test('secrets', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const bot = createTestBot()
+  const folder = 'test-' + Date.now()
+  const obfuscateSecretName = name => name.repeat(2)
   const secrets = new Secrets({
+    obfuscateSecretName,
     credstash: createCredstash({
       algorithm: 'aes-256-gcm',
       kmsKey: bot.defaultEncryptionKey,
       store: createCredstash.store.s3({
         client: bot.aws.s3,
         bucket: bot.buckets.Secrets.name,
-        folder: 'test-' + Date.now()
+        folder
       })
     })
   })
@@ -655,6 +658,8 @@ test('secrets', loudAsync(async (t) => {
   })
 
   t.same(await secrets.getSecret({ key: 'b' }), bufValue)
+  t.ok(await bot.buckets.Secrets.get(`${folder}/${obfuscateSecretName('a')}`))
+
   t.end()
 }))
 

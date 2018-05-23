@@ -486,16 +486,15 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
 
     const stackName = bot.stackUtils.thisStackName
-    // bot.identityKeysKMSKeyId = `alias/${stackName}-ssm-key`
-
     const secrets = bot.secrets = new Secrets({
+      obfuscateSecretName: name => crypto.obfuscateSecretName(bot.defaultEncryptionKey, name),
       credstash: createCredstash({
         algorithm: 'aes-256-gcm',
         kmsKey: bot.defaultEncryptionKey,
         store: createCredstash.store.s3({
           client: aws.s3,
           bucket: buckets.Secrets.name,
-          folder: constants.SECRETS_BUCKET.identityFolder
+          // folder: constants.SECRETS_BUCKET.identityFolder
         })
       })
     })
@@ -1162,3 +1161,4 @@ const addOld = (bot: Bot, target: ISaveEventPayload): Promise<ISaveEventPayload>
     .then(old => target.old = old, Errors.ignoreNotFound)
     .then(() => target)
 }
+

@@ -26,16 +26,9 @@ const SIGN_WITH_HASH = 'sha256'
 const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12
 const KEY_BYTES = 32
-const SALT_BYTES = 32
 const encoders = {}
 
 type HexOrBase64 = "hex" | "base64"
-type EncryptedStruct = {
-  ciphertext: Buffer
-  salt: Buffer
-  tag: Buffer
-  iv: Buffer
-}
 
 export class ECKey {
   public pub: string
@@ -137,20 +130,14 @@ const decryptKey = ({ aws, encryptedKey }) => {
 //   })
 // }
 
-export const encrypt = ({ data, key, salt }) => {
+export const encrypt = ({ data, key }) => {
   if (key.length !== KEY_BYTES) throw new Error(`expected key length: ${KEY_BYTES} bytes`)
-
-  if (salt && salt.length !== SALT_BYTES) {
-    throw new Error(`expected salt length: ${SALT_BYTES} bytes`)
-  }
-
-  if (!salt) salt = crypto.randomBytes(SALT_BYTES)
 
   const iv = crypto.randomBytes(IV_BYTES)
   const cipher = crypto.createCipheriv(ENC_ALGORITHM, key, iv)
   const ciphertext = Buffer.concat([cipher.update(data), cipher.final()])
   const tag = cipher.getAuthTag()
-  return serializeEncrypted([ciphertext, salt, tag, iv])
+  return serializeEncrypted([ciphertext, tag, iv])
 }
 
 const serializeEncrypted = (buffers) => {
@@ -187,7 +174,7 @@ const unserializeEncrypted = (buf:Buffer):Buffer[] => {
 }
 
 export const decrypt = ({ key, data }) => {
-  const [ciphertext, salt, tag, iv] = unserializeEncrypted(data)
+  const [ciphertext, tag, iv] = unserializeEncrypted(data)
   const decipher = crypto.createDecipheriv(ENC_ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
   return Buffer.concat([
@@ -404,4 +391,9 @@ export const genIdentity = async (opts) => {
     identity: IIdentity,
     keys: IPrivKey[]
   }
+}
+
+export const obfuscateSecretName = (obfuscator: string, name: string) => {
+  console.log(sha256(`${obfuscator}-${name}`, 'hex'))
+  return sha256(`${obfuscator}-${name}`, 'hex')
 }
