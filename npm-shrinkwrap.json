@@ -154,7 +154,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#3609eb3565cf6c48786bd060493b75433103d5e5"
+      "resolved": "git://github.com/tradle/custom-models.git#304de4e217114f0c503784ea8e111f0afa829a73"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -251,8 +251,8 @@
     },
     "@tradle/models": {
       "version": "4.10.10",
-      "from": "tradle/models#nonvirtual",
-      "resolved": "git://github.com/tradle/models.git#9252fb8e156628b6c76b6b2d01d44d7c66ec49e0"
+      "from": "tradle/models",
+      "resolved": "git://github.com/tradle/models.git#fffb995693252a27cdd2b56f488cc836015786e1"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -3793,7 +3793,7 @@
     "nodecredstash": {
       "version": "2.0.0",
       "from": "tradle/credstash",
-      "resolved": "git://github.com/tradle/credstash.git#79f0300b72017cea474616e56c33e367bf5e5f72",
+      "resolved": "git://github.com/tradle/credstash.git#1b47411fe48d6e939854d14b1ef69c444a1b73ec",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
