@@ -3793,7 +3793,7 @@
     "nodecredstash": {
       "version": "2.0.0",
       "from": "tradle/credstash",
-      "resolved": "git://github.com/tradle/credstash.git#1b47411fe48d6e939854d14b1ef69c444a1b73ec",
+      "resolved": "git://github.com/tradle/credstash.git#79f0300b72017cea474616e56c33e367bf5e5f72",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
