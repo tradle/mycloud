@@ -196,4 +196,13 @@ export default class Logger {
   }
 }
 
-export { Logger }
+const noopLogger = new Logger({
+  writer: {
+    log: () => {}
+  }
+})
+
+export {
+  Logger,
+  noopLogger
+}
