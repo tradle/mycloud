@@ -159,7 +159,7 @@ export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
   }))
 }
 
-export const allSettled = <T>(promises:Promise<T>[]):ISettledPromise<T>[] => {
+export const allSettled = <T>(promises:Promise<T>[]):Promise<ISettledPromise<T>[]> => {
   return Promise.all(promises.map(promise => settle(promise)))
 }
 
