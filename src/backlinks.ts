@@ -13,7 +13,8 @@ import {
   getPermId,
   getResourceIdentifier,
   RESOLVED_PROMISE,
-  isUnsignedType
+  isUnsignedType,
+  allSettled
 } from './utils'
 
 import {
@@ -227,7 +228,10 @@ export default class Backlinks {
     // context is indexed, so N queries by EQ (with hashKey) are more efficient
     // than an IN query that results in a scan
     this.logger.silly('searching for applications with contexts', contexts)
-    return await Promise.map(contexts, this._getApplicationWithContext)
+    const results = await allSettled(contexts.map(this._getApplicationWithContext))
+    return results
+      .filter(result => result.isFulfilled)
+      .map(result => result.value)
   }
 
   private _getApplicationWithContext = async (context:string) => {
