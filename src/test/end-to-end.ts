@@ -280,7 +280,7 @@ export class Test {
     const { application, conversation } = result
     const storedConversation = await this.bot.db.find({
       orderBy: {
-        property: 'time',
+        property: '_time',
         desc: false
       },
       filter: {

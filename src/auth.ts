@@ -173,7 +173,7 @@ export default class Auth {
     const latest = await this.db.findOne({
       allowScan: true,
       orderBy: {
-        property: 'time',
+        property: '_time',
         desc: true
       },
       filter: {

@@ -42,7 +42,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#be25a81c45dbfd32786df5c1d0f08ef4dd418ab2",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#54b545e48ba98f6f26b169be42008ddedacfefc5",
       "dependencies": {
         "bluebird": {
           "version": "2.11.0",
