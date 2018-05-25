@@ -179,7 +179,6 @@ export default class Identities implements IHasLogger {
   // }
 
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
-    console.log('LOOKING UP IDENTITY ' + permalink)
     const { link } = await this.db.findOne({
       select: ['link'],
       filter: {
