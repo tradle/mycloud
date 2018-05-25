@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events'
 import _ from 'lodash'
 import { diff as getDiff } from 'just-diff'
-import { cloneDeep } from 'lodash'
 import {
   AttributePath,
   PathElement,
@@ -10,7 +9,7 @@ import {
   ExpressionAttributes
 } from '@aws/dynamodb-expressions'
 import { utils as DynamoUtils } from '@tradle/dynamodb'
-import { TYPE, SIG, PREVLINK, PERMALINK } from '@tradle/constants'
+import { TYPE, SIG, PREVLINK, PERMALINK, VERSION } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import validateModels from '@tradle/validate-model'
@@ -20,6 +19,7 @@ import {
 } from './db-utils'
 
 import Errors from './errors'
+import { noopLogger } from './logger'
 import {
   Bot,
   Model,
@@ -107,16 +107,17 @@ export class Resource extends EventEmitter {
   public type: string
   public resource: any
   public diff: Diff
+  public softDiff: Diff
 
   private store?: IResourcePersister
-  private logger?: Logger
+  private logger: Logger
   private originalResource: any
   private _dirty: boolean
 
   constructor({ models, model, type, resource={}, store, logger }: ResourceInput) {
     super()
 
-    this.logger = logger || (store && store.logger)
+    this.logger = logger || (store && store.logger) || noopLogger
 
     if (store) {
       Object.defineProperty(this, 'models', {
@@ -159,16 +160,18 @@ export class Resource extends EventEmitter {
       ...resource
     }
 
-    this.originalResource = cloneDeep(this.omitBacklinks())
+    this._resetDiff()
 
-    let diff
+    let diff = []
     Object.defineProperty(this, 'diff', {
       set(value) {
         diff = value
+        this.softDiff = getSoftDiff(diff)
       },
       get() {
         if (this._dirty) {
-          diff = getDiff(this.originalResource, this.omitBacklinks())
+          this.diff = getDiff(this.originalResource, this.omitBacklinks())
+          this._dirty = false
         }
 
         return diff
@@ -176,8 +179,15 @@ export class Resource extends EventEmitter {
     })
   }
 
+  // resources are "modified" until they're saved
+  public isModified = () => {
+    if (this.wasSigned()) return this.diff.length > 0
+
+    return true
+  }
+
   public get modified() {
-    return this.diff.length > 0
+    return this.isModified()
   }
 
   public get link() {
@@ -207,19 +217,24 @@ export class Resource extends EventEmitter {
     })
   }
 
+  public get stableStub() {
+    return toStableStub(this.stub)
+  }
+
   public get primaryKeysSchema() {
     return getPrimaryKeySchema(this.model)
   }
 
   public parseKeyString = (key: string) => parseKeyString({ key, schema: this.primaryKeysSchema })
   public isSigned = () => !!this.resource[SIG]
+  public wasSigned = () => !!this.originalResource[SIG]
   public save = async (opts?) => {
     this._ensureHaveStore()
     this._assertDiff()
 
     await this.store.save(this)
 
-    this.diff = []
+    this._resetDiff()
     this.emit('save')
     return this
   }
@@ -230,9 +245,18 @@ export class Resource extends EventEmitter {
       this._assertDiff()
     }
 
+    if (this.wasSigned() && !hasVersionIncreased(this)) {
+      this.logger.debug(`auto-versioning resource prior to signing`, this.stableStub)
+      this.version()
+    }
+
+    if (this.isSigned()) {
+      throw new Error('resource is already signed!')
+      // this.unset(SIG)
+    }
+
     const signed = await this.store.sign(this.toJSON(opts))
 
-    debugger
     this.set(signed)
     this.emit('sign')
     return this
@@ -246,6 +270,7 @@ export class Resource extends EventEmitter {
   }
 
   public get = key => this.resource[key]
+  public getOriginal = key => this.originalResource[key]
 
   public unset = (keys:string|string[]) => {
     keys = [].concat(keys)
@@ -398,11 +423,15 @@ export class Resource extends EventEmitter {
   public static getPrimary
 
   public version = () => {
-    return this.set(buildResource.version(this.resource))
+    return this.set(buildResource.version({
+      [SIG]: this.get(SIG) || this.originalResource[SIG],
+      ...this.resource
+    }))
   }
 
   private _assertDiff = () => {
-    if (!this.diff.length) {
+    if (!this.isModified()) {
+      debugger
       throw new Error('no changes to save!')
     }
   }
@@ -417,6 +446,11 @@ export class Resource extends EventEmitter {
     model: this.model,
     resource
   })
+
+  private _resetDiff = () => {
+    this.originalResource = _.cloneDeep(this.omitBacklinks())
+    this.diff = []
+  }
 }
 
 export const getPrimaryKeys = ({ models, model, resource }: {
@@ -548,4 +582,17 @@ const ensurePlainObject = obj => {
   if (!isPlainObject(obj, { allowBuffers: true })) {
     throw new Errors.InvalidInput(`expected plain object`)
   }
+}
+
+const getSoftDiff = (diff: Diff) => diff.filter(diffItem => {
+  if (_.isEqual(diffItem.path, ['_time'])) {
+    return false
+  }
+
+  return true
+})
+
+const hasVersionIncreased = (resource: Resource) => {
+  const originalVersion = resource.getOriginal(VERSION) || 0
+  return resource.get(VERSION) > originalVersion
 }
