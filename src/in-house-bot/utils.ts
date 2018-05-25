@@ -362,6 +362,8 @@ export const getApplications = ({ user, pending=true, approved=true, denied=true
 }
 
 export const isPassedCheck = ({ status }) => {
+  if (!status) return false
+
   const id = getEnumValueId({
     model: models[CHECK_STATUS],
     value: status

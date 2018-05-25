@@ -1,5 +1,7 @@
 import groupBy from 'lodash/groupBy'
 import pick from 'lodash/pick'
+import omit from 'lodash/omit'
+import uniqBy from 'lodash/uniqBy'
 import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { parseStub } from '../utils'
@@ -135,10 +137,13 @@ export class Applications {
     const { checks=[] } = application
     if (!checks.length) return []
 
-    // get latest version of those checks
-    return await Promise.all(checks
-      .map(stub => ({ type: stub[TYPE], permalink: stub[PERMALINK] }))
+    const bodies = await Promise.all(checks
+      // get latest version of those checks
+      .map(stub => omit(parseStub(stub), '_link'))
       .map(stub => this.bot.getResource(stub)))
+
+    const timeDesc = bodies.slice().sort((a, b) => b._time - a._time)
+    return uniqBy(timeDesc, TYPE)
   }
 
   public haveAllChecksPassed = async ({ application }: {
