@@ -356,13 +356,17 @@ export const getBacklinkChangesForChanges = ({ models, logger, changes }: {
   changes: ISaveEventPayload[]
   logger?: Logger
 }) => {
-  const forwardBefore = _.flatMap(changes, ({ value, old }) => {
+  let forwardBefore = _.flatMap(changes, ({ value, old }) => {
     return old ? getForwardLinks({ models, logger, resource: old }) : []
   })
 
-  const forwardAfter = _.flatMap(changes, ({ value, old }) => {
+  forwardBefore = _.uniqBy(forwardBefore, toUid)
+
+  let forwardAfter = _.flatMap(changes, ({ value, old }) => {
     return value ? getForwardLinks({ models, logger, resource: value }) : []
   })
+
+  forwardAfter = _.uniqBy(forwardAfter, toUid)
 
   const fBeforeUids = forwardBefore.map(toUid)
   const fAfterUids = forwardAfter.map(toUid)
