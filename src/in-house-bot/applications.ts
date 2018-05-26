@@ -14,7 +14,8 @@ import {
   IPBApp,
   ITradleObject,
   IPBUser,
-  Models
+  Models,
+  ApplicationSubmission
 } from './types'
 
 import { Resource } from '../resource'
@@ -37,6 +38,10 @@ interface IPropertyInfo {
 
 const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
 const APPLICATION = 'tradle.Application'
+const PRUNABLE_FORMS = [
+  'tradle.AssignRelationshipManager',
+  'tradle.ProductRequest'
+]
 
 export class Applications {
   private bot: Bot
@@ -114,7 +119,12 @@ export class Applications {
     application: IPBApp
     send?: boolean
   }) => {
-    return await this.productsAPI.issueVerifications({ req, user, application, send })
+    return await this.productsAPI.issueVerifications({
+      req,
+      user,
+      application: getApplicationWithCustomerSubmittedForms(application),
+      send
+    })
   }
 
   public requestEdit = async (opts) => {
@@ -128,7 +138,9 @@ export class Applications {
   public haveAllFormsBeenVerified = async ({ application }: {
     application: IPBApp
   }) => {
-    return await this.productsAPI.haveAllSubmittedFormsBeenVerified({ application })
+    return await this.productsAPI.haveAllSubmittedFormsBeenVerified({
+      application: getApplicationWithCustomerSubmittedForms(application)
+    })
   }
 
   public getLatestChecks = async ({ application }: {
@@ -255,6 +267,8 @@ export class Applications {
     await this.bot.users.save(user)
   }
 
+  public getCustomerSubmittedForms = getCustomerSubmittedForms
+
   // public requestEdit = async (opts: {
   //   req?: IPBReq
   //   user?: IPBUser
@@ -287,3 +301,16 @@ export class Applications {
 
   // }
 }
+
+const getCustomerSubmittedForms = ({ forms }: {
+  forms: ApplicationSubmission[]
+}) => {
+  return forms.filter(f => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
+}
+
+const getApplicationWithCustomerSubmittedForms = (application: IPBApp):IPBApp => ({
+  ...application,
+  forms: getCustomerSubmittedForms({
+    forms: application.forms || []
+  })
+})
