@@ -312,7 +312,7 @@
     "@tradle/models-onfido": {
       "version": "1.0.0",
       "from": "tradle/models-onfido",
-      "resolved": "git://github.com/tradle/models-onfido.git#3fa01658407699daf4bdd83f64b4ee4022d1bb3d"
+      "resolved": "git://github.com/tradle/models-onfido.git#7f3bc80646f5e31b3355109f26201561d16e464e"
     },
     "@tradle/models-pack": {
       "version": "1.3.0",
@@ -344,7 +344,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#663c7ae0ee8a0c42d9720d4ff76617339f010de7"
+      "resolved": "git://github.com/tradle/plugin-onfido.git#7150eb501b7c771785d6a982c2b15a5f8ec01682"
     },
     "@tradle/protocol": {
       "version": "4.0.0",
