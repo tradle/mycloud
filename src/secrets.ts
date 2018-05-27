@@ -88,7 +88,7 @@ export default class Secrets {
     this.obfuscateSecretName = obfuscateSecretName
   }
 
-  public getSecret = async ({ key, version, context = {} }: GetSecretOpts) => {
+  public get = async ({ key, version, context = {} }: GetSecretOpts) => {
     const buf = await this.credstash.get({
       name: this.obfuscateSecretName(key),
       context
@@ -97,7 +97,7 @@ export default class Secrets {
     return await this._decode(buf)
   }
 
-  public putSecret = async ({ key, value, digest=DIGEST, context = {} }: PutSecretOpts) => {
+  public put = async ({ key, value, digest=DIGEST, context = {} }: PutSecretOpts) => {
     const secret = await this._encode(value)
     return await this.credstash.putSecret({
       name: this.obfuscateSecretName(key),
@@ -107,14 +107,14 @@ export default class Secrets {
     })
   }
 
-  public deleteSecret = async (name) => {
-    return await this.credstash.deleteSecrets({ name })
+  public del = async ({ key }) => {
+    return await this.credstash.deleteSecrets({ name: key })
   }
 
   public putIdentityKeys = async ({ keys }: {
     keys: IPrivKey[]
   }) => {
-    return await this.putSecret({
+    return await this.put({
       key: KEYS_SECRET_NAME,
       value: keys,
       context: KEYS_CONTEXT
@@ -122,7 +122,7 @@ export default class Secrets {
   }
 
   public getIdentityKeys = async () => {
-    const buf = await this.getSecret({
+    const buf = await this.get({
       key: KEYS_SECRET_NAME,
       context: KEYS_CONTEXT
     })
@@ -131,7 +131,7 @@ export default class Secrets {
   }
 
   public delIdentityKeys = async () => {
-    await this.deleteSecret(KEYS_SECRET_NAME)
+    await this.del({ key: KEYS_SECRET_NAME })
   }
 
   private _encode = async (value: any):Promise<Buffer> => {

@@ -644,20 +644,20 @@ test('secrets', loudAsync(async (t) => {
 
   const jsonValue = { 'efg': 1 }
 
-  await secrets.putSecret({
+  await secrets.put({
     key: 'a',
     value: jsonValue
   })
 
-  t.same(JSON.parse(await secrets.getSecret({ key: 'a' })), jsonValue)
+  t.same(JSON.parse(await secrets.get({ key: 'a' })), jsonValue)
 
   const bufValue = new Buffer('be excellent to each other')
-  await secrets.putSecret({
+  await secrets.put({
     key: 'b',
     value: bufValue
   })
 
-  t.same(await secrets.getSecret({ key: 'b' }), bufValue)
+  t.same(await secrets.get({ key: 'b' }), bufValue)
   t.ok(await bot.buckets.Secrets.get(`${folder}/${obfuscateSecretName('a')}`))
 
   t.end()

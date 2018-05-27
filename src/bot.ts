@@ -1137,7 +1137,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           instance = instantiator()
         }
 
-        this.logger.silly(`defined ${property}`)
+        this.logger.ridiculous(`defined ${property}`)
       }
 
       return instance
