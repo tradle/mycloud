@@ -133,6 +133,34 @@ export default function createProductsBot({
     // queueSends: bot.env.TESTING ? true : queueSends
   })
 
+  productsAPI.removeDefaultHandler('shouldSealReceived')
+  productsAPI.plugins.use({
+    shouldSealReceived: ({ object }) => {
+      if (object._seal) return false
+
+      const type = object[TYPE]
+      if (type === PRODUCT_REQUEST) return false
+
+      const model = bot.models[type]
+      if (model && model.subClassOf === 'tradle.Form') return true
+    }
+  })
+
+  if (bot.isTesting && (event === 'resourcestream' || event === 'message')) {
+    productsAPI.plugins.use({
+      ['onmessage:tradle.IdentityPublishRequest']: async (req: IPBReq) => {
+        const { user, payload } = req
+        const { identity } = payload
+        if (!identity._seal) {
+          await bot.seals.create({
+            counterparty: user.id,
+            object: identity
+          })
+        }
+      }
+    })
+  }
+
   const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
     logger: logger.sub('employees'),

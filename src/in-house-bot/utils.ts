@@ -2,7 +2,8 @@ import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
-import { isPromise, pickNonNull, getEnumValueId, parseStub } from '../utils'
+import * as crypto from '../crypto'
+import { isPromise, pickNonNull, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
 import models from '../models'
@@ -14,10 +15,12 @@ import {
   IPBApp,
   IPBAppStub,
   IPBUser,
-  ApplicationSubmission
+  ApplicationSubmission,
+  Seal,
 } from './types'
 
-const SEAL_MODEL_PROPS = Object.keys(models['tradle.Seal'].properties)
+const SealModel = models['tradle.Seal']
+const SEAL_MODEL_PROPS = Object.keys(SealModel.properties)
 const MONTHS = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ]
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 const NAME = 'tradle.Name'
@@ -113,17 +116,28 @@ export const toggleProduct = createEditConfOp(async ({ commander, req, product, 
 // TODO: this really belongs in some middleware, e.g.
 // bot.hook('readseals', sendConfirmedSeals)
 export const sendConfirmedSeals = async (bot, seals) => {
+  if (!seals.length) return
+
   const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
   if (!confirmed.length) return
 
-  await bot.send(confirmed.map(seal => ({
-    to: seal.counterparty,
-    object: pickNonNull({
+  await bot.send(confirmed.map(seal => {
+    const object = pickNonNull({
       ..._.pick(seal, SEAL_MODEL_PROPS),
-      [TYPE]: 'tradle.Seal',
+      [TYPE]: SealModel.id,
       time: seal._time || seal.time || Date.now()
     })
-  })))
+
+    if (seal.basePubKey) {
+      const basePubKey = getSealBasePubKey(seal)
+      if (basePubKey) object.basePubKey = basePubKey
+    }
+
+    return {
+      to: seal.counterparty,
+      object
+    }
+  }))
 }
 
 export const getDateOfBirthFromForm = (form:any):number|void => {

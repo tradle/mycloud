@@ -208,6 +208,7 @@ export default class Messaging {
             type: this.network.flavor,
             curve: this.network.curve,
             pub: seal.basePubKey.toString('hex')
+            // TODO: add txId if available
           },
           ..._.pick(seal, ['headerHash', 'prevHeaderHash', 'link', 'prevlink'])
         })

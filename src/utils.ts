@@ -64,6 +64,7 @@ import {
   IHasLogger,
   IBotMessageEvent,
   Bot,
+  Seal,
 } from './types'
 
 import * as types from './typeforce-types'
@@ -941,6 +942,27 @@ export const networkFromIdentifier = str => {
   const networks = require('./networks')
   const forFlavor = networks[flavor] || {}
   return forFlavor[networkName]
+}
+
+export const getSealBasePubKey = (seal: Seal) => {
+  const { basePubKey } = seal
+  if (!basePubKey) return
+
+  const networks = require('./networks')
+  const network = _.get(networks, [seal.blockchain, seal.network])
+  if (!network) return
+
+  let { pub, curve } = basePubKey
+  if (typeof pub === 'string') pub = Buffer.from(pub, 'hex')
+
+  const fingerprint = network.pubKeyToAddress(pub)
+  return  {
+    [TYPE]: 'tradle.PubKey',
+    type: seal.blockchain,
+    networkName: seal.network,
+    pub: pub.toString('hex'),
+    fingerprint
+  }
 }
 
 export const summarizeObject = object => {

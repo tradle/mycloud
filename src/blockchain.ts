@@ -31,7 +31,8 @@ interface ISealable {
 interface ISealOpts {
   key: IKey
   link: string
-  addresses: string[]
+  address: string
+  addressForPrev?: string
   balance?: BalanceValue
   [x: string]: any
 }
@@ -167,10 +168,10 @@ export default class Blockchain {
   //   return getTxsForAddresses(addresses)
   // })
 
-  public seal = async ({ key, headerHash, addresses, balance }: ISealOpts) => {
+  public seal = async ({ key, link, address, addressForPrev, balance }: ISealOpts) => {
     const writer = this.getWriter(key)
     this.start()
-    this.logger.debug(`sealing ${headerHash}`)
+    this.logger.debug(`sealing ${link}`)
     if (typeof balance === 'undefined') {
       try {
         balance = await this.balance()
@@ -186,6 +187,7 @@ export default class Blockchain {
       }
     }
 
+    const addresses = [address]
     try {
       return await writer.send({
         to: addresses.map(address => ({ address, amount }))

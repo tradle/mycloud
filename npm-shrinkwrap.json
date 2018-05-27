@@ -20,7 +20,7 @@
     "@tradle/bitcoin-adapter": {
       "version": "1.0.0",
       "from": "tradle/bitcoin-adapter",
-      "resolved": "git://github.com/tradle/bitcoin-adapter.git#2b323a4b30eeedb5db188b2899963579f0ecf759"
+      "resolved": "git://github.com/tradle/bitcoin-adapter.git#89608971548349620d84c1d43d76d20ce4c7b20d"
     },
     "@tradle/bitcoinjs-lib": {
       "version": "1.6.0",
@@ -42,7 +42,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#54b545e48ba98f6f26b169be42008ddedacfefc5",
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#3f067b2ad3984e3b7a72ae5859dd3ac0a0a746aa",
       "dependencies": {
         "bluebird": {
           "version": "2.11.0",
@@ -54,7 +54,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#7d59aaca02880030987c583c1f963616bab7c376",
+      "resolved": "git://github.com/tradle/bot-products.git#0f254b30e3e3e2574fda0c4ceb5235f6d265e202",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -154,7 +154,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#304de4e217114f0c503784ea8e111f0afa829a73"
+      "resolved": "git://github.com/tradle/custom-models.git#0a30103cd7fb48bea33ee53ac4de9586ead7515d"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -180,8 +180,8 @@
     },
     "@tradle/engine": {
       "version": "6.0.0",
-      "from": "@tradle/engine@>=6.0.0 <7.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/engine/-/engine-6.0.0.tgz",
+      "from": "tradle/engine#multichain",
+      "resolved": "git://github.com/tradle/engine.git#d99da986da8c9219778465fee6f29ef8a16f7463",
       "dependencies": {
         "async": {
           "version": "2.6.1",
@@ -203,7 +203,7 @@
     "@tradle/ethereum-adapter": {
       "version": "1.0.0",
       "from": "tradle/ethereum-adapter",
-      "resolved": "git://github.com/tradle/ethereum-adapter.git#df66424a70fdc7ab5eb0d1687d92ac585577375c",
+      "resolved": "git://github.com/tradle/ethereum-adapter.git#83dcc1acebe796ac90ebc728cca16f19563645ec",
       "dependencies": {
         "async": {
           "version": "2.6.1",
@@ -252,7 +252,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#c260dc47cce9d2e7dea660a84264f57f3de1ceb3"
+      "resolved": "git://github.com/tradle/models.git#6ce8b8f8e387b1af403b6012c22331aaa11c2283"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -304,7 +304,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#4d874f045a17ad04d5cb7ded2f7771b402d2432c"
+      "resolved": "git://github.com/tradle/plugin-onfido.git#663c7ae0ee8a0c42d9720d4ff76617339f010de7"
     },
     "@tradle/protocol": {
       "version": "4.0.0",

@@ -30,7 +30,7 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
     transactor = Network.createTransactor({ network, wallet, engine })
   }
 
-  const blockchain = Network.createBlockchainAPI({ engine })
+  const blockchain = network.createBlockchainAPI({ engine })
   const getBalance = promisify(blockchain.addresses.balance)
   const recharge = async ({ address, minBalance, force }) => {
     const minBalanceBN = minBalance.startsWith('0x')

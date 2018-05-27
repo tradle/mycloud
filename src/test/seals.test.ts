@@ -139,7 +139,7 @@ test('queue seal', loudAsync(async (t) => {
   let sealed
   const stubSeal = sandbox.stub(blockchain, 'seal')
     .callsFake(async (sealInfo) => {
-      t.same(sealInfo.addresses, [address])
+      t.same(sealInfo.address, address)
       sealed = true
       return { txId }
     })

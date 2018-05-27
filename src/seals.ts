@@ -128,7 +128,10 @@ export type Seal = {
   blockchain: string
   network: string
   address: string
-  pubKey: Buffer
+  addressForPrev?: string
+  pubKey: IECMiniPubKey
+  pubKeyForPrev?: IECMiniPubKey
+  basePubKey: IECMiniPubKey
   watchType: string
   confirmations: number
   write?: boolean
@@ -376,11 +379,15 @@ export default class Seals {
       key = await this.identity.getChainKeyPriv()
     }
 
-    const { link, address, counterparty } = seal
-    const addresses = [address]
+    const { link, address, addressForPrev, headerHash, counterparty } = seal
+    const addresses = [address, addressForPrev].filter(_.identity)
     let result
     try {
-      result = await this.blockchain.seal({ addresses, link, key, counterparty, balance })
+      result = await this.blockchain.seal({
+        ...seal,
+        key,
+        balance
+      })
     } catch (error) {
       await this.recordWriteError({ seal, error })
       throw error
@@ -730,19 +737,18 @@ export default class Seals {
     })
 
     this.logger.debug(`updating resource with seal`, summarizeObject(object))
-    const before = await this.db.get(_.pick(object, [TYPE, '_permalink']))
     await Promise.all([
       this._updateDBWithSeal({ sealResource, object }),
       this.objects.put(object)
     ])
 
     // TODO remove this after catching the bug that causes lost properties
-    const saved = await this.db.get(_.pick(object, [TYPE, '_permalink']))
-    const lost = Object.keys(object).filter(p => !(p in saved))
-    if (lost.length) {
-      this.logger.error(`lost properties ${lost.join(', ')}`)
-      this.logger.error(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
-    }
+    // const saved = await this.db.get(_.pick(object, [TYPE, '_permalink']))
+    // const lost = Object.keys(object).filter(p => !(p in saved))
+    // if (lost.length) {
+    //   this.logger.error(`lost properties ${lost.join(', ')}`)
+    //   this.logger.error(`before in s3: ${prettify(object)}, before in db: ${prettify(before)}, after: ${prettify(saved)}`)
+    // }
   }
 
   private _updateDBWithSeal = async ({ sealResource, object }) => {
@@ -755,6 +761,7 @@ export default class Seals {
         _seal: sealResource
       })
     } catch (err) {
+      debugger
       Errors.ignore(err, { code: 'ConditionalCheckFailedException' })
       this.logger.warn(
         `failed to update resource ${buildResource.stub({ resource: object })} in db with seal.
@@ -792,15 +799,10 @@ export default class Seals {
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
 
     const basePubKey = key
-
-    let pubKey
-    if (watchType === WATCH_TYPE.this) {
-      pubKey = blockchain.sealPubKey({ object, headerHash, basePubKey })
-    } else {
-      pubKey = blockchain.sealPrevPubKey({ object, prevHeaderHash, basePubKey })
-    }
-
-    const address = blockchain.pubKeyToAddress(pubKey.pub)
+    const pubKey = basePubKey && blockchain.sealPubKey({ object, headerHash, basePubKey })
+    const pubKeyForPrev = prevHeaderHash && blockchain.sealPrevPubKey({ object, prevHeaderHash, basePubKey })
+    const address = pubKey && blockchain.pubKeyToAddress(pubKey.pub)
+    const addressForPrev = pubKeyForPrev && blockchain.pubKeyToAddress(pubKeyForPrev.pub)
     const time = timestamp()
     const params:Seal = {
       sealId: time + ':' + randomString(8),
@@ -809,24 +811,21 @@ export default class Seals {
       blockchain: network.flavor,
       network: network.networkName,
       link,
+      prevlink,
+      permalink,
       headerHash,
       prevHeaderHash,
       address,
-      pubKey,
+      addressForPrev,
+      pubKey: pubKey && normalizeMiniPub(pubKey),
+      pubKeyForPrev: pubKeyForPrev && normalizeMiniPub(pubKeyForPrev),
+      basePubKey: basePubKey && normalizeMiniPub(basePubKey),
       counterparty,
       watchType,
       write: !!write,
       confirmations: -1,
       errors: [],
       unconfirmed: true
-    }
-
-    if (permalink) {
-      params.permalink = permalink
-    }
-
-    if (prevlink) {
-      params.prevlink = permalink
     }
 
     if (object) {
@@ -884,3 +883,8 @@ const getRequiredProps = seal => {
 }
 
 // const toDBFormat = seal => seal[TYPE] ? seal : { ...seal, [TYPE]: SEAL_STATE_TYPE }
+
+const normalizeMiniPub = ({ pub, curve }) => ({
+  pub: Buffer.isBuffer(pub) ? pub : Buffer.from(pub, 'hex'),
+  curve
+})
