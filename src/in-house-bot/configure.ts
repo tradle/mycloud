@@ -187,10 +187,9 @@ export class Conf {
     await Promise.all(Object.keys(plugins).map(async (name) => {
       const plugin = Plugins.get(name)
       if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
+      if (!(plugin.validateConf || plugin.updateConfiguration)) return
 
       const pluginConf = plugins[name]
-      if (!plugin.validateConf) return
-
       const validateOpts = {
         bot: this.bot,
         conf: this,
@@ -199,9 +198,9 @@ export class Conf {
 
       try {
         await plugin.validateConf(validateOpts)
-        // if (plugin.updateConfiguration) {
-        //   await plugin.updateConfiguration(vOpts)
-        // }
+        if (plugin.updateConfiguration) {
+          await plugin.updateConfiguration(validateOpts)
+        }
       } catch (err) {
         Errors.rethrow(err, 'developer')
         this.logger.debug('plugin "${name}" is misconfigured', err)

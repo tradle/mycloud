@@ -344,7 +344,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#7150eb501b7c771785d6a982c2b15a5f8ec01682"
+      "resolved": "git://github.com/tradle/plugin-onfido.git#5d37f61253372b4d5c878ed040e032edc32393df"
     },
     "@tradle/protocol": {
       "version": "4.0.0",

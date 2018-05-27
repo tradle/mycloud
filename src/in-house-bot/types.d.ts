@@ -295,7 +295,7 @@ export interface IPlugin<BotComponent> {
   name?: string
   createPlugin: CreatePlugin<BotComponent>
   validateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
-  // updateConfiguration?: (opts: ValidatePluginConfOpts) => Promise<void>
+  updateConfiguration?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 
 export interface IPlugins {

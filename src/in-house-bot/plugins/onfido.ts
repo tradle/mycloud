@@ -15,12 +15,16 @@ const DEFAULT_PRODUCTS = [
   'tradle.onfido.CustomerVerification'
 ]
 
+const REPORTS = ['identity', 'facialsimilarity', 'document']
+
 const normalizePluginConf = conf => ({
   ...conf,
   products: (conf.products || DEFAULT_PRODUCTS).map(pConf => {
     return typeof pConf === 'string' ? { product: pConf } : pConf
   })
 })
+
+export const name = 'onfido'
 
 export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI, applications }, { logger, conf }) => {
   const {
@@ -63,13 +67,21 @@ export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI, applicatio
   }
 }
 
-// export const updateConfiguration = async ({ bot, conf, pluginConf }: {
-//   bot: Bot
-//   conf: Conf
-//   pluginConf: any
-// }) => {
+export const updateConfiguration = async ({ bot, conf, pluginConf }: {
+  bot: Bot
+  conf: Conf
+  pluginConf: any
+}) => {
+  const onfidoAPI = new OnfidoAPI({ token: pluginConf.apiKey })
+  const onfido = new Onfido({
+    bot,
+    logger: bot.logger.sub('plugin:onfido'),
+    onfidoAPI,
+    products: []
+  })
 
-// }
+  await registerWebhook({ bot, onfido })
+}
 
 export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfido }) => {
   const ret = {
@@ -108,8 +120,6 @@ export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfid
 }
 
 export { Onfido }
-
-const REPORTS = ['identity', 'facialsimilarity', 'document']
 
 export const validateConf = async ({ conf, pluginConf }: {
   conf: Conf,
