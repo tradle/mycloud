@@ -191,12 +191,17 @@ export class Conf {
       const pluginConf = plugins[name]
       if (!plugin.validateConf) return
 
+      const validateOpts = {
+        bot: this.bot,
+        conf: this,
+        pluginConf
+      }
+
       try {
-        await plugin.validateConf({
-          bot: this.bot,
-          conf: this,
-          pluginConf
-        })
+        await plugin.validateConf(validateOpts)
+        // if (plugin.updateConfiguration) {
+        //   await plugin.updateConfiguration(vOpts)
+        // }
       } catch (err) {
         Errors.rethrow(err, 'developer')
         this.logger.debug('plugin "${name}" is misconfigured', err)

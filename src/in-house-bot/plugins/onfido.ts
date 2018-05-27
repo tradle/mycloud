@@ -63,6 +63,14 @@ export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI, applicatio
   }
 }
 
+// export const updateConfiguration = async ({ bot, conf, pluginConf }: {
+//   bot: Bot
+//   conf: Conf
+//   pluginConf: any
+// }) => {
+
+// }
+
 export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfido }) => {
   const ret = {
     created: false,
