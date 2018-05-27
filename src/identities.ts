@@ -30,6 +30,7 @@ import {
   Env,
   Logger,
   Objects,
+  Storage,
   DB,
   Bucket,
   ModelStore,
@@ -56,6 +57,7 @@ type PubKeyMapping = {
 type IdentitiesOpts = {
   db: DB,
   objects: Objects
+  storage: Storage
   modelStore: ModelStore
   logger: Logger
 }
@@ -69,6 +71,7 @@ export default class Identities implements IHasLogger {
   private get modelStore() { return this.components.modelStore }
   private get db() { return this.components.db }
   private get objects() { return this.components.objects }
+  private get storage() { return this.components.storage }
   private components: IdentitiesOpts
   private _cachePub: Function
   private _cacheIdentity: Function
@@ -323,7 +326,7 @@ export default class Identities implements IHasLogger {
 
     this._cacheIdentity(object)
     this.logger.info('adding contact', { permalink })
-    await Promise.all(putPubKeys.concat(this.objects.put(object)))
+    await Promise.all(putPubKeys.concat(this.storage.save({ object })))
   }
 
   public putPubKey = (props: {

@@ -512,6 +512,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       logger: bot.logger.sub('identities'),
       modelStore,
       // circular ref
+      get storage() { return bot.storage },
       get db() { return bot.db },
       get objects() { return bot.objects },
     })
