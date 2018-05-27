@@ -368,13 +368,11 @@ export const getBacklinkChangesForChanges = ({ models, logger, changes }: {
 
   forwardAfter = _.uniqBy(forwardAfter, toUid)
 
-  const fBeforeUids = forwardBefore.map(toUid)
   const fAfterUids = forwardAfter.map(toUid)
+  // no sense in deleting what we'll be overwriting
   const del = forwardBefore.filter(fl => !fAfterUids.includes(toUid(fl)))
-  const add = forwardAfter.filter(fl => !fBeforeUids.includes(toUid(fl)))
-
   return {
-    add,
+    add: forwardAfter,
     del
   }
 }
@@ -382,7 +380,7 @@ export const getBacklinkChangesForChanges = ({ models, logger, changes }: {
 export { Backlinks }
 export const createBacklinks = (opts: BacklinksOpts) => new Backlinks(opts)
 
-const toUid = (fl:IBacklinkItem) => fl.source._permalink + fl.target._permalink
+const toUid = (fl:IBacklinkItem) => [fl.linkProp, fl.source._permalink, fl.target._permalink].join(':')
 const toResourceFormat = ({ models, backlinkItems }: {
   models: Models
   backlinkItems: IBacklinkItem[]
