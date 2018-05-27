@@ -103,7 +103,7 @@
     "getmyinfo": "node ./lib/scripts/info.js > myinfo.json && open ./myinfo.json",
     "setenv": "npm run build:yml && node ./lib/scripts/setenv.js",
     "addfriends": "npm run copy-static-assets && node ./lib/scripts/addfriends.js",
-    "reshrink": "npm dedupe && npm prune && npm shrinkwrap",
+    "reshrink": "npm dedupe && npm prune && npm shrinkwrap --dev",
     "start": "./src/scripts/start.sh",
     "debug": "node --debug --inspect ./node_modules/.bin/sls offline start",
     "debug-brk": "node --debug-brk --inspect ./node_modules/.bin/sls offline start",
