@@ -6,6 +6,7 @@ import { ITradleObject, Bot, Logger } from '../types'
 import { isPromise } from '../utils'
 
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
+const FORBIDDEN_MESSAGE = 'forbidden'
 
 type GAComponents = {
   bot: Bot
@@ -33,22 +34,15 @@ export const createHandler = ({
     }
 
     if (method !== 'get' && method !== 'post') {
-      ctx.status = 403
-      ctx.body = {
-        message: `method "${method}" is forbidden`
-      }
-
+      logger.debug(`method "${method}" is forbidden`)
+      forbid(ctx)
       return
     }
 
     logger.debug('authenticating')
     const auth = ctx.headers['x-tradle-auth']
     if (!allowGuest && auth == null) {
-      ctx.status = 403
-      ctx.body = {
-        message: `expected header "x-tradle-auth"`
-      }
-
+      forbid(ctx, `expected header "x-tradle-auth"`)
       logger.debug('expected auth params')
       return
     }
@@ -80,15 +74,9 @@ export const createHandler = ({
       } catch (err) {
         Errors.rethrow(err, 'system')
         if (Errors.isNotFound(err) || Errors.matches(err, Errors.UnknownAuthor)) {
-          ctx.status = 403
-          ctx.body = {
-            message: 'not allowed'
-          }
+          forbid(ctx)
         } else {
-          ctx.status = 500
-          ctx.body = {
-            message: 'something went wrong'
-          }
+          setError(ctx, 500, 'something went wrong')
         }
 
         return
@@ -98,11 +86,7 @@ export const createHandler = ({
     let allowed = canUserRunQuery({ user, query: queryObj })
     if (isPromise(allowed)) allowed = await allowed
     if (!allowed) {
-      ctx.status = 403
-      ctx.body = {
-        message: 'not allowed'
-      }
-
+      forbid(ctx)
       return
     }
 
@@ -118,4 +102,11 @@ const checkDrift = (time: number) => {
     const type = drift > 0 ? 'ahead' : 'behind'
     throw new Errors.ClockDrift(`your clock is ${type}`)
   }
+}
+
+const forbid = (ctx, message=FORBIDDEN_MESSAGE) => setError(ctx, 403, message)
+
+const setError = (ctx, status, message) => {
+  ctx.status = status
+  ctx.body = { message }
 }
