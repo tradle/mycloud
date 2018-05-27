@@ -772,6 +772,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   })
 
   public getPermalink = () => this.identity.getPermalink()
+  public getMyPermalink = () => this.identity.getPermalink()
 
   public sign = async <T extends ITradleObject>(resource:T, author?):Promise<T> => {
     const payload = { object: resource }

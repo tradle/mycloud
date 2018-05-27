@@ -1,3 +1,5 @@
+// @ts-ignore
+import Promise from 'bluebird'
 import groupBy from 'lodash/groupBy'
 import pick from 'lodash/pick'
 import omit from 'lodash/omit'
@@ -113,17 +115,68 @@ export class Applications {
     return await this.productsAPI.verify(opts)
   }
 
+  public haveAllFormsBeenVerified = async ({ application }: {
+    application: IPBApp
+  }) => {
+    const unverified = await this.getUnverifiedForms({ application })
+    return !unverified.length
+  }
+
+  public getUnverifiedForms = async ({ application }) => {
+    const formStubs = getCustomerSubmittedForms(application)
+    const verifications = await this.getVerifications({ application })
+    const verified = verifications.map(verification => parseStub(verification.document))
+    return formStubs.filter(stub => {
+      const { permalink } = parseStub(stub)
+      return !verified.find(form => form.permalink === permalink)
+    })
+  }
+
+  public getVerifications = async ({ application }: {
+    application: IPBApp
+  }) => {
+    const { verifications=[] } = application
+    return await Promise.map(verifications, appSub => this.bot.getResource(appSub.submission))
+  }
+
+  public getFormsWithUnissuedVerifications = async({ application }: {
+    application: IPBApp
+  }) => {
+    const promiseBotPermalink = this.bot.getMyPermalink()
+    const formStubs = getCustomerSubmittedForms({ forms: application.forms || [] })
+    const verifications = await this.getVerifications({ application })
+    const botPermalink = await promiseBotPermalink
+    const botIssued = verifications.filter(v => v._author === botPermalink)
+    const forms = formStubs.filter(stub => {
+      const { permalink } = parseStub(stub)
+      return !botIssued.some(v => parseStub(v.document).permalink === permalink)
+    })
+
+    return {
+      forms,
+      verifications
+    }
+  }
+
   public issueVerifications = async ({ req, user, application, send }: {
     req?: IPBReq
     user: IPBUser
     application: IPBApp
     send?: boolean
   }) => {
-    return await this.productsAPI.issueVerifications({
-      req,
-      user,
-      application: getApplicationWithCustomerSubmittedForms(application),
-      send
+    const { forms, verifications } = await this.getFormsWithUnissuedVerifications({ application })
+    if (!forms.length) return []
+
+    return await forms.map(formStub => {
+      const sources = verifications.filter(v => parseStub(v.document).link === parseStub(formStub).link)
+      return this.productsAPI.verify({
+        req,
+        user,
+        application,
+        object: formStub,
+        verification: { sources },
+        send
+      })
     })
   }
 
@@ -133,14 +186,6 @@ export class Applications {
 
   public requestItem = async (opts) => {
     return await this.productsAPI.requestItem(opts)
-  }
-
-  public haveAllFormsBeenVerified = async ({ application }: {
-    application: IPBApp
-  }) => {
-    return await this.productsAPI.haveAllSubmittedFormsBeenVerified({
-      application: getApplicationWithCustomerSubmittedForms(application)
-    })
   }
 
   public getLatestChecks = async ({ application }: {
@@ -165,7 +210,7 @@ export class Applications {
     if (!checks.length) return true
 
     const checkResources = await this.getLatestChecks({ application })
-    const byAPI = groupBy(checkResources, 'provider')
+    const byAPI:any = groupBy(checkResources, 'provider')
     return Object.keys(byAPI).every(provider => {
       const last = byAPI[provider].pop()
       return isPassedCheck(last)
@@ -302,15 +347,22 @@ export class Applications {
   // }
 }
 
+const getCustomerSubmissions = ({ forms }: {
+  forms: ApplicationSubmission[]
+}) => {
+  if (!forms) return []
+  return forms.filter(f => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
+}
+
 const getCustomerSubmittedForms = ({ forms }: {
   forms: ApplicationSubmission[]
 }) => {
-  return forms.filter(f => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
+  return getCustomerSubmissions({ forms }).map(s => s.submission)
 }
 
 const getApplicationWithCustomerSubmittedForms = (application: IPBApp):IPBApp => ({
   ...application,
-  forms: getCustomerSubmittedForms({
+  forms: getCustomerSubmissions({
     forms: application.forms || []
   })
 })
