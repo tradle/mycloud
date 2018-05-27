@@ -219,9 +219,9 @@
       "resolved": "https://registry.npmjs.org/@tradle/embed/-/embed-1.0.1.tgz"
     },
     "@tradle/engine": {
-      "version": "7.0.0",
+      "version": "7.0.1",
       "from": "@tradle/engine@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/engine/-/engine-7.0.0.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/engine/-/engine-7.0.1.tgz",
       "dependencies": {
         "async": {
           "version": "2.6.1",
@@ -344,7 +344,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#5d37f61253372b4d5c878ed040e032edc32393df"
+      "resolved": "git://github.com/tradle/plugin-onfido.git#065011b12d8dcbff8ea225a662b7a524ca02cc2e"
     },
     "@tradle/protocol": {
       "version": "4.0.0",
