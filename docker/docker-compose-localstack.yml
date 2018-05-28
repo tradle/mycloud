@@ -1,8 +1,5 @@
 version: '2.1'
 
-volumes:
-  tradle-redis:
-
 services:
   dynamo:
     image: aaronshaf/dynamodb-admin
@@ -22,7 +19,7 @@ services:
     ports:
       - 6379:6379
     volumes:
-      - tradle-redis
+      - /data
 
   localstack:
     image: localstack/localstack
