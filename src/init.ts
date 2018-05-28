@@ -159,14 +159,6 @@ export default class Init {
     }
 
     const { PrivateConf } = this.buckets
-    await Promise.all([
-      // private
-      this.secrets.putIdentityKeys({ keys }),
-      PrivateConf.putJSON(PRIVATE_CONF_BUCKET.identity, identity),
-      // public
-      this.storage.save({ object: identity }),
-    ]);
-
     const { network } = this
     const chainKey = getChainKey(keys, {
       type: network.flavor,
@@ -174,6 +166,8 @@ export default class Init {
     })
 
     await Promise.all([
+      this.secrets.putIdentityKeys({ keys }),
+      PrivateConf.putJSON(PRIVATE_CONF_BUCKET.identity, identity),
       this.identities.addContact(identity),
       this.seals.create({
         counterparty: null,
