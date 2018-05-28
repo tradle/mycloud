@@ -48,7 +48,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       } else {
         value = {
           id: env[key],
-          url: `https://${env[key]}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}`
+          url: `https://${env[key]}.execute-api.${env.REGION}.amazonaws.com/${SERVERLESS_STAGE}`
         }
       }
     } else {

@@ -511,7 +511,7 @@ ${this.genUsageInstructions(links)}`
 
     template = stackUtils.changeRegion({
       template,
-      from: 'us-east-1',
+      from: this.env.REGION,
       to: region
     })
 
