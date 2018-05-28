@@ -344,7 +344,7 @@
     "@tradle/plugin-onfido": {
       "version": "1.0.0",
       "from": "tradle/plugin-onfido",
-      "resolved": "git://github.com/tradle/plugin-onfido.git#065011b12d8dcbff8ea225a662b7a524ca02cc2e"
+      "resolved": "git://github.com/tradle/plugin-onfido.git#0b8c7a30030145336a962a9a5f6f160dc052c3c4"
     },
     "@tradle/protocol": {
       "version": "4.0.0",
@@ -7220,7 +7220,7 @@
     "nodecredstash": {
       "version": "2.0.0",
       "from": "tradle/credstash",
-      "resolved": "git://github.com/tradle/credstash.git#79f0300b72017cea474616e56c33e367bf5e5f72",
+      "resolved": "git://github.com/tradle/credstash.git#2822b15c3257e3208eec34fa4d599d224da5f1b1",
       "dependencies": {
         "debug": {
           "version": "3.1.0",

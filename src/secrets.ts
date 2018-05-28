@@ -54,7 +54,8 @@ type GetSecretOpts = {
 
 interface ICredstash {
   get(opts:CredstashGetSecretOpts): Promise<any>
-  putSecret(opts:CredstashPutSecretOpts): Promise<any>
+  put(opts:CredstashPutSecretOpts): Promise<any>
+  update(opts:CredstashPutSecretOpts): Promise<any>
   deleteSecret(opts:CredstashDeleteSecretOpts)
   deleteSecrets(opts:CredstashDeleteSecretsOpts)
 }
@@ -99,7 +100,17 @@ export default class Secrets {
 
   public put = async ({ key, value, digest=DIGEST, context = {} }: PutSecretOpts) => {
     const secret = await this._encode(value)
-    return await this.credstash.putSecret({
+    return await this.credstash.put({
+      name: this.obfuscateSecretName(key),
+      context,
+      digest,
+      secret
+    })
+  }
+
+  public update = async ({ key, value, digest=DIGEST, context = {} }: PutSecretOpts) => {
+    const secret = await this._encode(value)
+    return await this.credstash.update({
       name: this.obfuscateSecretName(key),
       context,
       digest,

@@ -67,9 +67,8 @@ export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI, applicatio
   }
 }
 
-export const updateConfiguration = async ({ bot, conf, pluginConf }: {
+export const updateConfiguration = async ({ bot, pluginConf }: {
   bot: Bot
-  conf: Conf
   pluginConf: any
 }) => {
   const onfidoAPI = new OnfidoAPI({ token: pluginConf.apiKey })
