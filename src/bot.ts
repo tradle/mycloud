@@ -1013,8 +1013,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         object: resource,
         diff
       })
-
-      // await this.bot.hooks.fire(`save:${method}`, resource)
     } catch (err) {
       this.logger.debug(`save failed`, {
         type: resource[TYPE],
@@ -1023,7 +1021,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         error: err.stack
       })
 
-      return // prevent further processing
+      throw err
     }
   }
 
