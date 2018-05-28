@@ -89,7 +89,7 @@ export = function createDB ({
   const tableBuckets = dbUtils.getTableBuckets()
   const allowScan = filterOp => {
     const allow = _allowScan(filterOp)
-    if (allow) logger.debug('allowing scan', filterOp.EQ[TYPE])
+    if (allow) logger.debug('allowing scan', filterOp.type)
     return allow
   }
 
