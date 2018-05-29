@@ -852,7 +852,7 @@ functions:
     events:
       - stream:
           type: dynamodb
-          batchSize: 100
+          batchSize: 20
           startingPosition: TRIM_HORIZON
           arn:
             Fn::GetAtt:

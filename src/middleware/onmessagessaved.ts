@@ -16,12 +16,8 @@ const COUNTERPARTY_CONCURRENCY = { concurrency: 5 }
 
 const batchedPromiseMap = (arr, fn) => Promise.map(arr, fn, COUNTERPARTY_CONCURRENCY)
 
-export const createMiddleware = (bot:Bot, { async }) => {
-  return onMessagesSaved(bot, { async })
-}
-
 /**
- * runs after the inbound message has been written to inbox
+ * runs after the message has been written to db
  */
 export const onMessagesSaved = (bot:Bot, { async }: { async?: boolean }={}) => {
   const { tasks, logger, isTesting } = bot
@@ -91,3 +87,5 @@ export const onMessagesSaved = (bot:Bot, { async }: { async?: boolean }={}) => {
     await next()
   }
 }
+
+export const createMiddleware = onMessagesSaved

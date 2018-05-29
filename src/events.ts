@@ -40,6 +40,8 @@ type EventsOpts = {
   logger: Logger
 }
 
+type EventCategory = 'message' | 'resource' | 'seal' | 'unknown'
+
 export default class Events {
   private dbUtils: any
   private logger: Logger
@@ -126,6 +128,17 @@ export default class Events {
       //   this.logger.debug(`received unexpected stream event from table ${source}`, record)
         // break
     }
+  }
+
+  public static getEventCategory = (record: IStreamRecord):EventCategory => {
+    const data = record.new || record.old
+    const type = data[TYPE]
+    if (!type) return 'unknown'
+
+    if (type === 'tradle.Message') return 'message'
+    if (type === 'tradle.SealState') return 'seal'
+
+    return 'resource'
   }
 
   public toBatchEvent = toBatchEvent

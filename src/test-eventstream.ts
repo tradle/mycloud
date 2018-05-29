@@ -44,6 +44,7 @@ export const simulateEventStream = (bot: Bot) => {
   bot.db.hook('del:post', reemitDel)
 
   bot.hook(EventTopics.message.stream.batch.async, createMessageMiddleware(bot))
+  bot.hook(EventTopics.message.stream.async, createMessageMiddleware(bot))
 
   const { events } = bot
   const fireAsync = async (event, data, batch) => {

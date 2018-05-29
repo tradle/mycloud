@@ -20,6 +20,7 @@ import { getTables } from './tables'
 import createDB from './db'
 import { createDBUtils } from './db-utils'
 import { createAWSWrapper } from './aws'
+import { StreamProcessor } from './stream-processor'
 import * as utils from './utils'
 const {
   defineGetter,
@@ -142,8 +143,8 @@ export const createBot = (opts:IBotOpts={}):Bot => new Bot(opts)
 // we lose all type checking when exporting like this
 const lambdaCreators:LambdaImplMap = {
   get onmessage() { return require('./lambda/onmessage') },
-  get onmessagestream() { return require('./lambda/onmessagestream') },
-  get onsealstream() { return require('./lambda/onsealstream') },
+  // get onmessagestream() { return require('./lambda/onmessagestream') },
+  // get onsealstream() { return require('./lambda/onsealstream') },
   get onresourcestream() { return require('./lambda/onresourcestream') },
   get oninit() { return require('./lambda/oninit') },
   // get onsubscribe() { return require('./lambda/onsubscribe') },
@@ -214,6 +215,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public backlinks: Backlinks
   public logger: Logger
   public graphql: IGraphqlAPI
+  public streamProcessor: StreamProcessor
 
   public get isDev() { return this.env.STAGE === 'dev' }
   public get isStaging() { return this.env.STAGE === 'staging' }
@@ -644,6 +646,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       modelStore,
       logger: logger.sub('backlinks'),
       identity
+    }))
+
+    bot.define('streamProcessor', './stream-processor', StreamProcessor => new StreamProcessor({
+      store: bot.conf.sub('stream-state')
     }))
 
     // this.define('faucet', './faucet', createFaucet => createFaucet({
@@ -1080,13 +1086,23 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return await this.fire(topic, payload)
   }
 
+  public _fireMixedMessageBatchEvent = async (opts: {
+
+  }) => {
+
+  }
+
   public _fireMessageBatchEvent = async (opts: {
     batch: IBotMessageEvent[]
     async?: boolean
     spread?: boolean
     inbound?: boolean
   }) => {
-    const { batch, async, spread, inbound } = opts
+    const { batch, async, spread, inbound=false } = opts
+    if (!batch.every(item => item.message._inbound == inbound)) {
+      throw new Errors.InvalidInput('expected all messages to be either inbound or outbound')
+    }
+
     const topic = inbound ? EventTopics.message.inbound : EventTopics.message.outbound
     const event = async ? topic.async : topic.sync
     return spread
