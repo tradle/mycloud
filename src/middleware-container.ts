@@ -59,7 +59,7 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
     const wild = this._getWildMiddleware()
     if (!(specific.length || wild.length)) return
 
-    this.logger.debug('firing', { event })
+    this.logger.silly('firing', { event })
     const ctx = this.getContextForEvent(event, payload)
     await compose(specific)(ctx)
     // @ts-ignore
