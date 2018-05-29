@@ -237,7 +237,7 @@
     "@tradle/ethereum-adapter": {
       "version": "1.0.0",
       "from": "tradle/ethereum-adapter",
-      "resolved": "git://github.com/tradle/ethereum-adapter.git#49e8d28acb4ce3f50d1eeacf87ff1d520eedcd14",
+      "resolved": "git://github.com/tradle/ethereum-adapter.git#1650252a9ca99aa52d4e0014350aca6f0a9e1721",
       "dependencies": {
         "async": {
           "version": "2.6.1",
@@ -403,9 +403,9 @@
       "resolved": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.0.0.tgz"
     },
     "@tradle/validate-resource": {
-      "version": "4.0.1",
+      "version": "4.1.0",
       "from": "@tradle/validate-resource@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-4.0.1.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/validate-resource/-/validate-resource-4.1.0.tgz",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
