@@ -373,13 +373,13 @@ export class Remediation {
   }
 
   public validateBundle = (bundle) => {
-    const { models } = this.bot
     let items = bundle.items.map(item => _.extend({
-      [SIG]: 'sigplaceholder'
+      [SIG]: 'sigplaceholder',
+      _time: Date.now()
     }, item))
 
     items = items.map(item => this.resolvePointers({ items, item }))
-    items.forEach(resource => validateResource.resource({ models, resource }))
+    items.forEach(resource => this.bot.validateResource(resource))
   }
 
   public getInviteForDraftApp = async ({ application }: {
