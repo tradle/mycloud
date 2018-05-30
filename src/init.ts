@@ -166,7 +166,7 @@ export default class Init {
     })
 
     await Promise.all([
-      this.secrets.putIdentityKeys({ keys }),
+      this.secrets.updateIdentityKeys({ keys }),
       PrivateConf.putJSON(PRIVATE_CONF_BUCKET.identity, identity),
       this.identities.addContact(identity),
       this.seals.create({

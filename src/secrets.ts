@@ -122,10 +122,10 @@ export default class Secrets {
     return await this.credstash.deleteSecrets({ name: key })
   }
 
-  public putIdentityKeys = async ({ keys }: {
+  public updateIdentityKeys = async ({ keys }: {
     keys: IPrivKey[]
   }) => {
-    return await this.put({
+    return await this.update({
       key: KEYS_SECRET_NAME,
       value: keys,
       context: KEYS_CONTEXT
