@@ -158,7 +158,8 @@ const jsonItem = {
     // additional properties are not covered by schema
   },
   required: ['key'],
-  primaryKeys: ['key']
+  primaryKeys: ['key'],
+  indexes: []
 }
 
 core[jsonItem.id] = jsonItem
