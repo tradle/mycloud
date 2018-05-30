@@ -26,7 +26,8 @@ import {
   bindAll,
   summarizeObject,
   promiseNoop,
-  pickNonNull
+  pickNonNull,
+  ensureTimestamped
 } from './utils'
 import { getLinks, randomString } from './crypto'
 import { prettify } from './string-utils'
@@ -730,6 +731,8 @@ export default class Seals {
   private _updateWithSeal = async ({ seal, object }) => {
     const sealResource = _.pick(seal, Object.keys(SealModel.properties))
     sealResource[TYPE] = SEAL_MODEL_ID
+    ensureTimestamped(sealResource)
+
     if (_.isEqual(object._seal, sealResource)) return
 
     buildResource.setVirtual(object, {

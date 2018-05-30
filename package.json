@@ -152,7 +152,7 @@
     "@tradle/schema-joi": "github:tradle/schema-joi",
     "@tradle/test-helpers": "github:tradle/test-helpers",
     "@tradle/validate-model": "https://registry.npmjs.org/@tradle/validate-model/-/validate-model-7.0.0.tgz",
-    "@tradle/validate-resource": "^4.2.1",
+    "@tradle/validate-resource": "^4.3.0",
     "aws-xray-sdk-core": "^1.2.0",
     "bluebird": "^3.5.0",
     "bluebird-q": "^2.1.1",

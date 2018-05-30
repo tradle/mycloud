@@ -63,7 +63,7 @@ export const createHandler = ({
       throw new Errors.InvalidInput(`invalid tradle.GraphQLQuery: ${err.message}`)
     }
 
-    checkDrift(queryObj.time)
+    checkDrift(queryObj._time)
 
     let { user } = ctx
     if (auth && !user) {
