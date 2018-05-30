@@ -1,11 +1,19 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { TYPE, SIG } from '@tradle/constants'
+import { TYPE, SIG, TIMESTAMP } from '@tradle/constants'
 import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
-import { Env, Logger, Objects, Messages, ITradleObject, ModelStore, AwsApis } from './types'
-import { extendTradleObject, pluck, ensureTimestamped, logify, logifyFunction, safeStringify } from './utils'
+import { Env, Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
+import {
+  extendTradleObject,
+  pluck,
+  // ensureTimestamped,
+  logify,
+  logifyFunction,
+  safeStringify,
+  getPrimaryKeySchema
+} from './utils'
 import { TYPES, UNSIGNED_TYPES } from './constants'
 import Errors from './errors'
 
@@ -29,8 +37,26 @@ const _allowScan = filterOp => {
 }
 
 const shouldMinify = item => item[TYPE] !== 'tradle.Message' && !UNSIGNED_TYPES.includes(item[TYPE])
+// const AUTHOR_INDEX = {
+//   // default for all tradle.Object resources
+//   hashKey: '_author',
+//   rangeKey: '_time'
+// }
 
-const getControlLatestOptions = (table: Table, method: string, resource: any) => {
+// const TYPE_INDEX = {
+//   // default for all tradle.Object resources
+//   hashKey: TYPE,
+//   rangeKey: '_time'
+// }
+
+// const REQUIRED_INDEXES = [TYPE_INDEX]
+
+const getControlLatestOptions = ({ table, method, model, resource }: {
+  table: Table
+  method: string
+  model: Model
+  resource: any
+}) => {
   if (UNSIGNED_TYPES.includes(resource[TYPE])) return
 
   if (!resource._link) {
@@ -39,6 +65,11 @@ const getControlLatestOptions = (table: Table, method: string, resource: any) =>
 
   if (method === 'create' && !resource._time) {
     throw new Errors.InvalidInput('expected "_time"')
+  }
+
+  const pk = getPrimaryKeySchema(model)
+  if (pk.hashKey !== '_permalink') {
+    return
   }
 
   const options = {
@@ -57,7 +88,7 @@ const getControlLatestOptions = (table: Table, method: string, resource: any) =>
 
   options.ConditionExpression = `(${options.ConditionExpression}) OR #link = :link`
   options.ExpressionAttributeNames['#link'] = '_link'
-  if (resource._time) {
+  if (typeof resource._time === 'number') {
     options.ConditionExpression += ' OR #time < :time'
     options.ExpressionAttributeNames['#time'] = '_time'
     options.ExpressionAttributeValues[':time'] = resource._time
@@ -104,19 +135,11 @@ export = function createDB ({
   }
 
   const getIndexesForModel = ({ table, model }) => {
-    if (UNSIGNED_TYPES.includes(model.id)) {
-      return model.indexes || []
-    }
+    if (model.indexes) return model.indexes.slice()
 
-    if (model.id === MESSAGE) {
-      return model.indexes
-    }
+    return defaults.indexes.slice()
 
-    if (model.id in modelStore.models) {
-      return defaults.indexes.concat(model.indexes || [])
-    }
-
-    throw new Error(`failed to get indexes for model: ${model.id}`)
+    // throw new Error(`failed to get indexes for model: ${model.id}`)
   }
 
   let modelMap
@@ -152,7 +175,12 @@ export = function createDB ({
       const controlLatestHooks = method => async ({ args }) => {
         let [resource, options] = args
         if (!options) {
-          args[1] = getControlLatestOptions(table, method, resource)
+          args[1] = getControlLatestOptions({
+            table,
+            method,
+            model: modelStore.models[resource[TYPE]],
+            resource
+          })
         }
       }
 
@@ -224,7 +252,9 @@ export = function createDB ({
       throw new Error(`expected resource to be signed: ${resource._link}`)
     }
 
-    ensureTimestamped(resource)
+    // if (typeof resource[TIMESTAMP] !== 'number') {
+      // throw new Errors.InvalidInput(`expected "${TIMESTAMP}"`)
+    // }
   }
 
   return logifyDB(db, logger)

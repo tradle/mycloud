@@ -5,7 +5,7 @@ import Promise from 'bluebird'
 import crypto from 'crypto'
 import QR from '@tradle/qr-schema'
 // import { createPlugin as createRemediationPlugin, Remediation } from './plugins/remediation'
-import { TYPE, SIG, OWNER } from '@tradle/constants'
+import { TYPE, SIG, AUTHOR, OWNER } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import baseModels from '../models'
@@ -375,6 +375,7 @@ export class Remediation {
   public validateBundle = (bundle) => {
     let items = bundle.items.map(item => _.extend({
       [SIG]: 'sigplaceholder',
+      [AUTHOR]: 'authorplaceholder',
       _time: Date.now()
     }, item))
 

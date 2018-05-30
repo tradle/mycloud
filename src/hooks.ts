@@ -49,7 +49,7 @@ export const hookUp = (bot: Bot) => {
   })
 
   const retryDelivery = async (deliveryErr) => {
-    const { counterparty, time } = deliveryErr
+    const { counterparty } = deliveryErr
     await bot.delivery.deliverMessages({
       recipient: counterparty,
       range: bot.delivery.http.getRangeFromError(deliveryErr),

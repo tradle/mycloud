@@ -257,6 +257,7 @@ export class Applications {
 
     const signed = resource.toJSON()
     this.productsAPI.state.addSubmission({ application, submission: signed })
+    await resource.save()
     return signed
   }
 

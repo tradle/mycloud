@@ -29,7 +29,7 @@ export default class Users extends EventEmitter {
   }
 
   public save = async (user) => {
-    await this.db.put(this._toDBFormat(user))
+    await this.db.put(this._prepareForPut(user))
     return user
   }
 
@@ -45,7 +45,7 @@ export default class Users extends EventEmitter {
   }
 
   public merge = async (user) => {
-    const stored = await this.db.update(this._toDBFormat(user), { ReturnValues: 'ALL_NEW' })
+    const stored = await this.db.update(this._prepareForPut(user), { ReturnValues: 'ALL_NEW' })
     return this._fromDBFormat(stored)
   }
 
@@ -94,10 +94,11 @@ export default class Users extends EventEmitter {
     id: user[PRIMARY_KEY]
   })
 
-  private _toDBFormat = user => ({
+  private _prepareForPut = user => ({
     ..._.omit(user, MAPPED_PRIMARY_KEY),
     [TYPE]: this.type,
-    uid: user[MAPPED_PRIMARY_KEY]
+    uid: user[MAPPED_PRIMARY_KEY],
+    _time: Date.now()
   })
 }
 

@@ -286,17 +286,17 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#6ce8b8f8e387b1af403b6012c22331aaa11c2283"
+      "resolved": "git://github.com/tradle/models.git#e44ee1e08920acabc6b4111d89b5a923d3bf9fcf"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#fbf690263969f3d24e705f5d5f68c4a64b8f3220"
+      "resolved": "git://github.com/tradle/models-cloud.git#a9e3861323fd45191c48e781f4af260eb600a6b3"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#62abd172d8f38b6ed5f5976977a5f7308d236363"
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#0d77e00e626bb48bad827df8af44fb7f1e51bf1b"
     },
     "@tradle/models-nz": {
       "version": "1.0.0",
@@ -306,7 +306,7 @@
     "@tradle/models-onfido": {
       "version": "1.0.0",
       "from": "tradle/models-onfido",
-      "resolved": "git://github.com/tradle/models-onfido.git#7f3bc80646f5e31b3355109f26201561d16e464e"
+      "resolved": "git://github.com/tradle/models-onfido.git#ca851003279b569b74be08199ca0a36110a9c67b"
     },
     "@tradle/models-pack": {
       "version": "1.3.0",
@@ -316,7 +316,7 @@
     "@tradle/models-products-bot": {
       "version": "1.0.0",
       "from": "tradle/models-products-bot",
-      "resolved": "git://github.com/tradle/models-products-bot.git#9b0b0b761f46cf089b7b43934068c434103ef042"
+      "resolved": "git://github.com/tradle/models-products-bot.git#8a5beb61c2da34ece4a1dd674f541f673524cd51"
     },
     "@tradle/onfido-api": {
       "version": "1.0.0",

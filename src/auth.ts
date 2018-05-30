@@ -230,7 +230,7 @@ export default class Auth {
       throw new HandshakeFailed('claimed permalink changed from preauth')
     }
 
-    if (Date.now() - session.time > HANDSHAKE_TIMEOUT) {
+    if (Date.now() - session._time > HANDSHAKE_TIMEOUT) {
       throw new HandshakeFailed('handshake timed out')
     }
 

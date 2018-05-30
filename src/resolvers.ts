@@ -129,6 +129,9 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
     const property = model.properties[propertyName]
     const ref = getRef(property)
     const refModel = models[ref]
+    const propFilter = property.items.filter || {}
+    defaultsDeep(filter, propFilter)
+
     const typeCondition = filter.EQ[TYPE]
     if (typeCondition) {
       try {
@@ -140,7 +143,7 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
 
     if (isWellBehavedIntersection(refModel)) {
       filter.EQ[TYPE] = ref
-      return list(listOpts)
+      return await list(listOpts)
     }
 
     const container = await backlinks.fetchBacklinks({
@@ -153,7 +156,7 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
     return {
       items: filterResults({
         models,
-        filter: defaultsDeep(filter || {}, property.items.filter || {}),
+        filter,
         results: items
       })
     }

@@ -128,7 +128,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       await this.db.put({
         [TYPE]: DELIVERY_ERROR,
         counterparty,
-        time
+        _time: time
       }, {
         // only store one per counterparty
         expect: { counterparty: { Exists: false } }
@@ -165,8 +165,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
     })
   }
 
-  public getRangeFromError = ({ time }):IDeliveryMessageRange => ({
-    after: time - 1
+  public getRangeFromError = ({ _time }: {
+    _time: number
+  }):IDeliveryMessageRange => ({
+    after: _time - 1
   })
 }
 
