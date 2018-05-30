@@ -195,7 +195,6 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   if (typeof createCentrixClient !== 'function') {
     throw new Error('centrix client not available')
   }
-
   const centrix = createCentrixClient({ httpCredentials, requestCredentials })
   const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger })
   const getDataAndCallCentrix = async ({ req, application }) => {
@@ -245,7 +244,6 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
 
 async function getCentrixData ({ application, bot }) {
   if (!application) return
-
   const formStub = getParsedFormStubs(application)
     .find(form => form.type === PHOTO_ID)
 
@@ -259,24 +257,20 @@ async function getCentrixData ({ application, bot }) {
   if (!document) return
 
   const docType = getDocumentType(form)
-  let { firstName, lastName, birthData, dateOfBirth, sex } = personal
-  let { dateOfExpiry, documentNumber } = document
+  let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber } = form
   if (docType === DOCUMENT_TYPES.passport) {
     // trim trailing angle brackets
     documentNumber = documentNumber.replace(/[<]+$/g, '')
   }
 
+  dateOfBirth = toISODateString(dateOfBirth)
   if (dateOfExpiry)
     dateOfExpiry = toISODateString(dateOfExpiry)
-
-  // let address
-  if (docType === DOCUMENT_TYPES.license  &&  birthData) {
-    dateOfBirth = birthData.split(' ')[0]
-    dateOfBirth = toISODateString(dateOfBirth)
-  }
-  else if (dateOfBirth)
-    dateOfBirth = toISODateString(dateOfBirth)
-
+debugger
+  if (!firstName)
+    firstName = personal.firstName
+  if (!lastName)
+    lastName = personal.lastName
   if (!(firstName && lastName)) {
     const name = getNameFromForm({ application });
     if (name) ({ firstName, lastName } = name)
@@ -302,6 +296,7 @@ async function getCentrixData ({ application, bot }) {
       sex
     }
   }
+  debugger
   return centrixData
 }
 
