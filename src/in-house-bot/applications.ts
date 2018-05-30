@@ -17,7 +17,8 @@ import {
   ITradleObject,
   IPBUser,
   Models,
-  ApplicationSubmission
+  ApplicationSubmission,
+  Logger
 } from './types'
 
 import { Resource } from '../resource'
@@ -48,6 +49,7 @@ const PRUNABLE_FORMS = [
 export class Applications {
   private bot: Bot
   private productsAPI: any
+  private logger: Logger
   private get models() {
     return this.bot.models
   }
@@ -58,6 +60,7 @@ export class Applications {
   }) {
     this.bot = bot
     this.productsAPI = productsAPI
+    this.logger = bot.logger.sub('applications')
   }
 
   public createCheck = async ({ props, req }: ICreateCheckOpts) => {
@@ -222,13 +225,6 @@ export class Applications {
     application?: IPBApp
     req?: IPBReq
   }) => {
-    // this.productsAPI.verify({
-    //   req,
-    //   user: req && req.user,
-    //   application,
-    //   verification
-    // })
-
     verification = await this.bot.sign(verification)
     const promiseSave = this.bot.save(verification)
     if (application) {
@@ -238,6 +234,11 @@ export class Applications {
     }
 
     this.productsAPI.importVerification({ application, verification })
+    this.logger.debug('created verification', {
+      verification: verification._permalink,
+      application: application._permalink,
+      document: verification.document._permalink
+    })
 
     await promiseSave
     return verification
