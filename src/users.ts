@@ -7,6 +7,7 @@ import { getUpdateParams } from './db-utils'
 import Errors from './errors'
 import { Bot, DB } from './types'
 import { topics } from './events'
+import { ensureTimestamped } from './utils'
 
 const PRIMARY_KEY = 'uid'
 const MAPPED_PRIMARY_KEY = 'id'
@@ -94,12 +95,15 @@ export default class Users extends EventEmitter {
     id: user[PRIMARY_KEY]
   })
 
-  private _prepareForPut = user => ({
-    ..._.omit(user, MAPPED_PRIMARY_KEY),
-    [TYPE]: this.type,
-    uid: user[MAPPED_PRIMARY_KEY],
-    _time: Date.now()
-  })
+  private _prepareForPut = user => {
+    ensureTimestamped(user)
+    return {
+      ..._.omit(user, MAPPED_PRIMARY_KEY),
+      [TYPE]: this.type,
+      uid: user[MAPPED_PRIMARY_KEY],
+      _time: Date.now()
+    }
+  }
 }
 
 export { Users }

@@ -64,6 +64,11 @@ test(`users `, loudAsync(async (t) => {
   const bot = createTestBot()
   const { users } = bot
 
+  const isUpToDate = actual => {
+    // mainly to ignore _time
+    return _.isEqual(_.pick(actual, Object.keys(user)), actual)
+  }
+
   // clean up, just in case
   try {
     await Promise.map(await users.list(), user => users.del(user.id))
@@ -72,33 +77,34 @@ test(`users `, loudAsync(async (t) => {
   // const user : Object = {
   const user:any = {
     [TYPE]: users.type,
-    _time: 123,
     id: bob.permalink,
     identity: bob.object,
   }
 
   const promiseOnCreate = new Promise(resolve => {
     bot.hook(EventTopics.user.create, ({ event }) => {
-      resolve(event)
+      resolve(event.user)
     })
   })
 
-  t.same(await users.createIfNotExists(user), user, 'create if not exists')
-  t.same(await users.get(user.id), user, 'get by primary key')
+  t.ok(isUpToDate(await users.createIfNotExists(user)), 'create if not exists')
+  t.ok(isUpToDate(await users.get(user.id)), user, 'get by primary key')
 
   // doesn't overwrite
   await users.createIfNotExists({
     id: user.id
   })
 
-  t.same(await promiseOnCreate, { user })
-  t.same(await users.get(user.id), user, '2nd create does not clobber')
-  t.same(await users.list(), [user], 'list')
+  t.ok(isUpToDate(await promiseOnCreate))
+  t.ok(await users.get(user.id), user, '2nd create does not clobber')
+  const list = await users.list()
+  t.equal(list.length, 1)
+  t.ok(isUpToDate(list[0]), 'list')
 
   user.name = 'bob'
-  t.same(await users.merge(user), user, 'merge')
-  t.same(await users.get(user.id), user, 'get after merge')
-  t.same(await users.del(user.id), user, 'delete')
+  t.ok(isUpToDate(await users.merge(user)), 'merge')
+  t.ok(isUpToDate(await users.get(user.id)), 'get after merge')
+  t.ok(isUpToDate(await users.del(user.id)), 'delete')
   t.same(await users.list(), [], 'list')
   t.end()
 }))
