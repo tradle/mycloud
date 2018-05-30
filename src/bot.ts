@@ -1017,8 +1017,11 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       this.logger.debug(`save failed`, {
         type: resource[TYPE],
         link: resource._link,
-        input: err.input,
         error: err.stack
+      })
+
+      this.logger.silly('save failed (details)', {
+        input: err.input
       })
 
       throw err

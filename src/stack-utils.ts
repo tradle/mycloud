@@ -88,8 +88,6 @@ export default class StackUtils {
     })
 
     updates.forEach(({ path, value }) => _.set(resources, path, value))
-
-    console.log(resources.Resources.Initialize.Properties)
     return serverlessYml
   }
 
