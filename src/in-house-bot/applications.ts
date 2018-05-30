@@ -4,6 +4,8 @@ import groupBy from 'lodash/groupBy'
 import pick from 'lodash/pick'
 import omit from 'lodash/omit'
 import uniqBy from 'lodash/uniqBy'
+import flatMap from 'lodash/flatMap'
+import isEmpty from 'lodash/isEmpty'
 import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { parseStub } from '../utils'
@@ -142,21 +144,15 @@ export class Applications {
     return await Promise.map(verifications, appSub => this.bot.getResource(appSub.submission))
   }
 
-  public getFormsWithUnissuedVerifications = async({ application }: {
+  public getFormsAndVerifications = async({ application }: {
     application: IPBApp
   }) => {
     const promiseBotPermalink = this.bot.getMyPermalink()
-    const formStubs = getCustomerSubmittedForms({ forms: application.forms || [] })
+    const { forms=[] } = application
+    const formStubs = getCustomerSubmittedForms({ forms })
     const verifications = await this.getVerifications({ application })
-    const botPermalink = await promiseBotPermalink
-    const botIssued = verifications.filter(v => v._author === botPermalink)
-    const forms = formStubs.filter(stub => {
-      const { permalink } = parseStub(stub)
-      return !botIssued.some(v => parseStub(v.document).permalink === permalink)
-    })
-
     return {
-      forms,
+      formStubs,
       verifications
     }
   }
@@ -167,11 +163,18 @@ export class Applications {
     application: IPBApp
     send?: boolean
   }) => {
-    const { forms, verifications } = await this.getFormsWithUnissuedVerifications({ application })
-    if (!forms.length) return []
+    const { formStubs, verifications } = await this.getFormsAndVerifications({ application })
+    if (!formStubs.length) return []
 
-    return await forms.map(formStub => {
-      const sources = verifications.filter(v => parseStub(v.document).link === parseStub(formStub).link)
+    // avoid building increasingly tall trees of verifications
+    const sourcesOnly = flatMap(verifications, v => isEmpty(v.sources) ? v : v.sources)
+    return await formStubs.map(formStub => {
+      const sources = sourcesOnly.filter(v => parseStub(v.document).link === parseStub(formStub).link)
+      // if (!sources.length) {
+      //   this.logger.debug('not issuing verification for form, as no source verifications found', formStub)
+      //   return
+      // }
+
       return this.productsAPI.verify({
         req,
         user,

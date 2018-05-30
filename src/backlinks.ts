@@ -4,6 +4,7 @@ import Promise from 'bluebird'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
+import { utils as DDBUtils, OrderBy } from '@tradle/dynamodb'
 import {
   parseStub,
   parsePermId,
@@ -43,6 +44,10 @@ const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
 const { isDescendantOf, isInlinedProperty } = validateResource.utils
 const SEPARATOR = ':'
+const DEFAULT_BACKLINK_ORDER_BY = {
+  property: '_time',
+  desc: true
+}
 
 interface ResourceProperty extends ParsedResourceStub {
   property: string
@@ -69,6 +74,13 @@ export type RemoveBacklinks = {
 export type BacklinksChange = {
   add: IBacklinkItem[]
   del: IBacklinkItem[]
+}
+
+type FetchBacklinksOpts = {
+  type: string
+  permalink: string
+  properties?: string[]
+  orderBy?: OrderBy
 }
 
 // export type Backlink = string[]
@@ -103,11 +115,13 @@ export default class Backlinks {
     return getForwardLinks({ logger, models, resource })
   }
 
-  public fetchBacklinks = async ({ type, permalink, properties }: {
-    type: string
-    permalink: string
-    properties?: string[]
-  }):Promise<ResourceBacklinks> => {
+  public fetchBacklinks = async ({
+    type,
+    permalink,
+    properties,
+    orderBy=DEFAULT_BACKLINK_ORDER_BY
+  }: FetchBacklinksOpts):Promise<ResourceBacklinks> => {
+    const { models } = this
     const filter = {
       IN: {},
       EQ: {
@@ -117,7 +131,7 @@ export default class Backlinks {
     }
 
     if (properties) {
-      const targetModel = this.models[type]
+      const targetModel = models[type]
       const sourceProps = properties.map(prop => {
         const { ref, backlink } = targetModel.properties[prop].items
         return backlink
@@ -129,8 +143,16 @@ export default class Backlinks {
     }
 
     const { items } = await this.db.find({ filter })
+
+    // BacklinkItem is tricky to index
+    // sort in memory
+    DDBUtils.sortResults({
+      results: items,
+      orderBy
+    })
+
     return toResourceFormat({
-      models: this.models,
+      models,
       backlinkItems: items
     })
   }
