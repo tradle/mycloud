@@ -21,6 +21,7 @@ import { command as sealpending } from './sealpending'
 import { command as clear } from './clear'
 import { command as reset } from './reset'
 import { command as setenvvar } from './setenvvar'
+import { command as doctor } from './doctor'
 
 export {
   help,
@@ -45,5 +46,6 @@ export {
   sealpending,
   clear,
   reset,
-  setenvvar
+  setenvvar,
+  doctor
 }
