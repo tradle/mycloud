@@ -35,6 +35,7 @@ import {
   PRIVATE_CONF_BUCKET,
   PERMALINK,
   DB_IGNORE_PAYLOAD_TYPES,
+  FORBIDDEN_PAYLOAD_TYPES
 } from './constants'
 
 import {
@@ -169,8 +170,13 @@ export default class Messaging {
       resource: message
     })
 
+    const { object } = message
+    if (FORBIDDEN_PAYLOAD_TYPES.includes(object[TYPE])) {
+      this.logger.warn('received payload with forbidden type', { message })
+      throw new Errors.Forbidden(`payload ${object[TYPE]}`)
+    }
+
     if (clientId) {
-      const { object } = message
       const identity = getIntroducedIdentity(object)
       if (identity) {
         // small optimization to avoid validating the same identity

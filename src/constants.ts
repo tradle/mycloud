@@ -34,6 +34,17 @@ const TYPES = {
   DELIVERY_ERROR: 'tradle.DeliveryError',
 }
 
+const UNSIGNED_TYPES = [
+  'tradle.IotSession',
+  'tradle.MyCloudFriend',
+  'tradle.PubKey',
+  'tradle.products.Customer',
+  TYPES.SEAL_STATE,
+  TYPES.BACKLINK_ITEM,
+  TYPES.DELIVERY_ERROR,
+  'tradle.POJO'
+]
+
 const constants = {
   TYPE,
   PERMALINK,
@@ -110,16 +121,8 @@ const constants = {
   ROOT_LOGGING_NAMESPACE: 'tradle',
   DEFAULT_REGION: 'us-east-1',
   DATE_ZERO: 0, // 1514764800000 // 2018-01-01 UTC
-  UNSIGNED_TYPES: [
-    'tradle.IotSession',
-    'tradle.MyCloudFriend',
-    'tradle.PubKey',
-    'tradle.products.Customer',
-    TYPES.SEAL_STATE,
-    TYPES.BACKLINK_ITEM,
-    TYPES.DELIVERY_ERROR,
-    'tradle.POJO'
-  ]
+  UNSIGNED_TYPES,
+  FORBIDDEN_PAYLOAD_TYPES: UNSIGNED_TYPES
 }
 
 export = constants
