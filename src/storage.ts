@@ -1,4 +1,5 @@
 import cloneDeep from 'lodash/cloneDeep'
+import pick from 'lodash/pick'
 import typeforce from 'typeforce'
 import { TYPE } from '@tradle/constants'
 import Errors from './errors'
@@ -40,6 +41,9 @@ export default class Storage {
 
     object = cloneDeep(object)
     this.objects.addMetadata(object)
+
+    this.logger.silly('saving', pick(object, [TYPE, '_link', '_permalink']))
+
     await this.objects.replaceEmbeds(object)
     await Promise.all([
       saveToObjects === false ? RESOLVED_PROMISE : this.objects.put(object),
