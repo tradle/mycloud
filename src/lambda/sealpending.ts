@@ -1,16 +1,30 @@
 import { Lambda } from '../types'
 import { fromSchedule } from '../lambda'
 
+const SAFETY_MARGIN_MILLIS = 20000
+
 export const createLambda = (opts) => {
   const lambda = fromSchedule(opts)
   return lambda.use(createMiddleware(lambda, opts))
 }
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { seals } = lambda.bot
+  const { seals, env, logger } = lambda.bot
   return async (ctx, next) => {
-    ctx.seals = await seals.sealPending()
-    // bot 'onwroteseal' hook is triggered in onsealstream
+    let results = []
+    let batch
+    let haveTime
+    do {
+      batch = await seals.sealPending({ limit: 10 })
+      results = results.concat(batch)
+      haveTime = env.getRemainingTime() > SAFETY_MARGIN_MILLIS
+    } while (!haveTime)
+
+    if (!haveTime) {
+      logger.debug('almost out of time, exiting early')
+    }
+
+    ctx.seals = results
     await next()
   }
 }

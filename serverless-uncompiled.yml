@@ -748,7 +748,7 @@ functions:
   sealpending:
     handler: lib/in-house-bot/lambda/sealpending.handler
     memorySize: 256
-    timeout: 60
+    timeout: 300
     events:
       - schedule:
           rate: rate(10 minutes)
@@ -762,7 +762,7 @@ functions:
   pollchain:
     handler: lib/in-house-bot/lambda/pollchain.handler
     memorySize: 256
-    timeout: 60
+    timeout: 300
     events:
       - schedule:
           rate: rate(10 minutes)
