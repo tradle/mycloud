@@ -321,8 +321,14 @@ export default class Identities implements IHasLogger {
     this.objects.addMetadata(object)
     const link = object._link
     const permalink = object._permalink
-    const putPubKeys = object.pubkeys
-      .map(({ pub }) => this.putPubKey({ pub, link, permalink, _time: object._time }))
+    const putPubKeys = object.pubkeys.map(({ type, pub, fingerprint }) => this.putPubKey({
+      type,
+      pub,
+      fingerprint,
+      link,
+      permalink,
+      _time: object._time
+    }))
 
     this._cacheIdentity(object)
     this.logger.info('adding contact', { permalink })
@@ -330,9 +336,11 @@ export default class Identities implements IHasLogger {
   }
 
   public putPubKey = (props: {
+    type: string
+    pub: string,
+    fingerprint: string
     link: string,
     permalink: string,
-    pub: string,
     _time: number
   }):Promise<any> => {
     const { pub, link } = props
