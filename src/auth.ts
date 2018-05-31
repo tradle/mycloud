@@ -3,7 +3,7 @@ import merge from 'lodash/merge'
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { getUpdateParams } from './db-utils'
-import { typeforce, defineGetter, ensureNoVirtualProps } from './utils'
+import { typeforce, defineGetter, ensureNoVirtualProps, pickNonNull } from './utils'
 import { prettify, isHex } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors from './errors'
@@ -249,10 +249,10 @@ export default class Auth {
       .catch(Errors.ignoreNotFound)
 
     Object.assign(session, {
-      clientPosition: position,
-      serverPosition: {
+      clientPosition: pickNonNull(position),
+      serverPosition: pickNonNull({
         sent: await getLastSent
-      },
+      }),
       authenticated: true,
       dateAuthenticated: Date.now()
     })
