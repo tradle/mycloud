@@ -3,10 +3,10 @@ import superagent from 'superagent'
 import Cache from 'lru-cache'
 import { protocol } from '@tradle/engine'
 import buildResource from '@tradle/build-resource'
-import { ECKey, sha256, randomString } from './crypto'
+import { sha256, randomString } from './crypto'
 import { cachifyFunction, post, omitVirtual } from './utils'
 import Errors from './errors'
-import { IIdentity, IKeyValueStore, Logger } from './types'
+import { IIdentity, IWrappedKey, IKeyValueStore, Logger } from './types'
 
 export type Subscriber = {
   seq: number
@@ -58,15 +58,15 @@ export default class Push {
 
   public register = async ({ identity, key }: {
     identity: IIdentity,
-    key: ECKey
+    key: IWrappedKey
   }) => {
     const nonce = await post(`${this.serverUrl}/publisher`, {
       identity: omitVirtual(identity),
-      key: key.toJSONUnencoded()
+      key: key.toJSON(false)
     })
 
     const salt = randomString(32, 'base64')
-    const sig = await key.promiseSign(getChallenge({ nonce, salt }))
+    const sig = key.signSync(getChallenge({ nonce, salt }))
     await post(`${this.serverUrl}/publisher`, { nonce, salt, sig })
     await this.setRegistered()
   }
@@ -94,7 +94,10 @@ export default class Push {
     })
   }
 
-  public saveError = async ({ error, subscriber }) => {
+  public saveError = async ({ error, subscriber }: {
+    error: Error
+    subscriber: string
+  }) => {
     // TBD: whether to save last X err messages/stacks
     return await this.subscribers.update(subscriber, {
       UpdateExpression: 'ADD #errorCount :incr',
@@ -108,12 +111,16 @@ export default class Push {
     })
   }
 
-  public push = async ({ identity, key, subscriber }) => {
+  public push = async ({ identity, key, subscriber }: {
+    identity: IIdentity
+    key: IWrappedKey
+    subscriber: string
+  }) => {
     await this.ensureRegistered({ identity, key })
     const info = await this.incrementSubscriberNotificationCount(subscriber)
     const seq = info.seq - 1
     const nonce = randomString(8, 'base64')
-    const sig = await key.promiseSign(getNotificationData({ seq, nonce }))
+    const sig = key.signSync(getNotificationData({ seq, nonce }))
     const publisher = buildResource.permalink(identity)
     try {
       await post(`${this.serverUrl}/notification`, {

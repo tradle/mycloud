@@ -260,7 +260,7 @@ export function now () {
 //   }
 // }
 
-export function cachifyPromiser (fn, opts={}) {
+export const cachifyPromiser = <T>(fn:() => Promise<T>, opts={}):() => Promise<T> => {
   let promise
   const cachified = (...args) => {
     if (args.length) {

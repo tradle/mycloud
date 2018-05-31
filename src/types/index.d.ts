@@ -51,7 +51,7 @@ import {
 export type Constructor<T = {}> = new (...args: any[]) => T
 
 export * from '../retryable-task'
-export { ECKey } from '../crypto'
+// export { ECKey } from '../crypto'
 
 export {
   // re-export from @tradle/validate-resource
@@ -252,9 +252,18 @@ export interface IIdentity extends ITradleObject {
   pubkeys: Array<IPubKey>
 }
 
+export interface IWrappedKey {
+  sign?(data: string|Buffer, algorithm:string, callback: Function):void
+  signSync?(data: string|Buffer, algorithm?:string):string
+  verify(data: string|Buffer, algorithm:string, callback: Function):void
+  verifySync?(data: string|Buffer, algorithm:string):string
+  get(prop: string): string
+  toJSON(exportPrivate?:boolean): any
+}
+
 export interface IIdentityAndKeys {
   identity: IIdentity
-  keys: IPrivKey[]
+  keys: IWrappedKey[]
 }
 
 export type IDebug = (...any) => void

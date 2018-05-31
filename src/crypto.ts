@@ -1,9 +1,6 @@
 require('source-map-support').install()
 
 import crypto from 'crypto'
-import _ from 'lodash'
-import stringify from 'json-stable-stringify'
-import KeyEncoder from 'key-encoder'
 import promisify from 'pify'
 import { protocol, utils, constants } from '@tradle/engine'
 import {
@@ -17,118 +14,17 @@ import {
 
 import { InvalidSignature } from './errors'
 import { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } from './constants'
-import { IECMiniPubKey, IPrivKey, IIdentity } from './types'
+import { IECMiniPubKey, IPrivKey, IIdentity, IWrappedKey } from './types'
 
 const doSign = promisify(protocol.sign.bind(protocol))
 const { SIG, TYPE, TYPES } = constants
 const { IDENTITY } = TYPES
-const SIGN_WITH_HASH = 'sha256'
+const SIG_DIGEST_ALGORITHM = 'sha256'
 const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12
 const KEY_BYTES = 32
-const encoders = {}
 
 type HexOrBase64 = "hex" | "base64"
-
-export class ECKey {
-  public pub: string
-  public curve: string
-  public sigPubKey: IECMiniPubKey
-  public sign: (data: any, callback: Function) => void
-  public verify: (data: any, sig: any, callback: Function) => void
-  public promiseSign: (any) => Promise<string>
-  public promiseVerify: (data: any, sig: any) => Promise<boolean>
-  public signSync: (any) => string
-  public verifySync: (data: any, sig: any) => boolean
-  private keyJSON: any
-  constructor (keyJSON) {
-    keyJSON = toEncodedKey(_.cloneDeep(keyJSON))
-
-    this.keyJSON = keyJSON
-
-    const { curve, pub, encoded } = keyJSON
-    const { pem } = encoded
-    if (pem.priv) {
-      this.signSync = data => signWithPemEncodedKey(pem.priv, data)
-      this.sign = wrap(this.signSync)
-      this.promiseSign = async (data) => this.signSync(data)
-    }
-
-    if (pem.pub) {
-      this.verifySync = (data, sig) => verifyWithPemEncodedKey(pem.pub, data, sig)
-      this.verify = wrap(this.verifySync)
-      this.promiseVerify = async (data, sig) => this.verifySync(data, sig)
-    }
-
-    this.sigPubKey = {
-      curve,
-      pub: new Buffer(pub, 'hex')
-    }
-  }
-
-  public toJSON = (exportPrivate?:boolean):object => {
-    const json = _.cloneDeep(this.keyJSON)
-    if (!exportPrivate) {
-      delete json.priv
-      delete json.encoded.pem.priv
-    }
-
-    return json
-  }
-
-  public toJSONUnencoded = (exportPrivate?: boolean) => {
-    return _.omit(this.toJSON(exportPrivate), 'encoded')
-  }
-}
-
-// function encryptKey (key) {
-//   return kms.encrypt({
-//     CiphertextBlob: new Buffer(key)
-//   })
-//   .then(data => data.Plaintext)
-// }
-
-const decryptKey = ({ aws, encryptedKey }) => {
-  return aws.kms.decrypt({
-    CiphertextBlob: encryptedKey
-  })
-  .promise()
-  .then(data => data.Plaintext.toString())
-}
-
-// function getIdentityKeys ({ decryptionKey, encoding }) {
-//   return getEncryptedJSON({
-//     decryptionKey,
-//     bucket: Secrets,
-//     key: IDENTITY_KEYS_KEY
-//   })
-// }
-
-// function getEncryptedJSON ({ decryptionKey, bucket, key }) {
-//   return getEncryptedObject({ decryptionKey, bucket, key })
-//     .then(decryptedObject => JSON.parse(decryptedObject))
-// }
-
-// function getEncryptedObject ({ decryptionKey, bucket, key }) {
-//   const encryptedKeys = aws.s3.getObject({
-//     Bucket: bucket,
-//     Key: key,
-//     ResponseContentType: 'application/octet-stream'
-//   })
-
-//   return decrypt({ key: decryptionKey, data: encryptedKeys })
-// }
-
-// function putEncryptedJSON ({ object, encryptionKey }) {
-//   const encrypted = encrypt({
-//     data: new Buffer(stringify(object)),
-//     key: encryptionKey
-//   })
-
-//   return aws.s3.putObject({
-//     Body: JSON.stringify(encrypted)
-//   })
-// }
 
 export const encrypt = ({ data, key }) => {
   if (key.length !== KEY_BYTES) throw new Error(`expected key length: ${KEY_BYTES} bytes`)
@@ -183,60 +79,9 @@ export const decrypt = ({ key, data }) => {
   ])
 }
 
-export const signWithPemEncodedKey = (key, data):string => {
-  return crypto
-    .createSign(SIGN_WITH_HASH)
-    .update(toBuffer(data))
-    .sign(key, 'hex')
-}
+export const wrapKey = (key):IWrappedKey => (key.sign || key.verify) ? key : utils.importKey(key)
 
-export const verifyWithPemEncodedKey = (key, data, sig):boolean => {
-  if (typeof sig === 'string') {
-    sig = new Buffer(sig, 'hex')
-  }
-
-  return crypto
-    .createVerify(SIGN_WITH_HASH)
-    .update(toBuffer(data))
-    .verify(key, sig)
-}
-
-export const verify = async (key, data, sig): Promise<boolean> => {
-  if (!(key instanceof ECKey)) key = new ECKey(key)
-
-  return await key.promiseVerify(data, sig)
-}
-
-type ParsedSig = {
-  pubKey: ECKey
-  sig: string
-}
-
-export const parseSig = (encodedSig: string): ParsedSig => {
-  const { pubKey, sig } = protocol.utils.parseSig(encodedSig)
-  return { sig, pubKey: new ECKey(pubKey) }
-}
-
-export const verifyEncodedSig = async (data:string|Buffer, encodedSig:string): Promise<boolean> => {
-  const { pubKey, sig } = parseSig(encodedSig)
-  return await verify(pubKey, data, sig)
-}
-
-// function keyToSigner ({ curve, pub, encoded }) {
-//   const { priv } = encoded.pem
-//   return {
-//     sigPubKey: {
-//       curve,
-//       pub: new Buffer(pub, 'hex')
-//     },
-//     sign: wrap(data => signWithPemEncodedKey(priv, data))
-//   }
-// }
-
-export const getSigningKey = (keys):ECKey => {
-  const key = keys.find(key => key.type === 'ec' && key.purpose === 'sign')
-  return new ECKey(key)
-}
+export const getSigningKey = utils.sigKey
 
 export const getChainKey = (keys, props={}) => {
   return keys.find(key => {
@@ -251,8 +96,15 @@ export const getChainKey = (keys, props={}) => {
 }
 
 export const sign = loudAsync(async ({ key, object }) => {
-  const author = key instanceof ECKey ? key : new ECKey(key)
-  /* { object, merkleRoot } */
+  key = wrapKey(key)
+
+  const author = {
+    sign: key.sign,
+    sigPubKey: {
+      curve: key.get('curve'),
+      pub: key.pub
+    }
+  }
 
   const result = await doSign({ object, author })
   return setVirtual(result.object, {
@@ -287,36 +139,7 @@ export const extractSigPubKey = (object) => {
 
 export const exportKeys = keys => keys.map(exportKey)
 
-export const exportKey = key => {
-  if (key.toJSON) key = key.toJSON(true)
-
-  return toEncodedKey(key)
-}
-
-const toEncodedKey = key => {
-  if (key.type !== 'ec' || key.curve === 'curve25519') return key
-
-  // pre-encode to avoid wasting time importing in lambda
-  key.encoded = { pem: encodeToPem(key) }
-  return key
-}
-
-export const encodeToPem = (key, encoder?) => {
-  if (!encoder) encoder = getEncoder(key.curve)
-
-  return {
-    priv: key.priv && encoder.encodePrivate(new Buffer(key.priv, 'hex'), 'raw', 'pem'),
-    pub: key.pub && encoder.encodePublic(new Buffer(key.pub, 'hex'), 'raw', 'pem')
-  }
-}
-
-const getEncoder = (curve) => {
-  if (!encoders[curve]) {
-    encoders[curve] = new KeyEncoder(curve)
-  }
-
-  return encoders[curve]
-}
+export const exportKey = key => key.toJSON ? key.toJSON(true) : key
 
 export const sha256 = (data:string|Buffer, enc:HexOrBase64='base64') => {
   return crypto.createHash('sha256').update(data).digest(enc)
@@ -386,7 +209,7 @@ export const genIdentity = async (opts) => {
 
   return {
     identity,
-    keys: exportKeys(keys)
+    keys
   } as {
     identity: IIdentity,
     keys: IPrivKey[]

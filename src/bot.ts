@@ -8,7 +8,6 @@ import { TYPE, SIG } from '@tradle/constants'
 import { DB, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
-import protocol from '@tradle/protocol'
 import { mixin as readyMixin, IReady } from './ready-mixin'
 import { mixin as modelsMixin } from './models-mixin'
 import { topics as EventTopics, toAsyncEvent, toBatchEvent, getSealEventTopic } from './events'
@@ -73,7 +72,8 @@ import {
   Buckets,
   Tables,
   Bucket,
-  IMailer
+  IMailer,
+  IIdentityAndKeys
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -756,7 +756,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.buckets.PrivateConf.getJSON(constants.PRIVATE_CONF_BUCKET.identity)
   })
 
-  public getMyIdentityAndKeys = utils.cachifyPromiser(async () => {
+  public getMyIdentityAndKeys = utils.cachifyPromiser(async ():Promise<IIdentityAndKeys> => {
     const [identity, keys] = await Promise.all([
       this.getMyIdentity(),
       this.secrets.getIdentityKeys()
@@ -764,7 +764,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     return {
       identity,
-      keys: keys.map(stub => crypto.exportKey({
+      keys: keys.map(stub => crypto.wrapKey({
         ...stub,
         ...(identity.pubkeys.find(pub => pub.fingerprint === stub.fingerprint))
       }))

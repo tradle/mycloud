@@ -6,6 +6,7 @@ import nock from 'nock'
 import sinon from 'sinon'
 import pick from 'lodash/pick'
 import buildResource from '@tradle/build-resource'
+import { utils as tradleUtils } from '@tradle/engine'
 import Push, { getChallenge, getNotificationData } from '../push'
 import Logger from '../logger'
 import { loudAsync, omitVirtual } from '../utils'
@@ -13,7 +14,7 @@ import { getSigningKey, sha256 } from '../crypto'
 import { createBot } from '../'
 
 const alice = omitVirtual(require('./fixtures/alice/identity'))
-const aliceKeys = require('./fixtures/alice/keys')
+const aliceKeys = require('./fixtures/alice/keys').map(k => tradleUtils.importKey(k))
 
 test('push', loudAsync(async (t) => {
   const serverUrl = 'http://localhost:12345'
@@ -29,7 +30,7 @@ test('push', loudAsync(async (t) => {
       preregistered = true
       t.same(body, {
         identity: alice,
-        key: key.toJSONUnencoded()
+        key: key.toJSON(false)
       })
 
       return nonce

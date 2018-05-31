@@ -11,11 +11,12 @@ import {
 
 import {
   IPubKey,
+  IWrappedKey,
   ITradleObject,
   IIdentity,
   IIdentityAndKeys,
   IECMiniPubKey,
-  ECKey,
+  // ECKey,
   ModelStore,
   Objects,
   Logger
@@ -60,14 +61,14 @@ export default class Identity {
     return (await this.getPublic())._permalink
   }
 
-  public getSigningKey = async (): Promise<ECKey> => {
+  public getSigningKey = async (): Promise<IWrappedKey> => {
     const { keys } = await this.getPrivate()
     return getSigningKey(keys)
   }
 
   // TODO: how to invalidate cache on identity updates?
   // maybe ETag on bucket item? But then we still need to request every time..
-  public getKeys = async ():Promise<any> => {
+  public getKeys = async ():Promise<IWrappedKey[]> => {
     const { keys } = await this.getPrivate()
     return keys
   }
@@ -77,7 +78,7 @@ export default class Identity {
     if (network.flavor === 'corda') return
 
     const keys = await this.getKeys()
-    const chainKey = getChainKey(keys, {
+    const chainKey = getChainKey(keys.map(k => k.toJSON(true)), {
       type: network.flavor,
       networkName: network.networkName
     })

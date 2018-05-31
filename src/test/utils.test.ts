@@ -12,7 +12,7 @@ import KeyValueTable from '../key-value-table'
 import KV from '../kv'
 import Mailer from '../mailer'
 import { getFaviconUrl } from '../in-house-bot/image-utils'
-import { randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey, ECKey } from '../crypto'
+import { randomString, sha256 } from '../crypto'
 import * as utils from '../utils'
 import {
   loudAsync,
@@ -260,6 +260,7 @@ test('cachifyPromiser', loudAsync(async (t) => {
   t.equal(await fn(), 'a')
   t.equal(await fn(), 'a')
   try {
+    // @ts-ignore
     fn('something')
     t.fail('expected error')
   } catch (err) {
@@ -764,30 +765,30 @@ test('errors', t => {
   t.end()
 })
 
-test('sign/verify', loudAsync(async (t) => {
-  const key = aliceKeys.find(key => key.type === 'ec')
-  const sig = signWithPemEncodedKey(key.encoded.pem.priv, 'a')
-  t.ok(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a', new Buffer(sig, 'hex')))
-  t.notOk(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a1', sig))
+// test('sign/verify', loudAsync(async (t) => {
+//   const key = aliceKeys.find(key => key.type === 'ec')
+//   const sig = signWithPemEncodedKey(key.encoded.pem.priv, 'a')
+//   t.ok(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a', new Buffer(sig, 'hex')))
+//   t.notOk(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a1', sig))
 
-  const ecKey = new ECKey(key)
-  const sig1 = ecKey.signSync('b')
-  t.ok(ecKey.verifySync('b', sig1))
-  t.notOk(ecKey.verifySync('b', sig))
-  t.notOk(ecKey.verifySync('b1', sig1))
+//   const ecKey = new ECKey(key)
+//   const sig1 = ecKey.signSync('b')
+//   t.ok(ecKey.verifySync('b', sig1))
+//   t.notOk(ecKey.verifySync('b', sig))
+//   t.notOk(ecKey.verifySync('b1', sig1))
 
-  const sig2 = await promisify(ecKey.sign)('c')
-  t.ok(await promisify(ecKey.verify)('c', sig2))
-  t.notOk(await promisify(ecKey.verify)('c', sig))
-  t.notOk(await promisify(ecKey.verify)('c1', sig2))
+//   const sig2 = await promisify(ecKey.sign)('c')
+//   t.ok(await promisify(ecKey.verify)('c', sig2))
+//   t.notOk(await promisify(ecKey.verify)('c', sig))
+//   t.notOk(await promisify(ecKey.verify)('c1', sig2))
 
-  const sig3 = await ecKey.promiseSign('d')
-  t.ok(await ecKey.promiseVerify('d', sig3))
-  t.notOk(await ecKey.promiseVerify('d', sig))
-  t.notOk(await ecKey.promiseVerify('d1', sig3))
+//   const sig3 = await ecKey.promiseSign('d')
+//   t.ok(await ecKey.promiseVerify('d', sig3))
+//   t.notOk(await ecKey.promiseVerify('d', sig))
+//   t.notOk(await ecKey.promiseVerify('d1', sig3))
 
-  t.end()
-}))
+//   t.end()
+// }))
 
 test('first success', loudAsync(async (t) => {
   const pending = [
