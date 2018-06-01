@@ -25,11 +25,6 @@ import {
 
 import { Resource } from '../resource'
 
-interface ICreateCheckOpts {
-  props: any
-  req?: IPBReq
-}
-
 interface IPBJudgeAppOpts {
   req?: IPBReq
   application: string|IPBApp|ResourceStub
@@ -65,7 +60,7 @@ export class Applications {
     this.logger = bot.logger.sub('applications')
   }
 
-  public createCheck = async ({ props, req }: ICreateCheckOpts) => {
+  public createCheck = async (props) => {
     const { bot, productsAPI } = this
     const { models } = bot
     const type = props[TYPE]
