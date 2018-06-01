@@ -88,16 +88,22 @@ Before building your plugin, you probably want to create some kind of API wrappe
 
 import { Conf, IPluginOpts } from '../types'
 
-export const createPlugin = ({ 
-  // src/bot/index.ts Bot instance
-  bot, 
-  // @tradle/bot-products module instance from provider.js
-  productsAPI, 
-  // a logger for the plugin to use
-  logger,
-  // configuration as designed for this plugin
-  conf
-}) => {
+export const createPlugin = (
+  // other components
+  { 
+    // src/bot/index.ts Bot instance
+    bot, 
+    // products strategy api
+    productsAPI
+  }, 
+  // plugin-specific
+  {
+    // a logger for the plugin to use
+    logger,
+    // configuration as designed for this plugin
+    conf
+  }
+) => {
   const myApi = new MyApi(conf.credentials)
   const handleShmortz = async (req) => {
     const { 
@@ -108,7 +114,7 @@ export const createPlugin = ({
 
     const result = await myApi.askMyDataSource({
       glopz: Math.sqrt(payload.googa)
-      shmortz: payload.pantsColor / payload.brainTriangles
+      fleg: payload.pantsColor / payload.brainTriangles
     })
 
     if (result.success) {
@@ -117,7 +123,7 @@ export const createPlugin = ({
       await productsAPI.sendSimpleMessage({
         req,
         to: user,
-        message: 'your shmortz is below the pink average. Please come back later.'
+        message: 'your shmortz is below the pink average. Have a grafkl, it usually helps'
       })
     }
   }
@@ -152,19 +158,43 @@ See more complex examples: `centrix`, `complyAdvantage`, `onfido`, `deployment`,
 To take advantage of static type checking as it becomes more available, use the template below for building your plugin in `src/in-house-bot/plugins/`.
 
 ```ts
-import { Conf, IPluginOpts, IPluginExports } from '../types'
+import { Conf, CreatePlugin, IPluginLifecycleMethods } from '../types'
 import { MyApi } from 'my-api'
 
-export const createPlugin = (components:IBotComponents, opts:IPluginOpts):IPluginExports<MyApi> => {
-  const api = new MyApi(myApiOpts)
+export const createPlugin:CreatePlugin<MyApi> = (
+  // other components
+  { 
+    // src/bot/index.ts Bot instance
+    bot, 
+    // products strategy api
+    productsAPI
+  }, 
+  // plugin-specific
+  {
+    // a logger for the plugin to use
+    logger,
+    // configuration as designed for this plugin
+    conf
+  }
+) => {
+  const { bot, productsAPI } = components
+  // "conf" is from the block you put in conf/bot.json and deployed
+  const { conf, logger } = opts
+  const api = new MyApi({ whatever: 'opts' })
+  const plugin:IPluginLifecycleMethods = {
+    ['onmessage:tradle.Form']: async (req) => {
+      const { user, payload } = req
+      await api.runSomeQuery({ user, payload })
+    },
+    onFormsCollected: async ({ req }) => {
+      const { user, payload } = req
+      await api.runSomeOtherQuery({ user, payload })      
+    }
+  }
+
   return {
     api,
-    plugin: {
-      ['onmessage:tradle.Form']: async (req) => {
-        const { user, payload } = req
-        await api.runSomeQuery({ user, payload })
-      }
-    }
+    plugin
   }
 }
 
