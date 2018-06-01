@@ -5,10 +5,11 @@ import { post } from '../../middleware/noop-route'
 import { bodyParser } from '../../middleware/body-parser'
 import { fromHTTP, Lambda } from '../lambda'
 import { IPBMiddlewareContext, IPBMiddleware, ILaunchReportPayload } from '../types'
+import * as LambdaEvents from '../lambda-events'
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP({
-    event: 'deployment:pingback',
+    event: LambdaEvents.DEPLOYMENT_PINGBACK,
     ...opts
   })
 

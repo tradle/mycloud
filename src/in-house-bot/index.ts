@@ -58,6 +58,7 @@ import baseModels from '../models'
 import Errors from '../errors'
 import constants from '../constants'
 import { Resource } from '../resource'
+import * as LambdaEvents from './lambda-events'
 
 const { MAX_DB_ITEM_SIZE } = constants
 const { parseStub } = validateResource.utils
@@ -72,7 +73,6 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
-const ONFIDO_ENABLED = true
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const APPLICATION = 'tradle.Application'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
@@ -85,6 +85,15 @@ const HIDDEN_PRODUCTS = {
   employee: [EMPLOYEE_ONBOARDING],
   customer: ALL_HIDDEN_PRODUCTS
 }
+
+const ONFIDO_RELATED_EVENTS = [
+  LambdaEvents.ONFIDO_PROCESS_WEBHOOK_EVENT,
+  LambdaEvents.ONFIDO_REGISTER_WEBHOOK,
+  // // async
+  // LambdaEvents.RESOURCE_ASYNC,
+  // sync
+  LambdaEvents.MESSAGE
+]
 
 export default function createProductsBot({
   bot,
@@ -108,13 +117,11 @@ export default function createProductsBot({
     // graphqlRequiresAuth
   } = conf.bot.products
 
-  logger.debug('setting up products strategy')
+  logger.debug(`event: "${event}", setting up products strategy`)
 
   // until the issue with concurrent modifications of user & application state is resolved
   // then some handlers can migrate to 'messagestream'
-  const handleMessages = event === 'message' ||
-    (bot.isTesting && event === 'resourcestream')
-
+  const handleMessages = event === LambdaEvents.MESSAGE || (bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC)
   const mergeModelsOpts = { validate: bot.isTesting }
   const productsAPI = createProductsStrategy({
     logger: logger.sub('products'),
@@ -122,8 +129,6 @@ export default function createProductsBot({
     models: {
       all: mergeModels()
         .add(baseModels, { validate: false })
-        // .add(models, mergeModelsOpts)
-        // .add(ONFIDO_ENABLED ? onfidoModels.all : {}, mergeModelsOpts)
         .add(conf.modelsPack ? conf.modelsPack.models : {}, mergeModelsOpts)
         .get()
     },
@@ -146,7 +151,7 @@ export default function createProductsBot({
     }
   })
 
-  if (bot.isTesting && (event === 'resourcestream' || event === 'message')) {
+  if (bot.isTesting && (event === LambdaEvents.RESOURCE_ASYNC || event === LambdaEvents.MESSAGE)) {
     productsAPI.plugins.use({
       ['onmessage:tradle.IdentityPublishRequest']: async (req: IPBReq) => {
         const { user, payload } = req
@@ -318,20 +323,18 @@ export default function createProductsBot({
     }, true) // prepend
   }
 
-  const onfidoConf = plugins.onfido || {}
-  const willUseOnfido = ONFIDO_ENABLED &&
-    onfidoConf.apiKey &&
-    (handleMessages || /onfido/.test(event))
+  if (ONFIDO_RELATED_EVENTS.includes(event)) {
+    const onfidoConf = plugins.onfido || {}
+    if (onfidoConf.apiKey) {
+      logger.debug('using plugin: onfido')
+      const result = createOnfidoPlugin(components, {
+        logger: logger.sub('onfido'),
+        conf: onfidoConf
+      })
 
-  if (willUseOnfido) {
-    logger.debug('using plugin: onfido')
-    const result = createOnfidoPlugin(components, {
-      logger: logger.sub('onfido'),
-      conf: onfidoConf
-    })
-
-    productsAPI.plugins.use(result.plugin)
-    components.onfido = result.api
+      productsAPI.plugins.use(result.plugin)
+      components.onfido = result.api
+    }
   }
 
   const customizeMessageOpts = plugins['customize-message']
@@ -404,7 +407,7 @@ export default function createProductsBot({
 
   if (plugins.webhooks) {
     if ((bot.isTesting && handleMessages) ||
-      event === 'resourcestream') {
+      event === LambdaEvents.RESOURCE_ASYNC) {
       const { api, plugin } = createWebhooksPlugin(components, {
         conf: plugins.webhooks,
         logger: logger.sub('webhooks')
@@ -412,7 +415,7 @@ export default function createProductsBot({
     }
   }
 
-  // if (handleMessages || event === 'confirmation') {
+  // if (handleMessages || event === LambdaEvents.CONFIRMATION) {
   // const { api, plugin } = Plugins.get('commands').createPlugin(components, {
   //   logger: logger.sub('commands')
   // })
@@ -426,7 +429,7 @@ export default function createProductsBot({
   // }
 
   if (plugins['email-based-verification']) {
-    if (handleMessages || event === 'confirmation' || event === 'resourcestream') {
+    if (handleMessages || event === LambdaEvents.CONFIRMATION || event === LambdaEvents.RESOURCE_ASYNC) {
       const { api, plugin } = createEBVPlugin(components, {
         conf: plugins['email-based-verification'],
         logger: logger.sub('email-based-verification')
@@ -437,7 +440,7 @@ export default function createProductsBot({
     }
   }
 
-  // if (bot.isTesting || event === 'resourcestream') {
+  // if (bot.isTesting || event === LambdaEvents.RESOURCE_ASYNC) {
   //   const createCustomerApplication = async (app) => {
   //     return await new Resource({ bot, type: CUSTOMER_APPLICATION })
   //       .set({

@@ -4,10 +4,11 @@ import { createBot } from '../../../'
 import { customize } from '../../customize'
 import { post } from '../../../middleware/noop-route'
 import Errors from '../../../errors'
+import * as LambdaEvents from '../../lambda-events'
 
 const bot = createBot({ ready: false })
 const lambda = bot.createLambda({ source: EventSource.HTTP })
-const promiseCustomize = customize({ lambda, event: 'onfido:webhook' })
+const promiseCustomize = customize({ lambda, event: LambdaEvents.ONFIDO_PROCESS_WEBHOOK_EVENT })
 
 lambda.use(post())
 lambda.use(cors())
