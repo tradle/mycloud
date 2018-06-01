@@ -9,7 +9,7 @@ const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
 const SELFIE = 'tradle.Selfie'
 const PHOTO_ID = 'tradle.PhotoID'
-const FACE_RECOGNITION = 'tradle.facialRecognitionCheck'
+const FACE_RECOGNITION = 'tradle.FacialRecognitionCheck'
 
 const BASE_URL = 'url of the provider that checks'
 

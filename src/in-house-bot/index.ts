@@ -17,13 +17,10 @@ import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
 import { createPlugin as createSmartPrefillPlugin } from './plugins/smart-prefill'
 import { createPlugin as createLensPlugin } from './plugins/lens'
 import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
-import { createPlugin as createSanctionsPlugin } from './plugins/complyAdvantage'
-import { createPlugin as createOpenCorporatesPlugin } from './plugins/openCorporates'
-import { createPlugin as createControllingPersonRegistration } from './plugins/controllingPersonRegistration'
-import { createPlugin as createCentrixPlugin} from './plugins/centrix'
 import { createPlugin as createDeploymentPlugin } from './plugins/deployment'
 import { createPlugin as createHandSigPlugin } from './plugins/hand-sig'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
+
 import {
   createPlugin as keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
@@ -357,6 +354,7 @@ export default function createProductsBot({
       'lens',
       'openCorporates',
       'complyAdvantage',
+      'facial-recognition',
       'controllingPersonRegistration',
       'centrix'
     ].forEach(name => {
@@ -379,13 +377,14 @@ export default function createProductsBot({
 
   if (handleMessages || event.startsWith('deployment:')) {
     if (plugins['deployment']) {
-      const result = createDeploymentPlugin(components, {
+      const { plugin, api } = Plugins.get('deployment').createPlugin(components, {
         conf: plugins['deployment'],
         logger: logger.sub('plugin-deployment')
       })
 
-      components.deployment = result.deployment
-      productsAPI.plugins.use(result.plugin)
+      // @ts-ignore
+      components.deployment = api
+      productsAPI.plugins.use(plugin)
     }
   }
 
