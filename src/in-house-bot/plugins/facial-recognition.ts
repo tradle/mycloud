@@ -68,18 +68,19 @@ export class FacialRecognitionAPI {
   }
 
   public createCheck = async ({ status, selfie, photoID, application, error }) => {
-    let message
     let models = this.bot.models
-    let checkStatus:any
+    let checkStatus, message
     let photoID_displayName = buildResource.title({models, resource: photoID})
     if (error) {
-      checkStatus = {id: 'tradle.Status_fail', title: 'Fail'}
+      checkStatus = 'fail'
       message = error
-    } else if (status === 'Fail') {
-      checkStatus = {id: 'tradle.Status_fail', title: 'Fail'}
+    }
+    else if (status !== 'face-matched') {
+      checkStatus = 'fail'
       message = `Face recognition check for "${photoID_displayName}" failed`
-    } else if (status === 'Pass') {
-      checkStatus = {id: 'tradle.Status_pass', title: 'Pass'}
+    }
+    else {
+      checkStatus = 'pass'
       message = `Face recognition check for "${photoID_displayName}" passed`
     }
 
