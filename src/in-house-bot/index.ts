@@ -135,6 +135,10 @@ export default function createProductsBot({
     // queueSends: bot.env.TESTING ? true : queueSends
   })
 
+  // if (event === LambdaEvents.RESOURCE_ASYNC) {
+  //   productsAPI.removeDefaultHandlers()
+  // }
+
   productsAPI.removeDefaultHandler('shouldSealReceived')
   productsAPI.plugins.use({
     shouldSealReceived: ({ object }) => {
@@ -147,21 +151,6 @@ export default function createProductsBot({
       if (model && model.subClassOf === 'tradle.Form') return true
     }
   })
-
-  if (bot.isTesting && (event === LambdaEvents.RESOURCE_ASYNC || event === LambdaEvents.MESSAGE)) {
-    productsAPI.plugins.use({
-      ['onmessage:tradle.IdentityPublishRequest']: async (req: IPBReq) => {
-        const { user, payload } = req
-        const { identity } = payload
-        if (!identity._seal) {
-          await bot.seals.create({
-            counterparty: user.id,
-            object: identity
-          })
-        }
-      }
-    })
-  }
 
   const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
@@ -216,6 +205,10 @@ export default function createProductsBot({
   if (handleMessages) {
     bot.onmessage(productsAPI.onmessage)
   }
+
+  // if (event === LambdaEvents.RESOURCE_ASYNC) {
+  //   productsAPI.removeDefaultHandlers()
+  // }
 
   const myIdentityPromise = bot.getMyIdentity()
   const components: IBotComponents = {
@@ -284,6 +277,17 @@ export default function createProductsBot({
         // if (req.application && req.application.draft) {
         //   req.skipChecks = true
         // }
+
+        const { user, payload } = req
+        if (payload[TYPE] === 'tradle.IdentityPublishRequeest') {
+          const { identity } = payload
+          if (!identity._seal) {
+            await bot.seals.create({
+              counterparty: user.id,
+              object: identity
+            })
+          }
+        }
       }
     })
 
