@@ -91,13 +91,13 @@ export default class Objects {
     })
   }
 
-  public validate = (object:ITradleObject) => {
-    try {
-      extractSigPubKey(object)
-    } catch (err) {
-      throw new InvalidSignature(`for ${object[TYPE]}`)
-    }
-  }
+  // public validate = (object:ITradleObject) => {
+  //   try {
+  //     extractSigPubKey(object)
+  //   } catch (err) {
+  //     throw new InvalidSignature(`for ${object[TYPE]}`)
+  //   }
+  // }
 
   public getMetadata = (object:ITradleObject, forceRecalc?:boolean):ObjectMetadata => {
     typeforce(types.signedObject, object)
