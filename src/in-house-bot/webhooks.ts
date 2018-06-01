@@ -7,7 +7,7 @@ import { TYPE } from '@tradle/constants'
 import { Bot, Logger, IStreamEvent, IBackoffOptions, TopicOrString } from './types'
 import Errors from '../errors'
 import { runWithTimeout, runWithBackoffWhile, batchProcess, allSettled } from '../utils'
-import { topics as EventTopics, EventTopic } from '../events'
+import { topics as EventTopics, EventTopic, TOPICS } from '../events'
 
 export interface IWebhookSubscription {
   id: string
@@ -70,10 +70,8 @@ const DEFAULT_BACKOFF_OPTS = {
 
 // const flatten = (all, some) => all.concat(some)
 
-const TOPIC_LIST = Object.keys(EventTopics)
-  .map(parent => _.values(EventTopics[parent]) as EventTopic[])
-  .reduce((all, some) => all.concat(some), [])
-  .map((topic: EventTopic) => new RegExp(`^a?sync:${topic.sync}$`, 'i'))
+const TOPIC_LIST = TOPICS
+  .map((topic: string) => new RegExp(`^(?:async:)?${topic}$`, 'i'))
   // derived
   .concat([
     /^msg:i:.*/,
@@ -145,6 +143,7 @@ export class Webhooks {
   }
 
   public getSubscriptionsForEvent = (eventTopic: TopicOrString):IWebhookSubscription[] => {
+    eventTopic = eventTopic.toString()
     return this.conf.subscriptions.filter(({ topic }) => topic === eventTopic)
   }
 
@@ -169,15 +168,17 @@ export class Webhooks {
   public static validateSubscriptions = (subs: IWebhookSubscription[]) => {
     const keys = new Set()
     for (const sub of subs) {
+      const { topic } = sub
+      if (!isValidTopic(topic)) {
+        throw new Errors.InvalidInput(`no such topic: "${topic}"`)
+      }
+
       const key = getWebhookKey(sub)
       if (keys.has(key)) {
         throw new Errors.InvalidInput('webhook subscriptions must have unique ids, or be unique by topic+endpoint')
       }
 
-      const { topic } = sub
-      if (!isValidTopic(topic)) {
-        throw new Errors.InvalidInput(`no such topic: "${topic}"`)
-      }
+      keys.add(key)
     }
   }
 
@@ -288,11 +289,12 @@ export class Webhooks {
 
     let req: SuperAgentRequest
     try {
-      req = request
-        .post(endpoint)
-        .set('x-webhook-auth', hash)
-        .send(data)
+      req = request.post(endpoint)
+      if (hash) {
+        req.set('x-webhook-auth', hash)
+      }
 
+      req = req.send(data)
       await runWithTimeout(() => req, { millis: TIMEOUT_MILLIS })
     } catch (err) {
       this.logger.debug('failed to invoke webhook', {
