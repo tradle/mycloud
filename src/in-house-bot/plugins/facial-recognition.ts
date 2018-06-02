@@ -130,6 +130,10 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
     onFormsCollected: async ({ req, user, application }) => {
       if (req.skipChecks) return
       if (!application) return
+      let productId = application.requestFor
+      let { products } = conf
+      if (!products  ||  !products[productId])
+        return
 debugger
       const result = await facialRecognition.getSelfieAndPhotoID(application)
       if (!result) return
