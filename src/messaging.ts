@@ -256,19 +256,15 @@ export default class Messaging {
   public normalizeAndValidateInboundMessage = async (message: ITradleMessage):Promise<ITradleMessage> => {
     // TODO: uncomment below, check that message is for us
     // await ensureMessageIsForMe({ message })
-    const min = message
     // const payload = message.object
 
     // prereq to running validation
     await this.objects.resolveEmbeds(message)
 
-    this.objects.addMetadata(message)
-    this.objects.addMetadata(message.object)
-
-    setVirtual(min, pickVirtual(message))
-    setVirtual(min.object, pickVirtual(message.object))
-    message = min
     const payload = message.object
+
+    this.objects.addMetadata(message)
+    this.objects.addMetadata(payload)
 
     // TODO:
     // would be nice to parallelize some of these

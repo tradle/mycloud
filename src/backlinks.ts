@@ -200,7 +200,7 @@ export default class Backlinks {
       try {
         return await this.storage.save({ object })
       } catch (err) {
-        Errors.ignore(err, { code: 'ConditionalCheckFailedException' })
+        Errors.ignoreUnmetCondition(err)
       }
     }))
   }

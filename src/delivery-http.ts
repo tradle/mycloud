@@ -131,10 +131,13 @@ export default class Delivery extends EventEmitter implements IDelivery {
         _time: time
       }, {
         // only store one per counterparty
-        expect: { counterparty: { Exists: false } }
+        ExpressionAttributeNames: {
+          '#counterparty': 'counterparty'
+        },
+        ConditionExpression: 'attribute_not_exists(#counterparty)'
       })
     } catch (err) {
-      Errors.ignore(err, { code: 'ConditionalCheckFailedException' })
+      Errors.ignoreUnmetCondition(err)
       throw new Errors.Exists(`error for counterparty ${counterparty}`)
     }
   }

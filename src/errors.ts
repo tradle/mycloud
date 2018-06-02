@@ -189,6 +189,9 @@ const errors = {
   ignoreNotFound: err => {
     ignore(err, NOT_FOUND_MATCH)
   },
+  ignoreUnmetCondition: err => {
+    ignore(err, { code: 'ConditionalCheckFailedException' })
+  },
   /**
    * check if error is of a certain type
    * @param  {Error}             err
