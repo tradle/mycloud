@@ -17,7 +17,8 @@ import {
   getSigningKey,
   sign,
   getLink,
-  withLinks
+  withLinks,
+  getLinks
 } from '../crypto'
 
 import { loudAsync, co, typeforce, pickVirtual, omitVirtual } from '../utils'
@@ -74,6 +75,25 @@ test('extract pub key', function (t) {
 
   t.end()
 })
+
+// test.only('identities', loudAsync(async (t) => {
+//   const { identity } = alice
+//   const { pubkeys } = identity
+//   // const sandbox = sinon.createSandbox()
+//   const { link, permalink } = getLinks(identity)
+
+//   await identities.delContactWithHistory(identity)
+//   await identities.addContactWithoutValidating(identity)
+//   // should fail
+//   await identities.putPubKey({
+//     ...pubkeys[0],
+//     link,
+//     permalink,
+//     _time: identity._time - 1
+//   })
+
+//   t.end()
+// }))
 
 test('_doQueueMessage', loudAsync(async (t) => {
   // t.plan(3)

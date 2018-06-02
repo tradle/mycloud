@@ -144,18 +144,7 @@ export default class Identities implements IHasLogger {
   }) => {
     // get the PubKey that was the most recent known
     // at the "time"
-    return await this.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: PUB_KEY,
-          pub
-        },
-        LT: {
-          _time: time
-        }
-      },
-      orderBy: ORDER_BY_RECENT_FIRST
-   })
+    return await this.db.findOne(getPubKeyMappingQuery({ pub, time }))
   }
 
   // public getPubKey = async (pub:string) => {
@@ -370,7 +359,7 @@ export default class Identities implements IHasLogger {
     await Promise.all(putPubKeys.concat(this.storage.save({ object: identity })))
   }
 
-  public putPubKey = (props: {
+  public putPubKey = async (props: {
     type: string
     pub: string,
     fingerprint: string
@@ -378,7 +367,7 @@ export default class Identities implements IHasLogger {
     permalink: string,
     _time: number
   }):Promise<any> => {
-    const { pub, link, _time } = props
+    const { pub, permalink, link, _time } = props
     ensureTimeIsPast(_time)
 
     this.logger.debug('adding mapping', {
@@ -387,18 +376,20 @@ export default class Identities implements IHasLogger {
     })
 
     this._cachePub(props)
-    return this.db.put(normalizePub(props), {
-      // only store one per counterparty
-      ExpressionAttributeNames: {
-        '#counterparty': 'counterparty',
-        '#time': '_time'
-      },
-      ExpressionAttributeValues: {
-        ':time': _time
-      },
-      // either pub doesn't exist or _time increased
-      ConditionExpression: 'attribute_not_exists(#counterparty) OR #time < :time'
-    })
+    return await this.db.put(normalizePub(props))
+    // {
+    //   ExpressionAttributeNames: {
+    //     '#pub': 'pub',
+    //     '#permalink': 'permalink',
+    //     '#time': '_time',
+    //   },
+    //   ExpressionAttributeValues: {
+    //     ':permalink': permalink,
+    //     ':time': _time
+    //   },
+    //   // either pub doesn't exist or _time increased
+    //   ConditionExpression: 'attribute_not_exists(#pub) OR (#permalink = :permalink AND #time >= :time)'
+    // })
   }
 
   /**
@@ -442,6 +433,21 @@ export default class Identities implements IHasLogger {
     this._uncacheIdentity(identity)
     await Promise.map(getNormalizedPubKeys(identity), key => this.db.del(key))
   }
+
+  public delContactWithHistory = async (identity: IIdentity) => {
+    const { items } = await this.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: PUB_KEY,
+          permalink: getPermalink(identity)
+        }
+      }
+    })
+
+    await Promise.map(items, item => this.db.del(item), {
+      concurrency: 20
+    })
+  }
 }
 
 export { Identities }
@@ -471,3 +477,16 @@ const getNormalizedPubKeys = (identity: IIdentity) => {
     _time: identity._time
   }))
 }
+
+const getPubKeyMappingQuery = ({ pub, time }) => ({
+  filter: {
+    EQ: {
+      [TYPE]: PUB_KEY,
+      pub
+    },
+    LT: {
+      _time: time
+    }
+  },
+  orderBy: ORDER_BY_RECENT_FIRST
+})
