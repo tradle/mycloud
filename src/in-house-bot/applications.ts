@@ -259,31 +259,29 @@ export class Applications {
     await resource.save()
     return signed
   }
-
-  public deactivateChecksByCheckType = async({ application, type }: {
+  public deactivateChecks = async({ application, type, form }: {
     application: IPBApp
     type: string
+    form?: ITradleObject
   }) => {
-    let checks = await Promise.all(application.checks.filter(check => check[TYPE] === type && this.bot.getResource(check)))
-    if (!checks.length)
+    let checks = await Promise.all(application.checks.filter(check => check[TYPE] === type))
+    let deactivatedChecks = await Promise.all(checks.map(check => this.bot.getResource(check)))
+        .filter(check => {
+    debugger
+          if (check.isInactive)
+            return false
+          // by check type
+          if (!form)
+            return true
+          // by check type and form
+          if (check.form  &&  check.form[PERMALINK] === form[PERMALINK])
+            return true
+        })
+    debugger
+    if (!deactivatedChecks.length)
       return
-
-    let deactivatedChecks = checks.filter(check => !check.isActive)
-    if (deactivatedChecks.length)
-      await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave(check)))
-  }
-  public deactivateChecksByCheckTypeAndForm = async({ application, type, form }: {
-    application: IPBApp
-    type: string
-    form: ITradleObject
-  }) => {
-    let checks = await Promise.all(application.checks.filter(check => check[TYPE] === type && this.bot.getResource(check)))
-    if (!checks.length)
-      return
-
-    let deactivatedChecks = checks.filter(check => !check.isActive  &&  check.form  &&  check.form[PERMALINK] === form[PERMALINK])
-    if (deactivatedChecks.length)
-      await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave(check)))
+    deactivatedChecks.forEach(check => check.isInactive = true)
+    await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave(check)))
   }
   // public getChecks = async (application:IPBApp) => {
   //   const stubs = (application.checks || application.submissions || []).map(appSub => appSub.submission)
