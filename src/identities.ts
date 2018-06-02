@@ -19,6 +19,7 @@ import {
   summarizeObject,
   RESOLVED_PROMISE,
   instrumentWithXray,
+  ensureTimeIsPast,
 } from './utils'
 
 import { addLinks, getLink, getLinks, getPermalink, extractSigPubKey, getSigningKey, sign } from './crypto'
@@ -42,6 +43,10 @@ const { MESSAGE } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
 const PUB_KEY = 'tradle.PubKey'
+const ORDER_BY_RECENT_FIRST = {
+  property: '_time',
+  desc: true
+}
 
 let BLAH_COUNTER = 0
 
@@ -85,16 +90,16 @@ export default class Identities implements IHasLogger {
     const { logger } = components
     this.logger = logger.sub('identities')
 
-    const getPubKeyCachified = cachifyFunction({
+    const getLatestCachified = cachifyFunction({
       cache: new Cache({ maxAge: CACHE_MAX_AGE }),
-      getPubKey: this.getPubKey.bind(this),
+      getPubKey: this.getLatestPubKeyMapping.bind(this),
       logger
     }, 'getPubKey')
 
-    this._cachePub = keyObj => getPubKeyCachified.set([keyObj.pub], normalizePub(keyObj))
-    this._uncachePub = keyObj => getPubKeyCachified.del([keyObj.pub])
+    this._cachePub = keyObj => getLatestCachified.set([keyObj.pub], normalizePub(keyObj))
+    this._uncachePub = keyObj => getLatestCachified.del([keyObj.pub])
 
-    this.getPubKey = getPubKeyCachified.call
+    this.getLatestPubKeyMapping = getLatestCachified.call
 
     const getIdentityCachified = cachifyFunction({
       cache: new Cache({ maxAge: CACHE_MAX_AGE }),
@@ -118,42 +123,68 @@ export default class Identities implements IHasLogger {
 
     logify(this, { level: 'silly', logger }, [
       'byPermalink',
-      'getPubKey',
+      'getLatestPubKeyMapping',
       'putPubKey',
       'validateNewContact'
     ])
   }
 
-  public getPubKey = async (pub:string) => {
-    try {
-      const key = await this.db.get({
-        [TYPE]: PUB_KEY,
-        pub
-      })
-
-      this._cachePub(key)
-      return key
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-      throw new Errors.UnknownAuthor(`with pub: ${pub}`)
-    }
+  public getLatestPubKeyMapping = async (pub: string) => {
+    // maybe should be { time: Infinity }
+    // Note: we should reject items with future _time
+    return this.getPubKeyMapping({
+      pub,
+      time: Date.now()
+    })
   }
 
-  public byPub = async (pub:string):Promise<IIdentity> => {
-    const { link } = await this.getPubKey(pub)
-    try {
-      const identity = await this.objects.get(link)
-      this._cacheIdentity(identity)
-      return identity as IIdentity
-    } catch(err) {
-      this.logger.debug('unknown identity', {
-        pub,
-        error: err.stack
-      })
-
-      throw new Errors.UnknownAuthor('with pub: ' + pub)
-    }
+  public getPubKeyMapping = async ({ pub, time }: {
+    pub: string
+    time: number
+  }) => {
+    // get the PubKey that was the most recent known
+    // at the "time"
+    return await this.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: PUB_KEY,
+          pub
+        },
+        LT: {
+          _time: time
+        }
+      },
+      orderBy: ORDER_BY_RECENT_FIRST
+   })
   }
+
+  // public getPubKey = async (pub:string) => {
+  //   try {
+  //     const key = await this.db.get({
+  //       [TYPE]: PUB_KEY,
+  //       pub
+  //     })
+
+  //     this._cachePub(key)
+  //     return key
+  //   } catch (err) {
+  //     Errors.ignoreNotFound(err)
+  //     throw new Errors.UnknownAuthor(`with pub: ${pub}`)
+  //   }
+  // }
+
+  // public byPub = async (pub:string):Promise<IIdentity> => {
+  //   const { link } = await this.getPubKey(pub)
+  //   try {
+  //     const identity = await this.objects.get(link)
+  //     this._cacheIdentity(identity)
+  //     return identity as IIdentity
+  //   } catch(err) {
+  //     Errors.ignoreNotFound(err)
+  //     this.logger.debug('unknown identity', { pub })
+  //     throw new Errors.UnknownAuthor('with pub: ' + pub)
+  //   }
+  // }
 
   // public sigPubKeysByPermalink = async (permalink:string):Promise<string[]> => {
   //   const params = {
@@ -189,7 +220,8 @@ export default class Identities implements IHasLogger {
           [TYPE]: PUB_KEY,
           permalink
         }
-      }
+      },
+      orderBy: ORDER_BY_RECENT_FIRST
     })
 
     try {
@@ -225,7 +257,7 @@ export default class Identities implements IHasLogger {
     const { pubkeys } = identity
     // optimize for common case
     try {
-      return await this.getPubKey(pubkeys[0].pub)
+      return await this.getLatestPubKeyMapping(pubkeys[0].pub)
     } catch (err) {
       if (pubkeys.length === 1) throw err
 
@@ -233,7 +265,7 @@ export default class Identities implements IHasLogger {
     }
 
     this.logger.debug('uncommon case, running more lookups')
-    const lookups = pubkeys.slice(1).map(key => this.getPubKey(key.pub))
+    const lookups = pubkeys.slice(1).map(key => this.getLatestPubKeyMapping(key.pub))
     return firstSuccess(lookups)
   }
 
@@ -269,6 +301,7 @@ export default class Identities implements IHasLogger {
 // })
 
   public validateNewContact = async (identity) => {
+    ensureTimeIsPast(identity._time)
     identity = omitVirtual(identity)
     if (identity._link || identity._permalink) {
       throw new Errors.InvalidInput(`evil identity has non-virtual _link, _permalink`)
@@ -309,30 +342,32 @@ export default class Identities implements IHasLogger {
     }
   }
 
-  public addContactWithoutValidating = async (object: IIdentity):Promise<void> => {
-    if (object) {
-      typeforce(types.identity, object)
+  public addContactWithoutValidating = async (identity: IIdentity):Promise<void> => {
+    ensureTimeIsPast(identity._time)
+
+    if (identity) {
+      typeforce(types.identity, identity)
     } else {
-      object = (await this.objects.get(getLink(object)) as IIdentity)
+      identity = (await this.objects.get(getLink(identity)) as IIdentity)
     }
 
-    object = clone(object)
+    identity = clone(identity)
 
-    this.objects.addMetadata(object)
-    const link = object._link
-    const permalink = object._permalink
-    const putPubKeys = object.pubkeys.map(({ type, pub, fingerprint }) => this.putPubKey({
+    this.objects.addMetadata(identity)
+    const link = identity._link
+    const permalink = identity._permalink
+    const putPubKeys = identity.pubkeys.map(({ type, pub, fingerprint }) => this.putPubKey({
       type,
       pub,
       fingerprint,
       link,
       permalink,
-      _time: object._time
+      _time: identity._time
     }))
 
-    this._cacheIdentity(object)
+    this._cacheIdentity(identity)
     this.logger.info('adding contact', { permalink })
-    await Promise.all(putPubKeys.concat(this.storage.save({ object })))
+    await Promise.all(putPubKeys.concat(this.storage.save({ object: identity })))
   }
 
   public putPubKey = (props: {
@@ -343,14 +378,27 @@ export default class Identities implements IHasLogger {
     permalink: string,
     _time: number
   }):Promise<any> => {
-    const { pub, link } = props
+    const { pub, link, _time } = props
+    ensureTimeIsPast(_time)
+
     this.logger.debug('adding mapping', {
       pub,
       link
     })
 
     this._cachePub(props)
-    return this.db.put(normalizePub(props))
+    return this.db.put(normalizePub(props), {
+      // only store one per counterparty
+      ExpressionAttributeNames: {
+        '#counterparty': 'counterparty',
+        '#time': '_time'
+      },
+      ExpressionAttributeValues: {
+        ':time': _time
+      },
+      // either pub doesn't exist or _time increased
+      ConditionExpression: 'attribute_not_exists(#counterparty) OR #time < :time'
+    })
   }
 
   /**
@@ -360,7 +408,11 @@ export default class Identities implements IHasLogger {
   public calcAuthorInfo = async (object: ITradleObject):Promise<AuthorInfo> => {
     const { _sigPubKey } = this.objects.getMetadata(object)
     const type = object[TYPE]
-    const author = await this.getPubKey(_sigPubKey)
+    const author = await this.getPubKeyMapping({
+      pub: _sigPubKey,
+      time: object._time
+    })
+
     const ret = {
       _author: author.permalink
     } as AuthorInfo

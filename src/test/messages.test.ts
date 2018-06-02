@@ -148,7 +148,7 @@ test('_doQueueMessage', loudAsync(async (t) => {
 test('_doReceiveMessage', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const message = fromBobToAlice[0]
-  const stubGetIdentity = sandbox.stub(identities, 'getPubKey').callsFake(mocks.getPubKey)
+  const stubGetIdentity = sandbox.stub(identities, 'getPubKeyMapping').callsFake(mocks.getPubKeyMapping)
   const stubPutObject = sandbox.stub(objects, 'put').callsFake(function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
@@ -291,7 +291,8 @@ test('_doReceiveMessage', loudAsync(async (t) => {
 // }))
 
 const mocks = {
-  byPermalink: co(function* (permalink) {
+  byPermalink: async (permalink) => {
+    debugger
     if (permalink === alice.identity._permalink) {
       return alice.identity
     }
@@ -300,17 +301,17 @@ const mocks = {
     }
 
     throw new Errors.NotFound('identity not found by permalink: ' + permalink)
-  }),
-  byPub: co(function* (pub) {
-    const found = [alice, bob].find(info => {
-      return info.identity.pubkeys.some(key => key.pub === pub)
-    })
+  },
+  // byPub: async (pub) => {
+  //   const found = [alice, bob].find(info => {
+  //     return info.identity.pubkeys.some(key => key.pub === pub)
+  //   })
 
-    if (found) return found.identity
+  //   if (found) return found.identity
 
-    throw new Errors.NotFound('identity not found by pub: ' + pub)
-  }),
-  getPubKey: co(function* (pub) {
+  //   throw new Errors.NotFound('identity not found by pub: ' + pub)
+  // },
+  getPubKeyMapping: async ({ pub }) => {
     const found = [alice, bob].find(info => {
       return info.identity.pubkeys.some(key => key.pub === pub)
     })
@@ -323,5 +324,5 @@ const mocks = {
     }
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
-  })
+  }
 }
