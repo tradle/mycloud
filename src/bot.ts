@@ -959,7 +959,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public resolveEmbeds = object => this.objects.resolveEmbeds(object)
-  public presignEmbeddedMediaLinks = object => this.objects.presignEmbeddedMediaLinks(object)
+  public presignEmbeddedMediaLinks = opts => this.objects.presignEmbeddedMediaLinks(opts)
   public createNewVersion = async (resource) => {
     const latest = buildResource.version(resource)
     const signed = await this.sign(latest)

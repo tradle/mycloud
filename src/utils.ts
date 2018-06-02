@@ -1339,7 +1339,7 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
   })
 }
 
-const normalizeSendOpts = async (bot, opts) => {
+const normalizeSendOpts = async (bot: Bot, opts) => {
   let { link, object, to } = opts
   if (typeof object === 'string') {
     object = {
@@ -1367,7 +1367,6 @@ const normalizeSendOpts = async (bot, opts) => {
     throw new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
   }
 
-  bot.objects.presignEmbeddedMediaLinks(object)
   opts = _.omit(opts, 'to')
   opts.object = object
   opts.recipient = normalizeRecipient(to)
