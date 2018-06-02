@@ -118,7 +118,7 @@ debugger
 
     await this.applications.createVerification({ application, verification })
     if (application.checks)
-      await this.applications.deactivateChecksByCheckTypeAndForm({ application, type: FACIAL_RECOGNITION, form: photoID })
+      await this.applications.deactivateChecks({ application, type: FACIAL_RECOGNITION, form: photoID })
   }
 }
 
