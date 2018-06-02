@@ -175,16 +175,13 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
 
       logger.debug(`created ${EMAIL_CHECK}`, { emailAddress: value })
       const createCheck = applications.createCheck({
-        req,
-        props: {
-          [TYPE]: EMAIL_CHECK,
-          application,
-          emailAddress: value,
-          // this org
-          provider: conf.org.name,
-          user: user.identity,
-          dateExpires: Date.now() + TTL.ms
-        }
+        [TYPE]: EMAIL_CHECK,
+        application,
+        emailAddress: value,
+        // this org
+        provider: conf.org.name,
+        user: user.identity,
+        dateExpires: Date.now() + TTL.ms
       })
 
       const alertUser = await bot.sendSimpleMessage({

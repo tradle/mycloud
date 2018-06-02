@@ -210,8 +210,15 @@ const bumpSuffix = (id) => {
 
 const getTopicName = (str: string) => parseTopic(str).original
 
+const registry = new Set<String>()
+
 export class EventTopic {
-  constructor(private name: string) {}
+  constructor(private name: string) {
+    registry.add(this.toString())
+    // registry.add(this.sync.toString())
+    // registry.add(this.async.toString())
+    // registry.add(this.async.batch.toString())
+  }
   get sync():EventTopic { return new EventTopic(toSyncEvent(this.name)) }
   get async():EventTopic { return new EventTopic(toAsyncEvent(this.name)) }
   get batch():EventTopic { return new EventTopic(toBatchEvent(this.name)) }
@@ -250,6 +257,8 @@ export const topics = {
     offline: new EventTopic('user:offline'),
   }
 }
+
+export const TOPICS = Array.from(registry)
 
 const BATCH_SUFFIX = ':batch'
 const BATCH_REGEX = new RegExp(`${BATCH_SUFFIX}$`)
