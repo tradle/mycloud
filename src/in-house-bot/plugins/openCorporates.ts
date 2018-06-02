@@ -67,7 +67,7 @@ class OpenCorporatesAPI {
     this.logger = logger
     this.conf = conf
   }
-  async _fetch(resource, application) {
+  public _fetch = async (resource, application) => {
     let { registrationNumber, registrationDate, region, country, companyName } = resource
     let url = `${BASE_URL}companies/search?q=` + companyName.replace(' ', '+')
     // let json = test
@@ -84,7 +84,6 @@ class OpenCorporatesAPI {
       let message = `No matches for company name "${companyName}" were found`
       return { rawData: json, hits: [], message, url }
     }
-debugger
     json = sanitize(json).sanitized
 
     let hasHits = json.results.companies.length
@@ -137,33 +136,31 @@ debugger
     return { rawData: companies.length  &&  json.results || json, message: message, hits: companies, url }
   }
 
-  async createCorporateCheck({ application, rawData, message, hits, url }) {
-    let status
-    if (message)
-      status = {id: 'tradle.Status_fail', title: 'Fail'}
-    else if (hits.length === 1)
-      status = {id: 'tradle.Status_pass', title: 'Pass'}
-    else
-      status = {id: 'tradle.Status_fail', title: 'Fail'}
-    let resource:any = {
-      [TYPE]: CORPORATION_EXISTS,
-      status: status,
+  public createCorporateCheck = async ({ application, rawData, message, hits, url, form }) => {
+    let checkR:any = {
+      status:  !message  &&  hits.length === 1 && 'pass' || 'fail',
       provider: OPEN_CORPORATES,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime(),
-      sharedUrl: url,
+      shareUrl: url,
+      form
     }
     if (message)
-      resource.message = message
+      checkR.message = message
     if (hits.length)
-      resource.rawData = hits
+      checkR.rawData = hits
     else if (rawData)
-      resource.rawData = rawData
+      checkR.rawData = rawData
+    const check = await this.bot.draft({ type: CORPORATION_EXISTS })
+      .set(checkR)
+      .signAndSave()
 
-    const check = await this.bot.signAndSave(resource)
+debugger
+    return check.toJSON()
   }
 
-  async createVerification({ user, application, form, rawData }) {
+  public createVerification = async ({ user, application, form, rawData }) => {
+    debugger
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -175,34 +172,21 @@ debugger
       rawData: rawData
     }
 
-    let verification = buildResource({
-                           models: this.bot.models,
-                           model: VERIFICATION
-                         })
-                         .set({
-                           document: form,
-                           method
-                         })
-                         .toJSON()
+    const verification = this.bot.draft({ type: VERIFICATION })
+       .set({
+         document: form,
+         method
+       })
+       .toJSON()
 
     const signedVerification = await this.applications.createVerification({
       application,
       verification
     })
+debugger
 
-    if (!application.checks)
-      return
-
-    let checks = await Promise.all(application.checks.map(appSub => this.bot.getResource(appSub.submission)))
-    let ocChecks = []
-    checks.forEach((r:any) => {
-      if (r.provider !== OPEN_CORPORATES  ||  !r.isActive)
-        return
-      r.isActive = false
-      ocChecks.push(this.bot.versionAndSave(r))
-    })
-    if (ocChecks.length)
-      await Promise.all(ocChecks)
+    if (application.checks)
+      await this.applications.deactivateChecks({ application, type: CORPORATION_EXISTS, form })
   }
 }
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger, conf }) => {
@@ -210,7 +194,6 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req) {
       if (req.skipChecks) return
-debugger
       const { user, application, payload } = req
       if (!application) return
 
@@ -240,7 +223,7 @@ debugger
         hasVerification = true
         logger.debug(`creating verification for: ${resource.companyName}`);
       }
-      pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, message, hits, url}))
+      pchecks.push(openCorporates.createCorporateCheck({application, rawData: rawData, message, hits, url, form: payload}))
       if (hasVerification)
         pchecks.push(openCorporates.createVerification({user, application, form: payload, rawData: hits[0].company}))
       // })

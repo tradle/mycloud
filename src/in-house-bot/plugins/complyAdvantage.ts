@@ -11,6 +11,7 @@ import {
   Logger,
   IPBApp,
   IPBReq,
+  ITradleObject,
   CreatePlugin,
   Applications
 } from '../types'
@@ -54,6 +55,7 @@ interface IComplyCheck {
   application: IPBApp
   rawData: any
   status: any
+  form: ITradleObject
 }
 
 class ComplyAdvantageAPI {
@@ -69,7 +71,7 @@ class ComplyAdvantageAPI {
     this.applications = applications
     this.logger = logger
   }
-  async getData(resource, criteria) {
+  public getData = async (resource, criteria) => {
     let { companyName, registrationDate} = resource //conf.propertyMap //[resource[TYPE]]
     let search_term = criteria  &&  criteria.search_term || companyName
     let year = new Date(registrationDate).getFullYear()
@@ -101,13 +103,13 @@ class ComplyAdvantageAPI {
       this.logger.debug('something went wrong', err)
       json = {status: 'failure', message: `Check was not completed for "${search_term}": ${err.message}`}
       status = {
-        status: {id: 'tradle.Status_error', title: 'Error'},
+        status: 'error',
         message: `Check was not completed for "${search_term}": ${err.message}`,
       }
 
       return { status, rawData: {}, hits: [] };
     }
-// debugger
+debugger
 
     // if (json.status !== 'success') {
     //   // need to request again
@@ -120,20 +122,20 @@ class ComplyAdvantageAPI {
     rawData = sanitize(rawData).sanitized
     if (hits  &&  hits.length) {
       status = {
-        status: {id: 'tradle.Status_fail', title: 'Fail'},
+        status: 'fail',
         message: `Sanctions check for "${search_term}" failed`
       }
     }
     else {
       status = {
-        status: {id: 'tradle.Status_pass', title: 'Pass'},
+        status: 'pass',
         message: `Sanctions check for "${search_term}" passed`
       }
     }
     return hits && { rawData, status, hits }
   }
 
-  async createSanctionsCheck({ application, rawData, status }: IComplyCheck) {
+  public createSanctionsCheck = async ({ application, rawData, status, form }: IComplyCheck) => {
     // debugger
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
@@ -141,20 +143,24 @@ class ComplyAdvantageAPI {
       provider: 'Comply Advantage',
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      message: status.message
+      message: status.message,
+      form
     }
     if (rawData  &&  rawData.share_url) {
       resource.rawData = rawData
-      resource.sharedUrl = rawData.share_url
+      resource.shareUrl = rawData.share_url
     }
-    if (!application.checks) application.checks = []
 
     this.logger.debug(`Creating SanctionsCheck for: ${rawData.submitted_term}`);
-    const check = await this.bot.signAndSave(resource)
+    const check = await this.bot.draft({ type: SANCTIONS_CHECK })
+        .set(resource)
+        .signAndSave()
+debugger
+    // const check = await this.bot.signAndSave(resource)
     this.logger.debug(`Created SanctionsCheck for: ${rawData.submitted_term}`);
   }
 
-  async createVerification({ user, application, form, rawData }) {
+  public createVerification = async ({ user, application, form, rawData }) => {
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -166,18 +172,17 @@ class ComplyAdvantageAPI {
       rawData: rawData
     }
 
-    let verification = buildResource({
-                           models: this.bot.models,
-                           model: VERIFICATION
-                         })
-                         .set({
-                           document: form,
-                           method
-                           // documentOwner: applicant
-                         })
-                         .toJSON()
+    const verification = this.bot.draft({ type: VERIFICATION })
+       .set({
+         document: form,
+         method
+       })
+       .toJSON()
 
     await this.applications.createVerification({ application, verification })
+debugger
+    if (application.checks)
+      await this.applications.deactivateChecks({ application, type: SANCTIONS_CHECK, form })
   }
 }
 // {conf, bot, productsAPI, logger}
@@ -187,8 +192,8 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req: IPBReq) {
       if (req.skipChecks) return
-
       const { user, application, applicant, payload } = req
+debugger
 
       if (!application) return
 
@@ -220,19 +225,17 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       let pchecks = []
       let { rawData, hits, status } = r
       if (rawData.status === 'failure') {
-        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status}))
+        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status: 'fail', form: payload}))
       }
       else {
         let hasVerification
-        if (hits  &&  hits.length) {
+        if (hits  &&  hits.length)
           logger.debug(`found sanctions for: ${companyName}`);
-          // return complyAdvantage.createSanctionsCheck({application, rawData: rawData})
-        }
         else {
           hasVerification = true
           logger.debug(`creating verification for: ${companyName}`);
         }
-        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status}))
+        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status, form: payload}))
         if (hasVerification)
           pchecks.push(complyAdvantage.createVerification({user, application, form: payload, rawData}))
       }
