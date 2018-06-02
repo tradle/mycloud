@@ -9,7 +9,7 @@ const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
 const SELFIE = 'tradle.Selfie'
 const PHOTO_ID = 'tradle.PhotoID'
-const FACE_RECOGNITION = 'tradle.FacialRecognitionCheck'
+const FACIAL_RECOGNITION = 'tradle.FacialRecognitionCheck'
 
 const BASE_URL = 'url of the provider that checks'
 
@@ -84,7 +84,7 @@ export class FacialRecognitionAPI {
       message = `Face recognition check for "${photoID_displayName}" passed`
     }
 
-    const check = await this.bot.draft({ type: FACE_RECOGNITION })
+    const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
       .set({
         status: checkStatus,
         message,
@@ -106,6 +106,7 @@ export class FacialRecognitionAPI {
       },
       aspect: DISPLAY_NAME
     }
+debugger
 
     const verification = this.bot.draft({ type: VERIFICATION })
        .set({
@@ -115,6 +116,8 @@ export class FacialRecognitionAPI {
        .toJSON()
 
     await this.applications.createVerification({ application, verification })
+    if (application.checks)
+      await this.applications.deactivateChecksByCheckTypeAndForm({ application, type: FACIAL_RECOGNITION, form: photoID })
   }
 }
 
@@ -126,7 +129,7 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
     onFormsCollected: async ({ req, user, application }) => {
       if (req.skipChecks) return
       if (!application) return
-
+debugger
       const result = await facialRecognition.getSelfieAndPhotoID(application)
       if (!result) return
 

@@ -265,6 +265,31 @@ export class Applications {
     return signed
   }
 
+  public deactivateChecksByCheckType = async({ application, type }: {
+    application: IPBApp
+    type: string
+  }) => {
+    let checks = await Promise.all(application.checks.filter(check => check[TYPE] === type && this.bot.getResource(check)))
+    if (!checks.length)
+      return
+
+    let deactivatedChecks = checks.filter(check => !check.isActive)
+    if (deactivatedChecks.length)
+      await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave(check)))
+  }
+  public deactivateChecksByCheckTypeAndForm = async({ application, type, form }: {
+    application: IPBApp
+    type: string
+    form: ITradleObject
+  }) => {
+    let checks = await Promise.all(application.checks.filter(check => check[TYPE] === type && this.bot.getResource(check)))
+    if (!checks.length)
+      return
+
+    let deactivatedChecks = checks.filter(check => !check.isActive  &&  check.form  &&  check.form[PERMALINK] === form[PERMALINK])
+    if (deactivatedChecks.length)
+      await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave(check)))
+  }
   // public getChecks = async (application:IPBApp) => {
   //   const stubs = (application.checks || application.submissions || []).map(appSub => appSub.submission)
   //   return Promise.all(stubs.map(this.bot.getResource))
