@@ -26,11 +26,7 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
 
   const prepareForDelivery = object => {
     object = _.cloneDeep(object)
-    bot.objects.presignEmbeddedMediaLinks({
-      object,
-      stripEmbedPrefix: true
-    })
-
+    bot.objects.presignEmbeddedMediaLinks({ object, stripEmbedPrefix: true })
     return object
   }
 

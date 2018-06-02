@@ -84,7 +84,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
         resource: message
       })
 
-      this.objects.presignEmbeddedMediaLinks({ object: message })
+      this.objects.presignEmbeddedMediaLinks({ object: message, stripEmbedPrefix: false })
       return message
     })
 

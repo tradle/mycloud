@@ -5,7 +5,7 @@ import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
 import { IDebug, ITradleObject, IRetryableTaskOpts, S3Utils, Bucket, Buckets, Logger, Env } from './types'
 import * as types from './typeforce-types'
-import { InvalidSignature, InvalidAuthor, InvalidVersion, NotFound } from './errors'
+import Errors from './errors'
 import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
 import {
   typeforce,
@@ -123,7 +123,7 @@ export default class Objects {
           error: err.stack
         })
 
-        throw new InvalidSignature(`for ${type}`)
+        throw new Errors.InvalidSignature(`for ${type}`)
       }
     }
 
@@ -253,6 +253,8 @@ export default class Objects {
     stripEmbedPrefix?: boolean
   }):ITradleObject => {
     const { object, stripEmbedPrefix } = opts
+    if (!object) throw new Errors.InvalidInput('expected "object"')
+
     Embed.presignUrls({
       object,
       sign: ({ bucket, key, path }) => {
