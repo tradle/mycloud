@@ -17,7 +17,8 @@ import {
   getSigningKey,
   sign,
   getLink,
-  withLinks
+  withLinks,
+  getLinks
 } from '../crypto'
 
 import { loudAsync, co, typeforce, pickVirtual, omitVirtual } from '../utils'
@@ -74,6 +75,25 @@ test('extract pub key', function (t) {
 
   t.end()
 })
+
+// test.only('identities', loudAsync(async (t) => {
+//   const { identity } = alice
+//   const { pubkeys } = identity
+//   // const sandbox = sinon.createSandbox()
+//   const { link, permalink } = getLinks(identity)
+
+//   await identities.delContactWithHistory(identity)
+//   await identities.addContactWithoutValidating(identity)
+//   // should fail
+//   await identities.putPubKey({
+//     ...pubkeys[0],
+//     link,
+//     permalink,
+//     _time: identity._time - 1
+//   })
+
+//   t.end()
+// }))
 
 test('_doQueueMessage', loudAsync(async (t) => {
   // t.plan(3)
@@ -148,7 +168,7 @@ test('_doQueueMessage', loudAsync(async (t) => {
 test('_doReceiveMessage', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const message = fromBobToAlice[0]
-  const stubGetIdentity = sandbox.stub(identities, 'getPubKey').callsFake(mocks.getPubKey)
+  const stubGetIdentity = sandbox.stub(identities, 'getPubKeyMapping').callsFake(mocks.getPubKeyMapping)
   const stubPutObject = sandbox.stub(objects, 'put').callsFake(function (object) {
     t.ok(object[SIG])
     t.same(object, message.object)
@@ -291,7 +311,8 @@ test('_doReceiveMessage', loudAsync(async (t) => {
 // }))
 
 const mocks = {
-  byPermalink: co(function* (permalink) {
+  byPermalink: async (permalink) => {
+    debugger
     if (permalink === alice.identity._permalink) {
       return alice.identity
     }
@@ -300,17 +321,17 @@ const mocks = {
     }
 
     throw new Errors.NotFound('identity not found by permalink: ' + permalink)
-  }),
-  byPub: co(function* (pub) {
-    const found = [alice, bob].find(info => {
-      return info.identity.pubkeys.some(key => key.pub === pub)
-    })
+  },
+  // byPub: async (pub) => {
+  //   const found = [alice, bob].find(info => {
+  //     return info.identity.pubkeys.some(key => key.pub === pub)
+  //   })
 
-    if (found) return found.identity
+  //   if (found) return found.identity
 
-    throw new Errors.NotFound('identity not found by pub: ' + pub)
-  }),
-  getPubKey: co(function* (pub) {
+  //   throw new Errors.NotFound('identity not found by pub: ' + pub)
+  // },
+  getPubKeyMapping: async ({ pub }) => {
     const found = [alice, bob].find(info => {
       return info.identity.pubkeys.some(key => key.pub === pub)
     })
@@ -323,5 +344,5 @@ const mocks = {
     }
 
     throw new Errors.NotFound('identity not found by pub: ' + pub)
-  })
+  }
 }
