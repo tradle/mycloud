@@ -38,7 +38,7 @@ export class FacialRecognitionAPI {
     }
 
     const tasks = [photoIDStub, selfieStub].map(stub => this.bot.getResource(stub))
-    const [selfie, photoID] = await Promise.all(tasks)
+    const [photoID, selfie] = await Promise.all(tasks)
     return { selfie, photoID }
   }
 
@@ -50,16 +50,17 @@ export class FacialRecognitionAPI {
     let matchResult
     let error
     const models = this.bot.models
-
+debugger
     // call whatever API with whatever params
     const query = { face: selfie, document: photoID }
     try {
       let res = await fetch(`${BASE_URL}/matchstuff/?${querystring.stringify(query)}`)
       matchResult = await res.json() // whatever is returned ma be not JSON
     } catch (err) {
-      // let requestFor = models[application.requestFor].title
+      debugger
       error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
       this.logger.debug('Face recognition check', err)
+      matchResult = { status: 'failure' }
     }
 
     // interpet result and/or error
