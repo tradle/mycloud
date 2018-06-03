@@ -2,7 +2,7 @@
 import Promise from 'bluebird'
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { Lambda, Bot, IRetryableTaskOpts, IStreamRecord } from '../types'
+import { Lambda, Bot, IRetryableTaskOpts, IStreamRecord, ITradleMessage } from '../types'
 import { topics as EventTopics, toBatchEvent } from '../events'
 import { EventSource, fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from '../middleware/onmessagessaved'
@@ -18,41 +18,18 @@ const GIVE_UP_AGE = 60000
 
 export const createLambda = (opts) => {
   const lambda = fromDynamoDB(opts)
-  const { bot } = lambda
-
-  // bot.hook(EventTopics.message.stream.async.batch, createMessageMiddleware(bot, opts))
-  // bot.hook(EventTopics.message.stream.async, onMessagesSaved(bot, { async: true }))
-
-  return lambda.use(createMiddleware(bot))
+  return lambda.use(createMiddleware(lambda.bot))
 }
 
-// export const processMessages = async (bot: Bot, messages) => {
-//   bot.logger.debug(`processing ${messages.length} messages from stream`)
-//   await bot.fireBatch(EventTopics.message.stream.async, messages)
-// }
-
-export const processMessage = async (bot: Bot, message) => {
-  // onMessagesSaved(bot, { async })
-  await bot.fire(EventTopics.message.stream.async, message)
+export const processMessageEvent = async (bot: Bot, record: IStreamRecord) => {
+  await bot._fireMessagesRaw({ messages: [record.value], async: true })
 }
 
-// export const processResources = async (bot: Bot, resources) => {
-//   bot.logger.debug(`processing ${resources.length} resource changes from stream`)
-//   const changes = await Promise.map(resources, async (r) => {
-//     try {
-//       return await preProcessResourceRecord(bot, r)
-//     } catch (err) {
-//       Errors.ignore(err, Errors.GaveUp)
-//     }
-//   })
-//   .then(results => results.filter(_.identity))
-
-//   await bot._fireSaveBatchEvent({ changes, async: true, spread: true })
-// }
-
-export const processResourceChange = async (bot: Bot, change) => {
-  await preProcessResourceRecord(bot, change)
-  await bot._fireSaveEvent({ change, async: true })
+export const processResourceChangeEvent = async (bot: Bot, change: IStreamRecord) => {
+  const { value, old } = change
+  if (value) {
+    await bot._fireSaveEvent({ change: { value, old }, async: true })
+  }
 }
 
 const getBody = async (bot, item) => {
@@ -90,9 +67,9 @@ const getBody = async (bot, item) => {
   })
 }
 
-export const preProcessResourceRecord = async (bot: Bot, record) => {
+export const preProcessItem = async <T>(bot: Bot, record):Promise<T> => {
   const [value, old] = await Promise.all([
-    record.new ? getBody(bot, record.new) : promiseUndefined,
+    record.value ? getBody(bot, record.value) : promiseUndefined,
     record.old ? getBody(bot, record.old) : promiseUndefined
   ])
 
@@ -102,10 +79,8 @@ export const preProcessResourceRecord = async (bot: Bot, record) => {
 export const createMiddleware = (bot:Bot) => {
   const { dbUtils, streamProcessor } = bot
   return async (ctx, next) => {
-    await processRecords({
-      bot,
-      records: dbUtils.getRecordsFromEvent(ctx.event)
-    })
+    const records = dbUtils.getRecordsFromEvent(ctx.event)
+    await processRecords({ bot, records })
   }
 }
 
@@ -114,48 +89,45 @@ export const processRecords = async ({ bot, records }: {
   records: IStreamRecord[]
 }) => {
   const { dbUtils, streamProcessor } = bot
-  records.forEach(record => {
-    // @ts-ignore
-    record.laneId = getLaneId(record)
-  })
+  // records.forEach(record => {
+  //   // @ts-ignore
+  //   record.laneId = getLaneId(record)
+  // })
 
   const byCat = _.groupBy(records, Events.getEventCategory)
   if (byCat.resource) {
     byCat.resource.forEach(r => {
       // prime cache
-      if (r.new) getBody(bot, r.new)
+      if (r.value) getBody(bot, r.value)
       if (r.old) getBody(bot, r.old)
     })
   }
 
-  // if (bot.isTesting && byCat.message) {
-  //   await bot.fireBatch(EventTopics.message.stream.async.batch, pluck(byCat.message, 'new'))
-  // }
-
   await streamProcessor.processBatch({
     batch: records,
-    processOne: async (event) => {
+    worker: async (event: IStreamRecord) => {
+      event = await preProcessItem(bot, event)
       if (isMessageRecord(event)) {
-        await processMessage(bot, event.new)
+        await processMessageEvent(bot, event)
       } else {
-        await processResourceChange(bot, event)
+        await processResourceChangeEvent(bot, event)
       }
     }
   })
 }
 
-const isMessageRecord = r => r.new && r.new[TYPE] === 'tradle.Message'
+const isMessageRecord = (r: IStreamRecord) => r.value && r.value[TYPE] === 'tradle.Message'
 
-const getLaneId = (record: IStreamRecord) => {
-  const parts = []
-  const category = Events.getEventCategory(record)
-  parts.push(category)
+// const getLaneId = (record: IStreamRecord) => {
+//   const parts = []
+//   const category = Events.getEventCategory(record)
+//   parts.push(category)
 
-  if (category === 'message') {
-    parts.push(record.new._dcounterparty)
-  }
+//   if (category === 'message') {
+//     parts.push(record.value._dcounterparty)
+//   }
 
-  // Q: do we want to process payloads before/after the messages that carry them?
+//   // Q: do we want to process payloads before/after the messages that carry them?
 
-  return parts.join(':')
-}
+//   return parts.join(':')
+// }

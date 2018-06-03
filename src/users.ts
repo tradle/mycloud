@@ -62,6 +62,7 @@ export default class Users extends EventEmitter {
   }
 
   public get = async (primaryKey) => {
+    if (!primaryKey) throw new Errors.InvalidInput('expected user id')
     // bot.logger.silly('getting user', {
     //   stack: new Error('ignore').stack,
     //   id: primaryKey

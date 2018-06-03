@@ -890,24 +890,6 @@ export function parseArn (arn) {
   }
 }
 
-export const getRecordsFromEvent = (event, oldAndNew) => {
-  return event.Records.map(record => {
-    const { NewImage, OldImage } = record.dynamodb
-    if (oldAndNew) {
-      return {
-        old: OldImage && unmarshalItem(OldImage),
-        new: NewImage && unmarshalItem(NewImage)
-      }
-    }
-
-    return NewImage && unmarshalItem(NewImage)
-  })
-  .filter(data => data)
-}
-
-export const marshallDBItem = marshalItem
-export const unmarshallDBItem = unmarshalItem
-
 export const applyFunction = (fn, context, args) => {
   if (!context) context = this
 

@@ -1,3 +1,4 @@
+import pick from 'lodash/pick'
 import groupBy from 'lodash/groupBy'
 import forEach from 'lodash/forEach'
 import map from 'lodash/map'
@@ -12,25 +13,19 @@ type StreamProcessorOpts = {
   store: IKeyValueStore
 }
 
-interface IError {
-  laneId: string
-  eventId: string
-  message: string
-}
-
 interface IErrorCheckpoint {
+  eventId: string
   errors: any[]
 }
 
 interface IEvent {
   id: string
-  laneId?: string
   [x: string]: any
 }
 
 type ProcessBatchOpts = {
   batch: IEvent[]
-  processOne(item: IEvent): Promise<void>
+  worker(item: IEvent): Promise<void>
 }
 
 export default class StreamProcessor {
@@ -39,47 +34,42 @@ export default class StreamProcessor {
     this.store = store
   }
 
-  public processBatch = async ({ batch, processOne }: ProcessBatchOpts) => {
+  public processBatch = async ({ batch, worker }: ProcessBatchOpts) => {
     const batchId = batch[0].id
-    // lanes run in parallel
-    const byLane = groupBy(batch, 'laneId')
-
     let checkpoint:IErrorCheckpoint
     try {
       checkpoint = await this.store.get(batchId)
     } catch (err) {
       Errors.ignoreNotFound(err)
-      checkpoint = { errors: [] }
+      checkpoint = { eventId: null, errors: [] }
     }
 
-    let { errors } = checkpoint
-    if (errors.length) {
-      forEach(byLane, (laneBatch, laneId) => {
-        const idx = errors.findIndex(e => e.laneId === laneId)
-        if (idx === -1) {
-          // shouldn't happen
-        } else {
-          byLane[laneId] = laneBatch.slice(idx)
-        }
-      })
-    }
-
-    errors = await Promise.all(map(byLane, async (laneBatch, laneId) => {
-      for (const event of laneBatch) {
-        try {
-          await processOne(event)
-        } catch (error) {
-          return { laneId, eventId: event.id, message: error.message }
-        }
+    if (checkpoint.eventId) {
+      // start from last failed event
+      const idx = batch.findIndex(e => e.id === checkpoint.eventId)
+      if (idx === -1) {
+        // oops, i guess we're past that batch?
+      } else {
+        batch = batch.slice(idx)
       }
-    }))
+    }
 
-    errors = errors.filter(notNull)
-    if (errors.length) {
-      await this.store.put(batchId, {
-        ...checkpoint,
-        errors
-      })
+    for (const event of batch) {
+      try {
+        await worker(event)
+        // we've passed the checkpoint!
+        checkpoint.eventId = null
+        checkpoint.errors = []
+      } catch (error) {
+        debugger
+        checkpoint.eventId = event.id
+        checkpoint.errors.push(pick(error, ['message', 'stack']))
+        break
+      }
+    }
+
+    if (checkpoint.eventId) {
+      await this.store.put(batchId, checkpoint)
     } else {
       await this.store.del(batchId)
     }
@@ -87,8 +77,3 @@ export default class StreamProcessor {
 }
 
 export { StreamProcessor }
-
-// const createStreamState = props => ({
-//   [TYPE]: STATE_TYPE,
-//   ...props
-// })

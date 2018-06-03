@@ -40,7 +40,7 @@ const fakeLink = () => crypto.randomBytes(32).toString('hex')
 //         link: 'a',
 //         unsealed: 'x'
 //       },
-//       new: {
+//       value: {
 //         link: 'b'
 //       }
 //     }
@@ -313,7 +313,7 @@ test(`seal events stream`, loudAsync(async (t) => {
   await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
     // queueseal
     {
-      new: {
+      value: {
         [TYPE]: 'tradle.SealState',
         link,
         unsealed: 'x',
@@ -328,7 +328,7 @@ test(`seal events stream`, loudAsync(async (t) => {
         unsealed: 'x',
         _time: 1
       },
-      new: {
+      value: {
         [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
@@ -343,7 +343,7 @@ test(`seal events stream`, loudAsync(async (t) => {
         unconfirmed: 'x',
         _time: 2
       },
-      new: {
+      value: {
         [TYPE]: 'tradle.SealState',
         link,
         _time: 3
@@ -351,7 +351,7 @@ test(`seal events stream`, loudAsync(async (t) => {
     },
     // watchseal
     {
-      new: {
+      value: {
         [TYPE]: 'tradle.SealState',
         link,
         unconfirmed: 'x',
@@ -366,8 +366,8 @@ test(`seal events stream`, loudAsync(async (t) => {
   t.equal(wrote, true)
   t.equal(watch, true)
   t.equal(queuedWrite, true)
-  t.equal(putEvents.callCount, 1)
-  t.equal(putEvents.getCall(0).args[0].length, 4)
+  t.equal(putEvents.callCount, 4)
+  t.ok(putEvents.getCalls().every(call => call.args[0].length === 1))
 
   sandbox.restore()
   t.end()
@@ -453,12 +453,15 @@ test('onmessagestream', loudAsync(async (t) => {
     const { user } = event
     user.bill = 'ted'
     t.equal(user.id, inbound._author)
-    t.same(event.message, {
-      ...inbound, object: {
+    const expected = {
+      ...inbound,
+      object: {
         ...inbound.object,
         ...payload
       }
-    })
+    }
+
+    t.same(event.message, expected)
   })
 
   // const sent = await bot.send({
@@ -477,7 +480,7 @@ test('onmessagestream', loudAsync(async (t) => {
   // })
 
   await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
-    { new: inbound }
+    { value: inbound }
   ]), {
     // #6
     done: t.error
@@ -511,7 +514,7 @@ test('onmessagestream', loudAsync(async (t) => {
   })
 
   await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
-    { new: outbound }
+    { value: outbound }
   ]), {
     // #6
     done: t.error

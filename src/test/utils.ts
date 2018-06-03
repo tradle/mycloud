@@ -51,14 +51,14 @@ const recreateTable = async (schema) => {
   return table
 }
 
-function toStreamItems (tableName, changes) {
+function toStreamItems (tableName: string, changes: any[]) {
   return {
     Records: [].concat(changes).map(change => {
       return {
         eventID: randomString(16),
         eventSourceARN: `arn:aws:dynamodb:us-east-1:11111111111:table/${tableName}`,
         dynamodb: {
-          NewImage: marshallDBItem(change.new),
+          NewImage: marshallDBItem(change.value),
           OldImage: change.old && marshallDBItem(change.old),
         }
       }

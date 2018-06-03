@@ -22,7 +22,7 @@ export const createMiddleware = (lambda: Lambda, opts?: any):Middleware => {
   //   const changes = getRecordsFromEvent(ctx.event)
 
   //   // await Promise.all(changes.map(change => backLinkMan.updateBacklinksFromChange({
-  //   //   model: bot.models[(change.new || change.old)]
+  //   //   model: bot.models[(change.value || change.old)]
   //   //   before: change.old,
   //   //   after: change.new
   //   // })))

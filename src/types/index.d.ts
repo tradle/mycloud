@@ -557,7 +557,7 @@ export interface IStreamRecord {
   type: StreamRecordType
   source: string
   service: StreamService
-  new?: any
+  value?: any
   old?: any
 }
 

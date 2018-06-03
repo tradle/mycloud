@@ -587,7 +587,7 @@ function getRecordsFromEvent (event:any):IStreamRecord[] {
       service: 'dynamodb',
       source: getTableNameFromStreamEvent(event),
       old: OldImage && unmarshallDBItem(OldImage),
-      new: NewImage && unmarshallDBItem(NewImage)
+      value: NewImage && unmarshallDBItem(NewImage)
     }
   })
 }

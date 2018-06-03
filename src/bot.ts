@@ -2,7 +2,6 @@ import { EventEmitter } from 'events'
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import compose from 'koa-compose'
 import createCredstash from 'nodecredstash'
 import { TYPE, SIG } from '@tradle/constants'
 import { DB, Filter } from '@tradle/dynamodb'
@@ -55,6 +54,7 @@ import {
   BotStrategyInstallFn,
   ILambdaOpts,
   ITradleObject,
+  ITradleMessage,
   IDeepLink,
   IBotOpts,
   AppLinks,
@@ -74,7 +74,7 @@ import {
   Buckets,
   Tables,
   Bucket,
-  IMailer
+  IMailer,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -138,6 +138,9 @@ type SendInput = {
 }
 
 export const createBot = (opts:IBotOpts={}):Bot => new Bot(opts)
+
+const COUNTERPARTY_CONCURRENCY = 5
+const CREDSTASH_ALGORITHM = 'aes-256-gcm'
 
 // this is not good TypeScript,
 // we lose all type checking when exporting like this
@@ -287,6 +290,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   // PRIVATE
   private outboundMessageLocker: Locker
+  private inboundMessageLocker: Locker
   private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
   private _resourceModuleStore: IResourcePersister
@@ -321,6 +325,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     this.outboundMessageLocker = createLocker({
       // name: 'message send lock',
       // debug: logger.sub('message-locker:send').debug,
+      timeout: MESSAGE_LOCK_TIMEOUT
+    })
+
+    this.inboundMessageLocker = createLocker({
       timeout: MESSAGE_LOCK_TIMEOUT
     })
 
@@ -491,7 +499,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const secrets = bot.secrets = new Secrets({
       obfuscateSecretName: name => crypto.obfuscateSecretName(bot.defaultEncryptionKey, name),
       credstash: createCredstash({
-        algorithm: 'aes-256-gcm',
+        algorithm: CREDSTASH_ALGORITHM,
         kmsKey: bot.defaultEncryptionKey,
         store: createCredstash.store.s3({
           client: aws.s3,
@@ -1034,9 +1042,98 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
   }
 
-  // public _fireSealBatchEvent = async (event: string, seals: Seal[]) => {
-  //   return await this.fireBatch(toAsyncEvent(event), seals)
-  // }
+  public warmUpCaches = async () => {
+    await Promise.all([
+      this.identity.getPermalink(),
+      this.identity.getPublic()
+    ])
+  }
+
+  private construct = (Ctor) => {
+    return new Ctor(this)
+  }
+
+  private define = (property: string, path: string, instantiator: Function) => {
+    let instance
+    defineGetter(this, property, () => {
+      if (!instance) {
+        if (path) {
+          const subModule = requireDefault(path)
+          instance = instantiator(subModule)
+        } else {
+          instance = instantiator()
+        }
+
+        this.logger.ridiculous(`defined ${property}`)
+      }
+
+      return instance
+    })
+  }
+
+  // shortcuts for firing events
+
+  public _fireOutboundMessagesRaw = async ({ messages, async }: {
+    messages: ITradleMessage[]
+    async?: boolean
+  }) => {
+    if (!messages.length) return
+
+    const recipientPermalinks = _.uniq(messages.map(m => m._recipient))
+    const recipients = await Promise.map(recipientPermalinks, permalink => this.users.get(permalink))
+    const events = messages.map(message => toBotMessageEvent({
+      bot: this,
+      user: recipients.find(user => user.id === message._recipient),
+      message
+    }))
+
+    const byRecipient = _.groupBy(events, event => event.user.id)
+    if (async) {
+      return await Promise.map(_.values(byRecipient), async (batch) => {
+        await this._fireMessageBatchEvent({ batch, async, spread: true })
+      }, { concurrency: COUNTERPARTY_CONCURRENCY })
+    }
+
+    return await Promise.map(_.values(byRecipient), async (batch) => {
+      return await Promise.mapSeries(batch, data => this._fireMessageEvent({ data, async }))
+    }, { concurrency: COUNTERPARTY_CONCURRENCY })
+  }
+
+  public _fireInboundMessagesRaw = async ({ messages, async }: {
+    messages: ITradleMessage[]
+    async?: boolean
+  }) => {
+    if (!messages.length) return
+
+    const bySender = _.groupBy(messages, '_author')
+    return await Promise.map(_.values(bySender), async (batch) => {
+      const userId = batch[0]._author
+      await this.inboundMessageLocker.lock(userId)
+      try {
+        const user = await this.users.createIfNotExists({ id: userId })
+        const batch = messages.map(message => toBotMessageEvent({ bot: this, user, message }))
+        // logger.debug(`feeding ${messages.length} messages to business logic`)
+        if (async) {
+          await this._fireMessageBatchEvent({ inbound: true, batch, async, spread: true })
+        } else {
+          await Promise.mapSeries(batch, data => this._fireMessageEvent({ data, async, inbound: true }))
+        }
+      } finally {
+        await this.inboundMessageLocker.unlock(userId)
+      }
+    }, { concurrency: COUNTERPARTY_CONCURRENCY })
+  }
+
+  public _fireMessagesRaw = async ({ messages, async }: {
+    messages: ITradleMessage[]
+    async?: boolean
+  }) => {
+    const [inbound, outbound] = _.partition(messages, '_inbound')
+    await Promise.all([
+      this._fireInboundMessagesRaw({ messages: inbound, async }),
+      this._fireOutboundMessagesRaw({ messages: outbound, async })
+    ])
+  }
 
   public _fireSealBatchEvent = async (opts: {
     async?: boolean
@@ -1086,12 +1183,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return await this.fire(topic, payload)
   }
 
-  public _fireMixedMessageBatchEvent = async (opts: {
-
-  }) => {
-
-  }
-
   public _fireMessageBatchEvent = async (opts: {
     batch: IBotMessageEvent[]
     async?: boolean
@@ -1120,6 +1211,16 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     await this.fire(event, opts.data)
   }
 
+  public _fireDeliveryErrorEvent = async (opts: {
+    error: ITradleObject
+    async?: boolean
+  }) => {
+    const { async, error } = opts
+    const baseTopic = EventTopics.delivery.error
+    const topic = async ? baseTopic.async : baseTopic
+    await this.fire(topic, error)
+  }
+
   public _fireDeliveryErrorBatchEvent = async (opts: {
     errors: ITradleObject[]
     async?: boolean
@@ -1130,35 +1231,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const baseTopic = EventTopics.delivery.error
     const topic = async ? baseTopic.async : baseTopic
     await Promise.each(batches, batch => this.fireBatch(topic, batch))
-  }
-
-  public warmUpCaches = async () => {
-    await Promise.all([
-      this.identity.getPermalink(),
-      this.identity.getPublic()
-    ])
-  }
-
-  private construct = (Ctor) => {
-    return new Ctor(this)
-  }
-
-  private define = (property: string, path: string, instantiator: Function) => {
-    let instance
-    defineGetter(this, property, () => {
-      if (!instance) {
-        if (path) {
-          const subModule = requireDefault(path)
-          instance = instantiator(subModule)
-        } else {
-          instance = instantiator()
-        }
-
-        this.logger.ridiculous(`defined ${property}`)
-      }
-
-      return instance
-    })
   }
 }
 

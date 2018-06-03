@@ -2,7 +2,7 @@
 import Promise from 'bluebird'
 import { groupBy, chunk } from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { Bot, Seal } from './types'
+import { Bot, Seal, ISaveEventPayload } from './types'
 import {
   batchProcess,
   pluck,
@@ -18,35 +18,47 @@ const { SEAL_STATE, DELIVERY_ERROR } = TYPES
 export const hookUp = (bot: Bot) => {
   // backwards compat
   bot.hookSimple(EventTopics.message.inbound.sync, event => bot.fire('message', event))
-  bot.hookSimple(EventTopics.resource.save.async.batch, async (changes) => {
-    await bot.events.putEvents(bot.events.fromSaveBatch(changes))
 
-    const sealChanges = changes
-      .filter(change => change.value && change.value[TYPE] === SEAL_STATE)
+  // 1. save to immutable events table
+  // 2. re-emit seal events, delivery error events, etc.
+  bot.hookSimple(EventTopics.resource.save.async, async (change: ISaveEventPayload) => {
+    const putEvents = bot.events.putEvents([
+      bot.events.fromSaveEvent(change)
+    ])
 
-    const deliveryErrs = changes
-      .filter(change => change.value && change.value[TYPE] === DELIVERY_ERROR)
-      .map(change => change.value)
+    const processBacklinks = bot.backlinks.processChanges([change])
+    const tasks = [ putEvents, processBacklinks ]
+    if (change.value) {
+      const type = change.value[TYPE]
+      if (type === SEAL_STATE) {
+        tasks.push(reemitSealEvent(change))
+      } else if (type === DELIVERY_ERROR) {
+        tasks.push(reemitDeliveryErrorEvent(change))
+      }
+    }
 
     try {
-      await Promise.all([
-        bot.backlinks.processChanges(changes),
-        sealChanges.length ? reemitSealEvents(sealChanges) : RESOLVED_PROMISE,
-        deliveryErrs.length ? reemitDeliveryErrorEvents(deliveryErrs) : RESOLVED_PROMISE,
-      ])
+      await Promise.all(tasks)
     } catch (err) {
       bot.logger.error('failed to process resource changes batch', err)
       throw err
     }
   })
 
-  bot.hookSimple(EventTopics.message.inbound.async.batch, async (msgs) => {
-    await bot.backlinks.processMessages(pluck(msgs, 'message'))
-  })
+  const processBacklinksForMessage = async (msg) => {
+    await bot.backlinks.processMessages([msg.message])
+  }
 
-  bot.hookSimple(EventTopics.message.outbound.async.batch, async (msgs) => {
-    await bot.backlinks.processMessages(pluck(msgs, 'message'))
-  })
+  bot.hookSimple(EventTopics.message.inbound.async, processBacklinksForMessage)
+  bot.hookSimple(EventTopics.message.outbound.async, processBacklinksForMessage)
+
+  // bot.hookSimple(EventTopics.message.inbound.async.batch, async (msgs) => {
+  //   await bot.backlinks.processMessages(pluck(msgs, 'message'))
+  // })
+
+  // bot.hookSimple(EventTopics.message.outbound.async.batch, async (msgs) => {
+  //   await bot.backlinks.processMessages(pluck(msgs, 'message'))
+  // })
 
   const retryDelivery = async (deliveryErr) => {
     const { counterparty } = deliveryErr
@@ -56,16 +68,24 @@ export const hookUp = (bot: Bot) => {
     })
   }
 
-  bot.hookSimple(EventTopics.delivery.error.async.batch, async (deliveryErrs) => {
-    await Promise.map(deliveryErrs, retryDelivery)
-  })
+  bot.hookSimple(EventTopics.delivery.error.async, retryDelivery)
 
-  const reemitDeliveryErrorEvents = async (errors) => {
+  const reemitDeliveryErrorEvent = async (change: ISaveEventPayload) => {
+    const error = change.value
+    await bot._fireDeliveryErrorEvent({ error, async: true })
+  }
+
+  const reemitDeliveryErrorEvents = async (changes: ISaveEventPayload[]) => {
+    const errors = changes.map(change => change.value)
     await bot._fireDeliveryErrorBatchEvent({ errors, async: true })
   }
 
+  const reemitSealEvent = async (change: ISaveEventPayload) => {
+    return bot._fireSealEvent(toAsyncSealEvent(change))
+  }
+
   const reemitSealEvents = async (changes) => {
-    const events = changes.map(toSealEvent)
+    const events = changes.map(toAsyncSealEvent)
     await batchProcess({
       data: events,
       batchSize: 10,
@@ -79,7 +99,7 @@ export const hookUp = (bot: Bot) => {
 
           await bot._fireSealBatchEvent({
             event,
-            seals: subset.map(({ data }) => data),
+            seals: subset.map(({ seal }) => seal),
             async: true,
             spread: true
           })
@@ -89,7 +109,8 @@ export const hookUp = (bot: Bot) => {
   }
 }
 
-const toSealEvent = record => ({
-  event: getSealEventTopic({ old: record.old, new: record.value }).async,
-  data: <Seal>record.value
+const toAsyncSealEvent = record => ({
+  event: getSealEventTopic(record).async.toString(),
+  seal: <Seal>record.value,
+  async: true
 })

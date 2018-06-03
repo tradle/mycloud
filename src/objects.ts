@@ -199,7 +199,7 @@ export default class Objects {
   public getWithRetry = async (link: string, opts: IRetryableTaskOpts) => {
     const task = new RetryableTask(opts)
     this.logger.silly('getting with retry', link)
-    return await task.run(() => this.bucket.getJSON(link))
+    return await task.run(() => this.get(link))
   }
 
   public get = async (link: string):Promise<ITradleObject> => {
