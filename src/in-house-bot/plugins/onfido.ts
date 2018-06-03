@@ -58,6 +58,11 @@ export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI, applicatio
       if (!req.skipChecks) {
         return await plugin['onmessage:tradle.Form'](req)
       }
+    },
+    onFormsCollected: async ({ req }: { req: IPBReq }) => {
+      if (!req.skipChecks) {
+        return await plugin.onFormsCollected({ req })
+      }
     }
   }
 
