@@ -218,6 +218,11 @@ debugger
 
       if (!companyName  ||  !registrationDate) {
         logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        let status = {
+          status: 'fail',
+          message: `Sanctions check for "${companyName}" failed.` + (!registrationDate  &&  ' No registration date was provided')
+        }
+        await complyAdvantage.createSanctionsCheck({application, rawData: {}, status, form: payload})
         return
       }
       let r: {rawData:any, hits: any, status: any} = await complyAdvantage.getData(resource, criteria)
