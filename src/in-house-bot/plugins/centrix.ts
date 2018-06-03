@@ -92,7 +92,7 @@ class CentrixAPI {
         rawData.error = err.message
       status = this.makeStatus(ERROR)
       this.logger.debug(`creating error check for ${centrixOpName} with Centrix`)
-      await this.createCentrixCheck({ application, rawData, status })
+      await this.createCentrixCheck({ application, rawData, status, form: photoID })
       return
     }
 
@@ -111,11 +111,11 @@ class CentrixAPI {
       status = this.makeStatus(PASS)
 
     this.logger.debug(`creating ${status.title} check for ${centrixOpName} with Centrix`)
-    await this.createCentrixCheck({ application, rawData, status })
+    await this.createCentrixCheck({ application, rawData, status, form: photoID })
     if (status.title !== PASS)
       return
     this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
-    await this.createCentrixVerification({ req, photoID, rawData })
+    await this.createCentrixVerification({ req, photoID, rawData, application })
 
     // artificial timeout till we figure out why updating state
     // twice in a row sometimes loses the first change
@@ -124,26 +124,27 @@ class CentrixAPI {
   makeStatus(status) {
     return {id: 'tradle.Status_' + status.toLowerCase(), title: status}
   }
-  async createCentrixCheck({ application, rawData, status }) {
+  async createCentrixCheck({ application, rawData, status, form }) {
     this.cleanJson(rawData)
-    const check = this.bot.draft({
-      type: CENTRIX_CHECK,
-    })
-    .set({
+    let r:any = {
       provider: CENTRIX_NAME,
       status,
       application,
-      dateChecked: Date.now()
-    })
-
-    if (rawData) {
-      check.set('rawData', rawData)
+      dateChecked: Date.now(),
+      form
     }
+    if (rawData)
+      r.rawData = rawData
 
-    await check.signAndSave()
+    const check = await this.bot.draft({
+        type: CENTRIX_CHECK,
+      })
+      .set(r)
+      .signAndSave()
+    let checkR = check.toJSON()
   }
 
-  async createCentrixVerification({ req, photoID, rawData }) {
+  async createCentrixVerification({ req, photoID, rawData, application }) {
     // const { object } = photoID
     const object = photoID.object || photoID
         // provider: {
@@ -164,22 +165,23 @@ class CentrixAPI {
       aspect: 'validity',
       rawData
     }
+    const verification = await this.bot.draft({
+        type: VERIFICATION,
+      })
+      .set({
+         document: object,
+         method
+         // documentOwner: applicant
+       })
+      .toJSON()
 
-    let verification = buildResource({
-                           models: this.bot.models,
-                           model: VERIFICATION
-                         })
-                         .set({
-                           document: object,
-                           method
-                           // documentOwner: applicant
-                         })
-                         .toJSON()
-
-    return await this.applications.createVerification({
+    await this.applications.createVerification({
       application: req.application,
       verification
     })
+debugger
+    if (application.checks)
+      await this.applications.deactivateChecks({ application, type: CENTRIX_CHECK, form: object })
   }
   cleanJson(json) {
     for (let p in json) {
@@ -198,7 +200,9 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   const centrix = createCentrixClient({ httpCredentials, requestCredentials })
   const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger })
   const getDataAndCallCentrix = async ({ req, application }) => {
+    debugger
     const centrixData:any = await getCentrixData({ application, bot })
+    debugger
     if (!centrixData) {
       logger.debug(`don't have all the inputs yet`)
       return
@@ -222,6 +226,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
     }
 
     let productId = application.requestFor
+    debugger
     let { products } = conf
     if (!products  ||  !products[productId]) {
       logger.debug(`skipped, not configured for product: ${productId}`)
@@ -262,8 +267,8 @@ async function getCentrixData ({ application, bot }) {
     // trim trailing angle brackets
     documentNumber = documentNumber.replace(/[<]+$/g, '')
   }
-
-  dateOfBirth = toISODateString(dateOfBirth)
+  if (dateOfBirth)
+    dateOfBirth = toISODateString(dateOfBirth)
   if (dateOfExpiry)
     dateOfExpiry = toISODateString(dateOfExpiry)
 debugger
