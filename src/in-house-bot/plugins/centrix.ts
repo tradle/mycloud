@@ -25,6 +25,7 @@ import { getNameFromForm, parseScannedDate, toISODateString } from '../utils'
 const PHOTO_ID = 'tradle.PhotoID'
 const CENTRIX_CHECK = 'tradle.CentrixCheck'
 const CENTRIX_NAME = 'Centrix'
+const NZ_COUNTRY_ID = 'tradle.Country_NZ'
 
 const DOCUMENT_TYPES = {
   license: 'driving_licence',
@@ -238,6 +239,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
     try {
       await getDataAndCallCentrix({ req, application })
     } catch (err) {
+      debugger
       logger.debug('Centrix operation failed', err)
     }
   }
@@ -255,6 +257,9 @@ async function getCentrixData ({ application, bot }) {
   if (!formStub) return
 
   const form = await bot.objects.get(formStub.link)
+  debugger
+  if (form.country.id !== NZ_COUNTRY_ID)
+    return
   const { scanJson } = form
   if (!scanJson) return
 
