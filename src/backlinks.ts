@@ -158,6 +158,8 @@ export default class Backlinks {
   }
 
   public processMessages = async (messages: ITradleMessage[]) => {
+    this.logger.silly(`processing ${messages.length} messages`)
+
     messages = messages.filter(m => m.context && m.object[TYPE] !== MESSAGE)
     if (!messages.length) return
 
@@ -206,6 +208,8 @@ export default class Backlinks {
   }
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
+    this.logger.silly('processing resource changes', resourceChanges.map(r => _.pick(r.value, ['_t', '_permalink'])))
+
     const backlinkChanges = this.getBacklinksChanges(resourceChanges)
     const { add, del } = backlinkChanges
     if (!(add.length || del.length)) return backlinkChanges
