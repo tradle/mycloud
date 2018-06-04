@@ -70,9 +70,8 @@ export default class KV implements IKeyValueStore {
       const result = await this.db.get(this.wrapKey(key), opts)
       return this.exportValue(result)
     } catch (err) {
-      if (err.code === 'ResourceNotFoundException' || err.name === 'NotFound') {
-        err.name = 'NotFound'
-        err.notFound = true
+      if (Errors.isNotFound(err)) {
+        throw new Errors.NotFound(`${key}: ${err.message}`)
       }
 
       throw err
