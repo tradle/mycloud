@@ -18,7 +18,7 @@ import {
 import validateModels from '@tradle/validate-model'
 import validateResource from '@tradle/validate-resource'
 import { ResourceStub, Backlinks } from './types'
-import { parseStub, allSettled, getPrimaryKeySchema } from './utils'
+import { parseStub, allSettled, getPrimaryKeySchema, isWellBehavedIntersection } from './utils'
 
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
@@ -227,24 +227,4 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
       return postProcess(result, op, ...args)
     }
   }
-}
-
-const isWellBehavedIntersection = model => {
-  if (!isInstantiable(model)) return
-
-  const { interfaces = [], primaryKeys, properties } = model
-  if (!interfaces.includes('tradle.Intersection')) return
-
-  // intersections are pre-indexed
-  // so no need to go via tradle.BacklinkItem
-  if (!(primaryKeys && primaryKeys.hashKey && primaryKeys.rangeKey)) return
-
-  return true
-  // const { hashKey, rangeKey } = dynamoUtils.normalizeIndexedPropertyTemplateSchema(primaryKeys)
-  // const vars = _.uniq(
-  //   dynamoUtils.getTemplateStringVariables(hashKey.template)
-  //     .concat(dynamoUtils.getTemplateStringValues(rangeKey.template))
-  // )
-
-  // const props = vars.map()
 }

@@ -90,7 +90,8 @@ const {
   getPermId,
   parsePermId,
   omitBacklinks,
-  pickBacklinks
+  pickBacklinks,
+  isInstantiable
 } = validateResource.utils
 
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
@@ -1419,4 +1420,25 @@ export const ensureTimeIsPast = (time: number) => {
   if (time > Date.now()) {
     throw new Errors.InvalidInput(`expected time to be a past date`)
   }
+}
+
+export const isIntersection = ({ interfaces=[] }) => interfaces.includes('tradle.Intersection')
+
+export const isWellBehavedIntersection = model => {
+  if (!(isIntersection(model) && isInstantiable(model))) return
+
+  const { primaryKeys, properties } = model
+
+  // intersections are pre-indexed
+  // so no need to go via tradle.BacklinkItem
+  if (!(primaryKeys && primaryKeys.hashKey && primaryKeys.rangeKey)) return
+
+  return true
+  // const { hashKey, rangeKey } = dynamoUtils.normalizeIndexedPropertyTemplateSchema(primaryKeys)
+  // const vars = _.uniq(
+  //   dynamoUtils.getTemplateStringVariables(hashKey.template)
+  //     .concat(dynamoUtils.getTemplateStringValues(rangeKey.template))
+  // )
+
+  // const props = vars.map()
 }

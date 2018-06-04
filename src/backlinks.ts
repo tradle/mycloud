@@ -15,7 +15,8 @@ import {
   getResourceIdentifier,
   RESOLVED_PROMISE,
   isUnsignedType,
-  allSettled
+  allSettled,
+  isWellBehavedIntersection
 } from './utils'
 
 import {
@@ -209,6 +210,21 @@ export default class Backlinks {
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
     this.logger.silly('processing resource changes', resourceChanges.map(r => _.pick(r.value, ['_t', '_permalink'])))
+
+    resourceChanges = resourceChanges.filter(r => {
+      const resource = r.value || r.old
+      const type = resource[TYPE]
+      if (type === BACKLINK_ITEM) return false
+
+      const model = this.models[type]
+      // well-behaved intersections can be queried directly
+      // without backlink items
+      return !isWellBehavedIntersection(model)
+    })
+
+    if (!resourceChanges.length) {
+      return { add: [], del: [] }
+    }
 
     const backlinkChanges = this.getBacklinksChanges(resourceChanges)
     const { add, del } = backlinkChanges
