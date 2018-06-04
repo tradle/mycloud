@@ -206,9 +206,13 @@ debugger
       let criteria = products[productId].filter
       // let companyName, registrationDate
       // let resource = payload
+      debugger
+      let map = products[productId].propertyMap
+      if (!map)
+        map = propertyMap  &&  propertyMap[payload[TYPE]]
 
       // debugger
-      let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
+      let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map})
       if (!resource) {
         logger.debug(`nothing changed for: ${title({resource: payload, models: bot.models})}`)
         return
