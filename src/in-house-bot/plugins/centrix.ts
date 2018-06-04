@@ -5,6 +5,9 @@ const { VERIFICATION, IDENTITY } = constants.TYPES
 
 const buildResource = require('@tradle/build-resource')
 import { buildResourceStub } from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 
 let createCentrixClient
 try {
@@ -65,6 +68,7 @@ class CentrixAPI {
     this.test = test
   }
   async callCentrix({ req, photoID, props }) {
+    debugger
     const idType = getDocumentType(photoID)
     const method = idType === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
     this.logger.debug(`Centrix type ${idType}`)
@@ -130,7 +134,8 @@ class CentrixAPI {
     return {id: 'tradle.Status_' + status.toLowerCase(), title: status}
   }
   async createCentrixCheck({ application, rawData, status, form }) {
-    this.cleanJson(rawData)
+    rawData = sanitize(rawData).sanitized
+    debugger
     let r:any = {
       provider: CENTRIX_NAME,
       status,
@@ -140,7 +145,7 @@ class CentrixAPI {
     }
     if (rawData)
       r.rawData = rawData
-
+    debugger
     const check = await this.bot.draft({
         type: CENTRIX_CHECK,
       })
@@ -156,8 +161,8 @@ class CentrixAPI {
         //   id: 'tradle.Organization_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4',
         //   title: 'Centrix'
         // }
-
-    this.cleanJson(rawData)
+    debugger
+    rawData = sanitize(rawData).sanitized
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -170,6 +175,7 @@ class CentrixAPI {
       aspect: 'validity',
       rawData
     }
+    debugger
     const verification = await this.bot.draft({
         type: VERIFICATION,
       })
@@ -187,14 +193,6 @@ class CentrixAPI {
 debugger
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: CENTRIX_CHECK, form: object })
-  }
-  cleanJson(json) {
-    for (let p in json) {
-      if (!json[p])
-        delete json[p]
-      else if (typeof json[p] === 'object')
-        this.cleanJson(json[p])
-    }
   }
 }
 export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, applications }, { conf, logger }) => {
