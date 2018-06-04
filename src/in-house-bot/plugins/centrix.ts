@@ -55,12 +55,14 @@ class CentrixAPI {
   private centrix:any
   private logger: Logger
   private applications: Applications
-  constructor({ bot, productsAPI, applications, centrix, logger }) {
+  private test: boolean
+  constructor({ bot, productsAPI, applications, centrix, logger, test }) {
     this.bot = bot
     this.productsAPI = productsAPI
     this.applications = applications
     this.centrix = centrix
     this.logger = logger
+    this.test = test
   }
   async callCentrix({ req, photoID, props }) {
     const idType = getDocumentType(photoID)
@@ -75,10 +77,12 @@ class CentrixAPI {
     let rawData
     let status
     try {
-      this.logger.debug(`running ${centrixOpName} with Centrix`)
-      debugger
-      rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
-      // rawData = await this.centrix[method](props)
+      this.logger.debug(`running ${centrixOpName} with Centrix`, { test: this.test })
+      if (this.test) {
+        rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
+      } else {
+        rawData = await this.centrix[method](props)
+      }
     } catch (err) {
       this.logger.debug(`Centrix ${centrixOpName} verification failed`, err.stack)
       rawData = {}
@@ -194,12 +198,14 @@ debugger
   }
 }
 export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, applications }, { conf, logger }) => {
-  let { httpCredentials, requestCredentials } = conf.credentials
+  const { test, credentials } = conf
   if (typeof createCentrixClient !== 'function') {
     throw new Error('centrix client not available')
   }
-  const centrix = createCentrixClient({ httpCredentials, requestCredentials })
-  const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger })
+
+  const centrix = createCentrixClient({ test, ...credentials })
+
+  const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger, test })
   const getDataAndCallCentrix = async ({ req, application }) => {
     debugger
     const centrixData:any = await getCentrixData({ application, bot })
