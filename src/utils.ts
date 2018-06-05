@@ -765,6 +765,23 @@ export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
   }
 }
 
+export const execWithTimeout = async<T>({ fn, timeout }: {
+  fn: () => Promise<T>
+  timeout: number
+}):Promise<T> => {
+  const promise = fn()
+  if (timeout === Infinity) return promise
+
+  const promiseTimeout = timeoutIn({
+    millis: timeout,
+    get error() { return new Errors.Timeout('task timed out') }
+  })
+
+  const result = await Promise.race([promise, promiseTimeout])
+  promiseTimeout.cancel()
+  return result
+}
+
 export const seriesMap = async (arr, fn) => {
   const results:any[] = []
   for (const item of arr) {

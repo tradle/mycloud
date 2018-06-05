@@ -1,3 +1,4 @@
+import typeforce from 'typeforce'
 import pick from 'lodash/pick'
 import groupBy from 'lodash/groupBy'
 import forEach from 'lodash/forEach'
@@ -6,6 +7,7 @@ import notNull from 'lodash/identity'
 import { TYPE } from '@tradle/constants'
 import { DB, IKeyValueStore } from './types'
 import Errors from './errors'
+import { execWithTimeout } from './utils'
 
 const STATE_TYPE = 'tradle.cloud.StreamProcessingError'
 
@@ -26,6 +28,8 @@ interface IEvent {
 type ProcessBatchOpts = {
   batch: IEvent[]
   worker(item: IEvent): Promise<void>
+  perItemTimeout?: number
+  timeout?: number
 }
 
 export default class StreamProcessor {
@@ -34,7 +38,16 @@ export default class StreamProcessor {
     this.store = store
   }
 
-  public processBatch = async ({ batch, worker }: ProcessBatchOpts) => {
+  public processBatch = async (opts: ProcessBatchOpts) => {
+    typeforce({
+      batch: 'Array',
+      worker: 'Function',
+      perItemTimeout: 'Number',
+      timeout: 'Number'
+    }, opts)
+
+    let { batch, worker, perItemTimeout, timeout } = opts
+    const start = Date.now()
     const batchId = batch[0].id
     let checkpoint:IErrorCheckpoint
     try {
@@ -55,8 +68,17 @@ export default class StreamProcessor {
     }
 
     for (const event of batch) {
+      const timeLeft = timeout - (Date.now() - start)
       try {
-        await worker(event)
+        if (timeLeft < perItemTimeout) {
+          throw new Errors.Timeout(`aborted mid-batch, almost out of time`)
+        }
+
+        await execWithTimeout({
+          fn: () => worker(event),
+          timeout: perItemTimeout,
+        })
+
         // we've passed the checkpoint!
         checkpoint.eventId = null
         checkpoint.errors = []

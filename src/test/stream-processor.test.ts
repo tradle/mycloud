@@ -31,7 +31,9 @@ test('stream-processor', loudAsync(async (t) => {
 
   const tryAgain = () => processor.processBatch({
     batch: events,
-    worker
+    worker,
+    timeout: 5000,
+    perItemTimeout: 1000
   })
 
   await tryAgain()

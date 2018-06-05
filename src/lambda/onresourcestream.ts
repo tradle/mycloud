@@ -15,6 +15,7 @@ import { StreamProcessor } from '../stream-processor'
 const promiseUndefined = Promise.resolve(undefined)
 // when to give up trying to find an object in object storage
 const GIVE_UP_AGE = 60000
+const SAFETY_MARGIN_MILLIS = 10000
 
 export const createLambda = (opts) => {
   const lambda = fromDynamoDB(opts)
@@ -103,6 +104,7 @@ export const processRecords = async ({ bot, records }: {
     })
   }
 
+  const timeLeft = bot.env.getRemainingTime()
   await streamProcessor.processBatch({
     batch: records,
     worker: async (event: IStreamRecord) => {
@@ -112,7 +114,9 @@ export const processRecords = async ({ bot, records }: {
       } else {
         await processResourceChangeEvent(bot, event)
       }
-    }
+    },
+    perItemTimeout: SAFETY_MARGIN_MILLIS,
+    timeout: Math.max(timeLeft - 1000, 0)
   })
 }
 
