@@ -78,8 +78,7 @@ class CentrixAPI {
     // ask centrix to verify it
     props.success = idType === DOCUMENT_TYPES.passport ? false : true
     this.logger.debug(`running ${centrixOpName} with Centrix with success set to ${props.success}`)
-    let rawData
-    let status
+    let rawData, status, message
     try {
       this.logger.debug(`running ${centrixOpName} with Centrix`, { test: this.test })
       if (this.test) {
@@ -88,7 +87,9 @@ class CentrixAPI {
         rawData = await this.centrix[method](props)
       }
     } catch (err) {
-      this.logger.debug(`Centrix ${centrixOpName} verification failed`, err.stack)
+      message = `Centrix ${centrixOpName} verification failed`
+      this.logger.debug(message, err.stack)
+
       rawData = {}
       if (err.response) {
         let { statusCode, body } = err.response
@@ -99,29 +100,34 @@ class CentrixAPI {
       }
       else
         rawData.error = err.message
-      status = this.makeStatus(ERROR)
+      status = 'error'
       this.logger.debug(`creating error check for ${centrixOpName} with Centrix`)
-      await this.createCentrixCheck({ application, rawData, status, form: photoID })
+      await this.createCentrixCheck({ application, rawData, status, message, form: photoID })
       return
     }
 
     if (idType === DOCUMENT_TYPES.passport) {
       if (!rawData.DataSets.DIAPassport.IsSuccess  ||
           !rawData.DataSets.DIAPassport.DIAPassportVerified)
-        status = this.makeStatus(FAIL)
+        status = 'fail'
+        message = `Centrix ${centrixOpName} verification failed`
     }
     else {
       let { IsDriverLicenceVerifiedAndMatched, IsDriverLicenceVerified } = rawData.DataSets.DriverLicenceVerification
       if (!IsDriverLicenceVerified          ||
-          !IsDriverLicenceVerifiedAndMatched)
-        status = this.makeStatus(FAIL)
+          !IsDriverLicenceVerifiedAndMatched) {
+        status = 'fail'
+        message = `Centrix ${centrixOpName} verification failed`
+      }
     }
-    if (!status)
-      status = this.makeStatus(PASS)
+    if (!status) {
+      status = 'pass'
+      message = `Centrix ${centrixOpName} verification passed`
+    }
 
     this.logger.debug(`creating ${status.title} check for ${centrixOpName} with Centrix`)
-    await this.createCentrixCheck({ application, rawData, status, form: photoID })
-    if (status.title !== PASS)
+    await this.createCentrixCheck({ application, rawData, status, message, form: photoID })
+    if (status !== 'pass')
       return
     this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
     await this.createCentrixVerification({ req, photoID, rawData, application })
@@ -130,10 +136,7 @@ class CentrixAPI {
     // twice in a row sometimes loses the first change
     await new Promise(resolve => setTimeout(resolve, 2000))
   }
-  makeStatus(status) {
-    return {id: 'tradle.Status_' + status.toLowerCase(), title: status}
-  }
-  async createCentrixCheck({ application, rawData, status, form }) {
+  async createCentrixCheck({ application, rawData, status, message, form }) {
     rawData = sanitize(rawData).sanitized
     debugger
     let r:any = {
@@ -141,7 +144,8 @@ class CentrixAPI {
       status,
       application,
       dateChecked: Date.now(),
-      form
+      form,
+      message
     }
     if (rawData)
       r.rawData = rawData
@@ -231,14 +235,13 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
     }
 
     let productId = application.requestFor
-    debugger
     let { products } = conf
     if (!products  ||  !products[productId]) {
       logger.debug(`skipped, not configured for product: ${productId}`)
       return
     }
 
-    // debugger
+    debugger
     // if (hasCentrixVerification({ application })) return
     try {
       await getDataAndCallCentrix({ req, application })
