@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 echo 'rebuilding native modules for lambda environment'
 docker run --rm -v "$PWD:/var/task" \
