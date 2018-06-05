@@ -8,10 +8,12 @@ import {
   Bot,
   Bucket,
   IPluginOpts,
+  CreatePlugin,
   IDeploymentOpts,
   IDeploymentPluginConf,
   ITradleObject,
-  Conf
+  Conf,
+  Deployment
 } from '../types'
 
 import Errors from '../../errors'
@@ -28,7 +30,7 @@ export interface IDeploymentPluginOpts extends IPluginOpts {
   conf: IDeploymentPluginConf
 }
 
-export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts) => {
+export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger }:IDeploymentPluginOpts) => {
   const { bot, productsAPI, employeeManager } = components
   const orgConf = components.conf
   const { org } = orgConf
@@ -121,7 +123,7 @@ export const createPlugin = (components, { conf, logger }:IDeploymentPluginOpts)
   }
 
   return {
-    deployment,
+    api: deployment,
     plugin: {
       onFormsCollected
     }
