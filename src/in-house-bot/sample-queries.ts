@@ -23,6 +23,24 @@ const listPhotoIds = `{
   }
 }`
 
+const listSelfies = `{
+  rl_tradle_Selfie(
+    limit:5
+    orderBy: {
+      property: _time,
+      desc: true
+    }
+  ) {
+    edges {
+      node {
+        selfie {
+          url
+        }
+      }
+    }
+  }
+}`
+
 const listApplications = `{
   rl_tradle_Application(
     limit:5
@@ -176,6 +194,10 @@ export default [
   {
     title: 'Photo IDs',
     query: listPhotoIds
+  },
+  {
+    title: 'Selfies',
+    query: listSelfies
   },
   {
     title: 'Application',
