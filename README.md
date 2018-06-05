@@ -117,7 +117,7 @@ You'll be deploying to AWS, so you'll need an account and a command line client:
 *Note: if you don't care about playing locally and want to skip ahead to deploying Tradle MyCloud to the cloud, skip this section*
 
 - [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
-- [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript`)  
+- [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript@~2.8`)
 - [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
 
 ### Clone this project
@@ -398,6 +398,10 @@ stop local DynamoDB and S3
 ### npm run localstack:restart
 
 restart local DynamoDB and S3
+
+### npm run localstack:update
+
+update docker images
 
 ### npm run gen:localstack
 

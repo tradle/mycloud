@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 LAMBDA="$1"
 MINUTES_AGO=$2

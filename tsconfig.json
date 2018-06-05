@@ -6,12 +6,11 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "importHelpers": true,
     "removeComments": true,
     "outDir": "lib",
     "lib": [
       "dom",
-      "es7",
+      "es2017",
       "esnext.asynciterable"
     ],
     "baseUrl": ".",
