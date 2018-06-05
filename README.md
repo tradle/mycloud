@@ -399,6 +399,10 @@ stop local DynamoDB and S3
 
 restart local DynamoDB and S3
 
+### npm run localstack:update
+
+update docker images
+
 ### npm run gen:localstack
 
 generate local DynamoDB tables and S3 buckets
