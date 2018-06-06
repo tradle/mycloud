@@ -199,7 +199,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
     [`onmessage:${FORM_ID}`]: async function(req) {
       if (req.skipChecks) return
       const { user, application, payload } = req
-      if (!application) return
+      if (!(application && payload.country)) return
 
       let productId = application.requestFor
       let { products, propertyMap } = conf
