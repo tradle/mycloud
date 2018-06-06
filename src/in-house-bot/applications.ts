@@ -197,7 +197,7 @@ export class Applications {
 
     const bodies = await Promise.all(checks
       // get latest version of those checks
-      .map(stub => omit(parseStub(stub), '_link'))
+      .map(stub => omit(parseStub(stub), 'link'))
       .map(stub => this.bot.getResource(stub)))
 
     const timeDesc = bodies.slice().sort((a, b) => b._time - a._time)
