@@ -4,15 +4,22 @@ import Lens from '@tradle/lens'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { Conf } from '../configure'
-import { Bot, Logger, IPBApp, IPBReq, IBotComponents, CreatePlugin } from '../types'
+import { Bot, Logger, IPBApp, IPBReq, CreatePlugin } from '../types'
 
 const ValidationErrors = validateResource.Errors
+
+type LensPluginOpts = {
+  bot: Bot
+  logger: Logger
+  conf: any
+}
+
 export const name = 'lens'
 export class LensPlugin {
   private bot: Bot
   private conf: any
   private logger: Logger
-  constructor({ bot, conf, logger }: IBotComponents) {
+  constructor({ bot, conf, logger }: LensPluginOpts) {
     this.bot = bot
     this.conf = conf
     this.logger = logger
@@ -131,8 +138,8 @@ export class LensPlugin {
   }
 }
 
-export const createPlugin = (components: IBotComponents) => ({
-  plugin: new LensPlugin(components)
+export const createPlugin:CreatePlugin<void> = ({ bot }, { conf, logger }) => ({
+  plugin: new LensPlugin({ bot, logger, conf })
 })
 
 export const validateConf = async ({ conf, pluginConf }: {
