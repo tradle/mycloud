@@ -57,7 +57,7 @@ export default class TaskManager {
 
   public awaitAllSettled = async ():Promise<ITaskResult<any>> => {
     if (!this.tasks.length) {
-      this.logger.debug(`no async tasks!`)
+      this.logger.silly(`no async tasks!`)
       return []
     }
 
