@@ -7,7 +7,7 @@
   "author": "Mark Vayngrib <mark@tradle.io>",
   "license": "MIT",
   "devDependencies": {
-    "@tradle/aws-client": "^1.8.0",
+    "@tradle/aws-client": "^1.8.1",
     "@types/aws-sdk": "^2.7.0",
     "@types/graphql": "^0.12.3",
     "@types/json-schema": "^6.0.0",
