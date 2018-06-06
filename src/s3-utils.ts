@@ -43,6 +43,8 @@ export default class S3Utils {
   }
 
   public gzipAndPut = async (opts) => {
+    if (!this._canGzip()) return this.put(opts)
+
     const { value, headers = {} } = opts
     const compressed = await gzip(toStringOrBuf(value))
     return await this.put({
@@ -71,7 +73,7 @@ export default class S3Utils {
       // logger.debug('got', { key, bucket, type: result[TYPE] })
       if (result.ContentEncoding === 'gzip') {
         // localstack gunzips but leaves ContentEncoding header
-        if (!(this.env && this.env.TESTING)) {
+        if (this._canGzip()) {
           result.Body = await gunzip(result.Body)
           delete result.ContentEncoding
         }
@@ -393,6 +395,11 @@ export default class S3Utils {
       logger.debug(`deleting ${Contents.length} objects`)
       await deleteVersions(Contents)
     }
+  }
+
+  private _canGzip = () => {
+    // localstack has some issues
+    return !(this.env && this.env.TESTING)
   }
 }
 
