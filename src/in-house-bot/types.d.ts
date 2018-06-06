@@ -49,11 +49,16 @@ export interface ITours {
   [name:string]: ITradleObject
 }
 
+export interface KVMap {
+  [key: string]: any
+}
+
 export interface IBotConf {
   products: IProductsConf
   tours?: ITours
   sandbox?: boolean
   graphqlAuth?: boolean
+  credentials?: KVMap
   // exposed directly in /info
   // publicConfig: any
 }
@@ -268,6 +273,12 @@ interface IOnPendingApplicationCollisionArg {
   pending: ResourceStub[]
 }
 
+interface IGetRequiredFormsArg {
+  user: IPBUser
+  application: IPBApp
+  productModel: any
+}
+
 export interface IPluginLifecycleMethods {
   onmessage?: (req:IPBReq) => boolean|void | Promise<boolean|void>
   willRequestForm?: (opts:IWillRequestFormArg) => void | Promise<void>
@@ -275,6 +286,7 @@ export interface IPluginLifecycleMethods {
   onPendingApplicationCollision?: (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
   onRequestForExistingProduct?: (req:IPBReq) => void | Promise<void>
   onCommand?: ({ req: IPBReq, command: string }) => void | Promise<void>
+  getRequiredForms?: (opts: IGetRequiredFormsArg) => Promise<void|string[]>
   [toBeDefined: string]: any
 }
 

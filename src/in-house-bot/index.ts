@@ -351,6 +351,23 @@ export default function createProductsBot({
     }))
   }
 
+  const attachPlugin = (name: string, prepend?: boolean) => {
+    const pConf = plugins[name]
+    if (!pConf || pConf.enabled === false) return
+
+    logger.debug(`using plugin: ${name}`)
+    const { api, plugin } = Plugins.get(name).createPlugin(components, {
+      conf: pConf,
+      logger: logger.sub(`plugin-${name}`)
+    })
+
+    if (api) {
+      components[name] = api
+    }
+
+    productsAPI.plugins.use(plugin, prepend)
+  }
+
   if (handleMessages) {
     ;[
       'prefill-form',
@@ -360,23 +377,12 @@ export default function createProductsBot({
       'complyAdvantage',
       'facial-recognition',
       'controllingPersonRegistration',
-      'centrix'
-    ].forEach(name => {
-      const pConf = plugins[name]
-      if (!pConf || pConf.enabled === false) return
+      'centrix',
+    ].forEach(name => attachPlugin(name))
+  }
 
-      logger.debug(`using plugin: ${name}`)
-      const { api, plugin } = Plugins.get(name).createPlugin(components, {
-        conf: pConf,
-        logger: logger.sub(`plugin-${name}`)
-      })
-
-      if (api) {
-        components[name] = api
-      }
-
-      productsAPI.plugins.use(plugin)
-    })
+  if (handleMessages) {
+    ;['plugin1', 'plugin2'].forEach(name => attachPlugin(name, true))
   }
 
   if (handleMessages || event.startsWith('deployment:')) {

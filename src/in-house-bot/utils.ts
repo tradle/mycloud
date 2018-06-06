@@ -400,10 +400,8 @@ export const getParsedFormStubs = ({ forms }: {
 export const getLatestForms = ({ forms }: {
   forms?: ApplicationSubmission[]
 }) => {
-  return _.chain(getParsedFormStubs({ forms }))
-    .reverse()
-    .uniqBy('type')
-    .value()
+  const parsed = getParsedFormStubs({ forms }).reverse()
+  return _.uniqBy(parsed, 'type')
 }
 
 // Checks will be executed in case of a new resource. If the resource was modified,
