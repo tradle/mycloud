@@ -15,6 +15,7 @@ try {
 } catch (err) {}
 
 import { getParsedFormStubs } from '../utils'
+import { splitCamelCase } from '../../string-utils'
 import {
   Name,
   Bot,
@@ -78,16 +79,18 @@ class CentrixAPI {
     // ask centrix to verify it
     props.success = idType === DOCUMENT_TYPES.passport ? false : true
     this.logger.debug(`running ${centrixOpName} with Centrix with success set to ${props.success}`)
+    debugger
+    let checkFor = splitCamelCase(centrixOpName, ' ', true)
     let rawData, status, message
     try {
-      this.logger.debug(`running ${centrixOpName} with Centrix`, { test: this.test })
+      this.logger.debug(`running ${checkFor} with Centrix`, { test: this.test })
       if (this.test) {
         rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
       } else {
         rawData = await this.centrix[method](props)
       }
     } catch (err) {
-      message = `Centrix ${centrixOpName} verification failed`
+      message = `${checkFor} failed`
       this.logger.debug(message, err.stack)
 
       rawData = {}
@@ -110,26 +113,26 @@ class CentrixAPI {
       if (!rawData.DataSets.DIAPassport.IsSuccess  ||
           !rawData.DataSets.DIAPassport.DIAPassportVerified)
         status = 'fail'
-        message = `Centrix ${centrixOpName} verification failed`
+        message = `${checkFor} failed`
     }
     else {
       let { IsDriverLicenceVerifiedAndMatched, IsDriverLicenceVerified } = rawData.DataSets.DriverLicenceVerification
       if (!IsDriverLicenceVerified          ||
           !IsDriverLicenceVerifiedAndMatched) {
         status = 'fail'
-        message = `Centrix ${centrixOpName} verification failed`
+        message = `${checkFor} failed`
       }
     }
     if (!status) {
       status = 'pass'
-      message = `Centrix ${centrixOpName} verification passed`
+      message = `${checkFor} passed`
     }
 
     this.logger.debug(`creating ${status.title} check for ${centrixOpName} with Centrix`)
     await this.createCentrixCheck({ application, rawData, status, message, form: photoID })
     if (status !== 'pass')
       return
-    this.logger.debug(`Centrix ${centrixOpName} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
+    this.logger.debug(`${checkFor} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
     await this.createCentrixVerification({ req, photoID, rawData, application })
 
     // artificial timeout till we figure out why updating state
