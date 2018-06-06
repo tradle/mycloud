@@ -69,7 +69,6 @@ class CentrixAPI {
     this.test = test
   }
   async callCentrix({ req, photoID, props }) {
-    debugger
     const idType = getDocumentType(photoID)
     const method = idType === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
     this.logger.debug(`Centrix type ${idType}`)
@@ -79,7 +78,6 @@ class CentrixAPI {
     // ask centrix to verify it
     props.success = idType === DOCUMENT_TYPES.passport ? false : true
     this.logger.debug(`running ${centrixOpName} with Centrix with success set to ${props.success}`)
-    debugger
     let checkFor = splitCamelCase(centrixOpName, ' ', true)
     let rawData, status, message
     try {
@@ -141,7 +139,6 @@ class CentrixAPI {
   }
   async createCentrixCheck({ application, rawData, status, message, form }) {
     rawData = sanitize(rawData).sanitized
-    debugger
     let r:any = {
       provider: CENTRIX_NAME,
       status,
@@ -152,7 +149,6 @@ class CentrixAPI {
     }
     if (rawData)
       r.rawData = rawData
-    debugger
     const check = await this.bot.draft({
         type: CENTRIX_CHECK,
       })
@@ -168,7 +164,6 @@ class CentrixAPI {
         //   id: 'tradle.Organization_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4',
         //   title: 'Centrix'
         // }
-    debugger
     rawData = sanitize(rawData).sanitized
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
@@ -182,7 +177,6 @@ class CentrixAPI {
       aspect: 'validity',
       rawData
     }
-    debugger
     const verification = await this.bot.draft({
         type: VERIFICATION,
       })
@@ -197,7 +191,7 @@ class CentrixAPI {
       application: req.application,
       verification
     })
-debugger
+
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: CENTRIX_CHECK, form: object })
   }
@@ -212,9 +206,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
 
   const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger, test })
   const getDataAndCallCentrix = async ({ req, application }) => {
-    debugger
     const centrixData:any = await getCentrixData({ application, bot })
-    debugger
     if (!centrixData) {
       logger.debug(`don't have all the inputs yet`)
       return
@@ -244,7 +236,6 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
       return
     }
 
-    debugger
     // if (hasCentrixVerification({ application })) return
     try {
       await getDataAndCallCentrix({ req, application })
@@ -267,7 +258,6 @@ async function getCentrixData ({ application, bot }) {
   if (!formStub) return
 
   const form = await bot.objects.get(formStub.link)
-  debugger
   if (form.country.id !== NZ_COUNTRY_ID)
     return
   const { scanJson } = form
@@ -286,7 +276,7 @@ async function getCentrixData ({ application, bot }) {
     dateOfBirth = toISODateString(dateOfBirth)
   if (dateOfExpiry)
     dateOfExpiry = toISODateString(dateOfExpiry)
-debugger
+
   if (!firstName)
     firstName = personal.firstName
   if (!lastName)
@@ -316,7 +306,7 @@ debugger
       sex
     }
   }
-  debugger
+
   return centrixData
 }
 
