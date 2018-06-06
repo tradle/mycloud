@@ -171,12 +171,12 @@ query ($author: String, $context: String) {
     filter: {
       EQ: {
         _inbound: true
-        _author: $author
+        _counterparty: $counterparty
         context: $context
       }
     },
     orderBy: {
-      property: time,
+      property: _time,
       desc: true
     }
   ) {
