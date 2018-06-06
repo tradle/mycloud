@@ -544,33 +544,35 @@ const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMeth
     }
 
     if (!autoApprove) {
-      const results = await Promise.all([
-        applications.haveAllChecksPassed({ application }),
-        applications.haveAllFormsBeenVerified({ application })
-      ])
+      return
 
-      const [mostRecentChecksPassed, formsHaveBeenVerified] = results
-      if (mostRecentChecksPassed) {
-        if (_.size(application.checks)) {
-          logger.debug('all checks have passed', {
-            application: application._permalink
-          })
-        }
-      } else {
-        logger.debug('not all checks passed, not auto-approving')
-      }
+      // const results = await Promise.all([
+      //   applications.haveAllChecksPassed({ application }),
+      //   applications.haveAllFormsBeenVerified({ application })
+      // ])
 
-      if (formsHaveBeenVerified) {
-        if (_.size(application.verifications)) {
-          logger.debug('all forms have been verified', {
-            application: application._permalink
-          })
-        }
-      } else {
-        logger.debug('not all forms have been verified, not auto-approving')
-      }
+      // const [mostRecentChecksPassed, formsHaveBeenVerified] = results
+      // if (mostRecentChecksPassed) {
+      //   if (_.size(application.checks)) {
+      //     logger.debug('all checks have passed', {
+      //       application: application._permalink
+      //     })
+      //   }
+      // } else {
+      //   logger.debug('not all checks passed, not auto-approving')
+      // }
 
-      if (!results.every(_.identity)) return
+      // if (formsHaveBeenVerified) {
+      //   if (_.size(application.verifications)) {
+      //     logger.debug('all forms have been verified', {
+      //       application: application._permalink
+      //     })
+      //   }
+      // } else {
+      //   logger.debug('not all forms have been verified, not auto-approving')
+      // }
+
+      // if (!results.every(_.identity)) return
     }
 
     logger.debug('approving application', {
