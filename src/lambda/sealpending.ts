@@ -12,11 +12,15 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { seals, env, logger } = lambda.bot
   return async (ctx, next) => {
     let results = []
+    let error
     let batch
     let haveTime
     do {
       batch = await seals.sealPending({ limit: 10 })
-      results = results.concat(batch)
+      results = results.concat(batch.seals)
+      error = batch.error
+      if (error) break
+
       haveTime = env.getRemainingTime() > SAFETY_MARGIN_MILLIS
     } while (!haveTime)
 

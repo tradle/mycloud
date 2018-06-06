@@ -115,6 +115,11 @@ type WatchOpts = {
   object?: ITradleObject
 }
 
+type SealPendingResult = {
+  seals: Seal[]
+  error?: Error
+}
+
 export type Seal = {
   _t: string
   _time: number
@@ -323,7 +328,7 @@ export default class Seals {
     })
   }
 
-  private _sealPending = async (opts: { limit?: number, key?: any } = {}):Promise<Seal[]> => {
+  private _sealPending = async (opts: { limit?: number, key?: any } = {}):Promise<SealPendingResult> => {
     typeforce({
       limit: typeforce.maybe(typeforce.Number),
       key: typeforce.maybe(types.privateKey)
@@ -354,8 +359,9 @@ export default class Seals {
       }
     }
 
+    let error
     const results = await seriesMap(pending, async (sealInfo: Seal) => {
-      if (aborted) return
+      if (error) return
 
       try {
         return await this.writePendingSeal({ seal: sealInfo, key, balance })
@@ -363,12 +369,15 @@ export default class Seals {
         Errors.rethrow(err, 'developer')
         if (Errors.matches(err, Errors.LowFunds)) {
           this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
-          aborted = true
+          error = err
         }
       }
     })
 
-    return results.filter(notNull)
+    return {
+      seals: results.filter(notNull),
+      error
+    }
   }
 
   public writePendingSeal = async ({ seal, key, balance }: {
