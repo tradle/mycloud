@@ -212,10 +212,14 @@ export class Applications {
 
     const checkResources = await this.getLatestChecks({ application })
     const byAPI:any = groupBy(checkResources, 'provider')
-    return Object.keys(byAPI).every(provider => {
-      const last = byAPI[provider].pop()
-      return isPassedCheck(last)
+    const latest = Object.keys(byAPI).map(provider => byAPI[provider].pop())
+    const allPassed = latest.every(check => isPassedCheck(check))
+    this.logger.silly('have all checks passed?', {
+      application: application._permalink,
+      checks: latest.map(check => this.stub(check))
     })
+
+    return allPassed
   }
 
   public createVerification = async ({ req, application, verification }: {
