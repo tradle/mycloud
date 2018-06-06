@@ -124,11 +124,15 @@ class OpenCorporatesAPI {
 // no matches for company name XYZ with registration number ABC. Either or both may contain an error
 
     if (!companies.length) {
-      if (!foundNumber  &&  wrongNumber)
-        message = `No matches for company name "${companyName}" with the registration number "${registrationNumber}" were found`
+      if (!foundNumber  &&  wrongNumber) {
+        message = `No matches for company name "${companyName}" `
+        if (registrationNumber)
+          message += `with the registration number "${registrationNumber}" `
+        message +=  'were found'
+      }
       else if (!foundDate  &&  wrongDate)
         message = `The company with the name "${companyName}" and registration number "${registrationNumber}" has a different registration date`
-      else if (!foundCountry && wrongCountry)
+      else if (!foundCountry  &&  wrongCountry)
         message = `The company with the name "${companyName}" and registration number "${registrationNumber}" registered on ${toISODateString(registrationDate)} was not found in "${country}"`
     }
     if (companies.length === 1)
