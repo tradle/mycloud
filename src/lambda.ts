@@ -243,13 +243,13 @@ export class Lambda extends EventEmitter {
 
   get timeLeft() {
     if (this.execCtx) {
-      if (this.isTesting) {
-        return 5000
-      }
-
       const { context } = this.execCtx
       if (context && context.getRemainingTimeInMillis) {
         return Math.max(context.getRemainingTimeInMillis(), 0)
+      }
+
+      if (this.isTesting) {
+        return 5000
       }
     }
 

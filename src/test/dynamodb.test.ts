@@ -6,13 +6,13 @@ AWS.config.update({
   maxRetries: 0,
   retryDelayOptions: {
     customBackoff: function (retryCount) {
-      console.log("AWS SERVICE RETRY COUNT", retryCount)
       if (retryCount > 3) {
+        console.log("AWS SERVICE RETRY COUNT", retryCount)
         console.warn(`are you sure localstack is up? To start it, run: npm run localstack:start`)
       }
 
       return Math.pow(2, retryCount) * 100
-  // returns delay in ms
+      // returns delay in ms
     }
   }
 })

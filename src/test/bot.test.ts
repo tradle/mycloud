@@ -358,7 +358,10 @@ test(`seal events stream`, loudAsync(async (t) => {
         _time: 4
       }
     }
-  ]), {
+  ]),
+  // @ts-ignore
+  {
+    getRemainingTimeInMillis: () => 20000,
     done: t.error
   } as ILambdaAWSExecutionContext)
 
@@ -481,8 +484,11 @@ test('onmessagestream', loudAsync(async (t) => {
 
   await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
     { value: inbound }
-  ]), {
+  ]),
+  // @ts-ignore
+  {
     // #6
+    getRemainingTimeInMillis: () => 20000,
     done: t.error
   } as ILambdaAWSExecutionContext)
 

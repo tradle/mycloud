@@ -38,11 +38,29 @@ import {
   IHasLogger
 } from './types'
 
+import baseModels from './models'
+
 const { PREVLINK, AUTHOR, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
-const { MESSAGE } = TYPES
+const { MESSAGE, IDENTITY } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
 const PUB_KEY = 'tradle.PubKey'
+const PUB_KEY_MODEL = baseModels[PUB_KEY]
+
+// requirement for byPermalink query efficiency
+const validatePubKeyModel = model => {
+  const firstIndex = model.indexes[0]
+  if (firstIndex.hashKey !== 'permalink') {
+    throw new Errors.InvalidInput('expected PubKey model.indexes[0].hashKey to be permalink')
+  }
+
+  if (!firstIndex.rangeKey.template.startsWith('{_time}')) {
+    throw new Errors.InvalidInput('expected PubKey model.indexes[0].rangeKey to be time-sortable')
+  }
+}
+
+validatePubKeyModel(PUB_KEY_MODEL)
+
 const ORDER_BY_RECENT_FIRST = {
   property: '_time',
   desc: true
@@ -202,6 +220,7 @@ export default class Identities implements IHasLogger {
   // }
 
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
+    const table = await this.db.getTableForModel(IDENTITY)
     const { link } = await this.db.findOne({
       select: ['link'],
       filter: {
@@ -210,7 +229,11 @@ export default class Identities implements IHasLogger {
           permalink
         }
       },
-      orderBy: ORDER_BY_RECENT_FIRST
+      orderBy: {
+        // @ts-ignore
+        property: table.indexes[0].rangeKey,
+        desc: true
+      }
     })
 
     try {
