@@ -135,6 +135,7 @@ export const clearTypes = async ({ bot, types }: {
   }
 
   await Promise.map(types, async (type) => {
+    bot.logger.debug('clearing type', type)
     const model = bot.models[type]
     const keyProps = getPrimaryKeysProperties(model)
     let batch
