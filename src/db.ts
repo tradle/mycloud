@@ -160,6 +160,7 @@ export = function createDB ({
   const tableNames = tableBuckets.map(({ TableName }) => TableName)
   // @ts-ignore
   const db = new DB({
+    // logger,
     modelStore,
     tableNames,
     defineTable: name => {
@@ -258,6 +259,7 @@ export = function createDB ({
   }
 
   return logifyDB(db, logger)
+  // return db
 }
 
 const logifyDB = (db: DB, logger: Logger) => {

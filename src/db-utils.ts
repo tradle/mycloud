@@ -127,11 +127,6 @@ function createDBUtils ({ aws, logger, env }) {
     const level = logger.level >= Level.SILLY ? 'info' : 'warn'
     dynogels.log = {
       info: () => {},
-      // info: (...data) => {
-      //   const str = JSON.stringify(data)
-      //   // dynogelsLogger.info('', str.length > 1000 ? str.slice(0, 1000) + '...' : data)
-      //   dynogelsLogger.info('', str)
-      // },
       warn: (...data) => dynogelsLogger.warn('', data),
       level: 'warn'
     }
