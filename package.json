@@ -49,7 +49,7 @@
   "scripts": {
     "init": "npm i && npm run build:yml",
     "precommit": "echo 'compiling typescript' && tsc && lint-staged",
-    "postmerge": "echo 'compiling typescript' && tsc",
+    "postmerge": "./src/scripts/postmerge.sh",
     "package": "serverless package",
     "gen:testenv": "node ./lib/scripts/gen-test-env.js && npm run copy-static-assets",
     "gen:fixtures": "node ./lib/scripts/gen-fixtures.js && npm run copy-static-assets",
@@ -78,6 +78,7 @@
     "deploy:postprocess": "./src/scripts/postdeploy.sh",
     "rebuild:lambda": "./src/scripts/rebuild-lambda.sh",
     "rebuild:local": "npm rebuild",
+    "rebuildanddeploy": "npm run rebuild:lambda && npm run deploy",
     "nuke": "./src/scripts/nuke.sh",
     "nuke:local": "sls s3 remove & sls dynamodb remove & wait",
     "reset:local": "./src/scripts/reset-local.sh",
