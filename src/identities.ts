@@ -221,6 +221,7 @@ export default class Identities implements IHasLogger {
 
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
     const table = await this.db.getTableForModel(IDENTITY)
+    const { rangeKey } = table.indexes[0]
     const { link } = await this.db.findOne({
       select: ['link'],
       filter: {
@@ -230,8 +231,7 @@ export default class Identities implements IHasLogger {
         }
       },
       orderBy: {
-        // @ts-ignore
-        property: table.indexes[0].rangeKey,
+        property: rangeKey,
         desc: true
       }
     })
