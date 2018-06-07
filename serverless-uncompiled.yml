@@ -546,6 +546,7 @@ functions:
             functions:
               - oniotlifecycle
               - onmessage
+              - onresourcestream
               - graphql
               - info
               - preauth
