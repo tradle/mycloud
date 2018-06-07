@@ -1,7 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import { pick, chunk } from 'lodash'
-import { TYPE } from '@tradle/constants'
+import { pick, chunk, isEqual, maxBy } from 'lodash'
+import { TYPE, TIMESTAMP } from '@tradle/constants'
 import { wait } from '../utils'
 import Errors from '../errors'
 import { getPrimaryKeysProperties } from '../resource'
@@ -80,9 +80,25 @@ export const clearUsers = async ({ bot }: {
   const { deleted, cleaned } = result
 
   let users
+  let time = 0
   do {
+    if (users && users.length) {
+      const latest = maxBy(users, TIMESTAMP)[TIMESTAMP]
+      time = Math.max(latest, time)
+    }
+
     users = await bot.users.list({
-      limit: BATCH_SIZE
+      limit: BATCH_SIZE,
+      filter: {
+        EQ: {},
+        GT: {
+          [TIMESTAMP]: time
+        }
+      },
+      orderBy: {
+        property: '_time',
+        desc: false
+      }
     })
 
     await Promise.map(users, async (user) => {
@@ -92,10 +108,11 @@ export const clearUsers = async ({ bot }: {
         return
       }
 
+      const cleanUser = pick(user, ['id', 'friend', 'identity', TYPE, TIMESTAMP])
+      if (isEqual(cleanUser, user)) return
+
       cleaned.push(user.id)
-      user = pick(user, ['id', 'friend', 'identity'])
-      await bot.users.save(user)
-      return
+      await bot.users.save(cleanUser)
     })
   } while (users.length)
 
