@@ -198,14 +198,30 @@ export default class Backlinks {
 
     if (!applicationSubmissions.length) return []
 
-    return await Promise.all(applicationSubmissions.map(async (object) => {
+    const results = await Promise.all(applicationSubmissions.map(async (object) => {
       object = await this.identity.sign({ object })
       try {
-        return await this.storage.save({ object })
-      } catch (err) {
-        Errors.ignoreUnmetCondition(err)
+        object = await this.storage.save({ object })
+      } catch (error) {
+        this.logger.debug('failed to create application submission', {
+          error,
+          applicationSubmission: object
+        })
+
+        Errors.ignoreUnmetCondition(error)
+        return
       }
+
+      this.logger.silly(`intersection created`, {
+        type: APPLICATION_SUBMISSION,
+        x: [APPLICATION, object.submission[TYPE]],
+        delay: Date.now() - object._time,
+      })
+
+      return object
     }))
+
+    return results.filter(_.identity)
   }
 
   public processChanges = async (resourceChanges: ISaveEventPayload[]) => {
