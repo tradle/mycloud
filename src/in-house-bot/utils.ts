@@ -17,6 +17,7 @@ import {
   IPBUser,
   ApplicationSubmission,
   Seal,
+  IPBReq,
 } from './types'
 
 const SealModel = models['tradle.Seal']
@@ -433,4 +434,15 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
   if (!Object.keys(r).length)
     throw new Error(`no criteria to run ${plugin} checks`)
   return runCheck  &&  r
+}
+
+export const getUserIdentifierFromRequest = (req: IPBReq) => {
+  const { user, message } = req
+  const { originalSender } = message
+  let identifier = user.id
+  if (originalSender) {
+    identifier += ':' + originalSender
+  }
+
+  return identifier
 }

@@ -73,19 +73,6 @@ export const sendModelsPackIfUpdated = async ({
   return true
 }
 
-export const createGetIdentifierFromReq = ({ employeeManager }) => {
-  return req => {
-    const { user, message } = req
-    const { originalSender } = message
-    let identifier = user.id
-    if (originalSender) {
-      identifier += ':' + originalSender
-    }
-
-    return identifier
-  }
-}
-
 export const createModelsPackGetter = ({ bot, productsAPI, employeeManager }) => {
   return async (user) => {
     if (employeeManager.isEmployee(user)) {

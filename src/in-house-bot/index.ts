@@ -24,7 +24,6 @@ import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import {
   createPlugin as keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
-  createGetIdentifierFromReq,
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
@@ -35,7 +34,7 @@ import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-
 import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
 import { createPlugin as createCommandsPlugin } from './plugins/commands'
 import { createPlugin as createEBVPlugin } from './plugins/email-based-verification'
-import { isPendingApplication, getNonPendingApplications } from './utils'
+import { isPendingApplication, getNonPendingApplications, getUserIdentifierFromRequest } from './utils'
 import { Applications } from './applications'
 import { Friends } from './friends'
 import {
@@ -60,7 +59,6 @@ import * as LambdaEvents from './lambda-events'
 const { MAX_DB_ITEM_SIZE } = constants
 const { parseStub } = validateResource.utils
 const BASE_MODELS_IDS = Object.keys(baseModels)
-const DEFAULT_PRODUCTS = ['tradle.CurrentAccount']
 const DONT_FORWARD_FROM_EMPLOYEE = [
   'tradle.Verification',
   'tradle.ApplicationApproval',
@@ -69,10 +67,12 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 ]
 
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
+const FORM_REQUEST = 'tradle.FormRequest'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const APPLICATION = 'tradle.Application'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
+const PRODUCT_LIST_MESSAGE = 'See a list of products'
 const ALL_HIDDEN_PRODUCTS = [
   DEPLOYMENT,
   EMPLOYEE_ONBOARDING
@@ -120,6 +120,7 @@ export default function createProductsBot({
   // then some handlers can migrate to 'messagestream'
   const handleMessages = event === LambdaEvents.MESSAGE || (bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC)
   const mergeModelsOpts = { validate: bot.isTesting }
+  const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
   const productsAPI = createProductsStrategy({
     logger: logger.sub('products'),
     bot,
@@ -129,7 +130,7 @@ export default function createProductsBot({
         .add(conf.modelsPack ? conf.modelsPack.models : {}, mergeModelsOpts)
         .get()
     },
-    products: _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS)),
+    products: productsList,
     validateModels: bot.isTesting,
     nullifyToDeleteProperty: true
     // queueSends: bot.env.TESTING ? true : queueSends
@@ -226,7 +227,7 @@ export default function createProductsBot({
 
     productsAPI.removeDefaultHandler('onCommand')
     const keepModelsFresh = keepModelsFreshPlugin({
-      getIdentifier: createGetIdentifierFromReq({ employeeManager }),
+      getIdentifier: getUserIdentifierFromRequest,
       getModelsPackForUser: createModelsPackGetter({ bot, productsAPI, employeeManager }),
       send
     })
@@ -266,6 +267,22 @@ export default function createProductsBot({
       productsAPI.plugins.use(keepStylesFresh, true) // prepend
     }
 
+    const keepProductListFresh = keepFreshPlugin({
+      getIdentifier: getUserIdentifierFromRequest,
+      object: {
+        [TYPE]: FORM_REQUEST,
+        form: PRODUCT_REQUEST,
+        chooser: {
+          property: 'requestFor',
+          oneOf: productsList.slice()
+        },
+        message: PRODUCT_LIST_MESSAGE
+      },
+      propertyName: 'productListHash',
+      send
+    })
+
+    productsAPI.plugins.use(keepProductListFresh, true) // prepend
     productsAPI.plugins.use(keepModelsFresh, true) // prepend
     productsAPI.plugins.use(approveWhenTheTimeComes(components))
     productsAPI.plugins.use(banter(components))
