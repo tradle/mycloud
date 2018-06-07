@@ -38,7 +38,7 @@ export const clearApplications = async ({ bot, confirm=accept }: {
   bot.logger.info('finding victims...')
 
   const { definitions } = dbUtils
-  const modelsToDelete = Object.keys(models).filter(id => {
+  const types = Object.keys(models).filter(id => {
     if (NOT_CLEARABLE_TYPES.includes(id)) return
 
     const model = models[id]
@@ -56,7 +56,6 @@ export const clearApplications = async ({ bot, confirm=accept }: {
     }
   })
 
-  const types = Object.keys(models)
   const ok = await confirm(types)
   if (!ok) return
 
@@ -140,6 +139,7 @@ export const clearTypes = async ({ bot, types }: {
     const keyProps = getPrimaryKeysProperties(model)
     let batch
     let count = 0
+    let retry
     do {
       try {
         batch = await db.find({
@@ -149,21 +149,28 @@ export const clearTypes = async ({ bot, types }: {
             EQ: {
               [TYPE]: type
             }
-          }
+          },
+          limit: 100
         })
       } catch (err) {
         if (Errors.matches(err, THROTTLING_ERRORS)) {
           let millis = Math.floor(30000 * Math.random())
           bot.logger.warn(`throttled, backing off ${millis}ms`)
           await wait(millis)
+          retry = true
+          continue
         } else {
           throw err
         }
       }
 
-      await Promise.map(batch.items, deleteResource)
+      retry = false
+      await Promise.map(batch.items, deleteResource, {
+        concurrency: 20
+      })
+
       count += batch.items.length
-    } while (batch.items.length)
+    } while (retry || batch.items.length)
 
     if (count) deleteCounts[type] = count
   }, {
