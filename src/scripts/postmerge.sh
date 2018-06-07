@@ -12,6 +12,5 @@ update_deps() {
   npm install
 }
 
-echo 'compiling typescript' && tsc &
-check_run npm-shrinkwrap.json "update_deps" &
-wait
+check_run npm-shrinkwrap.json "update_deps"
+echo 'compiling typescript' && tsc
