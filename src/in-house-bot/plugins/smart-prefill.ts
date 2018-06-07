@@ -15,6 +15,7 @@ const { parseStub } = validateResource.utils
 const PHOTO_ID = 'tradle.PhotoID'
 const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
 const PG_PERSONAL_DETAILS = 'tradle.pg.PersonalDetails'
+const ADDRESS = 'tradle.Address';
 
 // const canPrefillFromPhotoID = ({ application, formRequest }) => {
 //   if (!doesApplicationHavePhotoID(application)) return false
@@ -77,6 +78,9 @@ export const transformers = {
     },
     [PG_PERSONAL_DETAILS]: (source: IPersonalInfo) => {
       return _.pick(source, ['firstName', 'lastName', 'dateOfBirth'])
+    },
+    [ADDRESS]: (source: IPersonalInfo) => {
+       return _.pick(source, ['country'])
     }
   }
 }
