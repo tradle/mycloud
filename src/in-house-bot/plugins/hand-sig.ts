@@ -27,7 +27,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger,
       formRequest.message = MESSAGE
     }
 
-    const formStubs = getFormStubs(application).map(resource => buildResource.stub({ resource }))
+    const formStubs = getFormStubs(application).map(resource => buildResource.stub({ models, resource }))
     formRequest.prefill.signatureFor = formStubs
   }
 
