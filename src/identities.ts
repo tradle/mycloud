@@ -46,16 +46,17 @@ const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
 const PUB_KEY = 'tradle.PubKey'
 const PUB_KEY_MODEL = baseModels[PUB_KEY]
+const UPDATE_DEPENDENCIES = 'Run `npm install` to update dependencies'
 
 // requirement for byPermalink query efficiency
 const validatePubKeyModel = model => {
   const firstIndex = model.indexes[0]
   if (firstIndex.hashKey !== 'permalink') {
-    throw new Errors.InvalidInput('expected PubKey model.indexes[0].hashKey to be permalink')
+    throw new Errors.InvalidInput('expected PubKey model.indexes[0].hashKey to be permalink. ${UPDATE_DEPENDENCIES}')
   }
 
   if (!firstIndex.rangeKey.template.startsWith('{_time}')) {
-    throw new Errors.InvalidInput('expected PubKey model.indexes[0].rangeKey to be time-sortable')
+    throw new Errors.InvalidInput('expected PubKey model.indexes[0].rangeKey to be time-sortable. ${UPDATE_DEPENDENCIES}')
   }
 }
 
