@@ -5,13 +5,14 @@ import { CreatePlugin, IPluginLifecycleMethods, Conf } from '../types'
 import { getFormStubs } from '../utils'
 
 const MESSAGE = 'Please provide your **digital hand signature**'
+const HAND_SIGNATURE = 'tradle.HandSignature'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger, conf }) => {
   const { models } = bot
   const plugin:IPluginLifecycleMethods = {}
   plugin.willRequestForm = ({ application, formRequest }) => {
     const { form } = formRequest
-    if (form !== 'tradle.HandSignature' || formRequest.signatureFor) {
+    if (form !== HAND_SIGNATURE || formRequest.signatureFor) {
       return
     }
 
@@ -23,7 +24,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger,
 
     // hack
     // TODO: move default message generator to the end of plugins
-    if (formRequest.message.startsWith('Please fill out the form')) {
+    if (formRequest.message && formRequest.message.startsWith('Please fill out the form')) {
       formRequest.message = MESSAGE
     }
 

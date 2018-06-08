@@ -46,7 +46,9 @@ import {
   Deployment,
   IPluginOpts,
   IPluginLifecycleMethods,
-  IPBReq
+  IPBReq,
+  IPBUser,
+  IPBApp
 } from './types'
 
 import Logger from '../logger'
@@ -69,10 +71,11 @@ const DONT_FORWARD_FROM_EMPLOYEE = [
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const FORM_REQUEST = 'tradle.FormRequest'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
+const HELP_REQUEST = 'tradle.RequestForAssistance'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const APPLICATION = 'tradle.Application'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
-const PRODUCT_LIST_MESSAGE = 'See a list of products'
+const PRODUCT_LIST_MESSAGE = 'Click the menu button to see a list of products'
 const ALL_HIDDEN_PRODUCTS = [
   DEPLOYMENT,
   EMPLOYEE_ONBOARDING
@@ -625,12 +628,70 @@ const banter = (components: IBotComponents) => {
           message: `${message} yourself!`
         }
       })
+
+      return
     }
+
+    // await offerAssistance(req)
+    await productsAPI.send({
+      req,
+      to: user,
+      object: {
+        [TYPE]: 'tradle.SimpleMessage',
+        form: HELP_REQUEST,
+        message: `Sorry, I'm not that smart yet!
+
+If you start a product application, I'll see if I can get someone to help you.
+
+${PRODUCT_LIST_MESSAGE}`,
+      }
+    })
   }
 
   return {
     'onmessage:tradle.SimpleMessage': handleSimpleMessage
   }
+}
+
+type OfferAssistanceOpts = {
+  req: IPBReq
+  user: IPBUser
+  application?: IPBApp
+  productsAPI
+}
+
+const offerAssistance = async (opts: OfferAssistanceOpts) => {
+  const { req, user, application, productsAPI } = opts
+  if (application) {
+    await productsAPI.send({
+      req,
+      to: user,
+      object: {
+        [TYPE]: 'tradle.FormRequest',
+        form: HELP_REQUEST,
+        message: `Sorry, I'm not that smart! Would you like me to get someone to help you?`,
+        chooser: {
+          property: 'requestFor',
+          oneOf: ['Yes please!', 'No, I\'m good']
+        },
+        prefill: {
+          application: req.application
+        }
+      }
+    })
+
+    return
+  }
+
+  await productsAPI.send({
+    req,
+    to: user,
+    object: {
+      [TYPE]: 'tradle.SimpleMessage',
+      form: HELP_REQUEST,
+      message: `Sorry, I'm not that smart! If you start a product application, I can get someone to help you. ${PRODUCT_LIST_MESSAGE}`,
+    }
+  })
 }
 
 const sendModelsPackToNewEmployees = (components: IBotComponents) => {

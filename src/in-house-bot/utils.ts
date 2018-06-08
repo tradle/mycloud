@@ -34,6 +34,7 @@ const BUSINESS_INFORMATION = 'tradle.BusinessInformation'
 const IDENTIFICATION_OF_BENEFICIAL_OWNER = 'tradle.W8BENE1'
 const DEPLOYMENT_CONFIGURATION = 'tradle.cloud.Configuration'
 const CHECK_STATUS = 'tradle.Status'
+const HAND_SIGNATURE = 'tradle.HandSignature'
 
 export {
   isEmployee
@@ -446,3 +447,7 @@ export const getUserIdentifierFromRequest = (req: IPBReq) => {
 
   return identifier
 }
+
+export const ensureHandSigLast = (forms: string[]) => _.sortBy(forms, [a => {
+  return a === HAND_SIGNATURE ? 1 : 0
+}])
