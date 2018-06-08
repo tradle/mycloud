@@ -176,19 +176,18 @@ export default class Messaging {
       throw new Errors.Forbidden(`payload ${object[TYPE]}`)
     }
 
-    if (clientId) {
-      const identity = getIntroducedIdentity(object)
-      if (identity) {
-        // small optimization to avoid validating the same identity
-        // we just validated during auth
-        const link = buildResource.link(identity)
-        const alreadyHaveContact = clientId &&
-          !identity[PERMALINK] &&
-          link === this.auth.getPermalinkFromClientId(clientId)
+    const identity = getIntroducedIdentity(object)
+    if (identity) {
+      // small optimization to avoid validating the same identity
+      // we just validated during auth
+      let alreadyHaveContact
+      if (clientId && !identity[PERMALINK]) {
+        const clientIdentityPermalink = this.auth.getPermalinkFromClientId(clientId)
+        alreadyHaveContact = clientIdentityPermalink === this.auth.getPermalinkFromClientId(clientId)
+      }
 
-        if (!alreadyHaveContact) {
-          await this.identities.addContact(identity)
-        }
+      if (!alreadyHaveContact) {
+        await this.identities.addContact(identity)
       }
     }
 
