@@ -344,9 +344,10 @@ export default class Seals {
       key = await identity.getChainKeyPriv()
     }
 
+    const ret:SealPendingResult = { seals: [], error: null }
     const pending = await this.getUnsealed({ limit })
     this.logger.info(`found ${pending.length} pending seals`)
-    if (!pending.length) return []
+    if (!pending.length) return ret
 
     let aborted
     // TODO: update balance after every tx
@@ -359,9 +360,8 @@ export default class Seals {
       }
     }
 
-    let error
     const results = await seriesMap(pending, async (sealInfo: Seal) => {
-      if (error) return
+      if (ret.error) return
 
       try {
         return await this.writePendingSeal({ seal: sealInfo, key, balance })
@@ -369,15 +369,13 @@ export default class Seals {
         Errors.rethrow(err, 'developer')
         if (Errors.matches(err, Errors.LowFunds)) {
           this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
-          error = err
+          ret.error = err
         }
       }
     })
 
-    return {
-      seals: results.filter(notNull),
-      error
-    }
+    ret.seals = results.filter(notNull)
+    return ret
   }
 
   public writePendingSeal = async ({ seal, key, balance }: {
