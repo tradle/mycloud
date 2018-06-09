@@ -212,7 +212,7 @@ export default class Messaging {
           key: {
             type: this.network.flavor,
             curve: this.network.curve,
-            pub: seal.basePubKey.toString('hex')
+            pub: seal.basePubKey
             // TODO: add txId if available
           },
           ..._.pick(seal, ['headerHash', 'prevHeaderHash', 'link', 'prevlink'])
@@ -256,6 +256,10 @@ export default class Messaging {
     // TODO: uncomment below, check that message is for us
     // await ensureMessageIsForMe({ message })
     // const payload = message.object
+
+    if (message.seal) {
+      message.seal.basePubKey = normalizeBuffer(message.seal.basePubKey)
+    }
 
     // prereq to running validation
     await this.objects.resolveEmbeds(message)
@@ -586,4 +590,12 @@ const getIntroducedIdentity = (payload) => {
   if (type === SELF_INTRODUCTION || type === INTRODUCTION || type === IDENTITY_PUBLISH_REQUEST) {
     return payload.identity
   }
+}
+
+const normalizeBuffer = (buf):Buffer => {
+  if (Buffer.isBuffer(buf)) return buf
+
+  if (!Array.isArray(buf.data)) throw new Errors.InvalidInput('expected buffer')
+
+  return Buffer.from(buf.data)
 }
