@@ -76,7 +76,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#9932029a7072c8f319af7c91b0a06382efaa6099"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#91e85f2919a6c943969d71652f95f47ca3f07840"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
@@ -186,7 +186,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#0685ce9426a1a1b23e198beac39c3a52a65a9bff",
+      "resolved": "git://github.com/tradle/dynamodb.git#2ddc4789c2d06fdab3e070d0da7e36470a6abec5",
       "dependencies": {
         "koa-compose": {
           "version": "4.1.0",
