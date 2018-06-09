@@ -144,6 +144,7 @@ export default function createProductsBot({
     }
   })
 
+  const usedPlugins = []
   const attachPlugin = ({ name, componentName, requiresConf, prepend }: {
     name: string
     componentName?: string
@@ -155,7 +156,7 @@ export default function createProductsBot({
       if (!pConf || pConf.enabled === false) return
     }
 
-    logger.debug(`using plugin: ${name}`)
+    usedPlugins.push(name)
     const { api, plugin } = Plugins.get(name).createPlugin(components, {
       conf: pConf,
       logger: logger.sub(`plugin-${name}`)
@@ -354,18 +355,8 @@ export default function createProductsBot({
     }, true) // prepend
   }
 
-  if (ONFIDO_RELATED_EVENTS.includes(event)) {
-    const onfidoConf = plugins.onfido || {}
-    if (onfidoConf.apiKey) {
-      logger.debug('using plugin: onfido')
-      const result = createOnfidoPlugin(components, {
-        logger: logger.sub('onfido'),
-        conf: onfidoConf
-      })
-
-      productsAPI.plugins.use(result.plugin)
-      components.onfido = result.api
-    }
+  if (ONFIDO_RELATED_EVENTS.includes(event) && plugins.onfido && plugins.onfido.apiKey) {
+    attachPlugin({ name: 'onfido' })
   }
 
   const customizeMessageOpts = plugins['customize-message']
@@ -423,6 +414,8 @@ export default function createProductsBot({
     event === LambdaEvents.RESOURCE_ASYNC) {
     attachPlugin({ name: 'email-based-verification', componentName: 'emailBasedVerifier' })
   }
+
+  logger.debug('using plugins', usedPlugins)
 
   return components
 }
