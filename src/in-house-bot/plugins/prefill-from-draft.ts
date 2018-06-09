@@ -10,7 +10,7 @@ import { parseStub, omitVirtual, toUnsigned } from '../../utils'
 import Errors from '../../errors'
 import { getParsedFormStubs } from '../utils'
 
-export const name = 'prefillFromDraft'
+export const name = 'prefill-from-draft'
 export const createPlugin: CreatePlugin<void> = ({
   bot,
   productsAPI

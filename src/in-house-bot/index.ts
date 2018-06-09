@@ -13,12 +13,7 @@ import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
-import { createPlugin as createPrefillPlugin } from './plugins/prefill-form'
-import { createPlugin as createSmartPrefillPlugin } from './plugins/smart-prefill'
-import { createPlugin as createLensPlugin } from './plugins/lens'
 import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
-import { createPlugin as createDeploymentPlugin } from './plugins/deployment'
-import { createPlugin as createHandSigPlugin } from './plugins/hand-sig'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 
 import {
@@ -27,13 +22,6 @@ import {
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
-import { createRemediation } from './remediation'
-import { createPlugin as createRemediationPlugin } from './plugins/remediation'
-import { createPlugin as createDraftApplicationPlugin } from './plugins/draft-application'
-import { createPlugin as createPrefillFromDraftPlugin } from './plugins/prefill-from-draft'
-import { createPlugin as createWebhooksPlugin } from './plugins/webhooks'
-import { createPlugin as createCommandsPlugin } from './plugins/commands'
-import { createPlugin as createEBVPlugin } from './plugins/email-based-verification'
 import { isPendingApplication, getNonPendingApplications, getUserIdentifierFromRequest } from './utils'
 import { Applications } from './applications'
 import { Friends } from './friends'
@@ -155,6 +143,30 @@ export default function createProductsBot({
       if (model && model.subClassOf === 'tradle.Form') return true
     }
   })
+
+  const attachPlugin = ({ name, componentName, requiresConf, prepend }: {
+    name: string
+    componentName?: string
+    requiresConf?: boolean
+    prepend?: boolean
+  }) => {
+    const pConf = plugins[name]
+    if (requiresConf !== false) {
+      if (!pConf || pConf.enabled === false) return
+    }
+
+    logger.debug(`using plugin: ${name}`)
+    const { api, plugin } = Plugins.get(name).createPlugin(components, {
+      conf: pConf,
+      logger: logger.sub(`plugin-${name}`)
+    })
+
+    if (api) {
+      components[componentName || name] = api
+    }
+
+    productsAPI.plugins.use(plugin, prepend)
+  }
 
   const send = (opts) => productsAPI.send(opts)
   const employeeManager = createEmployeeManager({
@@ -311,9 +323,7 @@ export default function createProductsBot({
       }
     })
 
-    productsAPI.plugins.use(createDraftApplicationPlugin(components, {
-      logger: logger.sub('draft-app')
-    }).plugin, true) // prepend
+    attachPlugin({ name: 'draft-application', requiresConf: false, prepend: true })
 
     // this is pretty bad...
     // the goal: allow employees to create multiple pending applications for the same product
@@ -371,23 +381,6 @@ export default function createProductsBot({
     }))
   }
 
-  const attachPlugin = (name: string, prepend?: boolean) => {
-    const pConf = plugins[name]
-    if (!pConf || pConf.enabled === false) return
-
-    logger.debug(`using plugin: ${name}`)
-    const { api, plugin } = Plugins.get(name).createPlugin(components, {
-      conf: pConf,
-      logger: logger.sub(`plugin-${name}`)
-    })
-
-    if (api) {
-      components[name] = api
-    }
-
-    productsAPI.plugins.use(plugin, prepend)
-  }
-
   if (handleMessages) {
     ;[
       'prefill-form',
@@ -398,98 +391,38 @@ export default function createProductsBot({
       'facial-recognition',
       'controllingPersonRegistration',
       'centrix',
-    ].forEach(name => attachPlugin(name))
-  }
+    ].forEach(name => attachPlugin({ name }))
 
-  if (handleMessages) {
-    ;['plugin1', 'plugin2'].forEach(name => attachPlugin(name, true))
+    ;[
+      'hand-sig',
+    ].forEach(name => attachPlugin({ name, requiresConf: false }))
+
+    ;[
+      'plugin1',
+      'plugin2'
+    ].forEach(name => attachPlugin({ name, prepend: true }))
   }
 
   if (handleMessages || event.startsWith('deployment:')) {
-    if (plugins['deployment']) {
-      const { plugin, api } = Plugins.get('deployment').createPlugin(components, {
-        conf: plugins['deployment'],
-        logger: logger.sub('plugin-deployment')
-      })
-
-      // @ts-ignore
-      components.deployment = api
-      productsAPI.plugins.use(plugin)
-    }
+    attachPlugin({ name: 'deployment' })
   }
 
   if (handleMessages || event.startsWith('remediation:')) {
-    const { api, plugin } = createRemediationPlugin(components, {
-      logger: logger.sub('remediation')
-    })
-
-    if (handleMessages) {
-      productsAPI.plugins.use(plugin)
-    }
-
-    components.remediation = api
-
-    productsAPI.plugins.use(createPrefillFromDraftPlugin(components, {
-      logger: logger.sub('plugin-prefill-from-draft')
-    }).plugin)
+    attachPlugin({ name: 'remediation' })
+    attachPlugin({ name: 'prefill-from-draft', requiresConf: false })
   }
 
-  if (plugins.webhooks) {
-    if ((bot.isTesting && handleMessages) ||
-      event === LambdaEvents.RESOURCE_ASYNC) {
-      const { api, plugin } = createWebhooksPlugin(components, {
-        conf: plugins.webhooks,
-        logger: logger.sub('webhooks')
-      })
-    }
+  if ((bot.isTesting && handleMessages) ||
+    event === LambdaEvents.RESOURCE_ASYNC) {
+    attachPlugin({ name: 'webhooks' })
   }
 
-  // if (handleMessages || event === LambdaEvents.CONFIRMATION) {
-  // const { api, plugin } = Plugins.get('commands').createPlugin(components, {
-  //   logger: logger.sub('commands')
-  // })
-
-  const { api, plugin } = createCommandsPlugin(components, {
-    logger: logger.sub('commands')
-  })
-
-  components.commands = api
-  productsAPI.plugins.use(plugin)
-  // }
-
-  if (plugins['email-based-verification']) {
-    if (handleMessages || event === LambdaEvents.CONFIRMATION || event === LambdaEvents.RESOURCE_ASYNC) {
-      const { api, plugin } = createEBVPlugin(components, {
-        conf: plugins['email-based-verification'],
-        logger: logger.sub('email-based-verification')
-      })
-
-      components.emailBasedVerifier = api
-      productsAPI.plugins.use(plugin)
-    }
+  attachPlugin({ name: 'commands', requiresConf: false })
+  if (handleMessages ||
+    event === LambdaEvents.CONFIRMATION ||
+    event === LambdaEvents.RESOURCE_ASYNC) {
+    attachPlugin({ name: 'email-based-verification', componentName: 'emailBasedVerifier' })
   }
-
-  // if (bot.isTesting || event === LambdaEvents.RESOURCE_ASYNC) {
-  //   const createCustomerApplication = async (app) => {
-  //     return await new Resource({ bot, type: CUSTOMER_APPLICATION })
-  //       .set({
-  //         application: app,
-  //         customer: app.applicant,
-  //         context: app.context
-  //       })
-  //       .signAndSave()
-  //   }
-
-  //   bot.hookSimple(bot.events.topics.resource.save.async.batch, async (batch) => {
-  //     const appCreates = batch
-  //       .filter(change => !change.old && change.value[TYPE] === APPLICATION)
-  //       .map(change => change.new)
-
-  //     if (appCreates.length) {
-  //       await Promise.all(appCreates.map(createCustomerApplication))
-  //     }
-  //   })
-  // }
 
   return components
 }

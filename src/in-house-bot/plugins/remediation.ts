@@ -11,6 +11,7 @@ import { appLinks } from '../../app-links'
 import { parseStub } from '../../utils'
 const { DATA_CLAIM, PRODUCT_REQUEST } = TYPES
 
+export const name = 'remediation'
 export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) => {
   const { bot, productsAPI, employeeManager } = components
   const remediation = new Remediation({ ...components, ...pluginOpts })

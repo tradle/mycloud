@@ -8,6 +8,7 @@ const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const DRAFT = 'tradle.DraftApplication'
 
+export const name = 'draft-application'
 export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
   const { bot, productsAPI, employeeManager } = components
   const handleFormPrefill = async (req:IPBReq) => {
