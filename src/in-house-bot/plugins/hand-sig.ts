@@ -28,8 +28,13 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger,
       formRequest.message = MESSAGE
     }
 
-    const formStubs = getFormStubs(application).map(resource => buildResource.stub({ models, resource }))
-    formRequest.prefill.signatureFor = formStubs
+    // TODO: re-enable me after client-side bug fix for signatureFor parsing
+
+    // const formStubs = getFormStubs(application)
+    //   .filter(resource => resource[TYPE] !== 'tradle.ProductRequest')
+    //   .map(resource => buildResource.stub({ models, resource }))
+
+    // formRequest.prefill.signatureFor = formStubs
   }
 
   return {
