@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import format from 'string-format'
 import Logger from '../logger'
 import serverlessYml from '../cli/serverless-yml'
@@ -20,10 +21,13 @@ for (let logicalId in map) {
 
 for (let key in environment) {
   // if (process.env[key] && !_.isEqual(process.env[key], environment[key])) {
-  //   console.log('OVERRIDDING', process.env[key], 'WITH', environment[key])
+  //   console.log('OVERRIDDING', JSON.stringify(environment[key]), 'WITH', JSON.stringify(process.env[key]))
   // }
 
   let val = process.env[key] || environment[key]
+  // setting obj-valued props on process.env turns them into strings against their will
+  if (val === '[object Object]') val = environment[key]
+
   let { Ref } = val
   if (Ref) {
     let resource = Resources[Ref]
