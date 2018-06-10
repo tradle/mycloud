@@ -22,7 +22,12 @@ import {
   createModelsPackGetter
 } from './plugins/keep-models-fresh'
 
-import { isPendingApplication, getNonPendingApplications, getUserIdentifierFromRequest } from './utils'
+import {
+  isPendingApplication,
+  getNonPendingApplications,
+  getUserIdentifierFromRequest,
+  getProductModelForCertificateModel
+} from './utils'
 import { Applications } from './applications'
 import { Friends } from './friends'
 import {
@@ -305,7 +310,7 @@ export default function createProductsBot({
     productsAPI.plugins.use(sendModelsPackToNewEmployees(components))
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
-      onmessage: async (req) => {
+      onmessage: async (req: IPBReq) => {
         if (req.draftApplication) return
         // if (req.application && req.application.draft) {
         //   req.skipChecks = true
@@ -321,6 +326,27 @@ export default function createProductsBot({
             })
           }
         }
+      },
+      willRequestForm: ({ formRequest }) => {
+        const { models } = bot
+        const { form } = formRequest
+        const model = models[form]
+        if (model && model.subClassOf === 'tradle.MyProduct') {
+          const productModel = getProductModelForCertificateModel({ models, certificateModel: model })
+          const { title } = (productModel || model)
+          formRequest.message = `Please get a "${title}" first!`
+        }
+      },
+      ['onmessage:tradle.MyProduct']: async (req: IPBReq) => {
+        const { application, payload } = req
+        if (!application) return
+
+        productsAPI.state.addSubmission({
+          application,
+          submission: payload
+        })
+
+        await productsAPI.continueApplication(req)
       }
     })
 

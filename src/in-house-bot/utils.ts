@@ -451,3 +451,13 @@ export const getUserIdentifierFromRequest = (req: IPBReq) => {
 export const ensureHandSigLast = (forms: string[]) => _.sortBy(forms, [a => {
   return a === HAND_SIGNATURE ? 1 : 0
 }])
+
+export const getProductModelForCertificateModel = ({ models, certificateModel }) => {
+  const parts = certificateModel.id.split('.')
+  const last = parts[parts.length - 1]
+  if (last.startsWith('My')) {
+    parts[parts.length - 1] = last.slice(2)
+    const productModelId = parts.join('.')
+    return models[productModelId]
+  }
+}
