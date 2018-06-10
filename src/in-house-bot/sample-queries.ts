@@ -190,6 +190,20 @@ query ($author: String, $context: String) {
   }
 }`
 
+const listMyCloudFriends = `{
+  rl_tradle_MyCloudFriend {
+    edges {
+      node {
+        domain
+        name
+        identity {
+          _permalink
+        }
+      }
+    }
+  }
+}`
+
 export default [
   {
     title: 'Photo IDs',
@@ -214,5 +228,9 @@ export default [
   {
     title: 'Inbound messages',
     query: listInboundMessages
+  },
+  {
+    title: 'MyCloud friends',
+    query: listMyCloudFriends
   }
 ]
