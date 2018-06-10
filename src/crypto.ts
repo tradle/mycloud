@@ -394,6 +394,5 @@ export const genIdentity = async (opts) => {
 }
 
 export const obfuscateSecretName = (obfuscator: string, name: string) => {
-  console.log(sha256(`${obfuscator}-${name}`, 'hex'))
   return sha256(`${obfuscator}-${name}`, 'hex')
 }
