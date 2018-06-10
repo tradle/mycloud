@@ -239,7 +239,7 @@ export default function createProductsBot({
     productsAPI,
     employeeManager,
     friends: new Friends({ bot }),
-    applications: new Applications({ bot, productsAPI }),
+    applications: new Applications({ bot, productsAPI, employeeManager }),
     logger
   }
 
@@ -651,6 +651,7 @@ const sendModelsPackToNewEmployees = (components: IBotComponents) => {
   const getPack = createModelsPackGetter(components)
   const didApproveApplication = async ({ req, user, application, judge }) => {
     if (judge) {
+      // hack, as bot-employee-manager currently approves via productsAPI, not applications module
       await applications.issueVerifications({ req, user, application, send: true })
     }
 

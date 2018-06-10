@@ -46,17 +46,20 @@ const PRUNABLE_FORMS = [
 export class Applications {
   private bot: Bot
   private productsAPI: any
+  private employeeManager: any
   private logger: Logger
   private get models() {
     return this.bot.models
   }
 
-  constructor({ bot, productsAPI }: {
+  constructor({ bot, productsAPI, employeeManager }: {
     bot: Bot
     productsAPI: any
+    employeeManager: any
   }) {
     this.bot = bot
     this.productsAPI = productsAPI
+    this.employeeManager = employeeManager
     this.logger = bot.logger.sub('applications')
   }
 
@@ -80,10 +83,14 @@ export class Applications {
 
   public judgeApplication = async ({ req, application, approve }: IPBJudgeAppOpts) => {
     const { bot, productsAPI } = this
-    const judge = req && req.user
     application = await productsAPI.getApplication(application) as IPBApp
 
     const user = await this.getApplicantFromApplication(application)
+    let judge
+    if (req && this._isSenderEmployee(req)) {
+      judge = req.user
+    }
+
     const method = approve ? 'approveApplication' : 'denyApplication'
     try {
       await productsAPI[method]({ req, judge, user, application })
@@ -337,6 +344,13 @@ export class Applications {
 
     await this.productsAPI.saveNewVersionOfApplication({ user, application })
     await this.bot.users.save(user)
+  }
+
+  private _isSenderEmployee = (req: IPBReq) => {
+    const { user } = req
+    if (!user) return
+
+    return this.employeeManager.isEmployee(user)
   }
 
   public getCustomerSubmittedForms = getCustomerSubmittedForms
