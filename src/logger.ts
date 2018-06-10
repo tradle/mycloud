@@ -116,11 +116,16 @@ export default class Logger {
   public info = (msg:string, params?:any) => this.log('INFO', msg, params)
   public warn = (msg:string, params?:any) => this.log('WARN', msg, params)
   public error = (msg:string, params?:any) => this.log('ERROR', msg, params)
-  public sub = (conf:LoggerConf|string) => this.logger(conf)
+  public sub = (conf: string|LoggerConf):Logger => {
+    conf = normalizeConf(conf)
+    return this.logger({
+      writer: this.writer,
+      ...conf
+    })
+  }
+
   public logger = (conf:LoggerConf|string) => {
-    if (typeof conf === 'string') {
-      conf = { namespace: conf }
-    }
+    conf = normalizeConf(conf)
 
     let { namespace='' } = conf
     if (namespace && this.namespace) {
@@ -206,3 +211,5 @@ export {
   Logger,
   noopLogger
 }
+
+const normalizeConf = (conf: LoggerConf|string):LoggerConf => typeof conf === 'string' ? { namespace: conf } : conf

@@ -410,8 +410,7 @@ Previous exit stack: ${this.lastExitStack}`)
     context.callbackWaitsForEmptyEventLoop = false
     this.logger = this.bot.logger.sub({
       namespace: `lambda:${this.shortName}`,
-      context: this.reqCtx,
-      writer: console
+      context: this.reqCtx
     })
 
     if (this.source === EventSource.LAMBDA &&
@@ -464,8 +463,7 @@ Previous exit stack: ${this.lastExitStack}`)
     this.execCtx = null
     this.lastExitStack = null
     this.logger = this.bot.logger.sub({
-      namespace: this.env.FUNCTION_NAME,
-      writer: console
+      namespace: this.env.FUNCTION_NAME
     })
   }
 

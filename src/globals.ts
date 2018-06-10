@@ -12,6 +12,12 @@ AWS.config.setPromisesDependency(Promise)
 //   console.error('possibly unhandled rejection', reason)
 // })
 
+const warn = (...args) => {
+  if (!process.env.IS_OFFLINE) {
+    console.warn(...args)
+  }
+}
+
 const mockery = require('mockery')
 mockery.enable({
   warnOnReplace: false,
@@ -20,11 +26,11 @@ mockery.enable({
 
 // mockery.registerMock('@tradle/serverless', './')
 
-console.warn('disabling "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
+warn('disabling "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
 mockery.registerMock('scrypt', {})
 
 // https://github.com/Qix-/node-error-ex
-console.warn(`replacing "error-ex" as it bluebird doesn't recognize its errors as Error objects`)
+warn(`replacing "error-ex" as it bluebird doesn't recognize its errors as Error objects`)
 mockery.registerMock('error-ex', name => {
   return class CustomError extends Error {
     public name: string
@@ -36,6 +42,6 @@ mockery.registerMock('error-ex', name => {
 })
 
 if (process.env.IS_OFFLINE || process.env.IS_LOCAL || process.env.NODE_ENV === 'test') {
-  console.warn('disabling "aws-xray-sdk" as this is a local environment')
+  warn('disabling "aws-xray-sdk" as this is a local environment')
   mockery.registerMock('aws-xray-sdk', null)
 }

@@ -12,14 +12,18 @@ const { prefix } = custom
 const { stage, environment } = provider
 const { Resources } = resources
 const map = require('./fixtures/fake-service-map')
-const logger = new Logger('service-map')
+// const logger = new Logger('service-map')
 
 for (let logicalId in map) {
   map[logicalId] = format(map[logicalId], { service, stage, prefix })
 }
 
 for (let key in environment) {
-  let val = environment[key]
+  // if (process.env[key] && !_.isEqual(process.env[key], environment[key])) {
+  //   console.log('OVERRIDDING', process.env[key], 'WITH', environment[key])
+  // }
+
+  let val = process.env[key] || environment[key]
   let { Ref } = val
   if (Ref) {
     let resource = Resources[Ref]

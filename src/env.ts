@@ -100,7 +100,7 @@ export default class Env {
     this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
     this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
       ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
-      : '[unknown]'
+      : 'unknown'
 
     this.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
       ? 512
@@ -110,8 +110,8 @@ export default class Env {
 
     this.logger = new Logger({
       namespace: ROOT_LOGGING_NAMESPACE,
-      writer: global.console,
-      // writer: this.TESTING ? { log: debug(`lambda:${this.FUNCTION_NAME}`) } : global.console,
+      // writer: global.console,
+      writer: this.TESTING ? createTestingLogger() : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
@@ -210,3 +210,16 @@ export default class Env {
 }
 
 export { Env }
+
+const createTestingLogger = (name?: string) => {
+  const prefix = name ? name + ':' : ''
+  return {
+    log: debug(`${prefix}`),
+    error: debug(`ERROR:${prefix}`),
+    warn: debug(`WARN:${prefix}`),
+    info: debug(`INFO:${prefix}`),
+    debug: debug(`DEBUG:${prefix}`),
+    silly: debug(`SILLY:${prefix}`),
+    ridiculous: debug(`RIDICULOUS:${prefix}`),
+  }
+}
