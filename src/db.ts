@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
 import { TYPE, SIG, TIMESTAMP } from '@tradle/constants'
-import { createTable, DB, Table, utils, defaults } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, defaults, FilterOp } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Env, Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
@@ -27,6 +27,11 @@ const ALLOW_SCAN_QUERY = [
   SEAL_STATE,
   'tradle.ApplicationSubmission'
 ].concat(ALLOW_SCAN)
+
+const ALLOW_LIST_TYPE = [
+  DELIVERY_ERROR,
+  'tradle.Application'
+]
 
 const _allowScan = filterOp => {
   if (filterOp.opType === 'query') {
@@ -118,10 +123,30 @@ export = function createDB ({
   dynogels.dynamoDriver(dynamodb)
 
   const tableBuckets = dbUtils.getTableBuckets()
+
+  // TODO: merge into validateFind
   const allowScan = filterOp => {
     const allow = _allowScan(filterOp)
     if (allow) logger.debug('allowing scan', filterOp.type)
     return allow
+  }
+
+  const validateFind = (filterOp: FilterOp) => {
+    if (!filterOp.index) return
+
+    const { model, index, table } = filterOp
+    const idx = table.indexes.findIndex(i => i === index)
+    const modelIdx = getIndexesForModel({ table, model })[idx]
+    if (!modelIdx) {
+      console.warn('expected corresponding model index', { index, model })
+      return
+    }
+
+    if (modelIdx.hashKey === TYPE &&
+      !filterOp.sortedByDB &&
+      !ALLOW_LIST_TYPE.includes(model.id)) {
+      throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
+    }
   }
 
   const commonOpts = {
@@ -187,6 +212,15 @@ export = function createDB ({
 
       ;['put', 'update'].forEach(method => {
         table.hook(`${method}:pre`, controlLatestHooks(method))
+      })
+
+      table.hook('pre:find:validate', op => {
+        try {
+          validateFind(op)
+        } catch (err) {
+          // TODO: observe this, change to rethrow
+          console.error(err.message)
+        }
       })
 
       return table
