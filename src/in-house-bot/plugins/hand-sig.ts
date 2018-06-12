@@ -4,7 +4,7 @@ import buildResource from '@tradle/build-resource'
 import { CreatePlugin, IPluginLifecycleMethods, Conf } from '../types'
 import { getFormStubs } from '../utils'
 
-const MESSAGE = 'Please provide your **digital hand signature**'
+const MESSAGE = 'Please tap here and sign'
 const HAND_SIGNATURE = 'tradle.HandSignature'
 
 export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger, conf }) => {

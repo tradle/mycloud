@@ -111,7 +111,7 @@ export default class Env {
     this.logger = new Logger({
       namespace: ROOT_LOGGING_NAMESPACE,
       // writer: global.console,
-      writer: this.TESTING ? createTestingLogger() : global.console,
+      writer: this.TESTING ? createTestingLogger(`lambda:test`) : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
