@@ -116,6 +116,7 @@ export default function createProductsBot({
   // then some handlers can migrate to 'messagestream'
   const handleMessages = event === LambdaEvents.MESSAGE || (bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC)
   const mergeModelsOpts = { validate: bot.isTesting }
+  const visibleProducts = _.uniq(enabled)
   const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
   const productsAPI = createProductsStrategy({
     logger: logger.sub('products'),
@@ -295,7 +296,7 @@ export default function createProductsBot({
         form: PRODUCT_REQUEST,
         chooser: {
           property: 'requestFor',
-          oneOf: productsList.slice()
+          oneOf: visibleProducts.slice()
         },
         message: PRODUCT_LIST_MESSAGE
       },
