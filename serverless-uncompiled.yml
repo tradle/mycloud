@@ -316,7 +316,7 @@ provider:
     BLOCKCHAIN: ${{self:custom.blockchain}}
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
     CORDA_API_KEY: ${{self:custom.corda.apiKey}}
-    DEBUG: '*lambda*,*tradle*,-@tradle/dynamodb'
+    DEBUG: '*lambda*,tradle*,-@tradle/dynamodb'
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
     SERVERLESS_PREFIX: ${{self:custom.prefix}}

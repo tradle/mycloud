@@ -109,9 +109,9 @@ export default class Env {
     this.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 
     this.logger = new Logger({
-      namespace: ROOT_LOGGING_NAMESPACE,
+      namespace: this.TESTING ? '' : ROOT_LOGGING_NAMESPACE,
       // writer: global.console,
-      writer: this.TESTING ? createTestingLogger(`lambda:test`) : global.console,
+      writer: this.TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
@@ -121,6 +121,12 @@ export default class Env {
 
     this.debug = this.logger.debug
     this.set(props)
+
+    // shame to do this here as it's a global settings
+    if (props.DEBUG) {
+      debug.enable(props.DEBUG)
+    }
+
     // this.asyncTasks = []
   }
 
