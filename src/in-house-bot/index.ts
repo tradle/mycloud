@@ -15,6 +15,7 @@ import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
+import { plugins as defaultConfs } from './defaults'
 
 import {
   createPlugin as keepModelsFreshPlugin,
@@ -150,6 +151,7 @@ export default function createProductsBot({
     }
   })
 
+  const getPluginConf = name => plugins[name] || defaultConfs[name]
   const usedPlugins = []
   const attachPlugin = ({ name, componentName, requiresConf, prepend }: {
     name: string
@@ -157,7 +159,7 @@ export default function createProductsBot({
     requiresConf?: boolean
     prepend?: boolean
   }) => {
-    const pConf = plugins[name]
+    const pConf = getPluginConf(name)
     if (requiresConf !== false) {
       if (!pConf || pConf.enabled === false) return
     }
@@ -386,7 +388,7 @@ export default function createProductsBot({
     attachPlugin({ name: 'onfido' })
   }
 
-  const customizeMessageOpts = plugins['customize-message']
+  const customizeMessageOpts = getPluginConf('customize-message')
   if (customizeMessageOpts) {
     logger.debug('using plugin: customize-message')
     const customizeMessage = require('@tradle/plugin-customize-message')
