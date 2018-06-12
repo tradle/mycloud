@@ -5,7 +5,7 @@ import Errors from '../../errors'
 import { ensureHandSigLast } from '../utils'
 
 const SPONSORSHIP_FORM = 'tradle.KYCSponsor'
-const SPONSOR_REQUIRED_MESSAGE = 'Please indicate an Identity Sponsor for your application, such as a close relative'
+const SPONSOR_REQUIRED_MESSAGE = 'Please indicate an Identity Sponsor for your application'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 
 export const name = 'plugin1'
