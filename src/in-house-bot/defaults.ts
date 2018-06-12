@@ -1,7 +1,7 @@
 const plugins = {
   'customize-message': {
     'tradle.FormRequest': {
-      'tradle.PhotoID': 'Please click to scan your **ID document**',
+      'tradle.PhotoID': 'Please scan your **ID document**',
       'tradle.Selfie': 'Please take a selfie to prove this is your document. Center your face.',
       'tradle.Residence': {
         'first': 'Thank you. Now I need you to provide your **residence** information',
