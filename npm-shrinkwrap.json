@@ -101,9 +101,9 @@
       }
     },
     "@tradle/build-resource": {
-      "version": "4.0.1",
-      "from": "@tradle/build-resource@>=4.0.1 <5.0.0",
-      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-4.0.1.tgz"
+      "version": "4.0.2",
+      "from": "@tradle/build-resource@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/build-resource/-/build-resource-4.0.2.tgz"
     },
     "@tradle/cb-blockr": {
       "version": "3.2.1",

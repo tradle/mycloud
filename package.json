@@ -126,7 +126,7 @@
     "@tradle/biz-plugins": "github:tradle/biz-plugins",
     "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager",
     "@tradle/bot-products": "github:tradle/bot-products",
-    "@tradle/build-resource": "^4.0.1",
+    "@tradle/build-resource": "^4.0.2",
     "@tradle/cb-blockr": "^3.2.1",
     "@tradle/constants": "^2.3.2",
     "@tradle/custom-models": "github:tradle/custom-models",
