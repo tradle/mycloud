@@ -11,13 +11,13 @@ const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 export const name = 'plugin1'
 
 export const createPlugin:CreatePlugin<void> = ({ bot }, { conf, logger }) => {
-  const { products=[] } = conf
+  const { products=[], forms=[SPONSORSHIP_FORM] } = conf
   const plugin:IPluginLifecycleMethods = {
     getRequiredForms: async ({ user, application, productModel }) => {
       if (!products.includes(productModel.id)) return
 
       logger.debug(`requesting additional form: ${SPONSORSHIP_FORM}`)
-      const forms = productModel.forms.concat(SPONSORSHIP_FORM)
+      const forms = productModel.forms.concat(forms)
       return ensureHandSigLast(forms)
     },
     willRequestForm({ application, formRequest }) {
