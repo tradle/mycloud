@@ -45,7 +45,8 @@ export class Bucket {
         put: this.put,
         del: this.del,
         logger: this.logger,
-        cache
+        cache,
+        cloneOnGet: true
       })
 
       this.getJSON = cachified.get

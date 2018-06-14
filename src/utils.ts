@@ -12,7 +12,7 @@ import {
   omit,
   merge,
   clone,
-  cloneDeep as deepClone,
+  cloneDeep,
   extend,
   isEqual as deepEqual
 } from 'lodash'
@@ -180,7 +180,6 @@ export {
  format,
  fetch,
  bindAll,
- deepClone,
  clone,
  extend,
  deepEqual,
@@ -443,15 +442,17 @@ export const logify = <T>(component: T, opts:LogifyOpts, methods?:string[]):T =>
 //   return timed
 // }
 
-export function cachify ({ get, put, del, logger, cache }: {
+export function cachify ({ get, put, del, logger, cache, cloneOnGet }: {
   get:(key:any) => Promise<any>
   put:(key:any, value:any, ...opts:any[]) => Promise<any|void>
   del:(key:any) => Promise<any|void>
   cache: any
   logger?: Logger
+  cloneOnGet?: boolean
 }) {
   const pending = {}
-  const cachifiedGet = co(function* (key) {
+  const maybeClone = cloneOnGet ? cloneDeep : obj => obj
+  const cachifiedGet = async (key) => {
     const keyStr = stableStringify(key)
     let val = cache.get(keyStr)
     if (val != null) {
@@ -460,11 +461,15 @@ export function cachify ({ get, put, del, logger, cache }: {
       // the magic of co should resolve it
       // before returning
       if (isPromise(val)) {
-        // refetch on error
-        return val.catch(err => cachifiedGet(key))
+        try {
+          val = await val
+        } catch (err) {
+          // refetch on error
+          return cachifiedGet(key)
+        }
       }
 
-      return val
+      return maybeClone(val)
     }
 
     if (logger) logger.silly(`cache miss`, { key })
@@ -472,12 +477,12 @@ export function cachify ({ get, put, del, logger, cache }: {
     promise.catch(err => cache.del(keyStr))
     cache.set(keyStr, promise)
     // promise.then(result => cache.set(keyStr, result))
-    return promise
-  })
+    return promise.then(maybeClone)
+  }
 
   return {
     get: cachifiedGet,
-    put: co(function* (key, value, ...rest) {
+    put: async (key, value, ...rest) => {
       // TODO (if actually needed):
       // get cached value, skip put if identical
       if (logger) logger.silly('cache set', { key })
@@ -491,16 +496,16 @@ export function cachify ({ get, put, del, logger, cache }: {
       }
 
       cache.del(keyStr)
-      const ret = yield put(key, value, ...rest)
+      const ret = await put(key, value, ...rest)
       cache.set(keyStr, value)
       return ret
-    }),
-    del: co(function* (key) {
+    },
+    del: async (key) => {
       const keyStr = stableStringify(key)
       if (logger) logger.silly('cache unset', { key })
       cache.del(keyStr)
-      return yield del(key)
-    })
+      return await del(key)
+    }
   }
 }
 
