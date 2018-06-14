@@ -8,7 +8,8 @@ const plugins = {
         'nth': 'Thank you. Do you have another **residence**? If yes, tap Add, otherwise tap Next'
       },
       'tradle.KYCSponsor': 'Please have someone confirm your ID, such as a relative, employer, etc.',
-      'tradle.MyCertifiedID': 'We need your Certified ID'
+      'tradle.MyCertifiedID': 'We need your Certified ID',
+      'tradle.CreditCard': 'Please add a credit card'
     },
     'tradle.Confirmation': {
       'tradle.Remediation': 'Thanks for importing your data!'
