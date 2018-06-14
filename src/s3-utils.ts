@@ -268,10 +268,16 @@ export default class S3Utils {
   }
 
   public createPresignedUrl = ({ bucket, key }) => {
-    return this.s3.getSignedUrl('getObject', {
+    const url = this.s3.getSignedUrl('getObject', {
       Bucket: bucket,
       Key: key
     })
+
+    if (this.env && this.env.TESTING && this.env.S3_PUBLIC_FACING_URL) {
+      return url.replace(this.s3.config.endpoint, this.env.S3_PUBLIC_FACING_URL)
+    }
+
+    return url
   }
 
   public createBucket = async ({ bucket }) => {
