@@ -408,13 +408,13 @@ export default function createProductsBot({
       'lens',
       'openCorporates',
       'complyAdvantage',
-      'facial-recognition',
       'controllingPersonRegistration',
       'centrix',
     ].forEach(name => attachPlugin({ name }))
 
     ;[
       'hand-sig',
+      'facial-recognition',
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     ;[
