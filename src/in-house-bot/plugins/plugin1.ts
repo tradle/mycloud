@@ -1,4 +1,5 @@
 import defaults from 'lodash/defaults'
+import uniq from 'lodash/uniq'
 import { TYPE } from '@tradle/constants'
 import { CreatePlugin, IPluginLifecycleMethods, Conf } from '../types'
 import Errors from '../../errors'
@@ -17,8 +18,8 @@ export const createPlugin:CreatePlugin<void> = ({ bot }, { conf, logger }) => {
       if (!products.includes(productModel.id)) return
 
       logger.debug(`requesting additional form: ${SPONSORSHIP_FORM}`)
-      const forms = productModel.forms.concat(forms)
-      return ensureHandSigLast(forms)
+      const formsArr:string[] = uniq(productModel.forms.concat(forms))
+      return ensureHandSigLast(formsArr)
     },
     willRequestForm({ application, formRequest }) {
       if (formRequest.form !== SPONSORSHIP_FORM) return
