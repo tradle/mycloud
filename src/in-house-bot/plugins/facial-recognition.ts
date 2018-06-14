@@ -176,7 +176,8 @@ debugger
         [TYPE]: 'tradle.API',
         name: DISPLAY_NAME
       },
-      aspect: DISPLAY_NAME
+      aspect: DISPLAY_NAME,
+      reference: [{ queryId: 'n/a' }]
     }
 debugger
 
@@ -194,8 +195,8 @@ debugger
 }
 
 const DEFAULT_CONF = {
-  url : 'http://localhost:8000',
-  token : 'yb2e-hkPz',
+  url : 'http://ec2-18-217-36-56.us-east-2.compute.amazonaws.com:8000',
+  token : 'Z7dc-tCqj',
   threshold: 'strict'
 }
 
@@ -225,7 +226,7 @@ debugger
 
       const promiseCheck = facialRecognition.createCheck({status, selfie, photoID, rawData, error, application})
       const pchecks = [promiseCheck]
-      if (status === 'Pass') {
+      if (status === true) {
         const promiseVerification = facialRecognition.createVerification({user, application, photoID})
         pchecks.push(promiseVerification)
       }
