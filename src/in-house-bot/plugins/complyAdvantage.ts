@@ -80,7 +80,6 @@ class ComplyAdvantageAPI {
   public getData = async (resource, criteria) => {
     let { companyName, registrationDate, firstName, lastName, dateOfBirth, entity_type } = resource //conf.propertyMap //[resource[TYPE]]
     let search_term = criteria  &&  criteria.search_term
-debugger
 
     let isCompany = companyName  &&  registrationDate
     if (!search_term)
@@ -150,7 +149,6 @@ debugger
   }
 
   public createSanctionsCheck = async ({ application, rawData, status, form }: IComplyCheck) => {
-    // debugger
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
@@ -169,7 +167,6 @@ debugger
     const check = await this.bot.draft({ type: SANCTIONS_CHECK })
         .set(resource)
         .signAndSave()
-debugger
     // const check = await this.bot.signAndSave(resource)
     this.logger.debug(`Created SanctionsCheck for: ${rawData.submitted_term}`);
   }
@@ -194,7 +191,6 @@ debugger
        .toJSON()
 
     await this.applications.createVerification({ application, verification })
-debugger
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: SANCTIONS_CHECK, form })
   }
@@ -209,7 +205,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       const { user, application, applicant, payload } = req
 
       if (!application) return
-debugger
+
       let productId = application.requestFor
       let { products, propertyMap, forms } = conf
       let pConf

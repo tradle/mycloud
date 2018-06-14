@@ -431,7 +431,7 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
     if (pValue)
       r[prop] = pValue
   }
-  debugger
+
   if (!Object.keys(r).length)
     throw new Error(`no criteria to run ${plugin} checks`)
   return runCheck  &&  r
