@@ -13,14 +13,12 @@ const { VERIFICATION } = TYPES
 const SELFIE = 'tradle.Selfie'
 const PHOTO_ID = 'tradle.PhotoID'
 const FACIAL_RECOGNITION = 'tradle.FacialRecognitionCheck'
-
-// all three should become parameters
-const BASE_URL = 'http://localhost:8000'
-const TOKEN = 'yb2e-hkPz'
-const THRASHOLD = '0.75'
-
 const DISPLAY_NAME = 'Face Recognition'
-const PROVIDER = 'NTechlab'
+const PROVIDER = 'NtechLab'
+const NTECH_API_RESOURCE = {
+  [TYPE]: 'tradle.API',
+  name: PROVIDER
+}
 
 export const name = 'facial-recognition'
 
@@ -75,7 +73,7 @@ debugger
     const form = new FormData();
     form.append('photo1', selfie);
     form.append('photo2', photoID);
-    form.append('thrashold', this.conf.threshold);
+    form.append('threshold', this.conf.threshold);
     try {
       let res = await fetch(this.conf.url + '/v1/verify', { method: 'POST', body: form, headers: {'Authorization':'Token ' + this.conf.token}});
       matchResult = await res.json() // whatever is returned may be not JSON
@@ -149,18 +147,19 @@ debugger
     }
     else if (status !== true) {
       checkStatus = 'fail'
-      message = `Face recognition check for "${photoID_displayName}" failed`
+      message = `${DISPLAY_NAME} check for "${photoID_displayName}" failed`
     }
     else {
       checkStatus = 'pass'
-      message = `Face recognition check for "${photoID_displayName}" passed`
+      message = `${DISPLAY_NAME} check for "${photoID_displayName}" passed`
     }
+
     const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
       .set({
         status: checkStatus,
         message,
         provider: PROVIDER,
-        rawData : rawData,
+        rawData,
         application,
         dateChecked: new Date().getTime()
       })
@@ -172,14 +171,10 @@ debugger
   public createVerification = async ({ user, application, photoID }) => {
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
-      api: {
-        [TYPE]: 'tradle.API',
-        name: DISPLAY_NAME
-      },
+      api: _.clone(NTECH_API_RESOURCE),
       aspect: DISPLAY_NAME,
       reference: [{ queryId: 'n/a' }]
     }
-debugger
 
     const verification = this.bot.draft({ type: VERIFICATION })
        .set({
@@ -201,8 +196,9 @@ const DEFAULT_CONF = {
 
 export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, pluginOpts) => {
   const { bot, applications } = components
-  let { logger, conf=DEFAULT_CONF } = pluginOpts
-  conf = _.defaults(conf, DEFAULT_CONF)
+  let { logger, conf={} } = pluginOpts
+  _.defaults(conf, DEFAULT_CONF)
+
   const facialRecognition = new FacialRecognitionAPI({ bot, applications, logger, conf })
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
@@ -212,7 +208,7 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
       //let { products } = conf
       //if (!products  ||  !products[productId])
       //  return
-debugger
+
       const result = await facialRecognition.getSelfieAndPhotoID(application)
       if (!result) return
 
