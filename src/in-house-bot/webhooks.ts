@@ -119,7 +119,8 @@ export class Webhooks {
   }
 
   public static getDerivedEvents = event => {
-    const { topic, data } = event
+    const { data } = event
+    const topic = event.topic.toString() // in case it's an EventTopic
     switch (topic) {
     case 'msg:i':
     case 'msg:o':
