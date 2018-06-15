@@ -410,11 +410,11 @@ export default function createProductsBot({
       'complyAdvantage',
       'controllingPersonRegistration',
       'centrix',
+      'facial-recognition',
     ].forEach(name => attachPlugin({ name }))
 
     ;[
       'hand-sig',
-      'facial-recognition',
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     ;[
