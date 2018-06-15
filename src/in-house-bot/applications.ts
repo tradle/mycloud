@@ -275,24 +275,26 @@ export class Applications {
     type: string
     form?: ITradleObject
   }) => {
-    let checks = await Promise.all(application.checks.filter(check => check[TYPE] === type))
-    let deactivatedChecks = await Promise.all(checks.map(check => this.bot.getResource(check)))
-        .filter(check => {
-    debugger
-          if (check.isInactive)
-            return false
-          // by check type
-          if (!form)
-            return true
-          // by check type and form
-          if (check.form  &&  check.form[PERMALINK] === form[PERMALINK])
-            return true
-        })
-    debugger
+    const checksOfType = application.checks.filter(check => check[TYPE] === type)
+    const checks = await Promise.all(checksOfType.map(check => this.bot.getResource(check)))
+    const deactivatedChecks = checks.filter(check => {
+      if (check.isInactive)
+        return false
+      // by check type
+      if (!form)
+        return true
+      // by check type and form
+      if (check.form  &&  check.form[PERMALINK] === form[PERMALINK])
+        return true
+    })
+
     if (!deactivatedChecks.length)
       return
-    deactivatedChecks.forEach(check => check.isInactive = true)
-    await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave(check)))
+
+    await Promise.all(deactivatedChecks.map(check => this.bot.versionAndSave({
+      ...check,
+      isInactive: true
+    })))
   }
   // public getChecks = async (application:IPBApp) => {
   //   const stubs = (application.checks || application.submissions || []).map(appSub => appSub.submission)
