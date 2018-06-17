@@ -653,3 +653,18 @@ export interface ISecretStore {
   put(name: string): Promise<void>
   putMulti(pairs: KVPair[]): Promise<void>
 }
+
+export type BucketCopyOpts = {
+  source: string
+  target: string
+  prefix?: string
+  keys?: string[]
+}
+
+export type BucketPutOpts = {
+  key:string
+  value:any
+  bucket:string
+  headers?:any
+  publicRead?: boolean
+}

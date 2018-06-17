@@ -1,11 +1,12 @@
 import path from 'path'
 import AWS from 'aws-sdk'
 import _ from 'lodash'
-import { S3Utils, createUtils, PutOpts } from './s3-utils'
+import { S3Utils, createUtils } from './s3-utils'
 import Logger from './logger'
 import { cachify } from './utils'
 import Errors from './errors'
 import Env from './env'
+import { BucketPutOpts } from './types'
 
 type BucketOpts = {
   name:string
@@ -20,6 +21,7 @@ type BucketOpts = {
 export class Bucket {
   public id:string // alias
   public name:string
+  public baseName: string
   public prefix:string
   // public env:Env
   public logger:Logger
@@ -37,6 +39,7 @@ export class Bucket {
     this.id = name // alias
     this.logger = logger || new Logger(`bucket:${name}`)
     this.utils = s3Utils || createUtils({ env, s3, logger: this.logger })
+    this.baseName = this.utils.getBucketBaseName(name)
     this.prefix = prefix
     if (cache) {
       this.cache = cache
@@ -73,14 +76,14 @@ export class Bucket {
   public maybeGetJSON = key => this.getJSON(key).catch(Errors.ignoreNotFound)
 
   public list = (opts) => this.utils.listBucket({ bucket: this.name, ...opts })
-  public put = (key, value, opts?:Partial<PutOpts>) => this.utils.put({
+  public put = (key, value, opts?:Partial<BucketPutOpts>) => this.utils.put({
     key: this._getKey(key),
     value,
     bucket: this.name,
     ...opts
   })
 
-  public putJSON = (key, value, opts?:Partial<PutOpts>) => this.put(key, value, opts)
+  public putJSON = (key, value, opts?:Partial<BucketPutOpts>) => this.put(key, value, opts)
   public gzipAndPut = (key, value) => this.utils.gzipAndPut({
     key: this._getKey(key),
     value,
@@ -129,6 +132,17 @@ export class Bucket {
 
   public makePublic = () => this.utils.makePublic({ bucket: this.name })
   public empty = () => this.utils.emptyBucket({ bucket: this.name })
+  public copyFilesTo = ({ bucket, keys, prefix }: {
+    bucket: string
+    keys?: string[]
+    prefix?: string
+  }) => this.utils.copyFilesBetweenBuckets({
+    source: this.name,
+    target: bucket,
+    keys,
+    prefix
+  })
+
   private _getKey = key => this.prefix + key
 }
 
