@@ -12,13 +12,12 @@ import {
   IDeploymentConf,
   IDeploymentPluginConf,
   ITradleObject,
-  Conf,
-  Deployment
+  Conf
 } from '../types'
 
 import Errors from '../../errors'
 import constants from '../../constants'
-import { createDeployment } from '../deployment'
+import { Deployment, createDeployment } from '../deployment'
 import { TYPES } from '../constants'
 import { getParsedFormStubs } from '../utils'
 
@@ -144,4 +143,23 @@ export const validateConf = async ({ conf, pluginConf }: {
     throw new Error(`cannot send emails from "${senderEmail}".
 Check your AWS Account controlled addresses at: https://console.aws.amazon.com/ses/home`)
   }
+}
+
+export const updateConf = async ({ conf, pluginConf }: {
+  conf: Conf,
+  pluginConf: IDeploymentPluginConf
+}) => {
+  const { replication } = pluginConf
+  if (!replication) return
+
+  const { regions } = replication
+  const toCreate = regions
+    .filter(r => !r.bucket && r.createIfNotExists)
+    .map(r => r.region)
+
+  if (!toCreate.length) return
+
+  const { bot, logger } = conf
+  const deployment = new Deployment({ bot, logger })
+  await deployment.createRegionalDeploymentBuckets({ regions: toCreate })
 }

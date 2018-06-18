@@ -3,6 +3,7 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import buildResource from '@tradle/build-resource'
 import { TYPE, unitToMillis } from '../constants'
+import { randomStringWithLength } from '../crypto'
 import { appLinks } from '../app-links'
 import {
   Env,
@@ -156,10 +157,15 @@ export class Deployment {
 
   public genLaunchPackage = async (configuration: IDeploymentConf) => {
     const { stackUtils } = this.bot
+    const { region } = configuration
     this.logger.silly('generating cloudformation template with configuration', configuration)
-    const { template, url } = await stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplateForLaunch({ template, configuration })
-    })
+    const [baseTemplate, bucket] = await Promise.all([
+      stackUtils.getStackTemplate(),
+      this.getDeploymentBucketForRegion(region)
+    ])
+
+    const template = await this.customizeTemplateForLaunch({ template: baseTemplate, configuration, bucket })
+    const url = await this.savePublicTemplate({ bucket, template })
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
@@ -190,7 +196,10 @@ export class Deployment {
   }) => {
     let childDeployment
     if (childDeploymentLink) {
-      childDeployment = await this.bot.objects.get(childDeploymentLink)
+      childDeployment = await this.bot.getResource({
+        type: CHILD_DEPLOYMENT,
+        link: childDeploymentLink
+      })
     } else if (createdBy) {
       childDeployment = await this.getChildDeploymentCreatedBy(createdBy)
     } else if (configuredBy) {
@@ -229,10 +238,14 @@ export class Deployment {
     configuration?: IDeploymentConf
     // deployment:
   }) => {
-    const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
-      return this.customizeTemplateForUpdate({ template, stackId, configuration })
-    })
+    const { region } = this.bot.stackUtils.parseStackArn(stackId)
+    const [bucket, baseTemplate] = await Promise.all([
+      this.getDeploymentBucketForRegion(region),
+      this.bot.stackUtils.getStackTemplate()
+    ])
 
+    const template = await this.customizeTemplateForUpdate({ template: baseTemplate, stackId, configuration, bucket })
+    const url = await this.savePublicTemplate({ bucket, template })
     return {
       template,
       url: utils.getUpdateStackUrl({ stackId, templateURL: url }),
@@ -448,9 +461,10 @@ ${this.genUsageInstructions(links)}`
 
   public genUsageInstructions = getAppLinksInstructions
 
-  public customizeTemplateForLaunch = async ({ template, configuration }: {
+  public customizeTemplateForLaunch = async ({ template, configuration, bucket }: {
     template: any
     configuration: IDeploymentConf
+    bucket: string
   }) => {
     let { name, domain, logo, region, stackPrefix, adminEmail } = configuration
 
@@ -488,11 +502,12 @@ ${this.genUsageInstructions(links)}`
       template,
       oldServiceName: previousServiceName,
       newServiceName: service,
-      region
+      region,
+      bucket
     })
   }
 
-  public finalizeCustomTemplate = ({ template, region, oldServiceName, newServiceName }) => {
+  public finalizeCustomTemplate = ({ template, region, bucket, oldServiceName, newServiceName }) => {
     const { stackUtils } = this.bot
     template = stackUtils.changeServiceName({
       template,
@@ -508,17 +523,18 @@ ${this.genUsageInstructions(links)}`
 
     _.forEach(template.Resources, resource => {
       if (resource.Type === 'AWS::Lambda::Function') {
-        resource.Properties.Code.S3Bucket = this.deploymentBucket.id
+        resource.Properties.Code.S3Bucket = bucket
       }
     })
 
     return template
   }
 
-  public customizeTemplateForUpdate = async ({ template, stackId, configuration }: {
+  public customizeTemplateForUpdate = async ({ template, stackId, configuration, bucket }: {
     template: any
     stackId: string
-    configuration?: IDeploymentConf
+    configuration: IDeploymentConf
+    bucket: string
   }) => {
     if (!configuration.adminEmail) {
       throw new Errors.InvalidInput('expected "configuration" to have "adminEmail')
@@ -543,7 +559,8 @@ ${this.genUsageInstructions(links)}`
       template,
       oldServiceName: previousServiceName,
       newServiceName: service,
-      region
+      region,
+      bucket
     })
   }
 
@@ -649,6 +666,41 @@ ${this.genUsageInstructions(links)}`
 
   public unsubscribeFromTopic = async (SubscriptionArn: string) => {
     await this.bot.aws.sns.unsubscribe({ SubscriptionArn })
+  }
+
+  public getDeploymentBucketForRegion = async (region: string) => {
+    if (region === this.env.REGION) {
+      return this.deploymentBucket.id
+    }
+
+    try {
+      return await this.bot.s3Utils.getRegionalBucketForBucket({
+        bucket: this.deploymentBucket.id,
+        region
+      })
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      throw new Errors.InvalidInput(`unsupported region: ${region}`)
+    }
+  }
+
+  public savePublicTemplate = async ({ template, bucket }: {
+    template: any
+    bucket: string
+  }) => {
+    const key = `templates/template-${Date.now()}-${randomStringWithLength(12)}.json`
+    await this.bot.s3Utils.putJSON({ bucket, key, value: template, publicRead: true })
+    return this.bot.s3Utils.getUrlForKey({ bucket, key })
+  }
+
+  public createRegionalDeploymentBuckets = async ({ regions }: {
+    regions: string[]
+  }) => {
+    this.logger.debug('creating regional buckets', { regions })
+    await this.bot.s3Utils.createRegionalBuckets({
+      baseName: this.bot.buckets.ServerlessDeployment.baseName,
+      regions
+    })
   }
 
   private _getLambdaArn = (lambdaShortName: string) => {

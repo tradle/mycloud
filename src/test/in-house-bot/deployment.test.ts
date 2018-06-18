@@ -77,7 +77,8 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  let pubConfStub = sandbox.stub(parent.buckets.PrivateConf, 'putJSON').callsFake(async (key, val) => {
+  let pubConfStub = sandbox.stub(parent.buckets.ServerlessDeployment, 'putJSON').callsFake(async (key, val) => {
+    debugger
     deploymentConf = {
       stackId: child.stackUtils.thisStackId,
       ...val.Mappings.deployment.init,
@@ -214,6 +215,11 @@ test('deployment by referral', loudAsync(async (t) => {
   const findChildDeployment = sandbox.stub(parentDeployment, 'getChildDeploymentByDeploymentUUID').callsFake(async deploymentUUID => {
     t.equal(deploymentUUID, childDeploymentResource.deploymentUUID)
     return childDeploymentResource
+  })
+
+  debugger
+  await parentDeployment.createRegionalDeploymentBuckets({
+    regions: ['ap-southeast-2']
   })
 
   const launchPackage = await parentDeployment.genLaunchPackage({

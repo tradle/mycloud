@@ -26,6 +26,7 @@ import { RetryableTask } from './retryable-task'
 type StackInfo = {
   arn: string
   name: string
+  region: string
 }
 
 const X_INTEGRATION = 'x-amazon-apigateway-integration'
@@ -66,7 +67,14 @@ export default class StackUtils {
     this.logger = logger
     this.lambdaUtils = lambdaUtils
     this.bucket = bucket
-    this.thisStack = StackUtils.parseStackArn(stackArn)
+
+    const { arn, name } = StackUtils.parseStackArn(stackArn)
+    this.thisStack = {
+      arn,
+      name,
+      region: env.AWS_REGION
+    }
+
     this.apiId = apiId
   }
 
@@ -346,17 +354,21 @@ export default class StackUtils {
     return JSON.parse(TemplateBody)
   }
 
-  public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise) => {
-    const template = await this.getStackTemplate()
-    const customized = await transform(template)
-    const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
-    await this.bucket.putJSON(key, customized, { publicRead: true })
-    return {
-      template: customized,
-      key,
-      url: this.bucket.getUrlForKey(key)
-    }
-  }
+  // public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise) => {
+  //   const template = await this.getStackTemplate()
+  //   const customized = await transform(template)
+  //   await this.savePublicTemplate(customized)
+  // }
+
+  // public savePublicTemplate = async (template: any) => {
+  //   const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
+  //   await this.bucket.putJSON(key, template, { publicRead: true })
+  //   return {
+  //     template,
+  //     key,
+  //     url: this.bucket.getUrlForKey(key)
+  //   }
+  // }
 
   public enableBinaryAPIResponses = async () => {
     const swagger = await this.getSwagger()
@@ -490,6 +502,14 @@ export default class StackUtils {
 
   public changeServiceName = StackUtils.changeServiceName
   public changeRegion = StackUtils.changeRegion
+
+  public getLambdaCodeS3Keys = (template: any):string[] => {
+    const keys = _.filter(template.Resources, value => value.Type === 'AWS::Lambda::Function')
+      .map(value => value.Properties.Code.S3Key)
+
+    return _.uniq(keys)
+  }
+
   // public changeAdminEmail = StackUtils.changeAdminEmail
   private createDeployment = async () => {
     await this.aws.apigateway.createDeployment({

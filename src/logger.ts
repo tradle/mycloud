@@ -201,15 +201,16 @@ export default class Logger {
   }
 }
 
-const noopLogger = new Logger({
+export const noopLogger = new Logger({
   writer: {
     log: () => {}
   }
 })
 
-export {
-  Logger,
-  noopLogger
-}
+export const consoleLogger = new Logger({
+  writer: console
+})
+
+export { Logger }
 
 const normalizeConf = (conf: LoggerConf|string):LoggerConf => typeof conf === 'string' ? { namespace: conf } : conf
