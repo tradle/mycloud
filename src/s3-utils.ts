@@ -22,6 +22,10 @@ export default class S3Utils {
     this.env = env
   }
 
+  public get publicFacingHost() {
+    return this.env.S3_PUBLIC_FACING_HOST
+  }
+
   public put = async ({ key, value, bucket, headers = {}, publicRead }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts: S3.Types.PutObjectRequest = {
@@ -267,8 +271,8 @@ export default class S3Utils {
       Key: key
     })
 
-    if (this.env && this.env.TESTING && this.env.S3_PUBLIC_FACING_URL) {
-      return url.replace(this.s3.config.endpoint, this.env.S3_PUBLIC_FACING_URL)
+    if (this.env && this.env.TESTING && this.publicFacingHost) {
+      return url.replace(this.s3.config.endpoint, this.publicFacingHost)
     }
 
     return url

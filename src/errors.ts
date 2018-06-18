@@ -156,6 +156,7 @@ const errors = {
   HandshakeFailed: createError('HandshakeFailed'),
   LambdaInvalidInvocation: createError('LambdaInvalidInvocation'),
   InvalidInput: createError('InvalidInput'),
+  InvalidEnvironment: createError('InvalidEnvironment'),
   ClockDrift: createError('ClockDrift'),
   BatchPutFailed: createError('BatchPutFailed'),
   ErrorWithLink,
