@@ -11,6 +11,10 @@ fs.readdirSync(__dirname).forEach(file => {
   if (file !== 'index.js' && file.endsWith('.js')) {
     const plugin:IPlugin<any> = require(path.resolve(__dirname, file))
     const name = plugin.name || path.parse(file).name
+    if (Plugins.get(name)) {
+      throw new Error(`multiple plugins registered with name: ${name}`)
+    }
+
     Plugins.set(name, plugin)
   }
 })
