@@ -433,8 +433,8 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
   }
 
   if (!Object.keys(r).length)
-    throw new Error(`no criteria to run ${plugin} checks`)
-  return runCheck  &&  r
+    return {error: `no criteria to run ${plugin} checks`}
+  return runCheck  &&  {resource: r}
 }
 
 export const getUserIdentifierFromRequest = (req: IPBReq) => {

@@ -207,9 +207,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         return
 
       // debugger
-      let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
-      if (!resource) {
-        logger.debug(`nothing changed for: ${title({resource: payload, models: bot.models})}`)
+      let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
+      if (error) {
+        logger.debug(error)
         return
       }
       let r: {rawData:object, message?: string, hits: any, url:string} = await openCorporates._fetch(resource, application)
