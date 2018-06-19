@@ -9,8 +9,8 @@ const PLACEHOLDER = '<n/a>'
 const noop = () => {}
 const promiseNoop = async () => {}
 const identityFn = val => val
-const emptyPubShim = () => ({ pub: PLACEHOLDER })
-const emptyAddressShim = pub => PLACEHOLDER
+// const emptyPubShim = () => ({ pub: PLACEHOLDER })
+// const emptyAddressShim = pub => PLACEHOLDER
 const getEndpointFromEnv = (env:Env):CordaApiEndpoint|void => {
   const { CORDA_API_URL, CORDA_API_KEY } = env
   if (CORDA_API_URL) {
@@ -76,9 +76,9 @@ export class Blockchain {
 
   public start = noop
   public wrapOperation = identityFn
-  public sealPubKey = emptyPubShim
-  public sealPrevPubKey = emptyPubShim
-  public pubKeyToAddress = emptyAddressShim
+  // public sealPubKey = emptyPubShim
+  // public sealPrevPubKey = emptyPubShim
+  // public pubKeyToAddress = emptyAddressShim
   public seal = async (opts) => {
     return await this.client.seal(opts)
   }
@@ -106,23 +106,11 @@ class CordaSeals {
   // proxy to this.seals
   public create = opts => this.seals.create(opts)
   public sealPending = (opts={}) => {
-    return this.seals.sealPending({
-      ...opts,
-      key: {
-        priv: PLACEHOLDER,
-        pub: PLACEHOLDER
-      }
-    })
+    return this.seals.sealPending(opts)
   }
 
   public writePendingSeal = (opts) => {
-    return this.seals.writePendingSeal({
-      ...opts,
-      key: {
-        priv: PLACEHOLDER,
-        pub: PLACEHOLDER
-      }
-    })
+    return this.seals.writePendingSeal(opts)
   }
 
   public watch = promiseNoop

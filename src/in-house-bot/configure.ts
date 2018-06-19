@@ -187,7 +187,7 @@ export class Conf {
     await Promise.all(Object.keys(plugins).map(async (name) => {
       const plugin = Plugins.get(name)
       if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
-      if (!(plugin.validateConf || plugin.updateConfiguration)) return
+      if (!(plugin.validateConf || plugin.updateConf)) return
 
       const pluginConf = plugins[name]
       const validateOpts = {
@@ -198,8 +198,8 @@ export class Conf {
 
       try {
         await plugin.validateConf(validateOpts)
-        if (plugin.updateConfiguration) {
-          await plugin.updateConfiguration(validateOpts)
+        if (plugin.updateConf) {
+          await plugin.updateConf(validateOpts)
         }
       } catch (err) {
         Errors.rethrow(err, 'developer')

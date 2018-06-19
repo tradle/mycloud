@@ -309,7 +309,7 @@ export interface IPlugin<BotComponent> {
   name?: string
   createPlugin: CreatePlugin<BotComponent>
   validateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
-  updateConfiguration?: (opts:ValidatePluginConfOpts) => Promise<void>
+  updateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 
 export interface IPlugins {
@@ -382,8 +382,19 @@ export interface IPBotLambdaOpts extends ILambdaOpts {
   [x:string]: any
 }
 
+interface IDeploymentReplicationRegionConf {
+  region: string
+  bucket: string
+  createIfNotExists?: boolean
+}
+
+export interface IDeploymentReplicationConf {
+  regions: IDeploymentReplicationRegionConf[]
+}
+
 export interface IDeploymentPluginConf {
   senderEmail: string
+  replication?: IDeploymentReplicationConf
 }
 
 export interface IApplyForProductDeepLink extends IDeepLink {

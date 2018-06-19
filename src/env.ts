@@ -33,7 +33,7 @@ export default class Env {
   public IS_OFFLINE:boolean
   public SERVERLESS_OFFLINE_PORT: number
   public SERVERLESS_OFFLINE_APIGW: string
-  public S3_PUBLIC_FACING_URL: string
+  public S3_PUBLIC_FACING_HOST: string
   public DISABLED:boolean
 
   public CLOUD: CloudName

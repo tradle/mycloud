@@ -322,9 +322,13 @@ export const sha256 = (data:string|Buffer, enc:HexOrBase64='base64') => {
   return crypto.createHash('sha256').update(data).digest(enc)
 }
 
-export const randomString = (bytes, enc='hex') => {
+export const randomString = (bytes: number, enc='hex') => {
   return crypto.randomBytes(bytes).toString('hex')
 }
+
+export const randomStringWithLength = (length: number) => crypto.randomBytes(Math.ceil(length / 2))
+  .toString('hex')
+  .slice(0, length)
 
 export const calcLink = object => utils.hexLink(omitVirtual(object))
 

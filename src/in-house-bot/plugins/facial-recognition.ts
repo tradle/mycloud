@@ -7,6 +7,7 @@ import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications, IPBApp, IPluginLifecycleMethods } from '../types'
 import { getParsedFormStubs } from '../utils'
+import Errors from '../../errors'
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
@@ -225,6 +226,10 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
   const { bot, applications } = components
   let { logger, conf={} } = pluginOpts
   _.defaults(conf, DEFAULT_CONF)
+
+  if (bot.isTesting && !bot.s3Utils.publicFacingHost) {
+    throw new Errors.InvalidEnvironment(`expected S3_PUBLIC_FACING_HOST environment variable to be set`)
+  }
 
   const facialRecognition = new FacialRecognitionAPI({ bot, applications, logger, conf })
   const plugin:IPluginLifecycleMethods = {

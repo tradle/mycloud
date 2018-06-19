@@ -1,18 +1,12 @@
-import _ from 'lodash'
+import omit from 'lodash/omit'
 import { TYPE } from '@tradle/constants'
+import { randomStringWithLength } from './crypto'
 import Errors from './errors'
 import Env from './env'
 import Logger from './logger'
+import { BucketPutOpts, BucketCopyOpts } from './types'
 import { S3 } from 'aws-sdk'
 import { timeMethods, isPromise, batchProcess, gzip, gunzip, isLocalHost } from './utils'
-
-export type PutOpts = {
-  key:string
-  value:any
-  bucket:string
-  headers?:any
-  publicRead?: boolean
-}
 
 export default class S3Utils {
   public s3: S3
@@ -28,7 +22,11 @@ export default class S3Utils {
     this.env = env
   }
 
-  public put = async ({ key, value, bucket, headers = {}, publicRead }: PutOpts): Promise<S3.Types.PutObjectOutput> => {
+  public get publicFacingHost() {
+    return this.env.S3_PUBLIC_FACING_HOST
+  }
+
+  public put = async ({ key, value, bucket, headers = {}, publicRead }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts: S3.Types.PutObjectRequest = {
       ...headers,
@@ -184,7 +182,7 @@ export default class S3Utils {
 
       opts = {
         ...defaultOpts,
-        ..._.omit(opts, ['force'])
+        ...omit(opts, ['force'])
       }
 
       if (etag) {
@@ -273,8 +271,8 @@ export default class S3Utils {
       Key: key
     })
 
-    if (this.env && this.env.TESTING && this.env.S3_PUBLIC_FACING_URL) {
-      return url.replace(this.s3.config.endpoint, this.env.S3_PUBLIC_FACING_URL)
+    if (this.env && this.env.TESTING && this.publicFacingHost) {
+      return url.replace(this.s3.config.endpoint, this.publicFacingHost)
     }
 
     return url
@@ -403,6 +401,67 @@ export default class S3Utils {
     }
   }
 
+  public createRegionalBuckets = async ({ baseName, regions }: {
+    baseName: string
+    regions: string[]
+  }) => {
+    const existing = (await this.s3.listBuckets().promise()).Buckets.map(b => b.Name)
+    const wontCreate = regions.filter(region => getRegionalBucket({ baseName, region, buckets: existing }))
+    if (wontCreate.length) {
+      this.logger.warn(`will NOT replicate to ${wontCreate.join(', ')}, as buckets already exist in those regions`)
+    }
+
+    const willCreate = regions.filter(r => !wontCreate.includes(r))
+    if (!willCreate.length) return
+
+    const getParams = (region:string):AWS.S3.CreateBucketRequest => ({
+      Bucket: genRegionalBucketName({ baseName, region }),
+      CreateBucketConfiguration: {
+        LocationConstraint: region
+      }
+    })
+
+    return await Promise.all(willCreate.map(async (region) => {
+      await this.s3.createBucket(getParams(region)).promise()
+    }))
+  }
+
+  public listBucketWithPrefix = async ({ bucket, prefix }) => {
+    return await this.listBucket({ bucket, Prefix: prefix })
+  }
+
+  public copyFilesBetweenBuckets = async ({ source, target, keys, prefix }: BucketCopyOpts) => {
+    if (!(prefix || keys)) throw new Errors.InvalidInput('expected "keys" or "prefix"')
+
+    if (!keys) {
+      const items = await this.listBucketWithPrefix({ bucket: source, prefix })
+      keys = items.map(i => i.Key)
+    }
+
+    await Promise.all(keys.map(async (Key) => {
+      await this.s3.copyObject({
+        CopySource: source,
+        Bucket: target,
+        Key
+      })
+      .promise()
+    }))
+  }
+
+  public getRegionalBucketForBucket = async ({ bucket, region }: {
+    bucket: string
+    region: string
+  }):Promise<string> => {
+    const baseName = this.getBucketBaseName(bucket)
+    const buckets = (await this.s3.listBuckets().promise()).Buckets.map(b => b.Name)
+    const regional = getRegionalBucket({ baseName, region, buckets })
+    if (!regional) throw new Errors.NotFound(`corresponding bucket in ${region} for bucket: ${bucket}`)
+
+    return regional
+  }
+
+  public getBucketBaseName = (bucket: string) => bucket.split('-').slice(0, -1).join('-')
+
   private _canGzip = () => {
     // localstack has some issues
     return !(this.env && this.env.TESTING)
@@ -440,3 +499,11 @@ const toEncryptionParams = ({ bucket, kmsKeyId }):S3.PutBucketEncryptionRequest 
     }
   }
 }
+
+const getRegionalBucket = ({ baseName, region, buckets }) => {
+  const prefix = getRegionalBaseName({ baseName, region }) + '-'
+  return buckets.find(name => name.startsWith(prefix))
+}
+
+const getRegionalBaseName = ({ baseName, region }) => `${baseName}-${region}`
+const genRegionalBucketName = ({ baseName, region }) => `${getRegionalBaseName({ baseName, region })}-${randomStringWithLength(10)}`

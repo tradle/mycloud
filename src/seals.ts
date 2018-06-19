@@ -808,10 +808,28 @@ export default class Seals {
     // address: utils.sealPrevAddress({ network, basePubKey, link }),
 
     const basePubKey = key
-    const pubKey = basePubKey && blockchain.sealPubKey({ object, headerHash, basePubKey })
-    const pubKeyForPrev = prevHeaderHash && blockchain.sealPrevPubKey({ object, prevHeaderHash, basePubKey })
-    const address = pubKey && blockchain.pubKeyToAddress(pubKey.pub)
-    const addressForPrev = pubKeyForPrev && blockchain.pubKeyToAddress(pubKeyForPrev.pub)
+    let pubKey
+    if (basePubKey && blockchain.sealPubKey) {
+      pubKey = blockchain.sealPubKey({ object, headerHash, basePubKey })
+      pubKey = normalizeMiniPub(pubKey)
+    }
+
+    let pubKeyForPrev
+    if (prevHeaderHash && blockchain.sealPrevPubKey) {
+      pubKeyForPrev = blockchain.sealPrevPubKey({ object, prevHeaderHash, basePubKey })
+      pubKeyForPrev = normalizeMiniPub(pubKeyForPrev)
+    }
+
+    let address
+    if (pubKey && blockchain.pubKeyToAddress) {
+      address = blockchain.pubKeyToAddress(pubKey.pub)
+    }
+
+    let addressForPrev
+    if (pubKeyForPrev && blockchain.pubKeyToAddress) {
+      addressForPrev = blockchain.pubKeyToAddress(pubKeyForPrev.pub)
+    }
+
     const time = timestamp()
     const params:Seal = {
       sealId: time + ':' + randomString(8),
@@ -826,8 +844,8 @@ export default class Seals {
       prevHeaderHash,
       address,
       addressForPrev,
-      pubKey: pubKey && normalizeMiniPub(pubKey),
-      pubKeyForPrev: pubKeyForPrev && normalizeMiniPub(pubKeyForPrev),
+      pubKey,
+      pubKeyForPrev,
       basePubKey: basePubKey && normalizeMiniPub(basePubKey),
       counterparty,
       watchType,
