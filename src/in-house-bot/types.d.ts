@@ -9,6 +9,7 @@ import { Deployment } from './deployment'
 import { Applications } from './applications'
 import { Friends } from './friends'
 import { EmailBasedVerifier } from './email-based-verifier'
+import { DocumentCheckerAPI } from './plugins/documentChecker'
 import {
   ITradleObject,
   IIdentity,
@@ -84,6 +85,7 @@ export interface IBotComponents {
   deployment?: Deployment
   commands?: Commander
   emailBasedVerifier?: EmailBasedVerifier
+  documentChecker?: DocumentCheckerAPI
   [x:string]: any
 }
 

@@ -411,6 +411,7 @@ export default function createProductsBot({
       'controllingPersonRegistration',
       'centrix',
       'facial-recognition',
+      'documentChecker',
     ].forEach(name => attachPlugin({ name }))
 
     ;[

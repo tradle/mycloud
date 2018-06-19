@@ -943,6 +943,15 @@ functions:
           method: post
           cors: ${{self:custom.cors}}
 
+  documentChecker:
+    handler: lib/in-house-bot/lambda/http/documentChecker-webhook.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: documentChecker
+          method: post
+          cors: ${{self:custom.cors}}
+
   cli:
     handler: lib/in-house-bot/lambda/cli.handler
     timeout: 300

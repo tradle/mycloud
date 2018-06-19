@@ -16,3 +16,6 @@ export const REMEDIATION_COMMAND = 'remediation:utils'
 // onfido
 export const ONFIDO_REGISTER_WEBHOOK = 'onfido:register_webhook'
 export const ONFIDO_PROCESS_WEBHOOK_EVENT = 'onfido:webhook'
+
+// document checker
+export const DOCUMENT_CHECKER_WEBHOOK_EVENT = 'documentChecker:webhook'
