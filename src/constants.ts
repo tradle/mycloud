@@ -7,13 +7,16 @@ import {
   OWNER,
   SEQ,
   SIG,
+  WITNESSES,
   PREV_TO_RECIPIENT,
   NONCE,
   AUTHOR,
   RECIPIENT,
+  ORG,
+  ORG_SIG,
   TIMESTAMP,
   VERSION,
-  TYPES as BASE_TYPES
+  TYPES as BASE_TYPES,
 } from '@tradle/constants'
 
 const unitToMillis = {
@@ -46,6 +49,8 @@ const UNSIGNED_TYPES = [
 ]
 
 const constants = {
+  ORG,
+  ORG_SIG,
   TYPE,
   PERMALINK,
   PREVLINK,
@@ -54,6 +59,7 @@ const constants = {
   LINK,
   SEQ,
   SIG,
+  WITNESSES,
   PREV_TO_RECIPIENT,
   NONCE,
   AUTHOR,

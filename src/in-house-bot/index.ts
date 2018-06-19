@@ -7,7 +7,7 @@ import createProductsStrategy from '@tradle/bot-products'
 import createEmployeeManager from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
 import mergeModels from '@tradle/merge-models'
-import { TYPE } from '@tradle/constants'
+import { TYPE, ORG } from '@tradle/constants'
 import * as StringUtils from '../string-utils'
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
@@ -69,7 +69,8 @@ const HELP_REQUEST = 'tradle.RequestForAssistance'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const APPLICATION = 'tradle.Application'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
-const PRODUCT_LIST_MESSAGE = 'Click the menu button to see a list of products'
+const PRODUCT_LIST_MESSAGE = 'See our list of products'
+const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
 const ALL_HIDDEN_PRODUCTS = [
   DEPLOYMENT,
   EMPLOYEE_ONBOARDING
@@ -340,7 +341,7 @@ export default function createProductsBot({
           formRequest.message = `Please get a "${title}" first!`
         }
       },
-      ['onmessage:tradle.MyProduct']: async (req: IPBReq) => {
+      'onmessage:tradle.MyProduct': async (req: IPBReq) => {
         const { application, payload } = req
         if (!application) return
 
@@ -355,6 +356,7 @@ export default function createProductsBot({
 
     attachPlugin({ name: 'draft-application', requiresConf: false, prepend: true })
 
+    // TODO:
     // this is pretty bad...
     // the goal: allow employees to create multiple pending applications for the same product
     // as they are actually drafts of customer applications
@@ -362,12 +364,18 @@ export default function createProductsBot({
     const defaultHandlers = [].concat(productsAPI.removeDefaultHandler('onPendingApplicationCollision'))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
       onmessage: async (req) => {
-        const isEmployee = employeeManager.isEmployee(req.user)
+        let { user, payload } = req
+        if (!payload[ORG]) return
+
+        const isEmployee = employeeManager.isEmployee(user)
         if (!isEmployee) return
 
+        // TODO:
         // hm, very inefficient
-        let { payload } = req
         payload = await bot.witness(payload)
+        // check if witness verifies
+        // await bot.friends.verifyOrgAuthor(payload)
+
         await bot.save(payload)
         req.payload = req.object = req.message.object = payload
       },
@@ -484,21 +492,22 @@ const limitApplications = (components: IBotComponents) => {
 }
 
 const tweakProductListPerRecipient = (components: IBotComponents) => {
-  const { conf, productsAPI, employeeManager } = components
+  const { bot, conf, productsAPI, employeeManager } = components
   const {
     enabled
   } = conf.bot.products
 
   const willRequestForm = ({ user, formRequest }) => {
-    if (formRequest.form === PRODUCT_REQUEST) {
-      const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
-      formRequest.chooser.oneOf = formRequest.chooser.oneOf
-        .filter(product => {
-          // allow showing hidden products explicitly by listing them in conf
-          // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
-          return enabled.includes(product) || !hidden.includes(product)
-        })
-    }
+    if (formRequest.form !== PRODUCT_REQUEST) return
+
+    const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
+    if (bot.isTesting) return
+
+    formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter(product => {
+      // allow showing hidden products explicitly by listing them in conf
+      // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
+      return enabled.includes(product) || !hidden.includes(product)
+    })
   }
 
   productsAPI.plugins.use(<IPluginLifecycleMethods>{
@@ -599,7 +608,7 @@ const banter = (components: IBotComponents) => {
 
 If you start a product application, I'll see if I can get someone to help you.
 
-${PRODUCT_LIST_MESSAGE}`,
+${PRODUCT_LIST_MENU_MESSAGE}`,
       }
     })
   }

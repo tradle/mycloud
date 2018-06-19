@@ -3,7 +3,7 @@ require('./env').install()
 import _ from 'lodash'
 import test from 'tape'
 import sinon from 'sinon'
-import { TYPE, WITNESSES } from '@tradle/constants'
+import { TYPE, WITNESSES, ORG, ORG_SIG } from '@tradle/constants'
 import { loudAsync } from '../utils'
 import { addLinks } from '../crypto'
 import { Identity } from '../identity'
@@ -43,15 +43,22 @@ test('sign/witness', loudAsync(async (t) => {
     object: signed
   })
 
-  t.equal(witnessed[WITNESSES].length, 1)
-  t.same(_.omit(witnessed, [WITNESSES]), signed)
+  t.ok(witnessed, ORG_SIG)
+  t.same(_.omit(witnessed, [ORG_SIG]), signed)
 
-  const rewitnessed = await identity.witness({
-    object: witnessed
-  })
+  // const witnessed = await identity.witness({
+  //   object: signed
+  // })
 
-  t.equal(rewitnessed[WITNESSES].length, 2)
-  t.same(_.omit(rewitnessed, [WITNESSES]), signed)
+  // t.equal(witnessed[WITNESSES].length, 1)
+  // t.same(_.omit(witnessed, [WITNESSES]), signed)
+
+  // const rewitnessed = await identity.witness({
+  //   object: witnessed
+  // })
+
+  // t.equal(rewitnessed[WITNESSES].length, 2)
+  // t.same(_.omit(rewitnessed, [WITNESSES]), signed)
 
   t.end()
 }))

@@ -132,7 +132,7 @@
     "@tradle/cb-blockr": "^3.2.1",
     "@tradle/constants": "^2.4.0",
     "@tradle/custom-models": "github:tradle/custom-models",
-    "@tradle/dynamodb": "github:tradle/dynamodb",
+    "@tradle/dynamodb": "github:tradle/dynamodb#dev",
     "@tradle/embed": "^1.1.2",
     "@tradle/engine": "^7.0.1",
     "@tradle/ethereum-adapter": "github:tradle/ethereum-adapter",

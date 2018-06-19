@@ -17,7 +17,8 @@ import {
   ensureTimestamped,
   ensureNoVirtualProps,
   copyVirtual,
-  summarizeObject
+  summarizeObject,
+  RESOLVED_PROMISE
 } from './utils'
 
 import Errors from './errors'
@@ -32,10 +33,12 @@ import {
   TYPES,
   SIG,
   AUTHOR,
+  ORG,
+  ORG_SIG,
   PRIVATE_CONF_BUCKET,
   PERMALINK,
   DB_IGNORE_PAYLOAD_TYPES,
-  FORBIDDEN_PAYLOAD_TYPES
+  FORBIDDEN_PAYLOAD_TYPES,
 } from './constants'
 
 import {
@@ -284,7 +287,10 @@ export default class Messaging {
     if (payload._sigPubKey === message._sigPubKey) {
       verifyPayloadAuthor = verifyMessageAuthor
     } else {
-      verifyPayloadAuthor = this.identities.verifyAuthor(payload)
+      verifyPayloadAuthor = Promise.all([
+        this.identities.verifyAuthor(payload),
+        this._maybeVerifyOrgAuthor(payload)
+      ])
     }
 
     await Promise.all([
@@ -407,6 +413,12 @@ export default class Messaging {
         throw err
       }
     }
+  }
+
+  private _maybeVerifyOrgAuthor = async (object) => {
+    if (!object[ORG]) return
+
+    await this.friends.verifyOrgAuthor(object)
   }
 
   private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
