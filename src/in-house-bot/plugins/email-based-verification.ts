@@ -153,7 +153,7 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
         }]
       }
     },
-    ['onmessage:tradle.Form']: async (req) => {
+    'onmessage:tradle.Form': async (req) => {
       const { user, application, payload } = req
       const emailAddress = getEmail(application, payload)
       if (!emailAddress) return

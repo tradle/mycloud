@@ -30,9 +30,9 @@ export const command:ICommand = {
       } else {
         if (req.user.friend) {
           provider = req.user.id
-        } else {
-          throw new Error(`hm, this operation isn't for you`)
         }
+
+        throw new Error(`hm, this operation isn't for you`)
       }
     }
 

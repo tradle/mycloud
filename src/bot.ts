@@ -801,7 +801,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     if (model) {
       const backlinks = this._pickBacklinks(resource)
       if (_.some(backlinks, arr => arr.length)) {
-        debugger
         throw new Errors.InvalidInput(`remove backlinks before signing!`)
       }
     }

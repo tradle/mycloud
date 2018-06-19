@@ -54,7 +54,7 @@ export const createPlugin:CreatePlugin<Onfido> = ({ bot, productsAPI, applicatio
 
   // currently the api and plugin are the same thing
   const proxy = {
-    ['onmessage:tradle.Form']: async (req:IPBReq) => {
+    'onmessage:tradle.Form': async (req:IPBReq) => {
       if (!req.skipChecks) {
         return await plugin['onmessage:tradle.Form'](req)
       }

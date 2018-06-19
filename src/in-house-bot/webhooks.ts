@@ -227,8 +227,8 @@ export class Webhooks {
     cursor: IWebhookCursor
     events: IStreamEvent[]
   }) => {
-    const onTopic = events.filter(({ topic }) => topic === sub.topic)
-    if (!onTopic.length) return
+    // const onTopic = events.filter(({ topic }) => topic === sub.topic)
+    // if (!onTopic.length) return
 
     // const expectedNext = this.bot.events.getNextEventOnTopic({ topic, time: cursor.lastEventTime })
   }

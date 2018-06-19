@@ -222,6 +222,8 @@ export const getCountryFromForm = (form:any):ResourceStub => {
   case PERSONAL_INFO:
   case ADDRESS:
     return form.country
+  default:
+    return
   }
 }
 

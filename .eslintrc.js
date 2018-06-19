@@ -5,7 +5,11 @@ module.exports = {
     },
     "extends": "eslint:recommended",
     "parserOptions": {
-        "sourceType": "module"
+        "sourceType": "module",
+        "ecmaVersion": 8,
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true
+        }
     },
     "rules": {
         "accessor-pairs": "error",
@@ -39,7 +43,7 @@ module.exports = {
             "error",
             "last"
         ],
-        "complexity": "error",
+        "complexity": "warn",
         "computed-property-spacing": "error",
         "consistent-return": "warn",
         "consistent-this": "warn",
@@ -93,27 +97,28 @@ module.exports = {
         "newline-per-chained-call": "warn",
         "no-alert": "error",
         "no-array-constructor": "error",
-        "no-await-in-loop": "error",
+        "no-await-in-loop": "warn",
         "no-bitwise": "error",
         "no-caller": "error",
         "no-case-declarations": "warn",
         "no-catch-shadow": "warn",
         "no-cond-assign": "warn",
-        "no-confusing-arrow": "error",
+        "no-confusing-arrow": "warn",
         "no-console": "warn",
         "no-constant-condition": "warn",
         "no-continue": "warn",
-        "no-debugger": "warn",
+        "no-debugger": "error",
         "no-div-regex": "error",
         "no-duplicate-imports": "error",
         "no-else-return": "error",
         "no-ex-assign": "off",
         "no-empty": [
-            "error",
+            "warn",
             {
-                "allowEmptyCatch": true
+                "allowEmptyCatch": false
             }
         ],
+        "no-empty-block": "warn",
         "no-empty-function": "off",
         "no-eq-null": "warn",
         "no-eval": "error",
@@ -142,7 +147,7 @@ module.exports = {
         "no-multi-str": "error",
         "no-multiple-empty-lines": "error",
         "no-native-reassign": "error",
-        "no-negated-condition": "error",
+        "no-negated-condition": "warn",
         "no-negated-in-lhs": "error",
         "no-nested-ternary": "error",
         "no-new": "error",
@@ -164,7 +169,7 @@ module.exports = {
         "no-restricted-properties": "error",
         "no-restricted-syntax": "error",
         "no-return-assign": "warn",
-        "no-return-await": "error",
+        "no-return-await": "warn",
         "no-script-url": "error",
         "no-self-compare": "error",
         "no-sequences": "error",
@@ -181,7 +186,7 @@ module.exports = {
         "no-undefined": "warn",
         "no-underscore-dangle": "off",
         "no-unmodified-loop-condition": "error",
-        "no-unneeded-ternary": "error",
+        "no-unneeded-ternary": "warn",
         "no-unused-expressions": "off",
         "no-unused-vars": "warn",
         "no-use-before-define": "off",
@@ -189,9 +194,9 @@ module.exports = {
         "no-useless-computed-key": "error",
         "no-useless-concat": "error",
         "no-useless-constructor": "error",
-        "no-useless-escape": "error",
+        "no-useless-escape": "warn",
         "no-useless-rename": "error",
-        "no-useless-return": "error",
+        "no-useless-return": "warn",
         "no-var": "warn",
         "no-void": "off",
         "no-warning-comments": "warn",
@@ -207,7 +212,7 @@ module.exports = {
         "one-var": "off",
         "one-var-declaration-per-line": "warn",
         "operator-assignment": "error",
-        "operator-linebreak": "error",
+        "operator-linebreak": "warn",
         "padded-blocks": "off",
         "prefer-const": "warn",
         "prefer-destructuring": "warn",
@@ -220,7 +225,7 @@ module.exports = {
         "quote-props": "off",
         "quotes": "off",
         "radix": "error",
-        "require-await": "error",
+        "require-await": "warn",
         "require-jsdoc": "off",
         "require-yield": "off",
         "rest-spread-spacing": [

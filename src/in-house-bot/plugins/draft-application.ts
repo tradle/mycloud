@@ -84,8 +84,8 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
   }
 
   const plugin = {
-    ['onmessage:tradle.ProductRequest']: handleProductRequest,
-    ['onmessage:tradle.FormPrefill']: handleFormPrefill,
+    'onmessage:tradle.ProductRequest': handleProductRequest,
+    'onmessage:tradle.FormPrefill': handleFormPrefill,
   }
 
   return { plugin }
