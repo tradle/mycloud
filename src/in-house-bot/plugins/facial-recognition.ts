@@ -57,6 +57,30 @@ export class FacialRecognitionAPI {
       })
     })
     const [photoID, selfie] = await Promise.all(tasks)
+
+    // const photoID = {
+    //   "documentType": {
+    //     "id": "tradle.IDCardType_license",
+    //     "title": "Valid Driver Licence"
+    //   },
+    //   "country": {
+    //     "id": "tradle.Country_GB",
+    //     "title": "United Kingdom"
+    //   },
+    //   "scan": {
+    //     "height": 750,
+    //     "url": "s3:jokes",
+    //     "width": 1094
+    //   },
+    //   "firstName": "SARAH MEREDYTH",
+    //   "lastName": "MORGAN",
+    //   "dateOfIssue": 1358553600000,
+    //   "country": {
+    //     "id": "tradle.Country_GB",
+    //     "title": "United Kingdom"
+    //   }
+    // }
+
     return { selfie, photoID }
   }
 
@@ -68,7 +92,7 @@ export class FacialRecognitionAPI {
     let matchResult
     let error
     const models = this.bot.models
-debugger
+// debugger
     // call whatever API with whatever params
     const form = new FormData();
     form.append('photo1', selfie);
@@ -158,9 +182,12 @@ debugger
       .set({
         status: checkStatus,
         message,
+        aspect: FACIAL_RECOGNITION,
         provider: PROVIDER,
         rawData,
         application,
+        selfie,
+        photoID,
         dateChecked: new Date().getTime()
       })
       .signAndSave()
@@ -203,6 +230,7 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
       if (req.skipChecks) return
+// debugger
       if (!application) return
       let productId = application.requestFor
       //let { products } = conf
@@ -211,7 +239,6 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
 
       const result = await facialRecognition.getSelfieAndPhotoID(application)
       if (!result) return
-
       const { selfie, photoID } = result
       const { status, rawData, error } = await facialRecognition.matchSelfieAndPhotoID({
         selfie: selfie.selfie.url,
