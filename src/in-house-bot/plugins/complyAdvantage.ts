@@ -77,6 +77,71 @@ class ComplyAdvantageAPI {
     this.applications = applications
     this.logger = logger
   }
+
+  public async getAndProcessData({user, pConf, payload, propertyMap, application}) {
+    let criteria = pConf.filter
+    // let companyName, registrationDate
+    // let resource = payload
+    let map = pConf.propertyMap
+    if (!map)
+      map = propertyMap  &&  propertyMap[payload[TYPE]]
+
+    let isPerson = criteria  &&  criteria.entity_type === 'person' || payload[TYPE] === PHOTO_ID
+    let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
+    let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot: this.bot, defaultPropMap: defaultMap, map})
+    if (error) {
+      this.logger.debug(error)
+      return
+    }
+    let { companyName, registrationDate, firstName, lastName, dateOfBirth } = resource
+    let name
+    if (isPerson) {
+      if (!firstName  ||  !lastName  ||  !dateOfBirth) {
+        this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        let status = {
+          status: 'fail',
+          message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
+        }
+        await this.createSanctionsCheck({application, rawData: {}, status, form: payload})
+        return
+      }
+      name = firstName + ' ' + lastName
+    }
+    else {
+      this.logger.debug(`running sanctions plugin for: ${companyName}`);
+
+      if (!companyName  ||  !registrationDate) {
+        this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        let status = {
+          status: 'fail',
+          message: `Sanctions check for "${companyName}" failed.` + (!registrationDate  &&  ' No registration date was provided')
+        }
+        await this.createSanctionsCheck({application, rawData: {}, status, form: payload})
+        return
+      }
+    }
+    let r: {rawData:any, hits: any, status: any} = await this.getData(resource, criteria)
+
+    let pchecks = []
+    let { rawData, hits, status } = r
+    if (rawData.status === 'failure') {
+      pchecks.push(this.createSanctionsCheck({application, rawData, status: 'fail', form: payload}))
+    }
+    else {
+      let hasVerification
+      if (hits  &&  hits.length)
+        this.logger.debug(`found sanctions for: ${companyName ||  name}`);
+      else {
+        hasVerification = true
+        this.logger.debug(`creating verification for: ${companyName || name}`);
+      }
+      pchecks.push(this.createSanctionsCheck({application, rawData: rawData, status, form: payload}))
+      if (hasVerification)
+        pchecks.push(this.createVerification({user, application, form: payload, rawData}))
+    }
+    let checksAndVerifications = await Promise.all(pchecks)
+  }
+
   public getData = async (resource, criteria) => {
     let { companyName, registrationDate, firstName, lastName, dateOfBirth, entity_type } = resource //conf.propertyMap //[resource[TYPE]]
     let search_term = criteria  &&  criteria.search_term
@@ -149,12 +214,14 @@ class ComplyAdvantageAPI {
   }
 
   public createSanctionsCheck = async ({ application, rawData, status, form }: IComplyCheck) => {
+    let dateStr = rawData.updated_at
+    let date = dateStr  &&   Date.parse(dateStr) - (new Date().getTimezoneOffset() * 60 * 1000)
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
       provider: 'Comply Advantage',
       application: buildResourceStub({resource: application, models: this.bot.models}),
-      dateChecked: rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
+      dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       message: status.message,
       form
     }
@@ -218,68 +285,70 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
 
       if (payload[TYPE] !== PHOTO_ID  &&  payload[TYPE] !== FORM_ID)
         return
-      // let propertyMap = products[productId].propertyMap
-      let criteria = pConf.filter
-      // let companyName, registrationDate
-      // let resource = payload
-      let map = pConf.propertyMap
-      if (!map)
-        map = propertyMap  &&  propertyMap[payload[TYPE]]
+      complyAdvantage.getAndProcessData({user, pConf, application, propertyMap, payload})
 
-      let isPerson = criteria  &&  criteria.entity_type === 'person' || payload[TYPE] === PHOTO_ID
-      let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
-      let resource = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap: defaultMap, map})
-      if (!resource) {
-        logger.debug(`nothing changed for: ${title({resource: payload, models: bot.models})}`)
-        return
-      }
-      let { companyName, registrationDate, firstName, lastName, dateOfBirth } = resource
-      let name
-      if (isPerson) {
-        if (!firstName  ||  !lastName  ||  !dateOfBirth) {
-          logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
-          let status = {
-            status: 'fail',
-            message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
-          }
-          await complyAdvantage.createSanctionsCheck({application, rawData: {}, status, form: payload})
-          return
-        }
-        name = firstName + ' ' + lastName
-      }
-      else {
-        logger.debug(`running sanctions plugin for: ${companyName}`);
+      // // let propertyMap = products[productId].propertyMap
+      // let criteria = pConf.filter
+      // // let companyName, registrationDate
+      // // let resource = payload
+      // let map = pConf.propertyMap
+      // if (!map)
+      //   map = propertyMap  &&  propertyMap[payload[TYPE]]
 
-        if (!companyName  ||  !registrationDate) {
-          logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
-          let status = {
-            status: 'fail',
-            message: `Sanctions check for "${companyName}" failed.` + (!registrationDate  &&  ' No registration date was provided')
-          }
-          await complyAdvantage.createSanctionsCheck({application, rawData: {}, status, form: payload})
-          return
-        }
-      }
-      let r: {rawData:any, hits: any, status: any} = await complyAdvantage.getData(resource, criteria)
+      // let isPerson = criteria  &&  criteria.entity_type === 'person' || payload[TYPE] === PHOTO_ID
+      // let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
+      // let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap: defaultMap, map})
+      // if (error) {
+      //   logger.debug(error)
+      //   return
+      // }
+      // let { companyName, registrationDate, firstName, lastName, dateOfBirth } = resource
+      // let name
+      // if (isPerson) {
+      //   if (!firstName  ||  !lastName  ||  !dateOfBirth) {
+      //     logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+      //     let status = {
+      //       status: 'fail',
+      //       message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
+      //     }
+      //     await complyAdvantage.createSanctionsCheck({application, rawData: {}, status, form: payload})
+      //     return
+      //   }
+      //   name = firstName + ' ' + lastName
+      // }
+      // else {
+      //   logger.debug(`running sanctions plugin for: ${companyName}`);
 
-      let pchecks = []
-      let { rawData, hits, status } = r
-      if (rawData.status === 'failure') {
-        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status: 'fail', form: payload}))
-      }
-      else {
-        let hasVerification
-        if (hits  &&  hits.length)
-          logger.debug(`found sanctions for: ${companyName ||  name}`);
-        else {
-          hasVerification = true
-          logger.debug(`creating verification for: ${companyName || name}`);
-        }
-        pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status, form: payload}))
-        if (hasVerification)
-          pchecks.push(complyAdvantage.createVerification({user, application, form: payload, rawData}))
-      }
-      let checksAndVerifications = await Promise.all(pchecks)
+      //   if (!companyName  ||  !registrationDate) {
+      //     logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+      //     let status = {
+      //       status: 'fail',
+      //       message: `Sanctions check for "${companyName}" failed.` + (!registrationDate  &&  ' No registration date was provided')
+      //     }
+      //     await complyAdvantage.createSanctionsCheck({application, rawData: {}, status, form: payload})
+      //     return
+      //   }
+      // }
+      // let r: {rawData:any, hits: any, status: any} = await complyAdvantage.getData(resource, criteria)
+
+      // let pchecks = []
+      // let { rawData, hits, status } = r
+      // if (rawData.status === 'failure') {
+      //   pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status: 'fail', form: payload}))
+      // }
+      // else {
+      //   let hasVerification
+      //   if (hits  &&  hits.length)
+      //     logger.debug(`found sanctions for: ${companyName ||  name}`);
+      //   else {
+      //     hasVerification = true
+      //     logger.debug(`creating verification for: ${companyName || name}`);
+      //   }
+      //   pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status, form: payload}))
+      //   if (hasVerification)
+      //     pchecks.push(complyAdvantage.createVerification({user, application, form: payload, rawData}))
+      // }
+      // let checksAndVerifications = await Promise.all(pchecks)
     }
   }
 
