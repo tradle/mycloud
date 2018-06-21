@@ -24,7 +24,7 @@ export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf 
         message = DEFAULT_ERROR_MESSAGE
       }
 
-      await this.sendSimpleMessage({ req, to, message })
+      await bot.sendSimpleMessage({ to, message })
       return
     }
 
