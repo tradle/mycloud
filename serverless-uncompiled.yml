@@ -2,6 +2,7 @@ service: ${{self:custom.service}}
 frameworkVersion: ">=1.5.0 <2.0.0"
 
 plugins:
+  - prepare-offline
   # - serverless-resources-env
   - serverless-plugin-tracing
   # - serverless-pseudo-parameters
