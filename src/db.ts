@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { createTable, DB, Table, utils, defaults, FilterOp } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, defaults, Search } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Env, Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
@@ -168,7 +168,7 @@ export = function createDB ({
     return allow
   }
 
-  const validateFind = (filterOp: FilterOp) => {
+  const validateFind = (filterOp: Search) => {
     if (!filterOp.index) return
 
     const { model, index, table } = filterOp

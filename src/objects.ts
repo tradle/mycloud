@@ -3,7 +3,18 @@ import clone from 'lodash/clone'
 import cloneDeep from 'lodash/cloneDeep'
 import Embed from '@tradle/embed'
 import { protocol } from '@tradle/engine'
-import { IDebug, ITradleObject, IRetryableTaskOpts, S3Utils, Bucket, Buckets, Logger, Env } from './types'
+import {
+  IDebug,
+  ITradleObject,
+  IRetryableTaskOpts,
+  S3Utils,
+  Bucket,
+  Buckets,
+  Logger,
+  Env,
+  PresignEmbeddedMediaOpts
+} from './types'
+
 import * as types from './typeforce-types'
 import Errors from './errors'
 import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
@@ -248,10 +259,7 @@ export default class Objects {
     await this.bucket.del(link)
   }
 
-  public presignEmbeddedMediaLinks = (opts: {
-    object: ITradleObject,
-    stripEmbedPrefix?: boolean
-  }):ITradleObject => {
+  public presignEmbeddedMediaLinks = (opts: PresignEmbeddedMediaOpts):ITradleObject => {
     const { object, stripEmbedPrefix } = opts
     if (!object) throw new Errors.InvalidInput('expected "object"')
 

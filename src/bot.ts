@@ -75,6 +75,7 @@ import {
   Tables,
   Bucket,
   IMailer,
+  PresignEmbeddedMediaOpts,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -917,7 +918,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public getBacklink = async (props: GetResourceIdentifierInput, backlink: string) => {
-    return await this.getBacklinks(props, [backlink])
+    const backlinks = await this.getBacklinks(props, [backlink])
+    return backlinks[backlink] || []
   }
 
   public getBacklinks = async (props: GetResourceIdentifierInput, backlinks?: string[]) => {
@@ -971,8 +973,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return _.extend(resource, backlinks)
   }
 
-  public resolveEmbeds = object => this.objects.resolveEmbeds(object)
-  public presignEmbeddedMediaLinks = opts => this.objects.presignEmbeddedMediaLinks(opts)
+  public resolveEmbeds = (object:ITradleObject):Promise<ITradleObject> => this.objects.resolveEmbeds(object)
+  public presignEmbeddedMediaLinks = (opts:PresignEmbeddedMediaOpts):ITradleObject => this.objects.presignEmbeddedMediaLinks(opts)
   public createNewVersion = async (resource) => {
     const latest = buildResource.version(resource)
     const signed = await this.sign(latest)
