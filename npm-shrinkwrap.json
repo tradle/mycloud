@@ -81,7 +81,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#e63927f3b6cd057ab984b0fb0c57196345064237",
+      "resolved": "git://github.com/tradle/bot-products.git#7fa1212a31365faac8020b791b755994b32e02c9",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -181,12 +181,12 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#bc23ac047f66dc02924ff488b0a21dc68d4c9604"
+      "resolved": "git://github.com/tradle/custom-models.git#4ad0a1523b63dd599967edb824a12c4a69b3372b"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb#dev",
-      "resolved": "git://github.com/tradle/dynamodb.git#10fe34338bd9ed1b5ef0867d9002ab83ec8e85b5",
+      "resolved": "git://github.com/tradle/dynamodb.git#622de7e000e5b9fcaf1240270df365c838533af7",
       "dependencies": {
         "koa-compose": {
           "version": "4.1.0",
@@ -279,12 +279,12 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#6017fbaa3389f733ff0b614669214379a9ba94d1"
+      "resolved": "git://github.com/tradle/models.git#bd123bcf7b8beab8c5a2f8b4de550291c8b84613"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#acec1013a74373241496b4e07db8153aa582a77a"
+      "resolved": "git://github.com/tradle/models-cloud.git#f8c72e6f9adc2e341e0956961989d64552900c62"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -299,7 +299,7 @@
     "@tradle/models-onfido": {
       "version": "1.0.0",
       "from": "tradle/models-onfido",
-      "resolved": "git://github.com/tradle/models-onfido.git#6c81c500b4d9bfa8563cd3d22fa1e2d796717d1b"
+      "resolved": "git://github.com/tradle/models-onfido.git#652facb3ec1a5d361e73e5251a420379b880ac15"
     },
     "@tradle/models-pack": {
       "version": "1.3.0",
@@ -309,7 +309,7 @@
     "@tradle/models-products-bot": {
       "version": "1.0.0",
       "from": "tradle/models-products-bot",
-      "resolved": "git://github.com/tradle/models-products-bot.git#8a5beb61c2da34ece4a1dd674f541f673524cd51"
+      "resolved": "git://github.com/tradle/models-products-bot.git#1074281ef8e1ddf046f6f7319ec4975b087f9e47"
     },
     "@tradle/onfido-api": {
       "version": "1.0.0",
@@ -334,9 +334,9 @@
       "resolved": "git://github.com/tradle/plugin-onfido.git#f0d60dc36ccfadb5746461390e1bfc91edf4de43"
     },
     "@tradle/protocol": {
-      "version": "4.1.0",
+      "version": "4.2.0",
       "from": "@tradle/protocol@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/protocol/-/protocol-4.1.0.tgz"
+      "resolved": "https://registry.npmjs.org/@tradle/protocol/-/protocol-4.2.0.tgz"
     },
     "@tradle/qr": {
       "version": "2.0.0",
@@ -3205,9 +3205,9 @@
       "resolved": "https://registry.npmjs.org/error/-/error-7.0.2.tgz"
     },
     "error-ex": {
-      "version": "1.3.1",
-      "from": "error-ex@>=1.3.1 <2.0.0",
-      "resolved": "https://registry.npmjs.org/error-ex/-/error-ex-1.3.1.tgz"
+      "version": "1.3.2",
+      "from": "error-ex@latest",
+      "resolved": "https://registry.npmjs.org/error-ex/-/error-ex-1.3.2.tgz"
     },
     "error-inject": {
       "version": "1.0.0",
