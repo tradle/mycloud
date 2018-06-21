@@ -14,6 +14,7 @@ mockery.registerMock('aws-xray-sdk', null)
   'mongodb',
   'zmq',
   'kerberos',
+  'fsevents',
 ].forEach(unused => {
   // console.info(`disabling unused dev module: ${unused}`)
   mockery.registerMock(unused, {})
