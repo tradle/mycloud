@@ -120,7 +120,7 @@
     "scan": "./src/scripts/scan.sh $@",
     "templates:prerender": "node ./lib/scripts/prerender-templates.js && npm run copy-static-assets",
     "fix:redis": "echo restarting redis, it\\'s been naughty && cd docker && docker-compose -f ./docker-compose-localstack.yml restart redis",
-    "clean:deps": "echo 'removing unused optional deps of serverless-iot-local' && npm uninstall -S zmq ampqlib amqp kafka-node mongodb qlobber-fsq kerberos"
+    "clean:deps": "echo 'removing unused optional deps of serverless-iot-local' && npm uninstall -S zmq ampqlib amqp kafka-node mongodb qlobber-fsq kerberos chokidar fsevents"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
