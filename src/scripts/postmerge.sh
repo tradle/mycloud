@@ -10,5 +10,12 @@ update_deps() {
   npm install
 }
 
+rebuild_yml() {
+  echo 'serverless-uncompiled.yml has changed, recompiling'
+  npm run build:yml
+}
+
 check_run npm-shrinkwrap.json "update_deps"
+check_run serverless-uncompiled.yml "rebuild_yml"
+
 echo 'compiling typescript' && tsc
