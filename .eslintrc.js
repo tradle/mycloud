@@ -107,7 +107,7 @@ module.exports = {
         "no-console": "warn",
         "no-constant-condition": "warn",
         "no-continue": "warn",
-        "no-debugger": "error",
+        "no-debugger": "warn",
         "no-div-regex": "error",
         "no-duplicate-imports": "error",
         "no-else-return": "error",
