@@ -119,7 +119,8 @@
     "stacksize": "./src/scripts/count-resources.sh",
     "scan": "./src/scripts/scan.sh $@",
     "templates:prerender": "node ./lib/scripts/prerender-templates.js && npm run copy-static-assets",
-    "fix:redis": "echo restarting redis, it\\'s been naughty && cd docker && docker-compose -f ./docker-compose-localstack.yml restart redis"
+    "fix:redis": "echo restarting redis, it\\'s been naughty && cd docker && docker-compose -f ./docker-compose-localstack.yml restart redis",
+    "clean:deps": "echo 'removing unused optional deps of serverless-iot-local and nunjucks' && npm uninstall -S zmq ampqlib amqp kafka-node mongodb qlobber-fsq kerberos chokidar fsevents"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
@@ -160,7 +161,6 @@
     "@tradle/validate-resource": "^4.3.0",
     "aws-xray-sdk-core": "^1.2.0",
     "bluebird": "^3.5.0",
-    "bluebird-q": "^2.1.1",
     "bn.js": "^4.11.8",
     "caseless": "^0.12.0",
     "clone": "^2.1.1",

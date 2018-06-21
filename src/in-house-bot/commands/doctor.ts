@@ -1,8 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import parse from 'yargs-parser'
 import { ICommand, Bot } from '../types'
-import { createConf } from '../configure'
 import { allSettled } from '../../utils'
 
 export const command:ICommand = {

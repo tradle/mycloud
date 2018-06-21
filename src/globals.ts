@@ -41,7 +41,19 @@ mockery.registerMock('error-ex', name => {
   }
 })
 
-if (process.env.IS_OFFLINE || process.env.IS_LOCAL || process.env.NODE_ENV === 'test') {
-  warn('disabling "aws-xray-sdk" as this is a local environment')
-  mockery.registerMock('aws-xray-sdk', null)
-}
+// if (process.env.IS_OFFLINE || process.env.IS_LOCAL || process.env.NODE_ENV === 'test') {
+//   warn('disabling "aws-xray-sdk" as this is a local environment')
+//   mockery.registerMock('aws-xray-sdk', null)
+
+//   ;[
+//     'kafka-node',
+//     'amqp',
+//     'amqplib',
+//     'mongodb',
+//     'zmq',
+//     'kerberos',
+//   ].forEach(unused => {
+//     warn(`disabling unused dev module: ${unused}`)
+//     mockery.registerMock(unused, {})
+//   })
+// }

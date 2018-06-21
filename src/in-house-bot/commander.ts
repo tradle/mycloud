@@ -83,6 +83,7 @@ export const SUDO_ONLY_COMMANDS = [
   'setenvvar',
   'push-notifications',
   'doctor',
+  'balance',
   // 'encryptbucket',
   // 'enablebinary'
 ]
