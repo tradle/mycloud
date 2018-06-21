@@ -347,7 +347,7 @@ export default function createProductsBot({
         // }
 
         const { user, payload } = req
-        if (payload[TYPE] === 'tradle.IdentityPublishRequeest') {
+        if (payload[TYPE] === 'tradle.IdentityPublishRequest') {
           const { identity } = payload
           if (!identity._seal) {
             await bot.seal({
