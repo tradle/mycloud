@@ -29,6 +29,11 @@ import {
   getUserIdentifierFromRequest,
   getProductModelForCertificateModel
 } from './utils'
+
+import {
+  getEnumValueId
+} from '../utils'
+
 import { Applications } from './applications'
 import { Friends } from './friends'
 import {
@@ -42,7 +47,8 @@ import {
   IPluginLifecycleMethods,
   IPBReq,
   IPBUser,
-  IPBApp
+  IPBApp,
+  ISaveEventPayload,
 } from './types'
 
 import Logger from '../logger'
@@ -116,7 +122,9 @@ export default function createProductsBot({
 
   // until the issue with concurrent modifications of user & application state is resolved
   // then some handlers can migrate to 'messagestream'
-  const handleMessages = event === LambdaEvents.MESSAGE || (bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC)
+  const isTestingAsync = bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC
+  const handleMessages = event === LambdaEvents.MESSAGE || isTestingAsync
+  const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isTesting && event === LambdaEvents.MESSAGE)
   const mergeModelsOpts = { validate: bot.isTesting }
   const visibleProducts = _.uniq(enabled)
   const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
@@ -140,16 +148,18 @@ export default function createProductsBot({
   // }
 
   productsAPI.removeDefaultHandler('shouldSealReceived')
+  productsAPI.removeDefaultHandler('shouldSealSent')
   productsAPI.plugins.use({
-    shouldSealReceived: ({ object }) => {
-      if (object._seal) return false
+    shouldSealSent: () => false,
+    shouldSealReceived: () => false,
+    // ({ object }) => {
 
-      const type = object[TYPE]
-      if (type === PRODUCT_REQUEST) return false
+      // const type = object[TYPE]
+      // if (type === PRODUCT_REQUEST) return false
 
-      const model = bot.models[type]
-      if (model && model.subClassOf === 'tradle.Form') return true
-    }
+      // const model = bot.models[type]
+      // if (model && model.subClassOf === 'tradle.Form') return true
+    // }
   })
 
   const getPluginConf = name => plugins[name] || defaultConfs[name]
@@ -232,9 +242,25 @@ export default function createProductsBot({
     bot.onmessage(productsAPI.onmessage)
   }
 
-  // if (event === LambdaEvents.RESOURCE_ASYNC) {
-  //   productsAPI.removeDefaultHandlers()
-  // }
+  const applications = new Applications({ bot, productsAPI, employeeManager })
+  if (runAsyncHandlers) {
+    // productsAPI.removeDefaultHandlers()
+    bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
+      const { old, value } = change
+      if (!(old && value)) return
+
+      if (old[TYPE] === APPLICATION && old.status !== 'approved' && value.status === 'approved') {
+        value.submissions = await bot.backlinks.getBacklink({
+          type: APPLICATION,
+          permalink: value._permalink,
+          backlink: 'submissions'
+        })
+
+        applications.organizeSubmissions(value)
+        await applications.createSealsForApprovedApplication({ application: value })
+      }
+    })
+  }
 
   const myIdentityPromise = bot.getMyIdentity()
   const components: IBotComponents = {
@@ -243,7 +269,7 @@ export default function createProductsBot({
     productsAPI,
     employeeManager,
     friends: new Friends({ bot }),
-    applications: new Applications({ bot, productsAPI, employeeManager }),
+    applications,
     logger
   }
 
@@ -324,7 +350,7 @@ export default function createProductsBot({
         if (payload[TYPE] === 'tradle.IdentityPublishRequeest') {
           const { identity } = payload
           if (!identity._seal) {
-            await bot.seals.create({
+            await bot.seal({
               counterparty: user.id,
               object: identity
             })
