@@ -30,7 +30,8 @@ import {
   TYPE,
   TYPES,
   AUTHOR,
-  TIMESTAMP
+  ORG,
+  TIMESTAMP,
 } from '../constants'
 
 import { createTestBot } from '../'
@@ -101,6 +102,7 @@ test('_doQueueMessage', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const payload = {
     [TYPE]: 'tradle.SimpleMessage',
+    [ORG]: alice.identity._permalink,
     message: 'hey bob',
     // embed: 'data:image/jpeg;base64,somebase64'
   }
