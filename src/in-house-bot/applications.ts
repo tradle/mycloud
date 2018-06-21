@@ -1,6 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import groupBy from 'lodash/groupBy'
+import maxBy from 'lodash/maxBy'
 import pick from 'lodash/pick'
 import omit from 'lodash/omit'
 import uniqBy from 'lodash/uniqBy'
@@ -130,7 +131,7 @@ export class Applications {
   }
 
   public getUnverifiedForms = async ({ application }) => {
-    const formStubs = getCustomerSubmittedForms(application)
+    const formStubs = getCustomerForms(application)
     const verifications = await this.getVerifications({ application })
     const verified = verifications.map(verification => parseStub(verification.document))
     return formStubs.filter(stub => {
@@ -146,16 +147,13 @@ export class Applications {
     return await Promise.map(verifications, appSub => this.bot.getResource(appSub.submission))
   }
 
-  public getFormsAndVerifications = async({ application }: {
+  public getFormsAndVerifications = async ({ application }: {
     application: IPBApp
   }) => {
-    const promiseBotPermalink = this.bot.getMyPermalink()
-    const { forms=[] } = application
-    const formStubs = getCustomerSubmittedForms({ forms })
-    const verifications = await this.getVerifications({ application })
+    const stubs = getCustomerFormsAndVerifications({ application })
     return {
-      formStubs,
-      verifications
+      forms: await Promise.all(stubs.forms.map(stub => this.bot.getResource(stub))),
+      verifications: await Promise.all(stubs.verifications.map(stub => this.bot.getResource(stub)))
     }
   }
 
@@ -165,8 +163,11 @@ export class Applications {
     application: IPBApp
     send?: boolean
   }) => {
-    const { formStubs, verifications } = await this.getFormsAndVerifications({ application })
+    const stubs = getCustomerFormsAndVerifications({ application })
+    const formStubs = stubs.forms
     if (!formStubs.length) return []
+
+    const verifications = await Promise.all(stubs.verifications.map(stub => this.bot.getResource(stub)))
 
     // avoid building increasingly tall trees of verifications
     const sourcesOnly = flatMap(verifications, v => isEmpty(v.sources) ? v : v.sources)
@@ -186,6 +187,28 @@ export class Applications {
         send
       })
     })
+  }
+
+  public createSealsForApprovedApplication = async ({ application }: {
+    application: IPBApp
+  }) => {
+    let { forms, verifications } = await this.getFormsAndVerifications({ application })
+    if (!(forms.length || verifications.length)) return
+
+    verifications = getLatestVerifications({ verifications })
+    const counterparty = parseStub(application.applicant).permalink
+    // avoid re-sealing
+    const subs = forms.concat(verifications).filter(sub => !sub._seal)
+    if (application.certificate) {
+      subs.push(application.certificate)
+    }
+
+    await Promise.all(subs.map(object => this.bot.seal({ counterparty, object })))
+  }
+
+  public organizeSubmissions = (application: IPBApp) => {
+    this.productsAPI.state.organizeSubmissions(application)
+    return application
   }
 
   public requestEdit = async (opts) => {
@@ -355,7 +378,7 @@ export class Applications {
     return this.employeeManager.isEmployee(user)
   }
 
-  public getCustomerSubmittedForms = getCustomerSubmittedForms
+  public getCustomerForms = getCustomerForms
 
   // public requestEdit = async (opts: {
   //   req?: IPBReq
@@ -397,7 +420,7 @@ const getCustomerSubmissions = ({ forms }: {
   return forms.filter(f => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
 }
 
-const getCustomerSubmittedForms = ({ forms }: {
+const getCustomerForms = ({ forms }: {
   forms: ApplicationSubmission[]
 }) => {
   return getCustomerSubmissions({ forms }).map(s => s.submission)
@@ -409,3 +432,18 @@ const getApplicationWithCustomerSubmittedForms = (application: IPBApp):IPBApp =>
     forms: application.forms || []
   })
 })
+
+const getCustomerFormsAndVerifications = ({ application }: {
+  application: IPBApp
+}) => ({
+  forms: getCustomerForms({ forms: application.forms || [] }),
+  verifications: (application.verifications || []).map(appSub => appSub.submission)
+})
+
+const getLatestVerifications = ({ verifications }) => {
+  verifications = verifications.filter(v => !v.revoked)
+  if (!verifications.length) return verifications
+
+  const perForm = groupBy(verifications, v => parseStub(v.document).permalink)
+  return Object.keys(perForm).map(formPermalink => maxBy(perForm[formPermalink], '_time'))
+}

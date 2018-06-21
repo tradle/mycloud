@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { TYPE, SIG, TIMESTAMP } from '@tradle/constants'
-import { createTable, DB, Table, utils, defaults, FilterOp } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, defaults, Search } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
 import { Env, Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
@@ -14,10 +13,12 @@ import {
   safeStringify,
   getPrimaryKeySchema
 } from './utils'
-import { TYPES, UNSIGNED_TYPES } from './constants'
+import { TYPE, SIG, ORG, AUTHOR, TIMESTAMP, TYPES, UNSIGNED_TYPES } from './constants'
 import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
+const ORG_OR_AUTHOR = '_orgOrAuthor'
+const ARTIFICIAL_PROPS = [ORG_OR_AUTHOR]
 
 const ALLOW_SCAN = [
   DELIVERY_ERROR
@@ -32,6 +33,42 @@ const ALLOW_LIST_TYPE = [
   DELIVERY_ERROR,
   'tradle.Application'
 ]
+
+const defaultIndexes = [
+  {
+    // default for all tradle.Object resources
+    hashKey: ORG_OR_AUTHOR,
+    rangeKey: ['_t', '_time']
+  },
+  {
+    // default for all tradle.Object resources
+    hashKey: TYPE,
+    rangeKey: '_time'
+  }
+]
+
+const deriveProps = (opts) => {
+  let { item } = opts
+  item = _.clone(item)
+  if (item[ORG] || item[AUTHOR]) {
+    item[ORG_OR_AUTHOR] = item[ORG] || item[AUTHOR]
+  }
+
+  const props = utils.deriveProps({ ...opts, item })
+  // don't store this property
+  // only use it to calculate index values
+  delete props[ORG_OR_AUTHOR]
+  return props
+}
+
+// const indexAliases = {
+//   get ['$org']() {
+//     return {
+//       hashKey: '_orgOrAuthor',
+//       rangeKey: ['_t', '_time', '_author']
+//     }
+//   }
+// }
 
 const _allowScan = filterOp => {
   if (filterOp.opType === 'query') {
@@ -131,7 +168,7 @@ export = function createDB ({
     return allow
   }
 
-  const validateFind = (filterOp: FilterOp) => {
+  const validateFind = (filterOp: Search) => {
     if (!filterOp.index) return
 
     const { model, index, table } = filterOp
@@ -155,14 +192,14 @@ export = function createDB ({
     get modelsStored() { return modelStore.models },
     objects,
     allowScan,
-    shouldMinify
-    // derivedProps: tableKeys,
+    shouldMinify,
+    deriveProps,
   }
 
   const getIndexesForModel = ({ table, model }) => {
     if (model.indexes) return model.indexes.slice()
 
-    return defaults.indexes.slice()
+    return _.cloneDeep(defaultIndexes)
 
     // throw new Error(`failed to get indexes for model: ${model.id}`)
   }
@@ -223,6 +260,11 @@ export = function createDB ({
         }
       })
 
+      table.hook('find:pre', onFindPre)
+      table.hook('find:post', addPayloads)
+      table.hook('batchPut:pre', ({ args }) => args[0].forEach(checkPre))
+      table.hook('put:pre', ({ args }) => checkPre(args[0]))
+
       return table
     },
     chooseTable
@@ -250,9 +292,13 @@ export = function createDB ({
     delete EQ._inbound
   }
 
+  const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
+
   const addPayloads = async ({ args, result }) => {
-    const { items } = result
+    let { items } = result
     if (!(items && items.length)) return
+
+    items = stripArtificialProps(items)
 
     const { EQ={} } = args && args[0] && args[0].filter
     if (EQ[TYPE] !== MESSAGE) return
@@ -276,11 +322,6 @@ export = function createDB ({
   const onFindPre = async (opts) => {
     fixMessageFilter(opts)
   }
-
-  db.hook('find:pre', onFindPre)
-  db.hook('find:post', addPayloads)
-  db.hook('batchPut:pre', ({ args }) => args[0].forEach(checkPre))
-  db.hook('put:pre', ({ args }) => checkPre(args[0]))
 
   const checkPre = resource => {
     if (!resource[SIG] && !UNSIGNED_TYPES.includes(resource[TYPE])) {

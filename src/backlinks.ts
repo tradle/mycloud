@@ -4,7 +4,7 @@ import Promise from 'bluebird'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
-import { utils as DDBUtils, OrderBy } from '@tradle/dynamodb'
+import { utils as DDBUtils, OrderBy, FindOpts } from '@tradle/dynamodb'
 import {
   parseStub,
   parsePermId,
@@ -77,10 +77,17 @@ export type BacklinksChange = {
   del: IBacklinkItem[]
 }
 
-type FetchBacklinksOpts = {
+type GetBacklinksOpts = {
   type: string
   permalink: string
   properties?: string[]
+  orderBy?: OrderBy
+}
+
+type GetBacklinkOpts = {
+  type: string
+  permalink: string
+  backlink: string
   orderBy?: OrderBy
 }
 
@@ -116,47 +123,108 @@ export default class Backlinks {
     return getForwardLinks({ logger, models, resource })
   }
 
-  public fetchBacklinks = async ({
+  public getBacklink = async ({
+    type,
+    permalink,
+    backlink,
+    orderBy
+  }: GetBacklinkOpts): Promise<ResourceStub[]> => {
+    const backlinks = await this.getBacklinks({
+      type,
+      permalink,
+      properties: [backlink],
+      orderBy
+    })
+
+    return backlinks[backlink]
+  }
+
+  public getBacklinks = async ({
     type,
     permalink,
     properties,
     orderBy=DEFAULT_BACKLINK_ORDER_BY
-  }: FetchBacklinksOpts):Promise<ResourceBacklinks> => {
+  }: GetBacklinksOpts):Promise<ResourceBacklinks> => {
     const { models } = this
-    const filter = {
-      IN: {},
-      EQ: {
-        [TYPE]: BACKLINK_ITEM,
-        'target._permalink': permalink
-      }
-    }
-
-    if (properties) {
-      const targetModel = models[type]
-      const sourceProps = properties.map(prop => {
-        const { ref, backlink } = targetModel.properties[prop].items
-        return backlink
+    const allProps = models[type].properties
+    if (!properties) {
+      properties = Object.keys(allProps).filter(p => {
+        const property = allProps[p]
+        return property.items && property.items.backlink
       })
-
-      filter.IN = {
-        linkProp: sourceProps
-      }
+      .filter(_.identity)
     }
 
-    const { items } = await this.db.find({ filter })
 
-    // BacklinkItem is tricky to index
-    // sort in memory
-    DDBUtils.sortResults({
-      results: items,
-      orderBy
+    const sources = properties.map(blProp => {
+      const { ref, backlink } = allProps[blProp].items
+      return {
+        backlink: blProp,
+        model: models[ref],
+        forwardLink: backlink
+      }
     })
 
-    return toResourceFormat({
-      models,
-      backlinkItems: items
-    })
+    const [sourceProps, intersections] = _.partition(sources, s => Backlinks.isBacklinkableModel(s.model))
+    let viaBacklinkItems
+    let viaIntersections
+    if (sourceProps.length) {
+      const filter = {
+        IN: {
+          linkProp: sourceProps.map(s => s.forwardLink)
+        },
+        EQ: {
+          [TYPE]: BACKLINK_ITEM,
+          'target._permalink': permalink
+        }
+      }
+
+      viaBacklinkItems = runBacklinkItemQuery(this.db, { filter, orderBy })
+    }
+
+    if (intersections.length) {
+      viaIntersections = Promise.all(intersections.map(async ({ model, backlink, forwardLink }) => {
+        const filter = {
+          EQ: {
+            [TYPE]: model.id,
+            [`${forwardLink}._permalink`]: permalink
+          }
+        }
+
+        const items = await runIntersectionQuery(this.db, { filter, orderBy })
+        return { backlink, items }
+      }))
+      .then(results => {
+        const backlinks = {}
+        results.forEach(({ backlink, items }) => {
+          backlinks[backlink] = items
+        })
+
+        return backlinks
+      })
+    }
+
+    const result = {}
+    if (viaBacklinkItems) {
+      const sub = await viaBacklinkItems
+      _.extend(result, sub)
+    }
+
+    if (viaIntersections) {
+      const sub = await viaIntersections
+      _.extend(result, sub)
+    }
+
+    return result
   }
+
+  public addBacklinks = async (resource: ITradleObject) => {
+    const backlinks = await this.getBacklinks(getResourceIdentifier(resource))
+    return _.extend(resource, backlinks)
+  }
+
+  public static isBacklinkableModel = (model:Model) => !isWellBehavedIntersection(model)
+  public isBacklinkableModel = (model:Model) => Backlinks.isBacklinkableModel(model)
 
   public processMessages = async (messages: ITradleMessage[]) => {
     this.logger.silly(`processing ${messages.length} messages`)
@@ -468,3 +536,26 @@ const toResourceFormat = ({ models, backlinkItems }: {
 }
 
 // const printItems = blItems => JSON.stringify(blItems.map(item => _.pick(item, ['source', 'target']), null, 2))
+
+const runQueryWithInMemorySort = async (db: DB, query: FindOpts) => {
+  // BacklinkItem and intersections like ApplicationSubmission are tricky to index
+  // sort in memory
+  const { filter, orderBy } = query
+  const { items } = await db.find({ filter })
+  DDBUtils.sortResults({
+    results: items,
+    orderBy
+  })
+
+  return items
+}
+
+const runBacklinkItemQuery = async (db: DB, query: FindOpts) => {
+  const backlinkItems = await runQueryWithInMemorySort(db, query)
+  return toResourceFormat({
+    models: db.models,
+    backlinkItems
+  })
+}
+
+const runIntersectionQuery = runQueryWithInMemorySort

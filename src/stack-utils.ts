@@ -276,9 +276,9 @@ export default class StackUtils {
       if (!functions || functions.includes(FunctionName)) {
         this.logger.debug(`reinitializing container for lambda: ${FunctionName}`)
         return getDateUpdatedEnvironmentVariables()
-      } else {
-        this.logger.debug(`not reinitializing container for lambda: ${FunctionName}`)
       }
+
+      this.logger.debug(`not reinitializing container for lambda: ${FunctionName}`)
     })
   }
 

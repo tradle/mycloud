@@ -5,7 +5,7 @@ import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 const DEFAULT_CONF = require('./form-prefills.json')
 
 export const name = 'prefillForm'
-export const createPlugin:CreatePlugin<void> = ({}, { conf=DEFAULT_CONF, logger }) => {
+export const createPlugin:CreatePlugin<void> = (components, { conf=DEFAULT_CONF, logger }) => {
 
   const plugin:IPluginLifecycleMethods = {}
   plugin.willRequestForm = ({ user, application, formRequest }) => {

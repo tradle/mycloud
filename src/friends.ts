@@ -4,10 +4,11 @@ import Promise from 'bluebird'
 import lexint from 'lexicographic-integer'
 import Cache from 'lru-cache'
 import fetch from 'node-fetch'
-import { TYPE, PERMALINK, PREVLINK, TIMESTAMP, SIG } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
+import protocol from '@tradle/protocol'
+import { TYPE, PERMALINK, PREVLINK, AUTHOR, TIMESTAMP, SIG, WITNESSES, ORG, ORG_SIG } from './constants'
 import { addLinks } from './crypto'
-import { get, cachifyFunction, parseStub } from './utils'
+import { get, cachifyFunction, parseStub, omitVirtual } from './utils'
 import {
   Identities,
   Identity,
@@ -18,6 +19,7 @@ import {
   Model,
   Models,
   Env,
+  ITradleObject,
 } from './types'
 
 import models from './models'
@@ -209,6 +211,34 @@ export default class Friends {
       Errors.ignoreNotFound(err)
     }
   }
+
+  public verifyOrgAuthor = async (object: ITradleObject) => {
+    if (!object[ORG] || object[ORG] === object[AUTHOR]) return
+    if (!object[ORG_SIG]) throw new Errors.InvalidInput(`expected ${ORG_SIG}`)
+
+    this.logger.debug('verifying org sig')
+    const stripped = omitVirtual(object)
+    await this.identities.verifyAuthor({
+      ...stripped,
+      [SIG]: object[ORG_SIG],
+      [AUTHOR]: object[ORG]
+    })
+  }
+
+  // public verifyOrgAuthor = async (object: ITradleObject) => {
+  //   const witness = object[WITNESSES].map(w => protocol.unwrapWitnessSig(w))
+  //     .find(({ author }) => author === object[ORG])
+
+  //   if (!witness) {
+  //     throw new Errors.InvalidInput(`expected witness signature from org ${object[ORG]}`)
+  //   }
+
+  //   await this.identities.verifyAuthor({
+  //     ...object,
+  //     [SIG]: witness.sig,
+  //     [AUTHOR]: witness.author
+  //   })
+  // }
 
   private del = async (friend) => {
     this._clearCacheForPermalink(parseStub(friend.identity).permalink)

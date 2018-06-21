@@ -203,7 +203,7 @@ export class Conf {
         }
       } catch (err) {
         Errors.rethrow(err, 'developer')
-        this.logger.debug('plugin "${name}" is misconfigured', err)
+        this.logger.debug(`plugin "${name}" is misconfigured`, err)
         throw new Errors.InvalidInput(`plugin "${name}" is misconfigured: ${err.message}`)
       }
     }))
@@ -303,7 +303,7 @@ export class Conf {
     const { bot, logger } = this
 
     let { forceRecreateIdentity, identity, keys } = opts
-    this.logger.info(`initializing provider`, deploymentConf)
+    this.logger.info('initializing provider', deploymentConf)
 
     const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
     if (bot.isTesting) {

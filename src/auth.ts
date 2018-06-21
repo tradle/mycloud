@@ -212,7 +212,8 @@ export default class Auth {
         position: types.position
       }, challengeResponse)
     } catch (err) {
-      // debugger
+      // @ts-ignore
+      debugger
       this.logger.error('received invalid input', err.stack)
       throw new InvalidInput(err.message)
     }

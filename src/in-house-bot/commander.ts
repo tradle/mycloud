@@ -80,7 +80,9 @@ export const SUDO_ONLY_COMMANDS = [
   'delete-forever-with-no-undo',
   'clear',
   'reset-identity-with-no-undo',
-  'setenvvar'
+  'setenvvar',
+  'push-notifications',
+  'doctor',
   // 'encryptbucket',
   // 'enablebinary'
 ]

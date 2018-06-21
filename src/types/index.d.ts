@@ -668,3 +668,8 @@ export type BucketPutOpts = {
   headers?:any
   publicRead?: boolean
 }
+
+export type PresignEmbeddedMediaOpts = {
+  object: ITradleObject
+  stripEmbedPrefix?: boolean
+}

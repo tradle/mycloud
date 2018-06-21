@@ -40,7 +40,7 @@ import {
 
 import baseModels from './models'
 
-const { PREVLINK, AUTHOR, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
+const { PREVLINK, AUTHOR, ORG, TYPE, TYPES, IDENTITY_KEYS_KEY } = constants
 const { MESSAGE, IDENTITY } = TYPES
 const { NotFound } = Errors
 const CACHE_MAX_AGE = 5000
@@ -52,11 +52,11 @@ const UPDATE_DEPENDENCIES = 'Run `npm install` to update dependencies'
 const validatePubKeyModel = model => {
   const firstIndex = model.indexes[0]
   if (firstIndex.hashKey !== 'permalink') {
-    throw new Errors.InvalidInput('expected PubKey model.indexes[0].hashKey to be permalink. ${UPDATE_DEPENDENCIES}')
+    throw new Errors.InvalidInput(`expected PubKey model.indexes[0].hashKey to be permalink. ${UPDATE_DEPENDENCIES}`)
   }
 
   if (!firstIndex.rangeKey.template.startsWith('{_time}')) {
-    throw new Errors.InvalidInput('expected PubKey model.indexes[0].rangeKey to be time-sortable. ${UPDATE_DEPENDENCIES}')
+    throw new Errors.InvalidInput(`expected PubKey model.indexes[0].rangeKey to be time-sortable. ${UPDATE_DEPENDENCIES}`)
   }
 }
 

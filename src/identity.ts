@@ -1,6 +1,6 @@
 import extend from 'lodash/extend'
+import clone from 'lodash/clone'
 import cloneDeep from 'lodash/cloneDeep'
-import { AUTHOR, WITNESSES, SIG } from '@tradle/constants'
 import protocol from '@tradle/protocol'
 import {
   cachifyPromiser,
@@ -8,6 +8,8 @@ import {
   omitVirtualDeep,
   summarizeObject
 } from './utils'
+
+import { AUTHOR, ORG, ORG_SIG, WITNESSES, SIG } from './constants'
 
 import {
   IPubKey,
@@ -120,6 +122,7 @@ export default class Identity {
     if (!author) author = await this.getPrivate()
 
     object[AUTHOR] = getPermalink(author.identity)
+    object[ORG] = object[AUTHOR]
     object = protocol.object({ object })
 
     await resolveEmbeds
@@ -140,20 +143,30 @@ export default class Identity {
   public witness = async <T extends ITradleObject> ({ object }: {
     object: T
   }):Promise<T> => {
+    object = clone(object)
     const [signed, permalink] = await Promise.all([
-      this.sign({ object: protocol.body(object) }),
+      this.sign({
+        object: protocol.body(object)
+      }),
       this.getPermalink()
     ])
 
-    const witnesses = object[WITNESSES] || []
-    const w = protocol.wrapWitnessSig({
-      author: permalink,
-      sig: signed[SIG]
-    })
+    if (object[ORG] && object[ORG] !== permalink) {
+      throw new Errors.InvalidInput(`expected ${ORG} to be this bot's identity permalink`)
+    }
 
-    return extend({}, object, {
-      [WITNESSES]: witnesses.concat(w)
-    })
+    object[ORG_SIG] = signed[SIG]
+    return object
+
+    // const witnesses = object[WITNESSES] || []
+    // const w = protocol.wrapWitnessSig({
+    //   author: permalink,
+    //   sig: signed[SIG]
+    // })
+
+    // return extend({}, object, {
+    //   [WITNESSES]: witnesses.concat(w)
+    // })
   }
 }
 

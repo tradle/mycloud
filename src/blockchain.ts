@@ -44,7 +44,7 @@ interface IBlockchainAdapter {
   pubKeyToAddress: (pub: string) => string
 }
 
-const compareNums = (a, b) => a < b ? -1 : a === b ? 0 : 1
+const compareNums = (a, b) => a - b
 const compareBalance = (a, b) => {
   if (typeof a === 'number' && typeof b === 'number') {
     return compareNums(a, b)

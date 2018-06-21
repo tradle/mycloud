@@ -7,7 +7,7 @@ import createProductsStrategy from '@tradle/bot-products'
 import createEmployeeManager from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
 import mergeModels from '@tradle/merge-models'
-import { TYPE } from '@tradle/constants'
+import { TYPE, ORG } from '@tradle/constants'
 import * as StringUtils from '../string-utils'
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
@@ -29,6 +29,11 @@ import {
   getUserIdentifierFromRequest,
   getProductModelForCertificateModel
 } from './utils'
+
+import {
+  getEnumValueId
+} from '../utils'
+
 import { Applications } from './applications'
 import { Friends } from './friends'
 import {
@@ -42,7 +47,8 @@ import {
   IPluginLifecycleMethods,
   IPBReq,
   IPBUser,
-  IPBApp
+  IPBApp,
+  ISaveEventPayload,
 } from './types'
 
 import Logger from '../logger'
@@ -69,7 +75,8 @@ const HELP_REQUEST = 'tradle.RequestForAssistance'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const APPLICATION = 'tradle.Application'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
-const PRODUCT_LIST_MESSAGE = 'Click the menu button to see a list of products'
+const PRODUCT_LIST_MESSAGE = 'See our list of products'
+const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
 const ALL_HIDDEN_PRODUCTS = [
   DEPLOYMENT,
   EMPLOYEE_ONBOARDING
@@ -115,7 +122,9 @@ export default function createProductsBot({
 
   // until the issue with concurrent modifications of user & application state is resolved
   // then some handlers can migrate to 'messagestream'
-  const handleMessages = event === LambdaEvents.MESSAGE || (bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC)
+  const isTestingAsync = bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC
+  const handleMessages = event === LambdaEvents.MESSAGE || isTestingAsync
+  const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isTesting && event === LambdaEvents.MESSAGE)
   const mergeModelsOpts = { validate: bot.isTesting }
   const visibleProducts = _.uniq(enabled)
   const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
@@ -139,16 +148,18 @@ export default function createProductsBot({
   // }
 
   productsAPI.removeDefaultHandler('shouldSealReceived')
+  productsAPI.removeDefaultHandler('shouldSealSent')
   productsAPI.plugins.use({
-    shouldSealReceived: ({ object }) => {
-      if (object._seal) return false
+    shouldSealSent: () => false,
+    shouldSealReceived: () => false,
+    // ({ object }) => {
 
-      const type = object[TYPE]
-      if (type === PRODUCT_REQUEST) return false
+      // const type = object[TYPE]
+      // if (type === PRODUCT_REQUEST) return false
 
-      const model = bot.models[type]
-      if (model && model.subClassOf === 'tradle.Form') return true
-    }
+      // const model = bot.models[type]
+      // if (model && model.subClassOf === 'tradle.Form') return true
+    // }
   })
 
   const getPluginConf = name => plugins[name] || defaultConfs[name]
@@ -231,9 +242,25 @@ export default function createProductsBot({
     bot.onmessage(productsAPI.onmessage)
   }
 
-  // if (event === LambdaEvents.RESOURCE_ASYNC) {
-  //   productsAPI.removeDefaultHandlers()
-  // }
+  const applications = new Applications({ bot, productsAPI, employeeManager })
+  if (runAsyncHandlers) {
+    // productsAPI.removeDefaultHandlers()
+    bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
+      const { old, value } = change
+      if (!(old && value)) return
+
+      if (old[TYPE] === APPLICATION && old.status !== 'approved' && value.status === 'approved') {
+        value.submissions = await bot.backlinks.getBacklink({
+          type: APPLICATION,
+          permalink: value._permalink,
+          backlink: 'submissions'
+        })
+
+        applications.organizeSubmissions(value)
+        await applications.createSealsForApprovedApplication({ application: value })
+      }
+    })
+  }
 
   const myIdentityPromise = bot.getMyIdentity()
   const components: IBotComponents = {
@@ -242,7 +269,7 @@ export default function createProductsBot({
     productsAPI,
     employeeManager,
     friends: new Friends({ bot }),
-    applications: new Applications({ bot, productsAPI, employeeManager }),
+    applications,
     logger
   }
 
@@ -320,10 +347,10 @@ export default function createProductsBot({
         // }
 
         const { user, payload } = req
-        if (payload[TYPE] === 'tradle.IdentityPublishRequeest') {
+        if (payload[TYPE] === 'tradle.IdentityPublishRequest') {
           const { identity } = payload
           if (!identity._seal) {
-            await bot.seals.create({
+            await bot.seal({
               counterparty: user.id,
               object: identity
             })
@@ -340,7 +367,7 @@ export default function createProductsBot({
           formRequest.message = `Please get a "${title}" first!`
         }
       },
-      ['onmessage:tradle.MyProduct']: async (req: IPBReq) => {
+      'onmessage:tradle.MyProduct': async (req: IPBReq) => {
         const { application, payload } = req
         if (!application) return
 
@@ -355,6 +382,7 @@ export default function createProductsBot({
 
     attachPlugin({ name: 'draft-application', requiresConf: false, prepend: true })
 
+    // TODO:
     // this is pretty bad...
     // the goal: allow employees to create multiple pending applications for the same product
     // as they are actually drafts of customer applications
@@ -362,12 +390,18 @@ export default function createProductsBot({
     const defaultHandlers = [].concat(productsAPI.removeDefaultHandler('onPendingApplicationCollision'))
     productsAPI.plugins.use(<IPluginLifecycleMethods>{
       onmessage: async (req) => {
-        const isEmployee = employeeManager.isEmployee(req.user)
+        let { user, payload } = req
+        if (!payload[ORG]) return
+
+        const isEmployee = employeeManager.isEmployee(user)
         if (!isEmployee) return
 
+        // TODO:
         // hm, very inefficient
-        let { payload } = req
         payload = await bot.witness(payload)
+        // check if witness verifies
+        // await bot.friends.verifyOrgAuthor(payload)
+
         await bot.save(payload)
         req.payload = req.object = req.message.object = payload
       },
@@ -484,21 +518,22 @@ const limitApplications = (components: IBotComponents) => {
 }
 
 const tweakProductListPerRecipient = (components: IBotComponents) => {
-  const { conf, productsAPI, employeeManager } = components
+  const { bot, conf, productsAPI, employeeManager } = components
   const {
     enabled
   } = conf.bot.products
 
   const willRequestForm = ({ user, formRequest }) => {
-    if (formRequest.form === PRODUCT_REQUEST) {
-      const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
-      formRequest.chooser.oneOf = formRequest.chooser.oneOf
-        .filter(product => {
-          // allow showing hidden products explicitly by listing them in conf
-          // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
-          return enabled.includes(product) || !hidden.includes(product)
-        })
-    }
+    if (formRequest.form !== PRODUCT_REQUEST) return
+
+    const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
+    if (bot.isTesting) return
+
+    formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter(product => {
+      // allow showing hidden products explicitly by listing them in conf
+      // e.g. Tradle might want to list MyCloud, but for others it'll be invisible
+      return enabled.includes(product) || !hidden.includes(product)
+    })
   }
 
   productsAPI.plugins.use(<IPluginLifecycleMethods>{
@@ -599,7 +634,7 @@ const banter = (components: IBotComponents) => {
 
 If you start a product application, I'll see if I can get someone to help you.
 
-${PRODUCT_LIST_MESSAGE}`,
+${PRODUCT_LIST_MENU_MESSAGE}`,
       }
     })
   }

@@ -75,6 +75,7 @@ import {
   Tables,
   Bucket,
   IMailer,
+  PresignEmbeddedMediaOpts,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -801,7 +802,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     if (model) {
       const backlinks = this._pickBacklinks(resource)
       if (_.some(backlinks, arr => arr.length)) {
-        debugger
         throw new Errors.InvalidInput(`remove backlinks before signing!`)
       }
     }
@@ -917,18 +917,19 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
-  public getBacklink = async (props: GetResourceIdentifierInput, backlink: string) => {
-    return await this.getBacklinks(props, [backlink])
-  }
+  // public getBacklink = async (props: GetResourceIdentifierInput, backlink: string) => {
+  //   return this.backlinks.fetchBacklink({
+  //     ...getResourceIdentifier(props),
+  //     backlink
+  //   })
+  // }
 
-  public getBacklinks = async (props: GetResourceIdentifierInput, backlinks?: string[]) => {
-    const { type, permalink } = getResourceIdentifier(props)
-    return await this.backlinks.fetchBacklinks({
-      type,
-      permalink,
-      properties: backlinks
-    })
-  }
+  // public getBacklinks = async (props: GetResourceIdentifierInput, backlinks?: string[]) => {
+  //   return await this.backlinks.fetchBacklinks({
+  //     ...getResourceIdentifier(props),
+  //     properties: backlinks
+  //   })
+  // }
 
   public getResource = async (props: GetResourceIdentifierInput, opts: GetResourceOpts={}):Promise<ITradleObject> => {
     const { backlinks, resolveEmbeds } = opts
@@ -944,7 +945,11 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const { type, permalink, link } = getResourceIdentifier(props)
     const [resource, backlinksObj] = await Promise.all([
       promiseResource,
-      this.getBacklinks({ type, permalink }, typeof backlinks === 'boolean' ? null : backlinks)
+      this.backlinks.getBacklinks({
+        type,
+        permalink,
+        properties: typeof backlinks === 'boolean' ? null : backlinks
+      })
     ])
 
     return {
@@ -966,14 +971,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public getResourceByStub = this.getResource
-
-  public addBacklinks = async (resource: ITradleObject) => {
-    const backlinks = await this.getBacklinks(resource)
-    return _.extend(resource, backlinks)
-  }
-
-  public resolveEmbeds = object => this.objects.resolveEmbeds(object)
-  public presignEmbeddedMediaLinks = opts => this.objects.presignEmbeddedMediaLinks(opts)
+  public resolveEmbeds = (object:ITradleObject):Promise<ITradleObject> => this.objects.resolveEmbeds(object)
+  public presignEmbeddedMediaLinks = (opts:PresignEmbeddedMediaOpts):ITradleObject => this.objects.presignEmbeddedMediaLinks(opts)
   public createNewVersion = async (resource) => {
     const latest = buildResource.version(resource)
     const signed = await this.sign(latest)
