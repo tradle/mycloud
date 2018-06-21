@@ -100,7 +100,7 @@ test('update backlinks', loudAsync(async (t) => {
   ])
 
   const docStub = parseStub(v.document)
-  const bls = await backlinks.fetchBacklinks(docStub)
+  const bls = await backlinks.getBacklinks(docStub)
   const vBls = {
     verifications: [
       vStub
@@ -109,7 +109,7 @@ test('update backlinks', loudAsync(async (t) => {
 
   t.same(bls, vBls)
 
-  const bls1 = await backlinks.fetchBacklinks({
+  const bls1 = await backlinks.getBacklinks({
     type: docStub.type,
     permalink: docStub.permalink,
     properties: ['verifications']
@@ -117,7 +117,7 @@ test('update backlinks', loudAsync(async (t) => {
 
   t.same(bls1, vBls)
 
-  const bls2 = await backlinks.fetchBacklinks(parseStub(old.document))
+  const bls2 = await backlinks.getBacklinks(parseStub(old.document))
   t.same(bls2, {})
   t.end()
 }))

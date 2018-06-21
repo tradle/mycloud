@@ -23,10 +23,6 @@ import { parseStub, allSettled, getPrimaryKeySchema, isWellBehavedIntersection }
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
 
-const {
-  resultsToJson
-} = utils
-
 type PropertyInfo = {
   propertyName: string
   model: Model
@@ -58,21 +54,12 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
   postProcess?: Function
 }) => {
 
-  const update = async ({ model, props }: { model: Model, props }) => {
-    const result = await db.update(props)
-    return resultsToJson(result)
-  }
-
-  const put = async ({ model, props }: { model: Model, props }) => {
-    const result = await db.put(props)
-    return resultsToJson(result)
-  }
-
+  const update = db.update
+  const put = db.put
   const getByLink = objects && objects.get
   const get = async ({ model, key }: { model: Model, key: any }) => {
-    let result
     try {
-      result = await db.get({
+      return await db.get({
         [TYPE]: model.id,
         ...key
       })
@@ -92,8 +79,6 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
 
       throw err
     }
-
-    return result ? resultsToJson(result) : null
   }
 
   const normalizeBacklinkResults = async (opts) => {
@@ -103,11 +88,8 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
     }
 
     const need = dynamoUtils.getDecisionProps(opts)
-    const have = _.chain(results)
-      .flatMap(r => Object.keys(r))
-      .uniq()
-      .value()
-
+    const flat = _.flatMap(results, r => Object.keys(r))
+    const have = _.uniq(flat)
     if (!difference(need, have).length) {
       return results
     }
@@ -141,12 +123,15 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
       }
     }
 
-    if (isWellBehavedIntersection(refModel)) {
+    // TODO:
+    // do we need this or is this duplicating functionality in Backlinks?
+    // one diff is that Backlinks module doesn't support pagination
+    if (!backlinks.isBacklinkableModel(refModel)) {
       filter.EQ[TYPE] = ref
       return await list(listOpts)
     }
 
-    const container = await backlinks.fetchBacklinks({
+    const container = await backlinks.getBacklinks({
       type: backlink.target[TYPE],
       permalink: backlink.target._permalink
     })
