@@ -36,7 +36,7 @@ export const createPlugin = ({
     if (hash === savedHash) return
 
     container[identifier] = hash
-    await send({ req, to: user, object })
+    await send({ req, to: user, object, isFirstTime: !savedHash })
   }
 
   return {
