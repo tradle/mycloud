@@ -385,6 +385,13 @@ still havent connected to local Iot broker!
 **Cause**: something in `redis` upsets `mosca`, but what exactly is TBD
 **Fix**: `npm run fix:redis`
 
+**Symptom 5**
+
+The log is going nuts but the mobile/web client can't seem to communicate with your local MyCloud
+
+**Cause**: if you have multiple clients connected at once (e.g. mobile, simulator, multiple browser tabs), your machine probably just can't handle it. If you've got Dev Tools open and are debugging your lambdas, that exacerbates things. This is due to the fact that locally, the serverless environment is simulated by invoking each lambda function as if it's waking up for the first time in a docker container. It needs to `require()` everything from scratch, then run itself, then die. This is memory/computation expensive.
+**Fix**: turn off the debugger, don't use more clients than your machine can handle. Yes, locally, this might only be a 2-5!
+
 ## Scripts
 
 ### npm run localstack:start
