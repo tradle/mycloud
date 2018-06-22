@@ -798,13 +798,13 @@ export const seriesMap = async (arr, fn) => {
 }
 
 export const get = async (url:string, opts:any={}) => {
-  debug(`GET ${url}`)
+  // debug(`GET ${url}`)
   const res = await fetch(url, opts)
   return processResponse(res)
 }
 
 export const post = async (url:string, data:Buffer|string|any, opts:any={}) => {
-  debug(`POST to ${url}`)
+  // debug(`POST to ${url}`)
   let body
   if (typeof data === 'string' || Buffer.isBuffer(data)) {
     body = data
@@ -821,12 +821,12 @@ export const post = async (url:string, data:Buffer|string|any, opts:any={}) => {
     body
   }, opts))
 
-  debug(`processing response from POST to ${url}`)
+  // debug(`processing response from POST to ${url}`)
   return processResponse(res)
 }
 
 export const download = async ({ url }: { url:string }) => {
-  debug(`downloading from ${url}`)
+  // debug(`downloading from ${url}`)
   const res = await fetch(url)
   if (res.status > 300) {
     throw new Error(res.statusText)
@@ -873,7 +873,7 @@ export function batchByByteLength (arr:Array<string|Buffer>, max) {
       cur = [item]
       length = itemLength
     } else {
-      debug('STRING TOO LONG!', item)
+      // debug('STRING TOO LONG!', item)
       throw new Error(`item length (${itemLength}) exceeds max (${max})`)
     }
   }
