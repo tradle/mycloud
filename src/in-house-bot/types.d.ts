@@ -18,7 +18,8 @@ import {
   Logger,
   ILambdaOpts,
   IDeepLink,
-  ILambdaExecutionContext
+  ILambdaExecutionContext,
+  EnumValueStub,
 } from '../types'
 
 export * from '../types'
@@ -420,4 +421,9 @@ export interface IAppLinkSet {
   mobile?: string
   web?: string
   employeeOnboarding?: string
+}
+
+export interface ITradleCheck extends ITradleObject {
+  aspects: string|string[]
+  status: EnumValueStub
 }

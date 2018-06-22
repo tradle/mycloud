@@ -3,7 +3,7 @@ import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
 import * as crypto from '../crypto'
-import { isPromise, pickNonNull, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
+import { isPromise, pickNonNull, parseEnumValue, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
 import models from '../models'
@@ -18,7 +18,11 @@ import {
   ApplicationSubmission,
   Seal,
   IPBReq,
+  Models,
+  ITradleCheck,
 } from './types'
+
+import { safeStringify } from '../string-utils'
 
 const SealModel = models['tradle.Seal']
 const SEAL_MODEL_PROPS = Object.keys(SealModel.properties)
@@ -461,5 +465,36 @@ export const getProductModelForCertificateModel = ({ models, certificateModel })
     parts[parts.length - 1] = last.slice(2)
     const productModelId = parts.join('.')
     return models[productModelId]
+  }
+}
+
+export const getStatusMessageForCheck = ({ models, check }: {
+  models: Models
+  check: ITradleCheck
+}) => {
+  const model = models['tradle.Status']
+  const { aspects } = check
+  const aspectsStr = typeof aspects === 'string' ? aspects : aspects.join(', ')
+  let status: string
+  if (check.status) {
+    status = getEnumValueId({
+      model,
+      value: check.status
+    })
+  } else {
+    status = 'pending'
+  }
+
+  switch (status) {
+  case 'pending':
+    return `One or more check(s) pending: ${aspects}`
+  case 'fail':
+    return `One or more check(s) failed: ${aspects}`
+  case 'error':
+    return `One or more check(s) hit an error: ${aspects}`
+  case 'pass':
+    return `Check(s) passed: ${aspects}`
+  default:
+    throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
   }
 }

@@ -673,3 +673,8 @@ export type PresignEmbeddedMediaOpts = {
   object: ITradleObject
   stripEmbedPrefix?: boolean
 }
+
+export type EnumValueStub = {
+  id: string
+  title?: string
+}
