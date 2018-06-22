@@ -37,20 +37,18 @@ type KVPair = {
 
 export default class KV implements IKeyValueStore {
   private db: DB
-  // private table:any
-  // private tableName: string
   private client: DynamoDB
   private prefix:string
   private keyProperty:string
-  private _promiseTable: Promise<Table>
-  private _promiseTableName: Promise<string>
+  private _table: Table
+  private _tableName: string
   constructor ({ db, prefix='' }) {
     this.db = db
     this.client = db.rawClient
     this.prefix = prefix
     this.keyProperty = Object.keys(KVModel.properties)[0]
-    this._promiseTable = this._getTable()
-    this._promiseTableName = this._getTableName()
+    this._table = this._getTable()
+    this._tableName = this._getTableName()
   }
 
   public exists = async (key:string):Promise<boolean> => {
@@ -199,12 +197,12 @@ export default class KV implements IKeyValueStore {
     ...ensureTimestamped(value)
   })
 
-  private _getTable = async () => {
-    return await this.db.getTableForModel(KVModel)
+  private _getTable = () => {
+    return this.db.getTableForModel(KVModel)
   }
 
-  private _getTableName = async () => {
-    const table = await this._getTable()
+  private _getTableName = () => {
+    const table = this._getTable()
     return table.name
   }
 }

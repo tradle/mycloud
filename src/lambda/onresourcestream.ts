@@ -1,8 +1,9 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import _ from 'lodash'
+import omit from 'lodash/omit'
+import groupBy from 'lodash/groupBy'
 import { TYPE } from '@tradle/constants'
-import { Lambda, Bot, IRetryableTaskOpts, IStreamRecord, ITradleMessage } from '../types'
+import { Lambda, Bot, IRetryableTaskOpts, IStreamRecord, ITradleMessage, ITradleObject, Model, DB } from '../types'
 import { topics as EventTopics, toBatchEvent } from '../events'
 import { EventSource, fromDynamoDB } from '../lambda'
 import { onMessagesSaved } from '../middleware/onmessagessaved'
@@ -33,21 +34,33 @@ export const processResourceChangeEvent = async (bot: Bot, change: IStreamRecord
   }
 }
 
-const getBody = async (bot, item) => {
+export const stripTableSchemaProps = (db: DB, model:Model, item: ITradleObject) => {
+  if (!model) return item
+
+  const table = db.getTableForModel(model)
+  if (!table) return item
+
+  return omit(item, table.keyProps)
+}
+
+const getBody = async (bot: Bot, item: any) => {
+  const clean = item => stripTableSchemaProps(bot.db, item[TYPE] && bot.models[item[TYPE]], item)
+
+  item = clean(item)
   if (!item._link) return item
 
   if (item[TYPE] === 'tradle.Message') {
     return {
       ...item,
-      object: {
+      object: clean({
         ...item.object,
         ...(await getBody(bot, item.object))
-      }
+      })
     }
   }
 
   const age = item._time ? Date.now() - item._time : 0
-  return await bot.objects.getWithRetry(item._link, {
+  const body = await bot.objects.getWithRetry(item._link, {
     logger: bot.logger,
     maxAttempts: 10,
     maxDelay: 2000,
@@ -66,6 +79,8 @@ const getBody = async (bot, item) => {
       return Errors.isNotFound(err)
     }
   })
+
+  return clean(body)
 }
 
 export const preProcessItem = async <T>(bot: Bot, record):Promise<T> => {
@@ -95,7 +110,7 @@ export const processRecords = async ({ bot, records }: {
   //   record.laneId = getLaneId(record)
   // })
 
-  const byCat = _.groupBy(records, Events.getEventCategory)
+  const byCat = groupBy(records, Events.getEventCategory)
   if (byCat.resource) {
     byCat.resource.forEach(r => {
       // prime cache

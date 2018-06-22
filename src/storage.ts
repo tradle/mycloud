@@ -59,7 +59,7 @@ export default class Storage {
 
     let table
     try {
-      table = await this.db.getTableForModel(type)
+      table = await this.db.getTableForType(type)
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.debug(`not saving "${type}", don't have a table for it`, Errors.export(err))

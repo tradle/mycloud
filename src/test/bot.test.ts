@@ -428,7 +428,7 @@ test('onmessagestream', loudAsync(async (t) => {
 
   bot.setCustomModels({ models: PingPongModels })
 
-  const table = await bot.db.getTableForModel('ping.pong.Ping')
+  const table = bot.db.getTableForModel(PingPongModels['ping.pong.Ping'])
   // #1
   t.ok(table, 'table created per model')
 
