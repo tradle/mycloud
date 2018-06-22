@@ -221,7 +221,7 @@ export default class Identities implements IHasLogger {
   // }
 
   public byPermalink = async (permalink: string):Promise<IIdentity> => {
-    const table = await this.db.getTableForModel(IDENTITY)
+    const table = this.db.getTableForModel(baseModels[IDENTITY])
     const { rangeKey } = table.indexes[0]
     const { link } = await this.db.findOne({
       select: ['link'],
