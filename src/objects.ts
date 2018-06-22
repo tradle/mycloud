@@ -113,10 +113,7 @@ export default class Objects {
   public getMetadata = (object:ITradleObject, forceRecalc?:boolean):ObjectMetadata => {
     typeforce(types.signedObject, object)
 
-    if (this.env.TESTING) {
-      this._ensureNoS3Urls(object)
-    }
-
+    this.throwIfHasUnresolvedEmbeds(object)
     const type = object[TYPE]
     // if (object._sigPubKey) {
     //   this.logger.warn('object has "_sigPubKey", be sure you validated it!', {
@@ -156,15 +153,6 @@ export default class Objects {
     }
 
     return setVirtual(object, this.getMetadata(object))
-  }
-
-  private _replaceDataUrls = (object:ITradleObject):any[] => {
-    return Embed.replaceDataUrls({
-      region: this.region,
-      bucket: this.fileUploadBucketName,
-      keyPrefix: '',
-      object
-    })
   }
 
   public replaceEmbeds = async (object:ITradleObject) => {
@@ -218,14 +206,16 @@ export default class Objects {
     return await this.bucket.getJSON(link)
   }
 
-  private _ensureNoDataUrls = object => {
+  public getEmbeds = (object: ITradleObject) => Embed.getEmbeds(object)
+
+  public throwIfHasInlinedEmbeds = object => {
     const replacements = this._replaceDataUrls(cloneDeep(object))
     if (replacements.length) {
       throw new Error(`expected no data urls: ${prettify(object)}`)
     }
   }
 
-  private _ensureNoS3Urls = object => {
+  public throwIfHasUnresolvedEmbeds = object => {
     const embeds = Embed.getEmbeds(object)
     if (embeds.length) {
       throw new Error(`expected raw embeds, instead have linked: ${prettify(object)}`)
@@ -238,11 +228,10 @@ export default class Objects {
 
   public _put = async (object: ITradleObject) => {
     typeforce(types.signedObject, object)
+    this.throwIfHasInlinedEmbeds(object)
+
     object = clone(object)
     this.addMetadata(object)
-    if (this.env.TESTING) {
-      this._ensureNoDataUrls(object)
-    }
 
     // this.logger.debug('putting', summarizeObject(object))
     return await this.bucket.putJSON(object._link, object)
@@ -282,6 +271,15 @@ export default class Objects {
     return object
   }
 
+
+  private _replaceDataUrls = (object:ITradleObject):any[] => {
+    return Embed.replaceDataUrls({
+      region: this.region,
+      bucket: this.fileUploadBucketName,
+      keyPrefix: '',
+      object
+    })
+  }
 }
 
 export { Objects }

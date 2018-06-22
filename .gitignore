@@ -27,3 +27,4 @@ lib/serverless-interpolated.json
 **/version.json
 *.sublime-*
 schematest.js
+src/cli/cloudformation-template.json

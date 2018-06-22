@@ -6,6 +6,7 @@ import { utils as dynamoUtils, createTable } from '@tradle/dynamodb'
 import createProductsStrategy from '@tradle/bot-products'
 import createEmployeeManager from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
+import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG } from '@tradle/constants'
 import * as StringUtils from '../string-utils'
@@ -49,6 +50,7 @@ import {
   IPBUser,
   IPBApp,
   ISaveEventPayload,
+  ITradleObject,
 } from './types'
 
 import Logger from '../logger'
@@ -76,6 +78,7 @@ const DEPLOYMENT = 'tradle.cloud.Deployment'
 const APPLICATION = 'tradle.Application'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
 const PRODUCT_LIST_MESSAGE = 'See our list of products'
+const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
 const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
 const ALL_HIDDEN_PRODUCTS = [
   DEPLOYMENT,
@@ -262,7 +265,7 @@ export default function createProductsBot({
     })
   }
 
-  const myIdentityPromise = bot.getMyIdentity()
+  const promiseMyPermalink = bot.getMyPermalink()
   const components: IBotComponents = {
     bot,
     conf,
@@ -326,11 +329,19 @@ export default function createProductsBot({
         chooser: {
           property: 'requestFor',
           oneOf: visibleProducts.slice()
-        },
-        message: PRODUCT_LIST_MESSAGE
+        }
       },
       propertyName: 'productListHash',
-      send
+      send: async ({ isFirstTime, ...opts }) => {
+        const { object } = opts
+        if (isFirstTime) {
+          object.message = PRODUCT_LIST_MESSAGE
+        } else {
+          object.message = PRODUCT_LIST_CHANGED_MESSAGE
+        }
+
+        return await productsAPI.send(opts)
+      }
     })
 
     productsAPI.plugins.use(keepProductListFresh, true) // prepend
@@ -396,13 +407,17 @@ export default function createProductsBot({
         const isEmployee = employeeManager.isEmployee(user)
         if (!isEmployee) return
 
-        // TODO:
-        // hm, very inefficient
-        payload = await bot.witness(payload)
-        // check if witness verifies
-        // await bot.friends.verifyOrgAuthor(payload)
+        const myPermalink = await promiseMyPermalink
+        if (myPermalink !== payload[ORG]) {
+          logger.debug('not witnessing item from a diff _org', buildResource.stub({
+            models: bot.models,
+            resource: payload
+          }))
 
-        await bot.save(payload)
+          return
+        }
+
+        payload = await witness(bot, payload)
         req.payload = req.object = req.message.object = payload
       },
       onPendingApplicationCollision: async (input) => {
@@ -709,4 +724,28 @@ const sendModelsPackToNewEmployees = (components: IBotComponents) => {
   return {
     didApproveApplication
   }
+}
+
+const witness = async (bot: Bot, object: ITradleObject) => {
+  // TODO:
+  // witness() needs to be called on the original object (with embeds resolved)
+  // this is very inefficient, we just saved this object!
+  // need to allow this to be plugged in earlier in the process
+  const embeds = bot.objects.getEmbeds(object)
+
+  let copy = _.cloneDeep(object)
+  await bot.objects.resolveEmbeds(copy)
+  copy = await bot.witness(copy)
+
+  if (embeds.length) {
+    embeds.forEach(({ path, value }) => {
+      _.set(copy, path, value)
+    })
+  }
+
+  // check if witness verifies
+  // await bot.friends.verifyOrgAuthor(object)
+
+  await bot.save(copy)
+  return copy
 }
