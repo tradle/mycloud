@@ -133,7 +133,14 @@ class TimeTravel extends ErrorWithLink {
   public name = 'TimeTravelError'
 }
 
-const exportError = (err:Error) => _.pick(err, ['message', 'stack', 'name', 'type'])
+const exportError = (err:Error) => {
+  const obj:any = _.pick(err, ['message', 'stack', 'name', 'type'])
+  if (obj.type && obj.message && !obj.message.startsWith(obj.type)) {
+    obj.message = `${obj.type}: ${obj.message}`
+  }
+
+  return obj
+}
 
 const NOT_FOUND_MATCH = [
   { name: 'NotFound' },
