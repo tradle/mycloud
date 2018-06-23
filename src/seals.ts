@@ -207,7 +207,7 @@ type SealsOpts = {
 
 export default class Seals {
   public syncUnconfirmed: (opts?: ILimitOpts) => Promise<Seal[]>
-  public sealPending: (opts?:any) => Promise<Seal[]>
+  public sealPending: (opts?:any) => Promise<SealPendingResult>
   public table: any
   public blockchain: Blockchain
   private identity: Identity
@@ -429,6 +429,12 @@ export default class Seals {
     // }
 
     const seal = this.getNewSealParams(opts)
+    if (opts.object) {
+      const objInfo = _.pick(opts.object, [TYPE])
+      const op = opts.write ? 'write' : 'watch'
+      this.logger.debug(`queueing ${op}`, objInfo)
+    }
+
     try {
       await this.db.put(seal, {
         overwrite: false
