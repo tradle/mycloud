@@ -7,7 +7,7 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications } from '../types'
-import { toISODateString, getCheckParameters, } from '../utils'
+import { toISODateString, getCheckParameters, getStatusMessageForCheck } from '../utils'
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
@@ -147,10 +147,12 @@ class OpenCorporatesAPI {
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: new Date().getTime(),
       shareUrl: url,
+      aspects: 'company existence',
       form
     }
+    checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
     if (message)
-      checkR.message = message
+      checkR.resultDetails = message
     if (hits.length)
       checkR.rawData = hits
     else if (rawData)
@@ -159,12 +161,12 @@ class OpenCorporatesAPI {
       .set(checkR)
       .signAndSave()
 
-debugger
+// debugger
     return check.toJSON()
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {
-    debugger
+    // debugger
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
@@ -187,7 +189,7 @@ debugger
       application,
       verification
     })
-debugger
+// debugger
 
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: CORPORATION_EXISTS, form })
@@ -200,16 +202,18 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
       if (req.skipChecks) return
       const { user, application, payload } = req
       if (!(application && payload.country)) return
+      // debugger
 
       let productId = application.requestFor
       let { products, propertyMap } = conf
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
         return
 
-      // debugger
       let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
-      if (error) {
-        logger.debug(error)
+      // Check if the check parameters changed
+      if (!resource) {
+        if (error)
+          this.logger.debug(error)
         return
       }
       let r: {rawData:object, message?: string, hits: any, url:string} = await openCorporates._fetch(resource, application)

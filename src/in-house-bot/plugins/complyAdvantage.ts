@@ -17,7 +17,7 @@ import {
 } from '../types'
 
 import { parseStub } from '../../utils'
-import { getParsedFormStubs, getCheckParameters } from '../utils'
+import { getParsedFormStubs, getCheckParameters, getStatusMessageForCheck } from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -88,9 +88,12 @@ class ComplyAdvantageAPI {
 
     let isPerson = criteria  &&  criteria.entity_type === 'person' || payload[TYPE] === PHOTO_ID
     let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
+
+    // Check if the check parameters changed
     let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot: this.bot, defaultPropMap: defaultMap, map})
-    if (error) {
-      this.logger.debug(error)
+    if (!resource) {
+      if (error)
+        this.logger.debug(error)
       return
     }
     let { companyName, registrationDate, firstName, lastName, dateOfBirth } = resource
@@ -100,9 +103,10 @@ class ComplyAdvantageAPI {
         this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
         let status = {
           status: 'fail',
-          message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
+          message: !dateOfBirth  &&  'No date of birth was provided'
+          // message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
         }
-        await this.createSanctionsCheck({application, rawData: {}, status, form: payload})
+        await this.createCheck({application, rawData: {}, status, form: payload})
         return
       }
       name = firstName + ' ' + lastName
@@ -114,9 +118,9 @@ class ComplyAdvantageAPI {
         this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
         let status = {
           status: 'fail',
-          message: `Sanctions check for "${companyName}" failed.` + (!registrationDate  &&  ' No registration date was provided')
+          message: !registrationDate  &&  ' No registration date was provided'
         }
-        await this.createSanctionsCheck({application, rawData: {}, status, form: payload})
+        await this.createCheck({application, rawData: {}, status, form: payload})
         return
       }
     }
@@ -125,7 +129,7 @@ class ComplyAdvantageAPI {
     let pchecks = []
     let { rawData, hits, status } = r
     if (rawData.status === 'failure') {
-      pchecks.push(this.createSanctionsCheck({application, rawData, status: 'fail', form: payload}))
+      pchecks.push(this.createCheck({application, rawData, status: 'fail', form: payload}))
     }
     else {
       let hasVerification
@@ -135,7 +139,7 @@ class ComplyAdvantageAPI {
         hasVerification = true
         this.logger.debug(`creating verification for: ${companyName || name}`);
       }
-      pchecks.push(this.createSanctionsCheck({application, rawData: rawData, status, form: payload}))
+      pchecks.push(this.createCheck({application, rawData: rawData, status, form: payload}))
       if (hasVerification)
         pchecks.push(this.createVerification({user, application, form: payload, rawData}))
     }
@@ -178,10 +182,10 @@ class ComplyAdvantageAPI {
       json = await res.json()
     } catch (err) {
       this.logger.debug('something went wrong', err)
-      json = {status: 'failure', message: `Check was not completed for "${search_term}": ${err.message}`}
+      json = {status: 'failure', message: err.message}
       status = {
         status: 'error',
-        message: `Check was not completed for "${search_term}": ${err.message}`,
+        message: err.message,
       }
 
       return { status, rawData: {}, hits: [] };
@@ -201,30 +205,38 @@ class ComplyAdvantageAPI {
     if (hits  &&  hits.length) {
       status = {
         status: 'fail',
-        message: `Sanctions check for "${search_term}" failed`
+        // message: `Sanctions check for "${search_term}" failed`
       }
     }
     else {
       status = {
         status: 'pass',
-        message: `Sanctions check for "${search_term}" passed`
+        // message: `Sanctions check for "${search_term}" passed`
       }
     }
     return hits && { rawData, status, hits }
   }
 
-  public createSanctionsCheck = async ({ application, rawData, status, form }: IComplyCheck) => {
+  public createCheck = async ({ application, rawData, status, form }: IComplyCheck) => {
     let dateStr = rawData.updated_at
-    let date = dateStr  &&   Date.parse(dateStr) - (new Date().getTimezoneOffset() * 60 * 1000)
+    let date
+    if (dateStr)
+      date = Date.parse(dateStr) - (new Date().getTimezoneOffset() * 60 * 1000)
+    else
+      date = new Date().getTime()
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
       provider: 'Comply Advantage',
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      message: status.message,
+      aspects: 'sanctions check',
       form
     }
+
+    resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
+    if (status.message)
+      resource.resultDetails = status.message
     if (rawData  &&  rawData.share_url) {
       resource.rawData = rawData
       resource.shareUrl = rawData.share_url
@@ -311,7 +323,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       //       status: 'fail',
       //       message: `Sanctions check for "${name}" failed.` + (!dateOfBirth  &&  ' No registration date was provided')
       //     }
-      //     await complyAdvantage.createSanctionsCheck({application, rawData: {}, status, form: payload})
+      //     await complyAdvantage.createCheck({application, rawData: {}, status, form: payload})
       //     return
       //   }
       //   name = firstName + ' ' + lastName
@@ -325,7 +337,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       //       status: 'fail',
       //       message: `Sanctions check for "${companyName}" failed.` + (!registrationDate  &&  ' No registration date was provided')
       //     }
-      //     await complyAdvantage.createSanctionsCheck({application, rawData: {}, status, form: payload})
+      //     await complyAdvantage.createCheck({application, rawData: {}, status, form: payload})
       //     return
       //   }
       // }
@@ -334,7 +346,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       // let pchecks = []
       // let { rawData, hits, status } = r
       // if (rawData.status === 'failure') {
-      //   pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData, status: 'fail', form: payload}))
+      //   pchecks.push(complyAdvantage.createCheck({application, rawData, status: 'fail', form: payload}))
       // }
       // else {
       //   let hasVerification
@@ -344,7 +356,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       //     hasVerification = true
       //     logger.debug(`creating verification for: ${companyName || name}`);
       //   }
-      //   pchecks.push(complyAdvantage.createSanctionsCheck({application, rawData: rawData, status, form: payload}))
+      //   pchecks.push(complyAdvantage.createCheck({application, rawData: rawData, status, form: payload}))
       //   if (hasVerification)
       //     pchecks.push(complyAdvantage.createVerification({user, application, form: payload, rawData}))
       // }
