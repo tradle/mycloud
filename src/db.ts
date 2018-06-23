@@ -260,8 +260,8 @@ export = function createDB ({
         validateFind(op)
       })
 
-      table.hook('find:pre', onFindPre)
-      table.hook('find:post', addPayloads)
+      table.hook('find:pre', preProcessSearch)
+      table.hook('find:post', postProcessSearchResult)
       table.hook('batchPut:pre', ({ args }) => args[0].forEach(checkPre))
       table.hook('put:pre', ({ args }) => checkPre(args[0]))
 
@@ -294,17 +294,21 @@ export = function createDB ({
 
   const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
 
-  const addPayloads = async ({ args, result }) => {
+  const postProcessSearchResult = async ({ args=[], result }) => {
     let { items } = result
     if (!(items && items.length)) return
 
-    items = stripArtificialProps(items)
+    const opts = args[0] || {}
+    const { EQ={} } = opts.filter
 
-    const { EQ={} } = args && args[0] && args[0].filter
+    // if (!opts.keepDerivedProps) {
+    //   result.items = items = stripArtificialProps(items)
+    // }
+
     if (EQ[TYPE] !== MESSAGE) return
 
     const msgs = items.map(messages.formatForDelivery)
-    const { select=[] } = args[0]
+    const { select=[] } = opts
     if (select.includes('object')) {
       const payloads:ITradleObject[] = await Promise.all(msgs.map(msg => objects.get(msg.object._link)))
       payloads.forEach((payload, i) => extendTradleObject(msgs[i].object, payload))
@@ -319,7 +323,7 @@ export = function createDB ({
   //   })
   // }
 
-  const onFindPre = async (opts) => {
+  const preProcessSearch = async (opts) => {
     fixMessageFilter(opts)
   }
 
