@@ -12,13 +12,14 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { seals, env, logger } = lambda.bot
   return async (ctx, next) => {
     let results = []
-    let batch
+    let batch:any[]
     let haveTime
     do {
       batch = await seals.syncUnconfirmed({ limit: 10 })
+      debugger
       results = results.concat(batch)
       haveTime = env.getRemainingTime() > SAFETY_MARGIN_MILLIS
-    } while (!haveTime)
+    } while (haveTime && batch.length)
 
     if (!haveTime) {
       logger.debug('almost out of time, exiting early')
