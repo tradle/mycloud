@@ -192,18 +192,25 @@ export class Applications {
   public createSealsForApprovedApplication = async ({ application }: {
     application: IPBApp
   }) => {
+    const { bot } = this
+    const { certificate } = application
     let { forms, verifications } = await this.getFormsAndVerifications({ application })
-    if (!(forms.length || verifications.length)) return
 
     verifications = getLatestVerifications({ verifications })
     const counterparty = parseStub(application.applicant).permalink
     // avoid re-sealing
     const subs = forms.concat(verifications).filter(sub => !sub._seal)
-    if (application.certificate) {
-      subs.push(application.certificate)
+    const promises = subs.map(object => bot.seal({ counterparty, object }))
+    if (certificate) {
+      const sealCert = bot.getResource(certificate).then(object => bot.seal({
+        counterparty,
+        object
+      }))
+
+      promises.push(sealCert)
     }
 
-    await Promise.all(subs.map(object => this.bot.seal({ counterparty, object })))
+    await Promise.all(promises)
   }
 
   public organizeSubmissions = (application: IPBApp) => {

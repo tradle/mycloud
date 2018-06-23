@@ -121,7 +121,7 @@ export const toggleProduct = createEditConfOp(async ({ commander, req, product, 
 
 // TODO: this really belongs in some middleware, e.g.
 // bot.hook('readseals', sendConfirmedSeals)
-export const sendConfirmedSeals = async (bot, seals) => {
+export const sendConfirmedSeals = async (bot: Bot, seals: Seal[]) => {
   if (!seals.length) return
 
   const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
@@ -131,7 +131,7 @@ export const sendConfirmedSeals = async (bot, seals) => {
     const object = pickNonNull({
       ..._.pick(seal, SEAL_MODEL_PROPS),
       [TYPE]: SealModel.id,
-      time: seal._time || seal.time || Date.now()
+      time: seal._time || Date.now()
     })
 
     if (seal.basePubKey) {
