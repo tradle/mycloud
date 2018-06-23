@@ -61,6 +61,7 @@ export const createGraphqlAPI = (opts: {
           objects,
           models,
           db,
+          identities: bot.identities,
           backlinks: bot.backlinks,
           postProcess
         })

@@ -38,8 +38,7 @@ export const createHandler = (lambda:Lambda, opts:any={}):Middleware => {
     const api = bot.graphql
     const { query, variables } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
-      logger.debug('received query:')
-      logger.debug(prettifyQuery(req.body.query))
+      logger.ridiculous(`received query:\n ${prettifyQuery(req.body.query)}`)
     }
 
     if (variables && variables.modelsVersionId) {

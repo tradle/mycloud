@@ -13,6 +13,7 @@ import {
   safeStringify,
   getPrimaryKeySchema
 } from './utils'
+
 import { TYPE, SIG, ORG, AUTHOR, TIMESTAMP, TYPES, UNSIGNED_TYPES } from './constants'
 import Errors from './errors'
 
@@ -70,7 +71,7 @@ const deriveProps = (opts) => {
 //   }
 // }
 
-const _allowScan = filterOp => {
+const _isScanAllowed = filterOp => {
   if (filterOp.opType === 'query') {
     return ALLOW_SCAN_QUERY.includes(filterOp.type)
   }
@@ -162,13 +163,14 @@ export = function createDB ({
   const tableBuckets = dbUtils.getTableBuckets()
 
   // TODO: merge into validateFind
-  const allowScan = filterOp => {
-    const allow = _allowScan(filterOp)
+  const isScanAllowed = filterOp => {
+    const allow = filterOp.allowScan === true || _isScanAllowed(filterOp)
     if (allow) logger.debug('allowing scan', filterOp.type)
     return allow
   }
 
   const validateFind = (filterOp: Search) => {
+    if (isScanAllowed(filterOp)) return
     if (!filterOp.index) return
 
     const { model, index, table } = filterOp
@@ -180,8 +182,9 @@ export = function createDB ({
     }
 
     if (modelIdx.hashKey === TYPE &&
-      !filterOp.sortedByDB &&
+      // !filterOp.sortedByDB &&
       !ALLOW_LIST_TYPE.includes(model.id)) {
+      logger.debug('forbidding expensive query', _.pick(filterOp, ['filter', 'orderBy', 'limit']))
       throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
     }
   }
@@ -191,7 +194,7 @@ export = function createDB ({
     get models() { return modelStore.models },
     get modelsStored() { return modelStore.models },
     objects,
-    allowScan,
+    allowScan: isScanAllowed,
     shouldMinify,
     deriveProps,
   }
@@ -252,12 +255,7 @@ export = function createDB ({
       })
 
       table.hook('pre:find:validate', op => {
-        try {
-          validateFind(op)
-        } catch (err) {
-          // TODO: observe this, change to rethrow
-          console.error(err.message)
-        }
+        validateFind(op)
       })
 
       table.hook('find:pre', onFindPre)
