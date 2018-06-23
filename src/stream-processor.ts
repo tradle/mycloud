@@ -83,7 +83,6 @@ export default class StreamProcessor {
         checkpoint.eventId = null
         checkpoint.errors = []
       } catch (error) {
-        debugger
         checkpoint.eventId = event.id
         checkpoint.errors.push(pick(error, ['message', 'stack']))
         break
