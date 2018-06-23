@@ -443,6 +443,36 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
   return runCheck  &&  {resource: r}
 }
 
+export const  hasPropertiesChanged = async({resource, bot, propertiesToCheck}:  {
+  resource: any,
+  bot: Bot,
+  propertiesToCheck: Array<string>
+}) =>  {
+  debugger
+  let dbRes = resource._prevlink  &&  await bot.objects.get(resource._prevlink)
+  if (!dbRes)
+    return true
+  let r:any = {}
+  // Use defaultPropMap for creating mapped resource if the map was not supplied or
+  // if not all properties listed in map - that is allowed if the prop names are the same as default
+  let check = propertiesToCheck.filter(p => {
+    let rValue = resource[p]
+    let dbValue = dbRes[p]
+    if (!rValue  &&  !dbValue)
+      return false
+    if (rValue  ===  dbValue)
+      return false
+    if (_.isEqual(dbValue, rValue))
+      return false
+    return true
+  })
+
+  if (check.length)
+    return true
+  else
+    return false
+}
+
 export const getUserIdentifierFromRequest = (req: IPBReq) => {
   const { user, message } = req
   const { originalSender } = message
