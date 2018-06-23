@@ -183,7 +183,7 @@ export class FacialRecognitionAPI {
       .set({
         status: checkStatus,
         message,
-        aspect: FACIAL_RECOGNITION,
+        aspects: FACIAL_RECOGNITION,
         provider: PROVIDER,
         rawData,
         application,

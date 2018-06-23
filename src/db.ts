@@ -32,7 +32,8 @@ const ALLOW_SCAN_QUERY = [
 
 const ALLOW_LIST_TYPE = [
   DELIVERY_ERROR,
-  'tradle.Application'
+  'tradle.Application',
+  'tradle.ProductRequest'
 ]
 
 const defaultIndexes = [
@@ -184,8 +185,9 @@ export = function createDB ({
     if (modelIdx.hashKey === TYPE &&
       // !filterOp.sortedByDB &&
       !ALLOW_LIST_TYPE.includes(model.id)) {
-      logger.debug('forbidding expensive query', _.pick(filterOp, ['filter', 'orderBy', 'limit']))
-      throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
+      logger.error('will soon forbid expensive query', _.pick(filterOp, ['filter', 'orderBy', 'limit']))
+      debugger
+      // throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
     }
   }
 
