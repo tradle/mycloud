@@ -17,7 +17,7 @@ import {
 
 import validateModels from '@tradle/validate-model'
 import validateResource from '@tradle/validate-resource'
-import { ResourceStub, Backlinks } from './types'
+import { ResourceStub, Backlinks, Identities } from './types'
 import { parseStub, allSettled, getPrimaryKeySchema, isWellBehavedIntersection } from './utils'
 
 const { getRef, isDescendantOf } = validateModels.utils
@@ -46,10 +46,11 @@ type ListOpts = {
 
 const PROPS_KNOWN_FROM_STUB = [TYPE, '_link', '_permalink']
 
-export const createResolvers = ({ db, backlinks, objects, models, postProcess }: {
+export const createResolvers = ({ db, backlinks, objects, identities, models, postProcess }: {
   db: DB
   models: Models
   objects: Objects
+  identities: Identities
   backlinks?: Backlinks
   postProcess?: Function
 }) => {
@@ -58,6 +59,12 @@ export const createResolvers = ({ db, backlinks, objects, models, postProcess }:
   const put = db.put
   const getByLink = objects && objects.get
   const get = async ({ model, key }: { model: Model, key: any }) => {
+    // identities are a special case, as tradle.Identity in db might not
+    // have same level of validation as PubKey mappings in identities module
+    if (model.id === 'tradle.Identity' && key._permalink && !key._link) {
+      return identities.byPermalink(key._permalink)
+    }
+
     try {
       return await db.get({
         [TYPE]: model.id,

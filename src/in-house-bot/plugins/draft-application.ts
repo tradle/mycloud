@@ -7,6 +7,7 @@ import {
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const DRAFT = 'tradle.DraftApplication'
+const DRAFTS_DISABLED = true
 
 export const name = 'draft-application'
 export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
@@ -25,6 +26,16 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
     const { requestFor } = payload
     req.isFromEmployee = employeeManager.isEmployee(req.user)
     if (!req.isFromEmployee) return
+
+    if (DRAFTS_DISABLED) {
+      await productsAPI.sendSimpleMessage({
+        req,
+        to: user,
+        message: `Creating draft applications on behalf of customers is not allowed at this time`
+      })
+
+      return false
+    }
 
     if (requestFor === EMPLOYEE_ONBOARDING &&
       message.forward) {
@@ -50,7 +61,7 @@ export const createPlugin:CreatePlugin<void> = (components, { logger }) => {
     if (requestFor === DEPLOYMENT) return
 
     logger.debug('creating application draft, as this is an employee applying on behalf of a customer')
-    const draftApplication = bot.buildResource(DRAFT)
+    const draftApplication = bot.draft({ type: DRAFT })
       .set({
         applicant: user.identity,
         context: req.context,
