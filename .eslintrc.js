@@ -110,7 +110,7 @@ module.exports = {
         "no-debugger": "warn",
         "no-div-regex": "error",
         "no-duplicate-imports": "error",
-        "no-else-return": "error",
+        "no-else-return": "warn",
         "no-ex-assign": "off",
         "no-empty": [
             "warn",
