@@ -23,7 +23,7 @@ const DEFAULT_TEMPLATE = {
     { body: 'Click below to complete your onboarding' },
     { body: '<a href="{{employeeOnboarding}}">this link</a>' },
   ],
-  signature: '{{orgName}} Team',
+  signature: '-{{orgName}} Team',
 }
 
 interface IControllingPersonConf {
