@@ -14,14 +14,16 @@ try {
   createCentrixClient = require('@tradle/centrix')
 } catch (err) {}
 
-import { getParsedFormStubs } from '../utils'
+import { getParsedFormStubs, hasPropertiesChanged } from '../utils'
 import { splitCamelCase } from '../../string-utils'
 import {
   Name,
   Bot,
   Logger,
   CreatePlugin,
-  Applications
+  Applications,
+  IPBApp,
+  ITradleObject
 } from '../types'
 
 import { getNameFromForm, parseScannedDate, toISODateString } from '../utils'
@@ -250,14 +252,14 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   }
 }
 
-async function getCentrixData ({ application, bot }) {
+async function getCentrixData ({ application, bot }: {application: IPBApp, bot: Bot}) {
   if (!application) return
   const formStub = getParsedFormStubs(application)
     .find(form => form.type === PHOTO_ID)
 
   if (!formStub) return
 
-  const form = await bot.objects.get(formStub.link)
+  const form: ITradleObject = await bot.objects.get(formStub.link)
   if (form.country.id !== NZ_COUNTRY_ID)
     return
   const { scanJson } = form
@@ -268,6 +270,13 @@ async function getCentrixData ({ application, bot }) {
 
   const docType = getDocumentType(form)
   let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber } = form
+  let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
+
+debugger
+
+  let changed = await hasPropertiesChanged({resource: form, bot, propertiesToCheck})
+  if (!changed)
+    return
   if (docType === DOCUMENT_TYPES.passport) {
     // trim trailing angle brackets
     documentNumber = documentNumber.replace(/[<]+$/g, '')
