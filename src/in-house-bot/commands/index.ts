@@ -23,6 +23,7 @@ import { command as reset } from './reset'
 import { command as setenvvar } from './setenvvar'
 import { command as doctor } from './doctor'
 import { command as balance } from './balance'
+import { command as reindex } from './reindex'
 
 export {
   help,
@@ -49,5 +50,6 @@ export {
   reset,
   setenvvar,
   doctor,
-  balance
+  balance,
+  reindex,
 }

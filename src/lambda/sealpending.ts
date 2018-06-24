@@ -19,10 +19,8 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       batch = await seals.sealPending({ limit: 10 })
       results = results.concat(batch.seals)
       error = batch.error
-      if (error) break
-
       haveTime = env.getRemainingTime() > SAFETY_MARGIN_MILLIS
-    } while (!haveTime)
+    } while (haveTime && !error && batch.seals.length)
 
     if (!haveTime) {
       logger.debug('almost out of time, exiting early')
