@@ -22,12 +22,19 @@ import { getParsedFormStubs, getCheckParameters, getStatusMessageForCheck } from
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
 const BASE_URL = 'https://api.complyadvantage.com/searches'
-const FORM_ID = 'tradle.legal.LegalEntity'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 const PHOTO_ID = 'tradle.PhotoID'
+const PERSONAL_INFO = 'tradle.PersonalInfo'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 const ASPECTS = 'sanctions screening'
 
 const DISPLAY_NAME = 'Comply Advantage'
+const PERSON_FORMS = [
+  PHOTO_ID,
+  PERSONAL_INFO
+]
+
+const isPersonForm = form => PERSON_FORMS.includes(form[TYPE])
 
 const defaultPropMap: any = {
   companyName: 'companyName',
@@ -87,7 +94,7 @@ class ComplyAdvantageAPI {
     if (!map)
       map = propertyMap  &&  propertyMap[payload[TYPE]]
 
-    let isPerson = criteria  &&  criteria.entity_type === 'person' || payload[TYPE] === PHOTO_ID
+    let isPerson = criteria  &&  criteria.entity_type === 'person' || isPersonForm(payload)
     let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
 
     // Check if the check parameters changed
@@ -296,7 +303,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
       else
         return
 
-      if (payload[TYPE] !== PHOTO_ID  &&  payload[TYPE] !== FORM_ID)
+      if (!isPersonForm(payload)  &&  payload[TYPE] !== LEGAL_ENTITY)
         return
       complyAdvantage.getAndProcessData({user, pConf, application, propertyMap, payload})
 
@@ -474,9 +481,9 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
 
   //   // for (let formId in propertyMap) {
   //   //   let map = propertyMap[formId]
-  //   //   if (formId !== FORM_ID) {
+  //   //   if (formId !== LEGAL_ENTITY) {
   //   //     debugger
-  //   //     let formStubs = getParsedFormStubs(application).filter(f => f.type === FORM_ID)
+  //   //     let formStubs = getParsedFormStubs(application).filter(f => f.type === LEGAL_ENTITY)
 
   //   //     if (!formStubs.length) {
   //   //       this.logger.debug(`No form ${formId} was found for ${productId}`)
