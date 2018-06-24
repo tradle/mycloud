@@ -110,10 +110,10 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
 
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
         return
-      this.logger.error(`controlling person: processing for ${payload.emailAddress}`)
+      logger.error(`controlling person: processing for ${payload.emailAddress}`)
 
       if (!payload.emailAddress) {
-        this.logger.error(`controlling person: no email address`)
+        logger.error(`controlling person: no email address`)
         return
       }
       if (payload._prevlink) {
