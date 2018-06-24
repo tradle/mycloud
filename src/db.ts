@@ -185,7 +185,7 @@ export = function createDB ({
     if (modelIdx.hashKey === TYPE &&
       // !filterOp.sortedByDB &&
       !ALLOW_LIST_TYPE.includes(model.id)) {
-      logger.error('will soon forbid expensive query', _.pick(filterOp, ['filter', 'orderBy', 'limit']))
+      logger.error('will soon forbid expensive query', summarizeSearch(filterOp))
       debugger
       // throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
     }
@@ -372,3 +372,5 @@ const logifyDB = (db: DB, logger: Logger) => {
 }
 
 const verbosePrint = (error, args) => safeStringify({ error, args })
+
+const summarizeSearch = (op: Search) => _.pick(op, ['filter', 'orderBy', 'limit'])

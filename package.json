@@ -224,10 +224,6 @@
     "@tradle/centrix": "github:mvayngrib/centrix"
   },
   "lint-staged": {
-    "*.{ts}": [
-      "prettier --write",
-      "git add"
-    ],
     "README.md": [
       "doctoc",
       "git add"
