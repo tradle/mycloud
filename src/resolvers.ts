@@ -55,9 +55,26 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
   postProcess?: Function
 }) => {
 
+  const MESSAGE_PROPS = Object.keys(models['tradle.Message'].properties)
   const update = db.update
   const put = db.put
-  const getByLink = objects && objects.get
+  const getByLink = ({ model, link }) => {
+    // if (model) {
+    //   if (model.id === 'tradle.Message') {
+    //     return db.findOne({
+    //       filter: {
+    //         EQ: {
+    //           [TYPE]: model.id,
+    //           _link: link
+    //         }
+    //       }
+    //     })
+    //   }
+    // }
+
+    return objects.get(link)
+  }
+
   const get = async ({ model, key }: { model: Model, key: any }) => {
     // identities are a special case, as tradle.Identity in db might not
     // have same level of validation as PubKey mappings in identities module

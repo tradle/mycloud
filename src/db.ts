@@ -308,8 +308,8 @@ export = function createDB ({
     if (EQ[TYPE] !== MESSAGE) return
 
     const msgs = items.map(messages.formatForDelivery)
-    const { select=[] } = opts
-    if (select.includes('object')) {
+    const { select } = opts
+    if (!select || select.includes('object')) {
       const payloads:ITradleObject[] = await Promise.all(msgs.map(msg => objects.get(msg.object._link)))
       payloads.forEach((payload, i) => extendTradleObject(msgs[i].object, payload))
     }

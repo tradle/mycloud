@@ -15,6 +15,12 @@ type LensPluginOpts = {
 }
 
 export const name = 'lens'
+export const description = `
+Performs two functions:
+1. sets "lens" property on outbound form requests based on configuration
+2. validates inbound forms against lenses, and requests edits
+`
+
 export class LensPlugin {
   private bot: Bot
   private conf: any
