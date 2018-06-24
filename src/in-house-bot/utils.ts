@@ -20,6 +20,7 @@ import {
   IPBReq,
   Models,
   ITradleCheck,
+  ITradleObject
 } from './types'
 
 import { safeStringify } from '../string-utils'
@@ -444,7 +445,7 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
 }
 
 export const  hasPropertiesChanged = async({resource, bot, propertiesToCheck}:  {
-  resource: any,
+  resource: ITradleObject,
   bot: Bot,
   propertiesToCheck: Array<string>
 }) =>  {
