@@ -48,7 +48,7 @@
   },
   "scripts": {
     "init": "npm i && npm run build:yml",
-    "precommit": "echo 'compiling typescript' && tsc && lint-staged",
+    "precommit": "echo 'compiling typescript' && tsc && npm run eslint && lint-staged",
     "postmerge": "./src/scripts/postmerge.sh",
     "package": "serverless package",
     "gen:testenv": "node ./lib/scripts/gen-test-env.js && npm run copy-static-assets",
