@@ -25,6 +25,7 @@ const BASE_URL = 'https://api.complyadvantage.com/searches'
 const FORM_ID = 'tradle.legal.LegalEntity'
 const PHOTO_ID = 'tradle.PhotoID'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
+const ASPECTS = 'sanctions screening'
 
 const DISPLAY_NAME = 'Comply Advantage'
 
@@ -230,7 +231,7 @@ class ComplyAdvantageAPI {
       provider: 'Comply Advantage',
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      aspects: 'sanctions check',
+      aspects: ASPECTS,
       form
     }
 
