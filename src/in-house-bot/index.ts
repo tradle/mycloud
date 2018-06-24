@@ -137,7 +137,7 @@ export default function createProductsBot({
     models: {
       all: mergeModels()
         .add(baseModels, { validate: false })
-        .add(conf.modelsPack ? conf.modelsPack.models : {}, mergeModelsOpts)
+        .add(conf.modelsPack && conf.modelsPack.models || {}, mergeModelsOpts)
         .get()
     },
     products: productsList,
