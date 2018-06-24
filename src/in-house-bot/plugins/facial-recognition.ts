@@ -93,7 +93,7 @@ export class FacialRecognitionAPI {
     let rawData
     let error
     const models = this.bot.models
-debugger
+// debugger
     // call whatever API with whatever params
     const form = new FormData();
     form.append('photo1', selfie);
@@ -183,7 +183,7 @@ debugger
       photoID,
       dateChecked: new Date().getTime()
     }
-    debugger
+    // debugger
     checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
     if (error)
       checkR.resultDetails = error
@@ -233,7 +233,7 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
   const facialRecognition = new FacialRecognitionAPI({ bot, applications, logger, conf })
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
-debugger
+// debugger
       if (req.skipChecks) return
       if (!application) return
       let productId = application.requestFor
