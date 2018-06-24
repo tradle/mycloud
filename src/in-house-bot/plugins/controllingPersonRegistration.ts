@@ -48,6 +48,8 @@ class ControllingPersonRegistrationAPI {
   async _send(resource, invite) {
     let emailAddress = resource.emailAddress
 
+    this.logger.error(`controlling person: preparing to send invite to ${emailAddress} from ${this.conf.senderEmail}`)
+
     let permalink = await this.bot.getPermalink()
     let host = this.bot.apiBaseUrl
     let employeeOnboarding = invite.links.web
@@ -58,6 +60,9 @@ debugger
       orgName: this.org.name
     }
     let body = Templates.email.action(Templates.renderData(DEFAULT_TEMPLATE, values))
+
+    this.logger.error(`controlling person: ${body}`)
+
     try {
       await this.bot.mailer.send({
         from: this.conf.senderEmail,
@@ -102,11 +107,15 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       if (!application) return
       let productId = application.requestFor
       let { products } = conf
+
       if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
         return
+      this.logger.error(`controlling person: processing for ${payload.emailAddress}`)
 
-      if (!payload.emailAddress)
+      if (!payload.emailAddress) {
+        this.logger.error(`controlling person: no email address`)
         return
+      }
       if (payload._prevlink) {
         let prevR = await bot.objects.get(payload._prevlink)
         if (prevR  &&  prevR.emailAddress === payload.emailAddress)
