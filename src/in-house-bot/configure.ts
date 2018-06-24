@@ -225,7 +225,7 @@ export class Conf {
     const { domain } = await this.org.get()
     const namespace = toggleDomainVsNamespace(domain)
     if (namespace !== modelsPack.namespace) {
-      throw new Error(`expected namespace "${namespace}"`)
+      throw new Error(`Models pack namespace is "${modelsPack.namespace}". Expected: "${namespace}"`)
     }
 
     await this.modelStore.saveCustomModels({
