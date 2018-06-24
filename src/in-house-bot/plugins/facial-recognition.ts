@@ -6,7 +6,7 @@ import Embed from '@tradle/embed';
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications, IPBApp, IPluginLifecycleMethods } from '../types'
-import { getParsedFormStubs } from '../utils'
+import { getParsedFormStubs, getStatusMessageForCheck } from '../utils'
 import Errors from '../../errors'
 
 const { TYPE, TYPES } = constants
@@ -90,10 +90,10 @@ export class FacialRecognitionAPI {
     photoID: string
     application: IPBApp
   }) => {
-    let matchResult
+    let rawData
     let error
     const models = this.bot.models
-// debugger
+debugger
     // call whatever API with whatever params
     const form = new FormData();
     form.append('photo1', selfie);
@@ -101,13 +101,13 @@ export class FacialRecognitionAPI {
     form.append('threshold', this.conf.threshold);
     try {
       let res = await fetch(this.conf.url + '/v1/verify', { method: 'POST', body: form, headers: {'Authorization':'Token ' + this.conf.token}});
-      matchResult = await res.json() // whatever is returned may be not JSON
-      this.logger.debug('Face recognition check, match:', matchResult);
+      rawData = await res.json() // whatever is returned may be not JSON
+      this.logger.debug('Face recognition check, match:', rawData);
     } catch (err) {
       debugger
       error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
       this.logger.error('Face recognition check', err)
-      matchResult = { status: false, rawData: '{error : err.message}', error }
+      return { status: false, rawData: {}, error }
     }
 
     // interpet result and/or error
@@ -151,46 +151,45 @@ export class FacialRecognitionAPI {
   */
 
 
-    if (matchResult.code) {
+    if (rawData.code) {
       // error happens
-      error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${matchResult.code}`
-      this.logger.error('Face recognition check failed: ' + matchResult.param + '->' + matchResult.reason);
-      return { status: false, rawData: matchResult, error }
+      error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${rawData.code}`
+      this.logger.error('Face recognition check failed: ' + rawData.param + '->' + rawData.reason);
+      return { status: false, rawData, error }
     }
 
 
-    return { status: matchResult.verified, rawData: matchResult, error }
+    return { status: rawData.verified, rawData, error }
   }
 
   public createCheck = async ({ status, selfie, photoID, rawData, application, error }) => {
     let models = this.bot.models
     let checkStatus, message
     let photoID_displayName = buildResource.title({models, resource: photoID})
-    if (error) {
+    if (error)
+      checkStatus = 'error'
+    else if (status !== true)
       checkStatus = 'fail'
-      message = error
-    }
-    else if (status !== true) {
-      checkStatus = 'fail'
-      message = `${DISPLAY_NAME} check for "${photoID_displayName}" failed`
-    }
-    else {
+    else
       checkStatus = 'pass'
-      message = `${DISPLAY_NAME} check for "${photoID_displayName}" passed`
+    let checkR:any = {
+      status: checkStatus,
+      message,
+      provider: PROVIDER,
+      aspects: 'facial similarity',
+      rawData,
+      application,
+      selfie,
+      photoID,
+      dateChecked: new Date().getTime()
     }
+    debugger
+    checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
+    if (error)
+      checkR.resultDetails = error
 
     const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
-      .set({
-        status: checkStatus,
-        message,
-        aspects: FACIAL_RECOGNITION,
-        provider: PROVIDER,
-        rawData,
-        application,
-        selfie,
-        photoID,
-        dateChecked: new Date().getTime()
-      })
+      .set(checkR)
       .signAndSave()
 
     return check.toJSON()
@@ -234,8 +233,8 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
   const facialRecognition = new FacialRecognitionAPI({ bot, applications, logger, conf })
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
+debugger
       if (req.skipChecks) return
-// debugger
       if (!application) return
       let productId = application.requestFor
       //let { products } = conf
