@@ -201,19 +201,25 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
     [`onmessage:${FORM_ID}`]: async function(req) {
       if (req.skipChecks) return
       const { user, application, payload } = req
-      if (!(application && payload.country)) return
+      if (!(application && payload.country)) {
+        logger.debug('skipping check as form is missing "country"')
+        return
+      }
+
       // debugger
 
       let productId = application.requestFor
       let { products, propertyMap } = conf
-      if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
+      if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1) {
+        logger.debug('not running check as form is missing "country"')
         return
+      }
 
       let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
       // Check if the check parameters changed
       if (!resource) {
         if (error)
-          this.logger.debug(error)
+          logger.debug(error)
         return
       }
       let r: {rawData:object, message?: string, hits: any, url:string} = await openCorporates._fetch(resource, application)
