@@ -6,6 +6,7 @@ import pick from 'lodash/pick'
 import omit from 'lodash/omit'
 import uniqBy from 'lodash/uniqBy'
 import flatMap from 'lodash/flatMap'
+import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
 import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
@@ -43,6 +44,10 @@ const PRUNABLE_FORMS = [
   'tradle.AssignRelationshipManager',
   'tradle.ProductRequest'
 ]
+
+type AppInfo = {
+  application: IPBApp
+}
 
 export class Applications {
   private bot: Bot
@@ -123,16 +128,17 @@ export class Applications {
     return await this.productsAPI.verify(opts)
   }
 
-  public haveAllFormsBeenVerified = async ({ application }: {
-    application: IPBApp
-  }) => {
+  public haveAllFormsBeenVerified = async ({ application }: AppInfo) => {
     const unverified = await this.getUnverifiedForms({ application })
     return !unverified.length
   }
 
-  public getUnverifiedForms = async ({ application }) => {
-    const formStubs = getCustomerForms(application)
-    const verifications = await this.getVerifications({ application })
+  public getUnverifiedForms = async ({ application }: AppInfo) => {
+    const appSubs = application.forms || []
+    if (!appSubs.length) return []
+
+    const formStubs = getCustomerFormStubs({ application })
+    const verifications = await this.getVerificationsForApplication({ application })
     const verified = verifications.map(verification => parseStub(verification.document))
     return formStubs.filter(stub => {
       const { permalink } = parseStub(stub)
@@ -140,20 +146,25 @@ export class Applications {
     })
   }
 
-  public getVerifications = async ({ application }: {
-    application: IPBApp
-  }) => {
+  public getVerificationsForApplication = async ({ application }: AppInfo) => {
     const { verifications=[] } = application
     return await Promise.map(verifications, appSub => this.bot.getResource(appSub.submission))
   }
 
-  public getFormsAndVerifications = async ({ application }: {
-    application: IPBApp
-  }) => {
-    const stubs = getCustomerFormsAndVerifications({ application })
+  public getCustomerForms = async ({ application }: AppInfo) => {
+    const stubs = getCustomerFormStubs({ application })
+    return await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+  }
+
+  public getVerificationsForCustomerForms = async ({ application }: AppInfo) => {
+    const stubs = (application.verifications || []).map(appSub => appSub.submission)
+    return await Promise.all(stubs.map(stub => this.bot.getResource(stub)))
+  }
+
+  public getCustomerFormsAndVerifications = async ({ application }: AppInfo) => {
     return {
-      forms: await Promise.all(stubs.forms.map(stub => this.bot.getResource(stub))),
-      verifications: await Promise.all(stubs.verifications.map(stub => this.bot.getResource(stub)))
+      forms: await this.getCustomerForms({ application }),
+      verifications: await this.getVerificationsForCustomerForms({ application })
     }
   }
 
@@ -163,7 +174,7 @@ export class Applications {
     application: IPBApp
     send?: boolean
   }) => {
-    const stubs = getCustomerFormsAndVerifications({ application })
+    const stubs = getCustomerFormsAndVerificationStubs({ application })
     const formStubs = stubs.forms
     if (!formStubs.length) return []
 
@@ -171,14 +182,14 @@ export class Applications {
 
     // avoid building increasingly tall trees of verifications
     const sourcesOnly = flatMap(verifications, v => isEmpty(v.sources) ? v : v.sources)
-    return await formStubs.map(formStub => {
+    return await formStubs.map(async (formStub) => {
       const sources = sourcesOnly.filter(v => parseStub(v.document).link === parseStub(formStub).link)
       // if (!sources.length) {
       //   this.logger.debug('not issuing verification for form, as no source verifications found', formStub)
       //   return
       // }
 
-      return this.productsAPI.verify({
+      const verification = await this.productsAPI.verify({
         req,
         user,
         application,
@@ -186,31 +197,42 @@ export class Applications {
         verification: { sources },
         send
       })
+
+      await this.bot.seal({
+        counterparty: user.id,
+        object: verification
+      })
+
+      return verification
     })
   }
 
-  public createSealsForApprovedApplication = async ({ application }: {
-    application: IPBApp
-  }) => {
-    const { bot } = this
-    const { certificate } = application
-    let { forms, verifications } = await this.getFormsAndVerifications({ application })
-
-    verifications = getLatestVerifications({ verifications })
-    const counterparty = parseStub(application.applicant).permalink
+  public sealFormsForApplication = async ({ application }: AppInfo) => {
+    const forms = await this.getCustomerForms({ application })
+    const counterparty = getApplicantPermalink(application)
     // avoid re-sealing
-    const subs = forms.concat(verifications).filter(sub => !sub._seal)
-    const promises = subs.map(object => bot.seal({ counterparty, object }))
-    if (certificate) {
+    const subs = forms.filter(sub => !sub._seal)
+    // verifications are sealed in issueVerifications
+    return await Promise.all(subs.map(object => this.bot.seal({ counterparty, object }))    )
+  }
+
+  public createSealsForApprovedApplication = async ({ application }: AppInfo) => {
+    const { bot } = this
+    const promises = [
+      this.sealFormsForApplication({ application })
+    ]
+
+    const { certificate } = application
+    if (certificate && !certificate._seal) {
       const sealCert = bot.getResource(certificate).then(object => bot.seal({
-        counterparty,
+        counterparty: getApplicantPermalink(application),
         object
       }))
 
       promises.push(sealCert)
     }
 
-    await Promise.all(promises)
+    return await Promise.all(promises).then(results => flatten(results))
   }
 
   public organizeSubmissions = (application: IPBApp) => {
@@ -226,9 +248,7 @@ export class Applications {
     return await this.productsAPI.requestItem(opts)
   }
 
-  public getLatestChecks = async ({ application }: {
-    application: IPBApp
-  }) => {
+  public getLatestChecks = async ({ application }: AppInfo) => {
     const { checks=[] } = application
     if (!checks.length) return []
 
@@ -241,9 +261,7 @@ export class Applications {
     return uniqBy(timeDesc, TYPE)
   }
 
-  public haveAllChecksPassed = async ({ application }: {
-    application: IPBApp
-  }) => {
+  public haveAllChecksPassed = async ({ application }: AppInfo) => {
     const { checks=[] } = application
     if (!checks.length) return true
 
@@ -353,6 +371,8 @@ export class Applications {
     return signed
   }
 
+  public getCustomerFormStubs = getCustomerFormStubs
+
   private stub = (resource: ITradleObject) => {
     return buildResource.stub({
       models: this.bot.models,
@@ -384,8 +404,6 @@ export class Applications {
 
     return this.employeeManager.isEmployee(user)
   }
-
-  public getCustomerForms = getCustomerForms
 
   // public requestEdit = async (opts: {
   //   req?: IPBReq
@@ -427,23 +445,20 @@ const getCustomerSubmissions = ({ forms }: {
   return forms.filter(f => !PRUNABLE_FORMS.includes(f.submission[TYPE]))
 }
 
-const getCustomerForms = ({ forms }: {
-  forms: ApplicationSubmission[]
-}) => {
+const getCustomerFormStubs = ({ application }: AppInfo) => {
+  const { forms=[] } = application
   return getCustomerSubmissions({ forms }).map(s => s.submission)
 }
 
-const getApplicationWithCustomerSubmittedForms = (application: IPBApp):IPBApp => ({
-  ...application,
-  forms: getCustomerSubmissions({
-    forms: application.forms || []
-  })
-})
+// const getApplicationWithCustomerSubmittedForms = (application: IPBApp):IPBApp => ({
+//   ...application,
+//   forms: getCustomerSubmissions({
+//     forms: application.forms || []
+//   })
+// })
 
-const getCustomerFormsAndVerifications = ({ application }: {
-  application: IPBApp
-}) => ({
-  forms: getCustomerForms({ forms: application.forms || [] }),
+const getCustomerFormsAndVerificationStubs = ({ application }: AppInfo) => ({
+  forms: getCustomerFormStubs({ application }),
   verifications: (application.verifications || []).map(appSub => appSub.submission)
 })
 
@@ -454,3 +469,5 @@ const getLatestVerifications = ({ verifications }) => {
   const perForm = groupBy(verifications, v => parseStub(v.document).permalink)
   return Object.keys(perForm).map(formPermalink => maxBy(perForm[formPermalink], '_time'))
 }
+
+const getApplicantPermalink = (application: IPBApp) => parseStub(application.applicant).permalink
