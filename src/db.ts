@@ -30,11 +30,21 @@ const ALLOW_SCAN_QUERY = [
   'tradle.ApplicationSubmission'
 ].concat(ALLOW_SCAN)
 
+
+// TODO:
+// add whether list should be allowed with additional filter conditions
+// which may make it incredibly expensive to fulfil the "limit"
 const ALLOW_LIST_TYPE = [
-  DELIVERY_ERROR,
-  'tradle.Application',
-  'tradle.ProductRequest'
+  { type: DELIVERY_ERROR },
+  { type: 'tradle.Application' },
+  { type: 'tradle.ProductRequest' },
+  { type: 'tradle.documentChecker.Check', sortedByDB: true },
 ]
+
+const isListable = ({ type, sortedByDB }) => {
+  const search = { type, sortedByDB }
+  return !!ALLOW_LIST_TYPE.find(conditions => _.isMatch(search, conditions))
+}
 
 const defaultIndexes = [
   {
@@ -72,12 +82,12 @@ const deriveProps = (opts) => {
 //   }
 // }
 
-const _isScanAllowed = filterOp => {
-  if (filterOp.opType === 'query') {
-    return ALLOW_SCAN_QUERY.includes(filterOp.type)
+const _isScanAllowed = search => {
+  if (search.opType === 'query') {
+    return ALLOW_SCAN_QUERY.includes(search.type)
   }
 
-  return ALLOW_SCAN.includes(filterOp.type)
+  return ALLOW_SCAN.includes(search.type)
 }
 
 const shouldMinify = item => item[TYPE] !== 'tradle.Message' && !UNSIGNED_TYPES.includes(item[TYPE])
@@ -164,17 +174,17 @@ export = function createDB ({
   const tableBuckets = dbUtils.getTableBuckets()
 
   // TODO: merge into validateFind
-  const isScanAllowed = filterOp => {
-    const allow = filterOp.allowScan === true || _isScanAllowed(filterOp)
-    if (allow) logger.debug('allowing scan', filterOp.type)
+  const isScanAllowed = search => {
+    const allow = search.allowScan === true || _isScanAllowed(search)
+    if (allow) logger.debug('allowing scan', search.type)
     return allow
   }
 
-  const validateFind = (filterOp: Search) => {
-    if (isScanAllowed(filterOp)) return
-    if (!filterOp.index) return
+  const validateFind = (search: Search) => {
+    if (isScanAllowed(search)) return
+    if (!search.index) return
 
-    const { model, index, table } = filterOp
+    const { model, index, table } = search
     const idx = table.indexes.findIndex(i => i === index)
     const modelIdx = getIndexesForModel({ table, model })[idx]
     if (!modelIdx) {
@@ -183,10 +193,10 @@ export = function createDB ({
     }
 
     if (modelIdx.hashKey === TYPE &&
-      // !filterOp.sortedByDB &&
-      !ALLOW_LIST_TYPE.includes(model.id)) {
-      logger.error('will soon forbid expensive query', summarizeSearch(filterOp))
+      // !search.sortedByDB &&
+      !isListable(search)) {
       debugger
+      logger.error('will soon forbid expensive query', summarizeSearch(search))
       // throw new Errors.InvalidInput(`your filter/orderBy is too broad, please narrow down your query`)
     }
   }
