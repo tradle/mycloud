@@ -813,6 +813,7 @@ functions:
   bot_oninit:
     handler: lib/in-house-bot/lambda/oninit.handler
     memorySize: 1024
+    timeout: 300
 
   # onsealstream:
   #   handler: lib/in-house-bot/lambda/onsealstream.handler
