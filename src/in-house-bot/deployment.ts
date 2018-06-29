@@ -396,6 +396,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
+    await this._delayUntilTimeIsAlmostUp()
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
     const botPermalink = buildResource.permalink(identity)
@@ -587,6 +588,14 @@ ${this.genUsageInstructions(links)}`
       ...form,
       region
     }
+  }
+
+  private _delayUntilTimeIsAlmostUp = async () => {
+    const timeLeft = this.env.getRemainingTime()
+    // leave a 10000 buffer for the lambda to finish
+    const delay = Math.max(timeLeft - 10000, 0)
+    this.logger.debug(`delaying ${delay}ms before notifying creators`)
+    await Promise.delay(delay)
   }
 }
 
