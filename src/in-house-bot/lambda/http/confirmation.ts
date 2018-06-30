@@ -1,6 +1,6 @@
 import { createBot } from '../../../'
 import { createLambda } from '../../../in-house-bot/middleware/confirmation'
-import { customize } from '../../../in-house-bot/customize'
+import { configureLambda } from '../../../in-house-bot'
 
 const bot = createBot()
 const lambda = createLambda({ bot, event: 'confirmation' })

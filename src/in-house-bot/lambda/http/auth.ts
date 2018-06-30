@@ -1,9 +1,9 @@
 import { createBot } from '../../../'
-import { customize } from '../../customize'
+import { configureLambda } from '../..'
 
 const bot = createBot()
 const lambda = bot.lambdas.auth()
-// const promiseCustomize = customize({ lambda })
+// const promiseCustomize = configureLambda({ lambda })
 // lambda.use(async (ctx) => {
 //   const { employeeManager } = await promiseCustomize
 //   const { userId } = ctx.userId

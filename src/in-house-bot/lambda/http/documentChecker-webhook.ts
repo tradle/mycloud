@@ -1,14 +1,14 @@
 import { EventSource } from '../../../lambda'
 import cors from 'kcors'
 import { createBot } from '../../../'
-import { customize } from '../../customize'
+import { configureLambda } from '../..'
 import { post } from '../../../middleware/noop-route'
 import Errors from '../../../errors'
 import * as LambdaEvents from '../../lambda-events'
 
 const bot = createBot({ ready: false })
 const lambda = bot.createLambda({ source: EventSource.HTTP })
-const promiseComponents = customize({ lambda, event: LambdaEvents.DOCUMENT_CHECKER_WEBHOOK_EVENT })
+const promiseComponents = configureLambda({ lambda, event: LambdaEvents.DOCUMENT_CHECKER_WEBHOOK_EVENT })
 
 lambda.use(post())
 lambda.use(cors())

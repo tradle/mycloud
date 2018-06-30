@@ -1,7 +1,7 @@
 import { Lambda, EventSource } from '../lambda'
 import { createBot } from '../'
 import { createLambda as createBotLambda } from '../lambda'
-import { customize } from './customize'
+import { configureLambda } from './'
 import { IPBotLambdaOpts } from './types'
 
 export {
@@ -16,7 +16,7 @@ export const createLambda = (opts: IPBotLambdaOpts) => {
   } = opts
 
   const lambda = createBotLambda(lambdaOpts)
-  const componentsPromise = customize({ lambda, event })
+  const componentsPromise = configureLambda({ lambda, event })
   lambda.use(async (ctx, next) => {
     ctx.components = await componentsPromise
     await next()
