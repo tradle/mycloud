@@ -250,17 +250,23 @@ export default function createProductsBot({
     // productsAPI.removeDefaultHandlers()
     bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
       const { old, value } = change
-      if (!(old && value)) return
+      if (value && value[TYPE] === 'tradle.cloud.ChildDeployment') {
+        await components.deployment.notifyCreatorsOfChildDeployment(value)
+        return
+      }
 
-      if (old[TYPE] === APPLICATION && old.status !== 'approved' && value.status === 'approved') {
-        value.submissions = await bot.backlinks.getBacklink({
-          type: APPLICATION,
-          permalink: value._permalink,
-          backlink: 'submissions'
-        })
+      if (old && value) {
+        if (old[TYPE] === APPLICATION && old.status !== 'approved' && value.status === 'approved') {
+          value.submissions = await bot.backlinks.getBacklink({
+            type: APPLICATION,
+            permalink: value._permalink,
+            backlink: 'submissions'
+          })
 
-        applications.organizeSubmissions(value)
-        await applications.createSealsForApprovedApplication({ application: value })
+          applications.organizeSubmissions(value)
+          await applications.createSealsForApprovedApplication({ application: value })
+          return
+        }
       }
     })
   }
@@ -473,7 +479,7 @@ export default function createProductsBot({
     ].forEach(name => attachPlugin({ name, prepend: true }))
   }
 
-  if (handleMessages || event.startsWith('deployment:')) {
+  if (handleMessages || runAsyncHandlers || event.startsWith('deployment:')) {
     attachPlugin({ name: 'deployment' })
   }
 

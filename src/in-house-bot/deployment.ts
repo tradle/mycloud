@@ -323,12 +323,6 @@ export class Deployment {
       domain: org.domain
     })
 
-    const promiseNotifyCreators = this.notifyCreators({
-      apiUrl,
-      configuration,
-      identity: friend.identity
-    })
-
     const depResource = await this.buildChildDeploymentResource({
       apiUrl,
       deploymentUUID,
@@ -337,12 +331,7 @@ export class Deployment {
       stackId
     })
 
-    const promiseSaveDeployment = this.bot.signAndSave(depResource)
-    await Promise.all([
-      promiseNotifyCreators,
-      promiseSaveDeployment
-    ])
-
+    await this.bot.signAndSave(depResource)
     await this.kv.del(deploymentUUID)
     return true
   }
@@ -395,8 +384,15 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
+  public notifyCreatorsOfChildDeployment = async (childDeployment) => {
+    const { apiUrl, identity } = childDeployment
+    const configuration = await this.bot.getResource(childDeployment.configuration)
+    // stall till 10000 before time's up
+    await this.bot.stall({ buffer: 10000 })
+    await this.notifyCreators({ configuration, apiUrl, identity })
+  }
+
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
-    await this._delayUntilTimeIsAlmostUp()
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
     const botPermalink = buildResource.permalink(identity)
@@ -588,14 +584,6 @@ ${this.genUsageInstructions(links)}`
       ...form,
       region
     }
-  }
-
-  private _delayUntilTimeIsAlmostUp = async () => {
-    const timeLeft = this.env.getRemainingTime()
-    // leave a 10000 buffer for the lambda to finish
-    const delay = Math.max(timeLeft - 10000, 0)
-    this.logger.debug(`delaying ${delay}ms before notifying creators`)
-    await Promise.delay(delay)
   }
 }
 
