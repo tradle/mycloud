@@ -529,3 +529,27 @@ export const getStatusMessageForCheck = ({ models, check }: {
     throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
   }
 }
+
+export const witness = async (bot: Bot, object: ITradleObject) => {
+  // TODO:
+  // witness() needs to be called on the original object (with embeds resolved)
+  // this is very inefficient, we just saved this object!
+  // need to allow this to be plugged in earlier in the process
+  const embeds = bot.objects.getEmbeds(object)
+
+  let copy = _.cloneDeep(object)
+  await bot.objects.resolveEmbeds(copy)
+  copy = await bot.witness(copy)
+
+  if (embeds.length) {
+    embeds.forEach(({ path, value }) => {
+      _.set(copy, path, value)
+    })
+  }
+
+  // check if witness verifies
+  // await bot.friends.verifyOrgAuthor(object)
+
+  await bot.save(copy)
+  return copy
+}
