@@ -1,5 +1,5 @@
 import { EventSource } from '../../../lambda'
-import { customize } from '../../customize'
+import { configureLambda } from '../..'
 import sampleQueries from '../../sample-queries'
 import { createBot } from '../../../'
 import { createMiddleware } from '../../middleware/graphql'
@@ -8,7 +8,7 @@ const bot = createBot({ ready: false })
 
 // mute the warning about not attaching handler
 const loadModelsPacks = bot.modelStore.loadModelsPacks()
-const promiseCustomize = customize({
+const promiseCustomize = configureLambda({
     bot,
     delayReady: true,
     event: 'graphql'

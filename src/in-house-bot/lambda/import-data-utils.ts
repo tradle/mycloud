@@ -1,12 +1,12 @@
 import { createBot } from '../../'
 import { fromCli } from '../../lambda'
-import { customize } from '../customize'
+import { configureLambda } from '..'
 import { Remediation } from '../remediation'
 import * as LambdaEvents from '../lambda-events'
 
 const bot = createBot({ ready: false })
 const lambda = fromCli({ bot })
-const promiseComponents = customize({ lambda, event: LambdaEvents.REMEDIATION_COMMAND })
+const promiseComponents = configureLambda({ lambda, event: LambdaEvents.REMEDIATION_COMMAND })
 
 lambda.use(async (ctx, next) => {
   const { remediation } = await promiseComponents

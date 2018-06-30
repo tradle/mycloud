@@ -21,7 +21,7 @@ loadCredentials()
 // const toDelete = ['tradle.Application']
 import { TYPE } from '@tradle/constants'
 import { createRemoteBot } from '../'
-import { customize } from '../in-house-bot/customize'
+import { configureLambda } from '../in-house-bot'
 
 const bot = createRemoteBot()
 const { db, dbUtils, env } = bot
@@ -49,7 +49,7 @@ const confirmDelete = async (types) => {
 }
 
 const runclearApplications = async () => {
-  await customize({ bot })
+  await configureLambda({ bot })
   await clearApplications({
     bot,
     confirm: confirmDelete

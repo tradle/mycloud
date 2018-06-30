@@ -90,14 +90,6 @@ export interface IBotComponents {
   [x:string]: any
 }
 
-export type CustomizeBotOpts = {
-  lambda?: Lambda
-  bot?: Bot
-  delayReady?: boolean
-  event?: string
-  conf?: IConf
-}
-
 export type CliOpts = {
   remote?: boolean
   console?: any
