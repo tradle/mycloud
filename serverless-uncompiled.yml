@@ -976,6 +976,7 @@ functions:
 
   deployment_pingback:
     handler: lib/in-house-bot/lambda/http/deployment-pingback.handler
+    # timeout: 300
     events:
       - http:
           path: deployment-pingback

@@ -1048,6 +1048,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     ])
   }
 
+  public stall = async ({ buffer }: {
+    buffer: number
+  }) => {
+    const delay = Math.max(this.env.getRemainingTime() - buffer, 0)
+    this.logger.debug(`stalling for ${delay}ms`)
+    await Promise.delay(delay)
+  }
+
   private construct = (Ctor) => {
     return new Ctor(this)
   }

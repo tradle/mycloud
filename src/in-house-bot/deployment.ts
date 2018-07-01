@@ -323,12 +323,6 @@ export class Deployment {
       domain: org.domain
     })
 
-    const promiseNotifyCreators = this.notifyCreators({
-      apiUrl,
-      configuration,
-      identity: friend.identity
-    })
-
     const depResource = await this.buildChildDeploymentResource({
       apiUrl,
       deploymentUUID,
@@ -337,12 +331,7 @@ export class Deployment {
       stackId
     })
 
-    const promiseSaveDeployment = this.bot.signAndSave(depResource)
-    await Promise.all([
-      promiseNotifyCreators,
-      promiseSaveDeployment
-    ])
-
+    await this.bot.signAndSave(depResource)
     await this.kv.del(deploymentUUID)
     return true
   }
@@ -393,6 +382,14 @@ ${this.genUsageInstructions(links)}`
       to: configurerUser,
       message
     })
+  }
+
+  public notifyCreatorsOfChildDeployment = async (childDeployment) => {
+    const { apiUrl, identity } = childDeployment
+    const configuration = await this.bot.getResource(childDeployment.configuration)
+    // stall till 10000 before time's up
+    await this.bot.stall({ buffer: 10000 })
+    await this.notifyCreators({ configuration, apiUrl, identity })
   }
 
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {

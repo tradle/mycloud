@@ -254,6 +254,8 @@ test('deployment by referral', loudAsync(async (t) => {
     done: t.error
   }, t.error)
 
+  await parentDeployment.notifyCreatorsOfChildDeployment(childDeploymentResource)
+
   t.equal(postStub.callCount, 1)
   t.same(sentEmails.sort(), [conf.adminEmail, conf.hrEmail].sort())
   t.equal(sendStub.getCall(0).args[0].to.id, conf._author)

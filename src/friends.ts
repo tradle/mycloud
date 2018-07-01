@@ -64,7 +64,7 @@ export default class Friends {
     this._clearCacheForPermalink = del
   }
 
-  public load = async (opts: ILoadFriendOpts): Promise<any> => {
+  public load = async (opts: ILoadFriendOpts): Promise<ITradleObject> => {
     let { url } = opts
     if (!url) throw new Errors.InvalidInput(`expected "url" of friend's MyCloud`)
 
@@ -96,7 +96,7 @@ export default class Friends {
     url: string
     org: any
     identity: any
-  }): Promise<any> => {
+  }): Promise<ITradleObject> => {
     const { name, domain, identity, org } = props
     addLinks(identity)
 
