@@ -20,7 +20,7 @@ lambda.use(async (ctx) => {
 
   const { event } = ctx
   try {
-    await documentChecker.handleVerificationEvent(event)
+    // await documentChecker.handleVerificationEvent(event)
   } catch (err) {
     lambda.logger.error('failed to handle documentChecker webhook call', err)
     ctx.status = 500

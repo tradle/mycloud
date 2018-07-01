@@ -19,3 +19,4 @@ export const ONFIDO_PROCESS_WEBHOOK_EVENT = 'onfido:webhook'
 
 // document checker
 export const DOCUMENT_CHECKER_WEBHOOK_EVENT = 'documentChecker:webhook'
+export const DOCUMENT_CHECKER_JOB = 'documentChecker:poll'

@@ -456,11 +456,10 @@ export default function createProductsBot({
       'smart-prefill',
       'lens',
       'openCorporates',
-      'complyAdvantage',
-      'controllingPersonRegistration',
+      // 'complyAdvantage',
+      // 'controllingPersonRegistration',
       'centrix',
-      'facial-recognition',
-      'documentChecker',
+      'facial-recognition'
     ].forEach(name => attachPlugin({ name }))
 
     ;[
@@ -475,6 +474,9 @@ export default function createProductsBot({
 
   if (handleMessages || event.startsWith('deployment:')) {
     attachPlugin({ name: 'deployment' })
+  }
+  if (handleMessages || event.startsWith('documentChecker:')) {
+    attachPlugin({ name: 'documentChecker' })
   }
 
   if (handleMessages || event.startsWith('remediation:')) {
