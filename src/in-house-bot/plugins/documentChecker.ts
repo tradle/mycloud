@@ -38,6 +38,7 @@ export const TEST_SERVER_URL = 'https://www.krefstage.nl/wsDocumentScan/wsDocume
 export const PROD_SERVER_URL = 'https://www.keesingauthentiscan.com/wsDocumentScan/wsDocumentScan.dll/wsdl/IwsDocumentScan'
 
 const DISPLAY_NAME = 'Document Checker'
+const DAY = 24 * 60 * 3600
 
 interface IDocumentCheck {
   application: IPBApp
@@ -169,7 +170,7 @@ export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
       Username: this.credentials.username,
       DocID: docId
     }
-    debugger
+    // debugger
     let result = await this.deleteDocument(params)
     if (result.return.$value) {
       const parsed = await this.parseXML(result.return.$value)
@@ -303,37 +304,6 @@ export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
   }
 }
 
-// export class DocumentCheckerRestClient implements IDocumentCheckerClient {
-//   private promiseClient: Promise<any>
-//   constructor({ url, }) {
-//   }
-
-//   public uploadImages = async ({ idFront, idBack, face }) => {
-//     return {
-//       status: 'pass',
-//       rawData: {}
-//     }
-//   }
-// }
-
-// const promisify = originalFunction => {
-//   return function (...args) {
-//     return new Promise((resolve, reject) => {
-//       originalFunction(...args, function injectedCallback (err, result) {
-//         if (err) return reject(err)
-
-//         resolve(result)
-//       })
-//     })
-//   }
-// }
-
-// setTimeout(function () {
-// }, 1000)
-
-// const promiseTimeout = promisify(setTimeout)
-// await promiseTimeout(1000)
-
 export class DocumentCheckerAPI {
   private bot: Bot
   private conf: IDocumentCheckerConf
@@ -380,7 +350,7 @@ export class DocumentCheckerAPI {
     const { items } = await this.bot.db.find({
       limit,
       orderBy: {
-        desc: true,
+        desc: false,
         property: '_time'
       },
       filter: {
@@ -406,7 +376,7 @@ export class DocumentCheckerAPI {
       if (status !== 'pending')
         await this.updateCheck({check, status, message, rawData})
       if (status !== 'pass') {
-        if (status !== 'pending'  ||  (Date.now() - new Date(check.dateChecked).getTime()  > 24 * 60 * 3600)) {
+        if (status !== 'pending'  ||  (Date.now() - new Date(check.dateChecked).getTime()  > DAY)) {
           await this.client.deleteImages(check.docId)
           if (status === 'pending')
             await this.updateCheck({check, status: 'fail', message: 'The check timed out'})
@@ -536,39 +506,6 @@ debugger
 
     return this.bot.draft({ resource: check })
   }
-//   public async handleVerificationEvent(evt) {
-//     let check:any = await this.getByCheckId(evt.id)
-
-//     const formAndApp = await Promise.all([this.bot.getResource(check.form), this.bot.getResource(check.application)])
-//     const form = formAndApp[0]
-//     const application = formAndApp[1] as IPBApp
-//     // let form:ITradleObject = await this.bot.objects.get(check.form.link)
-//     // let application:any = await this.bot.objects.get(check.application.link)
-//     let user = await this.bot.getResource(application.applicant)
-
-//     let { event, data, id } = evt
-// debugger
-//     let url = `${this.conf.url}/${data.verification_url}`
-//     let res = await fetch(url, {
-//                             method: 'GET',
-//                             headers: {
-//                               'Content-Type': 'application/json; charset=utf-8',
-//                               'Authorization': `Bearer ${this.conf.bearer}}`
-//                             }
-//                           })
-//     let { state, error, results, error_description } = await res.json()
-
-//     let pchecks = []
-//     if (state !== 'finished' || error)
-//       pchecks.push(this.createCheck({application, rawData: res, message: 'Check failed', status: 'error', form}))
-//     else if (error)
-//       pchecks.push(this.createCheck({application, rawData: res, message: 'Check failed', status: 'fail', form}))
-//     else {
-//       pchecks.push(this.createCheck({application, rawData: res, message: 'Check passed', status: 'pass', form}))
-//       pchecks.push(this.createVerification({user, application, form, rawData: res}))
-//     }
-//     let checksAndVerifications = await Promise.all(pchecks)
-//   }
 }
 
 export const name = 'documentChecker'
@@ -595,9 +532,9 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
         return
 
       const form = await bot.getResource(formStub)
-      debugger
-      // let changed = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck: ['scan'] })
-      // if (changed)
+      // debugger
+      let changed = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck: ['scan'] })
+      if (changed)
         await documentChecker.uploadImages({form, application, user})
       // let { checkId, status } = result
        // documentChecker.createCheck({ application, status, form, checkId })
@@ -768,3 +705,67 @@ debugger
 
 
 */
+//   public async handleVerificationEvent(evt) {
+//     let check:any = await this.getByCheckId(evt.id)
+
+//     const formAndApp = await Promise.all([this.bot.getResource(check.form), this.bot.getResource(check.application)])
+//     const form = formAndApp[0]
+//     const application = formAndApp[1] as IPBApp
+//     // let form:ITradleObject = await this.bot.objects.get(check.form.link)
+//     // let application:any = await this.bot.objects.get(check.application.link)
+//     let user = await this.bot.getResource(application.applicant)
+
+//     let { event, data, id } = evt
+// debugger
+//     let url = `${this.conf.url}/${data.verification_url}`
+//     let res = await fetch(url, {
+//                             method: 'GET',
+//                             headers: {
+//                               'Content-Type': 'application/json; charset=utf-8',
+//                               'Authorization': `Bearer ${this.conf.bearer}}`
+//                             }
+//                           })
+//     let { state, error, results, error_description } = await res.json()
+
+//     let pchecks = []
+//     if (state !== 'finished' || error)
+//       pchecks.push(this.createCheck({application, rawData: res, message: 'Check failed', status: 'error', form}))
+//     else if (error)
+//       pchecks.push(this.createCheck({application, rawData: res, message: 'Check failed', status: 'fail', form}))
+//     else {
+//       pchecks.push(this.createCheck({application, rawData: res, message: 'Check passed', status: 'pass', form}))
+//       pchecks.push(this.createVerification({user, application, form, rawData: res}))
+//     }
+//     let checksAndVerifications = await Promise.all(pchecks)
+//   }
+
+// export class DocumentCheckerRestClient implements IDocumentCheckerClient {
+//   private promiseClient: Promise<any>
+//   constructor({ url, }) {
+//   }
+
+//   public uploadImages = async ({ idFront, idBack, face }) => {
+//     return {
+//       status: 'pass',
+//       rawData: {}
+//     }
+//   }
+// }
+
+// const promisify = originalFunction => {
+//   return function (...args) {
+//     return new Promise((resolve, reject) => {
+//       originalFunction(...args, function injectedCallback (err, result) {
+//         if (err) return reject(err)
+
+//         resolve(result)
+//       })
+//     })
+//   }
+// }
+
+// setTimeout(function () {
+// }, 1000)
+
+// const promiseTimeout = promisify(setTimeout)
+// await promiseTimeout(1000)
