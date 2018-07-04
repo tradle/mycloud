@@ -60,20 +60,20 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   const childIdentity = await child.getMyIdentity()
-  const kv = {}
+  // const kv = {}
   sandbox.stub(parent, 'getPermalink').resolves('abc')
   const sendStub = sandbox.stub(parent, 'send').resolves({})
 
-  sandbox.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {
-    t.equal(value.link, conf._link)
-    kv[key] = value
-  })
+  // sandbox.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {
+  //   t.equal(value.link, conf._link)
+  //   kv[key] = value
+  // })
 
-  sandbox.stub(parentDeployment.kv, 'get').callsFake(async (key) => {
-    if (kv[key]) return kv[key]
+  // sandbox.stub(parentDeployment.kv, 'get').callsFake(async (key) => {
+  //   if (kv[key]) return kv[key]
 
-    throw new Errors.NotFound(key)
-  })
+  //   throw new Errors.NotFound(key)
+  // })
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
@@ -190,14 +190,43 @@ test('deployment by referral', loudAsync(async (t) => {
     sentEmails.push(...opts.to)
   })
 
+  const getConfAuthorStub = sandbox.stub(parent.identities, 'byPermalink').callsFake(async (permalink) => {
+    if (permalink === conf._author) {
+      return configuredBy
+    }
+
+    throw new Errors.NotFound(permalink)
+  })
+
+  let childDeploymentResource
+  const saveChildDeploymentStub = sandbox.stub(parent, 'save').callsFake(async resource => {
+    t.equal(resource[TYPE], 'tradle.cloud.ChildDeployment')
+    t.ok(resource.deploymentUUID)
+    if (childDeploymentResource) {
+      t.equal(resource.apiUrl, childUrl)
+    }
+
+    childDeploymentResource = resource
+    return resource
+  })
+
+  const findChildDeployment = sandbox.stub(parentDeployment, 'getChildDeploymentByDeploymentUUID').callsFake(async deploymentUUID => {
+    t.equal(deploymentUUID, childDeploymentResource.deploymentUUID)
+    return childDeploymentResource
+  })
+
   const launchTemplate = await parentDeployment.genLaunchTemplate({
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
     region: 'ap-southeast-2',
-    configurationLink: conf._link,
+    // configurationLink: conf._link,
     stackPrefix: conf.stackPrefix,
-    adminEmail: conf.adminEmail
+    adminEmail: conf.adminEmail,
+    _t: 'tradle.cloud.Configuration',
+    _author: conf._author,
+    _link: conf._link,
+    _permalink: conf._permalink,
   })
 
   // t.equal(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
@@ -208,18 +237,9 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const launchUrl = launchTemplate.url
 
-  let childDeploymentResource
-  const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
-    childDeploymentResource = res
-  })
-
-  const getConfAuthorStub = sandbox.stub(parent.identities, 'byPermalink').callsFake(async (permalink) => {
-    if (permalink === conf._author) {
-      return configuredBy
-    }
-
-    throw new Errors.NotFound(permalink)
-  })
+  // const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
+  //   childDeploymentResource = res
+  // })
 
   await childDeployment.reportLaunch({
     org: _.pick(deploymentConf, ['name', 'domain']),
@@ -261,7 +281,7 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(sendStub.getCall(0).args[0].to.id, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
-  t.equal(saveChildDeploymentStub.callCount, 1)
+  t.equal(saveChildDeploymentStub.callCount, 2)
   t.equal(childDeploymentResource.deploymentUUID, deploymentConf.deploymentUUID)
 
   sandbox.stub(parent.db, 'findOne').resolves(childDeploymentResource)

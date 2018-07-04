@@ -9,7 +9,7 @@ import {
   Bucket,
   IPluginOpts,
   CreatePlugin,
-  IDeploymentOpts,
+  IDeploymentConf,
   IDeploymentPluginConf,
   ITradleObject,
   Conf,
@@ -59,7 +59,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     const link = form._link
     const configuration = deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink
-    const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentOpts
+    const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentConf
 
     // async
     bot.sendSimpleMessage({

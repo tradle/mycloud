@@ -12,7 +12,7 @@ import {
   ITradleObject,
   IIdentity,
   IPluginOpts,
-  IDeploymentOpts,
+  IDeploymentConf,
   IMyDeploymentConf,
   IDeploymentConfForm,
   ILaunchReportPayload,
@@ -69,13 +69,17 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
   }
 }
 
-interface ISaveChildDeploymentOpts {
-  apiUrl: string
-  deploymentUUID: string
-  identity: ResourceStub
+interface ICreateChildDeploymentOpts {
   configuration: ITradleObject
-  stackId: string
+  deploymentUUID: string
 }
+
+// interface IUpdateChildDeploymentOpts {
+//   apiUrl?: string
+//   deploymentUUID?: string
+//   identity?: ResourceStub
+//   stackId?: string
+// }
 
 interface INotifyCreatorsOpts {
   configuration: ITradleObject
@@ -105,7 +109,6 @@ const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `
 
 export class Deployment {
   // exposed for testing
-  public kv: IKeyValueStore
   private bot: Bot
   private env: Env
   private deploymentBucket: Bucket
@@ -117,7 +120,6 @@ export class Deployment {
     this.env = bot.env
     this.logger = logger
     this.deploymentBucket = bot.buckets.ServerlessDeployment
-    this.kv = this.bot.kv.sub('deployment:')
     this.conf = conf
     this.orgConf = orgConf
   }
@@ -146,7 +148,7 @@ export class Deployment {
   //   }
   // }
 
-  public genLaunchTemplate = async (configuration: IDeploymentOpts) => {
+  public genLaunchTemplate = async (configuration: IDeploymentConf) => {
     const { stackUtils } = this.bot
     this.logger.silly('generating cloudformation template with configuration', configuration)
     const { template, url } = await stackUtils.createPublicTemplate(template => {
@@ -154,8 +156,12 @@ export class Deployment {
     })
 
     this.logger.debug('generated cloudformation template for child deployment')
-    const uuid = await this.saveDeploymentTracker({ template, link: configuration.configurationLink })
-    this.logger.debug('generated deployment tracker for child deployment', { uuid })
+    const childDeployment = await this.createChildDeploymentResource({
+      configuration,
+      deploymentUUID: getDeploymentUUIDFromTemplate(template)
+    })
+
+    // this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return {
       template,
       url: stackUtils.getLaunchStackUrl({
@@ -210,7 +216,7 @@ export class Deployment {
 
   public genUpdateTemplate = async ({ stackId, configuration }: {
     stackId: string
-    configuration?: IDeploymentOpts
+    configuration?: IDeploymentConf
     // deployment:
   }) => {
     const { template, url } = await this.bot.stackUtils.createPublicTemplate(template => {
@@ -223,26 +229,27 @@ export class Deployment {
     }
   }
 
-  public getChildDeploymentCreatedBy = async (createdBy: string) => {
-    try {
-      return await this.bot.db.findOne({
-        orderBy: {
-          property: '_time',
-          desc: true
-        },
-        filter: {
-          EQ: {
-            [TYPE]: CHILD_DEPLOYMENT,
-            'identity._permalink': createdBy
-          }
-        }
-      })
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-    }
+  public getChildDeploymentCreatedBy = async (createdBy: string):Promise<IDeploymentConf> => {
+    return await this.getChildDeploymentByProps({
+      'identity._permalink': createdBy
+    })
   }
 
-  public getChildDeploymentConfiguredBy = async (configuredBy: string) => {
+  public getChildDeploymentConfiguredBy = async (configuredBy: string):Promise<IDeploymentConf> => {
+    return await this.getChildDeploymentByProps({
+      'configuredBy._permalink': configuredBy
+    })
+  }
+
+  public getChildDeploymentByStackId = async (stackId: string):Promise<IDeploymentConf> => {
+    return await this.getChildDeploymentByProps({ stackId })
+  }
+
+  public getChildDeploymentByDeploymentUUID = async (deploymentUUID: string):Promise<IDeploymentConf> => {
+    return await this.getChildDeploymentByProps({ deploymentUUID })
+  }
+
+  public getChildDeploymentByProps = async (props):Promise<IDeploymentConf> => {
     return await this.bot.db.findOne({
       orderBy: {
         property: '_time',
@@ -251,19 +258,10 @@ export class Deployment {
       filter: {
         EQ: {
           [TYPE]: CONFIGURATION,
-          'configuredBy._permalink': configuredBy
+          ...props
         }
       }
     })
-  }
-
-  public saveDeploymentTracker = async ({ template, link }: {
-    template: any
-    link: string
-  }) => {
-    const deploymentUUID = getDeploymentUUIDFromTemplate(template)
-    await this.kv.put(deploymentUUID, { link })
-    return deploymentUUID
   }
 
   public reportLaunch = async ({ org, identity, referrerUrl, deploymentUUID }: {
@@ -297,21 +295,12 @@ export class Deployment {
 
   public receiveLaunchReport = async (report: ILaunchReportPayload) => {
     const { deploymentUUID, apiUrl, org, identity, stackId } = report
-    let link
+    let childDeployment
     try {
-      ({ link } = await this.kv.get(deploymentUUID))
+      childDeployment = await this.getChildDeploymentByDeploymentUUID(deploymentUUID)
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
-      return false
-    }
-
-    let configuration:IDeploymentOpts
-    try {
-      configuration = await this.bot.objects.get(link) as IDeploymentOpts
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.error('deployment configuration not found', { apiUrl, deploymentUUID, link })
       return false
     }
 
@@ -323,41 +312,32 @@ export class Deployment {
       domain: org.domain
     })
 
-    const depResource = await this.buildChildDeploymentResource({
-      apiUrl,
-      deploymentUUID,
-      configuration,
-      identity: friend.identity,
-      stackId
-    })
+    await this.bot.draft({
+        type: CHILD_DEPLOYMENT,
+        resource: childDeployment
+      })
+      .set({
+        apiUrl,
+        identity: friend.identity,
+        stackId
+      })
+      .version()
+      .signAndSave()
 
-    await this.bot.signAndSave(depResource)
-    await this.kv.del(deploymentUUID)
     return true
   }
 
-  public buildChildDeploymentResource = async ({
-    apiUrl,
-    deploymentUUID,
-    configuration,
-    identity,
-    stackId
-  }: ISaveChildDeploymentOpts) => {
+  public createChildDeploymentResource = async ({ configuration, deploymentUUID }: ICreateChildDeploymentOpts) => {
     const configuredBy = await this.bot.identities.byPermalink(configuration._author)
-    const builder = buildResource({
-      models: this.bot.models,
-      model: CHILD_DEPLOYMENT,
-    })
-    .set({
-      deploymentUUID,
-      apiUrl,
-      configuration,
-      configuredBy: utils.omitVirtual(configuredBy),
-      identity,
-      stackId
-    })
+    const resource = await this.bot.draft({ type: CHILD_DEPLOYMENT })
+      .set({
+        configuration,
+        configuredBy: utils.omitVirtual(configuredBy),
+        deploymentUUID,
+      })
+      .signAndSave()
 
-    return builder.toJSON()
+    return resource.toJSON()
   }
 
   public notifyConfigurer = async ({ configurer, links }: {
@@ -395,6 +375,7 @@ ${this.genUsageInstructions(links)}`
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
+    debugger
     const botPermalink = buildResource.permalink(identity)
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
     try {
@@ -456,7 +437,7 @@ ${this.genUsageInstructions(links)}`
 
   public customizeTemplateForLaunch = async ({ template, configuration }: {
     template: any
-    configuration: IDeploymentOpts
+    configuration: IDeploymentConf
   }) => {
     let { name, domain, logo, region, stackPrefix, adminEmail } = configuration
 
@@ -524,7 +505,7 @@ ${this.genUsageInstructions(links)}`
   public customizeTemplateForUpdate = async ({ template, stackId, configuration }: {
     template: any
     stackId: string
-    configuration?: IDeploymentOpts
+    configuration?: IDeploymentConf
   }) => {
     if (!configuration.adminEmail) {
       throw new Errors.InvalidInput('expected "configuration" to have "adminEmail')
@@ -574,16 +555,48 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public parseConfigurationForm = (form:ITradleObject):IDeploymentOpts => {
+  public parseConfigurationForm = (form:ITradleObject):IDeploymentConf => {
     const region = utils.getEnumValueId({
       model: this.bot.models[AWS_REGION],
       value: form.region
     }).replace(/[.]/g, '-')
 
-    return <IDeploymentOpts>{
+    return <IDeploymentConf>{
       ...form,
       region
     }
+  }
+
+  // public createStackStatusTopic = async ({
+  //   name: string
+  // }) => {
+  //   const { thisStackId } = this.bot.stackUtils
+  //   this.bot.aws.cloudformation.
+  // }
+
+  public subscribeToChildStackStatusNotifications = async ({
+    // childDeployment,
+    snsTopic
+  }: {
+    // childDeployment: any
+    snsTopic: string
+  }) => {
+    const lambdaName = this.bot.env.getStackResourceName('onChildStackStatusChanged')
+    const lambdaArn = `arn:aws:lambda:${this.bot.env.REGION}:${this.bot.env.accountId}:lambda/${lambdaName}`
+    const params = {
+      TopicArn: snsTopic,
+      Protocol: 'lambda',
+      Endpoint: lambdaArn
+    }
+
+    await this.bot.aws.sns.subscribe(params).promise()
+  }
+
+  public onChildStackStatusChanged = async ({ stackId, status }: {
+    stackId: string
+    status: string
+  }) => {
+    const childDeployment = await this.getChildDeploymentByStackId(stackId)
   }
 }
 

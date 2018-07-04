@@ -24,7 +24,7 @@ import {
   ITradleObject,
   IConf,
   IBotConf,
-  IDeploymentOpts,
+  IDeploymentConf,
   IMyDeploymentConf
 } from './types'
 
