@@ -1,5 +1,5 @@
 import parse from 'yargs-parser'
-import { ICommand, IDeploymentOpts } from '../types'
+import { ICommand, IDeploymentConf } from '../types'
 
 export const command:ICommand = {
   name: 'updatemycloud',
@@ -49,7 +49,7 @@ export const command:ICommand = {
       return update
     }
 
-    const configuration = <IDeploymentOpts>{ adminEmail }
+    const configuration = <IDeploymentConf>{ adminEmail }
     return deployment.genUpdateTemplate({ stackId, configuration })
   },
   sendResult: async ({ commander, req, to, args, result }) => {

@@ -324,14 +324,14 @@ export interface IDataBundle extends ITradleObject {
   items: ITradleObject[]
 }
 
-export interface IDeploymentOpts {
+export interface IDeploymentConf extends ITradleObject {
   name: string
   domain: string
   logo?: string
   stackPrefix: string
   region: string
   adminEmail?: string
-  configurationLink?: string
+  // configurationLink?: string
 }
 
 // conf used by MyCloud for initialization
