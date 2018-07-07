@@ -221,7 +221,7 @@
     "yn": "^2.0.0"
   },
   "optionalDependencies": {
-    "@tradle/centrix": "github:mvayngrib/centrix"
+    "@tradle/centrix": "github:tradle/centrix"
   },
   "lint-staged": {
     "README.md": [
