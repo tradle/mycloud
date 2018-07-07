@@ -230,7 +230,7 @@
     "@tradle/ethereum-adapter": {
       "version": "1.0.0",
       "from": "tradle/ethereum-adapter",
-      "resolved": "git://github.com/tradle/ethereum-adapter.git#1650252a9ca99aa52d4e0014350aca6f0a9e1721",
+      "resolved": "git://github.com/tradle/ethereum-adapter.git#cae23e559cfc4a91b94337bd239c59e96087dea0",
       "dependencies": {
         "async": {
           "version": "2.6.1",

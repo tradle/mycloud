@@ -17,20 +17,22 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
     wallet = Wallet.fromPrivateKey(privateKey)
   }
 
-  const network = Network.createNetwork({ networkName })
-  const engine = Network.createEngine({
+  const network = Network.createNetwork({
     networkName,
-    privateKey,
-    pollingInterval: 10000,
-    etherscan: true,
-    autostart: false
+    engineOpts: {
+      networkName,
+      privateKey,
+      pollingInterval: 10000,
+      etherscan: true,
+      autostart: false
+    }
   })
 
   if (wallet) {
-    transactor = Network.createTransactor({ network, wallet, engine })
+    transactor = network.createTransactor({ wallet })
   }
 
-  const blockchain = network.createBlockchainAPI({ engine })
+  const blockchain = network.createBlockchainAPI()
   const getBalance = promisify(blockchain.addresses.balance)
   const recharge = async ({ address, minBalance, force }) => {
     const minBalanceBN = minBalance.startsWith('0x')
