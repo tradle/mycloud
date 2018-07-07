@@ -269,7 +269,7 @@ export default class Auth {
   public createCredentials = async (session:ISession, role:string):Promise<IRoleCredentials> => {
     const { clientId } = session
     if (!role.startsWith('arn:')) {
-      role = `arn:aws:iam::${this.env.accountId}:role/${role}`
+      role = `arn:aws:iam::${this.env.AWS_ACCOUNT_ID}:role/${role}`
     }
 
     this.logger.debug(`generating temp keys for client ${clientId}, role ${role}`)

@@ -9,6 +9,7 @@ export const CONFIRMATION = 'confirmation'
 
 // deployment
 export const DEPLOYMENT_PINGBACK = 'deployment:pingback'
+export const CHILD_STACK_STATUS_CHANGED = 'deployment:child_stack_status'
 
 // remediation
 export const REMEDIATION_COMMAND = 'remediation:utils'

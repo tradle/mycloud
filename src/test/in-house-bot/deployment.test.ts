@@ -201,9 +201,10 @@ test('deployment by referral', loudAsync(async (t) => {
   let childDeploymentResource
   const saveChildDeploymentStub = sandbox.stub(parent, 'save').callsFake(async resource => {
     t.equal(resource[TYPE], 'tradle.cloud.ChildDeployment')
-    t.ok(resource.deploymentUUID)
     if (childDeploymentResource) {
       t.equal(resource.apiUrl, childUrl)
+    } else {
+      t.ok(resource.deploymentUUID)
     }
 
     childDeploymentResource = resource
@@ -215,7 +216,7 @@ test('deployment by referral', loudAsync(async (t) => {
     return childDeploymentResource
   })
 
-  const launchTemplate = await parentDeployment.genLaunchTemplate({
+  const launchPackage = await parentDeployment.genLaunchPackage({
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
@@ -229,13 +230,13 @@ test('deployment by referral', loudAsync(async (t) => {
     _permalink: conf._permalink,
   })
 
-  // t.equal(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
-  t.equal(launchTemplate.template.Mappings.org.contact.adminEmail, conf.adminEmail)
-  // t.same(launchTemplate.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
+  // t.equal(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
+  t.equal(launchPackage.template.Mappings.org.contact.adminEmail, conf.adminEmail)
+  // t.same(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
   //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
   // })
 
-  const launchUrl = launchTemplate.url
+  const launchUrl = launchPackage.url
 
   // const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
   //   childDeploymentResource = res
