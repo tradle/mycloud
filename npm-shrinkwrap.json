@@ -1063,9 +1063,9 @@
       }
     },
     "aws-sdk": {
-      "version": "2.176.0",
-      "from": "aws-sdk@2.176.0",
-      "resolved": "https://registry.npmjs.org/aws-sdk/-/aws-sdk-2.176.0.tgz",
+      "version": "2.249.1",
+      "from": "aws-sdk@2.249.1",
+      "resolved": "https://registry.npmjs.org/aws-sdk/-/aws-sdk-2.249.1.tgz",
       "dev": true,
       "dependencies": {
         "base64-js": {
@@ -1078,6 +1078,12 @@
           "version": "4.9.1",
           "from": "buffer@4.9.1",
           "resolved": "https://registry.npmjs.org/buffer/-/buffer-4.9.1.tgz",
+          "dev": true
+        },
+        "ieee754": {
+          "version": "1.1.8",
+          "from": "ieee754@1.1.8",
+          "resolved": "https://registry.npmjs.org/ieee754/-/ieee754-1.1.8.tgz",
           "dev": true
         },
         "isarray": {
@@ -2632,12 +2638,6 @@
           "dev": true
         }
       }
-    },
-    "crypto-browserify": {
-      "version": "1.0.9",
-      "from": "crypto-browserify@1.0.9",
-      "resolved": "https://registry.npmjs.org/crypto-browserify/-/crypto-browserify-1.0.9.tgz",
-      "dev": true
     },
     "crypto-js": {
       "version": "3.1.8",
