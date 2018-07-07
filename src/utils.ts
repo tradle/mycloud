@@ -65,6 +65,7 @@ import {
   IBotMessageEvent,
   Bot,
   Seal,
+  StackStatus,
 } from './types'
 
 import * as types from './typeforce-types'
@@ -1464,4 +1465,25 @@ export const isWellBehavedIntersection = model => {
   // )
 
   // const props = vars.map()
+}
+
+export const parseStackStatusEvent = (event: any):StackStatus => {
+  // see src/test/fixtures/cloudformation-stack-status.json
+  const props = event.Records[0]['Sns'].Message.split('\n').reduce((map, line) => {
+    if (line.indexOf('=') === -1) {
+      return map
+    }
+
+    const [key, value] = line.replace(/[']/g, '').split('=')
+    map[key] = value
+    return map
+  }, {})
+
+  return {
+    stackId: props.StackId,
+    timestamp: new Date(props.Timestamp).getTime(),
+    status: props.ResourceStatus,
+    resourceType: props.ResourceType,
+    subscriptionArn: event.Records[0].EventSubscriptionArn,
+  }
 }

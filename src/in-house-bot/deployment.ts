@@ -1,8 +1,8 @@
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import { TYPE } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
+import { TYPE, unitToMillis } from '../constants'
 import { appLinks } from '../app-links'
 import {
   Env,
@@ -21,7 +21,8 @@ import {
   IOrganization,
   IDeploymentPluginConf,
   IConf,
-  IAppLinkSet
+  IAppLinkSet,
+  StackStatus,
 } from './types'
 
 import { media } from './media'
@@ -72,6 +73,11 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
 interface ICreateChildDeploymentOpts {
   configuration: ITradleObject
   deploymentUUID: string
+}
+
+enum StackOperationType {
+  create,
+  update
 }
 
 // interface IUpdateChildDeploymentOpts {
@@ -148,7 +154,7 @@ export class Deployment {
   //   }
   // }
 
-  public genLaunchTemplate = async (configuration: IDeploymentConf) => {
+  public genLaunchPackage = async (configuration: IDeploymentConf) => {
     const { stackUtils } = this.bot
     this.logger.silly('generating cloudformation template with configuration', configuration)
     const { template, url } = await stackUtils.createPublicTemplate(template => {
@@ -156,10 +162,13 @@ export class Deployment {
     })
 
     this.logger.debug('generated cloudformation template for child deployment')
-    const childDeployment = await this.createChildDeploymentResource({
-      configuration,
-      deploymentUUID: getDeploymentUUIDFromTemplate(template)
+    const deploymentUUID = getDeploymentUUIDFromTemplate(template)
+    const promiseTmpTopic = this.setupNotificationsForStack({
+      id: deploymentUUID,
+      type: StackOperationType.create
     })
+
+    const childDeployment = await this.createChildDeploymentResource({ configuration, deploymentUUID })
 
     // this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return {
@@ -168,7 +177,8 @@ export class Deployment {
         stackName: getStackNameFromTemplate(template),
         templateURL: url,
         region: configuration.region
-      })
+      }),
+      snsTopic: (await promiseTmpTopic).topic
     }
   }
 
@@ -201,7 +211,7 @@ export class Deployment {
       throw new Errors.NotFound('original configuration for child deployment not found')
     }
 
-    const result = await this.genUpdateTemplate({
+    const result = await this.genUpdatePackage({
       configuration,
       // deployment: childDeployment,
       stackId: stackId || childDeployment.stackId
@@ -214,7 +224,7 @@ export class Deployment {
     }
   }
 
-  public genUpdateTemplate = async ({ stackId, configuration }: {
+  public genUpdatePackage = async ({ stackId, configuration }: {
     stackId: string
     configuration?: IDeploymentConf
     // deployment:
@@ -225,7 +235,11 @@ export class Deployment {
 
     return {
       template,
-      url: utils.getUpdateStackUrl({ stackId, templateURL: url })
+      url: utils.getUpdateStackUrl({ stackId, templateURL: url }),
+      snsTopic: await this.setupNotificationsForStack({
+        id: stackId,
+        type: StackOperationType.update
+      })
     }
   }
 
@@ -375,7 +389,6 @@ ${this.genUsageInstructions(links)}`
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
-    debugger
     const botPermalink = buildResource.permalink(identity)
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
     try {
@@ -574,29 +587,74 @@ ${this.genUsageInstructions(links)}`
   //   this.bot.aws.cloudformation.
   // }
 
-  public subscribeToChildStackStatusNotifications = async ({
-    // childDeployment,
-    snsTopic
-  }: {
-    // childDeployment: any
-    snsTopic: string
+  public setupNotificationsForStack = async ({ id, type }: {
+    id: string
+    type: StackOperationType
   }) => {
-    const lambdaName = this.bot.env.getStackResourceName('onChildStackStatusChanged')
-    const lambdaArn = `arn:aws:lambda:${this.bot.env.REGION}:${this.bot.env.accountId}:lambda/${lambdaName}`
+    const verb = type === StackOperationType.create ? 'create' : 'update'
+    const { topic } = await this.genTmpSNSTopic(`tmp-${verb}-${id}`)
+    return await this.subscribeToChildStackStatusNotifications(topic)
+  }
+
+  public genTmpSNSTopic = async (topic: string) => {
+    const createTopic = this.bot.aws.sns.createTopic({
+      Name: topic
+    })
+
+    const createRecord = Promise.resolve()
+    // TODO: uncomment, setup delete job
+    // this.bot.db.put({
+    //   [TYPE]: 'tradle.TmpSNSTopic',
+    //   ttl: unitToMillis.day,
+    //   topic
+    // })
+
+    const [topicResult] = await Promise.all([createTopic, createRecord])
+    return topicResult.TopicArn
+  }
+
+  public subscribeToChildStackStatusNotifications = async (topic: string) => {
+    // TODO: this crap belongs in some aws utils module
+    const lambdaArn = this._getLambdaArn('onChildStackStatusChanged')
     const params = {
-      TopicArn: snsTopic,
+      TopicArn: topic,
       Protocol: 'lambda',
       Endpoint: lambdaArn
     }
 
-    await this.bot.aws.sns.subscribe(params).promise()
+    const { SubscriptionArn } = await this.bot.aws.sns.subscribe(params).promise()
+    return {
+      topic,
+      subscription: SubscriptionArn
+    }
   }
 
-  public onChildStackStatusChanged = async ({ stackId, status }: {
-    stackId: string
-    status: string
-  }) => {
+  public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatus) => {
     const childDeployment = await this.getChildDeploymentByStackId(stackId)
+    const statusResource = await this.bot.draft({
+        type: 'tradle.cloud.ChildDeploymentStatus'
+      })
+      .set({
+        status,
+        deployment: childDeployment
+      })
+      .signAndSave()
+
+    if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
+      await this.unsubscribeFromTopic(subscriptionArn)
+    }
+
+    return statusResource
+  }
+
+  public unsubscribeFromTopic = async (SubscriptionArn: string) => {
+    await this.bot.aws.sns.unsubscribe({ SubscriptionArn })
+  }
+
+  private _getLambdaArn = (lambdaShortName: string) => {
+    const { env } = this.bot
+    const lambdaName = env.getStackResourceName(lambdaShortName)
+    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:lambda/${lambdaName}`
   }
 }
 

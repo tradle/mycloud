@@ -59,6 +59,7 @@ export enum EventSource {
   CLOUDFORMATION='cloudformation',
   SCHEDULE='schedule',
   S3='s3',
+  SNS='sns',
   CLI='cli'
 }
 
@@ -69,6 +70,7 @@ export const fromSchedule = (opts={}) => new Lambda({ ...opts, source: EventSour
 export const fromCloudFormation = (opts={}) => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
 export const fromLambda = (opts={}) => new Lambda({ ...opts, source: EventSource.LAMBDA })
 export const fromS3 = (opts={}) => new Lambda({ ...opts, source: EventSource.S3 })
+export const fromSNS = (opts={}) => new Lambda({ ...opts, source: EventSource.SNS })
 export const fromCli = (opts={}) => new Lambda({ ...opts, source: EventSource.CLI })
 
 export class Lambda extends EventEmitter {

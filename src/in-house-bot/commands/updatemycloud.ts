@@ -50,7 +50,7 @@ export const command:ICommand = {
     }
 
     const configuration = <IDeploymentConf>{ adminEmail }
-    return deployment.genUpdateTemplate({ stackId, configuration })
+    return deployment.genUpdatePackage({ stackId, configuration })
   },
   sendResult: async ({ commander, req, to, args, result }) => {
     const { bot, logger } = this
