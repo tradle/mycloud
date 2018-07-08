@@ -11,6 +11,31 @@ import { timeMethods, isPromise, batchProcess, gzip, gunzip, isLocalHost, listIa
 
 const CRR_NAME = 'cross-region-replication-role'
 const CRR_POLICY = 'cross-region-replication-policy'
+// https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
+// IMPORTANT: DON'T CHANGE THE ORDER, ONLY APPEND TO THIS LIST!
+const REGIONS = [
+  'us-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+  'ca-central-1',
+  'ap-south-1',
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-northeast-3',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'cn-north-1',
+  'cn-northwest-1',
+  'eu-central-1',
+  'eu-west-1',
+  'eu-west-2',
+  'eu-west-3',
+  'sa-east-1',
+]
+
+// see name restrictions: https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
+const MAX_BUCKET_NAME_LENGTH = 63
 
 export default class S3Utils {
   public s3: S3
@@ -642,7 +667,23 @@ export default class S3Utils {
     }))
   }
 
-  public static getRegionalBucketName = ({ bucket, region }) => `${bucket}-${region}`
+  public static getRegionalBucketName = ({ bucket, region }) => {
+    const idx = REGIONS.indexOf(region)
+    if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
+
+    const idxStr = idx.toString(36) // 0-9, a-z
+    let name = `${bucket}-${idxStr}`
+    if (name.length > MAX_BUCKET_NAME_LENGTH) {
+      const hash = sha256(bucket, 'hex').slice(0, 6)
+      name = [
+        bucket.slice(0, MAX_BUCKET_NAME_LENGTH - hash.length - idxStr.length - 2), // 2 for two '-' chars
+        hash,
+        idxStr
+      ].join('-')
+    }
+
+    return name
+  }
 
   public getRegionalBucketForBucket = async ({ bucket, region }: {
     bucket: string
