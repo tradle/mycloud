@@ -41,7 +41,7 @@ export const command:ICommand = {
     }
 
     if (provider) {
-      const update = await deployment.createUpdate({
+      const update = await deployment.genUpdatePackage({
         createdBy: provider
       })
 
@@ -50,7 +50,7 @@ export const command:ICommand = {
     }
 
     const configuration = <IDeploymentConf>{ adminEmail }
-    return deployment.genUpdatePackage({ stackId, configuration })
+    return deployment.genUpdatePackageForStack({ stackId, configuration })
   },
   sendResult: async ({ commander, req, to, args, result }) => {
     const { bot, logger } = this

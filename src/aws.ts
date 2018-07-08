@@ -2,6 +2,7 @@ import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import { createConfig } from './aws-config'
 import { isXrayOn } from './utils'
+import { Env, Logger } from './types'
 
 const willUseXRay = isXrayOn()
 if (willUseXRay) {
@@ -12,6 +13,7 @@ if (willUseXRay) {
 export type AwsApis = {
   s3: AWS.S3,
   dynamodb: AWS.DynamoDB,
+  iam: AWS.IAM,
   iot: AWS.Iot,
   iotData: AWS.IotData,
   sts: AWS.STS,
@@ -28,7 +30,10 @@ export type AwsApis = {
   trace: any
 }
 
-export default function createAWSWrapper ({ env, logger }) {
+export default function createAWSWrapper ({ env, logger }: {
+  env: Env
+  logger: Logger
+}) {
   const AWS = willUseXRay
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
@@ -44,6 +49,7 @@ export default function createAWSWrapper ({ env, logger }) {
     dynamodb: 'DynamoDB',
     dynamodbStreams: 'DynamoDBStreams',
     docClient: 'DocumentClient',
+    iam: 'IAM',
     iot: 'Iot',
     sts: 'STS',
     sns: 'SNS',
@@ -98,6 +104,12 @@ export default function createAWSWrapper ({ env, logger }) {
                 ...conf
               })
             } else {
+              if (env.TESTING && !services[lServiceName]) {
+                // don't pretend to support it as this will result
+                // in calling the remote service!
+                return null
+              }
+
               service = new AWS[serviceName](conf)
             }
           }

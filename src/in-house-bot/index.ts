@@ -345,6 +345,12 @@ export const loadComponentsAndPlugins = ({
         }
       }
     })
+
+    bot.hookSimple(bot.events.topics.resource.delete, async ({ value }) => {
+      if (value[TYPE] === 'tradle.cloud.TmpSNSTopic') {
+        await components.deployment.deleteTmpSNSTopic(value.topic)
+      }
+    })
   }
 
   const promiseMyPermalink = bot.getMyPermalink()

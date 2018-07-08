@@ -19,10 +19,10 @@ const props = {
   IS_LOCAL: true
 }
 
-export const createTestEnv = () => {
+export const createTestEnv = (overrides={}) => {
   // important to import lazily
   const Env = require('../env').default
-  return new Env(props)
+  return new Env({ ...props, ...overrides })
 }
 
 export const install = (target=process.env):void => {

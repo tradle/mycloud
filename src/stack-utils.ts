@@ -451,17 +451,7 @@ export default class StackUtils {
       throw new Error('expected "template", "from", and "to"')
     }
 
-    const s3Keys = utils.traverse(template).reduce(function (s3Keys, value) {
-      if (this.key === 'S3Key') {
-        s3Keys.push({
-          path: this.path,
-          value
-        })
-      }
-
-      return s3Keys
-    }, [])
-
+    const s3Keys = StackUtils.getLambdaS3Keys(template)
     const fromRegex = new RegExp(from, 'g')
     const fromNoDashRegex = new RegExp(stripDashes(from), 'g')
     const toRegex = new RegExp(to, 'g')
@@ -472,6 +462,14 @@ export default class StackUtils {
     const result = JSON.parse(resultStr)
     s3Keys.forEach(({ path, value }) => _.set(result, path, value))
     return result
+  }
+
+  public static getLambdaS3Keys = (template: any) => {
+    return _.filter(template.Resources, value => value.Type === 'AWS::Lambda::Function')
+      .map((value, lambdaName) => ({
+        value: value.Properties.Code.S3Key,
+        path: `Resources['${lambdaName}'].Properties.Code.S3Key`
+      }))
   }
 
   public static changeRegion = ({ template, from, to }) => {
@@ -502,13 +500,7 @@ export default class StackUtils {
 
   public changeServiceName = StackUtils.changeServiceName
   public changeRegion = StackUtils.changeRegion
-
-  public getLambdaCodeS3Keys = (template: any):string[] => {
-    const keys = _.filter(template.Resources, value => value.Type === 'AWS::Lambda::Function')
-      .map(value => value.Properties.Code.S3Key)
-
-    return _.uniq(keys)
-  }
+  public getLambdaS3Keys = StackUtils.getLambdaS3Keys
 
   // public changeAdminEmail = StackUtils.changeAdminEmail
   private createDeployment = async () => {

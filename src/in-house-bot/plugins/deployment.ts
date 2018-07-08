@@ -153,13 +153,7 @@ export const updateConf = async ({ conf, pluginConf }: {
   if (!replication) return
 
   const { regions } = replication
-  const toCreate = regions
-    .filter(r => !r.bucket && r.createIfNotExists)
-    .map(r => r.region)
-
-  if (!toCreate.length) return
-
   const { bot, logger } = conf
-  const deployment = new Deployment({ bot, logger })
-  await deployment.createRegionalDeploymentBuckets({ regions: toCreate })
+  const deployment = createDeployment({ bot, logger })
+  await deployment.createRegionalDeploymentBuckets({ regions })
 }

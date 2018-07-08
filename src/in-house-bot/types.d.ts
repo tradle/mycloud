@@ -382,7 +382,8 @@ interface IDeploymentReplicationRegionConf {
 }
 
 export interface IDeploymentReplicationConf {
-  regions: IDeploymentReplicationRegionConf[]
+  regions: string[]
+  // regions: IDeploymentReplicationRegionConf[]
 }
 
 export interface IDeploymentPluginConf {

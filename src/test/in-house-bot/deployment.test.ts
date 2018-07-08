@@ -14,6 +14,8 @@ import { createTestBot } from '../../'
 import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models from '../../models'
 import { IMyDeploymentConf, IBotConf, ILaunchReportPayload, IConf } from '../../in-house-bot/types'
+import { createTestEnv } from '../env'
+import { S3Utils } from '../../s3-utils'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
@@ -22,23 +24,31 @@ test('deployment by referral', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const configuredBy = users[0].identity
   const senderEmail = 'sender@example.com'
+  const region = 'ap-southeast-2'
   const conf = {
     ...fake({
       models,
       model: models['tradle.cloud.Configuration'],
       signed: true
     }),
+    region: Deployment.encodeRegion(region),
     name: 'myorg',
     domain: 'example.com',
     adminEmail: 'admin@example.com',
     hrEmail: 'hr@example.com',
-    stackPrefix: 'mytradle'
+    stackPrefix: 'mytradle',
   }
 
   conf._author = users[0].link
 
   const parent = createTestBot()
-  const child = createTestBot()
+  const child = createTestBot({
+    env: createTestEnv({
+      AWS_REGION: region,
+      R_STACK: parent.stackUtils.thisStackId.replace(parent.env.AWS_REGION, region)
+    })
+  })
+
   const childUrl = 'childurl'
   child.serviceMap.RestApi.ApiGateway.url = childUrl
 
@@ -77,12 +87,13 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  let pubConfStub = sandbox.stub(parent.buckets.ServerlessDeployment, 'putJSON').callsFake(async (key, val) => {
-    debugger
+  let saveTemplateStub = sandbox.stub(parentDeployment, 'savePublicTemplate').callsFake(async ({ template, bucket }) => {
+    t.ok(bucket.endsWith(region))
+
     deploymentConf = {
       stackId: child.stackUtils.thisStackId,
-      ...val.Mappings.deployment.init,
-      ...val.Mappings.org.init,
+      ...template.Mappings.deployment.init,
+      ...template.Mappings.org.init,
       name: 'myorg',
       domain: 'mydomain',
       identity: childIdentity,
@@ -93,6 +104,8 @@ test('deployment by referral', loudAsync(async (t) => {
       ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'stage', 'service', 'stackName', 'logo']),
       org: _.pick(deploymentConf, ['name', 'domain'])
     }
+
+    return 'http://my.template.url'
   })
 
   const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate').resolves({
@@ -119,6 +132,17 @@ test('deployment by referral', loudAsync(async (t) => {
       "Initialize": {
         "Properties": {}
       },
+      "SomeLambdaFunction": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Code": {
+            "S3Bucket": {
+              "Ref": "ServerlessDeploymentBucket"
+            },
+            "S3Key": "path-to-lambda-code.zip"
+          }
+        }
+      },
       // "AwsAlertsAlarm": {
       //   "Type": "AWS::SNS::Topic",
       //   "Properties": {
@@ -132,6 +156,14 @@ test('deployment by referral', loudAsync(async (t) => {
       //   }
       // }
     }
+  })
+
+  const copyFiles = sandbox.stub(parent.buckets.ServerlessDeployment, 'copyFilesTo').callsFake(async ({
+    bucket,
+    keys
+  }) => {
+    t.ok(bucket.endsWith(region))
+    t.same(keys, ['path-to-lambda-code.zip'])
   })
 
   // const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate')
@@ -200,15 +232,12 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   let childDeploymentResource
-  const saveChildDeploymentStub = sandbox.stub(parent, 'save').callsFake(async resource => {
-    t.equal(resource[TYPE], 'tradle.cloud.ChildDeployment')
-    if (childDeploymentResource) {
-      t.equal(resource.apiUrl, childUrl)
-    } else {
-      t.ok(resource.deploymentUUID)
+  let topicResource
+  const saveResourceStub = sandbox.stub(parent, 'save').callsFake(async resource => {
+    if (resource[TYPE] === 'tradle.cloud.ChildDeployment') {
+      childDeploymentResource = resource
     }
 
-    childDeploymentResource = resource
     return resource
   })
 
@@ -217,16 +246,19 @@ test('deployment by referral', loudAsync(async (t) => {
     return childDeploymentResource
   })
 
-  debugger
+  await parentDeployment.deleteRegionalDeploymentBuckets({
+    regions: [region]
+  })
+
   await parentDeployment.createRegionalDeploymentBuckets({
-    regions: ['ap-southeast-2']
+    regions: [region]
   })
 
   const launchPackage = await parentDeployment.genLaunchPackage({
     name: 'testo',
     domain: 'testo.test',
     logo: 'somewhere/somelogo.png',
-    region: 'ap-southeast-2',
+    region,
     // configurationLink: conf._link,
     stackPrefix: conf.stackPrefix,
     adminEmail: conf.adminEmail,
@@ -236,15 +268,17 @@ test('deployment by referral', loudAsync(async (t) => {
     _permalink: conf._permalink,
   })
 
+  t.equal(copyFiles.callCount, 1)
   // t.equal(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
   t.equal(launchPackage.template.Mappings.org.contact.adminEmail, conf.adminEmail)
   // t.same(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
   //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
   // })
 
+
   const launchUrl = launchPackage.url
 
-  // const saveChildDeploymentStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
+  // const saveResourceStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
   //   childDeploymentResource = res
   // })
 
@@ -288,25 +322,53 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(sendStub.getCall(0).args[0].to.id, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
-  t.equal(saveChildDeploymentStub.callCount, 2)
-  t.equal(childDeploymentResource.deploymentUUID, deploymentConf.deploymentUUID)
+
+  t.equal(saveResourceStub.callCount, 3)
+  const [
+    createTopic,
+    createChild,
+    updateChild,
+  ] = saveResourceStub.getCalls().map(call => call.args[0])
+
+  t.equal(createTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
+  t.equal(createChild[TYPE], 'tradle.cloud.ChildDeployment')
+  t.equal(createChild.deploymentUUID, deploymentConf.deploymentUUID)
+  t.equal(updateChild.apiUrl, childUrl)
 
   sandbox.stub(parent.db, 'findOne').resolves(childDeploymentResource)
 
-  pubConfStub.restore()
-  pubConfStub = sandbox.stub(parent.buckets.PrivateConf, 'putJSON').callsFake(async (key, template) => {
+  saveTemplateStub.callsFake(async ({ template, bucket }) => {
+    t.ok(bucket.endsWith(region))
     t.equal(template.Mappings.org.contact.adminEmail, conf.adminEmail)
   })
 
-  const { url } = await parentDeployment.createUpdate({
+  saveResourceStub.reset()
+
+  const { url } = await parentDeployment.genUpdatePackage({
     createdBy: childIdentity._permalink
   })
+
+  t.equal(copyFiles.callCount, 2)
+
+  const [
+    updateTopic,
+  ] = saveResourceStub.getCalls().map(call => call.args[0])
+
+  t.equal(updateTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
+
 
   // console.log(parentDeployment.genLaunchEmailBody({ launchUrl }))
   // console.log('OIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIO')
   // console.log(parentDeployment.genLaunchedEmailBody({ launchUrl }))
 
-  t.equal(pubConfStub.callCount, 1)
+  t.equal(saveTemplateStub.callCount, 2)
+
+  // const deleteTmpSpy = sandbox.spy(parentDeployment, 'deleteTmpSNSTopic')
+  // await parent.db.del(createTopic)
+  // t.equal(deleteTmpSpy.callCount, 1)
+
+  // await parentDeployment.deleteTmpSNSTopic(createTopic.topic)
+
   sandbox.restore()
   t.end()
 }))

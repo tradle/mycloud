@@ -463,6 +463,16 @@ provider:
         - s3:ListAllMyBuckets
       Resource: "arn:aws:s3:::*"
 
+    - Effect: Allow
+      Action:
+        - s3:PutBucketReplication
+      Resource:
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
+            - "/*"
+
     # allow lambdas to call each other
     # TODO: make this more fine grained
     - Effect: Allow

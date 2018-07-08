@@ -1467,7 +1467,7 @@ export const isWellBehavedIntersection = model => {
   // const props = vars.map()
 }
 
-export const parseStackStatusEvent = (event: any):StackStatus => {
+export const parseStackStatusEvent = (event: any): StackStatus => {
   // see src/test/fixtures/cloudformation-stack-status.json
   const props = event.Records[0]['Sns'].Message.split('\n').reduce((map, line) => {
     if (line.indexOf('=') === -1) {
@@ -1486,4 +1486,19 @@ export const parseStackStatusEvent = (event: any):StackStatus => {
     resourceType: props.ResourceType,
     subscriptionArn: event.Records[0].EventSubscriptionArn,
   }
+}
+
+export const listIamRoles = async (iam: AWS.IAM) => {
+  const params:AWS.IAM.ListRolesRequest = {}
+  let roles:AWS.IAM.Role[] = []
+  let batch:AWS.IAM.ListRolesResponse
+  while (true) {
+    batch = await iam.listRoles(params).promise()
+    roles = roles.concat(batch.Roles)
+    if (!batch.Marker) break
+
+    params.Marker = batch.Marker
+  }
+
+  return roles
 }

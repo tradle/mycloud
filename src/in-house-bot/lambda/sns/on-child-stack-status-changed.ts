@@ -4,6 +4,7 @@ import { fromSNS } from '../../lambda'
 import { configureLambda } from '../../'
 import * as LambdaEvents from '../../lambda-events'
 import { parseStackStatusEvent } from '../../../utils'
+import Errors from '../../../errors'
 
 const bot = createBot()
 const lambda = fromSNS({ bot, event: 'confirmation' })
@@ -19,7 +20,13 @@ lambda.use(async (ctx) => {
     return
   }
 
-  await deployment.setChildStackStatus(parsed)
+  try {
+    await deployment.setChildStackStatus(parsed)
+  } catch (err) {
+    Errors.ignoreNotFound(err)
+    ctx.status = 400
+    ctx.body = { message: 'invalid notification' }
+  }
 })
 
 export const handler = lambda.handler

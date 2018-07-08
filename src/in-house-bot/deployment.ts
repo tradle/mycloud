@@ -8,7 +8,6 @@ import { appLinks } from '../app-links'
 import {
   Env,
   Bot,
-  Bucket,
   Logger,
   ITradleObject,
   IIdentity,
@@ -26,6 +25,7 @@ import {
   StackStatus,
 } from './types'
 
+import { Bucket } from '../bucket'
 import { media } from './media'
 import Errors from '../errors'
 import { getFaviconUrl } from './image-utils'
@@ -33,11 +33,14 @@ import * as utils from '../utils'
 import * as Templates from './templates'
 import { getAppLinks, getAppLinksInstructions, isEmployee } from './utils'
 
+const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const CONFIGURATION = 'tradle.cloud.Configuration'
 const AWS_REGION = 'tradle.cloud.AWSRegion'
+const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
+const UPDATE_REQUEST_TTL = 10 * unitToMillis.minute
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
   template: 'action',
   data: {
@@ -74,6 +77,10 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
 interface ICreateChildDeploymentOpts {
   configuration: ITradleObject
   deploymentUUID: string
+}
+
+interface ITmpTopicResource extends ITradleObject {
+  topic: string
 }
 
 enum StackOperationType {
@@ -165,7 +172,7 @@ export class Deployment {
     ])
 
     const template = await this.customizeTemplateForLaunch({ template: baseTemplate, configuration, bucket })
-    const url = await this.savePublicTemplate({ bucket, template })
+    const url = await this.saveTemplateAndCode({ template, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
@@ -188,9 +195,9 @@ export class Deployment {
     }
   }
 
-  public createUpdate = async ({ createdBy, configuredBy, childDeploymentLink, stackId }: {
+  public genUpdatePackage = async ({ createdBy, configuredBy, childDeploymentLink, stackId }: {
     childDeploymentLink?: string
-    createdBy?:string
+    createdBy?: string
     configuredBy?: string
     stackId?: string
   }) => {
@@ -220,10 +227,10 @@ export class Deployment {
       throw new Errors.NotFound('original configuration for child deployment not found')
     }
 
-    const result = await this.genUpdatePackage({
-      configuration,
+    const result = await this.genUpdatePackageForStack({
       // deployment: childDeployment,
-      stackId: stackId || childDeployment.stackId
+      stackId: stackId || childDeployment.stackId,
+      configuration,
     })
 
     return {
@@ -233,50 +240,50 @@ export class Deployment {
     }
   }
 
-  public genUpdatePackage = async ({ stackId, configuration }: {
+  public genUpdatePackageForStack = async ({ stackId, configuration }: {
     stackId: string
     configuration?: IDeploymentConf
     // deployment:
   }) => {
-    const { region } = this.bot.stackUtils.parseStackArn(stackId)
+    const { region, accountId, name } = this.bot.stackUtils.parseStackArn(stackId)
     const [bucket, baseTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
       this.bot.stackUtils.getStackTemplate()
     ])
 
     const template = await this.customizeTemplateForUpdate({ template: baseTemplate, stackId, configuration, bucket })
-    const url = await this.savePublicTemplate({ bucket, template })
+    const url = await this.saveTemplateAndCode({ template, bucket })
     return {
       template,
       url: utils.getUpdateStackUrl({ stackId, templateURL: url }),
       snsTopic: await this.setupNotificationsForStack({
-        id: stackId,
+        id: `${accountId}-${name}`,
         type: StackOperationType.update
       })
     }
   }
 
-  public getChildDeploymentCreatedBy = async (createdBy: string):Promise<IDeploymentConf> => {
+  public getChildDeploymentCreatedBy = async (createdBy: string): Promise<IDeploymentConf> => {
     return await this.getChildDeploymentByProps({
       'identity._permalink': createdBy
     })
   }
 
-  public getChildDeploymentConfiguredBy = async (configuredBy: string):Promise<IDeploymentConf> => {
+  public getChildDeploymentConfiguredBy = async (configuredBy: string): Promise<IDeploymentConf> => {
     return await this.getChildDeploymentByProps({
       'configuredBy._permalink': configuredBy
     })
   }
 
-  public getChildDeploymentByStackId = async (stackId: string):Promise<IDeploymentConf> => {
+  public getChildDeploymentByStackId = async (stackId: string): Promise<IDeploymentConf> => {
     return await this.getChildDeploymentByProps({ stackId })
   }
 
-  public getChildDeploymentByDeploymentUUID = async (deploymentUUID: string):Promise<IDeploymentConf> => {
+  public getChildDeploymentByDeploymentUUID = async (deploymentUUID: string): Promise<IDeploymentConf> => {
     return await this.getChildDeploymentByProps({ deploymentUUID })
   }
 
-  public getChildDeploymentByProps = async (props):Promise<IDeploymentConf> => {
+  public getChildDeploymentByProps = async (props): Promise<IDeploymentConf> => {
     return await this.bot.db.findOne({
       orderBy: {
         property: '_time',
@@ -340,9 +347,9 @@ export class Deployment {
     })
 
     await this.bot.draft({
-        type: CHILD_DEPLOYMENT,
-        resource: childDeployment
-      })
+      type: CHILD_DEPLOYMENT,
+      resource: childDeployment
+    })
       .set({
         apiUrl,
         identity: friend.identity,
@@ -540,7 +547,7 @@ ${this.genUsageInstructions(links)}`
       throw new Errors.InvalidInput('expected "configuration" to have "adminEmail')
     }
 
-    const { service, stage, region } = this.bot.stackUtils.parseStackArn(stackId)
+    const { service, region } = this.bot.stackUtils.parseStackArn(stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
 
@@ -564,11 +571,11 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public getReportLaunchUrl = (referrerUrl:string=this.bot.apiBaseUrl) => {
+  public getReportLaunchUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
     return `${referrerUrl}/deployment-pingback`
   }
 
-  public getLogo = async (opts: { domain: string, logo?: string }):Promise<string|void> => {
+  public getLogo = async (opts: { domain: string, logo?: string }): Promise<string | void> => {
     const { domain, logo } = opts
     if (logo) return logo
 
@@ -585,15 +592,20 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public parseConfigurationForm = (form:ITradleObject):IDeploymentConf => {
+  public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
+  public encodeRegion = Deployment.encodeRegion
+  public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
+  public decodeRegion = Deployment.decodeRegion
+
+  public parseConfigurationForm = (form: ITradleObject): IDeploymentConf => {
     const region = utils.getEnumValueId({
       model: this.bot.models[AWS_REGION],
       value: form.region
-    }).replace(/[.]/g, '-')
+    })
 
     return <IDeploymentConf>{
       ...form,
-      region
+      region: this.decodeRegion(region)
     }
   }
 
@@ -608,26 +620,72 @@ ${this.genUsageInstructions(links)}`
     id: string
     type: StackOperationType
   }) => {
-    const verb = type === StackOperationType.create ? 'create' : 'update'
-    const { topic } = await this.genTmpSNSTopic(`tmp-${verb}-${id}`)
+    const name = getTmpSNSTopicName({ id, type })
+    const { topic } = await this.genTmpSNSTopic(name)
     return await this.subscribeToChildStackStatusNotifications(topic)
   }
 
-  public genTmpSNSTopic = async (topic: string) => {
-    const createTopic = this.bot.aws.sns.createTopic({
-      Name: topic
+  public genTmpSNSTopic = async (topic: string): Promise<ITmpTopicResource> => {
+    const arn = await this._createTopic(topic)
+    return await this.bot.signAndSave({
+      [TYPE]: TMP_SNS_TOPIC,
+      topic: arn,
+      dateExpires: Date.now() + TMP_SNS_TOPIC_TTL
+    })
+  }
+
+  public deleteTmpSNSTopic = async (topic: string) => {
+    const shortName = topic.split(/[/:]/).pop()
+    if (!shortName.startsWith('tmp-')) {
+      throw new Errors.InvalidInput(`expected tmp topic, got: ${topic}`)
+    }
+
+    this.logger.debug('unscribing, deleting tmp topic', { topic })
+    await this.unsubscribeFromTopic(topic)
+    await this.bot.aws.sns.deleteTopic({ TopicArn: topic }).promise()
+  }
+
+  public deleteExpiredTmpTopics = async () => {
+    const topics = await this.getExpiredTmpSNSTopics()
+    if (!topics.length) return []
+
+    await Promise.all(topics.map(topic => this.bot.db.del(topic)))
+    return topics
+  }
+
+  public getRecentlyExpiredTmpSNSTopics = async () => {
+    return this.getTmpSNSTopics({
+      GT: {
+        dateExpires: Date.now() - TMP_SNS_TOPIC_TTL
+      },
+      LT: {
+        dateExpires: Date.now()
+      }
+    })
+  }
+
+  public getExpiredTmpSNSTopics = async () => {
+    return this.getTmpSNSTopics({
+      LT: {
+        dateExpires: Date.now()
+      }
+    })
+  }
+
+  public getTmpSNSTopics = async (filter = {}) => {
+    const { items } = await this.bot.db.find({
+      orderBy: {
+        property: 'dateExpires',
+        desc: false
+      },
+      filter: _.merge({
+        EQ: {
+          [TYPE]: TMP_SNS_TOPIC
+        }
+      }, filter)
     })
 
-    const createRecord = Promise.resolve()
-    // TODO: uncomment, setup delete job
-    // this.bot.db.put({
-    //   [TYPE]: 'tradle.TmpSNSTopic',
-    //   ttl: unitToMillis.day,
-    //   topic
-    // })
-
-    const [topicResult] = await Promise.all([createTopic, createRecord])
-    return topicResult.TopicArn
+    return items
   }
 
   public subscribeToChildStackStatusNotifications = async (topic: string) => {
@@ -648,24 +706,25 @@ ${this.genUsageInstructions(links)}`
 
   public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatus) => {
     const childDeployment = await this.getChildDeploymentByStackId(stackId)
-    const statusResource = await this.bot.draft({
-        type: 'tradle.cloud.ChildDeploymentStatus'
-      })
-      .set({
-        status,
-        deployment: childDeployment
-      })
+    this.logger.debug('updating child deployment status', {
+      status,
+      childDeployment: childDeployment._permalink
+    })
+
+    const updated = await this.bot.draft({ resource: childDeployment })
+      .set({ status })
+      .version()
       .signAndSave()
 
     if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
       await this.unsubscribeFromTopic(subscriptionArn)
     }
 
-    return statusResource
+    return updated
   }
 
   public unsubscribeFromTopic = async (SubscriptionArn: string) => {
-    await this.bot.aws.sns.unsubscribe({ SubscriptionArn })
+    await this.bot.aws.sns.unsubscribe({ SubscriptionArn }).promise()
   }
 
   public getDeploymentBucketForRegion = async (region: string) => {
@@ -693,13 +752,154 @@ ${this.genUsageInstructions(links)}`
     return this.bot.s3Utils.getUrlForKey({ bucket, key })
   }
 
+  public copyLambdaCode = async ({ template, bucket }: {
+    template: any
+    bucket: string
+  }) => {
+    let keys:string[] = _.uniq(
+      this.bot.stackUtils.getLambdaS3Keys(template).map(k => k.value)
+    )
+
+    const source = this.bot.buckets.ServerlessDeployment
+    if (bucket === source.id) {
+      return
+    }
+
+    const target = this._bucket(bucket)
+    const exists = await Promise.all(keys.map(key => target.exists(key)))
+    keys = keys.filter((key, i) => !exists[i])
+
+    if (!keys.length) {
+      this.logger.debug('target bucket already has lambda code')
+      return
+    }
+
+    this.logger.debug('copying lambda code', {
+      source: source.id,
+      target: target.id
+    })
+
+    await source.copyFilesTo({ bucket, keys })
+  }
+
+  public saveTemplateAndCode = async ({ template, bucket }) => {
+    const [result] = await Promise.all([
+      this.savePublicTemplate({ bucket, template }),
+      this.copyLambdaCode({ bucket, template })
+    ])
+
+    return result
+  }
+
   public createRegionalDeploymentBuckets = async ({ regions }: {
     regions: string[]
   }) => {
     this.logger.debug('creating regional buckets', { regions })
-    await this.bot.s3Utils.createRegionalBuckets({
-      baseName: this.bot.buckets.ServerlessDeployment.baseName,
+    return await this.bot.s3Utils.createRegionalBuckets({
+      bucket: this.bot.buckets.ServerlessDeployment.id,
       regions
+    })
+  }
+
+  public deleteRegionalDeploymentBuckets = async ({ regions }: {
+    regions: string[]
+  }) => {
+    return await this.bot.s3Utils.deleteRegionalBuckets({
+      bucket: this.bot.buckets.ServerlessDeployment.id,
+      regions,
+      iam: this.bot.aws.iam
+    })
+  }
+
+  public updateOwnStack = async ({ templateURL, notificationTopics = [] }: {
+    templateURL: string
+    notificationTopics?: string[]
+  }) => {
+    const params: AWS.CloudFormation.UpdateStackInput = {
+      StackName: this.bot.stackUtils.thisStack.arn,
+      TemplateURL: templateURL,
+      Capabilities: [
+        'CAPABILITY_IAM',
+        'CAPABILITY_NAMED_IAM'
+      ],
+      Parameters: [],
+      NotificationARNs: notificationTopics,
+    }
+
+    this.logger.info('attempting to update this stack')
+    await utils.runWithTimeout(async () => {
+      return this.bot.aws.cloudformation.updateStack(params).promise()
+    }, {
+      get error() {
+        return new Errors.Timeout(`updateStack() timed out`)
+      },
+      millis: this.bot.env.getRemainingTime() - 1000,
+    })
+  }
+
+  public requestUpdate = async ({ friend }: {
+    friend: ITradleObject
+  }) => {
+    const { bot } = this
+    const { env } = bot
+    const updateReq = bot.draft({ type: 'tradle.cloud.UpdateRequest' })
+      .set({
+        service: env.SERVERLESS_SERVICE_NAME,
+        stage: env.SERVERLESS_STAGE,
+        region: env.AWS_REGION,
+        provider: friend.identity,
+      })
+      .toJSON()
+
+    await bot.send({
+      to: friend.identity,
+      object: updateReq
+    })
+  }
+
+  public handleUpdateResponse = async (updateResponse: ITradleObject) => {
+    let req: ITradleObject
+    try {
+      req = await this.lookupUpdateRequest(updateResponse._author)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      this.logger.warn('received stack update response...but no request was made, ignoring', {
+        from: updateResponse._author,
+        updateResponse: this.bot.buildStub(updateResponse)
+      })
+
+      throw err
+    }
+
+    if (req._time + UPDATE_REQUEST_TTL > Date.now()) {
+      const msg = 'received update response for expired request, ignoring'
+      this.logger.warn(msg, {
+        from: updateResponse._author,
+        updateResponse: this.bot.buildStub(updateResponse)
+      })
+
+      throw new Errors.Expired(msg)
+    }
+
+    const { templateURL, notificationTopics } = updateResponse
+    await this.updateOwnStack({
+      templateURL,
+      notificationTopics,
+    })
+  }
+
+  public lookupUpdateRequest = async (providerPermalink: string) => {
+    return await this.bot.db.findOne({
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: 'tradle.cloud.UpdateRequest',
+          'provider._permalink': providerPermalink
+        }
+      }
     })
   }
 
@@ -707,6 +907,22 @@ ${this.genUsageInstructions(links)}`
     const { env } = this.bot
     const lambdaName = env.getStackResourceName(lambdaShortName)
     return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:lambda/${lambdaName}`
+  }
+
+  private _createTopic = async (Name: string) => {
+    const { TopicArn } = await this.bot.aws.sns.createTopic({ Name }).promise()
+    return TopicArn
+  }
+
+  private _bucket = (name: string) => {
+    const { bot } = this
+    return new Bucket({
+      name,
+      env: bot.env,
+      s3: bot.aws.s3,
+      s3Utils: bot.s3Utils,
+      logger: bot.logger
+    })
   }
 }
 
@@ -731,4 +947,12 @@ const normalizeDomain = (domain:string) => {
   }
 
   return domain
+}
+
+const getTmpSNSTopicName = ({ id, type }: {
+  id: string
+  type: StackOperationType
+}) => {
+  const verb = type === StackOperationType.create ? 'create' : 'update'
+  return `tmp-${verb}-${id}`
 }
