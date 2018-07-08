@@ -73,7 +73,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     } catch (err) {
       logger.debug('failed to generate launch url', err)
       Errors.ignore(err, Errors.InvalidInput)
-      await this.productsAPI.requestEdit({
+      await productsAPI.requestEdit({
         req,
         item: deploymentOpts,
         details: {
