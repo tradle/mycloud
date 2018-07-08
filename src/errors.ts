@@ -215,7 +215,8 @@ const errors = {
   },
   ignore,
   rethrow,
-  matches
+  matches,
+  createClass: createError
 }
 
 export = errors

@@ -241,7 +241,12 @@ export class Applications {
   }
 
   public requestEdit = async (opts) => {
-    return await this.productsAPI.requestEdit(opts)
+    const { req={} } = opts
+    return await this.productsAPI.requestEdit({
+      ...opts,
+      application: opts.application || req.application,
+      applicant: opts.applicant || req.applicant,
+    })
   }
 
   public requestItem = async (opts) => {

@@ -1005,8 +1005,8 @@ functions:
     handler: lib/in-house-bot/lambda/sns/on-child-stack-status-changed.handler
     # events added dynamically in "deployment.subscribeToChildStackStatusNotifications"
 
-  updateStack:
-    handler: lib/in-house-bot/lambda/update-stack.handler
+  # updateStack:
+  #   handler: lib/in-house-bot/lambda/update-stack.handler
 
   # webhooks:
   #   handler: lib/in-house-bot/lambda/webhooks.handler

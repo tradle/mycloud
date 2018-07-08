@@ -31,7 +31,7 @@ export interface IDeploymentPluginOpts extends IPluginOpts {
 }
 
 export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger }:IDeploymentPluginOpts) => {
-  const { bot, productsAPI, employeeManager } = components
+  const { bot, applications, productsAPI, employeeManager } = components
   const orgConf = components.conf
   const { org } = orgConf
   const deployment = createDeployment({
@@ -73,7 +73,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     } catch (err) {
       logger.debug('failed to generate launch url', err)
       Errors.ignore(err, Errors.InvalidInput)
-      await productsAPI.requestEdit({
+      await applications.requestEdit({
         req,
         item: deploymentOpts,
         details: {

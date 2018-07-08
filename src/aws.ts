@@ -10,6 +10,11 @@ if (willUseXRay) {
   AWSXRay.captureHTTPsGlobal(require('http'))
 }
 
+const MOCKED_SEPARATELY = {
+  kms: true,
+  iot: true
+}
+
 export type AwsApis = {
   s3: AWS.S3,
   dynamodb: AWS.DynamoDB,
@@ -104,7 +109,7 @@ export default function createAWSWrapper ({ env, logger }: {
                 ...conf
               })
             } else {
-              if (env.TESTING && !services[lServiceName] && lServiceName !== 'iot') {
+              if (env.TESTING && !services[lServiceName] && !MOCKED_SEPARATELY[lServiceName]) {
                 // don't pretend to support it as this will result
                 // in calling the remote service!
                 return null
