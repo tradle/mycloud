@@ -149,8 +149,15 @@ class CentrixAPI {
       form,
       message
     }
-    if (rawData)
+    // debugger
+    if (rawData) {
       r.rawData = rawData
+      const { ResponseDetails } = rawData
+      if (ResponseDetails) {
+        if (ResponseDetails.EnquiryNumber)
+          r.providerReferenceNumber = ResponseDetails.EnquiryNumber
+      }
+    }
     const check = await this.bot.draft({
         type: CENTRIX_CHECK,
       })

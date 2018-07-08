@@ -245,9 +245,12 @@ class ComplyAdvantageAPI {
     resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
     if (status.message)
       resource.resultDetails = status.message
-    if (rawData  &&  rawData.share_url) {
+    if (rawData) {
       resource.rawData = rawData
-      resource.shareUrl = rawData.share_url
+      if (rawData.share_url)
+        resource.shareUrl = rawData.share_url
+      if (rawData.ref)
+        resource.providerReferenceNumber = rawData.ref
     }
 
     this.logger.debug(`Creating SanctionsCheck for: ${rawData.submitted_term}`);
