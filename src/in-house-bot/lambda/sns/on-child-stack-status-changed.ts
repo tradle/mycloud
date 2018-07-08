@@ -1,17 +1,17 @@
 import { createBot } from '../../../'
 import { fromSNS } from '../../lambda'
-// import { createLambda } from '../../../in-house-bot/middleware/confirmation'
-import { configureLambda } from '../../'
 import * as LambdaEvents from '../../lambda-events'
 import { parseStackStatusEvent } from '../../../utils'
 import Errors from '../../../errors'
+import {
+  IPBMiddlewareContext
+} from '../../types'
 
 const bot = createBot()
-const lambda = fromSNS({ bot, event: 'confirmation' })
-const promiseComponents = configureLambda({ lambda, event: LambdaEvents.CHILD_STACK_STATUS_CHANGED })
-lambda.use(async (ctx) => {
-  const { deployment } = await promiseComponents
-  const { event } = ctx
+const lambda = fromSNS({ bot, event: LambdaEvents.CHILD_STACK_STATUS_CHANGED })
+lambda.use(async (ctx:IPBMiddlewareContext) => {
+  const { event, components } = ctx
+  const { deployment } = components
   let parsed
   try {
     parsed = parseStackStatusEvent(event)
@@ -24,8 +24,6 @@ lambda.use(async (ctx) => {
     await deployment.setChildStackStatus(parsed)
   } catch (err) {
     Errors.ignoreNotFound(err)
-    ctx.status = 400
-    ctx.body = { message: 'invalid notification' }
   }
 })
 

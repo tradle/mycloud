@@ -188,7 +188,7 @@ export class Deployment {
       template,
       url: stackUtils.getLaunchStackUrl({
         stackName: getStackNameFromTemplate(template),
-        templateURL: url,
+        templateUrl: url,
         region: configuration.region
       }),
       snsTopic: (await promiseTmpTopic).topic
@@ -255,7 +255,7 @@ export class Deployment {
     const url = await this.saveTemplateAndCode({ template, bucket })
     return {
       template,
-      url: utils.getUpdateStackUrl({ stackId, templateURL: url }),
+      url: utils.getUpdateStackUrl({ stackId, templateUrl: url }),
       snsTopic: await this.setupNotificationsForStack({
         id: `${accountId}-${name}`,
         type: StackOperationType.update
@@ -811,13 +811,13 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public updateOwnStack = async ({ templateURL, notificationTopics = [] }: {
-    templateURL: string
+  public updateOwnStack = async ({ templateUrl, notificationTopics = [] }: {
+    templateUrl: string
     notificationTopics?: string[]
   }) => {
     const params: AWS.CloudFormation.UpdateStackInput = {
       StackName: this.bot.stackUtils.thisStack.arn,
-      TemplateURL: templateURL,
+      TemplateURL: templateUrl,
       Capabilities: [
         'CAPABILITY_IAM',
         'CAPABILITY_NAMED_IAM'
@@ -881,10 +881,12 @@ ${this.genUsageInstructions(links)}`
       throw new Errors.Expired(msg)
     }
 
-    const { templateURL, notificationTopics } = updateResponse
-    await this.updateOwnStack({
-      templateURL,
-      notificationTopics,
+    const { templateUrl, notificationTopics } = updateResponse
+    await this.bot.lambdaUtils.invoke({
+      name: 'cli',
+      arg: `--template-url "${templateUrl}" --notification-topics "${notificationTopics.join(',')}"`,
+      // don't wait
+      sync: false
     })
   }
 

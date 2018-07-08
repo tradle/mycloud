@@ -600,10 +600,10 @@ const zeroPad = (n, digits) => {
 export const getLaunchStackUrl = ({
   region=process.env.AWS_REGION,
   stackName,
-  templateURL,
+  templateUrl,
   quickLink=true
 }: ILaunchStackUrlOpts) => {
-  const qs = querystring.stringify(pickNonNull({ stackName, templateURL }))
+  const qs = querystring.stringify(pickNonNull({ stackName, templateUrl }))
   const path = quickLink ? 'stacks/create/review' : 'stacks/new'
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/${path}?${qs}`
 }
@@ -617,9 +617,9 @@ export const parseLaunchStackUrl = (url: string) => {
 
 export const getUpdateStackUrl = ({
   stackId,
-  templateURL
+  templateUrl
 }: IUpdateStackUrlOpts) => {
-  const qs = querystring.stringify(pickNonNull({ stackId, templateURL }))
+  const qs = querystring.stringify(pickNonNull({ stackId, templateUrl }))
   const path = 'stack/update'
   return `${LAUNCH_STACK_BASE_URL}#/${path}?${qs}`
 }

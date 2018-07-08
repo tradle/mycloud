@@ -452,7 +452,7 @@ export type IServiceMap = {
 export interface ILaunchStackUrlOpts {
   region: string
   stackName: string
-  templateURL?: string
+  templateUrl?: string
   quickLink?: boolean
 }
 
@@ -460,7 +460,7 @@ export interface IUpdateStackUrlOpts {
   region?: string
   stackId?: string
   stackName?: string
-  templateURL: string
+  templateUrl: string
 }
 
 export interface ISaveObjectOpts {

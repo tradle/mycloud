@@ -147,13 +147,13 @@ export default class StackUtils {
   }
 
   public getLaunchStackUrl = (opts: Partial<ILaunchStackUrlOpts>) => {
-    const { templateURL, ...rest } = opts
-    if (!templateURL) throw new Errors.InvalidInput('expected "templateURL"')
+    const { templateUrl, ...rest } = opts
+    if (!templateUrl) throw new Errors.InvalidInput('expected "templateUrl"')
 
     return utils.getLaunchStackUrl({
       region: this.env.AWS_REGION,
       stackName: this.thisStackName,
-      templateURL,
+      templateUrl,
       ...rest
     })
   }
@@ -162,7 +162,7 @@ export default class StackUtils {
     region=this.env.AWS_REGION,
     stackName=this.thisStackName,
     stackId=this.thisStackId,
-    templateURL
+    templateUrl
   }: IUpdateStackUrlOpts) => {
     if (!stackId) {
       const stacks = await this.listStacks()
@@ -176,7 +176,7 @@ export default class StackUtils {
 
     return utils.getUpdateStackUrl({
       stackId,
-      templateURL
+      templateUrl
     })
   }
 
