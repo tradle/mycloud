@@ -16,6 +16,7 @@ import models from '../../models'
 import { IMyDeploymentConf, IBotConf, ILaunchReportPayload, IConf } from '../../in-house-bot/types'
 import { createTestEnv } from '../env'
 import { S3Utils } from '../../s3-utils'
+import parseArgs from 'yargs-parser'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
@@ -69,10 +70,17 @@ test('deployment by referral', loudAsync(async (t) => {
     logger: child.logger.sub('deployment:test:child')
   })
 
-  const childIdentity = await child.getMyIdentity()
+  const [
+    childIdentity,
+    parentIdentity
+  ] = await Promise.all([
+    child.getMyIdentity(),
+    parent.getMyIdentity()
+  ])
+
   // const kv = {}
   sandbox.stub(parent, 'getPermalink').resolves('abc')
-  const sendStub = sandbox.stub(parent, 'send').resolves({})
+  const parentSendStub = sandbox.stub(parent, 'send').resolves({})
 
   // sandbox.stub(parentDeployment.kv, 'put').callsFake(async (key, value) => {
   //   t.equal(value.link, conf._link)
@@ -208,6 +216,12 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const childLoadFriendStub = sandbox.stub(child.friends, 'load').callsFake(async ({ url }) => {
     t.equal(url, parent.apiBaseUrl)
+    return {
+      _permalink: 'abc',
+      _link: 'abc',
+      [TYPE]: 'tradle.MyCloudFriend',
+      identity: buildResource.stub({ resource: parentIdentity })
+    }
   })
 
   const parentAddFriendStub = sandbox.stub(parent.friends, 'add').callsFake(async ({ url }) => {
@@ -319,7 +333,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   t.equal(postStub.callCount, 1)
   t.same(sentEmails.sort(), [conf.adminEmail, conf.hrEmail].sort())
-  t.equal(sendStub.getCall(0).args[0].to.id, conf._author)
+  t.equal(parentSendStub.getCall(0).args[0].to.id, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
 
@@ -344,9 +358,32 @@ test('deployment by referral', loudAsync(async (t) => {
 
   saveResourceStub.reset()
 
-  const { url } = await parentDeployment.genUpdatePackage({
-    createdBy: childIdentity._permalink
+  const updateReq = await child.sign(childDeployment.createUpdateRequestResource({
+    [TYPE]: 'tradle.cloud.ParentDeployment',
+    parentIdentity: child.buildStub(parentIdentity),
+    childIdentity: child.buildStub(childIdentity),
+  }))
+
+  let updateResponse
+  const { url } = await parentDeployment.handleUpdateRequest({
+    from: childIdentity,
+    req: updateReq
   })
+
+  updateResponse = getLastCallArgs(parentSendStub).object
+  t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')
+
+  const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
+    t.equal(name, 'cli')
+    t.equal(parseArgs(arg).templateUrl, url)
+  })
+
+  const stubLookupRequest = sandbox.stub(childDeployment, 'lookupUpdateRequest').resolves(updateReq)
+  await childDeployment.handleUpdateResponse(updateResponse)
+
+  // const { url } = await parentDeployment.genUpdatePackage({
+  //   createdBy: childIdentity._permalink
+  // })
 
   t.equal(copyFiles.callCount, 2)
 
@@ -372,3 +409,7 @@ test('deployment by referral', loudAsync(async (t) => {
   sandbox.restore()
   t.end()
 }))
+
+const getLastCallArgs = (stub: sinon.SinonStub) => {
+  return stub.getCall(stub.callCount - 1).args[0]
+}

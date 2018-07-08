@@ -104,7 +104,7 @@ export default function createAWSWrapper ({ env, logger }: {
                 ...conf
               })
             } else {
-              if (env.TESTING && !services[lServiceName]) {
+              if (env.TESTING && !services[lServiceName] && lServiceName !== 'iot') {
                 // don't pretend to support it as this will result
                 // in calling the remote service!
                 return null

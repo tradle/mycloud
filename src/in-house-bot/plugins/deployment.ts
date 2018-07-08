@@ -12,6 +12,7 @@ import {
   IDeploymentConf,
   IDeploymentPluginConf,
   ITradleObject,
+  IPBReq,
   Conf
 } from '../types'
 
@@ -124,7 +125,12 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
   return {
     api: deployment,
     plugin: {
-      onFormsCollected
+      onFormsCollected,
+      'onmessage:tradle.cloud.UpdateRequest': (req: IPBReq) => deployment.handleUpdateRequest({
+        req: req.payload,
+        from: req.user
+      }),
+      'onmessage:tradle.cloud.UpdateResponse': (req: IPBReq) => deployment.handleUpdateResponse(req.payload),
     }
   }
 }

@@ -24,6 +24,7 @@ import { command as setenvvar } from './setenvvar'
 import { command as doctor } from './doctor'
 import { command as balance } from './balance'
 import { command as reindex } from './reindex'
+import { command as updatestack } from './updatestack'
 
 export {
   help,
@@ -52,4 +53,5 @@ export {
   doctor,
   balance,
   reindex,
+  updatestack,
 }

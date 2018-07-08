@@ -27,7 +27,7 @@ export default class S3Utils {
   }
 
   public get publicFacingHost() {
-    return this.env.S3_PUBLIC_FACING_HOST
+    return this.env && this.env.TESTING && this.env.S3_PUBLIC_FACING_HOST
   }
 
   private get replicationAvailable() {
@@ -37,11 +37,11 @@ export default class S3Utils {
 
   private get iamAvailable() {
     // localstack doesn't have IAM
-    return !this.env.TESTING
+    return this.env && !this.env.TESTING
   }
 
   private get versioningAvailable() {
-    return !this.env.TESTING
+    return this.env && !this.env.TESTING
   }
 
   public put = async ({ key, value, bucket, headers = {}, publicRead }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
@@ -289,7 +289,7 @@ export default class S3Utils {
       Key: key
     })
 
-    if (this.env && this.env.TESTING && this.publicFacingHost) {
+    if (this.publicFacingHost) {
       return url.replace(this.s3.config.endpoint, this.publicFacingHost)
     }
 

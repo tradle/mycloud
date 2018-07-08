@@ -85,6 +85,7 @@ export const SUDO_ONLY_COMMANDS = [
   'doctor',
   'balance',
   'reindex',
+  'updatestack',
   // 'encryptbucket',
   // 'enablebinary'
 ]

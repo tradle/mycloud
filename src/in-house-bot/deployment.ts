@@ -37,9 +37,12 @@ const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
+const PARENT_DEPLOYMENT = 'tradle.cloud.ParentDeployment'
 const CONFIGURATION = 'tradle.cloud.Configuration'
 const AWS_REGION = 'tradle.cloud.AWSRegion'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
+const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 const UPDATE_REQUEST_TTL = 10 * unitToMillis.minute
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
   template: 'action',
@@ -256,10 +259,10 @@ export class Deployment {
     return {
       template,
       url: utils.getUpdateStackUrl({ stackId, templateUrl: url }),
-      snsTopic: await this.setupNotificationsForStack({
+      snsTopic: (await this.setupNotificationsForStack({
         id: `${accountId}-${name}`,
         type: StackOperationType.update
-      })
+      })).topic
     }
   }
 
@@ -298,16 +301,42 @@ export class Deployment {
     })
   }
 
+  public getParentDeployment = async (): Promise<ITradleObject> => {
+    return await this.bot.db.findOne({
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: CONFIGURATION,
+          'childIdentity._permalink': await this.bot.getMyPermalink()
+        }
+      }
+    })
+  }
+
   public reportLaunch = async ({ org, identity, referrerUrl, deploymentUUID }: {
     org: IOrganization
     identity: IIdentity
     referrerUrl: string
     deploymentUUID: string
   }) => {
+    let saveParentDeployment
     try {
-      await utils.runWithTimeout(() => this.bot.friends.load({ url: referrerUrl }), { millis: 10000 })
+      const friend = await utils.runWithTimeout(
+        () => this.bot.friends.load({ url: referrerUrl }),
+        { millis: 20000 }
+      )
+
+      saveParentDeployment = this.saveParentDeployment({
+        friend,
+        apiUrl: referrerUrl,
+        childIdentity: identity
+      })
     } catch (err) {
       this.logger.error('failed to add referring MyCloud as friend', err)
+      saveParentDeployment = Promise.resolve()
     }
 
     const reportLaunchUrl = this.getReportLaunchUrl(referrerUrl)
@@ -325,6 +354,8 @@ export class Deployment {
       Errors.rethrow(err, 'developer')
       this.logger.error(`failed to notify referrer at: ${referrerUrl}`, err)
     }
+
+    await saveParentDeployment
   }
 
   public receiveLaunchReport = async (report: ILaunchReportPayload) => {
@@ -347,9 +378,9 @@ export class Deployment {
     })
 
     await this.bot.draft({
-      type: CHILD_DEPLOYMENT,
-      resource: childDeployment
-    })
+        type: CHILD_DEPLOYMENT,
+        resource: childDeployment
+      })
       .set({
         apiUrl,
         identity: friend.identity,
@@ -372,6 +403,21 @@ export class Deployment {
       .signAndSave()
 
     return resource.toJSON()
+  }
+
+  public saveParentDeployment = async ({ friend, childIdentity, apiUrl }: {
+    friend: ITradleObject
+    childIdentity: ITradleObject
+    apiUrl: string
+  }) => {
+    return await this.bot.draft({ type: PARENT_DEPLOYMENT })
+      .set({
+        childIdentity,
+        parentIdentity: friend.identity,
+        friend,
+        apiUrl
+      })
+      .signAndSave()
   }
 
   public notifyConfigurer = async ({ configurer, links }: {
@@ -837,60 +883,81 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public requestUpdate = async ({ friend }: {
-    friend: ITradleObject
-  }) => {
-    const { bot } = this
-    const { env } = bot
-    const updateReq = bot.draft({ type: 'tradle.cloud.UpdateRequest' })
-      .set({
-        service: env.SERVERLESS_SERVICE_NAME,
-        stage: env.SERVERLESS_STAGE,
-        region: env.AWS_REGION,
-        provider: friend.identity,
-      })
-      .toJSON()
+  public requestUpdate = async () => {
+    const parent = await this.getParentDeployment()
+    return this.requestUpdateFromParent(parent)
+  }
 
-    await bot.send({
-      to: friend.identity,
+  public requestUpdateFromParent = async (parent: ITradleObject) => {
+    const updateReq = this.createUpdateRequestResource(parent)
+    await this.bot.send({
+      to: parent.parentIdentity._permalink,
       object: updateReq
     })
   }
 
+  public createUpdateRequestResource = (parent: ITradleObject) => {
+    if (parent[TYPE] !== PARENT_DEPLOYMENT) {
+      throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
+    }
+
+    const { parentIdentity } = parent
+    const { env } = this.bot
+    return this.bot.draft({ type: UPDATE_REQUEST })
+      .set({
+        service: env.SERVERLESS_SERVICE_NAME,
+        stage: env.SERVERLESS_STAGE,
+        region: env.AWS_REGION,
+        provider: parentIdentity,
+      })
+      .toJSON()
+  }
+
+  public handleUpdateRequest = async ({ req, from }: {
+    req: ITradleObject
+    from: ITradleObject
+  }) => {
+    if (req._author !== buildResource.permalink(from)) {
+      throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
+    }
+
+    const pkg = await this.genUpdatePackage({
+      createdBy: req._author
+    })
+
+    const { snsTopic, url } = pkg
+    await this.bot.send({
+      to: req._author,
+      object: await this.bot.draft({ type: UPDATE_RESPONSE })
+        .set({
+          templateUrl: url,
+          notificationTopics: snsTopic,
+          request: req,
+          provider: from
+        })
+        .sign()
+        .then(r => r.toJSON())
+    })
+
+    return pkg
+  }
+
   public handleUpdateResponse = async (updateResponse: ITradleObject) => {
-    let req: ITradleObject
-    try {
-      req = await this.lookupUpdateRequest(updateResponse._author)
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-      this.logger.warn('received stack update response...but no request was made, ignoring', {
-        from: updateResponse._author,
-        updateResponse: this.bot.buildStub(updateResponse)
-      })
-
-      throw err
-    }
-
-    if (req._time + UPDATE_REQUEST_TTL > Date.now()) {
-      const msg = 'received update response for expired request, ignoring'
-      this.logger.warn(msg, {
-        from: updateResponse._author,
-        updateResponse: this.bot.buildStub(updateResponse)
-      })
-
-      throw new Errors.Expired(msg)
-    }
-
+    await this._validateUpdateResponse(updateResponse)
     const { templateUrl, notificationTopics } = updateResponse
     await this.bot.lambdaUtils.invoke({
       name: 'cli',
-      arg: `--template-url "${templateUrl}" --notification-topics "${notificationTopics.join(',')}"`,
-      // don't wait
+      arg: `--template-url "${templateUrl}" --notification-topics "${notificationTopics}"`,
+      // don't wait for this to finish
       sync: false
     })
   }
 
   public lookupUpdateRequest = async (providerPermalink: string) => {
+    if (!(typeof providerPermalink === 'string' && providerPermalink)) {
+      throw new Errors.InvalidInput('expected provider permalink')
+    }
+
     return await this.bot.db.findOne({
       orderBy: {
         property: '_time',
@@ -898,7 +965,7 @@ ${this.genUsageInstructions(links)}`
       },
       filter: {
         EQ: {
-          [TYPE]: 'tradle.cloud.UpdateRequest',
+          [TYPE]: UPDATE_REQUEST,
           'provider._permalink': providerPermalink
         }
       }
@@ -926,6 +993,34 @@ ${this.genUsageInstructions(links)}`
       logger: bot.logger
     })
   }
+
+  private _validateUpdateResponse = async (updateResponse: ITradleObject) => {
+    const provider = updateResponse._author
+
+    let req: ITradleObject
+    try {
+      req = await this.lookupUpdateRequest(provider)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      this.logger.warn('received stack update response...but no request was made, ignoring', {
+        from: provider,
+        updateResponse: this.bot.buildStub(updateResponse)
+      })
+
+      throw err
+    }
+
+    if (req._time + UPDATE_REQUEST_TTL < Date.now()) {
+      const msg = 'received update response for expired request, ignoring'
+      this.logger.warn(msg, {
+        from: provider,
+        updateResponse: this.bot.buildStub(updateResponse)
+      })
+
+      throw new Errors.Expired(msg)
+    }
+  }
+
 }
 
 export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
