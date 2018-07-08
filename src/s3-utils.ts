@@ -285,7 +285,7 @@ export default class S3Utils {
 
   public head = async ({ key, bucket }) => {
     try {
-      await this.s3.headObject({
+      return await this.s3.headObject({
         Bucket: bucket,
         Key: key
       }).promise()
@@ -293,12 +293,19 @@ export default class S3Utils {
       if (err.code === 'NoSuchKey' || err.code === 'NotFound') {
         throw new Errors.NotFound(`${bucket}/${key}`)
       }
+
+      throw err
     }
   }
 
-  public exists = ({ key, bucket }) => {
-    return this.head({ key, bucket })
-      .then(() => true, err => false)
+  public exists = async ({ key, bucket }) => {
+    try {
+      await this.head({ key, bucket })
+      return true
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
   }
 
   public del = ({ key, bucket }) => {

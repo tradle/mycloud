@@ -737,16 +737,31 @@ ${this.genUsageInstructions(links)}`
   public subscribeToChildStackStatusNotifications = async (topic: string) => {
     // TODO: this crap belongs in some aws utils module
     const lambdaArn = this._getLambdaArn('onChildStackStatusChanged')
-    const params = {
+    this.logger.debug('subscribing lambda to SNS topic', {
+      topic,
+      lambda: lambdaArn
+    })
+
+    const params:AWS.SNS.SubscribeInput = {
       TopicArn: topic,
       Protocol: 'lambda',
       Endpoint: lambdaArn
     }
 
-    const { SubscriptionArn } = await this.bot.aws.sns.subscribe(params).promise()
+    const promiseSubscribe = this.bot.aws.sns.subscribe(params).promise()
+    const promisePermission = this.bot.aws.lambda.addPermission({
+      StatementId: 'allowTopicTrigger' + randomStringWithLength(10),
+      Action: 'lambda:InvokeFunction',
+      Principal: 'sns.amazonaws.com',
+      SourceArn: topic,
+      FunctionName: lambdaArn
+    }).promise()
+
+    const { SubscriptionArn } = await promiseSubscribe
+    await promisePermission
     return {
       topic,
-      subscription: SubscriptionArn
+      subscription: SubscriptionArn,
     }
   }
 
@@ -829,6 +844,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public saveTemplateAndCode = async ({ template, bucket }) => {
+    this.logger.debug('saving template and lambda code', { bucket })
     const [result] = await Promise.all([
       this.savePublicTemplate({ bucket, template }),
       this.copyLambdaCode({ bucket, template })
@@ -975,7 +991,7 @@ ${this.genUsageInstructions(links)}`
   private _getLambdaArn = (lambdaShortName: string) => {
     const { env } = this.bot
     const lambdaName = env.getStackResourceName(lambdaShortName)
-    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:lambda/${lambdaName}`
+    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
   private _createTopic = async (Name: string) => {

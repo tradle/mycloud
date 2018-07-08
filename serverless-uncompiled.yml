@@ -452,17 +452,26 @@ provider:
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
+            # regional buckets
+            - "*/*"
+        - Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
             - Ref: FileUploadBucket
             - "/*"
 
-    # REMOVE in prod
-    # allow access to buckets from the console
     - Effect: Allow
       Action:
         - s3:GetBucketLocation
         - s3:ListAllMyBuckets
-        - s3:CreateBucket
       Resource: "arn:aws:s3:::*"
+
+    - Effect: Allow
+      Action:
+        - s3:GetBucketLocation
+        - s3:ListAllMyBuckets
+      Resource: "arn:aws:s3:::${{self:custom.prefix}}*"
 
     - Effect: Allow
       Action:
@@ -470,12 +479,32 @@ provider:
         - s3:PutBucketVersioning
       Resource: "arn:aws:s3:::${{self:custom.prefix}}*"
 
+    - Effect: Allow
+      Action:
+        - sns:CreateTopic
+        - sns:DeleteTopic
+        - sns:Subscribe
+        - sns:Unsubscribe
+      Resource: "*"
+
+    # allow sns to trigger lambdas in stack
+    # - Effect: Allow
+    #   Action:
+    #     - lambda:InvokeFunction
+    #     - lambda:InvokeAsync
+    #   Principal:
+    #     Service:
+    #       - sns.amazonaws.com
+    #     AWS: '*'
+    #   Resource: '*'
+
     # allow lambdas to call each other
     # TODO: make this more fine grained
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
         - lambda:InvokeAsync
+        - lambda:AddPermission
       Resource: "*"
 
     # Iot
