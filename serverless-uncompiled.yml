@@ -353,15 +353,24 @@ provider:
         - cloudformation:ListStackResources
         # need to get own template to generate a child deployment template
         - cloudformation:GetTemplate
-      Resource: ["*"]
+      Resource: "*"
 
-    # allow lambdas to update themselves
+    # allow lambdas to update themselves / each other
     - Effect: Allow
       Action:
         - lambda:UpdateFunctionConfiguration
         - lambda:ListFunctions
       # This action does not support resource-level permissions
-      Resource: ["*"]
+      Resource: "*"
+
+    # allow lambdas to call each other
+    # TODO: make this more fine grained
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+        - lambda:InvokeAsync
+        - lambda:AddPermission
+      Resource: "*"
 
     - Effect: Allow
       Action:
@@ -376,6 +385,8 @@ provider:
         # needed to get NoSuchKey error instead of AccessDenied for non-existent items
         # https://forums.aws.amazon.com/thread.jspa?threadID=56531
         - s3:ListBucket
+        - s3:PutBucketReplication
+        - s3:PutBucketVersioning
         # # needed to enable bucket encryption
         # - s3:PutEncryptionConfiguration
       Resource:
@@ -384,30 +395,7 @@ provider:
         #   - ""
         #   - - "arn:aws:s3:::"
         #     - Ref: PublicConfBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: PrivateConfBucket
-        # - Fn::Join:
-        #   - ""
-        #   - - "arn:aws:s3:::"
-        #     - Ref: ContentAddressedBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ObjectsBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: SecretsBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ServerlessDeploymentBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: FileUploadBucket
+        - "arn:aws:s3:::${{self:custom.prefix}}*"
 
     - Effect: Allow
       Action:
@@ -415,69 +403,13 @@ provider:
         # needed to create an object with public-read
         - s3:PutObjectAcl
         - s3:GetObject
-        # needed to check existence
-        - s3:HeadObject
-      Resource:
-        # - arn:aws:s3:::${{self:provider.deploymentBucket}}/*
-        # - Fn::Join:
-        #   - ""
-        #   - - "arn:aws:s3:::"
-        #     - Ref: PublicConfBucket
-        #     - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: PrivateConfBucket
-            - "/*"
-        # - Fn::Join:
-        #   - ""
-        #   - - "arn:aws:s3:::"
-        #     - Ref: ContentAddressedBucket
-        #     - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ObjectsBucket
-            - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: SecretsBucket
-            - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ServerlessDeploymentBucket
-            - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ServerlessDeploymentBucket
-            # regional buckets
-            - "*/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: FileUploadBucket
-            - "/*"
+      Resource: "arn:aws:s3:::${{self:custom.prefix}}*/*"
 
     - Effect: Allow
       Action:
         - s3:GetBucketLocation
         - s3:ListAllMyBuckets
       Resource: "arn:aws:s3:::*"
-
-    - Effect: Allow
-      Action:
-        - s3:GetBucketLocation
-        - s3:ListAllMyBuckets
-      Resource: "arn:aws:s3:::${{self:custom.prefix}}*"
-
-    - Effect: Allow
-      Action:
-        - s3:PutBucketReplication
-        - s3:PutBucketVersioning
-      Resource: "arn:aws:s3:::${{self:custom.prefix}}*"
 
     - Effect: Allow
       Action:
@@ -498,19 +430,10 @@ provider:
     #     AWS: '*'
     #   Resource: '*'
 
-    # allow lambdas to call each other
-    # TODO: make this more fine grained
-    - Effect: Allow
-      Action:
-        - lambda:InvokeFunction
-        - lambda:InvokeAsync
-        - lambda:AddPermission
-      Resource: "*"
-
     # Iot
     - Effect: Allow
       Action: ["iot:Connect", "iot:Subscribe", "iot:Publish", "iot:Receive", "iot:DescribeEndpoint"]
-      Resource: ["*"]
+      Resource: "*"
 
     # gen Iot temp credentials (lambda: preauth)
     - Effect: Allow
@@ -529,7 +452,7 @@ provider:
       Sid: AllowCloudFrontUpdateDistribution
       Action:
         - cloudfront:updateDistribution
-      Resource: ["*"]
+      Resource: "*"
 
     # - Effect: Allow
     #   Action:
@@ -1358,7 +1281,6 @@ resources:
                 # restrict client connect by client id
                 - Effect: Allow
                   Action: ["iot:Connect"]
-                  # Resource: ["*"]
                   Resource:
                     - Fn::Join:
                       - ":"
@@ -1370,7 +1292,6 @@ resources:
                 # allow all clients to publish to the send topic
                 - Effect: "Allow"
                   Action: ["iot:Publish"]
-                  # Resource: ["*"]
                   Resource:
                     - Fn::Join:
                       - ":"
@@ -1384,7 +1305,6 @@ resources:
                 # restrict client topic subscriptions by their client id
                 - Effect: "Allow"
                   Action: ["iot:Subscribe"]
-                  # Resource: ["*"]
                   Resource:
                     - Fn::Join:
                       - ":"
