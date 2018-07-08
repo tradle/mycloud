@@ -659,6 +659,7 @@ export type BucketCopyOpts = {
   target: string
   prefix?: string
   keys?: string[]
+  acl?: AWS.S3.ObjectCannedACL
 }
 
 export type BucketPutOpts = {
@@ -666,7 +667,7 @@ export type BucketPutOpts = {
   value:any
   bucket:string
   headers?:any
-  publicRead?: boolean
+  acl?: AWS.S3.ObjectCannedACL
 }
 
 export type PresignEmbeddedMediaOpts = {

@@ -794,7 +794,7 @@ ${this.genUsageInstructions(links)}`
     bucket: string
   }) => {
     const key = `templates/template-${Date.now()}-${randomStringWithLength(12)}.json`
-    await this.bot.s3Utils.putJSON({ bucket, key, value: template, publicRead: true })
+    await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
     return this.bot.s3Utils.getUrlForKey({ bucket, key })
   }
 
@@ -825,7 +825,7 @@ ${this.genUsageInstructions(links)}`
       target: target.id
     })
 
-    await source.copyFilesTo({ bucket, keys })
+    await source.copyFilesTo({ bucket, keys, acl: 'public-read' })
   }
 
   public saveTemplateAndCode = async ({ template, bucket }) => {

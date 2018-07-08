@@ -44,7 +44,7 @@ export default class S3Utils {
     return this.env && !this.env.TESTING
   }
 
-  public put = async ({ key, value, bucket, headers = {}, publicRead }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
+  public put = async ({ key, value, bucket, headers = {}, acl }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts: S3.Types.PutObjectRequest = {
       ...headers,
@@ -53,7 +53,7 @@ export default class S3Utils {
       Body: toStringOrBuf(value)
     }
 
-    if (publicRead) opts.ACL = 'public-read'
+    if (acl) opts.ACL = acl
 
     return await this.s3.putObject(opts).promise()
   }
@@ -617,7 +617,7 @@ export default class S3Utils {
     return await this.listBucket({ bucket, Prefix: prefix })
   }
 
-  public copyFilesBetweenBuckets = async ({ source, target, keys, prefix }: BucketCopyOpts) => {
+  public copyFilesBetweenBuckets = async ({ source, target, keys, prefix, acl }: BucketCopyOpts) => {
     if (!(prefix || keys)) throw new Errors.InvalidInput('expected "keys" or "prefix"')
 
     if (!keys) {
@@ -625,10 +625,17 @@ export default class S3Utils {
       keys = items.map(i => i.Key)
     }
 
+    const baseParams:AWS.S3.CopyObjectRequest = {
+      CopySource: source,
+      Bucket: target,
+      Key: null
+    }
+
+    if (acl) baseParams.ACL = acl
+
     await Promise.all(keys.map(async (Key) => {
       await this.s3.copyObject({
-        CopySource: source,
-        Bucket: target,
+        ...baseParams,
         Key
       })
       .promise()

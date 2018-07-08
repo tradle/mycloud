@@ -132,15 +132,17 @@ export class Bucket {
 
   public makePublic = () => this.utils.makePublic({ bucket: this.name })
   public empty = () => this.utils.emptyBucket({ bucket: this.name })
-  public copyFilesTo = ({ bucket, keys, prefix }: {
+  public copyFilesTo = ({ bucket, keys, prefix, acl }: {
     bucket: string
     keys?: string[]
     prefix?: string
+    acl?: AWS.S3.ObjectCannedACL
   }) => this.utils.copyFilesBetweenBuckets({
     source: this.name,
     target: bucket,
     keys,
-    prefix
+    prefix,
+    acl,
   })
 
   private _getKey = key => this.prefix + key

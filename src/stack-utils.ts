@@ -362,7 +362,7 @@ export default class StackUtils {
 
   // public savePublicTemplate = async (template: any) => {
   //   const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
-  //   await this.bucket.putJSON(key, template, { publicRead: true })
+  //   await this.bucket.putJSON(key, template, { acl: 'public-read' })
   //   return {
   //     template,
   //     key,
