@@ -65,34 +65,34 @@ export class Bucket {
     })
   }
 
-  public get = key => this.utils.get({
+  public get = (key: string) => this.utils.get({
     key: this._getKey(key),
     bucket: this.name
   })
 
-  public maybeGet = key => this.get(key).catch(Errors.ignoreNotFound)
+  public maybeGet = (key: string) => this.get(key).catch(Errors.ignoreNotFound)
 
-  public getJSON = key => this.get(key).then(({ Body }) => JSON.parse(Body.toString()))
-  public maybeGetJSON = key => this.getJSON(key).catch(Errors.ignoreNotFound)
+  public getJSON = (key: string) => this.get(key).then(({ Body }) => JSON.parse(Body.toString()))
+  public maybeGetJSON = (key: string) => this.getJSON(key).catch(Errors.ignoreNotFound)
 
   public list = (opts) => this.utils.listBucket({ bucket: this.name, ...opts })
-  public put = (key, value, opts?:Partial<BucketPutOpts>) => this.utils.put({
+  public put = (key: string, value, opts?:Partial<BucketPutOpts>) => this.utils.put({
     key: this._getKey(key),
     value,
     bucket: this.name,
     ...opts
   })
 
-  public putJSON = (key, value, opts?:Partial<BucketPutOpts>) => this.put(key, value, opts)
-  public gzipAndPut = (key, value) => this.utils.gzipAndPut({
+  public putJSON = (key: string, value, opts?:Partial<BucketPutOpts>) => this.put(key, value, opts)
+  public gzipAndPut = (key: string, value) => this.utils.gzipAndPut({
     key: this._getKey(key),
     value,
     bucket: this.name
   })
 
-  public head = key => this.utils.head({ key: this._getKey(key), bucket: this.name })
-  public exists = key => this.utils.exists({ key: this._getKey(key), bucket: this.name })
-  public del = key => this.utils.del({ key: this._getKey(key), bucket: this.name })
+  public head = (key: string) => this.utils.head({ key: this._getKey(key), bucket: this.name })
+  public exists = (key: string) => this.utils.exists({ key: this._getKey(key), bucket: this.name })
+  public del = (key: string) => this.utils.del({ key: this._getKey(key), bucket: this.name })
   public getCacheable = opts => this.utils.getCacheable({
     ...opts,
     key: this._getKey(opts.key),
@@ -145,7 +145,7 @@ export class Bucket {
     acl,
   })
 
-  private _getKey = key => this.prefix + key
+  private _getKey = (key: string) => this.prefix + key
 }
 
 const getFolderPath = (parent:string, folder:string):string => {
