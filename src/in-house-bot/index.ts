@@ -462,8 +462,8 @@ export default function createProductsBot({
       'smart-prefill',
       'lens',
       'openCorporates',
-      // 'complyAdvantage',
-      // 'controllingPersonRegistration',
+      'complyAdvantage',
+      'controllingPersonRegistration',
       'centrix',
       'facial-recognition'
     ].forEach(name => attachPlugin({ name }))
