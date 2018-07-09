@@ -87,6 +87,11 @@ interface ITmpTopicResource extends ITradleObject {
   topic: string
 }
 
+type TopicWithPublishers = {
+  topic: string
+  publishers: [string]
+}
+
 enum StackOperationType {
   create,
   update
@@ -262,7 +267,8 @@ export class Deployment {
       url: utils.getUpdateStackUrl({ stackId, templateUrl: url }),
       snsTopic: (await this.setupNotificationsForStack({
         id: `${accountId}-${name}`,
-        type: StackOperationType.update
+        type: StackOperationType.update,
+        accountId
       })).topic
     }
   }
@@ -693,17 +699,18 @@ ${this.genUsageInstructions(links)}`
   //   this.bot.aws.cloudformation.
   // }
 
-  public setupNotificationsForStack = async ({ id, type }: {
+  public setupNotificationsForStack = async ({ id, type, accountId }: {
     id: string
     type: StackOperationType
+    accountId?: string
   }) => {
     const name = getTmpSNSTopicName({ id, type })
-    const { topic } = await this.genTmpSNSTopic(name)
+    const { topic } = await this.genTmpSNSTopic({ topic: name, publishers: [accountId] })
     return await this.subscribeToChildStackStatusNotifications(topic)
   }
 
-  public genTmpSNSTopic = async (topic: string): Promise<ITmpTopicResource> => {
-    const arn = await this._createTopic(topic)
+  public genTmpSNSTopic = async ({ topic, publishers }: TopicWithPublishers): Promise<ITmpTopicResource> => {
+    const arn = await this._createTopic({ topic, publishers })
     try {
       await this._refreshTmpSNSTopic(arn)
     } catch (err) {
@@ -1045,8 +1052,18 @@ ${this.genUsageInstructions(links)}`
     return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
-  private _createTopic = async (Name: string) => {
-    const { TopicArn } = await this.bot.aws.sns.createTopic({ Name }).promise()
+  private _createTopic = async ({ topic, publishers }: TopicWithPublishers) => {
+    const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
+    const { sns } = this.bot.aws
+    const { TopicArn } = await sns.createTopic(createParams).promise()
+    const allowParams:AWS.SNS.AddPermissionInput = {
+      TopicArn,
+      ActionName: ['Publish'],
+      AWSAccountId: publishers,
+      Label: genSID('allowCrossAccountPublish')
+    }
+
+    await sns.addPermission(allowParams).promise()
     return TopicArn
   }
 
@@ -1139,5 +1156,7 @@ const getTmpSNSTopicName = ({ id, type }: {
   const verb = type === StackOperationType.create ? 'create' : 'update'
   return `tmp-${verb}-${id}` //-${randomStringWithLength(10)}`
 }
+
+const genSID = (base: string) => `${base}${randomStringWithLength(10)}`
 
 const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL

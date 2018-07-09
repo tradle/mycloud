@@ -413,6 +413,7 @@ provider:
 
     - Effect: Allow
       Action:
+        - sns:AddPermission
         - sns:CreateTopic
         - sns:DeleteTopic
         - sns:Subscribe
