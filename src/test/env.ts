@@ -79,6 +79,10 @@ export const install = (target=process.env):void => {
       Plaintext: params.CiphertextBlob
     })
   })
+
+  AWS.mock('Lambda', 'addPermission', (params, callback) => {
+    callback(null, {})
+  })
 }
 
 export const get = () => ({ ...props })

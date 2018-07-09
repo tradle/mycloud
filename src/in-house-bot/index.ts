@@ -78,6 +78,7 @@ const FORM_REQUEST = 'tradle.FormRequest'
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 const HELP_REQUEST = 'tradle.RequestForAssistance'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
+const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const APPLICATION = 'tradle.Application'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
 const PRODUCT_LIST_MESSAGE = 'See our list of products'
@@ -324,25 +325,37 @@ export const loadComponentsAndPlugins = ({
   if (runAsyncHandlers) {
     logger.debug('running async hooks')
     // productsAPI.removeDefaultHandlers()
-    bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
-      const { old, value } = change
-      if (value && value[TYPE] === 'tradle.cloud.ChildDeployment') {
-        await components.deployment.notifyCreatorsOfChildDeployment(value)
+    const processChange = async ({ old, value }: ISaveEventPayload) => {
+      const type = old[TYPE]
+      if (type === CHILD_DEPLOYMENT && didPropChange({ old, value, prop: 'stackId' })) {
+        // using bot.tasks is hacky, but because this fn currently purposely stalls for minutes on end,
+        // stream-processor will time out processing this item and the lambda will exit before anyone gets notified
+        bot.tasks.add({
+          name: 'notify creators of child deployment',
+          promise: components.deployment.notifyCreatorsOfChildDeployment(value)
+        })
+
         return
       }
 
-      if (old && value) {
-        if (old[TYPE] === APPLICATION && old.status !== 'approved' && value.status === 'approved') {
-          value.submissions = await bot.backlinks.getBacklink({
-            type: APPLICATION,
-            permalink: value._permalink,
-            backlink: 'submissions'
-          })
+      if (type === APPLICATION &&
+        didPropChangeTo({ old, value, prop: 'status', propValue: 'approved' })) {
+        value.submissions = await bot.backlinks.getBacklink({
+          type: APPLICATION,
+          permalink: value._permalink,
+          backlink: 'submissions'
+        })
 
-          applications.organizeSubmissions(value)
-          await applications.createSealsForApprovedApplication({ application: value })
-          return
-        }
+        applications.organizeSubmissions(value)
+        await applications.createSealsForApprovedApplication({ application: value })
+        return
+      }
+    }
+
+    bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
+      const { old, value } = change
+      if (old && value) {
+        await processChange(change)
       }
     })
 
@@ -814,4 +827,9 @@ const sendModelsPackToNewEmployees = (components: IBotComponents) => {
   return {
     didApproveApplication
   }
+}
+
+const didPropChange = ({ old={}, value, prop }) => value && old[prop] !== value[prop]
+const didPropChangeTo = ({ old = {}, value = {}, prop, propValue }) => {
+  return value && value[prop] === propValue && didPropChange({ old, value, prop })
 }

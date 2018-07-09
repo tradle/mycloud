@@ -93,10 +93,15 @@ test('deployment by referral', loudAsync(async (t) => {
   //   throw new Errors.NotFound(key)
   // })
 
+  const regionalBucket = parent.s3Utils.getRegionalBucketName({
+    bucket: parent.buckets.ServerlessDeployment.id,
+    region
+  })
+
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
   let saveTemplateStub = sandbox.stub(parentDeployment, 'savePublicTemplate').callsFake(async ({ template, bucket }) => {
-    t.ok(bucket.endsWith(region))
+    t.equal(bucket, regionalBucket)
 
     deploymentConf = {
       stackId: child.stackUtils.thisStackId,
@@ -170,7 +175,7 @@ test('deployment by referral', loudAsync(async (t) => {
     bucket,
     keys
   }) => {
-    t.ok(bucket.endsWith(region))
+    t.equal(bucket, regionalBucket)
     t.same(keys, ['path-to-lambda-code.zip'])
   })
 
@@ -337,22 +342,29 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
 
-  t.equal(saveResourceStub.callCount, 3)
+  t.equal(saveResourceStub.callCount, 2)
   const [
-    createTopic,
+    // createTopic,
     createChild,
     updateChild,
   ] = saveResourceStub.getCalls().map(call => call.args[0])
 
-  t.equal(createTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
+  // t.equal(createTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
   t.equal(createChild[TYPE], 'tradle.cloud.ChildDeployment')
   t.equal(createChild.deploymentUUID, deploymentConf.deploymentUUID)
   t.equal(updateChild.apiUrl, childUrl)
 
-  sandbox.stub(parent.db, 'findOne').resolves(childDeploymentResource)
+  sandbox.stub(parent.db, 'findOne').callsFake(async ({ filter }) => {
+    const type = filter.EQ[TYPE]
+    if (type === 'tradle.cloud.ChildDeployment') {
+      return childDeploymentResource
+    }
+
+    throw new Errors.NotFound(type)
+  })
 
   saveTemplateStub.callsFake(async ({ template, bucket }) => {
-    t.ok(bucket.endsWith(region))
+    t.equal(bucket, regionalBucket)
     t.equal(template.Mappings.org.contact.adminEmail, conf.adminEmail)
   })
 

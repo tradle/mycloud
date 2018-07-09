@@ -267,38 +267,59 @@ export class Deployment {
   }
 
   public getChildDeploymentCreatedBy = async (createdBy: string): Promise<IDeploymentConf> => {
-    return await this.getChildDeploymentByProps({
-      'identity._permalink': createdBy
+    return await this.getChildDeployment({
+      filter: {
+        EQ: {
+          'identity._permalink': createdBy
+        },
+        NULL: {
+          stackId: false
+        }
+      }
     })
   }
 
   public getChildDeploymentConfiguredBy = async (configuredBy: string): Promise<IDeploymentConf> => {
-    return await this.getChildDeploymentByProps({
-      'configuredBy._permalink': configuredBy
+    return await this.getChildDeployment({
+      filter: {
+        EQ: {
+          'configuredBy._permalink': configuredBy
+        },
+        NULL: {
+          stackId: false
+        }
+      }
     })
   }
 
   public getChildDeploymentByStackId = async (stackId: string): Promise<IDeploymentConf> => {
-    return await this.getChildDeploymentByProps({ stackId })
+    return await this.getChildDeploymentWithProps({ stackId })
   }
 
   public getChildDeploymentByDeploymentUUID = async (deploymentUUID: string): Promise<IDeploymentConf> => {
-    return await this.getChildDeploymentByProps({ deploymentUUID })
+    return await this.getChildDeploymentWithProps({ deploymentUUID })
   }
 
-  public getChildDeploymentByProps = async (props): Promise<IDeploymentConf> => {
-    return await this.bot.db.findOne({
+  public getChildDeploymentWithProps = async (props={}): Promise<IDeploymentConf> => {
+    return this.getChildDeployment({
+      filter: {
+        EQ: props
+      }
+    })
+  }
+
+  public getChildDeployment = async (findOpts={}): Promise<IDeploymentConf> => {
+    return await this.bot.db.findOne(_.merge({
       orderBy: {
         property: '_time',
         desc: true
       },
       filter: {
         EQ: {
-          [TYPE]: CONFIGURATION,
-          ...props
+          [TYPE]: CHILD_DEPLOYMENT
         }
       }
-    })
+    }, findOpts))
   }
 
   public getParentDeployment = async (): Promise<ITradleObject> => {
@@ -309,7 +330,7 @@ export class Deployment {
       },
       filter: {
         EQ: {
-          [TYPE]: CONFIGURATION,
+          [TYPE]: PARENT_DEPLOYMENT,
           'childIdentity._permalink': await this.bot.getMyPermalink()
         }
       }
@@ -453,31 +474,34 @@ ${this.genUsageInstructions(links)}`
   }
 
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
+    this.logger.debug('attempting to notify of stack launch')
     const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
 
     const botPermalink = buildResource.permalink(identity)
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
-    try {
-      await this.notifyConfigurer({
+    const notifyConfigurer = this.notifyConfigurer({
         configurer: _author,
         links
       })
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.error('failed to send message to creator', err)
-    }
+      .catch(err => {
+        this.logger.error('failed to send message to creator', err)
+        Errors.rethrow(err, 'developer')
+      })
 
-    try {
-      await this.bot.mailer.send({
+    const emailAdmin = this.bot.mailer.send({
         from: this.conf.senderEmail,
         to: _.uniq([hrEmail, adminEmail]),
         format: 'html',
         ...this.genLaunchedEmail({ ...links, fromOrg: this.orgConf.org })
       })
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.error('failed to email creators', err)
-    }
+      .catch(err => {
+        this.logger.error('failed to email creators', err)
+        Errors.rethrow(err, 'developer')
+      })
+
+    const results = await utils.allSettled([notifyConfigurer, emailAdmin])
+    const firstErr = results.find(result => result.reason)
+    if (firstErr) throw firstErr
   }
 
   public getAppLinks = ({ host, permalink }) => getAppLinks({
@@ -674,7 +698,7 @@ ${this.genUsageInstructions(links)}`
   public genTmpSNSTopic = async (topic: string): Promise<ITmpTopicResource> => {
     const arn = await this._createTopic(topic)
     try {
-      this._refreshTmpSNSTopic(arn)
+      await this._refreshTmpSNSTopic(arn)
     } catch (err) {
       Errors.ignoreNotFound(err)
     }
@@ -1058,7 +1082,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _refreshTmpSNSTopic = async (arn: string) => {
-    const existing = this.bot.db.findOne({
+    const existing = await this.bot.db.findOne({
       filter: {
         EQ: {
           [TYPE]: TMP_SNS_TOPIC,

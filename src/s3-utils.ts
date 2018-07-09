@@ -699,6 +699,8 @@ export default class S3Utils {
     return name
   }
 
+  public getRegionalBucketName = S3Utils.getRegionalBucketName
+
   public getRegionalBucketForBucket = async ({ bucket, region }: {
     bucket: string
     region: string
