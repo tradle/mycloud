@@ -15,6 +15,10 @@ export const createLambda = (opts: IPBotLambdaOpts) => {
     ...lambdaOpts
   } = opts
 
+  if (!lambdaOpts.bot) {
+    lambdaOpts.bot = createBot({ ready: false })
+  }
+
   const lambda = createBotLambda(lambdaOpts)
   const componentsPromise = configureLambda({ lambda, event })
   lambda.use(async (ctx, next) => {
