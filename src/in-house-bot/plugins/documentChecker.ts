@@ -21,13 +21,14 @@ import {
   IPBApp,
   IPBReq,
   ITradleObject,
+  ITradleCheck,
   CreatePlugin,
   Applications,
   IPluginLifecycleMethods
 } from '../types'
 
 import { parseStub } from '../../utils'
-import { getParsedFormStubs, hasPropertiesChanged } from '../utils'
+import { getParsedFormStubs, hasPropertiesChanged, getStatusMessageForCheck } from '../utils'
 
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
@@ -422,18 +423,21 @@ export class DocumentCheckerAPI {
     return checkId.length < 40 && checkId  ||  checkId.substring(0, 40)
   }
   public async updateCheck({ check, status, message, rawData } : {
-    check:ITradleObject,
+    check:ITradleCheck,
     status: string,
     message: string,
     rawData?: any
   }) {
-    if (status === check.status.id.split('_')[1])
+    let statusID = check.status.id.split('_')[1]
+    if (status === statusID)
       return
     check.status = buildResource.enumValue({
             model: this.bot.models['tradle.Status'],
             value: status
           })
-    check.message = message
+    check.message = getStatusMessageForCheck({models: this.bot.models, check})
+    if (message  &&  message.toLowerCase() !== statusID) // like Pending
+      check.resultDetails = message
 
     await this.bot.versionAndSave(check)
     if (status !== 'pass')
@@ -451,11 +455,14 @@ export class DocumentCheckerAPI {
       provider: DISPLAY_NAME,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
-      message: message,
+      aspects: 'document validity',
       form,
       checkId: checkId  ||  this.getCheckId()
     }
 debugger
+    resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
+    if (message)
+      resource.resultDetails = message
     if (rawData) {
       resource.rawData = sanitize(rawData).sanitized
       let docId = rawData.record  &&  rawData.record.DocID
