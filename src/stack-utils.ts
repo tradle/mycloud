@@ -481,11 +481,15 @@ export default class StackUtils {
   }
 
   public static changeRegion = ({ template, from, to }) => {
-    const str = JSON.stringify(template)
+    const toChange = _.omit(template, 'Mappings')
+    const str = JSON.stringify(toChange)
       .replace(new RegExp(from, 'ig'), to)
       .replace(new RegExp(normalizePathPart(from), 'g'), normalizePathPart(to))
 
-    return JSON.parse(str)
+    return {
+      ...JSON.parse(str),
+      Mappings: template.Mappings
+    }
   }
 
   // public static changeAdminEmail = ({ template, to }) => {
