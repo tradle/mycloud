@@ -741,13 +741,14 @@ const banter = (components: IBotComponents) => {
       return
     }
 
-    // await offerAssistance(req)
+    // avoid infinite loop between two bots: "I'm sorry", "No I'm sorry!", "No I'm sorry"...
+    if (user.friend) return
+
     await productsAPI.send({
       req,
       to: user,
       object: {
         [TYPE]: 'tradle.SimpleMessage',
-        form: HELP_REQUEST,
         message: `Sorry, I'm not that smart yet!
 
 If you start a product application, I'll see if I can get someone to help you.

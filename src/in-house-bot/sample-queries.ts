@@ -171,7 +171,7 @@ query ($author: String, $context: String) {
     filter: {
       EQ: {
         _inbound: true
-        _counterparty: $counterparty
+        _counterparty: $author
         context: $context
       }
     },
