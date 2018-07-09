@@ -14,7 +14,7 @@ try {
   createCentrixClient = require('@tradle/centrix')
 } catch (err) {}
 
-import { getParsedFormStubs, hasPropertiesChanged } from '../utils'
+import { getParsedFormStubs, hasPropertiesChanged, getStatusMessageForCheck } from '../utils'
 import { splitCamelCase } from '../../string-utils'
 import {
   Name,
@@ -90,7 +90,7 @@ class CentrixAPI {
         rawData = await this.centrix[method](props)
       }
     } catch (err) {
-      message = `${checkFor} failed`
+      message = `${checkFor}`
       this.logger.debug(message, err.stack)
 
       rawData = {}
@@ -113,19 +113,19 @@ class CentrixAPI {
       if (!rawData.DataSets.DIAPassport.IsSuccess  ||
           !rawData.DataSets.DIAPassport.DIAPassportVerified)
         status = 'fail'
-        message = `${checkFor} failed`
+        message = `${checkFor}`
     }
     else {
       let { IsDriverLicenceVerifiedAndMatched, IsDriverLicenceVerified } = rawData.DataSets.DriverLicenceVerification
       if (!IsDriverLicenceVerified          ||
           !IsDriverLicenceVerifiedAndMatched) {
         status = 'fail'
-        message = `${checkFor} failed`
+        message = `${checkFor}`
       }
     }
     if (!status) {
       status = 'pass'
-      message = `${checkFor} passed`
+      message = `${checkFor}`
     }
 
     this.logger.debug(`creating ${status.title} check for ${centrixOpName} with Centrix`)
@@ -146,9 +146,12 @@ class CentrixAPI {
       status,
       application,
       dateChecked: Date.now(),
-      form,
-      message
+      aspects: 'document registry',
+      form
     }
+    r.message = getStatusMessageForCheck({models: this.bot.models, check: r})
+    if (message)
+      r.resultDetails = message
     // debugger
     if (rawData) {
       r.rawData = rawData
@@ -278,8 +281,6 @@ async function getCentrixData ({ application, bot }: {application: IPBApp, bot: 
   const docType = getDocumentType(form)
   let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber } = form
   let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
-
-debugger
 
   let changed = await hasPropertiesChanged({resource: form, bot, propertiesToCheck})
   if (!changed)
