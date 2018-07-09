@@ -184,7 +184,7 @@ export class Deployment {
     //   type: StackOperationType.create
     // })
 
-    const childDeployment = await this.createChildDeploymentResource({ configuration, deploymentUUID })
+    const childDeployment = await this.createChildDeployment({ configuration, deploymentUUID })
 
     // this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return {
@@ -392,7 +392,7 @@ export class Deployment {
     return true
   }
 
-  public createChildDeploymentResource = async ({ configuration, deploymentUUID }: ICreateChildDeploymentOpts) => {
+  public createChildDeployment = async ({ configuration, deploymentUUID }: ICreateChildDeploymentOpts) => {
     const configuredBy = await this.bot.identities.byPermalink(configuration._author)
     const resource = await this.bot.draft({ type: CHILD_DEPLOYMENT })
       .set({
@@ -673,10 +673,16 @@ ${this.genUsageInstructions(links)}`
 
   public genTmpSNSTopic = async (topic: string): Promise<ITmpTopicResource> => {
     const arn = await this._createTopic(topic)
+    try {
+      this._refreshTmpSNSTopic(arn)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
     return await this.bot.signAndSave({
       [TYPE]: TMP_SNS_TOPIC,
       topic: arn,
-      dateExpires: Date.now() + TMP_SNS_TOPIC_TTL
+      dateExpires: getTmpTopicExpirationDate()
     })
   }
 
@@ -946,6 +952,11 @@ ${this.genUsageInstructions(links)}`
       throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
     }
 
+    if (req.currentCommit === this.bot.version.commit) {
+      this.logger.debug('child is up to date')
+      throw new Errors.Exists(`already up to date`)
+    }
+
     const pkg = await this.genUpdatePackage({
       createdBy: req._author
     })
@@ -1046,6 +1057,25 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
+  private _refreshTmpSNSTopic = async (arn: string) => {
+    const existing = this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: TMP_SNS_TOPIC,
+          topic: arn
+        }
+      }
+    })
+
+    const updated = await this.bot.draft({ resource: existing })
+      .set({
+        dateExpires: getTmpTopicExpirationDate()
+      })
+      .version()
+      .signAndSave()
+
+    return updated.toJSON()
+  }
 }
 
 export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
@@ -1076,5 +1106,7 @@ const getTmpSNSTopicName = ({ id, type }: {
   type: StackOperationType
 }) => {
   const verb = type === StackOperationType.create ? 'create' : 'update'
-  return `tmp-${verb}-${id}`
+  return `tmp-${verb}-${id}` //-${randomStringWithLength(10)}`
 }
+
+const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL

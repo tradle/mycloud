@@ -181,7 +181,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#99fa9d18a552e892dedd9be8c1d51711870f5c0b"
+      "resolved": "git://github.com/tradle/custom-models.git#76c024f23be3a87c4a6d1276719ce8f814ba665d"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -279,12 +279,12 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#83fdabb16caa295e27c8ab42a8cf98e65e196e6e"
+      "resolved": "git://github.com/tradle/models.git#07627d7bfc66b8e37c83a50843afd045666d6f32"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#9562fce2d8369365438f40df768aee6dc7e56da9"
+      "resolved": "git://github.com/tradle/models-cloud.git#d8c259ab6b906e24d8f61bdff733d23b38136bb0"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -11022,6 +11022,29 @@
           "from": "string_decoder@>=1.1.1 <1.2.0",
           "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz",
           "dev": true
+        }
+      }
+    },
+    "zmq": {
+      "version": "2.15.3",
+      "from": "zmq@>=2.14.0 <3.0.0",
+      "resolved": "https://registry.npmjs.org/zmq/-/zmq-2.15.3.tgz",
+      "dev": true,
+      "optional": true,
+      "dependencies": {
+        "bindings": {
+          "version": "1.2.1",
+          "from": "bindings@~1.2.1",
+          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
+          "dev": true,
+          "optional": true
+        },
+        "nan": {
+          "version": "2.3.5",
+          "from": "nan@~2.3.0",
+          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
+          "dev": true,
+          "optional": true
         }
       }
     }

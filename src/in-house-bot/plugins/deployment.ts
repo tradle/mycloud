@@ -64,7 +64,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     // async
     bot.sendSimpleMessage({
       to: user,
-      message: `Generating the template for your MyCloud...`
+      message: `Generating a template and code package for your MyCloud. This could take a few seconds...`
     })
 
     let launchUrl
@@ -126,10 +126,25 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     api: deployment,
     plugin: {
       onFormsCollected,
-      'onmessage:tradle.cloud.UpdateRequest': (req: IPBReq) => deployment.handleUpdateRequest({
-        req: req.payload,
-        from: req.user
-      }),
+      'onmessage:tradle.cloud.UpdateRequest': async (req: IPBReq) => {
+        try {
+          deployment.handleUpdateRequest({
+            req: req.payload,
+            from: req.user
+          })
+        } catch (err) {
+          Errors.ignore(err, Errors.Exists)
+          // await bot.send({
+          //   object: {
+          //     [TYPE]: 'tradle.SimpleMessage',
+          //     message: 'your stack is already up to date!'
+          //   },
+          //   other: {
+          //     inReplyTo: req.message._link
+          //   }
+          // })
+        }
+      },
       'onmessage:tradle.cloud.UpdateResponse': (req: IPBReq) => deployment.handleUpdateResponse(req.payload),
     }
   }
