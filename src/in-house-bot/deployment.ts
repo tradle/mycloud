@@ -179,10 +179,10 @@ export class Deployment {
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
-    const promiseTmpTopic = this.setupNotificationsForStack({
-      id: deploymentUUID,
-      type: StackOperationType.create
-    })
+    // const promiseTmpTopic = this.setupNotificationsForStack({
+    //   id: deploymentUUID,
+    //   type: StackOperationType.create
+    // })
 
     const childDeployment = await this.createChildDeploymentResource({ configuration, deploymentUUID })
 
@@ -194,7 +194,7 @@ export class Deployment {
         templateUrl: url,
         region: configuration.region
       }),
-      snsTopic: (await promiseTmpTopic).topic
+      // snsTopic: (await promiseTmpTopic).topic
     }
   }
 
