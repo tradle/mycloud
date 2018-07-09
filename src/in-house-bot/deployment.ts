@@ -25,6 +25,7 @@ import {
   StackStatus,
 } from './types'
 
+import { StackUtils } from '../stack-utils'
 import { Bucket } from '../bucket'
 import { media } from './media'
 import Errors from '../errors'
@@ -87,9 +88,9 @@ interface ITmpTopicResource extends ITradleObject {
   topic: string
 }
 
-type TopicWithPublishers = {
+type StackUpdateTopicInput = {
   topic: string
-  publishers: [string]
+  stackId: string
 }
 
 enum StackOperationType {
@@ -268,7 +269,7 @@ export class Deployment {
       snsTopic: (await this.setupNotificationsForStack({
         id: `${accountId}-${name}`,
         type: StackOperationType.update,
-        accountId
+        stackId
       })).topic
     }
   }
@@ -701,18 +702,18 @@ ${this.genUsageInstructions(links)}`
   //   this.bot.aws.cloudformation.
   // }
 
-  public setupNotificationsForStack = async ({ id, type, accountId }: {
+  public setupNotificationsForStack = async ({ id, type, stackId }: {
     id: string
     type: StackOperationType
-    accountId?: string
+    stackId: string
   }) => {
     const name = getTmpSNSTopicName({ id, type })
-    const { topic } = await this.genTmpSNSTopic({ topic: name, publishers: [accountId] })
+    const { topic } = await this.genTmpSNSTopic({ topic: name, stackId })
     return await this.subscribeToChildStackStatusNotifications(topic)
   }
 
-  public genTmpSNSTopic = async ({ topic, publishers }: TopicWithPublishers): Promise<ITmpTopicResource> => {
-    const arn = await this._createTopic({ topic, publishers })
+  public genTmpSNSTopic = async ({ topic, stackId }: StackUpdateTopicInput): Promise<ITmpTopicResource> => {
+    const arn = await this._createTopic({ topic, stackId })
     try {
       await this._refreshTmpSNSTopic(arn)
     } catch (err) {
@@ -1054,14 +1055,14 @@ ${this.genUsageInstructions(links)}`
     return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
-  private _createTopic = async ({ topic, publishers }: TopicWithPublishers) => {
+  private _createTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
     const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
     const { sns } = this.bot.aws
     const { TopicArn } = await sns.createTopic(createParams).promise()
     const allowParams:AWS.SNS.AddPermissionInput = {
       TopicArn,
       ActionName: ['Publish'],
-      AWSAccountId: publishers,
+      AWSAccountId: getUpdateStackAssumedRoles(stackId),
       Label: genSID('allowCrossAccountPublish')
     }
 
@@ -1126,6 +1127,26 @@ ${this.genUsageInstructions(links)}`
 
     return updated.toJSON()
   }
+}
+
+const UPDATE_STACK_LAMBDAS = [
+  'cli',
+  'inbox',
+  'message',
+  'onresourcestream'
+]
+
+export const getUpdateStackAssumedRoles = (stackId: string, lambdas=UPDATE_STACK_LAMBDAS) => {
+  // maybe make a separate lambda for this (e.g. update-stack)
+  const {
+    accountId,
+    name,
+    region,
+  } = StackUtils.parseStackArn(stackId)
+
+  return lambdas.map(
+    lambdaName => `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-lambdaRole/${name}-${lambdaName}`
+  )
 }
 
 export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)

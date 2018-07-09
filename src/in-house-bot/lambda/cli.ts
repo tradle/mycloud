@@ -12,7 +12,7 @@ import { IPBMiddlewareContext } from '../types'
 import * as LambdaEvents from '../lambda-events'
 
 const bot = createBot({ ready: false })
-const lambda = fromCli({ bot, event: LambdaEvents.MESSAGE })
+const lambda = fromCli({ bot, event: LambdaEvents.COMMAND })
 lambda.use(async (ctx:IPBMiddlewareContext, next) => {
   const { event, components } = ctx
   if (typeof event !== 'string') {

@@ -355,6 +355,12 @@ provider:
         - cloudformation:GetTemplate
       Resource: "*"
 
+    - Effect: Allow
+      Action:
+        - cloudformation:UpdateStack
+      Resource:
+        Ref: AWS::StackId
+
     # allow lambdas to update themselves / each other
     - Effect: Allow
       Action:

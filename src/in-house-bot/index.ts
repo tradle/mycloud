@@ -100,7 +100,8 @@ const ONFIDO_RELATED_EVENTS = [
   // // async
   // LambdaEvents.RESOURCE_ASYNC,
   // sync
-  LambdaEvents.MESSAGE
+  LambdaEvents.MESSAGE,
+  LambdaEvents.COMMAND
 ]
 
 type ConfigureLambdaOpts = {
@@ -573,7 +574,7 @@ export const loadComponentsAndPlugins = ({
     ].forEach(name => attachPlugin({ name, prepend: true }))
   }
 
-  if (handleMessages || runAsyncHandlers || event.startsWith('deployment:')) {
+  if (handleMessages || runAsyncHandlers || event.startsWith('deployment:') || event === LambdaEvents.COMMAND) {
     attachPlugin({ name: 'deployment' })
   }
   if (handleMessages || event.startsWith('documentChecker:')) {
@@ -586,7 +587,8 @@ export const loadComponentsAndPlugins = ({
   }
 
   if ((bot.isTesting && handleMessages) ||
-    event === LambdaEvents.RESOURCE_ASYNC) {
+    event === LambdaEvents.RESOURCE_ASYNC ||
+    event === LambdaEvents.COMMAND) {
     attachPlugin({ name: 'webhooks' })
   }
 

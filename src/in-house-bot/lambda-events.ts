@@ -3,6 +3,7 @@ export const PREAUTH = 'preauth'
 export const AUTH = 'auth'
 export const MESSAGE = 'message'
 export const RESOURCE_ASYNC = 'resourcestream'
+export const COMMAND = 'command'
 
 // various http-based confirmations (e.g. email confirmation)
 export const CONFIRMATION = 'confirmation'
