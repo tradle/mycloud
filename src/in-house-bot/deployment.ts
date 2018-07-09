@@ -43,6 +43,7 @@ const AWS_REGION = 'tradle.cloud.AWSRegion'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
 const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
 const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
+const NO_SENDER_EMAIL = 'not configured to send emails. conf is missing "senderEmail"'
 const UPDATE_REQUEST_TTL = 10 * unitToMillis.minute
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
   template: 'action',
@@ -488,16 +489,22 @@ ${this.genUsageInstructions(links)}`
         Errors.rethrow(err, 'developer')
       })
 
-    const emailAdmin = this.bot.mailer.send({
-        from: this.conf.senderEmail,
-        to: _.uniq([hrEmail, adminEmail]),
-        format: 'html',
-        ...this.genLaunchedEmail({ ...links, fromOrg: this.orgConf.org })
-      })
-      .catch(err => {
-        this.logger.error('failed to email creators', err)
-        Errors.rethrow(err, 'developer')
-      })
+    let emailAdmin
+    if (this.conf.senderEmail) {
+      emailAdmin = this.bot.mailer.send({
+          from: this.conf.senderEmail,
+          to: _.uniq([hrEmail, adminEmail]),
+          format: 'html',
+          ...this.genLaunchedEmail({ ...links, fromOrg: this.orgConf.org })
+        })
+        .catch(err => {
+          this.logger.error('failed to email creators', err)
+          Errors.rethrow(err, 'developer')
+        })
+    } else {
+      emailAdmin = Promise.resolve()
+      this.logger.debug(NO_SENDER_EMAIL)
+    }
 
     const results = await utils.allSettled([notifyConfigurer, emailAdmin])
     const firstErr = results.find(result => result.reason)

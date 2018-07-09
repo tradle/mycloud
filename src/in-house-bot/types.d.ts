@@ -387,7 +387,7 @@ export interface IDeploymentReplicationConf {
 }
 
 export interface IDeploymentPluginConf {
-  senderEmail: string
+  senderEmail?: string
   replication?: IDeploymentReplicationConf
 }
 

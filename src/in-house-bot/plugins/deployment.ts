@@ -92,6 +92,11 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
 
+    if (!conf.senderEmail) {
+      logger.debug('unable to send email to AWS admin as conf is missing "senderEmail"')
+      return
+    }
+
     const { adminEmail } = form
     try {
       await bot.mailer.send({
@@ -155,13 +160,11 @@ export const validateConf = async ({ conf, pluginConf }: {
   pluginConf: IDeploymentPluginConf
 }) => {
   const { senderEmail } = pluginConf
-  if (!senderEmail) {
-    throw new Error('expected "senderEmail"')
-  }
-
-  const resp = await conf.bot.mailer.canSendFrom(senderEmail)
-  if (!resp.result) {
-    throw new Error(resp.reason)
+  if (senderEmail) {
+    const resp = await conf.bot.mailer.canSendFrom(senderEmail)
+    if (!resp.result) {
+      throw new Error(resp.reason)
+    }
   }
 }
 
