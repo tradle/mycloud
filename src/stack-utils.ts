@@ -465,11 +465,19 @@ export default class StackUtils {
   }
 
   public static getLambdaS3Keys = (template: any) => {
-    return _.filter(template.Resources, value => value.Type === 'AWS::Lambda::Function')
-      .map((value, lambdaName) => ({
-        value: value.Properties.Code.S3Key,
-        path: `Resources['${lambdaName}'].Properties.Code.S3Key`
-      }))
+    const keys = []
+    const { Resources } = template
+    for (let name in Resources) {
+      let value = Resources[name]
+      if (value.Type === 'AWS::Lambda::Function') {
+        keys.push({
+          path: `Resources['${name}'].Properties.Code.S3Key`,
+          value: value.Properties.Code.S3Key
+        })
+      }
+    }
+
+    return keys
   }
 
   public static changeRegion = ({ template, from, to }) => {

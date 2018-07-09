@@ -11,7 +11,8 @@ const bot = createBot()
 const lambda = fromSNS({ bot, event: LambdaEvents.CHILD_STACK_STATUS_CHANGED })
 lambda.use(async (ctx:IPBMiddlewareContext) => {
   const { event, components } = ctx
-  const { deployment } = components
+  const { deployment, logger } = components
+
   let parsed
   try {
     parsed = parseStackStatusEvent(event)
@@ -19,6 +20,8 @@ lambda.use(async (ctx:IPBMiddlewareContext) => {
     lambda.logger.error('received invalid stack status event', event)
     return
   }
+
+  logger.debug('received stack status event', event)
 
   try {
     await deployment.setChildStackStatus(parsed)

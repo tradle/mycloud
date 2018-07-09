@@ -169,13 +169,13 @@ export class Deployment {
     const { stackUtils } = this.bot
     const { region } = configuration
     this.logger.silly('generating cloudformation template with configuration', configuration)
-    const [baseTemplate, bucket] = await Promise.all([
+    const [parentTemplate, bucket] = await Promise.all([
       stackUtils.getStackTemplate(),
       this.getDeploymentBucketForRegion(region)
     ])
 
-    const template = await this.customizeTemplateForLaunch({ template: baseTemplate, configuration, bucket })
-    const url = await this.saveTemplateAndCode({ template, bucket })
+    const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
+    const url = await this.saveTemplateAndCode({ parentTemplate: parentTemplate, template, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
@@ -249,13 +249,13 @@ export class Deployment {
     // deployment:
   }) => {
     const { region, accountId, name } = this.bot.stackUtils.parseStackArn(stackId)
-    const [bucket, baseTemplate] = await Promise.all([
+    const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
       this.bot.stackUtils.getStackTemplate()
     ])
 
-    const template = await this.customizeTemplateForUpdate({ template: baseTemplate, stackId, configuration, bucket })
-    const url = await this.saveTemplateAndCode({ template, bucket })
+    const template = await this.customizeTemplateForUpdate({ template: parentTemplate, stackId, configuration, bucket })
+    const url = await this.saveTemplateAndCode({ parentTemplate, template, bucket })
     return {
       template,
       url: utils.getUpdateStackUrl({ stackId, templateUrl: url }),
@@ -767,6 +767,15 @@ ${this.genUsageInstructions(links)}`
 
   public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatus) => {
     const childDeployment = await this.getChildDeploymentByStackId(stackId)
+    if (childDeployment.status === status) {
+      this.logger.debug('ignoring duplicate child stack status update', {
+        status,
+        childDeployment: childDeployment._permalink
+      })
+
+      return childDeployment
+    }
+
     this.logger.debug('updating child deployment status', {
       status,
       childDeployment: childDeployment._permalink
@@ -843,11 +852,11 @@ ${this.genUsageInstructions(links)}`
     await source.copyFilesTo({ bucket, keys, acl: 'public-read' })
   }
 
-  public saveTemplateAndCode = async ({ template, bucket }) => {
+  public saveTemplateAndCode = async ({ parentTemplate, template, bucket }) => {
     this.logger.debug('saving template and lambda code', { bucket })
     const [result] = await Promise.all([
       this.savePublicTemplate({ bucket, template }),
-      this.copyLambdaCode({ bucket, template })
+      this.copyLambdaCode({ bucket, template: parentTemplate })
     ])
 
     return result

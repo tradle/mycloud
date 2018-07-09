@@ -658,19 +658,26 @@ export default class S3Utils {
     }
 
     const baseParams:AWS.S3.CopyObjectRequest = {
-      CopySource: source,
       Bucket: target,
+      CopySource: null,
       Key: null
     }
 
     if (acl) baseParams.ACL = acl
 
-    await Promise.all(keys.map(async (Key) => {
-      await this.s3.copyObject({
+    await Promise.all(keys.map(async (key) => {
+      const params = {
         ...baseParams,
-        Key
-      })
-      .promise()
+        CopySource: `${source}/${key}`,
+        Key: key
+      }
+
+      try {
+        await this.s3.copyObject(params).promise()
+      } catch (err) {
+        Errors.ignoreNotFound(err)
+        throw new Errors.NotFound(`bucket: "${target}", key: "${key}"`)
+      }
     }))
   }
 

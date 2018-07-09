@@ -603,7 +603,7 @@ export const getLaunchStackUrl = ({
   templateUrl,
   quickLink=true
 }: ILaunchStackUrlOpts) => {
-  const qs = querystring.stringify(pickNonNull({ stackName, templateUrl }))
+  const qs = querystring.stringify(pickNonNull({ stackName, templateURL: templateUrl }))
   const path = quickLink ? 'stacks/create/review' : 'stacks/new'
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/${path}?${qs}`
 }
@@ -619,7 +619,7 @@ export const getUpdateStackUrl = ({
   stackId,
   templateUrl
 }: IUpdateStackUrlOpts) => {
-  const qs = querystring.stringify(pickNonNull({ stackId, templateUrl }))
+  const qs = querystring.stringify(pickNonNull({ stackId, templateURL: templateUrl }))
   const path = 'stack/update'
   return `${LAUNCH_STACK_BASE_URL}#/${path}?${qs}`
 }
