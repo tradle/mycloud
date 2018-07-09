@@ -159,10 +159,9 @@ export const validateConf = async ({ conf, pluginConf }: {
     throw new Error('expected "senderEmail"')
   }
 
-  const canSend = await conf.bot.mailer.canSendFrom(senderEmail)
-  if (!canSend) {
-    throw new Error(`cannot send emails from "${senderEmail}".
-Check your AWS Account controlled addresses at: https://console.aws.amazon.com/ses/home`)
+  const resp = await conf.bot.mailer.canSendFrom(senderEmail)
+  if (!resp.result) {
+    throw new Error(resp.reason)
   }
 }
 

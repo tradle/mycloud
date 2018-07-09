@@ -486,16 +486,21 @@ export interface IDeepLink {
   platform: 'mobile' | 'web'
 }
 
-export interface ISendEmailResult {
+export interface IMailerSendEmailResult {
   id: string
 }
 
-export interface IMailer {
-  send: (opts: ISendEmailOpts) => Promise<ISendEmailResult>
-  canSendFrom: (address: string) => Promise<boolean>
+export type IMailerCanSendFromResult = {
+  result: boolean
+  reason?: string
 }
 
-export interface ISendEmailOpts {
+export interface IMailer {
+  send: (opts: IMailerSendEmailOpts) => Promise<IMailerSendEmailResult>
+  canSendFrom: (address: string) => Promise<IMailerCanSendFromResult>
+}
+
+export interface IMailerSendEmailOpts {
   from: string
   to?: string|string[]
   cc?: string|string[]
