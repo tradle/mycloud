@@ -17,6 +17,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
     - [Docker & Docker Compose](#docker-&-docker-compose)
     - [AWS cli](#aws-cli)
     - [JQ](#jq)
+    - [Typescript](#typescript)
   - [Development Tools](#development-tools)
   - [Clone this project](#clone-this-project)
   - [Install dependencies](#install-dependencies)
@@ -44,6 +45,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [npm run localstack:start](#npm-run-localstackstart)
   - [npm run localstack:stop](#npm-run-localstackstop)
   - [npm run localstack:restart](#npm-run-localstackrestart)
+  - [npm run localstack:update](#npm-run-localstackupdate)
   - [npm run gen:localstack](#npm-run-genlocalstack)
   - [npm run gen:localresources](#npm-run-genlocalresources)
   - [npm run nuke:local](#npm-run-nukelocal)
@@ -110,14 +112,21 @@ You'll be deploying to AWS, so you'll need an account and a command line client:
 
 #### JQ 
 
-[jq](https://stedolan.github.io/jq/download/) is a great command line JSON parser (On OS X, you can `brew install jq`)
+[jq](https://stedolan.github.io/jq/download/): a great command line JSON parser (On OS X, you can `brew install jq`)
+
+#### Typescript
+
+[typescript](typescriptlang.org): This project uses TypeScript, which needs to be compiled to JavaScript prior to use.
+
+Install: `npm i -g --save-exact typescript@2.8.4`
+
+*Note: Depending on your local setup you may need install with `sudo`*
 
 ### Development Tools
 
 *Note: if you don't care about playing locally and want to skip ahead to deploying Tradle MyCloud to the cloud, skip this section*
 
 - [awslocal](https://github.com/localstack/awscli-local). aws-cli wrapper for querying localstack. (On OS X, install with `[sudo] pip install awscli-local`)
-- [typescript](typescriptlang.org) - if you plan on doing any development (`npm i -g typescript@~2.8`)
 - [Serverless Framework](https://github.com/serverless/serverless) - this is already installed as part of `devDependencies`, but you may also want it installed globally so you can use the serverless cli (`npm i -g serverless`)
 
 ### Clone this project
