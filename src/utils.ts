@@ -1479,12 +1479,18 @@ export const parseStackStatusEvent = (event: any): StackStatus => {
     return map
   }, {})
 
+  const { StackId, Timestamp, ResourceStatus, ResourceType } = props
+  const subscriptionArn = event.Records[0].EventSubscriptionArn
+  if (!(StackId && Timestamp && ResourceStatus && ResourceType && subscriptionArn)) {
+    throw new Errors.InvalidInput('invalid stack status event')
+  }
+
   return {
-    stackId: props.StackId,
-    timestamp: new Date(props.Timestamp).getTime(),
-    status: props.ResourceStatus,
-    resourceType: props.ResourceType,
-    subscriptionArn: event.Records[0].EventSubscriptionArn,
+    stackId: StackId,
+    timestamp: new Date(Timestamp).getTime(),
+    status: ResourceStatus,
+    resourceType: ResourceType,
+    subscriptionArn,
   }
 }
 

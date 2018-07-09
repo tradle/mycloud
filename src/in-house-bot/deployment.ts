@@ -308,6 +308,8 @@ export class Deployment {
   }
 
   public getChildDeploymentWithProps = async (props={}): Promise<IDeploymentConf> => {
+    assertNoNullProps(props, `invalid filter props: ${JSON.stringify(props)}`)
+
     return this.getChildDeployment({
       filter: {
         EQ: props
@@ -1160,3 +1162,11 @@ const getTmpSNSTopicName = ({ id, type }: {
 const genSID = (base: string) => `${base}${randomStringWithLength(10)}`
 
 const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
+
+const assertNoNullProps = (obj: any, msg: string) => {
+  for (let p in obj) {
+    if (obj[p] == null) {
+      throw new Errors.InvalidInput(msg)
+    }
+  }
+}
