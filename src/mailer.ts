@@ -66,6 +66,7 @@ export default class Mailer implements IMailer {
         Identities: [address]
       }).promise()
     } catch (err) {
+      this.logger.debug('error checking send capability', err)
       Errors.rethrow(err, 'developer')
       return false
     }
