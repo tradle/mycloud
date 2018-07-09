@@ -215,13 +215,13 @@
     "tslib": "^1.9.0",
     "typeforce": "^1.11.1",
     "uuid": "^3.1.0",
-    "xml2js": "0.4.17",
+    "xml2js": "^0.4.19",
     "xtend": "^4.0.1",
     "yargs-parser": "~2.4.1",
     "yn": "^2.0.0"
   },
   "optionalDependencies": {
-    "@tradle/centrix": "github:mvayngrib/centrix"
+    "@tradle/centrix": "github:tradle/centrix"
   },
   "lint-staged": {
     "README.md": [

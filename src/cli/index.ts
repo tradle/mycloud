@@ -4,7 +4,7 @@ import yn from 'yn'
 import Logger, { Writer } from '../logger'
 import Env from '../env'
 import testServiceMap from '../test/service-map'
-import { customize } from '../in-house-bot/customize'
+import { configureLambda } from '../in-house-bot'
 import { createBot } from '../'
 import { list as listCommands, get as getCommand } from './registrar'
 import Command from './command'
@@ -55,7 +55,7 @@ export default class Cli {
     const {
       productsAPI,
       onfidoPlugin
-    } = await customize({ bot })
+    } = await configureLambda({ bot })
 
     this.productsAPI = productsAPI
     this.onfidoPlugin = onfidoPlugin

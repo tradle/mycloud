@@ -16,6 +16,7 @@ import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
+import { createConf } from './configure'
 import { plugins as defaultConfs } from './defaults'
 
 import {
@@ -28,11 +29,12 @@ import {
   isPendingApplication,
   getNonPendingApplications,
   getUserIdentifierFromRequest,
-  getProductModelForCertificateModel
+  getProductModelForCertificateModel,
+  witness,
 } from './utils'
 
 import {
-  getEnumValueId
+  toPromise
 } from '../utils'
 
 import { Applications } from './applications'
@@ -51,6 +53,7 @@ import {
   IPBApp,
   ISaveEventPayload,
   ITradleObject,
+  Lambda,
 } from './types'
 
 import Logger from '../logger'
@@ -99,17 +102,89 @@ const ONFIDO_RELATED_EVENTS = [
   LambdaEvents.MESSAGE
 ]
 
-export default function createProductsBot({
+type ConfigureLambdaOpts = {
+  lambda?: Lambda
+  bot?: Bot
+  delayReady?: boolean
+  event?: string
+  conf?: IConf
+}
+
+export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComponents> => {
+  let { lambda, bot, delayReady, event, conf } = opts
+  if (!bot) bot = lambda.bot
+
+  const { logger } = lambda || bot
+  const confy = createConf({ bot })
+  let [
+    org,
+    botConf,
+    modelsPack,
+    style,
+    termsAndConditions
+  ] = await Promise.all([
+    (conf && conf.org) || confy.org.get(),
+    (conf && conf.bot) || confy.botConf.get().catch(Errors.ignoreNotFound),
+    (conf && conf.modelsPack) || confy.modelsPack.get().catch(Errors.ignoreNotFound),
+    (conf && conf.style) || confy.style.get().catch(Errors.ignoreNotFound),
+    (conf && conf.termsAndConditions)
+      ? Promise.resolve({ value: conf.termsAndConditions })
+      : confy.termsAndConditions.getDatedValue()
+        // ignore empty values
+        .then(datedValue => datedValue.value && datedValue)
+        .catch(Errors.ignoreNotFound)
+  ].map(toPromise))
+
+  // const { domain } = org
+  if (modelsPack) {
+    bot.modelStore.setCustomModels(modelsPack)
+  }
+
+  if (style) {
+    try {
+      validateResource.resource({ models: baseModels, resource: style })
+    } catch (err) {
+      bot.logger.error('invalid style', err.stack)
+      style = null
+    }
+  }
+
+  conf = {
+    bot: botConf,
+    org,
+    style,
+    termsAndConditions,
+    modelsPack
+  }
+
+  const components = loadComponentsAndPlugins({
+    bot,
+    logger,
+    // namespace,
+    conf,
+    event
+  })
+
+  if (!opts.delayReady) bot.ready()
+
+  return {
+    ...components,
+    conf,
+    style
+  }
+}
+
+export const loadComponentsAndPlugins = ({
   bot,
   logger,
   conf,
   event = ''
 }: {
-    bot: Bot,
-    logger: Logger,
-    conf: IConf,
-    event?: string
-  }): IBotComponents {
+  bot: Bot,
+  logger: Logger,
+  conf: IConf,
+  event?: string
+}): IBotComponents => {
   const {
     enabled,
     maximumApplications,
@@ -247,6 +322,7 @@ export default function createProductsBot({
 
   const applications = new Applications({ bot, productsAPI, employeeManager })
   if (runAsyncHandlers) {
+    logger.debug('running async hooks')
     // productsAPI.removeDefaultHandlers()
     bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
       const { old, value } = change
@@ -507,7 +583,7 @@ export default function createProductsBot({
   return components
 }
 
-export { createProductsBot }
+export default configureLambda
 
 const limitApplications = (components: IBotComponents) => {
   const { bot, conf, productsAPI, employeeManager } = components
@@ -732,28 +808,4 @@ const sendModelsPackToNewEmployees = (components: IBotComponents) => {
   return {
     didApproveApplication
   }
-}
-
-const witness = async (bot: Bot, object: ITradleObject) => {
-  // TODO:
-  // witness() needs to be called on the original object (with embeds resolved)
-  // this is very inefficient, we just saved this object!
-  // need to allow this to be plugged in earlier in the process
-  const embeds = bot.objects.getEmbeds(object)
-
-  let copy = _.cloneDeep(object)
-  await bot.objects.resolveEmbeds(copy)
-  copy = await bot.witness(copy)
-
-  if (embeds.length) {
-    embeds.forEach(({ path, value }) => {
-      _.set(copy, path, value)
-    })
-  }
-
-  // check if witness verifies
-  // await bot.friends.verifyOrgAuthor(object)
-
-  await bot.save(copy)
-  return copy
 }
