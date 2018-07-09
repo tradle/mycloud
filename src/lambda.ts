@@ -20,7 +20,6 @@ import AWSXray from 'aws-xray-sdk-core'
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
-import { createBot } from './'
 import {
   Env,
   Logger,
@@ -28,6 +27,7 @@ import {
   Middleware,
   IRequestContext,
   ILambdaExecutionContext,
+  ILambdaHttpExecutionContext,
   LambdaHandler,
   ILambdaOpts
 } from './types'
@@ -51,6 +51,8 @@ import { warmup } from './middleware/warmup'
 
 const NOT_FOUND = new Error('nothing here')
 
+type Contextualized<T> = (ctx: T, next: Function) => any|void
+
 export enum EventSource {
   HTTP='http',
   LAMBDA='lambda',
@@ -63,20 +65,23 @@ export enum EventSource {
   CLI='cli'
 }
 
-export const fromHTTP = (opts={}) => new Lambda({ ...opts, source: EventSource.HTTP })
-export const fromDynamoDB = (opts={}) => new Lambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts={}) => new Lambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts={}) => new Lambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts={}) => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts={}) => new Lambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts={}) => new Lambda({ ...opts, source: EventSource.S3 })
-export const fromSNS = (opts={}) => new Lambda({ ...opts, source: EventSource.SNS })
-export const fromCli = (opts={}) => new Lambda({ ...opts, source: EventSource.CLI })
+export type Lambda = BaseLambda<ILambdaExecutionContext>
+export type LambdaHttp = BaseLambda<ILambdaHttpExecutionContext>
 
-export class Lambda extends EventEmitter {
+export const fromHTTP = (opts={}):BaseLambda<ILambdaHttpExecutionContext> => new BaseLambda({ ...opts, source: EventSource.HTTP })
+export const fromDynamoDB = (opts={}) => new BaseLambda({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts={}) => new BaseLambda({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts={}) => new BaseLambda({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts={}) => new BaseLambda({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts={}) => new BaseLambda({ ...opts, source: EventSource.S3 })
+export const fromSNS = (opts={}) => new BaseLambda({ ...opts, source: EventSource.SNS })
+export const fromCli = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLI })
+
+export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitter {
   // initialization
   public source: EventSource
-  public opts: ILambdaOpts
+  public opts: ILambdaOpts<Ctx>
   public bot: Bot
   public env: Env
   public koa: Koa
@@ -84,7 +89,7 @@ export class Lambda extends EventEmitter {
 
   // runtime
   public reqCtx: IRequestContext
-  public execCtx: ILambdaExecutionContext
+  public execCtx: Ctx
   public logger: Logger
 
   public isCold: boolean
@@ -93,17 +98,18 @@ export class Lambda extends EventEmitter {
   public requestCounter: number
   public xraySegment?: AWS.XRay.Segment
   private breakingContext: string
-  private middleware:Middleware[]
+  private middleware:Middleware<Ctx>[]
   private initPromise: Promise<void>
   private _gotHandler: boolean
   private lastExitStack: string
-  constructor(opts:ILambdaOpts={}) {
+  constructor(opts:ILambdaOpts<Ctx>={}) {
     super()
     const {
-      bot=createBot(),
       middleware,
       source
     } = opts
+
+    const bot = opts.bot || require('./').createBot()
 
     this.opts = opts
     this.bot = bot
@@ -184,24 +190,25 @@ export class Lambda extends EventEmitter {
     })
   }
 
-  public use = (fn:Function|Promise<Function>):Lambda => {
+  public use = (middleware:Middleware<Ctx>) => {
     if (this._gotHandler) {
       console.warn('adding middleware after exporting the lambda handler ' +
         'can result in unexpected behavior')
     }
 
-    if (isPromise(fn)) {
-      fn = promiseMiddleware(fn)
+    if (isPromise(middleware)) {
+      middleware = promiseMiddleware(middleware)
     }
 
-    if (typeof fn !== 'function') {
+    if (typeof middleware !== 'function') {
       throw new Error('middleware must be a function!')
     }
 
     if (this.source === EventSource.HTTP) {
-      this.koa.use(fn)
+      // @ts-ignore
+      this.koa.use(middleware)
     } else {
-      this.middleware.push(fn)
+      this.middleware.push(middleware)
     }
 
     return this
@@ -561,16 +568,20 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private setExecutionContext = ({ event, context, callback, ...opts }) => {
+    const awsExecCtx:ILambdaAWSExecutionContext = {
+      ...context,
+      done: this.exit,
+      succeed: result => this.exit(null, result),
+      fail: this.exit
+    }
+
+    // don't understand the error...
+    // @ts-ignore
     this.execCtx = {
       ...opts,
       done: false,
       event,
-      context: {
-        ...context,
-        done: this.exit,
-        succeed: result => this.exit(null, result),
-        fail: this.exit
-      },
+      context: awsExecCtx,
       callback: wrapCallback(this, callback || context.done.bind(context))
     }
 
@@ -598,7 +609,7 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 }
 
-export const createLambda = (opts: ILambdaOpts) => new Lambda(opts)
+export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) => new BaseLambda(opts)
 
 const wrapCallback = (lambda, callback) => (err, result) => {
   if (lambda.done) {
@@ -608,7 +619,7 @@ const wrapCallback = (lambda, callback) => (err, result) => {
   }
 }
 
-const getRequestContext = (lambda:Lambda):IRequestContext => {
+const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<T>):IRequestContext => {
   const { execCtx } = lambda
   const { event, context } = execCtx
   const correlationId = lambda.source === EventSource.HTTP

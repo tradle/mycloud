@@ -1,10 +1,11 @@
 import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
+import { Context as KoaContext } from 'koa'
 import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
 import { Table, DB, Models, Model, Diff } from '@tradle/dynamodb'
 import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
-import { Lambda, EventSource } from '../lambda'
+import { BaseLambda, LambdaHttp, Lambda, EventSource } from '../lambda'
 import { Bot } from '../bot'
 import { Users } from '../users'
 import { Env } from '../env'
@@ -97,6 +98,8 @@ export {
   User,
   Discovery,
   Lambda,
+  LambdaHttp,
+  BaseLambda,
   Backlinks,
   StackUtils,
   LambdaUtils,
@@ -182,22 +185,27 @@ export interface ILambdaExecutionContext {
   context: ILambdaAWSExecutionContext
   callback?: Function
   error?: Error
-  body?: any
+  body: any
   done: boolean
+  [x: string]: any
+}
+
+export interface ILambdaHttpExecutionContext extends ILambdaExecutionContext, KoaContext {
 }
 
 export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
   => any|void
 
-export interface ILambdaOpts {
+export interface ILambdaOpts<T> {
   devModeOnly?: boolean
   source?: EventSource
   bot?: Bot
-  middleware?: Middleware | Promise<Middleware>
+  middleware?: Middleware<T>
   [x:string]: any
 }
 
-export type Middleware = ComposeMiddleware<ILambdaExecutionContext>
+export type Middleware<T> = ComposeMiddleware<T>
+export type MiddlewareHttp = Middleware<ILambdaHttpExecutionContext>
 
 export interface ITradleObject {
   _version?: number

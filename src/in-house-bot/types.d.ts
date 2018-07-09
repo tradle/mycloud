@@ -1,6 +1,6 @@
 import { Context as KoaContext } from 'koa'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
-import { Bot, ModelsPack, DatedValue, Lambda, IUser } from '../types'
+import { Bot, ModelsPack, DatedValue, Lambda, BaseLambda, IUser } from '../types'
 import { Conf } from './configure'
 import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
@@ -370,7 +370,7 @@ export interface IDeploymentConfForm extends ITradleObject {
   hrEmail: string
 }
 
-export interface IPBotLambdaOpts extends ILambdaOpts {
+export interface IPBotLambdaOpts extends ILambdaOpts<IPBMiddlewareContext> {
   event: string
   [x:string]: any
 }
@@ -420,3 +420,6 @@ export interface ITradleCheck extends ITradleObject {
   aspects: string|string[]
   status: EnumValueStub
 }
+
+export type IPBLambda = BaseLambda<IPBMiddlewareContext>
+export type IPBLambdaHttp = BaseLambda<IPBHttpMiddlewareContext>

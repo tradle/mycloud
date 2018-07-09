@@ -1,10 +1,9 @@
 import * as LambdaEvents from '../lambda-events'
-import { IPBMiddlewareContext } from '../types'
 import { fromSchedule } from '../lambda'
 
 const lambda = fromSchedule({ event: LambdaEvents.DOCUMENT_CHECKER_JOB })
 
-lambda.use(async (ctx:IPBMiddlewareContext) => {
+lambda.use(async (ctx) => {
   // const { myComponent } = promiseCustomize
   // await myComponent.runJob()
 

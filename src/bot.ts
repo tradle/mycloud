@@ -76,6 +76,7 @@ import {
   Bucket,
   IMailer,
   PresignEmbeddedMediaOpts,
+  ILambdaExecutionContext,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -860,7 +861,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
   }
 
-  public createLambda = (opts:ILambdaOpts={}):Lambda => createLambda({
+  public createLambda = <T extends ILambdaExecutionContext>(opts:ILambdaOpts<T>={}):Lambda => createLambda({
     ...opts,
     bot: this
   })

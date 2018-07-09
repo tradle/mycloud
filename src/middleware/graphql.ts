@@ -9,7 +9,7 @@ import { route } from './noop-route'
 import { Level } from '../logger'
 import { logResponseBody } from '../utils'
 import { createGraphqlAPI, prettifyQuery } from '../graphql'
-import { Lambda, Middleware } from '../types'
+import { LambdaHttp as Lambda, MiddlewareHttp as Middleware } from '../types'
 import Errors from '../errors'
 
 export const createHandler = (lambda:Lambda, opts:any={}):Middleware => {
