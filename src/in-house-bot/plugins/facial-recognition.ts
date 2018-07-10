@@ -174,7 +174,6 @@ export class FacialRecognitionAPI {
       checkStatus = 'pass'
     let checkR:any = {
       status: checkStatus,
-      message,
       provider: PROVIDER,
       aspects: 'facial similarity',
       rawData,
