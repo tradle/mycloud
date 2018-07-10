@@ -20,6 +20,13 @@ if [ ! -e "serverless.yml" ]; then
   cp serverless-uncompiled.yml serverless.yml
 fi
 
+if ! [ -x "$(command -v tsc)" ]; then
+  echo 'Error: typescript is not installed' >&2
+  echo 'Run: npm i -g --save-exact typescript@2.8.4' >&2
+  echo 'Hint: you may need sudo' >&2
+  exit 1
+fi
+
 # npm run clean:deps
 
 tsc
