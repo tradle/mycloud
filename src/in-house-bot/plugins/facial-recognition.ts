@@ -184,8 +184,9 @@ export class FacialRecognitionAPI {
     }
     // debugger
     checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
-    if (error)
-      checkR.resultDetails = error
+    // if (error)
+    if (rawData.code)
+      checkR.resultDetails = rawData.code
 
     const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
       .set(checkR)
