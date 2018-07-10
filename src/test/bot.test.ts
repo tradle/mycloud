@@ -260,6 +260,10 @@ test(`onmessage`, loudAsync(async (t) => {
     payload: [message]
   })
 
+  sandbox.stub(bot.aws.iotData, 'publish').callsFake(() => ({
+    promise: async () => {}
+  }))
+
   await bot.lambdas.onmessage().handler({
     // clientId: 'ted',
     data
