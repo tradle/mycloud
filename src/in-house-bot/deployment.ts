@@ -1,6 +1,7 @@
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
+import AWS from 'aws-sdk'
 import buildResource from '@tradle/build-resource'
 import { TYPE, unitToMillis } from '../constants'
 import { randomStringWithLength } from '../crypto'
@@ -713,7 +714,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public genTmpSNSTopic = async ({ topic, stackId }: StackUpdateTopicInput): Promise<ITmpTopicResource> => {
-    const arn = await this._createTopic({ topic, stackId })
+    const arn = await this.createStackUpdateTopic({ topic, stackId })
     try {
       await this._refreshTmpSNSTopic(arn)
     } catch (err) {
@@ -735,7 +736,11 @@ ${this.genUsageInstructions(links)}`
 
     this.logger.debug('unscribing, deleting tmp topic', { topic })
     await this.unsubscribeFromTopic(topic)
-    await this.bot.aws.sns.deleteTopic({ TopicArn: topic }).promise()
+    await this.deleteTopic(topic)
+  }
+
+  public deleteTopic = async (topic: string) => {
+    this._regionalSNS(topic).deleteTopic({ TopicArn: topic }).promise()
   }
 
   public deleteExpiredTmpTopics = async () => {
@@ -789,13 +794,7 @@ ${this.genUsageInstructions(links)}`
       lambda: lambdaArn
     })
 
-    const params:AWS.SNS.SubscribeInput = {
-      TopicArn: topic,
-      Protocol: 'lambda',
-      Endpoint: lambdaArn
-    }
-
-    const promiseSubscribe = this.bot.aws.sns.subscribe(params).promise()
+    const promiseSubscribe = this.subscribeLambdaToTopic({ topic, lambda: lambdaArn })
     const promisePermission = this.bot.aws.lambda.addPermission({
       StatementId: 'allowTopicTrigger' + randomStringWithLength(10),
       Action: 'lambda:InvokeFunction',
@@ -810,6 +809,16 @@ ${this.genUsageInstructions(links)}`
       topic,
       subscription: SubscriptionArn,
     }
+  }
+
+  public subscribeLambdaToTopic = async ({ lambda, topic }) => {
+    const params:AWS.SNS.SubscribeInput = {
+      TopicArn: topic,
+      Protocol: 'lambda',
+      Endpoint: lambda,
+    }
+
+    return await this._regionalSNS(topic).subscribe(params).promise()
   }
 
   public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatus) => {
@@ -841,7 +850,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public unsubscribeFromTopic = async (SubscriptionArn: string) => {
-    await this.bot.aws.sns.unsubscribe({ SubscriptionArn }).promise()
+    await this._regionalSNS(SubscriptionArn).unsubscribe({ SubscriptionArn }).promise()
   }
 
   public getDeploymentBucketForRegion = async (region: string) => {
@@ -933,25 +942,11 @@ ${this.genUsageInstructions(links)}`
     templateUrl: string
     notificationTopics?: string[]
   }) => {
-    const params: AWS.CloudFormation.UpdateStackInput = {
-      StackName: this.bot.stackUtils.thisStack.arn,
-      TemplateURL: templateUrl,
-      Capabilities: [
-        'CAPABILITY_IAM',
-        'CAPABILITY_NAMED_IAM'
-      ],
-      Parameters: [],
-      NotificationARNs: notificationTopics,
-    }
-
-    this.logger.info('attempting to update this stack')
-    await utils.runWithTimeout(async () => {
-      return this.bot.aws.cloudformation.updateStack(params).promise()
-    }, {
-      get error() {
-        return new Errors.Timeout(`updateStack() timed out`)
-      },
-      millis: this.bot.env.getRemainingTime() - 1000,
+    await this.bot.lambdaUtils.invoke({
+      name: 'update-stack',
+      arg: { templateUrl, notificationTopics },
+      // don't wait for this to finish
+      sync: false
     })
   }
 
@@ -1022,11 +1017,9 @@ ${this.genUsageInstructions(links)}`
   public handleUpdateResponse = async (updateResponse: ITradleObject) => {
     await this._validateUpdateResponse(updateResponse)
     const { templateUrl, notificationTopics } = updateResponse
-    await this.bot.lambdaUtils.invoke({
-      name: 'cli',
-      arg: `--template-url "${templateUrl}" --notification-topics "${notificationTopics}"`,
-      // don't wait for this to finish
-      sync: false
+    await this.updateOwnStack({
+      templateUrl,
+      notificationTopics: notificationTopics.split(',').map(s => s.trim())
     })
   }
 
@@ -1055,15 +1048,15 @@ ${this.genUsageInstructions(links)}`
     return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
-  private _createTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
+  public createStackUpdateTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
     const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
-    const { sns } = this.bot.aws
+    const sns = this._regionalSNS(stackId)
     const { TopicArn } = await sns.createTopic(createParams).promise()
     const allowParams:AWS.SNS.AddPermissionInput = {
       TopicArn,
       ActionName: ['Publish'],
       AWSAccountId: getUpdateStackAssumedRoles(stackId),
-      Label: genSID('allowCrossAccountPublish')
+      Label: genSID('allowCrossAccountPublish'),
     }
 
     await sns.addPermission(allowParams).promise()
@@ -1127,6 +1120,13 @@ ${this.genUsageInstructions(links)}`
 
     return updated.toJSON()
   }
+
+  private _regionalSNS = (arn: string) => {
+    const region = getArnRegion(arn)
+    const { regional } = this.bot.aws
+    const services = regional[region]
+    return services.sns
+  }
 }
 
 const UPDATE_STACK_LAMBDAS = [
@@ -1135,6 +1135,8 @@ const UPDATE_STACK_LAMBDAS = [
   'message',
   'onresourcestream'
 ]
+
+const getArnRegion = (arn: string) => utils.parseArn(arn).region
 
 export const getUpdateStackAssumedRoles = (stackId: string, lambdas=UPDATE_STACK_LAMBDAS) => {
   // maybe make a separate lambda for this (e.g. update-stack)

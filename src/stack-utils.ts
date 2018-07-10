@@ -514,6 +514,32 @@ export default class StackUtils {
   public changeRegion = StackUtils.changeRegion
   public getLambdaS3Keys = StackUtils.getLambdaS3Keys
 
+  public updateStack = async ({ templateUrl, notificationTopics = [] }: {
+    templateUrl: string
+    notificationTopics: string[]
+  }) => {
+    const params: AWS.CloudFormation.UpdateStackInput = {
+      StackName: this.thisStack.arn,
+      TemplateURL: templateUrl,
+      Capabilities: [
+        'CAPABILITY_IAM',
+        'CAPABILITY_NAMED_IAM'
+      ],
+      Parameters: [],
+      NotificationARNs: notificationTopics,
+    }
+
+    this.logger.info('attempting to update this stack')
+    await utils.runWithTimeout(async () => {
+      return this.aws.cloudformation.updateStack(params).promise()
+    }, {
+      get error() {
+        return new Errors.Timeout(`updateStack() timed out`)
+      },
+      millis: this.env.getRemainingTime() - 1000,
+    })
+  }
+
   // public changeAdminEmail = StackUtils.changeAdminEmail
   private createDeployment = async () => {
     await this.aws.apigateway.createDeployment({

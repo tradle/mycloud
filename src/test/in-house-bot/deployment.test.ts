@@ -325,14 +325,14 @@ test('deployment by referral', loudAsync(async (t) => {
   //   return val
   // })
 
-  await require('../../in-house-bot/lambda/http/deployment-pingback').handler({
-    event: {
-      url: child.apiBaseUrl,
-      uuid: deploymentConf.deploymentUUID
-    }
-  }, {
-    done: t.error
-  }, t.error)
+  // await require('../../in-house-bot/lambda/http/deployment-pingback').handler({
+  //   event: {
+  //     apiBaseUrl: child.apiBaseUrl,
+  //     deploymentUUID: deploymentConf.deploymentUUID
+  //   }
+  // }, {
+  //   done: t.error
+  // }, t.error)
 
   await parentDeployment.notifyCreatorsOfChildDeployment(childDeploymentResource)
 
@@ -391,6 +391,7 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   const stubLookupRequest = sandbox.stub(childDeployment, 'lookupUpdateRequest').resolves(updateReq)
+  // const stubCreateTopic = sandbox.stub(childDeployment, 'createStackUpdateTopic').resolves()
   await childDeployment.handleUpdateResponse(updateResponse)
 
   // const { url } = await parentDeployment.genUpdatePackage({
@@ -411,6 +412,7 @@ test('deployment by referral', loudAsync(async (t) => {
   // console.log(parentDeployment.genLaunchedEmailBody({ launchUrl }))
 
   t.equal(saveTemplateStub.callCount, 2)
+  // t.equal(stubCreateTopic.callCount, 1)
 
   // const deleteTmpSpy = sandbox.spy(parentDeployment, 'deleteTmpSNSTopic')
   // await parent.db.del(createTopic)
