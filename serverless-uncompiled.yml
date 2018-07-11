@@ -1515,17 +1515,18 @@ resources:
                   Action:
                     - logs:DescribeLogGroups
                   Resource:
-                    - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group::log-stream:*
+                    - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup
-                    - logs:CreateLogStream
                     - logs:DeleteLogGroup
+                    - logs:CreateLogStream
                     - logs:DeleteLogStream
                     - logs:DescribeLogStreams
                     - logs:FilterLogEvents
+                    - logs:PutLogEvents
                   Resource:
-                    - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${{self:custom.stackName}}*:log-stream:*
+                    - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${{self:custom.stackName}}*
                 - Effect: Allow
                   Action:
                     - iam:GetRole
@@ -1545,7 +1546,7 @@ resources:
                     - apigateway:PUT
                     - apigateway:DELETE
                   Resource:
-                    - Fn::Sub: arn:aws:apigateway:${AWS::Region}:${AWS::AccountId}:/restapis
+                    - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis
                 - Effect: Allow
                   Action:
                     - apigateway:GET
@@ -1553,7 +1554,7 @@ resources:
                     - apigateway:PUT
                     - apigateway:DELETE
                   Resource:
-                    - Fn::Sub: arn:aws:apigateway:${AWS::Region}:${AWS::AccountId}:/restapis/*
+                    - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis/*
                 - Effect: Allow
                   Action:
                     - lambda:CreateFunction
@@ -1604,3 +1605,17 @@ resources:
                 #   - ec2:DescribeVpcs
                 #   Resource:
                 #   - "*"
+
+                # needed for cloudformation to be able to fetch the code
+                # from the parent deployment's bucket
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                  Resource:
+                    - Fn::Sub: arn:aws:s3:::*/*
+                # needed for cloudformation to be able to publish stack updates
+                # to sns topics
+                - Effect: Allow
+                  Action:
+                    - sns:Publish
+                  Resource: "*"

@@ -706,7 +706,7 @@ export default class S3Utils {
     if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
 
     const suffix = getRegionalBucketSuffix({ bucket, region })
-    let name = `${bucket}${suffix}`
+    const name = `${bucket}${suffix}`
     if (name.length > MAX_BUCKET_NAME_LENGTH) {
       const hash = sha256(bucket, 'hex').slice(0, 6)
       // - 1 for '-' char

@@ -287,7 +287,7 @@ export class Deployment {
       templateUrl,
       notificationTopics: [topic],
       updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
-      updateCommand: `updatestack --template-url "${templateUrl}" --notification-topics "${topic}"`
+      updateCommand: `updatestack --template-url '${templateUrl}' --notification-topics '${topic}'`
     }
   }
 
