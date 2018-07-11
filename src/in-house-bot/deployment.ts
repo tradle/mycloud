@@ -1160,7 +1160,7 @@ export const getUpdateStackAssumedRoles = (stackId: string, lambdas=UPDATE_STACK
   } = StackUtils.parseStackArn(stackId)
 
   return lambdas.map(
-    lambdaName => `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-lambdaRole/${name}-${lambdaName}`
+    lambdaName => `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-updateStackRole/${name}-${lambdaName}`
   )
 }
 
