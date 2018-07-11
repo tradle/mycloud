@@ -1130,10 +1130,7 @@ ${this.genUsageInstructions(links)}`
 }
 
 const UPDATE_STACK_LAMBDAS = [
-  'cli',
-  'inbox',
-  'message',
-  'onresourcestream'
+  'updateStack'
 ]
 
 const getArnRegion = (arn: string) => utils.parseArn(arn).region
