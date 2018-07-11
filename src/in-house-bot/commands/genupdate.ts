@@ -45,7 +45,7 @@ export const command:ICommand = {
         createdBy: provider
       })
 
-      logger.debug('generated mycloud update link', { url: update.url })
+      logger.debug('generated mycloud update link', { url: update.updateUrl })
       return update
     }
 

@@ -377,7 +377,7 @@ test('deployment by referral', loudAsync(async (t) => {
   }))
 
   let updateResponse
-  const { url } = await parentDeployment.handleUpdateRequest({
+  const { templateUrl } = await parentDeployment.handleUpdateRequest({
     from: childIdentity,
     req: updateReq
   })
@@ -387,7 +387,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
     t.equal(name, 'updateStack')
-    t.equal(parseArgs(arg).templateUrl, url)
+    t.equal(parseArgs(arg).templateUrl, templateUrl)
   })
 
   const stubLookupRequest = sandbox.stub(childDeployment, 'lookupUpdateRequest').resolves(updateReq)

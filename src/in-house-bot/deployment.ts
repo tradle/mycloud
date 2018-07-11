@@ -276,14 +276,18 @@ export class Deployment {
 
     // await code.bucket.grantReadAccess({ keys: code.keys })
 
+    const { topic } = await this.setupNotificationsForStack({
+      id: `${accountId}-${name}`,
+      type: StackOperationType.update,
+      stackId
+    })
+
     return {
       template,
-      url: utils.getUpdateStackUrl({ stackId, templateUrl }),
-      snsTopic: (await this.setupNotificationsForStack({
-        id: `${accountId}-${name}`,
-        type: StackOperationType.update,
-        stackId
-      })).topic
+      templateUrl,
+      notificationTopics: [topic],
+      updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
+      updateCommand: `updatestack --template-url "${templateUrl}" --notification-topics "${topic}"`
     }
   }
 
@@ -1012,11 +1016,11 @@ ${this.genUsageInstructions(links)}`
       createdBy: req._author
     })
 
-    const { snsTopic, url } = pkg
+    const { notificationTopics, templateUrl } = pkg
     const resp = await this.bot.draft({ type: UPDATE_RESPONSE })
       .set({
-        templateUrl: url,
-        notificationTopics: snsTopic,
+        templateUrl,
+        notificationTopics: notificationTopics.join(','),
         request: req,
         provider: from
       })
