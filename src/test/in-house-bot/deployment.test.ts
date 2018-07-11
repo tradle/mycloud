@@ -366,6 +366,7 @@ test('deployment by referral', loudAsync(async (t) => {
   saveTemplateStub.callsFake(async ({ template, bucket }) => {
     t.equal(bucket, regionalBucket)
     t.equal(template.Mappings.org.contact.adminEmail, conf.adminEmail)
+    return 'http://my.template.url'
   })
 
   saveResourceStub.reset()
@@ -387,7 +388,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
     t.equal(name, 'updateStack')
-    t.equal(parseArgs(arg).templateUrl, templateUrl)
+    t.equal(arg.templateUrl, templateUrl)
   })
 
   const stubLookupRequest = sandbox.stub(childDeployment, 'lookupUpdateRequest').resolves(updateReq)
