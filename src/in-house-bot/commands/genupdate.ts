@@ -2,13 +2,13 @@ import parse from 'yargs-parser'
 import { ICommand, IDeploymentConf } from '../types'
 
 export const command:ICommand = {
-  name: 'updatemycloud',
+  name: 'genupdate',
   description: 'get a link to update your MyCloud',
   examples: [
     // '/getlaunchlink --name EasyBank --domain easybank.io',
     // '/getlaunchlink --name EasyBank --domain easybank.io --logo "https://s3.amazonaws.com/tradle-public-images/easy.png"',
-    '/updatemycloud --provider <identityPermalink>',
-    '/updatemycloud --stack-id <stackId> --admin-email <adminEmail>'
+    '/genupdate --provider <identityPermalink>',
+    '/genupdate --stack-id <stackId> --admin-email <adminEmail>'
   ],
   exec: async ({ commander, req, ctx, args }) => {
     const { deployment, productsAPI, employeeManager, logger } = commander
