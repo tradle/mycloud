@@ -76,7 +76,7 @@
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",
-      "resolved": "git://github.com/tradle/bot-employee-manager.git#388dd7e1875f0df8cbc062b7e551bd22d0e72bab"
+      "resolved": "git://github.com/tradle/bot-employee-manager.git#f793944338ba5ddf5fe650a0956056c1b33f8f84"
     },
     "@tradle/bot-products": {
       "version": "1.0.0",
