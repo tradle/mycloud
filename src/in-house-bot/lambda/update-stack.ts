@@ -5,10 +5,9 @@ import { DEPLOYMENT_UPDATE_STACK } from '../lambda-events'
 const lambda = fromLambda({ event: DEPLOYMENT_UPDATE_STACK })
 
 lambda.use(async (ctx) => {
-  const { event, components } = ctx
+  const { event } = ctx
   const { templateUrl, notificationTopics } = event
-  const { deployment } = components
-  await deployment.updateOwnStack({ templateUrl, notificationTopics })
+  await lambda.bot.stackUtils.updateStack({ templateUrl, notificationTopics })
 })
 
 export const handler = lambda.handler

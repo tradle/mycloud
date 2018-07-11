@@ -943,10 +943,8 @@ ${this.genUsageInstructions(links)}`
     notificationTopics?: string[]
   }) => {
     await this.bot.lambdaUtils.invoke({
-      name: 'update-stack',
+      name: 'updateStack',
       arg: { templateUrl, notificationTopics },
-      // don't wait for this to finish
-      sync: false
     })
   }
 
@@ -998,17 +996,18 @@ ${this.genUsageInstructions(links)}`
     })
 
     const { snsTopic, url } = pkg
+    const resp = await this.bot.draft({ type: UPDATE_RESPONSE })
+      .set({
+        templateUrl: url,
+        notificationTopics: snsTopic,
+        request: req,
+        provider: from
+      })
+      .sign()
+
     await this.bot.send({
       to: req._author,
-      object: await this.bot.draft({ type: UPDATE_RESPONSE })
-        .set({
-          templateUrl: url,
-          notificationTopics: snsTopic,
-          request: req,
-          provider: from
-        })
-        .sign()
-        .then(r => r.toJSON())
+      object: resp.toJSON()
     })
 
     return pkg
