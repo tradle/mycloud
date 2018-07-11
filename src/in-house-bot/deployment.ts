@@ -94,6 +94,11 @@ type StackUpdateTopicInput = {
   stackId: string
 }
 
+type CodeLocation = {
+  bucket: Bucket
+  keys: string[]
+}
+
 enum StackOperationType {
   create,
   update
@@ -183,7 +188,7 @@ export class Deployment {
     ])
 
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
-    const url = await this.saveTemplateAndCode({ parentTemplate: parentTemplate, template, bucket })
+    const { templateUrl } = await this.saveTemplateAndCode({ parentTemplate: parentTemplate, template, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
@@ -199,7 +204,7 @@ export class Deployment {
       template,
       url: stackUtils.getLaunchStackUrl({
         stackName: getStackNameFromTemplate(template),
-        templateUrl: url,
+        templateUrl,
         region: configuration.region
       }),
       // snsTopic: (await promiseTmpTopic).topic
@@ -263,10 +268,17 @@ export class Deployment {
     ])
 
     const template = await this.customizeTemplateForUpdate({ template: parentTemplate, stackId, configuration, bucket })
-    const url = await this.saveTemplateAndCode({ parentTemplate, template, bucket })
+    const { templateUrl, code } = await this.saveTemplateAndCode({
+      parentTemplate,
+      template,
+      bucket,
+    })
+
+    // await code.bucket.grantReadAccess({ keys: code.keys })
+
     return {
       template,
-      url: utils.getUpdateStackUrl({ stackId, templateUrl: url }),
+      url: utils.getUpdateStackUrl({ stackId, templateUrl }),
       snsTopic: (await this.setupNotificationsForStack({
         id: `${accountId}-${name}`,
         type: StackOperationType.update,
@@ -906,16 +918,21 @@ ${this.genUsageInstructions(links)}`
     })
 
     await source.copyFilesTo({ bucket, keys, acl: 'public-read' })
+    return { bucket: target, keys }
   }
 
-  public saveTemplateAndCode = async ({ parentTemplate, template, bucket }) => {
+  public saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
+    parentTemplate: any
+    template: any
+    bucket: string
+  }):Promise<{ url: string, code: CodeLocation }> => {
     this.logger.debug('saving template and lambda code', { bucket })
-    const [result] = await Promise.all([
+    const [templateUrl, code] = await Promise.all([
       this.savePublicTemplate({ bucket, template }),
       this.copyLambdaCode({ bucket, template: parentTemplate })
     ])
 
-    return result
+    return { templateUrl, code }
   }
 
   public createRegionalDeploymentBuckets = async ({ regions }: {

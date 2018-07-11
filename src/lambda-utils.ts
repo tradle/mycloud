@@ -81,12 +81,12 @@ export default class LambdaUtils {
     if (log) params.LogType = 'Tail'
     if (qualifier) params.Qualifier = qualifier
 
-    this.logger.debug(`invoking ${params.FunctionName}`)
-
     let result
     if (local) {
+      this.logger.debug(`invoking local ${FunctionName}`)
       result = await this.invokeLocal(params)
     } else {
+      this.logger.debug(`invoking ${FunctionName}`)
       result = await this.aws.lambda.invoke(params).promise()
     }
 

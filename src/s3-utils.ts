@@ -681,19 +681,37 @@ export default class S3Utils {
     }))
   }
 
+  // public grantReadAccess = async ({ bucket, keys }: {
+  //   bucket: string
+  //   keys: string[]
+  // }) => {
+  //   await this.s3.putObjectAcl({
+  //     AccessControlPolicy: {
+  //       Grants:
+  //     }
+  //   })
+  // }
+
+  public static isRegionalBucketName = (bucket: string) => {
+    return REGIONS.some(region => bucket.endsWith(getRegionalBucketSuffix({ bucket, region })))
+  }
+
   public static getRegionalBucketName = ({ bucket, region }) => {
+    if (S3Utils.isRegionalBucketName(bucket)) {
+      // remove regional suffix
+      bucket = bucket.split('-').slice(0, -1).join('-')
+    }
+
     const idx = REGIONS.indexOf(region)
     if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
 
-    const idxStr = idx.toString(36) // 0-9, a-z
-    let name = `${bucket}-${idxStr}`
+    const suffix = getRegionalBucketSuffix({ bucket, region })
+    let name = `${bucket}${suffix}`
     if (name.length > MAX_BUCKET_NAME_LENGTH) {
       const hash = sha256(bucket, 'hex').slice(0, 6)
-      name = [
-        bucket.slice(0, MAX_BUCKET_NAME_LENGTH - hash.length - idxStr.length - 2), // 2 for two '-' chars
-        hash,
-        idxStr
-      ].join('-')
+      // - 1 for '-' char
+      const trunc = bucket.slice(0, MAX_BUCKET_NAME_LENGTH - hash.length - suffix.length - 1)
+      return `${trunc}-${hash}${suffix}`
     }
 
     return name
@@ -816,4 +834,14 @@ const toEncryptionParams = ({ bucket, kmsKeyId }):S3.PutBucketEncryptionRequest 
       ]
     }
   }
+}
+
+const getRegionalBucketSuffix = ({ bucket, region }: {
+  bucket: string
+  region: string
+}) => {
+  const idx = REGIONS.indexOf(region)
+  if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
+
+  return '-' + idx.toString(36)
 }
