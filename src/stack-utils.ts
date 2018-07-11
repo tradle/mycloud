@@ -79,6 +79,7 @@ export default class StackUtils {
   }
 
   public get thisStackId () { return this.thisStack.arn }
+  public get thisStackArn () { return this.thisStack.arn }
   public get thisStackName () { return this.thisStack.name }
 
   public static resolveMappings = (serverlessYml) => {
@@ -174,10 +175,7 @@ export default class StackUtils {
       stackId = stack.StackId
     }
 
-    return utils.getUpdateStackUrl({
-      stackId,
-      templateUrl
-    })
+    return utils.getUpdateStackUrl({ stackId, templateUrl })
   }
 
   public static genStackName = ({ service, stage }: {
@@ -519,7 +517,7 @@ export default class StackUtils {
     notificationTopics: string[]
   }) => {
     const params: AWS.CloudFormation.UpdateStackInput = {
-      StackName: this.thisStack.arn,
+      StackName: this.thisStackArn,
       TemplateURL: templateUrl,
       Capabilities: [
         'CAPABILITY_IAM',
@@ -529,15 +527,8 @@ export default class StackUtils {
       NotificationARNs: notificationTopics,
     }
 
-    this.logger.info('attempting to update this stack')
-    await utils.runWithTimeout(async () => {
-      return this.aws.cloudformation.updateStack(params).promise()
-    }, {
-      get error() {
-        return new Errors.Timeout(`updateStack() timed out`)
-      },
-      millis: this.env.getRemainingTime() - 1000,
-    })
+    this.logger.info('updating this stack')
+    return this.aws.cloudformation.updateStack(params).promise()
   }
 
   // public changeAdminEmail = StackUtils.changeAdminEmail
