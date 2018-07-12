@@ -719,7 +719,7 @@ functions:
     timeout: 30
     events:
       - schedule:
-          rate: rate(1 minutes)
+          rate: rate(1 minute)
     alarms:
       - functionErrors
       # - functionThrottles
