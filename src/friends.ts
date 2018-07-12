@@ -173,13 +173,8 @@ export default class Friends {
   };
 
   public list = async () => {
-    const { items } = await this.db.find({
-      allowScan: true,
-      filter: {
-        EQ: {
-          [TYPE]: FRIEND_TYPE
-        }
-      }
+    const { items } = await this.db.list(FRIEND_TYPE, {
+      allowScan: true
     })
 
     return items

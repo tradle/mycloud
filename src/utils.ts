@@ -7,6 +7,7 @@ import _ from 'lodash'
 // allow override promise
 // @ts-ignore
 import Promise from 'bluebird'
+import lexint from 'lexicographic-integer'
 import {
   pick,
   omit,
@@ -1507,4 +1508,19 @@ export const listIamRoles = async (iam: AWS.IAM) => {
   }
 
   return roles
+}
+
+export const toLexicographicVersion = (semver: string) => semver
+  .split('.')
+  .map(n => {
+    if (isNaN(Number(n))) {
+      throw new Errors.InvalidInput(`expected semver part, got: ${semver}. Offending part: ${n}`)
+    }
+
+    return toLexicographicInt(Number(n))
+  })
+  .join('.')
+
+export const toLexicographicInt = n => {
+  return lexint.pack(n, 'hex')
 }

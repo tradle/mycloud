@@ -11,6 +11,7 @@ import {
   Bucket,
   ILaunchStackUrlOpts,
   IUpdateStackUrlOpts,
+  VersionInfo,
 } from './types'
 
 import Errors from './errors'
@@ -22,6 +23,8 @@ import {
 
 import { genOptionsBlock } from './gen-cors-options-block'
 import { RetryableTask } from './retryable-task'
+
+const version = require('./version') as VersionInfo
 
 type StackInfo = {
   arn: string
@@ -340,6 +343,10 @@ export default class StackUtils {
     return configs.filter(({ FunctionName }) => names.includes(FunctionName))
   }
 
+  public getStackTemplateUrl = async () => {
+    // return this.aws.cloudformation.getTemplateSummary
+  }
+
   public getStackTemplate = async () => {
     if (this.env.TESTING) {
       return _.cloneDeep(require('./cli/cloudformation-template.json'))
@@ -530,6 +537,20 @@ export default class StackUtils {
     this.logger.info('updating this stack')
     return this.aws.cloudformation.updateStack(params).promise()
   }
+
+  public static getStackLocation = (env:Env) => {
+    const { branch, commit } = version
+    const dir = `serverless/${env.SERVERLESS_SERVICE_NAME}/${env.SERVERLESS_STAGE}/${branch}/${commit}`
+    const templateUrl = `${dir}/compiled-cloudformation-template.json`
+    const zip = `${dir}/${env.SERVERLESS_SERVICE_NAME}.zip`
+    return {
+      dir,
+      templateUrl,
+      zip
+    }
+  }
+
+  public getStackLocation = () => StackUtils.getStackLocation(this.env)
 
   // public changeAdminEmail = StackUtils.changeAdminEmail
   private createDeployment = async () => {

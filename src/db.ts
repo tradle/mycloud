@@ -280,12 +280,7 @@ export = function createDB ({
     chooseTable
   })
 
-  const fixMessageFilter = ({ args }) => {
-    const { filter } = args[0]
-    if (!(filter && filter.EQ)) return
-
-    const { EQ } = filter
-    if (EQ[TYPE] !== MESSAGE) return
+  const fixMessageFilter = ({ EQ }) => {
     if (EQ._dcounterparty) return
 
     const _counterparty = EQ._author || EQ._recipient || EQ._counterparty
@@ -334,7 +329,12 @@ export = function createDB ({
   // }
 
   const preProcessSearch = async (opts) => {
-    fixMessageFilter(opts)
+    const { args } = opts
+    const { filter } = args[0]
+    if (!(filter && filter.EQ)) return
+
+    const type = filter.EQ[TYPE]
+    if (type === MESSAGE) fixMessageFilter(filter)
   }
 
   const checkPre = resource => {

@@ -359,7 +359,7 @@ export interface IAWSServiceConfig {
 export interface IEndpointInfo extends IIotEndpointInfo {
   aws: boolean
   endpoint: string
-  version: string
+  version: VersionInfo
 }
 
 export type TopicOrString = string|EventTopic
@@ -707,4 +707,10 @@ export type Job = {
   period: number // seconds
   input?: any
   [x: string]: any
+}
+
+export type VersionInfo = {
+  version: string
+  branch: string
+  commit: string
 }

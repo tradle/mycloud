@@ -5,8 +5,6 @@ import {
   Logger,
 } from './types'
 
-import { TYPE } from './constants'
-
 const JOB = 'tradle.cloud.Job'
 const MIN_PERIOD = 60
 
@@ -25,10 +23,10 @@ export class Jobs {
   }
 
   public save = async (job: Job) => {
-    return await this.bot.signAndSave({
-      [TYPE]: JOB,
-      ...job
-    })
+    return await this.bot.draft({ type: JOB })
+      .set(job)
+      .signAndSave()
+      .then(j => j.toJSON())
   }
 
   public list = async () => {
@@ -44,7 +42,7 @@ export class Jobs {
 
   public listScheduled = async () => {
     const jobs = (await this.list()).map(normalizeJob)
-    return jobs.filter(Jobs.isScheduled)
+    return jobs.filter(j => Jobs.isScheduled(j))
   }
 
   public static isScheduled = (job: Job, time:number=Date.now()) => {

@@ -10,7 +10,8 @@
 
 import { IBotComponents, Seal, Job } from '../types'
 import { sendConfirmedSeals } from '../utils'
-import { DEFAULT_WARMUP_EVENT } from '../../constants'
+import { TYPE, ORG, DEFAULT_WARMUP_EVENT } from '../../constants'
+import Errors from '../../errors'
 
 const SAFETY_MARGIN_MILLIS = 20000
 
@@ -102,4 +103,48 @@ export const documentChecker:Executor = async ({ job, components }) => {
 
   // // document checker rate-limits to 1/min
   return await documentChecker.checkPending({ limit: 1 })
+}
+
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
+export const versionCheck:Executor = async ({ job, components }) => {
+  const { bot, logger } = components
+  const { version } = bot
+  const botPermalink = await bot.getMyPermalink()
+
+  let existing
+  try {
+    existing = await bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: botPermalink,
+          version: version.version,
+        }
+      }
+    })
+
+    return
+  } catch (err) {
+    Errors.ignoreNotFound(err)
+  }
+
+  const promiseFriends = bot.friends.list()
+  const { branch, commit } = version
+  const { templateUrl } = bot.stackUtils.getStackLocation()
+  const vInfo = await bot.draft({ type: VERSION_INFO })
+    .set(version)
+    .set({ templateUrl })
+    .signAndSave()
+    .then(r => r.toJSON())
+
+  const friends = await promiseFriends
+  logger.debug(`notifying ${friends.length} friends about MyCloud update`, version)
+
+  await Promise.all(friends.map(async (friend) => {
+    logger.debug(`notifying ${friend.name} about MyCloud update`)
+    await bot.send({
+      to: friend.identity._permalink,
+      object: vInfo
+    })
+  }))
 }

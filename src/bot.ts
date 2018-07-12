@@ -78,6 +78,7 @@ import {
   IMailer,
   PresignEmbeddedMediaOpts,
   ILambdaExecutionContext,
+  VersionInfo,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -235,7 +236,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.serviceMap.RestApi.ApiGateway.url
   }
 
-  public get version () {
+  public get version ():VersionInfo {
     return require('./version')
   }
 
