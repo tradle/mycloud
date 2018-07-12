@@ -1,3 +1,4 @@
+import Errors from '../../errors'
 import { fromSchedule } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
 import { Job } from '../types'
@@ -63,6 +64,13 @@ const DEFAULT_JOBS:Job[] = [
 DEFAULT_JOBS.forEach(job => bot.jobs.add(job))
 
 lambda.use(async (ctx) => {
-  await ctx.components.bot.jobs.scheduleJobsImmediately()
+  const { components } = ctx
+  const { bot, logger } = components
+  try {
+    await bot.jobs.scheduleJobsImmediately()
+  } catch (err) {
+    logger.error('failed to schedule jobs', Errors.export(err))
+  }
 })
 
+export const handler = lambda.handler
