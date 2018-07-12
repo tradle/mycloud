@@ -15,5 +15,9 @@ Object.keys(JOBS).forEach(name => {
 lambda.use(async (ctx) => {
   const job: Job = ctx.event
   const { components } = ctx
+  const { logger } = components
+  logger.debug(`running job: ${job.name}`)
   await bot.fire(`job:${job.name}`, { job, components })
 })
+
+export const handler = lambda.handler

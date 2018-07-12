@@ -43,9 +43,8 @@ export class Jobs {
   }
 
   public listScheduled = async () => {
-    const now = fixResolution(getCurrentTimeInSeconds())
     const jobs = (await this.list()).map(normalizeJob)
-    return jobs.filter(j => Jobs.isScheduled(j, now))
+    return jobs.filter(Jobs.isScheduled)
   }
 
   public static isScheduled = (job: Job, time:number=Date.now()) => {
@@ -62,6 +61,7 @@ export class Jobs {
   }
 
   public scheduleJobImmediately = async (job: Job) => {
+    this.logger.debug(`scheduling job: ${job.name}`)
     return await this.bot.lambdaUtils.invoke({
       name: job.function,
       arg: job,

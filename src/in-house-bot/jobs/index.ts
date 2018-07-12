@@ -94,9 +94,9 @@ export const checkFailedSeals:Executor = async ({ job, components }) => {
 }
 
 export const documentChecker:Executor = async ({ job, components }) => {
-  const { documentChecker } = components
+  const { logger, documentChecker } = components
   if (!documentChecker) {
-    this.logger.debug('document checker not set up')
+    logger.debug('document checker not set up')
     return
   }
 
