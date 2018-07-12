@@ -20,7 +20,7 @@ import { Auth } from '../auth'
 import { Init } from '../init'
 import { AwsApis } from '../aws'
 import { Bucket } from '../bucket'
-import { Seals, Seal } from '../seals'
+import { Seals, Seal, SealPendingResult } from '../seals'
 import { Blockchain } from '../blockchain'
 import { ModelStore } from '../model-store'
 import { Task, TaskManager } from '../task-manager'
@@ -83,6 +83,7 @@ export {
   Bucket,
   Seal,
   Seals,
+  SealPendingResult,
   Blockchain,
   ModelStore,
   Task,
@@ -699,4 +700,11 @@ export type StackStatus = {
   status: AWS.CloudFormation.ResourceStatus
   resourceType: AWS.CloudFormation.ResourceType
   subscriptionArn: string
+}
+
+export type Job = {
+  name: string
+  period: number // seconds
+  input?: any
+  [x: string]: any
 }

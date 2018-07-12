@@ -44,6 +44,7 @@ import * as crypto from './crypto'
 import { createUsers, Users } from './users'
 // import { Friends } from './friends'
 import { createGraphqlAPI } from './graphql'
+import { Jobs } from './jobs'
 import {
   IEndpointInfo,
   ILambdaImpl,
@@ -290,6 +291,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.serviceMap.Key.DefaultEncryption
   }
 
+  public jobs: Jobs
+
   // PRIVATE
   private outboundMessageLocker: Locker
   private inboundMessageLocker: Locker
@@ -384,6 +387,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     } else {
       this.appLinks = defaultAppLinks
     }
+
+    this.jobs = new Jobs(this)
 
     setupDefaultHooks(this)
     if (ready) this.ready()

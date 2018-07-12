@@ -14,6 +14,8 @@ export const DEPLOYMENT_UPDATE_STACK = 'deployment:update_stack'
 export const CHILD_STACK_STATUS_CHANGED = 'deployment:child_stack_status'
 // export const UPDATE_STACK = 'deployment:update_stack'
 
+export const SCHEDULER = 'scheduler'
+
 // remediation
 export const REMEDIATION_COMMAND = 'remediation:utils'
 

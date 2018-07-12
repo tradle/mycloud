@@ -504,25 +504,25 @@ functions:
   warmup:
     handler: lib/in-house-bot/lambda/warmup.handler
     memorySize: 128
-    events:
-      - schedule:
-          rate: rate(5 minutes)
-          enabled: true
-          input:
-            concurrency: 5
-            functions:
-              - oniotlifecycle
-              - onmessage
-              - onresourcestream
-              - graphql
-              - info
-              - preauth
-              - auth
-              - inbox
+    # events:
+    #   - schedule:
+    #       rate: rate(5 minutes)
+    #       enabled: true
+    #       input:
+    #         concurrency: 5
+    #         functions:
+    #           - oniotlifecycle
+    #           - onmessage
+    #           - onresourcestream
+    #           - graphql
+    #           - info
+    #           - preauth
+    #           - auth
+    #           - inbox
     alarms:
       - functionErrors
       # - functionThrottles
-      - functionInvocations
+      # - functionInvocations
 
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
@@ -565,10 +565,10 @@ functions:
     handler: lib/in-house-bot/lambda/delivery-retry.handler
     memorySize: 128
     timeout: 60
-    events:
-      - schedule:
-          rate: rate(1 minute)
-          enabled: true
+    # events:
+    #   - schedule:
+    #       rate: rate(1 minute)
+    #       enabled: true
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
@@ -713,47 +713,54 @@ functions:
   #         enabled: false
 
   # writes pending transactions to the blockchain
-  sealpending:
-    handler: lib/in-house-bot/lambda/sealpending.handler
+  jobScheduler:
+    handler: lib/in-house-bot/lambda/job-scheduler.handler
     memorySize: 256
-    timeout: 300
+    timeout: 30
     events:
       - schedule:
-          rate: rate(10 minutes)
-          # enabled: false
+          rate: rate(1 minutes)
     alarms:
       - functionErrors
       # - functionThrottles
       # - functionInvocations
+
+  genericJobRunner:
+    handler: lib/in-house-bot/lambda/job-runner.handler
+    memorySize: 256
+    timeout: 300
+    alarms:
+      - functionErrors
+      - functionInvocations
 
   # polls the status of unconfirmed blockchain transactions
-  pollchain:
-    handler: lib/in-house-bot/lambda/pollchain.handler
-    memorySize: 256
-    timeout: 300
-    events:
-      - schedule:
-          rate: rate(10 minutes)
-          # enabled: false
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
+  # pollchain:
+  #   handler: lib/in-house-bot/lambda/pollchain.handler
+  #   memorySize: 256
+  #   timeout: 300
+  #   # events:
+  #   #   - schedule:
+  #   #       rate: rate(10 minutes)
+  #   #       # enabled: false
+  #   alarms:
+  #     - functionErrors
+  #     # - functionThrottles
+  #     # - functionInvocations
 
-    # environment:
-    #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
-    #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
+  #   # environment:
+  #   #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
+  #   #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
-  check-failed-seals:
-    handler: lib/in-house-bot/lambda/check-failed-seals.handler
-    memorySize: 256
-    timeout: 60
-    events:
-      - schedule:
-          rate: rate(17 minutes)
-          # enabled: false
-    alarms:
-      - functionErrors
+  # check-failed-seals:
+  #   handler: lib/in-house-bot/lambda/check-failed-seals.handler
+  #   memorySize: 256
+  #   timeout: 60
+  #   # events:
+  #   #   - schedule:
+  #   #       rate: rate(17 minutes)
+  #   #       # enabled: false
+  #   alarms:
+  #     - functionErrors
 
   # force reinitialize lambda containers
   reinitialize-containers:
@@ -898,8 +905,8 @@ functions:
   # get_data_bundle:
   #   handler: lib/in-house-bot/lambda/get-data-bundle.handler
 
-  onfido_register:
-    handler: lib/in-house-bot/lambda/onfido-register.handler
+  # onfido_register:
+  #   handler: lib/in-house-bot/lambda/onfido-register.handler
 
   onfido:
     handler: lib/in-house-bot/lambda/http/onfido-webhook.handler
@@ -919,14 +926,14 @@ functions:
   #         method: post
   #         cors: ${{self:custom.cors}}
 
-  documentChecker:
-    handler: lib/in-house-bot/lambda/document-checker-job.handler
-    memorySize: 128
-    timeout: 60
-    events:
-      - schedule:
-          rate: rate(1 minute)
-          enabled: true
+  # documentChecker:
+  #   handler: lib/in-house-bot/lambda/document-checker-job.handler
+  #   memorySize: 128
+  #   timeout: 60
+  #   # events:
+  #   #   - schedule:
+  #   #       rate: rate(1 minute)
+  #   #       enabled: true
 
   cli:
     handler: lib/in-house-bot/lambda/cli.handler

@@ -115,7 +115,7 @@ type WatchOpts = {
   object?: ITradleObject
 }
 
-type SealPendingResult = {
+export type SealPendingResult = {
   seals: Seal[]
   error?: Error
 }
