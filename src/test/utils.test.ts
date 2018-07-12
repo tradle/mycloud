@@ -1071,6 +1071,54 @@ test('ModelStore', loudAsync(async (t) => {
   t.end()
 }))
 
+test('jobs', loudAsync(async (t) => {
+  const clock = sinon.useFakeTimers()
+  clock.setSystemTime(0)
+
+  const sandbox = sinon.createSandbox()
+
+  const { jobs } = bot
+  const MIN = 60
+  const MIN_MILLIS = 60 * 1000
+  const everyMin = {
+    name: 'a',
+    period: MIN
+  }
+
+  const everyTwoMin = {
+    name: 'b',
+    period: 2 * MIN
+  }
+
+  const everyHour = {
+    name: 'c',
+    period: 60 * MIN
+  }
+
+  t.ok(jobs.isScheduled(everyMin))
+  t.ok(jobs.isScheduled(everyTwoMin))
+  t.ok(jobs.isScheduled(everyHour))
+  clock.tick(MIN_MILLIS)
+
+  t.ok(jobs.isScheduled(everyMin))
+  t.notOk(jobs.isScheduled(everyTwoMin))
+  t.notOk(jobs.isScheduled(everyHour))
+
+  clock.tick(MIN_MILLIS)
+  t.ok(jobs.isScheduled(everyMin))
+  t.ok(jobs.isScheduled(everyTwoMin))
+  t.notOk(jobs.isScheduled(everyHour))
+
+  clock.tick(58 * MIN_MILLIS)
+  t.ok(jobs.isScheduled(everyMin))
+  t.ok(jobs.isScheduled(everyTwoMin))
+  t.ok(jobs.isScheduled(everyHour))
+
+  sandbox.restore()
+  clock.restore()
+  t.end()
+}))
+
 // import * as DBKey from '../db-key'
 // test.only('db-key', t => {
 //   const schema = {

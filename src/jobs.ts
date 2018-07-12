@@ -45,8 +45,15 @@ export class Jobs {
   public listScheduled = async () => {
     const now = fixResolution(getCurrentTimeInSeconds())
     const jobs = (await this.list()).map(normalizeJob)
-    return jobs.filter(j => now % j.period === 0)
+    return jobs.filter(j => Jobs.isScheduled(j, now))
   }
+
+  public static isScheduled = (job: Job, time:number=Date.now()) => {
+    time = fixResolution(Math.floor(time / 1000))
+    return time % job.period === 0
+  }
+
+  public isScheduled = Jobs.isScheduled
 
   public scheduleJobsImmediately = async (jobs?: Job[]) => {
     if (!jobs) jobs = await this.listScheduled()
@@ -56,7 +63,7 @@ export class Jobs {
 
   public scheduleJobImmediately = async (job: Job) => {
     return await this.bot.lambdaUtils.invoke({
-      name: job.name,
+      name: job.function,
       arg: job,
       sync: false
     })
