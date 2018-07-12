@@ -117,6 +117,7 @@ const constants = {
     functions: [
       'oniotlifecycle',
       'onmessage',
+      'onresourcestream',
       'graphql',
       'info',
       'preauth',
