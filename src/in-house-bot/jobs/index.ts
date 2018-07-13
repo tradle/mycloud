@@ -155,7 +155,7 @@ export const ensureInitialized:Executor = async ({ job, components }) => {
     // do nothing
     await checkVersion(components)
   } else {
-    const { friend } = await reportLaunchToTradle(components)
+    const { friend } = await reportLaunch({ components, targetApiUrl: TRADLE_MYCLOUD_URL })
     // await friendTradle(components.bot)
     if (friend) {
       await sendTradleFriendRequest({ bot, friend })
@@ -163,7 +163,10 @@ export const ensureInitialized:Executor = async ({ job, components }) => {
   }
 }
 
-const reportLaunchToTradle = async (components: IBotComponents) => {
+const reportLaunch = async ({ components, targetApiUrl }: {
+  components: IBotComponents
+  targetApiUrl: string
+}) => {
   const { bot, logger, conf } = components
   const deployment = new Deployment({
     bot,
@@ -174,7 +177,7 @@ const reportLaunchToTradle = async (components: IBotComponents) => {
   try {
     return await deployment.reportLaunch({
       myOrg: conf.org,
-      targetApiUrl: TRADLE_MYCLOUD_URL,
+      targetApiUrl,
     })
   } catch(err) {
     Errors.rethrow(err, 'developer')
