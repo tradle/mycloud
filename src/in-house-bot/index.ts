@@ -575,7 +575,7 @@ export const loadComponentsAndPlugins = ({
   }
 
   if (handleMessages || runAsyncHandlers || event.startsWith('deployment:') || event === LambdaEvents.COMMAND) {
-    attachPlugin({ name: 'deployment' })
+    attachPlugin({ name: 'deployment', requiresConf: false })
   }
   if (handleMessages || event.startsWith('documentChecker:')) {
     attachPlugin({ name: 'documentChecker' })

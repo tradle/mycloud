@@ -9,9 +9,10 @@ import { STACK_UPDATED } from '../lambda-events'
 const bot = createBot()
 const lambda = bot.lambdas.oninit()
 const conf = createConf({ bot })
-const loadComponents = once(async () => {
+
+bot.hookSimple(`stack:update`, async () => {
   const components = await configureLambda({ lambda, event: STACK_UPDATED })
-  bot.hookSimple(`stack:update`, () => ensureInitialized(components))
+  ensureInitialized(components)
 })
 
 lambda.use(async (ctx, next) => {
@@ -19,7 +20,6 @@ lambda.use(async (ctx, next) => {
   if (type === 'init') {
     await conf.initInfra(payload)
   } else if (type === 'update') {
-    await loadComponents()
     await conf.updateInfra(payload)
   } else if (type === 'delete') {
     lambda.logger.debug('deleting custom resource!')

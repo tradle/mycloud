@@ -396,6 +396,8 @@ export class Deployment {
     myIdentity?: IIdentity
     deploymentUUID?: string
   }) => {
+    if (this.bot.isTesting) return {}
+
     if (!myIdentity) {
       myIdentity = await this.bot.getMyIdentity()
     }
