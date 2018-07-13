@@ -8,6 +8,7 @@ export const command:ICommand = {
     '/updatestack --template-url "<templateURL>"',
     '/updatestack --template-url "<templateURL>" --notification-topics "<topic1,topic2,...>"',
   ],
+  adminOnly: true,
   exec: async ({ commander, req, ctx, args }) => {
     if (!ctx.sudo) throw new Error('forbidden')
 
@@ -17,7 +18,7 @@ export const command:ICommand = {
     }
 
     if (!args.templateUrl) {
-      await deployment.requestUpdate()
+      await deployment.requestUpdateFromTradle()
       return {
         requestedUpdate: true
       }

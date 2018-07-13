@@ -57,41 +57,16 @@ interface IExecOpts extends ICommandParams {
   req?: IPBReq
 }
 
-// export const EMPLOYEE_COMMANDS = [
-//   'help',
-//   'listproducts',
-//   'forgetme',
-//   'setproductenabled',
-//   // 'setautoverify',
-//   'setautoapprove',
-//   'addfriend',
-//   'tours',
-//   'message',
-//   'getconf',
-//   'approve',
-//   'deny',
-//   'getlaunchlink',
-//   'model'
-// ]
+const getCommandNameFromKey = key => commands[key].name || key
 
 export const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
-export const COMMANDS = Object.keys(commands).map(key => commands[key].name || key)
-export const SUDO_ONLY_COMMANDS = [
-  'delete-forever-with-no-undo',
-  'clear',
-  'reset-identity-with-no-undo',
-  'setenvvar',
-  'push-notifications',
-  'doctor',
-  'balance',
-  'reindex',
-  'updatestack',
-  'graphql',
-  // 'encryptbucket',
-  // 'enablebinary'
-]
+export const COMMANDS = Object.keys(commands)
+  .map(getCommandNameFromKey)
 
-export const EMPLOYEE_COMMANDS = COMMANDS.filter(name => !SUDO_ONLY_COMMANDS.includes(name))
+export const EMPLOYEE_COMMANDS = Object.keys(commands)
+  .filter(key => !commands[key].adminOnly)
+  .map(getCommandNameFromKey)
+
 export const CUSTOMER_COMMANDS = [
   'help',
   'listproducts',

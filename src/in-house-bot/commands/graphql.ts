@@ -6,6 +6,7 @@ export const command:ICommand = {
     '/graphql --query "query string"'
   ],
   description: 'execute a graphql query',
+  adminOnly: true,
   exec: async ({ ctx, commander, req, args }) => {
     if (!ctx.sudo) throw new Error('forbidden')
 

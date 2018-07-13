@@ -40,17 +40,22 @@ export const command:ICommand = {
       throw new Error('expected "--provider" or "--stack-id" + "--admin-email"')
     }
 
+    const versionInfo = await deployment.getLatestVersionInfo()
     if (provider) {
       const update = await deployment.genUpdatePackage({
-        createdBy: provider
+        createdBy: provider,
+        versionInfo
       })
 
       logger.debug('generated mycloud update link', { url: update.updateUrl })
       return update
     }
 
-    const configuration = <IDeploymentConf>{ adminEmail }
-    return deployment.genUpdatePackageForStack({ stackId, configuration })
+    return deployment.genUpdatePackageForStack({
+      stackId,
+      adminEmail,
+      parentTemplateUrl: versionInfo.templateUrl
+    })
   },
   sendResult: async ({ commander, req, to, args, result }) => {
     const { bot, logger } = this

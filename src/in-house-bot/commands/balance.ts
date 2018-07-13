@@ -9,6 +9,7 @@ export const command:ICommand = {
   examples: [
     '/balance',
   ],
+  adminOnly: true,
   exec: async ({ commander, req, ctx, args }) => {
     if (!ctx.sudo) throw new Error('forbidden')
 

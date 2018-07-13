@@ -248,6 +248,7 @@ export interface ICommand {
   parseOpts?: any
   sendResult?: (opts:ICommandSendResultOpts) => Promise<any>
   aliases?: string[]
+  adminOnly?: boolean
 }
 
 export type Name = {

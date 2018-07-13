@@ -1020,7 +1020,7 @@ ${this.genUsageInstructions(links)}`
 
   public requestUpdateFromTradle = async ({ tag }: {
     tag: string
-  }) => {
+  }={ tag: 'latest' }) => {
     const provider = await this.getTradleBotStub()
     return this.requestUpdateFromProvider({ provider, tag })
   }
@@ -1110,13 +1110,30 @@ ${this.genUsageInstructions(links)}`
     return pkg
   }
 
-  public getVersionInfoByTag = async (tag: string) => {
+  public getVersionInfoByTag = async (tag: string):Promise<VersionInfo> => {
+    if (tag === 'latest') return this.getLatestVersionInfo()
+
     return await this.bot.db.findOne({
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
           [ORG]: await this.bot.getMyPermalink(),
           sortableTag: utils.toLexicographicVersion(tag),
+        }
+      }
+    })
+  }
+
+  public getLatestVersionInfo = async ():Promise<VersionInfo> => {
+    return await this.bot.db.findOne({
+      orderBy: {
+        property: 'sortableTag',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: await this.bot.getMyPermalink(),
         }
       }
     })
