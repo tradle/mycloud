@@ -1,6 +1,6 @@
 
 const { StackUtils } = require('../lib/stack-utils')
-const vInfo = require('../lib/version')
+const versionInfo = require('../lib/version')
 
 class SetVersion {
   constructor(serverless, options) {
@@ -13,11 +13,12 @@ class SetVersion {
   }
 
   setVersion() {
-    const { dir } = StackUtils.getStackLocation({
+    const { dir } = StackUtils.getStackLocationKeys({
       ...process.env,
       service: this.serverless.service.service,
       stage: this.options.stage,
       region: this.options.region,
+      versionInfo,
     })
 
     this.serverless.service.package.artifactDirectoryName = dir

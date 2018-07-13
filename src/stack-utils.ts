@@ -537,24 +537,38 @@ export default class StackUtils {
     return this.aws.cloudformation.updateStack(params).promise()
   }
 
-  public static getStackLocation = ({ service, stage, region, versionInfo, deploymentBucket }: {
+  public static getStackLocationKeys = ({ service, stage, region, versionInfo }:  {
     service: string
     stage: string
     region: string
     versionInfo: VersionInfo
-    deploymentBucket: Bucket
   }) => {
     const { tag, commit } = versionInfo
     const dir = `serverless/${service}/${stage}/${tag}`
     const templateKey = `${dir}/compiled-cloudformation-template.json`
-    const zip = `${dir}/${service}.zip`
-    const regional = deploymentBucket.getRegionalBucket(region)
+    const zipKey = `${dir}/${service}.zip`
     return {
       dir,
       templateKey,
-      zip,
+      zipKey
+    }
+  }
+
+  public static getStackLocation = (opts: {
+    service: string
+    stage: string
+    region: string
+    versionInfo: VersionInfo
+    deploymentBucket?: Bucket
+  }) => {
+    const { region, deploymentBucket } = opts
+    const regional = deploymentBucket.getRegionalBucket(region)
+    const loc = StackUtils.getStackLocation(opts)
+    const { zipKey, templateKey } = loc
+    return {
+      ...loc,
       templateUrl: regional.getUrlForKey(templateKey),
-      zipUrl: regional.getUrlForKey(templateKey),
+      zipUrl: regional.getUrlForKey(zipKey),
     }
   }
 
