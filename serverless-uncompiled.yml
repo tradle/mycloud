@@ -65,6 +65,7 @@ package:
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
+  version: ${{file(./lib/version.json)}}
   defaults: ${{file(./default-vars.yml)}}
   # move these to vars.yml when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
@@ -1405,7 +1406,7 @@ resources:
           Fn::GetAtt: [GenericJobRunnerLambdaFunction, Arn]
         name: ensureInitialized
         # force re-execution on every deploy
-        version: ${{file(./lib/version).commit}}
+        version: ${{self:custom.version.commit}}
 
     DefaultEncryptionKey:
       Type: AWS::KMS::Key
