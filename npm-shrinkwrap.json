@@ -284,7 +284,7 @@
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#1e7b07c9d13d4674557b8d3e937b8355feb4255f"
+      "resolved": "git://github.com/tradle/models-cloud.git#2f09087f717adaad20a1a5d37958aac6764f8d68"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",

@@ -32,6 +32,7 @@ import { Bucket } from '../bucket'
 import { media } from './media'
 import Errors from '../errors'
 import { getFaviconUrl } from './image-utils'
+import { alphabetical } from '../string-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'
 import { getAppLinks, getAppLinksInstructions, isEmployee, isProbablyTradle } from './utils'
@@ -132,7 +133,7 @@ interface DeploymentCtorOpts {
 
 interface UpdateRequest extends ITradleObject {
   provider: ResourceStub
-  versionTag: string
+  tag: string
 }
 
 const ADMIN_MAPPING_PATH = ['org', 'contact', 'adminEmail']
@@ -1017,21 +1018,21 @@ ${this.genUsageInstructions(links)}`
   //   })
   // }
 
-  public requestUpdateFromTradle = async ({ versionTag }: {
-    versionTag: string
+  public requestUpdateFromTradle = async ({ tag }: {
+    tag: string
   }) => {
     const provider = await this.getTradleBotStub()
-    return this.requestUpdateFromProvider({ provider, versionTag })
+    return this.requestUpdateFromProvider({ provider, tag })
   }
 
-  public requestUpdateFromProvider = async ({ provider, versionTag }: {
+  public requestUpdateFromProvider = async ({ provider, tag }: {
     provider: ResourceStub
-    versionTag: string
+    tag: string
   }) => {
     const adminEmail = await this.bot.stackUtils.getCurrentAdminEmail()
     const updateReq = this.draftUpdateRequest({
       adminEmail,
-      versionTag,
+      tag,
       provider,
     })
 
@@ -1042,7 +1043,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public draftUpdateRequest = (opts) => {
-    utils.requireOpts(opts, ['versionTag', 'adminEmail', 'provider'])
+    utils.requireOpts(opts, ['tag', 'adminEmail', 'provider'])
 
     // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
     //   throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
@@ -1069,7 +1070,7 @@ ${this.genUsageInstructions(links)}`
       throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
     }
 
-    utils.requireOpts(req, ['stackId', 'versionTag', 'adminEmail'])
+    utils.requireOpts(req, ['stackId', 'tag', 'adminEmail'])
 
     // if (req.currentCommit === this.bot.version.commit) {
     //   this.logger.debug('child is up to date')
@@ -1080,7 +1081,7 @@ ${this.genUsageInstructions(links)}`
       versionInfo,
       myPermalink
     ] = await Promise.all([
-      this.getVersionInfoByTag(req.versionTag),
+      this.getVersionInfoByTag(req.tag),
       this.bot.getMyPermalink()
     ])
 
@@ -1097,7 +1098,7 @@ ${this.genUsageInstructions(links)}`
         notificationTopics: notificationTopics.join(','),
         request: req,
         provider: from,
-        versionTag: req.versionTag,
+        tag: req.tag,
       })
       .sign()
 
@@ -1131,9 +1132,61 @@ ${this.genUsageInstructions(links)}`
       .then(r => r.toJSON())
   }
 
+  public getUpdateByTag = async (tag: string) => {
+    return await this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: 'tradle.cloud.Update',
+          [ORG]: await this.bot.getMyPermalink(),
+          sortableTag: utils.toLexicographicVersion(tag),
+        }
+      }
+    })
+  }
+
+  public includesUpdate = (updateTag: string) => {
+    return compareTags(this.bot.version.tag, updateTag)
+  }
+
+  public validateUpdateResponse = async (updateResponse: ITradleObject) => {
+    const provider = updateResponse._author
+    const { tag } = updateResponse
+
+    let req: ITradleObject
+    try {
+      req = await this.lookupLatestUpdateRequest({ provider })
+      if (req._link !== updateResponse.request._link) {
+        throw new Error(`last `)
+      }
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      this.logger.warn('received stack update response...but no request was made, ignoring', {
+        from: provider,
+        updateResponse: this.bot.buildStub(updateResponse)
+      })
+
+      throw err
+    }
+
+    if (req._time + UPDATE_REQUEST_TTL < Date.now()) {
+      const msg = 'received update response for expired request, ignoring'
+      this.logger.warn(msg, {
+        from: provider,
+        updateResponse: this.bot.buildStub(updateResponse)
+      })
+
+      throw new Errors.Expired(msg)
+    }
+  }
+
   public handleUpdateResponse = async (updateResponse: ITradleObject) => {
-    await this._validateUpdateResponse(updateResponse)
-    await this.bot.reSign(updateResponse)
+    await this.validateUpdateResponse(updateResponse)
+    await this.bot.draft({ type: 'tradle.cloud.Update' })
+      .set({
+        templateUrl: updateResponse.templateUrl,
+        tag: updateResponse.tag,
+      })
+      .signAndSave()
 
     // // const { templateUrl, notificationTopics } = updateResponse
     // // await this.updateOwnStack({
@@ -1144,28 +1197,13 @@ ${this.genUsageInstructions(links)}`
     // const provider = await this.bot.identities.byPermalink(updateResponse._author)
     // await this._createUpdatePackage({
     //   templateUrl: updateResponse.templateUrl,
-    //   versionTag: updateResponse.versionTag,
+    //   tag: updateResponse.tag,
     //   provider,
     // })
   }
 
-  public _createUpdatePackage = async ({ templateUrl, versionTag, provider }: {
-    templateUrl: string
-    versionTag: string
-    provider: ResourceStub
-  }) => {
-    return await this.bot.draft({ type: 'tradle.cloud.UpdatePackage' })
-      .set({
-        templateUrl,
-        versionTag,
-        provider,
-      })
-      .signAndSave()
-  }
-
-  public lookupUpdateRequest = async ({ provider, versionTag }: {
+  public lookupLatestUpdateRequest = async ({ provider }: {
     provider: string
-    versionTag: string
   }) => {
     if (!(typeof provider === 'string' && provider)) {
       throw new Errors.InvalidInput('expected string "provider" permalink')
@@ -1179,8 +1217,8 @@ ${this.genUsageInstructions(links)}`
       filter: {
         EQ: {
           [TYPE]: UPDATE_REQUEST,
+          [ORG]: await this.bot.getMyPermalink(),
           'provider._permalink': provider,
-          versionTag
         }
       }
     })
@@ -1257,34 +1295,6 @@ ${this.genUsageInstructions(links)}`
       s3Utils: bot.s3Utils,
       logger: bot.logger
     })
-  }
-
-  private _validateUpdateResponse = async (updateResponse: ITradleObject) => {
-    const provider = updateResponse._author
-    const { versionTag } = updateResponse
-
-    let req: ITradleObject
-    try {
-      req = await this.lookupUpdateRequest({ provider, versionTag })
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-      this.logger.warn('received stack update response...but no request was made, ignoring', {
-        from: provider,
-        updateResponse: this.bot.buildStub(updateResponse)
-      })
-
-      throw err
-    }
-
-    if (req._time + UPDATE_REQUEST_TTL < Date.now()) {
-      const msg = 'received update response for expired request, ignoring'
-      this.logger.warn(msg, {
-        from: provider,
-        updateResponse: this.bot.buildStub(updateResponse)
-      })
-
-      throw new Errors.Expired(msg)
-    }
   }
 
   private _refreshTmpSNSTopic = async (arn: string) => {
@@ -1375,4 +1385,10 @@ const assertNoNullProps = (obj: any, msg: string) => {
       throw new Errors.InvalidInput(msg)
     }
   }
+}
+
+const compareTags = (a: string, b: string) => {
+  const as = utils.toLexicographicVersion(a)
+  const bs = utils.toLexicographicVersion(b)
+  return alphabetical(as, bs)
 }

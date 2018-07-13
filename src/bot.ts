@@ -21,6 +21,7 @@ import { createAWSWrapper } from './aws'
 import { StreamProcessor } from './stream-processor'
 import * as utils from './utils'
 import { TYPE, SIG, ORG, ORG_SIG } from './constants'
+const VERSION = require('./version')
 const {
   defineGetter,
   ensureTimestamped,
@@ -223,6 +224,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public logger: Logger
   public graphql: IGraphqlAPI
   public streamProcessor: StreamProcessor
+  public version: VersionInfo
 
   public get isDev() { return this.env.STAGE === 'dev' }
   public get isStaging() { return this.env.STAGE === 'staging' }
@@ -234,10 +236,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public get apiBaseUrl () {
     return this.serviceMap.RestApi.ApiGateway.url
-  }
-
-  public get version ():VersionInfo {
-    return require('./version')
   }
 
   public get networks () { return networks }
@@ -315,6 +313,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
 
     this.env = env
+    this.version = {
+      ...VERSION,
+      sortableTag: utils.toLexicographicVersion(VERSION.tag)
+    }
 
     readyMixin(this)
     modelsMixin(this)

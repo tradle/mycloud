@@ -379,7 +379,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const updateReq = await child.sign(childDeployment.draftUpdateRequest({
     adminEmail: conf.adminEmail,
-    versionTag: '1.2.3',
+    tag: '1.2.3',
     provider: parent.buildStub(parentIdentity),
   }))
 
@@ -407,7 +407,7 @@ test('deployment by referral', loudAsync(async (t) => {
     t.equal(arg.templateUrl, templateUrl)
   })
 
-  const stubLookupRequest = sandbox.stub(childDeployment, 'lookupUpdateRequest').resolves(updateReq)
+  const stubLookupRequest = sandbox.stub(childDeployment, 'lookupLatestUpdateRequest').resolves(updateReq)
   // const stubCreateTopic = sandbox.stub(childDeployment, 'createStackUpdateTopic').resolves()
   await childDeployment.handleUpdateResponse(updateResponse)
 

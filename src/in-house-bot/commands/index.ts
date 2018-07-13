@@ -25,6 +25,9 @@ import { command as doctor } from './doctor'
 import { command as balance } from './balance'
 import { command as reindex } from './reindex'
 import { command as updatestack } from './updatestack'
+import { command as graphql } from './graphql'
+import { command as identity } from './identity'
+import { command as listupdates } from './listupdates'
 
 export {
   help,
@@ -54,4 +57,7 @@ export {
   balance,
   reindex,
   updatestack,
+  graphql,
+  identity,
+  listupdates,
 }
