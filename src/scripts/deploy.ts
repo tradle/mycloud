@@ -31,7 +31,7 @@ if (!/^[a-zA-Z-_]+$/.test(stage)) {
   throw new Error('invalid stage: ' + stage)
 }
 
-const command = `sls deploy --stage=${stage}`
+const command = `./node_modules/.bin/sls deploy --stage=${stage}`
 let pathToNtfy
 try {
   pathToNtfy = proc.execSync('command -v ntfy', {

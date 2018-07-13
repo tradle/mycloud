@@ -55,7 +55,7 @@
     "gen:fixtures": "node ./lib/scripts/gen-fixtures.js && npm run copy-static-assets",
     "gen:samples": "node ./lib/scripts/gen-samples.js",
     "gen:localsamples": "node ./lib/scripts/gen-samples.js --local",
-    "gen:localresources": "./src/scripts/init-local.sh",
+    "gen:localresources": "./src/scripts/gen-local-resources.sh",
     "gen:localstack": "sls dynamodb migrate & sls s3 create & wait",
     "gen:resourcedefs": "node ./lib/scripts/gen-resource-defs.js",
     "gen:modelmap": "node ./lib/scripts/map-models-to-buckets.js",

@@ -12,5 +12,5 @@ echo "faking warming up: $(echo $FUNCTIONS | xargs)"
 for fn in $FUNCTIONS;
 do
   echo "warming up $fn"
-  echo '{"source": "warmup"}' | sls invoke local -f "$fn"
+  echo '{"source": "warmup"}' | ./node_modules/.bin/sls invoke local -f "$fn"
 done
