@@ -1,5 +1,7 @@
 #!/bin/bash
 
+npm run gen:versioninfo
+
 VALUE=$(sls print "$@")
 if [ "$?" == "0" ]; then
   echo "$VALUE" > serverless-interpolated.yml
