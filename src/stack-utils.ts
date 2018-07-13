@@ -24,7 +24,7 @@ import {
 import { genOptionsBlock } from './gen-cors-options-block'
 import { RetryableTask } from './retryable-task'
 
-const version = require('./version') as VersionInfo
+// const version = require('./version') as VersionInfo
 
 type StackInfo = {
   arn: string
@@ -52,7 +52,7 @@ type StackUtilsOpts = {
   apiId: string
   logger?: Logger
   lambdaUtils: LambdaUtils
-  bucket: Bucket
+  deploymentBucket: Bucket
 }
 
 export default class StackUtils {
@@ -61,15 +61,15 @@ export default class StackUtils {
   private logger: Logger
   private lambdaUtils: LambdaUtils
   private apiId: string
-  private bucket: Bucket
+  private deploymentBucket: Bucket
   public thisStack: StackInfo
 
-  constructor({ aws, env, logger, lambdaUtils, bucket, stackArn, apiId }: StackUtilsOpts) {
+  constructor({ aws, env, logger, lambdaUtils, stackArn, apiId, deploymentBucket }: StackUtilsOpts) {
     this.aws = aws
     this.env = env
     this.logger = logger
     this.lambdaUtils = lambdaUtils
-    this.bucket = bucket
+    this.deploymentBucket = deploymentBucket
 
     const { arn, name } = StackUtils.parseStackArn(stackArn)
     this.thisStack = {
@@ -209,6 +209,20 @@ export default class StackUtils {
     return resources
   }
 
+  public getCurrentAdminEmail = async () => {
+    const resources = await this.getStackResources()
+    const { PhysicalResourceId } = resources.find(r => {
+      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
+    })
+
+    const { Subscriptions } = await this.aws.sns.listSubscriptionsByTopic({
+      TopicArn: PhysicalResourceId
+    }).promise()
+
+    const emails = Subscriptions.filter(s => s.Protocol === 'email')
+    return emails[0].Endpoint
+  }
+
   public updateEnvironments = async(map:(conf:Lambda.Types.FunctionConfiguration) => any) => {
     if (this.env.TESTING) {
       this.logger.debug(`updateEnvironments is skipped in test mode`)
@@ -343,8 +357,9 @@ export default class StackUtils {
     return configs.filter(({ FunctionName }) => names.includes(FunctionName))
   }
 
-  public getStackTemplateUrl = async () => {
-    // return this.aws.cloudformation.getTemplateSummary
+  public getStackTemplateForVersion = async (version: VersionInfo) => {
+    const { templateKey } = this.getStackLocation(version)
+    return this.deploymentBucket.getJSON(templateKey)
   }
 
   public getStackTemplate = async () => {
@@ -358,22 +373,6 @@ export default class StackUtils {
 
     return JSON.parse(TemplateBody)
   }
-
-  // public createPublicTemplate = async (transform:<T>(template:T)=>Promise<T>=utils.identityPromise) => {
-  //   const template = await this.getStackTemplate()
-  //   const customized = await transform(template)
-  //   await this.savePublicTemplate(customized)
-  // }
-
-  // public savePublicTemplate = async (template: any) => {
-  //   const key = `cloudformation/template-${Date.now()}-${randomString(6)}.json`
-  //   await this.bucket.putJSON(key, template, { acl: 'public-read' })
-  //   return {
-  //     template,
-  //     key,
-  //     url: this.bucket.getUrlForKey(key)
-  //   }
-  // }
 
   public enableBinaryAPIResponses = async () => {
     const swagger = await this.getSwagger()
@@ -538,19 +537,34 @@ export default class StackUtils {
     return this.aws.cloudformation.updateStack(params).promise()
   }
 
-  public static getStackLocation = (env:Env) => {
-    const { branch, commit } = version
-    const dir = `serverless/${env.SERVERLESS_SERVICE_NAME}/${env.SERVERLESS_STAGE}/${branch}/${commit}`
-    const templateUrl = `${dir}/compiled-cloudformation-template.json`
-    const zip = `${dir}/${env.SERVERLESS_SERVICE_NAME}.zip`
+  public static getStackLocation = ({ service, stage, region, versionInfo, deploymentBucket }: {
+    service: string
+    stage: string
+    region: string
+    versionInfo: VersionInfo
+    deploymentBucket: Bucket
+  }) => {
+    const { tag, commit } = versionInfo
+    const dir = `serverless/${service}/${stage}/${tag}`
+    const templateKey = `${dir}/compiled-cloudformation-template.json`
+    const zip = `${dir}/${service}.zip`
+    const regional = deploymentBucket.getRegionalBucket(region)
     return {
       dir,
-      templateUrl,
-      zip
+      templateKey,
+      zip,
+      templateUrl: regional.getUrlForKey(templateKey),
+      zipUrl: regional.getUrlForKey(templateKey),
     }
   }
 
-  public getStackLocation = () => StackUtils.getStackLocation(this.env)
+  public getStackLocation = (versionInfo: VersionInfo) => StackUtils.getStackLocation({
+    service: this.env.SERVERLESS_SERVICE_NAME,
+    stage: this.env.SERVERLESS_STAGE,
+    region: this.env.AWS_REGION,
+    versionInfo,
+    deploymentBucket: this.deploymentBucket
+  })
 
   // public changeAdminEmail = StackUtils.changeAdminEmail
   private createDeployment = async () => {

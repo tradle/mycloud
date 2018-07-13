@@ -1397,6 +1397,16 @@ resources:
 
           # <<: *providerConf
 
+    OnStackUpdated:
+      Type: Custom::OnStackUpdated
+      DependsOn: Initialize
+      Properties:
+        ServiceToken:
+          Fn::GetAtt: [GenericJobRunnerLambdaFunction, Arn]
+        name: ensureInitialized
+        # force re-execution on every deploy
+        version: ${{file(./lib/version).commit}}
+
     DefaultEncryptionKey:
       Type: AWS::KMS::Key
       Properties:

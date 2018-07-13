@@ -118,10 +118,14 @@ test('deployment by referral', loudAsync(async (t) => {
       org: _.pick(deploymentConf, ['name', 'domain'])
     }
 
+    ;['identity', 'org'].forEach(prop => {
+      expectedLaunchReport[prop] = utils.omitVirtual(expectedLaunchReport[prop])
+    })
+
     return 'http://my.template.url'
   })
 
-  const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate').resolves({
+  const parentTemplate = {
     "Mappings": {
       "org": {
         "init": {
@@ -169,7 +173,9 @@ test('deployment by referral', loudAsync(async (t) => {
       //   }
       // }
     }
-  })
+  }
+
+  const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate').resolves(parentTemplate)
 
   const copyFiles = sandbox.stub(parent.buckets.ServerlessDeployment, 'copyFilesTo').callsFake(async ({
     bucket,
@@ -216,7 +222,7 @@ test('deployment by referral', loudAsync(async (t) => {
     t.equal(url, parentDeployment.getReportLaunchUrl())
     t.equal(url, parentDeployment.getReportLaunchUrl(deploymentConf.referrerUrl))
     t.same(data, expectedLaunchReport)
-    await parentDeployment.receiveLaunchReport(data)
+    await parentDeployment.handleDeploymentReport(data)
   })
 
   const childLoadFriendStub = sandbox.stub(child.friends, 'load').callsFake(async ({ url }) => {
@@ -302,9 +308,9 @@ test('deployment by referral', loudAsync(async (t) => {
   // })
 
   await childDeployment.reportLaunch({
-    org: _.pick(deploymentConf, ['name', 'domain']),
-    identity: childIdentity,
-    referrerUrl: deploymentConf.referrerUrl,
+    myOrg: _.pick(deploymentConf, ['name', 'domain']),
+    myIdentity: childIdentity,
+    targetApiUrl: deploymentConf.referrerUrl,
     deploymentUUID: deploymentConf.deploymentUUID
   })
 
@@ -371,11 +377,21 @@ test('deployment by referral', loudAsync(async (t) => {
 
   saveResourceStub.reset()
 
-  const updateReq = await child.sign(childDeployment.createUpdateRequestResource({
-    [TYPE]: 'tradle.cloud.ParentDeployment',
-    parentIdentity: child.buildStub(parentIdentity),
-    childIdentity: child.buildStub(childIdentity),
+  const updateReq = await child.sign(childDeployment.draftUpdateRequest({
+    adminEmail: conf.adminEmail,
+    versionTag: '1.2.3',
+    provider: parent.buildStub(parentIdentity),
   }))
+
+  sandbox.stub(parentDeployment, 'getVersionInfoByTag').callsFake(async (tag) => {
+    t.equal(tag, '1.2.3')
+    return {
+      templateUrl: 'original.template.url',
+      tag,
+    }
+  })
+
+  sandbox.stub(parentDeployment, '_getTemplateByUrl').resolves(parentTemplate)
 
   let updateResponse
   const { templateUrl } = await parentDeployment.handleUpdateRequest({
@@ -384,7 +400,7 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   updateResponse = getLastCallArgs(parentSendStub).object
-  t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')
+  t.equal(updateResponse[TYPE], 'tradle.cloud.Update')
 
   const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
     t.equal(name, 'updateStack')

@@ -132,25 +132,14 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     plugin: {
       onFormsCollected,
       'onmessage:tradle.cloud.UpdateRequest': async (req: IPBReq) => {
-        try {
-          deployment.handleUpdateRequest({
-            req: req.payload,
-            from: req.user
-          })
-        } catch (err) {
-          Errors.ignore(err, Errors.Exists)
-          // await bot.send({
-          //   object: {
-          //     [TYPE]: 'tradle.SimpleMessage',
-          //     message: 'your stack is already up to date!'
-          //   },
-          //   other: {
-          //     inReplyTo: req.message._link
-          //   }
-          // })
-        }
+        await deployment.handleUpdateRequest({
+          req: req.payload,
+          from: req.user
+        })
       },
-      'onmessage:tradle.cloud.UpdateResponse': (req: IPBReq) => deployment.handleUpdateResponse(req.payload),
+      'onmessage:tradle.cloud.UpdateResponse': async (req: IPBReq) => {
+        await deployment.handleUpdateResponse(req.payload)
+      }
     }
   }
 }

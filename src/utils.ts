@@ -801,7 +801,11 @@ export const seriesMap = async (arr, fn) => {
 
 export const get = async (url:string, opts:any={}) => {
   // debug(`GET ${url}`)
-  const res = await fetch(url, opts)
+  const res = await fetch(url, {
+    method: 'GET',
+    ...opts
+  })
+
   return processResponse(res)
 }
 
@@ -856,6 +860,16 @@ export const processResponse = async (res) => {
   }
 
   return text
+}
+
+export const doesHttpEndpointExist = async (url) => {
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    return res.status === 200
+  } catch (err) {
+    Errors.rethrow(err, 'developer')
+    return false
+  }
 }
 
 export function batchByByteLength (arr:Array<string|Buffer>, max) {
@@ -1348,7 +1362,9 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
 }
 
 const normalizeSendOpts = async (bot: Bot, opts) => {
-  let { link, object, to } = opts
+  opts = _.clone(opts)
+
+  let { link, object, to, friend } = opts
   if (typeof object === 'string') {
     object = {
       [TYPE]: SIMPLE_MESSAGE,
@@ -1358,6 +1374,10 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
 
   if (!object && link) {
     object = await bot.objects.get(link)
+  }
+
+  if (friend && !to) {
+    opts.to = to = friend.identity._permalink
   }
 
   try {
@@ -1519,8 +1539,13 @@ export const toLexicographicVersion = (semver: string) => semver
 
     return toLexicographicInt(Number(n))
   })
-  .join('.')
+  .join('')
 
 export const toLexicographicInt = n => {
   return lexint.pack(n, 'hex')
+}
+
+export const requireOpts = (opts:any, props:string[]) => {
+  const missing = props.filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)
+  if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(', ')}`)
 }

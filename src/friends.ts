@@ -113,6 +113,10 @@ export default class Friends {
       existing = {}
     }
 
+    // if (existing.identity._permalink !== identity._permalink) {
+    //   throw new Errors.InvalidAuthor(`expected ${existing.identity._permalink}`)
+    // }
+
     const keys = Object.keys(model.properties)
     let object = buildResource({ models, model })
       .set({

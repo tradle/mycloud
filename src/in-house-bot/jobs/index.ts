@@ -8,10 +8,13 @@
 //   job.name
 // })
 
-import { IBotComponents, Seal, Job } from '../types'
+import { IBotComponents, Bot, Seal, Job } from '../types'
 import { sendConfirmedSeals } from '../utils'
-import { TYPE, ORG, DEFAULT_WARMUP_EVENT } from '../../constants'
+import { TYPE, ORG, DEFAULT_WARMUP_EVENT, TRADLE_MYCLOUD_URL } from '../../constants'
 import Errors from '../../errors'
+import { doesHttpEndpointExist, toLexicographicVersion } from '../../utils'
+import { isProbablyTradle } from '../utils'
+import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
 
@@ -106,37 +109,34 @@ export const documentChecker:Executor = async ({ job, components }) => {
 }
 
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
-export const versionCheck:Executor = async ({ job, components }) => {
-  const { bot, logger } = components
+export const checkVersion = async (components: IBotComponents) => {
+  const { bot, logger, conf } = components
   const { version } = bot
   const botPermalink = await bot.getMyPermalink()
+  const deployment = new Deployment({
+    bot,
+    logger,
+    orgConf: conf
+  })
 
   let existing
   try {
-    existing = await bot.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: botPermalink,
-          version: version.version,
-        }
-      }
-    })
-
+    existing = deployment.getVersionInfoByTag(version.tag)
     return
   } catch (err) {
     Errors.ignoreNotFound(err)
   }
 
   const promiseFriends = bot.friends.list()
-  const { branch, commit } = version
-  const { templateUrl } = bot.stackUtils.getStackLocation()
-  const vInfo = await bot.draft({ type: VERSION_INFO })
-    .set(version)
-    .set({ templateUrl })
-    .signAndSave()
-    .then(r => r.toJSON())
+  const { templateUrl } = bot.stackUtils.getStackLocation(version)
 
+  // ensure template exists
+  const exists = await doesHttpEndpointExist(templateUrl)
+  if (!exists) {
+    throw new Error(`templateUrl not accessible: ${templateUrl}`)
+  }
+
+  const vInfo = await deployment.saveVersionInfo({ ...version, templateUrl })
   const friends = await promiseFriends
   logger.debug(`notifying ${friends.length} friends about MyCloud update`, version)
 
@@ -147,4 +147,87 @@ export const versionCheck:Executor = async ({ job, components }) => {
       object: vInfo
     })
   }))
+}
+
+export const ensureInitialized:Executor = async ({ job, components }) => {
+  const { bot, conf } = components
+  if (isProbablyTradle(conf)) {
+    // do nothing
+    await checkVersion(components)
+  } else {
+    const { friend } = await reportLaunchToTradle(components)
+    // await friendTradle(components.bot)
+    if (friend) {
+      await sendTradleFriendRequest({ bot, friend })
+    }
+  }
+}
+
+const reportLaunchToTradle = async (components: IBotComponents) => {
+  const { bot, logger, conf } = components
+  const deployment = new Deployment({
+    bot,
+    logger,
+    orgConf: conf
+  })
+
+  try {
+    return await deployment.reportLaunch({
+      myOrg: conf.org,
+      targetApiUrl: TRADLE_MYCLOUD_URL,
+    })
+  } catch(err) {
+    Errors.rethrow(err, 'developer')
+    logger.error('failed to report launch to Tradle', err)
+    return { friend: null, parentDeployment: null }
+  }
+}
+
+// const friendTradle = async (bot: Bot) => {
+//   const friend = await addTradleAsFriend(bot)
+//   await sendTradleFriendRequest({ bot, friend })
+// }
+
+// const addTradleAsFriend = async (bot: Bot) => {
+//   try {
+//     return await bot.friends.getByDomain('tradle.io')
+//   } catch (err) {
+//     Errors.ignoreNotFound(err)
+//   }
+
+//   return await bot.friends.load({
+//     domain: 'tradle.io',
+//     url: TRADLE_MYCLOUD_URL
+//   })
+// }
+
+const sendTradleFriendRequest = async ({ bot, friend }: {
+  bot: Bot
+  friend: any
+}) => {
+  const friendIdentityPermalink = friend.identity._permalink
+  try {
+    return await bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: 'tradle.cloud.FriendRequest',
+          'friendIdentity._permalink': friendIdentityPermalink,
+        }
+      }
+    })
+  } catch (err) {
+    Errors.ignoreNotFound(err)
+  }
+
+  const req = await bot.draft({ type: 'tradle.cloud.FriendRequest' })
+    .set({
+      friendIdentity: friend.identity
+    })
+    .sign()
+    .then(r => r.toJSON())
+
+  await bot.send({
+    friend,
+    object: req,
+  })
 }

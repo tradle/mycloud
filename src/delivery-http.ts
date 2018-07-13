@@ -10,6 +10,7 @@ const COMPRESSION_THRESHOLD = 1024
 const FETCH_TIMEOUT = 10000
 const INITIAL_BACKOFF = 1000
 const DELIVERY_ERROR = 'tradle.DeliveryError'
+const MAX_DELIVERY_ATTEMPTS = 20
 
 export default class Delivery extends EventEmitter implements IDelivery {
   private env:Env
@@ -124,22 +125,21 @@ export default class Delivery extends EventEmitter implements IDelivery {
     counterparty: string
     time: number
   }) => {
+    let deliveryError
     try {
-      await this.db.put({
+      deliveryError = await this.getError(counterparty)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      deliveryError = {
         [TYPE]: DELIVERY_ERROR,
         counterparty,
-        _time: time
-      }, {
-        // only store one per counterparty
-        ExpressionAttributeNames: {
-          '#counterparty': 'counterparty'
-        },
-        ConditionExpression: 'attribute_not_exists(#counterparty)'
-      })
-    } catch (err) {
-      Errors.ignoreUnmetCondition(err)
-      throw new Errors.Exists(`error for counterparty ${counterparty}`)
+      }
     }
+
+    deliveryError.attempts = (deliveryError.attempts || 1) + 1
+    deliveryError._time = time
+    await this.db.put(deliveryError)
+    return deliveryError
   }
 
   public getError = async (counterparty) => {
@@ -158,7 +158,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       }
     })
 
-    return items
+    return items.filter(item => item.attempts < MAX_DELIVERY_ATTEMPTS)
   }
 
   public deleteError = async (deliveryErr) => {

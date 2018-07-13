@@ -1,16 +1,16 @@
+import once from 'lodash/once'
 import Errors from '../../errors'
 import { fromSchedule } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
 import { Job } from '../types'
+import * as JOBS from '../jobs'
 
-// add in LambdaEvents, e.g.:
-// event: LambdaEvents.DOCUMENT_CHECKER_JOB
 const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
 const { bot } = lambda
 
 const MINUTE = 60
 const DEFAULT_FUNCTION = 'genericJobRunner'
-const DEFAULT_JOBS:Job[] = [
+const COMMON_JOBS:Job[] = [
   {
     name: 'warmup',
     function: 'warmup',
@@ -54,14 +54,15 @@ const DEFAULT_JOBS:Job[] = [
     function: DEFAULT_FUNCTION,
     period: MINUTE,
   },
-  {
-    name: 'versionCheck',
-    function: DEFAULT_FUNCTION,
-    period: 5 * MINUTE,
-  },
 ]
 
-DEFAULT_JOBS.forEach(job => bot.jobs.add(job))
+COMMON_JOBS.forEach(job => {
+  if (!JOBS[job.name]) {
+    throw new Errors.InvalidInput(`job executor not found: ${job.name}`)
+  }
+
+  bot.jobs.add(job)
+})
 
 lambda.use(async (ctx) => {
   const { components } = ctx

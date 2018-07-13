@@ -3,7 +3,6 @@ import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
 import createCredstash from 'nodecredstash'
-import { TYPE, SIG } from '@tradle/constants'
 import { DB, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
@@ -21,6 +20,7 @@ import { createDBUtils } from './db-utils'
 import { createAWSWrapper } from './aws'
 import { StreamProcessor } from './stream-processor'
 import * as utils from './utils'
+import { TYPE, SIG, ORG, ORG_SIG } from './constants'
 const {
   defineGetter,
   ensureTimestamped,
@@ -472,7 +472,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const stackUtils = bot.stackUtils = new StackUtils({
       apiId: serviceMap.RestApi.ApiGateway.id,
       stackArn: serviceMap.Stack,
-      bucket: buckets.PrivateConf,
+      deploymentBucket: buckets.ServerlessDeployment,
       aws,
       env,
       lambdaUtils,
@@ -1009,7 +1009,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public witness = (object: ITradleObject) => this.identity.witness({ object })
 
-  public reSign = (object:ITradleObject) => this.sign(<ITradleObject>_.omit(object, [SIG]))
+  public reSign = (object:ITradleObject) => this.sign(<ITradleObject>_.omit(object, [SIG, ORG, ORG_SIG]))
   // public fire = async (event, payload) => {
   //   return await this.middleware.fire(event, payload)
   // }

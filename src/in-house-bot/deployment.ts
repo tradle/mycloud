@@ -3,7 +3,7 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import buildResource from '@tradle/build-resource'
-import { TYPE, unitToMillis } from '../constants'
+import { TYPE, ORG, unitToMillis, TRADLE_MYCLOUD_URL } from '../constants'
 import { randomStringWithLength } from '../crypto'
 import { appLinks } from '../app-links'
 import {
@@ -24,6 +24,7 @@ import {
   IConf,
   IAppLinkSet,
   StackStatus,
+  VersionInfo,
 } from './types'
 
 import { StackUtils } from '../stack-utils'
@@ -33,7 +34,7 @@ import Errors from '../errors'
 import { getFaviconUrl } from './image-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'
-import { getAppLinks, getAppLinksInstructions, isEmployee } from './utils'
+import { getAppLinks, getAppLinksInstructions, isEmployee, isProbablyTradle } from './utils'
 
 const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
@@ -43,8 +44,9 @@ const PARENT_DEPLOYMENT = 'tradle.cloud.ParentDeployment'
 const CONFIGURATION = 'tradle.cloud.Configuration'
 const AWS_REGION = 'tradle.cloud.AWSRegion'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
-const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
+const UPDATE_RESPONSE = 'tradle.cloud.Update'
 const NO_SENDER_EMAIL = 'not configured to send emails. conf is missing "senderEmail"'
 const UPDATE_REQUEST_TTL = 10 * unitToMillis.minute
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
@@ -104,6 +106,10 @@ enum StackOperationType {
   update
 }
 
+type UpdateDeploymentConf = {
+  adminEmail: string
+}
+
 // interface IUpdateChildDeploymentOpts {
 //   apiUrl?: string
 //   deploymentUUID?: string
@@ -122,6 +128,11 @@ interface DeploymentCtorOpts {
   logger: Logger
   conf?: IDeploymentPluginConf
   orgConf?: IConf
+}
+
+interface UpdateRequest extends ITradleObject {
+  provider: ResourceStub
+  versionTag: string
 }
 
 const ADMIN_MAPPING_PATH = ['org', 'contact', 'adminEmail']
@@ -211,7 +222,8 @@ export class Deployment {
     }
   }
 
-  public genUpdatePackage = async ({ createdBy, configuredBy, childDeploymentLink, stackId }: {
+  public genUpdatePackage = async ({ versionInfo, createdBy, configuredBy, childDeploymentLink, stackId }: {
+    versionInfo: VersionInfo
     childDeploymentLink?: string
     createdBy?: string
     configuredBy?: string
@@ -246,7 +258,8 @@ export class Deployment {
     const result = await this.genUpdatePackageForStack({
       // deployment: childDeployment,
       stackId: stackId || childDeployment.stackId,
-      configuration,
+      adminEmail: configuration.adminEmail,
+      parentTemplateUrl: versionInfo.templateUrl,
     })
 
     return {
@@ -256,18 +269,24 @@ export class Deployment {
     }
   }
 
-  public genUpdatePackageForStack = async ({ stackId, configuration }: {
+  public _getTemplateByUrl = utils.get
+
+  public genUpdatePackageForStack = async (opts: {
     stackId: string
-    configuration?: IDeploymentConf
+    parentTemplateUrl: string
+    adminEmail: string
     // deployment:
   }) => {
+    utils.requireOpts(opts, ['stackId', 'parentTemplateUrl', 'adminEmail'])
+
+    const { stackId, adminEmail, parentTemplateUrl } = opts
     const { region, accountId, name } = this.bot.stackUtils.parseStackArn(stackId)
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
-      this.bot.stackUtils.getStackTemplate()
+      this._getTemplateByUrl(parentTemplateUrl), // should we get via s3 instead?
     ])
 
-    const template = await this.customizeTemplateForUpdate({ template: parentTemplate, stackId, configuration, bucket })
+    const template = await this.customizeTemplateForUpdate({ template: parentTemplate, adminEmail, stackId, bucket })
     const { templateUrl, code } = await this.saveTemplateAndCode({
       parentTemplate,
       template,
@@ -322,6 +341,10 @@ export class Deployment {
   }
 
   public getChildDeploymentByDeploymentUUID = async (deploymentUUID: string): Promise<IDeploymentConf> => {
+    if (!deploymentUUID) {
+      throw new Errors.InvalidInput(`expected deploymentUUID string`)
+    }
+
     return await this.getChildDeploymentWithProps({ deploymentUUID })
   }
 
@@ -364,35 +387,44 @@ export class Deployment {
     })
   }
 
-  public reportLaunch = async ({ org, identity, referrerUrl, deploymentUUID }: {
-    org: IOrganization
-    identity: IIdentity
-    referrerUrl: string
-    deploymentUUID: string
+  public reportLaunch = async ({ myOrg, myIdentity, targetApiUrl, deploymentUUID }: {
+    myOrg: IOrganization
+    targetApiUrl: string
+    myIdentity?: IIdentity
+    deploymentUUID?: string
   }) => {
-    let saveParentDeployment
+    if (!myIdentity) {
+      myIdentity = await this.bot.getMyIdentity()
+    }
+
+    myIdentity = utils.omitVirtual(myIdentity)
+    myOrg = utils.omitVirtual(myOrg)
+
+    let saveParentDeployment = utils.RESOLVED_PROMISE
+    let friend
     try {
-      const friend = await utils.runWithTimeout(
-        () => this.bot.friends.load({ url: referrerUrl }),
+      friend = await utils.runWithTimeout(
+        () => this.bot.friends.load({ url: targetApiUrl }),
         { millis: 20000 }
       )
 
-      saveParentDeployment = this.saveParentDeployment({
-        friend,
-        apiUrl: referrerUrl,
-        childIdentity: identity
-      })
+      if (deploymentUUID) {
+        saveParentDeployment = this.saveParentDeployment({
+          friend,
+          apiUrl: targetApiUrl,
+          childIdentity: myIdentity
+        })
+      }
     } catch (err) {
       this.logger.error('failed to add referring MyCloud as friend', err)
-      saveParentDeployment = Promise.resolve()
     }
 
-    const reportLaunchUrl = this.getReportLaunchUrl(referrerUrl)
+    const reportLaunchUrl = this.getReportLaunchUrl(targetApiUrl)
     const launchData = {
       deploymentUUID,
       apiUrl: this.bot.apiBaseUrl,
-      org,
-      identity,
+      org: myOrg,
+      identity: myIdentity,
       stackId: this.bot.stackUtils.thisStackId
     }
 
@@ -400,20 +432,26 @@ export class Deployment {
       await utils.runWithTimeout(() => utils.post(reportLaunchUrl, launchData), { millis: 10000 })
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error(`failed to notify referrer at: ${referrerUrl}`, err)
+      this.logger.error(`failed to notify referrer at: ${targetApiUrl}`, err)
     }
 
-    await saveParentDeployment
+    const parentDeployment = await saveParentDeployment
+    return { friend, parentDeployment }
   }
 
-  public receiveLaunchReport = async (report: ILaunchReportPayload) => {
+  public handleDeploymentReport = async (report: ILaunchReportPayload) => {
     const { deploymentUUID, apiUrl, org, identity, stackId } = report
     let childDeployment
-    try {
-      childDeployment = await this.getChildDeploymentByDeploymentUUID(deploymentUUID)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
+    if (deploymentUUID) {
+      try {
+        childDeployment = await this.getChildDeploymentByDeploymentUUID(deploymentUUID)
+      } catch (err) {
+        Errors.rethrow(err, 'developer')
+        this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
+      }
+    }
+
+    if (!(childDeployment || this._friendEveryone)) {
       return false
     }
 
@@ -640,21 +678,21 @@ ${this.genUsageInstructions(links)}`
     return template
   }
 
-  public customizeTemplateForUpdate = async ({ template, stackId, configuration, bucket }: {
+  public customizeTemplateForUpdate = async (opts: {
     template: any
     stackId: string
-    configuration: IDeploymentConf
+    adminEmail: string
     bucket: string
   }) => {
-    if (!configuration.adminEmail) {
-      throw new Errors.InvalidInput('expected "configuration" to have "adminEmail')
-    }
+    utils.requireOpts(opts, ['template', 'stackId', 'adminEmail', 'bucket'])
 
+    let { template, stackId, adminEmail, bucket } = opts
     const { service, region } = this.bot.stackUtils.parseStackArn(stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
 
     // scrap unneeded mappings
+    // also...we don't have this info
     template.Mappings = {}
 
     const initProps = template.Resources.Initialize.Properties
@@ -664,7 +702,7 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
-    _.set(template.Mappings, ADMIN_MAPPING_PATH, configuration.adminEmail)
+    _.set(template.Mappings, ADMIN_MAPPING_PATH, adminEmail)
     return this.finalizeCustomTemplate({
       template,
       oldServiceName: previousServiceName,
@@ -902,7 +940,7 @@ ${this.genUsageInstructions(links)}`
       this.bot.stackUtils.getLambdaS3Keys(template).map(k => k.value)
     )
 
-    const source = this.bot.buckets.ServerlessDeployment
+    const source = this.deploymentBucket
     if (bucket === source.id) {
       return
     }
@@ -953,7 +991,7 @@ ${this.genUsageInstructions(links)}`
     regions: string[]
   }) => {
     return await this.bot.s3Utils.deleteRegionalBuckets({
-      bucket: this.bot.buckets.ServerlessDeployment.id,
+      bucket: this.deploymentBucket.id,
       regions,
       iam: this.bot.aws.iam
     })
@@ -969,32 +1007,56 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public requestUpdate = async () => {
-    const parent = await this.getParentDeployment()
-    return this.requestUpdateFromParent(parent)
+  // public requestUpdate = async () => {
+  //   const parent = await this.getParentDeployment()
+  //   return this.requestUpdateFromProvider({
+  //     provider: parent.parentIdentity._permalink,
+  //     version: {
+  //       tag: 'latest'
+  //     }
+  //   })
+  // }
+
+  public requestUpdateFromTradle = async ({ versionTag }: {
+    versionTag: string
+  }) => {
+    const provider = await this.getTradleBotStub()
+    return this.requestUpdateFromProvider({ provider, versionTag })
   }
 
-  public requestUpdateFromParent = async (parent: ITradleObject) => {
-    const updateReq = this.createUpdateRequestResource(parent)
+  public requestUpdateFromProvider = async ({ provider, versionTag }: {
+    provider: ResourceStub
+    versionTag: string
+  }) => {
+    const adminEmail = await this.bot.stackUtils.getCurrentAdminEmail()
+    const updateReq = this.draftUpdateRequest({
+      adminEmail,
+      versionTag,
+      provider,
+    })
+
     await this.bot.send({
-      to: parent.parentIdentity._permalink,
+      to: provider,
       object: updateReq
     })
   }
 
-  public createUpdateRequestResource = (parent: ITradleObject) => {
-    if (parent[TYPE] !== PARENT_DEPLOYMENT) {
-      throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
-    }
+  public draftUpdateRequest = (opts) => {
+    utils.requireOpts(opts, ['versionTag', 'adminEmail', 'provider'])
 
-    const { parentIdentity } = parent
+    // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
+    //   throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
+    // }
+
+    // const { parentIdentity } = parent
     const { env } = this.bot
     return this.bot.draft({ type: UPDATE_REQUEST })
       .set({
         service: env.SERVERLESS_SERVICE_NAME,
         stage: env.SERVERLESS_STAGE,
         region: env.AWS_REGION,
-        provider: parentIdentity,
+        stackId: this.bot.stackUtils.thisStackArn,
+        ...opts
       })
       .toJSON()
   }
@@ -1007,13 +1069,25 @@ ${this.genUsageInstructions(links)}`
       throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
     }
 
-    if (req.currentCommit === this.bot.version.commit) {
-      this.logger.debug('child is up to date')
-      throw new Errors.Exists(`already up to date`)
-    }
+    utils.requireOpts(req, ['stackId', 'versionTag', 'adminEmail'])
 
-    const pkg = await this.genUpdatePackage({
-      createdBy: req._author
+    // if (req.currentCommit === this.bot.version.commit) {
+    //   this.logger.debug('child is up to date')
+    //   throw new Errors.Exists(`already up to date`)
+    // }
+
+    const [
+      versionInfo,
+      myPermalink
+    ] = await Promise.all([
+      this.getVersionInfoByTag(req.versionTag),
+      this.bot.getMyPermalink()
+    ])
+
+    const pkg = await this.genUpdatePackageForStack({
+      stackId: req.stackId,
+      adminEmail: req.adminEmail,
+      parentTemplateUrl: versionInfo.templateUrl,
     })
 
     const { notificationTopics, templateUrl } = pkg
@@ -1022,7 +1096,8 @@ ${this.genUsageInstructions(links)}`
         templateUrl,
         notificationTopics: notificationTopics.join(','),
         request: req,
-        provider: from
+        provider: from,
+        versionTag: req.versionTag,
       })
       .sign()
 
@@ -1034,18 +1109,66 @@ ${this.genUsageInstructions(links)}`
     return pkg
   }
 
-  public handleUpdateResponse = async (updateResponse: ITradleObject) => {
-    await this._validateUpdateResponse(updateResponse)
-    const { templateUrl, notificationTopics } = updateResponse
-    await this.updateOwnStack({
-      templateUrl,
-      notificationTopics: notificationTopics.split(',').map(s => s.trim())
+  public getVersionInfoByTag = async (tag: string) => {
+    return await this.bot.db.findOne({
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: await this.bot.getMyPermalink(),
+          sortableTag: utils.toLexicographicVersion(tag),
+        }
+      }
     })
   }
 
-  public lookupUpdateRequest = async (providerPermalink: string) => {
-    if (!(typeof providerPermalink === 'string' && providerPermalink)) {
-      throw new Errors.InvalidInput('expected provider permalink')
+  public saveVersionInfo = async (versionInfo: VersionInfo) => {
+    return this.bot.draft({ type: VERSION_INFO })
+      .set(versionInfo)
+      .set({
+        sortableTag: utils.toLexicographicVersion(versionInfo.tag)
+      })
+      .signAndSave()
+      .then(r => r.toJSON())
+  }
+
+  public handleUpdateResponse = async (updateResponse: ITradleObject) => {
+    await this._validateUpdateResponse(updateResponse)
+    await this.bot.reSign(updateResponse)
+
+    // // const { templateUrl, notificationTopics } = updateResponse
+    // // await this.updateOwnStack({
+    // //   templateUrl,
+    // //   notificationTopics: notificationTopics.split(',').map(s => s.trim())
+    // // })
+
+    // const provider = await this.bot.identities.byPermalink(updateResponse._author)
+    // await this._createUpdatePackage({
+    //   templateUrl: updateResponse.templateUrl,
+    //   versionTag: updateResponse.versionTag,
+    //   provider,
+    // })
+  }
+
+  public _createUpdatePackage = async ({ templateUrl, versionTag, provider }: {
+    templateUrl: string
+    versionTag: string
+    provider: ResourceStub
+  }) => {
+    return await this.bot.draft({ type: 'tradle.cloud.UpdatePackage' })
+      .set({
+        templateUrl,
+        versionTag,
+        provider,
+      })
+      .signAndSave()
+  }
+
+  public lookupUpdateRequest = async ({ provider, versionTag }: {
+    provider: string
+    versionTag: string
+  }) => {
+    if (!(typeof provider === 'string' && provider)) {
+      throw new Errors.InvalidInput('expected string "provider" permalink')
     }
 
     return await this.bot.db.findOne({
@@ -1056,16 +1179,11 @@ ${this.genUsageInstructions(links)}`
       filter: {
         EQ: {
           [TYPE]: UPDATE_REQUEST,
-          'provider._permalink': providerPermalink
+          'provider._permalink': provider,
+          versionTag
         }
       }
     })
-  }
-
-  private _getLambdaArn = (lambdaShortName: string) => {
-    const { env } = this.bot
-    const lambdaName = env.getStackResourceName(lambdaShortName)
-    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
   public createStackUpdateTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
@@ -1083,6 +1201,53 @@ ${this.genUsageInstructions(links)}`
     return TopicArn
   }
 
+  // public getVersionInfo = (versionInfo) => {
+
+  // }
+
+  public getTradleBotPermalink = async () => {
+    const identity = await this.getTradleBotIdentity()
+    return buildResource.permalink(identity)
+  }
+
+  public getTradleBotStub = async () => {
+    const identity = await this.getTradleBotIdentity()
+    return this.bot.buildStub(identity)
+  }
+
+  public getTradleBotIdentity = async () => {
+    const { bot } = await utils.get(TRADLE_MYCLOUD_URL)
+    return bot.pub
+  }
+
+  public listAvailableUpdates = async (providerPermalink?: string) => {
+    if (!providerPermalink) {
+      providerPermalink = await this.getTradleBotPermalink()
+    }
+
+    const updates = await this.bot.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          _org: providerPermalink
+        },
+        GT: {
+          tag: this.bot.version.tag
+        }
+      }
+    })
+  }
+
+  private get _friendEveryone() {
+    return isProbablyTradle(this.orgConf)
+  }
+
+  private _getLambdaArn = (lambdaShortName: string) => {
+    const { env } = this.bot
+    const lambdaName = env.getStackResourceName(lambdaShortName)
+    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
+  }
+
   private _bucket = (name: string) => {
     const { bot } = this
     return new Bucket({
@@ -1096,10 +1261,11 @@ ${this.genUsageInstructions(links)}`
 
   private _validateUpdateResponse = async (updateResponse: ITradleObject) => {
     const provider = updateResponse._author
+    const { versionTag } = updateResponse
 
     let req: ITradleObject
     try {
-      req = await this.lookupUpdateRequest(provider)
+      req = await this.lookupUpdateRequest({ provider, versionTag })
     } catch (err) {
       Errors.ignoreNotFound(err)
       this.logger.warn('received stack update response...but no request was made, ignoring', {

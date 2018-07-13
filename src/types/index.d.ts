@@ -710,7 +710,9 @@ export type Job = {
 }
 
 export type VersionInfo = {
-  version: string
+  tag: string
+  sortableTag: string
   branch: string
   commit: string
+  templateUrl?: string
 }

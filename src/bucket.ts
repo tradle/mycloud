@@ -146,6 +146,11 @@ export class Bucket {
   })
 
   public getRegionalBucketName = (region: string) => this.utils.getRegionalBucketName({ bucket: this.name, region })
+  public getRegionalBucket = (region: string) => new Bucket({
+    ...this.opts,
+    name: this.getRegionalBucketName(region)
+  })
+
   // public grantReadAccess = async (opts) => this.utils.grantReadAccess({ bucket: this.name, ...opts })
   private _getKey = (key: string) => this.prefix + key
 }

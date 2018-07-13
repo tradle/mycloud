@@ -11,7 +11,8 @@ import {
   logify,
   logifyFunction,
   safeStringify,
-  getPrimaryKeySchema
+  getPrimaryKeySchema,
+  toLexicographicVersion,
 } from './utils'
 
 import { TYPE, SIG, ORG, AUTHOR, TIMESTAMP, TYPES, UNSIGNED_TYPES } from './constants'
@@ -20,6 +21,7 @@ import Errors from './errors'
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
 const ORG_OR_AUTHOR = '_orgOrAuthor'
 const ARTIFICIAL_PROPS = [ORG_OR_AUTHOR]
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
 
 const ALLOW_SCAN = [
   DELIVERY_ERROR
@@ -297,6 +299,17 @@ export = function createDB ({
     delete EQ._inbound
   }
 
+  // const fixVersionInfoFilter = ({ GT, LT }) => {
+  //   [GT, LT].forEach(conditions => {
+  //     if (!conditions) return
+
+  //     if (conditions.tag && !conditions.sortableTag) {
+  //       conditions.sortableTag = toLexicographicVersion(conditions.tag)
+  //       delete conditions.tag
+  //     }
+  //   })
+  // }
+
   const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
 
   const postProcessSearchResult = async ({ args=[], result }) => {
@@ -335,6 +348,7 @@ export = function createDB ({
 
     const type = filter.EQ[TYPE]
     if (type === MESSAGE) fixMessageFilter(filter)
+    // if (type === VERSION_INFO) fixVersionInfoFilter(filter)
   }
 
   const checkPre = resource => {

@@ -15,8 +15,9 @@ class SetVersion {
   setVersion() {
     const { dir } = StackUtils.getStackLocation({
       ...process.env,
-      SERVERLESS_SERVICE_NAME: this.serverless.service.service,
-      SERVERLESS_STAGE: this.options.stage
+      service: this.serverless.service.service,
+      stage: this.options.stage,
+      region: this.options.region,
     })
 
     this.serverless.service.package.artifactDirectoryName = dir

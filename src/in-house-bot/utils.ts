@@ -20,7 +20,8 @@ import {
   IPBReq,
   Models,
   ITradleCheck,
-  ITradleObject
+  ITradleObject,
+  IConf,
 } from './types'
 
 import { safeStringify } from '../string-utils'
@@ -552,4 +553,8 @@ export const witness = async (bot: Bot, object: ITradleObject) => {
 
   await bot.save(copy)
   return copy
+}
+
+export const isProbablyTradle = ({ org }) => {
+  return org.name.toLowerCase() === 'tradle'
 }
