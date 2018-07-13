@@ -130,8 +130,6 @@ const constants = {
   DATE_ZERO: 0, // 1514764800000 // 2018-01-01 UTC
   UNSIGNED_TYPES,
   FORBIDDEN_PAYLOAD_TYPES: UNSIGNED_TYPES,
-  TRADLE_MYCLOUD_URL: 'https://t22ju1ga5c.execute-api.us-east-1.amazonaws.com/dev',
-  TRADLE_PERMALINK: '9658992cbb1499c1fd9f7d92e1dee43eb65f403b3a32f2d888d2f241c4bdf7b6'
 }
 
 export = constants

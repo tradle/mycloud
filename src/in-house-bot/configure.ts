@@ -30,12 +30,12 @@ import {
 import {
   DEFAULT_WARMUP_EVENT,
   TYPE,
-  TRADLE_MYCLOUD_URL,
 } from '../constants'
 
 import {
   PRIVATE_CONF_BUCKET,
-  TYPES
+  TYPES,
+  TRADLE_MYCLOUD_URL,
 } from './constants'
 
 import { defaultConf } from './default-conf'

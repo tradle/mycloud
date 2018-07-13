@@ -1,3 +1,4 @@
+import Errors from '../../errors'
 import { fromLambda } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
 import * as JOBS from '../jobs'
@@ -16,6 +17,10 @@ lambda.use(async (ctx) => {
   const job: Job = ctx.event
   const { components } = ctx
   const { logger } = components
+  if (!job.name) {
+    throw new Errors.InvalidInput(`job missing name: ${JSON.stringify(job)}`)
+  }
+
   logger.debug(`running job: ${job.name}`)
   await bot.fire(`job:${job.name}`, { job, components })
 })

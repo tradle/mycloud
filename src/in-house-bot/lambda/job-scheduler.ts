@@ -1,8 +1,9 @@
 import once from 'lodash/once'
+import partition from 'lodash/partition'
 import Errors from '../../errors'
 import { fromSchedule } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
-import { Job } from '../types'
+import { Job, IBotComponents } from '../types'
 import * as JOBS from '../jobs'
 
 const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
@@ -53,19 +54,31 @@ const COMMON_JOBS:Job[] = [
     name: 'documentChecker',
     function: DEFAULT_FUNCTION,
     period: MINUTE,
+    requiresComponents: ['documentChecker']
   },
 ]
 
-COMMON_JOBS.forEach(job => {
-  if (!JOBS[job.name]) {
-    throw new Errors.InvalidInput(`job executor not found: ${job.name}`)
+const addJobs = once((components: IBotComponents) => {
+  COMMON_JOBS.forEach(job => {
+    if (!JOBS[job.name]) {
+      throw new Errors.InvalidEnvironment(`job executor not found: ${job.name}`)
+    }
+  })
+
+  const [will, wont] = partition(COMMON_JOBS, job =>
+    (job.requiresComponents || []).every(name => name in components))
+
+  if (wont.length) {
+    lambda.logger.debug(`skipping jobs due to missing/unconfigured components: ${wont.join(', ')}`)
   }
 
-  bot.jobs.add(job)
+  will.forEach(job => bot.jobs.add(job))
 })
 
 lambda.use(async (ctx) => {
   const { components } = ctx
+  addJobs(components)
+
   const { bot, logger } = components
   try {
     await bot.jobs.scheduleJobsImmediately()

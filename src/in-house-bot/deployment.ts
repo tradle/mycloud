@@ -3,7 +3,8 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import buildResource from '@tradle/build-resource'
-import { TYPE, ORG, unitToMillis, TRADLE_MYCLOUD_URL } from '../constants'
+import { TYPE, ORG, unitToMillis } from '../constants'
+import { TRADLE_MYCLOUD_URL } from './constants'
 import { randomStringWithLength } from '../crypto'
 import { appLinks } from '../app-links'
 import {
@@ -47,7 +48,8 @@ const AWS_REGION = 'tradle.cloud.AWSRegion'
 const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
-const UPDATE_RESPONSE = 'tradle.cloud.Update'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
+const UPDATE = 'tradle.cloud.Update'
 const NO_SENDER_EMAIL = 'not configured to send emails. conf is missing "senderEmail"'
 const UPDATE_REQUEST_TTL = 10 * unitToMillis.minute
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
@@ -698,7 +700,7 @@ ${this.genUsageInstructions(links)}`
 
     const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {
-      if (key !== 'ServiceToken') {
+      if (key !== 'ServiceToken' && key !== 'version') {
         delete initProps[key]
       }
     })
@@ -1099,6 +1101,7 @@ ${this.genUsageInstructions(links)}`
         request: req,
         provider: from,
         tag: req.tag,
+        sortableTag: getSortableTag(req.tag),
       })
       .sign()
 
@@ -1118,7 +1121,7 @@ ${this.genUsageInstructions(links)}`
         EQ: {
           [TYPE]: VERSION_INFO,
           [ORG]: await this.bot.getMyPermalink(),
-          sortableTag: utils.toLexicographicVersion(tag),
+          sortableTag: getSortableTag(tag),
         }
       }
     })
@@ -1143,7 +1146,7 @@ ${this.genUsageInstructions(links)}`
     return this.bot.draft({ type: VERSION_INFO })
       .set(versionInfo)
       .set({
-        sortableTag: utils.toLexicographicVersion(versionInfo.tag)
+        sortableTag: getSortableTag(versionInfo.tag)
       })
       .signAndSave()
       .then(r => r.toJSON())
@@ -1153,9 +1156,9 @@ ${this.genUsageInstructions(links)}`
     return await this.bot.db.findOne({
       filter: {
         EQ: {
-          [TYPE]: 'tradle.cloud.Update',
+          [TYPE]: UPDATE,
           [ORG]: await this.bot.getMyPermalink(),
-          sortableTag: utils.toLexicographicVersion(tag),
+          sortableTag: getSortableTag(tag),
         }
       }
     })
@@ -1198,25 +1201,19 @@ ${this.genUsageInstructions(links)}`
 
   public handleUpdateResponse = async (updateResponse: ITradleObject) => {
     await this.validateUpdateResponse(updateResponse)
-    await this.bot.draft({ type: 'tradle.cloud.Update' })
+    await this.saveUpdate(updateResponse)
+  }
+
+  public saveUpdate = async (updateResponse: ITradleObject) => {
+    return await this.bot.draft({ type: UPDATE })
       .set({
         templateUrl: updateResponse.templateUrl,
+        notificationTopics: updateResponse.notificationTopics,
         tag: updateResponse.tag,
+        sortableTag: getSortableTag(updateResponse.tag),
       })
       .signAndSave()
-
-    // // const { templateUrl, notificationTopics } = updateResponse
-    // // await this.updateOwnStack({
-    // //   templateUrl,
-    // //   notificationTopics: notificationTopics.split(',').map(s => s.trim())
-    // // })
-
-    // const provider = await this.bot.identities.byPermalink(updateResponse._author)
-    // await this._createUpdatePackage({
-    //   templateUrl: updateResponse.templateUrl,
-    //   tag: updateResponse.tag,
-    //   provider,
-    // })
+      .then(r => r.toJSON())
   }
 
   public lookupLatestUpdateRequest = async ({ provider }: {
@@ -1405,7 +1402,9 @@ const assertNoNullProps = (obj: any, msg: string) => {
 }
 
 const compareTags = (a: string, b: string) => {
-  const as = utils.toLexicographicVersion(a)
-  const bs = utils.toLexicographicVersion(b)
+  const as = getSortableTag(a)
+  const bs = getSortableTag(b)
   return alphabetical(as, bs)
 }
+
+const getSortableTag = utils.toLexicographicVersion

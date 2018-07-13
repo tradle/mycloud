@@ -37,11 +37,13 @@ export class MiddlewareContainer<Context=DefaultContext> implements IHooks {
   public hook = (event, middleware) => {
     event = eventToString(event)
     this.getMiddleware(event).push(middleware)
+    // return unhook
+    return () => this.getMiddleware(event).filter(m => m === middleware)
   }
 
   public hookSimple = (event, handler) => {
     event = eventToString(event)
-    this.hook(event, toSimpleMiddleware(handler))
+    return this.hook(event, toSimpleMiddleware(handler))
   }
 
   public hasSubscribers = event => {

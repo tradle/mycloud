@@ -363,7 +363,7 @@ export interface IEndpointInfo extends IIotEndpointInfo {
 }
 
 export type TopicOrString = string|EventTopic
-export type HooksHookFn = (event:TopicOrString, handler:Function) => void
+export type HooksHookFn = (event:TopicOrString, handler:Function) => Function
 export type HooksFireFn = (event:TopicOrString, ...args:any[]) => any|void
 
 export interface IHooks {
@@ -706,6 +706,7 @@ export type Job = {
   name: string
   period: number // seconds
   input?: any
+  requiresComponents?: string[]
   [x: string]: any
 }
 

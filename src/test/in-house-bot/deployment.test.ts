@@ -400,7 +400,7 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   updateResponse = getLastCallArgs(parentSendStub).object
-  t.equal(updateResponse[TYPE], 'tradle.cloud.Update')
+  t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')
 
   const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
     t.equal(name, 'updateStack')

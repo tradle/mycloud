@@ -20,6 +20,7 @@ import AWSXray from 'aws-xray-sdk-core'
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
+import * as CFNResponse from './cfn-response'
 import {
   Env,
   Logger,
@@ -50,6 +51,9 @@ import {
 import { warmup } from './middleware/warmup'
 
 const NOT_FOUND = new Error('nothing here')
+
+// 10 mins
+const CF_EVENT_TIMEOUT = 10 * 60000
 
 type Contextualized<T> = (ctx: T, next: Function) => any|void
 
@@ -139,6 +143,8 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
 
     if (opts.source == EventSource.HTTP) {
       this._initHttp()
+    } else if (opts.source === EventSource.CLOUDFORMATION) {
+      this._initCloudFormation()
     }
 
     this.requestCounter = 0
@@ -529,6 +535,47 @@ Previous exit stack: ${this.lastExitStack}`)
 
     defineGetter(this, 'params', () => {
       return this.execCtx.event.pathParameters || {}
+    })
+  }
+
+  private _initCloudFormation = () => {
+    this.use(async (ctx, next) => {
+      const { event, context } = ctx
+      const { RequestType, ResourceProperties, ResponseURL } = event
+      this.logger.debug(`received stack event: ${RequestType}`)
+
+      let type = RequestType.toLowerCase()
+      type = type === 'create' ? 'init' : type
+      ctx.event = {
+        type,
+        payload: ResourceProperties
+      }
+
+      let err
+      try {
+        // await bot.hooks.fire(type, ctx.event)
+        await Promise.race([
+          next(),
+          timeoutIn({
+            millis: CF_EVENT_TIMEOUT,
+            get error() {
+              return new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`)
+            }
+          })
+        ])
+      } catch (e) {
+        err = e
+      }
+
+      if (ResponseURL) {
+        const respond = err ? CFNResponse.sendError : CFNResponse.sendSuccess
+        const data = err ? _.pick(err, ['message', 'stack']) : {}
+        await respond(event, context, data)
+        return
+      }
+
+      // test mode
+      if (err) throw err
     })
   }
 

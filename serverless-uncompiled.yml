@@ -1383,6 +1383,7 @@ resources:
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
+        version: ${{self:custom.version.commit}}
         name:
           Fn::FindInMap: ["org", "init", "name"]
         domain:
@@ -1397,16 +1398,6 @@ resources:
         #   Fn::FindInMap: ["deployment", "init", "encryptionKey"]
 
           # <<: *providerConf
-
-    OnStackUpdated:
-      Type: Custom::OnStackUpdated
-      DependsOn: Initialize
-      Properties:
-        ServiceToken:
-          Fn::GetAtt: [GenericJobRunnerLambdaFunction, Arn]
-        name: ensureInitialized
-        # force re-execution on every deploy
-        version: ${{self:custom.version.commit}}
 
     DefaultEncryptionKey:
       Type: AWS::KMS::Key
