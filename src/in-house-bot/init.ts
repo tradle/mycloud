@@ -6,6 +6,11 @@ import { TYPE } from '../constants'
 import { TRADLE_MYCLOUD_URL } from './constants'
 
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
+const ALERT_BRANCHES = [
+  'master',
+  'jobs'
+]
+
 export const checkVersion = async (components: IBotComponents) => {
   const { bot, logger, conf, deployment } = components
   const { version } = bot
@@ -29,6 +34,11 @@ export const checkVersion = async (components: IBotComponents) => {
   }
 
   const vInfo = await deployment.saveVersionInfo({ ...version, templateUrl })
+  if (!ALERT_BRANCHES.includes(version.branch)) {
+    logger.debug(`not alerting friends of new version`)
+    return
+  }
+
   const friends = await promiseFriends
   logger.debug(`notifying ${friends.length} friends about MyCloud update`, version)
 
