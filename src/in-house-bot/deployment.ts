@@ -398,7 +398,7 @@ export class Deployment {
     myIdentity?: IIdentity
     deploymentUUID?: string
   }) => {
-    if (this.bot.isTesting) return {}
+    if (this.bot.env.IS_OFFLINE) return {}
 
     if (!myIdentity) {
       myIdentity = await this.bot.getMyIdentity()
