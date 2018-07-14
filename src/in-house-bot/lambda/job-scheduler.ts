@@ -41,12 +41,12 @@ const COMMON_JOBS:Job[] = [
     period: 10 * MINUTE,
   },
   {
-    name: 'delivery-retry',
+    name: 'retryDelivery',
     function: DEFAULT_FUNCTION,
     period: MINUTE,
   },
   {
-    name: 'check-failed-seals',
+    name: 'checkFailedSeals',
     function: DEFAULT_FUNCTION,
     period: 17 * MINUTE,
   },
