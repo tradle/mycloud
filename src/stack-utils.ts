@@ -544,7 +544,7 @@ export default class StackUtils {
     versionInfo: VersionInfo
   }) => {
     const { tag, commit } = versionInfo
-    const dir = `serverless/${service}/${stage}/${tag}`
+    const dir = `serverless/${service}/${stage}/${tag}/${commit}`
     const templateKey = `${dir}/compiled-cloudformation-template.json`
     const zipKey = `${dir}/${service}.zip`
     return {

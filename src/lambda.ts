@@ -542,7 +542,7 @@ Previous exit stack: ${this.lastExitStack}`)
     this.use(async (ctx, next) => {
       const { event, context } = ctx
       const { RequestType, ResourceProperties, ResponseURL } = event
-      this.logger.debug(`received stack event: ${RequestType}`)
+      this.logger.debug(`received stack event`, event)
 
       let type = RequestType.toLowerCase()
       type = type === 'create' ? 'init' : type

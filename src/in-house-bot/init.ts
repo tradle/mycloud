@@ -55,13 +55,14 @@ export const ensureInitialized = async (components: IBotComponents) => {
   const { bot, conf } = components
   if (isProbablyTradle(conf)) {
     await checkVersion(components)
-  } else {
-    const { friend } = await reportLaunch({ components, targetApiUrl: TRADLE_MYCLOUD_URL })
-    // await friendTradle(components.bot)
-    if (friend) {
-      await sendTradleFriendRequest({ bot, friend })
-    }
+    return
   }
+
+  const { friend } = await reportLaunch({ components, targetApiUrl: TRADLE_MYCLOUD_URL })
+  // await friendTradle(components.bot)
+  // if (friend) {
+  //   await sendTradleSelfIntro({ bot, friend })
+  // }
 }
 
 const reportLaunch = async ({ components, targetApiUrl }: {
@@ -69,6 +70,7 @@ const reportLaunch = async ({ components, targetApiUrl }: {
   targetApiUrl: string
 }) => {
   const { bot, logger, conf, deployment } = components
+  logger.debug('reporing launch to tradle')
   try {
     return await deployment.reportLaunch({
       myOrg: conf.org,
@@ -83,7 +85,7 @@ const reportLaunch = async ({ components, targetApiUrl }: {
 
 // const friendTradle = async (bot: Bot) => {
 //   const friend = await addTradleAsFriend(bot)
-//   await sendTradleFriendRequest({ bot, friend })
+//   await sendTradleSelfIntro({ bot, friend })
 // }
 
 // const addTradleAsFriend = async (bot: Bot) => {
@@ -99,33 +101,63 @@ const reportLaunch = async ({ components, targetApiUrl }: {
 //   })
 // }
 
-const sendTradleFriendRequest = async ({ bot, friend }: {
-  bot: Bot
-  friend: any
-}) => {
-  const friendIdentityPermalink = friend.identity._permalink
-  try {
-    return await bot.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: 'tradle.cloud.FriendRequest',
-          'friendIdentity._permalink': friendIdentityPermalink,
-        }
-      }
-    })
-  } catch (err) {
-    Errors.ignoreNotFound(err)
-  }
+// const sendTradleSelfIntro = async ({ bot, friend }: {
+//   bot: Bot
+//   friend: any
+// }) => {
+//   try {
+//     const identity = await bot.getMyIdentity()
+//     return await bot.db.findOne({
+//       filter: {
+//         EQ: {
+//           [TYPE]: 'tradle.SelfIntroduction',
+//           'identity._permalink': identity._permalink,
+//           'target._permalink': friend.identity._permalink,
+//         }
+//       }
+//     })
+//   } catch (err) {
+//     Errors.ignoreNotFound(err)
+//   }
 
-  const req = await bot.draft({ type: 'tradle.cloud.FriendRequest' })
-    .set({
-      friendIdentity: friend.identity
-    })
-    .sign()
-    .then(r => r.toJSON())
+//   return await bot.send({
+//     friend,
+//     object: bot.draft({ type: 'tradle.SelfIntroduction' })
+//       .set({
+//         identity,
+//         target: friend.identity,
+//       })
+//       .toJSON()
+//   })
+// }
 
-  await bot.send({
-    friend,
-    object: req,
-  })
-}
+// const sendTradleFriendRequest = async ({ bot, friend }: {
+//   bot: Bot
+//   friend: any
+// }) => {
+//   const friendIdentityPermalink = friend.identity._permalink
+//   try {
+//     return await bot.db.findOne({
+//       filter: {
+//         EQ: {
+//           [TYPE]: 'tradle.cloud.FriendRequest',
+//           'friendIdentity._permalink': friendIdentityPermalink,
+//         }
+//       }
+//     })
+//   } catch (err) {
+//     Errors.ignoreNotFound(err)
+//   }
+
+//   const req = await bot.draft({ type: 'tradle.cloud.FriendRequest' })
+//     .set({
+//       friendIdentity: friend.identity
+//     })
+//     .sign()
+//     .then(r => r.toJSON())
+
+//   await bot.send({
+//     friend,
+//     object: req,
+//   })
+// }
