@@ -22,11 +22,6 @@ export const createMiddleware = (lambda:Lambda, opts?:any):IPBMiddleware => {
   const handlePingback = async (ctx:IPBMiddlewareContext, next) => {
     const { event, components } = ctx
     const { apiUrl, deploymentUUID, org, identity, stackId } = event as ILaunchReportPayload
-    if (!deploymentUUID) {
-      logger.error(`deployment pingback missing "deploymentUUID"`, event)
-      return
-    }
-
     const { name, domain } = org
     if (!(name && domain)) {
       this.logger.error('expected "org" to have "name" and "domain"', { org })
