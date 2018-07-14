@@ -85,11 +85,6 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
   }
 }
 
-interface ICreateChildDeploymentOpts {
-  configuration: ITradleObject
-  deploymentUUID: string
-}
-
 interface ITmpTopicResource extends ITradleObject {
   topic: string
 }
@@ -211,7 +206,14 @@ export class Deployment {
     //   type: StackOperationType.create
     // })
 
-    const childDeployment = await this.createChildDeployment({ configuration, deploymentUUID })
+    const configuredBy = await this.bot.identities.byPermalink(configuration._author)
+    const childDeploymentRes = await this.bot.draft({ type: CHILD_DEPLOYMENT })
+      .set({
+        configuration,
+        configuredBy: utils.omitVirtual(configuredBy),
+        deploymentUUID,
+      })
+      .signAndSave()
 
     // this.logger.debug('generated deployment tracker for child deployment', { uuid })
     return {
@@ -483,19 +485,6 @@ export class Deployment {
     await childDeploymentRes.signAndSave()
 
     return true
-  }
-
-  public createChildDeployment = async ({ configuration, deploymentUUID }: ICreateChildDeploymentOpts) => {
-    const configuredBy = await this.bot.identities.byPermalink(configuration._author)
-    const resource = await this.bot.draft({ type: CHILD_DEPLOYMENT })
-      .set({
-        configuration,
-        configuredBy: utils.omitVirtual(configuredBy),
-        deploymentUUID,
-      })
-      .signAndSave()
-
-    return resource.toJSON()
   }
 
   public saveParentDeployment = async ({ friend, childIdentity, apiUrl }: {
