@@ -537,10 +537,9 @@ export default class StackUtils {
     return this.aws.cloudformation.updateStack(params).promise()
   }
 
-  public static getStackLocationKeys = ({ service, stage, region, versionInfo }:  {
+  public static getStackLocationKeys = ({ service, stage, versionInfo }:  {
     service: string
     stage: string
-    region: string
     versionInfo: VersionInfo
   }) => {
     const { tag, commit, time } = versionInfo
@@ -557,25 +556,22 @@ export default class StackUtils {
   public static getStackLocation = (opts: {
     service: string
     stage: string
-    region: string
     versionInfo: VersionInfo
     deploymentBucket?: Bucket
   }) => {
-    const { region, deploymentBucket } = opts
-    const regional = deploymentBucket.getRegionalBucket(region)
-    const loc = StackUtils.getStackLocation(opts)
+    const { deploymentBucket } = opts
+    const loc = StackUtils.getStackLocationKeys(opts)
     const { zipKey, templateKey } = loc
     return {
       ...loc,
-      templateUrl: regional.getUrlForKey(templateKey),
-      zipUrl: regional.getUrlForKey(zipKey),
+      templateUrl: deploymentBucket.getUrlForKey(templateKey),
+      zipUrl: deploymentBucket.getUrlForKey(zipKey),
     }
   }
 
   public getStackLocation = (versionInfo: VersionInfo) => StackUtils.getStackLocation({
     service: this.env.SERVERLESS_SERVICE_NAME,
     stage: this.env.SERVERLESS_STAGE,
-    region: this.env.AWS_REGION,
     versionInfo,
     deploymentBucket: this.deploymentBucket
   })
