@@ -716,5 +716,6 @@ export type VersionInfo = {
   sortableTag: string
   branch: string
   commit: string
+  time: string
   templateUrl?: string
 }
