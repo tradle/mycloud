@@ -70,7 +70,7 @@ const reportLaunch = async ({ components, targetApiUrl }: {
   targetApiUrl: string
 }) => {
   const { bot, logger, conf, deployment } = components
-  logger.debug('reporing launch to tradle')
+  logger.debug('reporting launch to tradle')
   try {
     return await deployment.reportLaunch({
       myOrg: conf.org,

@@ -176,6 +176,7 @@ export interface IRequestContext {
   correlationId: string
   containerId: string
   seq: number
+  commit: string
   cold?: boolean
   start: number
 }

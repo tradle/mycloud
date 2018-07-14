@@ -12,9 +12,7 @@ const conf = createConf({ bot })
 
 const loadComponents = once(() => configureLambda({ lambda, event: STACK_UPDATED }))
 bot.hookSimple(`stack:update`, async () => {
-  console.log('1. will ensure initialized')
   const components = await loadComponents()
-  console.log('2. will ensure initialized')
   await ensureInitialized(components)
 })
 

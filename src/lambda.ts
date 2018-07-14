@@ -54,6 +54,7 @@ const NOT_FOUND = new Error('nothing here')
 
 // 10 mins
 const CF_EVENT_TIMEOUT = 10 * 60000
+const { commit } = require('./version')
 
 type Contextualized<T> = (ctx: T, next: Function) => any|void
 
@@ -679,6 +680,7 @@ const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<
     requestId: context.awsRequestId,
     correlationId,
     containerId: lambda.containerId,
+    commit,
     start: Date.now()
   }
 
