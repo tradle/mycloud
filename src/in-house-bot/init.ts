@@ -18,7 +18,7 @@ export const checkVersion = async (components: IBotComponents) => {
 
   let existing
   try {
-    existing = deployment.getVersionInfoByTag(version.tag)
+    existing = await deployment.getVersionInfoByTag(version.tag)
     return
   } catch (err) {
     Errors.ignoreNotFound(err)
