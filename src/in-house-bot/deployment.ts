@@ -1137,8 +1137,8 @@ ${this.genUsageInstructions(links)}`
 
   public saveVersionInfo = async (versionInfo: VersionInfo) => {
     return this.bot.draft({ type: VERSION_INFO })
-      .set(versionInfo)
       .set({
+        ..._.pick(versionInfo, ['tag', 'commit', 'branch', 'templateUrl']),
         sortableTag: getSortableTag(versionInfo.tag)
       })
       .signAndSave()
