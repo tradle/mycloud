@@ -30,7 +30,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any):IPBMiddleware => {
     const { conf, deployment } = components
     try {
       const success = await deployment.handleDeploymentReport({ org, apiUrl, deploymentUUID, identity, stackId })
-      console.log('received call home', { success })
+      logger.debug('received child deployment report', { success })
     } catch (err) {
       logger.error('failed to notify creators', err)
     }
