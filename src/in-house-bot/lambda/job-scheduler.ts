@@ -72,7 +72,7 @@ const addJobs = once((components: IBotComponents) => {
     lambda.logger.debug(`skipping jobs due to missing/unconfigured components: ${wont.join(', ')}`)
   }
 
-  will.forEach(job => bot.jobs.add(job))
+  will.forEach(job => bot.scheduler.add(job))
 })
 
 lambda.use(async (ctx) => {
@@ -81,7 +81,7 @@ lambda.use(async (ctx) => {
 
   const { bot, logger } = components
   try {
-    await bot.jobs.scheduleJobsImmediately()
+    await bot.scheduler.scheduleJobsImmediately()
   } catch (err) {
     logger.error('failed to schedule jobs', Errors.export(err))
   }

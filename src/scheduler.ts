@@ -13,7 +13,7 @@ type JobMap = {
   [name: string]: Job
 }
 
-export class Jobs {
+export class Scheduler {
   private bot: Bot
   private logger: Logger
   private defaultJobs: JobMap
@@ -52,7 +52,7 @@ export class Jobs {
 
   public listScheduled = async () => {
     const jobs = (await this.list()).map(normalizeJob)
-    return jobs.filter(j => Jobs.isScheduled(j))
+    return jobs.filter(j => Scheduler.isScheduled(j))
   }
 
   public static isScheduled = (job: Job, time:number=Date.now()) => {
@@ -60,7 +60,7 @@ export class Jobs {
     return time % job.period === 0
   }
 
-  public isScheduled = Jobs.isScheduled
+  public isScheduled = Scheduler.isScheduled
 
   public scheduleJobsImmediately = async (jobs?: Job[]) => {
     if (!jobs) jobs = await this.listScheduled()
@@ -77,6 +77,8 @@ export class Jobs {
     })
   }
 }
+
+export default Scheduler
 
 const fixResolution = (seconds: number) => Math.ceil(seconds / MIN_PERIOD) * MIN_PERIOD
 const normalizeJob = (job: Job) => ({

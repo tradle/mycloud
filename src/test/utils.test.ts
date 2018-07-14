@@ -1071,13 +1071,13 @@ test('ModelStore', loudAsync(async (t) => {
   t.end()
 }))
 
-test('jobs', loudAsync(async (t) => {
+test('scheduler', loudAsync(async (t) => {
   const clock = sinon.useFakeTimers()
   clock.setSystemTime(0)
 
   const sandbox = sinon.createSandbox()
 
-  const { jobs } = bot
+  const { scheduler } = bot
   const MIN = 60
   const MIN_MILLIS = 60 * 1000
   const everyMin = {
@@ -1095,24 +1095,24 @@ test('jobs', loudAsync(async (t) => {
     period: 60 * MIN
   }
 
-  t.ok(jobs.isScheduled(everyMin))
-  t.ok(jobs.isScheduled(everyTwoMin))
-  t.ok(jobs.isScheduled(everyHour))
+  t.ok(scheduler.isScheduled(everyMin))
+  t.ok(scheduler.isScheduled(everyTwoMin))
+  t.ok(scheduler.isScheduled(everyHour))
   clock.tick(MIN_MILLIS)
 
-  t.ok(jobs.isScheduled(everyMin))
-  t.notOk(jobs.isScheduled(everyTwoMin))
-  t.notOk(jobs.isScheduled(everyHour))
+  t.ok(scheduler.isScheduled(everyMin))
+  t.notOk(scheduler.isScheduled(everyTwoMin))
+  t.notOk(scheduler.isScheduled(everyHour))
 
   clock.tick(MIN_MILLIS)
-  t.ok(jobs.isScheduled(everyMin))
-  t.ok(jobs.isScheduled(everyTwoMin))
-  t.notOk(jobs.isScheduled(everyHour))
+  t.ok(scheduler.isScheduled(everyMin))
+  t.ok(scheduler.isScheduled(everyTwoMin))
+  t.notOk(scheduler.isScheduled(everyHour))
 
   clock.tick(58 * MIN_MILLIS)
-  t.ok(jobs.isScheduled(everyMin))
-  t.ok(jobs.isScheduled(everyTwoMin))
-  t.ok(jobs.isScheduled(everyHour))
+  t.ok(scheduler.isScheduled(everyMin))
+  t.ok(scheduler.isScheduled(everyTwoMin))
+  t.ok(scheduler.isScheduled(everyHour))
 
   sandbox.restore()
   clock.restore()
