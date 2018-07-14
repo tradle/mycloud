@@ -468,7 +468,7 @@ export class Deployment {
       domain: org.domain
     })
 
-    await this.bot.draft({
+    const childDeploymentRes = this.bot.draft({
         type: CHILD_DEPLOYMENT,
         resource: childDeployment
       })
@@ -477,8 +477,10 @@ export class Deployment {
         identity: friend.identity,
         stackId
       })
-      .version()
-      .signAndSave()
+
+    if (childDeployment) childDeploymentRes.version()
+
+    await childDeploymentRes.signAndSave()
 
     return true
   }
