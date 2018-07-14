@@ -1,4 +1,5 @@
 import omit from 'lodash/omit'
+import { uriEscapePath } from 'aws-sdk/lib/util'
 import { TYPE } from '@tradle/constants'
 import { randomStringWithLength, sha256 } from './crypto'
 import { alphabetical } from './string-utils'
@@ -372,11 +373,12 @@ export default class S3Utils {
 
   public getUrlForKey = ({ bucket, key }) => {
     const { host } = this.s3.endpoint
+    const encodedKey = uriEscapePath(key)
     if (isLocalHost(host)) {
-      return `http://${host}/${bucket}${key}`
+      return `http://${host}/${bucket}${encodedKey}`
     }
 
-    return `https://${bucket}.s3.amazonaws.com/${key}`
+    return `https://${bucket}.s3.amazonaws.com/${encodedKey}`
   }
 
   public disableEncryption = async ({ bucket }) => {
