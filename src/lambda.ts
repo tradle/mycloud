@@ -338,9 +338,9 @@ Previous exit stack: ${this.lastExitStack}`)
           ...Errors.export(err)
         })
       }
+    } finally {
+      timeout.cancel()
     }
-
-    timeout.cancel()
 
     if (!this.bot.isReady()) {
       this.breakingContext = safeStringify({
@@ -553,19 +553,22 @@ Previous exit stack: ${this.lastExitStack}`)
       }
 
       let err
+      const timeout = timeoutIn({
+        millis: CF_EVENT_TIMEOUT,
+        get error() {
+          return new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`)
+        }
+      })
       try {
         // await bot.hooks.fire(type, ctx.event)
         await Promise.race([
           next(),
-          timeoutIn({
-            millis: CF_EVENT_TIMEOUT,
-            get error() {
-              return new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`)
-            }
-          })
+          timeout
         ])
       } catch (e) {
         err = e
+      } finally {
+        timeout.cancel()
       }
 
       if (ResponseURL) {
