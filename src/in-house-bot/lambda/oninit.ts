@@ -10,9 +10,10 @@ const bot = createBot()
 const lambda = bot.lambdas.oninit()
 const conf = createConf({ bot })
 
+const loadComponents = once(() => configureLambda({ lambda, event: STACK_UPDATED }))
 bot.hookSimple(`stack:update`, async () => {
-  const components = await configureLambda({ lambda, event: STACK_UPDATED })
-  ensureInitialized(components)
+  const components = await loadComponents()
+  await ensureInitialized(components)
 })
 
 lambda.use(async (ctx, next) => {
