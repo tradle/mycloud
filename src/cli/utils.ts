@@ -272,23 +272,6 @@ const getProductionModules = async () => {
     })
 }
 
-const getTableDefinitions = () => {
-  const yml = require('./serverless-yml')
-  const { stackName } = yml.custom
-  const { Resources } = yml.resources
-  const tableNames = Object.keys(Resources)
-    .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
-
-  const map = {}
-  for (const name of tableNames) {
-    const table = Resources[name]
-    map[name] = table
-    table.Properties.TableName = table.Properties.TableName.replace(stackName, '{stackName}')
-  }
-
-  return map
-}
-
 // const validateProviderConf = conf => {
 //   const { style } = conf
 //   if (style) {
@@ -452,7 +435,6 @@ export {
   getPhysicalId,
   getNativeModules,
   getProductionModules,
-  getTableDefinitions,
   downloadDeploymentTemplate,
   initStack,
   cloneRemoteTable,

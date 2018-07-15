@@ -8,7 +8,6 @@ if [[ -z ${ALLOW_DIRTY+x} ]]; then
   fi
 fi
 
-npm run clean:lib
 npm run build
 npm run eslint
 npm run clean:node_modules
