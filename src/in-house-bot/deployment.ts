@@ -453,8 +453,16 @@ export class Deployment {
       try {
         childDeployment = await this.getChildDeploymentByDeploymentUUID(deploymentUUID)
       } catch (err) {
-        Errors.rethrow(err, 'developer')
+        Errors.ignoreNotFound(err)
         this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
+      }
+    }
+
+    if (!childDeployment && stackId) {
+      try {
+        childDeployment = await this.getChildDeploymentByStackId(stackId)
+      } catch (err) {
+        Errors.ignoreNotFound(err)
       }
     }
 
