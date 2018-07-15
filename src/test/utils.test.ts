@@ -903,12 +903,12 @@ test('ModelStore', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const testPrefix = 'test'
   const friend1 = {
-    _identityPermalink: testPrefix + '1',
+    identity: fakeIdentityStub(testPrefix),
     domain: `${testPrefix}.example1.com`
   }
 
   const friend2 = {
-    _identityPermalink: Date.now() + '2',
+    identity: fakeIdentityStub(testPrefix),
     domain: `${testPrefix}.example2.com`
   }
 
@@ -990,7 +990,7 @@ test('ModelStore', loudAsync(async (t) => {
     t.ok(/domain/i.test(err.message))
   }
 
-  modelsPack._author = friend1._identityPermalink
+  modelsPack._author = friend1.identity._permalink
   await store.addModelsPack({ modelsPack })
   // 4
   t.same(await store.getModelsPackByDomain(friend1.domain), modelsPack)
@@ -1033,7 +1033,7 @@ test('ModelStore', loudAsync(async (t) => {
     ]
   })
 
-  modelsPack2._author = friend2._identityPermalink
+  modelsPack2._author = friend2.identity._permalink
   try {
     await store.addModelsPack({
       modelsPack: {
@@ -1172,3 +1172,10 @@ function sum (arr) {
 }
 
 const domainToNamespace = domain => domain.split('.').reverse().join('.')
+
+let identityStubCounter = 0
+const fakeIdentityStub = (prefix) => ({
+  _t: 'tradle.Identity',
+  _permalink: (prefix || '') + (identityStubCounter++),
+  _link: (prefix || '') + (identityStubCounter++),
+})
