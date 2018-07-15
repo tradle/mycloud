@@ -938,6 +938,9 @@ ${this.genUsageInstructions(links)}`
 
     const source = this.deploymentBucket
     if (bucket === source.id) {
+      // TODO:
+      // make this more restrictive?
+      await this.bot.s3Utils.allowGuestToRead({ bucket, keys })
       return
     }
 

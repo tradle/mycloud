@@ -151,6 +151,9 @@ export class Bucket {
     name: this.getRegionalBucketName(region)
   })
 
+  public isPublic = () => this.utils.isBucketPublic({ bucket: this.name })
+  public makeKeysPublic = (keys: string[]) => this.utils.makeKeysPublic({ bucket: this.name, keys })
+
   // public grantReadAccess = async (opts) => this.utils.grantReadAccess({ bucket: this.name, ...opts })
   private _getKey = (key: string) => this.prefix + key
 }

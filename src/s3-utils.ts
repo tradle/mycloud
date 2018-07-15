@@ -37,6 +37,7 @@ const REGIONS = [
 
 // see name restrictions: https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
 const MAX_BUCKET_NAME_LENGTH = 63
+const PUBLIC_BUCKET_RULE_ID = 'MakeItPublic'
 
 export default class S3Utils {
   public s3: S3
@@ -419,7 +420,7 @@ export default class S3Utils {
       Policy: `{
         "Version": "2012-10-17",
         "Statement": [{
-          "Sid": "MakeItPublic",
+          "Sid": "${PUBLIC_BUCKET_RULE_ID}",
           "Effect": "Allow",
           "Principal": "*",
           "Action": "s3:GetObject",
@@ -427,6 +428,43 @@ export default class S3Utils {
         }]
       }`
     }).promise()
+  }
+
+  public isBucketPublic = async ({ bucket }: {
+    bucket: string
+  }) => {
+    const { Policy } = await this.s3.getBucketPolicy({
+      Bucket: bucket
+    }).promise()
+
+    const { Statement } = JSON.parse(Policy)
+    return Statement.some(({ Sid }) => Sid === PUBLIC_BUCKET_RULE_ID)
+  }
+
+  public makeKeysPublic = async ({ bucket, keys }:{
+    bucket: string
+    keys: string[]
+  }) => {
+    await this.setPolicyForKeys({ bucket, keys, policy: 'public-read' })
+  }
+
+  public setPolicyForKeys = async ({ bucket, keys, policy }: {
+    bucket: string
+    keys: string[]
+    policy: AWS.S3.ObjectCannedACL
+  }) => {
+    await Promise.all(keys.map(key => this.s3.putObjectAcl({
+      Bucket: bucket,
+      Key: key,
+      ACL: policy
+    }).promise()))
+  }
+
+  public allowGuestToRead = async ({ bucket, keys }) => {
+    const isPublic = await this.isBucketPublic({ bucket })
+    if (!isPublic) {
+      await this.makeKeysPublic({ bucket, keys })
+    }
   }
 
   public deleteVersions = async ({ bucket, versions }: {
