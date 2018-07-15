@@ -154,9 +154,8 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this._gotHandler = false
 
     this.use(async (ctx, next) => {
-      this.logger.debug('received event', { containerAge: this.containerAge })
       if (this.env.DISABLED) {
-        this.logger.debug('I have been disabled :(')
+        this.logger.info('I have been disabled :(')
         ctx.body = {}
       } else {
         await next()
