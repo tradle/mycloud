@@ -3,7 +3,6 @@ import AWS from 'aws-sdk'
 import { configureLambda } from '../'
 import { createConf } from '../configure'
 import { createBot } from '../../'
-import { ensureInitialized } from '../init'
 import { STACK_UPDATED } from '../lambda-events'
 
 const bot = createBot()
@@ -13,7 +12,7 @@ const conf = createConf({ bot })
 const loadComponents = once(() => configureLambda({ lambda, event: STACK_UPDATED }))
 bot.hookSimple(`stack:update`, async () => {
   const components = await loadComponents()
-  await ensureInitialized(components)
+  await components.deployment.onStackUpdate()
 })
 
 lambda.use(async (ctx, next) => {

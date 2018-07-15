@@ -360,8 +360,8 @@ export class Conf {
 
     const { referrerUrl, deploymentUUID } = deploymentConf
     const reportOpts = {
-      myIdentity: identity,
-      myOrg: org,
+      identity,
+      org,
       targetApiUrl: referrerUrl,
       deploymentUUID
     }
@@ -373,7 +373,7 @@ export class Conf {
     // await bot.forceReinitializeContainers()
     if (referrerUrl && deploymentUUID) {
       try {
-        await deployment.reportLaunch(reportOpts)
+        await deployment.reportDeployment(reportOpts)
       } catch (err) {
         logger.error('failed to report launch to parent MyCloud', err)
       }

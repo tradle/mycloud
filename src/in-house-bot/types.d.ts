@@ -20,6 +20,7 @@ import {
   IDeepLink,
   ILambdaExecutionContext,
   EnumValueStub,
+  VersionInfo,
 } from '../types'
 
 export * from '../types'
@@ -341,12 +342,18 @@ export interface IOrganization extends ITradleObject {
   domain: string
 }
 
-export interface ILaunchReportPayload {
+export interface MiniVersionInfo extends Partial<VersionInfo> {
+  tag: string
+  commit: string
+}
+
+export interface IDeploymentReportPayload {
   org: IOrganization
   identity: IIdentity
   deploymentUUID: string
   apiUrl: string
   stackId: string
+  version: MiniVersionInfo
   logo?: string
 }
 
@@ -354,7 +361,7 @@ export interface IMyDeploymentConf {
   // become "org"
   name: string
   domain: string
-  // same as ILaunchReportPayload
+  // same as IDeploymentReportPayload
   identity: IIdentity
   deploymentUUID: string
   apiUrl: string

@@ -22,7 +22,7 @@ const props = {
   IS_LOCAL: true
 }
 
-export const createTestEnv = (overrides={}) => {
+export const createTestEnv = (overrides={}):Env => {
   // important to import lazily
   const Env = require('../env').default
   return new Env({ ...props, ...overrides })

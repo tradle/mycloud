@@ -1531,6 +1531,7 @@ export const listIamRoles = async (iam: AWS.IAM) => {
 }
 
 export const toLexicographicVersion = (semver: string) => semver
+  .replace(/^v/, '')
   .split('.')
   .map(n => {
     if (isNaN(Number(n))) {

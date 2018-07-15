@@ -7,13 +7,14 @@ import sinon from 'sinon'
 import { TYPE, SIG, OWNER } from '@tradle/constants'
 import fake from '@tradle/build-resource/fake'
 import buildResource from '@tradle/build-resource'
+import { randomString } from '../../crypto'
 import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
 import Errors from '../../errors'
 import { createTestBot } from '../../'
 import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models from '../../models'
-import { IMyDeploymentConf, IBotConf, ILaunchReportPayload, IConf } from '../../in-house-bot/types'
+import { IMyDeploymentConf, IBotConf, IDeploymentReportPayload, IConf } from '../../in-house-bot/types'
 import { createTestEnv } from '../env'
 import { S3Utils } from '../../s3-utils'
 import parseArgs from 'yargs-parser'
@@ -43,12 +44,7 @@ test('deployment by referral', loudAsync(async (t) => {
   conf._author = users[0].link
 
   const parent = createTestBot()
-  const child = createTestBot({
-    env: createTestEnv({
-      AWS_REGION: region,
-      R_STACK: parent.stackUtils.thisStackId.replace(parent.env.AWS_REGION, region)
-    })
-  })
+  const child = createBotInRegion({ region })
 
   const childUrl = 'childurl'
   child.serviceMap.RestApi.ApiGateway.url = childUrl
@@ -65,9 +61,17 @@ test('deployment by referral', loudAsync(async (t) => {
     }
   })
 
+  const childOrg = {
+    name: 'bagel',
+    domain: 'mydomain',
+  }
+
   const childDeployment = new Deployment({
     bot: child,
-    logger: child.logger.sub('deployment:test:child')
+    logger: child.logger.sub('deployment:test:child'),
+    orgConf: <IConf>{
+      org: childOrg
+    }
   })
 
   const [
@@ -107,15 +111,16 @@ test('deployment by referral', loudAsync(async (t) => {
       stackId: child.stackUtils.thisStackId,
       ...template.Mappings.deployment.init,
       ...template.Mappings.org.init,
-      name: 'myorg',
-      domain: 'mydomain',
+      name: childOrg.name,
+      domain: childOrg.domain,
       identity: childIdentity,
       apiUrl: childUrl
     }
 
     expectedLaunchReport = {
       ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'stage', 'service', 'stackName', 'logo']),
-      org: _.pick(deploymentConf, ['name', 'domain'])
+      org: _.pick(deploymentConf, ['name', 'domain']),
+      version: child.version,
     }
 
     ;['identity', 'org'].forEach(prop => {
@@ -219,10 +224,14 @@ test('deployment by referral', loudAsync(async (t) => {
   // })
 
   const postStub = sandbox.stub(utils, 'post').callsFake(async (url, data) => {
-    t.equal(url, parentDeployment.getReportLaunchUrl())
-    t.equal(url, parentDeployment.getReportLaunchUrl(deploymentConf.referrerUrl))
+    t.equal(url, parentDeployment.getReportDeploymentUrl())
+    t.equal(url, parentDeployment.getReportDeploymentUrl(deploymentConf.referrerUrl))
     t.same(data, expectedLaunchReport)
-    await parentDeployment.handleDeploymentReport(data)
+    try {
+      await parentDeployment.handleDeploymentReport(data)
+    } catch (err) {
+      t.error(err)
+    }
   })
 
   const childLoadFriendStub = sandbox.stub(child.friends, 'load').callsFake(async ({ url }) => {
@@ -307,9 +316,9 @@ test('deployment by referral', loudAsync(async (t) => {
   //   childDeploymentResource = res
   // })
 
-  await childDeployment.reportLaunch({
-    myOrg: _.pick(deploymentConf, ['name', 'domain']),
-    myIdentity: childIdentity,
+  await childDeployment.reportDeployment({
+    // myOrg: _.pick(deploymentConf, ['name', 'domain']),
+    // myIdentity: childIdentity,
     targetApiUrl: deploymentConf.referrerUrl,
     deploymentUUID: deploymentConf.deploymentUUID
   })
@@ -399,7 +408,7 @@ test('deployment by referral', loudAsync(async (t) => {
     req: updateReq
   })
 
-  updateResponse = getLastCallArgs(parentSendStub).object
+  updateResponse = getLastCallArg(parentSendStub).object
   t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')
 
   const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
@@ -441,6 +450,84 @@ test('deployment by referral', loudAsync(async (t) => {
   t.end()
 }))
 
-const getLastCallArgs = (stub: sinon.SinonStub) => {
-  return stub.getCall(stub.callCount - 1).args[0]
+test('tradle and children', loudAsync(async (t) => {
+  const sandbox = sinon.createSandbox()
+  const region = 'ap-southeast-2'
+  const tradle = createTestBot()
+  const child = createTestBot({
+    env: createTestEnv({
+      AWS_REGION: region,
+      R_STACK: tradle.stackUtils.thisStackId.replace(tradle.env.AWS_REGION, region)
+    })
+  })
+
+  const tradleDeployment = new Deployment({
+    bot: tradle,
+    logger: tradle.logger.sub('deployment:test:parent'),
+    orgConf: <IConf>{
+      org: {
+        name: 'tradle'
+      }
+    }
+  })
+
+  const childDeployment = new Deployment({
+    bot: child,
+    logger: child.logger.sub('deployment:test:child'),
+    orgConf: <IConf>{
+      org: {
+        name: 'bagel'
+      }
+    }
+  })
+
+  const getVIStub = sandbox.stub(tradleDeployment, 'getVersionInfoByTag').resolves(tradle.version)
+  const endpointExistsStub = sandbox.stub(utils, 'doesHttpEndpointExist').resolves(true)
+  const saveStub = sandbox.stub(tradle, 'save').resolves({})
+  await tradleDeployment.handleStackUpdate()
+  t.equal(saveStub.callCount, 0)
+
+  getVIStub.rejects(new Errors.NotFound('version info'))
+
+  await tradleDeployment.handleStackUpdate()
+  t.ok(_.isMatch(getLastCallArg(saveStub), _.pick(tradle.version, ['tag', 'commit'])))
+
+  const reportStub = sandbox.stub(childDeployment, 'reportDeployment').resolves()
+  await childDeployment.handleStackUpdate()
+  t.equal(reportStub.callCount, 1)
+
+  // const postStub = sandbox.stub(utils, 'post').resolves({
+  //   identity:
+  // })
+
+  // await childDeployment.reportDeployment({
+  //   targetApiUrl: tradle.apiBaseUrl,
+  // })
+
+  // sandbox.stub(tradleDeployment, 'getChildDeploymentByStackId').rejects(new Errors.NotFound('stack'))
+  // sandbox.stub(tradle.friends, 'add').resolves()
+  // sandbox.stub(tradle, 'save').resolves()
+
+  // const report = postStub.getCall(0).args[1]
+  // t.same(report.version, child.version)
+
+  // await tradleDeployment.handleDeploymentReport(report)
+
+  sandbox.restore()
+  t.end()
+}))
+
+const getLastCallArg = (stub: sinon.SinonStub) => {
+  return stub.getCalls().slice().pop().args[0]
+}
+
+export const createBotInRegion = ({ region }: { region: string }) => {
+  const env = createTestEnv()
+  return createTestBot({
+    env: createTestEnv({
+      AWS_REGION: region,
+      // @ts-ignore
+      R_STACK: env.R_STACK.replace(env.AWS_REGION, region)
+    })
+  })
 }

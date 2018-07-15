@@ -17,7 +17,7 @@ import {
   IDeploymentConf,
   IMyDeploymentConf,
   IDeploymentConfForm,
-  ILaunchReportPayload,
+  IDeploymentReportPayload,
   IKeyValueStore,
   ResourceStub,
   IOrganization,
@@ -52,6 +52,8 @@ const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 const UPDATE = 'tradle.cloud.Update'
 const NO_SENDER_EMAIL = 'not configured to send emails. conf is missing "senderEmail"'
 const UPDATE_REQUEST_TTL = 10 * unitToMillis.minute
+// for non-inlined version info
+const VERSION_INFO_REQUIRED_PROPS = ['tag', 'commit', 'branch', 'templateUrl']
 const DEFAULT_LAUNCH_TEMPLATE_OPTS = {
   template: 'action',
   data: {
@@ -84,6 +86,11 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
     // twitter: 'tradles'
   }
 }
+
+const ALERT_BRANCHES = [
+  'master',
+  'jobs'
+]
 
 interface ITmpTopicResource extends ITradleObject {
   topic: string
@@ -392,20 +399,19 @@ export class Deployment {
     })
   }
 
-  public reportLaunch = async ({ myOrg, myIdentity, targetApiUrl, deploymentUUID }: {
-    myOrg: IOrganization
+  public reportDeployment = async ({ targetApiUrl, identity, org, deploymentUUID }: {
     targetApiUrl: string
-    myIdentity?: IIdentity
+    identity?: IIdentity
+    org?: IOrganization
     deploymentUUID?: string
   }) => {
     if (this.bot.env.IS_OFFLINE) return {}
 
-    if (!myIdentity) {
-      myIdentity = await this.bot.getMyIdentity()
-    }
+    if (!org) org = this.orgConf.org
+    if (!identity) identity = await this.bot.getMyIdentity()
 
-    myIdentity = utils.omitVirtual(myIdentity)
-    myOrg = utils.omitVirtual(myOrg)
+    org = _.pick(org, ['name', 'domain'])
+    identity = utils.omitVirtual(identity)
 
     let saveParentDeployment = utils.RESOLVED_PROMISE
     let friend
@@ -419,24 +425,25 @@ export class Deployment {
         saveParentDeployment = this.saveParentDeployment({
           friend,
           apiUrl: targetApiUrl,
-          childIdentity: myIdentity
+          childIdentity: identity
         })
       }
     } catch (err) {
       this.logger.error('failed to add referring MyCloud as friend', err)
     }
 
-    const reportLaunchUrl = this.getReportLaunchUrl(targetApiUrl)
-    const launchData = {
+    const reportDeploymentUrl = this.getReportDeploymentUrl(targetApiUrl)
+    const launchData = utils.pickNonNull({
       deploymentUUID,
       apiUrl: this.bot.apiBaseUrl,
-      org: myOrg,
-      identity: myIdentity,
-      stackId: this.bot.stackUtils.thisStackId
-    }
+      org,
+      identity,
+      stackId: this.bot.stackUtils.thisStackId,
+      version: this.bot.version,
+    }) as IDeploymentReportPayload
 
     try {
-      await utils.runWithTimeout(() => utils.post(reportLaunchUrl, launchData), { millis: 10000 })
+      await utils.runWithTimeout(() => utils.post(reportDeploymentUrl, launchData), { millis: 10000 })
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.error(`failed to notify referrer at: ${targetApiUrl}`, err)
@@ -446,8 +453,44 @@ export class Deployment {
     return { friend, parentDeployment }
   }
 
-  public handleDeploymentReport = async (report: ILaunchReportPayload) => {
-    const { deploymentUUID, apiUrl, org, identity, stackId } = report
+  public handleStackUpdate = async () => {
+    const { bot, logger, conf } = this
+    if (isProbablyTradle(this.orgConf)) {
+      await this._handleStackUpdateTradle()
+      return
+    }
+
+    await this._handleStackUpdateNonTradle()
+    // await friendTradle(components.bot)
+    // if (friend) {
+    //   await sendTradleSelfIntro({ bot, friend })
+    // }
+  }
+
+  public _handleStackUpdateTradle = async () => {
+    const { versionInfo, updated } = await this.saveMyDeploymentVersionInfo()
+    if (updated) {
+      await this.alertAboutNewVersion(versionInfo)
+    }
+  }
+
+  public _handleStackUpdateNonTradle = async () => {
+    const { logger } = this
+    logger.debug('reporting launch to tradle')
+
+    let result
+    try {
+      result = await this.reportDeployment({
+        targetApiUrl: TRADLE_MYCLOUD_URL,
+      })
+    } catch(err) {
+      Errors.rethrow(err, 'developer')
+      logger.error('failed to report launch to Tradle', err)
+    }
+  }
+
+  public handleDeploymentReport = async (report: IDeploymentReportPayload) => {
+    const { deploymentUUID, apiUrl, org, identity, stackId, version } = report
     let childDeployment
     if (deploymentUUID) {
       try {
@@ -482,13 +525,21 @@ export class Deployment {
         type: CHILD_DEPLOYMENT,
         resource: childDeployment
       })
-      .set({
+      .set(utils.pickNonNull({
         apiUrl,
         identity: friend.identity,
-        stackId
-      })
+        stackId,
+        version,
+      }))
 
-    if (childDeployment) childDeploymentRes.version()
+    if (childDeployment) {
+      if (!childDeploymentRes.isModified()) {
+        this.logger.debug('child deployment unchanged')
+        return true
+      }
+
+      childDeploymentRes.version()
+    }
 
     await childDeploymentRes.signAndSave()
 
@@ -716,7 +767,7 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public getReportLaunchUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
+  public getReportDeploymentUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
     return `${referrerUrl}/deployment-pingback`
   }
 
@@ -1147,9 +1198,10 @@ ${this.genUsageInstructions(links)}`
   }
 
   public saveVersionInfo = async (versionInfo: VersionInfo) => {
+    utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
     return this.bot.draft({ type: VERSION_INFO })
       .set({
-        ..._.pick(versionInfo, ['tag', 'commit', 'branch', 'templateUrl']),
+        ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
         sortableTag: getSortableTag(versionInfo.tag)
       })
       .signAndSave()
@@ -1294,6 +1346,58 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
+  private saveMyDeploymentVersionInfo = async () => {
+    const { bot, logger } = this
+    const { version } = bot
+    const botPermalink = await bot.getMyPermalink()
+
+    let versionInfo
+    try {
+      versionInfo = await this.getVersionInfoByTag(version.tag)
+      logger.debug(`already have VersionInfo for tag ${version.tag}`)
+      return {
+        versionInfo,
+        updated: false
+      }
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
+    const { templateUrl } = bot.stackUtils.getStackLocation(version)
+
+    // ensure template exists
+    const exists = await utils.doesHttpEndpointExist(templateUrl)
+    if (!exists) {
+      throw new Error(`templateUrl not accessible: ${templateUrl}`)
+    }
+
+    return {
+      versionInfo: await this.saveVersionInfo({ ...version, templateUrl }),
+      updated: true
+    }
+  }
+
+  private alertAboutNewVersion = async (versionInfo: VersionInfo) => {
+    const { bot, logger } = this
+    if (shouldSendVersionAlert(versionInfo)) {
+      logger.debug(`not alerting friends about MyCloud update`)
+      return false
+    }
+
+    const friends = await bot.friends.list()
+    logger.debug(`alerting ${friends.length} friends about MyCloud update`, versionInfo)
+
+    await Promise.all(friends.map(async (friend) => {
+      logger.debug(`notifying ${friend.name} about MyCloud update`)
+      await bot.send({
+        to: friend.identity._permalink,
+        object: versionInfo
+      })
+    }))
+
+    return true
+  }
+
   private get _friendEveryone() {
     return isProbablyTradle(this.orgConf)
   }
@@ -1412,3 +1516,12 @@ const compareTags = (a: string, b: string) => {
 }
 
 const getSortableTag = utils.toLexicographicVersion
+
+const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
+  // force
+  if (versionInfo.alert) return true
+
+  if (versionInfo.commitsSinceTag !== 0) return false
+
+  return ALERT_BRANCHES.includes(versionInfo.branch)
+}
