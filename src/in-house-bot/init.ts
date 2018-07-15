@@ -19,6 +19,7 @@ export const checkVersion = async (components: IBotComponents) => {
   let existing
   try {
     existing = await deployment.getVersionInfoByTag(version.tag)
+    logger.debug(`already have VersionInfo for tag ${version.tag}`)
     return
   } catch (err) {
     Errors.ignoreNotFound(err)
@@ -35,12 +36,12 @@ export const checkVersion = async (components: IBotComponents) => {
 
   const vInfo = await deployment.saveVersionInfo({ ...version, templateUrl })
   if (!ALERT_BRANCHES.includes(version.branch)) {
-    logger.debug(`not alerting friends of new version`)
+    logger.debug(`not alerting friends about MyCloud update`)
     return
   }
 
   const friends = await promiseFriends
-  logger.debug(`notifying ${friends.length} friends about MyCloud update`, version)
+  logger.debug(`alerting ${friends.length} friends about MyCloud update`, version)
 
   await Promise.all(friends.map(async (friend) => {
     logger.debug(`notifying ${friend.name} about MyCloud update`)
