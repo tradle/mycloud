@@ -7,6 +7,6 @@ export const command:ICommand = {
   ],
   description: 'list available updates',
   exec: async ({ ctx, commander, req, args }) => {
-    const updates = await commander.deployment.listAvailableUpdates()
+    return await commander.deployment.listAvailableUpdates()
   }
 }

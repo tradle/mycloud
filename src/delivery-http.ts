@@ -52,7 +52,16 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
     const task = new RetryableTask({
       shouldTryAgain: err => {
-        this.logger.warn(`failed to deliver message`, { error: err.stack, message: messages[0]._link })
+        this.logger.warn(`failed to deliver message`, {
+          error: Errors.export(err),
+          message: messages[0]._link
+        })
+
+        const { message='' } = err
+        if (message.toLowerCase().includes('getaddrinfo enotfound')) {
+          return false
+        }
+
         return !Errors.isDeveloperError(err)
       },
       initialDelay: Math.min(INITIAL_BACKOFF, maxTime),
@@ -105,12 +114,13 @@ export default class Delivery extends EventEmitter implements IDelivery {
   // public for testing
   public _onFailedToDeliver = async ({ message, error }: {
     message: ITradleMessage
-    error: Error
+    error: any
   }) => {
     Errors.rethrow(error, 'developer')
     const opts = {
       counterparty: message._counterparty || message._recipient,
-      time: message._time
+      time: message._time,
+      attempts: error.attempts
     }
 
     try {
@@ -121,9 +131,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
     }
   }
 
-  public saveError = async ({ counterparty, time }: {
+  public saveError = async ({ counterparty, time, attempts=1 }: {
     counterparty: string
     time: number
+    attempts?: number
   }) => {
     let deliveryError
     try {
@@ -136,7 +147,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       }
     }
 
-    deliveryError.attempts = (deliveryError.attempts || 1) + 1
+    deliveryError.attempts = (deliveryError.attempts || 1) + attempts
     deliveryError._time = time
     await this.db.put(deliveryError)
     return deliveryError
