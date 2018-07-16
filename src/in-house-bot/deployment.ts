@@ -1331,7 +1331,7 @@ ${this.genUsageInstructions(links)}`
           _org: providerPermalink
         },
         GT: {
-          tag: this.bot.version.tag
+          tag: getSortableTag(this.bot.version.tag)
         }
       }
     })
