@@ -833,7 +833,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     if (this.isTesting) return
 
     await this.lambdaUtils.invoke({
-      name: 'reinitialize-containers',
+      name: 'reinitializeContainers',
       sync: false,
       arg: functions
     })

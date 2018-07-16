@@ -765,7 +765,7 @@ functions:
   #     - functionErrors
 
   # force reinitialize lambda containers
-  reinitialize-containers:
+  reinitializeContainers:
     handler: lib/in-house-bot/lambda/reinitialize-containers.handler
 
   # useful during development
@@ -784,7 +784,7 @@ functions:
           cors: ${{self:custom.cors}}
 
   # rename later, temporarily can't rename, get AWS error:
-  #   "Modifying service token is not allowed..""
+  #   "Modifying service token is not allowed.."
   bot_oninit:
     handler: lib/in-house-bot/lambda/oninit.handler
     memorySize: 1024
@@ -949,7 +949,7 @@ functions:
           method: get
           cors: ${{self:custom.cors}}
 
-  deployment_pingback:
+  deploymentPingback:
     handler: lib/in-house-bot/lambda/http/deployment-pingback.handler
     # timeout: 300
     events:
