@@ -395,6 +395,7 @@ provider:
         - s3:ListBucket
         - s3:PutBucketReplication
         - s3:PutBucketVersioning
+        - s3:GetBucketPolicy
         # # needed to enable bucket encryption
         # - s3:PutEncryptionConfiguration
       Resource:
