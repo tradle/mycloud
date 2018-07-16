@@ -1345,6 +1345,30 @@ ${this.genUsageInstructions(links)}`
     return items
   }
 
+  public listDownloadedUpdates = async (providerPermalink?: string) => {
+    if (!providerPermalink) {
+      providerPermalink = TRADLE_PERMALINK // await this.getTradleBotPermalink()
+    }
+
+    const { items } = await this.bot.db.find({
+      orderBy: {
+        property: 'sortableTag',
+        desc: false
+      },
+      filter: {
+        EQ: {
+          [TYPE]: UPDATE,
+          _org: providerPermalink
+        },
+        GT: {
+          sortableTag: this.bot.version.sortableTag
+        }
+      }
+    })
+
+    return items
+  }
+
   private saveMyDeploymentVersionInfo = async () => {
     return this.saveDeploymentVersionInfo(this.bot.version)
   }
