@@ -26,7 +26,7 @@ import {
   IAppLinkSet,
   StackStatus,
   VersionInfo,
-  IUser,
+  IPBUser,
 } from './types'
 
 import { StackUtils } from '../stack-utils'
@@ -1130,7 +1130,7 @@ ${this.genUsageInstructions(links)}`
 
   public handleUpdateRequest = async ({ req, from }: {
     req: ITradleObject
-    from: IUser
+    from: IPBUser
   }) => {
     if (req._author !== from.id) {
       throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
@@ -1163,7 +1163,7 @@ ${this.genUsageInstructions(links)}`
         templateUrl,
         notificationTopics: notificationTopics.join(','),
         request: req,
-        provider: from,
+        provider: from.identity,
         tag: versionInfo.tag,
         sortableTag: versionInfo.sortableTag,
       })
@@ -1230,7 +1230,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public includesUpdate = (updateTag: string) => {
-    return compareTags(this.bot.version.tag, updateTag)
+    return compareTags(this.bot.version.tag, updateTag) >= 0
   }
 
   public validateUpdateResponse = async (updateResponse: ITradleObject) => {
@@ -1270,11 +1270,16 @@ ${this.genUsageInstructions(links)}`
   }
 
   public saveUpdate = async (updateResponse: ITradleObject) => {
+    const { templateUrl, notificationTopics, tag } = updateResponse
+    this.logger.debug('saving update', {
+      tag: updateResponse.tag
+    })
+
     return await this.bot.draft({ type: UPDATE })
       .set({
-        templateUrl: updateResponse.templateUrl,
-        notificationTopics: updateResponse.notificationTopics,
-        tag: updateResponse.tag,
+        templateUrl,
+        notificationTopics,
+        tag,
         sortableTag: getSortableTag(updateResponse.tag),
       })
       .signAndSave()

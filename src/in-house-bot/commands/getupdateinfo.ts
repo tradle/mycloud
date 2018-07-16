@@ -1,21 +1,23 @@
+import pick from 'lodash/pick'
 import Errors from '../../errors'
 import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'getupdateinfo',
   examples: [
-    '/getupdateinfo --version <tag>'
+    '/getupdateinfo --tag <tag>'
   ],
   description: 'get the update info for a particular version tag',
   exec: async ({ ctx, commander, req, args }) => {
-    const { version } = args
+    const { tag } = args
     const { deployment } = commander
     const ret:any = {
-      upToDate: deployment.includesUpdate(version)
+      upToDate: deployment.includesUpdate(tag)
     }
 
     try {
-      ret.update = await deployment.getUpdateByTag(version)
+      const update = await deployment.getUpdateByTag(tag)
+      ret.update = exportUpdate(update)
     } catch (err) {
       Errors.ignoreNotFound(err)
     }
@@ -23,3 +25,8 @@ export const command:ICommand = {
     return ret
   }
 }
+
+const exportUpdate = (update: any) => ({
+  ...pick(update, ['templateUrl', 'tag']),
+  notificationTopics: update.notificationTopics.split(',')
+})

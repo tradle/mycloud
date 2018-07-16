@@ -216,6 +216,7 @@ export interface ITradleObject {
   _link?: string
   _permalink?: string
   _author?: string
+  _org?: string
   _time?: number
   [x: string]: any
 }
