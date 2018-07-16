@@ -1502,7 +1502,6 @@ resources:
                     - cloudformation:Describe*
                     - cloudformation:List*
                     - cloudformation:Get*
-                    - cloudformation:PreviewStackUpdate
                     - cloudformation:CreateStack
                     - cloudformation:UpdateStack
                     - cloudformation:DeleteStack
@@ -1538,6 +1537,7 @@ resources:
                     - logs:DescribeLogStreams
                     - logs:FilterLogEvents
                     - logs:PutLogEvents
+                    - logs:PutRetentionPolicy
                   Resource:
                     - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${{self:custom.stackName}}*
                 - Effect: Allow
