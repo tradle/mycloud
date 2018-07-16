@@ -1102,7 +1102,7 @@ ${this.genUsageInstructions(links)}`
     })
 
     await this.bot.send({
-      to: provider,
+      to: provider._permalink,
       object: updateReq
     })
   }

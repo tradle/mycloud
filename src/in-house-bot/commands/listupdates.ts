@@ -1,10 +1,10 @@
 import { ICommand } from '../types'
 
 export const command:ICommand = {
-  name: 'list-updates',
+  name: 'listupdates',
   examples: [
-    '/list-updates',
-    '/list-updates --downloaded',
+    '/listupdates',
+    '/listupdates --downloaded',
   ],
   description: 'list available updates',
   exec: async ({ ctx, commander, req, args }) => {
