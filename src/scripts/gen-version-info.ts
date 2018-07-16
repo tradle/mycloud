@@ -10,7 +10,7 @@ const branch = exec(`git symbolic-ref --short HEAD`)
 const info = {
   commit,
   commitsSinceTag: parseInt(commitsSinceTag, 10),
-  tag,
+  tag: tag.replace(/^v/, ''),
   branch,
   time: new Date().toISOString(),
 }
