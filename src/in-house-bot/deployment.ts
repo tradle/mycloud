@@ -475,8 +475,10 @@ export class Deployment {
 
   public _handleStackUpdateTradle = async () => {
     const { versionInfo, updated } = await this.saveMyDeploymentVersionInfo()
-    if (updated) {
-      await this.alertAboutNewVersion(versionInfo)
+    const forced = this.bot.version.alert
+    const should = updated && shouldSendVersionAlert(this.bot.version)
+    if (forced || should) {
+      await this.alertAboutVersion(versionInfo)
     }
   }
 
@@ -1344,14 +1346,17 @@ ${this.genUsageInstructions(links)}`
   }
 
   private saveMyDeploymentVersionInfo = async () => {
+    return this.saveDeploymentVersionInfo(this.bot.version)
+  }
+
+  private saveDeploymentVersionInfo = async (info: VersionInfo) => {
     const { bot, logger } = this
-    const { version } = bot
     const botPermalink = await bot.getMyPermalink()
 
     let versionInfo
     try {
-      versionInfo = await this.getVersionInfoByTag(version.tag)
-      logger.debug(`already have VersionInfo for tag ${version.tag}`)
+      versionInfo = await this.getVersionInfoByTag(info.tag)
+      logger.debug(`already have VersionInfo for tag ${info.tag}`)
       return {
         versionInfo,
         updated: false
@@ -1360,7 +1365,7 @@ ${this.genUsageInstructions(links)}`
       Errors.ignoreNotFound(err)
     }
 
-    const { templateUrl } = bot.stackUtils.getStackLocation(version)
+    const { templateUrl } = bot.stackUtils.getStackLocation(info)
 
     // ensure template exists
     const exists = await utils.doesHttpEndpointExist(templateUrl)
@@ -1369,18 +1374,13 @@ ${this.genUsageInstructions(links)}`
     }
 
     return {
-      versionInfo: await this.saveVersionInfo({ ...version, templateUrl }),
+      versionInfo: await this.saveVersionInfo({ ...info, templateUrl }),
       updated: true
     }
   }
 
-  private alertAboutNewVersion = async (versionInfo: VersionInfo) => {
+  private alertAboutVersion = async (versionInfo: VersionInfo) => {
     const { bot, logger } = this
-    if (shouldSendVersionAlert(versionInfo)) {
-      logger.debug(`not alerting friends about MyCloud update`)
-      return false
-    }
-
     const friends = await bot.friends.list()
     logger.debug(`alerting ${friends.length} friends about MyCloud update`, versionInfo)
 
