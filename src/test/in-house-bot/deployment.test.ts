@@ -397,6 +397,7 @@ test('deployment by referral', loudAsync(async (t) => {
     return {
       templateUrl: 'original.template.url',
       tag,
+      sortableTag: utils.toSortableTag(tag)
     }
   })
 
@@ -404,7 +405,10 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let updateResponse
   const { templateUrl } = await parentDeployment.handleUpdateRequest({
-    from: childIdentity,
+    from: {
+      id: buildResource.permalink(childIdentity),
+      identity: childIdentity
+    },
     req: updateReq
   })
 
