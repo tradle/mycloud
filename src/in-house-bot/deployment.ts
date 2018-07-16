@@ -416,7 +416,7 @@ export class Deployment {
     if (!org) org = this.orgConf.org
     if (!identity) identity = await this.bot.getMyIdentity()
 
-    org = _.pick(org, ['name', 'domain'])
+    org = utils.omitVirtual(org)
     identity = utils.omitVirtual(identity)
 
     let saveParentDeployment = utils.RESOLVED_PROMISE
