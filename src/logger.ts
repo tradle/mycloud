@@ -73,7 +73,7 @@ export default class Logger {
       conf = { namespace: conf }
     }
 
-    const {
+    let {
       namespace='',
       context={},
       level=Level.DEBUG,
@@ -81,13 +81,13 @@ export default class Logger {
       outputFormat='json'
     } = conf
 
+    if (level < 0) level = 0
+    else if (level > HIGHEST_LEVEL) level = HIGHEST_LEVEL
+
     this.conf = conf
     this.namespace = namespace
     this.context = context
     this.level = level
-    if (level < 0 || level > HIGHEST_LEVEL) {
-      throw new Error(`expected level >= 0 && level <=${HIGHEST_LEVEL}, got ${level}`)
-    }
 
     this.writer = writer
     this.outputFormat = outputFormat

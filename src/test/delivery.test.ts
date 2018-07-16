@@ -64,7 +64,7 @@ test('retry', loudAsync(async (t) => {
   })
 
   let remainingTime = 1000
-  sandbox.stub(bot.env, 'getRemainingTime').callsFake(() => {
+  sandbox.stub(bot.env, 'getRemainingTimeWithBuffer').callsFake(() => {
     return remainingTime
   })
 
@@ -82,6 +82,7 @@ test('retry', loudAsync(async (t) => {
     didRetry(opts)
   })
 
+  const start = new Date('2000-01-01').getTime()
   await delivery.deliverBatch({
     friend,
     recipient: bob.permalink,
@@ -89,7 +90,7 @@ test('retry', loudAsync(async (t) => {
       return {
         [TYPE]: 'tradle.Message',
         object: payload,
-        _time: i,
+        _time: start + i * 1000,
         _counterparty: bob.permalink,
       }
     })
@@ -100,7 +101,7 @@ test('retry', loudAsync(async (t) => {
   const retryParams = await promiseRetry
   t.same(retryParams, {
     recipient: bob.permalink,
-    range: { after: -1 }
+    range: { after: start - 1 }
   })
 
   // t.equal((await delivery.getErrors()).length, 0)

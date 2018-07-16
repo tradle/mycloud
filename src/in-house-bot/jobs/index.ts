@@ -32,7 +32,7 @@ export const warmup:Executor = async ({ job, components }) => {
 
 export const retryDelivery:Executor = async ({ job, components }) => {
   const { bot } = components
-  const failed = await bot.delivery.http.getErrors()
+  const failed = await bot.delivery.http.getRetriable()
   if (!failed.length) return
 
   await bot._fireDeliveryErrorBatchEvent({

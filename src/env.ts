@@ -155,6 +155,10 @@ export default class Env {
     return this.lambda ? this.lambda.timeLeft : 0
   }
 
+  public getRemainingTimeWithBuffer = (buffer: number) => {
+    return Math.max(this.getRemainingTime() - buffer, 0)
+  }
+
   public setLambda = (lambda) => {
     this.lambda = lambda
     this.setRequestContext(lambda.reqCtx)

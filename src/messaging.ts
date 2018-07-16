@@ -18,7 +18,8 @@ import {
   ensureNoVirtualProps,
   copyVirtual,
   summarizeObject,
-  RESOLVED_PROMISE
+  RESOLVED_PROMISE,
+  parseEnumValue,
 } from './utils'
 
 import Errors from './errors'
@@ -424,8 +425,8 @@ export default class Messaging {
   private _attemptLiveDelivery = async (opts: ILiveDeliveryOpts) => {
     const { messages, recipient, friend } = opts
     if (friend) {
-      const delivered = await this._deliverPreviouslyUndelivered(opts)
-      if (delivered) return
+      const yay = await this._deliverPreviouslyUndelivered(opts)
+      if (!yay) return
     }
 
     this.logger.debug(`attempting to deliver batch of ${messages.length} messages to ${recipient}`)
@@ -443,15 +444,23 @@ export default class Messaging {
       deliveryError = await this.delivery.http.getError(recipient)
     } catch (err) {
       Errors.ignoreNotFound(err)
+      return true
+    }
+
+    if (this.delivery.http.isStuck(deliveryError)) {
       return false
     }
 
     this.logger.debug('delivering previously undelivered messages', deliveryError)
-    await this.delivery.deliverMessages({
+    const result = await this.delivery.deliverMessages({
       recipient,
       friend,
       range: this.delivery.http.getRangeFromError(deliveryError)
     })
+
+    if (!result.finished) {
+      return false
+    }
 
     return true
   }
