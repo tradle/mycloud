@@ -151,27 +151,15 @@ const CREDSTASH_ALGORITHM = 'aes-256-gcm'
 // we lose all type checking when exporting like this
 const lambdaCreators:LambdaImplMap = {
   get onmessage() { return require('./lambda/onmessage') },
-  // get onmessagestream() { return require('./lambda/onmessagestream') },
-  // get onsealstream() { return require('./lambda/onsealstream') },
   get onresourcestream() { return require('./lambda/onresourcestream') },
   get oninit() { return require('./lambda/oninit') },
-  // get onsubscribe() { return require('./lambda/onsubscribe') },
-  // get onconnect() { return require('./lambda/onconnect') },
-  // get ondisconnect() { return require('./lambda/ondisconnect') },
   get oniotlifecycle() { return require('./lambda/oniotlifecycle') },
-  get sealpending() { return require('./lambda/sealpending') },
-  get pollchain() { return require('./lambda/pollchain') },
-  get checkFailedSeals() { return require('./lambda/check-failed-seals') },
-  get toevents() { return require('./lambda/to-events') },
   get info() { return require('./lambda/info') },
   get preauth() { return require('./lambda/preauth') },
   get auth() { return require('./lambda/auth') },
   get inbox() { return require('./lambda/inbox') },
-  // get graphql() { return require('./lambda/graphql') },
   get warmup() { return require('./lambda/warmup') },
   get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
-  get deliveryRetry() { return require('./lambda/delivery-retry') },
-  // get oneventstream() { return require('./lambda/oneventstream') },
 }
 
 // const middlewareCreators:MiddlewareMap = {
