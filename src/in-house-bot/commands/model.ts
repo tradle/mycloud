@@ -1,9 +1,9 @@
 import { ICommand } from '../types'
 
 export const command:ICommand = {
-  name: 'listproducts',
+  name: 'model',
   examples: [
-    '/listproducts'
+    '/model'
   ],
   aliases: [
     '/model id',

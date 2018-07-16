@@ -1546,7 +1546,7 @@ export const toLexicographicInt = n => {
   return lexint.pack(n, 'hex')
 }
 
-export const requireOpts = (opts:any, props:string[]) => {
-  const missing = props.filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)
+export const requireOpts = (opts:any, props:string|string[]) => {
+  const missing = [].concat(props).filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)
   if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(', ')}`)
 }

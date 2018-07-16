@@ -3,7 +3,7 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import buildResource from '@tradle/build-resource'
-import { TYPE, ORG, unitToMillis } from '../constants'
+import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE_MYCLOUD_URL, TRADLE_PERMALINK } from './constants'
 import { randomStringWithLength } from '../crypto'
 import { appLinks } from '../app-links'
@@ -1379,7 +1379,12 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  private alertAboutVersion = async (versionInfo: VersionInfo) => {
+  public alertAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
+    utils.requireOpts(versionInfo, 'tag')
+    if (!versionInfo[SIG]) {
+      versionInfo = await this.getVersionInfoByTag(versionInfo.tag)
+    }
+
     const { bot, logger } = this
     const friends = await bot.friends.list()
     logger.debug(`alerting ${friends.length} friends about MyCloud update`, versionInfo)

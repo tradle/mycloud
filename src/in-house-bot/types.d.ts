@@ -21,6 +21,7 @@ import {
   ILambdaExecutionContext,
   EnumValueStub,
   VersionInfo,
+  Registry,
 } from '../types'
 
 export * from '../types'
@@ -307,10 +308,7 @@ export interface IPlugin<BotComponent> {
   updateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 
-export interface IPlugins {
-  get: <T>(name:string) => IPlugin<T>
-  set: (name:string, IPlugin) => void
-}
+export type IPlugins = Registry<IPlugin<any>>
 
 export type ClaimType = 'bulk' | 'prefill'
 

@@ -1,16 +1,5 @@
 
-import path from 'path'
-import fs from 'fs'
-import { ICommand } from '../types'
+import { loadFromDir } from '../registry'
+import { ICommand, Registry } from '../types'
 
-const commands = {}
-
-fs.readdirSync(__dirname).forEach(file => {
-  if (file !== 'index.js' && file.endsWith('.js')) {
-    const command:ICommand = require(path.resolve(__dirname, file)).command
-    const name = command.name || path.parse(file).name
-    commands[name] = command
-  }
-})
-
-module.exports = commands
+export const Commands: Registry<ICommand> = loadFromDir({ dir: __dirname, prop: 'command' })

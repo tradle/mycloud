@@ -722,3 +722,9 @@ export type VersionInfo = {
   templateUrl?: string
   alert?: boolean
 }
+
+export interface Registry<T> {
+  get: (name:string) => T
+  set: (name:string, T) => void
+  keys: () => string[]
+}
