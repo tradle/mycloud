@@ -368,7 +368,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     this.emit('done')
     this.isCold = false
-    this.logger.debug('exiting')
+    this.logger.silly('exiting')
 
     // http exits via koa
     if (this.source !== EventSource.HTTP) {
