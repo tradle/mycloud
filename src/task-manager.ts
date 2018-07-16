@@ -64,16 +64,6 @@ export default class TaskManager {
     this.logger.debug(`waiting for ${this.tasks.length} tasks to complete or fail`)
     const names = this.tasks.map(task => task.name)
     const results:ISettledPromise<any>[] = await allSettled(this.tasks.map(task => task.promise))
-    results.forEach(({ reason }) => {
-      if (!reason) return
-
-      if (Errors.isDeveloperError(reason)) {
-        this.logger.error('developer error', Errors.export(reason))
-      } else {
-        this.logger.warn('error', Errors.export(reason))
-      }
-    })
-
     return results.map((result, i) => ({
       ...result,
       name: names[i]
@@ -89,10 +79,11 @@ export default class TaskManager {
         time: Date.now() - start
       })
     } catch (err) {
-      this.logger.warn('task failed', {
-        name: task.name,
-        stack: err.stack
-      })
+      if (Errors.isDeveloperError(err)) {
+        this.logger.error('developer error', Errors.export(err))
+      } else {
+        this.logger.warn('error', Errors.export(err))
+      }
 
       if (task.retryOnFail) {
         this.add(omit(task, ['promise']) as Task)
