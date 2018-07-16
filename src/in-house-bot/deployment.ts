@@ -45,6 +45,8 @@ import {
   getTradleBotStub,
 } from './utils'
 
+const { toSortableTag } = utils
+
 const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
@@ -1185,7 +1187,7 @@ ${this.genUsageInstructions(links)}`
         EQ: {
           [TYPE]: VERSION_INFO,
           [ORG]: await this.bot.getMyPermalink(),
-          sortableTag: getSortableTag(tag),
+          sortableTag: toSortableTag(tag),
         }
       }
     })
@@ -1211,7 +1213,7 @@ ${this.genUsageInstructions(links)}`
     return this.bot.draft({ type: VERSION_INFO })
       .set({
         ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
-        sortableTag: getSortableTag(versionInfo.tag)
+        sortableTag: toSortableTag(versionInfo.tag)
       })
       .signAndSave()
       .then(r => r.toJSON())
@@ -1223,7 +1225,7 @@ ${this.genUsageInstructions(links)}`
         EQ: {
           [TYPE]: UPDATE,
           [ORG]: await this.bot.getMyPermalink(),
-          sortableTag: getSortableTag(tag),
+          sortableTag: toSortableTag(tag),
         }
       }
     })
@@ -1280,7 +1282,7 @@ ${this.genUsageInstructions(links)}`
         templateUrl,
         notificationTopics,
         tag,
-        sortableTag: getSortableTag(updateResponse.tag),
+        sortableTag: toSortableTag(updateResponse.tag),
       })
       .signAndSave()
       .then(r => r.toJSON())
@@ -1542,12 +1544,10 @@ const assertNoNullProps = (obj: any, msg: string) => {
 }
 
 const compareTags = (a: string, b: string) => {
-  const as = getSortableTag(a)
-  const bs = getSortableTag(b)
+  const as = toSortableTag(a)
+  const bs = toSortableTag(b)
   return alphabetical(as, bs)
 }
-
-const getSortableTag = utils.toLexicographicVersion
 
 const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
   // force

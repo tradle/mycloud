@@ -303,7 +303,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     this.env = env
     this.version = {
       ...VERSION,
-      sortableTag: utils.toLexicographicVersion(VERSION.tag)
+      sortableTag: utils.toSortableTag(VERSION.tag)
     }
 
     readyMixin(this)

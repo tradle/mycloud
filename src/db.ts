@@ -12,7 +12,7 @@ import {
   logifyFunction,
   safeStringify,
   getPrimaryKeySchema,
-  toLexicographicVersion,
+  toSortableTag,
 } from './utils'
 
 import { TYPE, SIG, ORG, AUTHOR, TIMESTAMP, TYPES, UNSIGNED_TYPES } from './constants'
@@ -22,6 +22,9 @@ const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
 const ORG_OR_AUTHOR = '_orgOrAuthor'
 const ARTIFICIAL_PROPS = [ORG_OR_AUTHOR]
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
+const UPDATE = 'tradle.cloud.Update'
+const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 
 const ALLOW_SCAN = [
   DELIVERY_ERROR
@@ -299,16 +302,16 @@ export = function createDB ({
     delete EQ._inbound
   }
 
-  // const fixVersionInfoFilter = ({ GT, LT }) => {
-  //   [GT, LT].forEach(conditions => {
-  //     if (!conditions) return
+  const fixVersionInfoFilter = ({ GT, LT }) => {
+    [GT, LT].forEach(conditions => {
+      if (!conditions) return
 
-  //     if (conditions.tag && !conditions.sortableTag) {
-  //       conditions.sortableTag = toLexicographicVersion(conditions.tag)
-  //       delete conditions.tag
-  //     }
-  //   })
-  // }
+      if (conditions.tag && !conditions.sortableTag) {
+        conditions.sortableTag = toSortableTag(conditions.tag)
+        delete conditions.tag
+      }
+    })
+  }
 
   const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
 
@@ -348,7 +351,13 @@ export = function createDB ({
 
     const type = filter.EQ[TYPE]
     if (type === MESSAGE) fixMessageFilter(filter)
-    // if (type === VERSION_INFO) fixVersionInfoFilter(filter)
+    if (type === VERSION_INFO ||
+      type === UPDATE ||
+      type == UPDATE_REQUEST ||
+      type == UPDATE_RESPONSE
+    ) {
+      fixVersionInfoFilter(filter)
+    }
   }
 
   const checkPre = resource => {

@@ -1530,7 +1530,7 @@ export const listIamRoles = async (iam: AWS.IAM) => {
   return roles
 }
 
-export const toLexicographicVersion = (semver: string) => semver
+export const toSortableTag = (semver: string) => semver
   .replace(/^v/, '')
   .split('.')
   .map(n => {
