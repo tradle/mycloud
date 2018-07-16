@@ -1405,11 +1405,11 @@ ${this.genUsageInstructions(links)}`
 
     const { templateUrl } = bot.stackUtils.getStackLocation(info)
 
-    // ensure template exists
-    const exists = await utils.doesHttpEndpointExist(templateUrl)
-    if (!exists) {
-      throw new Error(`templateUrl not accessible: ${templateUrl}`)
-    }
+    // // ensure template exists
+    // const exists = await utils.doesHttpEndpointExist(templateUrl)
+    // if (!exists) {
+    //   throw new Error(`templateUrl not accessible: ${templateUrl}`)
+    // }
 
     return {
       versionInfo: await this.saveVersionInfo({ ...info, templateUrl }),
