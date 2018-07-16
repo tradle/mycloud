@@ -4,7 +4,7 @@ import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import buildResource from '@tradle/build-resource'
 import { TYPE, ORG, unitToMillis } from '../constants'
-import { TRADLE_MYCLOUD_URL } from './constants'
+import { TRADLE_MYCLOUD_URL, TRADLE_PERMALINK } from './constants'
 import { randomStringWithLength } from '../crypto'
 import { appLinks } from '../app-links'
 import {
@@ -36,7 +36,13 @@ import { getFaviconUrl } from './image-utils'
 import { alphabetical } from '../string-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'
-import { getAppLinks, getAppLinksInstructions, isEmployee, isProbablyTradle } from './utils'
+import {
+  getAppLinks,
+  getAppLinksInstructions,
+  isEmployee,
+  isProbablyTradle,
+  getTradleBotStub,
+} from './utils'
 
 const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
@@ -1078,7 +1084,7 @@ ${this.genUsageInstructions(links)}`
   public requestUpdateFromTradle = async ({ tag }: {
     tag: string
   }={ tag: 'latest' }) => {
-    const provider = await this.getTradleBotStub()
+    const provider = await getTradleBotStub()
     return this.requestUpdateFromProvider({ provider, tag })
   }
 
@@ -1313,24 +1319,9 @@ ${this.genUsageInstructions(links)}`
 
   // }
 
-  public getTradleBotPermalink = async () => {
-    const identity = await this.getTradleBotIdentity()
-    return buildResource.permalink(identity)
-  }
-
-  public getTradleBotStub = async () => {
-    const identity = await this.getTradleBotIdentity()
-    return this.bot.buildStub(identity)
-  }
-
-  public getTradleBotIdentity = async () => {
-    const { bot } = await utils.get(TRADLE_MYCLOUD_URL)
-    return bot.pub
-  }
-
   public listAvailableUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
-      providerPermalink = await this.getTradleBotPermalink()
+      providerPermalink = TRADLE_PERMALINK // await this.getTradleBotPermalink()
     }
 
     const updates = await this.bot.db.find({

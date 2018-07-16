@@ -1,9 +1,9 @@
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
+import buildResource from '@tradle/build-resource'
 import * as crypto from '../crypto'
-import { isPromise, pickNonNull, parseEnumValue, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
+import { get, isPromise, pickNonNull, parseEnumValue, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
 import models from '../models'
@@ -24,6 +24,8 @@ import {
   IConf,
 } from './types'
 
+import { TYPE } from '../constants'
+import { TRADLE_MYCLOUD_URL, TRADLE_PERMALINK } from './constants'
 import { safeStringify } from '../string-utils'
 
 const SealModel = models['tradle.Seal']
@@ -557,4 +559,19 @@ export const witness = async (bot: Bot, object: ITradleObject) => {
 
 export const isProbablyTradle = ({ org }) => {
   return org.name.toLowerCase() === 'tradle'
+}
+
+export const getTradleBotPermalink = async () => {
+  const identity = await getTradleBotIdentity()
+  return buildResource.permalink(identity)
+}
+
+export const getTradleBotStub = async () => {
+  const identity = await getTradleBotIdentity()
+  return buildResource.stub({ resource: identity })
+}
+
+export const getTradleBotIdentity = async () => {
+  const info = await get(`${TRADLE_MYCLOUD_URL}/info`)
+  return info.bot.pub
 }
