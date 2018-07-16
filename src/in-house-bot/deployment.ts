@@ -1387,7 +1387,7 @@ ${this.genUsageInstructions(links)}`
     await Promise.all(friends.map(async (friend) => {
       logger.debug(`notifying ${friend.name} about MyCloud update`)
       await bot.send({
-        to: friend.identity._permalink,
+        friend,
         object: versionInfo
       })
     }))

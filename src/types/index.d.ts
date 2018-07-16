@@ -101,6 +101,7 @@ export {
   Lambda,
   LambdaHttp,
   BaseLambda,
+  EventSource,
   Backlinks,
   StackUtils,
   LambdaUtils,
