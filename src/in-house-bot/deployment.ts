@@ -1324,17 +1324,23 @@ ${this.genUsageInstructions(links)}`
       providerPermalink = TRADLE_PERMALINK // await this.getTradleBotPermalink()
     }
 
-    const updates = await this.bot.db.find({
+    const { items } = await this.bot.db.find({
+      orderBy: {
+        property: 'sortableTag',
+        desc: false
+      },
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
           _org: providerPermalink
         },
         GT: {
-          tag: getSortableTag(this.bot.version.tag)
+          sortableTag: this.bot.version.sortableTag
         }
       }
     })
+
+    return items
   }
 
   private saveMyDeploymentVersionInfo = async () => {

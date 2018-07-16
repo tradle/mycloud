@@ -8,13 +8,14 @@ export const command:ICommand = {
   ],
   description: 'get the update info for a particular version tag',
   exec: async ({ ctx, commander, req, args }) => {
+    const { version } = args
     const { deployment } = commander
     const ret:any = {
-      upToDate: deployment.includesUpdate(args.version)
+      upToDate: deployment.includesUpdate(version)
     }
 
     try {
-      ret.update = await deployment.getUpdateByTag(args.version)
+      ret.update = await deployment.getUpdateByTag(version)
     } catch (err) {
       Errors.ignoreNotFound(err)
     }

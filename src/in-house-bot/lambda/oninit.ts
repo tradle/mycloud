@@ -4,15 +4,18 @@ import { configureLambda } from '../'
 import { createConf } from '../configure'
 import { createBot } from '../../'
 import { STACK_UPDATED } from '../lambda-events'
+import { IBotComponents } from '../types'
 
 const bot = createBot()
 const lambda = bot.lambdas.oninit()
 const conf = createConf({ bot })
 
-const loadComponents = once(() => configureLambda({ lambda, event: STACK_UPDATED }))
+type ComponentsLoader = () => Promise<IBotComponents>
+
+const loadComponents:ComponentsLoader = once(() => configureLambda({ lambda, event: STACK_UPDATED }))
 bot.hookSimple(`stack:update`, async () => {
-  const components = await loadComponents()
-  await components.deployment.onStackUpdate()
+  const { deployment } = await loadComponents()
+  await deployment.handleStackUpdate()
 })
 
 lambda.use(async (ctx, next) => {
