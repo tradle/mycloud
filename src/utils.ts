@@ -1540,11 +1540,9 @@ export const toLexicographicVersion = (semver: string) => semver
 
     return toLexicographicInt(Number(n))
   })
-  .join('')
+  .join('.')
 
-export const toLexicographicInt = n => {
-  return lexint.pack(n, 'hex')
-}
+export const toLexicographicInt = n => lexint.pack(n, 'hex')
 
 export const requireOpts = (opts:any, props:string|string[]) => {
   const missing = [].concat(props).filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)

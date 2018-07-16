@@ -26,6 +26,7 @@ import {
   IAppLinkSet,
   StackStatus,
   VersionInfo,
+  IUser,
 } from './types'
 
 import { StackUtils } from '../stack-utils'
@@ -1129,9 +1130,9 @@ ${this.genUsageInstructions(links)}`
 
   public handleUpdateRequest = async ({ req, from }: {
     req: ITradleObject
-    from: ITradleObject
+    from: IUser
   }) => {
-    if (req._author !== buildResource.permalink(from)) {
+    if (req._author !== from.id) {
       throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
     }
 
