@@ -1164,8 +1164,8 @@ ${this.genUsageInstructions(links)}`
         notificationTopics: notificationTopics.join(','),
         request: req,
         provider: from,
-        tag: req.tag,
-        sortableTag: getSortableTag(req.tag),
+        tag: versionInfo.tag,
+        sortableTag: versionInfo.sortableTag,
       })
       .sign()
 
