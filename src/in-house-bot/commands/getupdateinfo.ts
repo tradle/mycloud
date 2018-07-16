@@ -10,6 +10,8 @@ export const command:ICommand = {
   description: 'get the update info for a particular version tag',
   exec: async ({ ctx, commander, req, args }) => {
     const { tag } = args
+    if (!tag) throw new Errors.InvalidInput('expected "--tag" option')
+
     const { deployment, logger } = commander
     const ret:any = {
       upToDate: deployment.includesUpdate(tag)
