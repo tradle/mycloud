@@ -10,6 +10,8 @@ import {
 import {
   WARMUP_SOURCE_NAME,
   WARMUP_SLEEP,
+  DEFAULT_WARMUP_EVENT,
+  DEFAULT_WARMUP_PERIOD,
   unitToMillis
 } from './constants'
 
@@ -192,10 +194,8 @@ export default class LambdaUtils {
 
   public getWarmUpInfo = (yml) => {
     const { functions } = yml
-    const event = functions[WARMUP_FUNCTION_SHORT_NAME].events.find(event => event.schedule)
-    const { rate, input } = event.schedule
-    const period = this.parseRateExpression(rate)
-    const warmUpConfs = input.functions.map(conf => this.normalizeWarmUpConf(conf))
+    const event = DEFAULT_WARMUP_EVENT
+    const warmUpConfs = event.functions.map(conf => this.normalizeWarmUpConf(conf))
     warmUpConfs.forEach(conf => {
       if (!(conf.functionName in functions)) {
         throw new Error(`function ${conf.functionName} listed in warmup event does not exist`)
@@ -203,8 +203,8 @@ export default class LambdaUtils {
     })
 
     return {
-      period,
-      input,
+      period: DEFAULT_WARMUP_PERIOD,
+      input: event,
       warmUpConfs,
       functionName: WARMUP_FUNCTION_SHORT_NAME
     }

@@ -5,6 +5,7 @@ import { fromSchedule } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
 import { Job, IBotComponents } from '../types'
 import * as JOBS from '../jobs'
+import { DEFAULT_WARMUP_PERIOD } from '../../constants'
 
 const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
 const { bot } = lambda
@@ -15,7 +16,7 @@ const COMMON_JOBS:Job[] = [
   {
     name: 'warmup',
     function: 'warmup',
-    period: 5 * MINUTE,
+    period: DEFAULT_WARMUP_PERIOD,
     input: {
       concurrency: 5,
       functions: [

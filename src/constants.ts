@@ -112,6 +112,7 @@ const constants = {
     dev: 'https://push1-prod.tradle.io',
     prod: 'https://push1-prod.tradle.io'
   },
+  DEFAULT_WARMUP_PERIOD: 5 * unitToMillis.minute,
   DEFAULT_WARMUP_EVENT: {
     concurrency: 5,
     functions: [
