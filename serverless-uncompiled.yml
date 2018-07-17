@@ -971,8 +971,8 @@ functions:
           method: get
           cors: ${{self:custom.cors}}
 
-  onChildStackStatusChanged:
-    handler: lib/in-house-bot/lambda/sns/on-child-stack-status-changed.handler
+  # onChildStackStatusChanged:
+  #   handler: lib/in-house-bot/lambda/sns/on-child-stack-status-changed.handler
     # events added dynamically in "deployment.subscribeToChildStackStatusNotifications"
 
   updateStack:

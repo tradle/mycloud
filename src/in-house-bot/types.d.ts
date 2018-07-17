@@ -395,6 +395,7 @@ export interface IDeploymentReplicationConf {
 
 export interface IDeploymentPluginConf {
   senderEmail?: string
+  stackStatusNotificationsEmail?: string
   replication?: IDeploymentReplicationConf
 }
 

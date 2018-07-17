@@ -520,7 +520,7 @@ export default class StackUtils {
 
   public updateStack = async ({ templateUrl, notificationTopics = [] }: {
     templateUrl: string
-    notificationTopics: string[]
+    notificationTopics?: string[]
   }) => {
     const params: AWS.CloudFormation.UpdateStackInput = {
       StackName: this.thisStackArn,
@@ -530,7 +530,10 @@ export default class StackUtils {
         'CAPABILITY_NAMED_IAM'
       ],
       Parameters: [],
-      NotificationARNs: notificationTopics,
+    }
+
+    if (notificationTopics.length) {
+      params.NotificationARNs = notificationTopics
     }
 
     this.logger.info('updating this stack')
@@ -543,7 +546,7 @@ export default class StackUtils {
     versionInfo: VersionInfo
   }) => {
     const { tag, branch, commit, commitsSinceTag, time } = versionInfo
-    const dir = `serverless/${service}/${stage}/${tag}/${commitsSinceTag}-${commit}`
+    const dir = `serverless/${service}/${stage}/${tag}/${commit}`
     const templateKey = `${dir}/compiled-cloudformation-template.json`
     const zipKey = `${dir}/${service}.zip`
     return {

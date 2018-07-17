@@ -22,7 +22,7 @@ import { plugins as defaultConfs } from './defaults'
 import {
   createPlugin as keepModelsFreshPlugin,
   sendModelsPackIfUpdated,
-  createModelsPackGetter
+  createModelsPackGetter,
 } from './plugins/keep-models-fresh'
 
 import {

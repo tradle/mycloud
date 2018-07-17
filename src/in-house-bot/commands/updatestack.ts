@@ -24,7 +24,7 @@ export const command:ICommand = {
       }
     }
 
-    const { templateUrl, notificationTopics } = args
+    const { templateUrl, notificationTopics='' } = args
     await deployment.updateOwnStack({
       templateUrl,
       notificationTopics: notificationTopics.split(',').map(s => s.trim())

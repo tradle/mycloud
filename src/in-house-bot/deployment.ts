@@ -336,18 +336,25 @@ export class Deployment {
 
     // await code.bucket.grantReadAccess({ keys: code.keys })
 
-    const { topic } = await this.setupNotificationsForStack({
-      id: `${accountId}-${name}`,
-      type: StackOperationType.update,
-      stackId
-    })
+    let updateCommand = `updatestack --template-url '${templateUrl}'`
+    let notificationTopics
+    if (this.canSetupNotifications()) {
+      const { topic } = await this.setupNotificationsForStack({
+        id: `${accountId}-${name}`,
+        type: StackOperationType.update,
+        stackId
+      })
+
+      notificationTopics = [topic]
+      updateCommand = `${updateCommand} --notification-topics '${topic}'`
+    }
 
     return {
       template,
       templateUrl,
-      notificationTopics: [topic],
+      notificationTopics,
       updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
-      updateCommand: `updatestack --template-url '${templateUrl}' --notification-topics '${topic}'`
+      updateCommand,
     }
   }
 
@@ -844,12 +851,25 @@ ${this.genUsageInstructions(links)}`
   //   this.bot.aws.cloudformation.
   // }
 
+  public canSetupNotifications = () => this.conf.stackStatusNotificationsEmail
+  private ensureCanSetupNotifications = () => {
+    if (!this.canSetupNotifications()) {
+      throw new Errors.InvalidInput(`missing configuration property "stackStatusNotificationsEmail"`)
+    }
+  }
+
   public setupNotificationsForStack = async ({ id, type, stackId }: {
     id: string
     type: StackOperationType
     stackId: string
   }) => {
-    const name = getTmpSNSTopicName({ id, type })
+    this.ensureCanSetupNotifications()
+    const name = getTmpSNSTopicName({
+      stackName: this.bot.stackUtils.thisStackName,
+      id,
+      type
+    })
+
     const { topic } = await this.createTmpSNSTopic({ topic: name, stackId })
     return await this.subscribeToChildStackStatusNotifications(topic)
   }
@@ -935,20 +955,29 @@ ${this.genUsageInstructions(links)}`
       lambda: lambdaArn
     })
 
-    const promiseSubscribe = this.subscribeLambdaToTopic({ topic, lambda: lambdaArn })
-    const promisePermission = this.bot.aws.lambda.addPermission({
-      StatementId: 'allowTopicTrigger' + randomStringWithLength(10),
-      Action: 'lambda:InvokeFunction',
-      Principal: 'sns.amazonaws.com',
-      SourceArn: topic,
-      FunctionName: lambdaArn
-    }).promise()
+    // const promiseSubscribe = this.subscribeLambdaToTopic({ topic, lambda: lambdaArn })
 
-    const { SubscriptionArn } = await promiseSubscribe
-    await promisePermission
+    // not using this because policy hits length limit after a few topics
+    // get subscribed ()
+    // const promisePermission = this.bot.aws.lambda.addPermission({
+    //   StatementId: 'allowTopicTrigger' + randomStringWithLength(10),
+    //   Action: 'lambda:InvokeFunction',
+    //   Principal: 'sns.amazonaws.com',
+    //   SourceArn: topic,
+    //   FunctionName: lambdaArn
+    // }).promise()
+
+    // const subscription = await promiseSubscribe
+    // await promisePermission
+
+    const subscription = await this.subscribeEmailToTopic({
+      email: this.conf.stackStatusNotificationsEmail,
+      topic
+    })
+
     return {
       topic,
-      subscription: SubscriptionArn,
+      subscription,
     }
   }
 
@@ -959,7 +988,19 @@ ${this.genUsageInstructions(links)}`
       Endpoint: lambda,
     }
 
-    return await this._regionalSNS(topic).subscribe(params).promise()
+    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
+    return SubscriptionArn
+  }
+
+  public subscribeEmailToTopic = async ({ email, topic }) => {
+    const params:AWS.SNS.SubscribeInput = {
+      TopicArn: topic,
+      Protocol: 'email',
+      Endpoint: email,
+    }
+
+    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
+    return SubscriptionArn
   }
 
   public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatus) => {
@@ -1557,12 +1598,13 @@ const normalizeDomain = (domain:string) => {
   return domain
 }
 
-const getTmpSNSTopicName = ({ id, type }: {
+const getTmpSNSTopicName = ({ stackName, id, type }: {
+  stackName: string
   id: string
   type: StackOperationType
 }) => {
   const verb = type === StackOperationType.create ? 'create' : 'update'
-  return `tmp-${verb}-${id}-${randomStringWithLength(10)}`
+  return `${stackName}-tmp-${verb}-${id}-${randomStringWithLength(10)}`
 }
 
 const genSID = (base: string) => `${base}${randomStringWithLength(10)}`
