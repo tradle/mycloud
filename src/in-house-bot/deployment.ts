@@ -1204,11 +1204,7 @@ ${this.genUsageInstructions(links)}`
   public getVersionInfoByTag = async (tag: string):Promise<VersionInfo> => {
     if (tag === 'latest') return this.getLatestVersionInfo()
 
-    return await this.bot.db.findOne({
-      orderBy: {
-        property: '_time',
-        desc: true
-      },
+    const { items } = await this.bot.db.find({
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
@@ -1217,6 +1213,8 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
+
+    return _.maxBy(items, '_time')
   }
 
   public getLatestVersionInfo = async ():Promise<VersionInfo> => {
@@ -1237,11 +1235,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getUpdateByTag = async (tag: string) => {
-    return await this.bot.db.findOne({
-      orderBy: {
-        property: '_time',
-        desc: true
-      },
+    const { items } = await this.bot.db.find({
       filter: {
         EQ: {
           [TYPE]: UPDATE,
@@ -1250,6 +1244,8 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
+
+    return _.maxBy(items, '_time')
   }
 
   public includesUpdate = (updateTag: string) => {
@@ -1596,4 +1592,7 @@ const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
   return ALERT_BRANCHES.includes(versionInfo.branch)
 }
 
-const sortVersions = (items: any[]) => _.sortBy(items, ['sortableTag', '_time'])
+const sortVersions = (items: any[], desc?: boolean) => {
+  const sorted = _.sortBy(items, ['sortableTag', '_time'])
+  return desc ? sorted.reverse() : sorted
+}
