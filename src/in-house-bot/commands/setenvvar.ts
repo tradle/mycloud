@@ -35,6 +35,6 @@ export const command:ICommand = {
       return update
     })
 
-    await bot.lambdaUtils.warmUpAll()
+    await bot.lambdaUtils.scheduleWarmUp()
   }
 }

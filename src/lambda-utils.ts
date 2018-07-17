@@ -253,8 +253,12 @@ export default class LambdaUtils {
     }
   }
 
-  public warmUpAll = async () => {
-    return await this.getWarmUpInfo(this.serverlessYml).input
+  public scheduleWarmUp = async (event=DEFAULT_WARMUP_EVENT) => {
+    await this.invoke({
+      name: WARMUP_FUNCTION_SHORT_NAME,
+      arg: event,
+      sync: false
+    })
   }
 
   public warmUp = async (opts:WarmUpOpts) => {

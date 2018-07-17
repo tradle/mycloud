@@ -13,7 +13,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
     const { event } = ctx
     logger.debug('reinitializing lambda containers', event)
     await stackUtils.forceReinitializeContainers(event.functions)
-    await lambdaUtils.warmUpAll()
+    await lambdaUtils.scheduleWarmUp()
     await next()
   }
 }
