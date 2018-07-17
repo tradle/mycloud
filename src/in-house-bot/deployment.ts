@@ -1227,6 +1227,10 @@ ${this.genUsageInstructions(links)}`
 
   public getUpdateByTag = async (tag: string) => {
     return await this.bot.db.findOne({
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
       filter: {
         EQ: {
           [TYPE]: UPDATE,
