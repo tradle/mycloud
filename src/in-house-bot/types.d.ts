@@ -103,6 +103,7 @@ export interface IYargs {
 }
 
 export interface IPBUser extends IUser {
+  friend?: ResourceStub
   identity?: ResourceStub
   applications?: IPBAppStub[]
   applicationsApproved?: IPBAppStub[]
