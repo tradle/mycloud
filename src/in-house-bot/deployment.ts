@@ -798,7 +798,8 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getReportDeploymentUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
-    return `${referrerUrl}/deployment-pingback`
+    // see serverless-uncompiled.yml deploymentPingback function conf
+    return `${referrerUrl}/deploymentPingback`
   }
 
   public getLogo = async (opts: { domain: string, logo?: string }): Promise<string | void> => {

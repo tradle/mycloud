@@ -958,7 +958,7 @@ functions:
     # timeout: 300
     events:
       - http:
-          path: deployment-pingback
+          path: deploymentPingback
           method: post
           cors: ${{self:custom.cors}}
 
