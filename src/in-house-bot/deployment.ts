@@ -179,6 +179,7 @@ const getStageFromTemplate = template => _.get(template, 'Mappings.deployment.in
 const getStackNameFromTemplate = template => _.get(template, 'Mappings.deployment.init.stackName')
 const getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
 const getAdminEmailFromTemplate = template => _.get(template, ['Mappings'].concat(ADMIN_MAPPING_PATH))
+const getCommitHashFromTemplate = template => _.get(template, 'Resources.Initialize.Properties.commit')
 const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
 
 export class Deployment {
@@ -855,11 +856,11 @@ ${this.genUsageInstructions(links)}`
 
   public createTmpSNSTopic = async ({ topic, stackId }: StackUpdateTopicInput): Promise<ITmpTopicResource> => {
     const arn = await this.createStackUpdateTopic({ topic, stackId })
-    try {
-      await this._refreshTmpSNSTopic(arn)
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-    }
+    // try {
+    //   await this._refreshTmpSNSTopic(arn)
+    // } catch (err) {
+    //   Errors.ignoreNotFound(err)
+    // }
 
     return await this.bot.signAndSave({
       [TYPE]: TMP_SNS_TOPIC,
@@ -1013,7 +1014,8 @@ ${this.genUsageInstructions(links)}`
     template: any
     bucket: string
   }) => {
-    const key = `templates/template-${Date.now()}-${randomStringWithLength(12)}.json`
+    const commit = getCommitHashFromTemplate(template)
+    const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
     await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
     return this.bot.s3Utils.getUrlForKey({ bucket, key })
   }
@@ -1358,17 +1360,12 @@ ${this.genUsageInstructions(links)}`
       AttributeValue: JSON.stringify(TMP_SNS_TOPIC_DELIVERY_POLICY)
     }
 
-    await Promise.all([
-      sns.setTopicAttributes(limitReceiveRateParams).promise(),
-      sns.addPermission(allowCrossAccountPublishParams).promise()
-    ])
-
+    // for some reason doing these in parallel
+    // causes permission to not get added
+    await sns.setTopicAttributes(limitReceiveRateParams).promise()
+    await sns.addPermission(allowCrossAccountPublishParams).promise()
     return TopicArn
   }
-
-  // public getVersionInfo = (versionInfo) => {
-
-  // }
 
   public listAvailableUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
@@ -1494,25 +1491,25 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  private _refreshTmpSNSTopic = async (arn: string) => {
-    const existing = await this.bot.db.findOne({
-      filter: {
-        EQ: {
-          [TYPE]: TMP_SNS_TOPIC,
-          topic: arn
-        }
-      }
-    })
+  // private _refreshTmpSNSTopic = async (arn: string) => {
+  //   const existing = await this.bot.db.findOne({
+  //     filter: {
+  //       EQ: {
+  //         [TYPE]: TMP_SNS_TOPIC,
+  //         topic: arn
+  //       }
+  //     }
+  //   })
 
-    const updated = await this.bot.draft({ resource: existing })
-      .set({
-        dateExpires: getTmpTopicExpirationDate()
-      })
-      .version()
-      .signAndSave()
+  //   const updated = await this.bot.draft({ resource: existing })
+  //     .set({
+  //       dateExpires: getTmpTopicExpirationDate()
+  //     })
+  //     .version()
+  //     .signAndSave()
 
-    return updated.toJSON()
-  }
+  //   return updated.toJSON()
+  // }
 
   private _regionalSNS = (arn: string) => {
     const region = getArnRegion(arn)
