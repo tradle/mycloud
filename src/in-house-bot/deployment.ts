@@ -101,6 +101,25 @@ const ALERT_BRANCHES = [
   'jobs'
 ]
 
+// generated in AWS console
+const TMP_SNS_TOPIC_DELIVERY_POLICY = {
+  http: {
+    defaultHealthyRetryPolicy: {
+      minDelayTarget: 20,
+      maxDelayTarget: 20,
+      numRetries: 3,
+      numMaxDelayRetries: 0,
+      numNoDelayRetries: 0,
+      numMinDelayRetries: 0,
+      backoffFunction: 'exponential'
+    },
+    disableSubscriptionOverrides: false,
+    defaultThrottlePolicy: {
+      maxReceivesPerSecond: 1
+    }
+  }
+}
+
 interface ITmpTopicResource extends ITradleObject {
   topic: string
 }
@@ -829,11 +848,11 @@ ${this.genUsageInstructions(links)}`
     stackId: string
   }) => {
     const name = getTmpSNSTopicName({ id, type })
-    const { topic } = await this.genTmpSNSTopic({ topic: name, stackId })
+    const { topic } = await this.createTmpSNSTopic({ topic: name, stackId })
     return await this.subscribeToChildStackStatusNotifications(topic)
   }
 
-  public genTmpSNSTopic = async ({ topic, stackId }: StackUpdateTopicInput): Promise<ITmpTopicResource> => {
+  public createTmpSNSTopic = async ({ topic, stackId }: StackUpdateTopicInput): Promise<ITmpTopicResource> => {
     const arn = await this.createStackUpdateTopic({ topic, stackId })
     try {
       await this._refreshTmpSNSTopic(arn)
@@ -867,7 +886,7 @@ ${this.genUsageInstructions(links)}`
     const topics = await this.getExpiredTmpSNSTopics()
     if (!topics.length) return []
 
-    await Promise.all(topics.map(topic => this.bot.db.del(topic)))
+    await Promise.all(topics.map(this.deleteTmpSNSTopic))
     return topics
   }
 
@@ -1324,14 +1343,25 @@ ${this.genUsageInstructions(links)}`
     const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
     const sns = this._regionalSNS(stackId)
     const { TopicArn } = await sns.createTopic(createParams).promise()
-    const allowParams:AWS.SNS.AddPermissionInput = {
+    const allowCrossAccountPublishParams:AWS.SNS.AddPermissionInput = {
       TopicArn,
       ActionName: ['Publish'],
-      AWSAccountId: getUpdateStackAssumedRoles(stackId),
+      AWSAccountId: ['*'],
+      // AWSAccountId: getUpdateStackAssumedRoles(stackId),
       Label: genSID('allowCrossAccountPublish'),
     }
 
-    await sns.addPermission(allowParams).promise()
+    const limitReceiveRateParams:AWS.SNS.SetTopicAttributesInput = {
+      TopicArn,
+      AttributeName: 'DeliveryPolicy',
+      AttributeValue: JSON.stringify(TMP_SNS_TOPIC_DELIVERY_POLICY)
+    }
+
+    await Promise.all([
+      sns.setTopicAttributes(limitReceiveRateParams).promise(),
+      sns.addPermission(allowCrossAccountPublishParams).promise()
+    ])
+
     return TopicArn
   }
 
@@ -1538,7 +1568,7 @@ const getTmpSNSTopicName = ({ id, type }: {
   type: StackOperationType
 }) => {
   const verb = type === StackOperationType.create ? 'create' : 'update'
-  return `tmp-${verb}-${id}` //-${randomStringWithLength(10)}`
+  return `tmp-${verb}-${id}-${randomStringWithLength(10)}`
 }
 
 const genSID = (base: string) => `${base}${randomStringWithLength(10)}`

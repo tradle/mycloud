@@ -56,6 +56,13 @@ const COMMON_JOBS:Job[] = [
     period: MINUTE,
     requiresComponents: ['documentChecker']
   },
+  {
+    name: 'cleanupTmpSNSTopics',
+    function: DEFAULT_FUNCTION,
+    // 24 hours
+    period: 24 * 60 * MINUTE,
+    requiresComponents: ['deployment']
+  },
 ]
 
 const addJobs = once((components: IBotComponents) => {

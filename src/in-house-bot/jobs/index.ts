@@ -105,3 +105,9 @@ export const documentChecker:Executor = async ({ job, components }) => {
   // // document checker rate-limits to 1/min
   return await documentChecker.checkPending({ limit: 1 })
 }
+
+export const cleanupTmpSNSTopics:Executor = async ({ job, components }) => {
+  const { bot, logger } = components
+  const deployment = components.deployment || new Deployment({ bot, logger })
+  await deployment.deleteExpiredTmpTopics()
+}
