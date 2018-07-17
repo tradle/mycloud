@@ -977,46 +977,8 @@ functions:
     handler: lib/in-house-bot/lambda/update-stack.handler
     role: UpdateStackIamRole
 
-  # webhooks:
-  #   handler: lib/in-house-bot/lambda/webhooks.handler
-  #   memorySize: 256
-  #   events:
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - MessagesTable
-  #             - StreamArn
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - SealsTable
-  #             - StreamArn
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - UsersTable
-  #             - StreamArn
-  #     # + streams from bucket tables
-
-  # cli_dev:
-  #   handler: lib/in-house-bot/lambda/cli.handler
-  #   # dev mode only
-  #   events:
-  #     - http:
-  #         path: cli
-  #         method: post
-
-  # bash:
-  #   handler: lib/in-house-bot/lambda/bash.handler
+  # logProcessor:
+  #   handler: lib/in-house-bot/lambda/log-processor.handler
 
 resources:
   Mappings:
@@ -1386,7 +1348,7 @@ resources:
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
-        version: ${{self:custom.version.commit}}
+        commit: ${{self:custom.version.commit}}
         name:
           Fn::FindInMap: ["org", "init", "name"]
         domain:
