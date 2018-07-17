@@ -430,6 +430,7 @@ provider:
         - sns:Unsubscribe
         - sns:ListSubscriptions
         - sns:ListSubscriptionsByTopic
+        - sns:SetTopicAttributes
       Resource: "*"
 
     # allow sns to trigger lambdas in stack
