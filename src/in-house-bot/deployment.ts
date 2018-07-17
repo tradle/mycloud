@@ -1255,6 +1255,10 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
+    if (!items.length) {
+      throw new Errors.NotFound(`${VERSION_INFO} with tag: ${tag}`)
+    }
+
     return _.maxBy(items, '_time')
   }
 
@@ -1272,6 +1276,10 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
+    if (!items.length) {
+      throw new Errors.NotFound(VERSION_INFO)
+    }
+
     return _.maxBy(items, '_time')
   }
 
@@ -1285,6 +1293,10 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
+
+    if (!items.length) {
+      throw new Errors.NotFound(`${UPDATE} with tag: ${tag}`)
+    }
 
     return _.maxBy(items, '_time')
   }
