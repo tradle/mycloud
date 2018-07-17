@@ -405,20 +405,29 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const logger = bot.logger = env.logger
     const { network } = bot
 
+    const getSealsOpts = () => ({
+      blockchain: this.blockchain,
+      identity,
+      db,
+      objects,
+      logger: logger.sub('seals'),
+    })
+
     if (env.BLOCKCHAIN.flavor === 'corda') {
-      bot.define('seals', './corda-seals', ({ Seals }) => new Seals(bot))
+      bot.define('seals', './corda-seals', ({ Seals }) => new Seals(getSealsOpts()))
       bot.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain({
         env,
         network
       }))
 
     } else {
-      bot.define('seals', './seals', bot.construct)
       bot.define('blockchain', './blockchain', Blockchain => new Blockchain({
         logger: logger.sub('blockchain'),
         network,
         identity: bot.identity
       }))
+
+      bot.define('seals', './seals', Seals => new Seals(getSealsOpts()))
     }
 
     // bot.define('faucet', './faucet', createFaucet => createFaucet({

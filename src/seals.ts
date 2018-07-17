@@ -197,7 +197,7 @@ interface IErrorRecord {
   stack: string
 }
 
-type SealsOpts = {
+export type SealsOpts = {
   blockchain: Blockchain
   identity: Identity
   db: DB
