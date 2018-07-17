@@ -1236,17 +1236,6 @@ ${this.genUsageInstructions(links)}`
     return _.maxBy(items, '_time')
   }
 
-  public saveVersionInfo = async (versionInfo: VersionInfo) => {
-    utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
-    return this.bot.draft({ type: VERSION_INFO })
-      .set({
-        ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
-        sortableTag: toSortableTag(versionInfo.tag)
-      })
-      .signAndSave()
-      .then(r => r.toJSON())
-  }
-
   public getUpdateByTag = async (tag: string) => {
     return await this.bot.db.findOne({
       orderBy: {
@@ -1444,7 +1433,7 @@ ${this.genUsageInstructions(links)}`
     // }
 
     return {
-      versionInfo: await this.saveVersionInfo({ ...info, templateUrl }),
+      versionInfo: await this.saveVersionInfoResource({ ...info, templateUrl }),
       updated: true
     }
   }
@@ -1468,6 +1457,17 @@ ${this.genUsageInstructions(links)}`
     }))
 
     return true
+  }
+
+  private saveVersionInfoResource = async (versionInfo: VersionInfo) => {
+    utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
+    return this.bot.draft({ type: VERSION_INFO })
+      .set({
+        ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
+        sortableTag: toSortableTag(versionInfo.tag)
+      })
+      .signAndSave()
+      .then(r => r.toJSON())
   }
 
   private get _friendEveryone() {
