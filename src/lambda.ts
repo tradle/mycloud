@@ -430,9 +430,10 @@ Previous exit stack: ${this.lastExitStack}`)
 
     context.callbackWaitsForEmptyEventLoop = false
     this.logger = this.bot.logger.sub({
-      namespace: `lambda:${this.shortName}`,
-      context: this.reqCtx
+      namespace: `lambda:${this.shortName}`
     })
+
+    this.logger.info('request context', this.reqCtx)
 
     if (this.source === EventSource.LAMBDA &&
       event.requestContext &&
