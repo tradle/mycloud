@@ -783,7 +783,7 @@ ${this.genUsageInstructions(links)}`
 
     const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {
-      if (key !== 'ServiceToken' && key !== 'version') {
+      if (key !== 'ServiceToken' && key !== 'commit') {
         delete initProps[key]
       }
     })
