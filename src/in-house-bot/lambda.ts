@@ -42,3 +42,4 @@ export const fromLambda = (opts: IPBotLambdaOpts):Lambda => createLambda({ ...op
 export const fromS3 = (opts: IPBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.S3 })
 export const fromSNS = (opts: IPBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.SNS })
 export const fromCli = (opts: IPBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.CLI })
+export const fromCloudwatchLogs = (opts: IPBotLambdaOpts):Lambda => createLambda({ ...opts, source: EventSource.CLOUDWATCH_LOGS })

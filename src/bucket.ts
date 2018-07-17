@@ -7,6 +7,7 @@ import { cachify } from './utils'
 import Errors from './errors'
 import Env from './env'
 import { BucketPutOpts } from './types'
+import { KV } from './kv-s3'
 
 type BucketOpts = {
   name:string
@@ -56,6 +57,10 @@ export class Bucket {
       this.putJSON = cachified.put
       this.del = cachified.del
     }
+  }
+
+  public kv() {
+    return new KV(this)
   }
 
   public folder = (prefix:string):Bucket => {

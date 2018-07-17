@@ -574,10 +574,19 @@ export const loadComponentsAndPlugins = ({
     ].forEach(name => attachPlugin({ name, prepend: true }))
   }
 
-  if (handleMessages || runAsyncHandlers || event.startsWith('deployment:') || event === LambdaEvents.COMMAND) {
+  if (handleMessages ||
+    runAsyncHandlers ||
+    event.startsWith('deployment:') ||
+    event === LambdaEvents.COMMAND ||
+    event === LambdaEvents.SCHEDULER
+  ) {
     attachPlugin({ name: 'deployment', requiresConf: false })
   }
-  if (handleMessages || event.startsWith('documentChecker:')) {
+
+  if (handleMessages ||
+    event.startsWith('documentChecker:') ||
+    event === LambdaEvents.SCHEDULER
+  ) {
     attachPlugin({ name: 'documentChecker' })
   }
 

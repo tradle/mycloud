@@ -8,6 +8,7 @@ import './globals'
 
 import { EventEmitter } from 'events'
 import fs from 'fs'
+import zlib from 'zlib'
 import _ from 'lodash'
 
 // @ts-ignore
@@ -29,6 +30,7 @@ import {
   IRequestContext,
   ILambdaExecutionContext,
   ILambdaHttpExecutionContext,
+  ILambdaCloudWatchLogsExecutionContext,
   LambdaHandler,
   ILambdaOpts
 } from './types'
@@ -67,7 +69,8 @@ export enum EventSource {
   SCHEDULE='schedule',
   S3='s3',
   SNS='sns',
-  CLI='cli'
+  CLI='cli',
+  CLOUDWATCH_LOGS='cloudwatchlogs',
 }
 
 export type Lambda = BaseLambda<ILambdaExecutionContext>
@@ -82,6 +85,7 @@ export const fromLambda = (opts={}) => new BaseLambda({ ...opts, source: EventSo
 export const fromS3 = (opts={}) => new BaseLambda({ ...opts, source: EventSource.S3 })
 export const fromSNS = (opts={}) => new BaseLambda({ ...opts, source: EventSource.SNS })
 export const fromCli = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLI })
+export const fromCloudwatchLogs = (opts={}) => new BaseLambda<ILambdaCloudWatchLogsExecutionContext>({ ...opts, source: EventSource.CLOUDWATCH_LOGS })
 
 export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitter {
   // initialization
@@ -146,6 +150,8 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
       this._initHttp()
     } else if (opts.source === EventSource.CLOUDFORMATION) {
       this._initCloudFormation()
+    } else if (opts.source === EventSource.CLOUDWATCH_LOGS) {
+      this._initCloudWatchLogs()
     }
 
     this.requestCounter = 0
@@ -579,6 +585,44 @@ Previous exit stack: ${this.lastExitStack}`)
 
       // test mode
       if (err) throw err
+    })
+  }
+
+  private _initCloudWatchLogs = () => {
+    this.use(async (ctx, next) => {
+      ctx.gzippedEvent = new Buffer(ctx.event.awslogs.data, 'base64')
+      const str = zlib.gunzipSync(ctx.gzippedEvent).toString('utf8')
+      ctx.event = JSON.parse(str)
+
+      // once decoded, the CloudWatch invocation event looks like this:
+      // {
+      //     "messageType": "DATA_MESSAGE",
+      //     "owner": "374852340823",
+      //     "logGroup": "/aws/lambda/big-mouth-dev-get-index",
+      //     "logStream": "2018/03/20/[$LATEST]ef2392ba281140eab63195d867c72f53",
+      //     "subscriptionFilters": [
+      //         "LambdaStream_logging-demo-dev-ship-logs"
+      //     ],
+      //     "logEvents": [
+      //         {
+      //             "id": "33930704242294971955536170665249597930924355657009987584",
+      //             "timestamp": 1521505399942,
+      //             "message": "START RequestId: e45ea8a8-2bd4-11e8-b067-ef0ab9604ab5 Version: $LATEST\n"
+      //         },
+      //         {
+      //             "id": "33930707631718332444609990261529037068331985646882193408",
+      //             "timestamp": 1521505551929,
+      //             "message": "2018-03-20T00:25:51.929Z\t3ee1bd8c-2bd5-11e8-a207-1da46aa487c9\t{ \"message\": \"found restaurants\" }\n",
+      //             "extractedFields": {
+      //                 "event": "{ \"message\": \"found restaurants\" }\n",
+      //                 "request_id": "3ee1bd8c-2bd5-11e8-a207-1da46aa487c9",
+      //                 "timestamp": "2018-03-20T00:25:51.929Z"
+      //             }
+      //         }
+      //     ]
+      // }
+
+      await next()
     })
   }
 

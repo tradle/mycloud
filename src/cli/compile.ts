@@ -21,7 +21,8 @@ export {
   removeResourcesThatDontWorkLocally,
   addBucketTables,
   stripDevFunctions,
-  setBucketEncryption
+  setBucketEncryption,
+  // addLogProcessorEvents,
 }
 
 function addCustomResourceDependencies (yml, interpolated) {
@@ -315,3 +316,23 @@ function removeResourcesThatDontWorkLocally ({ provider, resources }) {
 
   provider.iamRoleStatements = []
 }
+
+// function addLogProcessorEvents (yaml: any) {
+//   const processLambdaName = 'logProcessor'
+//   const logProcessor = yaml.functions[processLambdaName]
+//   // logProcessor.events = Object.keys(yaml.functions)
+//   //   .filter(name => name !== processLambdaName)
+//   //   .map(name => ({
+//   //     cloudwatchLog: {
+//   //       logGroup: `/aws/lambda/${name}`,
+//   //       filter: ''
+//   //     }
+//   //   }))
+
+//   logProcessor.events = [{
+//     cloudwatchLog: {
+//       logGroup: `/aws/lambda/${yaml.custom.prefix}#`,
+//       filter: ''
+//     }
+//   }]
+// }

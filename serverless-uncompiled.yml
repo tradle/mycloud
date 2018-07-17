@@ -280,7 +280,8 @@ custom:
   #     SecretsBucket:
   #       SSEAlgorithm: AES256
 
-  logRetentionInDays: 7
+  logRetentionInDays: 3
+  daysBeforeLogsGoToGlacier: 7
 
   issue2233WorkaroundKey: issue2233WorkaroundKey-${{self:service}}-${{self:provider.stage}}
   defaultKMSKeyId: ${{self:custom.regionalPrefix}}default-key
@@ -977,8 +978,9 @@ functions:
     handler: lib/in-house-bot/lambda/update-stack.handler
     role: UpdateStackIamRole
 
-  # logProcessor:
-  #   handler: lib/in-house-bot/lambda/log-processor.handler
+  logProcessor:
+    handler: lib/in-house-bot/lambda/log-processor.handler
+    # events added in compile phase
 
 resources:
   Mappings:
@@ -1198,6 +1200,20 @@ resources:
                 Fn::GetAtt:
                   - IotClientRole
                   - Arn
+
+    LogsBucket:
+      Type: AWS::S3::Bucket
+      Description: logs from lambda functions
+      DeletionPolicy: Retain
+      Properties:
+        LifecycleConfiguration:
+          Rules:
+          - Id: TransitionToGlacier
+            Prefix: glacier
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: ${{self:custom.daysBeforeLogsGoToGlacier}}
+                StorageClass: Glacier
 
     # EventsTable: ${{file(./conf/table/events.yml)}}
 

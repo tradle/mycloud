@@ -196,6 +196,10 @@ export interface ILambdaExecutionContext {
 export interface ILambdaHttpExecutionContext extends ILambdaExecutionContext, KoaContext {
 }
 
+export interface ILambdaCloudWatchLogsExecutionContext extends ILambdaExecutionContext {
+  event: CloudWatchLogsEvent
+}
+
 export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
   => any|void
 
@@ -409,7 +413,8 @@ export interface IBucketInfo {
 export interface IBucketsInfo {
   Objects: IBucketInfo
   Secrets: IBucketInfo
-  ContentAddressed: IBucketInfo
+  Logs: IBucketInfo
+  // ContentAddressed: IBucketInfo
   // PublicConf: IBucketInfo
   PrivateConf: IBucketInfo
   FileUpload: IBucketInfo
@@ -728,4 +733,20 @@ export interface Registry<T> {
   get: (name:string) => T
   set: (name:string, T) => void
   keys: () => string[]
+}
+
+export type CloudWatchLogsSubEvent = {
+  id: string
+  timestamp: number
+  message: string
+  extractedFields: any
+}
+
+export type CloudWatchLogsEvent = {
+  messageType: 'DATA_MESSAGE'
+  owner: string // accountId
+  logGroup: string
+  logStream: string
+  subscriptionFilters: string[]
+  logEvents: CloudWatchLogsSubEvent[]
 }
