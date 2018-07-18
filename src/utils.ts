@@ -1532,15 +1532,7 @@ export const listIamRoles = async (iam: AWS.IAM) => {
 
 export const toSortableTag = (semver: string) => semver
   .replace(/^v/, '')
-  .split('.')
-  .map(n => {
-    if (isNaN(Number(n))) {
-      throw new Errors.InvalidInput(`expected semver part, got: ${semver}. Offending part: ${n}`)
-    }
-
-    return toLexicographicInt(Number(n))
-  })
-  .join('.')
+  .replace(/\d+/g, part => toLexicographicInt(Number(part)))
 
 export const toLexicographicInt = n => lexint.pack(n, 'hex')
 
