@@ -8,7 +8,7 @@ const LOCALLY_AVAILABLE = [
   'AWS::ApiGateway::RestApi'
 ]
 
-const { HTTP_METHODS, ENV_RESOURCE_PREFIX } = require('../constants')
+const { ENV_RESOURCE_PREFIX } = require('../constants')
 const NUM_INDEXES = 5
 
 export {
@@ -16,7 +16,6 @@ export {
   forEachResourceOfType,
   addCustomResourceDependencies,
   addResourcesToOutputs,
-  addHTTPMethodsToEnvironment,
   addResourcesToEnvironment,
   removeResourcesThatDontWorkLocally,
   addBucketTables,
@@ -229,9 +228,9 @@ function stripDevFunctions (yml) {
 
 function addResourcesToEnvironment (yaml) {
   const { provider, functions } = yaml
-  for (let fnName in functions) {
-    addHTTPMethodsToEnvironment(functions[fnName])
-  }
+  // for (let fnName in functions) {
+  //   addHTTPMethodsToEnvironment(functions[fnName])
+  // }
 
   if (!provider.environment) provider.environment = {}
 
@@ -258,27 +257,6 @@ function addResourcesToEnvironment (yaml) {
 
   environment[`${ENV_RESOURCE_PREFIX}RESTAPI_ApiGateway`] = {
     Ref: 'ApiGatewayRestApi'
-  }
-}
-
-function addHTTPMethodsToEnvironment (conf) {
-  if (!conf.events) return
-
-  const methods = conf.events.filter(e => e.http)
-    .map(e => e.http.method.toUpperCase())
-
-  if (!methods.length) return
-
-  if (!conf.environment) {
-    conf.environment = {}
-  }
-
-  if (methods.length === 1 && methods[0] === 'ANY') {
-    conf.environment.HTTP_METHODS = HTTP_METHODS
-  } else {
-    conf.environment.HTTP_METHODS = methods
-      .concat('OPTIONS')
-      .join(',')
   }
 }
 
