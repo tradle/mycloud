@@ -31,5 +31,5 @@ export const command:ICommand = {
 
 const exportUpdate = (update: any) => ({
   ...pick(update, ['templateUrl', 'tag']),
-  notificationTopics: update.notificationTopics.split(',')
+  notificationTopics: update.notificationTopics ? update.notificationTopics.split(',') : null
 })
