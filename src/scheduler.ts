@@ -24,6 +24,7 @@ export class Scheduler {
   }
 
   public add = (job: Job) => {
+    validateJob(job)
     if (this.defaultJobs[job.name]) {
       throw new Errors.InvalidInput(`job with name: ${job.name}`)
     }
@@ -79,6 +80,12 @@ export class Scheduler {
 }
 
 export default Scheduler
+
+const validateJob = (job: Job) => {
+  if (typeof job.name !== 'string') throw new Errors.InvalidInput(`expected string "name"`)
+  if (typeof job.period !== 'number') throw new Errors.InvalidInput(`expected number "period"`)
+  if (typeof job.function !== 'string') throw new Errors.InvalidInput(`expected string "function"`)
+}
 
 const fixResolution = (seconds: number) => Math.ceil(seconds / MIN_PERIOD) * MIN_PERIOD
 const normalizeJob = (job: Job) => ({

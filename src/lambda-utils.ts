@@ -11,7 +11,9 @@ import {
   WARMUP_SOURCE_NAME,
   WARMUP_SLEEP,
   DEFAULT_WARMUP_EVENT,
-  DEFAULT_WARMUP_PERIOD,
+  WARMUP_PERIOD,
+  WARMUP_FUNCTION,
+  REINITIALIZE_CONTAINERS_FUNCTION,
   unitToMillis
 } from './constants'
 
@@ -203,7 +205,7 @@ export default class LambdaUtils {
     })
 
     return {
-      period: DEFAULT_WARMUP_PERIOD,
+      period: WARMUP_PERIOD,
       input: event,
       warmUpConfs,
       functionName: WARMUP_FUNCTION_SHORT_NAME
@@ -253,10 +255,24 @@ export default class LambdaUtils {
     }
   }
 
+  public scheduleReinitializeContainers = async (functions?: string[]) => {
+    await this.invoke({
+      name: REINITIALIZE_CONTAINERS_FUNCTION,
+      sync: false,
+      arg: {
+        name: 'reinitializeContainers',
+        input: functions
+      }
+    })
+  }
+
   public scheduleWarmUp = async (event=DEFAULT_WARMUP_EVENT) => {
     await this.invoke({
-      name: WARMUP_FUNCTION_SHORT_NAME,
-      arg: event,
+      name: WARMUP_FUNCTION,
+      arg: {
+        name: 'warmup',
+        input: event
+      },
       sync: false
     })
   }

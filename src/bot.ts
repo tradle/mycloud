@@ -158,8 +158,8 @@ const lambdaCreators:LambdaImplMap = {
   get preauth() { return require('./lambda/preauth') },
   get auth() { return require('./lambda/auth') },
   get inbox() { return require('./lambda/inbox') },
-  get warmup() { return require('./lambda/warmup') },
-  get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
+  // get warmup() { return require('./lambda/warmup') },
+  // get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
 }
 
 // const middlewareCreators:MiddlewareMap = {
@@ -829,11 +829,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public forceReinitializeContainers = async (functions?: string[]) => {
     if (this.isTesting) return
 
-    await this.lambdaUtils.invoke({
-      name: 'reinitializeContainers',
-      sync: false,
-      arg: functions
-    })
+    await this.lambdaUtils.scheduleReinitializeContainers()
   }
 
   public validateResource = (resource: ITradleObject) => validateResource.resource({

@@ -712,7 +712,7 @@ export type StackStatus = {
 
 export type Job = {
   name: string
-  period: number // seconds
+  period?: number // seconds
   input?: any
   requiresComponents?: string[]
   [x: string]: any

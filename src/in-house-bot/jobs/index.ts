@@ -8,6 +8,7 @@
 //   job.name
 // })
 
+import getPropAtPath from 'lodash/get'
 import { IBotComponents, Bot, Seal, Job } from '../types'
 import { sendConfirmedSeals } from '../utils'
 import { TYPE, ORG, DEFAULT_WARMUP_EVENT } from '../../constants'
@@ -28,6 +29,13 @@ export const warmup:Executor = async ({ job, components }) => {
     ...DEFAULT_WARMUP_EVENT,
     ...job.input,
   })
+}
+
+export const reinitializeContainers:Executor = async ({ job, components }) => {
+  const { stackUtils, lambdaUtils } = components.bot
+  const functions = getPropAtPath(job, ['input', 'functions'])
+  await stackUtils.forceReinitializeContainers(functions)
+  await lambdaUtils.scheduleWarmUp()
 }
 
 export const retryDelivery:Executor = async ({ job, components }) => {

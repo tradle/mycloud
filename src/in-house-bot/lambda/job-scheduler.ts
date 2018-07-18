@@ -5,18 +5,17 @@ import { fromSchedule } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
 import { Job, IBotComponents } from '../types'
 import * as JOBS from '../jobs'
-import { DEFAULT_WARMUP_PERIOD } from '../../constants'
+import { WARMUP_PERIOD, WARMUP_FUNCTION, DEFAULT_JOB_RUNNER_FUNCTION } from '../../constants'
 
 const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
 const { bot } = lambda
 
 const MINUTE = 60
-const DEFAULT_FUNCTION = 'genericJobRunner'
 const COMMON_JOBS:Job[] = [
   {
     name: 'warmup',
     function: 'warmup',
-    period: DEFAULT_WARMUP_PERIOD,
+    period: WARMUP_PERIOD,
     input: {
       concurrency: 5,
       functions: [
@@ -33,33 +32,33 @@ const COMMON_JOBS:Job[] = [
   },
   {
     name: 'sealpending',
-    function: DEFAULT_FUNCTION,
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 10 * MINUTE,
   },
   {
     name: 'pollchain',
-    function: DEFAULT_FUNCTION,
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 10 * MINUTE,
   },
   {
     name: 'retryDelivery',
-    function: DEFAULT_FUNCTION,
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: MINUTE,
   },
   {
     name: 'checkFailedSeals',
-    function: DEFAULT_FUNCTION,
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 17 * MINUTE,
   },
   {
     name: 'documentChecker',
-    function: DEFAULT_FUNCTION,
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: MINUTE,
     requiresComponents: ['documentChecker']
   },
   {
     name: 'cleanupTmpSNSTopics',
-    function: DEFAULT_FUNCTION,
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
     // 24 hours
     period: 24 * 60 * MINUTE,
     requiresComponents: ['deployment']
@@ -88,11 +87,7 @@ lambda.use(async (ctx) => {
   addJobs(components)
 
   const { bot, logger } = components
-  try {
-    await bot.scheduler.scheduleJobsImmediately()
-  } catch (err) {
-    logger.error('failed to schedule jobs', Errors.export(err))
-  }
+  await bot.scheduler.scheduleJobsImmediately()
 })
 
 export const handler = lambda.handler

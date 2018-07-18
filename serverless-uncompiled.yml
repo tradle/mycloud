@@ -17,7 +17,7 @@ plugins:
   # - serverless-plugin-warmup
   # - serverless-plugin-typescript
   # - print
-  - warmup
+  # - warmup
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
@@ -209,21 +209,7 @@ custom:
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
     capacities:
-      # - table: Bucket0Table
-      #   index:
-      #     - _dcounterparty
-      #     - _link
-      #     # - _payloadLink
-      #     - _payloadType
-      #     - context
-      #   read:
-      #     minimum: 10       # Minimum read capacity
-      #     maximum: 100      # Maximum read capacity
-      #     usage: 0.70       # Targeted usage percentage
-      #   write:
-      #     minimum: 5        # Minimum write capacity
-      #     maximum: 100      # Maximum write capacity
-      #     usage: 0.5        # Targeted usage percentage
+      # bucket-x table scaling is added in compile script
 
       - table: EventsTable
         write:
@@ -508,29 +494,6 @@ provider:
 
 functions:
   # warm up other functions
-  warmup:
-    handler: lib/in-house-bot/lambda/warmup.handler
-    memorySize: 128
-    # events:
-    #   - schedule:
-    #       rate: rate(5 minutes)
-    #       enabled: true
-    #       input:
-    #         concurrency: 5
-    #         functions:
-    #           - oniotlifecycle
-    #           - onmessage
-    #           - onresourcestream
-    #           - graphql
-    #           - info
-    #           - preauth
-    #           - auth
-    #           - inbox
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
-
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
   # 2. creates an unauthenticated session,
@@ -773,8 +736,8 @@ functions:
   #     - functionErrors
 
   # force reinitialize lambda containers
-  reinitializeContainers:
-    handler: lib/in-house-bot/lambda/reinitialize-containers.handler
+  # reinitializeContainers:
+  #   handler: lib/in-house-bot/lambda/reinitialize-containers.handler
 
   # useful during development
   # trigger a message to be queued/sent to a user
