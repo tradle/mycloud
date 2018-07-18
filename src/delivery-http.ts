@@ -55,12 +55,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
     const task = new RetryableTask({
       logger: this.logger,
       shouldTryAgain: err => {
+        const willRetry = isRetryableError(err)
         this.logger.warn(`failed to deliver message`, {
           error: Errors.export(err),
-          message: messages[0]._link
+          message: messages[0]._link,
+          willRetry,
         })
 
-        return isRetryableError(err)
+        return willRetry
       },
       initialDelay: Math.min(INITIAL_BACKOFF, maxTime),
       attemptTimeout: Math.min(FETCH_TIMEOUT, maxTime),
@@ -220,7 +222,7 @@ const isStuck = (deliveryErr: any) => {
   }).id === 'stuck'
 }
 
-const isRetryableError = (err: Error) => {
+export const isRetryableError = (err: Error) => {
   const message = (err.message || '').toLowerCase()
   if (
     message.includes('getaddrinfo enotfound')

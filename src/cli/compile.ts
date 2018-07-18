@@ -298,12 +298,16 @@ function removeResourcesThatDontWorkLocally ({ provider, resources }) {
 function addLogProcessorEvents (yaml: any) {
   const processLambdaName = 'logProcessor'
   const logProcessor = yaml.functions[processLambdaName]
+  // const naming = require('serverless/lib/plugins/aws/lib/naming')
   logProcessor.events = Object.keys(yaml.functions)
     .filter(name => name !== processLambdaName)
     .map(name => ({
       cloudwatchLog: {
-        logGroup: `/aws/lambda/${name}`,
-        filter: ''
+        logGroup: `/aws/lambda/${yaml.custom.prefix}${name}`,
+        // logGroup: {
+        //   Ref: naming.getLogGroupLogicalId(name)
+        // },
+        // filter: ''
       }
     }))
 }

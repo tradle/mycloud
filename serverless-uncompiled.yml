@@ -492,10 +492,14 @@ provider:
     #   Resource:
     #     - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/tradle/${{self:custom.prefix}}*'
 
-    - Effect: Allow
-      Action:
-        - logs:PutSubscriptionFilter
-      Resource: "*"
+    # - Effect: Allow
+    #   Action:
+    #     # TODO: narrow this down
+    #     # look out for error: "The specified log group does not exist"
+    #     - logs:*
+    #     # - logs:PutSubscriptionFilter
+    #     # - logs:DeleteSubscriptionFilter
+    #   Resource: "*"
 
 functions:
   # httpRouter:
