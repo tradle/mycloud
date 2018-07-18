@@ -123,11 +123,29 @@ export const parseLogEntryMessage = (message: string) => {
   const tab1Idx = message.indexOf('\t')
   const tab2Idx = message.indexOf('\t', tab1Idx + 1)
   const requestId = message.slice(tab1Idx + 1, tab2Idx)
-  const body = JSON.parse(message.slice(tab2Idx + 1))
+  const body = parseMessageBody(message.slice(tab2Idx + 1))
+
   return {
     requestId,
     body
   }
+}
+
+const XRAY_SPAM = [
+  'AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy',
+  '_X_AMZN_TRACE_ID is missing required data',
+  'Subsegment streaming threshold set to',
+]
+
+export const parseMessageBody = (message: string) => {
+  if (message.startsWith('{')) return JSON.parse(message)
+  if (XRAY_SPAM.some(spam => spam.startsWith(message))) {
+    return {
+      msg: message
+    }
+  }
+
+  throw new Error(`don't know how to parse log message: ${message}`)
 }
 
 export default LogProcessor
