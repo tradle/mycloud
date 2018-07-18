@@ -492,6 +492,11 @@ provider:
     #   Resource:
     #     - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/tradle/${{self:custom.prefix}}*'
 
+    - Effect: Allow
+      Action:
+        - logs:PutSubscriptionFilter
+      Resource: "*"
+
 functions:
   # httpRouter:
   #   handler: lib/in-house-bot/lambda/http/router.handler
