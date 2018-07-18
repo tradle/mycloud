@@ -203,7 +203,7 @@ const compileTemplate = async (path) => {
 
   compile.addResourcesToEnvironment(yml)
   compile.addResourcesToOutputs(yml)
-  // compile.addLogProcessorEvents(yml)
+  compile.addLogProcessorEvents(yml)
   return YAML.dump(yml)
 }
 
