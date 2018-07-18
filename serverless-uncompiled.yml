@@ -493,7 +493,28 @@ provider:
     #     - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/tradle/${{self:custom.prefix}}*'
 
 functions:
-  # warm up other functions
+  # httpRouter:
+  #   handler: lib/in-house-bot/lambda/http/router.handler
+  #   memorySize: 1024
+  #   events:
+  #     - http:
+  #         # this matches any path, the token 'ANY' doesn't mean anything special
+  #         path: /{any+}
+  #         method: get
+  #         cors: ${{self:custom.cors}}
+
+  #     - http:
+  #         # this matches any path, the token 'ANY' doesn't mean anything special
+  #         path: /{any+}
+  #         method: post
+  #         cors: ${{self:custom.cors}}
+
+  #     - http:
+  #         # this matches any path, the token 'ANY' doesn't mean anything special
+  #         path: /{any+}
+  #         method: put
+  #         cors: ${{self:custom.cors}}
+
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
   # 2. creates an unauthenticated session,
@@ -693,10 +714,10 @@ functions:
     events:
       - schedule:
           rate: rate(1 minute)
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
+    # alarms:
+    #   - functionErrors
+    #   # - functionThrottles
+    #   # - functionInvocations
 
   genericJobRunner:
     handler: lib/in-house-bot/lambda/job-runner.handler
