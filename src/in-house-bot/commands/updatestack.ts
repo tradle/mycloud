@@ -4,7 +4,6 @@ export const command:ICommand = {
   name: 'updatestack',
   description: 'get a link to update your MyCloud',
   examples: [
-    '/updatestack',
     '/updatestack --template-url "<templateURL>"',
     '/updatestack --template-url "<templateURL>" --notification-topics "<topic1,topic2,...>"',
   ],
@@ -15,13 +14,6 @@ export const command:ICommand = {
     const { deployment } = commander
     if (!deployment) {
       throw new Error('"deployment" plugin not configured. Please add to plugins in bot.json')
-    }
-
-    if (!args.templateUrl) {
-      await deployment.requestUpdateFromTradle()
-      return {
-        requestedUpdate: true
-      }
     }
 
     const { templateUrl, notificationTopics='' } = args
