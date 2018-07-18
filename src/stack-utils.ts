@@ -55,6 +55,20 @@ type StackUtilsOpts = {
   deploymentBucket: Bucket
 }
 
+type UpdateEnvOpts = {
+  functionName?: string,
+  current?: any,
+  update: any
+}
+
+type UpdateEnvResult = {
+  functionName: string
+  result?: any
+  error?: Error
+}
+
+type TransformFunctionConfig = (conf:Lambda.Types.FunctionConfiguration) => any
+
 export default class StackUtils {
   private aws?: AwsApis
   private env: Env
@@ -223,7 +237,7 @@ export default class StackUtils {
     return emails[0].Endpoint
   }
 
-  public updateEnvironments = async(map:(conf:Lambda.Types.FunctionConfiguration) => any) => {
+  public updateEnvironments = async(map:TransformFunctionConfig):Promise<UpdateEnvResult[]> => {
     if (this.env.TESTING) {
       this.logger.debug(`updateEnvironments is skipped in test mode`)
       return
@@ -242,14 +256,25 @@ export default class StackUtils {
     .filter(_.identity)
     .map(this.updateEnvironment)
 
-    await Promise.all(writes)
+    return Promise.all(writes)
   }
 
-  public updateEnvironment = async (opts: {
-    functionName?: string,
-    current?: any,
-    update: any
-  }) => {
+  public updateEnvironment = async (opts: UpdateEnvOpts):Promise<UpdateEnvResult> => {
+    const ret:UpdateEnvResult = {
+      functionName: opts.functionName
+    }
+
+    try {
+      ret.result = await this._updateEnvironment(opts)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      ret.error = new Errors.NotFound(err.message)
+    }
+
+    return ret
+  }
+
+  private _updateEnvironment = async (opts: UpdateEnvOpts) => {
     if (this.env.TESTING) {
       this.logger.debug(`updateEnvironment is skipped in test mode`)
       return
@@ -295,13 +320,23 @@ export default class StackUtils {
   }
 
   public forceReinitializeContainers = async (functions?:string[]) => {
-    await this.updateEnvironments(({ FunctionName }) => {
+    const results = await this.updateEnvironments(({ FunctionName }) => {
       if (!functions || functions.includes(FunctionName)) {
         this.logger.debug(`reinitializing container for lambda: ${FunctionName}`)
         return getDateUpdatedEnvironmentVariables()
       }
 
       this.logger.debug(`not reinitializing container for lambda: ${FunctionName}`)
+    })
+
+    const failed = results.filter(r => r.error)
+    if (!failed.length) return
+
+    this.logger.error('failed to update some containers', {
+      failed: failed.map(({ functionName, error }) => ({
+        functionName,
+        error: error.message
+      }))
     })
   }
 
