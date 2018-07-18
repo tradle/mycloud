@@ -54,7 +54,10 @@ export class LogProcessor {
     const logGroup = event.logGroup.slice(LOG_GROUP_PREFIX.length)
     if (this.ignoreGroups.includes(logGroup)) return
 
-    const logEvents = event.logEvents.map(parseLogEntry)
+    const logEvents = event.logEvents
+      .map(parseLogEntry)
+      .filter(shouldSave)
+
     const bad = logEvents.filter(shouldRaiseAlert)
     if (bad.length) {
       await Promise.map(bad, this.sendAlert, {
@@ -123,6 +126,10 @@ export default LogProcessor
 
 const shouldRaiseAlert = (event: ParsedEntry) => {
   return Level[event.level] <= Level.WARN
+}
+
+const shouldSave = (event: ParsedEntry) => {
+  return Level[event.level] <= Level.DEBUG
 }
 
 const getLogEventKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
