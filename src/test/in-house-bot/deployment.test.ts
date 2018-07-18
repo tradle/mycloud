@@ -52,7 +52,10 @@ test('deployment by referral', loudAsync(async (t) => {
   const parentDeployment = new Deployment({
     bot: parent,
     logger: parent.logger.sub('deployment:test:parent'),
-    conf: { senderEmail },
+    conf: {
+      senderEmail,
+      stackStatusNotificationsEmail: senderEmail
+    },
     orgConf: <IConf>{
       org: {
         name: 'parent',
