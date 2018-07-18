@@ -1,6 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import omit from 'lodash/omit'
+import notNull from 'lodash/identity'
 import {
   IPBLambda,
   Bot,
@@ -14,9 +15,10 @@ import { Level } from '../logger'
 
 type SendAlert = (events: CloudWatchLogsSubEvent, forIdx: number) => Promise<void>
 type LogProcessorOpts = {
-  ignoreGroups?: string[]
-  sendAlert: SendAlert
   store: IKeyValueStore
+  logger: Logger
+  sendAlert: SendAlert
+  ignoreGroups?: string[]
 }
 
 type EntryDetails = {
@@ -43,10 +45,12 @@ export class LogProcessor {
   private ignoreGroups: string[]
   private sendAlert: SendAlert
   private store: IKeyValueStore
-  constructor({ ignoreGroups=[], sendAlert, store }: LogProcessorOpts) {
+  private logger: Logger
+  constructor({ ignoreGroups=[], sendAlert, store, logger }: LogProcessorOpts) {
     this.ignoreGroups = ignoreGroups
     this.sendAlert = sendAlert
     this.store = store
+    this.logger = logger
   }
 
   public handleEvent = async (event: CloudWatchLogsEvent) => {
@@ -54,9 +58,18 @@ export class LogProcessor {
     const logGroup = event.logGroup.slice(LOG_GROUP_PREFIX.length)
     if (this.ignoreGroups.includes(logGroup)) return
 
-    const logEvents = event.logEvents
-      .map(parseLogEntry)
-      .filter(shouldSave)
+    const logEvents = event.logEvents.map(entry => {
+      try {
+        return parseLogEntry(entry)
+      } catch (err) {
+        this.logger.debug('failed to parse log entry', {
+          error: err.message,
+          entry
+        })
+      }
+    })
+    .filter(notNull)
+    .filter(shouldSave)
 
     const bad = logEvents.filter(shouldRaiseAlert)
     if (bad.length) {
@@ -91,6 +104,7 @@ export const fromLambda = (lambda: IPBLambda) => {
     ignoreGroups: [lambda.name],
     store,
     sendAlert,
+    logger,
   })
 }
 
@@ -109,13 +123,7 @@ export const parseLogEntryMessage = (message: string) => {
   const tab1Idx = message.indexOf('\t')
   const tab2Idx = message.indexOf('\t', tab1Idx + 1)
   const requestId = message.slice(tab1Idx + 1, tab2Idx)
-  let body
-  try {
-    body = JSON.parse(message.slice(tab2Idx + 1))
-  } catch (err) {
-    body = {}
-  }
-
+  const body = JSON.parse(message.slice(tab2Idx + 1))
   return {
     requestId,
     body
