@@ -179,7 +179,7 @@ export default class Env {
 
     // this.reqCtx = prefixed
     this.reqCtx = ctx
-    this.logger.setContext(this.reqCtx)
+    // this.logger.setContext(this.reqCtx)
   }
 
   public getRequestContext() {

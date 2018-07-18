@@ -443,6 +443,7 @@ export default class Messaging {
     try {
       deliveryError = await this.delivery.http.getError(recipient)
     } catch (err) {
+      this.logger.debug(`no delivery error found for ${recipient}`)
       Errors.ignoreNotFound(err)
       return true
     }

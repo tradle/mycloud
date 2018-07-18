@@ -433,8 +433,6 @@ Previous exit stack: ${this.lastExitStack}`)
       namespace: `lambda:${this.shortName}`
     })
 
-    this.logger.info('request context', this.reqCtx)
-
     if (this.source === EventSource.LAMBDA &&
       event.requestContext &&
       event.payload) {
@@ -460,6 +458,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     this.setExecutionContext({ event, context, callback })
     this.reqCtx = getRequestContext(this)
+    this.logger.info('request context', this.reqCtx)
     if (isXrayOn()) {
       this.xraySegment = AWSXray.getSegment()
       // AWSXray.captureFunc('annotations', subsegment => {

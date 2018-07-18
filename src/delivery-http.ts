@@ -60,12 +60,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
           message: messages[0]._link
         })
 
-        const { message='' } = err
-        if (message.toLowerCase().includes('getaddrinfo enotfound')) {
-          return false
-        }
-
-        return !Errors.isDeveloperError(err)
+        return isRetryableError(err)
       },
       initialDelay: Math.min(INITIAL_BACKOFF, maxTime),
       attemptTimeout: Math.min(FETCH_TIMEOUT, maxTime),
@@ -223,6 +218,18 @@ const isStuck = (deliveryErr: any) => {
     model: models['tradle.DeliveryErrorStatus'],
     value: deliveryErr.status
   }).id === 'stuck'
+}
+
+const isRetryableError = (err: Error) => {
+  const message = (err.message || '').toLowerCase()
+  if (
+    message.includes('getaddrinfo enotfound')
+    // || message.includes('httperror: bad gateway')
+  ) {
+    return false
+  }
+
+  return !Errors.isDeveloperError(err)
 }
 
 export { Delivery }

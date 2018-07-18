@@ -179,7 +179,9 @@ export = function createDB ({
   const tableBuckets = dbUtils.getTableBuckets()
 
   // TODO: merge into validateFind
-  const isScanAllowed = search => {
+  const isScanAllowed = (search: Search) => {
+    if (search.opType === 'query') return true
+
     const allow = search.allowScan === true || _isScanAllowed(search)
     if (allow) logger.debug('allowing scan', search.type)
     return allow
