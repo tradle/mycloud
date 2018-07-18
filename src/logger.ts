@@ -183,7 +183,6 @@ export default class Logger {
       const logMsg = {
         namespace: this.namespace,
         msg,
-        time: new Date().toISOString(),
         level,
         ...this.context
       }
