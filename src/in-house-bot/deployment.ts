@@ -337,7 +337,7 @@ export class Deployment {
     // await code.bucket.grantReadAccess({ keys: code.keys })
 
     let updateCommand = `updatestack --template-url '${templateUrl}'`
-    let notificationTopics
+    let notificationTopics = []
     if (this.canSetupNotifications()) {
       const { topic } = await this.setupNotificationsForStack({
         id: `${accountId}-${name}`,
@@ -345,7 +345,7 @@ export class Deployment {
         stackId
       })
 
-      notificationTopics = [topic]
+      notificationTopics.push(topic)
       updateCommand = `${updateCommand} --notification-topics '${topic}'`
     }
 
@@ -1222,16 +1222,16 @@ ${this.genUsageInstructions(links)}`
       parentTemplateUrl: versionInfo.templateUrl,
     })
 
-    const { notificationTopics, templateUrl } = pkg
+    const { notificationTopics=[], templateUrl } = pkg
     const resp = await this.bot.draft({ type: UPDATE_RESPONSE })
-      .set({
+      .set(utils.pickNonNull({
         templateUrl,
-        notificationTopics: notificationTopics.join(','),
+        notificationTopics: notificationTopics.length ? notificationTopics.join(',') : null,
         request: req,
         provider: from.identity,
         tag: versionInfo.tag,
         sortableTag: versionInfo.sortableTag,
-      })
+      }))
       .sign()
 
     await this.bot.send({
@@ -1348,12 +1348,12 @@ ${this.genUsageInstructions(links)}`
     })
 
     return await this.bot.draft({ type: UPDATE })
-      .set({
+      .set(utils.pickNonNull({
         templateUrl,
         notificationTopics,
         tag,
         sortableTag: toSortableTag(updateResponse.tag),
-      })
+      }))
       .signAndSave()
       .then(r => r.toJSON())
   }
