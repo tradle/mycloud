@@ -24,6 +24,7 @@ REPORT RequestId: fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\tDuration: 107.52 ms Bill
 
 const expectedParsed = [
   {
+    "__": "START",
     "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
     "version": "$LATEST"
   },
@@ -107,8 +108,12 @@ const expectedParsed = [
       "level": "SILLY"
     }
   },
-  null,
   {
+    "__": "END",
+    "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc"
+  },
+  {
+    "__": "REPORT",
     "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
     "duration": "107.52",
     "billedDuration": "200",

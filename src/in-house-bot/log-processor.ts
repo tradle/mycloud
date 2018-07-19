@@ -41,6 +41,13 @@ const createDummySendAlert = (logger: Logger) => async (events, idx) => {
   logger.debug('TODO: send alert for sub-event', events[idx])
 }
 
+const REQUEST_LIFECYCLE_PROP = '__'
+const LIFECYCLE = {
+  START: 'START',
+  END: 'END',
+  REPORT: 'REPORT',
+}
+
 export class LogProcessor {
   private ignoreGroups: string[]
   private sendAlert: SendAlert
@@ -68,7 +75,7 @@ export class LogProcessor {
         })
       }
     })
-    .filter(notNull)
+    .filter(entry => entry && entry[REQUEST_LIFECYCLE_PROP] !== LIFECYCLE.END)
     .filter(shouldSave)
 
     const bad = logEvents.filter(shouldRaiseAlert)
@@ -109,7 +116,8 @@ export const fromLambda = (lambda: IPBLambda) => {
 }
 
 export const parseLogEntry = (entry: CloudWatchLogsSubEvent):ParsedEntry => {
-  const { requestId, body } = parseLogEntryMessage(entry.message)
+  const parsed = parseLogEntryMessage(entry.message)
+  const { requestId, body } = parsed
   return {
     id: entry.id,
     timestamp: entry.timestamp,
@@ -119,26 +127,30 @@ export const parseLogEntry = (entry: CloudWatchLogsSubEvent):ParsedEntry => {
 }
 
 const REGEX = {
-  START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)$/i,
-  END: /^END RequestId:\s*([^\s]+)$/i,
-  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z])+\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z])+$/i,
+  START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)\s*$/i,
+  END: /^END RequestId:\s*([^\s]+)\s*$/i,
+  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z])+\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z])+\s*$/i,
 }
 
 export const parseLogEntryMessage = (message: string) => {
   // "2018-07-18T16:26:47.716Z\t5b382e36-8aa7-11e8-9d6a-9343f875c9b4\t[JSON]
-  if (message.startsWith('START')) {
+  if (message.startsWith(LIFECYCLE.START)) {
     const [requestId, version] = REGEX.START.exec(message).slice(1)
     return {
+      [REQUEST_LIFECYCLE_PROP]: LIFECYCLE.START,
       requestId,
       version
     }
   }
 
-  if (message.startsWith('END')) {
-    return null
+  if (message.startsWith(LIFECYCLE.END)) {
+    return {
+      [REQUEST_LIFECYCLE_PROP]: LIFECYCLE.END,
+      requestId: REGEX.END.exec(message)[1]
+    }
   }
 
-  if (message.startsWith('REPORT')) {
+  if (message.startsWith(LIFECYCLE.REPORT)) {
     const [
       requestId,
       duration,
@@ -148,6 +160,7 @@ export const parseLogEntryMessage = (message: string) => {
     ] = REGEX.REPORT.exec(message).slice(1)
 
     return {
+      [REQUEST_LIFECYCLE_PROP]: LIFECYCLE.REPORT,
       requestId,
       duration,
       billedDuration,
