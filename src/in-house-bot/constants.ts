@@ -10,7 +10,7 @@ export const PRIVATE_CONF_BUCKET = {
   style: 'conf/style.json',
   termsAndConditions: 'conf/terms-and-conditions.md',
   org: 'org/org.json',
-  info: 'info/info.json'
+  info: 'info/info.json',
 }
 
 export const MODELS_HASH_PROPERTY = 'modelsHash'
@@ -35,3 +35,4 @@ export const TYPES = {
 
 export const TRADLE_MYCLOUD_URL = 'https://t22ju1ga5c.execute-api.us-east-1.amazonaws.com/dev'
 export const TRADLE_PERMALINK = '9658992cbb1499c1fd9f7d92e1dee43eb65f403b3a32f2d888d2f241c4bdf7b6'
+export const TRADLE_ORG_NAME = 'Tradle'
