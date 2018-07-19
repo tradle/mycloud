@@ -743,7 +743,7 @@ export type CloudWatchLogsSubEvent = {
 }
 
 export type CloudWatchLogsEvent = {
-  messageType: 'DATA_MESSAGE'
+  messageType: 'DATA_MESSAGE'|'CONTROL_MESSAGE'
   owner: string // accountId
   logGroup: string
   logStream: string

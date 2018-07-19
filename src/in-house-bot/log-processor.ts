@@ -118,34 +118,75 @@ export const parseLogEntry = (entry: CloudWatchLogsSubEvent):ParsedEntry => {
   }
 }
 
+const REGEX = {
+  START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)$/i,
+  END: /^END RequestId:\s*([^\s]+)$/i,
+  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z])+\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z])+$/i,
+}
+
 export const parseLogEntryMessage = (message: string) => {
   // "2018-07-18T16:26:47.716Z\t5b382e36-8aa7-11e8-9d6a-9343f875c9b4\t[JSON]
+  if (message.startsWith('START')) {
+    const [requestId, version] = REGEX.START.exec(message).slice(1)
+    return {
+      requestId,
+      version
+    }
+  }
+
+  if (message.startsWith('END')) {
+    return null
+  }
+
+  if (message.startsWith('REPORT')) {
+    const [
+      requestId,
+      duration,
+      billedDuration,
+      memorySize,
+      memoryUsed,
+    ] = REGEX.REPORT.exec(message).slice(1)
+
+    return {
+      requestId,
+      duration,
+      billedDuration,
+      memorySize,
+      memoryUsed,
+    }
+  }
+
   const tab1Idx = message.indexOf('\t')
   const tab2Idx = message.indexOf('\t', tab1Idx + 1)
   const requestId = message.slice(tab1Idx + 1, tab2Idx)
   const body = parseMessageBody(message.slice(tab2Idx + 1))
-
-  return {
-    requestId,
-    body
+  if (body) {
+    return {
+      requestId,
+      body
+    }
   }
 }
 
-const XRAY_SPAM = [
+const IGNORE = [
   'AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy',
   '_X_AMZN_TRACE_ID is missing required data',
   'Subsegment streaming threshold set to',
+  'REPORT RequestId: 2877eeb5-8af1-11e8-a9c1-01ec10fbbcfa',
 ]
 
+// START RequestId: 55d1e303-8af1-11e8-838a-313beb33f08a Version: $LATEST
+// END RequestId: 4cdd410d-8af1-11e8-abc7-4bd968ce0fe1
+// REPORT RequestId: 4cdd410d-8af1-11e8-abc7-4bd968ce0fe1  Duration: 419.75 ms  Billed Duration: 500 ms   Memory Size: 512 MB  Max Memory Used: 192 MB
+
 export const parseMessageBody = (message: string) => {
-  if (message.startsWith('{')) return JSON.parse(message)
-  if (XRAY_SPAM.some(spam => spam.startsWith(message))) {
+  if (IGNORE.some(spam => spam.startsWith(message))) {
     return {
       msg: message
     }
   }
 
-  throw new Error(`don't know how to parse log message: ${message}`)
+  return JSON.parse(message)
 }
 
 export default LogProcessor
