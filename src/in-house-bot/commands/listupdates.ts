@@ -5,13 +5,15 @@ export const command:ICommand = {
   examples: [
     '/listupdates',
     '/listupdates --downloaded',
+    '/listupdates --provider <providerPermalink>',
   ],
   description: 'list available updates',
   exec: async ({ ctx, commander, req, args }) => {
-    if (args.downloaded) {
-      return await commander.deployment.listDownloadedUpdates()
+    const { downloaded, providerPermalink } = args
+    if (downloaded) {
+      return await commander.deployment.listDownloadedUpdates(providerPermalink)
     }
 
-    return await commander.deployment.listAvailableUpdates()
+    return await commander.deployment.listAvailableUpdates(providerPermalink)
   }
 }

@@ -5,7 +5,7 @@ import { ICommand } from '../types'
 export const command:ICommand = {
   name: 'getupdateinfo',
   examples: [
-    '/getupdateinfo --tag <tag>'
+    '/getupdateinfo --tag "<versionTag>"',
   ],
   description: 'get the update info for a particular version tag',
   exec: async ({ ctx, commander, req, args }) => {
