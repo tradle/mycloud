@@ -4,7 +4,8 @@ import test from 'tape'
 import {
   LogProcessor,
   parseLogEntry,
-  parseLogEntryMessage
+  parseLogEntryMessage,
+  parseMessageBody,
 } from '../../in-house-bot/log-processor'
 import { noopLogger } from '../../logger'
 import { KeyValueMem } from '../../key-value-mem'
@@ -125,6 +126,8 @@ const expectedParsed = [
 test('log parsing', t => {
   const parsed = sampleLog.map(parseLogEntryMessage)
   t.same(parsed, expectedParsed)
+  t.equal(parseMessageBody('AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy to LOG_ERROR.\n"').__xray__, true)
+
   t.end()
 })
 

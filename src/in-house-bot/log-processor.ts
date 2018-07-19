@@ -32,6 +32,7 @@ type ParsedEntry = {
   msg: string
   level: string
   details: EntryDetails
+  [key: string]: any
 }
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'
@@ -75,7 +76,7 @@ export class LogProcessor {
         })
       }
     })
-    .filter(entry => entry && entry[REQUEST_LIFECYCLE_PROP] !== LIFECYCLE.END)
+    .filter(entry => !shouldIgnore(entry))
     .filter(shouldSave)
 
     const bad = logEvents.filter(shouldRaiseAlert)
@@ -181,11 +182,12 @@ export const parseLogEntryMessage = (message: string) => {
   }
 }
 
-const IGNORE = [
+const XRAY_SPAM = [
   'AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy',
+  'AWS_XRAY_DAEMON_ADDRESS is set',
   '_X_AMZN_TRACE_ID is missing required data',
   'Subsegment streaming threshold set to',
-  'REPORT RequestId: 2877eeb5-8af1-11e8-a9c1-01ec10fbbcfa',
+  'capturing all http requests with AWSXRay',
 ]
 
 // START RequestId: 55d1e303-8af1-11e8-838a-313beb33f08a Version: $LATEST
@@ -193,8 +195,9 @@ const IGNORE = [
 // REPORT RequestId: 4cdd410d-8af1-11e8-abc7-4bd968ce0fe1  Duration: 419.75 ms  Billed Duration: 500 ms   Memory Size: 512 MB  Max Memory Used: 192 MB
 
 export const parseMessageBody = (message: string) => {
-  if (IGNORE.some(spam => spam.startsWith(message))) {
+  if (XRAY_SPAM.some(spam => message.startsWith(spam))) {
     return {
+      __xray__: true,
       msg: message
     }
   }
@@ -203,6 +206,11 @@ export const parseMessageBody = (message: string) => {
 }
 
 export default LogProcessor
+
+export const shouldIgnore = (entry: ParsedEntry) => {
+  return entry[REQUEST_LIFECYCLE_PROP] === LIFECYCLE.END ||
+    entry.__xray__
+}
 
 const shouldRaiseAlert = (event: ParsedEntry) => {
   return Level[event.level] <= Level.WARN
