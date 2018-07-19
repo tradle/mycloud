@@ -85,6 +85,8 @@ export class LogProcessor {
       parsed.entries = parsed.entries.filter(entry => Level[entry.level] > Level.DEBUG)
     }
 
+    if (!parsed.entries.length) return
+
     const bad = parsed.entries.filter(shouldRaiseAlert)
     if (bad.length) {
       await Promise.map(bad, this.sendAlert, {
@@ -244,11 +246,44 @@ const shouldRaiseAlert = (event: ParsedEntry) => {
   return Level[event.level] <= Level.WARN
 }
 
+// const MONTHS = [
+//   'jan',
+//   'feb',
+//   'mar',
+//   'apr',
+//   'may',
+//   'jun',
+//   'jul',
+//   'aug',
+//   'sep',
+//   'oct',
+//   'nov',
+//   'dec'
+// ]
+
+const leftPad = (value: string|number, length: number) => {
+  value = String(value)
+  if (value.length < length) {
+    return '0'.repeat(length - value.length) + value
+  }
+
+  return value
+}
+
+const toDate = (timestamp: number) => {
+  const date = new Date(timestamp)
+  const day = date.getUTCDate()
+  const month = date.getUTCMonth() + 1
+  const year = date.getUTCFullYear()
+  return `${year}-${leftPad(month, 2)}-${leftPad(day, 2)}`
+}
+
 // const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
-const getLogEventKey = ({ logGroup, logEvents }: CloudWatchLogsEvent) => {
+export const getLogEventKey = ({ logGroup, logEvents }: CloudWatchLogsEvent) => {
   const { id, timestamp } = logEvents[0]
+  const isoUTCDate = toDate(timestamp)
   const shortGroupName = getShortGroupName(logGroup)
-  return `${timestamp}/${shortGroupName}/${id}`
+  return `${isoUTCDate}/${shortGroupName}/${id}`
 }
 
 const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
