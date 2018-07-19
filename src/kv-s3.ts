@@ -36,7 +36,7 @@ export class KV implements IKeyValueStore {
 
   public sub = (prefix = ''): KV => {
     return new KV({
-      bucket: this.bucket.folder(prefix),
+      bucket: this.bucket.withPrefix(prefix),
       compress: this.compress
     })
   }

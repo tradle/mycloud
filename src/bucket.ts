@@ -70,6 +70,13 @@ export class Bucket {
     })
   }
 
+  public withPrefix = (prefix:string):Bucket => {
+    return new Bucket({
+      ...this.opts,
+      prefix: this.prefix + prefix
+    })
+  }
+
   public get = (key: string) => this.utils.get({
     key: this._getKey(key),
     bucket: this.name

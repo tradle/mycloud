@@ -540,12 +540,25 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
 
 ;[
   // KeyValueTable,
-  KV,
-].forEach((Impl:KVConstructor<IKeyValueStore>, i) => {
-  test(`key-value table (${i})`, loudAsync(async (t) => {
-    const { aws, db, tables } = bot
-    const conf = new Impl({ db, table: tables.Bucket0, prefix: String(Date.now()) })
-
+  {
+    name: 'dynamodb based',
+    create: (bot: Bot):IKeyValueStore => {
+      const { aws, db, tables } = bot
+      return new KV({ db, prefix: String(Date.now()) })
+    },
+  },
+  {
+    name: 's3 based',
+    create: (bot: Bot):IKeyValueStore => {
+      const { aws, db, tables } = bot
+      return new KVS3({
+        bucket: bot.buckets.PrivateConf.folder('test-' + Date.now()),
+      })
+    },
+  }
+].forEach(({ name, create }) => {
+  test(`key-value table (${name})`, loudAsync(async (t) => {
+    const conf = create(bot)
     t.equal(await conf.exists('a'), false)
     await conf.put('a', {
       b: 'c',
@@ -571,7 +584,7 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
         },
         ReturnValues: 'UPDATED_NEW'
       })
-    } else {
+    } else if (conf.update) {
       await conf.update('a', {
         UpdateExpression: 'SET #value.#age = #value.#age + :incr',
         ExpressionAttributeNames: {
@@ -582,6 +595,11 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
           ':incr': 1
         },
         ReturnValues: 'UPDATED_NEW'
+      })
+    } else {
+      await conf.put('a', {
+        ...(await conf.get('a')),
+        age: 76
       })
     }
 
