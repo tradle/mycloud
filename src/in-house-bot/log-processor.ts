@@ -11,15 +11,15 @@ import {
   Logger,
 } from './types'
 
-import { Level } from '../logger'
+import { Level, noopLogger } from '../logger'
 
 type SendAlert = (events: CloudWatchLogsEntry, forIdx: number) => Promise<void>
 type LogProcessorOpts = {
   store: IKeyValueStore
-  logger: Logger
   sendAlert: SendAlert
   ignoreGroups?: string[]
-  level?: keyof Level
+  logger?: Logger
+  level?: Level
 }
 
 type EntryDetails = {
@@ -31,7 +31,7 @@ type ParsedEntry = {
   timestamp: number
   requestId: string
   msg: string
-  level: keyof Level
+  level: string
   details: EntryDetails
   [key: string]: any
 }
@@ -66,25 +66,23 @@ export class LogProcessor {
   private store: IKeyValueStore
   private logger: Logger
   private level: Level
-  constructor({ ignoreGroups=[], sendAlert, store, logger, level=Level.DEBUG }: LogProcessorOpts) {
+  constructor({
+    sendAlert,
+    store,
+    ignoreGroups=[],
+    logger=noopLogger,
+    level=Level.DEBUG
+  }: LogProcessorOpts) {
     this.ignoreGroups = ignoreGroups
     this.sendAlert = sendAlert
     this.store = store
     this.logger = logger
-    this.level
+    this.level = level
   }
 
   public handleEvent = async (event: CloudWatchLogsEvent) => {
     // const { UserId } = sts.getCallerIdentity({}).promise()
-    const logGroup = getShortGroupName(event.logGroup)
-    if (this.ignoreGroups.includes(logGroup)) return
-
-    const parsed = parseLogEvent(event)
-    parsed.entries = parsed.entries.filter(shouldIgnore)
-    if (this.level != null) {
-      parsed.entries = parsed.entries.filter(entry => Level[entry.level] > Level.DEBUG)
-    }
-
+    const parsed = this.parseEvent(event)
     if (!parsed.entries.length) return
 
     const bad = parsed.entries.filter(shouldRaiseAlert)
@@ -95,21 +93,23 @@ export class LogProcessor {
     }
 
     const key = getLogEventKey(event)
+    this.logger.debug(`saving ${parsed.entries.length} entries to ${key}`)
     await this.store.put(key, parsed)
+  }
 
-    // await Promise.all(logEvents.map(logEvent => {
-    //   const key = getLogEventKey(logGroup, logEvent)
-    //   return this.store.put(key, logEvent)
-    // }))
+  public parseEvent = (event: CloudWatchLogsEvent) => {
+    const logGroup = getShortGroupName(event.logGroup)
+    if (this.ignoreGroups.includes(logGroup)) return
 
-    // await Promise.all(logEvents.map(async logEvent => {
-    //   const Key = `${stage}/${UserId}/${logGroup}/${logEvent.id}`
-    //   await s3.putObject({
-    //     Key,
-    //     Body: new Buffer(JSON.stringify(logEvent)),
-    //     ContentType: 'application/json'
-    //   }).promise()
-    // }))
+    const parsed = parseLogEvent(event)
+    parsed.entries = parsed.entries.filter(shouldSave)
+    if (this.level != null) {
+      parsed.entries = parsed.entries.filter(entry => {
+        return entry.level == null || Level[entry.level] <= this.level
+      })
+    }
+
+    return parsed
   }
 }
 
@@ -129,11 +129,11 @@ export const fromLambda = (lambda: IPBLambda) => {
 
 export const parseLogEntry = (entry: CloudWatchLogsEntry):ParsedEntry => {
   const parsed = parseLogEntryMessage(entry.message)
-  const { requestId, body } = parsed
+  const { body, ...rest } = parsed
   return {
     id: entry.id,
     timestamp: entry.timestamp,
-    requestId,
+    ...rest,
     ...body
   }
 }
@@ -141,7 +141,7 @@ export const parseLogEntry = (entry: CloudWatchLogsEntry):ParsedEntry => {
 const REGEX = {
   START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)\s*$/i,
   END: /^END RequestId:\s*([^\s]+)\s*$/i,
-  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z])+\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z])+\s*$/i,
+  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z]+)\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z]+)\s*$/i,
 }
 
 export const parseLogEntryMessage = (message: string) => {
@@ -168,16 +168,18 @@ export const parseLogEntryMessage = (message: string) => {
       duration,
       billedDuration,
       memorySize,
+      memoryUnit1,
       memoryUsed,
+      memoryUnit2,
     ] = REGEX.REPORT.exec(message).slice(1)
 
     return {
       [REQUEST_LIFECYCLE_PROP]: LIFECYCLE.REPORT,
       requestId,
-      duration,
-      billedDuration,
-      memorySize,
-      memoryUsed,
+      duration: Number(duration),
+      billedDuration: Number(billedDuration),
+      memorySize: Number(memorySize),
+      memoryUsed: Number(memoryUsed),
     }
   }
 
@@ -217,9 +219,12 @@ export const parseMessageBody = (message: string) => {
 export default LogProcessor
 
 export const shouldIgnore = (entry: ParsedEntry) => {
-  return entry[REQUEST_LIFECYCLE_PROP] === LIFECYCLE.END ||
+  return entry[REQUEST_LIFECYCLE_PROP] === LIFECYCLE.START ||
+    entry[REQUEST_LIFECYCLE_PROP] === LIFECYCLE.END ||
     entry.__xray__
 }
+
+export const shouldSave = (entry: ParsedEntry) => !shouldIgnore(entry)
 
 export const parseLogEvent = (event: CloudWatchLogsEvent):ParsedEvent => {
   const entries = event.logEvents.map(entry => {
