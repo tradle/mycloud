@@ -96,7 +96,10 @@ test('retry', loudAsync(async (t) => {
     })
   })
 
-  t.equal((await delivery.getErrors()).length, 1)
+  const deliveryErrs = await delivery.getErrors()
+  t.equal(deliveryErrs.length, 1)
+
+  bot.fire(bot.events.topics.delivery.error.async, deliveryErrs[0])
 
   const retryParams = await promiseRetry
   t.same(retryParams, {
