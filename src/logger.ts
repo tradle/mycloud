@@ -4,14 +4,14 @@
 import isEmpty from 'lodash/isEmpty'
 import stringifySafe from 'json-stringify-safe'
 
-export const Level = {
-  ERROR: 0,
-  WARN: 1,
-  INFO: 2,
-  VERBOSE: 3,
-  DEBUG: 4,
-  SILLY: 5,
-  RIDICULOUS: 6
+export enum Level {
+  ERROR=0,
+  WARN=1,
+  INFO=2,
+  VERBOSE=3,
+  DEBUG=4,
+  SILLY=5,
+  RIDICULOUS=6
 }
 
 const HIGHEST_LEVEL = Level.RIDICULOUS

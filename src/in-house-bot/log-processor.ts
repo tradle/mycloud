@@ -6,19 +6,20 @@ import {
   IPBLambda,
   Bot,
   CloudWatchLogsEvent,
-  CloudWatchLogsSubEvent,
+  CloudWatchLogsEntry,
   IKeyValueStore,
   Logger,
 } from './types'
 
 import { Level } from '../logger'
 
-type SendAlert = (events: CloudWatchLogsSubEvent, forIdx: number) => Promise<void>
+type SendAlert = (events: CloudWatchLogsEntry, forIdx: number) => Promise<void>
 type LogProcessorOpts = {
   store: IKeyValueStore
   logger: Logger
   sendAlert: SendAlert
   ignoreGroups?: string[]
+  level?: keyof Level
 }
 
 type EntryDetails = {
@@ -30,9 +31,19 @@ type ParsedEntry = {
   timestamp: number
   requestId: string
   msg: string
-  level: string
+  level: keyof Level
   details: EntryDetails
   [key: string]: any
+}
+
+type FunctionInfo = {
+  name: string
+  version: string
+}
+
+export type ParsedEvent = {
+  function: FunctionInfo
+  entries: ParsedEntry[]
 }
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'
@@ -54,42 +65,40 @@ export class LogProcessor {
   private sendAlert: SendAlert
   private store: IKeyValueStore
   private logger: Logger
-  constructor({ ignoreGroups=[], sendAlert, store, logger }: LogProcessorOpts) {
+  private level: Level
+  constructor({ ignoreGroups=[], sendAlert, store, logger, level=Level.DEBUG }: LogProcessorOpts) {
     this.ignoreGroups = ignoreGroups
     this.sendAlert = sendAlert
     this.store = store
     this.logger = logger
+    this.level
   }
 
   public handleEvent = async (event: CloudWatchLogsEvent) => {
     // const { UserId } = sts.getCallerIdentity({}).promise()
-    const logGroup = event.logGroup.slice(LOG_GROUP_PREFIX.length)
+    const logGroup = getShortGroupName(event.logGroup)
     if (this.ignoreGroups.includes(logGroup)) return
 
-    const logEvents = event.logEvents.map(entry => {
-      try {
-        return parseLogEntry(entry)
-      } catch (err) {
-        this.logger.debug('failed to parse log entry', {
-          error: err.message,
-          entry
-        })
-      }
-    })
-    .filter(entry => !shouldIgnore(entry))
-    .filter(shouldSave)
+    const parsed = parseLogEvent(event)
+    parsed.entries = parsed.entries.filter(shouldIgnore)
+    if (this.level != null) {
+      parsed.entries = parsed.entries.filter(entry => Level[entry.level] > Level.DEBUG)
+    }
 
-    const bad = logEvents.filter(shouldRaiseAlert)
+    const bad = parsed.entries.filter(shouldRaiseAlert)
     if (bad.length) {
       await Promise.map(bad, this.sendAlert, {
         concurrency: ALERT_CONCURRENCY
       })
     }
 
-    await Promise.all(logEvents.map(logEvent => {
-      const key = getLogEventKey(logGroup, logEvent)
-      return this.store.put(key, logEvent)
-    }))
+    const key = getLogEventKey(event)
+    await this.store.put(key, parsed)
+
+    // await Promise.all(logEvents.map(logEvent => {
+    //   const key = getLogEventKey(logGroup, logEvent)
+    //   return this.store.put(key, logEvent)
+    // }))
 
     // await Promise.all(logEvents.map(async logEvent => {
     //   const Key = `${stage}/${UserId}/${logGroup}/${logEvent.id}`
@@ -116,7 +125,7 @@ export const fromLambda = (lambda: IPBLambda) => {
   })
 }
 
-export const parseLogEntry = (entry: CloudWatchLogsSubEvent):ParsedEntry => {
+export const parseLogEntry = (entry: CloudWatchLogsEntry):ParsedEntry => {
   const parsed = parseLogEntryMessage(entry.message)
   const { requestId, body } = parsed
   return {
@@ -170,10 +179,8 @@ export const parseLogEntryMessage = (message: string) => {
     }
   }
 
-  const tab1Idx = message.indexOf('\t')
-  const tab2Idx = message.indexOf('\t', tab1Idx + 1)
-  const requestId = message.slice(tab1Idx + 1, tab2Idx)
-  const body = parseMessageBody(message.slice(tab2Idx + 1))
+  const [date, requestId, bodyStr] = message.split('\t', 3)
+  const body = parseMessageBody(bodyStr)
   if (body) {
     return {
       requestId,
@@ -212,12 +219,46 @@ export const shouldIgnore = (entry: ParsedEntry) => {
     entry.__xray__
 }
 
+export const parseLogEvent = (event: CloudWatchLogsEvent):ParsedEvent => {
+  const entries = event.logEvents.map(entry => {
+    try {
+      return parseLogEntry(entry)
+    } catch (err) {
+      this.logger.debug('failed to parse log entry', {
+        error: err.message,
+        entry
+      })
+    }
+  })
+
+  return {
+    entries,
+    function: {
+      version: parseFunctionVersion(event),
+      name: parseFunctionName(event),
+    }
+  }
+}
+
 const shouldRaiseAlert = (event: ParsedEntry) => {
   return Level[event.level] <= Level.WARN
 }
 
-const shouldSave = (event: ParsedEntry) => {
-  return Level[event.level] <= Level.DEBUG
+// const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
+const getLogEventKey = ({ logGroup, logEvents }: CloudWatchLogsEvent) => {
+  const { id, timestamp } = logEvents[0]
+  const shortGroupName = getShortGroupName(logGroup)
+  return `${timestamp}/${shortGroupName}/${id}`
 }
 
-const getLogEventKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
+const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
+
+const parseFunctionVersion = ({ logStream }: CloudWatchLogsEvent) => {
+  const start = logStream.indexOf('[')
+  const end = logStream.indexOf(']')
+  return logStream.slice(start + 1, end)
+}
+
+const parseFunctionName = ({ logGroup }: CloudWatchLogsEvent) => {
+  return logGroup.split('/').pop()
+}

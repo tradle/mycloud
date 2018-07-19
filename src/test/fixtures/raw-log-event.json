@@ -1,0 +1,61 @@
+{
+  "messageType": "DATA_MESSAGE",
+  "owner": "374852340823",
+  "logGroup": "/aws/lambda/big-mouth-dev-get-index",
+  "logStream": "2018/03/20/[$LATEST]ef2392ba281140eab63195d867c72f53",
+  "subscriptionFilters": [
+    "LambdaStream_logging-demo-dev-ship-logs"
+  ],
+  "logEvents": [
+    {
+      "id": "17d4646a672daea64385cbdc",
+      "timestamp": 0,
+      "message": "START RequestId: fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc Version: $LATEST"
+    },
+    {
+      "id": "f681395dc2413d9b62053a2f",
+      "timestamp": 1,
+      "message": "2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{\"namespace\":\"tradle:lambda:genericJobRunner\",\"msg\":\"request context\",\"level\":\"INFO\",\"details\":{\"seq\":16,\"requestId\":\"fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\",\"correlationId\":\"fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\",\"containerId\":\"Andi Woodie Gavrielle fe52c47af47d\",\"commit\":\"74ad1e04\",\"start\":1531963689405,\"botReady\":true,\"trace-id\":\"Parent=5ff0394e26a55bf0\"}}"
+    },
+    {
+      "id": "c63c92665e5fdc85e2b2c6b6",
+      "timestamp": 2,
+      "message": "2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{\"namespace\":\"tradle:genericJobRunner\",\"msg\":\"running job: retryDelivery\",\"level\":\"DEBUG\"}"
+    },
+    {
+      "id": "c24483a45cb7c84bfdaabc48",
+      "timestamp": 3,
+      "message": "2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{\"namespace\":\"tradle:mid\",\"msg\":\"firing\",\"level\":\"SILLY\",\"details\":{\"event\":\"job:retryDelivery\"}}"
+    },
+    {
+      "id": "eae8555311fd378bf5e7bec1",
+      "timestamp": 4,
+      "message": "2018-07-19T01:28:09.502Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{\"namespace\":\"tradle:db\",\"msg\":\"DB.find tradle.DeliveryError\",\"level\":\"SILLY\",\"details\":{\"tags\":[\"perf\"],\"success\":true,\"time\":97}}"
+    },
+    {
+      "id": "8de583d3707c5375e449e86f",
+      "timestamp": 5,
+      "message": "2018-07-19T01:28:09.511Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{\"namespace\":\"tradle:lambda:genericJobRunner\",\"msg\":\"preparing for exit\",\"level\":\"DEBUG\",\"details\":{\"requestTime\":106,\"timeLeft\":299893}}"
+    },
+    {
+      "id": "91410233e618dfa288a58264",
+      "timestamp": 6,
+      "message": "2018-07-19T01:28:09.511Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{\"namespace\":\"tradle:async-tasks\",\"msg\":\"no async tasks!\",\"level\":\"SILLY\"}"
+    },
+    {
+      "id": "b7ca57c44872b0904f08dfa7",
+      "timestamp": 7,
+      "message": "2018-07-19T01:28:09.512Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{\"namespace\":\"tradle:lambda:genericJobRunner\",\"msg\":\"exiting\",\"level\":\"SILLY\"}"
+    },
+    {
+      "id": "c8fa7020c84baabeacfddc3a",
+      "timestamp": 8,
+      "message": "END RequestId: fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc"
+    },
+    {
+      "id": "4f7bd96c86bdd54898912caf",
+      "timestamp": 9,
+      "message": "REPORT RequestId: fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\tDuration: 107.52 ms Billed Duration: 200 ms \tMemory Size: 256 MB Max Memory Used: 143 MB"
+    }
+  ]
+}

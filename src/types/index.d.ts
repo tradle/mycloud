@@ -735,7 +735,7 @@ export interface Registry<T> {
   keys: () => string[]
 }
 
-export type CloudWatchLogsSubEvent = {
+export type CloudWatchLogsEntry = {
   id: string
   timestamp: number
   message: string
@@ -748,5 +748,5 @@ export type CloudWatchLogsEvent = {
   logGroup: string
   logStream: string
   subscriptionFilters: string[]
-  logEvents: CloudWatchLogsSubEvent[]
+  logEvents: CloudWatchLogsEntry[]
 }
