@@ -336,7 +336,7 @@ export class Deployment {
 
     // await code.bucket.grantReadAccess({ keys: code.keys })
 
-    let updateCommand = `updatestack --template-url '${templateUrl}'`
+    // let updateCommand = `updatestack --template-url '${templateUrl}'`
     let notificationTopics = []
     if (this.canSetupNotifications()) {
       const { topic } = await this.setupNotificationsForStack({
@@ -346,7 +346,7 @@ export class Deployment {
       })
 
       notificationTopics.push(topic)
-      updateCommand = `${updateCommand} --notification-topics '${topic}'`
+      // updateCommand = `${updateCommand} --notification-topics '${topic}'`
     }
 
     return {
@@ -354,7 +354,7 @@ export class Deployment {
       templateUrl,
       notificationTopics,
       updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
-      updateCommand,
+      // updateCommand,
     }
   }
 
