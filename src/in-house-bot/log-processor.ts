@@ -22,6 +22,12 @@ type LogProcessorOpts = {
   level?: Level
 }
 
+enum Resolution {
+  DAY,
+  HOUR,
+  MINUTE,
+}
+
 type EntryDetails = {
   [key: string]: any
 }
@@ -290,11 +296,25 @@ const toDate = (timestamp: number) => {
 }
 
 // const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
-export const getLogEventKey = ({ logGroup, logEvents }: CloudWatchLogsEvent) => {
+export const getLogEventKey = ({ logGroup, logEvents }: CloudWatchLogsEvent, resolution: Resolution=Resolution.HOUR) => {
   const { id, timestamp } = logEvents[0]
-  const { year, month, day, hour, minute } = toDate(timestamp)
+  const timePrefix = getTimePrefix(timestamp, resolution)
   const shortGroupName = getShortGroupName(logGroup)
-  return `${year}-${month}-${day}/${hour}:${minute}/${shortGroupName}/${id}`
+  return `${timePrefix}/${shortGroupName}/${id}`
+}
+
+export const getTimePrefix = (timestamp: number, resolution: Resolution=Resolution.HOUR) => {
+  const { year, month, day, hour, minute } = toDate(timestamp)
+  const dayPrefix = `${year}-${month}-${day}`
+  if (resolution === Resolution.DAY) {
+    return dayPrefix
+  }
+
+  if (resolution === Resolution.HOUR) {
+    return `${dayPrefix}/${hour}:00`
+  }
+
+  return `${dayPrefix}/${hour}:${minute}`
 }
 
 const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
