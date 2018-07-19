@@ -1,13 +1,11 @@
 {
-  "function": {
-    "version": "$LATEST",
-    "name": "big-mouth-dev-get-index"
-  },
   "entries": [
     {
       "id": "17d4646a672daea64385cbdc",
       "timestamp": 0,
-      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc"
+      "__": "START",
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "version": "$LATEST"
     },
     {
       "id": "f681395dc2413d9b62053a2f",
@@ -92,12 +90,22 @@
     {
       "id": "c8fa7020c84baabeacfddc3a",
       "timestamp": 8,
+      "__": "END",
       "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc"
     },
     {
       "id": "4f7bd96c86bdd54898912caf",
       "timestamp": 9,
-      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc"
+      "__": "REPORT",
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "duration": 107.52,
+      "billedDuration": 200,
+      "memorySize": 256,
+      "memoryUsed": 143
     }
-  ]
+  ],
+  "function": {
+    "version": "$LATEST",
+    "name": "big-mouth-dev-get-index"
+  }
 }

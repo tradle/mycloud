@@ -21,7 +21,7 @@ test('log parsing', t => {
   // const parsed = sampleLog.map(parseLogEntryMessage)
   t.equal(parseMessageBody('AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy to LOG_ERROR.\n"').__xray__, true)
   t.same(parseLogEvent(rawLogEvent), expectedParsed)
-  t.same(getLogEventKey(rawLogEvent), '1970-01-01/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
+  t.same(getLogEventKey(rawLogEvent), '1970-01-01/00:00/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
 
   const processor = new LogProcessor({
     level: Level.DEBUG,

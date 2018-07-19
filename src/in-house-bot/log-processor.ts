@@ -280,15 +280,21 @@ const toDate = (timestamp: number) => {
   const day = date.getUTCDate()
   const month = date.getUTCMonth() + 1
   const year = date.getUTCFullYear()
-  return `${year}-${leftPad(month, 2)}-${leftPad(day, 2)}`
+  return {
+    day: leftPad(day, 2),
+    month: leftPad(month, 2),
+    year: String(year),
+    hour: leftPad(date.getUTCHours(), 2),
+    minute: leftPad(date.getUTCMinutes(), 2),
+  }
 }
 
 // const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
 export const getLogEventKey = ({ logGroup, logEvents }: CloudWatchLogsEvent) => {
   const { id, timestamp } = logEvents[0]
-  const isoUTCDate = toDate(timestamp)
+  const { year, month, day, hour, minute } = toDate(timestamp)
   const shortGroupName = getShortGroupName(logGroup)
-  return `${isoUTCDate}/${shortGroupName}/${id}`
+  return `${year}-${month}-${day}/${hour}:${minute}/${shortGroupName}/${id}`
 }
 
 const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
