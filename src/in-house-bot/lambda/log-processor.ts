@@ -4,7 +4,7 @@ import { fromLambda } from '../log-processor'
 
 const lambda = fromCloudwatchLogs({ event: LOGS })
 const { bot, logger } = lambda
-const processor = fromLambda(lambda)
+const processor = fromLambda(lambda, { compress: true })
 bot.hookSimple('logs', processor.handleEvent)
 
 lambda.use(async (ctx) => {

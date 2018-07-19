@@ -59,8 +59,8 @@ export class Bucket {
     }
   }
 
-  public kv() {
-    return new KV(this)
+  public kv(opts) {
+    return new KV({ bucket: this, ...opts })
   }
 
   public folder = (prefix:string):Bucket => {

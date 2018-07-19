@@ -4,7 +4,15 @@ import {
 } from './types'
 
 export class KV implements IKeyValueStore {
-  constructor(private bucket: Bucket) { }
+  private bucket: Bucket
+  private compress: boolean
+  constructor({ bucket, compress }: {
+    bucket: Bucket
+    compress?: boolean
+  }) {
+    this.bucket = bucket
+    this.compress = compress
+  }
 
   public exists = async (key: string): Promise<boolean> => {
     return await this.bucket.exists(key)
@@ -15,7 +23,11 @@ export class KV implements IKeyValueStore {
   }
 
   public put = async (key: string, value: any): Promise<void> => {
-    await this.bucket.putJSON(key, value)
+    if (this.compress) {
+      await this.bucket.gzipAndPut(key, value)
+    } else {
+      await this.bucket.putJSON(key, value)
+    }
   }
 
   public del = async (key): Promise<void> => {
@@ -23,7 +35,10 @@ export class KV implements IKeyValueStore {
   }
 
   public sub = (prefix = ''): KV => {
-    return new KV(this.bucket.folder(prefix))
+    return new KV({
+      bucket: this.bucket.folder(prefix),
+      compress: this.compress
+    })
   }
 }
 

@@ -2,6 +2,7 @@
 import Promise from 'bluebird'
 import omit from 'lodash/omit'
 import notNull from 'lodash/identity'
+import Errors from '../errors'
 import {
   IPBLambda,
   Bot,
@@ -20,6 +21,7 @@ type LogProcessorOpts = {
   ignoreGroups?: string[]
   logger?: Logger
   level?: Level
+  ext?: string
 }
 
 enum Resolution {
@@ -72,18 +74,21 @@ export class LogProcessor {
   private store: IKeyValueStore
   private logger: Logger
   private level: Level
+  private ext: string
   constructor({
     sendAlert,
     store,
     ignoreGroups=[],
     logger=noopLogger,
-    level=Level.DEBUG
+    level=Level.DEBUG,
+    ext='json',
   }: LogProcessorOpts) {
     this.ignoreGroups = ignoreGroups
     this.sendAlert = sendAlert
     this.store = store
     this.logger = logger
     this.level = level
+    this.ext = ext
   }
 
   public handleEvent = async (event: CloudWatchLogsEvent) => {
@@ -98,7 +103,8 @@ export class LogProcessor {
       })
     }
 
-    const key = getLogEventKey(event)
+    const filename = getLogEventKey(event)
+    const key = `${filename}.${this.ext}`
     this.logger.debug(`saving ${parsed.entries.length} entries to ${key}`)
     await this.store.put(key, parsed)
   }
@@ -107,7 +113,7 @@ export class LogProcessor {
     const logGroup = getShortGroupName(event.logGroup)
     if (this.ignoreGroups.includes(logGroup)) return
 
-    const parsed = parseLogEvent(event)
+    const parsed = parseLogEvent(event, this.logger)
     parsed.entries = parsed.entries.filter(shouldSave)
     if (this.level != null) {
       parsed.entries = parsed.entries.filter(entry => {
@@ -119,9 +125,10 @@ export class LogProcessor {
   }
 }
 
-export const fromLambda = (lambda: IPBLambda) => {
+export const fromLambda = (lambda: IPBLambda, opts: { compress?: boolean }={}) => {
   const { bot, logger } = lambda
-  const store = bot.buckets.Logs.folder(lambda.stage).kv()
+  const { compress } = opts
+  const store = bot.buckets.Logs.folder(lambda.stage).kv({ compress })
   const sendAlert:SendAlert = createDummySendAlert(logger)
   return new LogProcessor({
     // avoid infinite loop that would result from processing
@@ -130,6 +137,7 @@ export const fromLambda = (lambda: IPBLambda) => {
     store,
     sendAlert,
     logger,
+    ext: compress ? 'json.gz' : 'json',
   })
 }
 
@@ -232,12 +240,13 @@ export const shouldIgnore = (entry: ParsedEntry) => {
 
 export const shouldSave = (entry: ParsedEntry) => !shouldIgnore(entry)
 
-export const parseLogEvent = (event: CloudWatchLogsEvent):ParsedEvent => {
+export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogger):ParsedEvent => {
   const entries = event.logEvents.map(entry => {
     try {
       return parseLogEntry(entry)
     } catch (err) {
-      this.logger.debug('failed to parse log entry', {
+      Errors.rethrow(err, 'developer')
+      logger.debug('failed to parse log entry', {
         error: err.message,
         entry
       })

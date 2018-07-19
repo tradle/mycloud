@@ -10,6 +10,7 @@ import ModelsPack from '@tradle/models-pack'
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
 import KV from '../kv'
+import KVS3 from '../kv-s3'
 import Mailer from '../mailer'
 import { getFaviconUrl } from '../in-house-bot/image-utils'
 import { randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey, ECKey } from '../crypto'
@@ -539,7 +540,7 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
 
 ;[
   // KeyValueTable,
-  KV
+  KV,
 ].forEach((Impl:KVConstructor<IKeyValueStore>, i) => {
   test(`key-value table (${i})`, loudAsync(async (t) => {
     const { aws, db, tables } = bot
