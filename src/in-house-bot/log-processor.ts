@@ -31,7 +31,7 @@ type ParsedEntry = {
   requestId: string
   msg: string
   level: string
-  params: EntryDetails
+  details: EntryDetails
 }
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'

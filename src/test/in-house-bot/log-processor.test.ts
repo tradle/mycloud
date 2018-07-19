@@ -11,11 +11,11 @@ import { KeyValueMem } from '../../key-value-mem'
 
 const sampleLog = `
 START RequestId: fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc Version: $LATEST
-2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:lambda:genericJobRunner","msg":"request context","level":"INFO","params":{"seq":16,"requestId":"fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc","correlationId":"fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc","containerId":"Andi Woodie Gavrielle fe52c47af47d","commit":"74ad1e04","start":1531963689405,"botReady":true,"trace-id":"Parent=5ff0394e26a55bf0"}}
+2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:lambda:genericJobRunner","msg":"request context","level":"INFO","details":{"seq":16,"requestId":"fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc","correlationId":"fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc","containerId":"Andi Woodie Gavrielle fe52c47af47d","commit":"74ad1e04","start":1531963689405,"botReady":true,"trace-id":"Parent=5ff0394e26a55bf0"}}
 2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:genericJobRunner","msg":"running job: retryDelivery","level":"DEBUG"}
-2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:mid","msg":"firing","level":"SILLY","params":{"event":"job:retryDelivery"}}
-2018-07-19T01:28:09.502Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:db","msg":"DB.find tradle.DeliveryError","level":"SILLY","params":{"tags":["perf"],"success":true,"time":97}}
-2018-07-19T01:28:09.511Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:lambda:genericJobRunner","msg":"preparing for exit","level":"DEBUG","params":{"requestTime":106,"timeLeft":299893}}
+2018-07-19T01:28:09.405Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:mid","msg":"firing","level":"SILLY","details":{"event":"job:retryDelivery"}}
+2018-07-19T01:28:09.502Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:db","msg":"DB.find tradle.DeliveryError","level":"SILLY","details":{"tags":["perf"],"success":true,"time":97}}
+2018-07-19T01:28:09.511Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:lambda:genericJobRunner","msg":"preparing for exit","level":"DEBUG","details":{"requestTime":106,"timeLeft":299893}}
 2018-07-19T01:28:09.511Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:async-tasks","msg":"no async tasks!","level":"SILLY"}
 2018-07-19T01:28:09.512Z\tfe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc\t{"namespace":"tradle:lambda:genericJobRunner","msg":"exiting","level":"SILLY"}
 END RequestId: fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc
@@ -34,7 +34,7 @@ const expectedParsed = [
       "namespace": "tradle:lambda:genericJobRunner",
       "msg": "request context",
       "level": "INFO",
-      "params": {
+      "details": {
         "seq": 16,
         "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
         "correlationId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
@@ -60,7 +60,7 @@ const expectedParsed = [
       "namespace": "tradle:mid",
       "msg": "firing",
       "level": "SILLY",
-      "params": {
+      "details": {
         "event": "job:retryDelivery"
       }
     }
@@ -71,7 +71,7 @@ const expectedParsed = [
       "namespace": "tradle:db",
       "msg": "DB.find tradle.DeliveryError",
       "level": "SILLY",
-      "params": {
+      "details": {
         "tags": [
           "perf"
         ],
@@ -86,7 +86,7 @@ const expectedParsed = [
       "namespace": "tradle:lambda:genericJobRunner",
       "msg": "preparing for exit",
       "level": "DEBUG",
-      "params": {
+      "details": {
         "requestTime": 106,
         "timeLeft": 299893
       }

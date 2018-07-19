@@ -110,12 +110,12 @@ export default class Logger {
     this.subloggers.forEach(logger => logger.setContext(this.context))
   }
 
-  public ridiculous = (msg:string, params?:any) => this.log('RIDICULOUS', msg, params)
-  public silly = (msg:string, params?:any) => this.log('SILLY', msg, params)
-  public debug = (msg:string, params?:any) => this.log('DEBUG', msg, params)
-  public info = (msg:string, params?:any) => this.log('INFO', msg, params)
-  public warn = (msg:string, params?:any) => this.log('WARN', msg, params)
-  public error = (msg:string, params?:any) => this.log('ERROR', msg, params)
+  public ridiculous = (msg:string, details?:any) => this.log('RIDICULOUS', msg, details)
+  public silly = (msg:string, details?:any) => this.log('SILLY', msg, details)
+  public debug = (msg:string, details?:any) => this.log('DEBUG', msg, details)
+  public info = (msg:string, details?:any) => this.log('INFO', msg, details)
+  public warn = (msg:string, details?:any) => this.log('WARN', msg, details)
+  public error = (msg:string, details?:any) => this.log('ERROR', msg, details)
   public sub = (conf: string|LoggerConf):Logger => {
     conf = normalizeConf(conf)
     return this.logger({
@@ -142,41 +142,41 @@ export default class Logger {
     return sublogger
   }
 
-  public time = (level:string, msg?:string, params?:any) => {
+  public time = (level:string, msg?:string, details?:any) => {
     const start = Date.now()
     return () => {
       const time = Date.now() - start
-      this.log(level, `${msg} (${time}ms)`, params)
+      this.log(level, `${msg} (${time}ms)`, details)
     }
   }
 
-  public timeSilly = (msg:string, params?:any) => this.time('SILLY', msg, params)
-  public timeDebug = (msg:string, params?:any) => this.time('DEBUG', msg, params)
-  public timeInfo = (msg:string, params?:any) => this.time('INFO', msg, params)
-  public timeWarn = (msg:string, params?:any) => this.time('WARN', msg, params)
-  public timeError = (msg:string, params?:any) => this.time('ERROR', msg, params)
+  public timeSilly = (msg:string, details?:any) => this.time('SILLY', msg, details)
+  public timeDebug = (msg:string, details?:any) => this.time('DEBUG', msg, details)
+  public timeInfo = (msg:string, details?:any) => this.time('INFO', msg, details)
+  public timeWarn = (msg:string, details?:any) => this.time('WARN', msg, details)
+  public timeError = (msg:string, details?:any) => this.time('ERROR', msg, details)
 
-  public log (level:string, msg:string, params?:any) {
+  public log (level:string, msg:string, details?:any) {
     if (this.level < Level[level]) {
       // ignore
       return
     }
 
-    const output = this.formatOutput(level, msg, params)
+    const output = this.formatOutput(level, msg, details)
     const { writer } = this
     const fn = writer[METHODS[level]] || writer.log
     fn.call(writer, output)
   }
 
-  private formatOutput = (level, msg, params) => {
-    if (!params) {
-      params = {}
+  private formatOutput = (level, msg, details) => {
+    if (!details) {
+      details = {}
     }
 
-    if (params instanceof Error) {
-      params = { stack: params.stack || params.message }
-    } else if (typeof params !== 'object') {
-      params = { value: params }
+    if (details instanceof Error) {
+      details = { stack: details.stack || details.message }
+    } else if (typeof details !== 'object') {
+      details = { value: details }
     }
 
     if (this.outputFormat === 'json') {
@@ -187,16 +187,16 @@ export default class Logger {
         ...this.context
       }
 
-      if (!isEmpty(params)) logMsg.params = params
+      if (!isEmpty(details)) logMsg.details = details
 
       return stringifySafe(logMsg)
     }
 
-    const stringifiedParams = params ? stringifySafe({ msg, ...params }) : ''
+    const stringifieddetails = details ? stringifySafe({ msg, ...details }) : ''
     let part1 = this.namespace
     if (part1) part1 += ':'
 
-    return `${part1}${level}: ${stringifiedParams}`
+    return `${part1}${level}: ${stringifieddetails}`
   }
 }
 
