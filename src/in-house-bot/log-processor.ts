@@ -227,7 +227,21 @@ export const parseMessageBody = (message: string) => {
     }
   }
 
-  return JSON.parse(message)
+  try {
+    return JSON.parse(message)
+  } catch (err) {
+  }
+
+  const unparsed:any = {
+    msg: message
+  }
+
+  const lower = message.toLowerCase()
+  if (lower.includes('unhandledpromiserejectionwarning') || lower.includes('error')) {
+    unparsed.level = 'ERROR'
+  }
+
+  return unparsed
 }
 
 export default LogProcessor
@@ -245,7 +259,6 @@ export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogg
     try {
       return parseLogEntry(entry)
     } catch (err) {
-      Errors.rethrow(err, 'developer')
       logger.debug('failed to parse log entry', {
         error: err.message,
         entry
