@@ -14,7 +14,7 @@ import {
 
 import { Level, noopLogger } from '../logger'
 
-type SendAlert = (events: CloudWatchLogsEntry, forIdx: number) => Promise<void>
+type SendAlert = (event: ParsedEvent) => Promise<void>
 type LogProcessorOpts = {
   store: IKeyValueStore
   sendAlert: SendAlert
@@ -56,9 +56,9 @@ export type ParsedEvent = {
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'
 const ALERT_CONCURRENCY = 10
-const createDummySendAlert = (logger: Logger) => async (events, idx) => {
+const createDummySendAlert = (logger: Logger) => async (event: ParsedEvent) => {
   // TODO
-  logger.debug('TODO: send alert for sub-event', events[idx])
+  logger.debug('TODO: send alert for event', getLogEventKey(event))
 }
 
 const REQUEST_LIFECYCLE_PROP = '__'
@@ -98,12 +98,10 @@ export class LogProcessor {
 
     const bad = parsed.entries.filter(shouldRaiseAlert)
     if (bad.length) {
-      await Promise.map(bad, this.sendAlert, {
-        concurrency: ALERT_CONCURRENCY
-      })
+      await this.sendAlert(parsed)
     }
 
-    const filename = getLogEventKey(event)
+    const filename = getLogEventKey(parsed)
     const key = `${filename}.${this.ext}`
     this.logger.debug(`saving ${parsed.entries.length} entries to ${key}`)
     await this.store.put(key, parsed)
@@ -318,11 +316,10 @@ const toDate = (timestamp: number) => {
 }
 
 // const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
-export const getLogEventKey = ({ logGroup, logEvents }: CloudWatchLogsEvent, resolution: Resolution=Resolution.HOUR) => {
-  const { id, timestamp } = logEvents[0]
+export const getLogEventKey = (event: ParsedEvent, resolution: Resolution=Resolution.HOUR) => {
+  const { id, timestamp } = event.entries[0]
   const timePrefix = getTimePrefix(timestamp, resolution)
-  const shortGroupName = getShortGroupName(logGroup)
-  return `${timePrefix}/${shortGroupName}/${id}`
+  return `${timePrefix}/${event.function.name}/${id}`
 }
 
 export const getTimePrefix = (timestamp: number, resolution: Resolution=Resolution.HOUR) => {
