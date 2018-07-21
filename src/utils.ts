@@ -37,7 +37,7 @@ import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import fetch from 'node-fetch'
-import { prettify, stableStringify, safeStringify } from './string-utils'
+import { prettify, stableStringify, safeStringify, alphabetical } from './string-utils'
 import {
   SIG,
   TYPE,
@@ -1534,9 +1534,28 @@ export const toSortableTag = (semver: string) => semver
   .replace(/^v/, '')
   .replace(/\d+/g, part => toLexicographicInt(Number(part)))
 
+export const compareTags = (a: string, b: string) => {
+  const as = toSortableTag(a)
+  const bs = toSortableTag(b)
+  return alphabetical(as, bs)
+}
+
 export const toLexicographicInt = n => lexint.pack(n, 'hex')
 
 export const requireOpts = (opts:any, props:string|string[]) => {
   const missing = [].concat(props).filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)
   if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(', ')}`)
+}
+
+export const isValidDomain = domain => {
+  return domain.includes('.') && /^(?:[a-zA-Z0-9-_.]+)$/.test(domain)
+}
+
+export const normalizeDomain = (domain:string) => {
+  domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
+  if (!isValidDomain(domain)) {
+    throw new Errors.InvalidInput('invalid domain')
+  }
+
+  return domain
 }

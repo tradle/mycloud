@@ -43,7 +43,7 @@
     "serverless-plugin-tracing": "^1.0.6",
     "serverless-s3-local": "github:mvayngrib/serverless-s3-local",
     "sinon": "^3.3.0",
-    "standard-version": "^4.4.0",
+    "standard-version": "github:mvayngrib/standard-version#fixdeps",
     "tape": "^4.6.3",
     "validate-commit-msg": "^2.14.0"
   },
@@ -128,7 +128,11 @@
     "release": "standard-version",
     "release:patch": "standard-version --release-as patch",
     "release:minor": "standard-version --release-as minor",
-    "release:major": "standard-version --release-as major"
+    "release:major": "standard-version --release-as major",
+    "prerelease": "standard-version --prerelease rc --no-verify",
+    "prerelease:patch": "npm run prerelease -- --patch",
+    "prerelease:minor": "npm run prerelease -- --minor",
+    "prerelease:major": "npm run prerelease -- --major"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
@@ -238,8 +242,5 @@
     ]
   },
   "standard-version": {
-    "skip": {
-      "tag": true
-    }
   }
 }

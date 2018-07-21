@@ -16,6 +16,7 @@ export const CHILD_STACK_STATUS_CHANGED = 'deployment:child_stack_status'
 // export const UPDATE_STACK = 'deployment:update_stack'
 
 export const LOGS = 'logs'
+export const LOG_ALERTS = 'logs:alerts'
 
 export const SCHEDULER = 'scheduler'
 

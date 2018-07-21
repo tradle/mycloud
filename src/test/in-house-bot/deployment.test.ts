@@ -107,7 +107,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  let saveTemplateStub = sandbox.stub(parentDeployment, 'savePublicTemplate').callsFake(async ({ template, bucket }) => {
+  let saveTemplateStub = sandbox.stub(parentDeployment, '_savePublicTemplate').callsFake(async ({ template, bucket }) => {
     t.equal(bucket, regionalBucket)
 
     deploymentConf = {
@@ -435,10 +435,13 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const [
     updateTopic,
+    logTopic,
   ] = saveResourceStub.getCalls().map(call => call.args[0])
 
-  t.equal(updateTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
-
+  ;[updateTopic, logTopic].forEach(topicRes => {
+    t.equal(topicRes[TYPE], 'tradle.cloud.TmpSNSTopic')
+    t.equal(utils.parseArn(topicRes.topic).region, region)
+  })
 
   // console.log(parentDeployment.genLaunchEmailBody({ launchUrl }))
   // console.log('OIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIO')

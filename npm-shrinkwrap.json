@@ -10168,8 +10168,8 @@
     },
     "standard-version": {
       "version": "4.4.0",
-      "from": "standard-version@latest",
-      "resolved": "https://registry.npmjs.org/standard-version/-/standard-version-4.4.0.tgz",
+      "from": "mvayngrib/standard-version#fixdeps",
+      "resolved": "git://github.com/mvayngrib/standard-version.git#32051bcff3e022bf57e6b6fc601e0fc3fed0c18d",
       "dev": true,
       "dependencies": {
         "ansi-regex": {
@@ -10236,6 +10236,12 @@
           "version": "2.0.0",
           "from": "read-pkg-up@>=2.0.0 <3.0.0",
           "resolved": "https://registry.npmjs.org/read-pkg-up/-/read-pkg-up-2.0.0.tgz",
+          "dev": true
+        },
+        "semver": {
+          "version": "5.5.0",
+          "from": "semver@>=5.2.0 <6.0.0",
+          "resolved": "https://registry.npmjs.org/semver/-/semver-5.5.0.tgz",
           "dev": true
         },
         "string-width": {

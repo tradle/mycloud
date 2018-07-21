@@ -969,15 +969,21 @@ functions:
 
   # onChildStackStatusChanged:
   #   handler: lib/in-house-bot/lambda/sns/on-child-stack-status-changed.handler
-    # events added dynamically in "deployment.subscribeToChildStackStatusNotifications"
+    # events added dynamically in "deployment.subscribeToChildStackStatusAlerts"
 
-  updateStack:
-    handler: lib/in-house-bot/lambda/update-stack.handler
-    role: UpdateStackIamRole
+  # not used at the moment
+  # updateStack:
+  #   handler: lib/in-house-bot/lambda/update-stack.handler
+    # role: UpdateStackIamRole
+    # events added dynamically
 
   logProcessor:
     handler: lib/in-house-bot/lambda/log-processor.handler
     # events added in compile phase
+
+  logAlertProcessor:
+    handler: lib/in-house-bot/lambda/log-alert-processor.handler
+    # events added at runtime
 
 resources:
   Mappings:
@@ -1453,157 +1459,157 @@ resources:
       #     TargetKeyId:
       #       Ref: DefaultEncryptionKey
 
-    UpdateStackIamRole:
-      Type: AWS::IAM::Role
-      Description: role needed to update this stack
-      Properties:
-        RoleName: ${{self:custom.prefixRole}}updateStackRole
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - lambda.amazonaws.com
-              Action:
-                - sts:AssumeRole
-        Policies:
-          - PolicyName: ${{self:custom.regionalPrefix}}updateStackRolePolicy
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - cloudformation:Describe*
-                    - cloudformation:List*
-                    - cloudformation:Get*
-                    - cloudformation:CreateStack
-                    - cloudformation:UpdateStack
-                    - cloudformation:DeleteStack
-                  Resource:
-                    - Fn::Sub: "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${{self:custom.stackName}}*/*"
-                - Effect: Allow
-                  Action:
-                    - cloudformation:ValidateTemplate
-                  Resource: "*"
-                - Effect: Allow
-                  Action:
-                    - s3:CreateBucket
-                    - s3:Get*
-                    - s3:List*
-                  Resource:
-                    - Fn::Sub: arn:aws:s3:::${{self:custom.prefix}}*
-                - Effect: Allow
-                  Action:
-                    - s3:*
-                  Resource:
-                    - Fn::Sub: arn:aws:s3:::${{self:custom.prefix}}*/*
-                - Effect: Allow
-                  Action:
-                    - logs:DescribeLogGroups
-                  Resource:
-                    - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
-                - Effect: Allow
-                  Action:
-                    - logs:CreateLogGroup
-                    - logs:DeleteLogGroup
-                    - logs:CreateLogStream
-                    - logs:DeleteLogStream
-                    - logs:DescribeLogStreams
-                    - logs:FilterLogEvents
-                    - logs:PutLogEvents
-                    - logs:PutRetentionPolicy
-                  Resource:
-                    - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${{self:custom.stackName}}*
-                - Effect: Allow
-                  Action:
-                    - iam:GetRole
-                    - iam:PassRole
-                    - iam:CreateRole
-                    - iam:DeleteRole
-                    - iam:DetachRolePolicy
-                    - iam:PutRolePolicy
-                    - iam:AttachRolePolicy
-                    - iam:DeleteRolePolicy
-                  Resource:
-                    - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${{self:custom.stackName}}*
-                - Effect: Allow
-                  Action:
-                    - apigateway:GET
-                    - apigateway:POST
-                    - apigateway:PUT
-                    - apigateway:DELETE
-                  Resource:
-                    - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis
-                - Effect: Allow
-                  Action:
-                    - apigateway:GET
-                    - apigateway:POST
-                    - apigateway:PUT
-                    - apigateway:DELETE
-                  Resource:
-                    - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis/*
-                - Effect: Allow
-                  Action:
-                    - lambda:CreateFunction
-                  Resource:
-                    - "*"
-                - Effect: Allow
-                  Action:
-                    - lambda:GetFunction
-                    - lambda:DeleteFunction
-                    - lambda:UpdateFunctionConfiguration
-                    - lambda:UpdateFunctionCode
-                    - lambda:ListVersionsByFunction
-                    - lambda:PublishVersion
-                    - lambda:CreateAlias
-                    - lambda:DeleteAlias
-                    - lambda:UpdateAlias
-                    - lambda:GetFunctionConfiguration
-                    - lambda:AddPermission
-                    - lambda:RemovePermission
-                    - lambda:InvokeFunction
-                  Resource:
-                    - Fn::Sub: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:custom.stackName}}*
-                - Effect: Allow
-                  Action:
-                    - events:Put*
-                    - events:Remove*
-                    - events:Delete*
-                    - events:Describe*
-                  Resource:
-                    - Fn::Sub: arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${{self:custom.stackName}}*
-                - Effect: Allow
-                  Action:
-                    - dynamodb:CreateTable
-                    - dynamodb:DescribeTable
-                    - dynamodb:ListStreams
-                  Resource:
-                    - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
-                - Effect: Allow
-                  Action:
-                    - xray:PutTraceSegments
-                    - xray:PutTelemetryRecords
-                  Resource: "*"
-                # Only needed if lambda will be running in VPC
-                # - Effect: Allow
-                #   Action:
-                #   - ec2:DescribeSecurityGroups
-                #   - ec2:DescribeSubnets
-                #   - ec2:DescribeVpcs
-                #   Resource:
-                #   - "*"
+    # UpdateStackIamRole:
+    #   Type: AWS::IAM::Role
+    #   Description: role needed to update this stack
+    #   Properties:
+    #     RoleName: ${{self:custom.prefixRole}}updateStackRole
+    #     AssumeRolePolicyDocument:
+    #       Version: '2012-10-17'
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             Service:
+    #               - lambda.amazonaws.com
+    #           Action:
+    #             - sts:AssumeRole
+    #     Policies:
+    #       - PolicyName: ${{self:custom.regionalPrefix}}updateStackRolePolicy
+    #         PolicyDocument:
+    #           Version: '2012-10-17'
+    #           Statement:
+    #             - Effect: Allow
+    #               Action:
+    #                 - cloudformation:Describe*
+    #                 - cloudformation:List*
+    #                 - cloudformation:Get*
+    #                 - cloudformation:CreateStack
+    #                 - cloudformation:UpdateStack
+    #                 - cloudformation:DeleteStack
+    #               Resource:
+    #                 - Fn::Sub: "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${{self:custom.stackName}}*/*"
+    #             - Effect: Allow
+    #               Action:
+    #                 - cloudformation:ValidateTemplate
+    #               Resource: "*"
+    #             - Effect: Allow
+    #               Action:
+    #                 - s3:CreateBucket
+    #                 - s3:Get*
+    #                 - s3:List*
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:s3:::${{self:custom.prefix}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - s3:*
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:s3:::${{self:custom.prefix}}*/*
+    #             - Effect: Allow
+    #               Action:
+    #                 - logs:DescribeLogGroups
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+    #             - Effect: Allow
+    #               Action:
+    #                 - logs:CreateLogGroup
+    #                 - logs:DeleteLogGroup
+    #                 - logs:CreateLogStream
+    #                 - logs:DeleteLogStream
+    #                 - logs:DescribeLogStreams
+    #                 - logs:FilterLogEvents
+    #                 - logs:PutLogEvents
+    #                 - logs:PutRetentionPolicy
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - iam:GetRole
+    #                 - iam:PassRole
+    #                 - iam:CreateRole
+    #                 - iam:DeleteRole
+    #                 - iam:DetachRolePolicy
+    #                 - iam:PutRolePolicy
+    #                 - iam:AttachRolePolicy
+    #                 - iam:DeleteRolePolicy
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - apigateway:GET
+    #                 - apigateway:POST
+    #                 - apigateway:PUT
+    #                 - apigateway:DELETE
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis
+    #             - Effect: Allow
+    #               Action:
+    #                 - apigateway:GET
+    #                 - apigateway:POST
+    #                 - apigateway:PUT
+    #                 - apigateway:DELETE
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis/*
+    #             - Effect: Allow
+    #               Action:
+    #                 - lambda:CreateFunction
+    #               Resource:
+    #                 - "*"
+    #             - Effect: Allow
+    #               Action:
+    #                 - lambda:GetFunction
+    #                 - lambda:DeleteFunction
+    #                 - lambda:UpdateFunctionConfiguration
+    #                 - lambda:UpdateFunctionCode
+    #                 - lambda:ListVersionsByFunction
+    #                 - lambda:PublishVersion
+    #                 - lambda:CreateAlias
+    #                 - lambda:DeleteAlias
+    #                 - lambda:UpdateAlias
+    #                 - lambda:GetFunctionConfiguration
+    #                 - lambda:AddPermission
+    #                 - lambda:RemovePermission
+    #                 - lambda:InvokeFunction
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - events:Put*
+    #                 - events:Remove*
+    #                 - events:Delete*
+    #                 - events:Describe*
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - dynamodb:CreateTable
+    #                 - dynamodb:DescribeTable
+    #                 - dynamodb:ListStreams
+    #               Resource:
+    #                 - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
+    #             - Effect: Allow
+    #               Action:
+    #                 - xray:PutTraceSegments
+    #                 - xray:PutTelemetryRecords
+    #               Resource: "*"
+    #             # Only needed if lambda will be running in VPC
+    #             # - Effect: Allow
+    #             #   Action:
+    #             #   - ec2:DescribeSecurityGroups
+    #             #   - ec2:DescribeSubnets
+    #             #   - ec2:DescribeVpcs
+    #             #   Resource:
+    #             #   - "*"
 
-                # needed for cloudformation to be able to fetch the code
-                # from the parent deployment's bucket
-                - Effect: Allow
-                  Action:
-                    - s3:GetObject
-                  Resource:
-                    - Fn::Sub: arn:aws:s3:::*/*
-                # needed for cloudformation to be able to publish stack updates
-                # to sns topics
-                - Effect: Allow
-                  Action:
-                    - sns:Publish
-                  Resource: "*"
+    #             # needed for cloudformation to be able to fetch the code
+    #             # from the parent deployment's bucket
+    #             - Effect: Allow
+    #               Action:
+    #                 - s3:GetObject
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:s3:::*/*
+    #             # needed for cloudformation to be able to publish stack updates
+    #             # to sns topics
+    #             - Effect: Allow
+    #               Action:
+    #                 - sns:Publish
+    #               Resource: "*"

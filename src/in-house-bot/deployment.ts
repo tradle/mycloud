@@ -48,6 +48,7 @@ import {
 const { toSortableTag } = utils
 
 const TMP_SNS_TOPIC_TTL = unitToMillis.day
+const LOG_TOPIC_TTL = unitToMillis.year
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
@@ -102,7 +103,7 @@ const ALERT_BRANCHES = [
 ]
 
 // generated in AWS console
-const TMP_SNS_TOPIC_DELIVERY_POLICY = {
+const UPDATE_STACK_TOPIC_DELIVERY_POLICY = {
   http: {
     defaultHealthyRetryPolicy: {
       minDelayTarget: 20,
@@ -120,9 +121,17 @@ const TMP_SNS_TOPIC_DELIVERY_POLICY = {
   }
 }
 
-interface ITmpTopicResource extends ITradleObject {
-  topic: string
-}
+const LOGGING_TOPIC_DELIVERY_POLICY = _.merge(UPDATE_STACK_TOPIC_DELIVERY_POLICY, {
+  http: {
+    defaultThrottlePolicy: {
+      maxReceivesPerSecond: 2
+    }
+  }
+})
+
+const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
+const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
+const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertsProcessor'
 
 type StackUpdateTopicInput = {
   topic: string
@@ -233,11 +242,11 @@ export class Deployment {
     ])
 
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
-    const { templateUrl } = await this.saveTemplateAndCode({ parentTemplate: parentTemplate, template, bucket })
+    const { templateUrl } = await this._saveTemplateAndCode({ parentTemplate: parentTemplate, template, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
-    // const promiseTmpTopic = this.setupNotificationsForStack({
+    // const promiseTmpTopic = this._setupStackStatusAlerts({
     //   id: deploymentUUID,
     //   type: StackOperationType.create
     // })
@@ -310,6 +319,7 @@ export class Deployment {
     }
   }
 
+  // for easy mocking during testing
   public _getTemplateByUrl = utils.get
 
   public genUpdatePackageForStack = async (opts: {
@@ -321,40 +331,34 @@ export class Deployment {
     utils.requireOpts(opts, ['stackId', 'parentTemplateUrl', 'adminEmail'])
 
     const { stackId, adminEmail, parentTemplateUrl } = opts
-    const { region, accountId, name } = this.bot.stackUtils.parseStackArn(stackId)
+    const { region, accountId, name } = StackUtils.parseStackArn(stackId)
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
       this._getTemplateByUrl(parentTemplateUrl), // should we get via s3 instead?
     ])
 
     const template = await this.customizeTemplateForUpdate({ template: parentTemplate, adminEmail, stackId, bucket })
-    const { templateUrl, code } = await this.saveTemplateAndCode({
+    const { templateUrl, code } = await this._saveTemplateAndCode({
       parentTemplate,
       template,
       bucket,
     })
 
-    // await code.bucket.grantReadAccess({ keys: code.keys })
+    const setupStackAlerts = this._setupStackStatusAlerts({
+      id: `${accountId}-${name}`,
+      type: StackOperationType.update,
+      stackId
+    })
 
-    // let updateCommand = `updatestack --template-url '${templateUrl}'`
-    let notificationTopics = []
-    if (this.canSetupNotifications()) {
-      const { topic } = await this.setupNotificationsForStack({
-        id: `${accountId}-${name}`,
-        type: StackOperationType.update,
-        stackId
-      })
-
-      notificationTopics.push(topic)
-      // updateCommand = `${updateCommand} --notification-topics '${topic}'`
-    }
-
+    const setupLoggingAlerts = this._setupLoggingAlerts({ stackId })
+    const notificationTopics = [(await setupStackAlerts).topic]
+    const loggingTopic = await setupLoggingAlerts
     return {
       template,
       templateUrl,
       notificationTopics,
+      loggingTopic,
       updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
-      // updateCommand,
     }
   }
 
@@ -474,7 +478,7 @@ export class Deployment {
       apiUrl: this.bot.apiBaseUrl,
       org,
       identity,
-      stackId: this.bot.stackUtils.thisStackId,
+      stackId: this._thisStackArn,
       version: this.bot.version,
     }) as IDeploymentReportPayload
 
@@ -501,30 +505,6 @@ export class Deployment {
     // if (friend) {
     //   await sendTradleSelfIntro({ bot, friend })
     // }
-  }
-
-  public _handleStackUpdateTradle = async () => {
-    const { versionInfo, updated } = await this.saveMyDeploymentVersionInfo()
-    const forced = this.bot.version.alert
-    const should = updated && shouldSendVersionAlert(this.bot.version)
-    if (forced || should) {
-      await this.alertAboutVersion(versionInfo)
-    }
-  }
-
-  public _handleStackUpdateNonTradle = async () => {
-    const { logger } = this
-    logger.debug('reporting launch to tradle')
-
-    let result
-    try {
-      result = await this.reportDeployment({
-        targetApiUrl: TRADLE_MYCLOUD_URL,
-      })
-    } catch(err) {
-      Errors.rethrow(err, 'developer')
-      logger.error('failed to report launch to Tradle', err)
-    }
   }
 
   public handleDeploymentReport = async (report: IDeploymentReportPayload) => {
@@ -716,7 +696,7 @@ ${this.genUsageInstructions(links)}`
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
     template.Description = `MyCloud, by Tradle`
-    domain = normalizeDomain(domain)
+    domain = utils.normalizeDomain(domain)
 
     const { Resources, Mappings } = template
     const { org, deployment } = Mappings
@@ -726,7 +706,7 @@ ${this.genUsageInstructions(links)}`
     const dInit: Partial<IMyDeploymentConf> = {
       service,
       stage,
-      stackName: this.bot.stackUtils.genStackName({ service, stage }),
+      stackName: StackUtils.genStackName({ service, stage }),
       referrerUrl: this.bot.apiBaseUrl,
       deploymentUUID: utils.uuid(),
     }
@@ -749,16 +729,15 @@ ${this.genUsageInstructions(links)}`
   }
 
   public finalizeCustomTemplate = ({ template, region, bucket, oldServiceName, newServiceName }) => {
-    const { stackUtils } = this.bot
-    template = stackUtils.changeServiceName({
+    template = StackUtils.changeServiceName({
       template,
       from: oldServiceName,
       to: newServiceName
     })
 
-    template = stackUtils.changeRegion({
+    template = StackUtils.changeRegion({
       template,
-      from: this.env.REGION,
+      from: this._thisRegion,
       to: region
     })
 
@@ -780,7 +759,7 @@ ${this.genUsageInstructions(links)}`
     utils.requireOpts(opts, ['template', 'stackId', 'adminEmail', 'bucket'])
 
     let { template, stackId, adminEmail, bucket } = opts
-    const { service, region } = this.bot.stackUtils.parseStackArn(stackId)
+    const { service, region } = StackUtils.parseStackArn(stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
 
@@ -844,48 +823,36 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  // public createStackStatusTopic = async ({
-  //   name: string
-  // }) => {
-  //   const { thisStackId } = this.bot.stackUtils
-  //   this.bot.aws.cloudformation.
-  // }
-
-  public canSetupNotifications = () => this.conf.stackStatusNotificationsEmail
-  private ensureCanSetupNotifications = () => {
-    if (!this.canSetupNotifications()) {
-      throw new Errors.InvalidInput(`missing configuration property "stackStatusNotificationsEmail"`)
-    }
-  }
-
-  public setupNotificationsForStack = async ({ id, type, stackId }: {
+  public _setupStackStatusAlerts = async ({ id, type, stackId }: {
     id: string
     type: StackOperationType
     stackId: string
   }) => {
-    this.ensureCanSetupNotifications()
     const name = getTmpSNSTopicName({
-      stackName: this.bot.stackUtils.thisStackName,
+      stackName: this._thisStackName,
       id,
       type
     })
 
-    const { topic } = await this.createTmpSNSTopic({ topic: name, stackId })
-    return await this.subscribeToChildStackStatusNotifications(topic)
+    const arn = await this._createStackUpdateTopic({ topic: name, stackId })
+    return await this._subscribeToChildStackStatusAlerts(arn)
   }
 
-  public createTmpSNSTopic = async ({ topic, stackId }: StackUpdateTopicInput): Promise<ITmpTopicResource> => {
-    const arn = await this.createStackUpdateTopic({ topic, stackId })
-    // try {
-    //   await this._refreshTmpSNSTopic(arn)
-    // } catch (err) {
-    //   Errors.ignoreNotFound(err)
-    // }
+  public _setupLoggingAlerts = async ({ stackId }: {
+    stackId: string
+  }) => {
+    const arn = await this._createLoggingAlertsTopic({ stackId })
+    return await this._subscribeToChildStackLoggingAlerts(arn)
+  }
 
-    return await this.bot.signAndSave({
+  public _saveTopic = async (props: {
+    topic: string
+    dateExpires: number
+    [key: string]: any
+  }) => {
+    await this.bot.signAndSave({
       [TYPE]: TMP_SNS_TOPIC,
-      topic: arn,
-      dateExpires: getTmpTopicExpirationDate()
+      ...props
     })
   }
 
@@ -947,62 +914,6 @@ ${this.genUsageInstructions(links)}`
     return items
   }
 
-  public subscribeToChildStackStatusNotifications = async (topic: string) => {
-    // TODO: this crap belongs in some aws utils module
-    const lambdaArn = this._getLambdaArn('onChildStackStatusChanged')
-    this.logger.debug('subscribing lambda to SNS topic', {
-      topic,
-      lambda: lambdaArn
-    })
-
-    // const promiseSubscribe = this.subscribeLambdaToTopic({ topic, lambda: lambdaArn })
-
-    // not using this because policy hits length limit after a few topics
-    // get subscribed ()
-    // const promisePermission = this.bot.aws.lambda.addPermission({
-    //   StatementId: 'allowTopicTrigger' + randomStringWithLength(10),
-    //   Action: 'lambda:InvokeFunction',
-    //   Principal: 'sns.amazonaws.com',
-    //   SourceArn: topic,
-    //   FunctionName: lambdaArn
-    // }).promise()
-
-    // const subscription = await promiseSubscribe
-    // await promisePermission
-
-    const subscription = await this.subscribeEmailToTopic({
-      email: this.conf.stackStatusNotificationsEmail,
-      topic
-    })
-
-    return {
-      topic,
-      subscription,
-    }
-  }
-
-  public subscribeLambdaToTopic = async ({ lambda, topic }) => {
-    const params:AWS.SNS.SubscribeInput = {
-      TopicArn: topic,
-      Protocol: 'lambda',
-      Endpoint: lambda,
-    }
-
-    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
-    return SubscriptionArn
-  }
-
-  public subscribeEmailToTopic = async ({ email, topic }) => {
-    const params:AWS.SNS.SubscribeInput = {
-      TopicArn: topic,
-      Protocol: 'email',
-      Endpoint: email,
-    }
-
-    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
-    return SubscriptionArn
-  }
-
   public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatus) => {
     const childDeployment = await this.getChildDeploymentByStackId(stackId)
     if (childDeployment.status === status) {
@@ -1036,7 +947,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getDeploymentBucketForRegion = async (region: string) => {
-    if (region === this.env.REGION) {
+    if (region === this._thisRegion) {
       return this.deploymentBucket.id
     }
 
@@ -1051,7 +962,7 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public savePublicTemplate = async ({ template, bucket }: {
+  public _savePublicTemplate = async ({ template, bucket }: {
     template: any
     bucket: string
   }) => {
@@ -1061,12 +972,12 @@ ${this.genUsageInstructions(links)}`
     return this.bot.s3Utils.getUrlForKey({ bucket, key })
   }
 
-  public copyLambdaCode = async ({ template, bucket }: {
+  public _copyLambdaCode = async ({ template, bucket }: {
     template: any
     bucket: string
   }) => {
     let keys:string[] = _.uniq(
-      this.bot.stackUtils.getLambdaS3Keys(template).map(k => k.value)
+      StackUtils.getLambdaS3Keys(template).map(k => k.value)
     )
 
     const source = this.deploymentBucket
@@ -1095,15 +1006,15 @@ ${this.genUsageInstructions(links)}`
     return { bucket: target, keys }
   }
 
-  public saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
+  public _saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
     parentTemplate: any
     template: any
     bucket: string
   }):Promise<{ url: string, code: CodeLocation }> => {
     this.logger.debug('saving template and lambda code', { bucket })
     const [templateUrl, code] = await Promise.all([
-      this.savePublicTemplate({ bucket, template }),
-      this.copyLambdaCode({ bucket, template: parentTemplate })
+      this._savePublicTemplate({ bucket, template }),
+      this._copyLambdaCode({ bucket, template: parentTemplate })
     ])
 
     return { templateUrl, code }
@@ -1187,7 +1098,7 @@ ${this.genUsageInstructions(links)}`
         service: env.SERVERLESS_SERVICE_NAME,
         stage: env.SERVERLESS_STAGE,
         region: env.AWS_REGION,
-        stackId: this.bot.stackUtils.thisStackArn,
+        stackId: this._thisStackArn,
         ...opts
       })
       .toJSON()
@@ -1302,7 +1213,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public includesUpdate = (updateTag: string) => {
-    return compareTags(this.bot.version.tag, updateTag) >= 0
+    return utils.compareTags(this.bot.version.tag, updateTag) >= 0
   }
 
   public validateUpdateResponse = async (updateResponse: ITradleObject) => {
@@ -1380,31 +1291,6 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public createStackUpdateTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
-    const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
-    const sns = this._regionalSNS(stackId)
-    const { TopicArn } = await sns.createTopic(createParams).promise()
-    const allowCrossAccountPublishParams:AWS.SNS.AddPermissionInput = {
-      TopicArn,
-      ActionName: ['Publish'],
-      AWSAccountId: ['*'],
-      // AWSAccountId: getUpdateStackAssumedRoles(stackId),
-      Label: genSID('allowCrossAccountPublish'),
-    }
-
-    const limitReceiveRateParams:AWS.SNS.SetTopicAttributesInput = {
-      TopicArn,
-      AttributeName: 'DeliveryPolicy',
-      AttributeValue: JSON.stringify(TMP_SNS_TOPIC_DELIVERY_POLICY)
-    }
-
-    // for some reason doing these in parallel
-    // causes permission to not get added
-    await sns.setTopicAttributes(limitReceiveRateParams).promise()
-    await sns.addPermission(allowCrossAccountPublishParams).promise()
-    return TopicArn
-  }
-
   public listAvailableUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
       providerPermalink = TRADLE_PERMALINK // await this.getTradleBotPermalink()
@@ -1453,11 +1339,136 @@ ${this.genUsageInstructions(links)}`
     return sortVersions(items)
   }
 
-  private saveMyDeploymentVersionInfo = async () => {
-    return this.saveDeploymentVersionInfo(this.bot.version)
+  public alertAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
+    utils.requireOpts(versionInfo, 'tag')
+    if (!versionInfo[SIG]) {
+      versionInfo = await this.getVersionInfoByTag(versionInfo.tag)
+    }
+
+    const { bot, logger } = this
+    const friends = await bot.friends.list()
+    logger.debug(`alerting ${friends.length} friends about MyCloud update`, versionInfo)
+
+    await Promise.all(friends.map(async (friend) => {
+      logger.debug(`notifying ${friend.name} about MyCloud update`)
+      await bot.send({
+        friend,
+        object: versionInfo
+      })
+    }))
+
+    return true
   }
 
-  private saveDeploymentVersionInfo = async (info: VersionInfo) => {
+  private _saveVersionInfoResource = async (versionInfo: VersionInfo) => {
+    utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
+    return this.bot.draft({ type: VERSION_INFO })
+      .set({
+        ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
+        sortableTag: toSortableTag(versionInfo.tag)
+      })
+      .signAndSave()
+      .then(r => r.toJSON())
+  }
+
+  private _createTopicForCrossAccountEvents = async ({ topic, stackId, allowRoles, deliveryPolicy }) => {
+    const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
+    const sns = this._regionalSNS(stackId)
+    const { TopicArn } = await sns.createTopic(createParams).promise()
+    const allowCrossAccountPublishParams = getCrossAccountPermission(TopicArn, allowRoles)
+    const limitReceiveRateParams = getDeliveryPolicy(TopicArn, deliveryPolicy)
+
+    // for some reason doing these in parallel
+    // causes permission to not get added
+    await sns.setTopicAttributes(limitReceiveRateParams).promise()
+    await sns.addPermission(allowCrossAccountPublishParams).promise()
+    return TopicArn
+  }
+
+  private _createStackUpdateTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
+    const arn = await this._createTopicForCrossAccountEvents({
+      topic,
+      stackId,
+      allowRoles: ['*'],
+      deliveryPolicy: UPDATE_STACK_TOPIC_DELIVERY_POLICY
+    })
+
+    await this._saveTopic({
+      topic: arn,
+      dateExpires: getTmpTopicExpirationDate()
+    })
+
+    return arn
+  }
+
+  private _createLoggingAlertsTopic = async ({ stackId }) => {
+    const parsedStackId = StackUtils.parseStackArn(stackId)
+    const topicName = getLogAlertsTopicName(parsedStackId.name)
+    const arn = await this._createTopicForCrossAccountEvents({
+      topic: topicName,
+      stackId,
+      allowRoles: [
+        getCrossAccountLambdaRole({ stackId, lambdaName: LOG_PROCESSOR_LAMBDA_NAME })
+      ],
+      deliveryPolicy: LOGGING_TOPIC_DELIVERY_POLICY
+    })
+
+    await this._saveTopic({
+      topic: arn,
+      dateExpires: getLogAlertsTopicExpirationDate()
+    })
+
+    return arn
+  }
+
+  private _subscribeToChildStackStatusAlerts = async (topicArn: string) => {
+    return await this._subscribeLambdaToTopic({
+      topic: topicArn,
+      lambda: this._getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
+    })
+  }
+
+  private _subscribeToChildStackLoggingAlerts = async (topicArn: string) => {
+    return await this._subscribeLambdaToTopic({
+      topic: topicArn,
+      lambda: this._getLambdaArn(LOG_PROCESSOR_LAMBDA_NAME)
+    })
+  }
+
+  private _subscribeLambdaToTopic = async ({ lambda, topic }) => {
+    // TODO: this crap belongs in some aws utils module
+    const params:AWS.SNS.SubscribeInput = {
+      TopicArn: topic,
+      Protocol: 'lambda',
+      Endpoint: lambda,
+    }
+
+    this.logger.debug('subscribing lambda to SNS topic', { topic, lambda })
+    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
+    return {
+      lambda,
+      topic,
+      subscription: SubscriptionArn,
+    }
+  }
+
+  private _subscribeEmailToTopic = async ({ email, topic }) => {
+    this.logger.debug('subscribing email to topic', { email, topic })
+    const params:AWS.SNS.SubscribeInput = {
+      TopicArn: topic,
+      Protocol: 'email',
+      Endpoint: email,
+    }
+
+    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
+    return SubscriptionArn
+  }
+
+  private _saveMyDeploymentVersionInfo = async () => {
+    return this._saveDeploymentVersionInfo(this.bot.version)
+  }
+
+  private _saveDeploymentVersionInfo = async (info: VersionInfo) => {
     const { bot, logger } = this
     const botPermalink = await bot.getMyPermalink()
 
@@ -1482,45 +1493,49 @@ ${this.genUsageInstructions(links)}`
     // }
 
     return {
-      versionInfo: await this.saveVersionInfoResource({ ...info, templateUrl }),
+      versionInfo: await this._saveVersionInfoResource({ ...info, templateUrl }),
       updated: true
     }
   }
 
-  public alertAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
-    utils.requireOpts(versionInfo, 'tag')
-    if (!versionInfo[SIG]) {
-      versionInfo = await this.getVersionInfoByTag(versionInfo.tag)
+  private _handleStackUpdateTradle = async () => {
+    const { versionInfo, updated } = await this._saveMyDeploymentVersionInfo()
+    const forced = this.bot.version.alert
+    const should = updated && shouldSendVersionAlert(this.bot.version)
+    if (forced || should) {
+      await this.alertAboutVersion(versionInfo)
     }
-
-    const { bot, logger } = this
-    const friends = await bot.friends.list()
-    logger.debug(`alerting ${friends.length} friends about MyCloud update`, versionInfo)
-
-    await Promise.all(friends.map(async (friend) => {
-      logger.debug(`notifying ${friend.name} about MyCloud update`)
-      await bot.send({
-        friend,
-        object: versionInfo
-      })
-    }))
-
-    return true
   }
 
-  private saveVersionInfoResource = async (versionInfo: VersionInfo) => {
-    utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
-    return this.bot.draft({ type: VERSION_INFO })
-      .set({
-        ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
-        sortableTag: toSortableTag(versionInfo.tag)
+  private _handleStackUpdateNonTradle = async () => {
+    const { logger } = this
+    logger.debug('reporting launch to tradle')
+
+    let result
+    try {
+      result = await this.reportDeployment({
+        targetApiUrl: TRADLE_MYCLOUD_URL,
       })
-      .signAndSave()
-      .then(r => r.toJSON())
+    } catch(err) {
+      Errors.rethrow(err, 'developer')
+      logger.error('failed to report launch to Tradle', err)
+    }
   }
 
   private get _friendEveryone() {
     return isProbablyTradle(this.orgConf)
+  }
+
+  private get _thisStackArn() {
+    return this.bot.stackUtils.thisStackId
+  }
+
+  private get _thisStackName() {
+    return this.bot.stackUtils.thisStackName
+  }
+
+  private get _thisRegion() {
+    return this.env.REGION
   }
 
   private _getLambdaArn = (lambdaShortName: string) => {
@@ -1568,23 +1583,35 @@ ${this.genUsageInstructions(links)}`
   }
 }
 
-const UPDATE_STACK_LAMBDAS = [
-  'updateStack'
-]
+// const UPDATE_STACK_LAMBDAS = [
+//   'updateStack'
+// ]
 
 const getArnRegion = (arn: string) => utils.parseArn(arn).region
 
-export const getUpdateStackAssumedRoles = (stackId: string, lambdas=UPDATE_STACK_LAMBDAS) => {
-  // maybe make a separate lambda for this (e.g. update-stack)
+// export const getUpdateStackAssumedRoles = (stackId: string, lambdas=UPDATE_STACK_LAMBDAS) => {
+//   // maybe make a separate lambda for this (e.g. update-stack)
+//   const {
+//     accountId,
+//     name,
+//     region,
+//   } = StackUtils.parseStackArn(stackId)
+
+//   return lambdas.map(
+//     lambdaName => `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-updateStackRole/${name}-${lambdaName}`
+//   )
+// }
+
+export const getCrossAccountLambdaRole = ({ stackId, lambdaName }: {
+  stackId: string
+  lambdaName: string
+}) => {
   const {
     accountId,
     name,
     region,
   } = StackUtils.parseStackArn(stackId)
-
-  return lambdas.map(
-    lambdaName => `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-updateStackRole/${name}-${lambdaName}`
-  )
+  return `arn:aws:sts::${accountId}:assumed-role/${name}-${region}-lambdaRole/${name}-${lambdaName}`
 }
 
 export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
@@ -1595,19 +1622,6 @@ const scaleTable = ({ table, scale }) => {
   ProvisionedThroughput.WriteCapacityUnits *= scale
   const { GlobalSecondaryIndexes=[] } = table
   GlobalSecondaryIndexes.forEach(index => scaleTable({ table: index, scale }))
-}
-
-const isValidDomain = domain => {
-  return domain.includes('.') && /^(?:[a-zA-Z0-9-_.]+)$/.test(domain)
-}
-
-const normalizeDomain = (domain:string) => {
-  domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
-  if (!isValidDomain(domain)) {
-    throw new Errors.InvalidInput('invalid domain')
-  }
-
-  return domain
 }
 
 const getTmpSNSTopicName = ({ stackName, id, type }: {
@@ -1622,6 +1636,7 @@ const getTmpSNSTopicName = ({ stackName, id, type }: {
 const genSID = (base: string) => `${base}${randomStringWithLength(10)}`
 
 const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
+const getLogAlertsTopicExpirationDate = () => Date.now() + LOG_TOPIC_TTL
 
 const assertNoNullProps = (obj: any, msg: string) => {
   for (let p in obj) {
@@ -1629,12 +1644,6 @@ const assertNoNullProps = (obj: any, msg: string) => {
       throw new Errors.InvalidInput(msg)
     }
   }
-}
-
-const compareTags = (a: string, b: string) => {
-  const as = toSortableTag(a)
-  const bs = toSortableTag(b)
-  return alphabetical(as, bs)
 }
 
 const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
@@ -1650,3 +1659,31 @@ const sortVersions = (items: any[], desc?: boolean) => {
   const sorted = _.sortBy(items, ['sortableTag', '_time'])
   return desc ? sorted.reverse() : sorted
 }
+
+const getDeliveryPolicy = (TopicArn: string, policy: any):AWS.SNS.SetTopicAttributesInput => ({
+  TopicArn,
+  AttributeName: 'DeliveryPolicy',
+  AttributeValue: JSON.stringify(policy)
+})
+
+const getCrossAccountPermission = (TopicArn: string, accounts: string[]):AWS.SNS.AddPermissionInput => ({
+  TopicArn,
+  ActionName: ['Publish'],
+  AWSAccountId: accounts,
+  Label: genSID('allowCrossAccountPublish'),
+})
+
+const getLogAlertsTopicName = (stackName: string) => `${stackName}-alerts`
+const getLogAlertsTopicArn = ({ sourceStackId, targetAccountId }: {
+  sourceStackId: string
+  targetAccountId: string
+}) => {
+  const { name, region, accountId } = StackUtils.parseStackArn(sourceStackId)
+  return getTopicArn({
+    region,
+    accountId: targetAccountId,
+    topicName: getLogAlertsTopicName(name)
+  })
+}
+
+const getTopicArn = ({ accountId, region, topicName }) => `arn:aws:sns:${region}:${accountId}:${topicName}`
