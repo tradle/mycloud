@@ -859,17 +859,6 @@ ${this.genUsageInstructions(links)}`
     return await this._subscribeToChildStackLoggingAlerts(arn)
   }
 
-  public _saveTopic = async (props: {
-    topic: string
-    dateExpires: number
-    [key: string]: any
-  }) => {
-    await this.bot.signAndSave({
-      [TYPE]: TMP_SNS_TOPIC,
-      ...props
-    })
-  }
-
   public deleteTmpSNSTopic = async (topic: string) => {
     const shortName = topic.split(/[/:]/).pop()
     if (!shortName.startsWith('tmp-')) {
@@ -877,12 +866,8 @@ ${this.genUsageInstructions(links)}`
     }
 
     this.logger.debug('unscribing, deleting tmp topic', { topic })
-    await this.unsubscribeFromTopic(topic)
-    await this.deleteTopic(topic)
-  }
-
-  public deleteTopic = async (topic: string) => {
-    this._regionalSNS(topic).deleteTopic({ TopicArn: topic }).promise()
+    await this._unsubscribeFromTopic(topic)
+    await this._deleteTopic(topic)
   }
 
   public deleteExpiredTmpTopics = async () => {
@@ -905,7 +890,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getExpiredTmpSNSTopics = async () => {
-    return this.getTmpSNSTopics({
+    return await this.getTmpSNSTopics({
       LT: {
         dateExpires: Date.now()
       }
@@ -950,14 +935,10 @@ ${this.genUsageInstructions(links)}`
       .signAndSave()
 
     if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
-      await this.unsubscribeFromTopic(subscriptionArn)
+      await this._unsubscribeFromTopic(subscriptionArn)
     }
 
     return updated
-  }
-
-  public unsubscribeFromTopic = async (SubscriptionArn: string) => {
-    await this._regionalSNS(SubscriptionArn).unsubscribe({ SubscriptionArn }).promise()
   }
 
   public getDeploymentBucketForRegion = async (region: string) => {
@@ -1407,7 +1388,7 @@ ${this.genUsageInstructions(links)}`
       deliveryPolicy: UPDATE_STACK_TOPIC_DELIVERY_POLICY
     })
 
-    await this._saveTopic({
+    await this._saveTmpTopicResource({
       topic: arn,
       dateExpires: getTmpTopicExpirationDate()
     })
@@ -1427,7 +1408,7 @@ ${this.genUsageInstructions(links)}`
       deliveryPolicy: LOGGING_TOPIC_DELIVERY_POLICY
     })
 
-    await this._saveTopic({
+    await this._saveTmpTopicResource({
       topic: arn,
       dateExpires: getLogAlertsTopicExpirationDate()
     })
@@ -1476,6 +1457,25 @@ ${this.genUsageInstructions(links)}`
 
     const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
     return SubscriptionArn
+  }
+
+  private _unsubscribeFromTopic = async (SubscriptionArn: string) => {
+    await this._regionalSNS(SubscriptionArn).unsubscribe({ SubscriptionArn }).promise()
+  }
+
+  private _saveTmpTopicResource = async (props: {
+    topic: string
+    dateExpires: number
+    [key: string]: any
+  }) => {
+    await this.bot.signAndSave({
+      [TYPE]: TMP_SNS_TOPIC,
+      ...props
+    })
+  }
+
+  private _deleteTopic = async (topic: string) => {
+    this._regionalSNS(topic).deleteTopic({ TopicArn: topic }).promise()
   }
 
   private _saveMyDeploymentVersionInfo = async () => {
