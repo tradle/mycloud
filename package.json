@@ -119,7 +119,6 @@
     "warmup": "sls warmup run",
     "postinstall": "./src/scripts/postinstall.sh",
     "remove": "npm run build:yml && sls remove",
-    "reinitializecontainers": "sls invoke -f reinitialize-containers",
     "stacksize": "./src/scripts/count-resources.sh",
     "scan": "./src/scripts/scan.sh $@",
     "templates:prerender": "node ./lib/scripts/prerender-templates.js && npm run copy-static-assets",
