@@ -209,7 +209,10 @@ export const createSNSAlerter = ({ sourceStackId, targetAccountId, sns }: {
   return async (event: ParsedEvent) => {
     const params:AWS.SNS.PublishInput = {
       TopicArn: getLogAlertsTopicArn({ sourceStackId, targetAccountId }),
-      Message: JSON.stringify(event),
+      Message: JSON.stringify({
+        // required per: https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
+        default: event
+      }),
     }
 
     await sns.publish(params).promise()

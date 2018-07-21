@@ -365,6 +365,7 @@ provider:
         - lambda:InvokeFunction
         - lambda:InvokeAsync
         - lambda:AddPermission
+        # - lambda:GetPolicy
       Resource: "*"
 
     - Effect: Allow
@@ -420,17 +421,6 @@ provider:
         - sns:GetTopicAttributes
         - sns:SetTopicAttributes
       Resource: "*"
-
-    # allow sns to trigger lambdas in stack
-    # - Effect: Allow
-    #   Action:
-    #     - lambda:InvokeFunction
-    #     - lambda:InvokeAsync
-    #   Principal:
-    #     Service:
-    #       - sns.amazonaws.com
-    #     AWS: '*'
-    #   Resource: '*'
 
     # Iot
     - Effect: Allow
@@ -1460,6 +1450,16 @@ resources:
       #     AliasName: alias/${{self:custom.defaultKMSKeyId}}
       #     TargetKeyId:
       #       Ref: DefaultEncryptionKey
+
+    LogAlertProcessorSNSPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:InvokeFunction
+        Principal: sns.amazonaws.com
+        SourceArn:
+          Fn::Sub: arn:aws:sns:*:${AWS::AccountId}:*
+        FunctionName:
+          Fn::GetAtt: [ LogAlertProcessorLambdaFunction, Arn ]
 
     # UpdateStackIamRole:
     #   Type: AWS::IAM::Role

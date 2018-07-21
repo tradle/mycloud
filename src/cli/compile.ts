@@ -240,6 +240,11 @@ function addResourcesToEnvironment (yaml) {
       throw new Error(`refusing to overwrite environment.${id}`)
     }
 
+    if (resource.Type === 'AWS::Lambda::Permission') {
+      // leaving these in creates a circular dependency
+      return
+    }
+
     const type = resource.Type.split('::').pop().toUpperCase()
     let shortName = id
     if (id.toUpperCase().endsWith(type)) {

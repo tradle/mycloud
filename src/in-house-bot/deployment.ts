@@ -1383,10 +1383,7 @@ ${this.genUsageInstructions(links)}`
     const { Attributes } = await sns.getTopicAttributes({ TopicArn: topic }).promise()
     const policy = JSON.parse(Attributes.Policy)
     // remove old statements
-    const statements = policy.Statement.filter(statement => {
-      return !statement.Sid.startsWith('allowCrossAccountPublish')
-    })
-
+    const statements = policy.Statement.filter(({ Sid }) => !Sid.startsWith('allowCrossAccountPublish'))
     statements.push(getCrossAccountPublishPermission(topic, accounts))
     const params:AWS.SNS.SetTopicAttributesInput = {
       TopicArn: topic,
