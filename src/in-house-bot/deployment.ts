@@ -1384,7 +1384,7 @@ ${this.genUsageInstructions(links)}`
     const policy = JSON.parse(Attributes.Policy)
     // remove old statements
     const statements = policy.Statement.filter(statement => {
-      !statement.Sid.startsWith('allowCrossAccountPublish')
+      return !statement.Sid.startsWith('allowCrossAccountPublish')
     })
 
     statements.push(getCrossAccountPublishPermission(topic, accounts))
