@@ -1540,9 +1540,19 @@ export const listIamRoles = async (iam: AWS.IAM) => {
   return roles
 }
 
-export const toSortableTag = (semver: string) => semver
-  .replace(/^v/, '')
-  .replace(/\d+/g, part => toLexicographicInt(Number(part)))
+export const toSortableTag = (semver: string) => {
+  const tag = semver
+    .replace(/^v/, '')
+    .replace(/\d+/g, part => toLexicographicInt(Number(part)))
+
+  if (tag.includes('-rc.')) {
+    // e.g. '1.2.0-rc.0'
+    return tag
+  }
+
+  // make sure that 1.2.0 gets sorted after 1.2.0-rc.0
+  return tag + '~'
+}
 
 export const compareTags = (a: string, b: string) => {
   const as = toSortableTag(a)

@@ -450,7 +450,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
       const headers = caseless(request.headers)
       if (!this.isUsingServerlessOffline && headers.get('content-encoding') === 'gzip') {
-        this.logger.info('stripping content-encoding header as APIGateway already gunzipped')
+        this.logger.silly('stripping content-encoding header as APIGateway already gunzipped')
         headers.set('content-encoding', 'identity')
         event.headers = request.headers
       }
