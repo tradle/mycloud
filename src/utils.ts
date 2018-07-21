@@ -66,7 +66,7 @@ import {
   IBotMessageEvent,
   Bot,
   Seal,
-  StackStatus,
+  StackStatusEvent,
 } from './types'
 
 import * as types from './typeforce-types'
@@ -1488,7 +1488,7 @@ export const isWellBehavedIntersection = model => {
   // const props = vars.map()
 }
 
-export const parseStackStatusEvent = (event: any): StackStatus => {
+export const parseStackStatusEvent = (event: any): StackStatusEvent => {
   // see src/test/fixtures/cloudformation-stack-status.json
   const props = event.Records[0]['Sns'].Message.split('\n').reduce((map, line) => {
     if (line.indexOf('=') === -1) {
@@ -1500,7 +1500,15 @@ export const parseStackStatusEvent = (event: any): StackStatus => {
     return map
   }, {})
 
-  const { StackId, Timestamp, ResourceStatus, ResourceType } = props
+  const {
+    StackId,
+    Timestamp,
+    ResourceStatus,
+    ResourceType,
+    LogicalResourceId,
+    PhysicalResourceId,
+  } = props
+
   const subscriptionArn = event.Records[0].EventSubscriptionArn
   if (!(StackId && Timestamp && ResourceStatus && ResourceType && subscriptionArn)) {
     throw new Errors.InvalidInput('invalid stack status event')
@@ -1511,6 +1519,8 @@ export const parseStackStatusEvent = (event: any): StackStatus => {
     timestamp: new Date(Timestamp).getTime(),
     status: ResourceStatus,
     resourceType: ResourceType,
+    resourceId: PhysicalResourceId,
+    resourceName: LogicalResourceId,
     subscriptionArn,
   }
 }

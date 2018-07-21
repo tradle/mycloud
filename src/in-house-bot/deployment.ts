@@ -24,7 +24,7 @@ import {
   IDeploymentPluginConf,
   IConf,
   IAppLinkSet,
-  StackStatus,
+  StackStatusEvent,
   VersionInfo,
   IPBUser,
 } from './types'
@@ -564,6 +564,20 @@ export class Deployment {
     return true
   }
 
+  public handleChildStackStatusEvent = async (event: StackStatusEvent) => {
+    const { resourceType, status } = event
+    if (resourceType !== 'AWS::CloudFormation::Stack') return
+    // can ignore this one
+    if (status === 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS') return
+
+    try {
+      await this.setChildStackStatus(event)
+    } catch (err) {
+      this.logger.debug('failed to save child stack status', Errors.export(err))
+      Errors.ignoreNotFound(err)
+    }
+  }
+
   public saveParentDeployment = async ({ friend, childIdentity, apiUrl }: {
     friend: ITradleObject
     childIdentity: ITradleObject
@@ -914,7 +928,7 @@ ${this.genUsageInstructions(links)}`
     return items
   }
 
-  public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatus) => {
+  public setChildStackStatus = async ({ stackId, status, subscriptionArn }: StackStatusEvent) => {
     const childDeployment = await this.getChildDeploymentByStackId(stackId)
     if (childDeployment.status === status) {
       this.logger.debug('ignoring duplicate child stack status update', {

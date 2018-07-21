@@ -702,11 +702,13 @@ export type EnumValueStub = {
   title?: string
 }
 
-export type StackStatus = {
+export type StackStatusEvent = {
   stackId: string
   timestamp: number
   status: AWS.CloudFormation.ResourceStatus
   resourceType: AWS.CloudFormation.ResourceType
+  resourceId: string
+  resourceName: string
   subscriptionArn: string
 }
 

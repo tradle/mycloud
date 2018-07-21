@@ -4,7 +4,8 @@ import * as LambdaEvents from '../../lambda-events'
 import { parseStackStatusEvent } from '../../../utils'
 import Errors from '../../../errors'
 import {
-  IPBMiddlewareContext
+  IPBMiddlewareContext,
+  StackStatusEvent,
 } from '../../types'
 
 const bot = createBot()
@@ -13,7 +14,7 @@ lambda.use(async (ctx:IPBMiddlewareContext) => {
   const { event, components } = ctx
   const { deployment, logger } = components
 
-  let parsed
+  let parsed:StackStatusEvent
   try {
     parsed = parseStackStatusEvent(event)
   } catch (err) {
@@ -22,12 +23,7 @@ lambda.use(async (ctx:IPBMiddlewareContext) => {
   }
 
   logger.debug('received stack status event', event)
-
-  try {
-    await deployment.setChildStackStatus(parsed)
-  } catch (err) {
-    Errors.ignoreNotFound(err)
-  }
+  await deployment.handleChildStackStatusEvent(parsed)
 })
 
 export const handler = lambda.handler
