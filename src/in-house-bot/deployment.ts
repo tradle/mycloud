@@ -131,7 +131,7 @@ const LOGGING_TOPIC_DELIVERY_POLICY = _.merge(UPDATE_STACK_TOPIC_DELIVERY_POLICY
 
 const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
 const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
-const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertsProcessor'
+const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
 
 type StackUpdateTopicInput = {
   topic: string
@@ -1445,7 +1445,7 @@ ${this.genUsageInstructions(links)}`
   private _subscribeToChildStackLoggingAlerts = async (topicArn: string) => {
     return await this._subscribeLambdaToTopic({
       topic: topicArn,
-      lambda: this._getLambdaArn(LOG_PROCESSOR_LAMBDA_NAME)
+      lambda: this._getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
     })
   }
 
