@@ -171,6 +171,7 @@ export class LogProcessor {
     // alert before pruning, to provide maximum context for errors
     const bad = parsed.entries.filter(shouldRaiseAlert)
     if (bad.length) {
+      this.logger.debug('sending alert')
       await this.sendAlert(parsed)
     }
 
