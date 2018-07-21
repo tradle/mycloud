@@ -35,7 +35,6 @@ import {
 import {
   PRIVATE_CONF_BUCKET,
   TYPES,
-  TRADLE_MYCLOUD_URL,
 } from './constants'
 
 import { defaultConf } from './default-conf'

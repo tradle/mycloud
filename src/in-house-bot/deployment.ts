@@ -4,7 +4,7 @@ import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import buildResource from '@tradle/build-resource'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
-import { TRADLE_MYCLOUD_URL, TRADLE_PERMALINK } from './constants'
+import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
 import { appLinks } from '../app-links'
 import {
@@ -44,6 +44,8 @@ import {
   isProbablyTradle,
   getTradleBotStub,
 } from './utils'
+
+import { getLogAlertsTopicArn, getLogAlertsTopicName } from './log-processor'
 
 const { toSortableTag } = utils
 
@@ -1288,7 +1290,7 @@ ${this.genUsageInstructions(links)}`
 
   public listAvailableUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
-      providerPermalink = TRADLE_PERMALINK // await this.getTradleBotPermalink()
+      providerPermalink = TRADLE.PERMALINK // await this.getTradleBotPermalink()
     }
 
     const { items } = await this.bot.db.find({
@@ -1312,7 +1314,7 @@ ${this.genUsageInstructions(links)}`
 
   public listDownloadedUpdates = async (providerPermalink?: string) => {
     if (!providerPermalink) {
-      providerPermalink = TRADLE_PERMALINK // await this.getTradleBotPermalink()
+      providerPermalink = TRADLE.PERMALINK // await this.getTradleBotPermalink()
     }
 
     const { items } = await this.bot.db.find({
@@ -1528,7 +1530,7 @@ ${this.genUsageInstructions(links)}`
     let result
     try {
       result = await this.reportDeployment({
-        targetApiUrl: TRADLE_MYCLOUD_URL,
+        targetApiUrl: TRADLE.API_BASE_URL,
       })
     } catch(err) {
       Errors.rethrow(err, 'developer')
@@ -1686,18 +1688,3 @@ const getCrossAccountPermission = (TopicArn: string, accounts: string[]):AWS.SNS
   AWSAccountId: accounts,
   Label: genSID('allowCrossAccountPublish'),
 })
-
-const getLogAlertsTopicName = (stackName: string) => `${stackName}-alerts`
-const getLogAlertsTopicArn = ({ sourceStackId, targetAccountId }: {
-  sourceStackId: string
-  targetAccountId: string
-}) => {
-  const { name, region, accountId } = StackUtils.parseStackArn(sourceStackId)
-  return getTopicArn({
-    region,
-    accountId: targetAccountId,
-    topicName: getLogAlertsTopicName(name)
-  })
-}
-
-const getTopicArn = ({ accountId, region, topicName }) => `arn:aws:sns:${region}:${accountId}:${topicName}`

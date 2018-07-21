@@ -1,14 +1,23 @@
 import { fromCloudwatchLogs } from '../lambda'
 import { LOGS } from '../lambda-events'
-import { fromLambda } from '../log-processor'
+import { LogProcessor, fromLambda } from '../log-processor'
 
 const lambda = fromCloudwatchLogs({ event: LOGS })
 const { bot, logger } = lambda
-const processor = fromLambda(lambda, { compress: true })
-bot.hookSimple('logs', processor.handleEvent)
+let processor: LogProcessor
 
 lambda.use(async (ctx) => {
-  const { event } = ctx
+  const { event, components } = ctx
+  if (!processor) {
+    processor = fromLambda({
+      lambda,
+      components,
+      compress: true
+    })
+
+    bot.hookSimple('logs', processor.handleEvent)
+  }
+
   await bot.fire('logs', event)
 })
 

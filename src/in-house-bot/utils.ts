@@ -25,7 +25,7 @@ import {
 } from './types'
 
 import { TYPE } from '../constants'
-import { TRADLE_MYCLOUD_URL, TRADLE_PERMALINK, TRADLE_ORG_NAME } from './constants'
+import { TRADLE } from './constants'
 import { safeStringify } from '../string-utils'
 
 const SealModel = models['tradle.Seal']
@@ -558,7 +558,7 @@ export const witness = async (bot: Bot, object: ITradleObject) => {
 }
 
 export const isProbablyTradle = ({ org }) => {
-  return org.name.toLowerCase() === TRADLE_ORG_NAME.toLowerCase()
+  return org.name.toLowerCase() === TRADLE.ORG_NAME.toLowerCase()
 }
 
 export const getTradleBotPermalink = async () => {
@@ -572,6 +572,6 @@ export const getTradleBotStub = async () => {
 }
 
 export const getTradleBotIdentity = async () => {
-  const info = await get(`${TRADLE_MYCLOUD_URL}/info`)
+  const info = await get(`${TRADLE.API_BASE_URL}/info`)
   return info.bot.pub
 }

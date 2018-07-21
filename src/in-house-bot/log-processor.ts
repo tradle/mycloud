@@ -3,13 +3,15 @@ import Promise from 'bluebird'
 import omit from 'lodash/omit'
 import notNull from 'lodash/identity'
 import Errors from '../errors'
+import { StackUtils } from '../stack-utils'
+import { TRADLE } from './constants'
 import {
   IPBLambda,
-  Bot,
   CloudWatchLogsEvent,
   CloudWatchLogsEntry,
   IKeyValueStore,
   Logger,
+  IBotComponents,
 } from './types'
 
 import { Level, noopLogger } from '../logger'
@@ -56,7 +58,7 @@ export type ParsedEvent = {
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'
 const ALERT_CONCURRENCY = 10
-const createDummySendAlert = (logger: Logger) => async (event: ParsedEvent) => {
+const createDummyAlerter = (logger: Logger) => async (event: ParsedEvent) => {
   // TODO
   logger.debug('TODO: send alert for event', getLogEventKey(event))
 }
@@ -67,6 +69,76 @@ const LIFECYCLE = {
   END: 'END',
   REPORT: 'REPORT',
 }
+
+const REGEX = {
+  START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)\s*$/i,
+  END: /^END RequestId:\s*([^\s]+)\s*$/i,
+  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z]+)\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z]+)\s*$/i,
+}
+
+const XRAY_SPAM = [
+  'AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy',
+  'AWS_XRAY_DAEMON_ADDRESS is set',
+  '_X_AMZN_TRACE_ID is missing required data',
+  'Subsegment streaming threshold set to',
+  'capturing all http requests with AWSXRay',
+]
+
+const shouldRaiseAlert = (event: ParsedEntry) => {
+  return Level[event.level] <= Level.WARN
+}
+
+// const MONTHS = [
+//   'jan',
+//   'feb',
+//   'mar',
+//   'apr',
+//   'may',
+//   'jun',
+//   'jul',
+//   'aug',
+//   'sep',
+//   'oct',
+//   'nov',
+//   'dec'
+// ]
+
+const leftPad = (value: string|number, length: number) => {
+  value = String(value)
+  if (value.length < length) {
+    return '0'.repeat(length - value.length) + value
+  }
+
+  return value
+}
+
+const toDate = (timestamp: number) => {
+  const date = new Date(timestamp)
+  const day = date.getUTCDate()
+  const month = date.getUTCMonth() + 1
+  const year = date.getUTCFullYear()
+  return {
+    day: leftPad(day, 2),
+    month: leftPad(month, 2),
+    year: String(year),
+    hour: leftPad(date.getUTCHours(), 2),
+    minute: leftPad(date.getUTCMinutes(), 2),
+  }
+}
+
+const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
+
+const parseFunctionVersion = ({ logStream }: CloudWatchLogsEvent) => {
+  const start = logStream.indexOf('[')
+  const end = logStream.indexOf(']')
+  return logStream.slice(start + 1, end)
+}
+
+const parseFunctionName = ({ logGroup }: CloudWatchLogsEvent) => {
+  return logGroup.split('/').pop()
+}
+
+const getTopicArn = ({ accountId, region, topicName }) => `arn:aws:sns:${region}:${accountId}:${topicName}`
 
 export class LogProcessor {
   private ignoreGroups: string[]
@@ -96,38 +168,67 @@ export class LogProcessor {
     const parsed = this.parseEvent(event)
     if (!parsed.entries.length) return
 
+    // alert before pruning, to provide maximum context for errors
     const bad = parsed.entries.filter(shouldRaiseAlert)
     if (bad.length) {
       await this.sendAlert(parsed)
     }
 
-    const filename = getLogEventKey(parsed)
-    const key = `${filename}.${this.ext}`
-    this.logger.debug(`saving ${parsed.entries.length} entries to ${key}`)
-    await this.store.put(key, parsed)
+    await this.saveEvent(parsed)
   }
 
   public parseEvent = (event: CloudWatchLogsEvent) => {
     const logGroup = getShortGroupName(event.logGroup)
     if (this.ignoreGroups.includes(logGroup)) return
 
-    const parsed = parseLogEvent(event, this.logger)
-    parsed.entries = parsed.entries.filter(shouldSave)
+    return parseLogEvent(event, this.logger)
+  }
+
+  public saveEvent = async (event: ParsedEvent) => {
+    let { entries } = event
+    entries = entries.filter(shouldSave)
     if (this.level != null) {
-      parsed.entries = parsed.entries.filter(entry => {
+      entries = entries.filter(entry => {
         return entry.level == null || Level[entry.level] <= this.level
       })
     }
 
-    return parsed
+    const filename = getLogEventKey(event)
+    const key = `${filename}.${this.ext}`
+    this.logger.debug(`saving ${entries.length} entries to ${key}`)
+    await this.store.put(key, { ...event, entries })
   }
 }
 
-export const fromLambda = (lambda: IPBLambda, opts: { compress?: boolean }={}) => {
-  const { bot, logger } = lambda
-  const { compress } = opts
-  const store = bot.buckets.Logs.folder(lambda.stage).kv({ compress })
-  const sendAlert:SendAlert = createDummySendAlert(logger)
+export const createSNSAlerter = ({ sourceStackId, targetAccountId, sns }: {
+  sourceStackId: string
+  targetAccountId: string
+  sns: AWS.SNS
+}): SendAlert => {
+  return async (event: ParsedEvent) => {
+    const params:AWS.SNS.PublishInput = {
+      TopicArn: getLogAlertsTopicArn({ sourceStackId, targetAccountId }),
+      Message: JSON.stringify(event),
+    }
+
+    await sns.publish(params).promise()
+  }
+}
+
+export const fromLambda = ({ lambda, components, compress }: {
+  lambda: IPBLambda
+  components: IBotComponents
+  compress?: boolean
+}) => {
+  const { bot, logger, deployment } = components
+  const store = bot.buckets.Logs.folder(bot.env.STAGE).kv({ compress })
+  // const sendAlert:SendAlert = createDummyAlerter(logger)
+  const sendAlert = createSNSAlerter({
+    sourceStackId: bot.stackUtils.thisStackArn,
+    targetAccountId: TRADLE.ACCOUNT_ID,
+    sns: bot.aws.sns,
+  })
+
   return new LogProcessor({
     // avoid infinite loop that would result from processing
     // this lambda's own log events
@@ -148,12 +249,6 @@ export const parseLogEntry = (entry: CloudWatchLogsEntry):ParsedEntry => {
     ...rest,
     ...body
   }
-}
-
-const REGEX = {
-  START: /^START RequestId:\s*([^\s]+)\s*Version:\s*(.*)\s*$/i,
-  END: /^END RequestId:\s*([^\s]+)\s*$/i,
-  REPORT: /^REPORT RequestId:\s*([^\s]+)\s*Duration:\s*([^\s]*)\s*ms\s*Billed Duration:\s*([^\s]*)\s*ms\s*Memory Size:\s*(\d+)\s*([a-zA-Z]+)\s*Max Memory Used:\s*(\d+)\s*([a-zA-Z]+)\s*$/i,
 }
 
 export const parseLogEntryMessage = (message: string) => {
@@ -204,14 +299,6 @@ export const parseLogEntryMessage = (message: string) => {
     }
   }
 }
-
-const XRAY_SPAM = [
-  'AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy',
-  'AWS_XRAY_DAEMON_ADDRESS is set',
-  '_X_AMZN_TRACE_ID is missing required data',
-  'Subsegment streaming threshold set to',
-  'capturing all http requests with AWSXRay',
-]
 
 // START RequestId: 55d1e303-8af1-11e8-838a-313beb33f08a Version: $LATEST
 // END RequestId: 4cdd410d-8af1-11e8-abc7-4bd968ce0fe1
@@ -273,48 +360,6 @@ export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogg
   }
 }
 
-const shouldRaiseAlert = (event: ParsedEntry) => {
-  return Level[event.level] <= Level.WARN
-}
-
-// const MONTHS = [
-//   'jan',
-//   'feb',
-//   'mar',
-//   'apr',
-//   'may',
-//   'jun',
-//   'jul',
-//   'aug',
-//   'sep',
-//   'oct',
-//   'nov',
-//   'dec'
-// ]
-
-const leftPad = (value: string|number, length: number) => {
-  value = String(value)
-  if (value.length < length) {
-    return '0'.repeat(length - value.length) + value
-  }
-
-  return value
-}
-
-const toDate = (timestamp: number) => {
-  const date = new Date(timestamp)
-  const day = date.getUTCDate()
-  const month = date.getUTCMonth() + 1
-  const year = date.getUTCFullYear()
-  return {
-    day: leftPad(day, 2),
-    month: leftPad(month, 2),
-    year: String(year),
-    hour: leftPad(date.getUTCHours(), 2),
-    minute: leftPad(date.getUTCMinutes(), 2),
-  }
-}
-
 // const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
 export const getLogEventKey = (event: ParsedEvent, resolution: Resolution=Resolution.HOUR) => {
   const { id, timestamp } = event.entries[0]
@@ -336,14 +381,15 @@ export const getTimePrefix = (timestamp: number, resolution: Resolution=Resoluti
   return `${dayPrefix}/${hour}:${minute}`
 }
 
-const getShortGroupName = (logGroup: string) => logGroup.slice(LOG_GROUP_PREFIX.length)
-
-const parseFunctionVersion = ({ logStream }: CloudWatchLogsEvent) => {
-  const start = logStream.indexOf('[')
-  const end = logStream.indexOf(']')
-  return logStream.slice(start + 1, end)
-}
-
-const parseFunctionName = ({ logGroup }: CloudWatchLogsEvent) => {
-  return logGroup.split('/').pop()
+export const getLogAlertsTopicName = (stackName: string) => `${stackName}-alerts`
+export const getLogAlertsTopicArn = ({ sourceStackId, targetAccountId }: {
+  sourceStackId: string
+  targetAccountId: string
+}) => {
+  const { name, region, accountId } = StackUtils.parseStackArn(sourceStackId)
+  return getTopicArn({
+    region,
+    accountId: targetAccountId,
+    topicName: getLogAlertsTopicName(name)
+  })
 }

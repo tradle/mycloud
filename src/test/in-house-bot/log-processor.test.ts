@@ -26,16 +26,17 @@ test('log processor', loudAsync(async t => {
   t.same(parseLogEvent(rawLogEvent), expectedParsed)
   t.same(getLogEventKey(expectedParsed), '1970-01-01/00:00/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
 
+  const sendAlertStub = sandbox.stub()
   const store = new KeyValueMem()
   const processor = new LogProcessor({
     level: Level.DEBUG,
     logger: noopLogger,
-    sendAlert: async () => {},
+    sendAlert: sendAlertStub,
     store,
     ext: 'json.gz',
   })
 
-  t.equal(processor.parseEvent(rawLogEvent).entries.length, 4)
+  t.equal(processor.parseEvent(rawLogEvent).entries.length, 11)
 
   const putStub = sandbox.stub(store, 'put').callsFake(async (k, v) => {
     t.ok(k.endsWith('.json.gz'))
@@ -43,6 +44,8 @@ test('log processor', loudAsync(async t => {
 
   await processor.handleEvent(rawLogEvent)
   t.equal(putStub.callCount, 1)
+  t.equal(sendAlertStub.callCount, 1)
+  t.same(sendAlertStub.getCall(0).args[0], expectedParsed)
   sandbox.restore()
   t.end()
 }))
