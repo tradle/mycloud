@@ -417,6 +417,7 @@ provider:
         - sns:Unsubscribe
         - sns:ListSubscriptions
         - sns:ListSubscriptionsByTopic
+        - sns:GetTopicAttributes
         - sns:SetTopicAttributes
       Resource: "*"
 
