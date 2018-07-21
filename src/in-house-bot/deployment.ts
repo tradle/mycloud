@@ -1436,11 +1436,14 @@ ${this.genUsageInstructions(links)}`
     return arn
   }
 
-  private _subscribeToChildStackStatusAlerts = async (topicArn: string) => {
-    return await this._subscribeLambdaToTopic({
-      topic: topicArn,
-      lambda: this._getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
-    })
+  private _subscribeToChildStackStatusAlerts = async (topic: string) => {
+    const lambda = this._getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
+    const subscription = await this._subscribeLambdaToTopic({ topic, lambda })
+    return {
+      topic,
+      lambda,
+      subscription,
+    }
   }
 
   private _subscribeToChildStackLoggingAlerts = async (topicArn: string) => {
@@ -1450,33 +1453,41 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  private _subscribeLambdaToTopic = async ({ lambda, topic }) => {
-    // TODO: this crap belongs in some aws utils module
-    const params:AWS.SNS.SubscribeInput = {
-      TopicArn: topic,
-      Protocol: 'lambda',
-      Endpoint: lambda,
-    }
-
-    this.logger.debug('subscribing lambda to SNS topic', { topic, lambda })
-    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
-    return {
-      lambda,
-      topic,
-      subscription: SubscriptionArn,
-    }
+  private _subscribeEmailToTopic = async ({ email, topic }) => {
+    return await this._subscribeToTopic({ topic, protocol: 'email', endpoint: email })
   }
 
-  private _subscribeEmailToTopic = async ({ email, topic }) => {
-    this.logger.debug('subscribing email to topic', { email, topic })
-    const params:AWS.SNS.SubscribeInput = {
-      TopicArn: topic,
-      Protocol: 'email',
-      Endpoint: email,
+  private _subscribeLambdaToTopic = async ({ lambda, topic }) => {
+    return await this._subscribeToTopic({ topic, protocol: 'lambda', endpoint: lambda })
+  }
+
+  private _subscribeToTopic = async ({ topic, protocol, endpoint }: {
+    topic: string
+    protocol: 'email' | 'lambda'
+    endpoint: string
+  }) => {
+    const sns = this._regionalSNS(topic)
+    const existing = await utils.getSNSSubscriptions({
+      sns,
+      topic,
+      filter: sub => _.isMatch(sub, { Protocol: protocol, Endpoint: endpoint })
+    })
+
+    let sub: AWS.SNS.Subscription
+    if (existing.length) {
+      sub = existing[0]
+    } else {
+      this.logger.debug(`subscribing ${protocol} to topic`, { endpoint, topic })
+      const params: AWS.SNS.SubscribeInput = {
+        TopicArn: topic,
+        Protocol: 'email',
+        Endpoint: endpoint,
+      }
+
+      sub = await sns.subscribe(params).promise()
     }
 
-    const { SubscriptionArn } = await this._regionalSNS(topic).subscribe(params).promise()
-    return SubscriptionArn
+    return sub.SubscriptionArn
   }
 
   private _unsubscribeFromTopic = async (SubscriptionArn: string) => {
