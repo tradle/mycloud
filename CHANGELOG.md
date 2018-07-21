@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0-rc.4"></a>
+# [1.2.0-rc.4](https://github.com/tradle/serverless/compare/v1.2.0-rc.2...v1.2.0-rc.4) (2018-07-21)
+
+
+### Features
+
+* impl sns alerter for log processor ([a9706e0](https://github.com/tradle/serverless/commit/a9706e0))
+
+
+
 <a name="1.2.0-rc.3"></a>
 # [1.2.0-rc.3](https://github.com/tradle/serverless/compare/v1.2.0-rc.2...v1.2.0-rc.3) (2018-07-21)
 
