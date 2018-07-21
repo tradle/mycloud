@@ -3,7 +3,7 @@
   "version": "1.1.18",
   "main": "index.js",
   "private": "true",
-  "repository": "https://github.com/tradle/aws",
+  "repository": "https://github.com/tradle/serverless",
   "author": "Mark Vayngrib <mark@tradle.io>",
   "license": "MIT",
   "devDependencies": {
@@ -43,6 +43,7 @@
     "serverless-plugin-tracing": "^1.0.6",
     "serverless-s3-local": "github:mvayngrib/serverless-s3-local",
     "sinon": "^3.3.0",
+    "standard-version": "^4.4.0",
     "tape": "^4.6.3",
     "validate-commit-msg": "^2.14.0"
   },
@@ -124,9 +125,10 @@
     "templates:prerender": "node ./lib/scripts/prerender-templates.js && npm run copy-static-assets",
     "fix:redis": "echo restarting redis, it\\'s been naughty && cd docker && docker-compose -f ./docker-compose-localstack.yml restart redis",
     "clean:deps": "echo 'removing unused optional deps of serverless-iot-local and nunjucks' && npm uninstall -S zmq ampqlib amqp kafka-node mongodb qlobber-fsq kerberos chokidar fsevents",
-    "release:patch": "./src/scripts/release.sh patch",
-    "release:minor": "./src/scripts/release.sh minor",
-    "release:major": "./src/scripts/release.sh major"
+    "release": "standard-version",
+    "release:patch": "standard-version --release-as patch",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
@@ -234,5 +236,10 @@
       "doctoc",
       "git add"
     ]
+  },
+  "standard-version": {
+    "skip": {
+      "tag": true
+    }
   }
 }
