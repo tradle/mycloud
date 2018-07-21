@@ -1,3 +1,23 @@
+# Change Log
+
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+<a name="1.2.0-rc.0"></a>
+# [1.2.0-rc.0](https://github.com/tradle/serverless/compare/v1.1.18...v1.2.0-rc.0) (2018-07-21)
+
+
+### Bug Fixes
+
+* child stack status event processing ([72ac4c8](https://github.com/tradle/serverless/commit/72ac4c8))
+* gen-version-info for release candidate tags ([56c49b3](https://github.com/tradle/serverless/commit/56c49b3))
+
+
+### Features
+
+* cross-account log alerts ([f557f83](https://github.com/tradle/serverless/commit/f557f83))
+
+
+
 <a name="1.1.18"></a>
 ## [1.1.18](https://github.com/tradle/serverless/compare/v1.1.17...v1.1.18) (2018-07-20)
 
