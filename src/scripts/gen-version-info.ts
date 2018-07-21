@@ -5,7 +5,10 @@ import proc from 'child_process'
 const exec = (cmd: string) => proc.execSync(cmd, { encoding: 'utf8' }).trim()
 const commit = exec(`git rev-parse HEAD`).slice(0, 8)
 const { version } = require('../../package.json')
-const [tag, commitsSinceTag] = exec(`git describe --long`).split('-')
+const [tag, commitsSinceTag] = exec(`git describe --long`)
+  .match(/^(.*?)-(\d+)-g([^-]+)$/)
+  .slice(1)
+
 const branch = exec(`git symbolic-ref --short HEAD`)
 const info = {
   commit,
