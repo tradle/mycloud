@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0-rc.7"></a>
+# [1.2.0-rc.7](https://github.com/tradle/serverless/compare/v1.2.0-rc.6...v1.2.0-rc.7) (2018-07-21)
+
+
+### Bug Fixes
+
+* add missing sns iam permission ([06460a2](https://github.com/tradle/serverless/commit/06460a2))
+
+
+
 <a name="1.2.0-rc.6"></a>
 # [1.2.0-rc.6](https://github.com/tradle/serverless/compare/v1.2.0-rc.5...v1.2.0-rc.6) (2018-07-21)
 
