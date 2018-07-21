@@ -412,6 +412,7 @@ provider:
         - sns:AddPermission
         - sns:CreateTopic
         - sns:DeleteTopic
+        - sns:Publish
         - sns:Subscribe
         - sns:Unsubscribe
         - sns:ListSubscriptions

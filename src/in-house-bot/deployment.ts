@@ -1372,14 +1372,32 @@ ${this.genUsageInstructions(links)}`
     const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
     const sns = this._regionalSNS(stackId)
     const { TopicArn } = await sns.createTopic(createParams).promise()
-    const allowCrossAccountPublishParams = getCrossAccountPermission(TopicArn, allowRoles)
     const limitReceiveRateParams = getDeliveryPolicy(TopicArn, deliveryPolicy)
-
-    // for some reason doing these in parallel
-    // causes permission to not get added
     await sns.setTopicAttributes(limitReceiveRateParams).promise()
-    await sns.addPermission(allowCrossAccountPublishParams).promise()
+    await this._allowCrossAccountPublish(TopicArn, allowRoles)
     return TopicArn
+  }
+
+  private _allowCrossAccountPublish = async (topic: string, accounts: string[]) => {
+    const sns = this._regionalSNS(topic)
+    const { Attributes } = await sns.getTopicAttributes({ TopicArn: topic }).promise()
+    const policy = JSON.parse(Attributes.Policy)
+    // remove old statements
+    const statements = policy.Statement.filter(statement => {
+      !statement.Sid.startsWith('allowCrossAccountPublish')
+    })
+
+    statements.push(getCrossAccountPublishPermission(topic, accounts))
+    const params:AWS.SNS.SetTopicAttributesInput = {
+      TopicArn: topic,
+      AttributeName: 'Policy',
+      AttributeValue: JSON.stringify({
+        ...policy,
+        Statement: statements
+      })
+    }
+
+    await sns.setTopicAttributes(params).promise()
   }
 
   private _createStackUpdateTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
@@ -1682,9 +1700,12 @@ const getDeliveryPolicy = (TopicArn: string, policy: any):AWS.SNS.SetTopicAttrib
   AttributeValue: JSON.stringify(policy)
 })
 
-const getCrossAccountPermission = (TopicArn: string, accounts: string[]):AWS.SNS.AddPermissionInput => ({
-  TopicArn,
-  ActionName: ['Publish'],
-  AWSAccountId: accounts,
-  Label: genSID('allowCrossAccountPublish'),
+const getCrossAccountPublishPermission = (topic: string, accounts: string[]) => ({
+  Sid: genSID('allowCrossAccountPublish'),
+  Effect: 'Allow',
+  Principal: {
+    AWS: accounts
+  },
+  Action: 'SNS:Publish',
+  Resource: topic
 })
