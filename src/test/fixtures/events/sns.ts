@@ -1,4 +1,6 @@
-const Message = JSON.stringify(require('./parsed-log-event.json'))
+const Message = JSON.stringify({
+  default: require('./parsed-log-event.json')
+})
 
 export = {
   "Records": [

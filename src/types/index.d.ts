@@ -43,11 +43,14 @@ import { Iot, IIotEndpointInfo } from '../iot-utils'
 import { Events, EventTopic } from '../events'
 import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
-import {
+import { ResourceStub } from '@tradle/validate-resource'
+
+export {
   ResourceStub,
   ParsedResourceStub,
   GetResourceIdentifierInput,
-  GetResourceIdentifierOutput
+  GetResourceIdentifierOutput,
+  ValidateResourceOpts,
 } from '@tradle/validate-resource'
 
 export type Constructor<T = {}> = new (...args: any[]) => T
@@ -56,11 +59,6 @@ export * from '../retryable-task'
 export { ECKey } from '../crypto'
 
 export {
-  // re-export from @tradle/validate-resource
-  ResourceStub,
-  ParsedResourceStub,
-  GetResourceIdentifierInput,
-  GetResourceIdentifierOutput,
   // re-export from @tradle/dynamodb
   DB,
   Table,

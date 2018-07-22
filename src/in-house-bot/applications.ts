@@ -10,6 +10,7 @@ import flatten from 'lodash/flatten'
 import isEmpty from 'lodash/isEmpty'
 import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
+import validateResource from '@tradle/validate-resource'
 import { parseStub } from '../utils'
 import { isPassedCheck } from './utils'
 import Errors from '../errors'
@@ -22,7 +23,7 @@ import {
   IPBUser,
   Models,
   ApplicationSubmission,
-  Logger
+  Logger,
 } from './types'
 
 import { Resource } from '../resource'
@@ -241,7 +242,14 @@ export class Applications {
   }
 
   public requestEdit = async (opts) => {
-    const { req={} } = opts
+    const { req={}, item } = opts
+    if (item && item[TYPE]) {
+      this.validateResource({
+        partial: true,
+        resource: item
+      })
+    }
+
     return await this.productsAPI.requestEdit({
       ...opts,
       application: opts.application || req.application,
@@ -386,6 +394,10 @@ export class Applications {
   }
 
   private buildResource = () => buildResource({ models: this.models })
+  private validateResource = (opts) => validateResource.resource({
+    models: this.models,
+    ...opts
+  })
 
   private getApplicantFromApplication = async (application: IPBApp) => {
     return await this.bot.users.get(application.applicant._permalink)

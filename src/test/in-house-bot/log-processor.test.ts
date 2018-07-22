@@ -23,9 +23,9 @@ test('log entry and alert parsing', loudAsync(async t => {
   // const parsed = sampleLog.map(parseLogEntryMessage)
   t.equal(LP.parseMessageBody('AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy to LOG_ERROR.\n"').__xray__, true)
   t.same(LP.parseLogEvent(rawLogEvent), parsedLogEvent)
-  t.same(LP.getLogEventKey(parsedLogEvent), '1970-01-01/00:00/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
+  t.same(LP.getLogEventKey(parsedLogEvent), 'logs/1970-01-01/00:00/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
   t.equal(LP.parseLogEvent(rawLogEvent).entries.length, 11)
-  t.equal(LP.getAlertEventKey(parsedAlertEvent), '12345678902/tdl-example-ltd-dev-us-east-1/1970-01-01/00:00/00-a57bb402eb')
+  t.equal(LP.getAlertEventKey(parsedAlertEvent), 'alerts/12345678902/tdl-example-ltd-dev-us-east-1/1970-01-01/00:00/00-a57bb402eb')
   t.same(LP.parseAlertEvent(rawAlertEvent), parsedAlertEvent)
 
   t.end()
