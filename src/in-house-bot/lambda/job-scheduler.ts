@@ -5,7 +5,13 @@ import { fromSchedule } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
 import { Job, IBotComponents } from '../types'
 import * as JOBS from '../jobs'
-import { WARMUP_PERIOD, WARMUP_FUNCTION, DEFAULT_JOB_RUNNER_FUNCTION } from '../../constants'
+import {
+  WARMUP_PERIOD,
+  WARMUP_FUNCTION,
+  DEFAULT_JOB_RUNNER_FUNCTION,
+  POLLCHAIN_FUNCTION,
+  SEALPENDING_FUNCTION,
+} from '../../constants'
 
 const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
 const { bot } = lambda
@@ -32,12 +38,12 @@ const COMMON_JOBS:Job[] = [
   },
   {
     name: 'sealpending',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    function: SEALPENDING_FUNCTION,
     period: 10 * MINUTE,
   },
   {
     name: 'pollchain',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    function: POLLCHAIN_FUNCTION,
     period: 10 * MINUTE,
   },
   {

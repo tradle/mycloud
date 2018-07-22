@@ -15,6 +15,8 @@ import {
   WARMUP_PERIOD,
   WARMUP_FUNCTION,
   REINITIALIZE_CONTAINERS_FUNCTION,
+  SEALPENDING_FUNCTION,
+  POLLCHAIN_FUNCTION,
   unitToMillis
 } from './constants'
 
@@ -263,7 +265,7 @@ export default class LambdaUtils {
   }
 
   public scheduleReinitializeContainers = async (functions?: string[]) => {
-    await this.invoke({
+    return await this.invoke({
       name: REINITIALIZE_CONTAINERS_FUNCTION,
       sync: false,
       arg: {
@@ -274,13 +276,53 @@ export default class LambdaUtils {
   }
 
   public scheduleWarmUp = async (event=DEFAULT_WARMUP_EVENT) => {
-    await this.invoke({
+    return await this.invoke({
       name: WARMUP_FUNCTION,
       arg: {
         name: 'warmup',
         input: event
       },
       sync: false
+    })
+  }
+
+  public invokeSealPending = async () => {
+    return await this.invoke({
+      name: SEALPENDING_FUNCTION,
+      sync: true,
+      arg: {
+        name: 'sealpending'
+      }
+    })
+  }
+
+  public scheduleSealPending = async () => {
+    return await this.invoke({
+      name: SEALPENDING_FUNCTION,
+      sync: false,
+      arg: {
+        name: 'sealpending'
+      }
+    })
+  }
+
+  public invokePollChain = async () => {
+    return await this.invoke({
+      name: POLLCHAIN_FUNCTION,
+      sync: true,
+      arg: {
+        name: 'pollchain'
+      }
+    })
+  }
+
+  public schedulePollChain = async () => {
+    return await this.invoke({
+      name: POLLCHAIN_FUNCTION,
+      sync: false,
+      arg: {
+        name: 'pollchain'
+      }
     })
   }
 
