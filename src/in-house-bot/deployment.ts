@@ -51,6 +51,7 @@ const { toSortableTag } = utils
 
 const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LOG_TOPIC_TTL = unitToMillis.year
+const UPDATE_TOPIC_TTL = unitToMillis.year
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
@@ -135,11 +136,6 @@ const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
 const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
 const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
 
-type StackUpdateTopicInput = {
-  topic: string
-  stackId: string
-}
-
 type CodeLocation = {
   bucket: Bucket
   keys: string[]
@@ -152,6 +148,11 @@ enum StackOperationType {
 
 type UpdateDeploymentConf = {
   adminEmail: string
+}
+
+type ChildStackIdentifier = {
+  stackOwner: string
+  stackId: string
 }
 
 // interface IUpdateChildDeploymentOpts {
@@ -309,6 +310,7 @@ export class Deployment {
 
     const result = await this.genUpdatePackageForStack({
       // deployment: childDeployment,
+      stackOwner: childDeployment.identity._permalink,
       stackId: stackId || childDeployment.stackId,
       adminEmail: configuration.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
@@ -325,14 +327,15 @@ export class Deployment {
   public _getTemplateByUrl = utils.get
 
   public genUpdatePackageForStack = async (opts: {
+    stackOwner: string
     stackId: string
     parentTemplateUrl: string
     adminEmail: string
     // deployment:
   }) => {
-    utils.requireOpts(opts, ['stackId', 'parentTemplateUrl', 'adminEmail'])
+    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl', 'adminEmail'])
 
-    const { stackId, adminEmail, parentTemplateUrl } = opts
+    const { stackOwner, stackId, adminEmail, parentTemplateUrl } = opts
     const { region, accountId, name } = StackUtils.parseStackArn(stackId)
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
@@ -346,12 +349,7 @@ export class Deployment {
       bucket,
     })
 
-    const setupStackAlerts = this._setupStackStatusAlerts({
-      id: `${accountId}-${name}`,
-      type: StackOperationType.update,
-      stackId
-    })
-
+    const setupStackAlerts = this._setupStackStatusAlerts({ stackOwner, stackId })
     const setupLoggingAlerts = this._setupLoggingAlerts({ stackId })
     const notificationTopics = [(await setupStackAlerts).topic]
     const loggingTopic = await setupLoggingAlerts
@@ -839,18 +837,8 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public _setupStackStatusAlerts = async ({ id, type, stackId }: {
-    id: string
-    type: StackOperationType
-    stackId: string
-  }) => {
-    const name = getTmpSNSTopicName({
-      stackName: this._thisStackName,
-      id,
-      type
-    })
-
-    const arn = await this._createStackUpdateTopic({ topic: name, stackId })
+  public _setupStackStatusAlerts = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
+    const arn = await this._createStackUpdateTopic({ stackOwner, stackId })
     return await this._subscribeToChildStackStatusAlerts(arn)
   }
 
@@ -1125,6 +1113,7 @@ ${this.genUsageInstructions(links)}`
     ])
 
     const pkg = await this.genUpdatePackageForStack({
+      stackOwner: req._org || req._author,
       stackId: req.stackId,
       adminEmail: req.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
@@ -1397,9 +1386,9 @@ ${this.genUsageInstructions(links)}`
     await sns.setTopicAttributes(params).promise()
   }
 
-  private _createStackUpdateTopic = async ({ topic, stackId }: StackUpdateTopicInput) => {
+  private _createStackUpdateTopic = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
     const arn = await this._createTopicForCrossAccountEvents({
-      topic,
+      topic: getStackUpdateTopicName({ stackOwner, stackId }),
       stackId,
       allowRoles: ['*'],
       deliveryPolicy: UPDATE_STACK_TOPIC_DELIVERY_POLICY
@@ -1407,7 +1396,7 @@ ${this.genUsageInstructions(links)}`
 
     await this._saveTmpTopicResource({
       topic: arn,
-      dateExpires: getTmpTopicExpirationDate()
+      dateExpires: getStackUpdateTopicExpirationDate()
     })
 
     return arn
@@ -1691,18 +1680,13 @@ const scaleTable = ({ table, scale }) => {
   GlobalSecondaryIndexes.forEach(index => scaleTable({ table: index, scale }))
 }
 
-const getTmpSNSTopicName = ({ stackName, id, type }: {
-  stackName: string
-  id: string
-  type: StackOperationType
-}) => {
-  const verb = type === StackOperationType.create ? 'create' : 'update'
-  return `${stackName}-tmp-${verb}-${id}-${randomStringWithLength(10)}`
+const genSID = (base: string) => `${base}${randomStringWithLength(10)}`
+const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) => {
+  return `${stackId}-stack-status-${stackOwner.slice(0, 10)}`
 }
 
-const genSID = (base: string) => `${base}${randomStringWithLength(10)}`
-
-const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
+// const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
+const getStackUpdateTopicExpirationDate = () => Date.now() + UPDATE_TOPIC_TTL
 const getLogAlertsTopicExpirationDate = () => Date.now() + LOG_TOPIC_TTL
 
 const assertNoNullProps = (obj: any, msg: string) => {
