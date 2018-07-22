@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0-rc.12"></a>
+# [1.2.0-rc.12](https://github.com/tradle/serverless/compare/v1.2.0-rc.11...v1.2.0-rc.12) (2018-07-22)
+
+
+### Bug Fixes
+
+* permissions required to create regional deployment buckets dynamically ([2d7a426](https://github.com/tradle/serverless/commit/2d7a426))
+* **deployment plugin:** edit request for unsupported region ([acf9b91](https://github.com/tradle/serverless/commit/acf9b91))
+
+
+
 <a name="1.2.0-rc.11"></a>
 # [1.2.0-rc.11](https://github.com/tradle/serverless/compare/v1.2.0-rc.10...v1.2.0-rc.11) (2018-07-22)
 
