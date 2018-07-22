@@ -8,6 +8,7 @@ import { StackUtils } from '../stack-utils'
 import { TRADLE } from './constants'
 import { sha256 } from '../crypto'
 import {
+  Env,
   IPBLambda,
   SNSEvent,
   SNSEventRecord,
@@ -160,7 +161,7 @@ export const parseAlertEvent = (event: SNSEvent) => {
   const { accountId, region, stackName } = parseLogAlertsTopicArn(topic)
   let body
   try {
-    body = JSON.parse(Message)
+    body = JSON.parse(Message).default
   } catch (err) {
     throw new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`)
   }
@@ -271,7 +272,7 @@ export const createSNSAlerter = ({ sourceStackId, targetAccountId, sns }: {
   }
 }
 
-export const fromLambda = ({ lambda, components, compress }: {
+export const fromLambda = ({ lambda, components, compress=true }: {
   lambda: IPBLambda
   components: IBotComponents
   compress?: boolean
@@ -419,7 +420,7 @@ export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogg
 export const getLogEventKey = (event: ParsedLogEvent, resolution: Resolution=Resolution.HOUR) => {
   const { id, timestamp } = event.entries[0]
   const timePrefix = getTimePrefix(timestamp, resolution)
-  return `${timePrefix}/${event.function.name}/${id}`
+  return `logs/${timePrefix}/${event.function.name}/${id}`
 }
 
 export const getTimePrefix = (timestamp: number, resolution: Resolution=Resolution.HOUR) => {
@@ -473,5 +474,8 @@ export const getAlertEventKey = (event: ParsedAlertEvent) => {
   const { accountId, stackName, region, timestamp } = event
   const hash = sha256(event, 'hex').slice(0, 10)
   const { year, month, day, hour, minute } = toDate(timestamp)
-  return `${accountId}/${stackName}-${region}/${year}-${month}-${day}/${hour}:00/${minute}-${hash}`
+  return `alerts/${accountId}/${stackName}-${region}/${year}-${month}-${day}/${hour}:00/${minute}-${hash}`
 }
+
+// export const getLogsFolder = (env: Env) => `$logs/{env.STAGE}`
+// export const getAlertsFolder = (env: Env) => `alerts/${env.STAGE}`

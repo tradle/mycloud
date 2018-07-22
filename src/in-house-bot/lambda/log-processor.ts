@@ -9,12 +9,7 @@ let processor: LogProcessor
 lambda.use(async (ctx) => {
   const { event, components } = ctx
   if (!processor) {
-    processor = fromLambda({
-      lambda,
-      components,
-      compress: true
-    })
-
+    processor = fromLambda({ lambda, components })
     bot.hookSimple('logs', processor.handleLogEvent)
   }
 
