@@ -132,10 +132,15 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     plugin: {
       onFormsCollected,
       'onmessage:tradle.cloud.UpdateRequest': async (req: IPBReq) => {
-        await deployment.handleUpdateRequest({
-          req: req.payload,
-          from: req.user
-        })
+        try {
+          await deployment.handleUpdateRequest({
+            req: req.payload,
+            from: req.user
+          })
+        } catch (err) {
+          Errors.ignoreNotFound(err)
+          logger.debug('version not found', Errors.export(err))
+        }
       },
       'onmessage:tradle.cloud.UpdateResponse': async (req: IPBReq) => {
         await deployment.handleUpdateResponse(req.payload)
