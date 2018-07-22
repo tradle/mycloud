@@ -7,6 +7,10 @@ import { runWithTimeout } from './utils'
 
 type ShouldRetry = (err) => boolean
 
+class RetryError extends Error {
+  public attempts: number
+}
+
 export interface IRetryableTaskOpts {
   initialDelay?: number
   maxAttempts?: number
@@ -60,7 +64,8 @@ export default class RetryableTask {
         })
       } catch (err) {
         if (!this.shouldTryAgain(err)) {
-          throw err
+          err.attempts = attempts
+          throw err as RetryError
         }
 
         if (this.logger) {
@@ -77,7 +82,9 @@ export default class RetryableTask {
       }
     }
 
-    throw new Errors.Timeout(`after ${(Date.now() - start)}ms`)
+    const err:any = new RetryError(`timed out after ${(Date.now() - start)}ms`)
+    err.attempts = attempts
+    throw err
   }
 }
 

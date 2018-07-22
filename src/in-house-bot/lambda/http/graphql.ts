@@ -1,8 +1,9 @@
-import { EventSource } from '../../../lambda'
+import { EventSource, fromHTTP } from '../../../lambda'
 import { configureLambda } from '../..'
 import sampleQueries from '../../sample-queries'
 import { createBot } from '../../../'
 import { createMiddleware } from '../../middleware/graphql'
+import { IPBLambdaHttp as Lambda } from '../../types'
 
 const bot = createBot({ ready: false })
 
@@ -20,10 +21,8 @@ const promiseCustomize = configureLambda({
     }
   })
 
-const lambda = bot.createLambda({
-  source: EventSource.HTTP,
-  middleware: promiseCustomize.then(({ middleware }) => middleware)
-})
+const middleware = promiseCustomize.then(({ middleware }) => middleware)
+const lambda = fromHTTP({ bot, middleware }) as Lambda
 
 const { logger, handler } = lambda
 const init = async () => {

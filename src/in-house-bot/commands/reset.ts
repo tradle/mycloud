@@ -8,6 +8,7 @@ export const command:ICommand = {
   examples: [
     '/reset-identity-with-no-undo',
   ],
+  adminOnly: true,
   exec: async ({ commander, req, ctx, args }) => {
     const { bot } = commander
     if (!ctx.sudo) throw new Error('forbidden')

@@ -401,6 +401,19 @@ The log is going nuts but the mobile/web client can't seem to communicate with y
 **Cause**: if you have multiple clients connected at once (e.g. mobile, simulator, multiple browser tabs), your machine probably just can't handle it. If you've got Dev Tools open and are debugging your lambdas, that exacerbates things. This is due to the fact that locally, the serverless environment is simulated by invoking each lambda function as if it's waking up for the first time in a docker container. It needs to `require()` everything from scratch, then run itself, then die. This is memory/computation expensive.
 **Fix**: turn off the debugger, don't use more clients than your machine can handle. Yes, locally, this might only be a 2-5!
 
+**Symptom 6**
+
+```
+Credentials Error --------------------------------------
+
+Missing credentials in config
+```
+
+**Cause 1**: your AWS cli is not configured with your credentials
+**Fix**: see [AWS cli](#aws-cli)
+
+**Cause 2**: you may be using a global installation of `serverless` rather than the project-local one. If you're running Tradle locally via npm scripts, this should be taken care of for you. If you're running `sls` / `serverless` commands directly, make sure to use the project-local one in `node_modules`, e.g.: `./node_modules/.bin/sls offline start`
+
 ## Scripts
 
 ### npm run localstack:start

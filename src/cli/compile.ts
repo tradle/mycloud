@@ -8,7 +8,7 @@ const LOCALLY_AVAILABLE = [
   'AWS::ApiGateway::RestApi'
 ]
 
-const { HTTP_METHODS, ENV_RESOURCE_PREFIX } = require('../constants')
+const { ENV_RESOURCE_PREFIX } = require('../constants')
 const NUM_INDEXES = 5
 
 export {
@@ -16,12 +16,12 @@ export {
   forEachResourceOfType,
   addCustomResourceDependencies,
   addResourcesToOutputs,
-  addHTTPMethodsToEnvironment,
   addResourcesToEnvironment,
   removeResourcesThatDontWorkLocally,
   addBucketTables,
   stripDevFunctions,
-  setBucketEncryption
+  setBucketEncryption,
+  addLogProcessorEvents,
 }
 
 function addCustomResourceDependencies (yml, interpolated) {
@@ -228,9 +228,9 @@ function stripDevFunctions (yml) {
 
 function addResourcesToEnvironment (yaml) {
   const { provider, functions } = yaml
-  for (let fnName in functions) {
-    addHTTPMethodsToEnvironment(functions[fnName])
-  }
+  // for (let fnName in functions) {
+  //   addHTTPMethodsToEnvironment(functions[fnName])
+  // }
 
   if (!provider.environment) provider.environment = {}
 
@@ -238,6 +238,11 @@ function addResourcesToEnvironment (yaml) {
   forEachResource(yaml, ({ id, resource }) => {
     if (id in environment) {
       throw new Error(`refusing to overwrite environment.${id}`)
+    }
+
+    if (resource.Type === 'AWS::Lambda::Permission') {
+      // leaving these in creates a circular dependency
+      return
     }
 
     const type = resource.Type.split('::').pop().toUpperCase()
@@ -257,27 +262,6 @@ function addResourcesToEnvironment (yaml) {
 
   environment[`${ENV_RESOURCE_PREFIX}RESTAPI_ApiGateway`] = {
     Ref: 'ApiGatewayRestApi'
-  }
-}
-
-function addHTTPMethodsToEnvironment (conf) {
-  if (!conf.events) return
-
-  const methods = conf.events.filter(e => e.http)
-    .map(e => e.http.method.toUpperCase())
-
-  if (!methods.length) return
-
-  if (!conf.environment) {
-    conf.environment = {}
-  }
-
-  if (methods.length === 1 && methods[0] === 'ANY') {
-    conf.environment.HTTP_METHODS = HTTP_METHODS
-  } else {
-    conf.environment.HTTP_METHODS = methods
-      .concat('OPTIONS')
-      .join(',')
   }
 }
 
@@ -314,4 +298,21 @@ function removeResourcesThatDontWorkLocally ({ provider, resources }) {
     })
 
   provider.iamRoleStatements = []
+}
+
+function addLogProcessorEvents (yaml: any) {
+  const processLambdaName = 'logProcessor'
+  const logProcessor = yaml.functions[processLambdaName]
+  // const naming = require('serverless/lib/plugins/aws/lib/naming')
+  logProcessor.events = Object.keys(yaml.functions)
+    .filter(name => name !== processLambdaName)
+    .map(name => ({
+      cloudwatchLog: {
+        logGroup: `/aws/lambda/${yaml.custom.prefix}${name}`,
+        // logGroup: {
+        //   Ref: naming.getLogGroupLogicalId(name)
+        // },
+        // filter: ''
+      }
+    }))
 }

@@ -7,6 +7,7 @@ import _ from 'lodash'
 // allow override promise
 // @ts-ignore
 import Promise from 'bluebird'
+import lexint from 'lexicographic-integer'
 import {
   pick,
   omit,
@@ -36,7 +37,7 @@ import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import fetch from 'node-fetch'
-import { prettify, stableStringify, safeStringify } from './string-utils'
+import { prettify, stableStringify, safeStringify, alphabetical } from './string-utils'
 import {
   SIG,
   TYPE,
@@ -65,6 +66,7 @@ import {
   IBotMessageEvent,
   Bot,
   Seal,
+  StackStatusEvent,
 } from './types'
 
 import * as types from './typeforce-types'
@@ -599,10 +601,10 @@ const zeroPad = (n, digits) => {
 export const getLaunchStackUrl = ({
   region=process.env.AWS_REGION,
   stackName,
-  templateURL,
+  templateUrl,
   quickLink=true
 }: ILaunchStackUrlOpts) => {
-  const qs = querystring.stringify(pickNonNull({ stackName, templateURL }))
+  const qs = querystring.stringify(pickNonNull({ stackName, templateURL: templateUrl }))
   const path = quickLink ? 'stacks/create/review' : 'stacks/new'
   return `${LAUNCH_STACK_BASE_URL}?region=${region}#/${path}?${qs}`
 }
@@ -616,9 +618,9 @@ export const parseLaunchStackUrl = (url: string) => {
 
 export const getUpdateStackUrl = ({
   stackId,
-  templateURL
+  templateUrl
 }: IUpdateStackUrlOpts) => {
-  const qs = querystring.stringify(pickNonNull({ stackId, templateURL }))
+  const qs = querystring.stringify(pickNonNull({ stackId, templateURL: templateUrl }))
   const path = 'stack/update'
   return `${LAUNCH_STACK_BASE_URL}#/${path}?${qs}`
 }
@@ -799,7 +801,11 @@ export const seriesMap = async (arr, fn) => {
 
 export const get = async (url:string, opts:any={}) => {
   // debug(`GET ${url}`)
-  const res = await fetch(url, opts)
+  const res = await fetch(url, {
+    method: 'GET',
+    ...opts
+  })
+
   return processResponse(res)
 }
 
@@ -854,6 +860,16 @@ export const processResponse = async (res) => {
   }
 
   return text
+}
+
+export const doesHttpEndpointExist = async (url) => {
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    return res.status === 200
+  } catch (err) {
+    Errors.rethrow(err, 'developer')
+    return false
+  }
 }
 
 export function batchByByteLength (arr:Array<string|Buffer>, max) {
@@ -1346,7 +1362,9 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
 }
 
 const normalizeSendOpts = async (bot: Bot, opts) => {
-  let { link, object, to } = opts
+  opts = _.clone(opts)
+
+  let { link, object, to, friend } = opts
   if (typeof object === 'string') {
     object = {
       [TYPE]: SIMPLE_MESSAGE,
@@ -1356,6 +1374,10 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
 
   if (!object && link) {
     object = await bot.objects.get(link)
+  }
+
+  if (friend && !to) {
+    opts.to = to = friend.identity._permalink
   }
 
   try {
@@ -1465,3 +1487,97 @@ export const isWellBehavedIntersection = model => {
 
   // const props = vars.map()
 }
+
+export const parseStackStatusEvent = (event: any): StackStatusEvent => {
+  // see src/test/fixtures/cloudformation-stack-status.json
+  const props = event.Records[0]['Sns'].Message.split('\n').reduce((map, line) => {
+    if (line.indexOf('=') === -1) {
+      return map
+    }
+
+    const [key, value] = line.replace(/[']/g, '').split('=')
+    map[key] = value
+    return map
+  }, {})
+
+  const {
+    StackId,
+    Timestamp,
+    ResourceStatus,
+    ResourceType,
+    LogicalResourceId,
+    PhysicalResourceId,
+  } = props
+
+  const subscriptionArn = event.Records[0].EventSubscriptionArn
+  if (!(StackId && Timestamp && ResourceStatus && ResourceType && subscriptionArn)) {
+    throw new Errors.InvalidInput('invalid stack status event')
+  }
+
+  return {
+    stackId: StackId,
+    timestamp: new Date(Timestamp).getTime(),
+    status: ResourceStatus,
+    resourceType: ResourceType,
+    resourceId: PhysicalResourceId,
+    resourceName: LogicalResourceId,
+    subscriptionArn,
+  }
+}
+
+export const listIamRoles = async (iam: AWS.IAM) => {
+  const params:AWS.IAM.ListRolesRequest = {}
+  let roles:AWS.IAM.Role[] = []
+  let batch:AWS.IAM.ListRolesResponse
+  while (true) {
+    batch = await iam.listRoles(params).promise()
+    roles = roles.concat(batch.Roles)
+    if (!batch.Marker) break
+
+    params.Marker = batch.Marker
+  }
+
+  return roles
+}
+
+export const toSortableTag = (semver: string) => {
+  const tag = semver
+    .replace(/^v/, '')
+    .replace(/\d+/g, part => toLexicographicInt(Number(part)))
+
+  if (tag.includes('-rc.')) {
+    // e.g. '1.2.0-rc.0'
+    return tag
+  }
+
+  // make sure that 1.2.0 gets sorted after 1.2.0-rc.0
+  return tag + '~'
+}
+
+export const compareTags = (a: string, b: string) => {
+  const as = toSortableTag(a)
+  const bs = toSortableTag(b)
+  return alphabetical(as, bs)
+}
+
+export const toLexicographicInt = n => lexint.pack(n, 'hex')
+
+export const requireOpts = (opts:any, props:string|string[]) => {
+  const missing = [].concat(props).filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)
+  if (missing.length) throw new Errors.InvalidInput(`expected ${missing.join(', ')}`)
+}
+
+export const isValidDomain = domain => {
+  return domain.includes('.') && /^(?:[a-zA-Z0-9-_.]+)$/.test(domain)
+}
+
+export const normalizeDomain = (domain:string) => {
+  domain = domain.replace(/^(?:https?:\/\/)?(?:www\.)?/, '')
+  if (!isValidDomain(domain)) {
+    throw new Errors.InvalidInput('invalid domain')
+  }
+
+  return domain
+}
+
+export const genStatementId = (base: string) => `${base}${crypto.randomBytes(6).toString('hex')}`

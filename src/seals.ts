@@ -115,7 +115,7 @@ type WatchOpts = {
   object?: ITradleObject
 }
 
-type SealPendingResult = {
+export type SealPendingResult = {
   seals: Seal[]
   error?: Error
 }
@@ -197,7 +197,7 @@ interface IErrorRecord {
   stack: string
 }
 
-type SealsOpts = {
+export type SealsOpts = {
   blockchain: Blockchain
   identity: Identity
   db: DB

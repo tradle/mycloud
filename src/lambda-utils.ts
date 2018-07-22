@@ -1,15 +1,22 @@
 import path from 'path'
 import { Lambda } from 'aws-sdk'
-import { promisify, createLambdaContext } from './utils'
+import { promisify, createLambdaContext, parseArn, genStatementId } from './utils'
 import {
   Logger,
   Env,
   AwsApis
 } from './types'
 
+import Errors from './errors'
 import {
   WARMUP_SOURCE_NAME,
   WARMUP_SLEEP,
+  DEFAULT_WARMUP_EVENT,
+  WARMUP_PERIOD,
+  WARMUP_FUNCTION,
+  REINITIALIZE_CONTAINERS_FUNCTION,
+  SEALPENDING_FUNCTION,
+  POLLCHAIN_FUNCTION,
   unitToMillis
 } from './constants'
 
@@ -81,12 +88,12 @@ export default class LambdaUtils {
     if (log) params.LogType = 'Tail'
     if (qualifier) params.Qualifier = qualifier
 
-    this.logger.debug(`invoking ${params.FunctionName}`)
-
     let result
     if (local) {
+      this.logger.debug(`invoking local ${FunctionName}`)
       result = await this.invokeLocal(params)
     } else {
+      this.logger.debug(`invoking ${FunctionName}`)
       result = await this.aws.lambda.invoke(params).promise()
     }
 
@@ -109,6 +116,12 @@ export default class LambdaUtils {
   public getConfiguration = (FunctionName:string):Promise<Lambda.Types.FunctionConfiguration> => {
     this.logger.debug(`looking up configuration for ${FunctionName}`)
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
+  }
+
+  public getLambdaArn = (lambdaShortName: string) => {
+    const { env } = this
+    const lambdaName = env.getStackResourceName(lambdaShortName)
+    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
   private get serverlessYml() {
@@ -192,10 +205,8 @@ export default class LambdaUtils {
 
   public getWarmUpInfo = (yml) => {
     const { functions } = yml
-    const event = functions[WARMUP_FUNCTION_SHORT_NAME].events.find(event => event.schedule)
-    const { rate, input } = event.schedule
-    const period = this.parseRateExpression(rate)
-    const warmUpConfs = input.functions.map(conf => this.normalizeWarmUpConf(conf))
+    const event = DEFAULT_WARMUP_EVENT
+    const warmUpConfs = event.functions.map(conf => this.normalizeWarmUpConf(conf))
     warmUpConfs.forEach(conf => {
       if (!(conf.functionName in functions)) {
         throw new Error(`function ${conf.functionName} listed in warmup event does not exist`)
@@ -203,8 +214,8 @@ export default class LambdaUtils {
     })
 
     return {
-      period,
-      input,
+      period: WARMUP_PERIOD,
+      input: event,
       warmUpConfs,
       functionName: WARMUP_FUNCTION_SHORT_NAME
     }
@@ -253,8 +264,66 @@ export default class LambdaUtils {
     }
   }
 
-  public warmUpAll = async () => {
-    return await this.getWarmUpInfo(this.serverlessYml).input
+  public scheduleReinitializeContainers = async (functions?: string[]) => {
+    return await this.invoke({
+      name: REINITIALIZE_CONTAINERS_FUNCTION,
+      sync: false,
+      arg: {
+        name: 'reinitializeContainers',
+        input: functions
+      }
+    })
+  }
+
+  public scheduleWarmUp = async (event=DEFAULT_WARMUP_EVENT) => {
+    return await this.invoke({
+      name: WARMUP_FUNCTION,
+      arg: {
+        name: 'warmup',
+        input: event
+      },
+      sync: false
+    })
+  }
+
+  public invokeSealPending = async () => {
+    return await this.invoke({
+      name: SEALPENDING_FUNCTION,
+      sync: true,
+      arg: {
+        name: 'sealpending'
+      }
+    })
+  }
+
+  public scheduleSealPending = async () => {
+    return await this.invoke({
+      name: SEALPENDING_FUNCTION,
+      sync: false,
+      arg: {
+        name: 'sealpending'
+      }
+    })
+  }
+
+  public invokePollChain = async () => {
+    return await this.invoke({
+      name: POLLCHAIN_FUNCTION,
+      sync: true,
+      arg: {
+        name: 'pollchain'
+      }
+    })
+  }
+
+  public schedulePollChain = async () => {
+    return await this.invoke({
+      name: POLLCHAIN_FUNCTION,
+      sync: false,
+      arg: {
+        name: 'pollchain'
+      }
+    })
   }
 
   public warmUp = async (opts:WarmUpOpts) => {
@@ -329,6 +398,49 @@ export default class LambdaUtils {
       containersWarmed: 0
     })
   }
+
+  public getPolicy = async (lambda: string) => {
+    try {
+      const { Policy } = await this.aws.lambda.getPolicy({ FunctionName: lambda }).promise()
+      return JSON.parse(Policy)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      throw new Errors.NotFound(`policy for lambda: ${lambda}`)
+    }
+  }
+
+  public addPermission = async (params: AWS.Lambda.AddPermissionRequest) => {
+    return await this.aws.lambda.addPermission(params).promise()
+  }
+
+  public canSNSInvoke = async (lambda: string):Promise<boolean> => {
+    let policy
+    try {
+      policy = await this.getPolicy(lambda)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
+    if (policy) {
+      return policy.Statement.some(({ Principal }) => {
+        return Principal.Service === 'sns.amazonaws.com'
+      })
+    }
+
+    return false
+  }
+
+  public allowSNSToInvoke = async (lambda: string) => {
+    this.logger.debug('adding permission for sns to invoke lambda', { lambda })
+    const params:AWS.Lambda.AddPermissionRequest = {
+      FunctionName: lambda,
+      Action: 'lambda:InvokeFunction',
+      Principal: 'sns.amazonaws.com',
+      StatementId: genStatementId('allowSNSToInvokeLambda'),
+    }
+
+    await this.addPermission(params)
+  }
 }
 
 export { LambdaUtils }
@@ -337,3 +449,5 @@ export const create = opts => new LambdaUtils(opts)
 const getMemorySize = (conf, provider) => {
   return conf.memorySize || provider.memorySize || 128
 }
+
+const getFunctionNameFromArn = (arn: string) => arn.slice(arn.lastIndexOf('function:') + 9)

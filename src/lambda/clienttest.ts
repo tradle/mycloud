@@ -25,7 +25,7 @@ const { RestAPI } = resources
 const getMe = tradle.provider.getMyIdentity()
 const { getLink, getPermalink } = require('../crypto')
 const { omitVirtual, wrap } = require('../utils')
-import { Lambda, EventSource } from '../lambda'
+import { BaseLambda as Lambda, EventSource } from '../lambda'
 const allUsers = require('../test/fixtures/users').slice(4)
 // const names = allUsers.map(user => randomName.first())
 

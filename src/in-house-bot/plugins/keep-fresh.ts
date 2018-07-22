@@ -1,16 +1,8 @@
-import crypto from 'crypto'
 import stableStringify from 'json-stable-stringify'
+import { sha256 } from '../../crypto'
 
 function defaultGetIdentifier (req) {
   return req.user.id
-}
-
-function hashObject (obj) {
-  return hashString('sha256', stableStringify(obj))
-}
-
-function hashString (algorithm, data) {
-  return crypto.createHash(algorithm).update(data).digest('hex')
 }
 
 export const name = 'keepFresh'
@@ -23,7 +15,7 @@ export const createPlugin = ({
   getIdentifier=defaultGetIdentifier,
   send
 }) => {
-  const hash = hashObject(object)
+  const hash = sha256(object, 'hex')
   const onmessage = async (req) => {
     const identifier = getIdentifier(req)
     const { user } = req

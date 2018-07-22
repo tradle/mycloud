@@ -1,7 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
@@ -24,17 +23,18 @@ import {
   ITradleObject,
   IConf,
   IBotConf,
-  IDeploymentOpts,
+  IDeploymentConf,
   IMyDeploymentConf
 } from './types'
 
 import {
-  DEFAULT_WARMUP_EVENT
+  DEFAULT_WARMUP_EVENT,
+  TYPE,
 } from '../constants'
 
 import {
   PRIVATE_CONF_BUCKET,
-  TYPES
+  TYPES,
 } from './constants'
 
 import { defaultConf } from './default-conf'
@@ -303,7 +303,7 @@ export class Conf {
     const { bot, logger } = this
 
     let { forceRecreateIdentity, identity, keys } = opts
-    this.logger.info('initializing provider', deploymentConf)
+    logger.info('initializing provider', deploymentConf)
 
     const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
     if (bot.isTesting) {
@@ -356,27 +356,26 @@ export class Conf {
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
     await this.recalcPublicInfo({ identity })
+
+    const { referrerUrl, deploymentUUID } = deploymentConf
+    const reportOpts = {
+      identity,
+      org,
+      targetApiUrl: referrerUrl,
+      deploymentUUID
+    }
+
     const promiseWarmup = bot.isTesting
       ? Promise.resolve()
       : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
 
     // await bot.forceReinitializeContainers()
-    const { referrerUrl, deploymentUUID } = deploymentConf
-    if (!(referrerUrl && deploymentUUID)) {
-      await promiseWarmup
-      return
-    }
-
-    try {
-      await deployment.reportLaunch({
-        identity: omitVirtual(identity),
-        org: omitVirtual(org),
-        referrerUrl,
-        deploymentUUID
-      })
-
-    } catch (err) {
-      this.logger.error('failed to call home', err)
+    if (referrerUrl && deploymentUUID) {
+      try {
+        await deployment.reportDeployment(reportOpts)
+      } catch (err) {
+        logger.error('failed to report launch to parent MyCloud', err)
+      }
     }
 
     try {

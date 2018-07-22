@@ -10,6 +10,7 @@ export const command:ICommand = {
     '/setenvvar --key a --value a',
     '/setenvvar --key a --value a --functions a,b,c',
   ],
+  adminOnly: true,
   exec: async ({ commander, req, ctx, args }) => {
     const { bot } = commander
     if (!ctx.sudo) throw new Error('forbidden')
@@ -34,6 +35,6 @@ export const command:ICommand = {
       return update
     })
 
-    await bot.lambdaUtils.warmUpAll()
+    await bot.lambdaUtils.scheduleWarmUp()
   }
 }

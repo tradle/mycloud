@@ -8,6 +8,7 @@ import './globals'
 
 import { EventEmitter } from 'events'
 import fs from 'fs'
+import zlib from 'zlib'
 import _ from 'lodash'
 
 // @ts-ignore
@@ -20,7 +21,7 @@ import AWSXray from 'aws-xray-sdk-core'
 import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
-import { createBot } from './'
+import * as CFNResponse from './cfn-response'
 import {
   Env,
   Logger,
@@ -28,6 +29,9 @@ import {
   Middleware,
   IRequestContext,
   ILambdaExecutionContext,
+  ILambdaHttpExecutionContext,
+  ILambdaCloudWatchLogsExecutionContext,
+  ISNSExecutionContext,
   LambdaHandler,
   ILambdaOpts
 } from './types'
@@ -51,6 +55,12 @@ import { warmup } from './middleware/warmup'
 
 const NOT_FOUND = new Error('nothing here')
 
+// 10 mins
+const CF_EVENT_TIMEOUT = 10 * 60000
+const { commit } = require('./version')
+
+type Contextualized<T> = (ctx: T, next: Function) => any|void
+
 export enum EventSource {
   HTTP='http',
   LAMBDA='lambda',
@@ -59,22 +69,29 @@ export enum EventSource {
   CLOUDFORMATION='cloudformation',
   SCHEDULE='schedule',
   S3='s3',
-  CLI='cli'
+  SNS='sns',
+  CLI='cli',
+  CLOUDWATCH_LOGS='cloudwatchlogs',
 }
 
-export const fromHTTP = (opts={}) => new Lambda({ ...opts, source: EventSource.HTTP })
-export const fromDynamoDB = (opts={}) => new Lambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts={}) => new Lambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts={}) => new Lambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts={}) => new Lambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts={}) => new Lambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts={}) => new Lambda({ ...opts, source: EventSource.S3 })
-export const fromCli = (opts={}) => new Lambda({ ...opts, source: EventSource.CLI })
+export type Lambda = BaseLambda<ILambdaExecutionContext>
+export type LambdaHttp = BaseLambda<ILambdaHttpExecutionContext>
 
-export class Lambda extends EventEmitter {
+export const fromHTTP = (opts={}):BaseLambda<ILambdaHttpExecutionContext> => new BaseLambda({ ...opts, source: EventSource.HTTP })
+export const fromDynamoDB = (opts={}) => new BaseLambda({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts={}) => new BaseLambda({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts={}) => new BaseLambda({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts={}) => new BaseLambda({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts={}) => new BaseLambda({ ...opts, source: EventSource.S3 })
+export const fromSNS = (opts={}) => new BaseLambda<ISNSExecutionContext>({ ...opts, source: EventSource.SNS })
+export const fromCli = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLI })
+export const fromCloudwatchLogs = (opts={}) => new BaseLambda<ILambdaCloudWatchLogsExecutionContext>({ ...opts, source: EventSource.CLOUDWATCH_LOGS })
+
+export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitter {
   // initialization
   public source: EventSource
-  public opts: ILambdaOpts
+  public opts: ILambdaOpts<Ctx>
   public bot: Bot
   public env: Env
   public koa: Koa
@@ -82,7 +99,7 @@ export class Lambda extends EventEmitter {
 
   // runtime
   public reqCtx: IRequestContext
-  public execCtx: ILambdaExecutionContext
+  public execCtx: Ctx
   public logger: Logger
 
   public isCold: boolean
@@ -91,17 +108,18 @@ export class Lambda extends EventEmitter {
   public requestCounter: number
   public xraySegment?: AWS.XRay.Segment
   private breakingContext: string
-  private middleware:Middleware[]
+  private middleware:Middleware<Ctx>[]
   private initPromise: Promise<void>
   private _gotHandler: boolean
   private lastExitStack: string
-  constructor(opts:ILambdaOpts={}) {
+  constructor(opts:ILambdaOpts<Ctx>={}) {
     super()
     const {
-      bot=createBot(),
       middleware,
       source
     } = opts
+
+    const bot = opts.bot || require('./').createBot()
 
     this.opts = opts
     this.bot = bot
@@ -131,6 +149,10 @@ export class Lambda extends EventEmitter {
 
     if (opts.source == EventSource.HTTP) {
       this._initHttp()
+    } else if (opts.source === EventSource.CLOUDFORMATION) {
+      this._initCloudFormation()
+    } else if (opts.source === EventSource.CLOUDWATCH_LOGS) {
+      this._initCloudWatchLogs()
     }
 
     this.requestCounter = 0
@@ -139,9 +161,8 @@ export class Lambda extends EventEmitter {
     this._gotHandler = false
 
     this.use(async (ctx, next) => {
-      this.logger.debug('received event', { containerAge: this.containerAge })
       if (this.env.DISABLED) {
-        this.logger.debug('I have been disabled :(')
+        this.logger.info('I have been disabled :(')
         ctx.body = {}
       } else {
         await next()
@@ -182,24 +203,25 @@ export class Lambda extends EventEmitter {
     })
   }
 
-  public use = (fn:Function|Promise<Function>):Lambda => {
+  public use = (middleware:Middleware<Ctx>) => {
     if (this._gotHandler) {
       console.warn('adding middleware after exporting the lambda handler ' +
         'can result in unexpected behavior')
     }
 
-    if (isPromise(fn)) {
-      fn = promiseMiddleware(fn)
+    if (isPromise(middleware)) {
+      middleware = promiseMiddleware(middleware)
     }
 
-    if (typeof fn !== 'function') {
+    if (typeof middleware !== 'function') {
       throw new Error('middleware must be a function!')
     }
 
     if (this.source === EventSource.HTTP) {
-      this.koa.use(fn)
+      // @ts-ignore
+      this.koa.use(middleware)
     } else {
-      this.middleware.push(fn)
+      this.middleware.push(middleware)
     }
 
     return this
@@ -322,9 +344,9 @@ Previous exit stack: ${this.lastExitStack}`)
           ...Errors.export(err)
         })
       }
+    } finally {
+      timeout.cancel()
     }
-
-    timeout.cancel()
 
     if (!this.bot.isReady()) {
       this.breakingContext = safeStringify({
@@ -353,7 +375,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     this.emit('done')
     this.isCold = false
-    this.logger.debug('exiting')
+    this.logger.silly('exiting')
 
     // http exits via koa
     if (this.source !== EventSource.HTTP) {
@@ -409,8 +431,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     context.callbackWaitsForEmptyEventLoop = false
     this.logger = this.bot.logger.sub({
-      namespace: `lambda:${this.shortName}`,
-      context: this.reqCtx
+      namespace: `lambda:${this.shortName}`
     })
 
     if (this.source === EventSource.LAMBDA &&
@@ -430,7 +451,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
       const headers = caseless(request.headers)
       if (!this.isUsingServerlessOffline && headers.get('content-encoding') === 'gzip') {
-        this.logger.info('stripping content-encoding header as APIGateway already gunzipped')
+        this.logger.silly('stripping content-encoding header as APIGateway already gunzipped')
         headers.set('content-encoding', 'identity')
         event.headers = request.headers
       }
@@ -438,6 +459,7 @@ Previous exit stack: ${this.lastExitStack}`)
 
     this.setExecutionContext({ event, context, callback })
     this.reqCtx = getRequestContext(this)
+    this.logger.info('request context', this.reqCtx)
     if (isXrayOn()) {
       this.xraySegment = AWSXray.getSegment()
       // AWSXray.captureFunc('annotations', subsegment => {
@@ -523,6 +545,88 @@ Previous exit stack: ${this.lastExitStack}`)
     })
   }
 
+  private _initCloudFormation = () => {
+    this.use(async (ctx, next) => {
+      const { event, context } = ctx
+      const { RequestType, ResourceProperties, ResponseURL } = event
+      this.logger.debug(`received stack event`, event)
+
+      let type = RequestType.toLowerCase()
+      type = type === 'create' ? 'init' : type
+      ctx.event = {
+        type,
+        payload: ResourceProperties
+      }
+
+      let err
+      const timeout = timeoutIn({
+        millis: CF_EVENT_TIMEOUT,
+        get error() {
+          return new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`)
+        }
+      })
+      try {
+        // await bot.hooks.fire(type, ctx.event)
+        await Promise.race([
+          next(),
+          timeout
+        ])
+      } catch (e) {
+        err = e
+      } finally {
+        timeout.cancel()
+      }
+
+      if (ResponseURL) {
+        const respond = err ? CFNResponse.sendError : CFNResponse.sendSuccess
+        const data = err ? _.pick(err, ['message', 'stack']) : {}
+        await respond(event, context, data)
+        return
+      }
+
+      // test mode
+      if (err) throw err
+    })
+  }
+
+  private _initCloudWatchLogs = () => {
+    this.use(async (ctx, next) => {
+      ctx.gzippedEvent = new Buffer(ctx.event.awslogs.data, 'base64')
+      const str = zlib.gunzipSync(ctx.gzippedEvent).toString('utf8')
+      ctx.event = JSON.parse(str)
+
+      // once decoded, the CloudWatch invocation event looks like this:
+      // {
+      //     "messageType": "DATA_MESSAGE",
+      //     "owner": "374852340823",
+      //     "logGroup": "/aws/lambda/big-mouth-dev-get-index",
+      //     "logStream": "2018/03/20/[$LATEST]ef2392ba281140eab63195d867c72f53",
+      //     "subscriptionFilters": [
+      //         "LambdaStream_logging-demo-dev-ship-logs"
+      //     ],
+      //     "logEvents": [
+      //         {
+      //             "id": "33930704242294971955536170665249597930924355657009987584",
+      //             "timestamp": 1521505399942,
+      //             "message": "START RequestId: e45ea8a8-2bd4-11e8-b067-ef0ab9604ab5 Version: $LATEST\n"
+      //         },
+      //         {
+      //             "id": "33930707631718332444609990261529037068331985646882193408",
+      //             "timestamp": 1521505551929,
+      //             "message": "2018-03-20T00:25:51.929Z\t3ee1bd8c-2bd5-11e8-a207-1da46aa487c9\t{ \"message\": \"found restaurants\" }\n",
+      //             "extractedFields": {
+      //                 "event": "{ \"message\": \"found restaurants\" }\n",
+      //                 "request_id": "3ee1bd8c-2bd5-11e8-a207-1da46aa487c9",
+      //                 "timestamp": "2018-03-20T00:25:51.929Z"
+      //             }
+      //         }
+      //     ]
+      // }
+
+      await next()
+    })
+  }
+
   public invoke = async (event) => {
     return new Promise((resolve, reject) => {
       const callback = (err, result) => {
@@ -559,16 +663,20 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private setExecutionContext = ({ event, context, callback, ...opts }) => {
+    const awsExecCtx:ILambdaAWSExecutionContext = {
+      ...context,
+      done: this.exit,
+      succeed: result => this.exit(null, result),
+      fail: this.exit
+    }
+
+    // don't understand the error...
+    // @ts-ignore
     this.execCtx = {
       ...opts,
       done: false,
       event,
-      context: {
-        ...context,
-        done: this.exit,
-        succeed: result => this.exit(null, result),
-        fail: this.exit
-      },
+      context: awsExecCtx,
       callback: wrapCallback(this, callback || context.done.bind(context))
     }
 
@@ -596,7 +704,7 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 }
 
-export const createLambda = (opts: ILambdaOpts) => new Lambda(opts)
+export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) => new BaseLambda(opts)
 
 const wrapCallback = (lambda, callback) => (err, result) => {
   if (lambda.done) {
@@ -606,7 +714,7 @@ const wrapCallback = (lambda, callback) => (err, result) => {
   }
 }
 
-const getRequestContext = (lambda:Lambda):IRequestContext => {
+const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<T>):IRequestContext => {
   const { execCtx } = lambda
   const { event, context } = execCtx
   const correlationId = lambda.source === EventSource.HTTP
@@ -619,6 +727,7 @@ const getRequestContext = (lambda:Lambda):IRequestContext => {
     requestId: context.awsRequestId,
     correlationId,
     containerId: lambda.containerId,
+    commit,
     start: Date.now()
   }
 

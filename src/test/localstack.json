@@ -16,5 +16,6 @@
   "CloudWatch": "http://localhost:4582",
   "CloudWatchLogs": "http://localhost:4582",
   "SSM": "http://localhost:4583",
-  "IotData": "http://localhost:1884"
+  "IotData": "http://localhost:1884",
+  "Iot": "http://localhost:1884"
 }

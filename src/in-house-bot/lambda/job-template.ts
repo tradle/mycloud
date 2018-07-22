@@ -1,24 +1,17 @@
-import { EventSource } from '../../lambda'
-import { createBot } from '../../'
-import { configureLambda } from '..'
 import Errors from '../../errors'
+import { fromSchedule } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
 
-const bot = createBot({ ready: false })
-const lambda = bot.createLambda({ source: EventSource.SCHEDULE })
-const promiseCustomize = configureLambda({
-  lambda,
-  event: 'myjobname'
-  // add in LambdaEvents, e.g.:
-  // event: LambdaEvents.DOCUMENT_CHECKER_JOB
-})
+// add in LambdaEvents, e.g.:
+// event: LambdaEvents.DOCUMENT_CHECKER_JOB
+const lambda = fromSchedule({ event: 'myjobname' })
 
 lambda.use(async (ctx) => {
-  // const { myComponent } = promiseCustomize
+  // const { myComponent } = ctx.components
   // await myComponent.runJob()
 
   // e.g.
-  // const { documentChecker } = promiseCustomize
+  // const { documentChecker } = ctx.components
   // // document checker rate-limits to 1/min
   // await documentChecker.checkPending({ limit: 1 })
 })

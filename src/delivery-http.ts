@@ -1,15 +1,18 @@
-import yn from 'yn'
+import clone from 'lodash/clone'
 import { EventEmitter } from 'events'
 import { TYPE } from '@tradle/constants'
-import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip } from './utils'
+import buildResource from '@tradle/build-resource'
+import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip, parseEnumValue } from './utils'
 import { IDelivery, ILiveDeliveryOpts, ITradleMessage, Logger, Env, DB, IDeliveryMessageRange } from "./types"
 import Errors from './errors'
 import { RetryableTask } from './retryable-task'
+import models from './models'
 
 const COMPRESSION_THRESHOLD = 1024
 const FETCH_TIMEOUT = 10000
 const INITIAL_BACKOFF = 1000
 const DELIVERY_ERROR = 'tradle.DeliveryError'
+const MAX_DELIVERY_ATTEMPTS = 20
 
 export default class Delivery extends EventEmitter implements IDelivery {
   private env:Env
@@ -39,7 +42,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
       headers['Content-Encoding'] = 'gzip'
     }
 
-    const maxTime = this.env.getRemainingTime() - 1000
+    const maxTime = this.env.getRemainingTimeWithBuffer(1000)
     if (maxTime < 0) {
       await this._onFailedToDeliver({
         message: messages[0],
@@ -50,9 +53,16 @@ export default class Delivery extends EventEmitter implements IDelivery {
     }
 
     const task = new RetryableTask({
+      logger: this.logger,
       shouldTryAgain: err => {
-        this.logger.warn(`failed to deliver message`, { error: err.stack, message: messages[0]._link })
-        return !Errors.isDeveloperError(err)
+        const willRetry = isRetryableError(err)
+        this.logger.warn(`failed to deliver message`, {
+          error: Errors.export(err),
+          message: messages[0]._link,
+          willRetry,
+        })
+
+        return willRetry
       },
       initialDelay: Math.min(INITIAL_BACKOFF, maxTime),
       attemptTimeout: Math.min(FETCH_TIMEOUT, maxTime),
@@ -104,41 +114,20 @@ export default class Delivery extends EventEmitter implements IDelivery {
   // public for testing
   public _onFailedToDeliver = async ({ message, error }: {
     message: ITradleMessage
-    error: Error
+    error: any
   }) => {
     Errors.rethrow(error, 'developer')
     const opts = {
-      counterparty: message._counterparty,
-      time: message._time
+      counterparty: message._counterparty || message._recipient,
+      time: message._time,
+      attempts: error.attempts
     }
 
     try {
-      await this.saveError(opts)
+      await this.updateError(opts)
     } catch (err) {
       Errors.ignore(err, Errors.Exists)
       this.logger.debug('failed to save DeliveryError, one already exists', opts)
-    }
-  }
-
-  public saveError = async ({ counterparty, time }: {
-    counterparty: string
-    time: number
-  }) => {
-    try {
-      await this.db.put({
-        [TYPE]: DELIVERY_ERROR,
-        counterparty,
-        _time: time
-      }, {
-        // only store one per counterparty
-        ExpressionAttributeNames: {
-          '#counterparty': 'counterparty'
-        },
-        ConditionExpression: 'attribute_not_exists(#counterparty)'
-      })
-    } catch (err) {
-      Errors.ignoreUnmetCondition(err)
-      throw new Errors.Exists(`error for counterparty ${counterparty}`)
     }
   }
 
@@ -173,6 +162,76 @@ export default class Delivery extends EventEmitter implements IDelivery {
   }):IDeliveryMessageRange => ({
     after: _time - 1
   })
+
+  public canRetry = (deliveryErr: any) => !isStuck(deliveryErr)
+  public isStuck = isStuck
+  public getRetriable = async () => {
+    const errors = await this.getErrors()
+    return errors.filter(this.canRetry)
+  }
+
+  public resetError = async (deliveryError: any) => {
+    await this.updateError({
+      ...deliveryError,
+      attempts: -1,
+      status: 'retrying'
+    })
+  }
+
+  private updateError = async ({ counterparty, time, status, attempts=1 }: {
+    counterparty: string
+    time: number
+    status?: string
+    attempts?: number
+  }) => {
+    let deliveryError
+    try {
+      deliveryError = await this.getError(counterparty)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      deliveryError = {
+        [TYPE]: DELIVERY_ERROR,
+        counterparty,
+      }
+    }
+
+    const attemptsSoFar = (deliveryError.attempts || 0) + attempts
+    if (!status) {
+      status = attemptsSoFar >= MAX_DELIVERY_ATTEMPTS ? 'stuck' : 'retrying'
+    }
+
+    buildResource.set({
+      models,
+      resource: deliveryError,
+      properties: {
+        attempts: attemptsSoFar,
+        _time: time,
+        status
+      }
+    })
+
+    await this.db.put(deliveryError)
+    return deliveryError
+  }
+}
+
+const isStuck = (deliveryErr: any) => {
+  return deliveryErr.status && parseEnumValue({
+    model: models['tradle.DeliveryErrorStatus'],
+    value: deliveryErr.status
+  }).id === 'stuck'
+}
+
+export const isRetryableError = (err: Error) => {
+  const message = (err.message || '').toLowerCase()
+  if (
+    message.includes('getaddrinfo enotfound')
+    // || message.includes('httperror: bad gateway')
+  ) {
+    return false
+  }
+
+  return !Errors.isDeveloperError(err)
 }
 
 export { Delivery }

@@ -1,12 +1,43 @@
 import omit from 'lodash/omit'
+import { uriEscapePath } from 'aws-sdk/lib/util'
 import { TYPE } from '@tradle/constants'
-import { randomStringWithLength } from './crypto'
+import { randomStringWithLength, sha256 } from './crypto'
+import { alphabetical } from './string-utils'
 import Errors from './errors'
 import Env from './env'
 import Logger from './logger'
 import { BucketPutOpts, BucketCopyOpts } from './types'
 import { S3 } from 'aws-sdk'
-import { timeMethods, isPromise, batchProcess, gzip, gunzip, isLocalHost } from './utils'
+import { timeMethods, isPromise, batchProcess, gzip, gunzip, isLocalHost, listIamRoles } from './utils'
+
+const CRR_NAME = 'cross-region-replication-role'
+const CRR_POLICY = 'cross-region-replication-policy'
+// https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
+// IMPORTANT: DON'T CHANGE THE ORDER, ONLY APPEND TO THIS LIST!
+const REGIONS = [
+  'us-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2',
+  'ca-central-1',
+  'ap-south-1',
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-northeast-3',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'cn-north-1',
+  'cn-northwest-1',
+  'eu-central-1',
+  'eu-west-1',
+  'eu-west-2',
+  'eu-west-3',
+  'sa-east-1',
+]
+
+// see name restrictions: https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
+const MAX_BUCKET_NAME_LENGTH = 63
+const PUBLIC_BUCKET_RULE_ID = 'MakeItPublic'
 
 export default class S3Utils {
   public s3: S3
@@ -23,10 +54,24 @@ export default class S3Utils {
   }
 
   public get publicFacingHost() {
-    return this.env.S3_PUBLIC_FACING_HOST
+    return this.env && this.env.TESTING && this.env.S3_PUBLIC_FACING_HOST
   }
 
-  public put = async ({ key, value, bucket, headers = {}, publicRead }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
+  private get replicationAvailable() {
+    // localstack has some issues
+    return this.iamAvailable
+  }
+
+  private get iamAvailable() {
+    // localstack doesn't have IAM
+    return this.env && !this.env.TESTING
+  }
+
+  private get versioningAvailable() {
+    return this.env && !this.env.TESTING
+  }
+
+  public put = async ({ key, value, bucket, headers = {}, acl }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
     // logger.debug('putting', { key, bucket, type: value[TYPE] })
     const opts: S3.Types.PutObjectRequest = {
       ...headers,
@@ -35,7 +80,7 @@ export default class S3Utils {
       Body: toStringOrBuf(value)
     }
 
-    if (publicRead) opts.ACL = 'public-read'
+    if (acl) opts.ACL = acl
 
     return await this.s3.putObject(opts).promise()
   }
@@ -242,7 +287,7 @@ export default class S3Utils {
 
   public head = async ({ key, bucket }) => {
     try {
-      await this.s3.headObject({
+      return await this.s3.headObject({
         Bucket: bucket,
         Key: key
       }).promise()
@@ -250,12 +295,19 @@ export default class S3Utils {
       if (err.code === 'NoSuchKey' || err.code === 'NotFound') {
         throw new Errors.NotFound(`${bucket}/${key}`)
       }
+
+      throw err
     }
   }
 
-  public exists = ({ key, bucket }) => {
-    return this.head({ key, bucket })
-      .then(() => true, err => false)
+  public exists = async ({ key, bucket }) => {
+    try {
+      await this.head({ key, bucket })
+      return true
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
   }
 
   public del = ({ key, bucket }) => {
@@ -271,7 +323,7 @@ export default class S3Utils {
       Key: key
     })
 
-    if (this.env && this.env.TESTING && this.publicFacingHost) {
+    if (this.publicFacingHost) {
       return url.replace(this.s3.config.endpoint, this.publicFacingHost)
     }
 
@@ -284,10 +336,12 @@ export default class S3Utils {
 
   public destroyBucket = async ({ bucket }) => {
     const tasks = [
+      () => this.disableReplication({ bucket }),
       () => this.emptyBucket({ bucket }),
-      () => this.s3.deleteBucket({ Bucket: bucket }).promise()
+      () => this.deleteBucket({ bucket }),
     ]
 
+    this.logger.info('emptying and deleting bucket', { bucket })
     for (const task of tasks) {
       try {
         await task()
@@ -297,13 +351,35 @@ export default class S3Utils {
     }
   }
 
+  public disableReplication = async ({ bucket }) => {
+    if (!this.replicationAvailable) return
+
+    try {
+      await this.s3.deleteBucketReplication({ Bucket: bucket }).promise()
+    } catch (err) {
+      this.logger.error('failed to disable bucket replication', { bucket, error: err.stack })
+      // localstack gives some weird error:
+      //   'FakeDeleteMarker' object has no attribute 'name'
+      if (!this.env.TESTING) throw err
+    }
+  }
+
+  public deleteBucket = async ({ bucket }) => {
+    try {
+      await this.s3.deleteBucket({ Bucket: bucket }).promise()
+    } catch (err) {
+      Errors.ignore(err, { code: 'NoSuchBucket' })
+    }
+  }
+
   public getUrlForKey = ({ bucket, key }) => {
     const { host } = this.s3.endpoint
+    const encodedKey = uriEscapePath(key)
     if (isLocalHost(host)) {
-      return `http://${host}/${bucket}${key}`
+      return `http://${host}/${bucket}${encodedKey}`
     }
 
-    return `https://${bucket}.s3.amazonaws.com/${key}`
+    return `https://${bucket}.s3.amazonaws.com/${encodedKey}`
   }
 
   public disableEncryption = async ({ bucket }) => {
@@ -344,7 +420,7 @@ export default class S3Utils {
       Policy: `{
         "Version": "2012-10-17",
         "Statement": [{
-          "Sid": "MakeItPublic",
+          "Sid": "${PUBLIC_BUCKET_RULE_ID}",
           "Effect": "Allow",
           "Principal": "*",
           "Action": "s3:GetObject",
@@ -352,6 +428,43 @@ export default class S3Utils {
         }]
       }`
     }).promise()
+  }
+
+  public isBucketPublic = async ({ bucket }: {
+    bucket: string
+  }) => {
+    const { Policy } = await this.s3.getBucketPolicy({
+      Bucket: bucket
+    }).promise()
+
+    const { Statement } = JSON.parse(Policy)
+    return Statement.some(({ Sid }) => Sid === PUBLIC_BUCKET_RULE_ID)
+  }
+
+  public makeKeysPublic = async ({ bucket, keys }:{
+    bucket: string
+    keys: string[]
+  }) => {
+    await this.setPolicyForKeys({ bucket, keys, policy: 'public-read' })
+  }
+
+  public setPolicyForKeys = async ({ bucket, keys, policy }: {
+    bucket: string
+    keys: string[]
+    policy: AWS.S3.ObjectCannedACL
+  }) => {
+    await Promise.all(keys.map(key => this.s3.putObjectAcl({
+      Bucket: bucket,
+      Key: key,
+      ACL: policy
+    }).promise()))
+  }
+
+  public allowGuestToRead = async ({ bucket, keys }) => {
+    const isPublic = await this.isBucketPublic({ bucket })
+    if (!isPublic) {
+      await this.makeKeysPublic({ bucket, keys })
+    }
   }
 
   public deleteVersions = async ({ bucket, versions }: {
@@ -401,36 +514,182 @@ export default class S3Utils {
     }
   }
 
-  public createRegionalBuckets = async ({ baseName, regions }: {
-    baseName: string
+  public createReplicationRole = async ({ iam, source, targets }: {
+    iam: AWS.IAM
+    source: string
+    targets: string[]
+  }) => {
+    this._ensureIAMAvailable(iam)
+
+    const trustPolicy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: {
+            Service: 's3.amazonaws.com'
+          },
+          Action: 'sts:AssumeRole'
+        }
+      ]
+    }
+
+    const permissionsPolicy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Action: [
+            's3:GetObjectVersionForReplication',
+            's3:GetObjectVersionAcl'
+          ],
+          Resource: [
+            `arn:aws:s3:::${source}/*`
+          ]
+        },
+        {
+          Effect: 'Allow',
+          Action: [
+            's3:ListBucket',
+            's3:GetReplicationConfiguration'
+          ],
+          Resource: [
+            `arn:aws:s3:::${source}`
+          ]
+        },
+      ].concat(targets.map(target => ({
+        Effect: 'Allow',
+        Action: [
+          's3:ReplicateObject',
+          's3:ReplicateDelete'
+        ],
+        Resource: [`arn:aws:s3:::${target}/*`]
+      })))
+    }
+
+    const csv = targets.concat(source).sort(alphabetical).join(',')
+    const hash = sha256(csv, 'hex').slice(0, 10)
+    const description = `for replicating ${source} to: ${targets.join(', ')}`
+    const roleName = `${CRR_NAME}-${hash}`
+    const role = await this.createRole({
+      iam,
+      name: roleName,
+      description,
+      trustPolicy
+    })
+
+    const policy = await this.createPolicy({
+      iam,
+      name: `${CRR_POLICY}-${hash}`,
+      description,
+      policy: permissionsPolicy
+    })
+
+    await iam.attachRolePolicy({
+      RoleName: roleName,
+      PolicyArn: policy.Arn
+    }).promise()
+
+    return {
+      role: role.Arn,
+      policy: policy.Arn
+    }
+  }
+
+  public createRegionalBuckets = async ({ bucket, regions, iam, replication }: {
+    bucket: string
     regions: string[]
+    replication?: boolean
+    iam?: AWS.IAM
   }) => {
     const existing = (await this.s3.listBuckets().promise()).Buckets.map(b => b.Name)
-    const wontCreate = regions.filter(region => getRegionalBucket({ baseName, region, buckets: existing }))
+    const wontCreate = regions.filter(region => getRegionalBucket({ bucket, region, buckets: existing }))
     if (wontCreate.length) {
       this.logger.warn(`will NOT replicate to ${wontCreate.join(', ')}, as buckets already exist in those regions`)
     }
 
     const willCreate = regions.filter(r => !wontCreate.includes(r))
-    if (!willCreate.length) return
+    if (!willCreate.length) return []
 
     const getParams = (region:string):AWS.S3.CreateBucketRequest => ({
-      Bucket: genRegionalBucketName({ baseName, region }),
+      Bucket: S3Utils.getRegionalBucketName({ bucket, region }),
       CreateBucketConfiguration: {
         LocationConstraint: region
       }
     })
 
-    return await Promise.all(willCreate.map(async (region) => {
-      await this.s3.createBucket(getParams(region)).promise()
+    const targets = await Promise.all(willCreate.map(async (region) => {
+      const params = getParams(region)
+      await this.s3.createBucket(params).promise()
+
+      if (this.versioningAvailable) {
+        await this.s3.putBucketVersioning({
+          Bucket: params.Bucket,
+          VersioningConfiguration: {
+            Status: 'Enabled'
+          }
+        }).promise()
+      }
+
+      return params.Bucket
     }))
+
+    if (!replication) return
+
+    this._ensureIAMAvailable(iam)
+
+    const { role } = await this.createReplicationRole({
+      iam,
+      source: bucket,
+      targets
+    })
+
+    await Promise.all(targets.map(async target => {
+      await this.s3.putBucketReplication({
+        Bucket: bucket,
+        ReplicationConfiguration: {
+          Role: role,
+          Rules: [
+            {
+              Destination: {
+                Bucket: target,
+                StorageClass: 'STANDARD'
+              },
+              Prefix: '',
+              Status: 'Enabled'
+            }
+          ]
+        }
+      }).promise()
+    }))
+
+    return targets
+  }
+
+  public deleteRegionalBuckets = async ({ bucket, regions, iam }: {
+    bucket: string
+    regions: string[]
+    iam: AWS.IAM
+  }) => {
+    const existing = (await this.s3.listBuckets().promise()).Buckets.map(b => b.Name)
+    const toDel = regions.map(region => S3Utils.getRegionalBucketName({ bucket, region }))
+      .filter(regionalName => existing.includes(regionalName))
+
+    if (!toDel.length) return []
+
+    this.logger.info('deleting regional buckets', { buckets: toDel })
+    await Promise.all(toDel.map(async name => {
+      await this.destroyBucket({ bucket: name })
+    }))
+
+    return toDel
   }
 
   public listBucketWithPrefix = async ({ bucket, prefix }) => {
     return await this.listBucket({ bucket, Prefix: prefix })
   }
 
-  public copyFilesBetweenBuckets = async ({ source, target, keys, prefix }: BucketCopyOpts) => {
+  public copyFilesBetweenBuckets = async ({ source, target, keys, prefix, acl }: BucketCopyOpts) => {
     if (!(prefix || keys)) throw new Errors.InvalidInput('expected "keys" or "prefix"')
 
     if (!keys) {
@@ -438,15 +697,67 @@ export default class S3Utils {
       keys = items.map(i => i.Key)
     }
 
-    await Promise.all(keys.map(async (Key) => {
-      await this.s3.copyObject({
-        CopySource: source,
-        Bucket: target,
-        Key
-      })
-      .promise()
+    const baseParams:AWS.S3.CopyObjectRequest = {
+      Bucket: target,
+      CopySource: null,
+      Key: null
+    }
+
+    if (acl) baseParams.ACL = acl
+
+    await Promise.all(keys.map(async (key) => {
+      const params = {
+        ...baseParams,
+        CopySource: `${source}/${key}`,
+        Key: key
+      }
+
+      try {
+        await this.s3.copyObject(params).promise()
+      } catch (err) {
+        Errors.ignoreNotFound(err)
+        throw new Errors.NotFound(`bucket: "${target}", key: "${key}"`)
+      }
     }))
   }
+
+  // public grantReadAccess = async ({ bucket, keys }: {
+  //   bucket: string
+  //   keys: string[]
+  // }) => {
+  //   await this.s3.putObjectAcl({
+  //     AccessControlPolicy: {
+  //       Grants:
+  //     }
+  //   })
+  // }
+
+  public static isRegionalBucketName = (bucket: string) => {
+    return REGIONS.some(region => bucket.endsWith(getRegionalBucketSuffix({ bucket, region })))
+  }
+
+  public static getRegionalBucketName = ({ bucket, region }) => {
+    if (S3Utils.isRegionalBucketName(bucket)) {
+      // remove regional suffix
+      bucket = bucket.split('-').slice(0, -1).join('-')
+    }
+
+    const idx = REGIONS.indexOf(region)
+    if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
+
+    const suffix = getRegionalBucketSuffix({ bucket, region })
+    const name = `${bucket}${suffix}`
+    if (name.length > MAX_BUCKET_NAME_LENGTH) {
+      const hash = sha256(bucket, 'hex').slice(0, 6)
+      // - 1 for '-' char
+      const trunc = bucket.slice(0, MAX_BUCKET_NAME_LENGTH - hash.length - suffix.length - 1)
+      return `${trunc}-${hash}${suffix}`
+    }
+
+    return name
+  }
+
+  public getRegionalBucketName = S3Utils.getRegionalBucketName
 
   public getRegionalBucketForBucket = async ({ bucket, region }: {
     bucket: string
@@ -454,22 +765,87 @@ export default class S3Utils {
   }):Promise<string> => {
     const baseName = this.getBucketBaseName(bucket)
     const buckets = (await this.s3.listBuckets().promise()).Buckets.map(b => b.Name)
-    const regional = getRegionalBucket({ baseName, region, buckets })
-    if (!regional) throw new Errors.NotFound(`corresponding bucket in ${region} for bucket: ${bucket}`)
+    const regional = getRegionalBucket({ bucket, region, buckets })
+    if (!regional) {
+      throw new Errors.NotFound(`corresponding bucket in ${region} for bucket: ${bucket}`)
+    }
 
     return regional
   }
 
   public getBucketBaseName = (bucket: string) => bucket.split('-').slice(0, -1).join('-')
 
+  private createPolicy = async ({ iam, name, description, policy }: {
+    iam: AWS.IAM
+    name: string
+    description: string
+    policy: any
+  }) => {
+    this._ensureIAMAvailable(iam)
+
+    try {
+      const { Policy } = await iam.createPolicy({
+        PolicyName: name,
+        PolicyDocument: JSON.stringify(policy),
+        Description: description,
+      }).promise()
+
+      return Policy
+    } catch (err) {
+      Errors.ignore(err, { code: 'EntityAlreadyExists' })
+      const { Policy } = await iam.getPolicy({
+        PolicyArn: `arn:aws:iam::${this.env.AWS_ACCOUNT_ID}:policy/${name}`
+      }).promise()
+
+      return Policy
+    }
+  }
+
+  private createRole = async ({ iam, name, description, trustPolicy }: {
+    iam: AWS.IAM
+    name: string
+    description: string
+    trustPolicy: any
+  }):Promise<AWS.IAM.Role> => {
+    this._ensureIAMAvailable(iam)
+
+    try {
+      const { Role } = await iam.createRole({
+        RoleName: name,
+        AssumeRolePolicyDocument: JSON.stringify(trustPolicy),
+        Description: description,
+      }).promise()
+
+      return Role
+    } catch (err) {
+      Errors.ignore(err, { code: 'EntityAlreadyExists' })
+      const { Role } = await iam.getRole({
+        RoleName: name
+      }).promise()
+
+      return Role
+    }
+  }
+
   private _canGzip = () => {
     // localstack has some issues
     return !(this.env && this.env.TESTING)
+  }
+
+  private _ensureIAMAvailable = (iam: AWS.IAM) => {
+    if (!(this.iamAvailable && iam)) {
+      throw new Errors.InvalidEnvironment(`IAM not available`)
+    }
   }
 }
 
 export { S3Utils }
 export const createUtils = opts => new S3Utils(opts)
+
+const getRegionalBucket = ({ bucket, region, buckets }) => {
+  const regionalName = S3Utils.getRegionalBucketName({ bucket, region })
+  if (buckets.includes(regionalName)) return regionalName
+}
 
 const toStringOrBuf = (value) => {
   if (typeof value === 'string') return value
@@ -500,10 +876,12 @@ const toEncryptionParams = ({ bucket, kmsKeyId }):S3.PutBucketEncryptionRequest 
   }
 }
 
-const getRegionalBucket = ({ baseName, region, buckets }) => {
-  const prefix = getRegionalBaseName({ baseName, region }) + '-'
-  return buckets.find(name => name.startsWith(prefix))
-}
+const getRegionalBucketSuffix = ({ bucket, region }: {
+  bucket: string
+  region: string
+}) => {
+  const idx = REGIONS.indexOf(region)
+  if (idx === -1) throw new Errors.InvalidInput(`s3 region not supported: ${region}`)
 
-const getRegionalBaseName = ({ baseName, region }) => `${baseName}-${region}`
-const genRegionalBucketName = ({ baseName, region }) => `${getRegionalBaseName({ baseName, region })}-${randomStringWithLength(10)}`
+  return '-' + idx.toString(36)
+}

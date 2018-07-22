@@ -26,7 +26,7 @@ import {
 
 import { parseStub } from '../utils'
 import Errors from '../errors'
-import * as commands from './commands'
+import { Commands } from './commands'
 import Logger from '../logger'
 
 const prettify = obj => JSON.stringify(obj, null, 2)
@@ -57,40 +57,12 @@ interface IExecOpts extends ICommandParams {
   req?: IPBReq
 }
 
-// export const EMPLOYEE_COMMANDS = [
-//   'help',
-//   'listproducts',
-//   'forgetme',
-//   'setproductenabled',
-//   // 'setautoverify',
-//   'setautoapprove',
-//   'addfriend',
-//   'tours',
-//   'message',
-//   'getconf',
-//   'approve',
-//   'deny',
-//   'getlaunchlink',
-//   'model'
-// ]
-
 export const DEFAULT_ERROR_MESSAGE = `sorry, I don't understand. To see the list of supported commands, type: /help`
-export const COMMANDS = Object.keys(commands).map(key => commands[key].name || key)
-export const SUDO_ONLY_COMMANDS = [
-  'delete-forever-with-no-undo',
-  'clear',
-  'reset-identity-with-no-undo',
-  'setenvvar',
-  'push-notifications',
-  'doctor',
-  'balance',
-  'reindex',
-  // 'encryptbucket',
-  // 'enablebinary'
-]
+export const COMMANDS_NAMES = Commands.keys()
+export const EMPLOYEE_COMMANDS_NAMES = Commands.keys()
+  .filter(key => !Commands.get(key).adminOnly)
 
-export const EMPLOYEE_COMMANDS = COMMANDS.filter(name => !SUDO_ONLY_COMMANDS.includes(name))
-export const CUSTOMER_COMMANDS = [
+export const CUSTOMER_COMMANDS_NAMES = [
   'help',
   'listproducts',
   'forgetme',
@@ -98,7 +70,7 @@ export const CUSTOMER_COMMANDS = [
   'updatemycloud'
 ]
 
-// export const SUDO_COMMANDS = EMPLOYEE_COMMANDS.concat(SUDO_ONLY_COMMANDS)
+// export const SUDO_COMMANDS_NAMES = EMPLOYEE_COMMANDS_NAMES.concat(SUDO_ONLY_COMMANDS_NAMES)
 
 export interface CommanderOpts extends IBotComponents {
   store: IKeyValueStore
@@ -144,24 +116,19 @@ export class Commander {
 
   public getAvailableCommands = (ctx: ICommandContext) => {
     const { sudo, employee } = ctx
-    if (sudo) return COMMANDS
-    if (employee) return EMPLOYEE_COMMANDS
-    return CUSTOMER_COMMANDS
+    if (sudo) return COMMANDS_NAMES
+    if (employee) return EMPLOYEE_COMMANDS_NAMES
+    return CUSTOMER_COMMANDS_NAMES
   }
 
-  public getCommandByName = (commandName:string):ICommand => {
-    let lower = commandName.toLowerCase()
+  public getCommandByName = (name:string):ICommand => {
     let command
     try {
-      command = commands[lower]
-      if (!command) {
-        const name = Object.keys(commands).find(key => commands[key].name === lower)
-        command = name && commands[name]
-      }
+      command = Commands.get(name)
     } catch (err) {}
 
     if (!command) {
-      throw new Errors.NotFound(`command not found: ${commandName}`)
+      throw new Errors.NotFound(`command not found: ${name}`)
     }
 
     return command

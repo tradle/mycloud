@@ -11,7 +11,8 @@ import {
   logify,
   logifyFunction,
   safeStringify,
-  getPrimaryKeySchema
+  getPrimaryKeySchema,
+  toSortableTag,
 } from './utils'
 
 import { TYPE, SIG, ORG, AUTHOR, TIMESTAMP, TYPES, UNSIGNED_TYPES } from './constants'
@@ -20,6 +21,10 @@ import Errors from './errors'
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
 const ORG_OR_AUTHOR = '_orgOrAuthor'
 const ARTIFICIAL_PROPS = [ORG_OR_AUTHOR]
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
+const UPDATE = 'tradle.cloud.Update'
+const UPDATE_REQUEST = 'tradle.cloud.UpdateRequest'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 
 const ALLOW_SCAN = [
   DELIVERY_ERROR
@@ -174,7 +179,9 @@ export = function createDB ({
   const tableBuckets = dbUtils.getTableBuckets()
 
   // TODO: merge into validateFind
-  const isScanAllowed = search => {
+  const isScanAllowed = (search: Search) => {
+    if (search.opType === 'query') return true
+
     const allow = search.allowScan === true || _isScanAllowed(search)
     if (allow) logger.debug('allowing scan', search.type)
     return allow
@@ -280,12 +287,7 @@ export = function createDB ({
     chooseTable
   })
 
-  const fixMessageFilter = ({ args }) => {
-    const { filter } = args[0]
-    if (!(filter && filter.EQ)) return
-
-    const { EQ } = filter
-    if (EQ[TYPE] !== MESSAGE) return
+  const fixMessageFilter = ({ EQ }) => {
     if (EQ._dcounterparty) return
 
     const _counterparty = EQ._author || EQ._recipient || EQ._counterparty
@@ -300,6 +302,17 @@ export = function createDB ({
     delete EQ._recipient
     delete EQ._counterparty
     delete EQ._inbound
+  }
+
+  const fixVersionInfoFilter = ({ GT, LT }) => {
+    [GT, LT].forEach(conditions => {
+      if (!conditions) return
+
+      if (conditions.tag && !conditions.sortableTag) {
+        conditions.sortableTag = toSortableTag(conditions.tag)
+        delete conditions.tag
+      }
+    })
   }
 
   const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
@@ -334,7 +347,19 @@ export = function createDB ({
   // }
 
   const preProcessSearch = async (opts) => {
-    fixMessageFilter(opts)
+    const { args } = opts
+    const { filter } = args[0]
+    if (!(filter && filter.EQ)) return
+
+    const type = filter.EQ[TYPE]
+    if (type === MESSAGE) fixMessageFilter(filter)
+    if (type === VERSION_INFO ||
+      type === UPDATE ||
+      type == UPDATE_REQUEST ||
+      type == UPDATE_RESPONSE
+    ) {
+      fixVersionInfoFilter(filter)
+    }
   }
 
   const checkPre = resource => {

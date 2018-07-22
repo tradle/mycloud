@@ -4,7 +4,7 @@ import { pick } from 'lodash'
 import { bodyParser } from '../../middleware/body-parser'
 import { createHandler as createGraphqlHandler } from '../../middleware/graphql'
 import { createHandler as createGraphqlAuthHandler } from '../../middleware/graphql-auth'
-import { Lambda } from '../../lambda'
+import { IPBLambdaHttp as Lambda } from '../types'
 import {
   sendModelsPackIfUpdated,
   createModelsPackGetter
@@ -12,7 +12,7 @@ import {
 
 import { defineGetter } from '../../utils'
 import { MODELS_HASH_PROPERTY } from '../constants'
-import { Middleware, IBotComponents } from '../types'
+import { MiddlewareHttp as Middleware, IBotComponents } from '../types'
 
 export const keepModelsFresh = (lambda:Lambda, components) => {
   const { bot } = lambda

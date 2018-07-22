@@ -4,8 +4,10 @@ import compose from 'koa-compose'
 import { post } from '../../middleware/noop-route'
 import { bodyParser } from '../../middleware/body-parser'
 import { fromHTTP, Lambda } from '../lambda'
-import { IPBMiddlewareContext, IPBMiddleware, ILaunchReportPayload } from '../types'
+import { IPBMiddlewareContext, IPBMiddleware, IDeploymentReportPayload } from '../types'
 import * as LambdaEvents from '../lambda-events'
+
+const REPORT_PROPS = ['org', 'apiUrl', 'deploymentUUID', 'org', 'identity', 'stackId', 'version']
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP({
@@ -21,23 +23,19 @@ export const createMiddleware = (lambda:Lambda, opts?:any):IPBMiddleware => {
   const { auth, serviceMap } = bot
   const handlePingback = async (ctx:IPBMiddlewareContext, next) => {
     const { event, components } = ctx
-    const { apiUrl, deploymentUUID, org, identity, stackId } = event as ILaunchReportPayload
-    if (!deploymentUUID) {
-      logger.error(`deployment pingback missing "deploymentUUID"`, event)
-      return
-    }
-
+    const { org } = event
     const { name, domain } = org
     if (!(name && domain)) {
       this.logger.error('expected "org" to have "name" and "domain"', { org })
     }
 
+    const report = _.pick(event, REPORT_PROPS) as IDeploymentReportPayload
     const { conf, deployment } = components
     try {
-      const success = await deployment.receiveLaunchReport({ org, apiUrl, deploymentUUID, identity, stackId })
-      console.log('received call home', { success })
+      const success = await deployment.handleDeploymentReport(report)
+      logger.debug('received child deployment report', { success })
     } catch (err) {
-      logger.error('failed to notify creators', err)
+      logger.error('failed to handle child deployment report', err)
     }
   }
 

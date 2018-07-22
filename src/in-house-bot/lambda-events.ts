@@ -3,12 +3,22 @@ export const PREAUTH = 'preauth'
 export const AUTH = 'auth'
 export const MESSAGE = 'message'
 export const RESOURCE_ASYNC = 'resourcestream'
+export const COMMAND = 'command'
 
 // various http-based confirmations (e.g. email confirmation)
 export const CONFIRMATION = 'confirmation'
 
 // deployment
 export const DEPLOYMENT_PINGBACK = 'deployment:pingback'
+export const DEPLOYMENT_UPDATE_STACK = 'deployment:update_stack'
+export const STACK_UPDATED = 'deployment:stack_updated'
+export const CHILD_STACK_STATUS_CHANGED = 'deployment:child_stack_status'
+// export const UPDATE_STACK = 'deployment:update_stack'
+
+export const LOGS = 'logs'
+export const LOG_ALERTS = 'logs:alerts'
+
+export const SCHEDULER = 'scheduler'
 
 // remediation
 export const REMEDIATION_COMMAND = 'remediation:utils'

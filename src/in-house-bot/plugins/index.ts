@@ -1,24 +1,8 @@
 
-import path from 'path'
-import fs from 'fs'
-import caseless from 'caseless'
-import { Conf } from '../configure'
-import { IPlugin, IPlugins } from '../types'
+import { IPlugins } from '../types'
+import { loadFromDir } from '../registry'
 
-const Plugins:IPlugins = caseless({})
-
-fs.readdirSync(__dirname).forEach(file => {
-  if (file !== 'index.js' && file.endsWith('.js')) {
-    const plugin:IPlugin<any> = require(path.resolve(__dirname, file))
-    const name = plugin.name || path.parse(file).name
-    if (Plugins.get(name)) {
-      throw new Error(`multiple plugins registered with name: ${name}`)
-    }
-
-    Plugins.set(name, plugin)
-  }
-})
-
+const Plugins:IPlugins = loadFromDir({ dir: __dirname })
 Plugins.set('customize-message', {
   createPlugin: require('@tradle/plugin-customize-message')
 })

@@ -7,6 +7,7 @@ import { cachify } from './utils'
 import Errors from './errors'
 import Env from './env'
 import { BucketPutOpts } from './types'
+import { KV } from './kv-s3'
 
 type BucketOpts = {
   name:string
@@ -58,6 +59,10 @@ export class Bucket {
     }
   }
 
+  public kv(opts) {
+    return new KV({ bucket: this, ...opts })
+  }
+
   public folder = (prefix:string):Bucket => {
     return new Bucket({
       ...this.opts,
@@ -65,34 +70,41 @@ export class Bucket {
     })
   }
 
-  public get = key => this.utils.get({
+  public withPrefix = (prefix:string):Bucket => {
+    return new Bucket({
+      ...this.opts,
+      prefix: this.prefix + prefix
+    })
+  }
+
+  public get = (key: string) => this.utils.get({
     key: this._getKey(key),
     bucket: this.name
   })
 
-  public maybeGet = key => this.get(key).catch(Errors.ignoreNotFound)
+  public maybeGet = (key: string) => this.get(key).catch(Errors.ignoreNotFound)
 
-  public getJSON = key => this.get(key).then(({ Body }) => JSON.parse(Body.toString()))
-  public maybeGetJSON = key => this.getJSON(key).catch(Errors.ignoreNotFound)
+  public getJSON = (key: string) => this.get(key).then(({ Body }) => JSON.parse(Body.toString()))
+  public maybeGetJSON = (key: string) => this.getJSON(key).catch(Errors.ignoreNotFound)
 
   public list = (opts) => this.utils.listBucket({ bucket: this.name, ...opts })
-  public put = (key, value, opts?:Partial<BucketPutOpts>) => this.utils.put({
+  public put = (key: string, value, opts?:Partial<BucketPutOpts>) => this.utils.put({
     key: this._getKey(key),
     value,
     bucket: this.name,
     ...opts
   })
 
-  public putJSON = (key, value, opts?:Partial<BucketPutOpts>) => this.put(key, value, opts)
-  public gzipAndPut = (key, value) => this.utils.gzipAndPut({
+  public putJSON = (key: string, value, opts?:Partial<BucketPutOpts>) => this.put(key, value, opts)
+  public gzipAndPut = (key: string, value) => this.utils.gzipAndPut({
     key: this._getKey(key),
     value,
     bucket: this.name
   })
 
-  public head = key => this.utils.head({ key: this._getKey(key), bucket: this.name })
-  public exists = key => this.utils.exists({ key: this._getKey(key), bucket: this.name })
-  public del = key => this.utils.del({ key: this._getKey(key), bucket: this.name })
+  public head = (key: string) => this.utils.head({ key: this._getKey(key), bucket: this.name })
+  public exists = (key: string) => this.utils.exists({ key: this._getKey(key), bucket: this.name })
+  public del = (key: string) => this.utils.del({ key: this._getKey(key), bucket: this.name })
   public getCacheable = opts => this.utils.getCacheable({
     ...opts,
     key: this._getKey(opts.key),
@@ -132,18 +144,30 @@ export class Bucket {
 
   public makePublic = () => this.utils.makePublic({ bucket: this.name })
   public empty = () => this.utils.emptyBucket({ bucket: this.name })
-  public copyFilesTo = ({ bucket, keys, prefix }: {
+  public copyFilesTo = ({ bucket, keys, prefix, acl }: {
     bucket: string
     keys?: string[]
     prefix?: string
+    acl?: AWS.S3.ObjectCannedACL
   }) => this.utils.copyFilesBetweenBuckets({
     source: this.name,
     target: bucket,
     keys,
-    prefix
+    prefix,
+    acl,
   })
 
-  private _getKey = key => this.prefix + key
+  public getRegionalBucketName = (region: string) => this.utils.getRegionalBucketName({ bucket: this.name, region })
+  public getRegionalBucket = (region: string) => new Bucket({
+    ...this.opts,
+    name: this.getRegionalBucketName(region)
+  })
+
+  public isPublic = () => this.utils.isBucketPublic({ bucket: this.name })
+  public makeKeysPublic = (keys: string[]) => this.utils.makeKeysPublic({ bucket: this.name, keys })
+
+  // public grantReadAccess = async (opts) => this.utils.grantReadAccess({ bucket: this.name, ...opts })
+  private _getKey = (key: string) => this.prefix + key
 }
 
 const getFolderPath = (parent:string, folder:string):string => {

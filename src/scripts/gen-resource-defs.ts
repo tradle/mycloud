@@ -4,7 +4,23 @@ process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
 import path from 'path'
 import fs from 'fs'
-import { getTableDefinitions } from '../cli/utils'
+
+const getTableDefinitions = () => {
+  const yml = require('../cli/serverless-yml')
+  const { stackName } = yml.custom
+  const { Resources } = yml.resources
+  const tableNames = Object.keys(Resources)
+    .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
+
+  const map = {}
+  for (const name of tableNames) {
+    const table = Resources[name]
+    map[name] = table
+    table.Properties.TableName = table.Properties.TableName.replace(stackName, '{stackName}')
+  }
+
+  return map
+}
 
 const defFilePath = path.resolve(__dirname, '../definitions.json')
 fs.writeFile(defFilePath, JSON.stringify(getTableDefinitions(), null, 2), err => {

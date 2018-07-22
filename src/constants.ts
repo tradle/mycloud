@@ -48,6 +48,7 @@ const UNSIGNED_TYPES = [
   'tradle.POJO'
 ]
 
+const DEFAULT_JOB_RUNNER_FUNCTION = 'genericJobRunner'
 const constants = {
   ORG,
   ORG_SIG,
@@ -87,9 +88,6 @@ const constants = {
   MAX_CLOCK_DRIFT: 10000,
   MAX_DB_ITEM_SIZE: 6000,
   ENV_RESOURCE_PREFIX: 'R_',
-  HTTP_METHODS: 'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT',
-  WARMUP_SOURCE_NAME: 'warmup',
-  WARMUP_SLEEP: 40,
   UNDELIVERED_STATUS: 'u',
   unitToMillis,
   DB_IGNORE_PAYLOAD_TYPES: {
@@ -112,11 +110,15 @@ const constants = {
     dev: 'https://push1-prod.tradle.io',
     prod: 'https://push1-prod.tradle.io'
   },
+  WARMUP_SOURCE_NAME: 'warmup',
+  WARMUP_SLEEP: 40,
+  WARMUP_PERIOD: 5 * unitToMillis.minute,
   DEFAULT_WARMUP_EVENT: {
     concurrency: 5,
     functions: [
       'oniotlifecycle',
       'onmessage',
+      'onresourcestream',
       'graphql',
       'info',
       'preauth',
@@ -124,11 +126,17 @@ const constants = {
       'inbox'
     ]
   },
+  WARMUP_FUNCTION: DEFAULT_JOB_RUNNER_FUNCTION,
+  REINITIALIZE_CONTAINERS_FUNCTION: DEFAULT_JOB_RUNNER_FUNCTION,
+  DEFAULT_JOB_RUNNER_FUNCTION,
+  SEALPENDING_FUNCTION: DEFAULT_JOB_RUNNER_FUNCTION,
+  POLLCHAIN_FUNCTION: DEFAULT_JOB_RUNNER_FUNCTION,
+  DELIVERY_RETRY_FUNCTION: DEFAULT_JOB_RUNNER_FUNCTION,
   ROOT_LOGGING_NAMESPACE: 'tradle',
   DEFAULT_REGION: 'us-east-1',
   DATE_ZERO: 0, // 1514764800000 // 2018-01-01 UTC
   UNSIGNED_TYPES,
-  FORBIDDEN_PAYLOAD_TYPES: UNSIGNED_TYPES
+  FORBIDDEN_PAYLOAD_TYPES: UNSIGNED_TYPES,
 }
 
 export = constants

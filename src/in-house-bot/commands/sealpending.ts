@@ -8,17 +8,15 @@ export const command:ICommand = {
   ],
   exec: async ({ commander, req, ctx, args }) => {
     try {
-      // fire off async
-      commander.bot.sendSimpleMessage({
-        to: req.user,
-        message: `yea yea...give me a minute`
-      })
+      if (req.user) {
+        // fire off async
+        commander.bot.sendSimpleMessage({
+          to: req.user,
+          message: `yea yea...give me a minute`
+        })
+      }
 
-      return await commander.bot.lambdaUtils.invoke({
-        name: 'sealpending',
-        sync: true,
-        arg: {}
-      })
+      return await commander.bot.lambdaUtils.invokeSealPending()
     } catch (err) {
       commander.logger.error('failed to write pending seals', err)
       return []

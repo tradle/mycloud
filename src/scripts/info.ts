@@ -20,7 +20,7 @@ import co from 'co'
 import buildResource from '@tradle/build-resource'
 import { PERMALINK } from '@tradle/constants'
 
-const info = proc.execSync('sls info', {
+const info = proc.execSync('./node_modules/.bin/sls info', {
   cwd: process.cwd()
 })
 .toString()

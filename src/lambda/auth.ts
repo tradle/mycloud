@@ -4,12 +4,8 @@ import cors from 'kcors'
 import Errors from '../errors'
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
-import { Lambda } from '../types'
+import { LambdaHttp as Lambda } from '../types'
 import { EventSource, fromHTTP } from '../lambda'
-
-interface IAuthContext extends Koa.Context {
-  [x: string]: any
-}
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)
@@ -28,7 +24,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 export const auth = (lambda:Lambda, opts?:any) => {
   const { bot, logger } = lambda
   const { auth } = bot
-  return async (ctx:IAuthContext, next) => {
+  return async (ctx, next) => {
     const time = Date.now()
     try {
       ctx.session = await auth.handleChallengeResponse(ctx.request.body)
