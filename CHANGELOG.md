@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0-rc.8"></a>
+# [1.2.0-rc.8](https://github.com/tradle/serverless/compare/v1.2.0-rc.7...v1.2.0-rc.8) (2018-07-22)
+
+
+### Bug Fixes
+
+* prevent duplicate subs to topic ([192124c](https://github.com/tradle/serverless/commit/192124c))
+* sns log topic policy ([ffc9a40](https://github.com/tradle/serverless/commit/ffc9a40))
+* sns message format, service-level iam permissions required for sns to invoke lambda ([885755f](https://github.com/tradle/serverless/commit/885755f))
+
+
+### Features
+
+* parse logging alerts (wip) ([b3a9c95](https://github.com/tradle/serverless/commit/b3a9c95))
+
+
+
 <a name="1.2.0-rc.7"></a>
 # [1.2.0-rc.7](https://github.com/tradle/serverless/compare/v1.2.0-rc.6...v1.2.0-rc.7) (2018-07-21)
 
