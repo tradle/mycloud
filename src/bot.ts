@@ -108,6 +108,7 @@ import Storage from './storage'
 import TaskManager from './task-manager'
 import Messaging from './messaging'
 import S3Utils from './s3-utils'
+import SNSUtils from './sns-utils'
 import LambdaUtils from './lambda-utils'
 import StackUtils from './stack-utils'
 import Iot from './iot-utils'
@@ -201,6 +202,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public messaging: Messaging
   public pushNotifications: Push
   public s3Utils: S3Utils
+  public snsUtils: SNSUtils
   public iot: Iot
   public lambdaUtils: LambdaUtils
   public stackUtils: StackUtils
@@ -452,6 +454,11 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       env,
       s3: aws.s3,
       logger: logger.sub('s3-utils')
+    })
+
+    const snsUtils = bot.snsUtils = new SNSUtils({
+      aws,
+      logger: logger.sub('sns-utils')
     })
 
     const buckets = bot.buckets = getBuckets({

@@ -1,12 +1,13 @@
 import path from 'path'
 import { Lambda } from 'aws-sdk'
-import { promisify, createLambdaContext } from './utils'
+import { promisify, createLambdaContext, parseArn } from './utils'
 import {
   Logger,
   Env,
   AwsApis
 } from './types'
 
+import Errors from './errors'
 import {
   WARMUP_SOURCE_NAME,
   WARMUP_SLEEP,
@@ -113,6 +114,12 @@ export default class LambdaUtils {
   public getConfiguration = (FunctionName:string):Promise<Lambda.Types.FunctionConfiguration> => {
     this.logger.debug(`looking up configuration for ${FunctionName}`)
     return this.aws.lambda.getFunctionConfiguration({ FunctionName }).promise()
+  }
+
+  public getLambdaArn = (lambdaShortName: string) => {
+    const { env } = this
+    const lambdaName = env.getStackResourceName(lambdaShortName)
+    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
   private get serverlessYml() {
@@ -349,6 +356,20 @@ export default class LambdaUtils {
       containersWarmed: 0
     })
   }
+
+  public getPolicy = async (nameOrArn: string) => {
+    try {
+      const { Policy } = await this.aws.lambda.getPolicy({ FunctionName: nameOrArn }).promise()
+      return JSON.parse(Policy)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      throw new Errors.NotFound(`policy for lambda: ${nameOrArn}`)
+    }
+  }
+
+  public addPermission = async (params: AWS.Lambda.AddPermissionRequest) => {
+    return await this.aws.lambda.addPermission(params).promise()
+  }
 }
 
 export { LambdaUtils }
@@ -357,3 +378,5 @@ export const create = opts => new LambdaUtils(opts)
 const getMemorySize = (conf, provider) => {
   return conf.memorySize || provider.memorySize || 128
 }
+
+const getFunctionNameFromArn = (arn: string) => arn.slice(arn.lastIndexOf('function:') + 9)

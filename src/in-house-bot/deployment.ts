@@ -10,6 +10,7 @@ import { appLinks } from '../app-links'
 import {
   Env,
   Bot,
+  SNSUtils,
   Logger,
   ITradleObject,
   IIdentity,
@@ -29,6 +30,7 @@ import {
   IPBUser,
 } from './types'
 
+import { genSetDeliveryPolicyParams, genCrossAccountPublishPermission } from '../sns-utils'
 import { StackUtils } from '../stack-utils'
 import { Bucket } from '../bucket'
 import { media } from './media'
@@ -197,6 +199,7 @@ const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `
 export class Deployment {
   // exposed for testing
   private bot: Bot
+  private snsUtils: SNSUtils
   private env: Env
   private deploymentBucket: Bucket
   private logger: Logger
@@ -204,6 +207,7 @@ export class Deployment {
   private orgConf?: IConf
   constructor({ bot, logger, conf, orgConf }: DeploymentCtorOpts) {
     this.bot = bot
+    this.snsUtils = bot.snsUtils
     this.env = bot.env
     this.logger = logger
     this.deploymentBucket = bot.buckets.ServerlessDeployment
@@ -855,9 +859,17 @@ ${this.genUsageInstructions(links)}`
       throw new Errors.InvalidInput(`expected tmp topic, got: ${topic}`)
     }
 
-    this.logger.debug('unscribing, deleting tmp topic', { topic })
-    await this._unsubscribeFromTopic(topic)
-    await this._deleteTopic(topic)
+    try {
+      await this.snsUtils.deleteAllSubscriptions(topic)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
+    try {
+      await this.snsUtils.deleteTopic(topic)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
   }
 
   public deleteExpiredTmpTopics = async () => {
@@ -924,9 +936,9 @@ ${this.genUsageInstructions(links)}`
       .version()
       .signAndSave()
 
-    if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
-      await this._unsubscribeFromTopic(subscriptionArn)
-    }
+    // if (status === 'CREATE_COMPLETE' || status === 'UPDATE_COMPLETE') {
+    //   await this.snsUtils.unsubscribe(subscriptionArn)
+    // }
 
     return updated
   }
@@ -1358,22 +1370,23 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _createTopicForCrossAccountEvents = async ({ topic, stackId, allowRoles, deliveryPolicy }) => {
-    const createParams:AWS.SNS.CreateTopicInput = { Name: topic }
-    const sns = this._regionalSNS(stackId)
-    const { TopicArn } = await sns.createTopic(createParams).promise()
-    const limitReceiveRateParams = getDeliveryPolicy(TopicArn, deliveryPolicy)
-    await sns.setTopicAttributes(limitReceiveRateParams).promise()
-    await this._allowCrossAccountPublish(TopicArn, allowRoles)
-    return TopicArn
+    const arn = await this.snsUtils.createTopic({
+      region: utils.parseArn(stackId).region,
+      name: topic
+    })
+
+    const limitReceiveRateParams = genSetDeliveryPolicyParams(arn, deliveryPolicy)
+    await this.snsUtils.setTopicAttributes(limitReceiveRateParams)
+    await this._allowCrossAccountPublish(arn, allowRoles)
+    return arn
   }
 
   private _allowCrossAccountPublish = async (topic: string, accounts: string[]) => {
-    const sns = this._regionalSNS(topic)
-    const { Attributes } = await sns.getTopicAttributes({ TopicArn: topic }).promise()
+    const { Attributes } = await this.snsUtils.getTopicAttributes(topic)
     const policy = JSON.parse(Attributes.Policy)
     // remove old statements
     const statements = policy.Statement.filter(({ Sid }) => !Sid.startsWith('allowCrossAccountPublish'))
-    statements.push(getCrossAccountPublishPermission(topic, accounts))
+    statements.push(genCrossAccountPublishPermission(topic, accounts))
     const params:AWS.SNS.SetTopicAttributesInput = {
       TopicArn: topic,
       AttributeName: 'Policy',
@@ -1383,7 +1396,7 @@ ${this.genUsageInstructions(links)}`
       })
     }
 
-    await sns.setTopicAttributes(params).promise()
+    await this.snsUtils.setTopicAttributes(params)
   }
 
   private _createStackUpdateTopic = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
@@ -1423,7 +1436,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _subscribeToChildStackStatusAlerts = async (topic: string) => {
-    const lambda = this._getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
+    const lambda = this.bot.lambdaUtils.getLambdaArn(ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME)
     const subscription = await this._subscribeLambdaToTopic({ topic, lambda })
     return {
       topic,
@@ -1433,22 +1446,15 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _subscribeToChildStackLoggingAlerts = async (topic: string) => {
-    const lambda = this._getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
+    const lambda = this.bot.lambdaUtils.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
     const subscribe = this._subscribeLambdaToTopic({ topic, lambda })
     const allow = this._allowSNSToCallLambda({ topic, lambda })
     await Promise.all([subscribe, allow])
   }
 
   private _allowSNSToCallLambda = async ({ topic, lambda }) => {
-    const { Policy } = await this.bot.aws.lambda.getPolicy({
-      FunctionName: lambda
-    }).promise()
-
-    const exists = JSON.parse(Policy).Statement.some(({ Principal }) => {
-      return Principal.Service === 'sns.amazonaws.com'
-    })
-
-    if (!exists) {
+    const exists = this._canSNSInvokeLambda(lambda)
+    if (exists) {
       this.logger.debug('sns -> lambda permission already exists')
       return
     }
@@ -1458,51 +1464,41 @@ ${this.genUsageInstructions(links)}`
       FunctionName: lambda,
       Action: 'lambda:InvokeFunction',
       Principal: 'sns.amazonaws.com',
-      StatementId: genSID('allowSNSToInvokeLambda'),
+      StatementId: utils.genStatementId('allowSNSToInvokeLambda'),
     }
 
-    await this.bot.aws.lambda.addPermission(params).promise()
+    await this.bot.lambdaUtils.addPermission(params)
+  }
+
+  private _canSNSInvokeLambda = async (lambda: string) => {
+    let policy
+    try {
+      policy = await this.bot.lambdaUtils.getPolicy(lambda)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
+    if (policy) {
+      return policy.Statement.some(({ Principal }) => {
+        return Principal.Service === 'sns.amazonaws.com'
+      })
+    }
   }
 
   private _subscribeEmailToTopic = async ({ email, topic }) => {
-    return await this._subscribeToTopic({ topic, protocol: 'email', endpoint: email })
+    return await this.snsUtils.subscribeIfNotSubscribed({
+      topic,
+      protocol: 'email',
+      endpoint: email
+    })
   }
 
   private _subscribeLambdaToTopic = async ({ lambda, topic }) => {
-    return await this._subscribeToTopic({ topic, protocol: 'lambda', endpoint: lambda })
-  }
-
-  private _subscribeToTopic = async ({ topic, protocol, endpoint }: {
-    topic: string
-    protocol: 'email' | 'lambda'
-    endpoint: string
-  }) => {
-    const sns = this._regionalSNS(topic)
-    const existing = await utils.getSNSSubscriptions({
-      sns,
+    return await this.snsUtils.subscribeIfNotSubscribed({
       topic,
-      filter: sub => _.isMatch(sub, { Protocol: protocol, Endpoint: endpoint })
+      protocol: 'lambda',
+      endpoint: lambda
     })
-
-    let sub: AWS.SNS.Subscription
-    if (existing.length) {
-      sub = existing[0]
-    } else {
-      this.logger.debug(`subscribing ${protocol} to topic`, { endpoint, topic })
-      const params: AWS.SNS.SubscribeInput = {
-        TopicArn: topic,
-        Protocol: 'email',
-        Endpoint: endpoint,
-      }
-
-      sub = await sns.subscribe(params).promise()
-    }
-
-    return sub.SubscriptionArn
-  }
-
-  private _unsubscribeFromTopic = async (SubscriptionArn: string) => {
-    await this._regionalSNS(SubscriptionArn).unsubscribe({ SubscriptionArn }).promise()
   }
 
   private _saveTmpTopicResource = async (props: {
@@ -1514,10 +1510,6 @@ ${this.genUsageInstructions(links)}`
       [TYPE]: TMP_SNS_TOPIC,
       ...props
     })
-  }
-
-  private _deleteTopic = async (topic: string) => {
-    this._regionalSNS(topic).deleteTopic({ TopicArn: topic }).promise()
   }
 
   private _saveMyDeploymentVersionInfo = async () => {
@@ -1592,12 +1584,6 @@ ${this.genUsageInstructions(links)}`
 
   private get _thisRegion() {
     return this.env.REGION
-  }
-
-  private _getLambdaArn = (lambdaShortName: string) => {
-    const { env } = this.bot
-    const lambdaName = env.getStackResourceName(lambdaShortName)
-    return `arn:aws:lambda:${env.AWS_REGION}:${env.AWS_ACCOUNT_ID}:function:${lambdaName}`
   }
 
   private _bucket = (name: string) => {
@@ -1680,9 +1666,9 @@ const scaleTable = ({ table, scale }) => {
   GlobalSecondaryIndexes.forEach(index => scaleTable({ table: index, scale }))
 }
 
-const genSID = (base: string) => `${base}${randomStringWithLength(10)}`
 const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) => {
-  return `${stackId}-stack-status-${stackOwner.slice(0, 10)}`
+  const { name } = StackUtils.parseStackArn(stackId)
+  return `${name}-stack-status-${stackOwner.slice(0, 10)}`
 }
 
 // const getTmpTopicExpirationDate = () => Date.now() + TMP_SNS_TOPIC_TTL
@@ -1710,19 +1696,3 @@ const sortVersions = (items: any[], desc?: boolean) => {
   const sorted = _.sortBy(items, ['sortableTag', '_time'])
   return desc ? sorted.reverse() : sorted
 }
-
-const getDeliveryPolicy = (TopicArn: string, policy: any):AWS.SNS.SetTopicAttributesInput => ({
-  TopicArn,
-  AttributeName: 'DeliveryPolicy',
-  AttributeValue: JSON.stringify(policy)
-})
-
-const getCrossAccountPublishPermission = (topic: string, accounts: string[]) => ({
-  Sid: genSID('allowCrossAccountPublish'),
-  Effect: 'Allow',
-  Principal: {
-    AWS: accounts
-  },
-  Action: 'SNS:Publish',
-  Resource: topic
-})

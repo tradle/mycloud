@@ -183,6 +183,27 @@ test('deployment by referral', loudAsync(async (t) => {
     }
   }
 
+  sandbox.stub(parent.snsUtils, 'createTopic').callsFake(async (topic) => {
+    return `arn:aws:sns:${region}:12345678902:${topic}`
+  })
+
+  sandbox.stub(parent.snsUtils, 'getTopicAttributes').resolves({
+    Attributes: {
+      Policy: JSON.stringify({
+        Statement: []
+      })
+    }
+  })
+
+  sandbox.stub(parent.snsUtils, 'setTopicAttributes').resolves()
+  sandbox.stub(parent.snsUtils, 'listSubscriptions').resolves([])
+  sandbox.stub(parent.snsUtils, 'subscribe').resolves('arn:aws:sns:us-east-1:12345678902:some-uuid')
+  sandbox.stub(parent.lambdaUtils, 'getPolicy').resolves({
+    Statement: []
+  })
+
+  sandbox.stub(parent.lambdaUtils, 'addPermission').resolves()
+
   const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate').resolves(parentTemplate)
 
   const copyFiles = sandbox.stub(parent.buckets.ServerlessDeployment, 'copyFilesTo').callsFake(async ({

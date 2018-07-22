@@ -38,6 +38,7 @@ import { Backlinks } from '../backlinks'
 import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
+import { SNSUtils } from '../sns-utils'
 import { Iot, IIotEndpointInfo } from '../iot-utils'
 import { Events, EventTopic } from '../events'
 import { Mailer } from '../mailer'
@@ -106,6 +107,7 @@ export {
   StackUtils,
   LambdaUtils,
   S3Utils,
+  SNSUtils,
   Iot,
   Events,
   Mailer,

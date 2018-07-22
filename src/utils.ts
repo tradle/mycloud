@@ -1580,21 +1580,4 @@ export const normalizeDomain = (domain:string) => {
   return domain
 }
 
-export const getSNSSubscriptions = async ({ sns, topic, filter }: {
-  sns: AWS.SNS
-  topic: string
-  filter: (sub: AWS.SNS.Subscription) => boolean
-}) => {
-  const params: AWS.SNS.ListSubscriptionsByTopicInput = {
-    TopicArn: topic
-  }
-
-  let batch: AWS.SNS.ListSubscriptionsByTopicResponse
-  let matches:AWS.SNS.Subscription[] = []
-  do {
-    batch = await sns.listSubscriptionsByTopic(params).promise()
-    matches = matches.concat(batch.Subscriptions.filter(filter))
-  } while (batch.NextToken)
-
-  return matches
-}
+export const genStatementId = (base: string) => `${base}${crypto.randomBytes(6).toString('hex')}`
