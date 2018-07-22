@@ -1,6 +1,6 @@
 import path from 'path'
 import { Lambda } from 'aws-sdk'
-import { promisify, createLambdaContext, parseArn } from './utils'
+import { promisify, createLambdaContext, parseArn, genStatementId } from './utils'
 import {
   Logger,
   Env,
@@ -357,18 +357,47 @@ export default class LambdaUtils {
     })
   }
 
-  public getPolicy = async (nameOrArn: string) => {
+  public getPolicy = async (lambda: string) => {
     try {
-      const { Policy } = await this.aws.lambda.getPolicy({ FunctionName: nameOrArn }).promise()
+      const { Policy } = await this.aws.lambda.getPolicy({ FunctionName: lambda }).promise()
       return JSON.parse(Policy)
     } catch (err) {
       Errors.ignoreNotFound(err)
-      throw new Errors.NotFound(`policy for lambda: ${nameOrArn}`)
+      throw new Errors.NotFound(`policy for lambda: ${lambda}`)
     }
   }
 
   public addPermission = async (params: AWS.Lambda.AddPermissionRequest) => {
     return await this.aws.lambda.addPermission(params).promise()
+  }
+
+  public canSNSInvoke = async (lambda: string):Promise<boolean> => {
+    let policy
+    try {
+      policy = await this.getPolicy(lambda)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+    }
+
+    if (policy) {
+      return policy.Statement.some(({ Principal }) => {
+        return Principal.Service === 'sns.amazonaws.com'
+      })
+    }
+
+    return false
+  }
+
+  public allowSNSToInvoke = async (lambda: string) => {
+    this.logger.debug('adding permission for sns to invoke lambda', { lambda })
+    const params:AWS.Lambda.AddPermissionRequest = {
+      FunctionName: lambda,
+      Action: 'lambda:InvokeFunction',
+      Principal: 'sns.amazonaws.com',
+      StatementId: genStatementId('allowSNSToInvokeLambda'),
+    }
+
+    await this.addPermission(params)
   }
 }
 

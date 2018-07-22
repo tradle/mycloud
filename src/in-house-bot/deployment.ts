@@ -1453,36 +1453,13 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _allowSNSToCallLambda = async ({ topic, lambda }) => {
-    const exists = this._canSNSInvokeLambda(lambda)
+    const exists = await this.bot.lambdaUtils.canSNSInvoke(lambda)
     if (exists) {
-      this.logger.debug('sns -> lambda permission already exists')
+      this.logger.debug('sns -> lambda permission already exists', { lambda })
       return
     }
 
-    this.logger.debug('adding permission for sns to invoke lambda')
-    const params:AWS.Lambda.AddPermissionRequest = {
-      FunctionName: lambda,
-      Action: 'lambda:InvokeFunction',
-      Principal: 'sns.amazonaws.com',
-      StatementId: utils.genStatementId('allowSNSToInvokeLambda'),
-    }
-
-    await this.bot.lambdaUtils.addPermission(params)
-  }
-
-  private _canSNSInvokeLambda = async (lambda: string) => {
-    let policy
-    try {
-      policy = await this.bot.lambdaUtils.getPolicy(lambda)
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-    }
-
-    if (policy) {
-      return policy.Statement.some(({ Principal }) => {
-        return Principal.Service === 'sns.amazonaws.com'
-      })
-    }
+    await this.bot.lambdaUtils.allowSNSToInvoke(lambda)
   }
 
   private _subscribeEmailToTopic = async ({ email, topic }) => {
