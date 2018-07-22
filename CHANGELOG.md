@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0-rc.9"></a>
+# [1.2.0-rc.9](https://github.com/tradle/serverless/compare/v1.2.0-rc.8...v1.2.0-rc.9) (2018-07-22)
+
+
+### Bug Fixes
+
+* don't crash on invalid UpdateRequest ([5f1cd2b](https://github.com/tradle/serverless/commit/5f1cd2b))
+
+
+
 <a name="1.2.0-rc.8"></a>
 # [1.2.0-rc.8](https://github.com/tradle/serverless/compare/v1.2.0-rc.7...v1.2.0-rc.8) (2018-07-22)
 
