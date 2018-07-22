@@ -128,10 +128,10 @@
     "release:patch": "standard-version --release-as patch",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
-    "prerelease": "standard-version --prerelease rc --no-verify",
-    "prerelease:patch": "npm run prerelease -- --patch",
-    "prerelease:minor": "npm run prerelease -- --minor",
-    "prerelease:major": "npm run prerelease -- --major"
+    "releasecandidate": "standard-version --prerelease rc --no-verify",
+    "releasecandidate:patch": "npm run releasecandidate -- --patch",
+    "releasecandidate:minor": "npm run releasecandidate -- --minor",
+    "releasecandidate:major": "npm run releasecandidate -- --major"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
