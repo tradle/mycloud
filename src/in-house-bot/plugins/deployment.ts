@@ -75,7 +75,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       Errors.ignore(err, Errors.InvalidInput)
       await applications.requestEdit({
         req,
-        item: deploymentOpts,
+        item: form,
         details: {
           message: err.message
         }
