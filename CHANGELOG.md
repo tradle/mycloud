@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0"></a>
+# [1.2.0](https://github.com/tradle/serverless/compare/v1.2.0-rc.12...v1.2.0) (2018-07-22)
+
+
+### Bug Fixes
+
+* npm scripts for creating release candidates ([002caa1](https://github.com/tradle/serverless/commit/002caa1))
+
+
+
 <a name="1.2.0-rc.12"></a>
 # [1.2.0-rc.12](https://github.com/tradle/serverless/compare/v1.2.0-rc.11...v1.2.0-rc.12) (2018-07-22)
 
