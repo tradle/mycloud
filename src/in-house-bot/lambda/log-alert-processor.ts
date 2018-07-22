@@ -7,6 +7,8 @@ const { bot, logger } = lambda
 
 lambda.use(async (ctx) => {
   const { event } = ctx
+  console.log('EVENT', JSON.stringify(event))
+  // await bot.buckets.Logs.putJSON(``, event)
   await bot.fire('logs:alerts', event)
 })
 

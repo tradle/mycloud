@@ -15,7 +15,7 @@ lambda.use(async (ctx) => {
       compress: true
     })
 
-    bot.hookSimple('logs', processor.handleEvent)
+    bot.hookSimple('logs', processor.handleLogEvent)
   }
 
   await bot.fire('logs', event)

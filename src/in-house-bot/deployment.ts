@@ -1443,11 +1443,36 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  private _subscribeToChildStackLoggingAlerts = async (topicArn: string) => {
-    return await this._subscribeLambdaToTopic({
-      topic: topicArn,
-      lambda: this._getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
+  private _subscribeToChildStackLoggingAlerts = async (topic: string) => {
+    const lambda = this._getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
+    const subscribe = this._subscribeLambdaToTopic({ topic, lambda })
+    const allow = this._allowSNSToCallLambda({ topic, lambda })
+    await Promise.all([subscribe, allow])
+  }
+
+  private _allowSNSToCallLambda = async ({ topic, lambda }) => {
+    const { Policy } = await this.bot.aws.lambda.getPolicy({
+      FunctionName: lambda
+    }).promise()
+
+    const exists = JSON.parse(Policy).Statement.some(({ Principal }) => {
+      return Principal.Service === 'sns.amazonaws.com'
     })
+
+    if (!exists) {
+      this.logger.debug('sns -> lambda permission already exists')
+      return
+    }
+
+    this.logger.debug('adding permission for sns to invoke lambda')
+    const params:AWS.Lambda.AddPermissionRequest = {
+      FunctionName: lambda,
+      Action: 'lambda:InvokeFunction',
+      Principal: 'sns.amazonaws.com',
+      StatementId: genSID('allowSNSToInvokeLambda'),
+    }
+
+    await this.bot.aws.lambda.addPermission(params).promise()
   }
 
   private _subscribeEmailToTopic = async ({ email, topic }) => {

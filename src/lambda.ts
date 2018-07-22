@@ -31,6 +31,7 @@ import {
   ILambdaExecutionContext,
   ILambdaHttpExecutionContext,
   ILambdaCloudWatchLogsExecutionContext,
+  ISNSExecutionContext,
   LambdaHandler,
   ILambdaOpts
 } from './types'
@@ -83,7 +84,7 @@ export const fromSchedule = (opts={}) => new BaseLambda({ ...opts, source: Event
 export const fromCloudFormation = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLOUDFORMATION })
 export const fromLambda = (opts={}) => new BaseLambda({ ...opts, source: EventSource.LAMBDA })
 export const fromS3 = (opts={}) => new BaseLambda({ ...opts, source: EventSource.S3 })
-export const fromSNS = (opts={}) => new BaseLambda({ ...opts, source: EventSource.SNS })
+export const fromSNS = (opts={}) => new BaseLambda<ISNSExecutionContext>({ ...opts, source: EventSource.SNS })
 export const fromCli = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLI })
 export const fromCloudwatchLogs = (opts={}) => new BaseLambda<ILambdaCloudWatchLogsExecutionContext>({ ...opts, source: EventSource.CLOUDWATCH_LOGS })
 

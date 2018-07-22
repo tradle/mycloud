@@ -365,7 +365,7 @@ provider:
         - lambda:InvokeFunction
         - lambda:InvokeAsync
         - lambda:AddPermission
-        # - lambda:GetPolicy
+        - lambda:GetPolicy
       Resource: "*"
 
     - Effect: Allow
@@ -1451,15 +1451,16 @@ resources:
       #     TargetKeyId:
       #       Ref: DefaultEncryptionKey
 
-    LogAlertProcessorSNSPermission:
-      Type: AWS::Lambda::Permission
-      Properties:
-        Action: lambda:InvokeFunction
-        Principal: sns.amazonaws.com
-        SourceArn:
-          Fn::Sub: arn:aws:sns:*:${AWS::AccountId}:*
-        FunctionName:
-          Fn::GetAtt: [ LogAlertProcessorLambdaFunction, Arn ]
+    # this creates a circular dependency for some reason
+    # LogAlertProcessorSNSPermission:
+    #   Type: AWS::Lambda::Permission
+    #   Properties:
+    #     Action: lambda:InvokeFunction
+    #     Principal: sns.amazonaws.com
+    #     SourceArn:
+    #       Fn::Sub: arn:aws:sns:*:${AWS::AccountId}:*
+    #     FunctionName:
+    #       Fn::GetAtt: [ LogAlertProcessorLambdaFunction, Arn ]
 
     # UpdateStackIamRole:
     #   Type: AWS::IAM::Role

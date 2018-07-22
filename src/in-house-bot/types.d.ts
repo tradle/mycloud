@@ -19,6 +19,7 @@ import {
   ILambdaOpts,
   IDeepLink,
   ILambdaExecutionContext,
+  SNSEvent,
   EnumValueStub,
   VersionInfo,
   Registry,
@@ -416,6 +417,10 @@ export interface IPBHttpMiddlewareContext extends IPBMiddlewareContext, KoaConte
   body: any
 }
 
+export interface IPBSNSMiddlewareContext extends IPBMiddlewareContext {
+  event: SNSEvent
+}
+
 export type IPBMiddleware = ComposeMiddleware<IPBMiddlewareContext>
 
 export interface IAppLinkSet {
@@ -431,3 +436,4 @@ export interface ITradleCheck extends ITradleObject {
 
 export type IPBLambda = BaseLambda<IPBMiddlewareContext>
 export type IPBLambdaHttp = BaseLambda<IPBHttpMiddlewareContext>
+export type IPBLambdaSNS = BaseLambda<IPBSNSMiddlewareContext>

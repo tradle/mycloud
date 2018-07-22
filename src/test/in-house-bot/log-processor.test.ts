@@ -3,32 +3,39 @@ require('../env').install()
 import crypto from 'crypto'
 import test from 'tape'
 import sinon from 'sinon'
-import {
-  LogProcessor,
-  parseLogEvent,
-  parseLogEntry,
-  parseLogEntryMessage,
-  parseMessageBody,
-  getLogEventKey,
-  ParsedEvent,
-} from '../../in-house-bot/log-processor'
+import * as LP from '../../in-house-bot/log-processor'
 import { noopLogger, Level } from '../../logger'
 import { KeyValueMem } from '../../key-value-mem'
 import { loudAsync } from '../../utils'
 
-const rawLogEvent = require('../fixtures/raw-log-event.json')
-const expectedParsed:ParsedEvent = require('../fixtures/parsed-log-event.json')
+import rawAlertEvent from '../fixtures/events/sns'
+const rawLogEvent = require('../fixtures/events/raw-log-event.json')
+const parsedLogEvent:LP.ParsedLogEvent = require('../fixtures/events/parsed-log-event.json')
+const parsedAlertEvent = {
+  accountId: '12345678902',
+  region: 'us-east-1',
+  stackName: 'tdl-example-ltd-dev',
+  timestamp: 0,
+  body: parsedLogEvent,
+}
+
+test('log entry and alert parsing', loudAsync(async t => {
+  // const parsed = sampleLog.map(parseLogEntryMessage)
+  t.equal(LP.parseMessageBody('AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy to LOG_ERROR.\n"').__xray__, true)
+  t.same(LP.parseLogEvent(rawLogEvent), parsedLogEvent)
+  t.same(LP.getLogEventKey(parsedLogEvent), '1970-01-01/00:00/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
+  t.equal(LP.parseLogEvent(rawLogEvent).entries.length, 11)
+  t.equal(LP.getAlertEventKey(parsedAlertEvent), '12345678902/tdl-example-ltd-dev-us-east-1/1970-01-01/00:00/00-a57bb402eb')
+  t.same(LP.parseAlertEvent(rawAlertEvent), parsedAlertEvent)
+
+  t.end()
+}))
 
 test('log processor', loudAsync(async t => {
   const sandbox = sinon.createSandbox()
-  // const parsed = sampleLog.map(parseLogEntryMessage)
-  t.equal(parseMessageBody('AWS_XRAY_CONTEXT_MISSING is set. Configured context missing strategy to LOG_ERROR.\n"').__xray__, true)
-  t.same(parseLogEvent(rawLogEvent), expectedParsed)
-  t.same(getLogEventKey(expectedParsed), '1970-01-01/00:00/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
-
   const sendAlertStub = sandbox.stub()
   const store = new KeyValueMem()
-  const processor = new LogProcessor({
+  const processor = new LP.LogProcessor({
     level: Level.DEBUG,
     logger: noopLogger,
     sendAlert: sendAlertStub,
@@ -36,16 +43,32 @@ test('log processor', loudAsync(async t => {
     ext: 'json.gz',
   })
 
-  t.equal(processor.parseEvent(rawLogEvent).entries.length, 11)
-
   const putStub = sandbox.stub(store, 'put').callsFake(async (k, v) => {
     t.ok(k.endsWith('.json.gz'))
   })
 
-  await processor.handleEvent(rawLogEvent)
+  await processor.handleLogEvent(rawLogEvent)
   t.equal(putStub.callCount, 1)
   t.equal(sendAlertStub.callCount, 1)
-  t.same(sendAlertStub.getCall(0).args[0], expectedParsed)
+  t.same(sendAlertStub.getCall(0).args[0], parsedLogEvent)
+
   sandbox.restore()
   t.end()
 }))
+
+test('log processor topics', t => {
+  const stackArn = 'arn:aws:cloudformation:us-east-1:012345678912:stack/my-stack-name'
+  t.equal(LP.getLogAlertsTopicName('my-stack-name'), 'my-stack-name-alerts')
+  t.equal(LP.getLogAlertsTopicArn({
+    sourceStackId: stackArn,
+    targetAccountId: '987654321098',
+  }), 'arn:aws:sns:us-east-1:987654321098:my-stack-name-alerts')
+
+  t.same(LP.parseLogAlertsTopicArn('arn:aws:sns:us-east-1:012345678912:tdl-fresh-ltd-dev-alerts'), {
+    accountId: '012345678912',
+    region: 'us-east-1',
+    stackName: 'tdl-fresh-ltd-dev',
+  })
+
+  t.end()
+})

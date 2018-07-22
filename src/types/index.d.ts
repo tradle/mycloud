@@ -200,6 +200,10 @@ export interface ILambdaCloudWatchLogsExecutionContext extends ILambdaExecutionC
   event: CloudWatchLogsEvent
 }
 
+export interface ISNSExecutionContext extends ILambdaExecutionContext {
+  event: SNSEvent
+}
+
 export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
   => any|void
 
@@ -751,4 +755,27 @@ export type CloudWatchLogsEvent = {
   logStream: string
   subscriptionFilters: string[]
   logEvents: CloudWatchLogsEntry[]
+}
+
+export type SNSEventRecord = {
+  EventVersion: string
+  EventSubscriptionArn: string
+  EventSource: string
+  Sns: {
+    SignatureVersion: string
+    Timestamp: string
+    Signature: string
+    SigningCertUrl: string
+    MessageId: string
+    Message: string
+    MessageAttributes: any,
+    Type: string
+    UnsubscribeUrl: string
+    TopicArn: string
+    Subject: string
+  }
+}
+
+export type SNSEvent = {
+  Records: SNSEventRecord[]
 }

@@ -2,11 +2,15 @@
 import Promise from 'bluebird'
 import omit from 'lodash/omit'
 import notNull from 'lodash/identity'
+import groupBy from 'lodash/groupBy'
 import Errors from '../errors'
 import { StackUtils } from '../stack-utils'
 import { TRADLE } from './constants'
+import { sha256 } from '../crypto'
 import {
   IPBLambda,
+  SNSEvent,
+  SNSEventRecord,
   CloudWatchLogsEvent,
   CloudWatchLogsEntry,
   IKeyValueStore,
@@ -15,8 +19,9 @@ import {
 } from './types'
 
 import { Level, noopLogger } from '../logger'
+import { parseArn } from '../utils'
 
-type SendAlert = (event: ParsedEvent) => Promise<void>
+type SendAlert = (event: ParsedLogEvent) => Promise<void>
 type LogProcessorOpts = {
   store: IKeyValueStore
   sendAlert: SendAlert
@@ -51,14 +56,22 @@ type FunctionInfo = {
   version: string
 }
 
-export type ParsedEvent = {
+export type ParsedLogEvent = {
   function: FunctionInfo
   entries: ParsedEntry[]
 }
 
+export type ParsedAlertEvent = {
+  accountId: string
+  region: string
+  stackName: string
+  timestamp: number
+  body: any
+}
+
 const LOG_GROUP_PREFIX = '/aws/lambda/'
 const ALERT_CONCURRENCY = 10
-const createDummyAlerter = (logger: Logger) => async (event: ParsedEvent) => {
+const createDummyAlerter = (logger: Logger) => async (event: ParsedLogEvent) => {
   // TODO
   logger.debug('TODO: send alert for event', getLogEventKey(event))
 }
@@ -140,6 +153,27 @@ const parseFunctionName = ({ logGroup }: CloudWatchLogsEvent) => {
 
 const getTopicArn = ({ accountId, region, topicName }) => `arn:aws:sns:${region}:${accountId}:${topicName}`
 
+export const parseAlertEvent = (event: SNSEvent) => {
+  const { Sns } = event.Records[0]
+  const { TopicArn, Message, Timestamp } = Sns
+  const topic = Sns.TopicArn
+  const { accountId, region, stackName } = parseLogAlertsTopicArn(topic)
+  let body
+  try {
+    body = JSON.parse(Message)
+  } catch (err) {
+    throw new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`)
+  }
+
+  return {
+    accountId,
+    region,
+    stackName,
+    body,
+    timestamp: new Date(Timestamp).getTime(),
+  }
+}
+
 export class LogProcessor {
   private ignoreGroups: string[]
   private sendAlert: SendAlert
@@ -163,9 +197,9 @@ export class LogProcessor {
     this.ext = ext
   }
 
-  public handleEvent = async (event: CloudWatchLogsEvent) => {
+  public handleLogEvent = async (event: CloudWatchLogsEvent) => {
     // const { UserId } = sts.getCallerIdentity({}).promise()
-    const parsed = this.parseEvent(event)
+    const parsed = this.parseLogEvent(event)
     if (!parsed.entries.length) return
 
     // alert before pruning, to provide maximum context for errors
@@ -175,17 +209,17 @@ export class LogProcessor {
       await this.sendAlert(parsed)
     }
 
-    await this.saveEvent(parsed)
+    await this.saveLogEvent(parsed)
   }
 
-  public parseEvent = (event: CloudWatchLogsEvent) => {
+  public parseLogEvent = (event: CloudWatchLogsEvent) => {
     const logGroup = getShortGroupName(event.logGroup)
     if (this.ignoreGroups.includes(logGroup)) return
 
     return parseLogEvent(event, this.logger)
   }
 
-  public saveEvent = async (event: ParsedEvent) => {
+  public saveLogEvent = async (event: ParsedLogEvent) => {
     let { entries } = event
     entries = entries.filter(shouldSave)
     if (this.level != null) {
@@ -199,6 +233,24 @@ export class LogProcessor {
     this.logger.debug(`saving ${entries.length} entries to ${key}`)
     await this.store.put(key, { ...event, entries })
   }
+
+  public handleAlertEvent = async (event: SNSEvent) => {
+    let parsed
+    try {
+      parsed = parseAlertEvent(event)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+      this.logger.debug('invalid alert event', Errors.export(err))
+      return
+    }
+
+    await this.saveAlertEvent(parsed)
+  }
+
+  public saveAlertEvent = async (event: ParsedAlertEvent) => {
+    const key = getAlertEventKey(event)
+    await this.store.put(key, event)
+  }
 }
 
 export const createSNSAlerter = ({ sourceStackId, targetAccountId, sns }: {
@@ -206,7 +258,7 @@ export const createSNSAlerter = ({ sourceStackId, targetAccountId, sns }: {
   targetAccountId: string
   sns: AWS.SNS
 }): SendAlert => {
-  return async (event: ParsedEvent) => {
+  return async (event: ParsedLogEvent) => {
     const params:AWS.SNS.PublishInput = {
       TopicArn: getLogAlertsTopicArn({ sourceStackId, targetAccountId }),
       Message: JSON.stringify({
@@ -318,8 +370,7 @@ export const parseMessageBody = (message: string) => {
 
   try {
     return JSON.parse(message)
-  } catch (err) {
-  }
+  } catch (err) {}
 
   const unparsed:any = {
     msg: message
@@ -343,7 +394,7 @@ export const shouldIgnore = (entry: ParsedEntry) => {
 
 export const shouldSave = (entry: ParsedEntry) => !shouldIgnore(entry)
 
-export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogger):ParsedEvent => {
+export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogger):ParsedLogEvent => {
   const entries = event.logEvents.map(entry => {
     try {
       return parseLogEntry(entry)
@@ -365,7 +416,7 @@ export const parseLogEvent = (event: CloudWatchLogsEvent, logger:Logger=noopLogg
 }
 
 // const getLogEntryKey = (group:string, event: ParsedEntry) => `${group}/${event.id}`
-export const getLogEventKey = (event: ParsedEvent, resolution: Resolution=Resolution.HOUR) => {
+export const getLogEventKey = (event: ParsedLogEvent, resolution: Resolution=Resolution.HOUR) => {
   const { id, timestamp } = event.entries[0]
   const timePrefix = getTimePrefix(timestamp, resolution)
   return `${timePrefix}/${event.function.name}/${id}`
@@ -396,4 +447,31 @@ export const getLogAlertsTopicArn = ({ sourceStackId, targetAccountId }: {
     accountId: targetAccountId,
     topicName: getLogAlertsTopicName(name)
   })
+}
+
+export const parseLogAlertsTopicArn = (topic: string) => {
+  const { accountId, region, relativeId } = parseArn(topic)
+  const { stackName } = parseLogAlertsTopicName(relativeId)
+  return {
+    accountId,
+    region,
+    stackName,
+  }
+}
+
+export const parseLogAlertsTopicName = (name: string) => {
+  if (!name.endsWith('-alerts')) {
+    throw new Errors.InvalidInput(`invalid log alerts topic name: ${name}`)
+  }
+
+  return {
+    stackName: name.slice(0, name.indexOf('-alerts'))
+  }
+}
+
+export const getAlertEventKey = (event: ParsedAlertEvent) => {
+  const { accountId, stackName, region, timestamp } = event
+  const hash = sha256(event, 'hex').slice(0, 10)
+  const { year, month, day, hour, minute } = toDate(timestamp)
+  return `${accountId}/${stackName}-${region}/${year}-${month}-${day}/${hour}:00/${minute}-${hash}`
 }
