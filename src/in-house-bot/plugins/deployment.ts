@@ -63,7 +63,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     // async
     bot.sendSimpleMessage({
       to: user,
-      message: `Generating a template and code package for your MyCloud. This could take a few seconds...`
+      message: `Generating a template and code package for your MyCloud. This could take up to 30 seconds...`
     })
 
     let launchUrl
