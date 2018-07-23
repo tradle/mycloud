@@ -1,7 +1,6 @@
 import querystring from 'querystring'
 import _ from 'lodash'
-import { parseStub } from '../../utils'
-import { TYPE } from '@tradle/constants'
+import { selectModelProps } from '../../utils'
 import { prettify } from '../../string-utils'
 import {
   Env,
@@ -22,7 +21,7 @@ import { Deployment, createDeployment } from '../deployment'
 import { TYPES } from '../constants'
 import { getParsedFormStubs } from '../utils'
 
-const { WEB_APP_URL } = constants
+const { TYPE, WEB_APP_URL } = constants
 const templateFileName = 'compiled-cloudformation-template.json'
 const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM, SIMPLE_MESSAGE } = TYPES
 
@@ -75,7 +74,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       Errors.ignore(err, Errors.InvalidInput)
       await applications.requestEdit({
         req,
-        item: form,
+        item: selectModelProps({ object: form, models: bot.models }),
         details: {
           message: err.message
         }

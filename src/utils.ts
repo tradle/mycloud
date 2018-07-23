@@ -1581,3 +1581,14 @@ export const normalizeDomain = (domain:string) => {
 }
 
 export const genStatementId = (base: string) => `${base}${crypto.randomBytes(6).toString('hex')}`
+
+export const selectModelProps = ({ object, models }) => {
+  const model = models[object[TYPE]]
+  const objModel = models['tradle.Object']
+  const props = Object.keys(model.properties)
+    .filter(prop => prop === TYPE || !objModel.properties[prop])
+
+  const selected = _.pick(object, props)
+  selected[TYPE] = object[TYPE]
+  return selected
+}
