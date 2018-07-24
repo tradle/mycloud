@@ -24,7 +24,8 @@ import {
   IConf,
   IBotConf,
   IDeploymentConf,
-  IMyDeploymentConf
+  IMyDeploymentConf,
+  IOrganization,
 } from './types'
 
 import {
@@ -35,6 +36,7 @@ import {
 import {
   PRIVATE_CONF_BUCKET,
   TYPES,
+  TRADLE,
 } from './constants'
 
 import { defaultConf } from './default-conf'
@@ -72,6 +74,20 @@ interface IInfoInput {
   org: ITradleObject
   style: ITradleObject
   identity: IIdentity
+}
+
+export type PublicInfo = {
+  sandbox?: boolean
+  bot: {
+    profile: {
+      name: any
+    },
+    pub: IIdentity
+  },
+  id: string
+  org: IOrganization
+  style: any
+  tour: any
 }
 
 const MINUTE = 3600000
@@ -280,7 +296,7 @@ export class Conf {
     return info
   }
 
-  public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput) => {
+  public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput):PublicInfo => {
     const tour = _.get(bot, 'tours.intro')
     return {
       sandbox: bot.sandbox,
@@ -355,34 +371,62 @@ export class Conf {
 
     const org = await bot.signAndSave(buildOrg(orgTemplate))
     await this.save({ identity, org, bot: conf.bot, style })
-    await this.recalcPublicInfo({ identity })
+    const info = await this.recalcPublicInfo({ identity })
 
     const { referrerUrl, deploymentUUID } = deploymentConf
-    const reportOpts = {
-      identity,
-      org,
-      targetApiUrl: referrerUrl,
-      deploymentUUID
-    }
-
     const promiseWarmup = bot.isTesting
       ? Promise.resolve()
       : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
 
-    // await bot.forceReinitializeContainers()
-    if (referrerUrl && deploymentUUID) {
-      try {
-        await deployment.reportDeployment(reportOpts)
-      } catch (err) {
-        logger.error('failed to report launch to parent MyCloud', err)
-      }
-    }
-
+    await this.reportDeployment({ deployment, identity, org, referrerUrl, deploymentUUID })
     try {
       await promiseWarmup
     } catch (err) {
       logger.error('failed to warm up functions', err)
     }
+
+    return info
+  }
+
+  private reportDeployment = async ({ deployment, identity, org, referrerUrl, deploymentUUID }: {
+    deployment: Deployment
+    identity: IIdentity
+    org: IOrganization
+    referrerUrl?: string
+    deploymentUUID?: string
+  }) => {
+    const tasks = []
+    // await bot.forceReinitializeContainers()
+    if (referrerUrl && deploymentUUID) {
+      const reportToParent = deployment.reportDeployment({
+        identity,
+        org,
+        targetApiUrl: referrerUrl,
+        deploymentUUID
+      })
+      .catch(err => {
+        this.logger.debug('failed to report deployment to parent', {
+          error: err.stack,
+          parent: referrerUrl
+        })
+      })
+
+      tasks.push(reportToParent)
+    }
+
+    const reportToTradle = deployment.reportDeployment({
+      identity,
+      org,
+      targetApiUrl: TRADLE.API_BASE_URL,
+    })
+    .catch(err => {
+      this.logger.debug('failed to report deployment to tradle', {
+        error: err.stack
+      })
+    })
+
+    tasks.push(reportToTradle)
+    await Promise.all(tasks)
   }
 
   public updateInfra = async (conf, opts: InitOpts = {}) => {
