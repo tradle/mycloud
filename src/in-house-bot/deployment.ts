@@ -35,7 +35,7 @@ import { StackUtils } from '../stack-utils'
 import { Bucket } from '../bucket'
 import { media } from './media'
 import Errors from '../errors'
-import { getFaviconUrl } from './image-utils'
+import { getLogo } from './image-utils'
 import { alphabetical } from '../string-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'
@@ -157,6 +157,13 @@ type ChildStackIdentifier = {
   stackId: string
 }
 
+type CallHomeOpts = {
+  identity?: IIdentity
+  org?: IOrganization
+  referrerUrl?: string
+  deploymentUUID?: string
+}
+
 // interface IUpdateChildDeploymentOpts {
 //   apiUrl?: string
 //   deploymentUUID?: string
@@ -174,7 +181,7 @@ interface DeploymentCtorOpts {
   bot: Bot
   logger: Logger
   conf?: IDeploymentPluginConf
-  orgConf?: IConf
+  org?: IOrganization
 }
 
 interface UpdateRequest extends ITradleObject {
@@ -204,15 +211,17 @@ export class Deployment {
   private deploymentBucket: Bucket
   private logger: Logger
   private conf?: IDeploymentPluginConf
-  private orgConf?: IConf
-  constructor({ bot, logger, conf, orgConf }: DeploymentCtorOpts) {
+  private org?: IOrganization
+  private isTradle: boolean
+  constructor({ bot, logger, conf, org }: DeploymentCtorOpts) {
     this.bot = bot
     this.snsUtils = bot.snsUtils
     this.env = bot.env
     this.logger = logger
     this.deploymentBucket = bot.buckets.ServerlessDeployment
     this.conf = conf
-    this.orgConf = orgConf
+    this.org = org
+    this.isTradle = org && isProbablyTradle({ org })
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -443,7 +452,54 @@ export class Deployment {
     })
   }
 
-  public reportDeployment = async ({ targetApiUrl, identity, org, deploymentUUID }: {
+  public callHome = async ({ identity, org, referrerUrl, deploymentUUID }: CallHomeOpts={}) => {
+    if (this.isTradle) return
+
+    const { bot, logger } = this
+    logger.debug('preparing to call home')
+
+    if (!org) org = this.org
+    if (!identity) identity = await this.bot.getMyIdentity()
+
+
+    const tasks = []
+    if (referrerUrl && deploymentUUID) {
+      const reportToParent = this.callHomeTo({
+        identity,
+        org,
+        targetApiUrl: referrerUrl,
+        deploymentUUID
+      })
+      .catch(err => {
+        this.logger.debug('failed to report deployment to parent', {
+          error: err.stack,
+          parent: referrerUrl
+        })
+
+        throw err
+      })
+
+      tasks.push(reportToParent)
+    }
+
+    const reportToTradle = this.callHomeTo({
+      identity,
+      org,
+      targetApiUrl: TRADLE.API_BASE_URL,
+    })
+    .catch(err => {
+      this.logger.debug('failed to report deployment to tradle', {
+        error: err.stack
+      })
+
+      throw err
+    })
+
+    tasks.push(reportToTradle)
+    await Promise.all(tasks)
+  }
+
+  public callHomeTo = async ({ targetApiUrl, identity, org, deploymentUUID }: {
     targetApiUrl: string
     identity?: IIdentity
     org?: IOrganization
@@ -451,7 +507,7 @@ export class Deployment {
   }) => {
     if (this.bot.env.IS_OFFLINE) return {}
 
-    if (!org) org = this.orgConf.org
+    if (!org) org = this.org
     if (!identity) identity = await this.bot.getMyIdentity()
 
     org = utils.omitVirtual(org)
@@ -476,7 +532,7 @@ export class Deployment {
       this.logger.error('failed to add referring MyCloud as friend', err)
     }
 
-    const reportDeploymentUrl = this.getReportDeploymentUrl(targetApiUrl)
+    const callHomeUrl = this.getCallHomeUrl(targetApiUrl)
     const launchData = utils.pickNonNull({
       deploymentUUID,
       apiUrl: this.bot.apiBaseUrl,
@@ -487,7 +543,7 @@ export class Deployment {
     }) as IDeploymentReportPayload
 
     try {
-      await utils.runWithTimeout(() => utils.post(reportDeploymentUrl, launchData), { millis: 10000 })
+      await utils.runWithTimeout(() => utils.post(callHomeUrl, launchData), { millis: 10000 })
     } catch (err) {
       Errors.rethrow(err, 'developer')
       this.logger.error(`failed to notify referrer at: ${targetApiUrl}`, err)
@@ -497,18 +553,23 @@ export class Deployment {
     return { friend, parentDeployment }
   }
 
+  public handleStackInit = async (opts: CallHomeOpts) => {
+    if (this.isTradle) return
+
+    await this.callHome(opts)
+  }
+
   public handleStackUpdate = async () => {
     const { bot, logger, conf } = this
-    if (isProbablyTradle(this.orgConf)) {
+    if (this.isTradle) {
       await this._handleStackUpdateTradle()
       return
     }
 
-    await this._handleStackUpdateNonTradle()
-    // await friendTradle(components.bot)
-    // if (friend) {
-    //   await sendTradleSelfIntro({ bot, friend })
-    // }
+    await this.callHome({
+      identity: await bot.getMyIdentity(),
+      org: this.org,
+    })
   }
 
   public handleDeploymentReport = async (report: IDeploymentReportPayload) => {
@@ -531,7 +592,7 @@ export class Deployment {
       }
     }
 
-    if (!(childDeployment || this._friendEveryone)) {
+    if (!(childDeployment || this.isTradle)) {
       return false
     }
 
@@ -650,7 +711,7 @@ ${this.genUsageInstructions(links)}`
           from: this.conf.senderEmail,
           to: _.uniq([hrEmail, adminEmail]),
           format: 'html',
-          ...this.genLaunchedEmail({ ...links, fromOrg: this.orgConf.org })
+          ...this.genLaunchedEmail({ ...links, fromOrg: this.org })
         })
         .catch(err => {
           this.logger.error('failed to email creators', err)
@@ -718,7 +779,10 @@ ${this.genUsageInstructions(links)}`
 
     const { Resources, Mappings } = template
     const { org, deployment } = Mappings
-    const logoPromise = this.getLogo(configuration)
+    const logoPromise = getLogo(configuration).catch(err => {
+      this.logger.warn('failed to get logo', { domain })
+    })
+
     const stage = getStageFromTemplate(template)
     const service = normalizeStackName(stackPrefix)
     const dInit: Partial<IMyDeploymentConf> = {
@@ -802,26 +866,9 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public getReportDeploymentUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
+  public getCallHomeUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
     // see serverless-uncompiled.yml deploymentPingback function conf
     return `${referrerUrl}/deploymentPingback`
-  }
-
-  public getLogo = async (opts: { domain: string, logo?: string }): Promise<string | void> => {
-    const { domain, logo } = opts
-    if (logo) return logo
-
-    try {
-      return await Promise.race([
-        getFaviconUrl(domain),
-        utils.timeoutIn({ millis: 5000 })
-      ])
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.info('failed to get favicon from url', {
-        url: domain
-      })
-    }
   }
 
   public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
@@ -1530,25 +1577,6 @@ ${this.genUsageInstructions(links)}`
     if (forced || should) {
       await this.alertAboutVersion(versionInfo)
     }
-  }
-
-  private _handleStackUpdateNonTradle = async () => {
-    const { logger } = this
-    logger.debug('reporting launch to tradle')
-
-    let result
-    try {
-      result = await this.reportDeployment({
-        targetApiUrl: TRADLE.API_BASE_URL,
-      })
-    } catch(err) {
-      Errors.rethrow(err, 'developer')
-      logger.error('failed to report launch to Tradle', err)
-    }
-  }
-
-  private get _friendEveryone() {
-    return isProbablyTradle(this.orgConf)
   }
 
   private get _thisStackArn() {

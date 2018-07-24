@@ -33,13 +33,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
   const { bot, applications, productsAPI, employeeManager } = components
   const orgConf = components.conf
   const { org } = orgConf
-  const deployment = createDeployment({
-    bot,
-    logger,
-    conf,
-    orgConf
-  })
-
+  const deployment = createDeployment({ bot, logger, conf, org })
   const getBotPermalink = bot.getPermalink()
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return

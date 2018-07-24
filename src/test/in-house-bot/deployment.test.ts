@@ -56,11 +56,9 @@ test('deployment by referral', loudAsync(async (t) => {
       senderEmail,
       stackStatusNotificationsEmail: senderEmail
     },
-    orgConf: <IConf>{
-      org: {
-        name: 'parent',
-        domain: 'parent.io'
-      }
+    org: {
+      name: 'parent',
+      domain: 'parent.io'
     }
   })
 
@@ -72,9 +70,7 @@ test('deployment by referral', loudAsync(async (t) => {
   const childDeployment = new Deployment({
     bot: child,
     logger: child.logger.sub('deployment:test:child'),
-    orgConf: <IConf>{
-      org: childOrg
-    }
+    org: childOrg,
   })
 
   const [
@@ -248,8 +244,8 @@ test('deployment by referral', loudAsync(async (t) => {
   // })
 
   const postStub = sandbox.stub(utils, 'post').callsFake(async (url, data) => {
-    t.equal(url, parentDeployment.getReportDeploymentUrl())
-    t.equal(url, parentDeployment.getReportDeploymentUrl(deploymentConf.referrerUrl))
+    t.equal(url, parentDeployment.getCallHomeUrl())
+    t.equal(url, parentDeployment.getCallHomeUrl(deploymentConf.referrerUrl))
     t.same(data, expectedLaunchReport)
     try {
       await parentDeployment.handleDeploymentReport(data)
@@ -340,7 +336,7 @@ test('deployment by referral', loudAsync(async (t) => {
   //   childDeploymentResource = res
   // })
 
-  await childDeployment.reportDeployment({
+  await childDeployment.callHomeTo({
     // myOrg: _.pick(deploymentConf, ['name', 'domain']),
     // myIdentity: childIdentity,
     targetApiUrl: deploymentConf.referrerUrl,
@@ -495,20 +491,18 @@ test('tradle and children', loudAsync(async (t) => {
   const tradleDeployment = new Deployment({
     bot: tradle,
     logger: tradle.logger.sub('deployment:test:parent'),
-    orgConf: <IConf>{
-      org: {
-        name: 'tradle'
-      }
+    org: {
+      name: 'tradle',
+      domain: 'tradle.io',
     }
   })
 
   const childDeployment = new Deployment({
     bot: child,
     logger: child.logger.sub('deployment:test:child'),
-    orgConf: <IConf>{
-      org: {
-        name: 'bagel'
-      }
+    org: {
+      name: 'bagel',
+      domain: 'bagel.yum',
     }
   })
 
@@ -523,7 +517,7 @@ test('tradle and children', loudAsync(async (t) => {
   await tradleDeployment.handleStackUpdate()
   t.ok(_.isMatch(getLastCallArg(saveStub), _.pick(tradle.version, ['tag', 'commit'])))
 
-  const reportStub = sandbox.stub(childDeployment, 'reportDeployment').resolves()
+  const reportStub = sandbox.stub(childDeployment, 'callHomeTo').resolves()
   await childDeployment.handleStackUpdate()
   t.equal(reportStub.callCount, 1)
 
@@ -531,7 +525,7 @@ test('tradle and children', loudAsync(async (t) => {
   //   identity:
   // })
 
-  // await childDeployment.reportDeployment({
+  // await childDeployment.callHomeTo({
   //   targetApiUrl: tradle.apiBaseUrl,
   // })
 

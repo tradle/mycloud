@@ -5,7 +5,7 @@ import DataURI from 'datauri'
 import fetch from 'node-fetch'
 // import request from 'superagent'
 import { fetchFavicons } from '@meltwater/fetch-favicon'
-import { domainToUrl } from '../utils'
+import { domainToUrl, timeoutIn } from '../utils'
 
 export type Favicon = {
   url: string
@@ -13,6 +13,22 @@ export type Favicon = {
     mimeType: string
     data: Buffer
   }
+}
+
+export type GetLogoOpts = {
+  domain: string
+  logo?: string
+  timeout?: number
+}
+
+export const getLogo = async (opts: GetLogoOpts): Promise<string | void> => {
+  const { domain, logo, timeout=5000 } = opts
+  if (logo) return logo
+
+  return await Promise.race([
+    getFaviconUrl(domain),
+    timeoutIn({ millis: timeout })
+  ])
 }
 
 export const getFaviconUrl = async (siteUrl: string):Promise<string> => {
@@ -101,19 +117,19 @@ export const getDataURI = async (image, ext) => {
   return uri.content
 }
 
-export const getLogo = async ({ logo, domain }) => {
-  if (!logo) {
-    logo = await getFaviconUrl(domain)
-  }
+// export const getLogo = async ({ logo, domain }) => {
+//   if (!logo) {
+//     logo = await getFaviconUrl(domain)
+//   }
 
-  if (!/^data:image/.test(logo)) {
-    const { data, mimeType } = await downloadImage(logo)
-    const ext = mimeType ? mimeType.split('/')[1] : logo.slice(logo.lastIndexOf('.'))
-    logo = await getDataURI(data, ext)
-  }
+//   if (!/^data:image/.test(logo)) {
+//     const { data, mimeType } = await downloadImage(logo)
+//     const ext = mimeType ? mimeType.split('/')[1] : logo.slice(logo.lastIndexOf('.'))
+//     logo = await getDataURI(data, ext)
+//   }
 
-  return logo
-}
+//   return logo
+// }
 
 // copied and adapted from @meltwater/fetch-favicon/source/markActiveFavicon.js
 const predicates = [

@@ -7,6 +7,7 @@ import mergeModels from '@tradle/merge-models'
 import ModelsPack from '@tradle/models-pack'
 import { Plugins } from './plugins'
 import { Deployment } from './deployment'
+import { getLogo } from './image-utils'
 import baseModels from '../models'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors from '../errors'
@@ -353,15 +354,12 @@ export class Conf {
       }
     }
 
-    const deployment = new Deployment({
-      bot,
-      logger,
-      orgConf: conf
-    })
-
     const { style } = conf
     if (!style.logo) {
-      const logo = await deployment.getLogo(deploymentConf)
+      const logo = await getLogo(deploymentConf).catch(err => {
+        this.logger.warn('failed to get logo', { domain: deploymentConf.domain })
+      })
+
       if (logo) {
         style.logo = {
           url: logo
@@ -370,15 +368,22 @@ export class Conf {
     }
 
     const org = await bot.signAndSave(buildOrg(orgTemplate))
+    const deployment = new Deployment({
+      bot,
+      logger: logger.sub('deployment'),
+      org,
+    })
+
+    const { referrerUrl, deploymentUUID } = deploymentConf
+    const promiseHandleInit = deployment.handleStackInit({ identity, org, referrerUrl, deploymentUUID })
     await this.save({ identity, org, bot: conf.bot, style })
     const info = await this.recalcPublicInfo({ identity })
 
-    const { referrerUrl, deploymentUUID } = deploymentConf
     const promiseWarmup = bot.isTesting
       ? Promise.resolve()
       : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
 
-    await this.reportDeployment({ deployment, identity, org, referrerUrl, deploymentUUID })
+    await promiseHandleInit
     try {
       await promiseWarmup
     } catch (err) {
@@ -388,49 +393,27 @@ export class Conf {
     return info
   }
 
-  private reportDeployment = async ({ deployment, identity, org, referrerUrl, deploymentUUID }: {
-    deployment: Deployment
-    identity: IIdentity
-    org: IOrganization
-    referrerUrl?: string
-    deploymentUUID?: string
-  }) => {
-    const tasks = []
-    // await bot.forceReinitializeContainers()
-    if (referrerUrl && deploymentUUID) {
-      const reportToParent = deployment.reportDeployment({
-        identity,
+  public updateInfra = async (conf, opts: InitOpts = {}) => {
+    const { bot, logger } = this
+    await bot.updateInfra()
+    const [org, identity] = await Promise.all([
+      this.org.get(),
+      bot.getMyIdentity()
+    ])
+
+    try {
+      const deployment = new Deployment({
+        bot,
+        logger: logger.sub('deployment'),
         org,
-        targetApiUrl: referrerUrl,
-        deploymentUUID
-      })
-      .catch(err => {
-        this.logger.debug('failed to report deployment to parent', {
-          error: err.stack,
-          parent: referrerUrl
-        })
       })
 
-      tasks.push(reportToParent)
+      // allowed to fail
+      await deployment.callHome()
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
     }
 
-    const reportToTradle = deployment.reportDeployment({
-      identity,
-      org,
-      targetApiUrl: TRADLE.API_BASE_URL,
-    })
-    .catch(err => {
-      this.logger.debug('failed to report deployment to tradle', {
-        error: err.stack
-      })
-    })
-
-    tasks.push(reportToTradle)
-    await Promise.all(tasks)
-  }
-
-  public updateInfra = async (conf, opts: InitOpts = {}) => {
-    await this.bot.updateInfra()
     await this.bot.forceReinitializeContainers()
   }
 
