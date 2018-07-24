@@ -370,12 +370,10 @@ export class Conf {
       : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
 
     // await bot.forceReinitializeContainers()
-    if (referrerUrl && deploymentUUID) {
-      try {
-        await deployment.reportDeployment(reportOpts)
-      } catch (err) {
-        logger.error('failed to report launch to parent MyCloud', err)
-      }
+    try {
+      await deployment.reportDeployment(reportOpts)
+    } catch (err) {
+      logger.error('failed to report launch to parent MyCloud', err)
     }
 
     try {
