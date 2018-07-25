@@ -164,6 +164,13 @@ type CallHomeOpts = {
   deploymentUUID?: string
 }
 
+type CallHomeToOpts = {
+  identity?: IIdentity
+  org?: IOrganization
+  targetApiUrl?: string
+  deploymentUUID?: string
+}
+
 // interface IUpdateChildDeploymentOpts {
 //   apiUrl?: string
 //   deploymentUUID?: string
@@ -482,12 +489,7 @@ export class Deployment {
       tasks.push(reportToParent)
     }
 
-    const reportToTradle = this.callHomeTo({
-      identity,
-      org,
-      targetApiUrl: TRADLE.API_BASE_URL,
-    })
-    .catch(err => {
+    const reportToTradle = this.callHomeToTradle({ identity, org }).catch(err => {
       this.logger.debug('failed to call home to tradle', {
         error: err.stack
       })
@@ -499,12 +501,14 @@ export class Deployment {
     await Promise.all(tasks)
   }
 
-  public callHomeTo = async ({ targetApiUrl, identity, org, deploymentUUID }: {
-    targetApiUrl: string
-    identity?: IIdentity
-    org?: IOrganization
-    deploymentUUID?: string
-  }) => {
+  public callHomeToTradle = async (opts:CallHomeToOpts={}) => {
+    return await this.callHomeTo({
+      targetApiUrl: TRADLE.API_BASE_URL,
+      ...opts,
+    })
+  }
+
+  public callHomeTo = async ({ targetApiUrl, identity, org, deploymentUUID }: CallHomeToOpts) => {
     if (this.bot.env.IS_OFFLINE) return {}
 
     if (!org) org = this.org
