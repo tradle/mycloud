@@ -520,7 +520,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           bucket: buckets.Secrets.name,
           // folder: constants.SECRETS_BUCKET.identityFolder
         })
-      })
+      }),
+      logger: logger.sub('secrets'),
     })
 
     const identity = bot.identity = new Identity({

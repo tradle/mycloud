@@ -23,6 +23,7 @@ import Errors from '../errors'
 import { models as PingPongModels } from '../ping-pong-models'
 import { Resource } from '../resource'
 import { Secrets } from '../secrets'
+import { consoleLogger } from '../logger'
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
@@ -691,7 +692,8 @@ test('secrets', loudAsync(async (t) => {
         bucket: bot.buckets.Secrets.name,
         folder
       })
-    })
+    }),
+    logger: consoleLogger,
   })
 
   const jsonValue = { 'efg': 1 }
