@@ -6,7 +6,8 @@ import AWS from 'aws-sdk'
 import { IPrivKey, IIdentity } from './types'
 import * as crypto from './crypto'
 import Errors from './errors'
-import { gzip, gunzip } from './utils'
+import { gzip, gunzip, wait } from './utils'
+import RetryableTask from './retryable-task'
 
 const KEYS_SECRET_NAME = 'identity-keys'
 const KEYS_CONTEXT = {
@@ -89,13 +90,23 @@ export default class Secrets {
     this.obfuscateSecretName = obfuscateSecretName
   }
 
-  public get = async ({ key, version, context = {} }: GetSecretOpts) => {
+  public _get = async ({ key, version, context = {} }: GetSecretOpts) => {
     const buf = await this.credstash.get({
       name: this.obfuscateSecretName(key),
       context
     })
 
     return await this._decode(buf)
+  }
+
+  public get = async (opts: GetSecretOpts) => {
+    const task = new RetryableTask({
+      shouldTryAgain: Errors.isNotFound,
+      maxAttempts: 3,
+      timeout: 30000,
+    })
+
+    return await task.run(() => this._get(opts))
   }
 
   public put = async ({ key, value, digest=DIGEST, context = {} }: PutSecretOpts) => {
