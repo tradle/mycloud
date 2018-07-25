@@ -58,12 +58,18 @@ export interface KVMap {
   [key: string]: any
 }
 
+export interface ILoggingConf {
+  senderEmail: string
+  destinationEmails: string[]
+}
+
 export interface IBotConf {
   products: IProductsConf
   tours?: ITours
   sandbox?: boolean
   graphqlAuth?: boolean
   credentials?: KVMap
+  logging?: ILoggingConf
   // exposed directly in /info
   // publicConfig: any
 }

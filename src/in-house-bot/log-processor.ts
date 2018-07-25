@@ -9,6 +9,7 @@ import { TRADLE } from './constants'
 import { sha256 } from '../crypto'
 import {
   Env,
+  Bot,
   IPBLambda,
   SNSEvent,
   SNSEventRecord,
@@ -17,6 +18,7 @@ import {
   IKeyValueStore,
   Logger,
   IBotComponents,
+  ILoggingConf,
 } from './types'
 
 import { Level, noopLogger } from '../logger'
@@ -232,7 +234,8 @@ export class LogProcessor {
     const filename = getLogEventKey(event)
     const key = `${filename}.${this.ext}`
     this.logger.debug(`saving ${entries.length} entries to ${key}`)
-    await this.store.put(key, { ...event, entries })
+    const formatted = { ...event, entries }
+    await this.store.put(key, formatted)
   }
 
   public handleAlertEvent = async (event: SNSEvent) => {
@@ -246,6 +249,7 @@ export class LogProcessor {
     }
 
     await this.saveAlertEvent(parsed)
+    return parsed
   }
 
   public saveAlertEvent = async (event: ParsedAlertEvent) => {
@@ -479,3 +483,30 @@ export const getAlertEventKey = (event: ParsedAlertEvent) => {
 
 // export const getLogsFolder = (env: Env) => `$logs/{env.STAGE}`
 // export const getAlertsFolder = (env: Env) => `alerts/${env.STAGE}`
+
+export const sendLogAlert = async ({ bot, conf, alert }: {
+  bot: Bot
+  conf: ILoggingConf
+  alert: ParsedAlertEvent
+}) => {
+  const { senderEmail, destinationEmails } = conf
+  const body = JSON.stringify(alert, null, 2)
+  await bot.mailer.send({
+    subject: 'logging alert',
+    from: senderEmail,
+    to: destinationEmails,
+    body,
+    format: 'text',
+  })
+}
+
+export const validateConf = async ({ bot, conf }: {
+  bot: Bot
+  conf: ILoggingConf
+}) => {
+  const { senderEmail, destinationEmails } = conf
+  const resp = await bot.mailer.canSendFrom(senderEmail)
+  if (!resp.result) {
+    throw new Errors.InvalidInput(resp.reason)
+  }
+}

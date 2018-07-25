@@ -275,6 +275,10 @@ export const topics = {
     create: new EventTopic('user:create'),
     online: new EventTopic('user:online'),
     offline: new EventTopic('user:offline'),
+  },
+  logging: {
+    logs: new EventTopic('logs:logs'),
+    alert: new EventTopic('logs:alert'),
   }
 }
 
