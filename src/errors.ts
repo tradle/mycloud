@@ -144,7 +144,8 @@ const exportError = (err:Error) => {
 
 const NOT_FOUND_MATCH = [
   { name: 'NotFound' },
-  { code: 'ResourceNotFoundException' }
+  { code: 'ResourceNotFoundException' },
+  { code: 'NoSuchKey' },
 ]
 
 const errors = {
