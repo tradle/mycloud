@@ -461,9 +461,9 @@ export class Deployment {
     if (!org) org = this.org
     if (!identity) identity = await this.bot.getMyIdentity()
 
-
     const tasks = []
     if (referrerUrl && deploymentUUID) {
+      this.logger.debug('calling parent')
       const reportToParent = this.callHomeTo({
         identity,
         org,
@@ -471,7 +471,7 @@ export class Deployment {
         deploymentUUID
       })
       .catch(err => {
-        this.logger.debug('failed to report deployment to parent', {
+        this.logger.debug('failed to call home to parent', {
           error: err.stack,
           parent: referrerUrl
         })
@@ -488,7 +488,7 @@ export class Deployment {
       targetApiUrl: TRADLE.API_BASE_URL,
     })
     .catch(err => {
-      this.logger.debug('failed to report deployment to tradle', {
+      this.logger.debug('failed to call home to tradle', {
         error: err.stack
       })
 
@@ -546,9 +546,10 @@ export class Deployment {
       await utils.runWithTimeout(() => utils.post(callHomeUrl, launchData), { millis: 10000 })
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error(`failed to notify referrer at: ${targetApiUrl}`, err)
+      this.logger.error(`failed to call home to: ${targetApiUrl}`, err)
     }
 
+    this.logger.debug(`called home to ${callHomeUrl}`)
     const parentDeployment = await saveParentDeployment
     return { friend, parentDeployment }
   }
