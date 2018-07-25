@@ -541,7 +541,8 @@ export const loadComponentsAndPlugins = ({
       'complyAdvantage',
       'controllingPersonRegistration',
       'centrix',
-      'facial-recognition'
+      'facial-recognition',
+      'trueface'
     ].forEach(name => attachPlugin({ name }))
 
     ;[
