@@ -140,13 +140,17 @@ export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
 export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
   const timeoutPromise = timeoutIn(opts)
   const taskPromise = fn()
-  const result = await Promise.race([
-    taskPromise,
-    timeoutPromise
-  ])
+  let result
+  try {
+    result = await Promise.race([
+      taskPromise,
+      timeoutPromise
+    ])
+  } finally {
+    // only need to cancel if task was successful
+    timeoutPromise.cancel()
+  }
 
-  // only need to cancel if task was successful
-  timeoutPromise.cancel()
   return taskPromise
 }
 
