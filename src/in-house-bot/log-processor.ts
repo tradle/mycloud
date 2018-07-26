@@ -380,6 +380,16 @@ export const parseMessageBody = (message: string) => {
     }
   }
 
+  // messages that get logged when AWSJS_DEBUG flag is on
+  // e.g. [AWS dynamodb 200 0.136s 0 retries] ...
+  if (message.startsWith('[AWS')) {
+    return {
+      __aws_verbose__: true,
+      level: 'SILLY',
+      msg: message,
+    }
+  }
+
   try {
     return JSON.parse(message)
   } catch (err) {}
@@ -391,6 +401,7 @@ export const parseMessageBody = (message: string) => {
   const lower = message.toLowerCase()
   if (lower.includes('unhandledpromiserejectionwarning') || lower.includes('error')) {
     unparsed.level = 'ERROR'
+    unparsed.unparseableLogEntry = true
   }
 
   return unparsed
