@@ -509,8 +509,9 @@ export const sendLogAlert = async ({ bot, conf, alert }: {
 }) => {
   const { senderEmail, destinationEmails } = conf
   const body = JSON.stringify(alert, null, 2)
+  const { stackName, accountId } = alert
   await bot.mailer.send({
-    subject: 'logging alert',
+    subject: `logging alert: ${stackName} (${accountId})`,
     from: senderEmail,
     to: destinationEmails,
     body,
