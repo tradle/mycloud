@@ -18,7 +18,7 @@ import {
   IDeploymentConf,
   IMyDeploymentConf,
   IDeploymentConfForm,
-  IDeploymentReportPayload,
+  ICallHomePayload,
   IKeyValueStore,
   ResourceStub,
   IOrganization,
@@ -369,15 +369,12 @@ export class Deployment {
       bucket,
     })
 
-    const setupStackAlerts = this._setupStackStatusAlerts({ stackOwner, stackId })
-    const setupLoggingAlerts = this._setupLoggingAlerts({ stackId })
-    const notificationTopics = [(await setupStackAlerts).topic]
-    const loggingTopic = await setupLoggingAlerts
+    const { logging, statusUpdates } = await this._monitorChildStack({ stackOwner, stackId })
     return {
       template,
       templateUrl,
-      notificationTopics,
-      loggingTopic,
+      notificationTopics: [statusUpdates.topic],
+      loggingTopic: logging.topic,
       updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
     }
   }
@@ -544,7 +541,7 @@ export class Deployment {
       identity,
       stackId: this._thisStackArn,
       version: this.bot.version,
-    }) as IDeploymentReportPayload
+    }) as ICallHomePayload
 
     try {
       await utils.runWithTimeout(() => utils.post(callHomeUrl, launchData), { millis: 10000 })
@@ -577,7 +574,7 @@ export class Deployment {
     })
   }
 
-  public handleDeploymentReport = async (report: IDeploymentReportPayload) => {
+  public handleCallHome = async (report: ICallHomePayload) => {
     const { deploymentUUID, apiUrl, org, identity, stackId, version } = report
     let childDeployment
     if (deploymentUUID) {
@@ -600,6 +597,11 @@ export class Deployment {
     if (!(childDeployment || this.isTradle)) {
       return false
     }
+
+    const promiseMonitorChild = this._monitorChildStack({
+      stackId,
+      stackOwner: buildResource.permalink(identity)
+    })
 
     const friend = await this.bot.friends.add({
       url: apiUrl,
@@ -630,6 +632,7 @@ export class Deployment {
     }
 
     await childDeploymentRes.signAndSave()
+    await promiseMonitorChild
 
     return true
   }
@@ -893,18 +896,6 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public _setupStackStatusAlerts = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
-    const arn = await this._createStackUpdateTopic({ stackOwner, stackId })
-    return await this._subscribeToChildStackStatusAlerts(arn)
-  }
-
-  public _setupLoggingAlerts = async ({ stackId }: {
-    stackId: string
-  }) => {
-    const arn = await this._createLoggingAlertsTopic({ stackId })
-    return await this._subscribeToChildStackLoggingAlerts(arn)
-  }
-
   public deleteTmpSNSTopic = async (topic: string) => {
     const shortName = topic.split(/[/:]/).pop()
     if (!shortName.startsWith('tmp-')) {
@@ -1011,7 +1002,7 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  public _savePublicTemplate = async ({ template, bucket }: {
+  public savePublicTemplate = async ({ template, bucket }: {
     template: any
     bucket: string
   }) => {
@@ -1021,7 +1012,34 @@ ${this.genUsageInstructions(links)}`
     return this.bot.s3Utils.getUrlForKey({ bucket, key })
   }
 
-  public _copyLambdaCode = async ({ template, bucket }: {
+  private _monitorChildStack = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
+    const [
+      statusUpdates,
+      logging
+    ] = await Promise.all([
+      this._setupStackStatusAlerts({ stackOwner, stackId }),
+      this._setupLoggingAlerts({ stackId })
+    ])
+
+    return {
+      statusUpdates,
+      logging,
+    }
+  }
+
+  private _setupStackStatusAlerts = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
+    const arn = await this._createStackUpdateTopic({ stackOwner, stackId })
+    return await this._subscribeToChildStackStatusAlerts(arn)
+  }
+
+  private _setupLoggingAlerts = async ({ stackId }: {
+    stackId: string
+  }) => {
+    const arn = await this._createLoggingAlertsTopic({ stackId })
+    return await this._subscribeToChildStackLoggingAlerts(arn)
+  }
+
+  public copyLambdaCode = async ({ template, bucket }: {
     template: any
     bucket: string
   }) => {
@@ -1062,8 +1080,8 @@ ${this.genUsageInstructions(links)}`
   }):Promise<{ url: string, code: CodeLocation }> => {
     this.logger.debug('saving template and lambda code', { bucket })
     const [templateUrl, code] = await Promise.all([
-      this._savePublicTemplate({ bucket, template }),
-      this._copyLambdaCode({ bucket, template: parentTemplate })
+      this.savePublicTemplate({ bucket, template }),
+      this.copyLambdaCode({ bucket, template: parentTemplate })
     ])
 
     return { templateUrl, code }
@@ -1501,7 +1519,12 @@ ${this.genUsageInstructions(links)}`
     const lambda = this.bot.lambdaUtils.getLambdaArn(LOG_ALERTS_PROCESSOR_LAMBDA_NAME)
     const subscribe = this._subscribeLambdaToTopic({ topic, lambda })
     const allow = this._allowSNSToCallLambda({ topic, lambda })
-    await Promise.all([subscribe, allow])
+    const [subscription] = await Promise.all([subscribe, allow])
+    return {
+      lambda,
+      topic,
+      subscription,
+    }
   }
 
   private _allowSNSToCallLambda = async ({ topic, lambda }) => {

@@ -14,7 +14,7 @@ import Errors from '../../errors'
 import { createTestBot } from '../../'
 import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models from '../../models'
-import { IMyDeploymentConf, IBotConf, IDeploymentReportPayload, IConf } from '../../in-house-bot/types'
+import { IMyDeploymentConf, IBotConf, ICallHomePayload, IConf } from '../../in-house-bot/types'
 import { createTestEnv } from '../env'
 import { S3Utils } from '../../s3-utils'
 import parseArgs from 'yargs-parser'
@@ -103,7 +103,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  let saveTemplateStub = sandbox.stub(parentDeployment, '_savePublicTemplate').callsFake(async ({ template, bucket }) => {
+  let saveTemplateStub = sandbox.stub(parentDeployment, 'savePublicTemplate').callsFake(async ({ template, bucket }) => {
     t.equal(bucket, regionalBucket)
 
     deploymentConf = {
@@ -248,7 +248,7 @@ test('deployment by referral', loudAsync(async (t) => {
     t.equal(url, parentDeployment.getCallHomeUrl(deploymentConf.referrerUrl))
     t.same(data, expectedLaunchReport)
     try {
-      await parentDeployment.handleDeploymentReport(data)
+      await parentDeployment.handleCallHome(data)
     } catch (err) {
       t.error(err)
     }
@@ -536,7 +536,7 @@ test('tradle and children', loudAsync(async (t) => {
   // const report = postStub.getCall(0).args[1]
   // t.same(report.version, child.version)
 
-  // await tradleDeployment.handleDeploymentReport(report)
+  // await tradleDeployment.handleCallHome(report)
 
   sandbox.restore()
   t.end()
