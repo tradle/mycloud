@@ -247,6 +247,7 @@ export class LogProcessor {
   public loadAlertEvent = async (event: ParsedAlertEvent) => {
     const { eventUrl } = event
     if (eventUrl) {
+      this.logger.debug('fetching remote log event')
       event.body = await get(eventUrl)
     }
 
@@ -269,19 +270,25 @@ export const fromLambda = ({ lambda, components, compress=true }: {
   const { bot, logger, deployment } = components
   const folder = bot.buckets.Logs.folder(bot.env.STAGE)
   const store = folder.kv({ compress })
+  const topic = getLogAlertsTopicArn({
+    sourceStackId: bot.stackUtils.thisStackArn,
+    targetAccountId: TRADLE.ACCOUNT_ID
+  })
+
+  const createAlertEvent = ({ key, event }: {
+    key: string
+    event: ParsedLogEvent
+  }) => ({
+    eventUrl: folder.createPresignedUrl(key)
+  })
+
   // const sendAlert:SendAlert = createDummyAlerter(logger)
   const sendAlert:SendAlert = async ({ key, event }) => {
-    const eventUrl = folder.createPresignedUrl(key)
     await bot.snsUtils.publish({
-      topic: getLogAlertsTopicArn({
-        sourceStackId: bot.stackUtils.thisStackArn,
-        targetAccountId: TRADLE.ACCOUNT_ID
-      }),
+      topic,
       message: {
         // required per: https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
-        default: {
-          eventUrl
-        }
+        default: createAlertEvent({ key, event })
       }
     })
   }
