@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.3.0-rc.0"></a>
+# [1.3.0-rc.0](https://github.com/tradle/serverless/compare/v1.2.2-rc.2...v1.3.0-rc.0) (2018-07-26)
+
+
+### Bug Fixes
+
+* begin monitoring child stack on call home (instead of on first update request) ([f1860d0](https://github.com/tradle/serverless/commit/f1860d0))
+* create logs bucket in dev env ([667c47f](https://github.com/tradle/serverless/commit/667c47f))
+* s3-utils isBucketPublic when no bucket policy set ([7640ffe](https://github.com/tradle/serverless/commit/7640ffe))
+* utils.runWithTimeout, cancel timeout on error ([5b6daea](https://github.com/tradle/serverless/commit/5b6daea))
+
+
+### Features
+
+* add /callhome cli command ([4b493f1](https://github.com/tradle/serverless/commit/4b493f1))
+* add Bucket.createPresignedUrl ([32f19e9](https://github.com/tradle/serverless/commit/32f19e9))
+* email log alerts ([ef18b6d](https://github.com/tradle/serverless/commit/ef18b6d))
+* enable stack termination protection on initial deploy ([e659210](https://github.com/tradle/serverless/commit/e659210))
+
+
+
 <a name="1.2.2-rc.2"></a>
 ## [1.2.2-rc.2](https://github.com/tradle/serverless/compare/v1.2.2-rc.1...v1.2.2-rc.2) (2018-07-24)
 
