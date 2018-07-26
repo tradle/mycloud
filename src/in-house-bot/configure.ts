@@ -176,11 +176,15 @@ export class Conf {
     // load all models
     await this.modelStore.loadModelsPacks()
 
-    const { products = {} } = value
+    const { products = {}, logging } = value
     const { plugins = {}, enabled = [] } = products
     if (_.size(plugins)) {
       await this.validatePluginConf(plugins)
     }
+
+    // if (logging) {
+    //   const logProcessor
+    // }
 
     if (enabled.includes(DEPLOYMENT_PRODUCT) && !plugins.deployment) {
       throw new Errors.InvalidInput(`product ${DEPLOYMENT_PRODUCT} is enabled. Expected a configuration for the "deployment" plugin`)
@@ -409,7 +413,7 @@ export class Conf {
       })
 
       // allowed to fail
-      await deployment.callHome()
+      await deployment.handleStackUpdate()
     } catch (err) {
       Errors.rethrow(err, 'developer')
     }
