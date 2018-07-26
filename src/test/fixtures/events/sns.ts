@@ -1,5 +1,7 @@
 const Message = JSON.stringify({
-  default: require('./parsed-log-event.json')
+  default: {
+    eventUrl: 'some pre-signed s3 url'
+  }
 })
 
 export = {

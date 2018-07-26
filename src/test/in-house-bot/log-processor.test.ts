@@ -16,7 +16,7 @@ const parsedAlertEvent = {
   region: 'us-east-1',
   stackName: 'tdl-example-ltd-dev',
   timestamp: 0,
-  body: parsedLogEvent,
+  eventUrl: JSON.parse(rawAlertEvent.Records[0].Sns.Message).default.eventUrl,
 }
 
 test('log entry and alert parsing', loudAsync(async t => {
@@ -25,8 +25,8 @@ test('log entry and alert parsing', loudAsync(async t => {
   t.same(LP.parseLogEvent(rawLogEvent), parsedLogEvent)
   t.same(LP.getLogEventKey(parsedLogEvent), 'logs/1970-01-01/00:00/big-mouth-dev-get-index/17d4646a672daea64385cbdc')
   t.equal(LP.parseLogEvent(rawLogEvent).entries.length, 11)
-  t.equal(LP.getAlertEventKey(parsedAlertEvent), 'alerts/12345678902/tdl-example-ltd-dev-us-east-1/1970-01-01/00:00/00-a57bb402eb')
-  t.same(LP.parseAlertEvent(rawAlertEvent), parsedAlertEvent)
+  t.equal(LP.getAlertEventKey(parsedAlertEvent), 'alerts/12345678902/tdl-example-ltd-dev-us-east-1/1970-01-01/00:00/00-0e3c863613')
+  t.ok(LP.parseAlertEvent(rawAlertEvent).eventUrl)
 
   t.end()
 }))
@@ -50,7 +50,7 @@ test('log processor', loudAsync(async t => {
   await processor.handleLogEvent(parsedLogEvent)
   t.equal(putStub.callCount, 1)
   t.equal(sendAlertStub.callCount, 1)
-  t.same(sendAlertStub.getCall(0).args[0], parsedLogEvent)
+  t.same(sendAlertStub.getCall(0).args[0].event, parsedLogEvent)
 
   sandbox.restore()
   t.end()

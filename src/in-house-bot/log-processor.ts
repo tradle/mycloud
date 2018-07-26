@@ -22,9 +22,9 @@ import {
 } from './types'
 
 import { Level, noopLogger } from '../logger'
-import { parseArn } from '../utils'
+import { parseArn, get } from '../utils'
 
-type SendAlert = (event: ParsedLogEvent) => Promise<void>
+type SendAlert = ({ key: string, event: ParsedLogEvent }) => Promise<void>
 type LogProcessorOpts = {
   store: IKeyValueStore
   sendAlert: SendAlert
@@ -69,7 +69,9 @@ export type ParsedAlertEvent = {
   region: string
   stackName: string
   timestamp: number
-  body: any
+  eventUrl: string
+  body?: any
+  [x: string]: any
 }
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'
@@ -169,10 +171,10 @@ export const parseAlertEvent = (event: SNSEvent) => {
   }
 
   return {
+    ...body,
     accountId,
     region,
     stackName,
-    body,
     timestamp: new Date(Timestamp).getTime(),
   }
 }
@@ -206,12 +208,11 @@ export class LogProcessor {
 
     // alert before pruning, to provide maximum context for errors
     const bad = event.entries.filter(shouldRaiseAlert)
-    if (bad.length) {
-      this.logger.debug('sending alert')
-      await this.sendAlert(event)
-    }
+    const key = await this.saveLogEvent(event)
+    if (!bad.length) return
 
-    await this.saveLogEvent(event)
+    this.logger.debug('sending alert')
+    await this.sendAlert({ key, event })
   }
 
   public parseLogEvent = (event: CloudWatchLogsEvent) => {
@@ -235,10 +236,21 @@ export class LogProcessor {
     this.logger.debug(`saving ${entries.length} entries to ${key}`)
     const formatted = { ...event, entries }
     await this.store.put(key, formatted)
+    return key
   }
 
   public handleAlertEvent = async (event: ParsedAlertEvent) => {
+    await this.loadAlertEvent(event)
     await this.saveAlertEvent(event)
+  }
+
+  public loadAlertEvent = async (event: ParsedAlertEvent) => {
+    const { eventUrl } = event
+    if (eventUrl) {
+      event.body = await get(eventUrl)
+    }
+
+    return event
   }
 
   public parseAlertEvent = parseAlertEvent
@@ -249,37 +261,30 @@ export class LogProcessor {
   }
 }
 
-export const createSNSAlerter = ({ sourceStackId, targetAccountId, sns }: {
-  sourceStackId: string
-  targetAccountId: string
-  sns: AWS.SNS
-}): SendAlert => {
-  return async (event: ParsedLogEvent) => {
-    const params:AWS.SNS.PublishInput = {
-      TopicArn: getLogAlertsTopicArn({ sourceStackId, targetAccountId }),
-      Message: JSON.stringify({
-        // required per: https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
-        default: event
-      }),
-    }
-
-    await sns.publish(params).promise()
-  }
-}
-
 export const fromLambda = ({ lambda, components, compress=true }: {
   lambda: IPBLambda
   components: IBotComponents
   compress?: boolean
 }) => {
   const { bot, logger, deployment } = components
-  const store = bot.buckets.Logs.folder(bot.env.STAGE).kv({ compress })
+  const folder = bot.buckets.Logs.folder(bot.env.STAGE)
+  const store = folder.kv({ compress })
   // const sendAlert:SendAlert = createDummyAlerter(logger)
-  const sendAlert = createSNSAlerter({
-    sourceStackId: bot.stackUtils.thisStackArn,
-    targetAccountId: TRADLE.ACCOUNT_ID,
-    sns: bot.aws.sns,
-  })
+  const sendAlert:SendAlert = async ({ key, event }) => {
+    const eventUrl = folder.createPresignedUrl(key)
+    await bot.snsUtils.publish({
+      topic: getLogAlertsTopicArn({
+        sourceStackId: bot.stackUtils.thisStackArn,
+        targetAccountId: TRADLE.ACCOUNT_ID
+      }),
+      message: {
+        // required per: https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
+        default: {
+          eventUrl
+        }
+      }
+    })
+  }
 
   return new LogProcessor({
     // avoid infinite loop that would result from processing
