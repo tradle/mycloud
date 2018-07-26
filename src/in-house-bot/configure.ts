@@ -1,13 +1,13 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
 import ModelsPack from '@tradle/models-pack'
 import { Plugins } from './plugins'
 import { Deployment } from './deployment'
+import { getLogo } from './image-utils'
 import baseModels from '../models'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors from '../errors'
@@ -24,17 +24,20 @@ import {
   ITradleObject,
   IConf,
   IBotConf,
-  IDeploymentOpts,
-  IMyDeploymentConf
+  IDeploymentConf,
+  IMyDeploymentConf,
+  IOrganization,
 } from './types'
 
 import {
-  DEFAULT_WARMUP_EVENT
+  DEFAULT_WARMUP_EVENT,
+  TYPE,
 } from '../constants'
 
 import {
   PRIVATE_CONF_BUCKET,
-  TYPES
+  TYPES,
+  TRADLE,
 } from './constants'
 
 import { defaultConf } from './default-conf'
@@ -72,6 +75,20 @@ interface IInfoInput {
   org: ITradleObject
   style: ITradleObject
   identity: IIdentity
+}
+
+export type PublicInfo = {
+  sandbox?: boolean
+  bot: {
+    profile: {
+      name: any
+    },
+    pub: IIdentity
+  },
+  id: string
+  org: IOrganization
+  style: any
+  tour: any
 }
 
 const MINUTE = 3600000
@@ -280,7 +297,7 @@ export class Conf {
     return info
   }
 
-  public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput) => {
+  public assemblePublicInfo = ({ identity, org, style, bot }: IInfoInput):PublicInfo => {
     const tour = _.get(bot, 'tours.intro')
     return {
       sandbox: bot.sandbox,
@@ -303,7 +320,7 @@ export class Conf {
     const { bot, logger } = this
 
     let { forceRecreateIdentity, identity, keys } = opts
-    this.logger.info('initializing provider', deploymentConf)
+    logger.info('initializing provider', deploymentConf)
 
     const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
     if (bot.isTesting) {
@@ -337,15 +354,12 @@ export class Conf {
       }
     }
 
-    const deployment = new Deployment({
-      bot,
-      logger,
-      orgConf: conf
-    })
-
     const { style } = conf
     if (!style.logo) {
-      const logo = await deployment.getLogo(deploymentConf)
+      const logo = await getLogo(deploymentConf).catch(err => {
+        this.logger.warn('failed to get logo', { domain: deploymentConf.domain })
+      })
+
       if (logo) {
         style.logo = {
           url: logo
@@ -354,40 +368,52 @@ export class Conf {
     }
 
     const org = await bot.signAndSave(buildOrg(orgTemplate))
+    const deployment = new Deployment({
+      bot,
+      logger: logger.sub('deployment'),
+      org,
+    })
+
+    const { referrerUrl, deploymentUUID } = deploymentConf
+    const promiseHandleInit = deployment.handleStackInit({ identity, org, referrerUrl, deploymentUUID })
     await this.save({ identity, org, bot: conf.bot, style })
-    await this.recalcPublicInfo({ identity })
+    const info = await this.recalcPublicInfo({ identity })
+
     const promiseWarmup = bot.isTesting
       ? Promise.resolve()
       : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
 
-    // await bot.forceReinitializeContainers()
-    const { referrerUrl, deploymentUUID } = deploymentConf
-    if (!(referrerUrl && deploymentUUID)) {
-      await promiseWarmup
-      return
-    }
-
-    try {
-      await deployment.reportLaunch({
-        identity: omitVirtual(identity),
-        org: omitVirtual(org),
-        referrerUrl,
-        deploymentUUID
-      })
-
-    } catch (err) {
-      this.logger.error('failed to call home', err)
-    }
-
+    await promiseHandleInit
     try {
       await promiseWarmup
     } catch (err) {
       logger.error('failed to warm up functions', err)
     }
+
+    return info
   }
 
   public updateInfra = async (conf, opts: InitOpts = {}) => {
-    await this.bot.updateInfra()
+    const { bot, logger } = this
+    await bot.updateInfra()
+    const [org, identity] = await Promise.all([
+      this.org.get(),
+      bot.getMyIdentity()
+    ])
+
+    try {
+      const deployment = new Deployment({
+        bot,
+        logger: logger.sub('deployment'),
+        org,
+      })
+
+      // allowed to fail
+      await deployment.callHome()
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+    }
+
     await this.bot.forceReinitializeContainers()
   }
 

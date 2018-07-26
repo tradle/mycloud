@@ -6,6 +6,7 @@ const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)(?:_(.*))?$`)
 export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
   const { logger } = env
   const {
+    AWS_REGION,
     SERVERLESS_SERVICE_NAME,
     SERVERLESS_STAGE,
     IS_OFFLINE
@@ -48,7 +49,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       } else {
         value = {
           id: env[key],
-          url: `https://${env[key]}.execute-api.${env.REGION}.amazonaws.com/${SERVERLESS_STAGE}`
+          url: `https://${env[key]}.execute-api.${AWS_REGION}.amazonaws.com/${SERVERLESS_STAGE}`
         }
       }
     } else {
@@ -58,7 +59,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       }
     }
 
-    logger.ridiculous(`registered ${type} ${name} -> ${value}`)
+    logger.ridiculous(`registered ${type} ${name} -> ${JSON.stringify(value)}`)
     if (name) {
       resources[type][name] = value
     } else {

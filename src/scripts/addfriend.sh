@@ -24,4 +24,4 @@ if [ -z "$stage" ] || [ -z "url" ]; then
 fi
 
 set -x
-echo "{ \"url\": \"$url\" }" | sls invoke --stage=$stage -f addfriend
+echo "{ \"url\": \"$url\" }" | ./node_modules/.bin/sls invoke --stage=$stage -f addfriend

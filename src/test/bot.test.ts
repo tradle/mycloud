@@ -23,6 +23,7 @@ import Errors from '../errors'
 import { models as PingPongModels } from '../ping-pong-models'
 import { Resource } from '../resource'
 import { Secrets } from '../secrets'
+import { consoleLogger } from '../logger'
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
 // const fromBob = require('./fixtures/alice/receive.json')
@@ -109,10 +110,10 @@ test(`users `, loudAsync(async (t) => {
   t.end()
 }))
 
-test('init', loudAsync(async (t) => {
+test('init, update', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const bot = createTestBot()
-  const originalEvent = {
+  const originalCreateEvent = {
     RequestType: 'Create',
     ResponseURL: 'some-s3-url',
     ResourceProperties: {
@@ -120,34 +121,67 @@ test('init', loudAsync(async (t) => {
     }
   }
 
-  const expectedEvent = {
-    type: 'init',
-    payload: {
-      some: 'prop'
+  const originalUpdateEvent = {
+    ...originalCreateEvent,
+    RequestType: 'Update',
+    ResourceProperties: {
+      some: 'updatedprop'
     }
+  }
+
+  const initEvent = {
+    type: 'init',
+    payload: originalCreateEvent.ResourceProperties
+  }
+
+  const updateEvent = {
+    type: 'update',
+    payload: originalUpdateEvent.ResourceProperties
   }
 
   const originalContext = {}
   sandbox.stub(bot.init, 'initInfra').callsFake(async (opts) => {
-    t.same(opts, expectedEvent.payload)
+    t.same(opts, initEvent.payload)
+  })
+
+  sandbox.stub(bot.init, 'updateInfra').callsFake(async (opts) => {
+    t.same(opts, updateEvent.payload)
   })
 
   const cfnResponseStub = sandbox.stub(cfnResponse, 'send').resolves()
   let { callCount } = cfnResponseStub
 
   // bot.oninit(async (event) => {
-  //   t.same(event, expectedEvent)
+  //   t.same(event, initEvent)
   // })
 
-  let initLambda = bot.lambdas.oninit()
+  const initLambda = bot.lambdas.oninit()
+
+  let expectedEvent = initEvent
+  let stackInitFired
+  const removeInitHook = bot.hookSimple('stack:init', () => stackInitFired = true)
   initLambda.use(async ({ event }) => {
     t.same(event, expectedEvent)
   })
 
-  await initLambda.handler(originalEvent, {
+  await initLambda.handler(originalCreateEvent, {
     done: t.error
   } as ILambdaAWSExecutionContext)
 
+  t.equal(stackInitFired, true, 'triggered stack:init bot event')
+  removeInitHook()
+
+  t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
+
+  expectedEvent = updateEvent
+  let stackUpdateFired
+  bot.hookSimple('stack:update', () => stackUpdateFired = true)
+
+  await initLambda.handler(originalUpdateEvent, {
+    done: t.error
+  } as ILambdaAWSExecutionContext)
+
+  t.equal(stackUpdateFired, true, 'triggered stack:update bot event')
   t.equal(cfnResponseStub.getCall(callCount++).args[2], cfnResponse.SUCCESS)
 
   // commented out as errors in oninit only lead to FAIL being sent
@@ -259,6 +293,10 @@ test(`onmessage`, loudAsync(async (t) => {
     type: 'messages',
     payload: [message]
   })
+
+  sandbox.stub(bot.aws.iotData, 'publish').callsFake(() => ({
+    promise: async () => {}
+  }))
 
   await bot.lambdas.onmessage().handler({
     // clientId: 'ted',
@@ -654,7 +692,8 @@ test('secrets', loudAsync(async (t) => {
         bucket: bot.buckets.Secrets.name,
         folder
       })
-    })
+    }),
+    logger: consoleLogger,
   })
 
   const jsonValue = { 'efg': 1 }

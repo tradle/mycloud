@@ -2,6 +2,8 @@ import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import { createConfig } from './aws-config'
 import { isXrayOn } from './utils'
+import { Env, Logger } from './types'
+import REGIONS from './aws-regions'
 
 const willUseXRay = isXrayOn()
 if (willUseXRay) {
@@ -9,9 +11,18 @@ if (willUseXRay) {
   AWSXRay.captureHTTPsGlobal(require('http'))
 }
 
+const MOCKED_SEPARATELY = {
+  KMS: true,
+  Iot: true,
+  STS: true,
+}
+
+type CreateRegionalService = (serviceName: string, region: string, conf?: any) => any
+
 export type AwsApis = {
   s3: AWS.S3,
   dynamodb: AWS.DynamoDB,
+  iam: AWS.IAM,
   iot: AWS.Iot,
   iotData: AWS.IotData,
   sts: AWS.STS,
@@ -24,18 +35,27 @@ export type AwsApis = {
   xray: AWS.XRay,
   apigateway: AWS.APIGateway,
   ssm: AWS.SSM,
+  cloudwatch: AWS.CloudWatch,
+  cloudwatchlogs: AWS.CloudWatchLogs,
   AWS: any,
   trace: any
+  regional: {
+    [x: string]: AwsApis
+  }
 }
 
-export default function createAWSWrapper ({ env, logger }) {
+export default function createAWSWrapper ({ env, logger }: {
+  env: Env
+  logger: Logger
+}) {
+  const region = env.AWS_REGION
+  const OTHER_REGIONS = REGIONS.filter(r => r !== region)
   const AWS = willUseXRay
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
 
   AWS.config.correctClockSkew = true
 
-  const cacheServices = true
   const services = createConfig({ env })
   AWS.config.update(services)
 
@@ -44,15 +64,18 @@ export default function createAWSWrapper ({ env, logger }) {
     dynamodb: 'DynamoDB',
     dynamodbStreams: 'DynamoDBStreams',
     docClient: 'DocumentClient',
+    iam: 'IAM',
     iot: 'Iot',
     sts: 'STS',
     sns: 'SNS',
     ses: 'SES',
     kms: 'KMS',
     lambda: 'Lambda',
-    iotData: 'Iot',
+    iotData: 'IotData',
     xray: 'XRay',
     apigateway: 'APIGateway',
+    cloudwatch: 'CloudWatch',
+    cloudwatchlogs: 'CloudWatchLogs',
     ssm: 'SSM',
     cloudformation: 'CloudFormation'
   }
@@ -75,45 +98,86 @@ export default function createAWSWrapper ({ env, logger }) {
     })
   }
 
-  const api:any = (function () {
-    const cachedServices = {}
+  const _create:CreateRegionalService = (serviceName, region, conf) => {
+    if (serviceName === 'DocumentClient') {
+      return new AWS.DynamoDB.DocumentClient(services.dynamodb)
+    }
+
+    if (serviceName === 'IotData') {
+      // may be set dynamically
+      const { IOT_ENDPOINT } = env
+      return new AWS.IotData({
+        endpoint: IOT_ENDPOINT,
+        ...(conf || {})
+      })
+    }
+
+
+    if (env.TESTING && !conf && !MOCKED_SEPARATELY[serviceName]) {
+      // don't pretend to support it as this will result
+      // in calling the remote service!
+      return null
+    }
+
+    return new AWS[serviceName]({ ...conf, region })
+  }
+
+  const create:CreateRegionalService = (serviceName, region) => {
+    const conf = getConf(serviceName)
+    const service = _create(serviceName, region, conf)
+    if (service) {
+      useGlobalConfigClock(service)
+    }
+
+    return service
+  }
+
+  const getConf = (serviceName: string) => {
+    return services[serviceName.toLowerCase()]
+  }
+
+  const apis:any = {
+    regional: {}
+  }
+
+  const { regional } = apis
+  REGIONS.forEach(region => {
+    const regionalServices = regional[region] = {}
     Object.keys(instanceNameToServiceName).forEach(instanceName => {
-      const serviceName = instanceNameToServiceName[instanceName]
       let service
-      Object.defineProperty(cachedServices, instanceName, {
-        set: function (value) {
-          service = value
-        },
-        get: function () {
-          if (!service || !cacheServices) {
-            const lServiceName = serviceName.toLowerCase()
-            const conf = services[lServiceName] || {}
-            if (instanceName === 'docClient') {
-              service = new AWS.DynamoDB.DocumentClient(services.dynamodb)
-            } else if (instanceName === 'iotData') {
-              // may be set dynamically
-              const { IOT_ENDPOINT } = env
-              service = new AWS.IotData({
-                endpoint: IOT_ENDPOINT,
-                ...conf
-              })
-            } else {
-              service = new AWS[serviceName](conf)
-            }
+      const serviceName = instanceNameToServiceName[instanceName]
+      Object.defineProperty(regionalServices, instanceName, {
+        get() {
+          if (!service) {
+            service = create(serviceName, region)
           }
 
-          useGlobalConfigClock(service)
           return service
+        },
+        set: function (value) {
+          service = value
         }
       })
     })
+  })
 
-    return cachedServices
-  }())
+  // forward default to regional
+  Object.keys(instanceNameToServiceName).forEach(instanceName => {
+    const serviceName = instanceNameToServiceName[instanceName]
+    const regional = apis.regional[region]
+    Object.defineProperty(apis, instanceName, {
+      set: function (value) {
+        regional[instanceName] = value
+      },
+      get: function () {
+        return regional[instanceName]
+      }
+    })
+  })
 
-  api.AWS = AWS
-  api.xray = AWSXRay
-  api.trace = (function () {
+  apis.AWS = AWS
+  apis.xray = AWSXRay
+  apis.trace = (function () {
     let segment
     return {
       start: function () {
@@ -125,7 +189,8 @@ export default function createAWSWrapper ({ env, logger }) {
     }
   }())
 
-  return api as AwsApis
+  apis.create = create
+  return apis as AwsApis
 }
 
 export { createAWSWrapper }

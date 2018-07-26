@@ -32,6 +32,7 @@ export const command:ICommand = {
 
     return args
   },
+  adminOnly: true,
   exec: async ({ commander, req, ctx, args }) => {
     const { bot } = commander
 

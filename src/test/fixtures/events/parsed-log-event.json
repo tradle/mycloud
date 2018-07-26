@@ -1,0 +1,119 @@
+{
+  "entries": [
+    {
+      "id": "17d4646a672daea64385cbdc",
+      "timestamp": 0,
+      "__": "START",
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "version": "$LATEST"
+    },
+    {
+      "id": "f681395dc2413d9b62053a2f",
+      "timestamp": 1,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:lambda:genericJobRunner",
+      "msg": "request context",
+      "level": "INFO",
+      "details": {
+        "seq": 16,
+        "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+        "correlationId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+        "containerId": "Andi Woodie Gavrielle fe52c47af47d",
+        "commit": "74ad1e04",
+        "start": 1531963689405,
+        "botReady": true,
+        "trace-id": "Parent=5ff0394e26a55bf0"
+      }
+    },
+    {
+      "id": "c63c92665e5fdc85e2b2c6b6",
+      "timestamp": 2,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:genericJobRunner",
+      "msg": "running job: retryDelivery",
+      "level": "DEBUG"
+    },
+    {
+      "id": "c24483a45cb7c84bfdaabc48",
+      "timestamp": 3,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:mid",
+      "msg": "firing",
+      "level": "SILLY",
+      "details": {
+        "event": "job:retryDelivery"
+      }
+    },
+    {
+      "id": "eae8555311fd378bf5e7bec1",
+      "timestamp": 4,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:db",
+      "msg": "DB.find tradle.DeliveryError",
+      "level": "SILLY",
+      "details": {
+        "tags": [
+          "perf"
+        ],
+        "success": true,
+        "time": 97
+      }
+    },
+    {
+      "id": "8de583d3707c5375e449e86f",
+      "timestamp": 5,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:lambda:genericJobRunner",
+      "msg": "preparing for exit",
+      "level": "DEBUG",
+      "details": {
+        "requestTime": 106,
+        "timeLeft": 299893
+      }
+    },
+    {
+      "id": "91410233e618dfa288a58264",
+      "timestamp": 6,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:async-tasks",
+      "msg": "no async tasks!",
+      "level": "SILLY"
+    },
+    {
+      "id": "b7ca57c44872b0904f08dfa7",
+      "timestamp": 7,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:lambda:genericJobRunner",
+      "msg": "exiting",
+      "level": "SILLY"
+    },
+    {
+      "id": "b7ca57c44872b0904f08dfa7",
+      "timestamp": 8,
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "namespace": "tradle:lambda:genericJobRunner",
+      "msg": "test error",
+      "level": "ERROR"
+    },
+    {
+      "id": "c8fa7020c84baabeacfddc3a",
+      "timestamp": 9,
+      "__": "END",
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc"
+    },
+    {
+      "id": "4f7bd96c86bdd54898912caf",
+      "timestamp": 10,
+      "__": "REPORT",
+      "requestId": "fe9e83ca-8af2-11e8-a5e2-b9d7a9e128fc",
+      "duration": 107.52,
+      "billedDuration": 200,
+      "memorySize": 256,
+      "memoryUsed": 143
+    }
+  ],
+  "function": {
+    "version": "$LATEST",
+    "name": "big-mouth-dev-get-index"
+  }
+}

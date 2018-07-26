@@ -1,7 +1,6 @@
 import querystring from 'querystring'
 import _ from 'lodash'
-import { parseStub } from '../../utils'
-import { TYPE } from '@tradle/constants'
+import { selectModelProps } from '../../utils'
 import { prettify } from '../../string-utils'
 import {
   Env,
@@ -9,20 +8,20 @@ import {
   Bucket,
   IPluginOpts,
   CreatePlugin,
-  IDeploymentOpts,
+  IDeploymentConf,
   IDeploymentPluginConf,
   ITradleObject,
-  Conf,
-  Deployment
+  IPBReq,
+  Conf
 } from '../types'
 
 import Errors from '../../errors'
 import constants from '../../constants'
-import { createDeployment } from '../deployment'
+import { Deployment, createDeployment } from '../deployment'
 import { TYPES } from '../constants'
 import { getParsedFormStubs } from '../utils'
 
-const { WEB_APP_URL } = constants
+const { TYPE, WEB_APP_URL } = constants
 const templateFileName = 'compiled-cloudformation-template.json'
 const { DEPLOYMENT_PRODUCT, DEPLOYMENT_CONFIG_FORM, SIMPLE_MESSAGE } = TYPES
 
@@ -31,16 +30,10 @@ export interface IDeploymentPluginOpts extends IPluginOpts {
 }
 
 export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger }:IDeploymentPluginOpts) => {
-  const { bot, productsAPI, employeeManager } = components
+  const { bot, applications, productsAPI, employeeManager } = components
   const orgConf = components.conf
   const { org } = orgConf
-  const deployment = createDeployment({
-    bot,
-    logger,
-    conf,
-    orgConf
-  })
-
+  const deployment = createDeployment({ bot, logger, conf, org })
   const getBotPermalink = bot.getPermalink()
   const onFormsCollected = async ({ req, user, application }) => {
     if (application.requestFor !== DEPLOYMENT_PRODUCT) return
@@ -59,23 +52,23 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     const link = form._link
     const configuration = deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink
-    const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentOpts
+    const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentConf
 
     // async
     bot.sendSimpleMessage({
       to: user,
-      message: `Generating the template for your MyCloud...`
+      message: `Generating a template and code package for your MyCloud. This could take up to 30 seconds...`
     })
 
     let launchUrl
     try {
-      launchUrl = (await deployment.genLaunchTemplate(deploymentOpts)).url
+      launchUrl = (await deployment.genLaunchPackage(deploymentOpts)).url
     } catch (err) {
       logger.debug('failed to generate launch url', err)
       Errors.ignore(err, Errors.InvalidInput)
-      await this.productsAPI.requestEdit({
+      await applications.requestEdit({
         req,
-        item: deploymentOpts,
+        item: selectModelProps({ object: form, models: bot.models }),
         details: {
           message: err.message
         }
@@ -91,6 +84,11 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
       message: `🚀 [Click to launch your MyCloud](${launchUrl})`
       // \n\nInvite employees using this link: ${employeeOnboardingUrl}`
     })
+
+    if (!conf.senderEmail) {
+      logger.debug('unable to send email to AWS admin as conf is missing "senderEmail"')
+      return
+    }
 
     const { adminEmail } = form
     try {
@@ -125,7 +123,21 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
   return {
     api: deployment,
     plugin: {
-      onFormsCollected
+      onFormsCollected,
+      'onmessage:tradle.cloud.UpdateRequest': async (req: IPBReq) => {
+        try {
+          await deployment.handleUpdateRequest({
+            req: req.payload,
+            from: req.user
+          })
+        } catch (err) {
+          Errors.ignoreNotFound(err)
+          logger.debug('version not found', Errors.export(err))
+        }
+      },
+      'onmessage:tradle.cloud.UpdateResponse': async (req: IPBReq) => {
+        await deployment.handleUpdateResponse(req.payload)
+      }
     }
   }
 }
@@ -135,13 +147,23 @@ export const validateConf = async ({ conf, pluginConf }: {
   pluginConf: IDeploymentPluginConf
 }) => {
   const { senderEmail } = pluginConf
-  if (!senderEmail) {
-    throw new Error('expected "senderEmail"')
+  if (senderEmail) {
+    const resp = await conf.bot.mailer.canSendFrom(senderEmail)
+    if (!resp.result) {
+      throw new Error(resp.reason)
+    }
   }
+}
 
-  const canSend = await conf.bot.mailer.canSendFrom(senderEmail)
-  if (!canSend) {
-    throw new Error(`cannot send emails from "${senderEmail}".
-Check your AWS Account controlled addresses at: https://console.aws.amazon.com/ses/home`)
-  }
+export const updateConf = async ({ conf, pluginConf }: {
+  conf: Conf,
+  pluginConf: IDeploymentPluginConf
+}) => {
+  const { replication } = pluginConf
+  if (!replication) return
+
+  const { regions } = replication
+  const { bot, logger } = conf
+  const deployment = createDeployment({ bot, logger })
+  await deployment.createRegionalDeploymentBuckets({ regions })
 }

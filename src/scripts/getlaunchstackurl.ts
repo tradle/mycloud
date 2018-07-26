@@ -5,7 +5,7 @@ const LAUNCH_STACK_BASE_URL = 'https://console.aws.amazon.com/cloudformation/hom
 const REGIOn = 'us-east-1'
 
 console.log(getLaunchStackUrl({
-  templateURL: process.argv[2],
+  templateUrl: process.argv[2],
   region: 'us-east-1',
   stackName: 'tradle'
 }))

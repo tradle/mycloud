@@ -12,4 +12,4 @@ function minutesago () {
 }
 
 echo "logging invocations starting $MINUTES_AGO minutes ago"
-sls logs -f "$LAMBDA" --startTime $(minutesago $MINUTES_AGO) --tail
+./node_modules/.bin/sls logs -f "$LAMBDA" --startTime $(minutesago $MINUTES_AGO) --tail

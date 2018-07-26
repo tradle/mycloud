@@ -19,7 +19,7 @@ const {
 Promise.all(
   friends.map(({ domain, url }) => {
   const payload = JSON.stringify({ domain, url })
-  const command = `echo '${payload}' | sls invoke --stage=${stage} -f addfriend`
+  const command = `echo '${payload}' | ./node_modules/.bin/sls invoke --stage=${stage} -f addfriend`
   console.log(`executing: ${command}`)
   return proc.exec(command, {
     cwd: process.cwd(),

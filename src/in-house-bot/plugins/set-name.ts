@@ -27,6 +27,9 @@ export const createPlugin = ({ bot, productsAPI }: {
   }
 
   const trySetName = async (req) => {
+    const { application } = req
+    if (application.applicantName) return
+
     try {
       const name = await getName(req)
       if (name) {
@@ -39,6 +42,11 @@ export const createPlugin = ({ bot, productsAPI }: {
 
   const getName = async (req) => {
     const { user, type, payload, application } = req
+    if (user.friend) {
+      const { name } = await bot.getResource(user.friend)
+      return name
+    }
+
     if (!(payload && application)) return
     if (type === PRODUCT_REQUEST) return
 

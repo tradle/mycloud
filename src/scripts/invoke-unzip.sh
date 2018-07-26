@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RESP=$(sls invoke $@)
+RESP=$(./node_modules/.bin/sls invoke $@)
 STATUS=$(echo $RESP | jq .statusCode --raw-output)
 BODY=$(echo $RESP | jq .isBase64Encoded --raw-output)
 DECODE=$()

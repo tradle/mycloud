@@ -323,9 +323,10 @@ export class ModelStore extends EventEmitter {
 
     const domain = getDomain(pack)
     const friend = await this.friends.getByDomain(domain)
-    if (friend._identityPermalink !== pack._author) {
+    const fIdentityPermalink =friend.identity._permalink
+    if (fIdentityPermalink !== pack._author) {
       throw new Error(`ignoring ModelsPack sent by ${pack._author}.
-Domain ${domain} (and namespace ${pack.namespace}) belongs to ${friend._identityPermalink}`)
+Domain ${domain} (and namespace ${pack.namespace}) belongs to ${fIdentityPermalink}`)
     }
   }
 

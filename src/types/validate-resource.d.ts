@@ -1,9 +1,11 @@
 declare module '@tradle/validate-resource' {
 
-  type ValidateResourceOpts = {
+  export type ValidateResourceOpts = {
     resource: any
     models: any
     model?: string|any
+    allowUnknown?: boolean
+    partial?: boolean
   }
 
   export type ValidateResource = (opts:ValidateResourceOpts) => void

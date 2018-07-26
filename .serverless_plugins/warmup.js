@@ -1,3 +1,5 @@
+const { DEFAULT_WARMUP_EVENT } = require('../lib/constants')
+
 class WarmUp {
   constructor(serverless, options) {
     this.serverless = serverless
@@ -74,7 +76,7 @@ class WarmUp {
         concurrency: concurrency || 1
       }
     } else {
-      input = lambdaUtils.getWarmUpInfo(serverlessYml).input
+      input = DEFAULT_WARMUP_EVENT
     }
 
     return lambdaUtils.warmUp(input)

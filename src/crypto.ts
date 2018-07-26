@@ -318,7 +318,11 @@ const getEncoder = (curve) => {
   return encoders[curve]
 }
 
-export const sha256 = (data:string|Buffer, enc:HexOrBase64='base64') => {
+export const sha256 = (data:any, enc:HexOrBase64='base64') => {
+  if (typeof data !== 'string' && !Buffer.isBuffer(data)) {
+    data = stringify(data)
+  }
+
   return crypto.createHash('sha256').update(data).digest(enc)
 }
 

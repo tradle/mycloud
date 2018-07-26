@@ -17,7 +17,7 @@ plugins:
   # - serverless-plugin-warmup
   # - serverless-plugin-typescript
   # - print
-  - warmup
+  # - warmup
   # - serverless-dynamodb-ttl
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
@@ -27,6 +27,7 @@ plugins:
   - serverless-iot-local
   - init-local
   - serverless-offline
+  - set-version
   # - serverless-offline-scheduler
 
 package:
@@ -64,6 +65,7 @@ package:
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
+  version: ${{file(./lib/version.json)}}
   defaults: ${{file(./default-vars.yml)}}
   # move these to vars.yml when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
@@ -100,7 +102,7 @@ custom:
   # prefixes
   prefix: ${{self:service}}-${{self:custom.stage}}-
   regionalPrefix: ${{self:service}}-${{self:custom.stage}}-${{self:custom.region}}-
-  prefixRole: ${{self:custom.prefix}}
+  prefixRole: ${{self:custom.regionalPrefix}}
   # maybe during info/auth, the server can send back the prefix
   # prefixIOTTopic: ${{self:service}}-
   iotParentTopic: ${{self:custom.stackName}}
@@ -207,21 +209,7 @@ custom:
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
     capacities:
-      # - table: Bucket0Table
-      #   index:
-      #     - _dcounterparty
-      #     - _link
-      #     # - _payloadLink
-      #     - _payloadType
-      #     - context
-      #   read:
-      #     minimum: 10       # Minimum read capacity
-      #     maximum: 100      # Maximum read capacity
-      #     usage: 0.70       # Targeted usage percentage
-      #   write:
-      #     minimum: 5        # Minimum write capacity
-      #     maximum: 100      # Maximum write capacity
-      #     usage: 0.5        # Targeted usage percentage
+      # bucket-x table scaling is added in compile script
 
       - table: EventsTable
         write:
@@ -278,7 +266,8 @@ custom:
   #     SecretsBucket:
   #       SSEAlgorithm: AES256
 
-  logRetentionInDays: 7
+  logRetentionInDays: 3
+  daysBeforeLogsGoToGlacier: 7
 
   issue2233WorkaroundKey: issue2233WorkaroundKey-${{self:service}}-${{self:provider.stage}}
   defaultKMSKeyId: ${{self:custom.regionalPrefix}}default-key
@@ -353,15 +342,31 @@ provider:
         - cloudformation:ListStackResources
         # need to get own template to generate a child deployment template
         - cloudformation:GetTemplate
-      Resource: ["*"]
+      Resource: "*"
 
-    # allow lambdas to update themselves
+    - Effect: Allow
+      Action:
+        - cloudformation:UpdateStack
+      Resource:
+        Ref: AWS::StackId
+
+    # allow lambdas to update themselves / each other
     - Effect: Allow
       Action:
         - lambda:UpdateFunctionConfiguration
         - lambda:ListFunctions
       # This action does not support resource-level permissions
-      Resource: ["*"]
+      Resource: "*"
+
+    # allow lambdas to call each other
+    # TODO: make this more fine grained
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+        - lambda:InvokeAsync
+        - lambda:AddPermission
+        - lambda:GetPolicy
+      Resource: "*"
 
     - Effect: Allow
       Action:
@@ -376,6 +381,11 @@ provider:
         # needed to get NoSuchKey error instead of AccessDenied for non-existent items
         # https://forums.aws.amazon.com/thread.jspa?threadID=56531
         - s3:ListBucket
+        - s3:PutBucketReplication
+        - s3:PutBucketVersioning
+        - s3:GetBucketPolicy
+        # needed to create regional deployment buckets
+        - s3:CreateBucket
         # # needed to enable bucket encryption
         # - s3:PutEncryptionConfiguration
       Resource:
@@ -384,30 +394,7 @@ provider:
         #   - ""
         #   - - "arn:aws:s3:::"
         #     - Ref: PublicConfBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: PrivateConfBucket
-        # - Fn::Join:
-        #   - ""
-        #   - - "arn:aws:s3:::"
-        #     - Ref: ContentAddressedBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ObjectsBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: SecretsBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ServerlessDeploymentBucket
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: FileUploadBucket
+        - "arn:aws:s3:::${{self:custom.prefix}}*"
 
     - Effect: Allow
       Action:
@@ -415,66 +402,32 @@ provider:
         # needed to create an object with public-read
         - s3:PutObjectAcl
         - s3:GetObject
-        # needed to check existence
-        - s3:HeadObject
-      Resource:
-        # - arn:aws:s3:::${{self:provider.deploymentBucket}}/*
-        # - Fn::Join:
-        #   - ""
-        #   - - "arn:aws:s3:::"
-        #     - Ref: PublicConfBucket
-        #     - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: PrivateConfBucket
-            - "/*"
-        # - Fn::Join:
-        #   - ""
-        #   - - "arn:aws:s3:::"
-        #     - Ref: ContentAddressedBucket
-        #     - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ObjectsBucket
-            - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: SecretsBucket
-            - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: ServerlessDeploymentBucket
-            - "/*"
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Ref: FileUploadBucket
-            - "/*"
+      Resource: "arn:aws:s3:::${{self:custom.prefix}}*/*"
 
-    # REMOVE in prod
-    # allow access to buckets from the console
     - Effect: Allow
       Action:
         - s3:GetBucketLocation
         - s3:ListAllMyBuckets
       Resource: "arn:aws:s3:::*"
 
-    # allow lambdas to call each other
-    # TODO: make this more fine grained
     - Effect: Allow
       Action:
-        - lambda:InvokeFunction
-        - lambda:InvokeAsync
+        - sns:AddPermission
+        - sns:CreateTopic
+        - sns:DeleteTopic
+        - sns:Publish
+        - sns:Subscribe
+        - sns:Unsubscribe
+        - sns:ListSubscriptions
+        - sns:ListSubscriptionsByTopic
+        - sns:GetTopicAttributes
+        - sns:SetTopicAttributes
       Resource: "*"
 
     # Iot
     - Effect: Allow
       Action: ["iot:Connect", "iot:Subscribe", "iot:Publish", "iot:Receive", "iot:DescribeEndpoint"]
-      Resource: ["*"]
+      Resource: "*"
 
     # gen Iot temp credentials (lambda: preauth)
     - Effect: Allow
@@ -493,7 +446,7 @@ provider:
       Sid: AllowCloudFrontUpdateDistribution
       Action:
         - cloudfront:updateDistribution
-      Resource: ["*"]
+      Resource: "*"
 
     # - Effect: Allow
     #   Action:
@@ -533,30 +486,37 @@ provider:
     #   Resource:
     #     - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/tradle/${{self:custom.prefix}}*'
 
+    # - Effect: Allow
+    #   Action:
+    #     # TODO: narrow this down
+    #     # look out for error: "The specified log group does not exist"
+    #     - logs:*
+    #     # - logs:PutSubscriptionFilter
+    #     # - logs:DeleteSubscriptionFilter
+    #   Resource: "*"
+
 functions:
-  # warm up other functions
-  warmup:
-    handler: lib/in-house-bot/lambda/warmup.handler
-    memorySize: 128
-    events:
-      - schedule:
-          rate: rate(5 minutes)
-          enabled: true
-          input:
-            concurrency: 5
-            functions:
-              - oniotlifecycle
-              - onmessage
-              - onresourcestream
-              - graphql
-              - info
-              - preauth
-              - auth
-              - inbox
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      - functionInvocations
+  # httpRouter:
+  #   handler: lib/in-house-bot/lambda/http/router.handler
+  #   memorySize: 1024
+  #   events:
+  #     - http:
+  #         # this matches any path, the token 'ANY' doesn't mean anything special
+  #         path: /{any+}
+  #         method: get
+  #         cors: ${{self:custom.cors}}
+
+  #     - http:
+  #         # this matches any path, the token 'ANY' doesn't mean anything special
+  #         path: /{any+}
+  #         method: post
+  #         cors: ${{self:custom.cors}}
+
+  #     - http:
+  #         # this matches any path, the token 'ANY' doesn't mean anything special
+  #         path: /{any+}
+  #         method: put
+  #         cors: ${{self:custom.cors}}
 
   # 1. generates temporary credentials (STS) for new connections,
   #    and assumes IotClientRole on them
@@ -595,14 +555,14 @@ functions:
           method: post
           cors: ${{self:custom.cors}}
 
-  delivery-retry:
-    handler: lib/in-house-bot/lambda/delivery-retry.handler
-    memorySize: 128
-    timeout: 60
-    events:
-      - schedule:
-          rate: rate(1 minute)
-          enabled: true
+  # delivery-retry:
+  #   handler: lib/in-house-bot/lambda/delivery-retry.handler
+  #   memorySize: 128
+  #   timeout: 60
+    # events:
+    #   - schedule:
+    #       rate: rate(1 minute)
+    #       enabled: true
 
   # triggered when an internal bot requests a message range (inbound messages)
   # inbox:
@@ -630,14 +590,17 @@ functions:
     handler: lib/in-house-bot/lambda/mqtt/oniotlifecycle.handler
     events:
       - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/connected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
           sqlVersion: ${{self:custom.versionSQL}}
-      - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
-          sqlVersion: ${{self:custom.versionSQL}}
-      - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
-          sqlVersion: ${{self:custom.versionSQL}}
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/connected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors
       - functionThrottles
@@ -747,51 +710,58 @@ functions:
   #         enabled: false
 
   # writes pending transactions to the blockchain
-  sealpending:
-    handler: lib/in-house-bot/lambda/sealpending.handler
+  jobScheduler:
+    handler: lib/in-house-bot/lambda/job-scheduler.handler
     memorySize: 256
-    timeout: 300
+    timeout: 30
     events:
       - schedule:
-          rate: rate(10 minutes)
-          # enabled: false
+          rate: rate(1 minute)
+    # alarms:
+    #   - functionErrors
+    #   # - functionThrottles
+    #   # - functionInvocations
+
+  genericJobRunner:
+    handler: lib/in-house-bot/lambda/job-runner.handler
+    memorySize: 256
+    timeout: 300
     alarms:
       - functionErrors
-      # - functionThrottles
-      # - functionInvocations
+      - functionInvocations
 
   # polls the status of unconfirmed blockchain transactions
-  pollchain:
-    handler: lib/in-house-bot/lambda/pollchain.handler
-    memorySize: 256
-    timeout: 300
-    events:
-      - schedule:
-          rate: rate(10 minutes)
-          # enabled: false
-    alarms:
-      - functionErrors
-      # - functionThrottles
-      # - functionInvocations
+  # pollchain:
+  #   handler: lib/in-house-bot/lambda/pollchain.handler
+  #   memorySize: 256
+  #   timeout: 300
+  #   # events:
+  #   #   - schedule:
+  #   #       rate: rate(10 minutes)
+  #   #       # enabled: false
+  #   alarms:
+  #     - functionErrors
+  #     # - functionThrottles
+  #     # - functionInvocations
 
-    # environment:
-    #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
-    #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
+  #   # environment:
+  #   #   ENCRYPTION_KEY: ${{self:custom.secrets.SESSION_KEY}}
+  #   #   EMAIL_SERVICE_API_KEY: ${{self:custom.secrets.EMAIL_SERVICE_API_KEY}}
 
-  check-failed-seals:
-    handler: lib/in-house-bot/lambda/check-failed-seals.handler
-    memorySize: 256
-    timeout: 60
-    events:
-      - schedule:
-          rate: rate(17 minutes)
-          # enabled: false
-    alarms:
-      - functionErrors
+  # check-failed-seals:
+  #   handler: lib/in-house-bot/lambda/check-failed-seals.handler
+  #   memorySize: 256
+  #   timeout: 60
+  #   # events:
+  #   #   - schedule:
+  #   #       rate: rate(17 minutes)
+  #   #       # enabled: false
+  #   alarms:
+  #     - functionErrors
 
   # force reinitialize lambda containers
-  reinitialize-containers:
-    handler: lib/in-house-bot/lambda/reinitialize-containers.handler
+  # reinitializeContainers:
+  #   handler: lib/in-house-bot/lambda/reinitialize-containers.handler
 
   # useful during development
   # trigger a message to be queued/sent to a user
@@ -809,7 +779,7 @@ functions:
           cors: ${{self:custom.cors}}
 
   # rename later, temporarily can't rename, get AWS error:
-  #   "Modifying service token is not allowed..""
+  #   "Modifying service token is not allowed.."
   bot_oninit:
     handler: lib/in-house-bot/lambda/oninit.handler
     memorySize: 1024
@@ -932,8 +902,8 @@ functions:
   # get_data_bundle:
   #   handler: lib/in-house-bot/lambda/get-data-bundle.handler
 
-  onfido_register:
-    handler: lib/in-house-bot/lambda/onfido-register.handler
+  # onfido_register:
+  #   handler: lib/in-house-bot/lambda/onfido-register.handler
 
   onfido:
     handler: lib/in-house-bot/lambda/http/onfido-webhook.handler
@@ -953,14 +923,14 @@ functions:
   #         method: post
   #         cors: ${{self:custom.cors}}
 
-  documentChecker:
-    handler: lib/in-house-bot/lambda/document-checker-job.handler
-    memorySize: 128
-    timeout: 60
-    events:
-      - schedule:
-          rate: rate(1 minute)
-          enabled: true
+  # documentChecker:
+  #   handler: lib/in-house-bot/lambda/document-checker-job.handler
+  #   memorySize: 128
+  #   timeout: 60
+  #   # events:
+  #   #   - schedule:
+  #   #       rate: rate(1 minute)
+  #   #       enabled: true
 
   cli:
     handler: lib/in-house-bot/lambda/cli.handler
@@ -974,12 +944,12 @@ functions:
           method: get
           cors: ${{self:custom.cors}}
 
-  deployment_pingback:
+  deploymentPingback:
     handler: lib/in-house-bot/lambda/http/deployment-pingback.handler
     # timeout: 300
     events:
       - http:
-          path: deployment-pingback
+          path: deploymentPingback
           method: post
           cors: ${{self:custom.cors}}
 
@@ -991,46 +961,23 @@ functions:
           method: get
           cors: ${{self:custom.cors}}
 
-  # webhooks:
-  #   handler: lib/in-house-bot/lambda/webhooks.handler
-  #   memorySize: 256
-  #   events:
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - MessagesTable
-  #             - StreamArn
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - SealsTable
-  #             - StreamArn
-  #     - stream:
-  #         type: dynamodb
-  #         batchSize: 100
-  #         startingPosition: TRIM_HORIZON
-  #         arn:
-  #           Fn::GetAtt:
-  #             - UsersTable
-  #             - StreamArn
-  #     # + streams from bucket tables
+  # onChildStackStatusChanged:
+  #   handler: lib/in-house-bot/lambda/sns/on-child-stack-status-changed.handler
+    # events added dynamically in "deployment.subscribeToChildStackStatusAlerts"
 
-  # cli_dev:
-  #   handler: lib/in-house-bot/lambda/cli.handler
-  #   # dev mode only
-  #   events:
-  #     - http:
-  #         path: cli
-  #         method: post
+  # not used at the moment
+  # updateStack:
+  #   handler: lib/in-house-bot/lambda/update-stack.handler
+    # role: UpdateStackIamRole
+    # events added dynamically
 
-  # bash:
-  #   handler: lib/in-house-bot/lambda/bash.handler
+  logProcessor:
+    handler: lib/in-house-bot/lambda/log-processor.handler
+    # events added in compile phase
+
+  logAlertProcessor:
+    handler: lib/in-house-bot/lambda/log-alert-processor.handler
+    # events added at runtime
 
 resources:
   Mappings:
@@ -1251,6 +1198,20 @@ resources:
                   - IotClientRole
                   - Arn
 
+    LogsBucket:
+      Type: AWS::S3::Bucket
+      Description: logs from lambda functions
+      DeletionPolicy: Retain
+      Properties:
+        LifecycleConfiguration:
+          Rules:
+          - Id: TransitionToGlacier
+            Prefix: glacier
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: ${{self:custom.daysBeforeLogsGoToGlacier}}
+                StorageClass: Glacier
+
     # EventsTable: ${{file(./conf/table/events.yml)}}
 
     # master log from which things can be rebuilt
@@ -1278,7 +1239,7 @@ resources:
       Type: AWS::IAM::Role
       Description: role assumed by every connecting client
       Properties:
-        RoleName: ${{self:custom.prefixRole}}IotClientRole
+        RoleName: ${{self:custom.prefixRole}}iotClientRole
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -1297,7 +1258,7 @@ resources:
               Action:
                 - sts:AssumeRole
         Policies:
-          - PolicyName: ${{self:custom.regionalPrefix}}IotClientRole
+          - PolicyName: ${{self:custom.regionalPrefix}}iotClientRolePolicy
             PolicyDocument:
               Version: "2012-10-17"
               Statement:
@@ -1315,7 +1276,6 @@ resources:
                 # restrict client connect by client id
                 - Effect: Allow
                   Action: ["iot:Connect"]
-                  # Resource: ["*"]
                   Resource:
                     - Fn::Join:
                       - ":"
@@ -1327,7 +1287,6 @@ resources:
                 # allow all clients to publish to the send topic
                 - Effect: "Allow"
                   Action: ["iot:Publish"]
-                  # Resource: ["*"]
                   Resource:
                     - Fn::Join:
                       - ":"
@@ -1341,7 +1300,6 @@ resources:
                 # restrict client topic subscriptions by their client id
                 - Effect: "Allow"
                   Action: ["iot:Subscribe"]
-                  # Resource: ["*"]
                   Resource:
                     - Fn::Join:
                       - ":"
@@ -1403,6 +1361,7 @@ resources:
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
+        commit: ${{self:custom.version.commit}}
         name:
           Fn::FindInMap: ["org", "init", "name"]
         domain:
@@ -1493,3 +1452,169 @@ resources:
       #     AliasName: alias/${{self:custom.defaultKMSKeyId}}
       #     TargetKeyId:
       #       Ref: DefaultEncryptionKey
+
+    # this creates a circular dependency for some reason
+    # LogAlertProcessorSNSPermission:
+    #   Type: AWS::Lambda::Permission
+    #   Properties:
+    #     Action: lambda:InvokeFunction
+    #     Principal: sns.amazonaws.com
+    #     SourceArn:
+    #       Fn::Sub: arn:aws:sns:*:${AWS::AccountId}:*
+    #     FunctionName:
+    #       Fn::GetAtt: [ LogAlertProcessorLambdaFunction, Arn ]
+
+    # UpdateStackIamRole:
+    #   Type: AWS::IAM::Role
+    #   Description: role needed to update this stack
+    #   Properties:
+    #     RoleName: ${{self:custom.prefixRole}}updateStackRole
+    #     AssumeRolePolicyDocument:
+    #       Version: '2012-10-17'
+    #       Statement:
+    #         - Effect: Allow
+    #           Principal:
+    #             Service:
+    #               - lambda.amazonaws.com
+    #           Action:
+    #             - sts:AssumeRole
+    #     Policies:
+    #       - PolicyName: ${{self:custom.regionalPrefix}}updateStackRolePolicy
+    #         PolicyDocument:
+    #           Version: '2012-10-17'
+    #           Statement:
+    #             - Effect: Allow
+    #               Action:
+    #                 - cloudformation:Describe*
+    #                 - cloudformation:List*
+    #                 - cloudformation:Get*
+    #                 - cloudformation:CreateStack
+    #                 - cloudformation:UpdateStack
+    #                 - cloudformation:DeleteStack
+    #               Resource:
+    #                 - Fn::Sub: "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${{self:custom.stackName}}*/*"
+    #             - Effect: Allow
+    #               Action:
+    #                 - cloudformation:ValidateTemplate
+    #               Resource: "*"
+    #             - Effect: Allow
+    #               Action:
+    #                 - s3:CreateBucket
+    #                 - s3:Get*
+    #                 - s3:List*
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:s3:::${{self:custom.prefix}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - s3:*
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:s3:::${{self:custom.prefix}}*/*
+    #             - Effect: Allow
+    #               Action:
+    #                 - logs:DescribeLogGroups
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+    #             - Effect: Allow
+    #               Action:
+    #                 - logs:CreateLogGroup
+    #                 - logs:DeleteLogGroup
+    #                 - logs:CreateLogStream
+    #                 - logs:DeleteLogStream
+    #                 - logs:DescribeLogStreams
+    #                 - logs:FilterLogEvents
+    #                 - logs:PutLogEvents
+    #                 - logs:PutRetentionPolicy
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - iam:GetRole
+    #                 - iam:PassRole
+    #                 - iam:CreateRole
+    #                 - iam:DeleteRole
+    #                 - iam:DetachRolePolicy
+    #                 - iam:PutRolePolicy
+    #                 - iam:AttachRolePolicy
+    #                 - iam:DeleteRolePolicy
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - apigateway:GET
+    #                 - apigateway:POST
+    #                 - apigateway:PUT
+    #                 - apigateway:DELETE
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis
+    #             - Effect: Allow
+    #               Action:
+    #                 - apigateway:GET
+    #                 - apigateway:POST
+    #                 - apigateway:PUT
+    #                 - apigateway:DELETE
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:apigateway:${AWS::Region}::/restapis/*
+    #             - Effect: Allow
+    #               Action:
+    #                 - lambda:CreateFunction
+    #               Resource:
+    #                 - "*"
+    #             - Effect: Allow
+    #               Action:
+    #                 - lambda:GetFunction
+    #                 - lambda:DeleteFunction
+    #                 - lambda:UpdateFunctionConfiguration
+    #                 - lambda:UpdateFunctionCode
+    #                 - lambda:ListVersionsByFunction
+    #                 - lambda:PublishVersion
+    #                 - lambda:CreateAlias
+    #                 - lambda:DeleteAlias
+    #                 - lambda:UpdateAlias
+    #                 - lambda:GetFunctionConfiguration
+    #                 - lambda:AddPermission
+    #                 - lambda:RemovePermission
+    #                 - lambda:InvokeFunction
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - events:Put*
+    #                 - events:Remove*
+    #                 - events:Delete*
+    #                 - events:Describe*
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${{self:custom.stackName}}*
+    #             - Effect: Allow
+    #               Action:
+    #                 - dynamodb:CreateTable
+    #                 - dynamodb:DescribeTable
+    #                 - dynamodb:ListStreams
+    #               Resource:
+    #                 - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
+    #             - Effect: Allow
+    #               Action:
+    #                 - xray:PutTraceSegments
+    #                 - xray:PutTelemetryRecords
+    #               Resource: "*"
+    #             # Only needed if lambda will be running in VPC
+    #             # - Effect: Allow
+    #             #   Action:
+    #             #   - ec2:DescribeSecurityGroups
+    #             #   - ec2:DescribeSubnets
+    #             #   - ec2:DescribeVpcs
+    #             #   Resource:
+    #             #   - "*"
+
+    #             # needed for cloudformation to be able to fetch the code
+    #             # from the parent deployment's bucket
+    #             - Effect: Allow
+    #               Action:
+    #                 - s3:GetObject
+    #               Resource:
+    #                 - Fn::Sub: arn:aws:s3:::*/*
+    #             # needed for cloudformation to be able to publish stack updates
+    #             # to sns topics
+    #             - Effect: Allow
+    #               Action:
+    #                 - sns:Publish
+    #               Resource: "*"

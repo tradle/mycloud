@@ -1,6 +1,6 @@
 import { Context as KoaContext } from 'koa'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
-import { Bot, ModelsPack, DatedValue, Lambda, IUser } from '../types'
+import { Bot, ModelsPack, DatedValue, Lambda, BaseLambda, IUser } from '../types'
 import { Conf } from './configure'
 import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
@@ -19,7 +19,10 @@ import {
   ILambdaOpts,
   IDeepLink,
   ILambdaExecutionContext,
+  SNSEvent,
   EnumValueStub,
+  VersionInfo,
+  Registry,
 } from '../types'
 
 export * from '../types'
@@ -101,6 +104,7 @@ export interface IYargs {
 }
 
 export interface IPBUser extends IUser {
+  friend?: ResourceStub
   identity?: ResourceStub
   applications?: IPBAppStub[]
   applicationsApproved?: IPBAppStub[]
@@ -248,6 +252,7 @@ export interface ICommand {
   parseOpts?: any
   sendResult?: (opts:ICommandSendResultOpts) => Promise<any>
   aliases?: string[]
+  adminOnly?: boolean
 }
 
 export type Name = {
@@ -305,10 +310,7 @@ export interface IPlugin<BotComponent> {
   updateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 
-export interface IPlugins {
-  get: <T>(name:string) => IPlugin<T>
-  set: (name:string, IPlugin) => void
-}
+export type IPlugins = Registry<IPlugin<any>>
 
 export type ClaimType = 'bulk' | 'prefill'
 
@@ -324,14 +326,14 @@ export interface IDataBundle extends ITradleObject {
   items: ITradleObject[]
 }
 
-export interface IDeploymentOpts {
+export interface IDeploymentConf extends ITradleObject {
   name: string
   domain: string
   logo?: string
   stackPrefix: string
   region: string
   adminEmail?: string
-  configurationLink?: string
+  // configurationLink?: string
 }
 
 // conf used by MyCloud for initialization
@@ -340,12 +342,18 @@ export interface IOrganization extends ITradleObject {
   domain: string
 }
 
-export interface ILaunchReportPayload {
+export interface MiniVersionInfo extends Partial<VersionInfo> {
+  tag: string
+  commit: string
+}
+
+export interface IDeploymentReportPayload {
   org: IOrganization
   identity: IIdentity
   deploymentUUID: string
   apiUrl: string
   stackId: string
+  version: MiniVersionInfo
   logo?: string
 }
 
@@ -353,7 +361,7 @@ export interface IMyDeploymentConf {
   // become "org"
   name: string
   domain: string
-  // same as ILaunchReportPayload
+  // same as IDeploymentReportPayload
   identity: IIdentity
   deploymentUUID: string
   apiUrl: string
@@ -370,7 +378,7 @@ export interface IDeploymentConfForm extends ITradleObject {
   hrEmail: string
 }
 
-export interface IPBotLambdaOpts extends ILambdaOpts {
+export interface IPBotLambdaOpts extends ILambdaOpts<IPBMiddlewareContext> {
   event: string
   [x:string]: any
 }
@@ -382,11 +390,13 @@ interface IDeploymentReplicationRegionConf {
 }
 
 export interface IDeploymentReplicationConf {
-  regions: IDeploymentReplicationRegionConf[]
+  regions: string[]
+  // regions: IDeploymentReplicationRegionConf[]
 }
 
 export interface IDeploymentPluginConf {
-  senderEmail: string
+  senderEmail?: string
+  stackStatusNotificationsEmail?: string
   replication?: IDeploymentReplicationConf
 }
 
@@ -407,6 +417,10 @@ export interface IPBHttpMiddlewareContext extends IPBMiddlewareContext, KoaConte
   body: any
 }
 
+export interface IPBSNSMiddlewareContext extends IPBMiddlewareContext {
+  event: SNSEvent
+}
+
 export type IPBMiddleware = ComposeMiddleware<IPBMiddlewareContext>
 
 export interface IAppLinkSet {
@@ -419,3 +433,7 @@ export interface ITradleCheck extends ITradleObject {
   aspects: string|string[]
   status: EnumValueStub
 }
+
+export type IPBLambda = BaseLambda<IPBMiddlewareContext>
+export type IPBLambdaHttp = BaseLambda<IPBHttpMiddlewareContext>
+export type IPBLambdaSNS = BaseLambda<IPBSNSMiddlewareContext>

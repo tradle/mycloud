@@ -3,7 +3,7 @@
 import Promise from 'bluebird'
 import _ from 'lodash'
 import AWS from 'aws-sdk'
-import { IPrivKey, IIdentity } from './types'
+import { IPrivKey, IIdentity, Logger } from './types'
 import * as crypto from './crypto'
 import Errors from './errors'
 import { gzip, gunzip } from './utils'
@@ -65,6 +65,7 @@ type ObfuscateSecretName = (key:string) => string
 type SecretsOpts = {
   credstash: ICredstash
   obfuscateSecretName?: ObfuscateSecretName
+  logger: Logger
 }
 
 const encode = (buf: Buffer, gzipped?: boolean) => {
@@ -84,9 +85,11 @@ const decode = (buf: Buffer) => {
 export default class Secrets {
   private credstash: ICredstash
   private obfuscateSecretName: ObfuscateSecretName
-  constructor({ credstash, obfuscateSecretName=_.identity }: SecretsOpts) {
+  private logger: Logger
+  constructor({ credstash, obfuscateSecretName=_.identity, logger }: SecretsOpts) {
     this.credstash = credstash
     this.obfuscateSecretName = obfuscateSecretName
+    this.logger = logger
   }
 
   public get = async ({ key, version, context = {} }: GetSecretOpts) => {

@@ -30,15 +30,7 @@ import {
 } from '../in-house-bot/types'
 
 import { wait } from '../utils'
-import {
-  addResourcesToEnvironment,
-  addResourcesToOutputs,
-  removeResourcesThatDontWorkLocally,
-  addBucketTables,
-  stripDevFunctions,
-  setBucketEncryption,
-  addCustomResourceDependencies
-} from './compile'
+import * as compile from './compile'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
@@ -199,18 +191,19 @@ const compileTemplate = async (path) => {
   }
 
   // validateProviderConf(interpolated.custom.providerConf)
-  addBucketTables({ yml, prefix: interpolated.custom.prefix })
+  compile.addBucketTables({ yml, prefix: interpolated.custom.prefix })
   // setBucketEncryption({ target: yml, interpolated })
-  stripDevFunctions(yml)
+  compile.stripDevFunctions(yml)
   // addCustomResourceDependencies(yml, interpolated)
 
   const isLocal = process.env.IS_LOCAL
   if (isLocal) {
-    removeResourcesThatDontWorkLocally(yml)
+    compile.removeResourcesThatDontWorkLocally(yml)
   }
 
-  addResourcesToEnvironment(yml)
-  addResourcesToOutputs(yml)
+  compile.addResourcesToEnvironment(yml)
+  compile.addResourcesToOutputs(yml)
+  compile.addLogProcessorEvents(yml)
   return YAML.dump(yml)
 }
 
@@ -270,23 +263,6 @@ const getProductionModules = async () => {
         name: path.split('node_modules/').pop()
       }
     })
-}
-
-const getTableDefinitions = () => {
-  const yml = require('./serverless-yml')
-  const { stackName } = yml.custom
-  const { Resources } = yml.resources
-  const tableNames = Object.keys(Resources)
-    .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
-
-  const map = {}
-  for (const name of tableNames) {
-    const table = Resources[name]
-    map[name] = table
-    table.Properties.TableName = table.Properties.TableName.replace(stackName, '{stackName}')
-  }
-
-  return map
 }
 
 // const validateProviderConf = conf => {
@@ -452,7 +428,6 @@ export {
   getPhysicalId,
   getNativeModules,
   getProductionModules,
-  getTableDefinitions,
   downloadDeploymentTemplate,
   initStack,
   cloneRemoteTable,

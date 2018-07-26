@@ -1,3 +1,6 @@
+import 'nock'
+import { parse as parseURL } from 'url'
+import http from 'http'
 import crypto from 'crypto'
 import '../globals'
 import Env from '../env'
@@ -19,13 +22,29 @@ const props = {
   IS_LOCAL: true
 }
 
-export const createTestEnv = () => {
+export const createTestEnv = (overrides={}):Env => {
   // important to import lazily
   const Env = require('../env').default
-  return new Env(props)
+  return new Env({ ...props, ...overrides })
+}
+
+const originalHttpRequest = http.request.bind(http)
+const httpRequestInterceptor = function (req) {
+  const host = req.host || parseURL(req.url).host
+  if (host.endsWith('.amazonaws.com')) {
+    const err = new Error(`forbidding request to AWS in test/local mode: ${req.url}`)
+    console.error(err.stack)
+    throw err
+  }
+
+  return originalHttpRequest(...arguments)
 }
 
 export const install = (target=process.env):void => {
+  if (http.request !== httpRequestInterceptor) {
+    http.request = httpRequestInterceptor
+  }
+
   if (target instanceof Env) {
     target.set(props)
   } else {
@@ -79,6 +98,16 @@ export const install = (target=process.env):void => {
       Plaintext: params.CiphertextBlob
     })
   })
+
+  AWS.mock('Lambda', 'addPermission', (params, callback) => {
+    callback(null, {})
+  })
+
+  if (!target.IS_OFFLINE) {
+    AWS.mock('Iot', 'describeEndpoint', (params, callback) => {
+      (callback || params)(null, {})
+    })
+  }
 }
 
 export const get = () => ({ ...props })

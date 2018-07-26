@@ -27,11 +27,16 @@ const cacheConfig:IBucketsInfo = {
     max: 10, // 10 items
     maxAge: HOUR
   },
-  ContentAddressed: {
+  Logs: {
     length: byteLengthFn,
-    max: 50 * MEG,
+    max: 100 * MEG,
     maxAge: Infinity
   },
+  // ContentAddressed: {
+  //   length: byteLengthFn,
+  //   max: 50 * MEG,
+  //   maxAge: Infinity
+  // },
   // PublicConf: {
   //   length: byteLengthFn,
   //   max: 50 * MEG,

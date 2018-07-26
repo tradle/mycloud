@@ -314,7 +314,6 @@ test('_doReceiveMessage', loudAsync(async (t) => {
 
 const mocks = {
   byPermalink: async (permalink) => {
-    debugger
     if (permalink === alice.identity._permalink) {
       return alice.identity
     }

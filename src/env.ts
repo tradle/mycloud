@@ -76,7 +76,7 @@ export default class Env {
   public logger:Logger
   public debug:IDebug
   public _X_AMZN_TRACE_ID:string
-  public accountId: string
+  public AWS_ACCOUNT_ID: string
 
   private nick:string
   constructor(props:any) {
@@ -155,12 +155,16 @@ export default class Env {
     return this.lambda ? this.lambda.timeLeft : 0
   }
 
+  public getRemainingTimeWithBuffer = (buffer: number) => {
+    return Math.max(this.getRemainingTime() - buffer, 0)
+  }
+
   public setLambda = (lambda) => {
     this.lambda = lambda
     this.setRequestContext(lambda.reqCtx)
     const { event, context } = lambda.execCtx
     this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
-    this.set({ accountId: lambda.accountId })
+    this.set({ AWS_ACCOUNT_ID: lambda.accountId })
   }
 
   public setRequestContext(ctx) {
@@ -175,7 +179,7 @@ export default class Env {
 
     // this.reqCtx = prefixed
     this.reqCtx = ctx
-    this.logger.setContext(this.reqCtx)
+    // this.logger.setContext(this.reqCtx)
   }
 
   public getRequestContext() {

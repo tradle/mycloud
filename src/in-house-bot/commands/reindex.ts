@@ -9,6 +9,7 @@ export const command:ICommand = {
   examples: [
     '/reindex --model tradle.ProductRequest',
   ],
+  adminOnly: true,
   exec: async ({ commander, req, ctx, args }) => {
     const { bot } = commander
     if (!ctx.sudo) throw new Error('forbidden')

@@ -3,7 +3,6 @@ import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
 import createCredstash from 'nodecredstash'
-import { TYPE, SIG } from '@tradle/constants'
 import { DB, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
@@ -21,6 +20,8 @@ import { createDBUtils } from './db-utils'
 import { createAWSWrapper } from './aws'
 import { StreamProcessor } from './stream-processor'
 import * as utils from './utils'
+import { TYPE, SIG, ORG, ORG_SIG } from './constants'
+const VERSION = require('./version')
 const {
   defineGetter,
   ensureTimestamped,
@@ -44,6 +45,7 @@ import * as crypto from './crypto'
 import { createUsers, Users } from './users'
 // import { Friends } from './friends'
 import { createGraphqlAPI } from './graphql'
+import { Scheduler } from './scheduler'
 import {
   IEndpointInfo,
   ILambdaImpl,
@@ -76,6 +78,8 @@ import {
   Bucket,
   IMailer,
   PresignEmbeddedMediaOpts,
+  ILambdaExecutionContext,
+  VersionInfo,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -104,6 +108,7 @@ import Storage from './storage'
 import TaskManager from './task-manager'
 import Messaging from './messaging'
 import S3Utils from './s3-utils'
+import SNSUtils from './sns-utils'
 import LambdaUtils from './lambda-utils'
 import StackUtils from './stack-utils'
 import Iot from './iot-utils'
@@ -147,27 +152,15 @@ const CREDSTASH_ALGORITHM = 'aes-256-gcm'
 // we lose all type checking when exporting like this
 const lambdaCreators:LambdaImplMap = {
   get onmessage() { return require('./lambda/onmessage') },
-  // get onmessagestream() { return require('./lambda/onmessagestream') },
-  // get onsealstream() { return require('./lambda/onsealstream') },
   get onresourcestream() { return require('./lambda/onresourcestream') },
   get oninit() { return require('./lambda/oninit') },
-  // get onsubscribe() { return require('./lambda/onsubscribe') },
-  // get onconnect() { return require('./lambda/onconnect') },
-  // get ondisconnect() { return require('./lambda/ondisconnect') },
   get oniotlifecycle() { return require('./lambda/oniotlifecycle') },
-  get sealpending() { return require('./lambda/sealpending') },
-  get pollchain() { return require('./lambda/pollchain') },
-  get checkFailedSeals() { return require('./lambda/check-failed-seals') },
-  get toevents() { return require('./lambda/to-events') },
   get info() { return require('./lambda/info') },
   get preauth() { return require('./lambda/preauth') },
   get auth() { return require('./lambda/auth') },
   get inbox() { return require('./lambda/inbox') },
-  // get graphql() { return require('./lambda/graphql') },
-  get warmup() { return require('./lambda/warmup') },
-  get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
-  get deliveryRetry() { return require('./lambda/delivery-retry') },
-  // get oneventstream() { return require('./lambda/oneventstream') },
+  // get warmup() { return require('./lambda/warmup') },
+  // get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
 }
 
 // const middlewareCreators:MiddlewareMap = {
@@ -209,6 +202,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public messaging: Messaging
   public pushNotifications: Push
   public s3Utils: S3Utils
+  public snsUtils: SNSUtils
   public iot: Iot
   public lambdaUtils: LambdaUtils
   public stackUtils: StackUtils
@@ -220,6 +214,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public logger: Logger
   public graphql: IGraphqlAPI
   public streamProcessor: StreamProcessor
+  public version: VersionInfo
 
   public get isDev() { return this.env.STAGE === 'dev' }
   public get isStaging() { return this.env.STAGE === 'staging' }
@@ -231,10 +226,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public get apiBaseUrl () {
     return this.serviceMap.RestApi.ApiGateway.url
-  }
-
-  public get version () {
-    return require('./version')
   }
 
   public get networks () { return networks }
@@ -289,6 +280,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return this.serviceMap.Key.DefaultEncryption
   }
 
+  public scheduler: Scheduler
+
   // PRIVATE
   private outboundMessageLocker: Locker
   private inboundMessageLocker: Locker
@@ -310,6 +303,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
 
     this.env = env
+    this.version = {
+      ...VERSION,
+      sortableTag: utils.toSortableTag(VERSION.tag)
+    }
 
     readyMixin(this)
     modelsMixin(this)
@@ -384,6 +381,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       this.appLinks = defaultAppLinks
     }
 
+    this.scheduler = new Scheduler(this)
+
     setupDefaultHooks(this)
     if (ready) this.ready()
   }
@@ -408,20 +407,29 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const logger = bot.logger = env.logger
     const { network } = bot
 
+    const getSealsOpts = () => ({
+      blockchain: this.blockchain,
+      identity,
+      db,
+      objects,
+      logger: logger.sub('seals'),
+    })
+
     if (env.BLOCKCHAIN.flavor === 'corda') {
-      bot.define('seals', './corda-seals', ({ Seals }) => new Seals(bot))
+      bot.define('seals', './corda-seals', ({ Seals }) => new Seals(getSealsOpts()))
       bot.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain({
         env,
         network
       }))
 
     } else {
-      bot.define('seals', './seals', bot.construct)
       bot.define('blockchain', './blockchain', Blockchain => new Blockchain({
         logger: logger.sub('blockchain'),
         network,
         identity: bot.identity
       }))
+
+      bot.define('seals', './seals', Seals => new Seals(getSealsOpts()))
     }
 
     // bot.define('faucet', './faucet', createFaucet => createFaucet({
@@ -448,6 +456,11 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       logger: logger.sub('s3-utils')
     })
 
+    const snsUtils = bot.snsUtils = new SNSUtils({
+      aws,
+      logger: logger.sub('sns-utils')
+    })
+
     const buckets = bot.buckets = getBuckets({
       aws,
       env,
@@ -465,7 +478,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const stackUtils = bot.stackUtils = new StackUtils({
       apiId: serviceMap.RestApi.ApiGateway.id,
       stackArn: serviceMap.Stack,
-      bucket: buckets.PrivateConf,
+      deploymentBucket: buckets.ServerlessDeployment,
       aws,
       env,
       lambdaUtils,
@@ -507,7 +520,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
           bucket: buckets.Secrets.name,
           // folder: constants.SECRETS_BUCKET.identityFolder
         })
-      })
+      }),
+      logger: logger.sub('secrets'),
     })
 
     const identity = bot.identity = new Identity({
@@ -823,11 +837,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public forceReinitializeContainers = async (functions?: string[]) => {
     if (this.isTesting) return
 
-    await this.lambdaUtils.invoke({
-      name: 'reinitialize-containers',
-      sync: false,
-      arg: functions
-    })
+    await this.lambdaUtils.scheduleReinitializeContainers()
   }
 
   public validateResource = (resource: ITradleObject) => validateResource.resource({
@@ -860,7 +870,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
   }
 
-  public createLambda = (opts:ILambdaOpts={}):Lambda => createLambda({
+  public createLambda = <T extends ILambdaExecutionContext>(opts:ILambdaOpts<T>={}):Lambda => createLambda({
     ...opts,
     bot: this
   })
@@ -1002,7 +1012,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public witness = (object: ITradleObject) => this.identity.witness({ object })
 
-  public reSign = (object:ITradleObject) => this.sign(<ITradleObject>_.omit(object, [SIG]))
+  public reSign = (object:ITradleObject) => this.sign(<ITradleObject>_.omit(object, [SIG, ORG, ORG_SIG]))
   // public fire = async (event, payload) => {
   //   return await this.middleware.fire(event, payload)
   // }

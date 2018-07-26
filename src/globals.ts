@@ -13,9 +13,11 @@ AWS.config.setPromisesDependency(Promise)
 // })
 
 const warn = (...args) => {
-  if (!process.env.IS_OFFLINE) {
-    console.warn(...args)
-  }
+  // no need to pollute with this anymore
+
+  // if (!process.env.IS_OFFLINE) {
+  //   console.warn(...args)
+  // }
 }
 
 const mockery = require('mockery')

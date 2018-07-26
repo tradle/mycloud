@@ -14,7 +14,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Tools](#tools)
     - [Git](#git)
     - [Node.js](#nodejs)
-    - [Docker & Docker Compose](#docker-&-docker-compose)
+    - [Docker & Docker Compose](#docker--docker-compose)
     - [AWS cli](#aws-cli)
     - [JQ](#jq)
     - [Typescript](#typescript)
@@ -401,6 +401,19 @@ The log is going nuts but the mobile/web client can't seem to communicate with y
 **Cause**: if you have multiple clients connected at once (e.g. mobile, simulator, multiple browser tabs), your machine probably just can't handle it. If you've got Dev Tools open and are debugging your lambdas, that exacerbates things. This is due to the fact that locally, the serverless environment is simulated by invoking each lambda function as if it's waking up for the first time in a docker container. It needs to `require()` everything from scratch, then run itself, then die. This is memory/computation expensive.
 **Fix**: turn off the debugger, don't use more clients than your machine can handle. Yes, locally, this might only be a 2-5!
 
+**Symptom 6**
+
+```
+Credentials Error --------------------------------------
+
+Missing credentials in config
+```
+
+**Cause 1**: your AWS cli is not configured with your credentials
+**Fix**: see [AWS cli](#aws-cli)
+
+**Cause 2**: you may be using a global installation of `serverless` rather than the project-local one. If you're running Tradle locally via npm scripts, this should be taken care of for you. If you're running `sls` / `serverless` commands directly, make sure to use the project-local one in `node_modules`, e.g.: `./node_modules/.bin/sls offline start`
+
 ## Scripts
 
 ### npm run localstack:start
@@ -476,7 +489,7 @@ You can set up a local playground, with most of the functionality of the cloud o
     *.ts
     scripts/                # command line scripts, and utils
     bot/                    # bot engine
-    in-house-bot/              # currently co-located sample bot  tradle/bot-products#modeled
+    in-house-bot/           # currently co-located in-house-bot bot implementation
     test/
   lib/                      # transpiled JS code
 ```
@@ -498,21 +511,25 @@ you'll typically see table names formatted per a combination of the serverless a
 - `SecretsBucket`: if I told you, I'd have to kill you. It stores the private keys for your MyCloud's identity.
 - `PrivateConfBucket`: public/private configuration like: identity, styles, and bot plugin configuration files
 - `FileUploadBucket`: because Lambda and IoT message-size limits, any media embedded in objects sent by users is first uploaded here
+- `LogsBucket`: exactly what you think
+- `ServerlessDeploymentBucket`: stores past and current MyCloud deployment packages
 
 #### Functions
 
-- `warmup`: keeps lambda containers warm to prevent cold start. Concurrency is configurable
+Note: subject to change as lambdas are split out or collapsed together
+
+- `jobScheduler`: lambda that fans out scheduled tasks (e.g. warming up other lambda containers, retrying failed deliveries, sending pending transactions to the blockchain, polling the blockchain for confirmations, etc.)
+- `genericJobRunner`: lambda that executes tasks fanned out by `jobScheduler`
 - `preauth` (HTTP): generates temporary credentials (STS) for new connections from users, attaches the IotClientRole to them, creates a new session in the `presence` table (still `unauthenticated`). Generates a challenge to be signed (verified in `auth`) \*
 - `auth` (HTTP): verifies the challenge, marks the session as authenticated \*
 - `oniotlifecycle` (IoT): manages the user's Iot session, attempts to deliver queued up messages depending on the user's announced send/receive position
 - `inbox` (HTTP): receives batches of inbound messages (typically from other MyClouds)
 - `info` (HTTP): gets the public information about this MyCloud - the identity, style, logo, country, currency, etc.
 - `bot_oninit`: initializes the MyCloud node - generates an identity and keys, saves secrets and default configuration files to respective buckets. Should really be named `init` or `oninit`, but good luck getting AWS to rename something.
-- `sealpending` (scheduled): write queued seals to the blockchain
-- `pollchain` (scheduled): check the blockchain for unconfirmed seals
 - `onmessage`: processes inbound messages, then hands off to synchronous business logic
 - `onresourcestream`: replicates changes to immutable events table, hands off to asynchronous business logic
 - `graphql`: your bot's built-in graphql API that supports existing Tradle models and custom ones you add.
+- `cli`: command line lambda used for various admin tasks
 
 \* *Note: the purpose of authentication is to know whether to send the user queued up messages. Inbound messages don't require pre-authentication, as they are all signed and can be verified without the need for a session's context.*
 

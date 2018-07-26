@@ -10,7 +10,6 @@ import {
   Commander,
   ICommandOutput1,
   IDeferredCommandParams,
-  ISendEmailOpts,
   IConf,
   IPBUser,
   Logger

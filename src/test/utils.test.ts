@@ -10,6 +10,7 @@ import ModelsPack from '@tradle/models-pack'
 import Logger from '../logger'
 import KeyValueTable from '../key-value-table'
 import KV from '../kv'
+import KVS3 from '../kv-s3'
 import Mailer from '../mailer'
 import { getFaviconUrl } from '../in-house-bot/image-utils'
 import { randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey, ECKey } from '../crypto'
@@ -539,12 +540,25 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
 
 ;[
   // KeyValueTable,
-  KV
-].forEach((Impl:KVConstructor<IKeyValueStore>, i) => {
-  test(`key-value table (${i})`, loudAsync(async (t) => {
-    const { aws, db, tables } = bot
-    const conf = new Impl({ db, table: tables.Bucket0, prefix: String(Date.now()) })
-
+  {
+    name: 'dynamodb based',
+    create: (bot: Bot):IKeyValueStore => {
+      const { aws, db, tables } = bot
+      return new KV({ db, prefix: String(Date.now()) })
+    },
+  },
+  {
+    name: 's3 based',
+    create: (bot: Bot):IKeyValueStore => {
+      const { aws, db, tables } = bot
+      return new KVS3({
+        bucket: bot.buckets.PrivateConf.folder('test-' + Date.now()),
+      })
+    },
+  }
+].forEach(({ name, create }) => {
+  test(`key-value table (${name})`, loudAsync(async (t) => {
+    const conf = create(bot)
     t.equal(await conf.exists('a'), false)
     await conf.put('a', {
       b: 'c',
@@ -570,7 +584,7 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
         },
         ReturnValues: 'UPDATED_NEW'
       })
-    } else {
+    } else if (conf.update) {
       await conf.update('a', {
         UpdateExpression: 'SET #value.#age = #value.#age + :incr',
         ExpressionAttributeNames: {
@@ -581,6 +595,11 @@ type KVConstructor<T = {}> = new (...args: any[]) => T
           ':incr': 1
         },
         ReturnValues: 'UPDATED_NEW'
+      })
+    } else {
+      await conf.put('a', {
+        ...(await conf.get('a')),
+        age: 76
       })
     }
 
@@ -903,12 +922,12 @@ test('ModelStore', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const testPrefix = 'test'
   const friend1 = {
-    _identityPermalink: testPrefix + '1',
+    identity: fakeIdentityStub(testPrefix),
     domain: `${testPrefix}.example1.com`
   }
 
   const friend2 = {
-    _identityPermalink: Date.now() + '2',
+    identity: fakeIdentityStub(testPrefix),
     domain: `${testPrefix}.example2.com`
   }
 
@@ -990,7 +1009,7 @@ test('ModelStore', loudAsync(async (t) => {
     t.ok(/domain/i.test(err.message))
   }
 
-  modelsPack._author = friend1._identityPermalink
+  modelsPack._author = friend1.identity._permalink
   await store.addModelsPack({ modelsPack })
   // 4
   t.same(await store.getModelsPackByDomain(friend1.domain), modelsPack)
@@ -1033,7 +1052,7 @@ test('ModelStore', loudAsync(async (t) => {
     ]
   })
 
-  modelsPack2._author = friend2._identityPermalink
+  modelsPack2._author = friend2.identity._permalink
   try {
     await store.addModelsPack({
       modelsPack: {
@@ -1068,6 +1087,54 @@ test('ModelStore', loudAsync(async (t) => {
   // t.ok(schema)
 
   sandbox.restore()
+  t.end()
+}))
+
+test('scheduler', loudAsync(async (t) => {
+  const clock = sinon.useFakeTimers()
+  clock.setSystemTime(0)
+
+  const sandbox = sinon.createSandbox()
+
+  const { scheduler } = bot
+  const MIN = 60
+  const MIN_MILLIS = 60 * 1000
+  const everyMin = {
+    name: 'a',
+    period: MIN
+  }
+
+  const everyTwoMin = {
+    name: 'b',
+    period: 2 * MIN
+  }
+
+  const everyHour = {
+    name: 'c',
+    period: 60 * MIN
+  }
+
+  t.ok(scheduler.isScheduled(everyMin))
+  t.ok(scheduler.isScheduled(everyTwoMin))
+  t.ok(scheduler.isScheduled(everyHour))
+  clock.tick(MIN_MILLIS)
+
+  t.ok(scheduler.isScheduled(everyMin))
+  t.notOk(scheduler.isScheduled(everyTwoMin))
+  t.notOk(scheduler.isScheduled(everyHour))
+
+  clock.tick(MIN_MILLIS)
+  t.ok(scheduler.isScheduled(everyMin))
+  t.ok(scheduler.isScheduled(everyTwoMin))
+  t.notOk(scheduler.isScheduled(everyHour))
+
+  clock.tick(58 * MIN_MILLIS)
+  t.ok(scheduler.isScheduled(everyMin))
+  t.ok(scheduler.isScheduled(everyTwoMin))
+  t.ok(scheduler.isScheduled(everyHour))
+
+  sandbox.restore()
+  clock.restore()
   t.end()
 }))
 
@@ -1124,3 +1191,10 @@ function sum (arr) {
 }
 
 const domainToNamespace = domain => domain.split('.').reverse().join('.')
+
+let identityStubCounter = 0
+const fakeIdentityStub = (prefix) => ({
+  _t: 'tradle.Identity',
+  _permalink: (prefix || '') + (identityStubCounter++),
+  _link: (prefix || '') + (identityStubCounter++),
+})

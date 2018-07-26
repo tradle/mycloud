@@ -1,10 +1,11 @@
 import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
+import { Context as KoaContext } from 'koa'
 import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
 import { Table, DB, Models, Model, Diff } from '@tradle/dynamodb'
 import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
-import { Lambda, EventSource } from '../lambda'
+import { BaseLambda, LambdaHttp, Lambda, EventSource } from '../lambda'
 import { Bot } from '../bot'
 import { Users } from '../users'
 import { Env } from '../env'
@@ -19,7 +20,7 @@ import { Auth } from '../auth'
 import { Init } from '../init'
 import { AwsApis } from '../aws'
 import { Bucket } from '../bucket'
-import { Seals, Seal } from '../seals'
+import { Seals, Seal, SealPendingResult } from '../seals'
 import { Blockchain } from '../blockchain'
 import { ModelStore } from '../model-store'
 import { Task, TaskManager } from '../task-manager'
@@ -37,15 +38,19 @@ import { Backlinks } from '../backlinks'
 import { StackUtils } from '../stack-utils'
 import { LambdaUtils } from '../lambda-utils'
 import { S3Utils } from '../s3-utils'
+import { SNSUtils } from '../sns-utils'
 import { Iot, IIotEndpointInfo } from '../iot-utils'
 import { Events, EventTopic } from '../events'
 import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
-import {
+import { ResourceStub } from '@tradle/validate-resource'
+
+export {
   ResourceStub,
   ParsedResourceStub,
   GetResourceIdentifierInput,
-  GetResourceIdentifierOutput
+  GetResourceIdentifierOutput,
+  ValidateResourceOpts,
 } from '@tradle/validate-resource'
 
 export type Constructor<T = {}> = new (...args: any[]) => T
@@ -54,11 +59,6 @@ export * from '../retryable-task'
 export { ECKey } from '../crypto'
 
 export {
-  // re-export from @tradle/validate-resource
-  ResourceStub,
-  ParsedResourceStub,
-  GetResourceIdentifierInput,
-  GetResourceIdentifierOutput,
   // re-export from @tradle/dynamodb
   DB,
   Table,
@@ -82,6 +82,7 @@ export {
   Bucket,
   Seal,
   Seals,
+  SealPendingResult,
   Blockchain,
   ModelStore,
   Task,
@@ -97,10 +98,14 @@ export {
   User,
   Discovery,
   Lambda,
+  LambdaHttp,
+  BaseLambda,
+  EventSource,
   Backlinks,
   StackUtils,
   LambdaUtils,
   S3Utils,
+  SNSUtils,
   Iot,
   Events,
   Mailer,
@@ -172,6 +177,7 @@ export interface IRequestContext {
   correlationId: string
   containerId: string
   seq: number
+  commit: string
   cold?: boolean
   start: number
 }
@@ -182,22 +188,35 @@ export interface ILambdaExecutionContext {
   context: ILambdaAWSExecutionContext
   callback?: Function
   error?: Error
-  body?: any
+  body: any
   done: boolean
+  [x: string]: any
+}
+
+export interface ILambdaHttpExecutionContext extends ILambdaExecutionContext, KoaContext {
+}
+
+export interface ILambdaCloudWatchLogsExecutionContext extends ILambdaExecutionContext {
+  event: CloudWatchLogsEvent
+}
+
+export interface ISNSExecutionContext extends ILambdaExecutionContext {
+  event: SNSEvent
 }
 
 export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
   => any|void
 
-export interface ILambdaOpts {
+export interface ILambdaOpts<T> {
   devModeOnly?: boolean
   source?: EventSource
   bot?: Bot
-  middleware?: Middleware | Promise<Middleware>
+  middleware?: Middleware<T>
   [x:string]: any
 }
 
-export type Middleware = ComposeMiddleware<ILambdaExecutionContext>
+export type Middleware<T> = ComposeMiddleware<T>
+export type MiddlewareHttp = Middleware<ILambdaHttpExecutionContext>
 
 export interface ITradleObject {
   _version?: number
@@ -205,6 +224,7 @@ export interface ITradleObject {
   _link?: string
   _permalink?: string
   _author?: string
+  _org?: string
   _time?: number
   [x: string]: any
 }
@@ -350,11 +370,11 @@ export interface IAWSServiceConfig {
 export interface IEndpointInfo extends IIotEndpointInfo {
   aws: boolean
   endpoint: string
-  version: string
+  version: VersionInfo
 }
 
 export type TopicOrString = string|EventTopic
-export type HooksHookFn = (event:TopicOrString, handler:Function) => void
+export type HooksHookFn = (event:TopicOrString, handler:Function) => Function
 export type HooksFireFn = (event:TopicOrString, ...args:any[]) => any|void
 
 export interface IHooks {
@@ -397,7 +417,8 @@ export interface IBucketInfo {
 export interface IBucketsInfo {
   Objects: IBucketInfo
   Secrets: IBucketInfo
-  ContentAddressed: IBucketInfo
+  Logs: IBucketInfo
+  // ContentAddressed: IBucketInfo
   // PublicConf: IBucketInfo
   PrivateConf: IBucketInfo
   FileUpload: IBucketInfo
@@ -452,7 +473,7 @@ export type IServiceMap = {
 export interface ILaunchStackUrlOpts {
   region: string
   stackName: string
-  templateURL?: string
+  templateUrl?: string
   quickLink?: boolean
 }
 
@@ -460,7 +481,7 @@ export interface IUpdateStackUrlOpts {
   region?: string
   stackId?: string
   stackName?: string
-  templateURL: string
+  templateUrl: string
 }
 
 export interface ISaveObjectOpts {
@@ -478,16 +499,21 @@ export interface IDeepLink {
   platform: 'mobile' | 'web'
 }
 
-export interface ISendEmailResult {
+export interface IMailerSendEmailResult {
   id: string
 }
 
-export interface IMailer {
-  send: (opts: ISendEmailOpts) => Promise<ISendEmailResult>
-  canSendFrom: (address: string) => Promise<boolean>
+export type IMailerCanSendFromResult = {
+  result: boolean
+  reason?: string
 }
 
-export interface ISendEmailOpts {
+export interface IMailer {
+  send: (opts: IMailerSendEmailOpts) => Promise<IMailerSendEmailResult>
+  canSendFrom: (address: string) => Promise<IMailerCanSendFromResult>
+}
+
+export interface IMailerSendEmailOpts {
   from: string
   to?: string|string[]
   cc?: string|string[]
@@ -659,6 +685,7 @@ export type BucketCopyOpts = {
   target: string
   prefix?: string
   keys?: string[]
+  acl?: AWS.S3.ObjectCannedACL
 }
 
 export type BucketPutOpts = {
@@ -666,7 +693,7 @@ export type BucketPutOpts = {
   value:any
   bucket:string
   headers?:any
-  publicRead?: boolean
+  acl?: AWS.S3.ObjectCannedACL
 }
 
 export type PresignEmbeddedMediaOpts = {
@@ -677,4 +704,78 @@ export type PresignEmbeddedMediaOpts = {
 export type EnumValueStub = {
   id: string
   title?: string
+}
+
+export type StackStatusEvent = {
+  stackId: string
+  timestamp: number
+  status: AWS.CloudFormation.ResourceStatus
+  resourceType: AWS.CloudFormation.ResourceType
+  resourceId: string
+  resourceName: string
+  subscriptionArn: string
+}
+
+export type Job = {
+  name: string
+  period?: number // seconds
+  input?: any
+  requiresComponents?: string[]
+  [x: string]: any
+}
+
+export type VersionInfo = {
+  tag: string
+  sortableTag: string
+  branch: string
+  commit: string
+  commitsSinceTag: number
+  time: string
+  templateUrl?: string
+  alert?: boolean
+}
+
+export interface Registry<T> {
+  get: (name:string) => T
+  set: (name:string, T) => void
+  keys: () => string[]
+}
+
+export type CloudWatchLogsEntry = {
+  id: string
+  timestamp: number
+  message: string
+  extractedFields: any
+}
+
+export type CloudWatchLogsEvent = {
+  messageType: 'DATA_MESSAGE'|'CONTROL_MESSAGE'
+  owner: string // accountId
+  logGroup: string
+  logStream: string
+  subscriptionFilters: string[]
+  logEvents: CloudWatchLogsEntry[]
+}
+
+export type SNSEventRecord = {
+  EventVersion: string
+  EventSubscriptionArn: string
+  EventSource: string
+  Sns: {
+    SignatureVersion: string
+    Timestamp: string
+    Signature: string
+    SigningCertUrl: string
+    MessageId: string
+    Message: string
+    MessageAttributes: any,
+    Type: string
+    UnsubscribeUrl: string
+    TopicArn: string
+    Subject: string
+  }
+}
+
+export type SNSEvent = {
+  Records: SNSEventRecord[]
 }

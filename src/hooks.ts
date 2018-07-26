@@ -32,9 +32,10 @@ export const hookUp = (bot: Bot) => {
       const type = change.value[TYPE]
       if (type === SEAL_STATE) {
         tasks.push(reemitSealEvent(change))
-      } else if (type === DELIVERY_ERROR) {
-        tasks.push(reemitDeliveryErrorEvent(change))
       }
+      // else if (type === DELIVERY_ERROR) {
+      //   tasks.push(reemitDeliveryErrorEvent(change))
+      // }
     }
 
     try {
@@ -61,6 +62,8 @@ export const hookUp = (bot: Bot) => {
   // })
 
   const retryDelivery = async (deliveryErr) => {
+    if (bot.delivery.http.isStuck(deliveryErr)) return
+
     const { counterparty } = deliveryErr
     await bot.delivery.deliverMessages({
       recipient: counterparty,
