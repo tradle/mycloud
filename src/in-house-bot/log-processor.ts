@@ -249,6 +249,9 @@ export class LogProcessor {
     if (eventUrl) {
       this.logger.debug('fetching remote log event')
       event.body = await get(eventUrl)
+      if (typeof event.body === 'string') {
+        event.body = JSON.parse(event.body)
+      }
     }
 
     return event
@@ -257,7 +260,8 @@ export class LogProcessor {
   public parseAlertEvent = parseAlertEvent
 
   public saveAlertEvent = async (event: ParsedAlertEvent) => {
-    const key = getAlertEventKey(event)
+    const filename = getAlertEventKey(event)
+    const key = `${filename}.${this.ext}`
     await this.store.put(key, event)
   }
 }
