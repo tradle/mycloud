@@ -47,7 +47,7 @@ test('log processor', loudAsync(async t => {
     t.ok(k.endsWith('.json.gz'))
   })
 
-  await processor.handleLogEvent(rawLogEvent)
+  await processor.handleLogEvent(parsedLogEvent)
   t.equal(putStub.callCount, 1)
   t.equal(sendAlertStub.callCount, 1)
   t.same(sendAlertStub.getCall(0).args[0], parsedLogEvent)

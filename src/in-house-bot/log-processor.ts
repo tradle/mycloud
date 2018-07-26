@@ -200,19 +200,18 @@ export class LogProcessor {
     this.ext = ext
   }
 
-  public handleLogEvent = async (event: CloudWatchLogsEvent) => {
+  public handleLogEvent = async (event: ParsedLogEvent) => {
     // const { UserId } = sts.getCallerIdentity({}).promise()
-    const parsed = this.parseLogEvent(event)
-    if (!parsed.entries.length) return
+    if (!event.entries.length) return
 
     // alert before pruning, to provide maximum context for errors
-    const bad = parsed.entries.filter(shouldRaiseAlert)
+    const bad = event.entries.filter(shouldRaiseAlert)
     if (bad.length) {
       this.logger.debug('sending alert')
-      await this.sendAlert(parsed)
+      await this.sendAlert(event)
     }
 
-    await this.saveLogEvent(parsed)
+    await this.saveLogEvent(event)
   }
 
   public parseLogEvent = (event: CloudWatchLogsEvent) => {
@@ -238,19 +237,11 @@ export class LogProcessor {
     await this.store.put(key, formatted)
   }
 
-  public handleAlertEvent = async (event: SNSEvent) => {
-    let parsed
-    try {
-      parsed = parseAlertEvent(event)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.debug('invalid alert event', Errors.export(err))
-      return
-    }
-
-    await this.saveAlertEvent(parsed)
-    return parsed
+  public handleAlertEvent = async (event: ParsedAlertEvent) => {
+    await this.saveAlertEvent(event)
   }
+
+  public parseAlertEvent = parseAlertEvent
 
   public saveAlertEvent = async (event: ParsedAlertEvent) => {
     const key = getAlertEventKey(event)

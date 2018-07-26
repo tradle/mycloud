@@ -1,5 +1,6 @@
 import { fromSNS } from '../lambda'
 import { LOG_ALERTS } from '../lambda-events'
+import Errors from '../../errors'
 import {
   LogProcessor,
   parseLogAlertsTopicArn,
@@ -17,7 +18,16 @@ lambda.use(async (ctx) => {
     const conf = components.conf.bot.logging
     processor = fromLambda({ lambda, components })
     bot.hook(bot.events.topics.logging.alert, async (ctx, next) => {
-      const alert = ctx.event = await processor.handleAlertEvent(ctx.event)
+      try {
+        ctx.event = await processor.parseAlertEvent(ctx.event)
+      } catch (err) {
+        Errors.rethrow(err, 'developer')
+        logger.debug('invalid alert event', Errors.export(err))
+        return
+      }
+
+      const alert = ctx.event
+      await processor.handleAlertEvent(alert)
       if (conf) {
         await sendLogAlert({ bot, conf, alert })
       } else {
