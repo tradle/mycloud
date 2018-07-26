@@ -433,11 +433,17 @@ export default class S3Utils {
   public isBucketPublic = async ({ bucket }: {
     bucket: string
   }) => {
-    const { Policy } = await this.s3.getBucketPolicy({
-      Bucket: bucket
-    }).promise()
+    let result:AWS.S3.GetBucketPolicyOutput
+    try {
+      result = await this.s3.getBucketPolicy({
+        Bucket: bucket
+      }).promise()
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
 
-    const { Statement } = JSON.parse(Policy)
+    const { Statement } = JSON.parse(result.Policy)
     return Statement.some(({ Sid }) => Sid === PUBLIC_BUCKET_RULE_ID)
   }
 
