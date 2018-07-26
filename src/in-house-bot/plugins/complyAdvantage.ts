@@ -61,10 +61,6 @@ interface IComplyAdvantageConf {
 interface IComplyAdvantageFilter {
   types?: string[]
 }
-interface IResource {
-  companyName: string
-  registrationDate: string
-}
 interface IComplyCheck {
   application: IPBApp
   rawData: any
