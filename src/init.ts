@@ -92,7 +92,12 @@ export default class Init {
 
   public initInfra = async (opts?:IInitOpts) => {
     // await this.fixAPIGateway()
-    return await this.initIdentity(opts)
+    const [result] = await Promise.all([
+      this.initIdentity(opts),
+      this.stackUtils.enableTerminationProtection()
+    ])
+
+    return result
   }
 
   public updateInfra = async (opts?:any) => {

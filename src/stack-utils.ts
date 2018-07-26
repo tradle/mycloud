@@ -575,6 +575,20 @@ export default class StackUtils {
     return this.aws.cloudformation.updateStack(params).promise()
   }
 
+  public enableTerminationProtection = async (StackName=this.thisStack.name) => {
+    await this.aws.cloudformation.updateTerminationProtection({
+      StackName,
+      EnableTerminationProtection: true
+    }).promise()
+  }
+
+  public disableTerminationProtection = async (StackName=this.thisStack.name) => {
+    await this.aws.cloudformation.updateTerminationProtection({
+      StackName,
+      EnableTerminationProtection: false
+    }).promise()
+  }
+
   public static getStackLocationKeys = ({ service, stage, versionInfo }:  {
     service: string
     stage: string
