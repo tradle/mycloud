@@ -253,9 +253,8 @@ custom:
       - ${{self:custom.prefix}}objectsbucket
       - ${{self:custom.prefix}}secretsbucket
       - ${{self:custom.prefix}}privateconfbucket
-      # - ${{self:custom.prefix}}publicconfbucket
-      # - ${{self:custom.prefix}}contentaddressedbucket
       - ${{self:custom.prefix}}fileuploadbucket
+      - ${{self:custom.prefix}}logsbucket
     cors: false
     # use dockerized s3 from localstack
     noStart: true
