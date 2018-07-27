@@ -5951,6 +5951,11 @@
       "from": "json-stringify-safe@>=5.0.1 <6.0.0",
       "resolved": "https://registry.npmjs.org/json-stringify-safe/-/json-stringify-safe-5.0.1.tgz"
     },
+    "json2yaml": {
+      "version": "1.1.0",
+      "from": "json2yaml@latest",
+      "resolved": "https://registry.npmjs.org/json2yaml/-/json2yaml-1.1.0.tgz"
+    },
     "json5": {
       "version": "0.5.1",
       "from": "json5@>=0.5.1 <0.6.0",
@@ -9127,6 +9132,11 @@
       "from": "reinterval@>=1.0.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/reinterval/-/reinterval-1.1.0.tgz",
       "dev": true
+    },
+    "remedial": {
+      "version": "1.0.8",
+      "from": "remedial@>=1.0.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/remedial/-/remedial-1.0.8.tgz"
     },
     "remove-trailing-separator": {
       "version": "1.1.0",

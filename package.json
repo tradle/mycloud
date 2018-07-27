@@ -196,6 +196,7 @@
     "js-yaml": "^3.10.0",
     "json-stable-stringify": "^1.0.1",
     "json-stringify-safe": "^5.0.1",
+    "json2yaml": "^1.1.0",
     "just-diff": "^2.1.1",
     "kcors": "^2.2.1",
     "key-encoder": "mvayngrib/key-encoder-js",

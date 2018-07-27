@@ -1,11 +1,13 @@
 // @ts-ignore
 import Promise from 'bluebird'
+import json2yaml from 'json2yaml'
+import map from 'lodash/map'
 import pick from 'lodash/pick'
+import isEmpty from 'lodash/isEmpty'
 import Errors from '../errors'
 import { StackUtils } from '../stack-utils'
 import { TRADLE } from './constants'
 import { sha256 } from '../crypto'
-import { prettify } from '../string-utils'
 import {
   Bot,
   IPBLambda,
@@ -521,22 +523,37 @@ export const sendLogAlert = async ({ bot, conf, alert }: {
   conf: ILoggingConf
   alert: ParsedAlertEvent
 }) => {
+  const { subject, body } = generateAlertEmail(alert)
+  const { senderEmail, destinationEmails } = conf
+  await bot.mailer.send({
+    subject,
+    body,
+    from: senderEmail,
+    to: destinationEmails,
+    format: 'text',
+  })
+}
+
+export const generateAlertEmail = (alert: ParsedAlertEvent) => {
   const gist = alert.body.entries.map(getEntryGist)
   const errorMsgs = gist
     .filter(isErrorEntry)
+    .filter(gist => !isEmpty(gist))
     .map(e => e.msg)
 
-  const { senderEmail, destinationEmails } = conf
-  const { stackName, accountId, body } = alert
-  await bot.mailer.send({
-    subject: `logging alert: ${stackName} (${accountId}): ${errorMsgs[0]}`,
-    from: senderEmail,
-    to: destinationEmails,
-    body: `ERRORS: ${errorMsgs.join('\n')}
+  const { stackName, accountId } = alert
+  const subject = `logging alert: ${stackName} (${accountId}): ${errorMsgs[0]}`
+  let body = json2yaml.stringify(gist)
+  if (errorMsgs.length) {
+    body = `ERRORS: ${errorMsgs.join('\n')}
 
-${prettify(gist)}`,
-    format: 'text',
-  })
+${body}`
+  }
+
+  return {
+    subject,
+    body
+  }
 }
 
 export const validateConf = async ({ bot, conf }: {
