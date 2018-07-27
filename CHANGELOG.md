@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.3.0-rc.3"></a>
+# [1.3.0-rc.3](https://github.com/tradle/serverless/compare/v1.3.0-rc.2...v1.3.0-rc.3) (2018-07-27)
+
+
+### Bug Fixes
+
+* support disabling autoscaling ([17f64ba](https://github.com/tradle/serverless/commit/17f64ba))
+
+
+
 <a name="1.3.0-rc.2"></a>
 # [1.3.0-rc.2](https://github.com/tradle/serverless/compare/v1.3.0-rc.1...v1.3.0-rc.2) (2018-07-27)
 
