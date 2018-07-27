@@ -60,14 +60,23 @@ export type LoggerConf = {
   outputFormat?:string
 }
 
+type CompareResult = 1|-1|0
+
 export default class Logger {
   public namespace:string
   public context:any
-  public level:number
+  public level:Level
   public subloggers:Logger[]
   private writer:Writer
   private outputFormat:string
   private conf:LoggerConf
+  public static compareSeverity = (a: Level, b: Level):CompareResult => {
+    if (a === b) return 0
+
+    // return -1 if a is less severe, 1 if a is more severe
+    return a < b ? 1 : -1
+  }
+
   constructor (conf:LoggerConf|string) {
     if (typeof conf === 'string') {
       conf = { namespace: conf }

@@ -1,9 +1,11 @@
 // @ts-ignore
 import Promise from 'bluebird'
+import pick from 'lodash/pick'
 import Errors from '../errors'
 import { StackUtils } from '../stack-utils'
 import { TRADLE } from './constants'
 import { sha256 } from '../crypto'
+import { prettify } from '../string-utils'
 import {
   Bot,
   IPBLambda,
@@ -11,21 +13,27 @@ import {
   CloudWatchLogsEvent,
   CloudWatchLogsEntry,
   IKeyValueStore,
-  Logger,
   IBotComponents,
   ILoggingConf,
 } from './types'
 
-import { Level, noopLogger } from '../logger'
+import { Logger, Level, noopLogger } from '../logger'
 import { parseArn, get } from '../utils'
 
-type SendAlert = ({ key: string, event: ParsedLogEvent }) => Promise<void>
+type SendAlertInput = {
+  key: string
+  event: ParsedLogEvent
+}
+
+type SendAlert = (opts: SendAlertInput) => Promise<void>
+
 type LogProcessorOpts = {
   store: IKeyValueStore
   sendAlert: SendAlert
   ignoreGroups?: string[]
   logger?: Logger
-  level?: Level
+  saveLevel?: Level
+  alertLevel?: Level
   ext?: string
 }
 
@@ -39,13 +47,17 @@ type EntryDetails = {
   [key: string]: any
 }
 
-type ParsedEntry = {
+interface ParsedEntryGist {
+  msg: string
+  level: string
+  details?: EntryDetails
+  namespace?: string
+}
+
+interface ParsedEntry extends ParsedEntryGist {
   id: string
   timestamp: number
   requestId: string
-  msg: string
-  level: string
-  details: EntryDetails
   [key: string]: any
 }
 
@@ -65,8 +77,7 @@ export type ParsedAlertEvent = {
   stackName: string
   timestamp: number
   eventUrl: string
-  body?: any
-  [x: string]: any
+  body?: ParsedLogEvent
 }
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'
@@ -96,10 +107,6 @@ const XRAY_SPAM = [
   'Subsegment streaming threshold set to',
   'capturing all http requests with AWSXRay',
 ]
-
-const shouldRaiseAlert = (event: ParsedEntry) => {
-  return Level[event.level] <= Level.WARN
-}
 
 // const MONTHS = [
 //   'jan',
@@ -158,15 +165,15 @@ export const parseAlertEvent = (event: SNSEvent) => {
   const { TopicArn, Message, Timestamp } = Sns
   const topic = Sns.TopicArn
   const { accountId, region, stackName } = parseLogAlertsTopicArn(topic)
-  let body
+  let alertProps
   try {
-    body = JSON.parse(Message).default
+    alertProps = JSON.parse(Message).default
   } catch (err) {
     throw new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`)
   }
 
   return {
-    ...body,
+    ...alertProps,
     accountId,
     region,
     stackName,
@@ -179,21 +186,24 @@ export class LogProcessor {
   private sendAlert: SendAlert
   private store: IKeyValueStore
   private logger: Logger
-  private level: Level
+  private saveLevel: Level
+  private alertLevel: Level
   private ext: string
   constructor({
     sendAlert,
     store,
     ignoreGroups=[],
     logger=noopLogger,
-    level=Level.DEBUG,
+    saveLevel=Level.DEBUG,
+    alertLevel=Level.ERROR,
     ext='json',
   }: LogProcessorOpts) {
     this.ignoreGroups = ignoreGroups
     this.sendAlert = sendAlert
     this.store = store
     this.logger = logger
-    this.level = level
+    this.saveLevel = saveLevel
+    this.alertLevel = alertLevel
     this.ext = ext
   }
 
@@ -202,7 +212,7 @@ export class LogProcessor {
     if (!event.entries.length) return
 
     // alert before pruning, to provide maximum context for errors
-    const bad = event.entries.filter(shouldRaiseAlert)
+    const bad = event.entries.filter(this._shouldAlertAboutEntry)
     const key = await this.saveLogEvent(event)
     if (!bad.length) return
 
@@ -220,9 +230,9 @@ export class LogProcessor {
   public saveLogEvent = async (event: ParsedLogEvent) => {
     let { entries } = event
     entries = entries.filter(shouldSave)
-    if (this.level != null) {
+    if (this.saveLevel != null) {
       entries = entries.filter(entry => {
-        return entry.level == null || Level[entry.level] <= this.level
+        return entry.level == null || Logger.compareSeverity(Level[entry.level], this.saveLevel) >= 0
       })
     }
 
@@ -259,6 +269,10 @@ export class LogProcessor {
     const key = `${filename}.${this.ext}`
     await this.store.put(key, event)
   }
+
+  private _shouldAlertAboutEntry = (entry: ParsedEntry) => {
+    return isAsSevere(Level[entry.level], this.alertLevel)
+  }
 }
 
 export const fromLambda = ({ lambda, components, compress=true }: {
@@ -274,10 +288,7 @@ export const fromLambda = ({ lambda, components, compress=true }: {
     targetAccountId: TRADLE.ACCOUNT_ID
   })
 
-  const createAlertEvent = ({ key, event }: {
-    key: string
-    event: ParsedLogEvent
-  }) => ({
+  const createAlertEvent = ({ key, event }: SendAlertInput) => ({
     eventUrl: folder.createPresignedUrl(key)
   })
 
@@ -502,14 +513,20 @@ export const sendLogAlert = async ({ bot, conf, alert }: {
   conf: ILoggingConf
   alert: ParsedAlertEvent
 }) => {
+  const gist = alert.body.entries.map(getEntryGist)
+  const errorMsgs = gist
+    .filter(isErrorEntry)
+    .map(e => e.msg)
+
   const { senderEmail, destinationEmails } = conf
-  const body = JSON.stringify(alert, null, 2)
-  const { stackName, accountId } = alert
+  const { stackName, accountId, body } = alert
   await bot.mailer.send({
-    subject: `logging alert: ${stackName} (${accountId})`,
+    subject: `logging alert: ${stackName} (${accountId}): ${errorMsgs[0]}`,
     from: senderEmail,
     to: destinationEmails,
-    body,
+    body: `ERRORS: ${errorMsgs.join('\n')}
+
+${prettify(gist)}`,
     format: 'text',
   })
 }
@@ -524,3 +541,10 @@ export const validateConf = async ({ bot, conf }: {
     throw new Errors.InvalidInput(resp.reason)
   }
 }
+
+const isAsSevere = (level: Level, otherLevel: Level) => Logger.compareSeverity(level, otherLevel) >=0
+const isErrorEntry = ({ level }: {
+  level: string
+}) => isAsSevere(Level[level], Level.ERROR)
+
+const getEntryGist = (entry: ParsedEntry):ParsedEntryGist => pick(entry, ['level', 'msg', 'namespace', 'details'])

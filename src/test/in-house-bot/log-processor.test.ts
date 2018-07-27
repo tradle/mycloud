@@ -35,7 +35,6 @@ test('log processor', loudAsync(async t => {
   const sendAlertStub = sandbox.stub()
   const store = new KeyValueMem()
   const processor = new LP.LogProcessor({
-    level: Level.DEBUG,
     logger: noopLogger,
     sendAlert: sendAlertStub,
     store,
