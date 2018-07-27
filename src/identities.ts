@@ -67,8 +67,6 @@ const ORDER_BY_RECENT_FIRST = {
   desc: true
 }
 
-let BLAH_COUNTER = 0
-
 type AuthorInfo = {
   _author: string
 }

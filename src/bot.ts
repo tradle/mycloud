@@ -1012,7 +1012,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public witness = (object: ITradleObject) => this.identity.witness({ object })
 
-  public reSign = (object:ITradleObject) => this.sign(<ITradleObject>_.omit(object, [SIG, ORG, ORG_SIG]))
+  public reSign = (object:ITradleObject) => this.sign(_.omit(object, [SIG, ORG, ORG_SIG]) as ITradleObject)
   // public fire = async (event, payload) => {
   //   return await this.middleware.fire(event, payload)
   // }

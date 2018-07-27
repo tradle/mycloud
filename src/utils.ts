@@ -70,11 +70,11 @@ import {
 } from './types'
 
 import * as types from './typeforce-types'
-import Logger from './logger'
+import Logger, { consoleLogger } from './logger'
 import Env from './env'
-import models from './models'
+import baseModels from './models'
 
-const BaseObjectModel = models['tradle.Object']
+const BaseObjectModel = baseModels['tradle.Object']
 const debug = require('debug')('tradle:sls:utils')
 const notNull = obj => obj != null
 const isPromise = obj => obj && typeof obj.then === 'function'
@@ -339,7 +339,7 @@ export const logifyFunction = ({ fn, name, logger, level='silly', logInputOutput
       ? name.apply(this, args)
       : name
 
-    let start = Date.now()
+    const start = Date.now()
     let duration
     let ret
     let err
@@ -388,7 +388,7 @@ export const logify = <T>(component: T, opts:LogifyOpts, methods?:string[]):T =>
 
   const { name } = component.constructor
   methods.forEach(method => {
-    const val = <Function>component[method]
+    const val = component[method] as Function
     if (!val) throw new Errors.InvalidInput(`component doesn't have method ${method}`)
 
     component[method] = logifyFunction({
@@ -529,7 +529,7 @@ export function executeSuperagentRequest (req) {
 
 export function promiseCall (fn, ...args) {
   return new Promise((resolve, reject) => {
-    args.push(function (err, result) {
+    args.push((err, result) => {
       if (err) return reject(err)
 
       resolve(result)
@@ -554,8 +554,8 @@ export const series = async (fns, ...args) => {
 }
 
 export const seriesWithExit = async (fns, ...args) => {
-  for (let fn of fns) {
-    let keepGoing = fn.apply(this, args)
+  for (const fn of fns) {
+    const keepGoing = fn.apply(this, args)
     if (isPromise(keepGoing)) {
       await keepGoing
     }
@@ -567,7 +567,7 @@ export const seriesWithExit = async (fns, ...args) => {
 
 export const waterfall = async (fns, ...args) => {
   let result
-  for (let fn of fns) {
+  for (const fn of fns) {
     result = fn.apply(this, args)
     if (isPromise(result)) {
       result = await result
@@ -651,8 +651,8 @@ export const batchProcess = async ({
 }: {
   data:any[]
   batchSize:number
-  processOne?:Function
-  processBatch?:Function
+  processOne?:(item:any, index: number) => Promise<any>
+  processBatch?:(batch:any[], index: number) => Promise<any>
   series?: boolean
   settle?: boolean
 }):Promise<any[]> => {
@@ -734,9 +734,9 @@ export const runWithBackoffWhile = async (fn, {
 
 const GIVE_UP_TIME = 2000
 const GIVE_UP_RETRY_TIME = 5000
-type RetryOpts = {
+interface RetryOpts {
   attemptTimeout: number,
-  onError?: Function,
+  onError?: (err: any) => void,
   env: Env
 }
 
@@ -748,9 +748,11 @@ export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
   } = opts
 
   let err
+  let timeout
+  let timeLeft
   while (true) {
-    let timeLeft = env.getRemainingTime()
-    let timeout = Math.min(attemptTimeout, timeLeft / 2)
+    timeLeft = env.getRemainingTime()
+    timeout = Math.min(attemptTimeout, timeLeft / 2)
     try {
       return await Promise.race([
         Promise.resolve(fn()),
@@ -876,15 +878,19 @@ export const doesHttpEndpointExist = async (url) => {
   }
 }
 
-export function batchByByteLength (arr:Array<string|Buffer>, max) {
+export function batchByByteLength (arr:(string|Buffer)[], max) {
   arr = arr.filter(s => s.length)
 
   const batches = []
   let cur = []
   let item
+  let itemLength
   let length = 0
-  while (item = arr.shift()) {
-    let itemLength = Buffer.isBuffer(item) ? item.length : Buffer.byteLength(item, 'utf8')
+  while (true) {
+    item = arr.shift()
+    if (!item) break
+
+    itemLength = Buffer.isBuffer(item) ? item.length : Buffer.byteLength(item, 'utf8')
     if (length + item.length <= max) {
       cur.push(item)
       length += itemLength
@@ -909,9 +915,9 @@ export const RESOLVED_PROMISE = Promise.resolve()
 export const promiseNoop = (...args:any[]) => RESOLVED_PROMISE
 export const identityPromise:<T>(val:T) => Promise<T> = val => Promise.resolve(val)
 
-export function defineGetter (obj, property, get) {
+export function defineGetter (obj, property, getter) {
   Object.defineProperty(obj, property, {
-    get,
+    get: getter,
     enumerable: true
   })
 }
@@ -977,7 +983,7 @@ export const getSealBasePubKey = (seal: Seal) => {
   const network = _.get(networks, [seal.blockchain, seal.network])
   if (!network) return
 
-  let { pub, curve } = basePubKey
+  let { pub } = basePubKey
   if (typeof pub === 'string') pub = Buffer.from(pub, 'hex')
 
   const fingerprint = network.pubKeyToAddress(pub)
@@ -1066,13 +1072,13 @@ export const logResponseBody = (logger:Logger) => (req, res, next) => {
   const oldEnd = res.end
   const chunks = []
 
-  res.write = function (chunk) {
+  res.write = (chunk) => {
     chunks.push(chunk)
 
     oldWrite.apply(res, arguments)
   }
 
-  res.end = function (chunk) {
+  res.end = (chunk) => {
     if (chunk)
       chunks.push(chunk)
 
@@ -1339,6 +1345,7 @@ export const isXrayOn = () => process.env.TRADLE_BUILD !== '1' && process.env._X
 
 export const instrumentWithXray = (Component: any, withXrays: any) => {
   const { name } = Component
+  // tslint:disable-next-line: no-console
   console.info(`instrumenting component "${name}" with AWS XRay`)
   Object.keys(withXrays).forEach(method => {
     const orig = Component.prototype[method]
@@ -1346,9 +1353,10 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
     Component.prototype[method] = async function (...args) {
       if (!this.env) throw new Errors.InvalidInput('expected component to have "env"')
 
+      const { logger=consoleLogger } = this
       const { xraySegment } = this.env
       if (!xraySegment) {
-        console.warn(`no XRay segment!`)
+        logger.warn(`no XRay segment!`)
         return orig.call(this, ...args)
       }
 
@@ -1357,7 +1365,7 @@ export const instrumentWithXray = (Component: any, withXrays: any) => {
         try {
           return await orig.call(this, ...args)
         } finally {
-          console.info(`closing subsegment: ${name}.${method}`)
+          logger.info(`closing subsegment: ${name}.${method}`)
           subsegment.close()
         }
       }, xraySegment)
@@ -1494,7 +1502,7 @@ export const isWellBehavedIntersection = model => {
 
 export const parseStackStatusEvent = (event: any): StackStatusEvent => {
   // see src/test/fixtures/cloudformation-stack-status.json
-  const props = event.Records[0]['Sns'].Message.split('\n').reduce((map, line) => {
+  const props = event.Records[0].Sns.Message.split('\n').reduce((map, line) => {
     if (line.indexOf('=') === -1) {
       return map
     }

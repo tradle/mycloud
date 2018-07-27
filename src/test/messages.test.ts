@@ -110,7 +110,7 @@ test('_doQueueMessage', loudAsync(async (t) => {
   sandbox.stub(identities, 'byPermalink').callsFake(mocks.byPermalink)
 
   let nextSeq = 0
-  let prevMsgLink = 'abc'
+  const prevMsgLink = 'abc'
   const stubLastSeqAndLink = sandbox.stub(messages, 'getLastSeqAndLink')
     .callsFake(() => Promise.resolve({
       seq: nextSeq - 1,

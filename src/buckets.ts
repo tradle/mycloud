@@ -21,7 +21,7 @@ const cacheConfig:IBucketsInfo = {
   Objects: {
     length: byteLengthFn,
     max: 50 * MEG,
-    maxAge: Infinity //HOUR
+    maxAge: Infinity // HOUR
   },
   Secrets: {
     max: 10, // 10 items

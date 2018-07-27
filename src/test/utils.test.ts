@@ -283,24 +283,24 @@ test('wrap', loudAsync(async (t) => {
 
   const originals = {
     good: {
-      generatorSuccess: function* () {
+      *generatorSuccess () {
         return expectedRet
       },
-      promiserSuccess: function () {
+      promiserSuccess () {
         return Promise.resolve(expectedRet)
       },
-      syncSuccess: function () {
+      syncSuccess () {
         return expectedRet
       }
     },
     bad: {
-      generatorError: function* () {
+      *generatorError () {
         throw expectedError
       },
-      promiserError: function () {
+      promiserError () {
         return Promise.reject(expectedError)
       },
-      syncError: function () {
+      syncError () {
         throw expectedError
       }
     }
@@ -308,12 +308,9 @@ test('wrap', loudAsync(async (t) => {
 
   const good = values(originals.good).map(wrap)
   const bad = values(originals.bad).map(wrap)
-  // eslint-disable-next-line no-mixed-operators
-  let togo = good.length * 2 + bad.length
-
   await good.map(lambda => {
     return new Promise(resolve => {
-      lambda({}, {}, function (err, result) {
+      lambda({}, {}, (err, result) => {
         t.error(err)
         t.same(result, expectedRet)
         resolve()
@@ -323,7 +320,7 @@ test('wrap', loudAsync(async (t) => {
 
   await bad.map(lambda => {
     return new Promise(resolve => {
-      lambda({}, {}, function (err, result) {
+      lambda({}, {}, (err, result) => {
         t.equal(err, expectedError)
         resolve()
       })
@@ -934,7 +931,7 @@ test('ModelStore', loudAsync(async (t) => {
   const bot = createTestBot()
   const store = bot.modelStore
 
-  let memBucket = {}
+  const memBucket = {}
   const fakePut = async ({ key, value }) => {
     memBucket[key] = value
   }

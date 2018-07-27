@@ -11,7 +11,12 @@
     "no-this-assignment": false,
     "variable-name": false,
     "no-floating-promises": false,
-    "member-ordering": false
+    "member-ordering": false,
+    "interface-name": false,
+    "no-shadowed-variable": false,
+    "interface-over-type-literal": false,
+    "array-type": [true, "array"],
+    "no-unused-variable": true
   },
   "jsRules": {
     "no-use-before-declare": true

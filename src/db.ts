@@ -258,7 +258,7 @@ export = function createDB ({
       })
 
       const controlLatestHooks = method => async ({ args }) => {
-        let [resource, options] = args
+        const [resource, options] = args
         if (!options) {
           args[1] = getControlLatestOptions({
             table,
@@ -318,7 +318,7 @@ export = function createDB ({
   const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
 
   const postProcessSearchResult = async ({ args=[], result }) => {
-    let { items } = result
+    const { items } = result
     if (!(items && items.length)) return
 
     const opts = args[0] || {}

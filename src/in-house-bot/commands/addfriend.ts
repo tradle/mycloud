@@ -40,7 +40,7 @@ export const command:ICommand = {
 
     return { url, domain }
   },
-  exec: async function ({ commander, req, args }) {
+  async exec ({ commander, req, args }) {
     const { url, domain } = args
     return await commander.friends.load({ url, domain })
   },

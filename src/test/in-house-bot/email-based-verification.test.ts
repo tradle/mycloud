@@ -54,11 +54,11 @@ test('email-based-verification', loudAsync(async (t) => {
 
     //   })
     // },
-    orgConf: <IConf>{
+    orgConf: {
       org: {
         name: 'My Org'
       }
-    },
+    } as IConf,
     senderEmail
   })
 

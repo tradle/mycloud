@@ -33,8 +33,7 @@ export const splitCamelCase = (str, delimiter=' ', upFirst) => {
 
 export const splitCamelCaseToArray = (str: string) => {
   let lowerCasePrefix = ''
-  for (let i = 0; i < str.length; i++) {
-    let ch = str[i]
+  for (const ch of str) {
     if (isUpperCase(ch)) break
 
     lowerCasePrefix += ch

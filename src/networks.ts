@@ -64,7 +64,7 @@ const getNetwork = ({ flavor, networkName }) => {
       const { network } = getReadOnlyAdapter()
       return network && network.pubKeyToAddress
     },
-    transactor: function(privateKey) {
+    transactor(privateKey) {
       return getAdapter(flavor)({ networkName, privateKey }).transactor
     },
     toString: () => `${flavor}:${networkName}`,

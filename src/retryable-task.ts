@@ -54,7 +54,7 @@ export default class RetryableTask {
   public run = async (fn:() => Promise) => {
     const start = Date.now()
     let millisToWait = this.initialDelay
-    let { factor, maxDelay, timeout, maxAttempts } = this
+    const { factor, maxDelay, timeout, maxAttempts } = this
     let attempts = 0
     let maxTimeLeft = timeout
     while (maxTimeLeft > 0 && attempts++ < maxAttempts) {

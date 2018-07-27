@@ -25,9 +25,9 @@ export class RCache implements IHasModels {
   get models() { return this.store.models }
 
   // IHasModels
-  buildResource: (model: string|Model) => any
-  buildStub: (resource: ITradleObject) => any
-  validate: (resource: ITradleObject) => any
+  public buildResource: (model: string|Model) => any
+  public buildStub: (resource: ITradleObject) => any
+  public validate: (resource: ITradleObject) => any
 
   constructor({ store }: {
     store: IResourcePersister

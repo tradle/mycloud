@@ -45,6 +45,10 @@
     "sinon": "^3.3.0",
     "standard-version": "github:mvayngrib/standard-version#fixdeps",
     "tape": "^4.6.3",
+    "tslint": "^5.11.0",
+    "tslint-config-prettier": "^1.14.0",
+    "tslint-eslint-rules": "^5.3.1",
+    "typescript": "2.8.4",
     "validate-commit-msg": "^2.14.0"
   },
   "scripts": {

@@ -19,7 +19,7 @@ export const createGraphqlAPI = (opts: {
   logger: Logger
 }):IGraphqlAPI => {
   const { bot, logger } = opts
-  let {
+  const {
     objects,
     modelStore,
     db

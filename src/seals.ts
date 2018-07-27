@@ -261,11 +261,11 @@ export default class Seals {
   }
 
   public find = async (opts: Partial<FindOpts>={}) => {
-    const findOpts = <FindOpts>_.merge({
+    const findOpts = _.merge({
       filter: {
         EQ: this.baseEQ
       }
-    }, opts)
+    }, opts) as FindOpts
 
     const { items } = await this.db.find(findOpts)
     return items
@@ -603,7 +603,7 @@ export default class Seals {
   }
 
   public cancelPending = async (opts?:any):Promise<Seal[]> => {
-    let { limit=Infinity, filter=acceptAll } = opts
+    const { limit=Infinity, filter=acceptAll } = opts
     let seals = await this.getUnsealed({ limit })
     if (!seals.length) return
 

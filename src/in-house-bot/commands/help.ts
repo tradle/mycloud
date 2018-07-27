@@ -13,7 +13,7 @@ export const command:ICommand = {
       commandName: parse(argsStr)._[0]
     }
   },
-  exec: async function ({ commander, req, ctx, args }) {
+  async exec ({ commander, req, ctx, args }) {
     const { commandName } = args
     const { employeeManager } = commander
     if (commandName) {

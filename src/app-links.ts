@@ -26,7 +26,7 @@ export const createLinker = (baseUrls:Partial<BaseUrls>):AppLinks => {
     }
 
     return result
-  }, <AppLinks>{})
+  }, {} as AppLinks)
 }
 
 export const appLinks = createLinker({

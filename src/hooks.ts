@@ -114,6 +114,6 @@ export const hookUp = (bot: Bot) => {
 
 const toAsyncSealEvent = record => ({
   event: getSealEventTopic(record).async.toString(),
-  seal: <Seal>record.value,
+  seal: record.value as Seal,
   async: true
 })

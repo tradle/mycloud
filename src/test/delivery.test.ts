@@ -54,16 +54,13 @@ test('retry', loudAsync(async (t) => {
     }
   })
 
-  let interval = 200
-  let fail = true
+  const interval = 200
   sandbox.stub(delivery, '_post').callsFake(async () => {
-    if (fail) {
-      await wait(interval)
-      throw new Error('test delivery failure')
-    }
+    await wait(interval)
+    throw new Error('test delivery failure')
   })
 
-  let remainingTime = 1000
+  const remainingTime = 1000
   sandbox.stub(bot.env, 'getRemainingTimeWithBuffer').callsFake(() => {
     return remainingTime
   })

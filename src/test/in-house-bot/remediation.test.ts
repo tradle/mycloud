@@ -246,7 +246,7 @@ test.skip('prefill-based', loudAsync(async (t) => {
   // })
 
 
-  let keyToClaimIds = {}
+  const keyToClaimIds = {}
   sandbox.stub(api.keyToClaimIds, 'put').callsFake(async (key, val) => {
     keyToClaimIds[key] = val
   })
@@ -289,7 +289,7 @@ test.skip('prefill-based', loudAsync(async (t) => {
     logger: new Logger('test:prefill-from-draft'),
   })
 
-  const req = <IPBReq>{}
+  const req = {} as IPBReq
   const application = productsAPI.state.createApplication({
     user,
     object: {
@@ -307,9 +307,9 @@ test.skip('prefill-based', loudAsync(async (t) => {
 
   t.equal(application.prefillFromApplication.id, draftStub.id)
 
-  const formRequest = <IFormRequest>{
+  const formRequest = {
     form: unsignedPrefills[0].prefill[TYPE]
-  }
+  } as IFormRequest
 
   await prefillFromDraft.plugin.willRequestForm({
     user,
