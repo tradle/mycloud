@@ -17,7 +17,7 @@ export const command:ICommand = {
       enable: yn(args._[1] || true)
     }
   },
-  exec: async function ({ commander, req, args }) {
+  async exec ({ commander, req, args }) {
     const { product, enable } = args
     const { bot } = commander
     await toggleProduct({ commander, req, product, enable })

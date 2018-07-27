@@ -1,6 +1,4 @@
-import Errors from '../../errors'
 import { fromSchedule } from '../lambda'
-import * as LambdaEvents from '../lambda-events'
 
 // add in LambdaEvents, e.g.:
 // event: LambdaEvents.DOCUMENT_CHECKER_JOB

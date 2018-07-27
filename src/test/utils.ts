@@ -4,7 +4,6 @@ import { randomString } from '../crypto'
 import randomName from 'random-name'
 import { createTestBot } from '../'
 import Errors from '../errors'
-import yml from '../cli/serverless-yml'
 import Logger from '../logger'
 
 const bot = createTestBot()

@@ -1,5 +1,4 @@
 
-import promisify from 'pify'
 import { sha256 } from './crypto'
 import { stableStringify } from './string-utils'
 import { Bucket } from './bucket'

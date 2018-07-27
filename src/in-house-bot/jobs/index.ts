@@ -9,10 +9,9 @@
 // })
 
 import getPropAtPath from 'lodash/get'
-import { IBotComponents, Bot, Seal, Job } from '../types'
+import { IBotComponents, Seal, Job } from '../types'
 import { sendConfirmedSeals } from '../utils'
-import { TYPE, ORG, DEFAULT_WARMUP_EVENT } from '../../constants'
-import Errors from '../../errors'
+import { DEFAULT_WARMUP_EVENT } from '../../constants'
 import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000

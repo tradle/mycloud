@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import fs from 'fs'
-import path from 'path'
 import { getNativeModules } from '../cli/utils'
 import { uniqueStrict } from '../utils'
 

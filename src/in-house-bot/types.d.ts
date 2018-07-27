@@ -58,12 +58,18 @@ export interface KVMap {
   [key: string]: any
 }
 
+export interface ILoggingConf {
+  senderEmail: string
+  destinationEmails: string[]
+}
+
 export interface IBotConf {
   products: IProductsConf
   tours?: ITours
   sandbox?: boolean
   graphqlAuth?: boolean
   credentials?: KVMap
+  logging?: ILoggingConf
   // exposed directly in /info
   // publicConfig: any
 }
@@ -347,7 +353,7 @@ export interface MiniVersionInfo extends Partial<VersionInfo> {
   commit: string
 }
 
-export interface IDeploymentReportPayload {
+export interface ICallHomePayload {
   org: IOrganization
   identity: IIdentity
   deploymentUUID: string
@@ -361,7 +367,7 @@ export interface IMyDeploymentConf {
   // become "org"
   name: string
   domain: string
-  // same as IDeploymentReportPayload
+  // same as ICallHomePayload
   identity: IIdentity
   deploymentUUID: string
   apiUrl: string

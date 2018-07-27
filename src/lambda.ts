@@ -7,7 +7,6 @@ require('source-map-support').install()
 import './globals'
 
 import { EventEmitter } from 'events'
-import fs from 'fs'
 import zlib from 'zlib'
 import _ from 'lodash'
 

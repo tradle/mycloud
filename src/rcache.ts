@@ -1,21 +1,13 @@
 import _ from 'lodash'
-import Errors from './errors'
 import {
-  Bot,
   Model,
-  Models,
   IHasModels,
-  ITradleObject,
-  ResourceStub
+  ITradleObject
 } from './types'
 
-import { UNSIGNED_TYPES } from './constants'
 import { mixin as modelsMixin } from './models-mixin'
-import {
-  parseStub
-} from './utils'
 
-import { Resource, IResourcePersister, serializeKey } from './resource'
+import { Resource, IResourcePersister } from './resource'
 
 export class RCache implements IHasModels {
   public store: IResourcePersister
@@ -25,9 +17,9 @@ export class RCache implements IHasModels {
   get models() { return this.store.models }
 
   // IHasModels
-  buildResource: (model: string|Model) => any
-  buildStub: (resource: ITradleObject) => any
-  validate: (resource: ITradleObject) => any
+  public buildResource: (model: string|Model) => any
+  public buildStub: (resource: ITradleObject) => any
+  public validate: (resource: ITradleObject) => any
 
   constructor({ store }: {
     store: IResourcePersister

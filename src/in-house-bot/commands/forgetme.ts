@@ -6,7 +6,7 @@ export const command:ICommand = {
     '/forgetme'
   ],
   description: 'exercise your right to be forgotten',
-  exec: async function ({ commander, req }) {
+  async exec ({ commander, req }) {
     const { productsAPI } = commander
     await productsAPI.forgetUser(req)
   }

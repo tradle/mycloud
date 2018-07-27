@@ -1,5 +1,4 @@
 import path from 'path'
-import _ from 'lodash'
 import sinon from 'sinon'
 import serverlessYml from '../cli/serverless-yml'
 import { promisify } from '../utils'

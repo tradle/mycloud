@@ -2,7 +2,6 @@
 
 process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import crypto from 'crypto'
 import path from 'path'
 import fs from 'fs'
 import { loadRemoteEnv, loadCredentials } from '../cli/utils'

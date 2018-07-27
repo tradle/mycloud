@@ -1,12 +1,9 @@
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import lexint from 'lexicographic-integer'
 import Cache from 'lru-cache'
-import fetch from 'node-fetch'
 import buildResource from '@tradle/build-resource'
-import protocol from '@tradle/protocol'
-import { TYPE, PERMALINK, PREVLINK, AUTHOR, TIMESTAMP, SIG, WITNESSES, ORG, ORG_SIG } from './constants'
+import { TYPE, AUTHOR, TIMESTAMP, SIG, ORG, ORG_SIG } from './constants'
 import { addLinks } from './crypto'
 import { get, cachifyFunction, parseStub, omitVirtual } from './utils'
 import {
@@ -16,9 +13,6 @@ import {
   ILoadFriendOpts,
   Storage,
   DB,
-  Model,
-  Models,
-  Env,
   ITradleObject,
 } from './types'
 

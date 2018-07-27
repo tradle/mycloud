@@ -1,6 +1,6 @@
 import defaults from 'lodash/defaults'
 import { TYPE } from '@tradle/constants'
-import { CreatePlugin, IPluginLifecycleMethods, Conf } from '../types'
+import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 import Errors from '../../errors'
 import { ensureHandSigLast } from '../utils'
 

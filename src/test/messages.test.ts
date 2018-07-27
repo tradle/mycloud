@@ -7,21 +7,14 @@ AWS.config.paramValidation = false
 
 import yn from 'yn'
 import test from 'tape'
-import pify from 'pify'
-import ecdsa from 'nkey-ecdsa'
 import sinon from 'sinon'
 import tradle from '@tradle/engine'
 import {
   extractSigPubKey,
-  exportKeys,
-  getSigningKey,
-  sign,
-  getLink,
-  withLinks,
-  getLinks
+  withLinks
 } from '../crypto'
 
-import { loudAsync, co, typeforce, pickVirtual, omitVirtual } from '../utils'
+import { loudAsync, typeforce, omitVirtual } from '../utils'
 import Errors from '../errors'
 import {
   SIG,
@@ -110,7 +103,7 @@ test('_doQueueMessage', loudAsync(async (t) => {
   sandbox.stub(identities, 'byPermalink').callsFake(mocks.byPermalink)
 
   let nextSeq = 0
-  let prevMsgLink = 'abc'
+  const prevMsgLink = 'abc'
   const stubLastSeqAndLink = sandbox.stub(messages, 'getLastSeqAndLink')
     .callsFake(() => Promise.resolve({
       seq: nextSeq - 1,

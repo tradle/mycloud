@@ -1,23 +1,18 @@
 require('../env').install()
 
-import querystring from 'querystring'
 import _ from 'lodash'
 import test from 'tape'
 import sinon from 'sinon'
-import { TYPE, SIG, OWNER } from '@tradle/constants'
+import { TYPE } from '@tradle/constants'
 import fake from '@tradle/build-resource/fake'
 import buildResource from '@tradle/build-resource'
-import { randomString } from '../../crypto'
 import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
 import Errors from '../../errors'
 import { createTestBot } from '../../'
-import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models from '../../models'
-import { IMyDeploymentConf, IBotConf, IDeploymentReportPayload, IConf } from '../../in-house-bot/types'
+import { IMyDeploymentConf } from '../../in-house-bot/types'
 import { createTestEnv } from '../env'
-import { S3Utils } from '../../s3-utils'
-import parseArgs from 'yargs-parser'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
@@ -103,7 +98,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   let deploymentConf: IMyDeploymentConf
   let expectedLaunchReport
-  let saveTemplateStub = sandbox.stub(parentDeployment, '_savePublicTemplate').callsFake(async ({ template, bucket }) => {
+  const saveTemplateStub = sandbox.stub(parentDeployment, 'savePublicTemplate').callsFake(async ({ template, bucket }) => {
     t.equal(bucket, regionalBucket)
 
     deploymentConf = {
@@ -248,7 +243,7 @@ test('deployment by referral', loudAsync(async (t) => {
     t.equal(url, parentDeployment.getCallHomeUrl(deploymentConf.referrerUrl))
     t.same(data, expectedLaunchReport)
     try {
-      await parentDeployment.handleDeploymentReport(data)
+      await parentDeployment.handleCallHome(data)
     } catch (err) {
       t.error(err)
     }
@@ -290,6 +285,8 @@ test('deployment by referral', loudAsync(async (t) => {
   const saveResourceStub = sandbox.stub(parent, 'save').callsFake(async resource => {
     if (resource[TYPE] === 'tradle.cloud.ChildDeployment') {
       childDeploymentResource = resource
+    } else if (resource[TYPE] === 'tradle.cloud.TmpSNSTopic') {
+      topicResource = resource
     }
 
     return resource
@@ -376,8 +373,8 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(parentSendStub.getCall(0).args[0].to.id, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
+  t.ok(topicResource)
 
-  t.equal(saveResourceStub.callCount, 2)
   const [
     // createTopic,
     createChild,
@@ -536,7 +533,7 @@ test('tradle and children', loudAsync(async (t) => {
   // const report = postStub.getCall(0).args[1]
   // t.same(report.version, child.version)
 
-  // await tradleDeployment.handleDeploymentReport(report)
+  // await tradleDeployment.handleCallHome(report)
 
   sandbox.restore()
   t.end()

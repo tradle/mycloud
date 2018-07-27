@@ -5,7 +5,7 @@ import AWS from 'aws-sdk'
 AWS.config.update({
   maxRetries: 0,
   retryDelayOptions: {
-    customBackoff: function (retryCount) {
+    customBackoff (retryCount) {
       if (retryCount > 3) {
         console.log("AWS SERVICE RETRY COUNT", retryCount)
         console.warn(`are you sure localstack is up? To start it, run: npm run localstack:start`)
@@ -56,8 +56,9 @@ test('batch put', loudAsync(async (t) => {
   const { docClient } = aws
   const stub = sandbox.stub(aws.docClient, 'batchWrite').callsFake(({ RequestItems }) => {
     let promise
+    let items
     for (let TableName in RequestItems) {
-      const items = RequestItems[TableName]
+      items = RequestItems[TableName]
       if (items.length > 15) {
         promise = Promise.resolve({
           UnprocessedItems: {

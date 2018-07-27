@@ -1,21 +1,19 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { createTable, DB, Table, utils, defaults, Search } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, Search } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
-import { Env, Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
+import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
 import {
   extendTradleObject,
   pluck,
-  // ensureTimestamped,
-  logify,
   logifyFunction,
   safeStringify,
   getPrimaryKeySchema,
   toSortableTag,
 } from './utils'
 
-import { TYPE, SIG, ORG, AUTHOR, TIMESTAMP, TYPES, UNSIGNED_TYPES } from './constants'
+import { TYPE, SIG, ORG, AUTHOR, TYPES, UNSIGNED_TYPES } from './constants'
 import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
@@ -258,7 +256,7 @@ export = function createDB ({
       })
 
       const controlLatestHooks = method => async ({ args }) => {
-        let [resource, options] = args
+        const [resource, options] = args
         if (!options) {
           args[1] = getControlLatestOptions({
             table,
@@ -318,7 +316,7 @@ export = function createDB ({
   const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
 
   const postProcessSearchResult = async ({ args=[], result }) => {
-    let { items } = result
+    const { items } = result
     if (!(items && items.length)) return
 
     const opts = args[0] || {}

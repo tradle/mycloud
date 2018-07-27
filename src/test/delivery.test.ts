@@ -6,10 +6,8 @@ import _ from 'lodash'
 import sinon from 'sinon'
 import test from 'tape'
 import { TYPE } from '@tradle/constants'
-import { Delivery } from '../delivery-http'
 import { createTestBot } from '../'
 import { loudAsync, wait } from '../utils'
-import Errors from '../errors'
 import { TYPES } from '../constants'
 
 const { DELIVERY_ERROR } = TYPES
@@ -54,16 +52,13 @@ test('retry', loudAsync(async (t) => {
     }
   })
 
-  let interval = 200
-  let fail = true
+  const interval = 200
   sandbox.stub(delivery, '_post').callsFake(async () => {
-    if (fail) {
-      await wait(interval)
-      throw new Error('test delivery failure')
-    }
+    await wait(interval)
+    throw new Error('test delivery failure')
   })
 
-  let remainingTime = 1000
+  const remainingTime = 1000
   sandbox.stub(bot.env, 'getRemainingTimeWithBuffer').callsFake(() => {
     return remainingTime
   })

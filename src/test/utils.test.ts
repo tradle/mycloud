@@ -4,15 +4,10 @@ import test from 'tape'
 import _ from 'lodash'
 import Cache from 'lru-cache'
 import sinon from 'sinon'
-import AWS from 'aws-sdk'
-import { SIG } from '@tradle/constants'
 import ModelsPack from '@tradle/models-pack'
 import Logger from '../logger'
-import KeyValueTable from '../key-value-table'
 import KV from '../kv'
 import KVS3 from '../kv-s3'
-import Mailer from '../mailer'
-import { getFaviconUrl } from '../in-house-bot/image-utils'
 import { randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey, ECKey } from '../crypto'
 import * as utils from '../utils'
 import {
@@ -21,25 +16,19 @@ import {
   cachify,
   cachifyFunction,
   cachifyPromiser,
-  clone,
   batchByByteLength,
   promisify,
   wrap,
   wait,
   timeoutIn,
   batchProcess,
-  toModelsMap,
-  stableStringify,
   runWithBackoffWhile
 } from '../utils'
 import Errors from '../errors'
 import { createTestBot } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
-import { ModelStore, createModelStore } from '../model-store'
 import { models as PingPongModels } from '../ping-pong-models'
-import constants from '../constants'
-import models from '../models'
 import {
   IKeyValueStore,
   Bot
@@ -283,24 +272,24 @@ test('wrap', loudAsync(async (t) => {
 
   const originals = {
     good: {
-      generatorSuccess: function* () {
+      *generatorSuccess () {
         return expectedRet
       },
-      promiserSuccess: function () {
+      promiserSuccess () {
         return Promise.resolve(expectedRet)
       },
-      syncSuccess: function () {
+      syncSuccess () {
         return expectedRet
       }
     },
     bad: {
-      generatorError: function* () {
+      *generatorError () {
         throw expectedError
       },
-      promiserError: function () {
+      promiserError () {
         return Promise.reject(expectedError)
       },
-      syncError: function () {
+      syncError () {
         throw expectedError
       }
     }
@@ -308,12 +297,9 @@ test('wrap', loudAsync(async (t) => {
 
   const good = values(originals.good).map(wrap)
   const bad = values(originals.bad).map(wrap)
-  // eslint-disable-next-line no-mixed-operators
-  let togo = good.length * 2 + bad.length
-
   await good.map(lambda => {
     return new Promise(resolve => {
-      lambda({}, {}, function (err, result) {
+      lambda({}, {}, (err, result) => {
         t.error(err)
         t.same(result, expectedRet)
         resolve()
@@ -323,7 +309,7 @@ test('wrap', loudAsync(async (t) => {
 
   await bad.map(lambda => {
     return new Promise(resolve => {
-      lambda({}, {}, function (err, result) {
+      lambda({}, {}, (err, result) => {
         t.equal(err, expectedError)
         resolve()
       })
@@ -934,7 +920,7 @@ test('ModelStore', loudAsync(async (t) => {
   const bot = createTestBot()
   const store = bot.modelStore
 
-  let memBucket = {}
+  const memBucket = {}
   const fakePut = async ({ key, value }) => {
     memBucket[key] = value
   }

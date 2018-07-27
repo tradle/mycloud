@@ -6,7 +6,7 @@
 // })
 
 import pick from 'lodash/pick'
-import { fromCli, fromHTTP } from '../lambda'
+import { fromCli } from '../lambda'
 import { createBot } from '../../'
 import { IPBMiddlewareContext } from '../types'
 import * as LambdaEvents from '../lambda-events'

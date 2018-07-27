@@ -4,7 +4,6 @@ import engine from '@tradle/engine'
 import { TYPE, SIG, AUTHOR } from '@tradle/constants'
 import protocol from '@tradle/protocol'
 import { createPlugin } from '../in-house-bot/plugins/partials'
-import { loudAsync } from '../utils'
 
 test('partials', async t => {
   const sandbox = sinon.createSandbox()

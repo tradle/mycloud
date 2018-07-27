@@ -105,6 +105,15 @@ export class SNSUtils {
     return sub
   }
 
+  public publish = async ({ topic, message }) => {
+    if (typeof message !== 'string') message = JSON.stringify(message)
+
+    await this._client(topic).publish({
+      TopicArn: topic,
+      Message: message
+    }).promise()
+  }
+
   private _client = (arnOrRegion?: string) => {
     if (!arnOrRegion) return this.aws.sns
 

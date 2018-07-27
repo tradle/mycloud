@@ -1,6 +1,5 @@
 import { utils, protocol } from '@tradle/engine'
-import { promisify, typeforce } from './utils'
-import { prettify } from './string-utils'
+import { promisify } from './utils'
 import adapters from './blockchain-adapter'
 import {
   IDebug,
@@ -140,7 +139,7 @@ export default class Blockchain {
     return blockHeight
   }
 
-  public getTxsForAddresses = async (addresses:Array<string>, blockHeight?:number) => {
+  public getTxsForAddresses = async (addresses:string[], blockHeight?:number) => {
     this.start()
     // if (typeof blockHeight !== 'number') {
     //   blockHeight = await this.getBlockHeight()

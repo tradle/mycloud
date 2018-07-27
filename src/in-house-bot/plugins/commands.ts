@@ -1,6 +1,6 @@
 import { Commander, DEFAULT_ERROR_MESSAGE } from '../commander'
 import { Conf } from '../configure'
-import { CreatePlugin, ICommandContext, ICommandOutput, IPBReq } from '../types'
+import { CreatePlugin, ICommandOutput, IPBReq } from '../types'
 
 export const name = 'commands'
 export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf }) => {

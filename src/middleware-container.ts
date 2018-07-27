@@ -1,8 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import compose, { Middleware } from 'koa-compose'
-import { isBatchEvent, toBatchEvent, EventTopic } from './events'
-import { isPromise } from './utils'
+import { toBatchEvent } from './events'
 import { TopicOrString, IHooks, Logger } from './types'
 
 interface MiddlewareMap<Context> {

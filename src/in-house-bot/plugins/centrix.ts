@@ -4,7 +4,6 @@ const { TYPE } = constants
 const { VERIFICATION, IDENTITY } = constants.TYPES
 
 const buildResource = require('@tradle/build-resource')
-import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
@@ -17,7 +16,6 @@ try {
 import { getParsedFormStubs, hasPropertiesChanged, getStatusMessageForCheck } from '../utils'
 import { splitCamelCase } from '../../string-utils'
 import {
-  Name,
   Bot,
   Logger,
   CreatePlugin,
@@ -26,7 +24,7 @@ import {
   ITradleObject
 } from '../types'
 
-import { getNameFromForm, parseScannedDate, toISODateString } from '../utils'
+import { getNameFromForm, toISODateString } from '../utils'
 
 const PHOTO_ID = 'tradle.PhotoID'
 const CENTRIX_CHECK = 'tradle.CentrixCheck'

@@ -2,10 +2,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import _ from 'lodash'
-import AWS from 'aws-sdk'
-import { IPrivKey, IIdentity, Logger } from './types'
-import * as crypto from './crypto'
-import Errors from './errors'
+import { IPrivKey, Logger } from './types'
 import { gzip, gunzip } from './utils'
 
 const KEYS_SECRET_NAME = 'identity-keys'

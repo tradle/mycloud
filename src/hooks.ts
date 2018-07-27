@@ -1,12 +1,10 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import { groupBy, chunk } from 'lodash'
+import { groupBy } from 'lodash'
 import { TYPE } from '@tradle/constants'
 import { Bot, Seal, ISaveEventPayload } from './types'
 import {
-  batchProcess,
-  pluck,
-  RESOLVED_PROMISE
+  batchProcess
 } from './utils'
 
 import { getSealEventTopic, topics as EventTopics } from './events'
@@ -114,6 +112,6 @@ export const hookUp = (bot: Bot) => {
 
 const toAsyncSealEvent = record => ({
   event: getSealEventTopic(record).async.toString(),
-  seal: <Seal>record.value,
+  seal: record.value as Seal,
   async: true
 })

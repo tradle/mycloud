@@ -17,8 +17,6 @@ import {
   IDeliveryRequest,
   IDeliveryResult,
   ILiveDeliveryOpts,
-  IDeliveryMessageRange,
-  IDebug,
   ISession
 } from './types'
 

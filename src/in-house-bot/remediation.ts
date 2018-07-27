@@ -6,7 +6,6 @@ import crypto from 'crypto'
 import QR from '@tradle/qr-schema'
 // import { createPlugin as createRemediationPlugin, Remediation } from './plugins/remediation'
 import { TYPE, SIG, AUTHOR, OWNER } from '@tradle/constants'
-import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import baseModels from '../models'
 import Errors from '../errors'
@@ -21,9 +20,7 @@ import {
   ClaimStub,
   IPBUser,
   ITradleObject,
-  IPluginOpts,
   IPBApp,
-  IPBAppDraft,
   IPBReq,
   IDataBundle
 } from './types'

@@ -1,6 +1,6 @@
 import path from 'path'
 import { Lambda } from 'aws-sdk'
-import { promisify, createLambdaContext, parseArn, genStatementId } from './utils'
+import { promisify, createLambdaContext, genStatementId } from './utils'
 import {
   Logger,
   Env,

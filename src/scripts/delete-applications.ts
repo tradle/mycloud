@@ -5,7 +5,6 @@ process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 require('source-map-support').install()
 
 import yn from 'yn'
-import _ from 'lodash'
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
@@ -14,12 +13,11 @@ const argv = require('minimist')(process.argv.slice(2), {
 })
 
 import { loadCredentials } from '../cli/utils'
-import { clearApplications, clearTypes } from '../in-house-bot/murder'
+import { clearApplications } from '../in-house-bot/murder'
 
 loadCredentials()
 
 // const toDelete = ['tradle.Application']
-import { TYPE } from '@tradle/constants'
 import { createRemoteBot } from '../'
 import { configureLambda } from '../in-house-bot'
 

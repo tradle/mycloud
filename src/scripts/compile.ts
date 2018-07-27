@@ -4,7 +4,7 @@ require('source-map-support').install()
 
 import path from 'path'
 import fs from 'fs'
-import { compileTemplate, interpolateTemplate } from '../cli/utils'
+import { compileTemplate } from '../cli/utils'
 
 const debug = require('debug')('tradle:sls:compile')
 let {

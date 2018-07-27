@@ -1,19 +1,16 @@
 require('../env').install()
 
-import _ from 'lodash'
 import test from 'tape'
 import sinon from 'sinon'
 import createProductsStrategy from '@tradle/bot-products'
 import { EmailBasedVerifier } from '../../in-house-bot/email-based-verifier'
-import { createPlugin } from '../../in-house-bot/plugins/email-based-verification'
 import { Commander } from '../../in-house-bot/commander'
 import { Applications } from '../../in-house-bot/applications'
-import Errors from '../../errors'
 import { Logger } from '../../logger'
 import { createBot } from '../../'
 import { KeyValueMem } from '../../key-value-mem'
 import { loudAsync } from '../../utils'
-import { IConf, IBotComponents } from '../../in-house-bot/types'
+import { IConf } from '../../in-house-bot/types'
 
 test('email-based-verification', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
@@ -54,11 +51,11 @@ test('email-based-verification', loudAsync(async (t) => {
 
     //   })
     // },
-    orgConf: <IConf>{
+    orgConf: {
       org: {
         name: 'My Org'
       }
-    },
+    } as IConf,
     senderEmail
   })
 

@@ -4,12 +4,8 @@ import './globals'
 
 import yn from 'yn'
 import debug from 'debug'
-import randomName from 'random-name'
-import { allSettled, RESOLVED_PROMISE } from './utils'
-import { randomString } from './crypto'
 import {
   IDebug,
-  ILambdaAWSExecutionContext,
   Lambda,
   IRequestContext,
   CloudName,

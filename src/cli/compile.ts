@@ -1,6 +1,4 @@
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
-import { pluck } from '../utils'
 
 const LOCALLY_AVAILABLE = [
   'AWS::DynamoDB::Table',
@@ -83,12 +81,14 @@ function addBucketTables ({ yml, prefix }) {
 
     let logicalId = `Bucket${i}Table`
     Resources[logicalId] = def
-    capacities.push({
-      table: logicalId,
-      read,
-      write,
-      index: _.range(0, NUM_INDEXES).map(getIndexName)
-    })
+    if (capacities) {
+      capacities.push({
+        table: logicalId,
+        read,
+        write,
+        index: _.range(0, NUM_INDEXES).map(getIndexName)
+      })
+    }
   }
 
   return yml

@@ -6,10 +6,9 @@ import {
   getNameFromForm,
   getDateOfBirthFromForm,
   getCountryFromForm,
-  parseScannedDate,
   getParsedFormStubs
 } from '../utils'
-import { Bot, IPBApp, ResourceStub, Name, CreatePlugin, IPluginLifecycleMethods } from '../types'
+import { Bot, ResourceStub, CreatePlugin, IPluginLifecycleMethods } from '../types'
 
 const { parseStub } = validateResource.utils
 const PHOTO_ID = 'tradle.PhotoID'

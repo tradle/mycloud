@@ -16,7 +16,7 @@ export const command:ICommand = {
       value: yn(args._[0] || true)
     }
   },
-  exec: async function ({ commander, req, args }) {
+  async exec ({ commander, req, args }) {
     const { value } = args
     const path = 'products.autoVerify'
     await setProperty({ commander, req, path, value })

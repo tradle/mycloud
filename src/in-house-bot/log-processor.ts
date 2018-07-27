@@ -1,28 +1,25 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import omit from 'lodash/omit'
-import notNull from 'lodash/identity'
-import groupBy from 'lodash/groupBy'
 import Errors from '../errors'
 import { StackUtils } from '../stack-utils'
 import { TRADLE } from './constants'
 import { sha256 } from '../crypto'
 import {
-  Env,
+  Bot,
   IPBLambda,
   SNSEvent,
-  SNSEventRecord,
   CloudWatchLogsEvent,
   CloudWatchLogsEntry,
   IKeyValueStore,
   Logger,
   IBotComponents,
+  ILoggingConf,
 } from './types'
 
 import { Level, noopLogger } from '../logger'
-import { parseArn } from '../utils'
+import { parseArn, get } from '../utils'
 
-type SendAlert = (event: ParsedLogEvent) => Promise<void>
+type SendAlert = ({ key: string, event: ParsedLogEvent }) => Promise<void>
 type LogProcessorOpts = {
   store: IKeyValueStore
   sendAlert: SendAlert
@@ -67,7 +64,9 @@ export type ParsedAlertEvent = {
   region: string
   stackName: string
   timestamp: number
-  body: any
+  eventUrl: string
+  body?: any
+  [x: string]: any
 }
 
 const LOG_GROUP_PREFIX = '/aws/lambda/'
@@ -167,10 +166,10 @@ export const parseAlertEvent = (event: SNSEvent) => {
   }
 
   return {
+    ...body,
     accountId,
     region,
     stackName,
-    body,
     timestamp: new Date(Timestamp).getTime(),
   }
 }
@@ -198,19 +197,17 @@ export class LogProcessor {
     this.ext = ext
   }
 
-  public handleLogEvent = async (event: CloudWatchLogsEvent) => {
+  public handleLogEvent = async (event: ParsedLogEvent) => {
     // const { UserId } = sts.getCallerIdentity({}).promise()
-    const parsed = this.parseLogEvent(event)
-    if (!parsed.entries.length) return
+    if (!event.entries.length) return
 
     // alert before pruning, to provide maximum context for errors
-    const bad = parsed.entries.filter(shouldRaiseAlert)
-    if (bad.length) {
-      this.logger.debug('sending alert')
-      await this.sendAlert(parsed)
-    }
+    const bad = event.entries.filter(shouldRaiseAlert)
+    const key = await this.saveLogEvent(event)
+    if (!bad.length) return
 
-    await this.saveLogEvent(parsed)
+    this.logger.debug('sending alert')
+    await this.sendAlert({ key, event })
   }
 
   public parseLogEvent = (event: CloudWatchLogsEvent) => {
@@ -232,43 +229,35 @@ export class LogProcessor {
     const filename = getLogEventKey(event)
     const key = `${filename}.${this.ext}`
     this.logger.debug(`saving ${entries.length} entries to ${key}`)
-    await this.store.put(key, { ...event, entries })
+    const formatted = { ...event, entries }
+    await this.store.put(key, formatted)
+    return key
   }
 
-  public handleAlertEvent = async (event: SNSEvent) => {
-    let parsed
-    try {
-      parsed = parseAlertEvent(event)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-      this.logger.debug('invalid alert event', Errors.export(err))
-      return
+  public handleAlertEvent = async (event: ParsedAlertEvent) => {
+    await this.loadAlertEvent(event)
+    await this.saveAlertEvent(event)
+  }
+
+  public loadAlertEvent = async (event: ParsedAlertEvent) => {
+    const { eventUrl } = event
+    if (eventUrl) {
+      this.logger.debug('fetching remote log event')
+      event.body = await get(eventUrl)
+      if (typeof event.body === 'string') {
+        event.body = JSON.parse(event.body)
+      }
     }
 
-    await this.saveAlertEvent(parsed)
+    return event
   }
+
+  public parseAlertEvent = parseAlertEvent
 
   public saveAlertEvent = async (event: ParsedAlertEvent) => {
-    const key = getAlertEventKey(event)
+    const filename = getAlertEventKey(event)
+    const key = `${filename}.${this.ext}`
     await this.store.put(key, event)
-  }
-}
-
-export const createSNSAlerter = ({ sourceStackId, targetAccountId, sns }: {
-  sourceStackId: string
-  targetAccountId: string
-  sns: AWS.SNS
-}): SendAlert => {
-  return async (event: ParsedLogEvent) => {
-    const params:AWS.SNS.PublishInput = {
-      TopicArn: getLogAlertsTopicArn({ sourceStackId, targetAccountId }),
-      Message: JSON.stringify({
-        // required per: https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
-        default: event
-      }),
-    }
-
-    await sns.publish(params).promise()
   }
 }
 
@@ -278,13 +267,30 @@ export const fromLambda = ({ lambda, components, compress=true }: {
   compress?: boolean
 }) => {
   const { bot, logger, deployment } = components
-  const store = bot.buckets.Logs.folder(bot.env.STAGE).kv({ compress })
-  // const sendAlert:SendAlert = createDummyAlerter(logger)
-  const sendAlert = createSNSAlerter({
+  const folder = bot.buckets.Logs.folder(bot.env.STAGE)
+  const store = folder.kv({ compress })
+  const topic = getLogAlertsTopicArn({
     sourceStackId: bot.stackUtils.thisStackArn,
-    targetAccountId: TRADLE.ACCOUNT_ID,
-    sns: bot.aws.sns,
+    targetAccountId: TRADLE.ACCOUNT_ID
   })
+
+  const createAlertEvent = ({ key, event }: {
+    key: string
+    event: ParsedLogEvent
+  }) => ({
+    eventUrl: folder.createPresignedUrl(key)
+  })
+
+  // const sendAlert:SendAlert = createDummyAlerter(logger)
+  const sendAlert:SendAlert = async ({ key, event }) => {
+    await bot.snsUtils.publish({
+      topic,
+      message: {
+        // required per: https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
+        default: createAlertEvent({ key, event })
+      }
+    })
+  }
 
   return new LogProcessor({
     // avoid infinite loop that would result from processing
@@ -369,6 +375,16 @@ export const parseMessageBody = (message: string) => {
     }
   }
 
+  // messages that get logged when AWSJS_DEBUG flag is on
+  // e.g. [AWS dynamodb 200 0.136s 0 retries] ...
+  if (message.startsWith('[AWS')) {
+    return {
+      __aws_verbose__: true,
+      level: 'SILLY',
+      msg: message,
+    }
+  }
+
   try {
     return JSON.parse(message)
   } catch (err) {}
@@ -380,6 +396,7 @@ export const parseMessageBody = (message: string) => {
   const lower = message.toLowerCase()
   if (lower.includes('unhandledpromiserejectionwarning') || lower.includes('error')) {
     unparsed.level = 'ERROR'
+    unparsed.unparseableLogEntry = true
   }
 
   return unparsed
@@ -479,3 +496,31 @@ export const getAlertEventKey = (event: ParsedAlertEvent) => {
 
 // export const getLogsFolder = (env: Env) => `$logs/{env.STAGE}`
 // export const getAlertsFolder = (env: Env) => `alerts/${env.STAGE}`
+
+export const sendLogAlert = async ({ bot, conf, alert }: {
+  bot: Bot
+  conf: ILoggingConf
+  alert: ParsedAlertEvent
+}) => {
+  const { senderEmail, destinationEmails } = conf
+  const body = JSON.stringify(alert, null, 2)
+  const { stackName, accountId } = alert
+  await bot.mailer.send({
+    subject: `logging alert: ${stackName} (${accountId})`,
+    from: senderEmail,
+    to: destinationEmails,
+    body,
+    format: 'text',
+  })
+}
+
+export const validateConf = async ({ bot, conf }: {
+  bot: Bot
+  conf: ILoggingConf
+}) => {
+  const { senderEmail, destinationEmails } = conf
+  const resp = await bot.mailer.canSendFrom(senderEmail)
+  if (!resp.result) {
+    throw new Errors.InvalidInput(resp.reason)
+  }
+}

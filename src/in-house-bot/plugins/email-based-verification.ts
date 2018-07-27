@@ -1,23 +1,14 @@
 import get from 'lodash/get'
 import { TYPE } from '@tradle/constants'
-import buildResource from '@tradle/build-resource'
-import { DEFAULT_ERROR_MESSAGE } from '../commander'
 import { Conf } from '../configure'
 import {
   CreatePlugin,
   ITradleObject,
-  IPBReq,
   IPBApp,
-  IPluginOpts,
-  IBotComponents,
-  Logger,
-  Bot,
-  Commander,
-  Applications
+  IPluginOpts
 } from '../types'
 import { EmailBasedVerifier, TTL } from '../email-based-verifier'
 import { getPropertyTitle } from '../utils'
-import { getStubsByType } from '../../utils'
 import Errors from '../../errors'
 import { topics as EventTopics } from '../../events'
 

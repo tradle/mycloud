@@ -1,14 +1,13 @@
 import omit from 'lodash/omit'
 import { uriEscapePath } from 'aws-sdk/lib/util'
-import { TYPE } from '@tradle/constants'
-import { randomStringWithLength, sha256 } from './crypto'
+import { sha256 } from './crypto'
 import { alphabetical } from './string-utils'
 import Errors from './errors'
 import Env from './env'
 import Logger from './logger'
 import { BucketPutOpts, BucketCopyOpts } from './types'
 import { S3 } from 'aws-sdk'
-import { timeMethods, isPromise, batchProcess, gzip, gunzip, isLocalHost, listIamRoles } from './utils'
+import { isPromise, batchProcess, gzip, gunzip, isLocalHost } from './utils'
 
 const CRR_NAME = 'cross-region-replication-role'
 const CRR_POLICY = 'cross-region-replication-policy'
@@ -433,11 +432,17 @@ export default class S3Utils {
   public isBucketPublic = async ({ bucket }: {
     bucket: string
   }) => {
-    const { Policy } = await this.s3.getBucketPolicy({
-      Bucket: bucket
-    }).promise()
+    let result:AWS.S3.GetBucketPolicyOutput
+    try {
+      result = await this.s3.getBucketPolicy({
+        Bucket: bucket
+      }).promise()
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
 
-    const { Statement } = JSON.parse(Policy)
+    const { Statement } = JSON.parse(result.Policy)
     return Statement.some(({ Sid }) => Sid === PUBLIC_BUCKET_RULE_ID)
   }
 

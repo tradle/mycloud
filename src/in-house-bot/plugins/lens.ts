@@ -4,7 +4,7 @@ import Lens from '@tradle/lens'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { Conf } from '../configure'
-import { Bot, Logger, IPBApp, IPBReq, CreatePlugin } from '../types'
+import { Bot, Logger, IPBApp, CreatePlugin } from '../types'
 
 const ValidationErrors = validateResource.Errors
 

@@ -1,32 +1,17 @@
 import { EventEmitter } from 'events'
 import _ from 'lodash'
 import { diff as getDiff } from 'just-diff'
-import {
-  AttributePath,
-  PathElement,
-  UpdateExpression,
-  ConditionExpression,
-  ExpressionAttributes
-} from '@aws/dynamodb-expressions'
 import { utils as DynamoUtils } from '@tradle/dynamodb'
-import { TYPE, SIG, PREVLINK, PERMALINK, VERSION } from '@tradle/constants'
+import { TYPE, SIG, VERSION } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import validateModels from '@tradle/validate-model'
-import {
-  toAttributePath,
-  unmarshallDBItem
-} from './db-utils'
 
 import Errors from './errors'
 import { noopLogger } from './logger'
 import {
-  Bot,
   Model,
   Models,
-  ITradleObject,
-  ResourceStub,
-  Backlinks,
   IBacklinkItem,
   Diff,
   Logger
@@ -35,12 +20,8 @@ import {
 import {
   pickBacklinks,
   omitBacklinks,
-  omitVirtual,
-  parseStub,
-  getPermId,
   isPlainObject,
-  getPrimaryKeySchema,
-  pickNonNull
+  getPrimaryKeySchema
 } from './utils'
 
 const {

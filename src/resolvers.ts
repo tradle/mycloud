@@ -1,7 +1,6 @@
 import _ from 'lodash'
 import { difference, defaultsDeep } from 'lodash'
 import { TYPE } from '@tradle/constants'
-import buildResource from '@tradle/build-resource'
 
 import {
   Model,
@@ -9,7 +8,6 @@ import {
   Objects,
   Filter,
   OrderBy,
-  utils,
   DB,
   filterResults,
   utils as dynamoUtils
@@ -18,7 +16,7 @@ import {
 import validateModels from '@tradle/validate-model'
 import validateResource from '@tradle/validate-resource'
 import { ResourceStub, Backlinks, Identities } from './types'
-import { parseStub, allSettled, getPrimaryKeySchema, isWellBehavedIntersection } from './utils'
+import { allSettled } from './utils'
 
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils

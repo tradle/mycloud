@@ -10,7 +10,6 @@ import {
   createModelsPackGetter
 } from '../plugins/keep-models-fresh'
 
-import { defineGetter } from '../../utils'
 import { MODELS_HASH_PROPERTY } from '../constants'
 import { MiddlewareHttp as Middleware, IBotComponents } from '../types'
 

@@ -1,8 +1,7 @@
-import clone from 'lodash/clone'
 import { EventEmitter } from 'events'
 import { TYPE } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
-import { post, promiseNoop, timeoutIn, tryUntilTimeRunsOut, gzip, parseEnumValue } from './utils'
+import { post, promiseNoop, gzip, parseEnumValue } from './utils'
 import { IDelivery, ILiveDeliveryOpts, ITradleMessage, Logger, Env, DB, IDeliveryMessageRange } from "./types"
 import Errors from './errors'
 import { RetryableTask } from './retryable-task'

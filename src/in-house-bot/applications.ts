@@ -21,12 +21,10 @@ import {
   IPBApp,
   ITradleObject,
   IPBUser,
-  Models,
   ApplicationSubmission,
   Logger,
 } from './types'
 
-import { Resource } from '../resource'
 
 interface IPBJudgeAppOpts {
   req?: IPBReq

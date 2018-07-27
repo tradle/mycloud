@@ -1,10 +1,8 @@
-import pick from 'lodash/pick'
 import merge from 'lodash/merge'
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
-import { getUpdateParams } from './db-utils'
-import { typeforce, defineGetter, ensureNoVirtualProps, pickNonNull } from './utils'
-import { prettify, isHex } from './string-utils'
+import { typeforce, ensureNoVirtualProps, pickNonNull } from './utils'
+import { isHex } from './string-utils'
 import { randomString, getPermalink } from './crypto'
 import Errors from './errors'
 import * as types from './typeforce-types'
@@ -15,11 +13,9 @@ import {
   Identities,
   Messages,
   Objects,
-  IDebug,
   ISession,
   IIotClientChallenge,
   IRoleCredentials,
-  IAuthResponse,
   IIdentity,
   ITradleObject,
   Iot,

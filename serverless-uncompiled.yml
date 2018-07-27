@@ -253,9 +253,8 @@ custom:
       - ${{self:custom.prefix}}objectsbucket
       - ${{self:custom.prefix}}secretsbucket
       - ${{self:custom.prefix}}privateconfbucket
-      # - ${{self:custom.prefix}}publicconfbucket
-      # - ${{self:custom.prefix}}contentaddressedbucket
       - ${{self:custom.prefix}}fileuploadbucket
+      - ${{self:custom.prefix}}logsbucket
     cors: false
     # use dockerized s3 from localstack
     noStart: true
@@ -342,13 +341,16 @@ provider:
         - cloudformation:ListStackResources
         # need to get own template to generate a child deployment template
         - cloudformation:GetTemplate
-      Resource: "*"
-
-    - Effect: Allow
-      Action:
+        - cloudformation:UpdateTerminationProtection
         - cloudformation:UpdateStack
       Resource:
-        Ref: AWS::StackId
+        Fn::Sub: 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${{self:custom.stackName}}/*'
+
+    # - Effect: Allow
+    #   Action:
+
+    #   Resource:
+    #     Ref: AWS::StackId
 
     # allow lambdas to update themselves / each other
     - Effect: Allow

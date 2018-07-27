@@ -1,8 +1,5 @@
-import fetch from 'node-fetch'
-import _ from 'lodash'
 
-import * as utils from '../utils'
-import { Bot, Logger, CreatePlugin, Applications, IPBApp } from '../types'
+import { Bot, Logger, CreatePlugin, Applications } from '../types'
 import { Remediation } from '../remediation'
 import * as Templates from '../templates'
 import Errors from '../../errors'

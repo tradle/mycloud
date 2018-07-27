@@ -3,8 +3,7 @@ import cors from 'kcors'
 import { extend, pick } from 'lodash'
 import { get } from '../middleware/noop-route'
 import { Lambda } from '../types'
-import { getChainKey } from '../crypto'
-import { EventSource, fromHTTP } from '../lambda'
+import { fromHTTP } from '../lambda'
 import Errors from '../errors'
 
 export const createLambda = (opts) => {

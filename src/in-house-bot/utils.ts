@@ -2,17 +2,14 @@ import _ from 'lodash'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
-import * as crypto from '../crypto'
-import { get, isPromise, pickNonNull, parseEnumValue, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
+import { get, isPromise, pickNonNull, getEnumValueId, parseStub, getSealBasePubKey } from '../utils'
 import { createConf } from './configure'
 import Errors from '../errors'
 import models from '../models'
 import {
   Name,
   ResourceStub,
-  ICommand,
   Bot,
-  IPBApp,
   IPBAppStub,
   IPBUser,
   ApplicationSubmission,
@@ -21,7 +18,6 @@ import {
   Models,
   ITradleCheck,
   ITradleObject,
-  IConf,
 } from './types'
 
 import { TYPE } from '../constants'

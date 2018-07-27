@@ -6,8 +6,6 @@ import Promise from 'bluebird'
 import test from 'tape'
 import sinon from 'sinon'
 import { TYPE, SIG, OWNER } from '@tradle/constants'
-import buildResource from '@tradle/build-resource'
-import fakeResource from '@tradle/build-resource/fake'
 import createProductsStrategy from '@tradle/bot-products'
 import { Remediation, idToStub, stubToId } from '../../in-house-bot/remediation'
 import {
@@ -16,15 +14,13 @@ import {
 import {
   createPlugin as createPrefillFromDraftPlugin
 } from '../../in-house-bot/plugins/prefill-from-draft'
-import { loudAsync, parseStub, getResourceIdentifier } from '../../utils'
-import { addLinks } from '../../crypto'
+import { loudAsync, getResourceIdentifier } from '../../utils'
 import Errors from '../../errors'
 import { Logger } from '../../logger'
 import { createBot } from '../../'
 import { TYPES } from '../../in-house-bot/constants'
 import models from '../../models'
-import { IPBApp, IPBReq, IFormRequest } from '../../in-house-bot/types'
-import { Resource } from '../../resource'
+import { IPBReq, IFormRequest } from '../../in-house-bot/types'
 
 const users = require('../fixtures/users.json')
 const dataBundle = require('../fixtures/data-bundle.json')
@@ -246,7 +242,7 @@ test.skip('prefill-based', loudAsync(async (t) => {
   // })
 
 
-  let keyToClaimIds = {}
+  const keyToClaimIds = {}
   sandbox.stub(api.keyToClaimIds, 'put').callsFake(async (key, val) => {
     keyToClaimIds[key] = val
   })
@@ -289,7 +285,7 @@ test.skip('prefill-based', loudAsync(async (t) => {
     logger: new Logger('test:prefill-from-draft'),
   })
 
-  const req = <IPBReq>{}
+  const req = {} as IPBReq
   const application = productsAPI.state.createApplication({
     user,
     object: {
@@ -307,9 +303,9 @@ test.skip('prefill-based', loudAsync(async (t) => {
 
   t.equal(application.prefillFromApplication.id, draftStub.id)
 
-  const formRequest = <IFormRequest>{
+  const formRequest = {
     form: unsignedPrefills[0].prefill[TYPE]
-  }
+  } as IFormRequest
 
   await prefillFromDraft.plugin.willRequestForm({
     user,

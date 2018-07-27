@@ -2,8 +2,7 @@
 import Cache from 'lru-cache'
 import { Bucket } from './bucket'
 import { IBucketsInfo, Buckets } from './types'
-import { cachify, isPromise } from './utils'
-import { toCamelCase } from './string-utils'
+import { isPromise } from './utils'
 // const BUCKET_NAMES = ['Secrets', 'Objects', 'PublicConf']
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
@@ -21,7 +20,7 @@ const cacheConfig:IBucketsInfo = {
   Objects: {
     length: byteLengthFn,
     max: 50 * MEG,
-    maxAge: Infinity //HOUR
+    maxAge: Infinity // HOUR
   },
   Secrets: {
     max: 10, // 10 items

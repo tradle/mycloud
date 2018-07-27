@@ -3,13 +3,11 @@ require('./env').install()
 import crypto from 'crypto'
 import test from 'tape'
 import nock from 'nock'
-import sinon from 'sinon'
 import pick from 'lodash/pick'
 import buildResource from '@tradle/build-resource'
 import Push, { getChallenge, getNotificationData } from '../push'
-import Logger from '../logger'
 import { loudAsync, omitVirtual } from '../utils'
-import { getSigningKey, sha256 } from '../crypto'
+import { getSigningKey } from '../crypto'
 import { createBot } from '../'
 
 const alice = omitVirtual(require('./fixtures/alice/identity'))

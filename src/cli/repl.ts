@@ -1,5 +1,3 @@
-import fs from 'fs'
-import path from 'path'
 import repl from 'repl'
 import co from 'co'
 import { pick } from 'lodash'

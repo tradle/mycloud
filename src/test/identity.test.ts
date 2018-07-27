@@ -2,11 +2,9 @@ require('./env').install()
 
 import _ from 'lodash'
 import test from 'tape'
-import sinon from 'sinon'
-import { TYPE, WITNESSES, ORG, ORG_SIG } from '@tradle/constants'
+import { TYPE, ORG_SIG } from '@tradle/constants'
 import { loudAsync } from '../utils'
 import { addLinks } from '../crypto'
-import { Identity } from '../identity'
 import { createTestBot } from '../'
 
 const aliceKeys = require('./fixtures/alice/keys')

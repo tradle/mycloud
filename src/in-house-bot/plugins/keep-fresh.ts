@@ -1,4 +1,3 @@
-import stableStringify from 'json-stable-stringify'
 import { sha256 } from '../../crypto'
 
 function defaultGetIdentifier (req) {

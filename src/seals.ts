@@ -2,26 +2,18 @@
 import Promise from 'bluebird'
 import _ from 'lodash'
 import AWS from 'aws-sdk'
-import {
-  ExpressionAttributes,
-  ConditionExpression,
-  UpdateExpression
-} from '@aws/dynamodb-expressions'
 import protocol from '@tradle/protocol'
 import buildResource from '@tradle/build-resource'
 import { FindOpts } from '@tradle/dynamodb'
 import {
   TYPE,
   PREVHEADER,
-  PREVLINK,
   // AUTHOR
 } from './constants'
 
 import {
   // timestamp,
   typeforce,
-  uuid,
-  isPromise,
   seriesMap,
   bindAll,
   summarizeObject,
@@ -30,8 +22,6 @@ import {
   ensureTimestamped
 } from './utils'
 import { getLinks, randomString } from './crypto'
-import { prettify } from './string-utils'
-import * as dbUtils from './db-utils'
 import * as types from './typeforce-types'
 import Errors from './errors'
 import models from './models'
@@ -117,7 +107,7 @@ type WatchOpts = {
 
 export type SealPendingResult = {
   seals: Seal[]
-  error?: Error
+  error?: any
 }
 
 export type Seal = {
@@ -261,11 +251,11 @@ export default class Seals {
   }
 
   public find = async (opts: Partial<FindOpts>={}) => {
-    const findOpts = <FindOpts>_.merge({
+    const findOpts = _.merge({
       filter: {
         EQ: this.baseEQ
       }
-    }, opts)
+    }, opts) as FindOpts
 
     const { items } = await this.db.find(findOpts)
     return items
@@ -320,7 +310,7 @@ export default class Seals {
   }
 
   private recordWriteError = async ({ seal, error }):Promise<AWS.DynamoDB.Types.UpdateItemOutput> => {
-    this.logger.error(`failed to seal ${seal.link}`, { error: error.stack })
+    this.logger.debug(`saving write error`, { error: error.message })
     const errors = addError(seal.errors, error)
     return this.db.update({
       ...getRequiredProps(seal),
@@ -369,7 +359,11 @@ export default class Seals {
         Errors.rethrow(err, 'developer')
         if (Errors.matches(err, Errors.LowFunds)) {
           this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
-          ret.error = err
+          ret.error = {
+            name: 'LowFunds',
+            message: err.message,
+            address: key.fingerprint,
+          }
         }
       }
     })
@@ -599,7 +593,7 @@ export default class Seals {
   }
 
   public cancelPending = async (opts?:any):Promise<Seal[]> => {
-    let { limit=Infinity, filter=acceptAll } = opts
+    const { limit=Infinity, filter=acceptAll } = opts
     let seals = await this.getUnsealed({ limit })
     if (!seals.length) return
 

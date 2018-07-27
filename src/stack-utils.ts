@@ -1,4 +1,3 @@
-import querystring from 'querystring'
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
@@ -16,13 +15,9 @@ import {
 
 import Errors from './errors'
 import * as utils from './utils'
-import { randomString } from './crypto'
-import {
-  LAUNCH_STACK_BASE_URL
-} from './constants'
+import { splitCamelCaseToArray, replaceAll } from './string-utils'
 
 import { genOptionsBlock } from './gen-cors-options-block'
-import { RetryableTask } from './retryable-task'
 
 // const version = require('./version') as VersionInfo
 
@@ -520,15 +515,45 @@ export default class StackUtils {
   }
 
   public static changeRegion = ({ template, from, to }) => {
-    const toChange = _.omit(template, 'Mappings')
-    const str = JSON.stringify(toChange)
+    const { Mappings, ...toChange } = template
+    let changed = StackUtils.changeAutoScalingRegion({
+      template: toChange,
+      from, to
+    })
+
+    const hacked = JSON.stringify(changed)
       .replace(new RegExp(from, 'ig'), to)
       .replace(new RegExp(normalizePathPart(from), 'g'), normalizePathPart(to))
 
     return {
-      ...JSON.parse(str),
-      Mappings: template.Mappings
+      ...JSON.parse(hacked),
+      Mappings
     }
+  }
+
+  public static changeAutoScalingRegion = ({ template, from, to }) => {
+    const cleanFrom = toAutoScalingRegionFormat(from)
+    const cleanTo = toAutoScalingRegionFormat(to)
+    let str = JSON.stringify(template)
+    const toReplace = _.map(template.Resources, (resource: any, key: string) => {
+      const { Type } = resource
+      if (Type && Type.startsWith('AWS::ApplicationAutoScaling')) {
+        return key
+      }
+    })
+    .filter(_.identity)
+    .sort((a, b) => b.length - a.length)
+
+    toReplace.forEach(key => {
+      const parts = splitCamelCaseToArray(key)
+      const cleanRegion = parts.pop()
+      if (cleanRegion === cleanTo) return
+
+      const newKey = parts.join('') + cleanTo
+      str = replaceAll(str, key, newKey)
+    })
+
+    return JSON.parse(str)
   }
 
   // public static changeAdminEmail = ({ template, to }) => {
@@ -573,6 +598,20 @@ export default class StackUtils {
 
     this.logger.info('updating this stack')
     return this.aws.cloudformation.updateStack(params).promise()
+  }
+
+  public enableTerminationProtection = async (StackName=this.thisStack.name) => {
+    await this.aws.cloudformation.updateTerminationProtection({
+      StackName,
+      EnableTerminationProtection: true
+    }).promise()
+  }
+
+  public disableTerminationProtection = async (StackName=this.thisStack.name) => {
+    await this.aws.cloudformation.updateTerminationProtection({
+      StackName,
+      EnableTerminationProtection: false
+    }).promise()
   }
 
   public static getStackLocationKeys = ({ service, stage, versionInfo }:  {
@@ -637,3 +676,5 @@ const normalizePathPart = path => _.upperFirst(
     .replace(/\{(.*)\}/g, '$1Var')
     .replace(/[^0-9A-Za-z]/g, '')
 )
+
+const toAutoScalingRegionFormat = (region: string) => _.upperFirst(region.replace(/[^a-zA-Z0-9]/ig, ''))

@@ -7,7 +7,6 @@ import {
   CreatePlugin
 } from '../types'
 import { Remediation } from '../remediation'
-import { appLinks } from '../../app-links'
 import { parseStub } from '../../utils'
 const { DATA_CLAIM, PRODUCT_REQUEST } = TYPES
 

@@ -1,4 +1,3 @@
-import fs from 'fs'
 import path from 'path'
 import nunjucks from 'nunjucks'
 import Errors from '../errors'

@@ -1,5 +1,4 @@
 import Gen from '@tradle/gen-samples'
-import { TYPE } from '@tradle/constants'
 
 export = async function genSamples ({ bot, event }) {
   const { TESTING } = bot.env

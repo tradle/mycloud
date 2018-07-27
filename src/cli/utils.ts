@@ -9,27 +9,16 @@ import YAML from 'js-yaml'
 import yn from 'yn'
 import getLocalIP from 'localip'
 import isNative from 'is-native-module'
-import {
-  pick,
-  extend
-} from 'lodash'
 
-import { models } from '@tradle/models'
-import validateResource from '@tradle/validate-resource'
-import { TYPE } from '@tradle/constants'
 import { Bucket } from '../bucket'
 import Errors from '../errors'
-import { createAWSWrapper } from '../aws'
-import { Logger } from '../logger'
 import { Env } from '../env'
 import { createRemoteBot } from '../'
 import { createConf } from '../in-house-bot/configure'
 import {
-  Bot,
-  IConf
+  Bot
 } from '../in-house-bot/types'
 
-import { wait } from '../utils'
 import * as compile from './compile'
 
 const Localstack = require('../test/localstack')

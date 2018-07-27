@@ -1,6 +1,3 @@
-import _ from 'lodash'
-import traverse from 'traverse'
-import YAML from 'js-yaml'
 
 const serverlessYml = require('../serverless-interpolated')
 const { Resources, Mappings } = serverlessYml.resources

@@ -10,10 +10,13 @@ lambda.use(async (ctx) => {
   const { event, components } = ctx
   if (!processor) {
     processor = fromLambda({ lambda, components })
-    bot.hookSimple('logs', processor.handleLogEvent)
+    bot.hook(bot.events.topics.logging.logs, async (ctx, next) => {
+      ctx.event = await processor.parseLogEvent(ctx.event)
+      await processor.handleLogEvent(ctx.event)
+    })
   }
 
-  await bot.fire('logs', event)
+  await bot.fire(bot.events.topics.logging.logs, event)
 })
 
 export const handler = lambda.handler

@@ -7,12 +7,9 @@ import QS from 'querystring'
 import _ from 'lodash'
 import test from 'tape'
 import sinon from 'sinon'
-import { TYPE, SIG } from '@tradle/constants'
+import { TYPE } from '@tradle/constants'
 import protocol from '@tradle/protocol'
-import { wait } from '../utils'
 import { addLinks } from '../crypto'
-import adapters from '../blockchain-adapter'
-import { recreateTable } from './utils'
 import { createTestBot } from '../'
 import { Env } from '../env'
 import Errors from '../errors'
@@ -69,19 +66,19 @@ test('handle failed reads/writes', loudAsync(async (t) => {
   await seals.create({ key: aliceKey, object: aliceIdentity })
   await seals.watch({ key: bobKey, object: bobIdentity })
 
-  let unconfirmed = await seals.getUnconfirmed()
+  const unconfirmed = await seals.getUnconfirmed()
   t.equal(unconfirmed.length, 1)
 
-  let failedReads = await seals.getFailedReads({ gracePeriod: 1 }) // 1ms
+  const failedReads = await seals.getFailedReads({ gracePeriod: 1 }) // 1ms
   t.equal(failedReads.length, 1)
 
   const stubSeal = sandbox.stub(seals.blockchain, 'seal').resolves({ txId: 'sometxid' })
   const stubBalance = sandbox.stub(seals.blockchain, 'balance').resolves('aabbccddeeff')
   await seals.sealPending()
-  let failedWrites = await seals.getFailedWrites({ gracePeriod: 1 }) // 1ms
+  const failedWrites = await seals.getFailedWrites({ gracePeriod: 1 }) // 1ms
   t.equal(failedWrites.length, 1)
 
-  let longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1 }) // 1ms
+  const longUnconfirmed = await seals.getLongUnconfirmed({ gracePeriod: 1 }) // 1ms
   t.equal(longUnconfirmed.length, 2)
 
   const spyBatchPut = sinon.spy(db, 'batchPut')
@@ -99,7 +96,7 @@ test('handle failed reads/writes', loudAsync(async (t) => {
     }
   })
 
-  let unsealed = await seals.getUnsealed()
+  const unsealed = await seals.getUnsealed()
   t.equal(unsealed.length, 1)
 
   t.equal(stubSeal.callCount, 1)
@@ -315,7 +312,7 @@ test('corda seals', loudAsync(async (t) => {
     t.same(_.pick(obj._seal, Object.keys(expectedSealResource)), expectedSealResource)
   }
 
-  const spyDB = sandbox.spy(db, 'put')//.callsFake(fakePut)
+  const spyDB = sandbox.spy(db, 'put')// .callsFake(fakePut)
   const stubObjects = sandbox.stub(objects, 'put').callsFake(fakePut)
 
   await seals.create(sealOpts)

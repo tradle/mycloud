@@ -1,6 +1,4 @@
-import Router from 'koa-router'
 import { createBot } from '../../../'
-import { EventSource } from '../../../lambda'
 // import { configureLambda } from '../..'
 
 const bot = createBot()

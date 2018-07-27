@@ -2,7 +2,6 @@ import { createBot } from '../../../'
 import { fromSNS } from '../../lambda'
 import * as LambdaEvents from '../../lambda-events'
 import { parseStackStatusEvent } from '../../../utils'
-import Errors from '../../../errors'
 import {
   IPBMiddlewareContext,
   StackStatusEvent,

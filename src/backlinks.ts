@@ -1,20 +1,15 @@
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { utils as DDBUtils, OrderBy, FindOpts } from '@tradle/dynamodb'
 import {
-  parseStub,
   parsePermId,
   uniqueStrict,
   pluck,
-  toPathValuePairs,
-  getPermId,
   getResourceIdentifier,
   RESOLVED_PROMISE,
-  isUnsignedType,
   allSettled,
   isWellBehavedIntersection
 } from './utils'
@@ -25,7 +20,6 @@ import {
   ModelStore,
   Models,
   Model,
-  Middleware,
   DB,
   ResourceStub,
   ParsedResourceStub,
@@ -36,7 +30,6 @@ import {
   Identity
 } from './types'
 
-import { getRecordsFromEvent } from './db-utils'
 import { Resource, getForwardLinks, getBacklinkProperties } from './resource'
 import Errors from './errors'
 import { TYPES } from './constants'
@@ -315,11 +308,11 @@ export default class Backlinks {
     if (!(add.length || del.length)) return backlinkChanges
 
     if (add.length) {
-      this.logger.debug(`creating ${add.length} backlink items`)//, printItems(add))
+      this.logger.debug(`creating ${add.length} backlink items`)// , printItems(add))
     }
 
     if (del.length) {
-      this.logger.debug(`deleting ${del.length} backlink items`)//, printItems(del))
+      this.logger.debug(`deleting ${del.length} backlink items`)// , printItems(del))
     }
 
     const promiseAdd = add.length ? this.db.batchPut(add.map(this.toDBFormat)) : RESOLVED_PROMISE
@@ -470,7 +463,7 @@ const concatKeysUniq = (...objs): string[] => {
   const keyMap = {}
   for (const obj of objs) {
     if (obj) {
-      for (let key in obj) keyMap[key] = true
+      for (const key in obj) keyMap[key] = true
     }
   }
 
@@ -511,7 +504,7 @@ const toResourceFormat = ({ models, backlinkItems }: {
   models: Models
   backlinkItems: IBacklinkItem[]
 }):ResourceBacklinks => {
-  const resolved = <KVPairArr>_.flatMap(backlinkItems, bl => {
+  const resolved = _.flatMap(backlinkItems, bl => {
     const { linkProp, source, target } = bl
     const sourceModel = models[source[TYPE]]
     const targetModel = models[target[TYPE]]
@@ -523,7 +516,7 @@ const toResourceFormat = ({ models, backlinkItems }: {
     })
 
     return backlinkProps.map(backlinkProp => [backlinkProp, source])
-  })
+  }) as KVPairArr
 
   return resolved.reduce((backlinks, [backlinkProp, value]) => {
     if (!backlinks[backlinkProp]) {
@@ -532,7 +525,7 @@ const toResourceFormat = ({ models, backlinkItems }: {
 
     backlinks[backlinkProp].push(value)
     return backlinks
-  }, <ResourceBacklinks>{})
+  }, {} as ResourceBacklinks)
 }
 
 // const printItems = blItems => JSON.stringify(blItems.map(item => _.pick(item, ['source', 'target']), null, 2))

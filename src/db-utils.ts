@@ -14,13 +14,9 @@ import { utils as vrUtils } from '@tradle/validate-resource'
 import { Level } from './logger'
 import { NotFound } from './errors'
 import {
-  logify,
-  timestamp,
   wait,
   waitImmediate,
-  timeMethods,
   traverse,
-  pluck,
   defineGetter
 } from './utils'
 

@@ -11,10 +11,8 @@ import nodeCrypto from 'crypto'
 import { TYPE, TYPES, SIG, SEQ, AUTHOR } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
-import mergeModels from '@tradle/merge-models'
 import { utils as tradleUtils } from '@tradle/engine'
 // import createProductsStrategy from '@tradle/bot-products'
-import createEmployeeManager from '@tradle/bot-employee-manager'
 import { fake as genSample } from '@tradle/gen-samples'
 import { replaceDataUrls } from '@tradle/embed'
 // const dbUtils = require('../db-utils')
@@ -24,7 +22,6 @@ import { Logger } from '../logger'
 import { Env } from '../env'
 import { Bot } from '../bot'
 import * as onmessage from '../in-house-bot/lambda/mqtt/onmessage'
-import { genLocalResources } from '../cli/utils'
 import { utils, crypto } from '../'
 // const botFixture = require('./fixtures/bot')
 // const userIdentities = require('./fixtures/users-pem')

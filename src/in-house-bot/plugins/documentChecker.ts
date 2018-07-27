@@ -1,7 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import { promisify } from 'util'
-import fetch from 'node-fetch'
 
 import DataURI from 'strong-data-uri'
 var soap = require('soap')
@@ -10,7 +9,7 @@ import _ from 'lodash'
 // import fs from 'fs'
 import xml2js from 'xml2js'
 import buildResource from '@tradle/build-resource'
-import { buildResourceStub, title } from '@tradle/build-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -19,7 +18,6 @@ import {
   Bot,
   Logger,
   IPBApp,
-  IPBReq,
   ITradleObject,
   ITradleCheck,
   CreatePlugin,
@@ -27,7 +25,6 @@ import {
   IPluginLifecycleMethods
 } from '../types'
 
-import { parseStub } from '../../utils'
 import { getParsedFormStubs, hasPropertiesChanged, getStatusMessageForCheck } from '../utils'
 
 const { TYPE } = constants

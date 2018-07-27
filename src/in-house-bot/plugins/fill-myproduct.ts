@@ -1,10 +1,8 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { Conf } from '../configure'
-import { parseStub } from '../../utils'
-import { Bot, Logger, IPBApp, IPBReq, CreatePlugin } from '../types'
+import { Bot, Logger, CreatePlugin } from '../types'
 import baseModels from '../../models'
-import { getParsedFormStubs, getLatestForms } from '../utils'
+import { getLatestForms } from '../utils'
 
 const objModelProps = baseModels['tradle.Object'].properties
 const myProductProps = baseModels['tradle.MyProduct'].properties

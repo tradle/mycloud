@@ -1,11 +1,10 @@
-import * as Koa from 'koa'
 import compose from 'koa-compose'
 import cors from 'kcors'
 import Errors from '../errors'
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
 import { LambdaHttp as Lambda } from '../types'
-import { EventSource, fromHTTP } from '../lambda'
+import { fromHTTP } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)

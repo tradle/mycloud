@@ -11,12 +11,11 @@ import {
   loudAsync,
   omitVirtual,
   setVirtual,
-  wrap,
-  ensureNoVirtualProps
+  wrap
 } from './utils'
 
 import { InvalidSignature } from './errors'
-import { IDENTITY_KEYS_KEY, PERMALINK, PREVLINK } from './constants'
+import { PERMALINK, PREVLINK } from './constants'
 import { IECMiniPubKey, IPrivKey, IIdentity } from './types'
 
 const doSign = promisify(protocol.sign.bind(protocol))

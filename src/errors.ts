@@ -146,6 +146,7 @@ const NOT_FOUND_MATCH = [
   { name: 'NotFound' },
   { code: 'ResourceNotFoundException' },
   { code: 'NoSuchKey' },
+  { code: 'NoSuchBucketPolicy' },
 ]
 
 const errors = {

@@ -1,8 +1,6 @@
 // import path from 'path'
 // import fs from 'fs'
 // import mkdirp from 'mkdirp'
-import { Lambda } from 'aws-sdk'
-import { promisify } from './utils'
 import { Logger, Env, LambdaUtils, StackUtils, Iot } from './types'
 
 // const pfs = promisify(fs)

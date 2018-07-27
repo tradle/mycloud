@@ -1,3 +1,4 @@
+import http from 'http'
 import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import { createConfig } from './aws-config'
@@ -7,8 +8,9 @@ import REGIONS from './aws-regions'
 
 const willUseXRay = isXrayOn()
 if (willUseXRay) {
+  // tslint-disable-rule: no-console
   console.warn('capturing all http requests with AWSXRay')
-  AWSXRay.captureHTTPsGlobal(require('http'))
+  AWSXRay.captureHTTPsGlobal(http)
 }
 
 const MOCKED_SEPARATELY = {
@@ -44,10 +46,10 @@ export type AwsApis = {
   }
 }
 
-export default function createAWSWrapper ({ env, logger }: {
+export const createAWSWrapper = ({ env, logger }: {
   env: Env
   logger: Logger
-}) {
+}) => {
   const region = env.AWS_REGION
   const OTHER_REGIONS = REGIONS.filter(r => r !== region)
   const AWS = willUseXRay
@@ -154,7 +156,7 @@ export default function createAWSWrapper ({ env, logger }: {
 
           return service
         },
-        set: function (value) {
+        set: value => {
           service = value
         }
       })
@@ -166,31 +168,27 @@ export default function createAWSWrapper ({ env, logger }: {
     const serviceName = instanceNameToServiceName[instanceName]
     const regional = apis.regional[region]
     Object.defineProperty(apis, instanceName, {
-      set: function (value) {
+      set: value => {
         regional[instanceName] = value
       },
-      get: function () {
-        return regional[instanceName]
-      }
+      get: () => regional[instanceName]
     })
   })
 
   apis.AWS = AWS
   apis.xray = AWSXRay
-  apis.trace = (function () {
+  apis.trace = (() => {
     let segment
     return {
-      start: function () {
+      start: () => {
         segment = AWSXRay.getSegment()
       },
-      get: function () {
-        return segment
-      }
+      get: () => segment
     }
-  }())
+  })()
 
   apis.create = create
   return apis as AwsApis
 }
 
-export { createAWSWrapper }
+export default createAWSWrapper

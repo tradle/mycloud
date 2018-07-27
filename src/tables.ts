@@ -10,7 +10,7 @@ export const getTables = ({ serviceMap, dbUtils }) => {
     }
   }
 
-  const tables = <Tables>{}
+  const tables = {} as Tables
   Object.keys(serviceMap.Table).forEach(loadTable)
   return tables
 }

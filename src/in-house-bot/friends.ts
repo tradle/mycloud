@@ -1,5 +1,4 @@
 import { isEqual } from 'lodash'
-import { TYPE, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { parseStub } from '../utils'
 import Errors from '../errors'

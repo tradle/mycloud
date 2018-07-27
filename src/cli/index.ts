@@ -6,9 +6,8 @@ import Env from '../env'
 import testServiceMap from '../test/service-map'
 import { configureLambda } from '../in-house-bot'
 import { createBot } from '../'
-import { list as listCommands, get as getCommand } from './registrar'
-import Command from './command'
-import { ICommand, CliOpts } from '../in-house-bot/types'
+import { get as getCommand } from './registrar'
+import { CliOpts } from '../in-house-bot/types'
 
 const remoteServiceMap = require('./remote-service-map')
 const providerConf = require('../../conf/provider')

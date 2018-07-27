@@ -1,8 +1,5 @@
-import { cloneDeep } from 'lodash'
 import { TYPE } from '@tradle/constants'
-import buildResource from '@tradle/build-resource'
 import { CreatePlugin, IPluginLifecycleMethods, Conf } from '../types'
-import { getFormStubs } from '../utils'
 
 const MESSAGE = 'Please tap here and sign'
 const HAND_SIGNATURE = 'tradle.HandSignature'

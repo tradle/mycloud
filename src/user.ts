@@ -1,11 +1,7 @@
-import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import { omitVirtual, bindAll, RESOLVED_PROMISE } from './utils'
 import { prettify } from './string-utils'
-import { PRIVATE_CONF_BUCKET, SEQ } from './constants'
 import Errors from './errors'
-import * as types from './typeforce-types'
 import {
   Bot,
   Env,
