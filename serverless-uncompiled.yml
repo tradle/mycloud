@@ -208,14 +208,14 @@ custom:
 
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
-    capacities:
-      # bucket-x table scaling is added in compile script
+    # capacities:
+    #   # bucket-x table scaling is added in compile script
 
-      - table: EventsTable
-        write:
-          minimum: 5        # Minimum write capacity
-          maximum: 100      # Maximum write capacity
-          usage: 0.5        # Targeted usage percentage
+    #   - table: EventsTable
+    #     write:
+    #       minimum: 5        # Minimum write capacity
+    #       maximum: 100      # Maximum write capacity
+    #       usage: 0.5        # Targeted usage percentage
 
   cors:
     origin: '*'
