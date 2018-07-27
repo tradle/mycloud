@@ -253,7 +253,15 @@ export class LogProcessor {
     const { eventUrl } = event
     if (eventUrl) {
       this.logger.debug('fetching remote log event')
-      event.body = await get(eventUrl)
+      try {
+        event.body = await get(eventUrl)
+      } catch (err) {
+        this.logger.warn('unable to fetch alert body', {
+          eventUrl,
+          error: err.stack
+        })
+      }
+
       if (typeof event.body === 'string') {
         event.body = JSON.parse(event.body)
       }
