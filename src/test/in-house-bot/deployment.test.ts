@@ -290,6 +290,8 @@ test('deployment by referral', loudAsync(async (t) => {
   const saveResourceStub = sandbox.stub(parent, 'save').callsFake(async resource => {
     if (resource[TYPE] === 'tradle.cloud.ChildDeployment') {
       childDeploymentResource = resource
+    } else if (resource[TYPE] === 'tradle.cloud.TmpSNSTopic') {
+      topicResource = resource
     }
 
     return resource
@@ -376,8 +378,8 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(parentSendStub.getCall(0).args[0].to.id, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)
   t.equal(childLoadFriendStub.callCount, 1)
+  t.ok(topicResource)
 
-  t.equal(saveResourceStub.callCount, 2)
   const [
     // createTopic,
     createChild,
