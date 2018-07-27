@@ -2,32 +2,54 @@
 
 // lazy('stableStringify', 'json-stable-stringify')
 
+import upperFirst from 'lodash/upperFirst'
 export const stableStringify = require('json-stable-stringify')
 export const safeStringify = require('json-stringify-safe')
 export const format = require('string-format')
-export const toCamelCase = (str, delimiter, upperFirst) => {
+
+export { upperFirst }
+export const toCamelCase = (str, delimiter, upFirst) => {
   return str
     .split(delimiter)
     .map((part, i) => {
-      if (i === 0 && !upperFirst) {
+      if (i === 0 && !upFirst) {
         return part.toLowerCase()
       }
 
-      return upperCaseFirstCharacter(part)
+      return upperFirst(part)
     })
     .join('')
 }
 
 // https://stackoverflow.com/questions/4149276/javascript-camelcase-to-regular-form
-export const splitCamelCase = (str, delimiter=' ', upperFirst) => {
+export const splitCamelCase = (str, delimiter=' ', upFirst) => {
   const split = str.slice(0, 1) + str.slice(1)
     // insert a space before all caps
     .replace(/([A-Z])/g, delimiter + '$1')
     .trim()
 
-  return upperFirst ? upperCaseFirstCharacter(split) : split
+  return upFirst ? upperFirst(split) : split
 }
 
+export const splitCamelCaseToArray = (str: string) => {
+  let lowerCasePrefix = ''
+  for (let i = 0; i < str.length; i++) {
+    let ch = str[i]
+    if (isUpperCase(ch)) break
+
+    lowerCasePrefix += ch
+  }
+
+  const rest = str.match(/[A-Z][^A-Z]*/g).slice()
+  return lowerCasePrefix ? [lowerCasePrefix, ...rest] : rest
+}
+
+const isUpperCase = (ch: string) => ch.toUpperCase() === ch
+const isLowerCase = (ch: string) => ch.toLowerCase() === ch
+
+export const replaceAll = (str: string, search: string, replacement: string) => {
+  return str.split(search).join(replacement)
+}
 
 export const prettify = (obj) => {
   return JSON.stringify(obj, bufferReplacer, 2)
@@ -41,10 +63,6 @@ export const alphabetical = (a, b) => {
 
 const HEX_REGEX = /^[0-9A-F]+$/i
 export const isHex = str => HEX_REGEX.test(str)
-
-function upperCaseFirstCharacter (str) {
-  return str[0].toUpperCase() + str.slice(1).toLowerCase()
-}
 
 function bufferReplacer (key, value) {
   // Filtering out properties

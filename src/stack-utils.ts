@@ -17,6 +17,7 @@ import {
 import Errors from './errors'
 import * as utils from './utils'
 import { randomString } from './crypto'
+import { splitCamelCaseToArray, replaceAll } from './string-utils'
 import {
   LAUNCH_STACK_BASE_URL
 } from './constants'
@@ -520,15 +521,45 @@ export default class StackUtils {
   }
 
   public static changeRegion = ({ template, from, to }) => {
-    const toChange = _.omit(template, 'Mappings')
-    const str = JSON.stringify(toChange)
+    const { Mappings, ...toChange } = template
+    let changed = StackUtils.changeAutoScalingRegion({
+      template: toChange,
+      from, to
+    })
+
+    const hacked = JSON.stringify(changed)
       .replace(new RegExp(from, 'ig'), to)
       .replace(new RegExp(normalizePathPart(from), 'g'), normalizePathPart(to))
 
     return {
-      ...JSON.parse(str),
-      Mappings: template.Mappings
+      ...JSON.parse(hacked),
+      Mappings
     }
+  }
+
+  public static changeAutoScalingRegion = ({ template, from, to }) => {
+    const cleanFrom = toAutoScalingRegionFormat(from)
+    const cleanTo = toAutoScalingRegionFormat(to)
+    let str = JSON.stringify(template)
+    const toReplace = _.map(template.Resources, (resource: any, key: string) => {
+      const { Type } = resource
+      if (Type && Type.startsWith('AWS::ApplicationAutoScaling')) {
+        return key
+      }
+    })
+    .filter(_.identity)
+    .sort((a, b) => b.length - a.length)
+
+    toReplace.forEach(key => {
+      const parts = splitCamelCaseToArray(key)
+      const cleanRegion = parts.pop()
+      if (cleanRegion === cleanTo) return
+
+      const newKey = parts.join('') + cleanTo
+      str = replaceAll(str, key, newKey)
+    })
+
+    return JSON.parse(str)
   }
 
   // public static changeAdminEmail = ({ template, to }) => {
@@ -651,3 +682,5 @@ const normalizePathPart = path => _.upperFirst(
     .replace(/\{(.*)\}/g, '$1Var')
     .replace(/[^0-9A-Za-z]/g, '')
 )
+
+const toAutoScalingRegionFormat = (region: string) => _.upperFirst(region.replace(/[^a-zA-Z0-9]/ig, ''))
