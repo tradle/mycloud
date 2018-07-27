@@ -135,7 +135,8 @@
     "releasecandidate": "standard-version --prerelease rc --no-verify",
     "releasecandidate:patch": "npm run releasecandidate -- --patch",
     "releasecandidate:minor": "npm run releasecandidate -- --minor",
-    "releasecandidate:major": "npm run releasecandidate -- --major"
+    "releasecandidate:major": "npm run releasecandidate -- --major",
+    "releasetransition": "standard-version --prerelease trans --no-verify --release-as patch"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
