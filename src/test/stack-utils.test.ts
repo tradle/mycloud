@@ -4,12 +4,7 @@ require('./env').install()
 // import fs from 'fs'
 // import path from 'path'
 import test from 'tape'
-import _ from 'lodash'
 
-import { stableStringify } from '../string-utils'
-import {
-  loudAsync,
-} from '../utils'
 
 import { StackUtils } from '../stack-utils'
 

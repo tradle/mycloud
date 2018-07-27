@@ -1,7 +1,6 @@
 import fetch from 'node-fetch'
 
-import buildResource from '@tradle/build-resource'
-import { buildResourceStub, title } from '@tradle/build-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils

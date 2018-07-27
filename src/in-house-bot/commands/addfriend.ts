@@ -1,11 +1,6 @@
 import { parse as parseURL } from 'url'
-import { isEqual } from 'lodash'
-import yn from 'yn'
 import parse from 'yargs-parser'
-import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
-import models from '../../models'
-import Errors from '../../errors'
 import { ICommand } from '../types'
 
 const { parseStub } = validateResource.utils

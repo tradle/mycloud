@@ -1,4 +1,3 @@
-import querystring from 'querystring'
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
@@ -16,14 +15,9 @@ import {
 
 import Errors from './errors'
 import * as utils from './utils'
-import { randomString } from './crypto'
 import { splitCamelCaseToArray, replaceAll } from './string-utils'
-import {
-  LAUNCH_STACK_BASE_URL
-} from './constants'
 
 import { genOptionsBlock } from './gen-cors-options-block'
-import { RetryableTask } from './retryable-task'
 
 // const version = require('./version') as VersionInfo
 

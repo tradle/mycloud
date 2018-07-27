@@ -1,7 +1,5 @@
-import { omit } from 'lodash'
 import parse from 'yargs-parser'
 import { TYPE } from '@tradle/constants'
-import { Errors as ProductBotErrors } from '@tradle/bot-products'
 import {
   randomString
 } from '../crypto'
@@ -24,7 +22,6 @@ import {
   Friends
 } from './types'
 
-import { parseStub } from '../utils'
 import Errors from '../errors'
 import { Commands } from './commands'
 import Logger from '../logger'

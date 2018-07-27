@@ -1,4 +1,4 @@
-import { reduce, transform } from 'lodash'
+import { reduce } from 'lodash'
 import { links } from '@tradle/qr-schema'
 import { AppLinks } from './types'
 import {

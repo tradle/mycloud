@@ -1,28 +1,18 @@
 require('./env').install()
 
 import test from 'tape'
-import _ from 'lodash'
 import sinon from 'sinon'
-import { TYPE, SIG, PREVLINK, PERMALINK } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import fakeResource from '@tradle/build-resource/fake'
-import models from '../models'
 import {
-  Backlinks,
-  // getForwardLinks,
-  // toBacklinks,
   getBacklinkChangesForChanges,
   // serializeSource,
   // getUpdateForBacklinkChange
 } from '../backlinks'
-import Errors from '../errors'
 import {
   loudAsync,
-  setVirtual,
-  parseStub,
-  getPermId
+  parseStub
 } from '../utils'
-import { IIdentity, IBacklinkItem } from '../types'
 import { createTestBot } from '../'
 
 test('update backlinks', loudAsync(async (t) => {

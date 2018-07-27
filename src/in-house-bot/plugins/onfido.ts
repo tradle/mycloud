@@ -1,5 +1,5 @@
 import OnfidoAPI from '@tradle/onfido-api'
-import { Onfido, models as onfidoModels } from '@tradle/plugin-onfido'
+import { Onfido } from '@tradle/plugin-onfido'
 import Errors from '../../errors'
 import { Bot, CreatePlugin, IPBReq, Conf } from '../types'
 import { isLocalUrl } from '../../utils'

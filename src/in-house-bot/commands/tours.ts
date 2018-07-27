@@ -1,5 +1,4 @@
 import parse from 'yargs-parser'
-import { TYPE } from '@tradle/constants'
 import { ICommand } from '../types'
 
 export const command:ICommand = {

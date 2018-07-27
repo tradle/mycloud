@@ -7,12 +7,11 @@ import promisify from 'pify'
 import _fs from 'fs'
 import { prettify } from '../string-utils'
 import { LambdaUtils } from '../lambda-utils'
-import { StackUtils } from '../stack-utils'
 import { Env } from '../env'
 import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
 import { createRemoteBot } from '../'
-import { loadCredentials, loadRemoteEnv, downloadDeploymentTemplate } from '../cli/utils'
+import { loadCredentials, downloadDeploymentTemplate } from '../cli/utils'
 
 const serverlessYml = require('../cli/serverless-yml')
 const fs = promisify(_fs)

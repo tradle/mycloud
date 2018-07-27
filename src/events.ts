@@ -1,15 +1,10 @@
-import _ from 'lodash'
 import uniqBy from 'lodash/uniqBy'
-import lexint from 'lexicographic-integer'
 import { TYPE } from '@tradle/constants'
-import { randomString, sha256 } from './crypto'
-import { toISODateString } from './utils'
+import { sha256 } from './crypto'
 import {
   Logger,
-  Tables,
   IStreamRecord,
   IStreamEventDBRecord,
-  IStreamEvent,
   ISaveEventPayload
 } from './types'
 

@@ -1,5 +1,4 @@
-import parse from 'yargs-parser'
-import { ICommand, IDeploymentConf } from '../types'
+import { ICommand } from '../types'
 
 export const command:ICommand = {
   name: 'callhome',

@@ -1,5 +1,3 @@
-import { pick } from 'lodash'
-import Koa from 'koa'
 import { Lambda } from '../lambda'
 import { IPBHttpMiddlewareContext } from '../types'
 import { fromHTTP } from '../lambda'

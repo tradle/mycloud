@@ -1,7 +1,7 @@
 import { TYPE } from '@tradle/constants'
 import validateResource = require('@tradle/validate-resource')
 import buildResource = require('@tradle/build-resource')
-import { Name, Bot } from '../types'
+import { Bot } from '../types'
 import { getFormattedNameFromForm } from '../utils'
 
 const { parseStub } = validateResource.utils

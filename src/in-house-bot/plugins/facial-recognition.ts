@@ -1,8 +1,6 @@
 import _ from 'lodash'
-import querystring from 'querystring'
 import fetch from 'node-fetch'
 import FormData from 'form-data';
-import Embed from '@tradle/embed';
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications, IPBApp, IPluginLifecycleMethods } from '../types'

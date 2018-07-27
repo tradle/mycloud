@@ -1,6 +1,4 @@
-import { parse as parseURL, format as formatURL } from 'url'
 // import Jimp = promisify(require('jimp'))
-import promisify from 'pify'
 import DataURI from 'datauri'
 import fetch from 'node-fetch'
 // import request from 'superagent'

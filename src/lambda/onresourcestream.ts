@@ -3,15 +3,11 @@ import Promise from 'bluebird'
 import omit from 'lodash/omit'
 import groupBy from 'lodash/groupBy'
 import { TYPE } from '@tradle/constants'
-import { Lambda, Bot, IRetryableTaskOpts, IStreamRecord, ITradleMessage, ITradleObject, Model, DB } from '../types'
-import { topics as EventTopics, toBatchEvent } from '../events'
-import { EventSource, fromDynamoDB } from '../lambda'
-import { onMessagesSaved } from '../middleware/onmessagessaved'
+import { Bot, IStreamRecord, ITradleObject, Model, DB } from '../types'
+import { fromDynamoDB } from '../lambda'
 // import { createMiddleware as createMessageMiddleware } from '../middleware/onmessagestream'
-import { pluck, RESOLVED_PROMISE } from '../utils'
 import Errors from '../errors'
 import Events from '../events'
-import { StreamProcessor } from '../stream-processor'
 
 const promiseUndefined = Promise.resolve(undefined)
 // when to give up trying to find an object in object storage

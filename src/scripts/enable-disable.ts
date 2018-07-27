@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { loadCredentials, genLocalResources } from '../cli/utils'
+import { loadCredentials } from '../cli/utils'
 import { stackUtils } from '../'
 
 const {

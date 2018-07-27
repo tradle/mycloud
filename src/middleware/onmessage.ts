@@ -1,10 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import _ from 'lodash'
-import IotMessage from '@tradle/iot-message'
-import { Lambda, Bot } from '../types'
-import { fromDynamoDB } from '../lambda'
-import Errors from '../errors'
+import { Lambda } from '../types'
 
 const notNull = val => !!val
 

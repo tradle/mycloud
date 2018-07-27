@@ -1,16 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import compose from 'koa-compose'
-import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
-import Errors from '../errors'
-import { addLinks } from '../crypto'
-import { createLocker } from '../locker'
-import { allSettled, uniqueStrict } from '../utils'
-import { toBotMessageEvent } from '../utils'
-import { Bot, Lambda } from '../types'
-import { topics as EventTopics, toBatchEvent } from '../events'
-import { EventSource } from '../lambda'
+import { Bot } from '../types'
 
 /**
  * runs after the message has been written to db

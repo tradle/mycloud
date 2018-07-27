@@ -2,7 +2,6 @@
 import Promise from 'bluebird'
 import _ from 'lodash'
 import { Logger } from './types'
-import Errors from './errors'
 import { runWithTimeout } from './utils'
 
 type ShouldRetry = (err) => boolean

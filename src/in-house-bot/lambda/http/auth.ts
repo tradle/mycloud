@@ -1,5 +1,4 @@
 import { createBot } from '../../../'
-import { configureLambda } from '../..'
 
 const bot = createBot()
 const lambda = bot.lambdas.auth()

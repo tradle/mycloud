@@ -1,11 +1,6 @@
 import typeforce from 'typeforce'
 import pick from 'lodash/pick'
-import groupBy from 'lodash/groupBy'
-import forEach from 'lodash/forEach'
-import map from 'lodash/map'
-import notNull from 'lodash/identity'
-import { TYPE } from '@tradle/constants'
-import { DB, IKeyValueStore } from './types'
+import { IKeyValueStore } from './types'
 import Errors from './errors'
 import { execWithTimeout } from './utils'
 

@@ -1,20 +1,16 @@
-import crypto from 'crypto'
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import { utils as dynamoUtils, createTable } from '@tradle/dynamodb'
 import createProductsStrategy from '@tradle/bot-products'
 import createEmployeeManager from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG } from '@tradle/constants'
-import * as StringUtils from '../string-utils'
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
 import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
-import { Onfido, createPlugin as createOnfidoPlugin, registerWebhook } from './plugins/onfido'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import { createConf } from './configure'
 import { plugins as defaultConfs } from './defaults'
@@ -42,17 +38,12 @@ import { Friends } from './friends'
 import {
   Bot,
   IBotComponents,
-  DatedValue,
   IConf,
-  Remediation,
-  Deployment,
-  IPluginOpts,
   IPluginLifecycleMethods,
   IPBReq,
   IPBUser,
   IPBApp,
   ISaveEventPayload,
-  ITradleObject,
   Lambda,
 } from './types'
 
@@ -60,7 +51,6 @@ import Logger from '../logger'
 import baseModels from '../models'
 import Errors from '../errors'
 import constants from '../constants'
-import { Resource } from '../resource'
 import * as LambdaEvents from './lambda-events'
 
 const { MAX_DB_ITEM_SIZE } = constants

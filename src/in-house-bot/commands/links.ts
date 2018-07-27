@@ -1,6 +1,3 @@
-import _ from 'lodash'
-import yn from 'yn'
-import parse from 'yargs-parser'
 import { ICommand } from '../types'
 import { getAppLinks, getAppLinksInstructions } from '../utils'
 

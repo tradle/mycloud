@@ -1,7 +1,5 @@
 
-import superagent from 'superagent'
 import Cache from 'lru-cache'
-import { protocol } from '@tradle/engine'
 import buildResource from '@tradle/build-resource'
 import { ECKey, sha256, randomString } from './crypto'
 import { cachifyFunction, post, omitVirtual } from './utils'

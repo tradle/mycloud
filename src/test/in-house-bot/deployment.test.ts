@@ -1,23 +1,18 @@
 require('../env').install()
 
-import querystring from 'querystring'
 import _ from 'lodash'
 import test from 'tape'
 import sinon from 'sinon'
-import { TYPE, SIG, OWNER } from '@tradle/constants'
+import { TYPE } from '@tradle/constants'
 import fake from '@tradle/build-resource/fake'
 import buildResource from '@tradle/build-resource'
-import { randomString } from '../../crypto'
 import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
 import Errors from '../../errors'
 import { createTestBot } from '../../'
-import { TYPES, PRIVATE_CONF_BUCKET } from '../../in-house-bot/constants'
 import models from '../../models'
-import { IMyDeploymentConf, IBotConf, ICallHomePayload, IConf } from '../../in-house-bot/types'
+import { IMyDeploymentConf } from '../../in-house-bot/types'
 import { createTestEnv } from '../env'
-import { S3Utils } from '../../s3-utils'
-import parseArgs from 'yargs-parser'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils

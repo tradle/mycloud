@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import path from 'path'
 import { getNativeModules, getProductionModules } from '../cli/utils'
 
 (async () => {

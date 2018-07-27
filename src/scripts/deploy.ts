@@ -8,7 +8,6 @@ if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
 
 import promisify from 'pify'
 import _proc from 'child_process'
-import { omit } from 'lodash'
 import serverlessYml from '../cli/serverless-yml'
 
 const proc = promisify(_proc)

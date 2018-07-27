@@ -1,21 +1,19 @@
 import _ from 'lodash'
 import dynogels from 'dynogels'
-import { createTable, DB, Table, utils, defaults, Search } from '@tradle/dynamodb'
+import { createTable, DB, Table, utils, Search } from '@tradle/dynamodb'
 import AWS from 'aws-sdk'
 // import { createMessagesTable } from './messages-table'
-import { Env, Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
+import { Logger, Objects, Messages, ITradleObject, Model, ModelStore, AwsApis } from './types'
 import {
   extendTradleObject,
   pluck,
-  // ensureTimestamped,
-  logify,
   logifyFunction,
   safeStringify,
   getPrimaryKeySchema,
   toSortableTag,
 } from './utils'
 
-import { TYPE, SIG, ORG, AUTHOR, TIMESTAMP, TYPES, UNSIGNED_TYPES } from './constants'
+import { TYPE, SIG, ORG, AUTHOR, TYPES, UNSIGNED_TYPES } from './constants'
 import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES

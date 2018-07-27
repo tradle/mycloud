@@ -1,4 +1,3 @@
-import fs from 'fs'
 import querystring from 'querystring'
 import crypto from 'crypto'
 import zlib from 'zlib'
@@ -9,8 +8,6 @@ import _ from 'lodash'
 import Promise from 'bluebird'
 import lexint from 'lexicographic-integer'
 import {
-  pick,
-  omit,
   merge,
   clone,
   cloneDeep,
@@ -19,7 +16,6 @@ import {
 } from 'lodash'
 
 import AWSXray from 'aws-xray-sdk-core'
-import Cache from 'lru-cache'
 import format from 'string-format'
 import microtime from './microtime'
 import typeforce from 'typeforce'
@@ -33,7 +29,6 @@ import promisify from 'pify'
 import IP from 'ip'
 import isGenerator from 'is-generator-function'
 import { encode as encodeDataURI, decode as decodeDataURI } from 'strong-data-uri'
-import { marshalItem, unmarshalItem } from 'dynamodb-marshaler'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import fetch from 'node-fetch'
@@ -42,12 +37,10 @@ import {
   SIG,
   TYPE,
   TYPES,
-  WARMUP_SLEEP,
   PRIVATE_CONF_BUCKET,
   LAUNCH_STACK_BASE_URL,
   DATE_ZERO,
-  UNSIGNED_TYPES,
-  DB_IGNORE_PAYLOAD_TYPES
+  UNSIGNED_TYPES
 } from './constants'
 
 import Errors from './errors'
@@ -61,8 +54,6 @@ import {
   IBackoffOptions,
   ResourceStub,
   ParsedResourceStub,
-  GetResourceIdentifierInput,
-  IHasLogger,
   IBotMessageEvent,
   Bot,
   Seal,

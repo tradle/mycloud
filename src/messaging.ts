@@ -1,32 +1,23 @@
 import _ from 'lodash'
-import Debug from 'debug'
-import { utils, protocol } from '@tradle/engine'
+import { protocol } from '@tradle/engine'
 import { DB } from '@tradle/dynamodb'
-import Embed from '@tradle/embed'
 import buildResource from '@tradle/build-resource'
-import { getChainKey, getPermalink, addLinks, getSigningKey } from './crypto'
+import { getPermalink, getSigningKey } from './crypto'
 import {
-  cachifyPromiser,
   setVirtual,
   pickVirtual,
   omitVirtual,
-  hasVirtualDeep,
-  omitVirtualDeep,
   typeforce,
   series,
-  ensureTimestamped,
   ensureNoVirtualProps,
   copyVirtual,
   summarizeObject,
-  RESOLVED_PROMISE,
-  parseEnumValue,
 } from './utils'
 
 import Errors from './errors'
 import * as types from './typeforce-types'
 import Env from './env'
 import {
-  IDENTITY_KEYS_KEY,
   SEQ,
   PREVLINK,
   OWNER,
@@ -35,26 +26,17 @@ import {
   SIG,
   AUTHOR,
   ORG,
-  ORG_SIG,
-  PRIVATE_CONF_BUCKET,
   PERMALINK,
   DB_IGNORE_PAYLOAD_TYPES,
   FORBIDDEN_PAYLOAD_TYPES,
 } from './constants'
 
 import {
-  Bucket,
-  ISession,
   ITradleMessage,
   ITradleObject,
-  IIdentity,
-  IPubKey,
-  IDebug,
   ILiveDeliveryOpts,
   ISendOpts,
   IBatchSendOpts,
-  IECMiniPubKey,
-  ISaveObjectOpts,
   Friends,
   Logger,
   Auth,

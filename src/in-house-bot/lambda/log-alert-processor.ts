@@ -3,7 +3,6 @@ import { LOG_ALERTS } from '../lambda-events'
 import Errors from '../../errors'
 import {
   LogProcessor,
-  parseLogAlertsTopicArn,
   fromLambda,
   sendLogAlert,
 } from '../log-processor'

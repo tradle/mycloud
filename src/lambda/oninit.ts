@@ -1,4 +1,3 @@
-import { Lambda } from '../types'
 import { fromCloudFormation } from '../lambda'
 
 export const createLambda = (opts) => {

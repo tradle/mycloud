@@ -1,5 +1,4 @@
 
-import promisify from 'pify'
 import IotMessage from '@tradle/iot-message'
 import { cachifyPromiser } from './utils'
 import { AwsApis, Env, Logger } from './types'

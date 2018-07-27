@@ -1,6 +1,5 @@
 import { utils, protocol } from '@tradle/engine'
-import { promisify, typeforce } from './utils'
-import { prettify } from './string-utils'
+import { promisify } from './utils'
 import adapters from './blockchain-adapter'
 import {
   IDebug,

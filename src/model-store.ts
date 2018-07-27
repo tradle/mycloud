@@ -7,12 +7,10 @@ import {
   ModelStore as DBModelStore
 } from '@tradle/dynamodb'
 
-import { Level } from './logger'
 import { CacheableBucketItem } from './cacheable-bucket-item'
 import Errors from './errors'
 import {
   Bucket,
-  Buckets,
   Friends,
   Logger,
   ModelsPack,

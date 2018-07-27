@@ -1,4 +1,4 @@
-import { EventSource, fromHTTP } from '../../../lambda'
+import { fromHTTP } from '../../../lambda'
 import { configureLambda } from '../..'
 import sampleQueries from '../../sample-queries'
 import { createBot } from '../../../'

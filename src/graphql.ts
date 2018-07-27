@@ -3,11 +3,10 @@ import Promise from 'bluebird'
 import { graphql, introspectionQuery, buildClientSchema } from 'graphql'
 import { print } from 'graphql/language/printer'
 import { parse } from 'graphql/language/parser'
-import { TYPE, TYPES } from '@tradle/constants'
+import { TYPES } from '@tradle/constants'
 import { createSchema } from '@tradle/schema-graphql'
 // import { createResolvers } from '@tradle/dynamodb'
 import { createResolvers } from './resolvers'
-import { uniqueStrict } from './utils'
 import { Bot, Logger, IGraphqlAPI } from './types'
 
 const { MESSAGE } = TYPES

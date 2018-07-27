@@ -1,19 +1,14 @@
 import _ from 'lodash'
-import { utils as tradleUtils } from '@tradle/engine'
 import {
   getLink,
-  addLinks,
   getIdentitySpecs,
   getChainKey,
-  genIdentity,
-  exportKeys
+  genIdentity
 } from './crypto'
 
-import { setVirtual, ensureTimestamped } from './utils'
+import { ensureTimestamped } from './utils'
 import Errors from './errors'
-import models from './models'
 import {
-  TYPE,
   TYPES,
   PRIVATE_CONF_BUCKET,
 } from './constants'
@@ -27,11 +22,9 @@ import {
   DB,
   Storage,
   Buckets,
-  Bucket,
   Logger,
   IIdentity,
   IPrivKey,
-  IIdentityAndKeys,
   Secrets
 } from './types'
 

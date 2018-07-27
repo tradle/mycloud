@@ -7,7 +7,6 @@ import { Job, IBotComponents } from '../types'
 import * as JOBS from '../jobs'
 import {
   WARMUP_PERIOD,
-  WARMUP_FUNCTION,
   DEFAULT_JOB_RUNNER_FUNCTION,
   POLLCHAIN_FUNCTION,
   SEALPENDING_FUNCTION,

@@ -2,8 +2,6 @@
 
 // process.env.IS_LAMBDA_ENVIRONMENT = 'false'
 
-import yn from 'yn'
-import readline from 'readline'
 import { loadCredentials, loadRemoteEnv, confirm } from '../cli/utils'
 
 loadCredentials()

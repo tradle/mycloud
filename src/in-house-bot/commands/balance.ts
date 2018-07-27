@@ -1,6 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import { ICommand, Bot } from '../types'
+import { ICommand } from '../types'
 import Errors from '../../errors'
 
 export const command:ICommand = {

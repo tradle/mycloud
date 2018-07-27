@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-import path from 'path'
-import promisify from 'pify'
 import minimist from 'minimist'
 import AWS from 'aws-sdk'
 import { Logger } from '../logger'

@@ -6,7 +6,6 @@ import buildResource from '@tradle/build-resource'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
-import { appLinks } from '../app-links'
 import {
   Env,
   Bot,
@@ -14,16 +13,13 @@ import {
   Logger,
   ITradleObject,
   IIdentity,
-  IPluginOpts,
   IDeploymentConf,
   IMyDeploymentConf,
   IDeploymentConfForm,
   ICallHomePayload,
-  IKeyValueStore,
   ResourceStub,
   IOrganization,
   IDeploymentPluginConf,
-  IConf,
   IAppLinkSet,
   StackStatusEvent,
   VersionInfo,
@@ -36,7 +32,6 @@ import { Bucket } from '../bucket'
 import { media } from './media'
 import Errors from '../errors'
 import { getLogo } from './image-utils'
-import { alphabetical } from '../string-utils'
 import * as utils from '../utils'
 import * as Templates from './templates'
 import {
@@ -47,7 +42,7 @@ import {
   getTradleBotStub,
 } from './utils'
 
-import { getLogAlertsTopicArn, getLogAlertsTopicName } from './log-processor'
+import { getLogAlertsTopicName } from './log-processor'
 
 const { toSortableTag } = utils
 

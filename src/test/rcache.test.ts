@@ -2,15 +2,11 @@ require('./env').install()
 
 import test from 'tape'
 import sinon from 'sinon'
-import { TYPE, SIG } from '@tradle/constants'
+import { TYPE } from '@tradle/constants'
 import {
   loudAsync,
 } from '../utils'
 
-import {
-  prettify
-} from '../string-utils'
-import { randomString } from '../crypto'
 import models from '../models'
 import { createTestBot } from '../'
 import { getResourceModuleStore } from '../utils'

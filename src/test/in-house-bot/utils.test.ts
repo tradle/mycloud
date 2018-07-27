@@ -1,9 +1,6 @@
 require('../env').install()
 
-import _ from 'lodash'
-import Promise from 'bluebird'
 import test from 'tape'
-import sinon from 'sinon'
 import buildResource from '@tradle/build-resource'
 
 import * as bizUtils from '../../in-house-bot/utils'

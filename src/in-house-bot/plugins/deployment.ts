@@ -1,16 +1,9 @@
-import querystring from 'querystring'
-import _ from 'lodash'
 import { selectModelProps } from '../../utils'
-import { prettify } from '../../string-utils'
 import {
-  Env,
-  Bot,
-  Bucket,
   IPluginOpts,
   CreatePlugin,
   IDeploymentConf,
   IDeploymentPluginConf,
-  ITradleObject,
   IPBReq,
   Conf
 } from '../types'

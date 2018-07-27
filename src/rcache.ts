@@ -1,21 +1,13 @@
 import _ from 'lodash'
-import Errors from './errors'
 import {
-  Bot,
   Model,
-  Models,
   IHasModels,
-  ITradleObject,
-  ResourceStub
+  ITradleObject
 } from './types'
 
-import { UNSIGNED_TYPES } from './constants'
 import { mixin as modelsMixin } from './models-mixin'
-import {
-  parseStub
-} from './utils'
 
-import { Resource, IResourcePersister, serializeKey } from './resource'
+import { Resource, IResourcePersister } from './resource'
 
 export class RCache implements IHasModels {
   public store: IResourcePersister

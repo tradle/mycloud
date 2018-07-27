@@ -1,5 +1,4 @@
 import { TYPE } from '@tradle/constants'
-import isEqual from 'lodash/isEqual'
 import { Bot } from './types'
 import {
   wait

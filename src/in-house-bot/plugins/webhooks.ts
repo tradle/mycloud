@@ -1,6 +1,5 @@
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
-import { Conf, IPluginOpts, IPluginLifecycleMethods, CreatePlugin } from '../types'
+import { Conf, IPluginOpts, CreatePlugin } from '../types'
 import { Webhooks, IWebhooksConf, IWebhookEvent } from '../webhooks'
 import { randomString } from '../../crypto'
 import { topics as EventTopics } from '../../events'

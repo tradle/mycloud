@@ -1,20 +1,7 @@
-import { omit, intersection } from 'lodash'
+import { omit } from 'lodash'
 import { DynamoDB } from 'aws-sdk'
-import {
-  AttributePath,
-  PathElement,
-  UpdateExpression,
-  ConditionExpression,
-  ExpressionAttributes
-} from '@aws/dynamodb-expressions'
 
 import { TYPE } from '@tradle/constants'
-import {
-  unmarshallDBItem,
-  marshallDBItem,
-  toAttributePath,
-  PropPath
-} from './db-utils'
 
 import {
   IKeyValueStore,
@@ -23,7 +10,7 @@ import {
 } from './types'
 
 import Errors from './errors'
-import { toPathValuePairs, ensureTimestamped } from './utils'
+import { ensureTimestamped } from './utils'
 import models from './models'
 
 const KVModel = models['tradle.POJO']

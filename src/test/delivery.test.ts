@@ -6,10 +6,8 @@ import _ from 'lodash'
 import sinon from 'sinon'
 import test from 'tape'
 import { TYPE } from '@tradle/constants'
-import { Delivery } from '../delivery-http'
 import { createTestBot } from '../'
 import { loudAsync, wait } from '../utils'
-import Errors from '../errors'
 import { TYPES } from '../constants'
 
 const { DELIVERY_ERROR } = TYPES

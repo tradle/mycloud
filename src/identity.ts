@@ -1,15 +1,13 @@
-import extend from 'lodash/extend'
 import clone from 'lodash/clone'
 import cloneDeep from 'lodash/cloneDeep'
 import protocol from '@tradle/protocol'
 import {
   cachifyPromiser,
-  setVirtual,
   omitVirtualDeep,
   summarizeObject
 } from './utils'
 
-import { AUTHOR, ORG, ORG_SIG, WITNESSES, SIG } from './constants'
+import { AUTHOR, ORG, ORG_SIG, SIG } from './constants'
 
 import {
   IPubKey,
@@ -23,7 +21,7 @@ import {
   Logger
 } from './types'
 
-import { addLinks, getLink, getPermalink, extractSigPubKey, getSigningKey, getChainKey, sign } from './crypto'
+import { getPermalink, getSigningKey, getChainKey, sign } from './crypto'
 import Errors from './errors'
 
 type IdentityOpts = {

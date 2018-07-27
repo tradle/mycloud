@@ -1,6 +1,4 @@
 import _ from 'lodash'
-import { TYPE } from '@tradle/constants'
-import { pluck } from '../utils'
 
 const LOCALLY_AVAILABLE = [
   'AWS::DynamoDB::Table',

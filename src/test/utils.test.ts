@@ -4,15 +4,10 @@ import test from 'tape'
 import _ from 'lodash'
 import Cache from 'lru-cache'
 import sinon from 'sinon'
-import AWS from 'aws-sdk'
-import { SIG } from '@tradle/constants'
 import ModelsPack from '@tradle/models-pack'
 import Logger from '../logger'
-import KeyValueTable from '../key-value-table'
 import KV from '../kv'
 import KVS3 from '../kv-s3'
-import Mailer from '../mailer'
-import { getFaviconUrl } from '../in-house-bot/image-utils'
 import { randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey, ECKey } from '../crypto'
 import * as utils from '../utils'
 import {
@@ -21,25 +16,19 @@ import {
   cachify,
   cachifyFunction,
   cachifyPromiser,
-  clone,
   batchByByteLength,
   promisify,
   wrap,
   wait,
   timeoutIn,
   batchProcess,
-  toModelsMap,
-  stableStringify,
   runWithBackoffWhile
 } from '../utils'
 import Errors from '../errors'
 import { createTestBot } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
-import { ModelStore, createModelStore } from '../model-store'
 import { models as PingPongModels } from '../ping-pong-models'
-import constants from '../constants'
-import models from '../models'
 import {
   IKeyValueStore,
   Bot

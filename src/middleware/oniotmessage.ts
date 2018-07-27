@@ -2,7 +2,6 @@
 import Promise from 'bluebird'
 import IotMessage from '@tradle/iot-message'
 import { Lambda } from '../types'
-import { fromDynamoDB } from '../lambda'
 import Errors from '../errors'
 import { summarizeObject } from '../utils'
 

@@ -1,7 +1,6 @@
 import { createConf } from '../configure'
 import { createBot } from '../../'
 // import { STACK_UPDATED } from '../lambda-events'
-import { IBotComponents } from '../types'
 
 const bot = createBot()
 const lambda = bot.lambdas.oninit()

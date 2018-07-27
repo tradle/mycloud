@@ -7,7 +7,6 @@ import _ from 'lodash'
 import { SES } from 'aws-sdk'
 import Errors from './errors'
 import {
-  AwsApis,
   Logger,
   IMailer,
   IMailerSendEmailOpts,

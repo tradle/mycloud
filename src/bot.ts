@@ -6,10 +6,9 @@ import createCredstash from 'nodecredstash'
 import { DB, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
-import protocol from '@tradle/protocol'
 import { mixin as readyMixin, IReady } from './ready-mixin'
 import { mixin as modelsMixin } from './models-mixin'
-import { topics as EventTopics, toAsyncEvent, toBatchEvent, getSealEventTopic } from './events'
+import { topics as EventTopics, toAsyncEvent, toBatchEvent } from './events'
 import { requireDefault } from './require-default'
 import { createServiceMap } from './service-map'
 import { ModelStore, createModelStore } from './model-store'
@@ -51,13 +50,9 @@ import {
   ILambdaImpl,
   Lambda,
   LambdaCreator,
-  ResourceStub,
-  ParsedResourceStub,
-  BotStrategyInstallFn,
   ILambdaOpts,
   ITradleObject,
   ITradleMessage,
-  IDeepLink,
   IBotOpts,
   AppLinks,
   IGraphqlAPI,
@@ -66,7 +61,6 @@ import {
   HooksHookFn,
   Seal,
   IBotMessageEvent,
-  IKeyValueStore,
   ISaveEventPayload,
   GetResourceIdentifierInput,
   IHasModels,
@@ -75,7 +69,6 @@ import {
   IServiceMap,
   Buckets,
   Tables,
-  Bucket,
   IMailer,
   PresignEmbeddedMediaOpts,
   ILambdaExecutionContext,
@@ -98,7 +91,6 @@ import Push from './push'
 import Seals from './seals'
 import Blockchain from './blockchain'
 import Backlinks from './backlinks'
-import Mailer from './mailer'
 import Delivery from './delivery'
 import Discovery from './discovery'
 import Friends from './friends'

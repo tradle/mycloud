@@ -1,20 +1,15 @@
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { utils as DDBUtils, OrderBy, FindOpts } from '@tradle/dynamodb'
 import {
-  parseStub,
   parsePermId,
   uniqueStrict,
   pluck,
-  toPathValuePairs,
-  getPermId,
   getResourceIdentifier,
   RESOLVED_PROMISE,
-  isUnsignedType,
   allSettled,
   isWellBehavedIntersection
 } from './utils'
@@ -25,7 +20,6 @@ import {
   ModelStore,
   Models,
   Model,
-  Middleware,
   DB,
   ResourceStub,
   ParsedResourceStub,
@@ -36,7 +30,6 @@ import {
   Identity
 } from './types'
 
-import { getRecordsFromEvent } from './db-utils'
 import { Resource, getForwardLinks, getBacklinkProperties } from './resource'
 import Errors from './errors'
 import { TYPES } from './constants'

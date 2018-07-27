@@ -1,6 +1,4 @@
-import _ from 'lodash'
 import format from 'string-format'
-import Logger from '../logger'
 import serverlessYml from '../cli/serverless-yml'
 const {
   service,

@@ -2,9 +2,7 @@ import pick from 'lodash/pick'
 import clone from 'lodash/clone'
 import cloneDeep from 'lodash/cloneDeep'
 import Embed from '@tradle/embed'
-import { protocol } from '@tradle/engine'
 import {
-  IDebug,
   ITradleObject,
   IRetryableTaskOpts,
   S3Utils,
@@ -17,16 +15,12 @@ import {
 
 import * as types from './typeforce-types'
 import Errors from './errors'
-import { TYPE, PREVLINK, PERMALINK, OWNER } from './constants'
+import { TYPE } from './constants'
 import {
   typeforce,
-  omitVirtual,
   setVirtual,
   download,
-  summarizeObject,
-  ensureTimestamped,
   logifyFunction,
-  RESOLVED_PROMISE,
 } from './utils'
 import { extractSigPubKey, getLinks } from './crypto'
 import { MiddlewareContainer } from './middleware-container'

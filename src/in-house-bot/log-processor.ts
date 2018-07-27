@@ -1,18 +1,13 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import omit from 'lodash/omit'
-import notNull from 'lodash/identity'
-import groupBy from 'lodash/groupBy'
 import Errors from '../errors'
 import { StackUtils } from '../stack-utils'
 import { TRADLE } from './constants'
 import { sha256 } from '../crypto'
 import {
-  Env,
   Bot,
   IPBLambda,
   SNSEvent,
-  SNSEventRecord,
   CloudWatchLogsEvent,
   CloudWatchLogsEntry,
   IKeyValueStore,

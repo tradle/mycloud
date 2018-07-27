@@ -2,14 +2,12 @@ import { EventEmitter } from 'events'
 import _ from 'lodash'
 import { SEQ } from '@tradle/constants'
 import Errors from './errors'
-import { typeforce, omitVirtual, batchByByteLength, bindAll } from './utils'
-import { getLink } from './crypto'
+import { omitVirtual, batchByByteLength } from './utils'
 import {
   IDelivery,
   ILiveDeliveryOpts,
   Messages,
   Objects,
-  Env,
   Auth,
   Logger,
   Iot

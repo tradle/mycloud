@@ -3,7 +3,6 @@ import Promise from 'bluebird'
 import _ from 'lodash'
 import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
-import mergeModels from '@tradle/merge-models'
 import ModelsPack from '@tradle/models-pack'
 import { Plugins } from './plugins'
 import { Deployment } from './deployment'
@@ -11,9 +10,8 @@ import { getLogo } from './image-utils'
 import baseModels from '../models'
 import { CacheableBucketItem } from '../cacheable-bucket-item'
 import Errors from '../errors'
-import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise, post } from '../utils'
+import { allSettled, RESOLVED_PROMISE, omitVirtual, toPromise } from '../utils'
 import { toggleDomainVsNamespace } from '../model-store'
-import { appLinks } from '../app-links'
 import {
   Bot,
   ModelStore,
@@ -24,7 +22,6 @@ import {
   ITradleObject,
   IConf,
   IBotConf,
-  IDeploymentConf,
   IMyDeploymentConf,
   IOrganization,
 } from './types'
@@ -37,11 +34,9 @@ import {
 import {
   PRIVATE_CONF_BUCKET,
   TYPES,
-  TRADLE,
 } from './constants'
 
 import { defaultConf } from './default-conf'
-import { media } from './media'
 
 const { DEPLOYMENT_PRODUCT, ORGANIZATION, STYLES_PACK } = TYPES
 const parseJSON = JSON.parse.bind(JSON)

@@ -1,11 +1,8 @@
 require('./env').install()
 
 import test from 'tape'
-import sinon from 'sinon'
-import { models } from '@tradle/models'
-import { TYPE, AUTHOR, SIG, TIMESTAMP } from '@tradle/constants'
-import buildResource from '@tradle/build-resource'
-import { loudAsync, co, wait } from '../utils'
+import { TYPE, TIMESTAMP } from '@tradle/constants'
+import { loudAsync } from '../utils'
 import { createTestBot } from '../'
 
 const fakeResource = require('@tradle/build-resource/fake')

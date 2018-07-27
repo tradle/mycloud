@@ -7,7 +7,7 @@ import { TYPE } from '@tradle/constants'
 import { Bot, Logger, IStreamEvent, IBackoffOptions, TopicOrString } from './types'
 import Errors from '../errors'
 import { runWithTimeout, runWithBackoffWhile, batchProcess, allSettled } from '../utils'
-import { topics as EventTopics, EventTopic, TOPICS } from '../events'
+import { EventTopic, TOPICS } from '../events'
 
 export interface IWebhookSubscription {
   id: string

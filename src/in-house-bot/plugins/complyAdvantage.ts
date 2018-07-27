@@ -1,7 +1,6 @@
 import fetch from 'node-fetch'
 
-import buildResource from '@tradle/build-resource'
-import { buildResourceStub, title } from '@tradle/build-resource'
+import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import validateResource from '@tradle/validate-resource'
 // @ts-ignore
@@ -16,8 +15,7 @@ import {
   Applications
 } from '../types'
 
-import { parseStub } from '../../utils'
-import { getParsedFormStubs, getCheckParameters, getStatusMessageForCheck } from '../utils'
+import { getCheckParameters, getStatusMessageForCheck } from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'

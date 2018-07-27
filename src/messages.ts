@@ -1,12 +1,9 @@
 import _ from 'lodash'
-import AWS from 'aws-sdk'
 import { TYPE, SIG } from '@tradle/constants'
 import { FindOpts } from '@tradle/dynamodb'
 import { utils as tradleUtils } from '@tradle/engine'
 import {
-  IDebug,
   ITradleMessage,
-  ITradleObject,
   IECMiniPubKey,
   Env,
   Identities,
@@ -20,20 +17,14 @@ import {
   typeforce,
   pickVirtual,
   setVirtual,
-  bindAll,
-  getHourNumber,
-  logify,
-  RESOLVED_PROMISE
+  logify
 } from './utils'
 import { getLink } from './crypto'
-import { prettify } from './string-utils'
 import * as types from './typeforce-types'
 import {
   TYPES,
-  MAX_CLOCK_DRIFT,
   SEQ,
   PREV_TO_RECIPIENT,
-  PREVLINK,
   TIMESTAMP
 } from './constants'
 

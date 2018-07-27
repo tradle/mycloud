@@ -1,9 +1,7 @@
-import Env from '../../env'
 import Logger from '../../logger'
 import Cli from '../'
 import Command from '../command'
 import { prettify } from '../../string-utils'
-import { ICommand } from '../../in-house-bot/types'
 
 const skip = [
   'pubkeys',

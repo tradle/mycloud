@@ -1,7 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import { Lambda } from '../types'
-import { fromDynamoDB } from '../lambda'
 import Errors from '../errors'
 
 const notNull = val => !!val

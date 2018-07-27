@@ -1,6 +1,5 @@
 require('../env').install()
 
-import crypto from 'crypto'
 import test from 'tape'
 import sinon from 'sinon'
 import * as LP from '../../in-house-bot/log-processor'

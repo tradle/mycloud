@@ -6,7 +6,6 @@ import { TYPE } from '@tradle/constants'
 import {
   Bot,
   IMailer,
-  KeyValueTable,
   Commander,
   ICommandOutput1,
   IDeferredCommandParams,
@@ -17,7 +16,6 @@ import {
 
 import * as Templates from './templates'
 import Errors from '../errors'
-import { getEnumValueId } from '../utils'
 import baseModels from '../models'
 
 const STATUS = 'tradle.Status'

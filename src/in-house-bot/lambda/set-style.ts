@@ -1,5 +1,5 @@
 import { EventSource } from '../../lambda'
-import { Conf, createConf } from '../configure'
+import { createConf } from '../configure'
 import { createBot } from '../../'
 
 const bot = createBot()

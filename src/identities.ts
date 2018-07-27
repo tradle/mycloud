@@ -1,9 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import extend from 'lodash/extend'
 import clone from 'lodash/clone'
 import Cache from 'lru-cache'
-import buildResource from '@tradle/build-resource'
 import constants from './constants'
 import Errors from './errors'
 import {
@@ -11,29 +9,21 @@ import {
   logify,
   typeforce,
   omitVirtual,
-  setVirtual,
   bindAll,
   cachifyFunction,
-  cachifyPromiser,
-  omitVirtualDeep,
-  summarizeObject,
-  RESOLVED_PROMISE,
-  instrumentWithXray,
   ensureTimeIsPast,
 } from './utils'
 
-import { addLinks, getLink, getLinks, getPermalink, extractSigPubKey, getSigningKey, sign } from './crypto'
+import { addLinks, getLink, getLinks, getPermalink, extractSigPubKey } from './crypto'
 import * as types from './typeforce-types'
 import {
   IIdentity,
-  IIdentityAndKeys,
   ITradleObject,
   Env,
   Logger,
   Objects,
   Storage,
   DB,
-  Bucket,
   ModelStore,
   IHasLogger
 } from './types'

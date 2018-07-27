@@ -4,7 +4,6 @@ require('source-map-support').install()
 require('../test/env').install()
 
 import {
-  clear,
   Test
 } from '../test/end-to-end'
 

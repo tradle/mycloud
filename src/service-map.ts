@@ -1,4 +1,4 @@
-import { Env, IBucketsInfo, IServiceMap } from './types'
+import { Env, IServiceMap } from './types'
 import { ENV_RESOURCE_PREFIX } from './constants'
 
 const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)(?:_(.*))?$`)

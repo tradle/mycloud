@@ -1,4 +1,3 @@
-import parse from 'yargs-parser'
 import { ICommand } from '../types'
 import { createConf } from '../configure'
 
