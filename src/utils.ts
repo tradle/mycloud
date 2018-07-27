@@ -1543,13 +1543,15 @@ export const listIamRoles = async (iam: AWS.IAM) => {
   return roles
 }
 
+// e.g. '1.2.0-rc.0', '1.2.0-alpha.0', '1.2.0-trans.0'
+const isExperimentalVersionTag = (tag: string) => /-[^.]+\./.test(tag)
+
 export const toSortableTag = (semver: string) => {
   const tag = semver
     .replace(/^v/, '')
     .replace(/\d+/g, part => toLexicographicInt(Number(part)))
 
-  if (tag.includes('-rc.')) {
-    // e.g. '1.2.0-rc.0'
+  if (isExperimentalVersionTag(tag)) {
     return tag
   }
 
