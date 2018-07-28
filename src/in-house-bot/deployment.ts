@@ -98,8 +98,7 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
 }
 
 const ALERT_BRANCHES = [
-  'master',
-  'jobs'
+  'master'
 ]
 
 // generated in AWS console
