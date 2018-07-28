@@ -478,6 +478,7 @@ test('tradle and children', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const region = 'ap-southeast-2'
   const tradle = createTestBot()
+  tradle.version.commitsSinceTag = 10
   const child = createTestBot({
     env: createTestEnv({
       AWS_REGION: region,
@@ -485,6 +486,7 @@ test('tradle and children', loudAsync(async (t) => {
     })
   })
 
+  child.version.commitsSinceTag = 10
   const tradleDeployment = new Deployment({
     bot: tradle,
     logger: tradle.logger.sub('deployment:test:parent'),
