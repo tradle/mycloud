@@ -3,6 +3,7 @@ import Promise from 'bluebird'
 import json2yaml from 'json2yaml'
 import map from 'lodash/map'
 import pick from 'lodash/pick'
+import truncate from 'lodash/truncate'
 import isEmpty from 'lodash/isEmpty'
 import Errors from '../errors'
 import { StackUtils } from '../stack-utils'
@@ -542,7 +543,7 @@ export const generateAlertEmail = (alert: ParsedAlertEvent) => {
     .map(e => e.msg)
 
   const { stackName, accountId } = alert
-  const subject = `logging alert: ${stackName} (${accountId}): ${errorMsgs[0]}`
+  const subject = truncate(`logging alert: ${stackName} (${accountId}): ${errorMsgs[0]}`, { length: 100 })
   let body = json2yaml.stringify(gist)
   if (errorMsgs.length) {
     body = `ERRORS: ${errorMsgs.join('\n')}
