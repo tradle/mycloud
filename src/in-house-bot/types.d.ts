@@ -360,6 +360,7 @@ export interface ICallHomePayload {
   apiUrl: string
   stackId: string
   version: MiniVersionInfo
+  adminEmail: string
   logo?: string
 }
 

@@ -40,6 +40,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const parent = createTestBot()
   const child = createBotInRegion({ region })
+  sandbox.stub(child.stackUtils, 'getCurrentAdminEmail').resolves(conf.adminEmail)
 
   const childUrl = 'childurl'
   child.serviceMap.RestApi.ApiGateway.url = childUrl
@@ -108,13 +109,14 @@ test('deployment by referral', loudAsync(async (t) => {
       name: childOrg.name,
       domain: childOrg.domain,
       identity: childIdentity,
-      apiUrl: childUrl
+      apiUrl: childUrl,
     }
 
     expectedLaunchReport = {
       ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'stage', 'service', 'stackName', 'logo']),
       org: _.pick(deploymentConf, ['name', 'domain']),
       version: child.version,
+      adminEmail: conf.adminEmail,
     }
 
     ;['identity', 'org'].forEach(prop => {
@@ -487,6 +489,8 @@ test('tradle and children', loudAsync(async (t) => {
   })
 
   child.version.commitsSinceTag = 10
+  sandbox.stub(child.stackUtils, 'getCurrentAdminEmail').resolves('child@mycloud.tradle.io')
+
   const tradleDeployment = new Deployment({
     bot: tradle,
     logger: tradle.logger.sub('deployment:test:parent'),

@@ -151,18 +151,20 @@ type ChildStackIdentifier = {
   stackId: string
 }
 
-type CallHomeOpts = {
+interface CallHomeOpts {
   identity?: IIdentity
   org?: IOrganization
   referrerUrl?: string
   deploymentUUID?: string
+  adminEmail?: string
 }
 
-type CallHomeToOpts = {
+interface CallHomeToOpts {
   identity?: IIdentity
   org?: IOrganization
   targetApiUrl?: string
   deploymentUUID?: string
+  adminEmail?: string
 }
 
 // interface IUpdateChildDeploymentOpts {
@@ -259,7 +261,7 @@ export class Deployment {
     ])
 
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
-    const { templateUrl } = await this._saveTemplateAndCode({ parentTemplate: parentTemplate, template, bucket })
+    const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
@@ -450,14 +452,11 @@ export class Deployment {
     })
   }
 
-  public callHome = async ({ identity, org, referrerUrl, deploymentUUID }: CallHomeOpts={}) => {
+  public callHome = async ({ identity, org, referrerUrl, deploymentUUID, adminEmail }: CallHomeOpts={}) => {
     if (this.isTradle) return
 
     const { bot, logger } = this
     logger.debug('preparing to call home')
-
-    if (!org) org = this.org
-    if (!identity) identity = await this.bot.getMyIdentity()
 
     const tasks = []
     if (referrerUrl && deploymentUUID) {
@@ -466,7 +465,8 @@ export class Deployment {
         identity,
         org,
         targetApiUrl: referrerUrl,
-        deploymentUUID
+        deploymentUUID,
+        adminEmail,
       })
       .catch(err => {
         this.logger.debug('failed to call home to parent', {
@@ -499,11 +499,16 @@ export class Deployment {
     })
   }
 
-  public callHomeTo = async ({ targetApiUrl, identity, org, deploymentUUID }: CallHomeToOpts) => {
+  public callHomeTo = async (opts: CallHomeToOpts) => {
     if (this.bot.env.IS_OFFLINE) return {}
 
-    if (!org) org = this.org
-    if (!identity) identity = await this.bot.getMyIdentity()
+    let {
+      targetApiUrl,
+      identity,
+      org,
+      deploymentUUID,
+      adminEmail,
+    } = await this._normalizeCallHomeToOpts(opts)
 
     org = utils.omitVirtual(org)
     identity = utils.omitVirtual(identity)
@@ -535,6 +540,7 @@ export class Deployment {
       identity,
       stackId: this._thisStackArn,
       version: this.bot.version,
+      adminEmail,
     }) as ICallHomePayload
 
     try {
@@ -569,7 +575,7 @@ export class Deployment {
   }
 
   public handleCallHome = async (report: ICallHomePayload) => {
-    const { deploymentUUID, apiUrl, org, identity, stackId, version } = report
+    const { deploymentUUID, apiUrl, org, identity, stackId, version, adminEmail } = report
     let childDeployment
     if (deploymentUUID) {
       try {
@@ -614,6 +620,7 @@ export class Deployment {
         identity: friend.identity,
         stackId,
         version,
+        adminEmail,
       }))
 
     if (childDeployment) {
@@ -1420,6 +1427,15 @@ ${this.genUsageInstructions(links)}`
     }))
 
     return true
+  }
+
+  private _normalizeCallHomeToOpts = async (opts: Partial<CallHomeToOpts>) => {
+    return await Promise.props({
+      ...opts,
+      org: opts.org || this.org,
+      identity: opts.identity || this.bot.getMyIdentity(),
+      adminEmail: opts.adminEmail || this.bot.stackUtils.getCurrentAdminEmail(),
+    })
   }
 
   private _saveVersionInfoResource = async (versionInfo: VersionInfo) => {
