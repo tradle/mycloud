@@ -1177,8 +1177,9 @@ export const syncClock = async (bot:Bot) => {
   const { aws, buckets } = bot
   const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
-  await PrivateConf.head(PRIVATE_CONF_BUCKET.identity)
-    .catch(Errors.ignoreNotFound)
+  await PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch(err => {
+    Errors.rethrow(err, 'developer')
+  })
 }
 
 export const summarize = (payload:any):string => {
