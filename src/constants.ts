@@ -137,6 +137,7 @@ const constants = {
   DATE_ZERO: 0, // 1514764800000 // 2018-01-01 UTC
   UNSIGNED_TYPES,
   FORBIDDEN_PAYLOAD_TYPES: UNSIGNED_TYPES,
+  ADMIN_ALERTS_TOPIC_NAME: 'AdminAlerts'
 }
 
 export = constants

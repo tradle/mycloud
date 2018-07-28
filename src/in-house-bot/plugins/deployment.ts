@@ -43,7 +43,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     }
 
     const link = form._link
-    const configuration = deployment.parseConfigurationForm(form)
+    const configuration = Deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink
     const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentConf
 

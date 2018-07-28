@@ -467,6 +467,9 @@ export type IServiceMap = {
   }
   Role: AttrMap
   Key: AttrMap
+  Topic: {
+    AdminAlerts: string
+  }
   Stack: string
 }
 
@@ -778,4 +781,10 @@ export type SNSEventRecord = {
 
 export type SNSEvent = {
   Records: SNSEventRecord[]
+}
+
+export interface SNSMessage {
+  default: any
+  email?: any
+  lambda?: any
 }

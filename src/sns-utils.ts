@@ -4,11 +4,13 @@ import isMatch from 'lodash/isMatch'
 import {
   AwsApis,
   Logger,
+  SNSMessage,
 } from './types'
 
 import {
   parseArn,
-  genStatementId
+  genStatementId,
+  pickNonNull,
 } from './utils'
 
 export class SNSUtils {
@@ -105,13 +107,30 @@ export class SNSUtils {
     return sub
   }
 
-  public publish = async ({ topic, message }) => {
-    if (typeof message !== 'string') message = JSON.stringify(message)
-
-    await this._client(topic).publish({
+  public publish = async ({ topic, subject, message }: {
+    topic: string
+    message: SNSMessage|string
+    subject?: string
+  }) => {
+    const params:AWS.SNS.PublishInput = {
       TopicArn: topic,
-      Message: message
-    }).promise()
+      Subject: subject,
+      Message: null,
+    }
+
+    if (typeof message === 'string') {
+      params.Message = message
+    } else {
+      params.MessageStructure = 'json'
+      params.Message = JSON.stringify({
+        ...message,
+        default: typeof message.default === 'string' ? message.default : JSON.stringify(message.default)
+      })
+    }
+
+    await this._client(topic).publish(
+      pickNonNull(params) as AWS.SNS.PublishInput
+    ).promise()
   }
 
   private _client = (arnOrRegion?: string) => {

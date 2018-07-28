@@ -14,6 +14,7 @@ import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import { createConf } from './configure'
 import { plugins as defaultConfs } from './defaults'
+import { Deployment } from './deployment'
 
 import {
   createPlugin as keepModelsFreshPlugin,
@@ -45,15 +46,16 @@ import {
   IPBApp,
   ISaveEventPayload,
   Lambda,
+  ITradleObject,
+  VersionInfo,
 } from './types'
 
 import Logger from '../logger'
 import baseModels from '../models'
 import Errors from '../errors'
-import constants from '../constants'
+import { TRADLE } from './constants'
 import * as LambdaEvents from './lambda-events'
 
-const { MAX_DB_ITEM_SIZE } = constants
 const { parseStub } = validateResource.utils
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DONT_FORWARD_FROM_EMPLOYEE = [
@@ -70,6 +72,7 @@ const HELP_REQUEST = 'tradle.RequestForAssistance'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const APPLICATION = 'tradle.Application'
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
 const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
@@ -343,10 +346,22 @@ export const loadComponentsAndPlugins = ({
       }
     }
 
+    const processCreate = async (resource: ITradleObject) => {
+      const type = resource[TYPE]
+      if (type === VERSION_INFO &&
+        resource._org === TRADLE.PERMALINK &&
+        Deployment.isMainlineReleaseTag(resource.tag)) {
+        await components.deployment.alertAdminAboutAvailableUpdate(resource as VersionInfo)
+        return
+      }
+    }
+
     bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
       const { old, value } = change
       if (old && value) {
         await processChange(change)
+      } else if (value) {
+        await processCreate(value)
       }
     })
 

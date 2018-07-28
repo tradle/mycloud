@@ -6,6 +6,7 @@ import buildResource from '@tradle/build-resource'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
+import baseModels from '../models'
 import {
   Env,
   Bot,
@@ -192,6 +193,12 @@ interface UpdateRequest extends ITradleObject {
   tag: string
 }
 
+interface VersionEmailInput {
+  current: VersionInfo
+  update: VersionInfo
+  org: IOrganization
+}
+
 const ADMIN_MAPPING_PATH = ['org', 'contact', 'adminEmail']
 const ADMIN_EMAIL_ENDPOINT = {
   'Fn::FindInMap': ADMIN_MAPPING_PATH
@@ -216,6 +223,24 @@ export class Deployment {
   private conf?: IDeploymentPluginConf
   private org?: IOrganization
   private isTradle: boolean
+
+  public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
+  public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
+  public static isReleaseCandidateTag = (tag: string) => /-rc\.\d+$/.test(tag)
+  public static isTransitionReleaseTag = (tag: string) => /-trans/.test(tag)
+  public static isMainlineReleaseTag = (tag: string) => /^v?\d+.\d+.\d+$/.test(tag)
+  public static parseConfigurationForm = (form: ITradleObject): IDeploymentConf => {
+    const region = utils.getEnumValueId({
+      model: baseModels[AWS_REGION],
+      value: form.region
+    })
+
+    return {
+      ...form,
+      region: Deployment.decodeRegion(region)
+    } as IDeploymentConf
+  }
+
   constructor({ bot, logger, conf, org }: DeploymentCtorOpts) {
     this.bot = bot
     this.snsUtils = bot.snsUtils
@@ -880,23 +905,6 @@ ${this.genUsageInstructions(links)}`
     return `${referrerUrl}/deploymentPingback`
   }
 
-  public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
-  public encodeRegion = Deployment.encodeRegion
-  public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
-  public decodeRegion = Deployment.decodeRegion
-
-  public parseConfigurationForm = (form: ITradleObject): IDeploymentConf => {
-    const region = utils.getEnumValueId({
-      model: this.bot.models[AWS_REGION],
-      value: form.region
-    })
-
-    return <IDeploymentConf>{
-      ...form,
-      region: this.decodeRegion(region)
-    }
-  }
-
   public deleteTmpSNSTopic = async (topic: string) => {
     const shortName = topic.split(/[/:]/).pop()
     if (!shortName.startsWith('tmp-')) {
@@ -1408,7 +1416,31 @@ ${this.genUsageInstructions(links)}`
     return sortVersions(items)
   }
 
-  public alertAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
+  public alertAdminAboutAvailableUpdate = async (update: VersionInfo) => {
+    this.logger.debug('alerting admin about available update')
+    const topic = this.bot.serviceMap.Topic.AdminAlerts
+    const current = this.bot.version
+    if (utils.compareTags(current.tag, update.tag) >= 0) {
+      throw new Errors.InvalidInput(`expected update version ${update.tag} to be greater than current version ${current.tag}`)
+    }
+
+    const { org } = this
+    const email = generateVersionAlertEmailText({ org, current, update })
+    await this.snsUtils.publish({
+      topic,
+      subject: generateVersionAlertSubject({ org, current, update }),
+      message: {
+        default: {
+          tag: update.tag,
+        },
+        email,
+        // lambda: {
+        // }
+      }
+    })
+  }
+
+  public alertChildrenAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
     utils.requireOpts(versionInfo, 'tag')
     if (!versionInfo[SIG]) {
       versionInfo = await this.getVersionInfoByTag(versionInfo.tag)
@@ -1613,7 +1645,7 @@ ${this.genUsageInstructions(links)}`
     const forced = this.bot.version.alert
     const should = updated && shouldSendVersionAlert(this.bot.version)
     if (forced || should) {
-      await this.alertAboutVersion(versionInfo)
+      await this.alertChildrenAboutVersion(versionInfo)
     }
   }
 
@@ -1659,13 +1691,6 @@ ${this.genUsageInstructions(links)}`
 
   //   return updated.toJSON()
   // }
-
-  private _regionalSNS = (arn: string) => {
-    const region = getArnRegion(arn)
-    const { regional } = this.bot.aws
-    const services = regional[region]
-    return services.sns
-  }
 }
 
 // const UPDATE_STACK_LAMBDAS = [
@@ -1700,6 +1725,38 @@ export const getCrossAccountLambdaRole = ({ stackId, lambdaName }: {
 }
 
 export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
+
+export const generateVersionAlertSubject = ({ org, current, update }: VersionEmailInput) => {
+  return `${org.name} MyCloud update available: ${current.tag} -> ${update.tag}`
+}
+
+export const generateVersionAlertEmailText = ({ org, current, update }: VersionEmailInput) => {
+  let greeting = `Dear Admin`
+  if (Math.random() < 0.1) {
+    greeting += '(can I call you Ad?)'
+  }
+
+  return `${greeting},
+
+This is your ${org.name} MyCloud speaking. I hope you're well.
+
+The Tradle mothership has just informed me there's an update available: ${update.tag}
+
+I'm currently at version ${current.tag}
+
+To see what changed from ${current.tag} to ${update.tag}, look here:
+https://github.com/tradle/serverless/blob/master/CHANGELOG.md
+
+Updating me requires installing the tradleconf tool, which you can find here:
+https://github.com/tradle/configure-tradle
+
+Once you've installed tradleconf, run this command:
+tradleconf update --tag ${update.tag}
+
+Make me young again,
+Your MyCloud
+`
+}
 
 const scaleTable = ({ table, scale }) => {
   let { ProvisionedThroughput } = table.Properties

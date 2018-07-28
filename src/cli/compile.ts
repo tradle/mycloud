@@ -1,12 +1,11 @@
 import _ from 'lodash'
-
 const LOCALLY_AVAILABLE = [
   'AWS::DynamoDB::Table',
   'AWS::S3::Bucket',
   'AWS::ApiGateway::RestApi'
 ]
 
-const { ENV_RESOURCE_PREFIX } = require('../constants')
+import { ENV_RESOURCE_PREFIX, ADMIN_ALERTS_TOPIC_NAME } from '../constants'
 const NUM_INDEXES = 5
 
 export {
@@ -255,6 +254,10 @@ function addResourcesToEnvironment (yaml) {
       Ref: id
     }
   })
+
+  environment[`${ENV_RESOURCE_PREFIX}TOPIC_${ADMIN_ALERTS_TOPIC_NAME}`] = {
+    Ref: 'AwsAlertsAlarm'
+  }
 
   environment.R_STACK = {
     Ref: 'AWS::StackId'
