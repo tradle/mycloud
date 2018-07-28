@@ -473,3 +473,31 @@ https://github.com/dougmoscrop/serverless-plugin-common-excludes
 
 ### Costs
 https://github.com/concurrencylabs/aws-pricing-tools
+
+### Cross-Region Cross-Account SNS subscriptions / notifications
+
+how to:
+
+- `cloudformation.updateStack` needs to specify SNS topic in NotificationARNs
+- SNS topic must be in same region as the CloudFormation stack that publishes to it
+- need to use regional SNS client (new AWS.SNS({ region: topicRegion })) for all api calls: .createTopic, .addPermission, .subscribe, etc.
+- SNS topic policy needs to specify cross-account role (or account id), e.g.:
+```json  
+{
+  "Version": "2008-10-17",
+  "Id": "__default_policy_ID",
+  "Statement": [
+    {
+      "Sid": "__console_pub_0",
+      "Effect": "Allow",
+      "Principal": {
+        // the cross-account role
+        "AWS": "arn:aws:sts::404247308186:assumed-role/tdl-glue-ltd-dev-ap-southeast-2-lambdaRole/botocore-session-1531231617"
+      },
+      "Action": "SNS:Publish",
+      // the topic
+      "Resource": "arn:aws:sns:ap-southeast-2:210041114155:tmp-update-404247308186-tdl-glue-ltd-dev"
+    }
+  ]
+}
+```
