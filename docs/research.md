@@ -462,3 +462,14 @@ https://aws.amazon.com/blogs/compute/indexing-amazon-dynamodb-content-with-amazo
 
 danger:
 https://read.acloud.guru/things-you-should-know-before-using-awss-elasticsearch-service-7cd70c9afb4f
+
+### Logging
+https://github.com/dougmoscrop/serverless-plugin-log-subscription#configuration
+http://theburningmonk.com/2017/09/tips-and-tricks-for-logging-and-monitoring-aws-lambda-functions/
+
+### Slim down code zip
+https://github.com/dougmoscrop/serverless-plugin-include-dependencies
+https://github.com/dougmoscrop/serverless-plugin-common-excludes
+
+### Costs
+https://github.com/concurrencylabs/aws-pricing-tools
