@@ -16,7 +16,8 @@
     "no-shadowed-variable": false,
     "interface-over-type-literal": false,
     "array-type": [true, "array"],
-    "no-unused-variable": true
+    "no-unused-variable": true,
+    "prefer-const": false
   },
   "jsRules": {
     "no-use-before-declare": true

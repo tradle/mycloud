@@ -404,11 +404,6 @@ export default class StackUtils {
     return JSON.parse(TemplateBody)
   }
 
-  public enableBinaryAPIResponses = async () => {
-    const swagger = await this.getSwagger()
-    return await this.addBinarySupportToSwagger(swagger)
-  }
-
   public getSwagger = async () => {
     if (this.env.TESTING) {
       return {}
@@ -600,18 +595,27 @@ export default class StackUtils {
     return this.aws.cloudformation.updateStack(params).promise()
   }
 
-  public enableTerminationProtection = async (StackName=this.thisStack.name) => {
-    await this.aws.cloudformation.updateTerminationProtection({
-      StackName,
-      EnableTerminationProtection: true
-    }).promise()
+  public enableTerminationProtection = async (stackName=this.thisStack.name) => {
+    await this._changeTerminationProtection({ stackName, enable: true })
   }
 
-  public disableTerminationProtection = async (StackName=this.thisStack.name) => {
+  public disableTerminationProtection = async (stackName=this.thisStack.name) => {
+    await this._changeTerminationProtection({ stackName, enable: false })
+  }
+
+  private _changeTerminationProtection = async ({ stackName, enable }: {
+    stackName: string
+    enable: boolean
+  }) => {
     await this.aws.cloudformation.updateTerminationProtection({
-      StackName,
-      EnableTerminationProtection: false
+      StackName: stackName,
+      EnableTerminationProtection: enable
     }).promise()
+
+    this.logger.debug('changed stack termination protection', {
+      protected: enable,
+      stack: stackName
+    })
   }
 
   public static getStackLocationKeys = ({ service, stage, versionInfo }:  {
