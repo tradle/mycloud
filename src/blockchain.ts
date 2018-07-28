@@ -87,7 +87,6 @@ export default class Blockchain {
   private network: IBlockchainAdapter
   private writers = {}
   private getTxAmount = () => this.network.minOutputAmount
-  private debug:IDebug
   private logger:Logger
   private identity:Identity
   public addressesAPI: {

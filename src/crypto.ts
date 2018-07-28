@@ -19,8 +19,6 @@ import { PERMALINK, PREVLINK } from './constants'
 import { IECMiniPubKey, IPrivKey, IIdentity } from './types'
 
 const doSign = promisify(protocol.sign.bind(protocol))
-const { SIG, TYPE, TYPES } = constants
-const { IDENTITY } = TYPES
 const SIGN_WITH_HASH = 'sha256'
 const ENC_ALGORITHM = 'aes-256-gcm'
 const IV_BYTES = 12
@@ -87,13 +85,13 @@ export class ECKey {
 //   .then(data => data.Plaintext)
 // }
 
-const decryptKey = ({ aws, encryptedKey }) => {
-  return aws.kms.decrypt({
-    CiphertextBlob: encryptedKey
-  })
-  .promise()
-  .then(data => data.Plaintext.toString())
-}
+// const decryptKey = ({ aws, encryptedKey }) => {
+//   return aws.kms.decrypt({
+//     CiphertextBlob: encryptedKey
+//   })
+//   .promise()
+//   .then(data => data.Plaintext.toString())
+// }
 
 // function getIdentityKeys ({ decryptionKey, encoding }) {
 //   return getEncryptedJSON({
@@ -141,15 +139,12 @@ export const encrypt = ({ data, key }) => {
 
 const serializeEncrypted = (buffers) => {
   const parts = []
-  let idx = 0
   buffers.forEach(part => {
     const len = new Buffer(4)
     if (typeof part === 'string') part = new Buffer(part)
     len.writeUInt32BE(part.length, 0)
     parts.push(len)
-    idx += len.length
     parts.push(part)
-    idx += part.length
   })
 
   return Buffer.concat(parts)

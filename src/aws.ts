@@ -51,7 +51,6 @@ export const createAWSWrapper = ({ env, logger }: {
   logger: Logger
 }) => {
   const region = env.AWS_REGION
-  const OTHER_REGIONS = REGIONS.filter(r => r !== region)
   const AWS = willUseXRay
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
@@ -165,7 +164,6 @@ export const createAWSWrapper = ({ env, logger }: {
 
   // forward default to regional
   Object.keys(instanceNameToServiceName).forEach(instanceName => {
-    const serviceName = instanceNameToServiceName[instanceName]
     const regional = apis.regional[region]
     Object.defineProperty(apis, instanceName, {
       set: value => {

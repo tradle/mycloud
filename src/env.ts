@@ -74,7 +74,6 @@ export default class Env {
   public _X_AMZN_TRACE_ID:string
   public AWS_ACCOUNT_ID: string
 
-  private nick:string
   constructor(props:any) {
     const {
       SERVERLESS_PREFIX,
@@ -138,9 +137,6 @@ export default class Env {
     return JSON.stringify(this)
   }
 
-  /**
-   * Dynamically change logger namespace as "nick" is set lazily, e.g. from router
-   */
   public sublogger = (namespace:string):Logger => {
     // create sub-logger
     return this.logger.logger({ namespace })

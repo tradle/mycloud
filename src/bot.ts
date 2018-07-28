@@ -23,11 +23,6 @@ import { TYPE, SIG, ORG, ORG_SIG } from './constants'
 const VERSION = require('./version')
 const {
   defineGetter,
-  ensureTimestamped,
-  wait,
-  parseStub,
-  RESOLVED_PROMISE,
-  batchProcess,
   getResourceIdentifier,
   pickBacklinks,
   omitBacklinks,
@@ -388,12 +383,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     const bot = this
     const { env } = bot
-    const {
-      // FAUCET_PRIVATE_KEY,
-      // BLOCKCHAIN,
-      SERVERLESS_PREFIX
-    } = env
-
     bot.env = env
 
     const logger = bot.logger = env.logger
@@ -820,10 +809,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     resource
   })
 
-  private _omitBacklinks = resource => omitBacklinks({
-    model: this.models[resource[TYPE]],
-    resource
-  })
+  // private _omitBacklinks = resource => omitBacklinks({
+  //   model: this.models[resource[TYPE]],
+  //   resource
+  // })
 
   public seal = opts => this.seals.create(opts)
   public forceReinitializeContainers = async (functions?: string[]) => {
@@ -1241,11 +1230,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const topic = async ? baseTopic.async : baseTopic
     await Promise.each(batches, batch => this.fireBatch(topic, batch))
   }
-}
-
-const toSimpleMiddleware = handler => async (ctx, next) => {
-  await handler(ctx.event)
-  await next()
 }
 
 const maybeAddOld = (bot: Bot, change: ISaveEventPayload, async: boolean):ISaveEventPayload|Promise<ISaveEventPayload> => {

@@ -23,7 +23,6 @@ import * as compile from './compile'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
-const prettify = obj => JSON.stringify(obj, null, 2)
 const copy = promisify(require('copy-dynamodb-table').copy)
 
 const pexec = promisify(proc.exec.bind(proc))
@@ -66,7 +65,6 @@ const genLocalResources = async ({ bot }) => {
   }
 
   const { aws } = bot
-  const { s3 } = aws
   const yml = require('./serverless-yml')
   const { resources } = yml
   const { Resources } = resources
@@ -78,7 +76,7 @@ const genLocalResources = async ({ bot }) => {
   Object.keys(Resources)
     .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
     .forEach(name => {
-      const { Type, Properties } = Resources[name]
+      const { Properties } = Resources[name]
       if (Properties.StreamSpecification) {
         Properties.StreamSpecification.StreamEnabled = true
       }
@@ -268,17 +266,6 @@ const downloadDeploymentTemplate = async (bot:Bot) => {
   return await bot.stackUtils.getStackTemplate()
 }
 
-function getLatestS3Object (list) {
-  let max = 0
-  let latest
-  for (let metadata of list) {
-    let date = new Date(metadata.LastModified).getTime()
-    if (date > max) latest = metadata
-  }
-
-  return latest
-}
-
 const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
   let { bot, force } = opts
   if (!bot) {
@@ -317,11 +304,6 @@ const cloneRemoteTable = async ({ source, destination }) => {
   const AWS = require('aws-sdk')
   const yml = require('./serverless-yml')
   const localCredentials = parseEnv(path.resolve(__dirname, '../../docker/.env'))
-  const destinationAWSConfig = {
-    accessKeyId: localCredentials.AWS_ACCESS_KEY_ID,
-    secretAccessKey: localCredentials.AWS_SECRET_ACCESS_KEY
-  }
-
   const { region } = yml.provider
   await copy({
     config: {

@@ -25,7 +25,6 @@ import {
 } from './types'
 
 const { HANDSHAKE_TIMEOUT } = constants
-const { HandshakeFailed, InvalidInput, NotFound } = Errors
 const SESSION = 'tradle.IotSession'
 
 interface IChallengeResponse extends ITradleObject {
@@ -211,7 +210,7 @@ export default class Auth {
       // @ts-ignore
       debugger
       this.logger.error('received invalid input', err.stack)
-      throw new InvalidInput(err.message)
+      throw new Errors.InvalidInput(err.message)
     }
 
     const { clientId, permalink, challenge, position } = challengeResponse
@@ -220,15 +219,15 @@ export default class Auth {
     const session = await this.getSession({ clientId })
 
     if (challenge !== session.challenge) {
-      throw new HandshakeFailed('stored challenge does not match response')
+      throw new Errors.HandshakeFailed('stored challenge does not match response')
     }
 
     if (permalink !== session.permalink) {
-      throw new HandshakeFailed('claimed permalink changed from preauth')
+      throw new Errors.HandshakeFailed('claimed permalink changed from preauth')
     }
 
     if (Date.now() - session._time > HANDSHAKE_TIMEOUT) {
-      throw new HandshakeFailed('handshake timed out')
+      throw new Errors.HandshakeFailed('handshake timed out')
     }
 
     // validate sig
@@ -237,7 +236,7 @@ export default class Auth {
 
     // console.log(`claimed: ${permalink}, actual: ${challengeResponse._author}`)
     if (challengeResponse._author !== permalink) {
-      throw new HandshakeFailed('signature does not match claimed identity')
+      throw new Errors.HandshakeFailed('signature does not match claimed identity')
     }
 
     // const promiseCredentials = this.createCredentials(session)
@@ -304,7 +303,7 @@ export default class Auth {
       }, opts)
     } catch (err) {
       this.logger.error('received invalid input', { input: opts, stack: err.stack })
-      throw new InvalidInput(err.message)
+      throw new Errors.InvalidInput(err.message)
     }
 
     const { clientId, identity } = opts
@@ -316,12 +315,12 @@ export default class Auth {
 
     const permalink = getPermalink(identity)
     if (permalink !== this.getPermalinkFromClientId(clientId)) {
-      throw new InvalidInput('expected "clientId" to have format {permalink}{nonce}')
+      throw new Errors.InvalidInput('expected "clientId" to have format {permalink}{nonce}')
     }
 
     const maybeAddContact = this.identities.addContact(identity)
     const challenge = this.createChallenge()
-    const getIotEndpoint = this.iot.getEndpoint()
+    // const getIotEndpoint = this.iot.getEndpoint()
     // const saveSession = this.tables.Presence.put({
     //   Item: {
     //     clientId,

@@ -3,7 +3,7 @@ require('../env').install()
 import test from 'tape'
 import sinon from 'sinon'
 import * as LP from '../../in-house-bot/log-processor'
-import { noopLogger, Level } from '../../logger'
+import { noopLogger } from '../../logger'
 import { KeyValueMem } from '../../key-value-mem'
 import { loudAsync } from '../../utils'
 

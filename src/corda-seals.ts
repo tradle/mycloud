@@ -4,7 +4,7 @@ import { Env } from './env'
 import { Seals, SealsOpts } from './seals'
 import { fetch, processResponse } from './utils'
 
-const PLACEHOLDER = '<n/a>'
+// const PLACEHOLDER = '<n/a>'
 const noop = () => {}
 const promiseNoop = async () => {}
 const identityFn = val => val

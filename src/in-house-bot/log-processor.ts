@@ -1,7 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import json2yaml from 'json2yaml'
-import map from 'lodash/map'
 import pick from 'lodash/pick'
 import truncate from 'lodash/truncate'
 import isEmpty from 'lodash/isEmpty'
