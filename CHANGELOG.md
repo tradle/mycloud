@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.3.1"></a>
+## [1.3.1](https://github.com/tradle/serverless/compare/v1.3.0...v1.3.1) (2018-07-28)
+
+
+### Bug Fixes
+
+* disable changing of stack termination protection on create/update stack ([7c014af](https://github.com/tradle/serverless/commit/7c014af))
+* email subject length ([e442593](https://github.com/tradle/serverless/commit/e442593))
+* error handling on sync clock ([6fe562b](https://github.com/tradle/serverless/commit/6fe562b))
+* only alert of new versions on master branch ([a3c2875](https://github.com/tradle/serverless/commit/a3c2875))
+* support transition versions in utils.toSortableTag ([a577444](https://github.com/tradle/serverless/commit/a577444))
+
+
+
 <a name="1.3.0"></a>
 # [1.3.0](https://github.com/tradle/serverless/compare/v1.3.0-trans.0...v1.3.0) (2018-07-27)
 
