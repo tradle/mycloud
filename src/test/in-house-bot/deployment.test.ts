@@ -16,6 +16,7 @@ import { createTestEnv } from '../env'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
+const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 
 test('deployment by referral', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
@@ -377,11 +378,12 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(childLoadFriendStub.callCount, 1)
   t.ok(topicResource)
 
+  const saved = saveResourceStub.getCalls().map(call => call.args[0])
+  const [childChanges, topicChanges] = _.partition(saved, r => r[TYPE] === CHILD_DEPLOYMENT)
   const [
-    // createTopic,
     createChild,
-    updateChild,
-  ] = saveResourceStub.getCalls().map(call => call.args[0])
+    updateChild
+  ] = childChanges
 
   // t.equal(createTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
   t.equal(createChild[TYPE], 'tradle.cloud.ChildDeployment')

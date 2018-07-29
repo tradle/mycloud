@@ -20,8 +20,5 @@
     "prefer-const": false,
     "no-require-imports": false,
     "forin": false
-  },
-  "jsRules": {
-    "no-use-before-declare": true
   }
 }
