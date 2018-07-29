@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.5.0-rc.0"></a>
+# [1.5.0-rc.0](https://github.com/tradle/serverless/compare/v1.4.1...v1.5.0-rc.0) (2018-07-29)
+
+
+### Bug Fixes
+
+* non-deterministic test ([9c17cb0](https://github.com/tradle/serverless/commit/9c17cb0))
+* save versionInfo on stack init/update ([8aff090](https://github.com/tradle/serverless/commit/8aff090))
+
+
+### Features
+
+* add listmyversions cli command ([2946cd3](https://github.com/tradle/serverless/commit/2946cd3))
+
+
+
 <a name="1.4.1"></a>
 ## [1.4.1](https://github.com/tradle/serverless/compare/v1.4.0...v1.4.1) (2018-07-29)
 
