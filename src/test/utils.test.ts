@@ -8,7 +8,7 @@ import ModelsPack from '@tradle/models-pack'
 import Logger from '../logger'
 import KV from '../kv'
 import KVS3 from '../kv-s3'
-import { randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey, ECKey } from '../crypto'
+import { importKey, randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey } from '../crypto'
 import * as utils from '../utils'
 import {
   loudAsync,
@@ -775,7 +775,7 @@ test('sign/verify', loudAsync(async (t) => {
   t.ok(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a', new Buffer(sig, 'hex')))
   t.notOk(verifyWithPemEncodedKey(key.encoded.pem.pub, 'a1', sig))
 
-  const ecKey = new ECKey(key)
+  const ecKey = importKey(key)
   const sig1 = ecKey.signSync('b')
   t.ok(ecKey.verifySync('b', sig1))
   t.notOk(ecKey.verifySync('b', sig))

@@ -1,10 +1,10 @@
 
 import Cache from 'lru-cache'
 import buildResource from '@tradle/build-resource'
-import { ECKey, sha256, randomString } from './crypto'
+import { sha256, randomString } from './crypto'
 import { cachifyFunction, post, omitVirtual } from './utils'
 import Errors from './errors'
-import { IIdentity, IKeyValueStore, Logger } from './types'
+import { IIdentity, IKeyValueStore, Logger, ECKey } from './types'
 
 export type Subscriber = {
   seq: number
@@ -60,11 +60,11 @@ export default class Push {
   }) => {
     const nonce = await post(`${this.serverUrl}/publisher`, {
       identity: omitVirtual(identity),
-      key: key.toJSONUnencoded()
+      key: key.toJSON()
     })
 
     const salt = randomString(32, 'base64')
-    const sig = await key.promiseSign(getChallenge({ nonce, salt }))
+    const sig = key.signSync(getChallenge({ nonce, salt }))
     await post(`${this.serverUrl}/publisher`, { nonce, salt, sig })
     await this.setRegistered()
   }
@@ -111,7 +111,7 @@ export default class Push {
     const info = await this.incrementSubscriberNotificationCount(subscriber)
     const seq = info.seq - 1
     const nonce = randomString(8, 'base64')
-    const sig = await key.promiseSign(getNotificationData({ seq, nonce }))
+    const sig = key.signSync(getNotificationData({ seq, nonce }))
     const publisher = buildResource.permalink(identity)
     try {
       await post(`${this.serverUrl}/notification`, {

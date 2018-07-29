@@ -56,7 +56,7 @@ export {
 export type Constructor<T = {}> = new (...args: any[]) => T
 
 export * from '../retryable-task'
-export { ECKey } from '../crypto'
+// export { ECKey } from '../crypto'
 
 export {
   // re-export from @tradle/dynamodb
@@ -269,7 +269,7 @@ export interface IPrivKey extends IPubKey {
 }
 
 export interface IIdentity extends ITradleObject {
-  pubkeys: Array<IPubKey>
+  pubkeys: IPubKey[]
 }
 
 export interface IIdentityAndKeys {
@@ -787,4 +787,13 @@ export interface SNSMessage {
   default: any
   email?: any
   lambda?: any
+}
+
+export interface ECKey {
+  sign: (data, algorithm, callback) => void
+  signSync: (data, algorithm?) => void
+  promiseSign: (data, algorithm?) => Promise<string>
+  verify: (data, algorithm, sig, callback) => void
+  promiseVerify: (data, algorithm, sig) => Promise<boolean>
+  toJSON: (exportPrivateKey?: boolean) => any
 }
