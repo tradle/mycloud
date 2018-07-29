@@ -542,7 +542,7 @@ export const generateAlertEmail = (alert: ParsedAlertEvent) => {
     .map(e => e.msg)
 
   const { stackName, accountId } = alert
-  const subject = truncate(`logging alert: ${stackName} (${accountId}): ${errorMsgs[0]}`, { length: 100 })
+  const subject = truncate(`${alert.body.function.name} (${accountId}): ${errorMsgs[0]}`, { length: 100 })
   let body = json2yaml.stringify(gist)
   if (errorMsgs.length) {
     body = `ERRORS: ${errorMsgs.join('\n')}
