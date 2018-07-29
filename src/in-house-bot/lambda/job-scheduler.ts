@@ -20,7 +20,7 @@ const COMMON_JOBS:Job[] = [
   {
     name: 'warmup',
     function: 'warmup',
-    period: WARMUP_PERIOD,
+    period: WARMUP_PERIOD / 1000,
     input: {
       concurrency: 5,
       functions: [
