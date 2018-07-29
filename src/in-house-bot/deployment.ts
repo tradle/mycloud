@@ -582,9 +582,7 @@ export class Deployment {
   }
 
   public handleStackInit = async (opts: CallHomeOpts) => {
-    if (this.isTradle) return
-
-    await this.callHome(opts)
+    await this.handleStackUpdate()
   }
 
   public handleStackUpdate = async () => {
@@ -594,10 +592,7 @@ export class Deployment {
       return
     }
 
-    await this.callHome({
-      identity: await bot.getMyIdentity(),
-      org: this.org,
-    })
+    await this._handleStackUpdateNonTradle()
   }
 
   public handleCallHome = async (report: ICallHomePayload) => {
@@ -1667,6 +1662,16 @@ ${this.genUsageInstructions(links)}`
     if (forced || should) {
       await this.alertChildrenAboutVersion(versionInfo)
     }
+  }
+
+  private _handleStackUpdateNonTradle = async () => {
+    await Promise.all([
+      this._saveMyDeploymentVersionInfo(),
+      this.callHome({
+        identity: await this.bot.getMyIdentity(),
+        org: this.org,
+      })
+    ])
   }
 
   private get _thisStackArn() {
