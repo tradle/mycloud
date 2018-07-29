@@ -2,6 +2,7 @@ import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
 import AWS from 'aws-sdk'
+import { FindOpts } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
@@ -448,7 +449,7 @@ export class Deployment {
     })
   }
 
-  public getChildDeployment = async (findOpts={}): Promise<IDeploymentConf> => {
+  public getChildDeployment = async (findOpts:Partial<FindOpts>={}): Promise<IDeploymentConf> => {
     return await this.bot.db.findOne(_.merge({
       orderBy: {
         property: '_time',
@@ -1269,6 +1270,25 @@ ${this.genUsageInstructions(links)}`
     }
 
     return _.maxBy(items, '_time')
+  }
+
+  public listMyVersions = async (opts:Partial<FindOpts>={}):Promise<VersionInfo[]> => {
+    const { items } = await this.bot.db.find(_.merge({
+      // this is an expensive query as VersionInfo doesn't have a _org / _time index
+      allowScan: true,
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: await this.bot.getMyPermalink(),
+        }
+      }
+    }, opts))
+
+    return items
   }
 
   public getUpdateByTag = async (tag: string) => {
