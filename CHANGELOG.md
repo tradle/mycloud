@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.4.1"></a>
+## [1.4.1](https://github.com/tradle/serverless/compare/v1.4.0...v1.4.1) (2018-07-29)
+
+
+### Bug Fixes
+
+* warmup job frequency ([257de6e](https://github.com/tradle/serverless/commit/257de6e))
+
+
+
 <a name="1.4.0"></a>
 # [1.4.0](https://github.com/tradle/serverless/compare/v1.4.0-rc.0...v1.4.0) (2018-07-29)
 
