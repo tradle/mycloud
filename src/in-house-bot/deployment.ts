@@ -525,7 +525,7 @@ export class Deployment {
   }
 
   public callHomeTo = async (opts: CallHomeToOpts) => {
-    if (this.bot.env.IS_OFFLINE) return {}
+    if (this.bot.isOffline) return {}
 
     let {
       targetApiUrl,

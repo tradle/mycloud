@@ -2,6 +2,7 @@
 import './globals'
 // import './console'
 
+import clone from 'lodash/clone'
 import yn from 'yn'
 import debug from 'debug'
 import {
@@ -75,6 +76,7 @@ export default class Env {
   public AWS_ACCOUNT_ID: string
 
   constructor(props:any) {
+    props = clone(props)
     const {
       SERVERLESS_PREFIX,
       SERVERLESS_STAGE,
@@ -90,24 +92,26 @@ export default class Env {
     } = props
 
     if (AWS_LAMBDA_FUNCTION_NAME) {
-      this.CLOUD = 'aws'
+      props.CLOUD = 'aws'
     }
 
-    this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
-    this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
+    props.IS_LOCAL = yn(IS_LOCAL) || yn(IS_OFFLINE)
+    props.TESTING = NODE_ENV === 'test' || props.IS_LOCAL
+
+    props.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
       ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
       : 'unknown'
 
-    this.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
+    props.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
       ? 512
       : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
 
-    this.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
+    props.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 
     this.logger = new Logger({
-      namespace: this.TESTING ? '' : ROOT_LOGGING_NAMESPACE,
+      namespace: props.TESTING ? '' : ROOT_LOGGING_NAMESPACE,
       // writer: global.console,
-      writer: this.TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
+      writer: props.TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,

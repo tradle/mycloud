@@ -50,7 +50,7 @@ export const createHandler = (lambda:Lambda, opts:any={}):Middleware => {
       get schema() { return api.schema },
       graphiql: api.graphiqlOptions,
       formatError: err => {
-        console.error('experienced error executing GraphQL query', Errors.export(err))
+        logger.error('experienced error executing GraphQL query', Errors.export(err))
         return formatError(err)
       }
     }
