@@ -1546,8 +1546,16 @@ export const listIamRoles = async (iam: AWS.IAM) => {
 
 // e.g. '1.2.0-rc.0', '1.2.0-alpha.0', '1.2.0-trans.0'
 const isExperimentalVersionTag = (tag: string) => /-[^.]+\./.test(tag)
+const semverRegex = /^v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\.\d+)?$/
 
+export const validateTag = (semver: string) => semverRegex.test(semver)
 export const toSortableTag = (semver: string) => {
+  try {
+    validateTag(semver)
+  } catch (err) {
+    throw new Errors.InvalidInput(`invalid tag: ${semver}\nadhere to regex: ${semverRegex.toString()}`)
+  }
+
   const tag = semver
     .replace(/^v/, '')
     .replace(/\d+/g, part => toLexicographicInt(Number(part)))
