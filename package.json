@@ -206,7 +206,7 @@
     "koa-compress": "^2.0.0",
     "koa-graphql": "github:mvayngrib/koa-graphql#7609b5d",
     "koa-router": "^7.3.0",
-    "lexicographic-integer": "https://registry.npmjs.org/lexicographic-integer/-/lexicographic-integer-1.1.0.tgz",
+    "lexicographic-semver": "^1.0.1",
     "lodash": "^4.17.4",
     "lru-cache": "^4.1.1",
     "mem": "^3.0.0",

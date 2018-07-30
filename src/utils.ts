@@ -6,7 +6,6 @@ import _ from 'lodash'
 // allow override promise
 // @ts-ignore
 import Promise from 'bluebird'
-import lexint from 'lexicographic-integer'
 import {
   merge,
   clone,
@@ -64,6 +63,10 @@ import * as types from './typeforce-types'
 import Logger, { consoleLogger } from './logger'
 import Env from './env'
 import baseModels from './models'
+export {
+  toSortableTag,
+  compareTags,
+} from 'lexicographic-semver'
 
 const BaseObjectModel = baseModels['tradle.Object']
 const debug = require('debug')('tradle:sls:utils')
@@ -1543,38 +1546,6 @@ export const listIamRoles = async (iam: AWS.IAM) => {
 
   return roles
 }
-
-// e.g. '1.2.0-rc.0', '1.2.0-alpha.0', '1.2.0-trans.0'
-const isExperimentalVersionTag = (tag: string) => /-[^.]+\./.test(tag)
-const semverRegex = /^v?\d+\.\d+\.\d+(?:-[a-zA-Z]+\.\d+)?$/
-
-export const validateTag = (semver: string) => semverRegex.test(semver)
-export const toSortableTag = (semver: string) => {
-  try {
-    validateTag(semver)
-  } catch (err) {
-    throw new Errors.InvalidInput(`invalid tag: ${semver}\nadhere to regex: ${semverRegex.toString()}`)
-  }
-
-  const tag = semver
-    .replace(/^v/, '')
-    .replace(/\d+/g, part => toLexicographicInt(Number(part)))
-
-  if (isExperimentalVersionTag(tag)) {
-    return tag
-  }
-
-  // make sure that 1.2.0 gets sorted after 1.2.0-rc.0
-  return tag + '~'
-}
-
-export const compareTags = (a: string, b: string) => {
-  const as = toSortableTag(a)
-  const bs = toSortableTag(b)
-  return alphabetical(as, bs)
-}
-
-export const toLexicographicInt = n => lexint.pack(n, 'hex')
 
 export const requireOpts = (opts:any, props:string|string[]) => {
   const missing = [].concat(props).filter(required => _.get(opts, required) == null).map(prop => `"${prop}"`)

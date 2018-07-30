@@ -6513,8 +6513,13 @@
     },
     "lexicographic-integer": {
       "version": "1.1.0",
-      "from": "https://registry.npmjs.org/lexicographic-integer/-/lexicographic-integer-1.1.0.tgz",
+      "from": "lexicographic-integer@>=1.1.0 <2.0.0",
       "resolved": "https://registry.npmjs.org/lexicographic-integer/-/lexicographic-integer-1.1.0.tgz"
+    },
+    "lexicographic-semver": {
+      "version": "1.0.1",
+      "from": "lexicographic-semver@latest",
+      "resolved": "https://registry.npmjs.org/lexicographic-semver/-/lexicographic-semver-1.0.1.tgz"
     },
     "lint-staged": {
       "version": "4.3.0",
