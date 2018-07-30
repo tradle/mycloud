@@ -596,6 +596,11 @@ export class Deployment {
 
   public handleCallHome = async (report: ICallHomePayload) => {
     const { deploymentUUID, apiUrl, org, identity, stackId, version, adminEmail } = report
+    if (utils.isLocalUrl(apiUrl)) {
+      this.logger.info('ignoring call home from dev env MyCloud', report)
+      return true
+    }
+
     let childDeployment
     if (deploymentUUID) {
       try {

@@ -43,7 +43,7 @@ test('deployment by referral', loudAsync(async (t) => {
   const child = createBotInRegion({ region })
   sandbox.stub(child.stackUtils, 'getCurrentAdminEmail').resolves(conf.adminEmail)
 
-  const childUrl = 'childurl'
+  const childUrl = 'http://tradle.somewhereoverthe.com'
   child.serviceMap.RestApi.ApiGateway.url = childUrl
 
   const parentDeployment = new Deployment({
