@@ -571,9 +571,22 @@ export interface IGraphqlAPI {
 }
 
 export interface IBlockchainIdentifier {
-  flavor: string
+  blockchain: string
   networkName: string
+  // confirmations?: number
+}
+
+export interface BlockchainNetworkInfo extends IBlockchainIdentifier {
   confirmations?: number
+  minBalance?: number|string
+}
+
+export interface BlockchainNetwork extends BlockchainNetworkInfo {
+  pubKeyToAddress: (pubKey: Buffer) => string
+  curve: string
+  transactor: any
+  toString: () => string
+  // select: (obj: any) => any
 }
 
 export type StreamRecordType = 'create'|'update'|'delete'|string
@@ -796,4 +809,16 @@ export interface ECKey {
   verify: (data, algorithm, sig, callback) => void
   promiseVerify: (data, algorithm, sig) => Promise<boolean>
   toJSON: (exportPrivateKey?: boolean) => any
+}
+
+export interface BlockchainAddressIdentifier extends IBlockchainIdentifier {
+  address: string
+}
+
+export interface LowFundsInput extends BlockchainAddressIdentifier {
+  blockchain: string
+  networkName: string
+  address: string
+  balance?: string|number
+  minBalance?: string|number
 }

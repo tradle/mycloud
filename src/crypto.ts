@@ -319,16 +319,16 @@ export const withLinks = (object) => {
 
 export const getIdentitySpecs = ({ networks }) => {
   const nets = {}
-  for (let flavor in networks) {
-    if (flavor === 'corda') continue
+  for (let blockchain in networks) {
+    if (blockchain === 'corda') continue
 
-    if (!nets[flavor]) {
-      nets[flavor] = []
+    if (!nets[blockchain]) {
+      nets[blockchain] = []
     }
 
-    let constants = networks[flavor]
+    let constants = networks[blockchain]
     for (let networkName in constants) {
-      nets[flavor].push(networkName)
+      nets[blockchain].push(networkName)
     }
   }
 

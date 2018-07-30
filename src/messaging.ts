@@ -189,14 +189,14 @@ export default class Messaging {
   public watchSealedPayload = async ({ seal, object }) => {
     this.logger.debug('message has seal identifier for payload', seal)
 
-    const { flavor, networkName } = this.network
-    if (seal.blockchain === flavor && seal.network === networkName) {
+    const { blockchain, networkName } = this.network
+    if (seal.blockchain === blockchain && seal.network === networkName) {
       this.logger.info('placing watch on seal', seal)
       try {
         await this.seals.watch({
           object,
           key: {
-            type: this.network.flavor,
+            type: this.network.blockchain,
             curve: this.network.curve,
             pub: seal.basePubKey
             // TODO: add txId if available

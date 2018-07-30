@@ -15,6 +15,7 @@ import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import { createConf } from './configure'
 import { plugins as defaultConfs } from './defaults'
 import { Deployment } from './deployment'
+import { Alerts } from './alerts'
 
 import {
   createPlugin as keepModelsFreshPlugin,
@@ -351,7 +352,11 @@ export const loadComponentsAndPlugins = ({
       if (type === VERSION_INFO &&
         resource._org === TRADLE.PERMALINK &&
         Deployment.isMainlineReleaseTag(resource.tag)) {
-        await components.deployment.alertAdminAboutAvailableUpdate(resource as VersionInfo)
+        await alerts.updateAvailable({
+          current: bot.version,
+          update: resource as VersionInfo
+        })
+
         return
       }
     }
@@ -373,6 +378,12 @@ export const loadComponentsAndPlugins = ({
   }
 
   const promiseMyPermalink = bot.getMyPermalink()
+  const alerts = new Alerts({
+    bot,
+    org: conf.org,
+    logger: logger.sub('alerts'),
+  })
+
   const components: IBotComponents = {
     bot,
     conf,
@@ -380,7 +391,8 @@ export const loadComponentsAndPlugins = ({
     employeeManager,
     friends: new Friends({ bot }),
     applications,
-    logger
+    alerts,
+    logger,
   }
 
   if (handleMessages) {

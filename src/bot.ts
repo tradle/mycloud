@@ -220,7 +220,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get networks () { return networks }
   public get network () {
     const { BLOCKCHAIN } = this.env
-    return this.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
+    return this.networks[BLOCKCHAIN.blockchain][BLOCKCHAIN.networkName]
   }
 
   public get constants () { return constants }
@@ -398,7 +398,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       logger: logger.sub('seals'),
     })
 
-    if (env.BLOCKCHAIN.flavor === 'corda') {
+    if (env.BLOCKCHAIN.blockchain === 'corda') {
       bot.define('seals', './corda-seals', ({ Seals }) => new Seals(getSealsOpts()))
       bot.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain({
         env,

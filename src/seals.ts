@@ -35,6 +35,7 @@ import {
   Objects,
   DB,
   IBlockchainIdentifier,
+  BlockchainNetwork,
 } from './types'
 
 const SealModel = models['tradle.Seal']
@@ -202,13 +203,13 @@ export default class Seals {
   public blockchain: Blockchain
   private identity: Identity
   private objects: Objects
-  private network: IBlockchainIdentifier
+  private network: BlockchainNetwork
   private db: DB
   private logger:Logger
   private get baseEQ() {
     return {
       [TYPE]: SEAL_STATE_TYPE,
-      blockchain: this.network.flavor,
+      blockchain: this.network.blockchain,
       network: this.network.networkName
     }
   }
@@ -835,7 +836,7 @@ export default class Seals {
       sealId: time + ':' + randomString(8),
       _t: SEAL_STATE_TYPE,
       _time: time,
-      blockchain: network.flavor,
+      blockchain: network.blockchain,
       network: network.networkName,
       link,
       prevlink,

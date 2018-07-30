@@ -210,8 +210,8 @@ export default class Env {
     }
 
     if ('BLOCKCHAIN' in props) {
-      const [flavor, networkName] = props.BLOCKCHAIN.split(':')
-      this.BLOCKCHAIN = { flavor, networkName }
+      const [blockchain, networkName] = props.BLOCKCHAIN.split(':')
+      this.BLOCKCHAIN = { blockchain, networkName }
     }
   }
 }

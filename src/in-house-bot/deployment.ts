@@ -8,6 +8,7 @@ import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
 import baseModels from '../models'
+import { Alerts } from './alerts'
 import {
   Env,
   Bot,
@@ -192,12 +193,6 @@ interface DeploymentCtorOpts {
 interface UpdateRequest extends ITradleObject {
   provider: ResourceStub
   tag: string
-}
-
-interface VersionEmailInput {
-  current: VersionInfo
-  update: VersionInfo
-  org: IOrganization
 }
 
 const ADMIN_MAPPING_PATH = ['org', 'contact', 'adminEmail']
@@ -1431,30 +1426,6 @@ ${this.genUsageInstructions(links)}`
     return sortVersions(items)
   }
 
-  public alertAdminAboutAvailableUpdate = async (update: VersionInfo) => {
-    this.logger.debug('alerting admin about available update')
-    const topic = this.bot.serviceMap.Topic.AdminAlerts
-    const current = this.bot.version
-    if (utils.compareTags(current.tag, update.tag) >= 0) {
-      throw new Errors.InvalidInput(`expected update version ${update.tag} to be greater than current version ${current.tag}`)
-    }
-
-    const { org } = this
-    const email = generateVersionAlertEmailText({ org, current, update })
-    await this.snsUtils.publish({
-      topic,
-      subject: generateVersionAlertSubject({ org, current, update }),
-      message: {
-        default: {
-          tag: update.tag,
-        },
-        email,
-        // lambda: {
-        // }
-      }
-    })
-  }
-
   public alertChildrenAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
     utils.requireOpts(versionInfo, 'tag')
     if (!versionInfo[SIG]) {
@@ -1750,46 +1721,6 @@ export const getCrossAccountLambdaRole = ({ stackId, lambdaName }: {
 }
 
 export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
-
-export const generateVersionAlertSubject = ({ org, current, update }: VersionEmailInput) => {
-  return `${org.name} MyCloud update available: ${current.tag} -> ${update.tag}`
-}
-
-export const generateVersionAlertEmailText = ({ org, current, update }: VersionEmailInput) => {
-  let greeting = `Dear Admin`
-  if (Math.random() < 0.1) {
-    greeting += '(can I call you Ad?)'
-  }
-
-  return `${greeting},
-
-This is your ${org.name} MyCloud speaking. I hope you're well.
-
-The Tradle mothership has just informed me there's an update available: ${update.tag}
-
-I'm currently at version ${current.tag}
-
-To see what changed from ${current.tag} to ${update.tag}, look here:
-https://github.com/tradle/serverless/blob/master/CHANGELOG.md
-
-Updating me requires installing the tradleconf tool, which you can find here:
-https://github.com/tradle/configure-tradle
-
-Once you've installed tradleconf, run this command:
-tradleconf update --tag ${update.tag}
-
-Make me young again,
-Your MyCloud
-`
-}
-
-const scaleTable = ({ table, scale }) => {
-  let { ProvisionedThroughput } = table.Properties
-  ProvisionedThroughput.ReadCapacityUnits *= scale
-  ProvisionedThroughput.WriteCapacityUnits *= scale
-  const { GlobalSecondaryIndexes=[] } = table
-  GlobalSecondaryIndexes.forEach(index => scaleTable({ table: index, scale }))
-}
 
 const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) => {
   const { name } = StackUtils.parseStackArn(stackId)

@@ -18,14 +18,15 @@ import {
   ECKey,
   ModelStore,
   Objects,
-  Logger
+  Logger,
+  BlockchainNetworkInfo,
 } from './types'
 
 import { getPermalink, getSigningKey, getChainKey, sign } from './crypto'
 import Errors from './errors'
 
 type IdentityOpts = {
-  network: any
+  network: BlockchainNetworkInfo
   modelStore: ModelStore
   objects: Objects
   logger: Logger
@@ -74,11 +75,11 @@ export default class Identity {
 
   public getChainKeyPriv = async (): Promise<IECMiniPubKey> => {
     const { network } = this
-    if (network.flavor === 'corda') return
+    if (network.blockchain === 'corda') return
 
     const keys = await this.getKeys()
     const chainKey = getChainKey(keys, {
-      type: network.flavor,
+      type: network.blockchain,
       networkName: network.networkName
     })
 
@@ -93,7 +94,7 @@ export default class Identity {
     const { network } = this
     const identity = await this.getPublic()
     const key = identity.pubkeys.find(pub => {
-      return pub.type === network.flavor &&
+      return pub.type === network.blockchain &&
         pub.networkName === network.networkName &&
         pub.purpose === 'messaging'
     })

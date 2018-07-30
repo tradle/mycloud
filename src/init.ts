@@ -149,7 +149,7 @@ export default class Init {
     const { PrivateConf } = this.buckets
     const { network } = this
     const chainKey = getChainKey(keys, {
-      type: network.flavor,
+      type: network.blockchain,
       networkName: network.networkName
     })
 

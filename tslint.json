@@ -19,6 +19,7 @@
     "no-unused-variable": true,
     "prefer-const": false,
     "no-require-imports": false,
-    "forin": false
+    "forin": false,
+    "max-classes-per-file": false
   }
 }

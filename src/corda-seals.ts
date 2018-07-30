@@ -62,7 +62,7 @@ export class CordaRestClient {
 }
 
 export class Blockchain {
-  public flavor: string
+  public blockchain: string
   public networkName: string
   public minBalance: number
   private client: CordaRestClient
@@ -70,7 +70,7 @@ export class Blockchain {
     const { env, endpoint, network } = opts
 
     this.client = new CordaRestClient(endpoint || getEndpointFromEnv(env))
-    _.extend(this, _.pick(network, ['flavor', 'networkName', 'minBalance']))
+    _.extend(this, _.pick(network, ['blockchain', 'networkName', 'minBalance']))
   }
 
   public start = noop

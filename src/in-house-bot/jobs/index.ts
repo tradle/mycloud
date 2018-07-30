@@ -9,7 +9,8 @@
 // })
 
 import getPropAtPath from 'lodash/get'
-import { IBotComponents, Seal, Job } from '../types'
+import Errors from '../../errors'
+import { IBotComponents, Seal, Job, LowFundsInput } from '../types'
 import { sendConfirmedSeals } from '../utils'
 import { DEFAULT_WARMUP_EVENT } from '../../constants'
 import { Deployment } from '../deployment'
@@ -72,7 +73,7 @@ export const pollchain:Executor = async ({ job, components }):Promise<Seal[]> =>
 }
 
 export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> => {
-  const { bot } = components
+  const { bot, alerts } = components
   const { seals, env, logger } = bot
   let results = []
   let error
@@ -91,6 +92,10 @@ export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> 
 
   if (!haveTime) {
     logger.debug('almost out of time, exiting early')
+  }
+
+  if (error && Errors.matches(error, Errors.LowFunds)) {
+    await alerts.lowFunds(error as LowFundsInput)
   }
 
   return results

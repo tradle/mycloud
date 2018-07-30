@@ -6,6 +6,7 @@ import { Commander } from './commander'
 import { Onfido } from './plugins/onfido'
 import { Remediation } from './remediation'
 import { Deployment } from './deployment'
+import { Alerts } from './alerts'
 import { Applications } from './applications'
 import { Friends } from './friends'
 import { EmailBasedVerifier } from './email-based-verifier'
@@ -89,6 +90,7 @@ export interface IBotComponents {
   employeeManager: any
   applications: Applications
   friends: Friends
+  alerts: Alerts
   conf?: IConf
   remediation?: Remediation
   onfido?: Onfido
