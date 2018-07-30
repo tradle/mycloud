@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.0-rc.0"></a>
+# [1.6.0-rc.0](https://github.com/tradle/serverless/compare/v1.5.0...v1.6.0-rc.0) (2018-07-30)
+
+
+### Bug Fixes
+
+* ignore call home from dev env MyClouds ([0cef5a2](https://github.com/tradle/serverless/commit/0cef5a2))
+* low funds alert ([83b504c](https://github.com/tradle/serverless/commit/83b504c))
+* releasecandidate scripts ([cc3ac49](https://github.com/tradle/serverless/commit/cc3ac49))
+* validate semver tags ([9333ca0](https://github.com/tradle/serverless/commit/9333ca0))
+
+
+
 <a name="1.5.0"></a>
 # [1.5.0](https://github.com/tradle/serverless/compare/v1.5.0-rc.1...v1.5.0) (2018-07-30)
 
