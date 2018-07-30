@@ -133,9 +133,9 @@
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major",
     "releasecandidate": "standard-version --prerelease rc --no-verify",
-    "releasecandidate:patch": "npm run releasecandidate -- --patch",
-    "releasecandidate:minor": "npm run releasecandidate -- --minor",
-    "releasecandidate:major": "npm run releasecandidate -- --major",
+    "releasecandidate:patch": "npm run releasecandidate -- --release-as patch",
+    "releasecandidate:minor": "npm run releasecandidate -- --release-as minor",
+    "releasecandidate:major": "npm run releasecandidate -- --release-as major",
     "releasetransition": "standard-version --prerelease trans --no-verify --release-as patch"
   },
   "dependencies": {
