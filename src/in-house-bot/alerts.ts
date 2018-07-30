@@ -51,14 +51,14 @@ export class Alerts {
   }
 
   public lowFunds = async ({
-    balance,
     blockchain,
     networkName,
     address,
+    balance,
+    minBalance=this.bot.blockchain.minBalance
   }: LowFundsInput) => {
-    const { minBalance } = this.bot.blockchain
     await this._emailAdmin({
-      subject: 'MyCloud blockchain balance low',
+      subject: `${this.org.name} MyCloud blockchain balance low`,
       body: `Dude,
 
 This is your MyCloud. Fill me up regular please:
@@ -68,6 +68,9 @@ Minimum Balance for happiness: ${minBalance}
 Blockchain: ${blockchain}
 Network: ${networkName}
 Address: ${address}
+
+Grumpily,
+Your MyCloud
 `,
     })
   }
