@@ -278,7 +278,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   }
 
   get isTesting():boolean {
-    return this.env.TESTING
+    return this.env.IS_TESTING
   }
 
   get isUsingServerlessOffline():boolean {

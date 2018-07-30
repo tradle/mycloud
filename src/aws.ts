@@ -114,7 +114,7 @@ export const createAWSWrapper = ({ env, logger }: {
     }
 
 
-    if (env.TESTING && !conf && !MOCKED_SEPARATELY[serviceName]) {
+    if (env.IS_TESTING && !conf && !MOCKED_SEPARATELY[serviceName]) {
       // don't pretend to support it as this will result
       // in calling the remote service!
       return null

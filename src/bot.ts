@@ -206,7 +206,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get isDev() { return this.env.STAGE === 'dev' }
   public get isStaging() { return this.env.STAGE === 'staging' }
   public get isProd() { return this.env.STAGE === 'prod' }
-  public get isTesting() { return this.env.TESTING }
+  public get isTesting() { return this.env.IS_TESTING }
   public get isLocal() { return this.env.IS_LOCAL }
   public get isOffline() { return this.env.IS_OFFLINE }
   public get resourcePrefix() { return this.env.SERVERLESS_PREFIX }
@@ -378,7 +378,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   private _init = () => {
     // if (++instanceCount > 1) {
-    //   if (!env.TESTING) {
+    //   if (!env.IS_TESTING) {
     //     throw new Error('multiple instances not allowed')
     //   }
     // }
@@ -573,7 +573,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       storage,
       identity,
       logger: bot.logger.sub('friends'),
-      isTesting: bot.env.TESTING,
+      isTesting: bot.env.IS_TESTING,
     })
 
     const contentAddressedStore = bot.contentAddressedStore = new ContentAddressedStore({

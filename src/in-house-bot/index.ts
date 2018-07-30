@@ -214,7 +214,7 @@ export const loadComponentsAndPlugins = ({
     products: productsList,
     validateModels: bot.isTesting,
     nullifyToDeleteProperty: true
-    // queueSends: bot.env.TESTING ? true : queueSends
+    // queueSends: bot.env.IS_TESTING ? true : queueSends
   })
 
   // if (event === LambdaEvents.RESOURCE_ASYNC) {
