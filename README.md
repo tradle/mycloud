@@ -261,7 +261,7 @@ Once everything's deployed, open your browser to [https://app.tradle.io](https:/
 
 #### Post-deployment configuration
 
-See [tradleconf](https://github.com/tradle/configure-tradle), a command line tool for configuring styles, plugins, custom models, etc. of a deployed Tradle MyCloud.
+See [tradleconf](https://github.com/tradle/tradleconf), a command line tool for configuring styles, plugins, custom models, etc. of a deployed Tradle MyCloud.
 
 ### Explore the Architecture
 
@@ -321,13 +321,13 @@ serverless-offline:
 
 ### Logging
 
-Use [tradleconf](https://github.com/tradle/configure-tradle#logging)
+Use [tradleconf](https://github.com/tradle/tradleconf#logging)
 
 ## Destroy
 
 Sometimes you want to wipe the slate clean and start from scratch (usually by age 25 or so). The following command will wipe out all the AWS resources created in your deployment. Obviously, use with EXTREME caution, as this command executes with your AWS credentials (best use a separate account).
 
-To destroy your remote stack, resources, data, etc., use [tradleconf](https://github.com/tradle/configure-tradle#destroy)
+To destroy your remote stack, resources, data, etc., use [tradleconf](https://github.com/tradle/tradleconf#destroy)
 
 To destroy your local resources, use `npm run nuke:local`, or `npm run reset:local` to destroy + reinit
 

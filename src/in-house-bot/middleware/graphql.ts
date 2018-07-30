@@ -50,7 +50,7 @@ export const keepModelsFresh = (lambda:Lambda, components) => {
 }
 
 export const createAuth = (lambda: Lambda, components:IBotComponents) => {
-  const allowGuest = lambda.isTesting || components.conf.bot.graphqlAuth == false
+  const allowGuest = lambda.isLocal || components.conf.bot.graphqlAuth == false
   const { employeeManager } = components
   return createGraphqlAuthHandler(lambda, {
     allowGuest,

@@ -66,7 +66,7 @@ export default class LambdaUtils {
       arg={},
       sync=true,
       log,
-      local=this.env.IS_OFFLINE,
+      local=this.env.IS_LOCAL,
       qualifier,
       wrapPayload
     } = opts

@@ -20,7 +20,7 @@ import { Logger } from '../../logger'
 import { createBot } from '../../'
 import { TYPES } from '../../in-house-bot/constants'
 import models from '../../models'
-import { IPBReq, IFormRequest } from '../../in-house-bot/types'
+import { IPBReq, IFormRequest, IBotComponents } from '../../in-house-bot/types'
 
 const users = require('../fixtures/users.json')
 const dataBundle = require('../fixtures/data-bundle.json')
@@ -63,15 +63,13 @@ test('remediation plugin', loudAsync(async (t) => {
     })
   }
 
-  const { api, plugin } = createRemediationPlugin({
+  const components = {
     bot,
     productsAPI,
-    friends: null,
-    employeeManager: null,
-    applications: null,
-    conf: null,
     logger: new Logger('test:remediation1.0')
-  }, {
+  } as IBotComponents
+
+  const { api, plugin } = createRemediationPlugin(components, {
     logger: new Logger('test:remediation1.1')
   })
 
@@ -215,14 +213,13 @@ test.skip('prefill-based', loudAsync(async (t) => {
   //   })
   // }
 
-  const { api, plugin } = createRemediationPlugin({
+  const components = {
     bot,
     productsAPI,
-    friends: null,
-    employeeManager: null,
-    applications: null,
     logger: new Logger('test:remediation1.2')
-  }, {
+  } as IBotComponents
+
+  const { api, plugin } = createRemediationPlugin(components, {
     logger: new Logger('test:remediation1.3')
   })
 
@@ -273,15 +270,14 @@ test.skip('prefill-based', loudAsync(async (t) => {
     draft: draftRes
   })
 
-  const prefillFromDraft = createPrefillFromDraftPlugin({
+  const components1 = {
     bot,
     productsAPI,
     remediation: api,
-    friends: null,
-    employeeManager: null,
-    applications: null,
     logger: new Logger('test:bot-logger')
-  }, {
+  } as IBotComponents
+
+  const prefillFromDraft = createPrefillFromDraftPlugin(components1, {
     logger: new Logger('test:prefill-from-draft'),
   })
 

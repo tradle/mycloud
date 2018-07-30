@@ -21,7 +21,7 @@ const bobIdentity = require('./fixtures/bob/identity')
 addLinks(aliceIdentity)
 addLinks(bobIdentity)
 const blockchainOpts = {
-  flavor: 'ethereum',
+  blockchain: 'ethereum',
   networkName: 'rinkeby'
 }
 
@@ -33,7 +33,7 @@ const createBot = () => createTestBot({ env })
 const rejectEtherscanCalls = () => {
   nock('http://rinkeby.etherscan.io/')
     .get(uri => uri.startsWith('/api'))
-    .reply(function () {
+    .reply(() => {
       rejectEtherscanCalls()
       return {
         statusCode: 403,
@@ -46,7 +46,8 @@ rejectEtherscanCalls()
 
 test('handle failed reads/writes', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
-  const { flavor, networkName } = blockchainOpts
+  const flavor = blockchainOpts.blockchain
+  const { networkName } = blockchainOpts
   const bot = createBot()
   const txId = 'sometxid'
 
@@ -114,7 +115,8 @@ test('queue seal', loudAsync(async (t) => {
 
   await wipeDB(db)
 
-  const { flavor, networkName } = blockchainOpts
+  const { networkName } = blockchainOpts
+  const flavor = blockchainOpts.blockchain
   const sealedObj:any = await identity.sign({
     object: {
       [TYPE]: 'tradle.SimpleMessage',
@@ -125,7 +127,7 @@ test('queue seal', loudAsync(async (t) => {
   const link = sealedObj._link
   const permalink = sealedObj._permalink
   const txId = 'sometxid'
-  // const blockchain = createBlockchainAPI({ flavor, networkName })
+  // const blockchain = createBlockchainAPI({ blockchain, networkName })
   const { blockchain, seals } = bot
   const key = aliceKeys.find(key => key.type === flavor && key.networkName === networkName)
   const address = blockchain.sealAddress({
@@ -235,7 +237,7 @@ test('corda seals', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const env = new Env(process.env)
   const blockchainOpts = env.BLOCKCHAIN = {
-    flavor: 'corda',
+    blockchain: 'corda',
     networkName: 'private'
   }
 
@@ -303,7 +305,7 @@ test('corda seals', loudAsync(async (t) => {
   const expectedSealResource = {
     [TYPE]: 'tradle.Seal',
     txId,
-    blockchain: blockchainOpts.flavor,
+    blockchain: blockchainOpts.blockchain,
     network: blockchainOpts.networkName,
     ...sealOpts,
   }
@@ -333,7 +335,7 @@ test('corda seals', loudAsync(async (t) => {
   const expected = {
     counterparty: sealOpts.counterparty,
     network: env.BLOCKCHAIN.networkName,
-    blockchain: env.BLOCKCHAIN.flavor,
+    blockchain: env.BLOCKCHAIN.blockchain,
     txId,
     write: true,
     confirmations: 0,

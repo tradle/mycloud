@@ -8,12 +8,12 @@ import { summarizeObject } from '../utils'
 const notNull = val => !!val
 
 export const onMessage = (lambda, opts) => {
-  const { logger, bot, isUsingServerlessOffline } = lambda
+  const { logger, bot, IS_EMULATED } = lambda
   const { userSim } = bot
   return async (ctx, next) => {
     const { event, context } = ctx
     let { topic, clientId, data } = event
-    if (!clientId && isUsingServerlessOffline) {
+    if (!clientId && IS_EMULATED) {
       // serverless-offline support
       clientId = topic.match(/\/([^/]+)\/[^/]+/)[1]
     }

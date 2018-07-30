@@ -71,6 +71,7 @@ export default class StackUtils {
   private lambdaUtils: LambdaUtils
   private apiId: string
   private deploymentBucket: Bucket
+  private get isTesting() { return this.env.IS_TESTING }
   public thisStack: StackInfo
 
   constructor({ aws, env, logger, lambdaUtils, stackArn, apiId, deploymentBucket }: StackUtilsOpts) {
@@ -233,7 +234,7 @@ export default class StackUtils {
   }
 
   public updateEnvironments = async(map:TransformFunctionConfig):Promise<UpdateEnvResult[]> => {
-    if (this.env.TESTING) {
+    if (this.isTesting) {
       this.logger.debug(`updateEnvironments is skipped in test mode`)
       return
     }
@@ -270,7 +271,7 @@ export default class StackUtils {
   }
 
   private _updateEnvironment = async (opts: UpdateEnvOpts) => {
-    if (this.env.TESTING) {
+    if (this.isTesting) {
       this.logger.debug(`updateEnvironment is skipped in test mode`)
       return
     }
@@ -393,7 +394,7 @@ export default class StackUtils {
   }
 
   public getStackTemplate = async () => {
-    if (this.env.TESTING) {
+    if (this.isTesting) {
       return _.cloneDeep(require('./cli/cloudformation-template.json'))
     }
 
@@ -404,13 +405,8 @@ export default class StackUtils {
     return JSON.parse(TemplateBody)
   }
 
-  public enableBinaryAPIResponses = async () => {
-    const swagger = await this.getSwagger()
-    return await this.addBinarySupportToSwagger(swagger)
-  }
-
   public getSwagger = async () => {
-    if (this.env.TESTING) {
+    if (this.isTesting) {
       return {}
     }
 
@@ -429,7 +425,7 @@ export default class StackUtils {
   }
 
   public addBinarySupportToSwagger = async (swagger):Promise<boolean> => {
-    if (this.env.TESTING) {
+    if (this.isTesting) {
       return false
     }
 
@@ -600,18 +596,27 @@ export default class StackUtils {
     return this.aws.cloudformation.updateStack(params).promise()
   }
 
-  public enableTerminationProtection = async (StackName=this.thisStack.name) => {
-    await this.aws.cloudformation.updateTerminationProtection({
-      StackName,
-      EnableTerminationProtection: true
-    }).promise()
+  public enableTerminationProtection = async (stackName=this.thisStack.name) => {
+    await this._changeTerminationProtection({ stackName, enable: true })
   }
 
-  public disableTerminationProtection = async (StackName=this.thisStack.name) => {
+  public disableTerminationProtection = async (stackName=this.thisStack.name) => {
+    await this._changeTerminationProtection({ stackName, enable: false })
+  }
+
+  private _changeTerminationProtection = async ({ stackName, enable }: {
+    stackName: string
+    enable: boolean
+  }) => {
     await this.aws.cloudformation.updateTerminationProtection({
-      StackName,
-      EnableTerminationProtection: false
+      StackName: stackName,
+      EnableTerminationProtection: enable
     }).promise()
+
+    this.logger.debug('changed stack termination protection', {
+      protected: enable,
+      stack: stackName
+    })
   }
 
   public static getStackLocationKeys = ({ service, stage, versionInfo }:  {

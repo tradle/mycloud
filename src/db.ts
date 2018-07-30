@@ -16,7 +16,7 @@ import {
 import { TYPE, SIG, ORG, AUTHOR, TYPES, UNSIGNED_TYPES } from './constants'
 import Errors from './errors'
 
-const { MESSAGE, SEAL_STATE, BACKLINK_ITEM, DELIVERY_ERROR } = TYPES
+const { MESSAGE, SEAL_STATE, DELIVERY_ERROR } = TYPES
 const ORG_OR_AUTHOR = '_orgOrAuthor'
 const ARTIFICIAL_PROPS = [ORG_OR_AUTHOR]
 const VERSION_INFO = 'tradle.cloud.VersionInfo'
@@ -313,7 +313,7 @@ export = function createDB ({
     })
   }
 
-  const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
+  // const stripArtificialProps = items => items.map(item => _.omit(item, ARTIFICIAL_PROPS))
 
   const postProcessSearchResult = async ({ args=[], result }) => {
     const { items } = result
@@ -404,6 +404,6 @@ const logifyDB = (db: DB, logger: Logger) => {
   return db
 }
 
-const verbosePrint = (error, args) => safeStringify({ error, args })
+// const verbosePrint = (error, args) => safeStringify({ error, args })
 
 const summarizeSearch = (op: Search) => _.pick(op, ['filter', 'orderBy', 'limit'])

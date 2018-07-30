@@ -322,14 +322,14 @@ export class Conf {
     logger.info('initializing provider', deploymentConf)
 
     const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
-    if (bot.isTesting) {
+    if (bot.isLocal) {
       orgTemplate.name += '-local'
     }
 
-    const conf = <IConf>{
+    const conf = {
       ...defaultConf,
       org: orgTemplate
-    }
+    } as IConf
 
     try {
       const identityInfo = await bot.initInfra({
@@ -371,6 +371,7 @@ export class Conf {
       bot,
       logger: logger.sub('deployment'),
       org,
+      disableCallHome: bot.isLocal,
     })
 
     const { referrerUrl, deploymentUUID } = deploymentConf
@@ -378,7 +379,7 @@ export class Conf {
     await this.save({ identity, org, bot: conf.bot, style })
     const info = await this.recalcPublicInfo({ identity })
 
-    const promiseWarmup = bot.isTesting
+    const promiseWarmup = bot.isLocal
       ? Promise.resolve()
       : bot.lambdaUtils.warmUp(DEFAULT_WARMUP_EVENT)
 
@@ -405,6 +406,7 @@ export class Conf {
         bot,
         logger: logger.sub('deployment'),
         org,
+        disableCallHome: bot.isLocal,
       })
 
       // allowed to fail

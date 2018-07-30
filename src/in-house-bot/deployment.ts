@@ -2,10 +2,13 @@ import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
 import AWS from 'aws-sdk'
+import { FindOpts } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
 import { randomStringWithLength } from '../crypto'
+import baseModels from '../models'
+import { Alerts } from './alerts'
 import {
   Env,
   Bot,
@@ -98,8 +101,7 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
 }
 
 const ALERT_BRANCHES = [
-  'master',
-  'jobs'
+  'master'
 ]
 
 // generated in AWS console
@@ -152,18 +154,20 @@ type ChildStackIdentifier = {
   stackId: string
 }
 
-type CallHomeOpts = {
+interface CallHomeOpts {
   identity?: IIdentity
   org?: IOrganization
   referrerUrl?: string
   deploymentUUID?: string
+  adminEmail?: string
 }
 
-type CallHomeToOpts = {
+interface CallHomeToOpts {
   identity?: IIdentity
   org?: IOrganization
   targetApiUrl?: string
   deploymentUUID?: string
+  adminEmail?: string
 }
 
 // interface IUpdateChildDeploymentOpts {
@@ -184,6 +188,7 @@ interface DeploymentCtorOpts {
   logger: Logger
   conf?: IDeploymentPluginConf
   org?: IOrganization
+  disableCallHome?: boolean
 }
 
 interface UpdateRequest extends ITradleObject {
@@ -215,7 +220,26 @@ export class Deployment {
   private conf?: IDeploymentPluginConf
   private org?: IOrganization
   private isTradle: boolean
-  constructor({ bot, logger, conf, org }: DeploymentCtorOpts) {
+
+  public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
+  public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
+  public static isReleaseCandidateTag = (tag: string) => /-rc\.\d+$/.test(tag)
+  public static isTransitionReleaseTag = (tag: string) => /-trans/.test(tag)
+  public static isMainlineReleaseTag = (tag: string) => /^v?\d+.\d+.\d+$/.test(tag)
+  public static parseConfigurationForm = (form: ITradleObject): IDeploymentConf => {
+    const region = utils.getEnumValueId({
+      model: baseModels[AWS_REGION],
+      value: form.region
+    })
+
+    return {
+      ...form,
+      region: Deployment.decodeRegion(region)
+    } as IDeploymentConf
+  }
+
+  private callHomeDisabled: boolean
+  constructor({ bot, logger, conf, org, disableCallHome }: DeploymentCtorOpts) {
     this.bot = bot
     this.snsUtils = bot.snsUtils
     this.env = bot.env
@@ -224,6 +248,7 @@ export class Deployment {
     this.conf = conf
     this.org = org
     this.isTradle = org && isProbablyTradle({ org })
+    this.callHomeDisabled = this.isTradle || !!disableCallHome
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -260,7 +285,7 @@ export class Deployment {
     ])
 
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
-    const { templateUrl } = await this._saveTemplateAndCode({ parentTemplate: parentTemplate, template, bucket })
+    const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
     const deploymentUUID = getDeploymentUUIDFromTemplate(template)
@@ -422,7 +447,7 @@ export class Deployment {
     })
   }
 
-  public getChildDeployment = async (findOpts={}): Promise<IDeploymentConf> => {
+  public getChildDeployment = async (findOpts:Partial<FindOpts>={}): Promise<IDeploymentConf> => {
     return await this.bot.db.findOne(_.merge({
       orderBy: {
         property: '_time',
@@ -451,14 +476,11 @@ export class Deployment {
     })
   }
 
-  public callHome = async ({ identity, org, referrerUrl, deploymentUUID }: CallHomeOpts={}) => {
-    if (this.isTradle) return
+  public callHome = async ({ identity, org, referrerUrl, deploymentUUID, adminEmail }: CallHomeOpts={}) => {
+    if (this.callHomeDisabled) return
 
     const { bot, logger } = this
     logger.debug('preparing to call home')
-
-    if (!org) org = this.org
-    if (!identity) identity = await this.bot.getMyIdentity()
 
     const tasks = []
     if (referrerUrl && deploymentUUID) {
@@ -467,7 +489,8 @@ export class Deployment {
         identity,
         org,
         targetApiUrl: referrerUrl,
-        deploymentUUID
+        deploymentUUID,
+        adminEmail,
       })
       .catch(err => {
         this.logger.debug('failed to call home to parent', {
@@ -500,11 +523,17 @@ export class Deployment {
     })
   }
 
-  public callHomeTo = async ({ targetApiUrl, identity, org, deploymentUUID }: CallHomeToOpts) => {
-    if (this.bot.env.IS_OFFLINE) return {}
+  public callHomeTo = async (opts: CallHomeToOpts) => {
+    if (this.callHomeDisabled) return
 
-    if (!org) org = this.org
-    if (!identity) identity = await this.bot.getMyIdentity()
+    // allow during test
+    let {
+      targetApiUrl,
+      identity,
+      org,
+      deploymentUUID,
+      adminEmail,
+    } = await this._normalizeCallHomeToOpts(opts)
 
     org = utils.omitVirtual(org)
     identity = utils.omitVirtual(identity)
@@ -536,6 +565,7 @@ export class Deployment {
       identity,
       stackId: this._thisStackArn,
       version: this.bot.version,
+      adminEmail,
     }) as ICallHomePayload
 
     try {
@@ -551,9 +581,7 @@ export class Deployment {
   }
 
   public handleStackInit = async (opts: CallHomeOpts) => {
-    if (this.isTradle) return
-
-    await this.callHome(opts)
+    await this.handleStackUpdate()
   }
 
   public handleStackUpdate = async () => {
@@ -563,14 +591,16 @@ export class Deployment {
       return
     }
 
-    await this.callHome({
-      identity: await bot.getMyIdentity(),
-      org: this.org,
-    })
+    await this._handleStackUpdateNonTradle()
   }
 
   public handleCallHome = async (report: ICallHomePayload) => {
-    const { deploymentUUID, apiUrl, org, identity, stackId, version } = report
+    const { deploymentUUID, apiUrl, org, identity, stackId, version, adminEmail } = report
+    if (utils.isLocalUrl(apiUrl)) {
+      this.logger.info('ignoring call home from dev env MyCloud', report)
+      return true
+    }
+
     let childDeployment
     if (deploymentUUID) {
       try {
@@ -615,6 +645,7 @@ export class Deployment {
         identity: friend.identity,
         stackId,
         version,
+        adminEmail,
       }))
 
     if (childDeployment) {
@@ -872,23 +903,6 @@ ${this.genUsageInstructions(links)}`
   public getCallHomeUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
     // see serverless-uncompiled.yml deploymentPingback function conf
     return `${referrerUrl}/deploymentPingback`
-  }
-
-  public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
-  public encodeRegion = Deployment.encodeRegion
-  public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
-  public decodeRegion = Deployment.decodeRegion
-
-  public parseConfigurationForm = (form: ITradleObject): IDeploymentConf => {
-    const region = utils.getEnumValueId({
-      model: this.bot.models[AWS_REGION],
-      value: form.region
-    })
-
-    return <IDeploymentConf>{
-      ...form,
-      region: this.decodeRegion(region)
-    }
   }
 
   public deleteTmpSNSTopic = async (topic: string) => {
@@ -1257,6 +1271,25 @@ ${this.genUsageInstructions(links)}`
     return _.maxBy(items, '_time')
   }
 
+  public listMyVersions = async (opts:Partial<FindOpts>={}):Promise<VersionInfo[]> => {
+    const { items } = await this.bot.db.find(_.merge({
+      // this is an expensive query as VersionInfo doesn't have a _org / _time index
+      allowScan: true,
+      orderBy: {
+        property: '_time',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: await this.bot.getMyPermalink(),
+        }
+      }
+    }, opts))
+
+    return items
+  }
+
   public getUpdateByTag = async (tag: string) => {
     const { items } = await this.bot.db.find({
       filter: {
@@ -1402,7 +1435,7 @@ ${this.genUsageInstructions(links)}`
     return sortVersions(items)
   }
 
-  public alertAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
+  public alertChildrenAboutVersion = async (versionInfo: Partial<VersionInfo>) => {
     utils.requireOpts(versionInfo, 'tag')
     if (!versionInfo[SIG]) {
       versionInfo = await this.getVersionInfoByTag(versionInfo.tag)
@@ -1421,6 +1454,15 @@ ${this.genUsageInstructions(links)}`
     }))
 
     return true
+  }
+
+  private _normalizeCallHomeToOpts = async (opts: Partial<CallHomeToOpts>) => {
+    return await Promise.props({
+      ...opts,
+      org: opts.org || this.org,
+      identity: opts.identity || this.bot.getMyIdentity(),
+      adminEmail: opts.adminEmail || this.bot.stackUtils.getCurrentAdminEmail(),
+    })
   }
 
   private _saveVersionInfoResource = async (versionInfo: VersionInfo) => {
@@ -1598,8 +1640,18 @@ ${this.genUsageInstructions(links)}`
     const forced = this.bot.version.alert
     const should = updated && shouldSendVersionAlert(this.bot.version)
     if (forced || should) {
-      await this.alertAboutVersion(versionInfo)
+      await this.alertChildrenAboutVersion(versionInfo)
     }
+  }
+
+  private _handleStackUpdateNonTradle = async () => {
+    await Promise.all([
+      this._saveMyDeploymentVersionInfo(),
+      this.callHome({
+        identity: await this.bot.getMyIdentity(),
+        org: this.org,
+      })
+    ])
   }
 
   private get _thisStackArn() {
@@ -1644,13 +1696,6 @@ ${this.genUsageInstructions(links)}`
 
   //   return updated.toJSON()
   // }
-
-  private _regionalSNS = (arn: string) => {
-    const region = getArnRegion(arn)
-    const { regional } = this.bot.aws
-    const services = regional[region]
-    return services.sns
-  }
 }
 
 // const UPDATE_STACK_LAMBDAS = [
@@ -1685,14 +1730,6 @@ export const getCrossAccountLambdaRole = ({ stackId, lambdaName }: {
 }
 
 export const createDeployment = (opts:DeploymentCtorOpts) => new Deployment(opts)
-
-const scaleTable = ({ table, scale }) => {
-  let { ProvisionedThroughput } = table.Properties
-  ProvisionedThroughput.ReadCapacityUnits *= scale
-  ProvisionedThroughput.WriteCapacityUnits *= scale
-  const { GlobalSecondaryIndexes=[] } = table
-  GlobalSecondaryIndexes.forEach(index => scaleTable({ table: index, scale }))
-}
 
 const getStackUpdateTopicName = ({ stackOwner, stackId }: ChildStackIdentifier) => {
   const { name } = StackUtils.parseStackArn(stackId)

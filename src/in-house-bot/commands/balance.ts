@@ -23,8 +23,8 @@ export const command:ICommand = {
 
       blockchain.stop()
       return {
-        blockchain: blockchain.flavor,
-        network: blockchain.networkName,
+        blockchain: blockchain.blockchain,
+        networkName: blockchain.networkName,
         address,
         balance
       }

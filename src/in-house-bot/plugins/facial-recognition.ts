@@ -224,7 +224,7 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
   let { logger, conf={} } = pluginOpts
   _.defaults(conf, DEFAULT_CONF)
 
-  if (bot.isTesting && !bot.s3Utils.publicFacingHost) {
+  if (bot.isLocal && !bot.s3Utils.publicFacingHost) {
     throw new Errors.InvalidEnvironment(`expected S3_PUBLIC_FACING_HOST environment variable to be set`)
   }
 

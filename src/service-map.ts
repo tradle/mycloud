@@ -9,7 +9,6 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
     AWS_REGION,
     SERVERLESS_SERVICE_NAME,
     SERVERLESS_STAGE,
-    IS_OFFLINE
   } = env
 
   const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)
@@ -41,7 +40,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
 
     let value
     if (type === 'RestApi') {
-      if (env.TESTING) {
+      if (env.IS_TESTING) {
         value = {
           id: '',
           url: require('./cli/utils').getOfflineHost(env)
@@ -54,7 +53,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       }
     } else {
       value = env[key]
-      if (value && value.Ref && env.TESTING) {
+      if (value && value.Ref && env.IS_TESTING) {
         value = value.Ref
       }
     }

@@ -10,6 +10,6 @@ export const command:ICommand = {
   description: 'send update alerts to friends',
   exec: async ({ ctx, commander, req, args }) => {
     const { tag='latest' } = args
-    await commander.deployment.alertAboutVersion({ tag })
+    await commander.deployment.alertChildrenAboutVersion({ tag })
   }
 }

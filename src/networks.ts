@@ -1,52 +1,67 @@
-
+import matches from 'lodash/matches'
 import getProp from 'lodash/get'
+import { BlockchainNetwork, BlockchainNetworkInfo } from './types'
 
 const curve = 'secp256k1'
-const constants = {
-  bitcoin: {
-    testnet: {
-      minBalance: 1000000,
-      confirmations: 6
-    },
-    // bitcoinjs-lib's name for it
-    bitcoin: {
-      minBalance: 1000000,
-      confirmations: 6
-    }
+const constants:BlockchainNetworkInfo[] = [
+  {
+    blockchain: 'bitcoin',
+    networkName: 'testnet',
+    minBalance: 1000000,
+    confirmations: 6
   },
-  ethereum: {
-    mainnet: {
-      minBalance: '2000000000000000000',
-      confirmations: 12
-    },
-    ropsten: {
-      minBalance: '2000000000000000000',
-      confirmations: 12
-    },
-    rinkeby: {
-      minBalance: '2000000000000000000',
-      confirmations: 12
-    }
+  // bitcoinjs-lib's name for it
+  {
+    blockchain: 'bitcoin',
+    networkName: 'bitcoin',
+    minBalance: 1000000,
+    confirmations: 6
   },
-  corda: {
-    private: {
-      confirmations: 0
-    }
+  {
+    blockchain: 'ethereum',
+    networkName: 'mainnet',
+    minBalance: '2000000000000000000',
+    confirmations: 12
+  },
+  {
+    blockchain: 'ethereum',
+    networkName: 'ropsten',
+    minBalance: '2000000000000000000',
+    confirmations: 12
+  },
+  {
+    blockchain: 'ethereum',
+    networkName: 'rinkeby',
+    minBalance: '2000000000000000000',
+    confirmations: 12
+  },
+  {
+    blockchain: 'corda',
+    networkName: 'private',
+    confirmations: 0
   }
+]
+
+interface BlockchainNetworkMap {
+  [networkName: string]: BlockchainNetwork
 }
 
-const networks = {}
+interface BlockchainMap {
+  [blockchain: string]: BlockchainNetworkMap
+}
+
+const networks:BlockchainMap = {}
 
 const getAdapter = name => {
   const adapters = require('./blockchain-adapter').default
   return adapters[name]
 }
 
-const getNetwork = ({ flavor, networkName }) => {
+const getNetwork = ({ blockchain, networkName }):BlockchainNetwork => {
   let readOnlyAdapter
   const getReadOnlyAdapter = (opts:any={}) => {
     if (!readOnlyAdapter) {
-      readOnlyAdapter = getAdapter(flavor)({
+      readOnlyAdapter = getAdapter(blockchain)({
         ...opts,
         networkName
       })
@@ -55,9 +70,10 @@ const getNetwork = ({ flavor, networkName }) => {
     return readOnlyAdapter
   }
 
+  const info = constants.find(matches({ blockchain, networkName })) || {}
   return {
-    ...getProp(constants, [flavor, networkName], {}),
-    flavor,
+    ...info,
+    blockchain,
     networkName,
     curve,
     get pubKeyToAddress() {
@@ -65,27 +81,28 @@ const getNetwork = ({ flavor, networkName }) => {
       return network && network.pubKeyToAddress
     },
     transactor(privateKey) {
-      return getAdapter(flavor)({ networkName, privateKey }).transactor
+      return getAdapter(blockchain)({ networkName, privateKey }).transactor
     },
-    toString: () => `${flavor}:${networkName}`,
-    select: obj => obj[flavor]
+    toString: () => `${blockchain}:${networkName}`,
+    // select: obj => obj[blockchain]
   }
 }
 
-Object.keys(constants).forEach(flavor => {
-  const sub = networks[flavor] = {}
-  Object.keys(constants[flavor]).forEach(networkName => {
-    let cached
-    Object.defineProperty(sub, networkName, {
-      enumerable: true,
-      get() {
-        if (!cached) {
-          cached = getNetwork({ flavor, networkName })
-        }
+constants.forEach(info => {
+  const { blockchain, networkName } = info
+  if (!networks[blockchain]) networks[blockchain] = {}
 
-        return cached
+  const sub = networks[blockchain]
+  let cached
+  Object.defineProperty(sub, networkName, {
+    enumerable: true,
+    get() {
+      if (!cached) {
+        cached = getNetwork({ blockchain, networkName })
       }
-    })
+
+      return cached
+    }
   })
 })
 

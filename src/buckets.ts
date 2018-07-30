@@ -59,7 +59,7 @@ const cacheConfig:IBucketsInfo = {
 
 export const getBuckets = ({ env, logger, aws, serviceMap, s3Utils }):Buckets => {
 
-  const { MEMORY_SIZE } = env
+  // const { MEMORY_SIZE } = env
 
   function loadBucket (name) {
     if (buckets[name]) return

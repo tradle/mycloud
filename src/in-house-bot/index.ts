@@ -14,6 +14,8 @@ import { createPlugin as keepFreshPlugin } from './plugins/keep-fresh'
 import { createPlugin as createTsAndCsPlugin } from './plugins/ts-and-cs'
 import { createConf } from './configure'
 import { plugins as defaultConfs } from './defaults'
+import { Deployment } from './deployment'
+import { Alerts } from './alerts'
 
 import {
   createPlugin as keepModelsFreshPlugin,
@@ -45,15 +47,16 @@ import {
   IPBApp,
   ISaveEventPayload,
   Lambda,
+  ITradleObject,
+  VersionInfo,
 } from './types'
 
 import Logger from '../logger'
 import baseModels from '../models'
 import Errors from '../errors'
-import constants from '../constants'
+import { TRADLE } from './constants'
 import * as LambdaEvents from './lambda-events'
 
-const { MAX_DB_ITEM_SIZE } = constants
 const { parseStub } = validateResource.utils
 const BASE_MODELS_IDS = Object.keys(baseModels)
 const DONT_FORWARD_FROM_EMPLOYEE = [
@@ -70,6 +73,7 @@ const HELP_REQUEST = 'tradle.RequestForAssistance'
 const DEPLOYMENT = 'tradle.cloud.Deployment'
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const APPLICATION = 'tradle.Application'
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
 const CUSTOMER_APPLICATION = 'tradle.products.CustomerApplication'
 const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
@@ -192,10 +196,10 @@ export const loadComponentsAndPlugins = ({
 
   // until the issue with concurrent modifications of user & application state is resolved
   // then some handlers can migrate to 'messagestream'
-  const isTestingAsync = bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC
-  const handleMessages = event === LambdaEvents.MESSAGE || isTestingAsync
-  const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isTesting && event === LambdaEvents.MESSAGE)
-  const mergeModelsOpts = { validate: bot.isTesting }
+  const IS_LOCALAsync = bot.isLocal && event === LambdaEvents.RESOURCE_ASYNC
+  const handleMessages = event === LambdaEvents.MESSAGE || IS_LOCALAsync
+  const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isLocal && event === LambdaEvents.MESSAGE)
+  const mergeModelsOpts = { validate: bot.isLocal }
   const visibleProducts = _.uniq(enabled)
   const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
   const productsAPI = createProductsStrategy({
@@ -208,9 +212,9 @@ export const loadComponentsAndPlugins = ({
         .get()
     },
     products: productsList,
-    validateModels: bot.isTesting,
+    validateModels: bot.isLocal,
     nullifyToDeleteProperty: true
-    // queueSends: bot.env.TESTING ? true : queueSends
+    // queueSends: bot.env.IS_TESTING ? true : queueSends
   })
 
   // if (event === LambdaEvents.RESOURCE_ASYNC) {
@@ -343,10 +347,26 @@ export const loadComponentsAndPlugins = ({
       }
     }
 
+    const processCreate = async (resource: ITradleObject) => {
+      const type = resource[TYPE]
+      if (type === VERSION_INFO &&
+        resource._org === TRADLE.PERMALINK &&
+        Deployment.isMainlineReleaseTag(resource.tag)) {
+        await alerts.updateAvailable({
+          current: bot.version,
+          update: resource as VersionInfo
+        })
+
+        return
+      }
+    }
+
     bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
       const { old, value } = change
       if (old && value) {
         await processChange(change)
+      } else if (value) {
+        await processCreate(value)
       }
     })
 
@@ -358,6 +378,12 @@ export const loadComponentsAndPlugins = ({
   }
 
   const promiseMyPermalink = bot.getMyPermalink()
+  const alerts = new Alerts({
+    bot,
+    org: conf.org,
+    logger: logger.sub('alerts'),
+  })
+
   const components: IBotComponents = {
     bot,
     conf,
@@ -365,7 +391,8 @@ export const loadComponentsAndPlugins = ({
     employeeManager,
     friends: new Friends({ bot }),
     applications,
-    logger
+    alerts,
+    logger,
   }
 
   if (handleMessages) {
@@ -586,7 +613,7 @@ export const loadComponentsAndPlugins = ({
     attachPlugin({ name: 'prefill-from-draft', requiresConf: false })
   }
 
-  if ((bot.isTesting && handleMessages) ||
+  if ((bot.isLocal && handleMessages) ||
     event === LambdaEvents.RESOURCE_ASYNC ||
     event === LambdaEvents.COMMAND) {
     attachPlugin({ name: 'webhooks' })
@@ -647,7 +674,7 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
     if (formRequest.form !== PRODUCT_REQUEST) return
 
     const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
-    if (bot.isTesting) return
+    if (bot.isLocal) return
 
     formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter(product => {
       // allow showing hidden products explicitly by listing them in conf

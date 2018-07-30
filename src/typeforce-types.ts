@@ -101,7 +101,7 @@ export const position = typeforce.compile({
 })
 
 export const blockchain = typeforce.compile({
-  flavor: typeforce.String,
+  blockchain: typeforce.String,
   networkName: typeforce.String,
   seal: typeforce.Function,
   pubKeyToAddress: typeforce.maybe(typeforce.Function),

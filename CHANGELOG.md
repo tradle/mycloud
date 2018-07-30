@@ -2,6 +2,90 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.0-rc.0"></a>
+# [1.6.0-rc.0](https://github.com/tradle/serverless/compare/v1.5.0...v1.6.0-rc.0) (2018-07-30)
+
+
+### Bug Fixes
+
+* ignore call home from dev env MyClouds ([0cef5a2](https://github.com/tradle/serverless/commit/0cef5a2))
+* low funds alert ([83b504c](https://github.com/tradle/serverless/commit/83b504c))
+* releasecandidate scripts ([cc3ac49](https://github.com/tradle/serverless/commit/cc3ac49))
+* validate semver tags ([9333ca0](https://github.com/tradle/serverless/commit/9333ca0))
+
+
+
+<a name="1.5.0"></a>
+# [1.5.0](https://github.com/tradle/serverless/compare/v1.5.0-rc.1...v1.5.0) (2018-07-30)
+
+
+
+<a name="1.5.0-rc.1"></a>
+# [1.5.0-rc.1](https://github.com/tradle/serverless/compare/v1.5.0-rc.0...v1.5.0-rc.1) (2018-07-30)
+
+
+
+<a name="1.5.0-rc.0"></a>
+# [1.5.0-rc.0](https://github.com/tradle/serverless/compare/v1.4.1...v1.5.0-rc.0) (2018-07-29)
+
+
+### Bug Fixes
+
+* non-deterministic test ([9c17cb0](https://github.com/tradle/serverless/commit/9c17cb0))
+* save versionInfo on stack init/update ([8aff090](https://github.com/tradle/serverless/commit/8aff090))
+
+
+### Features
+
+* add listmyversions cli command ([2946cd3](https://github.com/tradle/serverless/commit/2946cd3))
+
+
+
+<a name="1.4.1"></a>
+## [1.4.1](https://github.com/tradle/serverless/compare/v1.4.0...v1.4.1) (2018-07-29)
+
+
+### Bug Fixes
+
+* warmup job frequency ([257de6e](https://github.com/tradle/serverless/commit/257de6e))
+
+
+
+<a name="1.4.0"></a>
+# [1.4.0](https://github.com/tradle/serverless/compare/v1.4.0-rc.0...v1.4.0) (2018-07-29)
+
+
+
+<a name="1.4.0-rc.0"></a>
+# [1.4.0-rc.0](https://github.com/tradle/serverless/compare/v1.3.1...v1.4.0-rc.0) (2018-07-29)
+
+
+### Bug Fixes
+
+* **test:** deployment ([9ba6662](https://github.com/tradle/serverless/commit/9ba6662))
+* send adminEmail in call home ([5c00c7d](https://github.com/tradle/serverless/commit/5c00c7d))
+
+
+### Features
+
+* notify admin by email about new updates ([204a639](https://github.com/tradle/serverless/commit/204a639))
+
+
+
+<a name="1.3.1"></a>
+## [1.3.1](https://github.com/tradle/serverless/compare/v1.3.0...v1.3.1) (2018-07-28)
+
+
+### Bug Fixes
+
+* disable changing of stack termination protection on create/update stack ([7c014af](https://github.com/tradle/serverless/commit/7c014af))
+* email subject length ([e442593](https://github.com/tradle/serverless/commit/e442593))
+* error handling on sync clock ([6fe562b](https://github.com/tradle/serverless/commit/6fe562b))
+* only alert of new versions on master branch ([a3c2875](https://github.com/tradle/serverless/commit/a3c2875))
+* support transition versions in utils.toSortableTag ([a577444](https://github.com/tradle/serverless/commit/a577444))
+
+
+
 <a name="1.3.0"></a>
 # [1.3.0](https://github.com/tradle/serverless/compare/v1.3.0-trans.0...v1.3.0) (2018-07-27)
 

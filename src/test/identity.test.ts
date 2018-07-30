@@ -19,7 +19,7 @@ test('sign/witness', loudAsync(async (t) => {
   // const sandbox = sinon.createSandbox()
   // const identity = new Identity({
   //   network: {
-  //     flavor: 'ethereum',
+  //     blockchain: 'ethereum',
   //     networkName: 'rinkeby'
   //   },,
   //   getIdentity: async () => aliceIdentity,

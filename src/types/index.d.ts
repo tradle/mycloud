@@ -56,7 +56,7 @@ export {
 export type Constructor<T = {}> = new (...args: any[]) => T
 
 export * from '../retryable-task'
-export { ECKey } from '../crypto'
+// export { ECKey } from '../crypto'
 
 export {
   // re-export from @tradle/dynamodb
@@ -208,7 +208,6 @@ export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, call
   => any|void
 
 export interface ILambdaOpts<T> {
-  devModeOnly?: boolean
   source?: EventSource
   bot?: Bot
   middleware?: Middleware<T>
@@ -269,7 +268,7 @@ export interface IPrivKey extends IPubKey {
 }
 
 export interface IIdentity extends ITradleObject {
-  pubkeys: Array<IPubKey>
+  pubkeys: IPubKey[]
 }
 
 export interface IIdentityAndKeys {
@@ -467,6 +466,9 @@ export type IServiceMap = {
   }
   Role: AttrMap
   Key: AttrMap
+  Topic: {
+    AdminAlerts: string
+  }
   Stack: string
 }
 
@@ -568,9 +570,22 @@ export interface IGraphqlAPI {
 }
 
 export interface IBlockchainIdentifier {
-  flavor: string
+  blockchain: string
   networkName: string
+  // confirmations?: number
+}
+
+export interface BlockchainNetworkInfo extends IBlockchainIdentifier {
   confirmations?: number
+  minBalance?: number|string
+}
+
+export interface BlockchainNetwork extends BlockchainNetworkInfo {
+  pubKeyToAddress: (pubKey: Buffer) => string
+  curve: string
+  transactor: any
+  toString: () => string
+  // select: (obj: any) => any
 }
 
 export type StreamRecordType = 'create'|'update'|'delete'|string
@@ -778,4 +793,31 @@ export type SNSEventRecord = {
 
 export type SNSEvent = {
   Records: SNSEventRecord[]
+}
+
+export interface SNSMessage {
+  default: any
+  email?: any
+  lambda?: any
+}
+
+export interface ECKey {
+  sign: (data, algorithm, callback) => void
+  signSync: (data, algorithm?) => void
+  promiseSign: (data, algorithm?) => Promise<string>
+  verify: (data, algorithm, sig, callback) => void
+  promiseVerify: (data, algorithm, sig) => Promise<boolean>
+  toJSON: (exportPrivateKey?: boolean) => any
+}
+
+export interface BlockchainAddressIdentifier extends IBlockchainIdentifier {
+  address: string
+}
+
+export interface LowFundsInput extends BlockchainAddressIdentifier {
+  blockchain: string
+  networkName: string
+  address: string
+  balance?: string|number
+  minBalance?: string|number
 }

@@ -1,7 +1,6 @@
 import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
-import validateResource from '@tradle/validate-resource'
 import { TYPE } from '@tradle/constants'
 import { utils as DDBUtils, OrderBy, FindOpts } from '@tradle/dynamodb'
 import {
@@ -36,15 +35,9 @@ import { TYPES } from './constants'
 const { MESSAGE, BACKLINK_ITEM } = TYPES
 const APPLICATION = 'tradle.Application'
 const APPLICATION_SUBMISSION = 'tradle.ApplicationSubmission'
-const { isDescendantOf, isInlinedProperty } = validateResource.utils
-const SEPARATOR = ':'
 const DEFAULT_BACKLINK_ORDER_BY = {
   property: '_time',
   desc: true
-}
-
-interface ResourceProperty extends ParsedResourceStub {
-  property: string
 }
 
 type KVPairArr = [string, any]
@@ -322,13 +315,6 @@ export default class Backlinks {
   }
 
   private toDBFormat = (blItem:IBacklinkItem):any => _.omit(blItem, ['targetParsedStub', 'backlinkProp'])
-  private fromDBFormat = (blItem:any):IBacklinkItem => ({
-    ...blItem,
-    targetParsedStub: {
-      ...parsePermId(blItem.target),
-      link: blItem.targetLink
-    }
-  })
 
   public getBacklinksChanges = (rChanges: ISaveEventPayload[]):BacklinksChange => {
     const { models, logger } = this
@@ -337,10 +323,6 @@ export default class Backlinks {
       logger,
       changes: rChanges
     })
-  }
-
-  private _getPayload = async (message:ITradleMessage) => {
-    return await this.db.get(message._payloadLink)
   }
 
   private _getApplicationsWithContexts = async (contexts:string[]) => {
@@ -458,17 +440,6 @@ export default class Backlinks {
 
 //   return _.flatten(paths)
 // }
-
-const concatKeysUniq = (...objs): string[] => {
-  const keyMap = {}
-  for (const obj of objs) {
-    if (obj) {
-      for (const key in obj) keyMap[key] = true
-    }
-  }
-
-  return Object.keys(keyMap)
-}
 
 export const getBacklinkChangesForChanges = ({ models, logger, changes }: {
   models: Models

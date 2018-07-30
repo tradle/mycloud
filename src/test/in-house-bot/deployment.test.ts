@@ -16,6 +16,7 @@ import { createTestEnv } from '../env'
 
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
+const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 
 test('deployment by referral', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
@@ -40,8 +41,9 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const parent = createTestBot()
   const child = createBotInRegion({ region })
+  sandbox.stub(child.stackUtils, 'getCurrentAdminEmail').resolves(conf.adminEmail)
 
-  const childUrl = 'childurl'
+  const childUrl = 'http://tradle.somewhereoverthe.com'
   child.serviceMap.RestApi.ApiGateway.url = childUrl
 
   const parentDeployment = new Deployment({
@@ -108,13 +110,14 @@ test('deployment by referral', loudAsync(async (t) => {
       name: childOrg.name,
       domain: childOrg.domain,
       identity: childIdentity,
-      apiUrl: childUrl
+      apiUrl: childUrl,
     }
 
     expectedLaunchReport = {
       ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'stage', 'service', 'stackName', 'logo']),
       org: _.pick(deploymentConf, ['name', 'domain']),
       version: child.version,
+      adminEmail: conf.adminEmail,
     }
 
     ;['identity', 'org'].forEach(prop => {
@@ -375,11 +378,12 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(childLoadFriendStub.callCount, 1)
   t.ok(topicResource)
 
+  const saved = saveResourceStub.getCalls().map(call => call.args[0])
+  const [childChanges, topicChanges] = _.partition(saved, r => r[TYPE] === CHILD_DEPLOYMENT)
   const [
-    // createTopic,
     createChild,
-    updateChild,
-  ] = saveResourceStub.getCalls().map(call => call.args[0])
+    updateChild
+  ] = childChanges
 
   // t.equal(createTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
   t.equal(createChild[TYPE], 'tradle.cloud.ChildDeployment')
@@ -478,12 +482,16 @@ test('tradle and children', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const region = 'ap-southeast-2'
   const tradle = createTestBot()
+  tradle.version.commitsSinceTag = 10
   const child = createTestBot({
     env: createTestEnv({
       AWS_REGION: region,
       R_STACK: tradle.stackUtils.thisStackId.replace(tradle.env.AWS_REGION, region)
     })
   })
+
+  child.version.commitsSinceTag = 10
+  sandbox.stub(child.stackUtils, 'getCurrentAdminEmail').resolves('child@mycloud.tradle.io')
 
   const tradleDeployment = new Deployment({
     bot: tradle,

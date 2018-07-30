@@ -17,6 +17,7 @@
   "R_ROLE_AutoScaling": "{prefix}AutoScalingRole",
   "R_ROLE_IotClient": "{prefix}IotClientRole",
   "R_TABLE_Bucket0": "{prefix}bucket-0",
+  "R_TOPIC_AdminAlerts": "{prefix}AwsAlertsAlarm",
   "R_STACK": "arn:aws:cloudformation:us-east-1:xxxxx:stack/{service}-{stage}/xxxxx",
   "R_Key_DefaultEncryption": "key-id-abcdefg",
   "SERVERLESS_PREFIX": "{prefix}",

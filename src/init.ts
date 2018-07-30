@@ -84,21 +84,11 @@ export default class Init {
   }
 
   public initInfra = async (opts?:IInitOpts) => {
-    // await this.fixAPIGateway()
-    const [result] = await Promise.all([
-      this.initIdentity(opts),
-      this.stackUtils.enableTerminationProtection()
-    ])
-
-    return result
+    return await this.initIdentity(opts)
   }
 
   public updateInfra = async (opts?:any) => {
-    // return await this.fixAPIGateway()
-  }
-
-  private fixAPIGateway = async() => {
-    await this.stackUtils.enableBinaryAPIResponses()
+    // nothing to do here for now
   }
 
   public initIdentity = async (opts:IInitOpts={}) => {
@@ -159,7 +149,7 @@ export default class Init {
     const { PrivateConf } = this.buckets
     const { network } = this
     const chainKey = getChainKey(keys, {
-      type: network.flavor,
+      type: network.blockchain,
       networkName: network.networkName
     })
 

@@ -18,7 +18,9 @@
       "*": [
         "node_modules/*",
         "src/types/*"
-      ]
+      ],
+      "@tradle/in-house-bot": ["src/in-house-bot/index.ts"],
+      "@tradle/in-house-bot/*": ["src/in-house-bot/*"]
     },
     "types": [
       "node",

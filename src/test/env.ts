@@ -2,9 +2,9 @@ import 'nock'
 import { parse as parseURL } from 'url'
 import http from 'http'
 import crypto from 'crypto'
+import getLocalIP from 'localip'
 import '../globals'
 import Env from '../env'
-
 // console.warn('make sure localstack is running (npm run localstack:start)')
 
 require('source-map-support').install()
@@ -14,12 +14,13 @@ import * as serviceMap from './service-map'
 
 const debug = require('debug')('tradle:sls:test:env')
 const sinon = require('sinon')
+const localIP = getLocalIP()
 const props = {
+  AWS_REGION: 'us-east-1',
+  NODE_ENV: 'test',
   ...process.env,
   ...serviceMap,
-  NODE_ENV: 'test',
-  AWS_REGION: 'us-east-1',
-  IS_LOCAL: true
+  IS_LOCAL: true,
 }
 
 export const createTestEnv = (overrides={}):Env => {
@@ -29,15 +30,17 @@ export const createTestEnv = (overrides={}):Env => {
 }
 
 const originalHttpRequest = http.request.bind(http)
-const httpRequestInterceptor = function (req) {
+const httpRequestInterceptor = (...args) => {
+  const req = args[0]
   const host = req.host || parseURL(req.url).host
   if (host.endsWith('.amazonaws.com')) {
     const err = new Error(`forbidding request to AWS in test/local mode: ${req.url}`)
+    // @ts-ignore
     console.error(err.stack)
     throw err
   }
 
-  return originalHttpRequest(...arguments)
+  return originalHttpRequest(...args)
 }
 
 export const install = (target=process.env):void => {

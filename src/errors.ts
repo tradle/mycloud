@@ -4,6 +4,7 @@ import _ from 'lodash'
 import ex from 'error-ex'
 import { AssertionError } from 'assert'
 import { TfTypeError, TfPropertyTypeError } from 'typeforce'
+import { LowFundsInput } from './types'
 
 function createError (name: string): ErrorConstructor {
   return ex(name)
@@ -133,6 +134,47 @@ class TimeTravel extends ErrorWithLink {
   public name = 'TimeTravelError'
 }
 
+type StringOrNum = string|number
+
+const getLowFundsMessage = ({
+  blockchain,
+  networkName,
+  address,
+  balance,
+  minBalance,
+}: LowFundsInput) => {
+  const prefix = `blockchain ${blockchain} network ${networkName} address ${address} balance is`
+  if (_.isUndefined(balance) || _.isUndefined(minBalance)) {
+    return `${prefix} low`
+  }
+
+  return `${prefix} ${balance}, need at least ${minBalance}`
+}
+
+class LowFunds extends Error implements LowFundsInput {
+  public address: string
+  public blockchain: string
+  public networkName: string
+  public balance?: StringOrNum
+  public minBalance?: StringOrNum
+  constructor(opts: LowFundsInput) {
+    super(getLowFundsMessage(opts))
+    const {
+      blockchain,
+      networkName,
+      address,
+      balance,
+      minBalance,
+    } = opts
+
+    this.address = address
+    this.blockchain = blockchain
+    this.networkName = networkName
+    this.balance = balance
+    this.minBalance = minBalance
+  }
+}
+
 const exportError = (err:Error) => {
   const obj:any = _.pick(err, ['message', 'stack', 'name', 'type'])
   if (obj.type && obj.message && !obj.message.startsWith(obj.type)) {
@@ -176,7 +218,7 @@ const errors = {
   Exists: createError('Exists'),
   HttpError,
   Timeout: createError('Timeout'),
-  LowFunds: createError('LowFunds'),
+  LowFunds,
   DevStageOnly: createError('DevStageOnly'),
   Unsupported: createError('Unsupported'),
   GaveUp: createError('GaveUp'),

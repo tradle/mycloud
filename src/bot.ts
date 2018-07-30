@@ -23,11 +23,6 @@ import { TYPE, SIG, ORG, ORG_SIG } from './constants'
 const VERSION = require('./version')
 const {
   defineGetter,
-  ensureTimestamped,
-  wait,
-  parseStub,
-  RESOLVED_PROMISE,
-  batchProcess,
   getResourceIdentifier,
   pickBacklinks,
   omitBacklinks,
@@ -211,7 +206,9 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get isDev() { return this.env.STAGE === 'dev' }
   public get isStaging() { return this.env.STAGE === 'staging' }
   public get isProd() { return this.env.STAGE === 'prod' }
-  public get isTesting() { return this.env.TESTING }
+  public get isTesting() { return this.env.IS_TESTING }
+  public get isLocal() { return this.env.IS_LOCAL }
+  public get isEmulated() { return this.env.IS_EMULATED }
   public get resourcePrefix() { return this.env.SERVERLESS_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
@@ -223,7 +220,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get networks () { return networks }
   public get network () {
     const { BLOCKCHAIN } = this.env
-    return this.networks[BLOCKCHAIN.flavor][BLOCKCHAIN.networkName]
+    return this.networks[BLOCKCHAIN.blockchain][BLOCKCHAIN.networkName]
   }
 
   public get constants () { return constants }
@@ -311,7 +308,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     //   logger: this.logger.sub('friends')
     // })
 
-    const MESSAGE_LOCK_TIMEOUT = this.isTesting ? null : 10000
+    const MESSAGE_LOCK_TIMEOUT = this.isLocal ? null : 10000
     this.outboundMessageLocker = createLocker({
       // name: 'message send lock',
       // debug: logger.sub('message-locker:send').debug,
@@ -361,7 +358,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       })
     })
 
-    if (this.isTesting) {
+    if (this.isLocal) {
       const yml = require('./serverless-interpolated')
       const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
       this.appLinks = createLinker({
@@ -381,19 +378,13 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   private _init = () => {
     // if (++instanceCount > 1) {
-    //   if (!env.TESTING) {
+    //   if (!env.IS_TESTING) {
     //     throw new Error('multiple instances not allowed')
     //   }
     // }
 
     const bot = this
     const { env } = bot
-    const {
-      // FAUCET_PRIVATE_KEY,
-      // BLOCKCHAIN,
-      SERVERLESS_PREFIX
-    } = env
-
     bot.env = env
 
     const logger = bot.logger = env.logger
@@ -407,7 +398,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       logger: logger.sub('seals'),
     })
 
-    if (env.BLOCKCHAIN.flavor === 'corda') {
+    if (env.BLOCKCHAIN.blockchain === 'corda') {
       bot.define('seals', './corda-seals', ({ Seals }) => new Seals(getSealsOpts()))
       bot.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain({
         env,
@@ -582,7 +573,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       storage,
       identity,
       logger: bot.logger.sub('friends'),
-      isTesting: bot.env.TESTING,
+      isDev: bot.isDev,
     })
 
     const contentAddressedStore = bot.contentAddressedStore = new ContentAddressedStore({
@@ -820,14 +811,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     resource
   })
 
-  private _omitBacklinks = resource => omitBacklinks({
-    model: this.models[resource[TYPE]],
-    resource
-  })
+  // private _omitBacklinks = resource => omitBacklinks({
+  //   model: this.models[resource[TYPE]],
+  //   resource
+  // })
 
   public seal = opts => this.seals.create(opts)
   public forceReinitializeContainers = async (functions?: string[]) => {
-    if (this.isTesting) return
+    if (this.isLocal) return
 
     await this.lambdaUtils.scheduleReinitializeContainers()
   }
@@ -1241,11 +1232,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const topic = async ? baseTopic.async : baseTopic
     await Promise.each(batches, batch => this.fireBatch(topic, batch))
   }
-}
-
-const toSimpleMiddleware = handler => async (ctx, next) => {
-  await handler(ctx.event)
-  await next()
 }
 
 const maybeAddOld = (bot: Bot, change: ISaveEventPayload, async: boolean):ISaveEventPayload|Promise<ISaveEventPayload> => {

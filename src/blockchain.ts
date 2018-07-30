@@ -6,7 +6,8 @@ import {
   Logger,
   Identity,
   ITradleObject,
-  IBlockchainIdentifier
+  IBlockchainIdentifier,
+  LowFundsInput,
 } from './types'
 
 import Errors from './errors'
@@ -79,7 +80,7 @@ type BlockchainOpts = {
 }
 
 export default class Blockchain {
-  public flavor: string
+  public blockchain: string
   public networkName: string
   public minBalance: string
 
@@ -87,7 +88,6 @@ export default class Blockchain {
   private network: IBlockchainAdapter
   private writers = {}
   private getTxAmount = () => this.network.minOutputAmount
-  private debug:IDebug
   private logger:Logger
   private identity:Identity
   public addressesAPI: {
@@ -99,16 +99,16 @@ export default class Blockchain {
   constructor(components:BlockchainOpts) {
     const { logger, network, identity } = components
     // typeforce({
-    //   flavor: typeforce.String,
+    //   blockchain: typeforce.String,
     //   networkName: typeforce.String,
     //   minBalance: typeforce.oneOf(typeforce.String, typeforce.Number)
     // }, blockchainIdentifier)
 
     Object.assign(this, network)
 
-    const { flavor, networkName } = network
-    if (!adapters[flavor]) {
-      throw new Error(`unsupported blockchain type: ${flavor}`)
+    const { blockchain, networkName } = network
+    if (!adapters[blockchain]) {
+      throw new Error(`unsupported blockchain type: ${blockchain}`)
     }
 
     this.reader = this.createAdapter()
@@ -171,6 +171,7 @@ export default class Blockchain {
     const writer = this.getWriter(key)
     this.start()
     this.logger.debug(`sealing ${link}`)
+    const { minBalance } = this
     if (typeof balance === 'undefined') {
       try {
         balance = await this.balance()
@@ -179,10 +180,21 @@ export default class Blockchain {
       }
     }
 
+    const lowFunds:LowFundsInput = {
+      blockchain: this.blockchain,
+      networkName: this.networkName,
+      address: await this.getMyChainAddress(),
+      balance,
+      minBalance,
+    }
+
     const amount = this.getTxAmount()
     if (typeof balance !== 'undefined') {
       if (compareBalance(balance, amount) === -1) {
-        throw new Errors.LowFunds(`have ${balance}, need at least ${amount}`)
+        throw new Errors.LowFunds({
+          ...lowFunds,
+          minBalance: amount
+        })
       }
     }
 
@@ -193,7 +205,7 @@ export default class Blockchain {
       })
     } catch (err) {
       if (Errors.matches(err, { message: /insufficient/i })) {
-        throw new Errors.LowFunds(err.message)
+        throw new Errors.LowFunds(lowFunds)
       }
 
       throw err
@@ -258,15 +270,13 @@ export default class Blockchain {
       address = await this.getMyChainAddress()
     }
 
-    const balance = await this.addressesAPI.balance(address)
-    this.logger.debug(`balance: ${balance}`)
-    return balance
+    return await this.addressesAPI.balance(address)
   }
 
   private createAdapter = (opts:{ privateKey?: string }={}) => {
-    const { flavor, networkName } = this
-    const create = adapters[flavor]
-    return create({ flavor, networkName, ...opts })
+    const { blockchain, networkName } = this
+    const create = adapters[blockchain]
+    return create({ blockchain, networkName, ...opts })
   }
 
   private getWriter = (key: IKey) => {

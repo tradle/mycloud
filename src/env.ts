@@ -2,6 +2,7 @@
 import './globals'
 // import './console'
 
+import clone from 'lodash/clone'
 import yn from 'yn'
 import debug from 'debug'
 import {
@@ -17,16 +18,17 @@ import Logger, { Level } from './logger'
 export default class Env {
   public lambda:Lambda
   public reqCtx:IRequestContext
-  public TESTING:boolean
+  // public TESTING:boolean
   public DEV:boolean
-  public IS_WARM_UP:boolean
-  public IS_LAMBDA_ENVIRONMENT:boolean
   // if either IS_LOCAL, or IS_OFFLINE is true
   // operations will be performed on local resources
   // is running locally (not in lambda)
-  public IS_LOCAL:boolean
+  // public IS_LOCAL:boolean
   // is running in serverless-offline
-  public IS_OFFLINE:boolean
+  // public IS_OFFLINE:boolean
+  public IS_EMULATED: boolean
+  public IS_LOCAL: boolean
+  public IS_TESTING: boolean
   public SERVERLESS_OFFLINE_PORT: number
   public SERVERLESS_OFFLINE_APIGW: string
   public S3_PUBLIC_FACING_HOST: string
@@ -37,7 +39,7 @@ export default class Env {
   public REGION:string
   public AWS_LAMBDA_FUNCTION_NAME:string
   public FUNCTION_NAME:string
-  public MEMORY_SIZE:number
+  // public MEMORY_SIZE:number
   public DEBUG_FORMAT:string
   public DEBUG_LEVEL:string
 
@@ -74,8 +76,8 @@ export default class Env {
   public _X_AMZN_TRACE_ID:string
   public AWS_ACCOUNT_ID: string
 
-  private nick:string
   constructor(props:any) {
+    props = clone(props)
     const {
       SERVERLESS_PREFIX,
       SERVERLESS_STAGE,
@@ -85,30 +87,32 @@ export default class Env {
       IS_OFFLINE,
       AWS_REGION,
       AWS_LAMBDA_FUNCTION_NAME,
-      AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
+      // AWS_LAMBDA_FUNCTION_MEMORY_SIZE,
       NO_TIME_TRAVEL,
       BLOCKCHAIN
     } = props
 
     if (AWS_LAMBDA_FUNCTION_NAME) {
-      this.CLOUD = 'aws'
+      props.CLOUD = 'aws'
     }
 
-    this.TESTING = NODE_ENV === 'test' || yn(IS_LOCAL) || yn(IS_OFFLINE)
-    this.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
+    props.IS_LOCAL = yn(IS_LOCAL) || yn(IS_OFFLINE)
+    props.IS_EMULATED = yn(IS_OFFLINE)
+    props.IS_TESTING = NODE_ENV === 'test'
+    props.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
       ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
       : 'unknown'
 
-    this.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
-      ? 512
-      : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
+    // props.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
+    //   ? 512
+    //   : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
 
-    this.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
+    props.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 
     this.logger = new Logger({
-      namespace: this.TESTING ? '' : ROOT_LOGGING_NAMESPACE,
+      namespace: props.IS_TESTING ? '' : ROOT_LOGGING_NAMESPACE,
       // writer: global.console,
-      writer: this.TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
+      writer: props.IS_TESTING ? createTestingLogger(ROOT_LOGGING_NAMESPACE) : global.console,
       outputFormat: props.DEBUG_FORMAT || 'text',
       context: {},
       level: 'DEBUG_LEVEL' in props ? Number(props.DEBUG_LEVEL) : Level.DEBUG,
@@ -138,9 +142,6 @@ export default class Env {
     return JSON.stringify(this)
   }
 
-  /**
-   * Dynamically change logger namespace as "nick" is set lazily, e.g. from router
-   */
   public sublogger = (namespace:string):Logger => {
     // create sub-logger
     return this.logger.logger({ namespace })
@@ -159,7 +160,6 @@ export default class Env {
     this.lambda = lambda
     this.setRequestContext(lambda.reqCtx)
     const { event, context } = lambda.execCtx
-    this.IS_WARM_UP = event.source === WARMUP_SOURCE_NAME
     this.set({ AWS_ACCOUNT_ID: lambda.accountId })
   }
 
@@ -203,15 +203,9 @@ export default class Env {
     }
 
     this.REGION = this.AWS_REGION
-    if ('IS_LAMBDA_ENVIRONMENT' in props) {
-      this.IS_LAMBDA_ENVIRONMENT = yn(props.IS_LAMBDA_ENVIRONMENT)
-    } else if (typeof this.IS_LAMBDA_ENVIRONMENT !== 'boolean') {
-      this.IS_LAMBDA_ENVIRONMENT = !this.TESTING
-    }
-
     if ('BLOCKCHAIN' in props) {
-      const [flavor, networkName] = props.BLOCKCHAIN.split(':')
-      this.BLOCKCHAIN = { flavor, networkName }
+      const [blockchain, networkName] = props.BLOCKCHAIN.split(':')
+      this.BLOCKCHAIN = { blockchain, networkName }
     }
   }
 }
