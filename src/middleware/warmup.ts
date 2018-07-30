@@ -1,13 +1,14 @@
 import fs from 'fs'
 import { wait } from '../utils'
 import { WARMUP_SOURCE_NAME, WARMUP_SLEEP } from '../constants'
+import { Lambda } from '../types'
 
 type WarmUpOpts = {
   source?: string
   sleep?: number
 }
 
-export const warmup = (lambda, opts:WarmUpOpts={}) => {
+export const warmup = (lambda: Lambda, opts:WarmUpOpts={}) => {
   const { source=WARMUP_SOURCE_NAME } = opts
   const { logger } = lambda
   return async (ctx, next) => {
@@ -21,7 +22,7 @@ export const warmup = (lambda, opts:WarmUpOpts={}) => {
     logger.debug(`warmup, sleeping for ${sleep}ms`)
     await wait(sleep)
     let uptime
-    if (!(lambda.isUsingServerlessOffline || lambda.env.IS_LOCAL)) {
+    if (!lambda.isLocal) {
       uptime = fs.readFileSync('/proc/uptime', { encoding: 'utf-8' })
     }
 

@@ -29,7 +29,7 @@ type FriendsOpts = {
   identity: Identity
   identities: Identities
   logger: Logger
-  isTesting?: boolean
+  isDev?: boolean
 }
 
 export default class Friends {
@@ -42,12 +42,12 @@ export default class Friends {
   private db: DB
   private components: FriendsOpts
   private _clearCacheForPermalink: (permalink: string) => void
-  private isTesting
+  private isDev
   constructor(components: FriendsOpts) {
     this.components = components
 
-    const { logger, storage } = components
-    this.isTesting = components.isTesting
+    const { logger, storage, isDev } = components
+    this.isDev = isDev
     this.storage = storage
     this.db = storage.db
     this.cache = createCache()
@@ -179,7 +179,7 @@ export default class Friends {
   }
 
   public clear = async () => {
-    if (!this.isTesting) throw new Errors.DevStageOnly('only allows in test mode')
+    if (!this.isDev) throw new Errors.DevStageOnly('only allows in test mode')
 
     const friends = await this.list()
     await Promise.map(friends, friend => this.del(friend), {

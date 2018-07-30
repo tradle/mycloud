@@ -208,7 +208,6 @@ export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, call
   => any|void
 
 export interface ILambdaOpts<T> {
-  devModeOnly?: boolean
   source?: EventSource
   bot?: Bot
   middleware?: Middleware<T>

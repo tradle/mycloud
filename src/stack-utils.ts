@@ -71,6 +71,7 @@ export default class StackUtils {
   private lambdaUtils: LambdaUtils
   private apiId: string
   private deploymentBucket: Bucket
+  private get isTesting() { return this.env.IS_TESTING }
   public thisStack: StackInfo
 
   constructor({ aws, env, logger, lambdaUtils, stackArn, apiId, deploymentBucket }: StackUtilsOpts) {
@@ -233,7 +234,7 @@ export default class StackUtils {
   }
 
   public updateEnvironments = async(map:TransformFunctionConfig):Promise<UpdateEnvResult[]> => {
-    if (this.env.IS_TESTING) {
+    if (this.isTesting) {
       this.logger.debug(`updateEnvironments is skipped in test mode`)
       return
     }
@@ -270,7 +271,7 @@ export default class StackUtils {
   }
 
   private _updateEnvironment = async (opts: UpdateEnvOpts) => {
-    if (this.env.IS_TESTING) {
+    if (this.isTesting) {
       this.logger.debug(`updateEnvironment is skipped in test mode`)
       return
     }
@@ -393,7 +394,7 @@ export default class StackUtils {
   }
 
   public getStackTemplate = async () => {
-    if (this.env.IS_TESTING) {
+    if (this.isTesting) {
       return _.cloneDeep(require('./cli/cloudformation-template.json'))
     }
 
@@ -405,7 +406,7 @@ export default class StackUtils {
   }
 
   public getSwagger = async () => {
-    if (this.env.IS_TESTING) {
+    if (this.isTesting) {
       return {}
     }
 
@@ -424,7 +425,7 @@ export default class StackUtils {
   }
 
   public addBinarySupportToSwagger = async (swagger):Promise<boolean> => {
-    if (this.env.IS_TESTING) {
+    if (this.isTesting) {
       return false
     }
 

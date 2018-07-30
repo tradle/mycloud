@@ -9,7 +9,6 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
     AWS_REGION,
     SERVERLESS_SERVICE_NAME,
     SERVERLESS_STAGE,
-    IS_OFFLINE
   } = env
 
   const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)

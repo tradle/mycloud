@@ -188,6 +188,7 @@ interface DeploymentCtorOpts {
   logger: Logger
   conf?: IDeploymentPluginConf
   org?: IOrganization
+  disableCallHome?: boolean
 }
 
 interface UpdateRequest extends ITradleObject {
@@ -237,7 +238,8 @@ export class Deployment {
     } as IDeploymentConf
   }
 
-  constructor({ bot, logger, conf, org }: DeploymentCtorOpts) {
+  private callHomeDisabled: boolean
+  constructor({ bot, logger, conf, org, disableCallHome }: DeploymentCtorOpts) {
     this.bot = bot
     this.snsUtils = bot.snsUtils
     this.env = bot.env
@@ -246,6 +248,7 @@ export class Deployment {
     this.conf = conf
     this.org = org
     this.isTradle = org && isProbablyTradle({ org })
+    this.callHomeDisabled = this.isTradle || !!disableCallHome
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -474,7 +477,7 @@ export class Deployment {
   }
 
   public callHome = async ({ identity, org, referrerUrl, deploymentUUID, adminEmail }: CallHomeOpts={}) => {
-    if (this.isTradle) return
+    if (this.callHomeDisabled) return
 
     const { bot, logger } = this
     logger.debug('preparing to call home')
@@ -521,8 +524,9 @@ export class Deployment {
   }
 
   public callHomeTo = async (opts: CallHomeToOpts) => {
-    if (this.bot.isOffline) return {}
+    if (this.callHomeDisabled) return
 
+    // allow during test
     let {
       targetApiUrl,
       identity,

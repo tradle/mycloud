@@ -1,3 +1,4 @@
+import { Lambda } from './types'
 import serverlessHTTP from 'serverless-http'
 import { utils } from './'
 
@@ -7,8 +8,12 @@ export function createHandler ({
   lambda,
   preProcess,
   postProcess
+}: {
+  lambda: Lambda
+  preProcess: (...any) => Promise<void>
+  postProcess: (...any) => Promise<void>
 }) {
-  const binaryMimeTypes = lambda.isTesting
+  const binaryMimeTypes = lambda.isLocal
     ? []
     : [
         "application/javascript",

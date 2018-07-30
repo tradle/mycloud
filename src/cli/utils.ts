@@ -183,8 +183,8 @@ const compileTemplate = async (path) => {
   compile.stripDevFunctions(yml)
   // addCustomResourceDependencies(yml, interpolated)
 
-  const isLocal = process.env.IS_LOCAL
-  if (isLocal) {
+  const IS_LOCAL = process.env.IS_LOCAL
+  if (IS_LOCAL) {
     compile.removeResourcesThatDontWorkLocally(yml)
   }
 

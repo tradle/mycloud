@@ -93,7 +93,7 @@ export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfid
     webhook: null
   }
 
-  if (bot.isTesting) {
+  if (bot.isLocal) {
     if (bot.apiBaseUrl.includes(TEST_APIGW) || isLocalUrl(bot.apiBaseUrl)) {
       onfido.logger.warn(`can't register webhook for localhost.
   Run: ngrok http <port>

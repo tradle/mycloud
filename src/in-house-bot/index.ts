@@ -196,10 +196,10 @@ export const loadComponentsAndPlugins = ({
 
   // until the issue with concurrent modifications of user & application state is resolved
   // then some handlers can migrate to 'messagestream'
-  const isTestingAsync = bot.isTesting && event === LambdaEvents.RESOURCE_ASYNC
-  const handleMessages = event === LambdaEvents.MESSAGE || isTestingAsync
-  const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isTesting && event === LambdaEvents.MESSAGE)
-  const mergeModelsOpts = { validate: bot.isTesting }
+  const IS_LOCALAsync = bot.isLocal && event === LambdaEvents.RESOURCE_ASYNC
+  const handleMessages = event === LambdaEvents.MESSAGE || IS_LOCALAsync
+  const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isLocal && event === LambdaEvents.MESSAGE)
+  const mergeModelsOpts = { validate: bot.isLocal }
   const visibleProducts = _.uniq(enabled)
   const productsList = _.uniq(enabled.concat(ALL_HIDDEN_PRODUCTS))
   const productsAPI = createProductsStrategy({
@@ -212,7 +212,7 @@ export const loadComponentsAndPlugins = ({
         .get()
     },
     products: productsList,
-    validateModels: bot.isTesting,
+    validateModels: bot.isLocal,
     nullifyToDeleteProperty: true
     // queueSends: bot.env.IS_TESTING ? true : queueSends
   })
@@ -612,7 +612,7 @@ export const loadComponentsAndPlugins = ({
     attachPlugin({ name: 'prefill-from-draft', requiresConf: false })
   }
 
-  if ((bot.isTesting && handleMessages) ||
+  if ((bot.isLocal && handleMessages) ||
     event === LambdaEvents.RESOURCE_ASYNC ||
     event === LambdaEvents.COMMAND) {
     attachPlugin({ name: 'webhooks' })
@@ -673,7 +673,7 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
     if (formRequest.form !== PRODUCT_REQUEST) return
 
     const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
-    if (bot.isTesting) return
+    if (bot.isLocal) return
 
     formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter(product => {
       // allow showing hidden products explicitly by listing them in conf

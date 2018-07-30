@@ -168,14 +168,6 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
       }
     })
 
-    if (opts.devModeOnly) {
-      this.use(async (ctx, next) => {
-        if (!this.isTesting) throw new Error('forbidden')
-
-        await next()
-      })
-    }
-
     this.use(warmup(this))
 
     // no point in warming up as these events
@@ -281,8 +273,12 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return this.env.IS_TESTING
   }
 
-  get isUsingServerlessOffline():boolean {
-    return this.env.IS_OFFLINE
+  get isEmulated():boolean {
+    return this.env.IS_EMULATED
+  }
+
+  get isLocal():boolean {
+    return this.env.IS_LOCAL
   }
 
   get isProd():boolean {
@@ -449,7 +445,7 @@ Previous exit stack: ${this.lastExitStack}`)
       }
 
       const headers = caseless(request.headers)
-      if (!this.isUsingServerlessOffline && headers.get('content-encoding') === 'gzip') {
+      if (!this.isEmulated && headers.get('content-encoding') === 'gzip') {
         this.logger.silly('stripping content-encoding header as APIGateway already gunzipped')
         headers.set('content-encoding', 'identity')
         event.headers = request.headers
@@ -526,7 +522,7 @@ Previous exit stack: ${this.lastExitStack}`)
       await this.exit()
     })
 
-    if (!this.isTesting) {
+    if (!this.isLocal) {
       this.use(require('koa-compress')())
     }
 
@@ -687,7 +683,7 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private _exportError = (err) => {
-    if (this.isTesting) {
+    if (this.isLocal) {
       return Errors.export(err)
     }
 
@@ -697,7 +693,7 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private _ensureNotBroken = () => {
-    if (!this.isTesting && this.breakingContext) {
+    if (!this.isLocal && this.breakingContext) {
       throw new Error('I am broken!: ' + this.breakingContext)
     }
   }
@@ -735,7 +731,7 @@ const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<
     ctx['trace-id'] = lambda.env._X_AMZN_TRACE_ID
   }
 
-  if (lambda.isUsingServerlessOffline) {
+  if (lambda.isEmulated) {
     ctx['function'] = lambda.env.FUNCTION_NAME
   }
 

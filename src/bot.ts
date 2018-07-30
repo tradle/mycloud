@@ -208,7 +208,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get isProd() { return this.env.STAGE === 'prod' }
   public get isTesting() { return this.env.IS_TESTING }
   public get isLocal() { return this.env.IS_LOCAL }
-  public get isOffline() { return this.env.IS_OFFLINE }
+  public get isEmulated() { return this.env.IS_EMULATED }
   public get resourcePrefix() { return this.env.SERVERLESS_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
@@ -308,7 +308,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     //   logger: this.logger.sub('friends')
     // })
 
-    const MESSAGE_LOCK_TIMEOUT = this.isTesting ? null : 10000
+    const MESSAGE_LOCK_TIMEOUT = this.isLocal ? null : 10000
     this.outboundMessageLocker = createLocker({
       // name: 'message send lock',
       // debug: logger.sub('message-locker:send').debug,
@@ -358,7 +358,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       })
     })
 
-    if (this.isTesting) {
+    if (this.isLocal) {
       const yml = require('./serverless-interpolated')
       const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
       this.appLinks = createLinker({
@@ -573,7 +573,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       storage,
       identity,
       logger: bot.logger.sub('friends'),
-      isTesting: bot.env.IS_TESTING,
+      isDev: bot.isDev,
     })
 
     const contentAddressedStore = bot.contentAddressedStore = new ContentAddressedStore({
@@ -818,7 +818,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public seal = opts => this.seals.create(opts)
   public forceReinitializeContainers = async (functions?: string[]) => {
-    if (this.isTesting) return
+    if (this.isLocal) return
 
     await this.lambdaUtils.scheduleReinitializeContainers()
   }

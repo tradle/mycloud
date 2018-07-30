@@ -167,8 +167,6 @@ export default class User {
     clientId?:string,
     message:any
   }) => {
-    const { TESTING } = this.env
-
     // if (Math.random() < 0.5) {
     //   console.log('ONSENTMESSAGE, REQUESTING RECONNECT')
     //   await this.requestIotClientReconnect({ clientId })

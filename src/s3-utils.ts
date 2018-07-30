@@ -53,7 +53,7 @@ export default class S3Utils {
   }
 
   public get publicFacingHost() {
-    return this.env && this.env.IS_TESTING && this.env.S3_PUBLIC_FACING_HOST
+    return this.isTesting && this.env.S3_PUBLIC_FACING_HOST
   }
 
   private get replicationAvailable() {
@@ -63,11 +63,11 @@ export default class S3Utils {
 
   private get iamAvailable() {
     // localstack doesn't have IAM
-    return this.env && !this.env.IS_TESTING
+    return this.env && !this.isTesting
   }
 
   private get versioningAvailable() {
-    return this.env && !this.env.IS_TESTING
+    return this.env && !this.isTesting
   }
 
   public put = async ({ key, value, bucket, headers = {}, acl }: BucketPutOpts): Promise<S3.Types.PutObjectOutput> => {
@@ -359,7 +359,7 @@ export default class S3Utils {
       this.logger.error('failed to disable bucket replication', { bucket, error: err.stack })
       // localstack gives some weird error:
       //   'FakeDeleteMarker' object has no attribute 'name'
-      if (!this.env.IS_TESTING) throw err
+      if (!this.isTesting) throw err
     }
   }
 
@@ -834,13 +834,17 @@ export default class S3Utils {
 
   private _canGzip = () => {
     // localstack has some issues
-    return !(this.env && this.env.IS_TESTING)
+    return !this.isTesting
   }
 
   private _ensureIAMAvailable = (iam: AWS.IAM) => {
     if (!(this.iamAvailable && iam)) {
       throw new Errors.InvalidEnvironment(`IAM not available`)
     }
+  }
+
+  private get isTesting() {
+    return this.env && this.env.IS_TESTING
   }
 }
 
