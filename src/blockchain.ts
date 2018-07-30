@@ -183,7 +183,7 @@ export default class Blockchain {
     const lowFunds:LowFundsInput = {
       blockchain: this.blockchain,
       networkName: this.networkName,
-      address,
+      address: await this.getMyChainAddress(),
       balance,
       minBalance,
     }
@@ -270,9 +270,7 @@ export default class Blockchain {
       address = await this.getMyChainAddress()
     }
 
-    const balance = await this.addressesAPI.balance(address)
-    this.logger.debug(`balance: ${balance}`)
-    return balance
+    return await this.addressesAPI.balance(address)
   }
 
   private createAdapter = (opts:{ privateKey?: string }={}) => {
