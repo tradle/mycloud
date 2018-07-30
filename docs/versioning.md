@@ -15,7 +15,7 @@ There are several steps to deploying new versions:
 1. Deploy it to the cloud
 1. Announce the new version to other MyClouds (see [deployment](../src/in-house-bot/deployment.ts) module's `handleStackUpdate`)
 1. Generate templates / copy lambda code to region-local buckets for MyClouds that request updates to a given version (not necessarily the latest version)
-1. On the child MyCloud side, request an update, and apply it (via [tradleconf](https://github.com/tradle/configure-tradle))
+1. On the child MyCloud side, request an update, and apply it (via [tradleconf](https://github.com/tradle/tradleconf))
 
 ### Create a New Release
 
