@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.0"></a>
+# [1.6.0](https://github.com/tradle/serverless/compare/v1.6.0-rc.1...v1.6.0) (2018-07-31)
+
+
+### Bug Fixes
+
+* simplify db queries in deployment module ([183d977](https://github.com/tradle/serverless/commit/183d977))
+
+
+
 <a name="1.6.0-rc.1"></a>
 # [1.6.0-rc.1](https://github.com/tradle/serverless/compare/v1.6.0-rc.0...v1.6.0-rc.1) (2018-07-31)
 
