@@ -366,6 +366,26 @@ export class Deployment {
   // for easy mocking during testing
   public _getTemplateByUrl = utils.get
 
+  public genUpdatePackageForStackWithVersion = async ({
+    stackOwner,
+    stackId,
+    adminEmail,
+    tag
+  }: {
+    stackOwner: string
+    stackId: string
+    adminEmail: string
+    tag: string
+  }) => {
+    const { templateUrl } = await this.getVersionInfoByTag(tag)
+    return this.genUpdatePackageForStack({
+      stackOwner,
+      stackId,
+      adminEmail,
+      parentTemplateUrl: templateUrl,
+    })
+  }
+
   public genUpdatePackageForStack = async (opts: {
     stackOwner: string
     stackId: string
@@ -1018,7 +1038,9 @@ ${this.genUsageInstructions(links)}`
     const commit = getCommitHashFromTemplate(template)
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
     await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
-    return this.bot.s3Utils.getUrlForKey({ bucket, key })
+    const url = this.bot.s3Utils.getUrlForKey({ bucket, key })
+    this.logger.silly('saved template', { bucket, key, url })
+    return url
   }
 
   private _monitorChildStack = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
@@ -1233,7 +1255,7 @@ ${this.genUsageInstructions(links)}`
   public getVersionInfoByTag = async (tag: string):Promise<VersionInfo> => {
     if (tag === 'latest') return this.getLatestVersionInfo()
 
-    const { items } = await this.bot.db.find({
+    return await this.bot.db.findOne({
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
@@ -1242,16 +1264,15 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
+  }
 
-    if (!items.length) {
-      throw new Errors.NotFound(`${VERSION_INFO} with tag: ${tag}`)
-    }
-
-    return _.maxBy(items, '_time')
+  public getLatestDeployedVersionInfo = async ():Promise<VersionInfo> => {
+    const results = await this.listMyVersions({ limit: 1 })
+    return results[0]
   }
 
   public getLatestVersionInfo = async ():Promise<VersionInfo> => {
-    const { items } = await this.bot.db.find({
+    return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',
         desc: true
@@ -1263,12 +1284,6 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
-
-    if (!items.length) {
-      throw new Errors.NotFound(VERSION_INFO)
-    }
-
-    return _.maxBy(items, '_time')
   }
 
   public listMyVersions = async (opts:Partial<FindOpts>={}):Promise<VersionInfo[]> => {
@@ -1291,7 +1306,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getUpdateByTag = async (tag: string) => {
-    const { items } = await this.bot.db.find({
+    return await this.bot.db.findOne({
       filter: {
         EQ: {
           [TYPE]: UPDATE,
@@ -1300,12 +1315,6 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
-
-    if (!items.length) {
-      throw new Errors.NotFound(`${UPDATE} with tag: ${tag}`)
-    }
-
-    return _.maxBy(items, '_time')
   }
 
   public includesUpdate = (updateTag: string) => {
@@ -1601,7 +1610,7 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  private _saveMyDeploymentVersionInfo = async () => {
+  public _saveMyDeploymentVersionInfo = async () => {
     return this._saveDeploymentVersionInfo(this.bot.version)
   }
 
