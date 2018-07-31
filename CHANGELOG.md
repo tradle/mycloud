@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.0-rc.1"></a>
+# [1.6.0-rc.1](https://github.com/tradle/serverless/compare/v1.6.0-rc.0...v1.6.0-rc.1) (2018-07-31)
+
+
+### Bug Fixes
+
+* oniotmessage in dev mode ([4d26a91](https://github.com/tradle/serverless/commit/4d26a91))
+* validate-model - 'signature' annotation is valid for tradle.Photo props ([7554674](https://github.com/tradle/serverless/commit/7554674))
+
+
+### Features
+
+* trueface spoof detection ([c87185f](https://github.com/tradle/serverless/commit/c87185f))
+* trueface spoof detection ([27ba779](https://github.com/tradle/serverless/commit/27ba779))
+
+
+
 <a name="1.6.0-rc.0"></a>
 # [1.6.0-rc.0](https://github.com/tradle/serverless/compare/v1.5.0...v1.6.0-rc.0) (2018-07-30)
 
