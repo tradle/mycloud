@@ -225,7 +225,7 @@ export class Deployment {
   public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
   public static isReleaseCandidateTag = (tag: string) => /-rc\.\d+$/.test(tag)
   public static isTransitionReleaseTag = (tag: string) => /-trans/.test(tag)
-  public static isMainlineReleaseTag = (tag: string) => /^v?\d+.\d+.\d+$/.test(tag)
+  public static isStableReleaseTag = (tag: string) => /^v?\d+.\d+.\d+$/.test(tag)
   public static parseConfigurationForm = (form: ITradleObject): IDeploymentConf => {
     const region = utils.getEnumValueId({
       model: baseModels[AWS_REGION],
@@ -503,16 +503,17 @@ export class Deployment {
     logger.debug('preparing to call home')
 
     const tasks = []
+    const callHomeOpts = utils.pickNonNull({
+      identity,
+      org,
+      targetApiUrl: referrerUrl,
+      deploymentUUID,
+      adminEmail,
+    })
+
     if (referrerUrl && deploymentUUID) {
       this.logger.debug('calling parent')
-      const reportToParent = this.callHomeTo({
-        identity,
-        org,
-        targetApiUrl: referrerUrl,
-        deploymentUUID,
-        adminEmail,
-      })
-      .catch(err => {
+      const callHomeToParent = this.callHomeTo(callHomeOpts).catch(err => {
         this.logger.debug('failed to call home to parent', {
           error: err.stack,
           parent: referrerUrl
@@ -521,10 +522,10 @@ export class Deployment {
         throw err
       })
 
-      tasks.push(reportToParent)
+      tasks.push(callHomeToParent)
     }
 
-    const reportToTradle = this.callHomeToTradle({ identity, org }).catch(err => {
+    const callHomeToTradle = this.callHomeToTradle(callHomeOpts).catch(err => {
       this.logger.debug('failed to call home to tradle', {
         error: err.stack
       })
@@ -532,7 +533,7 @@ export class Deployment {
       throw err
     })
 
-    tasks.push(reportToTradle)
+    tasks.push(callHomeToTradle)
     await Promise.all(tasks)
   }
 
@@ -1483,10 +1484,12 @@ ${this.genUsageInstructions(links)}`
 
   private _saveVersionInfoResource = async (versionInfo: VersionInfo) => {
     utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
+    const { tag } = versionInfo
     return this.bot.draft({ type: VERSION_INFO })
       .set({
         ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
-        sortableTag: toSortableTag(versionInfo.tag)
+        sortableTag: toSortableTag(tag),
+        releaseChannel: getReleaseChannel(tag),
       })
       .signAndSave()
       .then(r => r.toJSON())
@@ -1776,4 +1779,12 @@ const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
 const sortVersions = (items: any[], desc?: boolean) => {
   const sorted = _.sortBy(items, ['sortableTag', '_time'])
   return desc ? sorted.reverse() : sorted
+}
+
+const getReleaseChannel = (tag: string) => {
+  if (Deployment.isReleaseCandidateTag(tag)) return 'releasecandidate'
+  if (Deployment.isTransitionReleaseTag(tag)) return 'transition'
+  if (Deployment.isStableReleaseTag(tag)) return 'stable'
+
+  throw new Errors.InvalidInput(`unable to parse release channel from tag: ${tag}`)
 }

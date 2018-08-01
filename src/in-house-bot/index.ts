@@ -358,7 +358,7 @@ export const loadComponentsAndPlugins = ({
       const type = resource[TYPE]
       if (type === VERSION_INFO &&
         resource._org === TRADLE.PERMALINK &&
-        Deployment.isMainlineReleaseTag(resource.tag)) {
+        Deployment.isStableReleaseTag(resource.tag)) {
         await alerts.updateAvailable({
           current: bot.version,
           update: resource as VersionInfo
