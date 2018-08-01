@@ -45,6 +45,7 @@ import {
   isEmployee,
   isProbablyTradle,
   getTradleBotStub,
+  urlsFuzzyEqual,
 } from './utils'
 
 import { getLogAlertsTopicName } from './log-processor'
@@ -511,22 +512,27 @@ export class Deployment {
       tasks.push(callHomeToParent)
     }
 
-    const callHomeToTradle = this.callHomeToTradle(callHomeOpts).catch(err => {
-      this.logger.debug('failed to call home to tradle', {
-        error: err.stack
+    if (!referrerUrl || !urlsFuzzyEqual(referrerUrl, TRADLE.API_BASE_URL)) {
+      this.logger.debug('calling tradle')
+      const callTradleOpts = _.omit(callHomeOpts, ['referrerUrl', 'deploymentUUID'])
+      const callHomeToTradle = this.callHomeToTradle(callTradleOpts).catch(err => {
+        this.logger.debug('failed to call home to tradle', {
+          error: err.stack
+        })
+
+        throw err
       })
 
-      throw err
-    })
+      tasks.push(callHomeToTradle)
+    }
 
-    tasks.push(callHomeToTradle)
     await Promise.all(tasks)
   }
 
   public callHomeToTradle = async (opts:CallHomeOpts={}) => {
     return await this.callHomeTo({
-      referrerUrl: TRADLE.API_BASE_URL,
       ...opts,
+      referrerUrl: TRADLE.API_BASE_URL,
     })
   }
 

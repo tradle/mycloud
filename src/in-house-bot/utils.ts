@@ -1,3 +1,4 @@
+import { parse as parseUrl } from 'url'
 import _ from 'lodash'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
@@ -570,4 +571,15 @@ export const getTradleBotStub = async () => {
 export const getTradleBotIdentity = async () => {
   const info = await get(`${TRADLE.API_BASE_URL}/info`)
   return info.bot.pub
+}
+
+const trailingSlashesRegex = /\/+$/
+const pathsEqual = (a: string, b: string) => {
+  return a.replace(trailingSlashesRegex, '') === b.replace(trailingSlashesRegex, '')
+}
+
+export const urlsFuzzyEqual = (a: string, b: string) => {
+  const aParsed = parseUrl(a)
+  const bParsed = parseUrl(b)
+  return aParsed.host === bParsed.host && pathsEqual(aParsed.pathname, bParsed.pathname)
 }
