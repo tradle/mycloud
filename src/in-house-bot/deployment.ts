@@ -621,10 +621,13 @@ export class Deployment {
       return true
     }
 
+    this.logger.silly('received call home', report)
+
     let childDeployment
     if (deploymentUUID) {
       try {
         childDeployment = await this.getChildDeploymentByDeploymentUUID(deploymentUUID)
+        this.logger.silly('found child deployment by deploymentUUID')
       } catch (err) {
         Errors.ignoreNotFound(err)
         this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
@@ -634,6 +637,7 @@ export class Deployment {
     if (!childDeployment && stackId) {
       try {
         childDeployment = await this.getChildDeploymentByStackId(stackId)
+        this.logger.silly('found child deployment by stackId')
       } catch (err) {
         Errors.ignoreNotFound(err)
       }
@@ -670,11 +674,14 @@ export class Deployment {
 
     if (childDeployment) {
       if (!childDeploymentRes.isModified()) {
-        this.logger.debug('child deployment unchanged')
+        this.logger.silly('child deployment resource unchanged')
         return true
       }
 
+      this.logger.silly('updating child deployment resource')
       childDeploymentRes.version()
+    } else {
+      this.logger.silly('creating child deployment resource')
     }
 
     await childDeploymentRes.signAndSave()
