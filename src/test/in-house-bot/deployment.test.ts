@@ -339,7 +339,7 @@ test('deployment by referral', loudAsync(async (t) => {
   await childDeployment.callHomeTo({
     // myOrg: _.pick(deploymentConf, ['name', 'domain']),
     // myIdentity: childIdentity,
-    targetApiUrl: deploymentConf.referrerUrl,
+    referrerUrl: deploymentConf.referrerUrl,
     deploymentUUID: deploymentConf.deploymentUUID
   })
 

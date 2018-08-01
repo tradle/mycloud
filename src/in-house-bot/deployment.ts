@@ -23,6 +23,8 @@ import {
   ResourceStub,
   IOrganization,
   IDeploymentPluginConf,
+  CallHomeOpts,
+  StackDeploymentInfo,
   IAppLinkSet,
   StackStatusEvent,
   VersionInfo,
@@ -152,22 +154,6 @@ type UpdateDeploymentConf = {
 type ChildStackIdentifier = {
   stackOwner: string
   stackId: string
-}
-
-interface CallHomeOpts {
-  identity?: IIdentity
-  org?: IOrganization
-  referrerUrl?: string
-  deploymentUUID?: string
-  adminEmail?: string
-}
-
-interface CallHomeToOpts {
-  identity?: IIdentity
-  org?: IOrganization
-  targetApiUrl?: string
-  deploymentUUID?: string
-  adminEmail?: string
 }
 
 // interface IUpdateChildDeploymentOpts {
@@ -503,10 +489,10 @@ export class Deployment {
     logger.debug('preparing to call home')
 
     const tasks = []
-    const callHomeOpts = utils.pickNonNull({
+    const callHomeOpts = await this._normalizeCallHomeOpts({
       identity,
       org,
-      targetApiUrl: referrerUrl,
+      referrerUrl,
       deploymentUUID,
       adminEmail,
     })
@@ -537,24 +523,24 @@ export class Deployment {
     await Promise.all(tasks)
   }
 
-  public callHomeToTradle = async (opts:CallHomeToOpts={}) => {
+  public callHomeToTradle = async (opts:CallHomeOpts={}) => {
     return await this.callHomeTo({
-      targetApiUrl: TRADLE.API_BASE_URL,
+      referrerUrl: TRADLE.API_BASE_URL,
       ...opts,
     })
   }
 
-  public callHomeTo = async (opts: CallHomeToOpts) => {
+  public callHomeTo = async (opts: CallHomeOpts) => {
     if (this.callHomeDisabled) return
 
     // allow during test
     let {
-      targetApiUrl,
+      referrerUrl,
       identity,
       org,
       deploymentUUID,
       adminEmail,
-    } = await this._normalizeCallHomeToOpts(opts)
+    } = await this._normalizeCallHomeOpts(opts)
 
     org = utils.omitVirtual(org)
     identity = utils.omitVirtual(identity)
@@ -563,14 +549,14 @@ export class Deployment {
     let friend
     try {
       friend = await utils.runWithTimeout(
-        () => this.bot.friends.load({ url: targetApiUrl }),
+        () => this.bot.friends.load({ url: referrerUrl }),
         { millis: 20000 }
       )
 
       if (deploymentUUID) {
         saveParentDeployment = this.saveParentDeployment({
           friend,
-          apiUrl: targetApiUrl,
+          apiUrl: referrerUrl,
           childIdentity: identity
         })
       }
@@ -578,7 +564,7 @@ export class Deployment {
       this.logger.error('failed to add referring MyCloud as friend', err)
     }
 
-    const callHomeUrl = this.getCallHomeUrl(targetApiUrl)
+    const callHomeUrl = this.getCallHomeUrl(referrerUrl)
     const launchData = utils.pickNonNull({
       deploymentUUID,
       apiUrl: this.bot.apiBaseUrl,
@@ -593,7 +579,7 @@ export class Deployment {
       await utils.runWithTimeout(() => utils.post(callHomeUrl, launchData), { millis: 10000 })
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error(`failed to call home to: ${targetApiUrl}`, err)
+      this.logger.error(`failed to call home to: ${referrerUrl}`, err)
     }
 
     this.logger.debug(`called home to ${callHomeUrl}`)
@@ -601,18 +587,18 @@ export class Deployment {
     return { friend, parentDeployment }
   }
 
-  public handleStackInit = async (opts: CallHomeOpts) => {
-    await this.handleStackUpdate()
+  public handleStackInit = async (opts: StackDeploymentInfo) => {
+    await this.handleStackUpdate(opts)
   }
 
-  public handleStackUpdate = async () => {
+  public handleStackUpdate = async (opts?: StackDeploymentInfo) => {
     const { bot, logger, conf } = this
     if (this.isTradle) {
       await this._handleStackUpdateTradle()
       return
     }
 
-    await this._handleStackUpdateNonTradle()
+    await this._handleStackUpdateNonTradle(opts)
   }
 
   public handleCallHome = async (report: ICallHomePayload) => {
@@ -1473,7 +1459,7 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
-  private _normalizeCallHomeToOpts = async (opts: Partial<CallHomeToOpts>) => {
+  private _normalizeCallHomeOpts = async (opts: Partial<CallHomeOpts>) => {
     return await Promise.props({
       ...opts,
       org: opts.org || this.org,
@@ -1663,13 +1649,10 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  private _handleStackUpdateNonTradle = async () => {
+  private _handleStackUpdateNonTradle = async (opts: CallHomeOpts) => {
     await Promise.all([
       this._saveMyDeploymentVersionInfo(),
-      this.callHome({
-        identity: await this.bot.getMyIdentity(),
-        org: this.org,
-      })
+      this.callHome(opts)
     ])
   }
 
