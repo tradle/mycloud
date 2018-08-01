@@ -320,8 +320,8 @@ export const loadComponentsAndPlugins = ({
   if (runAsyncHandlers) {
     logger.debug('running async hooks')
     // productsAPI.removeDefaultHandlers()
-    const processChange = async ({ old, value }: ISaveEventPayload) => {
-      const type = old[TYPE]
+    const maybeNotifyChildDeploymentCreators = ({ old={}, value={} }: ISaveEventPayload) => {
+      const type = value[TYPE]
       if (type === CHILD_DEPLOYMENT && didPropChange({ old, value, prop: 'stackId' })) {
         // using bot.tasks is hacky, but because this fn currently purposely stalls for minutes on end,
         // stream-processor will time out processing this item and the lambda will exit before anyone gets notified
@@ -332,7 +332,12 @@ export const loadComponentsAndPlugins = ({
 
         return
       }
+    }
 
+    const processChange = async ({ old, value }: ISaveEventPayload) => {
+      maybeNotifyChildDeploymentCreators({ old, value })
+
+      const type = old[TYPE]
       if (type === APPLICATION &&
         didPropChangeTo({ old, value, prop: 'status', propValue: 'approved' })) {
         value.submissions = await bot.backlinks.getBacklink({
@@ -348,6 +353,8 @@ export const loadComponentsAndPlugins = ({
     }
 
     const processCreate = async (resource: ITradleObject) => {
+      maybeNotifyChildDeploymentCreators({ old: null, value: resource })
+
       const type = resource[TYPE]
       if (type === VERSION_INFO &&
         resource._org === TRADLE.PERMALINK &&
