@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.1"></a>
+## [1.6.1](https://github.com/tradle/serverless/compare/v1.6.0...v1.6.1) (2018-08-01)
+
+
+### Bug Fixes
+
+* banter ([a53613b](https://github.com/tradle/serverless/commit/a53613b))
+* call home, simplify call home vs deployment info typings ([84ed843](https://github.com/tradle/serverless/commit/84ed843))
+* notify child deployment creators after launch ([1a5586e](https://github.com/tradle/serverless/commit/1a5586e))
+* setconf case with no lens-only models pack ([0f7b24e](https://github.com/tradle/serverless/commit/0f7b24e))
+
+
+### Features
+
+* save release channel on version info ([62fd85c](https://github.com/tradle/serverless/commit/62fd85c))
+
+
+
 <a name="1.6.0"></a>
 # [1.6.0](https://github.com/tradle/serverless/compare/v1.6.0-rc.1...v1.6.0) (2018-07-31)
 
