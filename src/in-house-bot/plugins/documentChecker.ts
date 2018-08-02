@@ -204,7 +204,7 @@ export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
 
     const result = await checkIDDocument(params)
     const parsed = await this.parseXML(result.return.$value)
-
+debugger
     let checkResult = DocumentCheckerSoapClient._parseUploadImagesResponse(parsed.result)
     _.extend(checkResult, {rawData: parsed.result})
     return checkResult
@@ -253,13 +253,34 @@ export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
       status = 'error'
       break;
     case 1: // not ok
-      if (DocStatus == '13') { //docstatus internal helpdesk (13)
-        message = 'Pending'
-        status = 'pending'
-      } else {// NotOk (2), Doubt (12), Unknown (6), BadScan (7), VISHit (11), InIntake(20)
-        message = 'One of the things failed NotOk (2), Doubt (12), Unknown (6), BadScan (7), VISHit (11), InIntake(20)'
-        status = 'fail'
+      switch (DocStatus) {
+      case '13': //docstatus internal helpdesk (13)
+        message = 'The document is under investigation of the Internal Helpdesk'
+        break
+      // NotOk (2), Doubt (12), Unknown (6), BadScan (7), VISHit (11), InIntake(20)
+      case '2':
+        message = 'The document is forged.'
+        break
+      case '6':
+        message = 'No conclusive status can be given, see remarks.'
+        break
+      case '7':
+        message = 'The quality of the scan is insufficient to provide a status'
+        break
+      case '11':
+        message = 'The document is reported stolen or missing in the Dutch VIS database'
+        break
+      case '12':
+        message = 'The Keesing Helpdesk has doubts about the authenticity of the document, see remarks'
+        break
+      case '20':
+        message = 'The intake of this document has not been finished. The document should be deleted through the Web Interface'
+        break
+      default:
+        message = 'Not OK'
+        break
       }
+      status = DocStatus === '13'  &&  'pending' || 'fail'
       break;
     case 2:
       status = 'pending'
@@ -374,15 +395,16 @@ export class DocumentCheckerAPI {
       if (status !== 'pending')
         await this.updateCheck({check, status, message, rawData})
       if (status !== 'pass') {
-        if (status !== 'pending'  ||  (Date.now() - new Date(check.dateChecked).getTime()  > DAY)) {
-          await this.client.deleteImages(check.docId)
-          if (status === 'pending')
-            await this.updateCheck({check, status: 'fail', message: 'The check timed out'})
-        }
+      //// Delete image in DC if it failed verification
+      //   if (status !== 'pending'  ||  (Date.now() - new Date(check.dateChecked).getTime() > DAY)) {
+      //     await this.client.deleteImages(check.docId)
+      //     if (status === 'pending')
+      //       await this.updateCheck({check, status: 'fail', message: 'The check timed out'})
+      //   }
         return
-
       }
-      await this.client.deleteImages(check.docId)
+      // if (status === 'pass') {
+      // await this.client.deleteImages(check.docId)
       const formAndApp = await Promise.all([this.bot.getResource(check.form), this.bot.getResource(check.application)])
       const form = formAndApp[0]
       const application = formAndApp[1] as IPBApp
