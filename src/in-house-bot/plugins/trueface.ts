@@ -104,7 +104,6 @@ export class TruefaceAPI {
     // call whatever API with whatever params
     let url = `${this.conf.url}/spdetect`
     const buf = DataURI.decode(image)
-debugger
     let data = {
       img: buf.toString('base64')
     }
@@ -160,7 +159,6 @@ debugger
     const check = await this.bot.draft({ type: TRUEFACE_CHECK })
       .set(checkR)
       .signAndSave()
-debugger
 
     return check.toJSON()
   }
@@ -213,7 +211,6 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = ({ bot, productsAPI, appl
 
       // const resource = await trueface.checkResource(application, payload, propToCheck)
       // if (!resource) return
-      debugger
 
       // const { selfie} = result
       debugger
