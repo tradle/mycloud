@@ -382,6 +382,18 @@ export interface IMyDeploymentConf {
   logo?: string
 }
 
+export interface StackDeploymentInfo {
+  identity?: IIdentity
+  org?: IOrganization
+  referrerUrl?: string
+  deploymentUUID?: string
+  adminEmail?: string
+}
+
+export interface CallHomeOpts extends StackDeploymentInfo {
+
+}
+
 export interface IDeploymentConfForm extends ITradleObject {
   adminEmail: string
   hrEmail: string

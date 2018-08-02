@@ -1,3 +1,4 @@
+import { parse as parseUrl } from 'url'
 import _ from 'lodash'
 import { isEmployee } from '@tradle/bot-employee-manager'
 import validateResource from '@tradle/validate-resource'
@@ -333,15 +334,15 @@ export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
 }) => {
   const lines = []
   if (mobile) {
-    lines.push(`Add it to your Tradle mobile app using [this link](${mobile})`)
+    lines.push(`Add it to your Tradle mobile app using this link:\n${mobile}`)
   }
 
   if (web) {
-    lines.push(`Add it to your Tradle web app using [this link](${web})`)
+    lines.push(`Add it to your Tradle web app using this link:\n${web}`)
   }
 
   if (employeeOnboarding) {
-    lines.push(`Invite employees using [this link](${employeeOnboarding})`)
+    lines.push(`Invite employees using this link:\n${employeeOnboarding}`)
   }
 
   return lines.join('\n\n')
@@ -570,4 +571,15 @@ export const getTradleBotStub = async () => {
 export const getTradleBotIdentity = async () => {
   const info = await get(`${TRADLE.API_BASE_URL}/info`)
   return info.bot.pub
+}
+
+const trailingSlashesRegex = /\/+$/
+const pathsEqual = (a: string, b: string) => {
+  return a.replace(trailingSlashesRegex, '') === b.replace(trailingSlashesRegex, '')
+}
+
+export const urlsFuzzyEqual = (a: string, b: string) => {
+  const aParsed = parseUrl(a)
+  const bParsed = parseUrl(b)
+  return aParsed.host === bParsed.host && pathsEqual(aParsed.pathname, bParsed.pathname)
 }

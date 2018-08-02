@@ -308,6 +308,8 @@ test('deployment by referral', loudAsync(async (t) => {
     regions: [region]
   })
 
+  sandbox.stub(parent.s3Utils, 'getByUrl').resolves(parentTemplate)
+
   const launchPackage = await parentDeployment.genLaunchPackage({
     name: 'testo',
     domain: 'testo.test',
@@ -339,7 +341,7 @@ test('deployment by referral', loudAsync(async (t) => {
   await childDeployment.callHomeTo({
     // myOrg: _.pick(deploymentConf, ['name', 'domain']),
     // myIdentity: childIdentity,
-    targetApiUrl: deploymentConf.referrerUrl,
+    referrerUrl: deploymentConf.referrerUrl,
     deploymentUUID: deploymentConf.deploymentUUID
   })
 
@@ -372,6 +374,7 @@ test('deployment by referral', loudAsync(async (t) => {
   await parentDeployment.notifyCreatorsOfChildDeployment(childDeploymentResource)
 
   t.equal(postStub.callCount, 1)
+  t.equal(findChildDeployment.callCount, 1)
   t.same(sentEmails.sort(), [conf.adminEmail, conf.hrEmail].sort())
   t.equal(parentSendStub.getCall(0).args[0].to.id, conf._author)
   t.equal(parentAddFriendStub.callCount, 1)

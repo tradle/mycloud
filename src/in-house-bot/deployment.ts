@@ -23,6 +23,8 @@ import {
   ResourceStub,
   IOrganization,
   IDeploymentPluginConf,
+  CallHomeOpts,
+  StackDeploymentInfo,
   IAppLinkSet,
   StackStatusEvent,
   VersionInfo,
@@ -43,6 +45,7 @@ import {
   isEmployee,
   isProbablyTradle,
   getTradleBotStub,
+  urlsFuzzyEqual,
 } from './utils'
 
 import { getLogAlertsTopicName } from './log-processor'
@@ -154,22 +157,6 @@ type ChildStackIdentifier = {
   stackId: string
 }
 
-interface CallHomeOpts {
-  identity?: IIdentity
-  org?: IOrganization
-  referrerUrl?: string
-  deploymentUUID?: string
-  adminEmail?: string
-}
-
-interface CallHomeToOpts {
-  identity?: IIdentity
-  org?: IOrganization
-  targetApiUrl?: string
-  deploymentUUID?: string
-  adminEmail?: string
-}
-
 // interface IUpdateChildDeploymentOpts {
 //   apiUrl?: string
 //   deploymentUUID?: string
@@ -225,7 +212,7 @@ export class Deployment {
   public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
   public static isReleaseCandidateTag = (tag: string) => /-rc\.\d+$/.test(tag)
   public static isTransitionReleaseTag = (tag: string) => /-trans/.test(tag)
-  public static isMainlineReleaseTag = (tag: string) => /^v?\d+.\d+.\d+$/.test(tag)
+  public static isStableReleaseTag = (tag: string) => /^v?\d+.\d+.\d+$/.test(tag)
   public static parseConfigurationForm = (form: ITradleObject): IDeploymentConf => {
     const region = utils.getEnumValueId({
       model: baseModels[AWS_REGION],
@@ -276,14 +263,19 @@ export class Deployment {
   // }
 
   public genLaunchPackage = async (configuration: IDeploymentConf) => {
-    const { stackUtils } = this.bot
+    const { stackUtils, s3Utils } = this.bot
     const { region } = configuration
-    this.logger.silly('generating cloudformation template with configuration', configuration)
-    const [parentTemplate, bucket] = await Promise.all([
-      stackUtils.getStackTemplate(),
+    const [versionInfo, bucket] = await Promise.all([
+      this.getLatestStableVersionInfo(),
       this.getDeploymentBucketForRegion(region)
     ])
 
+    this.logger.silly('generating cloudformation template with configuration', {
+      configuration,
+      version: versionInfo,
+    })
+
+    const parentTemplate = await s3Utils.getByUrl(versionInfo.templateUrl)
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
@@ -365,6 +357,26 @@ export class Deployment {
 
   // for easy mocking during testing
   public _getTemplateByUrl = utils.get
+
+  public genUpdatePackageForStackWithVersion = async ({
+    stackOwner,
+    stackId,
+    adminEmail,
+    tag
+  }: {
+    stackOwner: string
+    stackId: string
+    adminEmail: string
+    tag: string
+  }) => {
+    const { templateUrl } = await this.getVersionInfoByTag(tag)
+    return this.genUpdatePackageForStack({
+      stackOwner,
+      stackId,
+      adminEmail,
+      parentTemplateUrl: templateUrl,
+    })
+  }
 
   public genUpdatePackageForStack = async (opts: {
     stackOwner: string
@@ -483,16 +495,17 @@ export class Deployment {
     logger.debug('preparing to call home')
 
     const tasks = []
+    const callHomeOpts = await this._normalizeCallHomeOpts({
+      identity,
+      org,
+      referrerUrl,
+      deploymentUUID,
+      adminEmail,
+    })
+
     if (referrerUrl && deploymentUUID) {
       this.logger.debug('calling parent')
-      const reportToParent = this.callHomeTo({
-        identity,
-        org,
-        targetApiUrl: referrerUrl,
-        deploymentUUID,
-        adminEmail,
-      })
-      .catch(err => {
+      const callHomeToParent = this.callHomeTo(callHomeOpts).catch(err => {
         this.logger.debug('failed to call home to parent', {
           error: err.stack,
           parent: referrerUrl
@@ -501,39 +514,44 @@ export class Deployment {
         throw err
       })
 
-      tasks.push(reportToParent)
+      tasks.push(callHomeToParent)
     }
 
-    const reportToTradle = this.callHomeToTradle({ identity, org }).catch(err => {
-      this.logger.debug('failed to call home to tradle', {
-        error: err.stack
+    if (!referrerUrl || !urlsFuzzyEqual(referrerUrl, TRADLE.API_BASE_URL)) {
+      this.logger.debug('calling tradle')
+      const callTradleOpts = _.omit(callHomeOpts, ['referrerUrl', 'deploymentUUID'])
+      const callHomeToTradle = this.callHomeToTradle(callTradleOpts).catch(err => {
+        this.logger.debug('failed to call home to tradle', {
+          error: err.stack
+        })
+
+        throw err
       })
 
-      throw err
-    })
+      tasks.push(callHomeToTradle)
+    }
 
-    tasks.push(reportToTradle)
     await Promise.all(tasks)
   }
 
-  public callHomeToTradle = async (opts:CallHomeToOpts={}) => {
+  public callHomeToTradle = async (opts:CallHomeOpts={}) => {
     return await this.callHomeTo({
-      targetApiUrl: TRADLE.API_BASE_URL,
       ...opts,
+      referrerUrl: TRADLE.API_BASE_URL,
     })
   }
 
-  public callHomeTo = async (opts: CallHomeToOpts) => {
+  public callHomeTo = async (opts: CallHomeOpts) => {
     if (this.callHomeDisabled) return
 
     // allow during test
     let {
-      targetApiUrl,
+      referrerUrl,
       identity,
       org,
       deploymentUUID,
       adminEmail,
-    } = await this._normalizeCallHomeToOpts(opts)
+    } = await this._normalizeCallHomeOpts(opts)
 
     org = utils.omitVirtual(org)
     identity = utils.omitVirtual(identity)
@@ -542,14 +560,14 @@ export class Deployment {
     let friend
     try {
       friend = await utils.runWithTimeout(
-        () => this.bot.friends.load({ url: targetApiUrl }),
+        () => this.bot.friends.load({ url: referrerUrl }),
         { millis: 20000 }
       )
 
       if (deploymentUUID) {
         saveParentDeployment = this.saveParentDeployment({
           friend,
-          apiUrl: targetApiUrl,
+          apiUrl: referrerUrl,
           childIdentity: identity
         })
       }
@@ -557,7 +575,7 @@ export class Deployment {
       this.logger.error('failed to add referring MyCloud as friend', err)
     }
 
-    const callHomeUrl = this.getCallHomeUrl(targetApiUrl)
+    const callHomeUrl = this.getCallHomeUrl(referrerUrl)
     const launchData = utils.pickNonNull({
       deploymentUUID,
       apiUrl: this.bot.apiBaseUrl,
@@ -572,7 +590,7 @@ export class Deployment {
       await utils.runWithTimeout(() => utils.post(callHomeUrl, launchData), { millis: 10000 })
     } catch (err) {
       Errors.rethrow(err, 'developer')
-      this.logger.error(`failed to call home to: ${targetApiUrl}`, err)
+      this.logger.error(`failed to call home to: ${referrerUrl}`, err)
     }
 
     this.logger.debug(`called home to ${callHomeUrl}`)
@@ -580,18 +598,18 @@ export class Deployment {
     return { friend, parentDeployment }
   }
 
-  public handleStackInit = async (opts: CallHomeOpts) => {
-    await this.handleStackUpdate()
+  public handleStackInit = async (opts: StackDeploymentInfo) => {
+    await this.handleStackUpdate(opts)
   }
 
-  public handleStackUpdate = async () => {
+  public handleStackUpdate = async (opts?: StackDeploymentInfo) => {
     const { bot, logger, conf } = this
     if (this.isTradle) {
       await this._handleStackUpdateTradle()
       return
     }
 
-    await this._handleStackUpdateNonTradle()
+    await this._handleStackUpdateNonTradle(opts)
   }
 
   public handleCallHome = async (report: ICallHomePayload) => {
@@ -601,10 +619,13 @@ export class Deployment {
       return true
     }
 
+    this.logger.silly('received call home', report)
+
     let childDeployment
     if (deploymentUUID) {
       try {
         childDeployment = await this.getChildDeploymentByDeploymentUUID(deploymentUUID)
+        this.logger.silly('found child deployment by deploymentUUID')
       } catch (err) {
         Errors.ignoreNotFound(err)
         this.logger.error('deployment configuration mapping not found', { apiUrl, deploymentUUID })
@@ -614,6 +635,7 @@ export class Deployment {
     if (!childDeployment && stackId) {
       try {
         childDeployment = await this.getChildDeploymentByStackId(stackId)
+        this.logger.silly('found child deployment by stackId')
       } catch (err) {
         Errors.ignoreNotFound(err)
       }
@@ -650,11 +672,14 @@ export class Deployment {
 
     if (childDeployment) {
       if (!childDeploymentRes.isModified()) {
-        this.logger.debug('child deployment unchanged')
+        this.logger.silly('child deployment resource unchanged')
         return true
       }
 
+      this.logger.silly('updating child deployment resource')
       childDeploymentRes.version()
+    } else {
+      this.logger.silly('creating child deployment resource')
     }
 
     await childDeploymentRes.signAndSave()
@@ -1018,7 +1043,9 @@ ${this.genUsageInstructions(links)}`
     const commit = getCommitHashFromTemplate(template)
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
     await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
-    return this.bot.s3Utils.getUrlForKey({ bucket, key })
+    const url = this.bot.s3Utils.getUrlForKey({ bucket, key })
+    this.logger.silly('saved template', { bucket, key, url })
+    return url
   }
 
   private _monitorChildStack = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
@@ -1233,7 +1260,7 @@ ${this.genUsageInstructions(links)}`
   public getVersionInfoByTag = async (tag: string):Promise<VersionInfo> => {
     if (tag === 'latest') return this.getLatestVersionInfo()
 
-    const { items } = await this.bot.db.find({
+    return await this.bot.db.findOne({
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
@@ -1242,16 +1269,26 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
+  }
 
-    if (!items.length) {
-      throw new Errors.NotFound(`${VERSION_INFO} with tag: ${tag}`)
+  public getLatestDeployedVersionInfo = async ():Promise<VersionInfo> => {
+    const results = await this.listMyVersions({ limit: 1 })
+    return results[0]
+  }
+
+  public getLatestStableVersionInfo = async ():Promise<VersionInfo> => {
+    this.logger.debug('looking up latest stable version')
+    try {
+      return await this._getLatestStableVersionInfoNew()
+    } catch (err) {
+      // TODO: scrap _getLatestStableVersionInfoOld
+      Errors.ignoreNotFound(err)
+      return await this._getLatestStableVersionInfoOld()
     }
-
-    return _.maxBy(items, '_time')
   }
 
   public getLatestVersionInfo = async ():Promise<VersionInfo> => {
-    const { items } = await this.bot.db.find({
+    return await this.bot.db.findOne({
       orderBy: {
         property: 'sortableTag',
         desc: true
@@ -1263,12 +1300,6 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
-
-    if (!items.length) {
-      throw new Errors.NotFound(VERSION_INFO)
-    }
-
-    return _.maxBy(items, '_time')
   }
 
   public listMyVersions = async (opts:Partial<FindOpts>={}):Promise<VersionInfo[]> => {
@@ -1291,7 +1322,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getUpdateByTag = async (tag: string) => {
-    const { items } = await this.bot.db.find({
+    return await this.bot.db.findOne({
       filter: {
         EQ: {
           [TYPE]: UPDATE,
@@ -1300,12 +1331,6 @@ ${this.genUsageInstructions(links)}`
         }
       }
     })
-
-    if (!items.length) {
-      throw new Errors.NotFound(`${UPDATE} with tag: ${tag}`)
-    }
-
-    return _.maxBy(items, '_time')
   }
 
   public includesUpdate = (updateTag: string) => {
@@ -1456,7 +1481,56 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
-  private _normalizeCallHomeToOpts = async (opts: Partial<CallHomeToOpts>) => {
+  private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {
+    return await this.bot.db.findOne({
+      orderBy: {
+        property: 'sortableTag',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: await this.bot.getMyPermalink(),
+          'releaseChannel.id': buildResource.enumValue({
+            model: baseModels['tradle.cloud.ReleaseChannel'],
+            value: 'stable',
+          }).id
+        }
+      }
+    })
+  }
+
+  private _getLatestStableVersionInfoOld = async ():Promise<VersionInfo> => {
+    const botPermalink = await this.bot.getMyPermalink()
+    const params:FindOpts = {
+      limit: 10,
+      orderBy: {
+        property: 'sortableTag',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: botPermalink,
+        }
+      }
+    }
+
+    let pages = 0
+    while (pages++ < 10) {
+      let { items=[], endPosition } = await this.bot.db.find(params)
+      let stable = items.find(item => Deployment.isStableReleaseTag(item.tag))
+      if (stable) return stable
+
+      if (items.length < params.limit) {
+        throw new Errors.NotFound(`not found`)
+      }
+
+      params.checkpoint = endPosition
+    }
+  }
+
+  private _normalizeCallHomeOpts = async (opts: Partial<CallHomeOpts>) => {
     return await Promise.props({
       ...opts,
       org: opts.org || this.org,
@@ -1467,10 +1541,12 @@ ${this.genUsageInstructions(links)}`
 
   private _saveVersionInfoResource = async (versionInfo: VersionInfo) => {
     utils.requireOpts(versionInfo, VERSION_INFO_REQUIRED_PROPS)
+    const { tag } = versionInfo
     return this.bot.draft({ type: VERSION_INFO })
       .set({
         ..._.pick(versionInfo, VERSION_INFO_REQUIRED_PROPS),
-        sortableTag: toSortableTag(versionInfo.tag)
+        sortableTag: toSortableTag(tag),
+        releaseChannel: getReleaseChannel(tag),
       })
       .signAndSave()
       .then(r => r.toJSON())
@@ -1636,6 +1712,11 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _handleStackUpdateTradle = async () => {
+    if (this.bot.version.commitsSinceTag > 0) {
+      this.logger.debug(`not saving deployment version as I'm between versions`, this.bot.version)
+      return
+    }
+
     const { versionInfo, updated } = await this._saveMyDeploymentVersionInfo()
     const forced = this.bot.version.alert
     const should = updated && shouldSendVersionAlert(this.bot.version)
@@ -1644,13 +1725,10 @@ ${this.genUsageInstructions(links)}`
     }
   }
 
-  private _handleStackUpdateNonTradle = async () => {
+  private _handleStackUpdateNonTradle = async (opts: CallHomeOpts) => {
     await Promise.all([
       this._saveMyDeploymentVersionInfo(),
-      this.callHome({
-        identity: await this.bot.getMyIdentity(),
-        org: this.org,
-      })
+      this.callHome(opts)
     ])
   }
 
@@ -1760,4 +1838,12 @@ const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
 const sortVersions = (items: any[], desc?: boolean) => {
   const sorted = _.sortBy(items, ['sortableTag', '_time'])
   return desc ? sorted.reverse() : sorted
+}
+
+const getReleaseChannel = (tag: string) => {
+  if (Deployment.isReleaseCandidateTag(tag)) return 'releasecandidate'
+  if (Deployment.isTransitionReleaseTag(tag)) return 'transition'
+  if (Deployment.isStableReleaseTag(tag)) return 'stable'
+
+  throw new Errors.InvalidInput(`unable to parse release channel from tag: ${tag}`)
 }

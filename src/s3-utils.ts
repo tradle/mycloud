@@ -1,5 +1,7 @@
+import { parse as parseUrl } from 'url'
 import omit from 'lodash/omit'
 import { uriEscapePath } from 'aws-sdk/lib/util'
+import parseS3Url from 'amazon-s3-uri'
 import { sha256 } from './crypto'
 import { alphabetical } from './string-utils'
 import Errors from './errors'
@@ -7,7 +9,7 @@ import Env from './env'
 import Logger from './logger'
 import { BucketPutOpts, BucketCopyOpts } from './types'
 import { S3 } from 'aws-sdk'
-import { isPromise, batchProcess, gzip, gunzip, isLocalHost } from './utils'
+import { isPromise, batchProcess, gzip, gunzip, isLocalHost, isLocalUrl } from './utils'
 
 const CRR_NAME = 'cross-region-replication-role'
 const CRR_POLICY = 'cross-region-replication-policy'
@@ -37,6 +39,7 @@ const REGIONS = [
 // see name restrictions: https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html
 const MAX_BUCKET_NAME_LENGTH = 63
 const PUBLIC_BUCKET_RULE_ID = 'MakeItPublic'
+const LOCAL_S3_PATH_NAME_REGEX = /^\/?([^/]+)\/(.*)/
 
 export default class S3Utils {
   public s3: S3
@@ -129,6 +132,16 @@ export default class S3Utils {
 
       throw err
     }
+  }
+
+  public getByUrl = async (url: string) => {
+    const { bucket, key } = S3Utils.parseS3Url(url)
+    const props = { bucket, key }
+    if (key.endsWith('.json') || key.endsWith('.json.gz')) {
+      return this.getJSON(props)
+    }
+
+    return await this.get(props)
   }
 
   public forEachItemInBucket = async ({ bucket, getBody, map, ...opts }: {
@@ -736,6 +749,26 @@ export default class S3Utils {
   //     }
   //   })
   // }
+
+  public static parseS3Url = url => {
+    try {
+      return parseS3Url(url)
+    } catch (err) {
+      if (!isLocalUrl(url)) {
+        throw new Errors.InvalidInput(`invalid s3 url: ${url}`)
+      }
+    }
+
+    const parsed = parseUrl(url)
+    const { pathname='' } = parsed
+    const match = pathname.match(LOCAL_S3_PATH_NAME_REGEX)
+    if (!match) return
+
+    const [bucket, key] = match.slice(1)
+    if (bucket && key) return { bucket, key, isPathStyle: true }
+
+    throw new Errors.InvalidInput(`invalid s3 url: ${url}`)
+  }
 
   public static isRegionalBucketName = (bucket: string) => {
     return REGIONS.some(region => bucket.endsWith(getRegionalBucketSuffix({ bucket, region })))

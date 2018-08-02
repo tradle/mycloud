@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.2-rc.0"></a>
+## [1.6.2-rc.0](https://github.com/tradle/serverless/compare/v1.6.1...v1.6.2-rc.0) (2018-08-02)
+
+
+### Bug Fixes
+
+* call home to tradle vs parent deployment ([4079fc8](https://github.com/tradle/serverless/commit/4079fc8))
+* gen launch package with latest stable version (not necessarily current version) ([1dd29d3](https://github.com/tradle/serverless/commit/1dd29d3))
+
+
+
+<a name="1.6.1"></a>
+## [1.6.1](https://github.com/tradle/serverless/compare/v1.6.0...v1.6.1) (2018-08-01)
+
+
+### Bug Fixes
+
+* banter ([a53613b](https://github.com/tradle/serverless/commit/a53613b))
+* call home, simplify call home vs deployment info typings ([84ed843](https://github.com/tradle/serverless/commit/84ed843))
+* notify child deployment creators after launch ([1a5586e](https://github.com/tradle/serverless/commit/1a5586e))
+* setconf case with no lens-only models pack ([0f7b24e](https://github.com/tradle/serverless/commit/0f7b24e))
+
+
+### Features
+
+* save release channel on version info ([62fd85c](https://github.com/tradle/serverless/commit/62fd85c))
+
+
+
+<a name="1.6.0"></a>
+# [1.6.0](https://github.com/tradle/serverless/compare/v1.6.0-rc.1...v1.6.0) (2018-07-31)
+
+
+### Bug Fixes
+
+* simplify db queries in deployment module ([183d977](https://github.com/tradle/serverless/commit/183d977))
+
+
+
+<a name="1.6.0-rc.1"></a>
+# [1.6.0-rc.1](https://github.com/tradle/serverless/compare/v1.6.0-rc.0...v1.6.0-rc.1) (2018-07-31)
+
+
+### Bug Fixes
+
+* oniotmessage in dev mode ([4d26a91](https://github.com/tradle/serverless/commit/4d26a91))
+* validate-model - 'signature' annotation is valid for tradle.Photo props ([7554674](https://github.com/tradle/serverless/commit/7554674))
+
+
+### Features
+
+* trueface spoof detection ([c87185f](https://github.com/tradle/serverless/commit/c87185f))
+* trueface spoof detection ([27ba779](https://github.com/tradle/serverless/commit/27ba779))
+
+
+
 <a name="1.6.0-rc.0"></a>
 # [1.6.0-rc.0](https://github.com/tradle/serverless/compare/v1.5.0...v1.6.0-rc.0) (2018-07-30)
 

@@ -1,6 +1,6 @@
 {
   "name": "@tradle/serverless",
-  "version": "1.6.0-rc.0",
+  "version": "1.6.2-rc.0",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -279,12 +279,12 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#98ed2d2ab729d925c95b1d0faa22a4ab0cdb7206"
+      "resolved": "git://github.com/tradle/models.git#cb98e82bc0bcb95621ed38b321741863514f450c"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#8c4e61234ee90276fce8508803707e7945a602ba"
+      "resolved": "git://github.com/tradle/models-cloud.git#9893e30e45f244553546ad278aabf74fd4b0e2c7"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
@@ -654,6 +654,11 @@
           "dev": true
         }
       }
+    },
+    "amazon-s3-uri": {
+      "version": "0.0.3",
+      "from": "amazon-s3-uri@latest",
+      "resolved": "https://registry.npmjs.org/amazon-s3-uri/-/amazon-s3-uri-0.0.3.tgz"
     },
     "amdefine": {
       "version": "1.0.1",
