@@ -308,6 +308,8 @@ test('deployment by referral', loudAsync(async (t) => {
     regions: [region]
   })
 
+  sandbox.stub(parent.s3Utils, 'getByUrl').resolves(parentTemplate)
+
   const launchPackage = await parentDeployment.genLaunchPackage({
     name: 'testo',
     domain: 'testo.test',

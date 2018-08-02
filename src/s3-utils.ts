@@ -136,7 +136,12 @@ export default class S3Utils {
 
   public getByUrl = async (url: string) => {
     const { bucket, key } = S3Utils.parseS3Url(url)
-    return await this.get({ bucket, key })
+    const props = { bucket, key }
+    if (key.endsWith('.json') || key.endsWith('.json.gz')) {
+      return this.getJSON(props)
+    }
+
+    return await this.get(props)
   }
 
   public forEachItemInBucket = async ({ bucket, getBody, map, ...opts }: {

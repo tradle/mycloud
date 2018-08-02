@@ -263,14 +263,19 @@ export class Deployment {
   // }
 
   public genLaunchPackage = async (configuration: IDeploymentConf) => {
-    const { stackUtils } = this.bot
+    const { stackUtils, s3Utils } = this.bot
     const { region } = configuration
-    this.logger.silly('generating cloudformation template with configuration', configuration)
-    const [parentTemplate, bucket] = await Promise.all([
-      stackUtils.getStackTemplate(),
+    const [versionInfo, bucket] = await Promise.all([
+      this.getLatestStableVersionInfo(),
       this.getDeploymentBucketForRegion(region)
     ])
 
+    this.logger.silly('generating cloudformation template with configuration', {
+      configuration,
+      version: versionInfo,
+    })
+
+    const parentTemplate = await s3Utils.getByUrl(versionInfo.templateUrl)
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
@@ -1271,6 +1276,17 @@ ${this.genUsageInstructions(links)}`
     return results[0]
   }
 
+  public getLatestStableVersionInfo = async ():Promise<VersionInfo> => {
+    this.logger.debug('looking up latest stable version')
+    try {
+      return await this._getLatestStableVersionInfoNew()
+    } catch (err) {
+      // TODO: scrap _getLatestStableVersionInfoOld
+      Errors.ignoreNotFound(err)
+      return await this._getLatestStableVersionInfoOld()
+    }
+  }
+
   public getLatestVersionInfo = async ():Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
@@ -1465,6 +1481,55 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
+  private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {
+    return await this.bot.db.findOne({
+      orderBy: {
+        property: 'sortableTag',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: await this.bot.getMyPermalink(),
+          'releaseChannel.id': buildResource.enumValue({
+            model: baseModels['tradle.cloud.ReleaseChannel'],
+            value: 'stable',
+          }).id
+        }
+      }
+    })
+  }
+
+  private _getLatestStableVersionInfoOld = async ():Promise<VersionInfo> => {
+    const botPermalink = await this.bot.getMyPermalink()
+    const params:FindOpts = {
+      limit: 10,
+      orderBy: {
+        property: 'sortableTag',
+        desc: true
+      },
+      filter: {
+        EQ: {
+          [TYPE]: VERSION_INFO,
+          [ORG]: botPermalink,
+        }
+      }
+    }
+
+    let pages = 0
+    while (pages++ < 10) {
+      let { items=[], endPosition } = await this.bot.db.find(params)
+      let stable = items.find(item => Deployment.isStableReleaseTag(item.tag))
+      if (stable) return stable
+
+      if (items.length < params.limit) {
+        throw new Errors.NotFound(`not found`)
+      }
+
+      params.checkpoint = endPosition
+    }
+  }
+
   private _normalizeCallHomeOpts = async (opts: Partial<CallHomeOpts>) => {
     return await Promise.props({
       ...opts,
@@ -1612,7 +1677,7 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  public _saveMyDeploymentVersionInfo = async () => {
+  private _saveMyDeploymentVersionInfo = async () => {
     return this._saveDeploymentVersionInfo(this.bot.version)
   }
 
@@ -1647,6 +1712,11 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _handleStackUpdateTradle = async () => {
+    if (this.bot.version.commitsSinceTag > 0) {
+      this.logger.debug(`not saving deployment version as I'm between versions`, this.bot.version)
+      return
+    }
+
     const { versionInfo, updated } = await this._saveMyDeploymentVersionInfo()
     const forced = this.bot.version.alert
     const should = updated && shouldSendVersionAlert(this.bot.version)
