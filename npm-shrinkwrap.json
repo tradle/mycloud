@@ -181,7 +181,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#12fbfbe52bca2c6f644d84becf40a1f50c9a922c"
+      "resolved": "git://github.com/tradle/custom-models.git#3c8332b35b50115ba4ea41c8c584d84694e6e7cf"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -11936,29 +11936,6 @@
           "from": "string_decoder@>=1.1.1 <1.2.0",
           "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz",
           "dev": true
-        }
-      }
-    },
-    "zmq": {
-      "version": "2.15.3",
-      "from": "zmq@>=2.14.0 <3.0.0",
-      "resolved": "https://registry.npmjs.org/zmq/-/zmq-2.15.3.tgz",
-      "dev": true,
-      "optional": true,
-      "dependencies": {
-        "bindings": {
-          "version": "1.2.1",
-          "from": "bindings@~1.2.1",
-          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
-          "dev": true,
-          "optional": true
-        },
-        "nan": {
-          "version": "2.3.5",
-          "from": "nan@~2.3.0",
-          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
-          "dev": true,
-          "optional": true
         }
       }
     }
