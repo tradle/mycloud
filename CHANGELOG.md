@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.2-rc.0"></a>
+## [1.6.2-rc.0](https://github.com/tradle/serverless/compare/v1.6.1...v1.6.2-rc.0) (2018-08-02)
+
+
+### Bug Fixes
+
+* call home to tradle vs parent deployment ([4079fc8](https://github.com/tradle/serverless/commit/4079fc8))
+* gen launch package with latest stable version (not necessarily current version) ([1dd29d3](https://github.com/tradle/serverless/commit/1dd29d3))
+
+
+
 <a name="1.6.1"></a>
 ## [1.6.1](https://github.com/tradle/serverless/compare/v1.6.0...v1.6.1) (2018-08-01)
 
