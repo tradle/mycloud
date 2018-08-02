@@ -655,6 +655,11 @@
         }
       }
     },
+    "amazon-s3-uri": {
+      "version": "0.0.3",
+      "from": "amazon-s3-uri@latest",
+      "resolved": "https://registry.npmjs.org/amazon-s3-uri/-/amazon-s3-uri-0.0.3.tgz"
+    },
     "amdefine": {
       "version": "1.0.1",
       "from": "amdefine@>=0.0.4",
