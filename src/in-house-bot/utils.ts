@@ -334,15 +334,15 @@ export const getAppLinksInstructions = ({ mobile, web, employeeOnboarding }: {
 }) => {
   const lines = []
   if (mobile) {
-    lines.push(`Add it to your Tradle mobile app using this link:\n${mobile}`)
+    lines.push(`Add it to your Tradle mobile app using [this link](${mobile})`)
   }
 
   if (web) {
-    lines.push(`Add it to your Tradle web app using this link:\n${web}`)
+    lines.push(`Add it to your Tradle web app using [this link](${web})`)
   }
 
   if (employeeOnboarding) {
-    lines.push(`Invite employees using this link:\n${employeeOnboarding}`)
+    lines.push(`Invite employees using [this link](${employeeOnboarding})`)
   }
 
   return lines.join('\n\n')
