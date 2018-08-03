@@ -14,8 +14,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Tools](#tools)
     - [Git](#git)
     - [Node.js](#nodejs)
-    - [Docker & Docker Compose](#docker--docker-compose)
-    - [AWS cli](#aws-cli)
+    - [Docker & Docker Compose](#docker-&-docker-compose)
+    - [AWS cli & credentials](#aws-cli-&-credentials)
     - [JQ](#jq)
     - [Typescript](#typescript)
   - [Development Tools](#development-tools)
@@ -102,13 +102,11 @@ Docker is used during the build process, as well as in the local playground. Doc
 
 Make sure you can run docker as non-root. On Linux, you can do this by adding your user to the `docker` group with: `sudo gpasswd -a $USER docker`
 
-#### AWS cli
+#### AWS cli & credentials
 
-You'll be deploying to AWS, so you'll need an account and a command line client:
-
-1. [Install](http://docs.aws.amazon.com/cli/latest/userguide/installing.html). On OS X, I have it installed with brew: `brew install awscli`
-2. create a new IAM user with AdministratorAccess
-3. Configure your settings: `aws configure` or `aws configure --profile <profileName>`. This will set up your AWS credentials in `~/.aws/`
+1. [Install](http://docs.aws.amazon.com/cli/latest/userguide/installing.html)
+1. create a new IAM user with AdministratorAccess
+1. Configure your credentials: `aws configure` or `aws configure --profile <profileName>`. This will set up your AWS credentials in `~/.aws/`
 
 #### JQ 
 
