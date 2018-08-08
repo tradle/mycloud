@@ -1,7 +1,5 @@
 const Message = JSON.stringify({
-  default: {
-    eventUrl: 'some pre-signed s3 url'
-  }
+  eventUrl: 'some pre-signed s3 url'
 })
 
 export = {

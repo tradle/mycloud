@@ -15,7 +15,7 @@ const parsedAlertEvent = {
   region: 'us-east-1',
   stackName: 'tdl-example-ltd-dev',
   timestamp: 0,
-  eventUrl: JSON.parse(rawAlertEvent.Records[0].Sns.Message).default.eventUrl,
+  eventUrl: JSON.parse(rawAlertEvent.Records[0].Sns.Message).eventUrl,
 }
 
 test('log entry and alert parsing', loudAsync(async t => {

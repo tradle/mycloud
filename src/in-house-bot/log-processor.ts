@@ -169,7 +169,7 @@ export const parseAlertEvent = (event: SNSEvent) => {
   const { accountId, region, stackName } = parseLogAlertsTopicArn(topic)
   let alertProps
   try {
-    alertProps = JSON.parse(Message).default
+    alertProps = JSON.parse(Message)
   } catch (err) {
     throw new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`)
   }
