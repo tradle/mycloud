@@ -10,6 +10,7 @@ import {
   DEFAULT_JOB_RUNNER_FUNCTION,
   POLLCHAIN_FUNCTION,
   SEALPENDING_FUNCTION,
+  WARMUP_FUNCTION,
 } from '../../constants'
 
 const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
@@ -19,7 +20,7 @@ const MINUTE = 60
 const COMMON_JOBS:Job[] = [
   {
     name: 'warmup',
-    function: 'warmup',
+    function: WARMUP_FUNCTION,
     period: WARMUP_PERIOD / 1000,
     input: {
       concurrency: 5,
