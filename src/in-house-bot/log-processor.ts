@@ -174,7 +174,7 @@ export const parseAlertEvent = (event: SNSEvent) => {
     throw new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`)
   }
 
-  if (!alertProps.eventUrl) {
+  if (!(alertProps && alertProps.eventUrl)) {
     throw new Errors.InvalidInput(`expected "eventUrl"`)
   }
 
@@ -305,7 +305,7 @@ export const fromLambda = ({ lambda, components, compress=true }: {
   // const sendAlert:SendAlert = createDummyAlerter(logger)
   const sendAlert:SendAlert = async ({ key, event }) => {
     const snsEvent = createAlertEvent({ key, event })
-    this.logger.debug('sending alert', snsEvent)
+    logger.debug('sending alert', snsEvent)
     await bot.snsUtils.publish({
       topic,
       message: {
