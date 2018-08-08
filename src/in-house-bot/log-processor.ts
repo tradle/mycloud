@@ -174,6 +174,10 @@ export const parseAlertEvent = (event: SNSEvent) => {
     throw new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`)
   }
 
+  if (!alertProps.eventUrl) {
+    throw new Errors.InvalidInput(`expected "eventUrl"`)
+  }
+
   return {
     ...alertProps,
     accountId,
@@ -218,7 +222,6 @@ export class LogProcessor {
     const key = await this.saveLogEvent(event)
     if (!bad.length) return
 
-    this.logger.debug('sending alert')
     await this.sendAlert({ key, event })
   }
 
@@ -258,10 +261,7 @@ export class LogProcessor {
       try {
         event.body = await get(eventUrl)
       } catch (err) {
-        this.logger.warn('unable to fetch alert body', {
-          eventUrl,
-          error: err.stack
-        })
+        throw new Errors.InvalidInput('unable to fetch alert body')
       }
 
       if (typeof event.body === 'string') {
@@ -304,11 +304,13 @@ export const fromLambda = ({ lambda, components, compress=true }: {
 
   // const sendAlert:SendAlert = createDummyAlerter(logger)
   const sendAlert:SendAlert = async ({ key, event }) => {
+    const snsEvent = createAlertEvent({ key, event })
+    this.logger.debug('sending alert', snsEvent)
     await bot.snsUtils.publish({
       topic,
       message: {
         // required per: https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
-        default: createAlertEvent({ key, event })
+        default: snsEvent
       }
     })
   }

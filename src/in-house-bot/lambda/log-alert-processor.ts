@@ -21,12 +21,29 @@ lambda.use(async (ctx) => {
         ctx.event = await processor.parseAlertEvent(ctx.event)
       } catch (err) {
         Errors.rethrow(err, 'developer')
-        logger.debug('invalid alert event', Errors.export(err))
+        logger.debug('invalid alert event', {
+          stage: 'parse',
+          error: Errors.export(err),
+          event: ctx.event,
+        })
+
         return
       }
 
       const alert = ctx.event
-      await processor.handleAlertEvent(alert)
+      try {
+        await processor.handleAlertEvent(alert)
+      } catch (err) {
+        Errors.rethrow(err, 'developer')
+        logger.debug('invalid alert event', {
+          stage: 'load',
+          error: Errors.export(err),
+          event: ctx.event,
+        })
+
+        return
+      }
+
       if (conf) {
         await sendLogAlert({ bot, conf, alert })
       } else {
