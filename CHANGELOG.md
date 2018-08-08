@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.2-rc.5"></a>
+## [1.6.2-rc.5](https://github.com/tradle/serverless/compare/v1.6.2-rc.4...v1.6.2-rc.5) (2018-08-08)
+
+
+### Bug Fixes
+
+* job-scheduler warmup job target ([1dc4108](https://github.com/tradle/serverless/commit/1dc4108))
+
+
+
 <a name="1.6.2-rc.4"></a>
 ## [1.6.2-rc.4](https://github.com/tradle/serverless/compare/v1.6.2-rc.3...v1.6.2-rc.4) (2018-08-08)
 
