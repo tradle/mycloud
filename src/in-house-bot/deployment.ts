@@ -931,11 +931,6 @@ ${this.genUsageInstructions(links)}`
   }
 
   public deleteTmpSNSTopic = async (topic: string) => {
-    const shortName = topic.split(/[/:]/).pop()
-    if (!shortName.startsWith('tmp-')) {
-      throw new Errors.InvalidInput(`expected tmp topic, got: ${topic}`)
-    }
-
     try {
       await this.snsUtils.deleteAllSubscriptions(topic)
     } catch (err) {
