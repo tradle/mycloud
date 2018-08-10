@@ -953,7 +953,7 @@ ${this.genUsageInstructions(links)}`
     const topics = await this.getExpiredTmpSNSTopics()
     if (!topics.length) return []
 
-    await Promise.all(topics.map(this.deleteTmpSNSTopic))
+    await Promise.all(topics.map(({ topic }) => this.deleteTmpSNSTopic(topic)))
     return topics
   }
 
