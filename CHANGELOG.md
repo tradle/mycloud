@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.2-rc.6"></a>
+## [1.6.2-rc.6](https://github.com/tradle/serverless/compare/v1.6.2-rc.5...v1.6.2-rc.6) (2018-08-10)
+
+
+### Bug Fixes
+
+* deployment test ([8e29688](https://github.com/tradle/serverless/commit/8e29688))
+* deployment.deleteExpiredTmpTopics ([d6b5453](https://github.com/tradle/serverless/commit/d6b5453))
+
+
+
 <a name="1.6.2-rc.5"></a>
 ## [1.6.2-rc.5](https://github.com/tradle/serverless/compare/v1.6.2-rc.4...v1.6.2-rc.5) (2018-08-08)
 
