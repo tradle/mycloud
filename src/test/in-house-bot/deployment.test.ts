@@ -59,6 +59,8 @@ test('deployment by referral', loudAsync(async (t) => {
     }
   })
 
+  const parentTemplateUrl = 'original.template.url'
+
   const childOrg = {
     name: 'bagel',
     domain: 'mydomain',
@@ -199,6 +201,16 @@ test('deployment by referral', loudAsync(async (t) => {
   sandbox.stub(parent.lambdaUtils, 'addPermission').resolves()
 
   const getTemplate = sandbox.stub(parent.stackUtils, 'getStackTemplate').resolves(parentTemplate)
+  const getStable = sandbox.stub(parent.db, 'findOne').callsFake(async ({ filter }) => {
+    if (filter.EQ[TYPE] === 'tradle.cloud.VersionInfo') {
+      getStable.restore()
+      return {
+        templateUrl: parentTemplateUrl
+      }
+    }
+
+    throw new Errors.NotFound('not found')
+  })
 
   const copyFiles = sandbox.stub(parent.buckets.ServerlessDeployment, 'copyFilesTo').callsFake(async ({
     bucket,
@@ -419,7 +431,7 @@ test('deployment by referral', loudAsync(async (t) => {
   sandbox.stub(parentDeployment, 'getVersionInfoByTag').callsFake(async (tag) => {
     t.equal(tag, '1.2.3')
     return {
-      templateUrl: 'original.template.url',
+      templateUrl: parentTemplateUrl,
       tag,
       sortableTag: utils.toSortableTag(tag)
     }
@@ -485,7 +497,7 @@ test('tradle and children', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
   const region = 'ap-southeast-2'
   const tradle = createTestBot()
-  tradle.version.commitsSinceTag = 10
+  tradle.version.commitsSinceTag = 0
   const child = createTestBot({
     env: createTestEnv({
       AWS_REGION: region,
@@ -493,7 +505,7 @@ test('tradle and children', loudAsync(async (t) => {
     })
   })
 
-  child.version.commitsSinceTag = 10
+  child.version.commitsSinceTag = 0
   sandbox.stub(child.stackUtils, 'getCurrentAdminEmail').resolves('child@mycloud.tradle.io')
 
   const tradleDeployment = new Deployment({

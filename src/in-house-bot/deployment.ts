@@ -1278,13 +1278,13 @@ ${this.genUsageInstructions(links)}`
 
   public getLatestStableVersionInfo = async ():Promise<VersionInfo> => {
     this.logger.debug('looking up latest stable version')
-    try {
+    // try {
       return await this._getLatestStableVersionInfoNew()
-    } catch (err) {
-      // TODO: scrap _getLatestStableVersionInfoOld
-      Errors.ignoreNotFound(err)
-      return await this._getLatestStableVersionInfoOld()
-    }
+    // } catch (err) {
+    //   // TODO: scrap _getLatestStableVersionInfoOld
+    //   Errors.ignoreNotFound(err)
+    //   return await this._getLatestStableVersionInfoOld()
+    // }
   }
 
   public getLatestVersionInfo = async ():Promise<VersionInfo> => {
