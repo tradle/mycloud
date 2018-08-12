@@ -111,6 +111,8 @@ export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComp
   if (!bot) bot = lambda.bot
 
   const { logger } = lambda || bot
+  logger.debug('configuring in-house bot')
+
   const confy = createConf({ bot })
   let [
     org,
@@ -130,6 +132,8 @@ export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComp
         .then(datedValue => datedValue.value && datedValue)
         .catch(Errors.ignoreNotFound)
   ].map(toPromise))
+
+  logger.debug('loaded in-house bot conf components')
 
   // const { domain } = org
   if (modelsPack) {
