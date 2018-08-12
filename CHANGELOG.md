@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.2-rc.8"></a>
+## [1.6.2-rc.8](https://github.com/tradle/serverless/compare/v1.6.2-rc.7...v1.6.2-rc.8) (2018-08-12)
+
+
+### Bug Fixes
+
+* run sync-clock as async task ([4fba516](https://github.com/tradle/serverless/commit/4fba516))
+
+
+
 <a name="1.6.2-rc.7"></a>
 ## [1.6.2-rc.7](https://github.com/tradle/serverless/compare/v1.6.2-rc.6...v1.6.2-rc.7) (2018-08-10)
 
