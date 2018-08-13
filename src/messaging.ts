@@ -383,7 +383,7 @@ export default class Messaging {
           try {
             await this.sendPushNotification(recipient)
           } catch (pushErr) {
-            this.logger.error('failed to send push notification', { message: err.message })
+            this.logger.error('failed to send push notification', { message: pushErr.message })
           }
         }
       } else {
