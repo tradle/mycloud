@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.2"></a>
+## [1.6.2](https://github.com/tradle/serverless/compare/v1.6.2-rc.8...v1.6.2) (2018-08-13)
+
+
+### Bug Fixes
+
+* error logging for push notifications ([4e070d5](https://github.com/tradle/serverless/commit/4e070d5))
+
+
+
 <a name="1.6.2-rc.8"></a>
 ## [1.6.2-rc.8](https://github.com/tradle/serverless/compare/v1.6.2-rc.7...v1.6.2-rc.8) (2018-08-12)
 

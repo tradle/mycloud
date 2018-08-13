@@ -1,6 +1,6 @@
 {
   "name": "@tradle/serverless",
-  "version": "1.6.2-rc.8",
+  "version": "1.6.2",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
