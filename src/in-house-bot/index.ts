@@ -165,6 +165,10 @@ export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComp
     event
   })
 
+  if (bot.isReady()) {
+    logger.error(`bot should not be ready yet!`)
+  }
+
   if (!opts.delayReady) bot.ready()
 
   return {
