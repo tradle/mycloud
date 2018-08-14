@@ -25,10 +25,10 @@ const createBot = (opts:Partial<IBotOpts>={}) => {
   if (opts.env) return _createBot(opts)
   if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
     require('./test/env').install()
-    return createTestBot()
+    return createTestBot(opts)
   }
 
-  return _createBot()
+  return _createBot(opts)
 }
 
 const exp = {
