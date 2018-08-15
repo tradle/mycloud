@@ -1693,17 +1693,33 @@ ${this.genUsageInstructions(links)}`
     }
 
     const { templateUrl } = bot.stackUtils.getStackLocation(info)
-
-    // // ensure template exists
-    // const exists = await utils.doesHttpEndpointExist(templateUrl)
-    // if (!exists) {
-    //   throw new Error(`templateUrl not accessible: ${templateUrl}`)
-    // }
-
+    await this._ensureCurrentTemplateIsStored(templateUrl)
     return {
       versionInfo: await this._saveVersionInfoResource({ ...info, templateUrl }),
       updated: true
     }
+  }
+
+  private _ensureCurrentTemplateIsStored = async (templateUrl: string) => {
+    const { bot } = this
+
+    // template doesn't exist if this is a stack update just loaded from tradle
+    const exists = await utils.doesHttpEndpointExist(templateUrl)
+    if (exists) return
+
+    const template = await bot.stackUtils.getStackTemplate()
+    const { bucket, key } = bot.s3Utils.parseS3Url(templateUrl)
+    if (bucket !== bot.buckets.ServerlessDeployment.id) {
+      this.logger.error('expected template to be stored in serverless deployment bucket', {
+        bucket,
+        key,
+      })
+
+      return
+    }
+
+    this.logger.debug('saving template for current version', { bucket, key })
+    await bot.buckets.ServerlessDeployment.putJSON(key, template)
   }
 
   private _handleStackUpdateTradle = async () => {
