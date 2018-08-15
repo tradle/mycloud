@@ -770,6 +770,8 @@ export default class S3Utils {
     throw new Errors.InvalidInput(`invalid s3 url: ${url}`)
   }
 
+  public parseS3Url = S3Utils.parseS3Url
+
   public static isRegionalBucketName = (bucket: string) => {
     return REGIONS.some(region => bucket.endsWith(getRegionalBucketSuffix({ bucket, region })))
   }

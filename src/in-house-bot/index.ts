@@ -133,12 +133,16 @@ export const loadConfComponents = async (conf: Conf, components: IConfComponents
 }
 
 export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComponents> => {
-  const { lambda } = opts
+  const { bot, lambda } = opts
   const load = cachifyPromiser(() => loadConfAndComponents(opts))
+
+  if (!lambda) {
+    await load()
+    return
+  }
 
   // kick things off
   load()
-
   lambda.use(async (ctx, next) => {
     ctx.components = await load()
     await next()
