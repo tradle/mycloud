@@ -8,7 +8,7 @@ import {
 } from '../test/end-to-end'
 
 import { createTestBot } from '../'
-import { configureLambda } from '../in-house-bot'
+import { loadConfAndComponents } from '../in-house-bot'
 
 (async () => {
   let bot = createTestBot()
@@ -18,7 +18,7 @@ import { configureLambda } from '../in-house-bot'
   debug('setting up bot')
 
   const product = 'nl.tradle.DigitalPassport'
-  const customStuff = await configureLambda({
+  const customStuff = await loadConfAndComponents({
     bot,
     // conf: {
     //   bot: {

@@ -11,7 +11,7 @@ import { prettifyQuery } from '../graphql'
 import { LambdaHttp as Lambda, MiddlewareHttp as Middleware } from '../types'
 import Errors from '../errors'
 
-export const createHandler = (lambda:Lambda, opts:any={}):Middleware => {
+export const createHandler = (lambda:Lambda):Middleware => {
   const { bot, logger } = lambda
 
   // allow models to be set asynchronously

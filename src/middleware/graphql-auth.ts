@@ -2,7 +2,12 @@ import { utils as tradleUtils } from '@tradle/engine'
 import validateResource from '@tradle/validate-resource'
 import constants from '../constants'
 import Errors from '../errors'
-import { ITradleObject, Bot, Logger } from '../types'
+import {
+  ITradleObject,
+  Bot,
+  Logger,
+  IUser,
+} from '../types'
 import { isPromise } from '../utils'
 
 const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
@@ -13,16 +18,24 @@ type GAComponents = {
   logger: Logger
 }
 
+interface CanUserRunQueryInput {
+  ctx: any
+  user: IUser
+  query: any
+}
+
+type CanUserRunQuery = (opts: CanUserRunQueryInput) => boolean
+
 type GAOpts = {
-  allowGuest?: boolean
-  canUserRunQuery: Function
+  isGuestAllowed?: (ctx: any) => boolean
+  canUserRunQuery: CanUserRunQuery
 }
 
 export const createHandler = ({
   bot,
   logger
 }: GAComponents, {
-  allowGuest,
+  isGuestAllowed,
   canUserRunQuery
 }: GAOpts) => {
   const { identities } = bot
@@ -41,12 +54,6 @@ export const createHandler = ({
 
     logger.debug('authenticating')
     const auth = ctx.headers['x-tradle-auth']
-    if (!allowGuest && auth == null) {
-      forbid(ctx, `expected header "x-tradle-auth"`)
-      logger.debug('expected auth params')
-      return
-    }
-
     const queryObj:ITradleObject = {
       [TYPE]: 'tradle.GraphQLQuery',
       body: tradleUtils.stringify(ctx.event),
@@ -64,6 +71,13 @@ export const createHandler = ({
     }
 
     checkDrift(queryObj._time)
+
+    const isAllowedInput = { ctx, user: null, query: queryObj }
+    if (auth == null && !isGuestAllowed(isAllowedInput)) {
+      forbid(ctx, `expected header "x-tradle-auth"`)
+      logger.debug('expected auth params')
+      return
+    }
 
     let { user } = ctx
     if (auth && !user) {
@@ -83,7 +97,7 @@ export const createHandler = ({
       }
     }
 
-    let allowed = canUserRunQuery({ user, query: queryObj })
+    let allowed = canUserRunQuery({ ...isAllowedInput, user })
     if (isPromise(allowed)) allowed = await allowed
     if (!allowed) {
       forbid(ctx)

@@ -9,7 +9,7 @@ import { loadRemoteEnv, loadCredentials } from '../cli/utils'
 loadCredentials()
 loadRemoteEnv()
 
-import lambda from '../in-house-bot/lambda/mqtt/onmessage'
+import lambda from '../in-house-bot/lambda/http/graphql'
 lambda.bot.promiseReady().then(() => {
   const { dbUtils } = lambda.bot
   const outputPath = path.join(__dirname, '../modelmap.json')

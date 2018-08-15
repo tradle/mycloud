@@ -105,7 +105,6 @@ const LOAD_CONF_TIMEOUT = 45000
 type ConfigureLambdaOpts = {
   lambda?: Lambda
   bot?: Bot
-  delayReady?: boolean
   event?: string
   conf?: IConfComponents
 }
@@ -132,17 +131,19 @@ export const loadConfComponents = async (conf: Conf, components: IConfComponents
   })
 }
 
-export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComponents> => {
-  const { bot, lambda } = opts
+export const configureLambda = (opts:ConfigureLambdaOpts) => {
+  const { lambda } = opts
   const load = cachifyPromiser(() => loadConfAndComponents(opts))
 
-  if (!lambda) {
-    await load()
-    return
-  }
+  // kick off async
+  // awkward because lambda.ts attached bot.promiseReady()
+  // middleware which stalls the pipeline
+  load().then(
+    () => lambda.bot.ready(),
+    // keep retrying
+    () => load()
+  )
 
-  // kick things off
-  load()
   lambda.use(async (ctx, next) => {
     ctx.components = await load()
     await next()
@@ -150,7 +151,7 @@ export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComp
 }
 
 export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<IBotComponents> => {
-  let { lambda, bot, delayReady, event, conf } = opts
+  let { lambda, bot, event, conf } = opts
   if (!bot) bot = lambda.bot
 
   const { logger } = lambda || bot
@@ -194,8 +195,6 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
   if (bot.isReady()) {
     logger.error(`bot should not be ready yet!`)
   }
-
-  if (!opts.delayReady) bot.ready()
 
   return {
     ...components,

@@ -401,6 +401,7 @@ export interface IDeploymentConfForm extends ITradleObject {
 
 export interface IPBotLambdaOpts extends ILambdaOpts<IPBMiddlewareContext> {
   event: string
+  preware?: IPBMiddleware
   [x:string]: any
 }
 

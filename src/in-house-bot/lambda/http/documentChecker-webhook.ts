@@ -1,19 +1,21 @@
-import { EventSource } from '../../../lambda'
+import compose from 'koa-compose'
 import cors from 'kcors'
-import { createBot } from '../../../'
 import { configureLambda } from '../..'
 import { post } from '../../../middleware/noop-route'
 import Errors from '../../../errors'
 import * as LambdaEvents from '../../lambda-events'
+import { fromHTTP } from '../../lambda'
 
-const bot = createBot({ ready: false })
-const lambda = bot.createLambda({ source: EventSource.HTTP })
-const promiseComponents = configureLambda({ lambda, event: LambdaEvents.DOCUMENT_CHECKER_WEBHOOK_EVENT })
+const lambda = fromHTTP({
+  event: LambdaEvents.DOCUMENT_CHECKER_WEBHOOK_EVENT,
+  preware: compose([
+    post(),
+    cors(),
+  ])
+})
 
-lambda.use(post())
-lambda.use(cors())
 lambda.use(async (ctx) => {
-  const { documentChecker } = await promiseComponents
+  const { documentChecker } = ctx.components
   if (!documentChecker) {
     throw new Errors.HttpError(404, 'not found')
   }

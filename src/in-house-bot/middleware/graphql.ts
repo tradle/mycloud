@@ -1,47 +1,60 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
-import { pick } from 'lodash'
+import { pick, once } from 'lodash'
 import { bodyParser } from '../../middleware/body-parser'
 import { createHandler as createGraphqlHandler } from '../../middleware/graphql'
 import { createHandler as createGraphqlAuthHandler } from '../../middleware/graphql-auth'
-import { IPBLambdaHttp as Lambda } from '../types'
+import {
+  IPBLambdaHttp as Lambda,
+  MiddlewareHttp as Middleware,
+  IBotComponents,
+  IPBHttpMiddlewareContext,
+  IUser,
+} from '../types'
+
 import {
   sendModelsPackIfUpdated,
   createModelsPackGetter
 } from '../plugins/keep-models-fresh'
 
 import { MODELS_HASH_PROPERTY } from '../constants'
-import { MiddlewareHttp as Middleware, IBotComponents } from '../types'
 
-export const keepModelsFresh = (lambda:Lambda, components) => {
-  const { bot } = lambda
-  const {
-    productsAPI,
-    employeeManager,
-  } = components
-
-  const getModelsPackForUser = createModelsPackGetter({ bot, ...components })
-  const sendModelsPackToUser = async (user) => {
-    const modelsPack = await getModelsPackForUser(user)
-    if (!modelsPack) return
-
-    const sent = await sendModelsPackIfUpdated({
-      user,
-      modelsPack,
-      send: object => bot.send({ to: user, object })
+export const keepModelsFresh = (lambda:Lambda) => {
+  const createSender = (components: IBotComponents) => {
+    const { bot, employeeManager, productsAPI } = components
+    const getModelsPackForUser = createModelsPackGetter({
+      bot,
+      employeeManager,
+      productsAPI,
     })
 
-    if (sent) {
-      lambda.tasks.add({
-        name: 'saveuser',
-        promise: bot.users.merge(pick(user, ['id', MODELS_HASH_PROPERTY]))
+    return async (user) => {
+      const modelsPack = await getModelsPackForUser(user)
+      if (!modelsPack) return
+
+      const sent = await sendModelsPackIfUpdated({
+        user,
+        modelsPack,
+        send: object => bot.send({ to: user, object })
       })
+
+      if (sent) {
+        lambda.tasks.add({
+          name: 'saveuser',
+          promise: bot.users.merge(pick(user, ['id', MODELS_HASH_PROPERTY]))
+        })
+      }
     }
   }
 
+  let sendModelsPackToUser
   return async (ctx, next) => {
-    const { user } = ctx
+    const { user, components } = ctx
     if (user) {
+      if (!sendModelsPackToUser) {
+        sendModelsPackToUser = createSender(components)
+      }
+
       await sendModelsPackToUser(user)
     }
 
@@ -49,23 +62,27 @@ export const keepModelsFresh = (lambda:Lambda, components) => {
   }
 }
 
-export const createAuth = (lambda: Lambda, components:IBotComponents) => {
-  const allowGuest = lambda.isLocal || components.conf.bot.graphqlAuth === false
-  const { employeeManager } = components
+export const createAuth = (lambda: Lambda) => {
+  const isGuestAllowed = ({ ctx, user, query }) => {
+    return lambda.isLocal || ctx.components.conf.bot.graphqlAuth === false
+  }
+
   return createGraphqlAuthHandler(lambda, {
-    allowGuest,
-    canUserRunQuery: ({ user, query }) => {
-      return allowGuest || (user && employeeManager.isEmployee(user))
+    isGuestAllowed,
+    canUserRunQuery: opts => {
+      const { ctx, user, query } = opts
+      const { employeeManager } = ctx.components as IBotComponents
+      return isGuestAllowed(opts) || (user && employeeManager.isEmployee(user))
     }
   })
 }
 
-export const createMiddleware = (lambda:Lambda, components):Middleware => {
+export const createMiddleware = (lambda:Lambda):Middleware => {
   return compose([
     cors(),
     bodyParser({ jsonLimit: '10mb' }),
-    createAuth(lambda, components),
-    keepModelsFresh(lambda, components),
-    createGraphqlHandler(lambda, components)
+    createAuth(lambda),
+    keepModelsFresh(lambda),
+    createGraphqlHandler(lambda)
   ])
 }

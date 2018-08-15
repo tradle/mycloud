@@ -17,6 +17,7 @@ export {
 export const createLambda = (opts: IPBotLambdaOpts):Lambda => {
   const {
     event,
+    preware,
     ...lambdaOpts
   } = opts
 
@@ -25,6 +26,8 @@ export const createLambda = (opts: IPBotLambdaOpts):Lambda => {
   }
 
   const lambda = createBotLambda(lambdaOpts) as Lambda
+  if (preware) lambda.use(preware)
+
   configureLambda({ lambda, event })
   return lambda
 }

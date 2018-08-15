@@ -1,36 +1,21 @@
-import { fromHTTP } from '../../../lambda'
-import { configureLambda } from '../..'
-import sampleQueries from '../../sample-queries'
-import { createBot } from '../../../'
+import { fromHTTP } from '../../lambda'
 import { createMiddleware } from '../../middleware/graphql'
-import { IPBLambdaHttp as Lambda } from '../../types'
+import {
+  cachifyPromiser,
+} from '../../../utils'
 
-const bot = createBot({ ready: false })
+import { GRAPHQL } from '../../lambda-events'
+import sampleQueries from '../../sample-queries'
 
-// mute the warning about not attaching handler
-const loadModelsPacks = bot.modelStore.loadModelsPacks()
-const promiseCustomize = configureLambda({
-    bot,
-    delayReady: true,
-    event: 'graphql'
-  })
-  .then(components => {
-    return {
-      ...components,
-      middleware: createMiddleware(lambda, components)
-    }
-  })
+const lambda = fromHTTP({ event: GRAPHQL })
 
-const middleware = promiseCustomize.then(({ middleware }) => middleware)
-const lambda = fromHTTP({ bot, middleware }) as Lambda
+const loadModelsPacks = cachifyPromiser(() => lambda.bot.modelStore.loadModelsPacks())
+// kick off first attempt async
+loadModelsPacks()
 
-const { logger, handler } = lambda
-const init = async () => {
-  const components = await promiseCustomize
-  const {
-    conf,
-    middleware
-  } = components
+lambda.use(async (ctx, next) => {
+  await loadModelsPacks()
+  const { bot, conf, logger } = ctx.components
 
   logger.debug('finished setting up bot graphql middleware')
   const opts = {
@@ -54,17 +39,14 @@ const init = async () => {
   }
 
   bot.graphql.graphiqlOptions = opts
-  await loadModelsPacks
 
-  // lambda.use(graphqlMiddleware(lambda, components))
-  bot.ready()
-}
-
-// models will be set asynchronously
-lambda.tasks.add({
-  name: 'init',
-  promiser: init
+  await next()
 })
+
+lambda.use(createMiddleware(lambda))
+
+// mute warning about unattached handler
+const { handler } = lambda
 
 // export the whole thing for scripts/graphql-server to import
 export = lambda

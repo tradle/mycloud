@@ -8,6 +8,8 @@ export const COMMAND = 'command'
 // various http-based confirmations (e.g. email confirmation)
 export const CONFIRMATION = 'confirmation'
 
+export const GRAPHQL = 'graphql'
+
 // deployment
 export const DEPLOYMENT_PINGBACK = 'deployment:pingback'
 export const DEPLOYMENT_UPDATE_STACK = 'deployment:update_stack'
