@@ -25,12 +25,7 @@ export const createLambda = (opts: IPBotLambdaOpts):Lambda => {
   }
 
   const lambda = createBotLambda(lambdaOpts) as Lambda
-  const componentsPromise = configureLambda({ lambda, event })
-  lambda.use(async (ctx, next) => {
-    ctx.components = await componentsPromise
-    await next()
-  })
-
+  configureLambda({ lambda, event })
   return lambda
 }
 

@@ -153,7 +153,7 @@ export default class Env {
   }
 
   public getRemainingTimeWithBuffer = (buffer: number) => {
-    return Math.max(this.getRemainingTime() - buffer, 0)
+    return this.lambda ? this.lambda.getRemainingTimeWithBuffer(buffer) : 0
   }
 
   public setLambda = (lambda) => {

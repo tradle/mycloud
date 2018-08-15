@@ -32,7 +32,8 @@ import {
 } from './utils'
 
 import {
-  toPromise
+  runWithTimeout,
+  cachifyPromiser,
 } from '../utils'
 
 import { Applications } from './applications'
@@ -49,6 +50,7 @@ import {
   Lambda,
   ITradleObject,
   VersionInfo,
+  Conf,
 } from './types'
 
 import Logger from '../logger'
@@ -98,6 +100,8 @@ const ONFIDO_RELATED_EVENTS = [
   LambdaEvents.COMMAND
 ]
 
+const LOAD_CONF_TIMEOUT = 45000
+
 type ConfigureLambdaOpts = {
   lambda?: Lambda
   bot?: Bot
@@ -106,47 +110,65 @@ type ConfigureLambdaOpts = {
   conf?: IConfComponents
 }
 
+export const loadConfComponents = async (conf: Conf, components: IConfComponents) => {
+  let termsAndConditions
+  if (components && components.termsAndConditions) {
+    termsAndConditions = { value: conf.termsAndConditions }
+  } else {
+    termsAndConditions = conf.termsAndConditions.getDatedValue()
+      // ignore empty values
+      .then(datedValue => datedValue.value && datedValue)
+      .catch(Errors.ignoreNotFound)
+  }
+
+  return await Promise.props({
+    // required
+    org: (components && components.org) || conf.org.get(),
+    // optional
+    botConf: (components && components.bot) || conf.botConf.get().catch(Errors.ignoreNotFound),
+    modelsPack: (components && components.modelsPack) || conf.modelsPack.get().catch(Errors.ignoreNotFound),
+    style: (components && components.style) || conf.style.get().catch(Errors.ignoreNotFound),
+    termsAndConditions,
+  })
+}
+
 export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComponents> => {
+  const { lambda } = opts
+  const load = cachifyPromiser(() => loadConfAndComponents(opts))
+
+  // kick things off
+  load()
+
+  lambda.use(async (ctx, next) => {
+    ctx.components = await load()
+    await next()
+  })
+}
+
+export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<IBotComponents> => {
   let { lambda, bot, delayReady, event, conf } = opts
   if (!bot) bot = lambda.bot
 
   const { logger } = lambda || bot
   logger.debug('configuring in-house bot')
 
-  const confy = createConf({ bot })
-  let [
+  const confStore = createConf({ bot })
+  const {
     org,
     botConf,
     modelsPack,
     style,
-    termsAndConditions
-  ] = await Promise.all([
-    (conf && conf.org) || confy.org.get(),
-    (conf && conf.bot) || confy.botConf.get().catch(Errors.ignoreNotFound),
-    (conf && conf.modelsPack) || confy.modelsPack.get().catch(Errors.ignoreNotFound),
-    (conf && conf.style) || confy.style.get().catch(Errors.ignoreNotFound),
-    (conf && conf.termsAndConditions)
-      ? Promise.resolve({ value: conf.termsAndConditions })
-      : confy.termsAndConditions.getDatedValue()
-        // ignore empty values
-        .then(datedValue => datedValue.value && datedValue)
-        .catch(Errors.ignoreNotFound)
-  ].map(toPromise))
+    termsAndConditions,
+  } = await runWithTimeout(() => loadConfComponents(confStore, conf), {
+    get error() { return new Errors.Timeout('timed out loading conf') },
+    millis: LOAD_CONF_TIMEOUT,
+  })
 
   logger.debug('loaded in-house bot conf components')
 
   // const { domain } = org
   if (modelsPack) {
     bot.modelStore.setCustomModels(modelsPack)
-  }
-
-  if (style) {
-    try {
-      validateResource.resource({ models: baseModels, resource: style })
-    } catch (err) {
-      bot.logger.error('invalid style', err.stack)
-      style = null
-    }
   }
 
   conf = {

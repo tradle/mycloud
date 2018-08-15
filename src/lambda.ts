@@ -124,11 +124,6 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.bot = bot
     this.env = bot.env
     this.tasks = bot.tasks
-    this.tasks.add({
-      name: 'bot:ready',
-      promise: bot.promiseReady()
-    })
-
     this.on('run', () => {
       if (!this.isCold && !bot.isReady()) {
         this.logger.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
@@ -296,6 +291,10 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   // get errorHandler() {
   //   return err => this.exit(err)
   // }
+
+  public getRemainingTimeWithBuffer = (buffer: number) => {
+    return Math.max(this.timeLeft - buffer, 0)
+  }
 
   public exit = async (err?, result?) => {
     if (this.done) {
@@ -694,7 +693,9 @@ Previous exit stack: ${this.lastExitStack}`)
 
   private _ensureNotBroken = () => {
     if (!this.isLocal && this.breakingContext) {
-      throw new Error('I am broken!: ' + this.breakingContext)
+      const msg = 'I am broken!: ' + this.breakingContext
+      this.logger.error(msg)
+      throw new Error(msg)
     }
   }
 }
