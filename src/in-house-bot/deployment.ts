@@ -1705,7 +1705,13 @@ ${this.genUsageInstructions(links)}`
 
     // template doesn't exist if this is a stack update just loaded from tradle
     const exists = await utils.doesHttpEndpointExist(templateUrl)
-    if (exists) return
+    if (exists) {
+      this.logger.debug('template already saved', {
+        templateUrl
+      })
+
+      return
+    }
 
     const template = await bot.stackUtils.getStackTemplate()
     const { bucket, key } = bot.s3Utils.parseS3Url(templateUrl)
