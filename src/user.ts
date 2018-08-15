@@ -187,7 +187,7 @@ export default class User {
   public onDisconnected = async ({ clientId }):Promise<ISession|void> => {
     try {
       const session = await this.auth.setConnected({ clientId, connected: false })
-      this.logger.debug(`client disconnected`, session)
+      this.logger.silly(`client disconnected`, session)
       return session
     } catch (error) {
       this.logger.error('ondisconnected: failed to update presence information', {
@@ -220,7 +220,7 @@ export default class User {
     let session
     try {
       session = await this.auth.setConnected({ clientId, connected: true })
-      this.logger.debug(`client connected`, session)
+      this.logger.silly(`client connected`, session)
     } catch (error) {
       this.logger.error('onconnected: failed to update presence information', {
         error: error.message,
