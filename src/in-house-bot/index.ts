@@ -133,19 +133,20 @@ export const loadConfComponents = async (conf: Conf, components: IConfComponents
 
 export const configureLambda = (opts:ConfigureLambdaOpts) => {
   const { lambda } = opts
-  const load = cachifyPromiser(() => loadConfAndComponents(opts))
+  const load = cachifyPromiser(async () => {
+    const components = await loadConfAndComponents(opts)
+    lambda.bot.ready()
+    return components
+  })
 
-  // kick off async
-  // awkward because lambda.ts attached bot.promiseReady()
-  // middleware which stalls the pipeline
-  load().then(
-    () => lambda.bot.ready(),
-    // keep retrying
-    () => load()
-  )
+  // - kick off async
+  // - can't do inside middleware because of default middleware in lambda.ts
+  // that waits for bot.promiseReady() and stalls the pipeline
+  // - retry forever
+  const componentsPromise = load().catch(() => load())
 
   lambda.use(async (ctx, next) => {
-    ctx.components = await load()
+    ctx.components = await componentsPromise
     await next()
   })
 }

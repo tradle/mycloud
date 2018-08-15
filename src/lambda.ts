@@ -124,6 +124,11 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.bot = bot
     this.env = bot.env
     this.tasks = bot.tasks
+    this.tasks.add({
+      name: 'bot:ready',
+      promise: bot.promiseReady()
+    })
+
     this.on('run', () => {
       if (!this.isCold && !bot.isReady()) {
         this.logger.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
@@ -346,7 +351,8 @@ Previous exit stack: ${this.lastExitStack}`)
       this.breakingContext = safeStringify({
         execCtx: this.execCtx,
         reqCtx: this.reqCtx,
-        tasks: this.tasks.describe()
+        tasks: this.tasks.describe(),
+        reason: 'bot is not ready',
       })
 
       this._ensureNotBroken()
