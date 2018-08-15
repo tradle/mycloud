@@ -11,13 +11,8 @@ type WarmUpOpts = {
 export const warmup = (lambda: Lambda, opts:WarmUpOpts={}) => {
   const { source=WARMUP_SOURCE_NAME } = opts
   const { logger } = lambda
-  return async (ctx, next) => {
+  const relax = async ctx => {
     const { event, context } = ctx
-    if (!(event && event.source === source)) {
-      await next()
-      return
-    }
-
     const sleep = event.sleep || opts.sleep || WARMUP_SLEEP
     logger.debug(`warmup, sleeping for ${sleep}ms`)
     await wait(sleep)
@@ -33,5 +28,14 @@ export const warmup = (lambda: Lambda, opts:WarmUpOpts={}) => {
       logStreamName: context.logStreamName,
       isCold: lambda.isCold
     }
+  }
+
+  return (ctx, next) => {
+    const { event } = ctx
+    if (event && event.source === source) {
+      return relax(ctx)
+    }
+
+    return next()
   }
 }
