@@ -75,7 +75,7 @@ export interface IBotConf {
   // publicConfig: any
 }
 
-export interface IConf {
+export interface IConfComponents {
   bot: IBotConf
   org: IOrganization
   modelsPack?: ModelsPack
@@ -91,7 +91,7 @@ export interface IBotComponents {
   applications: Applications
   friends: Friends
   alerts: Alerts
-  conf?: IConf
+  conf?: IConfComponents
   remediation?: Remediation
   onfido?: Onfido
   deployment?: Deployment

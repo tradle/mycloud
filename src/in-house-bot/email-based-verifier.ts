@@ -9,7 +9,7 @@ import {
   Commander,
   ICommandOutput1,
   IDeferredCommandParams,
-  IConf,
+  IConfComponents,
   IPBUser,
   Logger
 } from './types'
@@ -26,7 +26,7 @@ const EMAIL_CHECK_MODEL = baseModels[EMAIL_CHECK]
 type EmailBasedVerifierOpts = {
   bot: Bot
   commands: Commander
-  orgConf: IConf
+  orgConf: IConfComponents
   logger: Logger
   senderEmail: string
 }
@@ -81,7 +81,7 @@ export class EmailBasedVerifier {
   private bot: Bot
   private mailer: IMailer
   private commands: Commander
-  private orgConf: IConf
+  private orgConf: IConfComponents
   private logger: Logger
   private senderEmail: string
   constructor({ bot, commands, orgConf, logger, senderEmail }: EmailBasedVerifierOpts) {

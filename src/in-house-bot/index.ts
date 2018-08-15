@@ -40,7 +40,7 @@ import { Friends } from './friends'
 import {
   Bot,
   IBotComponents,
-  IConf,
+  IConfComponents,
   IPluginLifecycleMethods,
   IPBReq,
   IPBUser,
@@ -103,7 +103,7 @@ type ConfigureLambdaOpts = {
   bot?: Bot
   delayReady?: boolean
   event?: string
-  conf?: IConf
+  conf?: IConfComponents
 }
 
 export const configureLambda = async (opts:ConfigureLambdaOpts):Promise<IBotComponents> => {
@@ -186,7 +186,7 @@ export const loadComponentsAndPlugins = ({
 }: {
   bot: Bot,
   logger: Logger,
-  conf: IConf,
+  conf: IConfComponents,
   event?: string
 }): IBotComponents => {
   const {

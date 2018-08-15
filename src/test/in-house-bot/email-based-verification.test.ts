@@ -10,7 +10,7 @@ import { Logger } from '../../logger'
 import { createBot } from '../../'
 import { KeyValueMem } from '../../key-value-mem'
 import { loudAsync } from '../../utils'
-import { IConf } from '../../in-house-bot/types'
+import { IConfComponents } from '../../in-house-bot/types'
 
 test('email-based-verification', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
@@ -55,7 +55,7 @@ test('email-based-verification', loudAsync(async (t) => {
       org: {
         name: 'My Org'
       }
-    } as IConf,
+    } as IConfComponents,
     senderEmail
   })
 

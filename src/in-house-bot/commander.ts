@@ -5,7 +5,7 @@ import {
 } from '../crypto'
 
 import {
-  IConf,
+  IConfComponents,
   ICommand,
   ICommandContext,
   ICommandInput,
@@ -80,7 +80,7 @@ export class Commander {
   public employeeManager:any
   public applications:Applications
   public deployment?: Deployment
-  public conf: IConf
+  public conf: IConfComponents
   public logger: Logger
   private components: IBotComponents
   private store: IKeyValueStore

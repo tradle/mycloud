@@ -20,7 +20,7 @@ import {
   IIdentity,
   IPrivKey,
   ITradleObject,
-  IConf,
+  IConfComponents,
   IBotConf,
   IMyDeploymentConf,
   IOrganization,
@@ -329,7 +329,7 @@ export class Conf {
     const conf = {
       ...defaultConf,
       org: orgTemplate
-    } as IConf
+    } as IConfComponents
 
     try {
       const identityInfo = await bot.initInfra({
