@@ -7,7 +7,7 @@
   "author": "Mark Vayngrib <mark@tradle.io>",
   "license": "MIT",
   "devDependencies": {
-    "@tradle/aws-client": "^1.8.1",
+    "@tradle/aws-client": "^1.9.0",
     "@types/aws-sdk": "^2.7.0",
     "@types/graphql": "^0.12.3",
     "@types/json-schema": "^6.0.0",
@@ -225,6 +225,7 @@
     "pify": "^2.3.0",
     "promise-locker": "^1.0.0",
     "random-name": "^0.1.2",
+    "segfault-handler": "^1.0.1",
     "serverless-http": "github:mvayngrib/serverless-http",
     "source-map-support": "^0.4.18",
     "string-format": "^0.5.0",

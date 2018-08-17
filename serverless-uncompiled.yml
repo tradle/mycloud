@@ -494,6 +494,13 @@ provider:
         - ses:GetIdentityVerificationAttributes
       Resource: "*"
 
+    - Effect: Allow
+      Action:
+        - cloudwatch:PutMetricAlarm
+        - cloudwatch:DescribeAlarms
+        - cloudwatch:DescribeAlarmsForMetric
+      Resource: '*'
+
     # - Effect: Allow
     #   Action:
     #     - 'ssm:GetParameter*'

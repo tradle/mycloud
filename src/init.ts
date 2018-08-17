@@ -22,11 +22,15 @@ import {
   DB,
   Storage,
   Buckets,
+  Tables,
   Logger,
   IIdentity,
   IPrivKey,
-  Secrets
+  Secrets,
+  AwsApis,
 } from './types'
+
+import wrapCloudwatchClient from './cloudwatch'
 
 const { IDENTITY } = TYPES
 
@@ -41,8 +45,10 @@ interface IInitWriteOpts extends IInitOpts {
 interface IInitOpts extends Partial<IInitWriteOpts> {}
 
 export default class Init {
+  private aws: AwsApis
   private secrets: Secrets
   private buckets: Buckets
+  private tables: Tables
   private networks: any
   private network: any
   private storage: Storage
@@ -53,8 +59,10 @@ export default class Init {
   private seals: Seals
   private logger: Logger
   constructor ({
+    aws,
     secrets,
     buckets,
+    tables,
     networks,
     network,
     storage,
@@ -63,8 +71,10 @@ export default class Init {
     seals,
     logger
   }: Bot) {
+    this.aws = aws
     this.secrets = secrets
     this.buckets = buckets
+    this.tables = tables
     this.networks = networks
     this.network = network
     this.storage = storage
@@ -84,11 +94,16 @@ export default class Init {
   }
 
   public initInfra = async (opts?:IInitOpts) => {
-    return await this.initIdentity(opts)
+    const [identityInfo] = await Promise.all([
+      this.initIdentity(opts),
+      this._decreaseDynamodbScalingReactionTime()
+    ])
+
+    return identityInfo
   }
 
   public updateInfra = async (opts?:any) => {
-    // nothing to do here for now
+    await this._decreaseDynamodbScalingReactionTime()
   }
 
   public initIdentity = async (opts:IInitOpts={}) => {
@@ -178,6 +193,17 @@ export default class Init {
     ])
 
     this.logger.info(`terminated provider ${link}`)
+  }
+
+  private _decreaseDynamodbScalingReactionTime = async () => {
+    const cloudwatch = wrapCloudwatchClient(this.aws.cloudwatch)
+    await cloudwatch.updateDynamodbConsumptionAlarms({
+      tables: Object.keys(this.tables).map(logicalId => this.tables[logicalId].name),
+      transform: alarm => ({
+        ...alarm,
+        EvaluationPeriods: 1,
+      })
+    })
   }
 }
 
