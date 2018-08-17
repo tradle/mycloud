@@ -8,12 +8,14 @@ import promisify from 'pify'
 // @ts-ignore
 import Promise from 'bluebird'
 import { utils } from '@tradle/engine'
+import randomName from 'random-name'
 import { exportKeys } from '../crypto'
 import { getIdentitySpecs } from '../crypto'
 import { createTestProfile } from '../test/utils'
 import { setVirtual } from '../utils'
+import networks from '../networks'
+
 const helpers = require('@tradle/engine/test/helpers')
-const networks = require('../networks')
 const identityOpts = getIdentitySpecs({ networks })
 const genUser = promisify(utils.newIdentity)
 const genUsers = n => Promise.map(new Array(n).fill(0), async () => {
@@ -22,7 +24,7 @@ const genUsers = n => Promise.map(new Array(n).fill(0), async () => {
   return user
 })
 
-const base = path.resolve(process.cwd(), 'src/test/fixtures')
+const base = path.resolve(__dirname, '../../src/test/fixtures')
 
 // const genUsers = promisify(helpers.genUsers)
 
@@ -62,14 +64,19 @@ const base = path.resolve(process.cwd(), 'src/test/fixtures')
 //     })
 // }
 
-;(async () => {
-  const users = await genUsers(10)
-  users.forEach(user => {
-    user.keys = exportKeys(user.keys.map(key => utils.importKey(key)))
-  })
+// ;(async () => {
+//   const users = await genUsers(10)
+//   users.forEach(user => {
+//     user.keys = exportKeys(user.keys.map(key => utils.importKey(key)))
+//   })
 
-  fs.writeFileSync(`${base}/users-pem.json`, prettify(users))
-})()
+//   fs.writeFileSync(`${base}/users-pem.json`, prettify(users))
+// })()
+
+;(async () => {
+  const users = await genUsers(500)
+  fs.writeFileSync(`${base}/users.json`, prettify(users))
+})();
 
 ;(async () => {
   const users = await genUsers(2)
