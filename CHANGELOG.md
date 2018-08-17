@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.4"></a>
+# [1.7.0-rc.4](https://github.com/tradle/serverless/compare/v1.7.0-rc.3...v1.7.0-rc.4) (2018-08-17)
+
+
+### Features
+
+* update dynamodb autoscaling response time on update stack ([09f1713](https://github.com/tradle/serverless/commit/09f1713))
+
+
+
 <a name="1.7.0-rc.3"></a>
 # [1.7.0-rc.3](https://github.com/tradle/serverless/compare/v1.7.0-rc.2...v1.7.0-rc.3) (2018-08-15)
 
