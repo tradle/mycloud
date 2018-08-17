@@ -177,18 +177,24 @@ custom:
     # kv: ${{self:custom.prefix}}kv
     # backlinks: ${{self:custom.prefix}}backlinks
 
+  defaultScaleInOut: &defaultScaleInOut
+    scaleOut: 0
+    scaleIn: 60
+
   # auto-scaled tables that serve as buckets for multiple models each
   defaultCapacityRead: &defaultCapacityRead
     read:
       minimum: 5        # Minimum read capacity
       maximum: 100      # Maximum read capacity
       usage: 0.70       # Targeted usage percentage
+      <<: *defaultScaleInOut
 
   defaultCapacityWrite: &defaultCapacityWrite
     write:
       minimum: 5        # Minimum read capacity
       maximum: 100      # Maximum read capacity
       usage: 0.5        # Targeted usage percentage
+      <<: *defaultScaleInOut
 
   defaultCapacity: &defaultCapacity
     <<: *defaultCapacityRead
@@ -200,10 +206,13 @@ custom:
       minimum: 10       # Minimum read capacity
       maximum: 500      # Maximum read capacity
       usage: 0.70       # Targeted usage percentage
+      <<: *defaultScaleInOut
+
     write:
       minimum: 10       # Minimum read capacity
       maximum: 500      # Maximum write capacity
       usage: 0.5        # Targeted usage percentage
+      <<: *defaultScaleInOut
 
   dynamodb-autoscaling:
     role: AutoScalingDynamoDBRole
@@ -215,6 +224,7 @@ custom:
           minimum: 5        # Minimum write capacity
           maximum: 100      # Maximum write capacity
           usage: 0.5        # Targeted usage percentage
+          <<: *defaultScaleInOut
 
   cors:
     origin: '*'
