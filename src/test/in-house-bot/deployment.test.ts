@@ -17,6 +17,8 @@ import { createTestEnv } from '../env'
 const users = require('../fixtures/users.json')
 const { loudAsync } = utils
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
+const TMP_SNS_TOPIC = 'tradle.cloud.TmpSNSTopic'
+const VERSION_INFO = 'tradle.cloud.VersionInfo'
 
 test('deployment by referral', loudAsync(async (t) => {
   const sandbox = sinon.createSandbox()
@@ -298,9 +300,9 @@ test('deployment by referral', loudAsync(async (t) => {
   let childDeploymentResource
   let topicResource
   const saveResourceStub = sandbox.stub(parent, 'save').callsFake(async resource => {
-    if (resource[TYPE] === 'tradle.cloud.ChildDeployment') {
+    if (resource[TYPE] === CHILD_DEPLOYMENT) {
       childDeploymentResource = resource
-    } else if (resource[TYPE] === 'tradle.cloud.TmpSNSTopic') {
+    } else if (resource[TYPE] === TMP_SNS_TOPIC) {
       topicResource = resource
     }
 
@@ -400,14 +402,14 @@ test('deployment by referral', loudAsync(async (t) => {
     updateChild
   ] = childChanges
 
-  // t.equal(createTopic[TYPE], 'tradle.cloud.TmpSNSTopic')
-  t.equal(createChild[TYPE], 'tradle.cloud.ChildDeployment')
+  // t.equal(createTopic[TYPE], TMP_SNS_TOPIC)
+  t.equal(createChild[TYPE], CHILD_DEPLOYMENT)
   t.equal(createChild.deploymentUUID, deploymentConf.deploymentUUID)
   t.equal(updateChild.apiUrl, childUrl)
 
   sandbox.stub(parent.db, 'findOne').callsFake(async ({ filter }) => {
     const type = filter.EQ[TYPE]
-    if (type === 'tradle.cloud.ChildDeployment') {
+    if (type === CHILD_DEPLOYMENT) {
       return childDeploymentResource
     }
 
@@ -472,7 +474,7 @@ test('deployment by referral', loudAsync(async (t) => {
   ] = saveResourceStub.getCalls().map(call => call.args[0])
 
   ;[updateTopic, logTopic].forEach(topicRes => {
-    t.equal(topicRes[TYPE], 'tradle.cloud.TmpSNSTopic')
+    t.equal(topicRes[TYPE], TMP_SNS_TOPIC)
     t.equal(utils.parseArn(topicRes.topic).region, region)
   })
 
@@ -498,6 +500,10 @@ test('tradle and children', loudAsync(async (t) => {
   const region = 'ap-southeast-2'
   const tradle = createTestBot()
   tradle.version.commitsSinceTag = 0
+  sandbox.stub(tradle.lambdaUtils, 'getPolicy').resolves({
+    Statement: []
+  })
+
   const child = createTestBot({
     env: createTestEnv({
       AWS_REGION: region,
@@ -530,12 +536,14 @@ test('tradle and children', loudAsync(async (t) => {
   const endpointExistsStub = sandbox.stub(utils, 'doesHttpEndpointExist').resolves(true)
   const saveStub = sandbox.stub(tradle, 'save').resolves({})
   await tradleDeployment.handleStackUpdate()
-  t.equal(saveStub.callCount, 0)
+  t.equal(saveStub.callCount, 1)
+  t.equal(saveStub.getCall(0).args[0][TYPE], TMP_SNS_TOPIC)
 
   getVIStub.rejects(new Errors.NotFound('version info'))
 
   await tradleDeployment.handleStackUpdate()
-  t.ok(_.isMatch(getLastCallArg(saveStub), _.pick(tradle.version, ['tag', 'commit'])))
+  const lastSavedVersionInfo = saveStub.getCalls().map(c => c.args[0]).reverse().find(obj => obj[TYPE] === VERSION_INFO)
+  t.ok(_.isMatch(lastSavedVersionInfo, _.pick(tradle.version, ['tag', 'commit'])))
 
   const reportStub = sandbox.stub(childDeployment, 'callHomeTo').resolves()
   await childDeployment.handleStackUpdate()

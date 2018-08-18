@@ -1758,8 +1758,10 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _handleStackUpdateTradle = async () => {
+    const monitorSelf = this._setupLoggingAlerts({ stackId: this._thisStackArn })
     if (this.bot.version.commitsSinceTag > 0) {
       this.logger.debug(`not saving deployment version as I'm between versions`, this.bot.version)
+      await monitorSelf
       return
     }
 
@@ -1769,6 +1771,8 @@ ${this.genUsageInstructions(links)}`
     if (forced || should) {
       await this.alertChildrenAboutVersion(versionInfo)
     }
+
+    await monitorSelf
   }
 
   private _handleStackUpdateNonTradle = async (opts: CallHomeOpts) => {
