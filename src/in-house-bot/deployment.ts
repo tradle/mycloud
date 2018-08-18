@@ -2,7 +2,7 @@ import _ from 'lodash'
 // @ts-ignore
 import Promise from 'bluebird'
 import AWS from 'aws-sdk'
-import { FindOpts } from '@tradle/dynamodb'
+import { FindOpts, Filter } from '@tradle/dynamodb'
 import buildResource from '@tradle/build-resource'
 import { TYPE, SIG, ORG, unitToMillis } from '../constants'
 import { TRADLE } from './constants'
@@ -953,36 +953,42 @@ ${this.genUsageInstructions(links)}`
   }
 
   public getRecentlyExpiredTmpSNSTopics = async () => {
-    return this.getTmpSNSTopics({
-      GT: {
-        dateExpires: Date.now() - TMP_SNS_TOPIC_TTL
-      },
-      LT: {
-        dateExpires: Date.now()
-      }
+    return this.listTmpSNSTopics({
+      filter: {
+        EQ: {},
+        GT: {
+          dateExpires: Date.now() - TMP_SNS_TOPIC_TTL
+        },
+        LT: {
+          dateExpires: Date.now()
+        }
+      } as Filter
     })
   }
 
   public getExpiredTmpSNSTopics = async () => {
-    return await this.getTmpSNSTopics({
-      LT: {
-        dateExpires: Date.now()
+    return await this.listTmpSNSTopics({
+      filter: {
+        EQ: {},
+        LT: {
+          dateExpires: Date.now()
+        }
       }
     })
   }
 
-  public getTmpSNSTopics = async (filter = {}) => {
-    const { items } = await this.bot.db.find({
+  public listTmpSNSTopics = async (opts:Partial<FindOpts>={}) => {
+    const { items } = await this.bot.db.find(_.merge({
       orderBy: {
         property: 'dateExpires',
         desc: false
       },
-      filter: _.merge({
+      filter: {
         EQ: {
           [TYPE]: TMP_SNS_TOPIC
         }
-      }, filter)
-    })
+      }
+    }, opts))
 
     return items
   }
@@ -1666,10 +1672,33 @@ ${this.genUsageInstructions(links)}`
     dateExpires: number
     [key: string]: any
   }) => {
-    await this.bot.signAndSave({
-      [TYPE]: TMP_SNS_TOPIC,
-      ...props
+    const { topic } = props
+    const [existing] = await this.listTmpSNSTopics({
+      limit: 1,
+      filter: {
+        EQ: {
+          topic,
+        }
+      }
     })
+
+    if (existing) {
+      this.logger.debug('updating tmp topic', {
+        topic,
+        permalink: existing._permalink
+      })
+
+      await this.bot.draft({ resource: existing })
+        .set(props)
+        .version()
+        .signAndSave()
+    } else {
+      this.logger.debug('creating tmp topic', { topic })
+      await this.bot.signAndSave({
+        [TYPE]: TMP_SNS_TOPIC,
+        ...props
+      })
+    }
   }
 
   private _saveMyDeploymentVersionInfo = async () => {
