@@ -49,7 +49,8 @@
     "tslint-config-prettier": "^1.14.0",
     "tslint-eslint-rules": "^5.3.1",
     "typescript": "2.8.4",
-    "validate-commit-msg": "^2.14.0"
+    "validate-commit-msg": "^2.14.0",
+    "worker-farm": "^1.6.0"
   },
   "scripts": {
     "precommit": "echo 'compiling typescript' && tsc && npm run eslint && lint-staged",
