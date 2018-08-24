@@ -1,10 +1,12 @@
 import http from 'http'
+import { EventEmitter } from 'events'
 import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import { createConfig } from './aws-config'
 import { isXrayOn } from './utils'
 import { Env, Logger } from './types'
 import REGIONS from './aws-regions'
+import { wrap } from './wrap-aws-client'
 
 const willUseXRay = isXrayOn()
 if (willUseXRay) {
@@ -21,7 +23,7 @@ const MOCKED_SEPARATELY = {
 
 type CreateRegionalService = (serviceName: string, region: string, conf?: any) => any
 
-export type AwsApis = {
+export interface AwsApis extends EventEmitter {
   s3: AWS.S3,
   dynamodb: AWS.DynamoDB,
   iam: AWS.IAM,
@@ -43,7 +45,8 @@ export type AwsApis = {
   trace: any
   regional: {
     [x: string]: AwsApis
-  }
+  },
+  getInstantiated: () => string[]
 }
 
 export const createAWSWrapper = ({ env, logger }: {
@@ -128,18 +131,23 @@ export const createAWSWrapper = ({ env, logger }: {
     const service = _create(serviceName, region, conf)
     if (service) {
       useGlobalConfigClock(service)
-    }
+      const recordable = wrap(service)
+      apis.emit('new', {
+        name: serviceName.toLowerCase(),
+        service,
+        recordable,
+      })
 
-    return service
+      return recordable
+    }
   }
 
   const getConf = (serviceName: string) => {
     return services[serviceName.toLowerCase()]
   }
 
-  const apis:any = {
-    regional: {}
-  }
+  const apis:any = new EventEmitter()
+  apis.regional = {}
 
   const { regional } = apis
   REGIONS.forEach(region => {
@@ -148,6 +156,7 @@ export const createAWSWrapper = ({ env, logger }: {
       let service
       const serviceName = instanceNameToServiceName[instanceName]
       Object.defineProperty(regionalServices, instanceName, {
+        enumerable: true,
         get() {
           if (!service) {
             service = create(serviceName, region)
@@ -162,17 +171,26 @@ export const createAWSWrapper = ({ env, logger }: {
     })
   })
 
+  const instantiated = {}
+
   // forward default to regional
   Object.keys(instanceNameToServiceName).forEach(instanceName => {
     const regional = apis.regional[region]
     Object.defineProperty(apis, instanceName, {
+      enumerable: true,
       set: value => {
+        instantiated[instanceName] = true
         regional[instanceName] = value
       },
-      get: () => regional[instanceName]
+      get: () => {
+        const service = regional[instanceName]
+        instantiated[instanceName] = true
+        return service
+      }
     })
   })
 
+  apis.getInstantiated = () => Object.keys(instantiated)
   apis.AWS = AWS
   apis.xray = AWSXRay
   apis.trace = (() => {

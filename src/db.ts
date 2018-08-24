@@ -172,7 +172,7 @@ export = function createDB ({
   logger
 }: DBOpts) {
   const { docClient, dynamodb } = aws
-  dynogels.dynamoDriver(dynamodb)
+  dynogels.dynamoDriverAndDocClient(dynamodb, docClient)
 
   const tableBuckets = dbUtils.getTableBuckets()
 

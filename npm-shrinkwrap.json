@@ -38,9 +38,9 @@
       }
     },
     "@tradle/aws-client": {
-      "version": "1.8.1",
+      "version": "1.10.0",
       "from": "@tradle/aws-client@latest",
-      "resolved": "https://registry.npmjs.org/@tradle/aws-client/-/aws-client-1.8.1.tgz",
+      "resolved": "https://registry.npmjs.org/@tradle/aws-client/-/aws-client-1.10.0.tgz",
       "dev": true,
       "dependencies": {
         "pify": {
@@ -186,7 +186,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#a07265bd8d879461f1532e6e06271b8078bfc7b3",
+      "resolved": "git://github.com/tradle/dynamodb.git#2ce7647085c0a7b2a8fe90042d941e82cfc9ad80",
       "dependencies": {
         "koa-compose": {
           "version": "4.1.0",
@@ -3365,7 +3365,7 @@
     "dynogels": {
       "version": "8.0.1",
       "from": "mvayngrib/dynogels",
-      "resolved": "git://github.com/mvayngrib/dynogels.git#1bd26906a3f816f86be280dfc295c40725b628d2",
+      "resolved": "git://github.com/mvayngrib/dynogels.git#1e410328aa812c2e0925281bbedcaa899ffa8726",
       "dependencies": {
         "async": {
           "version": "2.4.1",
@@ -9302,9 +9302,9 @@
       "dev": true
     },
     "rn-fetch": {
-      "version": "1.0.0",
-      "from": "rn-fetch@>=1.0.0 <2.0.0",
-      "resolved": "https://registry.npmjs.org/rn-fetch/-/rn-fetch-1.0.0.tgz",
+      "version": "1.1.0",
+      "from": "rn-fetch@>=1.1.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/rn-fetch/-/rn-fetch-1.1.0.tgz",
       "dev": true
     },
     "run-async": {
@@ -9443,6 +9443,11 @@
           "dev": true
         }
       }
+    },
+    "segfault-handler": {
+      "version": "1.0.1",
+      "from": "segfault-handler@>=1.0.1 <2.0.0",
+      "resolved": "https://registry.npmjs.org/segfault-handler/-/segfault-handler-1.0.1.tgz"
     },
     "selectn": {
       "version": "0.9.6",
@@ -11684,6 +11689,12 @@
       "version": "1.0.0",
       "from": "wordwrap@>=1.0.0 <1.1.0",
       "resolved": "https://registry.npmjs.org/wordwrap/-/wordwrap-1.0.0.tgz"
+    },
+    "worker-farm": {
+      "version": "1.6.0",
+      "from": "worker-farm@>=1.6.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/worker-farm/-/worker-farm-1.6.0.tgz",
+      "dev": true
     },
     "wrap-ansi": {
       "version": "2.1.0",

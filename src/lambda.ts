@@ -32,7 +32,8 @@ import {
   ILambdaCloudWatchLogsExecutionContext,
   ISNSExecutionContext,
   LambdaHandler,
-  ILambdaOpts
+  ILambdaOpts,
+  AwsApis,
 } from './types'
 
 import Errors from './errors'
@@ -111,6 +112,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   private initPromise: Promise<void>
   private _gotHandler: boolean
   private lastExitStack: string
+  private aws: AwsApis
   constructor(opts:ILambdaOpts<Ctx>={}) {
     super()
     const {
@@ -123,6 +125,10 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.opts = opts
     this.bot = bot
     this.env = bot.env
+    this.aws = bot.aws
+
+    bot.aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
+
     this.tasks = bot.tasks
     this.tasks.add({
       name: 'bot:ready',
@@ -365,12 +371,23 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     if (err) {
-      this.logger.error('lambda execution hit an error', err)
+      this.logger.error('lambda execution hit an error', {
+        error: err,
+        serviceCalls: this._dumpServiceCalls(),
+      })
+
       if (this.source !== EventSource.HTTP) {
         ctx.error = new Error(err.message)
       }
-    } else if (result) {
-      ctx.body = result
+    } else {
+      if (result) {
+        ctx.body = result
+      }
+
+      const serviceCalls = this._dumpServiceCalls()
+      if (!_.isEmpty(serviceCalls.services)) {
+        this.logger.silly('service calls made', serviceCalls)
+      }
     }
 
     this.emit('done')
@@ -420,6 +437,8 @@ Previous exit stack: ${this.lastExitStack}`)
     callback?
   }) => {
     await this.initPromise
+
+    this._recordServiceCalls()
     this._ensureNotBroken()
     if (!this.accountId) {
       const { invokedFunctionArn } = context
@@ -702,6 +721,46 @@ Previous exit stack: ${this.lastExitStack}`)
       const msg = 'I am broken!: ' + this.breakingContext
       this.logger.error(msg)
       throw new Error(msg)
+    }
+  }
+
+  private _recordServiceCalls = () => {
+    forEachInstantiatedRecordableService(this.aws, this._recordService)
+  }
+
+  private _recordService = (service, name) => {
+    if (!service.$startRecording) return
+
+    service.$stopRecording()
+    service.$startRecording()
+  }
+
+  private _dumpServiceCalls = () => {
+    const summary = {
+      start: Infinity,
+      duration: 0,
+      services: {},
+    }
+
+    forEachInstantiatedRecordableService(this.aws, (service, name) => {
+      const dump = service.$stopRecording()
+      if (!dump.calls.length) return
+
+      summary.services[name] = dump.calls
+      summary.start = Math.min(summary.start, dump.start)
+      summary.duration = Math.max(summary.duration, dump.duration)
+    })
+
+    return summary
+  }
+}
+
+const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
+  const instantiated = aws.getInstantiated()
+  for (const name of instantiated) {
+    const service = aws[name]
+    if (service && service.$stopRecording) {
+      fn(service, name)
     }
   }
 }
