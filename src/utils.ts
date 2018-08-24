@@ -705,9 +705,7 @@ export const runWithBackoffWhile = async (fn, {
         throw err
       }
 
-      if (logger) {
-        logger.debug(`backing off ${millisToWait}`)
-      }
+      if (logger) logger.debug(`backing off ${millisToWait}`)
 
       await wait(millisToWait)
       millisToWait = Math.min(
@@ -717,7 +715,7 @@ export const runWithBackoffWhile = async (fn, {
       )
 
       if (millisToWait < 0) {
-        logger.debug('giving up')
+        if (logger) logger.debug('giving up')
         break
       }
     }
