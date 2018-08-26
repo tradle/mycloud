@@ -114,7 +114,7 @@ const checkDrift = (time: number) => {
   const abs = Math.abs(drift)
   if (abs > MAX_CLOCK_DRIFT) {
     const type = drift > 0 ? 'ahead' : 'behind'
-    throw new Errors.ClockDrift(`your clock is ${type}`)
+    throw new Errors.ClockDrift(`your clock is ${type} ${abs}ms`)
   }
 }
 
