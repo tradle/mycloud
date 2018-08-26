@@ -67,10 +67,16 @@ export const createHandler = ({
         resource: queryObj
       })
     } catch (err) {
-      throw new Errors.InvalidInput(`invalid tradle.GraphQLQuery: ${err.message}`)
+      Errors.rethrow(err, 'developer')
+      markInvalid(ctx, `invalid tradle.GraphQLQuery: ${err.message}`)
+      return
     }
 
-    checkDrift(queryObj._time)
+    const drift = getDrift(queryObj._time)
+    if (drift) {
+      markInvalid(ctx, `your clock is ${drift.type} ${drift.amount}ms`)
+      return
+    }
 
     const isAllowedInput = { ctx, user: null, query: queryObj }
     if (auth == null && !isGuestAllowed(isAllowedInput)) {
@@ -109,16 +115,20 @@ export const createHandler = ({
   }
 }
 
-const checkDrift = (time: number) => {
+const getDrift = (time: number) => {
   const drift = time - Date.now()
   const abs = Math.abs(drift)
   if (abs > MAX_CLOCK_DRIFT) {
     const type = drift > 0 ? 'ahead' : 'behind'
-    throw new Errors.ClockDrift(`your clock is ${type} ${abs}ms`)
+    return {
+      type,
+      amount: abs,
+    }
   }
 }
 
 const forbid = (ctx, message=FORBIDDEN_MESSAGE) => setError(ctx, 403, message)
+const markInvalid = (ctx, message) => setError(ctx, 400, message)
 
 const setError = (ctx, status, message) => {
   ctx.status = status
