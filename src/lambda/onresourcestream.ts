@@ -110,8 +110,8 @@ export const processRecords = async ({ bot, records }: {
   if (byCat.resource) {
     byCat.resource.forEach(r => {
       // prime cache
-      if (r.value) getBody(bot, r.value)
-      if (r.old) getBody(bot, r.old)
+      if (r.value) getBody(bot, r.value).catch(Errors.ignoreAll)
+      if (r.old) getBody(bot, r.old).catch(Errors.ignoreAll)
     })
   }
 

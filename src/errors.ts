@@ -244,6 +244,8 @@ const errors = {
   ignoreUnmetCondition: err => {
     ignore(err, { code: 'ConditionalCheckFailedException' })
   },
+  // @ts-ignore
+  ignoreAll: err => {},
   /**
    * check if error is of a certain type
    * @param  {Error}             err

@@ -235,7 +235,7 @@ export default class Objects {
 
   public prefetch = (link: string):void => {
     // prime cache
-    this.get(link)
+    this.get(link).catch(Errors.ignoreNotFound)
   }
 
   public del = async (link: string):Promise<void> => {
