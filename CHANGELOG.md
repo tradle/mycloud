@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.5"></a>
+# [1.7.0-rc.5](https://github.com/tradle/serverless/compare/v1.7.0-rc.4...v1.7.0-rc.5) (2018-08-27)
+
+
+### Bug Fixes
+
+* avoid creating a new tmp sns topic on every child stack update ([49bbb10](https://github.com/tradle/serverless/commit/49bbb10))
+* deployment pingback bot.ready timing ([aebc70b](https://github.com/tradle/serverless/commit/aebc70b))
+* monitor tradle's own logs ([c24fed1](https://github.com/tradle/serverless/commit/c24fed1))
+* unhandled rejection case when priming cache ([09be404](https://github.com/tradle/serverless/commit/09be404))
+* utils method with undefined logger ([d1681db](https://github.com/tradle/serverless/commit/d1681db))
+
+
+### Features
+
+* add aws client wrapper to track sessions of calls ([27bdc7b](https://github.com/tradle/serverless/commit/27bdc7b))
+
+
+
 <a name="1.7.0-rc.4"></a>
 # [1.7.0-rc.4](https://github.com/tradle/serverless/compare/v1.7.0-rc.3...v1.7.0-rc.4) (2018-08-17)
 
