@@ -70,6 +70,10 @@ export default class Logger {
   private writer:Writer
   private outputFormat:string
   private conf:LoggerConf
+  // private get levelName () {
+  //   return getLevelName(this.level)
+  // }
+
   public static compareSeverity = (a: Level, b: Level):CompareResult => {
     if (a === b) return 0
 
@@ -176,6 +180,17 @@ export default class Logger {
     const fn = writer[METHODS[level]] || writer.log
     fn.call(writer, output)
   }
+
+  public isSilly = () => this.level >= Level.SILLY
+  public isRidiculous = () => this.level >= Level.RIDICULOUS
+
+  // public select = (byLevel: any, ...args) => {
+  //   const { levelName } = this
+  //   const args = byLevel[levelName]
+  //   if (!args) return
+
+  //   this[levelName](...args)
+  // }
 
   private formatOutput = (level, msg, details) => {
     if (!details) {

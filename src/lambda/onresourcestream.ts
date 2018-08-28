@@ -63,8 +63,20 @@ const getBody = async (bot: Bot, item: any) => {
     timeout: 20000,
     initialDelay: 500,
     shouldTryAgain: err => {
-      bot.logger.warn(`can't find object with link ${item._link}`)
-      bot.logger.silly(`can't find object in object storage`, item)
+      const willRetry = Errors.isNotFound(err)
+      const logParams = {
+        error: Errors.export(err),
+        willRetry
+      }
+
+      if (bot.logger.isSilly()) {
+        bot.logger.silly(`can't find object in object storage`, {
+          ...logParams,
+          item,
+        })
+      } else {
+        bot.logger.warn(`can't find object with link ${item._link}`, logParams)
+      }
 
       Errors.rethrow(err, 'developer')
 
@@ -72,7 +84,7 @@ const getBody = async (bot: Bot, item: any) => {
         throw new Errors.GaveUp(`gave up on looking up object ${item._link}`)
       }
 
-      return Errors.isNotFound(err)
+      return willRetry
     }
   })
 
