@@ -1578,3 +1578,8 @@ export const selectModelProps = ({ object, models }) => {
   selected[TYPE] = object[TYPE]
   return selected
 }
+
+export const getCurrentCallStack = (lineOffset: number = 2) => new Error().stack
+  .split('\n')
+  .slice(lineOffset)
+  .join('\n')

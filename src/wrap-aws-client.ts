@@ -1,5 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
+import { getCurrentCallStack } from './utils'
 
 const IGNORE_METHODS = ['makeRequest']
 
@@ -99,39 +100,46 @@ export const wrap = client => {
         method: key,
         args,
         start,
+        stack: getCurrentCallStack(3),
       })
 
-      const handleError = error => {
-        end({ error, duration: Date.now() - start })
-        throw error
+      const onFinished = (error?, result?) => {
+        const endParams:any = {
+          duration: Date.now() - start,
+        }
+
+        if (error) {
+          endParams.error = error
+        }
+
+        end(endParams)
+        if (callback) return callback(error, result)
+        if (error) throw error
+        return result
       }
 
-      const handleResult = result => {
-        end({ duration: Date.now() - start })
-        return result
+      const onSuccess = result => onFinished(null, result)
+      let lastArg = args[args.length - 1]
+      let callback
+      if (typeof lastArg === 'function') {
+        callback = lastArg
+        args[args.length - 1] = onFinished
       }
 
       let result
       try {
         result = orig.apply(this, args)
-        if (result && result.promise) {
-          const promiser = result.promise
-          result.promise = function (...args) {
-            return Promise.resolve(promiser.apply(this, args)).then(handleResult, handleError)
+        if (!callback && result && result.promise) {
+          return {
+            ...result,
+            promise: () => result.promise().then(onSuccess, onFinished),
           }
-
-          return result
         }
 
-        // ignore non-async calls
         return result
-      } catch (error) {
-        end({
-          error,
-          end: Date.now()
-        })
-
-        throw error
+      } catch (err) {
+        onFinished(err)
+        throw err
       }
     }
   })

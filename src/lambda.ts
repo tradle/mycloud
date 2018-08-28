@@ -44,7 +44,8 @@ import {
   isPromise,
   syncClock,
   createLambdaContext,
-  isXrayOn
+  isXrayOn,
+  getCurrentCallStack,
 } from './utils'
 
 import {
@@ -313,7 +314,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
 Previous exit stack: ${this.lastExitStack}`)
     }
 
-    this.lastExitStack = new Error('exit').stack
+    this.lastExitStack = getCurrentCallStack()
     this.logger.debug('preparing for exit', {
       requestTime: this.executionTime,
       timeLeft: this.timeLeft
