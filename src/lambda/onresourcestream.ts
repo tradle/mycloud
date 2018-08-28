@@ -64,20 +64,12 @@ const getBody = async (bot: Bot, item: any) => {
     initialDelay: 500,
     shouldTryAgain: err => {
       const willRetry = Errors.isNotFound(err)
-      const logParams = {
+      bot.logger.warn(`can't find object with link ${item._link}`, {
         error: Errors.export(err),
-        willRetry
-      }
+        willRetry,
+      })
 
-      if (bot.logger.isSilly()) {
-        bot.logger.silly(`can't find object in object storage`, {
-          ...logParams,
-          item,
-        })
-      } else {
-        bot.logger.warn(`can't find object with link ${item._link}`, logParams)
-      }
-
+      bot.logger.silly(`can't find object in object storage`, item)
       Errors.rethrow(err, 'developer')
 
       if (age < GIVE_UP_AGE) {

@@ -106,6 +106,12 @@ export const install = (target=process.env):void => {
     callback(null, {})
   })
 
+  AWS.mock('CloudWatch', 'describeAlarmsForMetric', (params, callback) => {
+    callback(null, {
+      MetricAlarms: []
+    })
+  })
+
   if (!target.IS_OFFLINE) {
     AWS.mock('Iot', 'describeEndpoint', (params, callback) => {
       (callback || params)(null, {})
