@@ -1,10 +1,10 @@
 
 import Wallet from 'ethereumjs-wallet'
 import BN from 'bn.js'
-import promisify from 'pify'
 import fetch from 'node-fetch'
 import Network from '@tradle/ethereum-adapter'
 import { processResponse } from '../utils'
+import { promisifyAdapter, promisifyTransactor } from './promisify'
 
 const debug = require('debug')('tradle:sls:ethereum-adapter')
 const FAUCET_BASE_URL = 'http://faucet.ropsten.be:3001/donate'
@@ -29,11 +29,10 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
   })
 
   if (wallet) {
-    transactor = network.createTransactor({ wallet })
+    transactor = promisifyTransactor(network.createTransactor({ wallet }))
   }
 
-  const blockchain = network.createBlockchainAPI()
-  const getBalance = promisify(blockchain.addresses.balance)
+  const blockchain = promisifyAdapter(network.createBlockchainAPI())
   const recharge = async ({ address, minBalance, force }) => {
     const minBalanceBN = minBalance.startsWith('0x')
       ? new BN(minBalance.slice(2), 16)
@@ -43,7 +42,7 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
       let balance
       blockchain.start()
       try {
-        balance = await getBalance(address)
+        balance = await blockchain.addresses.balance(address)
         debug(`current balance: ${balance}, min balance: ${minBalance}`)
       } finally {
         blockchain.stop()

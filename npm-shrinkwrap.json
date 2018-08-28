@@ -73,6 +73,23 @@
       "from": "tradle/biz-plugins",
       "resolved": "git://github.com/tradle/biz-plugins.git#1bd2beeb524d2e4bdaec44aff589bdf6284c642e"
     },
+    "@tradle/blockchain-indexer-client": {
+      "version": "1.0.0",
+      "from": "tradle/blockchain-indexer-client",
+      "resolved": "git://github.com/tradle/blockchain-indexer-client.git#0a4a214668de7884a93115a0d192a70516b06819",
+      "dependencies": {
+        "ethereum-common": {
+          "version": "0.0.18",
+          "from": "ethereum-common@>=0.0.18 <0.0.19",
+          "resolved": "https://registry.npmjs.org/ethereum-common/-/ethereum-common-0.0.18.tgz"
+        },
+        "ethereumjs-tx": {
+          "version": "1.3.7",
+          "from": "ethereumjs-tx@>=1.3.7 <2.0.0",
+          "resolved": "https://registry.npmjs.org/ethereumjs-tx/-/ethereumjs-tx-1.3.7.tgz"
+        }
+      }
+    },
     "@tradle/bot-employee-manager": {
       "version": "1.0.0",
       "from": "tradle/bot-employee-manager",

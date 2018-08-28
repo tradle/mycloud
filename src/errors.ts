@@ -5,6 +5,9 @@ import ex from 'error-ex'
 import { AssertionError } from 'assert'
 import { TfTypeError, TfPropertyTypeError } from 'typeforce'
 import { LowFundsInput } from './types'
+import {
+  toPrefixedHex,
+} from './string-utils'
 
 function createError (name: string): ErrorConstructor {
   return ex(name)
@@ -145,6 +148,12 @@ class TimeTravel extends ErrorWithLink {
 
 type StringOrNum = string|number
 
+const normalizeLowFundsInput = (input:LowFundsInput):LowFundsInput => ({
+  ...input,
+  balance: toPrefixedHex(input.balance),
+  minBalance: toPrefixedHex(input.minBalance),
+})
+
 const getLowFundsMessage = ({
   blockchain,
   networkName,
@@ -167,6 +176,7 @@ class LowFunds extends Error implements LowFundsInput {
   public balance?: StringOrNum
   public minBalance?: StringOrNum
   constructor(opts: LowFundsInput) {
+    opts = normalizeLowFundsInput(opts)
     super(getLowFundsMessage(opts))
     const {
       blockchain,

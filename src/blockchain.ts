@@ -1,5 +1,4 @@
 import { utils, protocol } from '@tradle/engine'
-import { promisify } from './utils'
 import adapters from './blockchain-adapter'
 import {
   IDebug,
@@ -9,6 +8,8 @@ import {
   IBlockchainIdentifier,
   LowFundsInput,
 } from './types'
+
+import { alphabetical, unprefixHex } from './string-utils'
 
 import Errors from './errors'
 
@@ -45,6 +46,20 @@ interface IBlockchainAdapter {
 }
 
 const compareNums = (a, b) => a - b
+const compareHexStrs = (a, b) => {
+  a = unprefixHex(a)
+  b = unprefixHex(b)
+
+  const padLength = a.length - b.length
+  if (padLength > 0) {
+    b = '0'.repeat(padLength) + b
+  } else if (padLength > 0) {
+    a = '0'.repeat(padLength) + a
+  }
+
+  return alphabetical(a, b)
+}
+
 const compareBalance = (a, b) => {
   if (typeof a === 'number' && typeof b === 'number') {
     return compareNums(a, b)
@@ -62,15 +77,8 @@ const compareBalance = (a, b) => {
     throw new Error('expected numbers or hex strings')
   }
 
-  const padLength = a.length - b.length
-  if (padLength > 0) {
-    b = '0'.repeat(padLength) + b
-  } else if (padLength > 0) {
-    a = '0'.repeat(padLength) + a
-  }
-
   // can compare like nums
-  return compareNums(a, b)
+  return compareHexStrs(a, b)
 }
 
 type BlockchainOpts = {
@@ -112,8 +120,8 @@ export default class Blockchain {
     }
 
     this.reader = this.createAdapter()
-    this.addressesAPI = promisify(this.reader.blockchain.addresses)
-    this.getInfo = promisify(this.reader.blockchain.info)
+    this.addressesAPI = this.reader.blockchain.addresses
+    this.getInfo = this.reader.blockchain.info
     this.network = this.reader.network
     this.logger = logger
     this.identity = identity
@@ -273,20 +281,23 @@ export default class Blockchain {
     return await this.addressesAPI.balance(address)
   }
 
-  private createAdapter = (opts:{ privateKey?: string }={}) => {
+  private createAdapter = (opts:{ priv?: string, fingerprint?: string }={}) => {
+    const { priv, fingerprint } = opts
     const { blockchain, networkName } = this
     const create = adapters[blockchain]
-    return create({ blockchain, networkName, ...opts })
+    return create({
+      blockchain,
+      networkName,
+      privateKey: priv,
+      address: fingerprint,
+    })
   }
 
   private getWriter = (key: IKey) => {
-    const { fingerprint, priv } = key
+    const { fingerprint } = key
     if (!this.writers[fingerprint]) {
-      const { transactor } = this.createAdapter({
-        privateKey: priv
-      })
-
-      this.writers[fingerprint] = promisify(transactor)
+      const { transactor } = this.createAdapter(key)
+      this.writers[fingerprint] = transactor
     }
 
     return this.writers[fingerprint]

@@ -65,6 +65,16 @@ export const isHex = str => HEX_REGEX.test(str)
 
 export const trimTrailingSlashes = str => str.replace(/[\/]+$/, '')
 export const trimLeadingSlashes = str => str.replace(/^[\/]+/, '')
+export const toPrefixedHex = n => {
+  if (typeof n === 'number') {
+    n = n.toString(16)
+  }
+
+  return prefixHex(n)
+}
+
+export const prefixHex = str => str.startsWith('0x') ? str : `0x${str}`
+export const unprefixHex = str => str.startsWith('0x') ? str.slice(2) : str
 
 function bufferReplacer (key, value) {
   // Filtering out properties

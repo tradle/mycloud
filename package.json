@@ -144,6 +144,7 @@
     "@meltwater/fetch-favicon": "^1.0.4",
     "@tradle/bitcoin-adapter": "github:tradle/bitcoin-adapter",
     "@tradle/biz-plugins": "github:tradle/biz-plugins",
+    "@tradle/blockchain-indexer-client": "github:tradle/blockchain-indexer-client",
     "@tradle/bot-employee-manager": "github:tradle/bot-employee-manager",
     "@tradle/bot-products": "github:tradle/bot-products",
     "@tradle/build-resource": "^4.0.2",

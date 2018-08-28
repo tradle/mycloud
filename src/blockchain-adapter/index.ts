@@ -4,7 +4,7 @@ export default {
     return require('./bitcoin')
   },
   get ethereum () {
-    return require('./ethereum')
+    return require('./ethereum-local')
   },
   get corda (){
     return require('./corda')
