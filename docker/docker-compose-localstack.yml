@@ -40,7 +40,6 @@ services:
   tradle_web:
     image: tradle/web-app:localstack
     restart: always
-    container_name: tradle-web-app
     restart: always
     ports:
       - "55555:80"
