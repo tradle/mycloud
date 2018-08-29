@@ -81,7 +81,7 @@
     "@tradle/bot-products": {
       "version": "1.0.0",
       "from": "tradle/bot-products",
-      "resolved": "git://github.com/tradle/bot-products.git#2ac3bc0a7ffafc0e2d76976856ac3c187a86346a",
+      "resolved": "git://github.com/tradle/bot-products.git#945c99d434dea8f0a245099d56f55f90551af0aa",
       "dependencies": {
         "debug": {
           "version": "3.1.0",
@@ -181,7 +181,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#3c8332b35b50115ba4ea41c8c584d84694e6e7cf"
+      "resolved": "git://github.com/tradle/custom-models.git#396cf2f1da234a12041751a237ab0863fcc6e277"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -279,7 +279,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#cb98e82bc0bcb95621ed38b321741863514f450c"
+      "resolved": "git://github.com/tradle/models.git#972dd1962aab41e9f78434dd3b2be766d95e5cc8"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
@@ -289,7 +289,7 @@
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#cc7aa429a926cc471ef8e91725d5835fc0e97aa3"
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#13fb342a34eff631d4ea444e1a30d07adfb94a57"
     },
     "@tradle/models-nz": {
       "version": "1.0.0",
@@ -363,7 +363,7 @@
     "@tradle/schema-graphql": {
       "version": "1.0.0",
       "from": "tradle/schema-graphql",
-      "resolved": "git://github.com/tradle/schema-graphql.git#233e553a3dac2eeebf5aa138e2839497e6081ddd"
+      "resolved": "git://github.com/tradle/schema-graphql.git#a88b8ae5e0b01fa48e8b52e3d640053860cd8ce5"
     },
     "@tradle/schema-joi": {
       "version": "1.0.0",
@@ -4792,9 +4792,9 @@
       "dev": true
     },
     "graphql-fields": {
-      "version": "1.0.2",
+      "version": "1.1.0",
       "from": "graphql-fields@>=1.0.2 <2.0.0",
-      "resolved": "https://registry.npmjs.org/graphql-fields/-/graphql-fields-1.0.2.tgz"
+      "resolved": "https://registry.npmjs.org/graphql-fields/-/graphql-fields-1.1.0.tgz"
     },
     "graphql-relay": {
       "version": "0.5.5",

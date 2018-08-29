@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import extend from 'lodash/extend'
 import { Models } from './types'
 
 const core = require('@tradle/models').models
@@ -197,15 +197,15 @@ core[jsonItem.id] = jsonItem
 
 // models[cloudEventModel.id] = cloudEventModel
 
-const models = _.extend(
+const models = extend(
   {},
   core,
-  require('@tradle/custom-models'),
-  require('@tradle/models-corporate-onboarding'),
+  require('@tradle/custom-models').models,
+  require('@tradle/models-corporate-onboarding').models,
   require('@tradle/models-products-bot'),
   require('@tradle/models-onfido'),
   require('@tradle/models-nz'),
-  require('@tradle/models-cloud')
+  require('@tradle/models-cloud'),
 )
 
 export = models as Models
