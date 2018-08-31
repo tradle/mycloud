@@ -664,11 +664,11 @@ export default class Seals {
 
   private _syncUnconfirmedBatch = async (unconfirmed:Seal[], opts: SyncOpts) => {
     const { onProgress=promiseNoop } = opts
-    const changed:Seal[] = []
+    const changedSealMap:SealMap = {}
     const addresses = unconfirmed.map(({ address }) => address)
     const { blockchain, network } = this
     const txInfos:ITxInfo[] = await blockchain.getTxsForAddresses(addresses)
-    if (!txInfos.length) return changed
+    if (!txInfos.length) return []
 
     const addrToSeal:SealMap = {}
     const linkToSeal:SealMap = {}
@@ -686,6 +686,8 @@ export default class Seals {
         if (!addrToSeal[address]) continue
 
         const seal = addrToSeal[address]
+        if (changedSealMap[seal.sealId]) continue
+
         const { confirmations=0 } = txInfo
         if (seal.confirmations >= confirmations) continue
 
@@ -693,18 +695,19 @@ export default class Seals {
         seal.confirmations = confirmations
         if (confirmations >= network.confirmations) {
           delete seal.unconfirmed
-          changed.push(seal)
+          changedSealMap[seal.sealId] = seal
         }
       }
     }
 
-    if (!changed.length) {
+    if (_.isEmpty(changedSealMap)) {
       this.logger.info(`blockchain has nothing new for ${addresses.length} synced addresses`)
-      return changed
+      return []
     }
 
+    const changed:Seal[] = _.values(changedSealMap)
     const updateSeals = this.db.batchPut(changed)
-    const links = Object.keys(linkToSeal)
+    const links = changed.map(seal => seal.link)
 
     // should probably be batched for robustness
     const updateObjectsAndDB = Promise.all(links.map(async (link) => {
