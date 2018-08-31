@@ -217,7 +217,7 @@ export default class Objects {
   }
 
   public put = async (object: ITradleObject) => {
-    return await this.middleware.fire('put', object)
+    await this.middleware.fire('put', object)
   }
 
   public _put = async (object: ITradleObject) => {
@@ -228,7 +228,7 @@ export default class Objects {
     this.addMetadata(object)
 
     // this.logger.debug('putting', summarizeObject(object))
-    return await this.bucket.putJSON(object._link, object)
+    await this.bucket.putJSON(object._link, object)
   }
 
   public hook = (event, handler) => this.middleware.hook(event, handler)

@@ -88,12 +88,15 @@ export class Bucket {
   public maybeGetJSON = (key: string) => this.getJSON(key).catch(Errors.ignoreNotFound)
 
   public list = (opts) => this.utils.listBucket({ bucket: this.name, ...opts })
-  public put = (key: string, value, opts?:Partial<BucketPutOpts>) => this.utils.put({
-    key: this._getKey(key),
-    value,
-    bucket: this.name,
-    ...opts
-  })
+  public put = async (key: string, value, opts?: Partial<BucketPutOpts>) => {
+    // don't return a value, because the caching wrapper assumes there is none
+    await this.utils.put({
+      key: this._getKey(key),
+      value,
+      bucket: this.name,
+      ...opts
+    })
+  }
 
   public putJSON = (key: string, value, opts?:Partial<BucketPutOpts>) => this.put(key, value, opts)
   public gzipAndPut = (key: string, value) => this.utils.gzipAndPut({

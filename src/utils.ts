@@ -3,16 +3,10 @@ import crypto from 'crypto'
 import zlib from 'zlib'
 import { parse as parseURL } from 'url'
 import _ from 'lodash'
+
 // allow override promise
 // @ts-ignore
 import Promise from 'bluebird'
-import {
-  merge,
-  clone,
-  cloneDeep,
-  extend,
-  isEqual as deepEqual
-} from 'lodash'
 
 import AWSXray from 'aws-xray-sdk-core'
 import format from 'string-format'
@@ -63,6 +57,14 @@ import * as types from './typeforce-types'
 import Logger, { consoleLogger } from './logger'
 import Env from './env'
 import baseModels from './models'
+
+export {
+  clone,
+  extend,
+  isEqual as deepEqual,
+  isEqual,
+} from 'lodash'
+
 export {
   toSortableTag,
   compareTags,
@@ -180,9 +182,6 @@ export {
  format,
  fetch,
  bindAll,
- clone,
- extend,
- deepEqual,
  traverse,
  dotProp,
  co,
@@ -451,7 +450,7 @@ export function cachify ({ get, put, del, logger, cache, cloneOnGet }: {
   cloneOnGet?: boolean
 }) {
   const pending = {}
-  const maybeClone = cloneOnGet ? cloneDeep : obj => obj
+  const maybeClone = cloneOnGet ? _.cloneDeep : obj => obj
   const cachifiedGet = async (key) => {
     const keyStr = stableStringify(key)
     let val = cache.get(keyStr)
@@ -490,15 +489,14 @@ export function cachify ({ get, put, del, logger, cache, cloneOnGet }: {
       const keyStr = stableStringify(key)
       if (logger && cache.has(keyStr)) {
         logger.warn(`cache already has value for ${key}, put may not be necessary`)
-        // if (isEqual(cache.get(keyStr), value)) {
-        //   return
-        // }
+        if (_.isEqual(cache.get(keyStr), value)) {
+          return
+        }
       }
 
       cache.del(keyStr)
-      const ret = await put(key, value, ...rest)
+      await put(key, value, ...rest)
       cache.set(keyStr, value)
-      return ret
     },
     del: async (key) => {
       const keyStr = stableStringify(key)
@@ -816,7 +814,7 @@ export const post = async (url:string, data:Buffer|string|any, opts:any={}) => {
     body = JSON.stringify(data)
   }
 
-  const res = await fetch(url, merge({
+  const res = await fetch(url, _.merge({
     method: 'POST',
     headers: {
       // 'Accept': 'application/json',
