@@ -145,6 +145,14 @@ export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts)
   } finally {
     // only need to cancel if task was successful
     timeoutPromise.cancel()
+    if (taskPromise.isPending()) {
+      // prevent unhandled rejection
+      taskPromise.catch(err => {
+        consoleLogger.warn('timed out task eventually failed', {
+          error: err.stack
+        })
+      })
+    }
   }
 
   return taskPromise
