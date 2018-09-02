@@ -125,7 +125,9 @@ export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
   let timeout
   const promise = new Promise((resolve, reject) => {
     timeout = createTimeout(() => {
-      reject(error || new Errors.Timeout('timed out'))
+      const actualErr = typeof error === 'function' ? error() : error
+
+      reject(actualErr || new Errors.Timeout('timed out'))
     }, millis, unref)
   })
 
@@ -133,29 +135,20 @@ export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
   return promise
 }
 
-export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
-  const timeoutPromise = timeoutIn(opts)
-  const taskPromise = fn()
-  let result
-  try {
-    result = await Promise.race([
-      taskPromise,
-      timeoutPromise
-    ])
-  } finally {
-    // only need to cancel if task was successful
-    timeoutPromise.cancel()
-    if (taskPromise.isPending()) {
-      // prevent unhandled rejection
-      taskPromise.catch(err => {
-        consoleLogger.warn('timed out task eventually failed', {
-          error: err.stack
-        })
-      })
+export const runWithTimeout = <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const promise = fn()
+    let timeout
+    if (opts.millis < Infinity) {
+      timeout = timeoutIn(opts)
+      timeout.catch(reject)
     }
-  }
 
-  return taskPromise
+    promise.then(result => {
+      if (timeout) timeout.cancel()
+      resolve(result)
+    }, reject)
+  })
 }
 
 export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
@@ -749,21 +742,20 @@ export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
   let timeout
   let timeLeft
   while (true) {
-    timeLeft = env.getRemainingTime()
+    timeLeft = env.getRemainingTimeWithBuffer(GIVE_UP_RETRY_TIME)
     timeout = Math.min(attemptTimeout, timeLeft / 2)
     try {
-      return await Promise.race([
-        Promise.resolve(fn()),
-        timeoutIn({ millis: timeout, unref: true }) // unref
-      ])
+      await runWithTimeout(fn, {
+        millis: timeout,
+      })
     } catch (e) {
       err = e
     }
 
     // retry logic
     onError(err)
-    timeLeft = env.getRemainingTime()
-    if (timeLeft < GIVE_UP_RETRY_TIME) {
+    timeLeft = env.getRemainingTimeWithBuffer(GIVE_UP_RETRY_TIME)
+    if (timeLeft <= 0) {
       // give up if this is a retry
       if (err) throw err
 
@@ -774,23 +766,6 @@ export const tryUntilTimeRunsOut = async (fn:()=>Promise, opts:RetryOpts) => {
 
     await wait(Math.min(2000, timeLeft / 2))
   }
-}
-
-export const execWithTimeout = async<T>({ fn, timeout }: {
-  fn: () => Promise<T>
-  timeout: number
-}):Promise<T> => {
-  const promise = fn()
-  if (timeout === Infinity) return promise
-
-  const promiseTimeout = timeoutIn({
-    millis: timeout,
-    get error() { return new Errors.Timeout('task timed out') }
-  })
-
-  const result = await Promise.race([promise, promiseTimeout])
-  promiseTimeout.cancel()
-  return result
 }
 
 export const seriesMap = async (arr, fn) => {
@@ -1589,3 +1564,12 @@ export const getCurrentCallStack = (lineOffset: number = 2) => new Error().stack
   .split('\n')
   .slice(lineOffset)
   .join('\n')
+
+export const handleAbandonedPromise = (promise: Promise, logger:Logger = consoleLogger) => {
+  // prevent unhandled rejection
+  promise.catch(err => {
+    logger.warn('abandoned task eventually failed', {
+      error: err.stack
+    })
+  })
+}

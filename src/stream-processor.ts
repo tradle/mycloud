@@ -2,7 +2,7 @@ import typeforce from 'typeforce'
 import pick from 'lodash/pick'
 import { IKeyValueStore } from './types'
 import Errors from './errors'
-import { execWithTimeout } from './utils'
+import { runWithTimeout } from './utils'
 
 const STATE_TYPE = 'tradle.cloud.StreamProcessingError'
 
@@ -69,9 +69,8 @@ export default class StreamProcessor {
           throw new Errors.Timeout(`aborted mid-batch, almost out of time`)
         }
 
-        await execWithTimeout({
-          fn: () => worker(event),
-          timeout: perItemTimeout,
+        await runWithTimeout(() => worker(event), {
+          millis: perItemTimeout,
         })
 
         // we've passed the checkpoint!

@@ -39,13 +39,13 @@ import {
 import Errors from './errors'
 import {
   defineGetter,
-  timeoutIn,
   parseArn,
   isPromise,
   syncClock,
   createLambdaContext,
   isXrayOn,
   getCurrentCallStack,
+  runWithTimeout,
 } from './utils'
 
 import {
@@ -326,20 +326,14 @@ Previous exit stack: ${this.lastExitStack}`)
     // leave a tiny bit of breathing room for after the timeout
     const { shortName } = this
     const start = Date.now()
-    const timeout = timeoutIn({
-      millis: Math.max(this.timeLeft - 200, 0),
-      get error() {
-        const time = Date.now() - start
-        return new Errors.ExecutionTimeout(`lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`)
-      }
-    })
-
     try {
-      await Promise.race([
-        // always resolves, but may stall
-        this.finishAsyncTasks(),
-        timeout
-      ])
+      await runWithTimeout(() => this.finishAsyncTasks(), {
+        millis: Math.max(this.timeLeft - 200, 0),
+        error: () => {
+          const time = Date.now() - start
+          return new Errors.ExecutionTimeout(`lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`)
+        }
+      })
     } catch (err) {
       const tasks = this.tasks.describe()
       if (Errors.matches(err, Errors.ExecutionTimeout)) {
@@ -350,8 +344,6 @@ Previous exit stack: ${this.lastExitStack}`)
           ...Errors.export(err)
         })
       }
-    } finally {
-      timeout.cancel()
     }
 
     if (!this.bot.isReady()) {
@@ -584,22 +576,14 @@ Previous exit stack: ${this.lastExitStack}`)
       }
 
       let err
-      const timeout = timeoutIn({
-        millis: CF_EVENT_TIMEOUT,
-        get error() {
-          return new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`)
-        }
-      })
       try {
         // await bot.hooks.fire(type, ctx.event)
-        await Promise.race([
-          next(),
-          timeout
-        ])
+        await runWithTimeout(next, {
+          millis: CF_EVENT_TIMEOUT,
+          error: () => new Errors.ExecutionTimeout(`lambda ${this.shortName} timed out after ${CF_EVENT_TIMEOUT}ms`),
+        })
       } catch (e) {
         err = e
-      } finally {
-        timeout.cancel()
       }
 
       if (ResponseURL) {

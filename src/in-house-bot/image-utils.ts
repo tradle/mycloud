@@ -3,7 +3,7 @@ import DataURI from 'datauri'
 import fetch from 'node-fetch'
 // import request from 'superagent'
 import { fetchFavicons } from '@meltwater/fetch-favicon'
-import { domainToUrl, timeoutIn } from '../utils'
+import { domainToUrl, runWithTimeout } from '../utils'
 
 export type Favicon = {
   url: string
@@ -23,10 +23,9 @@ export const getLogo = async (opts: GetLogoOpts): Promise<string | void> => {
   const { domain, logo, timeout=5000 } = opts
   if (logo) return logo
 
-  return await Promise.race([
-    getFaviconUrl(domain),
-    timeoutIn({ millis: timeout })
-  ])
+  return await runWithTimeout(() => getFaviconUrl(domain), {
+    millis: timeout
+  })
 }
 
 export const getFaviconUrl = async (siteUrl: string):Promise<string> => {

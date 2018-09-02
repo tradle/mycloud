@@ -2,6 +2,8 @@ require('./env').install()
 
 import test from 'tape'
 import _ from 'lodash'
+// @ts-ignore
+import Promise from 'bluebird'
 import Cache from 'lru-cache'
 import sinon from 'sinon'
 import ModelsPack from '@tradle/models-pack'
@@ -22,7 +24,9 @@ import {
   wait,
   timeoutIn,
   batchProcess,
-  runWithBackoffWhile
+  allSettled,
+  runWithBackoffWhile,
+  runWithTimeout,
 } from '../utils'
 import Errors from '../errors'
 import { createTestBot } from '../'
@@ -827,6 +831,54 @@ test('first success', loudAsync(async (t) => {
     t.ok(err)
   }
 
+  t.end()
+}))
+
+test('runWithTimeout', loudAsync(async (t) => {
+  const unhandledRejectionHandler = (reason, promise) => {
+    t.fail(`unhandled rejection: ${reason.message}`)
+  }
+
+  process.on('unhandledRejection', unhandledRejectionHandler)
+
+  const willTimeout = runWithTimeout(() => wait(500), {
+    millis: 100,
+    error: new Error('timeout1'),
+  })
+
+  const willSucceed = runWithTimeout(async () => {
+    await wait(100)
+    return 'yay'
+  }, {
+    millis: 500,
+  })
+
+  const willTimeoutThenFail = runWithTimeout(async () => {
+    await wait(500)
+    throw new Error('oopsers')
+  }, {
+    millis: 100,
+    error: new Error('timeout2'),
+  })
+
+  willTimeout.then(
+    () => t.fail('expected timeout'),
+    err => t.equal(err.message, 'timeout1')
+  )
+
+  willSucceed.then(
+    result => t.equal(result, 'yay'),
+    t.error,
+  )
+
+  willTimeoutThenFail.then(
+    () => t.fail('expected timeout'),
+    err => t.equal(err.message, 'timeout2'),
+  )
+
+  await allSettled([willTimeout, willSucceed, willTimeoutThenFail])
+
+  process.removeListener('unhandledRejection', unhandledRejectionHandler)
   t.end()
 }))
 

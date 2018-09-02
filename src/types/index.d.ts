@@ -526,9 +526,11 @@ export interface IMailerSendEmailOpts {
   replyTo?: string|string[]
 }
 
+type ErrorCreator = () => Error
+
 export interface ITimeoutOpts {
   millis?: number
-  error?: Error
+  error?: Error|ErrorCreator
   unref?: boolean
 }
 
