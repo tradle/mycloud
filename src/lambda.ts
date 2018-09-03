@@ -526,11 +526,13 @@ Previous exit stack: ${this.lastExitStack}`)
           await next()
         } catch (err) {
           ctx.error = err
-          if (!ctx.status || ctx.status <= 300) {
+          if (typeof err.status === 'number') {
+            ctx.status = err.status
+            ctx.body = { message: err.message }
+          } else if (ctx.status <= 300) {
             ctx.status = 500
+            ctx.body = this._exportError(ctx.error)
           }
-
-          ctx.body = this._exportError(ctx.error)
         }
       }
 
