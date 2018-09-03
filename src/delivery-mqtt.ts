@@ -66,20 +66,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
     this.logger.debug(`delivering ${messages.length} messages to ${recipient}: ${seqs.join(', ')}`)
     const strings = messages.map(stringify)
     const subBatches = batchByByteLength(strings, MAX_PAYLOAD_SIZE)
-    const promises = []
     // this assumes the client has a processing queue
     // that reorders by seq/time
-    for (const subBatch of subBatches) {
-      const promise = this.trigger({
-        clientId: session.clientId,
-        topic: 'inbox',
-        payload: `{"messages":[${subBatch.join(',')}]}`
-      })
+    await Promise.all(subBatches.map(subBatch => this.trigger({
+      clientId: session.clientId,
+      topic: 'inbox',
+      payload: `{"messages":[${subBatch.join(',')}]}`
+    })))
 
-      promises.push(promise)
-    }
-
-    await Promise.all(promises)
     this.logger.debug(`delivered ${messages.length} messages to ${recipient}`)
   }
 
