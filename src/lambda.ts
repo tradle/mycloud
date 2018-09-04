@@ -525,13 +525,25 @@ Previous exit stack: ${this.lastExitStack}`)
         try {
           await next()
         } catch (err) {
-          ctx.error = err
+          this.logger.error('request hit an error', {
+            error: Errors.export(err)
+          })
+
+          // lambda should not fail!
+          // it should return a failure status code but succeed
           if (typeof err.status === 'number') {
             ctx.status = err.status
             ctx.body = { message: err.message }
-          } else if (ctx.status <= 300) {
+          } else if (!ctx.body && ctx.status === 404) { // koa defaults to 404
+            this.logger.debug('defaulting to status code 500')
             ctx.status = 500
-            ctx.body = this._exportError(ctx.error)
+            ctx.body = this._exportError(err)
+          } else {
+            this.logger.debug('status and body already set on failed req', {
+              status: ctx.status,
+              body: ctx.body,
+              error: err.stack
+            })
           }
         }
       }
