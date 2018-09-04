@@ -42,6 +42,8 @@ export default class Iot implements IIotEndpointInfo {
       parentTopic: this.parentTopic,
       clientIdPrefix: this.clientIdPrefix,
     }
+
+    this.ensureEndpoint = cachifyPromiser(this.ensureEndpoint.bind(this))
   }
 
   public publish = async (params: IIotPublishOpts) => {

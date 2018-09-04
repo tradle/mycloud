@@ -28,6 +28,7 @@ import {
   IPrivKey,
   Secrets,
   AwsApis,
+  Iot,
 } from './types'
 
 import wrapCloudwatchClient from './cloudwatch'
@@ -55,6 +56,7 @@ export default class Init {
   private objects: Objects
   private identities: Identities
   private stackUtils: StackUtils
+  private iot: Iot
   private db: DB
   private seals: Seals
   private logger: Logger
@@ -68,6 +70,7 @@ export default class Init {
     storage,
     identities,
     stackUtils,
+    iot,
     seals,
     logger
   }: Bot) {
@@ -82,6 +85,7 @@ export default class Init {
     this.db = storage.db
     this.identities = identities
     this.stackUtils = stackUtils
+    this.iot = iot
     this.seals = seals
     this.logger = logger.sub('init')
   }
@@ -96,14 +100,18 @@ export default class Init {
   public initInfra = async (opts?:IInitOpts) => {
     const [identityInfo] = await Promise.all([
       this.initIdentity(opts),
-      this._decreaseDynamodbScalingReactionTime()
+      this._decreaseDynamodbScalingReactionTime(),
+      this._setIotEndpointEnvVar(),
     ])
 
     return identityInfo
   }
 
   public updateInfra = async (opts?:any) => {
-    await this._decreaseDynamodbScalingReactionTime()
+    await Promise.all([
+      this._decreaseDynamodbScalingReactionTime(),
+      this._setIotEndpointEnvVar(),
+    ])
   }
 
   public initIdentity = async (opts:IInitOpts={}) => {
@@ -204,6 +212,13 @@ export default class Init {
         EvaluationPeriods: 1,
       })
     })
+  }
+
+  private _setIotEndpointEnvVar = async () => {
+    const IOT_ENDPOINT = await this.iot.getEndpoint()
+    await this.stackUtils.updateEnvironments(functionConf => ({
+      IOT_ENDPOINT,
+    }))
   }
 }
 
