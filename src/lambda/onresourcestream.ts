@@ -84,12 +84,10 @@ const getBody = async (bot: Bot, item: any) => {
 }
 
 export const preProcessItem = async <T>(bot: Bot, record):Promise<T> => {
-  const [value, old] = await Promise.all([
-    record.value ? getBody(bot, record.value) : promiseUndefined,
-    record.old ? getBody(bot, record.old) : promiseUndefined
-  ])
-
-  return { value, old }
+  return await Promise.props({
+    value: record.value ? getBody(bot, record.value) : promiseUndefined,
+    old: record.old ? getBody(bot, record.old) : promiseUndefined
+  })
 }
 
 export const createMiddleware = (bot:Bot) => {
