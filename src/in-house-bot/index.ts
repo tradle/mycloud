@@ -627,10 +627,11 @@ export const loadComponentsAndPlugins = ({
       'hand-sig',
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
-    ;[
-      'plugin1',
-      'plugin2'
-    ].forEach(name => attachPlugin({ name, prepend: true }))
+    // used for some demo
+    // ;[
+    //   'plugin1',
+    //   'plugin2'
+    // ].forEach(name => attachPlugin({ name, prepend: true }))
   }
 
   if (handleMessages ||
