@@ -46,6 +46,7 @@ import {
   isXrayOn,
   getCurrentCallStack,
   runWithTimeout,
+  plainify,
 } from './utils'
 
 import {
@@ -61,6 +62,14 @@ const CF_EVENT_TIMEOUT = 10 * 60000
 const { commit } = require('./version')
 
 type Contextualized<T> = (ctx: T, next: Function) => any|void
+
+interface ServiceCallsSummary {
+  start?: number
+  duration?: number
+  services: {
+    [name: string]: any[]
+  }
+}
 
 export enum EventSource {
   HTTP='http',
@@ -743,8 +752,21 @@ Previous exit stack: ${this.lastExitStack}`)
     service.$startRecording()
   }
 
-  private _dumpServiceCalls = () => {
-    const summary = {
+  private _dumpServiceCalls = ():ServiceCallsSummary => {
+    try {
+      // should never fail cause of this
+      return this.__dumpServiceCalls()
+    } catch (err) {
+      this.logger.error('failed to dump service calls', {
+        error: err.stack
+      })
+
+      return { services: {} }
+    }
+  }
+
+  private __dumpServiceCalls = ():ServiceCallsSummary => {
+    const summary:ServiceCallsSummary = {
       start: Infinity,
       duration: 0,
       services: {},
@@ -765,7 +787,7 @@ Previous exit stack: ${this.lastExitStack}`)
       summary.duration = Math.max(summary.duration, dump.duration)
     })
 
-    return summary
+    return plainify(summary)
   }
 }
 

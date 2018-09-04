@@ -1573,3 +1573,19 @@ export const handleAbandonedPromise = (promise: Promise, logger:Logger = console
     })
   })
 }
+
+export const isPrimitiveType = val => typeof val !== 'object'
+
+export const plainify = obj => _.cloneDeepWith(obj, value => {
+  if (isPrimitiveType(value)) return value
+  if (Buffer.isBuffer(value)) return value.slice()
+  if (Array.isArray(value)) return value.map(sub => plainify(sub))
+  if (_.isPlainObject(value)) {
+    return _.transform(value, (result, value, key) => {
+      result[key] = plainify(value)
+    }, {})
+  }
+
+  const name = value.constructor && value.constructor.name
+  return name || 'SomeComplexObject'
+})

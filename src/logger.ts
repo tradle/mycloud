@@ -2,7 +2,15 @@
 // http://theburningmonk.com/2017/09/capture-and-forward-correlation-ids-through-different-lambda-event-sources/
 
 import isEmpty from 'lodash/isEmpty'
-import stringifySafe from 'json-stringify-safe'
+import _stringifySafe from 'json-stringify-safe'
+
+const stringifySafe = obj => {
+  try {
+    return _stringifySafe(obj)
+  } catch (err) {
+    return `failed to stringify object: ${err.stack}`
+  }
+}
 
 export enum Level {
   ERROR=0,
@@ -216,11 +224,11 @@ export default class Logger {
       return stringifySafe(logMsg)
     }
 
-    const stringifieddetails = details ? stringifySafe({ msg, ...details }) : ''
+    const stringifiedDetails = details ? stringifySafe({ msg, ...details }) : ''
     let part1 = this.namespace
     if (part1) part1 += ':'
 
-    return `${part1}${level}: ${stringifieddetails}`
+    return `${part1}${level}: ${stringifiedDetails}`
   }
 }
 
