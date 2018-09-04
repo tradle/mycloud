@@ -230,6 +230,7 @@ custom:
     origin: '*'
     headers:
       - Content-Type
+      - Content-Encoding
       - X-Amz-Date
       - Authorization
       - X-Api-Key
