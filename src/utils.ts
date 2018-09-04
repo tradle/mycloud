@@ -260,9 +260,14 @@ export function now () {
 //   }
 // }
 
+/**
+ * wrap a promise-returning function
+ * - failures are retried on subsequent calls
+ * - once the function succeeds, its response is cached forever
+ */
 export function cachifyPromiser (fn, opts={}) {
   let promise
-  const cachified = (...args) => {
+  const cachified = function (...args) {
     if (args.length) {
       throw new Errors.InvalidInput('functions cachified with cachifyPromiser do not accept arguments')
     }
