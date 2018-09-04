@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.6"></a>
+# [1.7.0-rc.6](https://github.com/tradle/serverless/compare/v1.7.0-rc.5...v1.7.0-rc.6) (2018-09-04)
+
+
+### Bug Fixes
+
+* **seals:** duplicate in batchPut ([6086222](https://github.com/tradle/serverless/commit/6086222))
+* **test:** add cloudwatch method mock ([aece11e](https://github.com/tradle/serverless/commit/aece11e))
+* allow Content-Encoding header from browsers ([2866c00](https://github.com/tradle/serverless/commit/2866c00))
+* body-parser middleware error handling ([3841efd](https://github.com/tradle/serverless/commit/3841efd))
+* http lambda error handling ([963d992](https://github.com/tradle/serverless/commit/963d992))
+* propagate http status from errors that have it ([ce9cf57](https://github.com/tradle/serverless/commit/ce9cf57))
+* unhandled rejection after task timed out ([875d4e1](https://github.com/tradle/serverless/commit/875d4e1))
+* utils.runWithTimeout, various unsafe usages of Promise.race that result in unhandled rejections in edge cases ([4b04da0](https://github.com/tradle/serverless/commit/4b04da0))
+* wrap-aws-client, save call-stacks for service calls ([6925edc](https://github.com/tradle/serverless/commit/6925edc))
+
+
+
 <a name="1.7.0-rc.5"></a>
 # [1.7.0-rc.5](https://github.com/tradle/serverless/compare/v1.7.0-rc.4...v1.7.0-rc.5) (2018-08-27)
 
