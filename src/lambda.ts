@@ -751,6 +751,12 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
+      if (name.toLowerCase() === 'iotdata') {
+        // TODO: figure out why this fails
+        // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
+        return
+      }
+
       const dump = service.$stopRecording()
       if (!dump.calls.length) return
 
