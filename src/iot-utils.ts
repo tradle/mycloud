@@ -42,8 +42,6 @@ export default class Iot implements IIotEndpointInfo {
       parentTopic: this.parentTopic,
       clientIdPrefix: this.clientIdPrefix,
     }
-
-    this.ensureEndpoint = cachifyPromiser(this.ensureEndpoint.bind(this))
   }
 
   public publish = async (params: IIotPublishOpts) => {
@@ -58,24 +56,26 @@ export default class Iot implements IIotEndpointInfo {
 
     this.logger.debug(`publishing to ${params.topic}`)
     if (!this.iotData) {
-      await this.ensureEndpoint()
+      await this.getEndpoint()
       this.iotData = this.services.iotData
     }
 
     await this.iotData.publish(params).promise()
   }
 
-  public getEndpoint = cachifyPromiser(async () => {
+  public fetchEndpoint = async () => {
     const { endpointAddress } = await this.services.iot.describeEndpoint().promise()
     return endpointAddress
-  })
-
-  private ensureEndpoint = async () => {
-    // hack, ensure ./aws has access to this var
-    if (!this.env.IOT_ENDPOINT) {
-      this.env.IOT_ENDPOINT = await this.getEndpoint()
-    }
   }
+
+  public getEndpoint = cachifyPromiser(async () => {
+    // hack ./aws needs sync access to this var
+    if (!this.env.IOT_ENDPOINT) {
+      this.env.IOT_ENDPOINT = await this.fetchEndpoint()
+    }
+
+    return this.env.IOT_ENDPOINT
+  })
 }
 
 export const createUtils = (opts: IotOpts) => new Iot(opts)
