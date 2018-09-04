@@ -1576,16 +1576,24 @@ export const handleAbandonedPromise = (promise: Promise, logger:Logger = console
 
 export const isPrimitiveType = val => typeof val !== 'object'
 
-export const plainify = obj => _.cloneDeepWith(obj, value => {
-  if (isPrimitiveType(value)) return value
-  if (Buffer.isBuffer(value)) return value.slice()
-  if (Array.isArray(value)) return value.map(sub => plainify(sub))
-  if (_.isPlainObject(value)) {
-    return _.transform(value, (result, value, key) => {
-      result[key] = plainify(value)
-    }, {})
+export const plainify = obj => traverse(obj).map(function (value) {
+  if (this.circular) this.remove()
+  if (value == null) return
+  if (isPrimitiveType(value)) return
+  if (Buffer.isBuffer(value)) {
+    let copy
+    try {
+      copy = Buffer.from(value)
+    } catch (err) {
+      copy = '[Buffer uncloneable]'
+    }
+
+    this.update(copy)
   }
 
-  const name = value.constructor && value.constructor.name
-  return name || 'SomeComplexObject'
+  if (Array.isArray(value)) return
+  if (!_.isPlainObject(value)) {
+    const name = value.constructor && value.constructor.name
+    this.update(name || 'SomeComplexObject')
+  }
 })

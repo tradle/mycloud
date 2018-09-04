@@ -782,12 +782,15 @@ Previous exit stack: ${this.lastExitStack}`)
       const dump = service.$stopRecording()
       if (!dump.calls.length) return
 
-      summary.services[name] = dump.calls
+      summary.services[name] = safeStringify(plainify(dump.calls))
+        // limit length
+        .slice(0, 1000)
+
       summary.start = Math.min(summary.start, dump.start)
       summary.duration = Math.max(summary.duration, dump.duration)
     })
 
-    return plainify(summary)
+    return summary
   }
 }
 
