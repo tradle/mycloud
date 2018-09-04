@@ -62,6 +62,7 @@ package:
     - node_modules/fsevents/**
     - "node_modules/@tradle/gen-samples/**"
     - npm-shrinkwrap.json
+    - clienttest/
 
 custom:
   vars: ${{file(./vars.yml), file(./default-vars.yml)}}
