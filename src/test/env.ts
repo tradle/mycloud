@@ -33,7 +33,9 @@ const originalHttpRequest = http.request.bind(http)
 const httpRequestInterceptor = (...args) => {
   const req = args[0]
   const host = req.host || parseURL(req.url).host
-  if (host.endsWith('.amazonaws.com') && !/\/(?:trueface-spoof|rank-one)\//.test(req.url)) {
+  if (host.endsWith('.amazonaws.com') &&
+    !/\/(?:trueface-spoof|rank-one)\//.test(req.url) &&
+    !host.startsWith('parity-ropsten')) {
     const err = new Error(`forbidding request to AWS in test/local mode: ${req.url}`)
     // @ts-ignore
     console.error(err.stack)

@@ -5,6 +5,7 @@ export default {
   },
   get ethereum () {
     return require('./ethereum-local')
+    // return require('./ethereum')
   },
   get corda (){
     return require('./corda')

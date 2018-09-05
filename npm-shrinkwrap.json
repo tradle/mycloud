@@ -76,7 +76,7 @@
     "@tradle/blockchain-indexer-client": {
       "version": "1.0.0",
       "from": "tradle/blockchain-indexer-client",
-      "resolved": "git://github.com/tradle/blockchain-indexer-client.git#0a4a214668de7884a93115a0d192a70516b06819",
+      "resolved": "git://github.com/tradle/blockchain-indexer-client.git#af7ce247866b558b6e2ebf6c54c3d5046bff39b7",
       "dependencies": {
         "ethereum-common": {
           "version": "0.0.18",
@@ -1974,7 +1974,7 @@
     },
     "buffer": {
       "version": "5.1.0",
-      "from": "buffer@>=5.0.6 <6.0.0",
+      "from": "buffer@>=5.1.0 <5.2.0",
       "resolved": "https://registry.npmjs.org/buffer/-/buffer-5.1.0.tgz",
       "dependencies": {
         "base64-js": {
@@ -6939,6 +6939,11 @@
       "resolved": "https://registry.npmjs.org/makeerror/-/makeerror-1.0.11.tgz",
       "dev": true
     },
+    "map-age-cleaner": {
+      "version": "0.1.2",
+      "from": "map-age-cleaner@>=0.1.1 <0.2.0",
+      "resolved": "https://registry.npmjs.org/map-age-cleaner/-/map-age-cleaner-0.1.2.tgz"
+    },
     "map-cache": {
       "version": "0.2.2",
       "from": "map-cache@>=0.2.2 <0.3.0",
@@ -8350,6 +8355,11 @@
       "from": "osenv@>=0.0.0 <1.0.0",
       "resolved": "https://registry.npmjs.org/osenv/-/osenv-0.1.5.tgz"
     },
+    "p-defer": {
+      "version": "1.0.0",
+      "from": "p-defer@>=1.0.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/p-defer/-/p-defer-1.0.0.tgz"
+    },
     "p-finally": {
       "version": "1.0.0",
       "from": "p-finally@>=1.0.0 <2.0.0",
@@ -8378,6 +8388,18 @@
       "from": "p-map@>=1.1.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/p-map/-/p-map-1.2.0.tgz",
       "dev": true
+    },
+    "p-memoize": {
+      "version": "2.1.0",
+      "from": "p-memoize@>=2.1.0 <3.0.0",
+      "resolved": "https://registry.npmjs.org/p-memoize/-/p-memoize-2.1.0.tgz",
+      "dependencies": {
+        "mem": {
+          "version": "4.0.0",
+          "from": "mem@>=4.0.0 <5.0.0",
+          "resolved": "https://registry.npmjs.org/mem/-/mem-4.0.0.tgz"
+        }
+      }
     },
     "p-try": {
       "version": "1.0.0",
@@ -11969,6 +11991,29 @@
           "from": "string_decoder@>=1.1.1 <1.2.0",
           "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz",
           "dev": true
+        }
+      }
+    },
+    "zmq": {
+      "version": "2.15.3",
+      "from": "zmq@>=2.14.0 <3.0.0",
+      "resolved": "https://registry.npmjs.org/zmq/-/zmq-2.15.3.tgz",
+      "dev": true,
+      "optional": true,
+      "dependencies": {
+        "bindings": {
+          "version": "1.2.1",
+          "from": "bindings@>=1.2.1 <1.3.0",
+          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
+          "dev": true,
+          "optional": true
+        },
+        "nan": {
+          "version": "2.3.5",
+          "from": "nan@>=2.3.0 <2.4.0",
+          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
+          "dev": true,
+          "optional": true
         }
       }
     }

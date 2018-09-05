@@ -81,6 +81,8 @@ const compareBalance = (a, b) => {
   return compareHexStrs(a, b)
 }
 
+const toLowerCase = str => str.toLowerCase()
+
 type BlockchainOpts = {
   logger: Logger
   network: IBlockchainIdentifier
@@ -128,7 +130,7 @@ export default class Blockchain {
   }
 
   public toString = () => `${this.network.blockchain}:${this.network.name}`
-  public pubKeyToAddress = (pub: string) => this.network.pubKeyToAddress(pub)
+  public pubKeyToAddress = (pub: string) => this.network.pubKeyToAddress(pub).toLowerCase()
 
   public wrapOperation = fn => {
     return async (...args) => {
@@ -160,6 +162,13 @@ export default class Blockchain {
         typeof blockHeight === 'number') {
         info.confirmations = blockHeight - info.blockHeight
       }
+
+      ;['from', 'to'].forEach(group => {
+        const val = info[group]
+        if (val && val.addresses) {
+          val.addresses = val.addresses.map(toLowerCase)
+        }
+      })
     })
 
     if (txInfos.length) {
@@ -178,6 +187,7 @@ export default class Blockchain {
   public seal = async ({ key, link, address, addressForPrev, balance }: ISealOpts) => {
     const writer = this.getWriter(key)
     this.start()
+
     this.logger.debug(`sealing ${link}`)
     const { minBalance } = this
     if (typeof balance === 'undefined') {

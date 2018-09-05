@@ -137,7 +137,9 @@
     "releasecandidate:patch": "npm run releasecandidate -- --release-as patch",
     "releasecandidate:minor": "npm run releasecandidate -- --release-as minor",
     "releasecandidate:major": "npm run releasecandidate -- --release-as major",
-    "releasetransition": "standard-version --prerelease trans --no-verify --release-as patch"
+    "releasetransition": "standard-version --prerelease trans --no-verify --release-as patch",
+    "local:sealpending": "echo '{\"name\":\"sealpending\"}' | sls invoke local -f genericJobRunner",
+    "local:pollchain": "echo '{\"name\":\"pollchain\"}' | sls invoke local -f genericJobRunner"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
