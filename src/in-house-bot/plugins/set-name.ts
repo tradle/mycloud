@@ -28,12 +28,13 @@ export const createPlugin = ({ bot, productsAPI }: {
 
   const trySetName = async (req) => {
     const { application } = req
+    if (!application) return
     if (application.applicantName) return
 
     try {
       const name = await getName(req)
       if (name) {
-        req.application.applicantName = name
+        application.applicantName = name
       }
     } catch (err) {
       logger.error('failed to get applicant name', err)
