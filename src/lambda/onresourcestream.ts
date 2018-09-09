@@ -55,7 +55,6 @@ const getBody = async (bot: Bot, item: any) => {
     }
   }
 
-  const age = item._time ? Date.now() - item._time : 0
   const body = await bot.objects.getWithRetry(item._link, {
     logger: bot.logger,
     maxAttempts: 10,
@@ -72,8 +71,11 @@ const getBody = async (bot: Bot, item: any) => {
       bot.logger.silly(`can't find object in object storage`, item)
       Errors.rethrow(err, 'developer')
 
-      if (age < GIVE_UP_AGE) {
-        throw new Errors.GaveUp(`gave up on looking up object ${item._link}`)
+      if (item._time) {
+        const age = Date.now() - item._time
+        if (age > GIVE_UP_AGE) {
+          throw new Errors.GaveUp(`gave up on looking up object ${item._link} age ${age}ms`)
+        }
       }
 
       return willRetry
