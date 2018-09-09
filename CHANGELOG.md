@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.7"></a>
+# [1.7.0-rc.7](https://github.com/tradle/serverless/compare/v1.7.0-rc.6...v1.7.0-rc.7) (2018-09-09)
+
+
+### Bug Fixes
+
+* cachifyPromiser context ([d57acb9](https://github.com/tradle/serverless/commit/d57acb9))
+* logging ([393f176](https://github.com/tradle/serverless/commit/393f176))
+* package excludes ([ea0b4fd](https://github.com/tradle/serverless/commit/ea0b4fd))
+* safety checks on service call dumps and logging ([c3bd2c3](https://github.com/tradle/serverless/commit/c3bd2c3))
+* set-name plugin ([41b3244](https://github.com/tradle/serverless/commit/41b3244))
+
+
+### Features
+
+* cache IOT_ENDPOINT on env on initInfra/updateInfra ([fe95de8](https://github.com/tradle/serverless/commit/fe95de8))
+
+
+
 <a name="1.7.0-rc.6"></a>
 # [1.7.0-rc.6](https://github.com/tradle/serverless/compare/v1.7.0-rc.5...v1.7.0-rc.6) (2018-09-04)
 
