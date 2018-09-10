@@ -136,19 +136,8 @@ export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
 }
 
 export const runWithTimeout = <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
-  return new Promise((resolve, reject) => {
-    const promise = fn()
-    let timeout
-    if (opts.millis < Infinity) {
-      timeout = timeoutIn(opts)
-      timeout.catch(reject)
-    }
-
-    promise.then(result => {
-      if (timeout) timeout.cancel()
-      resolve(result)
-    }, reject)
-  })
+  const promise = fn()
+  return opts.millis < Infinity ? Promise.race([promise, timeoutIn(opts)]) : promise
 }
 
 export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
