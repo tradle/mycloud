@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.9"></a>
+# [1.7.0-rc.9](https://github.com/tradle/serverless/compare/v1.7.0-rc.8...v1.7.0-rc.9) (2018-09-10)
+
+
+### Bug Fixes
+
+* give stream lambda timeout grace period ([8837bff](https://github.com/tradle/serverless/commit/8837bff))
+
+
+
 <a name="1.7.0-rc.8"></a>
 # [1.7.0-rc.8](https://github.com/tradle/serverless/compare/v1.7.0-rc.7...v1.7.0-rc.8) (2018-09-10)
 
