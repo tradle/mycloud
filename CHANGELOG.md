@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.8"></a>
+# [1.7.0-rc.8](https://github.com/tradle/serverless/compare/v1.7.0-rc.7...v1.7.0-rc.8) (2018-09-10)
+
+
+### Bug Fixes
+
+* give-up age check in stream ([5ddf6d7](https://github.com/tradle/serverless/commit/5ddf6d7))
+
+
+
 <a name="1.7.0-rc.7"></a>
 # [1.7.0-rc.7](https://github.com/tradle/serverless/compare/v1.7.0-rc.6...v1.7.0-rc.7) (2018-09-09)
 
