@@ -59,10 +59,15 @@ const getBody = async (bot: Bot, item: any) => {
     logger: bot.logger,
     maxAttempts: 10,
     maxDelay: 2000,
-    timeout: 20000,
+    timeout: bot.env.getRemainingTimeWithBuffer(5000),
     initialDelay: 500,
     shouldTryAgain: err => {
-      bot.logger.warn(`can't find object with link ${item._link}`)
+      const willRetry = Errors.isNotFound(err)
+      bot.logger.error(`can't find object with link ${item._link}`, {
+        error: Errors.export(err),
+        willRetry,
+      })
+
       bot.logger.silly(`can't find object in object storage`, item)
 
       Errors.rethrow(err, 'developer')
