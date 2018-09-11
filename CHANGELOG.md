@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.6.3"></a>
+## [1.6.3](https://github.com/tradle/serverless/compare/v1.6.2...v1.6.3) (2018-09-11)
+
+
+### Bug Fixes
+
+* give stream lambda timeout grace period ([77b70d2](https://github.com/tradle/serverless/commit/77b70d2))
+* give-up age check in stream ([9d98d30](https://github.com/tradle/serverless/commit/9d98d30))
+
+
+
 <a name="1.6.2"></a>
 ## [1.6.2](https://github.com/tradle/serverless/compare/v1.6.2-rc.8...v1.6.2) (2018-08-13)
 
