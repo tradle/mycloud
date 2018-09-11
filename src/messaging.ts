@@ -569,7 +569,7 @@ export default class Messaging {
         orig: orig || object[PERMALINK]
       })
     } catch (err) {
-      throw new Errors.InvalidVersion(err.message)
+      Errors.rethrowAs(err, new Errors.InvalidVersion(err.message))
     }
   }
 

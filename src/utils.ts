@@ -1375,7 +1375,7 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
       other: typeforce.maybe(typeforce.Object)
     }, opts)
   } catch (err) {
-    throw new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
+    Errors.rethrowAs(err, new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`))
   }
 
   opts = _.omit(opts, 'to')

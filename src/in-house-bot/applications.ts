@@ -101,7 +101,7 @@ export class Applications {
       await productsAPI[method]({ req, judge, user, application })
     } catch (err) {
       Errors.ignore(err, Errors.Duplicate)
-      throw new Error(`application already has status: ${application.status}`)
+      Errors.rethrowAs(err, new Error(`application already has status: ${application.status}`))
     }
 
     if (approve) {

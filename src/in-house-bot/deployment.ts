@@ -337,7 +337,7 @@ export class Deployment {
       configuration = await this.bot.getResource(childDeployment.configuration)
     } catch (err) {
       Errors.ignoreNotFound(err)
-      throw new Errors.NotFound('original configuration for child deployment not found')
+      Errors.rethrowAs(err, new Errors.NotFound('original configuration for child deployment not found'))
     }
 
     const result = await this.genUpdatePackageForStack({
@@ -1033,7 +1033,7 @@ ${this.genUsageInstructions(links)}`
       })
     } catch (err) {
       Errors.ignoreNotFound(err)
-      throw new Errors.InvalidInput(`unsupported region: ${region}`)
+      Errors.rethrowAs(err, new Errors.InvalidInput(`unsupported region: ${region}`))
     }
   }
 

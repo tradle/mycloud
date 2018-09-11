@@ -17,6 +17,7 @@ import validateModels from '@tradle/validate-model'
 import validateResource from '@tradle/validate-resource'
 import { ResourceStub, Backlinks, Identities } from './types'
 import { allSettled } from './utils'
+import Errors from './errors'
 
 const { getRef, isDescendantOf } = validateModels.utils
 const { isInstantiable } = validateResource.utils
@@ -141,7 +142,7 @@ export const createResolvers = ({ db, backlinks, objects, identities, models, po
       try {
         ensureInstantiableDescendant(typeCondition, ref)
       } catch (err) {
-        throw new Error(`invalid filter condition for ${TYPE}: ${typeCondition}. ${err.message}`)
+        Errors.rethrowAs(err, new Errors.InvalidInput(`invalid filter condition for ${TYPE}: ${typeCondition}. ${err.message}`))
       }
     }
 

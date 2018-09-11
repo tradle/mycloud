@@ -298,12 +298,7 @@ export class Resource extends EventEmitter {
     const { models, model, resource } = this
     const exported = virtual ? _.cloneDeep(resource) : omitVirtualDeep({ models, resource })
     if (validate !== false) {
-      try {
-        this.validate()
-      } catch (err) {
-        debugger
-        throw err
-      }
+      this.validate()
     }
 
     return exported

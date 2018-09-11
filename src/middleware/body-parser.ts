@@ -11,7 +11,7 @@ export const bodyParser = (opts?:any) => {
         return await next()
       })
     } catch (err) {
-      throw new Errors.HttpError(400, err.message)
+      Errors.rethrowAs(err, new Errors.HttpError(400, err.message))
     }
   }
 }

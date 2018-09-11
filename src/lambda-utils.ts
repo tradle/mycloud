@@ -405,7 +405,7 @@ export default class LambdaUtils {
       return JSON.parse(Policy)
     } catch (err) {
       Errors.ignoreNotFound(err)
-      throw new Errors.NotFound(`policy for lambda: ${lambda}`)
+      Errors.rethrowAs(err, new Errors.NotFound(`policy for lambda: ${lambda}`))
     }
   }
 

@@ -201,7 +201,7 @@ export class Remediation {
         await this.getBundle({ key })
       } catch (err) {
         Errors.ignoreNotFound(err)
-        throw new Errors.NotFound(`bundle not found with key: ${key}`)
+        Errors.rethrowAs(err, new Errors.NotFound(`bundle not found with key: ${key}`))
       }
     }
 

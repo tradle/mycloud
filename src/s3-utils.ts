@@ -127,7 +127,7 @@ export default class S3Utils {
       return result
     } catch (err) {
       if (err.code === 'NoSuchKey') {
-        throw new Errors.NotFound(`${bucket}/${key}`)
+        Errors.rethrowAs(err, new Errors.NotFound(`${bucket}/${key}`))
       }
 
       throw err
@@ -305,7 +305,7 @@ export default class S3Utils {
       }).promise()
     } catch (err) {
       if (err.code === 'NoSuchKey' || err.code === 'NotFound') {
-        throw new Errors.NotFound(`${bucket}/${key}`)
+        Errors.rethrowAs(err, new Errors.NotFound(`${bucket}/${key}`))
       }
 
       throw err
@@ -734,7 +734,7 @@ export default class S3Utils {
         await this.s3.copyObject(params).promise()
       } catch (err) {
         Errors.ignoreNotFound(err)
-        throw new Errors.NotFound(`bucket: "${target}", key: "${key}"`)
+        Errors.rethrowAs(err, new Errors.NotFound(`bucket: "${target}", key: "${key}"`))
       }
     }))
   }
@@ -755,7 +755,7 @@ export default class S3Utils {
       return parseS3Url(url)
     } catch (err) {
       if (!isLocalUrl(url)) {
-        throw new Errors.InvalidInput(`invalid s3 url: ${url}`)
+        Errors.rethrowAs(err, new Errors.InvalidInput(`invalid s3 url: ${url}`))
       }
     }
 

@@ -171,7 +171,7 @@ export const parseAlertEvent = (event: SNSEvent) => {
   try {
     alertProps = JSON.parse(Message)
   } catch (err) {
-    throw new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`)
+    Errors.rethrowAs(err, new Errors.InvalidInput(`expected JSON alert body, got: ${Message}`))
   }
 
   if (!(alertProps && alertProps.eventUrl)) {
@@ -261,7 +261,7 @@ export class LogProcessor {
       try {
         event.body = await get(eventUrl)
       } catch (err) {
-        throw new Errors.InvalidInput('unable to fetch alert body')
+        Errors.rethrowAs(err, new Errors.InvalidInput('unable to fetch alert body'))
       }
 
       if (typeof event.body === 'string') {

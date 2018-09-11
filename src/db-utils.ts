@@ -282,7 +282,7 @@ function createDBUtils ({ aws, logger, env }) {
     } catch (err) {
       Errors.rethrow(err, 'system')
       if (err.code === 'ValidationException') {
-        throw new Errors.InvalidInput(err.message)
+        Errors.rethrowAs(err, new Errors.InvalidInput(err.message))
       }
 
       // if (err.code === 'ConditionalCheckFailedException') {
