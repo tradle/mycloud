@@ -39,6 +39,11 @@ export class CacheableBucketItem {
     return await this.value.put({ value, ...opts })
   }
 
+  public del = async () => {
+    this.value.invalidateCache()
+    await this.bucket.del(this.key)
+  }
+
   // public gzipAndPut = async (value:any, opts) => {
   //   return await this.value.gzipAndPut
   // }

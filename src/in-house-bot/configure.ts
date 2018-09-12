@@ -448,6 +448,10 @@ export class Conf {
     if (terms) {
       await this.setTermsAndConditions(terms)
       updated.terms = true
+    } else if ('terms' in update) {
+      this.logger.debug('deleting T & C')
+      await this.termsAndConditions.del()
+      updated.terms = true
     }
 
     // await this.save({
