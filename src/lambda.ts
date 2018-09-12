@@ -386,9 +386,11 @@ Previous exit stack: ${this.lastExitStack}`)
         ctx.body = result
       }
 
-      const serviceCalls = this._dumpServiceCalls()
-      if (!_.isEmpty(serviceCalls.services)) {
-        this.logger.silly('service calls made', serviceCalls)
+      if (this.logger.isRidiculous()) {
+        const serviceCalls = this._dumpServiceCalls()
+        if (!_.isEmpty(serviceCalls.services)) {
+          this.logger.ridiculous('service calls made', serviceCalls)
+        }
       }
     }
 
