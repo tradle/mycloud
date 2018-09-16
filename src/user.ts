@@ -102,10 +102,16 @@ export default class User {
     session?:ISession,
     position: IPositionPair
   }) => {
+    if (!position) {
+      this.logger.error('announced position is null', { clientId })
+      await this.requestIotClientReconnect({ event: 'announcePosition', clientId, message: 'expected position in announce' })
+      return
+    }
+
     if (!session) session = await this.ensureLiveSession({ clientId })
     if (!session) return
 
-    const { clientPosition} = session
+    const { clientPosition } = session
     if (!(clientPosition && clientPosition.received)) {
       this.logger.error('expected session to have clientPosition.received', { session })
       await this.requestIotClientReconnect({ event: 'announcePosition', clientId })
