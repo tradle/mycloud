@@ -615,6 +615,7 @@ export const loadComponentsAndPlugins = ({
       'prefill-form',
       'smart-prefill',
       'lens',
+      'documentValidity',
       'openCorporates',
       'complyAdvantage',
       'controllingPersonRegistration',
