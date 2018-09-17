@@ -219,7 +219,7 @@ export default class Messages {
       })
     } catch (err) {
       if (err.code === 'ConditionalCheckFailedException') {
-        throw new Errors.Duplicate('duplicate inbound message', getLink(message))
+        Errors.rethrowAs(err, new Errors.Duplicate('duplicate inbound message', getLink(message)))
       }
 
       throw err
@@ -480,7 +480,7 @@ const validateInbound = (message) => {
   try {
     typeforce(types.message, message)
   } catch (err) {
-    throw new Errors.InvalidMessageFormat(err.message)
+    Errors.rethrowAs(err, new Errors.InvalidMessageFormat(err.message))
   }
 }
 

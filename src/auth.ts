@@ -210,7 +210,7 @@ export default class Auth {
       // @ts-ignore
       debugger
       this.logger.error('received invalid input', err.stack)
-      throw new Errors.InvalidInput(err.message)
+      Errors.rethrowAs(err, new Errors.InvalidInput(err.message))
     }
 
     const { clientId, permalink, challenge, position } = challengeResponse

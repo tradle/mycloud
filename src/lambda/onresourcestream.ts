@@ -11,7 +11,7 @@ import Events from '../events'
 
 const promiseUndefined = Promise.resolve(undefined)
 // when to give up trying to find an object in object storage
-const GIVE_UP_AGE = 60000
+const GIVE_UP_AGE = 180000 // 3 mins
 const SAFETY_MARGIN_MILLIS = 10000
 
 export const createLambda = (opts) => {

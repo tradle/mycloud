@@ -135,9 +135,16 @@ export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
   return promise
 }
 
-export const runWithTimeout = <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
+export const runWithTimeout = async <T>(fn:() => Promise<T>, opts: ITimeoutOpts):Promise<T> => {
   const promise = fn()
-  return opts.millis < Infinity ? Promise.race([promise, timeoutIn(opts)]) : promise
+  if (opts.millis >= Infinity) return promise
+
+  const timeout = timeoutIn(opts)
+  try {
+    return await Promise.race([promise, timeout])
+  } finally {
+    timeout.cancel()
+  }
 }
 
 export const settle = <T>(promise:Promise<T>):ISettledPromise<T> => {
@@ -1375,7 +1382,7 @@ const normalizeSendOpts = async (bot: Bot, opts) => {
       other: typeforce.maybe(typeforce.Object)
     }, opts)
   } catch (err) {
-    throw new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`)
+    Errors.rethrowAs(err, new Errors.InvalidInput(`invalid params to send: ${prettify(opts)}, err: ${err.message}`))
   }
 
   opts = _.omit(opts, 'to')

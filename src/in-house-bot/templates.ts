@@ -68,7 +68,7 @@ export const renderData = (dataTemplate, data) => {
     const rendered = renderString(JSON.stringify(dataTemplate), data)
     return JSON.parse(rendered)
   } catch (err) {
-    throw new Errors.InvalidInput('invalid values in data template')
+    Errors.rethrowAs(err, new Errors.InvalidInput('invalid values in data template'))
   }
 }
 

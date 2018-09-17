@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.12"></a>
+# [1.7.0-rc.12](https://github.com/tradle/serverless/compare/v1.7.0-rc.11...v1.7.0-rc.12) (2018-09-12)
+
+
+### Bug Fixes
+
+* allow tradle.cloud.UpdateResponse through past T&C, as it has its own validation ([ffe3efa](https://github.com/tradle/serverless/commit/ffe3efa))
+* runWithTimeout fo' real ([9f6e62f](https://github.com/tradle/serverless/commit/9f6e62f))
+* support removing T&C ([e08269e](https://github.com/tradle/serverless/commit/e08269e))
+
+
+
+<a name="1.7.0-rc.11"></a>
+# [1.7.0-rc.11](https://github.com/tradle/serverless/compare/v1.7.0-rc.10...v1.7.0-rc.11) (2018-09-12)
+
+
+
+<a name="1.7.0-rc.10"></a>
+# [1.7.0-rc.10](https://github.com/tradle/serverless/compare/v1.7.0-rc.9...v1.7.0-rc.10) (2018-09-11)
+
+
+
+<a name="1.7.0-rc.9"></a>
+# [1.7.0-rc.9](https://github.com/tradle/serverless/compare/v1.7.0-rc.8...v1.7.0-rc.9) (2018-09-10)
+
+
+### Bug Fixes
+
+* give stream lambda timeout grace period ([8837bff](https://github.com/tradle/serverless/commit/8837bff))
+
+
+
 <a name="1.7.0-rc.8"></a>
 # [1.7.0-rc.8](https://github.com/tradle/serverless/compare/v1.7.0-rc.7...v1.7.0-rc.8) (2018-09-10)
 

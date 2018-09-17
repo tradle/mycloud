@@ -56,7 +56,7 @@ export default class KV implements IKeyValueStore {
       return this.exportValue(result)
     } catch (err) {
       if (Errors.isNotFound(err)) {
-        throw new Errors.NotFound(`${key}: ${err.message}`)
+        Errors.rethrowAs(err, new Errors.NotFound(`${key}: ${err.message}`))
       }
 
       throw err

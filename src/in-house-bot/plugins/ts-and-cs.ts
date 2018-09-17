@@ -10,8 +10,13 @@ const DATE_ACCEPTED_PROP = 'tsAndCsState.dateAccepted'
 const CUSTOMER_WAITING = 'tradle.CustomerWaiting'
 const SIMPLE_MESSAGE = 'tradle.SimpleMessage'
 const DATA_CLAIM = 'tradle.DataClaim'
+const UPDATE_RESPONSE = 'tradle.cloud.UpdateResponse'
 const YOU_HAVENT_ACCEPTED = `Please accept our Terms and Conditions before we continue :-)`
-const ALLOW_WITHOUT_ACCEPTING = [DATA_CLAIM]
+const ALLOW_WITHOUT_ACCEPTING = [
+  DATA_CLAIM,
+  UPDATE_RESPONSE,
+]
+
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
 
 export const name = 'termsAndConditions'

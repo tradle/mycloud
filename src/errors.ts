@@ -85,6 +85,15 @@ const rethrow = (err, type) => {
   }
 }
 
+const copyStackFrom = (source, target) => {
+  target.stack = target.stack.split('\n').slice(0,2).join('\n') + '\n' + source.stack
+}
+
+const rethrowAs = (original, errToThrow) => {
+  copyStackFrom(original, errToThrow)
+  throw errToThrow
+}
+
 const _HttpError = createError('HttpError')
 
 class ExportableError extends Error {
@@ -262,7 +271,9 @@ const errors = {
   ignore,
   rethrow,
   matches,
-  createClass: createError
+  createClass: createError,
+  copyStackFrom,
+  rethrowAs,
 }
 
 export = errors
