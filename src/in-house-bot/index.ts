@@ -615,7 +615,6 @@ export const loadComponentsAndPlugins = ({
       'prefill-form',
       'smart-prefill',
       'lens',
-      'documentValidity',
       'openCorporates',
       'complyAdvantage',
       'controllingPersonRegistration',
@@ -626,6 +625,7 @@ export const loadComponentsAndPlugins = ({
 
     ;[
       'hand-sig',
+      'documentValidity',
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
