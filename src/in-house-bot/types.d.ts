@@ -395,6 +395,8 @@ export interface CallHomeOpts extends StackDeploymentInfo {
 }
 
 export interface IDeploymentConfForm extends ITradleObject {
+  name: string
+  domain: string
   adminEmail: string
   hrEmail: string
 }

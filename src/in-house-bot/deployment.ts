@@ -56,7 +56,11 @@ const TMP_SNS_TOPIC_TTL = unitToMillis.day
 const LOG_TOPIC_TTL = unitToMillis.year
 const UPDATE_TOPIC_TTL = unitToMillis.year
 const LAUNCH_MESSAGE = 'Launch your Tradle MyCloud'
+const LAUNCH_MESSAGE_STR_TEMPLATE = 'Launch your {{configuration.name}} MyCloud'
+const LAUNCH_MESSAGE_STR_TEMPLATE_COMPILED = _.template(LAUNCH_MESSAGE_STR_TEMPLATE)
 const ONLINE_MESSAGE = 'Your Tradle MyCloud is online!'
+const ONLINE_MESSAGE_STR_TEMPLATE = 'Your {{configuration.name}} MyCloud is online!'
+const ONLINE_MESSAGE_STR_TEMPLATE_COMPILED = _.template(ONLINE_MESSAGE_STR_TEMPLATE)
 const CHILD_DEPLOYMENT = 'tradle.cloud.ChildDeployment'
 const PARENT_DEPLOYMENT = 'tradle.cloud.ParentDeployment'
 const CONFIGURATION = 'tradle.cloud.Configuration'
@@ -93,7 +97,7 @@ const DEFAULT_MYCLOUD_ONLINE_TEMPLATE_OPTS = {
   template: 'action',
   data: {
     blocks: [
-      { body: ONLINE_MESSAGE },
+      { body: ONLINE_MESSAGE_STR_TEMPLATE },
       { body: 'Use <a href="{{mobile}}">this link</a> to add it to your Tradle mobile app' },
       { body: 'Use <a href="{{web}}">this link</a> to add it to your Tradle web app' },
       { body: 'Give <a href="{{employeeOnboarding}}">this link</a> to employees' },
@@ -751,7 +755,13 @@ ${this.genUsageInstructions(links)}`
 
   public notifyCreators = async ({ configuration, apiUrl, identity }: INotifyCreatorsOpts) => {
     this.logger.debug('attempting to notify of stack launch')
-    const { hrEmail, adminEmail, _author } = configuration as IDeploymentConfForm
+    const {
+      hrEmail,
+      adminEmail,
+      name,
+      domain,
+      _author
+    } = configuration as IDeploymentConfForm
 
     const botPermalink = buildResource.permalink(identity)
     const links = this.getAppLinks({ host: apiUrl, permalink: botPermalink })
@@ -770,7 +780,11 @@ ${this.genUsageInstructions(links)}`
           from: this.conf.senderEmail,
           to: _.uniq([hrEmail, adminEmail]),
           format: 'html',
-          ...this.genLaunchedEmail({ ...links, fromOrg: this.org })
+          ...this.genLaunchedEmail({
+            ...links,
+            fromOrg: this.org,
+            configuration,
+          })
         })
         .catch(err => {
           this.logger.error('failed to email creators', err)
@@ -809,12 +823,12 @@ ${this.genUsageInstructions(links)}`
   }
 
   public genLaunchEmail = opts => ({
-    subject: LAUNCH_MESSAGE,
+    subject: LAUNCH_MESSAGE_STR_TEMPLATE_COMPILED(opts),
     body: this.genLaunchEmailBody(opts)
   })
 
   public genLaunchedEmail = opts => ({
-    subject: ONLINE_MESSAGE,
+    subject: ONLINE_MESSAGE_STR_TEMPLATE_COMPILED(opts),
     body: this.genLaunchedEmailBody(opts)
   })
 

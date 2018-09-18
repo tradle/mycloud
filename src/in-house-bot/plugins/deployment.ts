@@ -90,7 +90,8 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
         to: adminEmail,
         ...deployment.genLaunchEmail({
           launchUrl,
-          fromOrg: org
+          fromOrg: org,
+          configuration,
         })
       })
     } catch (err) {
