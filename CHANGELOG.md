@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0-rc.13"></a>
+# [1.7.0-rc.13](https://github.com/tradle/serverless/compare/v1.7.0-rc.12...v1.7.0-rc.13) (2018-09-18)
+
+
+### Bug Fixes
+
+* add safety check in user.announcePosition ([c5c49bf](https://github.com/tradle/serverless/commit/c5c49bf))
+* don't require conf for documentValidity plugin ([c310df7](https://github.com/tradle/serverless/commit/c310df7))
+
+
+### Features
+
+* document validation for expiration date, viable age, countries of issuer, nationality, etc. ([3284540](https://github.com/tradle/serverless/commit/3284540))
+
+
+
 <a name="1.7.0-rc.12"></a>
 # [1.7.0-rc.12](https://github.com/tradle/serverless/compare/v1.7.0-rc.11...v1.7.0-rc.12) (2018-09-12)
 
