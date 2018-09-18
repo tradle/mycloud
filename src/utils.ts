@@ -1451,12 +1451,6 @@ export const getResourceModuleStore = (bot: Bot) => ({
   logger: bot.logger
 })
 
-export const ensureTimeIsPast = (time: number) => {
-  if (time > Date.now()) {
-    throw new Errors.InvalidInput(`expected time to be a past date`)
-  }
-}
-
 export const isIntersection = ({ interfaces=[] }) => interfaces.includes('tradle.Intersection')
 
 export const isWellBehavedIntersection = model => {

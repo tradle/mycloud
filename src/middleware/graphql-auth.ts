@@ -10,7 +10,7 @@ import {
 } from '../types'
 import { isPromise } from '../utils'
 
-const { TYPE, SIG, MAX_CLOCK_DRIFT } = constants
+const { TYPE, SIG, SIGNATURE_FRESHNESS_LEEWAY } = constants
 const FORBIDDEN_MESSAGE = 'forbidden'
 
 type GAComponents = {
@@ -118,7 +118,7 @@ export const createHandler = ({
 const getDrift = (time: number) => {
   const drift = time - Date.now()
   const abs = Math.abs(drift)
-  if (abs > MAX_CLOCK_DRIFT) {
+  if (abs > SIGNATURE_FRESHNESS_LEEWAY) {
     const type = drift > 0 ? 'ahead' : 'behind'
     return {
       type,

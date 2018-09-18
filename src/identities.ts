@@ -11,7 +11,6 @@ import {
   omitVirtual,
   bindAll,
   cachifyFunction,
-  ensureTimeIsPast,
 } from './utils'
 
 import { addLinks, getLink, getLinks, getPermalink, extractSigPubKey } from './crypto'
@@ -302,7 +301,7 @@ export default class Identities implements IHasLogger {
 // })
 
   public validateNewContact = async (identity) => {
-    ensureTimeIsPast(identity._time)
+    this._ensureFresh(identity)
     identity = omitVirtual(identity)
     if (identity._link || identity._permalink) {
       throw new Errors.InvalidInput(`evil identity has non-virtual _link, _permalink`)
@@ -344,7 +343,7 @@ export default class Identities implements IHasLogger {
   }
 
   public addContactWithoutValidating = async (identity: IIdentity):Promise<void> => {
-    ensureTimeIsPast(identity._time)
+    this._ensureFresh(identity)
 
     if (identity) {
       typeforce(types.identity, identity)
@@ -380,7 +379,7 @@ export default class Identities implements IHasLogger {
     _time: number
   }):Promise<any> => {
     const { pub, permalink, link, _time } = props
-    ensureTimeIsPast(_time)
+    this._ensureFresh(props)
 
     this.logger.debug('adding mapping', {
       pub,
@@ -459,6 +458,17 @@ export default class Identities implements IHasLogger {
     await Promise.map(items, item => this.db.del(item), {
       concurrency: 20
     })
+  }
+
+  private _ensureFresh = (obj: ITradleObject) => {
+    const time = obj._time
+    // warn for now
+    const now = Date.now()
+    if ((time - constants.SIGNATURE_FRESHNESS_LEEWAY) > now) {
+      const msg = `expected past date. Current time: ${now}, ${obj[TYPE]}._time: ${time}, diff: ${(now - time)}ms`
+      this.logger.error(msg)
+      // throw new Errors.InvalidInput(msg)
+    }
   }
 }
 
