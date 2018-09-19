@@ -178,7 +178,14 @@ export = function createDB ({
 
   // TODO: merge into validateFind
   const isScanAllowed = (search: Search) => {
-    if (search.opType === 'query') return true
+    if (search.opType === 'query') {
+      if (!search.sortedByDB) {
+        debugger
+        logger.error('will soon forbid expensive query', summarizeSearch(search))
+      }
+
+      return true
+    }
 
     const allow = search.allowScan === true || _isScanAllowed(search)
     if (allow) logger.debug('allowing scan', search.type)
@@ -209,6 +216,7 @@ export = function createDB ({
   const commonOpts = {
     docClient,
     get models() { return modelStore.models },
+    // all models in one table in our case
     get modelsStored() { return modelStore.models },
     objects,
     allowScan: isScanAllowed,
@@ -353,8 +361,8 @@ export = function createDB ({
     if (type === MESSAGE) fixMessageFilter(filter)
     if (type === VERSION_INFO ||
       type === UPDATE ||
-      type == UPDATE_REQUEST ||
-      type == UPDATE_RESPONSE
+      type === UPDATE_REQUEST ||
+      type === UPDATE_RESPONSE
     ) {
       fixVersionInfoFilter(filter)
     }
