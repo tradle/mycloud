@@ -12,6 +12,7 @@ import {
   ensureNoVirtualProps,
   copyVirtual,
   summarizeObject,
+  // proxyProps,
 } from './utils'
 
 import Errors from './errors'
@@ -69,13 +70,11 @@ type PayloadWrapper = {
 type MessagingOpts = {
   env: Env
   logger: Logger
-  objects: Objects
   identities: Identities
   identity: Identity
   storage: Storage
   messages: Messages
   auth: Auth
-  db: DB
   friends: Friends
   delivery: Delivery
   seals: Seals
@@ -87,12 +86,10 @@ type MessagingOpts = {
 
 export default class Messaging {
   private env: Env
-  private get objects() { return this.components.objects }
   private get messages() { return this.components.messages }
   private get identities() { return this.components.identities }
   private get identity() { return this.components.identity }
   private get auth() { return this.components.auth }
-  private get db() { return this.components.db }
   private get delivery() { return this.components.delivery }
   private get friends() { return this.components.friends }
   private get storage() { return this.components.storage }
@@ -110,6 +107,7 @@ export default class Messaging {
     this.env = env
     this.logger = logger
     this.network = network
+    // _.extend(this, proxyProps(this.components, ['objects', 'messages', 'identities', 'identity', 'auth', 'db', 'delivery']))
   }
 
   public getOrCreatePayload = async ({ link, object, author }):Promise<PayloadWrapper> => {
@@ -133,11 +131,11 @@ export default class Messaging {
 
       ret.asStored = await this.storage.save({ object, saveToDB })
     } else {
-      ret.asStored = await this.objects.get(link)
+      ret.asStored = await this.storage.getByLink(link)
     }
 
     if (!ret.asSigned) {
-      ret.asSigned = await this.objects.resolveEmbeds(_.cloneDeep(ret.asStored))
+      ret.asSigned = await this.storage.resolveEmbeds(_.cloneDeep(ret.asStored))
     }
 
     copyVirtual(ret.asSigned, ret.asStored)
@@ -248,12 +246,12 @@ export default class Messaging {
     }
 
     // prereq to running validation
-    await this.objects.resolveEmbeds(message)
+    await this.storage.resolveEmbeds(message)
 
     const payload = message.object
 
-    this.objects.addMetadata(message)
-    this.objects.addMetadata(payload)
+    this.storage.addMetadata(message)
+    this.storage.addMetadata(payload)
 
     // TODO:
     // would be nice to parallelize some of these
@@ -544,8 +542,8 @@ export default class Messaging {
       prev,
       orig
     ] = await Promise.all([
-      this.objects.get(object[PREVLINK]).catch(Errors.ignoreNotFound),
-      this.objects.get(object[PERMALINK]).catch(Errors.ignoreNotFound),
+      this.storage.getByLink(object[PREVLINK]).catch(Errors.ignoreNotFound),
+      this.storage.getByLink(object[PERMALINK]).catch(Errors.ignoreNotFound),
     ])
 
     const author = object[AUTHOR]

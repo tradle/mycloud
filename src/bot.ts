@@ -68,6 +68,7 @@ import {
   PresignEmbeddedMediaOpts,
   ILambdaExecutionContext,
   VersionInfo,
+  IDebug,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -199,7 +200,17 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public appLinks: AppLinks
   public backlinks: Backlinks
   public logger: Logger
-  public graphql: IGraphqlAPI
+  public get graphql():IGraphqlAPI {
+    if (!this._graphql) {
+      this._graphql = createGraphqlAPI({
+        bot: this,
+        logger: this.logger.sub('graphql')
+      })
+    }
+
+    return this._graphql
+  }
+
   public streamProcessor: StreamProcessor
   public version: VersionInfo
 
@@ -231,7 +242,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get addressBook () { return this.identities }
 
   // public friends: Friends
-  public debug: Function
+  public debug: IDebug
   public users: Users
 
   // IReady
@@ -277,9 +288,12 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   private endpointInfo: Partial<IEndpointInfo>
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
   private _resourceModuleStore: IResourcePersister
+  private _graphql:IGraphqlAPI
 
   constructor(opts: IBotOpts) {
     super()
+
+    const bot = this
 
     let {
       env=new Env(process.env),
@@ -291,107 +305,27 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       env = new Env(env)
     }
 
-    this.env = env
-    this.version = {
+    bot.env = env
+    bot.version = {
       ...VERSION,
       sortableTag: utils.toSortableTag(VERSION.tag)
     }
 
-    readyMixin(this)
-    modelsMixin(this)
+    readyMixin(bot)
+    modelsMixin(bot)
 
-    this._init()
-    this.users = users || createUsers({ bot: this })
-    this.debug = this.logger.debug
-    // this.friends = new Friends({
-    //   bot: this,
-    //   logger: this.logger.sub('friends')
-    // })
-
-    const MESSAGE_LOCK_TIMEOUT = this.isLocal ? null : 10000
-    this.outboundMessageLocker = createLocker({
-      // name: 'message send lock',
-      // debug: logger.sub('message-locker:send').debug,
-      timeout: MESSAGE_LOCK_TIMEOUT
-    })
-
-    this.inboundMessageLocker = createLocker({
-      timeout: MESSAGE_LOCK_TIMEOUT
-    })
-
-    this._resourceModuleStore = getResourceModuleStore(this)
-
-    this.endpointInfo = {
-      aws: true,
-      version: this.version,
-      ...this.iot.endpointInfo
-    }
-
-    this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
-      map[name] = opts => lambdaCreators[name].createLambda({
-        ...opts,
-        bot: this
-      })
-
-      return map
-    }, {})
-
-    let graphql
-    Object.defineProperty(this, 'graphql', {
-      get() {
-        if (!graphql) {
-          graphql = createGraphqlAPI({
-            bot: this,
-            logger: this.logger.sub('graphql')
-          })
-        }
-
-        return graphql
-      }
-    })
-
-    this.middleware = new MiddlewareContainer({
-      logger: this.logger.sub('mid'),
-      getContextForEvent: (event, data) => ({
-        bot: this,
-        event: data
-      })
-    })
-
-    if (this.isLocal) {
-      const yml = require('./serverless-interpolated')
-      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
-      this.appLinks = createLinker({
-        web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, `http://localhost:${webPort}`)
-      })
-
-      require('./test-eventstream').simulateEventStream(this)
-    } else {
-      this.appLinks = defaultAppLinks
-    }
-
-    this.scheduler = new Scheduler(this)
-
-    setupDefaultHooks(this)
-    if (ready) this.ready()
-  }
-
-  private _init = () => {
+    // START initialize components
     // if (++instanceCount > 1) {
     //   if (!env.IS_TESTING) {
     //     throw new Error('multiple instances not allowed')
     //   }
     // }
 
-    const bot = this
-    const { env } = bot
-    bot.env = env
-
     const logger = bot.logger = env.logger
     const { network } = bot
 
     const getSealsOpts = () => ({
-      blockchain: this.blockchain,
+      blockchain: bot.blockchain,
       identity,
       db,
       objects,
@@ -555,11 +489,9 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       identity,
       storage,
       env,
-      objects,
       identities,
       messages,
       modelStore,
-      db,
       tasks,
       get seals () { return bot.seals },
       get friends() { return bot.friends },
@@ -662,6 +594,67 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     //   networkName: BLOCKCHAIN.networkName,
     //   privateKey: FAUCET_PRIVATE_KEY
     // }))
+
+    this.users = users || createUsers({ bot: this })
+    this.debug = this.logger.debug
+    // this.friends = new Friends({
+    //   bot: this,
+    //   logger: this.logger.sub('friends')
+    // })
+
+    const MESSAGE_LOCK_TIMEOUT = this.isLocal ? null : 10000
+    this.outboundMessageLocker = createLocker({
+      // name: 'message send lock',
+      // debug: logger.sub('message-locker:send').debug,
+      timeout: MESSAGE_LOCK_TIMEOUT
+    })
+
+    this.inboundMessageLocker = createLocker({
+      timeout: MESSAGE_LOCK_TIMEOUT
+    })
+
+    this._resourceModuleStore = getResourceModuleStore(this)
+
+    this.endpointInfo = {
+      aws: true,
+      version: this.version,
+      ...this.iot.endpointInfo
+    }
+
+    this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
+      map[name] = opts => lambdaCreators[name].createLambda({
+        ...opts,
+        bot: this
+      })
+
+      return map
+    }, {})
+
+    this.middleware = new MiddlewareContainer({
+      logger: this.logger.sub('mid'),
+      getContextForEvent: (event, data) => ({
+        bot: this,
+        event: data
+      })
+    })
+
+    if (this.isLocal) {
+      const yml = require('./serverless-interpolated')
+      const webPort = _.get(yml, 'custom.vars.local.webAppPort', 55555)
+      this.appLinks = createLinker({
+        web: this.apiBaseUrl.replace(/http:\/\/\d+\.\d+.\d+\.\d+:\d+/, `http://localhost:${webPort}`)
+      })
+
+      require('./test-eventstream').simulateEventStream(this)
+    } else {
+      this.appLinks = defaultAppLinks
+    }
+
+    this.scheduler = new Scheduler(this)
+    // END initialize components
+
+    setupDefaultHooks(this)
+    if (ready) this.ready()
   }
 
   public getEndpointInfo = async (): Promise<IEndpointInfo> => {
@@ -747,8 +740,20 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     return messages
   }
 
-  public sendPushNotification = (recipient: string) => this.messaging.sendPushNotification(recipient)
-  public registerWithPushNotificationsServer = () => this.messaging.registerWithPushNotificationsServer()
+  // proxy methods
+  public get sendPushNotification() { return this.messaging.sendPushNotification }
+  public get registerWithPushNotificationsServer() { return this.messaging.registerWithPushNotificationsServer }
+  public get setCustomModels() { return this.modelStore.setCustomModels }
+  public get initInfra() { return this.init.initInfra }
+  public get updateInfra() { return this.init.updateInfra }
+  public get getPermalink() { return this.identity.getPermalink }
+  public get getMyPermalink() { return this.identity.getPermalink }
+  public get seal() { return this.seals.create }
+  public get getResourceByStub() { return this.getResource }
+  public get resolveEmbeds() { return this.objects.resolveEmbeds }
+  public get presignEmbeddedMediaLinks() { return this.objects.presignEmbeddedMediaLinks }
+  public get getStackResourceName() { return this.env.getStackResourceName }
+
   public sendSimpleMessage = async ({ to, message }) => {
     return await this.send({
       to,
@@ -759,11 +764,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
-  // make sure bot is ready before lambda exits
-
-  public setCustomModels = pack => this.modelStore.setCustomModels(pack)
-  public initInfra = (opts?) => this.init.initInfra(opts)
-  public updateInfra = (opts?) => this.init.updateInfra(opts)
   public getMyIdentity = utils.cachifyPromiser(() => {
     return this.buckets.PrivateConf.getJSON(constants.PRIVATE_CONF_BUCKET.identity)
   })
@@ -782,9 +782,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       }))
     }
   })
-
-  public getPermalink = () => this.identity.getPermalink()
-  public getMyPermalink = () => this.identity.getPermalink()
 
   public sign = async <T extends ITradleObject>(resource:T, author?):Promise<T> => {
     const payload = { object: resource }
@@ -816,7 +813,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   //   resource
   // })
 
-  public seal = opts => this.seals.create(opts)
   public forceReinitializeContainers = async (functions?: string[]) => {
     if (this.isLocal) return
 
@@ -963,9 +959,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     })
   }
 
-  public getResourceByStub = this.getResource
-  public resolveEmbeds = (object:ITradleObject):Promise<ITradleObject> => this.objects.resolveEmbeds(object)
-  public presignEmbeddedMediaLinks = (opts:PresignEmbeddedMediaOpts):ITradleObject => this.objects.presignEmbeddedMediaLinks(opts)
   public createNewVersion = async (resource) => {
     const latest = buildResource.version(resource)
     const signed = await this.sign(latest)
@@ -1002,10 +995,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public ensureDevStage = (msg?: string) => {
     if (!this.isDev) throw new Errors.DevStageOnly(msg || 'forbidden')
-  }
-
-  public getStackResourceName = (shortName:string) => {
-    return this.env.getStackResourceName(shortName)
   }
 
   public save = async (resource:ITradleObject, diff?:Diff) => {

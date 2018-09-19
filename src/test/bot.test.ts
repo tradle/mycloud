@@ -10,6 +10,7 @@ import * as cfnResponse from '../cfn-response'
 import createCredstash from 'nodecredstash'
 import { TYPE, SEQ, SIG } from '@tradle/constants'
 import IotMessage from '@tradle/iot-message'
+import ModelsPack from '@tradle/models-pack'
 import {
   ILambdaAWSExecutionContext
 } from '../types'
@@ -461,7 +462,7 @@ test('onmessagestream', loudAsync(async (t) => {
     t.ok(events)
   })
 
-  bot.setCustomModels({ models: PingPongModels })
+  bot.setCustomModels(ModelsPack.pack({ models: PingPongModels }))
 
   const table = bot.db.getTableForModel(PingPongModels['ping.pong.Ping'])
   // #1
@@ -628,7 +629,7 @@ test('validate send', loudAsync(async (t) => {
     throw new Errors.NotFound(id)
   })
 
-  bot.setCustomModels({ models })
+  bot.setCustomModels(ModelsPack.pack({ models }))
   try {
     await bot.send({
       to: bob.permalink,
