@@ -65,7 +65,7 @@ export const createGraphqlAPI = (opts: {
           postProcess
         })
 
-        schema = createSchema({ models, objects, resolvers }).schema
+        schema = createSchema({ models, objects, resolvers, validateRequired: false }).schema
       }
 
       return schema
