@@ -58,7 +58,6 @@ export class RankOneCheckAPI {
         selfieStub
       ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
 
-
     return { selfie, photoID }
   }
 
