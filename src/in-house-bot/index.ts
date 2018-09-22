@@ -619,6 +619,7 @@ export const loadComponentsAndPlugins = ({
       'complyAdvantage',
       'controllingPersonRegistration',
       'centrix',
+      'rankone-checks',
       'facial-recognition',
       'trueface'
     ].forEach(name => attachPlugin({ name }))
