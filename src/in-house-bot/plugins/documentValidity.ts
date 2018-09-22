@@ -109,8 +109,10 @@ class DocumentValidityAPI {
     }
     if (!rawData.Status)
       rawData.Status = 'pass'
-    if (scanJson)
+    if (scanJson) {
       this.checkTheDifferences(payload, rawData)
+      // Create BlinkID check
+    }
     let pchecks = []
     pchecks.push(this.createCheck({application, rawData, status: rawData.Status, form: payload}))
     if (rawData.Status === 'pass')
@@ -203,8 +205,7 @@ class DocumentValidityAPI {
       await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form })
   }
 }
-// {conf, bot, productsAPI, logger}
-export const createPlugin:CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
+export const createPlugin:CreatePlugin<void> = ({ bot, applications }, { logger }) => {
   const documentValidity = new DocumentValidityAPI({ bot, applications, logger })
   const plugin = {
     onmessage: async function(req: IPBReq) {
