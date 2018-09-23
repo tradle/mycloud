@@ -695,9 +695,10 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       recipients
     })
 
-    const results = await Promise.map(recipients, async (recipient) => {
-      return await this._sendBatch({ recipient, batch: byRecipient[recipient] })
-    })
+    const results = await Promise.map(recipients, recipient => this._sendBatch({
+      recipient,
+      batch: byRecipient[recipient],
+    }))
 
     const messages = _.flatten(results)
     if (messages) {
@@ -706,6 +707,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public _sendBatch = async ({ recipient, batch }) => {
+    const { friend=null } = batch.find(message => message.friend) || {}
     const types = batch.map(m => m[TYPE]).join(', ')
     this.logger.debug(`sending to ${recipient}: ${types}`)
     await this.outboundMessageLocker.lock(recipient)
@@ -716,6 +718,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
         name: 'delivery:live',
         promiser: () => this.messaging.attemptLiveDelivery({
           recipient,
+          friend,
           messages
         })
       })
