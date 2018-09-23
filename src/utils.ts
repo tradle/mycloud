@@ -1592,3 +1592,19 @@ export const plainify = obj => traverse(obj).map(function (value) {
     this.update(name || 'SomeComplexObject')
   }
 })
+
+export const wrapSlowPoke = ({ fn, time, onSlow }) => async function (...args) {
+  let start = Date.now()
+  try {
+    return await fn.apply(this, args)
+  } finally {
+    const timePassed = Date.now() - start
+    if (timePassed > time) {
+      try {
+        onSlow({ time: timePassed, args, })
+      } catch (err) {
+        Errors.ignoreAll(err)
+      }
+    }
+  }
+}

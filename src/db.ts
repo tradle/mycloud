@@ -11,6 +11,7 @@ import {
   safeStringify,
   getPrimaryKeySchema,
   toSortableTag,
+  wrapSlowPoke,
 } from './utils'
 
 import { TYPE, SIG, ORG, AUTHOR, TYPES, UNSIGNED_TYPES } from './constants'
@@ -261,6 +262,14 @@ export = function createDB ({
         // all key props are derived
         derivedProps: pluck(cloudformation.AttributeDefinitions, 'AttributeName'),
         getIndexesForModel
+      })
+
+      table.find = wrapSlowPoke({
+        fn: table.find.bind(table),
+        time: 5000,
+        onSlow: ({ time, args }) => {
+          logger.error('db query took more than 5s', { time, args })
+        }
       })
 
       const controlLatestHooks = method => async ({ args }) => {
