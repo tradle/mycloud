@@ -75,12 +75,30 @@ export interface IBotConf {
   // publicConfig: any
 }
 
+type StringToStringMap = {
+  [x: string]: string
+}
+
+interface KYCServiceDiscoveryMap {
+  [serviceName: string]: {
+    enabled: boolean
+    path: string
+  }
+}
+
+export interface KYCServiceDiscovery {
+  apiUrl: string
+  apiKey?: string
+  services: KYCServiceDiscoveryMap
+}
+
 export interface IConfComponents {
   bot: IBotConf
   org: IOrganization
   modelsPack?: ModelsPack
   style?: any
   termsAndConditions?: DatedValue
+  kycServiceDiscovery?: KYCServiceDiscovery
 }
 
 export interface IBotComponents {
@@ -311,10 +329,12 @@ export interface IPluginOpts {
 
 export type CreatePlugin<BotComponent> = (components:IBotComponents, opts:IPluginOpts) => IPluginExports<BotComponent>
 
+export type ValidatePluginConf = (opts:ValidatePluginConfOpts) => Promise<void>
+
 export interface IPlugin<BotComponent> {
   name?: string
   createPlugin: CreatePlugin<BotComponent>
-  validateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
+  validateConf?: ValidatePluginConf
   updateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
 }
 

@@ -19,6 +19,7 @@ import {
   Models,
   ITradleCheck,
   ITradleObject,
+  IConfComponents,
 } from './types'
 
 import { TYPE } from '../constants'
@@ -57,7 +58,7 @@ export const createEditConfOp = edit => async (opts) => {
   }
 
   const confManager = createConf({ bot })
-  await confManager.setBotConf(botConf)
+  await confManager.setBotConf({ bot: botConf })
   await bot.forceReinitializeContainers()
 }
 
@@ -582,4 +583,22 @@ export const urlsFuzzyEqual = (a: string, b: string) => {
   const aParsed = parseUrl(a)
   const bParsed = parseUrl(b)
   return aParsed.host === bParsed.host && pathsEqual(aParsed.pathname, bParsed.pathname)
+}
+
+export const getThirdPartyServiceInfo = (conf: IConfComponents, name: string) => {
+  const { kycServiceDiscovery } = conf
+  if (kycServiceDiscovery) {
+    return kycServiceDiscovery.services[name]
+  }
+}
+
+export const isThirdPartyServiceConfigured = (conf: IConfComponents, name: string) => {
+  const info = getThirdPartyServiceInfo(conf, name)
+  return info && info.enabled
+}
+
+export const ensureThirdPartyServiceConfigured = (conf: IConfComponents, name: string) => {
+  if (!isThirdPartyServiceConfigured(conf, name)) {
+    throw new Errors.InvalidInput(`you're not running a "${name}" service!`)
+  }
 }

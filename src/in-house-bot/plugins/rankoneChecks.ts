@@ -6,9 +6,27 @@ import DataURI from 'strong-data-uri'
 
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
-import { Bot, Logger, CreatePlugin, Applications, ITradleObject, IPBApp, IPluginLifecycleMethods } from '../types'
-import { getParsedFormStubs, getStatusMessageForCheck } from '../utils'
-import { post, processResponse } from '../../utils'
+import {
+  Bot,
+  Logger,
+  CreatePlugin,
+  Applications,
+  ITradleObject,
+  IPBApp,
+  IPluginLifecycleMethods,
+  IConfComponents,
+} from '../types'
+
+import {
+  getParsedFormStubs,
+  getStatusMessageForCheck,
+  ensureThirdPartyServiceConfigured,
+  getThirdPartyServiceInfo,
+} from '../utils'
+
+import {
+  post,
+} from '../../utils'
 
 import Errors from '../../errors'
 
@@ -107,12 +125,8 @@ debugger
     }
 
     try {
-      let res = await fetch(`${apiUri}/verify`, { method: 'POST', body: form, headers});
-      // rawData = await post(`${apiUri}/verify`, form, {headers});
-debugger
-      rawData = await processResponse(res)
-      rawData = JSON.parse(rawData)
-      this.logger.debug('Face recognition check, match:', rawData);
+      rawData = await post(`${apiUri}/verify`, form, { headers })
+      this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
       error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
@@ -277,4 +291,11 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
     api: rankOne,
     plugin
   }
+}
+
+export const validateConf = ({ conf, pluginConf }: {
+  conf: IConfComponents
+  pluginConf: RankoneConf
+}) => {
+  ensureThirdPartyServiceConfigured(conf, 'rankone')
 }

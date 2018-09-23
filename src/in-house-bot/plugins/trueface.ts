@@ -4,8 +4,26 @@ import FormData from 'form-data';
 import Embed from '@tradle/embed';
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
-import { Bot, Logger, CreatePlugin, Applications, IPBApp, IPluginLifecycleMethods, IPBReq, ITradleObject } from '../types'
-import { getParsedFormStubs, getStatusMessageForCheck, hasPropertiesChanged } from '../utils'
+import {
+  Bot,
+  Logger,
+  CreatePlugin,
+  Applications,
+  IPBApp,
+  IPluginLifecycleMethods,
+  IPBReq,
+  ITradleObject,
+  IConfComponents,
+  Conf,
+} from '../types'
+import {
+  getParsedFormStubs,
+  getStatusMessageForCheck,
+  hasPropertiesChanged,
+  ensureThirdPartyServiceConfigured,
+  getThirdPartyServiceInfo,
+} from '../utils'
+
 import Errors from '../../errors'
 import { post } from '../../utils'
 
@@ -235,9 +253,12 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = ({ bot, productsAPI, appl
   }
 }
 
-export const validateConf = ({ pluginConf }: {
+export const validateConf = ({ conf, pluginConf }: {
+  conf: IConfComponents
   pluginConf: ITruefaceConf
 }) => {
+  ensureThirdPartyServiceConfigured(conf, 'trueface')
+
   // if (typeof pluginConf.token !== 'string') throw new Error('expected "string" token')
   if (typeof pluginConf.url !== 'string') throw new Error('expected "string" url')
   if (typeof pluginConf.threshold !== 'undefined' && typeof pluginConf.threshold !== 'string') {
@@ -247,6 +268,7 @@ export const validateConf = ({ pluginConf }: {
     // check the value to be 'strict','low','medium' or number 0 < x < 1
   }
 }
+
 /*
 #spoof attempt
 {
