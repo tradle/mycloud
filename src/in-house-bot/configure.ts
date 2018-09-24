@@ -24,6 +24,8 @@ import {
   IBotConf,
   IMyDeploymentConf,
   IOrganization,
+  ValidatePluginConfOpts,
+  UpdatePluginConfOpts,
 } from './types'
 
 import {
@@ -194,7 +196,7 @@ export class Conf {
       modelsPack: (components && components.modelsPack) || conf.modelsPack.get().catch(Errors.ignoreNotFound),
       style: (components && components.style) || conf.style.get().catch(Errors.ignoreNotFound),
       termsAndConditions,
-      kycServiceDiscovery: (components && components.bot) || conf.kycServiceDiscovery.get().catch(Errors.ignoreNotFound),
+      kycServiceDiscovery: (components && components.kycServiceDiscovery) || conf.kycServiceDiscovery.get().catch(Errors.ignoreNotFound),
     })
   }
 
@@ -246,7 +248,7 @@ export class Conf {
       if (!(plugin.validateConf || plugin.updateConf)) return
 
       const pluginConf = plugins[name]
-      const validateOpts = {
+      const validateOpts:ValidatePluginConfOpts = {
         bot: this.bot,
         conf,
         pluginConf

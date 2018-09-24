@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { TYPE } from '@tradle/constants'
-import { DatedValue, Conf } from '../types'
+import { DatedValue, ValidatePluginConf } from '../types'
 import Logger from '../../logger'
 import { Remediation } from '../remediation'
 
@@ -130,10 +130,7 @@ export const ensureAccepted = async ({
   return false
 }
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: any
-}) => {
+export const validateConf:ValidatePluginConf = async ({ pluginConf }) => {
   if ('enabled' in pluginConf) {
     if (typeof pluginConf.enabled !== 'boolean') {
       throw new Error('expected boolean "enabled"')

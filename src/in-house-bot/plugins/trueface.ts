@@ -14,7 +14,7 @@ import {
   IPBReq,
   ITradleObject,
   IConfComponents,
-  Conf,
+  ValidatePluginConf,
 } from '../types'
 import {
   getParsedFormStubs,
@@ -253,12 +253,10 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = ({ bot, productsAPI, appl
   }
 }
 
-export const validateConf = ({ conf, pluginConf }: {
-  conf: IConfComponents
-  pluginConf: ITruefaceConf
-}) => {
-  ensureThirdPartyServiceConfigured(conf, 'trueface')
+export const validateConf:ValidatePluginConf = async (opts) => {
+  ensureThirdPartyServiceConfigured(opts.conf, 'trueface')
 
+  const pluginConf = opts.pluginConf as ITruefaceConf
   // if (typeof pluginConf.token !== 'string') throw new Error('expected "string" token')
   if (typeof pluginConf.url !== 'string') throw new Error('expected "string" url')
   if (typeof pluginConf.threshold !== 'undefined' && typeof pluginConf.threshold !== 'string') {

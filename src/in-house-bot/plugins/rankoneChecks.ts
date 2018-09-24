@@ -14,7 +14,7 @@ import {
   ITradleObject,
   IPBApp,
   IPluginLifecycleMethods,
-  IConfComponents,
+  ValidatePluginConf,
 } from '../types'
 
 import {
@@ -293,9 +293,6 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
   }
 }
 
-export const validateConf = ({ conf, pluginConf }: {
-  conf: IConfComponents
-  pluginConf: RankoneConf
-}) => {
+export const validateConf:ValidatePluginConf = async ({ conf }) => {
   ensureThirdPartyServiceConfigured(conf, 'rankone')
 }

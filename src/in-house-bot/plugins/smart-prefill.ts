@@ -8,7 +8,13 @@ import {
   getCountryFromForm,
   getParsedFormStubs
 } from '../utils'
-import { Bot, ResourceStub, CreatePlugin, IPluginLifecycleMethods } from '../types'
+import {
+  Bot,
+  ResourceStub,
+  CreatePlugin,
+  IPluginLifecycleMethods,
+  ValidatePluginConf,
+} from '../types'
 
 const { parseStub } = validateResource.utils
 const PHOTO_ID = 'tradle.PhotoID'
@@ -151,12 +157,9 @@ export const createPlugin: CreatePlugin<void> = ({ bot }, { conf, logger }) => {
   return { plugin }
 }
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: ISmartPrefillConf
-}) => {
-  const { models } = conf.bot
-  for (let appType in pluginConf) {
+export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+  const { models } = bot
+  for (let appType in <ISmartPrefillConf>pluginConf) {
     let toPrefill = pluginConf[appType]
     for (let target in toPrefill) {
       if (!models[target]) throw new Error(`missing model: ${target}`)

@@ -287,13 +287,6 @@ export type Name = {
   formatted?:string
 }
 
-export type ValidatePluginConfOpts = {
-  bot: Bot
-  conf: Conf
-  pluginConf: any
-  [other:string]: any
-}
-
 interface IOnPendingApplicationCollisionArg {
   req: IPBReq
   pending: ResourceStub[]
@@ -329,13 +322,22 @@ export interface IPluginOpts {
 
 export type CreatePlugin<BotComponent> = (components:IBotComponents, opts:IPluginOpts) => IPluginExports<BotComponent>
 
-export type ValidatePluginConf = (opts:ValidatePluginConfOpts) => Promise<void>
+export type ValidatePluginConfOpts = {
+  bot: Bot
+  conf: IConfComponents
+  pluginConf: any
+  [other:string]: any
+}
 
+export type UpdatePluginConfOpts = ValidatePluginConfOpts
+
+export type ValidatePluginConf = (opts:ValidatePluginConfOpts) => Promise<void>
+export type UpdatePluginConf = (opts:UpdatePluginConfOpts) => Promise<void>
 export interface IPlugin<BotComponent> {
   name?: string
   createPlugin: CreatePlugin<BotComponent>
   validateConf?: ValidatePluginConf
-  updateConf?: (opts:ValidatePluginConfOpts) => Promise<void>
+  updateConf?: UpdatePluginConf
 }
 
 export type IPlugins = Registry<IPlugin<any>>

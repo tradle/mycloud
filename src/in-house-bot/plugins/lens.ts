@@ -4,7 +4,7 @@ import Lens from '@tradle/lens'
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { Conf } from '../configure'
-import { Bot, Logger, IPBApp, CreatePlugin } from '../types'
+import { Bot, Logger, IPBApp, CreatePlugin, ValidatePluginConf } from '../types'
 
 const ValidationErrors = validateResource.Errors
 
@@ -148,12 +148,9 @@ export const createPlugin:CreatePlugin<void> = ({ bot }, { conf, logger }) => ({
   plugin: new LensPlugin({ bot, logger, conf })
 })
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: any
-}) => {
-  const modelsPack = await conf.modelStore.getCumulativeModelsPack({ force: true })
-  const { lenses=[] } = modelsPack || []
+export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+  const { modelsPack } = conf
+  const { lenses=[] } = modelsPack || {}
   const lensesById = _.groupBy(lenses, 'id')
   for (let type in pluginConf) {
     let vals = pluginConf[type]
