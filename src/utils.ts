@@ -10,6 +10,7 @@ import Promise from 'bluebird'
 
 import AWSXray from 'aws-xray-sdk-core'
 import format from 'string-format'
+import FormData from 'form-data';
 import microtime from './microtime'
 import typeforce from 'typeforce'
 import bindAll from 'bindall'
@@ -794,10 +795,14 @@ export const post = async (url:string, data:Buffer|string|any, opts:any={}) => {
   let body
   if (typeof data === 'string' || Buffer.isBuffer(data)) {
     body = data
-  } else {
+  }
+  else if (data instanceof FormData) {
+    body = data
+  }
+  else {
     body = JSON.stringify(data)
   }
-
+debugger
   const res = await fetch(url, _.merge({
     method: 'POST',
     headers: {
@@ -824,15 +829,16 @@ export const download = async ({ url }: { url:string }) => {
 }
 
 export const processResponse = async (res) => {
-  if (!res.ok || res.status > 300) {
-    let message = res.statusText
-    if (!message) {
+ if (!res.ok || res.status > 300) {
+    let message: string
+    try {
       message = await res.text()
+    } catch (err) {
+      Errors.rethrow(err, 'system')
     }
 
-    throw new Errors.HttpError(res.status, message)
+    throw new Errors.HttpError(res.status, message || res.statusText)
   }
-
   const text = await res.text()
   const contentType = res.headers.get('content-type') || ''
   if (contentType.startsWith('application/json')) {
