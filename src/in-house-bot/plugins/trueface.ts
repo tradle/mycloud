@@ -1,6 +1,5 @@
 import _ from 'lodash'
 import querystring from 'querystring'
-import fetch from 'node-fetch'
 import FormData from 'form-data';
 import Embed from '@tradle/embed';
 import buildResource from '@tradle/build-resource'
@@ -8,8 +7,10 @@ import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications, IPBApp, IPluginLifecycleMethods, IPBReq, ITradleObject } from '../types'
 import { getParsedFormStubs, getStatusMessageForCheck, hasPropertiesChanged } from '../utils'
 import Errors from '../../errors'
+import { post } from '../../utils'
 
 import DataURI from 'strong-data-uri'
+const apiKey = "c8/OR4s1rD6r/RRHsoeyNFYPsf4gpUhqHueYupUEuJKLiGRt/bFqIQ=="
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
@@ -87,7 +88,7 @@ export class TruefaceAPI {
         break
       }
     }
-    debugger
+    // debugger
     let resource
     if (propToCheck) {
       resource = _.cloneDeep(payload)
@@ -109,16 +110,14 @@ export class TruefaceAPI {
     }
 
     try {
-      let res = await fetch(url, {
-        method: 'POST',
+      rawData = await post(url, data, {
         headers: {
-          'content-type':'application/json',
-          'x-auth': this.conf.token
+          'x-auth': this.conf.token,
+          'Authorization': apiKey
         },
-        body: JSON.stringify(data)
       })
-
-      rawData = await res.json() // whatever is returned may be not JSON
+      rawData = JSON.parse(rawData)
+      // debugger
       this.logger.debug('Trueface spoof detection:', rawData);
     } catch (err) {
       debugger
@@ -213,7 +212,7 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = ({ bot, productsAPI, appl
       // if (!resource) return
 
       // const { selfie} = result
-      debugger
+      // debugger
       const { status, rawData, error } = await trueface.checkForSpoof({
         image: resource[propToCheck].url,
         application

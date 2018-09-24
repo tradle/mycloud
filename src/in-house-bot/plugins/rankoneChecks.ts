@@ -1,4 +1,5 @@
 import _ from 'lodash'
+
 import fetch from 'node-fetch'
 import FormData from 'form-data';
 import DataURI from 'strong-data-uri'
@@ -7,6 +8,8 @@ import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications, ITradleObject, IPBApp, IPluginLifecycleMethods } from '../types'
 import { getParsedFormStubs, getStatusMessageForCheck } from '../utils'
+import { post, processResponse } from '../../utils'
+
 import Errors from '../../errors'
 
 const { TYPE, TYPES } = constants
@@ -71,10 +74,6 @@ export class RankOneCheckAPI {
     const models = this.bot.models
     // call whatever API with whatever params
     const { apiKey, apiUri, threshold } = this.conf
-    const headers = {}
-    if (apiKey) {
-      headers['Authorization'] = apiKey
-    }
 
     const form = new FormData();
 
@@ -102,10 +101,17 @@ debugger
       content: selfieBuf,
       contentType: sMimeType
     })
+    const headers = {}
+    if (apiKey) {
+      headers['Authorization'] = apiKey
+    }
 
     try {
       let res = await fetch(`${apiUri}/verify`, { method: 'POST', body: form, headers});
-      rawData = await res.json() // whatever is returned may be not JSON
+      // rawData = await post(`${apiUri}/verify`, form, {headers});
+debugger
+      rawData = await processResponse(res)
+      rawData = JSON.parse(rawData)
       this.logger.debug('Face recognition check, match:', rawData);
     } catch (err) {
       debugger
@@ -114,12 +120,6 @@ debugger
       return { status: false, rawData: {}, error }
     }
 
-    // if (rawData.code) {
-    //   // error happens
-    //   error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${rawData.code}`
-    //   this.logger.error('Face recognition check failed: ' + rawData.param + '->' + rawData.reason);
-    //   return { status: false, rawData, error }
-    // }
     let minThreshold = threshold ? threshold : DEFAULT_THRESHOLD
     let status
     if (rawData.similarity > minThreshold)
