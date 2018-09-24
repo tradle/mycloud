@@ -10,7 +10,7 @@ import Promise from 'bluebird'
 
 import AWSXray from 'aws-xray-sdk-core'
 import format from 'string-format'
-import FormData from 'form-data';
+import FormData from 'form-data'
 import microtime from './microtime'
 import typeforce from 'typeforce'
 import bindAll from 'bindall'
@@ -790,26 +790,23 @@ export const get = async (url:string, opts:any={}) => {
   return processResponse(res)
 }
 
-export const post = async (url:string, data:Buffer|string|any, opts:any={}) => {
+export const post = async (url:string, data:any, opts:any={}) => {
   // debug(`POST to ${url}`)
   let body
+  const headers = {}
   if (typeof data === 'string' || Buffer.isBuffer(data)) {
     body = data
-  }
-  else if (data instanceof FormData) {
+  } else if (data instanceof FormData) {
     body = data
-  }
-  else {
+  } else {
+    headers['Content-Type'] = 'application/json'
     body = JSON.stringify(data)
   }
-debugger
+
   const res = await fetch(url, _.merge({
     method: 'POST',
-    headers: {
-      // 'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body
+    headers,
+    body,
   }, opts))
 
   // debug(`processing response from POST to ${url}`)
@@ -829,12 +826,12 @@ export const download = async ({ url }: { url:string }) => {
 }
 
 export const processResponse = async (res) => {
- if (!res.ok || res.status > 300) {
+  if (!res.ok || res.status > 300) {
     let message: string
     try {
       message = await res.text()
     } catch (err) {
-      Errors.rethrow(err, 'system')
+      Errors.ignoreAll(err)
     }
 
     throw new Errors.HttpError(res.status, message || res.statusText)
@@ -1598,3 +1595,19 @@ export const plainify = obj => traverse(obj).map(function (value) {
     this.update(name || 'SomeComplexObject')
   }
 })
+
+export const wrapSlowPoke = ({ fn, time, onSlow }) => async function (...args) {
+  let start = Date.now()
+  try {
+    return await fn.apply(this, args)
+  } finally {
+    const timePassed = Date.now() - start
+    if (timePassed > time) {
+      try {
+        onSlow({ time: timePassed, args, })
+      } catch (err) {
+        Errors.ignoreAll(err)
+      }
+    }
+  }
+}

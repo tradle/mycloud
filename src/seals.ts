@@ -278,11 +278,13 @@ export default class Seals {
     typeforce(typeforce.String, txId)
     this.logger.info(`sealed ${seal.link} with tx ${txId}`)
 
+    const now = timestamp()
     const update:Partial<Seal> = {
       ...getRequiredProps(seal),
       txId,
       confirmations: 0,
-      dateSealed: timestamp(),
+      dateSealed: now,
+      _time: now,
       unsealed: null
     }
 
@@ -582,7 +584,7 @@ export default class Seals {
           txId: false
         },
         LT: {
-          dateSealed: longAgo
+          _time: longAgo
         }
       }
     })

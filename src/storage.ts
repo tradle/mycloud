@@ -7,13 +7,14 @@ import {
   DB,
   Objects,
   Logger,
-  ISaveObjectOpts
+  ISaveObjectOpts,
+  ITradleObject,
 } from './types'
 
 import * as types from './typeforce-types'
 
 import {
-  RESOLVED_PROMISE
+  RESOLVED_PROMISE,
 } from './utils'
 
 type StorageOpts = {
@@ -35,6 +36,11 @@ export default class Storage {
     this.objects = objects
     this.logger = logger
   }
+
+  // proxy
+  public get getByLink() { return this.objects.get }
+  public get resolveEmbeds() { return this.objects.resolveEmbeds }
+  public get addMetadata() { return this.objects.addMetadata }
 
   public save = async ({ object, diff, saveToObjects, saveToDB }: ISaveObjectOpts) => {
     typeforce(types.signedObject, object)

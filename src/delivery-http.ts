@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events'
+import merge from 'lodash/merge'
 import { TYPE } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
+import { FindOpts, Filter } from '@tradle/dynamodb'
 import { post, promiseNoop, gzip, parseEnumValue } from './utils'
 import { IDelivery, ILiveDeliveryOpts, ITradleMessage, Logger, Env, DB, IDeliveryMessageRange } from "./types"
 import Errors from './errors'
@@ -12,6 +14,14 @@ const FETCH_TIMEOUT = 10000
 const INITIAL_BACKOFF = 1000
 const DELIVERY_ERROR = 'tradle.DeliveryError'
 const MAX_DELIVERY_ATTEMPTS = 20
+const retriableErrorFilter:Filter = {
+  EQ: {
+    'status.id': buildResource.enumValue({
+      model: models['tradle.DeliveryErrorStatus'],
+      value: 'retrying'
+    })
+  }
+}
 
 export default class Delivery extends EventEmitter implements IDelivery {
   private env:Env
@@ -137,14 +147,14 @@ export default class Delivery extends EventEmitter implements IDelivery {
     })
   }
 
-  public getErrors = async () => {
-    const { items } = await this.db.find({
+  public getErrors = async (opts: Partial<FindOpts>={}) => {
+    const { items } = await this.db.find(merge({
       filter: {
         EQ: {
-          [TYPE]: DELIVERY_ERROR
+          [TYPE]: DELIVERY_ERROR,
         }
       }
-    })
+    }, opts))
 
     return items
   }
@@ -165,7 +175,7 @@ export default class Delivery extends EventEmitter implements IDelivery {
   public canRetry = (deliveryErr: any) => !isStuck(deliveryErr)
   public isStuck = isStuck
   public getRetriable = async () => {
-    const errors = await this.getErrors()
+    const errors = await this.getErrors({ filter: retriableErrorFilter })
     return errors.filter(this.canRetry)
   }
 
