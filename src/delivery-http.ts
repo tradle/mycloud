@@ -14,14 +14,21 @@ const FETCH_TIMEOUT = 10000
 const INITIAL_BACKOFF = 1000
 const DELIVERY_ERROR = 'tradle.DeliveryError'
 const MAX_DELIVERY_ATTEMPTS = 20
-const retriableErrorFilter:Filter = {
-  EQ: {
-    'status.id': buildResource.enumValue({
-      model: models['tradle.DeliveryErrorStatus'],
-      value: 'retrying'
-    })
+const DELIVERY_ERROR_STATUS_ID = 'tradle.DeliveryErrorStatus'
+
+const retriableErrorFilter: Filter = (() => {
+  const retryingId = 'retrying'
+  const match = models[DELIVERY_ERROR_STATUS_ID].enum.find(val => val.id === retryingId)
+  if (!match) {
+    throw new Error(`missing "retrying" value in ${DELIVERY_ERROR_STATUS_ID} enum`)
   }
-}
+
+  return {
+    EQ: {
+      'status.id': `${DELIVERY_ERROR_STATUS_ID}_${retryingId}`
+    }
+  }
+})();
 
 export default class Delivery extends EventEmitter implements IDelivery {
   private env:Env
