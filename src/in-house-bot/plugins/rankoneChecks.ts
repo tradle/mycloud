@@ -47,7 +47,7 @@ const DEFAULT_THRESHOLD = 0.8
 export const name = 'rankone-checks'
 
 type RankoneConf = {
-  apiUri?: string
+  apiUrl?: string
   apiKey?: string
   threshold: number
 }
@@ -91,41 +91,33 @@ export class RankOneCheckAPI {
     let error
     const models = this.bot.models
     // call whatever API with whatever params
-    const { apiKey, apiUri, threshold } = this.conf
+    const { apiKey, apiUrl, threshold } = this.conf
 
-    const form = new FormData();
-
-debugger
-    let purl = photoID.scan.url
-    let pMimeType = purl.substring(5, purl.indexOf(';'))
-    let surl = selfie.selfie.url
-    let sMimeType = surl.substring(5, surl.indexOf(';'))
-
-    // let photoIdMimeType = this.getContentType(fn)
-    // let selfieMimeType = this.getContentType(sfn)
-
-    const photoIdBuf = DataURI.decode(purl)
-    const selfieBuf = DataURI.decode(surl)
+    const form = new FormData()
+    const photoIdBuf = DataURI.decode(photoID.scan.url)
+    const selfieBuf = DataURI.decode(selfie.selfie.url)
 
     this.appendFileBuf({
       form,
       filename: 'image1',
       content: photoIdBuf,
-      contentType: pMimeType
+      contentType: photoIdBuf.mimetype,
     })
+
     this.appendFileBuf({
       form,
       filename: 'image2',
       content: selfieBuf,
-      contentType: sMimeType
+      contentType: selfieBuf.mimetype,
     })
+
     const headers = {}
     if (apiKey) {
       headers['Authorization'] = apiKey
     }
 
     try {
-      rawData = await post(`${apiUri}/verify`, form, { headers })
+      rawData = await post(`${apiUrl}/verify`, form, { headers })
       this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
@@ -250,12 +242,22 @@ debugger
 export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOpts) => {
   const { bot, applications } = components
   let { logger, conf={} } = pluginOpts
+
 //debugger
   // if (bot.isLocal && !bot.s3Utils.publicFacingHost) {
   //   throw new Errors.InvalidEnvironment(`expected S3_PUBLIC_FACING_HOST environment variable to be set`)
   // }
 
-  const rankOne = new RankOneCheckAPI({ bot, applications, logger, conf })
+  const rankOne = new RankOneCheckAPI({
+    bot,
+    applications,
+    logger,
+    conf: {
+      ...getThirdPartyServiceInfo(components.conf, 'rankone'),
+      ...conf,
+    },
+  })
+
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
 // debugger

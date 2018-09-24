@@ -33,7 +33,7 @@ const originalHttpRequest = http.request.bind(http)
 const httpRequestInterceptor = (...args) => {
   const req = args[0]
   const host = req.host || parseURL(req.url).host
-  if (host.endsWith('.amazonaws.com')  &&  host !== 'kyc-services-11484992.us-east-1.elb.amazonaws.com') {
+  if (host.endsWith('.amazonaws.com') && !/\/(?:trueface-spoof|rank-one)\//.test(req.url)) {
     const err = new Error(`forbidding request to AWS in test/local mode: ${req.url}`)
     // @ts-ignore
     console.error(err.stack)

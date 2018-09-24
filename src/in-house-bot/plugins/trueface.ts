@@ -28,7 +28,6 @@ import Errors from '../../errors'
 import { post } from '../../utils'
 
 import DataURI from 'strong-data-uri'
-const apiKey = "c8/OR4s1rD6r/RRHsoeyNFYPsf4gpUhqHueYupUEuJKLiGRt/bFqIQ=="
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
@@ -46,7 +45,8 @@ export const name = 'trueface'
 
 type ITruefaceConf = {
   token: string
-  url: string
+  apiUrl: string
+  apiKey: string
   threshold?: string
   products: any
 }
@@ -118,12 +118,14 @@ export class TruefaceAPI {
     image: string
     application: IPBApp
   }) => {
-    let rawData, error, message
+    let rawData: any, error, message
 // debugger
     // call whatever API with whatever params
-    let url = `${this.conf.url}/spdetect`
+    let url = `${this.conf.apiUrl}/spdetect`
     const buf = DataURI.decode(image)
     let data = {
+      // not efficient, no need to create buffer in the first place
+      // need option to decode without buffer conversion
       img: buf.toString('base64')
     }
 
@@ -131,11 +133,9 @@ export class TruefaceAPI {
       rawData = await post(url, data, {
         headers: {
           'x-auth': this.conf.token,
-          'Authorization': apiKey
+          'Authorization': this.conf.apiKey,
         },
       })
-      rawData = JSON.parse(rawData)
-      // debugger
       this.logger.debug('Trueface spoof detection:', rawData);
     } catch (err) {
       debugger
@@ -201,8 +201,20 @@ export class TruefaceAPI {
   }
 }
 
-export const createPlugin: CreatePlugin<TruefaceAPI> = ({ bot, productsAPI, applications }, { conf, logger }) => {
-  const trueface = new TruefaceAPI({ bot, applications, logger, conf })
+export const createPlugin: CreatePlugin<TruefaceAPI> = (components, pluginOpts) => {
+  const { bot, productsAPI, applications } = components
+  const { conf, logger } = pluginOpts
+
+  const trueface = new TruefaceAPI({
+    bot,
+    applications,
+    logger,
+    conf: {
+      ...getThirdPartyServiceInfo(components.conf, 'trueface'),
+      ...conf,
+    },
+  })
+
   const plugin:IPluginLifecycleMethods = {
     onmessage: async function(req: IPBReq) {
     // onFormsCollected: async ({ req, user, application }) => {
@@ -257,8 +269,8 @@ export const validateConf:ValidatePluginConf = async (opts) => {
   ensureThirdPartyServiceConfigured(opts.conf, 'trueface')
 
   const pluginConf = opts.pluginConf as ITruefaceConf
-  // if (typeof pluginConf.token !== 'string') throw new Error('expected "string" token')
-  if (typeof pluginConf.url !== 'string') throw new Error('expected "string" url')
+  if (typeof pluginConf.token !== 'string') throw new Error('expected "string" token')
+  // if (typeof pluginConf.url !== 'string') throw new Error('expected "string" url')
   if (typeof pluginConf.threshold !== 'undefined' && typeof pluginConf.threshold !== 'string') {
     throw new Error('expected "string" threshold')
   }
