@@ -72,7 +72,7 @@ class DocumentValidityAPI {
         rawData['Date Of Birth'] = `The age of the person is less then ${MIN_VALID_AGE} years old`
         rawData.Status = 'fail'
       }
-      else if (dateOfBirth > Date.now() - MAX_AGE_MILLIS) {
+      else if (dateOfBirth < Date.now() - MAX_AGE_MILLIS) {
         rawData['Date Of Birth'] = `The age of the person is more then ${MAX_VALID_AGE} years old`
         rawData.Status = 'fail'
       }
