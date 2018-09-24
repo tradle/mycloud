@@ -5,7 +5,8 @@ import {
   IDeploymentConf,
   IDeploymentPluginConf,
   IPBReq,
-  Conf
+  ValidatePluginConf,
+  UpdatePluginConf,
 } from '../types'
 
 import Errors from '../../errors'
@@ -135,28 +136,22 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
   }
 }
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: IDeploymentPluginConf
-}) => {
-  const { senderEmail } = pluginConf
+export const validateConf:ValidatePluginConf = async ({ bot, pluginConf }) => {
+  const { senderEmail } = pluginConf as IDeploymentPluginConf
   if (senderEmail) {
-    const resp = await conf.bot.mailer.canSendFrom(senderEmail)
+    const resp = await bot.mailer.canSendFrom(senderEmail)
     if (!resp.result) {
       throw new Error(resp.reason)
     }
   }
 }
 
-export const updateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: IDeploymentPluginConf
-}) => {
-  const { replication } = pluginConf
+export const updateConf:UpdatePluginConf = async ({ bot, pluginConf }) => {
+  const { replication } = pluginConf as IDeploymentPluginConf
   if (!replication) return
 
   const { regions } = replication
-  const { bot, logger } = conf
+  const { logger } = bot
   const deployment = createDeployment({ bot, logger })
   await deployment.createRegionalDeploymentBuckets({ regions })
 }

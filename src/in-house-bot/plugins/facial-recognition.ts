@@ -3,7 +3,15 @@ import fetch from 'node-fetch'
 import FormData from 'form-data';
 import buildResource from '@tradle/build-resource'
 import constants from '@tradle/constants'
-import { Bot, Logger, CreatePlugin, Applications, IPBApp, IPluginLifecycleMethods } from '../types'
+import {
+  Bot,
+  Logger,
+  CreatePlugin,
+  Applications,
+  IPBApp,
+  IPluginLifecycleMethods,
+  ValidatePluginConf,
+} from '../types'
 import { getParsedFormStubs, getStatusMessageForCheck } from '../utils'
 import Errors from '../../errors'
 
@@ -265,9 +273,8 @@ export const createPlugin: CreatePlugin<FacialRecognitionAPI> = (components, plu
   }
 }
 
-export const validateConf = ({ pluginConf }: {
-  pluginConf: FacialRecognitionConf
-}) => {
+export const validateConf:ValidatePluginConf = async opts => {
+  const pluginConf = opts.pluginConf as FacialRecognitionConf
   if (typeof pluginConf.token !== 'string') throw new Error('expected "string" token')
   if (typeof pluginConf.url !== 'string') throw new Error('expected "string" url')
   if (typeof pluginConf.threshold !== 'undefined' && typeof pluginConf.threshold !== 'string') {

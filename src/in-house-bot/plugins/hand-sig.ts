@@ -1,5 +1,9 @@
 import { TYPE } from '@tradle/constants'
-import { CreatePlugin, IPluginLifecycleMethods, Conf } from '../types'
+import {
+  CreatePlugin,
+  IPluginLifecycleMethods,
+  ValidatePluginConf,
+} from '../types'
 
 const MESSAGE = 'Please tap here and sign'
 const HAND_SIGNATURE = 'tradle.HandSignature'
@@ -39,8 +43,7 @@ export const createPlugin: CreatePlugin<void> = ({ bot, productsAPI }, { logger,
   }
 }
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
+export const validateConf:ValidatePluginConf = async ({ pluginConf }: {
   pluginConf: any
 }) => {
   // nothing to validate yet

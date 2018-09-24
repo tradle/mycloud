@@ -19,11 +19,12 @@ import {
   Models,
   ITradleCheck,
   ITradleObject,
+  IConfComponents,
 } from './types'
 
 import { TYPE } from '../constants'
 import { TRADLE } from './constants'
-import { safeStringify } from '../string-utils'
+import { safeStringify, trimLeadingSlashes, trimTrailingSlashes } from '../string-utils'
 
 const SealModel = models['tradle.Seal']
 const SEAL_MODEL_PROPS = Object.keys(SealModel.properties)
@@ -57,7 +58,7 @@ export const createEditConfOp = edit => async (opts) => {
   }
 
   const confManager = createConf({ bot })
-  await confManager.setBotConf(botConf)
+  await confManager.setBotConf({ bot: botConf })
   await bot.forceReinitializeContainers()
 }
 
@@ -582,4 +583,43 @@ export const urlsFuzzyEqual = (a: string, b: string) => {
   const aParsed = parseUrl(a)
   const bParsed = parseUrl(b)
   return aParsed.host === bParsed.host && pathsEqual(aParsed.pathname, bParsed.pathname)
+}
+
+interface ThirdPartyServiceInfo {
+  apiUrl?: string
+  apiKey?: string
+}
+
+export const getThirdPartyServiceInfo = (conf: IConfComponents, name: string):ThirdPartyServiceInfo => {
+  const ret:ThirdPartyServiceInfo = {}
+  const { kycServiceDiscovery } = conf
+  if (!kycServiceDiscovery) return ret
+
+  let { apiKey, apiUrl, services } = kycServiceDiscovery
+  if (!(apiUrl && services)) return ret
+
+  const service = services[name]
+  if (!(service && service.enabled)) return ret
+
+  if (!/https?:\/\//.test(apiUrl)) {
+    apiUrl = `http://${apiUrl}`
+  }
+
+  apiUrl = trimTrailingSlashes(apiUrl)
+  const path = trimLeadingSlashes(service.path)
+
+  ret.apiKey = apiKey
+  ret.apiUrl = `${apiUrl}/${path}`
+  return ret
+}
+
+export const isThirdPartyServiceConfigured = (conf: IConfComponents, name: string) => {
+  const { apiUrl } = getThirdPartyServiceInfo(conf, name)
+  return !!apiUrl
+}
+
+export const ensureThirdPartyServiceConfigured = (conf: IConfComponents, name: string) => {
+  if (!isThirdPartyServiceConfigured(conf, name)) {
+    throw new Errors.InvalidInput(`you're not running a "${name}" service!`)
+  }
 }

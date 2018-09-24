@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { Conf, IPluginOpts, CreatePlugin } from '../types'
+import { IPluginOpts, CreatePlugin, ValidatePluginConf } from '../types'
 import { Webhooks, IWebhooksConf, IWebhookEvent } from '../webhooks'
 import { randomString } from '../../crypto'
 import { topics as EventTopics } from '../../events'
@@ -92,10 +92,7 @@ export const createPlugin: CreatePlugin<Webhooks> = ({ bot }, { conf, logger }: 
   }
 }
 
-export const validateConf = ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: IWebhooksConf
-}) => {
+export const validateConf:ValidatePluginConf = async ({ pluginConf }) => {
   // const webhooks = new Webhooks({
   //   bot: conf.bot,
   //   conf: pluginConf,

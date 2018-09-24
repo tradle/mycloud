@@ -1,7 +1,7 @@
 import OnfidoAPI from '@tradle/onfido-api'
 import { Onfido } from '@tradle/plugin-onfido'
 import Errors from '../../errors'
-import { Bot, CreatePlugin, IPBReq, Conf } from '../types'
+import { Bot, CreatePlugin, IPBReq, ValidatePluginConf } from '../types'
 import { isLocalUrl } from '../../utils'
 
 let TEST_APIGW
@@ -125,12 +125,9 @@ export const registerWebhook = async ({ bot, onfido }: { bot: Bot, onfido: Onfid
 
 export { Onfido }
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: any
-}) => {
+export const validateConf:ValidatePluginConf = async ({ bot, pluginConf }) => {
   pluginConf = normalizePluginConf(pluginConf)
-  const { models } = conf.bot
+  const { models } = bot
   const { apiKey, products=[] } = pluginConf
   if (!apiKey) throw new Error('expected "apiKey"')
 

@@ -24,6 +24,8 @@ import {
   IBotConf,
   IMyDeploymentConf,
   IOrganization,
+  ValidatePluginConfOpts,
+  UpdatePluginConfOpts,
 } from './types'
 
 import {
@@ -122,7 +124,12 @@ const parts = {
     key: PRIVATE_CONF_BUCKET.termsAndConditions,
     ttl: DEFAULT_TTL,
     parse: value => value.toString()
-  }
+  },
+  kycServiceDiscovery: {
+    bucket: 'PrivateConf',
+    key: PRIVATE_CONF_BUCKET.kycServiceDiscovery,
+    ttl: DEFAULT_TTL,
+  },
 }
 
 export class Conf {
@@ -137,6 +144,7 @@ export class Conf {
   public org: CacheableBucketItem
   public info: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
+  public kycServiceDiscovery: CacheableBucketItem
   constructor({ bot, logger }: {
     bot: Bot
     logger?: Logger
@@ -159,22 +167,52 @@ export class Conf {
   }
 
   public get = async () => {
-    const promises = {}
-    Object.keys(parts).forEach(key => {
-      promises[key] = this[key].get().catch(err => null)
-    })
+    return this.load()
+    // const promises = {}
+    // Object.keys(parts).forEach(key => {
+    //   promises[key] = this[key].get().catch(err => null)
+    // })
 
-    return await Promise.props(promises)
+    // return await Promise.props(promises)
   }
 
-  public setBotConf = async (value: any): Promise<boolean> => {
+  public load = async (components: Partial<IConfComponents>={}) => {
+    const conf = this
+    let termsAndConditions
+    if (components && components.termsAndConditions) {
+      termsAndConditions = { value: conf.termsAndConditions }
+    } else {
+      termsAndConditions = conf.termsAndConditions.getDatedValue()
+        // ignore empty values
+        .then(datedValue => datedValue.value && datedValue)
+        .catch(Errors.ignoreNotFound)
+    }
+
+    return await Promise.props({
+      // required
+      org: (components && components.org) || conf.org.get(),
+      // optional
+      botConf: (components && components.bot) || conf.botConf.get().catch(Errors.ignoreNotFound),
+      modelsPack: (components && components.modelsPack) || conf.modelsPack.get().catch(Errors.ignoreNotFound),
+      style: (components && components.style) || conf.style.get().catch(Errors.ignoreNotFound),
+      termsAndConditions,
+      kycServiceDiscovery: (components && components.kycServiceDiscovery) || conf.kycServiceDiscovery.get().catch(Errors.ignoreNotFound),
+    })
+  }
+
+  public setBotConf = async (components: Partial<IConfComponents>): Promise<boolean> => {
+    const value = components.bot
+    if (!value) {
+      throw new Errors.InvalidInput(`expected "bot" configuration object`)
+    }
+
     // load all models
     await this.modelStore.loadModelsPacks()
 
-    const { products = {}, logging } = value
-    const { plugins = {}, enabled = [] } = products
+    const { products, logging } = value
+    const { plugins = {}, enabled = [] } = products || {}
     if (_.size(plugins)) {
-      await this.validatePluginConf(plugins)
+      await this.validatePluginConf({ components, plugins })
     }
 
     // if (logging) {
@@ -199,16 +237,20 @@ export class Conf {
     return await this.botConf.putIfDifferent(value)
   }
 
-  public validatePluginConf = async (plugins: any) => {
+  public validatePluginConf = async ({ components, plugins }: {
+    plugins: any,
+    components:Partial<IConfComponents>
+  }) => {
+    const conf = await this.load(components)
     await Promise.all(Object.keys(plugins).map(async (name) => {
       const plugin = Plugins.get(name)
       if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
       if (!(plugin.validateConf || plugin.updateConf)) return
 
       const pluginConf = plugins[name]
-      const validateOpts = {
+      const validateOpts:ValidatePluginConfOpts = {
         bot: this.bot,
-        conf: this,
+        conf,
         pluginConf
       }
 
@@ -440,7 +482,7 @@ export class Conf {
     }
 
     if (bot) {
-      await this.setBotConf(bot)
+      await this.setBotConf(update)
       await this.recalcPublicInfo({ bot })
       updated.bot = true
     }
