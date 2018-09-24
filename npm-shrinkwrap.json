@@ -181,12 +181,12 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#bf029cbf8b283a286c00fe7eb37a7207f8b2cae0"
+      "resolved": "git://github.com/tradle/custom-models.git#c5e82507649432b15e9a66bd13e73920407230c4"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#20d9cd31d881a4121c504029999bf1c2b33230d1",
+      "resolved": "git://github.com/tradle/dynamodb.git#4d004d0974addefcd4b46d47b33c4a0e54b12641",
       "dependencies": {
         "koa-compose": {
           "version": "4.1.0",
@@ -279,7 +279,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#483e74331143d1d3b69b74ae827a790de01ddf43"
+      "resolved": "git://github.com/tradle/models.git#ff97face7429e6c1871a07528637ba4c861e3c91"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
