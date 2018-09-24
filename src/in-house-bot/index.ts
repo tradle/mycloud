@@ -109,28 +109,6 @@ type ConfigureLambdaOpts = {
   conf?: IConfComponents
 }
 
-export const loadConfComponents = async (conf: Conf, components: IConfComponents) => {
-  let termsAndConditions
-  if (components && components.termsAndConditions) {
-    termsAndConditions = { value: conf.termsAndConditions }
-  } else {
-    termsAndConditions = conf.termsAndConditions.getDatedValue()
-      // ignore empty values
-      .then(datedValue => datedValue.value && datedValue)
-      .catch(Errors.ignoreNotFound)
-  }
-
-  return await Promise.props({
-    // required
-    org: (components && components.org) || conf.org.get(),
-    // optional
-    botConf: (components && components.bot) || conf.botConf.get().catch(Errors.ignoreNotFound),
-    modelsPack: (components && components.modelsPack) || conf.modelsPack.get().catch(Errors.ignoreNotFound),
-    style: (components && components.style) || conf.style.get().catch(Errors.ignoreNotFound),
-    termsAndConditions,
-  })
-}
-
 export const configureLambda = (opts:ConfigureLambdaOpts) => {
   const { lambda } = opts
   const load = cachifyPromiser(async () => {
@@ -142,7 +120,7 @@ export const configureLambda = (opts:ConfigureLambdaOpts) => {
   // - kick off async
   // - can't do inside middleware because of default middleware in lambda.ts
   // that waits for bot.promiseReady() and stalls the pipeline
-  // - retry forever
+  // - retry
   const componentsPromise = load().catch(() => load())
 
   lambda.use(async (ctx, next) => {
@@ -162,10 +140,11 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
   const {
     org,
     botConf,
+    kycServiceDiscovery,
     modelsPack,
     style,
     termsAndConditions,
-  } = await runWithTimeout(() => loadConfComponents(confStore, conf), {
+  } = await runWithTimeout(() => confStore.load(conf), {
     get error() { return new Errors.Timeout('timed out loading conf') },
     millis: LOAD_CONF_TIMEOUT,
   })
@@ -181,6 +160,7 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
     bot: botConf,
     org,
     style,
+    kycServiceDiscovery,
     termsAndConditions,
     modelsPack
   }

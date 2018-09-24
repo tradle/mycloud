@@ -836,10 +836,20 @@ export const processResponse = async (res) => {
 
     throw new Errors.HttpError(res.status, message || res.statusText)
   }
+
   const text = await res.text()
   const contentType = res.headers.get('content-type') || ''
   if (contentType.startsWith('application/json')) {
     return JSON.parse(text)
+  }
+
+  // be optimistic
+  if (text[0] === '{' || text[0] === '[') {
+    try {
+      return JSON.parse(text)
+    } catch (err) {
+      Errors.ignoreAll(err)
+    }
   }
 
   return text

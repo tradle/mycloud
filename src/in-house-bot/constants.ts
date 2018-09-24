@@ -11,6 +11,7 @@ export const PRIVATE_CONF_BUCKET = {
   termsAndConditions: 'conf/terms-and-conditions.md',
   org: 'org/org.json',
   info: 'info/info.json',
+  kycServiceDiscovery: 'discovery/ecs-services.json',
 }
 
 export const MODELS_HASH_PROPERTY = 'modelsHash'

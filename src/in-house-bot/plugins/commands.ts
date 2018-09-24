@@ -1,6 +1,5 @@
 import { Commander, DEFAULT_ERROR_MESSAGE } from '../commander'
-import { Conf } from '../configure'
-import { CreatePlugin, ICommandOutput, IPBReq } from '../types'
+import { CreatePlugin, ICommandOutput, IPBReq, ValidatePluginConf } from '../types'
 
 export const name = 'commands'
 export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf }) => {
@@ -46,8 +45,7 @@ export const createPlugin:CreatePlugin<Commander> = (components, { logger, conf 
   }
 }
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
+export const validateConf:ValidatePluginConf = async ({ pluginConf }: {
   pluginConf: any
 }) => {
 }

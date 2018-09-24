@@ -5,7 +5,8 @@ import {
   CreatePlugin,
   ITradleObject,
   IPBApp,
-  IPluginOpts
+  IPluginOpts,
+  ValidatePluginConf,
 } from '../types'
 import { EmailBasedVerifier, TTL } from '../email-based-verifier'
 import { getPropertyTitle } from '../utils'
@@ -235,16 +236,13 @@ export const createPlugin:CreatePlugin<EmailBasedVerifier> = ({
   }
 }
 
-export const validateConf = async ({ conf, pluginConf }: {
-  conf: Conf,
-  pluginConf: IEBVPluginConf
-}) => {
-  const { senderEmail, products={} } = pluginConf
+export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
+  const { senderEmail, products={} } = pluginConf as IEBVPluginConf
   if (!senderEmail) {
     throw new Error('expected "senderEmail"')
   }
 
-  const resp = await conf.bot.mailer.canSendFrom(senderEmail)
+  const resp = await bot.mailer.canSendFrom(senderEmail)
   if (!resp.result) {
     throw new Error(resp.reason)
   }
@@ -252,7 +250,7 @@ export const validateConf = async ({ conf, pluginConf }: {
   for (let product in products) {
     let pConf = products[product]
     for (let form in pConf) {
-      let formModel = conf.bot.models[form]
+      let formModel = bot.models[form]
       if (!formModel) {
         throw new Errors.InvalidInput(`model not found: ${form}`)
       }

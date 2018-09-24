@@ -63,6 +63,9 @@ export const alphabetical = (a, b) => {
 const HEX_REGEX = /^[0-9A-F]+$/i
 export const isHex = str => HEX_REGEX.test(str)
 
+export const trimTrailingSlashes = str => str.replace(/[\/]+$/, '')
+export const trimLeadingSlashes = str => str.replace(/^[\/]+/, '')
+
 function bufferReplacer (key, value) {
   // Filtering out properties
   if (isLikeBuffer(value)) {
