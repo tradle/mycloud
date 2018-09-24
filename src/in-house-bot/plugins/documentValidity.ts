@@ -29,7 +29,7 @@ const MIN_VALID_AGE = 14
 const MAX_VALID_AGE = 120
 const MAX_EXPIRATION_YEARS = 10
 const MIN_AGE_MILLIS = MIN_VALID_AGE * ONE_YEAR_MILLIS  // 14 years
-const MAX_AGE_MILLIS = MAX_VALID_AGE * ONE_YEAR_MILLIS  // 14 years
+const MAX_AGE_MILLIS = MAX_VALID_AGE * ONE_YEAR_MILLIS  // 120 years
 const MAX_EXPIRATION_YEARS_MILLIS = MAX_EXPIRATION_YEARS * ONE_YEAR_MILLIS
 
 const DISPLAY_NAME = 'Document Validity'
@@ -54,19 +54,21 @@ class DocumentValidityAPI {
   public async checkDocument({user, payload, application}) {
     let { documentType, country, dateOfExpiry, dateOfBirth, scanJson, scan, issuer, nationality } = payload
 
+    let isPassport = documentType.id.indexOf('_passport') !== -1
+    debugger
     let rawData:any = {}
     if (dateOfExpiry) {
       if (dateOfExpiry < Date.now())  {
         rawData['Date Of Expiry'] = 'The document has expired'
         rawData.Status = 'fail'
       }
-      else if (dateOfExpiry > Date.now() - MAX_EXPIRATION_YEARS_MILLIS) {
+      else if (Date.now() < dateOfExpiry - MAX_EXPIRATION_YEARS_MILLIS) {
         rawData['Date Of Expiry'] = `The expiration date set to more then '${MAX_EXPIRATION_YEARS}' years ahead`
         rawData.Status = 'fail'
       }
     }
     if (dateOfBirth) {
-      if (dateOfBirth < Date.now() - MIN_AGE_MILLIS) {
+      if (dateOfBirth > Date.now() - MIN_AGE_MILLIS) {
         rawData['Date Of Birth'] = `The age of the person is less then ${MIN_VALID_AGE} years old`
         rawData.Status = 'fail'
       }
@@ -75,7 +77,6 @@ class DocumentValidityAPI {
         rawData.Status = 'fail'
       }
     }
-    let isPassport = documentType.id.indexOf('_passport') !== -1
 // debugger
     if (isPassport  &&  (issuer  ||  nationality)) {
       let countries = this.bot.models[COUNTRY].enum
