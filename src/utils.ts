@@ -10,6 +10,7 @@ import Promise from 'bluebird'
 
 import AWSXray from 'aws-xray-sdk-core'
 import format from 'string-format'
+import FormData from 'form-data'
 import microtime from './microtime'
 import typeforce from 'typeforce'
 import bindAll from 'bindall'
@@ -789,22 +790,24 @@ export const get = async (url:string, opts:any={}) => {
   return processResponse(res)
 }
 
-export const post = async (url:string, data:Buffer|string|any, opts:any={}) => {
+export const post = async (url:string, data:any, opts:any={}) => {
   // debug(`POST to ${url}`)
   let body
+  const headers = {}
   if (typeof data === 'string' || Buffer.isBuffer(data)) {
     body = data
+  } else if (data instanceof FormData) {
+    body = data
   } else {
+    headers['Content-Type'] = 'application/json'
     body = JSON.stringify(data)
   }
 
+
   const res = await fetch(url, _.merge({
     method: 'POST',
-    headers: {
-      // 'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body
+    headers,
+    body,
   }, opts))
 
   // debug(`processing response from POST to ${url}`)
@@ -825,12 +828,14 @@ export const download = async ({ url }: { url:string }) => {
 
 export const processResponse = async (res) => {
   if (!res.ok || res.status > 300) {
-    let message = res.statusText
-    if (!message) {
+    let message: string
+    try {
       message = await res.text()
+    } catch (err) {
+      Errors.ignoreAll(err)
     }
 
-    throw new Errors.HttpError(res.status, message)
+    throw new Errors.HttpError(res.status, message || res.statusText)
   }
 
   const text = await res.text()
