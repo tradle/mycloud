@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.8.0-rc.1"></a>
+# [1.8.0-rc.1](https://github.com/tradle/serverless/compare/v1.8.0-rc.0...v1.8.0-rc.1) (2018-09-25)
+
+
+### Bug Fixes
+
+* delivery error query (broken in recent commit) ([14aa562](https://github.com/tradle/serverless/commit/14aa562))
+* error handling in setconf ([858e67d](https://github.com/tradle/serverless/commit/858e67d))
+* optimistically parse json in processResponse ([ad4b0e3](https://github.com/tradle/serverless/commit/ad4b0e3))
+* optimize bot._sendBatch ([3efffb2](https://github.com/tradle/serverless/commit/3efffb2))
+* remove restriction for rankone and trueface url ([16365fe](https://github.com/tradle/serverless/commit/16365fe))
+* update seal._time when setting dateSealed ([e065f5c](https://github.com/tradle/serverless/commit/e065f5c))
+* use utils.post for correct processing ([a8a8127](https://github.com/tradle/serverless/commit/a8a8127))
+* wrong dates comparing ([10c904a](https://github.com/tradle/serverless/commit/10c904a))
+
+
+### Features
+
+* kyc service discovery ([055f427](https://github.com/tradle/serverless/commit/055f427))
+
+
+
 <a name="1.8.0-rc.0"></a>
 # [1.8.0-rc.0](https://github.com/tradle/serverless/compare/v1.7.0...v1.8.0-rc.0) (2018-09-23)
 
