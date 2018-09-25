@@ -10,8 +10,11 @@ import { LambdaUtils } from '../lambda-utils'
 import { Env } from '../env'
 import { createAWSWrapper } from '../aws'
 import { Logger } from '../logger'
-import { createRemoteBot } from '../'
+import { createRemoteBot, createTestBot } from '../'
 import { loadCredentials, downloadDeploymentTemplate } from '../cli/utils'
+import { PRIVATE_CONF_BUCKET } from '../in-house-bot/constants'
+import { Bot } from '../types'
+import Errors from '../errors'
 
 const serverlessYml = require('../cli/serverless-yml')
 const fs = promisify(_fs)
@@ -38,13 +41,30 @@ const getEnv = async () => {
   ])
 }
 
-const getTemplate = async () => {
-  const template = await downloadDeploymentTemplate(createRemoteBot())
+const getTemplate = async (bot: Bot) => {
+  const template = await downloadDeploymentTemplate(bot)
   await fs.writeFile(latestTemplatePath, prettify(template))
 }
 
+const getECSDiscovery = async (bot: Bot) => {
+  let discovery
+  try {
+    discovery = await bot.buckets.PrivateConf.getJSON(PRIVATE_CONF_BUCKET.kycServiceDiscovery)
+  } catch (err) {
+    Errors.ignoreNotFound(err)
+    return
+  }
+
+  const testBot = createTestBot()
+  await testBot.buckets.PrivateConf.putJSON(PRIVATE_CONF_BUCKET.kycServiceDiscovery, discovery)
+}
+
 getEnv()
-  .then(() => getTemplate())
+  .then(async () => {
+    const bot = createRemoteBot()
+    await getTemplate(bot)
+    await getECSDiscovery(bot)
+  })
   .catch(err => {
     console.error(err)
     process.exit(1)
