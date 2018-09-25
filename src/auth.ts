@@ -177,7 +177,10 @@ export default class Auth {
           permalink,
           authenticated: true,
           connected: true
-        }
+        },
+        STARTS_WITH: {
+          clientId: (this.iot && this.iot.clientIdPrefix || '') + permalink
+        },
       }
     })
 
