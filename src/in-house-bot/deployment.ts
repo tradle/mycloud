@@ -1471,13 +1471,13 @@ ${this.genUsageInstructions(links)}`
     const friends = await bot.friends.list()
     logger.debug(`alerting ${friends.length} friends about MyCloud update`, versionInfo)
 
-    await Promise.all(friends.map(async (friend) => {
+    await Promise.mapSeries(friends, async (friend) => {
       logger.debug(`notifying ${friend.name} about MyCloud update`)
       await bot.send({
         friend,
         object: versionInfo
       })
-    }))
+    }, { concurrency: 3 })
 
     return true
   }
