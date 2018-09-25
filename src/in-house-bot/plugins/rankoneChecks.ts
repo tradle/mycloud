@@ -22,6 +22,7 @@ import {
   getStatusMessageForCheck,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
+  hasPropertiesChanged
 } from '../utils'
 
 import {
@@ -74,12 +75,12 @@ export class RankOneCheckAPI {
     }
     this.logger.debug('Face recognition both selfie and photoId ready');
 
-    const [photoID, selfie] = await Promise.all([
+    const [photoIDResource, selfieResource] = await Promise.all([
         photoIDStub,
         selfieStub
-      ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
+      ].map(stub => this.bot.getResource(stub)))
 
-    return { selfie, photoID }
+    return { selfieResource, photoIDResource }
   }
 
   public matchSelfieAndPhotoID = async ({ selfie, photoID, application }: {
@@ -123,23 +124,19 @@ export class RankOneCheckAPI {
       debugger
       error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
       this.logger.error('Face recognition check', err)
-      return { status: false, rawData: {}, error }
+      return { status: 'error', rawData: {}, error }
     }
 
     let minThreshold = threshold ? threshold : DEFAULT_THRESHOLD
     let status
-    if (rawData.similarity > minThreshold)
+    if (rawData.similarity < 0  && rawData.code)
+      status = 'error'
+    else if (rawData.similarity > minThreshold)
       status = 'pass'
     else
       status = 'fail'
     return { status, rawData }
   }
-  // getContentType = (filename) => {
-  //   if (/\.jpe?g$/.test(filename)) return 'image/jpeg'
-  //   if (/\.png$/.test(filename)) return 'image/png'
-
-  //   throw new Error(`unable to derive content-type from filename: ${filename}`)
-  // }
   appendFileBuf = ({
     form,
     filename,
@@ -192,16 +189,9 @@ export class RankOneCheckAPI {
 
   public createCheck = async ({ status, selfie, photoID, rawData, application, error }) => {
     let models = this.bot.models
-    let checkStatus, message
     let photoID_displayName = buildResource.title({models, resource: photoID})
-    if (error)
-      checkStatus = 'error'
-    else if (status !== true)
-      checkStatus = 'fail'
-    else
-      checkStatus = 'pass'
     let checkR:any = {
-      status: checkStatus,
+      status,
       provider: PROVIDER,
       aspects: 'facial similarity',
       rawData,
@@ -210,6 +200,8 @@ export class RankOneCheckAPI {
       photoID,
       dateChecked: new Date().getTime()
     }
+    if (rawData.similarity)
+      checkR.score = rawData.similarity
     // debugger
     checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
     const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
@@ -267,10 +259,19 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
       //let { products } = conf
       //if (!products  ||  !products[productId])
       //  return
-
       const result = await rankOne.getSelfieAndPhotoID(application)
       if (!result) return
-      const { selfie, photoID } = result
+      const { selfieResource, photoIDResource } = result
+debugger
+      let changed = await hasPropertiesChanged({resource: photoIDResource, bot, propertiesToCheck: ['scan']})
+      if (!changed)
+        return
+
+      const [photoID, selfie] = await Promise.all([
+          _.cloneDeep(photoIDResource),
+          _.cloneDeep(selfieResource)
+        ].map(r => bot.resolveEmbeds(r)))
+debugger
       const { status, rawData, error } = await rankOne.matchSelfieAndPhotoID({
         selfie: selfie,
         photoID: photoID,
