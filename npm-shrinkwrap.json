@@ -181,7 +181,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#c5e82507649432b15e9a66bd13e73920407230c4"
+      "resolved": "git://github.com/tradle/custom-models.git#7588329b0d9b919f8c36916ae35022560210ac3c"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -279,7 +279,7 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#ff97face7429e6c1871a07528637ba4c861e3c91"
+      "resolved": "git://github.com/tradle/models.git#67654dfedc4d7f1f523d560abd76055c0b4250a8"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
