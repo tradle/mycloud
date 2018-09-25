@@ -50,7 +50,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
   public deliverBatch = async (opts:ILiveDeliveryOpts) => {
     const { recipient, friend, messages, timeout } = opts
     const endpoint = `${friend.url}/inbox`
-    const headers = {}
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+
     let payload = JSON.stringify({ messages })
     if (!this.env.IS_EMULATED && payload.length > COMPRESSION_THRESHOLD) {
       this.logger.debug('gzipping payload')
