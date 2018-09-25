@@ -15,7 +15,7 @@ import {
   Applications
 } from '../types'
 
-import { getCheckParameters, getStatusMessageForCheck } from '../utils'
+import { getCheckParameters, getStatusMessageForCheck, hasPropertiesChanged } from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -89,6 +89,15 @@ class ComplyAdvantageAPI {
       map = propertyMap  &&  propertyMap[payload[TYPE]]
 
     let isPerson = criteria  &&  criteria.entity_type === 'person' || isPersonForm(payload)
+// debugger
+    let propertiesToCheck
+    if (isPerson)
+      propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth']
+    else
+      propertiesToCheck = ['companyName', 'registrationDate']
+    let changed = await hasPropertiesChanged({resource: payload, bot: this.bot, propertiesToCheck})
+    if (!changed)
+      return
     let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
 
     // Check if the check parameters changed
