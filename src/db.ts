@@ -179,6 +179,8 @@ export = function createDB ({
 
   // TODO: merge into validateFind
   const isScanAllowed = (search: Search) => {
+    if (search.allowScan === true) return true
+
     if (search.opType === 'query') {
       if (!search.sortedByDB) {
         debugger
@@ -188,7 +190,7 @@ export = function createDB ({
       return true
     }
 
-    const allow = search.allowScan === true || _isScanAllowed(search)
+    const allow = _isScanAllowed(search)
     if (allow) logger.debug('allowing scan', search.type)
     return allow
   }
