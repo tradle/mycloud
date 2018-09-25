@@ -12,7 +12,7 @@ import {
   IPluginLifecycleMethods,
   ValidatePluginConf,
 } from '../types'
-import { getParsedFormStubs, getStatusMessageForCheck } from '../utils'
+import { getLatestForms, getStatusMessageForCheck } from '../utils'
 import Errors from '../../errors'
 
 const { TYPE, TYPES } = constants
@@ -48,13 +48,28 @@ export class FacialRecognitionAPI {
   }
 
   public getSelfieAndPhotoID = async (application: IPBApp) => {
-    const stubs = getParsedFormStubs(application)
+    const stubs = getLatestForms(application)
     const photoIDStub = stubs.find(({ type }) => type === PHOTO_ID)
     const selfieStub = stubs.find(({ type }) => type === SELFIE)
     if (!(photoIDStub && selfieStub)) {
       // not enough info
       return
     }
+    const { items } = await this.bot.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: FACIAL_RECOGNITION,
+          'application._permalink': application._permalink,
+          'provider': PROVIDER,
+          'selfie._link': selfieStub.link,
+          'photoID._link': photoIDStub.link,
+        }
+      }
+    })
+// debugger
+    if (items.length)
+      return
+
     this.logger.debug('Face recognition both selfie and photoId ready');
     const tasks = [photoIDStub, selfieStub].map(async stub => {
       const object = await this.bot.getResource(stub)

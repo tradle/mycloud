@@ -18,11 +18,10 @@ import {
 } from '../types'
 
 import {
-  getParsedFormStubs,
+  getLatestForms,
   getStatusMessageForCheck,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
-  hasPropertiesChanged
 } from '../utils'
 
 import {
@@ -66,21 +65,35 @@ export class RankOneCheckAPI {
   }
 
   public getSelfieAndPhotoID = async (application: IPBApp) => {
-    const stubs = getParsedFormStubs(application)
+    const stubs = getLatestForms(application)
     const photoIDStub = stubs.find(({ type }) => type === PHOTO_ID)
     const selfieStub = stubs.find(({ type }) => type === SELFIE)
     if (!(photoIDStub && selfieStub)) {
       // not enough info
       return
     }
+    const { items } = await this.bot.db.find({
+      filter: {
+        EQ: {
+          [TYPE]: FACIAL_RECOGNITION,
+          'application._permalink': application._permalink,
+          'provider': PROVIDER,
+          'selfie._link': selfieStub.link,
+          'photoID._link': photoIDStub.link,
+        }
+      }
+    })
+    if (items.length)
+      return
+
     this.logger.debug('Face recognition both selfie and photoId ready');
 
-    const [photoIDResource, selfieResource] = await Promise.all([
+    const [photoID, selfie] = await Promise.all([
         photoIDStub,
         selfieStub
-      ].map(stub => this.bot.getResource(stub)))
+      ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
 
-    return { selfieResource, photoIDResource }
+    return { selfie, photoID }
   }
 
   public matchSelfieAndPhotoID = async ({ selfie, photoID, application }: {
@@ -144,49 +157,6 @@ export class RankOneCheckAPI {
     contentType,
   }) => form.append(filename, content, { filename, contentType })
 
-//   public checkForSpoof = async ({ image, application }: {
-//     image: string
-//     application: IPBApp
-//   }) => {
-//     let data, err, message
-// // debugger
-//     // call whatever API with whatever params
-//     let url = ''// rank one url for liveness
-//     const buf = DataURI.decode(image)
-//     let imgData = {
-//       img: buf.toString('base64')
-//     }
-
-//     try {
-//       let res = await fetch(url, {
-//         method: 'POST',
-//         headers: {
-//           'content-type':'application/json',
-//           'x-auth': this.conf.token
-//         },
-//         body: JSON.stringify(imgData)
-//       })
-
-//       data = await res.json() // whatever is returned may be not JSON
-//       this.logger.debug('Rank One spoof detection:', data);
-//     } catch (error) {
-//       debugger
-//       err = `Check was not completed: ${err.message}`
-//       this.logger.error('Rank One spoof detection: ', error)
-//       return { checkStatus: 'error', data: {}, err }
-//     }
-//     let status
-//     if (data.success) {
-//       if (data.data.score < (this.conf.threshold  ||  DEFAULT_THRESHOLD))
-//         status = 'fail'
-//       else
-//         status = 'pass'
-//     }
-//     else
-//       status = 'error'
-//     return { checkStatus: status, data, err }
-//   }
-
   public createCheck = async ({ status, selfie, photoID, rawData, application, error }) => {
     let models = this.bot.models
     let photoID_displayName = buildResource.title({models, resource: photoID})
@@ -235,7 +205,6 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
   const { bot, applications } = components
   let { logger, conf={} } = pluginOpts
 
-//debugger
   // if (bot.isLocal && !bot.s3Utils.publicFacingHost) {
   //   throw new Errors.InvalidEnvironment(`expected S3_PUBLIC_FACING_HOST environment variable to be set`)
   // }
@@ -252,7 +221,6 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
 
   const plugin:IPluginLifecycleMethods = {
     onFormsCollected: async ({ req, user, application }) => {
-// debugger
       if (req.skipChecks) return
       if (!application) return
       let productId = application.requestFor
@@ -261,17 +229,8 @@ export const createPlugin: CreatePlugin<RankOneCheckAPI> = (components, pluginOp
       //  return
       const result = await rankOne.getSelfieAndPhotoID(application)
       if (!result) return
-      const { selfieResource, photoIDResource } = result
-debugger
-      let changed = await hasPropertiesChanged({resource: photoIDResource, bot, propertiesToCheck: ['scan']})
-      if (!changed)
-        return
+      const { selfie, photoID } = result
 
-      const [photoID, selfie] = await Promise.all([
-          _.cloneDeep(photoIDResource),
-          _.cloneDeep(selfieResource)
-        ].map(r => bot.resolveEmbeds(r)))
-debugger
       const { status, rawData, error } = await rankOne.matchSelfieAndPhotoID({
         selfie: selfie,
         photoID: photoID,
@@ -299,3 +258,46 @@ debugger
 export const validateConf:ValidatePluginConf = async ({ conf }) => {
   ensureThirdPartyServiceConfigured(conf, 'rankone')
 }
+
+//   public checkForSpoof = async ({ image, application }: {
+//     image: string
+//     application: IPBApp
+//   }) => {
+//     let data, err, message
+// // debugger
+//     // call whatever API with whatever params
+//     let url = ''// rank one url for liveness
+//     const buf = DataURI.decode(image)
+//     let imgData = {
+//       img: buf.toString('base64')
+//     }
+
+//     try {
+//       let res = await fetch(url, {
+//         method: 'POST',
+//         headers: {
+//           'content-type':'application/json',
+//           'x-auth': this.conf.token
+//         },
+//         body: JSON.stringify(imgData)
+//       })
+
+//       data = await res.json() // whatever is returned may be not JSON
+//       this.logger.debug('Rank One spoof detection:', data);
+//     } catch (error) {
+//       debugger
+//       err = `Check was not completed: ${err.message}`
+//       this.logger.error('Rank One spoof detection: ', error)
+//       return { checkStatus: 'error', data: {}, err }
+//     }
+//     let status
+//     if (data.success) {
+//       if (data.data.score < (this.conf.threshold  ||  DEFAULT_THRESHOLD))
+//         status = 'fail'
+//       else
+//         status = 'pass'
+//     }
+//     else
+//       status = 'error'
+//     return { checkStatus: status, data, err }
+//   }
