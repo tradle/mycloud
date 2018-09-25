@@ -30,6 +30,14 @@ const retriableErrorFilter: Filter = (() => {
   }
 })();
 
+interface UpdateErrorOpts {
+  counterparty: string
+  time: number
+  status?: string
+  attempts?: number
+  createIfNotExists?: boolean
+}
+
 export default class Delivery extends EventEmitter implements IDelivery {
   private env:Env
   private logger:Logger
@@ -98,7 +106,10 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
     // kind of shame to do this every time
     // but otherwise we need to lookup whether we have an error or not beforehand
-    await this.deleteError({ counterparty: recipient })
+    await this._updateErrorAfterDelivery({
+      counterparty: recipient,
+      time: messages[messages.length - 1]._time
+    })
 
     // await tryUntilTimeRunsOut(() => post(endpoint, payload, { headers }), {
     //   env: this.env,
@@ -196,28 +207,39 @@ export default class Delivery extends EventEmitter implements IDelivery {
     return errors.filter(this.canRetry)
   }
 
-  public resetError = async (deliveryError: any) => {
+  public resetError = async ({ counterparty }: {
+    counterparty: string
+  }):Promise<boolean> => {
+    let error
+    try {
+      error = await this.getError(counterparty)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
+      return false
+    }
+
     await this.updateError({
-      ...deliveryError,
+      counterparty: error.counterparty,
+      time: error._time,
       attempts: -1,
-      status: 'retrying'
+      status: 'retrying',
+      createIfNotExists: false,
     })
+
+    return true
   }
 
-  private updateError = async ({ counterparty, time, status, attempts=1 }: {
-    counterparty: string
-    time: number
-    status?: string
-    attempts?: number
-  }) => {
+  private updateError = async ({ counterparty, time, status, attempts=1, createIfNotExists=true }: UpdateErrorOpts) => {
     let deliveryError
     try {
       deliveryError = await this.getError(counterparty)
     } catch (err) {
       Errors.ignoreNotFound(err)
+      if (createIfNotExists === false) return
+
       deliveryError = {
         [TYPE]: DELIVERY_ERROR,
-        counterparty,
+        counterparty
       }
     }
 
@@ -238,6 +260,27 @@ export default class Delivery extends EventEmitter implements IDelivery {
 
     await this.db.put(deliveryError)
     return deliveryError
+  }
+
+  private _updateErrorAfterDelivery = async ({ counterparty, time }: {
+    counterparty: string
+    time: number
+  }) => {
+
+    // TODO: only delete if we just delivered the last queued message
+
+    // let deliveryError
+    // try {
+    //   deliveryError = await this.getError(recipient)
+    // } catch (err) {
+    //   Errors.ignoreNotFound(err)
+    // }
+
+    // if (deliveryError) {
+    //   this.
+    // }
+
+    await this.deleteError({ counterparty })
   }
 }
 

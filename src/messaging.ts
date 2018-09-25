@@ -416,8 +416,24 @@ export default class Messaging {
     })
   }
 
-  private _deliverPreviouslyUndelivered = async (opts: ILiveDeliveryOpts):Promise<boolean> => {
-    const { messages, recipient, friend } = opts
+  public resumeDelivery = async (opts: {
+    recipient: string
+    friend?: any
+  }) => {
+    const ok = await this.delivery.http.resetError({
+      counterparty: opts.recipient
+    })
+
+    if (!ok) return false
+
+    await this._deliverPreviouslyUndelivered(opts)
+  }
+
+  private _deliverPreviouslyUndelivered = async (opts: {
+    recipient: string
+    friend?: any
+  }):Promise<boolean> => {
+    const { recipient, friend } = opts
 
     let deliveryError
     try {
