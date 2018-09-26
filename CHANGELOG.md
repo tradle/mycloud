@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.8.0-rc.8"></a>
+# [1.8.0-rc.8](https://github.com/tradle/serverless/compare/v1.8.0-rc.7...v1.8.0-rc.8) (2018-09-26)
+
+
+### Bug Fixes
+
+* no need to create Check for the form if it exists ([5b3e4e1](https://github.com/tradle/serverless/commit/5b3e4e1))
+
+
+### Features
+
+* add reboot cli command ([4b8c74d](https://github.com/tradle/serverless/commit/4b8c74d))
+* newer models, added index to Check models ([22021b2](https://github.com/tradle/serverless/commit/22021b2))
+
+
+
 <a name="1.8.0-rc.7"></a>
 # [1.8.0-rc.7](https://github.com/tradle/serverless/compare/v1.8.0-rc.6...v1.8.0-rc.7) (2018-09-25)
 
