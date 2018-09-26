@@ -137,6 +137,7 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
   logger.debug('configuring in-house bot')
 
   const confStore = createConf({ bot })
+  const start = Date.now()
   const {
     org,
     botConf,
@@ -145,7 +146,7 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
     style,
     termsAndConditions,
   } = await runWithTimeout(() => confStore.load(conf), {
-    error: () => new Errors.Timeout(`timed out loading conf after ${LOAD_CONF_TIMEOUT}ms`),
+    error: () => new Errors.Timeout(`timed out loading conf after ${(Date.now() - start)}ms`),
     millis: LOAD_CONF_TIMEOUT,
   })
 
