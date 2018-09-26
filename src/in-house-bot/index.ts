@@ -145,7 +145,7 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
     style,
     termsAndConditions,
   } = await runWithTimeout(() => confStore.load(conf), {
-    get error() { return new Errors.Timeout('timed out loading conf') },
+    error: () => new Errors.Timeout(`timed out loading conf after ${LOAD_CONF_TIMEOUT}ms`),
     millis: LOAD_CONF_TIMEOUT,
   })
 

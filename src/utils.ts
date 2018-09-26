@@ -128,7 +128,7 @@ export const timeoutIn = ({ millis=0, error, unref }: ITimeoutOpts) => {
     timeout = createTimeout(() => {
       const actualErr = typeof error === 'function' ? error() : error
 
-      reject(actualErr || new Errors.Timeout('timed out'))
+      reject(actualErr || new Errors.Timeout(`timed out after ${millis}ms`))
     }, millis, unref)
   })
 

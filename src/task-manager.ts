@@ -1,6 +1,6 @@
 // @ts-ignore
 import Promise from 'bluebird'
-import { omit } from 'lodash'
+import { omit, partition } from 'lodash'
 import { allSettled } from './utils'
 import Logger from './logger'
 import Errors from './errors'
@@ -61,9 +61,11 @@ export default class TaskManager {
       return []
     }
 
-    this.logger.debug(`waiting for ${this.tasks.length} tasks to complete or fail`)
     const names = this.tasks.map(task => task.name)
+    this.logger.debug(`waiting for ${names.length} tasks to complete or fail`)
     const results:ISettledPromise<any>[] = await allSettled(this.tasks.map(task => task.promise))
+    const [succeeded, failed] = partition(results, r => r.isFulfilled)
+    this.logger.debug(`of ${names.length} tasks, ${succeeded.length} succeeded and ${failed.length} failed`)
     return results.map((result, i) => ({
       ...result,
       name: names[i]
