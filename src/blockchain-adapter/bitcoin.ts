@@ -1,5 +1,5 @@
-const Blockr = require('@tradle/cb-blockr')
-const Networks = require('@tradle/bitcoin-adapter')
+import Blockr from '@tradle/cb-blockr'
+import Networks from '@tradle/bitcoin-adapter'
 
 export = function getNetworkAdapters ({ networkName, privateKey, proxy }) {
   const network = Networks[networkName]

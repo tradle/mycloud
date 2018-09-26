@@ -292,7 +292,7 @@ export default class Blockchain {
     return this.writers[fingerprint]
   }
 
-  private startOrStop = async (method: string) => {
+  private startOrStop = (method: string) => {
     Object.keys(this.writers)
       .map(key => this.writers[key])
       .concat(this.reader.blockchain)
