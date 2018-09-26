@@ -14,10 +14,6 @@ const MODELS_PACK = 'tradle.ModelsPack'
 export const createLambda = (opts) => {
   const lambda = fromHTTP(opts)
   const { bot, logger } = lambda
-  lambda.tasks.add({
-    name: 'getiotendpoint',
-    promiser: bot.iot.getEndpoint
-  })
 
   lambda.tasks.add({
     name: 'getkeys',

@@ -3,11 +3,6 @@ import { fromIot } from '../lambda'
 
 export const createLambda = (opts) => {
   const lambda = fromIot(opts)
-  lambda.tasks.add({
-    name: 'getiotendpoint',
-    promiser: lambda.bot.iot.getEndpoint
-  })
-
   return lambda.use(createMiddleware(lambda, opts))
 }
 

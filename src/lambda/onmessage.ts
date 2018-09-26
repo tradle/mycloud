@@ -13,11 +13,6 @@ export const createLambda = (opts?:any) => {
   // prime caches
 
   lambda.tasks.add({
-    name: 'getiotendpoint',
-    promiser: lambda.bot.iot.getEndpoint
-  })
-
-  lambda.tasks.add({
     name: 'getkeys',
     promiser: lambda.bot.identity.getPrivate
   })
