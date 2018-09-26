@@ -346,7 +346,7 @@ Previous exit stack: ${this.lastExitStack}`)
     } catch (err) {
       const tasks = this.tasks.describe()
       if (Errors.matches(err, Errors.ExecutionTimeout)) {
-        this.logger.error('async tasks timed out', { tasks })
+        this.logger.error('async tasks timed out', { tasks, time: Date.now() - start })
       } else {
         this.logger.error('async tasks failed', {
           tasks,
