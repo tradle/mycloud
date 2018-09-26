@@ -1607,14 +1607,15 @@ export const plainify = obj => traverse(obj).map(function (value) {
 })
 
 export const wrapSlowPoke = ({ fn, time, onSlow }) => async function (...args) {
-  let start = Date.now()
+  const start = Date.now()
+  const { stack } = new Error('slow poke')
   try {
     return await fn.apply(this, args)
   } finally {
     const timePassed = Date.now() - start
     if (timePassed > time) {
       try {
-        onSlow({ time: timePassed, args, })
+        onSlow({ time: timePassed, args, stack })
       } catch (err) {
         Errors.ignoreAll(err)
       }

@@ -269,8 +269,8 @@ export = function createDB ({
       table.find = wrapSlowPoke({
         fn: table.find.bind(table),
         time: 5000,
-        onSlow: ({ time, args }) => {
-          logger.error('db query took more than 5s', { time, args })
+        onSlow: ({ time, args, stack }) => {
+          logger.error('db query took more than 5s', { time, args, stack })
         }
       })
 
