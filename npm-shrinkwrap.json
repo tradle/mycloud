@@ -1,6 +1,6 @@
 {
   "name": "@tradle/serverless",
-  "version": "1.8.0-rc.6",
+  "version": "1.8.0-rc.7",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -181,7 +181,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#ffe9d5cfa949c7b21640f2521416be874cf815ca"
+      "resolved": "git://github.com/tradle/custom-models.git#c4e1443db1ae3301740b15b17b03614b274aa0f7"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",

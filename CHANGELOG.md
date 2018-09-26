@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.8.0-rc.7"></a>
+# [1.8.0-rc.7](https://github.com/tradle/serverless/compare/v1.8.0-rc.6...v1.8.0-rc.7) (2018-09-25)
+
+
+### Bug Fixes
+
+* create or not create a Check depends on if there is a check for this form(s) version ([2a846f5](https://github.com/tradle/serverless/commit/2a846f5))
+* err message ([418e36c](https://github.com/tradle/serverless/commit/418e36c))
+
+
+### Features
+
+* add messaging.resumeDelivery(), cli command resume-delivery ([a00eda0](https://github.com/tradle/serverless/commit/a00eda0))
+
+
+
 <a name="1.8.0-rc.6"></a>
 # [1.8.0-rc.6](https://github.com/tradle/serverless/compare/v1.8.0-rc.5...v1.8.0-rc.6) (2018-09-25)
 

@@ -1346,7 +1346,7 @@ ${this.genUsageInstructions(links)}`
     try {
       req = await this.lookupLatestUpdateRequest({ provider })
       if (req._link !== updateResponse.request._link) {
-        throw new Error(`last `)
+        throw new Error(`expected update response for request ${req._link}, got for request ${updateResponse.request._link}`)
       }
     } catch (err) {
       Errors.ignoreNotFound(err)
