@@ -1027,10 +1027,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   }
 
   public warmUpCaches = async () => {
-    await Promise.all([
-      this.identity.getPermalink(),
-      this.identity.getPublic()
-    ])
+    await this.identity.getPublic()
   }
 
   public stall = async ({ buffer }: {
