@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.8.0-rc.9"></a>
+# [1.8.0-rc.9](https://github.com/tradle/serverless/compare/v1.8.0-rc.8...v1.8.0-rc.9) (2018-09-26)
+
+
+### Bug Fixes
+
+* remove unneeded async task ([2d6540a](https://github.com/tradle/serverless/commit/2d6540a))
+
+
+
 <a name="1.8.0-rc.8"></a>
 # [1.8.0-rc.8](https://github.com/tradle/serverless/compare/v1.8.0-rc.7...v1.8.0-rc.8) (2018-09-26)
 
