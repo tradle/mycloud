@@ -25,7 +25,7 @@ import {
   IPluginLifecycleMethods
 } from '../types'
 
-import { getParsedFormStubs, hasPropertiesChanged, getStatusMessageForCheck } from '../utils'
+import { getLatestForms, getStatusMessageForCheck, doesCheckExist } from '../utils'
 
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
@@ -35,7 +35,7 @@ const DOCUMENT_CHECKER_CHECK = 'tradle.documentChecker.Check'
 export const TEST_SERVER_URL = 'https://www.krefstage.nl/wsDocumentScan/wsDocumentScan.dll/wsdl/IwsDocumentScan'
 export const PROD_SERVER_URL = 'https://www.keesingauthentiscan.com/wsDocumentScan/wsDocumentScan.dll/wsdl/IwsDocumentScan'
 
-const DISPLAY_NAME = 'Document Checker'
+const PROVIDER = 'Document Checker'
 const DAY = 24 * 60 * 3600
 
 interface IDocumentCheck {
@@ -51,7 +51,7 @@ interface IDocumentCheckerConf {
   test?: boolean
   account: string
   username: string
-  bearer: string
+  bearer?: string
 }
 
 interface IUploadImageResult {
@@ -471,7 +471,7 @@ export class DocumentCheckerAPI {
     let resource:any = {
       [TYPE]: DOCUMENT_CHECKER_CHECK,
       status: status,
-      provider: DISPLAY_NAME,
+      provider: PROVIDER,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: Date.now(), //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects: 'document validity',
@@ -489,12 +489,12 @@ debugger
         resource.docId = docId
     }
 
-    this.logger.debug(`Creating ${DISPLAY_NAME} check for ${form.firstName}`);
+    this.logger.debug(`Creating ${PROVIDER} check for ${form.firstName}`);
     const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
         .set(resource)
         .signAndSave()
     // const check = await this.bot.signAndSave(resource)
-    this.logger.debug(`Created ${DISPLAY_NAME} check for: ${form.firstName}`);
+    this.logger.debug(`Created ${PROVIDER} check for: ${form.firstName}`);
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {
@@ -502,7 +502,7 @@ debugger
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: {
         [TYPE]: 'tradle.API',
-        name: DISPLAY_NAME
+        name: PROVIDER
       },
       aspect: 'document validity',
       reference: [{ queryId: 'report:' + rawData.id }],
@@ -552,16 +552,19 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
 
       if (!application) return
 
-      const formStub = getParsedFormStubs(application)
+      if (await doesCheckExist({bot, type: DOCUMENT_CHECKER_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+        return
+
+      const formStub = getLatestForms(application)
         .find(form => form.type === PHOTO_ID)
       if (!formStub)
         return
 
       const form = await bot.getResource(formStub)
       // debugger
-      let changed = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck: ['scan'] })
-      if (changed)
-        await documentChecker.uploadImages({form, application, user})
+      // let changed = await hasPropertiesChanged({ resource: form, bot, propertiesToCheck: ['scan'] })
+      // if (changed)
+      await documentChecker.uploadImages({form, application, user})
       // let { checkId, status } = result
        // documentChecker.createCheck({ application, status, form, checkId })
     }
