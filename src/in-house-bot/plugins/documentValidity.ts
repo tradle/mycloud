@@ -13,7 +13,7 @@ import {
   Applications
 } from '../types'
 
-import { getStatusMessageForCheck, toISODateString } from '../utils'
+import { getStatusMessageForCheck, toISODateString, doesCheckExist } from '../utils'
 
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
@@ -53,6 +53,23 @@ class DocumentValidityAPI {
 
   public async checkDocument({user, payload, application}) {
     let { documentType, country, dateOfExpiry, dateOfBirth, scanJson, scan, issuer, nationality } = payload
+debugger
+    if (await doesCheckExist({bot: this.bot, type: DOCUMENT_VALIDITY, eq: {form: payload._link}, application, provider: PROVIDER}))
+      return
+
+    // const { items } = await this.bot.db.find({
+    //   filter: {
+    //     EQ: {
+    //       [TYPE]: DOCUMENT_VALIDITY,
+    //       'application._permalink': application._permalink,
+    //       'provider': PROVIDER,
+    //       'form._link': payload._link
+    //     }
+    //   }
+    // })
+    // if (items.length)
+    //   return
+
 
     let isPassport = documentType.id.indexOf('_passport') !== -1
     debugger

@@ -17,9 +17,8 @@ import {
   ValidatePluginConf,
 } from '../types'
 import {
-  getParsedFormStubs,
   getStatusMessageForCheck,
-  hasPropertiesChanged,
+  doesCheckExist,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
 } from '../utils'
@@ -95,7 +94,9 @@ export class TruefaceAPI {
 //       return
 //     return resource
 //   }
-  public prepCheck = async(payload:ITradleObject) => {
+  public prepCheck = async(payload:ITradleObject, application) => {
+    if (await doesCheckExist({bot: this.bot, type: TRUEFACE_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+      return
     let payloadType = payload[TYPE]
     const props = this.bot.models[payloadType].properties
     let propToCheck
@@ -229,7 +230,10 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = (components, pluginOpts) 
       if (products[productId].indexOf(payloadType) === -1)
         return
 
-      let { propToCheck, resource } = await trueface.prepCheck(payload)
+      let result = await trueface.prepCheck(payload, application)
+      if (!result)
+        return
+      let { propToCheck, resource } = result
       if (!propToCheck)
         return
 

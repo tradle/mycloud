@@ -444,6 +444,32 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
     return {error: `no criteria to run ${plugin} checks`}
   return runCheck  &&  {resource: r}
 }
+export const doesCheckExist = async({bot, type, eq, application, provider}) => {
+debugger
+  let eqClause = {
+    [TYPE]: type,
+    'application._permalink': application._permalink,
+    'provider': provider,
+  }
+  if (eq) {
+    for (let p in eq)
+      eqClause[`${p}._link`] = eq[p]
+  }
+  const { items } = await bot.db.find({
+    limit: 1,
+    orderBy: {
+      property: 'dateChecked',
+      desc: true
+    },
+    filter: {
+      EQ: eqClause,
+      NEQ: {
+       'status.id': 'tradle.Status_error'
+      }
+    }
+  })
+  return items.length
+}
 
 export const  hasPropertiesChanged = async({resource, bot, propertiesToCheck}:  {
   resource: ITradleObject,

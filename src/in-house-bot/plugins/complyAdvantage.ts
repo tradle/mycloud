@@ -15,7 +15,7 @@ import {
   Applications
 } from '../types'
 
-import { getCheckParameters, getStatusMessageForCheck, hasPropertiesChanged } from '../utils'
+import { getCheckParameters, getStatusMessageForCheck, doesCheckExist } from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -26,7 +26,7 @@ const PERSONAL_INFO = 'tradle.PersonalInfo'
 const SANCTIONS_CHECK = 'tradle.SanctionsCheck'
 const ASPECTS = 'sanctions screening'
 
-const DISPLAY_NAME = 'Comply Advantage'
+const PROVIDER = 'Comply Advantage'
 const PERSON_FORMS = [
   PHOTO_ID,
   PERSONAL_INFO
@@ -95,13 +95,27 @@ class ComplyAdvantageAPI {
       propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth']
     else
       propertiesToCheck = ['companyName', 'registrationDate']
-    let changed = await hasPropertiesChanged({resource: payload, bot: this.bot, propertiesToCheck})
-    if (!changed)
+
+    if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
       return
+// debugger
+//     const { items } = await this.bot.db.find({
+//       filter: {
+//         EQ: {
+//           [TYPE]: SANCTIONS_CHECK,
+//           'application._permalink': application._permalink,
+//           'provider': PROVIDER,
+//           'form._link': payload._link
+//         }
+//       }
+//     })
+//     if (items.length)
+//       return
+
     let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
 
     // Check if the check parameters changed
-    let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot: this.bot, defaultPropMap: defaultMap, map})
+    let { resource, error } = await getCheckParameters({plugin: PROVIDER, resource: payload, bot: this.bot, defaultPropMap: defaultMap, map})
     if (!resource) {
       if (error)
         this.logger.debug(error)
@@ -235,10 +249,11 @@ class ComplyAdvantageAPI {
       date = Date.parse(dateStr) - (new Date().getTimezoneOffset() * 60 * 1000)
     else
       date = new Date().getTime()
+debugger
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
-      provider: 'Comply Advantage',
+      provider: PROVIDER,
       application: buildResourceStub({resource: application, models: this.bot.models}),
       dateChecked: date, //rawData.updated_at ? new Date(rawData.updated_at).getTime() : new Date().getTime(),
       aspects: ASPECTS,
@@ -323,7 +338,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
 
       // let isPerson = criteria  &&  criteria.entity_type === 'person' || payload[TYPE] === PHOTO_ID
       // let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
-      // let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap: defaultMap, map})
+      // let { resource, error } = await getCheckParameters({plugin: PROVIDER, resource: payload, bot, defaultPropMap: defaultMap, map})
       // if (error) {
       //   logger.debug(error)
       //   return

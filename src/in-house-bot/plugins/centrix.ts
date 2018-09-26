@@ -13,7 +13,7 @@ try {
   createCentrixClient = require('@tradle/centrix')
 } catch (err) {}
 
-import { getParsedFormStubs, hasPropertiesChanged, getStatusMessageForCheck } from '../utils'
+import { getLatestForms, getStatusMessageForCheck, doesCheckExist } from '../utils'
 import { splitCamelCase } from '../../string-utils'
 import {
   Bot,
@@ -262,7 +262,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
 
 async function getCentrixData ({ application, bot }: {application: IPBApp, bot: Bot}) {
   if (!application) return
-  const formStub = getParsedFormStubs(application)
+  const formStub = getLatestForms(application)
     .find(form => form.type === PHOTO_ID)
 
   if (!formStub) return
@@ -280,9 +280,20 @@ async function getCentrixData ({ application, bot }: {application: IPBApp, bot: 
   let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber } = form
   let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
 
-  let changed = await hasPropertiesChanged({resource: form, bot, propertiesToCheck})
-  if (!changed)
+  if (await doesCheckExist({bot, type: CENTRIX_CHECK, eq: {form: form._link}, application, provider: CENTRIX_NAME}))
     return
+  // const { items } = await bot.db.find({
+  //   filter: {
+  //     EQ: {
+  //       [TYPE]: CENTRIX_CHECK,
+  //       'application._permalink': application._permalink,
+  //       'provider': CENTRIX_NAME,
+  //       'form._link': formStub.link
+  //     }
+  //   }
+  // })
+  // if (items.length)
+  //   return
   if (docType === DOCUMENT_TYPES.passport) {
     // trim trailing angle brackets
     documentNumber = documentNumber.replace(/[<]+$/g, '')

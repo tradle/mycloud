@@ -19,6 +19,7 @@ import {
 
 import {
   getLatestForms,
+  doesCheckExist,
   getStatusMessageForCheck,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
@@ -72,19 +73,22 @@ export class RankOneCheckAPI {
       // not enough info
       return
     }
-    const { items } = await this.bot.db.find({
-      filter: {
-        EQ: {
-          [TYPE]: FACIAL_RECOGNITION,
-          'application._permalink': application._permalink,
-          'provider': PROVIDER,
-          'selfie._link': selfieStub.link,
-          'photoID._link': photoIDStub.link,
-        }
-      }
-    })
-    if (items.length)
+    if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
       return
+
+    // const { items } = await this.bot.db.find({
+    //   filter: {
+    //     EQ: {
+    //       [TYPE]: FACIAL_RECOGNITION,
+    //       'application._permalink': application._permalink,
+    //       'provider': PROVIDER,
+    //       'selfie._link': selfieStub.link,
+    //       'photoID._link': photoIDStub.link,
+    //     }
+    //   }
+    // })
+    // if (items.length)
+    //   return
 
     this.logger.debug('Face recognition both selfie and photoId ready');
 
