@@ -6,7 +6,7 @@ import validateResource from '@tradle/validate-resource'
 const { sanitize } = validateResource.utils
 import constants from '@tradle/constants'
 import { Bot, Logger, CreatePlugin, Applications } from '../types'
-import { toISODateString, getCheckParameters, getStatusMessageForCheck } from '../utils'
+import { toISODateString, getCheckParameters, getStatusMessageForCheck, doesCheckExist } from '../utils'
 
 const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
@@ -144,7 +144,7 @@ class OpenCorporatesAPI {
       status:  !message  &&  hits.length === 1 && 'pass' || 'fail',
       provider: OPEN_CORPORATES,
       application: buildResourceStub({resource: application, models: this.bot.models}),
-      dateChecked: new Date().getTime(),
+      dateChecked: Date.now(),
       shareUrl: url,
       aspects: 'company existence',
       form
@@ -213,6 +213,8 @@ export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { logger
         logger.debug('not running check as form is missing "country"')
         return
       }
+      if (await doesCheckExist({bot, type: CORPORATION_EXISTS, eq: {form: payload._link}, application, provider: OPEN_CORPORATES}))
+        return
 
       let { resource, error } = await getCheckParameters({plugin: DISPLAY_NAME, resource: payload, bot, defaultPropMap, map: propertyMap  &&  propertyMap[payload[TYPE]]})
       // Check if the check parameters changed
