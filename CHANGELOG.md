@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.8.0-rc.10"></a>
+# [1.8.0-rc.10](https://github.com/tradle/serverless/compare/v1.8.0-rc.9...v1.8.0-rc.10) (2018-09-26)
+
+
+### Bug Fixes
+
+* add safety check to plugin loader ([3b51807](https://github.com/tradle/serverless/commit/3b51807))
+* missed await ([2009c52](https://github.com/tradle/serverless/commit/2009c52))
+
+
+
 <a name="1.8.0-rc.9"></a>
 # [1.8.0-rc.9](https://github.com/tradle/serverless/compare/v1.8.0-rc.8...v1.8.0-rc.9) (2018-09-26)
 
