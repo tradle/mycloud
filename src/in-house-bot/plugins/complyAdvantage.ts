@@ -326,7 +326,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, productsAPI, applications
 
       if (!isPersonForm(payload)  &&  payload[TYPE] !== LEGAL_ENTITY)
         return
-      complyAdvantage.getAndProcessData({user, pConf, application, propertyMap, payload})
+      await complyAdvantage.getAndProcessData({user, pConf, application, propertyMap, payload})
 
       // // let propertyMap = products[productId].propertyMap
       // let criteria = pConf.filter
