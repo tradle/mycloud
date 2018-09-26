@@ -264,10 +264,21 @@ export const loadComponentsAndPlugins = ({
     }
 
     usedPlugins.push(name)
-    const { api, plugin } = Plugins.get(name).createPlugin(components, {
-      conf: pConf,
-      logger: logger.sub(`plugin-${name}`)
-    })
+    let api
+    let plugin
+    try {
+      ({ api, plugin } = Plugins.get(name).createPlugin(components, {
+        conf: pConf,
+        logger: logger.sub(`plugin-${name}`)
+      }))
+    } catch (err) {
+      logger.error('failed to load plugin', {
+        name,
+        error: Errors.export(err),
+      })
+
+      return
+    }
 
     if (api) {
       components[componentName || name] = api
