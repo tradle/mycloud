@@ -233,7 +233,7 @@ export const createPlugin:CreatePlugin<void> = ({ bot, applications }, { logger 
       if (!application  || payload[TYPE] !== PHOTO_ID)
         return
 
-      documentValidity.checkDocument({user, application, payload})
+      await documentValidity.checkDocument({user, application, payload})
     }
   }
 

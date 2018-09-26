@@ -179,6 +179,7 @@ export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
 
   public uploadImages = async (opts: IUploadImagesOpts) => {
     const { idFront, idBack, checkId } = opts
+    debugger
     let checkIDDocument
     if (idBack)
       checkIDDocument = this.checkIDDocument2
@@ -347,7 +348,7 @@ export class DocumentCheckerAPI {
 
   public uploadImages = async ({form, application, user}) => {
     await this.bot.resolveEmbeds(form)
-// debugger
+debugger
     const buf = DataURI.decode(form.scan.url)
     let checkId = this.getCheckId()
     const { status, message, rawData } = await this.client.uploadImages({
