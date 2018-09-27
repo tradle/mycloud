@@ -1,4 +1,6 @@
 // @ts-ignore
+import fs from 'fs'
+import path from 'path'
 import Promise from 'bluebird'
 import { promisify } from 'util'
 
@@ -34,6 +36,11 @@ const DOCUMENT_CHECKER_CHECK = 'tradle.documentChecker.Check'
 
 export const TEST_SERVER_URL = 'https://www.krefstage.nl/wsDocumentScan/wsDocumentScan.dll/wsdl/IwsDocumentScan'
 export const PROD_SERVER_URL = 'https://www.keesingauthentiscan.com/wsDocumentScan/wsDocumentScan.dll/wsdl/IwsDocumentScan'
+
+const WSDL = {
+  test: path.resolve(__dirname, '../../../assets/in-house-bot/wsdl/document-checker-test.wsdl'),
+  prod: path.resolve(__dirname, '../../../assets/in-house-bot/wsdl/document-checker-prod.wsdl'),
+}
 
 const PROVIDER = 'Document Checker'
 const DAY = 24 * 60 * 3600
@@ -116,6 +123,7 @@ type DocumentCheckerSoapClientCredentials = {
 type DocumentCheckerSoapClientOpts = {
   url: string
   credentials: DocumentCheckerSoapClientCredentials
+  test?: boolean
 }
 
 export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
@@ -131,8 +139,10 @@ export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
   // private RequestParams: IRequestParams
   // private IDDocImage: string
   // private IDDocImage2: string
-  constructor({ url, credentials }: DocumentCheckerSoapClientOpts) {
-    const getClient = soap.createClientAsync(url).then(client => Promise.promisifyAll(client))
+  constructor({ url, credentials, test }: DocumentCheckerSoapClientOpts) {
+    const getClient = soap.createClientAsync(test ? WSDL.test : WSDL.prod)
+      .then(client => Promise.promisifyAll(client))
+
     this.url = url
     this.credentials = credentials
     const parser = new xml2js.Parser({ explicitArray: false })
@@ -162,6 +172,7 @@ export class DocumentCheckerSoapClient implements IDocumentCheckerClient {
     //   throw err
     // })
   }
+
   public deleteImages = async (docId: string) => {
     let params: any = {
       Accountname: this.credentials.account,
@@ -542,7 +553,8 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
   const url = test ? TEST_SERVER_URL : PROD_SERVER_URL
   const client = new DocumentCheckerSoapClient({
     url,
-    credentials: { account, username }
+    credentials: { account, username },
+    test,
   })
 
   const documentChecker = new DocumentCheckerAPI({ bot, applications, conf, client, logger })

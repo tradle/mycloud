@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="utf-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:xs="http://www.w3.org/2001/XMLSchema" name="IwsDocumentScanservice" targetNamespace="http://tempuri.org/" xmlns:tns="http://tempuri.org/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:ns1="urn:wsDocumentScanIntf">
+  <types>
+    <xs:schema targetNamespace="urn:wsDocumentScanIntf" xmlns="urn:wsDocumentScanIntf">
+      <xs:complexType name="TRequestParams">
+        <xs:sequence>
+          <xs:element name="Accountname" type="xs:string"/>
+          <xs:element name="Username" type="xs:string"/>
+          <xs:element name="AccountCountry" type="xs:string"/>
+          <xs:element name="Number" type="xs:string"/>
+          <xs:element name="CheckKMAR" type="xs:boolean"/>
+          <xs:element name="CheckVIS" type="xs:boolean"/>
+          <xs:element name="CheckNrOfPages" type="xs:boolean"/>
+          <xs:element name="CheckBWCopy" type="xs:boolean"/>
+        </xs:sequence>
+      </xs:complexType>
+    </xs:schema>
+  </types>
+  <message name="checkIDDocument0Request">
+    <part name="RequestParams" type="ns1:TRequestParams"/>
+    <part name="IDDocImage" type="xs:string"/>
+  </message>
+  <message name="checkIDDocument0Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="checkIDDocument21Request">
+    <part name="RequestParams" type="ns1:TRequestParams"/>
+    <part name="IDDocImage" type="xs:string"/>
+    <part name="IDDocImage2" type="xs:string"/>
+  </message>
+  <message name="checkIDDocument21Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="checkIDDocumentEx2Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="IDDocImage" type="xs:string"/>
+    <part name="IDDocImage2" type="xs:string"/>
+    <part name="CroppedImages" type="xs:boolean"/>
+    <part name="CaptureSource" type="xs:string"/>
+    <part name="ImageExpectedSize" type="xs:string"/>
+  </message>
+  <message name="checkIDDocumentEx2Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="getCheckResponse3Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+  </message>
+  <message name="getCheckResponse3Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="getCheckResponseCustom4Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+    <part name="IncludeFields" type="xs:string"/>
+  </message>
+  <message name="getCheckResponseCustom4Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="getPDFReport5Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+    <part name="ReportShort" type="xs:boolean"/>
+  </message>
+  <message name="getPDFReport5Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="getDocList6Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Offset" type="xs:int"/>
+  </message>
+  <message name="getDocList6Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="getImageList7Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+  </message>
+  <message name="getImageList7Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="getImage8Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+    <part name="SeqNr" type="xs:int"/>
+  </message>
+  <message name="getImage8Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="deleteDocument9Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+  </message>
+  <message name="deleteDocument9Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="faceMatch10Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+    <part name="Number" type="xs:string"/>
+    <part name="CapturedFaceImage" type="xs:string"/>
+  </message>
+  <message name="faceMatch10Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="getToken11Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+  </message>
+  <message name="getToken11Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="addAttachment12Request">
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+    <part name="IDDocImage" type="xs:string"/>
+  </message>
+  <message name="addAttachment12Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="importKvml13Request">
+    <part name="AuthenticationKey" type="xs:string"/>
+    <part name="AccountUsername" type="xs:string"/>
+    <part name="Kvml" type="xs:string"/>
+    <part name="HelpdeskRemarks" type="xs:string"/>
+  </message>
+  <message name="importKvml13Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="importKvmlTX14Request">
+    <part name="AuthenticationKey" type="xs:string"/>
+    <part name="AccountUsername" type="xs:string"/>
+    <part name="Kvml" type="xs:string"/>
+    <part name="HelpdeskRemarks" type="xs:string"/>
+  </message>
+  <message name="importKvmlTX14Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDcheckIDDocument15Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="RequestParams" type="ns1:TRequestParams"/>
+    <part name="IDDocImage" type="xs:string"/>
+  </message>
+  <message name="DIDcheckIDDocument15Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDcheckIDDocument216Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="RequestParams" type="ns1:TRequestParams"/>
+    <part name="IDDocImage" type="xs:string"/>
+    <part name="IDDocImage2" type="xs:string"/>
+  </message>
+  <message name="DIDcheckIDDocument216Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDcheckIDDocumentEx17Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="IDDocImage" type="xs:string"/>
+    <part name="IDDocImage2" type="xs:string"/>
+  </message>
+  <message name="DIDcheckIDDocumentEx17Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDgetCheckResponse18Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+  </message>
+  <message name="DIDgetCheckResponse18Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDgetPDFReport19Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+    <part name="ReportShort" type="xs:boolean"/>
+  </message>
+  <message name="DIDgetPDFReport19Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDgetDocList20Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Offset" type="xs:int"/>
+  </message>
+  <message name="DIDgetDocList20Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDgetImageList21Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="Number" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+  </message>
+  <message name="DIDgetImageList21Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDgetImage22Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+    <part name="SeqNr" type="xs:int"/>
+  </message>
+  <message name="DIDgetImage22Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDdeleteDocument23Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+    <part name="DocID" type="xs:int"/>
+  </message>
+  <message name="DIDdeleteDocument23Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <message name="DIDgetSettings24Request">
+    <part name="DeviceID" type="xs:string"/>
+    <part name="Accountname" type="xs:string"/>
+    <part name="Username" type="xs:string"/>
+  </message>
+  <message name="DIDgetSettings24Response">
+    <part name="return" type="xs:string"/>
+  </message>
+  <portType name="IwsDocumentScan">
+    <operation name="checkIDDocument">
+      <input message="tns:checkIDDocument0Request"/>
+      <output message="tns:checkIDDocument0Response"/>
+    </operation>
+    <operation name="checkIDDocument2">
+      <input message="tns:checkIDDocument21Request"/>
+      <output message="tns:checkIDDocument21Response"/>
+    </operation>
+    <operation name="checkIDDocumentEx">
+      <input message="tns:checkIDDocumentEx2Request"/>
+      <output message="tns:checkIDDocumentEx2Response"/>
+    </operation>
+    <operation name="getCheckResponse">
+      <input message="tns:getCheckResponse3Request"/>
+      <output message="tns:getCheckResponse3Response"/>
+    </operation>
+    <operation name="getCheckResponseCustom">
+      <input message="tns:getCheckResponseCustom4Request"/>
+      <output message="tns:getCheckResponseCustom4Response"/>
+    </operation>
+    <operation name="getPDFReport">
+      <input message="tns:getPDFReport5Request"/>
+      <output message="tns:getPDFReport5Response"/>
+    </operation>
+    <operation name="getDocList">
+      <input message="tns:getDocList6Request"/>
+      <output message="tns:getDocList6Response"/>
+    </operation>
+    <operation name="getImageList">
+      <input message="tns:getImageList7Request"/>
+      <output message="tns:getImageList7Response"/>
+    </operation>
+    <operation name="getImage">
+      <input message="tns:getImage8Request"/>
+      <output message="tns:getImage8Response"/>
+    </operation>
+    <operation name="deleteDocument">
+      <input message="tns:deleteDocument9Request"/>
+      <output message="tns:deleteDocument9Response"/>
+    </operation>
+    <operation name="faceMatch">
+      <input message="tns:faceMatch10Request"/>
+      <output message="tns:faceMatch10Response"/>
+    </operation>
+    <operation name="getToken">
+      <input message="tns:getToken11Request"/>
+      <output message="tns:getToken11Response"/>
+    </operation>
+    <operation name="addAttachment">
+      <input message="tns:addAttachment12Request"/>
+      <output message="tns:addAttachment12Response"/>
+    </operation>
+    <operation name="importKvml">
+      <input message="tns:importKvml13Request"/>
+      <output message="tns:importKvml13Response"/>
+    </operation>
+    <operation name="importKvmlTX">
+      <input message="tns:importKvmlTX14Request"/>
+      <output message="tns:importKvmlTX14Response"/>
+    </operation>
+    <operation name="DIDcheckIDDocument">
+      <input message="tns:DIDcheckIDDocument15Request"/>
+      <output message="tns:DIDcheckIDDocument15Response"/>
+    </operation>
+    <operation name="DIDcheckIDDocument2">
+      <input message="tns:DIDcheckIDDocument216Request"/>
+      <output message="tns:DIDcheckIDDocument216Response"/>
+    </operation>
+    <operation name="DIDcheckIDDocumentEx">
+      <input message="tns:DIDcheckIDDocumentEx17Request"/>
+      <output message="tns:DIDcheckIDDocumentEx17Response"/>
+    </operation>
+    <operation name="DIDgetCheckResponse">
+      <input message="tns:DIDgetCheckResponse18Request"/>
+      <output message="tns:DIDgetCheckResponse18Response"/>
+    </operation>
+    <operation name="DIDgetPDFReport">
+      <input message="tns:DIDgetPDFReport19Request"/>
+      <output message="tns:DIDgetPDFReport19Response"/>
+    </operation>
+    <operation name="DIDgetDocList">
+      <input message="tns:DIDgetDocList20Request"/>
+      <output message="tns:DIDgetDocList20Response"/>
+    </operation>
+    <operation name="DIDgetImageList">
+      <input message="tns:DIDgetImageList21Request"/>
+      <output message="tns:DIDgetImageList21Response"/>
+    </operation>
+    <operation name="DIDgetImage">
+      <input message="tns:DIDgetImage22Request"/>
+      <output message="tns:DIDgetImage22Response"/>
+    </operation>
+    <operation name="DIDdeleteDocument">
+      <input message="tns:DIDdeleteDocument23Request"/>
+      <output message="tns:DIDdeleteDocument23Response"/>
+    </operation>
+    <operation name="DIDgetSettings">
+      <input message="tns:DIDgetSettings24Request"/>
+      <output message="tns:DIDgetSettings24Response"/>
+    </operation>
+  </portType>
+  <binding name="IwsDocumentScanbinding" type="tns:IwsDocumentScan">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="checkIDDocument">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#checkIDDocument" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="checkIDDocument2">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#checkIDDocument2" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="checkIDDocumentEx">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#checkIDDocumentEx" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="getCheckResponse">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#getCheckResponse" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="getCheckResponseCustom">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#getCheckResponseCustom" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="getPDFReport">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#getPDFReport" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="getDocList">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#getDocList" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="getImageList">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#getImageList" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="getImage">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#getImage" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="deleteDocument">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#deleteDocument" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="faceMatch">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#faceMatch" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="getToken">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#getToken" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="addAttachment">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#addAttachment" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="importKvml">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#importKvml" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="importKvmlTX">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#importKvmlTX" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDcheckIDDocument">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDcheckIDDocument" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDcheckIDDocument2">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDcheckIDDocument2" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDcheckIDDocumentEx">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDcheckIDDocumentEx" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDgetCheckResponse">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDgetCheckResponse" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDgetPDFReport">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDgetPDFReport" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDgetDocList">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDgetDocList" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDgetImageList">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDgetImageList" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDgetImage">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDgetImage" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDdeleteDocument">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDdeleteDocument" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+    <operation name="DIDgetSettings">
+      <soap:operation soapAction="urn:wsDocumentScanIntf-IwsDocumentScan#DIDgetSettings" style="rpc"/>
+      <input>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </input>
+      <output>
+        <soap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="urn:wsDocumentScanIntf-IwsDocumentScan"/>
+      </output>
+    </operation>
+  </binding>
+  <service name="IwsDocumentScanservice">
+    <port name="IwsDocumentScanPort" binding="tns:IwsDocumentScanbinding">
+      <soap:address location="https://www.krefstage.nl/wsDocumentScan/wsDocumentScan.dll/soap/IwsDocumentScan"/>
+    </port>
+  </service>
+</definitions>
+
