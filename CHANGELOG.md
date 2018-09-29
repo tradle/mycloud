@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.8.0-rc.12"></a>
+# [1.8.0-rc.12](https://github.com/tradle/serverless/compare/v1.8.0-rc.11...v1.8.0-rc.12) (2018-09-29)
+
+
+### Bug Fixes
+
+* disallow removal of custom models ([9e62121](https://github.com/tradle/serverless/commit/9e62121))
+
+
+
 <a name="1.8.0-rc.11"></a>
 # [1.8.0-rc.11](https://github.com/tradle/serverless/compare/v1.8.0-rc.9...v1.8.0-rc.11) (2018-09-27)
 
