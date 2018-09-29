@@ -11,24 +11,29 @@ import {
 
 let bot
 
-const createTestBot = (opts:Partial<IBotOpts>={}) => _createBot({
+const createBotWithOpts = opts => _createBot({
+  ...opts,
+  blockchain: opts.blockchain || opts.env.BLOCKCHAIN,
+})
+
+const createTestBot = (opts:Partial<IBotOpts>={}) => createBotWithOpts({
   ...opts,
   env: opts.env || require('./test/env').createTestEnv()
 })
 
-const createRemoteBot = (opts:Partial<IBotOpts>={}) => _createBot({
+const createRemoteBot = (opts:Partial<IBotOpts>={}) => createBotWithOpts({
   ...opts,
   env: opts.env || require('./cli/remote-service-map')
 })
 
 const createBot = (opts:Partial<IBotOpts>={}) => {
-  if (opts.env) return _createBot(opts)
+  if (opts.env) return createBotWithOpts(opts)
   if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
     require('./test/env').install()
     return createTestBot(opts)
   }
 
-  return _createBot(opts)
+  return createBotWithOpts(opts)
 }
 
 const exp = {

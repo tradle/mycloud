@@ -1,8 +1,6 @@
-import { createBot } from '../../../'
-import { configureLambda } from '../..'
-import * as LambdaEvents from '../../lambda-events'
+import { createMiddleware } from '../../../lambda/inbox'
+import { fromHTTP } from '../../lambda'
+import { MESSAGE } from '../../lambda-events'
 
-const bot = createBot({ ready: false })
-const lambda = bot.lambdas.inbox()
-configureLambda({ lambda, event: LambdaEvents.MESSAGE })
+const lambda = fromHTTP({ event: MESSAGE })
 export const handler = lambda.handler

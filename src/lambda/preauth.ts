@@ -2,23 +2,17 @@ import cors from 'kcors'
 import compose from 'koa-compose'
 import { post } from '../middleware/noop-route'
 import { bodyParser } from '../middleware/body-parser'
-import { Lambda } from '../types'
-import { fromHTTP } from '../lambda'
+import { Lambda, ILambdaExecutionContext } from '../types'
 import { getRequestIps } from '../utils'
 
-export const createLambda = (opts) => {
-  const lambda = fromHTTP(opts)
-  return lambda.use(createMiddleware(lambda, opts))
-}
-
-export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { bot } = lambda
-  const { auth, serviceMap } = bot
+export const createMiddleware = (lambda:Lambda) => {
   return compose([
     post(),
     cors(),
     bodyParser(),
-    async (ctx:any, next) => {
+    async (ctx: ILambdaExecutionContext, next) => {
+      const { bot } = ctx.components
+      const { auth, serviceMap } = bot
       const ips = getRequestIps(ctx.request)
       const { clientId, identity } = ctx.event
       const getEndpoint = bot.getEndpointInfo()

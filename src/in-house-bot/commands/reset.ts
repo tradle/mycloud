@@ -15,7 +15,12 @@ export const command:ICommand = {
 
     const conf = createConf({ bot })
     const yml = bot.stackUtils.serverlessYmlWithResolvedMappings
-    await conf.initInfra(yml.resources.Resources.Initialize.Properties, { forceRecreateIdentity: true })
+    await conf.initInfra({
+      bot,
+      deploymentConf: yml.resources.Resources.Initialize.Properties,
+      forceRecreateIdentity: true
+    })
+
     await bot.forceReinitializeContainers()
   }
 }

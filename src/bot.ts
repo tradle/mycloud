@@ -69,6 +69,7 @@ import {
   ILambdaExecutionContext,
   VersionInfo,
   IDebug,
+  IBlockchainIdentifier,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -112,13 +113,13 @@ import constants from './constants'
 
 const { addLinks } = crypto
 
-type LambdaImplMap = {
-  [name:string]: ILambdaImpl
-}
+// type LambdaImplMap = {
+//   [name:string]: ILambdaImpl
+// }
 
-type LambdaMap = {
-  [name:string]: LambdaCreator
-}
+// type LambdaMap = {
+//   [name:string]: LambdaCreator
+// }
 
 type GetResourceOpts = {
   backlinks?: boolean|string[]
@@ -131,25 +132,25 @@ type SendInput = {
   link?: string
 }
 
-export const createBot = (opts:IBotOpts={}):Bot => new Bot(opts)
+export const createBot = (opts:IBotOpts):Bot => new Bot(opts)
 
 const COUNTERPARTY_CONCURRENCY = 5
 const CREDSTASH_ALGORITHM = 'aes-256-gcm'
 
 // this is not good TypeScript,
 // we lose all type checking when exporting like this
-const lambdaCreators:LambdaImplMap = {
-  get onmessage() { return require('./lambda/onmessage') },
-  get onresourcestream() { return require('./lambda/onresourcestream') },
-  get oninit() { return require('./lambda/oninit') },
-  get oniotlifecycle() { return require('./lambda/oniotlifecycle') },
-  get info() { return require('./lambda/info') },
-  get preauth() { return require('./lambda/preauth') },
-  get auth() { return require('./lambda/auth') },
-  get inbox() { return require('./lambda/inbox') },
-  // get warmup() { return require('./lambda/warmup') },
-  // get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
-}
+// const lambdaCreators:LambdaImplMap = {
+//   get onmessage() { return require('./lambda/onmessage') },
+//   get onresourcestream() { return require('./lambda/onresourcestream') },
+//   get oninit() { return require('./lambda/oninit') },
+//   get oniotlifecycle() { return require('./lambda/oniotlifecycle') },
+//   get info() { return require('./lambda/info') },
+//   get preauth() { return require('./lambda/preauth') },
+//   get auth() { return require('./lambda/auth') },
+//   get inbox() { return require('./lambda/inbox') },
+//   // get warmup() { return require('./lambda/warmup') },
+//   // get reinitializeContainers() { return require('./lambda/reinitialize-containers') },
+// }
 
 // const middlewareCreators:MiddlewareMap = {
 //   get bodyParser() { return require('./middleware/body-parser') }
@@ -220,7 +221,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get isTesting() { return this.env.IS_TESTING }
   public get isLocal() { return this.env.IS_LOCAL }
   public get isEmulated() { return this.env.IS_EMULATED }
-  public get resourcePrefix() { return this.env.SERVERLESS_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
 
@@ -230,8 +230,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   public get networks () { return networks }
   public get network () {
-    const { BLOCKCHAIN } = this.env
-    return this.networks[BLOCKCHAIN.blockchain][BLOCKCHAIN.networkName]
+    const { blockchain, networkName } = this._blockchainIdentifier
+    return this.networks[blockchain][networkName]
   }
 
   public get constants () { return constants }
@@ -255,14 +255,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public buildStub: (resource: ITradleObject) => any
   public validate: (resource: ITradleObject) => any
 
-  // public hook = (event:string, payload:any) => {
-  //   if (this.isTesting && event.startsWith('async:')) {
-  //     event = event.slice(6)
-  //   }
-
-  //   return this.middleware.hook(event, payload)
-  // }
-
   public get hook(): HooksHookFn { return this.middleware.hook }
   public get hookSimple(): HooksHookFn { return this.middleware.hookSimple }
   public get fire(): HooksFireFn { return this.middleware.fire }
@@ -275,7 +267,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public onreadseal = handler => this.middleware.hookSimple(EventTopics.seal.read.sync, handler)
   public onwroteseal = handler => this.middleware.hookSimple(EventTopics.seal.wrote.sync, handler)
 
-  public lambdas: LambdaMap
+  // public lambdas: LambdaMap
   public get defaultEncryptionKey():string {
     return this.serviceMap.Key.DefaultEncryption
   }
@@ -289,6 +281,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   private middleware: MiddlewareContainer<IBotMiddlewareContext>
   private _resourceModuleStore: IResourcePersister
   private _graphql:IGraphqlAPI
+  public _blockchainIdentifier: IBlockchainIdentifier
 
   constructor(opts: IBotOpts) {
     super()
@@ -296,14 +289,16 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const bot = this
 
     let {
-      env=new Env(process.env),
+      env,
       users,
-      ready = true
+      ready = true,
     } = opts
 
     if (!(env instanceof Env)) {
       env = new Env(env)
     }
+
+    this._blockchainIdentifier = opts.blockchain
 
     bot.env = env
     bot.version = {
@@ -332,7 +327,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       logger: logger.sub('seals'),
     })
 
-    if (env.BLOCKCHAIN.blockchain === 'corda') {
+    if (opts.blockchain.blockchain === 'corda') {
       bot.define('seals', './corda-seals', ({ Seals }) => new Seals(getSealsOpts()))
       bot.define('blockchain', './corda-seals', ({ Blockchain }) => new Blockchain({
         env,
@@ -621,14 +616,14 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       ...this.iot.endpointInfo
     }
 
-    this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
-      map[name] = opts => lambdaCreators[name].createLambda({
-        ...opts,
-        bot: this
-      })
+    // this.lambdas = Object.keys(lambdaCreators).reduce((map, name) => {
+    //   map[name] = opts => lambdaCreators[name].createLambda({
+    //     ...opts,
+    //     bot: this
+    //   })
 
-      return map
-    }, {})
+    //   return map
+    // }, {})
 
     this.middleware = new MiddlewareContainer({
       logger: this.logger.sub('mid'),
@@ -852,11 +847,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     }
   }
 
-  public createLambda = <T extends ILambdaExecutionContext>(opts:ILambdaOpts<T>={}):Lambda => createLambda({
-    ...opts,
-    bot: this
-  })
-
   public sendIfUnsent = async (opts:SendInput) => {
     const { link, object, to } = opts
     if (!to) throw new Errors.InvalidInput('expected "to"')
@@ -908,20 +898,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       filter
     })
   }
-
-  // public getBacklink = async (props: GetResourceIdentifierInput, backlink: string) => {
-  //   return this.backlinks.fetchBacklink({
-  //     ...getResourceIdentifier(props),
-  //     backlink
-  //   })
-  // }
-
-  // public getBacklinks = async (props: GetResourceIdentifierInput, backlinks?: string[]) => {
-  //   return await this.backlinks.fetchBacklinks({
-  //     ...getResourceIdentifier(props),
-  //     properties: backlinks
-  //   })
-  // }
 
   public getResource = async (props: GetResourceIdentifierInput, opts: GetResourceOpts={}):Promise<ITradleObject> => {
     const { backlinks, resolveEmbeds } = opts

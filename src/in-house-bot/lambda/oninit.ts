@@ -1,11 +1,14 @@
+import { createMiddleware } from '../../lambda/oninit'
 import { createConf } from '../configure'
-import { createBot } from '../../'
-// import { STACK_UPDATED } from '../lambda-events'
+import { fromCloudFormation } from '../lambda'
+import { STACK_UPDATED } from '../lambda-events'
 
-const bot = createBot()
-const lambda = bot.lambdas.oninit()
-const conf = createConf({ bot })
+const lambda = fromCloudFormation({ event: STACK_UPDATED })
+let conf
+
 lambda.use(async (ctx, next) => {
+  if (!conf) conf = createConf(ctx.components.bot)
+
   const { type, payload } = ctx.event
   if (type === 'init') {
     await conf.initInfra(payload)

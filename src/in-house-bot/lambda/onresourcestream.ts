@@ -1,10 +1,8 @@
 
-import { createBot } from '../../'
-import { configureLambda } from '..'
-import * as LambdaEvents from '../lambda-events'
+import { fromDynamoDB } from '../lambda'
+import { RESOURCE_ASYNC } from '../lambda-events'
+import { createMiddleware } from '../../lambda/onresourcestream'
 
-const bot = createBot({ ready: false })
-const lambda = bot.lambdas.onresourcestream()
-configureLambda({ lambda, event: LambdaEvents.RESOURCE_ASYNC })
-
+const lambda = fromDynamoDB({ event: RESOURCE_ASYNC })
+lambda.use(createMiddleware())
 export const handler = lambda.handler

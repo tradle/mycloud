@@ -12,6 +12,7 @@ import { TYPE, SEQ, SIG } from '@tradle/constants'
 import IotMessage from '@tradle/iot-message'
 import ModelsPack from '@tradle/models-pack'
 import {
+  Bot,
   ILambdaAWSExecutionContext
 } from '../types'
 import { createTestBot } from '../'
@@ -22,12 +23,21 @@ import Errors from '../errors'
 import { models as PingPongModels } from '../ping-pong-models'
 import { Secrets } from '../secrets'
 import { consoleLogger } from '../logger'
+import { fromCloudFormation, fromIot, fromDynamoDB } from '../lambda'
+import { createMiddleware as createOninitMiddleware } from '../lambda/oninit'
+
 const aliceKeys = require('./fixtures/alice/keys')
 const bob = require('./fixtures/bob/object')
+
 // const fromBob = require('./fixtures/alice/receive.json')
 // const apiGatewayEvent = require('./fixtures/events/api-gateway')
 const rethrow = err => {
   if (err) throw err
+}
+
+const createSetBotMiddleware = (bot: Bot) => async (ctx, next) => {
+  ctx.components.bot = bot
+  await next()
 }
 
 const fakeLink = () => crypto.randomBytes(32).toString('hex')
@@ -153,7 +163,7 @@ test('init, update', loudAsync(async (t) => {
   //   t.same(event, initEvent)
   // })
 
-  const initLambda = bot.lambdas.oninit()
+  const initLambda = fromCloudFormation({ env: bot.env, aws: bot.aws }).use(createSetBotMiddleware(bot))
 
   let expectedEvent = initEvent
   let stackInitFired
@@ -296,7 +306,8 @@ test(`onmessage`, loudAsync(async (t) => {
     promise: async () => {}
   }))
 
-  await bot.lambdas.onmessage().handler({
+  const onmessageLambda = fromIot({ env: bot.env, aws: bot.aws }).use(createSetBotMiddleware(bot))
+  await onmessageLambda.handler({
     // clientId: 'ted',
     data
   }, {
@@ -346,7 +357,8 @@ test(`seal events stream`, loudAsync(async (t) => {
     t.equal(event.seal.link, link)
   })
 
-  await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
+  const lambda = fromDynamoDB({ env: bot.env, aws: bot.aws }).use(createSetBotMiddleware(bot))
+  lambda.handler(toStreamItems(bot.tables.Bucket0.name, [
     // queueseal
     {
       value: {
@@ -518,7 +530,8 @@ test('onmessagestream', loudAsync(async (t) => {
   //   // _time: 123
   // })
 
-  await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
+  const lambda = fromDynamoDB({ env: bot.env, aws: bot.aws }).use(createSetBotMiddleware(bot))
+  await lambda.handler(toStreamItems(bot.tables.Bucket0.name, [
     { value: inbound }
   ]),
   // @ts-ignore
@@ -555,7 +568,8 @@ test('onmessagestream', loudAsync(async (t) => {
     })
   })
 
-  await bot.lambdas.onresourcestream().handler(toStreamItems(bot.tables.Bucket0.name, [
+  const lambda2 = fromDynamoDB({ env: bot.env, aws: bot.aws }).use(createSetBotMiddleware(bot))
+  lambda2.handler(toStreamItems(bot.tables.Bucket0.name, [
     { value: outbound }
   ]), {
     // #6

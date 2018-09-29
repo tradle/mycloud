@@ -7,12 +7,10 @@
 
 import pick from 'lodash/pick'
 import { fromCli } from '../lambda'
-import { createBot } from '../../'
 import { IPBMiddlewareContext } from '../types'
 import * as LambdaEvents from '../lambda-events'
 
-const bot = createBot({ ready: false })
-const lambda = fromCli({ bot, event: LambdaEvents.COMMAND })
+const lambda = fromCli({ event: LambdaEvents.COMMAND })
 lambda.use(async (ctx:IPBMiddlewareContext, next) => {
   const { event, components } = ctx
   if (typeof event !== 'string') {

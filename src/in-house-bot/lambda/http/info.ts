@@ -1,10 +1,14 @@
 import { createConf } from '../../configure'
-import { createBot } from '../../../'
+import { fromHTTP } from '../../lambda'
+import { INFO } from '../../lambda-events'
 
-const bot = createBot()
-const conf = createConf({ bot })
-const lambda = bot.lambdas.info()
+const lambda = fromHTTP({ event: INFO })
+let conf
 lambda.use(async (ctx, next) => {
+  if (!conf) {
+    conf = createConf({ buckets: ctx.components.bot.buckets })
+  }
+
   const result = await conf.getPublicInfo()
   if (!ctx.body) ctx.body = {}
   Object.assign(ctx.body, result)

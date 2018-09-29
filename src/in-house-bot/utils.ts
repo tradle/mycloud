@@ -57,8 +57,14 @@ export const createEditConfOp = edit => async (opts) => {
     throw new Error('you changed...nothing')
   }
 
-  const confManager = createConf({ bot })
-  await confManager.setBotConf({ bot: botConf })
+  const confManager = createConf(bot)
+  await confManager.setBotConf({
+    bot,
+    update: {
+      bot: botConf
+    }
+  })
+
   await bot.forceReinitializeContainers()
 }
 

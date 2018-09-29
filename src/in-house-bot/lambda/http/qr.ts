@@ -1,15 +1,16 @@
 import QR from '@tradle/qr'
 import promisify from 'pify'
 import { createBot } from '../../../'
-import { fromHTTP } from '../../../lambda'
+import { fromHTTP } from '../../lambda'
 import { IDeepLink, IApplyForProductDeepLink, IImportDataDeepLink } from '../../types'
+import { GET_QR } from '../../lambda-events'
 
 const createDataURL = promisify(QR.toDataURL)
 const bot = createBot({ ready: false })
 const getPermalink = bot.getPermalink()
 getPermalink.then(() => bot.ready())
 
-const lambda = fromHTTP({ bot })
+const lambda = fromHTTP({ event: GET_QR })
 const descriptions = {
   ImportData: (data: IImportDataDeepLink) => `scan this QR code with the Tradle app to claim the bundle with claimId: ${data.dataHash}`,
   AddProvider: (data: IDeepLink) => `scan this QR code with the Tradle app or open <a href="${bot.appLinks.getChatLink(data)}">this link</a> on your mobile device to add this provider to your Conversations screen`,
@@ -17,7 +18,8 @@ const descriptions = {
 }
 
 lambda.use(async (ctx, next) => {
-  const { query={} } = ctx
+  const { query={}, components } = ctx
+  const { bot } = components
   let { schema, ...data } = query
   const provider = await getPermalink
   const host = bot.apiBaseUrl

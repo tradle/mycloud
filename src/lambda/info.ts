@@ -3,13 +3,7 @@ import cors from 'kcors'
 import { extend, pick } from 'lodash'
 import { get } from '../middleware/noop-route'
 import { Lambda } from '../types'
-import { fromHTTP } from '../lambda'
 import Errors from '../errors'
-
-export const createLambda = (opts) => {
-  const lambda = fromHTTP(opts)
-  return lambda.use(createMiddleware(lambda, opts))
-}
 
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
   const { bot, logger } = lambda

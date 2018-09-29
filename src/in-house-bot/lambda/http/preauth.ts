@@ -1,5 +1,8 @@
-import { createBot } from '../../../'
+import { fromHTTP } from '../../lambda'
+import { createMiddleware } from '../../../lambda/preauth'
+import { PREAUTH } from '../../lambda-events'
 
-const bot = createBot()
-const lambda = bot.lambdas.preauth()
+const lambda = fromHTTP({ event: PREAUTH })
+lambda.use(createMiddleware(lambda))
+
 export const handler = lambda.handler

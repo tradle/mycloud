@@ -3,8 +3,14 @@ import Promise from 'bluebird'
 import omit from 'lodash/omit'
 import groupBy from 'lodash/groupBy'
 import { TYPE } from '@tradle/constants'
-import { Bot, IStreamRecord, ITradleObject, Model, DB } from '../types'
-import { fromDynamoDB } from '../lambda'
+import {
+  ILambdaExecutionContext,
+  Bot,
+  IStreamRecord,
+  ITradleObject,
+  Model,
+  DB
+} from '../types'
 // import { createMiddleware as createMessageMiddleware } from '../middleware/onmessagestream'
 import Errors from '../errors'
 import Events from '../events'
@@ -13,11 +19,6 @@ const promiseUndefined = Promise.resolve(undefined)
 // when to give up trying to find an object in object storage
 const GIVE_UP_AGE = 180000 // 3 mins
 const SAFETY_MARGIN_MILLIS = 10000
-
-export const createLambda = (opts) => {
-  const lambda = fromDynamoDB(opts)
-  return lambda.use(createMiddleware(lambda.bot))
-}
 
 export const processMessageEvent = async (bot: Bot, record: IStreamRecord) => {
   await bot._fireMessagesRaw({ messages: [record.value], async: true })
@@ -92,12 +93,11 @@ export const preProcessItem = async <T>(bot: Bot, record):Promise<T> => {
   })
 }
 
-export const createMiddleware = (bot:Bot) => {
+export const createMiddleware = () => async (ctx:ILambdaExecutionContext, next) => {
+  const { bot } = ctx.components
   const { dbUtils, streamProcessor } = bot
-  return async (ctx, next) => {
-    const records = dbUtils.getRecordsFromEvent(ctx.event)
-    await processRecords({ bot, records })
-  }
+  const records = dbUtils.getRecordsFromEvent(ctx.event)
+  await processRecords({ bot, records })
 }
 
 export const processRecords = async ({ bot, records }: {

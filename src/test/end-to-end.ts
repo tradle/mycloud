@@ -798,11 +798,11 @@ const clearTables = async ({ bot }) => {
 
   const existingTables = await bot.dbUtils.listTables(bot.env)
   const toDelete = existingTables.filter(name => {
-    if (!name.startsWith(bot.resourcePrefix)) {
+    if (!name.startsWith(bot.stackUtils.thisStack.resourcePrefix)) {
       return false
     }
 
-    name = name.slice(bot.resourcePrefix.length)
+    name = name.slice(bot.stackUtils.thisStack.resourcePrefix.length)
     return name !== 'pubkeys'
   })
 

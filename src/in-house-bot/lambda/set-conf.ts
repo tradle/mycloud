@@ -1,21 +1,23 @@
-// @ts-ignore
-import Promise from 'bluebird'
-import { EventSource } from '../../lambda'
+import { EventSource, fromCli } from '../lambda'
 import { createConf } from '../configure'
-import { createBot } from '../../'
 import Errors from '../../errors'
+import { COMMAND } from '../lambda-events'
 
-const bot = createBot()
-const lambda = bot.createLambda({ source: EventSource.LAMBDA })
-const conf = createConf({ bot })
+const lambda = fromCli({ event: COMMAND })
 
+let conf
 lambda.use(async (ctx) => {
+  const { bot } = ctx.components
   if (typeof ctx.event === 'string') {
     ctx.event = JSON.parse(ctx.event)
   }
 
+  if (!conf) {
+    conf = createConf(bot)
+  }
+
   try {
-    ctx.body = await conf.update(ctx.event)
+    ctx.body = await conf.update({ bot, update: ctx.event })
   } catch (err) {
     ctx.body = {
       message: err.message,

@@ -6,24 +6,19 @@ import { bodyParser } from '../middleware/body-parser'
 import { LambdaHttp as Lambda } from '../types'
 import { fromHTTP } from '../lambda'
 
-export const createLambda = (opts) => {
-  const lambda = fromHTTP(opts)
-  return lambda.use(createMiddleware(lambda, opts))
-}
-
-export const createMiddleware = (lambda:Lambda, opts?:any) => {
+export const createMiddleware = (lambda:Lambda) => {
   return compose([
     post(),
     cors(),
     bodyParser(),
-    auth(lambda, opts)
+    auth(lambda)
   ])
 }
 
-export const auth = (lambda:Lambda, opts?:any) => {
-  const { bot, logger } = lambda
-  const { auth } = bot
+export const auth = (lambda:Lambda) => {
   return async (ctx, next) => {
+    const { bot, logger } = ctx.components
+    const { auth } = bot
     const time = Date.now()
     try {
       ctx.session = await auth.handleChallengeResponse(ctx.request.body)

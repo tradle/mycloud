@@ -16,6 +16,7 @@ import { createConf } from './configure'
 import { plugins as defaultConfs } from './defaults'
 import { Deployment } from './deployment'
 import { Alerts } from './alerts'
+import { createBot } from '../'
 
 import {
   createPlugin as keepModelsFreshPlugin,
@@ -117,26 +118,27 @@ export const configureLambda = (opts:ConfigureLambdaOpts) => {
     return components
   })
 
-  // - kick off async
-  // - can't do inside middleware because of default middleware in lambda.ts
-  // that waits for bot.promiseReady() and stalls the pipeline
-  // - retry
-  const componentsPromise = load().catch(() => load())
+  let componentsPromise
+  const retry = () => componentsPromise = load().catch(retry)
 
   lambda.use(async (ctx, next) => {
     ctx.components = await componentsPromise
     await next()
   })
+
+  return retry()
 }
 
 export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<IBotComponents> => {
-  let { lambda, bot, event, conf } = opts
-  if (!bot) bot = lambda.bot
+  let { lambda, event, conf } = opts
 
-  const { logger } = lambda || bot
+  const { logger, env } = lambda
   logger.debug('configuring in-house bot')
 
-  const confStore = createConf({ bot })
+  const confStore = createConf({
+    buckets: null
+  })
+
   const start = Date.now()
   const {
     org,
@@ -151,6 +153,11 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
   })
 
   logger.debug('loaded in-house bot conf components')
+
+  debugger
+  const bot = createBot({
+    blockchain: botConf.blockchain,
+  })
 
   // const { domain } = org
   if (modelsPack) {
