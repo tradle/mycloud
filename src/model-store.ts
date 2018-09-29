@@ -152,27 +152,37 @@ export class ModelStore extends EventEmitter {
   public addModelsPack = async ({
     modelsPack,
     validateAuthor=true,
-    validateUpdate=true,
+    allowRemoveModels,
+    // validateUpdate=true,
     key
   }: {
-    modelsPack: any,
-    validateAuthor?: boolean,
-    validateUpdate?: boolean,
+    modelsPack: any
+    validateAuthor?: boolean
+    allowRemoveModels?: boolean
+    // validateUpdate?: boolean
     key?: string
   }) => {
     if (validateAuthor) {
       await this.validateModelsPackNamespaceOwner(modelsPack)
     }
 
-    if (validateUpdate) {
-      await this.validateModelsPackUpdate(modelsPack)
+    const domain = getDomain(modelsPack)
+    let current: ModelsPack
+    try {
+      current = await this.getModelsPackByDomain(domain)
+    } catch (err) {
+      Errors.ignoreNotFound(err)
     }
 
-    const current = await this.getCumulativeModelsPack()
+    if (current && !allowRemoveModels) {
+      ensureNoModelsRemoved(current, modelsPack)
+    }
+
+    const currentCumulative = await this.getCumulativeModelsPack()
     let cumulative
-    if (current) {
+    if (currentCumulative) {
       cumulative = omitNamespace({
-        modelsPack: current,
+        modelsPack: currentCumulative,
         namespace: modelsPack.namespace
       })
 
@@ -263,7 +273,8 @@ export class ModelStore extends EventEmitter {
     this.setCustomModels(modelsPack)
 
     await this.addModelsPack({
-      validateAuthor: false,
+      validateAuthor: false,           // our own models, no need to validate
+      allowRemoveModels: false,        // missing models can break the UI
       modelsPack: this.myModelsPack,
       key
     })
@@ -330,27 +341,27 @@ Domain ${domain} (and namespace ${pack.namespace}) belongs to ${fIdentityPermali
     }
   }
 
-  public validateModelsPackUpdate = async (pack) => {
-    const ret = {
-      changed: true
-    }
+  // public validateModelsPackUpdate = async (pack) => {
+  //   const ret = {
+  //     changed: true
+  //   }
 
-    const domain = getDomain(pack)
-    try {
-      const current = await this.getModelsPackByDomain(domain)
-      validateUpdate(current, pack)
-      ret.changed = current.versionId !== pack.versionId
-    } catch (err) {
-      Errors.ignoreNotFound(err)
-    }
+  //   const domain = getDomain(pack)
+  //   try {
+  //     const current = await this.getModelsPackByDomain(domain)
+  //     ensureNoModelsRemoved(current, pack)
+  //     ret.changed = current.versionId !== pack.versionId
+  //   } catch (err) {
+  //     Errors.ignoreNotFound(err)
+  //   }
 
-    return ret
-  }
+  //   return ret
+  // }
 
-  public validateModelsPack = async (modelsPack) => {
-    await this.validateModelsPackNamespaceOwner(modelsPack)
-    return await this.validateModelsPackUpdate(modelsPack)
-  }
+  // public validateModelsPack = async (modelsPack) => {
+  //   await this.validateModelsPackNamespaceOwner(modelsPack)
+  //   return await this.validateModelsPackUpdate(modelsPack)
+  // }
 
   public getModelsPackConfKey = getModelsPackConfKey
 
@@ -413,10 +424,12 @@ export const getModelsPackConfKey = domainOrPack => {
 
 export const createModelStore = (components:ModelStoreOpts) => new ModelStore(components)
 export const toggleDomainVsNamespace = str => str.split('.').reverse().join('.')
-export const validateUpdate = (current, updated) => {
-  const lost = _.difference(current, Object.keys(updated))
+export const ensureNoModelsRemoved = (current: ModelsPack, updated: ModelsPack) => {
+  const before = current.models.map(m => m.id)
+  const after = updated.models.map(m => m.id)
+  const lost = _.difference(before, after)
   if (lost.length) {
-    throw new Error(`models cannot be removed, only deprecated: ${lost.join(', ')}`)
+    throw new Errors.InvalidInput(`models cannot be removed: ${lost.join(', ')}`)
   }
 }
 

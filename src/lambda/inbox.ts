@@ -24,7 +24,13 @@ export const createLambda = (opts) => {
     const { type, payload } = ctx.event
     if (type === MODELS_PACK) {
       try {
-        await bot.modelStore.addModelsPack({ modelsPack: payload })
+        await bot.modelStore.addModelsPack({
+          modelsPack: payload,
+          validateAuthor: true,
+          // unfortunately we have to be more forgiving of other myclouds
+          // than of ourselves, and allow them to remove models (for now)
+          allowRemoveModels: true,
+        })
       } catch (err) {
         logger.error(err.message, { modelsPack: payload })
         return // prevent further processing
