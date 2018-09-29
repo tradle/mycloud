@@ -343,7 +343,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       bot.define('blockchain', './blockchain', Blockchain => new Blockchain({
         logger: logger.sub('blockchain'),
         network,
-        identity: bot.identity
+        identity: bot.identity,
+        apiUrl: env.BLOCKCHAIN_API_URL
       }))
 
       bot.define('seals', './seals', Seals => new Seals(getSealsOpts()))

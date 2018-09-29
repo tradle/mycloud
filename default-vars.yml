@@ -4,6 +4,8 @@ region: us-east-1
 profile: default
 emailForNotifications: mark@tradle.io # support@tradle.io
 blockchain: ethereum:ropsten
+blockchainApiUrl: http://parity-ropsten-2-764848607.us-east-1.elb.amazonaws.com/eth/v1/ropsten
+
 # not used at the moment:
 # thresholdBillingAlarm: 1 # $1 / hr
 thresholdThrottlingAlarm: 10 # times throttled

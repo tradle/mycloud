@@ -327,6 +327,7 @@ provider:
     SERVERLESS_STAGE: ${{self:custom.stage}}
     SERVERLESS_SERVICE_NAME: ${{self:service}}
     NO_TIME_TRAVEL: false # allow time-travel messages for now
+    BLOCKCHAIN_API_URL: ${{self:custom.vars.blockchainApiUrl, self:custom.defaults.blockchainApiUrl}}
 
   apiKeys:
     - ${{self:custom.issue2233WorkaroundKey}}

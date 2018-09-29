@@ -65,6 +65,7 @@ export default class Env {
   }
 
   public BLOCKCHAIN: IBlockchainIdentifier
+  public BLOCKCHAIN_API_URL: string
   public CORDA_API_URL?:string
   public CORDA_API_KEY?:string
   public NO_TIME_TRAVEL:boolean

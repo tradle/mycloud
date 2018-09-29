@@ -87,6 +87,7 @@ type BlockchainOpts = {
   logger: Logger
   network: IBlockchainIdentifier
   identity: Identity
+  apiUrl?: string
 }
 
 export default class Blockchain {
@@ -100,6 +101,7 @@ export default class Blockchain {
   private getTxAmount = () => this.network.minOutputAmount
   private logger:Logger
   private identity:Identity
+  private apiUrl: string
   public addressesAPI: {
     transactions: (addresses: string[], blockHeight?: number) => Promise<any>,
     balance: (address: string) => Promise<string|number>
@@ -107,7 +109,7 @@ export default class Blockchain {
 
   public getInfo: () => Promise<any>
   constructor(components:BlockchainOpts) {
-    const { logger, network, identity } = components
+    const { logger, network, identity, apiUrl } = components
     // typeforce({
     //   blockchain: typeforce.String,
     //   networkName: typeforce.String,
@@ -121,6 +123,7 @@ export default class Blockchain {
       throw new Error(`unsupported blockchain type: ${blockchain}`)
     }
 
+    this.apiUrl = apiUrl
     this.reader = this.createAdapter()
     this.addressesAPI = this.reader.blockchain.addresses
     this.getInfo = this.reader.blockchain.info
@@ -293,13 +296,14 @@ export default class Blockchain {
 
   private createAdapter = (opts:{ priv?: string, fingerprint?: string }={}) => {
     const { priv, fingerprint } = opts
-    const { blockchain, networkName } = this
+    const { blockchain, networkName, apiUrl } = this
     const create = adapters[blockchain]
     return create({
       blockchain,
       networkName,
       privateKey: priv,
       address: fingerprint,
+      apiUrl,
     })
   }
 

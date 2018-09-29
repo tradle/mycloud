@@ -1,14 +1,19 @@
 import Adapter from '@tradle/blockchain-indexer-client'
+import fallback from './ethereum'
 
-export = function getNetworkAdapters({
-  address,
-  privateKey,
-  baseUrl,
-  networkName = 'ropsten',
-  apiKey='blah',
-}) {
-  if (!baseUrl) {
-    baseUrl = `http://parity-ropsten-2-764848607.us-east-1.elb.amazonaws.com/eth/v1/ropsten`
+export = function getNetworkAdapters(opts) {
+  let {
+    address,
+    privateKey,
+    apiUrl,
+    apiKey,
+    networkName,
+  } = opts
+
+  if (!apiUrl) {
+    // tslint:disable-next-line: no-console
+    console.warn('missing api url, falling back to hosted api')
+    return fallback(opts)
   }
 
   let transactor
@@ -16,7 +21,7 @@ export = function getNetworkAdapters({
     privateKey = new Buffer(privateKey, 'hex')
   }
 
-  const network = Adapter.forNetwork({ networkName, baseUrl, apiKey })
+  const network = Adapter.forNetwork({ networkName, baseUrl: apiUrl, apiKey })
   if (privateKey) {
     transactor = network.createTransactor({ address, privateKey })
   }
