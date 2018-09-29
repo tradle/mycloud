@@ -13,7 +13,7 @@ import Errors from '../../errors'
 import { IBotComponents, Seal, Job, LowFundsInput } from '../types'
 import { sendConfirmedSeals } from '../utils'
 import { DEFAULT_WARMUP_EVENT } from '../../constants'
-import { Deployment } from '../deployment'
+// import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
 
@@ -118,8 +118,8 @@ export const documentChecker:Executor = async ({ job, components }) => {
   return await documentChecker.checkPending({ limit: 1 })
 }
 
-export const cleanupTmpSNSTopics:Executor = async ({ job, components }) => {
-  const { bot, logger } = components
-  const deployment = components.deployment || new Deployment({ bot, logger })
-  await deployment.deleteExpiredTmpTopics()
-}
+// export const cleanupTmpSNSTopics:Executor = async ({ job, components }) => {
+//   const { bot, logger } = components
+//   const deployment = components.deployment || new Deployment({ bot, logger })
+//   await deployment.deleteExpiredTmpTopics()
+// }
