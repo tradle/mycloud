@@ -10,13 +10,20 @@ loadCredentials()
 loadRemoteEnv()
 
 import lambda from '../in-house-bot/lambda/http/graphql'
-lambda.bot.promiseReady().then(() => {
-  const { dbUtils } = lambda.bot
+lambda.use(async (ctx, next) => {
+  const { bot } = ctx.components
+  const { models, dbUtils } = bot
   const outputPath = path.join(__dirname, '../modelmap.json')
-  const output = dbUtils.getModelMap({ models: lambda.bot.models })
+  const output = dbUtils.getModelMap({ models })
   fs.writeFileSync(outputPath, JSON.stringify(output, null, 2))
 })
-.catch(err => {
+
+const invokeLambda = async () => {
+  throw new Error('fix me: add http request to trigger lambda')
+}
+
+invokeLambda().catch(err => {
   console.error(err.stack)
   process.exitCode = 1
 })
+

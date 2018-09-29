@@ -1,6 +1,5 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
-import { createBot } from '../../../'
 import { configureLambda } from '../..'
 import { post } from '../../../middleware/noop-route'
 import Errors from '../../../errors'

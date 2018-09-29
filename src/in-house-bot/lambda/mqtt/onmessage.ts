@@ -1,10 +1,8 @@
+import { fromIot } from '../../lambda'
+import { createMiddleware } from '../../../lambda/onmessage'
+import { MESSAGE } from '../../lambda-events'
 
-import { createBot } from '../../../'
-import { configureLambda } from '../..'
-import * as LambdaEvents from '../../lambda-events'
-
-const bot = createBot({ ready: false })
-const lambda = bot.lambdas.onmessage()
-configureLambda({ lambda, event: LambdaEvents.MESSAGE })
+const lambda = fromIot({ event: MESSAGE })
+lambda.use(createMiddleware())
 const { handler } = lambda
 export = lambda

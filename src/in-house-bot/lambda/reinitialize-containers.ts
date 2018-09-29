@@ -1,6 +1,8 @@
+import { fromLambda } from '../lambda'
+import { createMiddleware } from '../../lambda/reinitialize-containers'
+import { COMMAND } from '../lambda-events'
 
-import { createBot } from '../../'
+const lambda = fromLambda({ event: COMMAND })
+lambda.use(createMiddleware())
 
-const bot = createBot()
-const lambda = bot.lambdas.reinitializeContainers()
 export const handler = lambda.handler

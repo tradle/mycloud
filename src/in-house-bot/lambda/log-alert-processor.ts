@@ -8,11 +8,12 @@ import {
 } from '../log-processor'
 
 const lambda = fromSNS({ event: LOG_ALERTS })
-const { bot, logger } = lambda
+const { logger } = lambda
 let processor: LogProcessor
 
 lambda.use(async (ctx) => {
   const { event, components } = ctx
+  const { bot } = components
   if (!processor) {
     const conf = components.conf.bot.logging
     processor = fromLambda({ lambda, components })

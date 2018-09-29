@@ -1,16 +1,23 @@
-import { createConf } from '../configure'
-import { createBot } from '../../'
-// import { STACK_UPDATED } from '../lambda-events'
+import { createMiddleware } from '../../lambda/oninit'
+import { createConf, Conf } from '../configure'
+import { fromCloudFormation } from '../../lambda'
+import { STACK_UPDATED } from '../lambda-events'
 
-const bot = createBot()
-const lambda = bot.lambdas.oninit()
-const conf = createConf({ bot })
+const lambda = fromCloudFormation({ event: STACK_UPDATED, createBot: true })
+
+let conf: Conf
 lambda.use(async (ctx, next) => {
+  const { bot } = ctx.components
+  if (!conf) conf = createConf(ctx.components.bot)
+
   const { type, payload } = ctx.event
   if (type === 'init') {
-    await conf.initInfra(payload)
+    await conf.initInfra({
+      bot,
+      deploymentConf: payload
+    })
   } else if (type === 'update') {
-    await conf.updateInfra(payload)
+    await conf.updateInfra({ bot })
   } else if (type === 'delete') {
     lambda.logger.debug('deleting custom resource (probably as part of an update)!')
   }

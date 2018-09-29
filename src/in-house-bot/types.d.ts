@@ -24,6 +24,7 @@ import {
   EnumValueStub,
   VersionInfo,
   Registry,
+  ILambdaContextComponents,
 } from '../types'
 
 export * from '../types'
@@ -101,7 +102,7 @@ export interface IConfComponents {
   kycServiceDiscovery?: KYCServiceDiscovery
 }
 
-export interface IBotComponents {
+export interface IBotComponents extends ILambdaContextComponents {
   bot: Bot
   logger: Logger
   productsAPI: any

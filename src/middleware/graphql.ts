@@ -4,36 +4,51 @@ import Promise from 'bluebird'
 import compose from 'koa-compose'
 import graphqlHTTP from 'koa-graphql'
 import { formatError } from 'graphql'
+import once from 'lodash/once'
 import { route } from './noop-route'
 import { Level } from '../logger'
 import { logResponseBody } from '../utils'
 import { prettifyQuery } from '../graphql'
-import { LambdaHttp as Lambda, MiddlewareHttp as Middleware } from '../types'
+import {
+  LambdaHttp as Lambda,
+  MiddlewareHttp as Middleware,
+  ILambdaExecutionContext,
+  Bot,
+} from '../types'
+
 import Errors from '../errors'
 
 export const createHandler = (lambda:Lambda):Middleware => {
-  const { bot, logger } = lambda
+  const { logger } = lambda
 
-  // allow models to be set asynchronously
-
-  // let auth
   let api
   let modelsVersionId:string
-  const { modelStore } = bot
+  let bot
 
-  const updateVersionId = modelsPack => {
-    modelsVersionId = modelsPack.versionId
+  const watchModels = once((bot: Bot) => {
+  // allow models to be set asynchronously
+    const { modelStore } = bot
+
+    const updateVersionId = modelsPack => {
+      modelsVersionId = modelsPack.versionId
+    }
+
+    if (modelStore.cumulativeModelsPack) {
+      updateVersionId(modelStore.cumulativeModelsPack)
+    }
+
+    modelStore.on('update:cumulative', updateVersionId)
+  })
+
+  const setup = async (ctx: ILambdaExecutionContext, next) => {
+    bot = ctx.components.bot
+    watchModels(bot)
+    await bot.promiseReady()
+    await next()
   }
-
-  if (modelStore.cumulativeModelsPack) {
-    updateVersionId(modelStore.cumulativeModelsPack)
-  }
-
-  modelStore.on('update:cumulative', updateVersionId)
 
   const handler = graphqlHTTP(async (req) => {
     logger.debug(`hit graphql query route, ready: ${bot.isReady()}`)
-    await bot.promiseReady()
     const api = bot.graphql
     const { query, variables } = req.body
     if (query && query.indexOf('query IntrospectionQuery') === -1) {
@@ -58,6 +73,7 @@ export const createHandler = (lambda:Lambda):Middleware => {
 
   const middleware = [
     route(['get', 'post']),
+    setup,
     handler
   ]
 

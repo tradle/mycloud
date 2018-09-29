@@ -21,10 +21,12 @@ import { safeStringify } from './string-utils'
 import { TaskManager } from './task-manager'
 import { randomString } from './crypto'
 import * as CFNResponse from './cfn-response'
+import { Env, createEnv } from './env'
+import { createLogger } from './logger'
+import { createAWSWrapper } from './aws'
+import { createBot } from './bot'
 import {
-  Env,
   Logger,
-  Bot,
   Middleware,
   IRequestContext,
   ILambdaExecutionContext,
@@ -86,26 +88,48 @@ export enum EventSource {
 
 export type Lambda = BaseLambda<ILambdaExecutionContext>
 export type LambdaHttp = BaseLambda<ILambdaHttpExecutionContext>
+export type BaseLambdaOpts = ILambdaOpts<ILambdaExecutionContext>
 
-export const fromHTTP = (opts={}):BaseLambda<ILambdaHttpExecutionContext> => new BaseLambda({ ...opts, source: EventSource.HTTP })
-export const fromDynamoDB = (opts={}) => new BaseLambda({ ...opts, source: EventSource.DYNAMODB })
-export const fromIot = (opts={}) => new BaseLambda({ ...opts, source: EventSource.IOT })
-export const fromSchedule = (opts={}) => new BaseLambda({ ...opts, source: EventSource.SCHEDULE })
-export const fromCloudFormation = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLOUDFORMATION })
-export const fromLambda = (opts={}) => new BaseLambda({ ...opts, source: EventSource.LAMBDA })
-export const fromS3 = (opts={}) => new BaseLambda({ ...opts, source: EventSource.S3 })
-export const fromSNS = (opts={}) => new BaseLambda<ISNSExecutionContext>({ ...opts, source: EventSource.SNS })
-export const fromCli = (opts={}) => new BaseLambda({ ...opts, source: EventSource.CLI })
-export const fromCloudwatchLogs = (opts={}) => new BaseLambda<ILambdaCloudWatchLogsExecutionContext>({ ...opts, source: EventSource.CLOUDWATCH_LOGS })
+// const normalizeOpts = opts => {
+//   if (!opts.env) opts.env = new Env(process.env)
+// }
+
+type PartialOpts = Partial<BaseLambdaOpts>
+
+const normalizeOpts = (partial: PartialOpts):BaseLambdaOpts => {
+  let env = partial.env || (partial.bot && partial.bot.env) || createEnv()
+  let logger = partial.logger || env.logger
+  let aws = partial.aws || (partial.bot && partial.bot.aws) || createAWSWrapper({ env, logger })
+
+  return {
+    ...partial,
+    env,
+    logger,
+    aws,
+  }
+}
+
+const createFromPartial = (opts:PartialOpts) => new BaseLambda(normalizeOpts(opts))
+
+export const fromHTTP = (opts:PartialOpts):LambdaHttp => createFromPartial({ ...opts, source: EventSource.HTTP }) as LambdaHttp
+export const fromDynamoDB = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.DYNAMODB })
+export const fromIot = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.IOT })
+export const fromSchedule = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.SCHEDULE })
+export const fromCloudFormation = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.CLOUDFORMATION })
+export const fromLambda = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.LAMBDA })
+export const fromS3 = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.S3 })
+export const fromSNS = (opts:PartialOpts) => new BaseLambda<ISNSExecutionContext>(normalizeOpts({ ...opts, source: EventSource.SNS }))
+export const fromCli = (opts:PartialOpts) => createFromPartial({ ...opts, source: EventSource.CLI })
+export const fromCloudwatchLogs = (opts:PartialOpts) => new BaseLambda<ILambdaCloudWatchLogsExecutionContext>(normalizeOpts({ ...opts, source: EventSource.CLOUDWATCH_LOGS }))
 
 export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitter {
   // initialization
   public source: EventSource
   public opts: ILambdaOpts<Ctx>
-  public bot: Bot
   public env: Env
   public koa: Koa
   public tasks: TaskManager
+  public aws: AwsApis
 
   // runtime
   public reqCtx: IRequestContext
@@ -122,47 +146,36 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   private initPromise: Promise<void>
   private _gotHandler: boolean
   private lastExitStack: string
-  private aws: AwsApis
-  constructor(opts:ILambdaOpts<Ctx>={}) {
+  constructor(opts:ILambdaOpts<Ctx>) {
     super()
     const {
+      env,
+      aws,
+      logger,
       middleware,
-      source
+      source,
     } = opts
 
-    const bot = opts.bot || require('./').createBot()
-
     this.opts = opts
-    this.bot = bot
-    this.env = bot.env
-    this.aws = bot.aws
+    this.env = env
+    this.aws = aws
+    this.logger = logger
 
-    bot.aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
+    aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
 
-    this.tasks = bot.tasks
-    this.tasks.add({
-      name: 'bot:ready',
-      promise: bot.promiseReady()
-    })
-
-    this.on('run', () => {
-      if (!this.isCold && !bot.isReady()) {
-        this.logger.error('1. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
-      }
-    })
-
-    this.on('done', () => {
-      if (!bot.isReady()) {
-        this.logger.error('2. LAMBDA FAILED TO INITIALIZE ON FIRST RUN')
-      }
-    })
-
+    this.tasks = new TaskManager({ logger: this.logger.sub('tasks') })
     this.source = opts.source
     this.middleware = []
     this.isCold = true
     this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
 
-    if (opts.source == EventSource.HTTP) {
+    let { bot } = opts
+    if (!bot && opts.createBot) {
+      this.logger.debug('creating bot from lambda components')
+      bot = this.createBot()
+    }
+
+    if (opts.source === EventSource.HTTP) {
       this._initHttp()
     } else if (opts.source === EventSource.CLOUDFORMATION) {
       this._initCloudFormation()
@@ -176,6 +189,11 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this._gotHandler = false
 
     this.use(async (ctx, next) => {
+      ctx.components = { bot: null }
+      if (bot) {
+        ctx.components.bot = bot
+      }
+
       if (this.env.DISABLED) {
         this.logger.info('I have been disabled :(')
         ctx.body = {}
@@ -185,22 +203,6 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     })
 
     this.use(warmup(this))
-
-    // no point in warming up as these events
-    // are once in a lifetime
-    if (source !== EventSource.CLOUDFORMATION) {
-      this.tasks.add({
-        name: 'warmup:cache',
-        promiser: () => bot.warmUpCaches()
-      })
-    }
-
-    this.use(async (ctx, next) => {
-      await bot.promiseReady()
-      await next()
-    })
-
-    this.init()
     if (middleware) this.use(middleware)
 
     process.nextTick(() => {
@@ -232,6 +234,16 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     }
 
     return this
+  }
+
+  public createBot = () => {
+    return createBot({
+      aws: this.aws,
+      env: this.env,
+      logger: this.logger,
+      tasks: this.tasks,
+      blockchain: this.env.BLOCKCHAIN,
+    })
   }
 
   get name():string {
@@ -355,17 +367,6 @@ Previous exit stack: ${this.lastExitStack}`)
       }
     }
 
-    if (!this.bot.isReady()) {
-      this.breakingContext = safeStringify({
-        execCtx: this.execCtx,
-        reqCtx: this.reqCtx,
-        tasks: this.tasks.describe(),
-        reason: 'bot is not ready',
-      })
-
-      this._ensureNotBroken()
-    }
-
     if (err) {
       ctx.error = err
     } else {
@@ -440,15 +441,7 @@ Previous exit stack: ${this.lastExitStack}`)
     request?,
     callback?
   }) => {
-    this.tasks.add({
-      name: 'system:syncclock',
-      promise: () => this.syncClock(),
-    })
-
-    await this.initPromise
-
     this._recordServiceCalls()
-    this._ensureNotBroken()
     if (!this.accountId) {
       const { invokedFunctionArn } = context
       if (invokedFunctionArn) {
@@ -458,9 +451,6 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     context.callbackWaitsForEmptyEventLoop = false
-    this.logger = this.bot.logger.sub({
-      namespace: `lambda:${this.shortName}`
-    })
 
     if (this.source === EventSource.LAMBDA &&
       event.requestContext &&
@@ -512,9 +502,6 @@ Previous exit stack: ${this.lastExitStack}`)
     this.reqCtx = null
     this.execCtx = null
     this.lastExitStack = null
-    this.logger = this.bot.logger.sub({
-      namespace: this.env.FUNCTION_NAME
-    })
   }
 
   private _initHttp = () => {
@@ -717,14 +704,6 @@ Previous exit stack: ${this.lastExitStack}`)
     return this.execCtx
   }
 
-  private syncClock = () => {
-    syncClock(this.bot)
-  }
-
-  private init = () => {
-    this.initPromise = syncClock(this.bot)
-  }
-
   private _exportError = (err) => {
     if (this.isLocal) {
       return Errors.export(err)
@@ -732,14 +711,6 @@ Previous exit stack: ${this.lastExitStack}`)
 
     return {
       message: 'execution failed'
-    }
-  }
-
-  private _ensureNotBroken = () => {
-    if (!this.isLocal && this.breakingContext) {
-      const msg = 'I am broken!: ' + this.breakingContext
-      this.logger.error(msg)
-      throw new Error(msg)
     }
   }
 
@@ -833,7 +804,6 @@ const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<
     start: Date.now()
   }
 
-  defineGetter(ctx, 'botReady', () => lambda.bot.isReady())
   if (lambda.env._X_AMZN_TRACE_ID) {
     ctx['trace-id'] = lambda.env._X_AMZN_TRACE_ID
   }

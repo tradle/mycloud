@@ -1,40 +1,26 @@
-// @ts-ignore
-import Promise from 'bluebird'
 import compose from 'koa-compose'
-import { Lambda } from '../types'
-import { fromLambda } from '../lambda'
 import { onMessage as onIotMessage, createSuccessHandler, createErrorHandler } from '../middleware/oniotmessage'
 import { onMessage } from '../middleware/onmessage'
 import { createMiddleware as onMessagesSaved } from '../middleware/onmessagessaved'
 import { logifyFunction } from '../utils'
+import { createLogger } from '../logger'
 
-export const createLambda = (opts?:any) => {
-  const lambda = fromLambda(opts)
-  // prime caches
+const logger = createLogger(`onmessage:middleware`)
 
-  lambda.tasks.add({
-    name: 'getkeys',
-    promiser: lambda.bot.identity.getPrivate
-  })
-
-  return lambda.use(createMiddleware(lambda, opts))
-}
-
-export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { logger } = lambda
+export const createMiddleware = () => {
   return compose([
-    onIotMessage(lambda, opts),
+    onIotMessage(),
     logifyFunction({
-      fn: onMessage(lambda, {
-        onSuccess: createSuccessHandler(lambda, opts),
-        onError: createErrorHandler(lambda, opts)
+      fn: onMessage({
+        onSuccess: createSuccessHandler(),
+        onError: createErrorHandler()
       }),
       name: 'preprocess message',
       level: 'silly',
       logger
     }),
     logifyFunction({
-      fn: onMessagesSaved(lambda.bot, opts),
+      fn: onMessagesSaved(),
       name: 'business logic',
       level: 'silly',
       logger

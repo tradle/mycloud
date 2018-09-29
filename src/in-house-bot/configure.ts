@@ -17,6 +17,7 @@ import {
   ModelStore,
   Logger,
   Bucket,
+  Buckets,
   IIdentity,
   IPrivKey,
   ITradleObject,
@@ -54,10 +55,18 @@ const baseStylePackObj = {
   [TYPE]: STYLES_PACK
 }
 
-export type InitOpts = {
+export interface InitOpts {
+  bot: Bot
   forceRecreateIdentity?: boolean
   identity?: IIdentity
   keys?: IPrivKey[]
+}
+
+export interface InitInfraOpts extends InitOpts {
+  deploymentConf: IMyDeploymentConf
+}
+
+export interface UpdateInfraOpts extends InitOpts {
 }
 
 export type UpdateConfInput = {
@@ -109,6 +118,11 @@ const parts = {
     key: PRIVATE_CONF_BUCKET.info,
     ttl: DEFAULT_TTL
   },
+  identity: {
+    bucket: 'PrivateConf',
+    key: PRIVATE_CONF_BUCKET.identity,
+    ttl: DEFAULT_TTL,
+  },
   botConf: {
     bucket: 'PrivateConf',
     key: PRIVATE_CONF_BUCKET.bot,
@@ -132,28 +146,24 @@ const parts = {
   },
 }
 
+interface ConfCtorOpts {
+  logger: Logger
+  buckets: Buckets
+}
+
 export class Conf {
-  public bot: Bot
-  public modelStore: ModelStore
   public logger: Logger
-  public privateConfBucket: Bucket
   public botConf: CacheableBucketItem
   public modelsPack: CacheableBucketItem
   public lenses: CacheableBucketItem
   public style: CacheableBucketItem
   public org: CacheableBucketItem
   public info: CacheableBucketItem
+  public identity: CacheableBucketItem
   public termsAndConditions: CacheableBucketItem
   public kycServiceDiscovery: CacheableBucketItem
-  constructor({ bot, logger }: {
-    bot: Bot
-    logger?: Logger
-  }) {
-    this.bot = bot
-    this.modelStore = bot.modelStore
-    this.logger = logger || bot.logger
-    const { buckets } = bot
-    this.privateConfBucket = buckets.PrivateConf
+  constructor({ logger, buckets }: ConfCtorOpts) {
+    this.logger = logger
 
     for (let name in parts) {
       let part = parts[name]
@@ -200,19 +210,22 @@ export class Conf {
     })
   }
 
-  public setBotConf = async (components: Partial<IConfComponents>): Promise<boolean> => {
-    const value = components.bot
+  public setBotConf = async ({ bot, update }: {
+    bot: Bot
+    update: Partial<IConfComponents>
+  }): Promise<boolean> => {
+    const value = update.bot
     if (!value) {
       throw new Errors.InvalidInput(`expected "bot" configuration object`)
     }
 
     // load all models
-    await this.modelStore.loadModelsPacks()
+    await bot.modelStore.loadModelsPacks()
 
     const { products, logging } = value
     const { plugins = {}, enabled = [] } = products || {}
     if (_.size(plugins)) {
-      await this.validatePluginConf({ components, plugins })
+      await this.validatePluginConf({ bot, update, plugins })
     }
 
     // if (logging) {
@@ -223,7 +236,7 @@ export class Conf {
       throw new Errors.InvalidInput(`product ${DEPLOYMENT_PRODUCT} is enabled. Expected a configuration for the "deployment" plugin`)
     }
 
-    const results = await allSettled(enabled.map(product => this.modelStore.get(product)))
+    const results = await allSettled(enabled.map(product => bot.modelStore.get(product)))
     const missing = results
       .map((result, i) => result.isRejected && enabled[i])
       .filter(_.identity)
@@ -237,11 +250,12 @@ export class Conf {
     return await this.botConf.putIfDifferent(value)
   }
 
-  public validatePluginConf = async ({ components, plugins }: {
-    plugins: any,
-    components:Partial<IConfComponents>
+  public validatePluginConf = async ({ bot, update, plugins }: {
+    bot: Bot
+    plugins: any
+    update:Partial<IConfComponents>
   }) => {
-    const conf = await this.load(components)
+    const conf = await this.load(update)
     await Promise.all(Object.keys(plugins).map(async (name) => {
       const plugin = Plugins.get(name)
       if (!plugin) throw new Errors.InvalidInput(`plugin not found: ${name}`)
@@ -249,7 +263,7 @@ export class Conf {
 
       const pluginConf = plugins[name]
       const validateOpts:ValidatePluginConfOpts = {
-        bot: this.bot,
+        bot,
         conf,
         pluginConf
       }
@@ -267,18 +281,24 @@ export class Conf {
     }))
   }
 
-  public setStyle = async (value: any): Promise<boolean> => {
+  public setStyle = async ({ bot, style }: {
+    bot: Bot
+    style: any
+  }): Promise<boolean> => {
     this.logger.debug('setting style')
     validateResource.resource({
-      models: this.bot.models,
+      models: bot.modelStore.models,
       model: STYLES_PACK,
-      resource: value
+      resource: style
     })
 
-    await this.style.putIfDifferent(value)
+    await this.style.putIfDifferent(style)
   }
 
-  public setCustomModels = async (modelsPack): Promise<boolean> => {
+  public setCustomModels = async ({ bot, modelsPack }: {
+    bot: Bot
+    modelsPack: any
+  }): Promise<boolean> => {
     this.logger.debug('setting custom models pack')
     const { domain } = await this.org.get()
     const namespace = toggleDomainVsNamespace(domain)
@@ -286,7 +306,7 @@ export class Conf {
       throw new Error(`Models pack namespace is "${modelsPack.namespace}". Expected: "${namespace}"`)
     }
 
-    await this.modelStore.saveCustomModels({
+    await bot.modelStore.saveCustomModels({
       modelsPack,
       key: PRIVATE_CONF_BUCKET.myModelsPack
     })
@@ -297,10 +317,6 @@ export class Conf {
   public setTermsAndConditions = async (value: string | Buffer): Promise<boolean> => {
     this.logger.debug('setting terms and conditions')
     return await this.termsAndConditions.putIfDifferent(value)
-  }
-
-  public forceReinitializeContainers = async () => {
-    return await this.bot.forceReinitializeContainers()
   }
 
   public getPublicInfo = async () => {
@@ -318,7 +334,7 @@ export class Conf {
     const [org, style, identity, bot] = await Promise.all([
       infoInput.org || this.org.get(),
       infoInput.style || this.style.get().catch(Errors.ignoreNotFound),
-      infoInput.identity || this.bot.getMyIdentity(),
+      infoInput.identity || this.identity.get(),
       infoInput.bot || this.botConf.get()
     ].map(toPromise))
 
@@ -357,10 +373,8 @@ export class Conf {
     }
   }
 
-  public initInfra = async (deploymentConf: IMyDeploymentConf, opts: InitOpts = {}) => {
-    const { bot, logger } = this
-
-    let { forceRecreateIdentity, identity, keys } = opts
+  public initInfra = async ({ bot, deploymentConf, forceRecreateIdentity, identity, keys }: InitInfraOpts) => {
+    const { logger } = this
     logger.info('initializing provider', deploymentConf)
 
     const orgTemplate = _.pick(deploymentConf, ['name', 'domain'])
@@ -398,7 +412,7 @@ export class Conf {
     const { style } = conf
     if (!style.logo) {
       const logo = await getLogo(deploymentConf).catch(err => {
-        this.logger.warn('failed to get logo', { domain: deploymentConf.domain })
+        logger.warn('failed to get logo', { domain: deploymentConf.domain })
       })
 
       if (logo) {
@@ -435,9 +449,10 @@ export class Conf {
     return info
   }
 
-  public updateInfra = async (conf, opts: InitOpts = {}) => {
-    const { bot, logger } = this
+  public updateInfra = async ({ bot }: UpdateInfraOpts) => {
+    const { logger } = this
     await bot.updateInfra()
+
     const [org, identity] = await Promise.all([
       this.org.get(),
       bot.getMyIdentity()
@@ -459,14 +474,17 @@ export class Conf {
 
     // may not be necessary as updateInfra updates lambdas' Environment
     // and forces reinit
-    await this.bot.forceReinitializeContainers()
+    await bot.forceReinitializeContainers()
   }
 
-  public update = async (update: UpdateConfInput) => {
-    const { style, modelsPack, bot, terms } = update
+  public update = async ({ bot, update }: {
+    bot: Bot
+    update: UpdateConfInput
+  }) => {
+    const { style, modelsPack, terms } = update
     const updated: UpdateConfInput = {}
     if (style) {
-      await this.setStyle(style)
+      await this.setStyle({ bot, style })
       await this.recalcPublicInfo({ style })
       updated.style = true
     }
@@ -477,13 +495,13 @@ export class Conf {
         modelsPack
       })
 
-      await this.setCustomModels(modelsPack)
+      await this.setCustomModels({ bot, modelsPack })
       updated.modelsPack = true
     }
 
-    if (bot) {
-      await this.setBotConf(update)
-      await this.recalcPublicInfo({ bot })
+    if (update.bot) {
+      await this.setBotConf({ bot, update })
+      await this.recalcPublicInfo({ bot: update.bot })
       updated.bot = true
     }
 
@@ -522,7 +540,7 @@ export class Conf {
   }
 }
 
-export const createConf = (opts): Conf => new Conf(opts)
+export const createConf = (opts: ConfCtorOpts) => new Conf(opts)
 
 const hasDifferentValue = async ({ bucket, key, value }) => {
   try {

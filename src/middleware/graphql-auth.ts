@@ -4,19 +4,15 @@ import constants from '../constants'
 import Errors from '../errors'
 import {
   ITradleObject,
-  Bot,
+  Lambda,
   Logger,
   IUser,
+  ILambdaExecutionContext,
 } from '../types'
 import { isPromise } from '../utils'
 
 const { TYPE, SIG, SIGNATURE_FRESHNESS_LEEWAY } = constants
 const FORBIDDEN_MESSAGE = 'forbidden'
-
-type GAComponents = {
-  bot: Bot
-  logger: Logger
-}
 
 interface CanUserRunQueryInput {
   ctx: any
@@ -31,15 +27,14 @@ type GAOpts = {
   canUserRunQuery: CanUserRunQuery
 }
 
-export const createHandler = ({
-  bot,
-  logger
-}: GAComponents, {
+export const createHandler = (lambda: Lambda, {
   isGuestAllowed,
   canUserRunQuery
 }: GAOpts) => {
-  const { identities } = bot
-  return async (ctx, next) => {
+  const { logger } = lambda
+  return async (ctx: ILambdaExecutionContext, next) => {
+    const { bot } = ctx.components
+    const { identities } = bot
     const method = ctx.method.toLowerCase()
     if (method === 'options') {
       await next()

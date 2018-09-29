@@ -1,21 +1,16 @@
+import once from 'lodash/once'
 import { fromHTTP } from '../../lambda'
 import { createMiddleware } from '../../middleware/graphql'
-import {
-  cachifyPromiser,
-} from '../../../utils'
-
 import { GRAPHQL } from '../../lambda-events'
 import sampleQueries from '../../sample-queries'
+import { Bot } from '../../types'
 
 const lambda = fromHTTP({ event: GRAPHQL })
-
-const loadModelsPacks = cachifyPromiser(() => lambda.bot.modelStore.loadModelsPacks())
-// kick off first attempt async
-loadModelsPacks()
+const loadModelsPacks = once((bot: Bot) => bot.modelStore.loadModelsPacks())
 
 lambda.use(async (ctx, next) => {
-  await loadModelsPacks()
   const { bot, conf, logger } = ctx.components
+  await loadModelsPacks(bot)
 
   logger.debug('finished setting up bot graphql middleware')
   const opts = {

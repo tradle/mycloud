@@ -7,6 +7,9 @@ import validateResource from '@tradle/validate-resource'
 import buildResource from '@tradle/build-resource'
 import mergeModels from '@tradle/merge-models'
 import { TYPE, ORG } from '@tradle/constants'
+import { getBuckets } from '../buckets'
+import { createServiceMap } from '../service-map'
+import { createUtils as createS3Utils } from '../s3-utils'
 import { Plugins } from './plugins'
 // import { models as onfidoModels } from '@tradle/plugin-onfido'
 import { createPlugin as setNamePlugin } from './plugins/set-name'
@@ -16,6 +19,7 @@ import { createConf } from './configure'
 import { plugins as defaultConfs } from './defaults'
 import { Deployment } from './deployment'
 import { Alerts } from './alerts'
+import { createBot } from '../'
 
 import {
   createPlugin as keepModelsFreshPlugin,
@@ -113,30 +117,47 @@ export const configureLambda = (opts:ConfigureLambdaOpts) => {
   const { lambda } = opts
   const load = cachifyPromiser(async () => {
     const components = await loadConfAndComponents(opts)
-    lambda.bot.ready()
+    components.bot.ready()
     return components
   })
 
-  // - kick off async
-  // - can't do inside middleware because of default middleware in lambda.ts
-  // that waits for bot.promiseReady() and stalls the pipeline
-  // - retry
-  const componentsPromise = load().catch(() => load())
+  let componentsPromise
+
+  const retry = (err?: Error) => {
+    if (err) Errors.rethrow(err, 'system')
+
+    componentsPromise = load().catch(retry)
+    return componentsPromise
+  }
 
   lambda.use(async (ctx, next) => {
     ctx.components = await componentsPromise
     await next()
   })
+
+  return retry()
 }
 
 export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<IBotComponents> => {
-  let { lambda, bot, event, conf } = opts
-  if (!bot) bot = lambda.bot
+  let { lambda, event, conf } = opts
 
-  const { logger } = lambda || bot
+  const { logger, env, aws, tasks } = lambda
   logger.debug('configuring in-house bot')
 
-  const confStore = createConf({ bot })
+  const serviceMap = createServiceMap({ env })
+  const buckets = getBuckets({
+    aws,
+    env,
+    serviceMap,
+    logger: logger.sub('buckets'),
+    s3Utils: createS3Utils({
+      env,
+      s3: aws.s3,
+      logger: logger.sub('s3-utils'),
+    })
+  })
+
+  const confStore = createConf({ buckets, logger })
   const start = Date.now()
   const {
     org,
@@ -151,6 +172,14 @@ export const loadConfAndComponents = async (opts: ConfigureLambdaOpts):Promise<I
   })
 
   logger.debug('loaded in-house bot conf components')
+
+  const bot = createBot({
+    logger,
+    aws,
+    env,
+    tasks,
+    blockchain: botConf.blockchain,
+  })
 
   // const { domain } = org
   if (modelsPack) {

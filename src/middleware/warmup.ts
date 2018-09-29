@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { wait } from '../utils'
 import { WARMUP_SOURCE_NAME, WARMUP_SLEEP } from '../constants'
-import { Lambda } from '../types'
+import { Lambda, ILambdaExecutionContext } from '../types'
 
 type WarmUpOpts = {
   source?: string
@@ -11,7 +11,7 @@ type WarmUpOpts = {
 export const warmup = (lambda: Lambda, opts:WarmUpOpts={}) => {
   const { source=WARMUP_SOURCE_NAME } = opts
   const { logger } = lambda
-  const relax = async ctx => {
+  const relax = async (ctx:ILambdaExecutionContext) => {
     const { event, context } = ctx
     const sleep = event.sleep || opts.sleep || WARMUP_SLEEP
     logger.debug(`warmup, sleeping for ${sleep}ms`)
@@ -30,7 +30,7 @@ export const warmup = (lambda: Lambda, opts:WarmUpOpts={}) => {
     }
   }
 
-  return (ctx, next) => {
+  return (ctx:ILambdaExecutionContext, next) => {
     const { event } = ctx
     if (event && event.source === source) {
       return relax(ctx)

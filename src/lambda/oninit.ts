@@ -1,11 +1,7 @@
-import { fromCloudFormation } from '../lambda'
+import { ILambdaExecutionContext } from '../types'
 
-export const createLambda = (opts) => {
-  const lambda = fromCloudFormation(opts)
-  const { bot, logger } = lambda
-  return lambda.use(async (ctx, next) => {
-    const { event } = ctx
-    await bot.fire(`stack:${event.type}`, ctx.event)
-    await next()
-  })
+export const createMiddleware = () => async (ctx:ILambdaExecutionContext, next) => {
+  const { event, components } = ctx
+  await components.bot.fire(`stack:${event.type}`, ctx.event)
+  await next()
 }

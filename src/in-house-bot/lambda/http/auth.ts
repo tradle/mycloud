@@ -1,5 +1,16 @@
-import { createBot } from '../../../'
+// import this one instead if we need other components
+// import { fromHTTP } from '../../lambda'
 
-const bot = createBot()
-const lambda = bot.lambdas.auth()
+import { fromHTTP } from '../../../lambda'
+import { createMiddleware } from '../../../lambda/auth'
+import { createBot } from '../../../'
+import { AUTH } from '../../lambda-events'
+
+const lambda = fromHTTP({
+  event: AUTH,
+  createBot: true,
+})
+
+lambda.use(createMiddleware())
+
 export const handler = lambda.handler

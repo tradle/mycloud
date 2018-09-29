@@ -1,19 +1,18 @@
-import { Lambda } from '../types'
+import {
+  Lambda,
+  ILambdaExecutionContext,
+} from '../types'
+
 import { fromIot } from '../lambda'
 
-export const createLambda = (opts) => {
-  const lambda = fromIot(opts)
-  return lambda.use(createMiddleware(lambda, opts))
-}
-
-export const createMiddleware = (lambda: Lambda, opts) => {
-  const { logger, bot } = lambda
-  const { userSim } = bot
-  const handleConnect = onConnected(lambda, opts)
-  const handleDisconnect = onDisconnected(lambda, opts)
-  const handleSubscribe = onSubscribed(lambda, opts)
-  return async (ctx, next) => {
-    let { event } = ctx
+export const createMiddleware = () => {
+  const handleConnect = onConnected()
+  const handleDisconnect = onDisconnected()
+  const handleSubscribe = onSubscribed()
+  return async (ctx: ILambdaExecutionContext, next) => {
+    let { event, components } = ctx
+    const { bot } = components
+    const { userSim, logger } = bot
     if (Buffer.isBuffer(event)) {
       ctx.event = event = JSON.parse(event.toString())
     }
@@ -31,22 +30,21 @@ export const createMiddleware = (lambda: Lambda, opts) => {
   }
 }
 
-export const onConnected = (lambda: Lambda, opts) => {
-  const { logger, bot } = lambda
-  return async (ctx, next) => {
-    const { clientId } = ctx.event.data
-    const session = await bot.userSim.onConnected({ clientId })
-    if (session) {
-      await bot.fire('user:online', session.permalink)
-      await next()
-    }
+export const onConnected = () => async (ctx:ILambdaExecutionContext, next) => {
+  const { bot } = ctx.components
+  const { logger, userSim } = bot
+  const { clientId } = ctx.event.data
+  const session = await userSim.onConnected({ clientId })
+  if (session) {
+    await bot.fire('user:online', session.permalink)
+    await next()
   }
 }
 
-export const onDisconnected = (lambda: Lambda, opts) => {
-  const { logger, bot } = lambda
-  const { userSim, auth } = bot
-  return async (ctx, next) => {
+export const onDisconnected = () => {
+  return async (ctx: ILambdaExecutionContext, next) => {
+    const { bot } = ctx.components
+    const { logger, userSim, auth } = bot
     const { clientId } = ctx.event.data
     await userSim.onDisconnected({ clientId })
     await bot.fire('user:offline', auth.getPermalinkFromClientId(clientId))
@@ -54,10 +52,10 @@ export const onDisconnected = (lambda: Lambda, opts) => {
   }
 }
 
-export const onSubscribed = (lambda, opts) => {
-  const { logger, bot } = lambda
-  const { userSim } = bot
-  return async (ctx, next) => {
+export const onSubscribed = () => {
+  return async (ctx: ILambdaExecutionContext, next) => {
+    const { bot } = ctx.components
+    const { logger, userSim } = bot
     const { clientId, topics } = ctx.event.data
     await userSim.onSubscribed({ clientId, topics })
     logger.debug('client subscribed to MQTT topics', { clientId, topics })

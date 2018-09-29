@@ -3,6 +3,7 @@ import { parse as parseURL } from 'url'
 import http from 'http'
 import crypto from 'crypto'
 import getLocalIP from 'localip'
+import once from 'lodash/once'
 import '../globals'
 import Env from '../env'
 // console.warn('make sure localstack is running (npm run localstack:start)')
@@ -43,7 +44,7 @@ const httpRequestInterceptor = (...args) => {
   return originalHttpRequest(...args)
 }
 
-export const install = (target=process.env):void => {
+export const install = once((target=process.env):void => {
   if (http.request !== httpRequestInterceptor) {
     http.request = httpRequestInterceptor
   }
@@ -117,7 +118,7 @@ export const install = (target=process.env):void => {
       (callback || params)(null, {})
     })
   }
-}
+})
 
 export const get = () => ({ ...props })
 

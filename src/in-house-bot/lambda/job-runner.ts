@@ -1,3 +1,4 @@
+import once from 'lodash/once'
 import Errors from '../../errors'
 import { fromLambda } from '../lambda'
 import * as LambdaEvents from '../lambda-events'
@@ -5,18 +6,21 @@ import * as JOBS from '../jobs'
 import { Job } from '../types'
 
 const lambda = fromLambda({ event: LambdaEvents.SCHEDULER })
-const { bot } = lambda
-
-Object.keys(JOBS).forEach(name => {
+const names = Object.keys(JOBS)
+names.forEach(name => {
   const exec = JOBS[name]
-  bot.logger.debug(`registered job: ${name}`)
-  bot.hookSimple(`job:${name}`, JOBS[name])
+  lambda.logger.debug(`registered job: ${name}`)
 })
+
+const hookIn = once(bot => names.forEach(name => bot.hookSimple(`job:${name}`, JOBS[name])))
 
 lambda.use(async (ctx) => {
   const job: Job = ctx.event
   const { components } = ctx
-  const { logger } = components
+  const { bot, logger } = components
+
+  hookIn(bot)
+
   if (!job.name) {
     throw new Errors.InvalidInput(`job missing name: ${JSON.stringify(job)}`)
   }

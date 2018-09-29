@@ -25,6 +25,7 @@ type StackInfo = {
   arn: string
   name: string
   region: string
+  resourcePrefix: string
 }
 
 const X_INTEGRATION = 'x-amazon-apigateway-integration'
@@ -85,7 +86,8 @@ export default class StackUtils {
     this.thisStack = {
       arn,
       name,
-      region: env.AWS_REGION
+      region: env.AWS_REGION,
+      resourcePrefix: `${name}-`,
     }
 
     this.apiId = apiId

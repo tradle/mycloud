@@ -2,37 +2,31 @@ import compose from 'koa-compose'
 import cors from 'kcors'
 import { extend, pick } from 'lodash'
 import { get } from '../middleware/noop-route'
-import { Lambda } from '../types'
-import { fromHTTP } from '../lambda'
+import { Lambda, ILambdaExecutionContext } from '../types'
 import Errors from '../errors'
 
-export const createLambda = (opts) => {
-  const lambda = fromHTTP(opts)
-  return lambda.use(createMiddleware(lambda, opts))
-}
+const info = () => async (ctx: ILambdaExecutionContext, next) => {
+  const { bot } = ctx.components
+  const { logger } = bot
+  logger.debug('setting bot endpoint info')
+  if (!ctx.body) ctx.body = {}
 
-export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { bot, logger } = lambda
-
-  return compose([
-    get(),
-    cors(),
-    async (ctx:any, next) => {
-      logger.debug('setting bot endpoint info')
-      if (!ctx.body) ctx.body = {}
-
-      const [chainKey, endpointInfo] = await Promise.all([
-        bot.identity.getChainKeyPub().catch(Errors.ignoreNotFound),
-        bot.getEndpointInfo()
-      ])
-
-      const { version, ...connectEndpoint } = endpointInfo
-      extend(ctx.body, { connectEndpoint, version })
-      if (chainKey) {
-        ctx.body.chainKey = pick(chainKey, ['type', 'pub', 'fingerprint', 'networkName'])
-      }
-
-      await next()
-    }
+  const [chainKey, endpointInfo] = await Promise.all([
+    bot.identity.getChainKeyPub().catch(Errors.ignoreNotFound),
+    bot.getEndpointInfo()
   ])
+
+  const { version, ...connectEndpoint } = endpointInfo
+  extend(ctx.body, { connectEndpoint, version })
+  if (chainKey) {
+    ctx.body.chainKey = pick(chainKey, ['type', 'pub', 'fingerprint', 'networkName'])
+  }
+
+  await next()
 }
+
+export const createMiddleware = () => compose([
+  get(),
+  cors(),
+  info()
+])

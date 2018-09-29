@@ -46,6 +46,10 @@ export default class LambdaUtils {
     return this.env.AWS_LAMBDA_FUNCTION_NAME
   }
 
+  private get isLocal() {
+    return this.env.IS_LOCAL
+  }
+
   constructor ({ env, aws, logger }) {
     this.env = env
     this.aws = aws
@@ -66,7 +70,7 @@ export default class LambdaUtils {
       arg={},
       sync=true,
       log,
-      local=this.env.IS_LOCAL,
+      local=this.isLocal,
       qualifier,
       wrapPayload
     } = opts
@@ -265,6 +269,8 @@ export default class LambdaUtils {
   }
 
   public scheduleReinitializeContainers = async (functions?: string[]) => {
+    if (this.isLocal) return
+
     return await this.invoke({
       name: REINITIALIZE_CONTAINERS_FUNCTION,
       sync: false,
@@ -276,6 +282,8 @@ export default class LambdaUtils {
   }
 
   public scheduleWarmUp = async (event=DEFAULT_WARMUP_EVENT) => {
+    if (this.isLocal) return
+
     return await this.invoke({
       name: WARMUP_FUNCTION,
       arg: {

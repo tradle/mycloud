@@ -41,15 +41,17 @@ const MAX_BUCKET_NAME_LENGTH = 63
 const PUBLIC_BUCKET_RULE_ID = 'MakeItPublic'
 const LOCAL_S3_PATH_NAME_REGEX = /^\/?([^/]+)\/(.*)/
 
+interface S3UtilsOpts {
+  s3: S3
+  logger: Logger
+  env?: Env
+}
+
 export default class S3Utils {
   public s3: S3
   public logger: Logger
   public env: Env
-  constructor({ s3, logger, env }: {
-    s3: S3,
-    logger: Logger,
-    env?: Env
-  }) {
+  constructor({ s3, logger, env }: S3UtilsOpts) {
     this.s3 = s3
     this.logger = logger
     this.env = env
@@ -884,7 +886,7 @@ export default class S3Utils {
 }
 
 export { S3Utils }
-export const createUtils = opts => new S3Utils(opts)
+export const createUtils = (opts: S3UtilsOpts) => new S3Utils(opts)
 
 const getRegionalBucket = ({ bucket, region, buckets }) => {
   const regionalName = S3Utils.getRegionalBucketName({ bucket, region })

@@ -1,9 +1,12 @@
 
+export const INFO = 'info'
 export const PREAUTH = 'preauth'
 export const AUTH = 'auth'
 export const MESSAGE = 'message'
 export const RESOURCE_ASYNC = 'resourcestream'
+export const IOT_LIFECYCLE = 'iotlifecycle'
 export const COMMAND = 'command'
+export const WARMUP = 'warmup'
 
 // various http-based confirmations (e.g. email confirmation)
 export const CONFIRMATION = 'confirmation'
@@ -32,3 +35,5 @@ export const ONFIDO_PROCESS_WEBHOOK_EVENT = 'onfido:webhook'
 // document checker
 export const DOCUMENT_CHECKER_WEBHOOK_EVENT = 'documentChecker:webhook'
 export const DOCUMENT_CHECKER_JOB = 'documentChecker:poll'
+
+export const GET_QR = 'get_qr'

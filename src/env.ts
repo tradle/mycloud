@@ -212,6 +212,17 @@ export default class Env {
 
 export { Env }
 
+let installedTestEnv
+
+export const createEnv = (props:any={}) => {
+  if (!installedTestEnv && process.env.IS_OFFLINE || process.env.IS_LOCAL) {
+    installedTestEnv = true
+    require('./test/env').install()
+  }
+
+  return new Env({ ...process.env, ...props })
+}
+
 const createTestingLogger = (name?: string) => {
   const prefix = name ? name + ':' : ''
   return {

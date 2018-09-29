@@ -1,15 +1,9 @@
-import { Lambda } from '../types'
-import { fromSchedule } from '../lambda'
+import { Lambda, ILambdaExecutionContext } from '../types'
 import { DEFAULT_WARMUP_EVENT } from '../constants'
 
-export const createLambda = (opts) => {
-  const lambda = fromSchedule(opts)
-  return lambda.use(createMiddleware(lambda, opts))
-}
-
 export const createMiddleware = (lambda:Lambda, opts?:any) => {
-  const { lambdaUtils } = lambda.bot
-  return async (ctx, next) => {
+  return async (ctx: ILambdaExecutionContext, next) => {
+    const { lambdaUtils } = ctx.components.bot
     ctx.body = await lambdaUtils.warmUp({
       ...DEFAULT_WARMUP_EVENT,
       ...(ctx.event || {})

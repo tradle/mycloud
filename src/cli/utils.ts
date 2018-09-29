@@ -64,7 +64,7 @@ const genLocalResources = async ({ bot }) => {
     bot = require('../').createTestBo()
   }
 
-  const { aws } = bot
+  const { aws, stackUtils } = bot
   const yml = require('./serverless-yml')
   const { resources } = yml
   const { Resources } = resources
@@ -102,7 +102,7 @@ const genLocalResources = async ({ bot }) => {
   Object.keys(Resources)
     .filter(name => Resources[name].Type === 'AWS::S3::Bucket')
     .forEach(name => {
-      const Bucket = bot.resourcePrefix + name.toLowerCase()
+      const Bucket = stackUtils.thisStack.resourcePrefix + name.toLowerCase()
       const exists = currentBuckets.Buckets.find(({ Name }) => {
         return Name === Bucket
       })
@@ -273,7 +273,7 @@ const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
     bot = createBot()
   }
 
-  const conf = createConf({ bot })
+  const conf = createConf(bot)
   if (!force) {
     try {
       const current = await conf.get()
@@ -289,7 +289,9 @@ const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
   const yml = require('./serverless-yml')
   const providerConf = yml.custom.org
   try {
-    await conf.initInfra(providerConf, {
+    await conf.initInfra({
+      bot,
+      deploymentConf: providerConf,
       forceRecreateIdentity: force
     })
   } catch (err) {

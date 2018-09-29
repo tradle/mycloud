@@ -1,29 +1,22 @@
-// @ts-ignore
-import Promise from 'bluebird'
-import { Lambda } from '../types'
+import { Lambda, ILambdaExecutionContext } from '../types'
 import Errors from '../errors'
 
-const notNull = val => !!val
-const promiseNoop = async () => {}
-
-export const onMessage = (lambda:Lambda, opts?:any) => {
-  const { logger } = lambda
-  return async (ctx, next) => {
-    const { messages } = ctx.event
-    if (!messages) {
-      ctx.body = {
-        message: 'invalid payload, expected {"messages":[]}'
-      }
-
-      ctx.status = 400
-      return
+export const onMessage = () => async (ctx: ILambdaExecutionContext, next) => {
+  const { logger } = ctx.components.bot
+  const { messages } = ctx.event
+  if (!messages) {
+    ctx.body = {
+      message: 'invalid payload, expected {"messages":[]}'
     }
 
-    await next()
+    ctx.status = 400
+    return
   }
+
+  await next()
 }
 
-export const createSuccessHandler = (lambda, opts) => promiseNoop
-export const createErrorHandler = (lambda, opts) => async ({ message, error }) => {
+export const createSuccessHandler = async () => {}
+export const createErrorHandler = () => async ({ message, error }) => {
   Errors.ignore(error, Errors.Duplicate)
 }

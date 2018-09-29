@@ -182,9 +182,14 @@ export interface IRequestContext {
   start: number
 }
 
+export interface ILambdaContextComponents {
+  bot: Bot
+}
+
 export interface ILambdaExecutionContext {
   // requestNumber: number
   event: any
+  components: ILambdaContextComponents
   context: ILambdaAWSExecutionContext
   callback?: Function
   error?: Error
@@ -208,9 +213,14 @@ export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, call
   => any|void
 
 export interface ILambdaOpts<T> {
-  source?: EventSource
+  env: Env
+  aws: AwsApis
+  logger: Logger
   bot?: Bot
+  source?: EventSource
+  // bot?: Bot
   middleware?: Middleware<T>
+  createBot?: boolean
   [x:string]: any
 }
 
@@ -540,9 +550,17 @@ export interface ILoadFriendOpts {
 }
 
 export interface IBotOpts {
-  env?: any
+  env: Env
+  aws: AwsApis
+  logger: Logger
+  blockchain: IBlockchainIdentifier
+  tasks?: TaskManager
+  serviceMap?: IServiceMap
   users?: any
   ready?:boolean
+  isTesting?: boolean
+  isLocal?: boolean
+  isEmulated?: boolean
 }
 
 export interface IGraphiqlBookmark {

@@ -1,9 +1,9 @@
 import once from 'lodash/once'
 import partition from 'lodash/partition'
 import Errors from '../../errors'
-import { fromSchedule } from '../lambda'
+import { fromSchedule } from '../../lambda'
 import * as LambdaEvents from '../lambda-events'
-import { Job, IBotComponents } from '../types'
+import { Job, ILambdaContextComponents } from '../types'
 import * as JOBS from '../jobs'
 import {
   WARMUP_PERIOD,
@@ -13,8 +13,10 @@ import {
   WARMUP_FUNCTION,
 } from '../../constants'
 
-const lambda = fromSchedule({ event: LambdaEvents.SCHEDULER })
-const { bot } = lambda
+const lambda = fromSchedule({
+  event: LambdaEvents.SCHEDULER,
+  createBot: true,
+})
 
 const MINUTE = 60
 const COMMON_JOBS:Job[] = [
@@ -71,28 +73,30 @@ const COMMON_JOBS:Job[] = [
   // },
 ]
 
-const addJobs = once((components: IBotComponents) => {
+const addJobs = once((components: ILambdaContextComponents) => {
   COMMON_JOBS.forEach(job => {
     if (!JOBS[job.name]) {
       throw new Errors.InvalidEnvironment(`job executor not found: ${job.name}`)
     }
   })
 
-  const [will, wont] = partition(COMMON_JOBS, job =>
-    (job.requiresComponents || []).every(name => name in components))
+  COMMON_JOBS.forEach(job => components.bot.scheduler.add(job))
 
-  if (wont.length) {
-    lambda.logger.debug(`skipping jobs due to missing/unconfigured components: ${wont.join(', ')}`)
-  }
+  // const [will, wont] = partition(COMMON_JOBS, job =>
+  //   (job.requiresComponents || []).every(name => name in components))
 
-  will.forEach(job => bot.scheduler.add(job))
+  // if (wont.length) {
+  //   lambda.logger.debug(`skipping jobs due to missing/unconfigured components: ${wont.join(', ')}`)
+  // }
+
+  // will.forEach(job => components.bot.scheduler.add(job))
 })
 
 lambda.use(async (ctx) => {
   const { components } = ctx
   addJobs(components)
 
-  const { bot, logger } = components
+  const { bot } = components
   await bot.scheduler.scheduleJobsImmediately()
 })
 

@@ -1,6 +1,8 @@
-import { createBot } from '../../../'
-import { createLambda } from '../../../in-house-bot/middleware/deployment-pingback'
+import { createMiddleware } from '../../../in-house-bot/middleware/deployment-pingback'
+import { fromHTTP } from '../../lambda'
+import { DEPLOYMENT_PINGBACK } from '../../lambda-events'
 
-const bot = createBot({ ready: false })
-const lambda = createLambda({ bot })
+const lambda = fromHTTP({ event: DEPLOYMENT_PINGBACK })
+lambda.use(createMiddleware())
+
 export const handler = lambda.handler

@@ -1,6 +1,7 @@
 import { requireDefault } from './require-default'
 import { createBot as _createBot } from './bot'
-import Env from './env'
+import { Env, createEnv } from './env'
+import { createLogger } from './logger'
 import {
   LambdaUtils,
   StackUtils,
@@ -11,25 +12,26 @@ import {
 
 let bot
 
-const createTestBot = (opts:Partial<IBotOpts>={}) => _createBot({
+const createBotWithOpts = opts => _createBot({
+  ...opts,
+  blockchain: opts.blockchain || opts.env.BLOCKCHAIN,
+  logger: opts.logger || createLogger('bot'),
+})
+
+const createTestBot = (opts:Partial<IBotOpts>={}) => createBotWithOpts({
   ...opts,
   env: opts.env || require('./test/env').createTestEnv()
 })
 
-const createRemoteBot = (opts:Partial<IBotOpts>={}) => _createBot({
+const createRemoteBot = (opts:Partial<IBotOpts>={}) => createBotWithOpts({
   ...opts,
-  env: opts.env || require('./cli/remote-service-map')
+  env: opts.env || createEnv(require('./cli/remote-service-map'))
 })
 
-const createBot = (opts:Partial<IBotOpts>={}) => {
-  if (opts.env) return _createBot(opts)
-  if (process.env.IS_OFFLINE || process.env.IS_LOCAL) {
-    require('./test/env').install()
-    return createTestBot(opts)
-  }
-
-  return _createBot(opts)
-}
+const createBot = (opts:Partial<IBotOpts>={}) => createBotWithOpts({
+  ...opts,
+  env: opts.env || createEnv()
+})
 
 const exp = {
   // proxy to default instance props
