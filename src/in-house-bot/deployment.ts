@@ -1279,7 +1279,7 @@ ${this.genUsageInstructions(links)}`
       stackId: req.stackId,
       adminEmail: req.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
-      blockchain: Deployment.decodeBlockchainEnumValue(req.blockchain),
+      blockchain: req.blockchain ? Deployment.decodeBlockchainEnumValue(req.blockchain) : this.bot.blockchain.toString(),
     })
 
     const { notificationTopics=[], templateUrl } = pkg
