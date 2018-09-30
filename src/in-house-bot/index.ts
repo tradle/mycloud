@@ -376,6 +376,14 @@ export const loadComponentsAndPlugins = ({
         await applications.createSealsForApprovedApplication({ application: value })
         return
       }
+
+      if (type === CHILD_DEPLOYMENT) {
+        try {
+          await alerts.childUpdated({ from: old, to: value })
+        } catch (err) {
+          logger.error('failed to alert about child update', err)
+        }
+      }
     }
 
     const processCreate = async (resource: ITradleObject) => {

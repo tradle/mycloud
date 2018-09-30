@@ -7,6 +7,7 @@ import {
   Logger,
   IOrganization,
   LowFundsInput,
+  ITradleObject,
 } from './types'
 
 interface VersionEmailInput {
@@ -72,6 +73,35 @@ Address: ${address}
 Grumpily,
 Your MyCloud
 `,
+    })
+  }
+
+  public childUpdated = async ({ from, to }: {
+    from: ITradleObject
+    to: ITradleObject
+  }) => {
+    const { identity } = from || to
+    if (!identity) return
+
+    const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
+    const fromTag = from.version.tag
+    const toTag = to.version.tag
+    this._emailAdmin({
+      subject: `${friend.name} updated MyCloud ${fromTag} -> ${toTag}`,
+      body: `Dearest,
+
+This is your MyCloud. One of your children has updated their MyCloud
+
+From version: ${fromTag}
+To version: ${toTag}
+
+The culprit:
+
+Name: ${friend.name}
+Identity: ${identity._permalink}
+Domain: ${friend.domain}
+Org: ${friend.org._displayName || friend.org._permalink}
+`
     })
   }
 
