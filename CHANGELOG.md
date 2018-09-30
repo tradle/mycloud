@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.9.0-rc.0"></a>
+# [1.9.0-rc.0](https://github.com/tradle/serverless/compare/v1.8.0...v1.9.0-rc.0) (2018-09-30)
+
+
+### Features
+
+* alert admin about child deployment updates ([d13b3fb](https://github.com/tradle/serverless/commit/d13b3fb))
+
+
+
 <a name="1.8.0"></a>
 # [1.8.0](https://github.com/tradle/serverless/compare/v1.8.0-rc.14...v1.8.0) (2018-09-30)
 
