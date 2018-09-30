@@ -1810,11 +1810,11 @@ ${this.genUsageInstructions(links)}`
     }
 
     const { versionInfo, updated } = await this._saveMyDeploymentVersionInfo()
-    const forced = this.bot.version.alert
-    const should = updated && shouldSendVersionAlert(this.bot.version)
-    if (forced || should) {
-      await this.alertChildrenAboutVersion(versionInfo)
-    }
+    // const forced = this.bot.version.alert
+    // const should = updated && shouldSendVersionAlert(this.bot.version)
+    // if (forced || should) {
+    //   await this.alertChildrenAboutVersion(versionInfo)
+    // }
 
     await monitorSelf
   }
