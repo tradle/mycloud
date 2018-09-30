@@ -79,7 +79,7 @@ custom:
   stackName: ${{self:service}}-${{self:custom.stage}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
 
-  blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
+  # blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
   # providerConf: &providerConf
   #   ${{file(./src/in-house-bot/conf/provider.json)}}
@@ -317,7 +317,8 @@ provider:
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
     IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
     IOT_CLIENT_ID_PREFIX: ${{self:custom.iotClientIdPrefix}}
-    BLOCKCHAIN: ${{self:custom.blockchain}}
+    BLOCKCHAIN:
+      Ref: BlockchainNetwork
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
     CORDA_API_KEY: ${{self:custom.corda.apiKey}}
     DEBUG: '*lambda*,tradle*,-@tradle/dynamodb'
@@ -1004,6 +1005,15 @@ functions:
     # events added at runtime
 
 resources:
+  Parameters:
+    BlockchainNetwork:
+      Type: String
+      Default: ethereum:rinkeby
+      AllowedValues:
+        - 'ethereum:mainnet'
+        - 'ethereum:rinkeby'
+        - 'ethereum:ropsten'
+
   Mappings:
     org:
       init: ${{self:custom.org}}
