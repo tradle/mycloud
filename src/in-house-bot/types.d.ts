@@ -363,6 +363,7 @@ export interface IDeploymentConf extends ITradleObject {
   stackPrefix: string
   region: string
   adminEmail?: string
+  blockchain: string
   // configurationLink?: string
 }
 

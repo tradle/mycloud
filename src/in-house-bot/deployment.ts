@@ -196,6 +196,18 @@ const getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9
 const getAdminEmailFromTemplate = template => _.get(template, ['Mappings'].concat(ADMIN_MAPPING_PATH))
 const getCommitHashFromTemplate = template => _.get(template, 'Resources.Initialize.Properties.commit')
 const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
+const setBlockchainNetwork = (template:any, value: string) => {
+  if (!template.Parameters) template.Parameters = {}
+  template.Parameters.BlockchainNetwork = {
+    Type: 'String',
+    Default: value,
+    AllowedValues: [
+      value
+    ]
+  }
+}
+
+const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
 
 export class Deployment {
   // exposed for testing
@@ -210,6 +222,19 @@ export class Deployment {
 
   public static encodeRegion = (region: string) => region.replace(/[-]/g, '.')
   public static decodeRegion = (region: string) => region.replace(/[.]/g, '-')
+  public static decodeBlockchainEnumValue = value => utils.getEnumValueId({
+    model: BlockchainNetworkModel,
+    value,
+  }).replace(/[.]/g, ':')
+
+  public static encodeBlockchainEnumValue = (str: string) => {
+    const id = str.replace(/[:]/g, '.')
+    return buildResource.enumValue({
+      model: BlockchainNetworkModel,
+      value: { id },
+    })
+  }
+
   public static isReleaseCandidateTag = (tag: string) => /-rc\.\d+$/.test(tag)
   public static isTransitionReleaseTag = (tag: string) => /-trans/.test(tag)
   public static isStableReleaseTag = (tag: string) => /^v?\d+.\d+.\d+$/.test(tag)
@@ -221,7 +246,8 @@ export class Deployment {
 
     return {
       ...form,
-      region: Deployment.decodeRegion(region)
+      region: Deployment.decodeRegion(region),
+      blockchain: Deployment.decodeBlockchainEnumValue(form.blockchain),
     } as IDeploymentConf
   }
 
@@ -346,6 +372,7 @@ export class Deployment {
       stackId: stackId || childDeployment.stackId,
       adminEmail: configuration.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
+      blockchain: Deployment.decodeBlockchainEnumValue(configuration.blockchain),
     })
 
     return {
@@ -362,12 +389,14 @@ export class Deployment {
     stackOwner,
     stackId,
     adminEmail,
-    tag
+    tag,
+    blockchain
   }: {
     stackOwner: string
     stackId: string
     adminEmail: string
     tag: string
+    blockchain: string
   }) => {
     const { templateUrl } = await this.getVersionInfoByTag(tag)
     return this.genUpdatePackageForStack({
@@ -375,6 +404,7 @@ export class Deployment {
       stackId,
       adminEmail,
       parentTemplateUrl: templateUrl,
+      blockchain,
     })
   }
 
@@ -383,18 +413,26 @@ export class Deployment {
     stackId: string
     parentTemplateUrl: string
     adminEmail: string
+    blockchain: string
     // deployment:
   }) => {
-    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl', 'adminEmail'])
+    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl', 'adminEmail', 'blockchain'])
 
-    const { stackOwner, stackId, adminEmail, parentTemplateUrl } = opts
+    const { stackOwner, stackId, parentTemplateUrl, adminEmail, blockchain } = opts
     const { region, accountId, name } = StackUtils.parseStackArn(stackId)
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
       this._getTemplateByUrl(parentTemplateUrl), // should we get via s3 instead?
     ])
 
-    const template = await this.customizeTemplateForUpdate({ template: parentTemplate, adminEmail, stackId, bucket })
+    const template = await this.customizeTemplateForUpdate({
+     template: parentTemplate,
+     adminEmail,
+     stackId,
+     bucket,
+     blockchain
+   })
+
     const { templateUrl, code } = await this._saveTemplateAndCode({
       parentTemplate,
       template,
@@ -825,7 +863,7 @@ ${this.genUsageInstructions(links)}`
     configuration: IDeploymentConf
     bucket: string
   }) => {
-    let { name, domain, logo, region, stackPrefix, adminEmail } = configuration
+    let { name, domain, logo, region, stackPrefix, adminEmail, blockchain } = configuration
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
@@ -836,7 +874,9 @@ ${this.genUsageInstructions(links)}`
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
 
-    const { Resources, Mappings } = template
+    setBlockchainNetwork(template, blockchain)
+
+    const { Resources, Mappings, Parameters } = template
     const { org, deployment } = Mappings
     const logoPromise = getLogo(configuration).catch(err => {
       this.logger.warn('failed to get logo', { domain })
@@ -896,10 +936,11 @@ ${this.genUsageInstructions(links)}`
     stackId: string
     adminEmail: string
     bucket: string
+    blockchain: string
   }) => {
-    utils.requireOpts(opts, ['template', 'stackId', 'adminEmail', 'bucket'])
+    utils.requireOpts(opts, ['template', 'stackId', 'adminEmail', 'bucket', 'blockchain'])
 
-    let { template, stackId, adminEmail, bucket } = opts
+    let { template, stackId, adminEmail, bucket, blockchain } = opts
     const { service, region } = StackUtils.parseStackArn(stackId)
     const previousServiceName = getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
@@ -907,6 +948,7 @@ ${this.genUsageInstructions(links)}`
     // scrap unneeded mappings
     // also...we don't have this info
     template.Mappings = {}
+    setBlockchainNetwork(template, blockchain)
 
     const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {
@@ -1203,6 +1245,7 @@ ${this.genUsageInstructions(links)}`
         stage: env.SERVERLESS_STAGE,
         region: env.AWS_REGION,
         stackId: this._thisStackArn,
+        blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
         ...opts
       })
       .toJSON()
@@ -1236,6 +1279,7 @@ ${this.genUsageInstructions(links)}`
       stackId: req.stackId,
       adminEmail: req.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
+      blockchain: Deployment.decodeBlockchainEnumValue(req.blockchain),
     })
 
     const { notificationTopics=[], templateUrl } = pkg

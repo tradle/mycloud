@@ -25,6 +25,7 @@ test('deployment by referral', loudAsync(async (t) => {
   const configuredBy = users[0].identity
   const senderEmail = 'sender@example.com'
   const region = 'ap-southeast-2'
+  const childChain = 'ethereum:ropsten'
   const conf = {
     ...fake({
       models,
@@ -32,6 +33,7 @@ test('deployment by referral', loudAsync(async (t) => {
       signed: true
     }),
     region: Deployment.encodeRegion(region),
+    blockchain: Deployment.encodeBlockchainEnumValue(childChain),
     name: 'myorg',
     domain: 'example.com',
     adminEmail: 'admin@example.com',
@@ -44,6 +46,7 @@ test('deployment by referral', loudAsync(async (t) => {
   const parent = createTestBot()
   const child = createBotInRegion({ region })
   sandbox.stub(child.stackUtils, 'getCurrentAdminEmail').resolves(conf.adminEmail)
+  sandbox.stub(child.blockchain, 'toString').returns(childChain)
 
   const childUrl = 'http://tradle.somewhereoverthe.com'
   child.serviceMap.RestApi.ApiGateway.url = childUrl
@@ -132,6 +135,12 @@ test('deployment by referral', loudAsync(async (t) => {
   })
 
   const parentTemplate = {
+    Parameters: {
+      BlockchainNetwork: {
+        Type: 'String',
+        Default: 'ethereum:mainnet',
+      }
+    },
     "Mappings": {
       "org": {
         "init": {
@@ -332,6 +341,7 @@ test('deployment by referral', loudAsync(async (t) => {
     // configurationLink: conf._link,
     stackPrefix: conf.stackPrefix,
     adminEmail: conf.adminEmail,
+    blockchain: childChain,
     _t: 'tradle.cloud.Configuration',
     _author: conf._author,
     _link: conf._link,
@@ -341,6 +351,7 @@ test('deployment by referral', loudAsync(async (t) => {
   t.equal(copyFiles.callCount, 1)
   // t.equal(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
   t.equal(launchPackage.template.Mappings.org.contact.adminEmail, conf.adminEmail)
+  t.equal(launchPackage.template.Parameters.BlockchainNetwork.Default, childChain)
   // t.same(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
   //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
   // })
@@ -442,7 +453,7 @@ test('deployment by referral', loudAsync(async (t) => {
   sandbox.stub(parentDeployment, '_getTemplateByUrl').resolves(parentTemplate)
 
   let updateResponse
-  const { templateUrl } = await parentDeployment.handleUpdateRequest({
+  const updatePkg = await parentDeployment.handleUpdateRequest({
     from: {
       id: buildResource.permalink(childIdentity),
       identity: childIdentity
@@ -450,12 +461,14 @@ test('deployment by referral', loudAsync(async (t) => {
     req: updateReq
   })
 
+  t.equal(updatePkg.template.Parameters.BlockchainNetwork.Default, childChain)
+
   updateResponse = getLastCallArg(parentSendStub).object
   t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')
 
   const stubInvoke = sandbox.stub(child.lambdaUtils, 'invoke').callsFake(async ({ name, arg }) => {
     t.equal(name, 'updateStack')
-    t.equal(arg.templateUrl, templateUrl)
+    t.equal(arg.templateUrl, updatePkg.templateUrl)
   })
 
   const stubLookupRequest = sandbox.stub(childDeployment, 'lookupLatestUpdateRequest').resolves(updateReq)
