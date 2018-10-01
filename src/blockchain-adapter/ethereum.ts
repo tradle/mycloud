@@ -8,6 +8,10 @@ import { processResponse } from '../utils'
 
 const debug = require('debug')('tradle:sls:ethereum-adapter')
 const FAUCET_BASE_URL = 'http://faucet.ropsten.be:3001/donate'
+// const GWEI = 1000000000
+// const GAS_LIMIT = 21000
+// MAX_PRICE_IN_WEI is 15 * GWEI * GAS_LIMIT
+const MAX_PRICE_IN_WEI = new BN('315000000000000', 10)
 
 export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
   let wallet
@@ -24,7 +28,8 @@ export = function getNetworkAdapters ({ networkName='ropsten', privateKey }) {
       privateKey,
       pollingInterval: 10000,
       etherscan: true,
-      autostart: false
+      autostart: false,
+      maxPriceInWei: MAX_PRICE_IN_WEI,
     }
   })
 
