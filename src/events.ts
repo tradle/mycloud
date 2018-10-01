@@ -221,7 +221,7 @@ const bumpSuffix = (id) => {
 
 const getTopicName = (str: string) => parseTopic(str).original
 
-const registry = new Set<String>()
+const registry = new Set<string>()
 
 export class EventTopic {
   constructor(private name: string) {
@@ -274,6 +274,9 @@ export const topics = {
   logging: {
     logs: new EventTopic('logs:logs'),
     alert: new EventTopic('logs:alert'),
+  },
+  blockchain: {
+    lowFunds: new EventTopic('blockchain:lowfunds'),
   }
 }
 

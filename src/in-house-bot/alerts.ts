@@ -23,6 +23,7 @@ interface IChildDeployment {
   friend: ResourceStub
   org: ResourceStub
   stackId: string
+  apiUrl: string
   version: MiniVersionInfo
 }
 
@@ -102,8 +103,8 @@ Your MyCloud
 
 This is your MyCloud. One of your children has updated their MyCloud
 
-From version: ${fromTag}
-To version: ${toTag}
+From version: ${fromTag}   (#${from.version.commit})
+To version:   ${toTag}     (#${to.version.commit})
 
 The culprit:
 
@@ -111,7 +112,8 @@ Name: ${friend.name}
 Identity: ${identity._permalink}
 Domain: ${friend.domain}
 Org: ${friend.org._displayName || friend.org._permalink}
-StackId: ${from.stackId}
+StackId: ${to.stackId}
+API Url: ${to.apiUrl}
 `
     })
   }
@@ -133,6 +135,7 @@ Identity: ${identity._permalink}
 Domain: ${friend.domain}
 Org: ${friend.org._displayName || friend.org._permalink}
 StackId: ${childDeployment.stackId}
+API Url: ${childDeployment.apiUrl}
 `
     })
   }
