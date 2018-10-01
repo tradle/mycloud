@@ -372,6 +372,7 @@ export default class Seals {
     })
 
     ret.seals = results.filter(notNull)
+    this.logger.debug(`wrote ${ret.seals.length} seals`)
     return ret
   }
 
