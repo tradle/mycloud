@@ -21,7 +21,12 @@ export const createLambda = (opts) => {
   })
 
   bot.hook(EventTopics.message.inbound.sync, async (ctx, next) => {
-    const { type, payload } = ctx.event
+    const { type, payload, user } = ctx.event
+    lambda.tasks.add({
+      name: 'reset-delivery-error',
+      promiser: () => bot.delivery.http.resetError({ counterparty: user.id })
+    })
+
     if (type === MODELS_PACK) {
       try {
         await bot.modelStore.addModelsPack({
