@@ -137,7 +137,8 @@
     "releasecandidate:patch": "npm run releasecandidate -- --release-as patch",
     "releasecandidate:minor": "npm run releasecandidate -- --release-as minor",
     "releasecandidate:major": "npm run releasecandidate -- --release-as major",
-    "releasetransition": "standard-version --prerelease trans --no-verify --release-as patch"
+    "releasetransition": "standard-version --prerelease trans --no-verify --release-as patch",
+    "sendupdatealerts": "cd conf && tradleconf exec -r 'send-update-alerts --version latest'"
   },
   "dependencies": {
     "@aws/dynamodb-expressions": "^0.4.0",
