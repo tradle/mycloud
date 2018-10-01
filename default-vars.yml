@@ -3,6 +3,7 @@ stage: dev
 region: us-east-1
 profile: default
 emailForNotifications: mark@tradle.io # support@tradle.io
+blockchain: ethereum:rinkeby
 # not used at the moment:
 # thresholdBillingAlarm: 1 # $1 / hr
 thresholdThrottlingAlarm: 10 # times throttled

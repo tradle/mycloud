@@ -79,7 +79,7 @@ custom:
   stackName: ${{self:service}}-${{self:custom.stage}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
 
-  # blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
+  blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
   # providerConf: &providerConf
   #   ${{file(./src/in-house-bot/conf/provider.json)}}
@@ -1008,7 +1008,7 @@ resources:
   Parameters:
     BlockchainNetwork:
       Type: String
-      Default: ethereum:rinkeby
+      Default: ${{self:custom.blockchain}}
       AllowedValues:
         - 'ethereum:mainnet'
         - 'ethereum:rinkeby'
