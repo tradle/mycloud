@@ -400,6 +400,14 @@ export const loadComponentsAndPlugins = ({
 
         return
       }
+
+      if (type === CHILD_DEPLOYMENT) {
+        try {
+          await alerts.childCreated(resource as any)
+        } catch (err) {
+          logger.error('failed to alert about new child', err)
+        }
+      }
     }
 
     bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {

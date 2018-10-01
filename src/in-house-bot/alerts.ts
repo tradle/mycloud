@@ -8,12 +8,22 @@ import {
   IOrganization,
   LowFundsInput,
   ITradleObject,
+  ResourceStub,
+  MiniVersionInfo,
 } from './types'
 
 interface VersionEmailInput {
   current: VersionInfo
   update: VersionInfo
   org: IOrganization
+}
+
+interface IChildDeployment {
+  identity: ResourceStub
+  friend: ResourceStub
+  org: ResourceStub
+  stackId: string
+  version: MiniVersionInfo
 }
 
 export class Alerts {
@@ -77,10 +87,10 @@ Your MyCloud
   }
 
   public childUpdated = async ({ from, to }: {
-    from: ITradleObject
-    to: ITradleObject
+    from: IChildDeployment
+    to: IChildDeployment
   }) => {
-    const { identity } = from || to
+    const { identity } = from
     if (!identity) return
 
     const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
@@ -101,6 +111,28 @@ Name: ${friend.name}
 Identity: ${identity._permalink}
 Domain: ${friend.domain}
 Org: ${friend.org._displayName || friend.org._permalink}
+StackId: ${from.stackId}
+`
+    })
+  }
+
+  public childCreated = async (childDeployment: IChildDeployment) => {
+    const { identity } = childDeployment
+    if (!identity) return
+
+    const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
+    const { tag } = childDeployment.version
+    this._emailAdmin({
+      subject: `New MyCloud: ${friend.name}`,
+      body: `Yo,
+
+This is your MyCloud. You have a new baby:
+
+Name: ${friend.name}
+Identity: ${identity._permalink}
+Domain: ${friend.domain}
+Org: ${friend.org._displayName || friend.org._permalink}
+StackId: ${childDeployment.stackId}
 `
     })
   }
