@@ -72,6 +72,8 @@ export default class TaskManager {
     }))
   }
 
+  public length = () => this.tasks.length
+
   private monitorTask = async (task) => {
     const start = Date.now()
     try {

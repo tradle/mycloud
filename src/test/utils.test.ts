@@ -7,7 +7,7 @@ import Promise from 'bluebird'
 import Cache from 'lru-cache'
 import sinon from 'sinon'
 import ModelsPack from '@tradle/models-pack'
-import Logger from '../logger'
+import Logger, { noopLogger } from '../logger'
 import KV from '../kv'
 import KVS3 from '../kv-s3'
 import { importKey, randomString, sha256, signWithPemEncodedKey, verifyWithPemEncodedKey } from '../crypto'
@@ -33,6 +33,7 @@ import { createTestBot } from '../'
 import { Bucket } from '../bucket'
 import { createSilentLogger } from './utils'
 import { models as PingPongModels } from '../ping-pong-models'
+import { TaskManager } from '../task-manager'
 import {
   IKeyValueStore,
   Bot
@@ -1175,6 +1176,31 @@ test('scheduler', loudAsync(async (t) => {
   clock.restore()
   t.end()
 }))
+
+test('task manager', loudAsync(async (t) => {
+  const tasks = new TaskManager({ logger: noopLogger })
+  const good = tasks.add({
+    name: 'a',
+    promise: Promise.delay(100).then(() => 'a')
+  })
+
+  const bad = tasks.add({
+    name: 'b',
+    promise: Promise.delay(200).then(() => {
+      throw new Error('b')
+    })
+  })
+
+  t.equal(await good, 'a')
+  t.equal(tasks.length(), 1)
+
+  const results = await tasks.awaitAllSettled()
+  t.equal(results[0].isRejected, true)
+  t.equal(tasks.length(), 0)
+
+  t.end()
+}))
+
 
 // import * as DBKey from '../db-key'
 // test.only('db-key', t => {
