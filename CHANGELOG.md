@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.9.0-rc.1"></a>
+# [1.9.0-rc.1](https://github.com/tradle/serverless/compare/v1.9.0-rc.0...v1.9.0-rc.1) (2018-10-02)
+
+
+### Bug Fixes
+
+* reset delivery error when counterparty sends a message ([b8216f0](https://github.com/tradle/serverless/commit/b8216f0))
+
+
+### Features
+
+* alert on new child deployment ([4b2aa1b](https://github.com/tradle/serverless/commit/4b2aa1b))
+* allow admin to export keys if on dev stage ([3dc71dc](https://github.com/tradle/serverless/commit/3dc71dc))
+
+
+
 <a name="1.9.0-rc.0"></a>
 # [1.9.0-rc.0](https://github.com/tradle/serverless/compare/v1.8.0...v1.9.0-rc.0) (2018-09-30)
 
