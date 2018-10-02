@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.9.0-rc.2"></a>
+# [1.9.0-rc.2](https://github.com/tradle/serverless/compare/v1.9.0-rc.1...v1.9.0-rc.2) (2018-10-02)
+
+
+### Bug Fixes
+
+* ignore timeouts of old requests ([16b8b7c](https://github.com/tradle/serverless/commit/16b8b7c))
+
+
+
 <a name="1.9.0-rc.1"></a>
 # [1.9.0-rc.1](https://github.com/tradle/serverless/compare/v1.9.0-rc.0...v1.9.0-rc.1) (2018-10-02)
 
