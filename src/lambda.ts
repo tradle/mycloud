@@ -492,6 +492,7 @@ Previous exit stack: ${this.lastExitStack}`)
     this.reqCtx = null
     this.execCtx = null
     this.lastExitStack = null
+    this.logger.debug('resetting request state')
   }
 
   private _initHttp = () => {
