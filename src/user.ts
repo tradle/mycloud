@@ -299,6 +299,7 @@ export default class User {
 export { User }
 
 const getDeliveryReadiness = session => prettify({
+  authenticated: !!session.authenticated,
   connected: !!session.connected,
-  subscribed: !!session.subscribed
+  subscribed: !!session.subscribed,
 })
