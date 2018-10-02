@@ -128,25 +128,28 @@ export const sendConfirmedSeals = async (bot: Bot, seals: Seal[]) => {
   if (!seals.length) return
 
   const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
+  bot.logger.debug(`actually sending ${confirmed.length} confirmed seals`)
   if (!confirmed.length) return
 
-  await bot.send(confirmed.map(seal => {
-    const object:ITradleObject = pickNonNull({
-      ..._.pick(seal, SEAL_MODEL_PROPS),
-      [TYPE]: SealModel.id,
-      time: seal._time || Date.now()
-    })
+  await bot.send(confirmed.map(sealToSendOpts))
+}
 
-    if (seal.basePubKey) {
-      const basePubKey = getSealBasePubKey(seal)
-      if (basePubKey) object.basePubKey = basePubKey
-    }
+const sealToSendOpts = seal => {
+  const object:ITradleObject = pickNonNull({
+    ..._.pick(seal, SEAL_MODEL_PROPS),
+    [TYPE]: SealModel.id,
+    time: seal._time || Date.now()
+  })
 
-    return {
-      to: seal.counterparty,
-      object
-    }
-  }))
+  if (seal.basePubKey) {
+    const basePubKey = getSealBasePubKey(seal)
+    if (basePubKey) object.basePubKey = basePubKey
+  }
+
+  return {
+    to: seal.counterparty,
+    object
+  }
 }
 
 export const getDateOfBirthFromForm = (form:any):number|void => {
