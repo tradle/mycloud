@@ -20,11 +20,13 @@ lambda.use(async (ctx:IPBMiddlewareContext, next) => {
   }
 
   const { productsAPI, commands } = components
+  const command = event
   const { result, error } = await commands.execFromString({
-    command: event,
+    command,
     sudo: true
   })
 
+  lambda.logger.debug(`executed command: $command}`)
   ctx.body = {
     result,
     error: error && pick(error, ['name', 'type', 'message'])

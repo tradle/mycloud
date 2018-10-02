@@ -348,7 +348,7 @@ Previous exit stack: ${this.lastExitStack}`)
         this.logger.error(`seems we're already on a different request`, {
           error: err,
           originalRequestId: requestId,
-          requestId,
+          requestId: this.requestId,
         })
 
         return

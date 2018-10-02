@@ -84,7 +84,7 @@ export const createAWSWrapper = ({ env, logger }: {
     cloudformation: 'CloudFormation'
   }
 
-  const useGlobalConfigClock = service => {
+  const useGlobalConfigClock = (service, name) => {
     if (service instanceof AWS.DynamoDB.DocumentClient) {
       service = service.service
     }
@@ -96,7 +96,7 @@ export const createAWSWrapper = ({ env, logger }: {
         return AWS.config.systemClockOffset
       },
       set(value) {
-        logger.warn(`setting systemClockOffset: ${value}`)
+        logger.warn(`setting systemClockOffset from service ${name}: ${value}`)
         AWS.config.systemClockOffset = value
       }
     })
@@ -130,7 +130,7 @@ export const createAWSWrapper = ({ env, logger }: {
     const conf = getConf(serviceName)
     const service = _create(serviceName, region, conf)
     if (service) {
-      useGlobalConfigClock(service)
+      useGlobalConfigClock(service, serviceName)
       const recordable = wrap(service)
       apis.emit('new', {
         name: serviceName.toLowerCase(),
