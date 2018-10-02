@@ -127,8 +127,6 @@ export default class Env {
     if (props.DEBUG) {
       debug.enable(props.DEBUG)
     }
-
-    // this.asyncTasks = []
   }
 
   public get xraySegment() { return this.lambda.xraySegment }

@@ -136,6 +136,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.bot = bot
     this.env = bot.env
     this.aws = bot.aws
+    this.reset()
 
     bot.aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
 
@@ -162,7 +163,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.isCold = true
     this.containerId = `${randomName.first()} ${randomName.middle()} ${randomName.last()} ${randomString(6)}`
 
-    if (opts.source == EventSource.HTTP) {
+    if (opts.source === EventSource.HTTP) {
       this._initHttp()
     } else if (opts.source === EventSource.CLOUDFORMATION) {
       this._initCloudFormation()
@@ -171,8 +172,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     }
 
     this.requestCounter = 0
-    this.exit = this.exit.bind(this)
-    this.reset()
+    this.finishRun = this.finishRun.bind(this)
     this._gotHandler = false
 
     this.use(async (ctx, next) => {
@@ -301,25 +301,13 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     return this.stage === 'prod'
   }
 
-  // get thenHandler() {
-  //   return result => this.exit(null, result)
-  // }
-
-  // get notFoundHandler() {
-  //   return () => this.exit(NOT_FOUND)
-  // }
-
-  // get errorHandler() {
-  //   return err => this.exit(err)
-  // }
-
   public getRemainingTimeWithBuffer = (buffer: number) => {
     return Math.max(this.timeLeft - buffer, 0)
   }
 
-  public exit = async (err?, result?) => {
+  public finishRun = async (err?, result?) => {
     if (this.done) {
-      throw new Error(`exit can only be called once per lambda invocation!
+      throw new Error(`finishRun can only be called once per lambda invocation!
 Previous exit stack: ${this.lastExitStack}`)
     }
 
@@ -332,12 +320,12 @@ Previous exit stack: ${this.lastExitStack}`)
     const ctx = this.execCtx
     ctx.done = true
 
-    // leave a tiny bit of breathing room for after the timeout
     const { shortName, requestId } = this
     const start = Date.now()
     try {
       await runWithTimeout(() => this.finishAsyncTasks(), {
-        millis: Math.max(this.timeLeft - 200, 0),
+        // leave a tiny bit of breathing room for after the timeout
+        millis: Math.max(this.timeLeft - 1000, 0),
         error: () => {
           const time = Date.now() - start
           return new Errors.ExecutionTimeout(`lambda ${shortName} timed out after ${time}ms waiting for async tasks to complete`)
@@ -401,17 +389,11 @@ Previous exit stack: ${this.lastExitStack}`)
     this.emit('done')
     this.isCold = false
     this.logger.silly('exiting')
-
-    // http exits via koa
-    if (this.source !== EventSource.HTTP) {
-      if (!ctx.callback) {
-        throw new Error('lambda already exited')
-      }
-
-      ctx.callback(ctx.error, ctx.error ? null : ctx.body)
+    if (ctx.error) {
+      throw ctx.error
     }
 
-    this.reset()
+    return ctx.body
   }
 
   public run = async () => {
@@ -430,22 +412,21 @@ Previous exit stack: ${this.lastExitStack}`)
       }
     }
 
-    if (!this.done) this.exit()
+    await this.finishRun()
   }
 
   private preProcess = async ({
     event,
     context,
     request,
-    callback
   }: {
     event,
     context,
     request?,
-    callback?
   }) => {
     await this.initPromise
 
+    this.reset()
     this._recordServiceCalls()
     if (!this.accountId) {
       const { invokedFunctionArn } = context
@@ -483,7 +464,7 @@ Previous exit stack: ${this.lastExitStack}`)
       }
     }
 
-    this.setExecutionContext({ event, context, callback })
+    this.setExecutionContext({ event, context })
     this.reqCtx = getRequestContext(this)
     this.logger.info('request context', this.reqCtx)
     if (isXrayOn()) {
@@ -564,7 +545,7 @@ Previous exit stack: ${this.lastExitStack}`)
         ctx.body = {}
       }
 
-      await this.exit()
+      await this.finishRun()
     })
 
     if (!this.isLocal) {
@@ -660,18 +641,11 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   public invoke = async (event) => {
-    return new Promise((resolve, reject) => {
-      const callback = (err, result) => {
-        if (err) return reject(err)
-        resolve(resolve)
-      }
-
-      const context = createLambdaContext({
-        name: this.shortName,
-      }, callback)
-
-      this.handler(event, context, callback)
+    const context = createLambdaContext({
+      name: this.shortName,
     })
+
+    return await this.handler(event, context)
   }
 
   // important that this is lazy
@@ -688,18 +662,15 @@ Previous exit stack: ${this.lastExitStack}`)
       })
     }
 
-    return async (event, context, callback) => {
-      await this.preProcess({ event, context, callback })
-      await this.run()
+    return async (event, context) => {
+      await this.preProcess({ event, context })
+      return await this.run()
     }
   }
 
-  private setExecutionContext = ({ event, context, callback, ...opts }) => {
+  private setExecutionContext = ({ event, context, ...opts }) => {
     const awsExecCtx:ILambdaAWSExecutionContext = {
       ...context,
-      done: this.exit,
-      succeed: result => this.exit(null, result),
-      fail: this.exit
     }
 
     // don't understand the error...
@@ -709,7 +680,6 @@ Previous exit stack: ${this.lastExitStack}`)
       done: false,
       event,
       context: awsExecCtx,
-      callback: wrapCallback(this, callback || context.done.bind(context))
     }
 
     return this.execCtx
@@ -808,14 +778,6 @@ const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
 }
 
 export const createLambda = <T extends ILambdaExecutionContext>(opts: ILambdaOpts<T>) => new BaseLambda(opts)
-
-const wrapCallback = (lambda, callback) => (err, result) => {
-  if (lambda.done) {
-    callback(err, result)
-  } else {
-    lambda.exit(err, result)
-  }
-}
 
 const getRequestContext = <T extends ILambdaExecutionContext>(lambda:BaseLambda<T>):IRequestContext => {
   const { execCtx } = lambda

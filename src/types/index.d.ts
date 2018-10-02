@@ -166,10 +166,10 @@ export interface ILambdaAWSExecutionContext {
   invokeid:                       string
   awsRequestId:                   string
   invokedFunctionArn:             string
-  getRemainingTimeInMillis:       Function
-  done:                           Function
-  succeed:                        Function
-  fail:                           Function
+  getRemainingTimeInMillis:       () => number
+  // done:                           GenericCallback
+  // succeed:                        (result: any) => void
+  // fail:                           (error: Error) => void
 }
 
 export interface IRequestContext {
@@ -204,8 +204,10 @@ export interface ISNSExecutionContext extends ILambdaExecutionContext {
   event: SNSEvent
 }
 
-export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?:Function)
-  => any|void
+export type GenericCallback = (err?: Error, result?: any) => void
+
+export type LambdaHandler = (event:any, context:ILambdaAWSExecutionContext, callback?: GenericCallback)
+  => Promise<any>|void
 
 export interface ILambdaOpts<T> {
   source?: EventSource
