@@ -229,14 +229,9 @@
     },
     "@tradle/ethereum-adapter": {
       "version": "1.0.0",
-      "from": "tradle/ethereum-adapter",
-      "resolved": "git://github.com/tradle/ethereum-adapter.git#9da84ce247520eb018aa6660c6dd34521e745c09",
+      "from": "tradle/ethereum-adapter#dev",
+      "resolved": "git://github.com/tradle/ethereum-adapter.git#410b3b14508743f04235bfb16750f6c5c080c874",
       "dependencies": {
-        "async": {
-          "version": "2.6.1",
-          "from": "async@>=2.1.5 <3.0.0",
-          "resolved": "https://registry.npmjs.org/async/-/async-2.6.1.tgz"
-        },
         "debug": {
           "version": "3.2.5",
           "from": "debug@>=3.0.1 <4.0.0",
@@ -6927,6 +6922,11 @@
       "resolved": "https://registry.npmjs.org/makeerror/-/makeerror-1.0.11.tgz",
       "dev": true
     },
+    "map-age-cleaner": {
+      "version": "0.1.2",
+      "from": "map-age-cleaner@>=0.1.1 <0.2.0",
+      "resolved": "https://registry.npmjs.org/map-age-cleaner/-/map-age-cleaner-0.1.2.tgz"
+    },
     "map-cache": {
       "version": "0.2.2",
       "from": "map-cache@>=0.2.2 <0.3.0",
@@ -8338,6 +8338,11 @@
       "from": "osenv@>=0.0.0 <1.0.0",
       "resolved": "https://registry.npmjs.org/osenv/-/osenv-0.1.5.tgz"
     },
+    "p-defer": {
+      "version": "1.0.0",
+      "from": "p-defer@>=1.0.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/p-defer/-/p-defer-1.0.0.tgz"
+    },
     "p-finally": {
       "version": "1.0.0",
       "from": "p-finally@>=1.0.0 <2.0.0",
@@ -8366,6 +8371,18 @@
       "from": "p-map@>=1.1.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/p-map/-/p-map-1.2.0.tgz",
       "dev": true
+    },
+    "p-memoize": {
+      "version": "2.1.0",
+      "from": "p-memoize@>=2.1.0 <3.0.0",
+      "resolved": "https://registry.npmjs.org/p-memoize/-/p-memoize-2.1.0.tgz",
+      "dependencies": {
+        "mem": {
+          "version": "4.0.0",
+          "from": "mem@>=4.0.0 <5.0.0",
+          "resolved": "https://registry.npmjs.org/mem/-/mem-4.0.0.tgz"
+        }
+      }
     },
     "p-try": {
       "version": "1.0.0",
