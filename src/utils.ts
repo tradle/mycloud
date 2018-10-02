@@ -1173,7 +1173,7 @@ export const syncClock = async (bot:Bot) => {
   const { aws, buckets } = bot
   const { PrivateConf } = buckets
   // a cheap request that will trigger clock sync
-  bot.tasks.add({
+  return bot.tasks.add({
     name: 'sync-clock',
     promise: PrivateConf.head(PRIVATE_CONF_BUCKET.identity).catch(err => {
       Errors.rethrow(err, 'developer')

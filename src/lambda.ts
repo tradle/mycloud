@@ -444,11 +444,6 @@ Previous exit stack: ${this.lastExitStack}`)
     request?,
     callback?
   }) => {
-    this.tasks.add({
-      name: 'system:syncclock',
-      promise: () => this.syncClock(),
-    })
-
     await this.initPromise
 
     this._recordServiceCalls()
@@ -721,11 +716,11 @@ Previous exit stack: ${this.lastExitStack}`)
   }
 
   private syncClock = () => {
-    syncClock(this.bot)
+    return syncClock(this.bot)
   }
 
   private init = () => {
-    this.initPromise = syncClock(this.bot)
+    this.initPromise = this.syncClock()
   }
 
   private _exportError = (err) => {
