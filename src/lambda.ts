@@ -333,7 +333,7 @@ Previous exit stack: ${this.lastExitStack}`)
     ctx.done = true
 
     // leave a tiny bit of breathing room for after the timeout
-    const { shortName } = this
+    const { shortName, requestId } = this
     const start = Date.now()
     try {
       await runWithTimeout(() => this.finishAsyncTasks(), {
@@ -344,6 +344,16 @@ Previous exit stack: ${this.lastExitStack}`)
         }
       })
     } catch (err) {
+      if (this.requestId !== requestId) {
+        this.logger.error(`seems we're already on a different request`, {
+          error: err,
+          originalRequestId: requestId,
+          requestId,
+        })
+
+        return
+      }
+
       const tasks = this.tasks.describe()
       if (Errors.matches(err, Errors.ExecutionTimeout)) {
         this.logger.error('async tasks timed out', { tasks, time: Date.now() - start })
