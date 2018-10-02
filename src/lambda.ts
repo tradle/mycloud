@@ -356,14 +356,8 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     if (!this.bot.isReady()) {
-      this.breakingContext = safeStringify({
-        execCtx: this.execCtx,
-        reqCtx: this.reqCtx,
-        tasks: this.tasks.describe(),
-        reason: 'bot is not ready',
-      })
-
-      this._ensureNotBroken()
+      this._suicide('bot is not ready!')
+      return
     }
 
     if (err) {
@@ -448,7 +442,6 @@ Previous exit stack: ${this.lastExitStack}`)
     await this.initPromise
 
     this._recordServiceCalls()
-    this._ensureNotBroken()
     if (!this.accountId) {
       const { invokedFunctionArn } = context
       if (invokedFunctionArn) {
@@ -735,14 +728,6 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private _ensureNotBroken = () => {
-    if (!this.isLocal && this.breakingContext) {
-      const msg = 'I am broken!: ' + this.breakingContext
-      this.logger.error(msg)
-      throw new Error(msg)
-    }
-  }
-
   private _recordServiceCalls = () => {
     forEachInstantiatedRecordableService(this.aws, this._recordService)
   }
@@ -793,6 +778,17 @@ Previous exit stack: ${this.lastExitStack}`)
     })
 
     return summary
+  }
+
+  private _suicide = (reason: string) => {
+    this.logger.error('I am broken! Suiciding', {
+      execCtx: this.execCtx,
+      reqCtx: this.reqCtx,
+      tasks: this.tasks.describe(),
+      reason,
+    })
+
+    process.exit(1)
   }
 }
 
