@@ -412,7 +412,7 @@ Previous exit stack: ${this.lastExitStack}`)
       }
     }
 
-    await this.finishRun()
+    return await this.finishRun()
   }
 
   private preProcess = async ({
