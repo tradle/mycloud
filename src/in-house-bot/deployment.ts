@@ -183,30 +183,6 @@ interface UpdateRequest extends ITradleObject {
   tag: string
 }
 
-const ADMIN_MAPPING_PATH = ['org', 'contact', 'adminEmail']
-const ADMIN_EMAIL_ENDPOINT = {
-  'Fn::FindInMap': ADMIN_MAPPING_PATH
-}
-
-const getDeploymentUUIDFromTemplate = template => _.get(template, 'Mappings.deployment.init.deploymentUUID')
-const getServiceNameFromTemplate = template => _.get(template, 'Mappings.deployment.init.service')
-const getStageFromTemplate = template => _.get(template, 'Mappings.deployment.init.stage')
-const getStackNameFromTemplate = template => _.get(template, 'Mappings.deployment.init.stackName')
-const getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
-const getAdminEmailFromTemplate = template => _.get(template, ['Mappings'].concat(ADMIN_MAPPING_PATH))
-const getCommitHashFromTemplate = template => _.get(template, 'Resources.Initialize.Properties.commit')
-const normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
-const setBlockchainNetwork = (template:any, value: string) => {
-  if (!template.Parameters) template.Parameters = {}
-  template.Parameters.BlockchainNetwork = {
-    Type: 'String',
-    Default: value,
-    AllowedValues: [
-      value
-    ]
-  }
-}
-
 const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
 
 export class Deployment {
@@ -306,7 +282,7 @@ export class Deployment {
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
-    const deploymentUUID = getDeploymentUUIDFromTemplate(template)
+    const deploymentUUID = StackUtils.getDeploymentUUIDFromTemplate(template)
     // const promiseTmpTopic = this._setupStackStatusAlerts({
     //   id: deploymentUUID,
     //   type: StackOperationType.create
@@ -325,7 +301,7 @@ export class Deployment {
     return {
       template,
       url: stackUtils.getLaunchStackUrl({
-        stackName: getStackNameFromTemplate(template),
+        stackName: StackUtils.getStackNameFromTemplate(template),
         templateUrl,
         region: configuration.region
       }),
@@ -869,12 +845,12 @@ ${this.genUsageInstructions(links)}`
       throw new Errors.InvalidInput('expected "name" and "domain"')
     }
 
-    const previousServiceName = getServiceNameFromTemplate(template)
+    const previousServiceName = StackUtils.getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
 
-    setBlockchainNetwork(template, blockchain)
+    StackUtils.setBlockchainNetwork(template, blockchain)
 
     const { Resources, Mappings, Parameters } = template
     const { org, deployment } = Mappings
@@ -882,8 +858,8 @@ ${this.genUsageInstructions(links)}`
       this.logger.warn('failed to get logo', { domain })
     })
 
-    const stage = getStageFromTemplate(template)
-    const service = normalizeStackName(stackPrefix)
+    const stage = StackUtils.getStageFromTemplate(template)
+    const service = StackUtils.normalizeStackName(stackPrefix)
     const dInit: Partial<IMyDeploymentConf> = {
       service,
       stage,
@@ -899,7 +875,7 @@ ${this.genUsageInstructions(links)}`
       logo: await logoPromise || media.LOGO_UNKNOWN
     }
 
-    _.set(Mappings, ADMIN_MAPPING_PATH, adminEmail)
+    StackUtils.setAdminEmail(template, adminEmail)
     return this.finalizeCustomTemplate({
       template,
       oldServiceName: previousServiceName,
@@ -942,13 +918,13 @@ ${this.genUsageInstructions(links)}`
 
     let { template, stackId, adminEmail, bucket, blockchain } = opts
     const { service, region } = StackUtils.parseStackArn(stackId)
-    const previousServiceName = getServiceNameFromTemplate(template)
+    const previousServiceName = StackUtils.getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
 
     // scrap unneeded mappings
     // also...we don't have this info
     template.Mappings = {}
-    setBlockchainNetwork(template, blockchain)
+    StackUtils.setBlockchainNetwork(template, blockchain)
 
     const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {
@@ -957,7 +933,7 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
-    _.set(template.Mappings, ADMIN_MAPPING_PATH, adminEmail)
+    StackUtils.setAdminEmail(template, adminEmail)
     return this.finalizeCustomTemplate({
       template,
       oldServiceName: previousServiceName,
@@ -1083,7 +1059,7 @@ ${this.genUsageInstructions(links)}`
     template: any
     bucket: string
   }) => {
-    const commit = getCommitHashFromTemplate(template)
+    const commit = StackUtils.getCommitHashFromTemplate(template)
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
     await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
     const url = this.bot.s3Utils.getUrlForKey({ bucket, key })

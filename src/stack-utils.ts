@@ -11,6 +11,7 @@ import {
   ILaunchStackUrlOpts,
   IUpdateStackUrlOpts,
   VersionInfo,
+  StackTemplate,
 } from './types'
 
 import Errors from './errors'
@@ -37,6 +38,8 @@ const METHODS = [
   'PUT',
   'PATCH'
 ]
+
+const ADMIN_EMAIL_PATH = ['Mappings', 'org', 'contact', 'adminEmail']
 
 const stripDashes = str => str.replace(/[-]/g, '')
 
@@ -141,6 +144,26 @@ export default class StackUtils {
     }
   }
 
+  public static getDeploymentUUIDFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.deploymentUUID')
+  public static getServiceNameFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.service')
+  public static getStageFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.stage')
+  public static getStackNameFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.stackName')
+  public static getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
+  public static getAdminEmailFromTemplate = (template: StackTemplate) => _.get(template, ADMIN_EMAIL_PATH)
+  public static getCommitHashFromTemplate = (template: StackTemplate) => _.get(template, 'Resources.Initialize.Properties.commit')
+  public static normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
+  public static setAdminEmail = (template:StackTemplate, email:string) => _.set(template, ADMIN_EMAIL_PATH, email)
+  public static setBlockchainNetwork = (template: StackTemplate, value: string) => {
+    if (!template.Parameters) template.Parameters = {}
+    template.Parameters.BlockchainNetwork = {
+      Type: 'String',
+      Default: value,
+      AllowedValues: [
+        value
+      ]
+    }
+  }
+
   public parseStackArn = StackUtils.parseStackArn
   public parseStackName = StackUtils.parseStackName
 
@@ -219,7 +242,7 @@ export default class StackUtils {
     return resources
   }
 
-  public getCurrentAdminEmail = async () => {
+  public getCurrentAdminEmail = async ():Promise<string> => {
     const resources = await this.getStackResources()
     const { PhysicalResourceId } = resources.find(r => {
       return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
@@ -230,7 +253,12 @@ export default class StackUtils {
     }).promise()
 
     const emails = Subscriptions.filter(s => s.Protocol === 'email')
-    return emails[0].Endpoint
+    if (emails.length) {
+      return emails[0].Endpoint
+    }
+
+    const template = await this.getStackTemplate()
+    return StackUtils.getAdminEmailFromTemplate(template)
   }
 
   public updateEnvironments = async(map:TransformFunctionConfig):Promise<UpdateEnvResult[]> => {

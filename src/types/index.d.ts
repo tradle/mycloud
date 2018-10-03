@@ -825,3 +825,26 @@ export interface LowFundsInput extends BlockchainAddressIdentifier {
   balance?: string|number
   minBalance?: string|number
 }
+
+export interface StackTemplateParameter {
+  Type: string
+  Description?: string
+  Default?: string
+  AllowedValues?: string[]
+}
+
+export interface StackTemplateResource {
+  Type: string
+  Properties: any
+}
+
+export interface StackTemplate {
+  Parameters?: {
+    [key: string]: StackTemplateParameter
+  }
+  Mappings?: any
+  Conditions?: any
+  Resources: {
+    [key: string]: StackTemplateResource
+  }
+}
