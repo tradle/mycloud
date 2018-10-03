@@ -422,6 +422,15 @@ export interface IDeploymentConfForm extends ITradleObject {
   hrEmail: string
 }
 
+export interface IChildDeployment {
+  identity: ResourceStub
+  friend: ResourceStub
+  org: ResourceStub
+  stackId: string
+  apiUrl: string
+  version: MiniVersionInfo
+}
+
 export interface IPBotLambdaOpts extends ILambdaOpts<IPBMiddlewareContext> {
   event: string
   preware?: IPBMiddleware

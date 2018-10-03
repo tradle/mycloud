@@ -51,6 +51,7 @@ import {
   ITradleObject,
   VersionInfo,
   Conf,
+  IChildDeployment,
 } from './types'
 
 import Logger from '../logger'
@@ -378,8 +379,20 @@ export const loadComponentsAndPlugins = ({
       }
 
       if (type === CHILD_DEPLOYMENT) {
+        const from = old as IChildDeployment
+        const to = value as IChildDeployment
+        if (from.version.commit === to.version.commit) {
+          try {
+            await alerts.childRolledBack({ to })
+          } catch (err) {
+            logger.error('failed to alert about child update', err)
+          }
+
+          return
+        }
+
         try {
-          await alerts.childUpdated({ from: old, to: value })
+          await alerts.childUpdated({ from, to })
         } catch (err) {
           logger.error('failed to alert about child update', err)
         }

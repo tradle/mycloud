@@ -10,21 +10,13 @@ import {
   ITradleObject,
   ResourceStub,
   MiniVersionInfo,
+  IChildDeployment,
 } from './types'
 
 interface VersionEmailInput {
   current: VersionInfo
   update: VersionInfo
   org: IOrganization
-}
-
-interface IChildDeployment {
-  identity: ResourceStub
-  friend: ResourceStub
-  org: ResourceStub
-  stackId: string
-  apiUrl: string
-  version: MiniVersionInfo
 }
 
 export class Alerts {
@@ -98,13 +90,42 @@ Your MyCloud
     const fromTag = from.version.tag
     const toTag = to.version.tag
     this._emailAdmin({
-      subject: `${friend.name} updated MyCloud ${fromTag} -> ${toTag}`,
+      subject: `[MyCloud.UPDATED]: ${friend.name} ${fromTag} -> ${toTag}`,
       body: `Dearest,
 
 This is your MyCloud. One of your children has updated their MyCloud
 
 From version: ${fromTag}   (#${from.version.commit})
 To version:   ${toTag}     (#${to.version.commit})
+
+The culprit:
+
+Name: ${friend.name}
+Identity: ${identity._permalink}
+Domain: ${friend.domain}
+Org: ${friend.org._displayName || friend.org._permalink}
+StackId: ${to.stackId}
+API Url: ${to.apiUrl}
+`
+    })
+  }
+
+  public childRolledBack = async ({ from, to }: {
+    from?: IChildDeployment
+    to: IChildDeployment
+  }) => {
+    const { identity } = to
+    if (!identity) return
+
+    const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
+    const { version } = to
+    this._emailAdmin({
+      subject: `[MyCloud.ROLLBACK]: ${friend.name} rolled back MyCloud (${version.tag})`,
+      body: `Yo,
+
+This is your MyCloud. One of your children has attempted to update their MyCloud, but rolled back.
+
+Version rolled back to:   ${version.tag}     (#${version.commit})
 
 The culprit:
 
@@ -125,7 +146,7 @@ API Url: ${to.apiUrl}
     const friend = await this.bot.friends.getByIdentityPermalink(identity._permalink)
     const { tag } = childDeployment.version
     this._emailAdmin({
-      subject: `New MyCloud: ${friend.name}`,
+      subject: `[MyCloud.NEW]: ${friend.name} (${tag})`,
       body: `Yo,
 
 This is your MyCloud. You have a new baby:
