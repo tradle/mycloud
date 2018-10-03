@@ -247,11 +247,11 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   }
 
   get requestId():string {
-    return this.reqCtx.requestId
+    return this.reqCtx && this.reqCtx.requestId
   }
 
   get correlationId():string {
-    return this.reqCtx.correlationId
+    return this.reqCtx && this.reqCtx.correlationId
   }
 
   get dateOfBirth():number {
@@ -393,6 +393,7 @@ Previous exit stack: ${this.lastExitStack}`)
       throw ctx.error
     }
 
+    this.reset()
     return ctx.body
   }
 
@@ -491,9 +492,6 @@ Previous exit stack: ${this.lastExitStack}`)
     this.reqCtx = null
     this.execCtx = null
     this.lastExitStack = null
-    this.logger = this.bot.logger.sub({
-      namespace: this.env.FUNCTION_NAME
-    })
   }
 
   private _initHttp = () => {
