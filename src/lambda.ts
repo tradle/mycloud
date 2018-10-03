@@ -137,6 +137,9 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
     this.env = bot.env
     this.aws = bot.aws
     this.reset()
+    this.logger = this.bot.logger.sub({
+      namespace: `lambda:${this.shortName}`
+    })
 
     bot.aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
 
@@ -438,9 +441,6 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     context.callbackWaitsForEmptyEventLoop = false
-    this.logger = this.bot.logger.sub({
-      namespace: `lambda:${this.shortName}`
-    })
 
     if (this.source === EventSource.LAMBDA &&
       event.requestContext &&
