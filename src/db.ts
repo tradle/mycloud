@@ -12,9 +12,10 @@ import {
   getPrimaryKeySchema,
   toSortableTag,
   wrapSlowPoke,
+  isUnsignedType,
 } from './utils'
 
-import { TYPE, SIG, ORG, AUTHOR, TYPES, UNSIGNED_TYPES } from './constants'
+import { TYPE, SIG, ORG, AUTHOR, TYPES } from './constants'
 import Errors from './errors'
 
 const { MESSAGE, SEAL_STATE, DELIVERY_ERROR } = TYPES
@@ -94,7 +95,7 @@ const _isScanAllowed = search => {
   return ALLOW_SCAN.includes(search.type)
 }
 
-const shouldMinify = item => item[TYPE] !== 'tradle.Message' && !UNSIGNED_TYPES.includes(item[TYPE])
+const shouldMinify = item => item[TYPE] !== 'tradle.Message' && !isUnsignedType(item[TYPE])
 // const AUTHOR_INDEX = {
 //   // default for all tradle.Object resources
 //   hashKey: '_author',
@@ -115,7 +116,7 @@ const getControlLatestOptions = ({ table, method, model, resource }: {
   model: Model
   resource: any
 }) => {
-  if (UNSIGNED_TYPES.includes(resource[TYPE])) return
+  if (isUnsignedType(resource[TYPE])) return
 
   if (!resource._link) {
     throw new Errors.InvalidInput('expected "_link"')
@@ -380,7 +381,7 @@ export = function createDB ({
   }
 
   const checkPre = resource => {
-    if (!resource[SIG] && !UNSIGNED_TYPES.includes(resource[TYPE])) {
+    if (!resource[SIG] && !isUnsignedType(resource[TYPE])) {
       throw new Error(`expected resource to be signed: ${resource._link}`)
     }
 
