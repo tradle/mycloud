@@ -278,6 +278,12 @@ export interface IIdentityAndKeys {
   keys: IPrivKey[]
 }
 
+export interface ObjectLinks {
+  link: string
+  permalink: string
+  prevlink?: string
+}
+
 export type IDebug = (...any) => void
 
 export interface IMessageOpts {
@@ -667,8 +673,8 @@ export interface IBotMessageEvent {
 }
 
 export interface ISaveEventPayload {
-  value: any
-  old?: any
+  value: any // should really be ITradleObject
+  old?: any  // should really be ITradleObject
 }
 
 export interface IModelsMixinTarget {

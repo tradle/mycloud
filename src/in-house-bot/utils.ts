@@ -130,7 +130,7 @@ export const sendConfirmedSeals = async (bot: Bot, seals: Seal[]) => {
   if (!confirmed.length) return
 
   await bot.send(confirmed.map(seal => {
-    const object = pickNonNull({
+    const object:ITradleObject = pickNonNull({
       ..._.pick(seal, SEAL_MODEL_PROPS),
       [TYPE]: SealModel.id,
       time: seal._time || Date.now()

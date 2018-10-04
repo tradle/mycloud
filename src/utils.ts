@@ -1235,7 +1235,7 @@ export const isLocalHost = (host:string) => {
   return isIP && IP.isPrivate(host)
 }
 
-export const pickNonNull = obj => _.pickBy(obj, val => val != null)
+export const pickNonNull = <T>(obj:T):T => _.pickBy(obj as any, val => val != null) as T
 export const toUnsigned = (obj:ITradleObject) => _.omit(omitVirtual(obj), [SIG])
 export const parseEnumValue = validateResource.utils.parseEnumValue
 export const getEnumValueId = opts => parseEnumValue(opts).id
