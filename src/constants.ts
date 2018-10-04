@@ -39,7 +39,6 @@ const TYPES = {
 
 const UNSIGNED_TYPES = [
   'tradle.IotSession',
-  'tradle.MyCloudFriend',
   'tradle.PubKey',
   'tradle.products.Customer',
   TYPES.SEAL_STATE,
