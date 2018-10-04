@@ -6,7 +6,7 @@ import {
   IPBApp,
   CreatePlugin
 } from '../types'
-import { Remediation } from '../remediation'
+import { Remediation, isPrefillClaim } from '../remediation'
 import { parseStub } from '../../utils'
 const { DATA_CLAIM, PRODUCT_REQUEST } = TYPES
 
@@ -19,7 +19,7 @@ export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) =
     if (!application) return
 
     const { payload } = req
-    if (remediation.isPrefillClaim(payload)) {
+    if (isPrefillClaim(payload)) {
       try {
         await remediation.handlePrefillClaim({ user, application, payload })
       } catch (err) {
@@ -40,7 +40,7 @@ export const createPlugin:CreatePlugin<Remediation> = (components, pluginOpts) =
 
   plugin.onPendingApplicationCollision = async ({ req, pending }) => {
     let { application, user, payload, type } = req
-    if (!remediation.isPrefillClaim(payload)) {
+    if (!isPrefillClaim(payload)) {
       logger.debug('ignoring, not a prefill-claim', { type })
       return
     }
