@@ -674,7 +674,7 @@ Previous exit stack: ${this.lastExitStack}`)
         throw err
       } finally {
         // until issue is resolved:
-        // https://console.aws.amazon.com/support/v1?#/case/?displayId=5410986081&language=en
+        // https://github.com/aws/aws-xray-sdk-node/issues/27#issuecomment-380092859
         this.logger.ridiculous('return value', { error, result })
         if (context.done) {
           context.done(error, error ? null : result)
