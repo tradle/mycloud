@@ -660,26 +660,15 @@ Previous exit stack: ${this.lastExitStack}`)
       })
     }
 
-    return async (event, context) => {
-      await this.preProcess({ event, context })
-      // return await this.run()
+    return (event, context) => {
+      const promise = this.preProcess({ event, context })
+        .then(() => this.run())
 
-      let result
-      let error
-      try {
-        result = await this.run()
-        return result
-      } catch (err) {
-        error = err
-        throw err
-      } finally {
-        // until issue is resolved:
-        // https://github.com/aws/aws-xray-sdk-node/issues/27#issuecomment-380092859
-        this.logger.ridiculous('return value', { error, result })
-        if (context.done) {
-          context.done(error, error ? null : result)
-        }
-      }
+      if (this.isLocal) return promise
+
+      // until issue is resolved, avoid returning a promise:
+      // https://github.com/aws/aws-xray-sdk-node/issues/27#issuecomment-380092859
+      promise.then(result => context.done(null, result), context.done)
     }
   }
 
