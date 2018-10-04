@@ -1264,9 +1264,8 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
-        # StreamSpecification:
-        #   StreamViewType: NEW_IMAGE
-          # StreamViewType: NEW_AND_OLD_IMAGES
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
 
     # role assumed by all IoT clients
     IotClientRole:

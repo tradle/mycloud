@@ -125,7 +125,7 @@ function getBucketTableDefinition ({
     ProvisionedThroughput: {
       ReadCapacityUnits: read.minimum,
       WriteCapacityUnits: write.minimum
-    }
+    },
   }))
 
   const KeySchema = [
@@ -162,7 +162,10 @@ function getBucketTableDefinition ({
       StreamSpecification: {
         StreamViewType: 'NEW_AND_OLD_IMAGES'
       },
-      GlobalSecondaryIndexes
+      GlobalSecondaryIndexes,
+      PointInTimeRecoverySpecification: {
+        PointInTimeRecoveryEnabled: true
+      },
     }
   }
 }

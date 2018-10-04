@@ -9567,7 +9567,7 @@
     "serverless-dynamodb-local": {
       "version": "0.2.25",
       "from": "mvayngrib/serverless-dynamodb-local",
-      "resolved": "git://github.com/mvayngrib/serverless-dynamodb-local.git#31a935896cecb6fa7792e372392deb8f9afe1e56",
+      "resolved": "git://github.com/mvayngrib/serverless-dynamodb-local.git#e55561bddc1e2e6954f551feeaca2483a0b84d3e",
       "dev": true
     },
     "serverless-http": {
