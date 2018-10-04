@@ -662,7 +662,24 @@ Previous exit stack: ${this.lastExitStack}`)
 
     return async (event, context) => {
       await this.preProcess({ event, context })
-      return await this.run()
+      // return await this.run()
+
+      let result
+      let error
+      try {
+        result = await this.run()
+        return result
+      } catch (err) {
+        error = err
+        throw err
+      } finally {
+        // until issue is resolved:
+        // https://console.aws.amazon.com/support/v1?#/case/?displayId=5410986081&language=en
+        this.logger.ridiculous('return value', { error, result })
+        if (context.done) {
+          context.done(error, error ? null : result)
+        }
+      }
     }
   }
 

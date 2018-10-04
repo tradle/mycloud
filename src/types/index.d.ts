@@ -167,7 +167,7 @@ export interface ILambdaAWSExecutionContext {
   awsRequestId:                   string
   invokedFunctionArn:             string
   getRemainingTimeInMillis:       () => number
-  // done:                           GenericCallback
+  done:                           GenericCallback
   // succeed:                        (result: any) => void
   // fail:                           (error: Error) => void
 }

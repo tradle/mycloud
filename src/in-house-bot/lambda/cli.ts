@@ -1,10 +1,3 @@
-// require('../../cli/utils').loadRemoteEnv()
-// process.nextTick(() => {
-//   lambda.handler('/getconf --conf', {
-//     done: (err, result) => console.log(err||result)
-//   })
-// })
-
 import pick from 'lodash/pick'
 import { fromCli } from '../lambda'
 import { createBot } from '../../'
@@ -26,7 +19,7 @@ lambda.use(async (ctx:IPBMiddlewareContext, next) => {
     sudo: true
   })
 
-  lambda.logger.debug(`executed command: $command}`)
+  lambda.logger.debug(`executed command: ${command}`)
   ctx.body = {
     result,
     error: error && pick(error, ['name', 'type', 'message'])
