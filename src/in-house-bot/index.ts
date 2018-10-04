@@ -674,7 +674,7 @@ export const loadComponentsAndPlugins = ({
   }
 
   if (handleMessages || event.startsWith('remediation:')) {
-    attachPlugin({ name: 'remediation' })
+    attachPlugin({ name: 'remediation', requiresConf: false })
     attachPlugin({ name: 'prefill-from-draft', requiresConf: false })
   }
 
