@@ -1,13 +1,9 @@
 import { ICommand } from '../types'
 
 export const command:ICommand = {
-  name: 'listproducts',
+  name: 'list-products',
   examples: [
-    '/listproducts'
-  ],
-  aliases: [
-    '/lsproducts',
-    '/ls-products'
+    '/list-products'
   ],
   description: 'see a list of products',
   exec: async ({ commander, req }) => {

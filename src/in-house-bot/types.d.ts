@@ -195,6 +195,12 @@ export interface IPBAppStub {
   status: string
 }
 
+export interface IMyProduct {
+  myProductId: string
+  owner: ResourceStub
+  revoked: boolean
+}
+
 export interface IFormRequest extends ITradleObject {
   form: string
   prefill?: any
