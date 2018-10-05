@@ -252,8 +252,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
   // IHasModels
   public buildResource: (model: string|Model) => any
+  public validateResource: (resource: ITradleObject) => void
   public buildStub: (resource: ITradleObject) => any
-  public validate: (resource: ITradleObject) => any
 
   // public hook = (event:string, payload:any) => {
   //   if (this.isTesting && event.startsWith('async:')) {
@@ -821,11 +821,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
 
     await this.lambdaUtils.scheduleReinitializeContainers()
   }
-
-  public validateResource = (resource: ITradleObject) => validateResource.resource({
-    models: this.models,
-    resource
-  })
 
   public updateResource = async ({ type, permalink, props }) => {
     if (!(type && permalink)) {

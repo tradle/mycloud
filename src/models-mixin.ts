@@ -16,7 +16,7 @@ export const mixin = (target: IModelsMixinTarget) => {
     resource
   })
 
-  target.validate = (resource: ITradleObject) => validateResource.resource({
+  target.validateResource = (resource: ITradleObject) => validateResource.resource({
     models: target.models,
     resource
   })

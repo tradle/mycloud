@@ -19,7 +19,7 @@ export class RCache implements IHasModels {
   // IHasModels
   public buildResource: (model: string|Model) => any
   public buildStub: (resource: ITradleObject) => any
-  public validate: (resource: ITradleObject) => any
+  public validateResource: (resource: ITradleObject) => void
 
   constructor({ store }: {
     store: IResourcePersister
@@ -27,7 +27,7 @@ export class RCache implements IHasModels {
     modelsMixin(this)
 
     this.store = store
-    this.byPermalink = new Map<String, Resource>()
+    this.byPermalink = new Map<string, Resource>()
   }
 
   public get = (permalink: string) => {
