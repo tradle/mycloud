@@ -254,6 +254,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public buildResource: (model: string|Model) => any
   public validateResource: (resource: ITradleObject) => void
   public buildStub: (resource: ITradleObject) => any
+  public getModel: (id: string) => Model
 
   // public hook = (event:string, payload:any) => {
   //   if (this.isTesting && event.startsWith('async:')) {
