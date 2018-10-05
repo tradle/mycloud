@@ -11,7 +11,7 @@ import { Resource, IResourcePersister } from './resource'
 
 export class RCache implements IHasModels {
   public store: IResourcePersister
-  private byPermalink: Map<String, Resource>
+  private byPermalink: Map<string, Resource>
   // public byLink: Map<String, Resource>
 
   get models() { return this.store.models }
@@ -20,6 +20,7 @@ export class RCache implements IHasModels {
   public buildResource: (model: string|Model) => any
   public buildStub: (resource: ITradleObject) => any
   public validateResource: (resource: ITradleObject) => void
+  public getModel: (id: string) => Model
 
   constructor({ store }: {
     store: IResourcePersister

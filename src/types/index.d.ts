@@ -686,6 +686,7 @@ export interface IHasModels {
   buildResource: (model: string|Model) => any
   buildStub: (resource: ITradleObject) => any
   validateResource: (resource: ITradleObject) => void
+  getModel: (id: string) => Model
 }
 
 export interface IBacklinkItem {
