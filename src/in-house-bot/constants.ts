@@ -25,6 +25,7 @@ export const TYPES = {
   VERIFICATION: 'tradle.Verification',
   MY_PRODUCT: 'tradle.MyProduct',
   APPLICATION: 'tradle.Application',
+  APPLICATION_SUBMISSION: 'tradle.ApplicationSubmission',
   PRODUCT_REQUEST: 'tradle.ProductRequest',
   DRAFT_APPLICATION: 'tradle.DraftApplication',
   FORM_PREFILL: 'tradle.FormPrefill',
@@ -32,6 +33,8 @@ export const TYPES = {
   DEPLOYMENT_CONFIG_FORM: 'tradle.cloud.Configuration',
   ORGANIZATION: 'tradle.Organization',
   STYLES_PACK: 'tradle.StylesPack',
+  MY_EMPLOYEE_ONBOARDING: 'tradle.MyEmployeeOnboarding',
+  ASSIGN_RELATIONSHIP_MANAGER: 'tradle.AssignRelationshipManager',
 }
 
 export const TRADLE = {

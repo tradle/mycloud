@@ -4,11 +4,15 @@ import caseless from 'caseless'
 import { Registry } from '../types'
 
 const DEFULT_FILTER = file => file !== 'index.js' && file.endsWith('.js')
+const DEFAULT_GET_ALIASES = item => ([]) // no aliases
 
-export const loadFromDir = <T>({ dir, filter=DEFULT_FILTER, prop }: {
+type GetAliases = (item: any) => string[]
+
+export const loadFromDir = <T>({ dir, filter=DEFULT_FILTER, prop, getAliases=DEFAULT_GET_ALIASES }: {
   dir: string
-  filter?: Function
+  filter?: (item: any) => boolean|void
   prop?: string
+  getAliases?: GetAliases
 }):Registry<T> => {
   const registry = caseless({})
   registry.keys = () => Object.keys(registry.dict)
@@ -18,12 +22,15 @@ export const loadFromDir = <T>({ dir, filter=DEFULT_FILTER, prop }: {
     const subModule = require(path.resolve(dir, file))
     const item = prop ? subModule[prop] : subModule
     const name = item.name || path.parse(file).name
-    if (registry.get(name)) {
-      debugger
-      throw new Error(`multiple items registered with name: ${name}`)
-    }
+    const aliases = getAliases(item) || []
+    const names = [name].concat(aliases)
+    names.forEach(name => {
+      if (registry.get(name)) {
+        throw new Error(`multiple items registered with name: ${name}`)
+      }
 
-    registry.set(name, item)
+      registry.set(name, item)
+    })
   })
 
   return registry

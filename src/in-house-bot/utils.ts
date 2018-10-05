@@ -20,6 +20,7 @@ import {
   ITradleCheck,
   ITradleObject,
   IConfComponents,
+  IUser,
 } from './types'
 
 import { TYPE } from '../constants'
@@ -648,4 +649,17 @@ export const ensureThirdPartyServiceConfigured = (conf: IConfComponents, name: s
   if (!isThirdPartyServiceConfigured(conf, name)) {
     throw new Errors.InvalidInput(`you're not running a "${name}" service!`)
   }
+}
+
+export const removeRoleFromUser = (user: IUser, role: string) => {
+  const { roles } = user
+  if (roles) {
+    const idx = roles.indexOf(role)
+    if (idx !== -1) {
+      roles.splice(idx, 1)
+      return true
+    }
+  }
+
+  return false
 }
