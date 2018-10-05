@@ -664,7 +664,7 @@ Previous exit stack: ${this.lastExitStack}`)
       const promise = this.preProcess({ event, context })
         .then(() => this.run())
 
-      if (context.done) {
+      if (context && context.done) {
         // until issue is resolved, avoid returning a promise:
         // https://github.com/aws/aws-xray-sdk-node/issues/27#issuecomment-380092859
         promise.then(result => context.done(null, result), context.done)
