@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.9.0-rc.5"></a>
+# [1.9.0-rc.5](https://github.com/tradle/serverless/compare/v1.9.0-rc.4...v1.9.0-rc.5) (2018-10-06)
+
+
+### Bug Fixes
+
+* don't fail, return error from import-data-utils ([a8b1c6d](https://github.com/tradle/serverless/commit/a8b1c6d))
+* don't store resource bodies in events table ([8f7ef78](https://github.com/tradle/serverless/commit/8f7ef78))
+* fallback to context.done for now, until lambda return value mystery is solved ([56e8834](https://github.com/tradle/serverless/commit/56e8834))
+* initialize lambda logger only once ([9e91039](https://github.com/tradle/serverless/commit/9e91039))
+* local dev env lambda return value ([bb1ebe6](https://github.com/tradle/serverless/commit/bb1ebe6))
+* local graphql server mode ([f6f9d4d](https://github.com/tradle/serverless/commit/f6f9d4d))
+* make local lambda testing more convenient ([08ca161](https://github.com/tradle/serverless/commit/08ca161))
+* remediation plugin doesn't require conf ([08509e2](https://github.com/tradle/serverless/commit/08509e2))
+* rm tradle.MyCloudFriend from unsigned types list ([0da0fdc](https://github.com/tradle/serverless/commit/0da0fdc))
+
+
+### Features
+
+* add child rollback alert, normalize alert subjects ([9cf49b3](https://github.com/tradle/serverless/commit/9cf49b3))
+* add getModel to models-mixin ([cd38ee0](https://github.com/tradle/serverless/commit/cd38ee0))
+* allow firing employees ([59bfba1](https://github.com/tradle/serverless/commit/59bfba1))
+* enable point-in-time recovery for tables ([571b19f](https://github.com/tradle/serverless/commit/571b19f))
+
+
+
 <a name="1.9.0-rc.4"></a>
 # [1.9.0-rc.4](https://github.com/tradle/serverless/compare/v1.9.0-rc.3...v1.9.0-rc.4) (2018-10-02)
 
