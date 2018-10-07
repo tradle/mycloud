@@ -17,6 +17,8 @@ lambda.use(async (ctx) => {
   try {
     ctx.body = await conf.update(ctx.event)
   } catch (err) {
+    lambda.logger.info('setconf failed', err)
+    Errors.rethrow(err, 'developer')
     ctx.body = {
       message: err.message,
       name: err.name || err.type,
