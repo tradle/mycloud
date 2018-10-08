@@ -44,6 +44,7 @@ const RANKONE_API_RESOURCE = {
   name: PROVIDER
 }
 const DEFAULT_THRESHOLD = 0.8
+const REQUEST_TIMEOUT = 10000
 
 export const name = 'rankone-checks'
 
@@ -135,12 +136,16 @@ export class RankOneCheckAPI {
     }
 
     try {
-      rawData = await post(`${apiUrl}/verify`, form, { headers })
+      rawData = await post(`${apiUrl}/verify`, form, {
+        headers,
+        timeout: REQUEST_TIMEOUT,
+      })
+
       this.logger.debug('Face recognition check, match:', rawData)
     } catch (err) {
       debugger
-      error = `Check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
-      this.logger.error('Face recognition check', err)
+      error = `check was not completed for "${buildResource.title({models, resource: photoID})}": ${err.message}`
+      this.logger.error('Face recognition check error', err)
       return { status: 'error', rawData: {}, error }
     }
 

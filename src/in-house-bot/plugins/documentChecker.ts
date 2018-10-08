@@ -501,12 +501,12 @@ debugger
         resource.docId = docId
     }
 
-    this.logger.debug(`Creating ${PROVIDER} check for ${form.firstName}`);
+    this.logger.debug(`Creating check for ${form.firstName}`);
     const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
         .set(resource)
         .signAndSave()
     // const check = await this.bot.signAndSave(resource)
-    this.logger.debug(`Created ${PROVIDER} check for: ${form.firstName}`);
+    this.logger.debug(`Created check for: ${form.firstName}`);
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {

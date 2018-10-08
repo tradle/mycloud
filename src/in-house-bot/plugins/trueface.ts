@@ -40,6 +40,8 @@ const NTECH_API_RESOURCE = {
   name: PROVIDER
 }
 
+const REQUEST_TIMEOUT = 10000
+
 export const name = 'trueface'
 
 type ITruefaceConf = {
@@ -136,12 +138,13 @@ export class TruefaceAPI {
           'x-auth': this.conf.token,
           'Authorization': this.conf.apiKey,
         },
+        timeout: REQUEST_TIMEOUT,
       })
-      this.logger.debug('Trueface spoof detection:', rawData);
+      this.logger.debug('spoof detection', rawData);
     } catch (err) {
       debugger
       error = `Check was not completed: ${err.message}`
-      this.logger.error('Trueface check', err)
+      this.logger.error('spoof detection check error', err)
       return { status: 'error', rawData: {}, error }
     }
     let status
