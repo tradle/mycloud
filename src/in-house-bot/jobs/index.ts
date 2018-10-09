@@ -108,16 +108,16 @@ export const checkFailedSeals:Executor = async ({ job, components }) => {
   return await components.bot.seals.handleFailures({ gracePeriod })
 }
 
-export const documentChecker:Executor = async ({ job, components }) => {
-  const { logger, documentChecker } = components
-  if (!documentChecker) {
-    logger.debug('document checker not set up')
-    return
-  }
+// export const documentChecker:Executor = async ({ job, components }) => {
+//   const { logger, documentChecker } = components
+//   if (!documentChecker) {
+//     logger.debug('document checker not set up')
+//     return
+//   }
 
-  // // document checker rate-limits to 1/min
-  return await documentChecker.checkPending({ limit: 1 })
-}
+//   // // document checker rate-limits to 1/min
+//   return await documentChecker.checkPending({ limit: 1 })
+// }
 
 // export const cleanupTmpSNSTopics:Executor = async ({ job, components }) => {
 //   const { bot, logger } = components
