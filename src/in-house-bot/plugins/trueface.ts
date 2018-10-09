@@ -18,8 +18,6 @@ import {
 } from '../types'
 import {
   getStatusMessageForCheck,
-  // doesCheckExist,
-  doesCheckNeedToBeCreated,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
 } from '../utils'
@@ -77,8 +75,6 @@ export class TruefaceAPI {
   }
 
   public prepCheck = async(payload:ITradleObject, application) => {
-    // if (await doesCheckExist({bot: this.bot, type: TRUEFACE_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
-    //   return
     let payloadType = payload[TYPE]
     const props = this.bot.models[payloadType].properties
     let propertiesToCheck
@@ -94,10 +90,6 @@ export class TruefaceAPI {
       resource = _.cloneDeep(payload)
       await this.bot.resolveEmbeds(resource)
     }
-    let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: TRUEFACE_CHECK, application, provider: PROVIDER, form: payload, propertiesToCheck: [propertiesToCheck], prop: 'form'})
-// debugger
-    if (!createCheck)
-      return
     return { propToCheck: propertiesToCheck, resource }
   }
   public checkForSpoof = async ({ image, application }: {
