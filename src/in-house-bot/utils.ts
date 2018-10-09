@@ -20,6 +20,7 @@ import {
   ITradleCheck,
   ITradleObject,
   IConfComponents,
+  IUser,
 } from './types'
 
 import { TYPE } from '../constants'
@@ -127,25 +128,28 @@ export const sendConfirmedSeals = async (bot: Bot, seals: Seal[]) => {
   if (!seals.length) return
 
   const confirmed = seals.filter(s => s.unconfirmed == null && s.counterparty)
+  bot.logger.debug(`actually sending ${confirmed.length} confirmed seals`)
   if (!confirmed.length) return
 
-  await bot.send(confirmed.map(seal => {
-    const object:ITradleObject = pickNonNull({
-      ..._.pick(seal, SEAL_MODEL_PROPS),
-      [TYPE]: SealModel.id,
-      time: seal._time || Date.now()
-    })
+  await bot.send(confirmed.map(sealToSendOpts))
+}
 
-    if (seal.basePubKey) {
-      const basePubKey = getSealBasePubKey(seal)
-      if (basePubKey) object.basePubKey = basePubKey
-    }
+const sealToSendOpts = seal => {
+  const object:ITradleObject = pickNonNull({
+    ..._.pick(seal, SEAL_MODEL_PROPS),
+    [TYPE]: SealModel.id,
+    time: seal._time || Date.now()
+  })
 
-    return {
-      to: seal.counterparty,
-      object
-    }
-  }))
+  if (seal.basePubKey) {
+    const basePubKey = getSealBasePubKey(seal)
+    if (basePubKey) object.basePubKey = basePubKey
+  }
+
+  return {
+    to: seal.counterparty,
+    object
+  }
 }
 
 export const getDateOfBirthFromForm = (form:any):number|void => {
@@ -648,4 +652,17 @@ export const ensureThirdPartyServiceConfigured = (conf: IConfComponents, name: s
   if (!isThirdPartyServiceConfigured(conf, name)) {
     throw new Errors.InvalidInput(`you're not running a "${name}" service!`)
   }
+}
+
+export const removeRoleFromUser = (user: IUser, role: string) => {
+  const { roles } = user
+  if (roles) {
+    const idx = roles.indexOf(role)
+    if (idx !== -1) {
+      roles.splice(idx, 1)
+      return true
+    }
+  }
+
+  return false
 }

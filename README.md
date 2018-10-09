@@ -412,7 +412,9 @@ Missing credentials in config
 
 **Cause 2**: you may be using a global installation of `serverless` rather than the project-local one. If you're running Tradle locally via npm scripts, this should be taken care of for you. If you're running `sls` / `serverless` commands directly, make sure to use the project-local one in `node_modules`, e.g.: `./node_modules/.bin/sls offline start`
 
-**Symptom 7**
+## Troubleshooting remote deployment
+
+**Symptom 1**
 
 After deploying to AWS, CloudWatch logs shows:
 ```
@@ -425,6 +427,8 @@ module initialization error TypeError
 Keep in mind that deployment keys in S3 are based on the current git commit, so you'll need to re-commit before deploying, otherwise AWS CloudFormation will not re-deploy your lambdas with new code.
 
 If the issue persists, you may have unknowingly introduced a new native dependency. Run `./src/scripts/list-native-modules.sh` and see if there's anything missing in the `native_modules` var in `./src/scripts/rebuild-native.sh`. If there, is, update `native_modules` and repeat the above fix.
+
+Keep in mind that code bundle S3 keys are based on the current git commit hash, so you'll need to create a new git commit before pushing, e.g.: `git commit --allow-empty -m "chore: bust deployment cache"`
 
 ## Scripts
 

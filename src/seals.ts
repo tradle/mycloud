@@ -666,6 +666,8 @@ export default class Seals {
   }
 
   private _syncUnconfirmedBatch = async (unconfirmed:Seal[], opts: SyncOpts) => {
+    this.logger.debug(`syncing ${unconfirmed.length} seals`)
+
     const { onProgress=promiseNoop } = opts
     const changedSealMap:SealMap = {}
     const addresses = unconfirmed.map(({ address }) => address)

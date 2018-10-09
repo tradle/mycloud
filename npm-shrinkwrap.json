@@ -1,6 +1,6 @@
 {
   "name": "@tradle/serverless",
-  "version": "1.9.0-rc.4",
+  "version": "1.10.1-rc.0",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -181,7 +181,7 @@
     "@tradle/custom-models": {
       "version": "4.10.10",
       "from": "tradle/custom-models",
-      "resolved": "git://github.com/tradle/custom-models.git#071108f23fe9c05316eaeb119f38dd903be94108"
+      "resolved": "git://github.com/tradle/custom-models.git#36c22af6fafbba2c19511a18e888391700df18f0"
     },
     "@tradle/dynamodb": {
       "version": "1.0.0",
@@ -229,14 +229,9 @@
     },
     "@tradle/ethereum-adapter": {
       "version": "1.0.0",
-      "from": "tradle/ethereum-adapter",
-      "resolved": "git://github.com/tradle/ethereum-adapter.git#9da84ce247520eb018aa6660c6dd34521e745c09",
+      "from": "tradle/ethereum-adapter#dev",
+      "resolved": "git://github.com/tradle/ethereum-adapter.git#410b3b14508743f04235bfb16750f6c5c080c874",
       "dependencies": {
-        "async": {
-          "version": "2.6.1",
-          "from": "async@>=2.1.5 <3.0.0",
-          "resolved": "https://registry.npmjs.org/async/-/async-2.6.1.tgz"
-        },
         "debug": {
           "version": "3.2.5",
           "from": "debug@>=3.0.1 <4.0.0",
@@ -279,27 +274,27 @@
     "@tradle/models": {
       "version": "4.10.10",
       "from": "tradle/models",
-      "resolved": "git://github.com/tradle/models.git#94e3e5ebfe6547a3b426d3d18a54ff74e976a69b"
+      "resolved": "git://github.com/tradle/models.git#e4c08f63fbea27bf280405ea1907fb14183b20e5"
     },
     "@tradle/models-cloud": {
       "version": "1.0.0",
       "from": "tradle/models-cloud",
-      "resolved": "git://github.com/tradle/models-cloud.git#e7b1033b9487c2c0004bd50e1567db6a18b01c52"
+      "resolved": "git://github.com/tradle/models-cloud.git#94cd8832316a13a800132dff2d66c2d41d3ae4cc"
     },
     "@tradle/models-corporate-onboarding": {
       "version": "1.0.0",
       "from": "tradle/models-corporate-onboarding",
-      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#ae0d5e6d2d816bf3a1c2809feb090997d35481d2"
+      "resolved": "git://github.com/tradle/models-corporate-onboarding.git#3ecf44a9b670d49d50aaba15915e26c8e8fd0285"
     },
     "@tradle/models-nz": {
       "version": "1.0.0",
       "from": "tradle/models-nz",
-      "resolved": "git://github.com/tradle/models-nz.git#1f7dcae9ca9013d03feb881c9c035e28c760ba2c"
+      "resolved": "git://github.com/tradle/models-nz.git#97ccbecee522fad6ef2e33d7701cc4f2c80d64fe"
     },
     "@tradle/models-onfido": {
       "version": "1.0.0",
       "from": "tradle/models-onfido",
-      "resolved": "git://github.com/tradle/models-onfido.git#b6d36490df9e46d860faf8b0507a2beef51539ab"
+      "resolved": "git://github.com/tradle/models-onfido.git#25b108b414a54bad4c04af44fcf2c8bee72aba25"
     },
     "@tradle/models-pack": {
       "version": "1.3.0",
@@ -1957,7 +1952,7 @@
     },
     "buffer": {
       "version": "5.1.0",
-      "from": "buffer@>=5.0.6 <6.0.0",
+      "from": "buffer@>=5.1.0 <5.2.0",
       "resolved": "https://registry.npmjs.org/buffer/-/buffer-5.1.0.tgz",
       "dependencies": {
         "base64-js": {
@@ -2127,9 +2122,9 @@
       }
     },
     "caniuse-lite": {
-      "version": "1.0.30000888",
+      "version": "1.0.30000889",
       "from": "caniuse-lite@>=1.0.30000844 <2.0.0",
-      "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30000888.tgz"
+      "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30000889.tgz"
     },
     "capture-stack-trace": {
       "version": "1.0.0",
@@ -6927,6 +6922,11 @@
       "resolved": "https://registry.npmjs.org/makeerror/-/makeerror-1.0.11.tgz",
       "dev": true
     },
+    "map-age-cleaner": {
+      "version": "0.1.2",
+      "from": "map-age-cleaner@>=0.1.1 <0.2.0",
+      "resolved": "https://registry.npmjs.org/map-age-cleaner/-/map-age-cleaner-0.1.2.tgz"
+    },
     "map-cache": {
       "version": "0.2.2",
       "from": "map-cache@>=0.2.2 <0.3.0",
@@ -8338,6 +8338,11 @@
       "from": "osenv@>=0.0.0 <1.0.0",
       "resolved": "https://registry.npmjs.org/osenv/-/osenv-0.1.5.tgz"
     },
+    "p-defer": {
+      "version": "1.0.0",
+      "from": "p-defer@>=1.0.0 <2.0.0",
+      "resolved": "https://registry.npmjs.org/p-defer/-/p-defer-1.0.0.tgz"
+    },
     "p-finally": {
       "version": "1.0.0",
       "from": "p-finally@>=1.0.0 <2.0.0",
@@ -8366,6 +8371,18 @@
       "from": "p-map@>=1.1.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/p-map/-/p-map-1.2.0.tgz",
       "dev": true
+    },
+    "p-memoize": {
+      "version": "2.1.0",
+      "from": "p-memoize@>=2.1.0 <3.0.0",
+      "resolved": "https://registry.npmjs.org/p-memoize/-/p-memoize-2.1.0.tgz",
+      "dependencies": {
+        "mem": {
+          "version": "4.0.0",
+          "from": "mem@>=4.0.0 <5.0.0",
+          "resolved": "https://registry.npmjs.org/mem/-/mem-4.0.0.tgz"
+        }
+      }
     },
     "p-try": {
       "version": "1.0.0",
@@ -11962,14 +11979,14 @@
       "dependencies": {
         "bindings": {
           "version": "1.2.1",
-          "from": "bindings@~1.2.1",
+          "from": "bindings@>=1.2.1 <1.3.0",
           "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
           "dev": true,
           "optional": true
         },
         "nan": {
           "version": "2.3.5",
-          "from": "nan@~2.3.0",
+          "from": "nan@>=2.3.0 <2.4.0",
           "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
           "dev": true,
           "optional": true

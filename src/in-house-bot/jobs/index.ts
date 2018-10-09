@@ -57,6 +57,7 @@ export const pollchain:Executor = async ({ job, components }):Promise<Seal[]> =>
   let haveTime
   do {
     if (batch) {
+      logger.debug(`sending ${batch.length} confirmed seals`)
       await sendConfirmedSeals(bot, batch)
     }
 

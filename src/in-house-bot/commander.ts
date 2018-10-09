@@ -192,13 +192,16 @@ export class Commander {
   }
 
   public hasCommand = (ctx:ICommandContext):boolean => {
-    return this.getAvailableCommands(ctx).includes(ctx.commandName)
+    // a bit roundabout, to support aliases
+    const command = this.getCommandByName(ctx.commandName)
+    return this.getAvailableCommands(ctx).includes(command.name)
   }
 
   public ensureHasCommand = (ctx:ICommandContext) => {
     if (this.hasCommand(ctx)) return
 
     if (ctx.employee && this.hasCommand({ ...ctx, sudo: true })) {
+      // sudo is required
       throw new Errors.Forbidden(FORBIDDEN_MESSAGE)
     }
 

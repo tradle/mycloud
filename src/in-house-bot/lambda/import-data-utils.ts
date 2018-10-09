@@ -2,6 +2,7 @@ import { createBot } from '../../'
 import { fromCli } from '../lambda'
 import { Remediation } from '../remediation'
 import * as LambdaEvents from '../lambda-events'
+import Errors from '../../errors'
 
 const bot = createBot({ ready: false })
 const lambda = fromCli({ bot, event: LambdaEvents.REMEDIATION_COMMAND })
@@ -9,7 +10,12 @@ const lambda = fromCli({ bot, event: LambdaEvents.REMEDIATION_COMMAND })
 lambda.use(async (ctx, next) => {
   const { remediation } = ctx.components
   const { method, data } = ctx.event
-  ctx.body = await run({ method, data, remediation })
+  try {
+    ctx.body = await run({ method, data, remediation })
+  } catch (err) {
+    Errors.rethrow(err, 'developer')
+    ctx.error = Errors.exportMini(err)
+  }
 })
 
 const run = async ({ method, data, remediation }: {

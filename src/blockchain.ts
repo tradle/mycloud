@@ -1,5 +1,4 @@
 import { utils, protocol } from '@tradle/engine'
-import { promisify } from './utils'
 import adapters from './blockchain-adapter'
 import {
   IDebug,
@@ -112,8 +111,8 @@ export default class Blockchain {
     }
 
     this.reader = this.createAdapter()
-    this.addressesAPI = promisify(this.reader.blockchain.addresses)
-    this.getInfo = promisify(this.reader.blockchain.info)
+    this.addressesAPI = this.reader.blockchain.addresses
+    this.getInfo = this.reader.blockchain.info
     this.network = this.reader.network
     this.logger = logger
     this.identity = identity
@@ -286,7 +285,7 @@ export default class Blockchain {
         privateKey: priv
       })
 
-      this.writers[fingerprint] = promisify(transactor)
+      this.writers[fingerprint] = transactor
     }
 
     return this.writers[fingerprint]

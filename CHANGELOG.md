@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.10.1-rc.0"></a>
+## [1.10.1-rc.0](https://github.com/tradle/serverless/compare/v1.10.0...v1.10.1-rc.0) (2018-10-08)
+
+
+### Bug Fixes
+
+* set timeouts on third party checks ([33d89e3](https://github.com/tradle/serverless/commit/33d89e3))
+
+
+
+<a name="1.10.0"></a>
+# [1.10.0](https://github.com/tradle/serverless/compare/v1.10.0-rc.4...v1.10.0) (2018-10-07)
+
+
+
+<a name="1.10.0-rc.4"></a>
+# [1.10.0-rc.4](https://github.com/tradle/serverless/compare/v1.10.0-rc.3...v1.10.0-rc.4) (2018-10-07)
+
+
+### Bug Fixes
+
+* allow lambda to del from private conf bucket ([0e74e25](https://github.com/tradle/serverless/commit/0e74e25))
+
+
+
+<a name="1.10.0-rc.3"></a>
+# [1.10.0-rc.3](https://github.com/tradle/serverless/compare/v1.10.0-rc.2...v1.10.0-rc.3) (2018-10-07)
+
+
+
+<a name="1.10.0-rc.2"></a>
+# [1.10.0-rc.2](https://github.com/tradle/serverless/compare/v1.10.0-rc.1...v1.10.0-rc.2) (2018-10-07)
+
+
+### Bug Fixes
+
+* bug when models pack has lenses but no models ([dd03e6c](https://github.com/tradle/serverless/commit/dd03e6c))
+
+
+
+<a name="1.10.0-rc.1"></a>
+# [1.10.0-rc.1](https://github.com/tradle/serverless/compare/v1.10.0-rc.0...v1.10.0-rc.1) (2018-10-07)
+
+
+
+<a name="1.10.0-rc.0"></a>
+# [1.10.0-rc.0](https://github.com/tradle/serverless/compare/v1.9.0...v1.10.0-rc.0) (2018-10-06)
+
+
+
+<a name="1.9.0"></a>
+# [1.9.0](https://github.com/tradle/serverless/compare/v1.9.0-rc.5...v1.9.0) (2018-10-06)
+
+
+
+<a name="1.9.0-rc.5"></a>
+# [1.9.0-rc.5](https://github.com/tradle/serverless/compare/v1.9.0-rc.4...v1.9.0-rc.5) (2018-10-06)
+
+
+### Bug Fixes
+
+* don't fail, return error from import-data-utils ([a8b1c6d](https://github.com/tradle/serverless/commit/a8b1c6d))
+* don't store resource bodies in events table ([8f7ef78](https://github.com/tradle/serverless/commit/8f7ef78))
+* fallback to context.done for now, until lambda return value mystery is solved ([56e8834](https://github.com/tradle/serverless/commit/56e8834))
+* initialize lambda logger only once ([9e91039](https://github.com/tradle/serverless/commit/9e91039))
+* local dev env lambda return value ([bb1ebe6](https://github.com/tradle/serverless/commit/bb1ebe6))
+* local graphql server mode ([f6f9d4d](https://github.com/tradle/serverless/commit/f6f9d4d))
+* make local lambda testing more convenient ([08ca161](https://github.com/tradle/serverless/commit/08ca161))
+* remediation plugin doesn't require conf ([08509e2](https://github.com/tradle/serverless/commit/08509e2))
+* rm tradle.MyCloudFriend from unsigned types list ([0da0fdc](https://github.com/tradle/serverless/commit/0da0fdc))
+
+
+### Features
+
+* add child rollback alert, normalize alert subjects ([9cf49b3](https://github.com/tradle/serverless/commit/9cf49b3))
+* add getModel to models-mixin ([cd38ee0](https://github.com/tradle/serverless/commit/cd38ee0))
+* allow firing employees ([59bfba1](https://github.com/tradle/serverless/commit/59bfba1))
+* enable point-in-time recovery for tables ([571b19f](https://github.com/tradle/serverless/commit/571b19f))
+
+
+
 <a name="1.9.0-rc.4"></a>
 # [1.9.0-rc.4](https://github.com/tradle/serverless/compare/v1.9.0-rc.3...v1.9.0-rc.4) (2018-10-02)
 

@@ -82,7 +82,7 @@ const PRODUCT_LIST_MESSAGE = 'See our list of products'
 const PRODUCT_LIST_CHANGED_MESSAGE = 'Our products have changed'
 const PRODUCT_LIST_MENU_MESSAGE = 'Choose Apply for Product from the menu'
 const ALL_HIDDEN_PRODUCTS = [
-  DEPLOYMENT,
+  // DEPLOYMENT,
   EMPLOYEE_ONBOARDING
 ]
 
@@ -736,10 +736,10 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
   } = conf.bot.products
 
   const willRequestForm = ({ user, formRequest }) => {
+    if (bot.isLocal) return
     if (formRequest.form !== PRODUCT_REQUEST) return
 
     const hidden = employeeManager.isEmployee(user) ? HIDDEN_PRODUCTS.employee : HIDDEN_PRODUCTS.customer
-    if (bot.isLocal) return
 
     formRequest.chooser.oneOf = formRequest.chooser.oneOf.filter(product => {
       // allow showing hidden products explicitly by listing them in conf
