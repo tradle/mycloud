@@ -18,7 +18,8 @@ import {
 } from '../types'
 import {
   getStatusMessageForCheck,
-  doesCheckExist,
+  // doesCheckExist,
+  doesCheckNeedToBeCreated,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
 } from '../utils'
@@ -75,54 +76,35 @@ export class TruefaceAPI {
     this.conf = conf
   }
 
-//   public checkResource = async (application: IPBApp, resource: ITradleObject, propToCheck?:string) => {
-//     // const stubs = getParsedFormStubs(application)
-//     // const selfieStub = stubs.find(({ type }) => type === form)
-//     // if (!selfieStub) {
-//     //   // not enough info
-//     //   return
-//     // }
-//     // this.logger.debug('Face recognition both selfie and photoId ready');
-
-//     // const tasks = [selfieStub].map(async stub => {
-//     //   const object = await this.bot.getResource(stub)
-//     //   return this.bot.resolveEmbeds(object)
-//     // })
-//     // const [selfie] = await Promise.all(tasks)
-// debugger
-//     await this.bot.resolveEmbeds(resource)
-//     let changed = await hasPropertiesChanged({ resource, bot: this.bot, propertiesToCheck: [propToCheck] })
-//     if (!changed)
-//       return
-//     return resource
-//   }
   public prepCheck = async(payload:ITradleObject, application) => {
-    if (await doesCheckExist({bot: this.bot, type: TRUEFACE_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
-      return
+    // if (await doesCheckExist({bot: this.bot, type: TRUEFACE_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+    //   return
     let payloadType = payload[TYPE]
     const props = this.bot.models[payloadType].properties
-    let propToCheck
+    let propertiesToCheck
     for (let p in payload) {
       let prop = props[p]
       if (prop  &&  prop.ref === 'tradle.Photo') {
-        propToCheck = p
+        propertiesToCheck = p
         break
       }
     }
-    // debugger
     let resource
-    if (propToCheck) {
+    if (propertiesToCheck) {
       resource = _.cloneDeep(payload)
       await this.bot.resolveEmbeds(resource)
     }
-    return { propToCheck, resource }
+    let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: TRUEFACE_CHECK, application, provider: PROVIDER, form: payload, propertiesToCheck: [propertiesToCheck], prop: 'form'})
+// debugger
+    if (!createCheck)
+      return
+    return { propToCheck: propertiesToCheck, resource }
   }
   public checkForSpoof = async ({ image, application }: {
     image: string
     application: IPBApp
   }) => {
     let rawData: any, error, message
-// debugger
     // call whatever API with whatever params
     let url = `${this.conf.apiUrl}/spdetect`
     const buf = DataURI.decode(image)
@@ -132,6 +114,8 @@ export class TruefaceAPI {
       img: buf.toString('base64')
     }
 
+// debugger
+    let status
     try {
       rawData = await post(url, data, {
         headers: {
@@ -140,23 +124,23 @@ export class TruefaceAPI {
         },
         timeout: REQUEST_TIMEOUT,
       })
-      this.logger.debug('spoof detection', rawData);
+      this.logger.debug('Trueface spoof detection:', rawData);
+      if (rawData.success) {
+        if (rawData.data.score < (this.conf.threshold  ||  0.7))
+          status = 'fail'
+        else
+          status = 'pass'
+        return { status, rawData, error }
+      }
+      else {
+        return {status: rawData.status, rawData: {}, error: rawData}
+      }
     } catch (err) {
       debugger
-      error = `Check was not completed: ${err.message}`
-      this.logger.error('spoof detection check error', err)
+      let error = `Check was not completed: ${err.message}`
+      this.logger.error('Trueface check', err)
       return { status: 'error', rawData: {}, error }
     }
-    let status
-    if (rawData.success) {
-      if (rawData.data.score < (this.conf.threshold  ||  0.7))
-        status = 'fail'
-      else
-        status = 'pass'
-    }
-    else
-      status = 'error'
-    return { status, rawData, error }
   }
 
   public createCheck = async ({ status, resource, rawData, application, error }) => {
@@ -233,17 +217,15 @@ export const createPlugin: CreatePlugin<TruefaceAPI> = (components, pluginOpts) 
       if (products[productId].indexOf(payloadType) === -1)
         return
 
+      // if (await doesCheckExist({bot, type: TRUEFACE_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+      //   return
+
       let result = await trueface.prepCheck(payload, application)
       if (!result)
         return
       let { propToCheck, resource } = result
       if (!propToCheck)
         return
-
-      // if editable
-      // let changed = await hasPropertiesChanged({ resource: payload, bot: this.bot, propertiesToCheck: [propToCheck] })
-      // if (!changed)
-      //   return
 
       // const resource = await trueface.checkResource(application, payload, propToCheck)
       // if (!resource) return

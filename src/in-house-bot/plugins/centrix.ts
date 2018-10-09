@@ -13,7 +13,7 @@ try {
   createCentrixClient = require('@tradle/centrix')
 } catch (err) {}
 
-import { getLatestForms, getStatusMessageForCheck, doesCheckExist } from '../utils'
+import { getLatestForms, getStatusMessageForCheck, doesCheckNeedToBeCreated } from '../utils'
 import { splitCamelCase } from '../../string-utils'
 import {
   Bot,
@@ -280,8 +280,13 @@ async function getCentrixData ({ application, bot }: {application: IPBApp, bot: 
   let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber } = form
   let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
 
-  if (await doesCheckExist({bot, type: CENTRIX_CHECK, eq: {form: form._link}, application, provider: CENTRIX_NAME}))
+  let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck, prop: 'form'})
+debugger
+  if (!createCheck)
     return
+
+  // if (await doesCheckExist({bot, type: CENTRIX_CHECK, eq: {form: form._link}, application, provider: CENTRIX_NAME}))
+  //   return
   // const { items } = await bot.db.find({
   //   filter: {
   //     EQ: {

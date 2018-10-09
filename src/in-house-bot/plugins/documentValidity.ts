@@ -16,9 +16,8 @@ import {
 import {
   getStatusMessageForCheck,
   toISODateString,
-  // doesCheckExist,
-  getChecks,
-  hasPropertiesChanged
+  doesCheckNeedToBeCreated,
+  // hasPropertiesChanged
 } from '../utils'
 
 const { TYPE } = constants
@@ -61,16 +60,12 @@ class DocumentValidityAPI {
     let { documentType, country, dateOfExpiry, dateOfBirth, scanJson, scan, issuer, nationality } = payload
     // if (await doesCheckExist({bot: this.bot, type: DOCUMENT_VALIDITY, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
-    let items = await getChecks({bot: this.bot, type: DOCUMENT_VALIDITY, application, provider: PROVIDER})
-    if (items) {
-      let checks = items.filter(r => r.form._link === payload._link)
-      if (checks.length)
-        return
-      let propertiesToCheck = ['dateOfExpiry', 'dateOfBirth', 'issuer', 'nationality', 'scan', 'scanJson', 'documentType', 'country']
-      let changed = await hasPropertiesChanged({ resource: payload, bot: this.bot, propertiesToCheck })
-      if (!changed)
-        return
-    }
+
+    let propertiesToCheck = ['dateOfExpiry', 'dateOfBirth', 'issuer', 'nationality', 'scanJson', 'documentType', 'country']
+    let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: DOCUMENT_VALIDITY, application, provider: PROVIDER, form: payload, propertiesToCheck, prop: 'form'})
+debugger
+    if (!createCheck)
+      return
 
     let isPassport = documentType.id.indexOf('_passport') !== -1
     debugger

@@ -15,7 +15,11 @@ import {
   Applications
 } from '../types'
 
-import { getCheckParameters, getStatusMessageForCheck, doesCheckExist } from '../utils'
+import {
+  getCheckParameters,
+  getStatusMessageForCheck,
+  doesCheckNeedToBeCreated,
+} from '../utils'
 
 const {TYPE} = constants
 const VERIFICATION = 'tradle.Verification'
@@ -90,27 +94,18 @@ class ComplyAdvantageAPI {
 
     let isPerson = criteria  &&  criteria.entity_type === 'person' || isPersonForm(payload)
 // debugger
+    // if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+    //   return
+    // Check that props that are used for checking changed
     let propertiesToCheck
     if (isPerson)
       propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth']
     else
       propertiesToCheck = ['companyName', 'registrationDate']
 
-    if (await doesCheckExist({bot: this.bot, type: SANCTIONS_CHECK, eq: {form: payload._link}, application, provider: PROVIDER}))
+    let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: SANCTIONS_CHECK, application, provider: PROVIDER, form: payload, propertiesToCheck, prop: 'form'})
+    if (!createCheck)
       return
-// debugger
-//     const { items } = await this.bot.db.find({
-//       filter: {
-//         EQ: {
-//           [TYPE]: SANCTIONS_CHECK,
-//           'application._permalink': application._permalink,
-//           'provider': PROVIDER,
-//           'form._link': payload._link
-//         }
-//       }
-//     })
-//     if (items.length)
-//       return
 
     let defaultMap:any = isPerson && defaultPersonPropMap || defaultPropMap
 
