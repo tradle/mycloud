@@ -13,7 +13,13 @@ import {
   Applications
 } from '../types'
 
-import { getStatusMessageForCheck, toISODateString, doesCheckExist } from '../utils'
+import {
+  getStatusMessageForCheck,
+  toISODateString,
+  // doesCheckExist,
+  getChecks,
+  hasPropertiesChanged
+} from '../utils'
 
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
@@ -53,23 +59,18 @@ class DocumentValidityAPI {
 
   public async checkDocument({user, payload, application}) {
     let { documentType, country, dateOfExpiry, dateOfBirth, scanJson, scan, issuer, nationality } = payload
-debugger
-    if (await doesCheckExist({bot: this.bot, type: DOCUMENT_VALIDITY, eq: {form: payload._link}, application, provider: PROVIDER}))
-      return
-
-    // const { items } = await this.bot.db.find({
-    //   filter: {
-    //     EQ: {
-    //       [TYPE]: DOCUMENT_VALIDITY,
-    //       'application._permalink': application._permalink,
-    //       'provider': PROVIDER,
-    //       'form._link': payload._link
-    //     }
-    //   }
-    // })
-    // if (items.length)
+    // if (await doesCheckExist({bot: this.bot, type: DOCUMENT_VALIDITY, eq: {form: payload._link}, application, provider: PROVIDER}))
     //   return
-
+    let items = await getChecks({bot: this.bot, type: DOCUMENT_VALIDITY, application, provider: PROVIDER})
+    if (items) {
+      let checks = items.filter(r => r.form._link === payload._link)
+      if (checks.length)
+        return
+      let propertiesToCheck = ['dateOfExpiry', 'dateOfBirth', 'issuer', 'nationality', 'scan', 'scanJson', 'documentType', 'country']
+      let changed = await hasPropertiesChanged({ resource: payload, bot: this.bot, propertiesToCheck })
+      if (!changed)
+        return
+    }
 
     let isPassport = documentType.id.indexOf('_passport') !== -1
     debugger
@@ -158,8 +159,13 @@ debugger
       }
       else if (prop.type === 'date') {
         if (payload[p] !== val) {
-          hasChanges = true
-          changes[prop.title || p] = `Value scanned from the document is ${toISODateString(val)}, but manually was set to ${toISODateString(payload[p])}`
+          let changed = true
+          if (typeof val === 'string'  &&  toISODateString(payload[p]) === toISODateString(val))
+            changed = false
+          if (changed) {
+            hasChanges = true
+            changes[prop.title || p] = `Value scanned from the document is ${toISODateString(val)}, but manually was set to ${toISODateString(payload[p])}`
+          }
         }
       }
     }
