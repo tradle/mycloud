@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.1"></a>
+# [1.11.0-rc.1](https://github.com/tradle/serverless/compare/v1.11.0-rc.0...v1.11.0-rc.1) (2018-10-10)
+
+
+### Bug Fixes
+
+* rm documentChecker job from scheduler ([18c8287](https://github.com/tradle/serverless/commit/18c8287))
+
+
+
 <a name="1.11.0-rc.0"></a>
 # [1.11.0-rc.0](https://github.com/tradle/serverless/compare/v1.10.1-rc.0...v1.11.0-rc.0) (2018-10-10)
 
