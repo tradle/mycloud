@@ -284,8 +284,6 @@ debugger
     else
       status = status.toLowerCase() === 'ok' ? 'pass' : 'fail'
 
-    // let ret = checkStatus(status)
-
     let check:any = await this.getByCheckId(data.id)
 
     const [form, application] = await Promise.all([this.bot.getResource(check.form), this.bot.getResource(check.application)])
@@ -382,60 +380,4 @@ const getToken = async () => {
     debugger
     return null
   }
-}
-
-const checkStatus = (checkStatus) => {
-  let message, status
-  checkStatus = checkStatus.toLowerCase()
-  switch (checkStatus) {
-  // case 0:
-  case 'ok':
-    message = 'Check passed'
-    status = 'pass'
-    break
-  default:
-    message = 'Check passed'
-    status = 'error'
-    break
-
-  // case -1:
-  //   message = 'Check failed - unknown'
-  //   status = 'error'
-  //   break;
-  // case 1: // not ok
-  //   // status = DocStatus === '13'  &&  'pending' || 'fail'
-  //   status = 'fail'
-  //   break;
-  // case 2:
-  //   status = 'pending'
-  //   message = 'Pending'
-  //   break; // help desk docstatus Helpdesk (5)
-  // case 3:
-  //   status = 'pending'
-  //   message = 'Pending'
-  //   break; // At Kmar docstatus AtKmar (3)
-  // case 4:
-  //   status = 'error'
-  //   message = 'Not authorized'
-  //   break; // not authorized => Account.User unknown OR IP not whitelisted
-  // case 5:
-  //   status = 'error'
-  //   message = 'exception/error'
-  //   break; // exception/error
-  // case 6:
-  //   status = 'error'
-  //   message = 'Not applicable'
-  //   break; // not applicable
-  // case 7:
-  //   status = 'fail'
-  //   message = 'document not found (Number or DocId does not exits)'
-  //   break; // document not found (Number or DocId does not exits)
-  // case 8:
-  //   status = 'error'
-  //   message = 'not allowed'
-  //   break; // not allowed
-  // default:
-  //   throw new Error('Document Checker: unknown status ' + checkStatus)
-  }
-  return { status, message }
 }
