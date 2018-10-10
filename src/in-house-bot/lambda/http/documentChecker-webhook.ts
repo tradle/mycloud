@@ -2,6 +2,7 @@ import compose from 'koa-compose'
 import cors from 'kcors'
 import { configureLambda } from '../..'
 import { post } from '../../../middleware/noop-route'
+import { bodyParser } from '../../../middleware/body-parser'
 import Errors from '../../../errors'
 import * as LambdaEvents from '../../lambda-events'
 import { fromHTTP } from '../../lambda'
@@ -11,6 +12,7 @@ const lambda = fromHTTP({
   preware: compose([
     post(),
     cors(),
+    bodyParser(),
   ])
 })
 
