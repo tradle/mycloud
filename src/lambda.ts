@@ -696,12 +696,12 @@ Previous exit stack: ${this.lastExitStack}`)
     return this.execCtx
   }
 
-  private syncClock = () => {
-    return syncClock(this.bot)
-  }
+  // private syncClock = () => {
+  //   return syncClock(this.bot)
+  // }
 
   private init = () => {
-    this.initPromise = this.syncClock()
+    this.initPromise = Promise.resolve() // this.syncClock()
   }
 
   private _exportError = (err) => {

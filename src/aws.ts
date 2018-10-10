@@ -132,7 +132,7 @@ export const createAWSWrapper = ({ env, logger }: {
     const conf = getConf(serviceName)
     const service = _create(serviceName, region, conf)
     if (service) {
-      useGlobalConfigClock(service, serviceName)
+      // useGlobalConfigClock(service, serviceName)
       const recordable = wrap(service)
       apis.emit('new', {
         name: serviceName.toLowerCase(),
