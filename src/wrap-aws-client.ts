@@ -1,8 +1,11 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import { getCurrentCallStack } from './utils'
+import { createLogger } from './logger'
 
+const logger = createLogger('aws-services')
 const IGNORE_METHODS = ['makeRequest']
+const LENGTH_THRESHOLD_MS = 1000
 
 const getKeys = obj => {
   const keys = []
@@ -110,6 +113,10 @@ export const wrap = client => {
 
         if (error) {
           endParams.error = error
+        }
+
+        if (endParams.duration > LENGTH_THRESHOLD_MS) {
+          logger.silly(`aws ${clientName} call took ${endParams.duration}ms`, endParams)
         }
 
         end(endParams)

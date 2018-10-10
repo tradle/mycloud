@@ -243,5 +243,6 @@ export const consoleLogger = new Logger({
 })
 
 export { Logger }
+export const createLogger = (conf: LoggerConf|string) => new Logger(conf)
 
 const normalizeConf = (conf: LoggerConf|string):LoggerConf => typeof conf === 'string' ? { namespace: conf } : conf

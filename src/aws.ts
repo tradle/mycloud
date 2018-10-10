@@ -13,6 +13,8 @@ if (willUseXRay) {
   // tslint-disable-rule: no-console
   console.warn('capturing all http requests with AWSXRay')
   AWSXRay.captureHTTPsGlobal(http)
+} else if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  console.warn('AWSXray is off')
 }
 
 const MOCKED_SEPARATELY = {

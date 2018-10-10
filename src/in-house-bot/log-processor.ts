@@ -108,6 +108,7 @@ const XRAY_SPAM = [
   '_X_AMZN_TRACE_ID is missing required data',
   'Subsegment streaming threshold set to',
   'capturing all http requests with AWSXRay',
+  'AWSXray is off'
 ]
 
 // const MONTHS = [

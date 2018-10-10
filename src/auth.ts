@@ -172,7 +172,7 @@ export default class Auth {
       }
     })
 
-    this.logger.debug('latest authenticated session', { user: permalink, dateConnected: latest.dateConnected })
+    this.logger.debug('latest authenticated session', { user: permalink })
     return latest
   }
 
