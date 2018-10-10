@@ -23,11 +23,8 @@ lambda.use(async (ctx) => {
     throw new Errors.HttpError(404, 'not found')
   }
 
-  const { body } = ctx.event
-  let evt = JSON.parse(body.toString())
-
   try {
-    await documentChecker.handleVerificationEvent(evt)
+    await documentChecker.handleVerificationEvent(ctx.event)
   } catch (err) {
     debugger
     // lambda.logger.error('failed to handle documentChecker webhook call', err)

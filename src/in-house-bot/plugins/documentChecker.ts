@@ -29,6 +29,7 @@ import {
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
 const PHOTO_ID = 'tradle.PhotoID'
+const STATUS = 'tradle.Status'
 const DOCUMENT_CHECKER_CHECK = 'tradle.documentChecker.Check'
 const ASPECTS= 'Document authentication and verification'
 
@@ -139,7 +140,7 @@ export class DocumentCheckerAPI {
   }
   async getVerificationUrls(bearer, resource) {
     let body:any = {
-      webhook_url: `${trimTrailingSlashes(this.bot.apiBaseUrl)}/lib/in-house-bot/lambda/http/documentChecker-webhook.handler`,
+      webhook_url: `${trimTrailingSlashes(this.bot.apiBaseUrl)}/documentChecker`,
       reference: resource._link
     }
     this.logger.debug(`${PROVIDER} webhook-url: `, body.webhook_url);
@@ -254,6 +255,9 @@ export class DocumentCheckerAPI {
   }
   public async handleVerificationEvent(evt) {
     let { event, data } = evt
+    // don't run reports right now
+    if (event !== 'verification.finished')
+      return
     let bearer = await getToken()
 debugger
     this.logger.debug(`${PROVIDER} fetching verification results for ${ASPECTS}`);
@@ -275,7 +279,12 @@ debugger
 
     let { state, error, results} = rawData
     let { status, description, report_url } = results
-    let ret = checkStatus(status)
+    if (state !== 'finished' || error)
+      status = 'error'
+    else
+      status = status.toLowerCase() === 'ok' ? 'pass' : 'fail'
+
+    // let ret = checkStatus(status)
 
     let check:any = await this.getByCheckId(data.id)
 
@@ -285,14 +294,30 @@ debugger
     this.logger.debug(`${PROVIDER} verification results: ${rawData}`);
 
     let pchecks = []
+
+
+    let st
     if (state !== 'finished'  ||  error)
-      pchecks.push(this.createCheck({application, rawData, status: 'error', form}))
-    else if (ret.status === 'fail')
-      pchecks.push(this.createCheck({application, rawData, status: 'fail', form}))
-    else {
-      pchecks.push(this.createCheck({application, rawData, status: 'pass', form}))
-      pchecks.push(this.createVerification({user, application, form, rawData}))
+      st = 'error'
+    else
+      st = status
+    status = {
+      id: [STATUS, st].join('_'),
+      title: st.charAt(0).toUpperCase() + st.slice(1)
     }
+    // Update check
+    pchecks.push(this.bot.versionAndSave(Object.assign({}, check, { status })))
+    if (st === 'pass')
+      pchecks.push(this.createVerification({user, application, form, rawData}))
+
+    // if (state !== 'finished'  ||  error  ||  ret.status === 'error')
+    //    pchecks.push(this.createCheck({application, rawData, status: {status: 'error'}, form}))
+    // else if (ret.status === 'fail')
+    //   pchecks.push(this.createCheck({application, rawData, status: {status: 'fail'}, form}))
+    // else {
+    //   pchecks.push(this.createCheck({application, rawData, status: {status: 'pass'}, form}))
+      // pchecks.push(this.createVerification({user, application, form, rawData}))
+    // }
     let checksAndVerifications = await Promise.all(pchecks)
   }
 }
@@ -316,7 +341,7 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
 
       let createCheck = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
       if (!createCheck) {
-        this.logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+        logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
         return
       }
       debugger
@@ -360,52 +385,57 @@ const getToken = async () => {
 }
 
 const checkStatus = (checkStatus) => {
-  if (typeof checkStatus === 'string')
-    checkStatus = parseInt(checkStatus)
   let message, status
+  checkStatus = checkStatus.toLowerCase()
   switch (checkStatus) {
-  case 0:
+  // case 0:
+  case 'ok':
     message = 'Check passed'
     status = 'pass'
     break
-  case -1:
-    message = 'Check failed - unknown'
-    status = 'error'
-    break;
-  case 1: // not ok
-    // status = DocStatus === '13'  &&  'pending' || 'fail'
-    status = 'fail'
-    break;
-  case 2:
-    status = 'pending'
-    message = 'Pending'
-    break; // help desk docstatus Helpdesk (5)
-  case 3:
-    status = 'pending'
-    message = 'Pending'
-    break; // At Kmar docstatus AtKmar (3)
-  case 4:
-    status = 'error'
-    message = 'Not authorized'
-    break; // not authorized => Account.User unknown OR IP not whitelisted
-  case 5:
-    status = 'error'
-    message = 'exception/error'
-    break; // exception/error
-  case 6:
-    status = 'error'
-    message = 'Not applicable'
-    break; // not applicable
-  case 7:
-    status = 'fail'
-    message = 'document not found (Number or DocId does not exits)'
-    break; // document not found (Number or DocId does not exits)
-  case 8:
-    status = 'error'
-    message = 'not allowed'
-    break; // not allowed
   default:
-    throw new Error('Document Checker: unknown status ' + checkStatus)
+    message = 'Check passed'
+    status = 'error'
+    break
+
+  // case -1:
+  //   message = 'Check failed - unknown'
+  //   status = 'error'
+  //   break;
+  // case 1: // not ok
+  //   // status = DocStatus === '13'  &&  'pending' || 'fail'
+  //   status = 'fail'
+  //   break;
+  // case 2:
+  //   status = 'pending'
+  //   message = 'Pending'
+  //   break; // help desk docstatus Helpdesk (5)
+  // case 3:
+  //   status = 'pending'
+  //   message = 'Pending'
+  //   break; // At Kmar docstatus AtKmar (3)
+  // case 4:
+  //   status = 'error'
+  //   message = 'Not authorized'
+  //   break; // not authorized => Account.User unknown OR IP not whitelisted
+  // case 5:
+  //   status = 'error'
+  //   message = 'exception/error'
+  //   break; // exception/error
+  // case 6:
+  //   status = 'error'
+  //   message = 'Not applicable'
+  //   break; // not applicable
+  // case 7:
+  //   status = 'fail'
+  //   message = 'document not found (Number or DocId does not exits)'
+  //   break; // document not found (Number or DocId does not exits)
+  // case 8:
+  //   status = 'error'
+  //   message = 'not allowed'
+  //   break; // not allowed
+  // default:
+  //   throw new Error('Document Checker: unknown status ' + checkStatus)
   }
   return { status, message }
 }
