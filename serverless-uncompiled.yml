@@ -942,14 +942,18 @@ functions:
   # onfido_register:
   #   handler: lib/in-house-bot/lambda/onfido-register.handler
 
-  # onfido:
-  #   handler: lib/in-house-bot/lambda/http/onfido-webhook.handler
-  #   memorySize: 1024
-  #   events:
-  #     - http:
-  #         path: onfido
-  #         method: post
-  #         cors: ${{self:custom.cors}}
+  onfido:
+    handler: lib/in-house-bot/lambda/http/onfido-webhook.handler
+    memorySize: 1024
+    events:
+      - http:
+          path: onfido
+          method: post
+          cors: ${{self:custom.cors}}
+
+  cli:
+    handler: lib/in-house-bot/lambda/cli.handler
+    timeout: 300
 
   documentChecker:
     handler: lib/in-house-bot/lambda/http/documentChecker-webhook.handler
@@ -959,19 +963,6 @@ functions:
           path: documentChecker
           method: post
           cors: ${{self:custom.cors}}
-
-  # documentChecker:
-  #   handler: lib/in-house-bot/lambda/document-checker-job.handler
-  #   memorySize: 128
-  #   timeout: 60
-  #   # events:
-  #   #   - schedule:
-  #   #       rate: rate(1 minute)
-  #   #       enabled: true
-
-  cli:
-    handler: lib/in-house-bot/lambda/cli.handler
-    timeout: 300
 
   # qr:
   #   handler: lib/in-house-bot/lambda/http/qr.handler
