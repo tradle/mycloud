@@ -1,5 +1,7 @@
 // @ts-ignore
 import Promise from 'bluebird'
+import extend from 'lodash/extend'
+import { Request } from 'aws-sdk'
 import { getCurrentCallStack } from './utils'
 import { createLogger } from './logger'
 
@@ -16,63 +18,129 @@ const getKeys = obj => {
   return keys
 }
 
-const wrapPromiser = promiser => () => {
-  return Promise.resolve(promiser())
+const wrapPromiser = promiser => () => Promise.resolve(promiser())
+
+export interface Call {
+  client: string
+  method: string
+  args: any[]
+  start: number
+  stack: string
+  syncResult?: any
+  result?: any
+  pending?: boolean
+  duration?: number
+}
+
+export interface CallHistory {
+  start: number
+  duration: number
+  calls: Call[]
+}
+
+export interface CallHandle {
+  end: () => void
+  set: (props: any) => void
+  cancel: () => boolean
+  dump: () => Call
 }
 
 const createRecorder = () => {
-  const calls = []
+  const finishedCalls:Call[] = []
+  const pending:CallHandle[] = []
   let startTime
-  const dump = () => ({
+  const dump = ():CallHistory => ({
     start: startTime,
     duration: Date.now() - startTime,
-    calls: calls.slice(),
+    calls: pending.map(handle => handle.dump()).concat(finishedCalls),
   })
 
   const start = (time=Date.now()) => {
     startTime = time
-    calls.length = 0
+    finishedCalls.length = 0
+    pending.length = 0
   }
 
-  const pending = () => {
-    const d = dump()
-    return {
-      ...d,
-      calls: d.calls.filter(c => !('duration' in c))
-    }
-  }
+  const getPending = ():CallHistory => ({
+    start: startTime,
+    duration: Date.now() - startTime,
+    calls: pending.slice().map(handle => handle.dump()),
+  })
 
   const stop = () => {
-    try {
-      return dump()
-    } finally {
-      startTime = null
-      calls.length = 0
-    }
+    startTime = null
+    finishedCalls.length = 0
+    pending.length = 0
   }
 
   const restart = () => {
-    const calls = dump()
+    const history = dump()
     stop()
     start()
-    return calls
+    return history
   }
 
-  const addCall = event => {
-    if (!startTime) start(event.start)
+  const addCall = (call: Call) => {
+    delete call.pending
+    if (!startTime) start(call.start)
 
-    calls.push(event)
+    finishedCalls.push(call)
   }
 
-  const startCall = (props={}) => (moreProps={}) => addCall({
-    ...props,
-    ...moreProps,
-  })
+  const startCall = (call: Call):CallHandle => {
+    const end = () => {
+      pending.splice(pending.indexOf(handle), 1)
+      addCall(call)
+    }
+
+    const set = props => {
+      extend(call, props)
+    }
+
+    const cancel = () => {
+      if (call.syncResult instanceof Request) {
+        const req = call.syncResult as Request<any, any>
+        if (typeof req.abort === 'function') {
+          req.abort()
+          return true
+        }
+      }
+
+      return false
+    }
+
+    const dump = () => call
+
+    set({ pending: true })
+    const handle = {
+      end,
+      set,
+      cancel,
+      dump,
+    }
+
+    pending.push(handle)
+    return handle
+  }
+
+  const cancelPending = ():Error[] => {
+    const errors = []
+    pending.forEach(handle => {
+      try {
+        handle.cancel()
+      } catch (err) {
+        errors.push(err)
+      }
+    })
+
+    return errors
+  }
 
   return {
     start,
     stop,
-    pending,
+    pending: getPending,
+    cancelPending,
     restart,
     startCall,
     dump,
@@ -86,8 +154,9 @@ export const wrap = client => {
     '$startRecording': recorder.start,
     '$restartRecording': recorder.restart,
     '$stopRecording': recorder.stop,
-    '$dumpRecording': recorder.dump,
+    '$dumpHistory': recorder.dump,
     '$getPending': recorder.pending,
+    '$cancelPending': recorder.cancelPending,
   }
 
   const keys = getKeys(client)
@@ -108,7 +177,7 @@ export const wrap = client => {
 
     wrapper[key] = function (...args) {
       const start = Date.now()
-      const end = recorder.startCall({
+      const call = recorder.startCall({
         client: clientName,
         method: key,
         args,
@@ -129,7 +198,8 @@ export const wrap = client => {
           logger.silly(`aws ${clientName} call took ${endParams.duration}ms`, endParams)
         }
 
-        end(endParams)
+        call.set(endParams)
+        call.end()
         if (callback) return callback(error, result)
         if (error) throw error
         return result
@@ -146,9 +216,17 @@ export const wrap = client => {
       let result
       try {
         result = orig.apply(this, args)
-        if (!callback && result && result.promise) {
-          const { promise } = result
-          result.promise = () => promise().then(onSuccess, onFinished)
+        call.set({
+          syncResult: result,
+        })
+
+        if (!callback) {
+          if (result && result.promise) {
+            const { promise } = result
+            result.promise = () => promise().then(onSuccess, onFinished)
+          }
+
+          return onFinished(null, result)
         }
 
         return result

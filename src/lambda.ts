@@ -141,6 +141,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
       namespace: `lambda:${this.shortName}`
     })
 
+    this._recordService = this._recordService.bind(this)
     bot.aws.on('new', ({ name, recordable }) => this._recordService(recordable, name))
 
     this.tasks = bot.tasks
@@ -369,7 +370,8 @@ Previous exit stack: ${this.lastExitStack}`)
 
     const pendingServiceCalls = this._dumpPendingServiceCalls()
     if (!_.isEmpty(pendingServiceCalls.services)) {
-      this.logger.debug('service calls pending', pendingServiceCalls)
+      this.logger.error('service calls pending', pendingServiceCalls)
+      // this._cancelPendingCalls()
     }
 
     if (err) {
@@ -395,6 +397,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     this.emit('done')
+    this._clearServiceCallHistory()
     this.isCold = false
     this.logger.silly('exiting')
     if (ctx.error) {
@@ -714,9 +717,7 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private _recordServiceCalls = () => {
-    forEachInstantiatedRecordableService(this.aws, this._recordService)
-  }
+  private _recordServiceCalls = () => forEachInstantiatedRecordableService(this.aws, this._recordService)
 
   private _recordService = (service, name) => {
     if (!service.$startRecording) return
@@ -725,10 +726,12 @@ Previous exit stack: ${this.lastExitStack}`)
     service.$startRecording()
   }
 
+  private _clearServiceCallHistory = () => this._recordServiceCalls()
+
   private _dumpPendingServiceCalls = ():ServiceCallsSummary => {
     try {
       // should never fail cause of this
-      return this.__dumpPendingServiceCalls()
+      return this.__dumpServiceCalls({ pending: true })
     } catch (err) {
       this.logger.error('failed to dump pending service calls', {
         error: err.stack
@@ -751,35 +754,9 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private __dumpPendingServiceCalls = (): ServiceCallsSummary => {
-    const summary: ServiceCallsSummary = {
-      start: Infinity,
-      duration: 0,
-      services: {},
-    }
-
-    forEachInstantiatedRecordableService(this.aws, (service, name) => {
-      if (name.toLowerCase() === 'iotdata') {
-        // TODO: figure out why this fails
-        // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
-        return
-      }
-
-      const dump = service.$getPending()
-      if (!dump.calls.length) return
-
-      summary.services[name] = safeStringify(plainify(dump.calls))
-        // limit length
-        .slice(0, 1000)
-
-      summary.start = Math.min(summary.start, dump.start)
-      summary.duration = Math.max(summary.duration, Date.now() - dump.start)
-    })
-
-    return summary
-  }
-
-  private __dumpServiceCalls = ():ServiceCallsSummary => {
+  private __dumpServiceCalls = ({ pending }: {
+    pending?: boolean
+  }={}):ServiceCallsSummary => {
     const summary:ServiceCallsSummary = {
       start: Infinity,
       duration: 0,
@@ -787,14 +764,13 @@ Previous exit stack: ${this.lastExitStack}`)
     }
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
-      if (name.toLowerCase() === 'iotdata') {
-        // TODO: figure out why this fails
-        // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
-        return
-      }
-
-      const dump = service.$stopRecording()
+      const dump = service.$dumpHistory()
       if (!dump.calls.length) return
+
+      if (pending) {
+        dump.calls = dump.calls.filter(c => c.pending)
+        if (!dump.calls.length) return
+      }
 
       summary.services[name] = safeStringify(plainify(dump.calls))
         // limit length
@@ -805,6 +781,19 @@ Previous exit stack: ${this.lastExitStack}`)
     })
 
     return summary
+  }
+
+  private _cancelPendingCalls = () => {
+    forEachInstantiatedRecordableService(this.aws, service => {
+      let errors = []
+      if (service.$cancelPending) {
+        errors = errors.concat(service.$cancelPending())
+      }
+
+      if (errors.length) {
+        this.logger.debug('failed, trying to cancel pending calls', errors)
+      }
+    })
   }
 
   private _suicide = (reason: string) => {
@@ -822,9 +811,13 @@ Previous exit stack: ${this.lastExitStack}`)
 const forEachInstantiatedRecordableService = (aws: AwsApis, fn) => {
   const instantiated = aws.getInstantiated()
   for (const name of instantiated) {
-    const service = aws[name]
-    if (service && service.$stopRecording) {
-      fn(service, name)
+    // TODO: figure out why this fails
+    // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
+    if (name.toLowerCase() !== 'iotdata') {
+      const service = aws[name]
+      if (service && service.$stopRecording) {
+        fn(service, name)
+      }
     }
   }
 }
