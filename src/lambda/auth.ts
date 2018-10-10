@@ -22,7 +22,7 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
 
 export const auth = (lambda:Lambda, opts?:any) => {
   const { bot, logger } = lambda
-  const { auth } = bot
+  const { env, serviceMap, auth } = bot
   return async (ctx, next) => {
     const time = Date.now()
     try {
@@ -52,10 +52,14 @@ export const auth = (lambda:Lambda, opts?:any) => {
       return
     }
 
-    const {
+    let {
       session,
-      role=bot.serviceMap.Role.IotClient
+      role=serviceMap.Role.IotClient,
     } = ctx
+
+    if (!role.startsWith('arn:')) {
+      role = `arn:aws:iam::${env.AWS_ACCOUNT_ID}:role/${role}`
+    }
 
     const credentials = await bot.auth.createCredentials(session, role)
     ctx.body = {

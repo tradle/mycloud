@@ -626,18 +626,21 @@ functions:
   oniotlifecycle:
     handler: lib/in-house-bot/lambda/mqtt/oniotlifecycle.handler
     events:
-      - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
-          sqlVersion: ${{self:custom.versionSQL}}
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
       # - iot:
       #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/connected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
       #     sqlVersion: ${{self:custom.versionSQL}}
       # - iot:
       #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
       #     sqlVersion: ${{self:custom.versionSQL}}
-      # - iot:
-      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
-      #     sqlVersion: ${{self:custom.versionSQL}}
+      - iot:
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+          sqlVersion: ${{self:custom.versionSQL}}
+      - iot:
+          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+          sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors
       - functionThrottles

@@ -51,6 +51,7 @@ import {
   Identity,
   Storage,
   TaskManager,
+  ISession,
 } from './types'
 
 const {
@@ -144,10 +145,12 @@ export default class Messaging {
 
   public receiveMessage = async ({
     message,
-    clientId
+    clientId,
+    session,
   }: {
-    message: any,
+    message: any
     clientId?:string
+    session?: ISession
   }):Promise<ITradleMessage> => {
     ensureNoVirtualProps({
       models: this.modelStore.models,

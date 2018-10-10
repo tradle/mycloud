@@ -152,6 +152,8 @@ export interface IRoleCredentials {
   uploadPrefix: string
 }
 
+export interface IIotClientChallengeAndCreds extends IIotClientChallenge, IRoleCredentials {}
+
 export interface IAuthResponse extends IRoleCredentials {
   position: IPosition
   time: number

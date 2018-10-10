@@ -9,9 +9,8 @@ export const createLambda = (opts) => {
 export const createMiddleware = (lambda: Lambda, opts) => {
   const { logger, bot } = lambda
   const { userSim } = bot
-  const handleConnect = onConnected(lambda, opts)
-  const handleDisconnect = onDisconnected(lambda, opts)
   const handleSubscribe = onSubscribed(lambda, opts)
+  const handleDisconnect = onDisconnected(lambda, opts)
   return async (ctx, next) => {
     let { event } = ctx
     if (Buffer.isBuffer(event)) {
@@ -21,24 +20,10 @@ export const createMiddleware = (lambda: Lambda, opts) => {
     const { topic, data } = event
     logger.debug(`iot lifecycle event: ${topic}`)
 
-    if (topic.startsWith('$aws/events/presence/connected')) {
-      await handleConnect(ctx, next)
-    } else if (topic.startsWith('$aws/events/presence/disconnected')) {
-      await handleDisconnect(ctx, next)
-    } else if (topic.startsWith('$aws/events/subscriptions/subscribed')) {
+    if (topic.startsWith('$aws/events/subscriptions/subscribed')) {
       await handleSubscribe(ctx, next)
-    }
-  }
-}
-
-export const onConnected = (lambda: Lambda, opts) => {
-  const { logger, bot } = lambda
-  return async (ctx, next) => {
-    const { clientId } = ctx.event.data
-    const session = await bot.userSim.onConnected({ clientId })
-    if (session) {
-      await bot.fire('user:online', session.permalink)
-      await next()
+    } else if (topic.startsWith('$aws/events/subscriptions/unsubscribed')) {
+      await handleDisconnect(ctx, next)
     }
   }
 }

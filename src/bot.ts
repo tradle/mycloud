@@ -531,7 +531,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     bot.conf = bot.kv.sub('bot:conf:')
 
     const auth = bot.auth = new Auth({
-      env,
       uploadFolder: bot.serviceMap.Bucket.FileUpload,
       logger: bot.logger.sub('auth'),
       aws,
