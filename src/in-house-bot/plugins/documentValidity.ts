@@ -63,12 +63,13 @@ class DocumentValidityAPI {
 
     let propertiesToCheck = ['dateOfExpiry', 'dateOfBirth', 'issuer', 'nationality', 'scanJson', 'documentType', 'country']
     let createCheck = await doesCheckNeedToBeCreated({bot: this.bot, type: DOCUMENT_VALIDITY, application, provider: PROVIDER, form: payload, propertiesToCheck, prop: 'form'})
-debugger
-    if (!createCheck)
+// debugger
+    if (!createCheck) {
+      this.logger.debug(`DocumentValidity: check already exists for ${payload.firstName} ${payload.lastName} ${payload.documentType.title}`)
       return
+    }
 
     let isPassport = documentType.id.indexOf('_passport') !== -1
-    debugger
     let rawData:any = {}
     if (dateOfExpiry) {
       if (dateOfExpiry < Date.now())  {
@@ -123,6 +124,16 @@ debugger
     }
     if (!rawData.Status)
       rawData.Status = 'pass'
+    if (rawData.Status === 'fail') {
+      if (rawData.Issuer)
+        this.logger.debug(`DocumentValidity: ${rawData.Issuer}`)
+      if (rawData.Nationality)
+        this.logger.debug(`DocumentValidity: ${rawData.Nationality}`)
+      if (rawData['Date Of Expiry'])
+        this.logger.debug(`DocumentValidity: ${rawData['Date Of Expiry']}`)
+      if (rawData['Date Of Birth'])
+        this.logger.debug(`DocumentValidity: ${rawData['Date Of Birth']}`)
+    }
     if (scanJson) {
       this.checkTheDifferences(payload, rawData)
       // Create BlinkID check
@@ -186,17 +197,18 @@ debugger
     }
 // debugger
     resource.message = getStatusMessageForCheck({models: this.bot.models, check: resource})
+    this.logger.debug(`DocumentValidity status message: ${resource.message}`)
     if (status.message)
       resource.resultDetails = status.message
     if (rawData)
       resource.rawData = rawData
 
-    this.logger.debug(`Creating DocumentValidity for: ${form.firstName} ${form.lastName}`);
+    this.logger.debug(`Creating DocumentValidity Check for: ${form.firstName} ${form.lastName}`);
     const check = await this.bot.draft({ type: DOCUMENT_VALIDITY })
         .set(resource)
         .signAndSave()
     // const check = await this.bot.signAndSave(resource)
-    this.logger.debug(`Created DocumentValidity for: ${form.firstName} ${form.lastName}`);
+    this.logger.debug(`Created DocumentValidity Check for: ${form.firstName} ${form.lastName}`);
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {
@@ -220,6 +232,7 @@ debugger
 // debugger
 
     await this.applications.createVerification({ application, verification })
+    this.logger.debug(`Created DocumentValidity Verification for: ${form.firstName} ${form.lastName}`);
     if (application.checks)
       await this.applications.deactivateChecks({ application, type: DOCUMENT_VALIDITY, form })
   }
