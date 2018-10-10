@@ -942,14 +942,14 @@ functions:
   # onfido_register:
   #   handler: lib/in-house-bot/lambda/onfido-register.handler
 
-  onfido:
-    handler: lib/in-house-bot/lambda/http/onfido-webhook.handler
-    memorySize: 1024
-    events:
-      - http:
-          path: onfido
-          method: post
-          cors: ${{self:custom.cors}}
+  # onfido:
+  #   handler: lib/in-house-bot/lambda/http/onfido-webhook.handler
+  #   memorySize: 1024
+  #   events:
+  #     - http:
+  #         path: onfido
+  #         method: post
+  #         cors: ${{self:custom.cors}}
 
   documentChecker:
     handler: lib/in-house-bot/lambda/http/documentChecker-webhook.handler
@@ -973,13 +973,13 @@ functions:
     handler: lib/in-house-bot/lambda/cli.handler
     timeout: 300
 
-  qr:
-    handler: lib/in-house-bot/lambda/http/qr.handler
-    events:
-      - http:
-          path: qr
-          method: get
-          cors: ${{self:custom.cors}}
+  # qr:
+  #   handler: lib/in-house-bot/lambda/http/qr.handler
+  #   events:
+  #     - http:
+  #         path: qr
+  #         method: get
+  #         cors: ${{self:custom.cors}}
 
   deploymentPingback:
     handler: lib/in-house-bot/lambda/http/deployment-pingback.handler
