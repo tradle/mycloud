@@ -96,7 +96,8 @@ export class RankOneCheckAPI {
     if (items.length) {
       let checks = items.filter(r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink)
       if (checks.length) {
-        let r
+        let r = checks[0]
+        debugger
         if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink) {
           this.logger.debug(`Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`)
           return
