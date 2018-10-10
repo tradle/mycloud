@@ -216,7 +216,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
 
   const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger, test })
   const getDataAndCallCentrix = async ({ req, application }) => {
-    const centrixData:any = await getCentrixData({ application, bot })
+    const centrixData:any = await getCentrixData({ application, bot, logger })
     if (!centrixData) {
       logger.debug(`don't have all the inputs yet`)
       return
@@ -260,7 +260,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   }
 }
 
-async function getCentrixData ({ application, bot }: {application: IPBApp, bot: Bot}) {
+async function getCentrixData ({ application, bot }: {application: IPBApp, bot: Bot, logger: Logger}) {
   if (!application) return
   const formStub = getLatestForms(application)
     .find(form => form.type === PHOTO_ID)
