@@ -281,9 +281,10 @@ async function getCentrixData ({ application, bot }: {application: IPBApp, bot: 
   let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
 
   let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck, prop: 'form'})
-debugger
-  if (!createCheck)
+  if (!createCheck) {
+    this.logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
     return
+  }
 
   // if (await doesCheckExist({bot, type: CENTRIX_CHECK, eq: {form: form._link}, application, provider: CENTRIX_NAME}))
   //   return

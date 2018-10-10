@@ -97,23 +97,23 @@ export class RankOneCheckAPI {
       let checks = items.filter(r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink)
       if (checks.length) {
         let r
-        if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink)
+        if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink) {
+          this.logger.debug(`Rankone: check already exists for ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`)
           return
-debugger
+        }
+// debugger
         // Check what changed photoID or Selfie.
         // If it was Selfie then create a new check since Selfi is not editable
         if (r.selfie._link === selfieLink) {
           let changed = await hasPropertiesChanged({ resource: photoID, bot: this.bot, propertiesToCheck: ['scan'] })
-          if (!changed)
+          if (!changed) {
+            this.logger.debug(`Rankone: nothing to check the 'scan' didn't change ${photoID.firstName} ${photoID.lastName} ${photoID.documentType.title}`)
             return
+          }
         }
       }
     }
     await Promise.all([this.bot.resolveEmbeds(selfie), this.bot.resolveEmbeds(photoID)])
-    debugger
-    // await this.bot.resolveEmbeds(selfie)
-    // await this.bot.resolveEmbeds(photoID)
-
     return { selfie, photoID }
   }
 
@@ -199,10 +199,13 @@ debugger
       checkR.score = rawData.similarity
     // debugger
     checkR.message = getStatusMessageForCheck({models: this.bot.models, check: checkR})
+
+    this.logger.debug(`Creating RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`);
     const check = await this.bot.draft({ type: FACIAL_RECOGNITION })
       .set(checkR)
       .signAndSave()
 
+    this.logger.debug(`Created RankOne ${FACIAL_RECOGNITION} for: ${photoID.firstName} ${photoID.lastName}`);
     return check.toJSON()
   }
 

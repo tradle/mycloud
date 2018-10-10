@@ -120,7 +120,7 @@ class ComplyAdvantageAPI {
     let name
     if (isPerson) {
       if (!firstName  ||  !lastName  ||  !dateOfBirth) {
-        this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        this.logger.debug(`${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`);
         let status = {
           status: 'fail',
           message: !dateOfBirth  &&  'No date of birth was provided'
@@ -132,10 +132,10 @@ class ComplyAdvantageAPI {
       name = firstName + ' ' + lastName
     }
     else {
-      this.logger.debug(`running sanctions plugin for: ${companyName}`);
+      this.logger.debug(`${PROVIDER} for: ${companyName}`);
 
       if (!companyName  ||  !registrationDate) {
-        this.logger.debug(`running sanctions plugin. Not enough information to run the check for: ${payload[TYPE]}`);
+        this.logger.debug(`${PROVIDER}. Not enough information to run the check for: ${payload[TYPE]}`);
         let status = {
           status: 'fail',
           message: !registrationDate  &&  ' No registration date was provided'
@@ -154,10 +154,10 @@ class ComplyAdvantageAPI {
     else {
       let hasVerification
       if (hits  &&  hits.length)
-        this.logger.debug(`found sanctions for: ${companyName ||  name}`);
+        this.logger.debug(`${PROVIDER} found sanctions for: ${companyName ||  name}`);
       else {
         hasVerification = true
-        this.logger.debug(`creating verification for: ${companyName || name}`);
+        this.logger.debug(`${PROVIDER} creating verification for: ${companyName || name}`);
       }
       pchecks.push(this.createCheck({application, rawData: rawData, status, form: payload}))
       if (hasVerification)
@@ -201,7 +201,7 @@ class ComplyAdvantageAPI {
                             })
       json = await res.json()
     } catch (err) {
-      this.logger.debug('something went wrong', err)
+      this.logger.debug(`${PROVIDER} something went wrong`, err)
       json = {status: 'failure', message: err.message}
       status = {
         status: 'error',
@@ -244,7 +244,7 @@ class ComplyAdvantageAPI {
       date = Date.parse(dateStr) - (new Date().getTimezoneOffset() * 60 * 1000)
     else
       date = new Date().getTime()
-debugger
+// debugger
     let resource:any = {
       [TYPE]: SANCTIONS_CHECK,
       status: status.status,
@@ -266,12 +266,12 @@ debugger
         resource.providerReferenceNumber = rawData.ref
     }
 
-    this.logger.debug(`Creating SanctionsCheck for: ${rawData.submitted_term}`);
+    this.logger.debug(`${PROVIDER} Creating SanctionsCheck for: ${rawData.submitted_term}`);
     const check = await this.bot.draft({ type: SANCTIONS_CHECK })
         .set(resource)
         .signAndSave()
     // const check = await this.bot.signAndSave(resource)
-    this.logger.debug(`Created SanctionsCheck for: ${rawData.submitted_term}`);
+    this.logger.debug(`${PROVIDER} Created SanctionsCheck for: ${rawData.submitted_term}`);
   }
 
   public createVerification = async ({ user, application, form, rawData }) => {
