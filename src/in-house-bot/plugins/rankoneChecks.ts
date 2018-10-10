@@ -19,7 +19,9 @@ import {
 
 import {
   getLatestForms,
-  doesCheckExist,
+  // doesCheckExist,
+  getChecks,
+  hasPropertiesChanged,
   getStatusMessageForCheck,
   ensureThirdPartyServiceConfigured,
   getThirdPartyServiceInfo,
@@ -74,29 +76,43 @@ export class RankOneCheckAPI {
       // not enough info
       return
     }
-    if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
-      return
-
-    // const { items } = await this.bot.db.find({
-    //   filter: {
-    //     EQ: {
-    //       [TYPE]: FACIAL_RECOGNITION,
-    //       'application._permalink': application._permalink,
-    //       'provider': PROVIDER,
-    //       'selfie._link': selfieStub.link,
-    //       'photoID._link': photoIDStub.link,
-    //     }
-    //   }
-    // })
-    // if (items.length)
+    // if (await doesCheckExist({bot: this.bot, type: FACIAL_RECOGNITION, eq: {selfie: selfieStub.link, photoID: photoIDStub.link}, application, provider: PROVIDER}))
     //   return
-
     this.logger.debug('Face recognition both selfie and photoId ready');
+
+    // const [photoID, selfie] = await Promise.all([
+    //     photoIDStub,
+    //     selfieStub
+    //   ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
 
     const [photoID, selfie] = await Promise.all([
         photoIDStub,
         selfieStub
-      ].map(stub => this.bot.getResource(stub, { resolveEmbeds: true })))
+      ].map(stub => this.bot.getResource(stub)))
+
+    let selfieLink = selfie._link
+    let photoIdLink = photoID._link
+    let items = await getChecks({bot: this.bot, type: FACIAL_RECOGNITION, application, provider: PROVIDER})
+    if (items.length) {
+      let checks = items.filter(r => r.selfie._link === selfieLink || r.photoID._link === photoIdLink)
+      if (checks.length) {
+        let r
+        if (r.selfie._link === selfieLink && r.photoID._link === photoIdLink)
+          return
+debugger
+        // Check what changed photoID or Selfie.
+        // If it was Selfie then create a new check since Selfi is not editable
+        if (r.selfie._link === selfieLink) {
+          let changed = await hasPropertiesChanged({ resource: photoID, bot: this.bot, propertiesToCheck: ['scan'] })
+          if (!changed)
+            return
+        }
+      }
+    }
+    await Promise.all([this.bot.resolveEmbeds(selfie), this.bot.resolveEmbeds(photoID)])
+    debugger
+    // await this.bot.resolveEmbeds(selfie)
+    // await this.bot.resolveEmbeds(photoID)
 
     return { selfie, photoID }
   }

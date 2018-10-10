@@ -21,6 +21,7 @@ import {
   ITradleObject,
   IConfComponents,
   IUser,
+  IPBApp
 } from './types'
 
 import { TYPE } from '../constants'
@@ -428,7 +429,12 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
   map?: any,
   defaultPropMap: any
 }) =>  {
-  let dbRes = resource._prevlink  &&  await bot.objects.get(resource._prevlink)
+  let dbRes
+  try {
+    dbRes = resource._prevlink  &&  await bot.objects.get(resource._prevlink)
+  } catch (error) {
+    console.log('getCheckParameters ', error)
+  }
   let runCheck = !dbRes
   let r:any = {}
   // Use defaultPropMap for creating mapped resource if the map was not supplied or
@@ -443,13 +449,69 @@ export const  getCheckParameters = async({plugin, resource, bot, map, defaultPro
     if (pValue)
       r[prop] = pValue
   }
-
+  if (!runCheck)
+    return {}
   if (!Object.keys(r).length)
     return {error: `no criteria to run ${plugin} checks`}
   return runCheck  &&  {resource: r}
 }
-export const doesCheckExist = async({bot, type, eq, application, provider}) => {
-debugger
+
+export const doesCheckNeedToBeCreated = async({bot, type, application, provider, form, propertiesToCheck, prop}:{
+  bot: Bot,
+  type: string,
+  application: IPBApp,
+  provider: string,
+  form:ITradleObject,
+  propertiesToCheck: Array<string>,
+  prop: string
+}) => {
+  // debugger
+  let items = await getChecks({bot, type, application, provider})
+  if (!items.length)
+    return true
+  else {
+    let checks = items.filter(r => r[prop]._link === form._link)
+    if (checks.length)
+      return false
+    return await hasPropertiesChanged({ resource: form, bot: bot, propertiesToCheck })
+  }
+}
+export const getChecks = async({bot, type, application, provider}:{
+  bot: Bot,
+  type: string,
+  application: IPBApp,
+  provider: string
+}) => {
+// debugger
+  let eqClause = {
+    [TYPE]: type,
+    'application._permalink': application._permalink,
+    'provider': provider,
+  }
+  const { items } = await bot.db.find({
+    allowScan: true,
+    orderBy: {
+      property: 'dateChecked',
+      desc: true
+    },
+    filter: {
+      EQ: eqClause,
+      NEQ: {
+       'status.id': 'tradle.Status_error'
+      }
+    }
+  })
+  return items
+}
+
+export const doesCheckExist = async({bot, type, eq, application, provider}:{
+  bot: Bot,
+  type: string,
+  eq: any,
+  application: IPBApp,
+  provider: string
+}) => {
+// debugger
   let eqClause = {
     [TYPE]: type,
     'application._permalink': application._permalink,
@@ -460,6 +522,7 @@ debugger
       eqClause[`${p}._link`] = eq[p]
   }
   const { items } = await bot.db.find({
+    allowScan: true,
     limit: 1,
     orderBy: {
       property: 'dateChecked',
@@ -480,7 +543,7 @@ export const  hasPropertiesChanged = async({resource, bot, propertiesToCheck}:  
   bot: Bot,
   propertiesToCheck: Array<string>
 }) =>  {
-  debugger
+  // debugger
   let dbRes = resource._prevlink  &&  await bot.objects.get(resource._prevlink)
   if (!dbRes)
     return true
