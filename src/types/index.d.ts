@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { Middleware as ComposeMiddleware } from 'koa-compose'
 import { Context as KoaContext } from 'koa'
 import { GraphQLSchema, ExecutionResult as GraphqlExecutionResult } from 'graphql'
-import { Table, DB, Models, Model, Diff } from '@tradle/dynamodb'
+import { Table, DB, Models, Model, Diff, FindOpts } from '@tradle/dynamodb'
 import { AppLinks } from '@tradle/qr-schema'
 import { Logger } from '../logger'
 import { BaseLambda, LambdaHttp, Lambda, EventSource } from '../lambda'
@@ -65,6 +65,7 @@ export {
   Models,
   Model,
   Diff,
+  FindOpts as DBFindOpts,
   // export
   Bot,
   Users,
