@@ -297,8 +297,6 @@ export class DocumentCheckerAPI {
     else
       status = status.toLowerCase() === 'ok' ? 'pass' : 'fail'
 
-debugger
-
     let check:any = await this.getByCheckId(data.id)
 
     const [form, application] = await Promise.all([this.bot.getResource(check.form), this.bot.getResource(check.application)])
@@ -313,7 +311,7 @@ debugger
 
     check.status = status
     // Update check
-    debugger
+    // debugger
     let message = getStatusMessageForCheck({models: this.bot.models, check})
     rawData = sanitize(rawData).sanitized
     const updatedCheck = this.bot.draft({ resource: check })

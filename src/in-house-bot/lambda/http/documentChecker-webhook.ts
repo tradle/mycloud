@@ -17,7 +17,7 @@ const lambda = fromHTTP({
 })
 
 lambda.use(async (ctx) => {
-  debugger
+  // debugger
   const { documentChecker } = ctx.components
   if (!documentChecker) {
     throw new Errors.HttpError(404, 'not found')
