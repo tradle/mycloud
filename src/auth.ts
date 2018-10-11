@@ -358,6 +358,9 @@ export default class Auth {
       challenge
     }
 
+    // need to wait for this
+    // otherwise handleChallengeResponse may not find the pub key mapping
+    await maybeAddContact
     return resp
   }
 
