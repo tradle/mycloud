@@ -71,6 +71,7 @@ type AuthOpts = {
   logger: Logger
   tasks: TaskManager
   modelStore: ModelStore
+  sessionTTL?: number
 }
 
 export default class Auth {
@@ -86,6 +87,7 @@ export default class Auth {
   private modelStore: ModelStore
   private env: Env
   private uploadFolder: string
+  private sessionTTL: number
 
   constructor (opts: AuthOpts) {
     // lazy define
@@ -101,6 +103,7 @@ export default class Auth {
     this.modelStore = opts.modelStore
     this.env = opts.env
     this.uploadFolder = opts.uploadFolder
+    this.sessionTTL = Math.min(opts.sessionTTL || constants.DEFAULT_SESSION_TTL_SECONDS, constants.MAX_SESSION_TTL_SECONDS)
   }
 
   public putSession = async (session:ISession): Promise<ISession> => {
@@ -275,7 +278,7 @@ export default class Auth {
     const params:AWS.STS.AssumeRoleRequest = {
       RoleArn: role,
       RoleSessionName: randomString(16),
-      DurationSeconds: 3600
+      DurationSeconds: this.sessionTTL
     }
 
     // assume role returns temporary keys

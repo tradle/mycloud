@@ -542,6 +542,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       objects,
       tasks,
       modelStore,
+      sessionTTL: env.SESSION_TTL,
     })
 
     const events = bot.events = new Events({

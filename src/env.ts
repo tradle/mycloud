@@ -75,6 +75,7 @@ export default class Env {
   public debug:IDebug
   public _X_AMZN_TRACE_ID:string
   public AWS_ACCOUNT_ID: string
+  public SESSION_TTL?: number
 
   constructor(props:any) {
     props = clone(props)
@@ -204,6 +205,10 @@ export default class Env {
     if ('BLOCKCHAIN' in props) {
       const [blockchain, networkName] = props.BLOCKCHAIN.split(':')
       this.BLOCKCHAIN = { blockchain, networkName }
+    }
+
+    if (this.SESSION_TTL) {
+      this.SESSION_TTL = Number(this.SESSION_TTL)
     }
   }
 }
