@@ -1,6 +1,6 @@
 {
   "name": "@tradle/serverless",
-  "version": "1.10.1-rc.0",
+  "version": "1.11.0-rc.1",
   "dependencies": {
     "@aws/dynamodb-auto-marshaller": {
       "version": "0.4.1",
@@ -186,7 +186,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#2265383f8081d0c8be2c40c75f781d7801e111b3",
+      "resolved": "git://github.com/tradle/dynamodb.git#b257d4d50e2a5410fae78d5c7cf45e1160195e6a",
       "dependencies": {
         "koa-compose": {
           "version": "4.1.0",

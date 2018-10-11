@@ -64,8 +64,12 @@ export const CUSTOMER_COMMANDS_NAMES = [
   'listproducts',
   'forgetme',
   'tours',
-  'updatemycloud'
 ]
+
+CUSTOMER_COMMANDS_NAMES.forEach(name => {
+  const command = Commands.get(name)
+  if (!command) throw new Error(`command not found: ${name}`)
+})
 
 // export const SUDO_COMMANDS_NAMES = EMPLOYEE_COMMANDS_NAMES.concat(SUDO_ONLY_COMMANDS_NAMES)
 

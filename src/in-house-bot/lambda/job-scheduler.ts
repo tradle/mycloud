@@ -56,12 +56,12 @@ const COMMON_JOBS:Job[] = [
     function: DEFAULT_JOB_RUNNER_FUNCTION,
     period: 17 * MINUTE,
   },
-  {
-    name: 'documentChecker',
-    function: DEFAULT_JOB_RUNNER_FUNCTION,
-    period: MINUTE,
-    requiresComponents: ['documentChecker']
-  },
+  // {
+  //   name: 'documentChecker',
+  //   function: DEFAULT_JOB_RUNNER_FUNCTION,
+  //   period: MINUTE,
+  //   requiresComponents: ['documentChecker']
+  // },
   // {
   //   name: 'cleanupTmpSNSTopics',
   //   function: DEFAULT_JOB_RUNNER_FUNCTION,

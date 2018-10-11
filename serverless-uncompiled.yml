@@ -951,6 +951,10 @@ functions:
           method: post
           cors: ${{self:custom.cors}}
 
+  cli:
+    handler: lib/in-house-bot/lambda/cli.handler
+    timeout: 300
+
   documentChecker:
     handler: lib/in-house-bot/lambda/http/documentChecker-webhook.handler
     memorySize: 1024
@@ -960,26 +964,13 @@ functions:
           method: post
           cors: ${{self:custom.cors}}
 
-  # documentChecker:
-  #   handler: lib/in-house-bot/lambda/document-checker-job.handler
-  #   memorySize: 128
-  #   timeout: 60
-  #   # events:
-  #   #   - schedule:
-  #   #       rate: rate(1 minute)
-  #   #       enabled: true
-
-  cli:
-    handler: lib/in-house-bot/lambda/cli.handler
-    timeout: 300
-
-  qr:
-    handler: lib/in-house-bot/lambda/http/qr.handler
-    events:
-      - http:
-          path: qr
-          method: get
-          cors: ${{self:custom.cors}}
+  # qr:
+  #   handler: lib/in-house-bot/lambda/http/qr.handler
+  #   events:
+  #     - http:
+  #         path: qr
+  #         method: get
+  #         cors: ${{self:custom.cors}}
 
   deploymentPingback:
     handler: lib/in-house-bot/lambda/http/deployment-pingback.handler

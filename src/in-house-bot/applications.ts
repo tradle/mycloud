@@ -404,7 +404,7 @@ export class Applications implements IHasModels {
   public getCustomerFormStubs = getCustomerFormStubs
 
   public listEmployees = async () => {
-
+    return this.employeeManager.list()
   }
 
   public fireEmployee = async ({ req, myProductId }: {

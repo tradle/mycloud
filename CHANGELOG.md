@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.1"></a>
+# [1.11.0-rc.1](https://github.com/tradle/serverless/compare/v1.11.0-rc.0...v1.11.0-rc.1) (2018-10-10)
+
+
+### Bug Fixes
+
+* rm documentChecker job from scheduler ([18c8287](https://github.com/tradle/serverless/commit/18c8287))
+
+
+
+<a name="1.11.0-rc.0"></a>
+# [1.11.0-rc.0](https://github.com/tradle/serverless/compare/v1.10.1-rc.0...v1.11.0-rc.0) (2018-10-10)
+
+
+### Bug Fixes
+
+* **dev:** service-map for ApiGW emulation ([ad6e820](https://github.com/tradle/serverless/commit/ad6e820))
+* add bodyParser() to documentChecker-webhook ([ccaf5bc](https://github.com/tradle/serverless/commit/ccaf5bc))
+* better check to decide if the check needs to be created ([958f794](https://github.com/tradle/serverless/commit/958f794))
+* better check to decide if the check needs to be created ([747926c](https://github.com/tradle/serverless/commit/747926c))
+* logging ([2b40d16](https://github.com/tradle/serverless/commit/2b40d16))
+* no need create check if check already exists or if props that are checked here didn't change ([91f0b4e](https://github.com/tradle/serverless/commit/91f0b4e))
+* reimplementing for WebAPI ([4b9eeb4](https://github.com/tradle/serverless/commit/4b9eeb4))
+* typo in optimizations ([6d27d89](https://github.com/tradle/serverless/commit/6d27d89))
+
+
+### Features
+
+* Keesing document checker re-implemented with WebAPI ([3e0c665](https://github.com/tradle/serverless/commit/3e0c665))
+* Keesing WebAPI project ([2a5b6f7](https://github.com/tradle/serverless/commit/2a5b6f7))
+* re-implemented for WebAPI since SOAP works only with static IP ([4824d02](https://github.com/tradle/serverless/commit/4824d02))
+
+
+
 <a name="1.10.1-rc.0"></a>
 ## [1.10.1-rc.0](https://github.com/tradle/serverless/compare/v1.10.0...v1.10.1-rc.0) (2018-10-08)
 
