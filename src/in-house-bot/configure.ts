@@ -457,9 +457,9 @@ export class Conf {
       Errors.rethrow(err, 'developer')
     }
 
-    // may not be necessary as updateInfra updates lambdas' Environment
-    // and forces reinit
-    await this.bot.forceReinitializeContainers()
+    // // may not be necessary as updateInfra updates lambdas' Environment
+    // // and forces reinit
+    // await this.bot.forceReinitializeContainers()
   }
 
   public update = async (update: UpdateConfInput) => {
