@@ -6,23 +6,63 @@ class SetVersion {
   constructor(serverless, options) {
     this.serverless = serverless
     this.options = options
-    this.setVersion = this.setVersion.bind(this)
+    this.provider = this.serverless.getProvider('aws')
     this.hooks = {
-      'before:package:compileFunctions': this.setVersion
+      'aws:common:validate:validate': () => this.checkExisting(),
+      'before:package:compileFunctions': () => this.setVersion()
     }
+
   }
 
-  setVersion() {
+  _service() {
+    return this.serverless.service.service
+  }
+
+  _stage() {
+    return this.options.stage
+  }
+
+  _region() {
+    return this.options.region
+  }
+
+  _dir() {
     const { dir } = StackUtils.getStackLocationKeys({
       ...process.env,
-      service: this.serverless.service.service,
+      service: this._service(),
       stage: this.options.stage,
       region: this.options.region,
       versionInfo,
     })
 
-    this.serverless.service.package.artifactDirectoryName = dir
-    return Promise.resolve()
+    return dir
+  }
+
+  async checkExisting() {
+    const stage = this._stage()
+    const region = this._region()
+    const service = this._service()
+    const dir = this._dir()
+    const bucketName = await this.provider.getServerlessDeploymentBucketName(stage, region)
+    if (!bucketName) return
+
+    const { Contents=[] } = await this.provider.request('S3',
+      'listObjectsV2',
+      {
+        Bucket: bucketName,
+        Prefix: dir,
+      },
+      stage,
+      region
+    )
+
+    if (Contents.length) {
+      throw new Error(`already deployed to ${dir}, please deploy from a fresh commit`)
+    }
+  }
+
+  setVersion() {
+    this.serverless.service.package.artifactDirectoryName = this._dir()
   }
 }
 
