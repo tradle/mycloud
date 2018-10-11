@@ -367,6 +367,11 @@ Previous exit stack: ${this.lastExitStack}`)
       err = ctx.error
     }
 
+    const pendingServiceCalls = this._dumpPendingServiceCalls()
+    if (!_.isEmpty(pendingServiceCalls.services)) {
+      this.logger.debug('service calls pending', pendingServiceCalls)
+    }
+
     if (err) {
       this.logger.error('lambda execution hit an error', {
         error: err,
@@ -720,6 +725,19 @@ Previous exit stack: ${this.lastExitStack}`)
     service.$startRecording()
   }
 
+  private _dumpPendingServiceCalls = ():ServiceCallsSummary => {
+    try {
+      // should never fail cause of this
+      return this.__dumpPendingServiceCalls()
+    } catch (err) {
+      this.logger.error('failed to dump pending service calls', {
+        error: err.stack
+      })
+
+      return { services: {} }
+    }
+  }
+
   private _dumpServiceCalls = ():ServiceCallsSummary => {
     try {
       // should never fail cause of this
@@ -731,6 +749,34 @@ Previous exit stack: ${this.lastExitStack}`)
 
       return { services: {} }
     }
+  }
+
+  private __dumpPendingServiceCalls = (): ServiceCallsSummary => {
+    const summary: ServiceCallsSummary = {
+      start: Infinity,
+      duration: 0,
+      services: {},
+    }
+
+    forEachInstantiatedRecordableService(this.aws, (service, name) => {
+      if (name.toLowerCase() === 'iotdata') {
+        // TODO: figure out why this fails
+        // iotdata requires "endpoint" for initialization, as is initialized lazily, but...
+        return
+      }
+
+      const dump = service.$getPending()
+      if (!dump.calls.length) return
+
+      summary.services[name] = safeStringify(plainify(dump.calls))
+        // limit length
+        .slice(0, 1000)
+
+      summary.start = Math.min(summary.start, dump.start)
+      summary.duration = Math.max(summary.duration, Date.now() - dump.start)
+    })
+
+    return summary
   }
 
   private __dumpServiceCalls = ():ServiceCallsSummary => {

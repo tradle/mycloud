@@ -26,12 +26,20 @@ const createRecorder = () => {
   const dump = () => ({
     start: startTime,
     duration: Date.now() - startTime,
-    calls: calls.slice()
+    calls: calls.slice(),
   })
 
   const start = (time=Date.now()) => {
     startTime = time
     calls.length = 0
+  }
+
+  const pending = () => {
+    const d = dump()
+    return {
+      ...d,
+      calls: d.calls.filter(c => !('duration' in c))
+    }
   }
 
   const stop = () => {
@@ -64,6 +72,7 @@ const createRecorder = () => {
   return {
     start,
     stop,
+    pending,
     restart,
     startCall,
     dump,
@@ -78,6 +87,7 @@ export const wrap = client => {
     '$restartRecording': recorder.restart,
     '$stopRecording': recorder.stop,
     '$dumpRecording': recorder.dump,
+    '$getPending': recorder.pending,
   }
 
   const keys = getKeys(client)
