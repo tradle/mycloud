@@ -24,7 +24,11 @@ import {
   getCheckParameters,
   doesCheckNeedToBeCreated,
   getStatusMessageForCheck,
+  getEnumValueId
 } from '../utils'
+import validateResource from '@tradle/validate-resource'
+// @ts-ignore
+const { sanitize } = validateResource.utils
 
 const { TYPE } = constants
 const { VERIFICATION } = constants.TYPES
@@ -210,7 +214,7 @@ export class DocumentCheckerAPI {
     if (checkId)
       resource.checkId = checkId
     if (rawData)
-      resource.rawData = rawData
+      resource.rawData = sanitize(rawData).sanitized
 
     this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
     const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
@@ -256,10 +260,19 @@ export class DocumentCheckerAPI {
   public async handleVerificationEvent(evt) {
     let { event, data } = evt
     // don't run reports right now
-    if (event !== 'verification.finished')
-      return
     let bearer = await getToken()
-debugger
+    if (event === 'verification.report.created') {
+      // let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}/report`
+      // let res = await fetch(url, {
+      //                         method: 'GET',
+      //                         headers: {
+      //                           'Authorization': `Bearer ${bearer}`
+      //                         }
+      //                       })
+      // debugger
+      // let ret = await res.text()
+      return
+    }
     this.logger.debug(`${PROVIDER} fetching verification results for ${ASPECTS}`);
     let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}`
     let res = await fetch(url, {
@@ -284,6 +297,8 @@ debugger
     else
       status = status.toLowerCase() === 'ok' ? 'pass' : 'fail'
 
+debugger
+
     let check:any = await this.getByCheckId(data.id)
 
     const [form, application] = await Promise.all([this.bot.getResource(check.form), this.bot.getResource(check.application)])
@@ -294,18 +309,20 @@ debugger
     let pchecks = []
 
 
-    let st
-    if (state !== 'finished'  ||  error)
-      st = 'error'
-    else
-      st = status
-    status = {
-      id: [STATUS, st].join('_'),
-      title: st.charAt(0).toUpperCase() + st.slice(1)
-    }
+    let model = this.bot.models[STATUS]
+
+    check.status = status
     // Update check
-    pchecks.push(this.bot.versionAndSave(Object.assign({}, check, { status })))
-    if (st === 'pass')
+    debugger
+    let message = getStatusMessageForCheck({models: this.bot.models, check})
+    rawData = sanitize(rawData).sanitized
+    const updatedCheck = this.bot.draft({ resource: check })
+      .set({ status, message, rawData })
+      .version()
+      .signAndSave()
+
+    pchecks.push(updatedCheck)
+    if (status === 'pass')
       pchecks.push(this.createVerification({user, application, form, rawData}))
 
     // if (state !== 'finished'  ||  error  ||  ret.status === 'error')
@@ -317,6 +334,7 @@ debugger
       // pchecks.push(this.createVerification({user, application, form, rawData}))
     // }
     let checksAndVerifications = await Promise.all(pchecks)
+    let check1:any = await this.getByCheckId(data.id)
   }
 }
 
@@ -342,7 +360,7 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
         return
       }
-      debugger
+      // debugger
       let result = await documentChecker.getData(form, application)
     }
   }
