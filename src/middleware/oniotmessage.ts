@@ -71,7 +71,6 @@ export const createErrorHandler = (lambda:Lambda, opts) => {
       error
     })
 
-    logger.debug(`processing error in receive`, error)
     if (error instanceof Errors.Duplicate) {
       logger.info('ignoring but acking duplicate message', {
         link: progress._link,
@@ -82,6 +81,7 @@ export const createErrorHandler = (lambda:Lambda, opts) => {
       return
     }
 
+    logger.debug(`processing error in receive`, error)
     if (Errors.isNotFound(error) ||
       error instanceof Errors.TimeTravel ||
       error instanceof Errors.InvalidSignature ||
