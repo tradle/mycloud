@@ -821,8 +821,7 @@ const banter = (components: IBotComponents) => {
       application.relationshipManagers &&
       application.relationshipManagers.length) return
 
-    const lowercase = message.toLowerCase()
-    if (/^hey|hi|hello$/i.test(message)) {
+    if (/^(?:hey|hi|hello)$/i.test(message)) {
       await productsAPI.send({
         req,
         to: user,
