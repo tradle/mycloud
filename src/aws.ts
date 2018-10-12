@@ -1,21 +1,11 @@
-import http from 'http'
 import { EventEmitter } from 'events'
 import rawAWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import { createConfig } from './aws-config'
-import { isXrayOn } from './utils'
 import { Env, Logger } from './types'
 import REGIONS from './aws-regions'
 import { wrap } from './wrap-aws-client'
-
-const willUseXRay = isXrayOn()
-if (willUseXRay) {
-  // tslint-disable-rule: no-console
-  console.warn('capturing all http requests with AWSXRay')
-  AWSXRay.captureHTTPsGlobal(http)
-} else if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
-  console.warn('AWSXray is off')
-}
+import { isXrayOn } from './utils'
 
 const MOCKED_SEPARATELY = {
   KMS: true,
@@ -56,7 +46,7 @@ export const createAWSWrapper = ({ env, logger }: {
   logger: Logger
 }) => {
   const region = env.AWS_REGION
-  const AWS = willUseXRay
+  const AWS = isXrayOn()
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
 
@@ -132,7 +122,7 @@ export const createAWSWrapper = ({ env, logger }: {
     const conf = getConf(serviceName)
     const service = _create(serviceName, region, conf)
     if (service) {
-      // useGlobalConfigClock(service, serviceName)
+      useGlobalConfigClock(service, serviceName)
       const recordable = wrap(service)
       apis.emit('new', {
         name: serviceName.toLowerCase(),

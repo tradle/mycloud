@@ -1332,7 +1332,8 @@ export const normalizeIndexedProperty = schema => {
   return schema
 }
 
-export const isXrayOn = () => process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
+// see globals.ts
+export const isXrayOn = () => process.env.XRAY_IS_ON === '1'
 
 export const instrumentWithXray = (Component: any, withXrays: any) => {
   const { name } = Component

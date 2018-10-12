@@ -1,47 +1,67 @@
+import http from 'http'
 // @ts-ignore
-const Promise = global.Promise = require('bluebird')
+// import Promise from 'bluebird'
 
+// global.Promise = Promise
+
+import once from 'lodash/once'
 import AWS from 'aws-sdk'
+import AWSXRay from 'aws-xray-sdk-core'
+import mockery from 'mockery'
 import { install as installSourceMapSupport } from 'source-map-support'
 
-installSourceMapSupport()
+const xrayIsOn = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
 
-AWS.config.setPromisesDependency(Promise)
+once(() => {
+  process.env.XRAY_IS_ON = xrayIsOn ? '1' : ''
 
-// process.on('unhandledRejection', function (reason, promise) {
-//   console.error('possibly unhandled rejection', reason)
-// })
+  installSourceMapSupport()
 
-const warn = (...args) => {
-  // no need to pollute with this anymore
+  // AWS.config.setPromisesDependency(Promise)
 
-  // if (!process.env.IS_OFFLINE) {
-  //   console.warn(...args)
-  // }
-}
-
-const mockery = require('mockery')
-mockery.enable({
-  warnOnReplace: false,
-  warnOnUnregistered: false
-})
-
-// mockery.registerMock('@tradle/serverless', './')
-
-warn('disabling "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
-mockery.registerMock('scrypt', {})
-
-// https://github.com/Qix-/node-error-ex
-warn(`replacing "error-ex" as it bluebird doesn't recognize its errors as Error objects`)
-mockery.registerMock('error-ex', name => {
-  return class CustomError extends Error {
-    public name: string
-    constructor(message) {
-      super(message)
-      this.name = name
-    }
+  if (xrayIsOn) {
+    // tslint-disable-rule: no-console
+    console.warn('capturing all http requests with AWSXRay')
+    AWSXRay.captureHTTPsGlobal(http)
+  } else if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.warn('AWSXray is off')
   }
-})
+
+
+  // process.on('unhandledRejection', function (reason, promise) {
+  //   console.error('possibly unhandled rejection', reason)
+  // })
+
+  const warn = (...args) => {
+    // no need to pollute with this anymore
+
+    // if (!process.env.IS_OFFLINE) {
+    //   console.warn(...args)
+    // }
+  }
+
+  mockery.enable({
+    warnOnReplace: false,
+    warnOnUnregistered: false
+  })
+
+  // mockery.registerMock('@tradle/serverless', './')
+
+  warn('disabling "scrypt" as it is an unneeded dep (here) of ethereumjs-wallet')
+  mockery.registerMock('scrypt', {})
+
+  // https://github.com/Qix-/node-error-ex
+  warn(`replacing "error-ex" as it bluebird doesn't recognize its errors as Error objects`)
+  mockery.registerMock('error-ex', name => {
+    return class CustomError extends Error {
+      public name: string
+      constructor(message) {
+        super(message)
+        this.name = name
+      }
+    }
+  })
+})()
 
 // if (process.env.IS_OFFLINE || process.env.IS_LOCAL || process.env.NODE_ENV === 'test') {
 //   warn('disabling "aws-xray-sdk" as this is a local environment')
