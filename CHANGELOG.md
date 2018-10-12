@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.2"></a>
+# [1.11.0-rc.2](https://github.com/tradle/serverless/compare/v1.11.0-rc.1...v1.11.0-rc.2) (2018-10-12)
+
+
+### Bug Fixes
+
+* applications.listEmployees ([bbaf339](https://github.com/tradle/serverless/commit/bbaf339))
+* banter responder ([258cb2b](https://github.com/tradle/serverless/commit/258cb2b))
+* clamp sessionTTL based on STS limits ([ed80d1e](https://github.com/tradle/serverless/commit/ed80d1e))
+* mis-registered listproducts cli command ([a1600b0](https://github.com/tradle/serverless/commit/a1600b0))
+* return error instead of failing on invalid job event ([fadebd5](https://github.com/tradle/serverless/commit/fadebd5))
+* rm unnecessary forceReinitializeContainer call ([1e0fa59](https://github.com/tradle/serverless/commit/1e0fa59))
+* use consistentRead in identities.getPubKeyMapping for recent item lookups ([a0e87c6](https://github.com/tradle/serverless/commit/a0e87c6))
+* wait for addContact() to finish before preauth exit ([3116aff](https://github.com/tradle/serverless/commit/3116aff))
+
+
+### Features
+
+* authentiscan with keesing reimplemented for WebAPI ([f9cfde1](https://github.com/tradle/serverless/commit/f9cfde1))
+* support SESSION_TTL env var ([d2639ac](https://github.com/tradle/serverless/commit/d2639ac))
+
+
+
 <a name="1.11.0-rc.1"></a>
 # [1.11.0-rc.1](https://github.com/tradle/serverless/compare/v1.11.0-rc.0...v1.11.0-rc.1) (2018-10-10)
 
