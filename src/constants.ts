@@ -140,6 +140,7 @@ const constants = {
   SIGNATURE_FRESHNESS_LEEWAY: 5 * unitToMillis.minute,
   DEFAULT_SESSION_TTL_SECONDS: 3600,
   MAX_SESSION_TTL_SECONDS: 3600,
+  MIN_SESSION_TTL_SECONDS: 900,
 }
 
 export = constants

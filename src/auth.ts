@@ -1,4 +1,5 @@
 import merge from 'lodash/merge'
+import clamp from 'lodash/clamp'
 import { TYPE } from '@tradle/constants'
 import { TaskManager } from './task-manager'
 import { typeforce, ensureNoVirtualProps, pickNonNull } from './utils'
@@ -103,7 +104,8 @@ export default class Auth {
     this.modelStore = opts.modelStore
     this.env = opts.env
     this.uploadFolder = opts.uploadFolder
-    this.sessionTTL = Math.min(opts.sessionTTL || constants.DEFAULT_SESSION_TTL_SECONDS, constants.MAX_SESSION_TTL_SECONDS)
+    const { sessionTTL=constants.DEFAULT_SESSION_TTL_SECONDS } = opts
+    this.sessionTTL = clamp(sessionTTL, constants.MIN_SESSION_TTL_SECONDS, constants.MAX_SESSION_TTL_SECONDS)
   }
 
   public putSession = async (session:ISession): Promise<ISession> => {
