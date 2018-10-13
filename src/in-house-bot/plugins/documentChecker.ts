@@ -94,18 +94,40 @@ export class DocumentCheckerAPI {
 
     await this.bot.resolveEmbeds(resource)
 
-    const dataUrl = resource.scan.url
-    const buf = DataURI.decode(dataUrl)
-    const contentType = buf.mimetype
-    const base64 = buf.toString('base64')
+    // const dataUrl = resource.scan.url
+    const buf = DataURI.decode(resource.scan.url)
+    // const contentType = buf.mimetype
+    // const base64 = buf.toString('base64')
 
     let message, status
 
     let imgUrl = `${API_URL}/${trimLeadingSlashes(verification_images_url)}`
-    let filename = `${resource.documentType.title}_${resource.firstName}_${resource.lastName}`.replace(/[^\w]/gi, '_') + '.jpg'
+    let fn = `${resource.documentType.title}_${resource.firstName}_${resource.lastName}`.replace(/[^\w]/gi, '_')
+    let filename = `${fn}.jpg`
     let body = new FormData()
-    body.append('type', 'front')
-    body.append('file', buf, {filename})
+    let otherSideScan = resource.otherSideScan
+    if (otherSideScan) {
+      // debugger
+      const bufOtherSide = DataURI.decode(otherSideScan.url)
+      let otherSideToScan = resource.otherSideToScan
+      if (otherSideToScan === 'back') {
+        body.append('type', 'front')
+        body.append('file', buf, {filename})
+        body.append('type', 'back')
+        body.append('file', bufOtherSide, {filename: `${fn}_back.jpg`})
+      }
+      else {
+        body.append('type', 'front')
+        body.append('file', bufOtherSide, {filename: `${fn}_front.jpg`})
+        body.append('type', 'back')
+        body.append('file', buf, {filename})
+      }
+    }
+    else {
+      body.append('type', 'front')
+      body.append('file', buf, {filename})
+    }
+
     try {
       let imgRes = await fetch(imgUrl, {
                       method: 'POST',
@@ -292,10 +314,15 @@ export class DocumentCheckerAPI {
 
     let { state, error, results} = rawData
     let { status, description, report_url } = results
+    status = status  &&  status.toLowerCase()
     if (state !== 'finished' || error)
       status = 'error'
+    else if (status === 'ok')
+      status = 'pass'
+    // else if (status === 'referred')
+    //   status = 'pending'
     else
-      status = status.toLowerCase() === 'ok' ? 'pass' : 'fail'
+      status = 'fail'
 
     let check:any = await this.getByCheckId(data.id)
 
@@ -356,7 +383,7 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
       let createCheck = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
       if (!createCheck) {
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
-        return
+        // return
       }
       // debugger
       let result = await documentChecker.getData(form, application)
