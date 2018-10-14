@@ -39,12 +39,12 @@ const COMMON_JOBS:Job[] = [
   {
     name: 'sealpending',
     function: SEALPENDING_FUNCTION,
-    period: 10 * MINUTE,
+    period: 7 * MINUTE,
   },
   {
     name: 'pollchain',
     function: POLLCHAIN_FUNCTION,
-    period: 10 * MINUTE,
+    period: 11 * MINUTE,
   },
   {
     name: 'retryDelivery',
