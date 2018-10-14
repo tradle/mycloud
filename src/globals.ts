@@ -1,9 +1,11 @@
 import http from 'http'
+import { parse as parseURL } from 'url'
 // @ts-ignore
 // import Promise from 'bluebird'
 
 // global.Promise = Promise
 
+import pick from 'lodash/pick'
 import once from 'lodash/once'
 import AWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
@@ -16,14 +18,30 @@ const logFailedHttpRequests = () => {
   const mkHttpReq = http.request.bind(http)
   http.request = (...args) => {
     const req = mkHttpReq(...args)
+    let [opts] = args
+    if (typeof opts === 'string') {
+      opts = parseURL(opts)
+    }
+
     req.on('error', error => {
+      const logOpts:any = pick(opts, [
+        'port',
+        'path',
+        'host',
+        'protocol',
+        'hostname',
+        'hash',
+        'search',
+        'query',
+        'pathname',
+        'href'
+      ])
+
       // tslint:disable-next-line:no-console
       console.log({
         namespace: 'global:http',
         type: 'error',
-        host: req.host,
-        path: req.path,
-        error: error.stack,
+        ...logOpts,
       })
     })
 
