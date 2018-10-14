@@ -56,7 +56,17 @@ const getECSDiscovery = async (bot: Bot) => {
   }
 
   const testBot = createTestBot()
-  await testBot.buckets.PrivateConf.putJSON(PRIVATE_CONF_BUCKET.kycServiceDiscovery, discovery)
+  const bucket = testBot.buckets.PrivateConf
+  try {
+    await bucket.putJSON(PRIVATE_CONF_BUCKET.kycServiceDiscovery, discovery)
+  } catch (err) {
+    logger.error('failed to save ECS discovery info to local test bucket', {
+      bucket: bucket.id,
+      error: err.stack,
+    })
+
+    throw err
+  }
 }
 
 getEnv()
