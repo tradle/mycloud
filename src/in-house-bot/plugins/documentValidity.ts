@@ -91,7 +91,7 @@ class DocumentValidityAPI {
         rawData.Status = 'fail'
       }
     }
-debugger
+// debugger
     if (isPassport  &&  (issuer  ||  nationality)) {
       let countries = this.bot.models[COUNTRY].enum
       let nationalityCountry
@@ -134,7 +134,7 @@ debugger
       if (rawData['Date Of Birth'])
         this.logger.debug(`DocumentValidity: ${rawData['Date Of Birth']}`)
     }
-debugger
+// debugger
     if (payload.uploaded) {
       _.extend(rawData, {
         Warning: 'Document was not scanned but uploaded',
