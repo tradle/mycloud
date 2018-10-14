@@ -619,6 +619,8 @@ export const getStatusMessageForCheck = ({ models, check }: {
     return `One or more check(s) hit an error: ${aspects}`
   case 'pass':
     return `Check(s) passed: ${aspects}`
+  case 'warning':
+    return `Check(s) has a warning: ${aspects}`
   default:
     throw new Errors.InvalidInput(`unsupported check status: ${safeStringify(check.status)}`)
   }

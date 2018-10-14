@@ -91,7 +91,7 @@ class DocumentValidityAPI {
         rawData.Status = 'fail'
       }
     }
-// debugger
+debugger
     if (isPassport  &&  (issuer  ||  nationality)) {
       let countries = this.bot.models[COUNTRY].enum
       let nationalityCountry
@@ -134,10 +134,18 @@ class DocumentValidityAPI {
       if (rawData['Date Of Birth'])
         this.logger.debug(`DocumentValidity: ${rawData['Date Of Birth']}`)
     }
-    if (scanJson) {
+debugger
+    if (payload.uploaded) {
+      _.extend(rawData, {
+        Warning: 'Document was not scanned but uploaded',
+        Status: 'warning'
+      })
+    }
+    else if (scanJson) {
       this.checkTheDifferences(payload, rawData)
       // Create BlinkID check
     }
+
     let pchecks = []
     pchecks.push(this.createCheck({application, rawData, status: rawData.Status, form: payload}))
     if (rawData.Status === 'pass')
