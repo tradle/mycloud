@@ -546,6 +546,8 @@ export const generateAlertEmail = (alert: ParsedAlertEvent) => {
 
   const { stackName, accountId } = alert
   const subject = truncate(`${alert.body.function.name} (${accountId}): ${errorMsgs[0]}`, { length: 100 })
+    .replace(/[\r\n]/g, ' ')
+
   let body = json2yaml.stringify(gist)
   if (errorMsgs.length) {
     body = `ERRORS: ${errorMsgs.join('\n')}
