@@ -12,10 +12,30 @@ import { install as installSourceMapSupport } from 'source-map-support'
 
 const xrayIsOn = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
 
+const logFailedHttpRequests = () => {
+  const mkHttpReq = http.request.bind(http)
+  http.request = (...args) => {
+    const req = mkHttpReq(...args)
+    req.on('error', error => {
+      // tslint:disable-next-line:no-console
+      console.log({
+        namespace: 'global:http',
+        type: 'error',
+        host: req.host,
+        path: req.path,
+        error: error.stack,
+      })
+    })
+
+    return req
+  }
+}
+
 once(() => {
   process.env.XRAY_IS_ON = xrayIsOn ? '1' : ''
 
   installSourceMapSupport()
+  logFailedHttpRequests()
 
   // AWS.config.setPromisesDependency(Promise)
 
