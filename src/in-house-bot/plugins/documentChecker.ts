@@ -103,13 +103,13 @@ export class DocumentCheckerAPI {
 
     let imgUrl = `${API_URL}/${trimLeadingSlashes(verification_images_url)}`
     let fn = `${resource.documentType.title}_${resource.firstName}_${resource.lastName}`.replace(/[^\w]/gi, '_')
-    let filename = `${fn}.jpg`
+    let filename = `${fn}_${application.checks && application.checks.length  ||  0}.jpg`
     let body = new FormData()
+    let otherSideToScan = resource.otherSideToScan
     let otherSideScan = resource.otherSideScan
-    if (otherSideScan) {
-      // debugger
+    // debugger
+    if (otherSideScan) { //  &&  otherSideToScan !== 'back') {
       const bufOtherSide = DataURI.decode(otherSideScan.url)
-      let otherSideToScan = resource.otherSideToScan
       if (otherSideToScan === 'back') {
         body.append('type', 'front')
         body.append('file', buf, {filename})
@@ -127,25 +127,34 @@ export class DocumentCheckerAPI {
       body.append('type', 'front')
       body.append('file', buf, {filename})
     }
-
+    let imgRes
     try {
-      let imgRes = await fetch(imgUrl, {
+      imgRes = await fetch(imgUrl, {
                       method: 'POST',
                       headers: {
                         'Authorization': `Bearer ${bearer}`
                       },
                       body
                     })
-      status = imgRes.ok &&  'pending' || 'error'
-      message = !imgRes.ok  &&  imgRes.statusText
+      if (imgRes.ok)
+        status = 'pending'
+      else {
+        status = 'error'
+        message = `Check was not completed: ${imgRes.statusText}`
+      }
     } catch (err) {
       this.logger.debug('something went wrong', err)
       status = 'error'
       message = `Check was not completed: ${err.message}`
     }
-    let uploadStatus = { status }
+    let uploadStatus:any = { status }
     if (message)
-      uploadStatus.status.message = message
+      uploadStatus.message = message
+    if (status === 'error') {
+      this.logger.debug(`${PROVIDER}: upload failed`, message);
+      await this.createCheck({ application, status: uploadStatus, form: resource, checkId: verification_url.split('/').pop() })
+      return
+    }
 
     let started = await this.startVerification(verification_url, bearer)
 
@@ -282,7 +291,7 @@ export class DocumentCheckerAPI {
   public async handleVerificationEvent(evt) {
     let { event, data } = evt
     // don't run reports right now
-    let bearer = await getToken()
+// debugger
     if (event === 'verification.report.created') {
       // let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}/report`
       // let res = await fetch(url, {
@@ -295,6 +304,7 @@ export class DocumentCheckerAPI {
       // let ret = await res.text()
       return
     }
+    let bearer = await getToken()
     this.logger.debug(`${PROVIDER} fetching verification results for ${ASPECTS}`);
     let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}`
     let res = await fetch(url, {
