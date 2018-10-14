@@ -147,9 +147,9 @@ export const wrap = client => {
       try {
         result = orig.apply(this, args)
         if (!callback && result && result.promise) {
-          return {
-            ...result,
-            promise: () => result.promise().then(onSuccess, onFinished),
+          const { promise } = result
+          if (promise) {
+            result.promise = () => promise.call(result).then(onSuccess, onFinished)
           }
         }
 
