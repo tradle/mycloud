@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.7"></a>
+# [1.11.0-rc.7](https://github.com/tradle/serverless/compare/v1.11.0-rc.6...v1.11.0-rc.7) (2018-10-14)
+
+
+
+<a name="1.11.0-rc.6"></a>
+# [1.11.0-rc.6](https://github.com/tradle/serverless/compare/v1.11.0-rc.5...v1.11.0-rc.6) (2018-10-14)
+
+
+
+<a name="1.11.0-rc.5"></a>
+# [1.11.0-rc.5](https://github.com/tradle/serverless/compare/v1.11.0-rc.4...v1.11.0-rc.5) (2018-10-14)
+
+
+### Bug Fixes
+
+* missed parameter ([8eabc41](https://github.com/tradle/serverless/commit/8eabc41))
+
+
+### Features
+
+* 'warning' status added for checks ([8105a60](https://github.com/tradle/serverless/commit/8105a60))
+
+
+
 <a name="1.11.0-rc.4"></a>
 # [1.11.0-rc.4](https://github.com/tradle/serverless/compare/v1.11.0-rc.3...v1.11.0-rc.4) (2018-10-14)
 

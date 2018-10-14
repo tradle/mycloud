@@ -1,9 +1,11 @@
 import http from 'http'
+import { parse as parseURL } from 'url'
 // @ts-ignore
 // import Promise from 'bluebird'
 
 // global.Promise = Promise
 
+import pick from 'lodash/pick'
 import once from 'lodash/once'
 import AWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
@@ -12,10 +14,46 @@ import { install as installSourceMapSupport } from 'source-map-support'
 
 const xrayIsOn = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
 
+const logFailedHttpRequests = () => {
+  const mkHttpReq = http.request.bind(http)
+  http.request = (...args) => {
+    const req = mkHttpReq(...args)
+    let [opts] = args
+    if (typeof opts === 'string') {
+      opts = parseURL(opts)
+    }
+
+    req.on('error', error => {
+      const logOpts:any = pick(opts, [
+        'port',
+        'path',
+        'host',
+        'protocol',
+        'hostname',
+        'hash',
+        'search',
+        'query',
+        'pathname',
+        'href'
+      ])
+
+      // tslint:disable-next-line:no-console
+      console.log({
+        namespace: 'global:http',
+        type: 'error',
+        ...logOpts,
+      })
+    })
+
+    return req
+  }
+}
+
 once(() => {
   process.env.XRAY_IS_ON = xrayIsOn ? '1' : ''
 
   installSourceMapSupport()
+  logFailedHttpRequests()
 
   // AWS.config.setPromisesDependency(Promise)
 
