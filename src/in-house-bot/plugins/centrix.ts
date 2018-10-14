@@ -260,7 +260,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   }
 }
 
-async function getCentrixData ({ application, bot }: {application: IPBApp, bot: Bot, logger: Logger}) {
+async function getCentrixData ({ application, bot, logger }: {application: IPBApp, bot: Bot, logger: Logger}) {
   if (!application) return
   const formStub = getLatestForms(application)
     .find(form => form.type === PHOTO_ID)
@@ -282,7 +282,7 @@ async function getCentrixData ({ application, bot }: {application: IPBApp, bot: 
 
   let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck, prop: 'form'})
   if (!createCheck) {
-    this.logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+    logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
     return
   }
 
