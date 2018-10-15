@@ -138,6 +138,17 @@ const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
 const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
 const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
 
+const filterOutDisabledReleases = (opts: FindOpts) => _.merge(opts, {
+  filter: {
+    EQ: {
+      [TYPE]: VERSION_INFO,
+    },
+    NULL: {
+      reasonDisabled: true,
+    },
+  }
+})
+
 type CodeLocation = {
   bucket: Bucket
   keys: string[]
@@ -184,6 +195,10 @@ interface UpdateRequest extends ITradleObject {
 }
 
 const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
+const stableReleaseChannelId = buildResource.enumValue({
+  model: baseModels['tradle.cloud.ReleaseChannel'],
+  value: 'stable',
+}).id
 
 export class Deployment {
   // exposed for testing
@@ -1281,11 +1296,9 @@ ${this.genUsageInstructions(links)}`
   public getVersionInfoByTag = async (tag: string):Promise<VersionInfo> => {
     if (tag === 'latest') return this.getLatestVersionInfo()
 
-    return await this.bot.db.findOne({
+    return await this._findMyNotDisabledRelease({
       filter: {
         EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: await this.bot.getMyPermalink(),
           sortableTag: toSortableTag(tag),
         }
       }
@@ -1299,46 +1312,40 @@ ${this.genUsageInstructions(links)}`
 
   public getLatestStableVersionInfo = async ():Promise<VersionInfo> => {
     this.logger.debug('looking up latest stable version')
-    // try {
-      return await this._getLatestStableVersionInfoNew()
-    // } catch (err) {
-    //   // TODO: scrap _getLatestStableVersionInfoOld
-    //   Errors.ignoreNotFound(err)
-    //   return await this._getLatestStableVersionInfoOld()
-    // }
-  }
-
-  public getLatestVersionInfo = async ():Promise<VersionInfo> => {
-    return await this.bot.db.findOne({
+    return await this._findMyNotDisabledRelease({
       orderBy: {
         property: 'sortableTag',
         desc: true
       },
       filter: {
         EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: await this.bot.getMyPermalink(),
-        }
+          'releaseChannel.id': stableReleaseChannelId
+        },
       }
     })
   }
 
+  public getLatestVersionInfo = async ():Promise<VersionInfo> => {
+    return await this._findMyNotDisabledRelease({
+      orderBy: {
+        property: 'sortableTag',
+        desc: true
+      },
+    })
+  }
+
   public listMyVersions = async (opts:Partial<FindOpts>={}):Promise<VersionInfo[]> => {
-    const { items } = await this.bot.db.find(_.merge({
+    const baseOpts = await this._getFindOptsForMyReleases()
+    _.merge(baseOpts, filterOutDisabledReleases({
       // this is an expensive query as VersionInfo doesn't have a _org / _time index
       allowScan: true,
       orderBy: {
         property: '_time',
         desc: true
       },
-      filter: {
-        EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: await this.bot.getMyPermalink(),
-        }
-      }
-    }, opts))
+    }))
 
+    const { items } = await this.bot.db.find(_.merge(baseOpts, opts))
     return items
   }
 
@@ -1438,14 +1445,13 @@ ${this.genUsageInstructions(links)}`
       providerPermalink = TRADLE.PERMALINK // await this.getTradleBotPermalink()
     }
 
-    const { items } = await this.bot.db.find({
+    const versions = await this._findNotDisabledReleases({
       orderBy: {
         property: 'sortableTag',
         desc: false
       },
       filter: {
         EQ: {
-          [TYPE]: VERSION_INFO,
           _org: providerPermalink
         },
         GT: {
@@ -1454,7 +1460,7 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
-    return sortVersions(items)
+    return sortVersions(versions)
   }
 
   public listDownloadedUpdates = async (providerPermalink?: string) => {
@@ -1502,53 +1508,47 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
-  private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {
-    return await this.bot.db.findOne({
-      orderBy: {
-        property: 'sortableTag',
-        desc: true
-      },
+  public disableReleaseWithTag = async (opts: {
+    tag: string
+    reason: string
+  }):Promise<VersionInfo> => {
+    utils.requireOpts(opts, ['tag', 'reason'])
+    const { tag, reason } = opts
+    const version = await this.getVersionInfoByTag(tag)
+    return await this.bot.draft({ resource: version })
+      .set({ reasonDisabled: reason })
+      .version()
+      .signAndSave()
+  }
+
+  private _getFindOptsForMyReleases = async () => {
+    return {
       filter: {
         EQ: {
           [TYPE]: VERSION_INFO,
           [ORG]: await this.bot.getMyPermalink(),
-          'releaseChannel.id': buildResource.enumValue({
-            model: baseModels['tradle.cloud.ReleaseChannel'],
-            value: 'stable',
-          }).id
         }
       }
-    })
+    }
   }
 
-  private _getLatestStableVersionInfoOld = async ():Promise<VersionInfo> => {
-    const botPermalink = await this.bot.getMyPermalink()
-    const params:FindOpts = {
-      limit: 10,
-      orderBy: {
-        property: 'sortableTag',
-        desc: true
-      },
-      filter: {
-        EQ: {
-          [TYPE]: VERSION_INFO,
-          [ORG]: botPermalink,
-        }
-      }
-    }
+  private _findNotDisabledReleases = async (opts: FindOpts) => {
+    const { items } = await this.bot.db.find(filterOutDisabledReleases(opts))
+    return items
+  }
 
-    let pages = 0
-    while (pages++ < 10) {
-      let { items=[], endPosition } = await this.bot.db.find(params)
-      let stable = items.find(item => Deployment.isStableReleaseTag(item.tag))
-      if (stable) return stable
+  private _findNotDisabledRelease = async (opts: FindOpts) => {
+    return await this.bot.db.findOne(filterOutDisabledReleases(opts))
+  }
 
-      if (items.length < params.limit) {
-        throw new Errors.NotFound(`not found`)
-      }
+  private _findMyNotDisabledReleases = async (opts: FindOpts) => {
+    const mine = await this._getFindOptsForMyReleases()
+    return this._findNotDisabledReleases(_.merge(mine, opts))
+  }
 
-      params.checkpoint = endPosition
-    }
+  private _findMyNotDisabledRelease = async (opts: FindOpts) => {
+    const mine = await this._getFindOptsForMyReleases()
+    return this._findNotDisabledRelease(_.merge(mine, opts))
   }
 
   private _normalizeCallHomeOpts = async (opts: Partial<CallHomeOpts>) => {
@@ -1735,7 +1735,7 @@ ${this.genUsageInstructions(links)}`
       logger.debug(`already have VersionInfo for tag ${info.tag}`)
       return {
         versionInfo,
-        updated: false
+        sd: false
       }
     } catch (err) {
       Errors.ignoreNotFound(err)
@@ -1896,14 +1896,14 @@ const assertNoNullProps = (obj: any, msg: string) => {
   }
 }
 
-const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
-  // force
-  if (versionInfo.alert) return true
+// const shouldSendVersionAlert = (versionInfo: VersionInfo) => {
+//   // force
+//   if (versionInfo.alert) return true
 
-  if (versionInfo.commitsSinceTag !== 0) return false
+//   if (versionInfo.commitsSinceTag !== 0) return false
 
-  return ALERT_BRANCHES.includes(versionInfo.branch)
-}
+//   return ALERT_BRANCHES.includes(versionInfo.branch)
+// }
 
 const sortVersions = (items: any[], desc?: boolean) => {
   const sorted = _.sortBy(items, ['sortableTag', '_time'])
