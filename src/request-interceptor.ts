@@ -34,18 +34,17 @@ interface RequestInfo {
   error?: Error
 }
 
+const ORIGINALS:HttpModules = {
+  http: _.pick(http, 'request'),
+  https: _.pick(https, 'request')
+}
+
 class RequestInterceptor extends EventEmitter {
   private isEnabled: boolean
-  private originals: HttpModules
   private pending: RequestInfo[]
   constructor() {
     super()
     this.isEnabled = false
-    this.originals = {
-      http: null,
-      https: null,
-    }
-
     this.pending = []
   }
 
@@ -53,14 +52,9 @@ class RequestInterceptor extends EventEmitter {
     if (this.isEnabled) return
 
     this.isEnabled = true
-    this.originals = {
-      http: _.pick(http, 'request'),
-      https: _.pick(https, 'request')
-    }
-
     try {
       http.request = (options: HttpRequestOptions, callback) => {
-        const req = this.originals.http.request(options, callback)
+        const req = ORIGINALS.http.request(options, callback)
         return this._watchRequest(req, options)
       }
     } catch (e) {
@@ -72,8 +66,8 @@ class RequestInterceptor extends EventEmitter {
   public disable = () => {
     if (!this.isEnabled) return
 
-    _.extend(http, this.originals.http)
-    _.extend(https, this.originals.https)
+    _.extend(http, ORIGINALS.http)
+    _.extend(https, ORIGINALS.https)
 
     this.isEnabled = false
     this.pending.length = 0
@@ -118,8 +112,8 @@ class RequestInterceptor extends EventEmitter {
 
     this.emit('request', reqInfo)
 
-    req.on('error', cleanup)
-    req.on('response', (res) => {
+    req.once('error', cleanup)
+    req.once('response', res => {
       reqInfo.response = _.pick(res, [
         'statusCode',
         'statusText',
@@ -128,8 +122,8 @@ class RequestInterceptor extends EventEmitter {
         // 'url',
       ]) as ResponseInfo
 
-      res.on('end', () => cleanup())
-      res.on('error', cleanup)
+      res.once('end', cleanup.bind(null, null))
+      res.once('error', cleanup)
     })
 
     return req
