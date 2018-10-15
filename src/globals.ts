@@ -5,54 +5,29 @@ import { parse as parseURL } from 'url'
 
 // global.Promise = Promise
 
-import pick from 'lodash/pick'
 import once from 'lodash/once'
 import AWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import mockery from 'mockery'
 import { install as installSourceMapSupport } from 'source-map-support'
 import { createLogger } from './logger'
+import { requestInterceptor } from './request-interceptor'
 
-const xrayIsOn = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
-
-const logFailedHttpRequests = () => {
-  const logger = createLogger('global:http')
-  const mkHttpReq = http.request.bind(http)
-  http.request = (...args) => {
-    const req = mkHttpReq(...args)
-    const start = Date.now()
-    let [opts] = args
-    if (typeof opts === 'string') {
-      opts = parseURL(opts)
-    }
-
-    req.on('error', error => {
-      const details:any = pick(opts, [
-        'port',
-        'path',
-        'host',
-        'protocol',
-        'hostname',
-        'hash',
-        'search',
-        'query',
-        'pathname',
-        'href'
-      ])
-
-      details.duration = Date.now() - start
-      logger.error('request failed', details)
-    })
-
-    return req
-  }
-}
-
-once(() => {
+const install = once(() => {
+  const xrayIsOn = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
   process.env.XRAY_IS_ON = xrayIsOn ? '1' : ''
 
   installSourceMapSupport()
-  logFailedHttpRequests()
+
+  const logger = createLogger('global:http')
+
+  requestInterceptor.disable()
+  requestInterceptor.enable()
+  requestInterceptor.on('error', reqInfo => {
+    logger.error('request failed', reqInfo)
+  })
+
+  // logFailedHttpRequests()
 
   // AWS.config.setPromisesDependency(Promise)
 
@@ -98,7 +73,12 @@ once(() => {
       }
     }
   })
-})()
+})
+
+if (!process.env.TRADLE_GLOBALS_ATTACHED) {
+  process.env.TRADLE_GLOBALS_ATTACHED = 'y'
+  install()
+}
 
 // if (process.env.IS_OFFLINE || process.env.IS_LOCAL || process.env.NODE_ENV === 'test') {
 //   warn('disabling "aws-xray-sdk" as this is a local environment')
