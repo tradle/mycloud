@@ -17,7 +17,7 @@ interface ResponseInfo {
   statusText?: string
 }
 
-interface RequestInfo {
+export interface RequestInfo {
   method: string
   protocol: string
   port: string
@@ -32,6 +32,7 @@ interface RequestInfo {
   duration?: number
   response?: ResponseInfo
   error?: Error
+  freezeId?: string
 }
 
 const ORIGINALS:HttpModules = {
@@ -128,6 +129,12 @@ class RequestInterceptor extends EventEmitter {
 
     return req
   }
+
+  public freeze = (identifier: string) => this.pending.forEach(req => {
+    req.freezeId = identifier
+  })
+
+  public getPending = () => this.pending.slice()
 }
 
 export const requestInterceptor = new RequestInterceptor()
