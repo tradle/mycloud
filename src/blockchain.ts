@@ -121,16 +121,16 @@ export default class Blockchain {
   public toString = () => `${this.network.blockchain}:${this.network.name}`
   public pubKeyToAddress = (pub: string) => this.network.pubKeyToAddress(pub)
 
-  public wrapOperation = fn => {
-    return async (...args) => {
-      this.start()
-      try {
-        return await fn(...args)
-      } finally {
-        this.stop()
-      }
-    }
-  }
+  // public wrapOperation = fn => {
+  //   return async (...args) => {
+  //     this.start()
+  //     try {
+  //       return await fn(...args)
+  //     } finally {
+  //       this.stop()
+  //     }
+  //   }
+  // }
 
   public getBlockHeight = async () => {
     this.start()
