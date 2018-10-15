@@ -20,6 +20,7 @@ const logFailedHttpRequests = () => {
   const mkHttpReq = http.request.bind(http)
   http.request = (...args) => {
     const req = mkHttpReq(...args)
+    const start = Date.now()
     let [opts] = args
     if (typeof opts === 'string') {
       opts = parseURL(opts)
@@ -39,6 +40,7 @@ const logFailedHttpRequests = () => {
         'href'
       ])
 
+      details.duration = Date.now() - start
       logger.error('request failed', details)
     })
 
