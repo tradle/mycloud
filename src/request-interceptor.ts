@@ -4,6 +4,7 @@ import { EventEmitter } from 'events'
 import util from 'util'
 import url from 'url'
 import _ from 'lodash'
+// import { createLogger, Logger } from './logger'
 
 type HttpModules = {
   http: any
@@ -18,6 +19,7 @@ interface ResponseInfo {
 }
 
 export interface RequestInfo {
+  stack: string
   method: string
   protocol: string
   port: string
@@ -33,6 +35,7 @@ export interface RequestInfo {
   response?: ResponseInfo
   error?: Error
   freezeId?: string
+  req?: http.ClientRequest
 }
 
 const ORIGINALS:HttpModules = {
@@ -43,10 +46,12 @@ const ORIGINALS:HttpModules = {
 class RequestInterceptor extends EventEmitter {
   private isEnabled: boolean
   private pending: RequestInfo[]
+  // private logger: Logger
   constructor() {
     super()
     this.isEnabled = false
     this.pending = []
+    // this.logger = createLogger('global:http')
   }
 
   public enable = () => {
@@ -97,21 +102,21 @@ class RequestInterceptor extends EventEmitter {
       'href'
     ]) as RequestInfo
 
+    reqInfo.stack = new Error('').stack.split('\n').slice(1).join('\n')
+    reqInfo.req = req
     this.pending.push(reqInfo)
 
     const cleanup = _.once((err?: Error) => {
-      this.pending.splice(this.pending.indexOf(reqInfo), 1)
+      this._removePending(reqInfo)
 
       reqInfo.duration = Date.now() - start
       if (err) {
         reqInfo.error = err
-        this.emit('error', reqInfo)
+        this._emitNeutered('error', reqInfo)
       } else {
-        this.emit('success', reqInfo)
+        this._emitNeutered('success', reqInfo)
       }
     })
-
-    this.emit('request', reqInfo)
 
     req.once('error', cleanup)
     req.once('response', res => {
@@ -127,14 +132,51 @@ class RequestInterceptor extends EventEmitter {
       res.once('error', cleanup)
     })
 
+    this._emitNeutered('request', reqInfo)
+
     return req
   }
 
   public freeze = (identifier: string) => this.pending.forEach(req => {
-    req.freezeId = identifier
+    if (!req.freezeId) {
+      req.freezeId = identifier
+    }
   })
 
-  public getPending = () => this.pending.slice()
+  public hasPending = () => this.pending.length !== 0
+  public getPending = () => this.pending.map(neuter)
+  public abortPending = () => {
+    if (!this.pending.length) return []
+
+    return this.pending.map(reqInfo => {
+      if (reqInfo.req.abort) {
+        try {
+          reqInfo.req.abort()
+        } catch (err) {
+          reqInfo.error = err
+        }
+      }
+
+      this._removePending(reqInfo)
+      return reqInfo
+    })
+  }
+
+  private _emitNeutered = (event: string, reqInfo: RequestInfo) => {
+    this.emit(event, neuter(reqInfo))
+  }
+
+  private _removePending = (reqInfo: RequestInfo) => {
+    const idx = this.pending.indexOf(reqInfo)
+    if (idx !== -1) {
+      this.pending.splice(idx, 1)
+      return true
+    }
+
+    return false
+  }
 }
+
+const neuter = (reqInfo: RequestInfo) => _.omit(reqInfo, 'req') as RequestInfo
 
 export const requestInterceptor = new RequestInterceptor()
