@@ -99,54 +99,40 @@ export class DocumentCheckerAPI {
     // const contentType = buf.mimetype
     // const base64 = buf.toString('base64')
 
-    let message, status
-
     let imgUrl = `${API_URL}/${trimLeadingSlashes(verification_images_url)}`
     let fn = `${resource.documentType.title}_${resource.firstName}_${resource.lastName}`.replace(/[^\w]/gi, '_')
     let filename = `${fn}_${application.checks && application.checks.length  ||  0}.jpg`
+    debugger
     let body = new FormData()
+    let bodyBack
     let otherSideToScan = resource.otherSideToScan
     let otherSideScan = resource.otherSideScan
-    // debugger
     if (otherSideScan) { //  &&  otherSideToScan !== 'back') {
       const bufOtherSide = DataURI.decode(otherSideScan.url)
+      bodyBack = new FormData()
       if (otherSideToScan === 'back') {
         body.append('type', 'front')
         body.append('file', buf, {filename})
-        body.append('type', 'back')
-        body.append('file', bufOtherSide, {filename: `${fn}_back.jpg`})
+        bodyBack.append('type', 'back')
+        bodyBack.append('file', bufOtherSide, {filename: `${fn}_back.jpg`})
       }
       else {
         body.append('type', 'front')
         body.append('file', bufOtherSide, {filename: `${fn}_front.jpg`})
-        body.append('type', 'back')
-        body.append('file', buf, {filename})
+        bodyBack.append('type', 'back')
+        bodyBack.append('file', buf, {filename})
       }
     }
     else {
       body.append('type', 'front')
       body.append('file', buf, {filename})
     }
-    let imgRes
-    try {
-      imgRes = await fetch(imgUrl, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${bearer}`
-                      },
-                      body
-                    })
-      if (imgRes.ok)
-        status = 'pending'
-      else {
-        status = 'error'
-        message = `Check was not completed: ${imgRes.statusText}`
-      }
-    } catch (err) {
-      this.logger.debug('something went wrong', err)
-      status = 'error'
-      message = `Check was not completed: ${err.message}`
-    }
+    // let { status, message } = this.uploadImage(imgUrl, body, bearer)
+    let { status, message } = await this.uploadImage(imgUrl, body, bearer)
+
+    if (bodyBack  &&  status === 'pending')
+      ({status, message} = await this.uploadImage(imgUrl, bodyBack, bearer))
+
     let uploadStatus:any = { status }
     if (message)
       uploadStatus.message = message
@@ -161,6 +147,25 @@ export class DocumentCheckerAPI {
     if (started)
       await this.createCheck({ application, status: uploadStatus, form: resource, checkId: verification_url.split('/').pop() })
     this.logger.debug(`${PROVIDER}: start verification status - `, started);
+  }
+  async uploadImage(imgUrl:string, body:FormData, bearer:string) {
+    debugger
+    try {
+      let imgRes = await fetch(imgUrl, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${bearer}`
+                      },
+                      body
+                    })
+      if (imgRes.ok)
+        return { status: 'pending' }
+      else
+        return { status: 'error', message: `Check was not completed: ${imgRes.statusText}`}
+    } catch (err) {
+      this.logger.debug('something went wrong', err)
+      return { status: 'error', message: `Check was not completed: ${err.message}`}
+    }
   }
   async startVerification(verification_url, bearer) {
     let url = `${API_URL}/${trimLeadingSlashes(verification_url)}`
