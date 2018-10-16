@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.10"></a>
+# [1.11.0-rc.10](https://github.com/tradle/serverless/compare/v1.11.0-rc.9...v1.11.0-rc.10) (2018-10-15)
+
+
+### Bug Fixes
+
+* avoid unnecessary blockchain api calls ([e97d316](https://github.com/tradle/serverless/commit/e97d316))
+
+
+
+<a name="1.11.0-rc.9"></a>
+# [1.11.0-rc.9](https://github.com/tradle/serverless/compare/v1.11.0-rc.8...v1.11.0-rc.9) (2018-10-15)
+
+
+
+<a name="1.11.0-rc.8"></a>
+# [1.11.0-rc.8](https://github.com/tradle/serverless/compare/v1.11.0-rc.7...v1.11.0-rc.8) (2018-10-14)
+
+
+### Bug Fixes
+
+* email subject validation ([fbb68be](https://github.com/tradle/serverless/commit/fbb68be))
+
+
+
 <a name="1.11.0-rc.7"></a>
 # [1.11.0-rc.7](https://github.com/tradle/serverless/compare/v1.11.0-rc.6...v1.11.0-rc.7) (2018-10-14)
 

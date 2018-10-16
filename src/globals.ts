@@ -11,20 +11,23 @@ import AWS from 'aws-sdk'
 import AWSXRay from 'aws-xray-sdk-core'
 import mockery from 'mockery'
 import { install as installSourceMapSupport } from 'source-map-support'
+import { createLogger } from './logger'
 
 const xrayIsOn = process.env.TRADLE_BUILD !== '1' && process.env._X_AMZN_TRACE_ID
 
 const logFailedHttpRequests = () => {
+  const logger = createLogger('global:http')
   const mkHttpReq = http.request.bind(http)
   http.request = (...args) => {
     const req = mkHttpReq(...args)
+    const start = Date.now()
     let [opts] = args
     if (typeof opts === 'string') {
       opts = parseURL(opts)
     }
 
     req.on('error', error => {
-      const logOpts:any = pick(opts, [
+      const details:any = pick(opts, [
         'port',
         'path',
         'host',
@@ -37,12 +40,8 @@ const logFailedHttpRequests = () => {
         'href'
       ])
 
-      // tslint:disable-next-line:no-console
-      console.log({
-        namespace: 'global:http',
-        type: 'error',
-        ...logOpts,
-      })
+      details.duration = Date.now() - start
+      logger.error('request failed', details)
     })
 
     return req

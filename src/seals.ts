@@ -230,8 +230,19 @@ export default class Seals {
     this.objects = objects
     this.db = db
     this.logger = logger
-    this.sealPending = blockchain.wrapOperation(this._sealPending)
-    this.syncUnconfirmed = blockchain.wrapOperation(this._syncUnconfirmed)
+
+    const wrapWithStop = fn => async (...args) => {
+      try {
+        return await fn.apply(this, args)
+      } finally {
+        if (this.blockchain.stop) {
+          this.blockchain.stop()
+        }
+      }
+    }
+
+    this.sealPending = wrapWithStop(this._sealPending)
+    this.syncUnconfirmed = wrapWithStop(this._syncUnconfirmed)
   }
 
   public watch = (opts: WatchOpts) => {
@@ -341,6 +352,8 @@ export default class Seals {
     const pending = await this.getUnsealed({ limit })
     this.logger.info(`found ${pending.length} pending seals`)
     if (!pending.length) return ret
+
+    this.blockchain.start()
 
     let aborted
     // TODO: update balance after every tx
@@ -650,9 +663,6 @@ export default class Seals {
 
   private _syncUnconfirmed = async (opts: SyncOpts = {}):Promise<Seal[]> => {
     const { blockchain, getUnconfirmed, network, table } = this
-    // start making whatever connections
-    // are necessary
-    blockchain.start()
 
     const unconfirmed = await getUnconfirmed(opts)
     if (!unconfirmed.length) {
@@ -660,6 +670,7 @@ export default class Seals {
       return []
     }
 
+    this.blockchain.start()
     const batches = _.chunk(unconfirmed, SYNC_BATCH_SIZE)
     const results = await Promise.mapSeries(batches, batch => this._syncUnconfirmedBatch(batch, opts))
     return _.flatten(results)
