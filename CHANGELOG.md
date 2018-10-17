@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.11"></a>
+# [1.11.0-rc.11](https://github.com/tradle/serverless/compare/v1.11.0-rc.10...v1.11.0-rc.11) (2018-10-17)
+
+
+### Bug Fixes
+
+* don't fail lambda if iot lifecycle event hits an error, as that will cause a retry ([f42d1ad](https://github.com/tradle/serverless/commit/f42d1ad))
+* images should be uploaded one at a time ([6151538](https://github.com/tradle/serverless/commit/6151538))
+* no need to run verifications if upload failed; and don't get token when report request ([e70510f](https://github.com/tradle/serverless/commit/e70510f))
+
+
+### Features
+
+* monitor failed http requests, mark as frozen on lambda freeze ([7b10fcd](https://github.com/tradle/serverless/commit/7b10fcd))
+
+
+
 <a name="1.11.0-rc.10"></a>
 # [1.11.0-rc.10](https://github.com/tradle/serverless/compare/v1.11.0-rc.9...v1.11.0-rc.10) (2018-10-15)
 
