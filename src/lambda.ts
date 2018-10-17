@@ -54,6 +54,7 @@ import {
 } from './types'
 
 import { warmup } from './middleware/warmup'
+import { requestInterceptor, RequestInfo } from './request-interceptor'
 
 const NOT_FOUND = new Error('nothing here')
 
@@ -63,9 +64,10 @@ const { commit } = require('./version')
 
 type Contextualized<T> = (ctx: T, next: Function) => any|void
 
-interface ServiceCallsSummary {
+interface PendingCallsSummary {
   start?: number
   duration?: number
+  httpRequests?: RequestInfo[]
   services: {
     [name: string]: any[]
   }
@@ -369,7 +371,18 @@ Previous exit stack: ${this.lastExitStack}`)
 
     const pendingServiceCalls = this._dumpPendingServiceCalls()
     if (!_.isEmpty(pendingServiceCalls.services)) {
-      this.logger.debug('service calls pending', pendingServiceCalls)
+      this.logger.debug('pending service calls', pendingServiceCalls)
+    }
+
+    requestInterceptor.freeze(this.requestId)
+
+    const pendingHttpRequests = this._dumpPendingHTTPRequests()
+    if (pendingHttpRequests.length) {
+      this.logger.debug('pending http requests', pendingHttpRequests)
+      if (this.env.ABORT_REQUESTS_ON_FREEZE) {
+        this.logger.warn(`aborting ${pendingHttpRequests.length} pending http requests`)
+        requestInterceptor.abortPending()
+      }
     }
 
     if (err) {
@@ -725,7 +738,7 @@ Previous exit stack: ${this.lastExitStack}`)
     service.$startRecording()
   }
 
-  private _dumpPendingServiceCalls = ():ServiceCallsSummary => {
+  private _dumpPendingServiceCalls = ():PendingCallsSummary => {
     try {
       // should never fail cause of this
       return this.__dumpPendingServiceCalls()
@@ -738,7 +751,19 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private _dumpServiceCalls = ():ServiceCallsSummary => {
+  private _dumpPendingHTTPRequests = ():RequestInfo[] => {
+    try {
+      return requestInterceptor.getPending()
+    } catch (err) {
+      this.logger.error('failed to dump pending http requests', {
+        error: err.stack
+      })
+
+      return []
+    }
+  }
+
+  private _dumpServiceCalls = ():PendingCallsSummary => {
     try {
       // should never fail cause of this
       return this.__dumpServiceCalls()
@@ -751,11 +776,12 @@ Previous exit stack: ${this.lastExitStack}`)
     }
   }
 
-  private __dumpPendingServiceCalls = (): ServiceCallsSummary => {
-    const summary: ServiceCallsSummary = {
+  private __dumpPendingServiceCalls = (): PendingCallsSummary => {
+    const summary: PendingCallsSummary = {
       start: Infinity,
       duration: 0,
       services: {},
+      httpRequests: requestInterceptor.getPending(),
     }
 
     forEachInstantiatedRecordableService(this.aws, (service, name) => {
@@ -779,8 +805,8 @@ Previous exit stack: ${this.lastExitStack}`)
     return summary
   }
 
-  private __dumpServiceCalls = ():ServiceCallsSummary => {
-    const summary:ServiceCallsSummary = {
+  private __dumpServiceCalls = ():PendingCallsSummary => {
+    const summary:PendingCallsSummary = {
       start: Infinity,
       duration: 0,
       services: {},
