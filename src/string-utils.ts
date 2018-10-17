@@ -21,30 +21,22 @@ export const toCamelCase = (str, delimiter, upFirst) => {
     .join('')
 }
 
-// https://stackoverflow.com/questions/4149276/javascript-camelcase-to-regular-form
 export const splitCamelCase = (str, delimiter=' ', upFirst) => {
-  const split = str.slice(0, 1) + str.slice(1)
-    // insert a space before all caps
-    .replace(/([A-Z])/g, delimiter + '$1')
-    .trim()
-
-  return upFirst ? upperFirst(split) : split
-}
-
-export const splitCamelCaseToArray = (str: string) => {
-  let lowerCasePrefix = ''
-  for (const ch of str) {
-    if (isUpperCase(ch)) break
-
-    lowerCasePrefix += ch
+  const parts = splitCamelCaseToArray(str)
+  if (upFirst) {
+    parts[0] = upperFirst(parts[0])
   }
 
-  const rest = str.match(/[A-Z][^A-Z]*/g).slice()
-  return lowerCasePrefix ? [lowerCasePrefix, ...rest] : rest
+  return parts.join(delimiter)
 }
 
-const isUpperCase = (ch: string) => ch.toUpperCase() === ch
-const isLowerCase = (ch: string) => ch.toLowerCase() === ch
+// https://stackoverflow.com/questions/18379254/regex-to-split-camel-case/18379502
+export const splitCamelCaseToArray = (str: string) => str.split(/(?=[A-Z])/)
+
+const hasUpperAndLowerCase = (str: string) => str.toUpperCase() !== str.toLowerCase()
+
+const isUpperCase = (ch: string) => hasUpperAndLowerCase(ch) && ch.toUpperCase() === ch
+const isLowerCase = (ch: string) => hasUpperAndLowerCase(ch) && ch.toLowerCase() === ch
 
 export const replaceAll = (str: string, search: string, replacement: string) => {
   return str.split(search).join(replacement)

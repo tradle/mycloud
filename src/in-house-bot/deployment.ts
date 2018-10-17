@@ -392,7 +392,7 @@ export class Deployment {
     blockchain: string
     // deployment:
   }) => {
-    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl', 'adminEmail', 'blockchain'])
+    utils.requireOpts(opts, ['stackId', 'parentTemplateUrl', 'adminEmail', 'blockchain'])
 
     const { stackOwner, stackId, parentTemplateUrl, adminEmail, blockchain } = opts
     const { region, accountId, name } = StackUtils.parseStackArn(stackId)
@@ -415,12 +415,12 @@ export class Deployment {
       bucket,
     })
 
-    const { logging, statusUpdates } = await this._monitorChildStack({ stackOwner, stackId })
+    // const { logging, statusUpdates } = await this._monitorChildStack({ stackOwner, stackId })
     return {
       template,
       templateUrl,
-      notificationTopics: [statusUpdates.topic],
-      loggingTopic: logging.topic,
+      // notificationTopics: [statusUpdates.topic],
+      // loggingTopic: logging.topic,
       updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
     }
   }
