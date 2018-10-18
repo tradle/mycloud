@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.12"></a>
+# [1.11.0-rc.12](https://github.com/tradle/serverless/compare/v1.11.0-rc.11...v1.11.0-rc.12) (2018-10-18)
+
+
+### Bug Fixes
+
+* alert on new child deployment ([0ba3de6](https://github.com/tradle/serverless/commit/0ba3de6))
+* low funds alert ([68e633f](https://github.com/tradle/serverless/commit/68e633f))
+
+
+
 <a name="1.11.0-rc.11"></a>
 # [1.11.0-rc.11](https://github.com/tradle/serverless/compare/v1.11.0-rc.10...v1.11.0-rc.11) (2018-10-17)
 
