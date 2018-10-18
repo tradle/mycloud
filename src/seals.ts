@@ -374,7 +374,7 @@ export default class Seals {
       } catch (err) {
         Errors.rethrow(err, 'developer')
         if (Errors.matches(err, Errors.LowFunds)) {
-          this.logger.error(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
+          this.logger.debug(`aborting, insufficient funds, send funds to ${key.fingerprint}`)
           ret.error = {
             name: 'LowFunds',
             message: err.message,
