@@ -318,13 +318,9 @@ provider:
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
-    IOT_PARENT_TOPIC:
-      Fn::GetAtt: IotParentTopic.TopicName
+    IOT_PARENT_TOPIC: AWS::StackName
     IOT_CLIENT_ID_PREFIX:
-      Fn::Join:
-        - ''
-        - - Fn::GetAtt: IotParentTopic.TopicName
-          - '-'
+      Fn::Sub: '${AWS::StackName}-'
     BLOCKCHAIN:
       Ref: BlockchainNetwork
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
@@ -426,7 +422,7 @@ provider:
       Action:
         - lambda:GetFunctionConfiguration
       Resource:
-        - Fn::Sub: 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
+        - Fn::Sub: 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*'
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
@@ -448,7 +444,7 @@ provider:
         #   - ""
         #   - - "arn:aws:s3:::"
         #     - Ref: PublicConfBucket
-        - "arn:aws:s3:::${{self:custom.prefix}}*"
+        - "arn:aws:s3:::${AWS::StackName}-*"
 
     - Effect: Allow
       Action:
@@ -456,7 +452,7 @@ provider:
         # needed to create an object with public-read
         - s3:PutObjectAcl
         - s3:GetObject
-      Resource: "arn:aws:s3:::${{self:custom.prefix}}*/*"
+      Resource: "arn:aws:s3:::${AWS::StackName}-*/*"
 
     - Effect: Allow
       Action:
@@ -467,7 +463,7 @@ provider:
         - Fn::Join:
           - ""
           - - "arn:aws:s3:::"
-            - Ref: PrivateConfBucket
+            - Fn::GetAtt: Buckets.Outputs.PrivateConf
             - "/conf/*"
 
     - Effect: Allow
@@ -500,9 +496,7 @@ provider:
       Action:
         - sts:AssumeRole
       Resource:
-        - Fn::GetAtt:
-          - IotClientRole
-          - Arn
+        - Fn::GetAtt: IAM.Outputs.IotClientRole
     - Effect: Allow
       Action:
         - xray:PutTraceSegments
@@ -671,16 +665,23 @@ functions:
       # - iot:
       #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
       #     sqlVersion: ${{self:custom.versionSQL}}
+
       - iot:
           sql:
-            Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${AWS::StackName}')"
-          sqlVersion:
-            FindInMap: ["this", "sql", "version"]
+            Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${AWS::StackName}-')"
+          sqlVersion: ${{self:custom.versionSQL}}
       - iot:
           sql:
-            Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${AWS::StackName}')"
-          sqlVersion:
-            FindInMap: ["this", "sql", "version"]
+            Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${AWS::StackName}-')"
+          sqlVersion: ${{self:custom.versionSQL}}
+
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
+
     alarms:
       - functionErrors
       - functionThrottles
@@ -710,13 +711,8 @@ functions:
     events:
       - iot:
           sql:
-            Fn::Join:
-              - ''
-              - - "SELECT encode(*, 'base64') as data, clientid() as clientId, topic() as topic FROM '"
-                - Fn::GetAtt: IotParentTopic.TopicName
-                - "/+/pub/outbox'"
-          sqlVersion:
-            FindInMap: ["this", "sql", "version"]
+            Fn::Sub: "SELECT encode(*, 'base64') as data, clientid() as clientId, topic() as topic FROM '${AWS::StackName}/+/pub/outbox'"
+          sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors
       - functionThrottles
@@ -913,9 +909,7 @@ functions:
           batchSize: 20
           startingPosition: TRIM_HORIZON
           arn:
-            Fn::GetAtt:
-              - Bucket0Table
-              - StreamArn
+            Fn::GetAtt: Tables.Outputs.Bucket0Stream
     alarms:
       - functionErrors
 
@@ -1120,15 +1114,11 @@ resources:
   Conditions:
     AutoScale:
       Fn::Not:
-        Fn::Equals:
+        - Fn::Equals:
           - Ref: AutoScalingEnabled
           - ""
 
   Mappings:
-    this:
-      sql:
-        version: "2016-03-23"
-
     org:
       init: ${{self:custom.org}}
       contact:
@@ -1202,7 +1192,7 @@ resources:
           Table:
             Fn::GetAtt: Tables.Outputs.Events
           AutoScalingDynamoDBRole:
-            Fn::GetAtt: AutoScalingDynamoDBRole.Arn
+            Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
 
     AutoScalingBucketTable:
       Type: AWS::CloudFormation::Stack
@@ -1214,7 +1204,7 @@ resources:
           Table:
             Fn::GetAtt: Tables.Outputs.Bucket0
           AutoScalingDynamoDBRole:
-            Fn::GetAtt: AutoScalingDynamoDBRole.Arn
+            Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
 
     ApiGatewayRestApi:
       Type: AWS::ApiGateway::RestApi
@@ -1276,11 +1266,7 @@ resources:
         KeyPolicy:
           Version: '2012-10-17'
           Id:
-            Fn::Join:
-              - ''
-              - - Ref: AWS::StackName
-                - Ref: AWS::Region
-                - default-key
+            Fn::Sub: '${AWS::StackName}-${AWS::Region}-default-key'
           Statement:
             - Sid: 'Allow access for Key Administrators'
               Effect: Allow
@@ -1340,22 +1326,22 @@ resources:
   Outputs:
     EventsTable:
       Value:
-        Ref: Tables.Outputs.Events
+        Fn::GetAtt: Tables.Outputs.Events
     Bucket0Table:
       Value:
-        Ref: Tables.Outputs.Bucket0
+        Fn::GetAtt: Tables.Outputs.Bucket0
     ObjectsBucket:
       Value:
-        Ref: Buckets.Outputs.Objects
+        Fn::GetAtt: Buckets.Outputs.Objects
     SecretsBucket:
       Value:
-        Ref: Buckets.Outputs.Secrets
+        Fn::GetAtt: Buckets.Outputs.Secrets
     PrivateConfBucket:
       Value:
-        Ref: Buckets.Outputs.PrivateConf
+        Fn::GetAtt: Buckets.Outputs.PrivateConf
     FileUploadBucket:
       Value:
-        Ref: Buckets.Outputs.FileUpload
+        Fn::GetAtt: Buckets.Outputs.FileUpload
     ServerlessDeploymentBucket:
       Value:
-        Ref: Buckets.Outputs.Deployment
+        Fn::GetAtt: Buckets.Outputs.Deployment

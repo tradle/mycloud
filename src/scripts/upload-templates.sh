@@ -10,7 +10,10 @@ then
   exit 0
 fi
 
+$(dirname $0)/validate-templates.sh
+
 aws s3 cp \
   --recursive "$(pwd)/cloudformation/" "s3://$S3_TEMPLATES_PATH/" \
+  --acl public-read \
   --exclude "*" \
   --include "*.yml"

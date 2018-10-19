@@ -14,6 +14,10 @@ Parameters:
     Type: String
     Default: ""
 
+  ExistingBucket0TableStreamArn:
+    Type: String
+    Default: ""
+
 Conditions:
   CreateEventsTable: !Equals [ !Ref ExistingEventsTable, ""]
   CreateBucket0Table: !Equals [ !Ref ExistingBucket0Table, ""]
@@ -149,6 +153,12 @@ Outputs:
       - CreateBucket0Table
       - !Ref Bucket0
       - !Ref ExistingBucket0Table
+
+  Bucket0Stream:
+    Value: !If
+      - CreateBucket0Table
+      - !GetAtt Bucket0.StreamArn
+      - !Ref ExistingBucket0TableStreamArn
 
   StackName:
     Value:

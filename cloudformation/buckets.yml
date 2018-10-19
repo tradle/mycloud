@@ -99,7 +99,7 @@ Resources:
             Prefix: glacier
             Status: Enabled
             Transitions:
-              - TransitionInDays: LogsDaysBeforeTransitionToGlacier
+              - TransitionInDays: !Ref LogsDaysBeforeTransitionToGlacier
                 StorageClass: Glacier
 
   Deployment:

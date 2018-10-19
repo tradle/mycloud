@@ -1,4 +1,5 @@
 
+const staticStacks = require('./resources')
 const serverlessYml = require('../serverless-interpolated')
 const { Resources, Mappings } = serverlessYml.resources
 const tables = Object.keys(Resources)
