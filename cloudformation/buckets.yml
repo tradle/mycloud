@@ -1,0 +1,153 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MyCloud buckets
+
+Parameters:
+  ExistingObjectsBucket:
+    Type: String
+    Default: ""
+
+  ExistingSecretsBucket:
+    Type: String
+    Default: ""
+
+  ExistingPrivateConfBucket:
+    Type: String
+    Default: ""
+
+  ExistingFileUploadBucket:
+    Type: String
+    Default: ""
+
+  ExistingLogsBucket:
+    Type: String
+    Default: ""
+
+  ExistingDeploymentBucket:
+    Type: String
+    Default: ""
+
+  LogsDaysBeforeTransitionToGlacier:
+    Type: Number
+
+  # DeletionPolicy:
+  #   Type: String
+  #   Default: Retain
+  #   AllowedValues:
+  #     - "Delete"
+  #     - "Retain"
+
+Conditions:
+  CreateObjectsBucket: !Equals [ !Ref ExistingObjectsBucket, ""]
+  CreateSecretsBucket: !Equals [ !Ref ExistingSecretsBucket, ""]
+  CreatePrivateConfBucket: !Equals [ !Ref ExistingPrivateConfBucket, ""]
+  CreateFileUploadBucket: !Equals [ !Ref ExistingFileUploadBucket, ""]
+  CreateLogsBucket: !Equals [ !Ref ExistingLogsBucket, ""]
+  CreateDeploymentBucket: !Equals [ !Ref ExistingDeploymentBucket, ""]
+  # Retain: !Equals [ !Ref DeletionPolicy, "Retain" ]
+
+Resources:
+  Objects:
+    Condition: CreateObjectsBucket
+    Type: AWS::S3::Bucket
+    Description: content-addressed storage for all objects
+    DeletionPolicy: Retain
+
+  Secrets:
+    Condition: CreateSecretsBucket
+    Type: AWS::S3::Bucket
+    Description: stuff
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  PrivateConf:
+    Type: AWS::S3::Bucket
+    Condition: CreatePrivateConfBucket
+    Description: private configuration files
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  FileUpload:
+    Type: AWS::S3::Bucket
+    Condition: CreateFileUploadBucket
+    Description: file upload destination for all users
+    DeletionPolicy: Retain
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - "*"
+            AllowedHeaders:
+              - "*"
+            MaxAge: 3600
+
+  Logs:
+    Type: AWS::S3::Bucket
+    Description: logs from lambda functions, apigateway and others
+    DeletionPolicy: Retain
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionLogsToGlacier
+            Prefix: glacier
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: LogsDaysBeforeTransitionToGlacier
+                StorageClass: Glacier
+
+  Deployment:
+    Type: AWS::S3::Bucket
+    Description: deployment storage bucket
+    DeletionPolicy: Retain
+
+Outputs:
+  Objects:
+    Value: !If
+      - CreateObjectsBucket
+      - !Ref Objects
+      - !Ref ExistingObjectsBucket
+
+  Secrets:
+    Value: !If
+      - CreateSecretsBucket
+      - !Ref Secrets
+      - !Ref ExistingSecretsBucket
+
+  PrivateConf:
+    Value: !If
+      - CreatePrivateConfBucket
+      - !Ref PrivateConf
+      - !Ref ExistingPrivateConfBucket
+
+  FileUpload:
+    Value: !If
+      - CreateFileUploadBucket
+      - !Ref FileUpload
+      - !Ref ExistingFileUploadBucket
+
+  Logs:
+    Value: !If
+      - CreateLogsBucket
+      - !Ref Logs
+      - !Ref ExistingLogsBucket
+
+  Deployment:
+    Value: !If
+      - CreateDeploymentBucket
+      - !Ref Deployment
+      - !Ref ExistingDeploymentBucket
+
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

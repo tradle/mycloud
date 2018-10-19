@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Events Table autoscaling
+
+Parameters:
+  Table:
+    Type: String
+
+  AutoScalingDynamoDBRole:
+    Type: String
+    Description: auto scaling role arn
+
+  # MaxRead:
+  #   Type: Number
+  #   Default: 100
+
+  # MinRead:
+  #   Type: Number
+  #   Default: 5
+
+  # TargetReadUtilization:
+  #   Type: Number
+  #   Default: 50
+
+  MaxWrite:
+    Type: Number
+    Default: 100
+
+  MinWrite:
+    Type: Number
+    Default: 5
+
+  TargetWriteUtilization:
+    Type: Number
+    Default: 50
+
+  ScaleInCooldown:
+    Type: Number
+    Default: 60
+
+  ScaleOutCooldown:
+    Type: Number
+    Default: 0
+
+Resources:
+  AutoScalingTargetWrite:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity:
+        Ref: MaxWrite
+      MinCapacity:
+        Ref: MinWrite
+      ResourceId:
+        Fn::Join:
+          - ''
+          - - table/
+            - Ref: Table
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:table:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+
+  ScalingPolicyWrite:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+      - AutoScalingTargetWrite
+    Properties:
+      PolicyName: ScalingPolicyWrite
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetWrite
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue: TargetWriteUtilization
+
+Outputs:
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

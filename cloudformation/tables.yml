@@ -1,0 +1,159 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MyCloud tables
+
+Parameters:
+  Namespace:
+    Type: String
+
+  ExistingEventsTable:
+    Type: String
+    Default: ""
+
+  ExistingBucket0Table:
+    Type: String
+    Default: ""
+
+Conditions:
+  CreateEventsTable: !Equals [ !Ref ExistingEventsTable, ""]
+  CreateBucket0Table: !Equals [ !Ref ExistingBucket0Table, ""]
+
+Resources:
+  Events:
+    Condition: CreateEventsTable
+    Type: AWS::DynamoDB::Table
+    Description: immutable table of events
+    Properties:
+      TableName: !Sub ${Namespace}-events
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  Bucket0:
+    Condition: CreateBucket0Table
+    Type: AWS::DynamoDB::Table
+    Description: table that stores resources of all data models
+    Properties:
+      TableName: !Sub ${Namespace}-bucket-0
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: __h__
+          AttributeType: S
+        - AttributeName: __r__
+          AttributeType: S
+        - AttributeName: __x0h__
+          AttributeType: S
+        - AttributeName: __x0r__
+          AttributeType: S
+        - AttributeName: __x1h__
+          AttributeType: S
+        - AttributeName: __x1r__
+          AttributeType: S
+        - AttributeName: __x2h__
+          AttributeType: S
+        - AttributeName: __x2r__
+          AttributeType: S
+        - AttributeName: __x3h__
+          AttributeType: S
+        - AttributeName: __x3r__
+          AttributeType: S
+        - AttributeName: __x4h__
+          AttributeType: S
+        - AttributeName: __x4r__
+          AttributeType: S
+      KeySchema:
+        - AttributeName: __h__
+          KeyType: HASH
+        - AttributeName: __r__
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      GlobalSecondaryIndexes:
+        - IndexName: idx0
+          KeySchema:
+            - AttributeName: __x0h__
+              KeyType: HASH
+            - AttributeName: __x0r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx1
+          KeySchema:
+            - AttributeName: __x1h__
+              KeyType: HASH
+            - AttributeName: __x1r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx2
+          KeySchema:
+            - AttributeName: __x2h__
+              KeyType: HASH
+            - AttributeName: __x2r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx3
+          KeySchema:
+            - AttributeName: __x3h__
+              KeyType: HASH
+            - AttributeName: __x3r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx4
+          KeySchema:
+            - AttributeName: __x4h__
+              KeyType: HASH
+            - AttributeName: __x4r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+
+Outputs:
+  Events:
+    Value: !If
+      - CreateEventsTable
+      - !Ref Events
+      - !Ref ExistingEventsTable
+
+  Bucket0:
+    Value: !If
+      - CreateBucket0Table
+      - !Ref Bucket0
+      - !Ref ExistingBucket0Table
+
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

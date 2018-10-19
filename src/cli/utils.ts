@@ -178,7 +178,7 @@ const compileTemplate = async (path) => {
   }
 
   // validateProviderConf(interpolated.custom.providerConf)
-  compile.addBucketTables({ yml, prefix: interpolated.custom.prefix })
+  // compile.addBucketTables({ yml, prefix: interpolated.custom.prefix })
   // setBucketEncryption({ target: yml, interpolated })
   compile.stripDevFunctions(yml)
   // addCustomResourceDependencies(yml, interpolated)
@@ -188,8 +188,8 @@ const compileTemplate = async (path) => {
     compile.removeResourcesThatDontWorkLocally(yml)
   }
 
-  compile.addResourcesToEnvironment(yml)
-  compile.addResourcesToOutputs(yml)
+  // compile.addResourcesToEnvironment(yml)
+  // compile.addResourcesToOutputs(yml)
   compile.addLogProcessorEvents(yml)
   return YAML.dump(yml)
 }
