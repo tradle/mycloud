@@ -318,7 +318,8 @@ provider:
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
-    IOT_PARENT_TOPIC: AWS::StackName
+    IOT_PARENT_TOPIC:
+      Ref: AWS::StackName
     IOT_CLIENT_ID_PREFIX:
       Fn::Sub: '${AWS::StackName}-'
     BLOCKCHAIN:
@@ -439,12 +440,13 @@ provider:
         # # needed to enable bucket encryption
         # - s3:PutEncryptionConfiguration
       Resource:
-        # - arn:aws:s3:::${{self:provider.deploymentBucket}}
-        # - Fn::Join:
-        #   - ""
-        #   - - "arn:aws:s3:::"
-        #     - Ref: PublicConfBucket
-        - "arn:aws:s3:::${AWS::StackName}-*"
+        Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: ServiceName
+            - '-'
+            - Ref: Stage
+            - "-*"
 
     - Effect: Allow
       Action:
@@ -452,7 +454,14 @@ provider:
         # needed to create an object with public-read
         - s3:PutObjectAcl
         - s3:GetObject
-      Resource: "arn:aws:s3:::${AWS::StackName}-*/*"
+      Resource:
+        Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: ServiceName
+            - '-'
+            - Ref: Stage
+            - "-*/*"
 
     - Effect: Allow
       Action:
@@ -1052,9 +1061,17 @@ functions:
 
 resources:
   Parameters:
+    ServiceName:
+      Type: String
+      Default: ${{self:custom.service}}
+      AllowedValues:
+        - ${{self:custom.service}}
+
     Stage:
       Type: String
       Default: ${{self:custom.stage}}
+      AllowedValues:
+        - ${{self:custom.stage}}
 
     BlockchainNetwork:
       Type: String
@@ -1220,7 +1237,6 @@ resources:
           Fn::Join:
             - '-'
             - - Ref: AWS::StackName
-              - Ref: Stage
               - alerts-alarm
 
         Subscription:
@@ -1261,7 +1277,8 @@ resources:
         EnableKeyRotation: False
         Tags:
           - Key: tradle
-            Value: ${{self:custom.stackName}}-${{self:provider.region}}
+            Value:
+              Fn::Sub: '${AWS::StackName}-${AWS::Region}'
 
         KeyPolicy:
           Version: '2012-10-17'
