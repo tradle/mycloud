@@ -23,7 +23,14 @@ import {
 import { prettify, alphabetical, format } from './string-utils'
 import { sha256 } from './crypto'
 import Errors from './errors'
-import { Env, StreamRecordType, IStreamRecord } from './types'
+import {
+  Env,
+  StreamRecordType,
+  IStreamRecord,
+  AwsApis,
+  Logger,
+  IServiceMap,
+} from './types'
 
 export type PropPath = string|string[]
 export type PathAndValuePair = [PropPath, any]
@@ -80,27 +87,33 @@ export {
   unmarshallDBItem
 }
 
-const renderDefinitions = ({ definitions, stackName }) => {
+const renderDefinitions = ({ definitions, serviceMap }: {
+  definitions: any
+  serviceMap: IServiceMap
+}) => {
   definitions = _.cloneDeep(definitions)
-  _.forEach(definitions, resource => {
+  _.forEach(definitions, (resource, logicalId) => {
     if (resource.Type === 'AWS::DynamoDB::Table') {
-      resource.Properties.TableName = format(resource.Properties.TableName, {
-        stackName
-      })
+      resource.Properties.TableName = serviceMap.Table[logicalId]
     }
   })
 
   return definitions
 }
 
-function createDBUtils ({ aws, logger, env }) {
+function createDBUtils ({ aws, logger, env, serviceMap }: {
+  aws: AwsApis
+  logger: Logger
+  env: Env
+  serviceMap: IServiceMap
+}) {
   const getDefinitions = (() => {
     let definitions
     return () => {
       if (!definitions) {
         definitions = renderDefinitions({
           definitions: require('./definitions'),
-          stackName: env.STACK_NAME
+          serviceMap,
         })
       }
 
@@ -313,6 +326,7 @@ function createDBUtils ({ aws, logger, env }) {
     let response
     while (keepGoing && (lastEvaluatedKey || retry)) {
       try {
+        // @ts-ignore
         response = await aws.docClient[method](params).promise()
       } catch (err) {
         if (err.retryable) {

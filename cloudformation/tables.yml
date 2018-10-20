@@ -19,8 +19,10 @@ Parameters:
     Default: ""
 
 Conditions:
-  CreateEventsTable: !Equals [ !Ref ExistingEventsTable, ""]
-  CreateBucket0Table: !Equals [ !Ref ExistingBucket0Table, ""]
+  CreateEventsTable:
+    Fn::Equals: [ Ref: ExistingEventsTable, ""]
+  CreateBucket0Table:
+    Fn::Equals: [ Ref: ExistingBucket0Table, ""]
 
 Resources:
   Events:
@@ -28,7 +30,8 @@ Resources:
     Type: AWS::DynamoDB::Table
     Description: immutable table of events
     Properties:
-      TableName: !Sub ${Namespace}-events
+      TableName:
+        Fn::Sub: ${Namespace}-events
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
@@ -46,7 +49,8 @@ Resources:
     Type: AWS::DynamoDB::Table
     Description: table that stores resources of all data models
     Properties:
-      TableName: !Sub ${Namespace}-bucket-0
+      TableName:
+        Fn::Sub: ${Namespace}-bucket-0
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
@@ -143,22 +147,25 @@ Resources:
 
 Outputs:
   Events:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateEventsTable
-      - !Ref Events
-      - !Ref ExistingEventsTable
+      - Ref: Events
+      - Ref: ExistingEventsTable
 
   Bucket0:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateBucket0Table
-      - !Ref Bucket0
-      - !Ref ExistingBucket0Table
+      - Ref: Bucket0
+      - Ref: ExistingBucket0Table
 
   Bucket0Stream:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateBucket0Table
-      - !GetAtt Bucket0.StreamArn
-      - !Ref ExistingBucket0TableStreamArn
+      - Fn::GetAtt: Bucket0.StreamArn
+      - Ref: ExistingBucket0TableStreamArn
 
   StackName:
     Value:

@@ -29,34 +29,32 @@ Parameters:
   LogsDaysBeforeTransitionToGlacier:
     Type: Number
 
-  # DeletionPolicy:
-  #   Type: String
-  #   Default: Retain
-  #   AllowedValues:
-  #     - "Delete"
-  #     - "Retain"
-
 Conditions:
-  CreateObjectsBucket: !Equals [ !Ref ExistingObjectsBucket, ""]
-  CreateSecretsBucket: !Equals [ !Ref ExistingSecretsBucket, ""]
-  CreatePrivateConfBucket: !Equals [ !Ref ExistingPrivateConfBucket, ""]
-  CreateFileUploadBucket: !Equals [ !Ref ExistingFileUploadBucket, ""]
-  CreateLogsBucket: !Equals [ !Ref ExistingLogsBucket, ""]
-  CreateDeploymentBucket: !Equals [ !Ref ExistingDeploymentBucket, ""]
-  # Retain: !Equals [ !Ref DeletionPolicy, "Retain" ]
+  CreateObjectsBucket:
+    Fn::Equals: [ Ref: ExistingObjectsBucket, ""]
+  CreateSecretsBucket:
+    Fn::Equals: [ Ref: ExistingSecretsBucket, ""]
+  CreatePrivateConfBucket:
+    Fn::Equals: [ Ref: ExistingPrivateConfBucket, ""]
+  CreateFileUploadBucket:
+    Fn::Equals: [ Ref: ExistingFileUploadBucket, ""]
+  CreateLogsBucket:
+    Fn::Equals: [ Ref: ExistingLogsBucket, ""]
+  CreateDeploymentBucket:
+    Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
 
 Resources:
   Objects:
     Condition: CreateObjectsBucket
     Type: AWS::S3::Bucket
     Description: content-addressed storage for all objects
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
 
   Secrets:
     Condition: CreateSecretsBucket
     Type: AWS::S3::Bucket
     Description: stuff
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
         Status: Enabled
@@ -65,7 +63,7 @@ Resources:
     Type: AWS::S3::Bucket
     Condition: CreatePrivateConfBucket
     Description: private configuration files
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
         Status: Enabled
@@ -74,7 +72,7 @@ Resources:
     Type: AWS::S3::Bucket
     Condition: CreateFileUploadBucket
     Description: file upload destination for all users
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
     Properties:
       CorsConfiguration:
         CorsRules:
@@ -91,7 +89,7 @@ Resources:
   Logs:
     Type: AWS::S3::Bucket
     Description: logs from lambda functions, apigateway and others
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
     Properties:
       LifecycleConfiguration:
         Rules:
@@ -99,50 +97,57 @@ Resources:
             Prefix: glacier
             Status: Enabled
             Transitions:
-              - TransitionInDays: !Ref LogsDaysBeforeTransitionToGlacier
+              - TransitionInDays:
+                  Ref: LogsDaysBeforeTransitionToGlacier
                 StorageClass: Glacier
 
   Deployment:
     Type: AWS::S3::Bucket
     Description: deployment storage bucket
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
 
 Outputs:
   Objects:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateObjectsBucket
-      - !Ref Objects
-      - !Ref ExistingObjectsBucket
+      - Ref: Objects
+      - Ref: ExistingObjectsBucket
 
   Secrets:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateSecretsBucket
-      - !Ref Secrets
-      - !Ref ExistingSecretsBucket
+      - Ref: Secrets
+      - Ref: ExistingSecretsBucket
 
   PrivateConf:
-    Value: !If
+    Value:
+      Fn::If:
       - CreatePrivateConfBucket
-      - !Ref PrivateConf
-      - !Ref ExistingPrivateConfBucket
+      - Ref: PrivateConf
+      - Ref: ExistingPrivateConfBucket
 
   FileUpload:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateFileUploadBucket
-      - !Ref FileUpload
-      - !Ref ExistingFileUploadBucket
+      - Ref: FileUpload
+      - Ref: ExistingFileUploadBucket
 
   Logs:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateLogsBucket
-      - !Ref Logs
-      - !Ref ExistingLogsBucket
+      - Ref: Logs
+      - Ref: ExistingLogsBucket
 
   Deployment:
-    Value: !If
+    Value:
+      Fn::If:
       - CreateDeploymentBucket
-      - !Ref Deployment
-      - !Ref ExistingDeploymentBucket
+      - Ref: Deployment
+      - Ref: ExistingDeploymentBucket
 
   StackName:
     Value:

@@ -15,7 +15,8 @@ Resources:
   FileUploadBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref FileUploadBucket
+      Bucket:
+        Ref: FileUploadBucket
       PolicyDocument:
         Id: FileUploadBucketPolicy
         Version: '2012-10-17'
@@ -25,24 +26,26 @@ Resources:
           - s3:PutObject
           Effect: Allow
           Resource:
-            - !Join
+            Fn::Join:
               - ""
               - - "arn:aws:s3:::"
-                - !Ref FileUploadBucket
+                - Ref: FileUploadBucket
                 - /
                 # ${aws:userid} will change on every session
                 # which will prevent users from clobbering old uploads
                 - ${aws:userid}
                 - "/*"
           Principal:
-            AWS: !GetAtt IotClientRole.Arn
+            AWS:
+              Fn::GetAtt: IotClientRole.Arn
 
   # role assumed by all IoT clients
   IotClientRole:
     Type: AWS::IAM::Role
     Description: role assumed by every connecting client
     Properties:
-      RoleName: !Sub ${Namespace}-iotClientRole
+      RoleName:
+        Fn::Sub: ${Namespace}-iotClientRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -51,17 +54,19 @@ Resources:
               Service:
                 - lambda.amazonaws.com
               AWS:
-                - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
                 # would be nice to use the below Fn::GetAtt
                 # but it creates a circular dep
                 # - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole'
-                # - !GetAtt
+                # -
+                # Fn::GetAtt:
                 #   - IamRoleLambdaExecution
                 #   - Arn
             Action:
               - sts:AssumeRole
       Policies:
-        - PolicyName: !Sub '${Namespace}-${AWS::Region}-iotClientRolePolicy'
+        - PolicyName:
+            Fn::Sub: '${Namespace}-${AWS::Region}-iotClientRolePolicy'
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -79,37 +84,41 @@ Resources:
               # restrict client connect by client id
               - Effect: Allow
                 Action: ["iot:Connect"]
-                Resource: !Join
-                  - ""
-                  - - !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/'
-                    - '${iot:ClientId}'
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/'
+                      - '${iot:ClientId}'
 
               # allow all clients to publish to the send topic
               - Effect: "Allow"
                 Action: ["iot:Publish"]
-                Resource: !Join
-                  - ""
-                  - - !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
-                    - '${iot:ClientId}/sub/*'
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
+                      - '${iot:ClientId}/sub/*'
                 #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}message
                 #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}restore
 
               # # restrict client topic subscriptions by their client id
               - Effect: "Allow"
                 Action: ["iot:Subscribe"]
-                Resource: !Join
-                  - ""
-                  - - !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${IotParentTopic}/'
-                    - '${iot:ClientId}/sub/*'
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/${IotParentTopic}/'
+                      - '${iot:ClientId}/sub/*'
               # restrict messages clients receive by their client id
               # this has the same function as the Subscribe rule above
               # provided the Subscribe policy is upheld, this policy should always give a pass
               - Effect: "Allow"
                 Action: ["iot:Receive"]
-                Resource: !Join
-                  - ""
-                  - - !Sub 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
-                    - '${iot:ClientId}/sub/*'
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
+                      - '${iot:ClientId}/sub/*'
 
   AutoScalingDynamoDBRole:
     Type: AWS::IAM::Role
@@ -125,7 +134,8 @@ Resources:
               - sts:AssumeRole
       Path: "/"
       Policies:
-        - PolicyName: !Sub ${Namespace}-${AWS::Region}-AutoScalingDynamoDBPolicy
+        - PolicyName:
+            Fn::Sub: ${Namespace}-${AWS::Region}-AutoScalingDynamoDBPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -133,7 +143,8 @@ Resources:
                 Action:
                   - dynamodb:DescribeTable
                   - dynamodb:UpdateTable
-                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:*:table/${Namespace}*"
+                Resource:
+                  Fn::Sub: "arn:aws:dynamodb:${AWS::Region}:*:table/${Namespace}*"
               - Effect: Allow
                 Action:
                   - cloudwatch:DescribeAlarms
@@ -143,13 +154,17 @@ Resources:
 
 Outputs:
   IotClientRole:
-    Value: !GetAtt IotClientRole.Arn
+    Value:
+      Fn::GetAtt: IotClientRole.Arn
 
   AutoScalingDynamoDBRole:
-    Value: !GetAtt AutoScalingDynamoDBRole.Arn
+    Value:
+      Fn::GetAtt: AutoScalingDynamoDBRole.Arn
 
   StackName:
-    Value: !Ref AWS::StackName
+    Value:
+      Ref: AWS::StackName
 
   StackId:
-    Value: !Ref AWS::StackId
+    Value:
+      Ref: AWS::StackId

@@ -465,7 +465,7 @@ type AttrMap = {
 
 // TODO: generate this from serverless.yml
 export type IServiceMap = {
-  Table: AttrMap
+  Table: Tables
   Bucket: {
     [P in keyof IBucketsInfo]: string
   }

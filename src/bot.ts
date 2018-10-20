@@ -364,7 +364,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const dbUtils = bot.dbUtils = createDBUtils({
       aws,
       logger: logger.sub('db-utils'),
-      env
+      env,
+      serviceMap,
     })
 
     const tables = bot.tables = getTables({ dbUtils, serviceMap })

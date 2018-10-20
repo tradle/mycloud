@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Bucket0 Table autoscaling
+Description: Bucket Table autoscaling
 
 Parameters:
   Table:

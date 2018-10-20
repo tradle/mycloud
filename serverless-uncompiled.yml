@@ -1070,7 +1070,7 @@ resources:
 
     AutoScalingEnabled:
       Type: String
-      Default: "true"
+      Default: "false"
       AllowedValues:
         - "true"
         - "false"
@@ -1199,7 +1199,7 @@ resources:
       Condition: AutoScale
       Properties:
         TemplateURL:
-          Fn::Sub: ${S3TemplatesBaseUrl}/autoscale-buckets-table.yml
+          Fn::Sub: ${S3TemplatesBaseUrl}/autoscale-bucket-table.yml
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Bucket0
