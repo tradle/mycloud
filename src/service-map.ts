@@ -1,7 +1,21 @@
 import { Env, IServiceMap } from './types'
 import { ENV_RESOURCE_PREFIX } from './constants'
+import { upperFirst } from './string-utils'
 
 const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)(?:_(.*))?$`)
+
+export const parseEnvVarName = (key: string) => {
+  const match = RESOURCE_REGEX.exec(key)
+  if (!match) return
+
+  let type = match[1].toLowerCase()
+  type = type === 'restapi' ? 'RestApi' : upperFirst(type)
+  return {
+    key,
+    type,
+    name: match[2] || ''
+  }
+}
 
 export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
   const { logger } = env
@@ -12,35 +26,10 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
     STACK_NAME,
   } = env
 
-  const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)
   const resources = {} as IServiceMap
-  const interpretLocal = (key: string, value: any) => {
-    const ref = value.Ref || value['Fn::GetAtt']
-    if (!ref) return
-
-    const name = key.split('_').pop()
-    value = require('./cli/utils').getLocalResourceName({
-      stackName: STACK_NAME,
-      name,
-    })
-  }
 
   Object.keys(env)
-    .map(key => {
-      const match = RESOURCE_REGEX.exec(key)
-      if (!match) return
-
-      let type = match[1].toLowerCase()
-      type = type === 'restapi'
-        ? 'RestApi'
-        : upperFirst(type)
-
-      return {
-        key,
-        type,
-        name: match[2] || ''
-      }
-    })
+    .map(parseEnvVarName)
     .filter(truthy)
     .forEach(register)
 
@@ -64,9 +53,6 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       }
     } else {
       value = env[key]
-      if (value && env.IS_LOCAL) {
-        value = interpretLocal(key, value)
-      }
     }
 
     logger.ridiculous(`registered ${type} ${name} -> ${JSON.stringify(value)}`)

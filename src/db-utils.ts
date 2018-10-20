@@ -111,14 +111,17 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
     serviceMap,
   }))
 
-  const getTableBuckets = _.memoize(() => getDefinitions().tables.Bucket0)
+  const getTableBuckets = _.memoize(() => [
+    getDefinitions().tables.Bucket0
+  ])
+
   const getCachedDefinition = tableName => {
     const definitions = getDefinitions()
     const logicalId = Object.keys(definitions).find(logicalId => {
-      return definitions[logicalId].Properties.TableName === tableName
+      return definitions[logicalId].TableName === tableName
     })
 
-    return logicalId && definitions[logicalId].Properties
+    return logicalId && definitions[logicalId]
   }
 
   const { debug } = logger

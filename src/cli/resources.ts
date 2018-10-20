@@ -28,5 +28,7 @@ export const resources = transform(files, (result, fileName, setName) => {
     })
   }
 
-  result[setName] = set
+  Object.keys(set).forEach(name => {
+    set[name] = set[name].Properties
+  })
 }, {}) as ResourceSets
