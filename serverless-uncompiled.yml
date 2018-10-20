@@ -8,7 +8,7 @@ plugins:
   # - serverless-pseudo-parameters
   # - serverless-sam
   # - serverless-apigw-binary
-  - serverless-plugin-aws-alerts
+  # - serverless-plugin-aws-alerts
   # - serverless-plugin-common-excludes
   - serverless-plugin-log-retention
   # - serverless-dynamodb-autoscaling
@@ -22,8 +22,8 @@ plugins:
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
   # - serverless-dynamodb-local
-  - serverless-dynamodb-local
-  - serverless-s3-local
+  # - serverless-dynamodb-local
+  # - serverless-s3-local
   - serverless-iot-local
   - init-local
   - serverless-offline
@@ -1116,7 +1116,7 @@ resources:
       Fn::Not:
         - Fn::Equals:
           - Ref: AutoScalingEnabled
-          - ""
+          - "false"
 
   Mappings:
     org:

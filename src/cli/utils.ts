@@ -10,6 +10,7 @@ import yn from 'yn'
 import getLocalIP from 'localip'
 import isNative from 'is-native-module'
 import AWS from 'aws-sdk'
+import execa from 'execa'
 
 import { Bucket } from '../bucket'
 import Errors from '../errors'
@@ -23,6 +24,7 @@ import {
 import * as compile from './compile'
 import { resources as ResourceDefs } from './resources'
 import { createConfig } from '../aws-config'
+import { isLocalUrl } from '../utils'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
@@ -64,8 +66,20 @@ const getPhysicalId = async ({ bot, logicalId }) => {
   return match.PhysicalResourceId
 }
 
-const getLocalBucketName = ({ stackName,  }) => {
+const removeLocalBucket = async ({ bucket, endpoint }) => {
+  if (!isLocalUrl(endpoint)) {
+    throw new Error('expected "endpoint" on localhost')
+  }
 
+  if (!bucket) {
+    throw new Error('expected string "bucket"')
+  }
+
+  try {
+    await execa.shell(`aws --endpoint ${endpoint} s3 rb "s3://${bucket}" --force`)
+  } catch (err) {
+    throw new Error(`failed to delete bucket ${bucket}: ${err.message}`)
+  }
 }
 
 const nukeLocalResources = async ({ region, stackName }: {
@@ -89,7 +103,7 @@ const nukeLocalResources = async ({ region, stackName }: {
       .map(b => b.Name)
       .filter(b => b.startsWith(`${stackName}-`))
 
-    await Promise.all(stackBuckets.map(Bucket => s3.deleteBucket({ Bucket }).promise()))
+    await Promise.all(stackBuckets.map(bucket => removeLocalBucket({ endpoint: s3.config.endpoint, bucket })))
   }
 
   await Promise.all([

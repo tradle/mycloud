@@ -22,6 +22,7 @@
     "copy-dynamodb-table": "^2.0.4",
     "env-file-parser": "^1.0.0",
     "eslint": "^4.19.1",
+    "execa": "https://registry.npmjs.org/execa/-/execa-0.8.0.tgz",
     "husky": "^0.14.3",
     "is-native-module": "^1.1.0",
     "js-yaml": "^3.10.0",

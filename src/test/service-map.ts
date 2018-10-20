@@ -10,7 +10,7 @@ const {
   resources
 } = serverlessYml
 
-const { prefix } = custom
+const { prefix, blockchain } = custom
 const { region, stage, environment } = provider
 const { Resources } = resources
 const stackName = getStackName()
@@ -18,7 +18,7 @@ const fakeMap = require('./fixtures/fake-service-map')
 // const logger = new Logger('service-map')
 
 const map = transform(fakeMap, (result, value, logicalId) => {
-  result[logicalId] = format(value, { service, stage, prefix })
+  result[logicalId] = format(value, { service, stage, stackName })
 })
 
 Object.keys(environment).forEach(key => {
@@ -30,16 +30,27 @@ Object.keys(environment).forEach(key => {
   // setting obj-valued props on process.env turns them into strings against their will
   if (val === '[object Object]') val = environment[key]
 
-  const ref = val.Ref || val['Fn::GetAtt']
-  if (!ref) {
+  if (key === 'BLOCKCHAIN') {
+    map[key] = blockchain
+    return
+  }
+
+  val = val.Ref || val['Fn::GetAtt'] || val['Fn::Sub'] || val
+  if (typeof val !== 'string') {
     map[key] = val
     return
   }
 
   const parsed = parseEnvVarName(key)
-  if (!parsed) return
+  if (!parsed) {
+    map[key] = val
+      .replace(/\$\{AWS::StackName\}/g, stackName)
+      .replace(/AWS::StackName/g, stackName)
 
-  const { type, name } = parseEnvVarName(key)
+    return
+  }
+
+  const { type, name } = parsed
   if (type === 'Stack') {
     map[key] = `arn:aws:cloudformation:${region}:123456789012:stack/${(name || stackName)}/12345678-1234-1234-1234-123456789012`
   } else {

@@ -258,7 +258,7 @@ export = function createDB ({
     modelStore,
     tableNames,
     defineTable: name => {
-      const cloudformation:AWS.DynamoDB.CreateTableInput = tableBuckets[tableNames.indexOf(name)]
+      const cloudformation:AWS.DynamoDB.CreateTableInput = tableBuckets[tableNames.indexOf(name)].Properties
       const table = createTable({
         ...commonOpts,
         tableDefinition: cloudformation,

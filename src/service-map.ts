@@ -10,6 +10,7 @@ export const parseEnvVarName = (key: string) => {
 
   let type = match[1].toLowerCase()
   type = type === 'restapi' ? 'RestApi' : upperFirst(type)
+
   return {
     key,
     type,
