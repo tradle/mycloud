@@ -52,7 +52,11 @@ export const createAWSWrapper = ({ env, logger }: {
 
   AWS.config.correctClockSkew = true
 
-  const services = createConfig({ env })
+  const services = createConfig({
+    region,
+    local: env.IS_LOCAL,
+  })
+
   AWS.config.update(services)
 
   const instanceNameToServiceName = {

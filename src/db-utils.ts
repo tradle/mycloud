@@ -66,7 +66,6 @@ type ItemWorker = (item:any) => Promise<boolean|void>
 const alwaysTrue = (...any) => true
 const MAX_BATCH_SIZE = 25
 const CONSISTENT_READ_EVERYTHING = true
-const TABLE_BUCKET_REGEX = /-bucket-\d+$/
 const defaultBackoffFunction = (retryCount:number) => {
   const delay = Math.pow(2, retryCount) * 500
   return Math.min(jitter(delay, 0.1), 10000)
@@ -107,20 +106,12 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
   env: Env
   serviceMap: IServiceMap
 }) {
-  const getDefinitions = (() => {
-    let definitions
-    return () => {
-      if (!definitions) {
-        definitions = renderDefinitions({
-          definitions: require('./definitions'),
-          serviceMap,
-        })
-      }
+  const getDefinitions = _.memoize(() => renderDefinitions({
+    definitions: require('./definitions'),
+    serviceMap,
+  }))
 
-      return definitions
-    }
-  })();
-
+  const getTableBuckets = _.memoize(() => getDefinitions().tables.Bucket0)
   const getCachedDefinition = tableName => {
     const definitions = getDefinitions()
     const logicalId = Object.keys(definitions).find(logicalId => {
@@ -139,20 +130,6 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
       warn: (...data) => dynogelsLogger.warn('', data),
       level: 'warn'
     }
-  }
-
-  let tableBuckets
-  const getTableBuckets = () => {
-    const definitions = getDefinitions()
-    if (!tableBuckets) {
-      tableBuckets = Object.keys(definitions)
-        .filter(logicalId => {
-          return TABLE_BUCKET_REGEX.test(definitions[logicalId].Properties.TableName)
-        })
-        .map(logicalId => definitions[logicalId].Properties)
-    }
-
-    return tableBuckets
   }
 
   function getTable (TableName) {

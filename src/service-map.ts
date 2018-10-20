@@ -9,10 +9,21 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
     AWS_REGION,
     SERVERLESS_SERVICE_NAME,
     SERVERLESS_STAGE,
+    STACK_NAME,
   } = env
 
   const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)
   const resources = {} as IServiceMap
+  const interpretLocal = (key: string, value: any) => {
+    const ref = value.Ref || value['Fn::GetAtt']
+    if (!ref) return
+
+    const name = key.split('_').pop()
+    value = require('./cli/utils').getLocalResourceName({
+      stackName: STACK_NAME,
+      name,
+    })
+  }
 
   Object.keys(env)
     .map(key => {
@@ -53,8 +64,8 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       }
     } else {
       value = env[key]
-      if (value && value.Ref && env.IS_TESTING) {
-        value = value.Ref
+      if (value && env.IS_LOCAL) {
+        value = interpretLocal(key, value)
       }
     }
 

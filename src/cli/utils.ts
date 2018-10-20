@@ -9,6 +9,7 @@ import YAML from 'js-yaml'
 import yn from 'yn'
 import getLocalIP from 'localip'
 import isNative from 'is-native-module'
+import AWS from 'aws-sdk'
 
 import { Bucket } from '../bucket'
 import Errors from '../errors'
@@ -20,6 +21,8 @@ import {
 } from '../in-house-bot/types'
 
 import * as compile from './compile'
+import { resources as ResourceDefs } from './resources'
+import { createConfig } from '../aws-config'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
@@ -36,6 +39,8 @@ const getStackName = () => {
 
   return `${service}-${stage}`
 }
+
+const getRegion = () => require('./serverless-yml').provider.region
 
 const getStackResources = ({ bot, stackName }: {
   bot: Bot
@@ -59,74 +64,87 @@ const getPhysicalId = async ({ bot, logicalId }) => {
   return match.PhysicalResourceId
 }
 
-const genLocalResources = async ({ bot }) => {
-  if (!bot) {
-    bot = require('../').createTestBo()
+const getLocalBucketName = ({ stackName,  }) => {
+
+}
+
+const nukeLocalResources = async ({ region, stackName }: {
+  region: string
+  stackName: string
+}) => {
+  const config = createConfig({ region, local: true })
+  const dynamodb = new AWS.DynamoDB(config.dynamodb)
+  const s3 = new AWS.S3(config.s3)
+  const delTables = async () => {
+    const tables = await dynamodb.listTables().promise()
+    const stackTables = tables.TableNames
+      .filter(t => t.startsWith(`${stackName}-`))
+
+    await Promise.all(stackTables.map(TableName => dynamodb.deleteTable({ TableName }).promise()))
   }
 
-  const { aws } = bot
-  const yml = require('./serverless-yml')
-  const { resources } = yml
-  const { Resources } = resources
-  const togo = {}
-  const tables = []
-  const buckets = []
+  const delBuckets = async () => {
+    const buckets = await s3.listBuckets().promise()
+    const stackBuckets = buckets.Buckets
+      .map(b => b.Name)
+      .filter(b => b.startsWith(`${stackName}-`))
 
-  let numCreated = 0
-  Object.keys(Resources)
-    .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
-    .forEach(name => {
-      const { Properties } = Resources[name]
-      if (Properties.StreamSpecification) {
-        Properties.StreamSpecification.StreamEnabled = true
-      }
+    await Promise.all(stackBuckets.map(Bucket => s3.deleteBucket({ Bucket }).promise()))
+  }
 
-      togo[name] = true
-      tables.push(
-        aws.dynamodb.createTable(Properties).promise()
-          .then(result => {
-            delete togo[name]
-            debug(`created table: ${name}`)
-            debug('waiting on', togo)
-            numCreated++
-          })
-          .catch(err => {
-            if (err.name !== 'ResourceInUseException') {
-              throw err
-            }
-          })
-      )
-    })
+  await Promise.all([
+    delTables(),
+    delBuckets()
+  ])
+}
 
-  const currentBuckets = await aws.s3.listBuckets().promise()
-  Object.keys(Resources)
-    .filter(name => Resources[name].Type === 'AWS::S3::Bucket')
-    .forEach(name => {
-      const Bucket = bot.resourcePrefix + name.toLowerCase()
-      const exists = currentBuckets.Buckets.find(({ Name }) => {
-        return Name === Bucket
-      })
+const getLocalResourceName = ({ stackName, name }: {
+  stackName: string
+  name: string
+}) => {
+  name = name.toLowerCase()
+  if (name === 'bucket0') name = 'bucket-0'
 
-      if (exists) return
+  return `${stackName}-${name}`
+}
 
-      togo[name] = true
-      buckets.push(
-        aws.s3.createBucket({ Bucket })
-        .promise()
-        .then(result => {
-          numCreated++
-          delete togo[name]
-          debug(`created bucket: ${name}`)
-          debug('waiting on', togo)
-        })
-      )
-    })
+const genLocalResources = async ({ region, stackName }: {
+  region: string
+  stackName: string
+}) => {
 
-  const promises = buckets.concat(tables)
-  debug(`waiting for resources...`)
-  await Promise.all(promises)
-  debug('resources created!')
-  return numCreated
+  const config = createConfig({ region, local: true })
+  const dynamodb = new AWS.DynamoDB(config.dynamodb)
+  const s3 = new AWS.S3(config.s3)
+  const promiseTables = Promise.all(_.map(ResourceDefs.tables, async ({ Properties }, name: string) => {
+    if (Properties.StreamSpecification) {
+      Properties.StreamSpecification.StreamEnabled = true
+    }
+
+    delete Properties.TimeToLiveSpecification;
+    delete Properties.PointInTimeRecoverySpecification
+
+    Properties.TableName = getLocalResourceName({ stackName, name })
+    try {
+      await dynamodb.createTable(Properties).promise()
+    } catch (err) {
+      Errors.ignore(err, { name: 'ResourceInUseException' })
+    }
+  }))
+
+  const promiseBuckets = Promise.all(_.map(ResourceDefs.buckets, async ({ Properties }, name: string) => {
+    const params = {
+      // not the real bucket name
+      Bucket: getLocalResourceName({ stackName, name }),
+    }
+
+    await s3.createBucket(params).promise()
+  }))
+
+  await Promise.all([
+    promiseTables,
+    promiseBuckets
+  ])
 }
 
 const makeDeploymentBucketPublic = async () => {
@@ -392,8 +410,11 @@ export {
   compileTemplate,
   interpolateTemplate,
   genLocalResources,
+  nukeLocalResources,
   makeDeploymentBucketPublic,
   loadCredentials,
+  getRegion,
+  getLocalResourceName,
   getStackName,
   getStackResources,
   getPhysicalId,

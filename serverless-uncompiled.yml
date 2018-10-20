@@ -246,32 +246,32 @@ custom:
   # reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
 
   # serverless-dynamodb-local settings
-  dynamodb:
-    start:
-      port: 4569
-      # migrate: true
-      inMemory: true
-      # use dockerized dynamodb from localstack
-      noStart: true
-    # tables:
-    #   - ${{self:custom.prefix}}events
-    #   - ${{self:custom.prefix}}bucket-0
+  # dynamodb:
+  #   start:
+  #     port: 4569
+  #     # migrate: true
+  #     inMemory: true
+  #     # use dockerized dynamodb from localstack
+  #     noStart: true
+  #   # tables:
+  #   #   - ${{self:custom.prefix}}events
+  #   #   - ${{self:custom.prefix}}bucket-0
 
   # serverless-s3-local settings
-  s3:
-    host: 0.0.0.0
-    port: 4572
-    # directory: /tmp
-    buckets:
-      - ${{self:custom.prefix}}objectsbucket
-      - ${{self:custom.prefix}}secretsbucket
-      - ${{self:custom.prefix}}privateconfbucket
-      - ${{self:custom.prefix}}fileuploadbucket
-      - ${{self:custom.prefix}}logsbucket
-    cors: false
-    # use dockerized s3 from localstack
-    noStart: true
-    create: false
+  # s3:
+  #   host: 0.0.0.0
+  #   port: 4572
+  #   # directory: /tmp
+  #   buckets:
+  #     - ${{self:custom.prefix}}objectsbucket
+  #     - ${{self:custom.prefix}}secretsbucket
+  #     - ${{self:custom.prefix}}privateconfbucket
+  #     - ${{self:custom.prefix}}fileuploadbucket
+  #     - ${{self:custom.prefix}}logsbucket
+  #   cors: false
+  #   # use dockerized s3 from localstack
+  #   noStart: true
+  #   create: false
 
   # s3-encryption:
   #   buckets:
@@ -337,7 +337,7 @@ provider:
     R_BUCKET_Objects:
       Fn::GetAtt: Buckets.Outputs.Objects
     R_BUCKET_Secrets:
-      Fn::GetAtt: Buckets.Outputs.Objects
+      Fn::GetAtt: Buckets.Outputs.Secrets
     R_BUCKET_FileUpload:
       Fn::GetAtt: Buckets.Outputs.FileUpload
     R_BUCKET_Logs:
