@@ -1,7 +1,10 @@
 const path = require('path')
 const Errors = require('@tradle/errors')
 const { StackUtils } = require('../lib/stack-utils')
-const { uploadTemplatesAtPath } = require('../lib/cli/utils')
+const {
+  validateTemplatesAtPath,
+  uploadTemplatesAtPath
+} = require('../lib/cli/utils')
 const versionInfo = require('../lib/version')
 const templatesDir = path.resolve(__dirname, '../cloudformation')
 
@@ -13,14 +16,13 @@ class SetVersion {
     this.hooks = {
       'aws:common:validate:validate': async () => {
         await Promise.all([
-          this.checkExisting()
+          this.checkExisting(),
           this.validateTemplates(),
         ])
       },
       'before:package:compileFunctions': () => this.setVersion(),
       'aws:deploy:deploy:uploadArtifacts': () => this.uploadTemplates(),
     }
-
   }
 
   _service() {
@@ -49,8 +51,8 @@ class SetVersion {
     const { dir } = StackUtils.getStackLocationKeys({
       ...process.env,
       service: this._service(),
-      stage: this.options.stage,
-      region: this.options.region,
+      stage: this._stage(),
+      region: this._region(),
       versionInfo,
     })
 
@@ -99,20 +101,18 @@ class SetVersion {
   }
 
   async validateTemplates() {
-    debugger
     await validateTemplatesAtPath({
       dir: templatesDir,
-      region: this.options.region,
+      region: this._region(),
     })
   }
 
   async uploadTemplates() {
-    debugger
     const bucket = await this._getBucket()
     await uploadTemplatesAtPath({
       dir: templatesDir,
       bucket,
-      region: this.options.region,
+      region: this._region(),
       prefix: this._dir(),
       acl: 'public-read',
     })
