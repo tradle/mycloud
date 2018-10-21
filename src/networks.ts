@@ -21,19 +21,19 @@ const constants:BlockchainNetworkInfo[] = [
     blockchain: 'ethereum',
     networkName: 'mainnet',
     minBalance: '10000000000000000',
-    confirmations: 12
+    confirmations: 20
   },
   {
     blockchain: 'ethereum',
     networkName: 'ropsten',
     minBalance: '10000000000000000',
-    confirmations: 12
+    confirmations: 20
   },
   {
     blockchain: 'ethereum',
     networkName: 'rinkeby',
     minBalance: '10000000000000000',
-    confirmations: 12
+    confirmations: 20
   },
   {
     blockchain: 'corda',
