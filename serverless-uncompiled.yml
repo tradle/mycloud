@@ -8,7 +8,7 @@ plugins:
   # - serverless-pseudo-parameters
   # - serverless-sam
   # - serverless-apigw-binary
-  # - serverless-plugin-aws-alerts
+  - serverless-plugin-aws-alerts
   # - serverless-plugin-common-excludes
   - serverless-plugin-log-retention
   # - serverless-dynamodb-autoscaling
