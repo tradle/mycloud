@@ -78,7 +78,8 @@ export default class Env {
   constructor(props:any) {
     props = clone(props)
     const {
-      SERVERLESS_PREFIX,
+      // SERVERLESS_PREFIX,
+      STACK_NAME,
       SERVERLESS_STAGE,
       SERVERLESS_SERVICE_NAME,
       NODE_ENV,
@@ -99,7 +100,7 @@ export default class Env {
     props.IS_EMULATED = yn(IS_OFFLINE)
     props.IS_TESTING = NODE_ENV === 'test'
     props.FUNCTION_NAME = AWS_LAMBDA_FUNCTION_NAME
-      ? AWS_LAMBDA_FUNCTION_NAME.slice(SERVERLESS_PREFIX.length)
+      ? AWS_LAMBDA_FUNCTION_NAME.slice(STACK_NAME.length + 1)
       : 'unknown'
 
     // props.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
@@ -209,8 +210,9 @@ export default class Env {
       this.SESSION_TTL = Number(this.SESSION_TTL)
     }
 
+    this.SERVERLESS_PREFIX = `${this.STACK_NAME}-`
+    this.IOT_CLIENT_ID_PREFIX = this.SERVERLESS_PREFIX
     this.IOT_PARENT_TOPIC = this.STACK_NAME
-    this.IOT_CLIENT_ID_PREFIX = `${this.STACK_NAME}-`
   }
 }
 

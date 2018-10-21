@@ -24,7 +24,6 @@
   "R_TOPIC_AdminAlerts": "{stackName}-AwsAlertsAlarm",
   "R_STACK": "arn:aws:cloudformation:us-east-1:xxxxx:stack/{stackName}/xxxxx",
   "R_KEY_DefaultEncryption": "key-id-abcdefg",
-  "SERVERLESS_PREFIX": "{stackName}-",
   "SERVERLESS_SERVICE_NAME": "{service}",
   "SERVERLESS_STAGE": "{stage}"
 }

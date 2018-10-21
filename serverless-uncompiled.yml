@@ -327,9 +327,13 @@ provider:
     DEBUG: '*lambda*,tradle*,-@tradle/dynamodb'
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
-    SERVERLESS_PREFIX: ${{self:custom.prefix}}
-    SERVERLESS_STAGE: ${{self:custom.stage}}
-    SERVERLESS_SERVICE_NAME: ${{self:service}}
+    # SERVERLESS_PREFIX: ${{self:custom.prefix}}
+    # SERVERLESS_STAGE: ${{self:custom.stage}}
+    # SERVERLESS_SERVICE_NAME: ${{self:service}}
+    SERVERLESS_STAGE:
+      Ref: Stage
+    SERVERLESS_SERVICE_NAME:
+      Ref: ServiceName
     NO_TIME_TRAVEL: false # allow time-travel messages for now
     R_STACK:
       Ref: AWS::StackId
