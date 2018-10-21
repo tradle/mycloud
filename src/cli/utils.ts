@@ -432,12 +432,11 @@ export const getVars = (names: string[]):any => names.reduce((map, name) => {
   return map
 }, {})
 
-export const validateTemplateAtPath = async ({ templatePath, region }: {
+export const validateTemplateAtPath = async ({ cloudformation, templatePath }: {
+  cloudformation: AWS.CloudFormation
   templatePath: string
-  region: string
 }) => {
   const TemplateBody = await fs.readFile(templatePath, { encoding: 'utf8' })
-  const cloudformation = new AWS.CloudFormation({ region })
   await cloudformation.validateTemplate({ TemplateBody }).promise()
 }
 
@@ -445,12 +444,12 @@ const getTemplatesFilePaths = (dir: string) => fs.readdirSync(dir)
   .filter(file => /\.(ya?ml|json)$/.test(file))
   .map(file => path.resolve(dir, file))
 
-export const validateTemplatesAtPath = async ({ dir, region }: {
+export const validateTemplatesAtPath = async ({ cloudformation, dir }: {
+  cloudformation: AWS.CloudFormation
   dir: string
-  region: string
 }) => {
   const files = getTemplatesFilePaths(dir)
-  const results = await allSettled(files.map(templatePath => validateTemplateAtPath({ templatePath, region })))
+  const results = await allSettled(files.map(templatePath => validateTemplateAtPath({ cloudformation, templatePath })))
   const errors = results.filter(r => r.isRejected)
     .map((r, i) => ({
       template: files[i],
@@ -462,18 +461,14 @@ export const validateTemplatesAtPath = async ({ dir, region }: {
   }
 }
 
-export const uploadTemplatesAtPath = async ({ dir, bucket, prefix, region, acl }: {
+export const uploadTemplatesAtPath = async ({ s3, dir, bucket, prefix, acl }: {
+  s3: AWS.S3
   dir: string
   bucket: string
   prefix: string
-  region: string
   acl?: AWS.S3.ObjectCannedACL
 }) => {
   const files = getTemplatesFilePaths(dir)
-  const s3 = new AWS.S3({
-    region,
-  })
-
   const params:AWS.S3.PutObjectRequest = {
     Bucket: bucket,
     Key: null,

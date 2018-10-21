@@ -1,4 +1,5 @@
 const path = require('path')
+const AWS = require('aws-sdk')
 const Errors = require('@tradle/errors')
 const { StackUtils } = require('../lib/stack-utils')
 const {
@@ -14,15 +15,16 @@ class SetVersion {
     this.options = options
     this.provider = this.serverless.getProvider('aws')
     this.hooks = {
-      'aws:common:validate:validate': async () => {
-        await Promise.all([
-          this.checkExisting(),
-          this.validateTemplates(),
-        ])
-      },
+      'aws:common:validate:validate': () => this.onValidate(),
       'before:package:compileFunctions': () => this.setVersion(),
-      'aws:deploy:deploy:uploadArtifacts': () => this.uploadTemplates(),
+      'aws:deploy:deploy:uploadArtifacts': async () => {
+        // if (!this._uploadedTemplates) {
+          await this.uploadTemplates(await this._getBucket())
+        // }
+      },
     }
+
+    // this._uploadedTemplates = false
   }
 
   _service() {
@@ -57,6 +59,19 @@ class SetVersion {
     })
 
     return dir
+  }
+
+  async onValidate() {
+    await Promise.all([
+      this.checkExisting(),
+      this.validateTemplates(),
+    ])
+
+    // const bucket = await this._getBucket()
+    // if (!bucket) return
+
+    // this._uploadedTemplates = true
+    // await this.uploadTemplates(bucket)
   }
 
   async checkExisting() {
@@ -100,19 +115,22 @@ class SetVersion {
     }
   }
 
+  _createClient(clName) {
+    return new this.provider.sdk[clName](this.provider.getCredentials())
+  }
+
   async validateTemplates() {
     await validateTemplatesAtPath({
+      cloudformation: this._createClient('CloudFormation'),
       dir: templatesDir,
-      region: this._region(),
     })
   }
 
-  async uploadTemplates() {
-    const bucket = await this._getBucket()
+  async uploadTemplates(bucket) {
     await uploadTemplatesAtPath({
+      s3: this._createClient('S3'),
       dir: templatesDir,
       bucket,
-      region: this._region(),
       prefix: this._dir(),
       acl: 'public-read',
     })
