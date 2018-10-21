@@ -1157,6 +1157,12 @@ resources:
       AllowedValues:
         - ${{self:custom.org.domain}}
 
+    OrgLogo:
+      Type: String
+      Default: ${{self:custom.org.logo}}
+      AllowedValues:
+        - ${{self:custom.org.logo}}
+
     OrgAdminEmail:
       Type: String
       Default: ${{self:custom.emailForNotifications}}
