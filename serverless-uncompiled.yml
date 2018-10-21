@@ -27,7 +27,7 @@ plugins:
   - serverless-iot-local
   - init-local
   - serverless-offline
-  - set-version
+  - pre-deploy
   # - serverless-offline-scheduler
 
 package:
@@ -124,7 +124,8 @@ custom:
   alertNotifications:
     - protocol: email
       endpoint:
-        Fn::FindInMap: ["org", "contact", "adminEmail"]
+        Ref: OrgAdminEmail
+        # Fn::FindInMap: ["org", "contact", "adminEmail"]
 
   alerts:
     stages:
@@ -1064,8 +1065,8 @@ resources:
     ServiceName:
       Type: String
       Default: ${{self:custom.service}}
-      # AllowedValues:
-      #   - ${{self:custom.service}}
+      AllowedValues:
+        - ${{self:custom.service}}
 
     Stage:
       Type: String
@@ -1142,28 +1143,46 @@ resources:
       Type: Number
       Default: 7
 
+    OrgName:
+      Type: String
+      Default: ${{self:custom.org.name}}
+      AllowedValues:
+        - ${{self:custom.org.name}}
+
+    OrgDomain:
+      Type: String
+      Default: ${{self:custom.org.domain}}
+      AllowedValues:
+        - ${{self:custom.org.domain}}
+
+    OrgAdminEmail:
+      Type: String
+      Default: ${{self:custom.emailForNotifications}}
+      AllowedValues:
+        - ${{self:custom.emailForNotifications}}
+
+  Mappings:
+    # org:
+    #   init: ${{self:custom.org}}
+    #   contact:
+    #     adminEmail: ${{self:custom.emailForNotifications}}
+
+    deployment:
+      init:
+        # service: ${{self:service}}
+        # stage: ${{self:custom.stage}}
+        stackName: ${{self:custom.stackName}}
+        # encryptionKey:
+        # which MyCloud generated the template
+        referrerUrl: ''
+        deploymentUUID: ''
+
   Conditions:
     AutoScale:
       Fn::Not:
         - Fn::Equals:
           - Ref: AutoScalingEnabled
           - "false"
-
-  Mappings:
-    org:
-      init: ${{self:custom.org}}
-      contact:
-        adminEmail: ${{self:custom.emailForNotifications}}
-
-    deployment:
-      init:
-        service: ${{self:service}}
-        stage: ${{self:custom.stage}}
-        stackName: ${{self:custom.stackName}}
-        # encryptionKey:
-        # which MyCloud generated the template
-        referrerUrl: ''
-        deploymentUUID: ''
 
   Resources:
     Tables:
@@ -1260,10 +1279,11 @@ resources:
         Subscription:
         - Protocol: email
           Endpoint:
-            Fn::FindInMap:
-            - org
-            - contact
-            - adminEmail
+            Ref: OrgAdminEmail
+            # Fn::FindInMap:
+            # - org
+            # - contact
+            # - adminEmail
 
     Initialize:
       Type: Custom::InitializeDeployment
@@ -1273,11 +1293,14 @@ resources:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
         commit: ${{self:custom.version.commit}}
         name:
-          Fn::FindInMap: ["org", "init", "name"]
+          Ref: OrgName
+          # Fn::FindInMap: ["org", "init", "name"]
         domain:
-          Fn::FindInMap: ["org", "init", "domain"]
+          Ref: OrgDomain
+          # Fn::FindInMap: ["org", "init", "domain"]
         logo:
-          Fn::FindInMap: ["org", "init", "logo"]
+          Ref: OrgLogo
+          # Fn::FindInMap: ["org", "init", "logo"]
         deploymentUUID:
           Fn::FindInMap: ["deployment", "init", "deploymentUUID"]
         referrerUrl:

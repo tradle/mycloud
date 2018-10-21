@@ -139,16 +139,21 @@ test('deployment by referral', loudAsync(async (t) => {
       BlockchainNetwork: {
         Type: 'String',
         Default: 'ethereum:mainnet',
-      }
+      },
+      OrgName: {
+        Type: 'String',
+        Default: 'Tradle',
+      },
+      OrgDomain: {
+        Type: 'String',
+        Default: 'tradle.io',
+      },
+      OrgLogo: {
+        Type: 'String',
+        Default: 'https://tradle.io/images/logo256x.png',
+      },
     },
     "Mappings": {
-      "org": {
-        "init": {
-          "name": "Tradle",
-          "domain": "tradle.io",
-          "logo": "https://tradle.io/images/logo256x.png"
-        }
-      },
       "deployment": {
         "init": {
           "referrerUrl": "",

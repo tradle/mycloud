@@ -13,6 +13,7 @@ fi
 $(dirname $0)/validate-templates.sh
 
 aws s3 cp \
+  --profile "$AWS_PROFILE" \
   --recursive "$(pwd)/cloudformation/" "s3://$S3_TEMPLATES_PATH/" \
   --acl public-read \
   --exclude "*" \

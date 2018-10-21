@@ -1,5 +1,6 @@
 import path from 'path'
 import _ from 'lodash'
+import withDefaults from 'lodash/defaults'
 import promisify from 'pify'
 import proc from 'child_process'
 import { parseSync as parseEnv } from 'env-file-parser'
@@ -24,7 +25,9 @@ import {
 import * as compile from './compile'
 import { resources as ResourceDefs } from './resources'
 import { createConfig } from '../aws-config'
-import { isLocalUrl } from '../utils'
+import { isLocalUrl, allSettled } from '../utils'
+import { createUtils as createS3Utils } from '../s3-utils'
+import { consoleLogger } from '../logger'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
@@ -416,6 +419,76 @@ export const confirm = async (question?: string) => {
 
   rl.close()
   return yn(answer)
+}
+
+export const getVar = (name: string) => {
+  const defaults = require('../../vars.json')
+  const vars = require('../../default-vars.json')
+  return withDefaults(vars, defaults)[name]
+}
+
+export const getVars = (names: string[]):any => names.reduce((map, name) => {
+  map[name] = getVar(name)
+  return map
+}, {})
+
+export const validateTemplateAtPath = async ({ templatePath, region }: {
+  templatePath: string
+  region: string
+}) => {
+  const TemplateBody = await fs.readFile(templatePath, { encoding: 'utf8' })
+  const cloudformation = new AWS.CloudFormation({ region })
+  await cloudformation.validateTemplate({ TemplateBody }).promise()
+}
+
+const getTemplatesFilePaths = (dir: string) => fs.readdirSync(dir)
+  .filter(file => /\.(ya?ml|json)$/.test(file))
+  .map(file => path.resolve(dir, file))
+
+export const validateTemplatesAtPath = async ({ dir, region }: {
+  dir: string
+  region: string
+}) => {
+  const files = getTemplatesFilePaths(dir)
+  const results = await allSettled(files.map(templatePath => validateTemplateAtPath({ templatePath, region })))
+  const errors = results.filter(r => r.isRejected)
+    .map((r, i) => ({
+      template: files[i],
+      error: r.reason
+    }))
+
+  if (errors.length) {
+    throw new Error(JSON.stringify(errors))
+  }
+}
+
+export const uploadTemplatesAtPath = async ({ dir, bucket, prefix, region, acl }: {
+  dir: string
+  bucket: string
+  prefix: string
+  region: string
+  acl?: AWS.S3.ObjectCannedACL
+}) => {
+  const files = getTemplatesFilePaths(dir)
+  const s3 = new AWS.S3({
+    region,
+  })
+
+  const params:AWS.S3.PutObjectRequest = {
+    Bucket: bucket,
+    Key: null,
+    Body: null,
+    ACL: acl,
+  }
+
+  await Promise.all(files.map(async file => {
+    return s3.putObject({
+      ...params,
+      Key: `${prefix}/${path.basename(file)}`,
+      Body: await fs.readFile(file),
+      ContentType: file.endsWith('json') ? 'application/json' : 'text/html',
+    }).promise()
+  }))
 }
 
 export {

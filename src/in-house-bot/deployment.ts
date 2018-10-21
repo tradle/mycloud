@@ -850,10 +850,10 @@ ${this.genUsageInstructions(links)}`
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
 
-    StackUtils.setBlockchainNetwork(template, blockchain)
+    // StackUtils.setBlockchainNetwork(template, blockchain)
 
     const { Resources, Mappings, Parameters } = template
-    const { org, deployment } = Mappings
+    const { deployment } = Mappings
     const logoPromise = getLogo(configuration).catch(err => {
       this.logger.warn('failed to get logo', { domain })
     })
@@ -869,13 +869,15 @@ ${this.genUsageInstructions(links)}`
     }
 
     deployment.init = dInit
-    org.init = {
-      name,
-      domain,
-      logo: await logoPromise || media.LOGO_UNKNOWN
-    }
 
-    StackUtils.setAdminEmail(template, adminEmail)
+    StackUtils.setLaunchTemplateParameters(template, {
+      BlockchainNetwork: blockchain,
+      OrgName: name,
+      OrgDomain: domain,
+      OrgLogo: await logoPromise || media.LOGO_UNKNOWN,
+      OrgAdminEmail: adminEmail,
+    })
+
     return this.finalizeCustomTemplate({
       template,
       oldServiceName: previousServiceName,
@@ -924,7 +926,9 @@ ${this.genUsageInstructions(links)}`
     // scrap unneeded mappings
     // also...we don't have this info
     template.Mappings = {}
-    StackUtils.setBlockchainNetwork(template, blockchain)
+    StackUtils.setUpdateTemplateParameters(template, {
+      BlockchainNetwork: blockchain
+    })
 
     const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {

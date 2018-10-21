@@ -36,5 +36,5 @@
   "local": {
     "webAppPort": 55555
   },
-  "S3TemplatesBaseUrl": "tradle-mycloud/public/templates"
+  "S3TemplatesBaseUrl": "https://tradle-mycloud.s3.amazonaws.com/public/templates"
 }

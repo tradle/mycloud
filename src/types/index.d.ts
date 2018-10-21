@@ -858,3 +858,14 @@ export interface StackTemplate {
     [key: string]: StackTemplateResource
   }
 }
+
+export interface StackUpdateParameters {
+  BlockchainNetwork: string
+}
+
+export interface StackLaunchParameters extends StackUpdateParameters {
+  OrgName: string
+  OrgDomain: string
+  OrgLogo: string
+  OrgAdminEmail: string
+}

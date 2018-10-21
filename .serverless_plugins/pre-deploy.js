@@ -1,6 +1,9 @@
+const path = require('path')
 const Errors = require('@tradle/errors')
 const { StackUtils } = require('../lib/stack-utils')
+const { uploadTemplatesAtPath } = require('../lib/cli/utils')
 const versionInfo = require('../lib/version')
+const templatesDir = path.resolve(__dirname, '../cloudformation')
 
 class SetVersion {
   constructor(serverless, options) {
@@ -8,8 +11,14 @@ class SetVersion {
     this.options = options
     this.provider = this.serverless.getProvider('aws')
     this.hooks = {
-      'aws:common:validate:validate': () => this.checkExisting(),
-      'before:package:compileFunctions': () => this.setVersion()
+      'aws:common:validate:validate': async () => {
+        await Promise.all([
+          this.checkExisting()
+          this.validateTemplates(),
+        ])
+      },
+      'before:package:compileFunctions': () => this.setVersion(),
+      'aws:deploy:deploy:uploadArtifacts': () => this.uploadTemplates(),
     }
 
   }
@@ -24,6 +33,16 @@ class SetVersion {
 
   _region() {
     return this.options.region
+  }
+
+  async _getBucket() {
+    const stage = this._stage()
+    const region = this._region()
+    try {
+      return await this.provider.getServerlessDeploymentBucketName(stage, region)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+    }
   }
 
   _dir() {
@@ -61,13 +80,7 @@ class SetVersion {
       }
     }
 
-    let bucketName
-    try {
-      bucketName = await this.provider.getServerlessDeploymentBucketName(stage, region)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-    }
-
+    const bucketName = await this._getBucket()
     if (!bucketName) return
 
     const { Contents=[] } = await this.provider.request('S3',
@@ -83,6 +96,26 @@ class SetVersion {
     if (Contents.length) {
       throw new Error(`already deployed to ${dir}, please deploy from a fresh commit`)
     }
+  }
+
+  async validateTemplates() {
+    debugger
+    await validateTemplatesAtPath({
+      dir: templatesDir,
+      region: this.options.region,
+    })
+  }
+
+  async uploadTemplates() {
+    debugger
+    const bucket = await this._getBucket()
+    await uploadTemplatesAtPath({
+      dir: templatesDir,
+      bucket,
+      region: this.options.region,
+      prefix: this._dir(),
+      acl: 'public-read',
+    })
   }
 
   setVersion() {

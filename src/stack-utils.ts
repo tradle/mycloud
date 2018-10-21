@@ -12,6 +12,8 @@ import {
   IUpdateStackUrlOpts,
   VersionInfo,
   StackTemplate,
+  StackLaunchParameters,
+  StackUpdateParameters,
 } from './types'
 
 import Errors from './errors'
@@ -39,7 +41,7 @@ const METHODS = [
   'PATCH'
 ]
 
-const ADMIN_EMAIL_PATH = ['Mappings', 'org', 'contact', 'adminEmail']
+const ADMIN_EMAIL_PATH = ['Parameters', 'OrgAdminEmail', 'Default']
 
 const stripDashes = str => str.replace(/[-]/g, '')
 
@@ -145,22 +147,45 @@ export default class StackUtils {
   }
 
   public static getDeploymentUUIDFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.deploymentUUID')
-  public static getServiceNameFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.service')
-  public static getStageFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.stage')
   public static getStackNameFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.stackName')
+  public static getServiceNameFromTemplate = (template: StackTemplate) => _.get(template, 'Parameters.ServiceName.Default')
+  public static getStageFromTemplate = (template: StackTemplate) => _.get(template, 'Parameters.Stage.Default')
   public static getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
   public static getAdminEmailFromTemplate = (template: StackTemplate) => _.get(template, ADMIN_EMAIL_PATH)
   public static getCommitHashFromTemplate = (template: StackTemplate) => _.get(template, 'Resources.Initialize.Properties.commit')
   public static normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
   public static setAdminEmail = (template:StackTemplate, email:string) => _.set(template, ADMIN_EMAIL_PATH, email)
-  public static setBlockchainNetwork = (template: StackTemplate, value: string) => {
+  // public static setBlockchainNetwork = (template: StackTemplate, value: string) => {
+  //   if (!template.Parameters) template.Parameters = {}
+  //   template.Parameters.BlockchainNetwork = {
+  //     Type: 'String',
+  //     Default: value,
+  //     AllowedValues: [
+  //       value
+  //     ]
+  //   }
+  // }
+
+  public static setUpdateTemplateParameters = (template: StackTemplate, values: StackUpdateParameters) => {
+    StackUtils._setTemplateParameters(template, values)
+  }
+
+  public static setLaunchTemplateParameters = (template: StackTemplate, values: StackLaunchParameters) => {
+    StackUtils._setTemplateParameters(template, values)
+  }
+
+  private static _setTemplateParameters = (template: StackTemplate, values: any) => {
     if (!template.Parameters) template.Parameters = {}
-    template.Parameters.BlockchainNetwork = {
-      Type: 'String',
-      Default: value,
-      AllowedValues: [
-        value
-      ]
+
+    const { Parameters } = template
+    for (let key in values) {
+      Parameters[key] = {
+        Type: 'String',
+        Default: values[key],
+        AllowedValues: [
+          values[key]
+        ]
+      }
     }
   }
 
@@ -652,7 +677,7 @@ export default class StackUtils {
     stage: string
     versionInfo: VersionInfo
   }) => {
-    const { tag, branch, commit, commitsSinceTag, time } = versionInfo
+    const { tag, commit, time } = versionInfo
     const dir = `serverless/${service}/${stage}/${tag}/${commit}`
     const templateKey = `${dir}/compiled-cloudformation-template.json`
     const zipKey = `${dir}/${service}.zip`
@@ -667,7 +692,7 @@ export default class StackUtils {
     service: string
     stage: string
     versionInfo: VersionInfo
-    deploymentBucket?: Bucket
+    deploymentBucket: Bucket
   }) => {
     const { deploymentBucket } = opts
     const loc = StackUtils.getStackLocationKeys(opts)

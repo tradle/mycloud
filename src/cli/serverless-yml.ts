@@ -1,9 +1,8 @@
 
-const staticStacks = require('./resources')
 const serverlessYml = require('../serverless-interpolated')
-const { Resources, Mappings } = serverlessYml.resources
-const tables = Object.keys(Resources)
-  .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
+const { Resources } = serverlessYml.resources
+// const tables = Object.keys(Resources)
+//   .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
 
 if (!Resources.ServerlessDeploymentBucket) {
   Resources.ServerlessDeploymentBucket = {
@@ -18,11 +17,11 @@ if (!Resources.ApiGatewayRestApi) {
 }
 
 // normalize tables
-tables.forEach(name => {
-  const { Type, Properties } = Resources[name]
-  if (Properties.StreamSpecification) {
-    Properties.StreamSpecification.StreamEnabled = true
-  }
-})
+// tables.forEach(name => {
+//   const { Type, Properties } = Resources[name]
+//   if (Properties.StreamSpecification) {
+//     Properties.StreamSpecification.StreamEnabled = true
+//   }
+// })
 
 export = serverlessYml
