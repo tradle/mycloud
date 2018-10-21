@@ -680,6 +680,7 @@ export default class StackUtils {
   }
 
   public getStackLocation = (versionInfo: VersionInfo) => StackUtils.getStackLocation({
+    // stackName: this.thisStackName,
     service: this.env.SERVERLESS_SERVICE_NAME,
     stage: this.env.SERVERLESS_STAGE,
     versionInfo,

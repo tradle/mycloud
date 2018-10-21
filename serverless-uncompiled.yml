@@ -318,10 +318,8 @@ provider:
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
-    IOT_PARENT_TOPIC:
+    STACK_NAME:
       Ref: AWS::StackName
-    IOT_CLIENT_ID_PREFIX:
-      Fn::Sub: '${AWS::StackName}-'
     BLOCKCHAIN:
       Ref: BlockchainNetwork
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
@@ -346,7 +344,7 @@ provider:
     R_BUCKET_PrivateConf:
       Fn::GetAtt: Buckets.Outputs.PrivateConf
     R_BUCKET_ServerlessDeployment:
-      Fn::GetAtt: Buckets.Outputs.Deployment
+      Ref: ServerlessDeploymentBucket
     R_KEY_DefaultEncryption:
       Ref: DefaultEncryptionKey
     R_TABLE_Events:
@@ -382,7 +380,7 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Tables.Outputs.StackName}-*'
+        - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-*'
 
     - Effect: Allow
       Action:
@@ -1092,6 +1090,20 @@ resources:
         - "true"
         - "false"
 
+    PointInTimeRecoveryEnabledEventsTable:
+      Type: String
+      Default: "false"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    PointInTimeRecoveryEnabledBucket0Table:
+      Type: String
+      Default: "false"
+      AllowedValues:
+        - "true"
+        - "false"
+
     ExistingEventsTable:
       Type: String
       Default: ""
@@ -1120,9 +1132,9 @@ resources:
       Type: String
       Default: ""
 
-    ExistingDeploymentBucket:
-      Type: String
-      Default: ""
+    # ExistingDeploymentBucket:
+    #   Type: String
+    #   Default: ""
 
     LogsDaysBeforeTransitionToGlacier:
       Type: Number
@@ -1164,6 +1176,10 @@ resources:
             Ref: ExistingEventsTable
           ExistingBucket0Table:
             Ref: ExistingBucket0Table
+          PointInTimeRecoveryEnabledEventsTable:
+            Ref: PointInTimeRecoveryEnabledEventsTable
+          PointInTimeRecoveryEnabledBucket0Table:
+            Ref: PointInTimeRecoveryEnabledBucket0Table
 
     Buckets:
       Type: AWS::CloudFormation::Stack
@@ -1181,8 +1197,8 @@ resources:
             Ref: ExistingFileUploadBucket
           ExistingLogsBucket:
             Ref: ExistingLogsBucket
-          ExistingDeploymentBucket:
-            Ref: ExistingDeploymentBucket
+          # ExistingDeploymentBucket:
+          #   Ref: ExistingDeploymentBucket
           LogsDaysBeforeTransitionToGlacier:
             Ref: LogsDaysBeforeTransitionToGlacier
 
@@ -1359,6 +1375,6 @@ resources:
     FileUploadBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.FileUpload
-    ServerlessDeploymentBucket:
-      Value:
-        Fn::GetAtt: Buckets.Outputs.Deployment
+    # ServerlessDeploymentBucket:
+    #   Value:
+    #     Fn::GetAtt: Buckets.Outputs.Deployment

@@ -46,6 +46,7 @@ export default class Env {
   public SERVERLESS_PREFIX:string
   public SERVERLESS_STAGE:string
   public SERVERLESS_SERVICE_NAME:string
+  public STACK_NAME:string
   public SERVERLESS_ALIAS?:string
   public SERVERLESS_ARTIFACTS_PATH: string
   public get STAGE() {
@@ -58,10 +59,6 @@ export default class Env {
 
   public get ALIAS() {
     return this.SERVERLESS_ALIAS
-  }
-
-  public get STACK_NAME() {
-    return `${this.SERVERLESS_SERVICE_NAME}-${this.STAGE}`
   }
 
   public BLOCKCHAIN: IBlockchainIdentifier
@@ -211,6 +208,9 @@ export default class Env {
     if (this.SESSION_TTL) {
       this.SESSION_TTL = Number(this.SESSION_TTL)
     }
+
+    this.IOT_PARENT_TOPIC = this.STACK_NAME
+    this.IOT_CLIENT_ID_PREFIX = `${this.STACK_NAME}-`
   }
 }
 

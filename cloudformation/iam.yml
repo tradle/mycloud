@@ -97,7 +97,7 @@ Resources:
                   Fn::Join:
                     - ""
                     - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
-                      - '${iot:ClientId}/sub/*'
+                      - '${iot:ClientId}/pub/outbox'
                 #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}message
                 #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}restore
 

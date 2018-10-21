@@ -43,6 +43,24 @@ class SetVersion {
     const region = this._region()
     const service = this._service()
     const dir = this._dir()
+    const StackName = this.provider.naming.getStackName()
+    try {
+      await this.provider.request(
+        'CloudFormation',
+        'describeStacks',
+        {
+          StackName,
+        },
+        stage,
+        region
+      )
+    } catch (err) {
+      if (err.code === 'ValidationError' && err.message.toLowerCase().includes('does not exist')) {
+        // if it's a stack create, allow
+        return
+      }
+    }
+
     let bucketName
     try {
       bucketName = await this.provider.getServerlessDeploymentBucketName(stage, region)

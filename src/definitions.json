@@ -21,7 +21,9 @@
         "WriteCapacityUnits": 5
       },
       "PointInTimeRecoverySpecification": {
-        "PointInTimeRecoveryEnabled": true
+        "PointInTimeRecoveryEnabled": {
+          "Ref": "PointInTimeRecoveryEnabledEventsTable"
+        }
       }
     }
   },
@@ -31,7 +33,9 @@
     "Description": "table that stores resources of all data models",
     "Properties": {
       "PointInTimeRecoverySpecification": {
-        "PointInTimeRecoveryEnabled": true
+        "PointInTimeRecoveryEnabled": {
+          "Ref": "PointInTimeRecoveryEnabledBucket0Table"
+        }
       },
       "AttributeDefinitions": [
         {

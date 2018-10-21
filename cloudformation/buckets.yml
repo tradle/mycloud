@@ -22,9 +22,9 @@ Parameters:
     Type: String
     Default: ""
 
-  ExistingDeploymentBucket:
-    Type: String
-    Default: ""
+  # ExistingDeploymentBucket:
+  #   Type: String
+  #   Default: ""
 
   LogsDaysBeforeTransitionToGlacier:
     Type: Number
@@ -40,8 +40,8 @@ Conditions:
     Fn::Equals: [ Ref: ExistingFileUploadBucket, ""]
   CreateLogsBucket:
     Fn::Equals: [ Ref: ExistingLogsBucket, ""]
-  CreateDeploymentBucket:
-    Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
+  # CreateDeploymentBucket:
+  #   Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
 
 Resources:
   Objects:
@@ -101,10 +101,10 @@ Resources:
                   Ref: LogsDaysBeforeTransitionToGlacier
                 StorageClass: Glacier
 
-  Deployment:
-    Type: AWS::S3::Bucket
-    Description: deployment storage bucket
-    # DeletionPolicy: Retain
+  # Deployment:
+  #   Type: AWS::S3::Bucket
+  #   Description: deployment storage bucket
+  #   # DeletionPolicy: Retain
 
 Outputs:
   Objects:
@@ -142,12 +142,12 @@ Outputs:
       - Ref: Logs
       - Ref: ExistingLogsBucket
 
-  Deployment:
-    Value:
-      Fn::If:
-      - CreateDeploymentBucket
-      - Ref: Deployment
-      - Ref: ExistingDeploymentBucket
+  # Deployment:
+  #   Value:
+  #     Fn::If:
+  #     - CreateDeploymentBucket
+  #     - Ref: Deployment
+  #     - Ref: ExistingDeploymentBucket
 
   StackName:
     Value:

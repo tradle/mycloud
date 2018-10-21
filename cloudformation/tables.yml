@@ -18,6 +18,20 @@ Parameters:
     Type: String
     Default: ""
 
+  PointInTimeRecoveryEnabledEventsTable:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+  PointInTimeRecoveryEnabledBucket0Table:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
 Conditions:
   CreateEventsTable:
     Fn::Equals: [ Ref: ExistingEventsTable, ""]
@@ -42,7 +56,8 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+        PointInTimeRecoveryEnabled:
+          Ref: PointInTimeRecoveryEnabledEventsTable
 
   Bucket0:
     Condition: CreateBucket0Table
@@ -52,7 +67,8 @@ Resources:
       TableName:
         Fn::Sub: ${Namespace}-bucket-0
       PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+        PointInTimeRecoveryEnabled:
+          Ref: PointInTimeRecoveryEnabledBucket0Table
       AttributeDefinitions:
         - AttributeName: __h__
           AttributeType: S
