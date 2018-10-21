@@ -37,8 +37,7 @@ package:
     - serverless-interpolated.yml
   exclude:
     - src/**
-    - secrets.yml
-    - vars.yml
+    - vars.json
     - logs/**
     - "*.log"
     - "*.rdb"
@@ -65,14 +64,13 @@ package:
     - clienttest/
 
 custom:
-  vars: ${{file(./vars.yml), file(./default-vars.yml)}}
+  vars: ${{file(./vars.json), file(./default-vars.json)}}
   version: ${{file(./lib/version.json)}}
-  defaults: ${{file(./default-vars.yml)}}
-  # move these to vars.yml when this issue is fixed:
+  defaults: ${{file(./default-vars.json)}}
+  # move these to vars.json when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
   service: ${{self:custom.vars.service, self:custom.defaults.service}}
   stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaults.stage}}
-  secrets: ${{file(./secrets.yml):${{self:custom.stage}}, self:custom.defaults.secrets}}
   # stage: dev
   region: ${{opt:region, self:custom.vars.region, self:custom.defaults.region}}
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
@@ -87,7 +85,7 @@ custom:
 
   # logging: ${{self:custom.vars.logging, self:custom.defaults.logging}}
 
-  # copied from vars.yml
+  # copied from vars.json
   # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
   # blockchain: ${{self:custom.vars.blockchain}}
   # thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm, self:custom.defaults.thresholdBillingAlarm}}
@@ -1066,8 +1064,8 @@ resources:
     ServiceName:
       Type: String
       Default: ${{self:custom.service}}
-      AllowedValues:
-        - ${{self:custom.service}}
+      # AllowedValues:
+      #   - ${{self:custom.service}}
 
     Stage:
       Type: String
@@ -1085,7 +1083,7 @@ resources:
 
     S3TemplatesBaseUrl:
       Type: String
-      Default: 'https://mvayngrib-serverless-deployment.s3.amazonaws.com/mycloud/templates'
+      Default: ${{self:custom.vars.S3TemplatesBaseUrl}}
 
     AutoScalingEnabled:
       Type: String
@@ -1096,14 +1094,14 @@ resources:
 
     PointInTimeRecoveryEnabledEventsTable:
       Type: String
-      Default: "false"
+      Default: "true"
       AllowedValues:
         - "true"
         - "false"
 
     PointInTimeRecoveryEnabledBucket0Table:
       Type: String
-      Default: "false"
+      Default: "true"
       AllowedValues:
         - "true"
         - "false"

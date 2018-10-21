@@ -1,0 +1,10 @@
+{
+  "service": "tdl-superawesome-ltd",
+  "region": "us-east-1",
+  "org": {
+    "name": "Super",
+    "domain": "superawesome.org",
+    "logo": "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png"
+  },
+  "emailForNotifications": "mark@tradle.io"
+}

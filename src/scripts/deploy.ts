@@ -2,8 +2,8 @@
 
 import path from 'path'
 import fs from 'fs'
-if (!fs.existsSync(path.resolve(process.cwd(), 'vars.yml'))) {
-  throw new Error('expected vars.yml file')
+if (!fs.existsSync(path.resolve(process.cwd(), 'vars.json'))) {
+  throw new Error('expected vars.json file')
 }
 
 import promisify from 'pify'

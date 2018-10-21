@@ -1,0 +1,40 @@
+{
+  "service": "tdl-tradle-ltd",
+  "stage": "dev",
+  "region": "us-east-1",
+  "profile": "default",
+  "emailForNotifications": "mark@tradle.io",
+  "blockchain": "ethereum:rinkeby",
+  "thresholdThrottlingAlarm": 10,
+  "thresholdErrorsAlarm": 10,
+  "thresholdInvocationsAlarm": 50,
+  "thresholdDurationAlarm": 60,
+  "versionFunctions": false,
+  "serverless-offline": {
+    "host": "0.0.0.0",
+    "port": 21012,
+    "skipCacheInvalidation": false
+  },
+  "serverless-iot-local": {
+    "host": "0.0.0.0",
+    "port": 1883,
+    "httpPort": 1884
+  },
+  "debug": {
+    "format": "json",
+    "level": 4
+  },
+  "org": {
+    "name": "Super Awesome Org",
+    "domain": "superawesome.org",
+    "logo": "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png"
+  },
+  "corda": {
+    "apiKey": "abc",
+    "apiUrl": "http://localhost:10007/api/share"
+  },
+  "local": {
+    "webAppPort": 55555
+  },
+  "S3TemplatesBaseUrl": "tradle-mycloud/public/templates"
+}
