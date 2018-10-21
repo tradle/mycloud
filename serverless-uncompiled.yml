@@ -1085,7 +1085,7 @@ resources:
 
     AutoScalingEnabled:
       Type: String
-      Default: "false"
+      Default: "true"
       AllowedValues:
         - "true"
         - "false"

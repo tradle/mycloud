@@ -64,7 +64,8 @@ Resources:
     DependsOn:
       - AutoScalingTargetWrite
     Properties:
-      PolicyName: ScalingPolicyWrite
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWrite'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetWrite
@@ -75,7 +76,8 @@ Resources:
           Ref: ScaleInCooldown
         ScaleOutCooldown:
           Ref: ScaleOutCooldown
-        TargetValue: TargetWriteUtilization
+        TargetValue:
+          Ref: TargetWriteUtilization
 
 Outputs:
   StackName:

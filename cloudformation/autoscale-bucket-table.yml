@@ -64,7 +64,8 @@ Resources:
     DependsOn:
     - AutoScalingTargetRead
     Properties:
-      PolicyName: TableScalingPolicyRead
+      PolicyName:
+        Fn::Sub: '${Table}-TableScalingPolicyRead'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetRead
@@ -100,7 +101,8 @@ Resources:
     DependsOn:
     - AutoScalingTargetWrite
     Properties:
-      PolicyName: TableScalingPolicyWrite
+      PolicyName:
+        Fn::Sub: '${Table}-TableScalingPolicyWrite'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetWrite
@@ -123,7 +125,8 @@ Resources:
     - TableScalingPolicyWrite
     - AutoScalingTargetWrite
     Properties:
-      PolicyName: TableScalingPolicyReadIdx0
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx0'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetReadIdx0
@@ -169,7 +172,8 @@ Resources:
     - TableScalingPolicyWrite
     - AutoScalingTargetWrite
     Properties:
-      PolicyName: TableScalingPolicyWriteIdx0
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx0'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetWriteIdx0
@@ -214,7 +218,8 @@ Resources:
     - TableScalingPolicyWriteIdx0
     - AutoScalingTargetWriteIdx0
     Properties:
-      PolicyName: TableScalingPolicyReadIdx1
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx1'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetReadIdx1
@@ -259,7 +264,8 @@ Resources:
     - TableScalingPolicyWriteIdx0
     - AutoScalingTargetWriteIdx0
     Properties:
-      PolicyName: TableScalingPolicyWriteIdx1
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx1'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetWriteIdx1
@@ -304,7 +310,8 @@ Resources:
     - TableScalingPolicyWriteIdx1
     - AutoScalingTargetWriteIdx1
     Properties:
-      PolicyName: TableScalingPolicyReadIdx2
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx2'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetReadIdx2
@@ -349,7 +356,8 @@ Resources:
     - TableScalingPolicyWriteIdx1
     - AutoScalingTargetWriteIdx1
     Properties:
-      PolicyName: TableScalingPolicyWriteIdx2
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx2'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetWriteIdx2
@@ -394,7 +402,8 @@ Resources:
     - TableScalingPolicyWriteIdx2
     - AutoScalingTargetWriteIdx2
     Properties:
-      PolicyName: TableScalingPolicyReadIdx3
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx3'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetReadIdx3
@@ -439,7 +448,8 @@ Resources:
     - TableScalingPolicyWriteIdx2
     - AutoScalingTargetWriteIdx2
     Properties:
-      PolicyName: TableScalingPolicyWriteIdx3
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx3'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetWriteIdx3
@@ -484,7 +494,8 @@ Resources:
     - TableScalingPolicyWriteIdx3
     - AutoScalingTargetWriteIdx3
     Properties:
-      PolicyName: TableScalingPolicyReadIdx4
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx4'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetReadIdx4
@@ -529,7 +540,8 @@ Resources:
     - TableScalingPolicyWriteIdx3
     - AutoScalingTargetWriteIdx3
     Properties:
-      PolicyName: TableScalingPolicyWriteIdx4
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx4'
       PolicyType: TargetTrackingScaling
       ScalingTargetId:
         Ref: AutoScalingTargetWriteIdx4
