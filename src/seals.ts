@@ -378,7 +378,7 @@ export default class Seals {
           ret.error = {
             name: 'LowFunds',
             message: err.message,
-            type: key.type,
+            blockchain: key.type,
             networkName: key.networkName,
             address: key.fingerprint,
           }
