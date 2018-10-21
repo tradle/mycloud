@@ -115,6 +115,8 @@ custom:
   emailForNotifications:
     ${{self:custom.vars.emailForNotifications, self:custom.defaults.emailForNotifications}}
 
+  s3TemplatesBaseUrl: ${{self:custom.vars.s3TemplatesBaseUrl, self:custom.defaults.s3TemplatesBaseUrl}}
+
   # sns
   # billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
   # throttlingAlarmTopic: ${{self:custom.prefixSNSTopic}}ThrottlingAlarmNotification
@@ -1084,7 +1086,7 @@ resources:
 
     S3TemplatesBaseUrl:
       Type: String
-      Default: ${{self:custom.vars.S3TemplatesBaseUrl}}
+      Default: ${{self:custom.s3TemplatesBaseUrl}}
 
     AutoScalingEnabled:
       Type: String
