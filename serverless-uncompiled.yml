@@ -441,11 +441,35 @@ provider:
         # # needed to enable bucket encryption
         # - s3:PutEncryptionConfiguration
       Resource:
-        Fn::Join:
+        # Fn::Join:
+        #   - ''
+        #   - - "arn:aws:s3:::"
+        #     - Ref: AWS::StackName
+        #     - "-*"
+        - Fn::Join:
           - ''
           - - "arn:aws:s3:::"
-            - Ref: AWS::StackName
-            - "-*"
+            - Fn::GetAtt: Buckets.Outputs.Objects
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Secrets
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.PrivateConf
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.FileUpload
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Logs
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
 
     - Effect: Allow
       Action:
@@ -454,11 +478,43 @@ provider:
         - s3:PutObjectAcl
         - s3:GetObject
       Resource:
-        Fn::Join:
+        # Fn::Join:
+        #   - ''
+        #   - - "arn:aws:s3:::"
+        #     - Ref: AWS::StackName
+        #     - "-*/*"
+
+        - Fn::Join:
           - ''
           - - "arn:aws:s3:::"
-            - Ref: AWS::StackName
-            - "-*/*"
+            - Fn::GetAtt: Buckets.Outputs.Objects
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Secrets
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.PrivateConf
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.FileUpload
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Logs
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: ServerlessDeploymentBucket
+            - '/*'
+
 
     - Effect: Allow
       Action:
