@@ -18,13 +18,9 @@ class SetVersion {
       'aws:common:validate:validate': () => this.onValidate(),
       'before:package:compileFunctions': () => this.setVersion(),
       'aws:deploy:deploy:uploadArtifacts': async () => {
-        // if (!this._uploadedTemplates) {
-          await this.uploadTemplates(await this._getBucket())
-        // }
+        await this.uploadTemplates(await this._getBucket())
       },
     }
-
-    // this._uploadedTemplates = false
   }
 
   _service() {
@@ -66,12 +62,6 @@ class SetVersion {
       this.checkExisting(),
       this.validateTemplates(),
     ])
-
-    // const bucket = await this._getBucket()
-    // if (!bucket) return
-
-    // this._uploadedTemplates = true
-    // await this.uploadTemplates(bucket)
   }
 
   async checkExisting() {

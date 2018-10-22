@@ -38,7 +38,7 @@
     "serverless-iot-local": "github:tradle/serverless-iot-local",
     "serverless-offline": "github:tradle/serverless-offline",
     "serverless-offline-scheduler": "^0.3.3",
-    "serverless-plugin-aws-alerts": "^1.2.4",
+    "serverless-plugin-aws-alerts": "github:mvayngrib/serverless-plugin-aws-alerts",
     "serverless-plugin-log-retention": "^1.0.2",
     "serverless-plugin-tracing": "^1.0.6",
     "sinon": "^3.3.0",

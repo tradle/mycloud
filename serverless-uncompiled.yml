@@ -108,7 +108,7 @@ custom:
   prefixSQS: ${{self:custom.prefix}}
   # apigateway
   # adhere to serverless framework format
-  apiGateway: ${{self:custom.stage}}-${{self:service}}
+  # apiGateway: ${{self:custom.stage}}-${{self:service}}
 
   # versions
   versionSQL: "2016-03-23"
@@ -282,7 +282,7 @@ custom:
   logRetentionInDays: 3
   # daysBeforeLogsGoToGlacier: 7
 
-  issue2233WorkaroundKey: issue2233WorkaroundKey-${{self:service}}-${{self:provider.stage}}
+  # issue2233WorkaroundKey: issue2233WorkaroundKey
   # defaultKMSKeyId: ${{self:custom.regionalPrefix}}default-key
 
   # tradleStackPrefix: tdl-tradle-ltd-${{self:stage}}-
@@ -366,7 +366,7 @@ provider:
       Ref: AwsAlertsAlarm
 
   apiKeys:
-    - ${{self:custom.issue2233WorkaroundKey}}
+    - Fn::Sub: 'issue2233WorkaroundKey1-${AWS::StackName}'
 
   iamRoleStatements:
     - Effect: Allow
@@ -1271,7 +1271,8 @@ resources:
     ApiGatewayRestApi:
       Type: AWS::ApiGateway::RestApi
       Properties:
-        Name: ${{self:custom.apiGateway}}
+        Name:
+          Ref: AWS::StackName
         BinaryMediaTypes:
           - "*/*"
 
