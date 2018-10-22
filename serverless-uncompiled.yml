@@ -383,7 +383,25 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AWS::StackName}-*'
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Events
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Events
+            - '/index/*'
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Bucket0
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Bucket0
+            - '/index/*'
+
 
     - Effect: Allow
       Action:
