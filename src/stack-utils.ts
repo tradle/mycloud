@@ -678,9 +678,9 @@ export default class StackUtils {
     versionInfo: VersionInfo
   }) => {
     const { tag, commit, time } = versionInfo
-    const dir = `serverless/${service}/${stage}/${tag}/${commit}`
+    const dir = `mycloud/tradle/${stage}/${tag}/${commit}`
     const templateKey = `${dir}/compiled-cloudformation-template.json`
-    const zipKey = `${dir}/${service}.zip`
+    const zipKey = `${dir}/lambda.zip`
     return {
       dir,
       templateKey,
