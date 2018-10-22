@@ -220,7 +220,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get isTesting() { return this.env.IS_TESTING }
   public get isLocal() { return this.env.IS_LOCAL }
   public get isEmulated() { return this.env.IS_EMULATED }
-  public get resourcePrefix() { return this.env.SERVERLESS_PREFIX }
+  public get resourcePrefix() { return this.env.STACK_RESOURCE_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
 

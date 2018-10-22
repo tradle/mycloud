@@ -382,7 +382,7 @@ function createDBUtils ({ aws, logger, env, serviceMap }: {
       opts.ExclusiveStartTableName = LastEvaluatedTableName
     }
 
-    return tables.filter(name => name.startsWith(env.SERVERLESS_PREFIX))
+    return tables.filter(name => name.startsWith(env.STACK_RESOURCE_PREFIX))
   }
 
   const get = async (params:AWS.DynamoDB.GetItemInput) => {

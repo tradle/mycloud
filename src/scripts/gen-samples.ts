@@ -20,12 +20,11 @@ if (argv.local) {
 }
 
 const {
-  SERVERLESS_STAGE,
-  SERVERLESS_SERVICE_NAME,
+  STACK_STAGE,
   R_RESTAPI_ApiGateway
 } = require('../test/service-map')
 
-const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.amazonaws.com/${SERVERLESS_STAGE}/${SERVERLESS_SERVICE_NAME}/samples`
+const genSamplesUrl = `https://${R_RESTAPI_ApiGateway}.execute-api.us-east-1.amazonaws.com/${STACK_STAGE}/samples`
 
 ;(async () => {
   const res = await request

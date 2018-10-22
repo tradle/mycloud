@@ -672,8 +672,7 @@ export default class StackUtils {
     })
   }
 
-  public static getStackLocationKeys = ({ service, stage, versionInfo }:  {
-    service: string
+  public static getStackLocationKeys = ({ stage, versionInfo }:  {
     stage: string
     versionInfo: VersionInfo
   }) => {
@@ -689,7 +688,6 @@ export default class StackUtils {
   }
 
   public static getStackLocation = (opts: {
-    service: string
     stage: string
     versionInfo: VersionInfo
     deploymentBucket: Bucket
@@ -706,8 +704,7 @@ export default class StackUtils {
 
   public getStackLocation = (versionInfo: VersionInfo) => StackUtils.getStackLocation({
     // stackName: this.thisStackName,
-    service: this.env.SERVERLESS_SERVICE_NAME,
-    stage: this.env.SERVERLESS_STAGE,
+    stage: this.env.STACK_STAGE,
     versionInfo,
     deploymentBucket: this.deploymentBucket
   })

@@ -28,7 +28,6 @@ const info = {
 
 info.templatesPath = StackUtils.getStackLocationKeys({
   ...process.env,
-  service: getVar('service'),
   stage: getVar('stage'),
   versionInfo: info,
 }).dir

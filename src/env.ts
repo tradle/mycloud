@@ -43,18 +43,12 @@ export default class Env {
   public DEBUG_FORMAT:string
   public DEBUG_LEVEL:string
 
-  public SERVERLESS_PREFIX:string
-  public SERVERLESS_STAGE:string
-  public SERVERLESS_SERVICE_NAME:string
+  public STACK_RESOURCE_PREFIX:string
+  public STACK_STAGE:string
   public STACK_NAME:string
   public SERVERLESS_ALIAS?:string
-  public SERVERLESS_ARTIFACTS_PATH: string
   public get STAGE() {
-    return this.SERVERLESS_STAGE
-  }
-
-  public get SERVICE_NAME() {
-    return this.SERVERLESS_SERVICE_NAME
+    return this.STACK_STAGE
   }
 
   public get ALIAS() {
@@ -78,10 +72,9 @@ export default class Env {
   constructor(props:any) {
     props = clone(props)
     const {
-      // SERVERLESS_PREFIX,
+      // STACK_RESOURCE_PREFIX,
       STACK_NAME,
-      SERVERLESS_STAGE,
-      SERVERLESS_SERVICE_NAME,
+      STACK_STAGE,
       NODE_ENV,
       IS_LOCAL,
       IS_OFFLINE,
@@ -106,8 +99,6 @@ export default class Env {
     // props.MEMORY_SIZE = isNaN(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
     //   ? 512
     //   : Number(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)
-
-    props.SERVERLESS_ARTIFACTS_PATH = `serverless/${SERVERLESS_SERVICE_NAME}/${SERVERLESS_STAGE}`
 
     this.logger = new Logger({
       namespace: props.IS_TESTING ? '' : ROOT_LOGGING_NAMESPACE,
@@ -181,19 +172,19 @@ export default class Env {
   }
 
   public getStackResourceShortName = (name: string):string => {
-    return name.slice(this.SERVERLESS_PREFIX.length)
+    return name.slice(this.STACK_RESOURCE_PREFIX.length)
   }
 
   public getStackResourceName = (name: string):string => {
-    const { SERVERLESS_PREFIX='' } = this
-    return name.startsWith(SERVERLESS_PREFIX)
+    const { STACK_RESOURCE_PREFIX='' } = this
+    return name.startsWith(STACK_RESOURCE_PREFIX)
       ? name
-      : `${SERVERLESS_PREFIX}${name}`
+      : `${STACK_RESOURCE_PREFIX}${name}`
   }
 
   private _recalc = (props:any):void => {
-    if ('SERVERLESS_STAGE' in props) {
-      this.DEV = !this.SERVERLESS_STAGE.startsWith('prod')
+    if ('STACK_STAGE' in props) {
+      this.DEV = !this.STACK_STAGE.startsWith('prod')
     }
 
     if ('NO_TIME_TRAVEL' in props) {
@@ -210,8 +201,8 @@ export default class Env {
       this.SESSION_TTL = Number(this.SESSION_TTL)
     }
 
-    this.SERVERLESS_PREFIX = `${this.STACK_NAME}-`
-    this.IOT_CLIENT_ID_PREFIX = this.SERVERLESS_PREFIX
+    this.STACK_RESOURCE_PREFIX = `${this.STACK_NAME}-`
+    this.IOT_CLIENT_ID_PREFIX = this.STACK_RESOURCE_PREFIX
     this.IOT_PARENT_TOPIC = this.STACK_NAME
   }
 }

@@ -1221,8 +1221,8 @@ ${this.genUsageInstructions(links)}`
     const { env } = this.bot
     return this.bot.draft({ type: UPDATE_REQUEST })
       .set({
-        service: env.SERVERLESS_SERVICE_NAME,
-        stage: env.SERVERLESS_STAGE,
+        service: 'tradle',
+        stage: env.STACK_STAGE,
         region: env.AWS_REGION,
         stackId: this._thisStackArn,
         blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),

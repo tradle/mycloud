@@ -329,12 +329,10 @@ provider:
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
     # SERVERLESS_PREFIX: ${{self:custom.prefix}}
-    # SERVERLESS_STAGE: ${{self:custom.stage}}
+    # STACK_STAGE: ${{self:custom.stage}}
     # SERVERLESS_SERVICE_NAME: ${{self:service}}
-    SERVERLESS_STAGE:
+    STACK_STAGE:
       Ref: Stage
-    SERVERLESS_SERVICE_NAME:
-      Ref: ServiceName
     NO_TIME_TRAVEL: false # allow time-travel messages for now
     R_STACK:
       Ref: AWS::StackId
@@ -446,9 +444,7 @@ provider:
         Fn::Join:
           - ''
           - - "arn:aws:s3:::"
-            - Ref: ServiceName
-            - '-'
-            - Ref: Stage
+            - Ref: AWS::StackName
             - "-*"
 
     - Effect: Allow
@@ -461,9 +457,7 @@ provider:
         Fn::Join:
           - ''
           - - "arn:aws:s3:::"
-            - Ref: ServiceName
-            - '-'
-            - Ref: Stage
+            - Ref: AWS::StackName
             - "-*/*"
 
     - Effect: Allow
@@ -718,7 +712,7 @@ functions:
     handler: lib/in-house-bot/lambda/mqtt/onmessage.handler
     memorySize: 1024
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
-    #   SERVERLESS_STAGE: ${{self:custom.stage}}
+    #   STACK_STAGE: ${{self:custom.stage}}
     #   SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
@@ -1064,12 +1058,6 @@ functions:
 
 resources:
   Parameters:
-    ServiceName:
-      Type: String
-      Default: ${{self:custom.service}}
-      AllowedValues:
-        - ${{self:custom.service}}
-
     Stage:
       Type: String
       Default: ${{self:custom.stage}}
@@ -1090,7 +1078,7 @@ resources:
       Default: "true"
       AllowedValues:
         - "true"
-        - "false"
+        # - "false"
 
     PointInTimeRecoveryEnabledEventsTable:
       Type: String

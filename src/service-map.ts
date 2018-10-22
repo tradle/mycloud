@@ -22,8 +22,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
   const { logger } = env
   const {
     AWS_REGION,
-    SERVERLESS_SERVICE_NAME,
-    SERVERLESS_STAGE,
+    STACK_STAGE,
     STACK_NAME,
   } = env
 
@@ -49,7 +48,7 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       } else {
         value = {
           id: env[key],
-          url: `https://${env[key]}.execute-api.${AWS_REGION}.amazonaws.com/${SERVERLESS_STAGE}`
+          url: `https://${env[key]}.execute-api.${AWS_REGION}.amazonaws.com/${STACK_STAGE}`
         }
       }
     } else {

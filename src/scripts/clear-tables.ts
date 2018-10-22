@@ -20,12 +20,12 @@ const { href } = aws.dynamodb.endpoint
 const getTablesToClear = async (tables=process.argv.slice(2)) => {
   if (tables.length) {
     tables = tables.map(name => {
-      return name.startsWith(env.SERVERLESS_PREFIX) ? name : env.SERVERLESS_PREFIX + name
+      return name.startsWith(env.STACK_RESOURCE_PREFIX) ? name : env.STACK_RESOURCE_PREFIX + name
     })
   } else {
     tables = await listTables(env)
     tables = tables.filter(name => {
-      return !NOT_CLEARABLE_TABLES.find(skippable => env.SERVERLESS_PREFIX + skippable === name)
+      return !NOT_CLEARABLE_TABLES.find(skippable => env.STACK_RESOURCE_PREFIX + skippable === name)
     })
   }
 
