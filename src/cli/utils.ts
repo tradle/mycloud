@@ -1,6 +1,5 @@
 import path from 'path'
 import _ from 'lodash'
-import withDefaults from 'lodash/defaults'
 import promisify from 'pify'
 import proc from 'child_process'
 import { parseSync as parseEnv } from 'env-file-parser'
@@ -420,17 +419,6 @@ export const confirm = async (question?: string) => {
   rl.close()
   return yn(answer)
 }
-
-export const getVar = (name: string) => {
-  const defaults = require('../../vars.json')
-  const vars = require('../../default-vars.json')
-  return withDefaults(vars, defaults)[name]
-}
-
-export const getVars = (names: string[]):any => names.reduce((map, name) => {
-  map[name] = getVar(name)
-  return map
-}, {})
 
 export const validateTemplateAtPath = async ({ cloudformation, templatePath }: {
   cloudformation: AWS.CloudFormation

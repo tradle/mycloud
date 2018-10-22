@@ -762,6 +762,7 @@ export type VersionInfo = {
   time: string
   templateUrl?: string
   alert?: boolean
+  templatesPath?: string
 }
 
 export interface Registry<T> {

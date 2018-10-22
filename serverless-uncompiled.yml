@@ -115,7 +115,7 @@ custom:
   emailForNotifications:
     ${{self:custom.vars.emailForNotifications, self:custom.defaults.emailForNotifications}}
 
-  s3TemplatesBaseUrl: ${{self:custom.vars.s3TemplatesBaseUrl, self:custom.defaults.s3TemplatesBaseUrl}}
+  s3TemplatesPath: ${{self:custom.version.templatesPath}}
 
   # sns
   # billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
@@ -1080,13 +1080,10 @@ resources:
       Type: String
       Default: ${{self:custom.blockchain}}
       AllowedValues:
-        - 'ethereum:mainnet'
-        - 'ethereum:rinkeby'
-        - 'ethereum:ropsten'
-
-    S3TemplatesBaseUrl:
-      Type: String
-      Default: ${{self:custom.s3TemplatesBaseUrl}}
+        - ${{self:custom.blockchain}}
+        # - 'ethereum:mainnet'
+        # - 'ethereum:rinkeby'
+        # - 'ethereum:ropsten'
 
     AutoScalingEnabled:
       Type: String
@@ -1197,7 +1194,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: ${S3TemplatesBaseUrl}/tables.yml
+          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/tables.yml
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1214,7 +1211,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: ${S3TemplatesBaseUrl}/buckets.yml
+          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/buckets.yml
         Parameters:
           ExistingObjectsBucket:
             Ref: ExistingObjectsBucket
@@ -1235,7 +1232,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: ${S3TemplatesBaseUrl}/iam.yml
+          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/iam.yml
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1249,7 +1246,7 @@ resources:
       Condition: AutoScale
       Properties:
         TemplateURL:
-          Fn::Sub: ${S3TemplatesBaseUrl}/autoscale-events-table.yml
+          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-events-table.yml
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Events
@@ -1261,7 +1258,7 @@ resources:
       Condition: AutoScale
       Properties:
         TemplateURL:
-          Fn::Sub: ${S3TemplatesBaseUrl}/autoscale-bucket-table.yml
+          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.yml
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Bucket0
@@ -1412,3 +1409,7 @@ resources:
     # ServerlessDeploymentBucket:
     #   Value:
     #     Fn::GetAtt: Buckets.Outputs.Deployment
+
+    S3TemplatesBaseUrl:
+      Value:
+        Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}

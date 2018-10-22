@@ -1,7 +1,6 @@
 const path = require('path')
 const AWS = require('aws-sdk')
 const Errors = require('@tradle/errors')
-const { StackUtils } = require('../lib/stack-utils')
 const {
   validateTemplatesAtPath,
   uploadTemplatesAtPath
@@ -46,15 +45,7 @@ class SetVersion {
   }
 
   _dir() {
-    const { dir } = StackUtils.getStackLocationKeys({
-      ...process.env,
-      service: this._service(),
-      stage: this._stage(),
-      region: this._region(),
-      versionInfo,
-    })
-
-    return dir
+    return versionInfo.templatesPath
   }
 
   async onValidate() {
