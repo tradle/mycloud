@@ -347,7 +347,7 @@ provider:
     R_BUCKET_PrivateConf:
       Fn::GetAtt: Buckets.Outputs.PrivateConf
     R_BUCKET_ServerlessDeployment:
-      Ref: ServerlessDeploymentBucket
+      Fn::GetAtt: Buckets.Outputs.Deployment
     R_KEY_DefaultEncryption:
       Ref: DefaultEncryptionKey
     R_TABLE_Events:
@@ -487,7 +487,7 @@ provider:
         - Fn::Join:
           - ''
           - - "arn:aws:s3:::"
-            - Ref: ServerlessDeploymentBucket
+            - Fn::GetAtt: Buckets.Outputs.Deployment
 
     - Effect: Allow
       Action:
@@ -530,7 +530,7 @@ provider:
         - Fn::Join:
           - ''
           - - "arn:aws:s3:::"
-            - Ref: ServerlessDeploymentBucket
+            - Fn::GetAtt: Buckets.Outputs.Deployment
             - '/*'
 
 
@@ -1291,8 +1291,8 @@ resources:
             Ref: ExistingFileUploadBucket
           ExistingLogsBucket:
             Ref: ExistingLogsBucket
-          # ExistingDeploymentBucket:
-          #   Ref: ExistingDeploymentBucket
+          ExistingDeploymentBucket:
+            Ref: ServerlessDeploymentBucket
           LogsDaysBeforeTransitionToGlacier:
             Ref: LogsDaysBeforeTransitionToGlacier
 
@@ -1474,9 +1474,9 @@ resources:
     FileUploadBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.FileUpload
-    # ServerlessDeploymentBucket:
-    #   Value:
-    #     Fn::GetAtt: Buckets.Outputs.Deployment
+    ServerlessDeploymentBucket:
+      Value:
+        Fn::GetAtt: Buckets.Outputs.Deployment
 
     S3TemplatesBaseUrl:
       Value:

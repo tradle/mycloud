@@ -22,9 +22,9 @@ Parameters:
     Type: String
     Default: ""
 
-  # ExistingDeploymentBucket:
-  #   Type: String
-  #   Default: ""
+  ExistingDeploymentBucket:
+    Type: String
+    Default: ""
 
   LogsDaysBeforeTransitionToGlacier:
     Type: Number
@@ -40,8 +40,8 @@ Conditions:
     Fn::Equals: [ Ref: ExistingFileUploadBucket, ""]
   CreateLogsBucket:
     Fn::Equals: [ Ref: ExistingLogsBucket, ""]
-  # CreateDeploymentBucket:
-  #   Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
+  CreateDeploymentBucket:
+    Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
 
 Resources:
   Objects:
@@ -60,8 +60,8 @@ Resources:
         Status: Enabled
 
   PrivateConf:
-    Type: AWS::S3::Bucket
     Condition: CreatePrivateConfBucket
+    Type: AWS::S3::Bucket
     Description: private configuration files
     # DeletionPolicy: Retain
     Properties:
@@ -69,8 +69,8 @@ Resources:
         Status: Enabled
 
   FileUpload:
-    Type: AWS::S3::Bucket
     Condition: CreateFileUploadBucket
+    Type: AWS::S3::Bucket
     Description: file upload destination for all users
     # DeletionPolicy: Retain
     Properties:
@@ -87,6 +87,7 @@ Resources:
             MaxAge: 3600
 
   Logs:
+    Condition: CreateLogsBucket
     Type: AWS::S3::Bucket
     Description: logs from lambda functions, apigateway and others
     # DeletionPolicy: Retain
@@ -101,10 +102,11 @@ Resources:
                   Ref: LogsDaysBeforeTransitionToGlacier
                 StorageClass: Glacier
 
-  # Deployment:
-  #   Type: AWS::S3::Bucket
-  #   Description: deployment storage bucket
-  #   # DeletionPolicy: Retain
+  Deployment:
+    Condition: CreateDeploymentBucket
+    Type: AWS::S3::Bucket
+    Description: deployment storage bucket
+    # DeletionPolicy: Retain
 
 Outputs:
   Objects:
@@ -142,12 +144,12 @@ Outputs:
       - Ref: Logs
       - Ref: ExistingLogsBucket
 
-  # Deployment:
-  #   Value:
-  #     Fn::If:
-  #     - CreateDeploymentBucket
-  #     - Ref: Deployment
-  #     - Ref: ExistingDeploymentBucket
+  Deployment:
+    Value:
+      Fn::If:
+      - CreateDeploymentBucket
+      - Ref: Deployment
+      - Ref: ExistingDeploymentBucket
 
   StackName:
     Value:

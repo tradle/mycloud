@@ -108,11 +108,15 @@ class SetVersion {
   }
 
   async uploadTemplates(bucket) {
+    const prefix = this._dir()
+
+    this.serverless.cli.log(`uploading templates to s3://${bucket}/${prefix}`)
+
     await uploadTemplatesAtPath({
       s3: this._createClient('S3'),
       dir: templatesDir,
       bucket,
-      prefix: this._dir(),
+      prefix,
       acl: 'public-read',
     })
   }
