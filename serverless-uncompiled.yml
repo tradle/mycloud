@@ -1114,6 +1114,10 @@ resources:
       Type: String
       Default: ""
 
+    ExistingBucket0TableStreamArn:
+      Type: String
+      Default: ""
+
     ExistingObjectsBucket:
       Type: String
       Default: ""
@@ -1202,6 +1206,8 @@ resources:
             Ref: ExistingEventsTable
           ExistingBucket0Table:
             Ref: ExistingBucket0Table
+          ExistingBucket0TableStreamArn:
+            Ref: ExistingBucket0TableStreamArn
           PointInTimeRecoveryEnabledEventsTable:
             Ref: PointInTimeRecoveryEnabledEventsTable
           PointInTimeRecoveryEnabledBucket0Table:
