@@ -1,4 +1,4 @@
-
+const Errors = require('@tradle/errors')
 const { StackUtils } = require('../lib/stack-utils')
 const versionInfo = require('../lib/version')
 
@@ -43,7 +43,13 @@ class SetVersion {
     const region = this._region()
     const service = this._service()
     const dir = this._dir()
-    const bucketName = await this.provider.getServerlessDeploymentBucketName(stage, region)
+    let bucketName
+    try {
+      bucketName = await this.provider.getServerlessDeploymentBucketName(stage, region)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+    }
+
     if (!bucketName) return
 
     const { Contents=[] } = await this.provider.request('S3',

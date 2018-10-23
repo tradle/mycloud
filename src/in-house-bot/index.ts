@@ -391,10 +391,19 @@ export const loadComponentsAndPlugins = ({
           return
         }
 
-        try {
-          await alerts.childUpdated({ from, to })
-        } catch (err) {
-          logger.error('failed to alert about child update', err)
+        const freshlyDeployed = !from.stackId && to.stackId
+        if (freshlyDeployed) {
+          try {
+            await alerts.childLaunched(to as any)
+          } catch (err) {
+            logger.error('failed to alert about new child', err)
+          }
+        } else {
+          try {
+            await alerts.childUpdated({ from, to })
+          } catch (err) {
+            logger.error('failed to alert about child update', err)
+          }
         }
       }
     }
@@ -412,14 +421,6 @@ export const loadComponentsAndPlugins = ({
         })
 
         return
-      }
-
-      if (type === CHILD_DEPLOYMENT) {
-        try {
-          await alerts.childCreated(resource as any)
-        } catch (err) {
-          logger.error('failed to alert about new child', err)
-        }
       }
     }
 

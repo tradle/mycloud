@@ -20,6 +20,7 @@ if [ ! -e "serverless.yml" ]; then
   cp serverless-uncompiled.yml serverless.yml
 fi
 
+mkdir -p "$(dirname $0)/../../lib/"
 npm run gen:versioninfo
 
 if ! [ -x "$(command -v tsc)" ]; then

@@ -73,6 +73,8 @@ export const pollchain:Executor = async ({ job, components }):Promise<Seal[]> =>
   return results
 }
 
+const isLowFundsError = (err: any) => Errors.matches(err, { name: 'LowFunds' })
+
 export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> => {
   const { bot, alerts } = components
   const { seals, env, logger } = bot
@@ -95,7 +97,7 @@ export const sealpending:Executor = async ({ job, components }):Promise<Seal[]> 
     logger.debug('almost out of time, exiting early')
   }
 
-  if (error && Errors.matches(error, Errors.LowFunds)) {
+  if (error && isLowFundsError(error)) {
     await alerts.lowFunds(error as LowFundsInput)
   }
 

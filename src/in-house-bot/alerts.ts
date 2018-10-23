@@ -139,7 +139,7 @@ API Url: ${to.apiUrl}
     })
   }
 
-  public childCreated = async (childDeployment: IChildDeployment) => {
+  public childLaunched = async (childDeployment: IChildDeployment) => {
     const { identity } = childDeployment
     if (!identity) return
 

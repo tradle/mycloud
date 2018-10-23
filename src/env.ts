@@ -76,6 +76,7 @@ export default class Env {
   public _X_AMZN_TRACE_ID:string
   public AWS_ACCOUNT_ID: string
   public SESSION_TTL?: number
+  public ABORT_REQUESTS_ON_FREEZE?: boolean
 
   constructor(props:any) {
     props = clone(props)

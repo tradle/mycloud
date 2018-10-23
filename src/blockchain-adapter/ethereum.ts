@@ -31,7 +31,9 @@ export = function getNetworkAdapters ({ networkName, privateKey }) {
       networkName,
       privateKey,
       pollingInterval: 10000,
-      etherscan: true,
+      etherscan: {
+        maxRequestsPerSecond: 5,
+      },
       autostart: false,
       maxPriceInWei: MAX_PRICE_IN_WEI,
     }

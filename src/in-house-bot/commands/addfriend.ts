@@ -28,11 +28,6 @@ export const command:ICommand = {
       url = 'https://' + url
     }
 
-    const { hostname } = parseURL(url)
-    // if (!domain) {
-    //   throw new Error(`expected "--domain", for example: ${USAGE}`)
-    // }
-
     return { url, domain }
   },
   async exec ({ commander, req, args }) {
