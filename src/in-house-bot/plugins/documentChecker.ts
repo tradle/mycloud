@@ -105,28 +105,28 @@ export class DocumentCheckerAPI {
     debugger
     let body = new FormData()
     let bodyBack
-    let otherSideToScan = resource.otherSideToScan
-    let otherSideScan = resource.otherSideScan
-    if (otherSideScan) { //  &&  otherSideToScan !== 'back') {
-      const bufOtherSide = DataURI.decode(otherSideScan.url)
-      bodyBack = new FormData()
-      if (otherSideToScan === 'back') {
-        body.append('type', 'front')
-        body.append('file', buf, {filename})
-        bodyBack.append('type', 'back')
-        bodyBack.append('file', bufOtherSide, {filename: `${fn}_back.jpg`})
-      }
-      else {
-        body.append('type', 'front')
-        body.append('file', bufOtherSide, {filename: `${fn}_front.jpg`})
-        bodyBack.append('type', 'back')
-        bodyBack.append('file', buf, {filename})
-      }
-    }
-    else {
+    // let otherSideToScan = resource.otherSideToScan
+    // let otherSideScan = resource.otherSideScan
+    // if (otherSideScan) { //  &&  otherSideToScan !== 'back') {
+    //   const bufOtherSide = DataURI.decode(otherSideScan.url)
+    //   bodyBack = new FormData()
+    //   if (otherSideToScan === 'back') {
+    //     body.append('type', 'front')
+    //     body.append('file', buf, {filename})
+    //     bodyBack.append('type', 'back')
+    //     bodyBack.append('file', bufOtherSide, {filename: `${fn}_back.jpg`})
+    //   }
+    //   else {
+    //     body.append('type', 'front')
+    //     body.append('file', bufOtherSide, {filename: `${fn}_front.jpg`})
+    //     bodyBack.append('type', 'back')
+    //     bodyBack.append('file', buf, {filename})
+    //   }
+    // }
+    // else {
       body.append('type', 'front')
       body.append('file', buf, {filename})
-    }
+    // }
     // let { status, message } = this.uploadImage(imgUrl, body, bearer)
     let { status, message } = await this.uploadImage(imgUrl, body, bearer)
 
