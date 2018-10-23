@@ -43,6 +43,7 @@ Resources:
     Condition: CreateEventsTable
     Type: AWS::DynamoDB::Table
     Description: immutable table of events
+    DeletionPolicy: Retain
     Properties:
       TableName:
         Fn::Sub: ${Namespace}-events
@@ -63,6 +64,7 @@ Resources:
     Condition: CreateBucket0Table
     Type: AWS::DynamoDB::Table
     Description: table that stores resources of all data models
+    DeletionPolicy: Retain
     Properties:
       TableName:
         Fn::Sub: ${Namespace}-bucket-0

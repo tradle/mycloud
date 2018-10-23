@@ -1256,6 +1256,14 @@ resources:
           - "false"
 
   Resources:
+    ServerlessDeploymentBucket:
+      Type: AWS::S3::Bucket
+      Description: destination for lambda code, templates, and other deployment assets
+      DeletionPolicy: Retain
+      Properties:
+        VersioningConfiguration:
+          Status: Enabled
+
     Tables:
       Type: AWS::CloudFormation::Stack
       Properties:

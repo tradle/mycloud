@@ -48,13 +48,16 @@ Resources:
     Condition: CreateObjectsBucket
     Type: AWS::S3::Bucket
     Description: content-addressed storage for all objects
-    # DeletionPolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
 
   Secrets:
     Condition: CreateSecretsBucket
     Type: AWS::S3::Bucket
     Description: stuff
-    # DeletionPolicy: Retain
+    DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
         Status: Enabled
@@ -63,7 +66,7 @@ Resources:
     Condition: CreatePrivateConfBucket
     Type: AWS::S3::Bucket
     Description: private configuration files
-    # DeletionPolicy: Retain
+    DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
         Status: Enabled
@@ -72,8 +75,10 @@ Resources:
     Condition: CreateFileUploadBucket
     Type: AWS::S3::Bucket
     Description: file upload destination for all users
-    # DeletionPolicy: Retain
+    DeletionPolicy: Retain
     Properties:
+      VersioningConfiguration:
+        Status: Enabled
       CorsConfiguration:
         CorsRules:
           - AllowedMethods:
@@ -90,8 +95,10 @@ Resources:
     Condition: CreateLogsBucket
     Type: AWS::S3::Bucket
     Description: logs from lambda functions, apigateway and others
-    # DeletionPolicy: Retain
+    DeletionPolicy: Retain
     Properties:
+      VersioningConfiguration:
+        Status: Enabled
       LifecycleConfiguration:
         Rules:
           - Id: TransitionLogsToGlacier
@@ -105,8 +112,11 @@ Resources:
   Deployment:
     Condition: CreateDeploymentBucket
     Type: AWS::S3::Bucket
-    Description: deployment storage bucket
-    # DeletionPolicy: Retain
+    Description: destination for lambda code, templates, and other deployment assets
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
 
 Outputs:
   Objects:
