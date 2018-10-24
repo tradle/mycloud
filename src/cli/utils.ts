@@ -438,11 +438,11 @@ export const validateTemplatesAtPath = async ({ cloudformation, dir }: {
 }) => {
   const files = getTemplatesFilePaths(dir)
   const results = await allSettled(files.map(templatePath => validateTemplateAtPath({ cloudformation, templatePath })))
-  const errors = results.filter(r => r.isRejected)
-    .map((r, i) => ({
-      template: files[i],
-      error: r.reason
-    }))
+  const errors = results.map((result, i) => result.isRejected && {
+    template: files[i],
+    error: result.reason
+  })
+  .filter(_.identity)
 
   if (errors.length) {
     throw new Error(JSON.stringify(errors))
