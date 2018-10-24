@@ -534,17 +534,17 @@ provider:
             - '/*'
 
 
-    - Effect: Allow
-      Action:
-        - s3:DeleteObject
-        - s3:DeleteObjectVersion
-      Resource:
-        # currently only needed to delete terms and conditions
-        - Fn::Join:
-          - ""
-          - - "arn:aws:s3:::"
-            - Fn::GetAtt: Buckets.Outputs.PrivateConf
-            - "/conf/*"
+    # - Effect: Allow
+    #   Action:
+    #     - s3:DeleteObject
+    #     - s3:DeleteObjectVersion
+    #   Resource:
+    #     # currently only needed to delete terms and conditions
+    #     - Fn::Join:
+    #       - ""
+    #       - - "arn:aws:s3:::"
+    #         - Fn::GetAtt: Buckets.Outputs.PrivateConf
+    #         - "/conf/*"
 
     - Effect: Allow
       Action:
@@ -1312,8 +1312,18 @@ resources:
         Parameters:
           Namespace:
             Ref: AWS::StackName
+          ObjectsBucket:
+            Fn::GetAtt: Buckets.Outputs.Objects
+          SecretsBucket:
+            Fn::GetAtt: Buckets.Outputs.Secrets
+          PrivateConfBucket:
+            Fn::GetAtt: Buckets.Outputs.PrivateConf
           FileUploadBucket:
             Fn::GetAtt: Buckets.Outputs.FileUpload
+          LogsBucket:
+            Fn::GetAtt: Buckets.Outputs.Logs
+          DeploymentBucket:
+            Fn::GetAtt: Buckets.Outputs.Deployment
           IotParentTopic:
             Ref: AWS::StackName
 

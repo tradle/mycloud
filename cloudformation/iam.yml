@@ -5,39 +5,28 @@ Parameters:
   Namespace:
     Type: String
 
+  ObjectsBucket:
+    Type: String
+
+  SecretsBucket:
+    Type: String
+
+  PrivateConfBucket:
+    Type: String
+
   FileUploadBucket:
+    Type: String
+
+  LogsBucket:
+    Type: String
+
+  DeploymentBucket:
     Type: String
 
   IotParentTopic:
     Type: String
 
 Resources:
-  FileUploadBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket:
-        Ref: FileUploadBucket
-      PolicyDocument:
-        Id: FileUploadBucketPolicy
-        Version: '2012-10-17'
-        Statement:
-        - Sid: PutAccess
-          Action:
-          - s3:PutObject
-          Effect: Allow
-          Resource:
-            Fn::Join:
-              - ""
-              - - "arn:aws:s3:::"
-                - Ref: FileUploadBucket
-                - /
-                # ${aws:userid} will change on every session
-                # which will prevent users from clobbering old uploads
-                - ${aws:userid}
-                - "/*"
-          Principal:
-            AWS:
-              Fn::GetAtt: IotClientRole.Arn
 
   # role assumed by all IoT clients
   IotClientRole:
@@ -151,6 +140,237 @@ Resources:
                   - cloudwatch:PutMetricAlarm
                   - cloudwatch:DeleteAlarms
                 Resource: "*"
+
+# S3 Bucket Policies
+
+  ObjectsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: ObjectsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: ObjectsBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: ObjectsBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+  SecretsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: SecretsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: SecretsBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: SecretsBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+  PrivateConfBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: PrivateConfBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: PrivateConfBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: PrivateConfBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+  FileUploadBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: FileUploadBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: FileUploadBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: FileUploadBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+          # FileUploadBucket specific
+          - Sid: PutAccess
+            Action:
+              - s3:PutObject
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:aws:s3:::"
+                  - Ref: FileUploadBucket
+                  - /
+                  # ${aws:userid} will change on every session
+                  # which will prevent users from clobbering old uploads
+                  - ${aws:userid}
+                  - "/*"
+            Principal:
+              AWS:
+                Fn::GetAtt: IotClientRole.Arn
+
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: LogsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: LogsBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: LogsBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
+
+
+
+  DeploymentBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: DeploymentBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PreventDeleteBucket
+            Action:
+              - s3:DeleteBucket
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: DeploymentBucket
+            Principal:
+              AWS: "*"
+
+          - Sid: PreventDeleteObjects
+            Action:
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+            Effect: Deny
+            Resource:
+              Fn::Join:
+                - ''
+                - - 'arn:aws:s3:::'
+                  - Ref: DeploymentBucket
+                  - '/*'
+            Principal:
+              AWS: "*"
 
 Outputs:
   IotClientRole:
