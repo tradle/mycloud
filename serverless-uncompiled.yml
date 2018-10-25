@@ -284,7 +284,6 @@ custom:
 
   # issue2233WorkaroundKey: issue2233WorkaroundKey
   # defaultKMSKeyId: ${{self:custom.regionalPrefix}}default-key
-
   # tradleStackPrefix: tdl-tradle-ltd-${{self:stage}}-
   # tradleStackRegion: us-east-1
   # updatesTopicName: ${{self:custom.tradleStackPrefix}}updates-announcements
@@ -349,7 +348,7 @@ provider:
     R_BUCKET_ServerlessDeployment:
       Fn::GetAtt: Buckets.Outputs.Deployment
     R_KEY_DefaultEncryption:
-      Ref: DefaultEncryptionKey
+      Fn::GetAtt: Keys.Outputs.EncryptionKey
     R_TABLE_Events:
       Fn::GetAtt: Tables.Outputs.Events
     R_TABLE_Bucket0:
@@ -1133,40 +1132,7 @@ functions:
 
 resources:
   Parameters:
-    Stage:
-      Type: String
-      Default: dev
-      AllowedValues:
-        - dev
-
-    BlockchainNetwork:
-      Type: String
-      AllowedValues:
-        - 'ethereum:mainnet'
-        - 'ethereum:rinkeby'
-        - 'ethereum:ropsten'
-
-    AutoScalingEnabled:
-      Type: String
-      Default: "true"
-      AllowedValues:
-        - "true"
-        - "false"
-
-    PointInTimeRecoveryEnabledEventsTable:
-      Type: String
-      Default: "true"
-      AllowedValues:
-        - "true"
-        - "false"
-
-    PointInTimeRecoveryEnabledBucket0Table:
-      Type: String
-      Default: "true"
-      AllowedValues:
-        - "true"
-        - "false"
-
+    # Existing Resources group
     ExistingEventsTable:
       Type: String
       Default: ""
@@ -1199,13 +1165,16 @@ resources:
       Type: String
       Default: ""
 
+    ExistingEncryptionKey:
+      Type: String
+      Default: ""
+      Description: KMS key id, if you want to use an existing one instead of creating a new one
+
     # ExistingDeploymentBucket:
     #   Type: String
     #   Default: ""
 
-    LogsDaysBeforeTransitionToGlacier:
-      Type: Number
-      Default: 7
+    # Organization Info group
 
     OrgName:
       Type: String
@@ -1230,6 +1199,139 @@ resources:
       # Default: ${{self:custom.emailForNotifications}}
       # AllowedValues:
       #   - ${{self:custom.emailForNotifications}}
+
+    # Configuration group
+
+    BlockchainNetwork:
+      Type: String
+      Default: ${{self:custom.blockchain}}
+      AllowedValues:
+        - ${{self:custom.blockchain}}
+        # - 'ethereum:mainnet'
+        # - 'ethereum:rinkeby'
+        # - 'ethereum:ropsten'
+
+    AutoScalingEnabled:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        # - "false"
+
+    PointInTimeRecoveryEnabledEventsTable:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    PointInTimeRecoveryEnabledBucket0Table:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    LogsDaysBeforeTransitionToGlacier:
+      Type: Number
+      Default: 7
+
+    # Stack Info group
+
+    Stage:
+      Type: String
+      Default: ${{self:custom.stage}}
+      AllowedValues:
+        - ${{self:custom.stage}}
+
+  Metadata:
+    AWS::CloudFormation::Interface:
+      ParameterGroups:
+        - Label:
+            default: "Existing Resources"
+          Parameters:
+            - ExistingEventsTable
+            - ExistingBucket0Table
+            - ExistingBucket0TableStreamArn
+            - ExistingObjectsBucket
+            - ExistingSecretsBucket
+            - ExistingPrivateConfBucket
+            - ExistingFileUploadBucket
+            - ExistingLogsBucket
+            - ExistingDeploymentBucket
+            - ExistingEncryptionKey
+
+        - Label:
+            default: "Organization Info"
+          Parameters:
+            - OrgName
+            - OrgDomain
+            - OrgLogo
+            - OrgAdminEmail
+
+        - Label:
+            default: "Configuration"
+          Parameters:
+            - BlockchainNetwork
+            - PointInTimeRecoveryEnabledEventsTable
+            - PointInTimeRecoveryEnabledBucket0Table
+            - AutoScalingEnabled
+            - LogsDaysBeforeTransitionToGlacier
+
+        - Label:
+            default: "Stack Info"
+          Parameters:
+            - Stage
+
+      ParameterLabels:
+        # Existing Resources
+        ExistingEventsTable:
+          default: "Events Table"
+        ExistingBucket0Table:
+          default: "Bucket0 Table"
+        ExistingBucket0TableStreamArn:
+          default: "Bucket0 Table Stream Arn"
+        ExistingObjectsBucket:
+          default: "Objects Bucket"
+        ExistingSecretsBucket:
+          default: "Secrets Bucket"
+        ExistingPrivateConfBucket:
+          default: "PrivateConf Bucket"
+        ExistingFileUploadBucket:
+          default: "FileUpload Bucket"
+        ExistingLogsBucket:
+          default: "Logs Bucket"
+        ExistingDeploymentBucket:
+          default: "Deployment Bucket"
+        ExistingEncryptionKey:
+          default: "Encryption Key"
+
+        # Organization Info
+        OrgName:
+          default: Name
+        OrgDomain:
+          default: Domain
+        OrgLogo:
+          default: Logo URL
+        OrgAdminEmail:
+          default: Admin Email
+
+        # Configuration
+
+        BlockchainNetwork:
+          default: Blockchain Network
+        PointInTimeRecoveryEnabledEventsTable:
+          default: Enable point-in-time recovery for the Events table
+        PointInTimeRecoveryEnabledBucket0Table:
+          default: Enable point-in-time recovery for the Bucket0 table
+        AutoScalingEnabled:
+          default: Enable DynamoDB auto-scaling
+        LogsDaysBeforeTransitionToGlacier:
+          default: days before logs are transitioned from to Glacier
+
+        # Stack Info
+        Stage:
+          default: Stage
 
   Mappings:
     # org:
@@ -1376,6 +1478,19 @@ resources:
             # - contact
             # - adminEmail
 
+    Keys:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/keys.yml
+        Parameters:
+          ExistingEncryptionKey:
+            Ref: ExistingEncryptionKey
+          IamRole:
+            Fn::GetAtt:
+              - IamRoleLambdaExecution
+              - Arn
+
     Initialize:
       Type: Custom::InitializeDeployment
       DependsOn: ApiGatewayApiKey1
@@ -1409,77 +1524,6 @@ resources:
 
           # <<: *providerConf
 
-    DefaultEncryptionKey:
-      Type: AWS::KMS::Key
-      Properties:
-        Description: 'Encryption key for secrets in SSM'
-        Enabled: True
-        EnableKeyRotation: False
-        Tags:
-          - Key: tradle
-            Value:
-              Fn::Sub: '${AWS::StackName}-${AWS::Region}'
-
-        KeyPolicy:
-          Version: '2012-10-17'
-          Id:
-            Fn::Sub: '${AWS::StackName}-${AWS::Region}-default-key'
-          Statement:
-            - Sid: 'Allow access for Key Administrators'
-              Effect: Allow
-              Principal:
-                AWS:
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-              Action:
-                - 'kms:Create*'
-                - 'kms:Describe*'
-                - 'kms:Enable*'
-                - 'kms:List*'
-                - 'kms:Put*'
-                - 'kms:Update*'
-                - 'kms:Revoke*'
-                - 'kms:Disable*'
-                - 'kms:Get*'
-                - 'kms:Delete*'
-                - 'kms:TagResource'
-                - 'kms:UntagResource'
-                - 'kms:ScheduleKeyDeletion'
-                - 'kms:CancelKeyDeletion'
-              Resource: '*'
-
-            - Sid: 'Allow attachment of persistent resources'
-              Effect: Allow
-              Principal:
-                AWS:
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-              Action:
-                - 'kms:CreateGrant'
-                - 'kms:ListGrants'
-                - 'kms:RevokeGrant'
-
-              # Condition:
-              #   ForAllValues:StringEquals:
-              #     kms:GrantOperations:
-              #       - 'Decrypt'
-
-              # https://docs.aws.amazon.com/kms/latest/developerguide/policy-conditions.html#conditions-kms-grant-is-for-aws-resource
-              Condition:
-                Bool:
-                  "kms:GrantIsForAWSResource": true
-
-              Resource: '*'
-            - Sid: 'Allow use of the key'
-              Effect: Allow
-              Principal:
-                AWS:
-                  - Fn::GetAtt:
-                    - IamRoleLambdaExecution
-                    - Arn
-              Action:
-                - 'kms:Decrypt'
-                - 'kms:GenerateDataKey'
-              Resource: '*'
-
   Outputs:
     EventsTable:
       Value:
@@ -1497,6 +1541,9 @@ resources:
       Value:
         Fn::GetAtt: Buckets.Outputs.PrivateConf
     FileUploadBucket:
+      Value:
+        Fn::GetAtt: Buckets.Outputs.FileUpload
+    LogsBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.FileUpload
     ServerlessDeploymentBucket:

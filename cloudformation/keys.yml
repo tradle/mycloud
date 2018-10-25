@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: KMS keys
+
+Parameters:
+  IamRole:
+    Type: String
+
+  ExistingEncryptionKey:
+    Type: String
+    Default: ""
+
+Conditions:
+  CreateEncryptionKey:
+    Fn::Equals: [ Ref: ExistingEncryptionKey, ""]
+
+Resources:
+  EncryptionKey:
+    Condition: CreateEncryptionKey
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    Properties:
+      Description: 'Encryption key for secrets'
+      Enabled: True
+      EnableKeyRotation: False
+      Tags:
+        - Key: tradle
+          Value:
+            Fn::Sub: '${AWS::StackName}-${AWS::Region}'
+
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id:
+          Fn::Sub: '${AWS::StackName}-${AWS::Region}-default-key'
+        Statement:
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Update*'
+              - 'kms:Revoke*'
+              - 'kms:Disable*'
+              - 'kms:Get*'
+              - 'kms:Delete*'
+              - 'kms:TagResource'
+              - 'kms:UntagResource'
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:CancelKeyDeletion'
+            Resource: '*'
+
+          - Sid: 'Allow attachment of persistent resources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+
+            # Condition:
+            #   ForAllValues:StringEquals:
+            #     kms:GrantOperations:
+            #       - 'Decrypt'
+
+            # https://docs.aws.amazon.com/kms/latest/developerguide/policy-conditions.html#conditions-kms-grant-is-for-aws-resource
+            Condition:
+              Bool:
+                "kms:GrantIsForAWSResource": true
+
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal:
+              AWS:
+                - Ref: IamRole
+            Action:
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
+            Resource: '*'
+
+Outputs:
+
+  EncryptionKey:
+    Value:
+      Fn::If:
+        - CreateEncryptionKey
+        - Ref: EncryptionKey
+        - Ref: ExistingEncryptionKey
+
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId
