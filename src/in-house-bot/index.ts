@@ -52,6 +52,7 @@ import {
   VersionInfo,
   Conf,
   IChildDeployment,
+  Models,
 } from './types'
 
 import Logger from '../logger'
@@ -212,8 +213,8 @@ export const loadComponentsAndPlugins = ({
 
   // until the issue with concurrent modifications of user & application state is resolved
   // then some handlers can migrate to 'messagestream'
-  const IS_LOCALAsync = bot.isLocal && event === LambdaEvents.RESOURCE_ASYNC
-  const handleMessages = event === LambdaEvents.MESSAGE || IS_LOCALAsync
+  const isLocalAsync = bot.isLocal && event === LambdaEvents.RESOURCE_ASYNC
+  const handleMessages = event === LambdaEvents.MESSAGE || isLocalAsync
   const runAsyncHandlers = event === LambdaEvents.RESOURCE_ASYNC || (bot.isLocal && event === LambdaEvents.MESSAGE)
   const mergeModelsOpts = { validate: bot.isLocal }
   const visibleProducts = _.uniq(enabled)
@@ -237,6 +238,7 @@ export const loadComponentsAndPlugins = ({
   //   productsAPI.removeDefaultHandlers()
   // }
 
+  const defaultGetRequiredForms = productsAPI.removeDefaultHandler('getRequiredForms')
   productsAPI.removeDefaultHandler('shouldSealReceived')
   productsAPI.removeDefaultHandler('shouldSealSent')
   productsAPI.plugins.use({
@@ -637,6 +639,7 @@ export const loadComponentsAndPlugins = ({
       'prefill-form',
       'smart-prefill',
       'lens',
+      'required-forms',
       'openCorporates',
       'complyAdvantage',
       'controllingPersonRegistration',
@@ -694,6 +697,7 @@ export const loadComponentsAndPlugins = ({
 
   logger.debug('using plugins', usedPlugins)
 
+  productsAPI.plugins.register('getRequiredForms', defaultGetRequiredForms)
   return components
 }
 
