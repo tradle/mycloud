@@ -465,11 +465,12 @@ export const uploadTemplatesAtPath = async ({ s3, dir, bucket, prefix, acl }: {
   }
 
   await Promise.all(files.map(async file => {
+    const template = YAML.safeLoad(await fs.readFile(file))
     return s3.putObject({
       ...params,
       Key: `${prefix}/${path.basename(file)}`,
-      Body: await fs.readFile(file),
-      ContentType: file.endsWith('json') ? 'application/json' : 'text/html',
+      Body: new Buffer(JSON.stringify(template)),
+      ContentType: 'application/json',
     }).promise()
   }))
 }
