@@ -428,7 +428,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       s3Utils: bot.s3Utils
     })
 
-    const stackName = bot.stackUtils.thisStackName
     const secrets = bot.secrets = new Secrets({
       obfuscateSecretName: name => crypto.obfuscateSecretName(bot.defaultEncryptionKey, name),
       credstash: createCredstash({
