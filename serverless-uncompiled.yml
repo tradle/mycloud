@@ -407,6 +407,7 @@ provider:
       Action:
         # so lambdas can list resources in their stack
         - cloudformation:ListStackResources
+        - CloudFormation:DescribeStacks
         # need to get own template to generate a child deployment template
         - cloudformation:GetTemplate
         - cloudformation:UpdateTerminationProtection
@@ -1397,6 +1398,14 @@ resources:
           Fn::FindInMap: ["deployment", "init", "deploymentUUID"]
         referrerUrl:
           Fn::FindInMap: ["deployment", "init", "referrerUrl"]
+
+        # stack update validation needs these to make sure they didn't change
+        ImmutableParameters:
+          Stage:
+            Ref: Stage
+          BlockchainNetwork:
+            Ref: BlockchainNetwork
+
         # encryptionKey:
         #   Fn::FindInMap: ["deployment", "init", "encryptionKey"]
 

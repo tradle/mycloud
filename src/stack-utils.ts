@@ -448,14 +448,40 @@ export default class StackUtils {
 
   public getStackTemplate = async () => {
     if (this.isTesting) {
-      return _.cloneDeep(require('./cli/cloudformation-template.json'))
+      return this._getLocalStackTemplate()
     }
 
     const { TemplateBody } = await this.aws.cloudformation
-      .getTemplate({ StackName: this.thisStack.name })
+      .getTemplate({ StackName: this.thisStackArn })
       .promise()
 
     return JSON.parse(TemplateBody)
+  }
+
+  private _getLocalStackTemplate = async () => {
+    return _.cloneDeep(require('./cli/cloudformation-template.json'))
+  }
+
+  public getStackParameterValues = async ():Promise<any> => {
+    if (this.isTesting) {
+      return this._getLocalStackParameterValues()
+    }
+
+    const {
+      Stacks,
+    } = await this.aws.cloudformation.describeStacks({ StackName: this.thisStackArn }).promise()
+
+    return Stacks[0].Parameters.reduce((map, param) => {
+      map[param.ParameterKey] = map[param.ParameterValue]
+      return map
+    }, {})
+  }
+
+  private _getLocalStackParameterValues = async () => {
+    const { Parameters } = require('./cli/cloudformation-template.json')
+    return _.transform(Parameters, (result, value: any, key: string) => {
+      result[key] = value.Default
+    }, {})
   }
 
   public getSwagger = async () => {

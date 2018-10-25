@@ -14,6 +14,10 @@ lambda.use(async (ctx, next) => {
     return
   }
 
+  if (type === 'update' && payload.ImmutableParameters) {
+    await conf.ensureStackParametersDidNotChange(payload.ImmutableParameters)
+  }
+
   // type === 'init' may still be an update
   // because this might be a new stack pointing at old tables/buckets
   let isUpdate
