@@ -7,6 +7,7 @@ const {
 } = require('../lib/cli/utils')
 const versionInfo = require('../lib/version')
 const templatesDir = path.resolve(__dirname, '../cloudformation')
+const stackParameters = require('../vars').stackParameters || require('../default-vars').stackParameters
 
 class SetVersion {
   constructor(serverless, options) {
@@ -17,7 +18,10 @@ class SetVersion {
       'aws:common:validate:validate': () => this.onValidate(),
       'before:package:compileFunctions': () => this.setVersion(),
       'aws:deploy:deploy:uploadArtifacts': async () => {
-        await this.uploadTemplates(await this._getBucket())
+        await Promise.all([
+          this._getBucket().then(bucket => this.uploadTemplates(bucket)),
+          this.setTemplateParameters()
+        ])
       },
     }
   }
@@ -48,6 +52,30 @@ class SetVersion {
     return versionInfo.templatesPath
   }
 
+  async setTemplateParameters() {
+    const parameterNames = Object.keys(this.serverless.service.provider.compiledCloudFormationTemplate.Parameters)
+    const params = (await this.getStackInfo()).Parameters
+    Object.keys(stackParameters).forEach(key => {
+      if (!parameterNames.includes(key)) {
+        this.log(`WARNING: parameter "${key}" specified in "stackParameters" was not found in the template`)
+        return
+      }
+
+      const param = params.find(({ ParameterKey }) => ParameterKey === key)
+      const value = stackParameters[key]
+      if (param) {
+        param.ParameterValue = value
+      } else {
+        params.push({
+          ParameterKey: key,
+          ParameterValue: value,
+        })
+      }
+    })
+
+    this.serverless.service.provider.cloudformationTemplateParameters = params
+  }
+
   async onValidate() {
     await Promise.all([
       this.checkExisting(),
@@ -55,22 +83,27 @@ class SetVersion {
     ])
   }
 
+  async getStackInfo() {
+    const { Stacks } = await this.provider.request(
+      'CloudFormation',
+      'describeStacks',
+      {
+        StackName: this.provider.naming.getStackName(),
+      },
+      this._stage(),
+      this._region(),
+    )
+
+    return Stacks[0]
+  }
+
   async checkExisting() {
     const stage = this._stage()
     const region = this._region()
     const service = this._service()
     const dir = this._dir()
-    const StackName = this.provider.naming.getStackName()
     try {
-      await this.provider.request(
-        'CloudFormation',
-        'describeStacks',
-        {
-          StackName,
-        },
-        stage,
-        region
-      )
+      await this.getStackInfo()
     } catch (err) {
       if (err.code === 'ValidationError' && err.message.toLowerCase().includes('does not exist')) {
         // if it's a stack create, allow
@@ -100,6 +133,10 @@ class SetVersion {
     return new this.provider.sdk[clName](this.provider.getCredentials())
   }
 
+  log(...args) {
+    this.serverless.cli.log(...args)
+  }
+
   async validateTemplates() {
     await validateTemplatesAtPath({
       cloudformation: this._createClient('CloudFormation'),
@@ -110,7 +147,7 @@ class SetVersion {
   async uploadTemplates(bucket) {
     const prefix = this._dir()
 
-    this.serverless.cli.log(`uploading templates to s3://${bucket}/${prefix}`)
+    this.log(`uploading templates to s3://${bucket}/${prefix}`)
 
     await uploadTemplatesAtPath({
       s3: this._createClient('S3'),

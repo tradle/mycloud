@@ -451,10 +451,17 @@ export default class StackUtils {
       return this._getLocalStackTemplate()
     }
 
-    const { TemplateBody } = await this.aws.cloudformation
-      .getTemplate({ StackName: this.thisStackArn })
-      .promise()
+    return StackUtils.getStackTemplate({
+      cloudformation: this.aws.cloudformation,
+      stackArn: this.thisStackArn,
+    })
+  }
 
+  public static getStackTemplate = async ({ cloudformation, stackArn }: {
+    cloudformation: AWS.CloudFormation,
+    stackArn: string
+  }) => {
+    const { TemplateBody } = await cloudformation.getTemplate({ StackName: stackArn }).promise()
     return JSON.parse(TemplateBody)
   }
 
@@ -462,25 +469,43 @@ export default class StackUtils {
     return _.cloneDeep(require('./cli/cloudformation-template.json'))
   }
 
-  public getStackParameterValues = async ():Promise<any> => {
+  public getStackParameterValues = async (stackArn:string = this.thisStackArn) => {
     if (this.isTesting) {
       return this._getLocalStackParameterValues()
     }
 
-    const {
-      Stacks,
-    } = await this.aws.cloudformation.describeStacks({ StackName: this.thisStackArn }).promise()
+    return StackUtils.getStackParameterValues({ cloudformation: this.aws.cloudformation, stackArn })
+  }
 
-    return Stacks[0].Parameters.reduce((map, param) => {
-      map[param.ParameterKey] = map[param.ParameterValue]
+  public static getStackParameterValues = async ({ cloudformation, stackArn }: {
+    cloudformation: AWS.CloudFormation
+    stackArn: string
+  }):Promise<any> => {
+    const { Parameters } = await StackUtils.describeStack({ cloudformation, stackArn })
+    return Parameters.reduce((map, param) => {
+      // map[param.ParameterKey] = param.ParameterValue || template.Parameters[param.ParameterKey].Default
+      map[param.ParameterKey] = param.ParameterValue
       return map
     }, {})
   }
 
+  public static describeStack = async ({ cloudformation, stackArn }: {
+    cloudformation: AWS.CloudFormation
+    stackArn: string
+  }) => {
+    const {
+      Stacks,
+    } = await cloudformation.describeStacks({ StackName: stackArn }).promise()
+
+    return Stacks[0]
+  }
+
   private _getLocalStackParameterValues = async () => {
     const { Parameters } = require('./cli/cloudformation-template.json')
+    const { getVar } = require('./cli/get-template-var')
     return _.transform(Parameters, (result, value: any, key: string) => {
-      result[key] = value.Default
+      const custom = getVar(`stackParameters.${key}`)
+      result[key] = typeof custom === 'undefined' ? value.Default : custom
     }, {})
   }
 

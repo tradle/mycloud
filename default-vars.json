@@ -24,10 +24,11 @@
     "format": "json",
     "level": 4
   },
-  "org": {
-    "name": "Super Awesome Org",
-    "domain": "superawesome.org",
-    "logo": "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png"
+  "stackParameters": {
+    "BlockchainNetwork": "ethereum:rinkeby",
+    "OrgName": "Super Awesome Org",
+    "OrgDomain": "superawesome.org",
+    "OrgLogo": "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png"
   },
   "corda": {
     "apiKey": "abc",

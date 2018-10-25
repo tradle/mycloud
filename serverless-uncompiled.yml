@@ -81,7 +81,7 @@ custom:
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
   # providerConf: &providerConf
   #   ${{file(./src/in-house-bot/conf/provider.json)}}
-  org: ${{self:custom.vars.org, self:custom.defaults.org}}
+  # org: ${{self:custom.vars.org, self:custom.defaults.org}}
 
   # logging: ${{self:custom.vars.logging, self:custom.defaults.logging}}
 
@@ -1135,25 +1135,23 @@ resources:
   Parameters:
     Stage:
       Type: String
-      Default: ${{self:custom.stage}}
+      Default: dev
       AllowedValues:
-        - ${{self:custom.stage}}
+        - dev
 
     BlockchainNetwork:
       Type: String
-      Default: ${{self:custom.blockchain}}
       AllowedValues:
-        - ${{self:custom.blockchain}}
-        # - 'ethereum:mainnet'
-        # - 'ethereum:rinkeby'
-        # - 'ethereum:ropsten'
+        - 'ethereum:mainnet'
+        - 'ethereum:rinkeby'
+        - 'ethereum:ropsten'
 
     AutoScalingEnabled:
       Type: String
       Default: "true"
       AllowedValues:
         - "true"
-        # - "false"
+        - "false"
 
     PointInTimeRecoveryEnabledEventsTable:
       Type: String
@@ -1211,27 +1209,27 @@ resources:
 
     OrgName:
       Type: String
-      Default: ${{self:custom.org.name}}
-      AllowedValues:
-        - ${{self:custom.org.name}}
+      # Default: ${{self:custom.org.name}}
+      # AllowedValues:
+      #   - ${{self:custom.org.name}}
 
     OrgDomain:
       Type: String
-      Default: ${{self:custom.org.domain}}
-      AllowedValues:
-        - ${{self:custom.org.domain}}
+      # Default: ${{self:custom.org.domain}}
+      # AllowedValues:
+      #   - ${{self:custom.org.domain}}
 
     OrgLogo:
       Type: String
-      Default: ${{self:custom.org.logo}}
-      AllowedValues:
-        - ${{self:custom.org.logo}}
+      # Default: ${{self:custom.org.logo}}
+      # AllowedValues:
+      #   - ${{self:custom.org.logo}}
 
     OrgAdminEmail:
       Type: String
-      Default: ${{self:custom.emailForNotifications}}
-      AllowedValues:
-        - ${{self:custom.emailForNotifications}}
+      # Default: ${{self:custom.emailForNotifications}}
+      # AllowedValues:
+      #   - ${{self:custom.emailForNotifications}}
 
   Mappings:
     # org:

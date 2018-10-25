@@ -6,10 +6,7 @@ module.exports = {
     "extends": "eslint:recommended",
     "parserOptions": {
         "sourceType": "module",
-        "ecmaVersion": 8,
-        "ecmaFeatures": {
-            "experimentalObjectRestSpread": true
-        }
+        "ecmaVersion": 8
     },
     "rules": {
         "accessor-pairs": "error",
