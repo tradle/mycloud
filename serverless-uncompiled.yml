@@ -1551,7 +1551,7 @@ resources:
         Fn::GetAtt: Buckets.Outputs.FileUpload
     LogsBucket:
       Value:
-        Fn::GetAtt: Buckets.Outputs.FileUpload
+        Fn::GetAtt: Buckets.Outputs.Logs
     ServerlessDeploymentBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.Deployment
