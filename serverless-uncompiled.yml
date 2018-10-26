@@ -1618,9 +1618,13 @@ resources:
       Value:
         Fn::GetAtt: Buckets.Outputs.Logs
 
-    ServerlessDeploymentBucket:
+    DeploymentBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.Deployment
+
+    EncryptionKey:
+      Value:
+        Fn::GetAtt: Keys.Outputs.EncryptionKey
 
     S3TemplatesBaseUrl:
       Value:
