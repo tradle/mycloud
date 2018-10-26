@@ -186,13 +186,8 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#30a7193b803e86e7afea5ca8ee0032c879878e1d",
+      "resolved": "git://github.com/tradle/dynamodb.git#cdca5e0ed051e4443b86dd913c7b6c898c9318ec",
       "dependencies": {
-        "koa-compose": {
-          "version": "4.1.0",
-          "from": "koa-compose@>=4.0.0 <5.0.0",
-          "resolved": "https://registry.npmjs.org/koa-compose/-/koa-compose-4.1.0.tgz"
-        },
         "pify": {
           "version": "3.0.0",
           "from": "pify@>=3.0.0 <4.0.0",
