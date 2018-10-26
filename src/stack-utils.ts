@@ -723,6 +723,16 @@ export default class StackUtils {
     })
   }
 
+  public static replaceDeploymentBucketRefs = (template: any) => {
+    utils.traverse(template).forEach(function (value) {
+      if (_.isEqual(value, { Ref: 'ServerlessDeploymentBucket' })) {
+        this.update({
+          'Fn::GetAtt': 'Buckets.Outputs.Deployment'
+        })
+      }
+    })
+  }
+
   public static getStackLocationKeys = ({ stage, versionInfo }:  {
     stage: string
     versionInfo: VersionInfo

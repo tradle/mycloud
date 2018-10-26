@@ -76,6 +76,7 @@ custom:
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   stackName: ${{self:service}}-${{self:custom.stage}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
+  deploymentBucket: ${{file(./lib/cli/get-stack-parameter.js):parameterExistingDeploymentBucket}}
 
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
@@ -314,6 +315,7 @@ provider:
   timeout: 60
   # deploymentBucket: io.tradle.${{self:custom.stage}}.deploys
   # deploymentBucket: ${{self:custom.vars.deploymentBucket, self:custom.defaultVars.deploymentBucket}}
+  deploymentBucket: ${{self:custom.deploymentBucket}}
   environment:
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
@@ -1180,9 +1182,9 @@ resources:
       Default: ""
       Description: KMS key id, if you want to use an existing one instead of creating a new one
 
-    # ExistingDeploymentBucket:
-    #   Type: String
-    #   Default: ""
+    ExistingDeploymentBucket:
+      Type: String
+      Default: ""
 
     # Organization Info group
 
@@ -1268,7 +1270,7 @@ resources:
             - ExistingPrivateConfBucket
             - ExistingFileUploadBucket
             - ExistingLogsBucket
-            # - ExistingDeploymentBucket
+            - ExistingDeploymentBucket
             - ExistingEncryptionKey
 
         - Label:
@@ -1311,8 +1313,8 @@ resources:
           default: "FileUpload Bucket"
         ExistingLogsBucket:
           default: "Logs Bucket"
-        # ExistingDeploymentBucket:
-        #   default: "Deployment Bucket"
+        ExistingDeploymentBucket:
+          default: "Deployment Bucket"
         ExistingEncryptionKey:
           default: "Encryption Key"
 
@@ -1366,9 +1368,16 @@ resources:
           - Ref: AutoScalingEnabled
           - "false"
 
+    CreateDeploymentBucket:
+      Fn::Equals:
+        - Ref: ExistingDeploymentBucket
+        - ""
+
   Resources:
+    # has to be here for serverless to pick it up
     ServerlessDeploymentBucket:
       Type: AWS::S3::Bucket
+      Condition: CreateDeploymentBucket
       Description: destination for lambda code, templates, and other deployment assets
       DeletionPolicy: Retain
       Properties:
@@ -1379,7 +1388,15 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/tables.yml
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - CreateDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+                - Ref: ExistingDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /tables.json
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1398,7 +1415,15 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/buckets.yml
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - CreateDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+                - Ref: ExistingDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /buckets.json
         Parameters:
           ExistingObjectsBucket:
             Ref: ExistingObjectsBucket
@@ -1411,15 +1436,25 @@ resources:
           ExistingLogsBucket:
             Ref: ExistingLogsBucket
           ExistingDeploymentBucket:
-            Ref: ServerlessDeploymentBucket
+            Fn::If:
+              - CreateDeploymentBucket
+              - Ref: ServerlessDeploymentBucket
+              - Ref: ExistingDeploymentBucket # ServerlessDeploymentBucket
           LogsDaysBeforeTransitionToGlacier:
             Ref: LogsDaysBeforeTransitionToGlacier
-
     IAM:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/iam.yml
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - CreateDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+                - Ref: ExistingDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /iam.json
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1443,7 +1478,15 @@ resources:
       Condition: AutoScale
       Properties:
         TemplateURL:
-          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-events-table.yml
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - CreateDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+                - Ref: ExistingDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /autoscale-events-table.json
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Events
@@ -1455,7 +1498,15 @@ resources:
       Condition: AutoScale
       Properties:
         TemplateURL:
-          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.yml
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - CreateDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+                - Ref: ExistingDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /autoscale-bucket-table.json
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Bucket0
@@ -1492,7 +1543,15 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/keys.yml
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - CreateDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+                - Ref: ExistingDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /keys.json
         Parameters:
           ExistingEncryptionKey:
             Ref: ExistingEncryptionKey
@@ -1534,28 +1593,42 @@ resources:
     EventsTable:
       Value:
         Fn::GetAtt: Tables.Outputs.Events
+
     Bucket0Table:
       Value:
         Fn::GetAtt: Tables.Outputs.Bucket0
+
     ObjectsBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.Objects
+
     SecretsBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.Secrets
+
     PrivateConfBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.PrivateConf
+
     FileUploadBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.FileUpload
+
     LogsBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.Logs
+
     ServerlessDeploymentBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.Deployment
 
     S3TemplatesBaseUrl:
       Value:
-        Fn::Sub: https://${ServerlessDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+        Fn::Join:
+          - ''
+          - - https://
+            - Fn::If:
+              - CreateDeploymentBucket
+              - Ref: ServerlessDeploymentBucket
+              - Ref: ExistingDeploymentBucket
+            - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}

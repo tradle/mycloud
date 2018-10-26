@@ -1,6 +1,10 @@
+const fs = require('fs')
 const path = require('path')
 const AWS = require('aws-sdk')
+const traverse = require('traverse')
+const isEqual = require('lodash/isEqual')
 const Errors = require('@tradle/errors')
+const { StackUtils } = require('../lib/stack-utils')
 const {
   validateTemplatesAtPath,
   uploadTemplatesAtPath
@@ -17,11 +21,13 @@ class SetVersion {
     this.hooks = {
       'aws:common:validate:validate': () => this.onValidate(),
       'before:package:compileFunctions': () => this.setVersion(),
-      'aws:deploy:deploy:uploadArtifacts': async () => {
+      'before:aws:deploy:deploy:uploadArtifacts': async () => {
         await Promise.all([
           this._getBucket().then(bucket => this.uploadTemplates(bucket)),
           this.setTemplateParameters()
         ])
+
+        this.replaceDeploymentBucketRefs()
       },
     }
   }
@@ -50,6 +56,11 @@ class SetVersion {
 
   _dir() {
     return versionInfo.templatesPath
+  }
+
+  replaceDeploymentBucketRefs() {
+    const template = this.serverless.service.provider.compiledCloudFormationTemplate
+    StackUtils.replaceDeploymentBucketRefs(template)
   }
 
   async setTemplateParameters() {
