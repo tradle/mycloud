@@ -2,8 +2,8 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: KMS keys
 
 Parameters:
-  IamRole:
-    Type: String
+  # IamRole:
+  #   Type: String
 
   ExistingEncryptionKey:
     Type: String
@@ -32,7 +32,7 @@ Resources:
         Id:
           Fn::Sub: '${AWS::StackName}-${AWS::Region}-default-key'
         Statement:
-          - Sid: 'Allow access for Key Administrators'
+          - Sid: 'allowAdminAccess'
             Effect: Allow
             Principal:
               AWS:
@@ -52,9 +52,13 @@ Resources:
               - 'kms:UntagResource'
               - 'kms:ScheduleKeyDeletion'
               - 'kms:CancelKeyDeletion'
+              # Ideally we wouldn't have this, but without it,
+              # we can't create IAM policies that allow these actions
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
             Resource: '*'
 
-          - Sid: 'Allow attachment of persistent resources'
+          - Sid: 'allowAttachPersistentResources'
             Effect: Allow
             Principal:
               AWS:
@@ -74,15 +78,6 @@ Resources:
               Bool:
                 "kms:GrantIsForAWSResource": true
 
-            Resource: '*'
-          - Sid: 'Allow use of the key'
-            Effect: Allow
-            Principal:
-              AWS:
-                - Ref: IamRole
-            Action:
-              - 'kms:Decrypt'
-              - 'kms:GenerateDataKey'
             Resource: '*'
 
 Outputs:

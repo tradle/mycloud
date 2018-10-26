@@ -626,6 +626,16 @@ provider:
         - cloudwatch:DescribeAlarmsForMetric
       Resource: '*'
 
+    - Effect: Allow
+      Action:
+        - kms:Decrypt
+        - kms:GenerateDataKey
+      Resource:
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+            - Fn::GetAtt: Keys.Outputs.EncryptionKey
+
     # - Effect: Allow
     #   Action:
     #     - 'ssm:GetParameter*'
@@ -1486,10 +1496,6 @@ resources:
         Parameters:
           ExistingEncryptionKey:
             Ref: ExistingEncryptionKey
-          IamRole:
-            Fn::GetAtt:
-              - IamRoleLambdaExecution
-              - Arn
 
     Initialize:
       Type: Custom::InitializeDeployment
