@@ -59,8 +59,14 @@ class SetVersion {
   }
 
   replaceDeploymentBucketRefs() {
-    const template = this.serverless.service.provider.compiledCloudFormationTemplate
-    StackUtils.replaceDeploymentBucketRefs(template)
+    const { provider } = this.serverless.service
+    const template = provider.compiledCloudFormationTemplate
+    const params = provider.cloudformationTemplateParameters
+    const sourceDeploymentBucket = params.find(p => p.ParameterKey === 'SourceDeploymentBucket')
+      ? { Ref: 'SourceDeploymentBucket' }
+      : { 'Fn::GetAtt': 'Buckets.Outputs.Deployment' }
+
+    StackUtils.replaceDeploymentBucketRefs(template, sourceDeploymentBucket)
   }
 
   async setTemplateParameters() {

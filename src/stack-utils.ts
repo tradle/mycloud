@@ -42,6 +42,8 @@ const METHODS = [
 ]
 
 const ADMIN_EMAIL_PATH = ['Parameters', 'OrgAdminEmail', 'Default']
+const CODE_BUCKET_PATH = ['Properties', 'Code', 'S3Bucket']
+const REF_DEPLOYMENT_BUCKET = { Ref: 'ServerlessDeploymentBucket' }
 
 const stripDashes = str => str.replace(/[-]/g, '')
 
@@ -723,13 +725,9 @@ export default class StackUtils {
     })
   }
 
-  public static replaceDeploymentBucketRefs = (template: any) => {
-    utils.traverse(template).forEach(function (value) {
-      if (_.isEqual(value, { Ref: 'ServerlessDeploymentBucket' })) {
-        this.update({
-          'Fn::GetAtt': 'Buckets.Outputs.Deployment'
-        })
-      }
+  public static replaceDeploymentBucketRefs = (template: any, replacement: any) => {
+    getResourcesByType(template, 'AWS::Lambda::Function').forEach(name => {
+      _.set(template.Resources[name], CODE_BUCKET_PATH, replacement)
     })
   }
 
@@ -795,3 +793,7 @@ const normalizePathPart = path => _.upperFirst(
 )
 
 const toAutoScalingRegionFormat = (region: string) => _.upperFirst(region.replace(/[^a-zA-Z0-9]/ig, ''))
+const getResourcesByType = (template: any, type: string) => {
+  const { Resources } = template
+  return Object.keys(Resources).filter(name => Resources[name].Type === type)
+}

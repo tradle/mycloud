@@ -1144,6 +1144,10 @@ functions:
 
 resources:
   Parameters:
+    SourceDeploymentBucket:
+      Type: String
+      Default: ""
+
     # Existing Resources group
     ExistingEventsTable:
       Type: String
