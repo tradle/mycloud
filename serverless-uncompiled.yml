@@ -516,6 +516,13 @@ provider:
         - cloudwatch:DescribeAlarmsForMetric
       Resource: '*'
 
+    - Effect: Allow
+      Action:
+        - kms:Decrypt
+        - kms:GenerateDataKey
+      Resource:
+        - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${DefaultEncryptionKey}'
+
     # - Effect: Allow
     #   Action:
     #     - 'ssm:GetParameter*'
@@ -1486,6 +1493,19 @@ resources:
                 - 'kms:Decrypt'
                 - 'kms:GenerateDataKey'
               Resource: '*'
+
+            # Need this for IAM policy to work
+            # https://forums.aws.amazon.com/thread.jspa?messageID=845931
+            - Sid: 'allowUseKey'
+              Effect: Allow
+              Principal:
+                AWS:
+                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
+              Action:
+                - 'kms:Decrypt'
+                - 'kms:GenerateDataKey'
+              Resource: '*'
+
 
     # AdminAlertsSubscription:
     #   Type: AWS::SNS::Subscription
