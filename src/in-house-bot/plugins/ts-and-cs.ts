@@ -128,7 +128,7 @@ export const ensureAccepted = async ({
     user,
     item: {
       form: 'tradle.TermsAndConditions',
-      message: datePresented ? TERMS_AND_CONDITIONS_NTH_TIME : TERMS_AND_CONDITIONS_FIRST_TIME,
+      message: dateAccepted ? TERMS_AND_CONDITIONS_NTH_TIME : TERMS_AND_CONDITIONS_FIRST_TIME,
       prefill: {
         [TYPE]: 'tradle.TermsAndConditions',
         termsAndConditions: termsAndConditions.value
