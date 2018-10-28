@@ -1237,7 +1237,7 @@ resources:
       Default: "true"
       AllowedValues:
         - "true"
-        # - "false"
+        - "false"
 
     PointInTimeRecoveryEnabledEventsTable:
       Type: String
@@ -1405,15 +1405,19 @@ resources:
 
   Conditions:
     DoAutoScale:
-      Fn::Not:
-        - Fn::Equals:
-          - Ref: AutoScalingEnabled
-          - "false"
+      Fn::Equals:
+        - Ref: AutoScalingEnabled
+        - "true"
 
     DoCreateDeploymentBucket:
       Fn::Equals:
         - Ref: ExistingDeploymentBucket
         - ""
+
+    DoEncryptBuckets:
+      Fn::Equals:
+        - Ref: EncryptBuckets
+        - "true"
 
   Resources:
     # has to be here for serverless to pick it up
@@ -1487,7 +1491,10 @@ resources:
           LogsDaysBeforeTransitionToGlacier:
             Ref: LogsDaysBeforeTransitionToGlacier
           EncryptionKey:
-            Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+            Fn::If:
+              - DoEncryptBuckets
+              - Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+              - ""
 
     IAM:
       Type: AWS::CloudFormation::Stack
@@ -1702,7 +1709,7 @@ resources:
     # serverless usually generates this
     ServerlessDeploymentBucketName:
       Value:
-        Ref: ServerlessDeploymentBucket
+        Fn::GetAtt: Buckets.Outputs.Deployment
 
     SourceDeploymentBucketName:
       Value:

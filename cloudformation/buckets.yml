@@ -47,7 +47,10 @@ Conditions:
   DoCreateDeploymentBucket:
     Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
   DoEncrypt:
-    Fn::Equals: [ Ref: EncryptionKey, ""]
+    Fn::Not:
+      - Fn::Equals:
+        - Ref: EncryptionKey
+        - ""
 
 Resources:
   Objects:

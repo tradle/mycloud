@@ -27,7 +27,7 @@ Conditions:
   DoCreateBucketEncryptionKey:
     Fn::And:
       - Fn::Equals: [ Ref: ExistingBucketEncryptionKey, ""]
-      - Fn::Equals: [ Ref: NeedBucketEncryptionKey, ""]
+      - Fn::Equals: [ Ref: NeedBucketEncryptionKey, "true"]
 
 Resources:
   EncryptionKey:
