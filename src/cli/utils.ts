@@ -137,8 +137,9 @@ const genLocalResources = async ({ region, stackName }: {
       Properties.StreamSpecification.StreamEnabled = true
     }
 
-    delete Properties.TimeToLiveSpecification;
+    delete Properties.TimeToLiveSpecification
     delete Properties.PointInTimeRecoverySpecification
+    delete Properties.SSESpecification
 
     Properties.TableName = getLocalResourceName({ stackName, name })
     try {

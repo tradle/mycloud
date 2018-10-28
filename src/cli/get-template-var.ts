@@ -1,7 +1,7 @@
 import get from 'lodash/get'
 
-const defaults = require('../../vars.json')
-const vars = require('../../default-vars.json')
+const vars = require('../../vars.json')
+const defaults = require('../../default-vars.json')
 
 export const getVar = (path: string) => {
   const fallback = get(defaults, path)
