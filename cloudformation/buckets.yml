@@ -29,23 +29,29 @@ Parameters:
   LogsDaysBeforeTransitionToGlacier:
     Type: Number
 
+  EncryptionKey:
+    Type: String
+    Default: ""
+
 Conditions:
-  CreateObjectsBucket:
+  DoCreateObjectsBucket:
     Fn::Equals: [ Ref: ExistingObjectsBucket, ""]
-  CreateSecretsBucket:
+  DoCreateSecretsBucket:
     Fn::Equals: [ Ref: ExistingSecretsBucket, ""]
-  CreatePrivateConfBucket:
+  DoCreatePrivateConfBucket:
     Fn::Equals: [ Ref: ExistingPrivateConfBucket, ""]
-  CreateFileUploadBucket:
+  DoCreateFileUploadBucket:
     Fn::Equals: [ Ref: ExistingFileUploadBucket, ""]
-  CreateLogsBucket:
+  DoCreateLogsBucket:
     Fn::Equals: [ Ref: ExistingLogsBucket, ""]
-  CreateDeploymentBucket:
+  DoCreateDeploymentBucket:
     Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
+  DoEncrypt:
+    Fn::Equals: [ Ref: EncryptionKey, ""]
 
 Resources:
   Objects:
-    Condition: CreateObjectsBucket
+    Condition: DoCreateObjectsBucket
     Type: AWS::S3::Bucket
     Description: content-addressed storage for all objects
     DeletionPolicy: Retain
@@ -53,26 +59,43 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
+
   Secrets:
-    Condition: CreateSecretsBucket
+    Condition: DoCreateSecretsBucket
     Type: AWS::S3::Bucket
     Description: stuff
     DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
         Status: Enabled
+      ServerSideEncryptionConfiguration:
+        Fn::If:
+          - DoEncrypt
+          - - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyId:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
 
   PrivateConf:
-    Condition: CreatePrivateConfBucket
+    Condition: DoCreatePrivateConfBucket
     Type: AWS::S3::Bucket
     Description: private configuration files
     DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
         Status: Enabled
+      ServerSideEncryptionConfiguration:
+        Fn::If:
+          - DoEncrypt
+          - - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyId:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
 
   FileUpload:
-    Condition: CreateFileUploadBucket
+    Condition: DoCreateFileUploadBucket
     Type: AWS::S3::Bucket
     Description: file upload destination for all users
     DeletionPolicy: Retain
@@ -90,9 +113,17 @@ Resources:
             AllowedHeaders:
               - "*"
             MaxAge: 3600
+      ServerSideEncryptionConfiguration:
+        Fn::If:
+          - DoEncrypt
+          - - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyId:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
 
   Logs:
-    Condition: CreateLogsBucket
+    Condition: DoCreateLogsBucket
     Type: AWS::S3::Bucket
     Description: logs from lambda functions, apigateway and others
     DeletionPolicy: Retain
@@ -110,54 +141,62 @@ Resources:
                 StorageClass: Glacier
 
   Deployment:
-    Condition: CreateDeploymentBucket
+    Condition: DoCreateDeploymentBucket
     Type: AWS::S3::Bucket
     Description: destination for lambda code, templates, and other deployment assets
     DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
         Status: Enabled
+      ServerSideEncryptionConfiguration:
+        Fn::If:
+          - DoEncrypt
+          - - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyId:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
 
 Outputs:
   Objects:
     Value:
       Fn::If:
-      - CreateObjectsBucket
+      - DoCreateObjectsBucket
       - Ref: Objects
       - Ref: ExistingObjectsBucket
 
   Secrets:
     Value:
       Fn::If:
-      - CreateSecretsBucket
+      - DoCreateSecretsBucket
       - Ref: Secrets
       - Ref: ExistingSecretsBucket
 
   PrivateConf:
     Value:
       Fn::If:
-      - CreatePrivateConfBucket
+      - DoCreatePrivateConfBucket
       - Ref: PrivateConf
       - Ref: ExistingPrivateConfBucket
 
   FileUpload:
     Value:
       Fn::If:
-      - CreateFileUploadBucket
+      - DoCreateFileUploadBucket
       - Ref: FileUpload
       - Ref: ExistingFileUploadBucket
 
   Logs:
     Value:
       Fn::If:
-      - CreateLogsBucket
+      - DoCreateLogsBucket
       - Ref: Logs
       - Ref: ExistingLogsBucket
 
   Deployment:
     Value:
       Fn::If:
-      - CreateDeploymentBucket
+      - DoCreateDeploymentBucket
       - Ref: Deployment
       - Ref: ExistingDeploymentBucket
 

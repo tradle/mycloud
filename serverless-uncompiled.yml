@@ -1186,6 +1186,11 @@ resources:
       Default: ""
       Description: KMS key id, if you want to use an existing one instead of creating a new one
 
+    ExistingBucketEncryptionKey:
+      Type: String
+      Default: ""
+      Description: KMS key id, if you want to use an existing one instead of creating a new one
+
     ExistingDeploymentBucket:
       Type: String
       Default: ""
@@ -1252,6 +1257,20 @@ resources:
       Type: Number
       Default: 7
 
+    EncryptBuckets:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    EncryptTables:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
     # Stack Info group
 
     Stage:
@@ -1276,6 +1295,7 @@ resources:
             - ExistingLogsBucket
             - ExistingDeploymentBucket
             - ExistingEncryptionKey
+            - ExistingBucketEncryptionKey
 
         - Label:
             default: "Organization Info"
@@ -1293,6 +1313,8 @@ resources:
             - PointInTimeRecoveryEnabledBucket0Table
             - AutoScalingEnabled
             - LogsDaysBeforeTransitionToGlacier
+            - EncryptBuckets
+            - EncryptTables
 
         - Label:
             default: "Stack Info"
@@ -1321,6 +1343,12 @@ resources:
           default: "Deployment Bucket"
         ExistingEncryptionKey:
           default: "Encryption Key"
+        ExistingBucketEncryptionKey:
+          default: "Bucket Encryption Key"
+        EncryptBuckets:
+          default: "Encrypt Buckets"
+        EncryptTables:
+          default: "Encrypt Tables"
 
         # Organization Info
         OrgName:
@@ -1366,13 +1394,13 @@ resources:
         deploymentUUID: ''
 
   Conditions:
-    AutoScale:
+    DoAutoScale:
       Fn::Not:
         - Fn::Equals:
           - Ref: AutoScalingEnabled
           - "false"
 
-    CreateDeploymentBucket:
+    DoCreateDeploymentBucket:
       Fn::Equals:
         - Ref: ExistingDeploymentBucket
         - ""
@@ -1381,7 +1409,7 @@ resources:
     # has to be here for serverless to pick it up
     ServerlessDeploymentBucket:
       Type: AWS::S3::Bucket
-      Condition: CreateDeploymentBucket
+      Condition: DoCreateDeploymentBucket
       Description: destination for lambda code, templates, and other deployment assets
       DeletionPolicy: Retain
       Properties:
@@ -1396,7 +1424,7 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - CreateDeploymentBucket
+                - DoCreateDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
                 - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
@@ -1414,6 +1442,8 @@ resources:
             Ref: PointInTimeRecoveryEnabledEventsTable
           PointInTimeRecoveryEnabledBucket0Table:
             Ref: PointInTimeRecoveryEnabledBucket0Table
+          Encrypt:
+            Ref: EncryptTables
 
     Buckets:
       Type: AWS::CloudFormation::Stack
@@ -1423,7 +1453,7 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - CreateDeploymentBucket
+                - DoCreateDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
                 - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
@@ -1441,11 +1471,14 @@ resources:
             Ref: ExistingLogsBucket
           ExistingDeploymentBucket:
             Fn::If:
-              - CreateDeploymentBucket
+              - DoCreateDeploymentBucket
               - Ref: ServerlessDeploymentBucket
               - Ref: ExistingDeploymentBucket # ServerlessDeploymentBucket
           LogsDaysBeforeTransitionToGlacier:
             Ref: LogsDaysBeforeTransitionToGlacier
+          EncryptionKey:
+            Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+
     IAM:
       Type: AWS::CloudFormation::Stack
       Properties:
@@ -1454,7 +1487,7 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - CreateDeploymentBucket
+                - DoCreateDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
                 - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
@@ -1479,14 +1512,14 @@ resources:
 
     AutoScalingEventsTable:
       Type: AWS::CloudFormation::Stack
-      Condition: AutoScale
+      Condition: DoAutoScale
       Properties:
         TemplateURL:
           Fn::Join:
             - ''
             - - https://
               - Fn::If:
-                - CreateDeploymentBucket
+                - DoCreateDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
                 - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
@@ -1499,14 +1532,14 @@ resources:
 
     AutoScalingBucketTable:
       Type: AWS::CloudFormation::Stack
-      Condition: AutoScale
+      Condition: DoAutoScale
       Properties:
         TemplateURL:
           Fn::Join:
             - ''
             - - https://
               - Fn::If:
-                - CreateDeploymentBucket
+                - DoCreateDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
                 - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
@@ -1551,7 +1584,7 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - CreateDeploymentBucket
+                - DoCreateDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
                 - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
@@ -1559,6 +1592,10 @@ resources:
         Parameters:
           ExistingEncryptionKey:
             Ref: ExistingEncryptionKey
+          ExistingBucketEncryptionKey:
+            Ref: ExistingBucketEncryptionKey
+          NeedBucketEncryptionKey:
+            Ref: EncryptBuckets
 
     Initialize:
       Type: Custom::InitializeDeployment
@@ -1587,11 +1624,8 @@ resources:
             Ref: Stage
           BlockchainNetwork:
             Ref: BlockchainNetwork
-
-        # encryptionKey:
-        #   Fn::FindInMap: ["deployment", "init", "encryptionKey"]
-
-          # <<: *providerConf
+          EncryptTables:
+            Ref: EncryptTables
 
   Outputs:
     EventsTable:
@@ -1630,13 +1664,17 @@ resources:
       Value:
         Fn::GetAtt: Keys.Outputs.EncryptionKey
 
+    BucketEncryptionKey:
+      Value:
+        Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+
     S3TemplatesBaseUrl:
       Value:
         Fn::Join:
           - ''
           - - https://
             - Fn::If:
-              - CreateDeploymentBucket
+              - DoCreateDeploymentBucket
               - Ref: ServerlessDeploymentBucket
               - Ref: ExistingDeploymentBucket
             - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}

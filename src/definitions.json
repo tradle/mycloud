@@ -1,6 +1,6 @@
 {
   "Events": {
-    "Condition": "CreateEventsTable",
+    "Condition": "DoCreateEventsTable",
     "Type": "AWS::DynamoDB::Table",
     "Description": "immutable table of events",
     "DeletionPolicy": "Retain",
@@ -25,11 +25,24 @@
         "PointInTimeRecoveryEnabled": {
           "Ref": "PointInTimeRecoveryEnabledEventsTable"
         }
+      },
+      "SSESpecification": {
+        "Fn::If": [
+          "DoEncrypt",
+          [
+            {
+              "SSEEnabled": true
+            }
+          ],
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ]
       }
     }
   },
   "Bucket0": {
-    "Condition": "CreateBucket0Table",
+    "Condition": "DoCreateBucket0Table",
     "Type": "AWS::DynamoDB::Table",
     "Description": "table that stores resources of all data models",
     "DeletionPolicy": "Retain",
@@ -38,6 +51,26 @@
         "PointInTimeRecoveryEnabled": {
           "Ref": "PointInTimeRecoveryEnabledBucket0Table"
         }
+      },
+      "SSESpecification": {
+        "Fn::If": [
+          "DoEncrypt",
+          [
+            {
+              "SSEEnabled": true
+            }
+          ],
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ]
+      },
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 10,
+        "WriteCapacityUnits": 10
+      },
+      "StreamSpecification": {
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
       },
       "AttributeDefinitions": [
         {
@@ -99,13 +132,6 @@
           "KeyType": "RANGE"
         }
       ],
-      "ProvisionedThroughput": {
-        "ReadCapacityUnits": 10,
-        "WriteCapacityUnits": 10
-      },
-      "StreamSpecification": {
-        "StreamViewType": "NEW_AND_OLD_IMAGES"
-      },
       "GlobalSecondaryIndexes": [
         {
           "IndexName": "idx0",

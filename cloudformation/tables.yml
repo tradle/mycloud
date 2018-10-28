@@ -32,15 +32,24 @@ Parameters:
       - "true"
       - "false"
 
+  Encrypt:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+
 Conditions:
-  CreateEventsTable:
+  DoCreateEventsTable:
     Fn::Equals: [ Ref: ExistingEventsTable, ""]
-  CreateBucket0Table:
+  DoCreateBucket0Table:
     Fn::Equals: [ Ref: ExistingBucket0Table, ""]
+  DoEncrypt:
+    Fn::Equals: [ Ref: Encrypt, "true"]
 
 Resources:
   Events:
-    Condition: CreateEventsTable
+    Condition: DoCreateEventsTable
     Type: AWS::DynamoDB::Table
     Description: immutable table of events
     DeletionPolicy: Retain
@@ -59,9 +68,14 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Ref: PointInTimeRecoveryEnabledEventsTable
+      SSESpecification:
+        Fn::If:
+          - DoEncrypt
+          - - SSEEnabled: true
+          - Ref: AWS::NoValue
 
   Bucket0:
-    Condition: CreateBucket0Table
+    Condition: DoCreateBucket0Table
     Type: AWS::DynamoDB::Table
     Description: table that stores resources of all data models
     DeletionPolicy: Retain
@@ -71,6 +85,16 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Ref: PointInTimeRecoveryEnabledBucket0Table
+      SSESpecification:
+        Fn::If:
+          - DoEncrypt
+          - - SSEEnabled: true
+          - Ref: AWS::NoValue
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
       AttributeDefinitions:
         - AttributeName: __h__
           AttributeType: S
@@ -101,11 +125,6 @@ Resources:
           KeyType: HASH
         - AttributeName: __r__
           KeyType: RANGE
-      ProvisionedThroughput:
-        ReadCapacityUnits: 10
-        WriteCapacityUnits: 10
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
       GlobalSecondaryIndexes:
         - IndexName: idx0
           KeySchema:
@@ -167,21 +186,21 @@ Outputs:
   Events:
     Value:
       Fn::If:
-      - CreateEventsTable
+      - DoCreateEventsTable
       - Ref: Events
       - Ref: ExistingEventsTable
 
   Bucket0:
     Value:
       Fn::If:
-      - CreateBucket0Table
+      - DoCreateBucket0Table
       - Ref: Bucket0
       - Ref: ExistingBucket0Table
 
   Bucket0Stream:
     Value:
       Fn::If:
-      - CreateBucket0Table
+      - DoCreateBucket0Table
       - Fn::GetAtt: Bucket0.StreamArn
       - Ref: ExistingBucket0TableStreamArn
 
