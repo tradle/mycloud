@@ -1619,6 +1619,8 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _allowSNSToCallLambda = async ({ topic, lambda }) => {
+    if (this.bot.isTesting) return
+
     const exists = await this.bot.lambdaUtils.canSNSInvoke(lambda)
     if (exists) {
       this.logger.debug('sns -> lambda permission already exists', { lambda })

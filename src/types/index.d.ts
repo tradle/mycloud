@@ -689,6 +689,7 @@ export interface IHasModels {
   buildResource: (model: string|Model) => any
   buildStub: (resource: ITradleObject) => any
   validateResource: (resource: ITradleObject) => void
+  validatePartialResource: (resource: ITradleObject) => void
   getModel: (id: string) => Model
 }
 
@@ -859,6 +860,12 @@ export interface StackTemplate {
     [key: string]: StackTemplateResource
   }
 }
+
+// export MyCloudStackTemplate extends StackTempalte {
+//   Parameters: {
+//     OrgAdminEmail: StackTemplateParameter
+//   }
+// }
 
 export interface StackUpdateParameters {
   BlockchainNetwork: string

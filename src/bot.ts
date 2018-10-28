@@ -253,6 +253,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   // IHasModels
   public buildResource: (model: string|Model) => any
   public validateResource: (resource: ITradleObject) => void
+  public validatePartialResource: (resource: ITradleObject) => void
   public buildStub: (resource: ITradleObject) => any
   public getModel: (id: string) => Model
 

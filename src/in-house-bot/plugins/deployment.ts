@@ -63,8 +63,18 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     try {
       launchUrl = (await deployment.genLaunchPackage(deploymentOpts)).url
     } catch (err) {
+      if (!Errors.matches(err, Errors.InvalidInput)) {
+        logger.error('failed to generate launch url', err)
+        await productsAPI.sendSimpleMessage({
+          req,
+          to: user,
+          message: `hmm, something went wrong, we'll look into it`
+        })
+
+        return
+      }
+
       logger.debug('failed to generate launch url', err)
-      Errors.ignore(err, Errors.InvalidInput)
       await applications.requestEdit({
         req,
         item: selectModelProps({ object: form, models: bot.models }),
