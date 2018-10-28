@@ -8,10 +8,14 @@ import fake from '@tradle/build-resource/fake'
 import buildResource from '@tradle/build-resource'
 import { Deployment } from '../../in-house-bot/deployment'
 import * as utils from '../../utils'
+import { StackUtils } from '../../stack-utils'
 import Errors from '../../errors'
 import { createTestBot } from '../../'
 import models from '../../models'
-import { IMyDeploymentConf } from '../../in-house-bot/types'
+import {
+  IMyDeploymentConf,
+  StackTemplate,
+} from '../../in-house-bot/types'
 import { createTestEnv } from '../env'
 
 const users = require('../fixtures/users.json')
@@ -38,7 +42,7 @@ test('deployment by referral', loudAsync(async (t) => {
     domain: 'example.com',
     adminEmail: 'admin@example.com',
     hrEmail: 'hr@example.com',
-    stackPrefix: 'mytradle',
+    stackName: 'mytradle',
   }
 
   conf._author = users[0].link
@@ -110,18 +114,20 @@ test('deployment by referral', loudAsync(async (t) => {
   const saveTemplateStub = sandbox.stub(parentDeployment, 'savePublicTemplate').callsFake(async ({ template, bucket }) => {
     t.equal(bucket, regionalBucket)
 
+    debugger
     deploymentConf = {
       stackId: child.stackUtils.thisStackId,
       ...template.Mappings.deployment.init,
-      ...template.Mappings.org.init,
+      // ...template.Mappings.org.init,
       name: childOrg.name,
       domain: childOrg.domain,
+      adminEmail: StackUtils.getDefaultAdminEmailFromTemplate(template as StackTemplate),
       identity: childIdentity,
       apiUrl: childUrl,
     }
 
     expectedLaunchReport = {
-      ..._.omit(deploymentConf, ['name', 'domain', 'referrerUrl', 'stage', 'service', 'stackName', 'logo']),
+      ..._.omit(deploymentConf, ['name', 'domain', 'logo', 'referrerUrl', 'stackName']),
       org: _.pick(deploymentConf, ['name', 'domain']),
       version: child.version,
       adminEmail: conf.adminEmail,
@@ -138,19 +144,18 @@ test('deployment by referral', loudAsync(async (t) => {
     Parameters: {
       BlockchainNetwork: {
         Type: 'String',
-        Default: 'ethereum:mainnet',
       },
       OrgName: {
         Type: 'String',
-        Default: 'Tradle',
       },
       OrgDomain: {
         Type: 'String',
-        Default: 'tradle.io',
       },
       OrgLogo: {
         Type: 'String',
-        Default: 'https://tradle.io/images/logo256x.png',
+      },
+      OrgAdminEmail: {
+        Type: 'String',
       },
     },
     "Mappings": {
@@ -159,8 +164,6 @@ test('deployment by referral', loudAsync(async (t) => {
           "referrerUrl": "",
           "referrerIdentity": "",
           "deploymentUUID": "",
-          "service": "tdl-xxxx-tdl",
-          "stage": "dev",
           "stackName": "tdl-xxxx-tdl-dev"
         }
       }
@@ -174,7 +177,7 @@ test('deployment by referral', loudAsync(async (t) => {
         "Properties": {
           "Code": {
             "S3Bucket": {
-              "Ref": "ServerlessDeploymentBucket"
+              "Something": "NotRight"
             },
             "S3Key": "path-to-lambda-code.zip"
           }
@@ -344,7 +347,7 @@ test('deployment by referral', loudAsync(async (t) => {
     logo: 'somewhere/somelogo.png',
     region,
     // configurationLink: conf._link,
-    stackPrefix: conf.stackPrefix,
+    stackName: conf.stackName,
     adminEmail: conf.adminEmail,
     blockchain: childChain,
     _t: 'tradle.cloud.Configuration',
@@ -355,8 +358,8 @@ test('deployment by referral', loudAsync(async (t) => {
 
   t.equal(copyFiles.callCount, 1)
   // t.equal(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
-  t.equal(launchPackage.template.Mappings.org.contact.adminEmail, conf.adminEmail)
-  t.equal(launchPackage.template.Parameters.BlockchainNetwork.Default, childChain)
+  t.equal(StackUtils.getDefaultAdminEmailFromTemplate(launchPackage.template), conf.adminEmail)
+  t.equal(StackUtils.getDefaultBlockchainNetworkFromTemplate(launchPackage.template), childChain)
   // t.same(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
   //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
   // })
@@ -434,7 +437,7 @@ test('deployment by referral', loudAsync(async (t) => {
 
   saveTemplateStub.callsFake(async ({ template, bucket }) => {
     t.equal(bucket, regionalBucket)
-    t.equal(template.Mappings.org.contact.adminEmail, conf.adminEmail)
+    t.equal(StackUtils.getDefaultAdminEmailFromTemplate(template), conf.adminEmail)
     return 'http://my.template.url'
   })
 
@@ -466,7 +469,7 @@ test('deployment by referral', loudAsync(async (t) => {
     req: updateReq
   })
 
-  t.equal(updatePkg.template.Parameters.BlockchainNetwork.Default, childChain)
+  t.equal(StackUtils.getDefaultBlockchainNetworkFromTemplate(updatePkg.template), childChain)
 
   updateResponse = getLastCallArg(parentSendStub).object
   t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')

@@ -862,11 +862,11 @@ export interface StackTemplate {
 
 export interface StackUpdateParameters {
   BlockchainNetwork: string
+  OrgAdminEmail: string
 }
 
 export interface StackLaunchParameters extends StackUpdateParameters {
   OrgName: string
   OrgDomain: string
   OrgLogo: string
-  OrgAdminEmail: string
 }

@@ -46,7 +46,12 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     const link = form._link
     const configuration = Deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink
-    const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentConf
+    const deploymentOpts = {
+      ...configuration,
+       // backwards compat
+      stackName: configuration.stackName || configuration.stackPrefix,
+      configurationLink: link,
+    } as IDeploymentConf
 
     // async
     bot.sendSimpleMessage({

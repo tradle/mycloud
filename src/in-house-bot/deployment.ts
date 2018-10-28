@@ -301,9 +301,9 @@ export class Deployment {
     return {
       template,
       url: stackUtils.getLaunchStackUrl({
-        stackName: StackUtils.getStackNameFromTemplate(template),
+        stackName: configuration.stackName,
+        region: configuration.region,
         templateUrl,
-        region: configuration.region
       }),
       // snsTopic: (await promiseTmpTopic).topic
     }
@@ -404,7 +404,6 @@ export class Deployment {
     const template = await this.customizeTemplateForUpdate({
      template: parentTemplate,
      adminEmail,
-     stackId,
      bucket,
      blockchain
    })
@@ -839,18 +838,15 @@ ${this.genUsageInstructions(links)}`
     configuration: IDeploymentConf
     bucket: string
   }) => {
-    let { name, domain, logo, region, stackPrefix, adminEmail, blockchain } = configuration
+    let { name, domain, logo, stackName, adminEmail, blockchain } = configuration
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
     }
 
-    const previousServiceName = StackUtils.getServiceNameFromTemplate(template)
     template = _.cloneDeep(template)
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
-
-    // StackUtils.setBlockchainNetwork(template, blockchain)
 
     const { Resources, Mappings, Parameters } = template
     const { deployment } = Mappings
@@ -858,17 +854,11 @@ ${this.genUsageInstructions(links)}`
       this.logger.warn('failed to get logo', { domain })
     })
 
-    const stage = StackUtils.getStageFromTemplate(template)
-    const service = StackUtils.normalizeStackName(stackPrefix)
-    const dInit: Partial<IMyDeploymentConf> = {
-      service,
-      stage,
-      stackName: StackUtils.genStackName({ service, stage }),
+    deployment.init = {
+      stackName,
       referrerUrl: this.bot.apiBaseUrl,
       deploymentUUID: utils.uuid(),
-    }
-
-    deployment.init = dInit
+    } as Partial<IMyDeploymentConf>
 
     StackUtils.setLaunchTemplateParameters(template, {
       BlockchainNetwork: blockchain,
@@ -878,56 +868,26 @@ ${this.genUsageInstructions(links)}`
       OrgAdminEmail: adminEmail,
     })
 
-    return this.finalizeCustomTemplate({
-      template,
-      oldServiceName: previousServiceName,
-      newServiceName: service,
-      region,
-      bucket
-    })
-  }
-
-  public finalizeCustomTemplate = ({ template, region, bucket, oldServiceName, newServiceName }) => {
-    template = StackUtils.changeServiceName({
-      template,
-      from: oldServiceName,
-      to: newServiceName
-    })
-
-    template = StackUtils.changeRegion({
-      template,
-      from: this._thisRegion,
-      to: region
-    })
-
-    _.forEach(template.Resources, resource => {
-      if (resource.Type === 'AWS::Lambda::Function') {
-        resource.Properties.Code.S3Bucket = bucket
-      }
-    })
-
-    return template
+    return this._setLambdaCodePointers({ template, bucket })
   }
 
   public customizeTemplateForUpdate = async (opts: {
     template: any
-    stackId: string
     adminEmail: string
     bucket: string
     blockchain: string
   }) => {
-    utils.requireOpts(opts, ['template', 'stackId', 'adminEmail', 'bucket', 'blockchain'])
+    utils.requireOpts(opts, ['template', 'adminEmail', 'bucket', 'blockchain'])
 
-    let { template, stackId, adminEmail, bucket, blockchain } = opts
-    const { service, region } = StackUtils.parseStackArn(stackId)
-    const previousServiceName = StackUtils.getServiceNameFromTemplate(template)
+    let { template, adminEmail, bucket, blockchain } = opts
     template = _.cloneDeep(template)
 
     // scrap unneeded mappings
     // also...we don't have this info
     template.Mappings = {}
     StackUtils.setUpdateTemplateParameters(template, {
-      BlockchainNetwork: blockchain
+      BlockchainNetwork: blockchain,
+      OrgAdminEmail: adminEmail,
     })
 
     const initProps = template.Resources.Initialize.Properties
@@ -937,14 +897,7 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
-    StackUtils.setAdminEmail(template, adminEmail)
-    return this.finalizeCustomTemplate({
-      template,
-      oldServiceName: previousServiceName,
-      newServiceName: service,
-      region,
-      bucket
-    })
+    return this._setLambdaCodePointers({ template, bucket })
   }
 
   public getCallHomeUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
@@ -1827,6 +1780,16 @@ ${this.genUsageInstructions(links)}`
       s3Utils: bot.s3Utils,
       logger: bot.logger
     })
+  }
+
+  private _setLambdaCodePointers = ({ template, bucket }) => {
+    _.forEach(template.Resources, resource => {
+      if (resource.Type === 'AWS::Lambda::Function') {
+        resource.Properties.Code.S3Bucket = bucket
+      }
+    })
+
+    return template
   }
 
   // private _refreshTmpSNSTopic = async (arn: string) => {

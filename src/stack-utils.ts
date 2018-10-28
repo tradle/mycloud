@@ -149,25 +149,11 @@ export default class StackUtils {
   }
 
   public static getDeploymentUUIDFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.deploymentUUID')
-  public static getStackNameFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.stackName')
-  public static getServiceNameFromTemplate = (template: StackTemplate) => _.get(template, 'Parameters.ServiceName.Default')
-  public static getStageFromTemplate = (template: StackTemplate) => _.get(template, 'Parameters.Stage.Default')
-  public static getServiceNameFromDomain = (domain: string) => domain.replace(/[^a-zA-Z0-9]/g, '-')
-  public static getAdminEmailFromTemplate = (template: StackTemplate) => _.get(template, ADMIN_EMAIL_PATH)
+  public static getDefaultAdminEmailFromTemplate = (template: StackTemplate) => _.get(template, ADMIN_EMAIL_PATH)
+  public static getDefaultBlockchainNetworkFromTemplate = (template: StackTemplate) => _.get(template, 'Parameters.BlockchainNetwork.Default')
   public static getCommitHashFromTemplate = (template: StackTemplate) => _.get(template, 'Resources.Initialize.Properties.commit')
   public static normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
   public static setAdminEmail = (template:StackTemplate, email:string) => _.set(template, ADMIN_EMAIL_PATH, email)
-  // public static setBlockchainNetwork = (template: StackTemplate, value: string) => {
-  //   if (!template.Parameters) template.Parameters = {}
-  //   template.Parameters.BlockchainNetwork = {
-  //     Type: 'String',
-  //     Default: value,
-  //     AllowedValues: [
-  //       value
-  //     ]
-  //   }
-  // }
-
   public static setUpdateTemplateParameters = (template: StackTemplate, values: StackUpdateParameters) => {
     StackUtils._setTemplateParameters(template, values)
   }
@@ -285,7 +271,7 @@ export default class StackUtils {
     }
 
     const template = await this.getStackTemplate()
-    return StackUtils.getAdminEmailFromTemplate(template)
+    return StackUtils.getDefaultAdminEmailFromTemplate(template)
   }
 
   public updateEnvironments = async(map:TransformFunctionConfig):Promise<UpdateEnvResult[]> => {
@@ -582,24 +568,6 @@ export default class StackUtils {
     await this.createDeployment()
   }
 
-  public static changeServiceName = ({ template, from, to }) => {
-    if (!(template && from && to)) {
-      throw new Error('expected "template", "from", and "to"')
-    }
-
-    const s3Keys = StackUtils.getLambdaS3Keys(template)
-    const fromRegex = new RegExp(from, 'g')
-    const fromNoDashRegex = new RegExp(stripDashes(from), 'g')
-    const toRegex = new RegExp(to, 'g')
-    const resultStr = JSON.stringify(template)
-      .replace(fromRegex, to)
-      .replace(fromNoDashRegex, stripDashes(to))
-
-    const result = JSON.parse(resultStr)
-    s3Keys.forEach(({ path, value }) => _.set(result, path, value))
-    return result
-  }
-
   public static getLambdaS3Keys = (template: any) => {
     const keys = []
     const { Resources } = template
@@ -616,70 +584,7 @@ export default class StackUtils {
     return keys
   }
 
-  public static changeRegion = ({ template, from, to }) => {
-    const { Mappings, ...toChange } = template
-    let changed = StackUtils.changeAutoScalingRegion({
-      template: toChange,
-      from, to
-    })
-
-    const hacked = JSON.stringify(changed)
-      .replace(new RegExp(from, 'ig'), to)
-      .replace(new RegExp(normalizePathPart(from), 'g'), normalizePathPart(to))
-
-    return {
-      ...JSON.parse(hacked),
-      Mappings
-    }
-  }
-
-  public static changeAutoScalingRegion = ({ template, from, to }) => {
-    const cleanFrom = toAutoScalingRegionFormat(from)
-    const cleanTo = toAutoScalingRegionFormat(to)
-    let str = JSON.stringify(template)
-    const toReplace = _.map(template.Resources, (resource: any, key: string) => {
-      const { Type } = resource
-      if (Type && Type.startsWith('AWS::ApplicationAutoScaling')) {
-        return key
-      }
-    })
-    .filter(_.identity)
-    .sort((a, b) => b.length - a.length)
-
-    toReplace.forEach(key => {
-      const parts = splitCamelCaseToArray(key)
-      const cleanRegion = parts.pop()
-      if (cleanRegion === cleanTo) return
-
-      const newKey = parts.join('') + cleanTo
-      str = replaceAll(str, key, newKey)
-    })
-
-    return JSON.parse(str)
-  }
-
-  // public static changeAdminEmail = ({ template, to }) => {
-  //   return {
-  //     ...template,
-  //     Resources: _.transform(<any>template.Resources, (updated:any, value:any, logicalId:string) => {
-  //       const { Type } = value
-  //       if (Type === 'AWS::SNS::Topic' && logicalId.toLowerCase().endsWith('alarm')) {
-  //         value = _.cloneDeep(value)
-  //         const { Subscription = [] } = value.Properties
-  //         Subscription.forEach(item => {
-  //           if (item.Protocol === 'email') item.Endpoint = to
-  //         })
-  //       }
-
-  //       updated[logicalId] = value
-  //     }, {})
-  //   }
-  // }
-
-  public changeServiceName = StackUtils.changeServiceName
-  public changeRegion = StackUtils.changeRegion
   public getLambdaS3Keys = StackUtils.getLambdaS3Keys
-
   public updateStack = async ({ templateUrl, notificationTopics = [] }: {
     templateUrl: string
     notificationTopics?: string[]

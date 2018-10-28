@@ -366,7 +366,7 @@ export interface IDeploymentConf extends ITradleObject {
   name: string
   domain: string
   logo?: string
-  stackPrefix: string
+  stackName: string
   region: string
   adminEmail?: string
   blockchain: string
@@ -403,8 +403,6 @@ export interface IMyDeploymentConf {
   identity: IIdentity
   deploymentUUID: string
   apiUrl: string
-  service: string
-  stage: string
   stackName: string
   stackId: string
   referrerUrl: string
