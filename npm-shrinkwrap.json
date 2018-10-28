@@ -9525,7 +9525,7 @@
     "serverless-plugin-aws-alerts": {
       "version": "1.2.4",
       "from": "mvayngrib/serverless-plugin-aws-alerts",
-      "resolved": "git://github.com/mvayngrib/serverless-plugin-aws-alerts.git#87f7c06bbd72de61afa9f1afa1171f669e73b34d",
+      "resolved": "git://github.com/mvayngrib/serverless-plugin-aws-alerts.git#8db4f17712bc63a0be927825696a62e6ef9d2604",
       "dev": true
     },
     "serverless-plugin-log-retention": {

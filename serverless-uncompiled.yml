@@ -1271,6 +1271,13 @@ resources:
         - "true"
         - "false"
 
+    # EnableTracing:
+    #   Type: String
+    #   Default: "false"
+    #   AllowedValues:
+    #     - "true"
+    #     - "false"
+
     # Stack Info group
 
     Stage:
@@ -1315,6 +1322,7 @@ resources:
             - LogsDaysBeforeTransitionToGlacier
             - EncryptBuckets
             - EncryptTables
+            # - EnableTracing
 
         - Label:
             default: "Stack Info"
@@ -1349,6 +1357,8 @@ resources:
           default: "Encrypt Buckets"
         EncryptTables:
           default: "Encrypt Tables"
+        # EnableTracing:
+        #   default: "Enable AWS X-Ray Tracing for Lambda Functions"
 
         # Organization Info
         OrgName:
@@ -1678,3 +1688,22 @@ resources:
               - Ref: ServerlessDeploymentBucket
               - Ref: ExistingDeploymentBucket
             - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+
+    # serverless usually generates this
+    ServiceEndpoint:
+      Description: API root URL
+      Value:
+        Fn::Join:
+          - ''
+          - - https://
+            - Ref: ApiGatewayRestApi
+            - .execute-api.us-east-1.amazonaws.com/dev
+
+    # serverless usually generates this
+    ServerlessDeploymentBucketName:
+      Value:
+        Ref: ServerlessDeploymentBucket
+
+    SourceDeploymentBucketName:
+      Value:
+        Ref: SourceDeploymentBucket
