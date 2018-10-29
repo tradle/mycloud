@@ -71,7 +71,7 @@ Resources:
       SSESpecification:
         Fn::If:
           - DoEncrypt
-          - - SSEEnabled: true
+          - SSEEnabled: true
           - Ref: AWS::NoValue
 
   Bucket0:
@@ -88,7 +88,7 @@ Resources:
       SSESpecification:
         Fn::If:
           - DoEncrypt
-          - - SSEEnabled: true
+          - SSEEnabled: true
           - Ref: AWS::NoValue
       ProvisionedThroughput:
         ReadCapacityUnits: 10

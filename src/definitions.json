@@ -29,11 +29,9 @@
       "SSESpecification": {
         "Fn::If": [
           "DoEncrypt",
-          [
-            {
-              "SSEEnabled": true
-            }
-          ],
+          {
+            "SSEEnabled": true
+          },
           {
             "Ref": "AWS::NoValue"
           }
