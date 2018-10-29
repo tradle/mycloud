@@ -866,6 +866,7 @@ ${this.genUsageInstructions(links)}`
       OrgDomain: domain,
       OrgLogo: await logoPromise || media.LOGO_UNKNOWN,
       OrgAdminEmail: adminEmail,
+      SourceDeploymentBucket: bucket,
     })
 
     return this._setLambdaCodePointers({ template, bucket })
@@ -886,6 +887,7 @@ ${this.genUsageInstructions(links)}`
     // also...we don't have this info
     template.Mappings = {}
     StackUtils.setUpdateTemplateParameters(template, {
+      SourceDeploymentBucket: bucket,
       BlockchainNetwork: blockchain,
       OrgAdminEmail: adminEmail,
     })

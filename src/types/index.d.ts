@@ -868,6 +868,7 @@ export interface StackTemplate {
 // }
 
 export interface StackUpdateParameters {
+  SourceDeploymentBucket: string
   BlockchainNetwork: string
   OrgAdminEmail: string
 }
