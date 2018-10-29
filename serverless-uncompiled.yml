@@ -87,7 +87,6 @@ custom:
   # logging: ${{self:custom.vars.logging, self:custom.defaults.logging}}
 
   # copied from vars.json
-  # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
   # blockchain: ${{self:custom.vars.blockchain}}
   # thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm, self:custom.defaults.thresholdBillingAlarm}}
   thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm, self:custom.defaults.thresholdThrottlingAlarm}}
@@ -113,9 +112,6 @@ custom:
 
   # versions
   versionSQL: "2016-03-23"
-  emailForNotifications:
-    ${{self:custom.vars.emailForNotifications, self:custom.defaults.emailForNotifications}}
-
   s3TemplatesPath: ${{self:custom.version.templatesPath}}
 
   # sns
@@ -1199,38 +1195,25 @@ resources:
 
     OrgName:
       Type: String
-      # Default: ${{self:custom.org.name}}
-      # AllowedValues:
-      #   - ${{self:custom.org.name}}
 
     OrgDomain:
       Type: String
-      # Default: ${{self:custom.org.domain}}
-      # AllowedValues:
-      #   - ${{self:custom.org.domain}}
 
     OrgLogo:
       Type: String
-      # Default: ${{self:custom.org.logo}}
-      # AllowedValues:
-      #   - ${{self:custom.org.logo}}
 
     OrgAdminEmail:
       Type: String
-      # Default: ${{self:custom.emailForNotifications}}
-      # AllowedValues:
-      #   - ${{self:custom.emailForNotifications}}
 
     # Configuration group
 
     BlockchainNetwork:
       Type: String
-      Default: ${{self:custom.blockchain}}
+      Default: 'ethereum:rinkeby'
       AllowedValues:
-        - ${{self:custom.blockchain}}
-        # - 'ethereum:mainnet'
-        # - 'ethereum:rinkeby'
-        # - 'ethereum:ropsten'
+        - 'ethereum:mainnet'
+        - 'ethereum:rinkeby'
+        - 'ethereum:ropsten'
 
     AutoScalingEnabled:
       Type: String
@@ -1282,9 +1265,10 @@ resources:
 
     Stage:
       Type: String
-      Default: ${{self:custom.stage}}
+      Default: dev
       AllowedValues:
-        - ${{self:custom.stage}}
+        - dev
+        - prod
 
   Metadata:
     AWS::CloudFormation::Interface:
@@ -1706,10 +1690,10 @@ resources:
             - Ref: ApiGatewayRestApi
             - .execute-api.us-east-1.amazonaws.com/dev
 
-    # serverless usually generates this
-    ServerlessDeploymentBucketName:
-      Value:
-        Fn::GetAtt: Buckets.Outputs.Deployment
+    # let serverless generate this
+    # ServerlessDeploymentBucketName:
+    #   Value:
+    #     Fn::GetAtt: Buckets.Outputs.Deployment
 
     SourceDeploymentBucketName:
       Value:
