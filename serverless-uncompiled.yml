@@ -1421,7 +1421,7 @@ resources:
     UseSourceDeploymentBucket:
       Fn::Not:
         - Fn::Equals:
-          - Ref: SourceDeploymentBucket:
+          - Ref: SourceDeploymentBucket
           - ""
 
   Resources:
