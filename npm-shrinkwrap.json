@@ -3350,6 +3350,11 @@
       "from": "emitter-listener@>=1.1.1 <2.0.0",
       "resolved": "https://registry.npmjs.org/emitter-listener/-/emitter-listener-1.1.1.tgz"
     },
+    "empty-aws-bucket": {
+      "version": "1.0.10",
+      "from": "mvayngrib/empty-aws-bucket",
+      "resolved": "git://github.com/mvayngrib/empty-aws-bucket.git#6a39fa8fc1d8b436949e749ce521b3c0ad171751"
+    },
     "encodeurl": {
       "version": "1.0.2",
       "from": "encodeurl@>=1.0.2 <1.1.0",
