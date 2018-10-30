@@ -3,6 +3,7 @@ const path = require('path')
 const AWS = require('aws-sdk')
 const traverse = require('traverse')
 const isEqual = require('lodash/isEqual')
+const pick = require('lodash/pick')
 const Errors = require('@tradle/errors')
 const { StackUtils } = require('../lib/stack-utils')
 const { Deployment } = require('../lib/in-house-bot/deployment')
@@ -74,6 +75,9 @@ class SetVersion {
     StackUtils.replaceDeploymentBucketRefs(template, {
       'Fn::GetAtt': 'Source.Outputs.Value'
     })
+
+    this.log('WARNING: removing duplicate ServiceEndpoint definition (ours and serverless\'s)')
+    template.Outputs.ServiceEndpoint.Value = pick(template.Outputs.ServiceEndpoint.Value, ['Fn::Sub'])
 
     Deployment.ensureInitLogIsRetained(template)
   }

@@ -1702,11 +1702,7 @@ resources:
     ServiceEndpoint:
       Description: API root URL
       Value:
-        Fn::Join:
-          - ''
-          - - https://
-            - Ref: ApiGatewayRestApi
-            - .execute-api.us-east-1.amazonaws.com/dev
+        Fn::Sub: 'https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev'
 
     # let serverless generate this
     # ServerlessDeploymentBucketName:
