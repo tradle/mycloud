@@ -887,6 +887,9 @@ ${this.genUsageInstructions(links)}`
     // scrap unneeded mappings
     // also...we don't have this info
     template.Mappings = {}
+    delete template.Parameters.OrgName
+    delete template.Parameters.OrgDomain
+    delete template.Parameters.OrgLogo
     StackUtils.setUpdateTemplateParameters(template, {
       SourceDeploymentBucket: bucket,
       BlockchainNetwork: blockchain,
