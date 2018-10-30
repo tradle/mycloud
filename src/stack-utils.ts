@@ -11,7 +11,7 @@ import {
   ILaunchStackUrlOpts,
   IUpdateStackUrlOpts,
   VersionInfo,
-  StackTemplate,
+  CFTemplate,
   StackLaunchParameters,
   StackUpdateParameters,
 } from './types'
@@ -41,9 +41,7 @@ const METHODS = [
   'PATCH'
 ]
 
-const ADMIN_EMAIL_PATH = ['Parameters', 'OrgAdminEmail', 'Default']
 const CODE_BUCKET_PATH = ['Properties', 'Code', 'S3Bucket']
-const REF_DEPLOYMENT_BUCKET = { Ref: 'ServerlessDeploymentBucket' }
 
 const stripDashes = str => str.replace(/[-]/g, '')
 
@@ -148,21 +146,7 @@ export default class StackUtils {
     }
   }
 
-  public static getDeploymentUUIDFromTemplate = (template: StackTemplate) => _.get(template, 'Mappings.deployment.init.deploymentUUID')
-  public static getDefaultAdminEmailFromTemplate = (template: StackTemplate) => _.get(template, ADMIN_EMAIL_PATH)
-  public static getDefaultBlockchainNetworkFromTemplate = (template: StackTemplate) => _.get(template, 'Parameters.BlockchainNetwork.Default')
-  public static getCommitHashFromTemplate = (template: StackTemplate) => _.get(template, 'Resources.Initialize.Properties.commit')
-  public static normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
-  public static setAdminEmail = (template:StackTemplate, email:string) => _.set(template, ADMIN_EMAIL_PATH, email)
-  public static setUpdateTemplateParameters = (template: StackTemplate, values: StackUpdateParameters) => {
-    StackUtils._setTemplateParameters(template, values)
-  }
-
-  public static setLaunchTemplateParameters = (template: StackTemplate, values: StackLaunchParameters) => {
-    StackUtils._setTemplateParameters(template, values)
-  }
-
-  private static _setTemplateParameters = (template: StackTemplate, values: any) => {
+  public static setTemplateParameters = (template: CFTemplate, values: any) => {
     if (!template.Parameters) template.Parameters = {}
 
     const { Parameters } = template
@@ -253,25 +237,6 @@ export default class StackUtils {
     }
 
     return resources
-  }
-
-  public getCurrentAdminEmail = async ():Promise<string> => {
-    const resources = await this.getStackResources()
-    const { PhysicalResourceId } = resources.find(r => {
-      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
-    })
-
-    const { Subscriptions } = await this.aws.sns.listSubscriptionsByTopic({
-      TopicArn: PhysicalResourceId
-    }).promise()
-
-    const emails = Subscriptions.filter(s => s.Protocol === 'email')
-    if (emails.length) {
-      return emails[0].Endpoint
-    }
-
-    const template = await this.getStackTemplate()
-    return StackUtils.getDefaultAdminEmailFromTemplate(template)
   }
 
   public updateEnvironments = async(map:TransformFunctionConfig):Promise<UpdateEnvResult[]> => {
@@ -568,7 +533,7 @@ export default class StackUtils {
     await this.createDeployment()
   }
 
-  public static getLambdaS3Keys = (template: any) => {
+  public static getLambdaS3Keys = (template: CFTemplate) => {
     const keys = []
     const { Resources } = template
     for (let name in Resources) {
@@ -630,16 +595,10 @@ export default class StackUtils {
     })
   }
 
-  public static replaceDeploymentBucketRefs = (template: any, replacement: any) => {
+  public static replaceDeploymentBucketRefs = (template: CFTemplate, replacement: any) => {
     getResourcesByType(template, 'AWS::Lambda::Function').forEach(name => {
       _.set(template.Resources[name], CODE_BUCKET_PATH, replacement)
     })
-  }
-
-  public static ensureInitLogIsRetained = (template: any) => {
-    // otherwise it's impossible to figure out what went wrong when the stack
-    // doesn't succeed
-    template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = 'Retain'
   }
 
   public static getStackLocationKeys = ({ stage, versionInfo }:  {
@@ -704,7 +663,7 @@ const normalizePathPart = path => _.upperFirst(
 )
 
 const toAutoScalingRegionFormat = (region: string) => _.upperFirst(region.replace(/[^a-zA-Z0-9]/ig, ''))
-const getResourcesByType = (template: any, type: string) => {
+const getResourcesByType = (template: CFTemplate, type: string) => {
   const { Resources } = template
   return Object.keys(Resources).filter(name => Resources[name].Type === type)
 }

@@ -5,6 +5,7 @@ const traverse = require('traverse')
 const isEqual = require('lodash/isEqual')
 const Errors = require('@tradle/errors')
 const { StackUtils } = require('../lib/stack-utils')
+const { Deployment } = require('../lib/in-house-bot/deployment')
 const {
   validateTemplatesAtPath,
   uploadTemplatesAtPath
@@ -67,7 +68,7 @@ class SetVersion {
       : { 'Fn::GetAtt': 'Buckets.Outputs.Deployment' }
 
     StackUtils.replaceDeploymentBucketRefs(template, sourceDeploymentBucket)
-    StackUtils.ensureInitLogIsRetained(template)
+    Deployment.ensureInitLogIsRetained(template)
   }
 
   async setTemplateParameters() {

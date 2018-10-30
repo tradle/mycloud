@@ -402,6 +402,7 @@ export interface IMyDeploymentConf {
   // same as ICallHomePayload
   identity: IIdentity
   deploymentUUID: string
+  adminEmail: string
   apiUrl: string
   stackName: string
   stackId: string

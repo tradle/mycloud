@@ -838,34 +838,81 @@ export interface LowFundsInput extends BlockchainAddressIdentifier {
   minBalance?: string|number
 }
 
-export interface StackTemplateParameter {
+export interface CFTemplateParameter {
   Type: string
   Description?: string
   Default?: string
   AllowedValues?: string[]
 }
 
-export interface StackTemplateResource {
+export interface CFTemplateResource {
   Type: string
-  Properties: any
+  Description?: string
+  Properties?: any
+  DeletionPolicy?: 'Delete'|'Replace'|'Retain'
 }
 
-export interface StackTemplate {
+export interface CFTemplate {
+  Description?: string
   Parameters?: {
-    [key: string]: StackTemplateParameter
+    [key: string]: CFTemplateParameter
   }
   Mappings?: any
   Conditions?: any
   Resources: {
-    [key: string]: StackTemplateResource
+    [key: string]: CFTemplateResource
   }
 }
 
-// export MyCloudStackTemplate extends StackTempalte {
-//   Parameters: {
-//     OrgAdminEmail: StackTemplateParameter
-//   }
-// }
+export interface MyCloudStackUpdateTemplate extends CFTemplate {
+  Parameters: {
+    OrgName?: CFTemplateParameter
+    OrgDomain?: CFTemplateParameter
+    OrgLogo?: CFTemplateParameter
+    OrgAdminEmail?: CFTemplateParameter
+  },
+}
+
+export interface MyCloudLaunchTemplate extends CFTemplate {
+  Parameters: {
+    [p in keyof StackLaunchParameters]: CFTemplateParameter
+  },
+  Mappings: {
+    deployment: {
+      init: {
+        stackName: string
+        referrerUrl: string
+        deploymentUUID: string
+      }
+    }
+  },
+  Resources: {
+    Initialize: {
+      Type: string
+      Properties: {
+        ServiceToken: string
+        commit: string
+        name: string
+        domain: string
+        logo: string
+        deploymentUUID: string
+        referrerUrl: string
+        ImmutableParameters: {
+          Stage: string
+          BlockchainNetwork: string
+          EncryptTables: string
+        }
+      }
+    },
+    [key: string]: CFTemplateResource
+  }
+}
+
+export interface MyCloudUpdateTemplate extends CFTemplate {
+  Parameters: {
+    [p in keyof StackUpdateParameters]: CFTemplateParameter
+  }
+}
 
 export interface StackUpdateParameters {
   SourceDeploymentBucket: string

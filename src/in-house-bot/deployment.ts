@@ -29,6 +29,11 @@ import {
   StackStatusEvent,
   VersionInfo,
   IPBUser,
+  CFTemplate,
+  StackUpdateParameters,
+  StackLaunchParameters,
+  MyCloudLaunchTemplate,
+  MyCloudUpdateTemplate,
 } from './types'
 
 import { genSetDeliveryPolicyParams, genCrossAccountPublishPermission } from '../sns-utils'
@@ -227,6 +232,21 @@ export class Deployment {
     } as IDeploymentConf
   }
 
+  public static normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
+  public static setUpdateTemplateParameters = (template: CFTemplate, values: StackUpdateParameters) => {
+    StackUtils.setTemplateParameters(template, values)
+  }
+
+  public static setLaunchTemplateParameters = (template: CFTemplate, values: StackLaunchParameters) => {
+    StackUtils.setTemplateParameters(template, values)
+  }
+
+  public static ensureInitLogIsRetained = (template: CFTemplate) => {
+    // otherwise it's impossible to figure out what went wrong when the stack
+    // doesn't succeed
+    template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = 'Retain'
+  }
+
   private callHomeDisabled: boolean
   constructor({ bot, logger, conf, org, disableCallHome }: DeploymentCtorOpts) {
     this.bot = bot
@@ -282,7 +302,7 @@ export class Deployment {
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
     this.logger.debug('generated cloudformation template for child deployment')
-    const deploymentUUID = StackUtils.getDeploymentUUIDFromTemplate(template)
+    const { deploymentUUID } = template.Mappings.deployment.init
     // const promiseTmpTopic = this._setupStackStatusAlerts({
     //   id: deploymentUUID,
     //   type: StackOperationType.create
@@ -834,17 +854,17 @@ ${this.genUsageInstructions(links)}`
   public genUsageInstructions = getAppLinksInstructions
 
   public customizeTemplateForLaunch = async ({ template, configuration, bucket }: {
-    template: any
+    template: CFTemplate
     configuration: IDeploymentConf
     bucket: string
-  }) => {
+  }):Promise<MyCloudLaunchTemplate> => {
     let { name, domain, logo, stackName, adminEmail, blockchain } = configuration
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
     }
 
-    template = _.cloneDeep(template)
+    template = _.cloneDeep(template) as MyCloudLaunchTemplate
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
 
@@ -860,7 +880,7 @@ ${this.genUsageInstructions(links)}`
       deploymentUUID: utils.uuid(),
     } as Partial<IMyDeploymentConf>
 
-    StackUtils.setLaunchTemplateParameters(template, {
+    Deployment.setLaunchTemplateParameters(template, {
       BlockchainNetwork: blockchain,
       OrgName: name,
       OrgDomain: domain,
@@ -869,16 +889,17 @@ ${this.genUsageInstructions(links)}`
       SourceDeploymentBucket: bucket,
     })
 
-    StackUtils.ensureInitLogIsRetained(template)
-    return this._setLambdaCodePointers({ template, bucket })
+    Deployment.ensureInitLogIsRetained(template)
+    this._setLambdaCodePointers({ template, bucket })
+    return template
   }
 
   public customizeTemplateForUpdate = async (opts: {
-    template: any
+    template: CFTemplate
     adminEmail: string
     bucket: string
     blockchain: string
-  }) => {
+  }):Promise<MyCloudUpdateTemplate> => {
     utils.requireOpts(opts, ['template', 'adminEmail', 'bucket', 'blockchain'])
 
     let { template, adminEmail, bucket, blockchain } = opts
@@ -890,7 +911,7 @@ ${this.genUsageInstructions(links)}`
     delete template.Parameters.OrgName
     delete template.Parameters.OrgDomain
     delete template.Parameters.OrgLogo
-    StackUtils.setUpdateTemplateParameters(template, {
+    Deployment.setUpdateTemplateParameters(template, {
       SourceDeploymentBucket: bucket,
       BlockchainNetwork: blockchain,
       OrgAdminEmail: adminEmail,
@@ -903,8 +924,9 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
-    StackUtils.ensureInitLogIsRetained(template)
-    return this._setLambdaCodePointers({ template, bucket })
+    Deployment.ensureInitLogIsRetained(template)
+    this._setLambdaCodePointers({ template, bucket })
+    return template
   }
 
   public getCallHomeUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
@@ -1020,10 +1042,10 @@ ${this.genUsageInstructions(links)}`
   }
 
   public savePublicTemplate = async ({ template, bucket }: {
-    template: any
+    template: CFTemplate
     bucket: string
   }) => {
-    const commit = StackUtils.getCommitHashFromTemplate(template)
+    const { commit } = template.Resources.Initialize.Properties
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
     await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
     const url = this.bot.s3Utils.getUrlForKey({ bucket, key })
@@ -1059,7 +1081,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public copyLambdaCode = async ({ template, bucket }: {
-    template: any
+    template: CFTemplate
     bucket: string
   }) => {
     let keys:string[] = _.uniq(
@@ -1092,9 +1114,9 @@ ${this.genUsageInstructions(links)}`
     return { bucket: target, keys }
   }
 
-  public _saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
-    parentTemplate: any
-    template: any
+  private _saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
+    parentTemplate: MyCloudUpdateTemplate
+    template: CFTemplate
     bucket: string
   }):Promise<{ url: string, code: CodeLocation }> => {
     this.logger.debug('saving template and lambda code', { bucket })
@@ -1157,7 +1179,7 @@ ${this.genUsageInstructions(links)}`
     provider: ResourceStub
     tag: string
   }) => {
-    const adminEmail = await this.bot.stackUtils.getCurrentAdminEmail()
+    const adminEmail = await this.getCurrentAdminEmail()
     const updateReq = this.draftUpdateRequest({
       adminEmail,
       tag,
@@ -1466,6 +1488,26 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
+  public getCurrentAdminEmail = async ():Promise<string> => {
+    const { aws, stackUtils } = this.bot
+    const resources = await stackUtils.getStackResources()
+    const { PhysicalResourceId } = resources.find(r => {
+      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
+    })
+
+    const { Subscriptions } = await aws.sns.listSubscriptionsByTopic({
+      TopicArn: PhysicalResourceId
+    }).promise()
+
+    const emails = Subscriptions.filter(s => s.Protocol === 'email')
+    if (emails.length) {
+      return emails[0].Endpoint
+    }
+
+    const template = await stackUtils.getStackTemplate() as MyCloudUpdateTemplate
+    return template.Parameters.OrgAdminEmail.Default
+  }
+
   private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
@@ -1520,7 +1562,7 @@ ${this.genUsageInstructions(links)}`
       ...opts,
       org: opts.org || this.org,
       identity: opts.identity || this.bot.getMyIdentity(),
-      adminEmail: opts.adminEmail || this.bot.stackUtils.getCurrentAdminEmail(),
+      adminEmail: opts.adminEmail || this.getCurrentAdminEmail(),
     })
   }
 
@@ -1791,14 +1833,15 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  private _setLambdaCodePointers = ({ template, bucket }) => {
+  private _setLambdaCodePointers = ({ template, bucket }: {
+    template: CFTemplate
+    bucket: string
+  }) => {
     _.forEach(template.Resources, resource => {
       if (resource.Type === 'AWS::Lambda::Function') {
         resource.Properties.Code.S3Bucket = bucket
       }
     })
-
-    return template
   }
 
   // private _refreshTmpSNSTopic = async (arn: string) => {
