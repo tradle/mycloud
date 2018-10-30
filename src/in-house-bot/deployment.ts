@@ -1098,13 +1098,37 @@ ${this.genUsageInstructions(links)}`
     return await this._subscribeToChildStackLoggingAlerts(arn)
   }
 
-  public copyLambdaCode = async ({ template, bucket }: {
+  private static getS3KeysForLambdaCode = (template: CFTemplate):string[] => {
+    return _.uniq(
+      StackUtils.getLambdaS3Keys(template).map(k => k.value)
+    ) as string[]
+  }
+
+  private static getS3KeysForSubstacks = (template: CFTemplate) => {
+    const { Resources } = template
+    return StackUtils.getResourcesByType(template, 'AWS::CloudFormation::Stack')
+      .map(stack => {
+        const { TemplateURL } = stack.Properties
+        if (TemplateURL['Fn::Sub']) return TemplateURL['Fn::Sub']
+
+        const [delimiter, parts] = TemplateURL['Fn::Join']
+        return parts
+          .filter(part => typeof part === 'string')
+          .join(delimiter)
+      })
+      .map(url => url.match(/\.s3\.amazonaws\.com\/(.*)$/)[1])
+  }
+
+  public static getS3DependencyKeys = (template: CFTemplate) => {
+    return Deployment.getS3KeysForSubstacks(template)
+      .concat(Deployment.getS3KeysForLambdaCode(template))
+  }
+
+  public copyChildTemplateDependencies = async ({ template, bucket }: {
     template: CFTemplate
     bucket: string
   }) => {
-    let keys:string[] = _.uniq(
-      StackUtils.getLambdaS3Keys(template).map(k => k.value)
-    )
+    let keys:string[] = Deployment.getS3DependencyKeys(template)
 
     const source = this.deploymentBucket
     if (bucket === source.id) {
@@ -1119,11 +1143,11 @@ ${this.genUsageInstructions(links)}`
     keys = keys.filter((key, i) => !exists[i])
 
     if (!keys.length) {
-      this.logger.debug('target bucket already has lambda code')
+      this.logger.debug('target bucket already has s3 dependencies')
       return
     }
 
-    this.logger.debug('copying lambda code', {
+    this.logger.debug('copying s3 dependencies (lambda code and child stack templates)', {
       source: source.id,
       target: target.id
     })
@@ -1140,7 +1164,7 @@ ${this.genUsageInstructions(links)}`
     this.logger.debug('saving template and lambda code', { bucket })
     const [templateUrl, code] = await Promise.all([
       this.savePublicTemplate({ bucket, template }),
-      this.copyLambdaCode({ bucket, template: parentTemplate })
+      this.copyChildTemplateDependencies({ bucket, template }),
     ])
 
     return { templateUrl, code }

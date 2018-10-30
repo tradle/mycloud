@@ -531,19 +531,11 @@ export default class StackUtils {
   }
 
   public static getLambdaS3Keys = (template: CFTemplate) => {
-    const keys = []
     const { Resources } = template
-    for (let name in Resources) {
-      let value = Resources[name]
-      if (value.Type === 'AWS::Lambda::Function') {
-        keys.push({
-          path: `Resources['${name}'].Properties.Code.S3Key`,
-          value: value.Properties.Code.S3Key
-        })
-      }
-    }
-
-    return keys
+    return StackUtils.getResourceNamesByType(template, 'AWS::Lambda::Function').map(name => ({
+      path: `Resources['${name}'].Properties.Code.S3Key`,
+      value: Resources[name].Properties.Code.S3Key
+    }))
   }
 
   public static lockParametersToDefaults = (template: CFTemplate) => {
@@ -603,9 +595,19 @@ export default class StackUtils {
   }
 
   public static replaceDeploymentBucketRefs = (template: CFTemplate, replacement: any) => {
-    getResourcesByType(template, 'AWS::Lambda::Function').forEach(name => {
-      _.set(template.Resources[name], CODE_BUCKET_PATH, replacement)
+    StackUtils.getResourcesByType(template, 'AWS::Lambda::Function').forEach(resource => {
+      _.set(resource, CODE_BUCKET_PATH, replacement)
     })
+  }
+
+  public static getResourcesByType = (template: CFTemplate, type: string) => {
+    return StackUtils.getResourceNamesByType(template, type)
+      .map(name => template.Resources[name])
+  }
+
+  public static getResourceNamesByType = (template: CFTemplate, type: string) => {
+    const { Resources } = template
+    return Object.keys(Resources).filter(name => Resources[name].Type === type)
   }
 
   public static getStackLocationKeys = ({ stage, versionInfo }:  {
@@ -670,7 +672,3 @@ const normalizePathPart = path => _.upperFirst(
 )
 
 const toAutoScalingRegionFormat = (region: string) => _.upperFirst(region.replace(/[^a-zA-Z0-9]/ig, ''))
-const getResourcesByType = (template: CFTemplate, type: string) => {
-  const { Resources } = template
-  return Object.keys(Resources).filter(name => Resources[name].Type === type)
-}
