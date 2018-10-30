@@ -8,7 +8,7 @@ import { loadCredentials, confirm } from '../cli/utils'
 const [stackName, region='us-east-1'] = process.argv.slice(2)
 
 if (!stackName) {
-  throw new Error('expected stack name as first parameter')
+  throw new Error('expected arguments: <stackName> [region]')
 }
 
 AWS.config.update({ region })
