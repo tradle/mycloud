@@ -22,14 +22,8 @@ class SetVersion {
     this.hooks = {
       'aws:common:validate:validate': () => this.onValidate(),
       'before:package:compileFunctions': () => this.setVersion(),
-      'before:aws:deploy:deploy:uploadArtifacts': async () => {
-        await Promise.all([
-          this._getBucket().then(bucket => this.uploadTemplates(bucket)),
-          this.setTemplateParameters()
-        ])
-
-        this.replaceDeploymentBucketRefs()
-      },
+      'before:aws:package:finalize:saveServiceState': () => this.onTemplateFinalized(),
+      // 'before:aws:deploy:deploy:uploadArtifacts': () => this.onTemplateFinalized(),
     }
   }
 
@@ -57,6 +51,15 @@ class SetVersion {
 
   _dir() {
     return versionInfo.templatesPath
+  }
+
+  async onTemplateFinalized() {
+    await Promise.all([
+      this._getBucket().then(bucket => this.uploadTemplates(bucket)),
+      this.setTemplateParameters()
+    ])
+
+    this.replaceDeploymentBucketRefs()
   }
 
   replaceDeploymentBucketRefs() {
