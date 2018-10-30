@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: parameter echo
+
+Parameters:
+  Input:
+    Type: String
+
+Resources:
+  Dummy:
+    Type: AWS::CloudFormation::WaitConditionHandle
+
+Outputs:
+  Value:
+    Value:
+      Ref: Input

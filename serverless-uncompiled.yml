@@ -1439,7 +1439,7 @@ resources:
                 - Ref: ServerlessDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /echo.json
-        Properties:
+        Parameters:
           Input:
             Fn::If:
               - UseSourceDeploymentBucket
@@ -1559,7 +1559,8 @@ resources:
       Type: AWS::CloudFormation::Stack
       Condition: DoAutoScale
       Properties:
-        Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.json'
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.json'
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Bucket0
