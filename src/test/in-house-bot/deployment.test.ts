@@ -1,5 +1,7 @@
 require('../env').install()
 
+import QueryString from 'querystring'
+import URL from 'url'
 import _ from 'lodash'
 import test from 'tape'
 import sinon from 'sinon'
@@ -145,6 +147,10 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const parentTemplate = {
     Parameters: {
+      Stage: {
+        Type: 'String',
+        Default: 'dev',
+      },
       BlockchainNetwork: {
         Type: 'String',
       },
@@ -174,6 +180,8 @@ test('deployment by referral', loudAsync(async (t) => {
     "Resources": {
       "Initialize": {
         "Properties": {}
+      },
+      BotUnderscoreoninitLogGroup: {
       },
       "SomeLambdaFunction": {
         "Type": "AWS::Lambda::Function",
@@ -363,6 +371,7 @@ test('deployment by referral', loudAsync(async (t) => {
   // t.equal(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, conf.adminEmail)
   t.equal(launchPackage.template.Parameters.OrgAdminEmail.Default, conf.adminEmail)
   t.equal(launchPackage.template.Parameters.BlockchainNetwork.Default, childChain)
+  t.equal(QueryString.parse(launchPackage.url.split('?').pop()).stackName, Deployment.expandStackName({ stackName: conf.stackName, stage: 'dev' }))
   // t.same(launchPackage.template.Resources.AwsAlertsAlarm.Properties.Subscription[0].Endpoint, {
   //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
   // })

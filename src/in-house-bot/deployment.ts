@@ -232,7 +232,18 @@ export class Deployment {
     } as IDeploymentConf
   }
 
-  public static normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
+  public static expandStackName = ({ stackName, template, stage }: {
+    stackName: string
+    template?: MyCloudLaunchTemplate | MyCloudUpdateTemplate
+    stage?: string
+  }) => {
+    if (!stage) {
+      stage = _.get(template, 'Parameters.Stage.Default', 'dev')
+    }
+
+    return `tdl-${stackName}-ltd-${stage}`
+  }
+
   public static setUpdateTemplateParameters = (template: CFTemplate, values: StackUpdateParameters) => {
     StackUtils.setTemplateParameterDefaults(template, values)
   }
@@ -302,6 +313,7 @@ export class Deployment {
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
+    const stage = template.Parameters.Stage.Default
     this.logger.debug('generated cloudformation template for child deployment')
     const { deploymentUUID } = template.Mappings.deployment.init
     // const promiseTmpTopic = this._setupStackStatusAlerts({
@@ -322,7 +334,7 @@ export class Deployment {
     return {
       template,
       url: stackUtils.getLaunchStackUrl({
-        stackName: configuration.stackName,
+        stackName: Deployment.expandStackName({ stackName: configuration.stackName, stage }),
         region: configuration.region,
         templateUrl,
       }),
@@ -875,8 +887,9 @@ ${this.genUsageInstructions(links)}`
       this.logger.warn('failed to get logo', { domain })
     })
 
+    const stage = template.Parameters.Stage.Default
     deployment.init = {
-      stackName,
+      stackName: Deployment.expandStackName({ stackName, stage }),
       referrerUrl: this.bot.apiBaseUrl,
       deploymentUUID: utils.uuid(),
     } as Partial<IMyDeploymentConf>
