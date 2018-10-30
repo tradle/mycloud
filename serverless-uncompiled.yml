@@ -1679,14 +1679,7 @@ resources:
 
     S3TemplatesBaseUrl:
       Value:
-        Fn::Join:
-          - ''
-          - - https://
-            - Fn::If:
-              - DoCreateDeploymentBucket
-              - Ref: ServerlessDeploymentBucket
-              - Ref: ExistingDeploymentBucket
-            - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+        Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}'
 
     # serverless usually generates this
     ServiceEndpoint:
