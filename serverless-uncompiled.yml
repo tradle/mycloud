@@ -1638,6 +1638,10 @@ resources:
       Value:
         Fn::GetAtt: Tables.Outputs.Bucket0
 
+    Bucket0TableStream:
+      Value:
+        Fn::GetAtt: Tables.Outputs.Bucket0Stream
+
     ObjectsBucket:
       Value:
         Fn::GetAtt: Buckets.Outputs.Objects
