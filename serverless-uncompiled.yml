@@ -1426,6 +1426,26 @@ resources:
 
   Resources:
     # has to be here for serverless to pick it up
+    Source:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /echo.json
+        Properties:
+          Input:
+            Fn::If:
+              - UseSourceDeploymentBucket
+              - Ref: SourceDeploymentBucket
+              - Ref: ServerlessDeploymentBucket
+
     ServerlessDeploymentBucket:
       Type: AWS::S3::Bucket
       Condition: DoCreateDeploymentBucket
@@ -1439,15 +1459,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Join:
-            - ''
-            - - https://
-              - Fn::If:
-                - UseSourceDeploymentBucket
-                - Ref: SourceDeploymentBucket
-                - Ref: ServerlessDeploymentBucket
-              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
-              - /keys.json
+          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/keys.json'
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1462,15 +1474,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Join:
-            - ''
-            - - https://
-              - Fn::If:
-                - UseSourceDeploymentBucket
-                - Ref: SourceDeploymentBucket
-                - Ref: ServerlessDeploymentBucket
-              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
-              - /tables.json
+          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/tables.json'
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1491,15 +1495,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Join:
-            - ''
-            - - https://
-              - Fn::If:
-                - UseSourceDeploymentBucket
-                - Ref: SourceDeploymentBucket
-                - Ref: ServerlessDeploymentBucket
-              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
-              - /buckets.json
+          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/buckets.json'
         Parameters:
           ExistingObjectsBucket:
             Ref: ExistingObjectsBucket
@@ -1528,15 +1524,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Join:
-            - ''
-            - - https://
-              - Fn::If:
-                - UseSourceDeploymentBucket
-                - Ref: SourceDeploymentBucket
-                - Ref: ServerlessDeploymentBucket
-              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
-              - /iam.json
+          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/iam.json'
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1560,15 +1548,7 @@ resources:
       Condition: DoAutoScale
       Properties:
         TemplateURL:
-          Fn::Join:
-            - ''
-            - - https://
-              - Fn::If:
-                - UseSourceDeploymentBucket
-                - Ref: SourceDeploymentBucket
-                - Ref: ServerlessDeploymentBucket
-              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
-              - /autoscale-events-table.json
+          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-events-table.json'
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Events
@@ -1579,16 +1559,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Condition: DoAutoScale
       Properties:
-        TemplateURL:
-          Fn::Join:
-            - ''
-            - - https://
-              - Fn::If:
-                - UseSourceDeploymentBucket
-                - Ref: SourceDeploymentBucket
-                - Ref: ServerlessDeploymentBucket
-              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
-              - /autoscale-bucket-table.json
+        Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.json'
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Bucket0

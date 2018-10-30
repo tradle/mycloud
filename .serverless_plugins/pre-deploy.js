@@ -63,11 +63,15 @@ class SetVersion {
     const { provider } = this.serverless.service
     const template = provider.compiledCloudFormationTemplate
     const params = provider.cloudformationTemplateParameters
-    const sourceDeploymentBucket = params.find(p => p.ParameterKey === 'SourceDeploymentBucket' && p.ParameterValue)
-      ? { Ref: 'SourceDeploymentBucket' }
-      : { 'Fn::GetAtt': 'Buckets.Outputs.Deployment' }
+    // const sourceDeploymentBucket = params.find(p => p.ParameterKey === 'SourceDeploymentBucket' && p.ParameterValue)
+    //   ? { Ref: 'SourceDeploymentBucket' }
+    //   : { 'Fn::GetAtt': 'Buckets.Outputs.Deployment' }
 
-    StackUtils.replaceDeploymentBucketRefs(template, sourceDeploymentBucket)
+    // StackUtils.replaceDeploymentBucketRefs(template, sourceDeploymentBucket)
+    StackUtils.replaceDeploymentBucketRefs(template, {
+      'Fn::GetAtt': 'Source.Outputs.Value'
+    })
+
     Deployment.ensureInitLogIsRetained(template)
   }
 

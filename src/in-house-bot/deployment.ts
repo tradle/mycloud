@@ -904,7 +904,7 @@ ${this.genUsageInstructions(links)}`
     })
 
     Deployment.ensureInitLogIsRetained(template)
-    this._setLambdaCodePointers({ template, bucket })
+    // this._setLambdaCodePointers({ template, bucket })
     return template
   }
 
@@ -939,7 +939,7 @@ ${this.genUsageInstructions(links)}`
     })
 
     Deployment.ensureInitLogIsRetained(template)
-    this._setLambdaCodePointers({ template, bucket })
+    // this._setLambdaCodePointers({ template, bucket })
     return template
   }
 
@@ -1847,16 +1847,16 @@ ${this.genUsageInstructions(links)}`
     })
   }
 
-  private _setLambdaCodePointers = ({ template, bucket }: {
-    template: CFTemplate
-    bucket: string
-  }) => {
-    _.forEach(template.Resources, resource => {
-      if (resource.Type === 'AWS::Lambda::Function') {
-        resource.Properties.Code.S3Bucket = bucket
-      }
-    })
-  }
+  // private _setLambdaCodePointers = ({ template, bucket }: {
+  //   template: CFTemplate
+  //   bucket: string
+  // }) => {
+  //   _.forEach(template.Resources, resource => {
+  //     if (resource.Type === 'AWS::Lambda::Function') {
+  //       resource.Properties.Code.S3Bucket = bucket
+  //     }
+  //   })
+  // }
 
   // private _refreshTmpSNSTopic = async (arn: string) => {
   //   const existing = await this.bot.db.findOne({
