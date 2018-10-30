@@ -1418,11 +1418,11 @@ resources:
         - Ref: EncryptBuckets
         - "true"
 
-    # UseSourceDeploymentBucket:
-    #   Fn::Not:
-    #     - Fn::Equals:
-    #       - Ref: SourceDeploymentBucket:
-    #       - ""
+    UseSourceDeploymentBucket:
+      Fn::Not:
+        - Fn::Equals:
+          - Ref: SourceDeploymentBucket:
+          - ""
 
   Resources:
     # has to be here for serverless to pick it up
@@ -1443,9 +1443,9 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - DoCreateDeploymentBucket
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
-                - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /keys.json
         Parameters:
@@ -1466,9 +1466,9 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - DoCreateDeploymentBucket
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
-                - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /tables.json
         Parameters:
@@ -1495,9 +1495,9 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - DoCreateDeploymentBucket
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
-                - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /buckets.json
         Parameters:
@@ -1532,9 +1532,9 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - DoCreateDeploymentBucket
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
-                - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /iam.json
         Parameters:
@@ -1564,9 +1564,9 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - DoCreateDeploymentBucket
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
-                - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /autoscale-events-table.json
         Parameters:
@@ -1584,9 +1584,9 @@ resources:
             - ''
             - - https://
               - Fn::If:
-                - DoCreateDeploymentBucket
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
                 - Ref: ServerlessDeploymentBucket
-                - Ref: ExistingDeploymentBucket
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /autoscale-bucket-table.json
         Parameters:
