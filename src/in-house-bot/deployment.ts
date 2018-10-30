@@ -1039,6 +1039,10 @@ ${this.genUsageInstructions(links)}`
     return updated
   }
 
+  // if you change this, change relevant lambda IAM role statements in serverless-uncompiled.yml
+  // look for -deploymentbucket-*
+  public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
+
   public getDeploymentBucketForRegion = async (region: string) => {
     if (region === this._thisRegion) {
       return this.deploymentBucket.id
@@ -1046,7 +1050,7 @@ ${this.genUsageInstructions(links)}`
 
     try {
       return await this.bot.s3Utils.getRegionalBucketForBucket({
-        bucket: this.deploymentBucket.id,
+        bucket: this.getDeploymentBucketLogicalName(),
         region
       })
     } catch (err) {
@@ -1147,7 +1151,8 @@ ${this.genUsageInstructions(links)}`
   }) => {
     this.logger.debug('creating regional buckets', { regions })
     return await this.bot.s3Utils.createRegionalBuckets({
-      bucket: this.bot.buckets.ServerlessDeployment.id,
+      // not a real bucket
+      bucket: this.getDeploymentBucketLogicalName(),
       regions,
     })
   }
@@ -1156,7 +1161,7 @@ ${this.genUsageInstructions(links)}`
     regions: string[]
   }) => {
     return await this.bot.s3Utils.deleteRegionalBuckets({
-      bucket: this.deploymentBucket.id,
+      bucket: this.getDeploymentBucketLogicalName(),
       regions,
       iam: this.bot.aws.iam
     })

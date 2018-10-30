@@ -486,6 +486,12 @@ provider:
           - ''
           - - "arn:aws:s3:::"
             - Fn::GetAtt: Buckets.Outputs.Deployment
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: AWS::StackName
+            # needed to manipulate regional buckets
+            - '-deploymentbucket-*'
 
     - Effect: Allow
       Action:
@@ -530,6 +536,12 @@ provider:
           - - "arn:aws:s3:::"
             - Fn::GetAtt: Buckets.Outputs.Deployment
             - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: AWS::StackName
+            # needed to manipulate regional buckets
+            - '-deploymentbucket-*/*'
 
 
     # - Effect: Allow

@@ -108,7 +108,7 @@ test('deployment by referral', loudAsync(async (t) => {
   // })
 
   const regionalBucket = parent.s3Utils.getRegionalBucketName({
-    bucket: parent.buckets.ServerlessDeployment.id,
+    bucket: parentDeployment.getDeploymentBucketLogicalName(),
     region
   })
 
