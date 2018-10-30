@@ -71,12 +71,13 @@ Resources:
     Properties:
       VersioningConfiguration:
         Status: Enabled
-      ServerSideEncryptionConfiguration:
+      BucketEncryption:
         Fn::If:
           - DoEncrypt
-          - - ServerSideEncryptionByDefault:
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
                 SSEAlgorithm: aws:kms
-                KMSMasterKeyId:
+                KMSMasterKeyID:
                   Ref: EncryptionKey
           - Ref: AWS::NoValue
 
@@ -88,12 +89,13 @@ Resources:
     Properties:
       VersioningConfiguration:
         Status: Enabled
-      ServerSideEncryptionConfiguration:
+      BucketEncryption:
         Fn::If:
           - DoEncrypt
-          - - ServerSideEncryptionByDefault:
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
                 SSEAlgorithm: aws:kms
-                KMSMasterKeyId:
+                KMSMasterKeyID:
                   Ref: EncryptionKey
           - Ref: AWS::NoValue
 
@@ -116,12 +118,13 @@ Resources:
             AllowedHeaders:
               - "*"
             MaxAge: 3600
-      ServerSideEncryptionConfiguration:
+      BucketEncryption:
         Fn::If:
           - DoEncrypt
-          - - ServerSideEncryptionByDefault:
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
                 SSEAlgorithm: aws:kms
-                KMSMasterKeyId:
+                KMSMasterKeyID:
                   Ref: EncryptionKey
           - Ref: AWS::NoValue
 
@@ -151,12 +154,13 @@ Resources:
     Properties:
       VersioningConfiguration:
         Status: Enabled
-      ServerSideEncryptionConfiguration:
+      BucketEncryption:
         Fn::If:
           - DoEncrypt
-          - - ServerSideEncryptionByDefault:
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
                 SSEAlgorithm: aws:kms
-                KMSMasterKeyId:
+                KMSMasterKeyID:
                   Ref: EncryptionKey
           - Ref: AWS::NoValue
 

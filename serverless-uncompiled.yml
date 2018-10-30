@@ -634,6 +634,20 @@ provider:
           - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
             - Fn::GetAtt: Keys.Outputs.EncryptionKey
 
+    - Effect: Allow
+      Action:
+        - kms:Encrypt
+        - kms:Decrypt
+        - kms:GenerateDataKey
+      Resource:
+        - Fn::If:
+          - DoEncryptBuckets
+          - Fn::Join:
+            - ''
+            - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+              - Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+          - Ref: AWS::NoValue
+
     # - Effect: Allow
     #   Action:
     #     - 'ssm:GetParameter*'
@@ -953,6 +967,7 @@ functions:
   bot_oninit:
     handler: lib/in-house-bot/lambda/oninit.handler
     memorySize: 1024
+    timeout: 900
 
   # onsealstream:
   #   handler: lib/in-house-bot/lambda/onsealstream.handler
@@ -1403,6 +1418,12 @@ resources:
         - Ref: EncryptBuckets
         - "true"
 
+    # UseSourceDeploymentBucket:
+    #   Fn::Not:
+    #     - Fn::Equals:
+    #       - Ref: SourceDeploymentBucket:
+    #       - ""
+
   Resources:
     # has to be here for serverless to pick it up
     ServerlessDeploymentBucket:
@@ -1413,6 +1434,29 @@ resources:
       Properties:
         VersioningConfiguration:
           Status: Enabled
+
+    Keys:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - DoCreateDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+                - Ref: ExistingDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /keys.json
+        Parameters:
+          Namespace:
+            Ref: AWS::StackName
+          ExistingEncryptionKey:
+            Ref: ExistingEncryptionKey
+          ExistingBucketEncryptionKey:
+            Ref: ExistingBucketEncryptionKey
+          NeedBucketEncryptionKey:
+            Ref: EncryptBuckets
 
     Tables:
       Type: AWS::CloudFormation::Stack
@@ -1477,7 +1521,7 @@ resources:
           EncryptionKey:
             Fn::If:
               - DoEncryptBuckets
-              - Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+              - Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyAlias
               - ""
 
     IAM:
@@ -1577,30 +1621,15 @@ resources:
             # - contact
             # - adminEmail
 
-    Keys:
-      Type: AWS::CloudFormation::Stack
-      Properties:
-        TemplateURL:
-          Fn::Join:
-            - ''
-            - - https://
-              - Fn::If:
-                - DoCreateDeploymentBucket
-                - Ref: ServerlessDeploymentBucket
-                - Ref: ExistingDeploymentBucket
-              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
-              - /keys.json
-        Parameters:
-          ExistingEncryptionKey:
-            Ref: ExistingEncryptionKey
-          ExistingBucketEncryptionKey:
-            Ref: ExistingBucketEncryptionKey
-          NeedBucketEncryptionKey:
-            Ref: EncryptBuckets
-
     Initialize:
       Type: Custom::InitializeDeployment
-      DependsOn: ApiGatewayApiKey1
+      DependsOn:
+        - Buckets
+        - Keys
+        - Tables
+        - IAM
+        - ApiGatewayApiKey1
+        - IamRoleLambdaExecution
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
@@ -1665,9 +1694,17 @@ resources:
       Value:
         Fn::GetAtt: Keys.Outputs.EncryptionKey
 
+    EncryptionKeyAlias:
+      Value:
+        Fn::GetAtt: Keys.Outputs.EncryptionKeyAlias
+
     BucketEncryptionKey:
       Value:
         Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+
+    BucketEncryptionKeyAlias:
+      Value:
+        Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyAlias
 
     S3TemplatesBaseUrl:
       Value:
@@ -1698,3 +1735,7 @@ resources:
     SourceDeploymentBucketName:
       Value:
         Ref: SourceDeploymentBucket
+
+    InitLogGroup:
+      Value:
+        Ref: BotUnderscoreoninitLogGroup
