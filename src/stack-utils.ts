@@ -146,7 +146,7 @@ export default class StackUtils {
     }
   }
 
-  public static setTemplateParameters = (template: CFTemplate, values: any) => {
+  public static setTemplateParameterDefaults = (template: CFTemplate, values: any) => {
     if (!template.Parameters) template.Parameters = {}
 
     const { Parameters } = template
@@ -154,9 +154,6 @@ export default class StackUtils {
       Parameters[key] = {
         Type: 'String',
         Default: values[key],
-        AllowedValues: [
-          values[key]
-        ]
       }
     }
   }
@@ -547,6 +544,16 @@ export default class StackUtils {
     }
 
     return keys
+  }
+
+  public static lockParametersToDefaults = (template: CFTemplate) => {
+    const { Parameters={} } = template
+    Object.keys(Parameters).forEach(name => {
+      const param = Parameters[name]
+      if (typeof param.Default !== 'undefined') {
+        param.AllowedValues = [param.Default]
+      }
+    })
   }
 
   public getLambdaS3Keys = StackUtils.getLambdaS3Keys

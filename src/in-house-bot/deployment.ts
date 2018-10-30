@@ -234,11 +234,12 @@ export class Deployment {
 
   public static normalizeStackName = (name: string) => /^tdl.*?ltd$/.test(name) ? name : `tdl-${name}-ltd`
   public static setUpdateTemplateParameters = (template: CFTemplate, values: StackUpdateParameters) => {
-    StackUtils.setTemplateParameters(template, values)
+    StackUtils.setTemplateParameterDefaults(template, values)
   }
 
   public static setLaunchTemplateParameters = (template: CFTemplate, values: StackLaunchParameters) => {
-    StackUtils.setTemplateParameters(template, values)
+    StackUtils.setTemplateParameterDefaults(template, values)
+    StackUtils.lockParametersToDefaults(template)
   }
 
   public static ensureInitLogIsRetained = (template: CFTemplate) => {
