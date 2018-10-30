@@ -612,6 +612,11 @@ export default class S3Utils {
 
     const targets = await Promise.all(willCreate.map(async (region) => {
       const params = getParams(region)
+      this.logger.debug('creating regional bucket', {
+        bucket: params.Bucket,
+        region,
+      })
+
       await this.s3.createBucket(params).promise()
 
       if (this.versioningAvailable) {
