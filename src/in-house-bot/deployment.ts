@@ -1148,7 +1148,7 @@ ${this.genUsageInstructions(links)}`
     this.logger.debug('creating regional buckets', { regions })
     return await this.bot.s3Utils.createRegionalBuckets({
       bucket: this.bot.buckets.ServerlessDeployment.id,
-      regions
+      regions,
     })
   }
 
@@ -1219,7 +1219,7 @@ ${this.genUsageInstructions(links)}`
       .set({
         service: 'tradle',
         stage: env.STACK_STAGE,
-        region: env.AWS_REGION,
+        region: this._thisRegion,
         stackId: this._thisStackArn,
         blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
         ...opts

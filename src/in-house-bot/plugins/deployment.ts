@@ -168,5 +168,7 @@ export const updateConf:UpdatePluginConf = async ({ bot, pluginConf }) => {
   const { regions } = replication
   const { logger } = bot
   const deployment = createDeployment({ bot, logger })
-  await deployment.createRegionalDeploymentBuckets({ regions })
+  await deployment.createRegionalDeploymentBuckets({
+    regions: regions.filter(r => r !== bot.env.AWS_REGION)
+  })
 }
