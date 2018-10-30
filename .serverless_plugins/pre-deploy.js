@@ -150,7 +150,8 @@ class SetVersion {
       region
     )
 
-    if (Contents.length) {
+    const hasZip = Contents.find(item => item.Key.endsWith('.zip'))
+    if (hasZip) {
       throw new Error(`already deployed to ${dir}, please deploy from a fresh commit`)
     }
   }
