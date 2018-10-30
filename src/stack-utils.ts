@@ -636,6 +636,12 @@ export default class StackUtils {
     })
   }
 
+  public static ensureInitLogIsRetained = (template: any) => {
+    // otherwise it's impossible to figure out what went wrong when the stack
+    // doesn't succeed
+    template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = 'Retain'
+  }
+
   public static getStackLocationKeys = ({ stage, versionInfo }:  {
     stage: string
     versionInfo: VersionInfo

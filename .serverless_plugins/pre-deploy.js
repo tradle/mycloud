@@ -67,6 +67,7 @@ class SetVersion {
       : { 'Fn::GetAtt': 'Buckets.Outputs.Deployment' }
 
     StackUtils.replaceDeploymentBucketRefs(template, sourceDeploymentBucket)
+    StackUtils.ensureInitLogIsRetained(template)
   }
 
   async setTemplateParameters() {

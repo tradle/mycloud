@@ -869,6 +869,7 @@ ${this.genUsageInstructions(links)}`
       SourceDeploymentBucket: bucket,
     })
 
+    StackUtils.ensureInitLogIsRetained(template)
     return this._setLambdaCodePointers({ template, bucket })
   }
 
@@ -899,6 +900,7 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
+    StackUtils.ensureInitLogIsRetained(template)
     return this._setLambdaCodePointers({ template, bucket })
   }
 
