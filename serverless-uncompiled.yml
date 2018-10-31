@@ -1226,15 +1226,19 @@ resources:
 
     OrgName:
       Type: String
+      Description: your organization's name, as you want users to see it (e.g. Example, Inc)
 
     OrgDomain:
       Type: String
+      Description: a domain or subdomain you own (e.g. example.com)
 
     OrgLogo:
       Type: String
+      Description: a publically accessible url for your logo image (e.g. https://example.com/logo.jpeg)
 
     OrgAdminEmail:
       Type: String
+      Description: your AWS admin's email (e.g. jojo@example.com)
 
     # Configuration group
 
@@ -1305,22 +1309,6 @@ resources:
     AWS::CloudFormation::Interface:
       ParameterGroups:
         - Label:
-            default: "Existing Resources"
-          Parameters:
-            - ExistingEventsTable
-            - ExistingBucket0Table
-            - ExistingBucket0TableStreamArn
-            - ExistingObjectsBucket
-            - ExistingSecretsBucket
-            - ExistingPrivateConfBucket
-            - ExistingFileUploadBucket
-            - ExistingLogsBucket
-            - ExistingDeploymentBucket
-            - ExistingEncryptionKey
-            - ExistingBucketEncryptionKey
-            - ExistingApiGatewayRestApi
-
-        - Label:
             default: "Organization Info"
           Parameters:
             - OrgName
@@ -1344,6 +1332,22 @@ resources:
             default: "Stack Info"
           Parameters:
             - Stage
+
+        - Label:
+            default: "Existing Resources (ignore if this is a new deployment)"
+          Parameters:
+            - ExistingEventsTable
+            - ExistingBucket0Table
+            - ExistingBucket0TableStreamArn
+            - ExistingObjectsBucket
+            - ExistingSecretsBucket
+            - ExistingPrivateConfBucket
+            - ExistingFileUploadBucket
+            - ExistingLogsBucket
+            - ExistingDeploymentBucket
+            - ExistingEncryptionKey
+            - ExistingBucketEncryptionKey
+            - ExistingApiGatewayRestApi
 
       ParameterLabels:
         # Existing Resources
