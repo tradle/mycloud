@@ -147,6 +147,7 @@ function getBucketTableDefinition ({
 
   return {
     Type: 'AWS::DynamoDB::Table',
+    DeletionPolicy: 'Retain',
     Description: `table that stores multiple models`,
     // a trick to avoid exceeding the limits on
     // simultaneous create/update table operations

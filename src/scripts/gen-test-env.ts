@@ -60,6 +60,11 @@ const getECSDiscovery = async (bot: Bot) => {
   try {
     await bucket.putJSON(PRIVATE_CONF_BUCKET.kycServiceDiscovery, discovery)
   } catch (err) {
+    if (Errors.matches(err, { code: 'NoSuchBucket' })) {
+      logger.error(`local bucket ${bucket.id} does not exist!`)
+      return
+    }
+
     logger.error('failed to save ECS discovery info to local test bucket', {
       bucket: bucket.id,
       error: err.stack,

@@ -18,6 +18,8 @@ const ALLOW_WITHOUT_ACCEPTING = [
 ]
 
 const PRODUCT_REQUEST = 'tradle.ProductRequest'
+const TERMS_AND_CONDITIONS_FIRST_TIME = 'Hi! Before we begin this beautiful friendship, please review our Terms and Conditions'
+const TERMS_AND_CONDITIONS_NTH_TIME = 'Our Terms and Conditions have changed. Please review them before continuing'
 
 export const name = 'termsAndConditions'
 export const createPlugin = (components: {
@@ -28,7 +30,7 @@ export const createPlugin = (components: {
   termsAndConditions: DatedValue
 }) => {
   const onmessage = async (req) => {
-    // destructure here, because some may be defined late
+    // destructure here instead of in createPlugin, because some may be defined lazily
     const {
       logger,
       productsAPI,
@@ -60,7 +62,16 @@ export const createPlugin = (components: {
       payload.termsAndConditions.trim() === termsAndConditions.value.trim()) {
       logger.debug(`updating ${user.id}.${DATE_ACCEPTED_PROP}`)
       _.set(user, DATE_ACCEPTED_PROP, Date.now())
-      await productsAPI.sendProductList({ req, to: user })
+      // await productsAPI.send({
+      //   req,
+      //   to: user,
+      //   object: {
+      //     [TYPE]: SIMPLE_MESSAGE,
+      //     message: YOU_HAVENT_ACCEPTED
+      //   }
+      // })
+
+      // await productsAPI.sendProductList({ req, to: user })
       return
     }
 
@@ -74,16 +85,16 @@ export const createPlugin = (components: {
     if (accepted) return
 
     logger.debug(`preventing further processing, T&C's have not been accepted`)
-    if (type === SIMPLE_MESSAGE) {
-      await productsAPI.send({
-        req,
-        to: user,
-        object: {
-          [TYPE]: SIMPLE_MESSAGE,
-          message: YOU_HAVENT_ACCEPTED
-        }
-      })
-    }
+    // if (type === SIMPLE_MESSAGE || type === PRODUCT_REQUEST) {
+    //   await productsAPI.send({
+    //     req,
+    //     to: user,
+    //     object: {
+    //       [TYPE]: SIMPLE_MESSAGE,
+    //       message: YOU_HAVENT_ACCEPTED
+    //     }
+    //   })
+    // }
 
     return false // exit middleware
   }
@@ -99,9 +110,9 @@ export const ensureAccepted = async ({
   productsAPI,
   logger
 }: {
-  termsAndConditions: DatedValue,
-  user: any,
-  productsAPI: any,
+  termsAndConditions: DatedValue
+  user: any
+  productsAPI: any
   logger: Logger
 }) => {
   const dateAccepted = _.get(user, DATE_ACCEPTED_PROP)
@@ -110,23 +121,21 @@ export const ensureAccepted = async ({
   }
 
   const datePresented = _.get(user, DATE_PRESENTED_PROP)
-  if (!(datePresented && datePresented > termsAndConditions.lastModified)) {
-    _.set(user, DATE_PRESENTED_PROP, Date.now())
-    logger.debug(`requesting ${user.id} to accept T's and C's`)
-    await productsAPI.requestItem({
-      user,
-      item: {
-        form: 'tradle.TermsAndConditions',
-        message: 'Hi! Before we begin this beautiful friendship, please review our **Terms and Conditions**',
-        prefill: {
-          [TYPE]: 'tradle.TermsAndConditions',
-          termsAndConditions: termsAndConditions.value
-        }
-      }
-    })
-  }
+  _.set(user, DATE_PRESENTED_PROP, Date.now())
 
-  logger.debug(`${user.id} has still not accepted T's and C's!`)
+  logger.debug(`requesting ${user.id} to accept T's and C's`)
+  await productsAPI.requestItem({
+    user,
+    item: {
+      form: 'tradle.TermsAndConditions',
+      message: dateAccepted ? TERMS_AND_CONDITIONS_NTH_TIME : TERMS_AND_CONDITIONS_FIRST_TIME,
+      prefill: {
+        [TYPE]: 'tradle.TermsAndConditions',
+        termsAndConditions: termsAndConditions.value
+      }
+    }
+  })
+
   return false
 }
 

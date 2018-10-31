@@ -1,8 +1,10 @@
 // @ts-ignore
 import Promise from 'bluebird'
 import omit from 'lodash/omit'
+import pick from 'lodash/pick'
 import groupBy from 'lodash/groupBy'
 import { TYPE } from '@tradle/constants'
+import { utils as dynamoUtils } from '@tradle/dynamodb'
 import { Bot, IStreamRecord, ITradleObject, Model, DB } from '../types'
 import { fromDynamoDB } from '../lambda'
 // import { createMiddleware as createMessageMiddleware } from '../middleware/onmessagestream'
@@ -55,6 +57,14 @@ const getBody = async (bot: Bot, item: any) => {
     }
   }
 
+  const { logger } = bot
+  if (dynamoUtils.isObjectMinified(item)) {
+    logger.silly('object is minified!', pick(item, [TYPE]))
+  } else {
+    logger.silly('object is NOT minified!', pick(item, [TYPE]))
+  }
+
+  // logger.silly('object is minified, fetching from object storage')
   const body = await bot.objects.getWithRetry(item._link, {
     logger: bot.logger,
     maxAttempts: 10,

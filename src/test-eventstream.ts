@@ -73,9 +73,12 @@ export const simulateEventStream = (bot: Bot) => {
     // re-emit sync events as async
     await wait(0)
     // no `await` here as it causes circular dep in locks in bot
-    fireAsync(event, ctx.event).catch(err => {
-      console.error(err.stack)
-      throw err
+    bot.tasks.add({
+      name: `simulate:stream:${event}`,
+      promise: fireAsync(event, ctx.event).catch(err => {
+        console.error(err.stack)
+        throw err
+      })
     })
   })
 }
