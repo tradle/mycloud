@@ -1,10 +1,9 @@
 const fs = require('fs')
 const path = require('path')
 const AWS = require('aws-sdk')
-const traverse = require('traverse')
-const isEqual = require('lodash/isEqual')
-const pick = require('lodash/pick')
+const _ = require('lodash')
 const Errors = require('@tradle/errors')
+const { traverse, replaceDeep } = require('../lib/utils')
 const { StackUtils } = require('../lib/stack-utils')
 const { Deployment } = require('../lib/in-house-bot/deployment')
 const {
@@ -14,6 +13,38 @@ const {
 const versionInfo = require('../lib/version')
 const templatesDir = path.resolve(__dirname, '../cloudformation')
 const stackParameters = require('../vars').stackParameters || require('../default-vars').stackParameters
+
+const CODE_BUCKET_PATH = ['Properties', 'Code', 'S3Bucket']
+const CF_REF_REST_API = { Ref: 'ApiGatewayRestApi' }
+const CF_ATT_REST_API_ROOT = {
+  'Fn::GetAtt': [
+    'ApiGatewayRestApi',
+    'RootResourceId'
+  ]
+}
+
+const replaceDeploymentBucketRefs = (template, replacement) => {
+  StackUtils.getResourcesByType(template, 'AWS::Lambda::Function').forEach(resource => {
+    _.set(resource, CODE_BUCKET_PATH, replacement)
+  })
+}
+
+const PATH_TO_SOURCE = 'Resources.Source'
+const replaceDeepExceptInSourcePath = (template, match, replacement) => {
+  traverse(template).forEach(function(value) {
+    if (_.isEqual(value, match) && !this.path.join('.').startsWith(PATH_TO_SOURCE)) {
+      this.update(replacement)
+    }
+  })
+}
+
+const replaceApiGatewayRestApiRefs = (template, replacement) => {
+  return replaceDeepExceptInSourcePath(template, CF_REF_REST_API, replacement)
+}
+
+const replaceApiGatewayRestApiRootRefs = (template, replacement) => {
+  return replaceDeepExceptInSourcePath(template, CF_ATT_REST_API_ROOT, replacement)
+}
 
 class SetVersion {
   constructor(serverless, options) {
@@ -72,20 +103,20 @@ class SetVersion {
     //   : { 'Fn::GetAtt': 'Buckets.Outputs.Deployment' }
 
     // StackUtils.replaceDeploymentBucketRefs(template, sourceDeploymentBucket)
-    StackUtils.replaceDeploymentBucketRefs(template, {
+    replaceDeploymentBucketRefs(template, {
       'Fn::GetAtt': 'Source.Outputs.SourceDeploymentBucket'
     })
 
-    StackUtils.replaceApiGatewayRestApiRefs(template, {
+    replaceApiGatewayRestApiRefs(template, {
       'Fn::GetAtt': 'Source.Outputs.ApiGatewayRestApi'
     })
 
-    StackUtils.replaceApiGatewayRestApiRootRefs(template, {
+    replaceApiGatewayRestApiRootRefs(template, {
       'Fn::GetAtt': 'Source.Outputs.ApiGatewayRestApiRootResourceId'
     })
 
     this.log('WARNING: removing duplicate ServiceEndpoint definition (ours and serverless\'s)')
-    template.Outputs.ServiceEndpoint.Value = pick(template.Outputs.ServiceEndpoint.Value, ['Fn::Sub'])
+    template.Outputs.ServiceEndpoint.Value = _.pick(template.Outputs.ServiceEndpoint.Value, ['Fn::Sub'])
 
     Deployment.ensureInitLogIsRetained(template)
   }

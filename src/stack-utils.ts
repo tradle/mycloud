@@ -41,15 +41,6 @@ const METHODS = [
   'PATCH'
 ]
 
-const CODE_BUCKET_PATH = ['Properties', 'Code', 'S3Bucket']
-const CF_REF_REST_API = { Ref: 'ApiGatewayRestApi '}
-const CF_ATT_REST_API_ROOT = {
-  'Fn::GetAtt': [
-    'ApiGatewayRestApi',
-    'RootResourceId'
-  ]
-}
-
 const stripDashes = str => str.replace(/[-]/g, '')
 
 type StackUtilsOpts = {
@@ -599,20 +590,6 @@ export default class StackUtils {
       protected: enable,
       stack: stackName
     })
-  }
-
-  public static replaceDeploymentBucketRefs = (template: CFTemplate, replacement: any) => {
-    StackUtils.getResourcesByType(template, 'AWS::Lambda::Function').forEach(resource => {
-      _.set(resource, CODE_BUCKET_PATH, replacement)
-    })
-  }
-
-  public static replaceApiGatewayRestApiRefs = (template: CFTemplate, replacement: any) => {
-    utils.replaceDeep(template, CF_REF_REST_API, replacement)
-  }
-
-  public static replaceApiGatewayRestApiRootRefs = (template: CFTemplate, replacement: any) => {
-    utils.replaceDeep(template, CF_ATT_REST_API_ROOT, replacement)
   }
 
   public static getResourcesByType = (template: CFTemplate, type: string) => {
