@@ -1750,7 +1750,7 @@ resources:
     ServiceEndpoint:
       Description: API root URL
       Value:
-        Fn::Sub: 'https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
+        Fn::Sub: 'https://${Source.Outputs.ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
 
     # let serverless generate this
     # ServerlessDeploymentBucketName:
