@@ -2,7 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: parameter echo
 
 Parameters:
-  Input:
+  SourceDeploymentBucket:
+    Type: String
+
+  ApiGatewayRestApi:
     Type: String
 
 Resources:
@@ -10,6 +13,10 @@ Resources:
     Type: AWS::CloudFormation::WaitConditionHandle
 
 Outputs:
-  Value:
+  SourceDeploymentBucket:
     Value:
-      Ref: Input
+      Ref: SourceDeploymentBucket
+
+  ApiGatewayRestApi:
+    Value:
+      Ref: ApiGatewayRestApi

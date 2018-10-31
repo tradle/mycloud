@@ -352,7 +352,7 @@ provider:
     R_TABLE_Bucket0:
       Fn::GetAtt: Tables.Outputs.Bucket0
     R_RESTAPI_ApiGateway:
-      Ref: ApiGatewayRestApi
+      Fn::GetAtt: Source.Outputs.ApiGatewayRestApi
     R_ROLE_IotClient:
       Fn::GetAtt: IAM.Outputs.IotClientRole
     R_ROLE_AutoScalingDynamoDB:
@@ -1218,6 +1218,10 @@ resources:
       Type: String
       Default: ""
 
+    ExistingApiGatewayRestApi:
+      Type: String
+      Default: ""
+
     # Organization Info group
 
     OrgName:
@@ -1314,6 +1318,7 @@ resources:
             - ExistingDeploymentBucket
             - ExistingEncryptionKey
             - ExistingBucketEncryptionKey
+            - ExistingApiGatewayRestApi
 
         - Label:
             default: "Organization Info"
@@ -1425,6 +1430,11 @@ resources:
         - Ref: ExistingDeploymentBucket
         - ""
 
+    DoCreateApiGatewayRestApi:
+      Fn::Equals:
+        - Ref: ExistingApiGatewayRestApi
+        - ""
+
     DoEncryptBuckets:
       Fn::Equals:
         - Ref: EncryptBuckets
@@ -1437,7 +1447,6 @@ resources:
           - ""
 
   Resources:
-    # has to be here for serverless to pick it up
     Source:
       Type: AWS::CloudFormation::Stack
       Properties:
@@ -1452,12 +1461,18 @@ resources:
               - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
               - /echo.json
         Parameters:
-          Input:
+          SourceDeploymentBucket:
             Fn::If:
               - UseSourceDeploymentBucket
               - Ref: SourceDeploymentBucket
               - Ref: ServerlessDeploymentBucket
+          ApiGatewayRestApi:
+            Fn::If:
+              - DoCreateApiGatewayRestApi
+              - Ref: ApiGatewayRestApi
+              - Ref: ExistingApiGatewayRestApi
 
+    # has to be here for serverless to pick it up
     ServerlessDeploymentBucket:
       Type: AWS::S3::Bucket
       Condition: DoCreateDeploymentBucket
@@ -1471,7 +1486,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/keys.json'
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/keys.json'
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1486,7 +1501,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/tables.json'
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/tables.json'
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1507,7 +1522,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/buckets.json'
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/buckets.json'
         Parameters:
           ExistingObjectsBucket:
             Ref: ExistingObjectsBucket
@@ -1536,7 +1551,7 @@ resources:
       Type: AWS::CloudFormation::Stack
       Properties:
         TemplateURL:
-          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/iam.json'
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/iam.json'
         Parameters:
           Namespace:
             Ref: AWS::StackName
@@ -1560,7 +1575,7 @@ resources:
       Condition: DoAutoScale
       Properties:
         TemplateURL:
-          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-events-table.json'
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-events-table.json'
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Events
@@ -1572,7 +1587,7 @@ resources:
       Condition: DoAutoScale
       Properties:
         TemplateURL:
-          Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.json'
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.json'
         Parameters:
           Table:
             Fn::GetAtt: Tables.Outputs.Bucket0
@@ -1581,6 +1596,8 @@ resources:
 
     ApiGatewayRestApi:
       Type: AWS::ApiGateway::RestApi
+      Condition: DoCreateApiGatewayRestApi
+      DeletionPolicy: Retain
       Properties:
         Name:
           Ref: AWS::StackName
@@ -1678,6 +1695,10 @@ resources:
       Value:
         Fn::GetAtt: Buckets.Outputs.Deployment
 
+    ApiGatewayRestApi:
+      Value:
+        Fn::GetAtt: Source.Outputs.ApiGatewayRestApi
+
     EncryptionKey:
       Value:
         Fn::GetAtt: Keys.Outputs.EncryptionKey
@@ -1696,20 +1717,20 @@ resources:
 
     S3TemplatesBaseUrl:
       Value:
-        Fn::Sub: 'https://${Source.Outputs.Value}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}'
+        Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}'
 
     # serverless usually generates this
     ServiceEndpoint:
       Description: API root URL
       Value:
-        Fn::Sub: 'https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev'
+        Fn::Sub: 'https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
 
     # let serverless generate this
     # ServerlessDeploymentBucketName:
     #   Value:
     #     Fn::GetAtt: Buckets.Outputs.Deployment
 
-    SourceDeploymentBucketName:
+    SourceDeploymentBucket:
       Value:
         Ref: SourceDeploymentBucket
 

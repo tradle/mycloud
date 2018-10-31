@@ -73,7 +73,7 @@ class SetVersion {
 
     // StackUtils.replaceDeploymentBucketRefs(template, sourceDeploymentBucket)
     StackUtils.replaceDeploymentBucketRefs(template, {
-      'Fn::GetAtt': 'Source.Outputs.Value'
+      'Fn::GetAtt': 'Source.Outputs.SourceDeploymentBucket'
     })
 
     this.log('WARNING: removing duplicate ServiceEndpoint definition (ours and serverless\'s)')
