@@ -4,11 +4,11 @@
       "_t": "tradle.PhotoID",
       "time": 1389760328726,
       "country": {
-        "id": "tradle.Country_123",
+        "id": "tradle.Country_GB",
         "title": "United Kingdom"
       },
       "documentType": {
-        "id": "tradle.IDCardType_e098292ca93efb1611bd94d8ef5d2516489c0e2c",
+        "id": "tradle.IDCardType_license",
         "title": "Driver licence"
       },
       "scan": {
@@ -232,11 +232,11 @@
       "_t": "tradle.PhotoID",
       "time": 1389762000000,
       "country": {
-        "id": "tradle.Country_123",
+        "id": "tradle.Country_GB",
         "title": "United Kingdom"
       },
       "documentType": {
-        "id": "tradle.IDCardType_8d590490b65632efde2728f9c8200af93889d686",
+        "id": "tradle.IDCardType_passport",
         "title": "Passport"
       },
       "scan": {
@@ -293,7 +293,7 @@
       "region": "Monthey",
       "postalCode": "1896",
       "country": {
-        "id": "tradle.Country_123",
+        "id": "tradle.Country_CH",
         "title": "Switzerland"
       },
       "street": "Piazza Rezzonico",
@@ -304,7 +304,7 @@
       "emailAddress": "davidmeier1960@gmail.com",
       "maritalStatus": {
         "title": "Married",
-        "id": "tradle.MaritalStatus_123"
+        "id": "tradle.MaritalStatus_married"
       },
       "phones": [
         {
@@ -317,7 +317,7 @@
       ],
       "education": {
         "title": "College",
-        "id": "tradle.EducationNL_123"
+        "id": "tradle.EducationNL_cellege"
       }
     },
     {
@@ -532,7 +532,7 @@
       "billDate": 1389312000000,
       "city": "Vouvry",
       "country": {
-        "id": "tradle.Country_323d7e8a03da1d22b1a0477c780e421eef936925",
+        "id": "tradle.Country_CH",
         "title": "Switzerland"
       },
       "firstName": "David",
@@ -578,13 +578,13 @@
       "time": 1452510928726,
       "city": "Vouvry",
       "country": {
-        "id": "tradle.Country_323d7e8a03da1d22b1a0477c780e421eef936925",
+        "id": "tradle.Country_CH",
         "title": "Switzerland"
       },
       "postalCode": "1896",
       "region": "Monthey",
       "residenceType": {
-        "id": "tradle.ResidenceType_123",
+        "id": "tradle.ResidenceType_primary",
         "title": "Primary Residence"
       },
       "streetAddress": "Piazza Rezzonico 39"
@@ -613,13 +613,13 @@
       "time": 1463586687042,
       "city": "Conthey",
       "country": {
-        "id": "tradle.Country_123",
+        "id": "tradle.Country_US",
         "title": "United States"
       },
       "postalCode": "9304",
       "region": "Conthey",
       "residenceType": {
-        "id": "tradle.ResidenceType_8f4c2a8a35bf34490aa29c0ae855239fca4a6a9d",
+        "id": "tradle.ResidenceType_secondary",
         "title": "Second Home"
       },
       "streetAddress": "Erlenweg 113"
@@ -643,7 +643,7 @@
       },
       "date": 229795200000,
       "itemType": {
-        "id": "tradle.WealthItemType_4ad18ba369b0b01bd823ba807be01f7cc610668c",
+        "id": "tradle.WealthItemType_Inheritance",
         "title": "Inheritance"
       },
       "narrative": "Inherited real estate (a hotel) from father in 70s",
@@ -672,7 +672,7 @@
       },
       "date": 400780800000,
       "itemType": {
-        "id": "tradle.WealthItemType_f1a3f30dd8397b92c7ae3172779288e6be244115",
+        "id": "tradle.WealthItemType_SecuritiesPurchase",
         "title": "Securities purchase"
       },
       "narrative": "Started work at Roche and rose to be senior VP of new products (2M CHF in stock options)"
@@ -692,7 +692,7 @@
       },
       "date": 948988800000,
       "itemType": {
-        "id": "tradle.WealthItemType_711b16f4248d23acc03716b57068bcc853e69fcd",
+        "id": "tradle.WealthItemType_Liquidation",
         "title": "Liquidation"
       },
       "narrative": "Sold real estate in 2000 for 20M CHF",
@@ -721,7 +721,7 @@
       },
       "date": 1115481600000,
       "itemType": {
-        "id": "tradle.WealthItemType_f1a3f30dd8397b92c7ae3172779288e6be244115",
+        "id": "tradle.WealthItemType_SecuritiesPurchase",
         "title": "Securities purchase"
       },
       "narrative": "Invested in Google"
@@ -769,7 +769,7 @@
       "time": 1441429200000,
       "date": 1441429200000,
       "itemType": {
-        "id": "tradle.WealthItemType_f1a3f30dd8397b92c7ae3172779288e6be244115",
+        "id": "tradle.WealthItemType_SecuritiesSale",
         "title": "Securities sale"
       },
       "narrative": "Sold shares of Google"
@@ -801,7 +801,7 @@
       },
       "date": 1428940800000,
       "itemType": {
-        "id": "tradle.WealthItemType_6af9abdb95f266219d742f546d7f740e65f0d55e",
+        "id": "tradle.WealthItemType_Investment",
         "title": "Investment"
       },
       "narrative": "Used proceeds from sale of company to start a new pharmaceutical firm based in Basel"
@@ -821,7 +821,7 @@
       },
       "date": 1420732800000,
       "itemType": {
-        "id": "tradle.WealthItemType_f1a3f30dd8397b92c7ae3172779288e6be244115",
+        "id": "tradle.WealthItemType_Liquidation",
         "title": "Liquidation"
       },
       "narrative": "Sold the private firm"
