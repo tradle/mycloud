@@ -1511,3 +1511,7 @@ resources:
     EncryptionKey:
       Value:
         Ref: DefaultEncryptionKey
+
+    ApiGatewayRestApiRootResourceId:
+      Value:
+        Fn::GetAtt: ApiGatewayRestApi.RootResourceId
