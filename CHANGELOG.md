@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.1"></a>
+## [1.11.1](https://github.com/tradle/serverless/compare/v1.11.0...v1.11.1) (2018-10-31)
+
+
+### Bug Fixes
+
+* hardcoded us-east-1 in ServiceEndpoint output ([4b01133](https://github.com/tradle/serverless/commit/4b01133))
+
+
+
 <a name="1.11.0"></a>
 # [1.11.0](https://github.com/tradle/serverless/compare/v1.11.0-rc.12...v1.11.0) (2018-10-30)
 
