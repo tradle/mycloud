@@ -1482,17 +1482,6 @@ resources:
                   "kms:GrantIsForAWSResource": true
 
               Resource: '*'
-            - Sid: 'Allow use of the key'
-              Effect: Allow
-              Principal:
-                AWS:
-                  - Fn::GetAtt:
-                    - IamRoleLambdaExecution
-                    - Arn
-              Action:
-                - 'kms:Decrypt'
-                - 'kms:GenerateDataKey'
-              Resource: '*'
 
             # Need this for IAM policy to work
             # https://forums.aws.amazon.com/thread.jspa?messageID=845931
