@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.12.0-rc.0"></a>
+# [1.12.0-rc.0](https://github.com/tradle/serverless/compare/v1.11.2...v1.12.0-rc.0) (2018-10-31)
+
+
+
 <a name="1.11.2"></a>
 ## [1.11.2](https://github.com/tradle/serverless/compare/v1.11.1...v1.11.2) (2018-10-31)
 
