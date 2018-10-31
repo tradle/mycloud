@@ -27,6 +27,10 @@ const replaceDeploymentBucketRefs = (template, replacement) => {
   StackUtils.getResourcesByType(template, 'AWS::Lambda::Function').forEach(resource => {
     _.set(resource, CODE_BUCKET_PATH, replacement)
   })
+
+  // otherwise serverless uses { Ref: 'ServerlessDeploymentBucket' }
+  // which may not exist
+  template.Outputs.ServerlessDeploymentBucketName = _.cloneDeep(template.Outputs.DeploymentBucket)
 }
 
 const PATH_TO_SOURCE = 'Resources.Source'
