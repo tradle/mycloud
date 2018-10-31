@@ -866,13 +866,13 @@ export interface CFTemplate {
 
 export interface MyCloudUpdateTemplate extends CFTemplate {
   Parameters: {
-    [p in keyof StackLaunchParameters]: CFTemplateParameter
+    [p in keyof StackUpdateParameters]: CFTemplateParameter
   },
 }
 
 export interface MyCloudLaunchTemplate extends CFTemplate {
   Parameters: {
-    [p in keyof StackUpdateParameters]: CFTemplateParameter
+    [p in keyof StackLaunchParameters]: CFTemplateParameter
   },
   Mappings: {
     deployment: {
@@ -906,13 +906,13 @@ export interface MyCloudLaunchTemplate extends CFTemplate {
 }
 
 export interface StackUpdateParameters {
-  // Stage: 'dev'|'prod'
   SourceDeploymentBucket: string
-  BlockchainNetwork: string
-  OrgAdminEmail: string
 }
 
 export interface StackLaunchParameters extends StackUpdateParameters {
+  // Stage: 'dev'|'prod'
+  BlockchainNetwork: string
+  OrgAdminEmail: string
   OrgName: string
   OrgDomain: string
   OrgLogo: string

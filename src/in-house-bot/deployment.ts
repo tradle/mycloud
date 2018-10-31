@@ -379,9 +379,7 @@ export class Deployment {
       // deployment: childDeployment,
       stackOwner: childDeployment.identity._permalink,
       stackId: stackId || childDeployment.stackId,
-      adminEmail: configuration.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
-      blockchain: Deployment.decodeBlockchainEnumValue(configuration.blockchain),
     })
 
     return {
@@ -397,23 +395,17 @@ export class Deployment {
   public genUpdatePackageForStackWithVersion = async ({
     stackOwner,
     stackId,
-    adminEmail,
     tag,
-    blockchain
   }: {
     stackOwner: string
     stackId: string
-    adminEmail: string
     tag: string
-    blockchain: string
   }) => {
     const { templateUrl } = await this.getVersionInfoByTag(tag)
     return this.genUpdatePackageForStack({
       stackOwner,
       stackId,
-      adminEmail,
       parentTemplateUrl: templateUrl,
-      blockchain,
     })
   }
 
@@ -421,13 +413,11 @@ export class Deployment {
     stackOwner: string
     stackId: string
     parentTemplateUrl: string
-    adminEmail: string
-    blockchain: string
     // deployment:
   }) => {
-    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl', 'adminEmail', 'blockchain'])
+    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl'])
 
-    const { stackOwner, stackId, parentTemplateUrl, adminEmail, blockchain } = opts
+    const { stackOwner, stackId, parentTemplateUrl } = opts
     const { region, accountId, name } = StackUtils.parseStackArn(stackId)
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
@@ -436,9 +426,7 @@ export class Deployment {
 
     const template = await this.customizeTemplateForUpdate({
      template: parentTemplate,
-     adminEmail,
      bucket,
-     blockchain
    })
 
     const { templateUrl, code } = await this._saveTemplateAndCode({
@@ -910,13 +898,11 @@ ${this.genUsageInstructions(links)}`
 
   public customizeTemplateForUpdate = async (opts: {
     template: CFTemplate
-    adminEmail: string
     bucket: string
-    blockchain: string
   }):Promise<MyCloudUpdateTemplate> => {
     utils.requireOpts(opts, ['template', 'adminEmail', 'bucket', 'blockchain'])
 
-    let { template, adminEmail, bucket, blockchain } = opts
+    let { template, bucket } = opts
     template = _.cloneDeep(template)
 
     // scrap unneeded mappings
@@ -927,8 +913,6 @@ ${this.genUsageInstructions(links)}`
     delete template.Parameters.OrgLogo
     Deployment.setUpdateTemplateParameters(template, {
       SourceDeploymentBucket: bucket,
-      BlockchainNetwork: blockchain,
-      OrgAdminEmail: adminEmail,
     })
 
     const initProps = template.Resources.Initialize.Properties
@@ -1222,13 +1206,7 @@ ${this.genUsageInstructions(links)}`
     provider: ResourceStub
     tag: string
   }) => {
-    const adminEmail = await this.getCurrentAdminEmail()
-    const updateReq = this.draftUpdateRequest({
-      adminEmail,
-      tag,
-      provider,
-    })
-
+    const updateReq = this.draftUpdateRequest({ tag, provider })
     await this.bot.send({
       to: provider._permalink,
       object: updateReq
@@ -1282,9 +1260,7 @@ ${this.genUsageInstructions(links)}`
     const pkg = await this.genUpdatePackageForStack({
       stackOwner: req._org || req._author,
       stackId: req.stackId,
-      adminEmail: req.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
-      blockchain: req.blockchain ? Deployment.decodeBlockchainEnumValue(req.blockchain) : this.bot.blockchain.toString(),
     })
 
     const { notificationTopics=[], templateUrl } = pkg
