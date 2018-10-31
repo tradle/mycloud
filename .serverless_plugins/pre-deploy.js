@@ -76,6 +76,14 @@ class SetVersion {
       'Fn::GetAtt': 'Source.Outputs.SourceDeploymentBucket'
     })
 
+    StackUtils.replaceApiGatewayRestApiRefs(template, {
+      'Fn::GetAtt': 'Source.Outputs.ApiGatewayRestApi'
+    })
+
+    StackUtils.replaceApiGatewayRestApiRootRefs(template, {
+      'Fn::GetAtt': 'Source.Outputs.ApiGatewayRestApiRootResourceId'
+    })
+
     this.log('WARNING: removing duplicate ServiceEndpoint definition (ours and serverless\'s)')
     template.Outputs.ServiceEndpoint.Value = pick(template.Outputs.ServiceEndpoint.Value, ['Fn::Sub'])
 

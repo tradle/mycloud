@@ -1222,6 +1222,10 @@ resources:
       Type: String
       Default: ""
 
+    ExistingApiGatewayRestApiRootResourceId:
+      Type: String
+      Default: ""
+
     # Organization Info group
 
     OrgName:
@@ -1348,6 +1352,7 @@ resources:
             - ExistingEncryptionKey
             - ExistingBucketEncryptionKey
             - ExistingApiGatewayRestApi
+            - ExistingApiGatewayRestApiRootResourceId
 
       ParameterLabels:
         # Existing Resources
@@ -1373,12 +1378,11 @@ resources:
           default: "Encryption Key"
         ExistingBucketEncryptionKey:
           default: "Bucket Encryption Key"
-        EncryptBuckets:
-          default: "Encrypt Buckets"
-        EncryptTables:
-          default: "Encrypt Tables"
-        # EnableTracing:
-        #   default: "Enable AWS X-Ray Tracing for Lambda Functions"
+
+        ExistingApiGatewayRestApi:
+          default: "ApiGateway RestApi Id"
+        ExistingApiGatewayRestApiRootResourceId:
+          default: "ApiGateway RestApi root resource id"
 
         # Organization Info
         OrgName:
@@ -1402,6 +1406,12 @@ resources:
           default: Enable DynamoDB auto-scaling
         LogsDaysBeforeTransitionToGlacier:
           default: days before logs are transitioned from to Glacier
+        EncryptBuckets:
+          default: "Encrypt Buckets"
+        EncryptTables:
+          default: "Encrypt Tables"
+        # EnableTracing:
+        #   default: "Enable AWS X-Ray Tracing for Lambda Functions"
 
         # Stack Info
         Stage:
@@ -1435,9 +1445,13 @@ resources:
         - ""
 
     DoCreateApiGatewayRestApi:
-      Fn::Equals:
-        - Ref: ExistingApiGatewayRestApi
-        - ""
+      Fn::Or:
+        - Fn::Equals:
+          - Ref: ExistingApiGatewayRestApi
+          - ""
+        - Fn::Equals:
+          - Ref: ExistingApiGatewayRestApiRootResourceId
+          - ""
 
     DoEncryptBuckets:
       Fn::Equals:
@@ -1475,6 +1489,11 @@ resources:
               - DoCreateApiGatewayRestApi
               - Ref: ApiGatewayRestApi
               - Ref: ExistingApiGatewayRestApi
+          ApiGatewayRestApiRootResourceId:
+            Fn::If:
+              - DoCreateApiGatewayRestApi
+              - Fn::GetAtt: ApiGatewayRestApi.RootResourceId
+              - Ref: ExistingApiGatewayRestApiRootResourceId
 
     # has to be here for serverless to pick it up
     ServerlessDeploymentBucket:
@@ -1702,6 +1721,10 @@ resources:
     ApiGatewayRestApi:
       Value:
         Fn::GetAtt: Source.Outputs.ApiGatewayRestApi
+
+    ApiGatewayRestApiRootResourceId:
+      Value:
+        Fn::GetAtt: Source.Outputs.ApiGatewayRestApiRootResourceId
 
     EncryptionKey:
       Value:
