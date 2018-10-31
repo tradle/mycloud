@@ -5,7 +5,7 @@ export const command:ICommand = {
   name: 'send-update-alerts',
   examples: [
     '/send-update-alerts',
-    '/send-update-alerts --version <tag>',
+    '/send-update-alerts --tag <tag>',
   ],
   description: 'send update alerts to friends',
   exec: async ({ ctx, commander, req, args }) => {
