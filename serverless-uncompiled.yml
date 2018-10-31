@@ -1046,6 +1046,7 @@ resources:
   Resources:
     ApiGatewayRestApi:
       Type: AWS::ApiGateway::RestApi
+      DeletionPolicy: Retain
       Properties:
         Name: ${{self:custom.apiGateway}}
         BinaryMediaTypes:
