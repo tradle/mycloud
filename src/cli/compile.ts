@@ -278,8 +278,11 @@ function addResourcesToOutputs (yaml:any) {
 
   const { Outputs } = resources
   forEachResource(yaml, ({ id, resource }) => {
+    const value = { Ref: id }
     if (id in Outputs) {
-      throw new Error(`refusing to overwrite Outputs.${id}`)
+      if (_.isEqual(Outputs[id], value)) {
+        throw new Error(`refusing to overwrite Outputs.${id}`)
+      }
     }
 
     const output:any = Outputs[id] = {}
@@ -287,9 +290,7 @@ function addResourcesToOutputs (yaml:any) {
       output.Description = resource.Description
     }
 
-    output.Value = {
-      Ref: id
-    }
+    output.Value = value
   })
 }
 
