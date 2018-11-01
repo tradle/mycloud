@@ -9279,7 +9279,7 @@
     "serverless": {
       "version": "1.24.1",
       "from": "mvayngrib/serverless",
-      "resolved": "git://github.com/mvayngrib/serverless.git#6a282d6751d67ec0053216bcf452870175e9e2f5",
+      "resolved": "git://github.com/mvayngrib/serverless.git#16f31bb9c6f4e73354275b5507cdfd1e1ae93b84",
       "dev": true,
       "dependencies": {
         "ansi-styles": {
