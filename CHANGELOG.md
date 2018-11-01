@@ -2,6 +2,116 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/tradle/serverless/compare/v2.0.0-trans.0...v2.0.0) (2018-11-01)
+
+
+### Features
+
+* split stack, enable restore from retained resources ([d9442e6](https://github.com/tradle/serverless/commit/d9442e6))
+
+
+
+<a name="1.12.0-rc.6"></a>
+# [1.12.0-rc.6](https://github.com/tradle/serverless/compare/v1.12.0-rc.5...v1.12.0-rc.6) (2018-10-31)
+
+
+### Bug Fixes
+
+* explicit ref to ApiGatewayRestApi ([01d18ad](https://github.com/tradle/serverless/commit/01d18ad))
+
+
+
+<a name="1.12.0-rc.5"></a>
+# [1.12.0-rc.5](https://github.com/tradle/serverless/compare/v1.12.0-rc.4...v1.12.0-rc.5) (2018-10-31)
+
+
+### Bug Fixes
+
+* rm explicit ref to deployment bucket in outputs ([26fc88e](https://github.com/tradle/serverless/commit/26fc88e))
+
+
+
+<a name="1.12.0-rc.4"></a>
+# [1.12.0-rc.4](https://github.com/tradle/serverless/compare/v1.11.0-rc.15...v1.12.0-rc.4) (2018-10-31)
+
+
+### Bug Fixes
+
+* add ExistingApiGatewayRestApiRootResourceId param ([95acec5](https://github.com/tradle/serverless/commit/95acec5))
+* apigateway refs in template ([06e3066](https://github.com/tradle/serverless/commit/06e3066))
+
+
+
+<a name="1.12.0-rc.2"></a>
+# [1.12.0-rc.2](https://github.com/tradle/serverless/compare/v1.11.0-rc.13...v1.12.0-rc.2) (2018-10-31)
+
+
+
+<a name="1.12.0-rc.1"></a>
+# [1.12.0-rc.1](https://github.com/tradle/serverless/compare/v1.12.0-rc.0...v1.12.0-rc.1) (2018-10-31)
+
+
+### Bug Fixes
+
+* don't delete params for updated template ([84912ab](https://github.com/tradle/serverless/commit/84912ab))
+
+
+
+<a name="1.12.0-rc.0"></a>
+# [1.12.0-rc.0](https://github.com/tradle/serverless/compare/v1.11.2...v1.12.0-rc.0) (2018-10-31)
+
+
+
+<a name="1.11.2"></a>
+## [1.11.2](https://github.com/tradle/serverless/compare/v1.11.1...v1.11.2) (2018-10-31)
+
+
+
+<a name="1.11.1"></a>
+## [1.11.1](https://github.com/tradle/serverless/compare/v1.11.0-rc.12...v1.11.1) (2018-10-31)
+
+
+### Bug Fixes
+
+* add bucket0table stream to template outputs ([3d1921a](https://github.com/tradle/serverless/commit/3d1921a))
+* add missing template file ([7e9f780](https://github.com/tradle/serverless/commit/7e9f780))
+* bucket encryption condition in template ([45114f0](https://github.com/tradle/serverless/commit/45114f0))
+* buckets template encryption settings ([c1d2721](https://github.com/tradle/serverless/commit/c1d2721))
+* cli utils.validateTemplatesAtPath ([1d36d2c](https://github.com/tradle/serverless/commit/1d36d2c))
+* copy substack templates for child deployment, in addition to lambda code ([2c344d5](https://github.com/tradle/serverless/commit/2c344d5))
+* default vars ([e3e5a01](https://github.com/tradle/serverless/commit/e3e5a01))
+* deployment plugin err handling, applications.requestEdit validation ([17e89d6](https://github.com/tradle/serverless/commit/17e89d6))
+* dynamodb iam permissions ([f7e5557](https://github.com/tradle/serverless/commit/f7e5557))
+* get-custom-resource-create-event script ([325b75f](https://github.com/tradle/serverless/commit/325b75f))
+* hardcoded us-east-1 in ServiceEndpoint output ([4b01133](https://github.com/tradle/serverless/commit/4b01133))
+* LogsBucket output ([4cba7ae](https://github.com/tradle/serverless/commit/4cba7ae))
+* missing param in template ([a220754](https://github.com/tradle/serverless/commit/a220754))
+* oninit lambda for restore-stack edge case ([05a708e](https://github.com/tradle/serverless/commit/05a708e))
+* permission required to create regional bucket deployments at runtime ([127cdbe](https://github.com/tradle/serverless/commit/127cdbe))
+* postinstall script - default vars.json generation ([2b15e24](https://github.com/tradle/serverless/commit/2b15e24))
+* pre-deploy plugin ([7ca1b09](https://github.com/tradle/serverless/commit/7ca1b09))
+* pre-deploy plugin ([dd20bbd](https://github.com/tradle/serverless/commit/dd20bbd))
+* re-enable alerts plugin ([fda9b77](https://github.com/tradle/serverless/commit/fda9b77))
+* rm ExistingDeploymentBucket param ([074d5a6](https://github.com/tradle/serverless/commit/074d5a6))
+* s3 iam permissions ([97cd755](https://github.com/tradle/serverless/commit/97cd755))
+* tables template encryption settings ([fa76cbd](https://github.com/tradle/serverless/commit/fa76cbd))
+* template - pass through existing bucket0 stream arn ([5c50acc](https://github.com/tradle/serverless/commit/5c50acc))
+* typo ([76bbd62](https://github.com/tradle/serverless/commit/76bbd62))
+* **deployment:** edge case for creating regional deployment buckets ([0834554](https://github.com/tradle/serverless/commit/0834554))
+* **deployment:** normalize stack name ([3548e46](https://github.com/tradle/serverless/commit/3548e46))
+* **deployment-plugin:** generated template parameters ([89d3cba](https://github.com/tradle/serverless/commit/89d3cba))
+* use source deployment bucket for child stack templates, if available ([94e0d1c](https://github.com/tradle/serverless/commit/94e0d1c))
+* var name in template ([f1c98d9](https://github.com/tradle/serverless/commit/f1c98d9))
+
+
+### Features
+
+* add stackUtils.getStackParameterValues, configure.ensureStackParametersDidNotChange, check immutable params on stack update ([96d7ad5](https://github.com/tradle/serverless/commit/96d7ad5))
+* sketch out bucket, table encryption in template ([abd45c8](https://github.com/tradle/serverless/commit/abd45c8))
+
+
+
 <a name="2.0.0-trans.0"></a>
 # [2.0.0-trans.0](https://github.com/tradle/serverless/compare/v1.11.0...v2.0.0-trans.0) (2018-11-01)
 
