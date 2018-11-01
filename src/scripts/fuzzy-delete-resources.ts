@@ -1,14 +1,42 @@
 #!/usr/bin/env node
 
+// @ts-ignore
+import Promise from 'bluebird'
 import AWS from 'aws-sdk'
 import emptyBucket from 'empty-aws-bucket'
 import Errors from '../errors'
 import { loadCredentials, confirm } from '../cli/utils'
+import minimist from 'minimist'
 
-const [stackName, region='us-east-1'] = process.argv.slice(2)
+const ALL_TYPES = ['tables', 'buckets', 'loggroups']
 
-if (!stackName) {
-  throw new Error('expected arguments: <stackName> [region]')
+const argv = minimist(process.argv.slice(2), {
+  alias: {
+    r: 'region',
+    s: 'stack',
+    t: 'types',
+  },
+  default: {
+    region: 'us-east-1',
+    types: ALL_TYPES,
+  }
+})
+
+let {
+  region,
+  stack,
+  types,
+} = argv
+
+if (typeof types === 'string') {
+  types = types.split(',').map(s => s.trim())
+}
+
+if (!stack) {
+  throw new Error(`Usage:
+
+fuzzy-delete-resources.js --stack <stackNameOrId> --region [region] --types tables,buckets,keys,loggroups
+`)
 }
 
 AWS.config.update({ region })
@@ -48,19 +76,23 @@ const findMatchingLogGroups = async (stackName: string) => {
   return logGroups.map(l => l.logGroupName)
 }
 
-const findMatching = async (stackName: string) => {
-  const [tables, buckets, keys, logGroups] = await Promise.all([
-    findMatchingTables(stackName),
-    findMatchingBuckets(stackName),
-    findMatchingKeys(stackName),
-    findMatchingLogGroups(stackName),
-  ])
-
-  return { tables, buckets, keys, logGroups }
+const findMatching = async ({ stackName, types }: {
+  stackName: string
+  types: string[]
+}) => {
+  return await Promise.props({
+    tables: types.includes('tables') && findMatchingTables(stackName),
+    buckets: types.includes('buckets') && findMatchingBuckets(stackName),
+    keys: types.includes('keys') && findMatchingKeys(stackName),
+    logGroups: types.includes('loggroups') && findMatchingLogGroups(stackName),
+  })
 }
 
-const delMatching = async (stackName: string) => {
-  const resources = await findMatching(stackName)
+const delMatching = async ({ stackName, types }: {
+  stackName: string
+  types: string[]
+}) => {
+  const resources = await findMatching({ stackName, types })
   const size = Object.keys(resources).map(key => resources[key]).reduce((size, arr) => size + arr.length, 0)
   if (!size) {
     console.log('no matches')
@@ -104,7 +136,7 @@ const delLogGroups = async (logGroups: string[]) => {
   }))
 }
 
-delMatching(stackName).catch(err => {
+delMatching({ stackName: stack, types }).catch(err => {
   console.error(err.stack)
   process.exitCode = 1
 })
