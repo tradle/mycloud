@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.14"></a>
+# [1.11.0-rc.14](https://github.com/tradle/serverless/compare/v1.11.0-rc.13...v1.11.0-rc.14) (2018-10-31)
+
+
+
+<a name="1.11.0-rc.13"></a>
+# [1.11.0-rc.13](https://github.com/tradle/serverless/compare/v1.11.0-rc.12...v1.11.0-rc.13) (2018-10-31)
+
+
+### Bug Fixes
+
+* circular dep in template ([d443cdc](https://github.com/tradle/serverless/commit/d443cdc))
+* cli commands option parsing ([d9d8c54](https://github.com/tradle/serverless/commit/d9d8c54))
+* eth min balance ([d54f354](https://github.com/tradle/serverless/commit/d54f354))
+* low funds alerts ([b461936](https://github.com/tradle/serverless/commit/b461936))
+* set-version serverless plugin for initial deployment ([592d450](https://github.com/tradle/serverless/commit/592d450))
+* test-eventstream ([a0d6c2e](https://github.com/tradle/serverless/commit/a0d6c2e))
+* ts-and-cs message ([3bd29fa](https://github.com/tradle/serverless/commit/3bd29fa))
+
+
+### Features
+
+* add required-forms plugin ([53f406b](https://github.com/tradle/serverless/commit/53f406b))
+
+
+
 <a name="1.11.0-rc.12"></a>
 # [1.11.0-rc.12](https://github.com/tradle/serverless/compare/v1.11.0-rc.11...v1.11.0-rc.12) (2018-10-18)
 

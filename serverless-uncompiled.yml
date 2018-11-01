@@ -1046,6 +1046,7 @@ resources:
   Resources:
     ApiGatewayRestApi:
       Type: AWS::ApiGateway::RestApi
+      DeletionPolicy: Retain
       Properties:
         Name: ${{self:custom.apiGateway}}
         BinaryMediaTypes:
@@ -1511,3 +1512,7 @@ resources:
     EncryptionKey:
       Value:
         Ref: DefaultEncryptionKey
+
+    ApiGatewayRestApiRootResourceId:
+      Value:
+        Fn::GetAtt: ApiGatewayRestApi.RootResourceId
