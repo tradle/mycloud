@@ -81,10 +81,10 @@ const findMatching = async ({ stackName, types }: {
   types: string[]
 }) => {
   return await Promise.props({
-    tables: types.includes('tables') && findMatchingTables(stackName),
-    buckets: types.includes('buckets') && findMatchingBuckets(stackName),
-    keys: types.includes('keys') && findMatchingKeys(stackName),
-    logGroups: types.includes('loggroups') && findMatchingLogGroups(stackName),
+    tables: types.includes('tables') ? findMatchingTables(stackName) : [],
+    buckets: types.includes('buckets') ? findMatchingBuckets(stackName) : [],
+    keys: types.includes('keys') ? findMatchingKeys(stackName) : [],
+    logGroups: types.includes('loggroups') ? findMatchingLogGroups(stackName) : [],
   })
 }
 
@@ -93,7 +93,8 @@ const delMatching = async ({ stackName, types }: {
   types: string[]
 }) => {
   const resources = await findMatching({ stackName, types })
-  const size = Object.keys(resources).map(key => resources[key]).reduce((size, arr) => size + arr.length, 0)
+  const size = Object.keys(resources)
+    .map(type => resources[type]).reduce((size, arr) => size + arr.length, 0)
   if (!size) {
     console.log('no matches')
     return
