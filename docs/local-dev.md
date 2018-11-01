@@ -7,7 +7,7 @@ Here's how to do it:
 
 in one Terminal tab run:
 ```sh
-ngrok http 21012 # this is the default port from default-vars.yml
+ngrok http 21012 # this is the default port from default-vars.json
 ```
 
 In the other, run your Serverless Offline server:
