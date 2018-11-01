@@ -6,10 +6,7 @@ module.exports = {
     "extends": "eslint:recommended",
     "parserOptions": {
         "sourceType": "module",
-        "ecmaVersion": 8,
-        "ecmaFeatures": {
-            "experimentalObjectRestSpread": true
-        }
+        "ecmaVersion": 8
     },
     "rules": {
         "accessor-pairs": "error",
@@ -172,7 +169,7 @@ module.exports = {
         "no-spaced-func": "error",
         "no-sync": "off",
         "no-tabs": "error",
-        "no-template-curly-in-string": "error",
+        "no-template-curly-in-string": "warn",
         "no-ternary": "off",
         "no-throw-literal": "error",
         "no-trailing-spaces": "warn",

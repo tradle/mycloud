@@ -11,7 +11,7 @@ plugins:
   - serverless-plugin-aws-alerts
   # - serverless-plugin-common-excludes
   - serverless-plugin-log-retention
-  - serverless-dynamodb-autoscaling
+  # - serverless-dynamodb-autoscaling
   # - serverless-s3-encryption
   # - serverless-plugin-split-stacks
   # - serverless-plugin-warmup
@@ -22,12 +22,12 @@ plugins:
   # - serverless-plugin-write-env-vars
   # - serverless-plugin-include-dependencies
   # - serverless-dynamodb-local
-  - serverless-dynamodb-local
-  - serverless-s3-local
+  # - serverless-dynamodb-local
+  # - serverless-s3-local
   - serverless-iot-local
   - init-local
   - serverless-offline
-  - set-version
+  - pre-deploy
   # - serverless-offline-scheduler
 
 package:
@@ -37,8 +37,7 @@ package:
     - serverless-interpolated.yml
   exclude:
     - src/**
-    - secrets.yml
-    - vars.yml
+    - vars.json
     - logs/**
     - "*.log"
     - "*.rdb"
@@ -65,30 +64,29 @@ package:
     - clienttest/
 
 custom:
-  vars: ${{file(./vars.yml), file(./default-vars.yml)}}
+  vars: ${{file(./vars.json), file(./default-vars.json)}}
   version: ${{file(./lib/version.json)}}
-  defaults: ${{file(./default-vars.yml)}}
-  # move these to vars.yml when this issue is fixed:
+  defaults: ${{file(./default-vars.json)}}
+  # move these to vars.json when this issue is fixed:
   #   https://github.com/serverless/serverless/issues/3740
   service: ${{self:custom.vars.service, self:custom.defaults.service}}
   stage: ${{opt:stage, self:custom.vars.stage, self:custom.defaults.stage}}
-  secrets: ${{file(./secrets.yml):${{self:custom.stage}}, self:custom.defaults.secrets}}
   # stage: dev
   region: ${{opt:region, self:custom.vars.region, self:custom.defaults.region}}
   profile: ${{opt:profile, self:custom.vars.profile, self:custom.defaults.profile}}
   stackName: ${{self:service}}-${{self:custom.stage}}
   versionFunctions: ${{self:custom.vars.versionFunctions, self:custom.defaults.versionFunctions}}
+  deploymentBucket: ${{file(./lib/cli/get-stack-parameter.js):parameterExistingDeploymentBucket}}
 
   blockchain: ${{self:custom.vars.blockchain, self:custom.defaults.blockchain}}
   corda: ${{self:custom.vars.corda, self:custom.defaults.corda}}
   # providerConf: &providerConf
   #   ${{file(./src/in-house-bot/conf/provider.json)}}
-  org: ${{self:custom.vars.org, self:custom.defaults.org}}
+  # org: ${{self:custom.vars.org, self:custom.defaults.org}}
 
   # logging: ${{self:custom.vars.logging, self:custom.defaults.logging}}
 
-  # copied from vars.yml
-  # emailForNotifications: ${{self:custom.vars.emailForNotifications}}
+  # copied from vars.json
   # blockchain: ${{self:custom.vars.blockchain}}
   # thresholdBillingAlarm: ${{self:custom.vars.thresholdBillingAlarm, self:custom.defaults.thresholdBillingAlarm}}
   thresholdThrottlingAlarm: ${{self:custom.vars.thresholdThrottlingAlarm, self:custom.defaults.thresholdThrottlingAlarm}}
@@ -101,22 +99,20 @@ custom:
 
   # prefixes
   prefix: ${{self:service}}-${{self:custom.stage}}-
-  regionalPrefix: ${{self:service}}-${{self:custom.stage}}-${{self:custom.region}}-
-  prefixRole: ${{self:custom.regionalPrefix}}
+  # regionalPrefix: ${{self:service}}-${{self:custom.stage}}-${{self:custom.region}}-
+  # prefixRole: ${{self:custom.regionalPrefix}}
   # maybe during info/auth, the server can send back the prefix
   # prefixIOTTopic: ${{self:service}}-
-  iotParentTopic: ${{self:custom.stackName}}
-  iotClientIdPrefix: ${{self:custom.stackName}}-
-  prefixSNSTopic: ${{self:custom.prefix}}
+  # iotParentTopic: ${{self:custom.stackName}}
+  # prefixSNSTopic: ${{self:custom.prefix}}
   prefixSQS: ${{self:custom.prefix}}
   # apigateway
   # adhere to serverless framework format
-  apiGateway: ${{self:custom.stage}}-${{self:service}}
+  # apiGateway: ${{self:custom.stage}}-${{self:service}}
 
   # versions
   versionSQL: "2016-03-23"
-  emailForNotifications:
-    ${{self:custom.vars.emailForNotifications, self:custom.defaults.emailForNotifications}}
+  s3TemplatesPath: ${{self:custom.version.templatesPath}}
 
   # sns
   # billingAlarmTopic: ${{self:custom.prefixSNSTopic}}BillingAlarmNotification
@@ -127,7 +123,8 @@ custom:
   alertNotifications:
     - protocol: email
       endpoint:
-        Fn::FindInMap: ["org", "contact", "adminEmail"]
+        Ref: OrgAdminEmail
+        # Fn::FindInMap: ["org", "contact", "adminEmail"]
 
   alerts:
     stages:
@@ -178,54 +175,54 @@ custom:
     # kv: ${{self:custom.prefix}}kv
     # backlinks: ${{self:custom.prefix}}backlinks
 
-  defaultScaleInOut: &defaultScaleInOut
-    scaleOut: 0
-    scaleIn: 60
+  # defaultScaleInOut: &defaultScaleInOut
+  #   scaleOut: 0
+  #   scaleIn: 60
 
-  # auto-scaled tables that serve as buckets for multiple models each
-  defaultCapacityRead: &defaultCapacityRead
-    read:
-      minimum: 5        # Minimum read capacity
-      maximum: 100      # Maximum read capacity
-      usage: 0.70       # Targeted usage percentage
-      <<: *defaultScaleInOut
+  # # auto-scaled tables that serve as buckets for multiple models each
+  # defaultCapacityRead: &defaultCapacityRead
+  #   read:
+  #     minimum: 5        # Minimum read capacity
+  #     maximum: 100      # Maximum read capacity
+  #     usage: 0.70       # Targeted usage percentage
+  #     <<: *defaultScaleInOut
 
-  defaultCapacityWrite: &defaultCapacityWrite
-    write:
-      minimum: 5        # Minimum read capacity
-      maximum: 100      # Maximum read capacity
-      usage: 0.5        # Targeted usage percentage
-      <<: *defaultScaleInOut
+  # defaultCapacityWrite: &defaultCapacityWrite
+  #   write:
+  #     minimum: 5        # Minimum read capacity
+  #     maximum: 100      # Maximum read capacity
+  #     usage: 0.5        # Targeted usage percentage
+  #     <<: *defaultScaleInOut
 
-  defaultCapacity: &defaultCapacity
-    <<: *defaultCapacityRead
-    <<: *defaultCapacityWrite
+  # defaultCapacity: &defaultCapacity
+  #   <<: *defaultCapacityRead
+  #   <<: *defaultCapacityWrite
 
-  tableBuckets:
-    count: 1
-    read:
-      minimum: 10       # Minimum read capacity
-      maximum: 500      # Maximum read capacity
-      usage: 0.70       # Targeted usage percentage
-      <<: *defaultScaleInOut
+  # tableBuckets:
+  #   count: 1
+  #   read:
+  #     minimum: 10       # Minimum read capacity
+  #     maximum: 500      # Maximum read capacity
+  #     usage: 0.70       # Targeted usage percentage
+  #     <<: *defaultScaleInOut
 
-    write:
-      minimum: 10       # Minimum read capacity
-      maximum: 500      # Maximum write capacity
-      usage: 0.5        # Targeted usage percentage
-      <<: *defaultScaleInOut
+  #   write:
+  #     minimum: 10       # Minimum read capacity
+  #     maximum: 500      # Maximum write capacity
+  #     usage: 0.5        # Targeted usage percentage
+  #     <<: *defaultScaleInOut
 
-  dynamodb-autoscaling:
-    role: AutoScalingDynamoDBRole
-    capacities:
-      # bucket-x table scaling is added in compile script
+  # dynamodb-autoscaling:
+  #   role: AutoScalingDynamoDBRole
+  #   capacities:
+  #     # bucket-x table scaling is added in compile script
 
-      - table: EventsTable
-        write:
-          minimum: 5        # Minimum write capacity
-          maximum: 100      # Maximum write capacity
-          usage: 0.5        # Targeted usage percentage
-          <<: *defaultScaleInOut
+  #     - table: EventsTable
+  #       write:
+  #         minimum: 5        # Minimum write capacity
+  #         maximum: 100      # Maximum write capacity
+  #         usage: 0.5        # Targeted usage percentage
+  #         <<: *defaultScaleInOut
 
   cors:
     origin: '*'
@@ -247,29 +244,32 @@ custom:
   # reinitializeOnConfChanged: ${{self:custom.vars.reinitializeOnConfChanged, self:custom.defaults.reinitializeOnConfChanged}}
 
   # serverless-dynamodb-local settings
-  dynamodb:
-    start:
-      port: 4569
-      # migrate: true
-      inMemory: true
-      # use dockerized dynamodb from localstack
-      noStart: true
+  # dynamodb:
+  #   start:
+  #     port: 4569
+  #     # migrate: true
+  #     inMemory: true
+  #     # use dockerized dynamodb from localstack
+  #     noStart: true
+  #   # tables:
+  #   #   - ${{self:custom.prefix}}events
+  #   #   - ${{self:custom.prefix}}bucket-0
 
   # serverless-s3-local settings
-  s3:
-    host: 0.0.0.0
-    port: 4572
-    # directory: /tmp
-    buckets:
-      - ${{self:custom.prefix}}objectsbucket
-      - ${{self:custom.prefix}}secretsbucket
-      - ${{self:custom.prefix}}privateconfbucket
-      - ${{self:custom.prefix}}fileuploadbucket
-      - ${{self:custom.prefix}}logsbucket
-    cors: false
-    # use dockerized s3 from localstack
-    noStart: true
-    create: false
+  # s3:
+  #   host: 0.0.0.0
+  #   port: 4572
+  #   # directory: /tmp
+  #   buckets:
+  #     - ${{self:custom.prefix}}objectsbucket
+  #     - ${{self:custom.prefix}}secretsbucket
+  #     - ${{self:custom.prefix}}privateconfbucket
+  #     - ${{self:custom.prefix}}fileuploadbucket
+  #     - ${{self:custom.prefix}}logsbucket
+  #   cors: false
+  #   # use dockerized s3 from localstack
+  #   noStart: true
+  #   create: false
 
   # s3-encryption:
   #   buckets:
@@ -277,11 +277,10 @@ custom:
   #       SSEAlgorithm: AES256
 
   logRetentionInDays: 3
-  daysBeforeLogsGoToGlacier: 7
+  # daysBeforeLogsGoToGlacier: 7
 
-  issue2233WorkaroundKey: issue2233WorkaroundKey-${{self:service}}-${{self:provider.stage}}
-  defaultKMSKeyId: ${{self:custom.regionalPrefix}}default-key
-
+  # issue2233WorkaroundKey: issue2233WorkaroundKey
+  # defaultKMSKeyId: ${{self:custom.regionalPrefix}}default-key
   # tradleStackPrefix: tdl-tradle-ltd-${{self:stage}}-
   # tradleStackRegion: us-east-1
   # updatesTopicName: ${{self:custom.tradleStackPrefix}}updates-announcements
@@ -311,12 +310,14 @@ provider:
   memorySize: 512
   timeout: 60
   # deploymentBucket: io.tradle.${{self:custom.stage}}.deploys
+  # deploymentBucket: ${{self:custom.vars.deploymentBucket, self:custom.defaultVars.deploymentBucket}}
+  deploymentBucket: ${{self:custom.deploymentBucket}}
   environment:
     # enable long stack traces
     BLUEBIRD_DEBUG: 1
     # IOT_TOPIC_PREFIX: ${{self:custom.prefixIOTTopic}}
-    IOT_PARENT_TOPIC: ${{self:custom.iotParentTopic}}
-    IOT_CLIENT_ID_PREFIX: ${{self:custom.iotClientIdPrefix}}
+    STACK_NAME:
+      Ref: AWS::StackName
     BLOCKCHAIN:
       Ref: BlockchainNetwork
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
@@ -324,13 +325,43 @@ provider:
     DEBUG: '*lambda*,tradle*,-@tradle/dynamodb'
     DEBUG_LEVEL: ${{self:custom.vars.debug.level, self:custom.defaults.debug.level}}
     DEBUG_FORMAT: ${{self:custom.vars.debug.format, self:custom.defaults.debug.format}}
-    SERVERLESS_PREFIX: ${{self:custom.prefix}}
-    SERVERLESS_STAGE: ${{self:custom.stage}}
-    SERVERLESS_SERVICE_NAME: ${{self:service}}
+    # SERVERLESS_PREFIX: ${{self:custom.prefix}}
+    # STACK_STAGE: ${{self:custom.stage}}
+    # SERVERLESS_SERVICE_NAME: ${{self:service}}
+    STACK_STAGE:
+      Ref: Stage
     NO_TIME_TRAVEL: false # allow time-travel messages for now
+    R_STACK:
+      Ref: AWS::StackId
+    R_BUCKET_Objects:
+      Fn::GetAtt: Buckets.Outputs.Objects
+    R_BUCKET_Secrets:
+      Fn::GetAtt: Buckets.Outputs.Secrets
+    R_BUCKET_FileUpload:
+      Fn::GetAtt: Buckets.Outputs.FileUpload
+    R_BUCKET_Logs:
+      Fn::GetAtt: Buckets.Outputs.Logs
+    R_BUCKET_PrivateConf:
+      Fn::GetAtt: Buckets.Outputs.PrivateConf
+    R_BUCKET_ServerlessDeployment:
+      Fn::GetAtt: Buckets.Outputs.Deployment
+    R_KEY_DefaultEncryption:
+      Fn::GetAtt: Keys.Outputs.EncryptionKey
+    R_TABLE_Events:
+      Fn::GetAtt: Tables.Outputs.Events
+    R_TABLE_Bucket0:
+      Fn::GetAtt: Tables.Outputs.Bucket0
+    R_RESTAPI_ApiGateway:
+      Fn::GetAtt: Source.Outputs.ApiGatewayRestApi
+    R_ROLE_IotClient:
+      Fn::GetAtt: IAM.Outputs.IotClientRole
+    R_ROLE_AutoScalingDynamoDB:
+      Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
+    R_TOPIC_AdminAlerts:
+      Ref: AwsAlertsAlarm
 
   apiKeys:
-    - ${{self:custom.issue2233WorkaroundKey}}
+    - Fn::Sub: 'issue2233WorkaroundKey1-${AWS::StackName}'
 
   iamRoleStatements:
     - Effect: Allow
@@ -349,18 +380,37 @@ provider:
         - dynamodb:GetShardIterator
         - dynamodb:ListStreams
       Resource:
-        - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${{self:custom.prefix}}*'
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Events
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Events
+            - '/index/*'
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Bucket0
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/'
+            - Fn::GetAtt: Tables.Outputs.Bucket0
+            - '/index/*'
+
 
     - Effect: Allow
       Action:
         # so lambdas can list resources in their stack
         - cloudformation:ListStackResources
+        - CloudFormation:DescribeStacks
         # need to get own template to generate a child deployment template
         - cloudformation:GetTemplate
         - cloudformation:UpdateTerminationProtection
-        - cloudformation:UpdateStack
+        # - cloudformation:UpdateStack
       Resource:
-        Fn::Sub: 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${{self:custom.stackName}}/*'
+        Fn::Sub: 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*'
 
     # - Effect: Allow
     #   Action:
@@ -390,7 +440,7 @@ provider:
       Action:
         - lambda:GetFunctionConfiguration
       Resource:
-        - Fn::Sub: 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${{self:custom.prefix}}*'
+        - Fn::Sub: 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*'
 
     # allow access to bucket
     # TODO: give access only to the lambdas that need it
@@ -407,12 +457,41 @@ provider:
         # # needed to enable bucket encryption
         # - s3:PutEncryptionConfiguration
       Resource:
-        # - arn:aws:s3:::${{self:provider.deploymentBucket}}
-        # - Fn::Join:
-        #   - ""
+        # Fn::Join:
+        #   - ''
         #   - - "arn:aws:s3:::"
-        #     - Ref: PublicConfBucket
-        - "arn:aws:s3:::${{self:custom.prefix}}*"
+        #     - Ref: AWS::StackName
+        #     - "-*"
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Objects
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Secrets
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.PrivateConf
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.FileUpload
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Logs
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Deployment
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: AWS::StackName
+            # needed to manipulate regional buckets
+            - '-deploymentbucket-*'
 
     - Effect: Allow
       Action:
@@ -420,19 +499,62 @@ provider:
         # needed to create an object with public-read
         - s3:PutObjectAcl
         - s3:GetObject
-      Resource: "arn:aws:s3:::${{self:custom.prefix}}*/*"
-
-    - Effect: Allow
-      Action:
-        - s3:DeleteObject
-        - s3:DeleteObjectVersion
       Resource:
-        # currently only needed to delete terms and conditions
+        # Fn::Join:
+        #   - ''
+        #   - - "arn:aws:s3:::"
+        #     - Ref: AWS::StackName
+        #     - "-*/*"
+
         - Fn::Join:
-          - ""
+          - ''
           - - "arn:aws:s3:::"
-            - Ref: PrivateConfBucket
-            - "/conf/*"
+            - Fn::GetAtt: Buckets.Outputs.Objects
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Secrets
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.PrivateConf
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.FileUpload
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Logs
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Fn::GetAtt: Buckets.Outputs.Deployment
+            - '/*'
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: AWS::StackName
+            # needed to manipulate regional buckets
+            - '-deploymentbucket-*/*'
+
+
+    # - Effect: Allow
+    #   Action:
+    #     - s3:DeleteObject
+    #     - s3:DeleteObjectVersion
+    #   Resource:
+    #     # currently only needed to delete terms and conditions
+    #     - Fn::Join:
+    #       - ""
+    #       - - "arn:aws:s3:::"
+    #         - Fn::GetAtt: Buckets.Outputs.PrivateConf
+    #         - "/conf/*"
 
     - Effect: Allow
       Action:
@@ -464,9 +586,7 @@ provider:
       Action:
         - sts:AssumeRole
       Resource:
-        - Fn::GetAtt:
-          - IotClientRole
-          - Arn
+        - Fn::GetAtt: IAM.Outputs.IotClientRole
     - Effect: Allow
       Action:
         - xray:PutTraceSegments
@@ -521,7 +641,24 @@ provider:
         - kms:Decrypt
         - kms:GenerateDataKey
       Resource:
-        - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${DefaultEncryptionKey}'
+        - Fn::Join:
+          - ''
+          - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+            - Fn::GetAtt: Keys.Outputs.EncryptionKey
+
+    - Effect: Allow
+      Action:
+        - kms:Encrypt
+        - kms:Decrypt
+        - kms:GenerateDataKey
+      Resource:
+        - Fn::If:
+          - DoEncryptBuckets
+          - Fn::Join:
+            - ''
+            - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+              - Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+          - Ref: AWS::NoValue
 
     # - Effect: Allow
     #   Action:
@@ -642,12 +779,23 @@ functions:
       # - iot:
       #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
       #     sqlVersion: ${{self:custom.versionSQL}}
+
       - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+          sql:
+            Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${AWS::StackName}-')"
           sqlVersion: ${{self:custom.versionSQL}}
       - iot:
-          sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+          sql:
+            Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${AWS::StackName}-')"
           sqlVersion: ${{self:custom.versionSQL}}
+
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
+      # - iot:
+      #     sql: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#' WHERE startswith(clientId, '${{self:custom.iotClientIdPrefix}}')"
+      #     sqlVersion: ${{self:custom.versionSQL}}
+
     alarms:
       - functionErrors
       - functionThrottles
@@ -672,11 +820,12 @@ functions:
     handler: lib/in-house-bot/lambda/mqtt/onmessage.handler
     memorySize: 1024
     #   SERVERLESS_PREFIX: ${{self:custom.prefix}}
-    #   SERVERLESS_STAGE: ${{self:custom.stage}}
+    #   STACK_STAGE: ${{self:custom.stage}}
     #   SERVERLESS_SERVICE_NAME: ${{self:service}}
     events:
       - iot:
-          sql: "SELECT encode(*, 'base64') as data, clientid() as clientId, topic() as topic FROM '${{self:custom.iotParentTopic}}/+/pub/outbox'"
+          sql:
+            Fn::Sub: "SELECT encode(*, 'base64') as data, clientid() as clientId, topic() as topic FROM '${AWS::StackName}/+/pub/outbox'"
           sqlVersion: ${{self:custom.versionSQL}}
     alarms:
       - functionErrors
@@ -830,6 +979,7 @@ functions:
   bot_oninit:
     handler: lib/in-house-bot/lambda/oninit.handler
     memorySize: 1024
+    timeout: 900
 
   # onsealstream:
   #   handler: lib/in-house-bot/lambda/onsealstream.handler
@@ -874,9 +1024,7 @@ functions:
           batchSize: 20
           startingPosition: TRIM_HORIZON
           arn:
-            Fn::GetAtt:
-              - Bucket0Table
-              - StreamArn
+            Fn::GetAtt: Tables.Outputs.Bucket0Stream
     alarms:
       - functionErrors
 
@@ -1019,508 +1167,600 @@ functions:
 
 resources:
   Parameters:
+    SourceDeploymentBucket:
+      Type: String
+      Default: ""
+
+    # Existing Resources group
+    ExistingEventsTable:
+      Type: String
+      Default: ""
+
+    ExistingBucket0Table:
+      Type: String
+      Default: ""
+
+    ExistingBucket0TableStreamArn:
+      Type: String
+      Default: ""
+
+    ExistingObjectsBucket:
+      Type: String
+      Default: ""
+
+    ExistingSecretsBucket:
+      Type: String
+      Default: ""
+
+    ExistingPrivateConfBucket:
+      Type: String
+      Default: ""
+
+    ExistingFileUploadBucket:
+      Type: String
+      Default: ""
+
+    ExistingLogsBucket:
+      Type: String
+      Default: ""
+
+    ExistingEncryptionKey:
+      Type: String
+      Default: ""
+      Description: KMS key id, if you want to use an existing one instead of creating a new one
+
+    ExistingBucketEncryptionKey:
+      Type: String
+      Default: ""
+      Description: KMS key id, if you want to use an existing one instead of creating a new one
+
+    ExistingDeploymentBucket:
+      Type: String
+      Default: ""
+
+    ExistingApiGatewayRestApi:
+      Type: String
+      Default: ""
+
+    ExistingApiGatewayRestApiRootResourceId:
+      Type: String
+      Default: ""
+
+    # Organization Info group
+
+    OrgName:
+      Type: String
+      Description: your organization's name, as you want users to see it (e.g. Example, Inc)
+
+    OrgDomain:
+      Type: String
+      Description: a domain or subdomain you own (e.g. example.com)
+
+    OrgLogo:
+      Type: String
+      Description: a publically accessible url for your logo image (e.g. https://example.com/logo.jpeg)
+
+    OrgAdminEmail:
+      Type: String
+      Description: your AWS admin's email (e.g. jojo@example.com)
+
+    # Configuration group
+
     BlockchainNetwork:
       Type: String
-      Default: ${{self:custom.blockchain}}
+      Default: 'ethereum:rinkeby'
       AllowedValues:
         - 'ethereum:mainnet'
         - 'ethereum:rinkeby'
         - 'ethereum:ropsten'
 
+    AutoScalingEnabled:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    PointInTimeRecoveryEnabledEventsTable:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    PointInTimeRecoveryEnabledBucket0Table:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    LogsDaysBeforeTransitionToGlacier:
+      Type: Number
+      Default: 7
+
+    EncryptBuckets:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    EncryptTables:
+      Type: String
+      Default: "true"
+      AllowedValues:
+        - "true"
+        - "false"
+
+    # EnableTracing:
+    #   Type: String
+    #   Default: "false"
+    #   AllowedValues:
+    #     - "true"
+    #     - "false"
+
+    # Stack Info group
+
+    Stage:
+      Type: String
+      Default: dev
+      AllowedValues:
+        - dev
+        - prod
+
+  Metadata:
+    AWS::CloudFormation::Interface:
+      ParameterGroups:
+        - Label:
+            default: "Organization Info"
+          Parameters:
+            - OrgName
+            - OrgDomain
+            - OrgLogo
+            - OrgAdminEmail
+
+        - Label:
+            default: "Configuration"
+          Parameters:
+            - BlockchainNetwork
+            - PointInTimeRecoveryEnabledEventsTable
+            - PointInTimeRecoveryEnabledBucket0Table
+            - AutoScalingEnabled
+            - LogsDaysBeforeTransitionToGlacier
+            - EncryptBuckets
+            - EncryptTables
+            # - EnableTracing
+
+        - Label:
+            default: "Stack Info"
+          Parameters:
+            - Stage
+
+        - Label:
+            default: "Existing Resources (ignore if this is a new deployment)"
+          Parameters:
+            - ExistingEventsTable
+            - ExistingBucket0Table
+            - ExistingBucket0TableStreamArn
+            - ExistingObjectsBucket
+            - ExistingSecretsBucket
+            - ExistingPrivateConfBucket
+            - ExistingFileUploadBucket
+            - ExistingLogsBucket
+            - ExistingDeploymentBucket
+            - ExistingEncryptionKey
+            - ExistingBucketEncryptionKey
+            - ExistingApiGatewayRestApi
+            - ExistingApiGatewayRestApiRootResourceId
+
+      ParameterLabels:
+        # Existing Resources
+        ExistingEventsTable:
+          default: "Events Table"
+        ExistingBucket0Table:
+          default: "Bucket0 Table"
+        ExistingBucket0TableStreamArn:
+          default: "Bucket0 Table Stream Arn"
+        ExistingObjectsBucket:
+          default: "Objects Bucket"
+        ExistingSecretsBucket:
+          default: "Secrets Bucket"
+        ExistingPrivateConfBucket:
+          default: "PrivateConf Bucket"
+        ExistingFileUploadBucket:
+          default: "FileUpload Bucket"
+        ExistingLogsBucket:
+          default: "Logs Bucket"
+        ExistingDeploymentBucket:
+          default: "Deployment Bucket"
+        ExistingEncryptionKey:
+          default: "Encryption Key"
+        ExistingBucketEncryptionKey:
+          default: "Bucket Encryption Key"
+
+        ExistingApiGatewayRestApi:
+          default: "ApiGateway RestApi Id"
+        ExistingApiGatewayRestApiRootResourceId:
+          default: "ApiGateway RestApi root resource id"
+
+        # Organization Info
+        OrgName:
+          default: Name
+        OrgDomain:
+          default: Domain
+        OrgLogo:
+          default: Logo URL
+        OrgAdminEmail:
+          default: Admin Email
+
+        # Configuration
+
+        BlockchainNetwork:
+          default: Blockchain Network
+        PointInTimeRecoveryEnabledEventsTable:
+          default: Enable point-in-time recovery for the Events table
+        PointInTimeRecoveryEnabledBucket0Table:
+          default: Enable point-in-time recovery for the Bucket0 table
+        AutoScalingEnabled:
+          default: Enable DynamoDB auto-scaling
+        LogsDaysBeforeTransitionToGlacier:
+          default: days before logs are transitioned from to Glacier
+        EncryptBuckets:
+          default: "Encrypt Buckets"
+        EncryptTables:
+          default: "Encrypt Tables"
+        # EnableTracing:
+        #   default: "Enable AWS X-Ray Tracing for Lambda Functions"
+
+        # Stack Info
+        Stage:
+          default: Stage
+
   Mappings:
-    org:
-      init: ${{self:custom.org}}
-      contact:
-        adminEmail: ${{self:custom.emailForNotifications}}
+    # org:
+    #   init: ${{self:custom.org}}
+    #   contact:
+    #     adminEmail: ${{self:custom.emailForNotifications}}
 
     deployment:
       init:
-        service: ${{self:service}}
-        stage: ${{self:custom.stage}}
+        # service: ${{self:service}}
+        # stage: ${{self:custom.stage}}
         stackName: ${{self:custom.stackName}}
         # encryptionKey:
         # which MyCloud generated the template
         referrerUrl: ''
         deploymentUUID: ''
 
+  Conditions:
+    DoAutoScale:
+      Fn::Equals:
+        - Ref: AutoScalingEnabled
+        - "true"
+
+    DoCreateDeploymentBucket:
+      Fn::Equals:
+        - Ref: ExistingDeploymentBucket
+        - ""
+
+    DoCreateApiGatewayRestApi:
+      Fn::Or:
+        - Fn::Equals:
+          - Ref: ExistingApiGatewayRestApi
+          - ""
+        - Fn::Equals:
+          - Ref: ExistingApiGatewayRestApiRootResourceId
+          - ""
+
+    DoEncryptBuckets:
+      Fn::Equals:
+        - Ref: EncryptBuckets
+        - "true"
+
+    UseSourceDeploymentBucket:
+      Fn::Not:
+        - Fn::Equals:
+          - Ref: SourceDeploymentBucket
+          - ""
+
   Resources:
+    Source:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Join:
+            - ''
+            - - https://
+              - Fn::If:
+                - UseSourceDeploymentBucket
+                - Ref: SourceDeploymentBucket
+                - Ref: ServerlessDeploymentBucket
+              - .s3.amazonaws.com/${{self:custom.s3TemplatesPath}}
+              - /echo.json
+        Parameters:
+          SourceDeploymentBucket:
+            Fn::If:
+              - UseSourceDeploymentBucket
+              - Ref: SourceDeploymentBucket
+              - Ref: ServerlessDeploymentBucket
+          ApiGatewayRestApi:
+            Fn::If:
+              - DoCreateApiGatewayRestApi
+              - Ref: ApiGatewayRestApi
+              - Ref: ExistingApiGatewayRestApi
+          ApiGatewayRestApiRootResourceId:
+            Fn::If:
+              - DoCreateApiGatewayRestApi
+              - Fn::GetAtt: ApiGatewayRestApi.RootResourceId
+              - Ref: ExistingApiGatewayRestApiRootResourceId
+
+    # has to be here for serverless to pick it up
     ServerlessDeploymentBucket:
       Type: AWS::S3::Bucket
+      Condition: DoCreateDeploymentBucket
       Description: destination for lambda code, templates, and other deployment assets
       DeletionPolicy: Retain
       Properties:
         VersioningConfiguration:
           Status: Enabled
 
+    Keys:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/keys.json'
+        Parameters:
+          Namespace:
+            Ref: AWS::StackName
+          ExistingEncryptionKey:
+            Ref: ExistingEncryptionKey
+          ExistingBucketEncryptionKey:
+            Ref: ExistingBucketEncryptionKey
+          NeedBucketEncryptionKey:
+            Ref: EncryptBuckets
+
+    Tables:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/tables.json'
+        Parameters:
+          Namespace:
+            Ref: AWS::StackName
+          ExistingEventsTable:
+            Ref: ExistingEventsTable
+          ExistingBucket0Table:
+            Ref: ExistingBucket0Table
+          ExistingBucket0TableStreamArn:
+            Ref: ExistingBucket0TableStreamArn
+          PointInTimeRecoveryEnabledEventsTable:
+            Ref: PointInTimeRecoveryEnabledEventsTable
+          PointInTimeRecoveryEnabledBucket0Table:
+            Ref: PointInTimeRecoveryEnabledBucket0Table
+          Encrypt:
+            Ref: EncryptTables
+
+    Buckets:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/buckets.json'
+        Parameters:
+          ExistingObjectsBucket:
+            Ref: ExistingObjectsBucket
+          ExistingSecretsBucket:
+            Ref: ExistingSecretsBucket
+          ExistingPrivateConfBucket:
+            Ref: ExistingPrivateConfBucket
+          ExistingFileUploadBucket:
+            Ref: ExistingFileUploadBucket
+          ExistingLogsBucket:
+            Ref: ExistingLogsBucket
+          ExistingDeploymentBucket:
+            Fn::If:
+              - DoCreateDeploymentBucket
+              - Ref: ServerlessDeploymentBucket
+              - Ref: ExistingDeploymentBucket # ServerlessDeploymentBucket
+          LogsDaysBeforeTransitionToGlacier:
+            Ref: LogsDaysBeforeTransitionToGlacier
+          EncryptionKey:
+            Fn::If:
+              - DoEncryptBuckets
+              - Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyAlias
+              - ""
+
+    IAM:
+      Type: AWS::CloudFormation::Stack
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/iam.json'
+        Parameters:
+          Namespace:
+            Ref: AWS::StackName
+          ObjectsBucket:
+            Fn::GetAtt: Buckets.Outputs.Objects
+          SecretsBucket:
+            Fn::GetAtt: Buckets.Outputs.Secrets
+          PrivateConfBucket:
+            Fn::GetAtt: Buckets.Outputs.PrivateConf
+          FileUploadBucket:
+            Fn::GetAtt: Buckets.Outputs.FileUpload
+          LogsBucket:
+            Fn::GetAtt: Buckets.Outputs.Logs
+          DeploymentBucket:
+            Fn::GetAtt: Buckets.Outputs.Deployment
+          IotParentTopic:
+            Ref: AWS::StackName
+
+    AutoScalingEventsTable:
+      Type: AWS::CloudFormation::Stack
+      Condition: DoAutoScale
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-events-table.json'
+        Parameters:
+          Table:
+            Fn::GetAtt: Tables.Outputs.Events
+          AutoScalingDynamoDBRole:
+            Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
+
+    AutoScalingBucketTable:
+      Type: AWS::CloudFormation::Stack
+      Condition: DoAutoScale
+      Properties:
+        TemplateURL:
+          Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.json'
+        Parameters:
+          Table:
+            Fn::GetAtt: Tables.Outputs.Bucket0
+          AutoScalingDynamoDBRole:
+            Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
+
     ApiGatewayRestApi:
       Type: AWS::ApiGateway::RestApi
+      Condition: DoCreateApiGatewayRestApi
       DeletionPolicy: Retain
       Properties:
-        Name: ${{self:custom.apiGateway}}
+        Name:
+          Ref: AWS::StackName
         BinaryMediaTypes:
           - "*/*"
-        # BinaryMediaTypes: ${{self:custom.vars.binaryMediaTypes, self:custom.defaults.binaryMediaTypes}}
 
-    # AdminsGroup:
-    #   Type: AWS::IAM::Group
-    #   Properties:
-    #     GroupName: ${{self:custom.regionalPrefix}}admins
-    #     Path: '/tradle/${{self:provider.region}}/${{self:provider.stage}}'
-
-    # RestrictedBucketPolicy:
-    #   Type: AWS::IAM::Policy
-    #   Properties:
-    #     PolicyName: ${{self:custom.regionalPrefix}}RestrictedBucketPolicy
-    #     Groups:
-    #       - Ref: AdminsGroup
-    #     Roles:
-    #       - Ref: IamRoleLambdaExecution
-    #       - Fn::Join:
-    #         - ""
-    #         - - "arn:aws:sts::${AWS::AccountId}:assumed-role/"
-    #           - Ref: IamRoleLambdaExecution
-    #           - "/${{self:custom.prefix}}*"
-    #     PolicyDocument:
-    #       Statement:
-    #         - Sid: 'grant admins access to private buckets'
-    #           Effect: Allow
-    #           Action:
-    #             - s3:ListBucket
-    #             - s3:GetObject
-    #             - s3:HeadObject
-    #           Resource:
-    #             - Fn::Join:
-    #               - ""
-    #               - - "arn:aws:s3:::"
-    #                 - Ref: SecretsBucket
-    #             - Fn::Join:
-    #               - ""
-    #               - - "arn:aws:s3:::"
-    #                 - Ref: SecretsBucket
-    #                 - "/*"
-    #             - Fn::Join:
-    #               - ""
-    #               - - "arn:aws:s3:::"
-    #                 - Ref: PrivateConfBucket
-    #             - Fn::Join:
-    #               - ""
-    #               - - "arn:aws:s3:::"
-    #                 - Ref: PrivateConfBucket
-    #                 - "/*"
-
-  #   cors:
-  #     origin: '*'
-  #     headers:
-  #       - Content-Type
-  #       - X-Amz-Date
-  #       - Authorization
-  #       - X-Api-Key
-  #       - X-Amz-Security-Token
-  #       - X-Amz-User-Agent
-  #       - X-Tradle-Sig
-  #       - cache
-
-    # servless-framework-generated API Gateway
-    # ApiGatewayStage:
-    #   Type: AWS::ApiGateway::Stage
-    #   Properties:
-    #     MethodSettings:
-    #       - DataTraceEnabled: true
-    #         HttpMethod: "*"
-    #         LoggingLevel: INFO
-    #         ResourcePath: "/*"
-    #         MetricsEnabled: true
-
-    # DefaultBucketPolicy:
-
-    #   "Sid": "DenyPublicListACL",
-    #   "Effect": "Deny",
-    #   "Principal": {
-    #     "AWS": "*"
-    #   },
-    #   "Action": "s3:PutBucketAcl",
-    #   "Resource": "arn:aws:s3:::examplebucket",
-    #   "Condition": {
-    #     "StringEquals": {
-    #       "s3:x-amz-acl": [
-    #         "public-read",
-    #         "public-read-write",
-    #         "authenticated-read"
-    #       ]
-    #     }
-    #   }
-
-    # content-addressed storage
-    # stores message payloads (message minus envelope)
-    # may be going away soon
-    ObjectsBucket:
-      Type: AWS::S3::Bucket
-      Description: content-addressed storage for all objects
-      DeletionPolicy: Retain
-
-    # stores identity keys
-    SecretsBucket:
-      Type: AWS::S3::Bucket
-      Description: stuff
-      DeletionPolicy: Retain
+    AwsAlertsAlarm:
+      Type: AWS::SNS::Topic
       Properties:
-        VersioningConfiguration:
-          Status: Enabled
-        # PolicyDocument:
-        #   Id: ${{self:custom.regionalPrefix}}SecretsBucketPolicy
-        #   Version: '2012-10-17'
-        #   Statement:
-        #     - Sid: 'deny access to bucket'
-        #       Effect: Deny
-        #       Resource: '*'
-        #       Action:
-        #         - 's3:*'
-        #       Principal:
-        #         AWS: "*"
+        TopicName:
+          Fn::Join:
+            - '-'
+            - - Ref: AWS::StackName
+              - alerts-alarm
 
-              # NotPrincipal:
-              #   AWS:
-              #     - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-              #     - Fn::GetAtt:
-              #       - IamRoleLambdaExecution
-              #       - Arn
-              #     - Fn::Join:
-              #       - ''
-              #       - - "arn:aws:iam::${AWS::AccountId}:assumed-role/"
-              #         - Ref: IamRoleLambdaExecution
-              #         - "/*"
-
-        # Bucket:
-        #   Ref: SecretsBucket
-
-        # Uncomment when the CloudFormation issues with BucketEncryption are resolved
-        # BucketEncryption:
-        #   ServerSideEncryptionConfiguration:
-        #     - ServerSideEncryptionByDefault:
-        #         SSEAlgorithm: AES256
-
-    PrivateConfBucket:
-      Type: AWS::S3::Bucket
-      Description: private configuration files
-      DeletionPolicy: Retain
-      Properties:
-        VersioningConfiguration:
-          Status: Enabled
-
-    # stores media uploaded by users
-    FileUploadBucket:
-      Type: AWS::S3::Bucket
-      Description: file upload destination for all users
-      DeletionPolicy: Retain
-      Properties:
-        CorsConfiguration:
-          CorsRules:
-            - AllowedMethods:
-                - GET
-                - PUT
-                - POST
-              AllowedOrigins:
-                - "*"
-              AllowedHeaders:
-                - "*"
-              MaxAge: 3600
-
-    FileUploadBucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        Bucket:
-          Ref: FileUploadBucket
-        PolicyDocument:
-          Id: FileUploadBucketPolicy
-          Version: '2012-10-17'
-          Statement:
-          - Sid: PutAccess
-            Action:
-            - s3:PutObject
-            Effect: Allow
-            Resource:
-              - Fn::Join:
-                - ""
-                - - "arn:aws:s3:::"
-                  - Ref: FileUploadBucket
-                  - /
-                  # ${aws:userid} will change on every session
-                  # which will prevent users from clobbering old uploads
-                  - ${aws:userid}
-                  - "/*"
-            Principal:
-              AWS:
-                Fn::GetAtt:
-                  - IotClientRole
-                  - Arn
-
-    LogsBucket:
-      Type: AWS::S3::Bucket
-      Description: logs from lambda functions
-      DeletionPolicy: Retain
-      Properties:
-        LifecycleConfiguration:
-          Rules:
-          - Id: TransitionToGlacier
-            Prefix: glacier
-            Status: Enabled
-            Transitions:
-              - TransitionInDays: ${{self:custom.daysBeforeLogsGoToGlacier}}
-                StorageClass: Glacier
-
-    # EventsTable: ${{file(./conf/table/events.yml)}}
-
-    # master log from which things can be rebuilt
-    # in case of schema changes, disasters, etc.
-    EventsTable:
-      Type: AWS::DynamoDB::Table
-      DeletionPolicy: Retain
-      Description: source of truth
-      Properties:
-        TableName: ${{self:custom.tables.events}}
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 5
-          WriteCapacityUnits: 5
-        PointInTimeRecoverySpecification:
-          PointInTimeRecoveryEnabled: true
-
-    # role assumed by all IoT clients
-    IotClientRole:
-      Type: AWS::IAM::Role
-      Description: role assumed by every connecting client
-      Properties:
-        RoleName: ${{self:custom.prefixRole}}iotClientRole
-        AssumeRolePolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - lambda.amazonaws.com
-                AWS:
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-                  # would be nice to use the below Fn::GetAtt
-                  # but it creates a circular dep
-                  # - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:role/${{self:custom.prefix}}${{self:provider.region}}-lambdaRole'
-                  # - Fn::GetAtt:
-                  #   - IamRoleLambdaExecution
-                  #   - Arn
-              Action:
-                - sts:AssumeRole
-        Policies:
-          - PolicyName: ${{self:custom.regionalPrefix}}iotClientRolePolicy
-            PolicyDocument:
-              Version: "2012-10-17"
-              Statement:
-                # - Effect: Allow
-                #   Action:
-                #     - dynamodb:*
-                #   Resource:
-                #     - Fn::Sub: 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Bucket0Table'
-                - Effect: Allow
-                  Action:
-                    - logs:CreateLogGroup
-                    - logs:CreateLogStream
-                    - logs:PutLogEvents
-                  Resource: arn:aws:logs:::log-group:/aws/lambda/*:*:*
-                # restrict client connect by client id
-                - Effect: Allow
-                  Action: ["iot:Connect"]
-                  Resource:
-                    - Fn::Join:
-                      - ":"
-                      - - 'arn:aws:iot'
-                        - Ref: AWS::Region
-                        - Ref: AWS::AccountId
-                        - 'client/${iot:ClientId}'
-
-                # allow all clients to publish to the send topic
-                - Effect: "Allow"
-                  Action: ["iot:Publish"]
-                  Resource:
-                    - Fn::Join:
-                      - ":"
-                      - - 'arn:aws:iot'
-                        - Ref: AWS::Region
-                        - Ref: AWS::AccountId
-                        - 'topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/pub/outbox'
-                  #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}message
-                  #   - arn:aws:iot:::topic/${{self:custom.prefixIOTTopic}}restore
-
-                # restrict client topic subscriptions by their client id
-                - Effect: "Allow"
-                  Action: ["iot:Subscribe"]
-                  Resource:
-                    - Fn::Join:
-                      - ":"
-                      - - 'arn:aws:iot'
-                        - Ref: AWS::Region
-                        - Ref: AWS::AccountId
-                        - 'topicfilter/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
-                # restrict messages clients receive by their client id
-                # this has the same function as the Subscribe rule above
-                # provided the Subscribe policy is upheld, this policy should always give a pass
-                - Effect: "Allow"
-                  Action: ["iot:Receive"]
-                  Resource:
-                    - Fn::Join:
-                      - ":"
-                      - - 'arn:aws:iot'
-                        - Ref: AWS::Region
-                        - Ref: AWS::AccountId
-                        - 'topic/${{self:custom.iotParentTopic}}/${iot:ClientId}/sub/*'
-
-    AutoScalingDynamoDBRole:
-      Type: AWS::IAM::Role
-      Properties:
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - application-autoscaling.amazonaws.com
-              Action:
-                - sts:AssumeRole
-        Path: "/"
-        Policies:
-          - PolicyName: ${{self:custom.regionalPrefix}}AutoScalingDynamoDBPolicy
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - dynamodb:DescribeTable
-                    - dynamodb:UpdateTable
-                  Resource:
-                    - Fn::Join:
-                        - ""
-                        - - "arn:aws:dynamodb:"
-                          - Ref: AWS::Region
-                          - ":*:table/${{self:custom.prefix}}*"
-                - Effect: Allow
-                  Action:
-                    - cloudwatch:DescribeAlarms
-                    - cloudwatch:PutMetricAlarm
-                    - cloudwatch:DeleteAlarms
-                  Resource: "*"
+        Subscription:
+        - Protocol: email
+          Endpoint:
+            Ref: OrgAdminEmail
+            # Fn::FindInMap:
+            # - org
+            # - contact
+            # - adminEmail
 
     Initialize:
       Type: Custom::InitializeDeployment
-      DependsOn: ApiGatewayApiKey1
+      DependsOn:
+        - Buckets
+        - Keys
+        - Tables
+        - IAM
+        - ApiGatewayApiKey1
+        - IamRoleLambdaExecution
       Properties:
         ServiceToken:
           Fn::GetAtt: [BotUnderscoreoninitLambdaFunction, Arn]
         commit: ${{self:custom.version.commit}}
         name:
-          Fn::FindInMap: ["org", "init", "name"]
+          Ref: OrgName
+          # Fn::FindInMap: ["org", "init", "name"]
         domain:
-          Fn::FindInMap: ["org", "init", "domain"]
+          Ref: OrgDomain
+          # Fn::FindInMap: ["org", "init", "domain"]
         logo:
-          Fn::FindInMap: ["org", "init", "logo"]
+          Ref: OrgLogo
+          # Fn::FindInMap: ["org", "init", "logo"]
         deploymentUUID:
           Fn::FindInMap: ["deployment", "init", "deploymentUUID"]
         referrerUrl:
           Fn::FindInMap: ["deployment", "init", "referrerUrl"]
-        # encryptionKey:
-        #   Fn::FindInMap: ["deployment", "init", "encryptionKey"]
 
-          # <<: *providerConf
-
-    DefaultEncryptionKey:
-      Type: AWS::KMS::Key
-      DeletionPolicy: Retain
-      Properties:
-        Description: 'Encryption key for secrets in SSM'
-        Enabled: True
-        EnableKeyRotation: False
-        Tags:
-          - Key: tradle
-            Value: ${{self:custom.stackName}}-${{self:provider.region}}
-
-        KeyPolicy:
-          Version: '2012-10-17'
-          Id: ${{self:custom.defaultKMSKeyId}}-policy
-          Statement:
-            - Sid: 'Allow access for Key Administrators'
-              Effect: Allow
-              Principal:
-                AWS:
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-              Action:
-                - 'kms:Create*'
-                - 'kms:Describe*'
-                - 'kms:Enable*'
-                - 'kms:List*'
-                - 'kms:Put*'
-                - 'kms:Update*'
-                - 'kms:Revoke*'
-                - 'kms:Disable*'
-                - 'kms:Get*'
-                - 'kms:Delete*'
-                - 'kms:TagResource'
-                - 'kms:UntagResource'
-                - 'kms:ScheduleKeyDeletion'
-                - 'kms:CancelKeyDeletion'
-              Resource: '*'
-
-            - Sid: 'Allow attachment of persistent resources'
-              Effect: Allow
-              Principal:
-                AWS:
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-              Action:
-                - 'kms:CreateGrant'
-                - 'kms:ListGrants'
-                - 'kms:RevokeGrant'
-
-              # Condition:
-              #   ForAllValues:StringEquals:
-              #     kms:GrantOperations:
-              #       - 'Decrypt'
-
-              # https://docs.aws.amazon.com/kms/latest/developerguide/policy-conditions.html#conditions-kms-grant-is-for-aws-resource
-              Condition:
-                Bool:
-                  "kms:GrantIsForAWSResource": true
-
-              Resource: '*'
-
-            # Need this for IAM policy to work
-            # https://forums.aws.amazon.com/thread.jspa?messageID=845931
-            - Sid: 'allowUseKey'
-              Effect: Allow
-              Principal:
-                AWS:
-                  - Fn::Sub: 'arn:aws:iam::${AWS::AccountId}:root'
-              Action:
-                - 'kms:Decrypt'
-                - 'kms:GenerateDataKey'
-              Resource: '*'
-
+        # stack update validation needs these to make sure they didn't change
+        ImmutableParameters:
+          Stage:
+            Ref: Stage
+          BlockchainNetwork:
+            Ref: BlockchainNetwork
+          EncryptTables:
+            Ref: EncryptTables
 
   Outputs:
+    EventsTable:
+      Value:
+        Fn::GetAtt: Tables.Outputs.Events
+
+    Bucket0Table:
+      Value:
+        Fn::GetAtt: Tables.Outputs.Bucket0
 
     Bucket0TableStream:
       Value:
-        Fn::GetAtt:
-          - Bucket0Table
-          - StreamArn
+        Fn::GetAtt: Tables.Outputs.Bucket0Stream
+
+    ObjectsBucket:
+      Value:
+        Fn::GetAtt: Buckets.Outputs.Objects
+
+    SecretsBucket:
+      Value:
+        Fn::GetAtt: Buckets.Outputs.Secrets
+
+    PrivateConfBucket:
+      Value:
+        Fn::GetAtt: Buckets.Outputs.PrivateConf
+
+    FileUploadBucket:
+      Value:
+        Fn::GetAtt: Buckets.Outputs.FileUpload
+
+    LogsBucket:
+      Value:
+        Fn::GetAtt: Buckets.Outputs.Logs
 
     DeploymentBucket:
       Value:
-        Ref: ServerlessDeploymentBucket
+        Fn::GetAtt: Buckets.Outputs.Deployment
 
-    EncryptionKey:
+    ApiGatewayRestApi:
       Value:
-        Ref: DefaultEncryptionKey
+        Fn::GetAtt: Source.Outputs.ApiGatewayRestApi
 
     ApiGatewayRestApiRootResourceId:
       Value:
-        Fn::GetAtt: ApiGatewayRestApi.RootResourceId
+        Fn::GetAtt: Source.Outputs.ApiGatewayRestApiRootResourceId
+
+    EncryptionKey:
+      Value:
+        Fn::GetAtt: Keys.Outputs.EncryptionKey
+
+    EncryptionKeyAlias:
+      Value:
+        Fn::GetAtt: Keys.Outputs.EncryptionKeyAlias
+
+    BucketEncryptionKey:
+      Value:
+        Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+
+    BucketEncryptionKeyAlias:
+      Value:
+        Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyAlias
+
+    S3TemplatesBaseUrl:
+      Value:
+        Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}'
+
+    # serverless usually generates this
+    ServiceEndpoint:
+      Description: API root URL
+      Value:
+        Fn::Sub: 'https://${Source.Outputs.ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
+
+    # let serverless generate this
+    # ServerlessDeploymentBucketName:
+    #   Value:
+    #     Fn::GetAtt: Buckets.Outputs.Deployment
+
+    SourceDeploymentBucket:
+      Value:
+        Ref: SourceDeploymentBucket
+
+    InitLogGroup:
+      Value:
+        Ref: BotUnderscoreoninitLogGroup

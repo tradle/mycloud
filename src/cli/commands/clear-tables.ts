@@ -29,13 +29,13 @@ export default class ClearTables extends Command {
     const { bot, env } = this
     if (names.length) {
       return names.map(name => {
-        return name.startsWith(env.SERVERLESS_PREFIX) ? name : env.SERVERLESS_PREFIX + name
+        return name.startsWith(env.STACK_RESOURCE_PREFIX) ? name : env.STACK_RESOURCE_PREFIX + name
       })
     }
 
     const list = await bot.dbUtils.listTables(env)
     return list.filter(name => {
-      return !skip.find(skippable => env.SERVERLESS_PREFIX + skippable === name)
+      return !skip.find(skippable => env.STACK_RESOURCE_PREFIX + skippable === name)
     })
   }
 

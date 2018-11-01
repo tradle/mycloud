@@ -11,10 +11,8 @@ remote-service-map.json
 serverless.yml
 serverless-compiled.yml
 serverless-interpolated.yml
-vars.yml
-secrets.yml
-!templates/vars.yml
-!templates/secrets.yml
+vars.json
+!templates/vars.json
 lib/
 **/conf/**
 conf/

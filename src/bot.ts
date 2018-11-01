@@ -220,7 +220,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public get isTesting() { return this.env.IS_TESTING }
   public get isLocal() { return this.env.IS_LOCAL }
   public get isEmulated() { return this.env.IS_EMULATED }
-  public get resourcePrefix() { return this.env.SERVERLESS_PREFIX }
+  public get resourcePrefix() { return this.env.STACK_RESOURCE_PREFIX }
   public get models () { return this.modelStore.models }
   public get lenses () { return this.modelStore.lenses }
 
@@ -253,6 +253,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   // IHasModels
   public buildResource: (model: string|Model) => any
   public validateResource: (resource: ITradleObject) => void
+  public validatePartialResource: (resource: ITradleObject) => void
   public buildStub: (resource: ITradleObject) => any
   public getModel: (id: string) => Model
 
@@ -364,7 +365,8 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     const dbUtils = bot.dbUtils = createDBUtils({
       aws,
       logger: logger.sub('db-utils'),
-      env
+      env,
+      serviceMap,
     })
 
     const tables = bot.tables = getTables({ dbUtils, serviceMap })
@@ -427,7 +429,6 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
       s3Utils: bot.s3Utils
     })
 
-    const stackName = bot.stackUtils.thisStackName
     const secrets = bot.secrets = new Secrets({
       obfuscateSecretName: name => crypto.obfuscateSecretName(bot.defaultEncryptionKey, name),
       credstash: createCredstash({

@@ -248,7 +248,7 @@ export class BaseLambda<Ctx extends ILambdaExecutionContext> extends EventEmitte
   }
 
   get stage():string {
-    return this.env.SERVERLESS_STAGE
+    return this.env.STACK_STAGE
   }
 
   get requestId():string {

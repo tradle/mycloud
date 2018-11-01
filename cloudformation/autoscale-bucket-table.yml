@@ -1,0 +1,588 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bucket Table autoscaling
+
+Parameters:
+  Table:
+    Type: String
+
+  AutoScalingDynamoDBRole:
+    Type: String
+    Description: auto scaling role arn
+
+  MaxRead:
+    Type: Number
+    Default: 500
+
+  MinRead:
+    Type: Number
+    Default: 10
+
+  MaxWrite:
+    Type: Number
+    Default: 500
+
+  MinWrite:
+    Type: Number
+    Default: 10
+
+  ScaleInCooldown:
+    Type: Number
+    Default: 60
+
+  ScaleOutCooldown:
+    Type: Number
+    Default: 0
+
+  TargetReadUtilization:
+    Type: Number
+    Default: 50
+
+  TargetWriteUtilization:
+    Type: Number
+    Default: 70
+
+Resources:
+  AutoScalingTargetRead:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity:
+        Ref: MaxRead
+      MinCapacity:
+        Ref: MinRead
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:table:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+
+  TableScalingPolicyRead:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetRead
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-TableScalingPolicyRead'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetRead
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetReadUtilization
+
+  AutoScalingTargetWrite:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity:
+        Ref: MaxWrite
+      MinCapacity:
+        Ref: MinWrite
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:table:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+
+  TableScalingPolicyWrite:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetWrite
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-TableScalingPolicyWrite'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetWrite
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetWriteUtilization
+
+  TableScalingPolicyReadIdx0:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetReadIdx0
+    - TableScalingPolicyRead
+    - AutoScalingTargetRead
+    - TableScalingPolicyWrite
+    - AutoScalingTargetWrite
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx0'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetReadIdx0
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetReadUtilization
+
+  AutoScalingTargetReadIdx0:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyRead
+    - AutoScalingTargetRead
+    - TableScalingPolicyWrite
+    - AutoScalingTargetWrite
+    Properties:
+      MaxCapacity:
+        Ref: MaxRead
+      MinCapacity:
+        Ref: MinRead
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx0
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyWriteIdx0:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetWriteIdx0
+    - TableScalingPolicyRead
+    - AutoScalingTargetRead
+    - TableScalingPolicyWrite
+    - AutoScalingTargetWrite
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx0'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetWriteIdx0
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetWriteUtilization
+  AutoScalingTargetWriteIdx0:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyRead
+    - AutoScalingTargetRead
+    - TableScalingPolicyWrite
+    - AutoScalingTargetWrite
+    Properties:
+      MaxCapacity:
+        Ref: MaxWrite
+      MinCapacity:
+        Ref: MinWrite
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx0
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyReadIdx1:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetReadIdx1
+    - TableScalingPolicyReadIdx0
+    - AutoScalingTargetReadIdx0
+    - TableScalingPolicyWriteIdx0
+    - AutoScalingTargetWriteIdx0
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx1'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetReadIdx1
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetReadUtilization
+  AutoScalingTargetReadIdx1:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx0
+    - AutoScalingTargetReadIdx0
+    - TableScalingPolicyWriteIdx0
+    - AutoScalingTargetWriteIdx0
+    Properties:
+      MaxCapacity:
+        Ref: MaxRead
+      MinCapacity:
+        Ref: MinRead
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx1
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyWriteIdx1:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetWriteIdx1
+    - TableScalingPolicyReadIdx0
+    - AutoScalingTargetReadIdx0
+    - TableScalingPolicyWriteIdx0
+    - AutoScalingTargetWriteIdx0
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx1'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetWriteIdx1
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetWriteUtilization
+  AutoScalingTargetWriteIdx1:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx0
+    - AutoScalingTargetReadIdx0
+    - TableScalingPolicyWriteIdx0
+    - AutoScalingTargetWriteIdx0
+    Properties:
+      MaxCapacity:
+        Ref: MaxWrite
+      MinCapacity:
+        Ref: MinWrite
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx1
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyReadIdx2:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetReadIdx2
+    - TableScalingPolicyReadIdx1
+    - AutoScalingTargetReadIdx1
+    - TableScalingPolicyWriteIdx1
+    - AutoScalingTargetWriteIdx1
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx2'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetReadIdx2
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetReadUtilization
+  AutoScalingTargetReadIdx2:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx1
+    - AutoScalingTargetReadIdx1
+    - TableScalingPolicyWriteIdx1
+    - AutoScalingTargetWriteIdx1
+    Properties:
+      MaxCapacity:
+        Ref: MaxRead
+      MinCapacity:
+        Ref: MinRead
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx2
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyWriteIdx2:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetWriteIdx2
+    - TableScalingPolicyReadIdx1
+    - AutoScalingTargetReadIdx1
+    - TableScalingPolicyWriteIdx1
+    - AutoScalingTargetWriteIdx1
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx2'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetWriteIdx2
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetWriteUtilization
+  AutoScalingTargetWriteIdx2:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx1
+    - AutoScalingTargetReadIdx1
+    - TableScalingPolicyWriteIdx1
+    - AutoScalingTargetWriteIdx1
+    Properties:
+      MaxCapacity:
+        Ref: MaxWrite
+      MinCapacity:
+        Ref: MinWrite
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx2
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyReadIdx3:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetReadIdx3
+    - TableScalingPolicyReadIdx2
+    - AutoScalingTargetReadIdx2
+    - TableScalingPolicyWriteIdx2
+    - AutoScalingTargetWriteIdx2
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx3'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetReadIdx3
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetReadUtilization
+  AutoScalingTargetReadIdx3:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx2
+    - AutoScalingTargetReadIdx2
+    - TableScalingPolicyWriteIdx2
+    - AutoScalingTargetWriteIdx2
+    Properties:
+      MaxCapacity:
+        Ref: MaxRead
+      MinCapacity:
+        Ref: MinRead
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx3
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyWriteIdx3:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetWriteIdx3
+    - TableScalingPolicyReadIdx2
+    - AutoScalingTargetReadIdx2
+    - TableScalingPolicyWriteIdx2
+    - AutoScalingTargetWriteIdx2
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx3'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetWriteIdx3
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetWriteUtilization
+  AutoScalingTargetWriteIdx3:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx2
+    - AutoScalingTargetReadIdx2
+    - TableScalingPolicyWriteIdx2
+    - AutoScalingTargetWriteIdx2
+    Properties:
+      MaxCapacity:
+        Ref: MaxWrite
+      MinCapacity:
+        Ref: MinWrite
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx3
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyReadIdx4:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetReadIdx4
+    - TableScalingPolicyReadIdx3
+    - AutoScalingTargetReadIdx3
+    - TableScalingPolicyWriteIdx3
+    - AutoScalingTargetWriteIdx3
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyReadIdx4'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetReadIdx4
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetReadUtilization
+  AutoScalingTargetReadIdx4:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx3
+    - AutoScalingTargetReadIdx3
+    - TableScalingPolicyWriteIdx3
+    - AutoScalingTargetWriteIdx3
+    Properties:
+      MaxCapacity:
+        Ref: MaxRead
+      MinCapacity:
+        Ref: MinRead
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx4
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+  TableScalingPolicyWriteIdx4:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    DependsOn:
+    - AutoScalingTargetWriteIdx4
+    - TableScalingPolicyReadIdx3
+    - AutoScalingTargetReadIdx3
+    - TableScalingPolicyWriteIdx3
+    - AutoScalingTargetWriteIdx3
+    Properties:
+      PolicyName:
+        Fn::Sub: '${Table}-ScalingPolicyWriteIdx4'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId:
+        Ref: AutoScalingTargetWriteIdx4
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+        ScaleInCooldown:
+          Ref: ScaleInCooldown
+        ScaleOutCooldown:
+          Ref: ScaleOutCooldown
+        TargetValue:
+          Ref: TargetWriteUtilization
+  AutoScalingTargetWriteIdx4:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn:
+    - TableScalingPolicyReadIdx3
+    - AutoScalingTargetReadIdx3
+    - TableScalingPolicyWriteIdx3
+    - AutoScalingTargetWriteIdx3
+    Properties:
+      MaxCapacity:
+        Ref: MaxWrite
+      MinCapacity:
+        Ref: MinWrite
+      ResourceId:
+        Fn::Join:
+        - ''
+        - - table/
+          - Ref: Table
+          - "/index/"
+          - idx4
+      RoleARN:
+        Ref: AutoScalingDynamoDBRole
+      ScalableDimension: dynamodb:index:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+
+Outputs:
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

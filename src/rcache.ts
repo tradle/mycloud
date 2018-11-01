@@ -20,6 +20,7 @@ export class RCache implements IHasModels {
   public buildResource: (model: string|Model) => any
   public buildStub: (resource: ITradleObject) => any
   public validateResource: (resource: ITradleObject) => void
+  public validatePartialResource: (resource: ITradleObject) => void
   public getModel: (id: string) => Model
 
   constructor({ store }: {

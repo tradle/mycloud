@@ -465,7 +465,7 @@ type AttrMap = {
 
 // TODO: generate this from serverless.yml
 export type IServiceMap = {
-  Table: AttrMap
+  Table: Tables
   Bucket: {
     [P in keyof IBucketsInfo]: string
   }
@@ -689,6 +689,7 @@ export interface IHasModels {
   buildResource: (model: string|Model) => any
   buildStub: (resource: ITradleObject) => any
   validateResource: (resource: ITradleObject) => void
+  validatePartialResource: (resource: ITradleObject) => void
   getModel: (id: string) => Model
 }
 
@@ -762,6 +763,7 @@ export type VersionInfo = {
   time: string
   templateUrl?: string
   alert?: boolean
+  templatesPath?: string
 }
 
 export interface Registry<T> {
@@ -836,25 +838,82 @@ export interface LowFundsInput extends BlockchainAddressIdentifier {
   minBalance?: string|number
 }
 
-export interface StackTemplateParameter {
+export interface CFTemplateParameter {
   Type: string
   Description?: string
   Default?: string
   AllowedValues?: string[]
 }
 
-export interface StackTemplateResource {
+export interface CFTemplateResource {
   Type: string
-  Properties: any
+  Description?: string
+  Properties?: any
+  DeletionPolicy?: 'Delete'|'Replace'|'Retain'
 }
 
-export interface StackTemplate {
+export interface CFTemplate {
+  Description?: string
   Parameters?: {
-    [key: string]: StackTemplateParameter
+    [key: string]: CFTemplateParameter
   }
   Mappings?: any
   Conditions?: any
   Resources: {
-    [key: string]: StackTemplateResource
+    [key: string]: CFTemplateResource
   }
+}
+
+export interface MyCloudUpdateTemplate extends CFTemplate {
+  Parameters: {
+    [p in keyof StackLaunchParameters]: CFTemplateParameter
+  },
+}
+
+export interface MyCloudLaunchTemplate extends CFTemplate {
+  Parameters: {
+    [p in keyof StackUpdateParameters]: CFTemplateParameter
+  },
+  Mappings: {
+    deployment: {
+      init: {
+        stackName: string
+        referrerUrl: string
+        deploymentUUID: string
+      }
+    }
+  },
+  Resources: {
+    Initialize: {
+      Type: string
+      Properties: {
+        ServiceToken: string
+        commit: string
+        name: string
+        domain: string
+        logo: string
+        deploymentUUID: string
+        referrerUrl: string
+        ImmutableParameters: {
+          Stage: string
+          BlockchainNetwork: string
+          EncryptTables: string
+        }
+      }
+    },
+    [key: string]: CFTemplateResource
+  }
+}
+
+export interface StackUpdateParameters {
+  // Stage: 'dev'|'prod'
+  SourceDeploymentBucket: string
+  BlockchainNetwork: string
+  OrgAdminEmail: string
+}
+
+export interface StackLaunchParameters extends StackUpdateParameters {
+  OrgName: string
+  OrgDomain: string
+  OrgLogo: string
 }

@@ -1,0 +1,213 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MyCloud tables
+
+Parameters:
+  Namespace:
+    Type: String
+
+  ExistingEventsTable:
+    Type: String
+    Default: ""
+
+  ExistingBucket0Table:
+    Type: String
+    Default: ""
+
+  ExistingBucket0TableStreamArn:
+    Type: String
+    Default: ""
+
+  PointInTimeRecoveryEnabledEventsTable:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+  PointInTimeRecoveryEnabledBucket0Table:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+  Encrypt:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+
+Conditions:
+  DoCreateEventsTable:
+    Fn::Equals: [ Ref: ExistingEventsTable, ""]
+  DoCreateBucket0Table:
+    Fn::Equals: [ Ref: ExistingBucket0Table, ""]
+  DoEncrypt:
+    Fn::Equals: [ Ref: Encrypt, "true"]
+
+Resources:
+  Events:
+    Condition: DoCreateEventsTable
+    Type: AWS::DynamoDB::Table
+    Description: immutable table of events
+    DeletionPolicy: Retain
+    Properties:
+      TableName:
+        Fn::Sub: ${Namespace}-events
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Ref: PointInTimeRecoveryEnabledEventsTable
+      SSESpecification:
+        Fn::If:
+          - DoEncrypt
+          - SSEEnabled: true
+          - Ref: AWS::NoValue
+
+  Bucket0:
+    Condition: DoCreateBucket0Table
+    Type: AWS::DynamoDB::Table
+    Description: table that stores resources of all data models
+    DeletionPolicy: Retain
+    Properties:
+      TableName:
+        Fn::Sub: ${Namespace}-bucket-0
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled:
+          Ref: PointInTimeRecoveryEnabledBucket0Table
+      SSESpecification:
+        Fn::If:
+          - DoEncrypt
+          - SSEEnabled: true
+          - Ref: AWS::NoValue
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      AttributeDefinitions:
+        - AttributeName: __h__
+          AttributeType: S
+        - AttributeName: __r__
+          AttributeType: S
+        - AttributeName: __x0h__
+          AttributeType: S
+        - AttributeName: __x0r__
+          AttributeType: S
+        - AttributeName: __x1h__
+          AttributeType: S
+        - AttributeName: __x1r__
+          AttributeType: S
+        - AttributeName: __x2h__
+          AttributeType: S
+        - AttributeName: __x2r__
+          AttributeType: S
+        - AttributeName: __x3h__
+          AttributeType: S
+        - AttributeName: __x3r__
+          AttributeType: S
+        - AttributeName: __x4h__
+          AttributeType: S
+        - AttributeName: __x4r__
+          AttributeType: S
+      KeySchema:
+        - AttributeName: __h__
+          KeyType: HASH
+        - AttributeName: __r__
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: idx0
+          KeySchema:
+            - AttributeName: __x0h__
+              KeyType: HASH
+            - AttributeName: __x0r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx1
+          KeySchema:
+            - AttributeName: __x1h__
+              KeyType: HASH
+            - AttributeName: __x1r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx2
+          KeySchema:
+            - AttributeName: __x2h__
+              KeyType: HASH
+            - AttributeName: __x2r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx3
+          KeySchema:
+            - AttributeName: __x3h__
+              KeyType: HASH
+            - AttributeName: __x3r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+        - IndexName: idx4
+          KeySchema:
+            - AttributeName: __x4h__
+              KeyType: HASH
+            - AttributeName: __x4r__
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+          ProvisionedThroughput:
+            ReadCapacityUnits: 10
+            WriteCapacityUnits: 10
+
+Outputs:
+  Events:
+    Value:
+      Fn::If:
+      - DoCreateEventsTable
+      - Ref: Events
+      - Ref: ExistingEventsTable
+
+  Bucket0:
+    Value:
+      Fn::If:
+      - DoCreateBucket0Table
+      - Ref: Bucket0
+      - Ref: ExistingBucket0Table
+
+  Bucket0Stream:
+    Value:
+      Fn::If:
+      - DoCreateBucket0Table
+      - Fn::GetAtt: Bucket0.StreamArn
+      - Ref: ExistingBucket0TableStreamArn
+
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

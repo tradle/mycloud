@@ -33,6 +33,7 @@ export class Bucket {
     const { name, env, s3, cache, logger, s3Utils, prefix='' } = opts
     this.opts = opts
     if (typeof name !== 'string') {
+      debugger
       throw new Error('expected string "name"')
     }
 

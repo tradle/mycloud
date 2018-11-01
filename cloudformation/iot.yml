@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MyCloud IoT Lambda wiring
+
+Parameters:
+
+  IotParentTopic:
+    Type: String
+
+  LifecycleEventsLambdaArn:
+    Type: String
+
+  OnMessageLambdaArn:
+    Type: String
+
+Resources:
+
+  OnSubscribedRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      TopicRulePayload:
+        AwsIotSqlVersion: '2016-03-23'
+        RuleDisabled: 'false'
+        Sql:
+          Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/subscriptions/subscribed/#'
+          WHERE startswith(clientId, '${IotParentTopic}-')"
+        Actions:
+        - Lambda:
+            FunctionArn:
+              Ref: LifecycleEventsLambdaArn
+
+  OnSubscribedPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: LifecycleEventsLambdaArn
+      Action: lambda:InvokeFunction
+      Principal:
+        Fn::Join:
+          - ''
+          - - iot.
+            - Ref: AWS::URLSuffix
+      SourceArn:
+        Fn::Join:
+          - ''
+          - - 'arn:'
+            - Ref: AWS::Partition
+            - ":iot:"
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":rule/"
+            - Ref: OnSubscribedRule
+
+  OnDisconnectedRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      TopicRulePayload:
+        AwsIotSqlVersion: '2016-03-23'
+        RuleDisabled: 'false'
+        Sql:
+          Fn::Sub: "SELECT * as data, topic() as topic FROM '$aws/events/presence/disconnected/#'
+          WHERE startswith(clientId, '${IotParentTopic}-')"
+        Actions:
+        - Lambda:
+            FunctionArn:
+              Ref: LifecycleEventsLambdaArn
+
+  OnDisconnectedPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: LifecycleEventsLambdaArn
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:iot:'
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":rule/"
+            - Ref: OnDisconnectedRule
+
+
+  OnMessageRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      TopicRulePayload:
+        AwsIotSqlVersion: '2016-03-23'
+        RuleDisabled: 'false'
+        Sql:
+          Fn::Sub: "SELECT encode(*, 'base64') as data, clientid() as clientId, topic() as
+          topic FROM '${IotParentTopic}/+/pub/outbox'"
+        Actions:
+          - Lambda:
+              FunctionArn:
+                Ref: OnMessageLambdaArn
+
+  OnMessagePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: OnMessageLambdaArn
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      SourceArn:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:iot:'
+            - Ref: AWS::Region
+            - ":"
+            - Ref: AWS::AccountId
+            - ":rule/"
+            - Ref: OnMessageRule

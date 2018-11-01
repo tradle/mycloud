@@ -9,6 +9,8 @@ import YAML from 'js-yaml'
 import yn from 'yn'
 import getLocalIP from 'localip'
 import isNative from 'is-native-module'
+import AWS from 'aws-sdk'
+import execa from 'execa'
 
 import { Bucket } from '../bucket'
 import Errors from '../errors'
@@ -20,6 +22,11 @@ import {
 } from '../in-house-bot/types'
 
 import * as compile from './compile'
+import { resources as ResourceDefs } from './resources'
+import { createConfig } from '../aws-config'
+import { isLocalUrl, allSettled } from '../utils'
+import { createUtils as createS3Utils } from '../s3-utils'
+import { consoleLogger } from '../logger'
 
 const Localstack = require('../test/localstack')
 const debug = require('debug')('tradle:sls:cli:utils')
@@ -36,6 +43,8 @@ const getStackName = () => {
 
   return `${service}-${stage}`
 }
+
+const getRegion = () => require('./serverless-yml').provider.region
 
 const getStackResources = ({ bot, stackName }: {
   bot: Bot
@@ -59,74 +68,100 @@ const getPhysicalId = async ({ bot, logicalId }) => {
   return match.PhysicalResourceId
 }
 
-const genLocalResources = async ({ bot }) => {
-  if (!bot) {
-    bot = require('../').createTestBo()
+const removeLocalBucket = async ({ bucket, endpoint }) => {
+  if (!isLocalUrl(endpoint)) {
+    throw new Error('expected "endpoint" on localhost')
   }
 
-  const { aws } = bot
-  const yml = require('./serverless-yml')
-  const { resources } = yml
-  const { Resources } = resources
-  const togo = {}
-  const tables = []
-  const buckets = []
+  if (!bucket) {
+    throw new Error('expected string "bucket"')
+  }
 
-  let numCreated = 0
-  Object.keys(Resources)
-    .filter(name => Resources[name].Type === 'AWS::DynamoDB::Table')
-    .forEach(name => {
-      const { Properties } = Resources[name]
-      if (Properties.StreamSpecification) {
-        Properties.StreamSpecification.StreamEnabled = true
-      }
+  try {
+    await execa.shell(`aws --endpoint ${endpoint} s3 rb "s3://${bucket}" --force`)
+  } catch (err) {
+    throw new Error(`failed to delete bucket ${bucket}: ${err.message}`)
+  }
+}
 
-      togo[name] = true
-      tables.push(
-        aws.dynamodb.createTable(Properties).promise()
-          .then(result => {
-            delete togo[name]
-            debug(`created table: ${name}`)
-            debug('waiting on', togo)
-            numCreated++
-          })
-          .catch(err => {
-            if (err.name !== 'ResourceInUseException') {
-              throw err
-            }
-          })
-      )
-    })
+const nukeLocalResources = async ({ region, stackName }: {
+  region: string
+  stackName: string
+}) => {
+  const config = createConfig({ region, local: true })
+  const dynamodb = new AWS.DynamoDB(config.dynamodb)
+  const s3 = new AWS.S3(config.s3)
+  const delTables = async () => {
+    const tables = await dynamodb.listTables().promise()
+    const stackTables = tables.TableNames
+      .filter(t => t.startsWith(`${stackName}-`))
 
-  const currentBuckets = await aws.s3.listBuckets().promise()
-  Object.keys(Resources)
-    .filter(name => Resources[name].Type === 'AWS::S3::Bucket')
-    .forEach(name => {
-      const Bucket = bot.resourcePrefix + name.toLowerCase()
-      const exists = currentBuckets.Buckets.find(({ Name }) => {
-        return Name === Bucket
-      })
+    await Promise.all(stackTables.map(TableName => dynamodb.deleteTable({ TableName }).promise()))
+  }
 
-      if (exists) return
+  const delBuckets = async () => {
+    const buckets = await s3.listBuckets().promise()
+    const stackBuckets = buckets.Buckets
+      .map(b => b.Name)
+      .filter(b => b.startsWith(`${stackName}-`))
 
-      togo[name] = true
-      buckets.push(
-        aws.s3.createBucket({ Bucket })
-        .promise()
-        .then(result => {
-          numCreated++
-          delete togo[name]
-          debug(`created bucket: ${name}`)
-          debug('waiting on', togo)
-        })
-      )
-    })
+    await Promise.all(stackBuckets.map(bucket => removeLocalBucket({ endpoint: s3.config.endpoint, bucket })))
+  }
 
-  const promises = buckets.concat(tables)
-  debug(`waiting for resources...`)
-  await Promise.all(promises)
-  debug('resources created!')
-  return numCreated
+  await Promise.all([
+    delTables(),
+    delBuckets()
+  ])
+}
+
+const getLocalResourceName = ({ stackName, name }: {
+  stackName: string
+  name: string
+}) => {
+  name = name.toLowerCase()
+  if (name === 'bucket0') name = 'bucket-0'
+
+  return `${stackName}-${name}`
+}
+
+const genLocalResources = async ({ region, stackName }: {
+  region: string
+  stackName: string
+}) => {
+
+  const config = createConfig({ region, local: true })
+  const dynamodb = new AWS.DynamoDB(config.dynamodb)
+  const s3 = new AWS.S3(config.s3)
+  const promiseTables = Promise.all(_.map(ResourceDefs.tables, async ({ Properties }, name: string) => {
+    if (Properties.StreamSpecification) {
+      Properties.StreamSpecification.StreamEnabled = true
+    }
+
+    delete Properties.TimeToLiveSpecification
+    delete Properties.PointInTimeRecoverySpecification
+    delete Properties.SSESpecification
+
+    Properties.TableName = getLocalResourceName({ stackName, name })
+    try {
+      await dynamodb.createTable(Properties).promise()
+    } catch (err) {
+      Errors.ignore(err, { name: 'ResourceInUseException' })
+    }
+  }))
+
+  const promiseBuckets = Promise.all(_.map(ResourceDefs.buckets, async ({ Properties }, name: string) => {
+    const params = {
+      // not the real bucket name
+      Bucket: getLocalResourceName({ stackName, name }),
+    }
+
+    await s3.createBucket(params).promise()
+  }))
+
+  await Promise.all([
+    promiseTables,
+    promiseBuckets
+  ])
 }
 
 const makeDeploymentBucketPublic = async () => {
@@ -178,7 +213,7 @@ const compileTemplate = async (path) => {
   }
 
   // validateProviderConf(interpolated.custom.providerConf)
-  compile.addBucketTables({ yml, prefix: interpolated.custom.prefix })
+  // compile.addBucketTables({ yml, prefix: interpolated.custom.prefix })
   // setBucketEncryption({ target: yml, interpolated })
   compile.stripDevFunctions(yml)
   // addCustomResourceDependencies(yml, interpolated)
@@ -188,8 +223,8 @@ const compileTemplate = async (path) => {
     compile.removeResourcesThatDontWorkLocally(yml)
   }
 
-  compile.addResourcesToEnvironment(yml)
-  compile.addResourcesToOutputs(yml)
+  // compile.addResourcesToEnvironment(yml)
+  // compile.addResourcesToOutputs(yml)
   compile.addLogProcessorEvents(yml)
   return YAML.dump(yml)
 }
@@ -386,14 +421,73 @@ export const confirm = async (question?: string) => {
   return yn(answer)
 }
 
+export const validateTemplateAtPath = async ({ cloudformation, templatePath }: {
+  cloudformation: AWS.CloudFormation
+  templatePath: string
+}) => {
+  const TemplateBody = await fs.readFile(templatePath, { encoding: 'utf8' })
+  await cloudformation.validateTemplate({ TemplateBody }).promise()
+}
+
+const getTemplatesFilePaths = (dir: string) => fs.readdirSync(dir)
+  .filter(file => /\.(ya?ml|json)$/.test(file))
+  .map(file => path.resolve(dir, file))
+
+export const validateTemplatesAtPath = async ({ cloudformation, dir }: {
+  cloudformation: AWS.CloudFormation
+  dir: string
+}) => {
+  const files = getTemplatesFilePaths(dir)
+  const results = await allSettled(files.map(templatePath => validateTemplateAtPath({ cloudformation, templatePath })))
+  const errors = results.map((result, i) => result.isRejected && {
+    template: files[i],
+    error: result.reason
+  })
+  .filter(_.identity)
+
+  if (errors.length) {
+    throw new Error(JSON.stringify(errors))
+  }
+}
+
+export const uploadTemplatesAtPath = async ({ s3, dir, bucket, prefix, acl }: {
+  s3: AWS.S3
+  dir: string
+  bucket: string
+  prefix: string
+  acl?: AWS.S3.ObjectCannedACL
+}) => {
+  const files = getTemplatesFilePaths(dir)
+  const params:AWS.S3.PutObjectRequest = {
+    Bucket: bucket,
+    Key: null,
+    Body: null,
+    ACL: acl,
+  }
+
+  await Promise.all(files.map(async file => {
+    const template = YAML.safeLoad(await fs.readFile(file))
+    const key = path.basename(file).replace(/\.ya?ml$/, '.json')
+    return s3.putObject({
+      ...params,
+      Key: `${prefix}/${key}`,
+      Body: new Buffer(JSON.stringify(template)),
+      ContentType: 'application/json',
+    }).promise()
+  }))
+}
+
 export {
   getRemoteEnv,
   loadRemoteEnv,
   compileTemplate,
   interpolateTemplate,
   genLocalResources,
+  nukeLocalResources,
   makeDeploymentBucketPublic,
   loadCredentials,
+  getRegion,
+  getLocalResourceName,
   getStackName,
   getStackResources,
   getPhysicalId,

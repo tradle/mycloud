@@ -490,11 +490,12 @@ export class Conf {
     if (terms) {
       await this.setTermsAndConditions(terms)
       updated.terms = true
-    } else if ('terms' in update) {
-      this.logger.debug('deleting T & C')
-      await this.termsAndConditions.del()
-      updated.terms = true
     }
+    // else if ('terms' in update) {
+    //   this.logger.debug('deleting T & C')
+    //   await this.termsAndConditions.del()
+    //   updated.terms = true
+    // }
 
     // await this.save({
     //   bot: conf.bot,
@@ -519,6 +520,17 @@ export class Conf {
       org ? this.org.put(org) : RESOLVED_PROMISE,
       bot ? this.botConf.put(bot) : RESOLVED_PROMISE,
     ])
+  }
+
+  public ensureStackParametersDidNotChange = async (parameters: any) => {
+    const currentParams = await this.bot.stackUtils.getStackParameterValues()
+    for (let key in parameters) {
+      let prev = String(currentParams[key])
+      let latest = String(parameters[key])
+      if (latest !== prev) {
+        throw new Errors.InvalidInput(`parameter "${key}" is immutable, you can't change it from "${prev}" to "${latest}"`)
+      }
+    }
   }
 }
 

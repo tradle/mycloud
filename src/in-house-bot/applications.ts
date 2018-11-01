@@ -73,6 +73,7 @@ export class Applications implements IHasModels {
   public buildResource: (model: string|Model) => any
   public buildStub: (resource: ITradleObject) => any
   public validateResource: (resource: ITradleObject) => any
+  public validatePartialResource: (resource: ITradleObject) => void
   public getModel: (id: string) => Model
 
   constructor({ bot, productsAPI, employeeManager }: {
@@ -261,10 +262,7 @@ export class Applications implements IHasModels {
   public requestEdit = async (opts) => {
     const { req={}, item } = opts
     if (item && item[TYPE]) {
-      this.validateResource({
-        partial: true,
-        resource: item
-      })
+      this.validatePartialResource(item)
     }
 
     return await this.productsAPI.requestEdit({

@@ -1,35 +1,35 @@
 import { Env, IServiceMap } from './types'
 import { ENV_RESOURCE_PREFIX } from './constants'
+import { upperFirst } from './string-utils'
 
 const RESOURCE_REGEX = new RegExp(`^${ENV_RESOURCE_PREFIX}([^_]*)(?:_(.*))?$`)
+
+export const parseEnvVarName = (key: string) => {
+  const match = RESOURCE_REGEX.exec(key)
+  if (!match) return
+
+  let type = match[1].toLowerCase()
+  type = type === 'restapi' ? 'RestApi' : upperFirst(type)
+
+  return {
+    key,
+    type,
+    name: match[2] || ''
+  }
+}
 
 export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
   const { logger } = env
   const {
     AWS_REGION,
-    SERVERLESS_SERVICE_NAME,
-    SERVERLESS_STAGE,
+    STACK_STAGE,
+    STACK_NAME,
   } = env
 
-  const upperFirst = str => str.charAt(0).toUpperCase() + str.slice(1)
   const resources = {} as IServiceMap
 
   Object.keys(env)
-    .map(key => {
-      const match = RESOURCE_REGEX.exec(key)
-      if (!match) return
-
-      let type = match[1].toLowerCase()
-      type = type === 'restapi'
-        ? 'RestApi'
-        : upperFirst(type)
-
-      return {
-        key,
-        type,
-        name: match[2] || ''
-      }
-    })
+    .map(parseEnvVarName)
     .filter(truthy)
     .forEach(register)
 
@@ -48,14 +48,11 @@ export const createServiceMap = ({ env }: { env: Env }):IServiceMap => {
       } else {
         value = {
           id: env[key],
-          url: `https://${env[key]}.execute-api.${AWS_REGION}.amazonaws.com/${SERVERLESS_STAGE}`
+          url: `https://${env[key]}.execute-api.${AWS_REGION}.amazonaws.com/${STACK_STAGE}`
         }
       }
     } else {
       value = env[key]
-      if (value && value.Ref && env.IS_TESTING) {
-        value = value.Ref
-      }
     }
 
     logger.ridiculous(`registered ${type} ${name} -> ${JSON.stringify(value)}`)

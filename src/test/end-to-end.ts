@@ -745,9 +745,8 @@ function wrapWithIntercept (fn) {
 
 // function createTradleInstance ({ service='tradle', stage='test' }) {
 //   let env = clone(defaultTradleInstance.env, {
-//     SERVERLESS_SERVICE_NAME: service,
-//     SERVERLESS_STAGE: stage,
-//     SERVERLESS_PREFIX: `${service}-${stage}-`
+//     STACK_STAGE: stage,
+//     STACK_RESOURCE_PREFIX: `${service}-${stage}-`
 //   })
 
 //   return defaultTradleInstance.createInstance(env)
