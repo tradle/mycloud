@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.11.0-rc.16"></a>
+# [1.11.0-rc.16](https://github.com/tradle/serverless/compare/v1.11.0-rc.15...v1.11.0-rc.16) (2018-11-01)
+
+
+### Bug Fixes
+
+* enums ([5905384](https://github.com/tradle/serverless/commit/5905384))
+* prepare for transition to parameterized stack - retain serverless deployment bucket ([266f265](https://github.com/tradle/serverless/commit/266f265))
+
+
+
 <a name="1.11.0-rc.15"></a>
 # [1.11.0-rc.15](https://github.com/tradle/serverless/compare/v1.11.0-rc.14...v1.11.0-rc.15) (2018-10-31)
 
