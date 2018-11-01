@@ -492,6 +492,13 @@ provider:
             - Ref: AWS::StackName
             # needed to manipulate regional buckets
             - '-deploymentbucket-*'
+        # same purpose as previous, for backwards compat
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: AWS::StackName
+            # needed to manipulate regional buckets
+            - '-serverlessdeploymentbucket-*'
 
     - Effect: Allow
       Action:
@@ -542,6 +549,13 @@ provider:
             - Ref: AWS::StackName
             # needed to manipulate regional buckets
             - '-deploymentbucket-*/*'
+        # same purpose as previous, for backwards compat
+        - Fn::Join:
+          - ''
+          - - "arn:aws:s3:::"
+            - Ref: AWS::StackName
+            # needed to manipulate regional buckets
+            - '-serverlessdeploymentbucket-*/*'
 
 
     # - Effect: Allow
