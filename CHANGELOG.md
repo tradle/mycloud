@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.1-rc.0"></a>
+## [2.0.1-rc.0](https://github.com/tradle/serverless/compare/v2.0.0...v2.0.1-rc.0) (2018-11-03)
+
+
+### Bug Fixes
+
+* backwards compat ([0560808](https://github.com/tradle/serverless/commit/0560808))
+* deploy stack parameters when using serverless ([03afcc0](https://github.com/tradle/serverless/commit/03afcc0))
+* fuzzy delete resources script ([78d84f6](https://github.com/tradle/serverless/commit/78d84f6))
+* iam permissions for backwards compat naming convention ([fd5a8a0](https://github.com/tradle/serverless/commit/fd5a8a0))
+
+
+
 <a name="2.0.0"></a>
 # [2.0.0](https://github.com/tradle/serverless/compare/v2.0.0-trans.0...v2.0.0) (2018-11-01)
 
