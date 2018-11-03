@@ -23,7 +23,7 @@
           "dateOfExpiry": 1674000000000,
           "dateOfIssue": 1358553600000,
           "documentNumber": "MEIER753116SM9IJ 35",
-          "issuer": "DVLA",
+          "issuer": "GBR",
           "personalNumber": null
         },
         "personal": {
@@ -248,7 +248,7 @@
           "dateOfIssue": "2010-05-28",
           "documentCode": "P<",
           "documentNumber": "097095832",
-          "issuer": "CHE",
+          "issuer": "GBR",
           "mrzText": "P<USAMEIER<<DAVID<<<<<<<<<<<<<<<<<<<<<<<<<\n2848192940204817878592819829<<<<<<<<<<<<<<00\n",
           "opt1": "<<<<<<<<<<<<<<"
         },
