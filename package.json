@@ -210,7 +210,7 @@
     "lexicographic-semver": "^1.0.1",
     "lodash": "^4.17.4",
     "lru-cache": "^4.1.1",
-    "mem": "^3.0.0",
+    "mem": "^3.0.1",
     "merge-sorted": "^1.0.0",
     "microtime-nodejs": "^1.0.0",
     "mkdirp": "^0.5.1",

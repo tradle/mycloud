@@ -6804,9 +6804,9 @@
       "resolved": "https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz"
     },
     "mem": {
-      "version": "3.0.0",
-      "from": "mem@>=3.0.0 <4.0.0",
-      "resolved": "https://registry.npmjs.org/mem/-/mem-3.0.0.tgz"
+      "version": "3.0.1",
+      "from": "mem@>=3.0.0 <3.1.0",
+      "resolved": "https://registry.npmjs.org/mem/-/mem-3.0.1.tgz"
     },
     "memdown": {
       "version": "1.4.1",
