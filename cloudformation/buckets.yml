@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MyCloud buckets
+
+Parameters:
+  ExistingObjectsBucket:
+    Type: String
+    Default: ""
+
+  ExistingSecretsBucket:
+    Type: String
+    Default: ""
+
+  ExistingPrivateConfBucket:
+    Type: String
+    Default: ""
+
+  ExistingFileUploadBucket:
+    Type: String
+    Default: ""
+
+  ExistingLogsBucket:
+    Type: String
+    Default: ""
+
+  ExistingDeploymentBucket:
+    Type: String
+    Default: ""
+
+  LogsDaysBeforeTransitionToGlacier:
+    Type: Number
+
+  EncryptionKey:
+    Type: String
+    Default: ""
+
+Conditions:
+  DoCreateObjectsBucket:
+    Fn::Equals: [ Ref: ExistingObjectsBucket, ""]
+  DoCreateSecretsBucket:
+    Fn::Equals: [ Ref: ExistingSecretsBucket, ""]
+  DoCreatePrivateConfBucket:
+    Fn::Equals: [ Ref: ExistingPrivateConfBucket, ""]
+  DoCreateFileUploadBucket:
+    Fn::Equals: [ Ref: ExistingFileUploadBucket, ""]
+  DoCreateLogsBucket:
+    Fn::Equals: [ Ref: ExistingLogsBucket, ""]
+  DoCreateDeploymentBucket:
+    Fn::Equals: [ Ref: ExistingDeploymentBucket, ""]
+  DoEncrypt:
+    Fn::Not:
+      - Fn::Equals:
+        - Ref: EncryptionKey
+        - ""
+
+Resources:
+  Objects:
+    Condition: DoCreateObjectsBucket
+    Type: AWS::S3::Bucket
+    Description: content-addressed storage for all objects
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+
+  Secrets:
+    Condition: DoCreateSecretsBucket
+    Type: AWS::S3::Bucket
+    Description: stuff
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        Fn::If:
+          - DoEncrypt
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyID:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
+
+  PrivateConf:
+    Condition: DoCreatePrivateConfBucket
+    Type: AWS::S3::Bucket
+    Description: private configuration files
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        Fn::If:
+          - DoEncrypt
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyID:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
+
+  FileUpload:
+    Condition: DoCreateFileUploadBucket
+    Type: AWS::S3::Bucket
+    Description: file upload destination for all users
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - "*"
+            AllowedHeaders:
+              - "*"
+            MaxAge: 3600
+      BucketEncryption:
+        Fn::If:
+          - DoEncrypt
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyID:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
+
+  Logs:
+    Condition: DoCreateLogsBucket
+    Type: AWS::S3::Bucket
+    Description: logs from lambda functions, apigateway and others
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionLogsToGlacier
+            Prefix: glacier
+            Status: Enabled
+            Transitions:
+              - TransitionInDays:
+                  Ref: LogsDaysBeforeTransitionToGlacier
+                StorageClass: Glacier
+
+  Deployment:
+    Condition: DoCreateDeploymentBucket
+    Type: AWS::S3::Bucket
+    Description: destination for lambda code, templates, and other deployment assets
+    DeletionPolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        Fn::If:
+          - DoEncrypt
+          - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: aws:kms
+                KMSMasterKeyID:
+                  Ref: EncryptionKey
+          - Ref: AWS::NoValue
+
+Outputs:
+  Objects:
+    Value:
+      Fn::If:
+      - DoCreateObjectsBucket
+      - Ref: Objects
+      - Ref: ExistingObjectsBucket
+
+  Secrets:
+    Value:
+      Fn::If:
+      - DoCreateSecretsBucket
+      - Ref: Secrets
+      - Ref: ExistingSecretsBucket
+
+  PrivateConf:
+    Value:
+      Fn::If:
+      - DoCreatePrivateConfBucket
+      - Ref: PrivateConf
+      - Ref: ExistingPrivateConfBucket
+
+  FileUpload:
+    Value:
+      Fn::If:
+      - DoCreateFileUploadBucket
+      - Ref: FileUpload
+      - Ref: ExistingFileUploadBucket
+
+  Logs:
+    Value:
+      Fn::If:
+      - DoCreateLogsBucket
+      - Ref: Logs
+      - Ref: ExistingLogsBucket
+
+  Deployment:
+    Value:
+      Fn::If:
+      - DoCreateDeploymentBucket
+      - Ref: Deployment
+      - Ref: ExistingDeploymentBucket
+
+  StackName:
+    Value:
+      Ref: AWS::StackName
+
+  StackId:
+    Value:
+      Ref: AWS::StackId

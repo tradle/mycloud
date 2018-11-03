@@ -1623,3 +1623,11 @@ export const wrapSlowPoke = ({ fn, time, onSlow }) => async function (...args) {
     }
   }
 }
+
+export const replaceDeep = (obj: any, match: any, replacement: any) => {
+  traverse(obj).forEach(function(value) {
+    if (_.isEqual(value, match)) {
+      this.update(replacement)
+    }
+  })
+}

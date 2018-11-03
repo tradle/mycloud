@@ -46,7 +46,12 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     const link = form._link
     const configuration = Deployment.parseConfigurationForm(form)
     const botPermalink = await getBotPermalink
-    const deploymentOpts = { ...configuration, configurationLink: link } as IDeploymentConf
+    const deploymentOpts = {
+      ...configuration,
+       // backwards compat
+      stackName: configuration.stackName || configuration.stackPrefix,
+      configurationLink: link,
+    } as IDeploymentConf
 
     // async
     bot.sendSimpleMessage({
@@ -58,8 +63,18 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
     try {
       launchUrl = (await deployment.genLaunchPackage(deploymentOpts)).url
     } catch (err) {
+      if (!Errors.matches(err, Errors.InvalidInput)) {
+        logger.error('failed to generate launch url', err)
+        await productsAPI.sendSimpleMessage({
+          req,
+          to: user,
+          message: `hmm, something went wrong, we'll look into it`
+        })
+
+        return
+      }
+
       logger.debug('failed to generate launch url', err)
-      Errors.ignore(err, Errors.InvalidInput)
       await applications.requestEdit({
         req,
         item: selectModelProps({ object: form, models: bot.models }),
@@ -153,5 +168,7 @@ export const updateConf:UpdatePluginConf = async ({ bot, pluginConf }) => {
   const { regions } = replication
   const { logger } = bot
   const deployment = createDeployment({ bot, logger })
-  await deployment.createRegionalDeploymentBuckets({ regions })
+  await deployment.createRegionalDeploymentBuckets({
+    regions: regions.filter(r => r !== bot.env.AWS_REGION)
+  })
 }

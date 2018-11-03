@@ -1,12 +1,12 @@
 #!/bin/bash
 
-files=( "vars" "secrets" )
+files=( "vars" )
 
 for file in "${files[@]}"
 do
-  if [ ! -e "$file.yml" ] && [ -e "templates/$file.yml" ]; then
-    echo "creating $file.yml"
-    cp "templates/$file.yml" "$file.yml"
+  if [ ! -e "$file.json" ] && [ -e "templates/$file.json" ]; then
+    echo "creating $file.json"
+    cp "templates/$file.json" "$file.json"
   fi
 done
 

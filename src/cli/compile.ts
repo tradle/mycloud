@@ -278,8 +278,11 @@ function addResourcesToOutputs (yaml:any) {
 
   const { Outputs } = resources
   forEachResource(yaml, ({ id, resource }) => {
+    const value = { Ref: id }
     if (id in Outputs) {
-      throw new Error(`refusing to overwrite Outputs.${id}`)
+      if (_.isEqual(Outputs[id], value)) {
+        throw new Error(`refusing to overwrite Outputs.${id}`)
+      }
     }
 
     const output:any = Outputs[id] = {}
@@ -287,9 +290,7 @@ function addResourcesToOutputs (yaml:any) {
       output.Description = resource.Description
     }
 
-    output.Value = {
-      Ref: id
-    }
+    output.Value = value
   })
 }
 
@@ -311,11 +312,15 @@ function addLogProcessorEvents (yaml: any) {
   const processLambdaName = 'logProcessor'
   const logProcessor = yaml.functions[processLambdaName]
   // const naming = require('serverless/lib/plugins/aws/lib/naming')
+  const stackNameVar = '${AWS::StackName}'
   logProcessor.events = Object.keys(yaml.functions)
     .filter(name => name !== processLambdaName)
     .map(name => ({
       cloudwatchLog: {
-        logGroup: `/aws/lambda/${yaml.custom.prefix}${name}`,
+        // logGroup: `/aws/lambda/${yaml.custom.prefix}${name}`,
+        logGroup: {
+          'Fn::Sub': `/aws/lambda/${stackNameVar}-${name}`
+        },
         // logGroup: {
         //   Ref: naming.getLogGroupLogicalId(name)
         // },

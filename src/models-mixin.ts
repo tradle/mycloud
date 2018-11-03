@@ -30,6 +30,12 @@ export const mixin = (target: IModelsMixinTarget) => {
     resource
   })
 
+  target.validatePartialResource = (resource: ITradleObject) => validateResource.resource({
+    models: target.models,
+    resource,
+    partial: true,
+  })
+
   target.getModel = (id: string) => {
     const model = target.models[id]
     if (!model) throw new Errors.InvalidInput(`model not found: ${id}`)

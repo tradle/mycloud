@@ -34,7 +34,7 @@ export default class Discovery {
   }
 
   public getServiceDiscoveryFunctionName = () => {
-    return this.env.SERVERLESS_PREFIX + 'setenvvars'
+    return this.env.STACK_RESOURCE_PREFIX + 'setenvvars'
   }
 
   public discoverServices = async (StackName?: string) => {

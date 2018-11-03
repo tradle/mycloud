@@ -2,6 +2,7 @@ import { parse as parseUrl } from 'url'
 import omit from 'lodash/omit'
 import { uriEscapePath } from 'aws-sdk/lib/util'
 import parseS3Url from 'amazon-s3-uri'
+import emptyBucket from 'empty-aws-bucket'
 import { sha256 } from './crypto'
 import { alphabetical } from './string-utils'
 import Errors from './errors'
@@ -501,35 +502,8 @@ export default class S3Utils {
   public emptyBucket = async ({ bucket }: {
     bucket: string
   }) => {
-    const { s3, logger } = this
-    const Bucket = bucket
-    const deleteVersions = versions => this.deleteVersions({ bucket, versions })
-    // get the list of all objects in the bucket
-    const { Versions } = await s3.listObjectVersions({ Bucket }).promise()
-
-    // before we can delete the bucket, we must delete all versions of all objects
-    if (Versions.length > 0) {
-      logger.debug(`deleting ${Versions.length} object versions`)
-      await deleteVersions(Versions)
-    }
-
-    // check for any files marked as deleted previously
-    const { DeleteMarkers } = await s3.listObjectVersions({ Bucket }).promise()
-
-    // if the bucket contains delete markers, delete them
-    if (DeleteMarkers.length > 0) {
-      logger.debug(`deleting ${DeleteMarkers.length} object delete markers`)
-      await deleteVersions(DeleteMarkers)
-    }
-
-    // if there are any non-versioned contents, delete them too
-    const { Contents } = await s3.listObjectsV2({ Bucket }).promise()
-
-    // if the bucket contains delete markers, delete them
-    if (Contents.length > 0) {
-      logger.debug(`deleting ${Contents.length} objects`)
-      await deleteVersions(Contents)
-    }
+    const { s3 } = this
+    return emptyBucket({ s3, bucket })
   }
 
   public createReplicationRole = async ({ iam, source, targets }: {
@@ -638,6 +612,11 @@ export default class S3Utils {
 
     const targets = await Promise.all(willCreate.map(async (region) => {
       const params = getParams(region)
+      this.logger.debug('creating regional bucket', {
+        bucket: params.Bucket,
+        region,
+      })
+
       await this.s3.createBucket(params).promise()
 
       if (this.versioningAvailable) {

@@ -14,8 +14,8 @@ If you're developer, you'll also see how to set up your local environment, deplo
   - [Tools](#tools)
     - [Git](#git)
     - [Node.js](#nodejs)
-    - [Docker & Docker Compose](#docker-&-docker-compose)
-    - [AWS cli & credentials](#aws-cli-&-credentials)
+    - [Docker & Docker Compose](#docker--docker-compose)
+    - [AWS cli & credentials](#aws-cli--credentials)
     - [JQ](#jq)
     - [Typescript](#typescript)
   - [Development Tools](#development-tools)
@@ -41,6 +41,7 @@ If you're developer, you'll also see how to set up your local environment, deplo
 - [Destroy](#destroy)
   - [[Deprecated] Destroy](#deprecated-destroy)
 - [Troubleshooting local deployment](#troubleshooting-local-deployment)
+- [Troubleshooting remote deployment](#troubleshooting-remote-deployment)
 - [Scripts](#scripts)
   - [npm run localstack:start](#npm-run-localstackstart)
   - [npm run localstack:stop](#npm-run-localstackstop)
@@ -142,12 +143,14 @@ npm install
 
 By default, aws cli operations will run under the profile named `default`
 
-If you ran `aws configure --profile <profileName>` and not `aws configure`, open `vars.yml` and add a line:
+If you ran `aws configure --profile <profileName>` and not `aws configure`, open `vars.json` and add a property:
 
-```yaml
+```json
+{
 ...
-profile: <profileName>
+  "profile": "<profileName>"
 ...
+}
 ```
 
 ## Local Playground
@@ -218,7 +221,7 @@ aws s3 ls --endpoint http://localhost:4572
 
 #### Pre-deployment configuration
 
-- To change the region/name/domain/logo of your deployment, edit `./vars.yml`. Then run `npm run build:yml`. See `./default-vars.yml` for a list of variables you can override.
+- To change the region/name/domain/logo of your deployment, edit `./vars.json`. Then run `npm run build:yml`. See `./default-vars.json` for a list of variables you can override.
 - If you'd like to write your own bot, for now the easier way to do it is directly in your cloned tradle/serverless repo. Check out the built-in bot in: [./in-house-bot/index.js](./in-house-bot/index.js).
 
 #### Deploy to AWS
@@ -287,9 +290,9 @@ This project uses TypeScript, which compiles to JavaScript. If you're changing a
 
 If you modify `serverless-uncompiled.yml`, run `npm run build:yml` to preprocess it. Before running tests, re-run `npm run gen:localresources`
 
-To override variables in the yml without picking a fight with `git`, create a `vars.yml` file in the project root. See [default-vars.yml](./default-vars.yml) for which variables you can override.
+To override variables in the yml without picking a fight with `git`, create a `vars.json` file in the project root. See [default-vars.json](./default-vars.json) for which variables you can override.
 
-After modifying `vars.yml`, run `npm run build:yml`
+After modifying `vars.json`, run `npm run build:yml`
 
 ### Testing
 
@@ -306,13 +309,13 @@ npm run test:graphqlserver
 
 ### Hot re-loading
 
-Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will be hot-reloaded, which makes development that much sweeter...but also slower. To disable hot-reloading, add this in `vars.yml`:
+Thanks to [serverless-offline](https://github.com/dherault/serverless-offline), changes made to the codebase will be hot-reloaded, which makes development that much sweeter...but also slower. To disable hot-reloading, add this in `vars.json`:
 
 ```yaml
 serverless-offline:
   # disable hot-reloading
   skipCacheInvalidation: true
-  # copy these from default-vars.yml unless you want custom ones
+  # copy these from default-vars.json unless you want custom ones
   host: ...
   port: ...
 ```
@@ -500,7 +503,7 @@ You can set up a local playground, with most of the functionality of the cloud o
                             #   -> serverless-interpolated.yml 
                             #   -> serverless-compiled.yml
                             #   -> serverless.yml
-  vars.yml                  # your provider's name/domain/logo, as well as dev env opts
+  vars.json                 # your provider's name/domain/logo, as well as dev env opts
   src/                      # typescript code, some shell scripts
     *.ts
     scripts/                # command line scripts, and utils

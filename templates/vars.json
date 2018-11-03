@@ -1,0 +1,11 @@
+{
+  "service": "tdl-superawesome-ltd",
+  "region": "us-east-1",
+  "stackParameters": {
+    "BlockchainNetwork": "ethereum:rinkeby",
+    "OrgName": "Super Awesome Org",
+    "OrgDomain": "superawesome.org",
+    "OrgLogo": "https://s3.amazonaws.com/tradle-public-images/logo/unknown.png",
+    "OrgAdminEmail": "mark@tradle.io"
+  }
+}

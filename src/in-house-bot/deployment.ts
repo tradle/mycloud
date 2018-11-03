@@ -29,6 +29,11 @@ import {
   StackStatusEvent,
   VersionInfo,
   IPBUser,
+  CFTemplate,
+  StackUpdateParameters,
+  StackLaunchParameters,
+  MyCloudLaunchTemplate,
+  MyCloudUpdateTemplate,
 } from './types'
 
 import { genSetDeliveryPolicyParams, genCrossAccountPublishPermission } from '../sns-utils'
@@ -137,6 +142,18 @@ const LOGGING_TOPIC_DELIVERY_POLICY = _.merge(UPDATE_STACK_TOPIC_DELIVERY_POLICY
 const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
 const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
 const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
+const createMappingsForUpdate = (adminEmail: string) => ({
+  org: {
+    init: {
+      name: '',
+      domain: '',
+      logo: '',
+    },
+    contact: {
+      adminEmail,
+    }
+  }
+})
 
 type CodeLocation = {
   bucket: Bucket
@@ -227,8 +244,38 @@ export class Deployment {
     } as IDeploymentConf
   }
 
+  public static expandStackName = ({ stackName, template, stage }: {
+    stackName: string
+    template?: MyCloudLaunchTemplate | MyCloudUpdateTemplate
+    stage?: string
+  }) => {
+    if (!stage) {
+      stage = _.get(template, 'Parameters.Stage.Default', 'dev')
+    }
+
+    return `tdl-${stackName}-ltd-${stage}`
+  }
+
+  public static setUpdateTemplateParameters = (template: CFTemplate, values: StackUpdateParameters) => {
+    StackUtils.setTemplateParameterDefaults(template, values)
+  }
+
+  public static setLaunchTemplateParameters = (template: CFTemplate, values: StackLaunchParameters) => {
+    StackUtils.setTemplateParameterDefaults(template, values)
+    StackUtils.lockParametersToDefaults(template)
+  }
+
+  public static ensureInitLogIsRetained = (template: CFTemplate) => {
+    // otherwise it's impossible to figure out what went wrong when the stack
+    // doesn't succeed
+    template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = 'Retain'
+  }
+
   private callHomeDisabled: boolean
-  constructor({ bot, logger, conf, org, disableCallHome }: DeploymentCtorOpts) {
+  private opts: DeploymentCtorOpts
+  constructor(opts: DeploymentCtorOpts) {
+    const { bot, logger, conf, org, disableCallHome } = opts
+
     this.bot = bot
     this.snsUtils = bot.snsUtils
     this.env = bot.env
@@ -238,6 +285,7 @@ export class Deployment {
     this.org = org
     this.isTradle = org && isProbablyTradle({ org })
     this.callHomeDisabled = this.isTradle || !!disableCallHome
+    this.opts = opts
   }
 
   // const onForm = async ({ bot, user, type, wrapper, currentApplication }) => {
@@ -281,8 +329,9 @@ export class Deployment {
     const template = await this.customizeTemplateForLaunch({ template: parentTemplate, configuration, bucket })
     const { templateUrl } = await this._saveTemplateAndCode({ template, parentTemplate, bucket })
 
+    const stage = template.Parameters.Stage.Default
     this.logger.debug('generated cloudformation template for child deployment')
-    const deploymentUUID = StackUtils.getDeploymentUUIDFromTemplate(template)
+    const { deploymentUUID } = template.Mappings.deployment.init
     // const promiseTmpTopic = this._setupStackStatusAlerts({
     //   id: deploymentUUID,
     //   type: StackOperationType.create
@@ -301,9 +350,9 @@ export class Deployment {
     return {
       template,
       url: stackUtils.getLaunchStackUrl({
-        stackName: StackUtils.getStackNameFromTemplate(template),
+        stackName: Deployment.expandStackName({ stackName: configuration.stackName, stage }),
+        region: configuration.region,
         templateUrl,
-        region: configuration.region
       }),
       // snsTopic: (await promiseTmpTopic).topic
     }
@@ -404,7 +453,6 @@ export class Deployment {
     const template = await this.customizeTemplateForUpdate({
      template: parentTemplate,
      adminEmail,
-     stackId,
      bucket,
      blockchain
    })
@@ -835,96 +883,66 @@ ${this.genUsageInstructions(links)}`
   public genUsageInstructions = getAppLinksInstructions
 
   public customizeTemplateForLaunch = async ({ template, configuration, bucket }: {
-    template: any
+    template: CFTemplate
     configuration: IDeploymentConf
     bucket: string
-  }) => {
-    let { name, domain, logo, region, stackPrefix, adminEmail, blockchain } = configuration
+  }):Promise<MyCloudLaunchTemplate> => {
+    let { name, domain, logo, stackName, adminEmail, blockchain } = configuration
 
     if (!(name && domain)) {
       throw new Errors.InvalidInput('expected "name" and "domain"')
     }
 
-    const previousServiceName = StackUtils.getServiceNameFromTemplate(template)
-    template = _.cloneDeep(template)
+    template = _.cloneDeep(template) as MyCloudLaunchTemplate
     template.Description = `MyCloud, by Tradle`
     domain = utils.normalizeDomain(domain)
 
-    StackUtils.setBlockchainNetwork(template, blockchain)
-
     const { Resources, Mappings, Parameters } = template
-    const { org, deployment } = Mappings
+    const { deployment } = Mappings
     const logoPromise = getLogo(configuration).catch(err => {
       this.logger.warn('failed to get logo', { domain })
     })
 
-    const stage = StackUtils.getStageFromTemplate(template)
-    const service = StackUtils.normalizeStackName(stackPrefix)
-    const dInit: Partial<IMyDeploymentConf> = {
-      service,
-      stage,
-      stackName: StackUtils.genStackName({ service, stage }),
+    const stage = template.Parameters.Stage.Default
+    deployment.init = {
+      stackName: Deployment.expandStackName({ stackName, stage }),
       referrerUrl: this.bot.apiBaseUrl,
       deploymentUUID: utils.uuid(),
-    }
+    } as Partial<IMyDeploymentConf>
 
-    deployment.init = dInit
-    org.init = {
-      name,
-      domain,
-      logo: await logoPromise || media.LOGO_UNKNOWN
-    }
-
-    StackUtils.setAdminEmail(template, adminEmail)
-    return this.finalizeCustomTemplate({
-      template,
-      oldServiceName: previousServiceName,
-      newServiceName: service,
-      region,
-      bucket
-    })
-  }
-
-  public finalizeCustomTemplate = ({ template, region, bucket, oldServiceName, newServiceName }) => {
-    template = StackUtils.changeServiceName({
-      template,
-      from: oldServiceName,
-      to: newServiceName
+    Deployment.setLaunchTemplateParameters(template, {
+      BlockchainNetwork: blockchain,
+      OrgName: name,
+      OrgDomain: domain,
+      OrgLogo: await logoPromise || media.LOGO_UNKNOWN,
+      OrgAdminEmail: adminEmail,
+      SourceDeploymentBucket: bucket,
     })
 
-    template = StackUtils.changeRegion({
-      template,
-      from: this._thisRegion,
-      to: region
-    })
-
-    _.forEach(template.Resources, resource => {
-      if (resource.Type === 'AWS::Lambda::Function') {
-        resource.Properties.Code.S3Bucket = bucket
-      }
-    })
-
+    Deployment.ensureInitLogIsRetained(template)
+    // this._setLambdaCodePointers({ template, bucket })
     return template
   }
 
   public customizeTemplateForUpdate = async (opts: {
-    template: any
-    stackId: string
+    template: CFTemplate
     adminEmail: string
     bucket: string
     blockchain: string
-  }) => {
-    utils.requireOpts(opts, ['template', 'stackId', 'adminEmail', 'bucket', 'blockchain'])
+  }):Promise<MyCloudUpdateTemplate> => {
+    utils.requireOpts(opts, ['template', 'adminEmail', 'bucket', 'blockchain'])
 
-    let { template, stackId, adminEmail, bucket, blockchain } = opts
-    const { service, region } = StackUtils.parseStackArn(stackId)
-    const previousServiceName = StackUtils.getServiceNameFromTemplate(template)
+    let { template, adminEmail, bucket, blockchain } = opts
     template = _.cloneDeep(template)
 
     // scrap unneeded mappings
     // also...we don't have this info
-    template.Mappings = {}
-    StackUtils.setBlockchainNetwork(template, blockchain)
+    template.Mappings = createMappingsForUpdate(adminEmail)
+    Deployment.setUpdateTemplateParameters(template, {
+      SourceDeploymentBucket: bucket,
+      BlockchainNetwork: blockchain,
+      OrgAdminEmail: adminEmail,
+    })
 
     const initProps = template.Resources.Initialize.Properties
     Object.keys(initProps).forEach(key => {
@@ -933,14 +951,9 @@ ${this.genUsageInstructions(links)}`
       }
     })
 
-    StackUtils.setAdminEmail(template, adminEmail)
-    return this.finalizeCustomTemplate({
-      template,
-      oldServiceName: previousServiceName,
-      newServiceName: service,
-      region,
-      bucket
-    })
+    Deployment.ensureInitLogIsRetained(template)
+    // this._setLambdaCodePointers({ template, bucket })
+    return template
   }
 
   public getCallHomeUrl = (referrerUrl: string = this.bot.apiBaseUrl) => {
@@ -1039,6 +1052,10 @@ ${this.genUsageInstructions(links)}`
     return updated
   }
 
+  // if you change this, change relevant lambda IAM role statements in serverless-uncompiled.yml
+  // look for -deploymentbucket-*
+  public getDeploymentBucketLogicalName = () => `${this._thisStackName}-deploymentbucket`
+
   public getDeploymentBucketForRegion = async (region: string) => {
     if (region === this._thisRegion) {
       return this.deploymentBucket.id
@@ -1046,7 +1063,7 @@ ${this.genUsageInstructions(links)}`
 
     try {
       return await this.bot.s3Utils.getRegionalBucketForBucket({
-        bucket: this.deploymentBucket.id,
+        bucket: this.getDeploymentBucketLogicalName(),
         region
       })
     } catch (err) {
@@ -1056,10 +1073,10 @@ ${this.genUsageInstructions(links)}`
   }
 
   public savePublicTemplate = async ({ template, bucket }: {
-    template: any
+    template: CFTemplate
     bucket: string
   }) => {
-    const commit = StackUtils.getCommitHashFromTemplate(template)
+    const { commit } = template.Resources.Initialize.Properties
     const key = `templates/template-${commit}-${Date.now()}-${randomStringWithLength(10)}.json`
     await this._bucket(bucket).putJSON(key, template, { acl: 'public-read' })
     const url = this.bot.s3Utils.getUrlForKey({ bucket, key })
@@ -1094,13 +1111,37 @@ ${this.genUsageInstructions(links)}`
     return await this._subscribeToChildStackLoggingAlerts(arn)
   }
 
-  public copyLambdaCode = async ({ template, bucket }: {
-    template: any
+  private static getS3KeysForLambdaCode = (template: CFTemplate):string[] => {
+    return _.uniq(
+      StackUtils.getLambdaS3Keys(template).map(k => k.value)
+    ) as string[]
+  }
+
+  private static getS3KeysForSubstacks = (template: CFTemplate) => {
+    const { Resources } = template
+    return StackUtils.getResourcesByType(template, 'AWS::CloudFormation::Stack')
+      .map(stack => {
+        const { TemplateURL } = stack.Properties
+        if (TemplateURL['Fn::Sub']) return TemplateURL['Fn::Sub']
+
+        const [delimiter, parts] = TemplateURL['Fn::Join']
+        return parts
+          .filter(part => typeof part === 'string')
+          .join(delimiter)
+      })
+      .map(url => url.match(/\.s3\.amazonaws\.com\/(.*)$/)[1])
+  }
+
+  public static getS3DependencyKeys = (template: CFTemplate) => {
+    return Deployment.getS3KeysForSubstacks(template)
+      .concat(Deployment.getS3KeysForLambdaCode(template))
+  }
+
+  public copyChildTemplateDependencies = async ({ template, bucket }: {
+    template: CFTemplate
     bucket: string
   }) => {
-    let keys:string[] = _.uniq(
-      StackUtils.getLambdaS3Keys(template).map(k => k.value)
-    )
+    let keys:string[] = Deployment.getS3DependencyKeys(template)
 
     const source = this.deploymentBucket
     if (bucket === source.id) {
@@ -1115,11 +1156,11 @@ ${this.genUsageInstructions(links)}`
     keys = keys.filter((key, i) => !exists[i])
 
     if (!keys.length) {
-      this.logger.debug('target bucket already has lambda code')
+      this.logger.debug('target bucket already has s3 dependencies')
       return
     }
 
-    this.logger.debug('copying lambda code', {
+    this.logger.debug('copying s3 dependencies (lambda code and child stack templates)', {
       source: source.id,
       target: target.id
     })
@@ -1128,15 +1169,15 @@ ${this.genUsageInstructions(links)}`
     return { bucket: target, keys }
   }
 
-  public _saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
-    parentTemplate: any
-    template: any
+  private _saveTemplateAndCode = async ({ parentTemplate, template, bucket }: {
+    parentTemplate: MyCloudUpdateTemplate
+    template: CFTemplate
     bucket: string
   }):Promise<{ url: string, code: CodeLocation }> => {
     this.logger.debug('saving template and lambda code', { bucket })
     const [templateUrl, code] = await Promise.all([
       this.savePublicTemplate({ bucket, template }),
-      this.copyLambdaCode({ bucket, template: parentTemplate })
+      this.copyChildTemplateDependencies({ bucket, template }),
     ])
 
     return { templateUrl, code }
@@ -1147,8 +1188,9 @@ ${this.genUsageInstructions(links)}`
   }) => {
     this.logger.debug('creating regional buckets', { regions })
     return await this.bot.s3Utils.createRegionalBuckets({
-      bucket: this.bot.buckets.ServerlessDeployment.id,
-      regions
+      // not a real bucket
+      bucket: this.getDeploymentBucketLogicalName(),
+      regions,
     })
   }
 
@@ -1156,7 +1198,7 @@ ${this.genUsageInstructions(links)}`
     regions: string[]
   }) => {
     return await this.bot.s3Utils.deleteRegionalBuckets({
-      bucket: this.deploymentBucket.id,
+      bucket: this.getDeploymentBucketLogicalName(),
       regions,
       iam: this.bot.aws.iam
     })
@@ -1193,7 +1235,7 @@ ${this.genUsageInstructions(links)}`
     provider: ResourceStub
     tag: string
   }) => {
-    const adminEmail = await this.bot.stackUtils.getCurrentAdminEmail()
+    const adminEmail = await this.getCurrentAdminEmail()
     const updateReq = this.draftUpdateRequest({
       adminEmail,
       tag,
@@ -1217,9 +1259,9 @@ ${this.genUsageInstructions(links)}`
     const { env } = this.bot
     return this.bot.draft({ type: UPDATE_REQUEST })
       .set({
-        service: env.SERVERLESS_SERVICE_NAME,
-        stage: env.SERVERLESS_STAGE,
-        region: env.AWS_REGION,
+        service: 'tradle',
+        stage: env.STACK_STAGE,
+        region: this._thisRegion,
         stackId: this._thisStackArn,
         blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
         ...opts
@@ -1233,6 +1275,13 @@ ${this.genUsageInstructions(links)}`
   }) => {
     if (req._author !== from.id) {
       throw new Errors.InvalidAuthor(`expected update request author to be the same identity as "from"`)
+    }
+
+    if (utils.compareTags(req.tag, '2.0.0') < 0) {
+      this.logger.debug('using deployment-v1 to generate template')
+      const { createDeployment } = require('./deployment-v1')
+      const v1 = createDeployment(this.opts)
+      return v1.handleUpdateRequest({ req, from })
     }
 
     utils.requireOpts(req, ['stackId', 'tag', 'adminEmail'])
@@ -1502,6 +1551,26 @@ ${this.genUsageInstructions(links)}`
     return true
   }
 
+  public getCurrentAdminEmail = async ():Promise<string> => {
+    const { aws, stackUtils } = this.bot
+    const resources = await stackUtils.getStackResources()
+    const { PhysicalResourceId } = resources.find(r => {
+      return r.ResourceType === 'AWS::SNS::Topic' && r.LogicalResourceId === 'AwsAlertsAlarm'
+    })
+
+    const { Subscriptions } = await aws.sns.listSubscriptionsByTopic({
+      TopicArn: PhysicalResourceId
+    }).promise()
+
+    const emails = Subscriptions.filter(s => s.Protocol === 'email')
+    if (emails.length) {
+      return emails[0].Endpoint
+    }
+
+    const template = await stackUtils.getStackTemplate() as MyCloudUpdateTemplate
+    return template.Parameters.OrgAdminEmail.Default
+  }
+
   private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {
     return await this.bot.db.findOne({
       orderBy: {
@@ -1556,7 +1625,7 @@ ${this.genUsageInstructions(links)}`
       ...opts,
       org: opts.org || this.org,
       identity: opts.identity || this.bot.getMyIdentity(),
-      adminEmail: opts.adminEmail || this.bot.stackUtils.getCurrentAdminEmail(),
+      adminEmail: opts.adminEmail || this.getCurrentAdminEmail(),
     })
   }
 
@@ -1662,6 +1731,8 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _allowSNSToCallLambda = async ({ topic, lambda }) => {
+    if (this.bot.isTesting) return
+
     const exists = await this.bot.lambdaUtils.canSNSInvoke(lambda)
     if (exists) {
       this.logger.debug('sns -> lambda permission already exists', { lambda })
@@ -1824,6 +1895,17 @@ ${this.genUsageInstructions(links)}`
       logger: bot.logger
     })
   }
+
+  // private _setLambdaCodePointers = ({ template, bucket }: {
+  //   template: CFTemplate
+  //   bucket: string
+  // }) => {
+  //   _.forEach(template.Resources, resource => {
+  //     if (resource.Type === 'AWS::Lambda::Function') {
+  //       resource.Properties.Code.S3Bucket = bucket
+  //     }
+  //   })
+  // }
 
   // private _refreshTmpSNSTopic = async (arn: string) => {
   //   const existing = await this.bot.db.findOne({
