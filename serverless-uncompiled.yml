@@ -655,10 +655,7 @@ provider:
         - kms:Decrypt
         - kms:GenerateDataKey
       Resource:
-        - Fn::Join:
-          - ''
-          - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
-            - Fn::GetAtt: Keys.Outputs.EncryptionKey
+        - Fn::GetAtt: Keys.Outputs.EncryptionKeyArn
 
     - Effect: Allow
       Action:
@@ -668,10 +665,7 @@ provider:
       Resource:
         - Fn::If:
           - DoEncryptBuckets
-          - Fn::Join:
-            - ''
-            - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
-              - Fn::GetAtt: Keys.Outputs.BucketEncryptionKey
+          - Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyArn
           - Ref: AWS::NoValue
 
     # - Effect: Allow
@@ -1606,6 +1600,8 @@ resources:
             Fn::GetAtt: Buckets.Outputs.Deployment
           IotParentTopic:
             Ref: AWS::StackName
+          BucketEncryptionKeyArn:
+            Fn::GetAtt: Keys.Outputs.BucketEncryptionKeyArn
 
     AutoScalingEventsTable:
       Type: AWS::CloudFormation::Stack

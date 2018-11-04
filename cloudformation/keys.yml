@@ -202,12 +202,32 @@ Outputs:
         - Ref: EncryptionKey
         - Ref: ExistingEncryptionKey
 
+  EncryptionKeyArn:
+    Value:
+      Fn::Join:
+        - ''
+        - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+          - Fn::If:
+            - DoCreateEncryptionKey
+            - Ref: EncryptionKey
+            - Ref: ExistingEncryptionKey
+
   BucketEncryptionKey:
     Value:
       Fn::If:
         - DoCreateBucketEncryptionKey
         - Ref: BucketEncryptionKey
         - Ref: ExistingBucketEncryptionKey
+
+  BucketEncryptionKeyArn:
+    Value:
+      Fn::Join:
+        - ''
+        - - Fn::Sub: 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/'
+          - Fn::If:
+            - DoCreateBucketEncryptionKey
+            - Ref: BucketEncryptionKey
+            - Ref: ExistingBucketEncryptionKey
 
   EncryptionKeyAlias:
     Value:

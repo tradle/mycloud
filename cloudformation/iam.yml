@@ -26,6 +26,17 @@ Parameters:
   IotParentTopic:
     Type: String
 
+  BucketEncryptionKeyArn:
+    Type: String
+    Default: ""
+
+Conditions:
+  DoAllowEncrypt:
+    Fn::Not:
+      - Fn::Equals:
+        - Ref: BucketEncryptionKeyArn
+        - ""
+
 Resources:
 
   # role assumed by all IoT clients
@@ -108,6 +119,15 @@ Resources:
                     - ""
                     - - Fn::Sub: 'arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/${IotParentTopic}/'
                       - '${iot:ClientId}/sub/*'
+
+              - Fn::If:
+                - DoAllowEncrypt
+                - Effect: Allow
+                  Action:
+                    - kms:GenerateDataKey
+                  Resource:
+                    Ref: BucketEncryptionKeyArn
+                - Ref: AWS::NoValue
 
   AutoScalingDynamoDBRole:
     Type: AWS::IAM::Role
