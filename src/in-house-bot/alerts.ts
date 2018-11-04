@@ -58,7 +58,7 @@ export class Alerts {
     blockchain,
     networkName,
     address,
-    balance,
+    balance=0,
     minBalance=this.bot.blockchain.minBalance
   }: LowFundsInput) => {
     await this._emailAdmin({
