@@ -81,6 +81,11 @@ declare module '@tradle/validate-resource' {
     title?: string
   }
 
+  type BuildStubInput = {
+    resource: any
+    models: any
+  }
+
   export interface Utils {
     // parseId(id:string): ParsedResourceStub
     parseStub(stub:ResourceStub): ParsedResourceStub
@@ -91,7 +96,6 @@ declare module '@tradle/validate-resource' {
     setVirtual(obj:any, props:any): any
     pickVirtual(obj:any): any
     stripVirtual(obj:any): any
-    pickVirtual(obj:any): any
     isInstantiable(obj:any): boolean
     isDescendantOf(opts: IsDescendantOfInput): boolean
     getPropertyTitle(opts: GetPropertyTitleInput): string
@@ -103,6 +107,7 @@ declare module '@tradle/validate-resource' {
     omitBacklinks(opts: OmitBacklinksInput): any
     pickBacklinks(opts: OmitBacklinksInput): any
     isBacklinkProperty(prop: any): any
+    stub(opts: BuildStubInput):ResourceStub
   }
 
   class RequiredError extends Error {

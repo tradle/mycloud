@@ -13,6 +13,18 @@ import {
   pickNonNull,
 } from './utils'
 
+const E164_REGEX = /^\+?(\d*?)(\d{10})$/
+
+const getPhoneNumberRegion = (phone: string) => {
+  const [countryCode, localNumber] = phone.match(E164_REGEX).slice(1)
+  switch (countryCode) {
+    case '880':
+      return 'ap-southeast-1'
+    default:
+      return 'us-east-1'
+  }
+}
+
 export class SNSUtils {
   private aws: AwsApis
   private logger: Logger
@@ -131,6 +143,24 @@ export class SNSUtils {
     await this._client(topic).publish(
       pickNonNull(params) as AWS.SNS.PublishInput
     ).promise()
+  }
+
+  public sendSMS = async ({ phoneNumber, message, highPriority }: {
+    phoneNumber: string
+    message: string
+    highPriority?: boolean
+  }) => {
+    const client = this.aws.create('SNS', getPhoneNumberRegion(phoneNumber)) as AWS.SNS
+    await client.setSMSAttributes({
+      attributes: {
+        DefaultSMSType: highPriority ? 'Transactional' : 'Promotional',
+      }
+    }).promise()
+
+    await client.publish({
+      PhoneNumber: phoneNumber,
+      Message: message,
+    }).promise()
   }
 
   private _client = (arnOrRegion?: string) => {

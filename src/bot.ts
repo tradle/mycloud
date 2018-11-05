@@ -69,6 +69,8 @@ import {
   ILambdaExecutionContext,
   VersionInfo,
   IDebug,
+  UpdateResourceOpts,
+  ResourceStub,
 } from './types'
 
 import { createLinker, appLinks as defaultAppLinks } from './app-links'
@@ -254,7 +256,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
   public buildResource: (model: string|Model) => any
   public validateResource: (resource: ITradleObject) => void
   public validatePartialResource: (resource: ITradleObject) => void
-  public buildStub: (resource: ITradleObject) => any
+  public buildStub: (resource: ITradleObject) => ResourceStub
   public getModel: (id: string) => Model
 
   // public hook = (event:string, payload:any) => {
@@ -824,7 +826,7 @@ export class Bot extends EventEmitter implements IReady, IHasModels {
     await this.lambdaUtils.scheduleReinitializeContainers()
   }
 
-  public updateResource = async ({ type, permalink, props }) => {
+  public updateResource = async ({ type, permalink, props }: UpdateResourceOpts) => {
     if (!(type && permalink)) {
       throw new Errors.InvalidInput(`expected "type" and "permalink"`)
     }

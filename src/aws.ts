@@ -33,6 +33,7 @@ export interface AwsApis extends EventEmitter {
   ssm: AWS.SSM,
   cloudwatch: AWS.CloudWatch,
   cloudwatchlogs: AWS.CloudWatchLogs,
+  create,
   AWS: any,
   trace: any
   regional: {
@@ -111,7 +112,6 @@ export const createAWSWrapper = ({ env, logger }: {
         ...(conf || {})
       })
     }
-
 
     if (env.IS_TESTING && !conf && !MOCKED_SEPARATELY[serviceName]) {
       // don't pretend to support it as this will result

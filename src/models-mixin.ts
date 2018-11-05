@@ -1,7 +1,12 @@
 
 import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
-import { Model, IModelsMixinTarget, ITradleObject } from './types'
+import {
+  Model,
+  IModelsMixinTarget,
+  ITradleObject,
+  ResourceStub,
+} from './types'
 import Errors from './errors'
 
 export const mixin = (target: IModelsMixinTarget) => {
@@ -20,7 +25,7 @@ export const mixin = (target: IModelsMixinTarget) => {
     })
   }
 
-  target.buildStub = (resource: ITradleObject) => buildResource.stub({
+  target.buildStub = (resource: ITradleObject):ResourceStub => buildResource.stub({
     models: target.models,
     resource
   })

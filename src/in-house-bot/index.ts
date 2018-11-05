@@ -693,6 +693,7 @@ export const loadComponentsAndPlugins = ({
     event === LambdaEvents.CONFIRMATION ||
     event === LambdaEvents.RESOURCE_ASYNC) {
     attachPlugin({ name: 'email-based-verification', componentName: 'emailBasedVerifier' })
+    attachPlugin({ name: 'verify-phone-number', componentName: 'smsBasedVerifier' })
   }
 
   logger.debug('using plugins', usedPlugins)

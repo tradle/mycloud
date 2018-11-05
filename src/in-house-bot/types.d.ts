@@ -10,6 +10,7 @@ import { Alerts } from './alerts'
 import { Applications } from './applications'
 import { Friends } from './friends'
 import { EmailBasedVerifier } from './email-based-verifier'
+import { SMSBasedVerifier } from './sms-based-verifier'
 import { DocumentCheckerAPI } from './plugins/documentChecker'
 import {
   ITradleObject,
@@ -115,6 +116,7 @@ export interface IBotComponents {
   deployment?: Deployment
   commands?: Commander
   emailBasedVerifier?: EmailBasedVerifier
+  smsBasedVerifier?: SMSBasedVerifier
   documentChecker?: DocumentCheckerAPI
   [x:string]: any
 }
@@ -241,6 +243,7 @@ export interface ICommandOutput1 {
 
 export interface IDeferredCommandParams {
   command: ICommandParams
+  confirmationCode?: string
   ttl?: number
   dateExpires?: number
   extra?: any
