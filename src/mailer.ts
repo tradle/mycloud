@@ -92,7 +92,7 @@ export default class Mailer implements IMailer {
       Errors.rethrow(err, 'developer')
       return {
         result: false,
-        reason: err.message
+        reason: err.message || `failed to check if ${address} is verified as a sender email`
       }
     }
 

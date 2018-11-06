@@ -213,23 +213,22 @@ export class Commander {
   }
 
   public defer = async (opts: IDeferredCommandParams):Promise<string> => {
-    const { command, extra, ttl, dateExpires } = opts
+    const { command, extra, ttl, dateExpires, confirmationCode=genConfirmationCode() } = opts
 
     this._ensureCommandExists(command)
     if (!(ttl || dateExpires)) {
       throw new Errors.InvalidInput('expected "ttl" or "dateExpires')
     }
 
-    const code = genConfirmationCode()
     const dateCreated = Date.now()
-    await this.store.put(code, {
+    await this.store.put(confirmationCode, {
       command,
       extra,
       dateCreated,
       dateExpires: dateExpires || (dateCreated + ttl * 1000)
     })
 
-    return code
+    return confirmationCode
   }
 
   // public defer = async (opts: IDeferredCommandInput):Promise<string> => {

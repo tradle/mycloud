@@ -282,6 +282,11 @@ export const sha256 = (data:any, enc:HexOrBase64='base64') => {
   return crypto.createHash('sha256').update(data).digest(enc)
 }
 
+// yes, pretty lame
+export const randomDigits = (length: number) => {
+  return crypto.randomBytes(length).map(byte => byte % 10).join('')
+}
+
 export const randomString = (bytes: number, enc='hex') => {
   return crypto.randomBytes(bytes).toString('hex')
 }

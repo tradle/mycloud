@@ -2,7 +2,8 @@ import _ from 'lodash'
 import {
   Model,
   IHasModels,
-  ITradleObject
+  ITradleObject,
+  ResourceStub,
 } from './types'
 
 import { mixin as modelsMixin } from './models-mixin'
@@ -18,7 +19,7 @@ export class RCache implements IHasModels {
 
   // IHasModels
   public buildResource: (model: string|Model) => any
-  public buildStub: (resource: ITradleObject) => any
+  public buildStub: (resource: ITradleObject) => ResourceStub
   public validateResource: (resource: ITradleObject) => void
   public validatePartialResource: (resource: ITradleObject) => void
   public getModel: (id: string) => Model

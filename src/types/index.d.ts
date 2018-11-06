@@ -48,6 +48,7 @@ import { ResourceStub } from '@tradle/validate-resource'
 export {
   ResourceStub,
   ParsedResourceStub,
+  EnumStub,
   GetResourceIdentifierInput,
   GetResourceIdentifierOutput,
   ValidateResourceOpts,
@@ -504,6 +505,12 @@ export interface ISaveObjectOpts {
   saveToDB?: boolean
 }
 
+export interface UpdateResourceOpts {
+  type: string
+  permalink: string
+  props: any
+}
+
 export type CloudName = 'aws'
 
 export interface IDeepLink {
@@ -687,7 +694,7 @@ export interface IModelsMixinTarget {
 
 export interface IHasModels {
   buildResource: (model: string|Model) => any
-  buildStub: (resource: ITradleObject) => any
+  buildStub: (resource: ITradleObject) => ResourceStub
   validateResource: (resource: ITradleObject) => void
   validatePartialResource: (resource: ITradleObject) => void
   getModel: (id: string) => Model

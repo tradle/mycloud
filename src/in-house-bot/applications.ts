@@ -30,6 +30,7 @@ import {
   IHasModels,
   IUser,
   Model,
+  UpdateResourceOpts,
 } from './types'
 
 interface IPBJudgeAppOpts {
@@ -41,6 +42,15 @@ interface IPBJudgeAppOpts {
 interface IPropertyInfo {
   name: string
   message?: string
+}
+
+interface RequestItemOpts {
+  item: string
+  message?: string
+  req?: IPBReq
+  user?: IPBUser
+  application?: IPBApp
+  other?: any
 }
 
 const {
@@ -71,7 +81,7 @@ export class Applications implements IHasModels {
 
   // IHasModels
   public buildResource: (model: string|Model) => any
-  public buildStub: (resource: ITradleObject) => any
+  public buildStub: (resource: ITradleObject) => ResourceStub
   public validateResource: (resource: ITradleObject) => any
   public validatePartialResource: (resource: ITradleObject) => void
   public getModel: (id: string) => Model
@@ -101,7 +111,7 @@ export class Applications implements IHasModels {
       .signAndSave()
   }
 
-  public updateCheck = async (opts) => {
+  public updateCheck = async (opts: UpdateResourceOpts) => {
     const result = await this.bot.updateResource(opts)
     return result.resource
   }
@@ -272,7 +282,7 @@ export class Applications implements IHasModels {
     })
   }
 
-  public requestItem = async (opts) => {
+  public requestItem = async (opts: RequestItemOpts) => {
     return await this.productsAPI.requestItem(opts)
   }
 
