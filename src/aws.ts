@@ -33,7 +33,7 @@ export interface AwsApis extends EventEmitter {
   ssm: AWS.SSM,
   cloudwatch: AWS.CloudWatch,
   cloudwatchlogs: AWS.CloudWatchLogs,
-  create,
+  create: CreateRegionalService,
   AWS: any,
   trace: any
   regional: {
