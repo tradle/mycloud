@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.0-rc.0"></a>
+# [2.1.0-rc.0](https://github.com/tradle/serverless/compare/v2.0.1...v2.1.0-rc.0) (2018-11-07)
+
+
+### Bug Fixes
+
+* application should not be created here ([94d811d](https://github.com/tradle/serverless/commit/94d811d))
+* graphql sample query ([19983db](https://github.com/tradle/serverless/commit/19983db))
+* phone could be string; added generic check message and some required props like: status, aspects, provider ([b8d6af5](https://github.com/tradle/serverless/commit/b8d6af5))
+* remove setSMSAttributes step in publishing sms messages ([cb301f3](https://github.com/tradle/serverless/commit/cb301f3))
+
+
+### Features
+
+* add verify-phone-number plugin ([0c5bfdf](https://github.com/tradle/serverless/commit/0c5bfdf))
+* customer onboarding by registered agency ([15c9b78](https://github.com/tradle/serverless/commit/15c9b78))
+
+
+
 <a name="2.0.1"></a>
 ## [2.0.1](https://github.com/tradle/serverless/compare/v2.0.1-rc.2...v2.0.1) (2018-11-04)
 
