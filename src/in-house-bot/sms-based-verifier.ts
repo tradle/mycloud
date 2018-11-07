@@ -43,8 +43,8 @@ interface IsPhoneCheckPendingOpts {
 }
 
 export const TTL = {
-  s: 5 * 60,
-  ms: 5 * 60 * 1000
+  s: 10 * 60,
+  ms: 10 * 60 * 1000
 }
 
 export class SMSBasedVerifier {

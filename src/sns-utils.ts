@@ -20,6 +20,10 @@ const getPhoneNumberRegion = (phone: string) => {
   switch (countryCode) {
     case '880':
       return 'ap-southeast-1'
+    case '64':
+      return 'ap-southeast-2'
+    case '44':
+      return 'eu-west-2'
     default:
       return 'us-east-1'
   }

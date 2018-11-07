@@ -207,7 +207,7 @@ debugger
 
   const execPhoneCheck = async (check: PhoneCheck) => {
     const stub = bot.buildStub(check)
-    const confirmationCode = randomDigits(8)
+    const confirmationCode = randomDigits(5)
     const passCheckParams:UpdateResourceOpts = {
       type: PHONE_CHECK,
       permalink: stub._permalink,
