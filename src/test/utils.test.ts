@@ -889,8 +889,7 @@ test('batchProcess', loudAsync(async (t) => {
   // series
   await batchProcess({
     data: [0, 1, 2],
-    batchSize: 10,
-    series: true,
+    batchSize: 1,
     processOne: (num, idx) => {
       t.equal(idx, i)
       t.equal(num, i++)
@@ -898,7 +897,7 @@ test('batchProcess', loudAsync(async (t) => {
     }
   })
 
-  // parallel
+  // parallel, max concurrency > input size
   let time = Date.now()
   await batchProcess({
     data: [100, 100, 100],
@@ -909,27 +908,18 @@ test('batchProcess', loudAsync(async (t) => {
   t.ok(Math.abs(Date.now() - time - 100) < 100)
   time = Date.now()
 
-  // parallel, limited batch size
-  await batchProcess({
-    data: [100, 100, 100],
-    batchSize: 1,
-    processOne: millis => wait(millis)
-  })
-
-  t.ok(Math.abs(Date.now() - time - 300) < 100)
-
-  // parallel, limited batch size
+  // parallel, settle
   let results = await batchProcess({
     data: [100, 100, 100],
-    batchSize: 1,
-    processOne: millis => timeoutIn({ millis }),
+    batchSize: 10,
+    processOne: millis => timeoutIn(millis),
     settle: true
   })
 
   t.ok(results.every(r => r.reason))
 
   time = Date.now()
-  // parallel, process batch
+  // parallel, max concurrency < input size
   results = await batchProcess({
     data: [100, 100, 100, 100],
     batchSize: 2,
@@ -941,19 +931,6 @@ test('batchProcess', loudAsync(async (t) => {
   })
 
   t.ok(Math.abs(Date.now() - time - 400) < 100)
-
-  time = Date.now()
-  // series, process batch
-  results = await batchProcess({
-    data: [100, 100, 100, 100],
-    batchSize: 2,
-    processOne: millis => wait(millis),
-    series: true,
-    settle: true
-  })
-
-  t.ok(Math.abs(Date.now() - time - 400) < 100)
-
   t.end()
 }))
 

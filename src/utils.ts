@@ -641,28 +641,16 @@ export const batchProcess = async ({
   batchSize=1,
   processOne,
   processBatch,
-  series,
   settle
 }: {
   data:any[]
   batchSize:number
   processOne?:(item:any, index: number) => Promise<any>
   processBatch?:(batch:any[], index: number) => Promise<any>
-  series?: boolean
   settle?: boolean
 }):Promise<any[]> => {
   const batches = _.chunk(data, batchSize)
-  let batchResolver
-  if (series) {
-    if (!processOne) {
-      throw new Error('expected "processOne"')
-    }
-
-    batchResolver = settle ? settleSeries : Promise.mapSeries
-  } else {
-    batchResolver = settle ? settleMap : Promise.map
-  }
-
+  const batchResolver = settle ? settleMap : Promise.map
   const results = await Promise.mapSeries(batches, (batch, i) => {
     if (processBatch) {
       return processBatch(batch, i)
