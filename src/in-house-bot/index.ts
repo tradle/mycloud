@@ -575,7 +575,7 @@ export const loadComponentsAndPlugins = ({
       }
     })
 
-    attachPlugin({ name: 'draft-application', requiresConf: false, prepend: true })
+    // attachPlugin({ name: 'draft-application', requiresConf: false, prepend: true })
 
     // TODO:
     // this is pretty bad...
@@ -613,6 +613,11 @@ export const loadComponentsAndPlugins = ({
         }
 
         await Promise.each(defaultHandlers, handler => handler(input))
+      },
+      willCreateApplication: async ({ user, application }) => {
+        if (employeeManager.isEmployee(user)) {
+          application.draft = true
+        }
       }
     }, true) // prepend
   }
