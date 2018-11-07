@@ -5,7 +5,7 @@ import * as Templates from '../templates'
 import Errors from '../../errors'
 import * as crypto  from '../../crypto'
 import { TYPES } from  '../constants'
-import { getLatestForms } from '../utils'
+import { getLatestForms, getAppLinks } from '../utils'
 
 const { APPLICATION, IDENTITY } = TYPES
 
@@ -45,15 +45,21 @@ class ControllingPersonRegistrationAPI {
     this.applications = applications
     this.remediation = remediation
   }
-  async _send({resource, invite, application, legalEntity}) {
+  async _send({resource, application, legalEntity}) {
     let emailAddress = resource.emailAddress
 
     this.logger.error(`controlling person: preparing to send invite to ${emailAddress} from ${this.conf.senderEmail}`)
 
-    let permalink = await this.bot.getPermalink()
     let host = this.bot.apiBaseUrl
+    let provider = await this.bot.getMyPermalink()
+    let employeeOnboardingLink = this.bot.appLinks.getApplyForProductLink({
+      provider,
+      host,
+      product: EMPLOYEE_ONBOARDING,
+      platform: 'mobile'
+    })
 
-    let employeeOnboarding = `${invite.links.mobile}&legalEntity=${legalEntity._link}${application.requestFor === AGENCY && '&isAgent=true' || ''}`
+    let employeeOnboarding = `${employeeOnboardingLink}&legalEntity=${legalEntity._link}${application.requestFor === AGENCY && '&isAgent=true' || ''}`
     let values = {
       employeeOnboarding,
       name: resource.firstName,
@@ -77,22 +83,22 @@ debugger
       this.logger.error('failed to email controlling person', err)
     }
   }
-  async _createDraftAndInvite(payload, req) {
-    let user = req.user
-    let application =  {
-      _t: APPLICATION,
-      context: crypto.randomString(32),
-      requestFor: EMPLOYEE_ONBOARDING,
-      applicant: {
-        _t: IDENTITY,
-        _permalink: payload._author,
-        _link: payload._author
-      }
-    }
-    let draftApplication = await this.applications.createApplication({user, application, req})
-    let submission = await this.applications.createApplicationSubmission({application: draftApplication, submission: payload})
-    return await this.remediation.getInviteForDraftApp({application: draftApplication})
-  }
+  // async _createDraftAndInvite(payload, req) {
+  //   let user = req.user
+  //   let application =  {
+  //     _t: APPLICATION,
+  //     context: crypto.randomString(32),
+  //     requestFor: EMPLOYEE_ONBOARDING,
+  //     applicant: {
+  //       _t: IDENTITY,
+  //       _permalink: payload._author,
+  //       _link: payload._author
+  //     }
+  //   }
+  //   let draftApplication = await this.applications.createApplication({user, application, req})
+  //   let submission = await this.applications.createApplicationSubmission({application: draftApplication, submission: payload})
+  //   return await this.remediation.getInviteForDraftApp({application: draftApplication})
+  // }
 }
 
 export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
@@ -125,7 +131,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
         if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
           return
       }
-      let invite = await cp._createDraftAndInvite(personalInfo, req)
+      // let invite = await cp._createDraftAndInvite(personalInfo, req)
 
       // const stubs = getLatestForms(application)
       // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
@@ -133,7 +139,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       // legalEntity = await bot.getResource(legalEntityStub[0])
       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
 debugger
-      await cp._send({resource: personalInfo, invite, application, legalEntity})
+      await cp._send({resource: personalInfo, application, legalEntity})
     }
   }
 
