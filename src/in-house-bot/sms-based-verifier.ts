@@ -70,7 +70,7 @@ export class SMSBasedVerifier {
   }) => {
     const code = await this.commands.defer(deferredCommand)
     this.logger.debug('sending SMS to confirm command', { command: deferredCommand })
-    await this.sns.sendSMS({ phoneNumber, message, highPriority: true })
+    await this.sns.sendSMS({ phoneNumber, message })
     return code
   }
 

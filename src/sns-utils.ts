@@ -145,17 +145,17 @@ export class SNSUtils {
     ).promise()
   }
 
-  public sendSMS = async ({ phoneNumber, message, highPriority }: {
+  public sendSMS = async ({ phoneNumber, message, /*highPriority*/ }: {
     phoneNumber: string
     message: string
-    highPriority?: boolean
+    // highPriority?: boolean
   }) => {
     const client = this.aws.create('SNS', getPhoneNumberRegion(phoneNumber)) as AWS.SNS
-    await client.setSMSAttributes({
-      attributes: {
-        DefaultSMSType: highPriority ? 'Transactional' : 'Promotional',
-      }
-    }).promise()
+    // await client.setSMSAttributes({
+    //   attributes: {
+    //     DefaultSMSType: highPriority ? 'Transactional' : 'Promotional',
+    //   }
+    // }).promise()
 
     await client.publish({
       PhoneNumber: phoneNumber,
