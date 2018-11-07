@@ -15,11 +15,15 @@ import { SMSBasedVerifier, TTL } from '../sms-based-verifier'
 import Errors from '../../errors'
 import { topics as EventTopics } from '../../events'
 import { randomDigits } from '../../crypto'
+import buildResource from '@tradle/build-resource'
+import { getStatusMessageForCheck } from '../utils'
 
 const PHONE_CHECK = 'tradle.PhoneCheck'
 const OTP = 'tradle.OTP'
 const SMS_OTP_PROMPT = `Please enter your SMS confirmation code when you receive it`
 const INVALID_OTP = `invalid confirmation code, try again?`
+const ASPECTS = 'Phone verification'
+const PROVIDER = 'Tradle'
 
 const createSMSPrompt = (phoneNumber: string) => `Please enter your SMS confirmation code when you receive it at ${phoneNumber}`
 
@@ -129,21 +133,41 @@ export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
   const requestPhoneCheck = async (opts: RequestPhoneCheckOpts) => {
     const { req, user, application, phone } = opts
 
-    logger.debug(`creating ${PHONE_CHECK}`, { phone })
-    const createCheck = applications.createCheck({
+    let phoneObj
+    if (typeof phone === 'string') {
+      phoneObj = {
+        number: phone,
+        phoneType: buildResource.enumValue({
+            model: bot.models['tradle.PhoneTypes'],
+            value: 'mobile'
+          })
+      }
+    }
+    else
+      phoneObj = phone
+    logger.debug(`creating ${PHONE_CHECK}`, { phoneObj })
+
+    let resource:any = {
       [TYPE]: PHONE_CHECK,
       application,
-      phone,
+      phone: phoneObj,
+      aspects: ASPECTS,
+      status: 'pending',
+      provider: PROVIDER,
       // this org
       user: user.identity,
       dateExpires: Date.now() + TTL.ms
-    })
+    }
+debugger
+
+    resource.message = getStatusMessageForCheck({models: bot.models, check: resource})
+    const createCheck = applications.createCheck(resource)
 
     const requestConfirmationCode = await applications.requestItem({
       req,
       user,
       application,
-      message: createSMSPrompt(phone.number),
+      message: createSMSPrompt(phoneObj.number),
       item: OTP,
     })
 
