@@ -457,12 +457,12 @@ test('deployment by referral', loudAsync(async (t) => {
 
   const updateReq = await child.sign(childDeployment.draftUpdateRequest({
     adminEmail: conf.adminEmail,
-    tag: '1.2.3',
+    tag: '2.2.3',
     provider: parent.buildStub(parentIdentity),
   }))
 
   sandbox.stub(parentDeployment, 'getVersionInfoByTag').callsFake(async (tag) => {
-    t.equal(tag, '1.2.3')
+    t.equal(tag, '2.2.3')
     return {
       templateUrl: parentTemplateUrl,
       tag,
