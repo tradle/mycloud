@@ -5,11 +5,14 @@ import * as Templates from '../templates'
 import Errors from '../../errors'
 import * as crypto  from '../../crypto'
 import { TYPES } from  '../constants'
+import { getLatestForms } from '../utils'
 
 const { APPLICATION, IDENTITY } = TYPES
 
-const FORM_ID = 'tradle.PersonalInfo'
+const FORM_ID = 'tradle.legal.LegalEntityControllingPerson'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
+const AGENCY = 'tradle.Agency'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 const ONBOARD_MESSAGE = 'Controlling person onboarding'
 
@@ -42,15 +45,15 @@ class ControllingPersonRegistrationAPI {
     this.applications = applications
     this.remediation = remediation
   }
-  async _send(resource, invite) {
+  async _send({resource, invite, application, legalEntity}) {
     let emailAddress = resource.emailAddress
 
     this.logger.error(`controlling person: preparing to send invite to ${emailAddress} from ${this.conf.senderEmail}`)
 
     let permalink = await this.bot.getPermalink()
     let host = this.bot.apiBaseUrl
-    let employeeOnboarding = invite.links.web
-debugger
+
+    let employeeOnboarding = `${invite.links.mobile}&legalEntity=${legalEntity._link}${application.requestFor === AGENCY && '&isAgent=true' || ''}`
     let values = {
       employeeOnboarding,
       name: resource.firstName,
@@ -59,7 +62,6 @@ debugger
     let body = Templates.email.action(Templates.renderData(DEFAULT_TEMPLATE, values))
 
     this.logger.error(`controlling person: ${body}`)
-
     try {
       await this.bot.mailer.send({
         from: this.conf.senderEmail,
@@ -68,6 +70,7 @@ debugger
         subject: ONBOARD_MESSAGE,
         body
       })
+      debugger
     } catch (err) {
 debugger
       Errors.rethrow(err, 'developer')
@@ -101,6 +104,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
   const plugin = {
     [`onmessage:${FORM_ID}`]: async function(req) {
       const { user, application, payload } = req
+      debugger
       if (!application) return
       let productId = application.requestFor
       let { products } = conf
@@ -109,20 +113,27 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
         return
       logger.error(`controlling person: processing for ${payload.emailAddress}`)
 
-      if (!payload.emailAddress) {
+      const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub))
+      const [personalInfo, legalEntity] = await Promise.all(tasks)
+
+      if (!personalInfo.emailAddress) {
         logger.error(`controlling person: no email address`)
         return
       }
-      if (payload._prevlink) {
-        let prevR = await bot.objects.get(payload._prevlink)
-        if (prevR  &&  prevR.emailAddress === payload.emailAddress)
+      if (personalInfo._prevlink) {
+        let prevR = await bot.objects.get(personalInfo._prevlink)
+        if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
           return
       }
+      let invite = await cp._createDraftAndInvite(personalInfo, req)
 
-      let invite = await cp._createDraftAndInvite(payload, req)
+      // const stubs = getLatestForms(application)
+      // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
+
+      // legalEntity = await bot.getResource(legalEntityStub[0])
       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
-
-      cp._send(payload, invite)
+debugger
+      await cp._send({resource: personalInfo, invite, application, legalEntity})
     }
   }
 
