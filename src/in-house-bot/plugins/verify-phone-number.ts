@@ -217,8 +217,11 @@ debugger
     }
 
     await smsBasedVerifier.confirmAndExec({
-      phoneNumber: check.phone.number,
-      message: `confirmation code: ${confirmationCode}`,
+      smsOpts: {
+        phoneNumber: check.phone.number,
+        message: `confirmation code: ${confirmationCode}`,
+        senderId: conf.org.name,
+      },
       deferredCommand: {
         dateExpires: check.dateExpires,
         confirmationCode,

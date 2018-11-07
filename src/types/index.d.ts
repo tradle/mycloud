@@ -824,6 +824,13 @@ export interface SNSMessage {
   lambda?: any
 }
 
+export interface SendSMSOpts {
+  phoneNumber: string
+  message: string
+  senderId?: string
+  highPriority?: boolean
+}
+
 export interface ECKey {
   sign: (data, algorithm, callback) => void
   signSync: (data, algorithm?) => void
