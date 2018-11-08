@@ -6,6 +6,7 @@ import Errors from '../../errors'
 import * as crypto  from '../../crypto'
 import { TYPES } from  '../constants'
 import { getLatestForms, getAppLinks } from '../utils'
+import { toAppSchemeLink } from '../../app-links'
 
 const { APPLICATION, IDENTITY } = TYPES
 
@@ -16,18 +17,33 @@ const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
 
 const ONBOARD_MESSAGE = 'Controlling person onboarding'
 
-const DEFAULT_TEMPLATE = {
+const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
   template: 'action',
   blocks: [
     { body: 'Hello {{name}}', },
     { body: 'Click below to complete your onboarding' },
-    { body: '<a href="{{employeeOnboarding}}">this link</a>' },
+    {
+      action: {
+        text: 'Continue',
+        href: '{{link}}'
+      }
+    },
   ],
   signature: '-{{orgName}} Team',
 }
 
+export const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>
+  Templates.email.action(Templates.renderData(CONFIRMATION_EMAIL_DATA_TEMPLATE, data))
+
+interface ConfirmationEmailTemplateData {
+  name: string
+  link: string
+  orgName: string
+}
+
 interface IControllingPersonConf {
   senderEmail: string
+  useAppSchemeLinks?: boolean
 }
 
 class ControllingPersonRegistrationAPI {
@@ -60,12 +76,16 @@ class ControllingPersonRegistrationAPI {
     })
 
     let employeeOnboarding = `${employeeOnboardingLink}&legalEntity=${legalEntity._link}${application.requestFor === AGENCY && '&isAgent=true' || ''}`
+    if (this.conf.useAppSchemeLinks) {
+      employeeOnboarding = toAppSchemeLink(employeeOnboarding)
+    }
+
     let values = {
-      employeeOnboarding,
+      link: employeeOnboarding,
       name: resource.firstName,
       orgName: this.org.name
     }
-    let body = Templates.email.action(Templates.renderData(DEFAULT_TEMPLATE, values))
+    let body = renderConfirmationEmail(values)
 
     this.logger.error(`controlling person: ${body}`)
     try {
