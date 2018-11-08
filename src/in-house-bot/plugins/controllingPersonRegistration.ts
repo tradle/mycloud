@@ -1,4 +1,4 @@
-
+import QueryString from 'querystring'
 import { Bot, Logger, CreatePlugin, Applications } from '../types'
 import { Remediation } from '../remediation'
 import * as Templates from '../templates'
@@ -6,7 +6,7 @@ import Errors from '../../errors'
 import * as crypto  from '../../crypto'
 import { TYPES } from  '../constants'
 import { getLatestForms, getAppLinks } from '../utils'
-import { toAppSchemeLink } from '../../app-links'
+import { appLinks } from '../../app-links'
 
 const { APPLICATION, IDENTITY } = TYPES
 
@@ -24,8 +24,14 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
     { body: 'Click below to complete your onboarding' },
     {
       action: {
-        text: 'Continue',
-        href: '{{link}}'
+        text: 'On Mobile',
+        href: '{{mobileUrl}}'
+      }
+    },
+    {
+      action: {
+        text: 'On Web',
+        href: '{{webUrl}}'
       }
     },
   ],
@@ -35,9 +41,40 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
 export const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>
   Templates.email.action(Templates.renderData(CONFIRMATION_EMAIL_DATA_TEMPLATE, data))
 
+export const genConfirmationEmail = ({
+  provider,
+  host,
+  name,
+  orgName,
+  extraQueryParams={},
+}: GenConfirmationEmailOpts) => {
+  const extraQueryString = QueryString.stringify(extraQueryParams)
+  const [mobileUrl, webUrl] = ['mobile', 'web'].map(platform => {
+    const base = appLinks.getApplyForProductLink({
+      provider,
+      host,
+      product: EMPLOYEE_ONBOARDING,
+      platform,
+    })
+
+    return `${base}&${extraQueryString}`
+  })
+
+  return renderConfirmationEmail({ name, mobileUrl, webUrl, orgName })
+}
+
+interface GenConfirmationEmailOpts {
+  provider: string
+  host: string
+  name: string
+  orgName: string
+  extraQueryParams?: any
+}
+
 interface ConfirmationEmailTemplateData {
   name: string
-  link: string
+  mobileUrl: string
+  webUrl: string
   orgName: string
 }
 
@@ -61,33 +98,26 @@ class ControllingPersonRegistrationAPI {
     this.applications = applications
     this.remediation = remediation
   }
-  async _send({resource, application, legalEntity}) {
+  async sendConfirmationEmail({resource, application, legalEntity}) {
     let emailAddress = resource.emailAddress
 
     this.logger.error(`controlling person: preparing to send invite to ${emailAddress} from ${this.conf.senderEmail}`)
 
-    let host = this.bot.apiBaseUrl
-    let provider = await this.bot.getMyPermalink()
-    let employeeOnboardingLink = this.bot.appLinks.getApplyForProductLink({
+    const host = this.bot.apiBaseUrl
+    const provider = await this.bot.getMyPermalink()
+    const extraQueryParams: any = { legalEntity: legalEntity._permalink, }
+    if (application.requestFor === AGENCY) {
+      extraQueryParams.isAgent = true
+    }
+
+    const body = genConfirmationEmail({
       provider,
       host,
-      product: EMPLOYEE_ONBOARDING,
-      platform: 'mobile'
+      name: resource.firstName,
+      orgName: this.org.name,
+      extraQueryParams,
     })
 
-    let employeeOnboarding = `${employeeOnboardingLink}&legalEntity=${legalEntity._link}${application.requestFor === AGENCY && '&isAgent=true' || ''}`
-    if (this.conf.useAppSchemeLinks) {
-      employeeOnboarding = toAppSchemeLink(employeeOnboarding)
-    }
-
-    let values = {
-      link: employeeOnboarding,
-      name: resource.firstName,
-      orgName: this.org.name
-    }
-    let body = renderConfirmationEmail(values)
-
-    this.logger.error(`controlling person: ${body}`)
     try {
       await this.bot.mailer.send({
         from: this.conf.senderEmail,
@@ -96,9 +126,7 @@ class ControllingPersonRegistrationAPI {
         subject: ONBOARD_MESSAGE,
         body
       })
-      debugger
     } catch (err) {
-debugger
       Errors.rethrow(err, 'developer')
       this.logger.error('failed to email controlling person', err)
     }
@@ -159,7 +187,7 @@ export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) =
       // legalEntity = await bot.getResource(legalEntityStub[0])
       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
 debugger
-      await cp._send({resource: personalInfo, application, legalEntity})
+      await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
     }
   }
 
