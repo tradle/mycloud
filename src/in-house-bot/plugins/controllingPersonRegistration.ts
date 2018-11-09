@@ -80,7 +80,6 @@ interface ConfirmationEmailTemplateData {
 
 interface IControllingPersonConf {
   senderEmail: string
-  useAppSchemeLinks?: boolean
 }
 
 class ControllingPersonRegistrationAPI {
