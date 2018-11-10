@@ -8,6 +8,7 @@ import {
   Logger,
   SNSUtils,
   DB,
+  SendSMSOpts,
 } from './types'
 
 import * as Templates from './templates'
@@ -63,14 +64,13 @@ export class SMSBasedVerifier {
     this.logger = logger
   }
 
-  public confirmAndExec = async ({ deferredCommand, phoneNumber, message }: {
+  public confirmAndExec = async ({ deferredCommand, smsOpts }: {
     deferredCommand: IDeferredCommandParams
-    phoneNumber: string
-    message: string
+    smsOpts: SendSMSOpts
   }) => {
     const code = await this.commands.defer(deferredCommand)
     this.logger.debug('sending SMS to confirm command', { command: deferredCommand })
-    await this.sns.sendSMS({ phoneNumber, message })
+    await this.sns.sendSMS(smsOpts)
     return code
   }
 

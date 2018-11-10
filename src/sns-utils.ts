@@ -1,10 +1,12 @@
 
 import acceptAll from 'lodash/stubTrue'
 import isMatch from 'lodash/isMatch'
+import { parseE164, getAWSRegionByCallingCode } from './geo'
 import {
   AwsApis,
   Logger,
   SNSMessage,
+  SendSMSOpts,
 } from './types'
 
 import {
@@ -13,20 +15,14 @@ import {
   pickNonNull,
 } from './utils'
 
-const E164_REGEX = /^\+?(\d*?)(\d{10})$/
+const MESSAGE_ATTRIBUTES = {
+  smsType: 'AWS.SNS.SMS.SMSType',
+  senderId: 'AWS.SNS.SMS.SenderID'
+}
 
-const getPhoneNumberRegion = (phone: string) => {
-  const [countryCode, localNumber] = phone.match(E164_REGEX).slice(1)
-  switch (countryCode) {
-    case '880':
-      return 'ap-southeast-1'
-    case '64':
-      return 'ap-southeast-2'
-    case '44':
-      return 'eu-west-2'
-    default:
-      return 'us-east-1'
-  }
+const SMS_PRIORITY = {
+  high: 'Transactional',
+  low: 'Promotional',
 }
 
 export class SNSUtils {
@@ -149,22 +145,27 @@ export class SNSUtils {
     ).promise()
   }
 
-  public sendSMS = async ({ phoneNumber, message, /*highPriority*/ }: {
-    phoneNumber: string
-    message: string
-    // highPriority?: boolean
-  }) => {
-    const client = this.aws.create('SNS', getPhoneNumberRegion(phoneNumber)) as AWS.SNS
-    // await client.setSMSAttributes({
-    //   attributes: {
-    //     DefaultSMSType: highPriority ? 'Transactional' : 'Promotional',
-    //   }
-    // }).promise()
-
-    await client.publish({
-      PhoneNumber: phoneNumber,
+  public sendSMS = async ({ phoneNumber, message, senderId, highPriority }: SendSMSOpts) => {
+    const { callingCode, number } = parseE164(phoneNumber)
+    const region = getAWSRegionByCallingCode(callingCode)
+    const client = this.aws.create('SNS', region) as AWS.SNS
+    this.logger.silly('sending SMS', { region, callingCode, number })
+    const params: AWS.SNS.PublishInput = {
+      PhoneNumber: callingCode + number,
       Message: message,
-    }).promise()
+      MessageAttributes: {}
+    }
+
+    if (senderId) {
+      params.MessageAttributes[MESSAGE_ATTRIBUTES.senderId] = { DataType: 'String', StringValue: 'Tradle' }
+    }
+
+    params.MessageAttributes[MESSAGE_ATTRIBUTES.smsType] = {
+      DataType: 'String',
+      StringValue: highPriority ? SMS_PRIORITY.high : SMS_PRIORITY.low,
+    }
+
+    await client.publish(params).promise()
   }
 
   private _client = (arnOrRegion?: string) => {
