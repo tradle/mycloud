@@ -191,7 +191,7 @@
     "@tradle/dynamodb": {
       "version": "1.0.0",
       "from": "tradle/dynamodb",
-      "resolved": "git://github.com/tradle/dynamodb.git#cdca5e0ed051e4443b86dd913c7b6c898c9318ec",
+      "resolved": "git://github.com/tradle/dynamodb.git#367c8a471aaa411c8477295e118ea34b020b6552",
       "dependencies": {
         "pify": {
           "version": "3.0.0",
@@ -1886,7 +1886,7 @@
     },
     "buffer": {
       "version": "5.1.0",
-      "from": "buffer@>=5.0.6 <6.0.0",
+      "from": "buffer@>=5.1.0 <5.2.0",
       "resolved": "https://registry.npmjs.org/buffer/-/buffer-5.1.0.tgz",
       "dependencies": {
         "base64-js": {
@@ -3877,7 +3877,7 @@
     },
     "execa": {
       "version": "0.8.0",
-      "from": "execa@>=0.8.0 <0.9.0",
+      "from": "https://registry.npmjs.org/execa/-/execa-0.8.0.tgz",
       "resolved": "https://registry.npmjs.org/execa/-/execa-0.8.0.tgz",
       "dev": true
     },
@@ -5719,7 +5719,7 @@
     },
     "js-yaml": {
       "version": "3.12.0",
-      "from": "js-yaml@>=3.10.0 <4.0.0",
+      "from": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.12.0.tgz",
       "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.12.0.tgz",
       "dependencies": {
         "esprima": {
@@ -11661,6 +11661,29 @@
           "from": "string_decoder@>=1.1.1 <1.2.0",
           "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz",
           "dev": true
+        }
+      }
+    },
+    "zmq": {
+      "version": "2.15.3",
+      "from": "zmq@>=2.14.0 <3.0.0",
+      "resolved": "https://registry.npmjs.org/zmq/-/zmq-2.15.3.tgz",
+      "dev": true,
+      "optional": true,
+      "dependencies": {
+        "bindings": {
+          "version": "1.2.1",
+          "from": "bindings@>=1.2.1 <1.3.0",
+          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.2.1.tgz",
+          "dev": true,
+          "optional": true
+        },
+        "nan": {
+          "version": "2.3.5",
+          "from": "nan@>=2.3.0 <2.4.0",
+          "resolved": "https://registry.npmjs.org/nan/-/nan-2.3.5.tgz",
+          "dev": true,
+          "optional": true
         }
       }
     }
