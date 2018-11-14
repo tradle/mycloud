@@ -1,4 +1,5 @@
 import fetch from 'node-fetch'
+import _ from 'lodash'
 
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
@@ -171,21 +172,49 @@ class ComplyAdvantageAPI {
     let search_term = criteria  &&  criteria.search_term
 
     let isCompany = companyName  &&  registrationDate
-    if (!search_term)
-      search_term = isCompany  &&  companyName || (firstName + ' ' + lastName)
-    let date = isCompany  &&  registrationDate  ||  dateOfBirth
-
-    let year = new Date(date).getFullYear()
-    let body:any = {
-      search_term,
-      fuzziness: criteria  &&  criteria.fuzziness  ||  1,
-      share_url: 1,
-      client_ref: search_term.replace(' ', '_') + year,
-      filters: {
-        types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction'],
-        birth_year: year
+    let body:any
+    if (isCompany) {
+      body = {
+        search_term: search_term  ||  companyName,
+        filters: {
+          birth_year: new Date(registrationDate).getFullYear()
+        }
       }
     }
+    else {
+      body = {
+        search_term: {
+          first_name: firstName,
+          last_name: lastName,
+        },
+        filters: {
+          birth_year: new Date(dateOfBirth).getFullYear()
+        }
+      }
+    }
+    _.merge(body, {
+      share_url: 1,
+      fuzziness: criteria.fuzziness || 0,
+      filters: {
+        types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction']
+      }
+    })
+    debugger
+    // if (!search_term)
+    //   search_term = isCompany  &&  companyName || (firstName + ' ' + lastName)
+    // let date = isCompany  &&  registrationDate  ||  dateOfBirth
+
+    // let year = new Date(date).getFullYear()
+    // let body:any = {
+    //   search_term,
+    //   fuzziness: isCompany  &&  criteria  &&  criteria.fuzziness  ||  0,
+    //   share_url: 1,
+    //   // client_ref: search_term.replace(' ', '_') + year,
+    //   filters: {
+    //     types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction'],
+    //     birth_year: year
+    //   }
+    // }
     body = JSON.stringify(body)
 
     let url = `${BASE_URL}?api_key=${this.conf.credentials.apiKey}`
@@ -220,6 +249,7 @@ class ComplyAdvantageAPI {
     if (!entityType)
       entityType = isCompany  &&  ['company', 'organisation', 'organization']  ||  ['person']
     let hits = rawData.hits.filter((hit) => entityType.includes(hit.doc.entity_type));
+debugger
     rawData.hits = hits
     rawData = sanitize(rawData).sanitized
     if (hits  &&  hits.length) {
