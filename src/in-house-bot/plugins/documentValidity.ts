@@ -91,19 +91,22 @@ class DocumentValidityAPI {
         rawData.Status = 'fail'
       }
     }
-// debugger
+debugger
     if (isPassport  &&  (issuer  ||  nationality)) {
       let countries = this.bot.models[COUNTRY].enum
       let nationalityCountry
       if (nationality) {
-        nationalityCountry = _.find(countries, (c) => c.cca3 === nationality)
+        if (typeof nationality === 'string')
+          nationalityCountry = _.find(countries, (c) => c.cca3 === nationality)
+        else
+          nationalityCountry = _.find(countries, (c) => c.id ===  nationality.id.split('_')[1])
         if (!nationalityCountry) {
           rawData.Status = 'fail'
           rawData.Nationality = `Country in nationality field '${nationality}' is invalid`
         }
         else if (nationalityCountry.title !== country.title) {
           rawData.Status = 'fail'
-          rawData.Issuer = `Country in the nationality field '${nationality}' is not the same as the Country in the form`
+          rawData.Nationality = `Country in the nationality field '${nationalityCountry.title}' is not the same as the Country in the form`
         }
       }
       let issuerCountry
