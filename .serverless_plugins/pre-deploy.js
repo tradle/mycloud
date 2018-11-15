@@ -226,6 +226,10 @@ class SetVersion {
   }
 
   async uploadTemplates(bucket) {
+    if (!bucket) {
+      throw new Error(`can't upload template, don't know target bucket`)
+    }
+
     const prefix = this._dir()
 
     this.log(`uploading templates to s3://${bucket}/${prefix}`)
