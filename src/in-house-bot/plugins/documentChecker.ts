@@ -127,7 +127,6 @@ export class DocumentCheckerAPI {
       body.append('type', 'front')
       body.append('file', buf, {filename})
     // }
-    // let { status, message } = this.uploadImage(imgUrl, body, bearer)
     let { status, message } = await this.uploadImage(imgUrl, body, bearer)
 
     if (bodyBack  &&  status === 'pending')
@@ -398,7 +397,8 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
       let createCheck = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
       if (!createCheck) {
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
-        // return
+// debugger
+        return
       }
       // debugger
       let result = await documentChecker.getData(form, application)
