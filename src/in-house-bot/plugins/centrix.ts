@@ -1,4 +1,5 @@
 // const debug = require('debug')('@tradle/server-cli:plugin:centrix')
+import _ from 'lodash'
 import constants from '@tradle/constants'
 const { TYPE } = constants
 const { VERIFICATION, IDENTITY } = constants.TYPES
@@ -21,7 +22,8 @@ import {
   CreatePlugin,
   Applications,
   IPBApp,
-  ITradleObject
+  ITradleObject,
+  ValidatePluginConf
 } from '../types'
 
 import { getNameFromForm, toISODateString } from '../utils'
@@ -42,6 +44,21 @@ const ERROR = 'Error'
 const OPERATION = {
   driving_licence: 'DriverLicenceVerification',
   passport: 'DIAPassportVerification'
+}
+
+type CentrixConf = {
+  credentials: {
+    httpCredentials: {
+      username: 'string',
+      password: 'string'
+    },
+    requestCredentials: {
+      subscriberId: 'string',
+      userId: 'string',
+      userKey: 'string'
+    }
+  },
+  products: any
 }
 
 const FIXTURES = (function() {
@@ -346,6 +363,61 @@ function getDocumentType (doc) {
   return doc.documentType.title.indexOf('Passport') !== -1
     ? DOCUMENT_TYPES.passport
     : DOCUMENT_TYPES.license
+}
+export const validateConf:ValidatePluginConf = async (opts) => {
+  let pluginConf = opts.pluginConf as CentrixConf
+  debugger
+  const { credentials, products } = pluginConf
+  if (!credentials) throw new Error('expected credentials')
+  if (typeof credentials !== 'object') throw new Error('expected credentials to be an object')
+  const { httpCredentials, requestCredentials } = credentials
+  if (!httpCredentials) throw new Error('expected httpCredentials')
+  if (typeof httpCredentials !== 'object') throw new Error('httpCredentials expected to be an object')
+  if (!products) throw new Error('expected products')
+  if (typeof products !== 'object') throw new Error('expected products to be an object')
+  if (_.isEmpty(products)) throw new Error('no products found')
+
+  let missing = []
+  let wrongType = []
+  const { username, password } = httpCredentials
+  if (!username) missing.push('username') //throw new Error('expected httpCredentials.username')
+  if (!password) missing.push('password') //throw new Error('expected httpCredentials.password')
+
+  if (!requestCredentials) throw new Error('expected requestCredentials')
+  if (typeof requestCredentials !== 'object') throw new Error('requestCredentials expected to be an object')
+  const { subscriberId, userId, userKey } = requestCredentials
+  if (!subscriberId) missing.push('subscriberId') // throw new Error('expected requestCredentials.subscriberId')
+  if (!userId) missing.push('userId') //throw new Error('expected requestCredentials.userId')
+  if (!userKey) missing.push('userKey') //throw new Error('expected requestCredentials.userKey')
+
+  if (username  &&  typeof username !== 'string') wrongType.push('username')
+  if (password  &&  typeof password !== 'string') wrongType.push('password')
+  if (userId  &&  typeof userId   !== 'string') wrongType.push('userId')
+  if (subscriberId && typeof subscriberId !== 'string') wrongType.push('subscriberId')
+  if (userKey  &&  typeof userKey   !== 'string') wrongType.push('userKey')
+
+  let noModels = []
+  let badModels = []
+  let models = opts.bot.models
+  for (let p in products) {
+    const model = models[p]
+    if (!model) noModels.push(p) // throw new Error(`missing product model: ${p}`)
+    if (model.subClassOf !== 'tradle.FinancialProduct') {
+      badModels.push(p)
+      // throw new Error(`"${p}" is not subClassOf tradle.FinancialProduct`)
+    }
+  }
+  let err = ''
+  if (missing.length)
+    err += '\nExpected: ' + missing.join(', ')
+  if (wrongType.length)
+    err += '\nWrong type: ' + wrongType.join(', ')
+  if (noModels.length)
+    err += '\nNo models found for products: ' + noModels.join(', ')
+  if (badModels.length)
+    err += '\nModels are not Financial Products: ' + badModels.join(', ')
+  if (err.length)
+    throw new Error(err)
 }
 
 // const hasCentrixVerification = async ({ application }) => {
