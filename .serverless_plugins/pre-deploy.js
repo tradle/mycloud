@@ -59,7 +59,7 @@ class SetVersion {
       'aws:common:validate:validate': () => this.onValidate(),
       'before:package:compileFunctions': () => this.setVersion(),
       'before:aws:package:finalize:saveServiceState': () => this.onTemplateFinalized(),
-      // 'before:aws:deploy:deploy:uploadArtifacts': () => this.onTemplateFinalized(),
+      'before:aws:deploy:deploy:uploadArtifacts': () => this.onTemplateFinalized(),
     }
   }
 
@@ -90,6 +90,12 @@ class SetVersion {
   }
 
   async onTemplateFinalized() {
+    if (this._uploaded) return
+
+    const exists = await this.doesStackExist()
+    if (!exists) return
+
+    this._uploaded = true
     await Promise.all([
       this._getBucket().then(bucket => this.uploadTemplates(bucket)),
       this.setTemplateParameters()
@@ -127,14 +133,8 @@ class SetVersion {
 
   async setTemplateParameters() {
     const parameterNames = Object.keys(this.serverless.service.provider.compiledCloudFormationTemplate.Parameters)
-    let params = []
-    try {
-      const { Parameters } = await this.getStackInfo()
-      params = Parameters
-    } catch (err) {
-      Errors.ignore(err, /not found|does not exist/)
-    }
-
+    const stackInfo = await this.getStackInfo()
+    const params = stackInfo ? stackInfo.Parameters : []
     Object.keys(stackParameters).forEach(key => {
       if (!parameterNames.includes(key)) {
         this.log(`WARNING: parameter "${key}" specified in "stackParameters" was not found in the template`)
@@ -167,18 +167,27 @@ class SetVersion {
     ])
   }
 
-  async getStackInfo() {
-    const { Stacks } = await this.provider.request(
-      'CloudFormation',
-      'describeStacks',
-      {
-        StackName: this.provider.naming.getStackName(),
-      },
-      this._stage(),
-      this._region(),
-    )
+  async doesStackExist() {
+    const stackInfo = await this.getStackInfo()
+    return !!stackInfo
+  }
 
-    return Stacks[0]
+  async getStackInfo() {
+    try {
+      const { Stacks } = await this.provider.request(
+        'CloudFormation',
+        'describeStacks',
+        {
+          StackName: this.provider.naming.getStackName(),
+        },
+        this._stage(),
+        this._region(),
+      )
+
+      return Stacks[0]
+    } catch (err) {
+      Errors.ignore(err, /not found|does not exist/)
+    }
   }
 
   async checkExisting() {
