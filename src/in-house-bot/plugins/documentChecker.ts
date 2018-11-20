@@ -89,8 +89,20 @@ export class DocumentCheckerAPI {
         }
       }
     }
-    let verUrls = await this.getVerificationUrls(bearer, resource)
-    let {verification_url, verification_images_url} = verUrls
+
+    let verification_url, verification_images_url
+    try {
+      ({verification_url, verification_images_url} = await this.getVerificationUrls(bearer, resource))
+    } catch (err) {
+      debugger
+      this.logger.debug(`${PROVIDER} something went wrong`, err)
+      let status = {
+        status: 'error',
+        message: `Check was not completed: ${err.message}`,
+      }
+      await this.createCheck({ application, status, form: resource })
+      return
+    }
 
     await this.bot.resolveEmbeds(resource)
 
@@ -102,7 +114,7 @@ export class DocumentCheckerAPI {
     let imgUrl = `${API_URL}/${trimLeadingSlashes(verification_images_url)}`
     let fn = `${resource.documentType.title}_${resource.firstName}_${resource.lastName}`.replace(/[^\w]/gi, '_')
     let filename = `${fn}_${application.checks && application.checks.length  ||  0}.jpg`
-    debugger
+    // debugger
     let body = new FormData()
     let bodyBack
     // let otherSideToScan = resource.otherSideToScan
@@ -148,7 +160,7 @@ export class DocumentCheckerAPI {
     this.logger.debug(`${PROVIDER}: start verification status - `, started);
   }
   async uploadImage(imgUrl:string, body:FormData, bearer:string) {
-    debugger
+    // debugger
     try {
       let imgRes = await fetch(imgUrl, {
                       method: 'POST',
@@ -185,24 +197,13 @@ export class DocumentCheckerAPI {
     this.logger.debug(`${PROVIDER} webhook-url: `, body.webhook_url);
 
     body = JSON.stringify(body)
-
+    this.logger.debug(`${PROVIDER}.getVerificationUrls payload: ${body}`)
     let url = `${API_URL}/verifications`
     let headers = {
                     'Content-Type': 'application/json; charset=utf-8',
                     'Authorization': `Bearer ${bearer}`
                   }
-    try {
-      return await post(url, body, {headers})
-    } catch (err) {
-      debugger
-      this.logger.debug(`${PROVIDER} something went wrong`, err)
-      return {
-        status: {
-          status: 'error',
-          message: `Check was not completed: ${err.message}`,
-        }
-      }
-    }
+    return await post(url, body, {headers})
   }
   // getToken = async () => {
   //   // if (token) {
@@ -295,7 +296,7 @@ export class DocumentCheckerAPI {
   public async handleVerificationEvent(evt) {
     let { event, data } = evt
     // don't run reports right now
-// debugger
+debugger
     if (event === 'verification.report.created') {
       // let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}/report`
       // let res = await fetch(url, {
@@ -394,10 +395,10 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
 
       const form = await bot.getResource(formStub)
 
+debugger
       let createCheck = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
       if (!createCheck) {
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
-// debugger
         return
       }
       // debugger
