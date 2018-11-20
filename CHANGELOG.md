@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.1"></a>
+## [2.1.1](https://github.com/tradle/serverless/compare/v2.1.0...v2.1.1) (2018-11-20)
+
+
+### Bug Fixes
+
+* symantec cert issue in chrome 70 ([dbd38da](https://github.com/tradle/serverless/commit/dbd38da))
+
+
+### Features
+
+* validateConf added ([d228440](https://github.com/tradle/serverless/commit/d228440))
+
+
+
 <a name="2.1.0"></a>
 # [2.1.0](https://github.com/tradle/serverless/compare/v2.1.0-rc.4...v2.1.0) (2018-11-16)
 
