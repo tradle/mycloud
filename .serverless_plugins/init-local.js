@@ -17,16 +17,16 @@ module.exports = class InitLocal {
     };
 
     this.hooks = {
-      'initlocalprovider:reinit:start': () => this.forceReinit.bind(this),
+      // 'initlocalprovider:reinit:start': () => this.forceReinit.bind(this),
       'before:offline:start:init': this.startHandler.bind(this, 'init'),
     };
   }
 
-  forceReinit() {
-    require('../lib/test/env').install()
-    const { initStack } = require('../lib/cli/utils')
-    return initStack({ force: true })
-  }
+  // forceReinit() {
+  //   require('../lib/test/env').install()
+  //   const { initStack } = require('../lib/cli/utils')
+  //   return initStack({ force: true })
+  // }
 
   fixEnv() {
     const region = _.get(this.serverless, 'service.provider.region')
@@ -53,7 +53,7 @@ module.exports = class InitLocal {
   startHandler() {
     this.fixEnv()
     require('../lib/test/env').install()
-    const { initStack } = require('../lib/cli/utils')
-    return initStack()
+    // const { initStack } = require('../lib/cli/utils')
+    // return initStack()
   }
 }

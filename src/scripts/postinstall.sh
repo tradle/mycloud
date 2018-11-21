@@ -21,7 +21,6 @@ if [ ! -e "serverless.yml" ]; then
 fi
 
 mkdir -p "$(dirname $0)/../../lib/"
-npm run gen:versioninfo
 
 if ! [ -x "$(command -v tsc)" ]; then
   echo 'Error: typescript is not installed' >&2
@@ -34,4 +33,5 @@ fi
 
 tsc
 npm run copy-static-assets
+npm run gen:versioninfo
 npm run build:yml

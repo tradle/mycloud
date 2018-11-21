@@ -301,37 +301,37 @@ const downloadDeploymentTemplate = async (bot:Bot) => {
   return await bot.stackUtils.getStackTemplate()
 }
 
-const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
-  let { bot, force } = opts
-  if (!bot) {
-    const { createBot } = require('../')
-    bot = createBot()
-  }
+// const initStack = async (opts:{ bot?: Bot, force?: boolean }={}) => {
+//   let { bot, force } = opts
+//   if (!bot) {
+//     const { createBot } = require('../')
+//     bot = createBot()
+//   }
 
-  const conf = createConf({ bot })
-  if (!force) {
-    try {
-      const current = await conf.get()
-      const { info, botConf } = current
-      if (info && botConf) {
-        console.log('already initialized')
-        return
-      }
-    } catch (err) {}
-  }
+//   const conf = createConf({ bot })
+//   if (!force) {
+//     try {
+//       const current = await conf.get()
+//       const { info, botConf } = current
+//       if (info && botConf) {
+//         console.log('already initialized')
+//         return
+//       }
+//     } catch (err) {}
+//   }
 
-  // const providerConf = require('../in-house-bot/conf/provider')
-  const yml = require('./serverless-yml')
-  const providerConf = yml.custom.org
-  try {
-    await conf.initInfra(providerConf, {
-      forceRecreateIdentity: force
-    })
-  } catch (err) {
-    Errors.ignore(err, Errors.Exists)
-    console.log('prevented overwrite of existing identity/keys')
-  }
-}
+//   // const providerConf = require('../in-house-bot/conf/provider')
+//   const yml = require('./serverless-yml')
+//   const providerConf = yml.custom.org
+//   try {
+//     await conf.initInfra(providerConf, {
+//       forceRecreateIdentity: force
+//     })
+//   } catch (err) {
+//     Errors.ignore(err, Errors.Exists)
+//     console.log('prevented overwrite of existing identity/keys')
+//   }
+// }
 
 const cloneRemoteTable = async ({ source, destination }) => {
   loadCredentials()
@@ -494,7 +494,7 @@ export {
   getNativeModules,
   getProductionModules,
   downloadDeploymentTemplate,
-  initStack,
+  // initStack,
   cloneRemoteTable,
   cloneRemoteBucket
 }

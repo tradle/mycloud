@@ -1822,6 +1822,7 @@ ${this.genUsageInstructions(links)}`
 
   private _ensureCurrentTemplateIsStored = async (templateUrl: string) => {
     const { bot } = this
+    if (bot.isTesting) return
 
     // template doesn't exist if this is a stack update just loaded from tradle
     const exists = await utils.doesHttpEndpointExist(templateUrl)
