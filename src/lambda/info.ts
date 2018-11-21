@@ -1,6 +1,7 @@
 import compose from 'koa-compose'
 import cors from 'kcors'
 import { extend, pick } from 'lodash'
+import { version as protocolVersion } from '@tradle/protocol'
 import { get } from '../middleware/noop-route'
 import { Lambda } from '../types'
 import { fromHTTP } from '../lambda'
@@ -27,7 +28,12 @@ export const createMiddleware = (lambda:Lambda, opts?:any) => {
       ])
 
       const { version, ...connectEndpoint } = endpointInfo
-      extend(ctx.body, { connectEndpoint, version })
+      version.protocol = protocolVersion
+      extend(ctx.body, {
+        connectEndpoint,
+        version,
+      })
+
       if (chainKey) {
         ctx.body.chainKey = pick(chainKey, ['type', 'pub', 'fingerprint', 'networkName'])
       }
