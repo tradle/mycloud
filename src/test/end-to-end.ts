@@ -13,7 +13,8 @@ import buildResource from '@tradle/build-resource'
 import validateResource from '@tradle/validate-resource'
 import { utils as tradleUtils } from '@tradle/engine'
 // import createProductsStrategy from '@tradle/bot-products'
-import { fake as genSample } from '@tradle/gen-samples'
+// import { fake as genSample } from '@tradle/gen-samples'
+const genSample = null
 import { replaceDataUrls } from '@tradle/embed'
 // const dbUtils = require('../db-utils')
 // const Delivery = require('../delivery')
@@ -433,7 +434,7 @@ export class Test {
 
         let type = object[TYPE]
         if (type === 'tradle.FormRequest') {
-          let form = genSample({
+          const form = genSample({
             models,
             model: models[object.form]
           })
