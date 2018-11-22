@@ -143,9 +143,13 @@ class SetVersion {
 
       const param = params.find(({ ParameterKey }) => ParameterKey === key)
       const value = stackParameters[key]
-      if (param) {
+      if (param && param.ParameterValue === value) return
+
+      if (param.ParameterValue !== value) {
+        this.log(`WARNING: overriding parameter ${key} from vars`)
         param.ParameterValue = value
       } else {
+        this.log(`WARNING: adding parameter ${key} from vars`)
         params.push({
           ParameterKey: key,
           ParameterValue: value,
