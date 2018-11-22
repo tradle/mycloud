@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.2-rc.0"></a>
+## [2.1.2-rc.0](https://github.com/tradle/serverless/compare/v2.1.1...v2.1.2-rc.0) (2018-11-20)
+
+
+### Bug Fixes
+
+* error handling ([0830479](https://github.com/tradle/serverless/commit/0830479))
+
+
+
 <a name="2.1.1"></a>
 ## [2.1.1](https://github.com/tradle/serverless/compare/v2.1.0...v2.1.1) (2018-11-20)
 
