@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.2-rc.1"></a>
+## [2.1.2-rc.1](https://github.com/tradle/serverless/compare/v2.1.2-rc.0...v2.1.2-rc.1) (2018-11-22)
+
+
+### Bug Fixes
+
+* wrong export name for plugin ([bc9d368](https://github.com/tradle/serverless/commit/bc9d368))
+
+
+### Features
+
+* validateConf added ([0cdba79](https://github.com/tradle/serverless/commit/0cdba79))
+
+
+
 <a name="2.1.2-rc.0"></a>
 ## [2.1.2-rc.0](https://github.com/tradle/serverless/compare/v2.1.1...v2.1.2-rc.0) (2018-11-20)
 
