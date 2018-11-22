@@ -77,7 +77,7 @@ export const createPlugin:CreatePlugin<MyApi> = ({
   }
 
   const plugin:IPluginLifecycleMethods = {
-    ['onmessage:tradle.Form']: async (req) => {
+    'onmessage:tradle.Form': async (req) => {
       const { payload } = req
       if (payload[TYPE] === 'tradle.Name') {
         await checkIsAlive({ firstName: payload.givenName, lastName: payload.surname })
