@@ -4,7 +4,7 @@ import { CreatePlugin, IPluginLifecycleMethods } from '../types'
 
 const DEFAULT_CONF = require('./form-prefills.json')
 
-export const name = 'prefillForm'
+export const name = 'prefill-form'
 export const createPlugin:CreatePlugin<void> = (components, { conf=DEFAULT_CONF, logger }) => {
 
   const plugin:IPluginLifecycleMethods = {}
