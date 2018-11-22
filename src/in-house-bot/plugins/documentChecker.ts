@@ -14,7 +14,8 @@ import {
   ITradleObject,
   CreatePlugin,
   Applications,
-  IPluginLifecycleMethods
+  IPluginLifecycleMethods,
+  ValidatePluginConf
 } from '../types'
 
 import { parseStub, post } from '../../utils'
@@ -92,7 +93,7 @@ export class DocumentCheckerAPI {
 
     let verification_url, verification_images_url
     try {
-      ({verification_url, verification_images_url} = await this.getVerificationUrls(bearer, resource))
+      ({verification_url, verification_images_url} = await this.getVerificationUrls(bearer, resource._link))
     } catch (err) {
       debugger
       this.logger.debug(`${PROVIDER} something went wrong`, err)
@@ -189,10 +190,10 @@ export class DocumentCheckerAPI {
                 })
     return res.ok
   }
-  async getVerificationUrls(bearer, resource) {
+  async getVerificationUrls(bearer, reference) {
     let body:any = {
       webhook_url: `${trimTrailingSlashes(this.bot.apiBaseUrl)}/documentChecker`,
-      reference: resource._link
+      reference: reference
     }
     this.logger.debug(`${PROVIDER} webhook-url: `, body.webhook_url);
 
@@ -297,6 +298,7 @@ export class DocumentCheckerAPI {
     let { event, data } = evt
     // don't run reports right now
 debugger
+    let bearer = await getToken()
     if (event === 'verification.report.created') {
       // let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}/report`
       // let res = await fetch(url, {
@@ -309,7 +311,6 @@ debugger
       // let ret = await res.text()
       return
     }
-    let bearer = await getToken()
     this.logger.debug(`${PROVIDER} fetching verification results for ${ASPECTS}`);
     let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}`
     let res = await fetch(url, {
@@ -411,7 +412,22 @@ debugger
     api: documentChecker
   }
 }
+export const validateConf:ValidatePluginConf = async (opts) => {
+  const pluginConf = opts.pluginConf as IDocumentCheckerConf
+  const { account, username } = pluginConf
 
+  let err = ''
+  if (!account)
+    err = '\nExpected "accountname".'
+  else if (typeof account !== 'string')
+    err += '\nExpected "accountname" to be a string.'
+  if (!username)
+    err += '\nExpected "username"'
+  else if (typeof username !== 'string')
+    err += '\nExpected "username" to be a string'
+  if (err.length)
+    throw new Error(err)
+}
 const getToken = async () => {
   // if (token) {
   //   let timePassed = (Date.now() - tokenObtained)/1000
