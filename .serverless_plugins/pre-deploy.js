@@ -75,16 +75,6 @@ class SetVersion {
     return this.options.region
   }
 
-  async _getBucket() {
-    const stage = this._stage()
-    const region = this._region()
-    try {
-      return await this.provider.getServerlessDeploymentBucketName(stage, region)
-    } catch (err) {
-      Errors.rethrow(err, 'developer')
-    }
-  }
-
   _dir() {
     return versionInfo.templatesPath
   }
@@ -97,7 +87,7 @@ class SetVersion {
 
     this._uploaded = true
     await Promise.all([
-      this._getBucket().then(bucket => this.uploadTemplates(bucket)),
+      this._setBucket().then(() => this.uploadTemplates()),
       this.setTemplateParameters()
     ])
 
@@ -129,6 +119,34 @@ class SetVersion {
     template.Outputs.ServiceEndpoint.Value = _.pick(template.Outputs.ServiceEndpoint.Value, ['Fn::Sub'])
 
     Deployment.ensureInitLogIsRetained(template)
+  }
+
+  async _setBucket() {
+    const bucket = await this._getBucket()
+    if (bucket) {
+      this.bucket = this.serverless.service.provider.deploymentBucket = bucket
+    }
+  }
+
+  async _getBucket() {
+    if (this.bucket) return this.bucket
+
+    const stackInfo = await this.getStackInfo()
+    if (stackInfo) {
+      const { Outputs } = stackInfo
+      const deploymentBucketParam = Outputs.find(p => p.OutputKey === 'DeploymentBucket')
+      if (deploymentBucketParam) {
+        return deploymentBucketParam.OutputValue
+      }
+    }
+
+    const stage = this._stage()
+    const region = this._region()
+    try {
+      return await this.provider.getServerlessDeploymentBucketName(stage, region)
+    } catch (err) {
+      Errors.rethrow(err, 'developer')
+    }
   }
 
   async setTemplateParameters() {
@@ -238,7 +256,8 @@ class SetVersion {
     })
   }
 
-  async uploadTemplates(bucket) {
+  async uploadTemplates() {
+    const { bucket } = this
     if (!bucket) {
       throw new Error(`can't upload template, don't know target bucket`)
     }
