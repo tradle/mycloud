@@ -415,6 +415,24 @@ Missing credentials in config
 
 **Cause 2**: you may be using a global installation of `serverless` rather than the project-local one. If you're running Tradle locally via npm scripts, this should be taken care of for you. If you're running `sls` / `serverless` commands directly, make sure to use the project-local one in `node_modules`, e.g.: `./node_modules/.bin/sls offline start`
 
+**Symptom 7**
+
+`npm install` fails with `Authentication failed for 'https://github.com/tradle/models-corporate-onboarding.git/'` (or some other private repository it fails to pull).
+
+**Cause 1**: you don't have access to the repository
+**Fix**: check to see if you can clone that repository directly, into some other folder. If you can't, request access from Tradle
+
+**Cause 2**: your git credentials have expired, or are not being properly cached
+**Fix**: set up caching for your git credentials (varies depending on your operating system), and then check to see if you can clone that repository directly, into some other folder.
+
+**Cause 3**: npm is having trouble with dependencies with `git://` urls.
+**Fix**: open `~/.gitconfig` on your machine, and add this block:
+
+```
+[url "https://"]
+  insteadOf = "git://"
+```
+
 ## Troubleshooting remote deployment
 
 **Symptom 1**
