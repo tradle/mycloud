@@ -348,7 +348,7 @@ npm run nuke
 
 Note: this is ONLY for troubleshooting your local development environment and NOT your remote deployment
 
-**Symptom**:
+**Symptom 1**:
 
 ```sh
 # Error: connect ECONNREFUSED 127.0.0.1:4569
@@ -358,7 +358,7 @@ Note: this is ONLY for troubleshooting your local development environment and NO
 **Cause**: `localstack` is not up.  
 **Fix**: `npm run localstack:start`  
 
-**Symptom 1**:
+**Symptom 2**:
 
 ```sh
 # ResourceNotFoundException: Cannot do operations on a non-existent table
@@ -368,7 +368,7 @@ Note: this is ONLY for troubleshooting your local development environment and NO
 **Cause**: you haven't generated local resources (tables, buckets, etc.)  
 **Fix**: run `npm run gen:localresources`  
 
-**Symptom 2**:
+**Symptom 3**:
 
 ```sh
 ...bucket does not exist
@@ -381,7 +381,7 @@ Note: this is ONLY for troubleshooting your local development environment and NO
 **Cause**: to be determined  
 **Fix**: `npm run reset:local # delete + regen local resources (tables, buckets, etc.)`
 
-**Symptom 3**:  
+**Symptom 4**:  
 
 ```sh
 Serverless command "<some command>" not found
@@ -390,7 +390,7 @@ Serverless command "<some command>" not found
 **Cause**: your `serverless.yml` is corrupted. `build:yml` probably failed the last time you ran it.  
 **Fix**: fix `serverless-uncompiled.yml`, make sure `build:yml` completes successfully before retrying
 
-**Symptom 4**:
+**Symptom 5**:
 
 ```sh
 still havent connected to local Iot broker!
@@ -399,14 +399,14 @@ still havent connected to local Iot broker!
 **Cause**: something in `redis` upsets `mosca`, but what exactly is TBD
 **Fix**: `npm run fix:redis`
 
-**Symptom 5**
+**Symptom 6**
 
 The log is going nuts but the mobile/web client can't seem to communicate with your local MyCloud
 
 **Cause**: if you have multiple clients connected at once (e.g. mobile, simulator, multiple browser tabs), your machine probably just can't handle it. If you've got Dev Tools open and are debugging your lambdas, that exacerbates things. This is due to the fact that locally, the serverless environment is simulated by invoking each lambda function as if it's waking up for the first time in a docker container. It needs to `require()` everything from scratch, then run itself, then die. This is memory/computation expensive.
 **Fix**: turn off the debugger, don't use more clients than your machine can handle. Yes, locally, this might only be a 2-5!
 
-**Symptom 6**
+**Symptom 7**
 
 ```
 Credentials Error --------------------------------------
@@ -419,7 +419,7 @@ Missing credentials in config
 
 **Cause 2**: you may be using a global installation of `serverless` rather than the project-local one. If you're running Tradle locally via npm scripts, this should be taken care of for you. If you're running `sls` / `serverless` commands directly, make sure to use the project-local one in `node_modules`, e.g.: `./node_modules/.bin/sls offline start`
 
-**Symptom 7**
+**Symptom 8**
 
 `npm install` fails with `Authentication failed for 'https://github.com/tradle/models-corporate-onboarding.git/'` (or some other private repository it fails to pull).
 
@@ -436,6 +436,15 @@ Missing credentials in config
 [url "https://"]
   insteadOf = "git://"
 ```
+
+**Symptom 9**
+
+```sh
+"namespace":"global:http","msg":"request failed","level":"ERROR","details":{"method":"POST","port":4569,"path":"/","host":"10.0.0.127"
+```
+
+**Cause**: docker isn't running, or if it is, localstack isn't
+**Fix**: see fix for Symptom 1
 
 ## Troubleshooting remote deployment
 
