@@ -6,7 +6,8 @@ import {
   AwsApis,
   Logger,
   SNSMessage,
-  SendSMSOpts,
+  ISMS,
+  ISendSMSOpts,
 } from './types'
 
 import {
@@ -25,7 +26,7 @@ const SMS_PRIORITY = {
   low: 'Promotional',
 }
 
-export class SNSUtils {
+export class SNSUtils implements ISMS {
   private aws: AwsApis
   private logger: Logger
   constructor ({ aws, logger }: {
@@ -145,7 +146,7 @@ export class SNSUtils {
     ).promise()
   }
 
-  public sendSMS = async ({ phoneNumber, message, senderId, highPriority }: SendSMSOpts) => {
+  public sendSMS = async ({ phoneNumber, message, senderId, highPriority }: ISendSMSOpts) => {
     const { callingCode, number } = parseE164(phoneNumber)
     const region = getAWSRegionByCallingCode(callingCode)
     const client = this.aws.create('SNS', region) as AWS.SNS

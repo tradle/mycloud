@@ -8,7 +8,8 @@ import {
   Logger,
   SNSUtils,
   DB,
-  SendSMSOpts,
+  ISendSMSOpts,
+  ISMS,
 } from './types'
 
 import * as Templates from './templates'
@@ -22,7 +23,7 @@ const PHONE_CHECK_MODEL = baseModels[PHONE_CHECK]
 
 type SMSBasedVerifierOpts = {
   db: DB
-  sns: SNSUtils
+  sms: ISMS
   commands: Commander
   logger: Logger
 }
@@ -31,11 +32,6 @@ interface IResultPageOpts {
   title: string
   body: string
   signature?: string
-}
-
-interface ISMSOpts {
-  phoneNumber: string
-  message: string
 }
 
 interface IsPhoneCheckPendingOpts {
@@ -50,27 +46,27 @@ export const TTL = {
 
 export class SMSBasedVerifier {
   private db: DB
-  private sns: SNSUtils
+  private sms: ISMS
   private commands: Commander
   private logger: Logger
-  constructor({ db, sns, commands, logger }: SMSBasedVerifierOpts) {
+  constructor({ db, sms, commands, logger }: SMSBasedVerifierOpts) {
     if (!commands) {
       throw new Errors.InvalidInput('expected "commands"')
     }
 
     this.db = db
-    this.sns = sns
+    this.sms = sms
     this.commands = commands
     this.logger = logger
   }
 
   public confirmAndExec = async ({ deferredCommand, smsOpts }: {
     deferredCommand: IDeferredCommandParams
-    smsOpts: SendSMSOpts
+    smsOpts: ISendSMSOpts
   }) => {
     const code = await this.commands.defer(deferredCommand)
     this.logger.debug('sending SMS to confirm command', { command: deferredCommand })
-    await this.sns.sendSMS(smsOpts)
+    await this.sms.sendSMS(smsOpts)
     return code
   }
 
