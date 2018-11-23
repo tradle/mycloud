@@ -145,7 +145,7 @@ class SetVersion {
       const value = stackParameters[key]
       if (param && param.ParameterValue === value) return
 
-      if (param.ParameterValue !== value) {
+      if (param) {
         this.log(`WARNING: overriding parameter ${key} from vars`)
         param.ParameterValue = value
       } else {
