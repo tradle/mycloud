@@ -155,7 +155,11 @@ const genLocalResources = async ({ region, stackName }: {
       Bucket: getLocalResourceName({ stackName, name }),
     }
 
-    await s3.createBucket(params).promise()
+    try {
+      await s3.createBucket(params).promise()
+    } catch (err) {
+      Errors.ignore(err, { code: 'BucketAlreadyExists' })
+    }
   }))
 
   await Promise.all([
