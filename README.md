@@ -159,6 +159,10 @@ If you ran `aws configure --profile <profileName>` and not `aws configure`, open
 
 Goal: set up an environment where we can talk to the chatbot that comes in the box, and see how we can develop our own.
 
+### Set TMPDIR env var
+
+Check if the environment variable TMPDIR is set, and if not set it (better add it to ~/.bash_profile or ~/.bashrc)
+
 ### Start docker
 
 ```sh
