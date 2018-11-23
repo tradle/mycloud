@@ -325,8 +325,8 @@
     },
     "@tradle/protocol": {
       "version": "5.0.0",
-      "from": "tradle/protocol#prehash_media",
-      "resolved": "git://github.com/tradle/protocol.git#e4202d3986089057771b652ad079253c68b90075"
+      "from": "@tradle/protocol@latest",
+      "resolved": "https://registry.npmjs.org/@tradle/protocol/-/protocol-5.0.0.tgz"
     },
     "@tradle/qr": {
       "version": "2.0.0",
@@ -2488,16 +2488,34 @@
       "resolved": "https://registry.npmjs.org/conventional-changelog-core/-/conventional-changelog-core-3.1.5.tgz",
       "dev": true,
       "dependencies": {
+        "find-up": {
+          "version": "2.1.0",
+          "from": "find-up@>=2.0.0 <3.0.0",
+          "resolved": "https://registry.npmjs.org/find-up/-/find-up-2.1.0.tgz",
+          "dev": true
+        },
         "load-json-file": {
           "version": "4.0.0",
           "from": "load-json-file@>=4.0.0 <5.0.0",
           "resolved": "https://registry.npmjs.org/load-json-file/-/load-json-file-4.0.0.tgz",
           "dev": true
         },
+        "parse-json": {
+          "version": "4.0.0",
+          "from": "parse-json@>=4.0.0 <5.0.0",
+          "resolved": "https://registry.npmjs.org/parse-json/-/parse-json-4.0.0.tgz",
+          "dev": true
+        },
         "path-type": {
           "version": "3.0.0",
           "from": "path-type@>=3.0.0 <4.0.0",
           "resolved": "https://registry.npmjs.org/path-type/-/path-type-3.0.0.tgz",
+          "dev": true
+        },
+        "pify": {
+          "version": "3.0.0",
+          "from": "pify@>=3.0.0 <4.0.0",
+          "resolved": "https://registry.npmjs.org/pify/-/pify-3.0.0.tgz",
           "dev": true
         },
         "read-pkg": {
@@ -2510,6 +2528,12 @@
           "version": "3.0.0",
           "from": "read-pkg-up@>=3.0.0 <4.0.0",
           "resolved": "https://registry.npmjs.org/read-pkg-up/-/read-pkg-up-3.0.0.tgz",
+          "dev": true
+        },
+        "strip-bom": {
+          "version": "3.0.0",
+          "from": "strip-bom@>=3.0.0 <4.0.0",
+          "resolved": "https://registry.npmjs.org/strip-bom/-/strip-bom-3.0.0.tgz",
           "dev": true
         }
       }
@@ -2554,7 +2578,15 @@
       "version": "4.0.2",
       "from": "conventional-changelog-writer@>=4.0.2 <5.0.0",
       "resolved": "https://registry.npmjs.org/conventional-changelog-writer/-/conventional-changelog-writer-4.0.2.tgz",
-      "dev": true
+      "dev": true,
+      "dependencies": {
+        "semver": {
+          "version": "5.6.0",
+          "from": "semver@>=5.5.0 <6.0.0",
+          "resolved": "https://registry.npmjs.org/semver/-/semver-5.6.0.tgz",
+          "dev": true
+        }
+      }
     },
     "conventional-commit-types": {
       "version": "2.2.0",
@@ -4502,7 +4534,15 @@
       "version": "2.0.2",
       "from": "git-semver-tags@>=2.0.2 <3.0.0",
       "resolved": "https://registry.npmjs.org/git-semver-tags/-/git-semver-tags-2.0.2.tgz",
-      "dev": true
+      "dev": true,
+      "dependencies": {
+        "semver": {
+          "version": "5.6.0",
+          "from": "semver@^5.5.0",
+          "resolved": "https://registry.npmjs.org/semver/-/semver-5.6.0.tgz",
+          "dev": true
+        }
+      }
     },
     "gitconfiglocal": {
       "version": "1.0.0",
