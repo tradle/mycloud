@@ -1,6 +1,6 @@
 {
   "name": "@tradle/serverless",
-  "version": "2.1.2-rc.1",
+  "version": "2.1.2",
   "main": "index.js",
   "private": "true",
   "repository": "https://github.com/tradle/serverless",
