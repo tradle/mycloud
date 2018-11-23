@@ -6,6 +6,7 @@ import { Env, Logger } from './types'
 import REGIONS from './aws-regions'
 import { wrap } from './wrap-aws-client'
 import { isXrayOn } from './utils'
+import Errors from './errors'
 
 const MOCKED_SEPARATELY = {
   KMS: true,
@@ -47,6 +48,10 @@ export const createAWSWrapper = ({ env, logger }: {
   logger: Logger
 }) => {
   const region = env.AWS_REGION
+  if (!REGIONS.includes(region)) {
+    throw new Errors.InvalidEnvironment(`region does not exist: ${region}`)
+  }
+
   const AWS = isXrayOn()
     ? AWSXRay.captureAWS(rawAWS)
     : rawAWS
