@@ -8,6 +8,9 @@ export const createConfig = ({ region, local } : {
   const services = {
     maxRetries: 6,
     region,
+    s3: {
+      signatureVersion: 'v4',
+    },
     iotdata: {
       httpOptions: {
         connectTimeout: 10000,
