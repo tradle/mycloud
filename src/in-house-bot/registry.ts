@@ -21,6 +21,8 @@ export const loadFromDir = <T>({ dir, filter=DEFULT_FILTER, prop, getAliases=DEF
 
     const subModule = require(path.resolve(dir, file))
     const item = prop ? subModule[prop] : subModule
+    if (item.disabled) return
+
     const name = item.name || path.parse(file).name
     const aliases = getAliases(item) || []
     const names = [name].concat(aliases)
