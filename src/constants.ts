@@ -16,6 +16,7 @@ import {
   ORG_SIG,
   TIMESTAMP,
   VERSION,
+  PROTOCOL_VERSION,
   TYPES as BASE_TYPES,
 } from '@tradle/constants'
 
@@ -66,6 +67,7 @@ const constants = {
   RECIPIENT,
   TIMESTAMP,
   VERSION,
+  PROTOCOL_VERSION,
   TYPES,
   IDENTITY_KEYS_KEY: 'keys.json',
   PRIVATE_CONF_BUCKET: {
@@ -142,6 +144,7 @@ const constants = {
   DEFAULT_SESSION_TTL_SECONDS: 3600,
   MAX_SESSION_TTL_SECONDS: 3600,
   MIN_SESSION_TTL_SECONDS: 900,
+  STRIP_PROTOCOL_VERSION_BEFORE_SIGN: true,
 }
 
 export = constants
