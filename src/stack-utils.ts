@@ -149,10 +149,10 @@ export default class StackUtils {
 
     const { Parameters } = template
     for (let key in values) {
-      Parameters[key] = {
+      Parameters[key] = utils.pickNonNull({
         Type: 'String',
         Default: values[key],
-      }
+      })
     }
   }
 
