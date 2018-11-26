@@ -27,6 +27,7 @@ import {
   Registry,
 } from '../types'
 
+export * from './plugin-types'
 export * from '../types'
 
 export {
@@ -208,18 +209,6 @@ export interface IFormRequest extends ITradleObject {
   prefill?: any
 }
 
-export interface IWillRequestFormArg {
-  user: IPBUser
-  application?: IPBApp
-  formRequest: IFormRequest
-}
-
-export interface IOnFormsCollectedArg {
-  req: IPBReq
-  user: IPBUser
-  application: IPBApp
-}
-
 // deprecated
 export interface ICommandInput {
   command: string
@@ -295,61 +284,6 @@ export type Name = {
   lastName:string
   formatted?:string
 }
-
-interface IOnPendingApplicationCollisionArg {
-  req: IPBReq
-  pending: ResourceStub[]
-}
-
-interface IGetRequiredFormsArg {
-  user: IPBUser
-  application: IPBApp
-  productModel: any
-}
-
-export interface IPluginLifecycleMethods {
-  onmessage?: (req:IPBReq) => boolean|void | Promise<boolean|void>
-  willRequestForm?: (opts:IWillRequestFormArg) => void | Promise<void>
-  onFormsCollected?: (opts:IOnFormsCollectedArg) => void | Promise<void>
-  onPendingApplicationCollision?: (opts:IOnPendingApplicationCollisionArg) => void | Promise<void>
-  onRequestForExistingProduct?: (req:IPBReq) => void | Promise<void>
-  onCommand?: ({ req: IPBReq, command: string }) => void | Promise<void>
-  getRequiredForms?: (opts: IGetRequiredFormsArg) => Promise<void|string[]>
-  [toBeDefined: string]: any
-}
-
-export interface IPluginExports<BotComponent> {
-  plugin: IPluginLifecycleMethods
-  api?: BotComponent
-  [customExport: string]: any
-}
-
-export interface IPluginOpts {
-  logger: Logger
-  conf?: any
-}
-
-export type CreatePlugin<BotComponent> = (components:IBotComponents, opts:IPluginOpts) => IPluginExports<BotComponent>
-
-export type ValidatePluginConfOpts = {
-  bot: Bot
-  conf: IConfComponents
-  pluginConf: any
-  [other:string]: any
-}
-
-export type UpdatePluginConfOpts = ValidatePluginConfOpts
-
-export type ValidatePluginConf = (opts:ValidatePluginConfOpts) => Promise<void>
-export type UpdatePluginConf = (opts:UpdatePluginConfOpts) => Promise<void>
-export interface IPlugin<BotComponent> {
-  name?: string
-  createPlugin: CreatePlugin<BotComponent>
-  validateConf?: ValidatePluginConf
-  updateConf?: UpdatePluginConf
-}
-
-export type IPlugins = Registry<IPlugin<any>>
 
 export type ClaimType = 'bulk' | 'prefill'
 
