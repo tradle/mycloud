@@ -162,7 +162,7 @@
     "@tradle/centrix": {
       "version": "1.0.0",
       "from": "tradle/centrix",
-      "resolved": "git://github.com/tradle/centrix.git#ffa7eecdbd31f74feb1f9eb064c9009a54a7e0d3",
+      "resolved": "git://github.com/tradle/centrix.git#b4387a6df550832e7cf52a23b05b815fc30d7e24",
       "optional": true,
       "dependencies": {
         "pify": {
