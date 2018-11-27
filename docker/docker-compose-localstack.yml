@@ -2,7 +2,7 @@ version: '2.1'
 
 services:
   dynamo:
-    image: aaronshaf/dynamodb-admin
+    image: tradle/dynamodb-admin
     restart: always
     # dummy credentials
     ports:
@@ -14,7 +14,7 @@ services:
 
   # needed for mosca (local MQTT server)
   redis:
-    image: redis:alpine
+    image: tradle/redis
     restart: always
     ports:
       - 6379:6379
@@ -22,7 +22,7 @@ services:
       - /data
 
   localstack:
-    image: localstack/localstack:0.8.7
+    image: tradle/localstack:0.8.7
     restart: always
     ports:
       - "4567-4583:4567-4583"
