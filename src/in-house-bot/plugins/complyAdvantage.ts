@@ -199,7 +199,7 @@ class ComplyAdvantageAPI {
         types: criteria  &&  criteria.filter  &&  criteria.filter.types || ['sanction']
       }
     })
-    debugger
+    // debugger
     // if (!search_term)
     //   search_term = isCompany  &&  companyName || (firstName + ' ' + lastName)
     // let date = isCompany  &&  registrationDate  ||  dateOfBirth
@@ -249,7 +249,7 @@ class ComplyAdvantageAPI {
     if (!entityType)
       entityType = isCompany  &&  ['company', 'organisation', 'organization']  ||  ['person']
     let hits = rawData.hits.filter((hit) => entityType.includes(hit.doc.entity_type));
-debugger
+// debugger
     rawData.hits = hits
     rawData = sanitize(rawData).sanitized
     if (hits  &&  hits.length) {
