@@ -12,7 +12,7 @@ import getPropAtPath from 'lodash/get'
 import Errors from '../../errors'
 import { IBotComponents, Seal, Job, LowFundsInput } from '../types'
 import { sendConfirmedSeals } from '../utils'
-import { DEFAULT_WARMUP_EVENT } from '../../constants'
+import { DEFAULT_WARMUP_EVENT, TYPES } from '../../constants'
 // import { Deployment } from '../deployment'
 
 const SAFETY_MARGIN_MILLIS = 20000
@@ -108,6 +108,28 @@ const SIX_HOURS = 6 * 3600 * 1000
 export const checkFailedSeals:Executor = async ({ job, components }) => {
   const { gracePeriod=SIX_HOURS } = job
   return await components.bot.seals.handleFailures({ gracePeriod })
+}
+
+export const createSealBatch:Executor = async ({ job, components }) => {
+  const { bot, logger } = components
+  const { sealBatcher } = bot
+  const unsigned = await sealBatcher.genNextBatch()
+  // if (!unsigned) {
+  //   logger.debug('skipping create of seal batch, nothing to batch')
+  //   return
+  // }
+
+  logger.debug('creating seal batch')
+  const signed = await bot.draft({
+    type: TYPES.SEALABLE_BATCH,
+    resource: unsigned
+  })
+  .signAndSave()
+  .then(r => r.toJSON())
+
+  await bot.seal({
+    object: signed
+  })
 }
 
 // export const documentChecker:Executor = async ({ job, components }) => {

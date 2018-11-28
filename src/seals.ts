@@ -41,6 +41,7 @@ import {
 const SealModel = models['tradle.Seal']
 const SealStateModel = models['tradle.SealState']
 const SEAL_MODEL_ID = 'tradle.Seal'
+const BATCH_SEAL_STATE_MODEL_ID = 'tradle.BatchSealState'
 const MAX_ERRORS_RECORDED = 10
 const WATCH_TYPE = {
   this: 't',
@@ -79,7 +80,7 @@ type CreateSealWithObjectOpts = {
   counterparty?: string
 }
 
-type CreateSealOpts = CreateSealWithHeaderHashOpts | CreateSealWithObjectOpts
+export type CreateSealOpts = CreateSealWithHeaderHashOpts | CreateSealWithObjectOpts
 
 interface ISealRecordOpts extends Partial<ISealDataIdentifier> {
   key?: IECMiniPubKey
@@ -244,6 +245,16 @@ export default class Seals {
     this.sealPending = wrapWithStop(this._sealPending)
     this.syncUnconfirmed = wrapWithStop(this._syncUnconfirmed)
   }
+
+  // public batchUnsealed = async (opts: ILimitOpts) => {
+  //   const unsealed = await this.getUnsealed(opts)
+  // }
+
+  // public static createBatchState = async ({ seals }: {
+  //   seals: Seal[]
+  // }) => {
+
+  // }
 
   public watch = (opts: WatchOpts) => {
     return this.createSealRecord({ ...opts, write: false })
@@ -937,3 +948,16 @@ const normalizeMiniPub = ({ pub, curve }) => ({
   pub: Buffer.isBuffer(pub) ? pub : Buffer.from(pub, 'hex'),
   curve
 })
+
+const createBatchState = ({ seals }: { seals: Seal[] }) => {
+  const links = seals.map(seal => seal.link)
+  const merkleRoot = protocol.merkleTreeFromHashes(links.map(link => new Buffer(link, 'hex')))
+  const batchSealItem = {
+    [TYPE]: BATCH_SEAL_STATE_MODEL_ID,
+    _time: Date.now(),
+    links,
+    merkleRoot,
+    unsealed: true,
+    unconfirmed: true,
+  }
+}

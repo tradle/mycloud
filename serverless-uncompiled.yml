@@ -320,6 +320,10 @@ provider:
       Ref: AWS::StackName
     BLOCKCHAIN:
       Ref: BlockchainNetwork
+    SEALING_MODE:
+      Ref: SealingMode
+    SEAL_BATCHING_PERIOD:
+      Ref: SealBatchingPeriodInMinutes
     CORDA_API_URL: ${{self:custom.corda.apiUrl}}
     CORDA_API_KEY: ${{self:custom.corda.apiKey}}
     DEBUG: '*lambda*,tradle*,-@tradle/dynamodb'
@@ -1262,6 +1266,18 @@ resources:
         - 'ethereum:rinkeby'
         - 'ethereum:ropsten'
 
+    SealingMode:
+      Type: String
+      Default: 'single'
+      AllowedValues:
+        - 'single'
+        - 'batch'
+
+    SealBatchingPeriodInMinutes:
+      Type: Number
+      Description: how often to batch items for sealing (ignore if SealingMode is 'single')
+      Default: 5
+
     AutoScalingEnabled:
       Type: String
       Default: "true"
@@ -1404,8 +1420,15 @@ resources:
 
         # Configuration
 
+        ## Blockchain configuration
         BlockchainNetwork:
           default: Blockchain Network
+        SealingMode:
+          default: Sealing Mode
+        SealBatchingPeriodInMinutes:
+          default: Seal batching period (in minutes)
+
+        ## Other configuration
         PointInTimeRecoveryEnabledEventsTable:
           default: Enable point-in-time recovery for the Events table
         PointInTimeRecoveryEnabledBucket0Table:

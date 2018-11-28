@@ -10,7 +10,8 @@ import {
   Lambda,
   IRequestContext,
   CloudName,
-  IBlockchainIdentifier
+  IBlockchainIdentifier,
+  SealingMode,
 } from './types'
 import { WARMUP_SOURCE_NAME, ROOT_LOGGING_NAMESPACE } from './constants'
 import Logger, { Level } from './logger'
@@ -68,6 +69,8 @@ export default class Env {
   public AWS_ACCOUNT_ID: string
   public SESSION_TTL?: number
   public ABORT_REQUESTS_ON_FREEZE?: boolean
+  public SEALING_MODE: SealingMode
+  public SEAL_BATCHING_PERIOD: number
 
   constructor(props:any) {
     props = clone(props)
@@ -204,6 +207,9 @@ export default class Env {
     this.STACK_RESOURCE_PREFIX = `${this.STACK_NAME}-`
     this.IOT_CLIENT_ID_PREFIX = this.STACK_RESOURCE_PREFIX
     this.IOT_PARENT_TOPIC = this.STACK_NAME
+    if ('SEAL_BATCHING_PERIOD' in props) {
+      this.SEAL_BATCHING_PERIOD = parseInt(props.SEAL_BATCHING_PERIOD, 10)
+    }
   }
 }
 

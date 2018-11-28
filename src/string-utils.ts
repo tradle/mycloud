@@ -83,3 +83,6 @@ function isLikeBuffer (value) {
     value.type === 'Buffer' &&
     Array.isArray(value.data)
 }
+
+export const hexToBuf = str => Buffer.isBuffer(str) ? str : new Buffer(str, 'hex')
+export const bufToHex = buf => Buffer.isBuffer(buf) ? buf.toString('hex') : buf

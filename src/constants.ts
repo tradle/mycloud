@@ -36,6 +36,7 @@ const TYPES = {
   BACKLINK_ITEM: 'tradle.BacklinkItem',
   SEAL_STATE: 'tradle.SealState',
   DELIVERY_ERROR: 'tradle.DeliveryError',
+  SEALABLE_BATCH: 'tradle.SealableBatch',
 }
 
 const UNSIGNED_TYPES = [
@@ -146,6 +147,7 @@ const constants = {
   MIN_SESSION_TTL_SECONDS: 900,
   STRIP_PROTOCOL_VERSION_BEFORE_SIGN: true,
   MAX_DELIVERY_ATTEMPTS: 20,
+  BATCH_SEALING_PROTOCOL_VERSION: 'v1',
 }
 
 export = constants
