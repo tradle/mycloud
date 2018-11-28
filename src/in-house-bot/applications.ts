@@ -23,6 +23,7 @@ import {
   IPBReq,
   IPBApp,
   ITradleObject,
+  ITradleCheck,
   IPBUser,
   ApplicationSubmission,
   Logger,
@@ -115,7 +116,6 @@ export class Applications implements IHasModels {
     const result = await this.bot.updateResource(opts)
     return result.resource
   }
-
   public judgeApplication = async ({ req, application, approve }: IPBJudgeAppOpts) => {
     const { bot, productsAPI } = this
     application = await productsAPI.getApplication(application) as IPBApp
@@ -286,7 +286,8 @@ export class Applications implements IHasModels {
     return await this.productsAPI.requestItem(opts)
   }
 
-  public getLatestChecks = async ({ application }: AppInfo) => {
+  public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
+    debugger
     const { checks=[] } = application
     if (!checks.length) return []
 
