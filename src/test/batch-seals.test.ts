@@ -179,28 +179,28 @@ test('merge micro batches', loudAsync(async t => {
   t.end()
 }))
 
-test('avoid empty batches', loudAsync(async t => {
-  // reset
-  let lastBatch
-  const safetyBuffer = 2
-  const { batcher, folder, sandbox } = setup({ safetyBuffer })
+// test('avoid empty batches', loudAsync(async t => {
+//   // reset
+//   let lastBatch
+//   const safetyBuffer = 2
+//   const { batcher, folder, sandbox } = setup({ safetyBuffer })
 
-  // no micro batches were queued
-  // we should still see empty batches before the safety buffer, but
+//   // no micro batches were queued
+//   // we should still see empty batches before the safety buffer, but
 
-  const spyPut = sandbox.spy(folder, 'gzipAndPut')
-  const stubFindLast = sandbox.stub(bot.db, 'findOne').callsFake(async () => {
-    return lastBatch
-  })
+//   const spyPut = sandbox.spy(folder, 'gzipAndPut')
+//   const stubFindLast = sandbox.stub(bot.db, 'findOne').callsFake(async () => {
+//     return lastBatch
+//   })
 
-  let batchesCount = 0
-  while (batchesCount++ < safetyBuffer) {
-    lastBatch = await batcher.genNextBatch()
-    await t.ok(lastBatch, 'allow empty batches within safety buffer')
-  }
+//   let batchesCount = 0
+//   while (batchesCount++ < safetyBuffer) {
+//     lastBatch = await batcher.genNextBatch()
+//     await t.ok(lastBatch, 'allow empty batches within safety buffer')
+//   }
 
-  await t.notOk(await batcher.genNextBatch(), 'no empty batches past the safety buffer')
+//   await t.notOk(await batcher.genNextBatch(), 'no empty batches past the safety buffer')
 
-  sandbox.restore()
-  t.end()
-}))
+//   sandbox.restore()
+//   t.end()
+// }))
