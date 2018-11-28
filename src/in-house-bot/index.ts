@@ -356,10 +356,6 @@ export const loadComponentsAndPlugins = ({
       const type = old[TYPE]
       const model = bot.models[type]
       await productsAPI._exec(`onResourceChanged:${type}`, { old, value })
-      if (model && model.subClassOf === 'tradle.Check' && didPropChange({ old, value, prop: 'status' })) {
-        await productsAPI._exec(`onCheckStatusChanged`, { old, value })
-      }
-
       await productsAPI._exec('onResourceChanged', { old, value })
 
       // TODO: factor this out to a plugin
@@ -389,6 +385,14 @@ export const loadComponentsAndPlugins = ({
         await processChange(change)
       } else if (value) {
         await processCreate(value)
+      }
+
+      if (!value) return
+
+      const type = value[TYPE]
+      const model = bot.models[type]
+      if (value && model && model.subClassOf === 'tradle.Check' && didPropChange({ old, value, prop: 'status' })) {
+        await productsAPI._exec(`onCheckStatusChanged`, { old, value })
       }
     })
 

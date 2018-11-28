@@ -192,6 +192,7 @@
     "event-hooks": "^1.2.0",
     "freemail": "github:tradle/freemail",
     "graphql": "^0.10.5",
+    "image-size": "^0.6.2",
     "ip": "~1.1.5",
     "is-generator-function": "^1.0.6",
     "js-yaml": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.12.0.tgz",
