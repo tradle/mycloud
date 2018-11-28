@@ -32,7 +32,7 @@ npm run release:patch
 # create a minor version release (e.g. 1.2.5 -> 1.3.0)
 npm run release:minor
 
-# create a major version release (e.g. 1.2.5 -> 1.3.0)
+# create a major version release (e.g. 1.2.5 -> 2.0.0)
 npm run release:major
 
 # create a release candidate patch version (and similarly for minor / major)
