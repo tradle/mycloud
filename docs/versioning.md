@@ -15,7 +15,7 @@ Questions answered below:
 There are several steps to deploying new versions:
 1. Create a new release
 1. Deploy it to the cloud
-1. Announce the new version to other MyClouds (see [deployment](../src/in-house-bot/deployment.ts) module's `handleStackUpdate`)
+1. Announce the new version to other MyClouds
 1. Generate templates / copy lambda code to region-local buckets for MyClouds that request updates to a given version (not necessarily the latest version)
 1. On the child MyCloud side, request an update, and apply it (via [tradleconf](https://github.com/tradle/tradleconf))
 
@@ -67,4 +67,17 @@ you must apply the transition version first: 1.3.0-trans.0
  ✔ load update 1.3.0 (grab a coffee)
  ✔ validate update
  ✔ apply update (be patient, or else)
+```
+
+### Announce a Release
+
+*Note: this assumes you have a ./conf/ directory in your project, set up with tradleconf*
+
+To announce the latest deployed release:
+
+```sh
+cd conf/
+tradleconf exec -r 'send-update-alerts --version latest'
+# or to announce a specific tag:
+tradleconf exec -r 'send-update-alerts --version [tag]'
 ```
