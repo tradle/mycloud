@@ -32,6 +32,7 @@ fi
 # npm run clean:deps
 
 tsc
+./node_modules/.bin/sls slstats --disable
 npm run copy-static-assets
 npm run gen:versioninfo
 npm run build:yml

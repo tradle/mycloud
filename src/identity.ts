@@ -4,10 +4,11 @@ import protocol from '@tradle/protocol'
 import {
   cachifyPromiser,
   omitVirtualDeep,
-  summarizeObject
+  summarizeObject,
+  maybeStripProtocolVersion,
 } from './utils'
 
-import { AUTHOR, ORG, ORG_SIG, SIG } from './constants'
+import { AUTHOR, ORG, ORG_SIG, SIG, PROTOCOL_VERSION } from './constants'
 
 import {
   IPubKey,
@@ -123,6 +124,8 @@ export default class Identity {
     object[AUTHOR] = getPermalink(author.identity)
     object[ORG] = object[AUTHOR]
     object = protocol.object({ object })
+
+    maybeStripProtocolVersion(object)
 
     await resolveEmbeds
     const key = getSigningKey(author.keys)

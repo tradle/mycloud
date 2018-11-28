@@ -731,3 +731,18 @@ export const removeRoleFromUser = (user: IUser, role: string) => {
 
   return false
 }
+
+export const didPropChange = ({ old={}, value, prop }: {
+  old?: any
+  value: any
+  prop: string
+}) => value && old[prop] !== value[prop]
+
+export const didPropChangeTo = ({ old = {}, value = {}, prop, propValue }: {
+  old?: any
+  value: any
+  prop: string
+  propValue: any
+}) => {
+  return value && value[prop] === propValue && didPropChange({ old, value, prop })
+}

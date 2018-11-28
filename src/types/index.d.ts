@@ -922,12 +922,12 @@ export interface MyCloudLaunchTemplate extends CFTemplate {
 export interface StackUpdateParameters {
   // Stage: 'dev'|'prod'
   SourceDeploymentBucket: string
-  BlockchainNetwork: string
-  OrgAdminEmail: string
 }
 
 export interface StackLaunchParameters extends StackUpdateParameters {
+  BlockchainNetwork: string
   OrgName: string
   OrgDomain: string
   OrgLogo: string
+  OrgAdminEmail: string
 }

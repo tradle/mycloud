@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events'
 import merge from 'lodash/merge'
-import { TYPE } from '@tradle/constants'
 import buildResource from '@tradle/build-resource'
 import { FindOpts, Filter } from '@tradle/dynamodb'
 import { post, promiseNoop, gzip, parseEnumValue } from './utils'
@@ -8,12 +7,12 @@ import { IDelivery, ILiveDeliveryOpts, ITradleMessage, Logger, Env, DB, IDeliver
 import Errors from './errors'
 import { RetryableTask } from './retryable-task'
 import models from './models'
+import { TYPE, MAX_DELIVERY_ATTEMPTS } from './constants'
 
 const COMPRESSION_THRESHOLD = 1024
 const FETCH_TIMEOUT = 10000
 const INITIAL_BACKOFF = 1000
 const DELIVERY_ERROR = 'tradle.DeliveryError'
-const MAX_DELIVERY_ATTEMPTS = 20
 const DELIVERY_ERROR_STATUS_ID = 'tradle.DeliveryErrorStatus'
 
 const retriableErrorFilter: Filter = (() => {

@@ -29,6 +29,8 @@ import {
   getUserIdentifierFromRequest,
   getProductModelForCertificateModel,
   witness,
+  didPropChange,
+  didPropChangeTo,
 } from './utils'
 
 import {
@@ -42,7 +44,7 @@ import {
   Bot,
   IBotComponents,
   IConfComponents,
-  IPluginLifecycleMethods,
+  PluginLifecycle,
   IPBReq,
   IPBUser,
   IPBApp,
@@ -349,24 +351,18 @@ export const loadComponentsAndPlugins = ({
   if (runAsyncHandlers) {
     logger.debug('running async hooks')
     // productsAPI.removeDefaultHandlers()
-    const maybeNotifyChildDeploymentCreators = ({ old={}, value={} }: ISaveEventPayload) => {
-      const type = value[TYPE]
-      if (type === CHILD_DEPLOYMENT && didPropChange({ old, value, prop: 'stackId' })) {
-        // using bot.tasks is hacky, but because this fn currently purposely stalls for minutes on end,
-        // stream-processor will time out processing this item and the lambda will exit before anyone gets notified
-        bot.tasks.add({
-          name: 'notify creators of child deployment',
-          promise: components.deployment.notifyCreatorsOfChildDeployment(value)
-        })
-
-        return
-      }
-    }
 
     const processChange = async ({ old, value }: ISaveEventPayload) => {
-      maybeNotifyChildDeploymentCreators({ old, value })
-
       const type = old[TYPE]
+      const model = bot.models[type]
+      await productsAPI._exec(`onResourceChanged:${type}`, { old, value })
+      if (model && model.subClassOf === 'tradle.Check' && didPropChange({ old, value, prop: 'status' })) {
+        await productsAPI._exec(`onCheckStatusChanged`, { old, value })
+      }
+
+      await productsAPI._exec('onResourceChanged', { old, value })
+
+      // TODO: factor this out to a plugin
       if (type === APPLICATION &&
         didPropChangeTo({ old, value, prop: 'status', propValue: 'approved' })) {
         value.submissions = await bot.backlinks.getBacklink({
@@ -379,51 +375,12 @@ export const loadComponentsAndPlugins = ({
         await applications.createSealsForApprovedApplication({ application: value })
         return
       }
-
-      if (type === CHILD_DEPLOYMENT) {
-        const from = old as IChildDeployment
-        const to = value as IChildDeployment
-        if (from.version.commit === to.version.commit) {
-          try {
-            await alerts.childRolledBack({ to })
-          } catch (err) {
-            logger.error('failed to alert about child update', err)
-          }
-
-          return
-        }
-
-        const freshlyDeployed = !from.stackId && to.stackId
-        if (freshlyDeployed) {
-          try {
-            await alerts.childLaunched(to as any)
-          } catch (err) {
-            logger.error('failed to alert about new child', err)
-          }
-        } else {
-          try {
-            await alerts.childUpdated({ from, to })
-          } catch (err) {
-            logger.error('failed to alert about child update', err)
-          }
-        }
-      }
     }
 
     const processCreate = async (resource: ITradleObject) => {
-      maybeNotifyChildDeploymentCreators({ old: null, value: resource })
-
       const type = resource[TYPE]
-      if (type === VERSION_INFO &&
-        resource._org === TRADLE.PERMALINK &&
-        Deployment.isStableReleaseTag(resource.tag)) {
-        await alerts.updateAvailable({
-          current: bot.version,
-          update: resource as VersionInfo
-        })
-
-        return
-      }
+      await productsAPI._exec(`onResourceCreated:${type}`, resource)
+      await productsAPI._exec('onResourceCreated', resource)
     }
 
     bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
@@ -436,6 +393,10 @@ export const loadComponentsAndPlugins = ({
     })
 
     bot.hookSimple(bot.events.topics.resource.delete, async ({ value }) => {
+      const type = value[TYPE]
+      await productsAPI._exec(`onResourceDeleted:${type}`, value)
+      await productsAPI._exec('onResourceDeleted', value)
+
       if (value[TYPE] === 'tradle.cloud.TmpSNSTopic') {
         await components.deployment.deleteTmpSNSTopic(value.topic)
       }
@@ -534,7 +495,7 @@ export const loadComponentsAndPlugins = ({
     productsAPI.plugins.use(banter(components))
     productsAPI.plugins.use(sendModelsPackToNewEmployees(components))
     productsAPI.plugins.use(setNamePlugin({ bot, productsAPI }))
-    productsAPI.plugins.use(<IPluginLifecycleMethods>{
+    productsAPI.plugins.use({
       onmessage: async (req: IPBReq) => {
         if (req.draftApplication) return
         // if (req.application && req.application.draft) {
@@ -573,7 +534,7 @@ export const loadComponentsAndPlugins = ({
 
         await productsAPI.continueApplication(req)
       }
-    })
+    } as PluginLifecycle.Methods)
 
     // attachPlugin({ name: 'draft-application', requiresConf: false, prepend: true })
 
@@ -583,7 +544,7 @@ export const loadComponentsAndPlugins = ({
     // as they are actually drafts of customer applications
     // however, for non-employees, possibly restrict to one pending app for the same product (default behavior of bot-products)
     const defaultHandlers = [].concat(productsAPI.removeDefaultHandler('onPendingApplicationCollision'))
-    productsAPI.plugins.use(<IPluginLifecycleMethods>{
+    productsAPI.plugins.use({
       onmessage: async (req) => {
         let { user, payload } = req
         if (!payload[ORG]) return
@@ -619,7 +580,7 @@ export const loadComponentsAndPlugins = ({
           application.draft = true
         }
       }
-    }, true) // prepend
+    } as PluginLifecycle.Methods, true) // prepend
   }
 
   if (ONFIDO_RELATED_EVENTS.includes(event) && plugins.onfido && plugins.onfido.apiKey) {
@@ -735,9 +696,9 @@ const limitApplications = (components: IBotComponents) => {
     })
   }
 
-  productsAPI.plugins.use(<IPluginLifecycleMethods>{
+  productsAPI.plugins.use({
     onRequestForExistingProduct
-  })
+  } as PluginLifecycle.Methods)
 }
 
 const tweakProductListPerRecipient = (components: IBotComponents) => {
@@ -759,12 +720,12 @@ const tweakProductListPerRecipient = (components: IBotComponents) => {
     })
   }
 
-  productsAPI.plugins.use(<IPluginLifecycleMethods>{
+  productsAPI.plugins.use({
     willRequestForm
-  })
+  } as PluginLifecycle.Methods)
 }
 
-const approveWhenTheTimeComes = (components:IBotComponents):IPluginLifecycleMethods => {
+const approveWhenTheTimeComes = (components:IBotComponents):PluginLifecycle.Methods => {
   const { bot, logger, conf, productsAPI, employeeManager, applications } = components
   const { autoApprove, approveAllEmployees } = conf.bot.products
   const onFormsCollected = async ({ req, user, application }) => {
@@ -932,9 +893,4 @@ const sendModelsPackToNewEmployees = (components: IBotComponents) => {
   return {
     didApproveApplication
   }
-}
-
-const didPropChange = ({ old={}, value, prop }) => value && old[prop] !== value[prop]
-const didPropChangeTo = ({ old = {}, value = {}, prop, propValue }) => {
-  return value && value[prop] === propValue && didPropChange({ old, value, prop })
 }

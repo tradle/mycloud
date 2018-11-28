@@ -1,5 +1,6 @@
 import { ICommand } from '../types'
 
+export const disabled = true
 export const command:ICommand = {
   name: 'updatestack',
   description: 'get a link to update your MyCloud',

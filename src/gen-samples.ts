@@ -1,3 +1,4 @@
+// @ts-ignore (uninstalled for now, as it's not used, and quite heavy)
 import Gen from '@tradle/gen-samples'
 
 export = async function genSamples ({ bot, event }) {

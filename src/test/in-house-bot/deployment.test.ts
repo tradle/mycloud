@@ -126,7 +126,7 @@ test('deployment by referral', loudAsync(async (t) => {
       // ...template.Mappings.org.init,
       name: childOrg.name,
       domain: childOrg.domain,
-      adminEmail: template.Parameters.OrgAdminEmail.Default,
+      adminEmail: Deployment.getAdminEmailFromTemplate(template),
       identity: childIdentity,
       apiUrl: childUrl,
     }
@@ -376,7 +376,6 @@ test('deployment by referral', loudAsync(async (t) => {
   //   'Fn::FindInMap': ['org', 'contact', 'adminEmail']
   // })
 
-
   const launchUrl = launchPackage.url
 
   // const saveResourceStub = sandbox.stub(parent.db, 'put').callsFake(async (res) => {
@@ -449,7 +448,8 @@ test('deployment by referral', loudAsync(async (t) => {
 
   saveTemplateStub.callsFake(async ({ template, bucket }) => {
     t.equal(bucket, regionalBucket)
-    t.equal(template.Parameters.OrgAdminEmail.Default, conf.adminEmail)
+    // only on launch
+    // t.equal(template.Parameters.OrgAdminEmail.Default, conf.adminEmail)
     return 'http://my.template.url'
   })
 
@@ -481,7 +481,8 @@ test('deployment by referral', loudAsync(async (t) => {
     req: updateReq
   })
 
-  t.equal(updatePkg.template.Parameters.BlockchainNetwork.Default, childChain)
+  // only on launch
+  // t.equal(updatePkg.template.Parameters.BlockchainNetwork.Default, childChain)
 
   updateResponse = getLastCallArg(parentSendStub).object
   t.equal(updateResponse[TYPE], 'tradle.cloud.UpdateResponse')

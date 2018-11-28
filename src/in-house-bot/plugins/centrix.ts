@@ -294,7 +294,7 @@ async function getCentrixData ({ application, bot, logger }: {application: IPBAp
   if (!document) return
 
   const docType = getDocumentType(form)
-  let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber } = form
+  let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber, documentVersion } = form
   let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
 
   let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck, prop: 'form'})
@@ -334,15 +334,17 @@ async function getCentrixData ({ application, bot, logger }: {application: IPBAp
     const name = getNameFromForm({ application });
     if (name) ({ firstName, lastName } = name)
   }
-
+  if (!documentVersion)
+    documentVersion = document.documentVersion
   const haveAll = documentNumber &&
     firstName &&
     lastName &&
     dateOfBirth &&
+    documentVersion &&
     (docType === DOCUMENT_TYPES.license || dateOfExpiry)
 
   if (!haveAll) return
-
+// debugger
   let centrixData:any = {
     type: docType,
     photoID: form,
@@ -352,7 +354,8 @@ async function getCentrixData ({ application, bot, logger }: {application: IPBAp
       dateOfBirth,
       firstName,
       lastName,
-      sex
+      sex,
+      documentVersion: parseInt(documentVersion)
     }
   }
 
@@ -366,7 +369,7 @@ function getDocumentType (doc) {
 }
 export const validateConf:ValidatePluginConf = async (opts) => {
   let pluginConf = opts.pluginConf as CentrixConf
-  debugger
+  // debugger
   const { credentials, products } = pluginConf
   if (!credentials) throw new Error('expected credentials')
   if (typeof credentials !== 'object') throw new Error('expected credentials to be an object')

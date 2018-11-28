@@ -142,17 +142,15 @@ const LOGGING_TOPIC_DELIVERY_POLICY = _.merge(UPDATE_STACK_TOPIC_DELIVERY_POLICY
 const ON_CHILD_STACK_STATUS_CHANGED_LAMBDA_NAME = 'onChildStackStatusChanged'
 const LOG_PROCESSOR_LAMBDA_NAME = 'logProcessor'
 const LOG_ALERTS_PROCESSOR_LAMBDA_NAME = 'logAlertProcessor'
-const createMappingsForUpdate = (adminEmail: string) => ({
-  org: {
+const createMappingsForUpdate = (adminEmail?: string) => ({
+  org: utils.pickNonNull({
     init: {
       name: '',
       domain: '',
       logo: '',
     },
-    contact: {
-      adminEmail,
-    }
-  }
+    contact: adminEmail && { adminEmail },
+  })
 })
 
 type CodeLocation = {
@@ -198,6 +196,18 @@ interface DeploymentCtorOpts {
 interface UpdateRequest extends ITradleObject {
   provider: ResourceStub
   tag: string
+}
+
+interface GenUpdatePackageForStackWithVersionOpts {
+  stackOwner: string
+  stackId: string
+  tag: string
+}
+
+interface GenUpdatePackageForStackOpts {
+  stackOwner: string
+  stackId: string
+  parentTemplateUrl: string
 }
 
 const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
@@ -269,6 +279,10 @@ export class Deployment {
     // otherwise it's impossible to figure out what went wrong when the stack
     // doesn't succeed
     template.Resources.BotUnderscoreoninitLogGroup.DeletionPolicy = 'Retain'
+  }
+
+  public static getAdminEmailFromTemplate = (template: CFTemplate) => {
+    return template.Parameters.OrgAdminEmail.Default
   }
 
   private callHomeDisabled: boolean
@@ -395,9 +409,7 @@ export class Deployment {
       // deployment: childDeployment,
       stackOwner: childDeployment.identity._permalink,
       stackId: stackId || childDeployment.stackId,
-      adminEmail: configuration.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
-      blockchain: Deployment.decodeBlockchainEnumValue(configuration.blockchain),
     })
 
     return {
@@ -413,37 +425,20 @@ export class Deployment {
   public genUpdatePackageForStackWithVersion = async ({
     stackOwner,
     stackId,
-    adminEmail,
     tag,
-    blockchain
-  }: {
-    stackOwner: string
-    stackId: string
-    adminEmail: string
-    tag: string
-    blockchain: string
-  }) => {
+  }: GenUpdatePackageForStackWithVersionOpts) => {
     const { templateUrl } = await this.getVersionInfoByTag(tag)
     return this.genUpdatePackageForStack({
       stackOwner,
       stackId,
-      adminEmail,
       parentTemplateUrl: templateUrl,
-      blockchain,
     })
   }
 
-  public genUpdatePackageForStack = async (opts: {
-    stackOwner: string
-    stackId: string
-    parentTemplateUrl: string
-    adminEmail: string
-    blockchain: string
-    // deployment:
-  }) => {
-    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl', 'adminEmail', 'blockchain'])
+  public genUpdatePackageForStack = async (opts: GenUpdatePackageForStackOpts) => {
+    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl'])
 
-    const { stackOwner, stackId, parentTemplateUrl, adminEmail, blockchain } = opts
+    const { stackOwner, stackId, parentTemplateUrl } = opts
     const { region, accountId, name } = StackUtils.parseStackArn(stackId)
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
@@ -452,9 +447,7 @@ export class Deployment {
 
     const template = await this.customizeTemplateForUpdate({
      template: parentTemplate,
-     adminEmail,
      bucket,
-     blockchain
    })
 
     const { templateUrl, code } = await this._saveTemplateAndCode({
@@ -467,7 +460,7 @@ export class Deployment {
     return {
       template,
       templateUrl,
-      notificationTopics: [statusUpdates.topic],
+      notificationTopics: statusUpdates && [statusUpdates.topic],
       loggingTopic: logging.topic,
       updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
     }
@@ -926,22 +919,18 @@ ${this.genUsageInstructions(links)}`
 
   public customizeTemplateForUpdate = async (opts: {
     template: CFTemplate
-    adminEmail: string
     bucket: string
-    blockchain: string
   }):Promise<MyCloudUpdateTemplate> => {
-    utils.requireOpts(opts, ['template', 'adminEmail', 'bucket', 'blockchain'])
+    utils.requireOpts(opts, ['template', 'bucket'])
 
-    let { template, adminEmail, bucket, blockchain } = opts
+    let { template, bucket } = opts
     template = _.cloneDeep(template)
 
     // scrap unneeded mappings
     // also...we don't have this info
-    template.Mappings = createMappingsForUpdate(adminEmail)
+    template.Mappings = createMappingsForUpdate()
     Deployment.setUpdateTemplateParameters(template, {
       SourceDeploymentBucket: bucket,
-      BlockchainNetwork: blockchain,
-      OrgAdminEmail: adminEmail,
     })
 
     const initProps = template.Resources.Initialize.Properties
@@ -1085,22 +1074,15 @@ ${this.genUsageInstructions(links)}`
   }
 
   private _monitorChildStack = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
-    const [
-      statusUpdates,
-      logging
-    ] = await Promise.all([
-      this._setupStackStatusAlerts({ stackOwner, stackId }),
-      this._setupLoggingAlerts({ stackId })
-    ])
-
-    return {
-      statusUpdates,
-      logging,
-    }
+    return await Promise.props({
+      statusUpdates: stackOwner && this._setupStackStatusAlerts({ stackOwner, stackId }),
+      logging: this._setupLoggingAlerts({ stackId }),
+    })
   }
 
-  private _setupStackStatusAlerts = async ({ stackOwner, stackId }: ChildStackIdentifier) => {
-    const arn = await this._createStackUpdateTopic({ stackOwner, stackId })
+  private _setupStackStatusAlerts = async (opts: ChildStackIdentifier) => {
+    utils.requireOpts(opts, ['stackOwner', 'stackId'])
+    const arn = await this._createStackUpdateTopic(opts)
     return await this._subscribeToChildStackStatusAlerts(arn)
   }
 
@@ -1284,7 +1266,7 @@ ${this.genUsageInstructions(links)}`
       return v1.handleUpdateRequest({ req, from })
     }
 
-    utils.requireOpts(req, ['stackId', 'tag', 'adminEmail'])
+    utils.requireOpts(req, ['stackId', 'tag'])
 
     // if (req.currentCommit === this.bot.version.commit) {
     //   this.logger.debug('child is up to date')
@@ -1302,9 +1284,7 @@ ${this.genUsageInstructions(links)}`
     const pkg = await this.genUpdatePackageForStack({
       stackOwner: req._org || req._author,
       stackId: req.stackId,
-      adminEmail: req.adminEmail,
       parentTemplateUrl: versionInfo.templateUrl,
-      blockchain: req.blockchain ? Deployment.decodeBlockchainEnumValue(req.blockchain) : this.bot.blockchain.toString(),
     })
 
     const { notificationTopics=[], templateUrl } = pkg
@@ -1568,7 +1548,7 @@ ${this.genUsageInstructions(links)}`
     }
 
     const template = await stackUtils.getStackTemplate() as MyCloudUpdateTemplate
-    return template.Parameters.OrgAdminEmail.Default
+    return Deployment.getAdminEmailFromTemplate(template)
   }
 
   private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {

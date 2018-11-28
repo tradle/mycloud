@@ -21,6 +21,8 @@
     "prefer-const": false,
     "no-require-imports": false,
     "forin": false,
-    "max-classes-per-file": false
+    "max-classes-per-file": false,
+    "no-namespace": false,
+    "no-empty-interface": false
   }
 }

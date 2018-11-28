@@ -48,16 +48,14 @@ export const genConfirmationEmail = ({
   orgName,
   extraQueryParams={},
 }: GenConfirmationEmailOpts) => {
-  const extraQueryString = QueryString.stringify(extraQueryParams)
   const [mobileUrl, webUrl] = ['mobile', 'web'].map(platform => {
-    const base = appLinks.getApplyForProductLink({
+    return appLinks.getApplyForProductLink({
       provider,
       host,
       product: EMPLOYEE_ONBOARDING,
       platform,
+      ...extraQueryParams,
     })
-
-    return `${base}&${extraQueryString}`
   })
 
   return renderConfirmationEmail({ name, mobileUrl, webUrl, orgName })

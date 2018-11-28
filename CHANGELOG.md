@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+# [2.2.0-rc.0](https://github.com/tradle/serverless/compare/v2.1.2...v2.2.0-rc.0) (2018-11-24)
+
+
+### Bug Fixes
+
+* **dev:** error handling cli/utils genLocalResources ([638297f](https://github.com/tradle/serverless/commit/638297f))
+* **dev:** improve error for invalid aws region ([fb106c7](https://github.com/tradle/serverless/commit/fb106c7))
+* disable updatestack command, as a stack can no longer update itself (you have to use tradleconf) ([21f18d7](https://github.com/tradle/serverless/commit/21f18d7))
+
+
+
 <a name="2.1.2"></a>
 ## [2.1.2](https://github.com/tradle/serverless/compare/v2.1.2-rc.1...v2.1.2) (2018-11-23)
 
