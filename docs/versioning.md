@@ -1,5 +1,7 @@
 ## Versioning
 
+*Note: this is generally done by the Tradle team, with the Tradle MyCloud. Users of MyCloud typically only consume updates, using tradleconf*
+
 Questions answered below:
 
 - how are new MyCloud versions created?
