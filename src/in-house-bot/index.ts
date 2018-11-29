@@ -392,7 +392,7 @@ export const loadComponentsAndPlugins = ({
       const type = value[TYPE]
       const model = bot.models[type]
       if (value && model && model.subClassOf === 'tradle.Check' && didPropChange({ old, value, prop: 'status' })) {
-        await productsAPI._exec(`onCheckStatusChanged`, { old, value })
+        await productsAPI._exec(`onCheckStatusChanged`, value)
       }
     })
 
@@ -639,7 +639,9 @@ export const loadComponentsAndPlugins = ({
   ) {
     attachPlugin({ name: 'deployment', requiresConf: false })
   }
-
+  if (runAsyncHandlers) {
+    attachPlugin({ name: 'conditional-auto-approve' })
+  }
   if (handleMessages ||
     event.startsWith('documentChecker:') ||
     event === LambdaEvents.SCHEDULER
