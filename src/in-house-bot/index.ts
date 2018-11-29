@@ -258,15 +258,21 @@ export const loadComponentsAndPlugins = ({
 
   const getPluginConf = name => plugins[name] || defaultConfs[name]
   const usedPlugins = []
-  const attachPlugin = ({ name, componentName, requiresConf, prepend }: {
+  const ignoredPlugins = []
+  const attachPlugin = ({ name, componentName, requiresConf=true, prepend }: {
     name: string
     componentName?: string
     requiresConf?: boolean
     prepend?: boolean
   }) => {
     const pConf = getPluginConf(name)
-    if (requiresConf !== false) {
-      if (!pConf || pConf.enabled === false) return
+    if (requiresConf) {
+      const hasConf = !!pConf
+      const isEnabled = hasConf && pConf.enabled !== false
+      if (!(hasConf && isEnabled)) {
+        ignoredPlugins.push({ name, hasConf, isEnabled })
+        return
+      }
     }
 
     usedPlugins.push(name)
@@ -669,6 +675,7 @@ export const loadComponentsAndPlugins = ({
   }
 
   logger.debug('using plugins', usedPlugins)
+  logger.debug('ignoring plugins', ignoredPlugins)
 
   productsAPI.plugins.register('getRequiredForms', defaultGetRequiredForms)
   return components
