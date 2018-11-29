@@ -96,7 +96,7 @@ const {
 } = validateResource.utils
 
 const { MESSAGE, SIMPLE_MESSAGE } = TYPES
-const noop = () => {}
+const noop = (...args:any[]) => {}
 
 export const pluck = <T>(arr:T[], key:keyof T) => arr.map(item => item[key])
 
@@ -1626,5 +1626,20 @@ export const maybeStripProtocolVersion = obj => {
   if (STRIP_PROTOCOL_VERSION_BEFORE_SIGN) {
     // TODO: delete this when all have upgraded to mycloud >= 2.2.0
     delete obj[PROTOCOL_VERSION]
+  }
+}
+
+type Promiser<Input, Output> = (input:Input) => Promise<Output>
+type ErrorHandler = (err: any) => void
+
+export const tryAsync = <A, B>(fn:Promiser<A, B|void>, onError:ErrorHandler=noop) => async (input) => {
+  try {
+    return await fn(input)
+  } catch (err) {
+    try {
+      onError(err)
+    } catch (err) {
+      // ignore
+    }
   }
 }
