@@ -76,10 +76,10 @@ class DocumentValidityAPI {
         rawData['Date Of Expiry'] = 'The document has expired'
         rawData.Status = 'fail'
       }
-      else if (Date.now() < dateOfExpiry - MAX_EXPIRATION_YEARS_MILLIS) {
-        rawData['Date Of Expiry'] = `The expiration date set to more then '${MAX_EXPIRATION_YEARS}' years ahead`
-        rawData.Status = 'fail'
-      }
+      // else if (Date.now() < dateOfExpiry - MAX_EXPIRATION_YEARS_MILLIS) {
+      //   rawData['Date Of Expiry'] = `The expiration date set to more then '${MAX_EXPIRATION_YEARS}' years ahead`
+      //   rawData.Status = 'fail'
+      // }
     }
     if (dateOfBirth) {
       if (dateOfBirth > Date.now() - MIN_AGE_MILLIS) {
