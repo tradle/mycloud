@@ -287,7 +287,6 @@ export class Applications implements IHasModels {
   }
 
   public getLatestChecks = async ({ application }: AppInfo): Promise<ITradleCheck[]> => {
-    debugger
     const { checks=[] } = application
     if (!checks.length) return []
 

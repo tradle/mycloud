@@ -4,6 +4,7 @@ import { TYPE } from '@tradle/constants'
 import {
   isPassedCheck
 } from '../utils'
+
 import {
   Bot,
   CreatePlugin,
@@ -11,12 +12,15 @@ import {
   ValidatePluginConf,
   ITradleCheck,
   IPBApp,
-  Applications
+  Applications,
+  Logger,
 } from '../types'
 
 // const { parseStub } = validateResource.utils
 
 // export const name = 'conditional-auto-approve'
+
+const getResourceType = resource => resource[TYPE]
 
 interface IConditionalAutoApproveConf {
   [product: string]: {
@@ -26,52 +30,76 @@ interface IConditionalAutoApproveConf {
 
 type ConditionalAutoApproveOpts = {
   bot: Bot
-  conf: IConditionalAutoApproveConf,
+  conf: IConditionalAutoApproveConf
   applications: Applications
+  logger: Logger
 }
 
 export class ConditionalAutoApprove {
   private bot: Bot
   private conf: IConditionalAutoApproveConf
-  private applications:Applications
-  constructor({ bot, conf, applications }: ConditionalAutoApproveOpts) {
+  private applications: Applications
+  private logger: Logger
+  constructor({ bot, conf, applications, logger }: ConditionalAutoApproveOpts) {
     this.bot = bot
     this.conf = conf
     this.applications = applications
+    this.logger = logger
   }
 
   public checkTheChecks = async ({ check }) => {
-    let application = await this.bot.getResource(check.application, {backlinks: ['checks']})
-    let product = application.requestFor
+    this.logger.debug('checking if all checks passed')
+    const application = await this.bot.getResource(check.application, {backlinks: ['checks']})
+    const product = application.requestFor
 
-    let checksToCheck = this.conf.products[product]
-    if (!checksToCheck)
+    const checksToCheck = this.conf.products[product]
+    if (!checksToCheck) {
+      this.logger.debug(`not configured for product: ${product}`)
       return
+    }
+
     const thisCheckType = check[TYPE]
-// debugger
-    if (!checksToCheck.includes(thisCheckType))
+    if (!checksToCheck.includes(thisCheckType)) {
+      this.logger.debug(`ignoring check ${thisCheckType}, not relevant for auto-approve`)
       return
+    }
+
     const checkResources = await this.applications.getLatestChecks({ application })
+    // check that just passed may not have had correponding ApplicationSubmission created yet
+    // and so may not be in the result
+    const idx = checkResources.findIndex(c => c._permalink === check._permalink)
+    if (idx === -1) {
+      checkResources.push(check)
+    } else {
+      checkResources[idx] = check
+    }
+
     const foundChecks = checkResources.filter(check => {
-      debugger
-      let isPassed = isPassedCheck({status: check.status})
-      return (isPassed                 &&
-        checksToCheck.includes(check[TYPE])
-      )
+      return isPassedCheck(check) && checksToCheck.includes(check[TYPE])
     })
-    if (foundChecks.length !== checksToCheck.length)
+
+    if (foundChecks.length !== checksToCheck.length) {
+      this.logger.debug('not ready to auto-approve', {
+        product,
+        passed: foundChecks.map(getResourceType),
+        required: checksToCheck.map(getResourceType),
+      })
+
       return
-// debugger
+    }
+
+    this.logger.debug('auto-approving application')
     await this.applications.approve({ application })
   }
 }
 
 export const createPlugin: CreatePlugin<void> = ({ bot, applications }, { conf, logger }) => {
-  const autoApproveAPI = new ConditionalAutoApprove({ bot, conf, applications })
+  const autoApproveAPI = new ConditionalAutoApprove({ bot, conf, applications, logger })
   const plugin: IPluginLifecycleMethods = {
-    onCheckStatusChanged: async function(check: ITradleCheck) {
-      if (isPassedCheck(check))
+    onCheckStatusChanged: async (check: ITradleCheck) => {
+      if (isPassedCheck(check)) {
         await autoApproveAPI.checkTheChecks({ check })
+      }
     }
   }
 
