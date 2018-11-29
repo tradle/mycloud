@@ -227,7 +227,7 @@ export class Applications implements IHasModels {
         send
       })
 
-      await this.bot.seal({
+      await this.bot.sealIfNotBatching({
         counterparty: user.id,
         object: verification
       })
@@ -242,7 +242,7 @@ export class Applications implements IHasModels {
     // avoid re-sealing
     const subs = forms.filter(sub => !sub._seal)
     // verifications are sealed in issueVerifications
-    return await Promise.all(subs.map(object => this.bot.seal({ counterparty, object }))    )
+    await Promise.all(subs.map(object => this.bot.sealIfNotBatching({ counterparty, object }))    )
   }
 
   public createSealsForApprovedApplication = async ({ application }: AppInfo) => {
@@ -253,7 +253,7 @@ export class Applications implements IHasModels {
 
     const { certificate } = application
     if (certificate && !certificate._seal) {
-      const sealCert = bot.getResource(certificate).then(object => bot.seal({
+      const sealCert = bot.getResource(certificate).then(object => bot.sealIfNotBatching({
         counterparty: getApplicantPermalink(application),
         object
       }))

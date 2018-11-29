@@ -71,6 +71,17 @@ const COMMON_JOBS:Job[] = [
   // },
 ]
 
+if (bot.env.SEALING_MODE === 'batch') {
+  bot.logger.debug('scheduling batch sealing job')
+  COMMON_JOBS.push({
+    name: 'createSealBatch',
+    function: DEFAULT_JOB_RUNNER_FUNCTION,
+    period: bot.env.SEAL_BATCHING_PERIOD || 5,
+  })
+} else {
+  bot.logger.debug('sealing in single mode')
+}
+
 const addJobs = once((components: IBotComponents) => {
   COMMON_JOBS.forEach(job => {
     if (!JOBS[job.name]) {

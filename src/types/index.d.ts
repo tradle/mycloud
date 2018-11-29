@@ -20,7 +20,8 @@ import { Auth } from '../auth'
 import { Init } from '../init'
 import { AwsApis } from '../aws'
 import { Bucket } from '../bucket'
-import { Seals, Seal, SealPendingResult } from '../seals'
+import { Seals, Seal, SealPendingResult, CreateSealOpts } from '../seals'
+import { SealBatcher } from '../batch-seals'
 import { Blockchain } from '../blockchain'
 import { ModelStore } from '../model-store'
 import { Task, TaskManager } from '../task-manager'
@@ -44,6 +45,8 @@ import { Events, EventTopic } from '../events'
 import { Mailer } from '../mailer'
 import { MiddlewareContainer } from '../middleware-container'
 import { ResourceStub } from '@tradle/validate-resource'
+
+type Folder = Bucket
 
 export {
   ResourceStub,
@@ -82,8 +85,11 @@ export {
   Init,
   AwsApis,
   Bucket,
+  Folder,
   Seal,
   Seals,
+  SealBatcher,
+  CreateSealOpts,
   SealPendingResult,
   Blockchain,
   ModelStore,
@@ -607,6 +613,8 @@ export interface BlockchainNetwork extends BlockchainNetworkInfo {
   toString: () => string
   // select: (obj: any) => any
 }
+
+export type SealingMode = 'single'|'batch'
 
 export type StreamRecordType = 'create'|'update'|'delete'|string
 export type StreamService = 'dynamodb'

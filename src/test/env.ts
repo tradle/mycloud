@@ -3,6 +3,7 @@ import { parse as parseURL } from 'url'
 import http from 'http'
 import crypto from 'crypto'
 import getLocalIP from 'localip'
+import sinon from 'sinon'
 import '../globals'
 import Env from '../env'
 // console.warn('make sure localstack is running (npm run localstack:start)')
@@ -13,7 +14,6 @@ import * as AWS from 'aws-sdk-mock'
 import * as serviceMap from './service-map'
 
 const debug = require('debug')('tradle:sls:test:env')
-const sinon = require('sinon')
 const localIP = getLocalIP()
 const props = {
   AWS_REGION: 'us-east-1',

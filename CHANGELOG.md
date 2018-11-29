@@ -2,14 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.2.0-rc.0](https://github.com/tradle/serverless/compare/v2.1.2...v2.2.0-rc.0) (2018-11-24)
+# [2.2.0-rc.2](https://github.com/tradle/serverless/compare/v2.2.0-rc.0...v2.2.0-rc.2) (2018-11-28)
 
 
 ### Bug Fixes
 
-* **dev:** error handling cli/utils genLocalResources ([638297f](https://github.com/tradle/serverless/commit/638297f))
-* **dev:** improve error for invalid aws region ([fb106c7](https://github.com/tradle/serverless/commit/fb106c7))
-* disable updatestack command, as a stack can no longer update itself (you have to use tradleconf) ([21f18d7](https://github.com/tradle/serverless/commit/21f18d7))
+* documentVersion is required ([4f275c6](https://github.com/tradle/serverless/commit/4f275c6))
+
+
+### Features
+
+* add plugin hooks for onResourceCreated,onResourceChanged,onResourceDeleted,onCheckStatusChanged ([addb02c](https://github.com/tradle/serverless/commit/addb02c))
+* batch sealing mode ([70487e8](https://github.com/tradle/serverless/commit/70487e8))
 
 
 

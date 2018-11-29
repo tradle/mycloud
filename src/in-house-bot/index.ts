@@ -510,7 +510,7 @@ export const loadComponentsAndPlugins = ({
         if (payload[TYPE] === 'tradle.IdentityPublishRequest') {
           const { identity } = payload
           if (!identity._seal) {
-            await bot.seal({
+            await bot.sealIfNotBatching({
               counterparty: user.id,
               object: identity
             })

@@ -439,7 +439,7 @@ test('onmessagestream', loudAsync(async (t) => {
       ]
     },
     "recipientPubKey": "p256:04fffcaea5138d242b161f44d7310a20eefbbb2c39d8bed1061ec5df62c568d99eab7a6137cc4829ac4e2159f759dedf38ba34b6f4e42a0d9eb9486226402ed6ec",
-    "time": 1500317965602
+    "_time": 1500317965602
   }
 
   const payload = {

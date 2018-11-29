@@ -3,6 +3,7 @@ import format from 'string-format'
 import { getStackName, getLocalResourceName } from '../cli/utils'
 import serverlessYml from '../cli/serverless-yml'
 import { parseEnvVarName } from '../service-map'
+import { getStackParameter } from '../cli/get-stack-parameter'
 const {
   service,
   custom,
@@ -32,6 +33,11 @@ Object.keys(environment).forEach(key => {
 
   if (key === 'BLOCKCHAIN') {
     map[key] = blockchain
+    return
+  }
+
+  if (key === 'SEALING_MODE' || key === 'SEAL_BATCHING_PERIOD') {
+    map[key] = getStackParameter(val.Ref)
     return
   }
 
