@@ -550,6 +550,17 @@ export interface IMailerSendEmailOpts {
   replyTo?: string|string[]
 }
 
+export interface ISendSMSOpts {
+  phoneNumber: string
+  message: string
+  senderId?: string
+  highPriority?: boolean
+}
+
+export interface ISMS {
+  sendSMS: (opts: ISendSMSOpts) => Promise<any|void>
+}
+
 type ErrorCreator = () => Error
 
 export interface ITimeoutOpts {
@@ -830,13 +841,6 @@ export interface SNSMessage {
   default: any
   email?: any
   lambda?: any
-}
-
-export interface SendSMSOpts {
-  phoneNumber: string
-  message: string
-  senderId?: string
-  highPriority?: boolean
 }
 
 export interface ECKey {

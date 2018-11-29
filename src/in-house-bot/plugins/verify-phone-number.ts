@@ -10,6 +10,8 @@ import {
   IPBUser,
   IPBApp,
   UpdateResourceOpts,
+  ISMS,
+  Bot,
 } from '../types'
 import { SMSBasedVerifier, TTL } from '../sms-based-verifier'
 import Errors from '../../errors'
@@ -24,6 +26,7 @@ const SMS_OTP_PROMPT = `Please enter your SMS confirmation code when you receive
 const INVALID_OTP = `invalid confirmation code, try again?`
 const ASPECTS = 'Phone verification'
 const PROVIDER = 'Tradle'
+const DEFAULT_SMS_GATEWAY = 'sns'
 
 const createSMSPrompt = (phoneNumber: string) => `Please enter your SMS confirmation code when you receive it at ${phoneNumber}`
 
@@ -40,8 +43,11 @@ interface ISMSProducts {
   [product: string]: ISMSProduct
 }
 
+type SMSGatewayName = 'sns'
+
 interface ISMSPluginConf {
   products: ISMSProducts
+  gateway?: SMSGatewayName
 }
 
 interface ISMSPluginOpts extends IPluginOpts {
@@ -68,6 +74,16 @@ interface PhoneCheck extends ITradleObject {
 
 const isValidPhoneNumber = (number: string) => true
 const EXEC_ASYNC = false
+const getSMSClient = ({ bot, gateway=DEFAULT_SMS_GATEWAY }: {
+  bot: Bot,
+  gateway: SMSGatewayName
+}):ISMS => {
+  if (gateway.toLowerCase() === 'sns') {
+    return bot.snsUtils
+  }
+
+  throw new Errors.InvalidInput(`SMS gateway "${gateway}" not found`)
+}
 
 export const name = 'verify-phone-number'
 export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
@@ -81,9 +97,10 @@ export const createPlugin:CreatePlugin<SMSBasedVerifier> = ({
   const pluginConf = pluginOpts.conf as ISMSPluginConf
   const { products } = pluginConf
   if (!smsBasedVerifier) {
+    const sms: ISMS = getSMSClient({ bot, gateway: pluginConf.gateway })
     smsBasedVerifier = new SMSBasedVerifier({
       db: bot.db,
-      sns: bot.snsUtils,
+      sms,
       commands,
       logger: pluginOpts.logger,
     })
@@ -256,7 +273,8 @@ debugger
 }
 
 export const validateConf:ValidatePluginConf = async ({ bot, conf, pluginConf }) => {
-  const { products={} } = pluginConf as ISMSPluginConf
+  const { products={}, gateway } = pluginConf as ISMSPluginConf
+  const sms: ISMS = getSMSClient({ bot, gateway: pluginConf.gateway })
   for (let product in products) {
     let pConf = products[product]
     for (let form in pConf) {
