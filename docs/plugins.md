@@ -21,39 +21,40 @@ There are two components to plugins, code and configuration. If the code says "c
 
 ## Code
 
-When developing a plugin, it's currently easiest to develop it inside this project itself. Later, you can always export it to a separate npm module. See some example plugins in `../src/in-house-bot/plugins/`
+When developing a plugin, it's currently easiest to develop it inside this project itself. Later, you can always export it to a separate npm module. Place your plugin into the folder `../src/in-house-bot/plugins/`
 
-Plugins are attached to the in-house bot in [in-house-bot/index.ts](../src/in-house-bot/index.ts). Some day soon they will be attached automatically based on some configuration object, but today you need to add something like this:
+Plugins are attached to the in-house bot in [in-house-bot/index.ts](../src/in-house-bot/index.ts). Eventually they will be attached automatically based on some configuration object, but today you need to add something like this:
 
 ```ts
-// if we have a configuration for the lens plugin (see Configuration below)
-if (plugins['lens']) {
-  logger.debug('using plugin: lens')
-  // attach the lens plugin to the products bot
-  productsAPI.plugins.use(createLensPlugin({
-    ...commonPluginOpts,
-    // your plugin's configuration object
-    conf: plugins['lens'],
-    // use a sub-namespace of the main logger
-    logger: logger.sub('plugin-lens')
-  }))
+if (handleMessages) {
+  // this will enable your plugin to handle incoming messages from customers (e.g. forms)
+  attachPlugin({ name: 'lens' })
 }
 ```
 
-Plugins can implement (export) the following lifecycle methods:
+Plugins can implement (export) the following lifecycle methods (see `../src/in-house-bot/plugin-types.d.ts` for typings):
 
-- `willSend` / `didSend` - called before/after a message is sent to a user
+### Synchronous (when a message is received from a user)
+
+- `willSend` - called before a message is sent to a user
 - `willRequestForm` - called before a user is asked to fill out a form. If you want to prefill the form for the user, this is where to do it.
-- `willCreateApplication` / `didCreateApplication` - called before/after a new application is created for a user
-- `willDenyApplication` / `didDenyApplication` - called before/after an application is denied
-- `willApproveApplication` / `didApproveApplication` - called before/after an application is approved
-- `willDenyApplication` / `didDenyApplication` - called before/after an application is denied
+- `willCreateApplication` - called before a new application is created for a user
+- `willDenyApplication` - called before an application is denied
+- `willApproveApplication` - called before an application is approved
+- `willDenyApplication` - called before an application is denied
 - `getRequiredForms` - called to determine which forms are required from a user for a product
 - `validateForm` - called to validate a user-sent form
 - `onFormsCollected` - called when the forms for a product have been collected from a user
 - `onmessage` - handle an incoming message (the most general handler for user message)
 - `onmessage:[model.id]` - handle a type of incoming message, e.g. tradle.CustomerWaiting, or tradle.ProductRequest
 - `onmessage:[model.subClassOf]` - handle incoming messages that subclass a type, e.g.  to handle all subclasses of tradle.Form, export 'onmessage:tradle.Form'
+
+- `onmessage` - handle an incoming message (the most general handler for user message)
+
+### Asynchronous (when a db record changes)
+
+- `onResourceChanged` - called when a resource changed, e.g. the `lastName` value changed on a `tradle.Name` form
+- `onCheckStatusChanged` - a special case of `onResourceChanged`, for convenience purposes
 
 ## Configuration
 
@@ -147,7 +148,7 @@ export const validateConf = async ({ conf, pluginConf }: {
 
 ```
 
-See some simple examples in `src/in-house-bot/plugins`: `set-name`, `ts-and-cs`, `keep-fresh`, `lens`, `form-prefill`
+See some simple examples in `src/in-house-bot/plugins`: `set-name`, `ts-and-cs`, `keep-fresh`, `lens`, `form-prefill`, `required-forms`
 
 See more complex examples: `centrix`, `complyAdvantage`, `onfido`, `deployment`, `remediation`
 
