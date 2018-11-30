@@ -199,15 +199,17 @@ interface UpdateRequest extends ITradleObject {
 }
 
 interface GenUpdatePackageForStackWithVersionOpts {
-  stackOwner: string
-  stackId: string
   tag: string
+  stackOwner?: string
+  stackId?: string
+  region?: string
 }
 
 interface GenUpdatePackageForStackOpts {
-  stackOwner: string
-  stackId: string
   parentTemplateUrl: string
+  stackOwner?: string
+  stackId?: string
+  region?: string
 }
 
 const BlockchainNetworkModel = baseModels['tradle.BlockchainNetwork']
@@ -425,21 +427,27 @@ export class Deployment {
   public genUpdatePackageForStackWithVersion = async ({
     stackOwner,
     stackId,
+    region,
     tag,
   }: GenUpdatePackageForStackWithVersionOpts) => {
     const { templateUrl } = await this.getVersionInfoByTag(tag)
     return this.genUpdatePackageForStack({
       stackOwner,
       stackId,
+      region,
       parentTemplateUrl: templateUrl,
     })
   }
 
   public genUpdatePackageForStack = async (opts: GenUpdatePackageForStackOpts) => {
-    utils.requireOpts(opts, ['stackOwner', 'stackId', 'parentTemplateUrl'])
+    utils.requireOpts(opts, ['parentTemplateUrl'])
+    if (!opts.region) {
+      utils.requireOpts(opts, ['stackId'])
+    }
 
-    const { stackOwner, stackId, parentTemplateUrl } = opts
-    const { region, accountId, name } = StackUtils.parseStackArn(stackId)
+    let { stackOwner, stackId, region, parentTemplateUrl } = opts
+    if (!region) region = StackUtils.parseStackArn(stackId).region
+
     const [bucket, parentTemplate] = await Promise.all([
       this.getDeploymentBucketForRegion(region),
       this._getTemplateByUrl(parentTemplateUrl), // should we get via s3 instead?
@@ -456,13 +464,20 @@ export class Deployment {
       bucket,
     })
 
-    const { logging, statusUpdates } = await this._monitorChildStack({ stackOwner, stackId })
+    let loggingTopic
+    let notificationTopics
+    if (stackId) {
+      const { logging, statusUpdates } = await this._monitorChildStack({ stackOwner, stackId })
+      loggingTopic = logging.topic
+      notificationTopics = [statusUpdates.topic]
+    }
+
     return {
       template,
       templateUrl,
-      notificationTopics: statusUpdates && [statusUpdates.topic],
-      loggingTopic: logging.topic,
-      updateUrl: utils.getUpdateStackUrl({ stackId, templateUrl }),
+      notificationTopics,
+      loggingTopic,
+      updateUrl: stackId && utils.getUpdateStackUrl({ stackId, templateUrl }),
     }
   }
 
