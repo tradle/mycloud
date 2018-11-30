@@ -2,17 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.2.0-rc.4](https://github.com/tradle/serverless/compare/v2.2.0-rc.3...v2.2.0-rc.4) (2018-11-29)
-
-
-### Bug Fixes
-
-* max number of years for doc validity is not curtain ([6bf5051](https://github.com/tradle/serverless/commit/6bf5051))
-
-
-### Features
-
-* allow auto approve if listed checks passed ([338a30d](https://github.com/tradle/serverless/commit/338a30d))
+# [2.2.0-rc.6](https://github.com/tradle/serverless/compare/v2.2.0-rc.5...v2.2.0-rc.6) (2018-11-30)
 
 
 

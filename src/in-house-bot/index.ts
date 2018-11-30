@@ -36,6 +36,7 @@ import {
 import {
   runWithTimeout,
   cachifyPromiser,
+  tryAsync,
 } from '../utils'
 
 import { Applications } from './applications'
@@ -385,7 +386,7 @@ export const loadComponentsAndPlugins = ({
       await productsAPI._exec('onResourceCreated', resource)
     }
 
-    bot.hookSimple(bot.events.topics.resource.save.async, async (change:ISaveEventPayload) => {
+    const handleResourceChange = async (change:ISaveEventPayload) => {
       const { old, value } = change
       if (old && value) {
         await processChange(change)
@@ -400,9 +401,13 @@ export const loadComponentsAndPlugins = ({
       if (value && model && model.subClassOf === 'tradle.Check' && didPropChange({ old, value, prop: 'status' })) {
         await productsAPI._exec(`onCheckStatusChanged`, value)
       }
-    })
+    }
 
-    bot.hookSimple(bot.events.topics.resource.delete, async ({ value }) => {
+    bot.hookSimple(bot.events.topics.resource.save.async, tryAsync(handleResourceChange, err => {
+      logger.error('resource change handler failed', err)
+    }))
+
+    const handleResourceDelete = async ({ value }) => {
       const type = value[TYPE]
       await productsAPI._exec(`onResourceDeleted:${type}`, value)
       await productsAPI._exec('onResourceDeleted', value)
@@ -410,7 +415,11 @@ export const loadComponentsAndPlugins = ({
       if (value[TYPE] === 'tradle.cloud.TmpSNSTopic') {
         await components.deployment.deleteTmpSNSTopic(value.topic)
       }
-    })
+    }
+
+    bot.hookSimple(bot.events.topics.resource.delete, tryAsync(handleResourceDelete, err => {
+      logger.error('resource delete handler failed', err)
+    }))
   }
 
   const promiseMyPermalink = bot.getMyPermalink()
