@@ -54,8 +54,8 @@ interface IJenIdCheckerConf {
 }
 
 const DEFAULT_CONF = {
-    username: 'Tradle_Demo',
-    password : 'Tradle@2018',
+    username: '',
+    password : '',
     threshold : 40,
     deleteAfter : true
 }
@@ -165,7 +165,10 @@ export class JenIdCheckerAPI {
             }
             let securitystatus = result.data.outputData.resultJson.documentresult.securitystatus   
             this.logger.debug(`Received data from ${PROVIDER} with security status: ${JSON.stringify(securitystatus)}`);
-          
+            
+            if (result.data)
+                result.data = sanitize(result.data).sanitized   
+
             if (+securitystatus.overallriskvalue >= this.conf.threshold) 
                 return { 
                    status: 'fail', 
@@ -200,7 +203,7 @@ export class JenIdCheckerAPI {
         if (status.message)
           resource.resultDetails = status.message
         if (status.rawData)
-          resource.rawData = sanitize(status.rawData).sanitized
+          resource.rawData = status.rawData
     
         this.logger.debug(`Creating ${PROVIDER} check for ${ASPECTS}`);
         const check = await this.bot.draft({ type: DOCUMENT_CHECKER_CHECK })
