@@ -736,7 +736,7 @@ export const didPropChange = ({ old={}, value, prop }: {
   old?: any
   value: any
   prop: string
-}) => value && old[prop] !== value[prop]
+}) => value && (!old || old[prop] !== value[prop])
 
 export const didPropChangeTo = ({ old = {}, value = {}, prop, propValue }: {
   old?: any
