@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.2.0-rc.6](https://github.com/tradle/serverless/compare/v2.2.0-rc.5...v2.2.0-rc.6) (2018-11-30)
+# [2.2.0](https://github.com/tradle/serverless/compare/v2.2.0-rc.6...v2.2.0) (2018-11-30)
+
+
+### Features
+
+* new centrix address check ([1afb735](https://github.com/tradle/serverless/commit/1afb735))
 
 
 
