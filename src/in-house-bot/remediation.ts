@@ -205,22 +205,32 @@ export class Remediation {
     }
 
     const claimId = stubToId({ claimType, key, nonce })
+    const dataHash = claimId
     const provider = await this.bot.getPermalink()
+    const importDataPayload = {
+      host: this.bot.apiBaseUrl,
+      provider,
+      dataHash,
+    }
+
     const qrData = QR.toHex({
       schema: 'ImportData',
-      data: {
-        host: this.bot.apiBaseUrl,
-        provider,
-        dataHash: claimId
-      }
+      data: importDataPayload,
     })
+
+    const [mobile, web] = ['mobile', 'web'].map(platform => this.bot.appLinks.getImportDataLink({
+      platform,
+      schema: 'ImportData',
+      ...importDataPayload,
+    }))
 
     return {
       key,
       nonce: typeof nonce === 'string' ? nonce : nonce.toString('hex'),
       claimId,
       claimType,
-      qrData
+      qrData,
+      links: { mobile, web },
     }
   }
 
