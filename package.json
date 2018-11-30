@@ -146,6 +146,7 @@
     "@tradle/bot-products": "github:tradle/bot-products",
     "@tradle/build-resource": "^4.0.2",
     "@tradle/cb-blockr": "^3.2.1",
+    "@tradle/centrix": "github:tradle/centrix",
     "@tradle/constants": "^2.5.0",
     "@tradle/countries": "github:tradle/countries",
     "@tradle/custom-models": "github:tradle/custom-models",
