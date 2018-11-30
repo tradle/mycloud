@@ -9,9 +9,10 @@ import validateResource from '@tradle/validate-resource'
 // @ts-ignore
 const { sanitize } = validateResource.utils
 
-let createCentrixClient
+let createClient
+let addressType
 try {
-  createCentrixClient = require('@tradle/centrix')
+  ({ createClient, addressType } = require('@tradle/centrix'))
 } catch (err) {}
 
 import { getLatestForms, getStatusMessageForCheck, doesCheckNeedToBeCreated } from '../utils'
@@ -30,8 +31,11 @@ import { getNameFromForm, toISODateString } from '../utils'
 
 const PHOTO_ID = 'tradle.PhotoID'
 const CENTRIX_CHECK = 'tradle.CentrixCheck'
+const CENTRIX_ADDRESS_CHECK = 'tradle.CentrixAddressCheck'
 const CENTRIX_NAME = 'Centrix'
 const NZ_COUNTRY_ID = 'tradle.Country_NZ'
+const ASPECTS = 'Document registry'
+const ADDRESS_ASPECTS = 'Address verification'
 
 const DOCUMENT_TYPES = {
   license: 'driving_licence',
@@ -43,7 +47,8 @@ const ERROR = 'Error'
 
 const OPERATION = {
   driving_licence: 'DriverLicenceVerification',
-  passport: 'DIAPassportVerification'
+  passport: 'DIAPassportVerification',
+  address: 'AddressVerification'
 }
 
 type CentrixConf = {
@@ -66,6 +71,7 @@ const FIXTURES = (function() {
     return {
       passport: require('@tradle/centrix/test/fixtures/success-passport').GetCreditReportProductsResult,
       license: require('@tradle/centrix/test/fixtures/success-driver-license').GetCreditReportProductsResult,
+      address: require('@tradle/centrix/test/fixtures/sample-address-response-success')
     }
   } catch (err) {}
 })()
@@ -85,22 +91,32 @@ class CentrixAPI {
     this.logger = logger
     this.test = test
   }
-  async callCentrix({ req, photoID, props }) {
+  async callCentrix({ req, photoID, props, doVerifyAddress }) {
+    // debugger
     const idType = getDocumentType(photoID)
-    const method = idType === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
+    let method: string
+    if (doVerifyAddress) {
+      method = 'verifyAddress'
+    }
+    else
+      method = idType === DOCUMENT_TYPES.passport ? 'verifyPassport' : 'verifyLicense'
     this.logger.debug(`Centrix type ${idType}`)
     const { user, application } = req
 
     const centrixOpName = OPERATION[idType]
     // ask centrix to verify it
-    props.success = idType === DOCUMENT_TYPES.passport ? false : true
+    if (!doVerifyAddress)
+      props.success = idType === DOCUMENT_TYPES.passport ? false : true
     this.logger.debug(`running ${centrixOpName} with Centrix with success set to ${props.success}`)
-    let checkFor = splitCamelCase(centrixOpName, ' ', true)
-    let rawData, status, message
+    let checkFor = doVerifyAddress ? ADDRESS_ASPECTS : splitCamelCase(centrixOpName, ' ', true)
+    let rawData, rawDataAddress, status, message
     try {
       this.logger.debug(`running ${checkFor} with Centrix`, { test: this.test })
       if (this.test) {
-        rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
+        if (doVerifyAddress)
+          rawData = FIXTURES.address
+        else
+          rawData = FIXTURES[idType === DOCUMENT_TYPES.passport ? 'passport' : 'license']
       } else {
         rawData = await this.centrix[method](props)
       }
@@ -120,11 +136,20 @@ class CentrixAPI {
         rawData.error = err.message
       status = 'error'
       this.logger.debug(`creating error check for ${centrixOpName} with Centrix`)
-      await this.createCentrixCheck({ application, rawData, status, message, form: photoID })
+      await this.createCentrixCheck({ application, rawData, status, message, form: photoID, doVerifyAddress })
       return
     }
-
-    if (idType === DOCUMENT_TYPES.passport) {
+    if (doVerifyAddress) {
+      // debugger
+      if (!rawData.DataSets.SmartID.IsAddressVerified) {
+        if (rawData.ResponseDetails.IsSuccess)
+          status = 'fail'
+        else
+          status = 'error'
+        message = `${checkFor}`
+      }
+    }
+    else if (idType === DOCUMENT_TYPES.passport) {
       if (!rawData.DataSets.DIAPassport.IsSuccess  ||
           !rawData.DataSets.DIAPassport.DIAPassportVerified)
         status = 'fail'
@@ -144,24 +169,24 @@ class CentrixAPI {
     }
 
     this.logger.debug(`creating ${status.title} check for ${centrixOpName} with Centrix`)
-    await this.createCentrixCheck({ application, rawData, status, message, form: photoID })
+    await this.createCentrixCheck({ application, rawData, status, message, form: photoID, doVerifyAddress })
     if (status !== 'pass')
       return
     this.logger.debug(`${checkFor} success, EnquiryNumber: ${rawData.ResponseDetails.EnquiryNumber}`)
-    await this.createCentrixVerification({ req, photoID, rawData, application })
+    await this.createCentrixVerification({ req, photoID, rawData, application, doVerifyAddress })
 
     // artificial timeout till we figure out why updating state
     // twice in a row sometimes loses the first change
     await new Promise(resolve => setTimeout(resolve, 2000))
   }
-  async createCentrixCheck({ application, rawData, status, message, form }) {
+  async createCentrixCheck({ application, rawData, status, message, form, doVerifyAddress }) {
     rawData = sanitize(rawData).sanitized
     let r:any = {
       provider: CENTRIX_NAME,
       status,
       application,
       dateChecked: Date.now(),
-      aspects: 'document registry',
+      aspects: doVerifyAddress ? ADDRESS_ASPECTS : ASPECTS,
       form
     }
     r.message = getStatusMessageForCheck({models: this.bot.models, check: r})
@@ -184,7 +209,7 @@ class CentrixAPI {
     let checkR = check.toJSON()
   }
 
-  async createCentrixVerification({ req, photoID, rawData, application }) {
+  async createCentrixVerification({ req, photoID, rawData, application, doVerifyAddress }) {
     // const { object } = photoID
     const object = photoID.object || photoID
         // provider: {
@@ -201,7 +226,7 @@ class CentrixAPI {
       reference: [{
         queryId: rawData.ResponseDetails.EnquiryNumber
       }],
-      aspect: 'validity',
+      aspect: doVerifyAddress ? ADDRESS_ASPECTS : ASPECTS,
       rawData
     }
     const verification = await this.bot.draft({
@@ -225,23 +250,31 @@ class CentrixAPI {
 }
 export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, applications }, { conf, logger }) => {
   const { test, credentials } = conf
-  if (typeof createCentrixClient !== 'function') {
+  if (typeof createClient !== 'function') {
     throw new Error('centrix client not available')
   }
 
-  const centrix = createCentrixClient({ test, ...credentials })
+  const centrix = createClient({ test, ...credentials })
 
   const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger, test })
   const getDataAndCallCentrix = async ({ req, application }) => {
-    const centrixData:any = await getCentrixData({ application, bot, logger })
-    if (!centrixData) {
+    // debugger
+    const data = await getCentrixData({ application, bot, logger })
+    if (!data) {
       logger.debug(`don't have all the inputs yet`)
       return
     }
-
-    centrixData.req = req
-    logger.debug(`calling Centrix...`)
-    await centrixAPI.callCentrix(centrixData)
+    const { centrixData, addressVerificationData } = data
+    if (centrixData) {
+      centrixData.req = req
+      logger.debug(`calling Centrix...`)
+      await centrixAPI.callCentrix(centrixData)
+    }
+    if (addressVerificationData) {
+      addressVerificationData.req = req
+      logger.debug(`calling Centrix... address verification`)
+      await centrixAPI.callCentrix(addressVerificationData)
+    }
   }
 
   const onFormsCollected = async function ({ req }) {
@@ -294,72 +327,83 @@ async function getCentrixData ({ application, bot, logger }: {application: IPBAp
   if (!document) return
 
   const docType = getDocumentType(form)
-  let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber, documentVersion } = form
+  let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber, documentVersion, city, full } = form
   let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
 
+  let centrixData
   let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck, prop: 'form'})
   if (!createCheck) {
     logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
-    return
+    // return
   }
+  else {
+    if (docType === DOCUMENT_TYPES.passport) {
+      // trim trailing angle brackets
+      documentNumber = documentNumber.replace(/[<]+$/g, '')
+    }
+    if (dateOfBirth)
+      dateOfBirth = toISODateString(dateOfBirth)
+    if (dateOfExpiry)
+      dateOfExpiry = toISODateString(dateOfExpiry)
 
-  // if (await doesCheckExist({bot, type: CENTRIX_CHECK, eq: {form: form._link}, application, provider: CENTRIX_NAME}))
-  //   return
-  // const { items } = await bot.db.find({
-  //   filter: {
-  //     EQ: {
-  //       [TYPE]: CENTRIX_CHECK,
-  //       'application._permalink': application._permalink,
-  //       'provider': CENTRIX_NAME,
-  //       'form._link': formStub.link
-  //     }
-  //   }
-  // })
-  // if (items.length)
-  //   return
-  if (docType === DOCUMENT_TYPES.passport) {
-    // trim trailing angle brackets
-    documentNumber = documentNumber.replace(/[<]+$/g, '')
+    if (!firstName)
+      firstName = personal.firstName
+    if (!lastName)
+      lastName = personal.lastName
+    if (!(firstName && lastName)) {
+      const name = getNameFromForm({ application });
+      if (name) ({ firstName, lastName } = name)
+    }
+    if (!documentVersion)
+      documentVersion = document.documentVersion
+    const haveAll = documentNumber &&
+      firstName &&
+      lastName &&
+      dateOfBirth &&
+      documentVersion &&
+      (docType === DOCUMENT_TYPES.license || dateOfExpiry)
+
+    if (!haveAll) return
+  // debugger
+    centrixData = {
+      type: docType,
+      photoID: form,
+      props: {
+        documentNumber,
+        dateOfExpiry,
+        dateOfBirth,
+        firstName,
+        lastName,
+        sex,
+        documentVersion: parseInt(documentVersion)
+      }
+    }
   }
-  if (dateOfBirth)
-    dateOfBirth = toISODateString(dateOfBirth)
-  if (dateOfExpiry)
-    dateOfExpiry = toISODateString(dateOfExpiry)
+  let addressVerificationData
+  if (form.full  &&  form.city) {
+    let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_ADDRESS_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck: ['full', 'city'], prop: 'form'})
+    if (!createCheck) {
+      logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+      return
+    }
 
-  if (!firstName)
-    firstName = personal.firstName
-  if (!lastName)
-    lastName = personal.lastName
-  if (!(firstName && lastName)) {
-    const name = getNameFromForm({ application });
-    if (name) ({ firstName, lastName } = name)
-  }
-  if (!documentVersion)
-    documentVersion = document.documentVersion
-  const haveAll = documentNumber &&
-    firstName &&
-    lastName &&
-    dateOfBirth &&
-    documentVersion &&
-    (docType === DOCUMENT_TYPES.license || dateOfExpiry)
-
-  if (!haveAll) return
-// debugger
-  let centrixData:any = {
-    type: docType,
-    photoID: form,
-    props: {
-      documentNumber,
-      dateOfExpiry,
-      dateOfBirth,
-      firstName,
-      lastName,
-      sex,
-      documentVersion: parseInt(documentVersion)
+    addressVerificationData = {
+      type: docType,
+      photoID: form,
+      props: {
+        firstName,
+        lastName,
+        dateOfBirth,
+        addressType: addressType.current,
+        country: 'NZL',
+        addressLine1: form.full,
+        city: form.city
+      },
+      doVerifyAddress: true
     }
   }
 
-  return centrixData
+  return { centrixData, addressVerificationData }
 }
 
 function getDocumentType (doc) {
