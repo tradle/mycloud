@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.2.0-rc.5](https://github.com/tradle/serverless/compare/v2.2.0-rc.4...v2.2.0-rc.5) (2018-11-29)
-
-
-### Bug Fixes
-
-* **conditional-auto-approve:** add logging, take into account just-passed check that triggers auto-approve check ([b245b5c](https://github.com/tradle/serverless/commit/b245b5c))
+# [2.2.0-rc.6](https://github.com/tradle/serverless/compare/v2.2.0-rc.5...v2.2.0-rc.6) (2018-11-30)
 
 
 
