@@ -297,7 +297,7 @@ export class DocumentCheckerAPI {
   public async handleVerificationEvent(evt) {
     let { event, data } = evt
     // don't run reports right now
-debugger
+// debugger
     let bearer = await getToken()
     if (event === 'verification.report.created') {
       // let url = `${API_URL}/${trimLeadingSlashes(data.verification_url)}/report`
@@ -396,7 +396,7 @@ export const createPlugin: CreatePlugin<DocumentCheckerAPI> = ({ bot, applicatio
 
       const form = await bot.getResource(formStub)
 
-debugger
+// debugger
       let createCheck = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER, form, propertiesToCheck: ['scan'], prop: 'form'})
       if (!createCheck) {
         logger.debug(`${PROVIDER}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
