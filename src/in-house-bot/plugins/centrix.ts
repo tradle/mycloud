@@ -257,9 +257,9 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   const centrix = createClient({ test, ...credentials })
 
   const centrixAPI = new CentrixAPI({ bot, productsAPI, applications, centrix, logger, test })
-  const getDataAndCallCentrix = async ({ req, application }) => {
+  const getDataAndCallCentrix = async ({ req, application, verifyAddress }) => {
     // debugger
-    const data = await getCentrixData({ application, bot, logger })
+    const data = await getCentrixData({ application, bot, logger, verifyAddress })
     if (!data) {
       logger.debug(`don't have all the inputs yet`)
       return
@@ -290,15 +290,16 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
     }
 
     let productId = application.requestFor
-    let { products } = conf
+    let { products, verifyAddress } = conf
     if (!products  ||  !products[productId]) {
       logger.debug(`skipped, not configured for product: ${productId}`)
       return
     }
 
     // if (hasCentrixVerification({ application })) return
+    debugger
     try {
-      await getDataAndCallCentrix({ req, application })
+      await getDataAndCallCentrix({ req, application, verifyAddress })
     } catch (err) {
       debugger
       logger.debug('Centrix operation failed', err)
@@ -310,7 +311,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
   }
 }
 
-async function getCentrixData ({ application, bot, logger }: {application: IPBApp, bot: Bot, logger: Logger}) {
+async function getCentrixData ({ application, bot, logger, verifyAddress }: {application: IPBApp, bot: Bot, logger: Logger, verifyAddress: boolean}) {
   if (!application) return
   const formStub = getLatestForms(application)
     .find(form => form.type === PHOTO_ID)
@@ -380,7 +381,8 @@ async function getCentrixData ({ application, bot, logger }: {application: IPBAp
     }
   }
   let addressVerificationData
-  if (form.full  &&  form.city) {
+  debugger
+  if (verifyAddress  &&  form.full  &&  form.city) {
     let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_ADDRESS_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck: ['full', 'city'], prop: 'form'})
     if (!createCheck) {
       logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
@@ -449,7 +451,7 @@ export const validateConf:ValidatePluginConf = async (opts) => {
   for (let p in products) {
     const model = models[p]
     if (!model) noModels.push(p) // throw new Error(`missing product model: ${p}`)
-    if (model.subClassOf !== 'tradle.FinancialProduct') {
+    else if (model.subClassOf !== 'tradle.FinancialProduct') {
       badModels.push(p)
       // throw new Error(`"${p}" is not subClassOf tradle.FinancialProduct`)
     }
