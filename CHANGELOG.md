@@ -2,17 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.3.0-rc.0](https://github.com/tradle/serverless/compare/v2.2.0...v2.3.0-rc.0) (2018-12-01)
-
-
-### Bug Fixes
-
-* **deployment plugin:** null ref ([95e413c](https://github.com/tradle/serverless/commit/95e413c))
+# [2.3.0-rc.1](https://github.com/tradle/serverless/compare/v2.3.0-rc.0...v2.3.0-rc.1) (2018-12-02)
 
 
 ### Features
 
-* Centrix address check added ([86482c8](https://github.com/tradle/serverless/commit/86482c8))
+* address verification check on demand ([8784a5d](https://github.com/tradle/serverless/commit/8784a5d))
 
 
 
