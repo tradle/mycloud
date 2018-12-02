@@ -1562,8 +1562,8 @@ ${this.genUsageInstructions(links)}`
       return emails[0].Endpoint
     }
 
-    const template = await stackUtils.getStackTemplate() as MyCloudUpdateTemplate
-    return Deployment.getAdminEmailFromTemplate(template)
+    const params = await stackUtils.getStackParameterValues()
+    return params.OrgAdminEmail
   }
 
   private _getLatestStableVersionInfoNew = async ():Promise<VersionInfo> => {
