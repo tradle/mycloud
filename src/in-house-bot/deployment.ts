@@ -1246,7 +1246,7 @@ ${this.genUsageInstructions(links)}`
   }
 
   public draftUpdateRequest = (opts) => {
-    utils.requireOpts(opts, ['tag', 'adminEmail', 'provider'])
+    utils.requireOpts(opts, ['tag', 'provider'])
 
     // if (parent[TYPE] !== PARENT_DEPLOYMENT) {
     //   throw new Errors.InvalidInput(`expected "parent" to be tradle.MyCloudFriend`)
@@ -1255,14 +1255,14 @@ ${this.genUsageInstructions(links)}`
     // const { parentIdentity } = parent
     const { env } = this.bot
     return this.bot.draft({ type: UPDATE_REQUEST })
-      .set({
+      .set(utils.pickNonNull({
         service: 'tradle',
         stage: env.STACK_STAGE,
         region: this._thisRegion,
         stackId: this._thisStackArn,
         blockchain: Deployment.encodeBlockchainEnumValue(this.bot.blockchain.toString()),
         ...opts
-      })
+      }))
       .toJSON()
   }
 
