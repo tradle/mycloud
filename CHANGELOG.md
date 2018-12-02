@@ -2,12 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.3.0-rc.1](https://github.com/tradle/serverless/compare/v2.3.0-rc.0...v2.3.0-rc.1) (2018-12-02)
-
-
-### Features
-
-* address verification check on demand ([8784a5d](https://github.com/tradle/serverless/commit/8784a5d))
+# [2.3.0](https://github.com/tradle/serverless/compare/v2.3.0-rc.1...v2.3.0) (2018-12-02)
 
 
 
