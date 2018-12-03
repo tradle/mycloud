@@ -144,7 +144,7 @@ export const createPlugin:CreatePlugin<Deployment> = (components, { conf, logger
 
     const from = old as IChildDeployment
     const to = value as IChildDeployment
-    if (from.version.commit === to.version.commit) {
+    if (_.get(from, 'version.commit') === _.get(to, 'version.commit')) {
       try {
         await alerts.childRolledBack({ to })
       } catch (err) {
