@@ -631,7 +631,8 @@ export const loadComponentsAndPlugins = ({
       'centrix',
       'rankone-checks',
       'facial-recognition',
-      'trueface'
+      'trueface',
+      'jenIdChecker'
     ].forEach(name => attachPlugin({ name }))
 
     ;[
