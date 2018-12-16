@@ -1,5 +1,7 @@
 // const debug = require('debug')('@tradle/server-cli:plugin:centrix')
 import _ from 'lodash'
+import FormData from 'form-data';
+
 import constants from '@tradle/constants'
 const { TYPE } = constants
 const { VERIFICATION, IDENTITY } = constants.TYPES
@@ -30,6 +32,7 @@ import {
 import { getNameFromForm, toISODateString } from '../utils'
 
 const PHOTO_ID = 'tradle.PhotoID'
+const ADDRESS = 'tradle.Address'
 const CENTRIX_CHECK = 'tradle.CentrixCheck'
 const CENTRIX_ADDRESS_CHECK = 'tradle.CentrixAddressCheck'
 const CENTRIX_NAME = 'Centrix'
@@ -202,7 +205,7 @@ class CentrixAPI {
       }
     }
     const check = await this.bot.draft({
-        type: CENTRIX_CHECK,
+        type: doVerifyAddress ? CENTRIX_ADDRESS_CHECK : CENTRIX_CHECK,
       })
       .set(r)
       .signAndSave()
@@ -245,7 +248,7 @@ class CentrixAPI {
     })
 
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: CENTRIX_CHECK, form: object })
+      await this.applications.deactivateChecks({ application, type: doVerifyAddress ? CENTRIX_ADDRESS_CHECK : CENTRIX_CHECK, form: object })
   }
 }
 export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, applications }, { conf, logger }) => {
@@ -313,8 +316,8 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
 
 async function getCentrixData ({ application, bot, logger, verifyAddress }: {application: IPBApp, bot: Bot, logger: Logger, verifyAddress: boolean}) {
   if (!application) return
-  const formStub = getLatestForms(application)
-    .find(form => form.type === PHOTO_ID)
+  const stubs = getLatestForms(application)
+  const formStub = stubs.find(form => form.type === PHOTO_ID)
 
   if (!formStub) return
 
@@ -331,6 +334,20 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
   let { firstName, lastName, dateOfBirth, sex, dateOfExpiry, documentNumber, documentVersion, city, full } = form
   let propertiesToCheck = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'dateOfExpiry', 'documentNumber']
 
+  if (dateOfBirth)
+    dateOfBirth = toISODateString(dateOfBirth)
+  if (dateOfExpiry)
+    dateOfExpiry = toISODateString(dateOfExpiry)
+
+  if (!firstName)
+    firstName = personal.firstName
+  if (!lastName)
+    lastName = personal.lastName
+  if (!(firstName && lastName)) {
+    const name = getNameFromForm({ application });
+    if (name) ({ firstName, lastName } = name)
+  }
+
   let centrixData
   let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck, prop: 'form'})
   if (!createCheck) {
@@ -342,19 +359,6 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
       // trim trailing angle brackets
       documentNumber = documentNumber.replace(/[<]+$/g, '')
     }
-    if (dateOfBirth)
-      dateOfBirth = toISODateString(dateOfBirth)
-    if (dateOfExpiry)
-      dateOfExpiry = toISODateString(dateOfExpiry)
-
-    if (!firstName)
-      firstName = personal.firstName
-    if (!lastName)
-      lastName = personal.lastName
-    if (!(firstName && lastName)) {
-      const name = getNameFromForm({ application });
-      if (name) ({ firstName, lastName } = name)
-    }
     if (!documentVersion)
       documentVersion = document.documentVersion
     const haveAll = documentNumber &&
@@ -364,31 +368,59 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
       documentVersion &&
       (docType === DOCUMENT_TYPES.license || dateOfExpiry)
 
-    if (!haveAll) return
+    if (haveAll) {
   // debugger
-    centrixData = {
-      type: docType,
-      photoID: form,
-      props: {
-        documentNumber,
-        dateOfExpiry,
-        dateOfBirth,
-        firstName,
-        lastName,
-        sex,
-        documentVersion: parseInt(documentVersion)
+      centrixData = {
+        type: docType,
+        photoID: form,
+        props: {
+          documentNumber,
+          dateOfExpiry,
+          dateOfBirth,
+          firstName,
+          lastName,
+          sex,
+          documentVersion: parseInt(documentVersion)
+        }
       }
     }
   }
   let addressVerificationData
+  if (!verifyAddress)
+    return { centrixData, addressVerificationData }
   debugger
-  if (verifyAddress  &&  form.full  &&  form.city) {
+  let addressForm:ITradleObject
+  let address = full
+  if (address) {
     let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_ADDRESS_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck: ['full', 'city'], prop: 'form'})
     if (!createCheck) {
-      logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+      logger.debug(`Centrix: check already exists for ${firstName} ${lastName} ${form.documentType.title}`)
+      return
+    }
+  }
+  else {
+    const addressStub = stubs.find(form => form.type === ADDRESS)
+    if (!addressStub)
+      return { centrixData, addressVerificationData }
+    addressForm = await bot.objects.get(addressStub.link)
+
+    let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_ADDRESS_CHECK, application, provider: CENTRIX_NAME, form: addressForm, propertiesToCheck: ['streetAddress', 'city'], prop: 'form'})
+    if (!createCheck) {
+      logger.debug(`Centrix: check already exists for ${firstName} ${lastName} ${form.documentType.title}`)
       return
     }
 
+    address = addressForm.streetAddress
+    city = addressForm.city
+  }
+
+// https://api.addressfinder.io/api/nz/address?key=ADDRESSFINDER_DEMO_KEY&secret=ADDRESSFINDER_DEMO_SECRET&q=184%20will&format=json&strict=2
+  const haveAll = address    &&
+                  firstName  &&
+                  lastName   &&
+                  dateOfBirth
+
+  if (haveAll) {
     addressVerificationData = {
       type: docType,
       photoID: form,
@@ -398,11 +430,14 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
         dateOfBirth,
         addressType: addressType.current,
         country: 'NZL',
-        addressLine1: form.full,
-        city: form.city
+        addressLine1: address.toUpperCase(),
       },
       doVerifyAddress: true
     }
+    if (city)
+      addressVerificationData.props.city = city.toUpperCase()
+    // if (addressForm)
+    //   addressVerificationData.addressForm = addressForm
   }
 
   return { centrixData, addressVerificationData }
