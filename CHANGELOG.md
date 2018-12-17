@@ -2,7 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.3.0](https://github.com/tradle/serverless/compare/v2.3.0-rc.1...v2.3.0) (2018-12-02)
+## [2.3.1-rc.0](https://github.com/tradle/serverless/compare/v2.3.0...v2.3.1-rc.0) (2018-12-17)
+
+
+### Bug Fixes
+
+* fallback for deployment.getCurrentAdminEmail ([9d1dcc5](https://github.com/tradle/serverless/commit/9d1dcc5))
+* missing import ([514bfdb](https://github.com/tradle/serverless/commit/514bfdb))
+* potential undefined in deployment plugin ([555949d](https://github.com/tradle/serverless/commit/555949d))
+
+
+### Features
+
+* address verification ([c2b031b](https://github.com/tradle/serverless/commit/c2b031b))
+* address verification ([0f79cd6](https://github.com/tradle/serverless/commit/0f79cd6))
+* new flow for Agent/Agency/CustomerOnboarding ([8b4797b](https://github.com/tradle/serverless/commit/8b4797b))
 
 
 
