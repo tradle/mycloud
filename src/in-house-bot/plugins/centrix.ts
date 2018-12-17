@@ -415,7 +415,6 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
     city = addressForm.city
   }
 
-// https://api.addressfinder.io/api/nz/address?key=ADDRESSFINDER_DEMO_KEY&secret=ADDRESSFINDER_DEMO_SECRET&q=184%20will&format=json&strict=2
   const haveAll = address    &&
                   firstName  &&
                   lastName   &&
