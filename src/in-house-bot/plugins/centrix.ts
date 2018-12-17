@@ -300,7 +300,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
     }
 
     // if (hasCentrixVerification({ application })) return
-    // debugger
+    debugger
     try {
       await getDataAndCallCentrix({ req, application, verifyAddress })
     } catch (err) {
@@ -351,7 +351,7 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
   let centrixData
   let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck, prop: 'form'})
   if (!createCheck) {
-    logger.debug(`Centrix: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+    logger.debug(`Centrix: check already exists for ${firstName} ${lastName} ${form.documentType.title}`)
     // return
   }
   else {
@@ -436,8 +436,6 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
     }
     if (city)
       addressVerificationData.props.city = city.toUpperCase()
-    // if (addressForm)
-    //   addressVerificationData.addressForm = addressForm
   }
 
   return { centrixData, addressVerificationData }
