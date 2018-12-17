@@ -94,6 +94,7 @@ class CentrixAPI {
     this.logger = logger
     this.test = test
   }
+  // Two different checks ran here: Digital Identity verification and Address verification
   async callCentrix({ req, photoID, props, doVerifyAddress }) {
     // debugger
     const idType = getDocumentType(photoID)
@@ -300,7 +301,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
     }
 
     // if (hasCentrixVerification({ application })) return
-    debugger
+    // debugger
     try {
       await getDataAndCallCentrix({ req, application, verifyAddress })
     } catch (err) {
@@ -420,6 +421,8 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
                   lastName   &&
                   dateOfBirth
 
+  // Need to pass address form so the check would point to it
+  // in case the address has been extracted not from PhotoID
   if (haveAll) {
     addressVerificationData = {
       type: docType,
@@ -443,8 +446,8 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
 
 function getDocumentType (doc) {
   return doc.documentType.title.indexOf('Passport') !== -1
-    ? DOCUMENT_TYPES.passport
-    : DOCUMENT_TYPES.license
+        ? DOCUMENT_TYPES.passport
+        : DOCUMENT_TYPES.license
 }
 export const validateConf:ValidatePluginConf = async (opts) => {
   let pluginConf = opts.pluginConf as CentrixConf
