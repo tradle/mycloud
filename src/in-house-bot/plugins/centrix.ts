@@ -300,7 +300,7 @@ export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, appli
     }
 
     // if (hasCentrixVerification({ application })) return
-    debugger
+    // debugger
     try {
       await getDataAndCallCentrix({ req, application, verifyAddress })
     } catch (err) {
@@ -388,7 +388,7 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
   let addressVerificationData
   if (!verifyAddress)
     return { centrixData, addressVerificationData }
-  debugger
+
   let addressForm:ITradleObject
   let address = full
   if (address) {
