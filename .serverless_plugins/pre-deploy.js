@@ -179,6 +179,7 @@ class SetVersion {
   }
 
   async onValidate() {
+    debugger
     await Promise.all([
       this.checkExisting(),
       this.validateTemplates(),
