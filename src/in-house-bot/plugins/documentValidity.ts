@@ -91,8 +91,9 @@ class DocumentValidityAPI {
         rawData.Status = 'fail'
       }
     }
-debugger
-    if (isPassport  &&  (issuer  ||  nationality)) {
+// debugger
+    // if (isPassport  &&  (issuer  ||  nationality)) {
+    if (isPassport  &&  nationality) {
       let countries = this.bot.models[COUNTRY].enum
       let nationalityCountry
       if (nationality) {
@@ -109,27 +110,27 @@ debugger
           rawData.Nationality = `Country in the nationality field '${nationalityCountry.title}' is not the same as the Country in the form`
         }
       }
-      let issuerCountry
-      if (issuer) {
-        if (nationality  &&  issuer === nationality)
-          issuerCountry = nationalityCountry
-        else
-          issuerCountry = _.find(countries, (c) => c.cca3 === issuer)
-        if (!issuerCountry) {
-          rawData.Status = 'fail'
-          rawData.Issuer = `Country in the issuer field '${issuer}' is invalid`
-        }
-        else if (issuerCountry.title !== country.title) {
-          rawData.Status = 'fail'
-          rawData.Issuer = `Country in the issuer field '${issuer}' is not the same as the Country in the form`
-        }
-      }
+      // let issuerCountry
+      // if (issuer) {
+      //   if (nationality  &&  issuer === nationality)
+      //     issuerCountry = nationalityCountry
+      //   else
+      //     issuerCountry = _.find(countries, (c) => c.cca3 === issuer)
+      //   if (!issuerCountry) {
+      //     rawData.Status = 'fail'
+      //     rawData.Issuer = `Country in the issuer field '${issuer}' is invalid`
+      //   }
+      //   else if (issuerCountry.title !== country.title) {
+      //     rawData.Status = 'fail'
+      //     rawData.Issuer = `Country in the issuer field '${issuer}' is not the same as the Country in the form`
+      //   }
+      // }
     }
     if (!rawData.Status)
       rawData.Status = 'pass'
     if (rawData.Status === 'fail') {
-      if (rawData.Issuer)
-        this.logger.debug(`DocumentValidity: ${rawData.Issuer}`)
+      // if (rawData.Issuer)
+      //   this.logger.debug(`DocumentValidity: ${rawData.Issuer}`)
       if (rawData.Nationality)
         this.logger.debug(`DocumentValidity: ${rawData.Nationality}`)
       if (rawData['Date Of Expiry'])
