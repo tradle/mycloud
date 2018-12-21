@@ -216,10 +216,6 @@ class CentrixAPI {
   async createCentrixVerification({ req, photoID, rawData, application, doVerifyAddress }) {
     // const { object } = photoID
     const object = photoID.object || photoID
-        // provider: {
-        //   id: 'tradle.Organization_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4_dbde8edbf08a2c6cbf26435a30e3b5080648a672950ea4158d63429a4ba641d4',
-        //   title: 'Centrix'
-        // }
     rawData = sanitize(rawData).sanitized
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
