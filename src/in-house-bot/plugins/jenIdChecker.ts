@@ -163,6 +163,10 @@ export class JenIdCheckerAPI {
                 let removed = await this.del(id, this.conf)
                 this.logger.debug(`Deleting data from ${PROVIDER} for ${ASPECTS}: ${JSON.stringify(removed.data)}`);
             }
+            
+            // removing dublicate information
+            delete result.data.outputData.resultString
+            
             let securitystatus = result.data.outputData.resultJson.documentresult.securitystatus   
             this.logger.debug(`Received data from ${PROVIDER} with security status: ${JSON.stringify(securitystatus)}`);
             
