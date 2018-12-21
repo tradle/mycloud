@@ -2861,9 +2861,8 @@
     },
     "dateformat": {
       "version": "3.0.3",
-      "from": "dateformat@>=3.0.0 <4.0.0",
-      "resolved": "https://registry.npmjs.org/dateformat/-/dateformat-3.0.3.tgz",
-      "dev": true
+      "from": "https://registry.npmjs.org/dateformat/-/dateformat-3.0.3.tgz",
+      "resolved": "https://registry.npmjs.org/dateformat/-/dateformat-3.0.3.tgz"
     },
     "debug": {
       "version": "2.6.9",
