@@ -166,14 +166,22 @@ export class JenIdCheckerAPI {
             
             // removing dublicate information
             delete result.data.outputData.resultString
-            
-            let securitystatus = result.data.outputData.resultJson.documentresult.securitystatus   
+
+            let securitystatus = result.data.outputData.resultJson.documentresult.securitystatus
+            let processingstatus = result.data.outputData.resultJson.documentresult.processingstatus 
             this.logger.debug(`Received data from ${PROVIDER} with security status: ${JSON.stringify(securitystatus)}`);
             
             if (result.data)
                 result.data = sanitize(result.data).sanitized   
-
-            if (+securitystatus.overallriskvalue >= this.conf.threshold) 
+            
+            if (processingstatus.code !== '0') {
+                return { 
+                    status: 'fail', 
+                    message: `Check failed: ${processingstatus.short}`,
+                    rawData : result.data
+                }
+            }        
+            else if (+securitystatus.overallriskvalue >= this.conf.threshold) 
                 return { 
                    status: 'fail', 
                    message: `Check failed: ${securitystatus.statusdescription}`,
