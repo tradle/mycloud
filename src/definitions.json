@@ -36,6 +36,13 @@
             "Ref": "AWS::NoValue"
           }
         ]
+      },
+      "BillingMode": {
+        "Fn::If": [
+          "DoProvisionDynamoDBScaling",
+          "PROVISIONED",
+          "PAY_PER_REQUEST"
+        ]
       }
     }
   },
@@ -67,6 +74,13 @@
       },
       "StreamSpecification": {
         "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "BillingMode": {
+        "Fn::If": [
+          "DoProvisionDynamoDBScaling",
+          "PROVISIONED",
+          "PAY_PER_REQUEST"
+        ]
       },
       "AttributeDefinitions": [
         {
