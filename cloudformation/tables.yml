@@ -39,6 +39,12 @@ Parameters:
       - "true"
       - "false"
 
+  ProvisionDynamoDBScaling:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+
 Conditions:
   DoCreateEventsTable:
     Fn::Equals: [ Ref: ExistingEventsTable, ""]
@@ -46,6 +52,8 @@ Conditions:
     Fn::Equals: [ Ref: ExistingBucket0Table, ""]
   DoEncrypt:
     Fn::Equals: [ Ref: Encrypt, "true"]
+  DoProvisionDynamoDBScaling:
+    Fn::Equals: [ Ref: ProvisionDynamoDBScaling, "true"]
 
 Resources:
   Events:
@@ -73,6 +81,12 @@ Resources:
           - DoEncrypt
           - SSEEnabled: true
           - Ref: AWS::NoValue
+      BillingMode:
+        Fn::If:
+          - DoProvisionDynamoDBScaling
+          - PROVISIONED
+          - PAY_PER_REQUEST
+
 
   Bucket0:
     Condition: DoCreateBucket0Table
@@ -95,6 +109,11 @@ Resources:
         WriteCapacityUnits: 10
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+      BillingMode:
+        Fn::If:
+          - DoProvisionDynamoDBScaling
+          - PROVISIONED
+          - PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: __h__
           AttributeType: S

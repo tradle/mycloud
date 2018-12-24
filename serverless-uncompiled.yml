@@ -359,6 +359,7 @@ provider:
       Fn::GetAtt: Source.Outputs.ApiGatewayRestApi
     R_ROLE_IotClient:
       Fn::GetAtt: IAM.Outputs.IotClientRole
+# this is used only for pr9ovisioned scaling
     R_ROLE_AutoScalingDynamoDB:
       Fn::GetAtt: IAM.Outputs.AutoScalingDynamoDBRole
     R_TOPIC_AdminAlerts:
@@ -1278,9 +1279,9 @@ resources:
       Description: how often to batch items for sealing (ignore if SealingMode is 'single')
       Default: 5
 
-    AutoScalingEnabled:
+    ProvisionDynamoDBScaling:
       Type: String
-      Default: "true"
+      Default: "false"
       AllowedValues:
         - "true"
         - "false"
@@ -1350,7 +1351,7 @@ resources:
             - BlockchainNetwork
             - PointInTimeRecoveryEnabledEventsTable
             - PointInTimeRecoveryEnabledBucket0Table
-            - AutoScalingEnabled
+            - ProvisionDynamoDBScaling
             - LogsDaysBeforeTransitionToGlacier
             - EncryptBuckets
             - EncryptTables
@@ -1433,8 +1434,8 @@ resources:
           default: Enable point-in-time recovery for the Events table
         PointInTimeRecoveryEnabledBucket0Table:
           default: Enable point-in-time recovery for the Bucket0 table
-        AutoScalingEnabled:
-          default: Enable DynamoDB auto-scaling
+        ProvisionDynamoDBScaling:
+          default: Use DynamoDB provisioned auto-scaling policy
         LogsDaysBeforeTransitionToGlacier:
           default: days before logs are transitioned from to Glacier
         EncryptBuckets:
@@ -1465,9 +1466,9 @@ resources:
         deploymentUUID: ''
 
   Conditions:
-    DoAutoScale:
+    DoProvisionDynamoDBScaling:
       Fn::Equals:
-        - Ref: AutoScalingEnabled
+        - Ref: ProvisionDynamoDBScaling
         - "true"
 
     DoCreateDeploymentBucket:
@@ -1571,6 +1572,8 @@ resources:
             Ref: PointInTimeRecoveryEnabledBucket0Table
           Encrypt:
             Ref: EncryptTables
+          ProvisionDynamoDBScaling:
+            Ref: ProvisionDynamoDBScaling
 
     Buckets:
       Type: AWS::CloudFormation::Stack
@@ -1628,7 +1631,7 @@ resources:
 
     AutoScalingEventsTable:
       Type: AWS::CloudFormation::Stack
-      Condition: DoAutoScale
+      Condition: DoProvisionDynamoDBScaling
       Properties:
         TemplateURL:
           Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-events-table.json'
@@ -1640,7 +1643,7 @@ resources:
 
     AutoScalingBucketTable:
       Type: AWS::CloudFormation::Stack
-      Condition: DoAutoScale
+      Condition: DoProvisionDynamoDBScaling
       Properties:
         TemplateURL:
           Fn::Sub: 'https://${Source.Outputs.SourceDeploymentBucket}.s3.amazonaws.com/${{self:custom.s3TemplatesPath}}/autoscale-bucket-table.json'
