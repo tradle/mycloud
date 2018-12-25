@@ -76,7 +76,7 @@ Resources:
            - 
              ReadCapacityUnits: 5
              WriteCapacityUnits: 5
-           - !Ref "AWS::NoValue"
+           - Ref "AWS::NoValue"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled:
           Ref: PointInTimeRecoveryEnabledEventsTable
@@ -110,7 +110,7 @@ Resources:
                - 
                  ReadCapacityUnits: 10
                  WriteCapacityUnits: 10
-               - !Ref "AWS::NoValue"
+               - Ref "AWS::NoValue"
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
       BillingMode: !If [DoProvisionDynamoDBScaling, PROVISIONED, PAY_PER_REQUEST]
@@ -159,7 +159,7 @@ Resources:
                - 
                  ReadCapacityUnits: 10
                  WriteCapacityUnits: 10
-               - !Ref "AWS::NoValue"
+               - Ref "AWS::NoValue"
         - IndexName: idx1
           KeySchema:
             - AttributeName: __x1h__
@@ -174,7 +174,7 @@ Resources:
                - 
                  ReadCapacityUnits: 10
                  WriteCapacityUnits: 10
-               - !Ref "AWS::NoValue"
+               - Ref "AWS::NoValue"
         - IndexName: idx2
           KeySchema:
             - AttributeName: __x2h__
@@ -189,7 +189,7 @@ Resources:
                - 
                  ReadCapacityUnits: 10
                  WriteCapacityUnits: 10
-               - !Ref "AWS::NoValue"
+               - Ref "AWS::NoValue"
         - IndexName: idx3
           KeySchema:
             - AttributeName: __x3h__
@@ -204,7 +204,7 @@ Resources:
                - 
                  ReadCapacityUnits: 10
                  WriteCapacityUnits: 10
-               - !Ref "AWS::NoValue"
+               - Ref "AWS::NoValue"
         - IndexName: idx4
           KeySchema:
             - AttributeName: __x4h__
@@ -219,7 +219,7 @@ Resources:
                - 
                  ReadCapacityUnits: 10
                  WriteCapacityUnits: 10
-               - !Ref "AWS::NoValue"
+               - Ref "AWS::NoValue"
 
 Outputs:
   Events:
