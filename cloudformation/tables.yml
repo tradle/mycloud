@@ -72,9 +72,8 @@ Resources:
           KeyType: HASH
       ProvisionedThroughput:
         Fn::If:
-          - DoProvisionDynamoDBScaling,
-          -
-            ReadCapacityUnits: 5
+          - DoProvisionDynamoDBScaling
+          - ReadCapacityUnits: 5
             WriteCapacityUnits: 5
           - Ref: AWS::NoValue
       PointInTimeRecoverySpecification:
@@ -85,8 +84,11 @@ Resources:
           - DoEncrypt
           - SSEEnabled: true
           - Ref: AWS::NoValue
-      BillingMode: Fn::If [DoProvisionDynamoDBScaling, PROVISIONED, PAY_PER_REQUEST]
-
+      BillingMode:
+        Fn::If:
+          - DoProvisionDynamoDBScaling
+          - PROVISIONED
+          - PAY_PER_REQUEST
 
   Bucket0:
     Condition: DoCreateBucket0Table
@@ -107,13 +109,16 @@ Resources:
       ProvisionedThroughput:
         Fn::If:
           - DoProvisionDynamoDBScaling
-          -
-            ReadCapacityUnits: 10
+          - ReadCapacityUnits: 10
             WriteCapacityUnits: 10
           - Ref: AWS::NoValue
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
-      BillingMode: Fn::If [DoProvisionDynamoDBScaling, PROVISIONED, PAY_PER_REQUEST]
+      BillingMode:
+        Fn::If:
+          - DoProvisionDynamoDBScaling
+          - PROVISIONED
+          - PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: __h__
           AttributeType: S
@@ -154,7 +159,11 @@ Resources:
           Projection:
             ProjectionType: KEYS_ONLY
           ProvisionedThroughput:
-            Fn::If: [DoProvisionDynamoDBScaling, {ReadCapacityUnits: 10, WriteCapacityUnits: 10}, Ref: "AWS::NoValue"]
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
         - IndexName: idx1
           KeySchema:
             - AttributeName: __x1h__
@@ -164,7 +173,11 @@ Resources:
           Projection:
             ProjectionType: KEYS_ONLY
           ProvisionedThroughput:
-            Fn::If: [DoProvisionDynamoDBScaling, {ReadCapacityUnits: 10, WriteCapacityUnits: 10}, Ref: "AWS::NoValue"]
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
         - IndexName: idx2
           KeySchema:
             - AttributeName: __x2h__
@@ -174,7 +187,11 @@ Resources:
           Projection:
             ProjectionType: KEYS_ONLY
           ProvisionedThroughput:
-            Fn::If: [DoProvisionDynamoDBScaling, {ReadCapacityUnits: 10, WriteCapacityUnits: 10}, Ref: "AWS::NoValue"]
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
         - IndexName: idx3
           KeySchema:
             - AttributeName: __x3h__
@@ -184,7 +201,11 @@ Resources:
           Projection:
             ProjectionType: KEYS_ONLY
           ProvisionedThroughput:
-            Fn::If: [DoProvisionDynamoDBScaling, {ReadCapacityUnits: 10, WriteCapacityUnits: 10}, Ref: "AWS::NoValue"]
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
         - IndexName: idx4
           KeySchema:
             - AttributeName: __x4h__
@@ -194,7 +215,11 @@ Resources:
           Projection:
             ProjectionType: KEYS_ONLY
           ProvisionedThroughput:
-            Fn::If: [DoProvisionDynamoDBScaling, {ReadCapacityUnits: 10, WriteCapacityUnits: 10}, Ref: "AWS::NoValue"]
+            Fn::If:
+              - DoProvisionDynamoDBScaling
+              - ReadCapacityUnits: 10
+                WriteCapacityUnits: 10
+              - Ref: "AWS::NoValue"
 Outputs:
   Events:
     Value:

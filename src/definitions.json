@@ -18,8 +18,16 @@
         }
       ],
       "ProvisionedThroughput": {
-        "ReadCapacityUnits": 5,
-        "WriteCapacityUnits": 5
+        "Fn::If": [
+          "DoProvisionDynamoDBScaling",
+          {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ]
       },
       "PointInTimeRecoverySpecification": {
         "PointInTimeRecoveryEnabled": {
@@ -69,8 +77,16 @@
         ]
       },
       "ProvisionedThroughput": {
-        "ReadCapacityUnits": 10,
-        "WriteCapacityUnits": 10
+        "Fn::If": [
+          "DoProvisionDynamoDBScaling",
+          {
+            "ReadCapacityUnits": 10,
+            "WriteCapacityUnits": 10
+          },
+          {
+            "Ref": "AWS::NoValue"
+          }
+        ]
       },
       "StreamSpecification": {
         "StreamViewType": "NEW_AND_OLD_IMAGES"
@@ -159,8 +175,16 @@
             "ProjectionType": "KEYS_ONLY"
           },
           "ProvisionedThroughput": {
-            "ReadCapacityUnits": 10,
-            "WriteCapacityUnits": 10
+            "Fn::If": [
+              "DoProvisionDynamoDBScaling",
+              {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         },
         {
@@ -179,8 +203,16 @@
             "ProjectionType": "KEYS_ONLY"
           },
           "ProvisionedThroughput": {
-            "ReadCapacityUnits": 10,
-            "WriteCapacityUnits": 10
+            "Fn::If": [
+              "DoProvisionDynamoDBScaling",
+              {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         },
         {
@@ -199,8 +231,16 @@
             "ProjectionType": "KEYS_ONLY"
           },
           "ProvisionedThroughput": {
-            "ReadCapacityUnits": 10,
-            "WriteCapacityUnits": 10
+            "Fn::If": [
+              "DoProvisionDynamoDBScaling",
+              {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         },
         {
@@ -219,8 +259,16 @@
             "ProjectionType": "KEYS_ONLY"
           },
           "ProvisionedThroughput": {
-            "ReadCapacityUnits": 10,
-            "WriteCapacityUnits": 10
+            "Fn::If": [
+              "DoProvisionDynamoDBScaling",
+              {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         },
         {
@@ -239,8 +287,16 @@
             "ProjectionType": "KEYS_ONLY"
           },
           "ProvisionedThroughput": {
-            "ReadCapacityUnits": 10,
-            "WriteCapacityUnits": 10
+            "Fn::If": [
+              "DoProvisionDynamoDBScaling",
+              {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
           }
         }
       ]

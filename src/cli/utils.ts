@@ -140,6 +140,21 @@ const genLocalResources = async ({ region, stackName }: {
     delete Properties.TimeToLiveSpecification
     delete Properties.PointInTimeRecoverySpecification
     delete Properties.SSESpecification
+    delete Properties.BillingMode
+    Properties.ProvisionedThroughput = {
+      ReadCapacityUnits: 10,
+      WriteCapacityUnits: 10,
+    }
+
+    if (Properties.GlobalSecondaryIndexes) {
+      Properties.GlobalSecondaryIndexes = Properties.GlobalSecondaryIndexes.map(index => ({
+        ...index,
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 10,
+          WriteCapacityUnits: 10,
+        }
+      }))
+    }
 
     Properties.TableName = getLocalResourceName({ stackName, name })
     try {
