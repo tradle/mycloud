@@ -81,11 +81,11 @@ Resources:
           - DoEncrypt
           - SSEEnabled: true
           - Ref: AWS::NoValue
-      BillingMode:
+      BillingModeSummary:
         Fn::If:
           - DoProvisionDynamoDBScaling
-          - PROVISIONED
-          - PAY_PER_REQUEST
+          - BillingMode: PROVISIONED
+          - BillingMode: PAY_PER_REQUEST
 
 
   Bucket0:
@@ -109,11 +109,11 @@ Resources:
         WriteCapacityUnits: 10
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
-      BillingMode:
+      BillingModeSummary:
         Fn::If:
           - DoProvisionDynamoDBScaling
-          - PROVISIONED
-          - PAY_PER_REQUEST
+          - BillingMode: PROVISIONED
+          - BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: __h__
           AttributeType: S
