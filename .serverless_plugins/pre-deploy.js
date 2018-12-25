@@ -152,7 +152,18 @@ class SetVersion {
   async setTemplateParameters() {
     const parameterNames = Object.keys(this.serverless.service.provider.compiledCloudFormationTemplate.Parameters)
     const stackInfo = await this.getStackInfo()
-    const params = stackInfo ? stackInfo.Parameters : []
+    let params = []
+    if (stackInfo) {
+      params = stackInfo.Parameters.filter(p => {
+        if (!parameterNames.includes(p.ParameterKey)) {
+          this.log(`WARNING: parameter "${p.ParameterKey}" in previous stack version has been removed or renamed`)
+          return false
+        }
+
+        return true
+      })
+    }
+
     Object.keys(stackParameters).forEach(key => {
       if (!parameterNames.includes(key)) {
         this.log(`WARNING: parameter "${key}" specified in "stackParameters" was not found in the template`)
