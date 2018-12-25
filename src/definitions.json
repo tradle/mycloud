@@ -45,7 +45,13 @@
           }
         ]
       },
-      "BillingMode": "Fn::If [DoProvisionDynamoDBScaling, PROVISIONED, PAY_PER_REQUEST]"
+      "BillingMode": {
+        "Fn::If": [
+          "DoProvisionDynamoDBScaling",
+          "PROVISIONED",
+          "PAY_PER_REQUEST"
+        ]
+      }
     }
   },
   "Bucket0": {
@@ -85,7 +91,13 @@
       "StreamSpecification": {
         "StreamViewType": "NEW_AND_OLD_IMAGES"
       },
-      "BillingMode": "Fn::If [DoProvisionDynamoDBScaling, PROVISIONED, PAY_PER_REQUEST]",
+      "BillingMode": {
+        "Fn::If": [
+          "DoProvisionDynamoDBScaling",
+          "PROVISIONED",
+          "PAY_PER_REQUEST"
+        ]
+      },
       "AttributeDefinitions": [
         {
           "AttributeName": "__h__",
