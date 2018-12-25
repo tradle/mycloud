@@ -20,7 +20,11 @@ const { parseStub } = validateResource.utils
 const PHOTO_ID = 'tradle.PhotoID'
 const ONFIDO_APPLICANT = 'tradle.onfido.Applicant'
 const PG_PERSONAL_DETAILS = 'tradle.pg.PersonalDetails'
-const ADDRESS = 'tradle.Address';
+const ADDRESS = 'tradle.Address'
+const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
+const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const AGENCY = 'tradle.Agency'
+// const PERSONAL_INFO = 'tradle.PersonalInfo'
 
 // const canPrefillFromPhotoID = ({ application, formRequest }) => {
 //   if (!doesApplicationHavePhotoID(application)) return false
@@ -57,6 +61,8 @@ interface IPersonalInfo {
   dateOfBirth?: number
   country?: ResourceStub
 }
+interface ILegalEntity {
+}
 
 export const extractors = {
   [PHOTO_ID]: (form: IPersonalInfo) => {
@@ -68,7 +74,8 @@ export const extractors = {
     if (country) props.country = country
 
     return props
-  }
+  },
+  [LEGAL_ENTITY]: (form) => form
 }
 
 export const transformers = {
@@ -84,8 +91,25 @@ export const transformers = {
     [PG_PERSONAL_DETAILS]: (source: IPersonalInfo) => {
       return _.pick(source, ['firstName', 'lastName', 'dateOfBirth'])
     },
+    // [PERSONAL_INFO]:  (source: IPersonalInfo) => {
+    //   return _.pick(source, ['firstName', 'lastName', 'dateOfBirth', 'nationality'])
+    // },
     [ADDRESS]: (source: IPersonalInfo) => {
        return _.pick(source, ['country'])
+    }
+  },
+  [LEGAL_ENTITY]: {
+    [CONTROLLING_PERSON]: (source) => {
+      // const props:any = {}
+      // props.legalEntity = source
+      return {
+        legalEntity: {
+          [TYPE]: source[TYPE],
+          _link: source._link,
+          _permalink: source._permalink,
+          _displayName: source.companyName
+        }
+      }
     }
   }
 }
@@ -111,7 +135,7 @@ export class SmartPrefill {
     const productConf = this.conf[requestFor] || {}
     const sources = productConf[form] || []
     if (!sources.length) return
-
+debugger
     const inputs = getParsedFormStubs(application)
       .filter(stub => sources.includes(stub.type))
       .map(stub => {
