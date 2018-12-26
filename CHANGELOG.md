@@ -2,13 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.3.1-rc.1](https://github.com/tradle/serverless/compare/v2.3.1-rc.0...v2.3.1-rc.1) (2018-12-21)
+## [2.3.1-rc.2](https://github.com/tradle/serverless/compare/v2.3.1-rc.1...v2.3.1-rc.2) (2018-12-26)
 
 
 ### Bug Fixes
 
-* dateformat used but not installed ([873015d](https://github.com/tradle/serverless/commit/873015d))
-* issuer might not be a country ([0f342b2](https://github.com/tradle/serverless/commit/0f342b2))
+* make use of new DynamoDB pay_per_request scaling ([7241d31](https://github.com/tradle/serverless/commit/7241d31))
+* make use of new DynamoDB pay_per_request scaling ([a46c7b0](https://github.com/tradle/serverless/commit/a46c7b0))
+* make use of new DynamoDB pay_per_request scaling ([f6ad3b2](https://github.com/tradle/serverless/commit/f6ad3b2))
+* make use of new DynamoDB pay_per_request scaling ([bb85528](https://github.com/tradle/serverless/commit/bb85528))
+* make use of new DynamoDB pay_per_request scaling ([4399c5b](https://github.com/tradle/serverless/commit/4399c5b))
+* make use of new DynamoDB pay_per_request scaling ([3b107bf](https://github.com/tradle/serverless/commit/3b107bf))
+* make use of new DynamoDB pay_per_request scaling ([67a26f6](https://github.com/tradle/serverless/commit/67a26f6))
+* make use of new DynamoDB pay_per_request scaling ([d5a7625](https://github.com/tradle/serverless/commit/d5a7625))
+* make use of new DynamoDB pay_per_request scaling ([1444975](https://github.com/tradle/serverless/commit/1444975))
+* new option BillingMode was added to aws-sdk ([a4b1ab2](https://github.com/tradle/serverless/commit/a4b1ab2))
+* prefill ControllingPerson ([7a7555e](https://github.com/tradle/serverless/commit/7a7555e))
+
+
+### Features
+
+* make use of new DynamoDB pay_per_request scaling ([8f06aa9](https://github.com/tradle/serverless/commit/8f06aa9))
+* make use of new DynamoDB pay_per_request scaling ([42d224d](https://github.com/tradle/serverless/commit/42d224d))
 
 
 
