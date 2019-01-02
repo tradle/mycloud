@@ -638,7 +638,8 @@ export const loadComponentsAndPlugins = ({
     ;[
       'hand-sig',
       'documentValidity',
-      'gdcChecker'
+      'gdcChecker',
+      'cibiChecker'
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
