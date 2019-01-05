@@ -32,3 +32,6 @@ export const ONFIDO_PROCESS_WEBHOOK_EVENT = 'onfido:webhook'
 // document checker
 export const DOCUMENT_CHECKER_WEBHOOK_EVENT = 'documentChecker:webhook'
 export const DOCUMENT_CHECKER_JOB = 'documentChecker:poll'
+
+// map URL sent via SMS to the real URL
+export const SHORT_TO_LONG_URL_MAPPING = 'shortToLongUrlMapping'

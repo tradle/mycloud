@@ -1135,6 +1135,14 @@ functions:
           method: post
           cors: ${{self:custom.cors}}
 
+  shortToLongUrlMapping:
+    handler: lib/in-house-bot/lambda/http/short-to-long-url-mapping.handler
+    events:
+      - http:
+          path: l/{any+}
+          method: get
+          cors: ${{self:custom.cors}}
+
   # qr:
   #   handler: lib/in-house-bot/lambda/http/qr.handler
   #   events:
