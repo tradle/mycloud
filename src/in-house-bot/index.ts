@@ -627,7 +627,7 @@ export const loadComponentsAndPlugins = ({
       'required-forms',
       'openCorporates',
       'complyAdvantage',
-      'controllingPersonRegistration',
+      // 'controllingPersonRegistration',
       'centrix',
       'rankone-checks',
       'facial-recognition',
@@ -684,6 +684,7 @@ export const loadComponentsAndPlugins = ({
     event === LambdaEvents.RESOURCE_ASYNC) {
     attachPlugin({ name: 'email-based-verification', componentName: 'emailBasedVerifier' })
     attachPlugin({ name: 'verify-phone-number', componentName: 'smsBasedVerifier' })
+    attachPlugin({ name: 'controllingPersonRegistration', componentName: 'smsBasedVerifier' })
   }
 
   logger.debug('using plugins', usedPlugins)

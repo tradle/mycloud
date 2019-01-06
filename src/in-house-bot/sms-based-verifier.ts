@@ -66,8 +66,13 @@ export class SMSBasedVerifier {
   }) => {
     const code = await this.commands.defer(deferredCommand)
     this.logger.debug('sending SMS to confirm command', { command: deferredCommand })
-    await this.sms.sendSMS(smsOpts)
+    await this.sendSMS({smsOpts})
     return code
+  }
+
+  public sendSMS = async ({smsOpts}) => {
+    this.logger.debug('sending link via SMS to onboard agent')
+    await this.sms.sendSMS(smsOpts)
   }
 
   public processConfirmationCode = async (code: string) => {
