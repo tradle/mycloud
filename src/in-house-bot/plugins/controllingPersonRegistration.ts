@@ -1,19 +1,33 @@
 import QueryString from 'querystring'
-import { Bot, Logger, CreatePlugin, Applications } from '../types'
-import { Remediation } from '../remediation'
+import {
+  Bot,
+  Logger,
+  CreatePlugin,
+  Applications,
+  ISMS
+} from '../types'
 import * as Templates from '../templates'
 import Errors from '../../errors'
 import * as crypto  from '../../crypto'
 import { TYPES } from  '../constants'
-import { getLatestForms, getAppLinks } from '../utils'
+import { TYPE } from  '../../constants'
+
+import { getLatestForms, getAppLinks, hasPropertiesChanged } from '../utils'
 import { appLinks } from '../../app-links'
+import { SMSBasedVerifier } from '../sms-based-verifier'
 
 const { APPLICATION, IDENTITY } = TYPES
 
-const FORM_ID = 'tradle.legal.LegalEntityControllingPerson'
+const CONTROLLING_PERSON = 'tradle.legal.LegalEntityControllingPerson'
+// const PERSONAL_INFO = 'tradle.PersonalInfo'
 const EMPLOYEE_ONBOARDING = 'tradle.EmployeeOnboarding'
 const AGENCY = 'tradle.Agency'
 const LEGAL_ENTITY = 'tradle.legal.LegalEntity'
+const SHORT_TO_LONG_URL_MAPPING = 'tradle.ShortToLongUrlMapping'
+
+const DEAR_CUSTOMER = 'Dear Customer'
+const DEFAULT_SMS_GATEWAY = 'sns'
+type SMSGatewayName = 'sns'
 
 const ONBOARD_MESSAGE = 'Controlling person onboarding'
 
@@ -36,6 +50,16 @@ const CONFIRMATION_EMAIL_DATA_TEMPLATE = {
     },
   ],
   signature: '-{{orgName}} Team',
+}
+const getSMSClient = ({ bot, gateway=DEFAULT_SMS_GATEWAY }: {
+  bot: Bot,
+  gateway: SMSGatewayName
+}):ISMS => {
+  if (gateway.toLowerCase() === 'sns') {
+    return bot.snsUtils
+  }
+
+  throw new Errors.InvalidInput(`SMS gateway "${gateway}" not found`)
 }
 
 export const renderConfirmationEmail = (data: ConfirmationEmailTemplateData) =>
@@ -86,19 +110,17 @@ class ControllingPersonRegistrationAPI {
   private org: any
   private conf: IControllingPersonConf
   private applications:Applications
-  private remediation: Remediation
-  constructor({ bot, org, conf, logger, applications, remediation }) {
+  constructor({ bot, org, conf, logger, applications }) {
     this.bot = bot
     this.org = org
     this.conf = conf
     this.logger = logger
     this.applications = applications
-    this.remediation = remediation
   }
   async sendConfirmationEmail({resource, application, legalEntity}) {
     let emailAddress = resource.emailAddress
 
-    this.logger.error(`controlling person: preparing to send invite to ${emailAddress} from ${this.conf.senderEmail}`)
+    this.logger.error('controlling person: preparing to send invite') // to ${emailAddress} from ${this.conf.senderEmail}`)
 
     const host = this.bot.apiBaseUrl
     const provider = await this.bot.getMyPermalink()
@@ -110,7 +132,7 @@ class ControllingPersonRegistrationAPI {
     const body = genConfirmationEmail({
       provider,
       host,
-      name: resource.firstName,
+      name: DEAR_CUSTOMER,
       orgName: this.org.name,
       extraQueryParams,
     })
@@ -128,64 +150,150 @@ class ControllingPersonRegistrationAPI {
       this.logger.error('failed to email controlling person', err)
     }
   }
-  // async _createDraftAndInvite(payload, req) {
-  //   let user = req.user
-  //   let application =  {
-  //     _t: APPLICATION,
-  //     context: crypto.randomString(32),
-  //     requestFor: EMPLOYEE_ONBOARDING,
-  //     applicant: {
-  //       _t: IDENTITY,
-  //       _permalink: payload._author,
-  //       _link: payload._author
-  //     }
-  //   }
-  //   let draftApplication = await this.applications.createApplication({user, application, req})
-  //   let submission = await this.applications.createApplicationSubmission({application: draftApplication, submission: payload})
-  //   return await this.remediation.getInviteForDraftApp({application: draftApplication})
-  // }
+  async sendLinkViaSMS({resource, application, smsBasedVerifier, legalEntity}) {
+    const host = this.bot.apiBaseUrl
+    const provider = await this.bot.getMyPermalink()
+    const extraQueryParams: any = { legalEntity: legalEntity._permalink, }
+    if (application.requestFor === AGENCY) {
+      extraQueryParams.isAgent = true
+    }
+
+    const [mobileUrl] = ['mobile'].map(platform => {
+      return appLinks.getApplyForProductLink({
+        provider,
+        host,
+        product: EMPLOYEE_ONBOARDING,
+        platform,
+        ...extraQueryParams,
+      })
+    })
+    let phoneNumber
+    if (typeof resource.phone === 'string')
+      phoneNumber = resource.phone
+    else
+      phoneNumber = resource.phone.number
+    // link should be shortend
+    let baseUrl = mobileUrl.split('?')[0]
+    let idx = baseUrl.indexOf('/', 8)
+    let shortUrl = baseUrl.substring(0, idx + 1) + 'l/' + Math.random().toString(36).substring(2)
+    const r = await this.bot.draft({ type: SHORT_TO_LONG_URL_MAPPING })
+        .set({
+          longUrl: mobileUrl,
+          shortUrl
+        })
+        .signAndSave()
+
+    await smsBasedVerifier.sendSMS({
+      smsOpts: {
+        phoneNumber: phoneNumber,
+        message: `Tradle: ${shortUrl}`,
+        senderId: this.org.name,
+      }
+    })
+  }
 }
 
-export const createPlugin: CreatePlugin<void> = (components, { logger, conf }) => {
-  const { bot, applications, remediation } = components
-
+export const createPlugin: CreatePlugin<void> = (components, pluginOpts) => {
+  var { bot, applications, commands, smsBasedVerifier } = components
+  var { logger, conf } = pluginOpts
   const orgConf = components.conf
   const { org } = orgConf
-  const cp = new ControllingPersonRegistrationAPI({ bot, conf, org, logger, applications, remediation: remediation || new Remediation(components) })
+  const cp = new ControllingPersonRegistrationAPI({ bot, conf, org, logger, applications })
   const plugin = {
-    [`onmessage:${FORM_ID}`]: async function(req) {
+    onmessage: async function(req) {
       const { user, application, payload } = req
-      debugger
       if (!application) return
       let productId = application.requestFor
       let { products } = conf
 
-      if (!products  ||  !products[productId]  ||  products[productId].indexOf(FORM_ID) === -1)
+      let ptype = payload[TYPE]
+      if (!products  ||  !products[productId]  ||  products[productId].indexOf(ptype) === -1)
         return
-      logger.error(`controlling person: processing for ${payload.emailAddress}`)
 
-      const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub))
-      const [personalInfo, legalEntity] = await Promise.all(tasks)
-
-      if (!personalInfo.emailAddress) {
-        logger.error(`controlling person: no email address`)
+      if (!payload.emailAddress  &&  !payload.phone) {
+        logger.error(`controlling person: no email address and no phone provided`)
         return
       }
-      if (personalInfo._prevlink) {
-        let prevR = await bot.objects.get(personalInfo._prevlink)
-        if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
-          return
-      }
-      // let invite = await cp._createDraftAndInvite(personalInfo, req)
 
-      // const stubs = getLatestForms(application)
-      // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
+      const legalEntity = await bot.getResource(payload.legalEntity)
 
-      // legalEntity = await bot.getResource(legalEntityStub[0])
-      // applications.createApplicationSubmission({application: draftApplication, submission: payload})
+      if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress', 'phone'] }))
+        return
+
+      logger.error('controlling person: processing started') // for ${payload.emailAddress}`)
 debugger
-      await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
+      if (payload.emailAddress) {
+        await cp.sendConfirmationEmail({resource: payload, application, legalEntity})
+        return
+      }
+      if (!smsBasedVerifier) {
+         const sms: ISMS = getSMSClient({ bot, gateway: conf.gateway })
+         smsBasedVerifier = new SMSBasedVerifier({
+          db: bot.db,
+          sms,
+          commands,
+          logger: conf.logger,
+        })
+      }
+      await cp.sendLinkViaSMS({resource: payload, application, smsBasedVerifier, legalEntity})
     }
+
+//       let personalInfo, legalEntity
+//       if (payload[TYPE] === CONTROLLING_PERSON) {
+//         const tasks = [payload.controllingPerson, payload.legalEntity].map(stub => bot.getResource(stub));
+//         ([personalInfo, legalEntity] = await Promise.all(tasks))
+//       }
+//       else
+//         personalInfo = payload
+
+//       if (!personalInfo.emailAddress) {
+//         logger.error(`controlling person: no email address`)
+//         return
+//       }
+
+//       if (!await hasPropertiesChanged({ resource: payload, bot, propertiesToCheck: ['emailAddress'] }))
+//         return
+
+//       if (payload[TYPE] === PERSONAL_INFO) {
+//         const stubs = getLatestForms(application)
+//         if (!stubs.length)
+//           return
+//         let cp = stubs.filter(s => s.type === CONTROLLING_PERSON)
+//         if (!cp.length)
+//           return
+//         const { items } = await bot.db.find({
+//           filter: {
+//             EQ: {
+//              [TYPE]: CONTROLLING_PERSON,
+//              'controllingPerson._permalink': personalInfo._permalink,
+//             },
+//             IN: {
+//               '_permalink': cp.map(f => f.permalink)
+//             }
+//           }
+//         })
+//         if (!items.length)
+//           return
+//         const controllingPerson = items[0]
+//         legalEntity = await bot.getResource(controllingPerson.legalEntity)
+//       }
+//       logger.error(`controlling person: processing for ${personalInfo.emailAddress}`)
+
+//       // if (personalInfo._prevlink) {
+//       //   let prevR = await bot.objects.get(personalInfo._prevlink)
+//       //   if (prevR  &&  prevR.emailAddress === personalInfo.emailAddress)
+//       //     return
+//       // }
+//       // let invite = await cp._createDraftAndInvite(personalInfo, req)
+
+//       // const stubs = getLatestForms(application)
+//       // const legalEntityStub = stubs.filter(({ type }) => type === LEGAL_ENTITY)
+
+//       // legalEntity = await bot.getResource(legalEntityStub[0])
+//       // applications.createApplicationSubmission({application: draftApplication, submission: payload})
+// debugger
+//       await cp.sendConfirmationEmail({resource: personalInfo, application, legalEntity})
+//     }
   }
 
   return {
