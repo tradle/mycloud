@@ -632,14 +632,14 @@ export const loadComponentsAndPlugins = ({
       'rankone-checks',
       'facial-recognition',
       'trueface',
-      'jenIdChecker'
+      'jenIdChecker',
+      'cibiChecker',
+      'gdcChecker'
     ].forEach(name => attachPlugin({ name }))
 
     ;[
       'hand-sig',
-      'documentValidity',
-      'gdcChecker',
-      'cibiChecker'
+      'documentValidity'
     ].forEach(name => attachPlugin({ name, requiresConf: false }))
 
     // used for some demo
