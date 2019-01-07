@@ -1,9 +1,9 @@
 {
-  "name": "@tradle/serverless",
+  "name": "@tradle/mycloud",
   "version": "2.4.0-rc.7",
   "main": "index.js",
   "private": "true",
-  "repository": "https://github.com/tradle/serverless",
+  "repository": "https://github.com/tradle/mycloud",
   "author": "Mark Vayngrib <mark@tradle.io>",
   "license": "MIT",
   "devDependencies": {
