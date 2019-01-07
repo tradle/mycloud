@@ -33,11 +33,10 @@ const ADDRESS = 'tradle.Address'
 const DOCUMENT_CHECKER_CHECK = 'tradle.documentChecker.Check'
 const IDENTITY_ASPECTS= 'Person identity validation'
 const ADDRESS_ASPECTS = 'Address verification'
-
-//const NEGREC_ASPECT= 'Person negative record search'
+const NEGREC_ASPECTS= 'Person negative record search'
 
 const PROVIDER_CREDIT_BUREAU = 'CIBI Credit Bureau'
-//const PROVIDER_NEGREC = 'CIBI Negative Record'
+const PROVIDER_NEGREC = 'CIBI Negative Record'
 
 const REP_URL = 'https://creditbureau.cibi.com.ph/uat/service.asmx?op=GET_REPORT'
 const NEGREC_TEST_URL = 'https://www.info4bus.com/i4b_api_test/negrec_api.asmx?op=NEGREC_SEARCH'
@@ -71,15 +70,17 @@ interface ICIBICheck {
 interface ICIBICheckerConf {
     username: string
     token: string
-    //negrecUsername: string
-    //negrecToken: string
+    negrecUsername: string
+    negrecToken: string
+    negrecUrl: string
 }
 
 const DEFAULT_CONF = {
     'username': 'kiuglobal',
     'token': 'E6DAD45A',
-   // 'negrecUsername': 'kiuglobal',
-   // 'negrecToken': 'FC59310F'
+    'negrecUsername': 'kiuglobal',
+    'negrecToken': 'FC59310F',
+    'negrecUrl': NEGREC_TEST_URL
 }
 
 const isArray = function(a) {
@@ -98,10 +99,72 @@ export class CIBICheckerAPI {
       this.logger = logger
     }
 
+    handleNegrecData = async (form, application) => {
+        
+        let firstname = form.firstName
+        let secondname = form.middleName
+        let lastname = form.lastName
+        
+        let subjectName = `${firstname} ${secondname} ${lastname}` // 'DELA CRUZ JUAN'   
+        let subjectType = 'I'
+
+        let negrecSearchXML = `<?xml version="1.0" encoding="utf-8"?>
+         \n<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         \nxmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+         <soap12:Body>
+         <NEGREC_SEARCH xmlns="http://tempuri.org/">
+         <auth_token>${this.conf.negrecToken}</auth_token><username>${this.conf.negrecUsername}</username>
+         <subject_name>${subjectName}</subject_name>
+         <subject_type>${subjectType}</subject_type>
+         </NEGREC_SEARCH></soap12:Body></soap12:Envelope>`
+
+        let negrecReport = await this.negrec(negrecSearchXML, this.conf.negrecUrl) 
+
+        let negrecStatus
+        if (!negrecReport.success) {
+            negrecStatus = {status: 'error', message: negrecReport.error, rawData: {}} 
+            this.logger.debug(`Failed request data from ${PROVIDER_NEGREC}, error : ${negrecReport.error}`); 
+        } else {
+            this.logger.debug(`Received data from ${PROVIDER_NEGREC}: ${JSON.stringify(negrecReport.data, null, 2)}`);
+            let subjects = negrecReport.data.SUBJECTS
+            if (subjects.lenght == 0) {
+                negrecStatus = { status: 'pass', message: 'No negative record.', rawData: negrecReport.data}
+            }
+            else {
+                negrecStatus = {status: 'fail', message: 'Negative records found.', rawData: negrecReport.data}    
+            }
+        }
+        return negrecStatus
+    }
+
+    negrec = async (data, url) => {
+        let status = await this.post(data, url)
+        if (status.success) {
+            let data = status.data['soap:Envelope']['soap:Body'].NEGREC_SEARCHResponse.NEGREC_SEARCHResult.NEGREC_SEARCH_RESPONSE
+            delete data['$']
+            delete data.USERNAME
+            let subjects = data.SUBJECTS
+            delete data.SUBJECTS
+            let obj = subjects.SUBJECT
+            if (!isArray(obj)) {
+                let arr = []
+                if (obj.NAME.length > 0)
+                    arr.push(obj)
+                data.SUBJECTS = arr
+            }
+            else
+                data.SUBJECTS = obj
+            status.data = data
+        }
+        return status
+    } 
+
 
     handleIdentityData = async (form, application) => {
         let dateOfBirth = dateformat(new Date(form.dateOfBirth), 'yyyy-mm-dd')
-      
+        let firstname = form.firstName // LANIE
+        let secondname = form.middleName // G
+        let lastname = form.lastName // AVIDA
         let identityReportXML = `<?xml version="1.0" encoding="utf-8"?>
         \n<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         \nxmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
@@ -110,7 +173,7 @@ export class CIBICheckerAPI {
         <auth_token>${this.conf.token}</auth_token><username>${this.conf.username}</username>
         <product>10</product>
         <request>
-        <![CDATA[<Request><CapsApplicant><firstname>${form.firstName}</firstname><secondname>${form.middleName}</secondname><lastname>${form.lastName}</lastname><dob>${dateOfBirth}</dob></CapsApplicant></Request>]]>
+        <![CDATA[<Request><CapsApplicant><firstname>${firstname}</firstname><secondname>${secondname}</secondname><lastname>${lastname}</lastname><dob>1960-09-25</dob></CapsApplicant></Request>]]>
         </request>
         </GET_REPORT></soap12:Body></soap12:Envelope>`
         
@@ -212,6 +275,9 @@ export class CIBICheckerAPI {
               this.mapReport(report, address)
            }
         }
+        this.logger.debug(`Received response from ${PROVIDER_CREDIT_BUREAU}`, JSON.stringify(status.data,null,2));
+        this.logger.debug(`Received address from ${PROVIDER_CREDIT_BUREAU}`, JSON.stringify(address, null,2));
+      
         return { status , address }
     }
 
@@ -311,13 +377,23 @@ export const createPlugin: CreatePlugin<CIBICheckerAPI> = ({ bot, applications }
       const form = await bot.getResource(formStub)
 
 debugger
+      let toCheckNegrec = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER_NEGREC, form, propertiesToCheck: ['scan'], prop: 'form'})
+      if (!toCheckNegrec) {
+          logger.debug(`${PROVIDER_NEGREC}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
+      }
+      else {
+          let negrecStatus = await documentChecker.handleNegrecData(form, application)
+          await documentChecker.createCheck({application, status: negrecStatus, form, provider: PROVIDER_NEGREC, aspect: NEGREC_ASPECTS})
+          if (negrecStatus.status === 'pass') {
+              await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData, provider: PROVIDER_NEGREC, aspect: NEGREC_ASPECTS })
+          }
+      }  
+      
       let toCheckIdentity = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER_CREDIT_BUREAU, form, propertiesToCheck: ['scan'], prop: 'form'})
       if (!toCheckIdentity) {
         logger.debug(`${PROVIDER_CREDIT_BUREAU}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
       }
-     
-
-      // debugger
+   
       if (toCheckIdentity) {
         let { identityStatus, address } = await documentChecker.handleIdentityData(form, application)
         await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: IDENTITY_ASPECTS})
@@ -326,9 +402,8 @@ debugger
         }
         else {
             await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-            return
         }
-
+        
         const addressStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
         if (!addressStub) {
           logger.error(`${PROVIDER_CREDIT_BUREAU}: address form cannot be found for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
@@ -363,7 +438,7 @@ debugger
 
 export const validateConf:ValidatePluginConf = async (opts) => {
   const pluginConf = opts.pluginConf as ICIBICheckerConf
-  const { username, token } = pluginConf
+  const { username, token, negrecUsername, negrecToken } = pluginConf
 
   let err = ''
   if (!username)
@@ -374,7 +449,6 @@ export const validateConf:ValidatePluginConf = async (opts) => {
     err += '\nExpected "token"'
   else if (typeof token !== 'string')
     err += '\nExpected "token" to be a string'
-  /*  
   if (!negrecUsername)
     err = '\nExpected "negrecUsername".'
   else if (typeof negrecUsername !== 'string')
@@ -383,88 +457,14 @@ export const validateConf:ValidatePluginConf = async (opts) => {
     err += '\nExpected "negrecToken"'
   else if (typeof negrecToken !== 'string')
     err += '\nExpected "negrecToken" to be a string'
-  */  
   if (err.length)
     throw new Error(err)
 }
 
 
 /*
-    handleNegrecData = async (form, application) => {
-        
-        let firstname = form.firstName
-        let lastname = form.lastName
-        let secondname = form.middleName
-        
-        let subjectName = `${firstname} ${secondname} ${lastname}`
-        let subjectType = 'I'
-
-        let negrecSearchXML = `<?xml version="1.0" encoding="utf-8"?>
-         \n<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         \nxmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-         <soap12:Body>
-         <NEGREC_SEARCH xmlns="http://tempuri.org/">
-         <auth_token>${this.conf.negrecToken}</auth_token><username>${this.conf.negrecUsername}</username>
-         <subject_name>${subjectName}</subject_name>
-         <subject_type>${subjectType}</subject_type>
-         </NEGREC_SEARCH></soap12:Body></soap12:Envelope>`
-
-        let negrecReport = await this.negrec(negrecSearchXML, NEGREC_TEST_URL) 
-
-        let negrecStatus
-        if (!negrecReport) {
-            negrecStatus = {status: 'error', message: negrecReport.error, rawData: {}} 
-            this.logger.debug(`Failed request data from ${PROVIDER_NEGREC}, error : ${negrecReport.error}`); 
-        } else {
-            this.logger.debug(`Received data from ${PROVIDER_NEGREC}: ${JSON.stringify(negrecReport.data, null, 2)}`);
-            let subjects = negrecReport.data.SUBJECTS
-            if (subjects.lenght == 0) {
-                negrecStatus = { status: 'pass', message: 'No negative record.', rawData: negrecReport.data}
-            }
-            else {
-                negrecStatus = {status: 'fail', message: 'Negative records found.', rawData: negrecReport.data}    
-            }
-        }
-        return negrecStatus
-    }
-
-    isArray = function(a) {
-        return (!!a) && (a.constructor === Array);
-    }
-
-    negrec = async (data, url) => {
-        let status = await this.post(data, url)
-        if (status.success) {
-            let data = status.data['soap:Envelope']['soap:Body'].NEGREC_SEARCHResponse.NEGREC_SEARCHResult.NEGREC_SEARCH_RESPONSE
-            delete data['$']
-            let subjects = data.SUBJECTS
-            delete data.SUBJECTS
-            let obj = subjects.SUBJECT
-            if (!this.isArray(obj)) {
-                let arr = []
-                if (obj.NAME.length > 0)
-                    arr.push(obj)
-                data.SUBJECTS = arr
-            }
-            else
-                data.SUBJECTS = obj
-            status.data = data
-        }
-        return status
-    } 
-    
-     let toCheckNegrec = await doesCheckNeedToBeCreated({bot, type: DOCUMENT_CHECKER_CHECK, application, provider: PROVIDER_NEGREC, form, propertiesToCheck: ['scan'], prop: 'form'})
-      if (!toCheckNegrec) {
-        logger.debug(`${PROVIDER_NEGREC}: check already exists for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
-      }
-
-       if (toCheckNegrec) {
-        let negrecStatus = await documentChecker.handleNegrecData(form, application)
-          await documentChecker.createCheck({application, status: negrecStatus, form, provider: PROVIDER_NEGREC, aspect: NEGREC_ASPECT})
-          if (negrecStatus.status === 'pass') {
-              await documentChecker.createVerification({ application, form, rawData: negrecStatus.rawData, provider: PROVIDER_NEGREC, aspect: NEGREC_ASPECT })
-          }
-      }
+   
+     
     
         handleIdSearch = async (form, application) => {
         let idNumber = ''
