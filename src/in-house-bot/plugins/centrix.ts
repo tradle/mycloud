@@ -34,7 +34,7 @@ import { getNameFromForm, toISODateString } from '../utils'
 const PHOTO_ID = 'tradle.PhotoID'
 const ADDRESS = 'tradle.Address'
 const CENTRIX_CHECK = 'tradle.CentrixCheck'
-const CENTRIX_ADDRESS_CHECK = 'tradle.CentrixAddressCheck'
+const ADDRESS_CHECK = 'tradle.AddressCheck'
 const CENTRIX_NAME = 'Centrix'
 const NZ_COUNTRY_ID = 'tradle.Country_NZ'
 const ASPECTS = 'Document registry'
@@ -206,7 +206,7 @@ class CentrixAPI {
       }
     }
     const check = await this.bot.draft({
-        type: doVerifyAddress ? CENTRIX_ADDRESS_CHECK : CENTRIX_CHECK,
+        type: doVerifyAddress ? ADDRESS_CHECK : CENTRIX_CHECK,
       })
       .set(r)
       .signAndSave()
@@ -245,7 +245,7 @@ class CentrixAPI {
     })
 
     if (application.checks)
-      await this.applications.deactivateChecks({ application, type: doVerifyAddress ? CENTRIX_ADDRESS_CHECK : CENTRIX_CHECK, form: object })
+      await this.applications.deactivateChecks({ application, type: doVerifyAddress ? ADDRESS_CHECK : CENTRIX_CHECK, form: object })
   }
 }
 export const createPlugin: CreatePlugin<CentrixAPI> = ({ bot, productsAPI, applications }, { conf, logger }) => {
@@ -389,7 +389,7 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
   let addressForm:ITradleObject
   let address = full
   if (address) {
-    let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_ADDRESS_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck: ['full', 'city'], prop: 'form'})
+    let createCheck = await doesCheckNeedToBeCreated({bot, type: ADDRESS_CHECK, application, provider: CENTRIX_NAME, form, propertiesToCheck: ['full', 'city'], prop: 'form'})
     if (!createCheck) {
       logger.debug(`Centrix: check already exists for ${firstName} ${lastName} ${form.documentType.title}`)
       return
@@ -401,7 +401,7 @@ async function getCentrixData ({ application, bot, logger, verifyAddress }: {app
       return { centrixData, addressVerificationData }
     addressForm = await bot.objects.get(addressStub.link)
 
-    let createCheck = await doesCheckNeedToBeCreated({bot, type: CENTRIX_ADDRESS_CHECK, application, provider: CENTRIX_NAME, form: addressForm, propertiesToCheck: ['streetAddress', 'city'], prop: 'form'})
+    let createCheck = await doesCheckNeedToBeCreated({bot, type: ADDRESS_CHECK, application, provider: CENTRIX_NAME, form: addressForm, propertiesToCheck: ['streetAddress', 'city'], prop: 'form'})
     if (!createCheck) {
       logger.debug(`Centrix: check already exists for ${firstName} ${lastName} ${form.documentType.title}`)
       return
