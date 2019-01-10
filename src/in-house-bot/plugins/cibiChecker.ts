@@ -38,7 +38,8 @@ const NEGREC_ASPECTS= 'Person negative record search'
 const PROVIDER_CREDIT_BUREAU = 'CIBI Credit Bureau'
 const PROVIDER_NEGREC = 'CIBI Negative Record'
 
-const REP_URL = 'https://creditbureau.cibi.com.ph/uat/service.asmx?op=GET_REPORT'
+const REP_URL = 'https://creditbureau.cibi.com.ph/service.asmx?op=GET_REPORT'
+const REP_TEST_URL = 'https://creditbureau.cibi.com.ph/uat/service.asmx?op=GET_REPORT'
 const NEGREC_TEST_URL = 'https://www.info4bus.com/i4b_api_test/negrec_api.asmx?op=NEGREC_SEARCH'
 const NEGREC_URL = 'https://www.info4bus.com/i4b_api/negrec_api.asmx?op=NEGREC_SEARCH'
 
@@ -70,17 +71,17 @@ interface ICIBICheck {
 interface ICIBICheckerConf {
     username: string
     token: string
+    test : boolean 
     negrecUsername: string
     negrecToken: string
-    negrecUrl: string
+    negrecTest: boolean
 }
 
 const DEFAULT_CONF = {
     'username': 'kiuglobal',
     'token': 'E6DAD45A',
     'negrecUsername': 'kiuglobal',
-    'negrecToken': 'FC59310F',
-    'negrecUrl': NEGREC_TEST_URL
+    'negrecToken': 'FC59310F'
 }
 
 const isArray = function(a) {
@@ -117,8 +118,9 @@ export class CIBICheckerAPI {
          <subject_name>${subjectName}</subject_name>
          <subject_type>${subjectType}</subject_type>
          </NEGREC_SEARCH></soap12:Body></soap12:Envelope>`
-
-        let negrecReport = await this.negrec(negrecSearchXML, this.conf.negrecUrl) 
+        
+        let url = this.conf.negrecTest? NEGREC_TEST_URL : NEGREC_URL 
+        let negrecReport = await this.negrec(negrecSearchXML, url) 
 
         let negrecStatus
         if (!negrecReport.success) {
@@ -142,18 +144,24 @@ export class CIBICheckerAPI {
         if (status.success) {
             let data = status.data['soap:Envelope']['soap:Body'].NEGREC_SEARCHResponse.NEGREC_SEARCHResult.NEGREC_SEARCH_RESPONSE
             delete data['$']
-            delete data.USERNAME
-            let subjects = data.SUBJECTS
-            delete data.SUBJECTS
-            let obj = subjects.SUBJECT
-            if (!isArray(obj)) {
-                let arr = []
-                if (obj.NAME.length > 0)
-                    arr.push(obj)
-                data.SUBJECTS = arr
+            if (data.SUBJECTS) {
+                delete data.USERNAME
+                let subjects = data.SUBJECTS
+                delete data.SUBJECTS
+                let obj = subjects.SUBJECT
+                if (!isArray(obj)) {
+                    let arr = []
+                    if (obj.NAME.length > 0)
+                        arr.push(obj)
+                    data.SUBJECTS = arr
+                }
+                else
+                    data.SUBJECTS = obj
+                }
+            else {
+                status.success = false
+                status.error = data['_']        
             }
-            else
-                data.SUBJECTS = obj
             status.data = data
         }
         return status
@@ -177,7 +185,8 @@ export class CIBICheckerAPI {
         </request>
         </GET_REPORT></soap12:Body></soap12:Envelope>`
         
-        let identityReport = await this.identityWithAddress(identityReportXML, REP_URL)
+        let url = this.conf.test? REP_TEST_URL : REP_URL 
+        let identityReport = await this.identityWithAddress(identityReportXML, url)
     
         let identityStatus
         if (!identityReport.status.success) {
@@ -185,6 +194,7 @@ export class CIBICheckerAPI {
            this.logger.debug(`Failed request data from ${PROVIDER_CREDIT_BUREAU}, error : ${identityReport.status.error}`);
         } else {
             this.logger.debug(`Received data from ${PROVIDER_CREDIT_BUREAU}: ${JSON.stringify(identityReport.status.data, null, 2)}`);
+
             let match = identityReport.status.data.Request.match
             delete identityReport.status.data.Request.match
             if (match === '0') {
@@ -261,22 +271,29 @@ export class CIBICheckerAPI {
            let data = status.data['soap:Envelope']['soap:Body'].GET_REPORTResponse.GET_REPORTResult.Answer
            delete data['$']
            status.data = data
-           let req = status.data.Request
-           req.subscriber_industry = industryMap[req.subscriber_industry]
-           req.purpose = purposeMap[req.purpose]
-           req.bureau_type = bureauTypeMap[req.bureau_type]
-           delete req.method
-           delete req.is_report
-           delete req.product_id
-           delete req.reference_nb
-           req.result_code = matchResultMap[req.result_code]
-           let report = status.data.Report
-           if (report) {
-              this.mapReport(report, address)
+           this.logger.debug(`Received response from ${PROVIDER_CREDIT_BUREAU}`, JSON.stringify(status.data,null,2));
+           let err = status.data.Error
+           if (err.code === '0') {
+                let req = status.data.Request
+                req.subscriber_industry = industryMap[req.subscriber_industry]
+                req.purpose = purposeMap[req.purpose]
+                req.bureau_type = bureauTypeMap[req.bureau_type]
+                delete req.method
+                delete req.is_report
+                delete req.product_id
+                delete req.reference_nb
+                req.result_code = matchResultMap[req.result_code]
+                let report = status.data.Report
+                if (report) {
+                    this.mapReport(report, address)
+                }
+                this.logger.debug(`Received address from ${PROVIDER_CREDIT_BUREAU}`, JSON.stringify(address, null,2));
            }
+           else {
+                status.error = err.message
+                status.success = false          
+           } 
         }
-        this.logger.debug(`Received response from ${PROVIDER_CREDIT_BUREAU}`, JSON.stringify(status.data,null,2));
-        this.logger.debug(`Received address from ${PROVIDER_CREDIT_BUREAU}`, JSON.stringify(address, null,2));
       
         return { status , address }
     }
@@ -403,7 +420,24 @@ debugger
         else {
             await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
         }
-        
+
+        let formAddress = form.full
+        if (formAddress) {
+            formAddress = formAddress.replace(/\s+/g, ' ').toUpperCase()
+            // this is unparsed address, can check for contained in it
+            if (formAddress.includes(address.city) &&
+                formAddress.includes(address.street) &&
+                formAddress.includes(address.postalCode)) {
+                await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
+                await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
+            }
+            else {
+                identityStatus.status = 'fail'
+                identityStatus.message = 'not exact match'
+                await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
+            }
+            return
+        }
         const addressStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
         if (!addressStub) {
           logger.error(`${PROVIDER_CREDIT_BUREAU}: address form cannot be found for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
