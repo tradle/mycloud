@@ -2,21 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-# [2.4.0-rc.0](https://github.com/tradle/serverless/compare/v2.3.1-rc.2...v2.4.0-rc.0) (2019-01-07)
-
-
-### Bug Fixes
-
-* short url does not have scheme ([d00afff](https://github.com/tradle/serverless/commit/d00afff))
-
-
-### Features
-
-* send link invite via SMS if no email was provided ([252b070](https://github.com/tradle/serverless/commit/252b070))
-* short to long url mapping for sending links over SMS ([3ea5c7a](https://github.com/tradle/serverless/commit/3ea5c7a))
-* short to long url mapping for sending links over SMS ([93adcc7](https://github.com/tradle/serverless/commit/93adcc7))
-* short to long url mappping ([e60ba39](https://github.com/tradle/serverless/commit/e60ba39))
-* tiny url resolver ([6cddf3c](https://github.com/tradle/serverless/commit/6cddf3c))
+# [2.4.0-rc.1](https://github.com/tradle/serverless/compare/v2.4.0-rc.0...v2.4.0-rc.1) (2019-01-10)
 
 
 
