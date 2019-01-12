@@ -1,6 +1,5 @@
 import fetch from 'node-fetch'
 import xml2js from 'xml2js-parser'
-import dateformat from 'dateformat'
 import _ from 'lodash'
 import { buildResourceStub } from '@tradle/build-resource'
 import constants from '@tradle/constants'
@@ -19,6 +18,7 @@ import {
   getParsedFormStubs,
   doesCheckNeedToBeCreated,
   getStatusMessageForCheck,
+  toISODateString
 } from '../utils'
 
 import validateResource from '@tradle/validate-resource'
@@ -169,7 +169,7 @@ export class CIBICheckerAPI {
 
 
     handleIdentityData = async (form, application) => {
-        let dateOfBirth = dateformat(new Date(form.dateOfBirth), 'yyyy-mm-dd')
+        let dateOfBirth = toISODateString(form.dateOfBirth)
         let firstname = form.firstName // LANIE
         let secondname = form.middleName // G
         let lastname = form.lastName // AVIDA
