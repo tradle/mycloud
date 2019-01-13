@@ -31,8 +31,8 @@ const { TYPE, TYPES } = constants
 const { VERIFICATION } = TYPES
 // const SELFIE = 'tradle.Selfie'
 // const PHOTO_ID = 'tradle.PhotoID'
-const TRUEFACE_CHECK = 'tradle.TruefaceCheck'
-const DISPLAY_NAME = 'Spoof Detection'
+const TRUEFACE_CHECK = 'tradle.SpoofProofSelfieCheck'
+const ASPECTS = 'Spoof Detection'
 const PROVIDER = 'Trueface'
 const NTECH_API_RESOURCE = {
   [TYPE]: 'tradle.API',
@@ -152,7 +152,7 @@ export class TruefaceAPI {
     this.logger.debug('Trueface spoof detection:', checkR.message);
     // if (error)
     if (data)
-      checkR.score = data.score
+      checkR.livenessScore = data.score
 
     const check = await this.bot.draft({ type: TRUEFACE_CHECK })
       .set(checkR)
@@ -165,7 +165,7 @@ export class TruefaceAPI {
     const method:any = {
       [TYPE]: 'tradle.APIBasedVerificationMethod',
       api: _.clone(NTECH_API_RESOURCE),
-      aspect: DISPLAY_NAME,
+      aspect: ASPECTS,
       reference: [{ queryId: 'n/a' }]
     }
 
