@@ -211,60 +211,79 @@ export class CIBICheckerAPI {
 
     mapReport = (report, address) => {
         let addr = report.Address
-        if (isArray(addr)) {
-           for (let a of addr) {
-              if (a.status === '0') {
-                 address.street = a.street
-                 address.postalCode = a.postal_code
-                 address.city = a.city
-              }
-              a.status = statusMap[a.status]
-              a.address_type = addressTypeMap[a.address_type]
-           }
+        if (addr) {
+            let unparsed : string = '';
+            if (isArray(addr)) {
+                for (let a of addr) {
+                    if (a.status === '0') {
+                        unparsed += this.buildUnparsed(a);
+                    }
+                    a.status = statusMap[a.status]
+                    a.address_type = addressTypeMap[a.address_type]
+                }
+            }
+            else {
+                unparsed += this.buildUnparsed(addr) 
+                addr.status = statusMap[addr.status]
+                addr.address_type = addressTypeMap[addr.address_type]
+            }
+            unparsed = unparsed.trim()
+            if (unparsed.length > 0)
+                address.unparsed = unparsed.toUpperCase().replace(/\s+/g, ' ')
         }
-        else {
-           address.street = addr.street
-           address.postalCode = addr.postal_code
-           address.city = addr.city
 
-           addr.status = statusMap[addr.status]
-           addr.address_type = addressTypeMap[addr.address_type]
-        } 
         let id = report.Identification
-        if (isArray(id)) {  
-           for (let i of id) {
-              i.status = statusMap[i.status]
-           }
+        if (id) {
+            if (isArray(id)) {  
+               for (let i of id) {
+                   i.status = statusMap[i.status]
+               }
+            }
+            else {
+               id.status = statusMap[id.status]
+            }
         }
-        else {
-           id.status = statusMap[id.status]
-        }
+
         let name = report.Name
-        if (isArray(name)) {  
-           for (let n of name) {
-              n.status = statusMap[n.status]
-              n.type = nameTypeMap[n.type]  
-           }
+        if (name) {
+            if (isArray(name)) {  
+                for (let n of name) {
+                    n.status = statusMap[n.status]
+                    n.type = nameTypeMap[n.type]  
+                }
+            }
+            else {
+                name.status = statusMap[name.status]
+                name.type = nameTypeMap[name.type] 
+            }
         }
-        else {
-           name.status = statusMap[name.status]
-           name.type = nameTypeMap[name.type] 
-        }
+
         let empl = report.Employment
-        if (isArray(empl)) {  
-           for (let e of empl) {
-              e.status = statusMap[e.status]
-           }
+        if (empl) {
+            if (isArray(empl)) {  
+                for (let e of empl) {
+                    e.status = statusMap[e.status]
+                }
+            }
+            else {
+                empl.status = statusMap[empl.status]
+            }
         }
-        else {
-           empl.status = statusMap[empl.status]
-        }
-        if (address.street) address.street = address.street.toUpperCase()
-        if (address.city) address.city = address.city.toUpperCase()
     }
 
+    buildUnparsed = (addr) => {
+        let unparsed = ''
+        if (addr.street && addr.street.length > 0)
+            unparsed += addr.street + ' ';
+        if (addr.city && addr.city.length > 0)
+            unparsed += addr.city + ' ';
+        if (addr.unparsed_street && addr.unparsed_street.length > 0)
+            unparsed += addr.unparsed_street;
+        return unparsed                     
+    }    
+
     identityWithAddress = async (data, url) => {
-        let address = { street : '', city : '', postalCode : '' }
+        let address = { unparsed : undefined }
     
         let status = await this.post(data, url)
         if (status.success) {
@@ -420,24 +439,26 @@ debugger
         else {
             await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
         }
+        
+        if (!address.unparsed)
+            return // CIBI does not return address information
 
         let formAddress = form.full
-        if (formAddress) {
-            formAddress = formAddress.replace(/\s+/g, ' ').toUpperCase()
-            // this is unparsed address, can check for contained in it
-            if (formAddress.includes(address.city) &&
-                formAddress.includes(address.street) &&
-                formAddress.includes(address.postalCode)) {
-                await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-                await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
-            }
-            else {
-                identityStatus.status = 'fail'
-                identityStatus.message = 'not exact match'
-                await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-            }
-            return
+        if (formAddress && formAddress.trim().length() > 0) {
+            let addressTokens = formAddress.trim().replace(/\s+/g, ' ').toUpperCase().split(' ')
+            // checking tokens in unparsed address
+            for (let token of addressTokens) {
+                if (!address.unparsed.includes(token)) {
+                    identityStatus.status = 'fail'
+                    identityStatus.message = 'not exact match'
+                    await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
+                    return
+                }
+            }    
+            await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
+            await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
         }
+
         const addressStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
         if (!addressStub) {
           logger.error(`${PROVIDER_CREDIT_BUREAU}: address form cannot be found for ${form.firstName} ${form.lastName} ${form.documentType.title}`)
@@ -448,18 +469,21 @@ debugger
     
         let street = addressForm.streetAddress
         let city = addressForm.city
-        let postalCode = addressForm.postalCode
-        if (street) street = street.toUpperCase()
-        if (city) city = city.toUpperCase()
-        if (city === address.city && street === address.street && postalCode === address.postalCode) {
-            await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-            await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
-        }
-        else {
-            identityStatus.status = 'fail'
-            identityStatus.message = 'not exact match'
-            await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
-        }
+        street = street? street.toUpperCase() : ''
+        city = city? city.toUpperCase() : ''
+        let addressTokens = (street + ' ' + city).trim().replace(/\s+/g, ' ').split(' ')
+
+        // checking tokens in unparsed address
+        for (let token of addressTokens) {
+            if (!address.unparsed.includes(token)) {
+                identityStatus.status = 'fail'
+                identityStatus.message = 'not exact match'
+                await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
+                return
+            }
+        }    
+        await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
+        await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
       }
     }
   }
