@@ -457,6 +457,7 @@ debugger
             }    
             await documentChecker.createCheck({application, status: identityStatus, form, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS})
             await documentChecker.createVerification({ application, form, rawData: identityStatus.rawData, provider: PROVIDER_CREDIT_BUREAU, aspect: ADDRESS_ASPECTS })
+            return
         }
 
         const addressStub = getParsedFormStubs(application).find(form => form.type === ADDRESS)
