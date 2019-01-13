@@ -181,7 +181,7 @@ export class CIBICheckerAPI {
         <auth_token>${this.conf.token}</auth_token><username>${this.conf.username}</username>
         <product>10</product>
         <request>
-        <![CDATA[<Request><CapsApplicant><firstname>${firstname}</firstname><secondname>${secondname}</secondname><lastname>${lastname}</lastname><dob>1960-09-25</dob></CapsApplicant></Request>]]>
+        <![CDATA[<Request><CapsApplicant><firstname>${firstname}</firstname><secondname>${secondname}</secondname><lastname>${lastname}</lastname><dob>${dateOfBirth}</dob></CapsApplicant></Request>]]>
         </request>
         </GET_REPORT></soap12:Body></soap12:Envelope>`
         
